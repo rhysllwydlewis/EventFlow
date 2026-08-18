@@ -66,7 +66,12 @@ router.get('/', authRequired, async (req, res) => {
     }
 
     res.json({
-      notify: user.notify !== false,
+      // notify_account is the field every actual send-gate checks
+      // (utils/postmark.js, services/queue/workers/email.worker.js) — read
+      // it here too, not the deprecated `notify` field, so a value set via
+      // this endpoint or via PUT /api/auth/preferences reads back the same
+      // either way.
+      notify: user.notify_account !== false,
       emailPrefs: {
         actionPrompts: {
           enabled: actionPrompts.enabled !== false,
@@ -96,7 +101,13 @@ router.post('/', writeLimiter, authRequired, csrfProtection, async (req, res) =>
     const body = req.body || {};
     const notify = !!body.notify;
 
-    const updateFields = { notify };
+    // notify_account is the field every actual send-gate checks
+    // (utils/postmark.js's sendNotificationEmail, services/queue/workers/
+    // email.worker.js) — this endpoint previously only wrote the deprecated
+    // `notify` field, so unchecking the toggle here silently had no effect
+    // on whether the user actually kept receiving account-notification
+    // email. Write both, mirroring PUT /api/auth/preferences.
+    const updateFields = { notify, notify_account: notify };
 
     // Update emailPrefs.actionPrompts if provided
     if (body.emailPrefs && typeof body.emailPrefs.actionPrompts === 'object') {

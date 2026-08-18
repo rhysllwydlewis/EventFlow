@@ -28,6 +28,7 @@ const {
   passwordResetLimiter,
   registrationLimiter,
   tokenLinkLimiter,
+  writeLimiter,
 } = require('../middleware/rateLimits');
 const { csrfProtection } = require('../middleware/csrf');
 const { featureRequired, getFeatureFlags } = require('../middleware/features');
@@ -1853,7 +1854,7 @@ router.get('/me', async (req, res) => {
  * PUT /api/auth/preferences
  * Update user notification preferences
  */
-router.put('/preferences', authRequired, csrfProtection, async (req, res) => {
+router.put('/preferences', writeLimiter, authRequired, csrfProtection, async (req, res) => {
   const { notify_account, notify_marketing } = req.body || {};
 
   const prefUpdates = {};

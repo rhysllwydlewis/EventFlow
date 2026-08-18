@@ -24,6 +24,8 @@ function emptySummary() {
     partnerSoftDeleted: false,
     supplierIds: [],
     deletedPackageIds: [],
+    anonymisedCustomerRecords: 0,
+    deletedCustomerPlans: 0,
     errors: [],
   };
 }
@@ -298,6 +300,100 @@ async function cleanupSupplierOwnedDataForUser(user, options = {}) {
   return summary;
 }
 
+async function cleanupCustomerOwnedDataForUser(user, options = {}) {
+  const summary = emptySummary();
+  const userId = userIdOf(user);
+  if (!userId) {
+    summary.errors.push('Missing target user id');
+    return summary;
+  }
+
+  logger.info(`[adminUserDeletion] Starting customer cascade cleanup for user ${userId}`);
+
+  const now = options.now || new Date().toISOString();
+  const anonymise = {
+    $set: {
+      customerDeleted: true,
+      customerDeletedAt: now,
+    },
+  };
+
+  // quoteRequests: the requester is recorded as `userId` (see
+  // routes/quote-requests.js — set on creation, matched on read/ownership
+  // checks). The request still references the suppliers it was sent to, so
+  // anonymise the customer's identity in place rather than deleting it.
+  summary.anonymisedCustomerRecords += await updateManyCount(
+    'quoteRequests',
+    { userId },
+    { $set: { ...anonymise.$set, userId: null, name: null, email: null, phone: null, notes: null } }
+  );
+
+  // enquiries: submitted via the public contact form (routes/contact.js) and
+  // never linked to a logged-in user id — only `senderName`/`senderEmail`
+  // are stored. Match by the account's email address instead, the same way
+  // the newsletter-subscription cleanup below does.
+  if (user.email) {
+    const email = String(user.email).toLowerCase().trim();
+    summary.anonymisedCustomerRecords += await updateManyCount(
+      'enquiries',
+      { senderEmail: email },
+      { $set: { ...anonymise.$set, senderName: null, senderEmail: null, message: null } }
+    );
+  }
+
+  // threads: the customer side of a conversation is `customerId` (see
+  // server.js legacy migration and services/reviewService.js). Anonymise
+  // rather than delete since the supplier's side of the thread still exists.
+  summary.anonymisedCustomerRecords += await updateManyCount(
+    'threads',
+    { customerId: userId },
+    { $set: { ...anonymise.$set, customerId: null } }
+  );
+
+  // messages: the sender is `senderId`, with a legacy `fromUserId` alias
+  // still present on older documents (see server.js's v1 migration, which
+  // normalises `senderId: message.senderId || message.fromUserId`). Match
+  // both so nothing is missed regardless of which field is populated.
+  summary.anonymisedCustomerRecords += await updateManyCount(
+    'messages',
+    { $or: [{ senderId: userId }, { fromUserId: userId }] },
+    { $set: { ...anonymise.$set, senderId: null, fromUserId: null, content: null, text: null } }
+  );
+
+  // bookings: the customer is `customerId` (see services/quoteBooking.service.js).
+  // Anonymise rather than delete — the supplier's side of the booking (and
+  // any payment/audit history) still needs to exist.
+  summary.anonymisedCustomerRecords += await updateManyCount(
+    'bookings',
+    { customerId: userId },
+    { $set: { ...anonymise.$set, customerId: null } }
+  );
+
+  // reviews: the author is `authorId` (see services/reviewService.js,
+  // models/Review.js). Sever the link to the deleted account but keep the
+  // review itself, matching how the supplier-side cascade above only clears
+  // `supplierId` rather than deleting the review outright.
+  summary.anonymisedCustomerRecords += await updateManyCount(
+    'reviews',
+    { authorId: userId },
+    { $set: { ...anonymise.$set, authorId: null } }
+  );
+
+  // plans: solely owned by the customer (see routes/plans.js,
+  // routes/plans-legacy.js, routes/wedding-websites.js — all keyed by
+  // `userId`, with no supplier or other party referencing the record), so
+  // unlike the other collections above these are hard-deleted rather than
+  // anonymised.
+  summary.deletedCustomerPlans = await deleteManyCount('plans', { userId });
+
+  logger.info(
+    `[adminUserDeletion] Customer cascade complete for user ${userId}: ` +
+      `${summary.anonymisedCustomerRecords} record(s) anonymised, ` +
+      `${summary.deletedCustomerPlans} plan(s) deleted`
+  );
+  return summary;
+}
+
 function mergeSummaries(target, source) {
   for (const [key, value] of Object.entries(source || {})) {
     if (typeof value === 'number') {
@@ -330,6 +426,7 @@ async function deleteUserAndOwnedData(userOrUserId, actor, options = {}) {
     }
 
     mergeSummaries(summary, await cleanupSupplierOwnedDataForUser(user, options));
+    mergeSummaries(summary, await cleanupCustomerOwnedDataForUser(user, options));
 
     try {
       await partnerService.softDeletePartnerByUserId(targetId);
@@ -378,6 +475,7 @@ async function deleteUserAndOwnedData(userOrUserId, actor, options = {}) {
 module.exports = {
   deleteUserAndOwnedData,
   cleanupSupplierOwnedDataForUser,
+  cleanupCustomerOwnedDataForUser,
   invalidatePublicSupplierCaches,
   emptySummary,
   mergeSummaries,

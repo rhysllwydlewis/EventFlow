@@ -473,13 +473,17 @@ router.delete('/', writeLimiter, authRequired, csrfProtection, async (req, res) 
 
     // Reuse the same cascade the admin "delete user" flow uses, so
     // self-service deletion cancels any live Stripe subscription, removes
-    // or anonymises everything the account owns (supplier profile,
-    // packages, photos, analytics, review requests, calendar events,
-    // marketplace listings, saved items/shortlists, and anonymised
-    // quote requests/enquiries/threads/messages/bookings/reviews/plans),
-    // removes the newsletter subscription and notifications, and
-    // soft-deletes the partner record — instead of only deleting the
-    // supplier row and orphaning everything else.
+    // or anonymises everything the account owns on the supplier side
+    // (supplier profile, packages, photos, analytics, review requests,
+    // calendar events, marketplace listings, saved items/shortlists) AND
+    // on the customer side (the user's own quote requests, enquiries,
+    // message threads/messages, bookings, and reviews are anonymised in
+    // place — supplier-referencing PII is cleared but the record survives
+    // for the other party; plans, being solely owned by the customer, are
+    // hard-deleted), removes the newsletter subscription and notifications,
+    // and soft-deletes the partner record — instead of only deleting the
+    // supplier row (or, for a plain customer, only the user row) and
+    // orphaning everything else.
     // Pass no actor (self-service, not admin-initiated) so the "cannot
     // delete your own account" admin guard doesn't apply here.
     let cascadeSummary;

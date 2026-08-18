@@ -109,6 +109,34 @@ describe('POST /api/me/settings — preference fields', () => {
       .expect(400);
   });
 
+  it('writes notify_account (the field real sends gate on), not just the deprecated notify field', async () => {
+    // utils/postmark.js's sendNotificationEmail and
+    // services/queue/workers/email.worker.js both check notify_account, not
+    // the legacy `notify` field — a user unchecking this toggle here must
+    // actually stop those sends, not just flip a field nothing reads.
+    const db = buildDb({ users: [{ id: 'user_1', email: 'u@example.com' }] });
+    const app = buildApp(db);
+
+    await request(app).post('/api/me/settings').send({ notify: false }).expect(200);
+
+    expect(db.updateOne).toHaveBeenCalledWith(
+      'users',
+      { id: 'user_1' },
+      { $set: expect.objectContaining({ notify: false, notify_account: false }) }
+    );
+  });
+
+  it('reads notify from notify_account, matching what PUT /api/auth/preferences writes', async () => {
+    const db = buildDb({
+      users: [{ id: 'user_1', email: 'u@example.com', notify: true, notify_account: false }],
+    });
+    const app = buildApp(db);
+
+    const res = await request(app).get('/api/me/settings').expect(200);
+
+    expect(res.body.notify).toBe(false);
+  });
+
   it('writes communityDigestCadence as a dot-path key and the opt-outs as flat keys', async () => {
     const db = buildDb({ users: [{ id: 'user_1', email: 'u@example.com' }] });
     const app = buildApp(db);

@@ -71,7 +71,7 @@ describe('utils/postmark sendMail retry behaviour', () => {
     expect(result.PostmarkMessageID).toBe('msg-1');
   });
 
-  test('retries a network-level error with no statusCode', async () => {
+  test('retries a network-level error with no statusCode property at all', async () => {
     const networkError = new Error('ECONNRESET');
     const sendEmail = jest
       .fn()
@@ -86,6 +86,37 @@ describe('utils/postmark sendMail retry behaviour', () => {
 
     expect(sendEmail).toHaveBeenCalledTimes(2);
     expect(result.PostmarkMessageID).toBe('msg-2');
+  });
+
+  test('retries a real network-level error, shaped like the postmark client actually throws it', async () => {
+    // The postmark package's ErrorHandler.buildError() wraps every failure
+    // that never reached Postmark's servers (timeout, ECONNRESET, DNS
+    // failure) in a PostmarkError whose constructor defaults statusCode to
+    // 0 — a number, not undefined/missing. A prior version of
+    // isRetryablePostmarkError only checked `typeof statusCode !== 'number'`,
+    // which this shape does not satisfy, so real network errors were never
+    // retried despite the retry logic being built specifically for them.
+    class PostmarkError extends Error {
+      constructor(message) {
+        super(message);
+        this.statusCode = 0;
+        this.code = 0;
+      }
+    }
+    const networkError = new PostmarkError('connect ECONNREFUSED');
+    const sendEmail = jest
+      .fn()
+      .mockRejectedValueOnce(networkError)
+      .mockResolvedValueOnce({ MessageID: 'msg-3' });
+    mockPostmarkClient(sendEmail);
+
+    const postmark = require('../../utils/postmark');
+    const result = await runSendAndAdvanceTimers(() =>
+      postmark.sendMail({ to: 'user@example.com', subject: 'Hi', text: 'body' })
+    );
+
+    expect(sendEmail).toHaveBeenCalledTimes(2);
+    expect(result.PostmarkMessageID).toBe('msg-3');
   });
 
   test('does not retry a 422 invalid-recipient error — fails on the first attempt', async () => {

@@ -460,6 +460,7 @@ describe('supplier registration provisioning integration', () => {
       passwordResetLimiter: (_req, _res, next) => next(),
       registrationLimiter: (_req, _res, next) => next(),
       tokenLinkLimiter: (_req, _res, next) => next(),
+      writeLimiter: (_req, _res, next) => next(),
     }));
     jest.doMock('../../middleware/features', () => ({
       getFeatureFlags: jest.fn(async () => ({ registration: true, supplierApplications: true })),

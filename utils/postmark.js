@@ -108,14 +108,17 @@ initializePostmark();
 
 // Postmark's own 4xx errors (invalid API key, malformed request, inactive
 // recipient) mean the same call will fail identically on every retry — only
-// retry transient failures: 5xx/429 responses (statusCode set by the
-// Postmark client) and network-level errors (no statusCode at all, e.g. a
-// timeout or connection reset).
+// retry transient failures: 5xx/429 responses, and network-level errors.
+// The postmark client's ErrorHandler wraps every thrown error in a
+// PostmarkError, whose constructor defaults statusCode to 0 (not undefined)
+// when the failure never reached Postmark's servers at all (timeout,
+// ECONNRESET, DNS failure) — so `typeof error.statusCode !== 'number'`
+// never actually catches those; check for the 0 sentinel value instead.
 function isRetryablePostmarkError(error) {
   if (!error || typeof error.statusCode !== 'number') {
     return true;
   }
-  return error.statusCode >= 500 || error.statusCode === 429;
+  return error.statusCode === 0 || error.statusCode >= 500 || error.statusCode === 429;
 }
 
 /**

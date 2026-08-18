@@ -21,8 +21,13 @@ jest.mock('../../services/notification.service', () =>
   }))
 );
 
+jest.mock('../../services/schedulerLock.service', () => ({
+  withLock: jest.fn((jobKey, fn) => fn()),
+}));
+
 const schedule = require('node-schedule');
 const mongoDb = require('../../db');
+const schedulerLock = require('../../services/schedulerLock.service');
 const scheduler = require('../../services/notificationCleanupScheduler');
 
 describe('services/notificationCleanupScheduler.js', () => {
@@ -134,6 +139,32 @@ describe('services/notificationCleanupScheduler.js', () => {
         { rule: '0 5 * * *', tz: 'Etc/UTC' },
         expect.any(Function)
       );
+    });
+
+    it('acquires the distributed scheduler lock for both the cron tick and the startup catch-up', async () => {
+      // On a multi-replica deploy, an unguarded scheduler fires once per
+      // replica — this scheduler previously had no lock at all, unlike
+      // every other scheduler in the boot sequence.
+      mongoDb.getDb.mockResolvedValue({ collection: jest.fn() });
+      mockCleanupExpired.mockResolvedValue(0);
+      mockCleanupStale.mockResolvedValue(0);
+      process.env.NOTIFICATION_CLEANUP_ENABLED = 'true';
+
+      // Drain any startup catch-up still pending from a prior test's setImmediate
+      // before this test's own call count assertions.
+      await new Promise(resolve => setImmediate(resolve));
+      schedulerLock.withLock.mockClear();
+
+      scheduler.start();
+      await new Promise(resolve => setImmediate(resolve)); // flush this test's own startup catch-up
+      const cronCallback = schedule.scheduleJob.mock.calls.at(-1)[1];
+      await cronCallback();
+
+      expect(schedulerLock.withLock).toHaveBeenCalledWith(
+        'notification-cleanup',
+        expect.any(Function)
+      );
+      expect(schedulerLock.withLock).toHaveBeenCalledTimes(2); // startup catch-up + cron tick
     });
 
     it('cancels any previously scheduled job before scheduling a new one', () => {

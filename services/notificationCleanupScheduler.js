@@ -6,6 +6,7 @@ const logger = require('../utils/logger');
 const NotificationService = require('./notification.service');
 const { runScheduledJob, runIfMissed } = require('./scheduledJobRunner');
 const { JOB_KEYS } = require('./backgroundJobTelemetry.service');
+const schedulerLock = require('./schedulerLock.service');
 
 const EXPECTED_INTERVAL_MS = 24 * 60 * 60 * 1000;
 const DEFAULT_CRON = '20 3 * * *'; // 03:20 UTC — off-peak, away from other scheduled jobs.
@@ -83,9 +84,11 @@ function start() {
   // advertises on the dashboard.
   const cronExpr = process.env.NOTIFICATION_CLEANUP_CRON || DEFAULT_CRON;
   scheduledJob = schedule.scheduleJob({ rule: cronExpr, tz: 'Etc/UTC' }, () =>
-    runTracked('scheduler')
+    schedulerLock.withLock(JOB_KEYS.NOTIFICATION_CLEANUP, () => runTracked('scheduler'))
   );
-  setImmediate(() => runCatchUpIfMissed());
+  setImmediate(() =>
+    schedulerLock.withLock(JOB_KEYS.NOTIFICATION_CLEANUP, () => runCatchUpIfMissed())
+  );
   return { scheduled: Boolean(scheduledJob), nextRun: scheduledJob?.nextInvocation() || null };
 }
 
