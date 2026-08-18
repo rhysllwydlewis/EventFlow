@@ -1610,6 +1610,13 @@
   opacity: 0;
 }
 
+/* While the cookie banner occupies the bottom safe area, collapse other
+   floating launchers (e.g. the chat widget) that share that corner on
+   mobile so they never sit on top of the banner's action buttons. */
+body.ef-cookie-banner-open .jade-widget-root {
+  display: none !important;
+}
+
 .cookie-consent-content {
   max-width: 1200px;
   margin: 0 auto;

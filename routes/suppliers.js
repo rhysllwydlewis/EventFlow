@@ -261,7 +261,7 @@ router.get('/suppliers', async (req, res) => {
     const validUserIds = new Set(users.map(u => u.id).filter(Boolean));
 
     let items = (await dbUnified.read('suppliers')).filter(
-      s => s.approved && (!s.ownerUserId || validUserIds.has(s.ownerUserId))
+      s => s.approved && !s.isTest && (!s.ownerUserId || validUserIds.has(s.ownerUserId))
     );
     if (category) {
       items = items.filter(s => s.category === category);
@@ -360,7 +360,7 @@ router.get('/suppliers/showcase', async (req, res) => {
     const usersById = new Map(users.filter(u => u && u.id).map(u => [u.id, u]));
 
     const eligible = (await dbUnified.read('suppliers')).filter(
-      s => s && s.approved && (!s.ownerUserId || validUserIds.has(s.ownerUserId))
+      s => s && s.approved && !s.isTest && (!s.ownerUserId || validUserIds.has(s.ownerUserId))
     );
 
     // Partial Fisher-Yates: only shuffles as far as we need, and cannot pick
@@ -482,7 +482,11 @@ router.get('/suppliers/:id', async (req, res) => {
  */
 router.get('/suppliers/:id/packages', async (req, res) => {
   try {
-    const supplier = await dbUnified.findOne('suppliers', { id: req.params.id, approved: true });
+    const supplier = await dbUnified.findOne('suppliers', {
+      id: req.params.id,
+      approved: true,
+      isTest: { $ne: true },
+    });
     if (!supplier) {
       return res.status(404).json({ error: 'Supplier not found' });
     }
@@ -490,7 +494,7 @@ router.get('/suppliers/:id/packages', async (req, res) => {
     // packages to public clients.
     const supplierPkgs = await dbUnified.find('packages', { supplierId: supplier.id });
     const duplicateCounts = buildDuplicateTitleCounts(supplierPkgs);
-    const pkgs = supplierPkgs.filter(pkg => pkg.approved === true);
+    const pkgs = supplierPkgs.filter(pkg => pkg.approved === true && pkg.isTest !== true);
     const debug = req.query.debugImages === '1';
     const dbBackendType =
       typeof dbUnified.getDatabaseType === 'function' ? dbUnified.getDatabaseType() : 'unknown';
@@ -628,13 +632,14 @@ router.get('/packages/featured', async (_req, res) => {
           'packages',
           {
             approved: true,
+            isTest: { $ne: true },
             $or: [{ featured: true }, { isFeatured: true }],
           },
           { limit: 6, sort: { createdAt: -1 } }
         ),
         dbUnified.findWithOptions(
           'packages',
-          { approved: true },
+          { approved: true, isTest: { $ne: true } },
           { limit: 60, sort: { createdAt: -1 } }
         ),
       ]);
@@ -663,7 +668,9 @@ router.get('/packages/featured', async (_req, res) => {
       );
       const suppliersMap = new Map(
         suppliers
-          .filter(s => s && s.approved && (!s.ownerUserId || validUserIds.has(s.ownerUserId)))
+          .filter(
+            s => s && s.approved && !s.isTest && (!s.ownerUserId || validUserIds.has(s.ownerUserId))
+          )
           .map(s => [s.id, s])
       );
 
@@ -682,7 +689,9 @@ router.get('/packages/featured', async (_req, res) => {
       // Create a suppliers lookup map for O(1) access; exclude orphaned suppliers
       const suppliersMap = new Map(
         suppliers
-          .filter(s => s.approved && (!s.ownerUserId || validUserIds.has(s.ownerUserId)))
+          .filter(
+            s => s.approved && !s.isTest && (!s.ownerUserId || validUserIds.has(s.ownerUserId))
+          )
           .map(s => [s.id, s])
       );
 
@@ -692,6 +701,7 @@ router.get('/packages/featured', async (_req, res) => {
         .filter(
           p =>
             p.approved &&
+            !p.isTest &&
             (isFeaturedPackage(p) || planFeatured.has(p.supplierId)) &&
             suppliersMap.has(p.supplierId)
         )
@@ -747,20 +757,20 @@ router.get('/packages/spotlight', async (_req, res) => {
       // For MongoDB, use findWithOptions to get only approved packages
       approvedPackages = await dbUnified.findWithOptions(
         'packages',
-        { approved: true },
+        { approved: true, isTest: { $ne: true } },
         { limit: 100 } // Get up to 100 to have a good pool for rotation
       );
     } else {
       // Local storage fallback
       const packages = await dbUnified.read('packages');
-      approvedPackages = packages.filter(p => p.approved);
+      approvedPackages = packages.filter(p => p.approved && !p.isTest);
     }
 
     const allSuppliersForSpotlight = await dbUnified.read('suppliers');
     // Only include approved suppliers whose owner account still exists
     const approvedSpotlightSupplierIds = new Set(
       allSuppliersForSpotlight
-        .filter(s => s.approved && (!s.ownerUserId || validUserIds.has(s.ownerUserId)))
+        .filter(s => s.approved && !s.isTest && (!s.ownerUserId || validUserIds.has(s.ownerUserId)))
         .map(s => s.id)
     );
     approvedPackages = approvedPackages.filter(p => approvedSpotlightSupplierIds.has(p.supplierId));
@@ -803,14 +813,18 @@ router.get('/packages/spotlight', async (_req, res) => {
       );
       suppliersMap = new Map(
         suppliers
-          .filter(s => s && s.approved && (!s.ownerUserId || validUserIds.has(s.ownerUserId)))
+          .filter(
+            s => s && s.approved && !s.isTest && (!s.ownerUserId || validUserIds.has(s.ownerUserId))
+          )
           .map(s => [s.id, s])
       );
     } else {
       const suppliers = await dbUnified.read('suppliers');
       suppliersMap = new Map(
         suppliers
-          .filter(s => s.approved && (!s.ownerUserId || validUserIds.has(s.ownerUserId)))
+          .filter(
+            s => s.approved && !s.isTest && (!s.ownerUserId || validUserIds.has(s.ownerUserId))
+          )
           .map(s => [s.id, s])
       );
     }
@@ -850,7 +864,10 @@ router.get('/packages/search', async (req, res) => {
     const approved = req.query.approved === 'true';
 
     let items = await dbUnified.read('packages');
-    const publicSuppliers = await dbUnified.find('suppliers', { approved: true });
+    const publicSuppliers = await dbUnified.find('suppliers', {
+      approved: true,
+      isTest: { $ne: true },
+    });
     // Also load users to exclude packages from suppliers whose owner was deleted
     const usersForPkgSearch = await dbUnified.read('users');
     const validUserIdsForPkgSearch = new Set(usersForPkgSearch.map(u => u.id).filter(Boolean));
@@ -859,7 +876,7 @@ router.get('/packages/search', async (req, res) => {
         .filter(s => !s.ownerUserId || validUserIdsForPkgSearch.has(s.ownerUserId))
         .map(s => s.id)
     );
-    items = items.filter(p => p.approved && publicSupplierIds.has(p.supplierId));
+    items = items.filter(p => p.approved && !p.isTest && publicSupplierIds.has(p.supplierId));
 
     // Apply filters
     items = items.filter(p => {
@@ -937,10 +954,14 @@ router.post('/packages/bulk', apiLimiter, applyAuthRequired, async (req, res) =>
     }
 
     const allPackages = await dbUnified.read('packages');
-    const publicSuppliers = await dbUnified.find('suppliers', { approved: true });
+    const publicSuppliers = await dbUnified.find('suppliers', {
+      approved: true,
+      isTest: { $ne: true },
+    });
     const publicSupplierIds = new Set(publicSuppliers.map(s => s.id));
     const matched = allPackages.filter(
-      p => p.approved && uniqueIds.includes(p.id) && publicSupplierIds.has(p.supplierId)
+      p =>
+        p.approved && !p.isTest && uniqueIds.includes(p.id) && publicSupplierIds.has(p.supplierId)
     );
 
     res.json({ packages: matched });
@@ -964,13 +985,13 @@ router.get('/packages/:slug', async (req, res) => {
     // Only include approved suppliers whose owner account still exists
     const approvedSupplierIds = new Set(
       suppliers
-        .filter(s => s.approved && (!s.ownerUserId || validUserIds.has(s.ownerUserId)))
+        .filter(s => s.approved && !s.isTest && (!s.ownerUserId || validUserIds.has(s.ownerUserId)))
         .map(s => s.id)
     );
     const param = decodeURIComponent(req.params.slug || '').trim();
     const normalisedParam = normalisePackageSlug(param);
     const pkg = packages.find(p => {
-      if (!p.approved || !approvedSupplierIds.has(p.supplierId)) {
+      if (!p.approved || p.isTest || !approvedSupplierIds.has(p.supplierId)) {
         return false;
       }
       const lookups = getPackageLookupValues(p);
@@ -985,7 +1006,10 @@ router.get('/packages/:slug', async (req, res) => {
 
     const supplierRaw = suppliers.find(
       s =>
-        s.id === pkg.supplierId && s.approved && (!s.ownerUserId || validUserIds.has(s.ownerUserId))
+        s.id === pkg.supplierId &&
+        s.approved &&
+        !s.isTest &&
+        (!s.ownerUserId || validUserIds.has(s.ownerUserId))
     );
     if (!supplierRaw) {
       return res.status(404).json({ error: 'Package not found' });
