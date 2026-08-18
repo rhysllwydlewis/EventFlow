@@ -1,6 +1,6 @@
 # 📸 EventFlow - Comprehensive Event Services Marketplace
 
-A production-ready, feature-rich platform connecting event service suppliers (photographers, venues, caterers, entertainment, etc.) with customers planning events. Built with Node.js, Express, MongoDB, and modern web technologies.
+A production-ready, feature-rich platform connecting event service suppliers (photographers, venues, caterers, entertainment, etc.) with customers planning events. Built with Node.js, Express, and MongoDB, EventFlow has grown from a simple listings marketplace into a full platform: real-time messaging, a community forum, a partner/referral program, Stripe-powered subscriptions, wedding websites with RSVPs, and a UK-wide location hub — all sitting behind a 100+ route, 100+ service module backend.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 [![Node.js Version](https://img.shields.io/badge/node-22.x%20LTS-brightgreen)](https://nodejs.org/)
@@ -15,6 +15,7 @@ A production-ready, feature-rich platform connecting event service suppliers (ph
   - [Local Development](#local-development)
   - [Production Deployment](#production-deployment)
 - [Tech Stack](#️-tech-stack)
+- [Background Jobs & Queue Architecture](#-background-jobs--queue-architecture)
 - [Environment Variables](#-environment-variables)
 - [API Endpoints](#-api-endpoints)
 - [User Flows & Pages](#-user-flows--pages)
@@ -32,86 +33,69 @@ A production-ready, feature-rich platform connecting event service suppliers (ph
 
 ## 🌟 Features
 
-### Core Platform
+EventFlow is organized into a handful of major product areas. The list below is grouped by system rather than a flat feature dump — each area has its own routes, services, and (where noted) a dedicated doc under [`docs/`](#-documentation).
 
-- ✅ **Multi-Step Planning Wizard** - Interactive wizard for creating event plans with package selection
-- ✅ **Advanced Photo Management** - Upload, optimize, crop with AWS S3 or local storage
-- ✅ **Reviews & Ratings System** - 5-star ratings with approval workflow
-- ✅ **Advanced Search & Discovery** - Full-text search, filters, trending, recommendations
-- ✅ **User Authentication** - JWT-based auth with role-based access (customer, supplier, admin)
-- ✅ **Email Verification** - Secure token-based email verification with 24-hour expiration
-- ✅ **Package Detail Pages** - Full-featured package view with gallery, supplier info, and messaging
-- ✅ **Supplier Profiles** - Rich profiles with galleries, packages, and services
-- ✅ **Admin Moderation** - Photo and review approval queues
-- ✅ **MongoDB Integration** - Schema validation, indexes, connection pooling
-- ✅ **API Documentation** - Interactive Swagger UI at `/api-docs`
-- ✅ **Subscriptions & Billing** - Stripe-powered supplier plans (Basic/Pro/Pro Plus/Enterprise), monthly & yearly pricing, prorated upgrades/downgrades, trials and intro coupons
-- ✅ **Community & Forums** - Discussion boards, moderation queue, and digest emails for suppliers and customers
-- ✅ **Partner & Referral Program** - Partner portal, referral tracking, cashout requests, and anti-abuse safeguards
-- ✅ **Wedding Websites & RSVPs** - Customer-built wedding sites with guest management, RSVP collection, and seating plans
-- ✅ **Quote Requests** - Structured enquiry-to-quote workflow between customers and suppliers
-- ✅ **Two-Factor Authentication** - TOTP-based 2FA plus phone and email verification
-- ✅ **Location Hub Pages** - UK city hub-and-spoke location pages (`/locations/:citySlug`) for supplier discovery
-- ✅ **Real-Time Messenger (v4)** - Typing indicators, read receipts, presence, and group threads over WebSockets
+### Core Marketplace
 
-### Planning Wizard
+- ✅ **Multi-Step Planning Wizard** — Interactive wizard for creating event plans with package selection
+- ✅ **Supplier Profiles & Packages** — Rich profiles with galleries, packages, services, and a verification state machine
+- ✅ **Advanced Search & Discovery** — Full-text and ranked supplier search, filters, trending, personalised recommendations, and a separate classifieds-style marketplace for second-hand event items (geodistance search)
+- ✅ **Reviews & Ratings (v2)** — 5-star ratings, verified-customer badges, trust scores, moderation, sentiment analysis, and secure Postmark-delivered review-request links
+- ✅ **Photo Management** — Upload, optimize, and moderate photos, stored on **Cloudinary** (not local disk)
+- ✅ **Public Calendar** — Shared calendar of wedding fayres, open days, and showcases with a publisher-permission model (see below)
+- ✅ **User Authentication** — JWT-based auth with role-based access (customer, supplier, admin), Google and Facebook sign-in, TOTP two-factor authentication, and email/phone verification
+- ✅ **Admin Dashboard (v2)** — RBAC-based admin panel (Owner/Admin/Moderator/Support roles) across ~36 admin pages
+- ✅ **API Documentation** — Interactive Swagger UI at `/api-docs`
 
-- Multi-step card-based UI with progress indicator
-- Event type selection (Wedding or Other events)
-- Location and event details (date, guest count, budget)
-- Category-based package browsing (Venues, Photography, Catering, etc.)
-- Skip functionality for flexible planning
-- Persistent plan summary sidebar
-- Plan persistence for logged-in users
-- Draft mode for anonymous users (prompts login to save)
-- Package classification by category and event type
-- Backward compatibility with legacy planning flow
+### Messaging — Messenger v4
 
-### Photo Management
+Real-time conversations between customers and suppliers over Socket.IO, with unread counts, blocking, search, attachments, and message reporting. Delivery is queue-backed (BullMQ/Redis — see [Background Jobs](#-background-jobs--queue-architecture)): an HTTP send emits over the socket immediately, then a deterministic notification job fans out in-app + email notifications idempotently, with a durable-recovery reconciler that replays anything missed if the worker restarts. Admins get oversight endpoints (`/admin/conversations`, `/admin/metrics`). See [docs/messenger/](docs/messenger/).
 
-- Multer middleware for secure uploads
-- Sharp for image optimization (resize, compress, format conversion)
-- Automatic thumbnail generation (300x300, 1200x1200, 2000x2000)
-- AWS S3 cloud storage or local filesystem
-- Batch upload (up to 10 photos)
-- Image cropping and editing
-- Admin approval workflow
-- CDN-ready URLs
+### Community & Forums
 
-### Search & Discovery
+A full discussion-forum system — categories, discussions, replies, reactions, bookmarks, follows, polls — gated behind the `COMMUNITY_ENABLED` feature flag and requiring verified email + an adult declaration to post. Public pages are server-rendered for SEO. Because it's UK-facing user-generated content, it ships with a real compliance package: a child-access assessment, a DPIA, a moderation policy, an incident runbook, and transparency records (see [`docs/compliance/`](docs/compliance/)) alongside trust tiers and an appeals process for moderation actions.
 
-- Full-text search across suppliers
-- Advanced filters: category, location, price, rating, amenities, guest capacity
-- Trending suppliers
-- New arrivals
-- Popular packages
-- Personalized recommendations based on browsing history
-- Search history tracking
+### Partner & Referral Program
 
-### Reviews & Ratings
+A private `/partner` portal for referrers (community partners, creators, group admins) who introduce genuine suppliers to EventFlow and earn points at signup/first-package/first-booking milestones. Backed by a substantial anti-fraud stack — device/IP risk scoring, CAPTCHA, reward integrity checks and clawback, and locked cashout operations — plus an admin moderation and cashout-approval workflow. See [docs/PARTNER_PORTAL.md](docs/PARTNER_PORTAL.md) and [docs/PARTNER_CASHOUT_SOP.md](docs/PARTNER_CASHOUT_SOP.md).
 
-- 5-star rating system
-- Written reviews with event details
-- Admin moderation
-- Helpful/unhelpful voting
-- Rating distribution analytics
-- Verified reviews
+### Subscriptions & Billing
+
+Stripe-only supplier billing (no Google Pay) across three tiers — **Starter** (free), **Professional**, and **Professional Plus** — each available monthly or yearly, with feature gating enforced server-side (e.g. package-listing limits unwind automatically on downgrade). Upgrades apply an immediate prorated charge; downgrades are scheduled at period end. Supports free trials and an introductory-pricing coupon flow for the Professional plan, with the full subscription lifecycle (activated/renewal-reminder/trial-ending/payment-failed/cancelled) wired to Postmark emails. See [docs/STRIPE_SUBSCRIPTION_GUIDE.md](docs/STRIPE_SUBSCRIPTION_GUIDE.md) and [docs/SUBSCRIPTION-TIERS.md](docs/SUBSCRIPTION-TIERS.md).
+
+### Wedding Planning Tools
+
+- **Wedding Websites & RSVPs** — Customers can publish a public wedding microsite (`/wedding/:slug`) with password/private-link/public visibility modes, theme customisation, RSVP collection (deduplicated by email/name), and a basic seating-table planner. Stored as sub-documents on the customer's `plans` record, not a standalone collection. See [docs/WEDDING_WEBSITE_FEATURE.md](docs/WEDDING_WEBSITE_FEATURE.md) for what's shipped vs. not yet built (e.g. drag-and-drop seating, invite emails/QR codes are still open).
+- **Guest Management** — RSVP status tracking (`pending`/`attending`/`declined`/`maybe`), a guest summary/table view, and CSV export.
+- **Quote Requests & Lead Scoring** — A structured customer→supplier enquiry flow feeding a 0–100 lead-quality score (timeline realism, contact completeness, spam signals) — see [docs/LEAD-SCORING.md](docs/LEAD-SCORING.md).
+
+### Location Hub Pages
+
+A UK "hub-and-spoke" location section — `/locations` plus a spoke page per city (`/locations/:citySlug`) — backed by an authoritative city registry, with an editorial publication-state machine (draft → review → pilot → published → retired) and an SEO quality gate that decides indexability independently of publish state. See [docs/uk-city-hub-and-spoke.md](docs/uk-city-hub-and-spoke.md).
+
+### Trust & Safety
+
+- **Two-Factor Authentication** — TOTP via `speakeasy`, QR-code setup, 10 backup codes, encrypted secrets
+- **Email & Phone Verification** — 24-hour email verification tokens; SMS OTP phone verification via Twilio
+- **Supplier Verification** — A dedicated verification state machine plus trust badges on supplier profiles
+- **Content Moderation** — Photo/review/community moderation queues, spam detection, and an audit log of every admin action
 
 ### Admin Dashboard
 
-- **User Management** - Edit, delete, suspend, ban users
-- **Admin Privilege Control** - Grant/revoke admin access with owner protection
-- **Supplier Management** - Edit, approve, verify, delete suppliers
-- **Manual Verification** - Admin can manually verify user emails and supplier identities
-- **Package Management** - Edit, approve, feature, delete packages
-- **Photo Moderation** - Batch approve/reject photo uploads
-- **Review Moderation** - Approve/reject customer reviews
-- **Smart Tagging** - Automatically generate relevant tags for suppliers based on descriptions
-- **Public Calendar Override** - Force-grant or force-deny calendar publishing rights per supplier (see below)
-- **Comprehensive Audit Log** - Track all admin actions with timestamps
-- **Data Export** - CSV and JSON exports for users, marketing lists, full database
-- **Analytics Dashboard** - User signups, activity metrics, platform statistics
-- **GDPR Compliance** - User data management and privacy controls
+- **User Management** — Edit, delete, suspend, ban users
+- **Admin Privilege Control** — Grant/revoke admin access with owner protection, backed by the v2 RBAC permission model
+- **Supplier Management** — Edit, approve, verify, delete suppliers
+- **Manual Verification** — Admin can manually verify user emails and supplier identities
+- **Package Management** — Edit, approve, feature, delete packages
+- **Photo & Review Moderation** — Batch approve/reject queues
+- **Smart Tagging** — Automatically generate relevant tags for suppliers based on descriptions
+- **Public Calendar Override** — Force-grant or force-deny calendar publishing rights per supplier (see below)
+- **Partner & Cashout Moderation** — Review referral fraud signals and approve/reject partner cashout requests
+- **Community Moderation** — Review reports, apply moderation actions, and handle appeals
+- **Comprehensive Audit Log** — Track all admin actions with timestamps
+- **Data Export** — CSV and JSON exports for users, marketing lists, full database
+- **Analytics Dashboard** — User signups, activity metrics, per-supplier performance analytics, and a PostHog integration layer
+- **GDPR Compliance** — User data management and privacy controls
 
 ### Supplier Types
 
@@ -214,7 +198,7 @@ Logged-in customers (and other users) can click **Save** on any published public
 Publisher suppliers can edit, cancel or delete only their **own** events. Admins can manage any event, filter by status/supplier/date/event type via the API, review publishing requests, and use the Admin → Supplier Detail tri-state override controls:
 
 | Value            | Effect                                         |
-| ---------------- | ---------------------------------------------- |
+| ---------------- | ----------------------------------------------- |
 | `true`           | Supplier can publish regardless of category    |
 | `false`          | Supplier cannot publish regardless of category |
 | `null` (default) | Derive from category (see table above)         |
@@ -246,17 +230,7 @@ OWNER_PASSWORD=your-strong-password
 ADMIN_DOMAINS=your-company.com
 ```
 
-📚 **[Complete Admin Setup Guide →](docs/ADMIN_SETUP.md)**
-
-### Messaging System
-
-- **Customer-Supplier Communication** - Direct messaging between customers and suppliers
-- **Conversation Threads** - Organized message threads with read/unread status
-- **Draft Messages** - Save and edit draft messages before sending
-- **Inbox Management** - View all conversations with unread counts and last message preview
-- **Smart Thread Reuse** - Automatically reuses existing conversations with the same parties
-- **Admin Access** - Admins can view all conversations for support purposes
-- **Real-time Updates** - Auto-refresh to show new messages
+📚 **[Complete Admin Setup Guide →](docs/ADMIN_SETUP.md)** · **[Admin API v2 / RBAC Reference →](docs/api/ADMIN_API_V2.md)**
 
 ### 🔒 Security
 
@@ -270,18 +244,18 @@ EventFlow implements industry-standard security practices:
 
 #### Security & Performance
 
-- ✅ **Rate Limiting** - Protects against abuse with endpoint-specific limits
+- ✅ **Rate Limiting** - Protects against abuse with endpoint-specific limits (~15 distinct limiters across the API)
   - Authentication: 10 requests / 15 minutes
-  - AI/OpenAI: 50 requests / hour
   - File Uploads: 20 requests / 15 minutes
   - Search/Discovery: 30 requests / minute
   - Notifications: 50 requests / 5 minutes
 - ✅ **Input Validation** - Express-validator for all user inputs
 - ✅ **Security Headers** - Helmet.js with CSP, HSTS, and other protections
-- ✅ **API Versioning** - `/api/v1/` prefix with backward compatibility
+- ✅ **API Versioning** - `/api/v1/` prefix with backward-compatible unversioned aliases
 - ✅ **CSRF Protection** - Token-based protection for all state-changing operations
 - ✅ **MongoDB Sanitization** - Prevents NoSQL injection attacks
 - ✅ **Password Hashing** - Bcrypt with salt rounds
+- ✅ **Partner Anti-Abuse** - Device/IP risk scoring and reward-integrity checks on the referral program (see [Partner & Referral Program](#partner--referral-program))
 - 📚 **[Full Security Documentation →](docs/SECURITY_FEATURES.md)**
 
 #### Security Headers (via Helmet)
@@ -300,7 +274,7 @@ EventFlow implements industry-standard security practices:
 #### Monitoring
 
 - CSP violation reporting endpoint at `/api/csp-report`
-- Sentry integration for error tracking
+- Sentry integration for error tracking (both server and browser)
 - Audit logging for admin actions
 
 ### ⚡ Performance
@@ -341,8 +315,8 @@ curl -I https://yourdomain.com/assets/css/styles.css
 
 #### Asset Optimization
 
-- **Minified Assets**: CSS (~292KB) and JS (~1.2MB) are production-ready
-- **Optimized Favicon**: 245 bytes SVG (extremely small)
+- **Minified Assets**: CSS and JS bundles are production-ready
+- **Optimized Favicon**: SVG favicon, extremely small
 - **Deferred Loading**: JavaScript loads with `defer` attribute
 - **Lazy Loading**: Images load on-demand as they enter viewport
 
@@ -362,25 +336,17 @@ curl http://localhost:3000/api/performance
 - Caching strategy documentation
 - Performance recommendations
 
-**Full Testing Guide:** See [docs/PERFORMANCE_TESTING.md](docs/PERFORMANCE_TESTING.md)
+**Full Testing Guide:** See [docs/PERFORMANCE_TESTING.md](docs/PERFORMANCE_TESTING.md) and [docs/guides/PERFORMANCE_OPTIMIZATION.md](docs/guides/PERFORMANCE_OPTIMIZATION.md)
 
 #### Image Optimization
 
-- **Sharp** library for server-side image processing
-- WebP format generation for modern browsers
-- Responsive image sizes (thumbnail, large, optimized)
+- **Sharp** library for server-side image processing before upload
+- **Cloudinary** for storage, on-the-fly transforms, and CDN delivery
 - Automatic thumbnail generation on upload
 
 #### CDN Recommendation
 
-For production deployments, we recommend adding Cloudflare in front of Railway for:
-
-- Global CDN with edge caching
-- DDoS protection
-- Additional image optimization
-- Automatic Brotli compression
-
-See `docs/CLOUDFLARE_SETUP.md` for setup instructions (coming soon).
+For production deployments, we recommend adding Cloudflare in front of Railway for global edge caching, DDoS protection, and automatic Brotli compression. See [docs/guides/CLOUDFLARE_SETUP.md](docs/guides/CLOUDFLARE_SETUP.md).
 
 ---
 
@@ -474,7 +440,7 @@ See the Docker Compose commands above, or `docker-compose.yml`, for the full ser
 
 3. **Deploy your app** - Push to your platform (Railway, Heroku, etc.)
 
-4. **Run a dedicated worker process in production** (required for notification/email queue fanout):
+4. **Run a dedicated worker process in production** (required for messaging/notification/email queue fanout — see [Background Jobs & Queue Architecture](#-background-jobs--queue-architecture)):
 
    ```bash
    node scripts/worker.js
@@ -492,12 +458,12 @@ See the Docker Compose commands above, or `docker-compose.yml`, for the full ser
 
 Getting "502 Bad Gateway" or "connection refused" errors? This usually means MongoDB isn't configured:
 
-| Error Message                                   | Solution                                                                                                                                                 |
-| ----------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| "Invalid scheme, expected connection string..." | You're using the placeholder from `.env.example`. Get your real connection string from MongoDB Atlas - [see guide](.github/docs/MONGODB_SETUP_SIMPLE.md) |
-| "Authentication failed" or "bad auth"           | Wrong password in connection string. Reset it in MongoDB Atlas → Database Access                                                                         |
-| "Connection timeout" or "ENOTFOUND"             | IP not whitelisted. Add `0.0.0.0/0` in MongoDB Atlas → Network Access                                                                                    |
-| "No cloud database configured"                  | `MONGODB_URI` environment variable not set on your deployment platform                                                                                   |
+| Error Message                                    | Solution                                                                                                                                                   |
+| ------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| "Invalid scheme, expected connection string..."   | You're using the placeholder from `.env.example`. Get your real connection string from MongoDB Atlas - [see guide](.github/docs/MONGODB_SETUP_SIMPLE.md) |
+| "Authentication failed" or "bad auth"             | Wrong password in connection string. Reset it in MongoDB Atlas → Database Access                                                                         |
+| "Connection timeout" or "ENOTFOUND"               | IP not whitelisted. Add `0.0.0.0/0` in MongoDB Atlas → Network Access                                                                                     |
+| "No cloud database configured"                    | `MONGODB_URI` environment variable not set on your deployment platform                                                                                    |
 
 **📚 Detailed troubleshooting:** See [MONGODB_SETUP_SIMPLE.md](.github/docs/MONGODB_SETUP_SIMPLE.md#common-problems-and-solutions)
 
@@ -508,35 +474,72 @@ Getting "502 Bad Gateway" or "connection refused" errors? This usually means Mon
 **Backend:**
 
 - Node.js & Express.js
-- MongoDB with Mongoose schemas
-- JWT authentication
-- Multer (file uploads)
-- Sharp (image processing)
-- AWS SDK (S3 storage)
+- MongoDB — the official `mongodb` Node driver (no ORM), with JSON-schema validators and indexes defined in `models/index.js`
+- JWT authentication (`jsonwebtoken`, `bcryptjs`)
+- Multer (uploads, in-memory) + Sharp (image processing) + Cloudinary (image storage & CDN)
+- Socket.IO (`socket.io`) — real-time messaging, presence, typing indicators, read receipts
+
+**Background jobs:**
+
+- BullMQ + ioredis — durable, retrying job queues for notification/email fan-out (see [Background Jobs & Queue Architecture](#-background-jobs--queue-architecture))
+- `node-schedule` — in-process scheduled/cron-style jobs (digests, cleanup, reminders)
+
+**Payments:**
+
+- Stripe (`stripe`) — subscriptions, proration, webhooks; no other payment provider is integrated
+
+**Auth providers:**
+
+- Google Identity Services, Facebook Login (Graph API), Apple Sign In (implemented, currently disabled — see [Environment Variables](#-environment-variables))
+- `speakeasy` + `qrcode` (TOTP two-factor auth), Twilio (SMS phone verification)
 
 **Email:**
 
-- Postmark (transactional email delivery)
-- Local HTML templates (no hosted templates required)
+- Postmark (`postmark`) — transactional email delivery, used exclusively (no SES/SMTP fallback)
+- Local HTML templates in `email-templates/` (no hosted templates required)
 
 **Security:**
 
-- Helmet (security headers)
-- bcrypt (password hashing)
-- Rate limiting
-- Input validation (Validator.js)
+- Helmet (security headers), `express-mongo-sanitize`, `express-rate-limit`, `express-validator`
+- `altcha-lib` (proof-of-work CAPTCHA), DOMPurify + `jsdom` (server-side sanitisation)
+
+**Monitoring:**
+
+- Winston (structured logging), Morgan (HTTP logging), Sentry (`@sentry/node` + `@sentry/browser`)
 
 **Documentation:**
 
-- Swagger/OpenAPI 3.0
-- Swagger UI Express
+- Swagger/OpenAPI 3.0 (`swagger-jsdoc`, `swagger-ui-express`)
 
-**Optional:**
+**Testing:**
 
-- Stripe (subscriptions & billing)
-- OpenAI (AI features)
+- Jest + Supertest, Playwright (+ `@axe-core/playwright` for accessibility), Artillery (load testing), `mongodb-memory-server`
+
+**Notably *not* used**, despite older docs or `.env.example` entries suggesting otherwise: Mongoose (native driver only), AWS SDK/S3 (Cloudinary is the image store), and OpenAI (the in-app AI planning assistant was retired — see [API Endpoints](#-api-endpoints)).
+
+## 🔁 Background Jobs & Queue Architecture
+
+EventFlow runs two processes in production: the web process (`server.js`) and a dedicated worker process (`scripts/worker.js`), connected through two BullMQ queues — `notifications` and `email` — backed by Redis.
+
+- **Deterministic, idempotent jobs**: job IDs are SHA-256 hashes derived from the message/recipient, so re-enqueuing the same logical job is a no-op. This is what lets a durable-recovery reconciler safely replay any notification fan-out that was missed if the worker restarts mid-flight.
+- **Dev/no-Redis fallback**: if `REDIS_URL` is unset outside production, queue calls resolve to an in-process synchronous stub that runs the handler inline — no Redis needed for local development. **Production refuses to start without `REDIS_URL`.**
+- **Retry policy**: 5 attempts with exponential backoff; failed email jobs are kept (up to 500) for inspection, failed notification jobs are dropped once their state is persisted on the message document itself.
+- **Worker heartbeat**: the worker writes a heartbeat to Redis every 10s (45s TTL). `/api/ready` requires a heartbeat younger than 30s to report ready, so a stalled worker fleet is detectable from outside the process.
+- **Message flow**: HTTP send → immediate Socket.IO emit → one deterministic notification job enqueued → notification worker does idempotent in-app fan-out → one deterministic email job enqueued per recipient → email worker sends via Postmark with its own retry/backoff.
+- **Namespacing**: set a unique `EVENTFLOW_QUEUE_NAMESPACE` per environment if multiple EventFlow deployments share the same Redis instance.
+
+`Procfile` already defines both processes:
+
+```
+web: node server.js
+worker: EVENTFLOW_PROCESS_TYPE=worker node scripts/worker.js
+```
+
+📚 Full detail: [docs/messenger/queue.md](docs/messenger/queue.md) and [docs/messenger/transactions.md](docs/messenger/transactions.md).
 
 ## 🔧 Environment Variables
+
+`.env.example` documents ~80 variables in full; the blocks below cover the ones you actually need to get a production deployment working.
 
 **Required for Production:**
 
@@ -553,6 +556,13 @@ NODE_ENV=production
 BASE_URL=https://yourdomain.com
 ```
 
+**Required if you run the worker process (queues/real-time delivery):**
+
+```env
+REDIS_URL=redis://default:password@redis-host:6379
+EVENTFLOW_QUEUE_NAMESPACE=production   # only needed if multiple deployments share one Redis
+```
+
 **Recommended (Email functionality):**
 
 ```env
@@ -561,36 +571,66 @@ POSTMARK_API_KEY=your-server-token
 POSTMARK_FROM=admin@yourdomain.com
 ```
 
-**Optional - Google sign-in:**
+**Photo storage (Cloudinary):**
 
 ```env
+CLOUDINARY_CLOUD_NAME=your-cloud
+CLOUDINARY_API_KEY=your-key
+CLOUDINARY_API_SECRET=your-secret
+```
+
+**Optional — Stripe (subscriptions & billing):**
+
+```env
+STRIPE_SECRET_KEY=sk_live_...
+STRIPE_PUBLISHABLE_KEY=pk_live_...
+STRIPE_WEBHOOK_SECRET=whsec_...
+STRIPE_PRO_PRICE_ID=price_...
+STRIPE_PRO_YEARLY_PRICE_ID=price_...
+STRIPE_PRO_PLUS_PRICE_ID=price_...
+STRIPE_PRO_PLUS_YEARLY_PRICE_ID=price_...
+# Optional: trial length, automatic tax, and an intro-pricing coupon for Professional
+STRIPE_SUBSCRIPTION_TRIAL_DAYS=0
+STRIPE_AUTOMATIC_TAX_ENABLED=false
+STRIPE_PRO_INTRO_COUPON_ID=
+```
+
+Without Stripe keys configured, billing endpoints fall back gracefully (subscriptions simply aren't available) rather than crashing the app. See [docs/guides/STRIPE_INTEGRATION_GUIDE.md](docs/guides/STRIPE_INTEGRATION_GUIDE.md) and [docs/guides/STRIPE_INTRO_PRICING_SETUP.md](docs/guides/STRIPE_INTRO_PRICING_SETUP.md).
+
+**Optional — Social sign-in:**
+
+```env
+# Google Identity Services — shows the "Sign in with Google" buttons and verifies ID tokens server-side
 GOOGLE_CLIENT_ID=your-google-web-client-id.apps.googleusercontent.com
-# Optional: comma-separated list of additional client IDs accepted by the backend.
-# GOOGLE_CLIENT_IDS=web-client-id,ios-client-id
+# GOOGLE_CLIENT_IDS=web-client-id,ios-client-id   # optional, comma-separated extra client IDs
+
+# Facebook Login — shows "Continue with Facebook" and verifies access tokens via the Graph API server-side
+FACEBOOK_APP_ID=your-facebook-app-id
+FACEBOOK_APP_SECRET=your-facebook-app-secret
+
+# Apple Sign In — fully implemented but currently switched OFF at the frontend
+# (button is hidden pending a paid Apple Developer account). Setting these does
+# NOT re-enable it by itself — see docs/APPLE_SIGN_IN_WITH_APPLE.md.
+# APPLE_CLIENT_ID=uk.co.event-flow.web
 ```
 
-Google sign-in uses Google Identity Services (`https://accounts.google.com/gsi/client`) for
-the branded login/sign-up buttons and server-verified ID tokens. The public
-`google/google-api-javascript-client` repository is useful for future browser-side
-Google API calls through `gapi.client`, but that repository is archived, does not
-ship the `gapi` source itself, and its `gapi.auth2` authentication path is
-deprecated in favour of Google Identity Services. Keep EventFlow authentication
-on GIS; only add the API client loader later if we need Google Calendar, Drive,
-or other Google API calls after obtaining the user's explicit OAuth consent.
+Google sign-in uses Google Identity Services (`https://accounts.google.com/gsi/client`) for the branded login/sign-up buttons and server-verified ID tokens. Facebook Login uses an OAuth authorization-code redirect flow (no client-side JS SDK); the access token is exchanged and verified server-side via the Graph API. Apple Sign In's backend and frontend code are both complete and wired up, but the button is hidden behind a frontend flag because Apple requires a paid Developer Program membership that hasn't been purchased yet — flipping the flag and setting `APPLE_CLIENT_ID` is enough to re-enable it once that's sorted.
 
-**Optional - AWS S3:**
+**Optional — Phone verification (Twilio) & Two-Factor Auth:**
 
 ```env
-AWS_S3_BUCKET=your-bucket
-AWS_S3_REGION=us-east-1
-AWS_ACCESS_KEY_ID=your-key
-AWS_SECRET_ACCESS_KEY=your-secret
+TWILIO_ACCOUNT_SID=your_twilio_account_sid
+TWILIO_AUTH_TOKEN=your_twilio_auth_token
+TWILIO_PHONE_NUMBER=+441234567890
+
+# 2FA secrets are encrypted at rest; falls back to JWT_SECRET if unset
+ENCRYPTION_KEY=your_encryption_key_here
 ```
 
-**⚠️ Common mistake:** Using the placeholder value from `.env.example` will cause 502 errors!  
+**⚠️ Common mistake:** Using the placeholder value from `.env.example` will cause 502 errors!
 Get your real connection string: **[MongoDB Setup Guide](.github/docs/MONGODB_SETUP_SIMPLE.md)**
 
-See [.env.example](.env.example) for all options.
+See [.env.example](.env.example) for all options, including community/partner-program salts, external-contact-integration secrets, and per-feature rate-limit overrides.
 
 ### Database Configuration
 
@@ -598,7 +638,7 @@ See [.env.example](.env.example) for all options.
 
 1. **MongoDB Atlas (PRIMARY - Recommended for Production)**
    - The system automatically prioritizes MongoDB over local storage
-   - All data (users, packages, posts, reviews, etc.) stored in MongoDB Atlas
+   - All data stored in MongoDB Atlas across ~75 collections (see [Database Schema](#️-database-schema))
    - Configured in `db-unified.js` to try MongoDB first
    - Set `MONGODB_URI` in environment variables with your Atlas connection string
 
@@ -619,15 +659,9 @@ See [.env.example](.env.example) for all options.
    - **Not suitable for production** - data is stored in JSON files
    - Useful for quick local development and testing
 
-3. **File Storage (Photos & Media)**
-   - Photos and media files are stored locally or in S3
-   - Supplier photos are uploaded via the photo upload system
-   - Set `STORAGE_TYPE` in `.env` (local or s3)
-
-   ```env
-   # Storage Configuration
-   STORAGE_TYPE=local  # or 's3' for AWS S3
-   ```
+3. **Photo Storage**
+   - Photos are uploaded in-memory via Multer, processed with Sharp, and stored on **Cloudinary** — there is no local-filesystem or AWS S3 storage path in the current codebase (older `/uploads/` URLs are legacy and no longer written to)
+   - Set the `CLOUDINARY_*` variables above to enable uploads
 
 4. **How Database Priority Works**:
    - On startup, `db-unified.js` attempts MongoDB connection first (PRIMARY)
@@ -662,7 +696,7 @@ EventFlow uses **Postmark exclusively** for all transactional emails:
    EMAIL_ENABLED=true
    ```
 
-**📖 Admin Email Tools:** See [docs/EMAIL_CENTRE.md](docs/EMAIL_CENTRE.md) for the admin email activity, campaign, and template-preview console at `/admin-emails`.
+**📖 Full Setup Guide:** [docs/guides/POSTMARK_SETUP.md](docs/guides/POSTMARK_SETUP.md). **Admin Email Tools:** [docs/EMAIL_CENTRE.md](docs/EMAIL_CENTRE.md) covers the admin email activity, campaign, and template-preview console at `/admin-emails`.
 
 During development without Postmark configured, emails are saved to `/outbox` folder for inspection.
 
@@ -681,6 +715,8 @@ During development without Postmark configured, emails are saved to `/outbox` fo
 
 ## 📖 API Endpoints
 
+EventFlow's API spans **106 route modules**. The groups below are a starting-point sample, not the full surface — treat the interactive [Swagger UI](#-api-documentation) at `/api-docs` as the source of truth for the complete, always-current reference.
+
 ### Authentication
 
 ```text
@@ -691,6 +727,9 @@ GET    /api/auth/me              - Get current user
 GET    /api/auth/verify          - Verify email with token
 POST   /api/auth/resend-verification - Resend verification email
 POST   /api/auth/forgot          - Request password reset
+POST   /api/v1/me/2fa/setup      - Begin TOTP setup (returns QR code)
+POST   /api/v1/me/2fa/verify     - Confirm TOTP code and enable 2FA
+GET    /api/v1/me/2fa/status     - Check whether 2FA is enabled
 ```
 
 ### Search & Discovery
@@ -733,6 +772,71 @@ GET    /api/photos/pending       - Get pending photos (admin)
 POST   /api/photos/approve       - Approve/reject photo (admin)
 ```
 
+### Messenger v4
+
+```text
+GET    /api/v4/messenger/conversations       - List conversations
+GET    /api/v4/messenger/conversations/:id   - Get a conversation
+GET    /api/v4/messenger/unread-count        - Total unread count
+GET    /api/v4/messenger/contacts            - List messageable contacts
+POST   /api/v4/messenger/block               - Block a user
+GET    /api/v4/messenger/admin/conversations - Admin: view all conversations
+```
+
+### Subscriptions & Billing (API)
+
+```text
+GET    /api/v2/subscriptions/plans           - List available plans (Starter/Pro/Pro Plus)
+GET    /api/v2/subscriptions/me              - Current user's subscription
+GET    /api/v2/subscriptions/upcoming-invoice - Preview the next invoice
+POST   /api/v2/subscriptions/:id/cancel      - Cancel a subscription
+GET    /api/v2/invoices                      - List invoices
+GET    /api/v2/admin/subscriptions           - Admin: list all subscriptions
+```
+
+### Community
+
+```text
+GET    /api/v1/community/categories          - List forum categories
+GET    /api/v1/community/discussions         - List/search discussions
+GET    /api/v1/community/home                - Community home feed
+GET    /api/v1/admin/community/...           - Admin moderation endpoints
+```
+
+### Partner / Referral Program
+
+```text
+POST   /api/v1/partner/register              - Apply to become a partner
+GET    /api/v1/partner/me                    - Partner profile & status
+GET    /api/v1/partner/referrals             - List referrals
+GET    /api/v1/partner/stats                 - Points/reward summary
+GET    /api/v1/admin/partners/...            - Admin partner management
+GET    /api/v1/admin/partner-abuse/...       - Admin anti-abuse review queue
+```
+
+### Wedding Websites, Guests & Quote Requests
+
+```text
+GET    /api/v1/me/plans/:planId/wedding-website     - Get a customer's wedding website
+GET    /api/public/wedding-websites/:slug           - Public wedding website by slug
+POST   /api/public/wedding-websites/:slug/rsvp       - Submit an RSVP
+GET    /api/v1/me/plans/:planId/guests               - List guests
+GET    /api/v1/me/plans/:planId/guests/export.csv    - Export guest list as CSV
+POST   /api/v1/quote-requests                        - Submit a quote request
+```
+
+### Locations
+
+```text
+GET    /api/v1/locations/featured             - Featured location hub pages
+GET    /locations/:citySlug                   - City hub page (server-rendered)
+GET    /locations/:citySlug/:categorySlug     - City × category spoke page
+```
+
+### AI Planning Assistant — retired
+
+`POST /api/ai/suggestions` and `POST /api/ai/plan` now return `410 Gone` — the legacy OpenAI-backed in-app planning assistant has been retired. Its replacement, **JadeAssist**, is a separately deployed chat widget (its own Railway service) embedded via a self-hosted script; it is not part of this repo's own API surface.
+
 ### Admin Endpoints
 
 ```text
@@ -755,7 +859,7 @@ GET    /api/admin/users-export   - Export users (CSV)
 GET    /api/admin/export/all     - Export all data (JSON)
 ```
 
-### Messaging Endpoints
+### Messaging Endpoints (legacy v1)
 
 ```text
 GET    /api/messages/threads                      - List conversation threads
@@ -769,9 +873,13 @@ PUT    /api/messages/:id                          - Update draft message
 DELETE /api/messages/:id                          - Delete draft message
 ```
 
-See the interactive [Swagger UI](#-api-documentation) at `/api-docs` for the complete, always-current API reference, including admin endpoints.
+New frontend code should use [Messenger v4](#messenger-v4) instead — see [docs/guides/MESSENGER_V4_MIGRATION.md](docs/guides/MESSENGER_V4_MIGRATION.md).
+
+See the interactive [Swagger UI](#-api-documentation) at `/api-docs`, [docs/api/API_DOCUMENTATION.md](docs/api/API_DOCUMENTATION.md), and [docs/api/ADMIN_API_V2.md](docs/api/ADMIN_API_V2.md) for the complete, always-current API reference.
 
 ## 📱 User Flows & Pages
+
+The frontend has around 100 top-level HTML pages (roughly a third of them under `admin-*.html`), plus dedicated SPA-style subdirectories for the partner portal (`public/partner/`), the v4 messenger (`public/messenger/`), and supplier onboarding tools (`public/supplier/`). Two of the most-touched flows are documented in detail below; browse `public/` for the rest.
 
 ### Email Verification Flow
 
@@ -867,63 +975,91 @@ Users can browse and view detailed information about service packages:
 
 ```text
 eventflow/
-├── src/                # Source modules (npm imports)
-│   ├── config/        # Configuration files
-│   │   └── firebase.js # Firebase stub (not in use - see firebase-config.js)
-│   └── firebase.js    # Firebase stub (MongoDB/Cloudinary in use)
-├── middleware/         # Reusable middleware functions
-│   ├── auth.js        # JWT cookie authentication & authorization
-│   ├── validation.js  # Input validation helpers
-│   └── rateLimit.js   # Rate limiting configuration
-├── routes/            # Modular route handlers
-│   ├── auth.js        # Authentication routes
-│   └── admin.js       # Admin-only routes
-├── models/            # Database models and schemas
-├── public/            # Frontend assets
-│   ├── assets/
-│   │   ├── css/      # Stylesheets
-│   │   └── js/       # JavaScript modules
-│   └── *.html        # Page templates
-├── data/             # JSON data storage (development fallback)
-├── photo-upload.js   # Photo upload utilities
-├── reviews.js        # Reviews system module
-├── search.js         # Search & discovery module
-├── websocket-server.js    # Real-time WebSocket server (v1 - legacy)
-├── websocket-server-v2.js # Real-time WebSocket server (v2 - modern)
-├── server.js         # Main application server
-└── package.json      # Dependencies and scripts
+├── routes/            # 106 Express route modules — one per feature area:
+│   ├── auth.js, google-redirect-auth.js, facebook-redirect-auth.js,
+│   │   apple-redirect-auth.js, twoFactor.js, phoneVerification.js
+│   ├── admin*.js      # ~26 admin route modules (users, suppliers, community,
+│   │                  #   partners, cashout, email centre, webhooks test, ...)
+│   ├── messenger-v4.js, community*.js, partner*.js, subscriptions-v2.js,
+│   │   wedding-websites.js, guests.js, quote-requests.js, locations.js, ...
+│   └── suppliers.js, packages.js, reviews-v2.js, search.js, discovery.js, ...
+├── services/          # ~100 business-logic modules, incl. queue/ (BullMQ),
+│   │                  #   ~25 partner anti-abuse/reward-integrity services,
+│   │                  #   messenger, community, location, billing, notification
+│   │                  #   fan-out, search ranking, and scheduled-job runners
+│   └── queue/
+│       ├── index.js           # Queue setup, health, dev fallback
+│       └── workers/           # notification.worker.js, email.worker.js
+├── middleware/         # 29 modules — JWT auth, CSRF, rate limiting, sanitize,
+│                        #   RBAC permissions, subscription gating, feature
+│                        #   flags, A/B testing, API versioning/deprecation
+├── models/             # 17 schema/constant definitions + index.js
+│                        #   (Mongo JSON-schema validators & index creation)
+├── config/             # billingPlans.js, stripe.js, database.js, email.js,
+│                        #   storage.js, adminRegistry.js, messagingLimits.js
+├── utils/               # ~55 shared helpers — encryption, logging, Sentry,
+│                        #   geocoding, lead scoring, sentiment analysis, badges
+├── public/              # Frontend — ~100 top-level .html pages, plus:
+│   ├── assets/         #   css/ (130+ files), js/ (325+ files: components/,
+│   │                   #   pages/, config/, vendor/, community/)
+│   ├── articles/       #   33 SEO guide articles
+│   ├── messenger/      #   Messenger v4 SPA shell
+│   ├── partner/        #   Partner portal (dashboard, media pack, terms)
+│   ├── supplier/       #   Marketplace listing form, profile customisation
+│   └── newsletter/     #   Confirm/expired/unsubscribe pages
+├── email-templates/     # 24 Postmark-rendered transactional email templates
+├── data/                # JSON data storage (development fallback only)
+├── tests/               # Jest unit/integration/a11y/load/visual suites
+├── e2e/                 # 67 Playwright specs
+├── scripts/             # 45 ops/CLI scripts — worker.js, migrations, audits,
+│                        #   sitemap generation, preflight, release tagging
+├── docs/                # 130+ reference docs across api/, guides/, features/,
+│                        #   architecture/, compliance/, messenger/, marketplace/
+├── server.js            # Main application server (route mounting, ~82KB)
+├── db-unified.js        # MongoDB collection-access abstraction layer (PRIMARY)
+├── websocket-server.js / websocket-server-v2.js  # Socket.IO servers (v1/v2)
+└── package.json         # Dependencies and scripts
 ```
 
 **WebSocket Server Modes:**
 
-EventFlow includes two WebSocket servers for real-time features. Only ONE can run at a time (configured via `WEBSOCKET_MODE` environment variable):
+EventFlow includes two Socket.IO-based real-time servers. Only ONE can run at a time (configured via `WEBSOCKET_MODE` environment variable):
 
-- **v2** (default, recommended): Modern WebSocket server with real-time messaging, presence tracking, typing indicators, read receipts, and emoji reactions
-- **v1** (legacy): Basic WebSocket server for real-time notifications only (backwards compatibility)
-- **off**: Disables WebSocket (not recommended - disables all real-time features)
+- **v2** (default, recommended): Modern real-time server with messaging, presence tracking, typing indicators, read receipts, and emoji reactions
+- **v1** (legacy): Basic real-time server for notifications only (backwards compatibility)
+- **off**: Disables real-time servers (not recommended - disables all real-time features)
 
-⚠️ **Important**: Running both v1 and v2 simultaneously will cause crashes with "server.handleUpgrade() was called more than once" errors. The `WEBSOCKET_MODE` environment variable ensures only one WebSocket server attaches to the HTTP server.
+⚠️ **Important**: Running both v1 and v2 simultaneously will cause crashes with "server.handleUpgrade() was called more than once" errors. The `WEBSOCKET_MODE` environment variable ensures only one server attaches to the HTTP server.
 
 ## 🗄️ Database Schema
 
-**Collections:**
+EventFlow uses the native MongoDB driver (no ORM) with roughly **75 collections** across the following domains. All collections use JSON-schema validation, optimized indexes, and automatic timestamps (`models/index.js`).
 
-- `users` - Customer, supplier, admin accounts
-- `suppliers` - Supplier business profiles
-- `packages` - Service packages
-- `reviews` - Supplier reviews and ratings
-- `messages` - Customer-supplier messages
-- `threads` - Message conversations
-- `plans` - Customer event plans
-- `notes` - Customer planning notes
-- `events` - Event records
-- `searchHistory` - User search history
+**Core marketplace:** `users`, `suppliers`, `packages`, `plans` (also holds embedded `weddingWebsite` and `guests`/`guestList` sub-documents — these are not separate collections), `categories`, `events`, `bookings`
 
-All collections have:
+**Classifieds marketplace:** `marketplace_listings`, `marketplace_images`
 
-- JSON schema validation
-- Optimized indexes
-- Automatic timestamps
+**Messaging (Messenger v4):** `conversations`, `messages`, `conversation_counters`, `messageFolders`, `messageLabels`, `messageOperations`, `blockedUsers`, plus legacy `threads`/`chat_messages`
+
+**Reviews:** `reviews`, `reviewVotes`, `reviewModerations`, `reviewRequests`
+
+**Community:** `community_discussions`, `community_categories`, `community_replies`, `community_reactions`, `community_bookmarks`, `community_follows`, `community_reports`, `community_moderation_actions`, `community_appeals`, `community_user_stats`, `community_views`, `community_drafts`, `community_settings`, `community_poll_votes`, `community_restrictions` (~15 collections total)
+
+**Partner / referral program:** `partners`, `partner_referrals`, `partner_credit_transactions`, `partner_cashout_requests`, `partner_cashout_operation_locks`, `partner_abuse_appeals`, `partner_abuse_events`, `partner_fraud_assessments`, `partner_reward_integrity_events`, `referrals` (~13 collections total)
+
+**Billing:** `subscriptions`, `payments`, `invoices`
+
+**Location hub pages:** `location_pages`
+
+**Support & ops:** `tickets`, `notifications`, `contact_enquiries`, `enquiries`, `quoteRequests`, `reports`
+
+**Email infrastructure:** `email_logs`, `email_bounces`, `email_clicks`, `email_complaints`, `email_opens`
+
+**Public calendar:** `customer_calendar_entries`, `public_calendar_events`, `public_calendar_saves`
+
+**Content & admin:** `badges`, `photos`, `content_review_settings`, `content_review_tasks`, `audit_logs`, `system_checks`, `background_job_runs`, `scheduler_locks`, `mongodb_webhook_log`
+
+**Search & discovery:** `searchHistory`, `savedSearches`, `popularSearches`, `savedItems`, `shortlists`
 
 ## 🚢 Deployment
 
@@ -938,6 +1074,8 @@ railway init
 railway variables set JWT_SECRET="..." MONGODB_URI="mongodb+srv://..."
 railway up
 ```
+
+Deploy a **second Railway service** for the worker process using `railway.worker.json` — see [Background Jobs & Queue Architecture](#-background-jobs--queue-architecture).
 
 ### Heroku
 
@@ -967,7 +1105,7 @@ EventFlow includes a comprehensive testing framework to ensure code quality and 
 
 - **Framework:** Jest with Supertest for integration testing
 - **Coverage Target:** 70% for all code (branches, functions, lines, statements)
-- **Test Types:** Unit tests, integration tests, end-to-end tests
+- **Test Types:** Unit, integration, end-to-end (Playwright), visual regression, accessibility (axe-core), mutation testing (Stryker), and fuzz testing
 
 ### Running Tests
 
@@ -984,8 +1122,16 @@ npm run test:unit
 # Run only integration tests
 npm run test:integration
 
-# Run e2e tests with Playwright
+# Run e2e tests with Playwright (67 spec files)
 npm run test:e2e
+
+# Full e2e suite: static + backend-driven
+npm run test:e2e:full
+
+# Accessibility, visual regression, and mutation testing
+npm run test:a11y
+npm run test:visual
+npm run test:mutation
 ```
 
 ### Test Structure
@@ -993,16 +1139,16 @@ npm run test:e2e
 ```text
 tests/
 ├── fixtures/           # Test data (users, packages, suppliers)
-├── utils/              # Test helpers and mock data generators
-├── integration/        # Integration tests for routes
-│   ├── auth.test.js           # Authentication (25 tests)
-│   ├── packages.test.js       # Package management
-│   ├── suppliers.test.js      # Supplier operations
-│   ├── messaging.test.js      # Messaging system
-│   ├── notifications.test.js  # Notifications
-│   ├── ai.test.js             # AI features
-│   └── ...                    # 40+ test files
-└── unit/               # Unit tests for utilities
+├── utils/               # Test helpers and mock data generators
+├── integration/          # Integration tests for routes (40+ files)
+├── unit/                  # Unit tests for utilities
+├── a11y/                   # Accessibility tests
+├── load/                    # Artillery load-test scenarios
+└── visual/                    # Visual regression baselines
+
+e2e/                      # 67 Playwright specs — admin, auth, community,
+                           #   messaging, homepage, navigation, SEO, supplier
+                           #   onboarding, wedding website, visual regression
 ```
 
 ### Integration Test Examples
@@ -1036,7 +1182,6 @@ npm run load-test:report
 - Authentication flows (registration, login)
 - Search & discovery endpoints
 - Package CRUD operations
-- AI-powered features
 - File uploads
 - Real-time notifications
 - Mixed traffic patterns (realistic user journeys)
@@ -1046,6 +1191,10 @@ npm run load-test:report
 - Warm-up: 60s @ 10 req/s
 - Sustained: 120s @ 50 req/s
 - Spike: 60s @ 100 req/s
+
+### Operational Audits
+
+Beyond functional tests, a set of `npm run audit:*` scripts check production readiness before a deploy: `audit:golive` (go-live checklist), `audit:action-pins` (pinned GitHub Actions), `audit:orphan-supplier-data`, and `audit:articles`. `npm run preflight` runs the standard pre-deploy check bundle.
 
 ### 📊 Monitoring & Logging
 
@@ -1118,6 +1267,8 @@ curl https://yourdomain.com/api/health
 # - Environment
 ```
 
+Also see `GET /api/ready`, which additionally reports queue-producer and worker-delivery health (see [Background Jobs & Queue Architecture](#-background-jobs--queue-architecture)) — this is the endpoint to point deployment-platform health checks at if you need to confirm the worker fleet is alive, not just the web process.
+
 ### 📖 API Documentation
 
 Interactive API documentation powered by Swagger/OpenAPI 3.0:
@@ -1132,13 +1283,13 @@ Interactive API documentation powered by Swagger/OpenAPI 3.0:
 
 #### Documented Endpoints
 
-- Authentication (registration, login, password reset)
+- Authentication (registration, login, password reset, 2FA)
 - Discovery (trending, new arrivals, popular)
 - Packages (CRUD operations)
 - Suppliers (management, search)
 - Reviews & Ratings
-- AI-powered features
-- Admin operations
+- Subscriptions & billing
+- Admin operations (v2 RBAC)
 
 ## 🍃 MongoDB Atlas Webhooks
 
@@ -1156,10 +1307,10 @@ When a document in your Atlas cluster changes (insert, update, delete, etc.), At
 
 ### Configuration
 
-| Environment variable      | Description                                                                                           |
-| ------------------------- | ----------------------------------------------------------------------------------------------------- |
-| `MONGODB_WEBHOOK_SECRET`  | **Required in production.** Shared HMAC-SHA256 secret. Set in both `.env` and Atlas Trigger settings. |
-| `MONGODB_WEBHOOK_ENABLED` | Set to `false` to disable the endpoint entirely (default: `true`).                                    |
+| Environment variable      | Description                                                                                            |
+| -------------------------- | -------------------------------------------------------------------------------------------------------- |
+| `MONGODB_WEBHOOK_SECRET`  | **Required in production.** Shared HMAC-SHA256 secret. Set in both `.env` and Atlas Trigger settings.   |
+| `MONGODB_WEBHOOK_ENABLED` | Set to `false` to disable the endpoint entirely (default: `true`).                                       |
 
 Generate a strong secret:
 
@@ -1194,6 +1345,8 @@ Navigate to **Admin → Debug → Webhooks** tab and click **Test All Webhooks**
 
 ## 📚 Documentation
 
+`docs/` holds 130+ files. Many are point-in-time planning/audit/status scratch docs (`*_AUDIT.md`, `*_SUMMARY.md`, `*_STATUS.md`, `PRE_MERGE_CHECKLIST*.md`, roadmap files) that are useful history but not current reference material — the tables below link only the maintained reference docs, organised by subdirectory.
+
 ### Quick Links
 
 - **[Quick Start](#-quick-start)** - Get running in minutes
@@ -1201,32 +1354,79 @@ Navigate to **Admin → Debug → Webhooks** tab and click **Test All Webhooks**
 - **[Troubleshooting 502 Errors](#troubleshooting-502-errors)** - Common deployment issues
 - **[Interactive API Docs](http://localhost:3000/api-docs)** - Swagger UI (when running locally)
 
-### Complete Guides
+### API & Admin
+
+| Document                                                                   | Description                                |
+| --------------------------------------------------------------------------- | ------------------------------------------- |
+| [Swagger UI](http://localhost:3000/api-docs)                                | Complete, always-current API reference      |
+| [docs/api/API_DOCUMENTATION.md](docs/api/API_DOCUMENTATION.md)              | Static API reference with examples          |
+| [docs/api/ADMIN_API.md](docs/api/ADMIN_API.md)                              | Admin API endpoint documentation (v1)       |
+| [docs/api/ADMIN_API_V2.md](docs/api/ADMIN_API_V2.md)                        | Admin API v2 — RBAC/permission model        |
+| [docs/guides/ADMIN_GUIDE.md](docs/guides/ADMIN_GUIDE.md)                    | Admin dashboard user guide                  |
+| [docs/ADMIN_PANEL_GUIDE.md](docs/ADMIN_PANEL_GUIDE.md)                      | Admin panel structure & page index          |
+| [docs/ADMIN_SETUP.md](docs/ADMIN_SETUP.md)                                  | Owner account & domain-based admin setup    |
+
+### Billing, Partners & Growth
+
+| Document                                                                             | Description                                |
+| --------------------------------------------------------------------------------------| ------------------------------------------- |
+| [docs/guides/STRIPE_INTEGRATION_GUIDE.md](docs/guides/STRIPE_INTEGRATION_GUIDE.md)    | Stripe.js integration setup                 |
+| [docs/STRIPE_SUBSCRIPTION_GUIDE.md](docs/STRIPE_SUBSCRIPTION_GUIDE.md)                | Stripe subscription system guide            |
+| [docs/guides/STRIPE_INTRO_PRICING_SETUP.md](docs/guides/STRIPE_INTRO_PRICING_SETUP.md)| Introductory pricing / coupon setup         |
+| [docs/SUBSCRIPTION-TIERS.md](docs/SUBSCRIPTION-TIERS.md)                              | Supplier subscription tiers & pricing       |
+| [docs/PARTNER_PORTAL.md](docs/PARTNER_PORTAL.md)                                      | Partner/referral portal and workflow        |
+| [docs/PARTNER_CASHOUT_SOP.md](docs/PARTNER_CASHOUT_SOP.md)                            | Partner cashout operating procedure         |
+| [docs/PARTNER_ANTI_ABUSE.md](docs/PARTNER_ANTI_ABUSE.md)                              | Partner referral anti-fraud system          |
+| [docs/LEAD-SCORING.md](docs/LEAD-SCORING.md)                                          | Quote-request lead-quality scoring          |
+
+### Feature Guides
+
+| Document                                                                           | Description                                |
+| -------------------------------------------------------------------------------------| ------------------------------------------- |
+| [docs/WEDDING_WEBSITE_FEATURE.md](docs/WEDDING_WEBSITE_FEATURE.md)                  | Wedding websites, RSVPs, and guest lists    |
+| [docs/uk-city-hub-and-spoke.md](docs/uk-city-hub-and-spoke.md)                      | Location hub-and-spoke pages                |
+| [docs/2FA_IMPLEMENTATION_GUIDE.md](docs/2FA_IMPLEMENTATION_GUIDE.md)                | Two-factor authentication (TOTP)            |
+| [docs/VERIFICATION_SYSTEMS_GUIDE.md](docs/VERIFICATION_SYSTEMS_GUIDE.md)            | Phone & email verification systems          |
+| [docs/features/REVIEWS_SYSTEM.md](docs/features/REVIEWS_SYSTEM.md)                  | Reviews system (v2) architecture            |
+| [docs/architecture/eventflow-community-architecture.md](docs/architecture/eventflow-community-architecture.md) | Community/forum system architecture |
+| [docs/marketplace/ARCHITECTURE.md](docs/marketplace/ARCHITECTURE.md)                | Classifieds marketplace architecture        |
+| [docs/EMAIL_CENTRE.md](docs/EMAIL_CENTRE.md)                                        | Admin transactional email console           |
+
+### Compliance & Security
+
+| Document                                                                     | Description                                |
+| --------------------------------------------------------------------------------| ------------------------------------------- |
+| [docs/guides/GDPR_COMPLIANCE.md](docs/guides/GDPR_COMPLIANCE.md)               | Data protection and privacy                 |
+| [docs/LEGAL_COMPLIANCE_CHECKLIST.md](docs/LEGAL_COMPLIANCE_CHECKLIST.md)       | Legal compliance checklist                  |
+| [docs/SECURITY_FEATURES.md](docs/SECURITY_FEATURES.md)                        | Full security documentation                 |
+| [docs/guides/SECURITY.md](docs/guides/SECURITY.md)                             | Security policy & reporting                 |
+| [docs/compliance/](docs/compliance/)                                           | Community DPIA, child-access assessment, moderation policy, incident runbook, transparency records |
+
+### Deployment & Operations
+
+| Document                                                                              | Description                                |
+| ----------------------------------------------------------------------------------------| ------------------------------------------- |
+| [docs/PRODUCTION_DEPLOYMENT_CHECKLIST.md](docs/PRODUCTION_DEPLOYMENT_CHECKLIST.md)     | Production deployment instructions          |
+| [docs/guides/CLOUDFLARE_SETUP.md](docs/guides/CLOUDFLARE_SETUP.md)                     | Cloudflare CDN setup                        |
+| [docs/guides/RAILWAY_SETUP_GUIDE.md](docs/guides/RAILWAY_SETUP_GUIDE.md)               | Railway-specific deployment setup           |
+| [docs/guides/POSTMARK_SETUP.md](docs/guides/POSTMARK_SETUP.md)                         | Transactional email configuration           |
+| [docs/PERFORMANCE_TESTING.md](docs/PERFORMANCE_TESTING.md)                             | Performance verification and QA procedures  |
+| [docs/guides/PERFORMANCE_OPTIMIZATION.md](docs/guides/PERFORMANCE_OPTIMIZATION.md)     | Performance optimisation reference          |
+| [docs/PWA_ICONS.md](docs/PWA_ICONS.md)                                                 | PWA icon assets and regeneration steps      |
+| [docs/mongodb-migration.md](docs/mongodb-migration.md)                                 | MongoDB migration guide with architecture   |
+| [.github/docs/MONGODB_SETUP.md](.github/docs/MONGODB_SETUP.md)                         | MongoDB technical configuration guide       |
+| [.github/docs/MONGODB_SETUP_SIMPLE.md](.github/docs/MONGODB_SETUP_SIMPLE.md)           | MongoDB setup for non-technical users        |
+
+### Messenger v4 Docs
 
 | Document                                                                                                     | Description                                |
-| ------------------------------------------------------------------------------------------------------------ | ------------------------------------------ |
-| [Swagger UI](http://localhost:3000/api-docs)                                                                 | Complete, always-current API reference     |
-| [docs/ADMIN_PANEL_GUIDE.md](docs/ADMIN_PANEL_GUIDE.md)                                                       | Admin dashboard user guide                 |
-| [docs/PRODUCTION_DEPLOYMENT_CHECKLIST.md](docs/PRODUCTION_DEPLOYMENT_CHECKLIST.md)                           | Production deployment instructions         |
-| [docs/LEGAL_COMPLIANCE_CHECKLIST.md](docs/LEGAL_COMPLIANCE_CHECKLIST.md)                                     | Data protection and legal compliance       |
-| [docs/EMAIL_CENTRE.md](docs/EMAIL_CENTRE.md)                                                                 | Admin transactional email console          |
-| [docs/STRIPE_SUBSCRIPTION_GUIDE.md](docs/STRIPE_SUBSCRIPTION_GUIDE.md)                                       | Stripe subscription & billing integration  |
-| [docs/SUBSCRIPTION-TIERS.md](docs/SUBSCRIPTION-TIERS.md)                                                     | Supplier subscription tiers & pricing      |
-| [docs/PARTNER_PORTAL.md](docs/PARTNER_PORTAL.md)                                                             | Partner/referral portal and workflow       |
-| [docs/WEDDING_WEBSITE_FEATURE.md](docs/WEDDING_WEBSITE_FEATURE.md)                                           | Wedding websites, RSVPs, and guest lists   |
-| [docs/uk-city-hub-and-spoke.md](docs/uk-city-hub-and-spoke.md)                                               | Location hub-and-spoke pages               |
-| [docs/2FA_IMPLEMENTATION_GUIDE.md](docs/2FA_IMPLEMENTATION_GUIDE.md)                                         | Two-factor authentication (TOTP)           |
-| [docs/VERIFICATION_SYSTEMS_GUIDE.md](docs/VERIFICATION_SYSTEMS_GUIDE.md)                                     | Phone & email verification systems         |
-| [docs/PERFORMANCE_TESTING.md](docs/PERFORMANCE_TESTING.md)                                                   | Performance verification and QA procedures |
-| [docs/PWA_ICONS.md](docs/PWA_ICONS.md)                                                                       | PWA icon assets and regeneration steps     |
-| [docs/mongodb-migration.md](docs/mongodb-migration.md)                                                       | MongoDB migration guide with architecture  |
-| [docs/messenger/step-1-reconciliation.md](docs/messenger/step-1-reconciliation.md)                           | Messenger reconnection + sinceSeq catch-up |
-| [docs/messenger/step-2-readby-modal.md](docs/messenger/step-2-readby-modal.md)                               | Messenger group read-by UX                 |
-| [docs/messenger/queue.md](docs/messenger/queue.md)                                                           | Messenger BullMQ queue architecture        |
-| [docs/messenger/transactions.md](docs/messenger/transactions.md)                                             | Messenger transaction flag and rollout     |
-| [docs/messenger/step-5-group-thread-virtualization.md](docs/messenger/step-5-group-thread-virtualization.md) | Messenger threads/group UI/virtualization  |
-| [.github/docs/MONGODB_SETUP.md](.github/docs/MONGODB_SETUP.md)                                               | MongoDB technical configuration guide      |
-| [.github/docs/MONGODB_SETUP_SIMPLE.md](.github/docs/MONGODB_SETUP_SIMPLE.md)                                 | MongoDB setup for non-technical users      |
+| ---------------------------------------------------------------------------------------------------------------| ------------------------------------------- |
+| [docs/guides/MESSENGER_V4_MIGRATION.md](docs/guides/MESSENGER_V4_MIGRATION.md)                                | Migrating off legacy v1 messaging endpoints |
+| [docs/messenger/queue.md](docs/messenger/queue.md)                                                             | Messenger BullMQ queue architecture         |
+| [docs/messenger/transactions.md](docs/messenger/transactions.md)                                               | Messenger transaction flag and rollout      |
+| [docs/messenger/step-1-reconciliation.md](docs/messenger/step-1-reconciliation.md)                             | Messenger reconnection + sinceSeq catch-up  |
+| [docs/messenger/step-2-readby-modal.md](docs/messenger/step-2-readby-modal.md)                                 | Messenger group read-by UX                  |
+| [docs/messenger/step-5-group-thread-virtualization.md](docs/messenger/step-5-group-thread-virtualization.md)   | Messenger threads/group UI/virtualization   |
 
 ---
 
@@ -1242,15 +1442,19 @@ Navigate to **Admin → Debug → Webhooks** tab and click **Test All Webhooks**
 4. Push to branch (`git push origin feature/AmazingFeature`)
 5. Open Pull Request
 
+See [CONTRIBUTING.md](CONTRIBUTING.md) for local dev conventions, lint/format rules, and PR expectations.
+
 ## 📄 License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
 ## 🙏 Acknowledgments
 
-- Built with [Express.js](https://expressjs.com/)
-- Image processing by [Sharp](https://sharp.pixelplumbing.com/)
+- Built with [Express.js](https://expressjs.com/) and [Socket.IO](https://socket.io/)
+- Image processing by [Sharp](https://sharp.pixelplumbing.com/), storage by [Cloudinary](https://cloudinary.com/)
 - File uploads with [Multer](https://github.com/expressjs/multer)
+- Background jobs with [BullMQ](https://docs.bullmq.io/)
+- Payments by [Stripe](https://stripe.com/)
 - Database: [MongoDB](https://www.mongodb.com/)
 
 ## 📞 Support
