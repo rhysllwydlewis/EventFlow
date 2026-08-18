@@ -965,8 +965,15 @@ function processLocalAggregation(data, pipeline) {
         const spec = stage.$project;
         result = result.map(item => {
           const projected = {};
+          // MongoDB's real $project keeps _id by default unless the spec
+          // explicitly excludes it (`_id: 0`) — mirror that here so a local
+          // document that happens to carry a real Mongo _id (e.g. seeded for
+          // parity testing) doesn't silently lose it only on this fallback.
+          if (spec._id !== 0 && Object.prototype.hasOwnProperty.call(item, '_id')) {
+            projected._id = item._id;
+          }
           for (const [field, include] of Object.entries(spec)) {
-            if (include) {
+            if (field !== '_id' && include) {
               projected[field] = getNestedValue(item, field);
             }
           }

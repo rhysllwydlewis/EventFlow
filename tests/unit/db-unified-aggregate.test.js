@@ -91,4 +91,16 @@ describe('db-unified – aggregate() on local storage', () => {
 
     expect(result).toEqual([{ count: 0 }]);
   });
+
+  it('$project keeps _id by default, matching real MongoDB, unless the spec excludes it', async () => {
+    await seedLogs([{ id: '1', _id: 'mongo-oid-1', lastEventAt: '2026-01-20T00:00:00.000Z' }]);
+
+    const kept = await dbUnified.aggregate('email_logs', [{ $project: { lastEventAt: 1 } }]);
+    expect(kept).toEqual([{ _id: 'mongo-oid-1', lastEventAt: '2026-01-20T00:00:00.000Z' }]);
+
+    const excluded = await dbUnified.aggregate('email_logs', [
+      { $project: { _id: 0, lastEventAt: 1 } },
+    ]);
+    expect(excluded).toEqual([{ lastEventAt: '2026-01-20T00:00:00.000Z' }]);
+  });
 });

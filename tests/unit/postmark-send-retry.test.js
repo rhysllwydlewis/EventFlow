@@ -128,4 +128,32 @@ describe('utils/postmark sendMail retry behaviour', () => {
 
     expect(sendEmail).toHaveBeenCalledTimes(3);
   });
+
+  test('retryOnFailure: false makes a single attempt and fails immediately on a transient error', async () => {
+    // The BullMQ email queue worker sets this — it already retries the whole
+    // job 5x with its own backoff, so it must not also get sendMail's
+    // in-process retry stacked on top.
+    class ServiceUnavailablerError extends Error {
+      constructor(message) {
+        super(message);
+        this.statusCode = 503;
+      }
+    }
+    const sendEmail = jest.fn().mockRejectedValue(new ServiceUnavailablerError('unavailable'));
+    mockPostmarkClient(sendEmail);
+
+    const postmark = require('../../utils/postmark');
+    await expect(
+      runSendAndAdvanceTimers(() =>
+        postmark.sendMail({
+          to: 'user@example.com',
+          subject: 'Hi',
+          text: 'body',
+          retryOnFailure: false,
+        })
+      )
+    ).rejects.toThrow();
+
+    expect(sendEmail).toHaveBeenCalledTimes(1);
+  });
 });
