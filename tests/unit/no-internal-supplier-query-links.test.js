@@ -63,4 +63,20 @@ describe('no internally-rendered directory link uses the legacy query form', () 
     const src = readSource('public/assets/js/supplier-profile.js');
     expect(src).toContain('link[rel="canonical"]');
   });
+
+  // app.js's supplierCard() (used by both initResults() and initPlan())
+  // checks `window.EventFlowSupplierLink` and falls back to the legacy
+  // `/supplier?id=${s.id}` form with no error/warning if it's missing. Every
+  // page whose <meta name="ef-page"> dispatches app.js into a supplierCard()
+  // code path must also load supplier-link.js — plan.html shipped without
+  // it (silently regressing to the legacy link) until this was caught here.
+  const pagesRenderingSupplierCardsViaAppJs = ['public/plan.html', 'public/suppliers.html'];
+
+  it.each(pagesRenderingSupplierCardsViaAppJs)(
+    '%s loads supplier-link.js alongside app.js',
+    relativePath => {
+      const src = readSource(relativePath);
+      expect(src).toMatch(/src=["']\/assets\/js\/utils\/supplier-link\.js/);
+    }
+  );
 });
