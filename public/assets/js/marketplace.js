@@ -1520,6 +1520,11 @@
       });
     }
 
+    const searchBtn = document.getElementById('marketplace-search-btn');
+    if (searchBtn) {
+      searchBtn.addEventListener('click', applyFilters);
+    }
+
     function applyFilters() {
       syncFiltersToUrl();
       // Reload listings with new filters

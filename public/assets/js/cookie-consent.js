@@ -223,6 +223,7 @@
 
   function removeBanner() {
     const banner = document.getElementById('cookie-consent-banner');
+    document.body.classList.remove('ef-cookie-banner-open');
     if (banner) {
       banner.classList.add('cookie-consent-hiding');
       setTimeout(() => {
@@ -272,6 +273,10 @@
       '<button id="cookie-consent-manage" class="cookie-consent-btn cookie-consent-manage" aria-label="Manage cookie preferences">Manage Preferences</button>' +
       '</div>' +
       '</div>';
+
+    // Hide floating widgets (e.g. the chat launcher) that would otherwise overlap
+    // the banner's action buttons in the same bottom-left safe area on mobile.
+    document.body.classList.add('ef-cookie-banner-open');
 
     document.body.appendChild(banner);
     // Focus first interactive element for keyboard users

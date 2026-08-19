@@ -127,6 +127,22 @@
   box-shadow: 0 0 0 3px rgba(11, 128, 115, 0.1);
 }
 
+.marketplace-search-row {
+  display: flex;
+  gap: 8px;
+}
+
+.marketplace-search-row input {
+  flex: 1;
+  min-width: 0;
+}
+
+.marketplace-search-row #marketplace-search-btn {
+  flex-shrink: 0;
+  padding: 8px 14px;
+  font-size: 14px;
+}
+
 /* Location Summary */
 .location-summary {
   display: flex;
