@@ -305,7 +305,7 @@ router.get(['/community', '/community.html'], publicReadLimiter, async (req, res
       applyMeta(shell, {
         title: 'EventFlow Community — event planning questions and advice',
         description:
-          'Ask questions, share experiences and get practical advice from people planning weddings, parties, corporate events and more, plus verified EventFlow suppliers.',
+          'Ask questions, share experiences and get practical advice from people planning weddings, parties, corporate events and more, plus approved EventFlow supplier listings.',
         canonical: `${BASE_URL}/community`,
         structuredData: {
           '@context': 'https://schema.org',

@@ -359,11 +359,9 @@
         : '';
 
       // Issue 1: Hyperlinked name for supplier reviewers
-      const authorProfileHref =
-        review.authorSupplierProfilePath ||
-        (review.authorSupplierId ? `/supplier?id=${review.authorSupplierId}` : '');
+      const authorProfileHref = review.authorSupplierProfilePath || '';
       const authorNameHtml =
-        review.isSupplier && review.authorSupplierId
+        review.isSupplier && authorProfileHref
           ? `<a class="review-author-name review-author-name--link" href="${this.escapeHtml(authorProfileHref)}">${this.escapeHtml(review.userName)}</a>`
           : `<div class="review-author-name">${this.escapeHtml(review.userName)}</div>`;
 

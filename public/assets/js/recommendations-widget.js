@@ -224,11 +224,9 @@
               typeof supplier.location === 'string' ? supplier.location : ''
             );
             const logoSrc = safeSrc(supplier.logo || '');
-            const supplierId =
-              typeof supplier.id === 'string' || typeof supplier.id === 'number' ? supplier.id : '';
             const href = window.EventFlowSupplierLink
               ? window.EventFlowSupplierLink.supplierProfileHref(supplier)
-              : `/supplier?id=${encodeURIComponent(supplierId)}`;
+              : supplier.publicProfilePath || '/suppliers';
             const ratingText = supplier.averageRating
               ? `⭐ ${Number(supplier.averageRating).toFixed(1)} (${supplier.reviewCount || 0} reviews)`
               : '';

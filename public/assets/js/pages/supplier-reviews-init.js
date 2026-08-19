@@ -282,18 +282,26 @@
     const resRate = normalisePercent(analytics?.responseRate);
 
     if (total === 0) {
+      const supplier = (window._efCachedSuppliers || []).find(
+        item => String(item.id) === String(supplierId)
+      );
+      const publicProfilePath = /^\/supplier\/[a-z0-9-]+--[a-f0-9]{16}$/.test(
+        supplier?.publicProfilePath || ''
+      )
+        ? supplier.publicProfilePath
+        : '';
       container.innerHTML = `
         <div class="sr-empty">
           <div class="sr-empty-icon" aria-hidden="true">⭐⭐⭐⭐⭐</div>
           <p class="sr-empty-title">No reviews yet</p>
           <p class="sr-empty-desc">Your first customer review will appear here once it is approved. Share your profile with satisfied customers and ask them to leave feedback.</p>
-          <button type="button" class="ef-cta" id="sr-copy-link-btn">Copy your profile link</button>
+          ${publicProfilePath ? '<button type="button" class="ef-cta" id="sr-copy-link-btn">Copy your profile link</button>' : ''}
         </div>`;
 
       const copyBtn = container.querySelector('#sr-copy-link-btn');
       if (copyBtn) {
         copyBtn.addEventListener('click', () => {
-          const link = `${window.location.origin}/supplier?id=${encodeURIComponent(supplierId)}`;
+          const link = `${window.location.origin}${publicProfilePath}`;
           navigator.clipboard
             ?.writeText(link)
             .then(() => {

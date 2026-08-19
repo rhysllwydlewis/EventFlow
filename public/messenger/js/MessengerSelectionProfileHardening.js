@@ -197,18 +197,29 @@
     return true;
   }
 
-  async function lookupSupplierProfileIdForParticipant(participant) {
+  function safeSupplierProfilePath(participant, conversation) {
+    return clean(
+      participant?.publicProfilePath ||
+        participant?.profileUrl ||
+        participant?.supplierProfile?.publicProfilePath ||
+        conversation?.context?.publicProfilePath
+    );
+  }
+
+  async function lookupSupplierProfilePathForParticipant(participant, supplierProfileId = '') {
     const userId = clean(participant?.userId || participant?.id);
-    if (!userId) {
+    const profileId = clean(supplierProfileId);
+    const cacheKey = profileId || userId;
+    if (!cacheKey) {
       return '';
     }
-    if (supplierProfileCache.has(userId)) {
-      return supplierProfileCache.get(userId);
+    if (supplierProfileCache.has(cacheKey)) {
+      return supplierProfileCache.get(cacheKey);
     }
     try {
       const response = await fetch('/api/suppliers', { credentials: 'include' });
       if (!response.ok) {
-        supplierProfileCache.set(userId, '');
+        supplierProfileCache.set(cacheKey, '');
         return '';
       }
       const payload = await response.json();
@@ -217,8 +228,12 @@
         : Array.isArray(payload)
           ? payload
           : [];
-      const match = suppliers.find(supplier =>
-        [
+      const match = suppliers.find(supplier => {
+        const supplierId = clean(supplier.id || supplier.supplierId || supplier._id);
+        if (profileId && supplierId === profileId) {
+          return true;
+        }
+        return [
           supplier.ownerUserId,
           supplier.messagingRecipientId,
           supplier.userId,
@@ -227,20 +242,20 @@
         ]
           .map(clean)
           .filter(Boolean)
-          .includes(userId)
-      );
-      const profileId = clean(match?.id || match?.supplierId || match?._id);
-      supplierProfileCache.set(userId, profileId);
-      return profileId;
+          .includes(userId);
+      });
+      const publicProfilePath = clean(match?.publicProfilePath);
+      supplierProfileCache.set(cacheKey, publicProfilePath);
+      return publicProfilePath;
     } catch {
-      supplierProfileCache.set(userId, '');
+      supplierProfileCache.set(cacheKey, '');
       return '';
     }
   }
 
-  function setSupplierProfileLink(profileLink, supplierProfileId) {
-    if (supplierProfileId) {
-      profileLink.href = `/supplier?id=${encodeURIComponent(supplierProfileId)}`;
+  function setSupplierProfileLink(profileLink, publicProfilePath) {
+    if (/^\/supplier\/[a-z0-9-]+--[a-f0-9]{16}$/.test(publicProfilePath)) {
+      profileLink.href = publicProfilePath;
       profileLink.style.cursor = '';
       profileLink.setAttribute('aria-label', 'View supplier profile');
       profileLink.setAttribute('title', 'View supplier profile');
@@ -272,14 +287,18 @@
         return;
       }
 
-      const immediateProfileId = safeSupplierProfileId(other, conversation);
-      setSupplierProfileLink(profileLink, immediateProfileId);
+      const immediateProfilePath = safeSupplierProfilePath(other, conversation);
+      const supplierProfileId = safeSupplierProfileId(other, conversation);
+      setSupplierProfileLink(profileLink, immediateProfilePath);
 
-      if (!immediateProfileId && clean(other?.role).toLowerCase() === 'supplier') {
+      if (
+        !immediateProfilePath &&
+        (supplierProfileId || clean(other?.role).toLowerCase() === 'supplier')
+      ) {
         const expectedConversationId = this.conversationId;
-        lookupSupplierProfileIdForParticipant(other).then(profileId => {
-          if (profileId && this.conversationId === expectedConversationId) {
-            setSupplierProfileLink(profileLink, profileId);
+        lookupSupplierProfilePathForParticipant(other, supplierProfileId).then(profilePath => {
+          if (profilePath && this.conversationId === expectedConversationId) {
+            setSupplierProfileLink(profileLink, profilePath);
           }
         });
       }

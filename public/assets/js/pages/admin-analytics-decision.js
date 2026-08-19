@@ -272,7 +272,7 @@
 
   function entityLink(type, id) {
     return type === 'supplier'
-      ? `/supplier?id=${encodeURIComponent(id)}`
+      ? `/admin-supplier-detail?id=${encodeURIComponent(id)}`
       : `/package/${encodeURIComponent(id)}`;
   }
 

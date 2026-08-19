@@ -3,6 +3,7 @@
 const express = require('express');
 const cookieParser = require('cookie-parser');
 const request = require('supertest');
+const { addPublicProfilePath } = require('../../utils/publicSupplierProfilePath');
 const {
   createActiveRequestId,
   createReviewRequestRouter,
@@ -317,6 +318,7 @@ describe('supplier review-request delivery', () => {
         {
           id: createActiveRequestId('supplier-1', 'customer@example.com'),
           supplierId: 'supplier-1',
+          supplierName: 'Moor Audio',
           customerEmail: 'customer@example.com',
           tokenHash: hashToken(rawToken),
           status: 'sent',
@@ -330,8 +332,12 @@ describe('supplier review-request delivery', () => {
     const response = await request(app).get(`/review-request?token=${rawToken}`);
 
     expect(response.status).toBe(302);
+    const publicProfilePath = addPublicProfilePath({
+      id: 'supplier-1',
+      name: 'Moor Audio',
+    }).publicProfilePath;
     expect(response.headers.location).toBe(
-      '/supplier?id=supplier-1&reviewRequest=ready#sp-section-reviews'
+      `${publicProfilePath}?reviewRequest=ready#sp-section-reviews`
     );
     expect(response.headers['cache-control']).toBe('no-store, private');
     expect(response.headers['referrer-policy']).toBe('no-referrer');
@@ -340,6 +346,45 @@ describe('supplier review-request delivery', () => {
     expect(db.collections.reviewRequests[0].status).toBe('opened');
     expect(db.collections.reviewRequests[0].id).toMatch(/^rreq_active_/);
   });
+
+  test.each([
+    ['completed', 'completed'],
+    ['failed', 'unavailable'],
+    ['expired', 'expired'],
+    ['cancelled', 'unavailable'],
+  ])(
+    'redirects a request in %s state to its canonical supplier outcome',
+    async (status, outcome) => {
+      const db = createMemoryDb({
+        reviewRequests: [
+          {
+            id: 'request-outcome',
+            supplierId: 'supplier-1',
+            supplierName: 'Moor Audio',
+            customerEmail: 'customer@example.com',
+            tokenHash: hashToken(rawToken),
+            status,
+            createdAt: fixedNow.toISOString(),
+            expiresAt: '2026-07-20T09:00:00.000Z',
+          },
+        ],
+      });
+      const app = buildApp({ db, sendMail: jest.fn(), user: null, now: () => fixedNow });
+
+      const response = await request(app).get(`/review-request?token=${rawToken}`);
+      const publicProfilePath = addPublicProfilePath({
+        id: 'supplier-1',
+        name: 'Moor Audio',
+      }).publicProfilePath;
+
+      expect(response.status).toBe(302);
+      expect(response.headers.location).toBe(
+        `${publicProfilePath}?reviewRequest=${outcome}#sp-section-reviews`
+      );
+      expect(response.headers['cache-control']).toBe('no-store, private');
+      expect(response.headers['set-cookie']).toBeUndefined();
+    }
+  );
 
   test('binds completion to the invited email and records the created review', async () => {
     const db = createMemoryDb({

@@ -2165,7 +2165,8 @@ describe('Messenger v4 frontend polish static assertions', () => {
   it('does not link chat headers to participant user ids as supplier ids', () => {
     const chatView = read('public/messenger/js/ChatViewV4.js');
     expect(chatView).not.toContain('encodeURIComponent(other.userId)');
-    expect(chatView).toContain("conv.context?.type === 'supplier_profile'");
-    expect(chatView).toContain('encodeURIComponent(supplierProfileId)');
+    expect(chatView).not.toContain('/supplier?id=');
+    expect(chatView).toContain("profileLink.removeAttribute('href')");
+    expect(chatView).toContain("profileLink.setAttribute('aria-label', 'Conversation header')");
   });
 });

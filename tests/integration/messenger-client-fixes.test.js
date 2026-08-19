@@ -790,7 +790,7 @@ describe('Messenger client-side fixes', () => {
       // /suppliers/:id, or /marketplace/:id routes, so the old derivations
       // 404'd from the messenger context banner "View →" link.
       expect(bannerSrc).toMatch(/package:\s*`\/package\?id=\$\{id\}`/);
-      expect(bannerSrc).toMatch(/supplier_profile:\s*`\/supplier\?id=\$\{id\}`/);
+      expect(bannerSrc).not.toMatch(/supplier_profile:\s*`\/supplier\?id=\$\{id\}`/);
       expect(bannerSrc).toMatch(/marketplace_listing:\s*`\/marketplace\?listing=\$\{id\}`/);
       // And the old, incorrect path-segment forms must be gone.
       expect(bannerSrc).not.toMatch(/`\/packages\/\$\{id\}`/);

@@ -297,7 +297,7 @@ describe('Supplier Profile Save Fixes', () => {
 
     it('should use in-form status messaging for preview guidance instead of alert()', () => {
       const previewMatch = appJsContent.match(
-        /getElementById\('sup-preview'\)[\s\S]{0,1200}statusEl\.textContent\s*=\s*['"]Please save your profile first before previewing\./
+        /getElementById\('sup-preview'\)[\s\S]{0,2400}statusEl\.textContent\s*=\s*['"]Please save your profile first before previewing\./
       );
       expect(previewMatch).toBeTruthy();
       expect(previewMatch[0]).not.toContain('alert(');

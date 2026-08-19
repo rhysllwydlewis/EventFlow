@@ -107,7 +107,7 @@ describe('trust and inventory copy — no re-introduction of the same claim shap
   // only catches the generic "verified suppliers/caterers/venues/vendors/
   // photographers" collocation used as an unqualified trust claim in copy.
   const GENERIC_VERIFIED_CLAIM_RE =
-    /\bverified\s+(?:event\s+)?(suppliers?|vendors?|venues?|caterers?|photographers?|florists?|entertainers?)\b/i;
+    /\bverified(?:[\s,-]+[a-z&-]+){0,3}[\s,-]+(suppliers?|vendors?|venues?|caterers?|photographers?|florists?|entertainers?|sellers?|companies|partners?)\b/i;
 
   test('no tracked public HTML/article file claims generic "verified suppliers"-style trust', () => {
     const offenders = [];
