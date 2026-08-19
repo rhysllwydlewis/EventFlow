@@ -65,7 +65,7 @@
           "contentUrl": "https://event-flow.co.uk/icon-512.png",
           "caption": "EventFlow"
         },
-        "description": "UK event planning platform connecting customers with verified event suppliers for weddings, parties and corporate events",
+        "description": "UK event planning platform connecting customers with approved event suppliers for weddings, parties and corporate events",
         "foundingDate": "2025",
         "address": {
           "@type": "PostalAddress",
@@ -86,7 +86,10 @@
         },
         "potentialAction": {
           "@type": "SearchAction",
-          "target": "https://event-flow.co.uk/suppliers?q={search_term_string}",
+          "target": {
+            "@type": "EntryPoint",
+            "urlTemplate": "https://event-flow.co.uk/suppliers?q={search_term_string}"
+          },
           "query-input": "required name=search_term_string"
         }
       }
