@@ -567,7 +567,7 @@
               </div>
               
               <!-- Row 2: Venues + Catering -->
-              <a href="/category?slug=venues" class="hero-collage-card" data-category="venues">
+              <a href="/suppliers?category=Venues" class="hero-collage-card" data-category="venues">
                 <img src="/assets/images/collage-venue.jpg" alt="Venues" id="collage-venues" 
                      width="400" height="300" loading="eager" fetchpriority="high" decoding="async"
                      sizes="(max-width: 768px) 48vw, 25vw">
@@ -578,7 +578,7 @@
                 <span class="hero-collage-credit" id="credit-venues"></span>
               </a>
               
-              <a href="/category?slug=catering" class="hero-collage-card" data-category="catering">
+              <a href="/suppliers?category=Catering" class="hero-collage-card" data-category="catering">
                 <img src="/assets/images/collage-catering.jpg" alt="Catering" id="collage-catering"
                      width="400" height="300" loading="eager" fetchpriority="auto" decoding="async"
                      sizes="(max-width: 768px) 48vw, 25vw">
@@ -590,7 +590,7 @@
               </a>
               
               <!-- Row 3: Entertainment + Photography -->
-              <a href="/category?slug=entertainment" class="hero-collage-card" data-category="entertainment">
+              <a href="/suppliers?category=Entertainment" class="hero-collage-card" data-category="entertainment">
                 <img src="/assets/images/collage-entertainment.jpg" alt="Entertainment" id="collage-entertainment"
                      width="400" height="300" loading="eager" fetchpriority="auto" decoding="async"
                      sizes="(max-width: 768px) 48vw, 25vw">
@@ -601,7 +601,7 @@
                 <span class="hero-collage-credit" id="credit-entertainment"></span>
               </a>
               
-              <a href="/category?slug=photography" class="hero-collage-card" data-category="photography">
+              <a href="/suppliers?category=Photography" class="hero-collage-card" data-category="photography">
                 <img src="/assets/images/collage-photography.jpg" alt="Photography" id="collage-photography"
                      width="400" height="300" loading="eager" fetchpriority="auto" decoding="async"
                      sizes="(max-width: 768px) 48vw, 25vw">
@@ -1190,6 +1190,9 @@
     <script src="/assets/js/utils/tier-icon.js" defer></script>
     <!-- Package image resolver must load before package-list.js and carousel.js -->
     <script src="/assets/js/utils/package-image-resolver.js" defer></script>
+    <!-- Shared canonical link helpers must load before category-grid.js and package-list.js -->
+    <script src="/assets/js/utils/category-link.js" defer></script>
+    <script src="/assets/js/utils/supplier-link.js" defer></script>
     <script src="/assets/js/components/category-grid.js" defer></script>
     <script src="/assets/js/components/package-list.js" defer></script>
     <!-- Carousel must load before home-init.js -->

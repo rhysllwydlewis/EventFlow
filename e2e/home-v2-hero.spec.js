@@ -75,13 +75,19 @@ test.describe('homepage V2 hero', () => {
     await expect(link).toHaveText('Community');
   });
 
-  test('the collage links to the four category pages', async ({ page }) => {
+  test('the collage links straight to the filtered suppliers page', async ({ page }) => {
     const cards = page.locator('.hero-collage .hero-collage-card');
     await expect(cards).toHaveCount(4);
 
-    for (const slug of ['venues', 'catering', 'entertainment', 'photography']) {
+    // Cards link directly at /suppliers?category=<Name> (the value the
+    // directory page's filter actually reads) rather than the legacy
+    // /category?slug= form, so there is no redirect hop for new links.
+    const categories = ['Venues', 'Catering', 'Entertainment', 'Photography'];
+    for (const category of categories) {
       await expect(
-        page.locator(`.hero-collage .hero-collage-card[href="/category?slug=${slug}"]`)
+        page.locator(
+          `.hero-collage .hero-collage-card[href="/suppliers?category=${category}"]`
+        )
       ).toHaveCount(1);
     }
   });

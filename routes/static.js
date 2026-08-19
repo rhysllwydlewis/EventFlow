@@ -15,6 +15,7 @@ const {
   buildPublicSupplierSlug,
   isPublicSupplier,
 } = require('../services/publicSupplierSeo.service');
+const { resolveCategoryName } = require('../services/categoryLookup.service');
 const createPublicListingSeoRouter = require('./public-listing-seo');
 const logger = require('../utils/logger');
 const sentry = require('../utils/sentry');
@@ -93,6 +94,54 @@ router.get(['/supplier', '/supplier.html'], async (req, res, next) => {
     });
     return next();
   }
+});
+
+/**
+ * Redirect legacy /category?slug=<slug> links to the canonical, correctly
+ * filtered /suppliers?category=<name> URL in a single hop.
+ *
+ * The /suppliers directory page has only ever read a `category` query
+ * parameter (matched against the exact display name stored on
+ * supplier.category, e.g. "Venues") — never `slug`. The previous redirect
+ * forwarded the query string unchanged, so a `slug=venues` link landed on
+ * `/suppliers?slug=venues`, which the directory page silently ignores,
+ * quietly dropping the filter. Resolving the slug to its canonical category
+ * name here keeps this a single 301 hop that actually preserves the filter.
+ */
+router.get(['/category', '/category.html'], async (req, res) => {
+  const rawValue = String(req.query.slug || req.query.category || '').trim();
+  let canonicalCategory = '';
+
+  if (rawValue) {
+    try {
+      const categories = await dbUnified.read('categories');
+      canonicalCategory = resolveCategoryName(categories, rawValue);
+    } catch (error) {
+      logger.warn('Could not resolve legacy category redirect', {
+        rawValue,
+        error: error.message,
+      });
+    }
+  }
+
+  const params = new URLSearchParams();
+  for (const [key, value] of Object.entries(req.query || {})) {
+    if (key === 'slug' || key === 'category' || typeof value !== 'string') {
+      continue;
+    }
+    params.set(key, value);
+  }
+  // An unresolvable/unknown category is dropped rather than forwarded — the
+  // directory page already renders a neutral, self-canonical unfiltered
+  // state for an unrecognised filter (its <link rel="canonical"> is always
+  // the bare /suppliers URL), so this still lands on a real, indexable page
+  // instead of a misleading empty filtered shell.
+  if (canonicalCategory) {
+    params.set('category', canonicalCategory);
+  }
+
+  const qs = params.toString();
+  return res.redirect(301, `/suppliers${qs ? `?${qs}` : ''}`);
 });
 
 /**

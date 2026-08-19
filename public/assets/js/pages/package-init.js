@@ -41,10 +41,12 @@ document.addEventListener('DOMContentLoaded', () => {
       // Breadcrumb
       if (categories && categories.length > 0) {
         document.getElementById('breadcrumb-category').innerHTML = categories
-          .map(
-            c =>
-              `<a href="/category?slug=${encodeURIComponent(c.slug)}" style="text-decoration:none;color:inherit;">${c.name}</a>`
-          )
+          .map(c => {
+            const href = window.EventFlowCategoryLink
+              ? window.EventFlowCategoryLink.categoryHref(c)
+              : `/suppliers?category=${encodeURIComponent(c.name || c.slug || '')}`;
+            return `<a href="${href}" style="text-decoration:none;color:inherit;">${c.name}</a>`;
+          })
           .join(' · ');
         // Show the category segment (hidden by default to avoid 'Home › › Package')
         const catGroup = document.getElementById('breadcrumb-category-group');
@@ -93,10 +95,12 @@ document.addEventListener('DOMContentLoaded', () => {
       // Categories
       if (categories && categories.length > 0) {
         document.getElementById('package-categories').innerHTML = categories
-          .map(
-            c =>
-              `<a href="/category?slug=${encodeURIComponent(c.slug)}" class="pkg-category-pill">${c.icon || ''} ${c.name}</a>`
-          )
+          .map(c => {
+            const href = window.EventFlowCategoryLink
+              ? window.EventFlowCategoryLink.categoryHref(c)
+              : `/suppliers?category=${encodeURIComponent(c.name || c.slug || '')}`;
+            return `<a href="${href}" class="pkg-category-pill">${c.icon || ''} ${c.name}</a>`;
+          })
           .join('');
       }
 
@@ -299,7 +303,9 @@ function buildSupplierSidebar(supplier, pkg, currentUser) {
       blurbEl.style.display = '';
     }
   } else if (supplier.id) {
-    viewBtn.href = `/supplier?id=${encodeURIComponent(supplier.id)}`;
+    viewBtn.href = window.EventFlowSupplierLink
+      ? window.EventFlowSupplierLink.supplierProfileHref(supplier)
+      : `/supplier?id=${encodeURIComponent(supplier.id)}`;
   }
 
   // Save / shortlist button
