@@ -357,9 +357,12 @@
         : '';
 
       // Issue 1: Hyperlinked name for supplier reviewers
+      const authorProfileHref =
+        review.authorSupplierProfilePath ||
+        (review.authorSupplierId ? `/supplier?id=${review.authorSupplierId}` : '');
       const authorNameHtml =
         review.isSupplier && review.authorSupplierId
-          ? `<a class="review-author-name review-author-name--link" href="/supplier?id=${this.escapeHtml(review.authorSupplierId)}">${this.escapeHtml(review.userName)}</a>`
+          ? `<a class="review-author-name review-author-name--link" href="${this.escapeHtml(authorProfileHref)}">${this.escapeHtml(review.userName)}</a>`
           : `<div class="review-author-name">${this.escapeHtml(review.userName)}</div>`;
 
       const helpfulCount = review.helpfulCount || 0;

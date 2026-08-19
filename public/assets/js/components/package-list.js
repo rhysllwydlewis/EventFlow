@@ -462,6 +462,11 @@ class PackageList {
       const supplierName = escapeHtml(pkg.supplier.name || pkg.supplierName || 'Unknown Supplier');
       const rawSupplierId = pkg.supplier.id || pkg.supplierId;
       const supplierId = rawSupplierId ? encodeURIComponent(String(rawSupplierId)) : '';
+      const supplierHref = window.EventFlowSupplierLink
+        ? window.EventFlowSupplierLink.supplierProfileHref(pkg.supplier)
+        : supplierId
+          ? `/supplier?id=${supplierId}`
+          : '/suppliers';
 
       // Sanitize supplier avatar URL
       const rawSupplierAvatar =
@@ -540,7 +545,7 @@ class PackageList {
       if (supplierId) {
         supplierHtml = `
           <div class="package-card-supplier">
-            <a href="/supplier?id=${supplierId}" class="package-card-supplier-link" data-supplier-link>
+            <a href="${escapeHtml(supplierHref)}" class="package-card-supplier-link" data-supplier-link>
               <img src="${supplierAvatar}" alt="${supplierName}" class="package-card-supplier-avatar" loading="lazy" data-fallback-hide data-fallback-show-next>
               <div style="display: none; width: clamp(32px, 8vw, 40px); height: clamp(32px, 8vw, 40px); border-radius: 50%; background: ${PackageList.generateGradient(pkg.supplier.name || supplierName)}; align-items: center; justify-content: center; color: white; font-weight: 600; font-size: 1rem;">${supplierName.charAt(0).toUpperCase()}</div>
               <div style="flex: 1;">

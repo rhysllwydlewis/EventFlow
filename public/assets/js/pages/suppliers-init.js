@@ -22,6 +22,16 @@ function escapeHtml(unsafe) {
   return div.innerHTML;
 }
 
+// Prefer the canonical slug path the API already resolved (publicProfilePath)
+// over hand-building the legacy /supplier?id= query form. See
+// utils/supplier-link.js.
+function supplierProfileHref(supplier) {
+  if (window.EventFlowSupplierLink) {
+    return window.EventFlowSupplierLink.supplierProfileHref(supplier);
+  }
+  return supplier && supplier.id ? `/supplier?id=${encodeURIComponent(supplier.id)}` : '/suppliers';
+}
+
 /**
  * Format a supplier-entered package price for display.
  * Prices arrive as free text ('£1,200', '£45 pp', 'From £150', '300', '650+').
@@ -161,6 +171,9 @@ function createSupplierCard(supplier, position) {
   // Inline tier icon — use shared EFTierIcon helper if available (tier-icon.js)
   const tierIcon = typeof EFTierIcon !== 'undefined' ? EFTierIcon.render(supplier) : '';
 
+  // Canonical profile link — always the clean slug URL, never /supplier?id=.
+  const profileHref = escapeHtml(supplierProfileHref(supplier));
+
   // Star rating widget — replaces the old "Contact for quote" text.
   // Shows a filled star with the score when reviews exist; an empty star otherwise.
   const ratingValue = supplier.averageRating || supplier.rating;
@@ -203,7 +216,7 @@ function createSupplierCard(supplier, position) {
       <div class="sp-pkg-empty">
         <svg class="sp-pkg-empty-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="9" cy="9" r="2"/><path d="M21 15l-5-5L5 21"/></svg>
         <p class="sp-pkg-empty-text">No packages listed yet</p>
-        <a href="/supplier?id=${encodeURIComponent(supplier.id)}" class="sp-pkg-empty-link">View profile</a>
+        <a href="${profileHref}" class="sp-pkg-empty-link">View profile</a>
       </div>`;
   } else {
     // Show up to 4 packages — 1 visible at a time on mobile, 2 on desktop;
@@ -308,7 +321,7 @@ function createSupplierCard(supplier, position) {
           ${avatarHtml}
         </div>
         <h3 class="sp-card-name">
-          <a href="/supplier?id=${encodeURIComponent(supplier.id)}"
+          <a href="${profileHref}"
              data-position="${position}"
              class="sp-card-link">
             ${escapeHtml(supplier.name)}
@@ -340,7 +353,7 @@ function createSupplierCard(supplier, position) {
                 aria-label="${isInShortlist ? 'Remove from' : 'Save to'} shortlist">
           ${shortlistBtnText}
         </button>
-        <a href="/supplier?id=${encodeURIComponent(supplier.id)}"
+        <a href="${profileHref}"
            class="sp-btn sp-btn--secondary"
            aria-label="View ${escapeHtml(supplier.name)} profile">
           View Profile

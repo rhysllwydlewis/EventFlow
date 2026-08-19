@@ -14,6 +14,7 @@ const {
   findOwnerUserForSupplier,
   hydrateSupplierProfilePhoto,
 } = require('../utils/supplierProfilePhoto');
+const { addPublicProfilePath } = require('../utils/publicSupplierProfilePath');
 
 // Dependencies injected by server.js
 let dbUnified;
@@ -1015,8 +1016,8 @@ router.get('/packages/:slug', async (req, res) => {
       return res.status(404).json({ error: 'Package not found' });
     }
     const supplierOwnerUser = findOwnerUserForSupplier(supplierRaw, users);
-    const supplier = stripPublicSupplierPrivateFields(
-      hydrateSupplierProfilePhoto(supplierRaw, supplierOwnerUser)
+    const supplier = addPublicProfilePath(
+      stripPublicSupplierPrivateFields(hydrateSupplierProfilePhoto(supplierRaw, supplierOwnerUser))
     );
 
     // Get category details

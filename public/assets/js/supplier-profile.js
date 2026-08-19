@@ -175,7 +175,13 @@ import { renderVerificationBadges, renderTierIcon } from '/assets/js/utils/verif
       supplier.coverImage ||
       supplier.logo ||
       'https://event-flow.co.uk/assets/images/eventflow-og-image.png?v=3';
-    const url = `https://event-flow.co.uk/supplier?id=${supplier.id}`;
+    // Reuse the page's own canonical URL (set server-side for the clean slug
+    // route) rather than reconstructing a legacy /supplier?id= link — this
+    // page is only ever reached through the canonical URL now that the
+    // legacy query form 301-redirects before rendering.
+    const canonicalLink = document.querySelector('link[rel="canonical"]');
+    const url =
+      (canonicalLink && canonicalLink.href) || `https://event-flow.co.uk/supplier?id=${supplier.id}`;
 
     document.title = title;
 
