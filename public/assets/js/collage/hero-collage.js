@@ -1470,6 +1470,112 @@ async function initHeroVideo(
 }
 
 /**
+ * Mobile media guardrail (SEO-006 / SEO-011).
+ *
+ * A mobile lab run against the homepage measured ~32MB transferred and a
+ * 14s LCP. `.hero-video-card` above is `display: none !important` on
+ * every viewport ("Video card - HIDDEN (removed from layout)") — yet
+ * `initHeroVideo` unconditionally fetched the Pexels API, assigned a real
+ * `<source src>` and called `.load()`/`.play()` for it regardless of
+ * viewport. A hidden element that still pulls a full video payload is the
+ * defect the audit flagged — a confirmed performance/UX bug, not a proven
+ * ranking effect.
+ *
+ * `HERO_VIDEO_MOBILE_BREAKPOINT_PX` matches the breakpoint already used
+ * elsewhere for mobile decisions in this codebase (768px — see
+ * `COLLAGE_ESTIMATED_SIZES` above and `utils/mobile-enhancements.js`).
+ */
+const HERO_VIDEO_MOBILE_BREAKPOINT_PX = 768;
+
+/**
+ * True when the viewport is at or below the site's mobile breakpoint.
+ * @returns {boolean}
+ */
+function isHeroVideoMobileViewport() {
+  if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') {
+    return false;
+  }
+  return window.matchMedia(`(max-width: ${HERO_VIDEO_MOBILE_BREAKPOINT_PX}px)`).matches === true;
+}
+
+/**
+ * Decide whether the hero video's real `<source>` should be attached the
+ * moment the collage initialises, only after the visitor interacts with
+ * it, or never. A pure function of its inputs so the decision table can be
+ * unit tested without a DOM.
+ *
+ * - `'skip'` — feature disabled, `prefers-reduced-motion`, or
+ *   `prefers-reduced-data` / Save-Data.
+ * - `'interaction'` — attach the real source only once the visitor
+ *   explicitly taps/clicks the card. Unconditional on viewport width: an
+ *   older stored homepage-settings record with
+ *   `mobileOptimizations.disableVideos: false` (the pre-fix default)
+ *   cannot bypass this. That admin flag may only add MORE restriction on
+ *   top of the mobile guardrail, never less — this check runs regardless
+ *   of what it says.
+ * - `'eager'` — load immediately, matching pre-guardrail behaviour.
+ *
+ * @param {object} [context]
+ * @param {boolean} [context.heroVideoEnabled]
+ * @param {boolean} [context.prefersReducedMotion]
+ * @param {boolean} [context.prefersReducedData]
+ * @param {boolean} [context.saveData]
+ * @param {boolean} [context.isMobileViewport]
+ * @returns {'eager'|'interaction'|'skip'}
+ */
+function resolveHeroVideoLoadMode({
+  heroVideoEnabled = true,
+  prefersReducedMotion = false,
+  prefersReducedData = false,
+  saveData = false,
+  isMobileViewport = false,
+} = {}) {
+  if (heroVideoEnabled === false) {
+    return 'skip';
+  }
+  if (prefersReducedMotion) {
+    return 'skip';
+  }
+  if (prefersReducedData || saveData) {
+    return 'skip';
+  }
+  if (isMobileViewport) {
+    return 'interaction';
+  }
+  return 'eager';
+}
+
+/**
+ * Wire the (normally invisible, `inert`) hero video card so its real
+ * `<source>` is attached only once a visitor genuinely interacts with it —
+ * never on page load. `initHeroVideo` itself is unchanged; this only
+ * decides *when* it is allowed to run.
+ *
+ * @param {Array} initHeroVideoArgs - Positional args for `initHeroVideo`.
+ */
+function armHeroVideoForInteraction(initHeroVideoArgs) {
+  const videoCard = document.querySelector('.hero-video-card');
+  const videoElement = document.getElementById('hero-pexels-video');
+  if (!videoCard || !videoElement) {
+    return;
+  }
+
+  let triggered = false;
+  const startRealLoad = () => {
+    if (triggered) {
+      return;
+    }
+    triggered = true;
+    videoCard.removeEventListener('click', startRealLoad);
+    videoCard.removeEventListener('touchend', startRealLoad);
+    initHeroVideo(...initHeroVideoArgs);
+  };
+
+  videoCard.addEventListener('click', startRealLoad);
+  videoCard.addEventListener('touchend', startRealLoad, { passive: true });
+}
+
+/**
  * Initialize Collage Widget with configurable source (Pexels or Uploads)
  * Supports both photos and videos with accessibility features
  * @param {Object} widgetConfig - Configuration from backend
@@ -1567,24 +1673,42 @@ async function initCollageWidget(widgetConfig) {
     }
   }
 
+  const saveData = navigator.connection?.saveData === true;
+
   if (prefersReducedMotion && isDevelopmentEnvironment()) {
-    console.log('User prefers reduced motion, animations will be minimal');
+    console.log('User prefers reduced motion, hero video will not load');
   }
-  if (prefersReducedData && isDevelopmentEnvironment()) {
+  if ((prefersReducedData || saveData) && isDevelopmentEnvironment()) {
     console.log('User prefers reduced data, skipping external media (Pexels API)');
   }
 
-  // Skip video initialization if user prefers reduced data
-  if (!prefersReducedData) {
-    await initHeroVideo(
-      source,
-      effectiveMediaTypes,
-      uploadGallery,
-      { ...(heroVideo || {}), fallbackToPexels },
-      widgetConfig.heroSelectedMedia || null
-    );
+  const heroVideoLoadMode = resolveHeroVideoLoadMode({
+    heroVideoEnabled: (heroVideo || {}).enabled !== false,
+    prefersReducedMotion,
+    prefersReducedData,
+    saveData,
+    isMobileViewport: isHeroVideoMobileViewport(),
+  });
+  const heroVideoInitArgs = [
+    source,
+    effectiveMediaTypes,
+    uploadGallery,
+    { ...(heroVideo || {}), fallbackToPexels },
+    widgetConfig.heroSelectedMedia || null,
+  ];
+
+  if (heroVideoLoadMode === 'eager') {
+    await initHeroVideo(...heroVideoInitArgs);
+  } else if (heroVideoLoadMode === 'interaction') {
+    // Mobile guardrail (SEO-006/SEO-011): only attach the real <source>
+    // once the visitor interacts with the hero video card, so mobile never
+    // requests video bytes for an element that ships hidden by default.
+    armHeroVideoForInteraction(heroVideoInitArgs);
+    if (isDevelopmentEnvironment()) {
+      console.log('[Hero Video] Deferred until interaction (mobile viewport)');
+    }
   } else if (isDevelopmentEnvironment()) {
-    console.log('[Hero Video] Skipped due to prefers-reduced-data');
+    console.log('[Hero Video] Skipped (disabled, reduced motion, or reduced/save data)');
   }
 
   try {
@@ -1665,8 +1789,8 @@ async function initCollageWidget(widgetConfig) {
         (!uploadGallery || uploadGallery.length === 0)) ||
       (fallbackToPexels && source === 'selected_with_fallback');
 
-    if (shouldFetchPexelsMedia && !prefersReducedData) {
-      // Use Pexels API (fallback or primary) - but skip if user prefers reduced data
+    if (shouldFetchPexelsMedia && !prefersReducedData && !saveData) {
+      // Use Pexels API (fallback or primary) - but skip if user prefers reduced/save data
       if (source === 'uploads' && fallbackToPexels) {
         if (isDebugEnabled()) {
           console.log('[Collage Widget] Upload gallery empty, falling back to Pexels');
@@ -1679,7 +1803,15 @@ async function initCollageWidget(widgetConfig) {
         try {
           // Build query params with media types
           const requestPhotos = mediaTypes?.photos !== false;
-          const requestVideos = mediaTypes?.videos !== false;
+          // Mobile guardrail: never request video media for the visible
+          // collage cards on mobile. `mediaTypes` (unlike
+          // `effectiveMediaTypes` above) is not adjusted by the admin's
+          // `mobileOptimizations.disableVideos` flag, so without this the
+          // collage cards would download video on mobile even when that
+          // flag is left at its default `false`. See
+          // resolveHeroVideoLoadMode's doc comment for why the guardrail
+          // itself can't be bypassed by a stale stored setting.
+          const requestVideos = mediaTypes?.videos !== false && !isHeroVideoMobileViewport();
 
           if (isDebugEnabled()) {
             console.log(`[Collage Widget] Media request for ${category}:`, {
@@ -1800,6 +1932,20 @@ async function initCollageWidget(widgetConfig) {
           }
           restoreFrameDefault(collageFrames, categoryMapping, category, uploadGallery);
         }
+      }
+    }
+
+    // Mobile guardrail (SEO-006/SEO-011): strip any video item out of every
+    // category's cache before it can become the collage's initial or
+    // cycled-to media, regardless of which source produced it (Pexels,
+    // admin-selected media, or an uploaded gallery). Filtering here — after
+    // every source above has finished populating `mediaCache` — is the one
+    // choke point that covers all of them without patching each builder
+    // separately, and it cannot be bypassed by an older stored
+    // homepage-settings record that still says videos are enabled.
+    if (isHeroVideoMobileViewport()) {
+      for (const category of Object.keys(mediaCache)) {
+        mediaCache[category] = (mediaCache[category] || []).filter(item => item.type !== 'video');
       }
     }
 
