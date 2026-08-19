@@ -23,13 +23,13 @@ function escapeHtml(unsafe) {
 }
 
 // Prefer the canonical slug path the API already resolved (publicProfilePath)
-// over hand-building the legacy /supplier?id= query form. See
+// instead of reconstructing a URL from an internal id. See
 // utils/supplier-link.js.
 function supplierProfileHref(supplier) {
   if (window.EventFlowSupplierLink) {
     return window.EventFlowSupplierLink.supplierProfileHref(supplier);
   }
-  return supplier && supplier.id ? `/supplier?id=${encodeURIComponent(supplier.id)}` : '/suppliers';
+  return supplier?.publicProfilePath || '/suppliers';
 }
 
 /**
@@ -178,7 +178,7 @@ function createSupplierCard(supplier, position) {
   // Inline tier icon — use shared EFTierIcon helper if available (tier-icon.js)
   const tierIcon = typeof EFTierIcon !== 'undefined' ? EFTierIcon.render(supplier) : '';
 
-  // Canonical profile link — always the clean slug URL, never /supplier?id=.
+  // Canonical profile link — always the API-provided clean slug URL.
   const profileHref = escapeHtml(supplierProfileHref(supplier));
 
   // Star rating widget — replaces the old "Contact for quote" text.

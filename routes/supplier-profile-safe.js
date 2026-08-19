@@ -4,6 +4,7 @@ const express = require('express');
 const router = express.Router();
 const { resolvePackageImage } = require('../utils/packageImageUtils');
 const { safePublicPackage, safePublicSupplier } = require('../utils/supplierPublicProfile');
+const { addPublicProfilePath } = require('../utils/publicSupplierProfilePath');
 const {
   findOwnerUserForSupplierFromDb,
   hydrateSupplierProfilePhoto,
@@ -102,16 +103,18 @@ router.get('/suppliers/:id', async (req, res, next) => {
     const profilePhotoUrl = publicSupplier.profilePhotoUrl;
 
     return res.json(
-      safePublicSupplier(publicSupplier, {
-        badgeDetails: await badgeDetailsFor(supplier),
-        exposeMessagingRecipient: true,
-        exposeOwnerUserId: isOwner,
-        featuredSupplier,
-        isOwner,
-        isPreview: preview,
-        isPro,
-        profilePhotoUrl,
-      })
+      addPublicProfilePath(
+        safePublicSupplier(publicSupplier, {
+          badgeDetails: await badgeDetailsFor(supplier),
+          exposeMessagingRecipient: true,
+          exposeOwnerUserId: isOwner,
+          featuredSupplier,
+          isOwner,
+          isPreview: preview,
+          isPro,
+          profilePhotoUrl,
+        })
+      )
     );
   } catch (error) {
     logger.error('Supplier profile safe route failed:', error);

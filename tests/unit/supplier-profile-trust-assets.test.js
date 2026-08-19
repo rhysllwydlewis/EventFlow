@@ -55,6 +55,7 @@ describe('supplier public trust asset wiring', () => {
       'utf8'
     );
 
-    expect(source).toContain('/supplier?id=${encodeURIComponent(supplierId)}&preview=true');
+    expect(source).toContain('supplier.publicProfilePath');
+    expect(source).not.toContain('/supplier?id=');
   });
 });

@@ -2191,7 +2191,7 @@
     switch (action) {
       case 'viewSupplier':
         if (id) {
-          window.location.href = `/supplier?id=${id}`;
+          window.location.href = `/admin-supplier-detail?id=${encodeURIComponent(id)}`;
         }
         break;
       case 'viewPackage':

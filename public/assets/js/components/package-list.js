@@ -460,13 +460,9 @@ class PackageList {
     let supplierHtml = '';
     if (this.options.showSupplierInfo && pkg.supplier) {
       const supplierName = escapeHtml(pkg.supplier.name || pkg.supplierName || 'Unknown Supplier');
-      const rawSupplierId = pkg.supplier.id || pkg.supplierId;
-      const supplierId = rawSupplierId ? encodeURIComponent(String(rawSupplierId)) : '';
       const supplierHref = window.EventFlowSupplierLink
         ? window.EventFlowSupplierLink.supplierProfileHref(pkg.supplier)
-        : supplierId
-          ? `/supplier?id=${supplierId}`
-          : '/suppliers';
+        : pkg.supplier.publicProfilePath || '/suppliers';
 
       // Sanitize supplier avatar URL
       const rawSupplierAvatar =

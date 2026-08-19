@@ -407,7 +407,7 @@ class SupplierCard {
       <div class="supplier-card-actions">
         ${
           this.supplier.id
-            ? `<a href="${window.EventFlowSupplierLink ? window.EventFlowSupplierLink.supplierProfileHref(this.supplier) : `/supplier?id=${this.supplier.id}`}" class="supplier-card-btn primary" data-supplier-id="${this.supplier.id}" data-action="view-profile">View Profile</a>`
+            ? `<a href="${window.EventFlowSupplierLink ? window.EventFlowSupplierLink.supplierProfileHref(this.supplier) : this.supplier.publicProfilePath || '/suppliers'}" class="supplier-card-btn primary" data-supplier-id="${this.supplier.id}" data-action="view-profile">View Profile</a>`
             : ''
         }
       </div>

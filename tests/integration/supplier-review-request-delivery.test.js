@@ -3,6 +3,7 @@
 const express = require('express');
 const cookieParser = require('cookie-parser');
 const request = require('supertest');
+const { addPublicProfilePath } = require('../../utils/publicSupplierProfilePath');
 const {
   createActiveRequestId,
   createReviewRequestRouter,
@@ -317,6 +318,7 @@ describe('supplier review-request delivery', () => {
         {
           id: createActiveRequestId('supplier-1', 'customer@example.com'),
           supplierId: 'supplier-1',
+          supplierName: 'Moor Audio',
           customerEmail: 'customer@example.com',
           tokenHash: hashToken(rawToken),
           status: 'sent',
@@ -330,8 +332,12 @@ describe('supplier review-request delivery', () => {
     const response = await request(app).get(`/review-request?token=${rawToken}`);
 
     expect(response.status).toBe(302);
+    const publicProfilePath = addPublicProfilePath({
+      id: 'supplier-1',
+      name: 'Moor Audio',
+    }).publicProfilePath;
     expect(response.headers.location).toBe(
-      '/supplier?id=supplier-1&reviewRequest=ready#sp-section-reviews'
+      `${publicProfilePath}?reviewRequest=ready#sp-section-reviews`
     );
     expect(response.headers['cache-control']).toBe('no-store, private');
     expect(response.headers['referrer-policy']).toBe('no-referrer');

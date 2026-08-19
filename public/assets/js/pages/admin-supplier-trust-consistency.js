@@ -230,6 +230,11 @@
       return;
     }
     card.dataset.renderSignature = signature;
+    const publicProfileUrl = /^\/supplier\/[a-z0-9-]+--[a-f0-9]{16}$/.test(
+      supplier.publicProfilePath || ''
+    )
+      ? `${supplier.publicProfilePath}?preview=true`
+      : '';
 
     const rows = TRUST_BADGES.map(item => {
       const verified = isTrustedBadge(item);
@@ -260,7 +265,7 @@
             These are EventFlow-confirmed trust signals, separate from normal profile approval. Do not confirm PLI, DBS or licence badges from supplier-entered text alone. No DBS contents or sensitive certificate details are stored in these badges.
           </p>
         </div>
-        <a class="ef-cta btn btn-secondary btn-small" href="/supplier?id=${encodeURIComponent(supplierId)}&preview=true" target="_blank" rel="noopener noreferrer">Open public profile</a>
+        ${publicProfileUrl ? `<a class="ef-cta btn btn-secondary btn-small" href="${publicProfileUrl}" target="_blank" rel="noopener noreferrer">Open public profile</a>` : ''}
       </div>
 
       <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:0.75rem;margin-top:1rem;">

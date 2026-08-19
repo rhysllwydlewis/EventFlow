@@ -632,7 +632,7 @@ function supplierCard(s, user) {
 
   const supplierHref = window.EventFlowSupplierLink
     ? escapeHtml(window.EventFlowSupplierLink.supplierProfileHref(s))
-    : `/supplier?id=${encodeURIComponent(s.id)}`;
+    : escapeHtml(s.publicProfilePath || '/suppliers');
 
   return `<div class="card supplier-card glass-card" style="display: flex; gap: 16px; align-items: start;">
     ${avatarHtml}
@@ -4656,8 +4656,20 @@ async function initDashSupplier() {
       }
       const supplierIdInput = document.getElementById('sup-id');
       if (supplierIdInput && supplierIdInput.value) {
-        const supplierId = supplierIdInput.value;
-        window.open(`/supplier?id=${encodeURIComponent(supplierId)}&preview=true`, '_blank');
+        const supplier = (window._efCachedSuppliers || []).find(
+          item => String(item.id) === String(supplierIdInput.value)
+        );
+        if (supplier?.publicProfilePath) {
+          window.open(`${supplier.publicProfilePath}?preview=true`, '_blank');
+          return;
+        }
+        if (statusEl) {
+          clearSupplierStatusTimer();
+          statusEl.setAttribute('data-tone', 'warning');
+          statusEl.textContent = 'A public profile link is not available yet.';
+          statusEl.style.color = '#b45309';
+          scheduleSupplierStatusClear(statusEl, 4500);
+        }
       } else {
         if (statusEl) {
           clearSupplierStatusTimer();
