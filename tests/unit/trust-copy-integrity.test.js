@@ -143,7 +143,7 @@ describe('supplier trust badges — approval alone never renders "Verified"', ()
 
   test('app.js legacy-field supplierCard fallback never labels an approved-only supplier "Verified"', () => {
     expect(appJs).not.toContain(
-      "supplierBadges.push('<span class=\"badge badge-email-verified\">Verified</span>');"
+      'supplierBadges.push(\'<span class="badge badge-email-verified">Verified</span>\');'
     );
     expect(appJs).toContain('Approved listing');
   });

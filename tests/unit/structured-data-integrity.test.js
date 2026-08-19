@@ -71,12 +71,11 @@ describe('structured data — every static application/ld+json block is valid JS
     expect(filesWithLdJson.length).toBeGreaterThan(0);
   });
 
-  test.each(filesWithLdJson.flatMap(({ file, blocks }) => blocks.map((block, i) => [file, i, block])))(
-    '%s block #%i parses as valid JSON',
-    (file, _index, block) => {
-      expect(() => JSON.parse(block)).not.toThrow();
-    }
-  );
+  test.each(
+    filesWithLdJson.flatMap(({ file, blocks }) => blocks.map((block, i) => [file, i, block]))
+  )('%s block #%i parses as valid JSON', (file, _index, block) => {
+    expect(() => JSON.parse(block)).not.toThrow();
+  });
 });
 
 describe('structured data — /for-suppliers regression (the reported bad-escape bug)', () => {
@@ -113,18 +112,21 @@ describe('structured data — /for-suppliers regression (the reported bad-escape
 });
 
 describe('structured data — Organization schema does not encode an unsupported verification claim', () => {
-  test.each(['public/index.html', 'public/home-v2.html'])('%s Organization description says "approved", not "verified"', relPath => {
-    const html = fs.readFileSync(path.join(REPO_ROOT, relPath), 'utf8');
-    const blocks = extractLdJsonBlocks(html);
-    const org = blocks
-      .map(block => JSON.parse(block))
-      .flatMap(doc => (Array.isArray(doc['@graph']) ? doc['@graph'] : [doc]))
-      .find(node => node['@type'] === 'Organization');
+  test.each(['public/index.html', 'public/home-v2.html'])(
+    '%s Organization description says "approved", not "verified"',
+    relPath => {
+      const html = fs.readFileSync(path.join(REPO_ROOT, relPath), 'utf8');
+      const blocks = extractLdJsonBlocks(html);
+      const org = blocks
+        .map(block => JSON.parse(block))
+        .flatMap(doc => (Array.isArray(doc['@graph']) ? doc['@graph'] : [doc]))
+        .find(node => node['@type'] === 'Organization');
 
-    expect(org).toBeDefined();
-    expect(org.description).not.toMatch(/verified/i);
-    expect(org.description).toMatch(/approved event suppliers/i);
-  });
+      expect(org).toBeDefined();
+      expect(org.description).not.toMatch(/verified/i);
+      expect(org.description).toMatch(/approved event suppliers/i);
+    }
+  );
 });
 
 describe('structured data — WebSite SearchAction is schema.org-compliant and non-crawlable', () => {
@@ -196,9 +198,11 @@ describe('structured data — WebSite SearchAction is schema.org-compliant and n
     const offenders = [];
     for (const file of publicHtmlFiles) {
       const content = fs.readFileSync(file, 'utf8');
-      if (/<a\b[^>]*href="[^"]*(?:%7Bsearch_term_string%7D|\{search_term_string\})[^"]*"/i.test(
-        content
-      )) {
+      if (
+        /<a\b[^>]*href="[^"]*(?:%7Bsearch_term_string%7D|\{search_term_string\})[^"]*"/i.test(
+          content
+        )
+      ) {
         offenders.push(path.relative(REPO_ROOT, file));
       }
     }
@@ -227,7 +231,7 @@ describe('structured data — dynamic generators already use JSON.stringify and 
   // this fixture via JSON.stringify, not string concatenation.
   const trickyName = "O'Brien's Marquees \\ Events";
   const trickyDescription =
-    "Dan's team don't cut corners — quotes like \"the best\" and a stray backslash \\ still parse.";
+    'Dan\'s team don\'t cut corners — quotes like "the best" and a stray backslash \\ still parse.';
 
   test('supplier JSON-LD survives apostrophes and backslashes in the name/description', () => {
     const supplier = {
