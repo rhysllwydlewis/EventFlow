@@ -373,9 +373,12 @@ async function sendActionPromptEmail(user, report, baseUrl, dryRun) {
     tags: ['action_prompt'],
   });
 
-  logger.info(
-    `[ActionPrompts] Sent to ${user.email} — cadence: ${state?.cadence ?? 'daily'}, status: ${report.ragStatus}, actions: ${report.outstanding.map(a => a.key).join(', ')}`
-  );
+  logger.info('[ActionPrompts] Sent action-prompt email', {
+    userId: user.id,
+    cadence: state?.cadence ?? 'daily',
+    status: report.ragStatus,
+    actions: report.outstanding.map(a => a.key),
+  });
 }
 
 // ── Main run / schedule ─────────────────────────────────────────────────────
