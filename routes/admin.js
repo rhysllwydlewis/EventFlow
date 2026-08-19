@@ -1446,7 +1446,9 @@ router.post('/packages', authRequired, roleRequired('admin'), csrfProtection, as
     };
     const packageApproval = approvalDecision(newPackage);
     if (newPackage.approved && !packageApproval.allowed) {
-      return res.status(409).json({ error: 'Fixture approval blocked', code: packageApproval.reason });
+      return res
+        .status(409)
+        .json({ error: 'Fixture approval blocked', code: packageApproval.reason });
     }
 
     const adminPkgInserted = await dbUnified.insertOne('packages', newPackage);

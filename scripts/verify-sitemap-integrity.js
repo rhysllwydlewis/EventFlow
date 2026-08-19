@@ -4,7 +4,10 @@
 const { auditEverySitemapUrl } = require('../services/sitemapIntegrity.service');
 
 async function main() {
-  const baseUrl = String(process.env.SEO_AUDIT_BASE_URL || 'http://127.0.0.1:3000').replace(/\/$/, '');
+  const baseUrl = String(process.env.SEO_AUDIT_BASE_URL || 'http://127.0.0.1:3000').replace(
+    /\/$/,
+    ''
+  );
   const sitemapResponse = await fetch(`${baseUrl}/sitemap.xml`);
   if (!sitemapResponse.ok) {
     throw new Error(`sitemap.xml returned ${sitemapResponse.status}`);

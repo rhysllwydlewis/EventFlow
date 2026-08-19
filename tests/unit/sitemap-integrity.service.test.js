@@ -12,7 +12,8 @@ function response(url, overrides = {}) {
 }
 
 describe('sitemap universal URL audit', () => {
-  const xml = '<?xml version="1.0"?><urlset>' +
+  const xml =
+    '<?xml version="1.0"?><urlset>' +
     '<url><loc>https://event-flow.co.uk/</loc></url>' +
     '<url><loc>https://event-flow.co.uk/suppliers</loc></url></urlset>';
 
@@ -38,7 +39,10 @@ describe('sitemap universal URL audit', () => {
   });
 
   test('rejects duplicate sitemap locations', async () => {
-    const duplicate = xml.replace('</urlset>', '<url><loc>https://event-flow.co.uk/</loc></url></urlset>');
+    const duplicate = xml.replace(
+      '</urlset>',
+      '<url><loc>https://event-flow.co.uk/</loc></url></urlset>'
+    );
     const result = await auditEverySitemapUrl(duplicate, url => Promise.resolve(response(url)));
     expect(result.failures).toContainEqual({
       url: 'https://event-flow.co.uk/',

@@ -164,7 +164,6 @@ describe('GET /api/catalog/categories', () => {
     const res = await request(app).get('/api/catalog/categories');
     expect(res.headers['cache-control']).toMatch(/public/);
   });
-
 });
 
 describe('GET /api/catalog/suppliers', () => {

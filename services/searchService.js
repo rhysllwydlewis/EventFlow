@@ -670,9 +670,7 @@ function applyFilters(suppliers, query, userCoords) {
   // Category filter
   if (query.category) {
     const category = canonicalCategoryValue(query.category);
-    results = category
-      ? results.filter(s => canonicalCategoryValue(s.category) === category)
-      : [];
+    results = category ? results.filter(s => canonicalCategoryValue(s.category) === category) : [];
   }
 
   // Location filter

@@ -13,10 +13,12 @@ const ROOT = path.join(__dirname, '../..');
 const source = relative => fs.readFileSync(path.join(ROOT, relative), 'utf8');
 
 describe('supplier category canonical flow', () => {
-  const suppliers = ['Venues', 'Catering', 'Entertainment', 'Photography'].map((category, index) => ({
-    id: `supplier-${index}`,
-    category,
-  }));
+  const suppliers = ['Venues', 'Catering', 'Entertainment', 'Photography'].map(
+    (category, index) => ({
+      id: `supplier-${index}`,
+      category,
+    })
+  );
 
   test('the canonical registry exactly matches the supplier validation model', () => {
     expect(CATEGORY_DEFINITIONS.map(category => category.name)).toEqual(VALID_CATEGORIES);
@@ -50,7 +52,7 @@ describe('supplier category canonical flow', () => {
     expect(page).toContain("params.set('category', filters.category)");
     expect(page).toContain('filterCategoryEl.value = currentFilters.category');
     expect(page).toContain('parts.push(filters.category)');
-    expect(page).toContain('trackSearch(currentFilters.q || \'\', currentFilters');
+    expect(page).toContain("trackSearch(currentFilters.q || '', currentFilters");
     expect(page).toContain("trackFilterChange('category', e.target.value)");
   });
 });

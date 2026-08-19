@@ -15,7 +15,12 @@ This change alters eligibility and canonicalisation only. It does not delete pro
   "reviewedBy": "operator@example.com",
   "reviewedAt": "2026-08-19T12:00:00.000Z",
   "decisions": [
-    { "collection": "suppliers", "id": "supplier-id", "decision": "quarantine", "reason": "confirmed fixture" },
+    {
+      "collection": "suppliers",
+      "id": "supplier-id",
+      "decision": "quarantine",
+      "reason": "confirmed fixture"
+    },
     { "collection": "packages", "id": "package-id", "decision": "keep", "reason": "real listing" }
   ]
 }

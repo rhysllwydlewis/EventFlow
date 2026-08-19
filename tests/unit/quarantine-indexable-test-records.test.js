@@ -87,7 +87,8 @@ const ordinaryPackage = {
   supplierId: 'sup-ordinary',
   title: 'Full Day Wedding Photography',
   approved: true,
-  description: 'A complete full-day package with planning, coverage and edited photographs included.',
+  description:
+    'A complete full-day package with planning, coverage and edited photographs included.',
 };
 
 beforeEach(() => {
@@ -277,9 +278,7 @@ describe('--apply mode', () => {
     const packageRow = report.byCollection.packages.rows.find(row => row.id === 'pkg-test-no2');
     expect(romeo.applyOutcome).toBe('quarantined');
     expect(romeo.before.approved).toBe(true);
-    expect(romeo.after).toEqual(
-      expect.objectContaining({ approved: false, seoQuarantined: true })
-    );
+    expect(romeo.after).toEqual(expect.objectContaining({ approved: false, seoQuarantined: true }));
     expect(packageRow.applyOutcome).toBe('reviewed_keep');
     expect((await mockDb.findOne('packages', { id: 'pkg-test-no2' })).approved).toBe(true);
   });

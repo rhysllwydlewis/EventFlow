@@ -13,7 +13,9 @@ const supplier = {
   ownerUserId: 'user-1',
   approved: true,
   name: 'Cwm Valley Events',
+  category: 'Photography',
   location: 'Cardiff',
+  description_short: 'Natural, documentary-style wedding photography across South Wales.',
 };
 const pkg = {
   id: 'pkg-1',
@@ -84,7 +86,7 @@ describe('public package and event SEO routes', () => {
     const slug = buildPublicPackageSlug(pkg);
     const response = await request(app).get(`/package/${slug}`).expect(200);
 
-    expect(response.headers['x-robots-tag']).toContain('index');
+    expect(response.headers['x-robots-tag']).toBe('index, follow, max-image-preview:large');
     expect(response.headers['cache-control']).toContain('s-maxage=300');
     expect(response.text).toContain(
       `<link rel="canonical" href="https://event-flow.co.uk/package/${slug}">`

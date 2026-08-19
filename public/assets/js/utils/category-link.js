@@ -10,16 +10,30 @@
   }
 })(typeof window !== 'undefined' ? window : globalThis, () => {
   'use strict';
-  const CATEGORY_DEFINITIONS = Object.freeze([
-    ['Venues', 'venues'], ['Catering', 'catering'], ['Photography', 'photography'],
-    ['Videography', 'videography'], ['Entertainment', 'entertainment'],
-    ['Music/DJ', 'music-dj'], ['Florist', 'florist'], ['Decor', 'decor'],
-    ['Transport', 'transport'], ['Cake', 'cake'], ['Stationery', 'stationery'],
-    ['Hair & Makeup', 'hair-makeup'], ['Beauty', 'beauty'], ['Bridalwear', 'bridalwear'],
-    ['Jewellery', 'jewellery'], ['Celebrant', 'celebrant'],
-    ['Event Planner', 'event-planner'], ['Wedding Fayre', 'wedding-fayre'],
-    ['Planning', 'planning'], ['Other', 'other'],
-  ].map(([name, slug]) => Object.freeze({ name, slug })));
+  const CATEGORY_DEFINITIONS = Object.freeze(
+    [
+      ['Venues', 'venues'],
+      ['Catering', 'catering'],
+      ['Photography', 'photography'],
+      ['Videography', 'videography'],
+      ['Entertainment', 'entertainment'],
+      ['Music/DJ', 'music-dj'],
+      ['Florist', 'florist'],
+      ['Decor', 'decor'],
+      ['Transport', 'transport'],
+      ['Cake', 'cake'],
+      ['Stationery', 'stationery'],
+      ['Hair & Makeup', 'hair-makeup'],
+      ['Beauty', 'beauty'],
+      ['Bridalwear', 'bridalwear'],
+      ['Jewellery', 'jewellery'],
+      ['Celebrant', 'celebrant'],
+      ['Event Planner', 'event-planner'],
+      ['Wedding Fayre', 'wedding-fayre'],
+      ['Planning', 'planning'],
+      ['Other', 'other'],
+    ].map(([name, slug]) => Object.freeze({ name, slug }))
+  );
 
   function normaliseCategoryToken(value) {
     return String(value || '')
@@ -37,9 +51,10 @@
     if (!token) {
       return '';
     }
-    const match = CATEGORY_DEFINITIONS.find(category =>
-      normaliseCategoryToken(category.name) === token ||
-      normaliseCategoryToken(category.slug) === token
+    const match = CATEGORY_DEFINITIONS.find(
+      category =>
+        normaliseCategoryToken(category.name) === token ||
+        normaliseCategoryToken(category.slug) === token
     );
     return match ? match.name : '';
   }

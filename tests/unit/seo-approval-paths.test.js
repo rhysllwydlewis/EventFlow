@@ -26,10 +26,6 @@ describe('moderation approval paths', () => {
       expect.objectContaining({ id: 'fixture', code: 'confirmed_test_fixture' })
     );
     expect(mockDb.updateOne).toHaveBeenCalledTimes(1);
-    expect(mockDb.updateOne).toHaveBeenCalledWith(
-      'packages',
-      { id: 'real' },
-      expect.any(Object)
-    );
+    expect(mockDb.updateOne).toHaveBeenCalledWith('packages', { id: 'real' }, expect.any(Object));
   });
 });

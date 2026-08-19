@@ -132,13 +132,14 @@ async function scanCollection(collectionName, context = {}) {
         return null;
       }
       const knownFixture = isKnownTestFixture(record);
-      const decisionContext = collectionName === 'packages'
-        ? {
-            type: 'package',
-            validOwnerIds: context.validOwnerIds,
-            supplier: context.supplierMap?.get(String(record.supplierId)),
-          }
-        : { type: 'supplier', validOwnerIds: context.validOwnerIds };
+      const decisionContext =
+        collectionName === 'packages'
+          ? {
+              type: 'package',
+              validOwnerIds: context.validOwnerIds,
+              supplier: context.supplierMap?.get(String(record.supplierId)),
+            }
+          : { type: 'supplier', validOwnerIds: context.validOwnerIds };
       const indexDecision = seoEligibility.canBeIndexed(record, decisionContext);
       const incomplete =
         record.acquisitionStatus === 'incomplete' ||
@@ -148,29 +149,29 @@ async function scanCollection(collectionName, context = {}) {
         return null;
       }
       return {
-      collection: collectionName,
-      id: record.id,
-      label: recordLabel(record),
-      slug: record.slug || null,
-      // The record's own approved flag, before this run touches anything —
-      // true here is exactly the leak the audit found: fixture data that was
-      // (or still is, until --apply runs) reachable as a live public page.
-      wasApproved: record.approved === true,
-      isTestFlag: record.isTest === true,
-      // Confident tier (explicit isTest, or a name/slug that IS "test") vs.
-      // the broader name/slug-contains-the-word-"test" heuristic. --apply
-      // only auto-quarantines the confident tier — a real business like
-      // "Test Valley Marquees" matches the broader heuristic too, and
-      // unpublishing it would be a much worse outcome than a report row
-      // asking a human to confirm it. See services/seoRecordLifecycle.util.js.
-      confirmed: isConfirmedTestFixture(record),
-      candidateType: knownFixture ? 'test_fixture' : 'incomplete_acquisition',
-      eligibilityReasons: indexDecision.reasons,
-      before: {
-        approved: record.approved === true,
-        seoQuarantined: record.seoQuarantined === true,
-        seoQuarantineReason: record.seoQuarantineReason || null,
-      },
+        collection: collectionName,
+        id: record.id,
+        label: recordLabel(record),
+        slug: record.slug || null,
+        // The record's own approved flag, before this run touches anything —
+        // true here is exactly the leak the audit found: fixture data that was
+        // (or still is, until --apply runs) reachable as a live public page.
+        wasApproved: record.approved === true,
+        isTestFlag: record.isTest === true,
+        // Confident tier (explicit isTest, or a name/slug that IS "test") vs.
+        // the broader name/slug-contains-the-word-"test" heuristic. --apply
+        // only auto-quarantines the confident tier — a real business like
+        // "Test Valley Marquees" matches the broader heuristic too, and
+        // unpublishing it would be a much worse outcome than a report row
+        // asking a human to confirm it. See services/seoRecordLifecycle.util.js.
+        confirmed: isConfirmedTestFixture(record),
+        candidateType: knownFixture ? 'test_fixture' : 'incomplete_acquisition',
+        eligibilityReasons: indexDecision.reasons,
+        before: {
+          approved: record.approved === true,
+          seoQuarantined: record.seoQuarantined === true,
+          seoQuarantineReason: record.seoQuarantineReason || null,
+        },
       };
     })
     .filter(Boolean);
@@ -187,7 +188,9 @@ function loadReviewDecisions(reviewFile) {
     !document.reviewedAt ||
     !Array.isArray(document.decisions)
   ) {
-    throw new Error('Review file must contain schemaVersion: 1, reviewedBy, reviewedAt and decisions[]');
+    throw new Error(
+      'Review file must contain schemaVersion: 1, reviewedBy, reviewedAt and decisions[]'
+    );
   }
   const decisions = new Map();
   document.decisions.forEach(entry => {
@@ -203,7 +206,11 @@ function loadReviewDecisions(reviewFile) {
     if (decisions.has(key)) {
       throw new Error(`Duplicate review decision: ${key}`);
     }
-    decisions.set(key, { ...entry, reviewedBy: document.reviewedBy, reviewedAt: document.reviewedAt });
+    decisions.set(key, {
+      ...entry,
+      reviewedBy: document.reviewedBy,
+      reviewedAt: document.reviewedAt,
+    });
   });
   return decisions;
 }
@@ -269,7 +276,10 @@ async function run(options) {
     dbUnified.read('suppliers'),
   ]);
   const validOwnerIds = new Set(
-    (users || []).flatMap(user => [user.id, user._id]).filter(Boolean).map(String)
+    (users || [])
+      .flatMap(user => [user.id, user._id])
+      .filter(Boolean)
+      .map(String)
   );
   const supplierMap = new Map(
     (suppliers || []).flatMap(supplier =>

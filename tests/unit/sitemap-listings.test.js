@@ -57,8 +57,18 @@ describe('listing sitemap eligibility and canonical URLs', () => {
       ],
       public_calendar_events: [
         futureEvent,
-        { ...futureEvent, id: 'pce_future02', slug: 'future-fair-two', startDate: '2035-06-29T10:00:00.000Z' },
-        { ...futureEvent, id: 'pce_future03', slug: 'future-fair-three', startDate: '2035-07-15T10:00:00.000Z' },
+        {
+          ...futureEvent,
+          id: 'pce_future02',
+          slug: 'future-fair-two',
+          startDate: '2035-06-29T10:00:00.000Z',
+        },
+        {
+          ...futureEvent,
+          id: 'pce_future03',
+          slug: 'future-fair-three',
+          startDate: '2035-07-15T10:00:00.000Z',
+        },
         {
           ...futureEvent,
           id: 'pce_past0001',

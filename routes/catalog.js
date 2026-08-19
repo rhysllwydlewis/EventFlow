@@ -216,9 +216,7 @@ router.get('/suppliers', async (req, res) => {
     // Category filter
     if (req.query.category) {
       const cat = canonicalCategoryValue(req.query.category);
-      suppliers = cat
-        ? suppliers.filter(s => canonicalCategoryValue(s.category) === cat)
-        : [];
+      suppliers = cat ? suppliers.filter(s => canonicalCategoryValue(s.category) === cat) : [];
     }
 
     // Location filter (substring match)

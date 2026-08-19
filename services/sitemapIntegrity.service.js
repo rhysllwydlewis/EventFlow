@@ -5,7 +5,8 @@ function sitemapLocations(xml) {
 }
 
 function canonicalFromHtml(html) {
-  const match = String(html || '').match(/<link\s+[^>]*rel=["']canonical["'][^>]*href=["']([^"']+)["']/i) ||
+  const match =
+    String(html || '').match(/<link\s+[^>]*rel=["']canonical["'][^>]*href=["']([^"']+)["']/i) ||
     String(html || '').match(/<link\s+[^>]*href=["']([^"']+)["'][^>]*rel=["']canonical["']/i);
   return match ? match[1] : '';
 }
