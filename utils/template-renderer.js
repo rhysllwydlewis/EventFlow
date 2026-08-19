@@ -63,6 +63,9 @@ const HOMEPAGE_V3_HERO = `      <section class="hv2-hero" aria-labelledby="hv3-t
             loop
             playsinline
             preload="none"
+            poster="/assets/images/hero-video-poster.jpg"
+            width="1280"
+            height="854"
             data-hv3-video-media
           >
             <source type="video/mp4" data-hv3-video-source />

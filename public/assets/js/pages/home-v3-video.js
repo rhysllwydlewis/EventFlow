@@ -760,33 +760,37 @@
     const videos = Array.isArray(data.videos) ? data.videos : [];
     return buildPexelsPlaylist(videos, settings);
   }
-  async function initialisePexelsHeroVideo() {
-    const container = document.querySelector('[data-hv3-pexels-video]');
-    const video = container?.querySelector('[data-hv3-video-media]');
-    const source = container?.querySelector('[data-hv3-video-source]');
-    if (!container || !video || !source || typeof fetch !== 'function') {
-      return;
+  /**
+   * Mobile media guardrail (SEO-006 / SEO-011) for the V3 hero.
+   *
+   * `prefers-reduced-motion` and Save-Data were already respected before
+   * eager loading (folded into `disabled` by the caller); mobile viewport
+   * width was not, so a phone with neither preference set would still
+   * fetch a full video for a hero that already has a working CSS
+   * background-image (`--hv2-hero-bg`) behind it to show in the meantime.
+   * `isMobileViewport()` above (720px) is this file's own established
+   * mobile breakpoint — see `MOBILE_TRANSITION_MULTIPLIER` and
+   * `getHeroVideoTargetWidth` — and is reused here for consistency rather
+   * than introducing a second one.
+   *
+   * A pure function of its inputs so the decision table can be unit
+   * tested without a DOM.
+   */
+  function resolveHeroVideoV3LoadMode({ disabled = false, isMobile = false } = {}) {
+    if (disabled) {
+      return 'skip';
     }
-    const reduceMotion =
-      typeof window.matchMedia === 'function' &&
-      window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    const saveData = window.navigator?.connection?.saveData === true;
-    const settings = await loadHomepageVideoSettings();
-    applyTransitionSettings(container, settings);
-    video.addEventListener('loadeddata', () => {
-      container.classList.remove('is-loading', 'is-switching');
-      container.classList.add('is-ready');
-    });
-    if (reduceMotion || saveData || shouldDisableHeroVideo(settings)) {
-      source.removeAttribute('src');
-      video.removeAttribute('autoplay');
-      video.autoplay = false;
-      video.pause();
-      video.load();
-      container.classList.remove('is-loading', 'is-switching');
-      return;
+    if (isMobile) {
+      return 'interaction';
     }
-    const shouldPlay = applyPlaybackSettings(video, settings);
+    return 'eager';
+  }
+  /**
+   * Fetch/build the hero playlist and start playback. Extracted so it can
+   * run either immediately (desktop) or once a mobile visitor interacts
+   * with the hero (see `resolveHeroVideoV3LoadMode`).
+   */
+  async function loadHeroVideoPlaylistAndPlay({ container, video, source, settings, shouldPlay }) {
     let playlist = [];
     const selectedMediaSource =
       settings.source === 'selected' || settings.source === 'selected_with_fallback';
@@ -834,6 +838,64 @@
       source,
       video,
     });
+  }
+  /**
+   * Mobile guardrail: arm the hero for a real load on first interaction.
+   * Nothing here fetches the playlist or attaches a `<source>` until the
+   * visitor actually taps/clicks — the CSS background-image behind the
+   * video is what renders until then, and `preload` is forced back to
+   * `'none'` so `applyPlaybackSettings` (which defaults it to
+   * `'metadata'`) cannot cause a proactive fetch.
+   */
+  function armHeroVideoV3ForInteraction({ container, video, source, settings, shouldPlay }) {
+    video.preload = 'none';
+    let triggered = false;
+    const startRealLoad = () => {
+      if (triggered) {
+        return;
+      }
+      triggered = true;
+      container.removeEventListener('click', startRealLoad);
+      container.removeEventListener('touchend', startRealLoad);
+      loadHeroVideoPlaylistAndPlay({ container, video, source, settings, shouldPlay });
+    };
+    container.addEventListener('click', startRealLoad);
+    container.addEventListener('touchend', startRealLoad, { passive: true });
+  }
+  async function initialisePexelsHeroVideo() {
+    const container = document.querySelector('[data-hv3-pexels-video]');
+    const video = container?.querySelector('[data-hv3-video-media]');
+    const source = container?.querySelector('[data-hv3-video-source]');
+    if (!container || !video || !source || typeof fetch !== 'function') {
+      return;
+    }
+    const reduceMotion =
+      typeof window.matchMedia === 'function' &&
+      window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const saveData = window.navigator?.connection?.saveData === true;
+    const settings = await loadHomepageVideoSettings();
+    applyTransitionSettings(container, settings);
+    video.addEventListener('loadeddata', () => {
+      container.classList.remove('is-loading', 'is-switching');
+      container.classList.add('is-ready');
+    });
+    const disabled = reduceMotion || saveData || shouldDisableHeroVideo(settings);
+    const loadMode = resolveHeroVideoV3LoadMode({ disabled, isMobile: isMobileViewport() });
+    if (loadMode === 'skip') {
+      source.removeAttribute('src');
+      video.removeAttribute('autoplay');
+      video.autoplay = false;
+      video.pause();
+      video.load();
+      container.classList.remove('is-loading', 'is-switching');
+      return;
+    }
+    const shouldPlay = applyPlaybackSettings(video, settings);
+    if (loadMode === 'interaction') {
+      armHeroVideoV3ForInteraction({ container, video, source, settings, shouldPlay });
+      return;
+    }
+    await loadHeroVideoPlaylistAndPlay({ container, video, source, settings, shouldPlay });
   }
   function initialisePopularSearches() {
     const categoryField = document.getElementById('hv2-category');
