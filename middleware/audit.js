@@ -62,7 +62,7 @@ async function auditLog(params) {
       return null;
     }
 
-    logger.info(`[AUDIT] ${adminEmail} performed ${action} on ${targetType} ${targetId}`);
+    logger.info('[AUDIT] Admin action recorded', { adminEmail, action, targetType, targetId });
 
     return logEntry;
   } catch (error) {
