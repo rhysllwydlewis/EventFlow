@@ -240,3 +240,39 @@ describe('accessible names track the corrected visible wording', () => {
     expect(authHtml).toContain('<span class="auth-panel-stat-value">Approved</span>');
   });
 });
+
+describe('copy must match the real eligibility gate it describes, not just avoid banned words', () => {
+  const adminSettingsHtml = fs.readFileSync(
+    path.join(REPO_ROOT, 'public/admin-settings.html'),
+    'utf8'
+  );
+  const actionPromptServiceJs = fs.readFileSync(
+    path.join(REPO_ROOT, 'services/actionPromptService.js'),
+    'utf8'
+  );
+
+  test("the Email Automation section describes actionPromptService.js's real gate (verified email), not listing approval", () => {
+    // getSupplierActionItems() gates on role==='supplier' and
+    // verified/emailVerified — it never reads a supplier's `approved` flag.
+    // A blanket "verified" -> "approved" copy pass once flipped this
+    // sentence to claim the opposite of what the code does.
+    expect(actionPromptServiceJs).not.toMatch(/supplier[.?]\s*approved/);
+    expect(adminSettingsHtml).not.toMatch(/Only approved suppliers[^.]*receive these emails/);
+    expect(adminSettingsHtml).toContain(
+      'Only suppliers with a verified email address and the setting enabled will receive these emails.'
+    );
+  });
+});
+
+describe('supplier-card-showcase.html (unlinked, noindex, but publicly reachable) matches the site-wide badge fix', () => {
+  const showcaseHtml = fs.readFileSync(
+    path.join(REPO_ROOT, 'public/supplier-card-showcase.html'),
+    'utf8'
+  );
+
+  test('no longer uses the removed sp-badge--verified class or bare "Verified" claim', () => {
+    expect(showcaseHtml).not.toContain('sp-badge--verified');
+    expect(showcaseHtml).not.toMatch(/>\s*✓\s*Verified\s*</);
+    expect(showcaseHtml).toContain('sp-badge--approved');
+  });
+});
