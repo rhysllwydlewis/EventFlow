@@ -47,7 +47,7 @@ describe('home-v3 hero video mobile guardrail', () => {
     const script = scriptSource();
 
     expect(script).toContain('function resolveHeroVideoV3LoadMode');
-    expect(script).toContain("isMobile: isMobileViewport()");
+    expect(script).toContain('isMobile: isMobileViewport()');
     expect(script).toContain("loadMode === 'interaction'");
     expect(script).toContain('function armHeroVideoV3ForInteraction');
 
@@ -60,18 +60,14 @@ describe('home-v3 hero video mobile guardrail', () => {
 
   test('forces preload back to none while armed for interaction, even though applyPlaybackSettings defaults it to metadata', () => {
     const script = scriptSource();
-    const armedFn = script.match(
-      /function armHeroVideoV3ForInteraction\([\s\S]*?\n  \}/
-    );
+    const armedFn = script.match(/function armHeroVideoV3ForInteraction\([\s\S]*?\n {2}\}/);
     expect(armedFn).not.toBeNull();
     expect(armedFn[0]).toContain("video.preload = 'none'");
   });
 
   test('a click or tap is what starts the real load once armed', () => {
     const script = scriptSource();
-    const armedFn = script.match(
-      /function armHeroVideoV3ForInteraction\([\s\S]*?\n  \}/
-    );
+    const armedFn = script.match(/function armHeroVideoV3ForInteraction\([\s\S]*?\n {2}\}/);
     expect(armedFn[0]).toContain("addEventListener('click', startRealLoad)");
     expect(armedFn[0]).toContain("addEventListener('touchend', startRealLoad");
     // Only fires once.
@@ -80,12 +76,14 @@ describe('home-v3 hero video mobile guardrail', () => {
 
   test('reduced-motion and Save-Data still win over the mobile branch (folded into "disabled")', () => {
     const script = scriptSource();
-    const initFn = script.match(/async function initialisePexelsHeroVideo\([\s\S]*?\n  \}/);
+    const initFn = script.match(/async function initialisePexelsHeroVideo\([\s\S]*?\n {2}\}/);
     expect(initFn).not.toBeNull();
     expect(initFn[0]).toContain(
       'const disabled = reduceMotion || saveData || shouldDisableHeroVideo(settings);'
     );
-    expect(initFn[0]).toContain("resolveHeroVideoV3LoadMode({ disabled, isMobile: isMobileViewport() })");
+    expect(initFn[0]).toContain(
+      'resolveHeroVideoV3LoadMode({ disabled, isMobile: isMobileViewport() })'
+    );
   });
 
   test("this component's own established mobile breakpoint (720px) is reused, not a new one", () => {

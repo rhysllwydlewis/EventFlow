@@ -85,8 +85,18 @@ describe('hero video mobile guardrail: resolveHeroVideoLoadMode', () => {
   test('mobile deferral cannot be bypassed by any combination of the other inputs staying "enabled"', () => {
     const { resolveHeroVideoLoadMode } = loadModule();
     const permutations = [
-      { heroVideoEnabled: true, prefersReducedMotion: false, prefersReducedData: false, saveData: false },
-      { heroVideoEnabled: true, prefersReducedMotion: false, prefersReducedData: false, saveData: true },
+      {
+        heroVideoEnabled: true,
+        prefersReducedMotion: false,
+        prefersReducedData: false,
+        saveData: false,
+      },
+      {
+        heroVideoEnabled: true,
+        prefersReducedMotion: false,
+        prefersReducedData: false,
+        saveData: true,
+      },
     ];
     permutations.forEach(context => {
       expect(resolveHeroVideoLoadMode({ ...context, isMobileViewport: true })).not.toBe('eager');
@@ -95,31 +105,31 @@ describe('hero video mobile guardrail: resolveHeroVideoLoadMode', () => {
 
   test('prefers-reduced-motion skips the video entirely, desktop or mobile', () => {
     const { resolveHeroVideoLoadMode } = loadModule();
-    expect(
-      resolveHeroVideoLoadMode({ prefersReducedMotion: true, isMobileViewport: false })
-    ).toBe('skip');
-    expect(
-      resolveHeroVideoLoadMode({ prefersReducedMotion: true, isMobileViewport: true })
-    ).toBe('skip');
+    expect(resolveHeroVideoLoadMode({ prefersReducedMotion: true, isMobileViewport: false })).toBe(
+      'skip'
+    );
+    expect(resolveHeroVideoLoadMode({ prefersReducedMotion: true, isMobileViewport: true })).toBe(
+      'skip'
+    );
   });
 
   test('prefers-reduced-data and Save-Data both skip the video, desktop or mobile', () => {
     const { resolveHeroVideoLoadMode } = loadModule();
-    expect(
-      resolveHeroVideoLoadMode({ prefersReducedData: true, isMobileViewport: false })
-    ).toBe('skip');
+    expect(resolveHeroVideoLoadMode({ prefersReducedData: true, isMobileViewport: false })).toBe(
+      'skip'
+    );
     expect(resolveHeroVideoLoadMode({ saveData: true, isMobileViewport: false })).toBe('skip');
     expect(resolveHeroVideoLoadMode({ saveData: true, isMobileViewport: true })).toBe('skip');
   });
 
   test('an explicitly disabled hero video always skips, regardless of viewport', () => {
     const { resolveHeroVideoLoadMode } = loadModule();
-    expect(
-      resolveHeroVideoLoadMode({ heroVideoEnabled: false, isMobileViewport: false })
-    ).toBe('skip');
-    expect(
-      resolveHeroVideoLoadMode({ heroVideoEnabled: false, isMobileViewport: true })
-    ).toBe('skip');
+    expect(resolveHeroVideoLoadMode({ heroVideoEnabled: false, isMobileViewport: false })).toBe(
+      'skip'
+    );
+    expect(resolveHeroVideoLoadMode({ heroVideoEnabled: false, isMobileViewport: true })).toBe(
+      'skip'
+    );
   });
 
   test('defaults (no context passed) behave like a fully-enabled desktop visitor', () => {
@@ -157,7 +167,8 @@ describe('hero video mobile guardrail: armHeroVideoForInteraction', () => {
       },
       removeEventListener: () => {},
     };
-    sandbox.document.querySelector = selector => (selector === '.hero-video-card' ? videoCard : null);
+    sandbox.document.querySelector = selector =>
+      selector === '.hero-video-card' ? videoCard : null;
     sandbox.document.getElementById = id => (id === 'hero-pexels-video' ? {} : null);
 
     let calls = 0;
@@ -187,30 +198,30 @@ describe('hero video mobile guardrail: markup', () => {
   test.each([
     ['index.html (V1)', indexHtml],
     ['home-v2.html (V2)', homeV2Html],
-  ])('%s ships the hero video with preload="none" and a sized poster from first paint', (_label, html) => {
-    const videoTagMatch = html.match(/<video id="hero-pexels-video"[\s\S]*?<\/video>/);
-    expect(videoTagMatch).not.toBeNull();
-    const videoTag = videoTagMatch[0];
+  ])(
+    '%s ships the hero video with preload="none" and a sized poster from first paint',
+    (_label, html) => {
+      const videoTagMatch = html.match(/<video id="hero-pexels-video"[\s\S]*?<\/video>/);
+      expect(videoTagMatch).not.toBeNull();
+      const videoTag = videoTagMatch[0];
 
-    // Never metadata/auto: nothing should be fetched before JS decides to.
-    expect(videoTag).toMatch(/preload="none"/);
-    expect(videoTag).not.toMatch(/preload="(metadata|auto)"/);
+      // Never metadata/auto: nothing should be fetched before JS decides to.
+      expect(videoTag).toMatch(/preload="none"/);
+      expect(videoTag).not.toMatch(/preload="(metadata|auto)"/);
 
-    // A real poster with real intrinsic dimensions, so there is no layout
-    // shift once JS (or a real video) replaces it.
-    expect(videoTag).toMatch(/poster="\/assets\/images\/hero-video-poster\.jpg"/);
-    expect(videoTag).toMatch(/width="800"/);
-    expect(videoTag).toMatch(/height="450"/);
+      // A real poster with real intrinsic dimensions, so there is no layout
+      // shift once JS (or a real video) replaces it.
+      expect(videoTag).toMatch(/poster="\/assets\/images\/hero-video-poster\.jpg"/);
+      expect(videoTag).toMatch(/width="800"/);
+      expect(videoTag).toMatch(/height="450"/);
 
-    // The <source> is empty until JS decides to attach a real one.
-    expect(videoTag).toMatch(/<source src="" type="video\/mp4" id="hero-video-source">/);
-  });
+      // The <source> is empty until JS decides to attach a real one.
+      expect(videoTag).toMatch(/<source src="" type="video\/mp4" id="hero-video-source">/);
+    }
+  );
 
   test('the hero video card is display:none on every viewport, confirming why an eager fetch was pure waste', () => {
-    const css = fs.readFileSync(
-      path.join(ROOT, 'public/assets/css/hero-modern.css'),
-      'utf8'
-    );
+    const css = fs.readFileSync(path.join(ROOT, 'public/assets/css/hero-modern.css'), 'utf8');
     expect(css).toMatch(/\.hero-video-card\s*\{\s*display:\s*none\s*!important;\s*\}/);
   });
 });

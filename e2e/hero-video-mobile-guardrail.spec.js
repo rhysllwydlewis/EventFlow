@@ -24,7 +24,12 @@ const STALE_ENABLED_SETTINGS = {
     source: 'pexels',
     intervalSeconds: 6,
     mediaTypes: { photos: true, videos: true },
-    pexelsQueries: { venues: 'wedding venue', catering: 'catering', entertainment: 'dj', photography: 'photographer' },
+    pexelsQueries: {
+      venues: 'wedding venue',
+      catering: 'catering',
+      entertainment: 'dj',
+      photography: 'photographer',
+    },
     uploadGallery: [],
     fallbackToPexels: true,
     heroVideo: { enabled: true, autoplay: true, muted: true, loop: true, quality: 'sd' },
@@ -58,17 +63,49 @@ const FAKE_VIDEO_RESPONSE = {
 
 async function mockHeroVideoBackend(page) {
   await page.route('**/api/v1/public/homepage-settings*', route =>
-    route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(STALE_ENABLED_SETTINGS) })
+    route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify(STALE_ENABLED_SETTINGS),
+    })
   );
   await page.route('**/api/admin/public/pexels-video*', route =>
-    route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(FAKE_VIDEO_RESPONSE) })
+    route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify(FAKE_VIDEO_RESPONSE),
+    })
   );
   // The four collage category cards call this; an empty result just falls
   // back to the default static images already in the HTML, which is fine —
   // it is not what this suite is testing.
   await page.route('**/api/v1/admin/public/pexels-collage*', route =>
-    route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ photos: [], videos: [] }) })
+    route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ photos: [], videos: [] }),
+    })
   );
+  // A second, non-v1 collage widget on the page calls this legacy path.
+  // Same reasoning as above — an empty result is a harmless no-op fallback.
+  await page.route('**/api/admin/public/pexels-collage*', route =>
+    route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ photos: [], videos: [] }),
+    })
+  );
+  // FAKE_VIDEO_RESPONSE's `image`/`link` fields point at real Pexels
+  // hostnames with made-up paths, so once the hero attaches them as a
+  // poster/<source>, the browser would otherwise issue a genuine outbound
+  // HTTPS request that this sandbox's egress policy can only fail slowly
+  // (not a fast 404) — exactly the kind of pending request that made an
+  // earlier version of this suite hang on `networkidle`. Abort them at the
+  // network layer so nothing here ever leaves the machine; `page.on('request', ...)`
+  // still observes the attempt (it fires on request start, not completion),
+  // which is all the assertions below need.
+  await page.route('**videos.pexels.com/**', route => route.abort());
+  await page.route('**images.pexels.com/**', route => route.abort());
 }
 
 /** True if a request URL is the hero video fetch or a raw mp4 payload. */
@@ -90,7 +127,7 @@ test.describe('Hero video mobile guardrail', () => {
       }
     });
 
-    await page.goto('/', { waitUntil: 'networkidle' });
+    await page.goto('/', { waitUntil: 'domcontentloaded' });
     await page.waitForTimeout(1000);
 
     expect(heroVideoRequests).toEqual([]);
@@ -104,14 +141,18 @@ test.describe('Hero video mobile guardrail', () => {
     // dispatch the interaction event directly, which is exactly what the
     // guardrail's click/touchend listener is waiting for.
     await page.evaluate(() => {
-      document.querySelector('.hero-video-card')?.dispatchEvent(new Event('click', { bubbles: true }));
+      document
+        .querySelector('.hero-video-card')
+        ?.dispatchEvent(new Event('click', { bubbles: true }));
     });
     await page.waitForTimeout(1000);
 
     expect(heroVideoRequests.length).toBeGreaterThan(0);
   });
 
-  test('desktop viewport: hero video still loads eagerly (unchanged behaviour)', async ({ page }) => {
+  test('desktop viewport: hero video still loads eagerly (unchanged behaviour)', async ({
+    page,
+  }) => {
     await page.setViewportSize({ width: 1440, height: 900 });
     await mockHeroVideoBackend(page);
 
@@ -122,7 +163,7 @@ test.describe('Hero video mobile guardrail', () => {
       }
     });
 
-    await page.goto('/', { waitUntil: 'networkidle' });
+    await page.goto('/', { waitUntil: 'domcontentloaded' });
     await page.waitForTimeout(1500);
 
     // No interaction simulated — desktop must not need one.
@@ -143,20 +184,25 @@ test.describe('Hero video mobile guardrail', () => {
       }
     });
 
-    await page.goto('/', { waitUntil: 'networkidle' });
+    await page.goto('/', { waitUntil: 'domcontentloaded' });
     await page.waitForTimeout(1000);
     expect(heroVideoRequests).toEqual([]);
 
     // 'skip' mode wires no interaction listener at all, so a stray click
     // must not somehow trigger a load either.
     await page.evaluate(() => {
-      document.querySelector('.hero-video-card')?.dispatchEvent(new Event('click', { bubbles: true }));
+      document
+        .querySelector('.hero-video-card')
+        ?.dispatchEvent(new Event('click', { bubbles: true }));
     });
     await page.waitForTimeout(1000);
     expect(heroVideoRequests).toEqual([]);
   });
 
-  test('Save-Data: never downloads the video, mirroring prefers-reduced-data', async ({ page, context }) => {
+  test('Save-Data: never downloads the video, mirroring prefers-reduced-data', async ({
+    page,
+    context,
+  }) => {
     await page.setViewportSize({ width: 1440, height: 900 });
     await mockHeroVideoBackend(page);
 
@@ -176,7 +222,7 @@ test.describe('Hero video mobile guardrail', () => {
       }
     });
 
-    await page.goto('/', { waitUntil: 'networkidle' });
+    await page.goto('/', { waitUntil: 'domcontentloaded' });
     await page.waitForTimeout(1000);
     expect(heroVideoRequests).toEqual([]);
   });

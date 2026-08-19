@@ -775,13 +775,6 @@
    *
    * A pure function of its inputs so the decision table can be unit
    * tested without a DOM.
-   *
-   * @param {object} [context]
-   * @param {boolean} [context.disabled] - Feature disabled, reduced
-   *   motion, or reduced/save data (mutually exclusive with 'interaction';
-   *   these must win over viewport regardless of device).
-   * @param {boolean} [context.isMobile]
-   * @returns {'eager'|'interaction'|'skip'}
    */
   function resolveHeroVideoV3LoadMode({ disabled = false, isMobile = false } = {}) {
     if (disabled) {
@@ -792,7 +785,6 @@
     }
     return 'eager';
   }
-
   /**
    * Fetch/build the hero playlist and start playback. Extracted so it can
    * run either immediately (desktop) or once a mobile visitor interacts
@@ -847,7 +839,6 @@
       video,
     });
   }
-
   /**
    * Mobile guardrail: arm the hero for a real load on first interaction.
    * Nothing here fetches the playlist or attaches a `<source>` until the
@@ -871,7 +862,6 @@
     container.addEventListener('click', startRealLoad);
     container.addEventListener('touchend', startRealLoad, { passive: true });
   }
-
   async function initialisePexelsHeroVideo() {
     const container = document.querySelector('[data-hv3-pexels-video]');
     const video = container?.querySelector('[data-hv3-video-media]');
