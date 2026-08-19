@@ -3862,7 +3862,7 @@ router.post(
       }
 
       logger.info('[Admin] Manual action-prompt run triggered', {
-        adminEmail: req.user.email,
+        adminId: req.user.id,
         dryRun,
         force,
         limit: limit ?? 'default',
