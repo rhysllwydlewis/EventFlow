@@ -102,3 +102,37 @@ describe('community entries in the sitemap', () => {
     expect(xml.trim().endsWith('</urlset>')).toBe(true);
   });
 });
+
+describe('community empty-state index gating in the sitemap (SEO-005)', () => {
+  it('omits a visible category that currently holds no discussions', async () => {
+    mockCollections.set('community_categories', [
+      { slug: 'venues', name: 'Venues', visible: true, archived: false },
+      { slug: 'catering', name: 'Catering', visible: true, archived: false },
+    ]);
+    mockCollections.set('community_discussions', [
+      {
+        stableId: 'aaaabbbbcccc',
+        slug: 'marquee-hire',
+        categorySlug: 'venues',
+        state: 'published',
+      },
+    ]);
+    const xml = await generateSitemap('https://event-flow.co.uk');
+    expect(xml).toContain('/community/category/venues');
+    expect(xml).not.toContain('/community/category/catering');
+  });
+
+  it('omits the "all discussions" index when the whole community is empty', async () => {
+    mockCollections.set('community_discussions', []);
+    const xml = await generateSitemap('https://event-flow.co.uk');
+    expect(xml).not.toContain('<loc>https://event-flow.co.uk/community/discussions</loc>');
+    // The community hub itself is not inventory-gated — it still links out to
+    // categories and the "start a discussion" flow even with nothing posted yet.
+    expect(xml).toContain('<loc>https://event-flow.co.uk/community</loc>');
+  });
+
+  it('includes the "all discussions" index once real content exists anywhere', async () => {
+    const xml = await generateSitemap('https://event-flow.co.uk');
+    expect(xml).toContain('<loc>https://event-flow.co.uk/community/discussions</loc>');
+  });
+});

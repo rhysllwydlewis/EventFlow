@@ -21,6 +21,7 @@ const { apiLimiter, publicReadLimiter } = require('../middleware/rateLimits');
 const { getUserFromCookie } = require('../middleware/auth');
 const community = require('../services/community.service');
 const moderation = require('../services/communityModeration.service');
+const emptyStateIndexGate = require('../services/emptyStateIndexGate.service');
 const { replacePlaceholders } = require('../utils/template-renderer');
 const {
   COLLECTIONS,
@@ -359,6 +360,13 @@ router.get(['/community/discussions'], publicReadLimiter, async (req, res, next)
         community.toDiscussionCard(item, { category: categoriesBySlug.get(item.categorySlug), now })
       );
 
+    // Empty-state index gating (SEO-005): with no discussions at all, this is
+    // a thin shell rather than a useful destination — respond 200 with
+    // noindex,follow (never a hard block) until real content exists. Uses
+    // the same threshold sitemap.js reads, so this page and its sitemap
+    // membership can never disagree about what counts as "empty".
+    const indexable = emptyStateIndexGate.communityDiscussionsIndexIsIndexable(ordered.length);
+
     // Page 2 and beyond are paginated slices of one list rather than pages in
     // their own right, so they point their canonical at themselves and rely on
     // rel=prev/next, exactly as the category pages do.
@@ -381,6 +389,7 @@ router.get(['/community/discussions'], publicReadLimiter, async (req, res, next)
           description:
             'Browse every discussion in the EventFlow Community. Filter by category, event type, UK region, freshness and whether a question has been answered.',
           canonical,
+          noindex: !indexable,
           // Page one is the bare URL, not `?page=1`: pointing rel=prev at a
           // second address for the same page would advertise a duplicate.
           prev:
@@ -527,6 +536,13 @@ router.get('/community/category/:slug', publicReadLimiter, async (req, res, next
       .map(item => community.toDiscussionCard(item, { category, now }));
     const totalPages = Math.max(1, Math.ceil(ordered.length / 20));
 
+    // Empty-state index gating (SEO-005): an empty (or near-empty) category
+    // is a thin shell, not a useful destination — respond 200 with
+    // noindex,follow (never a hard block) until it holds real content.
+    // sitemap.js applies the exact same threshold when deciding whether this
+    // category's URL belongs in the sitemap.
+    const indexable = emptyStateIndexGate.communityCategoryIsIndexable(ordered.length);
+
     const canonical = `${BASE_URL}/community/category/${slug}${page > 1 ? `?page=${page}` : ''}`;
     const content = `
       ${fallbackHeading(shell, category.name)}
@@ -544,6 +560,7 @@ router.get('/community/category/:slug', publicReadLimiter, async (req, res, next
             category.description ||
             `Discussions about ${category.name.toLowerCase()} in the EventFlow Community.`,
           canonical,
+          noindex: !indexable,
           prev: page > 1 ? `${BASE_URL}/community/category/${slug}?page=${page - 1}` : null,
           next:
             page < totalPages ? `${BASE_URL}/community/category/${slug}?page=${page + 1}` : null,

@@ -100,4 +100,25 @@ describe('listing sitemap eligibility and canonical URLs', () => {
     expect(blockEnd).toBeGreaterThan(locationIndex);
     expect(xml.slice(locationIndex, blockEnd)).not.toContain('<lastmod>');
   });
+
+  test('omits the public calendar hub when there are no indexable events (SEO-005)', async () => {
+    const data = {
+      suppliers: [supplier],
+      users: [{ id: 'user-1' }],
+      packages: [],
+      public_calendar_events: [
+        {
+          ...futureEvent,
+          id: 'pce_past0001',
+          slug: 'past-event-past0001',
+          startDate: '2020-01-01T10:00:00.000Z',
+          endDate: '2020-01-01T12:00:00.000Z',
+        },
+      ],
+    };
+    dbUnified.read.mockImplementation(async collection => data[collection] || []);
+
+    const xml = await generateSitemap(BASE_URL);
+    expect(xml).not.toContain(`<loc>${BASE_URL}/public-calendar</loc>`);
+  });
 });

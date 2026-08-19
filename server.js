@@ -807,6 +807,12 @@ app.use(require('./routes/community-pages'));
 // the raw files would ship unfilled placeholders to a crawler.
 app.use(require('./routes/locations'));
 
+// ---------- Empty/invalid-inventory SEO index gating ----------
+// Also before templateMiddleware(): sets X-Robots-Tag: noindex on an empty
+// supplier filter combination or an empty public calendar, then falls
+// through so templateMiddleware still serves the normal static shell.
+app.use(require('./routes/public-index-gate'));
+
 // ---------- Template Rendering Middleware ----------
 // CRITICAL: Must come before express.static() to process HTML files with placeholders
 // Replaces {{PLACEHOLDER}} values in HTML files with dynamic content
