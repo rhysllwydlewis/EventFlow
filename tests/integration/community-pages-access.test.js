@@ -361,3 +361,39 @@ describe('server-rendered pages — the rest of the surface', () => {
     }
   });
 });
+
+describe('empty-state index gating (SEO-005) never disagrees with the sitemap count', () => {
+  // A community/category holding only 'superseded' discussions must be
+  // noindex,follow: PUBLIC_STATES (used to render/link the page) includes
+  // 'superseded', but emptyStateIndexGate's PUBLIC_DISCUSSION_STATES (the
+  // count sitemap.js applies the same threshold to) deliberately excludes
+  // it — so an indexability decision based on the wider count would
+  // disagree with the sitemap.
+  it('marks /community/discussions noindex when the only discussion is superseded', async () => {
+    mockDb.seed('community_discussions', [discussion('superseded')]);
+    const res = await request(app).get('/community/discussions');
+    expect(res.status).toBe(200);
+    expect(res.text).toContain('noindex');
+  });
+
+  it('marks /community/category/venues noindex when the only discussion is superseded', async () => {
+    mockDb.seed('community_discussions', [discussion('superseded')]);
+    const res = await request(app).get('/community/category/venues');
+    expect(res.status).toBe(200);
+    expect(res.text).toContain('noindex');
+  });
+
+  it('leaves /community/discussions indexable once a published discussion joins the superseded one', async () => {
+    mockDb.seed('community_discussions', [
+      discussion('superseded'),
+      {
+        ...discussion('published'),
+        id: 'd-2',
+        stableId: 'aaaabbbbcc02',
+        slug: 'a-second-question',
+      },
+    ]);
+    const res = await request(app).get('/community/discussions');
+    expect(res.text).not.toContain('name="robots"');
+  });
+});

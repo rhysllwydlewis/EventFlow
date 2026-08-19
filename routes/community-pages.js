@@ -362,10 +362,14 @@ router.get(['/community/discussions'], publicReadLimiter, async (req, res, next)
 
     // Empty-state index gating (SEO-005): with no discussions at all, this is
     // a thin shell rather than a useful destination — respond 200 with
-    // noindex,follow (never a hard block) until real content exists. Uses
-    // the same threshold sitemap.js reads, so this page and its sitemap
-    // membership can never disagree about what counts as "empty".
-    const indexable = emptyStateIndexGate.communityDiscussionsIndexIsIndexable(ordered.length);
+    // noindex,follow (never a hard block) until real content exists. Counted
+    // via countPublicDiscussions() (published/archived only — excludes
+    // 'superseded', unlike `ordered`/PUBLIC_STATES above) so this page and
+    // sitemap.js's membership decision read the exact same number and can
+    // never disagree about what counts as "empty".
+    const indexable = emptyStateIndexGate.communityDiscussionsIndexIsIndexable(
+      emptyStateIndexGate.countPublicDiscussions(discussions)
+    );
 
     // Page 2 and beyond are paginated slices of one list rather than pages in
     // their own right, so they point their canonical at themselves and rely on
@@ -539,9 +543,13 @@ router.get('/community/category/:slug', publicReadLimiter, async (req, res, next
     // Empty-state index gating (SEO-005): an empty (or near-empty) category
     // is a thin shell, not a useful destination — respond 200 with
     // noindex,follow (never a hard block) until it holds real content.
-    // sitemap.js applies the exact same threshold when deciding whether this
-    // category's URL belongs in the sitemap.
-    const indexable = emptyStateIndexGate.communityCategoryIsIndexable(ordered.length);
+    // Counted via countPublicDiscussions() (published/archived only —
+    // excludes 'superseded', unlike `ordered`/PUBLIC_STATES above) so this
+    // page and sitemap.js's per-category count (which applies the exact
+    // same threshold) can never disagree about what counts as "empty".
+    const indexable = emptyStateIndexGate.communityCategoryIsIndexable(
+      emptyStateIndexGate.countPublicDiscussions(all)
+    );
 
     const canonical = `${BASE_URL}/community/category/${slug}${page > 1 ? `?page=${page}` : ''}`;
     const content = `
