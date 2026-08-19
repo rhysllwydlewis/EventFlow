@@ -85,9 +85,7 @@ test.describe('homepage V2 hero', () => {
     const categories = ['Venues', 'Catering', 'Entertainment', 'Photography'];
     for (const category of categories) {
       await expect(
-        page.locator(
-          `.hero-collage .hero-collage-card[href="/suppliers?category=${category}"]`
-        )
+        page.locator(`.hero-collage .hero-collage-card[href="/suppliers?category=${category}"]`)
       ).toHaveCount(1);
     }
   });

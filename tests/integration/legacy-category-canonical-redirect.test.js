@@ -111,7 +111,9 @@ describe('legacy category canonical redirect', () => {
   test('an unknown slug redirects to the neutral unfiltered /suppliers page, not a soft-404 shell', async () => {
     setData({ categories });
 
-    const response = await request(createApp()).get('/category?slug=not-a-real-category').expect(301);
+    const response = await request(createApp())
+      .get('/category?slug=not-a-real-category')
+      .expect(301);
 
     expect(response.headers.location).toBe('/suppliers');
   });

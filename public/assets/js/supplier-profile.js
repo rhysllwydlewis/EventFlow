@@ -181,7 +181,8 @@ import { renderVerificationBadges, renderTierIcon } from '/assets/js/utils/verif
     // legacy query form 301-redirects before rendering.
     const canonicalLink = document.querySelector('link[rel="canonical"]');
     const url =
-      (canonicalLink && canonicalLink.href) || `https://event-flow.co.uk/supplier?id=${supplier.id}`;
+      (canonicalLink && canonicalLink.href) ||
+      `https://event-flow.co.uk/supplier?id=${supplier.id}`;
 
     document.title = title;
 
