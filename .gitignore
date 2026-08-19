@@ -192,3 +192,6 @@ reports/
 
 # Generated runtime deployment identity
 public/deployment.json
+
+# Local agent-tooling scratch space (isolated worktree checkouts), never repo content
+.claude/
