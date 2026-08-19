@@ -101,6 +101,9 @@ describe('generateSitemap', () => {
       ownerUserId: 'user-1',
       approved: true,
       name: 'Cwm Valley Photography',
+      category: 'Photography',
+      location: 'Cardiff',
+      description_short: 'Natural wedding and event photography across South Wales.',
       updatedAt: '2026-07-18T10:00:00.000Z',
     };
     const orphan = { ...approvedSupplier, id: 'orphan', ownerUserId: 'missing-user' };

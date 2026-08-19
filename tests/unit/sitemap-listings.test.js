@@ -21,6 +21,9 @@ const supplier = {
   ownerUserId: 'user-1',
   approved: true,
   name: 'Cwm Valley Events',
+  category: 'Photography',
+  location: 'Cardiff',
+  description_short: 'Natural wedding and event photography across South Wales.',
 };
 const pkg = {
   id: 'pkg-1',
@@ -28,6 +31,7 @@ const pkg = {
   approved: true,
   title: 'Full Day Photography',
   slug: 'full-day-photography-pkg001',
+  description: 'A full day of documentary-style wedding photography across South Wales.',
   updatedAt: '2026-07-18T10:00:00.000Z',
 };
 const futureEvent = {
@@ -95,5 +99,26 @@ describe('listing sitemap eligibility and canonical URLs', () => {
     expect(locationIndex).toBeGreaterThanOrEqual(0);
     expect(blockEnd).toBeGreaterThan(locationIndex);
     expect(xml.slice(locationIndex, blockEnd)).not.toContain('<lastmod>');
+  });
+
+  test('omits the public calendar hub when there are no indexable events (SEO-005)', async () => {
+    const data = {
+      suppliers: [supplier],
+      users: [{ id: 'user-1' }],
+      packages: [],
+      public_calendar_events: [
+        {
+          ...futureEvent,
+          id: 'pce_past0001',
+          slug: 'past-event-past0001',
+          startDate: '2020-01-01T10:00:00.000Z',
+          endDate: '2020-01-01T12:00:00.000Z',
+        },
+      ],
+    };
+    dbUnified.read.mockImplementation(async collection => data[collection] || []);
+
+    const xml = await generateSitemap(BASE_URL);
+    expect(xml).not.toContain(`<loc>${BASE_URL}/public-calendar</loc>`);
   });
 });

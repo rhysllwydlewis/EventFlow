@@ -9,18 +9,15 @@ const fs = require('fs');
 const path = require('path');
 const dbUnified = require('./db-unified');
 const logger = require('./utils/logger');
-const {
-  buildPublicSupplierSlug,
-  isPublicSupplier,
-} = require('./services/publicSupplierSeo.service');
+const { buildPublicSupplierSlug } = require('./services/publicSupplierSeo.service');
 const {
   buildPublicEventSlug,
   buildPublicPackageSlug,
   isIndexablePublicEvent,
-  isPublicPackage,
-  publicSupplierIds,
   validLastModified,
 } = require('./services/publicListingSeo.service');
+const seoEligibility = require('./services/seoEligibility.service');
+const emptyStateIndexGate = require('./services/emptyStateIndexGate.service');
 const locationPageService = require('./services/locationPage.service');
 const locationRegistry = require('./services/locationRegistry.service');
 const { PUBLICATION_STATES } = require('./models/LocationContent');
@@ -69,8 +66,8 @@ async function loadIndexableCityEntries(suppliers, users, packages, events) {
     }
 
     const validOwnerIds = new Set((users || []).map(user => user?.id).filter(Boolean));
-    const eligibleSuppliers = (suppliers || []).filter(supplier =>
-      isPublicSupplier(supplier, validOwnerIds)
+    const eligibleSuppliers = (suppliers || []).filter(
+      supplier => seoEligibility.canBeViewedPublicly(supplier, { validOwnerIds }).eligible
     );
     const publishedSlugs = new Set(
       locationRegistry
@@ -148,22 +145,34 @@ async function readCollection(collection) {
  * @param {string} baseUrl - Base URL of the site
  * @returns {Promise<string>} Sitemap XML
  */
+// skipcq: JS-R1005 -- One linear sequence keeps every URL-type's eligibility
+// gate, its sitemap membership and the summary count next to each other,
+// which is exactly what SEO-005/SEO-007 need to stay consistent.
 async function generateSitemap(baseUrl) {
   const normalizedBaseUrl = String(baseUrl || '').replace(/\/$/, '');
   const xmlParts = [
     '<?xml version="1.0" encoding="UTF-8"?>',
     '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">',
   ];
+  // CI-visible summary of what went into this sitemap, by URL type — logged
+  // once at the end so an unexpected swing (a category vanishing, a whole
+  // supplier batch dropping out) is reviewable from a build log rather than
+  // only discoverable by diffing the XML by hand.
+  const counts = {};
+  const track = (type, included, excluded = 0) => {
+    counts[type] = { included, excluded };
+  };
 
-  // Include only real, canonical and indexable static routes.
+  // Static routes that are always real, canonical destinations regardless of
+  // inventory. Pages whose usefulness depends on how much content currently
+  // backs them (the public calendar, the community discussion index) are
+  // handled further down, once that inventory has been counted.
   const staticPages = [
     '/',
     '/suppliers',
     '/marketplace',
-    '/public-calendar',
     '/guides',
     '/community',
-    '/community/discussions',
     '/community/guidelines',
     '/community/help',
     '/start',
@@ -175,19 +184,19 @@ async function generateSitemap(baseUrl) {
     '/terms',
   ];
   staticPages.forEach(page => appendUrl(xmlParts, normalizedBaseUrl + page));
+  track('static', staticPages.length);
 
   // Guides are repository-backed content and must remain available even when a
   // dynamic collection is temporarily unavailable.
-  loadGuideEntries().forEach(({ slug, lastmod }) => {
-    if (!slug) {
-      return;
-    }
+  const guideEntries = loadGuideEntries().filter(entry => entry.slug);
+  guideEntries.forEach(({ slug, lastmod }) => {
     appendUrl(
       xmlParts,
       `${normalizedBaseUrl}/articles/${slug}`,
       validLastModifiedOrFallback(lastmod)
     );
   });
+  track('guides', guideEntries.length);
 
   const [suppliers, users, packages, events] = await Promise.all([
     readCollection('suppliers'),
@@ -196,41 +205,62 @@ async function generateSitemap(baseUrl) {
     readCollection('public_calendar_events'),
   ]);
   const validOwnerIds = new Set((users || []).map(user => user?.id).filter(Boolean));
-  const supplierIds = publicSupplierIds(suppliers, users);
+  const supplierById = new Map((suppliers || []).map(supplier => [supplier.id, supplier]));
 
+  let suppliersIncluded = 0;
+  let suppliersExcluded = 0;
   suppliers
-    .filter(supplier => isPublicSupplier(supplier, validOwnerIds))
+    .slice()
     .sort((a, b) => String(a.id).localeCompare(String(b.id)))
     .forEach(supplier => {
-      const slug = buildPublicSupplierSlug(supplier);
-      if (!slug) {
+      const canonicalSlug = buildPublicSupplierSlug(supplier);
+      const decision = seoEligibility.canAppearInSitemap(supplier, {
+        validOwnerIds,
+        canonicalSlug,
+      });
+      if (!decision.eligible) {
+        suppliersExcluded += 1;
         return;
       }
+      suppliersIncluded += 1;
       appendUrl(
         xmlParts,
-        `${normalizedBaseUrl}/supplier/${slug}`,
+        `${normalizedBaseUrl}/supplier/${canonicalSlug}`,
         validLastModifiedOrFallback(supplier.updatedAt || supplier.modifiedAt || supplier.createdAt)
       );
     });
+  track('suppliers', suppliersIncluded, suppliersExcluded);
 
+  let packagesIncluded = 0;
+  let packagesExcluded = 0;
   packages
-    .filter(pkg => isPublicPackage(pkg, supplierIds))
+    .slice()
     .sort((a, b) => String(a.id).localeCompare(String(b.id)))
     .forEach(pkg => {
-      const slug = buildPublicPackageSlug(pkg);
-      if (!slug) {
+      const canonicalSlug = buildPublicPackageSlug(pkg);
+      const decision = seoEligibility.canAppearInSitemap(pkg, {
+        type: 'package',
+        supplier: supplierById.get(pkg.supplierId),
+        validOwnerIds,
+        canonicalSlug,
+      });
+      if (!decision.eligible) {
+        packagesExcluded += 1;
         return;
       }
+      packagesIncluded += 1;
       appendUrl(
         xmlParts,
-        `${normalizedBaseUrl}/package/${slug}`,
+        `${normalizedBaseUrl}/package/${canonicalSlug}`,
         validLastModifiedOrFallback(pkg.updatedAt || pkg.modifiedAt || pkg.createdAt)
       );
     });
+  track('packages', packagesIncluded, packagesExcluded);
 
   const now = new Date();
-  events
-    .filter(event => isIndexablePublicEvent(event, now))
+  const indexableEvents = events.filter(event => isIndexablePublicEvent(event, now));
+  indexableEvents
+    .slice()
     .sort((a, b) => String(a.startDate).localeCompare(String(b.startDate)))
     .forEach(event => {
       const slug = buildPublicEventSlug(event);
@@ -245,6 +275,18 @@ async function generateSitemap(baseUrl) {
         )
       );
     });
+  track('events', indexableEvents.length, events.length - indexableEvents.length);
+
+  // The public calendar hub itself is empty-state gated (SEO-005): with no
+  // indexable events behind it, it is a shell with nothing to show, so it is
+  // dropped from the sitemap exactly like a page returning noindex would be.
+  const calendarEventCount = emptyStateIndexGate.countIndexableEvents(events, now);
+  if (emptyStateIndexGate.calendarIsIndexable(calendarEventCount)) {
+    appendUrl(xmlParts, `${normalizedBaseUrl}/public-calendar`);
+    track('calendarHub', 1);
+  } else {
+    track('calendarHub', 0, 1);
+  }
 
   // UK city pages. The hub is listed only when it has at least one published
   // city to link to, so the sitemap never advertises an empty index page.
@@ -262,35 +304,57 @@ async function generateSitemap(baseUrl) {
         );
       });
   }
+  track('cities', cityEntries.length);
 
   // Community categories and published discussions. Held, hidden, removed and
   // superseded content is excluded so the sitemap never advertises a URL that
-  // returns a noindex page.
+  // returns a noindex page — and, per SEO-005, so is a category or the
+  // discussion index that currently holds too little real content to be
+  // worth indexing.
   const [communityCategories, communityDiscussions] = await Promise.all([
     readCollection('community_categories'),
     readCollection('community_discussions'),
   ]);
+  const discussionCountByCategory =
+    emptyStateIndexGate.countDiscussionsByCategory(communityDiscussions);
+  const totalPublicDiscussions = emptyStateIndexGate.countPublicDiscussions(communityDiscussions);
 
-  communityCategories
-    .filter(
-      category => category && category.slug && category.visible !== false && !category.archived
-    )
+  if (emptyStateIndexGate.communityDiscussionsIndexIsIndexable(totalPublicDiscussions)) {
+    appendUrl(xmlParts, `${normalizedBaseUrl}/community/discussions`);
+    track('communityDiscussionsIndex', 1);
+  } else {
+    track('communityDiscussionsIndex', 0, 1);
+  }
+
+  const eligibleCategories = communityCategories.filter(
+    category => category && category.slug && category.visible !== false && !category.archived
+  );
+  let categoriesIncluded = 0;
+  eligibleCategories
+    .slice()
     .sort((a, b) => String(a.slug).localeCompare(String(b.slug)))
     .forEach(category => {
+      const discussionCount = discussionCountByCategory.get(category.slug) || 0;
+      if (!emptyStateIndexGate.communityCategoryIsIndexable(discussionCount)) {
+        return;
+      }
+      categoriesIncluded += 1;
       appendUrl(
         xmlParts,
         `${normalizedBaseUrl}/community/category/${category.slug}`,
         validLastModifiedOrFallback(category.updatedAt || category.createdAt)
       );
     });
+  track('communityCategories', categoriesIncluded, communityCategories.length - categoriesIncluded);
 
-  communityDiscussions
-    .filter(
-      discussion =>
-        discussion &&
-        discussion.stableId &&
-        (discussion.state === 'published' || discussion.state === 'archived')
-    )
+  const eligibleDiscussions = communityDiscussions.filter(
+    discussion =>
+      discussion &&
+      discussion.stableId &&
+      (discussion.state === 'published' || discussion.state === 'archived')
+  );
+  eligibleDiscussions
+    .slice()
     .sort((a, b) => String(a.stableId).localeCompare(String(b.stableId)))
     .forEach(discussion => {
       appendUrl(
@@ -299,8 +363,21 @@ async function generateSitemap(baseUrl) {
         validLastModifiedOrFallback(discussion.lastActivityAt || discussion.createdAt)
       );
     });
+  track(
+    'communityDiscussions',
+    eligibleDiscussions.length,
+    communityDiscussions.length - eligibleDiscussions.length
+  );
 
   xmlParts.push('</urlset>');
+
+  if (typeof logger.info === 'function') {
+    logger.info('sitemap: generated', {
+      totalUrls: xmlParts.filter(part => part.trim().startsWith('<loc>')).length,
+      byType: counts,
+    });
+  }
+
   return xmlParts.join('\n');
 }
 

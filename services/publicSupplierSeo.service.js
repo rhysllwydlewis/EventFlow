@@ -1,6 +1,7 @@
 'use strict';
 
 const crypto = require('crypto');
+const seoEligibility = require('./seoEligibility.service');
 
 const DEFAULT_BASE_URL = 'https://event-flow.co.uk';
 const SLUG_TOKEN_LENGTH = 16;
@@ -107,14 +108,35 @@ function buildCampaignQuery(input = {}) {
   return output.toString();
 }
 
+/**
+ * Whether a supplier's profile page should render publicly at all (200
+ * rather than a hard 404/redirect).
+ *
+ * Delegates to services/seoEligibility.service.js's canBeViewedPublicly —
+ * the shared policy that also backs the directory search and the sitemap —
+ * so this route can never diverge from what the rest of the platform
+ * considers "public" (SEO-002). Being viewable here does not by itself mean
+ * the page should carry `index,follow`; see getSupplierIndexEligibility for
+ * that separate, stricter decision.
+ * @param {Object} supplier Supplier record.
+ * @param {Set<string>} validOwnerIds IDs of users that still exist.
+ * @returns {boolean} True when the profile should be served.
+ */
 function isPublicSupplier(supplier, validOwnerIds) {
-  if (!supplier || supplier.approved !== true || !supplier.id || !supplierDisplayName(supplier)) {
-    return false;
-  }
-  if (!supplier.ownerUserId) {
-    return true;
-  }
-  return validOwnerIds instanceof Set && validOwnerIds.has(supplier.ownerUserId);
+  return seoEligibility.canBeViewedPublicly(supplier, { validOwnerIds }).eligible;
+}
+
+/**
+ * The stricter, separate decision of whether a viewable supplier's page
+ * should be indexed. A supplier can be `isPublicSupplier() === true` and
+ * still fail this — that page must still respond 200, just with
+ * `noindex, follow` instead of `index, follow`.
+ * @param {Object} supplier Supplier record.
+ * @param {Set<string>} validOwnerIds IDs of users that still exist.
+ * @returns {{eligible: boolean, reasons: string[]}} Decision with reason codes.
+ */
+function getSupplierIndexEligibility(supplier, validOwnerIds) {
+  return seoEligibility.canBeIndexed(supplier, { validOwnerIds });
 }
 
 function resolvePublicSupplierBySlug(suppliers, slug) {
@@ -309,15 +331,30 @@ function removeExistingSupplierSeoTags(html) {
     .replace(/<script\b[^>]*id=["']supplier-structured-data["'][^>]*>[\s\S]*?<\/script>\s*/gi, '');
 }
 
-function renderSupplierHtml(templateHtml, supplier, options = {}) {
+/**
+ * Render a supplier's public profile HTML, including its head metadata.
+ *
+ * `indexable` controls only the `robots` directive and whether structured
+ * data is emitted — the visible profile itself renders identically either
+ * way. A supplier that is publicly viewable but not (yet) complete enough to
+ * index must still get a normal 200 page, just with `noindex, follow`
+ * instead of `index, follow` — never a hard block.
+ * @param {string} templateHtml Supplier page shell.
+ * @param {Object} supplier Supplier record.
+ * @param {Object} [options] Passed through to buildSupplierSeoModel.
+ * @param {boolean} [indexable] Whether this profile should be indexed.
+ * @returns {string} Rendered HTML.
+ */
+function renderSupplierHtml(templateHtml, supplier, options = {}, indexable = true) {
   const seo = buildSupplierSeoModel(supplier, options);
   const cleanTemplate = removeExistingSupplierSeoTags(templateHtml);
   const jsonLd = serializeJsonLd(seo.structuredData);
+  const robots = indexable ? 'index,follow,max-image-preview:large' : 'noindex,follow';
   const block = [
     `  <!-- ${SEO_BLOCK_MARKER}:start -->`,
     `  <title>${escapeHtml(seo.title)}</title>`,
     `  <meta name="description" content="${escapeHtml(seo.description)}">`,
-    '  <meta name="robots" content="index,follow,max-image-preview:large">',
+    `  <meta name="robots" content="${robots}">`,
     `  <meta name="ef-public-supplier-id" content="${escapeHtml(supplier.id)}">`,
     `  <link rel="canonical" href="${escapeHtml(seo.canonicalUrl)}">`,
     `  <meta property="og:title" content="${escapeHtml(seo.title)}">`,
@@ -330,10 +367,14 @@ function renderSupplierHtml(templateHtml, supplier, options = {}) {
     `  <meta name="twitter:title" content="${escapeHtml(seo.title)}">`,
     `  <meta name="twitter:description" content="${escapeHtml(seo.description)}">`,
     `  <meta name="twitter:image" content="${escapeHtml(seo.image)}">`,
-    `  <script type="application/ld+json" id="supplier-structured-data">${jsonLd}</script>`,
+    indexable
+      ? `  <script type="application/ld+json" id="supplier-structured-data">${jsonLd}</script>`
+      : '',
     '  <script src="/assets/js/supplier-route-context.js"></script>',
     `  <!-- ${SEO_BLOCK_MARKER}:end -->`,
-  ].join('\n');
+  ]
+    .filter(Boolean)
+    .join('\n');
 
   if (!/<\/head>/i.test(cleanTemplate)) {
     throw new Error('Supplier template is missing a closing head tag');
@@ -347,6 +388,7 @@ module.exports = {
   buildPublicSupplierSlug,
   buildSupplierSeoModel,
   extractSlugToken,
+  getSupplierIndexEligibility,
   isPublicSupplier,
   renderSupplierHtml,
   resolvePublicSupplierBySlug,

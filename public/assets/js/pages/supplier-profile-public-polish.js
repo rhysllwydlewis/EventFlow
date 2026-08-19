@@ -1,7 +1,9 @@
 (function () {
   'use strict';
 
-  if (window.__supplierProfilePublicPolishLoaded) return;
+  if (window.__supplierProfilePublicPolishLoaded) {
+    return;
+  }
   window.__supplierProfilePublicPolishLoaded = true;
 
   const safety = window.EventFlowSupplierProfileSafety || {};
@@ -9,7 +11,9 @@
   const STYLE_ID = 'supplier-profile-public-polish-styles';
 
   function injectStyles() {
-    if (document.getElementById(STYLE_ID)) return;
+    if (document.getElementById(STYLE_ID)) {
+      return;
+    }
     const style = document.createElement('style');
     style.id = STYLE_ID;
     style.textContent = `
@@ -77,7 +81,9 @@
   }
 
   function updatePreviewState() {
-    if (!isPreview) return;
+    if (!isPreview) {
+      return;
+    }
     document.body.classList.add('supplier-profile-preview');
     const title = document.getElementById('hero-title');
     if (title && !title.querySelector('.sp-preview-watermark') && title.textContent.trim()) {
@@ -99,9 +105,13 @@
 
   function hidePublicEmptyGallery() {
     const gallerySection = document.getElementById('sp-section-gallery');
-    if (!gallerySection || isPreview) return;
+    if (!gallerySection || isPreview) {
+      return;
+    }
     const empty = gallerySection.querySelector('.sp-gallery-empty');
-    if (!empty) return;
+    if (!empty) {
+      return;
+    }
     const card = empty.closest('.sp-card') || gallerySection;
     card.dataset.emptyHidden = 'true';
     gallerySection.style.display = 'none';
@@ -127,7 +137,9 @@
       }
     });
     const note = document.querySelector('.sp-cta-card__note');
-    if (!note) return;
+    if (!note) {
+      return;
+    }
     if (responseText) {
       const currentText = String(note.textContent || '').trim();
       const nextText = /^typically responds\b/i.test(currentText) ? currentText : responseText;
@@ -194,19 +206,25 @@
 
   function syncHeroVerificationBadge() {
     const supplier = getSupplier();
-    if (!supplier) return;
+    if (!supplier) {
+      return;
+    }
 
     // The legacy renderer used `supplier.verified` as a fallback for email
     // verification. Profile approval and email verification are different facts.
     document.querySelectorAll('#hero-badges .badge-email-verified').forEach(badge => {
       if (explicitEmailVerified(supplier)) {
-        if (badge.textContent !== 'Email verified') badge.textContent = 'Email verified';
+        if (badge.textContent !== 'Email verified') {
+          badge.textContent = 'Email verified';
+        }
         badge.title = 'Email address verified';
         badge.setAttribute('aria-label', 'Email verified');
         return;
       }
       if (profileApproved(supplier)) {
-        if (badge.textContent !== 'Approved listing') badge.textContent = 'Approved listing';
+        if (badge.textContent !== 'Approved listing') {
+          badge.textContent = 'Approved listing';
+        }
         badge.title =
           'This listing has been approved by EventFlow. It does not confirm the ' +
           "supplier's identity, insurance or licensing.";
@@ -224,11 +242,17 @@
   function renderTrustSafety() {
     const supplier = getSupplier();
     const container = document.getElementById('sp-sidebar-trust');
-    if (!supplier || !container) return;
+    if (!supplier || !container) {
+      return;
+    }
 
     const labels = [];
-    if (profileApproved(supplier)) labels.push(['Listing approved', false]);
-    if (explicitEmailVerified(supplier)) labels.push(['Email verified', false]);
+    if (profileApproved(supplier)) {
+      labels.push(['Listing approved', false]);
+    }
+    if (explicitEmailVerified(supplier)) {
+      labels.push(['Email verified', false]);
+    }
     if (supplier.phoneVerified || supplier.verifications?.phone?.verified) {
       labels.push(['Phone verified', false]);
     }
@@ -274,12 +298,18 @@
   function syncRecognitionVerification() {
     const supplier = getSupplier();
     const section = document.getElementById('sp-section-badges');
-    if (!supplier || !section) return;
+    if (!supplier || !section) {
+      return;
+    }
 
     section.querySelectorAll('.badge-email-verified').forEach(badge => {
-      if (explicitEmailVerified(supplier)) return;
+      if (explicitEmailVerified(supplier)) {
+        return;
+      }
       if (profileApproved(supplier)) {
-        if (badge.textContent !== 'Approved listing') badge.textContent = 'Approved listing';
+        if (badge.textContent !== 'Approved listing') {
+          badge.textContent = 'Approved listing';
+        }
         badge.setAttribute('aria-label', 'Approved listing');
       } else {
         badge.remove();
@@ -315,7 +345,9 @@
         card.append(label, verificationRow);
       }
     }
-    if (!verificationRow) return;
+    if (!verificationRow) {
+      return;
+    }
 
     extra.forEach(([key, label]) => {
       const marker = `trust-${key}`;
@@ -337,7 +369,9 @@
 
   let runQueued = false;
   function run() {
-    if (runQueued) return;
+    if (runQueued) {
+      return;
+    }
     runQueued = true;
     requestAnimationFrame(() => {
       runQueued = false;

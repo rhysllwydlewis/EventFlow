@@ -76,7 +76,10 @@ describe('community discoverability', () => {
   it('lists the community entry points in the sitemap generator', () => {
     const sitemap = fs.readFileSync(path.join(__dirname, '..', '..', 'sitemap.js'), 'utf8');
     expect(sitemap).toContain("'/community'");
-    expect(sitemap).toContain("'/community/discussions'");
+    // /community/discussions is empty-state gated (SEO-005) rather than a
+    // static array entry, so it appears via a template literal, not a quoted
+    // string literal.
+    expect(sitemap).toContain('/community/discussions');
     expect(sitemap).toContain('community_discussions');
     expect(sitemap).toContain('community_categories');
   });

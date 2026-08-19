@@ -21,6 +21,7 @@ const { apiLimiter, publicReadLimiter } = require('../middleware/rateLimits');
 const { getUserFromCookie } = require('../middleware/auth');
 const community = require('../services/community.service');
 const moderation = require('../services/communityModeration.service');
+const emptyStateIndexGate = require('../services/emptyStateIndexGate.service');
 const { replacePlaceholders } = require('../utils/template-renderer');
 const {
   COLLECTIONS,
@@ -359,6 +360,25 @@ router.get(['/community/discussions'], publicReadLimiter, async (req, res, next)
         community.toDiscussionCard(item, { category: categoriesBySlug.get(item.categorySlug), now })
       );
 
+    // Empty-state index gating (SEO-005): with no discussions at all, this is
+    // a thin shell rather than a useful destination — respond 200 with
+    // noindex,follow (never a hard block) until real content exists. Counted
+    // via countPublicDiscussions() (published/archived only — excludes
+    // 'superseded', unlike `ordered`/PUBLIC_STATES above) so this page and
+    // sitemap.js's membership decision read the exact same number and can
+    // never disagree about what counts as "empty".
+    //
+    // That total-based check alone still lets an out-of-range page number
+    // (e.g. ?page=2 when there's only one real page) through as indexable:
+    // it's a genuinely non-empty community, so the totals check passes, yet
+    // this specific slice renders an empty list at its own self-canonical
+    // URL — a thin, duplicate page. `page <= totalPages` closes that gap.
+    const indexable =
+      page <= totalPages &&
+      emptyStateIndexGate.communityDiscussionsIndexIsIndexable(
+        emptyStateIndexGate.countPublicDiscussions(discussions)
+      );
+
     // Page 2 and beyond are paginated slices of one list rather than pages in
     // their own right, so they point their canonical at themselves and rely on
     // rel=prev/next, exactly as the category pages do.
@@ -381,6 +401,7 @@ router.get(['/community/discussions'], publicReadLimiter, async (req, res, next)
           description:
             'Browse every discussion in the EventFlow Community. Filter by category, event type, UK region, freshness and whether a question has been answered.',
           canonical,
+          noindex: !indexable,
           // Page one is the bare URL, not `?page=1`: pointing rel=prev at a
           // second address for the same page would advertise a duplicate.
           prev:
@@ -527,6 +548,23 @@ router.get('/community/category/:slug', publicReadLimiter, async (req, res, next
       .map(item => community.toDiscussionCard(item, { category, now }));
     const totalPages = Math.max(1, Math.ceil(ordered.length / 20));
 
+    // Empty-state index gating (SEO-005): an empty (or near-empty) category
+    // is a thin shell, not a useful destination — respond 200 with
+    // noindex,follow (never a hard block) until it holds real content.
+    // Counted via countPublicDiscussions() (published/archived only —
+    // excludes 'superseded', unlike `ordered`/PUBLIC_STATES above) so this
+    // page and sitemap.js's per-category count (which applies the exact
+    // same threshold) can never disagree about what counts as "empty".
+    //
+    // page <= totalPages closes the same out-of-range-pagination gap as the
+    // discussions index above: a non-empty category still renders an empty
+    // slice at ?page=<n beyond the real last page>.
+    const indexable =
+      page <= totalPages &&
+      emptyStateIndexGate.communityCategoryIsIndexable(
+        emptyStateIndexGate.countPublicDiscussions(all)
+      );
+
     const canonical = `${BASE_URL}/community/category/${slug}${page > 1 ? `?page=${page}` : ''}`;
     const content = `
       ${fallbackHeading(shell, category.name)}
@@ -544,6 +582,7 @@ router.get('/community/category/:slug', publicReadLimiter, async (req, res, next
             category.description ||
             `Discussions about ${category.name.toLowerCase()} in the EventFlow Community.`,
           canonical,
+          noindex: !indexable,
           prev: page > 1 ? `${BASE_URL}/community/category/${slug}?page=${page - 1}` : null,
           next:
             page < totalPages ? `${BASE_URL}/community/category/${slug}?page=${page + 1}` : null,

@@ -70,21 +70,23 @@
    *   any inline event handler.
    */
   function registerAvatarFallback() {
-    if (window.__efRecAvatarFallback) return;
+    if (window.__efRecAvatarFallback) {
+      return;
+    }
     window.__efRecAvatarFallback = function (img) {
       const wrap = img && img.closest && img.closest('.recommendation-avatar-wrap');
-      if (!wrap) return;
+      if (!wrap) {
+        return;
+      }
       const initial = escapeHtml(wrap.dataset.recInitial || '?');
       wrap.innerHTML =
-        '<div class="recommendation-avatar recommendation-avatar--fallback"' +
-        ' aria-hidden="true"' +
-        ' style="width:48px;height:48px;border-radius:999px;' +
-        'background:linear-gradient(135deg,#13b6a2,#0b8073);' +
-        'display:flex;align-items:center;justify-content:center;' +
-        'color:white;font-weight:800;font-size: 1rem;' +
-        'box-shadow:0 8px 18px rgba(19,182,162,.18);">' +
-        initial +
-        '</div>';
+        `<div class="recommendation-avatar recommendation-avatar--fallback"` +
+        ` aria-hidden="true"` +
+        ` style="width:48px;height:48px;border-radius:999px;` +
+        `background:linear-gradient(135deg,#13b6a2,#0b8073);` +
+        `display:flex;align-items:center;justify-content:center;` +
+        `color:white;font-weight:800;font-size: 1rem;` +
+        `box-shadow:0 8px 18px rgba(19,182,162,.18);">${initial}</div>`;
     };
   }
 
@@ -95,15 +97,13 @@
         .toUpperCase()
     );
     const fallback =
-      '<div class="recommendation-avatar recommendation-avatar--fallback"' +
-      ' aria-hidden="true"' +
-      ' style="width:48px;height:48px;border-radius:999px;' +
-      'background:linear-gradient(135deg,#13b6a2,#0b8073);' +
-      'display:flex;align-items:center;justify-content:center;' +
-      'color:white;font-weight:800;font-size: 1rem;' +
-      'box-shadow:0 8px 18px rgba(19,182,162,.18);">' +
-      initial +
-      '</div>';
+      `<div class="recommendation-avatar recommendation-avatar--fallback"` +
+      ` aria-hidden="true"` +
+      ` style="width:48px;height:48px;border-radius:999px;` +
+      `background:linear-gradient(135deg,#13b6a2,#0b8073);` +
+      `display:flex;align-items:center;justify-content:center;` +
+      `color:white;font-weight:800;font-size: 1rem;` +
+      `box-shadow:0 8px 18px rgba(19,182,162,.18);">${initial}</div>`;
 
     if (!logoSrc) {
       return fallback;
@@ -115,25 +115,19 @@
     // data-rec-initial carries the letter so the global handler can build the
     // fallback avatar without any HTML being embedded in the onerror attribute.
     return (
-      '<span class="recommendation-avatar-wrap"' +
-      ' data-rec-initial="' +
-      initial +
-      '"' +
-      ' style="display:inline-flex;width:48px;height:48px;flex:0 0 48px;">' +
-      '<img' +
-      ' src="' +
-      escapeHtml(logoSrc) +
-      '"' +
-      ' alt="' +
-      escapeHtml(name) +
-      '"' +
-      ' class="recommendation-avatar"' +
-      ' loading="lazy"' +
-      ' style="width:48px;height:48px;border-radius:999px;object-fit:cover;' +
-      'box-shadow:0 8px 18px rgba(15,23,42,.10);"' +
-      ' onerror="window.__efRecAvatarFallback(this)"' +
-      '>' +
-      '</span>'
+      `<span class="recommendation-avatar-wrap"` +
+      ` data-rec-initial="${initial}"` +
+      ` style="display:inline-flex;width:48px;height:48px;flex:0 0 48px;">` +
+      `<img` +
+      ` src="${escapeHtml(logoSrc)}"` +
+      ` alt="${escapeHtml(name)}"` +
+      ` class="recommendation-avatar"` +
+      ` loading="lazy"` +
+      ` style="width:48px;height:48px;border-radius:999px;object-fit:cover;` +
+      `box-shadow:0 8px 18px rgba(15,23,42,.10);"` +
+      ` onerror="window.__efRecAvatarFallback(this)"` +
+      `>` +
+      `</span>`
     );
   }
 

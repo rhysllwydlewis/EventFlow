@@ -1,4 +1,10 @@
 module.exports = {
+  // Without this, ESLint's config cascade walks up past this checkout looking
+  // for further .eslintrc* files. In a nested worktree checkout (e.g.
+  // .claude/worktrees/<id> inside the primary clone) that walk reaches the
+  // primary clone's own .eslintrc.js, which has no node_modules installed
+  // alongside it, and "extends: ['prettier']" then fails to resolve —
+  // breaking `eslint`/lint-staged for every file, unrelated to what changed.
   root: true,
   env: {
     node: true,

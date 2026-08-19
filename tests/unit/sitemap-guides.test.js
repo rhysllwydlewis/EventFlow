@@ -8,6 +8,9 @@ jest.mock('../../db-unified', () => ({
           id: 'supplier&one',
           approved: true,
           name: 'Supplier & One',
+          category: 'Photography',
+          location: 'Cardiff',
+          description_short: 'Natural wedding and event photography across South Wales.',
           updatedAt: '2026-04-10T00:00:00.000Z',
         },
       ];
@@ -20,6 +23,7 @@ jest.mock('../../db-unified', () => ({
           approved: true,
           title: 'Photo & Video',
           slug: 'photo-and-video',
+          description: 'A full day of documentary-style wedding photography and videography.',
           updatedAt: '2026-04-11T00:00:00.000Z',
         },
       ];
