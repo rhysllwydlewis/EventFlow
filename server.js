@@ -454,7 +454,9 @@ app.use('/', staticRoutes);
 
 // Canonical routes for other pages
 // Note: These routes let the template middleware handle file rendering
-// Note: /supplier → /suppliers and /category → /suppliers are handled explicitly below.
+// Note: bare /supplier (no id) redirects to /suppliers below; /supplier?id= and
+// /category?slug= (with clean-URL/category-name translation) are handled by
+// routes/static.js, mounted above.
 // 'package' stays in this array so /package.html → /package (301) keeps working; the
 // bare /package handler below then decides whether to serve the page or redirect.
 const canonicalPages = [
@@ -514,14 +516,9 @@ app.get('/supplier.html', (req, res) => {
   res.redirect(301, '/suppliers');
 });
 
-app.get('/category', (req, res) => {
-  const qs = req.url.includes('?') ? req.url.slice(req.url.indexOf('?')) : '';
-  res.redirect(301, `/suppliers${qs}`);
-});
-app.get('/category.html', (req, res) => {
-  const qs = req.url.includes('?') ? req.url.slice(req.url.indexOf('?')) : '';
-  res.redirect(301, `/suppliers${qs}`);
-});
+// /category and /category.html (legacy ?slug= links) are handled by
+// routes/static.js, mounted above, which translates slug -> category so the
+// redirect preserves the filter instead of silently dropping it.
 
 // /package — serve the real package detail page only when a meaningful identifier is
 // present (id, packageId, or slug query param).  Bare /package with no context is a

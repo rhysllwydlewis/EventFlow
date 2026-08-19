@@ -50,7 +50,7 @@
             "name": "EventFlow",
             "url": "https://event-flow.co.uk",
             "logo": "https://event-flow.co.uk/icon-512.png",
-            "description": "UK event planning platform connecting customers with verified event suppliers for weddings, parties and corporate events",
+            "description": "UK event planning platform connecting customers with approved event suppliers for weddings, parties and corporate events",
             "address": {
               "@type": "PostalAddress",
               "addressCountry": "GB"
@@ -66,7 +66,10 @@
             },
             "potentialAction": {
               "@type": "SearchAction",
-              "target": "https://event-flow.co.uk/suppliers?q={search_term_string}",
+              "target": {
+                "@type": "EntryPoint",
+                "urlTemplate": "https://event-flow.co.uk/suppliers?q={search_term_string}"
+              },
               "query-input": "required name=search_term_string"
             }
           },
@@ -393,7 +396,7 @@
               <!-- Row 1: Video (no label, spans 2 columns) -->
               <div class="hero-video-card">
                 <!-- Video autoplay is controlled by JavaScript based on prefers-reduced-motion -->
-                <video id="hero-pexels-video" muted loop playsinline preload="metadata"
+                <video id="hero-pexels-video" muted loop playsinline preload="none"
                        poster="/assets/images/hero-video-poster.jpg"
                        width="800" height="450">
                   <source src="" type="video/mp4" id="hero-video-source">
@@ -403,7 +406,7 @@
               </div>
               
               <!-- Row 2: Venues + Catering -->
-              <a href="/category?slug=venues" class="hero-collage-card" data-category="venues">
+              <a href="/suppliers?category=Venues" class="hero-collage-card" data-category="venues">
                 <img src="/assets/images/collage-venue.jpg" alt="Venues" id="collage-venues"
                      width="400" height="300" loading="eager" fetchpriority="high" decoding="async"
                      sizes="(max-width: 1023px) 46vw, (max-width: 1699px) 38vw, 644px">
@@ -420,7 +423,7 @@
                 <span class="hero-collage-credit" id="credit-venues"></span>
               </a>
 
-              <a href="/category?slug=catering" class="hero-collage-card" data-category="catering">
+              <a href="/suppliers?category=Catering" class="hero-collage-card" data-category="catering">
                 <img src="/assets/images/collage-catering.jpg" alt="Catering" id="collage-catering"
                      width="400" height="300" loading="eager" fetchpriority="auto" decoding="async"
                      sizes="(max-width: 1023px) 46vw, (max-width: 1699px) 17vw, 285px">
@@ -439,7 +442,7 @@
               </a>
 
               <!-- Row 3: Entertainment + Photography -->
-              <a href="/category?slug=entertainment" class="hero-collage-card" data-category="entertainment">
+              <a href="/suppliers?category=Entertainment" class="hero-collage-card" data-category="entertainment">
                 <img src="/assets/images/collage-entertainment.jpg" alt="Entertainment" id="collage-entertainment"
                      width="400" height="300" loading="eager" fetchpriority="auto" decoding="async"
                      sizes="(max-width: 1023px) 46vw, (max-width: 1699px) 18vw, 304px">
@@ -456,7 +459,7 @@
                 <span class="hero-collage-credit" id="credit-entertainment"></span>
               </a>
 
-              <a href="/category?slug=photography" class="hero-collage-card" data-category="photography">
+              <a href="/suppliers?category=Photography" class="hero-collage-card" data-category="photography">
                 <img src="/assets/images/collage-photography.jpg" alt="Photography" id="collage-photography"
                      width="400" height="300" loading="eager" fetchpriority="auto" decoding="async"
                      sizes="(max-width: 1023px) 46vw, (max-width: 1699px) 19vw, 309px">

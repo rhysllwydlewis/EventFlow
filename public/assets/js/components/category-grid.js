@@ -192,7 +192,9 @@ class CategoryGrid {
     const card = document.createElement('div');
     card.className = 'category-card';
     card.addEventListener('click', () => {
-      window.location.href = `/category?slug=${category.slug}`;
+      window.location.href = window.EventFlowCategoryLink
+        ? window.EventFlowCategoryLink.categoryHref(category)
+        : `/suppliers?category=${encodeURIComponent(category.name || category.slug || '')}`;
     });
 
     const hasImage = category.heroImage && category.heroImage.trim() !== '';

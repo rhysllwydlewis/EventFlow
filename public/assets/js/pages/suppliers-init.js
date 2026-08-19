@@ -22,6 +22,16 @@ function escapeHtml(unsafe) {
   return div.innerHTML;
 }
 
+// Prefer the canonical slug path the API already resolved (publicProfilePath)
+// over hand-building the legacy /supplier?id= query form. See
+// utils/supplier-link.js.
+function supplierProfileHref(supplier) {
+  if (window.EventFlowSupplierLink) {
+    return window.EventFlowSupplierLink.supplierProfileHref(supplier);
+  }
+  return supplier && supplier.id ? `/supplier?id=${encodeURIComponent(supplier.id)}` : '/suppliers';
+}
+
 /**
  * Format a supplier-entered package price for display.
  * Prices arrive as free text ('£1,200', '£45 pp', 'From £150', '300', '650+').
@@ -130,8 +140,15 @@ function createSupplierCard(supplier, position) {
       `<span class="sp-badge sp-badge--founding badge-founding" title="Founding Supplier - Original member since 2024">⭐ Founding Supplier${yearLabel}</span>`
     );
   }
-  if (supplier.verified || supplier.approved) {
-    badges.push('<span class="sp-badge sp-badge--verified badge-verified">Verified</span>');
+  // EventFlow does not perform identity, insurance or capability verification on
+  // suppliers (see /terms) — a supplier's "approved" flag only means the listing
+  // passed moderation and is published. Never label that "Verified"; real
+  // per-field verification (email/phone/business) is rendered separately below
+  // from actual evidence.
+  if (supplier.approved) {
+    badges.push(
+      `<span class="sp-badge sp-badge--approved badge-approved" aria-label="Approved listing" title="This listing has been approved by EventFlow. It does not confirm the supplier&#39;s identity, insurance or licensing.">Approved listing</span>`
+    );
   }
   if (tier === 'pro_plus') {
     badges.push('<span class="sp-badge sp-badge--pro-plus">Pro Plus</span>');
@@ -160,6 +177,9 @@ function createSupplierCard(supplier, position) {
 
   // Inline tier icon — use shared EFTierIcon helper if available (tier-icon.js)
   const tierIcon = typeof EFTierIcon !== 'undefined' ? EFTierIcon.render(supplier) : '';
+
+  // Canonical profile link — always the clean slug URL, never /supplier?id=.
+  const profileHref = escapeHtml(supplierProfileHref(supplier));
 
   // Star rating widget — replaces the old "Contact for quote" text.
   // Shows a filled star with the score when reviews exist; an empty star otherwise.
@@ -203,7 +223,7 @@ function createSupplierCard(supplier, position) {
       <div class="sp-pkg-empty">
         <svg class="sp-pkg-empty-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="9" cy="9" r="2"/><path d="M21 15l-5-5L5 21"/></svg>
         <p class="sp-pkg-empty-text">No packages listed yet</p>
-        <a href="/supplier?id=${encodeURIComponent(supplier.id)}" class="sp-pkg-empty-link">View profile</a>
+        <a href="${profileHref}" class="sp-pkg-empty-link">View profile</a>
       </div>`;
   } else {
     // Show up to 4 packages — 1 visible at a time on mobile, 2 on desktop;
@@ -308,7 +328,7 @@ function createSupplierCard(supplier, position) {
           ${avatarHtml}
         </div>
         <h3 class="sp-card-name">
-          <a href="/supplier?id=${encodeURIComponent(supplier.id)}"
+          <a href="${profileHref}"
              data-position="${position}"
              class="sp-card-link">
             ${escapeHtml(supplier.name)}
@@ -340,7 +360,7 @@ function createSupplierCard(supplier, position) {
                 aria-label="${isInShortlist ? 'Remove from' : 'Save to'} shortlist">
           ${shortlistBtnText}
         </button>
-        <a href="/supplier?id=${encodeURIComponent(supplier.id)}"
+        <a href="${profileHref}"
            class="sp-btn sp-btn--secondary"
            aria-label="View ${escapeHtml(supplier.name)} profile">
           View Profile
@@ -713,7 +733,9 @@ async function initSuppliersPage() {
       eventType: { label: v => v, key: 'eventType' },
       postcode: { label: v => `Near ${v}`, key: 'postcode' },
       maxDistance: { label: v => `≤ ${v} mi`, key: 'maxDistance' },
-      verifiedOnly: { label: () => '✓ Verified only', key: 'verifiedOnly' },
+      // Filters to approved (published) listings only — EventFlow does not verify
+      // supplier identity, insurance or capability (see /terms).
+      verifiedOnly: { label: () => '✓ Approved only', key: 'verifiedOnly' },
     };
 
     const activeChips = [];

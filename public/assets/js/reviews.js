@@ -315,13 +315,15 @@
         ? '<span class="badge badge-email-verified">Email Verified</span>'
         : '';
 
-      // Supplier reviewer badge — shown when the reviewer is a verified supplier account.
+      // Supplier reviewer badge — shown when the reviewer holds a supplier account.
       // Uses .badge-supplier (indigo, 🏢) which is intentionally different from
       // .badge-supplier-account (green, 🏪) shown on a supplier's own profile/account page.
-      // The label "Verified Supplier" signals this is a trust indicator, not a role assignment.
+      // This only reflects account type, not any verification EventFlow performed —
+      // holding a supplier account is not evidence of identity or business
+      // verification, so the label text below must stay unqualified ("Supplier").
       const supplierBadge =
         review.isSupplier || review.authorSupplierId
-          ? '<span class="badge badge-supplier">Verified Supplier</span>'
+          ? '<span class="badge badge-supplier">Supplier</span>'
           : '';
 
       const recommend = review.recommend
@@ -357,9 +359,12 @@
         : '';
 
       // Issue 1: Hyperlinked name for supplier reviewers
+      const authorProfileHref =
+        review.authorSupplierProfilePath ||
+        (review.authorSupplierId ? `/supplier?id=${review.authorSupplierId}` : '');
       const authorNameHtml =
         review.isSupplier && review.authorSupplierId
-          ? `<a class="review-author-name review-author-name--link" href="/supplier?id=${this.escapeHtml(review.authorSupplierId)}">${this.escapeHtml(review.userName)}</a>`
+          ? `<a class="review-author-name review-author-name--link" href="${this.escapeHtml(authorProfileHref)}">${this.escapeHtml(review.userName)}</a>`
           : `<div class="review-author-name">${this.escapeHtml(review.userName)}</div>`;
 
       const helpfulCount = review.helpfulCount || 0;

@@ -613,9 +613,14 @@ function supplierCard(s, user) {
     if (s.verifications.business && s.verifications.business.verified) {
       supplierBadges.push('<span class="badge badge-business-verified">Business Verified</span>');
     }
-  } else if (s.verified || (s.badges && s.badges.includes('verified'))) {
-    // Fallback for legacy verified field
-    supplierBadges.push('<span class="badge badge-email-verified">Verified</span>');
+  } else if (s.approved) {
+    // Fallback when no per-field verifications object is present. `approved`
+    // only means the listing passed moderation — EventFlow does not verify
+    // supplier identity, insurance or capability (see /terms), so this must
+    // never say "Verified".
+    supplierBadges.push(
+      '<span class="badge badge-approved" aria-label="Approved listing" title="Approved by EventFlow — this does not verify identity, insurance or licensing.">Approved listing</span>'
+    );
   }
 
   // Supplier avatar with fallback
@@ -625,17 +630,21 @@ function supplierCard(s, user) {
        <div style="display: none; width: 60px; height: 60px; border-radius: 50%; background: ${generateSupplierGradient(s.name)}; align-items: center; justify-content: center; color: white; font-weight: 600; font-size: 1.5rem; margin-right: 16px; flex-shrink: 0;">${supplierInitial}</div>`
     : `<div style="width: 60px; height: 60px; border-radius: 50%; background: ${generateSupplierGradient(s.name)}; display: flex; align-items: center; justify-content: center; color: white; font-weight: 600; font-size: 1.5rem; margin-right: 16px; flex-shrink: 0;">${supplierInitial}</div>`;
 
+  const supplierHref = window.EventFlowSupplierLink
+    ? escapeHtml(window.EventFlowSupplierLink.supplierProfileHref(s))
+    : `/supplier?id=${encodeURIComponent(s.id)}`;
+
   return `<div class="card supplier-card glass-card" style="display: flex; gap: 16px; align-items: start;">
     ${avatarHtml}
     <div style="flex: 1; min-width: 0;">
       <h3 style="margin: 0 0 8px 0;">
-        <a href="/supplier?id=${encodeURIComponent(s.id)}" style="text-decoration: none; color: inherit;">${escapeHtml(s.name)}</a>
+        <a href="${supplierHref}" style="text-decoration: none; color: inherit;">${escapeHtml(s.name)}</a>
       </h3>
       <div class="small" style="margin-bottom: 8px;">${escapeHtml(s.location || '')} · <span class="badge">${escapeHtml(s.category)}</span> ${s.price_display ? `· ${escapeHtml(s.price_display)}` : ''}</div>
       <p class="small" style="margin-bottom: 8px;">${escapeHtml(s.description_short || '')}</p>
       <div class="supplier-badges" style="margin: 8px 0;">${supplierBadges.join('')}</div>
       <div class="small" style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:8px;">${tags.join(' ')}</div>
-      <div class="form-actions">${addBtn}<a class="cta secondary" href="/supplier?id=${encodeURIComponent(s.id)}">View details</a></div>
+      <div class="form-actions">${addBtn}<a class="cta secondary" href="${supplierHref}">View details</a></div>
     </div>
   </div>`;
 }

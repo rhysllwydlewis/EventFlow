@@ -322,8 +322,11 @@
 
           <div class="sp-filter-group sp-filter-group--verified">
             <label class="sp-filter-checkbox-label" for="filterVerified">
-              <input type="checkbox" id="filterVerified" aria-label="Show verified suppliers only">
-              <span>Verified only</span>
+              <!-- Filters to suppliers whose listing was approved for publication.
+                   EventFlow does not verify supplier identity, insurance or
+                   capability (see /terms), so this must read "Approved", not "Verified". -->
+              <input type="checkbox" id="filterVerified" aria-label="Show approved suppliers only">
+              <span>Approved only</span>
             </label>
           </div>
 
@@ -506,6 +509,8 @@
     <!-- Package image resolver must load before the suppliers page init so resolvePackageImage()
          is available as a global when mini-card image URLs are resolved -->
     <script src="/assets/js/utils/package-image-resolver.js" defer></script>
+    <!-- Shared canonical link helper must load before the suppliers page init -->
+    <script src="/assets/js/utils/supplier-link.js" defer></script>
     <script src="/assets/js/pages/suppliers-init.js?v=19.2.0" type="module" defer></script>
     <!-- Mobile UX: advanced filter toggle, touch-swipe carousel, per-session panel state -->
     <script src="/assets/js/pages/suppliers-mobile.js" defer></script>

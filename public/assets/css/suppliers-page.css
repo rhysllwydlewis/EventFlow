@@ -685,7 +685,7 @@
   line-height: 1.5; /* was 1.6 */
 }
 
-.sp-badge--verified {
+.sp-badge--approved {
   background: #dcfce7;
   color: #15803d;
   border-color: #bbf7d0;

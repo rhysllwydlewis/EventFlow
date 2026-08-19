@@ -27,9 +27,14 @@ test.describe('Packages against the real backend @backend', () => {
       'full-day photography package'
     );
     await expect(page.locator('#pkg-sup-name')).toHaveText(fixtures.supplier.name);
+    // The "View Profile" link now resolves straight to the clean canonical
+    // supplier slug (see SEO-003 fix) rather than the legacy /supplier?id=
+    // query form — Search Console had flagged /suppliers as still internally
+    // linking to that query URL, competing with the slug for the same
+    // content instead of consolidating into it.
     await expect(page.locator('#pkg-view-profile-btn')).toHaveAttribute(
       'href',
-      new RegExp(`supplier.*${fixtures.supplier.id}`)
+      fixtures.supplier.path
     );
 
     const canonical = await page.locator('link[rel="canonical"]').getAttribute('href');
