@@ -453,7 +453,7 @@ const SEED_CATEGORIES = Object.freeze([
   },
   {
     slug: 'ask-verified-suppliers',
-    name: 'Ask verified suppliers',
+    name: 'Ask approved suppliers',
     description: 'Questions answered by approved EventFlow suppliers in their field.',
     icon: '💬',
     order: 180,

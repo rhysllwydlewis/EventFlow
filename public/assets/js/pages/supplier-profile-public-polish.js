@@ -206,9 +206,11 @@
         return;
       }
       if (profileApproved(supplier)) {
-        if (badge.textContent !== 'Approved') badge.textContent = 'Approved';
-        badge.title = 'Supplier profile approved by EventFlow';
-        badge.setAttribute('aria-label', 'Profile approved');
+        if (badge.textContent !== 'Approved listing') badge.textContent = 'Approved listing';
+        badge.title =
+          'This listing has been approved by EventFlow. It does not confirm the ' +
+          "supplier's identity, insurance or licensing.";
+        badge.setAttribute('aria-label', 'Approved listing');
       } else {
         badge.remove();
       }
@@ -225,7 +227,7 @@
     if (!supplier || !container) return;
 
     const labels = [];
-    if (profileApproved(supplier)) labels.push(['Profile approved', false]);
+    if (profileApproved(supplier)) labels.push(['Listing approved', false]);
     if (explicitEmailVerified(supplier)) labels.push(['Email verified', false]);
     if (supplier.phoneVerified || supplier.verifications?.phone?.verified) {
       labels.push(['Phone verified', false]);
@@ -277,8 +279,8 @@
     section.querySelectorAll('.badge-email-verified').forEach(badge => {
       if (explicitEmailVerified(supplier)) return;
       if (profileApproved(supplier)) {
-        if (badge.textContent !== 'Profile approved') badge.textContent = 'Profile approved';
-        badge.setAttribute('aria-label', 'Profile approved');
+        if (badge.textContent !== 'Approved listing') badge.textContent = 'Approved listing';
+        badge.setAttribute('aria-label', 'Approved listing');
       } else {
         badge.remove();
       }

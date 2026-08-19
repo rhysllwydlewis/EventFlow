@@ -613,9 +613,14 @@ function supplierCard(s, user) {
     if (s.verifications.business && s.verifications.business.verified) {
       supplierBadges.push('<span class="badge badge-business-verified">Business Verified</span>');
     }
-  } else if (s.verified || (s.badges && s.badges.includes('verified'))) {
-    // Fallback for legacy verified field
-    supplierBadges.push('<span class="badge badge-email-verified">Verified</span>');
+  } else if (s.approved) {
+    // Fallback when no per-field verifications object is present. `approved`
+    // only means the listing passed moderation — EventFlow does not verify
+    // supplier identity, insurance or capability (see /terms), so this must
+    // never say "Verified".
+    supplierBadges.push(
+      '<span class="badge badge-approved" aria-label="Approved listing" title="Approved by EventFlow — this does not verify identity, insurance or licensing.">Approved listing</span>'
+    );
   }
 
   // Supplier avatar with fallback

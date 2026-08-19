@@ -322,8 +322,11 @@
 
           <div class="sp-filter-group sp-filter-group--verified">
             <label class="sp-filter-checkbox-label" for="filterVerified">
-              <input type="checkbox" id="filterVerified" aria-label="Show verified suppliers only">
-              <span>Verified only</span>
+              <!-- Filters to suppliers whose listing was approved for publication.
+                   EventFlow does not verify supplier identity, insurance or
+                   capability (see /terms), so this must read "Approved", not "Verified". -->
+              <input type="checkbox" id="filterVerified" aria-label="Show approved suppliers only">
+              <span>Approved only</span>
             </label>
           </div>
 

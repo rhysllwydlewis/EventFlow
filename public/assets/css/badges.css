@@ -117,6 +117,23 @@
   font-weight: 700;
 }
 
+/* Approved Listing Badge — moderation/publication approval only. Deliberately
+   a distinct class from .badge-verified: approval is not identity, insurance
+   or capability verification (see /terms), so it must never share a name or
+   claim with a real verification badge. */
+.badge-approved {
+  background: linear-gradient(135deg, #ccfbf1 0%, #99f6e4 100%);
+  color: #134e4a;
+  border: 1px solid #14b8a6;
+  box-shadow: 0 1px 3px rgba(20, 184, 166, 0.2);
+}
+
+.badge-approved::before {
+  content: '✓';
+  margin-right: 0.25rem;
+  font-weight: 700;
+}
+
 /* Supplier Reviewer Badge */
 .badge-supplier {
   background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);

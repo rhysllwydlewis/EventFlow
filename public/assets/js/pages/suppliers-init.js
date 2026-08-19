@@ -140,8 +140,15 @@ function createSupplierCard(supplier, position) {
       `<span class="sp-badge sp-badge--founding badge-founding" title="Founding Supplier - Original member since 2024">⭐ Founding Supplier${yearLabel}</span>`
     );
   }
-  if (supplier.verified || supplier.approved) {
-    badges.push('<span class="sp-badge sp-badge--verified badge-verified">Verified</span>');
+  // EventFlow does not perform identity, insurance or capability verification on
+  // suppliers (see /terms) — a supplier's "approved" flag only means the listing
+  // passed moderation and is published. Never label that "Verified"; real
+  // per-field verification (email/phone/business) is rendered separately below
+  // from actual evidence.
+  if (supplier.approved) {
+    badges.push(
+      `<span class="sp-badge sp-badge--approved badge-approved" aria-label="Approved listing" title="This listing has been approved by EventFlow. It does not confirm the supplier&#39;s identity, insurance or licensing.">Approved listing</span>`
+    );
   }
   if (tier === 'pro_plus') {
     badges.push('<span class="sp-badge sp-badge--pro-plus">Pro Plus</span>');
@@ -726,7 +733,9 @@ async function initSuppliersPage() {
       eventType: { label: v => v, key: 'eventType' },
       postcode: { label: v => `Near ${v}`, key: 'postcode' },
       maxDistance: { label: v => `≤ ${v} mi`, key: 'maxDistance' },
-      verifiedOnly: { label: () => '✓ Verified only', key: 'verifiedOnly' },
+      // Filters to approved (published) listings only — EventFlow does not verify
+      // supplier identity, insurance or capability (see /terms).
+      verifiedOnly: { label: () => '✓ Approved only', key: 'verifiedOnly' },
     };
 
     const activeChips = [];
