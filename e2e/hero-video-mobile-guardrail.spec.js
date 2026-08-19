@@ -12,6 +12,14 @@ const { test, expect } = require('@playwright/test');
  * Console/CrUX does not yet have enough field data to attribute a ranking
  * effect to it), not a ranking claim.
  *
+ * The guardrail (`isHeroVideoCardReachable` in hero-collage.js) gates on
+ * whether the card is actually visible/interactive, not on viewport width
+ * alone — an earlier version of this fix only deferred loading on mobile,
+ * which left desktop still fetching video for the same permanently-hidden
+ * element. Today that means no viewport should ever request the video, since
+ * the card ships hidden everywhere; the tests below hold that as the current
+ * expected behaviour, not a mobile-only rule.
+ *
  * These tests mock the homepage-settings and Pexels-video endpoints so the
  * scenario is deterministic: a "stale" stored settings record with videos
  * enabled and `mobileOptimizations.disableVideos` left at its default
@@ -114,7 +122,7 @@ function isHeroVideoRequest(url) {
 }
 
 test.describe('Hero video mobile guardrail', () => {
-  test('mobile viewport: no video request before interaction, even with a stale "videos enabled" record', async ({
+  test('mobile viewport: no video request ever, even with a stale "videos enabled" record and a synthetic click', async ({
     page,
   }) => {
     await page.setViewportSize({ width: 375, height: 812 });
@@ -136,10 +144,12 @@ test.describe('Hero video mobile guardrail', () => {
     const srcBeforeInteraction = await page.locator('#hero-video-source').getAttribute('src');
     expect(srcBeforeInteraction || '').toBe('');
 
-    // `.hero-video-card` ships `display: none` / `inert` (decorative, not
-    // yet re-enabled for mobile), so real pointer input can't reach it —
-    // dispatch the interaction event directly, which is exactly what the
-    // guardrail's click/touchend listener is waiting for.
+    // `.hero-video-card` ships `display: none` / `inert` today (see the
+    // module-level comment), so `isHeroVideoCardReachable` gates the load
+    // mode to 'skip' regardless of viewport — no click/touchend listener
+    // is ever armed. Dispatching a click directly against the card (the
+    // one way to prove that, since real pointer input can't reach an
+    // inert/hidden element either) must still produce nothing.
     await page.evaluate(() => {
       document
         .querySelector('.hero-video-card')
@@ -147,10 +157,10 @@ test.describe('Hero video mobile guardrail', () => {
     });
     await page.waitForTimeout(1000);
 
-    expect(heroVideoRequests.length).toBeGreaterThan(0);
+    expect(heroVideoRequests).toEqual([]);
   });
 
-  test('desktop viewport: hero video still loads eagerly (unchanged behaviour)', async ({
+  test('desktop viewport: no video request either, since the card is unconditionally hidden by CSS (not just a mobile-only guardrail)', async ({
     page,
   }) => {
     await page.setViewportSize({ width: 1440, height: 900 });
@@ -166,8 +176,11 @@ test.describe('Hero video mobile guardrail', () => {
     await page.goto('/', { waitUntil: 'domcontentloaded' });
     await page.waitForTimeout(1500);
 
-    // No interaction simulated — desktop must not need one.
-    expect(heroVideoRequests.length).toBeGreaterThan(0);
+    // Before the isCardReachable check existed, 'eager' mode fired
+    // unconditionally on desktop and fetched the Pexels API for an
+    // element hidden by `.hero-video-card { display: none !important; }`
+    // — the exact defect this guardrail closes, on every viewport.
+    expect(heroVideoRequests).toEqual([]);
   });
 
   test('prefers-reduced-motion: never downloads the video, on any device, with or without interaction', async ({

@@ -136,6 +136,76 @@ describe('hero video mobile guardrail: resolveHeroVideoLoadMode', () => {
     const { resolveHeroVideoLoadMode } = loadModule();
     expect(resolveHeroVideoLoadMode()).toBe('eager');
   });
+
+  test('an unreachable card (hidden or inert) always skips, desktop or mobile, regardless of every other flag', () => {
+    // `.hero-video-card` ships `display: none !important` unconditionally
+    // in hero-modern.css (every viewport, both index.html and
+    // home-v2.html) and index.html additionally wraps it in `inert`. If
+    // isCardReachable is false, no other input may override that — this
+    // is the check that closes the desktop half of the SEO-006/SEO-011
+    // defect (eager mode used to fetch the Pexels API for an invisible
+    // element on desktop too, since the old guardrail only looked at
+    // viewport width).
+    const { resolveHeroVideoLoadMode } = loadModule();
+    expect(resolveHeroVideoLoadMode({ isCardReachable: false, isMobileViewport: false })).toBe(
+      'skip'
+    );
+    expect(resolveHeroVideoLoadMode({ isCardReachable: false, isMobileViewport: true })).toBe(
+      'skip'
+    );
+    expect(
+      resolveHeroVideoLoadMode({
+        isCardReachable: false,
+        isMobileViewport: false,
+        heroVideoEnabled: true,
+        prefersReducedMotion: false,
+        prefersReducedData: false,
+        saveData: false,
+      })
+    ).toBe('skip');
+  });
+
+  test('a reachable card on desktop still loads eagerly (isCardReachable defaults to true)', () => {
+    const { resolveHeroVideoLoadMode } = loadModule();
+    expect(resolveHeroVideoLoadMode({ isCardReachable: true, isMobileViewport: false })).toBe(
+      'eager'
+    );
+    expect(resolveHeroVideoLoadMode({ isCardReachable: true, isMobileViewport: true })).toBe(
+      'interaction'
+    );
+  });
+});
+
+describe('hero video mobile guardrail: isHeroVideoCardReachable', () => {
+  test('is false when the card is display:none', () => {
+    const sandbox = loadModule();
+    sandbox.window.getComputedStyle = () => ({ display: 'none' });
+    const videoCard = { closest: () => null };
+    expect(sandbox.isHeroVideoCardReachable(videoCard)).toBe(false);
+  });
+
+  test('is false when the card sits inside an inert ancestor, even if it computes as visible', () => {
+    const sandbox = loadModule();
+    sandbox.window.getComputedStyle = () => ({ display: 'block' });
+    const videoCard = { closest: selector => (selector === '[inert]' ? {} : null) };
+    expect(sandbox.isHeroVideoCardReachable(videoCard)).toBe(false);
+  });
+
+  test('is true when the card is visible and not inert', () => {
+    const sandbox = loadModule();
+    sandbox.window.getComputedStyle = () => ({ display: 'block' });
+    const videoCard = { closest: () => null };
+    expect(sandbox.isHeroVideoCardReachable(videoCard)).toBe(true);
+  });
+
+  test('is false for a null card, or when getComputedStyle is unavailable, rather than throwing', () => {
+    const sandbox = loadModule();
+    sandbox.window.getComputedStyle = () => ({ display: 'block' });
+    expect(sandbox.isHeroVideoCardReachable(null)).toBe(false);
+
+    delete sandbox.window.getComputedStyle;
+    expect(sandbox.isHeroVideoCardReachable({ closest: () => null })).toBe(false);
+  });
 });
 
 describe('hero video mobile guardrail: isHeroVideoMobileViewport', () => {

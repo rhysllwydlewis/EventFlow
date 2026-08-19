@@ -1499,13 +1499,43 @@ function isHeroVideoMobileViewport() {
 }
 
 /**
+ * True only when `.hero-video-card` is actually something a visitor could
+ * see or tap: not `display: none` (hero-modern.css currently hides it
+ * with an unconditional `!important` rule, on every viewport, on both
+ * index.html and home-v2.html — "Video card - HIDDEN (removed from
+ * layout)") and not nested inside an `inert` ancestor (index.html wraps
+ * the whole `.hero-collage` in `inert`, which also blocks the click/
+ * touchend listeners `armHeroVideoForInteraction` relies on). Without this
+ * check, `resolveHeroVideoLoadMode` would still return `'eager'` on
+ * desktop and fetch a full video payload for an element nobody can ever
+ * see — the exact defect SEO-006/SEO-011 flagged, just unfixed outside
+ * the mobile breakpoint.
+ * @param {Element|null} videoCard
+ * @returns {boolean}
+ */
+function isHeroVideoCardReachable(videoCard) {
+  if (
+    !videoCard ||
+    typeof window === 'undefined' ||
+    typeof window.getComputedStyle !== 'function'
+  ) {
+    return false;
+  }
+  if (typeof videoCard.closest === 'function' && videoCard.closest('[inert]')) {
+    return false;
+  }
+  return window.getComputedStyle(videoCard).display !== 'none';
+}
+
+/**
  * Decide whether the hero video's real `<source>` should be attached the
  * moment the collage initialises, only after the visitor interacts with
  * it, or never. A pure function of its inputs so the decision table can be
  * unit tested without a DOM.
  *
- * - `'skip'` — feature disabled, `prefers-reduced-motion`, or
- *   `prefers-reduced-data` / Save-Data.
+ * - `'skip'` — feature disabled, `prefers-reduced-motion`,
+ *   `prefers-reduced-data` / Save-Data, or the card isn't actually
+ *   reachable (hidden/inert) regardless of viewport.
  * - `'interaction'` — attach the real source only once the visitor
  *   explicitly taps/clicks the card. Unconditional on viewport width: an
  *   older stored homepage-settings record with
@@ -1521,6 +1551,7 @@ function isHeroVideoMobileViewport() {
  * @param {boolean} [context.prefersReducedData]
  * @param {boolean} [context.saveData]
  * @param {boolean} [context.isMobileViewport]
+ * @param {boolean} [context.isCardReachable]
  * @returns {'eager'|'interaction'|'skip'}
  */
 function resolveHeroVideoLoadMode({
@@ -1529,6 +1560,7 @@ function resolveHeroVideoLoadMode({
   prefersReducedData = false,
   saveData = false,
   isMobileViewport = false,
+  isCardReachable = true,
 } = {}) {
   if (heroVideoEnabled === false) {
     return 'skip';
@@ -1539,6 +1571,9 @@ function resolveHeroVideoLoadMode({
   if (prefersReducedData || saveData) {
     return 'skip';
   }
+  if (!isCardReachable) {
+    return 'skip';
+  }
   if (isMobileViewport) {
     return 'interaction';
   }
@@ -1546,10 +1581,13 @@ function resolveHeroVideoLoadMode({
 }
 
 /**
- * Wire the (normally invisible, `inert`) hero video card so its real
- * `<source>` is attached only once a visitor genuinely interacts with it —
- * never on page load. `initHeroVideo` itself is unchanged; this only
- * decides *when* it is allowed to run.
+ * Wire the hero video card so its real `<source>` is attached only once a
+ * visitor genuinely interacts with it — never on page load. `initHeroVideo`
+ * itself is unchanged; this only decides *when* it is allowed to run.
+ * Callers only reach this in the `'interaction'` branch, which
+ * `resolveHeroVideoLoadMode` only returns when `isCardReachable` is true —
+ * i.e. the card is neither `display: none` nor behind an `inert`
+ * ancestor, so it can genuinely receive a click/touchend.
  *
  * @param {Array} initHeroVideoArgs - Positional args for `initHeroVideo`.
  */
@@ -1688,6 +1726,7 @@ async function initCollageWidget(widgetConfig) {
     prefersReducedData,
     saveData,
     isMobileViewport: isHeroVideoMobileViewport(),
+    isCardReachable: isHeroVideoCardReachable(document.querySelector('.hero-video-card')),
   });
   const heroVideoInitArgs = [
     source,
