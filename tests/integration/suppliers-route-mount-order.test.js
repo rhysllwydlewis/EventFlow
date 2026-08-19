@@ -89,12 +89,18 @@ describe('routers mounted under /api in routes/index.js order', () => {
     expect(Array.isArray(res.body.items)).toBe(true);
     expect(res.body.items).toHaveLength(2);
     expect(res.body.total).toBe(2);
+    expect(res.body.items).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ publicProfilePath: expect.stringMatching(/^\/supplier\//) }),
+      ])
+    );
   });
 
   it('still serves a real supplier profile from the safe router', async () => {
     // The fallthrough must not cost the safe router its own traffic.
     const res = await request(app).get('/api/suppliers/sup-1').expect(200);
     expect(res.body.id).toBe('sup-1');
+    expect(res.body.publicProfilePath).toMatch(/^\/supplier\/ivy-house-barn--[a-f0-9]{16}$/);
   });
 
   it('still answers 404 for an id no supplier carries', async () => {

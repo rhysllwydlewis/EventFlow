@@ -899,10 +899,12 @@
       notify('warning', 'Please select a profile first.');
       return;
     }
-    window.open(
-      `/supplier?id=${encodeURIComponent(currentEditingSupplierId)}&preview=true`,
-      '_blank'
-    );
+    const supplier = suppliers.find(item => item.id === currentEditingSupplierId);
+    if (!supplier?.publicProfilePath) {
+      notify('warning', 'A public profile link is not available yet.');
+      return;
+    }
+    window.open(`${supplier.publicProfilePath}?preview=true`, '_blank');
   }
 
   function updateTaglineCount() {

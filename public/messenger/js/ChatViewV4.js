@@ -621,19 +621,9 @@ class ChatViewV4 {
     // Participant user ids are not always supplier profile ids, so avoid sending users to a wrong profile.
     const profileLink = this.container.querySelector('#v4HeaderProfileLink');
     if (profileLink) {
-      const supplierProfileId =
-        conv.context?.type === 'supplier_profile' && conv.context?.referenceId
-          ? String(conv.context.referenceId).trim()
-          : '';
-      if (supplierProfileId) {
-        profileLink.href = `/supplier?id=${encodeURIComponent(supplierProfileId)}`;
-        profileLink.style.cursor = '';
-        profileLink.setAttribute('aria-label', 'View supplier profile');
-      } else {
-        profileLink.removeAttribute('href');
-        profileLink.style.cursor = 'default';
-        profileLink.setAttribute('aria-label', 'Conversation header');
-      }
+      profileLink.removeAttribute('href');
+      profileLink.style.cursor = 'default';
+      profileLink.setAttribute('aria-label', 'Conversation header');
     }
 
     // Set mark-read/unread toggle button based on conversation state

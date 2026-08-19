@@ -406,8 +406,8 @@
             ${sizeHtml}
           </div>
           <div class="photo-queue__supplier">
-            Supplier: <a href="/supplier?id=${safeSupplierId}">${safeSupplierName}</a>
-            · <a href="/admin-supplier-detail?id=${safeSupplierId}">View profile</a>
+            Supplier: ${safeSupplierName}
+            · <a href="/admin-supplier-detail?id=${safeSupplierId}">View supplier record</a>
           </div>
           ${safeCaption ? `<div class="small">${safeCaption}</div>` : ''}
           <div class="small" style="color:#9ca3af;">Uploaded: ${formatDate(photo.uploadedAt)}</div>

@@ -17,6 +17,7 @@ const { writeLimiter } = require('../middleware/rateLimits');
 const { sendMail, FROM_HELLO } = require('../utils/postmark');
 const { removeLoadedRouterRoute } = require('../utils/legacyRouterRoute');
 const reviewRequestOperations = require('../utils/reviewRequestOperations');
+const { addPublicProfilePath } = require('../utils/publicSupplierProfilePath');
 
 const removedLegacySupplierRoutes = removeLoadedRouterRoute(
   require.resolve('./supplier'),
@@ -88,13 +89,12 @@ function getRequestBaseUrl(req) {
   return `${req.protocol}://${req.get('host')}`;
 }
 
-function safeSupplierRedirect(supplierId, state) {
-  if (!supplierId) {
+function safeSupplierRedirect(supplier, state) {
+  const publicProfilePath = supplier ? addPublicProfilePath(supplier).publicProfilePath : null;
+  if (!publicProfilePath) {
     return `/suppliers?reviewRequest=${encodeURIComponent(state)}`;
   }
-  return `/supplier?id=${encodeURIComponent(supplierId)}&reviewRequest=${encodeURIComponent(
-    state
-  )}#sp-section-reviews`;
+  return `${publicProfilePath}?reviewRequest=${encodeURIComponent(state)}#sp-section-reviews`;
 }
 
 function secureRedirect(res, location) {
@@ -371,10 +371,19 @@ function createReviewRequestRouter(overrides = {}) {
 
       const currentTime = now();
       if (request.status === 'completed') {
-        return secureRedirect(res, safeSupplierRedirect(request.supplierId, 'completed'));
+        return secureRedirect(
+          res,
+          safeSupplierRedirect({ id: request.supplierId, name: request.supplierName }, 'completed')
+        );
       }
       if (request.status === 'failed') {
-        return secureRedirect(res, safeSupplierRedirect(request.supplierId, 'unavailable'));
+        return secureRedirect(
+          res,
+          safeSupplierRedirect(
+            { id: request.supplierId, name: request.supplierName },
+            'unavailable'
+          )
+        );
       }
       if (request.status === 'expired' || isExpired(request, currentTime)) {
         if (request.status !== 'expired') {
@@ -391,10 +400,19 @@ function createReviewRequestRouter(overrides = {}) {
             }
           );
         }
-        return secureRedirect(res, safeSupplierRedirect(request.supplierId, 'expired'));
+        return secureRedirect(
+          res,
+          safeSupplierRedirect({ id: request.supplierId, name: request.supplierName }, 'expired')
+        );
       }
       if (!ACTIVE_STATUSES.has(request.status)) {
-        return secureRedirect(res, safeSupplierRedirect(request.supplierId, 'unavailable'));
+        return secureRedirect(
+          res,
+          safeSupplierRedirect(
+            { id: request.supplierId, name: request.supplierName },
+            'unavailable'
+          )
+        );
       }
 
       if (request.status === 'sent' || request.status === 'pending') {
@@ -423,7 +441,10 @@ function createReviewRequestRouter(overrides = {}) {
         path: '/',
       });
 
-      return secureRedirect(res, safeSupplierRedirect(request.supplierId, 'ready'));
+      return secureRedirect(
+        res,
+        safeSupplierRedirect({ id: request.supplierId, name: request.supplierName }, 'ready')
+      );
     } catch (error) {
       logger.error('GET /review-request error:', error.message);
       return secureRedirect(res, safeSupplierRedirect(null, 'error'));

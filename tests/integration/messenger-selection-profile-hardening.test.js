@@ -35,12 +35,13 @@ describe('Messenger selection and supplier profile hardening', () => {
     expect(js).toContain('patchMessengerAppInstance');
   });
 
-  it('makes supplier header links use supplier profile ids rather than user ids', () => {
+  it('makes supplier header links use API-provided canonical profile paths', () => {
     const js = read('public/messenger/js/MessengerSelectionProfileHardening.js');
     expect(js).toContain('safeSupplierProfileId');
     expect(js).toContain("conversation?.context?.type === 'supplier_profile'");
-    expect(js).toContain('lookupSupplierProfileIdForParticipant');
-    expect(js).toContain('/supplier?id=');
+    expect(js).toContain('lookupSupplierProfilePathForParticipant');
+    expect(js).toContain('publicProfilePath');
+    expect(js).not.toContain('/supplier?id=');
     expect(js).toContain('View supplier profile');
   });
 });

@@ -223,7 +223,7 @@
       secondaryLabel: contactDetail({ ...supplier, role: SUPPLIER_ROLE }),
       avatar,
       avatarUrl: avatar,
-      profileUrl: `/supplier?id=${encodeURIComponent(profileId)}`,
+      profileUrl: supplier.publicProfilePath || '',
     };
   }
 

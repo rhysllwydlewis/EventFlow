@@ -18,16 +18,24 @@ const { canonicalCategoryValue, categoryHref } = global.EventFlowCategoryLink;
 describe('EventFlowSupplierLink.supplierProfileHref', () => {
   it('prefers a server-provided publicProfilePath', () => {
     expect(
-      supplierProfileHref({ id: 'sup_1', publicProfilePath: '/supplier/cwm-valley--abc123' })
-    ).toBe('/supplier/cwm-valley--abc123');
+      supplierProfileHref({
+        id: 'sup_1',
+        publicProfilePath: '/supplier/cwm-valley--abcdef0123456789',
+      })
+    ).toBe('/supplier/cwm-valley--abcdef0123456789');
   });
 
-  it('falls back to the legacy query form when publicProfilePath is absent', () => {
-    expect(supplierProfileHref({ id: 'sup_1' })).toBe('/supplier?id=sup_1');
+  it('falls back to the directory when publicProfilePath is absent', () => {
+    expect(supplierProfileHref({ id: 'sup_1' })).toBe('/suppliers');
   });
 
-  it('URL-encodes the id in the fallback', () => {
-    expect(supplierProfileHref({ id: 'sup with space' })).toBe('/supplier?id=sup%20with%20space');
+  it('rejects malformed or unsafe server-provided paths', () => {
+    expect(supplierProfileHref({ publicProfilePath: '/supplier/too-short--abc123' })).toBe(
+      '/suppliers'
+    );
+    expect(supplierProfileHref({ publicProfilePath: 'https://evil.example/supplier/x' })).toBe(
+      '/suppliers'
+    );
   });
 
   it('falls back to /suppliers for a missing id', () => {
@@ -39,8 +47,8 @@ describe('EventFlowSupplierLink.supplierProfileHref', () => {
     expect(supplierProfileHref(undefined)).toBe('/suppliers');
   });
 
-  it('accepts a bare supplierId field as an alternative to id', () => {
-    expect(supplierProfileHref({ supplierId: 'sup_2' })).toBe('/supplier?id=sup_2');
+  it('does not expose a bare supplierId field as a public URL', () => {
+    expect(supplierProfileHref({ supplierId: 'sup_2' })).toBe('/suppliers');
   });
 });
 

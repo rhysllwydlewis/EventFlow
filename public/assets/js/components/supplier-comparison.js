@@ -250,7 +250,7 @@ class SupplierComparison {
             (supplier, index) => `
           <div class="comparison-cell">
             <div class="comparison-actions">
-              <button class="ef-cta btn btn-primary btn-sm" onclick="location.href='${this.escapeHtml(window.EventFlowSupplierLink ? window.EventFlowSupplierLink.supplierProfileHref(supplier) : `/supplier?id=${supplier.id}`)}'">
+              <button class="ef-cta btn btn-primary btn-sm" onclick="location.href='${this.escapeHtml(window.EventFlowSupplierLink ? window.EventFlowSupplierLink.supplierProfileHref(supplier) : supplier.publicProfilePath || '/suppliers')}'">
                 View Details
               </button>
               <button class="ef-cta btn btn-secondary btn-sm" data-action="contact" data-index="${index}">

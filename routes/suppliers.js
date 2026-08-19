@@ -316,7 +316,7 @@ router.get('/suppliers', async (req, res) => {
       .map(s => {
         const copy = stripPublicSupplierPrivateFields(s);
         delete copy._idx;
-        return copy;
+        return addPublicProfilePath(copy);
       });
 
     res.json({ items });
@@ -376,14 +376,14 @@ router.get('/suppliers/showcase', async (req, res) => {
     const items = pool.slice(0, take).map(supplier => {
       const ownerUser = supplier.ownerUserId ? usersById.get(supplier.ownerUserId) : null;
       const hydrated = hydrateSupplierProfilePhoto(supplier, ownerUser);
-      return {
+      return addPublicProfilePath({
         id: hydrated.id,
         name: hydrated.name || null,
         category: hydrated.category || null,
         // Null when the supplier has no usable image; the client falls back to
         // initials the same way the public profile does.
         profilePhotoUrl: hydrated.profilePhotoUrl || null,
-      };
+      });
     });
 
     res.json({ items, total: eligible.length });
@@ -470,7 +470,7 @@ router.get('/suppliers/:id', async (req, res) => {
       .trackProfileView(req.params.id, userId, sessionId, isPreview)
       .catch(err => logger.error('Failed to track profile view:', err));
 
-    res.json(publicSupplier);
+    res.json(addPublicProfilePath(publicSupplier));
   } catch (error) {
     logger.error('Error fetching supplier:', error);
     res.status(500).json({ error: 'Failed to fetch supplier' });
@@ -582,7 +582,7 @@ router.get('/me/suppliers', applyAuthRequired, applyRoleRequired('supplier'), as
       : null;
     const list = await Promise.all(
       listRaw.map(async s => {
-        return {
+        return addPublicProfilePath({
           ...hydrateSupplierProfilePhoto(s, ownerUser),
           isPro: await supplierIsProActive(s),
           // Fresh subscription tier takes precedence over any stale value stored on the supplier document.
@@ -590,7 +590,7 @@ router.get('/me/suppliers', applyAuthRequired, applyRoleRequired('supplier'), as
           proExpiresAt: s.proExpiresAt || null,
           // Derived publishing right so clients don't need to duplicate the logic.
           canPublishPublicCalendar: canPublishPublicCalendar(s),
-        };
+        });
       })
     );
     res.json({ items: list });

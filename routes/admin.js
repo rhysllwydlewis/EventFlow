@@ -36,6 +36,7 @@ const { runActionPrompts, notifyCronChanged } = require('../services/actionPromp
 const locationRegistry = require('../services/locationRegistry.service');
 const locationPageService = require('../services/locationPage.service');
 const { approvalDecision } = require('../services/seoRecordLifecycle.util');
+const { addPublicProfilePath } = require('../utils/publicSupplierProfilePath');
 
 const router = express.Router();
 
@@ -1032,7 +1033,7 @@ router.get('/suppliers/:id', authRequired, roleRequired('admin'), async (req, re
       proExpiresAt: supplier.proExpiresAt || null,
     };
 
-    res.json({ supplier: enrichedSupplier });
+    res.json({ supplier: addPublicProfilePath(enrichedSupplier) });
   } catch (error) {
     logger.error('Error reading supplier:', error);
     res.status(500).json({ error: 'Failed to load supplier' });

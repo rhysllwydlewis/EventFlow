@@ -305,7 +305,7 @@ function buildSupplierSidebar(supplier, pkg, currentUser) {
   } else if (supplier.id) {
     viewBtn.href = window.EventFlowSupplierLink
       ? window.EventFlowSupplierLink.supplierProfileHref(supplier)
-      : `/supplier?id=${encodeURIComponent(supplier.id)}`;
+      : supplier.publicProfilePath || '/suppliers';
   }
 
   // Save / shortlist button

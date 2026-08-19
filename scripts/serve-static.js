@@ -1094,7 +1094,7 @@ function sendCommunityShell(res, page) {
   const canonical = escapeCommunityHtml(`https://event-flow.co.uk${page.route || '/community'}`);
   const head = [
     `<title>${title} | EventFlow</title>`,
-    `<meta name="description" content="Ask questions, share experiences and get practical advice from people planning events and verified EventFlow suppliers." />`,
+    `<meta name="description" content="Ask questions, share experiences and get practical advice from people planning events and approved EventFlow supplier listings." />`,
     `<link rel="canonical" href="${canonical}" />`,
     `<meta property="og:title" content="${title}" />`,
     page.noindex ? '<meta name="robots" content="noindex,follow" />' : '',

@@ -24,6 +24,7 @@ const { requireCommunityEnabled, attachViewer } = require('../middleware/communi
 const community = require('../services/community.service');
 const moderation = require('../services/communityModeration.service');
 const { stripHtml } = require('../services/contentSanitizer');
+const { addPublicProfilePath } = require('../utils/publicSupplierProfilePath');
 const {
   COLLECTIONS,
   CONTENT_STATES,
@@ -302,6 +303,14 @@ router.get('/members/:handle', publicReadLimiter, requireCommunityEnabled, async
     const stats = await community.getUserStats(sample.authorId);
     const level = community.computeLevel(stats, user || {}, now);
     const author = community.publicAuthor(sample.author);
+    const supplier =
+      author.isSupplier && author.supplierId
+        ? await dbUnified.findOne('suppliers', { id: author.supplierId })
+        : null;
+    const supplierProfileUrl =
+      supplier?.approved && !supplier?.isTest
+        ? addPublicProfilePath(supplier).publicProfilePath || null
+        : null;
 
     const categoriesBySlug = new Map(
       (await community.listCategories({ includeHidden: true })).map(item => [item.slug, item])
@@ -327,8 +336,7 @@ router.get('/members/:handle', publicReadLimiter, requireCommunityEnabled, async
         eventType,
         eventTypeLabel: eventType ? EVENT_TYPE_LABELS[eventType] : null,
         regionLabel: region ? REGION_LABELS[region] : null,
-        supplierProfileUrl:
-          author.isSupplier && author.supplierId ? `/supplier?id=${author.supplierId}` : null,
+        supplierProfileUrl,
       },
       stats: {
         discussions: publicDiscussions.length,

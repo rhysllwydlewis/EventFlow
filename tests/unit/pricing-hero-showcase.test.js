@@ -145,6 +145,7 @@ describe('GET /api/suppliers/showcase', () => {
       'id',
       'name',
       'profilePhotoUrl',
+      'publicProfilePath',
     ]);
   });
 

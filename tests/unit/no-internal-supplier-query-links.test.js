@@ -21,12 +21,36 @@ function readSource(relativePath) {
   return fs.readFileSync(path.join(__dirname, '../..', relativePath), 'utf8');
 }
 
+function walkJs(dir) {
+  return fs.readdirSync(dir, { withFileTypes: true }).flatMap(entry => {
+    const full = path.join(dir, entry.name);
+    return entry.isDirectory() ? walkJs(full) : entry.name.endsWith('.js') ? [full] : [];
+  });
+}
+
+function stripComments(source) {
+  return source.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
+}
+
 // Matches a literal href/onclick-navigation built directly from the legacy
 // query form: href="/supplier?id=..., href=`/supplier?id=..., location.href=...`/supplier?id=
 const LEGACY_SUPPLIER_HREF = /href=["'`]\/supplier\?id=|location\.href\s*=\s*`\/supplier\?id=/;
 const LEGACY_CATEGORY_HREF = /href=["'`]\/category\?slug=/;
 
 describe('no internally-rendered directory link uses the legacy query form', () => {
+  it('no shipped public script or public-response route generates a legacy supplier query URL', () => {
+    const root = path.join(__dirname, '../..');
+    const files = [
+      ...walkJs(path.join(root, 'public')),
+      path.join(root, 'routes/community-discovery.js'),
+      path.join(root, 'routes/review-requests.js'),
+    ];
+    const offenders = files
+      .filter(file => stripComments(fs.readFileSync(file, 'utf8')).includes('/supplier?id='))
+      .map(file => path.relative(root, file));
+    expect(offenders).toEqual([]);
+  });
+
   const supplierLinkFiles = [
     'public/assets/js/pages/suppliers-init.js',
     'public/assets/js/pages/package-init.js',

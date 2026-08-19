@@ -123,7 +123,7 @@ describe('Messenger v4 post-PR950 audit fixes', () => {
       // forms (/packages/<id>, /suppliers/<id>, /marketplace/<id>) 404.
       expect(src).toContain('_deriveUrl(');
       expect(src).toContain('/package?id=${id}');
-      expect(src).toContain('/supplier?id=${id}');
+      expect(src).not.toContain('/supplier?id=${id}');
       expect(src).toContain('/marketplace?listing=${id}');
     });
 

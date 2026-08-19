@@ -367,7 +367,7 @@ class GlobalSearch {
       // Default: navigate to supplier page
       window.location.href = window.EventFlowSupplierLink
         ? window.EventFlowSupplierLink.supplierProfileHref(result)
-        : `/supplier?id=${result.id}`;
+        : result.publicProfilePath || '/suppliers';
     }
     this.close();
   }
