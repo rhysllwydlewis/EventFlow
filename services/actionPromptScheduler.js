@@ -410,9 +410,12 @@ async function runActionPrompts({
   const maxSendPerRun =
     limit ?? (Number(process.env.ACTION_PROMPTS_MAX_SEND_PER_RUN) || defaultCap);
 
-  logger.info(
-    `[ActionPrompts] Run started at ${startedAt.toISOString()} (dryRun=${dryRun}, force=${force}, maxSendPerRun=${maxSendPerRun})`
-  );
+  logger.info('[ActionPrompts] Run started', {
+    startedAt: startedAt.toISOString(),
+    dryRun,
+    force,
+    maxSendPerRun,
+  });
 
   let scanned = 0;
   let sent = 0;

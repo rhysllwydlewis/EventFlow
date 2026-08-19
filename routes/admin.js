@@ -3861,9 +3861,12 @@ router.post(
         }
       }
 
-      logger.info(
-        `[Admin] Manual action-prompt run triggered by ${req.user.email} (dryRun=${dryRun}, force=${force}, limit=${limit ?? 'default'})`
-      );
+      logger.info('[Admin] Manual action-prompt run triggered', {
+        adminEmail: req.user.email,
+        dryRun,
+        force,
+        limit: limit ?? 'default',
+      });
 
       const summary = await runActionPrompts({
         dryRun,
