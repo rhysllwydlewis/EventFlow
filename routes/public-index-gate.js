@@ -35,6 +35,11 @@ const SUPPLIER_FILTER_KEYS = [
   'maxDistance',
   'minPrice',
   'maxPrice',
+  // The browser persists the price selector as `priceLevel` (see
+  // public/assets/js/utils/url-state.js), not `minPrice`/`maxPrice` — a
+  // filtered URL like /suppliers?priceLevel=4 must count as a filter here
+  // too, or it skips the empty-result check entirely.
+  'priceLevel',
   'minRating',
   'amenities',
   'minGuests',
@@ -50,13 +55,28 @@ function hasSupplierFilters(query) {
   });
 }
 
+/**
+ * Translate the public `priceLevel` query param into the `minPrice`/
+ * `maxPrice` pair the search service actually understands — mirrors
+ * suppliers-init.js's own translation when it calls the search API, so this
+ * gate evaluates the same result set the visitor's browser would see.
+ * @param {Object} query Raw request query.
+ * @returns {Object} Query with priceLevel expanded, if present.
+ */
+function withPriceLevelExpanded(query) {
+  if (query.priceLevel === undefined || query.priceLevel === null || query.priceLevel === '') {
+    return query;
+  }
+  return { ...query, minPrice: query.priceLevel, maxPrice: query.priceLevel };
+}
+
 router.get('/suppliers', publicReadLimiter, async (req, res, next) => {
   try {
     if (hasSupplierFilters(req.query)) {
       // Lazily required: rankedSupplierSearch pulls in the full search/ranking
       // stack, which several unit tests stub out independently of this route.
       const rankedSupplierSearch = require('../services/rankedSupplierSearch.service');
-      const result = await rankedSupplierSearch.searchSuppliers(req.query);
+      const result = await rankedSupplierSearch.searchSuppliers(withPriceLevelExpanded(req.query));
       const total = result?.pagination?.total ?? 0;
       if (!emptyStateIndexGate.supplierFilterResultsAreIndexable(total)) {
         res.setHeader('X-Robots-Tag', 'noindex, follow');

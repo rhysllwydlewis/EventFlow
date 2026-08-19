@@ -28,6 +28,13 @@
  * quarantined: it writes only the records that are not yet marked, so
  * running it twice does not double-mutate or error.
  *
+ * `--apply` only writes the *confirmed* rows (explicit `isTest`, or a
+ * name/slug that IS "test") — the broader name/slug-contains-"test" rows
+ * scanCollection also finds (e.g. "Romeo Test") are always reported but
+ * never auto-mutated, since that heuristic can't distinguish a fixture from
+ * a real business like "Test Valley Marquees". Those rows print with
+ * `skipped_needs_review` for an operator to confirm by hand.
+ *
  * Usage:
  *   # Dry run — reads only, writes nothing. Safe to run at any time.
  *   node scripts/quarantine-indexable-test-records.js
@@ -50,7 +57,10 @@ const path = require('path');
 
 const dbUnified = require('../db-unified');
 const logger = require('../utils/logger');
-const { isKnownTestFixture } = require('../services/seoRecordLifecycle.util');
+const {
+  isKnownTestFixture,
+  isConfirmedTestFixture,
+} = require('../services/seoRecordLifecycle.util');
 
 const QUARANTINE_REASON = 'test_fixture_record';
 
@@ -120,6 +130,13 @@ async function scanCollection(collectionName) {
       // (or still is, until --apply runs) reachable as a live public page.
       wasApproved: record.approved === true,
       isTestFlag: record.isTest === true,
+      // Confident tier (explicit isTest, or a name/slug that IS "test") vs.
+      // the broader name/slug-contains-the-word-"test" heuristic. --apply
+      // only auto-quarantines the confident tier — a real business like
+      // "Test Valley Marquees" matches the broader heuristic too, and
+      // unpublishing it would be a much worse outcome than a report row
+      // asking a human to confirm it. See services/seoRecordLifecycle.util.js.
+      confirmed: isConfirmedTestFixture(record),
     }));
 }
 
@@ -177,6 +194,7 @@ async function run(options) {
 
   const byCollection = {};
   let quarantinedNow = 0;
+  const needsReview = [];
   const failedWrites = [];
 
   for (const collectionName of collections) {
@@ -185,6 +203,14 @@ async function run(options) {
 
     if (options.apply) {
       for (const row of rows) {
+        if (!row.confirmed) {
+          // Not confirmed — a "Test Valley Marquees"-shaped false positive
+          // must never be auto-unpublished. Report it for manual review
+          // instead of writing anything.
+          row.applyOutcome = 'skipped_needs_review';
+          needsReview.push({ collection: collectionName, id: row.id, label: row.label });
+          continue;
+        }
         const outcome = await quarantineRecord(collectionName, row);
         row.applyOutcome = outcome.ok ? 'quarantined' : 'failed';
         if (outcome.ok) {
@@ -211,6 +237,7 @@ async function run(options) {
     found,
     wasLive,
     quarantinedNow,
+    needsReview,
     failedWrites,
     byCollection,
   };
@@ -231,6 +258,9 @@ function printReport(report) {
   logger.info(`  of which currently live (approved: true): ${report.wasLive}`);
   if (report.mode === 'apply') {
     logger.info(`Newly quarantined this run: ${report.quarantinedNow}`);
+    if (report.needsReview.length) {
+      logger.info(`Skipped (not confirmed — needs manual review): ${report.needsReview.length}`);
+    }
   }
 
   for (const [collectionName, entry] of Object.entries(report.byCollection)) {

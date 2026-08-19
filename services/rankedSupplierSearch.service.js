@@ -12,6 +12,7 @@ const dbUnified = require('../db-unified');
 const catalogCache = require('./catalogCache');
 const baseSearchService = require('./searchService');
 const logger = require('../utils/logger');
+const seoEligibility = require('./seoEligibility.service');
 const {
   RANKING_VERSION,
   effectiveImages,
@@ -20,7 +21,6 @@ const {
   effectiveVerified,
   effectiveFeatured,
   effectiveSubscriptionTier,
-  isPubliclyEligibleSupplier,
   calculateSupplierRanking,
   calculateSupplierRelevance,
   calculateFinalSearchScore,
@@ -28,6 +28,15 @@ const {
 } = require('./supplierRanking.service');
 
 const MAX_BATCH_SIZE = 100;
+
+// Routes this live marketplace search through the same shared eligibility
+// policy that backs the profile page and the sitemap (SEO-002), so a record
+// the SEO services reject (e.g. a name/slug-pattern fixture like
+// "Romeo Test") can no longer still surface here as a visible search result
+// whose own profile page 404s.
+function isDirectoryEligibleSupplier(supplier, validOwnerIds) {
+  return seoEligibility.canAppearInDirectory(supplier, { validOwnerIds }).eligible;
+}
 
 async function getCachedCollection(cacheKey, collectionName) {
   const cached = await catalogCache.get(cacheKey);
@@ -254,7 +263,7 @@ function buildSafeFallback(fallback, suppliersById, packagesBySupplier, validOwn
       const raw = suppliersById.get(String(projected.id)) || {};
       return { ...raw, ...projected };
     })
-    .filter(supplier => isPubliclyEligibleSupplier(supplier, validOwnerIds))
+    .filter(supplier => isDirectoryEligibleSupplier(supplier, validOwnerIds))
     .map(supplier =>
       projectRankedSupplier(
         rankSupplier(
@@ -292,7 +301,7 @@ async function searchSuppliers(rawQuery = {}) {
       const raw = suppliersById.get(String(projected.id || projected._id)) || {};
       return { ...raw, ...projected };
     })
-    .filter(supplier => isPubliclyEligibleSupplier(supplier, validOwnerIds))
+    .filter(supplier => isDirectoryEligibleSupplier(supplier, validOwnerIds))
     .filter(
       supplier =>
         normalized.minRating === undefined || effectiveRating(supplier) >= normalized.minRating

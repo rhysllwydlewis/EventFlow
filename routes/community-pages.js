@@ -367,9 +367,17 @@ router.get(['/community/discussions'], publicReadLimiter, async (req, res, next)
     // 'superseded', unlike `ordered`/PUBLIC_STATES above) so this page and
     // sitemap.js's membership decision read the exact same number and can
     // never disagree about what counts as "empty".
-    const indexable = emptyStateIndexGate.communityDiscussionsIndexIsIndexable(
-      emptyStateIndexGate.countPublicDiscussions(discussions)
-    );
+    //
+    // That total-based check alone still lets an out-of-range page number
+    // (e.g. ?page=2 when there's only one real page) through as indexable:
+    // it's a genuinely non-empty community, so the totals check passes, yet
+    // this specific slice renders an empty list at its own self-canonical
+    // URL — a thin, duplicate page. `page <= totalPages` closes that gap.
+    const indexable =
+      page <= totalPages &&
+      emptyStateIndexGate.communityDiscussionsIndexIsIndexable(
+        emptyStateIndexGate.countPublicDiscussions(discussions)
+      );
 
     // Page 2 and beyond are paginated slices of one list rather than pages in
     // their own right, so they point their canonical at themselves and rely on
@@ -547,9 +555,15 @@ router.get('/community/category/:slug', publicReadLimiter, async (req, res, next
     // excludes 'superseded', unlike `ordered`/PUBLIC_STATES above) so this
     // page and sitemap.js's per-category count (which applies the exact
     // same threshold) can never disagree about what counts as "empty".
-    const indexable = emptyStateIndexGate.communityCategoryIsIndexable(
-      emptyStateIndexGate.countPublicDiscussions(all)
-    );
+    //
+    // page <= totalPages closes the same out-of-range-pagination gap as the
+    // discussions index above: a non-empty category still renders an empty
+    // slice at ?page=<n beyond the real last page>.
+    const indexable =
+      page <= totalPages &&
+      emptyStateIndexGate.communityCategoryIsIndexable(
+        emptyStateIndexGate.countPublicDiscussions(all)
+      );
 
     const canonical = `${BASE_URL}/community/category/${slug}${page > 1 ? `?page=${page}` : ''}`;
     const content = `

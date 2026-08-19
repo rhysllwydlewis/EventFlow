@@ -37,16 +37,15 @@ function cleanText(value) {
 const WHOLE_WORD_TEST = /(^|[^a-z0-9])test([^a-z0-9]|$)/i;
 
 /**
- * Detect a known test/fixture marker on a supplier or package record.
- *
- * Recognises the explicit `isTest` flag used across the schema and seed
- * scripts, plus the naming patterns the SEO audit found already leaking into
- * the live index: a name or slug that is literally "Test", or that carries
- * "test" as a distinct word (e.g. "Romeo Test", "test-no2-yy7lo4").
+ * Detect an *explicit or exact* test/fixture marker on a supplier or
+ * package record: the `isTest` flag, or a name/slug that IS (not merely
+ * contains) "test". This is the confident tier — it is what's allowed to
+ * hard-block a direct page request (canBeViewedPublicly), because a false
+ * positive here 404s a real business's own page for its own customers.
  * @param {Object} record Supplier or package record.
- * @returns {boolean} True when the record looks like fixture data.
+ * @returns {boolean} True when the record is confidently fixture data.
  */
-function isKnownTestFixture(record) {
+function isConfirmedTestFixture(record) {
   const source = record && typeof record === 'object' ? record : {};
   if (source.isTest === true) {
     return true;
@@ -54,14 +53,39 @@ function isKnownTestFixture(record) {
   const name = cleanText(
     source.name || source.businessName || source.company || source.title || ''
   );
-  if (/^test$/i.test(name) || WHOLE_WORD_TEST.test(name)) {
+  if (/^test$/i.test(name)) {
     return true;
   }
   const slug = cleanText(source.slug || '');
-  if (/^test$/i.test(slug) || WHOLE_WORD_TEST.test(slug)) {
+  return /^test$/i.test(slug);
+}
+
+/**
+ * Detect a *likely* test/fixture marker: everything isConfirmedTestFixture
+ * catches, plus a name or slug that merely carries "test" as a distinct
+ * word (e.g. "Romeo Test", "test-no2-yy7lo4") — the naming pattern the SEO
+ * audit found already leaking into the live index. This broader, fuzzier
+ * tier is only safe to use for *discovery* (search/index/sitemap
+ * exclusion), never for hard-blocking a direct page request: "Test Valley
+ * Marquees" or a package literally titled "Wedding Menu Taste Test" would
+ * also match this pattern despite being real listings, so 404ing them would
+ * be a much worse outcome than merely keeping them out of search/the index.
+ * @param {Object} record Supplier or package record.
+ * @returns {boolean} True when the record looks like fixture data.
+ */
+function isKnownTestFixture(record) {
+  if (isConfirmedTestFixture(record)) {
     return true;
   }
-  return false;
+  const source = record && typeof record === 'object' ? record : {};
+  const name = cleanText(
+    source.name || source.businessName || source.company || source.title || ''
+  );
+  if (WHOLE_WORD_TEST.test(name)) {
+    return true;
+  }
+  const slug = cleanText(source.slug || '');
+  return WHOLE_WORD_TEST.test(slug);
 }
 
 /**
@@ -148,6 +172,7 @@ function isOwnerValid(record, validOwnerIds) {
 module.exports = {
   cleanText,
   isKnownTestFixture,
+  isConfirmedTestFixture,
   lifecycleBlockReason,
   hasStableIdentity,
   isOwnerValid,

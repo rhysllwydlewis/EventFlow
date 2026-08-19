@@ -103,7 +103,11 @@ function supplierViewability(supplier, context = {}) {
     return decision([REASON_CODES.NOT_FOUND]);
   }
   const reasons = [];
-  if (lifecycle.isKnownTestFixture(supplier)) {
+  // Only the confident tier (explicit isTest flag, or a name/slug that IS
+  // "test") may hard-block a direct page request — the broader name/slug
+  // heuristic used for directory/index eligibility below would 404 a real
+  // business like "Test Valley Marquees" for its own customers.
+  if (lifecycle.isConfirmedTestFixture(supplier)) {
     reasons.push(REASON_CODES.TEST_FIXTURE);
   }
   const blocked = reasonForBlock(lifecycle.lifecycleBlockReason(supplier));
@@ -119,14 +123,18 @@ function supplierViewability(supplier, context = {}) {
   return decision(reasons);
 }
 
-// Directory listing currently applies exactly the same gate as page-view
-// eligibility — the live marketplace search (rankedSupplierSearch.service.js)
-// has no completeness bar beyond it today. Kept as its own named decision,
-// per the audit's four-decision requirement, so moderation can diverge it
-// later (e.g. hiding a supplier from search during an appeal while direct
-// link access continues) without touching page viewability.
+// Directory listing applies everything page-view eligibility does, plus the
+// broader name/slug test-fixture heuristic that viewability deliberately
+// excludes (see supplierViewability) — hiding a likely-fixture record from
+// search/browse is a safe, reversible discovery decision even when it's not
+// confident enough to 404 the page itself for a direct visitor.
 function supplierDirectoryEligibility(supplier, context = {}) {
-  return supplierViewability(supplier, context);
+  const base = supplierViewability(supplier, context);
+  const reasons = [...base.reasons];
+  if (!reasons.includes(REASON_CODES.TEST_FIXTURE) && lifecycle.isKnownTestFixture(supplier)) {
+    reasons.push(REASON_CODES.TEST_FIXTURE);
+  }
+  return decision(reasons);
 }
 
 function supplierHasUsableLocation(supplier) {
@@ -165,7 +173,10 @@ function packageViewability(pkg, context = {}) {
     return decision([REASON_CODES.NOT_FOUND]);
   }
   const reasons = [];
-  if (lifecycle.isKnownTestFixture(pkg)) {
+  // See supplierViewability's comment: only the confident tier hard-blocks
+  // a direct request. A package titled "Wedding Menu Taste Test" is a real,
+  // plausible listing that must still render for a direct visitor.
+  if (lifecycle.isConfirmedTestFixture(pkg)) {
     reasons.push(REASON_CODES.TEST_FIXTURE);
   }
   const blocked = reasonForBlock(lifecycle.lifecycleBlockReason(pkg));
@@ -183,7 +194,12 @@ function packageViewability(pkg, context = {}) {
 }
 
 function packageDirectoryEligibility(pkg, context = {}) {
-  return packageViewability(pkg, context);
+  const base = packageViewability(pkg, context);
+  const reasons = [...base.reasons];
+  if (!reasons.includes(REASON_CODES.TEST_FIXTURE) && lifecycle.isKnownTestFixture(pkg)) {
+    reasons.push(REASON_CODES.TEST_FIXTURE);
+  }
+  return decision(reasons);
 }
 
 function packageIndexEligibility(pkg, context = {}) {

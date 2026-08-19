@@ -57,12 +57,11 @@ describe('seoEligibility — suppliers', () => {
       [REASON_CODES.DELETED],
     ],
     ['an explicit isTest supplier', { isTest: true }, false, [REASON_CODES.TEST_FIXTURE]],
-    [
-      'a supplier named with the word "Test"',
-      { name: 'Romeo Test', approved: true },
-      false,
-      [REASON_CODES.TEST_FIXTURE],
-    ],
+    // A whole-word "Test" match (as opposed to the exact-name/slug or
+    // explicit isTest cases below) does NOT block viewability — see the
+    // "confident vs. likely fixture" tests further down. A real business
+    // like "Test Valley Marquees" must not 404 for its own visitors.
+    ['a supplier named with the word "Test"', { name: 'Romeo Test', approved: true }, true, []],
     [
       'a supplier whose entire name is literally "Test"',
       { name: 'Test' },
@@ -156,11 +155,38 @@ describe('seoEligibility — suppliers', () => {
       expect(decision.reasons).toEqual([REASON_CODES.NOT_APPROVED]);
     });
 
-    test('canAppearInDirectory matches canBeViewedPublicly today', () => {
+    test('canAppearInDirectory matches canBeViewedPublicly for every check except the test-fixture heuristic', () => {
       const supplier = completeSupplier({ category: '' });
       expect(canAppearInDirectory(supplier, { validOwnerIds: owners })).toEqual(
         canBeViewedPublicly(supplier, { validOwnerIds: owners })
       );
+    });
+
+    test('canAppearInDirectory is stricter than canBeViewedPublicly for a likely (not confirmed) fixture name', () => {
+      // "Romeo Test" carries "test" as a whole word — real (SEO-audit-found)
+      // fixture pattern, but also indistinguishable from a real business
+      // like "Test Valley Marquees". canBeViewedPublicly stays lenient (a
+      // false positive there 404s a real page); canAppearInDirectory can
+      // afford to be stricter since hiding from search/index is reversible.
+      const supplier = completeSupplier({ name: 'Romeo Test' });
+      expect(canBeViewedPublicly(supplier, { validOwnerIds: owners }).eligible).toBe(true);
+
+      const directory = canAppearInDirectory(supplier, { validOwnerIds: owners });
+      expect(directory.eligible).toBe(false);
+      expect(directory.reasons).toEqual([REASON_CODES.TEST_FIXTURE]);
+
+      const indexed = canBeIndexed(supplier, { validOwnerIds: owners });
+      expect(indexed.eligible).toBe(false);
+      expect(indexed.reasons).toContain(REASON_CODES.TEST_FIXTURE);
+    });
+
+    test('an explicit isTest flag or an exact "Test" name/slug still blocks canBeViewedPublicly itself', () => {
+      expect(
+        canBeViewedPublicly(completeSupplier({ isTest: true }), { validOwnerIds: owners }).eligible
+      ).toBe(false);
+      expect(
+        canBeViewedPublicly(completeSupplier({ name: 'Test' }), { validOwnerIds: owners }).eligible
+      ).toBe(false);
     });
   });
 

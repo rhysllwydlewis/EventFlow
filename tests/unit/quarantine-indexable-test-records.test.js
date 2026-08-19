@@ -149,22 +149,61 @@ describe('dry run (default)', () => {
     const ids = report.byCollection.suppliers.rows.map(row => row.id);
     expect(ids).not.toContain('sup-ordinary');
   });
+
+  it('marks each row confirmed or not, so a dry run previews exactly what --apply would (and would not) touch', async () => {
+    const report = await run(parseArgs(['node', 'script.js']));
+    const supplierRows = report.byCollection.suppliers.rows;
+    const packageRows = report.byCollection.packages.rows;
+
+    expect(supplierRows.find(row => row.id === 'sup-isTest').confirmed).toBe(true);
+    expect(supplierRows.find(row => row.id === 'sup-romeo').confirmed).toBe(false);
+    expect(supplierRows.find(row => row.id === 'sup-unapproved-test').confirmed).toBe(false);
+    expect(packageRows.find(row => row.id === 'pkg-literal-test').confirmed).toBe(true);
+    expect(packageRows.find(row => row.id === 'pkg-test-no2').confirmed).toBe(false);
+  });
 });
 
 describe('--apply mode', () => {
-  it('quarantines (unpublishes) every known test/fixture record rather than deleting it', async () => {
+  it('quarantines (unpublishes) only the confirmed tier: explicit isTest, or a name/slug that IS "test"', async () => {
     const report = await run(parseArgs(['node', 'script.js', '--apply']));
 
     expect(report.mode).toBe('apply');
-    expect(report.quarantinedNow).toBe(5); // 3 suppliers + 2 packages
+    // Confirmed: sup-isTest (explicit flag) + pkg-literal-test (exact "Test"
+    // title). Romeo Test / Draft Test Account / test-no2-yy7lo4 only match
+    // the broader whole-word heuristic, so --apply must not touch them.
+    expect(report.quarantinedNow).toBe(2);
     expect(report.failedWrites).toEqual([]);
 
-    const stillThere = await mockDb.findOne('suppliers', { id: 'sup-romeo' });
-    expect(stillThere).not.toBeNull();
-    expect(stillThere.approved).toBe(false);
-    expect(stillThere.seoQuarantined).toBe(true);
-    expect(stillThere.seoQuarantineReason).toBe('test_fixture_record');
-    expect(stillThere.name).toBe('Romeo Test'); // data preserved, not wiped
+    const isTestFlagRecord = await mockDb.findOne('suppliers', { id: 'sup-isTest' });
+    expect(isTestFlagRecord.approved).toBe(false);
+    expect(isTestFlagRecord.seoQuarantined).toBe(true);
+    expect(isTestFlagRecord.seoQuarantineReason).toBe('test_fixture_record');
+
+    const literalTitlePackage = await mockDb.findOne('packages', { id: 'pkg-literal-test' });
+    expect(literalTitlePackage.approved).toBe(false);
+    expect(literalTitlePackage.seoQuarantined).toBe(true);
+  });
+
+  it('never auto-unpublishes a record that only matches the broader name/slug heuristic — reports it for manual review instead', async () => {
+    const report = await run(parseArgs(['node', 'script.js', '--apply']));
+
+    expect(report.needsReview).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ id: 'sup-romeo' }),
+        expect.objectContaining({ id: 'sup-unapproved-test' }),
+        expect.objectContaining({ id: 'pkg-test-no2' }),
+      ])
+    );
+    expect(report.needsReview).toHaveLength(3);
+
+    const romeo = await mockDb.findOne('suppliers', { id: 'sup-romeo' });
+    expect(romeo.approved).toBe(true); // untouched — data preserved
+    expect(romeo.seoQuarantined).toBeUndefined();
+    expect(romeo.name).toBe('Romeo Test');
+
+    const pkg = await mockDb.findOne('packages', { id: 'pkg-test-no2' });
+    expect(pkg.approved).toBe(true);
+    expect(pkg.seoQuarantined).toBeUndefined();
   });
 
   it('leaves ordinary records completely untouched', async () => {
@@ -176,21 +215,21 @@ describe('--apply mode', () => {
 
   it('is idempotent: running twice does not error or double-mutate', async () => {
     const first = await run(parseArgs(['node', 'script.js', '--apply']));
-    expect(first.quarantinedNow).toBe(5);
+    expect(first.quarantinedNow).toBe(2);
 
     const second = await run(parseArgs(['node', 'script.js', '--apply']));
     expect(second.quarantinedNow).toBe(0);
     expect(second.failedWrites).toEqual([]);
-    expect(second.byCollection.suppliers.alreadyQuarantined).toBe(3);
-    expect(second.byCollection.packages.alreadyQuarantined).toBe(2);
+    expect(second.byCollection.suppliers.alreadyQuarantined).toBe(1);
+    expect(second.byCollection.packages.alreadyQuarantined).toBe(1);
 
-    const romeo = await mockDb.findOne('suppliers', { id: 'sup-romeo' });
-    expect(romeo.seoQuarantined).toBe(true);
+    const isTestFlagRecord = await mockDb.findOne('suppliers', { id: 'sup-isTest' });
+    expect(isTestFlagRecord.seoQuarantined).toBe(true);
   });
 
   it('restricts writes to the requested collection only', async () => {
     await run(parseArgs(['node', 'script.js', '--apply', '--suppliers']));
-    const pkg = await mockDb.findOne('packages', { id: 'pkg-test-no2' });
+    const pkg = await mockDb.findOne('packages', { id: 'pkg-literal-test' });
     expect(pkg.approved).toBe(true);
     expect(pkg.seoQuarantined).toBeUndefined();
   });

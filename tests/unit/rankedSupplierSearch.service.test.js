@@ -142,9 +142,15 @@ describe('rankedSupplierSearch.service', () => {
     });
 
     dbUnified.read.mockImplementation(async collection => {
-      if (collection === 'suppliers') return rawSuppliers;
-      if (collection === 'packages') return packages;
-      if (collection === 'users') return [{ id: 'owner_1' }, { _id: 'owner_2' }];
+      if (collection === 'suppliers') {
+        return rawSuppliers;
+      }
+      if (collection === 'packages') {
+        return packages;
+      }
+      if (collection === 'users') {
+        return [{ id: 'owner_1' }, { _id: 'owner_2' }];
+      }
       return [];
     });
 
@@ -312,6 +318,24 @@ describe('rankedSupplierSearch.service', () => {
     packages = rawSuppliers.map(item => packageFor(item.id));
 
     const result = await searchSuppliers({ minRating: 4 });
+
+    expect(result.results.map(item => item.id)).toEqual(['eligible']);
+  });
+
+  test('excludes a name/slug-pattern fixture even without the explicit isTest flag (SEO-002)', async () => {
+    // Routed through seoEligibility.canAppearInDirectory (see
+    // services/rankedSupplierSearch.service.js), which also catches the
+    // "Romeo Test" naming pattern the isTest-flag-only check above missed —
+    // otherwise this record shows up as a live search result whose own
+    // profile page the SEO services reject.
+    rawSuppliers = [
+      supplier({ id: 'eligible', averageRating: 4.8 }),
+      supplier({ id: 'name_fixture', name: 'Romeo Test', averageRating: 4.8 }),
+    ];
+    projectedSuppliers = rawSuppliers.map(item => project(item));
+    packages = rawSuppliers.map(item => packageFor(item.id));
+
+    const result = await searchSuppliers({});
 
     expect(result.results.map(item => item.id)).toEqual(['eligible']);
   });
