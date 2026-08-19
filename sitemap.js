@@ -280,8 +280,8 @@ async function generateSitemap(baseUrl) {
   // The public calendar hub itself is empty-state gated (SEO-005): with no
   // indexable events behind it, it is a shell with nothing to show, so it is
   // dropped from the sitemap exactly like a page returning noindex would be.
-  const calendarEventCount = emptyStateIndexGate.countIndexableEvents(events, now);
-  if (emptyStateIndexGate.calendarIsIndexable(calendarEventCount)) {
+  const calendarInventory = emptyStateIndexGate.summariseIndexableEvents(events, now);
+  if (emptyStateIndexGate.calendarIsIndexable(calendarInventory)) {
     appendUrl(xmlParts, `${normalizedBaseUrl}/public-calendar`);
     track('calendarHub', 1);
   } else {

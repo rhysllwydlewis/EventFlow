@@ -94,6 +94,29 @@ function discussion(state) {
 }
 
 /**
+ * Build enough distinct public discussions to clear the discussions-index
+ * useful-content threshold while retaining the original fixture as the first
+ * record for assertions that depend on its title and canonical URL.
+ * @param {number} count Number of published discussions to build.
+ * @returns {Object[]} Published discussion documents.
+ */
+function publishedDiscussions(count = 5) {
+  return Array.from({ length: count }, (unused, index) => {
+    if (index === 0) {
+      return discussion('published');
+    }
+    const suffix = String(index + 1).padStart(2, '0');
+    return {
+      ...discussion('published'),
+      id: `d-${index + 1}`,
+      stableId: `aaaabbbbcc${suffix}`,
+      slug: `published-planning-question-${index + 1}`,
+      title: `Published planning question ${index + 1}`,
+    };
+  });
+}
+
+/**
  * Build an auth cookie for a fixture user.
  * @param {Object} user User fixture.
  * @returns {string} Cookie header value.
@@ -243,7 +266,7 @@ describe('server-rendered routing', () => {
 
 describe('server-rendered pages — the rest of the surface', () => {
   beforeEach(() => {
-    mockDb.seed('community_discussions', [discussion('published')]);
+    mockDb.seed('community_discussions', publishedDiscussions());
   });
 
   it('renders the community homepage with categories and recent discussions', async () => {
@@ -383,16 +406,8 @@ describe('empty-state index gating (SEO-005) never disagrees with the sitemap co
     expect(res.text).toContain('noindex');
   });
 
-  it('leaves /community/discussions indexable once a published discussion joins the superseded one', async () => {
-    mockDb.seed('community_discussions', [
-      discussion('superseded'),
-      {
-        ...discussion('published'),
-        id: 'd-2',
-        stableId: 'aaaabbbbcc02',
-        slug: 'a-second-question',
-      },
-    ]);
+  it('leaves /community/discussions indexable once five published discussions join the superseded one', async () => {
+    mockDb.seed('community_discussions', [discussion('superseded'), ...publishedDiscussions()]);
     const res = await request(app).get('/community/discussions');
     expect(res.text).not.toContain('name="robots"');
   });

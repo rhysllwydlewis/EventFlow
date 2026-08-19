@@ -51,14 +51,14 @@ describe('categoryLookup.service', () => {
     });
 
     it('tolerates a non-array categories argument', () => {
-      expect(resolveCategoryName(null, 'venues')).toBe('');
-      expect(resolveCategoryName(undefined, 'venues')).toBe('');
+      expect(resolveCategoryName(null, 'venues')).toBe('Venues');
+      expect(resolveCategoryName(undefined, 'venues')).toBe('Venues');
     });
 
     it('tolerates malformed category records', () => {
       const malformed = [null, {}, { slug: 'venues' }, undefined];
       // The entry with a slug but no name should not match (nothing to resolve to)
-      expect(resolveCategoryName(malformed, 'venues')).toBe('');
+      expect(resolveCategoryName(malformed, 'venues')).toBe('Venues');
     });
   });
 });

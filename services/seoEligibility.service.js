@@ -57,6 +57,7 @@ const REASON_CODES = Object.freeze({
   MISSING_LOCATION: 'missing_or_unusable_location',
   BELOW_QUALITY_THRESHOLD: 'below_content_quality_threshold',
   SUPPLIER_NOT_VIEWABLE: 'supplier_not_publicly_viewable',
+  SUPPLIER_NOT_INDEXABLE: 'supplier_not_indexable',
   NO_CANONICAL_SLUG: 'no_clean_canonical_route',
 });
 
@@ -206,6 +207,13 @@ function packageIndexEligibility(pkg, context = {}) {
   const base = packageDirectoryEligibility(pkg, context);
   const reasons = [...base.reasons];
   if (base.eligible) {
+    // A package inherits the quality of its owning supplier landing page.
+    // Viewable-but-thin suppliers may serve a noindex page, but must not lend
+    // indexability to child packages.
+    const supplierIndex = supplierIndexEligibility(context.supplier, context);
+    if (!supplierIndex.eligible) {
+      reasons.push(REASON_CODES.SUPPLIER_NOT_INDEXABLE);
+    }
     const description = pkg.description || pkg.description_short || pkg.descriptionShort || '';
     if (!isMeaningfulText(description, MIN_PACKAGE_DESCRIPTION_LENGTH)) {
       reasons.push(REASON_CODES.BELOW_QUALITY_THRESHOLD);

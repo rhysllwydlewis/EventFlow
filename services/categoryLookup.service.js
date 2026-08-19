@@ -17,11 +17,8 @@
  * counterpart used by category link generators.
  */
 
-function normaliseToken(value) {
-  return String(value || '')
-    .trim()
-    .toLowerCase();
-}
+const categoryRegistry = require('../public/assets/js/utils/category-link.js');
+const normaliseToken = categoryRegistry.normaliseCategoryToken;
 
 /**
  * @param {Array<{slug?: string, name?: string}>} categories
@@ -46,10 +43,11 @@ function resolveCategoryName(categories, rawValue) {
     return byName.name;
   }
 
-  return '';
+  return categoryRegistry.canonicalCategoryValue(rawValue);
 }
 
 module.exports = {
   normaliseToken,
   resolveCategoryName,
+  canonicalCategoryValue: categoryRegistry.canonicalCategoryValue,
 };

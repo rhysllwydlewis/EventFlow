@@ -7,6 +7,7 @@
 
 const dbUnified = require('../db-unified');
 const catalogCache = require('./catalogCache');
+const { canonicalCategoryValue } = require('../public/assets/js/utils/category-link.js');
 const {
   findOwnerUserForSupplier,
   hydrateSupplierProfilePhoto,
@@ -668,7 +669,8 @@ function applyFilters(suppliers, query, userCoords) {
 
   // Category filter
   if (query.category) {
-    results = results.filter(s => s.category === query.category);
+    const category = canonicalCategoryValue(query.category);
+    results = category ? results.filter(s => canonicalCategoryValue(s.category) === category) : [];
   }
 
   // Location filter
@@ -779,9 +781,10 @@ function applyPackageFilters(packages, query, supplierMap) {
 
   // Category filter (from supplier)
   if (query.category) {
+    const category = canonicalCategoryValue(query.category);
     results = results.filter(p => {
       const supplier = supplierMap[p.supplierId];
-      return supplier && supplier.category === query.category;
+      return supplier && category && canonicalCategoryValue(supplier.category) === category;
     });
   }
 
@@ -1640,4 +1643,6 @@ module.exports = {
   getPriceLevel,
   VALID_SUPPLIER_SORT_VALUES,
   VALID_PACKAGE_SORT_VALUES,
+  applySupplierFilters: applyFilters,
+  applyPackageFilters,
 };

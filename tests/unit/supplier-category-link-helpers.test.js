@@ -58,8 +58,21 @@ describe('EventFlowCategoryLink', () => {
       expect(canonicalCategoryValue({ slug: 'venues', name: 'Venues' })).toBe('Venues');
     });
 
-    it('falls back to slug when name is absent', () => {
-      expect(canonicalCategoryValue({ slug: 'venues' })).toBe('venues');
+    it('resolves a recognised slug to the canonical display name', () => {
+      expect(canonicalCategoryValue({ slug: 'venues' })).toBe('Venues');
+    });
+
+    it.each([
+      ['venues', 'Venues'],
+      ['CATERING', 'Catering'],
+      ['entertainment', 'Entertainment'],
+      ['photography', 'Photography'],
+    ])('canonicalises %s to %s across the URL/API contract', (input, expected) => {
+      expect(canonicalCategoryValue(input)).toBe(expected);
+    });
+
+    it('returns a neutral empty value for unknown categories', () => {
+      expect(canonicalCategoryValue('made-up-category')).toBe('');
     });
 
     it('returns empty string for a missing category', () => {

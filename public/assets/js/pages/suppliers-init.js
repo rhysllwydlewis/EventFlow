@@ -632,6 +632,10 @@ async function initSuppliersPage() {
   }
 
   let currentFilters = getFiltersFromURL();
+  const rawCategory = new URLSearchParams(window.location.search).get('category') || '';
+  if (rawCategory && rawCategory !== currentFilters.category) {
+    updateURL(currentFilters, true);
+  }
   // AbortController for the current in-flight request; allows cancelling stale requests
   let currentAbortController = null;
 

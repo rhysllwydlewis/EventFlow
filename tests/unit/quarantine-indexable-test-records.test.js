@@ -51,6 +51,9 @@ const ordinarySupplier = {
   id: 'sup-ordinary',
   name: 'Contest Caterers Ltd',
   approved: true,
+  category: 'Catering',
+  location: 'Cardiff',
+  description_short: 'Independent event catering for weddings and celebrations across South Wales.',
 };
 const testFlagSupplier = {
   id: 'sup-isTest',
@@ -81,8 +84,11 @@ const literalTestPackage = {
 };
 const ordinaryPackage = {
   id: 'pkg-ordinary',
+  supplierId: 'sup-ordinary',
   title: 'Full Day Wedding Photography',
   approved: true,
+  description:
+    'A complete full-day package with planning, coverage and edited photographs included.',
 };
 
 beforeEach(() => {
@@ -116,6 +122,12 @@ describe('parseArgs', () => {
 
   it('reads a --json output path', () => {
     expect(parseArgs(['node', 'script.js', '--json', 'out.json']).json).toBe('out.json');
+  });
+
+  it('reads a signed --review-file path', () => {
+    expect(parseArgs(['node', 'script.js', '--review-file', 'review.json']).reviewFile).toBe(
+      'review.json'
+    );
   });
 });
 
@@ -232,6 +244,43 @@ describe('--apply mode', () => {
     const pkg = await mockDb.findOne('packages', { id: 'pkg-literal-test' });
     expect(pkg.approved).toBe(true);
     expect(pkg.seoQuarantined).toBeUndefined();
+  });
+
+  it('reports approved but incomplete acquisition records without auto-mutating them', async () => {
+    mockDb.seed('suppliers', [
+      ordinarySupplier,
+      { id: 'sup-incomplete', name: 'Imported Supplier', approved: true },
+    ]);
+    const dryRun = await run(parseArgs(['node', 'script.js', '--suppliers']));
+    expect(dryRun.byCollection.suppliers.rows).toContainEqual(
+      expect.objectContaining({
+        id: 'sup-incomplete',
+        candidateType: 'incomplete_acquisition',
+        confirmed: false,
+        eligibilityReasons: expect.arrayContaining(['missing_category_classification']),
+      })
+    );
+    await run(parseArgs(['node', 'script.js', '--apply', '--suppliers']));
+    expect((await mockDb.findOne('suppliers', { id: 'sup-incomplete' })).approved).toBe(true);
+  });
+
+  it('applies exact reviewed decisions and records before/after evidence', async () => {
+    const report = await run(
+      parseArgs([
+        'node',
+        'script.js',
+        '--apply',
+        '--review-file',
+        'tests/fixtures/seo-review-example.json',
+      ])
+    );
+    const romeo = report.byCollection.suppliers.rows.find(row => row.id === 'sup-romeo');
+    const packageRow = report.byCollection.packages.rows.find(row => row.id === 'pkg-test-no2');
+    expect(romeo.applyOutcome).toBe('quarantined');
+    expect(romeo.before.approved).toBe(true);
+    expect(romeo.after).toEqual(expect.objectContaining({ approved: false, seoQuarantined: true }));
+    expect(packageRow.applyOutcome).toBe('reviewed_keep');
+    expect((await mockDb.findOne('packages', { id: 'pkg-test-no2' })).approved).toBe(true);
   });
 });
 

@@ -9,9 +9,13 @@
  */
 export function getFiltersFromURL() {
   const params = new URLSearchParams(window.location.search);
+  const rawCategory = params.get('category') || '';
+  const category = window.EventFlowCategoryLink
+    ? window.EventFlowCategoryLink.canonicalCategoryValue(rawCategory)
+    : rawCategory;
 
   return {
-    category: params.get('category') || '',
+    category,
     location: params.get('location') || '',
     priceLevel: params.get('priceLevel') || '',
     q: params.get('q') || '',
@@ -34,8 +38,11 @@ export function updateURL(filters, replace = false) {
   const params = new URLSearchParams();
 
   // Add non-empty filter parameters
-  if (filters.category) {
-    params.set('category', filters.category);
+  const category = window.EventFlowCategoryLink
+    ? window.EventFlowCategoryLink.canonicalCategoryValue(filters.category)
+    : filters.category;
+  if (category) {
+    params.set('category', category);
   }
   if (filters.location) {
     params.set('location', filters.location);

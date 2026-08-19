@@ -88,6 +88,17 @@ function isKnownTestFixture(record) {
   return WHOLE_WORD_TEST.test(slug);
 }
 
+/** Fail-closed approval guard for confirmed or previously quarantined fixtures. */
+function approvalDecision(record) {
+  if (record && record.seoQuarantined === true) {
+    return { allowed: false, reason: 'seo_quarantined_record' };
+  }
+  if (isConfirmedTestFixture(record)) {
+    return { allowed: false, reason: 'confirmed_test_fixture' };
+  }
+  return { allowed: true, reason: null };
+}
+
 /**
  * Reason a record's lifecycle state blocks it from being publicly viewable,
  * or null when nothing here blocks it.
@@ -173,6 +184,7 @@ module.exports = {
   cleanText,
   isKnownTestFixture,
   isConfirmedTestFixture,
+  approvalDecision,
   lifecycleBlockReason,
   hasStableIdentity,
   isOwnerValid,

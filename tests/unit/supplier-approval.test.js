@@ -403,7 +403,7 @@ describe('supplier-admin.js — admin approve endpoint', () => {
 
   it('writes an audit log entry when approving', () => {
     const approveSection = content.slice(content.indexOf("'/suppliers/:id/approve'"));
-    expect(approveSection.slice(0, 1200)).toContain('auditLog');
+    expect(approveSection.slice(0, 2400)).toContain('auditLog');
   });
 });
 

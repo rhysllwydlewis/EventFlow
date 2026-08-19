@@ -35,6 +35,7 @@ const { sanitiseText } = require('../utils/sanitise');
 const { runActionPrompts, notifyCronChanged } = require('../services/actionPromptScheduler');
 const locationRegistry = require('../services/locationRegistry.service');
 const locationPageService = require('../services/locationPage.service');
+const { approvalDecision } = require('../services/seoRecordLifecycle.util');
 const { addPublicProfilePath } = require('../utils/publicSupplierProfilePath');
 
 const router = express.Router();
@@ -1079,6 +1080,10 @@ router.post('/suppliers/:id/approve', authRequired, roleRequired('admin'), csrfP
         return res.status(404).json({ error: 'Not found' });
       }
       const approved = req.body && req.body.approved !== undefined ? !!(req.body.approved) : true;
+      const approval = approvalDecision(all[i]);
+      if (approved && !approval.allowed) {
+        return res.status(409).json({ error: 'Fixture approval blocked', code: approval.reason });
+      }
       const notes = (req.body && typeof req.body.notes === 'string') ? req.body.notes.trim() : '';
       const now = new Date().toISOString();
       const updates = {
@@ -1440,6 +1445,12 @@ router.post('/packages', authRequired, roleRequired('admin'), csrfProtection, as
       createdBy: req.user.id,
       versionHistory: [],
     };
+    const packageApproval = approvalDecision(newPackage);
+    if (newPackage.approved && !packageApproval.allowed) {
+      return res
+        .status(409)
+        .json({ error: 'Fixture approval blocked', code: packageApproval.reason });
+    }
 
     const adminPkgInserted = await dbUnified.insertOne('packages', newPackage);
     if (!adminPkgInserted) {
@@ -1478,6 +1489,10 @@ router.post(
       return res.status(404).json({ error: 'Not found' });
     }
     const approved = !!(req.body && req.body.approved);
+    const approval = approvalDecision(pkg);
+    if (approved && !approval.allowed) {
+      return res.status(409).json({ error: 'Fixture approval blocked', code: approval.reason });
+    }
     await dbUnified.updateOne('packages', { id: req.params.id }, { $set: { approved } });
     res.json({ ok: true, package: { ...pkg, approved } });
   }
@@ -1530,6 +1545,15 @@ router.post(
       }
 
       const packages = await dbUnified.read('packages');
+      const blocked = approved
+        ? packages.filter(pkg => packageIds.includes(pkg.id) && !approvalDecision(pkg).allowed)
+        : [];
+      if (blocked.length) {
+        return res.status(409).json({
+          error: 'Fixture approval blocked',
+          blockedIds: blocked.map(pkg => pkg.id),
+        });
+      }
       const now = new Date().toISOString();
       const toUpdate = packageIds.filter(id => packages.some(p => p.id === id));
       const updatedCount = toUpdate.length;
@@ -1705,6 +1729,12 @@ router.post('/suppliers/bulk-approve', authRequired, roleRequired('admin'), csrf
         return res.status(400).json({ error: 'supplierIds must be a non-empty array' });
       }
       const all = await dbUnified.read('suppliers');
+      const blocked = approved
+        ? all.filter(supplier => supplierIds.includes(supplier.id) && !approvalDecision(supplier).allowed)
+        : [];
+      if (blocked.length) {
+        return res.status(409).json({ error: 'Fixture approval blocked', blockedIds: blocked.map(s => s.id) });
+      }
       const now = new Date().toISOString();
       const toUpdate = supplierIds.filter(id => all.some(s => s.id === id));
       const count = toUpdate.length;
@@ -3560,6 +3590,12 @@ router.put(
           for (const s of pendingSuppliers) {
             if (s.approved === true && s.verificationStatus === VERIFICATION_STATES.APPROVED) {
               continue; // already fully approved, skip
+            }
+            if (!approvalDecision(s).allowed) {
+              logger.warn(`[${requestId}] Auto-approval skipped fixture/quarantined supplier`, {
+                supplierId: s.id,
+              });
+              continue;
             }
             await dbUnified.updateOne(
               'suppliers',

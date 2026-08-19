@@ -253,6 +253,15 @@ describe('seoEligibility — packages', () => {
     expect(decision.reasons).toContain(REASON_CODES.SUPPLIER_NOT_VIEWABLE);
   });
 
+  test('keeps a package noindex when its owning supplier is viewable but not indexable', () => {
+    const decision = canBeIndexed(
+      completePackage(),
+      packageContext({ supplier: completeSupplier({ description_short: '', description: '' }) })
+    );
+    expect(decision.eligible).toBe(false);
+    expect(decision.reasons).toContain(REASON_CODES.SUPPLIER_NOT_INDEXABLE);
+  });
+
   test("rejects the audit's example: an explicit test/fixture package", () => {
     const decision = canBeViewedPublicly(
       completePackage({ id: 'pkg-test', slug: 'test-no2-yy7lo4', title: 'Test' }),

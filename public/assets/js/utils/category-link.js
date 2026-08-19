@@ -1,27 +1,62 @@
-/**
- * Shared helper for turning a category record into the canonical `/suppliers`
- * link.
- *
- * The `/suppliers` directory page filters strictly by the canonical display
- * value stored on `supplier.category` (e.g. "Venues"), not by a category's
- * `slug` (e.g. "venues"). Category link generators used to point at
- * `/category?slug=<slug>`, which redirected to `/suppliers` but dropped the
- * filter — the directory page has never read a `slug` param. Every place
- * that builds a link to a category listing should go through
- * `EventFlowCategoryLink.categoryHref()` so the emitted URL always carries
- * the same canonical `category` value the filter UI, the search API and the
- * legacy `/category?slug=` redirect agree on (see
- * services/categoryLookup.service.js for the server-side counterpart).
- */
-(function (global) {
+/** Canonical supplier-category registry shared by Node and the browser. */
+(function (root, factory) {
   'use strict';
+  const api = factory();
+  if (typeof module === 'object' && module.exports) {
+    module.exports = api;
+  }
+  if (root) {
+    root.EventFlowCategoryLink = api;
+  }
+})(typeof window !== 'undefined' ? window : globalThis, () => {
+  'use strict';
+  const CATEGORY_DEFINITIONS = Object.freeze(
+    [
+      ['Venues', 'venues'],
+      ['Catering', 'catering'],
+      ['Photography', 'photography'],
+      ['Videography', 'videography'],
+      ['Entertainment', 'entertainment'],
+      ['Music/DJ', 'music-dj'],
+      ['Florist', 'florist'],
+      ['Decor', 'decor'],
+      ['Transport', 'transport'],
+      ['Cake', 'cake'],
+      ['Stationery', 'stationery'],
+      ['Hair & Makeup', 'hair-makeup'],
+      ['Beauty', 'beauty'],
+      ['Bridalwear', 'bridalwear'],
+      ['Jewellery', 'jewellery'],
+      ['Celebrant', 'celebrant'],
+      ['Event Planner', 'event-planner'],
+      ['Wedding Fayre', 'wedding-fayre'],
+      ['Planning', 'planning'],
+      ['Other', 'other'],
+    ].map(([name, slug]) => Object.freeze({ name, slug }))
+  );
 
-  function canonicalCategoryValue(category) {
-    if (!category) {
+  function normaliseCategoryToken(value) {
+    return String(value || '')
+      .trim()
+      .toLowerCase()
+      .replace(/%26/g, '&')
+      .replace(/[\s_/&]+/g, '-')
+      .replace(/-+/g, '-')
+      .replace(/^-|-$/g, '');
+  }
+
+  function canonicalCategoryValue(value) {
+    const candidate = value && typeof value === 'object' ? value.name || value.slug : value;
+    const token = normaliseCategoryToken(candidate);
+    if (!token) {
       return '';
     }
-    const value = (category.name || category.slug || '').toString().trim();
-    return value;
+    const match = CATEGORY_DEFINITIONS.find(
+      category =>
+        normaliseCategoryToken(category.name) === token ||
+        normaliseCategoryToken(category.slug) === token
+    );
+    return match ? match.name : '';
   }
 
   function categoryHref(category) {
@@ -29,5 +64,5 @@
     return value ? `/suppliers?category=${encodeURIComponent(value)}` : '/suppliers';
   }
 
-  global.EventFlowCategoryLink = { canonicalCategoryValue, categoryHref };
-})(typeof window !== 'undefined' ? window : globalThis);
+  return { CATEGORY_DEFINITIONS, normaliseCategoryToken, canonicalCategoryValue, categoryHref };
+});
