@@ -17,6 +17,7 @@ const {
 } = require('../utils/supplierVerificationStateMachine');
 const catalogCache = require('../services/catalogCache');
 const { sanitiseText } = require('../utils/sanitise');
+const { approvalDecision } = require('../services/seoRecordLifecycle.util');
 const {
   buildSupplierProGrantUpdate,
   buildSupplierProRevokeUpdate,
@@ -281,6 +282,11 @@ router.post(
       const s = all.find(sup => sup.id === req.params.id);
       if (!s) {
         return res.status(404).json({ error: 'Not found' });
+      }
+
+      const approval = approvalDecision(s);
+      if (!approval.allowed) {
+        return res.status(409).json({ error: 'Fixture approval blocked', code: approval.reason });
       }
 
       const currentState = normaliseState(s.verificationStatus, s.verified);

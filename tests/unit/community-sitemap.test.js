@@ -41,6 +41,9 @@ beforeEach(() => {
       state: 'archived',
       createdAt: '2024-01-01T00:00:00.000Z',
     },
+    { stableId: 'ddddeeeeff01', slug: 'venue-three', categorySlug: 'venues', state: 'published' },
+    { stableId: 'ddddeeeeff02', slug: 'general-four', categorySlug: 'general', state: 'published' },
+    { stableId: 'ddddeeeeff03', slug: 'general-five', categorySlug: 'general', state: 'published' },
     { stableId: '111122223333', slug: 'held', state: 'quarantined' },
     { stableId: '444455556666', slug: 'gone', state: 'removed' },
     { stableId: '777788889999', slug: 'hidden', state: 'hidden' },
@@ -116,6 +119,8 @@ describe('community empty-state index gating in the sitemap (SEO-005)', () => {
         categorySlug: 'venues',
         state: 'published',
       },
+      { stableId: 'aaaabbbb0002', slug: 'venue-two', categorySlug: 'venues', state: 'published' },
+      { stableId: 'aaaabbbb0003', slug: 'venue-three', categorySlug: 'venues', state: 'published' },
     ]);
     const xml = await generateSitemap('https://event-flow.co.uk');
     expect(xml).toContain('/community/category/venues');

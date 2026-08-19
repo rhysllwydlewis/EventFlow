@@ -164,6 +164,7 @@ describe('GET /api/catalog/categories', () => {
     const res = await request(app).get('/api/catalog/categories');
     expect(res.headers['cache-control']).toMatch(/public/);
   });
+
 });
 
 describe('GET /api/catalog/suppliers', () => {
@@ -184,6 +185,18 @@ describe('GET /api/catalog/suppliers', () => {
     expect(res.body.total).toBe(2);
     expect(res.body).toHaveProperty('limit');
     expect(res.body).toHaveProperty('offset');
+  });
+
+  test('canonicalises recognised category slugs and returns neutral results for unknown values', async () => {
+    dbUnified.find.mockResolvedValue([
+      makeSupplier({ id: 'venue', category: 'Venues' }),
+      makeSupplier({ id: 'photo', category: 'Photography' }),
+    ]);
+    const recognised = await request(app).get('/api/catalog/suppliers?category=venues');
+    expect(recognised.body.suppliers.map(s => s.id)).toEqual(['venue']);
+    const unknown = await request(app).get('/api/catalog/suppliers?category=not-real');
+    expect(unknown.body.suppliers).toEqual([]);
+    expect(unknown.body.total).toBe(0);
   });
 
   test('strips private fields from each supplier', async () => {

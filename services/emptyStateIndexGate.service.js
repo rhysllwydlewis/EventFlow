@@ -27,19 +27,21 @@ const PUBLIC_DISCUSSION_STATES = new Set(['published', 'archived']);
  * Minimum published/archived discussions a community category needs before
  * its own page (and the sitemap entry for it) is worth indexing.
  */
-const MIN_CATEGORY_DISCUSSIONS_FOR_INDEX = 1;
+const MIN_CATEGORY_DISCUSSIONS_FOR_INDEX = 3;
 
 /**
  * Minimum published/archived discussions the community must hold, in total,
  * before the "all discussions" index page is worth indexing.
  */
-const MIN_TOTAL_DISCUSSIONS_FOR_INDEX = 1;
+const MIN_TOTAL_DISCUSSIONS_FOR_INDEX = 5;
 
 /**
  * Minimum indexable (future, public, published) events the public calendar
  * needs before the calendar hub page itself is worth indexing.
  */
-const MIN_CALENDAR_EVENTS_FOR_INDEX = 1;
+const MIN_CALENDAR_EVENTS_FOR_INDEX = 3;
+const MIN_CALENDAR_DISTINCT_DATES_FOR_INDEX = 2;
+const MIN_CALENDAR_DATE_SPAN_DAYS_FOR_INDEX = 14;
 
 /**
  * Minimum results a supplier search/filter combination must return before
@@ -47,7 +49,7 @@ const MIN_CALENDAR_EVENTS_FOR_INDEX = 1;
  * consolidated (via the page's own static self-canonical) back to the plain
  * `/suppliers` listing.
  */
-const MIN_SUPPLIER_RESULTS_FOR_INDEX = 1;
+const MIN_SUPPLIER_RESULTS_FOR_INDEX = 3;
 
 const isPublicDiscussion = discussion =>
   Boolean(discussion) && PUBLIC_DISCUSSION_STATES.has(discussion.state);
@@ -87,14 +89,32 @@ function countIndexableEvents(events, now = new Date()) {
   return (events || []).filter(event => isIndexablePublicEvent(event, now)).length;
 }
 
+/**
+ * Summarise durable calendar inventory. A burst of same-day fixtures is not
+ * enough to make the calendar hub a useful, lasting search landing page.
+ */
+function summariseIndexableEvents(events, now = new Date()) {
+  const dates = (events || [])
+    .filter(event => isIndexablePublicEvent(event, now))
+    .map(event => new Date(event.startDate))
+    .filter(date => !Number.isNaN(date.getTime()))
+    .sort((a, b) => a - b);
+  const distinctDates = new Set(dates.map(date => date.toISOString().slice(0, 10))).size;
+  const spanDays = dates.length > 1 ? (dates.at(-1) - dates[0]) / 86400000 : 0;
+  return { count: dates.length, distinctDates, spanDays };
+}
+
 const communityCategoryIsIndexable = discussionCount =>
   Number(discussionCount) >= MIN_CATEGORY_DISCUSSIONS_FOR_INDEX;
 
 const communityDiscussionsIndexIsIndexable = totalDiscussionCount =>
   Number(totalDiscussionCount) >= MIN_TOTAL_DISCUSSIONS_FOR_INDEX;
 
-const calendarIsIndexable = indexableEventCount =>
-  Number(indexableEventCount) >= MIN_CALENDAR_EVENTS_FOR_INDEX;
+const calendarIsIndexable = inventory =>
+  Boolean(inventory) &&
+  Number(inventory.count) >= MIN_CALENDAR_EVENTS_FOR_INDEX &&
+  Number(inventory.distinctDates) >= MIN_CALENDAR_DISTINCT_DATES_FOR_INDEX &&
+  Number(inventory.spanDays) >= MIN_CALENDAR_DATE_SPAN_DAYS_FOR_INDEX;
 
 const supplierFilterResultsAreIndexable = resultCount =>
   Number(resultCount) >= MIN_SUPPLIER_RESULTS_FOR_INDEX;
@@ -103,10 +123,13 @@ module.exports = {
   MIN_CATEGORY_DISCUSSIONS_FOR_INDEX,
   MIN_TOTAL_DISCUSSIONS_FOR_INDEX,
   MIN_CALENDAR_EVENTS_FOR_INDEX,
+  MIN_CALENDAR_DISTINCT_DATES_FOR_INDEX,
+  MIN_CALENDAR_DATE_SPAN_DAYS_FOR_INDEX,
   MIN_SUPPLIER_RESULTS_FOR_INDEX,
   countDiscussionsByCategory,
   countPublicDiscussions,
   countIndexableEvents,
+  summariseIndexableEvents,
   communityCategoryIsIndexable,
   communityDiscussionsIndexIsIndexable,
   calendarIsIndexable,

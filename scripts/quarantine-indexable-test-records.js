@@ -48,6 +48,9 @@
  *
  *   # Write the full report as JSON, for a runbook or a follow-up ticket.
  *   node scripts/quarantine-indexable-test-records.js --json report.json
+ *
+ *   # Apply exact human-reviewed quarantine/keep decisions.
+ *   node scripts/quarantine-indexable-test-records.js --apply --review-file review.json
  */
 
 'use strict';
@@ -61,6 +64,7 @@ const {
   isKnownTestFixture,
   isConfirmedTestFixture,
 } = require('../services/seoRecordLifecycle.util');
+const seoEligibility = require('../services/seoEligibility.service');
 
 const QUARANTINE_REASON = 'test_fixture_record';
 
@@ -76,6 +80,7 @@ function parseArgs(argv) {
     suppliers: false,
     packages: false,
     json: null,
+    reviewFile: null,
   };
 
   for (let index = 0; index < args.length; index += 1) {
@@ -88,6 +93,9 @@ function parseArgs(argv) {
       options.packages = true;
     } else if (arg === '--json') {
       options.json = args[index + 1] || null;
+      index += 1;
+    } else if (arg === '--review-file') {
+      options.reviewFile = args[index + 1] || null;
       index += 1;
     }
   }
@@ -116,11 +124,30 @@ function recordLabel(record) {
  * @param {string} collectionName 'suppliers' or 'packages'.
  * @returns {Promise<Object[]>} Report rows.
  */
-async function scanCollection(collectionName) {
+async function scanCollection(collectionName, context = {}) {
   const records = (await dbUnified.read(collectionName)) || [];
   return records
-    .filter(record => record && isKnownTestFixture(record) && record.seoQuarantined !== true)
-    .map(record => ({
+    .map(record => {
+      if (!record || record.seoQuarantined === true) {
+        return null;
+      }
+      const knownFixture = isKnownTestFixture(record);
+      const decisionContext = collectionName === 'packages'
+        ? {
+            type: 'package',
+            validOwnerIds: context.validOwnerIds,
+            supplier: context.supplierMap?.get(String(record.supplierId)),
+          }
+        : { type: 'supplier', validOwnerIds: context.validOwnerIds };
+      const indexDecision = seoEligibility.canBeIndexed(record, decisionContext);
+      const incomplete =
+        record.acquisitionStatus === 'incomplete' ||
+        record.importIncomplete === true ||
+        (record.approved === true && !indexDecision.eligible);
+      if (!knownFixture && !incomplete) {
+        return null;
+      }
+      return {
       collection: collectionName,
       id: record.id,
       label: recordLabel(record),
@@ -137,7 +164,48 @@ async function scanCollection(collectionName) {
       // unpublishing it would be a much worse outcome than a report row
       // asking a human to confirm it. See services/seoRecordLifecycle.util.js.
       confirmed: isConfirmedTestFixture(record),
-    }));
+      candidateType: knownFixture ? 'test_fixture' : 'incomplete_acquisition',
+      eligibilityReasons: indexDecision.reasons,
+      before: {
+        approved: record.approved === true,
+        seoQuarantined: record.seoQuarantined === true,
+        seoQuarantineReason: record.seoQuarantineReason || null,
+      },
+      };
+    })
+    .filter(Boolean);
+}
+
+function loadReviewDecisions(reviewFile) {
+  if (!reviewFile) {
+    return new Map();
+  }
+  const document = JSON.parse(fs.readFileSync(path.resolve(process.cwd(), reviewFile), 'utf8'));
+  if (
+    document.schemaVersion !== 1 ||
+    !document.reviewedBy ||
+    !document.reviewedAt ||
+    !Array.isArray(document.decisions)
+  ) {
+    throw new Error('Review file must contain schemaVersion: 1, reviewedBy, reviewedAt and decisions[]');
+  }
+  const decisions = new Map();
+  document.decisions.forEach(entry => {
+    if (
+      !['suppliers', 'packages'].includes(entry.collection) ||
+      !entry.id ||
+      !['quarantine', 'keep'].includes(entry.decision) ||
+      !entry.reason
+    ) {
+      throw new Error('Each review decision needs collection, id, quarantine|keep, and reason');
+    }
+    const key = `${entry.collection}:${entry.id}`;
+    if (decisions.has(key)) {
+      throw new Error(`Duplicate review decision: ${key}`);
+    }
+    decisions.set(key, { ...entry, reviewedBy: document.reviewedBy, reviewedAt: document.reviewedAt });
+  });
+  return decisions;
 }
 
 /**
@@ -157,14 +225,14 @@ async function countAlreadyQuarantined(collectionName) {
  * @param {Object} row Report row from scanCollection.
  * @returns {Promise<{ok: boolean, reason: string|null}>} Write outcome.
  */
-async function quarantineRecord(collectionName, row) {
+async function quarantineRecord(collectionName, row, reason = QUARANTINE_REASON) {
   const acknowledged = await dbUnified.updateOne(
     collectionName,
     { id: row.id },
     {
       approved: false,
       seoQuarantined: true,
-      seoQuarantineReason: QUARANTINE_REASON,
+      seoQuarantineReason: reason,
       seoQuarantinedAt: new Date().toISOString(),
     }
   );
@@ -178,7 +246,15 @@ async function quarantineRecord(collectionName, row) {
     return { ok: false, reason: 'record could not be re-read as quarantined after the update' };
   }
 
-  return { ok: true, reason: null };
+  return {
+    ok: true,
+    reason: null,
+    after: {
+      approved: stored.approved === true,
+      seoQuarantined: stored.seoQuarantined === true,
+      seoQuarantineReason: stored.seoQuarantineReason || null,
+    },
+  };
 }
 
 /**
@@ -187,6 +263,20 @@ async function quarantineRecord(collectionName, row) {
  * @returns {Promise<Object>} Report.
  */
 async function run(options) {
+  const reviewDecisions = loadReviewDecisions(options.reviewFile);
+  const [users, suppliers] = await Promise.all([
+    dbUnified.read('users'),
+    dbUnified.read('suppliers'),
+  ]);
+  const validOwnerIds = new Set(
+    (users || []).flatMap(user => [user.id, user._id]).filter(Boolean).map(String)
+  );
+  const supplierMap = new Map(
+    (suppliers || []).flatMap(supplier =>
+      [supplier.id, supplier._id].filter(Boolean).map(id => [String(id), supplier])
+    )
+  );
+  const scanContext = { validOwnerIds, supplierMap };
   const collections = [
     ...(options.suppliers ? ['suppliers'] : []),
     ...(options.packages ? ['packages'] : []),
@@ -198,12 +288,18 @@ async function run(options) {
   const failedWrites = [];
 
   for (const collectionName of collections) {
-    const rows = await scanCollection(collectionName);
+    const rows = await scanCollection(collectionName, scanContext);
     const alreadyQuarantined = await countAlreadyQuarantined(collectionName);
 
     if (options.apply) {
       for (const row of rows) {
-        if (!row.confirmed) {
+        const review = reviewDecisions.get(`${collectionName}:${row.id}`);
+        row.reviewDecision = review || null;
+        if (review && review.decision === 'keep') {
+          row.applyOutcome = 'reviewed_keep';
+          continue;
+        }
+        if (!row.confirmed && (!review || review.decision !== 'quarantine')) {
           // Not confirmed — a "Test Valley Marquees"-shaped false positive
           // must never be auto-unpublished. Report it for manual review
           // instead of writing anything.
@@ -211,8 +307,10 @@ async function run(options) {
           needsReview.push({ collection: collectionName, id: row.id, label: row.label });
           continue;
         }
-        const outcome = await quarantineRecord(collectionName, row);
+        const quarantineReason = review ? `reviewed:${review.reason}` : QUARANTINE_REASON;
+        const outcome = await quarantineRecord(collectionName, row, quarantineReason);
         row.applyOutcome = outcome.ok ? 'quarantined' : 'failed';
+        row.after = outcome.after || null;
         if (outcome.ok) {
           quarantinedNow += 1;
         } else {
@@ -232,6 +330,8 @@ async function run(options) {
 
   return {
     generatedAt: new Date().toISOString(),
+    schemaVersion: 2,
+    reviewFile: options.reviewFile || null,
     mode: options.apply ? 'apply' : 'dry-run',
     collections,
     found,
@@ -333,6 +433,7 @@ if (require.main === module) {
 module.exports = {
   parseArgs,
   scanCollection,
+  loadReviewDecisions,
   run,
   QUARANTINE_REASON,
 };

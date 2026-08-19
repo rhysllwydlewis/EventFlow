@@ -38,6 +38,7 @@ const dbUnified = require('../db-unified');
 const { apiLimiter } = require('../middleware/rateLimits');
 const logger = require('../utils/logger');
 const catalogCache = require('../services/catalogCache');
+const { canonicalCategoryValue } = require('../services/categoryLookup.service');
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -214,10 +215,10 @@ router.get('/suppliers', async (req, res) => {
 
     // Category filter
     if (req.query.category) {
-      const cat = String(req.query.category).trim();
-      if (VALID_CATEGORIES.includes(cat)) {
-        suppliers = suppliers.filter(s => s.category === cat);
-      }
+      const cat = canonicalCategoryValue(req.query.category);
+      suppliers = cat
+        ? suppliers.filter(s => canonicalCategoryValue(s.category) === cat)
+        : [];
     }
 
     // Location filter (substring match)

@@ -9,6 +9,7 @@
 const dbUnified = require('../db-unified');
 const logger = require('../utils/logger');
 const { createAuditLog } = require('../utils/auditTrail');
+const { approvalDecision } = require('./seoRecordLifecycle.util');
 
 /**
  * Get dashboard overview statistics
@@ -243,7 +244,12 @@ async function batchApprove(params) {
     ids.forEach(id => {
       const index = items.findIndex(item => item.id === id);
       if (index !== -1) {
-        updatedIds.push(id);
+        const approval = type === 'reviews' ? { allowed: true } : approvalDecision(items[index]);
+        if (approval.allowed) {
+          updatedIds.push(id);
+        } else {
+          errors.push({ id, error: 'Fixture approval blocked', code: approval.reason });
+        }
       } else {
         errors.push({ id, error: 'Item not found' });
       }

@@ -1,0 +1,19 @@
+{
+  "schemaVersion": 1,
+  "reviewedBy": "seo-operator@example.com",
+  "reviewedAt": "2026-08-19T12:00:00.000Z",
+  "decisions": [
+    {
+      "collection": "suppliers",
+      "id": "sup-romeo",
+      "decision": "quarantine",
+      "reason": "confirmed staging fixture"
+    },
+    {
+      "collection": "packages",
+      "id": "pkg-test-no2",
+      "decision": "keep",
+      "reason": "reviewed real listing"
+    }
+  ]
+}

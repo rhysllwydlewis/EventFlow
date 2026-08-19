@@ -96,8 +96,8 @@ router.get('/suppliers', publicReadLimiter, async (req, res, next) => {
 router.get('/public-calendar', publicReadLimiter, async (req, res, next) => {
   try {
     const events = await dbUnified.read('public_calendar_events');
-    const indexableCount = emptyStateIndexGate.countIndexableEvents(events);
-    if (!emptyStateIndexGate.calendarIsIndexable(indexableCount)) {
+    const inventory = emptyStateIndexGate.summariseIndexableEvents(events);
+    if (!emptyStateIndexGate.calendarIsIndexable(inventory)) {
       res.setHeader('X-Robots-Tag', 'noindex, follow');
     }
   } catch (error) {

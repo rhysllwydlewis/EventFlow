@@ -75,6 +75,12 @@ function discussion(overrides = {}) {
   };
 }
 
+function discussions(count) {
+  return Array.from({ length: count }, (_, index) =>
+    discussion({ id: `d-${index}`, stableId: `aaaabbbb${String(index).padStart(4, '0')}` })
+  );
+}
+
 let app;
 
 beforeEach(() => {
@@ -109,15 +115,15 @@ describe('community category empty-state index gating', () => {
     expect(res.text).toContain('No discussions here yet');
   });
 
-  it('reaches index,follow once the category holds a real discussion', async () => {
-    mockDb.seed('community_discussions', [discussion()]);
+  it('reaches index,follow only once the category passes the useful-content threshold', async () => {
+    mockDb.seed('community_discussions', discussions(3));
     const res = await request(app).get('/community/category/venues');
     expect(res.status).toBe(200);
     expect(res.text).not.toContain('noindex');
   });
 
   it('drops back to noindex if the category empties out again', async () => {
-    mockDb.seed('community_discussions', [discussion()]);
+    mockDb.seed('community_discussions', discussions(3));
     let res = await request(app).get('/community/category/venues');
     expect(res.text).not.toContain('noindex');
 
@@ -144,8 +150,8 @@ describe('community discussions index empty-state gating', () => {
     expect(res.text).toContain('<meta name="robots" content="noindex,follow" />');
   });
 
-  it('reaches index,follow once at least one discussion exists anywhere', async () => {
-    mockDb.seed('community_discussions', [discussion()]);
+  it('reaches index,follow only once the community passes the useful-content threshold', async () => {
+    mockDb.seed('community_discussions', discussions(5));
     const res = await request(app).get('/community/discussions');
     expect(res.status).toBe(200);
     expect(res.text).not.toContain('noindex');

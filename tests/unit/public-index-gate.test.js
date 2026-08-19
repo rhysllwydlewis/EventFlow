@@ -95,8 +95,12 @@ describe('/public-calendar empty-state gating', () => {
     expect(res.headers['x-robots-tag']).toBe('noindex, follow');
   });
 
-  it('leaves the calendar indexable once a real future public event exists', async () => {
-    mockEvents = [futureEvent];
+  it('leaves the calendar indexable once durable future inventory exists', async () => {
+    mockEvents = [
+      futureEvent,
+      { ...futureEvent, id: 'pce_2', startDate: '2035-01-15T10:00:00.000Z' },
+      { ...futureEvent, id: 'pce_3', startDate: '2035-02-01T10:00:00.000Z' },
+    ];
     const res = await request(buildApp()).get('/public-calendar');
     expect(res.status).toBe(200);
     expect(res.headers['x-robots-tag']).toBeUndefined();
