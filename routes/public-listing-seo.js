@@ -9,6 +9,7 @@ const {
   buildPackageSeoModel,
   buildPublicEventSlug,
   buildPublicPackageSlug,
+  getPackageIndexEligibility,
   isIndexablePublicEvent,
   publicSupplierIds,
   renderSeoHtml,
@@ -77,8 +78,12 @@ function createPublicListingSeoRouter(options = {}) {
 
   function readListings() {
     const now = Date.now();
-    if (listingCache && now < listingCacheExpiresAt) return Promise.resolve(listingCache);
-    if (listingLoadPromise) return listingLoadPromise;
+    if (listingCache && now < listingCacheExpiresAt) {
+      return Promise.resolve(listingCache);
+    }
+    if (listingLoadPromise) {
+      return listingLoadPromise;
+    }
     listingLoadPromise = loadListings()
       .then(listings => {
         listingCache = listings;
@@ -98,7 +103,9 @@ function createPublicListingSeoRouter(options = {}) {
 
   router.get(['/package', '/package.html'], async (req, res, next) => {
     const lookup = String(req.query.slug || req.query.id || req.query.packageId || '').trim();
-    if (!lookup) return next();
+    if (!lookup) {
+      return next();
+    }
     if (req.query.preview === 'true') {
       noindex(res);
       return next();
@@ -143,11 +150,22 @@ function createPublicListingSeoRouter(options = {}) {
         return res.redirect(301, `/package/${canonicalSlug}${canonicalSearch}`);
       }
 
+      // Being viewable does not by itself mean this package is complete
+      // enough to index (SEO-002) — see the equivalent comment in
+      // public-supplier-seo.js. The page still renders normally either way;
+      // only the robots directive and cache lifetime change.
+      const indexable = getPackageIndexEligibility(pkg, supplier).eligible;
       const template = await readTemplate('package');
       const seo = buildPackageSeoModel(pkg, supplier, { baseUrl });
-      const html = renderSeoHtml(template, 'package', pkg.id, seo, true);
-      res.setHeader('Cache-Control', INDEXABLE_CACHE_CONTROL);
-      res.setHeader('X-Robots-Tag', 'index, follow, max-image-preview:large');
+      const html = renderSeoHtml(template, 'package', pkg.id, seo, indexable);
+      res.setHeader(
+        'Cache-Control',
+        indexable ? INDEXABLE_CACHE_CONTROL : NON_INDEXABLE_CACHE_CONTROL
+      );
+      res.setHeader(
+        'X-Robots-Tag',
+        indexable ? 'index, follow, max-image-preview:large' : 'noindex, follow'
+      );
       return res.status(200).type('html').send(html);
     } catch (error) {
       logger.error('Failed to render public package SEO page', {

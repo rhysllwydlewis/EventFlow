@@ -1,5 +1,7 @@
 'use strict';
 
+const seoEligibility = require('./seoEligibility.service');
+
 const DEFAULT_BASE_URL = 'https://event-flow.co.uk';
 const SEO_BLOCK_MARKERS = {
   package: 'eventflow-package-seo',
@@ -51,12 +53,19 @@ function serializeJsonLd(value) {
   const json = JSON.stringify(value);
   let output = '';
   for (const character of json) {
-    if (character === '<') output += '\\u003c';
-    else if (character === '>') output += '\\u003e';
-    else if (character === '&') output += '\\u0026';
-    else if (character === '\u2028') output += '\\u2028';
-    else if (character === '\u2029') output += '\\u2029';
-    else output += character;
+    if (character === '<') {
+      output += '\\u003c';
+    } else if (character === '>') {
+      output += '\\u003e';
+    } else if (character === '&') {
+      output += '\\u0026';
+    } else if (character === '\u2028') {
+      output += '\\u2028';
+    } else if (character === '\u2029') {
+      output += '\\u2029';
+    } else {
+      output += character;
+    }
   }
   return output;
 }
@@ -108,7 +117,9 @@ function safeBaseUrl(value) {
 
 function safeHttpUrl(value, baseUrl = DEFAULT_BASE_URL) {
   const raw = String(value || '').trim();
-  if (!raw) return '';
+  if (!raw) {
+    return '';
+  }
   try {
     const parsed = new URL(raw, safeBaseUrl(baseUrl));
     return ['http:', 'https:'].includes(parsed.protocol) ? parsed.href : '';
@@ -126,7 +137,9 @@ function safeImageUrl(value, baseUrl = DEFAULT_BASE_URL) {
 
 function truncate(value, maxLength) {
   const clean = stripMarkup(value);
-  if (clean.length <= maxLength) return clean;
+  if (clean.length <= maxLength) {
+    return clean;
+  }
   return `${clean.slice(0, Math.max(0, maxLength - 1)).trimEnd()}…`;
 }
 
@@ -157,7 +170,9 @@ function buildCampaignQuery(input = {}) {
     const values = Array.isArray(input[key]) ? input[key] : [input[key]];
     for (const rawValue of values) {
       const value = cleanCampaignValue(rawValue);
-      if (value) output.append(key, value);
+      if (value) {
+        output.append(key, value);
+      }
     }
   }
   return output.toString();
@@ -169,7 +184,9 @@ function packageTitle(pkg) {
 
 function buildPublicPackageSlug(pkg) {
   const storedSlug = slugify(pkg?.slug);
-  if (storedSlug) return storedSlug;
+  if (storedSlug) {
+    return storedSlug;
+  }
   return slugify(pkg?.id || pkg?.packageId || '');
 }
 
@@ -185,18 +202,57 @@ function packageLookupValues(pkg) {
     .map(String);
 }
 
+/**
+ * Whether a package's page should render publicly at all (200 rather than a
+ * hard 404).
+ *
+ * Delegates to services/seoEligibility.service.js's canBeViewedPublicly — the
+ * shared policy that also backs the directory search and the sitemap — via a
+ * synthetic "does this package's supplier count as public" check built from
+ * `publicSupplierIds` (already the eligible-supplier-id set the caller
+ * computed with publicSupplierIds() below, so this does not re-derive
+ * eligibility a second, possibly divergent, way).
+ * @param {Object} pkg Package record.
+ * @param {Set<string>} publicSupplierIds IDs of suppliers that are themselves public.
+ * @returns {boolean} True when the package should be served.
+ */
 function isPublicPackage(pkg, publicSupplierIds) {
-  return Boolean(
-    pkg &&
-    pkg.approved === true &&
-    pkg.paused !== true &&
-    !pkg.deleted &&
-    !pkg.deletedAt &&
-    pkg.id &&
-    packageTitle(pkg) &&
-    publicSupplierIds instanceof Set &&
-    publicSupplierIds.has(pkg.supplierId)
-  );
+  if (!pkg) {
+    return false;
+  }
+  const supplierIsPublic =
+    publicSupplierIds instanceof Set && publicSupplierIds.has(pkg.supplierId);
+  // The package's own supplier record is not available here — only the set
+  // of ids that already passed supplier eligibility — so a placeholder
+  // marked either public or not is enough for seoEligibility's own supplier
+  // sub-check to agree or disagree with it.
+  const context = {
+    type: 'package',
+    supplier: supplierIsPublic ? { id: pkg.supplierId, approved: true, name: 'supplier' } : null,
+  };
+  return seoEligibility.canBeViewedPublicly(pkg, context).eligible;
+}
+
+/**
+ * The stricter, separate decision of whether a viewable package's page
+ * should be indexed, given its actual supplier record (needed for the
+ * supplier-viewability sub-check that canBeIndexed builds on).
+ * @param {Object} pkg Package record.
+ * @param {Object} supplier The package's supplier record.
+ * @param {Set<string>} [validOwnerIds] IDs of users that still exist. When
+ *   omitted, the supplier's own ownerUserId (if any) is trusted — callers
+ *   that already resolved `supplier` via publicSupplierIds()/isPublicSupplier
+ *   have implicitly validated it already.
+ * @returns {{eligible: boolean, reasons: string[]}} Decision with reason codes.
+ */
+function getPackageIndexEligibility(pkg, supplier, validOwnerIds) {
+  const owners =
+    validOwnerIds instanceof Set
+      ? validOwnerIds
+      : supplier && supplier.ownerUserId
+        ? new Set([String(supplier.ownerUserId)])
+        : undefined;
+  return seoEligibility.canBeIndexed(pkg, { type: 'package', supplier, validOwnerIds: owners });
 }
 
 function resolvePublicPackage(packages, value, publicSupplierIds) {
@@ -204,7 +260,9 @@ function resolvePublicPackage(packages, value, publicSupplierIds) {
   const normalized = slugify(raw);
   return (
     (packages || []).find(pkg => {
-      if (!isPublicPackage(pkg, publicSupplierIds)) return false;
+      if (!isPublicPackage(pkg, publicSupplierIds)) {
+        return false;
+      }
       return packageLookupValues(pkg).some(
         candidate => candidate === raw || slugify(candidate) === normalized
       );
@@ -239,16 +297,22 @@ function eventEndDate(event) {
 }
 
 function isIndexablePublicEvent(event, now = new Date()) {
-  if (!isPublicEventVisible(event)) return false;
+  if (!isPublicEventVisible(event)) {
+    return false;
+  }
   const end = eventEndDate(event);
   return Boolean(end && end.getTime() >= now.getTime() - PAST_EVENT_GRACE_MS);
 }
 
 function buildPublicEventSlug(event) {
   const storedSlug = String(event?.slug || '').trim();
-  if (/^[a-zA-Z0-9_-]+$/.test(storedSlug)) return storedSlug;
+  if (/^[a-zA-Z0-9_-]+$/.test(storedSlug)) {
+    return storedSlug;
+  }
   const id = String(event?.id || '').trim();
-  if (!id) return '';
+  if (!id) {
+    return '';
+  }
   return `${eventTitleSlug(event?.title)}-${id.replace(/^pce_/, '').slice(-8)}`;
 }
 
@@ -256,7 +320,9 @@ function resolvePublicEvent(events, value) {
   const raw = safeDecodeURIComponent(value).trim();
   return (
     (events || []).find(event => {
-      if (!isPublicEventVisible(event)) return false;
+      if (!isPublicEventVisible(event)) {
+        return false;
+      }
       return [event.id, event.slug, buildPublicEventSlug(event)]
         .filter(Boolean)
         .some(candidate => String(candidate) === raw);
@@ -268,14 +334,12 @@ function supplierDisplayName(supplier) {
   return stripMarkup(supplier?.name || supplier?.businessName || supplier?.company || '');
 }
 
+// This used to be its own copy of the same approved/named/owned check that
+// lives in publicSupplierSeo.service.js — the exact kind of drift SEO-002
+// flagged (a supplier could be public by one module's rule and not the
+// other's). Both now delegate to the one shared policy.
 function isPublicSupplier(supplier, validOwnerIds) {
-  if (!supplier || supplier.approved !== true || !supplier.id || !supplierDisplayName(supplier)) {
-    return false;
-  }
-  return (
-    !supplier.ownerUserId ||
-    (validOwnerIds instanceof Set && validOwnerIds.has(supplier.ownerUserId))
-  );
+  return seoEligibility.canBeViewedPublicly(supplier, { validOwnerIds }).eligible;
 }
 
 function publicSupplierIds(suppliers, users) {
@@ -302,7 +366,9 @@ function packageImage(pkg, baseUrl) {
 }
 
 function numericPrice(value) {
-  if (typeof value === 'number' && Number.isFinite(value)) return value;
+  if (typeof value === 'number' && Number.isFinite(value)) {
+    return value;
+  }
   const match = String(value || '')
     .replace(/,/g, '')
     .match(/\d+(?:\.\d{1,2})?/);
@@ -341,8 +407,12 @@ function buildPackageSeoModel(pkg, supplier, options = {}) {
     image,
     provider: { '@type': 'ProfessionalService', name: supplierName },
   };
-  if (category) structuredData.serviceType = category;
-  if (location) structuredData.areaServed = { '@type': 'Place', name: location };
+  if (category) {
+    structuredData.serviceType = category;
+  }
+  if (location) {
+    structuredData.areaServed = { '@type': 'Place', name: location };
+  }
   if (price !== null) {
     structuredData.offers = {
       '@type': 'Offer',
@@ -400,8 +470,12 @@ function buildEventSeoModel(event, options = {}) {
       : 'https://schema.org/OfflineEventAttendanceMode',
     organizer: { '@type': 'Organization', name: organizerName },
   };
-  if (endDate) structuredData.endDate = endDate;
-  if (event?.featuredImageUrl || event?.imageUrl) structuredData.image = [image];
+  if (endDate) {
+    structuredData.endDate = endDate;
+  }
+  if (event?.featuredImageUrl || event?.imageUrl) {
+    structuredData.image = [image];
+  }
   if (event?.isOnline) {
     structuredData.location = {
       '@type': 'VirtualLocation',
@@ -439,34 +513,54 @@ function buildEventSeoModel(event, options = {}) {
 function parseTagAttributes(openingTag) {
   const attributes = new Map();
   let index = openingTag.indexOf(' ');
-  if (index < 0) return attributes;
+  if (index < 0) {
+    return attributes;
+  }
   while (index < openingTag.length) {
-    while (/\s/.test(openingTag[index] || '')) index += 1;
-    if (openingTag[index] === '>' || openingTag[index] === '/') break;
+    while (/\s/.test(openingTag[index] || '')) {
+      index += 1;
+    }
+    if (openingTag[index] === '>' || openingTag[index] === '/') {
+      break;
+    }
     const nameStart = index;
-    while (/[^\s=/>]/.test(openingTag[index] || '')) index += 1;
+    while (/[^\s=/>]/.test(openingTag[index] || '')) {
+      index += 1;
+    }
     const name = openingTag.slice(nameStart, index).toLowerCase();
-    while (/\s/.test(openingTag[index] || '')) index += 1;
+    while (/\s/.test(openingTag[index] || '')) {
+      index += 1;
+    }
     if (openingTag[index] !== '=') {
-      if (name) attributes.set(name, '');
+      if (name) {
+        attributes.set(name, '');
+      }
       continue;
     }
     index += 1;
-    while (/\s/.test(openingTag[index] || '')) index += 1;
+    while (/\s/.test(openingTag[index] || '')) {
+      index += 1;
+    }
     const quote = openingTag[index];
     let value = '';
     if (quote === '"' || quote === "'") {
       index += 1;
       const valueStart = index;
-      while (index < openingTag.length && openingTag[index] !== quote) index += 1;
+      while (index < openingTag.length && openingTag[index] !== quote) {
+        index += 1;
+      }
       value = openingTag.slice(valueStart, index);
       index += 1;
     } else {
       const valueStart = index;
-      while (/[^\s>]/.test(openingTag[index] || '')) index += 1;
+      while (/[^\s>]/.test(openingTag[index] || '')) {
+        index += 1;
+      }
       value = openingTag.slice(valueStart, index);
     }
-    if (name) attributes.set(name, value);
+    if (name) {
+      attributes.set(name, value);
+    }
   }
   return attributes;
 }
@@ -504,7 +598,9 @@ function removeElements(html, tagName, shouldRemove, paired = false) {
     let removeEnd = openEnd + 1;
     if (paired) {
       const closeStart = lower.indexOf(closeToken, removeEnd);
-      if (closeStart >= 0) removeEnd = closeStart + closeToken.length;
+      if (closeStart >= 0) {
+        removeEnd = closeStart + closeToken.length;
+      }
     }
     output += source.slice(cursor, start);
     cursor = removeEnd;
@@ -517,7 +613,9 @@ function removeMarkedBlock(html, marker) {
   const endToken = `<!-- ${marker}:end -->`;
   const source = String(html || '');
   const start = source.indexOf(startToken);
-  if (start < 0) return source;
+  if (start < 0) {
+    return source;
+  }
   const end = source.indexOf(endToken, start + startToken.length);
   return end < 0 ? source : source.slice(0, start) + source.slice(end + endToken.length);
 }
@@ -592,12 +690,13 @@ function buildHeadBlock(kind, id, seo, indexable = true) {
 function renderSeoHtml(templateHtml, kind, id, seo, indexable = true) {
   const cleanTemplate = removeSeoTags(templateHtml, SEO_BLOCK_MARKERS[kind]);
   const closingHead = cleanTemplate.toLowerCase().indexOf('</head>');
-  if (closingHead < 0) throw new Error(`${kind} template is missing a closing head tag`);
-  return (
-    cleanTemplate.slice(0, closingHead) +
-    `${buildHeadBlock(kind, id, seo, indexable)}\n` +
-    cleanTemplate.slice(closingHead)
-  );
+  if (closingHead < 0) {
+    throw new Error(`${kind} template is missing a closing head tag`);
+  }
+  return `${cleanTemplate.slice(
+    0,
+    closingHead
+  )}${buildHeadBlock(kind, id, seo, indexable)}\n${cleanTemplate.slice(closingHead)}`;
 }
 
 module.exports = {
@@ -609,6 +708,7 @@ module.exports = {
   buildHeadBlock,
   eventEndDate,
   eventTitleSlug,
+  getPackageIndexEligibility,
   isIndexablePublicEvent,
   isPublicEventVisible,
   isPublicPackage,

@@ -21,7 +21,7 @@ const bristol = registry.getCity('bristol');
 function supplier(overrides = {}) {
   return {
     id: 'sup-1',
-    name: 'Test Supplier',
+    name: 'Ordinary Supplier Co',
     category: 'Venues',
     approved: true,
     ownerUserId: 'user-1',

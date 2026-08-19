@@ -17,7 +17,7 @@
 
 const registry = require('./locationRegistry.service');
 const geocoding = require('../utils/geocoding');
-const { isPublicSupplier, supplierDisplayName } = require('./publicSupplierSeo.service');
+const lifecycle = require('./seoRecordLifecycle.util');
 const {
   AUDIT_STATUSES,
   CONFIDENCE,
@@ -27,6 +27,19 @@ const {
   RELATIONSHIP_WEIGHTS,
   SERVICE_AREA_TYPES,
 } = require('../models/LocationContent');
+
+/**
+ * A supplier's display name, tolerating the legacy businessName/company
+ * fields. Mirrors publicSupplierSeo.service.js's supplierDisplayName; kept
+ * as a local copy (rather than importing that module) to avoid a require()
+ * cycle — see services/seoRecordLifecycle.util.js's module comment.
+ * @param {Object} supplier Supplier record.
+ * @returns {string} Display name, or an empty string.
+ */
+function supplierDisplayName(supplier) {
+  const source = supplier && typeof supplier === 'object' ? supplier : {};
+  return lifecycle.cleanText(source.name || source.businessName || source.company || '');
+}
 
 /** Radius a supplier is assumed to travel when it has given no explicit value. */
 const DEFAULT_TRAVEL_RADIUS_MILES = 0;
@@ -500,16 +513,19 @@ function sanitiseServiceAreas(value) {
  * @returns {boolean} True when the supplier is eligible.
  */
 function isEligibleForLocationPages(supplier, validOwnerIds) {
-  if (!isPublicSupplier(supplier, validOwnerIds)) {
+  if (!supplier || !supplier.id || !supplierDisplayName(supplier)) {
     return false;
   }
-  if (supplier.status === 'suspended' || supplier.suspended === true) {
+  if (supplier.approved !== true) {
     return false;
   }
-  if (supplier.isTest === true || supplier.testAccount === true) {
+  if (!lifecycle.isOwnerValid(supplier, validOwnerIds)) {
     return false;
   }
-  if (supplier.deletedAt || supplier.archivedAt) {
+  if (lifecycle.isKnownTestFixture(supplier) || supplier.testAccount === true) {
+    return false;
+  }
+  if (lifecycle.lifecycleBlockReason(supplier)) {
     return false;
   }
   return true;

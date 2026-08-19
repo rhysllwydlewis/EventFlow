@@ -30,12 +30,14 @@ beforeEach(() => {
     {
       stableId: 'aaaabbbbcccc',
       slug: 'marquee-hire',
+      categorySlug: 'venues',
       state: 'published',
       lastActivityAt: '2026-07-20T00:00:00.000Z',
     },
     {
       stableId: 'ddddeeeeffff',
       slug: 'older-thread',
+      categorySlug: 'venues',
       state: 'archived',
       createdAt: '2024-01-01T00:00:00.000Z',
     },

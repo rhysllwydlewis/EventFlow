@@ -21,6 +21,9 @@ const supplier = {
   ownerUserId: 'user-1',
   approved: true,
   name: 'Cwm Valley Events',
+  category: 'Photography',
+  location: 'Cardiff',
+  description_short: 'Natural wedding and event photography across South Wales.',
 };
 const pkg = {
   id: 'pkg-1',
@@ -28,6 +31,7 @@ const pkg = {
   approved: true,
   title: 'Full Day Photography',
   slug: 'full-day-photography-pkg001',
+  description: 'A full day of documentary-style wedding photography across South Wales.',
   updatedAt: '2026-07-18T10:00:00.000Z',
 };
 const futureEvent = {

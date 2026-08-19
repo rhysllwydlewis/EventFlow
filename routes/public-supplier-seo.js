@@ -7,13 +7,15 @@ const {
   buildCampaignQuery,
   buildPublicSupplierSlug,
   extractSlugToken,
+  getSupplierIndexEligibility,
   isPublicSupplier,
   renderSupplierHtml,
   resolvePublicSupplierBySlug,
 } = require('../services/publicSupplierSeo.service');
 
 const TEMPLATE_PATH = path.join(__dirname, '..', 'public', 'supplier.html');
-const CACHE_CONTROL = 'public, max-age=60, s-maxage=300, stale-while-revalidate=60';
+const INDEXABLE_CACHE_CONTROL = 'public, max-age=60, s-maxage=300, stale-while-revalidate=60';
+const NON_INDEXABLE_CACHE_CONTROL = 'public, max-age=30, s-maxage=60, stale-while-revalidate=30';
 const DEFAULT_SUPPLIER_CACHE_TTL_MS = 60 * 1000;
 
 function createPublicSupplierSeoRouter(options = {}) {
@@ -129,10 +131,29 @@ function createPublicSupplierSeoRouter(options = {}) {
         return res.redirect(301, `/supplier/${canonicalSlug}${canonicalSearch}`);
       }
 
+      // Being viewable does not by itself mean this profile is complete
+      // enough to index (SEO-002) — a supplier record can pass isPublicSupplier
+      // while still failing the stricter canBeIndexed checks (missing
+      // category/location, a known test fixture, below the quality bar). That
+      // page still renders normally; only the robots directive changes. The
+      // owner reference was already validated when `supplier` was loaded
+      // (readPublicSuppliers only returns records that passed
+      // isPublicSupplier), so re-checking it here only needs to confirm this
+      // one supplier's own ownerUserId, not the full users collection again.
+      const ownerIdsForIndexCheck = supplier.ownerUserId
+        ? new Set([String(supplier.ownerUserId)])
+        : undefined;
+      const indexable = getSupplierIndexEligibility(supplier, ownerIdsForIndexCheck).eligible;
       const template = await readTemplate();
-      const html = renderSupplierHtml(template, supplier, { baseUrl });
-      res.setHeader('Cache-Control', CACHE_CONTROL);
-      res.setHeader('X-Robots-Tag', 'index, follow, max-image-preview:large');
+      const html = renderSupplierHtml(template, supplier, { baseUrl }, indexable);
+      res.setHeader(
+        'Cache-Control',
+        indexable ? INDEXABLE_CACHE_CONTROL : NON_INDEXABLE_CACHE_CONTROL
+      );
+      res.setHeader(
+        'X-Robots-Tag',
+        indexable ? 'index, follow, max-image-preview:large' : 'noindex, follow'
+      );
       return res.status(200).type('html').send(html);
     } catch (error) {
       logger.error('Failed to render public supplier SEO profile', {
