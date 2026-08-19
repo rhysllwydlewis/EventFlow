@@ -24,6 +24,18 @@ const {
   buildHomepageV2Preview,
   addPreviewRobotsMeta,
 } = require('../utils/template-renderer');
+const { resolveCategoryName } = require('../services/categoryLookup.service');
+
+// This server has no database, so the legacy /category redirect below uses
+// this fixed list instead of the real `categories` collection — it's the
+// same set of categories the homepage hero collage always links to (see
+// data-category on public/index.html's .hero-collage-card elements).
+const STATIC_CATEGORIES = [
+  { slug: 'venues', name: 'Venues' },
+  { slug: 'catering', name: 'Catering' },
+  { slug: 'entertainment', name: 'Entertainment' },
+  { slug: 'photography', name: 'Photography' },
+];
 
 async function sendRenderedHtml(req, res, fileName) {
   const requestPath = `/${fileName}`;
@@ -654,15 +666,32 @@ app.get('/supplier.html', (req, res) => {
   res.redirect(301, `/suppliers${qs}`);
 });
 
-app.get('/category', (req, res) => {
-  const qs = req.url.includes('?') ? req.url.slice(req.url.indexOf('?')) : '';
-  res.redirect(301, `/suppliers${qs}`);
-});
+// Mirrors routes/static.js's legacy /category?slug= handler (SEO-004): the
+// /suppliers directory page has only ever read a `category` query param
+// (the canonical display name), never `slug`, so forwarding the query
+// string unchanged silently drops the filter. Resolve it here too, against
+// STATIC_CATEGORIES since this server has no database.
+function redirectLegacyCategoryLink(req, res) {
+  const rawValue = String(req.query.slug || req.query.category || '').trim();
+  const canonicalCategory = rawValue ? resolveCategoryName(STATIC_CATEGORIES, rawValue) : '';
 
-app.get('/category.html', (req, res) => {
-  const qs = req.url.includes('?') ? req.url.slice(req.url.indexOf('?')) : '';
-  res.redirect(301, `/suppliers${qs}`);
-});
+  const params = new URLSearchParams();
+  for (const [key, value] of Object.entries(req.query || {})) {
+    if (key === 'slug' || key === 'category' || typeof value !== 'string') {
+      continue;
+    }
+    params.set(key, value);
+  }
+  if (canonicalCategory) {
+    params.set('category', canonicalCategory);
+  }
+
+  const qs = params.toString();
+  res.redirect(301, `/suppliers${qs ? `?${qs}` : ''}`);
+}
+
+app.get('/category', redirectLegacyCategoryLink);
+app.get('/category.html', redirectLegacyCategoryLink);
 
 app.get('/suppliers', (req, res, next) => {
   sendRenderedHtml(req, res, 'suppliers.html').catch(next);

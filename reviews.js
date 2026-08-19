@@ -18,6 +18,7 @@
 const crypto = require('crypto');
 const dbUnified = require('./db-unified');
 const { uid } = require('./store');
+const { addPublicProfilePath } = require('./utils/publicSupplierProfilePath');
 
 // Anti-spam configuration
 const RATE_LIMIT_WINDOW = 60 * 60 * 1000; // 1 hour in milliseconds
@@ -334,10 +335,17 @@ async function getSupplierReviews(supplierId, options = {}) {
   const suppliers = await dbUnified.read('suppliers');
   const enriched = paginatedReviews.map(review => {
     const authorSupplier = suppliers.find(s => s.ownerUserId === review.userId);
+    // publicProfilePath lets the reviewer-name link point straight at the
+    // reviewer's clean canonical profile URL instead of the legacy
+    // /supplier?id= query form (see utils/publicSupplierProfilePath.js).
+    const authorSupplierProfilePath = authorSupplier
+      ? addPublicProfilePath(authorSupplier).publicProfilePath || null
+      : null;
     return {
       ...review,
       isSupplier: !!authorSupplier,
       authorSupplierId: authorSupplier ? authorSupplier.id : null,
+      authorSupplierProfilePath,
     };
   });
 
