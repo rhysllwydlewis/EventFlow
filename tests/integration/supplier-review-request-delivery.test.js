@@ -352,36 +352,39 @@ describe('supplier review-request delivery', () => {
     ['failed', 'unavailable'],
     ['expired', 'expired'],
     ['cancelled', 'unavailable'],
-  ])('redirects a request in %s state to its canonical supplier outcome', async (status, outcome) => {
-    const db = createMemoryDb({
-      reviewRequests: [
-        {
-          id: 'request-outcome',
-          supplierId: 'supplier-1',
-          supplierName: 'Moor Audio',
-          customerEmail: 'customer@example.com',
-          tokenHash: hashToken(rawToken),
-          status,
-          createdAt: fixedNow.toISOString(),
-          expiresAt: '2026-07-20T09:00:00.000Z',
-        },
-      ],
-    });
-    const app = buildApp({ db, sendMail: jest.fn(), user: null, now: () => fixedNow });
+  ])(
+    'redirects a request in %s state to its canonical supplier outcome',
+    async (status, outcome) => {
+      const db = createMemoryDb({
+        reviewRequests: [
+          {
+            id: 'request-outcome',
+            supplierId: 'supplier-1',
+            supplierName: 'Moor Audio',
+            customerEmail: 'customer@example.com',
+            tokenHash: hashToken(rawToken),
+            status,
+            createdAt: fixedNow.toISOString(),
+            expiresAt: '2026-07-20T09:00:00.000Z',
+          },
+        ],
+      });
+      const app = buildApp({ db, sendMail: jest.fn(), user: null, now: () => fixedNow });
 
-    const response = await request(app).get(`/review-request?token=${rawToken}`);
-    const publicProfilePath = addPublicProfilePath({
-      id: 'supplier-1',
-      name: 'Moor Audio',
-    }).publicProfilePath;
+      const response = await request(app).get(`/review-request?token=${rawToken}`);
+      const publicProfilePath = addPublicProfilePath({
+        id: 'supplier-1',
+        name: 'Moor Audio',
+      }).publicProfilePath;
 
-    expect(response.status).toBe(302);
-    expect(response.headers.location).toBe(
-      `${publicProfilePath}?reviewRequest=${outcome}#sp-section-reviews`
-    );
-    expect(response.headers['cache-control']).toBe('no-store, private');
-    expect(response.headers['set-cookie']).toBeUndefined();
-  });
+      expect(response.status).toBe(302);
+      expect(response.headers.location).toBe(
+        `${publicProfilePath}?reviewRequest=${outcome}#sp-section-reviews`
+      );
+      expect(response.headers['cache-control']).toBe('no-store, private');
+      expect(response.headers['set-cookie']).toBeUndefined();
+    }
+  );
 
   test('binds completion to the invited email and records the created review', async () => {
     const db = createMemoryDb({
