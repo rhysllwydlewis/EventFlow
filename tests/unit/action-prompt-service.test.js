@@ -480,6 +480,39 @@ describe('evaluateCadence', () => {
     expect(typeof result.shouldSend).toBe('boolean');
     expect(result.nextState).toBeDefined();
   });
+
+  describe('force option (admin "Send Now")', () => {
+    it('sends immediately on first detection when force=true, counted as the first daily send', () => {
+      const { shouldSend, nextState } = evaluateCadence(undefined, now, { force: true });
+      expect(shouldSend).toBe(true);
+      expect(nextState.cadence).toBe('daily');
+      expect(nextState.sendCountDaily).toBe(1);
+      expect(nextState.lastSentAt).toBe(now.toISOString());
+      const expectedNext = new Date(now.getTime() + DAILY_INTERVAL_MS).toISOString();
+      expect(nextState.nextSendAt).toBe(expectedNext);
+    });
+
+    it('sends immediately when force=true even though nextSendAt is far in the future', () => {
+      const state = {
+        cadence: 'daily',
+        sendCountDaily: 2,
+        sendCountWeekly: 0,
+        sendCountMonthly: 0,
+        lastSentAt: now.toISOString(),
+        nextSendAt: new Date(now.getTime() + DAILY_INTERVAL_MS).toISOString(),
+        firstOutstandingAt: now.toISOString(),
+      };
+      const { shouldSend, nextState } = evaluateCadence(state, now, { force: true });
+      expect(shouldSend).toBe(true);
+      // Cadence progression still advances normally from the forced send.
+      expect(nextState.sendCountDaily).toBe(3);
+    });
+
+    it('without force, still defers on first detection and respects nextSendAt (unchanged default behaviour)', () => {
+      const { shouldSend } = evaluateCadence(undefined, now);
+      expect(shouldSend).toBe(false);
+    });
+  });
 });
 
 // ── getSupplierActionItems ───────────────────────────────────────────────────

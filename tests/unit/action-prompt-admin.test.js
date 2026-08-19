@@ -184,6 +184,33 @@ describe('Action Prompt Admin — admin.js endpoint declarations', () => {
     );
     expect(getSection).toContain('runHistory');
   });
+
+  it('GET email-automation returns lastForceRunAt', () => {
+    const getSection = src.slice(
+      src.indexOf("router.get('/settings/email-automation'"),
+      src.indexOf("router.put('/settings/email-automation'")
+    );
+    expect(getSection).toContain('lastForceRunAt');
+  });
+
+  it('POST run endpoint accepts and forwards a force flag', () => {
+    const runSection = src.slice(
+      src.indexOf("router.post(\n  '/email-automation/action-prompts/run'"),
+      src.indexOf("router.post(\n  '/email-automation/action-prompts/preview'")
+    );
+    expect(runSection).toContain('force = false');
+    expect(runSection).toContain('force,');
+  });
+
+  it('POST run endpoint rejects a forced run within the cooldown window with 429', () => {
+    const runSection = src.slice(
+      src.indexOf("router.post(\n  '/email-automation/action-prompts/run'"),
+      src.indexOf("router.post(\n  '/email-automation/action-prompts/preview'")
+    );
+    expect(runSection).toContain('FORCE_RUN_COOLDOWN_MS');
+    expect(runSection).toContain('lastForceRunAt');
+    expect(runSection).toContain('status(429)');
+  });
 });
 
 // ── actionPromptScheduler.js — run history persistence ───────────────────
@@ -215,6 +242,16 @@ describe('Action Prompt Admin — scheduler run history persistence', () => {
     // The block that persists is guarded by !dryRun
     const persistBlock = src.slice(src.indexOf('Persist lastRun'), src.indexOf('return summary;'));
     expect(persistBlock).toContain('if (!dryRun)');
+  });
+
+  it('evaluateCadence is called with a force option so it can pass through', () => {
+    expect(src).toContain('evaluateCadence(user.actionPromptState, now, { force })');
+  });
+
+  it('persists lastForceRunAt when a forced run completes', () => {
+    const persistBlock = src.slice(src.indexOf('Persist lastRun'), src.indexOf('return summary;'));
+    expect(persistBlock).toContain('lastForceRunAt');
+    expect(persistBlock).toContain('if (force)');
   });
 });
 

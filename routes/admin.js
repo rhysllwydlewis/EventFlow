@@ -3696,6 +3696,7 @@ router.get('/settings/email-automation', authRequired, roleRequired('admin'), as
       updatedBy: actionPrompts.updatedBy,
       lastRun: actionPrompts.lastRun || null,
       runHistory: actionPrompts.runHistory || [],
+      lastForceRunAt: actionPrompts.lastForceRunAt || null,
     };
     res.json(response);
   } catch (error) {
@@ -3799,12 +3800,20 @@ router.put(
   }
 );
 
+// Minimum gap enforced between forced ("Send Now") runs, regardless of who
+// triggers them — prevents an admin (or a second admin) from repeatedly
+// force-blasting the same suppliers by re-clicking the button.
+const FORCE_RUN_COOLDOWN_MS = 24 * 60 * 60 * 1000;
+
 /**
  * POST /api/admin/email-automation/action-prompts/run
  * Manually trigger an action-prompt email run.
- * Body: { dryRun: boolean, confirm?: boolean, limit?: number }
+ * Body: { dryRun: boolean, confirm?: boolean, limit?: number, force?: boolean }
  * - dryRun=true: returns a summary without sending any emails (safe)
  * - dryRun=false: requires confirm=true to prevent accidental bulk sends
+ * - force=true (non-dry-run only): bypasses each supplier's cadence timing —
+ *   including the 24h delay on a supplier's very first reminder — so "Send Now"
+ *   actually sends now. Rate-limited to once per 24h server-side.
  */
 router.post(
   '/email-automation/action-prompts/run',
@@ -3814,10 +3823,14 @@ router.post(
   writeLimiter,
   async (req, res) => {
     try {
-      const { dryRun = true, confirm = false, limit } = req.body;
+      const { dryRun = true, confirm = false, limit, force = false } = req.body;
 
       if (typeof dryRun !== 'boolean') {
         return res.status(400).json({ error: 'dryRun must be a boolean' });
+      }
+
+      if (typeof force !== 'boolean') {
+        return res.status(400).json({ error: 'force must be a boolean' });
       }
 
       if (!dryRun && !confirm) {
@@ -3830,12 +3843,31 @@ router.post(
         return res.status(400).json({ error: 'limit must be a positive integer' });
       }
 
+      if (force && !dryRun) {
+        const settings = (await dbUnified.read('settings')) || {};
+        const lastForceRunAt = settings.emailAutomation?.actionPrompts?.lastForceRunAt;
+        const lastForceRunMs = lastForceRunAt ? Date.parse(lastForceRunAt) : NaN;
+        if (Number.isFinite(lastForceRunMs)) {
+          const elapsedMs = Date.now() - lastForceRunMs;
+          if (elapsedMs < FORCE_RUN_COOLDOWN_MS) {
+            const retryAfterMs = FORCE_RUN_COOLDOWN_MS - elapsedMs;
+            return res.status(429).json({
+              error: 'Send Now was used recently — please wait before forcing another send.',
+              lastForceRunAt,
+              retryAfterMs,
+              retryAt: new Date(Date.now() + retryAfterMs).toISOString(),
+            });
+          }
+        }
+      }
+
       logger.info(
-        `[Admin] Manual action-prompt run triggered by ${req.user.email} (dryRun=${dryRun}, limit=${limit ?? 'default'})`
+        `[Admin] Manual action-prompt run triggered by ${req.user.email} (dryRun=${dryRun}, force=${force}, limit=${limit ?? 'default'})`
       );
 
       const summary = await runActionPrompts({
         dryRun,
+        force,
         trigger: 'manual',
         ...(limit !== undefined ? { limit } : {}),
       });
@@ -3845,7 +3877,7 @@ router.post(
         action: 'EMAIL_AUTOMATION_RUN',
         targetType: 'action_prompts',
         targetId: null,
-        details: { dryRun, limit, summary },
+        details: { dryRun, force, limit, summary },
       });
 
       res.json({ success: true, summary });

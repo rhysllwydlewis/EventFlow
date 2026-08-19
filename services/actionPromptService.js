@@ -274,12 +274,33 @@ function computeFullReport(supplier, packages, settings, user) {
  *
  * @param {Object|undefined} state - Current actionPromptState from user document
  * @param {Date}             now   - Current timestamp
+ * @param {Object}           [opts]
+ * @param {boolean}          [opts.force=false] - Bypass the "not time yet" / first-detection
+ *   delay (used by the admin "Send Now" action). Cadence progression (daily → weekly → monthly
+ *   stage counts) still advances normally so the *next* automatic send is scheduled correctly.
  * @returns {{ shouldSend: boolean, nextState: Object }}
  */
-function evaluateCadence(state, now) {
+function evaluateCadence(state, now, opts = {}) {
+  const { force = false } = opts;
   const nowMs = now.getTime();
 
   if (!state) {
+    if (force) {
+      // Admin forced an immediate send on first detection — count it as the
+      // first daily-stage send rather than silently deferring 24 h.
+      return {
+        shouldSend: true,
+        nextState: {
+          cadence: 'daily',
+          sendCountDaily: 1,
+          sendCountWeekly: 0,
+          sendCountMonthly: 0,
+          lastSentAt: now.toISOString(),
+          nextSendAt: new Date(nowMs + DAILY_INTERVAL_MS).toISOString(),
+          firstOutstandingAt: now.toISOString(),
+        },
+      };
+    }
     // First outstanding detection — do NOT send immediately.
     // Schedule the first email for 24 h from now (start of daily stage).
     return {
@@ -297,7 +318,7 @@ function evaluateCadence(state, now) {
   }
 
   // Not time yet
-  if (state.nextSendAt && nowMs < new Date(state.nextSendAt).getTime()) {
+  if (!force && state.nextSendAt && nowMs < new Date(state.nextSendAt).getTime()) {
     return { shouldSend: false, nextState: state };
   }
 
