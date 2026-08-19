@@ -488,12 +488,19 @@ import { renderVerificationBadges, renderTierIcon } from '/assets/js/utils/verif
       );
     }
 
-    // Verified (only if no other badge used the slot)
-    if (
-      badges.length < 3 &&
-      (supplier.emailVerified || supplier.verifications?.email?.verified || supplier.verified)
-    ) {
-      badges.push('<span class="badge badge-email-verified" aria-label="Verified">Verified</span>');
+    // Email verified — an explicit, evidence-backed fact only. `supplier.verified`
+    // historically means profile/business approval elsewhere in EventFlow and must
+    // never be used as evidence the email address itself was verified.
+    if (badges.length < 3 && (supplier.emailVerified || supplier.verifications?.email?.verified)) {
+      badges.push(
+        '<span class="badge badge-email-verified" aria-label="Email verified">Email verified</span>'
+      );
+    } else if (badges.length < 3 && (supplier.approved || supplier.profileApproved)) {
+      // No real verification evidence — only fall back to the honest, conservative
+      // "approved listing" claim (moderation/publication approval), never "Verified".
+      badges.push(
+        '<span class="badge badge-approved" aria-label="Approved listing">Approved listing</span>'
+      );
     }
 
     return badges;
@@ -1128,7 +1135,14 @@ import { renderVerificationBadges, renderTierIcon } from '/assets/js/utils/verif
 
     const items = [];
 
-    if (supplier.emailVerified || supplier.verifications?.email?.verified || supplier.verified) {
+    // Listing approval (moderation/publication) is a fact separate from any real
+    // verification and must be labelled as such, never folded into "Verified".
+    if (supplier.approved || supplier.profileApproved) {
+      items.push(
+        `<div class="sp-trust-item"><span class="sp-trust-icon" aria-hidden="true">✓</span><span>Listing approved</span></div>`
+      );
+    }
+    if (supplier.emailVerified || supplier.verifications?.email?.verified) {
       items.push(
         `<div class="sp-trust-item"><span class="sp-trust-icon" aria-hidden="true">✓</span><span>Email verified</span></div>`
       );
@@ -1143,16 +1157,11 @@ import { renderVerificationBadges, renderTierIcon } from '/assets/js/utils/verif
         `<div class="sp-trust-item"><span class="sp-trust-icon" aria-hidden="true">✓</span><span>Business verified</span></div>`
       );
     }
-    if (supplier.insurance) {
-      items.push(
-        `<div class="sp-trust-item"><span class="sp-trust-icon" aria-hidden="true">✓</span><span>Insured</span></div>`
-      );
-    }
-    if (supplier.license) {
-      items.push(
-        `<div class="sp-trust-item"><span class="sp-trust-icon" aria-hidden="true">✓</span><span>Licensed</span></div>`
-      );
-    }
+    // Deliberately does NOT promote supplier-entered `insurance` / `license` text
+    // fields into an EventFlow trust claim — those are self-declared, never
+    // confirmed by EventFlow. Only admin-confirmed `trustVerifications` (rendered
+    // by supplier-profile-public-polish.js from the safe public API contract) may
+    // claim insurance, DBS or licence facts.
 
     if (items.length === 0) {
       container.style.display = 'none';
@@ -1312,9 +1321,16 @@ import { renderVerificationBadges, renderTierIcon } from '/assets/js/utils/verif
 
     // Verification
     const verifyBadges = [];
-    if (supplier.emailVerified || supplier.verifications?.email?.verified || supplier.verified) {
+    // Real, evidence-backed email verification only — `supplier.verified` is a
+    // legacy alias for listing approval elsewhere and must not be read as proof
+    // the email address was verified.
+    if (supplier.emailVerified || supplier.verifications?.email?.verified) {
       verifyBadges.push(
         '<span class="badge badge-email-verified" aria-label="Email verified">Email</span>'
+      );
+    } else if (supplier.approved || supplier.profileApproved) {
+      verifyBadges.push(
+        '<span class="badge badge-approved" aria-label="Approved listing">Approved listing</span>'
       );
     }
     if (supplier.phoneVerified || supplier.verifications?.phone?.verified) {

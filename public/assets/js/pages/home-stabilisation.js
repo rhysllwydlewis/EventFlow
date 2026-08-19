@@ -54,7 +54,10 @@
     }
 
     const config = [
-      { key: 'suppliersVerified', label: 'Verified Suppliers' },
+      // This counts suppliers whose listing has been approved for publication —
+      // EventFlow does not perform identity, insurance or capability verification
+      // (see /terms), so the public label must say "Approved", never "Verified".
+      { key: 'suppliersVerified', label: 'Approved Suppliers' },
       { key: 'packagesApproved', label: 'Packages Available' },
       { key: 'marketplaceListingsActive', label: 'Marketplace Items' },
       { key: 'reviewsApproved', label: 'Customer Reviews' },
@@ -277,7 +280,9 @@
       /Join over 500\+ verified suppliers/i.test(p.textContent || '')
     );
     if (claim) {
-      claim.textContent = 'Join EventFlow as we grow our verified supplier network';
+      // Must not swap one unsupported claim for another — EventFlow does not
+      // verify supplier identity, insurance or capability (see /terms).
+      claim.textContent = 'Join EventFlow as we grow our approved supplier network';
     }
   }
 
