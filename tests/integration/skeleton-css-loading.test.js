@@ -63,9 +63,14 @@ describe('suppliers-init.js trust badge logic', () => {
     expect(suppliersInitContent).toContain('supplier.foundingYear');
   });
 
-  it('renders verified badge for both verified and approved suppliers', () => {
-    expect(suppliersInitContent).toContain('supplier.verified || supplier.approved');
-    expect(suppliersInitContent).toContain('badge-verified');
+  it('renders an "Approved listing" badge for approved suppliers, never "Verified"', () => {
+    // EventFlow does not verify supplier identity, insurance or capability
+    // (see /terms) — `approved` only means the listing passed moderation, so
+    // the badge must say "Approved listing", not "Verified".
+    expect(suppliersInitContent).toContain('if (supplier.approved) {');
+    expect(suppliersInitContent).toContain('badge-approved');
+    expect(suppliersInitContent).toContain('Approved listing');
+    expect(suppliersInitContent).not.toMatch(/badges\.push\(\s*[`'"]<span[^>]*>Verified<\/span>/);
   });
 
   it('renders email verification badge', () => {
@@ -154,14 +159,17 @@ describe('reviews.js badge base class — regression guard', () => {
     expect(reviewsJsContent).not.toContain('"badge-email-verified"');
   });
 
-  it('renders Verified Supplier badge with both badge and badge-supplier classes', () => {
+  it('renders Supplier reviewer badge with both badge and badge-supplier classes', () => {
     expect(reviewsJsContent).toContain('"badge badge-supplier"');
     // Regression guard: modifier class must not appear without the base class
     expect(reviewsJsContent).not.toContain('"badge-supplier"');
   });
 
-  it('renders Verified Supplier badge with the correct label text', () => {
-    expect(reviewsJsContent).toContain('Verified Supplier');
+  it('renders the supplier reviewer badge with an accurate, unverified label', () => {
+    // Holding a supplier account is not evidence of any verification EventFlow
+    // performed — the badge must say "Supplier", never "Verified Supplier".
+    expect(reviewsJsContent).toContain('"badge badge-supplier">Supplier</span>');
+    expect(reviewsJsContent).not.toContain('Verified Supplier');
   });
 });
 
