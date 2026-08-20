@@ -360,15 +360,19 @@ body.auth-page .auth-split-right {
   animation: authPanelFadeUp 0.7s 0.15s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
+/* eventflow-mark.svg has a transparent background (unlike favicon.svg, which
+   bakes in an opaque white tile for app-icon use) — box-shadow would draw a
+   rectangle around its transparent margins, so use drop-shadow instead, which
+   follows the mark's own silhouette. The mark's native teal gradient is close
+   in tone to this panel's dark teal background, so flatten it to solid white
+   (same brightness(0) invert(1) trick already used for the footer wordmark on
+   its dark background) to keep it legible, then layer the shadow on top. */
 .auth-brand-logo-mark {
   display: block;
   width: 64px;
-  height: 64px;
-  border-radius: 18px;
+  height: auto;
   margin: 0 auto 1rem;
-  box-shadow:
-    0 8px 24px rgba(0, 0, 0, 0.22),
-    0 0 0 1px rgba(255, 255, 255, 0.08);
+  filter: brightness(0) invert(1) drop-shadow(0 4px 10px rgba(0, 0, 0, 0.25));
 }
 
 .auth-brand-heading {
