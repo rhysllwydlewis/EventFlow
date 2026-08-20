@@ -347,9 +347,11 @@ async function sendActionPromptEmail(user, report, baseUrl, dryRun) {
   const subject = getEmailSubject(report, totalSendCount);
 
   if (dryRun) {
-    logger.info(
-      `[ActionPrompts] DRY RUN — would email ${user.email} (${report.outstanding.length} action(s)): ${report.outstanding.map(a => a.key).join(', ')}`
-    );
+    logger.info('[ActionPrompts] DRY RUN — would send action-prompt email', {
+      userId: user.id,
+      actionCount: report.outstanding.length,
+      actions: report.outstanding.map(a => a.key),
+    });
     return;
   }
 
