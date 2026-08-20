@@ -1237,6 +1237,7 @@
 
       // Populate last-run status chip
       renderLastRun(data.lastRun);
+      updateSendNowAvailability(data.lastForceRunAt);
 
       updateEmailAutoStatus('hidden');
       updateEmailAutoSaveBtn();
@@ -1341,9 +1342,13 @@
     await AdminShared.safeAction(
       btn,
       async () => {
+        // force:true so this preview matches exactly what "Send Now" would do
+        // (including first-time suppliers who'd otherwise show 0 here despite
+        // being sent to for real) — dry runs never persist state or hit
+        // Postmark, and are exempt from the force cooldown, so this is safe.
         const result = await AdminShared.adminFetch(
           '/api/admin/email-automation/action-prompts/run',
-          { method: 'POST', body: { dryRun: true } }
+          { method: 'POST', body: { dryRun: true, force: true } }
         );
         const s = result.summary || {};
         updateEmailAutoStatus(
@@ -1360,6 +1365,52 @@
       }
     );
   });
+
+  // Client-side mirror of the server's cooldown (routes/admin.js
+  // FORCE_RUN_COOLDOWN_MS) — the server is the source of truth and rejects
+  // the request with 429 if this drifts, but disabling the button locally
+  // avoids a pointless round-trip for the common case.
+  const FORCE_RUN_COOLDOWN_MS = 24 * 60 * 60 * 1000;
+  let sendNowCooldownTimer = null;
+
+  function formatRemaining(ms) {
+    const totalMinutes = Math.max(1, Math.ceil(ms / 60000));
+    const hours = Math.floor(totalMinutes / 60);
+    const minutes = totalMinutes % 60;
+    return hours > 0 ? `${hours}h ${minutes}m` : `${minutes}m`;
+  }
+
+  function updateSendNowAvailability(lastForceRunAt) {
+    const btn = document.getElementById('emailAutoSendNow');
+    if (!btn) {
+      return;
+    }
+    if (sendNowCooldownTimer) {
+      clearInterval(sendNowCooldownTimer);
+      sendNowCooldownTimer = null;
+    }
+    const tick = () => {
+      const lastMs = lastForceRunAt ? Date.parse(lastForceRunAt) : NaN;
+      const remaining = Number.isFinite(lastMs) ? FORCE_RUN_COOLDOWN_MS - (Date.now() - lastMs) : 0;
+      if (remaining > 0) {
+        btn.disabled = true;
+        btn.textContent = `Send Now… (available in ${formatRemaining(remaining)})`;
+        btn.title = 'Send Now sends immediately and is rate-limited to once per 24h.';
+      } else {
+        btn.disabled = false;
+        btn.textContent = 'Send Now…';
+        btn.title = '';
+        if (sendNowCooldownTimer) {
+          clearInterval(sendNowCooldownTimer);
+          sendNowCooldownTimer = null;
+        }
+      }
+    };
+    tick();
+    if (lastForceRunAt) {
+      sendNowCooldownTimer = setInterval(tick, 60 * 1000);
+    }
+  }
 
   // Send Now button — opens confirmation modal
   document.getElementById('emailAutoSendNow')?.addEventListener('click', () => {
@@ -1382,28 +1433,35 @@
       modal.style.display = 'none';
     }
     const btn = document.getElementById('emailAutoSendNow');
-    await AdminShared.safeAction(
-      btn,
-      async () => {
-        const result = await AdminShared.adminFetch(
-          '/api/admin/email-automation/action-prompts/run',
-          { method: 'POST', body: { dryRun: false, confirm: true } }
-        );
-        const s = result.summary || {};
-        updateEmailAutoStatus(
-          'saved',
-          `Run complete: scanned ${s.scanned ?? 0}, sent ${s.sent ?? 0}, errors ${s.errors ?? 0}`
-        );
-        setTimeout(() => updateEmailAutoStatus('hidden'), 6000);
-        await loadEmailAutoSettings();
-        return result;
-      },
-      {
-        loadingText: 'Sending…',
-        successMessage: 'Email run complete',
-        errorMessage: 'Email run failed',
-      }
-    );
+    try {
+      await AdminShared.safeAction(
+        btn,
+        async () => {
+          const result = await AdminShared.adminFetch(
+            '/api/admin/email-automation/action-prompts/run',
+            { method: 'POST', body: { dryRun: false, confirm: true, force: true } }
+          );
+          const s = result.summary || {};
+          updateEmailAutoStatus(
+            'saved',
+            `Run complete: scanned ${s.scanned ?? 0}, sent ${s.sent ?? 0}, errors ${s.errors ?? 0}`
+          );
+          setTimeout(() => updateEmailAutoStatus('hidden'), 6000);
+          await loadEmailAutoSettings();
+          return result;
+        },
+        {
+          loadingText: 'Sending…',
+          successMessage: 'Email run complete',
+          errorMessage: 'Email run failed',
+        }
+      );
+    } catch (_err) {
+      // safeAction already surfaced a toast — refresh so a stale local
+      // cooldown state (e.g. a 429 because another admin just used Send
+      // Now) is reflected on the button immediately.
+      await loadEmailAutoSettings().catch(() => {});
+    }
   });
 
   loadEmailAutoSettings();

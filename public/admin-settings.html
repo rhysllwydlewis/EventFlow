@@ -336,7 +336,7 @@
       <div id="emailAutoConfirmModal" role="dialog" aria-modal="true" aria-labelledby="emailAutoConfirmTitle" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.4);z-index:9999;align-items:center;justify-content:center;">
         <div style="background:#fff;border-radius:12px;padding:1.5rem 1.75rem;max-width:440px;width:90%;box-shadow:0 20px 60px rgba(0,0,0,0.3);">
           <h3 id="emailAutoConfirmTitle" style="margin:0 0 0.75rem;font-size:1.1rem;color:#dc2626;">⚠ Send action-prompt emails now?</h3>
-          <p style="margin:0 0 1.25rem;font-size:0.9rem;color:#374151;">This will immediately send reminder emails to all eligible suppliers who are due for their next send. This action cannot be undone.</p>
+          <p style="margin:0 0 1.25rem;font-size:0.9rem;color:#374151;">This will immediately send reminder emails to every eligible supplier with outstanding actions &mdash; including suppliers who haven't been emailed before (their usual 24h first-send delay is skipped). This action cannot be undone, and Send Now can only be used once every 24 hours.</p>
           <div style="display:flex;gap:0.625rem;justify-content:flex-end;">
             <button class="ef-cta btn" id="emailAutoConfirmCancel">Cancel</button>
             <button class="ef-cta btn btn-primary" id="emailAutoConfirmSend" style="background:#dc2626;border-color:#dc2626;">Yes, Send Now</button>

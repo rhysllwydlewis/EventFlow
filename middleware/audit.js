@@ -58,11 +58,17 @@ async function auditLog(params) {
     const inserted = await dbUnified.insertOne('audit_logs', logEntry);
     if (!inserted) {
       logger.error('[AUDIT ERROR] Audit storage returned no persisted entry');
-      logger.error('[AUDIT ERROR] Failed log entry:', logEntry);
+      logger.error('[AUDIT ERROR] Failed log entry', {
+        adminId,
+        adminEmail,
+        action,
+        targetType,
+        targetId,
+      });
       return null;
     }
 
-    logger.info(`[AUDIT] ${adminEmail} performed ${action} on ${targetType} ${targetId}`);
+    logger.info('[AUDIT] Admin action recorded', { adminEmail, action, targetType, targetId });
 
     return logEntry;
   } catch (error) {
@@ -70,7 +76,13 @@ async function auditLog(params) {
     // null return and can compensate/rollback their own state change.
     logger.error('[AUDIT ERROR] Failed to write audit log:', error.message);
     if (logEntry) {
-      logger.error('[AUDIT ERROR] Failed log entry:', logEntry);
+      logger.error('[AUDIT ERROR] Failed log entry', {
+        adminId: params?.adminId,
+        adminEmail: params?.adminEmail,
+        action: params?.action,
+        targetType: params?.targetType,
+        targetId: params?.targetId,
+      });
     }
     return null;
   }

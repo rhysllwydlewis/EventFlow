@@ -347,9 +347,11 @@ async function sendActionPromptEmail(user, report, baseUrl, dryRun) {
   const subject = getEmailSubject(report, totalSendCount);
 
   if (dryRun) {
-    logger.info(
-      `[ActionPrompts] DRY RUN — would email ${user.email} (${report.outstanding.length} action(s)): ${report.outstanding.map(a => a.key).join(', ')}`
-    );
+    logger.info('[ActionPrompts] DRY RUN — would send action-prompt email', {
+      userId: user.id,
+      actionCount: report.outstanding.length,
+      actions: report.outstanding.map(a => a.key),
+    });
     return;
   }
 
@@ -373,9 +375,12 @@ async function sendActionPromptEmail(user, report, baseUrl, dryRun) {
     tags: ['action_prompt'],
   });
 
-  logger.info(
-    `[ActionPrompts] Sent to ${user.email} — cadence: ${state?.cadence ?? 'daily'}, status: ${report.ragStatus}, actions: ${report.outstanding.map(a => a.key).join(', ')}`
-  );
+  logger.info('[ActionPrompts] Sent action-prompt email', {
+    userId: user.id,
+    cadence: state?.cadence ?? 'daily',
+    status: report.ragStatus,
+    actions: report.outstanding.map(a => a.key),
+  });
 }
 
 // ── Main run / schedule ─────────────────────────────────────────────────────
@@ -387,9 +392,17 @@ async function sendActionPromptEmail(user, report, baseUrl, dryRun) {
  * @param {boolean} [opts.dryRun=false] - Log actions without sending
  * @param {number}  [opts.limit]        - Override max send cap for this run
  * @param {'scheduler'|'manual'} [opts.trigger='scheduler'] - Execution source
+ * @param {boolean} [opts.force=false]  - Bypass per-supplier cadence timing (admin "Send Now").
+ *   Callers are responsible for their own rate-limiting of forced runs — this function does not
+ *   self-throttle.
  * @returns {Promise<Object>} Summary stats
  */
-async function runActionPrompts({ dryRun = false, limit, trigger = 'scheduler' } = {}) {
+async function runActionPrompts({
+  dryRun = false,
+  limit,
+  trigger = 'scheduler',
+  force = false,
+} = {}) {
   if (_running) {
     logger.warn('[ActionPrompts] Previous run still in progress — skipping');
     return { skipped: true, reason: 'already-running' };
@@ -402,9 +415,12 @@ async function runActionPrompts({ dryRun = false, limit, trigger = 'scheduler' }
   const maxSendPerRun =
     limit ?? (Number(process.env.ACTION_PROMPTS_MAX_SEND_PER_RUN) || defaultCap);
 
-  logger.info(
-    `[ActionPrompts] Run started at ${startedAt.toISOString()} (dryRun=${dryRun}, maxSendPerRun=${maxSendPerRun})`
-  );
+  logger.info('[ActionPrompts] Run started', {
+    startedAt: startedAt.toISOString(),
+    dryRun,
+    force,
+    maxSendPerRun,
+  });
 
   let scanned = 0;
   let sent = 0;
@@ -434,7 +450,7 @@ async function runActionPrompts({ dryRun = false, limit, trigger = 'scheduler' }
       }
 
       try {
-        const { shouldSend, nextState } = evaluateCadence(user.actionPromptState, now);
+        const { shouldSend, nextState } = evaluateCadence(user.actionPromptState, now, { force });
 
         if (!shouldSend) {
           skippedCadence++;
@@ -475,6 +491,7 @@ async function runActionPrompts({ dryRun = false, limit, trigger = 'scheduler' }
     durationMs: finishedAt - startedAt,
     dryRun,
     trigger,
+    force,
     scanned,
     sent,
     skippedCadence,
@@ -495,6 +512,13 @@ async function runActionPrompts({ dryRun = false, limit, trigger = 'scheduler' }
       settings.emailAutomation.actionPrompts = settings.emailAutomation.actionPrompts || {};
       settings.emailAutomation.actionPrompts.lastRun = summary;
 
+      // Server-side cooldown timestamp for the admin "Send Now" (force) action —
+      // read by the run endpoint to reject repeated forced runs within 24 h,
+      // independent of (and in addition to) the button's own disabled state.
+      if (force) {
+        settings.emailAutomation.actionPrompts.lastForceRunAt = summary.finishedAt;
+      }
+
       // Maintain a capped history list (last 20 runs, most-recent first)
       const RUN_HISTORY_MAX = 20;
       const historyEntry = {
@@ -503,6 +527,7 @@ async function runActionPrompts({ dryRun = false, limit, trigger = 'scheduler' }
         durationMs: summary.durationMs,
         dryRun: summary.dryRun,
         trigger: summary.trigger,
+        force: summary.force,
         scanned: summary.scanned,
         sent: summary.sent,
         skippedCadence: summary.skippedCadence,
