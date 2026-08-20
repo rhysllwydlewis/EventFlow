@@ -15,7 +15,7 @@
 
     const brandStyles = document.createElement('link');
     brandStyles.rel = 'stylesheet';
-    brandStyles.href = '/assets/css/eventflow-brand.css?v=1.0.0';
+    brandStyles.href = '/assets/css/eventflow-brand.css?v=1.0.1';
     brandStyles.dataset.eventflowBrand = 'true';
     document.head.appendChild(brandStyles);
   }

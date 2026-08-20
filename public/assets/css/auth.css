@@ -360,27 +360,20 @@ body.auth-page .auth-split-right {
   animation: authPanelFadeUp 0.7s 0.15s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
-/* eventflow-mark.svg has a transparent background (unlike favicon.svg, which
-   bakes in an opaque white tile for app-icon use) — box-shadow would draw a
-   rectangle around its transparent margins, so use drop-shadow instead, which
-   follows the mark's own silhouette. The mark's native teal gradient is close
-   in tone to this panel's dark teal background, so flatten it to solid white
-   (same brightness(0) invert(1) trick already used for the footer wordmark on
-   its dark background) to keep it legible, then layer the shadow on top. */
-.auth-brand-logo-mark {
+/* The site's actual brand mark is the wordmark logotype (same asset the
+   navbar and footer use) — there's no standalone icon glyph used anywhere
+   else on the site. eventflow-wordmark.svg has a transparent background, so
+   use drop-shadow (follows the letterforms' own silhouette) rather than
+   box-shadow (which would draw a rectangle around the transparent margins).
+   Flatten its native gradient to solid white via the same brightness(0)
+   invert(1) technique the footer already uses on its own dark background. */
+.auth-brand-wordmark {
   display: block;
-  width: 64px;
+  width: 240px;
+  max-width: 80%;
   height: auto;
-  margin: 0 auto 1rem;
+  margin: 0 auto 0.75rem;
   filter: brightness(0) invert(1) drop-shadow(0 4px 10px rgba(0, 0, 0, 0.25));
-}
-
-.auth-brand-heading {
-  font-size: 2rem;
-  font-weight: 800;
-  margin: 0 0 0.375rem;
-  letter-spacing: -0.03em;
-  text-shadow: 0 2px 16px rgba(0, 0, 0, 0.18);
 }
 
 .auth-brand-tagline {
