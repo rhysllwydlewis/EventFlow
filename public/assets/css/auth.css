@@ -1356,15 +1356,36 @@ body.auth-page .auth-pw-wrap > .password-toggle > svg {
 
 .auth-requirements {
   margin-top: 8px;
-  padding-left: 20px;
+  padding-left: 0;
+  list-style: none;
   color: #666;
   font-size: 0.875rem;
   display: none;
 }
 
+/* Unmet/met state is shown with a ✕/✓ marker, not colour alone, so it still
+   reads correctly for colour-blind users or in forced-colours mode. */
 .auth-requirements li {
   color: #b00020;
   margin-bottom: 2px;
+  padding-left: 1.2em;
+  position: relative;
+}
+
+.auth-requirements li::before {
+  content: '✕';
+  position: absolute;
+  left: 0;
+  font-weight: 700;
+}
+
+.auth-requirements li.is-met {
+  color: #10b981;
+  font-weight: 600;
+}
+
+.auth-requirements li.is-met::before {
+  content: '✓';
 }
 
 .auth-validation-msg {
