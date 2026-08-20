@@ -658,12 +658,24 @@ function pickSafeAuthUrl(...candidates) {
   return null;
 }
 
+// Build a high-resolution, portrait-cropped Pexels CDN URL from the base
+// (query-string-free) photo URL. Pexels serves on-the-fly resizing via query
+// params, so we request a size/crop that matches this panel's tall aspect
+// ratio instead of relying on the pre-set landscape `large` variant.
+function toPortraitCropUrl(baseUrl) {
+  if (!baseUrl) {
+    return null;
+  }
+  const [path] = baseUrl.split('?');
+  return `${path}?auto=compress&cs=tinysrgb&fit=crop&w=1200&h=1600&dpr=2`;
+}
+
 function buildAuthFallbackResponse(fallbacks) {
   return {
     source: 'fallback',
     photos: fallbacks
       .map(p => {
-        const url = pickSafeAuthUrl(p.src && p.src.large, p.url);
+        const url = pickSafeAuthUrl(toPortraitCropUrl(p.url), p.src && p.src.large, p.url);
         if (!url) {
           return null;
         }
@@ -702,7 +714,8 @@ router.get('/auth-photos', apiLimiter, async (req, res) => {
 
     const photos = (results.photos || [])
       .map(p => {
-        const url = p.src && pickSafeAuthUrl(p.src.large, p.src.medium, p.src.original);
+        const url =
+          p.src && pickSafeAuthUrl(p.src.portrait, p.src.large2x, p.src.large, p.src.medium);
         const photographerUrl =
           p.photographer_url && isSafeAuthPexelsUrl(p.photographer_url)
             ? p.photographer_url

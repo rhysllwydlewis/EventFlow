@@ -6155,18 +6155,16 @@ document.addEventListener('DOMContentLoaded', () => {
         const hasLetter = /[A-Za-z]/.test(password);
         const hasNumber = /\d/.test(password);
 
-        // Update requirements list
+        // Update requirements list — toggle a class rather than inline color so the
+        // met/unmet state isn't conveyed by color alone (a ✓/✕ marker comes from CSS).
         if (reqLength) {
-          reqLength.style.color = hasLength ? '#10b981' : '#b00020';
-          reqLength.style.fontWeight = hasLength ? '600' : '400';
+          reqLength.classList.toggle('is-met', hasLength);
         }
         if (reqLetter) {
-          reqLetter.style.color = hasLetter ? '#10b981' : '#b00020';
-          reqLetter.style.fontWeight = hasLetter ? '600' : '400';
+          reqLetter.classList.toggle('is-met', hasLetter);
         }
         if (reqNumber) {
-          reqNumber.style.color = hasNumber ? '#10b981' : '#b00020';
-          reqNumber.style.fontWeight = hasNumber ? '600' : '400';
+          reqNumber.classList.toggle('is-met', hasNumber);
         }
 
         return hasLength && hasLetter && hasNumber;
@@ -6849,17 +6847,7 @@ document.addEventListener('DOMContentLoaded', () => {
             /* Ignore JSON parse errors */
           }
           if (!r.ok) {
-            // Provide specific error messages
-            let errorMsg = 'Could not create account. Please check your details.';
-            if (data.error) {
-              if (data.error.includes('email')) {
-                errorMsg = data.error;
-              } else if (data.error.includes('password')) {
-                errorMsg = data.error;
-              } else {
-                errorMsg = data.error;
-              }
-            }
+            const errorMsg = data.error || 'Could not create account. Please check your details.';
             if (regStatus) {
               regStatus.textContent = errorMsg;
             }
@@ -6872,8 +6860,8 @@ document.addEventListener('DOMContentLoaded', () => {
               }
               regStatus.classList.add('reg-status-visible');
               regStatus.innerHTML =
-                '<span style="color:#0B8073;font-weight:500;">\u2713 Account created! Check your email to verify your account, then you can sign in.</span>' +
-                '<button type="button" id="resend-verify-btn" class="ef-cta ef-btn ef-btn-primary">Resend email</button>';
+                '<span style="display:block;color:#0B8073;font-weight:500;">\u2713 Account created! Check your email to verify your account, then you can sign in.</span>' +
+                '<button type="button" id="resend-verify-btn" class="auth-resend-btn cta">Resend email</button>';
               const resendBtn = document.getElementById('resend-verify-btn');
               if (resendBtn) {
                 resendBtn.addEventListener('click', async () => {
@@ -6990,62 +6978,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 });
-
-// Helper function to create resend verification form
-// Used by verify-init.js and other pages
-// eslint-disable-next-line no-unused-vars
-function createResendVerificationForm(containerId, initialEmail = '') {
-  const container = document.getElementById(containerId);
-  if (!container) {
-    return null;
-  }
-
-  const formHtml =
-    '<div style="margin-top:16px;">' +
-    `<input type="email" id="resend-email-${containerId}" placeholder="Enter your email" value="${initialEmail}" style="padding:8px;border:1px solid #ccc;border-radius:4px;margin-right:8px;">` +
-    `<button type="button" id="resend-verify-btn-${containerId}" class="ef-cta btn btn-primary">Send new verification email</button>` +
-    '</div>';
-
-  const existingContent = container.innerHTML;
-  container.innerHTML = existingContent + formHtml;
-
-  const resendBtn = document.getElementById(`resend-verify-btn-${containerId}`);
-  const emailInput = document.getElementById(`resend-email-${containerId}`);
-
-  if (resendBtn && emailInput) {
-    resendBtn.addEventListener('click', async () => {
-      const email = emailInput.value.trim();
-      if (!email) {
-        showNetworkError('Please enter your email address', 'error');
-        return;
-      }
-      resendBtn.disabled = true;
-      resendBtn.textContent = 'Sending...';
-      try {
-        const resendResp = await fetch('/api/v1/auth/resend-verification', {
-          method: 'POST',
-          headers: getHeadersWithCsrf({ 'Content-Type': 'application/json' }),
-          credentials: 'include',
-          body: JSON.stringify({ email }),
-        });
-        const resendData = await resendResp.json();
-        if (resendResp.ok) {
-          showNetworkError(resendData.message || 'Verification email sent!', 'success');
-          container.innerHTML = `<p class="small">${escapeHtml(resendData.message || 'Verification email sent! Check your inbox.')}</p>`;
-        } else {
-          showNetworkError(resendData.error || 'Failed to send email', 'error');
-        }
-      } catch (err) {
-        showNetworkError('Network error - please try again', 'error');
-      } finally {
-        resendBtn.disabled = false;
-        resendBtn.textContent = 'Send new verification email';
-      }
-    });
-  }
-
-  return { resendBtn, emailInput };
-}
 
 // Email verification page
 // Overridden in verify-init.js but provided as fallback
