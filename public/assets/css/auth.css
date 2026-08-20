@@ -243,22 +243,22 @@ body.auth-page .auth-split-right {
 }
 
 .auth-panel-photo--1 {
-  background-image: url('https://images.pexels.com/photos/787961/pexels-photo-787961.jpeg?auto=compress&cs=tinysrgb&w=720&h=960&fit=crop&q=75');
+  background-image: url('https://images.pexels.com/photos/787961/pexels-photo-787961.jpeg?auto=compress&cs=tinysrgb&fit=crop&w=1200&h=1600&dpr=2&q=85');
   animation-delay: 0s;
 }
 
 .auth-panel-photo--2 {
-  background-image: url('https://images.pexels.com/photos/1444442/pexels-photo-1444442.jpeg?auto=compress&cs=tinysrgb&w=720&h=960&fit=crop&q=75');
+  background-image: url('https://images.pexels.com/photos/1444442/pexels-photo-1444442.jpeg?auto=compress&cs=tinysrgb&fit=crop&w=1200&h=1600&dpr=2&q=85');
   animation-delay: 8s;
 }
 
 .auth-panel-photo--3 {
-  background-image: url('https://images.pexels.com/photos/1181406/pexels-photo-1181406.jpeg?auto=compress&cs=tinysrgb&w=720&h=960&fit=crop&q=75');
+  background-image: url('https://images.pexels.com/photos/1181406/pexels-photo-1181406.jpeg?auto=compress&cs=tinysrgb&fit=crop&w=1200&h=1600&dpr=2&q=85');
   animation-delay: 16s;
 }
 
 .auth-panel-photo--4 {
-  background-image: url('https://images.pexels.com/photos/931177/pexels-photo-931177.jpeg?auto=compress&cs=tinysrgb&w=720&h=960&fit=crop&q=75');
+  background-image: url('https://images.pexels.com/photos/931177/pexels-photo-931177.jpeg?auto=compress&cs=tinysrgb&fit=crop&w=1200&h=1600&dpr=2&q=85');
   animation-delay: 24s;
 }
 
@@ -296,17 +296,21 @@ body.auth-page .auth-split-right {
   }
 }
 
-/* Dark gradient overlay */
+/* Dark gradient overlay, plus an extra radial scrim centred behind the text
+   block so heading/tagline/feature-list contrast stays readable even when
+   the rotating photo behind it is unusually bright. */
 .auth-panel-overlay {
   position: absolute;
   inset: 0;
   z-index: 1;
-  background: linear-gradient(
-    160deg,
-    rgba(4, 78, 59, 0.72) 0%,
-    rgba(11, 128, 115, 0.62) 40%,
-    rgba(6, 95, 70, 0.75) 100%
-  );
+  background:
+    radial-gradient(ellipse 90% 60% at 50% 50%, rgba(0, 0, 0, 0.22) 0%, rgba(0, 0, 0, 0) 70%),
+    linear-gradient(
+      160deg,
+      rgba(4, 78, 59, 0.72) 0%,
+      rgba(11, 128, 115, 0.62) 40%,
+      rgba(6, 95, 70, 0.75) 100%
+    );
 }
 
 /* Decorative glass orbs */
@@ -357,22 +361,14 @@ body.auth-page .auth-split-right {
 }
 
 .auth-brand-logo-mark {
-  width: 72px;
-  height: 72px;
-  border-radius: 20px;
-  background: rgba(255, 255, 255, 0.22);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 2px solid rgba(255, 255, 255, 0.45);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 1.75rem;
-  font-weight: 900;
-  letter-spacing: -0.04em;
+  display: block;
+  width: 64px;
+  height: 64px;
+  border-radius: 18px;
   margin: 0 auto 1rem;
-  color: #fff;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.18);
+  box-shadow:
+    0 8px 24px rgba(0, 0, 0, 0.22),
+    0 0 0 1px rgba(255, 255, 255, 0.08);
 }
 
 .auth-brand-heading {
