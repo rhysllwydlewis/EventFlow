@@ -6299,52 +6299,10 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     }
 
-    // Account type toggle (customer / supplier)
-    const roleHidden = document.getElementById('reg-role');
-    const rolePills = document.querySelectorAll('.role-pill');
-    const supplierFields = document.getElementById('supplier-fields');
-    const companyInput = document.getElementById('reg-company');
-
-    if (rolePills && rolePills.length) {
-      rolePills.forEach(btn => {
-        btn.addEventListener('click', () => {
-          // Ignore clicks on buttons disabled by feature-flag (CSS pointer-events backup)
-          if (btn.dataset.disabled === 'true' || btn.getAttribute('aria-disabled') === 'true') {
-            return;
-          }
-          const val = btn.getAttribute('data-role') || 'customer';
-          rolePills.forEach(b => {
-            const isSelected = b === btn;
-            b.classList.toggle('is-active', isSelected);
-            b.classList.toggle('auth-role-option--active', isSelected);
-            b.setAttribute('aria-checked', isSelected ? 'true' : 'false');
-          });
-          const rolePicker = btn.closest('.auth-role-picker, .role-toggle');
-          if (rolePicker) {
-            rolePicker.classList.toggle('is-customer-selected', val === 'customer');
-            rolePicker.classList.toggle('is-supplier-selected', val === 'supplier');
-          }
-          if (roleHidden) {
-            roleHidden.value = val;
-          }
-
-          // Show/hide supplier-specific fields
-          if (supplierFields) {
-            if (val === 'supplier') {
-              supplierFields.style.display = 'block';
-              if (companyInput) {
-                companyInput.required = true;
-              }
-            } else {
-              supplierFields.style.display = 'none';
-              if (companyInput) {
-                companyInput.required = false;
-              }
-            }
-          }
-        });
-      });
-    }
+    // Account type toggle (customer / supplier) is handled by auth-init.js's
+    // selectRole() — that version also syncs aria-required on the company
+    // field and manages roving tabindex/keyboard nav for the radiogroup, so
+    // it fully supersedes this file's role-picker handling.
 
     // Helper function to get headers with CSRF token
     const getHeadersWithCsrf = function (additionalHeaders = {}) {
