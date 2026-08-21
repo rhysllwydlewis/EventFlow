@@ -171,14 +171,44 @@ and is absent from the sitemap.
 
 Both pages are fully server-rendered and mounted before `express.static()` so
 the shells never ship with unfilled placeholders. Modules with nothing reliable
-to show — packages, events, categories, nearby areas — are omitted entirely
-rather than rendering an empty shelf, and a supplier count is shown only when it
-is a real, current number.
+to show — packages, events, marketplace finds, categories, nearby areas — are
+omitted entirely rather than rendering an empty shelf, and a supplier count is
+shown only when it is a real, current number.
 
 Structured data is a `BreadcrumbList` on every page plus a `CollectionPage` with
 an `ItemList` of supplier profiles on indexable city pages. There is deliberately
 no `LocalBusiness` markup: EventFlow has no branch in these cities, and that
 markup belongs only on an individual supplier's own page.
+
+### Marketplace listings on the city page
+
+A "Marketplace finds in Cardiff" module surfaces marketplace listings
+(`marketplace_listings` — the peer-to-peer buy/sell items, not a supplier's
+own packages) on a city page, resolved through
+`services/marketplaceListingLocation.service.js`. A listing is not a mobile
+business, so it gets a smaller relationship vocabulary than a supplier: it is
+either `in_city` (its resolved city matches) or `nearby` (its coordinate
+falls within the city's own catchment radius) — never "serves" or
+"nationwide", and `in_city` always outranks `nearby` outright.
+
+Resolution follows the same "never guess" rule as suppliers, reusing
+`supplierLocation.classifyLegacyLocation()` directly rather than a second
+implementation: a listing's `citySlug`, once stored, is trusted; failing that,
+a geocoded coordinate resolves to the nearest registry city; failing that, the
+free-text `location` is classified — an exact match on one city name is
+high-confidence, anything ambiguous is left unmapped.
+`routes/marketplace.js` derives and stores `citySlug` on every listing create,
+and re-derives it (and re-geocodes) only when an edit actually changes the
+location text — the same discipline the live supplier write path already
+follows, so an unrelated edit costs no geocoder call.
+`scripts/audit-marketplace-listing-locations.js` backfills listings that
+predate this change, in the same dry-run → apply → verify shape as
+`scripts/audit-supplier-locations.js`.
+
+The module is not gated by the city's own quality score or publication
+workflow — it just renders when there is something real, the same way
+packages and events already do, and is absent entirely when there is nothing
+eligible rather than showing a "0 marketplace items" placeholder.
 
 ## Sitemap
 
@@ -369,25 +399,34 @@ published city slug.
 
 ## Tests
 
-| File                                                  | Covers                                                                              |
-| ----------------------------------------------------- | ----------------------------------------------------------------------------------- |
-| `tests/unit/location-registry.test.js`                | slugs, aliases, validation, distance, postcode resolution                           |
-| `tests/unit/supplier-location-matching.test.js`       | legacy classification, service areas, relationship precedence, ranking, eligibility |
-| `tests/unit/location-page-quality.test.js`            | publication states, quality gate, metadata, structured data                         |
-| `tests/unit/location-sitemap.test.js`                 | sitemap inclusion and automatic removal                                             |
-| `tests/unit/location-indexes.test.js`                 | index manifest                                                                      |
-| `tests/unit/supplier-location-audit-script.test.js`   | dry-run safety and apply behaviour                                                  |
-| `tests/unit/supplier-location-write-path.test.js`     | live derivation on profile create/edit, coverage validation, geocoder failure       |
-| `tests/unit/admin-locations-editor.test.js`           | editor markup, accessibility hooks, limits kept in step with the API                |
-| `tests/unit/admin-locations-editor-behaviour.test.js` | the editor driven through a real DOM: load, repeat, reorder, save, unsaved changes  |
-| `tests/integration/locations-pages.test.js`           | status codes, redirects, headers, escaping, module omission                         |
-| `tests/integration/admin-locations-api.test.js`       | access control, workflow, warnings, input limits                                    |
-| `e2e/locations.spec.js`                               | browser suite; requires `E2E_MODE=full` because the pages need real data            |
+| File                                                     | Covers                                                                              |
+| -------------------------------------------------------- | ----------------------------------------------------------------------------------- |
+| `tests/unit/location-registry.test.js`                   | slugs, aliases, validation, distance, postcode resolution                           |
+| `tests/unit/supplier-location-matching.test.js`          | legacy classification, service areas, relationship precedence, ranking, eligibility |
+| `tests/unit/location-page-quality.test.js`               | publication states, quality gate, metadata, structured data                         |
+| `tests/unit/location-sitemap.test.js`                    | sitemap inclusion and automatic removal                                             |
+| `tests/unit/location-indexes.test.js`                    | index manifest                                                                      |
+| `tests/unit/supplier-location-audit-script.test.js`      | dry-run safety and apply behaviour                                                  |
+| `tests/unit/supplier-location-write-path.test.js`        | live derivation on profile create/edit, coverage validation, geocoder failure       |
+| `tests/unit/admin-locations-editor.test.js`              | editor markup, accessibility hooks, limits kept in step with the API                |
+| `tests/unit/admin-locations-editor-behaviour.test.js`    | the editor driven through a real DOM: load, repeat, reorder, save, unsaved changes  |
+| `tests/integration/locations-pages.test.js`              | status codes, redirects, headers, escaping, module omission                         |
+| `tests/integration/admin-locations-api.test.js`          | access control, workflow, warnings, input limits                                    |
+| `tests/unit/marketplace-listing-location.test.js`        | listing city derivation, in_city/nearby matching, ranking                           |
+| `tests/unit/marketplace-listing-city-mapping.test.js`    | citySlug derivation and re-derivation on listing create/edit                        |
+| `tests/unit/marketplace-listing-audit-script.test.js`    | dry-run safety and apply behaviour for the listing backfill script                  |
+| `tests/integration/locations-marketplace-module.test.js` | the marketplace module on a city page: ranking, labels, module omission             |
+| `e2e/locations.spec.js`                                  | browser suite; requires `E2E_MODE=full` because the pages need real data            |
 
 ## What is deliberately not here
 
 - **Indexable city-category pages.** The URL is reserved and flag-gated. Each
   combination has to earn its own launch on its own evidence.
+- **Marketplace listings on a city × category page.** The module is on the
+  city page only. Marketplace categories (`attire`, `decor`, `av-equipment`,
+  `photography`, `party-supplies`, `florals`) do not line up cleanly with the
+  supplier category taxonomy, so filtering listings by category stays out of
+  this round rather than shipping an inconsistent mapping.
 - **Welsh-language URLs or `hreflang`.** Aliases only, until a full `/cy/`
   experience exists and is maintained.
 - **Fabricated local statistics.** Planning sections that quote figures without a

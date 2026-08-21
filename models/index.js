@@ -935,6 +935,12 @@ async function createIndexes(db) {
         { 'locationCoordinates.lat': 1, 'locationCoordinates.lng': 1 },
         { sparse: true }
       );
+    // The city page's first question is the same one the location feature
+    // asks of suppliers: "who is listed here?" — sparse because most existing
+    // listings have not been through the backfill yet.
+    await db
+      .collection('marketplace_listings')
+      .createIndex({ citySlug: 1, approved: 1, status: 1 }, { sparse: true });
 
     logger.info('Database indexes created successfully');
   } catch (error) {

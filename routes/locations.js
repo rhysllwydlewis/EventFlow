@@ -26,6 +26,7 @@ const locationHeroImages = require('../services/locationHeroImage.service');
 const locationPages = require('../services/locationPage.service');
 const locationGuides = require('../services/locationGuides.service');
 const supplierLocation = require('../services/supplierLocation.service');
+const marketplaceListingLocation = require('../services/marketplaceListingLocation.service');
 const {
   buildPublicSupplierSlug,
   isPublicSupplier,
@@ -194,18 +195,20 @@ function supplierPath(supplier) {
  * Load every collection the location pages read, with a short cache.
  *
  * These are indexable HTML pages that a crawler may request in bursts; reading
- * the same five collections per request would make a crawl expensive.
- * @returns {Promise<Object>} `{suppliers, validOwnerIds, packages, events, pageRecords}`.
+ * the same collections on every request would make a crawl expensive.
+ * @returns {Promise<Object>} `{suppliers, validOwnerIds, packages, events, marketplaceListings, pageRecords}`.
  */
 async function loadLocationData() {
-  const [suppliers, users, supplierAnalytics, packages, events, pageRecords] = await Promise.all([
-    dbUnified.read('suppliers'),
-    dbUnified.read('users'),
-    dbUnified.read('supplierAnalytics'),
-    dbUnified.read('packages'),
-    dbUnified.read('public_calendar_events'),
-    locationPages.loadPageRecords(dbUnified),
-  ]);
+  const [suppliers, users, supplierAnalytics, packages, events, marketplaceListings, pageRecords] =
+    await Promise.all([
+      dbUnified.read('suppliers'),
+      dbUnified.read('users'),
+      dbUnified.read('supplierAnalytics'),
+      dbUnified.read('packages'),
+      dbUnified.read('public_calendar_events'),
+      dbUnified.read('marketplace_listings'),
+      locationPages.loadPageRecords(dbUnified),
+    ]);
 
   const validOwnerIds = new Set((users || []).map(user => user && user.id).filter(Boolean));
   const summaryBySupplierId = new Map(
@@ -234,6 +237,7 @@ async function loadLocationData() {
     validOwnerIds,
     packages: packages || [],
     events: events || [],
+    marketplaceListings: marketplaceListings || [],
     pageRecords,
   };
 }
@@ -515,8 +519,18 @@ function renderSupplierCard(entry) {
  */
 // skipcq: JS-R1005 -- The page is a flat sequence of independent modules.
 function renderCityPage(model) {
-  const { city, page, metadata, rankedSuppliers, categories, packages, events, nearby, guides } =
-    model;
+  const {
+    city,
+    page,
+    metadata,
+    rankedSuppliers,
+    categories,
+    packages,
+    events,
+    marketplaceListings,
+    nearby,
+    guides,
+  } = model;
   const sections = [];
   const heroIsPexels = /^https?:\/\/(?:www\.)?pexels\.com\//i.test(
     page.content.heroImageSourceUrl || ''
@@ -626,6 +640,21 @@ function renderCityPage(model) {
       .join('');
     sections.push(`<section class="efl-section" aria-labelledby="efl-events">
       <h2 id="efl-events">Public events near ${escapeHtml(city.name)}</h2>
+      <ul class="efl-grid">${items}</ul>
+    </section>`);
+  }
+
+  if (marketplaceListings && marketplaceListings.length) {
+    const items = marketplaceListings
+      .map(
+        entry => `<li class="efl-card" data-relationship="${escapeHtml(entry.relationship)}">
+          <h3><a href="/package?id=${encodeURIComponent(entry.listing.id)}">${escapeHtml(entry.listing.title || 'Marketplace listing')}</a></h3>
+          <p class="efl-card__meta"><span class="efl-relationship">${escapeHtml(entry.label)}</span></p>
+        </li>`
+      )
+      .join('');
+    sections.push(`<section class="efl-section" aria-labelledby="efl-marketplace">
+      <h2 id="efl-marketplace">Marketplace finds in ${escapeHtml(city.name)}</h2>
       <ul class="efl-grid">${items}</ul>
     </section>`);
   }
@@ -771,6 +800,11 @@ router.get('/locations/:citySlug', publicReadLimiter, async (req, res, next) => 
       baseUrl: BASE_URL,
     });
     model.guides = locationGuides.relatedGuides(model.categories, city.slug);
+    model.marketplaceListings = marketplaceListingLocation.rankListingsForCity(
+      data.marketplaceListings,
+      city,
+      { limit: 6 }
+    );
 
     const structuredData = [model.breadcrumbs];
     if (model.indexable) {

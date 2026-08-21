@@ -22,6 +22,7 @@ const locationHeroImages = require('../services/locationHeroImage.service');
 const locationPages = require('../services/locationPage.service');
 const locationGuides = require('../services/locationGuides.service');
 const supplierLocation = require('../services/supplierLocation.service');
+const marketplaceListingLocation = require('../services/marketplaceListingLocation.service');
 const { isPublicSupplier, supplierDisplayName } = require('../services/publicSupplierSeo.service');
 const {
   COLLECTIONS,
@@ -410,6 +411,11 @@ router.get('/:slug/preview', apiLimiter, async (req, res) => {
       baseUrl: locationRoutes.BASE_URL,
     });
     model.guides = locationGuides.relatedGuides(model.categories, city.slug);
+    model.marketplaceListings = marketplaceListingLocation.rankListingsForCity(
+      data.marketplaceListings,
+      city,
+      { limit: 6 }
+    );
 
     const banner = `<div class="efl-preview-banner" role="status">
       <strong>Admin preview</strong>

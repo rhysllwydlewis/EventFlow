@@ -9,6 +9,7 @@ const express = require('express');
 const router = express.Router();
 const photoUpload = require('../photo-upload');
 const { geocodeLocation, calculateDistance } = require('../utils/geocoding');
+const marketplaceListingLocation = require('../services/marketplaceListingLocation.service');
 
 // These will be injected by server.js during route mounting
 let dbUnified;
@@ -481,6 +482,14 @@ router.post(
         }
       }
 
+      // Resolve a UK city so the listing can appear on that city's location
+      // page. Never a guess: unresolvable text simply leaves the listing off
+      // the city pages, exactly like an unmapped supplier.
+      const cityMapping = marketplaceListingLocation.deriveListingCitySlug({
+        location: locationText,
+        locationCoordinates,
+      });
+
       const listing = {
         id: uid('mkt'),
         userId: req.user.id,
@@ -491,6 +500,13 @@ router.post(
         condition,
         location: locationText,
         ...(locationCoordinates ? { locationCoordinates } : {}),
+        ...(cityMapping
+          ? {
+              citySlug: cityMapping.citySlug,
+              citySlugSource: cityMapping.source,
+              citySlugConfidence: cityMapping.confidence,
+            }
+          : {}),
         images: Array.isArray(images) ? images.slice(0, 5) : [],
         approved: true, // Auto-approve new listings
         status: 'active', // New listings start as active; status can be: active, sold, removed, or pending (for admin-moderated listings)
@@ -724,8 +740,30 @@ router.put(
         }
         listing.condition = condition;
       }
-      if (location) {
-        listing.location = String(location).slice(0, 100);
+      // Re-deriving only when the location text actually changes matches the
+      // rule the live supplier write path already follows: an edit to an
+      // unrelated field costs no geocoder call and cannot disturb a mapping
+      // that was already correct.
+      const newLocationText = location ? String(location).slice(0, 100) : null;
+      const locationChanged = newLocationText !== null && newLocationText !== listing.location;
+      if (locationChanged) {
+        listing.location = newLocationText;
+        listing.locationCoordinates = null;
+        if (newLocationText) {
+          try {
+            const coords = await geocodeLocation(newLocationText);
+            if (coords) {
+              listing.locationCoordinates = { lat: coords.latitude, lng: coords.longitude };
+            }
+          } catch (_geocodeErr) {
+            // Geocoding failure is non-fatal; the listing keeps its new text
+            // without coordinates, exactly like a listing created that way.
+          }
+        }
+        const cityMapping = marketplaceListingLocation.deriveListingCitySlug(listing);
+        listing.citySlug = cityMapping ? cityMapping.citySlug : null;
+        listing.citySlugSource = cityMapping ? cityMapping.source : null;
+        listing.citySlugConfidence = cityMapping ? cityMapping.confidence : null;
       }
       if (status && ['active', 'sold', 'removed'].includes(status)) {
         listing.status = status;
@@ -744,6 +782,10 @@ router.put(
             category: listing.category,
             condition: listing.condition,
             location: listing.location,
+            locationCoordinates: listing.locationCoordinates,
+            citySlug: listing.citySlug,
+            citySlugSource: listing.citySlugSource,
+            citySlugConfidence: listing.citySlugConfidence,
             status: listing.status,
             updatedAt: listing.updatedAt,
           },
