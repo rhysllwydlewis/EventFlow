@@ -28,6 +28,10 @@ const logger = require('../utils/logger');
 const DATA_DIR = path.join(__dirname, '..', 'public', 'assets', 'data');
 const GUIDES_PATH = path.join(DATA_DIR, 'guides.json');
 const MAX_GUIDES = 3;
+// A city × category page is more specific than a city page, so it earns room
+// for more guides — this is a layout cap, not the artificial "three guides
+// per city" ceiling the platform never actually enforced anywhere else.
+const MAX_CATEGORY_GUIDES = 6;
 const MAX_EXCERPT_LENGTH = 200;
 
 let cachedGuides = null;
@@ -118,6 +122,32 @@ function stableIndex(slug, length) {
  */
 function isCitySpecific(guide) {
   return Array.isArray(guide && guide.cities) && guide.cities.length > 0;
+}
+
+/**
+ * A guide's service category — the supplier-category taxonomy (Venues,
+ * Catering, Photography…) a city × category page matches against.
+ *
+ * `serviceCategory` is the real field; `category` is read as a fallback so
+ * every guide written before this field existed keeps matching exactly as it
+ * did on the city page, with nothing to migrate.
+ * @param {Object} guide Catalogue entry.
+ * @returns {string} Service category, or an empty string.
+ */
+function guideServiceCategory(guide) {
+  return String((guide && (guide.serviceCategory || guide.category)) || '').trim();
+}
+
+/**
+ * A guide's event type (Wedding, Corporate, Party…), when the catalogue entry
+ * names one. This is what lets "Planning a wedding in Cardiff" and "Planning a
+ * corporate event in Cardiff" exist as two distinct, correctly-tagged guides
+ * for the same city and category instead of colliding on one loose field.
+ * @param {Object} guide Catalogue entry.
+ * @returns {string} Event type, or an empty string when unset.
+ */
+function guideEventType(guide) {
+  return String((guide && guide.eventType) || '').trim();
 }
 
 /**
@@ -230,9 +260,83 @@ function relatedGuides(categories = [], citySlug = '') {
     .filter(guide => guide.title && guide.href);
 }
 
+/**
+ * Guides relevant to one city × category page: guides pinned to this exact
+ * city that also match (or don't specify) the category first, then any
+ * generic guide tagged with this service category, wherever it was written.
+ *
+ * A city page and its category pages can show different guides for the same
+ * city — that's intended. A guide pinned to Cardiff with no service category
+ * is city-wide editorial content (a "Cardiff wedding planning checklist"),
+ * so it is still eligible on every one of Cardiff's category pages; a guide
+ * pinned to Cardiff *and* tagged `Catering` is specific, and sorts ahead of
+ * it on the catering page precisely because it is.
+ * @param {Object} city Registry city record.
+ * @param {{name: string, slug: string}} category Canonical category.
+ * @returns {{title: string, href: string, excerpt: string}[]} Up to `MAX_CATEGORY_GUIDES` guides.
+ */
+function relatedGuidesForCategory(city, category) {
+  const guides = loadGuides();
+  if (!guides.length || !category || !category.name) {
+    return [];
+  }
+
+  const slug = comparable(city && city.slug);
+  const categoryName = comparable(category.name);
+
+  const pinnedForCity = slug
+    ? guides.filter(
+        guide => isCitySpecific(guide) && guide.cities.some(entry => comparable(entry) === slug)
+      )
+    : [];
+  // A guide pinned to this city but tagged for a different category (the
+  // Cardiff catering guide, while viewing Cardiff venues) is deliberately
+  // dropped here, not merely sorted last — it was written to be specific, so
+  // showing it on the wrong category page would misrepresent it exactly the
+  // way `relatedGuides` already refuses to show it on the wrong city.
+  const pinnedMatchingCategory = pinnedForCity.filter(guide => {
+    const guideCategory = guideServiceCategory(guide);
+    return !guideCategory || comparable(guideCategory) === categoryName;
+  });
+
+  const genericMatchingCategory = guides.filter(
+    guide => !isCitySpecific(guide) && comparable(guideServiceCategory(guide)) === categoryName
+  );
+
+  const seen = new Set();
+  const ordered = [...pinnedMatchingCategory, ...genericMatchingCategory].filter(guide => {
+    const key = String((guide && guide.id) || guide.href);
+    if (seen.has(key)) {
+      return false;
+    }
+    seen.add(key);
+    return true;
+  });
+
+  if (!ordered.length) {
+    return [];
+  }
+
+  return ordered
+    .sort((a, b) => {
+      const aPinned = pinnedMatchingCategory.includes(a) ? 0 : 1;
+      const bPinned = pinnedMatchingCategory.includes(b) ? 0 : 1;
+      return aPinned - bPinned || (Number(a.featuredOrder) || 99) - (Number(b.featuredOrder) || 99);
+    })
+    .slice(0, MAX_CATEGORY_GUIDES)
+    .map(toRenderedGuide)
+    .filter(guide => guide.title && guide.href);
+}
+
 /** Clear the cached catalogue. Used by tests. */
 function resetGuidesCache() {
   cachedGuides = null;
 }
 
-module.exports = { relatedGuides, resetGuidesCache };
+module.exports = {
+  guideEventType,
+  guideServiceCategory,
+  relatedGuides,
+  relatedGuidesForCategory,
+  resetGuidesCache,
+};

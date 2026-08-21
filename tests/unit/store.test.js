@@ -140,5 +140,19 @@ describe('Store Module', () => {
       const data = read('users');
       expect(Array.isArray(data)).toBe(true);
     });
+
+    // The city and city×category location pages are read from local file
+    // storage whenever MongoDB isn't configured (local dev, and any
+    // deployment without MONGODB_URI). A collection missing from this
+    // module's `files` map throws on every read there, silently breaking
+    // the whole /locations section outside a MongoDB deployment — exactly
+    // what happened here once already for `location_pages` before it was
+    // registered, so both are asserted explicitly.
+    it('should read the location page collections without throwing', () => {
+      expect(() => read('location_pages')).not.toThrow();
+      expect(() => read('location_category_pages')).not.toThrow();
+      expect(Array.isArray(read('location_pages'))).toBe(true);
+      expect(Array.isArray(read('location_category_pages'))).toBe(true);
+    });
   });
 });

@@ -49,6 +49,7 @@ const files = {
   // every read under local file storage, so the whole section is undevelopable
   // outside a MongoDB deployment.
   location_pages: path.join(DATA_DIR, 'location_pages.json'),
+  location_category_pages: path.join(DATA_DIR, 'location_category_pages.json'),
   reviewVotes: path.join(DATA_DIR, 'reviewVotes.json'),
   reviewModerations: path.join(DATA_DIR, 'reviewModerations.json'),
   popularSearches: path.join(DATA_DIR, 'popularSearches.json'),
