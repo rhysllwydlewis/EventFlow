@@ -648,7 +648,7 @@ function renderCityPage(model) {
     const items = marketplaceListings
       .map(
         entry => `<li class="efl-card" data-relationship="${escapeHtml(entry.relationship)}">
-          <h3><a href="/package?id=${encodeURIComponent(entry.listing.id)}">${escapeHtml(entry.listing.title || 'Marketplace listing')}</a></h3>
+          <h3><a href="/marketplace?listing=${encodeURIComponent(entry.listing.id)}">${escapeHtml(entry.listing.title || 'Marketplace listing')}</a></h3>
           <p class="efl-card__meta"><span class="efl-relationship">${escapeHtml(entry.label)}</span></p>
         </li>`
       )

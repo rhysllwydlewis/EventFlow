@@ -134,7 +134,7 @@ describe('GET /locations/:citySlug — marketplace module', () => {
     expect(response.text).toContain('id="efl-marketplace"');
     expect(response.text).toContain('Marketplace finds in Cardiff');
     expect(response.text).toContain('Wedding arch');
-    expect(response.text).toContain('href="/package?id=mkt_1"');
+    expect(response.text).toContain('href="/marketplace?listing=mkt_1"');
     expect(response.text).toContain('Listed in Cardiff');
   });
 
