@@ -27,6 +27,7 @@ const locationPages = require('../services/locationPage.service');
 const locationCategoryPages = require('../services/locationCategoryPage.service');
 const locationGuides = require('../services/locationGuides.service');
 const supplierLocation = require('../services/supplierLocation.service');
+const marketplaceListingLocation = require('../services/marketplaceListingLocation.service');
 const categoryRegistry = require('../public/assets/js/utils/category-link.js');
 const {
   buildPublicSupplierSlug,
@@ -56,6 +57,23 @@ function escapeHtml(value) {
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&#39;');
+}
+
+/**
+ * A marketplace listing's price, in the same "£X.XX" format the marketplace
+ * page itself uses (see `formatPrice` in public/assets/js/marketplace.js).
+ * @param {unknown} value Raw listing price.
+ * @returns {string} Formatted price, or a fallback for anything unpriced.
+ */
+function formatListingPrice(value) {
+  const number = Number(value);
+  if (!Number.isFinite(number)) {
+    return 'Price on request';
+  }
+  return `£${number.toLocaleString('en-GB', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  })}`;
 }
 
 /**
@@ -184,20 +202,29 @@ function supplierPath(supplier) {
  * Load every collection the location pages read, with a short cache.
  *
  * These are indexable HTML pages that a crawler may request in bursts; reading
- * the same five collections per request would make a crawl expensive.
- * @returns {Promise<Object>} `{suppliers, validOwnerIds, packages, events, pageRecords}`.
+ * the same collections on every request would make a crawl expensive.
+ * @returns {Promise<Object>} `{suppliers, validOwnerIds, packages, events, marketplaceListings, pageRecords}`.
  */
 async function loadLocationData() {
-  const [suppliers, users, supplierAnalytics, packages, events, pageRecords, categoryPageRecords] =
-    await Promise.all([
-      dbUnified.read('suppliers'),
-      dbUnified.read('users'),
-      dbUnified.read('supplierAnalytics'),
-      dbUnified.read('packages'),
-      dbUnified.read('public_calendar_events'),
-      locationPages.loadPageRecords(dbUnified),
-      locationCategoryPages.loadCategoryPageRecords(dbUnified),
-    ]);
+  const [
+    suppliers,
+    users,
+    supplierAnalytics,
+    packages,
+    events,
+    marketplaceListings,
+    pageRecords,
+    categoryPageRecords,
+  ] = await Promise.all([
+    dbUnified.read('suppliers'),
+    dbUnified.read('users'),
+    dbUnified.read('supplierAnalytics'),
+    dbUnified.read('packages'),
+    dbUnified.read('public_calendar_events'),
+    dbUnified.read('marketplace_listings'),
+    locationPages.loadPageRecords(dbUnified),
+    locationCategoryPages.loadCategoryPageRecords(dbUnified),
+  ]);
 
   const validOwnerIds = new Set((users || []).map(user => user && user.id).filter(Boolean));
   const summaryBySupplierId = new Map(
@@ -226,6 +253,7 @@ async function loadLocationData() {
     validOwnerIds,
     packages: packages || [],
     events: events || [],
+    marketplaceListings: marketplaceListings || [],
     pageRecords,
     categoryPageRecords,
   };
@@ -528,8 +556,18 @@ function renderSupplierCard(entry) {
  */
 // skipcq: JS-R1005 -- The page is a flat sequence of independent modules.
 function renderCityPage(model) {
-  const { city, page, metadata, rankedSuppliers, categories, packages, events, nearby, guides } =
-    model;
+  const {
+    city,
+    page,
+    metadata,
+    rankedSuppliers,
+    categories,
+    packages,
+    events,
+    marketplaceListings,
+    nearby,
+    guides,
+  } = model;
   const sections = [];
   const heroIsPexels = /^https?:\/\/(?:www\.)?pexels\.com\//i.test(
     page.content.heroImageSourceUrl || ''
@@ -651,6 +689,27 @@ function renderCityPage(model) {
       .join('');
     sections.push(`<section class="efl-section" aria-labelledby="efl-events">
       <h2 id="efl-events">Public events near ${escapeHtml(city.name)}</h2>
+      <ul class="efl-grid">${items}</ul>
+    </section>`);
+  }
+
+  if (marketplaceListings && marketplaceListings.length) {
+    const items = marketplaceListings
+      .map(entry => {
+        const listing = entry.listing;
+        const price = formatListingPrice(listing.price);
+        const description = listing.description
+          ? `<p>${escapeHtml(String(listing.description).slice(0, 140))}</p>`
+          : '';
+        return `<li class="efl-card" data-relationship="${escapeHtml(entry.relationship)}">
+          <h3><a href="/marketplace?listing=${encodeURIComponent(listing.id)}">${escapeHtml(listing.title || 'Marketplace listing')}</a></h3>
+          ${description}
+          <p class="efl-card__meta"><strong>${escapeHtml(price)}</strong> <span class="efl-relationship">${escapeHtml(entry.label)}</span></p>
+        </li>`;
+      })
+      .join('');
+    sections.push(`<section class="efl-section" aria-labelledby="efl-marketplace">
+      <h2 id="efl-marketplace">Marketplace finds in ${escapeHtml(city.name)}</h2>
       <ul class="efl-grid">${items}</ul>
     </section>`);
   }
@@ -796,6 +855,11 @@ router.get('/locations/:citySlug', publicReadLimiter, async (req, res, next) => 
       baseUrl: BASE_URL,
     });
     model.guides = locationGuides.relatedGuides(model.categories, city.slug);
+    model.marketplaceListings = marketplaceListingLocation.rankListingsForCity(
+      data.marketplaceListings,
+      city,
+      { limit: 6 }
+    );
     model.publishedCategoryKeys = publishedCategoryKeys(data.categoryPageRecords);
 
     const structuredData = [model.breadcrumbs];

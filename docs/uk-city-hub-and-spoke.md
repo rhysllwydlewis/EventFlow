@@ -172,9 +172,9 @@ and is absent from the sitemap.
 
 All three pages are fully server-rendered and mounted before `express.static()`
 so the shells never ship with unfilled placeholders. Modules with nothing
-reliable to show — packages, events, categories, nearby areas — are omitted
-entirely rather than rendering an empty shelf, and a supplier count is shown
-only when it is a real, current number.
+reliable to show — packages, events, marketplace finds, categories, nearby
+areas — are omitted entirely rather than rendering an empty shelf, and a
+supplier count is shown only when it is a real, current number.
 
 Structured data is a `BreadcrumbList` on every page plus a `CollectionPage` with
 an `ItemList` of supplier profiles on indexable city and city × category pages,
@@ -245,6 +245,36 @@ city-level counterparts, field for field. There is deliberately no dedicated
 admin UI screen for it in this round — the API is complete and tested, and a
 visual editor is a natural, small follow-up rather than something this PR
 needed to build to make the pages themselves work.
+
+### Marketplace listings on the city page
+
+A "Marketplace finds in Cardiff" module surfaces marketplace listings
+(`marketplace_listings` — the peer-to-peer buy/sell items, not a supplier's
+own packages) on a city page, resolved through
+`services/marketplaceListingLocation.service.js`. A listing is not a mobile
+business, so it gets a smaller relationship vocabulary than a supplier: it is
+either `in_city` (its resolved city matches) or `nearby` (its coordinate
+falls within the city's own catchment radius) — never "serves" or
+"nationwide", and `in_city` always outranks `nearby` outright.
+
+Resolution follows the same "never guess" rule as suppliers, reusing
+`supplierLocation.classifyLegacyLocation()` directly rather than a second
+implementation: a listing's `citySlug`, once stored, is trusted; failing that,
+a geocoded coordinate resolves to the nearest registry city; failing that, the
+free-text `location` is classified — an exact match on one city name is
+high-confidence, anything ambiguous is left unmapped.
+`routes/marketplace.js` derives and stores `citySlug` on every listing create,
+and re-derives it (and re-geocodes) only when an edit actually changes the
+location text — the same discipline the live supplier write path already
+follows, so an unrelated edit costs no geocoder call.
+`scripts/audit-marketplace-listing-locations.js` backfills listings that
+predate this change, in the same dry-run → apply → verify shape as
+`scripts/audit-supplier-locations.js`.
+
+The module is not gated by the city's own quality score or publication
+workflow — it just renders when there is something real, the same way
+packages and events already do, and is absent entirely when there is nothing
+eligible rather than showing a "0 marketplace items" placeholder.
 
 ## Sitemap
 
@@ -455,8 +485,13 @@ published city slug.
 | `tests/unit/location-category-page.test.js`               | category gate, metadata, structured data, cross-links, automatic intro              |
 | `tests/unit/location-category-guides.test.js`             | serviceCategory/eventType matching, city-pinned guides on a category page           |
 | `tests/unit/location-category-auto-publish.test.js`       | category-level automatic publication and its admin-managed safety net               |
+| `tests/unit/location-category-sitemap.test.js`            | sitemap inclusion and automatic removal for city × category pages                   |
+| `tests/unit/marketplace-listing-location.test.js`         | listing city derivation, in_city/nearby matching, ranking                           |
+| `tests/unit/marketplace-listing-city-mapping.test.js`     | citySlug derivation and re-derivation on listing create/edit                        |
+| `tests/unit/marketplace-listing-audit-script.test.js`     | dry-run safety and apply behaviour for the listing backfill script                  |
 | `tests/integration/locations-pages.test.js`               | status codes, redirects, headers, escaping, module omission                         |
 | `tests/integration/locations-category-pages.test.js`      | city × category route: status codes, redirects, cross-links, module omission        |
+| `tests/integration/locations-marketplace-module.test.js`  | the marketplace module on a city page: ranking, labels, module omission             |
 | `tests/integration/admin-locations-api.test.js`           | access control, workflow, warnings, input limits                                    |
 | `tests/integration/admin-location-categories-api.test.js` | the category admin API, mirroring the city one                                      |
 | `e2e/locations.spec.js`                                   | browser suite; requires `E2E_MODE=full` because the pages need real data            |
@@ -470,6 +505,11 @@ published city slug.
   The catalogue schema (`serviceCategory`, `eventType`, `cities`) and the
   matching logic are built and tested; writing the guides themselves is
   editorial work, not a code change.
+- **Marketplace listings on a city × category page.** The module is on the
+  city page only. Marketplace categories (`attire`, `decor`, `av-equipment`,
+  `photography`, `party-supplies`, `florals`) do not line up cleanly with the
+  supplier category taxonomy, so filtering listings by category stays out of
+  this round rather than shipping an inconsistent mapping.
 - **Welsh-language URLs or `hreflang`.** Aliases only. Cardiff's Welsh name
   appears as a factual mention inside the city's introduction
   (`alternateNameNote` in `locationPage.service.js`), never as a second URL,
