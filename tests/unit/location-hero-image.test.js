@@ -31,6 +31,11 @@ describe('city hero defaults', () => {
     ['cardiff', '5743996', /Cardiff/i],
     ['bristol', '19100348', /Bristol|Clifton/i],
     ['newport', '34106705', /Newport/i],
+    ['london', '30624831', /London|Big Ben|Westminster/i],
+    ['manchester', '29005978', /Manchester/i],
+    ['birmingham', '335727', /Birmingham/i],
+    ['leeds', '30226376', /Leeds/i],
+    ['edinburgh', '27879520', /Edinburgh/i],
   ])('uses a geographically specific Pexels photo for %s', (slug, photoId, cityPattern) => {
     const hero = heroImages.getCuratedHero(slug);
 
@@ -41,7 +46,17 @@ describe('city hero defaults', () => {
   });
 
   it('does not reuse one generic image across the cities', () => {
-    const urls = ['cardiff', 'bristol', 'newport'].map(slug => heroImages.getCuratedHero(slug).url);
+    const slugs = [
+      'cardiff',
+      'bristol',
+      'newport',
+      'london',
+      'manchester',
+      'birmingham',
+      'leeds',
+      'edinburgh',
+    ];
+    const urls = slugs.map(slug => heroImages.getCuratedHero(slug).url);
     expect(new Set(urls).size).toBe(urls.length);
   });
 
@@ -79,16 +94,20 @@ describe('city hero defaults', () => {
   });
 
   it('resolves an uncurated city from the existing Pexels service', async () => {
-    const city = registry.getCity('london');
+    const city = registry.getCity('bath');
+    const photo = pexelsPhoto({
+      alt: 'The Roman Baths in Bath, England',
+      url: 'https://www.pexels.com/photo/roman-baths-bath-123/',
+    });
     const pexels = {
       isConfigured: jest.fn(() => true),
-      searchPhotos: jest.fn(async () => ({ photos: [pexelsPhoto()] })),
+      searchPhotos: jest.fn(async () => ({ photos: [photo] })),
     };
 
     const hero = await heroImages.resolveAutomaticHero(city, { pexels, now: 1000 });
 
     expect(pexels.searchPhotos).toHaveBeenCalledWith(
-      expect.stringContaining('London Greater London England'),
+      expect.stringContaining('Bath South West England England'),
       12,
       1,
       { orientation: 'landscape', size: 'large' }
@@ -96,15 +115,15 @@ describe('city hero defaults', () => {
     expect(hero).toEqual(
       expect.objectContaining({
         url: expect.stringContaining('images.pexels.com/photos/123/'),
-        alt: expect.stringContaining('London'),
+        alt: expect.stringContaining('Bath'),
         credit: 'Example Photographer',
-        sourceUrl: 'https://www.pexels.com/photo/london-skyline-123/',
+        sourceUrl: 'https://www.pexels.com/photo/roman-baths-bath-123/',
       })
     );
   });
 
   it('prefers a result that explicitly names the city', async () => {
-    const city = registry.getCity('london');
+    const city = registry.getCity('bath');
     const pexels = {
       isConfigured: () => true,
       searchPhotos: async () => ({
@@ -117,8 +136,8 @@ describe('city hero defaults', () => {
           }),
           pexelsPhoto({
             id: 2,
-            alt: 'London skyline at sunset',
-            url: 'https://www.pexels.com/photo/london-skyline-2/',
+            alt: 'Bath skyline at sunset',
+            url: 'https://www.pexels.com/photo/bath-skyline-2/',
             src: { landscape: 'https://images.pexels.com/photos/2/photo-2.jpeg' },
           }),
         ],
@@ -217,7 +236,7 @@ describe('city hero defaults', () => {
     const pexels = { isConfigured: () => false, searchPhotos: jest.fn() };
 
     await expect(
-      heroImages.resolvePageHero(registry.getCity('london'), page, { pexels })
+      heroImages.resolvePageHero(registry.getCity('bath'), page, { pexels })
     ).resolves.toBe(page);
     expect(pexels.searchPhotos).not.toHaveBeenCalled();
   });
