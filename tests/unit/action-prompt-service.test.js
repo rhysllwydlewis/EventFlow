@@ -292,6 +292,11 @@ describe('evaluateCadence', () => {
     expect(WEEKLY_SENDS_BEFORE_MONTHLY).toBe(1);
   });
 
+  it('pins the long-term cadence to 28 days from the first monthly-stage wait onward', () => {
+    expect(FIRST_MONTHLY_INTERVAL_MS).toBe(28 * DAILY_INTERVAL_MS);
+    expect(MONTHLY_INTERVAL_MS).toBe(28 * DAILY_INTERVAL_MS);
+  });
+
   it('does NOT send on first call (no state) — schedules the first reminder for 24 hours later', () => {
     const { shouldSend, nextState } = evaluateCadence(undefined, now);
     expect(shouldSend).toBe(false);
@@ -336,7 +341,7 @@ describe('evaluateCadence', () => {
     expect(nextState.nextSendAt).toBe(new Date(now.getTime() + WEEKLY_INTERVAL_MS).toISOString());
   });
 
-  it('sends one weekly follow-up, then moves to monthly with a 30-day wait', () => {
+  it('sends one weekly follow-up, then moves to monthly with a 28-day wait', () => {
     const state = {
       cadence: 'weekly',
       sendCountDaily: 1,
@@ -353,11 +358,11 @@ describe('evaluateCadence', () => {
     expect(nextState.sendCountWeekly).toBe(1);
     expect(nextState.sendCountMonthly).toBe(0);
     expect(nextState.nextSendAt).toBe(
-      new Date(now.getTime() + FIRST_MONTHLY_INTERVAL_MS).toISOString()
+      new Date(now.getTime() + MONTHLY_INTERVAL_MS).toISOString()
     );
   });
 
-  it('waits 30 days before the first monthly-stage reminder', () => {
+  it('sends the first monthly-stage reminder after 28 days', () => {
     const lastSentAt = now.toISOString();
     const state = {
       cadence: 'monthly',
@@ -365,20 +370,24 @@ describe('evaluateCadence', () => {
       sendCountWeekly: 1,
       sendCountMonthly: 0,
       lastSentAt,
-      nextSendAt: new Date(now.getTime() + FIRST_MONTHLY_INTERVAL_MS).toISOString(),
+      nextSendAt: new Date(now.getTime() + MONTHLY_INTERVAL_MS).toISOString(),
       firstOutstandingAt: new Date(now.getTime() - 10 * DAILY_INTERVAL_MS).toISOString(),
     };
 
+    const before28Days = new Date(now.getTime() + MONTHLY_INTERVAL_MS - 1000);
+    expect(evaluateCadence(state, before28Days).shouldSend).toBe(false);
+
     const at28Days = new Date(now.getTime() + MONTHLY_INTERVAL_MS);
     const result = evaluateCadence(state, at28Days);
-    expect(result.shouldSend).toBe(false);
+    expect(result.shouldSend).toBe(true);
     expect(result.nextState.cadence).toBe('monthly');
+    expect(result.nextState.sendCountMonthly).toBe(1);
     expect(result.nextState.nextSendAt).toBe(
-      new Date(now.getTime() + FIRST_MONTHLY_INTERVAL_MS).toISOString()
+      new Date(at28Days.getTime() + MONTHLY_INTERVAL_MS).toISOString()
     );
   });
 
-  it('stays monthly indefinitely at 28-day intervals after the first monthly-stage send', () => {
+  it('stays monthly indefinitely at 28-day intervals', () => {
     let state = {
       cadence: 'monthly',
       sendCountDaily: 1,
@@ -423,7 +432,7 @@ describe('evaluateCadence', () => {
     );
   });
 
-  it('throttles an old weekly-stage state after one weekly send into the 30-day wait', () => {
+  it('throttles an old weekly-stage state after one weekly send into the 28-day wait', () => {
     const lastSentAt = now.toISOString();
     const state = {
       cadence: 'weekly',
@@ -441,11 +450,11 @@ describe('evaluateCadence', () => {
     expect(result.shouldSend).toBe(false);
     expect(result.nextState.cadence).toBe('monthly');
     expect(result.nextState.nextSendAt).toBe(
-      new Date(now.getTime() + FIRST_MONTHLY_INTERVAL_MS).toISOString()
+      new Date(now.getTime() + MONTHLY_INTERVAL_MS).toISOString()
     );
   });
 
-  it('uses a 28-day recurring interval for existing monthly states that have already sent monthly', () => {
+  it('normalises an old 30-day monthly nextSendAt down to the new 28-day cadence', () => {
     const lastSentAt = now.toISOString();
     const state = {
       cadence: 'monthly',
@@ -453,8 +462,8 @@ describe('evaluateCadence', () => {
       sendCountWeekly: 4,
       sendCountMonthly: 2,
       lastSentAt,
-      // Old policy stored 30 days; new policy should use 28 after monthly sends begin.
-      nextSendAt: new Date(now.getTime() + FIRST_MONTHLY_INTERVAL_MS).toISOString(),
+      // Old policy stored 30 days; the new policy should use 28 days.
+      nextSendAt: new Date(now.getTime() + 30 * DAILY_INTERVAL_MS).toISOString(),
       firstOutstandingAt: new Date(now.getTime() - 200 * DAILY_INTERVAL_MS).toISOString(),
     };
 
