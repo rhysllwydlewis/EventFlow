@@ -70,6 +70,23 @@ function escapeHtml(value) {
 }
 
 /**
+ * A marketplace listing's price, in the same "£X.XX" format the marketplace
+ * page itself uses (see `formatPrice` in public/assets/js/marketplace.js).
+ * @param {unknown} value Raw listing price.
+ * @returns {string} Formatted price, or a fallback for anything unpriced.
+ */
+function formatListingPrice(value) {
+  const number = Number(value);
+  if (!Number.isFinite(number)) {
+    return 'Price on request';
+  }
+  return `£${number.toLocaleString('en-GB', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  })}`;
+}
+
+/**
  * Serialise JSON-LD so no value can close the script element.
  * @param {Object} value Structured data.
  * @returns {string} Escaped JSON.
@@ -646,12 +663,18 @@ function renderCityPage(model) {
 
   if (marketplaceListings && marketplaceListings.length) {
     const items = marketplaceListings
-      .map(
-        entry => `<li class="efl-card" data-relationship="${escapeHtml(entry.relationship)}">
-          <h3><a href="/marketplace?listing=${encodeURIComponent(entry.listing.id)}">${escapeHtml(entry.listing.title || 'Marketplace listing')}</a></h3>
-          <p class="efl-card__meta"><span class="efl-relationship">${escapeHtml(entry.label)}</span></p>
-        </li>`
-      )
+      .map(entry => {
+        const listing = entry.listing;
+        const price = formatListingPrice(listing.price);
+        const description = listing.description
+          ? `<p>${escapeHtml(String(listing.description).slice(0, 140))}</p>`
+          : '';
+        return `<li class="efl-card" data-relationship="${escapeHtml(entry.relationship)}">
+          <h3><a href="/marketplace?listing=${encodeURIComponent(listing.id)}">${escapeHtml(listing.title || 'Marketplace listing')}</a></h3>
+          ${description}
+          <p class="efl-card__meta"><strong>${escapeHtml(price)}</strong> <span class="efl-relationship">${escapeHtml(entry.label)}</span></p>
+        </li>`;
+      })
       .join('');
     sections.push(`<section class="efl-section" aria-labelledby="efl-marketplace">
       <h2 id="efl-marketplace">Marketplace finds in ${escapeHtml(city.name)}</h2>
