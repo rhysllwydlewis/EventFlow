@@ -412,28 +412,24 @@ describe('GET /locations/:citySlug', () => {
   });
 });
 
-describe('reserved city-category route', () => {
-  const originalFlag = process.env.LOCATION_CATEGORY_PAGES;
-
-  afterEach(() => {
-    if (originalFlag === undefined) {
-      delete process.env.LOCATION_CATEGORY_PAGES;
-    } else {
-      process.env.LOCATION_CATEGORY_PAGES = originalFlag;
-    }
-  });
-
-  it('404s while the feature flag is off', async () => {
-    delete process.env.LOCATION_CATEGORY_PAGES;
+describe('GET /locations/:citySlug/:categorySlug (unpublished)', () => {
+  it('404s for a category with no editorial record — a draft by default', async () => {
     const response = await request(buildApp()).get('/locations/cardiff/venues');
     expect(response.status).toBe(404);
     expect(response.headers['x-robots-tag']).toBe('noindex, follow');
   });
 
-  it('redirects to the city page while the pages are unbuilt', async () => {
-    process.env.LOCATION_CATEGORY_PAGES = 'true';
-    const response = await request(buildApp()).get('/locations/cardiff/venues');
-    expect(response.status).toBe(301);
-    expect(response.headers.location).toBe('/locations/cardiff');
+  it('404s for an unrecognised category slug', async () => {
+    const response = await request(buildApp()).get('/locations/cardiff/not-a-real-category');
+    expect(response.status).toBe(404);
+  });
+
+  it('404s for an unknown city slug', async () => {
+    const response = await request(buildApp()).get('/locations/atlantis/venues');
+    expect(response.status).toBe(404);
   });
 });
+
+// Deeper coverage of the published/indexable path — redirects, cross-links,
+// the category-scoped gate and guides — lives in
+// tests/integration/locations-category-pages.test.js.

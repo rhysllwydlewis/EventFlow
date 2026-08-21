@@ -66,4 +66,14 @@ describe('location index manifest', () => {
     const names = calls.map(call => call.options.name);
     expect(new Set(names).size).toBe(names.length);
   });
+
+  it('uses a unique compound index for the category page composite key', () => {
+    const key = calls.find(
+      call =>
+        call.collection === COLLECTIONS.locationCategoryPages &&
+        call.keys.locationSlug === 1 &&
+        call.keys.categorySlug === 1
+    );
+    expect(key.options.unique).toBe(true);
+  });
 });

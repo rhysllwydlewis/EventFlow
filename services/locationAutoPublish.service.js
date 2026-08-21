@@ -33,17 +33,22 @@ const { runScheduledJob, runIfMissed } = require('./scheduledJobRunner');
 const registry = require('./locationRegistry.service');
 const supplierLocation = require('./supplierLocation.service');
 const locationPages = require('./locationPage.service');
+const locationCategoryPages = require('./locationCategoryPage.service');
 const { isPublicSupplier } = require('./publicSupplierSeo.service');
 const { COLLECTIONS, PUBLICATION_STATES } = require('../models/LocationContent');
 
 /** Matches the "fewer than three suppliers" warning the admin screen already shows. */
 const MIN_SUPPLIERS_TO_PUBLISH = 3;
 
+/** Same bar, applied to one category's supplier count rather than a whole city's. */
+const MIN_SUPPLIERS_TO_PUBLISH_CATEGORY = 3;
+
 const MANAGED_BY_AUTOMATION = 'automation';
 const DEFAULT_CRON = '30 3 * * *';
 const EXPECTED_INTERVAL_MS = 24 * 60 * 60 * 1000;
 
 let promotionRunning = false;
+let categoryPromotionRunning = false;
 
 /**
  * Publish every registry city that has real supplier coverage and has never
@@ -135,6 +140,114 @@ async function promoteEligibleCities({ db = dbUnified, log = logger, now = new D
 }
 
 /**
+ * Publish every city × category combination with real supplier coverage in
+ * that category that has never been touched by an admin.
+ *
+ * The same two safety nets as `promoteEligibleCities` apply one level deeper:
+ * a combination an admin has ever saved through the admin editor is never
+ * touched by automation again, and automation only ever publishes — it never
+ * requests indexing.
+ * @param {Object} [options] Dependencies.
+ * @param {Object} [options.db] Database handle.
+ * @param {Object} [options.log] Logger.
+ * @param {Date} [options.now] Current time.
+ * @returns {Promise<{checked: number, promoted: number, promotedKeys: string[], skipped: boolean}>} Result.
+ */
+async function promoteEligibleCategories({ db = dbUnified, log = logger, now = new Date() } = {}) {
+  if (categoryPromotionRunning) {
+    return { checked: 0, promoted: 0, promotedKeys: [], skipped: true };
+  }
+
+  categoryPromotionRunning = true;
+  try {
+    const [suppliers, users, categoryRecords] = await Promise.all([
+      db.read('suppliers'),
+      db.read('users'),
+      locationCategoryPages.loadCategoryPageRecords(db),
+    ]);
+    const validOwnerIds = new Set((users || []).map(user => user && user.id).filter(Boolean));
+    const publicSuppliers = (suppliers || []).filter(supplier =>
+      isPublicSupplier(supplier, validOwnerIds)
+    );
+    const nowIso = now.toISOString();
+    const cities = registry.listCities();
+
+    let checked = 0;
+    let promoted = 0;
+    const promotedKeys = [];
+
+    for (const city of cities) {
+      const rankedCitySuppliers = supplierLocation.rankSuppliersForCity(publicSuppliers, city, {
+        validOwnerIds,
+      });
+      const cityCategories = locationPages.populatedCategories(rankedCitySuppliers);
+
+      for (const entry of cityCategories) {
+        const category = locationCategoryPages.resolveCategory(entry.name);
+        if (!category) {
+          continue;
+        }
+        checked += 1;
+        const key = locationCategoryPages.categoryPageKey(city.slug, category.slug);
+        const existing = categoryRecords.get(key);
+
+        if (existing && existing.managedBy !== MANAGED_BY_AUTOMATION) {
+          continue;
+        }
+        if (existing && existing.status !== PUBLICATION_STATES.draft) {
+          continue;
+        }
+
+        const rankedForCategory = rankedCitySuppliers.filter(
+          supplierEntry =>
+            supplierEntry.supplier && supplierEntry.supplier.category === category.name
+        );
+        if (rankedForCategory.length < MIN_SUPPLIERS_TO_PUBLISH_CATEGORY) {
+          continue;
+        }
+
+        const next = {
+          locationSlug: city.slug,
+          categorySlug: category.slug,
+          status: PUBLICATION_STATES.published,
+          managedBy: MANAGED_BY_AUTOMATION,
+          indexingRequested: false,
+          publishedAt: (existing && existing.publishedAt) || nowIso,
+          updatedAt: nowIso,
+        };
+
+        if (existing) {
+          await db.updateOne(
+            COLLECTIONS.locationCategoryPages,
+            { locationSlug: city.slug, categorySlug: category.slug },
+            next
+          );
+        } else {
+          await db.insertOne(COLLECTIONS.locationCategoryPages, {
+            id: db.uid ? db.uid() : `loccatpage_${key}`,
+            createdAt: nowIso,
+            ...next,
+          });
+        }
+
+        promoted += 1;
+        promotedKeys.push(key);
+      }
+    }
+
+    if (promoted > 0) {
+      log.info(
+        `[location-auto-publish] Published ${promoted} city category page(s): ${promotedKeys.join(', ')}`
+      );
+    }
+
+    return { checked, promoted, promotedKeys, skipped: false };
+  } finally {
+    categoryPromotionRunning = false;
+  }
+}
+
+/**
  * Schedule the automatic publication run.
  * @param {Object} [options] Dependencies, mirroring the review-request maintenance scheduler.
  * @returns {{scheduled: boolean, cronExpr: string|null, nextRun: Date|null}} Schedule result.
@@ -152,7 +265,11 @@ function scheduleAutoPublish({ db = dbUnified, log = logger, scheduleModule = sc
   }
 
   const cronExpr = process.env.LOCATION_AUTO_PUBLISH_CRON || DEFAULT_CRON;
-  const runOnce = () => promoteEligibleCities({ db, log });
+  const runOnce = async () => {
+    const cities = await promoteEligibleCities({ db, log });
+    const categories = await promoteEligibleCategories({ db, log });
+    return { cities, categories, skipped: cities.skipped && categories.skipped };
+  };
   const runTracked = () =>
     schedulerLock.withLock(backgroundJobs.JOB_KEYS.LOCATION_AUTO_PUBLISH, () =>
       runScheduledJob(backgroundJobs.JOB_KEYS.LOCATION_AUTO_PUBLISH, runOnce, { db, log })
@@ -223,7 +340,9 @@ module.exports = {
   DEFAULT_CRON,
   MANAGED_BY_AUTOMATION,
   MIN_SUPPLIERS_TO_PUBLISH,
+  MIN_SUPPLIERS_TO_PUBLISH_CATEGORY,
   logSchedulerStartup,
+  promoteEligibleCategories,
   promoteEligibleCities,
   scheduleAutoPublish,
 };

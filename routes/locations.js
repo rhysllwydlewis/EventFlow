@@ -24,8 +24,10 @@ const { publicReadLimiter } = require('../middleware/rateLimits');
 const registry = require('../services/locationRegistry.service');
 const locationHeroImages = require('../services/locationHeroImage.service');
 const locationPages = require('../services/locationPage.service');
+const locationCategoryPages = require('../services/locationCategoryPage.service');
 const locationGuides = require('../services/locationGuides.service');
 const supplierLocation = require('../services/supplierLocation.service');
+const categoryRegistry = require('../public/assets/js/utils/category-link.js');
 const {
   buildPublicSupplierSlug,
   isPublicSupplier,
@@ -41,18 +43,6 @@ const shellCache = new Map();
 let dataCache = null;
 let dataCacheExpiresAt = 0;
 let dataLoadPromise = null;
-
-/**
- * Whether the reserved city-category routes are switched on.
- *
- * They stay off until a city-category combination has passed the quality gate
- * on its own evidence; the route exists so the URL contract is reserved, not so
- * the pages can be launched by accident.
- * @returns {boolean} True when the flag is enabled.
- */
-function categoryPagesEnabled() {
-  return String(process.env.LOCATION_CATEGORY_PAGES || '').toLowerCase() === 'true';
-}
 
 /**
  * Escape text for safe inclusion in HTML.
@@ -198,14 +188,16 @@ function supplierPath(supplier) {
  * @returns {Promise<Object>} `{suppliers, validOwnerIds, packages, events, pageRecords}`.
  */
 async function loadLocationData() {
-  const [suppliers, users, supplierAnalytics, packages, events, pageRecords] = await Promise.all([
-    dbUnified.read('suppliers'),
-    dbUnified.read('users'),
-    dbUnified.read('supplierAnalytics'),
-    dbUnified.read('packages'),
-    dbUnified.read('public_calendar_events'),
-    locationPages.loadPageRecords(dbUnified),
-  ]);
+  const [suppliers, users, supplierAnalytics, packages, events, pageRecords, categoryPageRecords] =
+    await Promise.all([
+      dbUnified.read('suppliers'),
+      dbUnified.read('users'),
+      dbUnified.read('supplierAnalytics'),
+      dbUnified.read('packages'),
+      dbUnified.read('public_calendar_events'),
+      locationPages.loadPageRecords(dbUnified),
+      locationCategoryPages.loadCategoryPageRecords(dbUnified),
+    ]);
 
   const validOwnerIds = new Set((users || []).map(user => user && user.id).filter(Boolean));
   const summaryBySupplierId = new Map(
@@ -235,6 +227,7 @@ async function loadLocationData() {
     packages: packages || [],
     events: events || [],
     pageRecords,
+    categoryPageRecords,
   };
 }
 
@@ -288,6 +281,26 @@ function publishedSlugs(pageRecords) {
     }
   }
   return slugs;
+}
+
+/**
+ * The set of `citySlug:categorySlug` keys whose category page is published.
+ *
+ * A stored record's own `status` is trusted directly rather than re-running
+ * `normaliseCategoryPageRecord` over every registry city × category
+ * combination: only a combination with a real record can ever be published,
+ * so there is nothing to default for the ones that don't have one.
+ * @param {Map<string, Object>} categoryPageRecords Stored records.
+ * @returns {Set<string>} Published `citySlug:categorySlug` keys.
+ */
+function publishedCategoryKeys(categoryPageRecords) {
+  const keys = new Set();
+  for (const [key, record] of categoryPageRecords) {
+    if (record && record.status === PUBLICATION_STATES.published) {
+      keys.add(key);
+    }
+  }
+  return keys;
 }
 
 /**
@@ -575,11 +588,23 @@ function renderCityPage(model) {
   }
 
   if (categories.length) {
+    // A category with its own published page links straight there — the
+    // real, indexable version of this list — and only falls back to a
+    // filtered search link for a category that has not earned that page yet.
+    const publishedCategoryKeySet = model.publishedCategoryKeys || new Set();
     const chips = categories
-      .map(
-        category =>
-          `<li><a href="/suppliers?category=${encodeURIComponent(category.name)}&location=${encodeURIComponent(city.name)}">${escapeHtml(category.name)} (${category.count})</a></li>`
-      )
+      .map(category => {
+        const canonical = categoryRegistry.canonicalCategoryValue(category.name);
+        const match = canonical
+          ? categoryRegistry.CATEGORY_DEFINITIONS.find(entry => entry.name === canonical)
+          : null;
+        const href =
+          match &&
+          publishedCategoryKeySet.has(locationCategoryPages.categoryPageKey(city.slug, match.slug))
+            ? `/locations/${escapeHtml(city.slug)}/${escapeHtml(match.slug)}`
+            : `/suppliers?category=${encodeURIComponent(category.name)}&location=${encodeURIComponent(city.name)}`;
+        return `<li><a href="${href}">${escapeHtml(category.name)} (${category.count})</a></li>`;
+      })
       .join('');
     sections.push(`<section class="efl-section" aria-labelledby="efl-categories">
       <h2 id="efl-categories">What you can book in ${escapeHtml(city.name)}</h2>
@@ -771,6 +796,7 @@ router.get('/locations/:citySlug', publicReadLimiter, async (req, res, next) => 
       baseUrl: BASE_URL,
     });
     model.guides = locationGuides.relatedGuides(model.categories, city.slug);
+    model.publishedCategoryKeys = publishedCategoryKeys(data.categoryPageRecords);
 
     const structuredData = [model.breadcrumbs];
     if (model.indexable) {
@@ -806,22 +832,345 @@ router.get('/locations/:citySlug', publicReadLimiter, async (req, res, next) => 
   }
 });
 
-// ─── Reserved city-category route ────────────────────────────────────────────
+// ─── City × category page ───────────────────────────────────────────────────
 
-router.get('/locations/:citySlug/:categorySlug', publicReadLimiter, (req, res, next) => {
-  // The URL shape is reserved so it cannot be claimed by anything else, but the
-  // pages stay off until a combination earns its own launch.
-  if (!categoryPagesEnabled()) {
-    res.set('X-Robots-Tag', 'noindex, follow');
-    return next();
+/**
+ * Render a city × category page's content.
+ *
+ * Every module is omitted entirely when it has nothing reliable to show, the
+ * same discipline `renderCityPage` follows — an empty shelf is worse than no
+ * shelf, and that does not change one level deeper.
+ * @param {Object} model Page model from `locationCategoryPages.buildCategoryPageModel`.
+ * @returns {string} Category page HTML.
+ */
+// skipcq: JS-R1005 -- The page is a flat sequence of independent modules.
+function renderCategoryPage(model) {
+  const {
+    city,
+    category,
+    page,
+    metadata,
+    rankedSuppliers,
+    packages,
+    events,
+    siblingCategories,
+    nearbySameCategory,
+    cityHero,
+    guides,
+  } = model;
+  const sections = [];
+
+  const heroVisual =
+    cityHero && cityHero.imageUrl
+      ? `<div class="efl-hero__visual" data-city-name="${escapeHtml(city.name)}"><img class="efl-hero__media" src="${escapeHtml(
+          cityHero.imageUrl
+        )}" alt="${escapeHtml(cityHero.imageAlt || `${city.name} city centre`)}" width="1160" height="420" loading="eager" decoding="async" /></div>`
+      : `<div class="efl-hero__visual efl-hero__visual--placeholder" aria-hidden="true"><span class="efl-hero__map-pin"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M20 10c0 5.5-8 12-8 12S4 15.5 4 10a8 8 0 1 1 16 0Z"></path><circle cx="12" cy="10" r="2.5"></circle></svg></span><strong>${escapeHtml(city.name)}</strong></div>`;
+
+  sections.push(`<section class="efl-hero efl-hero--city">
+    <div class="efl-hero__copy">
+      <span class="efl-hero__kicker"><span aria-hidden="true">&#9679;</span> Plan locally with EventFlow</span>
+      <h1>${escapeHtml(metadata.heading)}</h1>
+      ${page.content.intro ? `<p class="efl-hero__intro">${escapeHtml(page.content.intro)}</p>` : ''}
+      <form class="efl-search efl-search--city" role="search" action="/suppliers" method="GET">
+        <label class="efl-sr-only" for="efl-category-search">Search ${escapeHtml(category.name.toLowerCase())} in ${escapeHtml(city.name)}</label>
+        <span class="efl-search__icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-4-4"></path></svg></span>
+        <input id="efl-category-search" type="search" name="q" placeholder="Search ${escapeHtml(category.name.toLowerCase())}&hellip;" />
+        <input type="hidden" name="category" value="${escapeHtml(category.name)}" />
+        <input type="hidden" name="location" value="${escapeHtml(city.name)}" />
+        <button type="submit"><span class="efl-search-label--long">Search suppliers</span><span class="efl-search-label--short">Search</span></button>
+      </form>
+      <p class="efl-hero__trust"><span aria-hidden="true">&#10003;</span> Free to browse <span aria-hidden="true">&#183;</span> Message suppliers directly</p>
+    </div>
+    ${heroVisual}
+  </section>`);
+
+  if (rankedSuppliers.length) {
+    const summary = [
+      `<li><strong>${rankedSuppliers.length}</strong><span>${rankedSuppliers.length === 1 ? 'supplier' : 'suppliers'} covering ${escapeHtml(category.name.toLowerCase())} in ${escapeHtml(city.name)}</span></li>`,
+      packages.length
+        ? `<li><strong>${packages.length}</strong><span>${packages.length === 1 ? 'package' : 'packages'} available</span></li>`
+        : '',
+      events.length
+        ? `<li><strong>${events.length}</strong><span>upcoming public ${events.length === 1 ? 'event' : 'events'}</span></li>`
+        : '',
+    ]
+      .filter(Boolean)
+      .join('');
+    sections.push(`<ul class="efl-summary">${summary}</ul>`);
   }
 
-  const resolved = registry.resolveCity(req.params.citySlug);
-  if (!resolved) {
-    res.set('X-Robots-Tag', 'noindex, follow');
-    return next();
+  if (rankedSuppliers.length) {
+    sections.push(`<section class="efl-section" aria-labelledby="efl-suppliers">
+      <h2 id="efl-suppliers">${escapeHtml(category.name)} in and around ${escapeHtml(city.name)}</h2>
+      <ul class="efl-grid">${rankedSuppliers.map(renderSupplierCard).join('\n')}</ul>
+    </section>`);
+  } else {
+    sections.push(`<section class="efl-section">
+      <p class="efl-prose">We are still building EventFlow's ${escapeHtml(category.name.toLowerCase())} network in ${escapeHtml(city.name)}. <a href="/locations/${escapeHtml(city.slug)}">See every supplier in ${escapeHtml(city.name)}</a> or <a href="/for-suppliers">add your business</a>.</p>
+    </section>`);
   }
-  return res.redirect(301, `/locations/${resolved.city.slug}`);
+
+  if (packages.length) {
+    const items = packages
+      .slice(0, 6)
+      .map(
+        pkg => `<li class="efl-card">
+          <h3>${escapeHtml(pkg.name || pkg.title || 'Package')}</h3>
+          ${pkg.description ? `<p>${escapeHtml(String(pkg.description).slice(0, 160))}</p>` : ''}
+        </li>`
+      )
+      .join('');
+    sections.push(`<section class="efl-section" aria-labelledby="efl-packages">
+      <h2 id="efl-packages">Packages from ${escapeHtml(city.name)} ${escapeHtml(category.name.toLowerCase())} suppliers</h2>
+      <ul class="efl-grid">${items}</ul>
+    </section>`);
+  }
+
+  if (events.length) {
+    const items = events
+      .slice(0, 6)
+      .map(
+        event => `<li class="efl-card">
+          <h3>${escapeHtml(event.title || event.name || 'Public event')}</h3>
+          ${event.startDate ? `<p class="efl-card__meta"><time datetime="${escapeHtml(event.startDate)}">${escapeHtml(String(event.startDate).slice(0, 10))}</time></p>` : ''}
+        </li>`
+      )
+      .join('');
+    sections.push(`<section class="efl-section" aria-labelledby="efl-events">
+      <h2 id="efl-events">Public events near ${escapeHtml(city.name)}</h2>
+      <ul class="efl-grid">${items}</ul>
+    </section>`);
+  }
+
+  if (page.content.planningSections.length) {
+    const blocks = page.content.planningSections
+      .filter(section => section && section.title && section.body)
+      .map(section => {
+        const sourceNote =
+          section.sourceName && section.sourceUrl
+            ? `<p class="efl-note">Source: <a href="${escapeHtml(section.sourceUrl)}" rel="nofollow noopener">${escapeHtml(section.sourceName)}</a>${section.sourceDate ? ` (${escapeHtml(section.sourceDate)})` : ''}</p>`
+            : '';
+        return `<article class="efl-planning__card"><span class="efl-planning__icon" aria-hidden="true">&#10022;</span><h3>${escapeHtml(section.title)}</h3>${String(
+          section.body
+        )
+          .split(/\n{2,}/)
+          .map(paragraph => `<p>${escapeHtml(paragraph.trim())}</p>`)
+          .join('')}${sourceNote}</article>`;
+      })
+      .join('');
+    if (blocks) {
+      sections.push(`<section class="efl-section efl-prose efl-planning" aria-labelledby="efl-planning">
+        <h2 id="efl-planning">Planning ${escapeHtml(category.name.toLowerCase())} in ${escapeHtml(city.name)}</h2>
+        <div class="efl-planning__grid">${blocks}</div>
+      </section>`);
+    }
+  }
+
+  if (guides && guides.length) {
+    const items = guides
+      .map(
+        guide => `<li class="efl-card">
+          <h3><a href="${escapeHtml(guide.href)}">${escapeHtml(guide.title)}</a></h3>
+          ${guide.excerpt ? `<p>${escapeHtml(guide.excerpt)}</p>` : ''}
+        </li>`
+      )
+      .join('');
+    sections.push(`<section class="efl-section" aria-labelledby="efl-guides">
+      <h2 id="efl-guides">Helpful planning guides</h2>
+      <ul class="efl-grid">${items}</ul>
+    </section>`);
+  }
+
+  if (page.content.faqs.length) {
+    const faqs = page.content.faqs
+      .filter(faq => faq && faq.question && faq.answer)
+      .map(
+        faq =>
+          `<div class="efl-faq"><span class="efl-faq__icon" aria-hidden="true">?</span><div><h3>${escapeHtml(faq.question)}</h3><p>${escapeHtml(faq.answer)}</p></div></div>`
+      )
+      .join('');
+    if (faqs) {
+      sections.push(`<section class="efl-section" aria-labelledby="efl-faqs">
+        <h2 id="efl-faqs">Common questions about ${escapeHtml(category.name.toLowerCase())} in ${escapeHtml(city.name)}</h2>
+        ${faqs}
+      </section>`);
+    }
+  }
+
+  if (siblingCategories.length) {
+    const links = siblingCategories
+      .map(entry => {
+        const canonical = categoryRegistry.canonicalCategoryValue(entry.name);
+        const match = canonical
+          ? categoryRegistry.CATEGORY_DEFINITIONS.find(candidate => candidate.name === canonical)
+          : null;
+        return match
+          ? `<li><a href="/locations/${escapeHtml(city.slug)}/${escapeHtml(match.slug)}">${escapeHtml(entry.name)}</a></li>`
+          : '';
+      })
+      .filter(Boolean)
+      .join('');
+    if (links) {
+      sections.push(`<section class="efl-section" aria-labelledby="efl-sibling-categories">
+        <h2 id="efl-sibling-categories">Also in ${escapeHtml(city.name)}</h2>
+        <ul class="efl-chips">${links}</ul>
+      </section>`);
+    }
+  }
+
+  if (nearbySameCategory.length) {
+    const links = nearbySameCategory
+      .map(
+        nearbyCity =>
+          `<li><a href="/locations/${escapeHtml(nearbyCity.slug)}/${escapeHtml(category.slug)}">${escapeHtml(category.name)} in ${escapeHtml(nearbyCity.name)}</a></li>`
+      )
+      .join('');
+    sections.push(`<section class="efl-section" aria-labelledby="efl-nearby">
+      <h2 id="efl-nearby">${escapeHtml(category.name)} near ${escapeHtml(city.name)}</h2>
+      <ul class="efl-chips">${links}</ul>
+    </section>`);
+  }
+
+  sections.push(`<section class="efl-section efl-next" aria-labelledby="efl-next">
+    <div><span class="efl-next__kicker">Ready when you are</span><h2 id="efl-next">Bring your ${escapeHtml(city.name)} event together</h2>
+    <p>Shortlist the suppliers you like, message them through EventFlow and request quotes in one place.</p></div>
+    <p class="efl-actions">
+      <a class="efl-btn efl-btn--solid" href="/suppliers?category=${encodeURIComponent(category.name)}&location=${encodeURIComponent(city.name)}">Browse ${escapeHtml(category.name)} suppliers</a>
+      <a class="efl-btn efl-btn--ghost" href="/for-suppliers">List your business</a>
+    </p>
+  </section>`);
+
+  const reviewNote = page.lastReviewedAt
+    ? `<p class="efl-note">Local information last reviewed ${escapeHtml(String(page.lastReviewedAt).slice(0, 10))}.</p>`
+    : '';
+
+  const pilotNote =
+    page.status === PUBLICATION_STATES.pilot
+      ? '<p class="efl-pilot">This page is in pilot. It is live for review but is not listed in search engines yet.</p>'
+      : '';
+
+  return `${renderBreadcrumbs([
+    { name: 'Home', url: '/' },
+    { name: 'UK locations', url: '/locations' },
+    { name: city.name, url: `/locations/${city.slug}` },
+    { name: category.name, url: null },
+  ])}
+    <div class="efl-container">${pilotNote}${sections.join('\n')}${reviewNote}</div>`;
+}
+
+router.get('/locations/:citySlug/:categorySlug', publicReadLimiter, async (req, res, next) => {
+  try {
+    const resolvedCity = registry.resolveCity(req.params.citySlug);
+    if (!resolvedCity) {
+      res.set('X-Robots-Tag', 'noindex, follow');
+      return next();
+    }
+    const category = locationCategoryPages.resolveCategory(req.params.categorySlug);
+    if (!category) {
+      res.set('X-Robots-Tag', 'noindex, follow');
+      return next();
+    }
+    // Alias city spelling, or a legacy category spelling, both redirect to the
+    // one canonical URL — the same rule the city route applies on its own.
+    if (
+      !resolvedCity.canonical ||
+      req.params.citySlug !== resolvedCity.city.slug ||
+      req.params.categorySlug !== category.slug
+    ) {
+      return res.redirect(301, `/locations/${resolvedCity.city.slug}/${category.slug}`);
+    }
+
+    const city = resolvedCity.city;
+    const shell = await readShell('location.html');
+    if (!shell) {
+      return next();
+    }
+
+    const data = await readLocationData();
+    const categoryPage = locationCategoryPages.normaliseCategoryPageRecord(
+      city,
+      category,
+      data.categoryPageRecords.get(locationCategoryPages.categoryPageKey(city.slug, category.slug))
+    );
+
+    // Draft, in-review and retired combinations do not exist as far as the
+    // public is concerned — exactly the same rule the city page applies.
+    if (!locationCategoryPages.isPubliclyVisible(categoryPage)) {
+      res.set('X-Robots-Tag', 'noindex, follow');
+      return next();
+    }
+
+    // The category page borrows the parent city's hero photograph rather than
+    // resolving its own — one less thing an editor has to keep in step across
+    // every category a city has.
+    let cityPage = locationPages.normalisePageRecord(city, data.pageRecords.get(city.slug));
+    cityPage = await locationHeroImages.resolvePageHero(city, cityPage);
+
+    const rankedCitySuppliers = supplierLocation.rankSuppliersForCity(data.suppliers, city, {
+      validOwnerIds: data.validOwnerIds,
+    });
+    const cityCategories = locationPages.populatedCategories(rankedCitySuppliers);
+    const catKeys = publishedCategoryKeys(data.categoryPageRecords);
+    const nearby = registry.nearbyCities(city.slug, nearbyCity =>
+      publishedSlugs(data.pageRecords).has(nearbyCity.slug)
+    );
+
+    const model = locationCategoryPages.buildCategoryPageModel({
+      city,
+      category,
+      page: categoryPage,
+      rankedCitySuppliers,
+      packages: data.packages,
+      events: data.events,
+      cityCategories,
+      publishedCategoryKeys: catKeys,
+      nearbyCities: nearby,
+      baseUrl: BASE_URL,
+    });
+    model.guides = locationGuides.relatedGuidesForCategory(city, category);
+    model.cityHero = {
+      imageUrl: cityPage.content.heroImageUrl,
+      imageAlt: cityPage.content.heroImageAlt,
+    };
+    // The category page borrows the city's hero visually; its social preview
+    // image should follow, rather than sharing with no image at all.
+    model.metadata.imageUrl = model.cityHero.imageUrl;
+
+    const structuredData = [model.breadcrumbs];
+    if (model.indexable) {
+      structuredData.push(
+        locationCategoryPages.buildCategoryCollectionStructuredData({
+          city,
+          category,
+          metadata: model.metadata,
+          rankedSuppliers: model.rankedSuppliers,
+          baseUrl: BASE_URL,
+          supplierUrlFor: supplier => {
+            const suffix = supplierPath(supplier);
+            return suffix ? `${locationPages.safeBaseUrl(BASE_URL)}${suffix}` : '';
+          },
+        })
+      );
+    }
+
+    const html = applyContent(
+      applyMeta(shell, {
+        ...model.metadata,
+        indexable: model.indexable,
+        pageType: 'location_city_category',
+        locationSlug: city.slug,
+        categorySlug: category.slug,
+        structuredData,
+      }),
+      renderCategoryPage(model)
+    );
+
+    return send(res, html, { indexable: model.indexable });
+  } catch (error) {
+    logger.error('Could not render a city category page:', error);
+    return next(error);
+  }
 });
 
 module.exports = router;
@@ -829,12 +1178,13 @@ module.exports.__internal = {
   BASE_URL,
   applyContent,
   applyMeta,
-  categoryPagesEnabled,
   escapeHtml,
+  publishedCategoryKeys,
   publishedSlugs,
   readLocationData,
   readShell,
   renderBreadcrumbs,
+  renderCategoryPage,
   renderCityPage,
   renderHub,
   renderSupplierCard,
