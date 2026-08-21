@@ -18,6 +18,7 @@ const {
   getSupplierActionItems,
   DAILY_INTERVAL_MS,
   WEEKLY_INTERVAL_MS,
+  FIRST_MONTHLY_INTERVAL_MS,
   MONTHLY_INTERVAL_MS,
   DAILY_SENDS_BEFORE_WEEKLY,
   WEEKLY_SENDS_BEFORE_MONTHLY,
@@ -286,7 +287,12 @@ describe('computeFullReport', () => {
 describe('evaluateCadence', () => {
   const now = new Date('2024-01-01T09:00:00Z');
 
-  it('does NOT send on first call (no state) — schedules for tomorrow in daily stage', () => {
+  it('uses exactly one daily-stage send and one weekly-stage send', () => {
+    expect(DAILY_SENDS_BEFORE_WEEKLY).toBe(1);
+    expect(WEEKLY_SENDS_BEFORE_MONTHLY).toBe(1);
+  });
+
+  it('does NOT send on first call (no state) — schedules the first reminder for 24 hours later', () => {
     const { shouldSend, nextState } = evaluateCadence(undefined, now);
     expect(shouldSend).toBe(false);
     expect(nextState.cadence).toBe('daily');
@@ -313,7 +319,7 @@ describe('evaluateCadence', () => {
     expect(shouldSend).toBe(false);
   });
 
-  it('sends when nextSendAt is in the past', () => {
+  it('sends the first reminder when nextSendAt is due, then moves straight to weekly', () => {
     const state = {
       cadence: 'daily',
       sendCountDaily: 0,
@@ -323,79 +329,66 @@ describe('evaluateCadence', () => {
       nextSendAt: new Date(now.getTime() - 1000).toISOString(),
       firstOutstandingAt: new Date(now.getTime() - DAILY_INTERVAL_MS).toISOString(),
     };
-    const { shouldSend } = evaluateCadence(state, now);
+    const { shouldSend, nextState } = evaluateCadence(state, now);
     expect(shouldSend).toBe(true);
+    expect(nextState.cadence).toBe('weekly');
+    expect(nextState.sendCountDaily).toBe(1);
+    expect(nextState.nextSendAt).toBe(new Date(now.getTime() + WEEKLY_INTERVAL_MS).toISOString());
   });
 
-  it('stays in daily stage for first DAILY_SENDS_BEFORE_WEEKLY sends, then transitions to weekly', () => {
-    let state = undefined;
-    let result;
-
-    // Initial detection — no send
-    result = evaluateCadence(state, now);
-    expect(result.shouldSend).toBe(false);
-    state = result.nextState;
-    expect(state.cadence).toBe('daily');
-
-    // Simulate DAILY_SENDS_BEFORE_WEEKLY sends
-    for (let i = 0; i < DAILY_SENDS_BEFORE_WEEKLY; i++) {
-      const sendTime = new Date(new Date(state.nextSendAt).getTime() + 1);
-      result = evaluateCadence(state, sendTime);
-      expect(result.shouldSend).toBe(true);
-      state = result.nextState;
-      if (i < DAILY_SENDS_BEFORE_WEEKLY - 1) {
-        // Still in daily stage
-        expect(state.cadence).toBe('daily');
-        expect(state.sendCountDaily).toBe(i + 1);
-      } else {
-        // Last daily send — transitions to weekly
-        expect(state.cadence).toBe('weekly');
-        expect(state.sendCountDaily).toBe(DAILY_SENDS_BEFORE_WEEKLY);
-      }
-    }
-  });
-
-  it('stays in weekly stage for WEEKLY_SENDS_BEFORE_MONTHLY sends, then transitions to monthly', () => {
-    let state = {
+  it('sends one weekly follow-up, then moves to monthly with a 30-day wait', () => {
+    const state = {
       cadence: 'weekly',
-      sendCountDaily: DAILY_SENDS_BEFORE_WEEKLY,
+      sendCountDaily: 1,
       sendCountWeekly: 0,
       sendCountMonthly: 0,
-      lastSentAt: new Date(now.getTime() - WEEKLY_INTERVAL_MS - 1000).toISOString(),
+      lastSentAt: new Date(now.getTime() - WEEKLY_INTERVAL_MS).toISOString(),
       nextSendAt: new Date(now.getTime() - 1000).toISOString(),
-      firstOutstandingAt: new Date(
-        now.getTime() - (DAILY_SENDS_BEFORE_WEEKLY + 1) * DAILY_INTERVAL_MS
-      ).toISOString(),
+      firstOutstandingAt: new Date(now.getTime() - 8 * DAILY_INTERVAL_MS).toISOString(),
     };
 
-    for (let i = 0; i < WEEKLY_SENDS_BEFORE_MONTHLY; i++) {
-      const sendTime = new Date(new Date(state.nextSendAt).getTime() + 1);
-      const result = evaluateCadence(state, sendTime);
-      expect(result.shouldSend).toBe(true);
-      state = result.nextState;
-      if (i < WEEKLY_SENDS_BEFORE_MONTHLY - 1) {
-        expect(state.cadence).toBe('weekly');
-        expect(state.sendCountWeekly).toBe(i + 1);
-      } else {
-        // Transitions to monthly after last weekly send
-        expect(state.cadence).toBe('monthly');
-        expect(state.sendCountWeekly).toBe(WEEKLY_SENDS_BEFORE_MONTHLY);
-      }
-    }
+    const { shouldSend, nextState } = evaluateCadence(state, now);
+    expect(shouldSend).toBe(true);
+    expect(nextState.cadence).toBe('monthly');
+    expect(nextState.sendCountWeekly).toBe(1);
+    expect(nextState.sendCountMonthly).toBe(0);
+    expect(nextState.nextSendAt).toBe(
+      new Date(now.getTime() + FIRST_MONTHLY_INTERVAL_MS).toISOString()
+    );
   });
 
-  it('stays monthly indefinitely after weekly stage completes', () => {
+  it('waits 30 days before the first monthly-stage reminder', () => {
+    const lastSentAt = now.toISOString();
+    const state = {
+      cadence: 'monthly',
+      sendCountDaily: 1,
+      sendCountWeekly: 1,
+      sendCountMonthly: 0,
+      lastSentAt,
+      nextSendAt: new Date(now.getTime() + FIRST_MONTHLY_INTERVAL_MS).toISOString(),
+      firstOutstandingAt: new Date(now.getTime() - 10 * DAILY_INTERVAL_MS).toISOString(),
+    };
+
+    const at28Days = new Date(now.getTime() + MONTHLY_INTERVAL_MS);
+    const result = evaluateCadence(state, at28Days);
+    expect(result.shouldSend).toBe(false);
+    expect(result.nextState.cadence).toBe('monthly');
+    expect(result.nextState.nextSendAt).toBe(
+      new Date(now.getTime() + FIRST_MONTHLY_INTERVAL_MS).toISOString()
+    );
+  });
+
+  it('stays monthly indefinitely at 28-day intervals after the first monthly-stage send', () => {
     let state = {
       cadence: 'monthly',
-      sendCountDaily: DAILY_SENDS_BEFORE_WEEKLY,
-      sendCountWeekly: WEEKLY_SENDS_BEFORE_MONTHLY,
+      sendCountDaily: 1,
+      sendCountWeekly: 1,
       sendCountMonthly: 1,
       lastSentAt: new Date(now.getTime() - MONTHLY_INTERVAL_MS - 1000).toISOString(),
       nextSendAt: new Date(now.getTime() - 1000).toISOString(),
-      firstOutstandingAt: new Date(now.getTime() - 180 * 24 * 60 * 60 * 1000).toISOString(),
+      firstOutstandingAt: new Date(now.getTime() - 180 * DAILY_INTERVAL_MS).toISOString(),
     };
 
-    // Send multiple times — always stays monthly
     for (let i = 0; i < 3; i++) {
       const sendTime = new Date(new Date(state.nextSendAt).getTime() + 1);
       const result = evaluateCadence(state, sendTime);
@@ -403,54 +396,77 @@ describe('evaluateCadence', () => {
       state = result.nextState;
       expect(state.cadence).toBe('monthly');
       expect(state.sendCountMonthly).toBe(i + 2); // starts at 1
-      // Next interval should be MONTHLY_INTERVAL_MS from now
       const expectedNext = new Date(sendTime.getTime() + MONTHLY_INTERVAL_MS).toISOString();
       expect(state.nextSendAt).toBe(expectedNext);
     }
   });
 
-  it('daily cadence nextSendAt is DAILY_INTERVAL_MS from now', () => {
+  it('throttles an old daily-stage state after one send instead of sending again tomorrow', () => {
+    const lastSentAt = now.toISOString();
     const state = {
       cadence: 'daily',
-      sendCountDaily: 2,
+      sendCountDaily: 1,
       sendCountWeekly: 0,
       sendCountMonthly: 0,
-      nextSendAt: new Date(now.getTime() - 1000).toISOString(),
-      firstOutstandingAt: new Date(now.getTime() - 3 * DAILY_INTERVAL_MS).toISOString(),
+      lastSentAt,
+      // Old policy would have scheduled another email tomorrow.
+      nextSendAt: new Date(now.getTime() + DAILY_INTERVAL_MS).toISOString(),
+      firstOutstandingAt: new Date(now.getTime() - DAILY_INTERVAL_MS).toISOString(),
     };
-    const { nextState } = evaluateCadence(state, now);
-    const expected = new Date(now.getTime() + DAILY_INTERVAL_MS).toISOString();
-    expect(nextState.nextSendAt).toBe(expected);
+
+    const tomorrow = new Date(now.getTime() + DAILY_INTERVAL_MS);
+    const result = evaluateCadence(state, tomorrow);
+    expect(result.shouldSend).toBe(false);
+    expect(result.nextState.cadence).toBe('weekly');
+    expect(result.nextState.nextSendAt).toBe(
+      new Date(now.getTime() + WEEKLY_INTERVAL_MS).toISOString()
+    );
   });
 
-  it('weekly cadence nextSendAt is WEEKLY_INTERVAL_MS from now', () => {
+  it('throttles an old weekly-stage state after one weekly send into the 30-day wait', () => {
+    const lastSentAt = now.toISOString();
     const state = {
       cadence: 'weekly',
-      sendCountDaily: DAILY_SENDS_BEFORE_WEEKLY,
+      sendCountDaily: 7,
       sendCountWeekly: 1,
       sendCountMonthly: 0,
-      nextSendAt: new Date(now.getTime() - 1000).toISOString(),
-      firstOutstandingAt: new Date(
-        now.getTime() - (DAILY_SENDS_BEFORE_WEEKLY + 1) * DAILY_INTERVAL_MS
-      ).toISOString(),
+      lastSentAt,
+      // Old policy would have scheduled another weekly email.
+      nextSendAt: new Date(now.getTime() + WEEKLY_INTERVAL_MS).toISOString(),
+      firstOutstandingAt: new Date(now.getTime() - 30 * DAILY_INTERVAL_MS).toISOString(),
     };
-    const { nextState } = evaluateCadence(state, now);
-    const expected = new Date(now.getTime() + WEEKLY_INTERVAL_MS).toISOString();
-    expect(nextState.nextSendAt).toBe(expected);
+
+    const inAWeek = new Date(now.getTime() + WEEKLY_INTERVAL_MS);
+    const result = evaluateCadence(state, inAWeek);
+    expect(result.shouldSend).toBe(false);
+    expect(result.nextState.cadence).toBe('monthly');
+    expect(result.nextState.nextSendAt).toBe(
+      new Date(now.getTime() + FIRST_MONTHLY_INTERVAL_MS).toISOString()
+    );
   });
 
-  it('monthly cadence nextSendAt is MONTHLY_INTERVAL_MS from now', () => {
+  it('uses a 28-day recurring interval for existing monthly states that have already sent monthly', () => {
+    const lastSentAt = now.toISOString();
     const state = {
       cadence: 'monthly',
-      sendCountDaily: DAILY_SENDS_BEFORE_WEEKLY,
-      sendCountWeekly: WEEKLY_SENDS_BEFORE_MONTHLY,
+      sendCountDaily: 7,
+      sendCountWeekly: 4,
       sendCountMonthly: 2,
-      nextSendAt: new Date(now.getTime() - 1000).toISOString(),
-      firstOutstandingAt: new Date(now.getTime() - 200 * 24 * 60 * 60 * 1000).toISOString(),
+      lastSentAt,
+      // Old policy stored 30 days; new policy should use 28 after monthly sends begin.
+      nextSendAt: new Date(now.getTime() + FIRST_MONTHLY_INTERVAL_MS).toISOString(),
+      firstOutstandingAt: new Date(now.getTime() - 200 * DAILY_INTERVAL_MS).toISOString(),
     };
-    const { nextState } = evaluateCadence(state, now);
-    const expected = new Date(now.getTime() + MONTHLY_INTERVAL_MS).toISOString();
-    expect(nextState.nextSendAt).toBe(expected);
+
+    const before28Days = new Date(now.getTime() + MONTHLY_INTERVAL_MS - 1000);
+    expect(evaluateCadence(state, before28Days).shouldSend).toBe(false);
+
+    const at28Days = new Date(now.getTime() + MONTHLY_INTERVAL_MS);
+    const result = evaluateCadence(state, at28Days);
+    expect(result.shouldSend).toBe(true);
+    expect(result.nextState.nextSendAt).toBe(
+      new Date(at28Days.getTime() + MONTHLY_INTERVAL_MS).toISOString()
+    );
   });
 
   it('firstOutstandingAt is preserved through sends', () => {
@@ -467,7 +483,7 @@ describe('evaluateCadence', () => {
     expect(nextState.firstOutstandingAt).toBe(firstOutstandingAt);
   });
 
-  it('handles legacy state (sendCount without cadence) gracefully as daily', () => {
+  it('handles legacy state (sendCount without cadence) gracefully', () => {
     // Legacy state from PR #900 — no cadence/sendCountDaily fields
     const legacyState = {
       sendCount: 1,
@@ -476,39 +492,40 @@ describe('evaluateCadence', () => {
       firstOutstandingAt: new Date(now.getTime() - 2 * DAILY_INTERVAL_MS).toISOString(),
     };
     const result = evaluateCadence(legacyState, now);
-    // Should be able to send without throwing
     expect(typeof result.shouldSend).toBe('boolean');
     expect(result.nextState).toBeDefined();
   });
 
   describe('force option (admin "Send Now")', () => {
-    it('sends immediately on first detection when force=true, counted as the first daily send', () => {
+    it('sends immediately on first detection and schedules the next automatic email a week later', () => {
       const { shouldSend, nextState } = evaluateCadence(undefined, now, { force: true });
       expect(shouldSend).toBe(true);
-      expect(nextState.cadence).toBe('daily');
+      expect(nextState.cadence).toBe('weekly');
       expect(nextState.sendCountDaily).toBe(1);
+      expect(nextState.sendCountWeekly).toBe(0);
       expect(nextState.lastSentAt).toBe(now.toISOString());
-      const expectedNext = new Date(now.getTime() + DAILY_INTERVAL_MS).toISOString();
+      const expectedNext = new Date(now.getTime() + WEEKLY_INTERVAL_MS).toISOString();
       expect(nextState.nextSendAt).toBe(expectedNext);
     });
 
     it('sends immediately when force=true even though nextSendAt is far in the future', () => {
       const state = {
         cadence: 'daily',
-        sendCountDaily: 2,
+        sendCountDaily: 0,
         sendCountWeekly: 0,
         sendCountMonthly: 0,
-        lastSentAt: now.toISOString(),
+        lastSentAt: null,
         nextSendAt: new Date(now.getTime() + DAILY_INTERVAL_MS).toISOString(),
         firstOutstandingAt: now.toISOString(),
       };
       const { shouldSend, nextState } = evaluateCadence(state, now, { force: true });
       expect(shouldSend).toBe(true);
-      // Cadence progression still advances normally from the forced send.
-      expect(nextState.sendCountDaily).toBe(3);
+      expect(nextState.cadence).toBe('weekly');
+      expect(nextState.sendCountDaily).toBe(1);
+      expect(nextState.nextSendAt).toBe(new Date(now.getTime() + WEEKLY_INTERVAL_MS).toISOString());
     });
 
-    it('without force, still defers on first detection and respects nextSendAt (unchanged default behaviour)', () => {
+    it('without force, still defers on first detection and respects nextSendAt', () => {
       const { shouldSend } = evaluateCadence(undefined, now);
       expect(shouldSend).toBe(false);
     });
