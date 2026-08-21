@@ -348,23 +348,33 @@ function evaluateCadence(state, now, opts = {}) {
   const firstOutstandingAt = state.firstOutstandingAt || now.toISOString();
 
   const lastSentMs = state.lastSentAt ? Date.parse(state.lastSentAt) : NaN;
+  const storedNextSendMs = state.nextSendAt ? Date.parse(state.nextSendAt) : NaN;
+  const hasStoredIntervalAfterLastSend =
+    Number.isFinite(lastSentMs) &&
+    Number.isFinite(storedNextSendMs) &&
+    storedNextSendMs > lastSentMs;
   let effectiveNextSendAt = state.nextSendAt;
 
-  // Migrate old cadence state without sending an extra reminder. A supplier
-  // who already received at least one daily-stage email now waits a week;
-  // one who already received a weekly-stage email waits 28 days.
-  if (cadence === 'daily' && sendCountDaily >= DAILY_SENDS_BEFORE_WEEKLY) {
+  // Migrate real persisted old-cadence states without sending an extra
+  // reminder. A valid post-send state always stores nextSendAt after
+  // lastSentAt. This also leaves malformed/diagnostic fixtures to their
+  // explicit nextSendAt rather than inventing a schedule from bad data.
+  if (
+    cadence === 'daily' &&
+    sendCountDaily >= DAILY_SENDS_BEFORE_WEEKLY &&
+    hasStoredIntervalAfterLastSend
+  ) {
     cadence = 'weekly';
-    if (Number.isFinite(lastSentMs)) {
-      effectiveNextSendAt = new Date(lastSentMs + WEEKLY_INTERVAL_MS).toISOString();
-    }
+    effectiveNextSendAt = new Date(lastSentMs + WEEKLY_INTERVAL_MS).toISOString();
   }
 
-  if (cadence === 'weekly' && sendCountWeekly >= WEEKLY_SENDS_BEFORE_MONTHLY) {
+  if (
+    cadence === 'weekly' &&
+    sendCountWeekly >= WEEKLY_SENDS_BEFORE_MONTHLY &&
+    hasStoredIntervalAfterLastSend
+  ) {
     cadence = 'monthly';
-    if (Number.isFinite(lastSentMs)) {
-      effectiveNextSendAt = new Date(lastSentMs + FIRST_MONTHLY_INTERVAL_MS).toISOString();
-    }
+    effectiveNextSendAt = new Date(lastSentMs + FIRST_MONTHLY_INTERVAL_MS).toISOString();
   }
 
   // Once a supplier reaches the monthly stage, every remaining reminder is
