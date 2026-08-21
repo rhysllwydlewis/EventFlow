@@ -936,11 +936,18 @@ async function createIndexes(db) {
         { sparse: true }
       );
     // The city page's first question is the same one the location feature
-    // asks of suppliers: "who is listed here?" — sparse because most existing
-    // listings have not been through the backfill yet.
+    // asks of suppliers: "who is listed here?" — a partial index, because most
+    // existing listings have not been through the backfill yet. `sparse` on a
+    // compound index only excludes a document when *every* indexed field is
+    // absent, and `approved`/`status` are set on every listing, so a sparse
+    // index here would include them regardless of citySlug — a partial index
+    // with an explicit filter is the only way to actually exclude them.
     await db
       .collection('marketplace_listings')
-      .createIndex({ citySlug: 1, approved: 1, status: 1 }, { sparse: true });
+      .createIndex(
+        { citySlug: 1, approved: 1, status: 1 },
+        { partialFilterExpression: { citySlug: { $exists: true } } }
+      );
 
     logger.info('Database indexes created successfully');
   } catch (error) {
