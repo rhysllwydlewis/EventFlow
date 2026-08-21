@@ -8,9 +8,10 @@
  *  3. missingPhotos     — supplier has no photos/gallery          (AMBER)
  *
  * Cadence (per-supplier while actions remain outstanding):
- *  • DAILY stage  : send once per 24 h for up to DAILY_SENDS_BEFORE_WEEKLY (7) sends
- *  • WEEKLY stage : send once per 7 days for up to WEEKLY_SENDS_BEFORE_MONTHLY (4) sends
- *  • MONTHLY stage: send once per 30 days indefinitely
+ *  • FIRST reminder : 24 h after outstanding actions are first detected
+ *  • WEEKLY follow-up: 7 days after the first reminder
+ *  • MONTHLY entry  : 30 days after the weekly follow-up
+ *  • ONGOING        : every 28 days thereafter
  *  Cadence resets when all actions are cleared.
  *
  * actionPromptState schema:
@@ -40,19 +41,20 @@ const { hasSupplierGalleryPhotos, hasSupplierPostcode } = require('./supplierPro
 // surface correctly in radius-based search.
 const REQUIRED_PROFILE_FIELDS = ['name', 'description_short', 'location', 'postcode'];
 
-// Cadence thresholds
-const DAILY_SENDS_BEFORE_WEEKLY = 7;
-const WEEKLY_SENDS_BEFORE_MONTHLY = 4;
+// One send at each introductory stage before moving on.
+const DAILY_SENDS_BEFORE_WEEKLY = 1;
+const WEEKLY_SENDS_BEFORE_MONTHLY = 1;
 
-// Cadence intervals
-const DAILY_INTERVAL_MS = 24 * 60 * 60 * 1000; // 24 hours
-const WEEKLY_INTERVAL_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
-const MONTHLY_INTERVAL_MS = 30 * 24 * 60 * 60 * 1000; // 30 days
+// Cadence intervals.
+const DAILY_INTERVAL_MS = 24 * 60 * 60 * 1000; // First reminder after 24 hours
+const WEEKLY_INTERVAL_MS = 7 * 24 * 60 * 60 * 1000; // Then 7 days later
+const FIRST_MONTHLY_INTERVAL_MS = 30 * 24 * 60 * 60 * 1000; // Then 30 days later
+const MONTHLY_INTERVAL_MS = 28 * 24 * 60 * 60 * 1000; // Then every 4 weeks
 
 // Keep these exported for backwards-compatibility with tests
 const INITIAL_DELAY_MS = DAILY_INTERVAL_MS;
 const SECOND_SEND_DELAY_MS = WEEKLY_INTERVAL_MS;
-const MONTHLY_DELAY_MS = MONTHLY_INTERVAL_MS;
+const MONTHLY_DELAY_MS = FIRST_MONTHLY_INTERVAL_MS;
 
 // Action definitions with severity labels
 const ACTION_DEFINITIONS = {
@@ -267,17 +269,22 @@ function computeFullReport(supplier, packages, settings, user) {
  * Also returns the updated state to persist after a successful send.
  *
  * Cadence schedule:
- *  • No state:          do NOT send yet; schedule first email for 24 h from now (daily stage)
- *  • DAILY stage:       send once per 24 h for DAILY_SENDS_BEFORE_WEEKLY (7) sends, then → weekly
- *  • WEEKLY stage:      send once per 7 days for WEEKLY_SENDS_BEFORE_MONTHLY (4) sends, then → monthly
- *  • MONTHLY stage:     send once per 30 days indefinitely
+ *  • No state:       do NOT send yet; schedule first email for 24 h from now
+ *  • First send:     one reminder, then wait 7 days
+ *  • Weekly send:    one follow-up, then wait 30 days
+ *  • Monthly stage:  send every 28 days indefinitely
+ *
+ * Existing suppliers already part-way through the old 7-daily/4-weekly cadence
+ * are normalised in memory before the due-time check, so deploying this policy
+ * cannot cause one more daily/weekly email simply because an old nextSendAt was
+ * already stored.
  *
  * @param {Object|undefined} state - Current actionPromptState from user document
  * @param {Date}             now   - Current timestamp
  * @param {Object}           [opts]
  * @param {boolean}          [opts.force=false] - Bypass the "not time yet" / first-detection
- *   delay (used by the admin "Send Now" action). Cadence progression (daily → weekly → monthly
- *   stage counts) still advances normally so the *next* automatic send is scheduled correctly.
+ *   delay (used by the admin "Send Now" action). Cadence progression still advances
+ *   normally so the next automatic send is scheduled according to the reduced policy.
  * @returns {{ shouldSend: boolean, nextState: Object }}
  */
 function evaluateCadence(state, now, opts = {}) {
@@ -286,23 +293,23 @@ function evaluateCadence(state, now, opts = {}) {
 
   if (!state) {
     if (force) {
-      // Admin forced an immediate send on first detection — count it as the
-      // first daily-stage send rather than silently deferring 24 h.
+      // A forced first send counts as the one introductory/daily-stage email.
+      // The next automatic reminder is therefore a week away, not tomorrow.
       return {
         shouldSend: true,
         nextState: {
-          cadence: 'daily',
+          cadence: 'weekly',
           sendCountDaily: 1,
           sendCountWeekly: 0,
           sendCountMonthly: 0,
           lastSentAt: now.toISOString(),
-          nextSendAt: new Date(nowMs + DAILY_INTERVAL_MS).toISOString(),
+          nextSendAt: new Date(nowMs + WEEKLY_INTERVAL_MS).toISOString(),
           firstOutstandingAt: now.toISOString(),
         },
       };
     }
     // First outstanding detection — do NOT send immediately.
-    // Schedule the first email for 24 h from now (start of daily stage).
+    // Schedule the first and only daily-stage email for 24 h from now.
     return {
       shouldSend: false,
       nextState: {
@@ -317,13 +324,9 @@ function evaluateCadence(state, now, opts = {}) {
     };
   }
 
-  // Not time yet
-  if (!force && state.nextSendAt && nowMs < new Date(state.nextSendAt).getTime()) {
-    return { shouldSend: false, nextState: state };
-  }
-
-  // Resolve current cadence, defaulting to 'daily' for legacy states
-  const cadence = state.cadence || 'daily';
+  // Resolve current cadence and counters before checking nextSendAt so records
+  // created under the old 7-daily/4-weekly policy are immediately throttled.
+  let cadence = state.cadence || 'daily';
   const sendCountDaily =
     state.sendCountDaily ??
     (cadence === 'daily' ? state.sendCount || 0 : DAILY_SENDS_BEFORE_WEEKLY);
@@ -337,9 +340,58 @@ function evaluateCadence(state, now, opts = {}) {
   const sendCountMonthly =
     state.sendCountMonthly ??
     (cadence === 'monthly'
-      ? (state.sendCount || 1) - DAILY_SENDS_BEFORE_WEEKLY - WEEKLY_SENDS_BEFORE_MONTHLY
+      ? Math.max(
+          0,
+          (state.sendCount || 1) - DAILY_SENDS_BEFORE_WEEKLY - WEEKLY_SENDS_BEFORE_MONTHLY
+        )
       : 0);
   const firstOutstandingAt = state.firstOutstandingAt || now.toISOString();
+
+  const lastSentMs = state.lastSentAt ? Date.parse(state.lastSentAt) : NaN;
+  let effectiveNextSendAt = state.nextSendAt;
+
+  // Migrate old cadence state without sending an extra reminder. A supplier
+  // who already received at least one daily-stage email now waits a week;
+  // one who already received a weekly-stage email waits 30 days.
+  if (cadence === 'daily' && sendCountDaily >= DAILY_SENDS_BEFORE_WEEKLY) {
+    cadence = 'weekly';
+    if (Number.isFinite(lastSentMs)) {
+      effectiveNextSendAt = new Date(lastSentMs + WEEKLY_INTERVAL_MS).toISOString();
+    }
+  }
+
+  if (cadence === 'weekly' && sendCountWeekly >= WEEKLY_SENDS_BEFORE_MONTHLY) {
+    cadence = 'monthly';
+    if (Number.isFinite(lastSentMs)) {
+      effectiveNextSendAt = new Date(lastSentMs + FIRST_MONTHLY_INTERVAL_MS).toISOString();
+    }
+  }
+
+  // In the monthly stage, the first monthly wait is 30 days; after the first
+  // monthly-stage email, reminders settle onto a fixed 28-day cadence.
+  if (cadence === 'monthly' && Number.isFinite(lastSentMs)) {
+    const delayMs = sendCountMonthly > 0 ? MONTHLY_INTERVAL_MS : FIRST_MONTHLY_INTERVAL_MS;
+    effectiveNextSendAt = new Date(lastSentMs + delayMs).toISOString();
+  }
+
+  const normalisedState = {
+    ...state,
+    cadence,
+    sendCountDaily,
+    sendCountWeekly,
+    sendCountMonthly,
+    nextSendAt: effectiveNextSendAt,
+    firstOutstandingAt,
+  };
+
+  // Not time yet
+  if (
+    !force &&
+    effectiveNextSendAt &&
+    nowMs < new Date(effectiveNextSendAt).getTime()
+  ) {
+    return { shouldSend: false, nextState: normalisedState };
+  }
 
   // Compute the new state after this send
   let newCadence;
@@ -351,7 +403,7 @@ function evaluateCadence(state, now, opts = {}) {
   if (cadence === 'daily') {
     newSendCountDaily = sendCountDaily + 1;
     if (newSendCountDaily >= DAILY_SENDS_BEFORE_WEEKLY) {
-      // Transition to weekly after completing the daily stage
+      // One introductory reminder is enough; next follow-up is a week away.
       newCadence = 'weekly';
       nextIntervalMs = WEEKLY_INTERVAL_MS;
     } else {
@@ -361,15 +413,15 @@ function evaluateCadence(state, now, opts = {}) {
   } else if (cadence === 'weekly') {
     newSendCountWeekly = sendCountWeekly + 1;
     if (newSendCountWeekly >= WEEKLY_SENDS_BEFORE_MONTHLY) {
-      // Transition to monthly after completing the weekly stage
+      // One weekly follow-up is enough; next reminder is a month away.
       newCadence = 'monthly';
-      nextIntervalMs = MONTHLY_INTERVAL_MS;
+      nextIntervalMs = FIRST_MONTHLY_INTERVAL_MS;
     } else {
       newCadence = 'weekly';
       nextIntervalMs = WEEKLY_INTERVAL_MS;
     }
   } else {
-    // monthly — send indefinitely
+    // Monthly — continue at a fixed 28-day interval.
     newCadence = 'monthly';
     newSendCountMonthly = sendCountMonthly + 1;
     nextIntervalMs = MONTHLY_INTERVAL_MS;
@@ -494,6 +546,7 @@ module.exports = {
   WEEKLY_SENDS_BEFORE_MONTHLY,
   DAILY_INTERVAL_MS,
   WEEKLY_INTERVAL_MS,
+  FIRST_MONTHLY_INTERVAL_MS,
   MONTHLY_INTERVAL_MS,
   // backwards-compat aliases
   INITIAL_DELAY_MS,
