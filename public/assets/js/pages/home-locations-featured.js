@@ -35,13 +35,30 @@
       .replace(/'/g, '&#39;');
   }
 
-  const PIN_SVG =
-    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M20 10c0 5.5-8 12-8 12S4 15.5 4 10a8 8 0 1 1 16 0Z"></path><circle cx="12" cy="10" r="2.5"></circle></svg>';
+  /**
+   * Keep only an https Pexels CDN URL — the one host this card is allowed to
+   * paint into inline `style`, so a malformed or unexpected API value can
+   * never inject something else through `background-image`.
+   * @param {unknown} value Candidate image URL.
+   * @returns {string|null} Safe URL, or null.
+   */
+  function safePexelsImageUrl(value) {
+    try {
+      const parsed = new URL(String(value || ''));
+      return parsed.protocol === 'https:' && parsed.hostname === 'images.pexels.com'
+        ? parsed.toString()
+        : null;
+    } catch (_error) {
+      return null;
+    }
+  }
 
   /**
-   * Build one city link, in the same markup the static fallback already used.
-   * The supplier count is real, live data — it is what turns "Manchester"
-   * from a bare place name into a reason to click.
+   * Build one city card, in the same markup the static fallback already
+   * used. The supplier count is real, live data — it is what turns
+   * "Manchester" from a bare place name into a reason to click. The photo is
+   * the same curated-or-Pexels hero the city's own page uses, so a card here
+   * never shows a photo the city page itself wouldn't stand behind.
    * @param {Object} city Featured city.
    * @returns {string} Anchor HTML.
    */
@@ -50,9 +67,14 @@
       Number.isFinite(city.supplierCount) && city.supplierCount > 0
         ? `${city.supplierCount.toLocaleString()} supplier${city.supplierCount === 1 ? '' : 's'}`
         : city.region || '';
-    return `<a href="/locations/${encodeURIComponent(city.slug)}"><span class="ef-home-locations__city-pin">${PIN_SVG}</span><span><strong>${escapeHtml(
+    const image = safePexelsImageUrl(city.imageUrl);
+    // The URL is already host-restricted above; it is still run through
+    // escapeHtml before landing inside the style attribute so a stray quote
+    // in a query string can never end the attribute or the url(...) early.
+    const mediaStyle = image ? ` style="background-image:url('${escapeHtml(image)}')"` : '';
+    return `<a class="ef-home-locations__city-card" href="/locations/${encodeURIComponent(city.slug)}"><span class="ef-home-locations__city-card-media" aria-hidden="true"${mediaStyle}></span><b class="ef-home-locations__city-card-arrow" aria-hidden="true">&#8599;</b><span class="ef-home-locations__city-card-body"><strong>${escapeHtml(
       city.name
-    )}</strong><small>${escapeHtml(meta)}</small></span><b aria-hidden="true">&#8599;</b></a>`;
+    )}</strong><small>${escapeHtml(meta)}</small></span></a>`;
   }
 
   window

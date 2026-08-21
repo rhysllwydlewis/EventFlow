@@ -302,7 +302,7 @@
     </style>
     <link rel="stylesheet" href="/assets/css/eventflow-footer.css">
     <link rel="stylesheet" href="/assets/css/homepage-approved-lower.css?v=4">
-    <link rel="stylesheet" href="/assets/css/homepage-locations-refresh.css?v=2">
+    <link rel="stylesheet" href="/assets/css/homepage-locations-refresh.css?v=3">
     <link rel="stylesheet" href="/assets/css/public-mobile-compact.css" />
     <link rel="stylesheet" href="/assets/css/signup-popup.css?v=1" />
 </head>
@@ -916,46 +916,62 @@
             </a>
           </div>
 
-          <div class="ef-home-locations__panel">
-            <form class="ef-home-locations__search-card" action="/suppliers" method="get" role="search">
-              <span class="ef-home-locations__pin" aria-hidden="true">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7">
-                  <path d="M20 10c0 5.5-8 12-8 12S4 15.5 4 10a8 8 0 1 1 16 0Z"></path>
-                  <circle cx="12" cy="10" r="2.5"></circle>
-                </svg>
-              </span>
-              <div class="ef-home-locations__search-copy">
-                <span>Start with your location</span>
-                <h3>Where is your event?</h3>
-                <p>Search venues and suppliers based in—or travelling to—your area.</p>
-              </div>
-              <label for="home-location-search">City or postcode</label>
-              <div class="ef-home-locations__search-row">
-                <input
-                  id="home-location-search"
-                  name="location"
-                  type="search"
-                  placeholder="e.g. Cardiff or CF10"
-                  autocomplete="postal-code"
-                />
-                <button type="submit">Show local suppliers</button>
-              </div>
-              <p class="ef-home-locations__promise"><span aria-hidden="true">&#10003;</span> Free to browse <span aria-hidden="true">&#183;</span> Contact suppliers directly</p>
-            </form>
+          <form class="ef-home-locations__searchbar" action="/suppliers" method="get" role="search">
+            <span class="ef-home-locations__searchbar-pin" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7">
+                <path d="M20 10c0 5.5-8 12-8 12S4 15.5 4 10a8 8 0 1 1 16 0Z"></path>
+                <circle cx="12" cy="10" r="2.5"></circle>
+              </svg>
+            </span>
+            <label class="ef-home-locations__searchbar-field" for="home-location-search">
+              <span>Where is your event?</span>
+              <input
+                id="home-location-search"
+                name="location"
+                type="search"
+                placeholder="e.g. Cardiff or CF10"
+                autocomplete="postal-code"
+              />
+            </label>
+            <button type="submit">Show local suppliers <span aria-hidden="true">&rarr;</span></button>
+          </form>
 
-            <div class="ef-home-locations__explore" aria-label="Popular location searches">
-              <div class="ef-home-locations__explore-heading">
-                <p>Major UK cities</p>
-                <span>Explore by city</span>
-              </div>
-              <div class="ef-home-locations__city-grid" id="ef-home-locations-city-grid">
-                <a href="/suppliers?location=London"><span class="ef-home-locations__city-pin"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M20 10c0 5.5-8 12-8 12S4 15.5 4 10a8 8 0 1 1 16 0Z"></path><circle cx="12" cy="10" r="2.5"></circle></svg></span><span><strong>London</strong><small>Greater London</small></span><b aria-hidden="true">&#8599;</b></a>
-                <a href="/suppliers?location=Manchester"><span class="ef-home-locations__city-pin"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M20 10c0 5.5-8 12-8 12S4 15.5 4 10a8 8 0 1 1 16 0Z"></path><circle cx="12" cy="10" r="2.5"></circle></svg></span><span><strong>Manchester</strong><small>North West</small></span><b aria-hidden="true">&#8599;</b></a>
-                <a href="/suppliers?location=Birmingham"><span class="ef-home-locations__city-pin"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M20 10c0 5.5-8 12-8 12S4 15.5 4 10a8 8 0 1 1 16 0Z"></path><circle cx="12" cy="10" r="2.5"></circle></svg></span><span><strong>Birmingham</strong><small>West Midlands</small></span><b aria-hidden="true">&#8599;</b></a>
-                <a href="/suppliers?location=Cardiff"><span class="ef-home-locations__city-pin"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M20 10c0 5.5-8 12-8 12S4 15.5 4 10a8 8 0 1 1 16 0Z"></path><circle cx="12" cy="10" r="2.5"></circle></svg></span><span><strong>Cardiff</strong><small>South Wales</small></span><b aria-hidden="true">&#8599;</b></a>
-                <a href="/suppliers?location=Leeds"><span class="ef-home-locations__city-pin"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M20 10c0 5.5-8 12-8 12S4 15.5 4 10a8 8 0 1 1 16 0Z"></path><circle cx="12" cy="10" r="2.5"></circle></svg></span><span><strong>Leeds</strong><small>Yorkshire</small></span><b aria-hidden="true">&#8599;</b></a>
-                <a href="/suppliers?location=Edinburgh"><span class="ef-home-locations__city-pin"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M20 10c0 5.5-8 12-8 12S4 15.5 4 10a8 8 0 1 1 16 0Z"></path><circle cx="12" cy="10" r="2.5"></circle></svg></span><span><strong>Edinburgh</strong><small>Scotland</small></span><b aria-hidden="true">&#8599;</b></a>
-              </div>
+          <div class="ef-home-locations__explore" aria-label="Popular location searches">
+            <div class="ef-home-locations__explore-heading">
+              <p>Major UK cities</p>
+              <span>Free to browse &middot; contact suppliers directly</span>
+            </div>
+            <div class="ef-home-locations__city-grid" id="ef-home-locations-city-grid">
+              <a class="ef-home-locations__city-card" href="/suppliers?location=London">
+                <span class="ef-home-locations__city-card-media" aria-hidden="true"></span>
+                <b class="ef-home-locations__city-card-arrow" aria-hidden="true">&#8599;</b>
+                <span class="ef-home-locations__city-card-body"><strong>London</strong><small>Greater London</small></span>
+              </a>
+              <a class="ef-home-locations__city-card" href="/suppliers?location=Manchester">
+                <span class="ef-home-locations__city-card-media" aria-hidden="true"></span>
+                <b class="ef-home-locations__city-card-arrow" aria-hidden="true">&#8599;</b>
+                <span class="ef-home-locations__city-card-body"><strong>Manchester</strong><small>North West</small></span>
+              </a>
+              <a class="ef-home-locations__city-card" href="/suppliers?location=Birmingham">
+                <span class="ef-home-locations__city-card-media" aria-hidden="true"></span>
+                <b class="ef-home-locations__city-card-arrow" aria-hidden="true">&#8599;</b>
+                <span class="ef-home-locations__city-card-body"><strong>Birmingham</strong><small>West Midlands</small></span>
+              </a>
+              <a class="ef-home-locations__city-card" href="/suppliers?location=Cardiff">
+                <span class="ef-home-locations__city-card-media" aria-hidden="true"></span>
+                <b class="ef-home-locations__city-card-arrow" aria-hidden="true">&#8599;</b>
+                <span class="ef-home-locations__city-card-body"><strong>Cardiff</strong><small>South Wales</small></span>
+              </a>
+              <a class="ef-home-locations__city-card" href="/suppliers?location=Leeds">
+                <span class="ef-home-locations__city-card-media" aria-hidden="true"></span>
+                <b class="ef-home-locations__city-card-arrow" aria-hidden="true">&#8599;</b>
+                <span class="ef-home-locations__city-card-body"><strong>Leeds</strong><small>Yorkshire</small></span>
+              </a>
+              <a class="ef-home-locations__city-card" href="/suppliers?location=Edinburgh">
+                <span class="ef-home-locations__city-card-media" aria-hidden="true"></span>
+                <b class="ef-home-locations__city-card-arrow" aria-hidden="true">&#8599;</b>
+                <span class="ef-home-locations__city-card-body"><strong>Edinburgh</strong><small>Scotland</small></span>
+              </a>
             </div>
           </div>
         </div>

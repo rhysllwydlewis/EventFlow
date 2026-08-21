@@ -47,6 +47,6 @@ describe('public location discovery', () => {
     // as a live popularity ranking — nothing here measures popularity.
     expect(locationSection[0]).toContain('Major UK cities');
     expect(locationSection[0]).not.toContain('Popular right now');
-    expect(homepage).toContain('/assets/css/homepage-locations-refresh.css?v=2');
+    expect(homepage).toContain('/assets/css/homepage-locations-refresh.css?v=3');
   });
 });
