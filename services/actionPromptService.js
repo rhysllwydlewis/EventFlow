@@ -10,7 +10,7 @@
  * Cadence (per-supplier while actions remain outstanding):
  *  • FIRST reminder : 24 h after outstanding actions are first detected
  *  • WEEKLY follow-up: 7 days after the first reminder
- *  • MONTHLY entry  : 30 days after the weekly follow-up
+ *  • MONTHLY entry  : 28 days after the weekly follow-up
  *  • ONGOING        : every 28 days thereafter
  *  Cadence resets when all actions are cleared.
  *
@@ -48,8 +48,8 @@ const WEEKLY_SENDS_BEFORE_MONTHLY = 1;
 // Cadence intervals.
 const DAILY_INTERVAL_MS = 24 * 60 * 60 * 1000; // First reminder after 24 hours
 const WEEKLY_INTERVAL_MS = 7 * 24 * 60 * 60 * 1000; // Then 7 days later
-const FIRST_MONTHLY_INTERVAL_MS = 30 * 24 * 60 * 60 * 1000; // Then 30 days later
 const MONTHLY_INTERVAL_MS = 28 * 24 * 60 * 60 * 1000; // Then every 4 weeks
+const FIRST_MONTHLY_INTERVAL_MS = MONTHLY_INTERVAL_MS; // First monthly-stage wait is also 28 days
 
 // Keep these exported for backwards-compatibility with tests
 const INITIAL_DELAY_MS = DAILY_INTERVAL_MS;
@@ -271,7 +271,7 @@ function computeFullReport(supplier, packages, settings, user) {
  * Cadence schedule:
  *  • No state:       do NOT send yet; schedule first email for 24 h from now
  *  • First send:     one reminder, then wait 7 days
- *  • Weekly send:    one follow-up, then wait 30 days
+ *  • Weekly send:    one follow-up, then wait 28 days
  *  • Monthly stage:  send every 28 days indefinitely
  *
  * Existing suppliers already part-way through the old 7-daily/4-weekly cadence
@@ -352,7 +352,7 @@ function evaluateCadence(state, now, opts = {}) {
 
   // Migrate old cadence state without sending an extra reminder. A supplier
   // who already received at least one daily-stage email now waits a week;
-  // one who already received a weekly-stage email waits 30 days.
+  // one who already received a weekly-stage email waits 28 days.
   if (cadence === 'daily' && sendCountDaily >= DAILY_SENDS_BEFORE_WEEKLY) {
     cadence = 'weekly';
     if (Number.isFinite(lastSentMs)) {
@@ -367,11 +367,10 @@ function evaluateCadence(state, now, opts = {}) {
     }
   }
 
-  // In the monthly stage, the first monthly wait is 30 days; after the first
-  // monthly-stage email, reminders settle onto a fixed 28-day cadence.
+  // Once a supplier reaches the monthly stage, every remaining reminder is
+  // spaced 28 days apart, including the first monthly-stage reminder.
   if (cadence === 'monthly' && Number.isFinite(lastSentMs)) {
-    const delayMs = sendCountMonthly > 0 ? MONTHLY_INTERVAL_MS : FIRST_MONTHLY_INTERVAL_MS;
-    effectiveNextSendAt = new Date(lastSentMs + delayMs).toISOString();
+    effectiveNextSendAt = new Date(lastSentMs + MONTHLY_INTERVAL_MS).toISOString();
   }
 
   const normalisedState = {
@@ -385,11 +384,7 @@ function evaluateCadence(state, now, opts = {}) {
   };
 
   // Not time yet
-  if (
-    !force &&
-    effectiveNextSendAt &&
-    nowMs < new Date(effectiveNextSendAt).getTime()
-  ) {
+  if (!force && effectiveNextSendAt && nowMs < new Date(effectiveNextSendAt).getTime()) {
     return { shouldSend: false, nextState: normalisedState };
   }
 
@@ -413,7 +408,7 @@ function evaluateCadence(state, now, opts = {}) {
   } else if (cadence === 'weekly') {
     newSendCountWeekly = sendCountWeekly + 1;
     if (newSendCountWeekly >= WEEKLY_SENDS_BEFORE_MONTHLY) {
-      // One weekly follow-up is enough; next reminder is a month away.
+      // One weekly follow-up is enough; next reminder is 28 days away.
       newCadence = 'monthly';
       nextIntervalMs = FIRST_MONTHLY_INTERVAL_MS;
     } else {
