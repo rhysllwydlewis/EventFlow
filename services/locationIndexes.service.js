@@ -28,6 +28,20 @@ async function createIndexes(db) {
   );
   await pages.createIndex({ lastReviewedAt: 1 }, { name: 'location_page_review_age' });
 
+  const categoryPages = db.collection(COLLECTIONS.locationCategoryPages);
+  await categoryPages.createIndex(
+    { locationSlug: 1, categorySlug: 1 },
+    { name: 'uniq_location_category_page', unique: true }
+  );
+  await categoryPages.createIndex(
+    { status: 1, indexingRequested: 1 },
+    { name: 'location_category_page_publication' }
+  );
+  await categoryPages.createIndex(
+    { lastReviewedAt: 1 },
+    { name: 'location_category_page_review_age' }
+  );
+
   const suppliers = db.collection('suppliers');
   // The city page's first question is always "who is based here?".
   await suppliers.createIndex(

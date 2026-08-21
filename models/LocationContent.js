@@ -12,6 +12,7 @@
 
 const COLLECTIONS = {
   locationPages: 'location_pages',
+  locationCategoryPages: 'location_category_pages',
 };
 
 /**
@@ -123,6 +124,27 @@ const QUALITY_SIGNALS = {
 
 const QUALITY_PASS_SCORE = 60;
 
+/**
+ * Indexability quality gate for a city × category page.
+ *
+ * A category page never inherits its parent city's score: a city can look
+ * ready overall while one specific category is still thin. There is no
+ * category-diversity signal here — a page about one category has nothing to
+ * diversify — so the weight that signal carries at city level is redistributed
+ * across the remaining five, and each one's target is deliberately lower than
+ * its city-level counterpart, matching a single category's real inventory
+ * rather than the whole city's.
+ */
+const CATEGORY_QUALITY_SIGNALS = {
+  supplierDepth: { weight: 30, target: 4 },
+  localContent: { weight: 25, target: 1 },
+  proofOfActivity: { weight: 20, target: 2 },
+  internalLinks: { weight: 15, target: 2 },
+  reviewFreshness: { weight: 10, target: 1 },
+};
+
+const CATEGORY_QUALITY_PASS_SCORE = 60;
+
 /** Local editorial copy older than this is treated as stale by the gate. */
 const CONTENT_REVIEW_MAX_AGE_DAYS = 365;
 
@@ -142,6 +164,8 @@ const LIMITS = {
 
 module.exports = {
   AUDIT_STATUSES,
+  CATEGORY_QUALITY_PASS_SCORE,
+  CATEGORY_QUALITY_SIGNALS,
   COLLECTIONS,
   CONFIDENCE,
   CONTENT_REVIEW_MAX_AGE_DAYS,

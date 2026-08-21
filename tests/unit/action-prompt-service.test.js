@@ -409,25 +409,31 @@ describe('evaluateCadence', () => {
     }
   });
 
-  it('daily cadence nextSendAt is DAILY_INTERVAL_MS from now', () => {
+  it('the one daily-stage send transitions to weekly, WEEKLY_INTERVAL_MS from now', () => {
+    // Under the reduced cadence (DAILY_SENDS_BEFORE_WEEKLY = 1) there is only
+    // ever one daily-stage send, so its follow-up is the weekly interval, not
+    // another daily one.
     const state = {
       cadence: 'daily',
-      sendCountDaily: 2,
+      sendCountDaily: 0,
       sendCountWeekly: 0,
       sendCountMonthly: 0,
       nextSendAt: new Date(now.getTime() - 1000).toISOString(),
-      firstOutstandingAt: new Date(now.getTime() - 3 * DAILY_INTERVAL_MS).toISOString(),
+      firstOutstandingAt: new Date(now.getTime() - DAILY_INTERVAL_MS).toISOString(),
     };
     const { nextState } = evaluateCadence(state, now);
-    const expected = new Date(now.getTime() + DAILY_INTERVAL_MS).toISOString();
+    expect(nextState.cadence).toBe('weekly');
+    const expected = new Date(now.getTime() + WEEKLY_INTERVAL_MS).toISOString();
     expect(nextState.nextSendAt).toBe(expected);
   });
 
-  it('weekly cadence nextSendAt is WEEKLY_INTERVAL_MS from now', () => {
+  it('the one weekly-stage send transitions to monthly, MONTHLY_INTERVAL_MS from now', () => {
+    // Likewise, WEEKLY_SENDS_BEFORE_MONTHLY = 1 means a single weekly
+    // follow-up before settling into the ongoing 28-day cadence.
     const state = {
       cadence: 'weekly',
       sendCountDaily: DAILY_SENDS_BEFORE_WEEKLY,
-      sendCountWeekly: 1,
+      sendCountWeekly: 0,
       sendCountMonthly: 0,
       nextSendAt: new Date(now.getTime() - 1000).toISOString(),
       firstOutstandingAt: new Date(
@@ -435,7 +441,8 @@ describe('evaluateCadence', () => {
       ).toISOString(),
     };
     const { nextState } = evaluateCadence(state, now);
-    const expected = new Date(now.getTime() + WEEKLY_INTERVAL_MS).toISOString();
+    expect(nextState.cadence).toBe('monthly');
+    const expected = new Date(now.getTime() + MONTHLY_INTERVAL_MS).toISOString();
     expect(nextState.nextSendAt).toBe(expected);
   });
 
@@ -482,17 +489,21 @@ describe('evaluateCadence', () => {
   });
 
   describe('force option (admin "Send Now")', () => {
-    it('sends immediately on first detection when force=true, counted as the first daily send', () => {
+    it('sends immediately on first detection when force=true, counted as the one daily send, then schedules the weekly follow-up', () => {
       const { shouldSend, nextState } = evaluateCadence(undefined, now, { force: true });
       expect(shouldSend).toBe(true);
-      expect(nextState.cadence).toBe('daily');
+      expect(nextState.cadence).toBe('weekly');
       expect(nextState.sendCountDaily).toBe(1);
       expect(nextState.lastSentAt).toBe(now.toISOString());
-      const expectedNext = new Date(now.getTime() + DAILY_INTERVAL_MS).toISOString();
+      const expectedNext = new Date(now.getTime() + WEEKLY_INTERVAL_MS).toISOString();
       expect(nextState.nextSendAt).toBe(expectedNext);
     });
 
     it('sends immediately when force=true even though nextSendAt is far in the future', () => {
+      // sendCountDaily already meets the reduced DAILY_SENDS_BEFORE_WEEKLY (1)
+      // threshold with a valid post-send nextSendAt, so this state is first
+      // migrated onto the weekly stage — same as a real persisted old-cadence
+      // record would be — before the forced send is processed as that stage.
       const state = {
         cadence: 'daily',
         sendCountDaily: 2,
@@ -504,8 +515,9 @@ describe('evaluateCadence', () => {
       };
       const { shouldSend, nextState } = evaluateCadence(state, now, { force: true });
       expect(shouldSend).toBe(true);
-      // Cadence progression still advances normally from the forced send.
-      expect(nextState.sendCountDaily).toBe(3);
+      expect(nextState.cadence).toBe('monthly');
+      expect(nextState.sendCountDaily).toBe(2);
+      expect(nextState.sendCountWeekly).toBe(1);
     });
 
     it('without force, still defers on first detection and respects nextSendAt (unchanged default behaviour)', () => {

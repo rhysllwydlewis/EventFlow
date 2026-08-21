@@ -20,9 +20,11 @@ const { apiLimiter, writeLimiter } = require('../middleware/rateLimits');
 const registry = require('../services/locationRegistry.service');
 const locationHeroImages = require('../services/locationHeroImage.service');
 const locationPages = require('../services/locationPage.service');
+const locationCategoryPages = require('../services/locationCategoryPage.service');
 const locationGuides = require('../services/locationGuides.service');
 const supplierLocation = require('../services/supplierLocation.service');
 const marketplaceListingLocation = require('../services/marketplaceListingLocation.service');
+const categoryRegistry = require('../public/assets/js/utils/category-link.js');
 const { isPublicSupplier, supplierDisplayName } = require('../services/publicSupplierSeo.service');
 const {
   COLLECTIONS,
@@ -108,16 +110,17 @@ function cleanFaqs(value) {
  * @param {Object} req Express request.
  * @param {string} action Action name.
  * @param {Object} details Action details.
+ * @param {string} [targetType] Audited entity type.
  * @returns {Promise<void>} Resolves when written.
  */
-async function recordAudit(req, action, details) {
+async function recordAudit(req, action, details, targetType = 'location_page') {
   try {
     await dbUnified.insertOne('audit_logs', {
       id: dbUnified.uid ? dbUnified.uid() : `audit_${Date.now()}`,
       action,
       actorId: req.user && req.user.id ? req.user.id : null,
       actorEmail: req.user && req.user.email ? req.user.email : null,
-      targetType: 'location_page',
+      targetType,
       targetId: details.locationSlug,
       details,
       createdAt: new Date().toISOString(),
@@ -588,5 +591,404 @@ router.patch('/:slug', writeLimiter, csrfProtection, async (req, res) => {
   }
 });
 
+// ─── City × category pages ──────────────────────────────────────────────────
+
+/**
+ * Load everything needed to evaluate every category gate for one city.
+ * @returns {Promise<Object>} Supporting data, including category records.
+ */
+async function loadCategoryGateInputs() {
+  const [gateInputs, categoryRecords] = await Promise.all([
+    loadGateInputs(),
+    locationCategoryPages.loadCategoryPageRecords(dbUnified),
+  ]);
+  return { ...gateInputs, categoryRecords };
+}
+
+/**
+ * Build the admin view of one city × category combination.
+ * @param {Object} city Registry city.
+ * @param {{name: string, slug: string}} category Canonical category.
+ * @param {Object} data Supporting data from `loadCategoryGateInputs`.
+ * @returns {Object} Admin row.
+ */
+function describeCategory(city, category, data) {
+  const stored = data.categoryRecords.get(
+    locationCategoryPages.categoryPageKey(city.slug, category.slug)
+  );
+  const page = locationCategoryPages.normaliseCategoryPageRecord(city, category, stored);
+
+  const rankedCitySuppliers = supplierLocation.rankSuppliersForCity(data.suppliers, city, {
+    validOwnerIds: data.validOwnerIds,
+  });
+  const cityCategories = locationPages.populatedCategories(rankedCitySuppliers);
+  const publishedCategoryKeys = locationRoutes.publishedCategoryKeys(data.categoryRecords);
+  const publishedCitySlugs = locationRoutes.publishedSlugs(data.records);
+  const nearby = registry.nearbyCities(city.slug, nearbyCity =>
+    publishedCitySlugs.has(nearbyCity.slug)
+  );
+
+  const model = locationCategoryPages.buildCategoryPageModel({
+    city,
+    category,
+    page,
+    rankedCitySuppliers,
+    packages: data.packages,
+    events: data.events,
+    cityCategories,
+    publishedCategoryKeys,
+    nearbyCities: nearby,
+  });
+
+  return {
+    citySlug: city.slug,
+    categorySlug: category.slug,
+    categoryName: category.name,
+    status: page.status,
+    managedBy: page.managedBy,
+    needsReview: page.managedBy === 'automation' && !page.lastReviewedAt,
+    indexingRequested: page.indexingRequested,
+    indexable: model.indexable,
+    publishedAt: page.publishedAt,
+    lastReviewedAt: page.lastReviewedAt,
+    reviewedBy: page.reviewedBy,
+    seo: page.seo,
+    content: page.content,
+    automaticIntro:
+      !page.content.intro && model.page.content.intro ? model.page.content.intro : null,
+    metadata: model.metadata,
+    gate: model.gate,
+    supplierCount: model.rankedSuppliers.length,
+    packageCount: model.packages.length,
+    eventCount: model.events.length,
+    siblingCategories: model.siblingCategories.map(entry => entry.name),
+    nearbySameCategory: model.nearbySameCategory.map(nearby => nearby.slug),
+    guides: locationGuides.relatedGuidesForCategory(city, category),
+    warnings: buildCategoryWarnings(city, category, page, model),
+  };
+}
+
+/**
+ * Editorial quality warnings for one city × category page.
+ * @param {Object} city Registry city.
+ * @param {{name: string, slug: string}} category Canonical category.
+ * @param {Object} page Normalised page record.
+ * @param {Object} model Page model.
+ * @returns {string[]} Warnings.
+ */
+function buildCategoryWarnings(city, category, page, model) {
+  const warnings = [];
+  if (!page.content.intro) {
+    warnings.push('No local introduction has been written');
+  }
+  for (const section of page.content.planningSections) {
+    if (!section.sourceName && /\d/.test(String(section.body))) {
+      warnings.push(`Section "${section.title}" quotes figures without a source`);
+    }
+  }
+  if (model.rankedSuppliers.length < 3) {
+    warnings.push(
+      `Fewer than three suppliers currently cover ${category.name.toLowerCase()} in ${city.name}`
+    );
+  }
+  if (page.indexingRequested && !model.indexable) {
+    warnings.push('Indexing is requested but the quality gate does not pass');
+  }
+  return [...new Set(warnings)];
+}
+
+/**
+ * GET /api/v1/admin/locations/:slug/categories
+ * Every category the city currently has suppliers in, plus any category with
+ * an existing editorial record — so a category an admin once published stays
+ * visible here even if its supplier coverage has since dropped to zero.
+ */
+router.get('/:slug/categories', apiLimiter, async (req, res) => {
+  try {
+    const resolved = registry.resolveCity(req.params.slug);
+    if (!resolved) {
+      return res.status(404).json({ success: false, error: 'Unknown city' });
+    }
+    const city = resolved.city;
+    const data = await loadCategoryGateInputs();
+
+    const rankedCitySuppliers = supplierLocation.rankSuppliersForCity(data.suppliers, city, {
+      validOwnerIds: data.validOwnerIds,
+    });
+    const populated = new Set(
+      locationPages.populatedCategories(rankedCitySuppliers).map(entry => entry.name)
+    );
+    const recorded = new Set(
+      [...data.categoryRecords.keys()]
+        .filter(key => key.startsWith(`${city.slug}:`))
+        .map(key => key.slice(city.slug.length + 1))
+    );
+
+    const categorySlugs = new Set([
+      ...categoryRegistry.CATEGORY_DEFINITIONS.filter(entry => populated.has(entry.name)).map(
+        entry => entry.slug
+      ),
+      ...recorded,
+    ]);
+
+    const items = [...categorySlugs]
+      .map(slug => locationCategoryPages.resolveCategory(slug))
+      .filter(Boolean)
+      .map(category => describeCategory(city, category, data))
+      .sort((a, b) => a.categoryName.localeCompare(b.categoryName));
+
+    return res.json({
+      success: true,
+      data: { citySlug: city.slug, cityName: city.name, items, limits: LIMITS },
+    });
+  } catch (error) {
+    logger.error('Could not list city category pages:', error);
+    return res.status(500).json({ success: false, error: 'Failed to list city category pages' });
+  }
+});
+
+/**
+ * GET /api/v1/admin/locations/:slug/categories/:categorySlug
+ * One city × category page, including a preview URL.
+ */
+router.get('/:slug/categories/:categorySlug', apiLimiter, async (req, res) => {
+  try {
+    const resolved = registry.resolveCity(req.params.slug);
+    const category = locationCategoryPages.resolveCategory(req.params.categorySlug);
+    if (!resolved || !category) {
+      return res.status(404).json({ success: false, error: 'Unknown city or category' });
+    }
+    const city = resolved.city;
+    const data = await loadCategoryGateInputs();
+    const item = describeCategory(city, category, data);
+    return res.json({
+      success: true,
+      data: {
+        ...item,
+        limits: LIMITS,
+        previewUrl: `/locations/${city.slug}/${category.slug}`,
+        draftPreviewUrl: `/api/v1/admin/locations/${city.slug}/categories/${category.slug}/preview`,
+      },
+    });
+  } catch (error) {
+    logger.error('Could not load a city category page:', error);
+    return res.status(500).json({ success: false, error: 'Failed to load city category page' });
+  }
+});
+
+/**
+ * GET /api/v1/admin/locations/:slug/categories/:categorySlug/preview
+ * The category page exactly as it would render, in whatever state it is
+ * currently in — the same admin-only, uncacheable, `noindex, nofollow`
+ * contract as the city preview.
+ */
+router.get('/:slug/categories/:categorySlug/preview', apiLimiter, async (req, res) => {
+  try {
+    const resolved = registry.resolveCity(req.params.slug);
+    const category = locationCategoryPages.resolveCategory(req.params.categorySlug);
+    if (!resolved || !category) {
+      return res.status(404).json({ success: false, error: 'Unknown city or category' });
+    }
+    const city = resolved.city;
+
+    const shell = await locationRoutes.readShell('location.html');
+    if (!shell) {
+      return res.status(500).json({ success: false, error: 'Page template is unavailable' });
+    }
+
+    const data = await locationRoutes.readLocationData();
+    const categoryPage = locationCategoryPages.normaliseCategoryPageRecord(
+      city,
+      category,
+      data.categoryPageRecords.get(locationCategoryPages.categoryPageKey(city.slug, category.slug))
+    );
+    let cityPage = locationPages.normalisePageRecord(city, data.pageRecords.get(city.slug));
+    cityPage = await locationHeroImages.resolvePageHero(city, cityPage);
+
+    const rankedCitySuppliers = supplierLocation.rankSuppliersForCity(data.suppliers, city, {
+      validOwnerIds: data.validOwnerIds,
+    });
+    const cityCategories = locationPages.populatedCategories(rankedCitySuppliers);
+    const catKeys = locationRoutes.publishedCategoryKeys(data.categoryPageRecords);
+    const nearby = registry.nearbyCities(city.slug, nearbyCity =>
+      locationRoutes.publishedSlugs(data.pageRecords).has(nearbyCity.slug)
+    );
+
+    const model = locationCategoryPages.buildCategoryPageModel({
+      city,
+      category,
+      page: categoryPage,
+      rankedCitySuppliers,
+      packages: data.packages,
+      events: data.events,
+      cityCategories,
+      publishedCategoryKeys: catKeys,
+      nearbyCities: nearby,
+      baseUrl: locationRoutes.BASE_URL,
+    });
+    model.guides = locationGuides.relatedGuidesForCategory(city, category);
+    model.cityHero = {
+      imageUrl: cityPage.content.heroImageUrl,
+      imageAlt: cityPage.content.heroImageAlt,
+    };
+    model.metadata.imageUrl = model.cityHero.imageUrl;
+
+    const banner = `<div class="efl-preview-banner" role="status">
+      <strong>Admin preview</strong>
+      <span>This page is currently <em>${locationRoutes.escapeHtml(categoryPage.status)}</em>. ${
+        locationCategoryPages.isPubliclyVisible(categoryPage)
+          ? 'It is publicly reachable.'
+          : 'It is not reachable by the public — only admins can see this.'
+      } Nothing here is indexable.</span>
+    </div>`;
+
+    const html = locationRoutes.applyContent(
+      locationRoutes.applyMeta(shell, {
+        ...model.metadata,
+        indexable: false,
+        pageType: 'location_city_category_preview',
+        locationSlug: city.slug,
+        categorySlug: category.slug,
+        structuredData: [model.breadcrumbs],
+      }),
+      `${banner}${locationRoutes.renderCategoryPage(model)}`
+    );
+
+    res.set('Content-Type', 'text/html; charset=utf-8');
+    res.set('Cache-Control', 'no-store');
+    res.set('X-Robots-Tag', 'noindex, nofollow');
+    return res.send(html);
+  } catch (error) {
+    logger.error('Could not render a city category page preview:', error);
+    return res.status(500).json({ success: false, error: 'Failed to render preview' });
+  }
+});
+
+/**
+ * PATCH /api/v1/admin/locations/:slug/categories/:categorySlug
+ * Update editorial content, publication state and the indexing request for
+ * one city × category page. Field handling mirrors the city-level PATCH
+ * handler exactly; there is simply no hero image to manage one level deeper.
+ */
+router.patch('/:slug/categories/:categorySlug', writeLimiter, csrfProtection, async (req, res) => {
+  try {
+    const resolved = registry.resolveCity(req.params.slug);
+    const category = locationCategoryPages.resolveCategory(req.params.categorySlug);
+    if (!resolved || !category) {
+      return res.status(404).json({ success: false, error: 'Unknown city or category' });
+    }
+    const city = resolved.city;
+    const body = req.body && typeof req.body === 'object' ? req.body : {};
+
+    if (body.status !== undefined && !PUBLICATION_STATE_VALUES.includes(body.status)) {
+      return res.status(400).json({
+        success: false,
+        error: `status must be one of ${PUBLICATION_STATE_VALUES.join(', ')}`,
+      });
+    }
+
+    const key = locationCategoryPages.categoryPageKey(city.slug, category.slug);
+    const records = await locationCategoryPages.loadCategoryPageRecords(dbUnified);
+    const existing = records.get(key) || null;
+    const current = locationCategoryPages.normaliseCategoryPageRecord(city, category, existing);
+    const now = new Date().toISOString();
+
+    const next = {
+      locationSlug: city.slug,
+      categorySlug: category.slug,
+      status: body.status !== undefined ? body.status : current.status,
+      managedBy: 'admin',
+      indexingRequested:
+        body.indexingRequested !== undefined
+          ? body.indexingRequested === true
+          : current.indexingRequested,
+      seo: {
+        title:
+          body.seo && body.seo.title !== undefined
+            ? cleanText(body.seo.title, 70)
+            : current.seo.title,
+        metaDescription:
+          body.seo && body.seo.metaDescription !== undefined
+            ? cleanText(body.seo.metaDescription, 160)
+            : current.seo.metaDescription,
+      },
+      content: {
+        intro:
+          body.content && body.content.intro !== undefined
+            ? cleanText(body.content.intro, LIMITS.introMaxLength)
+            : current.content.intro,
+        planningSections:
+          body.content && body.content.planningSections !== undefined
+            ? cleanSections(body.content.planningSections)
+            : current.content.planningSections,
+        faqs:
+          body.content && body.content.faqs !== undefined
+            ? cleanFaqs(body.content.faqs)
+            : current.content.faqs,
+      },
+      lastReviewedAt: current.lastReviewedAt,
+      reviewedBy: current.reviewedBy,
+      publishedAt: current.publishedAt,
+      updatedAt: now,
+    };
+
+    if (body.markReviewed === true) {
+      next.lastReviewedAt = now;
+      next.reviewedBy = (req.user && (req.user.email || req.user.id)) || 'admin';
+    }
+    if (next.status === PUBLICATION_STATES.published && !next.publishedAt) {
+      next.publishedAt = now;
+    }
+    if (next.status !== PUBLICATION_STATES.published) {
+      next.publishedAt = null;
+    }
+
+    if (existing) {
+      await dbUnified.updateOne(
+        COLLECTIONS.locationCategoryPages,
+        { locationSlug: city.slug, categorySlug: category.slug },
+        next
+      );
+    } else {
+      await dbUnified.insertOne(COLLECTIONS.locationCategoryPages, {
+        id: dbUnified.uid ? dbUnified.uid() : `loccatpage_${key}`,
+        createdAt: now,
+        ...next,
+      });
+    }
+
+    if (locationRoutes && typeof locationRoutes.resetLocationDataCache === 'function') {
+      locationRoutes.resetLocationDataCache();
+    }
+
+    await recordAudit(
+      req,
+      'location_category_page_updated',
+      {
+        locationSlug: city.slug,
+        categorySlug: category.slug,
+        status: next.status,
+        indexingRequested: next.indexingRequested,
+        markReviewed: body.markReviewed === true,
+      },
+      'location_category_page'
+    );
+
+    const data = await loadCategoryGateInputs();
+    return res.json({ success: true, data: describeCategory(city, category, data) });
+  } catch (error) {
+    logger.error('Could not update a city category page:', error);
+    return res.status(500).json({ success: false, error: 'Failed to update city category page' });
+  }
+});
+
 module.exports = router;
-module.exports.__internal = { buildWarnings, cleanFaqs, cleanSections, cleanText, describeCity };
+module.exports.__internal = {
+  buildCategoryWarnings,
+  buildWarnings,
+  cleanFaqs,
+  cleanSections,
+  cleanText,
+  describeCategory,
+  describeCity,
+};

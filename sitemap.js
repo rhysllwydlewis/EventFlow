@@ -19,7 +19,9 @@ const {
 const seoEligibility = require('./services/seoEligibility.service');
 const emptyStateIndexGate = require('./services/emptyStateIndexGate.service');
 const locationPageService = require('./services/locationPage.service');
+const locationCategoryPageService = require('./services/locationCategoryPage.service');
 const locationRegistry = require('./services/locationRegistry.service');
+const supplierLocationService = require('./services/supplierLocation.service');
 const { PUBLICATION_STATES } = require('./models/LocationContent');
 
 /**
@@ -100,6 +102,121 @@ async function loadIndexableCityEntries(suppliers, users, packages, events) {
       }));
   } catch (error) {
     logger.error('sitemap: could not evaluate location pages:', error);
+    return [];
+  }
+}
+
+/**
+ * City × category pages that are genuinely published, index-requested and
+ * passing their own quality gate — never the parent city's.
+ *
+ * Only categories a city actually has suppliers in are ever evaluated, so a
+ * city with no registered supplier depth costs nothing extra to consider here.
+ * @param {Object[]} suppliers Supplier records.
+ * @param {Object[]} users User records.
+ * @param {Object[]} packages Package records.
+ * @param {Object[]} events Public calendar event records.
+ * @returns {Promise<{citySlug: string, categorySlug: string, lastmod: string}[]>} Sitemap entries.
+ */
+async function loadIndexableCategoryEntries(suppliers, users, packages, events) {
+  try {
+    const [cityRows, categoryRows] = await Promise.all([
+      readCollection('location_pages'),
+      readCollection('location_category_pages'),
+    ]);
+    const cityRecords = new Map();
+    for (const row of cityRows) {
+      if (row && row.locationSlug) {
+        cityRecords.set(String(row.locationSlug), row);
+      }
+    }
+    const categoryRecords = new Map();
+    for (const row of categoryRows) {
+      if (row && row.locationSlug && row.categorySlug) {
+        categoryRecords.set(`${row.locationSlug}:${row.categorySlug}`, row);
+      }
+    }
+
+    const validOwnerIds = new Set((users || []).map(user => user?.id).filter(Boolean));
+    const eligibleSuppliers = (suppliers || []).filter(
+      supplier => seoEligibility.canBeViewedPublicly(supplier, { validOwnerIds }).eligible
+    );
+
+    const publishedCitySlugs = new Set(
+      locationRegistry
+        .listCities()
+        .filter(
+          city =>
+            locationPageService.normalisePageRecord(city, cityRecords.get(city.slug)).status ===
+            PUBLICATION_STATES.published
+        )
+        .map(city => city.slug)
+    );
+    const publishedCategoryKeys = new Set();
+    for (const [key, record] of categoryRecords) {
+      if (record && record.status === PUBLICATION_STATES.published) {
+        publishedCategoryKeys.add(key);
+      }
+    }
+
+    const entries = [];
+    for (const city of locationRegistry.listCities()) {
+      // A category page's breadcrumb links back to its city page, so it never
+      // belongs in the sitemap ahead of it — the same rule the public route
+      // enforces for reachability, applied here to indexability.
+      if (!publishedCitySlugs.has(city.slug)) {
+        continue;
+      }
+      const rankedCitySuppliers = supplierLocationService.rankSuppliersForCity(
+        eligibleSuppliers,
+        city,
+        { validOwnerIds }
+      );
+      const cityCategories = locationPageService.populatedCategories(rankedCitySuppliers);
+      if (!cityCategories.length) {
+        continue;
+      }
+      const nearby = locationRegistry.nearbyCities(city.slug, nearbyCity =>
+        publishedCitySlugs.has(nearbyCity.slug)
+      );
+
+      for (const entry of cityCategories) {
+        const category = locationCategoryPageService.resolveCategory(entry.name);
+        if (!category) {
+          continue;
+        }
+        const key = `${city.slug}:${category.slug}`;
+        const page = locationCategoryPageService.normaliseCategoryPageRecord(
+          city,
+          category,
+          categoryRecords.get(key)
+        );
+        if (page.status !== PUBLICATION_STATES.published || !page.indexingRequested) {
+          continue;
+        }
+        const model = locationCategoryPageService.buildCategoryPageModel({
+          city,
+          category,
+          page,
+          rankedCitySuppliers,
+          packages,
+          events,
+          cityCategories,
+          publishedCategoryKeys,
+          nearbyCities: nearby,
+        });
+        if (locationCategoryPageService.isIndexable(model.gate)) {
+          entries.push({
+            citySlug: city.slug,
+            categorySlug: category.slug,
+            lastmod: page.updatedAt || page.publishedAt || page.lastReviewedAt || '',
+          });
+        }
+      }
+    }
+    return entries;
+  } catch (error) {
+    logger.error('sitemap: could not evaluate location category pages:', error);
     return [];
   }
 }
@@ -306,6 +423,24 @@ async function generateSitemap(baseUrl) {
   }
   track('cities', cityEntries.length);
 
+  // City × category pages. Each one is listed only once it passes its own
+  // gate — a city being indexable overall never carries a category along
+  // with it — and the hub/city URLs above are never duplicated here.
+  const categoryEntries = await loadIndexableCategoryEntries(suppliers, users, packages, events);
+  categoryEntries
+    .slice()
+    .sort(
+      (a, b) => a.citySlug.localeCompare(b.citySlug) || a.categorySlug.localeCompare(b.categorySlug)
+    )
+    .forEach(({ citySlug, categorySlug, lastmod }) => {
+      appendUrl(
+        xmlParts,
+        `${normalizedBaseUrl}/locations/${citySlug}/${categorySlug}`,
+        validLastModifiedOrFallback(lastmod)
+      );
+    });
+  track('cityCategories', categoryEntries.length);
+
   // Community categories and published discussions. Held, hidden, removed and
   // superseded content is excluded so the sitemap never advertises a URL that
   // returns a noindex page — and, per SEO-005, so is a category or the
@@ -415,6 +550,7 @@ Crawl-delay: 1
 module.exports = {
   appendUrl,
   generateSitemap,
+  loadIndexableCategoryEntries,
   loadIndexableCityEntries,
   generateRobotsTxt,
   loadGuideEntries,

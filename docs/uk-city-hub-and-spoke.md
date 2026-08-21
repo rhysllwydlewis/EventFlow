@@ -1,9 +1,10 @@
 # UK city hub-and-spoke
 
 EventFlow's location section is a hub (`/locations`) with a spoke per city
-(`/locations/:citySlug`). This document describes what shipped, how the data
-model works, how a page reaches the index, and how to migrate existing supplier
-records onto it.
+(`/locations/:citySlug`), and a further spoke per category within a city
+(`/locations/:citySlug/:categorySlug`, e.g. "Wedding Venues in Cardiff"). This
+document describes what shipped, how the data model works, how a page reaches
+the index, and how to migrate existing supplier records onto it.
 
 ## Design rules
 
@@ -167,18 +168,83 @@ and is absent from the sitemap.
 | ---------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | `GET /locations`                         | Hub. Lists published cities grouped by nation, with crawlable `<a href>` links. Indexable once at least one city is published.                         |
 | `GET /locations/:citySlug`               | City page. 200 when published or in pilot; 301 from any alias or non-canonical spelling; 404 for unknown slugs and for draft, review or retired pages. |
-| `GET /locations/:citySlug/:categorySlug` | Reserved. 404 unless `LOCATION_CATEGORY_PAGES=true`; redirects to the city page while the pages are unbuilt.                                           |
+| `GET /locations/:citySlug/:categorySlug` | City × category page — e.g. "Venues in Cardiff". Same publication rules as the city page, evaluated entirely on its own evidence.                      |
 
-Both pages are fully server-rendered and mounted before `express.static()` so
-the shells never ship with unfilled placeholders. Modules with nothing reliable
-to show — packages, events, marketplace finds, categories, nearby areas — are
-omitted entirely rather than rendering an empty shelf, and a supplier count is
-shown only when it is a real, current number.
+All three pages are fully server-rendered and mounted before `express.static()`
+so the shells never ship with unfilled placeholders. Modules with nothing
+reliable to show — packages, events, marketplace finds, categories, nearby
+areas — are omitted entirely rather than rendering an empty shelf, and a
+supplier count is shown only when it is a real, current number.
 
 Structured data is a `BreadcrumbList` on every page plus a `CollectionPage` with
-an `ItemList` of supplier profiles on indexable city pages. There is deliberately
-no `LocalBusiness` markup: EventFlow has no branch in these cities, and that
-markup belongs only on an individual supplier's own page.
+an `ItemList` of supplier profiles on indexable city and city × category pages,
+each with its own `@id` so a crawler never sees a category page as the same
+entity as its parent city. There is deliberately no `LocalBusiness` markup:
+EventFlow has no branch in these cities, and that markup belongs only on an
+individual supplier's own page.
+
+### City × category pages
+
+`:categorySlug` resolves through the same canonical category registry used by
+`/suppliers?category=` (`public/assets/js/utils/category-link.js`) — a
+category is never a second, parallel taxonomy invented for this feature. A
+legacy spelling of either the city or the category 301s to the one canonical
+URL, the same rule the city route already applies to itself.
+
+A category page never inherits its parent city's publication state, quality
+score or indexability — `services/locationCategoryPage.service.js` runs the
+same shape of gate as the city (`evaluateCategoryQualityGate`), scored against
+`CATEGORY_QUALITY_SIGNALS` in `models/LocationContent.js`. There is no
+category-diversity signal (a page about one category has nothing to
+diversify): that weight is redistributed across supplier depth, local
+content, proof of activity, internal links and review freshness, each target
+sized for a single category's real inventory rather than a whole city's. A
+city can look ready overall while one specific category is still thin, or the
+other way round — "wedding venues in Cardiff" can go live long before every
+other Cardiff category does, because nothing about the category's own score
+waits for the city as a whole to be ready.
+
+Reachability is the one thing a category page does take from its city: every
+category page's breadcrumb, and its "see every supplier in this city"
+fallback, link back to `/locations/:citySlug`, so a category page is only
+ever publicly visible while the city page is too (pilot or published), and
+only ever listed in the sitemap while the city page is published. A category
+can pass its own gate long before the city is ready for launch — it simply
+waits alongside it, rather than shipping a page whose own breadcrumb 404s.
+
+Editorial content — an intro, planning sections, FAQs, an SEO title and
+description — lives in its own `location_category_pages` MongoDB collection,
+keyed by `citySlug:categorySlug`, in exactly the shape `location_pages` uses
+one level up. A category page has no hero image of its own: it borrows the
+parent city's, so an editor is never keeping two photographs in step for the
+same place. When nobody has written an introduction, one is composed live
+from the category's real inventory (`composeAutomaticCategoryIntro`), the
+same discipline `composeAutomaticIntro` already applies at city level.
+
+Two kinds of cross-links exist purely to give a visitor (and a crawler)
+somewhere real to go next, and both also feed the internal-links quality
+signal: "Also in Cardiff" links to the city's other published category pages,
+and "Wedding venues near Cardiff" links to the same category in nearby
+published cities. Nothing links to a page that is not actually reachable.
+
+Automatic publication mirrors the city-level job: any city × category
+combination with three or more real suppliers in that category, that no
+admin has ever saved through the editor, is published (but never
+index-requested) on the same nightly run as the city job
+(`services/locationAutoPublish.service.js`) — but only once the city page
+itself is publicly visible, for the same reachability reason as above. The
+city job runs first on every cycle, so a city that clears its own bar the
+same night still carries its qualifying categories with it.
+
+The admin API is a direct, one-level-deeper mirror of the city editor's:
+`GET /api/v1/admin/locations/:slug/categories` lists every category with
+either real supplier coverage or an existing editorial record;
+`GET .../categories/:categorySlug`, `PATCH .../categories/:categorySlug` and
+`GET .../categories/:categorySlug/preview` behave exactly like their
+city-level counterparts, field for field. There is deliberately no dedicated
+admin UI screen for it in this round — the API is complete and tested, and a
+visual editor is a natural, small follow-up rather than something this PR
+needed to build to make the pages themselves work.
 
 ### Marketplace listings on the city page
 
@@ -217,7 +283,12 @@ URL that returns `noindex`. A page leaves the sitemap automatically when it is
 unpublished, when indexing is withdrawn, or when its inventory or review date
 decays past the gate. `lastmod` is the page's real content date — never the time
 the sitemap was generated. The hub is listed only when at least one city page is
-indexable.
+indexable. City × category pages are listed the same way, each evaluated
+against its own gate — a city being indexable never carries a category page
+along on the strength of the city's own score — but only once the city page
+itself is published, so the category page's breadcrumb never points at a
+page the sitemap has excluded. Only categories a city actually has suppliers
+in are ever considered.
 
 ## Admin
 
@@ -391,44 +462,59 @@ stays visible after the migration report has been closed.
 
 ## Analytics
 
-Page views carry `page_type` (`locations_hub` or `location_city`) and
-`location_slug`, taken from meta tags the server renders. Supplier impressions
+Page views carry `page_type` (`locations_hub`, `location_city` or
+`location_city_category`) and `location_slug` (plus `category_slug` on a
+category page), taken from meta tags the server renders. Supplier impressions
 and clicks carry the supplier ID and the relationship type. No visitor postcode
 is written to analytics in any form: the location dimension is always a
 published city slug.
 
 ## Tests
 
-| File                                                     | Covers                                                                              |
-| -------------------------------------------------------- | ----------------------------------------------------------------------------------- |
-| `tests/unit/location-registry.test.js`                   | slugs, aliases, validation, distance, postcode resolution                           |
-| `tests/unit/supplier-location-matching.test.js`          | legacy classification, service areas, relationship precedence, ranking, eligibility |
-| `tests/unit/location-page-quality.test.js`               | publication states, quality gate, metadata, structured data                         |
-| `tests/unit/location-sitemap.test.js`                    | sitemap inclusion and automatic removal                                             |
-| `tests/unit/location-indexes.test.js`                    | index manifest                                                                      |
-| `tests/unit/supplier-location-audit-script.test.js`      | dry-run safety and apply behaviour                                                  |
-| `tests/unit/supplier-location-write-path.test.js`        | live derivation on profile create/edit, coverage validation, geocoder failure       |
-| `tests/unit/admin-locations-editor.test.js`              | editor markup, accessibility hooks, limits kept in step with the API                |
-| `tests/unit/admin-locations-editor-behaviour.test.js`    | the editor driven through a real DOM: load, repeat, reorder, save, unsaved changes  |
-| `tests/integration/locations-pages.test.js`              | status codes, redirects, headers, escaping, module omission                         |
-| `tests/integration/admin-locations-api.test.js`          | access control, workflow, warnings, input limits                                    |
-| `tests/unit/marketplace-listing-location.test.js`        | listing city derivation, in_city/nearby matching, ranking                           |
-| `tests/unit/marketplace-listing-city-mapping.test.js`    | citySlug derivation and re-derivation on listing create/edit                        |
-| `tests/unit/marketplace-listing-audit-script.test.js`    | dry-run safety and apply behaviour for the listing backfill script                  |
-| `tests/integration/locations-marketplace-module.test.js` | the marketplace module on a city page: ranking, labels, module omission             |
-| `e2e/locations.spec.js`                                  | browser suite; requires `E2E_MODE=full` because the pages need real data            |
+| File                                                      | Covers                                                                              |
+| --------------------------------------------------------- | ----------------------------------------------------------------------------------- |
+| `tests/unit/location-registry.test.js`                    | slugs, aliases, validation, distance, postcode resolution                           |
+| `tests/unit/supplier-location-matching.test.js`           | legacy classification, service areas, relationship precedence, ranking, eligibility |
+| `tests/unit/location-page-quality.test.js`                | publication states, quality gate, metadata, structured data                         |
+| `tests/unit/location-sitemap.test.js`                     | sitemap inclusion and automatic removal                                             |
+| `tests/unit/location-indexes.test.js`                     | index manifest                                                                      |
+| `tests/unit/supplier-location-audit-script.test.js`       | dry-run safety and apply behaviour                                                  |
+| `tests/unit/supplier-location-write-path.test.js`         | live derivation on profile create/edit, coverage validation, geocoder failure       |
+| `tests/unit/admin-locations-editor.test.js`               | editor markup, accessibility hooks, limits kept in step with the API                |
+| `tests/unit/admin-locations-editor-behaviour.test.js`     | the editor driven through a real DOM: load, repeat, reorder, save, unsaved changes  |
+| `tests/unit/location-category-page.test.js`               | category gate, metadata, structured data, cross-links, automatic intro              |
+| `tests/unit/location-category-guides.test.js`             | serviceCategory/eventType matching, city-pinned guides on a category page           |
+| `tests/unit/location-category-auto-publish.test.js`       | category-level automatic publication and its admin-managed safety net               |
+| `tests/unit/location-category-sitemap.test.js`            | sitemap inclusion and automatic removal for city × category pages                   |
+| `tests/unit/marketplace-listing-location.test.js`         | listing city derivation, in_city/nearby matching, ranking                           |
+| `tests/unit/marketplace-listing-city-mapping.test.js`     | citySlug derivation and re-derivation on listing create/edit                        |
+| `tests/unit/marketplace-listing-audit-script.test.js`     | dry-run safety and apply behaviour for the listing backfill script                  |
+| `tests/integration/locations-pages.test.js`               | status codes, redirects, headers, escaping, module omission                         |
+| `tests/integration/locations-category-pages.test.js`      | city × category route: status codes, redirects, cross-links, module omission        |
+| `tests/integration/locations-marketplace-module.test.js`  | the marketplace module on a city page: ranking, labels, module omission             |
+| `tests/integration/admin-locations-api.test.js`           | access control, workflow, warnings, input limits                                    |
+| `tests/integration/admin-location-categories-api.test.js` | the category admin API, mirroring the city one                                      |
+| `e2e/locations.spec.js`                                   | browser suite; requires `E2E_MODE=full` because the pages need real data            |
 
 ## What is deliberately not here
 
-- **Indexable city-category pages.** The URL is reserved and flag-gated. Each
-  combination has to earn its own launch on its own evidence.
+- **A dedicated admin UI screen for category pages.** The admin API
+  (`/api/v1/admin/locations/:slug/categories/...`) is complete and tested; a
+  visual editor mirroring the city one is a natural, small follow-up.
+- **Guide content written specifically for a city × category combination.**
+  The catalogue schema (`serviceCategory`, `eventType`, `cities`) and the
+  matching logic are built and tested; writing the guides themselves is
+  editorial work, not a code change.
 - **Marketplace listings on a city × category page.** The module is on the
   city page only. Marketplace categories (`attire`, `decor`, `av-equipment`,
   `photography`, `party-supplies`, `florals`) do not line up cleanly with the
   supplier category taxonomy, so filtering listings by category stays out of
   this round rather than shipping an inconsistent mapping.
-- **Welsh-language URLs or `hreflang`.** Aliases only, until a full `/cy/`
-  experience exists and is maintained.
+- **Welsh-language URLs or `hreflang`.** Aliases only. Cardiff's Welsh name
+  appears as a factual mention inside the city's introduction
+  (`alternateNameNote` in `locationPage.service.js`), never as a second URL,
+  route or `hreflang` — that stays out of scope until a full `/cy/` experience
+  exists and is maintained, and there is no plan to build one.
 - **Fabricated local statistics.** Planning sections that quote figures without a
   source raise an editorial warning; no average price or availability claim is
   generated anywhere in this code.

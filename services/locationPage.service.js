@@ -572,6 +572,30 @@ const AUTOMATIC_INTRO_TEMPLATES = [
 ];
 
 /**
+ * A short factual note naming a city's alternate names, when the registry has
+ * any — e.g. Welsh names for Cardiff, Swansea, Newport and Wrexham.
+ *
+ * This is the whole of how an alternate name reaches a page: one sentence in
+ * the auto-composed introduction, never a separate URL, route or `hreflang`.
+ * An editor who writes their own introduction is free to mention it too, but
+ * nothing injects a clause into copy a human has already written.
+ * @param {Object} city Registry city record.
+ * @returns {string} A trailing sentence, or an empty string when there is
+ *   nothing to add.
+ */
+function alternateNameNote(city) {
+  const names = (city.alternateNames || []).filter(Boolean);
+  if (!names.length) {
+    return '';
+  }
+  const phrase =
+    names.length === 1
+      ? names[0]
+      : `${names.slice(0, -1).join(', ')} or ${names[names.length - 1]}`;
+  return ` ${city.name} is also known as ${phrase}.`;
+}
+
+/**
  * Compose a factual introduction from a city's real inventory, for pages an
  * editor has not written local copy for.
  *
@@ -598,13 +622,15 @@ function composeAutomaticIntro(
   }
   const template =
     AUTOMATIC_INTRO_TEMPLATES[stableChoice(city.slug, AUTOMATIC_INTRO_TEMPLATES.length)];
-  return template({
-    city,
-    supplierCount,
-    supplierNoun: supplierCount === 1 ? 'supplier' : 'suppliers',
-    categories,
-    packageCount,
-  });
+  return (
+    template({
+      city,
+      supplierCount,
+      supplierNoun: supplierCount === 1 ? 'supplier' : 'suppliers',
+      categories,
+      packageCount,
+    }) + alternateNameNote(city)
+  );
 }
 
 /**
@@ -710,5 +736,7 @@ module.exports = {
   normalisePageRecord,
   populatedCategories,
   safeBaseUrl,
+  signalRatio,
+  stableChoice,
   truncate,
 };
