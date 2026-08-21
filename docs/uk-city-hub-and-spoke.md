@@ -201,8 +201,16 @@ content, proof of activity, internal links and review freshness, each target
 sized for a single category's real inventory rather than a whole city's. A
 city can look ready overall while one specific category is still thin, or the
 other way round — "wedding venues in Cardiff" can go live long before every
-other Cardiff category does, because nothing here waits for the city as a
-whole to be ready.
+other Cardiff category does, because nothing about the category's own score
+waits for the city as a whole to be ready.
+
+Reachability is the one thing a category page does take from its city: every
+category page's breadcrumb, and its "see every supplier in this city"
+fallback, link back to `/locations/:citySlug`, so a category page is only
+ever publicly visible while the city page is too (pilot or published), and
+only ever listed in the sitemap while the city page is published. A category
+can pass its own gate long before the city is ready for launch — it simply
+waits alongside it, rather than shipping a page whose own breadcrumb 404s.
 
 Editorial content — an intro, planning sections, FAQs, an SEO title and
 description — lives in its own `location_category_pages` MongoDB collection,
@@ -223,7 +231,10 @@ Automatic publication mirrors the city-level job: any city × category
 combination with three or more real suppliers in that category, that no
 admin has ever saved through the editor, is published (but never
 index-requested) on the same nightly run as the city job
-(`services/locationAutoPublish.service.js`).
+(`services/locationAutoPublish.service.js`) — but only once the city page
+itself is publicly visible, for the same reachability reason as above. The
+city job runs first on every cycle, so a city that clears its own bar the
+same night still carries its qualifying categories with it.
 
 The admin API is a direct, one-level-deeper mirror of the city editor's:
 `GET /api/v1/admin/locations/:slug/categories` lists every category with
@@ -243,9 +254,11 @@ unpublished, when indexing is withdrawn, or when its inventory or review date
 decays past the gate. `lastmod` is the page's real content date — never the time
 the sitemap was generated. The hub is listed only when at least one city page is
 indexable. City × category pages are listed the same way, each evaluated
-against its own gate; a city being indexable never carries a category page
-along with it, and only categories a city actually has suppliers in are ever
-considered.
+against its own gate — a city being indexable never carries a category page
+along on the strength of the city's own score — but only once the city page
+itself is published, so the category page's breadcrumb never points at a
+page the sitemap has excluded. Only categories a city actually has suppliers
+in are ever considered.
 
 ## Admin
 

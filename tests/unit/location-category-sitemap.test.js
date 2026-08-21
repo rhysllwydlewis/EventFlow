@@ -48,6 +48,22 @@ function categoryPageRecord(citySlug, categorySlug, overrides = {}) {
   };
 }
 
+function pageRecord(citySlug, overrides = {}) {
+  return {
+    locationSlug: citySlug,
+    status: 'published',
+    indexingRequested: true,
+    lastReviewedAt: new Date().toISOString(),
+    updatedAt: '2026-07-01T00:00:00.000Z',
+    content: {
+      intro: `A human-written introduction to ${citySlug}.`,
+      planningSections: [],
+      faqs: [],
+    },
+    ...overrides,
+  };
+}
+
 beforeEach(() => {
   store.clear();
   seed('users', [{ id: 'user-1' }]);
@@ -59,18 +75,23 @@ beforeEach(() => {
   ]);
   seed('packages', []);
   seed('public_calendar_events', []);
-  seed('location_pages', []);
+  seed('location_pages', [pageRecord('cardiff')]);
   seed('location_category_pages', [categoryPageRecord('cardiff', 'venues')]);
 });
 
 describe('sitemap category entries', () => {
-  it('includes an indexable city × category page even when the parent city is not itself indexable', async () => {
+  it('includes an indexable city × category page once its own gate passes', async () => {
     const xml = await generateSitemap('https://event-flow.co.uk');
     expect(xml).toContain('<loc>https://event-flow.co.uk/locations/cardiff/venues</loc>');
-    // The city has no `location_pages` record at all in this test, so its own
-    // page is a draft and never reaches the sitemap — the category entry
-    // above does not depend on it.
-    expect(xml).not.toContain('<loc>https://event-flow.co.uk/locations/cardiff</loc>');
+  });
+
+  it('excludes a category page whose parent city page is not itself published', async () => {
+    // Its breadcrumb and every "see the whole city" link point back at the
+    // city page — indexing it while that page is still a draft would put a
+    // dead link in front of both crawlers and visitors.
+    seed('location_pages', [pageRecord('cardiff', { status: 'pilot' })]);
+    const xml = await generateSitemap('https://event-flow.co.uk');
+    expect(xml).not.toContain('/locations/cardiff/venues');
   });
 
   it('excludes a category page whose editor has not requested indexing', async () => {

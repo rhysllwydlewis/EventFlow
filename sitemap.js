@@ -161,6 +161,12 @@ async function loadIndexableCategoryEntries(suppliers, users, packages, events) 
 
     const entries = [];
     for (const city of locationRegistry.listCities()) {
+      // A category page's breadcrumb links back to its city page, so it never
+      // belongs in the sitemap ahead of it — the same rule the public route
+      // enforces for reachability, applied here to indexability.
+      if (!publishedCitySlugs.has(city.slug)) {
+        continue;
+      }
       const rankedCitySuppliers = supplierLocationService.rankSuppliersForCity(
         eligibleSuppliers,
         city,

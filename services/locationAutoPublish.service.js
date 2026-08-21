@@ -160,10 +160,11 @@ async function promoteEligibleCategories({ db = dbUnified, log = logger, now = n
 
   categoryPromotionRunning = true;
   try {
-    const [suppliers, users, categoryRecords] = await Promise.all([
+    const [suppliers, users, categoryRecords, cityRecords] = await Promise.all([
       db.read('suppliers'),
       db.read('users'),
       locationCategoryPages.loadCategoryPageRecords(db),
+      locationPages.loadPageRecords(db),
     ]);
     const validOwnerIds = new Set((users || []).map(user => user && user.id).filter(Boolean));
     const publicSuppliers = (suppliers || []).filter(supplier =>
@@ -177,6 +178,17 @@ async function promoteEligibleCategories({ db = dbUnified, log = logger, now = n
     const promotedKeys = [];
 
     for (const city of cities) {
+      // A category page's breadcrumb and every "see the whole city" link point
+      // at the parent city page, so publishing a category page before the city
+      // itself is publicly reachable would launch it under links that 404 —
+      // automation waits for the city to clear its own gate first. An admin
+      // publishing a category page by hand is a deliberate, judged action and
+      // is not held to this rule.
+      const cityPage = locationPages.normalisePageRecord(city, cityRecords.get(city.slug));
+      if (!locationPages.isPubliclyVisible(cityPage)) {
+        continue;
+      }
+
       const rankedCitySuppliers = supplierLocation.rankSuppliersForCity(publicSuppliers, city, {
         validOwnerIds,
       });

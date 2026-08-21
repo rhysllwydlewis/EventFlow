@@ -1096,7 +1096,15 @@ router.get('/locations/:citySlug/:categorySlug', publicReadLimiter, async (req, 
 
     // Draft, in-review and retired combinations do not exist as far as the
     // public is concerned — exactly the same rule the city page applies.
-    if (!locationCategoryPages.isPubliclyVisible(categoryPage)) {
+    let cityPage = locationPages.normalisePageRecord(city, data.pageRecords.get(city.slug));
+    // Every module on this page — the breadcrumb, "see every supplier in
+    // this city", sibling and nearby links — points back at the city page, so
+    // a category page is never shown ahead of its own city: that would launch
+    // it under links that 404 rather than the coherent page they promise.
+    if (
+      !locationCategoryPages.isPubliclyVisible(categoryPage) ||
+      !locationPages.isPubliclyVisible(cityPage)
+    ) {
       res.set('X-Robots-Tag', 'noindex, follow');
       return next();
     }
@@ -1104,7 +1112,6 @@ router.get('/locations/:citySlug/:categorySlug', publicReadLimiter, async (req, 
     // The category page borrows the parent city's hero photograph rather than
     // resolving its own — one less thing an editor has to keep in step across
     // every category a city has.
-    let cityPage = locationPages.normalisePageRecord(city, data.pageRecords.get(city.slug));
     cityPage = await locationHeroImages.resolvePageHero(city, cityPage);
 
     const rankedCitySuppliers = supplierLocation.rankSuppliersForCity(data.suppliers, city, {

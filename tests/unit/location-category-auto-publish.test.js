@@ -38,6 +38,13 @@ function createDb(seed = {}) {
     suppliers: seed.suppliers || [],
     users: seed.users || [],
     location_category_pages: (seed.location_category_pages || []).map(row => ({ ...row })),
+    // A published city page by default: category auto-publish never launches
+    // a category page ahead of the city page its breadcrumb links back to.
+    location_pages:
+      seed.location_pages ||
+      [...new Set((seed.suppliers || []).map(item => item.baseLocation.citySlug))].map(
+        citySlug => ({ locationSlug: citySlug, status: PUBLICATION_STATES.published })
+      ),
   };
 
   return {
@@ -161,5 +168,20 @@ describe('location category auto-publish', () => {
       row => row.locationSlug === 'cardiff' && row.categorySlug === 'venues'
     );
     expect(stored.publishedAt).toBe('2026-01-01T00:00:00.000Z');
+  });
+
+  it('never publishes a category page ahead of its own city page', async () => {
+    const suppliers = Array.from({ length: MIN_SUPPLIERS_TO_PUBLISH_CATEGORY }, (_unused, index) =>
+      supplier(`sup-${index}`, 'cardiff', 'Venues')
+    );
+    const db = createDb({
+      suppliers,
+      location_pages: [{ locationSlug: 'cardiff', status: 'draft' }],
+    });
+
+    const result = await promoteEligibleCategories({ db, log });
+
+    expect(result.promotedKeys).not.toContain('cardiff:venues');
+    expect(db.collections.location_category_pages).toHaveLength(0);
   });
 });
