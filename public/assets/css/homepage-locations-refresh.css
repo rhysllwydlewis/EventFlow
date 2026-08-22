@@ -101,9 +101,9 @@ body.ef-approved-lower-home .ef-home-locations__searchbar {
   z-index: 1;
   display: flex;
   align-items: center;
-  gap: 8px;
-  max-width: 420px;
-  margin: 0 auto 20px;
+  gap: 6px;
+  max-width: 360px;
+  margin: 0 auto 16px;
   border: 1px solid rgba(255, 255, 255, 0.65);
   border-radius: 999px;
   background: rgba(255, 255, 255, 0.55);
@@ -112,7 +112,7 @@ body.ef-approved-lower-home .ef-home-locations__searchbar {
   box-shadow:
     0 6px 18px rgba(7, 77, 68, 0.12),
     inset 0 1px 1px rgba(255, 255, 255, 0.7);
-  padding: 5px 5px 5px 16px;
+  padding: 4px 4px 4px 14px;
   transition: box-shadow 200ms ease, border-color 200ms ease;
 }
 
@@ -128,14 +128,14 @@ body.ef-approved-lower-home .ef-home-locations__searchbar-pin {
   display: grid;
   place-items: center;
   flex: 0 0 auto;
-  width: 16px;
-  height: 16px;
+  width: 14px;
+  height: 14px;
   color: #0b8073;
 }
 
 body.ef-approved-lower-home .ef-home-locations__searchbar-pin svg {
-  width: 16px;
-  height: 16px;
+  width: 14px;
+  height: 14px;
 }
 
 body.ef-approved-lower-home .ef-home-locations__searchbar-field {
@@ -164,10 +164,10 @@ body.ef-approved-lower-home .ef-home-locations__searchbar-field input {
   border: 0;
   outline: 0;
   background: transparent;
-  padding: 8px 0;
+  padding: 6px 0;
   color: #0b1220;
   font: inherit;
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 600;
 }
 
@@ -187,12 +187,17 @@ body.ef-approved-lower-home .ef-home-locations__searchbar button[type='submit'] 
   display: grid;
   place-items: center;
   flex: 0 0 auto;
-  width: 38px;
-  height: 38px;
+  width: 30px;
+  height: 30px;
   border: 0;
   border-radius: 50%;
   background: linear-gradient(135deg, #10b981 0%, #059669 50%, #047857 100%);
   color: #fff;
+  /* Collapses the button's own text ("Show local suppliers") to nothing —
+     it stays in the DOM as the accessible name, but the visible mark is the
+     search icon below, not the arrow character this used to render (browser
+     glyph rendering for "→" reads as a thin, inconsistent line rather than a
+     real icon). */
   font-size: 0;
   cursor: pointer;
   box-shadow:
@@ -204,11 +209,18 @@ body.ef-approved-lower-home .ef-home-locations__searchbar button[type='submit'] 
     background 170ms ease;
 }
 
-/* The button's own text ("Show local suppliers") stays for its accessible
-   name; only the trailing arrow renders, sized back up since the button
-   collapsed all text to font-size: 0 above. */
-body.ef-approved-lower-home .ef-home-locations__searchbar button[type='submit'] span {
-  font-size: 16px;
+/* A real vector search icon (same magnifying-glass path as the hero bar's
+   own submit button in ef-search-bar.css) rendered as a mask, rather than
+   relying on the "→" text glyph this used to show. */
+body.ef-approved-lower-home .ef-home-locations__searchbar button[type='submit']::after {
+  content: '';
+  width: 14px;
+  height: 14px;
+  background: #fff;
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.5'%3E%3Ccircle cx='11' cy='11' r='8'/%3E%3Cpath d='m21 21-4.35-4.35'/%3E%3C/svg%3E")
+    no-repeat center / contain;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.5'%3E%3Ccircle cx='11' cy='11' r='8'/%3E%3Cpath d='m21 21-4.35-4.35'/%3E%3C/svg%3E")
+    no-repeat center / contain;
 }
 
 body.ef-approved-lower-home .ef-home-locations__searchbar button[type='submit']:hover {
