@@ -105,7 +105,7 @@ body.ef-approved-lower-home .ef-home-locations__searchbar {
   max-width: 360px;
   margin: 0 auto 16px;
   border: 1px solid rgba(255, 255, 255, 0.65);
-  border-radius: 999px;
+  border-radius: 18px;
   background: rgba(255, 255, 255, 0.55);
   backdrop-filter: blur(16px) saturate(180%);
   -webkit-backdrop-filter: blur(16px) saturate(180%);
@@ -141,6 +141,7 @@ body.ef-approved-lower-home .ef-home-locations__searchbar-pin svg {
 body.ef-approved-lower-home .ef-home-locations__searchbar-field {
   flex: 1 1 auto;
   min-width: 0;
+  margin: 0;
   border-left: 0;
   padding: 0;
 }
@@ -162,6 +163,7 @@ body.ef-approved-lower-home .ef-home-locations__searchbar-field span {
 body.ef-approved-lower-home .ef-home-locations__searchbar-field input {
   display: block;
   width: 100%;
+  min-height: 0;
   border: 0;
   outline: 0;
   background: transparent;
@@ -193,8 +195,7 @@ body.ef-approved-lower-home .ef-home-locations__searchbar-field input::placehold
    fight with it. Square with rounded corners, not a circle — a circle at
    this size read as a plain dot with the icon looking off-centre inside it. */
 body.ef-approved-lower-home .ef-home-locations__searchbar button[type='submit'] {
-  display: grid;
-  place-items: center;
+  position: relative;
   flex: 0 0 auto;
   width: 44px;
   height: 44px;
@@ -220,15 +221,22 @@ body.ef-approved-lower-home .ef-home-locations__searchbar button[type='submit'] 
 
 /* A real vector search icon (same magnifying-glass path as the hero bar's
    own submit button in ef-search-bar.css) rendered as a mask, rather than
-   relying on the "→" text glyph this used to show. Mask size/position are
-   set as explicit pixel values rather than the `contain` keyword — at this
-   element's small size `contain` was rounding to a fractional pixel offset
-   in Chromium, rendering the icon visibly shifted down-and-right instead of
-   centred. */
+   relying on the "→" text glyph this used to show. Positioned with
+   absolute + transform (not grid place-items) because the button also
+   contains its own collapsed text label as an accessible name — as a
+   second grid item that text was claiming its own implicit row and
+   pushing this icon down inside the button instead of the text collapsing
+   to nothing. Absolute positioning takes the icon out of that flow
+   entirely, so it centers on the button itself regardless of what else is
+   inside it. */
 body.ef-approved-lower-home .ef-home-locations__searchbar button[type='submit']::after {
   content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
   width: 20px;
   height: 20px;
+  transform: translate(-50%, -50%);
   background: #fff;
   -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.5'%3E%3Ccircle cx='11' cy='11' r='8'/%3E%3Cpath d='m21 21-4.35-4.35'/%3E%3C/svg%3E")
     center / 20px 20px no-repeat;
