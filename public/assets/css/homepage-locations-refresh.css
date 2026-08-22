@@ -101,7 +101,7 @@ body.ef-approved-lower-home .ef-home-locations__searchbar {
   z-index: 1;
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
   max-width: 360px;
   margin: 0 auto 16px;
   border: 1px solid rgba(255, 255, 255, 0.65);
@@ -112,7 +112,7 @@ body.ef-approved-lower-home .ef-home-locations__searchbar {
   box-shadow:
     0 6px 18px rgba(7, 77, 68, 0.12),
     inset 0 1px 1px rgba(255, 255, 255, 0.7);
-  padding: 4px 4px 4px 14px;
+  padding: 3px 3px 3px 14px;
   transition: box-shadow 200ms ease, border-color 200ms ease;
 }
 
@@ -128,14 +128,14 @@ body.ef-approved-lower-home .ef-home-locations__searchbar-pin {
   display: grid;
   place-items: center;
   flex: 0 0 auto;
-  width: 14px;
-  height: 14px;
+  width: 16px;
+  height: 16px;
   color: #0b8073;
 }
 
 body.ef-approved-lower-home .ef-home-locations__searchbar-pin svg {
-  width: 14px;
-  height: 14px;
+  width: 16px;
+  height: 16px;
 }
 
 body.ef-approved-lower-home .ef-home-locations__searchbar-field {
@@ -160,15 +160,17 @@ body.ef-approved-lower-home .ef-home-locations__searchbar-field span {
 }
 
 body.ef-approved-lower-home .ef-home-locations__searchbar-field input {
+  display: block;
   width: 100%;
   border: 0;
   outline: 0;
   background: transparent;
-  padding: 6px 0;
+  padding: 0;
   color: #0b1220;
   font: inherit;
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 600;
+  line-height: 1.3;
 }
 
 body.ef-approved-lower-home .ef-home-locations__searchbar-field input::placeholder {
@@ -182,15 +184,22 @@ body.ef-approved-lower-home .ef-home-locations__searchbar-field input::placehold
    would otherwise stretch this into a wide bar and defeat the point of a
    small icon button. Colour/shadow reuse the hero search bar's button
    tokens (--search-btn-bg etc. in ef-search-bar.css) so both buttons on the
-   page match. */
+   page match.
+   Width/height are pinned at 44px deliberately, not left smaller: a
+   site-wide accessibility rule (utilities.css, `button[type="submit"] {
+   min-height/min-width: 44px }`, the WCAG touch-target minimum) overrides
+   any smaller value here anyway, so setting 44px directly keeps this rule
+   truthful about the actual rendered size instead of silently losing a
+   fight with it. Square with rounded corners, not a circle — a circle at
+   this size read as a plain dot with the icon looking off-centre inside it. */
 body.ef-approved-lower-home .ef-home-locations__searchbar button[type='submit'] {
   display: grid;
   place-items: center;
   flex: 0 0 auto;
-  width: 30px;
-  height: 30px;
+  width: 44px;
+  height: 44px;
   border: 0;
-  border-radius: 50%;
+  border-radius: 14px;
   background: linear-gradient(135deg, #10b981 0%, #059669 50%, #047857 100%);
   color: #fff;
   /* Collapses the button's own text ("Show local suppliers") to nothing —
@@ -211,16 +220,20 @@ body.ef-approved-lower-home .ef-home-locations__searchbar button[type='submit'] 
 
 /* A real vector search icon (same magnifying-glass path as the hero bar's
    own submit button in ef-search-bar.css) rendered as a mask, rather than
-   relying on the "→" text glyph this used to show. */
+   relying on the "→" text glyph this used to show. Mask size/position are
+   set as explicit pixel values rather than the `contain` keyword — at this
+   element's small size `contain` was rounding to a fractional pixel offset
+   in Chromium, rendering the icon visibly shifted down-and-right instead of
+   centred. */
 body.ef-approved-lower-home .ef-home-locations__searchbar button[type='submit']::after {
   content: '';
-  width: 14px;
-  height: 14px;
+  width: 20px;
+  height: 20px;
   background: #fff;
   -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.5'%3E%3Ccircle cx='11' cy='11' r='8'/%3E%3Cpath d='m21 21-4.35-4.35'/%3E%3C/svg%3E")
-    no-repeat center / contain;
+    center / 20px 20px no-repeat;
   mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.5'%3E%3Ccircle cx='11' cy='11' r='8'/%3E%3Cpath d='m21 21-4.35-4.35'/%3E%3C/svg%3E")
-    no-repeat center / contain;
+    center / 20px 20px no-repeat;
 }
 
 body.ef-approved-lower-home .ef-home-locations__searchbar button[type='submit']:hover {
@@ -229,7 +242,7 @@ body.ef-approved-lower-home .ef-home-locations__searchbar button[type='submit']:
     0 4px 14px rgba(5, 150, 105, 0.45),
     0 0 20px rgba(16, 185, 129, 0.35),
     inset 0 1px 2px rgba(255, 255, 255, 0.3);
-  transform: scale(1.06);
+  transform: scale(1.04);
 }
 
 body.ef-approved-lower-home .ef-home-locations__explore {
