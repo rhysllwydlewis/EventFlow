@@ -483,7 +483,7 @@ router.get('/api/v1/locations/featured', publicReadLimiter, async (req, res) => 
     const published = publishedSlugs(data.pageRecords);
     const limit = Math.min(12, Math.max(1, Number.parseInt(req.query.limit, 10) || 4));
 
-    const featured = registry
+    const shortlisted = registry
       .listCities()
       .filter(city => published.has(city.slug))
       .map(city => ({
@@ -494,13 +494,25 @@ router.get('/api/v1/locations/featured', publicReadLimiter, async (req, res) => 
       }))
       .filter(entry => entry.supplierCount > 0)
       .sort((a, b) => b.supplierCount - a.supplierCount || a.city.name.localeCompare(b.city.name))
-      .slice(0, limit)
-      .map(entry => ({
-        slug: entry.city.slug,
-        name: entry.city.name,
-        region: entry.city.region || entry.city.nation,
-        supplierCount: entry.supplierCount,
-      }));
+      .slice(0, limit);
+
+    // Same hero resolver the city page itself uses — a curated photo where one
+    // is reviewed, otherwise a cached (24h) Pexels search for that named place.
+    // Reusing it here means this card grid can never show a photo the city
+    // page itself wouldn't stand behind.
+    const featured = await Promise.all(
+      shortlisted.map(async entry => {
+        const hero = await locationHeroImages.resolveAutomaticHero(entry.city).catch(() => null);
+        return {
+          slug: entry.city.slug,
+          name: entry.city.name,
+          region: entry.city.region || entry.city.nation,
+          supplierCount: entry.supplierCount,
+          imageUrl: hero ? hero.url : null,
+          imageAlt: hero ? hero.alt : null,
+        };
+      })
+    );
 
     res.set('Cache-Control', 'public, max-age=60, s-maxage=300, stale-while-revalidate=300');
     return res.json({ success: true, data: { cities: featured } });

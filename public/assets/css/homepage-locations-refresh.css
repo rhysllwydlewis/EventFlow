@@ -6,21 +6,21 @@ body.ef-approved-lower-home .ef-home-locations {
   background:
     radial-gradient(circle at 5% 15%, rgba(25, 180, 157, 0.08), transparent 23%),
     radial-gradient(circle at 96% 90%, rgba(25, 180, 157, 0.08), transparent 25%), #f3faf8;
-  padding: clamp(58px, 7vw, 88px) 0;
+  padding: clamp(28px, 3.5vw, 40px) 0;
 }
 
 body.ef-approved-lower-home .ef-home-locations__heading {
   display: flex;
-  gap: 2rem;
+  gap: 1.25rem;
   align-items: end;
   justify-content: space-between;
   max-width: 1180px;
-  margin: 0 auto 30px;
+  margin: 0 auto 14px;
 }
 
 body.ef-approved-lower-home .ef-home-locations__kicker {
   display: inline-flex;
-  margin-bottom: 10px;
+  margin-bottom: 6px;
   color: #0b8073;
   font-size: 11px;
   font-weight: 900;
@@ -31,31 +31,31 @@ body.ef-approved-lower-home .ef-home-locations__kicker {
 body.ef-approved-lower-home .ef-home-locations__heading h2 {
   margin: 0;
   color: #10231f;
-  font-size: clamp(30px, 4vw, 46px);
+  font-size: clamp(22px, 2.6vw, 30px);
   font-weight: 850;
-  letter-spacing: -0.045em;
-  line-height: 1.04;
+  letter-spacing: -0.03em;
+  line-height: 1.08;
 }
 
 body.ef-approved-lower-home .ef-home-locations__heading p {
-  margin: 10px 0 0;
+  margin: 6px 0 0;
   color: #657a74;
-  font-size: 14px;
+  font-size: 13px;
 }
 
 body.ef-approved-lower-home .ef-home-locations__all--button {
   display: inline-flex;
   flex: 0 0 auto;
-  gap: 9px;
+  gap: 7px;
   align-items: center;
-  margin: 0 0 4px;
+  margin: 0 0 2px;
   border: 1px solid rgba(11, 128, 115, 0.22);
   border-radius: 999px;
   background: #fff;
-  box-shadow: 0 10px 24px rgba(18, 72, 63, 0.08);
-  padding: 11px 20px;
+  box-shadow: 0 8px 18px rgba(18, 72, 63, 0.08);
+  padding: 8px 16px;
   color: #0b8073;
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 850;
   text-decoration: none;
   transition:
@@ -70,7 +70,7 @@ body.ef-approved-lower-home .ef-home-locations__all--button span {
 
 body.ef-approved-lower-home .ef-home-locations__all--button:hover {
   background: #0b8073;
-  box-shadow: 0 14px 30px rgba(18, 72, 63, 0.16);
+  box-shadow: 0 12px 24px rgba(18, 72, 63, 0.16);
   color: #fff;
   text-decoration: none;
   transform: translateY(-2px);
@@ -89,368 +89,378 @@ body.ef-approved-lower-home .ef-home-locations__all--button:hover span {
   }
 }
 
-body.ef-approved-lower-home .ef-home-locations__panel {
-  display: grid;
-  grid-template-columns: minmax(320px, 0.74fr) minmax(0, 1.26fr);
-  gap: 18px;
-  overflow: visible;
-  border-radius: 0;
-  background: transparent;
-  box-shadow: none;
-  padding: 0;
-  color: inherit;
-}
-
-body.ef-approved-lower-home .ef-home-locations__panel::after {
-  display: none;
-}
-
-body.ef-approved-lower-home .ef-home-locations__search-card {
+/* A single slim search bar reads as one deliberate action, rather than the
+   tall stacked card the "start with your location" panel used to be — the
+   city grid below is the section's real visual weight now, and both stay as
+   short as the content allows. */
+body.ef-approved-lower-home .ef-home-locations__searchbar {
   position: relative;
+  z-index: 1;
   display: flex;
-  min-height: 430px;
-  flex-direction: column;
-  justify-content: center;
-  overflow: hidden;
+  gap: 6px;
+  align-items: center;
+  max-width: 1180px;
+  margin: 0 auto 14px;
   border: 1px solid rgba(255, 255, 255, 0.14);
-  border-radius: 24px;
-  background:
-    radial-gradient(circle at 92% 8%, rgba(76, 216, 190, 0.24), transparent 29%),
-    linear-gradient(145deg, #073f38 0%, #07695d 100%);
-  box-shadow: 0 24px 55px rgba(7, 77, 68, 0.2);
-  padding: clamp(30px, 4vw, 46px);
-  color: #fff;
+  border-radius: 999px;
+  background: linear-gradient(120deg, #073f38 0%, #0b8073 100%);
+  box-shadow: 0 12px 26px rgba(7, 77, 68, 0.2);
+  padding: 6px 6px 6px 16px;
 }
 
-body.ef-approved-lower-home .ef-home-locations__search-card::after {
-  position: absolute;
-  right: -105px;
-  bottom: -150px;
-  width: 320px;
-  height: 320px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 50%;
-  box-shadow:
-    0 0 0 42px rgba(255, 255, 255, 0.025),
-    0 0 0 86px rgba(255, 255, 255, 0.018);
-  content: '';
-  pointer-events: none;
-}
-
-body.ef-approved-lower-home .ef-home-locations__pin {
-  position: relative;
-  z-index: 1;
+body.ef-approved-lower-home .ef-home-locations__searchbar-pin {
   display: grid;
-  width: 58px;
-  height: 58px;
-  margin-bottom: 23px;
+  flex: 0 0 auto;
+  width: 22px;
+  height: 22px;
   place-items: center;
-  border: 1px solid rgba(255, 255, 255, 0.18);
-  border-radius: 17px;
-  background: rgba(255, 255, 255, 0.1);
-  box-shadow: inset 0 1px rgba(255, 255, 255, 0.12);
   color: #8ce8d8;
 }
 
-body.ef-approved-lower-home .ef-home-locations__pin svg {
-  width: 28px;
-  height: 28px;
+body.ef-approved-lower-home .ef-home-locations__searchbar-pin svg {
+  width: 17px;
+  height: 17px;
 }
 
-body.ef-approved-lower-home .ef-home-locations__search-copy,
-body.ef-approved-lower-home .ef-home-locations__search-card label,
-body.ef-approved-lower-home .ef-home-locations__search-row,
-body.ef-approved-lower-home .ef-home-locations__promise {
-  position: relative;
-  z-index: 1;
+body.ef-approved-lower-home .ef-home-locations__searchbar-field {
+  display: flex;
+  flex: 1 1 auto;
+  min-width: 0;
+  flex-direction: column;
+  gap: 0;
+  border-left: 1px solid rgba(255, 255, 255, 0.16);
+  padding: 0 0 0 14px;
 }
 
-body.ef-approved-lower-home .ef-home-locations__search-copy > span {
-  color: #8ce8d8;
+body.ef-approved-lower-home .ef-home-locations__searchbar-field span {
+  color: rgba(255, 255, 255, 0.6);
   font-size: 11px;
-  font-weight: 850;
-  letter-spacing: 0.12em;
+  font-weight: 750;
+  letter-spacing: 0.03em;
   text-transform: uppercase;
 }
 
-body.ef-approved-lower-home .ef-home-locations__search-copy h3 {
-  margin: 8px 0 10px;
-  color: #fff;
-  font-size: clamp(25px, 3vw, 34px);
-  font-weight: 850;
-  letter-spacing: -0.04em;
-  line-height: 1.08;
-}
-
-body.ef-approved-lower-home .ef-home-locations__search-copy p {
-  max-width: 440px;
-  margin: 0 0 25px;
-  color: rgba(255, 255, 255, 0.72);
-  font-size: 13px;
-  line-height: 1.6;
-}
-
-body.ef-approved-lower-home .ef-home-locations__search-card label {
-  display: block;
-  margin-bottom: 8px;
-  color: rgba(255, 255, 255, 0.88);
-  font-size: 11px;
-  font-weight: 750;
-}
-
-body.ef-approved-lower-home .ef-home-locations__search-row {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  overflow: hidden;
-  border: 5px solid #fff;
-  border-radius: 13px;
-  background: #fff;
-  box-shadow: 0 14px 32px rgba(3, 43, 37, 0.23);
-}
-
-body.ef-approved-lower-home .ef-home-locations__search-row input {
-  min-width: 0;
+body.ef-approved-lower-home .ef-home-locations__searchbar-field input {
+  width: 100%;
   border: 0;
   outline: 0;
-  background: #fff;
-  padding: 0 14px;
-  color: #173a33;
+  background: transparent;
+  padding: 0;
+  color: #fff;
   font: inherit;
-  font-size: 13px;
+  font-size: 14px;
+  font-weight: 700;
 }
 
-body.ef-approved-lower-home .ef-home-locations__search-row button {
-  min-height: 46px;
+body.ef-approved-lower-home .ef-home-locations__searchbar-field input::placeholder {
+  color: rgba(255, 255, 255, 0.45);
+  font-weight: 500;
+}
+
+/* `[type="submit"]` is redundant (the button already carries that attribute)
+   — it is here purely to out-specificity mobile-optimizations.css's generic
+   `button[type="submit"] { width: 100% }` mobile CTA rule below 768px,
+   which would otherwise stretch this button the full width of the bar and
+   balloon the pill into a circle. */
+body.ef-approved-lower-home .ef-home-locations__searchbar button[type='submit'] {
+  display: inline-flex;
+  width: auto;
+  flex: 0 0 auto;
+  gap: 6px;
+  align-items: center;
   border: 0;
-  border-radius: 9px;
-  background: #0b8073;
-  padding: 0 17px;
-  color: #fff;
+  border-radius: 999px;
+  background: #fff;
+  padding: 10px 18px;
+  color: #0b8073;
   font: inherit;
   font-size: 12px;
   font-weight: 850;
   cursor: pointer;
+  transition:
+    transform 170ms ease,
+    box-shadow 170ms ease;
 }
 
-body.ef-approved-lower-home .ef-home-locations__search-row button:hover {
-  background: #086b60;
-}
-
-body.ef-approved-lower-home .ef-home-locations__promise {
-  display: flex;
-  gap: 7px;
-  align-items: center;
-  margin: 14px 0 0;
-  color: rgba(255, 255, 255, 0.6);
-  font-size: 11px;
-}
-
-body.ef-approved-lower-home .ef-home-locations__promise span:first-child {
-  color: #8ce8d8;
-  font-weight: 900;
+body.ef-approved-lower-home .ef-home-locations__searchbar button[type='submit']:hover {
+  box-shadow: 0 10px 20px rgba(3, 43, 37, 0.28);
+  transform: translateY(-1px);
 }
 
 body.ef-approved-lower-home .ef-home-locations__explore {
   position: relative;
   z-index: 1;
-  border: 1px solid rgba(11, 128, 115, 0.1);
-  border-radius: 24px;
-  background: rgba(255, 255, 255, 0.9);
-  box-shadow: 0 18px 45px rgba(18, 72, 63, 0.08);
-  padding: clamp(24px, 3vw, 34px);
-  backdrop-filter: blur(10px);
 }
 
 body.ef-approved-lower-home .ef-home-locations__explore-heading {
   display: flex;
-  align-items: center;
+  align-items: baseline;
   justify-content: space-between;
-  margin-bottom: 18px;
+  gap: 12px;
+  max-width: 1180px;
+  margin: 0 auto 8px;
 }
 
 body.ef-approved-lower-home .ef-home-locations__explore-heading p {
   margin: 0;
   color: #10231f;
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 850;
 }
 
 body.ef-approved-lower-home .ef-home-locations__explore-heading > span {
-  color: #778a85;
+  color: #57746d;
   font-size: 11px;
-  font-weight: 750;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+  font-weight: 650;
 }
 
+/* Every card shares one aspect ratio per breakpoint, so the grid always
+   reads as a single deliberate set rather than a mismatch of panel sizes —
+   a real photo or the tinted gradient fallback both fill exactly the same
+   shape. The ratio itself gets shorter as the grid gains columns, so the
+   whole module stays compact rather than the row count driving the page
+   height up on wider screens. */
 body.ef-approved-lower-home .ef-home-locations__city-grid {
   display: grid;
-  /* Two columns by default: the explore panel only has half the section's
-     width (it shares the row with the search card), so a card here is
-     narrower than the section width suggests. Three columns only once the
-     section itself is wide enough that each card still has room for a
-     name like "Manchester" plus live text like "1,234 suppliers"
-     alongside the fixed-width pin and arrow. */
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
+  gap: 8px;
+  max-width: 1180px;
+  margin: 0 auto;
 }
 
-@media (min-width: 1200px) {
+@media (min-width: 560px) {
   body.ef-approved-lower-home .ef-home-locations__city-grid {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 }
 
-body.ef-approved-lower-home .ef-home-locations__city-grid a {
+@media (min-width: 1100px) {
+  body.ef-approved-lower-home .ef-home-locations__city-grid {
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    gap: 10px;
+  }
+}
+
+body.ef-approved-lower-home .ef-home-locations__city-card {
   position: relative;
-  display: grid;
-  grid-template-columns: 39px minmax(0, 1fr) 26px;
-  gap: 12px;
-  align-items: center;
+  display: flex;
+  aspect-ratio: 4 / 3;
+  flex-direction: column;
   overflow: hidden;
-  min-height: 108px;
-  border: 1px solid #e2eeeb;
-  border-radius: 15px;
-  background: #f9fcfb;
-  padding: 16px;
-  color: #10231f;
+  border-radius: 14px;
+  background: linear-gradient(160deg, #14a892 0%, #0a4a41 100%);
+  color: #fff;
   text-decoration: none;
+  box-shadow: 0 8px 18px rgba(10, 40, 35, 0.16);
   transition:
-    border-color 170ms ease,
-    box-shadow 170ms ease,
-    transform 170ms ease;
+    transform 220ms ease,
+    box-shadow 220ms ease;
 }
 
-body.ef-approved-lower-home .ef-home-locations__city-grid a::before {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 3px;
-  background: linear-gradient(90deg, #13b6a2, #0b8073);
-  content: '';
-  opacity: 0;
-  transition: opacity 170ms ease;
+@media (min-width: 560px) {
+  body.ef-approved-lower-home .ef-home-locations__city-card {
+    aspect-ratio: 3 / 2;
+  }
 }
 
-body.ef-approved-lower-home .ef-home-locations__city-grid a:hover {
-  border-color: rgba(11, 128, 115, 0.3);
-  background: #fff;
-  box-shadow: 0 15px 30px rgba(18, 72, 63, 0.1);
+@media (min-width: 1100px) {
+  body.ef-approved-lower-home .ef-home-locations__city-card {
+    aspect-ratio: 1 / 1;
+    border-radius: 12px;
+  }
+}
+
+/* A small, cohesive palette so six cards read as one designed set — not
+   random colour, but not the single flat teal card repeated six times
+   either. Only shows through until a photo loads, or when none is set. */
+body.ef-approved-lower-home .ef-home-locations__city-card:nth-child(6n + 2) {
+  background: linear-gradient(160deg, #2686ac 0%, #0e3b52 100%);
+}
+
+body.ef-approved-lower-home .ef-home-locations__city-card:nth-child(6n + 3) {
+  background: linear-gradient(160deg, #cf9143 0%, #7c4c1f 100%);
+}
+
+body.ef-approved-lower-home .ef-home-locations__city-card:nth-child(6n + 4) {
+  background: linear-gradient(160deg, #9257a8 0%, #422459 100%);
+}
+
+body.ef-approved-lower-home .ef-home-locations__city-card:nth-child(6n + 5) {
+  background: linear-gradient(160deg, #6f9946 0%, #374a20 100%);
+}
+
+body.ef-approved-lower-home .ef-home-locations__city-card:nth-child(6n + 6) {
+  background: linear-gradient(160deg, #566878 0%, #202b35 100%);
+}
+
+body.ef-approved-lower-home .ef-home-locations__city-card:hover {
+  box-shadow: 0 16px 32px rgba(10, 40, 35, 0.26);
   transform: translateY(-3px);
 }
 
-body.ef-approved-lower-home .ef-home-locations__city-grid a:hover::before {
-  opacity: 1;
+/* Set as a background-image directly in the markup (and refreshed by
+   home-locations-featured.js from live data) — an iconic, recognisable shot
+   of the city itself, not a generic placeholder. The tinted gradient above
+   is what shows while a photo is still loading, or on the rare city with no
+   photo resolved at all. */
+body.ef-approved-lower-home .ef-home-locations__city-card-media {
+  position: absolute;
+  z-index: 0;
+  inset: 0;
+  background-position: center;
+  background-size: cover;
+  background-repeat: no-repeat;
+  transition: transform 420ms ease;
 }
 
-body.ef-approved-lower-home .ef-home-locations__city-pin {
+body.ef-approved-lower-home
+  .ef-home-locations__city-card:hover
+  .ef-home-locations__city-card-media {
+  transform: scale(1.06);
+}
+
+body.ef-approved-lower-home .ef-home-locations__city-card::after {
+  position: absolute;
+  z-index: 1;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(6, 20, 18, 0) 42%, rgba(4, 16, 14, 0.86) 100%);
+  content: '';
+  pointer-events: none;
+}
+
+body.ef-approved-lower-home .ef-home-locations__city-card-arrow {
+  position: absolute;
+  z-index: 2;
+  top: 8px;
+  right: 8px;
   display: grid;
-  width: 39px;
-  height: 39px;
+  width: 22px;
+  height: 22px;
   place-items: center;
-  border-radius: 12px;
-  background: #e4f6f1;
-  color: #0b8073;
-  font-size: 11px;
-  font-weight: 900;
-}
-
-body.ef-approved-lower-home .ef-home-locations__city-grid strong,
-body.ef-approved-lower-home .ef-home-locations__city-grid small {
-  display: block;
-}
-
-body.ef-approved-lower-home .ef-home-locations__city-grid strong {
-  color: #10231f;
-  font-size: 14px;
-  font-weight: 850;
-}
-
-body.ef-approved-lower-home .ef-home-locations__city-grid small {
-  margin-top: 4px;
-  color: #0b8073;
-  font-size: 11px;
-  font-weight: 700;
-}
-
-body.ef-approved-lower-home .ef-home-locations__city-grid b {
-  display: grid;
-  width: 26px;
-  height: 26px;
-  place-items: center;
-  border: 1px solid #deebe8;
+  border: 1px solid rgba(255, 255, 255, 0.4);
   border-radius: 50%;
-  color: #0b8073;
+  background: rgba(8, 26, 23, 0.3);
+  backdrop-filter: blur(6px);
+  color: #fff;
   font-size: 11px;
+  font-style: normal;
+  transition:
+    transform 220ms ease,
+    background-color 220ms ease,
+    color 220ms ease;
+}
+
+body.ef-approved-lower-home
+  .ef-home-locations__city-card:hover
+  .ef-home-locations__city-card-arrow {
+  background: #fff;
+  color: #0b8073;
+  transform: translate(2px, -2px);
+}
+
+body.ef-approved-lower-home .ef-home-locations__city-card-body {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  margin-top: auto;
+  padding: 8px 10px;
+}
+
+body.ef-approved-lower-home .ef-home-locations__city-card-body strong {
+  font-size: 13px;
+  font-weight: 850;
+  letter-spacing: -0.005em;
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+}
+
+body.ef-approved-lower-home .ef-home-locations__city-card-body small {
+  display: none;
+  color: rgba(255, 255, 255, 0.85);
+  font-size: 11px;
+  font-weight: 650;
+  text-shadow: 0 1px 8px rgba(0, 0, 0, 0.3);
+}
+
+@media (min-width: 560px) {
+  body.ef-approved-lower-home .ef-home-locations__city-card-body {
+    padding: 10px 12px;
+  }
+
+  body.ef-approved-lower-home .ef-home-locations__city-card-body strong {
+    font-size: 14px;
+  }
+
+  body.ef-approved-lower-home .ef-home-locations__city-card-body small {
+    display: block;
+  }
 }
 
 body.ef-approved-lower-home .ef-home-locations :where(a, button, input):focus-visible {
   outline: 3px solid rgba(19, 182, 162, 0.45);
-  outline-offset: 3px;
+  outline-offset: 2px;
 }
 
-@media (max-width: 900px) {
+/* This matches the city grid's own 560px column breakpoint just below, so
+   the search bar and the grid change shape at the same point rather than
+   the page feeling like it has two different "mobile" widths. */
+@media (max-width: 559px) {
   body.ef-approved-lower-home .ef-home-locations__heading {
     align-items: start;
   }
 
-  body.ef-approved-lower-home .ef-home-locations__panel {
-    grid-template-columns: 1fr;
+  body.ef-approved-lower-home .ef-home-locations__all--button {
+    padding: 7px 13px;
+    font-size: 11px;
   }
 
-  body.ef-approved-lower-home .ef-home-locations__search-card {
-    min-height: 0;
+  /* Below this width the pin, label and "Show local suppliers" button no
+     longer fit on one row — the button's own text is wider than the space
+     left over. Left alone that either squeezes the label down to a
+     near-zero-width column of vertically stacked letters, or (just above
+     that point) truncates the input's placeholder and wraps the label
+     awkwardly. Wrapping the button onto its own full-width row keeps every
+     part of the bar readable at any width in between. */
+  body.ef-approved-lower-home .ef-home-locations__searchbar {
+    flex-wrap: wrap;
+    border-radius: 20px;
+  }
+
+  body.ef-approved-lower-home .ef-home-locations__searchbar-field {
+    flex-basis: 0;
+  }
+
+  body.ef-approved-lower-home .ef-home-locations__searchbar button[type='submit'] {
+    width: 100%;
+    justify-content: center;
+    margin-top: 6px;
+    flex-basis: 100%;
   }
 }
 
-@media (max-width: 600px) {
-  body.ef-approved-lower-home .ef-home-locations {
-    padding: 48px 0;
-  }
-
+@media (max-width: 420px) {
   body.ef-approved-lower-home .ef-home-locations__heading {
     flex-direction: column;
-    gap: 18px;
-    margin-bottom: 24px;
-  }
-
-  body.ef-approved-lower-home .ef-home-locations__search-card,
-  body.ef-approved-lower-home .ef-home-locations__explore {
-    border-radius: 18px;
-    padding: 24px 19px;
-  }
-
-  body.ef-approved-lower-home .ef-home-locations__search-row {
-    grid-template-columns: 1fr;
-  }
-
-  body.ef-approved-lower-home .ef-home-locations__search-row input {
-    min-height: 46px;
-  }
-
-  body.ef-approved-lower-home .ef-home-locations__city-grid {
-    grid-template-columns: 1fr;
-  }
-
-  body.ef-approved-lower-home .ef-home-locations__city-grid a {
-    min-height: 92px;
+    gap: 10px;
+    margin-bottom: 12px;
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  body.ef-approved-lower-home .ef-home-locations__city-grid a {
+  body.ef-approved-lower-home .ef-home-locations__city-card,
+  body.ef-approved-lower-home .ef-home-locations__city-card-media,
+  body.ef-approved-lower-home .ef-home-locations__city-card-arrow {
     transition: none;
   }
 
-  body.ef-approved-lower-home .ef-home-locations__city-grid a:hover {
+  body.ef-approved-lower-home .ef-home-locations__city-card:hover {
     transform: none;
   }
-}
 
-/* The city chip holds a map pin rather than a rank numeral: the four cities
-   are a fixed editorial list, not a measured popularity chart. */
-body.ef-approved-lower-home .ef-home-locations__city-pin svg {
-  width: 18px;
-  height: 18px;
+  body.ef-approved-lower-home
+    .ef-home-locations__city-card:hover
+    .ef-home-locations__city-card-media {
+    transform: none;
+  }
 }

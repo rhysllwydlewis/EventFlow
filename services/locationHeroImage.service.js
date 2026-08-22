@@ -35,6 +35,41 @@ const CITY_HEROES = Object.freeze({
     credit: 'Altaf Shah',
     sourceUrl: 'https://www.pexels.com/photo/aerial-view-of-industrial-area-in-wales-34106705/',
   }),
+  // The homepage's "major UK cities" grid needs one instantly-recognisable
+  // landmark shot per city rather than whatever an automatic search ranks
+  // top, so these five are curated the same way as the entries above.
+  london: Object.freeze({
+    url: `https://images.pexels.com/photos/30624831/pexels-photo-30624831.jpeg?${IMAGE_PARAMS}`,
+    alt: 'Big Ben and Westminster Bridge in London',
+    credit: 'Pexels',
+    sourceUrl:
+      'https://www.pexels.com/photo/iconic-big-ben-and-westminster-bridge-in-london-30624831/',
+  }),
+  manchester: Object.freeze({
+    url: `https://images.pexels.com/photos/29005978/pexels-photo-29005978.jpeg?${IMAGE_PARAMS}`,
+    alt: 'Aerial view of the Manchester skyline and skyscrapers',
+    credit: 'Mylo Kaye',
+    sourceUrl: 'https://www.pexels.com/photo/stunning-aerial-view-of-manchester-skyline-29005978/',
+  }),
+  birmingham: Object.freeze({
+    url: `https://images.pexels.com/photos/335727/pexels-photo-335727.jpeg?${IMAGE_PARAMS}`,
+    alt: 'Birmingham city centre in the West Midlands, England',
+    credit: 'Yuri Loginov',
+    sourceUrl:
+      'https://www.pexels.com/photo/birmingham-england-united-kingdom-west-midlands-335727/',
+  }),
+  leeds: Object.freeze({
+    url: `https://images.pexels.com/photos/30226376/pexels-photo-30226376.jpeg?${IMAGE_PARAMS}`,
+    alt: 'Aerial view of the Leeds skyline at sunset',
+    credit: 'Pexels',
+    sourceUrl: 'https://www.pexels.com/photo/aerial-view-of-leeds-skyline-at-sunset-30226376/',
+  }),
+  edinburgh: Object.freeze({
+    url: `https://images.pexels.com/photos/27879520/pexels-photo-27879520.jpeg?${IMAGE_PARAMS}`,
+    alt: 'Edinburgh Castle standing on its rock above the city',
+    credit: 'Pexels',
+    sourceUrl: 'https://www.pexels.com/photo/edinburgh-castle-scotland-27879520/',
+  }),
 });
 
 /**
