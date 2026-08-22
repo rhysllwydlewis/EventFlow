@@ -9,26 +9,46 @@ body.ef-approved-lower-home .ef-home-locations {
   padding: clamp(28px, 3.5vw, 40px) 0;
 }
 
-body.ef-approved-lower-home .ef-home-locations__heading {
-  display: flex;
-  gap: 1.25rem;
-  align-items: end;
-  justify-content: space-between;
+/* The hero groups the kicker/heading text, the search bar, and the
+   "Explore all UK locations" button into one unit. On narrow screens it is
+   a plain stacked block (kicker + button share a top row, heading/subtitle
+   and the search bar each take their own full-width row below); from
+   768px up it becomes a single bordered, glassy card with the text on the
+   left and the search bar + button lined up to its right. Grid template
+   areas (not just DOM order) drive both shapes, so the kicker can sit next
+   to the button on mobile while sitting above the heading on desktop
+   without needing two copies of any element. */
+body.ef-approved-lower-home .ef-home-locations__hero {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  grid-template-areas:
+    'kicker button'
+    'heading heading'
+    'search search';
+  column-gap: 12px;
+  row-gap: 10px;
+  align-items: center;
   max-width: 1180px;
-  margin: 0 auto 14px;
+  margin: 0 auto 20px;
 }
 
 body.ef-approved-lower-home .ef-home-locations__kicker {
   display: inline-flex;
-  margin-bottom: 6px;
+  grid-area: kicker;
+  align-self: center;
   color: #0b8073;
   font-size: 11px;
   font-weight: 900;
   letter-spacing: 0.14em;
   text-transform: uppercase;
+  white-space: nowrap;
 }
 
-body.ef-approved-lower-home .ef-home-locations__heading h2 {
+body.ef-approved-lower-home .ef-home-locations__hero-text {
+  grid-area: heading;
+}
+
+body.ef-approved-lower-home .ef-home-locations__hero-text h2 {
   margin: 0;
   color: #10231f;
   font-size: clamp(22px, 2.6vw, 30px);
@@ -37,7 +57,7 @@ body.ef-approved-lower-home .ef-home-locations__heading h2 {
   line-height: 1.08;
 }
 
-body.ef-approved-lower-home .ef-home-locations__heading p {
+body.ef-approved-lower-home .ef-home-locations__hero-text p {
   margin: 6px 0 0;
   color: #657a74;
   font-size: 13px;
@@ -45,12 +65,15 @@ body.ef-approved-lower-home .ef-home-locations__heading p {
 
 body.ef-approved-lower-home .ef-home-locations__all--button {
   display: inline-flex;
+  grid-area: button;
+  align-self: center;
+  justify-self: end;
   flex: 0 0 auto;
   gap: 7px;
   align-items: center;
-  margin: 0 0 2px;
+  margin: 0;
   border: 1px solid rgba(11, 128, 115, 0.22);
-  border-radius: 999px;
+  border-radius: 14px;
   background: #fff;
   box-shadow: 0 8px 18px rgba(18, 72, 63, 0.08);
   padding: 8px 16px;
@@ -93,17 +116,19 @@ body.ef-approved-lower-home .ef-home-locations__all--button:hover span {
    this control yet. No card, no glow, no separate label row: the "Where is
    your event?" label stays for screen readers only (visually-hidden below),
    the pin sits inline rather than in its own badge, and the button is a
-   small icon-only circle rather than a full-width bar. Narrower than the
-   page's other content (420px) so it reads as a compact control, not a
-   section-width fixture. */
+   small icon-only circle rather than a full-width bar. It's a grid item of
+   `.ef-home-locations__hero` (see above) rather than a centred block, so it
+   sits full-width on mobile and fills its own column next to the heading
+   text on desktop. */
 body.ef-approved-lower-home .ef-home-locations__searchbar {
   position: relative;
   z-index: 1;
+  grid-area: search;
   display: flex;
   align-items: center;
   gap: 8px;
-  max-width: 360px;
-  margin: 0 auto 16px;
+  width: 100%;
+  margin: 0;
   border: 1px solid rgba(255, 255, 255, 0.65);
   border-radius: 18px;
   background: rgba(255, 255, 255, 0.55);
@@ -466,29 +491,39 @@ body.ef-approved-lower-home .ef-home-locations :where(a, button, input):focus-vi
   outline-offset: 2px;
 }
 
-/* This matches the city grid's own 560px column breakpoint just below, so
-   the search bar and the grid change shape at the same point rather than
-   the page feeling like it has two different "mobile" widths. */
 @media (max-width: 559px) {
-  body.ef-approved-lower-home .ef-home-locations__heading {
-    align-items: start;
-  }
-
   body.ef-approved-lower-home .ef-home-locations__all--button {
     padding: 7px 13px;
     font-size: 11px;
   }
-
-  body.ef-approved-lower-home .ef-home-locations__searchbar {
-    max-width: 100%;
-  }
 }
 
-@media (max-width: 420px) {
-  body.ef-approved-lower-home .ef-home-locations__heading {
-    flex-direction: column;
-    gap: 10px;
-    margin-bottom: 12px;
+/* From here up, the hero becomes one glass-bordered card: the kicker,
+   heading and subtitle sit to the left, with the search bar and the
+   "Explore all UK locations" button lined up beside them in the same row
+   instead of stacking underneath. Starts at 900px rather than the more
+   usual 768px tablet breakpoint — at 768px the container is only ~675px
+   wide (`.container` drops to 88% there), too narrow for three columns
+   with room to spare, and the button's `auto` column was shrinking to a
+   sliver that broke its own text mid-word. The button's column also gets
+   an explicit minmax() floor rather than a bare `auto`, so the same
+   collapse can't happen again if the viewport is narrower than expected
+   — it wraps to two words at worst, never mid-word. */
+@media (min-width: 900px) {
+  body.ef-approved-lower-home .ef-home-locations__hero {
+    grid-template-columns: minmax(200px, 1fr) minmax(240px, 420px) minmax(200px, auto);
+    grid-template-areas: 'kicker search button' 'heading search button';
+    column-gap: 28px;
+    row-gap: 2px;
+    padding: 22px 28px;
+    border: 1px solid rgba(255, 255, 255, 0.6);
+    border-radius: 24px;
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.85), rgba(233, 247, 242, 0.65));
+    backdrop-filter: blur(14px) saturate(160%);
+    -webkit-backdrop-filter: blur(14px) saturate(160%);
+    box-shadow:
+      0 20px 44px rgba(9, 60, 52, 0.1),
+      inset 0 1px 1px rgba(255, 255, 255, 0.7);
   }
 }
 

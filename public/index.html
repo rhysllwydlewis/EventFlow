@@ -905,36 +905,37 @@
       <!-- Location discovery stays off the crowded navbar and is promoted here instead. -->
       <section class="ef-home-locations" aria-labelledby="home-locations-title">
         <div class="container">
-          <div class="ef-home-locations__heading">
-            <div>
-              <span class="ef-home-locations__kicker">Plan by place</span>
+          <div class="ef-home-locations__hero">
+            <span class="ef-home-locations__kicker">Plan by place</span>
+            <div class="ef-home-locations__hero-text">
               <h2 id="home-locations-title">Find event suppliers near you</h2>
-              <p>Local knowledge, brilliant suppliers and fewer tabs open.</p>
+              <p>Local knowledge, brilliant suppliers, all in one place.</p>
             </div>
+
+            <form class="ef-home-locations__searchbar" action="/suppliers" method="get" role="search">
+              <span class="ef-home-locations__searchbar-pin" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7">
+                  <path d="M20 10c0 5.5-8 12-8 12S4 15.5 4 10a8 8 0 1 1 16 0Z"></path>
+                  <circle cx="12" cy="10" r="2.5"></circle>
+                </svg>
+              </span>
+              <label class="ef-home-locations__searchbar-field" for="home-location-search">
+                <span>Where is your event?</span>
+                <input
+                  id="home-location-search"
+                  name="location"
+                  type="search"
+                  placeholder="e.g. Cardiff or CF10"
+                  autocomplete="postal-code"
+                />
+              </label>
+              <button type="submit">Show local suppliers <span aria-hidden="true">&rarr;</span></button>
+            </form>
+
             <a class="ef-home-locations__all ef-home-locations__all--button" href="/locations">
               Explore all UK locations <span aria-hidden="true">&rarr;</span>
             </a>
           </div>
-
-          <form class="ef-home-locations__searchbar" action="/suppliers" method="get" role="search">
-            <span class="ef-home-locations__searchbar-pin" aria-hidden="true">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7">
-                <path d="M20 10c0 5.5-8 12-8 12S4 15.5 4 10a8 8 0 1 1 16 0Z"></path>
-                <circle cx="12" cy="10" r="2.5"></circle>
-              </svg>
-            </span>
-            <label class="ef-home-locations__searchbar-field" for="home-location-search">
-              <span>Where is your event?</span>
-              <input
-                id="home-location-search"
-                name="location"
-                type="search"
-                placeholder="e.g. Cardiff or CF10"
-                autocomplete="postal-code"
-              />
-            </label>
-            <button type="submit">Show local suppliers <span aria-hidden="true">&rarr;</span></button>
-          </form>
 
           <div class="ef-home-locations__explore" aria-label="Popular location searches">
             <div class="ef-home-locations__explore-heading">
