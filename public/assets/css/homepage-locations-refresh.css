@@ -89,125 +89,150 @@ body.ef-approved-lower-home .ef-home-locations__all--button:hover span {
   }
 }
 
-/* A single slim search bar reads as one deliberate action, rather than the
-   tall stacked card the "start with your location" panel used to be — the
-   city grid below is the section's real visual weight now, and both stay as
-   short as the content allows. Styled as liquid glass — the same frosted,
-   translucent language as .ef-search-bar in the hero above — rather than a
-   flat gradient pill, so the two search bars on this page read as one
-   family. Kept dark-teal-tinted rather than white glass: the section sits on
-   a pale mint background (see .ef-home-locations above), and a light glass
-   bar would have almost no definition against it. */
+/* A focused glass search card rather than a full-width bar — badge-style
+   icon and label sit above a minimal underlined input, with one big CTA
+   button beneath, so it reads as a small deliberate "start here" module
+   instead of a stretched utility bar. Uses the same frosted, translucent
+   liquid-glass material as .ef-search-bar in the hero above, but kept light
+   this time: the ambient colour glow behind the card (::before) gives the
+   blur something to catch, so it doesn't need a dark tint to read as glass
+   against this section's pale background. */
 body.ef-approved-lower-home .ef-home-locations__searchbar {
   position: relative;
   z-index: 1;
-  display: flex;
-  gap: 6px;
-  align-items: center;
-  max-width: 1180px;
-  margin: 0 auto 14px;
-  border: 1.5px solid rgba(255, 255, 255, 0.16);
-  border-radius: 999px;
-  background: linear-gradient(
-    120deg,
-    rgba(6, 46, 40, 0.82) 0%,
-    rgba(11, 128, 115, 0.72) 100%
-  );
-  backdrop-filter: blur(20px) saturate(180%);
-  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  display: grid;
+  grid-template-columns: auto 1fr;
+  grid-template-areas: 'pin field' 'button button';
+  column-gap: 14px;
+  row-gap: 14px;
+  max-width: 460px;
+  margin: 0 auto 24px;
+  border: 1.5px solid rgba(255, 255, 255, 0.7);
+  border-radius: 24px;
+  background: rgba(255, 255, 255, 0.62);
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
   box-shadow:
-    0 12px 26px rgba(7, 77, 68, 0.22),
-    inset 0 1px 1px rgba(255, 255, 255, 0.14);
-  padding: 6px 6px 6px 16px;
+    0 16px 36px rgba(7, 77, 68, 0.16),
+    inset 0 1px 1px rgba(255, 255, 255, 0.85);
+  padding: 18px 20px 20px;
   transition:
     box-shadow 260ms ease,
     transform 260ms ease,
     border-color 260ms ease;
 }
 
+/* Ambient colour glow the glass card sits on top of — without it the card's
+   blur has nothing but flat pale background to refract, so it would read as
+   plain frosted white rather than glass. Sits behind the card (z-index -1),
+   never intercepts clicks. */
+body.ef-approved-lower-home .ef-home-locations__searchbar::before {
+  content: '';
+  position: absolute;
+  z-index: -1;
+  inset: -60px -80px;
+  background:
+    radial-gradient(circle at 12% 15%, rgba(19, 182, 162, 0.4), transparent 68%),
+    radial-gradient(circle at 88% 85%, rgba(16, 185, 129, 0.32), transparent 68%);
+  filter: blur(28px);
+  pointer-events: none;
+}
+
 body.ef-approved-lower-home .ef-home-locations__searchbar:focus-within {
-  border-color: rgba(140, 232, 216, 0.55);
+  border-color: rgba(19, 182, 162, 0.55);
   box-shadow:
-    0 0 0 4px rgba(19, 182, 162, 0.18),
-    0 16px 32px rgba(7, 77, 68, 0.28),
-    inset 0 1px 1px rgba(255, 255, 255, 0.18);
-  transform: translateY(-1px);
+    0 0 0 4px rgba(19, 182, 162, 0.16),
+    0 24px 50px rgba(7, 77, 68, 0.2),
+    inset 0 1px 1px rgba(255, 255, 255, 0.9);
+  transform: translateY(-2px);
 }
 
 body.ef-approved-lower-home .ef-home-locations__searchbar-pin {
+  grid-area: pin;
   display: grid;
-  flex: 0 0 auto;
-  width: 22px;
-  height: 22px;
   place-items: center;
-  color: #8ce8d8;
+  align-self: start;
+  width: 34px;
+  height: 34px;
+  border-radius: 11px;
+  background: linear-gradient(135deg, #0b8073 0%, #0f9c88 100%);
+  color: #fff;
+  box-shadow: 0 6px 16px rgba(11, 128, 115, 0.35);
 }
 
 body.ef-approved-lower-home .ef-home-locations__searchbar-pin svg {
-  width: 17px;
-  height: 17px;
+  width: 16px;
+  height: 16px;
 }
 
 body.ef-approved-lower-home .ef-home-locations__searchbar-field {
+  grid-area: field;
   display: flex;
-  flex: 1 1 auto;
-  min-width: 0;
   flex-direction: column;
-  gap: 0;
-  border-left: 1px solid rgba(255, 255, 255, 0.16);
-  padding: 0 0 0 14px;
+  gap: 4px;
+  min-width: 0;
+  border-left: 0;
+  padding: 2px 0 0;
 }
 
 body.ef-approved-lower-home .ef-home-locations__searchbar-field span {
-  color: rgba(255, 255, 255, 0.6);
+  color: #0b8073;
   font-size: 11px;
-  font-weight: 750;
-  letter-spacing: 0.03em;
+  font-weight: 800;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
 }
 
 body.ef-approved-lower-home .ef-home-locations__searchbar-field input {
   width: 100%;
   border: 0;
+  border-bottom: 2px solid rgba(11, 128, 115, 0.18);
   outline: 0;
   background: transparent;
-  padding: 0;
-  color: #fff;
+  padding: 4px 0 8px;
+  color: #0b1220;
   font: inherit;
-  font-size: 14px;
+  font-size: 16px;
   font-weight: 700;
+  transition: border-color 200ms ease;
+}
+
+body.ef-approved-lower-home .ef-home-locations__searchbar-field input:focus {
+  border-bottom-color: #0b8073;
 }
 
 body.ef-approved-lower-home .ef-home-locations__searchbar-field input::placeholder {
-  color: rgba(255, 255, 255, 0.45);
+  color: #94a3b8;
   font-weight: 500;
 }
 
 /* `[type="submit"]` is redundant (the button already carries that attribute)
    — it is here purely to out-specificity mobile-optimizations.css's generic
-   `button[type="submit"] { width: 100% }` mobile CTA rule below 768px,
-   which would otherwise stretch this button the full width of the bar and
-   balloon the pill into a circle. Colours/shadow reuse the hero search bar's
-   button tokens (--search-btn-bg etc. in ef-search-bar.css) so both buttons
-   on the page match. */
+   `button[type="submit"] { width: 100% }` mobile CTA rule below 768px. That
+   rule happens to already match the full-width look this button wants, but
+   keeping the stronger selector means this button's own colours/radius/font
+   can't be silently overridden by that generic rule either. Colours/shadow
+   reuse the hero search bar's button tokens (--search-btn-bg etc. in
+   ef-search-bar.css) so both buttons on the page match. */
 body.ef-approved-lower-home .ef-home-locations__searchbar button[type='submit'] {
+  grid-area: button;
   display: inline-flex;
-  width: auto;
-  flex: 0 0 auto;
-  gap: 6px;
+  width: 100%;
   align-items: center;
+  justify-content: center;
+  gap: 8px;
   border: 0;
-  border-radius: 999px;
+  border-radius: 16px;
   background: linear-gradient(135deg, #10b981 0%, #059669 50%, #047857 100%);
-  padding: 10px 18px;
+  padding: 12px 18px;
   color: #fff;
   font: inherit;
-  font-size: 12px;
+  font-size: 14px;
   font-weight: 850;
   cursor: pointer;
   box-shadow:
-    0 2px 8px rgba(5, 150, 105, 0.35),
-    0 4px 16px rgba(5, 150, 105, 0.22),
+    0 4px 14px rgba(5, 150, 105, 0.35),
+    0 8px 24px rgba(5, 150, 105, 0.2),
     inset 0 1px 1px rgba(255, 255, 255, 0.25);
   transition:
     transform 170ms ease,
@@ -218,11 +243,11 @@ body.ef-approved-lower-home .ef-home-locations__searchbar button[type='submit'] 
 body.ef-approved-lower-home .ef-home-locations__searchbar button[type='submit']:hover {
   background: linear-gradient(135deg, #059669 0%, #047857 50%, #065f46 100%);
   box-shadow:
-    0 4px 12px rgba(5, 150, 105, 0.45),
-    0 8px 24px rgba(5, 150, 105, 0.3),
-    0 0 24px rgba(16, 185, 129, 0.35),
+    0 6px 18px rgba(5, 150, 105, 0.45),
+    0 10px 30px rgba(5, 150, 105, 0.3),
+    0 0 28px rgba(16, 185, 129, 0.35),
     inset 0 1px 2px rgba(255, 255, 255, 0.3);
-  transform: translateY(-1px);
+  transform: translateY(-2px);
 }
 
 body.ef-approved-lower-home .ef-home-locations__explore {
@@ -451,27 +476,11 @@ body.ef-approved-lower-home .ef-home-locations :where(a, button, input):focus-vi
     font-size: 11px;
   }
 
-  /* Below this width the pin, label and "Show local suppliers" button no
-     longer fit on one row — the button's own text is wider than the space
-     left over. Left alone that either squeezes the label down to a
-     near-zero-width column of vertically stacked letters, or (just above
-     that point) truncates the input's placeholder and wraps the label
-     awkwardly. Wrapping the button onto its own full-width row keeps every
-     part of the bar readable at any width in between. */
   body.ef-approved-lower-home .ef-home-locations__searchbar {
-    flex-wrap: wrap;
+    max-width: 100%;
     border-radius: 20px;
-  }
-
-  body.ef-approved-lower-home .ef-home-locations__searchbar-field {
-    flex-basis: 0;
-  }
-
-  body.ef-approved-lower-home .ef-home-locations__searchbar button[type='submit'] {
-    width: 100%;
-    justify-content: center;
-    margin-top: 6px;
-    flex-basis: 100%;
+    margin-bottom: 20px;
+    padding: 16px 18px 18px;
   }
 }
 
