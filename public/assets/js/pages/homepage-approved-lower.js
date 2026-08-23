@@ -17,6 +17,28 @@
     return url;
   };
 
+  // Admin categories can carry a Pexels-sourced heroImage (from the same
+  // image picker used elsewhere in admin), but this homepage enhancement is
+  // documented as same-origin-only imagery with nowhere to show the
+  // accompanying photographer attribution. Reject any non-same-origin URL
+  // here rather than requesting a third-party image on every homepage view.
+  const sameOriginImageUrl = (value, fallback = FALLBACK_IMAGE) => {
+    const url = safeImageUrl(value, '');
+    if (!url) {
+      return fallback;
+    }
+    if (!/^https?:\/\//i.test(url)) {
+      return url;
+    }
+    try {
+      return new URL(url, window.location.origin).origin === window.location.origin
+        ? url
+        : fallback;
+    } catch (error) {
+      return fallback;
+    }
+  };
+
   const categoryIcon = type => {
     const icons = {
       venue:
@@ -43,56 +65,56 @@
       category: 'Venues',
       image: '/assets/images/collage-venue.jpg',
       icon: 'venue',
-      description: 'The perfect space for your event, from grand ballrooms to intimate gardens.',
+      description: 'Ballrooms, barns and gardens for any event.',
     },
     {
       title: 'Catering',
       category: 'Catering',
       image: '/assets/images/collage-catering.jpg',
       icon: 'catering',
-      description: 'Delicious food and drink options to suit every taste and budget.',
+      description: 'Food and drink for every taste and budget.',
     },
     {
       title: 'Entertainment',
       category: 'Entertainment',
       image: '/assets/images/collage-entertainment.jpg',
       icon: 'entertainment',
-      description: 'Live music, DJs and performers to make your event memorable.',
+      description: 'Live music, DJs and performers.',
     },
     {
       title: 'Photography',
       category: 'Photography',
       image: '/assets/images/collage-photography.jpg',
       icon: 'photography',
-      description: 'Professional photographers and videographers to capture every special moment.',
+      description: 'Photographers and videographers for every moment.',
     },
     {
       title: 'Decor & Styling',
       category: 'Decor',
       image: '/assets/images/hero-video-poster.jpg',
       icon: 'decor',
-      description: 'Transform your venue with decorations, flowers and considered styling.',
+      description: 'Decorations, flowers and styling.',
     },
     {
       title: 'AV & Lighting',
       category: 'Music/DJ',
       image: '/assets/images/collage-entertainment.jpg',
       icon: 'av',
-      description: 'Professional sound systems, lighting and audiovisual equipment.',
+      description: 'Sound systems and lighting equipment.',
     },
     {
       title: 'Transport',
       category: 'Transport',
       image: '/assets/images/collage-venue.jpg',
       icon: 'transport',
-      description: 'Luxury cars, coaches and transport services for you and your guests.',
+      description: 'Cars and coaches for you and your guests.',
     },
     {
       title: 'Cakes & Florals',
       category: 'Cake',
       image: '/assets/images/collage-catering.jpg',
       icon: 'cake',
-      description: 'Beautiful celebration cakes and striking floral arrangements.',
+      description: 'Celebration cakes and floral arrangements.',
     },
   ];
 
@@ -115,18 +137,56 @@
     });
   };
 
-  const renderApprovedCategories = container => {
-    if (!container || container.querySelector('.ef-approved-category-grid')) {
+  const mapFallbackCategory = category => ({
+    title: category.title,
+    href: `/suppliers?category=${encodeURIComponent(category.category)}`,
+    image: safeImageUrl(category.image),
+    iconHtml: categoryIcon(category.icon),
+    description: category.description,
+  });
+
+  const mapLiveCategory = category => ({
+    title: category.name || 'Category',
+    href: window.EventFlowCategoryLink
+      ? window.EventFlowCategoryLink.categoryHref(category)
+      : `/suppliers?category=${encodeURIComponent(category.slug || category.name || '')}`,
+    image: sameOriginImageUrl(category.heroImage),
+    iconHtml: category.icon ? escapeHtml(category.icon) : categoryIcon('venue'),
+    description: category.description || '',
+  });
+
+  // Admin-managed categories (name, hero image, description, visibility) are
+  // the source of truth. The hardcoded list below is only a fallback for
+  // when that fetch fails or returns nothing, so the section never renders
+  // blank or depends on a third-party image host.
+  const fetchLiveCategories = async () => {
+    try {
+      const response = await fetch('/api/v1/categories');
+      if (!response.ok) {
+        throw new Error('Failed to load categories');
+      }
+      const data = await response.json();
+      const items = Array.isArray(data.items) ? data.items : [];
+      return items
+        .filter(category => category.visible !== false)
+        .sort((a, b) => (a.order || 0) - (b.order || 0));
+    } catch (error) {
+      return null;
+    }
+  };
+
+  const renderApprovedCategories = (container, categories) => {
+    if (!container) {
       return;
     }
 
-    const cards = approvedCategories
+    const cards = categories
       .map(
         category => `
-          <a class="ef-approved-category-card" href="/suppliers?category=${encodeURIComponent(category.category)}">
+          <a class="ef-approved-category-card" href="${escapeHtml(category.href)}">
             <img src="${escapeHtml(category.image)}" alt="" loading="lazy" data-fallback-src="${FALLBACK_IMAGE}">
             <div class="ef-approved-category-copy">
-              <span class="ef-approved-category-icon">${categoryIcon(category.icon)}</span>
+              <span class="ef-approved-category-icon">${category.iconHtml}</span>
               <h3>${escapeHtml(category.title)}</h3>
               <p>${escapeHtml(category.description)}</p>
             </div>
@@ -138,6 +198,15 @@
     container.setAttribute('aria-label', 'Supplier categories');
     container.innerHTML = `<div class="ef-approved-category-grid">${cards}</div>`;
     attachImageFallbacks(container);
+  };
+
+  const loadAndRenderCategories = async container => {
+    const liveCategories = await fetchLiveCategories();
+    const categories =
+      liveCategories && liveCategories.length > 0
+        ? liveCategories.map(mapLiveCategory)
+        : approvedCategories.map(mapFallbackCategory);
+    renderApprovedCategories(container, categories);
   };
 
   const renderBenefits = section => {
@@ -487,11 +556,8 @@
     }
 
     const categoryContainer = document.getElementById('category-grid-home');
-    renderApprovedCategories(categoryContainer);
     if (categoryContainer) {
-      new MutationObserver(() => {
-        renderApprovedCategories(categoryContainer);
-      }).observe(categoryContainer, { childList: true });
+      loadAndRenderCategories(categoryContainer);
     }
 
     renderBenefits(document.querySelector('.home-trust-section'));

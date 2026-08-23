@@ -38,8 +38,9 @@ Direct entrypoint wiring was added after visual verification showed that relying
 - `public/assets/js/pages/homepage-approved-lower.js`
   - Rebuilds the homepage sections from categories through the supplier CTA.
   - Preserves the existing live endpoints and public routes.
-  - Reasserts the approved marketplace, guide and category markup if the legacy homepage loader completes later and overwrites those containers.
-  - Uses same-origin EventFlow imagery for the approved lower-page enhancement.
+  - Reasserts the approved marketplace and guide markup if the legacy homepage loader completes later and overwrites those containers.
+  - Fetches admin-managed categories from `/api/v1/categories` and renders them with the approved markup; the legacy `CategoryGrid` loader is not run on the production homepage, so there is nothing to reassert against for categories (see "Category cards" below).
+  - Uses same-origin EventFlow imagery for the approved lower-page enhancement, and falls back to a fixed hardcoded category list only if the live category fetch fails or is empty.
 - `public/assets/css/homepage-approved-lower.css`
   - Contains the full desktop, tablet and mobile treatment.
   - Is scoped under `body.ef-approved-lower-home`.
@@ -76,7 +77,9 @@ The first three published guides are displayed using their real `href`, `categor
 
 ### Category cards
 
-The eight approved homepage category cards use stable supplier-search routes and known same-origin imagery. This prevents the blank lower category cards visible in the previous homepage screenshot and avoids third-party image requests from the enhancement.
+Endpoint: `GET /api/v1/categories`
+
+Updated (see continuation notes): the category cards now render the admin-managed categories from this endpoint (name, hero image, description, visibility, order), using the same approved markup and styling. Admin hero images are same-origin uploads (`POST /api/admin/categories/:id/hero-image`), not third-party requests, so the original reliability concern no longer applies. The eight-category hardcoded list in `homepage-approved-lower.js` is kept only as a fallback — used when the fetch fails or returns no visible categories — so the section can never render blank. There is no longer a MutationObserver reasserting this section; the legacy `CategoryGrid` component is not instantiated on the production homepage (see `home-init.js`), so there is nothing left to reassert against.
 
 ## Truthfulness decision
 

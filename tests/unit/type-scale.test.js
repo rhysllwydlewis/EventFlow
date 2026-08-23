@@ -10,7 +10,7 @@
  *
  * Customer-facing CSS is now snapped to one scale, biased small:
  *
- *     11  12  13  14  16  18  20  24  28  32
+ *     10  11  12  13  14  16  18  20  24  28  32
  *
  * >= 36px is decorative (emoji glyphs, empty-state illustrations) and is
  * exempt, as are fluid clamp() headlines and `em` values (relative by
@@ -22,7 +22,7 @@ const path = require('path');
 
 const CSS_DIR = path.join(__dirname, '../../public/assets/css');
 
-const SCALE = [11, 12, 13, 14, 16, 18, 20, 24, 28, 32];
+const SCALE = [10, 11, 12, 13, 14, 16, 18, 20, 24, 28, 32];
 const DECORATIVE_MIN = 36;
 
 /** Customer-facing stylesheets only. */
@@ -45,7 +45,7 @@ function declaredSizes(css) {
 
 describe('Type scale', () => {
   test('the scale itself is the documented one', () => {
-    expect(SCALE).toEqual([11, 12, 13, 14, 16, 18, 20, 24, 28, 32]);
+    expect(SCALE).toEqual([10, 11, 12, 13, 14, 16, 18, 20, 24, 28, 32]);
   });
 
   test('customer-facing stylesheets are found', () => {
@@ -98,7 +98,7 @@ describe('Every static stylesheet parses', () => {
     fs
       .readdirSync(dir)
       .filter(f => f.endsWith('.css'))
-      .map(f => [path.basename(dir) + '/' + f, path.join(dir, f)])
+      .map(f => [`${path.basename(dir)}/${f}`, path.join(dir, f)])
   );
 
   test('stylesheets are found', () => {

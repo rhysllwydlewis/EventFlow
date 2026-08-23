@@ -35,6 +35,15 @@
     ].map(([name, slug]) => Object.freeze({ name, slug }))
   );
 
+  // Display names used elsewhere (admin-managed category records, older
+  // content) that don't literally match a canonical name/slug above but
+  // should still resolve to one, so a category link never silently drops
+  // its filter. E.g. the seeded "Decorations" category record should link
+  // to the "Decor" supplier category, not fall back to an unfiltered browse.
+  const CATEGORY_ALIASES = Object.freeze({
+    decorations: 'Decor',
+  });
+
   function normaliseCategoryToken(value) {
     return String(value || '')
       .trim()
@@ -56,7 +65,10 @@
         normaliseCategoryToken(category.name) === token ||
         normaliseCategoryToken(category.slug) === token
     );
-    return match ? match.name : '';
+    if (match) {
+      return match.name;
+    }
+    return CATEGORY_ALIASES[token] || '';
   }
 
   function categoryHref(category) {

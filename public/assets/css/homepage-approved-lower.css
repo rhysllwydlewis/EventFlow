@@ -158,8 +158,8 @@ body.ef-approved-lower-home .ef-approved-category-copy h3 {
 body.ef-approved-lower-home .ef-approved-category-copy p {
   margin: 7px 0 0;
   color: var(--ef-approved-muted);
-  font-size: 12px;
-  line-height: 1.45;
+  font-size: 10px;
+  line-height: 1.4;
 }
 
 body.ef-approved-lower-home .ef-approved-benefits-section {
@@ -934,6 +934,16 @@ body.ef-approved-lower-home .ef-approved-home-footer .ef-footer-bar p {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
+  /* The card's fixed 142px image height was calibrated for the ~260px-wide
+     4-column desktop card. In this 2-column band the same card runs up to
+     ~500px wide, so a fixed height stretches the photo into an overly wide
+     letterbox strip. Switching to aspect-ratio keeps the crop proportionate
+     at every width in this band without touching the desktop layout. */
+  body.ef-approved-lower-home .ef-approved-category-card > img {
+    height: auto;
+    aspect-ratio: 16 / 9;
+  }
+
   body.ef-approved-lower-home .ef-approved-guide-card:last-child {
     grid-column: 1 / -1;
   }
@@ -993,14 +1003,15 @@ body.ef-approved-lower-home .ef-approved-home-footer .ef-footer-bar p {
   }
 }
 
-/* 620px used to be the threshold here, but the four grids this collapses to
-   a single column (category, benefits, supplier-benefits, supplier-stats)
-   all measurably fail to fit their own short heading text for roughly
+/* 620px used to be the threshold here, but the three grids this collapses to
+   a single column (benefits, supplier-benefits, supplier-stats) all
+   measurably fail to fit their own short heading text for roughly
    621-660px — the container has just barely grown past the comfortably
    spacious single-column state without yet being wide enough for a
    multi-column one. Measured via real column-width/text-width comparison
    (not estimated) rather than picking a bigger number by feel: 670px is
-   past where every one of them clears its own text with margin. */
+   past where every one of them clears its own text with margin. Categories
+   are handled separately just above — that grid stays 2-up throughout. */
 @media (max-width: 670px) {
   body.ef-approved-lower-home .ef-approved-category-section,
   body.ef-approved-lower-home .ef-approved-steps-section,
@@ -1021,12 +1032,42 @@ body.ef-approved-lower-home .ef-approved-home-footer .ef-footer-bar p {
     width: min(100% - 32px, 1200px);
   }
 
-  body.ef-approved-lower-home .ef-approved-category-grid,
   body.ef-approved-lower-home .ef-approved-benefits,
   body.ef-approved-lower-home .ef-approved-supplier-benefits,
   body.ef-approved-lower-home .ef-approved-supplier-stats,
   body.ef-approved-lower-home .ef-approved-home-footer .ef-footer-inner {
     grid-template-columns: 1fr;
+  }
+
+  /* Categories stay 2-up at every width, matching the city grid below it,
+     rather than collapsing to a single column like the other lower-home
+     grids. */
+  body.ef-approved-lower-home .ef-approved-category-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+  }
+
+  body.ef-approved-lower-home .ef-approved-category-copy {
+    padding: 26px 12px 14px;
+  }
+
+  /* "Explore trusted suppliers" is a short label, not a full sentence like
+     the section headlines elsewhere on the page, so it should hold one
+     line rather than wrap. Scaled against its own measured text width vs.
+     the container's available width; the base 24px already fits once the
+     container clears ~377px, so this only bites below that. */
+  body.ef-approved-lower-home .ef-approved-category-section h2 {
+    font-size: clamp(16px, 7vw - 3.6px, 24px);
+  }
+
+  /* "Decor & Styling" is the longest title and is the binding constraint at
+     every width in this band — it needs the full 16px base size once the
+     card clears ~392px, but wraps to two lines below that on a fixed size.
+     Scaled against its own measured text width vs. available column width
+     (not estimated) so every title in the grid clears one line down to the
+     narrowest supported viewport. */
+  body.ef-approved-lower-home .ef-approved-category-copy h3 {
+    font-size: clamp(9px, 6vw - 7.6px, 16px);
   }
 
   body.ef-approved-lower-home .ef-approved-benefits {
