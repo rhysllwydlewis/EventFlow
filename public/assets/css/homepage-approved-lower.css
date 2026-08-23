@@ -224,6 +224,19 @@ body.ef-approved-lower-home .ef-approved-benefits p {
   line-height: 1.4;
 }
 
+/* This grid goes straight from 2 columns to its base 4 (see the ≤1060
+   override below) with nothing between — the switch happens well before
+   the container is wide enough to give a 4-column cell the ~200px
+   "Suppliers opening in stages" actually needs, so it wraps to two lines
+   from 1061px up to roughly 1260px, where the container's own 1200px cap
+   finally gives each cell enough room. Measured against real text width at
+   both edges of that band rather than guessed. */
+@media (min-width: 1061px) and (max-width: 1260px) {
+  body.ef-approved-lower-home .ef-approved-benefits h3 {
+    font-size: clamp(9px, 2.01vw - 12.33px, 13px);
+  }
+}
+
 body.ef-approved-lower-home .ef-approved-steps-section {
   padding-top: 42px;
 }
@@ -295,6 +308,20 @@ body.ef-approved-lower-home .ef-approved-step-grid p {
   color: var(--ef-approved-muted);
   font-size: 12px;
   line-height: 1.45;
+}
+
+/* Same shape of bug as the benefits grid above: this jumps straight from a
+   single column (≤820px) to its base 3 columns, so "Find the right
+   suppliers" and, worse, the longer "Keep everything in one place" wrap to
+   two lines from 821px up to roughly 1140px, before the container is wide
+   enough for a 3-column cell to hold the longer of the two. The
+   single-column mobile wrap below 820px is left alone — that's a genuinely
+   long phrase on a phone-width column, not a layout bug, and forcing it
+   smaller there would make it uncomfortably tiny for little benefit. */
+@media (min-width: 821px) and (max-width: 1140px) {
+  body.ef-approved-lower-home .ef-approved-step-grid h3 {
+    font-size: clamp(7px, 2.2vw - 11.02px, 14px);
+  }
 }
 
 /* The `.ef-home-locations` section's own styling now lives entirely in
@@ -637,6 +664,17 @@ body.ef-approved-lower-home .ef-approved-supplier-benefits p {
   line-height: 1.4;
 }
 
+/* This sits inside the two-column supplier panel (text + photo), which only
+   drops to a single column at ≤820px. Above that, this 3-column benefits
+   grid shares an increasingly cramped text column until the panel itself
+   has grown enough — "No Commission" wraps from 821px up to roughly
+   1010px. Measured against the real column width at both edges. */
+@media (min-width: 821px) and (max-width: 1010px) {
+  body.ef-approved-lower-home .ef-approved-supplier-benefits h3 {
+    font-size: clamp(8px, 2.12vw - 9.37px, 12px);
+  }
+}
+
 body.ef-approved-lower-home .ef-approved-supplier-actions {
   display: flex;
   flex-wrap: wrap;
@@ -703,6 +741,21 @@ body.ef-approved-lower-home .ef-approved-supplier-stats span {
   margin-top: 3px;
   color: rgba(255, 255, 255, 0.62);
   font-size: 11px;
+}
+
+/* Once the single-column collapse above ends at 670px, this 4-column strip
+   is squeezed inside the same widening-but-not-yet-wide-enough supplier
+   panel as the benefits grid — "Growing network" and the longer sub-labels
+   wrap to two lines from 671px up to roughly 900px. Measured against real
+   column/text width at both edges. */
+@media (min-width: 671px) and (max-width: 900px) {
+  body.ef-approved-lower-home .ef-approved-supplier-stats strong {
+    font-size: clamp(9px, 2.18vw - 5.63px, 14px);
+  }
+
+  body.ef-approved-lower-home .ef-approved-supplier-stats span {
+    font-size: clamp(9px, 0.87vw + 3.16px, 11px);
+  }
 }
 
 body.ef-approved-lower-home .ef-approved-home-footer.ef-footer-premium {
@@ -935,7 +988,15 @@ body.ef-approved-lower-home .ef-approved-home-footer .ef-footer-bar p {
   }
 }
 
-@media (max-width: 620px) {
+/* 620px used to be the threshold here, but the four grids this collapses to
+   a single column (category, benefits, supplier-benefits, supplier-stats)
+   all measurably fail to fit their own short heading text for roughly
+   621-660px — the container has just barely grown past the comfortably
+   spacious single-column state without yet being wide enough for a
+   multi-column one. Measured via real column-width/text-width comparison
+   (not estimated) rather than picking a bigger number by feel: 670px is
+   past where every one of them clears its own text with margin. */
+@media (max-width: 670px) {
   body.ef-approved-lower-home .ef-approved-category-section,
   body.ef-approved-lower-home .ef-approved-steps-section,
   body.ef-approved-lower-home .ef-approved-marketplace-section,

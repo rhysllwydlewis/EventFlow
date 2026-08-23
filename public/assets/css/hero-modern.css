@@ -722,6 +722,21 @@
     grid-template-columns: minmax(0, 1fr) minmax(0, 0.92fr);
     gap: clamp(22px, 2.8vw, 32px);
   }
+
+  /* The narrower first column above squeezes the headline's own text
+     column to ~433-531px in this exact band, but its font-size
+     (clamp(28px, 4.6vw, 48px), based on full viewport width, not the
+     column it actually sits in) stays close to its 48px ceiling — wide
+     enough that "Everything you need" / "to organise an event" wrap a
+     second time inside their own line, turning the intended 3-line
+     headline into 5. Recalibrated against the real column width at each
+     edge of this band (measured via Range geometry, not estimated) so
+     both phrases keep to one line each throughout; the base clamp's
+     48px ceiling already fits once the grid reverts to its wider ratio
+     just above 1240px. */
+  .hero-modern h1 {
+    font-size: clamp(38px, 4.17vw - 4.7px, 47px);
+  }
 }
 
 
