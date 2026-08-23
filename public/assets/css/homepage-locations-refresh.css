@@ -9,182 +9,326 @@ body.ef-approved-lower-home .ef-home-locations {
   padding: clamp(28px, 3.5vw, 40px) 0;
 }
 
-body.ef-approved-lower-home .ef-home-locations__heading {
-  display: flex;
-  gap: 1.25rem;
-  align-items: end;
-  justify-content: space-between;
+/* The hero groups the kicker/heading text, the search bar, and the
+   "Explore all UK locations" button into one unit. On narrow screens it is
+   a plain stacked block (kicker + button share a top row, heading/subtitle
+   and the search bar each take their own full-width row below); from
+   768px up it becomes a single bordered, glassy card with the text on the
+   left and the search bar + button lined up to its right. Grid template
+   areas (not just DOM order) drive both shapes, so the kicker can sit next
+   to the button on mobile while sitting above the heading on desktop
+   without needing two copies of any element. */
+body.ef-approved-lower-home .ef-home-locations__hero {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  grid-template-areas:
+    'kicker button'
+    'heading heading'
+    'search search';
+  column-gap: 12px;
+  row-gap: 10px;
+  align-items: center;
   max-width: 1180px;
-  margin: 0 auto 14px;
+  margin: 0 auto 20px;
 }
 
 body.ef-approved-lower-home .ef-home-locations__kicker {
   display: inline-flex;
-  margin-bottom: 6px;
+  grid-area: kicker;
+  align-self: center;
   color: #0b8073;
-  font-size: 11px;
+  /* Shares the top row with the "Explore all UK locations" button on
+     narrow screens, so it needs the same small give as that button's
+     own font-size below ~360px wide — otherwise the two nowrap elements
+     don't both fit and the kicker gets crowded out. */
+  font-size: clamp(9px, 2vw + 4px, 11px);
   font-weight: 900;
   letter-spacing: 0.14em;
   text-transform: uppercase;
+  white-space: nowrap;
 }
 
-body.ef-approved-lower-home .ef-home-locations__heading h2 {
+body.ef-approved-lower-home .ef-home-locations__hero-text {
+  grid-area: heading;
+}
+
+/* Always one line, never wrapped — the font scales down with the viewport
+   (via the vw term) rather than the phrase breaking onto a second line.
+   The scale is calibrated against the actual rendered width of "Find event
+   suppliers near you" in this font/weight (~16.84px of width per 1px of
+   font-size): the formula and its 26px ceiling are chosen so the text
+   still fits at the narrowest width each layout gives it — full viewport
+   width on the stacked mobile/tablet layout, and the heading column's own
+   (deliberately generous) minimum width on the desktop card layout below. */
+body.ef-approved-lower-home .ef-home-locations__hero-text h2 {
   margin: 0;
   color: #10231f;
-  font-size: clamp(22px, 2.6vw, 30px);
+  font-size: clamp(14px, 5.2vw - 1px, 26px);
   font-weight: 850;
   letter-spacing: -0.03em;
   line-height: 1.08;
+  white-space: nowrap;
 }
 
-body.ef-approved-lower-home .ef-home-locations__heading p {
+/* Same one-line treatment as the h2 above, calibrated against this
+   longer sentence's own measured width (~26px of width per 1px of
+   font-size at this weight): it shares the h2's column, so it needs to
+   fit the same narrowest widths. */
+body.ef-approved-lower-home .ef-home-locations__hero-text p {
   margin: 6px 0 0;
   color: #657a74;
-  font-size: 13px;
+  font-size: clamp(9px, 3.1vw - 0.5px, 13px);
+  white-space: nowrap;
 }
 
+/* Mobile-optimizations.css applies `main a { min-height: 44px }` to any
+   link in the main content that isn't explicitly excluded — a WCAG
+   touch-target rule that (correctly) can't be overridden just because
+   this link looks better smaller. Rather than fight it, the visual pill
+   moves to an inner span: the `<a>` stays the full 44px tap target
+   (invisible padding, accessible), while the span carries all the
+   background/border/shadow/sizing and can shrink as small as the design
+   wants without shrinking what's tappable. Before this split, the fixed
+   44px height combined with fluid font-size meant the button looked
+   like a big, mostly-empty box around tiny text on phones — which is
+   what read as "overpowering" next to the compact kicker label beside
+   it. */
 body.ef-approved-lower-home .ef-home-locations__all--button {
   display: inline-flex;
+  grid-area: button;
+  align-self: center;
+  justify-self: end;
   flex: 0 0 auto;
-  gap: 7px;
   align-items: center;
-  margin: 0 0 2px;
+  justify-content: center;
+  margin: 0;
+  text-decoration: none;
+}
+
+/* Always one line, same reasoning as the h2 heading above: without
+   white-space: nowrap, a CSS Grid `auto` column sizes text content to
+   its min-content (can still wrap) rather than its full single-line
+   width. Adding nowrap alone, though, made the button claim its full
+   ~190-210px unconditionally and crowd out the kicker sharing its row
+   on narrow phones — confirmed by screenshot, "Plan by place" was
+   getting clipped behind the button around 320-375px wide. The fluid
+   font-size (calibrated against the button's own measured nowrap width
+   at each size, and the kicker's, against how much of the hero's width
+   is actually available at small viewports) is what makes room for
+   both without wrapping either.
+   Padding, gap, and corner radius are all derived from that same
+   --btn-fs value (rather than fixed pixel amounts) so the whole pill
+   shrinks together with its text on small screens. On desktop, where
+   --btn-fs sits at its 12px ceiling, this resolves to the same size the
+   button always had. */
+body.ef-approved-lower-home .ef-home-locations__all--button-pill {
+  display: inline-flex;
+  align-items: center;
   border: 1px solid rgba(11, 128, 115, 0.22);
-  border-radius: 999px;
   background: #fff;
   box-shadow: 0 8px 18px rgba(18, 72, 63, 0.08);
-  padding: 8px 16px;
   color: #0b8073;
-  font-size: 12px;
+  --btn-fs: clamp(8px, 3.1vw - 2px, 12px);
+  font-size: var(--btn-fs);
+  gap: calc(var(--btn-fs) * 0.6);
+  border-radius: calc(var(--btn-fs) + 2px);
+  padding: calc(var(--btn-fs) * 0.55) calc(var(--btn-fs) * 1.1);
   font-weight: 850;
-  text-decoration: none;
+  white-space: nowrap;
   transition:
     transform 170ms ease,
     box-shadow 170ms ease,
     background-color 170ms ease;
 }
 
-body.ef-approved-lower-home .ef-home-locations__all--button span {
+body.ef-approved-lower-home .ef-home-locations__all--button-pill span {
   transition: transform 170ms ease;
 }
 
-body.ef-approved-lower-home .ef-home-locations__all--button:hover {
+body.ef-approved-lower-home .ef-home-locations__all--button:hover .ef-home-locations__all--button-pill {
   background: #0b8073;
   box-shadow: 0 12px 24px rgba(18, 72, 63, 0.16);
   color: #fff;
-  text-decoration: none;
   transform: translateY(-2px);
 }
 
-body.ef-approved-lower-home .ef-home-locations__all--button:hover span {
+body.ef-approved-lower-home .ef-home-locations__all--button:hover .ef-home-locations__all--button-pill span {
   transform: translateX(3px);
 }
 
 @media (prefers-reduced-motion: reduce) {
-  body.ef-approved-lower-home .ef-home-locations__all--button,
-  body.ef-approved-lower-home .ef-home-locations__all--button:hover,
-  body.ef-approved-lower-home .ef-home-locations__all--button span {
+  body.ef-approved-lower-home .ef-home-locations__all--button-pill,
+  body.ef-approved-lower-home .ef-home-locations__all--button:hover .ef-home-locations__all--button-pill,
+  body.ef-approved-lower-home .ef-home-locations__all--button-pill span {
     transition: none;
     transform: none;
   }
 }
 
-/* A single slim search bar reads as one deliberate action, rather than the
-   tall stacked card the "start with your location" panel used to be — the
-   city grid below is the section's real visual weight now, and both stay as
-   short as the content allows. */
+/* A small, minimal glass pill — deliberately the lightest-weight version of
+   this control yet. No card, no glow, no separate label row: the "Where is
+   your event?" label stays for screen readers only (visually-hidden below),
+   the pin sits inline rather than in its own badge, and the button is a
+   small icon-only circle rather than a full-width bar. It's a grid item of
+   `.ef-home-locations__hero` (see above) rather than a centred block, so it
+   sits full-width on mobile and fills its own column next to the heading
+   text on desktop. */
 body.ef-approved-lower-home .ef-home-locations__searchbar {
   position: relative;
   z-index: 1;
+  grid-area: search;
   display: flex;
-  gap: 6px;
   align-items: center;
-  max-width: 1180px;
-  margin: 0 auto 14px;
-  border: 1px solid rgba(255, 255, 255, 0.14);
-  border-radius: 999px;
-  background: linear-gradient(120deg, #073f38 0%, #0b8073 100%);
-  box-shadow: 0 12px 26px rgba(7, 77, 68, 0.2);
-  padding: 6px 6px 6px 16px;
+  gap: 8px;
+  width: 100%;
+  margin: 0;
+  border: 1px solid rgba(255, 255, 255, 0.65);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.55);
+  backdrop-filter: blur(16px) saturate(180%);
+  -webkit-backdrop-filter: blur(16px) saturate(180%);
+  box-shadow:
+    0 6px 18px rgba(7, 77, 68, 0.12),
+    inset 0 1px 1px rgba(255, 255, 255, 0.7);
+  padding: 3px 3px 3px 14px;
+  transition: box-shadow 200ms ease, border-color 200ms ease;
+}
+
+body.ef-approved-lower-home .ef-home-locations__searchbar:focus-within {
+  border-color: rgba(19, 182, 162, 0.5);
+  box-shadow:
+    0 0 0 3px rgba(19, 182, 162, 0.14),
+    0 8px 22px rgba(7, 77, 68, 0.16),
+    inset 0 1px 1px rgba(255, 255, 255, 0.8);
 }
 
 body.ef-approved-lower-home .ef-home-locations__searchbar-pin {
   display: grid;
-  flex: 0 0 auto;
-  width: 22px;
-  height: 22px;
   place-items: center;
-  color: #8ce8d8;
+  flex: 0 0 auto;
+  width: 16px;
+  height: 16px;
+  color: #0b8073;
 }
 
 body.ef-approved-lower-home .ef-home-locations__searchbar-pin svg {
-  width: 17px;
-  height: 17px;
+  width: 16px;
+  height: 16px;
 }
 
 body.ef-approved-lower-home .ef-home-locations__searchbar-field {
-  display: flex;
   flex: 1 1 auto;
   min-width: 0;
-  flex-direction: column;
-  gap: 0;
-  border-left: 1px solid rgba(255, 255, 255, 0.16);
-  padding: 0 0 0 14px;
+  margin: 0;
+  border-left: 0;
+  padding: 0;
 }
 
+/* Visually hidden — the label's text is still the input's accessible name,
+   it just doesn't take up space in this compact a pill. */
 body.ef-approved-lower-home .ef-home-locations__searchbar-field span {
-  color: rgba(255, 255, 255, 0.6);
-  font-size: 11px;
-  font-weight: 750;
-  letter-spacing: 0.03em;
-  text-transform: uppercase;
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
 }
 
 body.ef-approved-lower-home .ef-home-locations__searchbar-field input {
+  display: block;
   width: 100%;
+  min-height: 0;
   border: 0;
   outline: 0;
   background: transparent;
   padding: 0;
-  color: #fff;
+  color: #0b1220;
   font: inherit;
   font-size: 14px;
-  font-weight: 700;
+  font-weight: 600;
+  line-height: 1.3;
 }
 
 body.ef-approved-lower-home .ef-home-locations__searchbar-field input::placeholder {
-  color: rgba(255, 255, 255, 0.45);
+  color: #64748b;
   font-weight: 500;
 }
 
 /* `[type="submit"]` is redundant (the button already carries that attribute)
    — it is here purely to out-specificity mobile-optimizations.css's generic
-   `button[type="submit"] { width: 100% }` mobile CTA rule below 768px,
-   which would otherwise stretch this button the full width of the bar and
-   balloon the pill into a circle. */
+   `button[type="submit"] { width: 100% }` mobile CTA rule below 768px, which
+   would otherwise stretch this into a wide bar and defeat the point of a
+   small icon button. Colour/shadow reuse the hero search bar's button
+   tokens (--search-btn-bg etc. in ef-search-bar.css) so both buttons on the
+   page match.
+   Width/height are pinned at 44px deliberately, not left smaller: a
+   site-wide accessibility rule (utilities.css, `button[type="submit"] {
+   min-height/min-width: 44px }`, the WCAG touch-target minimum) overrides
+   any smaller value here anyway, so setting 44px directly keeps this rule
+   truthful about the actual rendered size instead of silently losing a
+   fight with it. Square with rounded corners, not a circle — a circle at
+   this size read as a plain dot with the icon looking off-centre inside it. */
 body.ef-approved-lower-home .ef-home-locations__searchbar button[type='submit'] {
-  display: inline-flex;
-  width: auto;
+  position: relative;
   flex: 0 0 auto;
-  gap: 6px;
-  align-items: center;
+  width: 44px;
+  height: 44px;
   border: 0;
-  border-radius: 999px;
-  background: #fff;
-  padding: 10px 18px;
-  color: #0b8073;
-  font: inherit;
-  font-size: 12px;
-  font-weight: 850;
+  border-radius: 14px;
+  background: linear-gradient(135deg, #10b981 0%, #059669 50%, #047857 100%);
+  color: #fff;
+  /* Collapses the button's own text ("Show local suppliers") to nothing —
+     it stays in the DOM as the accessible name, but the visible mark is the
+     search icon below, not the arrow character this used to render (browser
+     glyph rendering for "→" reads as a thin, inconsistent line rather than a
+     real icon). */
+  font-size: 0;
   cursor: pointer;
+  box-shadow:
+    0 3px 10px rgba(5, 150, 105, 0.35),
+    inset 0 1px 1px rgba(255, 255, 255, 0.25);
   transition:
     transform 170ms ease,
-    box-shadow 170ms ease;
+    box-shadow 170ms ease,
+    background 170ms ease;
+}
+
+/* A real vector search icon (same magnifying-glass path as the hero bar's
+   own submit button in ef-search-bar.css) rendered as a mask, rather than
+   relying on the "→" text glyph this used to show. Positioned with
+   absolute + transform (not grid place-items) because the button also
+   contains its own collapsed text label as an accessible name — as a
+   second grid item that text was claiming its own implicit row and
+   pushing this icon down inside the button instead of the text collapsing
+   to nothing. Absolute positioning takes the icon out of that flow
+   entirely, so it centers on the button itself regardless of what else is
+   inside it. */
+body.ef-approved-lower-home .ef-home-locations__searchbar button[type='submit']::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 20px;
+  height: 20px;
+  transform: translate(-50%, -50%);
+  background: #fff;
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.5'%3E%3Ccircle cx='11' cy='11' r='8'/%3E%3Cpath d='m21 21-4.35-4.35'/%3E%3C/svg%3E")
+    center / 20px 20px no-repeat;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.5'%3E%3Ccircle cx='11' cy='11' r='8'/%3E%3Cpath d='m21 21-4.35-4.35'/%3E%3C/svg%3E")
+    center / 20px 20px no-repeat;
 }
 
 body.ef-approved-lower-home .ef-home-locations__searchbar button[type='submit']:hover {
-  box-shadow: 0 10px 20px rgba(3, 43, 37, 0.28);
-  transform: translateY(-1px);
+  background: linear-gradient(135deg, #059669 0%, #047857 50%, #065f46 100%);
+  box-shadow:
+    0 4px 14px rgba(5, 150, 105, 0.45),
+    0 0 20px rgba(16, 185, 129, 0.35),
+    inset 0 1px 2px rgba(255, 255, 255, 0.3);
+  transform: scale(1.04);
 }
 
 body.ef-approved-lower-home .ef-home-locations__explore {
@@ -193,10 +337,6 @@ body.ef-approved-lower-home .ef-home-locations__explore {
 }
 
 body.ef-approved-lower-home .ef-home-locations__explore-heading {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 12px;
   max-width: 1180px;
   margin: 0 auto 8px;
 }
@@ -206,12 +346,6 @@ body.ef-approved-lower-home .ef-home-locations__explore-heading p {
   color: #10231f;
   font-size: 13px;
   font-weight: 850;
-}
-
-body.ef-approved-lower-home .ef-home-locations__explore-heading > span {
-  color: #57746d;
-  font-size: 11px;
-  font-weight: 650;
 }
 
 /* Every card shares one aspect ratio per breakpoint, so the grid always
@@ -365,12 +499,13 @@ body.ef-approved-lower-home .ef-home-locations__city-card-body {
   flex-direction: column;
   gap: 1px;
   margin-top: auto;
-  padding: 8px 10px;
+  padding: 6px 8px;
 }
 
 body.ef-approved-lower-home .ef-home-locations__city-card-body strong {
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 850;
+  line-height: 1.15;
   letter-spacing: -0.005em;
   text-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
 }
@@ -380,16 +515,13 @@ body.ef-approved-lower-home .ef-home-locations__city-card-body small {
   color: rgba(255, 255, 255, 0.85);
   font-size: 11px;
   font-weight: 650;
+  line-height: 1.15;
   text-shadow: 0 1px 8px rgba(0, 0, 0, 0.3);
 }
 
 @media (min-width: 560px) {
   body.ef-approved-lower-home .ef-home-locations__city-card-body {
-    padding: 10px 12px;
-  }
-
-  body.ef-approved-lower-home .ef-home-locations__city-card-body strong {
-    font-size: 14px;
+    padding: 8px 10px;
   }
 
   body.ef-approved-lower-home .ef-home-locations__city-card-body small {
@@ -402,48 +534,40 @@ body.ef-approved-lower-home .ef-home-locations :where(a, button, input):focus-vi
   outline-offset: 2px;
 }
 
-/* This matches the city grid's own 560px column breakpoint just below, so
-   the search bar and the grid change shape at the same point rather than
-   the page feeling like it has two different "mobile" widths. */
-@media (max-width: 559px) {
-  body.ef-approved-lower-home .ef-home-locations__heading {
-    align-items: start;
-  }
-
-  body.ef-approved-lower-home .ef-home-locations__all--button {
-    padding: 7px 13px;
-    font-size: 11px;
-  }
-
-  /* Below this width the pin, label and "Show local suppliers" button no
-     longer fit on one row — the button's own text is wider than the space
-     left over. Left alone that either squeezes the label down to a
-     near-zero-width column of vertically stacked letters, or (just above
-     that point) truncates the input's placeholder and wraps the label
-     awkwardly. Wrapping the button onto its own full-width row keeps every
-     part of the bar readable at any width in between. */
-  body.ef-approved-lower-home .ef-home-locations__searchbar {
-    flex-wrap: wrap;
-    border-radius: 20px;
-  }
-
-  body.ef-approved-lower-home .ef-home-locations__searchbar-field {
-    flex-basis: 0;
-  }
-
-  body.ef-approved-lower-home .ef-home-locations__searchbar button[type='submit'] {
-    width: 100%;
-    justify-content: center;
-    margin-top: 6px;
-    flex-basis: 100%;
-  }
-}
-
-@media (max-width: 420px) {
-  body.ef-approved-lower-home .ef-home-locations__heading {
-    flex-direction: column;
-    gap: 10px;
-    margin-bottom: 12px;
+/* From here up, the hero becomes one glass-bordered card: the kicker,
+   heading and subtitle sit to the left, with the search bar and the
+   "Explore all UK locations" button lined up beside them in the same row
+   instead of stacking underneath. Starts at 1260px — deliberately later
+   than a usual desktop breakpoint. The three columns need roughly 1040px
+   between them at minimum (460px so the heading's "Find event suppliers
+   near you" always fits its one allowed line, 250px so the search
+   placeholder isn't clipped, 216px so the button's own text stays on one
+   line), and `.hero`'s own width (capped at 1180px, driven by
+   `.container`'s share of the viewport) only reliably clears that AFTER
+   it has hit its 1180px cap — which first happens around a 1256px
+   viewport. Picking any earlier breakpoint means the browser has to
+   shrink one of the three columns below what its content needs, and
+   something inside it visibly breaks (the heading wraps, the button
+   wraps, or the search placeholder gets clipped) — each was tried and
+   each failed at some point in the 900–1200px range before landing here.
+   Below this breakpoint the stacked layout has the hero's full width to
+   itself, so the same heading always fits there too, just via the fluid
+   part of its clamp() rather than a fixed column budget. */
+@media (min-width: 1260px) {
+  body.ef-approved-lower-home .ef-home-locations__hero {
+    grid-template-columns: minmax(460px, 1fr) minmax(250px, 420px) minmax(216px, auto);
+    grid-template-areas: 'kicker search button' 'heading search button';
+    column-gap: 28px;
+    row-gap: 2px;
+    padding: 22px 28px;
+    border: 1px solid rgba(255, 255, 255, 0.6);
+    border-radius: 24px;
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.85), rgba(233, 247, 242, 0.65));
+    backdrop-filter: blur(14px) saturate(160%);
+    -webkit-backdrop-filter: blur(14px) saturate(160%);
+    box-shadow:
+      0 20px 44px rgba(9, 60, 52, 0.1),
+      inset 0 1px 1px rgba(255, 255, 255, 0.7);
   }
 }
 
