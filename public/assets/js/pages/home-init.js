@@ -85,11 +85,10 @@ if (isDebugEnabled()) {
 
 // Initialize homepage components on DOM ready
 document.addEventListener('DOMContentLoaded', () => {
-  // Initialize category grid
-  if (typeof CategoryGrid !== 'undefined') {
-    const categoryGrid = new CategoryGrid('category-grid-home');
-    categoryGrid.loadCategories();
-  }
+  // Category grid: homepage-approved-lower.js owns #category-grid-home on
+  // the production homepage (it fetches the same /api/v1/categories data
+  // and renders it with the approved markup), so CategoryGrid is not
+  // instantiated here to avoid a duplicate fetch and a competing render.
 
   // Hide version label unless debug mode is enabled
   const versionContainer = document.querySelector('.version');
