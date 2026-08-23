@@ -17,6 +17,28 @@
     return url;
   };
 
+  // Admin categories can carry a Pexels-sourced heroImage (from the same
+  // image picker used elsewhere in admin), but this homepage enhancement is
+  // documented as same-origin-only imagery with nowhere to show the
+  // accompanying photographer attribution. Reject any non-same-origin URL
+  // here rather than requesting a third-party image on every homepage view.
+  const sameOriginImageUrl = (value, fallback = FALLBACK_IMAGE) => {
+    const url = safeImageUrl(value, '');
+    if (!url) {
+      return fallback;
+    }
+    if (!/^https?:\/\//i.test(url)) {
+      return url;
+    }
+    try {
+      return new URL(url, window.location.origin).origin === window.location.origin
+        ? url
+        : fallback;
+    } catch (error) {
+      return fallback;
+    }
+  };
+
   const categoryIcon = type => {
     const icons = {
       venue:
@@ -128,7 +150,7 @@
     href: window.EventFlowCategoryLink
       ? window.EventFlowCategoryLink.categoryHref(category)
       : `/suppliers?category=${encodeURIComponent(category.slug || category.name || '')}`,
-    image: safeImageUrl(category.heroImage),
+    image: sameOriginImageUrl(category.heroImage),
     iconHtml: category.icon ? escapeHtml(category.icon) : categoryIcon('venue'),
     description: category.description || '',
   });
