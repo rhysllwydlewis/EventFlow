@@ -48,13 +48,22 @@ body.ef-approved-lower-home .ef-home-locations__hero-text {
   grid-area: heading;
 }
 
+/* Always one line, never wrapped — the font scales down with the viewport
+   (via the vw term) rather than the phrase breaking onto a second line.
+   The scale is calibrated against the actual rendered width of "Find event
+   suppliers near you" in this font/weight (~16.84px of width per 1px of
+   font-size): the formula and its 26px ceiling are chosen so the text
+   still fits at the narrowest width each layout gives it — full viewport
+   width on the stacked mobile/tablet layout, and the heading column's own
+   (deliberately generous) minimum width on the desktop card layout below. */
 body.ef-approved-lower-home .ef-home-locations__hero-text h2 {
   margin: 0;
   color: #10231f;
-  font-size: clamp(22px, 2.6vw, 30px);
+  font-size: clamp(14px, 5.2vw - 1px, 26px);
   font-weight: 850;
   letter-spacing: -0.03em;
   line-height: 1.08;
+  white-space: nowrap;
 }
 
 body.ef-approved-lower-home .ef-home-locations__hero-text p {
@@ -501,17 +510,25 @@ body.ef-approved-lower-home .ef-home-locations :where(a, button, input):focus-vi
 /* From here up, the hero becomes one glass-bordered card: the kicker,
    heading and subtitle sit to the left, with the search bar and the
    "Explore all UK locations" button lined up beside them in the same row
-   instead of stacking underneath. Starts at 900px rather than the more
-   usual 768px tablet breakpoint — at 768px the container is only ~675px
-   wide (`.container` drops to 88% there), too narrow for three columns
-   with room to spare, and the button's `auto` column was shrinking to a
-   sliver that broke its own text mid-word. The button's column also gets
-   an explicit minmax() floor rather than a bare `auto`, so the same
-   collapse can't happen again if the viewport is narrower than expected
-   — it wraps to two words at worst, never mid-word. */
-@media (min-width: 900px) {
+   instead of stacking underneath. Starts at 1260px — deliberately later
+   than a usual desktop breakpoint. The three columns need roughly 1040px
+   between them at minimum (460px so the heading's "Find event suppliers
+   near you" always fits its one allowed line, 250px so the search
+   placeholder isn't clipped, 216px so the button's own text stays on one
+   line), and `.hero`'s own width (capped at 1180px, driven by
+   `.container`'s share of the viewport) only reliably clears that AFTER
+   it has hit its 1180px cap — which first happens around a 1256px
+   viewport. Picking any earlier breakpoint means the browser has to
+   shrink one of the three columns below what its content needs, and
+   something inside it visibly breaks (the heading wraps, the button
+   wraps, or the search placeholder gets clipped) — each was tried and
+   each failed at some point in the 900–1200px range before landing here.
+   Below this breakpoint the stacked layout has the hero's full width to
+   itself, so the same heading always fits there too, just via the fluid
+   part of its clamp() rather than a fixed column budget. */
+@media (min-width: 1260px) {
   body.ef-approved-lower-home .ef-home-locations__hero {
-    grid-template-columns: minmax(200px, 1fr) minmax(240px, 420px) minmax(200px, auto);
+    grid-template-columns: minmax(460px, 1fr) minmax(250px, 420px) minmax(216px, auto);
     grid-template-areas: 'kicker search button' 'heading search button';
     column-gap: 28px;
     row-gap: 2px;
