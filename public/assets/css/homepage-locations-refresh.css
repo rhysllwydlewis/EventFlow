@@ -76,35 +76,59 @@ body.ef-approved-lower-home .ef-home-locations__hero-text p {
   font-size: 13px;
 }
 
+/* Mobile-optimizations.css applies `main a { min-height: 44px }` to any
+   link in the main content that isn't explicitly excluded — a WCAG
+   touch-target rule that (correctly) can't be overridden just because
+   this link looks better smaller. Rather than fight it, the visual pill
+   moves to an inner span: the `<a>` stays the full 44px tap target
+   (invisible padding, accessible), while the span carries all the
+   background/border/shadow/sizing and can shrink as small as the design
+   wants without shrinking what's tappable. Before this split, the fixed
+   44px height combined with fluid font-size meant the button looked
+   like a big, mostly-empty box around tiny text on phones — which is
+   what read as "overpowering" next to the compact kicker label beside
+   it. */
 body.ef-approved-lower-home .ef-home-locations__all--button {
   display: inline-flex;
   grid-area: button;
   align-self: center;
   justify-self: end;
   flex: 0 0 auto;
-  gap: 7px;
   align-items: center;
+  justify-content: center;
   margin: 0;
+  text-decoration: none;
+}
+
+/* Always one line, same reasoning as the h2 heading above: without
+   white-space: nowrap, a CSS Grid `auto` column sizes text content to
+   its min-content (can still wrap) rather than its full single-line
+   width. Adding nowrap alone, though, made the button claim its full
+   ~190-210px unconditionally and crowd out the kicker sharing its row
+   on narrow phones — confirmed by screenshot, "Plan by place" was
+   getting clipped behind the button around 320-375px wide. The fluid
+   font-size (calibrated against the button's own measured nowrap width
+   at each size, and the kicker's, against how much of the hero's width
+   is actually available at small viewports) is what makes room for
+   both without wrapping either.
+   Padding, gap, and corner radius are all derived from that same
+   --btn-fs value (rather than fixed pixel amounts) so the whole pill
+   shrinks together with its text on small screens. On desktop, where
+   --btn-fs sits at its 12px ceiling, this resolves to the same size the
+   button always had. */
+body.ef-approved-lower-home .ef-home-locations__all--button-pill {
+  display: inline-flex;
+  align-items: center;
   border: 1px solid rgba(11, 128, 115, 0.22);
-  border-radius: 14px;
   background: #fff;
   box-shadow: 0 8px 18px rgba(18, 72, 63, 0.08);
-  padding: 7px 13px;
   color: #0b8073;
-  /* Always one line, same reasoning as the h2 heading above: without
-     white-space: nowrap, a CSS Grid `auto` column sizes text content to
-     its min-content (can still wrap) rather than its full single-line
-     width. Adding nowrap alone, though, made the button claim its full
-     ~190-210px unconditionally and crowd out the kicker sharing its row
-     on narrow phones — confirmed by screenshot, "Plan by place" was
-     getting clipped behind the button around 320-375px wide. The fluid
-     font-size (calibrated against the button's own measured nowrap
-     width at each size, and the kicker's, against how much of the
-     hero's width is actually available at small viewports) is what
-     makes room for both without wrapping either. */
-  font-size: clamp(8px, 3.1vw - 2px, 12px);
+  --btn-fs: clamp(8px, 3.1vw - 2px, 12px);
+  font-size: var(--btn-fs);
+  gap: calc(var(--btn-fs) * 0.6);
+  border-radius: calc(var(--btn-fs) + 2px);
+  padding: calc(var(--btn-fs) * 0.55) calc(var(--btn-fs) * 1.1);
   font-weight: 850;
-  text-decoration: none;
   white-space: nowrap;
   transition:
     transform 170ms ease,
@@ -112,26 +136,25 @@ body.ef-approved-lower-home .ef-home-locations__all--button {
     background-color 170ms ease;
 }
 
-body.ef-approved-lower-home .ef-home-locations__all--button span {
+body.ef-approved-lower-home .ef-home-locations__all--button-pill span {
   transition: transform 170ms ease;
 }
 
-body.ef-approved-lower-home .ef-home-locations__all--button:hover {
+body.ef-approved-lower-home .ef-home-locations__all--button:hover .ef-home-locations__all--button-pill {
   background: #0b8073;
   box-shadow: 0 12px 24px rgba(18, 72, 63, 0.16);
   color: #fff;
-  text-decoration: none;
   transform: translateY(-2px);
 }
 
-body.ef-approved-lower-home .ef-home-locations__all--button:hover span {
+body.ef-approved-lower-home .ef-home-locations__all--button:hover .ef-home-locations__all--button-pill span {
   transform: translateX(3px);
 }
 
 @media (prefers-reduced-motion: reduce) {
-  body.ef-approved-lower-home .ef-home-locations__all--button,
-  body.ef-approved-lower-home .ef-home-locations__all--button:hover,
-  body.ef-approved-lower-home .ef-home-locations__all--button span {
+  body.ef-approved-lower-home .ef-home-locations__all--button-pill,
+  body.ef-approved-lower-home .ef-home-locations__all--button:hover .ef-home-locations__all--button-pill,
+  body.ef-approved-lower-home .ef-home-locations__all--button-pill span {
     transition: none;
     transform: none;
   }
