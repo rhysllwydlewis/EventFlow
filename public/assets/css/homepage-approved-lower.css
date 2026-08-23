@@ -1041,6 +1041,16 @@ body.ef-approved-lower-home .ef-approved-home-footer .ef-footer-bar p {
     padding: 26px 12px 14px;
   }
 
+  /* "Decor & Styling" is the longest title and is the binding constraint at
+     every width in this band — it needs the full 16px base size once the
+     card clears ~392px, but wraps to two lines below that on a fixed size.
+     Scaled against its own measured text width vs. available column width
+     (not estimated) so every title in the grid clears one line down to the
+     narrowest supported viewport. */
+  body.ef-approved-lower-home .ef-approved-category-copy h3 {
+    font-size: clamp(9px, 6vw - 7.6px, 16px);
+  }
+
   body.ef-approved-lower-home .ef-approved-benefits {
     padding: 22px;
   }
