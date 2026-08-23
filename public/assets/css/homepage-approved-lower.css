@@ -934,6 +934,16 @@ body.ef-approved-lower-home .ef-approved-home-footer .ef-footer-bar p {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
+  /* The card's fixed 142px image height was calibrated for the ~260px-wide
+     4-column desktop card. In this 2-column band the same card runs up to
+     ~500px wide, so a fixed height stretches the photo into an overly wide
+     letterbox strip. Switching to aspect-ratio keeps the crop proportionate
+     at every width in this band without touching the desktop layout. */
+  body.ef-approved-lower-home .ef-approved-category-card > img {
+    height: auto;
+    aspect-ratio: 16 / 9;
+  }
+
   body.ef-approved-lower-home .ef-approved-guide-card:last-child {
     grid-column: 1 / -1;
   }
