@@ -184,7 +184,7 @@
       .map(
         category => `
           <a class="ef-approved-category-card" href="${escapeHtml(category.href)}">
-            <img src="${escapeHtml(category.image)}" alt="" loading="lazy" data-fallback-src="${FALLBACK_IMAGE}">
+            <img src="${escapeHtml(category.image)}" alt="${escapeHtml(category.title)}" loading="lazy" data-fallback-src="${FALLBACK_IMAGE}">
             <div class="ef-approved-category-copy">
               <span class="ef-approved-category-icon">${category.iconHtml}</span>
               <h3>${escapeHtml(category.title)}</h3>
@@ -446,7 +446,7 @@
         const image = approvedGuideImages[index] || FALLBACK_IMAGE;
         return `
           <a class="ef-approved-guide-card" href="${escapeHtml(href)}">
-            <img src="${escapeHtml(image)}" alt="" loading="lazy" data-fallback-src="${FALLBACK_IMAGE}">
+            <img src="${escapeHtml(image)}" alt="${escapeHtml(guide.title || 'Event planning guide')}" loading="lazy" data-fallback-src="${FALLBACK_IMAGE}">
             <div>
               <span>${escapeHtml(guide.category || 'Guide')}</span>
               <h3>${escapeHtml(guide.title || 'Event planning guide')}</h3>
