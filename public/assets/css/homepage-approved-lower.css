@@ -993,14 +993,15 @@ body.ef-approved-lower-home .ef-approved-home-footer .ef-footer-bar p {
   }
 }
 
-/* 620px used to be the threshold here, but the four grids this collapses to
-   a single column (category, benefits, supplier-benefits, supplier-stats)
-   all measurably fail to fit their own short heading text for roughly
+/* 620px used to be the threshold here, but the three grids this collapses to
+   a single column (benefits, supplier-benefits, supplier-stats) all
+   measurably fail to fit their own short heading text for roughly
    621-660px — the container has just barely grown past the comfortably
    spacious single-column state without yet being wide enough for a
    multi-column one. Measured via real column-width/text-width comparison
    (not estimated) rather than picking a bigger number by feel: 670px is
-   past where every one of them clears its own text with margin. */
+   past where every one of them clears its own text with margin. Categories
+   are handled separately just above — that grid stays 2-up throughout. */
 @media (max-width: 670px) {
   body.ef-approved-lower-home .ef-approved-category-section,
   body.ef-approved-lower-home .ef-approved-steps-section,
@@ -1021,12 +1022,23 @@ body.ef-approved-lower-home .ef-approved-home-footer .ef-footer-bar p {
     width: min(100% - 32px, 1200px);
   }
 
-  body.ef-approved-lower-home .ef-approved-category-grid,
   body.ef-approved-lower-home .ef-approved-benefits,
   body.ef-approved-lower-home .ef-approved-supplier-benefits,
   body.ef-approved-lower-home .ef-approved-supplier-stats,
   body.ef-approved-lower-home .ef-approved-home-footer .ef-footer-inner {
     grid-template-columns: 1fr;
+  }
+
+  /* Categories stay 2-up at every width, matching the city grid below it,
+     rather than collapsing to a single column like the other lower-home
+     grids. */
+  body.ef-approved-lower-home .ef-approved-category-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+  }
+
+  body.ef-approved-lower-home .ef-approved-category-copy {
+    padding: 26px 12px 14px;
   }
 
   body.ef-approved-lower-home .ef-approved-benefits {
