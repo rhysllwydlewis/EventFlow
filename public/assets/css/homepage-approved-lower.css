@@ -314,13 +314,18 @@ body.ef-approved-lower-home .ef-approved-step-grid p {
    single column (≤820px) to its base 3 columns, so "Find the right
    suppliers" and, worse, the longer "Keep everything in one place" wrap to
    two lines from 821px up to roughly 1140px, before the container is wide
-   enough for a 3-column cell to hold the longer of the two. The
-   single-column mobile wrap below 820px is left alone — that's a genuinely
-   long phrase on a phone-width column, not a layout bug, and forcing it
-   smaller there would make it uncomfortably tiny for little benefit. */
+   enough for a 3-column cell to hold the longer of the two.
+   Originally fixed by shrinking the heading font in this band, but that
+   pushed it down to ~7px at 821px — smaller than its own 12px description
+   text below it, which reads as broken hierarchy even though nothing
+   wraps. Delaying the column switch instead (matching the single-column
+   mobile layout for a bit longer, rather than shrinking type past
+   legibility) keeps the heading at its normal 14px throughout. The
+   single-column layout has the full container width to itself, so no
+   wrapping risk there either. */
 @media (min-width: 821px) and (max-width: 1140px) {
-  body.ef-approved-lower-home .ef-approved-step-grid h3 {
-    font-size: clamp(7px, 2.2vw - 11.02px, 14px);
+  body.ef-approved-lower-home .ef-approved-step-grid {
+    grid-template-columns: 1fr;
   }
 }
 
