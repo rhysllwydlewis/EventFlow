@@ -70,10 +70,15 @@ body.ef-approved-lower-home .ef-home-locations__hero-text h2 {
   white-space: nowrap;
 }
 
+/* Same one-line treatment as the h2 above, calibrated against this
+   longer sentence's own measured width (~26px of width per 1px of
+   font-size at this weight): it shares the h2's column, so it needs to
+   fit the same narrowest widths. */
 body.ef-approved-lower-home .ef-home-locations__hero-text p {
   margin: 6px 0 0;
   color: #657a74;
-  font-size: 13px;
+  font-size: clamp(9px, 3.1vw - 0.5px, 13px);
+  white-space: nowrap;
 }
 
 /* Mobile-optimizations.css applies `main a { min-height: 44px }` to any
@@ -331,11 +336,17 @@ body.ef-approved-lower-home .ef-home-locations__explore {
   z-index: 1;
 }
 
+/* flex-wrap so "Free to browse..." drops to its own full-width row
+   instead of squeezing into whatever's left beside "Major UK cities" —
+   at its full length there's no font-size small enough to fit it into
+   that leftover space on a narrow phone without being illegible, but it
+   fits comfortably at a normal size on a row of its own. */
 body.ef-approved-lower-home .ef-home-locations__explore-heading {
   display: flex;
+  flex-wrap: wrap;
   align-items: baseline;
   justify-content: space-between;
-  gap: 12px;
+  gap: 4px 12px;
   max-width: 1180px;
   margin: 0 auto 8px;
 }
@@ -350,9 +361,11 @@ body.ef-approved-lower-home .ef-home-locations__explore-heading p {
 }
 
 body.ef-approved-lower-home .ef-home-locations__explore-heading > span {
+  flex-shrink: 0;
   color: #57746d;
-  font-size: 11px;
+  font-size: clamp(9px, 2.6vw + 1.5px, 11px);
   font-weight: 650;
+  white-space: nowrap;
 }
 
 /* Every card shares one aspect ratio per breakpoint, so the grid always
