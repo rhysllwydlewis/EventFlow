@@ -37,7 +37,11 @@ body.ef-approved-lower-home .ef-home-locations__kicker {
   grid-area: kicker;
   align-self: center;
   color: #0b8073;
-  font-size: 11px;
+  /* Shares the top row with the "Explore all UK locations" button on
+     narrow screens, so it needs the same small give as that button's
+     own font-size below ~360px wide — otherwise the two nowrap elements
+     don't both fit and the kicker gets crowded out. */
+  font-size: clamp(9px, 2vw + 4px, 11px);
   font-weight: 900;
   letter-spacing: 0.14em;
   text-transform: uppercase;
@@ -85,11 +89,23 @@ body.ef-approved-lower-home .ef-home-locations__all--button {
   border-radius: 14px;
   background: #fff;
   box-shadow: 0 8px 18px rgba(18, 72, 63, 0.08);
-  padding: 8px 16px;
+  padding: 7px 13px;
   color: #0b8073;
-  font-size: 12px;
+  /* Always one line, same reasoning as the h2 heading above: without
+     white-space: nowrap, a CSS Grid `auto` column sizes text content to
+     its min-content (can still wrap) rather than its full single-line
+     width. Adding nowrap alone, though, made the button claim its full
+     ~190-210px unconditionally and crowd out the kicker sharing its row
+     on narrow phones — confirmed by screenshot, "Plan by place" was
+     getting clipped behind the button around 320-375px wide. The fluid
+     font-size (calibrated against the button's own measured nowrap
+     width at each size, and the kicker's, against how much of the
+     hero's width is actually available at small viewports) is what
+     makes room for both without wrapping either. */
+  font-size: clamp(8px, 3.1vw - 2px, 12px);
   font-weight: 850;
   text-decoration: none;
+  white-space: nowrap;
   transition:
     transform 170ms ease,
     box-shadow 170ms ease,
@@ -498,13 +514,6 @@ body.ef-approved-lower-home .ef-home-locations__city-card-body small {
 body.ef-approved-lower-home .ef-home-locations :where(a, button, input):focus-visible {
   outline: 3px solid rgba(19, 182, 162, 0.45);
   outline-offset: 2px;
-}
-
-@media (max-width: 559px) {
-  body.ef-approved-lower-home .ef-home-locations__all--button {
-    padding: 7px 13px;
-    font-size: 11px;
-  }
 }
 
 /* From here up, the hero becomes one glass-bordered card: the kicker,
