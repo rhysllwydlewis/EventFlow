@@ -156,10 +156,14 @@ body.ef-approved-lower-home .ef-approved-category-copy h3 {
 }
 
 body.ef-approved-lower-home .ef-approved-category-copy p {
+  display: -webkit-box;
+  overflow: hidden;
   margin: 7px 0 0;
   color: var(--ef-approved-muted);
-  font-size: 12px;
-  line-height: 1.45;
+  font-size: 11px;
+  line-height: 1.4;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
 }
 
 body.ef-approved-lower-home .ef-approved-benefits-section {
