@@ -1041,6 +1041,15 @@ body.ef-approved-lower-home .ef-approved-home-footer .ef-footer-bar p {
     padding: 26px 12px 14px;
   }
 
+  /* "Explore trusted suppliers" is a short label, not a full sentence like
+     the section headlines elsewhere on the page, so it should hold one
+     line rather than wrap. Scaled against its own measured text width vs.
+     the container's available width; the base 24px already fits once the
+     container clears ~377px, so this only bites below that. */
+  body.ef-approved-lower-home .ef-approved-category-section h2 {
+    font-size: clamp(16px, 7vw - 3.6px, 24px);
+  }
+
   /* "Decor & Styling" is the longest title and is the binding constraint at
      every width in this band — it needs the full 16px base size once the
      card clears ~392px, but wraps to two lines below that on a fixed size.
