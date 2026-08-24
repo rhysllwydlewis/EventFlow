@@ -89,6 +89,7 @@ const communityPageRoutes = require('./community-pages');
 const adminCommunityRoutes = require('./admin-community');
 const adminLocationRoutes = require('./admin-locations');
 const locationPageRoutes = require('./locations');
+const categoryDirectoryPageRoutes = require('./category-directory');
 
 /**
  * Mount all route modules
@@ -520,6 +521,7 @@ const mountRoutes = (app, deps) => {
   // the test harness — which mounts only this router stack — can reach them.
   app.use('/api/v1/admin/locations', adminLocationRoutes);
   app.use(locationPageRoutes);
+  app.use(categoryDirectoryPageRoutes);
   // Community page routes are mounted earlier in server.js, before the static
   // handlers, so that server-rendered content wins over the raw HTML shells.
   // They are mounted here too for the test harness, which mounts only the API

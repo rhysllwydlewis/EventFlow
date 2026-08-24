@@ -20,6 +20,7 @@ const seoEligibility = require('./services/seoEligibility.service');
 const emptyStateIndexGate = require('./services/emptyStateIndexGate.service');
 const locationPageService = require('./services/locationPage.service');
 const locationCategoryPageService = require('./services/locationCategoryPage.service');
+const categoryDirectoryPageService = require('./services/categoryDirectoryPage.service');
 const locationRegistry = require('./services/locationRegistry.service');
 const supplierLocationService = require('./services/supplierLocation.service');
 const { PUBLICATION_STATES } = require('./models/LocationContent');
@@ -217,6 +218,29 @@ async function loadIndexableCategoryEntries(suppliers, users, packages, events) 
     return entries;
   } catch (error) {
     logger.error('sitemap: could not evaluate location category pages:', error);
+    return [];
+  }
+}
+
+/**
+ * National category directory pages (`/categories/:categorySlug`) that
+ * currently have enough real, eligible suppliers to be worth indexing.
+ * @param {Object[]} suppliers Raw supplier records.
+ * @param {Object[]} users User records, used to validate supplier owners.
+ * @returns {Promise<{categorySlug: string}[]>} Indexable category slugs.
+ */
+async function loadIndexableCategoryDirectoryEntries(suppliers, users) {
+  try {
+    const validOwnerIds = new Set((users || []).map(user => user?.id).filter(Boolean));
+    const eligibleSuppliers = (suppliers || []).filter(
+      supplier => seoEligibility.canBeViewedPublicly(supplier, { validOwnerIds }).eligible
+    );
+    return categoryDirectoryPageService
+      .populatedCategories(eligibleSuppliers, validOwnerIds)
+      .filter(entry => categoryDirectoryPageService.isIndexable(entry.rankedSuppliers))
+      .map(entry => ({ categorySlug: entry.category.slug }));
+  } catch (error) {
+    logger.error('sitemap: could not evaluate category directory pages:', error);
     return [];
   }
 }
@@ -441,6 +465,20 @@ async function generateSitemap(baseUrl) {
     });
   track('cityCategories', categoryEntries.length);
 
+  // National category directory pages. The hub is listed only when it has
+  // at least one indexable category to link to, mirroring the city hub above.
+  const categoryDirectoryEntries = await loadIndexableCategoryDirectoryEntries(suppliers, users);
+  if (categoryDirectoryEntries.length) {
+    appendUrl(xmlParts, `${normalizedBaseUrl}/categories`);
+    categoryDirectoryEntries
+      .slice()
+      .sort((a, b) => a.categorySlug.localeCompare(b.categorySlug))
+      .forEach(({ categorySlug }) => {
+        appendUrl(xmlParts, `${normalizedBaseUrl}/categories/${categorySlug}`);
+      });
+  }
+  track('categoryDirectory', categoryDirectoryEntries.length);
+
   // Community categories and published discussions. Held, hidden, removed and
   // superseded content is excluded so the sitemap never advertises a URL that
   // returns a noindex page — and, per SEO-005, so is a category or the
@@ -551,6 +589,7 @@ module.exports = {
   appendUrl,
   generateSitemap,
   loadIndexableCategoryEntries,
+  loadIndexableCategoryDirectoryEntries,
   loadIndexableCityEntries,
   generateRobotsTxt,
   loadGuideEntries,
