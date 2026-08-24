@@ -137,9 +137,27 @@
     });
   };
 
+  // Prefer the real, server-rendered `/categories/:slug` landing page over
+  // the `/suppliers?category=X` filter view: the filter URL always carries a
+  // static self-canonical back to the bare `/suppliers` listing (see
+  // `services/categoryDirectoryPage.service.js`), so a homepage link to it
+  // gets consolidated away rather than passed through. Falls back to the
+  // filter URL when the category can't be resolved to a canonical slug.
+  const categoryDirectoryHref = category => {
+    const registry = window.EventFlowCategoryLink;
+    if (!registry) {
+      return null;
+    }
+    const canonicalName = registry.canonicalCategoryValue(category);
+    const match = registry.CATEGORY_DEFINITIONS.find(def => def.name === canonicalName);
+    return match ? `/categories/${match.slug}` : null;
+  };
+
   const mapFallbackCategory = category => ({
     title: category.title,
-    href: `/suppliers?category=${encodeURIComponent(category.category)}`,
+    href:
+      categoryDirectoryHref(category.category) ||
+      `/suppliers?category=${encodeURIComponent(category.category)}`,
     image: safeImageUrl(category.image),
     iconHtml: categoryIcon(category.icon),
     description: category.description,
@@ -147,9 +165,11 @@
 
   const mapLiveCategory = category => ({
     title: category.name || 'Category',
-    href: window.EventFlowCategoryLink
-      ? window.EventFlowCategoryLink.categoryHref(category)
-      : `/suppliers?category=${encodeURIComponent(category.slug || category.name || '')}`,
+    href:
+      categoryDirectoryHref(category) ||
+      (window.EventFlowCategoryLink
+        ? window.EventFlowCategoryLink.categoryHref(category)
+        : `/suppliers?category=${encodeURIComponent(category.slug || category.name || '')}`),
     image: sameOriginImageUrl(category.heroImage),
     iconHtml: category.icon ? escapeHtml(category.icon) : categoryIcon('venue'),
     description: category.description || '',

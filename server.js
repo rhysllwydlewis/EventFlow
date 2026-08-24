@@ -804,6 +804,12 @@ app.use(require('./routes/community-pages'));
 // the raw files would ship unfilled placeholders to a crawler.
 app.use(require('./routes/locations'));
 
+// ---------- EventFlow Category Directory Pages ----------
+// Also before templateMiddleware() and express.static(): /categories and
+// /categories/:categorySlug are server-rendered from the same shell, and
+// serving the raw file would ship an unfilled placeholder to a crawler.
+app.use(require('./routes/category-directory'));
+
 // ---------- Empty/invalid-inventory SEO index gating ----------
 // Also before templateMiddleware(): sets X-Robots-Tag: noindex on an empty
 // supplier filter combination or an empty public calendar, then falls

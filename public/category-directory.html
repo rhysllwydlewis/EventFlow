@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="en-GB">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, maximum-scale=5, user-scalable=yes"
+    />
+    <meta name="theme-color" content="#0B8073" />
+    <script src="/assets/js/config/canonical-base.js"></script>
+    <!--CATEGORY_DIRECTORY_HEAD-->
+    <link rel="preload" href="/assets/css/tokens.css?v=18.3.0" as="style" />
+    <link rel="preload" href="/assets/css/styles.css?v=18.5.0" as="style" />
+    <link rel="stylesheet" href="/assets/css/tokens.css?v=18.3.0" />
+    <link rel="stylesheet" href="/assets/css/styles.css?v=18.5.0" />
+    <link rel="stylesheet" href="/assets/css/eventflow-17.0.0.css?v=18.3.0" />
+    <link rel="stylesheet" href="/assets/css/utilities.css?v=18.3.0" />
+    <link rel="stylesheet" href="/assets/css/components.css?v=18.3.0" />
+    <link rel="stylesheet" href="/assets/css/mobile-optimizations.css?v=18.4.0" />
+    <link rel="stylesheet" href="/assets/css/navbar.css?v=18.3.0" />
+    <link
+      rel="stylesheet"
+      href="/assets/css/eventflow-brand.css?v=1.0.1"
+      data-eventflow-brand="true"
+    />
+    <link rel="stylesheet" href="/assets/css/locations.css?v=18.6.0" />
+    <link rel="stylesheet" href="/assets/css/locations-public-refresh.css?v=3" />
+    <link rel="icon" href="/favicon.ico" sizes="any" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="icon" type="image/png" sizes="144x144" href="/favicon-144x144.png" />
+    <link rel="icon" type="image/png" sizes="96x96" href="/favicon-96x96.png" />
+    <link rel="icon" type="image/png" sizes="48x48" href="/favicon-48x48.png" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
+    <link rel="mask-icon" href="/safari-pinned-tab.svg" color="#0B8073" />
+    <link rel="manifest" href="/site.webmanifest" />
+    <meta name="msapplication-config" content="/browserconfig.xml" />
+  </head>
+  <body class="efl">
+    <a class="efl-skip" href="#main-content">Skip to main content</a>
+
+    <header class="ef-header" role="banner">
+      <div class="ef-container">
+        <div class="ef-header-content">
+          <a href="/" class="ef-brand" aria-label="EventFlow - Return to homepage">
+            <div class="ef-logo" aria-hidden="true"><div class="ef-logo-inner"></div></div>
+            <span class="ef-brand-text">EventFlow</span>
+          </a>
+          <nav class="ef-nav-desktop" aria-label="Main navigation">
+            <a href="/start" class="ef-nav-link">Plan</a>
+            <a href="/suppliers" class="ef-nav-link">Suppliers</a>
+            <a href="/public-calendar" class="ef-nav-link">Events</a>
+            <a href="/marketplace" class="ef-nav-link">Marketplace</a>
+            <a href="/community" class="ef-nav-link">Community</a>
+            <a href="/guides" class="ef-nav-link">Guides</a>
+          </nav>
+          <div class="ef-header-actions">
+            <a href="/auth" id="ef-auth-link" class="ef-btn ef-btn-primary">Log in</a>
+            <a href="#" id="ef-dashboard-link" class="ef-nav-link" style="display: none"
+              >Dashboard</a
+            >
+            <button
+              id="ef-mobile-toggle"
+              class="ef-mobile-toggle"
+              type="button"
+              aria-label="Toggle menu"
+              aria-expanded="false"
+              aria-controls="ef-mobile-menu"
+            >
+              <span class="ef-toggle-line"></span>
+              <span class="ef-toggle-line"></span>
+              <span class="ef-toggle-line"></span>
+            </button>
+          </div>
+        </div>
+      </div>
+      <div
+        id="ef-mobile-menu"
+        class="ef-mobile-menu"
+        role="dialog"
+        aria-modal="true"
+        aria-label="Mobile navigation"
+      >
+        <nav class="ef-mobile-nav" aria-label="Primary navigation">
+          <a href="/start" class="ef-mobile-link">Plan an Event</a>
+          <a href="/suppliers" class="ef-mobile-link">Browse Suppliers</a>
+          <a href="/public-calendar" class="ef-mobile-link">Events Calendar</a>
+          <a href="/marketplace" class="ef-mobile-link">Marketplace</a>
+          <a href="/community" class="ef-mobile-link">Community</a>
+          <a href="/guides" class="ef-mobile-link">Guides</a>
+          <a href="/pricing" class="ef-mobile-link">Pricing</a>
+          <a href="/for-suppliers" class="ef-mobile-link">For Suppliers</a>
+          <div class="ef-mobile-divider"></div>
+          <a href="/auth" id="ef-mobile-auth" class="ef-mobile-link ef-mobile-primary">Log in</a>
+          <a href="#" id="ef-mobile-dashboard" class="ef-mobile-link" style="display: none"
+            >Dashboard</a
+          >
+          <a href="#" id="ef-mobile-logout" class="ef-mobile-link" style="display: none">Log out</a>
+        </nav>
+      </div>
+    </header>
+
+    <main id="main-content" class="efl-main">
+      <!-- Server-rendered. The whole page is real HTML: nothing here waits on
+           JavaScript, so the content a crawler sees is the content a visitor
+           sees. -->
+      <!--CATEGORY_DIRECTORY_CONTENT-->
+    </main>
+
+    <footer class="footer" role="contentinfo">
+      <div class="container ef-footer-content">
+        <div>
+          <strong>EventFlow</strong><br /><span class="small">Event planning made simple.</span>
+        </div>
+        <div class="small">
+          <a href="/locations">UK locations</a> · <a href="/categories">Browse by category</a> ·
+          <a href="/suppliers">Suppliers</a> · <a href="/community">Community</a> ·
+          <a href="/guides">Guides</a> · <a href="/marketplace">Marketplace</a> ·
+          <a href="/public-calendar">Events Calendar</a> · <a href="/legal">Legal Hub</a> ·
+          <button type="button" data-cookie-prefs>Cookie preferences</button>
+        </div>
+      </div>
+    </footer>
+
+    <script src="/assets/js/utils/auth-state.js" defer></script>
+    <script src="/assets/js/navbar.js" defer></script>
+    <script src="/assets/js/cookie-consent.js?v=2.0.0" defer></script>
+  </body>
+</html>
