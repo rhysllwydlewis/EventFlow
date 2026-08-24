@@ -434,6 +434,13 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   async function loadGuides() {
+    // Hide the no-JS fallback list as soon as JS can run, rather than after
+    // the fetch resolves — the skeleton grid above it is already on screen at
+    // this point, so there's no reason to also show the full plain-link list
+    // underneath it while the real cards load.
+    if (guidesNoJsList) {
+      guidesNoJsList.hidden = true;
+    }
     try {
       const baseGuides = await fetchJson('/assets/data/guides.json', true);
       const byHref = new Map();
@@ -446,12 +453,15 @@ document.addEventListener('DOMContentLoaded', () => {
       initHeroCarousel();
       buildChips();
       renderGrid();
-      if (guidesNoJsList) {
-        guidesNoJsList.hidden = true;
-      }
     } catch (_) {
       if (guidesLoading) {
         guidesLoading.style.display = 'none';
+      }
+      // The fetch failed, so the enhanced grid never rendered — bring the
+      // no-JS list back as a working fallback instead of leaving the reader
+      // with only an error message and nothing to click.
+      if (guidesNoJsList) {
+        guidesNoJsList.hidden = false;
       }
       if (guidesEmpty) {
         guidesEmpty.classList.add('visible');
