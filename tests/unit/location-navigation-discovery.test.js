@@ -29,13 +29,20 @@ describe('public location discovery', () => {
     }
   );
 
-  it('promotes location discovery near the bottom of the homepage', () => {
+  it('pairs location discovery with category browsing near the top of the homepage', () => {
     const locationSection = homepage.match(
       /<section class="ef-home-locations"[\s\S]*?<\/section>/i
     );
 
     expect(locationSection).not.toBeNull();
+    // Category and location browsing are the two ways a visitor starts a
+    // search, and both link to the site's real indexable pages, so they sit
+    // together right after the hero — ahead of the marketplace/guides/steps
+    // content, which don't carry the same internal-linking value.
     expect(homepage.indexOf('class="ef-home-locations"')).toBeGreaterThan(
+      homepage.indexOf('class="ef-section ef-section--bordered home-category-section"')
+    );
+    expect(homepage.indexOf('class="ef-home-locations"')).toBeLessThan(
       homepage.indexOf('id="guides-section"')
     );
     expect(locationSection[0]).toContain('Find event suppliers near you');
