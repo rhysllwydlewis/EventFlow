@@ -2122,13 +2122,16 @@ body.ef-cookie-banner-open .jade-widget-root {
    Shortlist & Quote Request Components
    ======================================== */
 
-/* Floating Shortlist Button */
+/* Floating Shortlist Button
+   Sized and stacked to match .back-to-top exactly (same width/height/right
+   offset at every breakpoint) with a fixed 12px gap between them, so the two
+   floating buttons never overlap or drift out of alignment. */
 .shortlist-float-btn {
   position: fixed !important;
-  bottom: 24px !important;
-  right: 24px !important;
-  width: 56px !important;
-  height: 56px !important;
+  bottom: calc(5rem + 44px + 12px) !important;
+  right: 1.5rem !important;
+  width: 44px !important;
+  height: 44px !important;
   border-radius: 50% !important;
   background: var(--ink, #0b8073);
   color: white;
@@ -2138,7 +2141,7 @@ body.ef-cookie-banner-open .jade-widget-root {
   display: flex !important;
   align-items: center;
   justify-content: center;
-  z-index: 999;
+  z-index: 900;
   transition:
     transform 0.3s ease,
     box-shadow 0.3s ease,
@@ -2149,9 +2152,23 @@ body.ef-cookie-banner-open .jade-widget-root {
   font-size: unset !important;
 }
 
+.shortlist-float-btn svg {
+  width: 22px;
+  height: 22px;
+}
+
 .shortlist-float-btn:hover {
   transform: scale(1.1);
   box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
+}
+
+/* Filled/red state once at least one item is saved */
+.shortlist-float-btn.has-items {
+  background: #c62828;
+}
+
+.shortlist-float-btn.has-items svg {
+  fill: currentColor;
 }
 
 .shortlist-badge {
@@ -2703,9 +2720,27 @@ body.ef-cookie-banner-open .jade-widget-root {
     max-height: 95vh;
   }
 
+  /* Unify with .back-to-top's mobile sizing/position (overrides the
+     640px block above) so both floating buttons share the same right
+     offset and width/height, and stay stacked with a constant 12px gap. */
+  .back-to-top {
+    bottom: calc(4.5rem + env(safe-area-inset-bottom, 0px)) !important;
+    right: 1rem !important;
+    width: 36px !important;
+    height: 36px !important;
+    font-size: 1rem !important;
+  }
+
   .shortlist-float-btn {
-    bottom: 80px !important; /* clear the mobile bottom nav */
-    right: 16px !important;
+    bottom: calc(4.5rem + env(safe-area-inset-bottom, 0px) + 36px + 12px) !important;
+    right: 1rem !important;
+    width: 36px !important;
+    height: 36px !important;
+  }
+
+  .shortlist-float-btn svg {
+    width: 18px;
+    height: 18px;
   }
 }
 
