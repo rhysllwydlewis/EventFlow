@@ -868,41 +868,30 @@
   transform: scale(1.1);
 }
 
-/* Category label pill - UPDATED to prevent blocking clicks */
+/* Category label - plain text over a gradient scrim, matching the city
+   card treatment (ef-home-locations__city-card-body) rather than a pill. */
+.hero-collage-card::after {
+  position: absolute;
+  z-index: 1;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(6, 20, 18, 0) 55%, rgba(4, 16, 14, 0.78) 100%);
+  content: '';
+  pointer-events: none;
+}
+
 .hero-collage-label {
   position: absolute;
-  bottom: 8px;
-  left: 8px;
+  bottom: 10px;
+  left: 10px;
   top: auto;
-  background: rgba(255, 255, 255, 0.85);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  color: #0f172a;
-  font-size: 11px;
-  font-weight: 600;
-  padding: 3px 7px;
-  border-radius: 999px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: -0.005em;
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
   z-index: 2;
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-  border: 1px solid rgba(255, 255, 255, 0.45);
   pointer-events: none; /* CRITICAL: Prevent label from blocking card clicks */
   user-select: none; /* Prevent text selection */
-}
-
-.hero-collage-card:hover .hero-collage-label,
-.hero-collage-card:focus .hero-collage-label {
-  background: rgba(255, 255, 255, 0.95);
-  transform: scale(1.05);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.18);
-}
-
-.hero-collage-icon {
-  font-size: 12px;
-  line-height: 1;
 }
 
 /* Photo credit - CRITICAL FIX: Prevent attribution from being clickable */
@@ -1025,8 +1014,7 @@
   }
 
   .hero-collage-label {
-    font-size: 11px; /* Smaller text */
-    padding: 2px 5px; /* Compact padding */
+    font-size: 12px; /* Smaller text */
     top: auto; /* Keep position consistent with desktop */
     left: 6px;
     bottom: 6px;
@@ -1039,10 +1027,6 @@
   .hero-collage-credit a,
   .hero-collage-credit span {
     display: none !important;
-  }
-
-  .hero-collage-icon {
-    font-size: 11px;
   }
 
   /* Ensure images/videos fit properly on mobile */
@@ -1102,13 +1086,6 @@
 
   .hero-video-card {
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-  }
-
-  /* Disable backdrop filters to reduce rendering cost */
-  .hero-collage-label {
-    backdrop-filter: none;
-    -webkit-backdrop-filter: none;
-    background: rgba(255, 255, 255, 0.95);
   }
 }
 

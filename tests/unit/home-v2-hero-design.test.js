@@ -190,10 +190,14 @@ describe('homepage V2 hero design layer', () => {
   // engine exponential backtracking to do when the input doesn't match.
   function selectorsBefore(css, declaration) {
     const declarationIndex = css.indexOf(declaration);
-    if (declarationIndex === -1) return null;
+    if (declarationIndex === -1) {
+      return null;
+    }
     const selectorStart = css.lastIndexOf('}', declarationIndex) + 1;
     const braceIndex = css.indexOf('{', selectorStart);
-    if (braceIndex === -1 || braceIndex > declarationIndex) return null;
+    if (braceIndex === -1 || braceIndex > declarationIndex) {
+      return null;
+    }
     return css.slice(selectorStart, braceIndex);
   }
 
@@ -265,13 +269,18 @@ describe('homepage V2 hero design layer', () => {
     expect(navbarCss).toContain(`calc((100% - ${container}) / 2)`);
   });
 
-  test('V1 keeps the emoji labels and the long subcopy', () => {
+  test('V1 keeps the long subcopy and never picks up V2-only markup', () => {
     // The design is V2-only. If someone applies it to V1 too, this is the test
     // that should be deleted deliberately rather than the divergence
     // spreading by accident.
+    //
+    // V1's collage labels dropped their emoji icons and pill background in
+    // favour of plain text over a gradient scrim (matching the city cards
+    // further down the page) — a deliberate V1-only change, tracked here so
+    // it isn't confused with V2's own icon treatment reappearing on V1.
     const v1Hero = extractHero(indexHtml);
 
-    expect(v1Hero).toContain('🏛️');
+    expect(v1Hero).not.toContain('hero-collage-icon');
     expect(v1Hero).toContain('Add options to your plan instantly');
     expect(v1Hero).toContain('placeholder="Search suppliers, packages..."');
     expect(v1Hero).not.toContain('hv2-quick-tag-icon');
