@@ -303,11 +303,25 @@ class ShortlistDrawer {
         resolve(true);
       });
 
-      // Handle ESC key
+      // Handle ESC and Tab — stop both reaching the shortlist drawer's own
+      // document-level handler underneath, which would otherwise close the
+      // drawer on ESC or hijack Tab into the drawer panel's focus trap
       overlay.addEventListener('keydown', e => {
         if (e.key === 'Escape') {
+          e.stopPropagation();
           document.body.removeChild(overlay);
           resolve(false);
+          return;
+        }
+        if (e.key === 'Tab') {
+          e.stopPropagation();
+          if (e.shiftKey && document.activeElement === cancelBtn) {
+            e.preventDefault();
+            okBtn.focus();
+          } else if (!e.shiftKey && document.activeElement === okBtn) {
+            e.preventDefault();
+            cancelBtn.focus();
+          }
         }
       });
     });
