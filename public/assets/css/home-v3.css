@@ -488,13 +488,6 @@
   font-size: 0.75rem;
 }
 
-.home-v3-page .hv2-hero + noscript + .home-featured-section,
-.home-v3-page .hv2-hero + .home-featured-section {
-  border-top: 1px solid rgba(11, 128, 115, 0.08);
-  background: linear-gradient(180deg, #f7fbff 0%, #ffffff 72%);
-  padding-top: clamp(34px, 5vw, 52px);
-}
-
 @media (max-width: 1180px) {
   .home-v3-page .hv2-search {
     grid-template-columns: repeat(2, minmax(0, 1fr));
