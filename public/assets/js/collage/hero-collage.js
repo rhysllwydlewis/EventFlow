@@ -1129,10 +1129,8 @@ async function initHeroVideo(
       }
       videoElement.load();
       if (videoCredit) {
-        videoCredit.textContent = selectedHeroMedia.photographer
-          ? `Video by ${selectedHeroMedia.photographer}`
-          : '';
-        videoCredit.style.display = selectedHeroMedia.photographer ? 'block' : 'none';
+        videoCredit.textContent = '';
+        videoCredit.style.display = 'none';
       }
       if (shouldAutoplay) {
         videoElement.play().catch(() => {
@@ -2818,49 +2816,19 @@ function removeCreatorCredit(frame) {
  * @param {HTMLElement} frame - Frame element
  * @param {Object} media - Media object with photographer/videographer info
  */
-function addCreatorCredit(frame, media) {
-  // Validate inputs
-  if (!frame || !media) {
+function addCreatorCredit(frame) {
+  // Design decision: the hero collage no longer surfaces on-image
+  // photographer/videographer credit text. Kept as a no-op (rather than
+  // removing all call sites) so existing callers and removeCreatorCredit's
+  // cleanup of stray .pexels-credit nodes keep working unchanged.
+  if (!frame) {
     return;
   }
 
-  // Skip adding credit text on mobile viewports (640px and below)
-  // CSS already hides it, but this prevents DOM creation entirely
-  if (window.innerWidth <= 640) {
-    return;
-  }
-
-  const isVideo = media.type === 'video';
-  const creatorName = isVideo ? media.videographer : media.photographer;
-  const creatorUrl = isVideo ? media.videographerUrl : media.photographerUrl;
-
-  if (!creatorName) {
-    return;
-  }
-
-  // Remove existing credit if present
   const existingCredit = frame.querySelector('.pexels-credit');
   if (existingCredit) {
     existingCredit.remove();
   }
-
-  // Create credit element safely
-  const credit = document.createElement('div');
-  credit.className = 'pexels-credit';
-
-  // Create text node with appropriate prefix
-  const prefix = isVideo ? 'Video by ' : 'Photo by ';
-  credit.appendChild(document.createTextNode(prefix));
-
-  // Create link element safely with validated URL
-  const link = document.createElement('a');
-  link.href = validatePexelsUrl(creatorUrl);
-  link.target = '_blank';
-  link.rel = 'noopener noreferrer';
-  link.textContent = creatorName;
-
-  credit.appendChild(link);
-  frame.appendChild(credit);
 }
 
 /**

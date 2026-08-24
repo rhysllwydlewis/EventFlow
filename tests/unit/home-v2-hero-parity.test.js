@@ -32,7 +32,17 @@ function normalise(markup) {
   return markup.replace(/\s+/g, ' ').trim();
 }
 
-/** Hooks the shared collage module and search bar script look up by name. */
+/**
+ * Hooks the shared collage module and search bar script look up by name.
+ *
+ * `id="credit-venues"` and its siblings used to be listed here too, but
+ * neither `hero-collage.js` nor anything else ever actually read them —
+ * confirmed by grepping the whole repo — so they were dead markup on both
+ * pages. V1 has since dropped those spans entirely (the collage labels are
+ * plain text now, no credit overlay); V2 keeps its own copies but already
+ * hides them via `.home-v2-page .hero-collage-credit { display: none; }`
+ * rather than a script wiring into them by id.
+ */
 const SHARED_HERO_HOOKS = [
   'id="hero-pexels-video"',
   'id="hero-video-source"',
@@ -42,10 +52,6 @@ const SHARED_HERO_HOOKS = [
   'id="collage-catering"',
   'id="collage-entertainment"',
   'id="collage-photography"',
-  'id="credit-venues"',
-  'id="credit-catering"',
-  'id="credit-entertainment"',
-  'id="credit-photography"',
   'class="ef-search-bar__form"',
   'class="ef-search-bar__input"',
   'class="ef-search-bar__select"',

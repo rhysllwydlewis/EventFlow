@@ -259,8 +259,7 @@
     banner.innerHTML =
       '<div class="cookie-consent-content">' +
       '<div class="cookie-consent-message">' +
-      '<p><strong>We use cookies</strong></p>' +
-      '<p>We use essential cookies to make our site work. With your consent, we may also use functional cookies (e.g.\u00a0theme preference) to improve your experience. By clicking \u201cAccept All\u201d you agree to our use of optional cookies.</p>' +
+      '<p><strong>We use cookies.</strong> Essential cookies keep the site working; with your consent we also use functional cookies (e.g.\u00a0theme preference). Clicking \u201cAccept All\u201d agrees to the optional ones.</p>' +
       '<p class="cookie-consent-links">' +
       '<a href="/privacy" target="_blank" rel="noopener noreferrer">Privacy Policy</a> \u00b7 ' +
       '<a href="/terms" target="_blank" rel="noopener noreferrer">Terms of Service</a> \u00b7 ' +

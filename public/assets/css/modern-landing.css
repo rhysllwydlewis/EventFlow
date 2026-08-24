@@ -530,7 +530,6 @@ html {
 }
 
 /* Enhanced labels with glassmorphism */
-.hero-collage-label,
 .tag {
   background: rgba(255, 255, 255, 0.85) !important;
   backdrop-filter: blur(12px) !important;
@@ -542,6 +541,9 @@ html {
   box-shadow: 0 2px 8px rgba(15, 23, 42, 0.08),
               inset 0 1px 0 rgba(255, 255, 255, 0.5) !important;
 }
+
+/* .hero-collage-label is plain text over a gradient scrim (hero-modern.css),
+   matching the city card treatment — not the glassmorphism pill above. */
 
 /* ========================================
    FEATURED SECTIONS ENHANCEMENTS
