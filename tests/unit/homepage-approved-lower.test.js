@@ -26,6 +26,7 @@ describe('approved homepage lower-section implementation', () => {
 
   test('targets the production homepage rather than the home-v2 preview', () => {
     expect(enhancement).toContain("document.querySelector('.home-category-section')");
+    expect(enhancement).toContain("document.getElementById('marketplace-preview-section')");
     expect(enhancement).toContain("document.getElementById('guides-section')");
     expect(enhancement).not.toContain('.hv2-overview');
   });
@@ -35,6 +36,7 @@ describe('approved homepage lower-section implementation', () => {
       'ef-approved-category-grid',
       'ef-approved-benefits',
       'ef-approved-step-grid',
+      'ef-approved-marketplace-card',
       'ef-approved-guide-grid',
       'removeHowItWorks',
       'ef-approved-supplier-panel',
@@ -45,7 +47,8 @@ describe('approved homepage lower-section implementation', () => {
     expect(footer).toContain('Account links');
   });
 
-  test('uses the published guide data source', () => {
+  test('uses live marketplace data and the published guide data source', () => {
+    expect(enhancement).toContain('/api/v1/marketplace/listings?limit=12');
     expect(enhancement).toContain('/assets/data/guides.json');
     expect(enhancement).not.toContain('/articles/wedding-catering-trends-guide');
     expect(enhancement).not.toContain('/articles/event-photography-guide');

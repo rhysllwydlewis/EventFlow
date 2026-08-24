@@ -288,6 +288,114 @@
       </div>`;
   };
 
+  const formatPrice = value => {
+    const number = Number(value);
+    if (!Number.isFinite(number)) {
+      return 'Price on request';
+    }
+    return new Intl.NumberFormat('en-GB', {
+      style: 'currency',
+      currency: 'GBP',
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    }).format(number);
+  };
+
+  const getListingImage = listing => {
+    const imageArrays = [listing?.images, listing?.photos];
+    for (const images of imageArrays) {
+      if (!Array.isArray(images)) {
+        continue;
+      }
+      const image = images.find(item => typeof item === 'string' && item.trim());
+      if (image) {
+        return image;
+      }
+    }
+    return listing?.image || FALLBACK_IMAGE;
+  };
+
+  const scoreListing = listing => {
+    let score = 0;
+    if (listing?.featured === true || listing?.isFeatured === true) {
+      score += 1000;
+    }
+    if (getListingImage(listing) !== FALLBACK_IMAGE) {
+      score += 100;
+    }
+    if (listing?.description) {
+      score += 30;
+    }
+    if (listing?.condition) {
+      score += 20;
+    }
+    if (listing?.category) {
+      score += 20;
+    }
+    const createdAt = Date.parse(listing?.createdAt || '');
+    if (!Number.isNaN(createdAt)) {
+      score += Math.max(0, 180 - (Date.now() - createdAt) / 86400000);
+    }
+    return score;
+  };
+
+  const renderMarketplaceCard = (container, listing) => {
+    if (!container) {
+      return;
+    }
+    if (!listing) {
+      container.innerHTML = `
+        <div class="ef-approved-marketplace-empty">
+          <div><h3>New marketplace items are coming soon</h3><p>Browse the marketplace for pre-loved event décor, attire, equipment and finishing touches.</p></div>
+          <a href="/marketplace">View all marketplace items</a>
+        </div>`;
+      return;
+    }
+
+    const url = listing.id
+      ? `/marketplace?listing=${encodeURIComponent(listing.id)}`
+      : '/marketplace';
+    const description = String(
+      listing.description || 'A pre-loved event item ready for its next celebration.'
+    );
+    const summary = description.length > 180 ? `${description.slice(0, 177)}…` : description;
+    const tags = [listing.category, listing.condition, listing.location]
+      .filter(Boolean)
+      .slice(0, 3)
+      .map(tag => `<span>${escapeHtml(tag)}</span>`)
+      .join('');
+
+    container.innerHTML = `
+      <article class="ef-approved-marketplace-card">
+        <a class="ef-approved-marketplace-image" href="${escapeHtml(url)}">
+          <img src="${escapeHtml(safeImageUrl(getListingImage(listing)))}" alt="${escapeHtml(listing.title || 'Marketplace listing')}" loading="lazy" data-fallback-src="${FALLBACK_IMAGE}">
+        </a>
+        <div class="ef-approved-marketplace-copy">
+          <h3>${escapeHtml(listing.title || 'Marketplace listing')}</h3>
+          <strong>${escapeHtml(formatPrice(listing.price))}</strong>
+          <p>${escapeHtml(summary)}</p>
+          <div class="ef-approved-tags">${tags}</div>
+        </div>
+        <a class="ef-approved-marketplace-cta" href="/marketplace">View all marketplace items</a>
+      </article>`;
+    attachImageFallbacks(container);
+  };
+
+  const loadApprovedMarketplace = async container => {
+    try {
+      const response = await fetch('/api/v1/marketplace/listings?limit=12');
+      if (!response.ok) {
+        throw new Error('Marketplace unavailable');
+      }
+      const data = await response.json();
+      const listings = Array.isArray(data.listings) ? data.listings : [];
+      const listing = listings.sort((a, b) => scoreListing(b) - scoreListing(a))[0];
+      renderMarketplaceCard(container, listing || null);
+    } catch (_) {
+      renderMarketplaceCard(container, null);
+    }
+  };
+
   const preserveApprovedAsyncContent = (container, selector, render) => {
     let approvedReady = false;
     let rendering = false;
@@ -306,6 +414,38 @@
     window.setTimeout(() => {
       observer.disconnect();
     }, 15000);
+  };
+
+  const prepareMarketplaceSection = section => {
+    if (!section) {
+      return;
+    }
+    section.className = 'ef-section ef-approved-marketplace-section';
+    const header = section.querySelector('.ef-section__header');
+    if (header) {
+      header.className = 'ef-approved-heading';
+      header.innerHTML =
+        '<span class="ef-approved-kicker">Marketplace</span><h2>Latest Items for Sale</h2><p>Buy and sell pre-loved event items — dresses, décor, AV gear and more.</p>';
+    }
+
+    const container = document.getElementById('marketplace-preview');
+    if (container) {
+      container.className = 'ef-approved-marketplace-container';
+      container.innerHTML =
+        '<div class="ef-approved-loading" aria-label="Loading marketplace item"></div>';
+      preserveApprovedAsyncContent(
+        container,
+        '.ef-approved-marketplace-card, .ef-approved-marketplace-empty',
+        () => loadApprovedMarketplace(container)
+      );
+    }
+
+    section.querySelectorAll('.ef-btn').forEach(link => {
+      const wrapper = link.closest('div');
+      if (wrapper && wrapper !== header) {
+        wrapper.remove();
+      }
+    });
   };
 
   const renderApprovedGuides = (container, guides) => {
@@ -442,6 +582,7 @@
 
     renderBenefits(document.querySelector('.home-trust-section'));
     renderEarlyAccess(document.getElementById('launch-section'));
+    prepareMarketplaceSection(document.getElementById('marketplace-preview-section'));
     prepareGuidesSection(document.getElementById('guides-section'));
     removeHowItWorks();
     renderSupplierCta(document.querySelector('.ef-section--supplier-cta'));

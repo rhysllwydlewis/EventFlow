@@ -1345,6 +1345,13 @@
    Homepage Section Spacing — intentional rhythm below the hero
    ========================================================================== */
 
+/* Featured packages directly after the hero — tight, clean transition */
+.home-featured-section {
+  padding-top: 1.5rem;
+}
+
+/* Spotlight and subsequent sections — consistent vertical rhythm */
+.home-spotlight-section,
 .home-category-section,
 .home-trust-section {
   padding-top: 3rem;

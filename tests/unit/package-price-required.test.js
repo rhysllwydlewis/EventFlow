@@ -23,6 +23,7 @@ const path = require('path');
 const PACKAGES_ROUTES = path.join(__dirname, '../../routes/packages.js');
 const CAROUSEL_JS = path.join(__dirname, '../../public/assets/js/components/carousel.js');
 const PACKAGE_LIST_JS = path.join(__dirname, '../../public/assets/js/components/package-list.js');
+const HOME_INIT_JS = path.join(__dirname, '../../public/assets/js/pages/home-init.js');
 const PACKAGE_INIT_JS = path.join(__dirname, '../../public/assets/js/pages/package-init.js');
 const START_WIZARD_JS = path.join(__dirname, '../../public/assets/js/pages/start-wizard.js');
 const DASHBOARD_HTML = path.join(__dirname, '../../public/dashboard-supplier.html');
@@ -31,6 +32,7 @@ const APP_JS = path.join(__dirname, '../../public/assets/js/app.js');
 let packagesContent;
 let carouselContent;
 let packageListContent;
+let homeInitContent;
 let packageInitContent;
 let startWizardContent;
 let dashboardHtml;
@@ -40,6 +42,7 @@ beforeAll(() => {
   packagesContent = fs.readFileSync(PACKAGES_ROUTES, 'utf8');
   carouselContent = fs.readFileSync(CAROUSEL_JS, 'utf8');
   packageListContent = fs.readFileSync(PACKAGE_LIST_JS, 'utf8');
+  homeInitContent = fs.readFileSync(HOME_INIT_JS, 'utf8');
   packageInitContent = fs.readFileSync(PACKAGE_INIT_JS, 'utf8');
   startWizardContent = fs.readFileSync(START_WIZARD_JS, 'utf8');
   dashboardHtml = fs.readFileSync(DASHBOARD_HTML, 'utf8');
@@ -167,6 +170,12 @@ describe('Display components — "Price not set" fallback', () => {
     expect(packageListContent).toContain('Price not set');
     expect(packageListContent).toContain('price-not-set');
     expect(packageListContent).not.toContain('Contact for price');
+  });
+
+  it('home-init.js shows "Price not set" when price is missing', () => {
+    expect(homeInitContent).toContain('Price not set');
+    expect(homeInitContent).toContain('price-not-set');
+    expect(homeInitContent).not.toContain('Contact for pricing');
   });
 
   it('package-init.js shows "Price not set" when price is missing', () => {
