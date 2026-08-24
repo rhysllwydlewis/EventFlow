@@ -157,6 +157,7 @@ html[data-sp-hero-mode='theme'] .hero-media.sp-hero-media--fallback.sp-hero-use-
 
 .hero-actions .btn {
   min-height: 42px;
+  margin: 0 !important;
 }
 
 #btn-enquiry {
