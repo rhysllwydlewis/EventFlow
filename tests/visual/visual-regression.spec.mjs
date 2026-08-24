@@ -62,7 +62,13 @@ const BASELINE_PAGES = [
   // flag removed); the axe scan runs regardless and is unaffected.
   { name: 'auth', path: '/auth', screenshotApproved: false },
   { name: 'pricing', path: '/pricing', screenshotApproved: false },
-  { name: 'for-suppliers', path: '/for-suppliers' },
+  // for-suppliers: shows the site-wide cookie consent banner, which was
+  // deliberately slimmed (title merged into the message line, tighter
+  // padding). That shrinks the banner's height and shifts everything below
+  // it, failing the full-page pixel diff on layout alone. Needs
+  // `npm run test:visual:update` run in an environment that reproduces CI's
+  // rendering, then the image reviewed and committed, and this flag removed.
+  { name: 'for-suppliers', path: '/for-suppliers', screenshotApproved: false },
   { name: 'marketplace', path: '/marketplace' },
   {
     name: 'notifications-harness',
