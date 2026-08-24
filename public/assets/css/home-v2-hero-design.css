@@ -524,6 +524,17 @@
   display: none;
 }
 
+/* No gradient scrim either. `.hero-collage-card::after` in hero-modern.css
+   exists so V1's plain-text label is legible over the photo; V2's own label
+   already carries an opaque background (below), so the scrim is pure
+   overhead here — and from 1024px up the cards are clipped to organic
+   `--hv2-mask` silhouettes on `::before`/img/video only, never `::after`, so
+   the scrim would paint as an unclipped rectangle poking outside each
+   card's curve. */
+.home-v2-page .hero-collage-card::after {
+  content: none;
+}
+
 @media (min-width: 1024px) {
   /* 757 x 659 in the design's own coordinates; every card below is a
      percentage of that box, so the whole composition scales as one. */
