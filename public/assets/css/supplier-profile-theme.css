@@ -148,8 +148,8 @@ html[data-sp-hero-mode='theme'] .hero-media.sp-hero-media--fallback.sp-hero-use-
 }
 
 .hero-actions {
-  display: grid !important;
-  grid-template-columns: minmax(130px, auto) 42px 42px;
+  display: flex !important;
+  flex-wrap: wrap;
   align-items: center !important;
   gap: 0.55rem !important;
   padding: 0 !important;
@@ -157,6 +157,12 @@ html[data-sp-hero-mode='theme'] .hero-media.sp-hero-media--fallback.sp-hero-use-
 
 .hero-actions .btn {
   min-height: 42px;
+  margin: 0 !important;
+}
+
+#btn-enquiry {
+  flex: 1 1 auto;
+  min-width: 130px;
 }
 
 #btn-enquiry.btn-primary,
@@ -190,6 +196,7 @@ html[data-sp-hero-mode='theme'] .hero-media.sp-hero-media--fallback.sp-hero-use-
 
 #btn-save,
 #btn-share {
+  flex: 0 0 42px;
   width: 42px;
   min-width: 42px !important;
   padding: 0 !important;
@@ -516,7 +523,30 @@ html[data-sp-hero-mode='theme'] .hero-media.sp-hero-media--fallback.sp-hero-use-
     grid-column: 1 / -1;
     width: calc(100vw - 2rem);
     margin-left: calc(-1 * (var(--sp-avatar-size) + var(--sp-profile-identity-gap)));
-    grid-template-columns: minmax(0, 1fr) 42px 42px !important;
+    flex-wrap: nowrap !important;
+    gap: 0.4rem !important;
+  }
+
+  /* Message shrinks to make room; Call collapses to an icon so all four
+     actions fit on one line instead of wrapping/overlapping. */
+  #btn-enquiry {
+    min-width: 0;
+  }
+
+  #btn-enquiry.btn-primary {
+    padding-inline: 0.75rem !important;
+    font-size: 0.8125rem !important;
+  }
+
+  #btn-call {
+    flex: 0 0 42px;
+    width: 42px;
+    min-width: 42px !important;
+    padding: 0 !important;
+  }
+
+  #btn-call .btn-label {
+    display: none;
   }
 
   .sp-page {
