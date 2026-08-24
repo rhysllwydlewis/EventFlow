@@ -115,6 +115,11 @@ class ShortlistDrawer {
       badge.textContent = count;
       badge.style.display = count > 0 ? 'flex' : 'none';
     }
+
+    const floatBtn = document.getElementById('shortlist-float-btn');
+    if (floatBtn) {
+      floatBtn.classList.toggle('has-items', count > 0);
+    }
   }
 
   /**
