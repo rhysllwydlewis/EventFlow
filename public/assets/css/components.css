@@ -1597,7 +1597,7 @@
     transform 0.3s ease-out,
     opacity 0.3s ease-out;
   opacity: 0;
-  padding: 1rem;
+  padding: 0.75rem 1rem;
 }
 
 .cookie-consent-banner.cookie-consent-visible {
@@ -1622,7 +1622,7 @@ body.ef-cookie-banner-open .jade-widget-root {
   margin: 0 auto;
   display: flex;
   flex-direction: column;
-  gap: 1rem;
+  gap: 0.5rem;
 }
 
 .cookie-consent-message {
@@ -1631,21 +1631,20 @@ body.ef-cookie-banner-open .jade-widget-root {
 }
 
 .cookie-consent-message p {
-  margin: 0 0 0.5rem 0;
+  margin: 0;
   color: var(--text, #0b1220);
-  font-size: 0.875rem;
-  line-height: 1.5;
+  font-size: 0.8125rem;
+  line-height: 1.4;
 }
 
 .cookie-consent-message strong {
   font-weight: 600;
-  font-size: 1rem;
   color: var(--text, #0b1220);
 }
 
 .cookie-consent-links {
-  margin-top: 0.75rem;
-  font-size: 0.8125rem;
+  margin-top: 0.375rem;
+  font-size: 0.75rem;
 }
 
 .cookie-consent-links a {
