@@ -463,6 +463,21 @@ async function loadPackagesCarousel({ endpoint, containerId, emptyMessage }) {
  * @param {Array} items - Package items to render
  */
 function renderPackageFallback(container, items) {
+  // Use escapeHtml (defined in app.js) for safe HTML text content.
+  // Using the native escape() would URL-encode the strings (e.g. "&" → "%26"),
+  // producing garbled visible text and incorrect alt attributes.
+  // Define once before the map() to avoid recreating the function per-item.
+  const _esc =
+    typeof escapeHtml === 'function'
+      ? escapeHtml
+      : s =>
+          String(s)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
+
   // Validate and sanitize URLs to prevent XSS
   const sanitizeUrl = url => {
     if (!url) {
@@ -473,15 +488,16 @@ function renderPackageFallback(container, items) {
       return '/assets/images/placeholders/package-event.svg';
     }
     // Block dangerous protocols to prevent XSS.
-    // NOTE: do NOT call escape() here — it percent-encodes the colon in "https:"
-    // turning "https://cdn.example.com/photo.jpg" into "https%3A//cdn.example.com/photo.jpg"
-    // which the browser cannot load, causing every absolute-URL image to fall back to
-    // the placeholder (the root cause of the "always shows placeholder" bug).
     if (/^(javascript|data|vbscript|file):/i.test(urlStr)) {
       return '/assets/images/placeholders/package-event.svg';
     }
-    // Safe for use in <img src>: protocol validated above, no further encoding needed.
-    return urlStr;
+    // The URL is inserted into an HTML attribute below (`<img src="...">`), so
+    // it must still be HTML-escaped even after the protocol check — otherwise
+    // a supplier-controlled image URL containing a `"` can break out of the
+    // attribute and inject markup. _esc() only escapes &, <, >, ", ' and does
+    // NOT percent-encode the URL (unlike the native escape()), so a normal
+    // https:// URL still loads correctly.
+    return _esc(urlStr);
   };
 
   // Validate slug for URL safety
@@ -506,21 +522,6 @@ function renderPackageFallback(container, items) {
     // Otherwise return as-is
     return priceStr;
   };
-
-  // Use escapeHtml (defined in app.js) for safe HTML text content.
-  // Using the native escape() would URL-encode the strings (e.g. "&" → "%26"),
-  // producing garbled visible text and incorrect alt attributes.
-  // Define once before the map() to avoid recreating the function per-item.
-  const _esc =
-    typeof escapeHtml === 'function'
-      ? escapeHtml
-      : s =>
-          String(s)
-            .replace(/&/g, '&amp;')
-            .replace(/</g, '&lt;')
-            .replace(/>/g, '&gt;')
-            .replace(/"/g, '&quot;')
-            .replace(/'/g, '&#39;');
 
   container.innerHTML = items
     .map(item => {
