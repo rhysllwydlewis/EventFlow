@@ -369,17 +369,18 @@
    * @returns {Promise<void>} Resolves when rendered.
    */
   async function load() {
+    // Swap to the skeleton the instant JS can run, rather than leaving the
+    // full no-JS fallback on screen for the whole fetch and then replacing it
+    // with a structurally different layout in one jump. The skeleton is
+    // shaped like the real page, so filling it in causes far less shift.
+    EFC.hideFallback();
     root.innerHTML = EFC.skeleton(4, 'page');
     try {
       data = await EFC.api('home');
-      EFC.hideFallback();
       renderRails();
       renderCategoryStrip();
       render();
     } catch (error) {
-      // The no-JS fallback has been superseded either way: leaving it visible
-      // stacks stale server markup above the error message.
-      EFC.hideFallback();
       root.innerHTML = EFC.errorState(
         'We could not load the community just now. Your connection may be offline.'
       );
