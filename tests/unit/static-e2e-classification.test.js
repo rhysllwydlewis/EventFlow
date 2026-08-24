@@ -7,7 +7,6 @@ const packageJson = require('../../package.json');
 
 const stableCoreSpecs = [
   'auth-redirect-security.spec.js',
-  'homepage-carousel-image-resolution.spec.js',
   'package-detail-image.spec.js',
   'package-routing-smoke.spec.js',
   'public-discovery-funnel.spec.js',
