@@ -894,43 +894,6 @@
   user-select: none; /* Prevent text selection */
 }
 
-/* Photo credit - CRITICAL FIX: Prevent attribution from being clickable */
-.hero-collage-credit {
-  position: absolute;
-  bottom: 10px;
-  right: 10px;
-  background: rgba(15, 23, 42, 0.85);
-  backdrop-filter: blur(8px);
-  color: white;
-  font-size: 11px;
-  font-weight: 500;
-  padding: 4px 8px;
-  border-radius: 4px;
-  z-index: 2;
-  opacity: 0.9;
-  transition: opacity 0.25s;
-  pointer-events: none; /* CRITICAL: Prevent blocking clicks on card */
-  user-select: none; /* Prevent text selection */
-  border: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-.hero-collage-card:hover .hero-collage-credit,
-.hero-collage-card:focus .hero-collage-credit {
-  opacity: 1;
-}
-
-/* Links inside attribution should also not be clickable - CRITICAL FIX */
-.hero-collage-credit a {
-  color: white;
-  text-decoration: none;
-  pointer-events: none; /* CRITICAL: Prevent attribution link from being clickable */
-  cursor: default; /* Show default cursor, not pointer */
-}
-
-.hero-collage-credit a:hover {
-  text-decoration: none; /* Don't underline since it's not clickable */
-}
-
 /* Mobile responsive */
 @media (max-width: 1023px) {
   .hero-modern .hero-grid {
@@ -952,11 +915,6 @@
 
   .hero-collage-card {
     min-height: 0;
-  }
-
-  /* Hide photo credits on mobile for cleaner look */
-  .hero-collage-credit {
-    display: none !important; /* Force hide all credit text on mobile */
   }
 
   .hero-video-credit {
@@ -1020,13 +978,6 @@
     bottom: 6px;
     pointer-events: none; /* Ensure label doesn't block clicks */
     z-index: 2; /* Above gradient overlay */
-  }
-
-  /* Hide all credit/attribution text on mobile */
-  .hero-collage-credit,
-  .hero-collage-credit a,
-  .hero-collage-credit span {
-    display: none !important;
   }
 
   /* Ensure images/videos fit properly on mobile */
@@ -1114,7 +1065,6 @@
   .hero-collage-card,
   .hero-collage-card img,
   .hero-collage-label,
-  .hero-collage-credit,
   .hero-modern-ctas,
   .hero-cta-primary,
   .hero-cta-secondary {
