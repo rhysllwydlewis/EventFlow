@@ -71,4 +71,35 @@ describe('supplier-avatar shared utility', () => {
       );
     });
   });
+
+  describe('SUPPLIER_AVATAR_PALETTE contrast', () => {
+    // WCAG 2 relative-luminance contrast ratio, straight from the spec —
+    // https://www.w3.org/TR/WCAG21/#contrast-minimum
+    function hexToRgb(hex) {
+      const value = hex.replace('#', '');
+      return [0, 2, 4].map(i => Number.parseInt(value.slice(i, i + 2), 16));
+    }
+    function relativeLuminance([r, g, b]) {
+      const [rl, gl, bl] = [r, g, b].map(c => {
+        const s = c / 255;
+        return s <= 0.03928 ? s / 12.92 : ((s + 0.055) / 1.055) ** 2.4;
+      });
+      return 0.2126 * rl + 0.7152 * gl + 0.0722 * bl;
+    }
+    function contrastRatio(hexA, hexB) {
+      const lA = relativeLuminance(hexToRgb(hexA));
+      const lB = relativeLuminance(hexToRgb(hexB));
+      const [lighter, darker] = lA > lB ? [lA, lB] : [lB, lA];
+      return (lighter + 0.05) / (darker + 0.05);
+    }
+
+    // Every consumer renders white initials directly on these colors (see
+    // e.g. public/assets/js/pricing.js's buildProofItem), so every entry —
+    // both gradient stops — must clear the WCAG AA minimum for normal-size
+    // text (4.5:1), not just the relaxed large-text threshold.
+    test.each(SUPPLIER_AVATAR_PALETTE)('%s -> %s is readable in white text', (from, to) => {
+      expect(contrastRatio('#FFFFFF', from)).toBeGreaterThanOrEqual(4.5);
+      expect(contrastRatio('#FFFFFF', to)).toBeGreaterThanOrEqual(4.5);
+    });
+  });
 });
