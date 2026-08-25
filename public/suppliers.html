@@ -500,6 +500,10 @@
       </div>
     </section>
 
+    <!-- Shared supplier avatar initials/color logic — not deferred so it is
+         available as window.EFSupplierAvatar before any deferred/module
+         script below runs. -->
+    <script src="/assets/js/utils/supplier-avatar.js?v=1.0.0"></script>
     <!-- Shortlist and Quote Request Components -->
     <script src="/assets/js/utils/shortlist-manager.js" type="module" defer></script>
     <script src="/assets/js/components/shortlist-drawer.js" type="module" defer></script>
@@ -512,12 +516,12 @@
     <!-- Shared canonical link helper must load before the suppliers page init -->
     <script src="/assets/js/utils/supplier-link.js" defer></script>
     <script src="/assets/js/utils/category-link.js" defer></script>
-    <script src="/assets/js/pages/suppliers-init.js?v=19.2.0" type="module" defer></script>
+    <script src="/assets/js/pages/suppliers-init.js?v=19.3.0" type="module" defer></script>
     <!-- Mobile UX: advanced filter toggle, touch-swipe carousel, per-session panel state -->
     <script src="/assets/js/pages/suppliers-mobile.js" defer></script>
     <script src="/assets/js/utils/pexels-client.js" defer></script>
     <script src="/assets/js/config/page-init.js"></script>
-  <script src="/assets/js/app.js" defer></script>
+  <script src="/assets/js/app.js?v=18.5.0" defer></script>
     
     <script src="/assets/js/pages/suppliers-map-init.js"></script>
   </div>

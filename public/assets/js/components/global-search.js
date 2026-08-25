@@ -288,7 +288,7 @@ class GlobalSearch {
               <img src="${result.photoUrl}" alt="${this.escapeHtml(result.name)}" class="result-thumbnail">
             `
                 : `
-              <div class="result-thumbnail-placeholder">${result.name.charAt(0)}</div>
+              <div class="result-thumbnail-placeholder" style="background: ${window.EFSupplierAvatar.getSupplierAvatarGradient(result)};">${this.escapeHtml(window.EFSupplierAvatar.getSupplierInitials(result.name))}</div>
             `
             }
             <div class="result-content">

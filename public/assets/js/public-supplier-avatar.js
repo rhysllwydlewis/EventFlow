@@ -29,18 +29,10 @@ function getSupplierProfileImage(supplier) {
   return typeof imageUrl === 'string' ? imageUrl.trim() : '';
 }
 
+// Shared with every other supplier avatar placeholder on the site — see
+// public/assets/js/utils/supplier-avatar.js.
 function getInitialsFromName(name) {
-  const words = String(name || '')
-    .trim()
-    .split(/\s+/)
-    .filter(Boolean);
-  if (words.length === 0) {
-    return '?';
-  }
-  if (words.length === 1) {
-    return words[0].charAt(0).toUpperCase();
-  }
-  return `${words[0].charAt(0)}${words[words.length - 1].charAt(0)}`.toUpperCase();
+  return window.EFSupplierAvatar.getSupplierInitials(name);
 }
 
 function getAvatarEl(img) {
@@ -71,12 +63,15 @@ function prepareAvatarShell(img, initialsEl) {
   return avatarEl;
 }
 
-function setPlaceholder(img, initialsEl, initials) {
+function setPlaceholder(img, initialsEl, initials, gradient) {
   const avatarEl = prepareAvatarShell(img, initialsEl);
   if (avatarEl) {
     avatarEl.classList.remove('has-profile-photo');
     avatarEl.dataset.avatarStatus = 'placeholder';
     avatarEl.removeAttribute('data-avatar-url');
+    if (gradient) {
+      avatarEl.style.background = gradient;
+    }
     disableAvatarLightbox(avatarEl);
   }
   if (img) {
@@ -386,9 +381,14 @@ async function loadPublicSupplierAvatar() {
     return;
   }
 
+  // Keyed by the stable supplier id (not the mutable name) so the color
+  // never changes on a rename, and is known before the supplier fetch
+  // resolves — see public/assets/js/utils/supplier-avatar.js.
+  const avatarGradient = window.EFSupplierAvatar.getSupplierAvatarGradient(supplierId);
+
   const requestId = ++activeRequestId;
   if (img.hidden || !img.getAttribute('src')) {
-    setPlaceholder(img, initialsEl);
+    setPlaceholder(img, initialsEl, null, avatarGradient);
   }
 
   const supplier =
@@ -405,7 +405,7 @@ async function loadPublicSupplierAvatar() {
 
   const avatarUrl = getSupplierProfileImage(supplier);
   if (!avatarUrl) {
-    setPlaceholder(img, initialsEl, initials);
+    setPlaceholder(img, initialsEl, initials, avatarGradient);
     return;
   }
 
@@ -431,7 +431,7 @@ async function loadPublicSupplierAvatar() {
     if (avatarEl) {
       avatarEl.dataset.avatarStatus = 'error';
     }
-    setPlaceholder(img, initialsEl, initials);
+    setPlaceholder(img, initialsEl, initials, avatarGradient);
   };
   img.src = avatarUrl;
 }

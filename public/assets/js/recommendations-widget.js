@@ -79,28 +79,30 @@
         return;
       }
       const initial = escapeHtml(wrap.dataset.recInitial || '?');
+      const gradient = wrap.dataset.recGradient || 'linear-gradient(135deg,#13b6a2,#0b8073)';
       wrap.innerHTML =
         `<div class="recommendation-avatar recommendation-avatar--fallback"` +
         ` aria-hidden="true"` +
         ` style="width:48px;height:48px;border-radius:999px;` +
-        `background:linear-gradient(135deg,#13b6a2,#0b8073);` +
+        `background:${gradient};` +
         `display:flex;align-items:center;justify-content:center;` +
         `color:white;font-weight:800;font-size: 1rem;` +
         `box-shadow:0 8px 18px rgba(19,182,162,.18);">${initial}</div>`;
     };
   }
 
-  function recommendationAvatar(name, logoSrc) {
-    const initial = escapeHtml(
-      String(name || 'S')
-        .charAt(0)
-        .toUpperCase()
-    );
+  // Supplier avatar initials/color: shared with every other supplier avatar
+  // placeholder on the site — see public/assets/js/utils/supplier-avatar.js.
+  function recommendationAvatar(supplierOrName, logoSrc) {
+    const name =
+      supplierOrName && typeof supplierOrName === 'object' ? supplierOrName.name : supplierOrName;
+    const initial = escapeHtml(window.EFSupplierAvatar.getSupplierInitials(name));
+    const gradient = window.EFSupplierAvatar.getSupplierAvatarGradient(supplierOrName);
     const fallback =
       `<div class="recommendation-avatar recommendation-avatar--fallback"` +
       ` aria-hidden="true"` +
       ` style="width:48px;height:48px;border-radius:999px;` +
-      `background:linear-gradient(135deg,#13b6a2,#0b8073);` +
+      `background:${gradient};` +
       `display:flex;align-items:center;justify-content:center;` +
       `color:white;font-weight:800;font-size: 1rem;` +
       `box-shadow:0 8px 18px rgba(19,182,162,.18);">${initial}</div>`;
@@ -112,11 +114,12 @@
     // Ensure the global handler is registered before the first img is rendered.
     registerAvatarFallback();
 
-    // data-rec-initial carries the letter so the global handler can build the
-    // fallback avatar without any HTML being embedded in the onerror attribute.
+    // data-rec-initial/data-rec-gradient carry the fallback so the global
+    // handler can build it without any HTML embedded in the onerror attribute.
     return (
       `<span class="recommendation-avatar-wrap"` +
       ` data-rec-initial="${initial}"` +
+      ` data-rec-gradient="${escapeHtml(gradient)}"` +
       ` style="display:inline-flex;width:48px;height:48px;flex:0 0 48px;">` +
       `<img` +
       ` src="${escapeHtml(logoSrc)}"` +
@@ -234,7 +237,7 @@
             return `
           <a href="${href}" class="recommendation-card" aria-label="View ${name}" style="text-decoration:none;color:inherit;display:block;cursor:pointer;min-width:0;min-height:168px;border-radius:14px;padding:1rem;">
             <div class="recommendation-card__top" style="display:flex;align-items:center;gap:.78rem;margin-bottom:.82rem;min-width:0;">
-              ${recommendationAvatar(rawName, logoSrc)}
+              ${recommendationAvatar(supplier, logoSrc)}
               <div class="recommendation-card__identity" style="min-width:0;flex:1;">
                 <h4 style="margin:0 0 .25rem;font-size: 1rem;font-weight:800;color:#1f2937;line-height:1.35;overflow:hidden;text-overflow:ellipsis;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;">${name}</h4>
                 <p style="margin:0;font-size: 0.8125rem;color:#6b7280;line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${category}</p>

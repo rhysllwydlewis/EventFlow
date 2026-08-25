@@ -287,18 +287,10 @@ function escapeHtml(unsafe) {
   return div.innerHTML;
 }
 
-// Generate gradient based on supplier name for consistent avatar colors
-function generateSupplierGradient(name) {
-  const colors = [
-    ['#13B6A2', '#0B8073'],
-    ['#8B5CF6', '#6D28D9'],
-    ['#F59E0B', '#D97706'],
-    ['#10B981', '#059669'],
-    ['#3B82F6', '#2563EB'],
-    ['#EC4899', '#DB2777'],
-  ];
-  const index = name ? name.charCodeAt(0) % colors.length : 0;
-  return `linear-gradient(135deg, ${colors[index][0]} 0%, ${colors[index][1]} 100%)`;
+// Supplier avatar initials/color: shared with every other supplier avatar
+// placeholder on the site — see public/assets/js/utils/supplier-avatar.js.
+function generateSupplierGradient(supplierOrName) {
+  return window.EFSupplierAvatar.getSupplierAvatarGradient(supplierOrName);
 }
 
 // Validate redirect parameter for role-based access (SECURITY)
@@ -624,11 +616,11 @@ function supplierCard(s, user) {
   }
 
   // Supplier avatar with fallback
-  const supplierInitial = s.name ? s.name.charAt(0).toUpperCase() : 'S';
+  const supplierInitial = window.EFSupplierAvatar.getSupplierInitials(s.name);
   const avatarHtml = s.logo
     ? `<img src="${escapeHtml(s.logo)}" alt="${escapeHtml(s.name)} logo" style="width: 60px; height: 60px; border-radius: 50%; object-fit: cover; margin-right: 16px;" data-fallback-hide data-fallback-show-next>
-       <div style="display: none; width: 60px; height: 60px; border-radius: 50%; background: ${generateSupplierGradient(s.name)}; align-items: center; justify-content: center; color: white; font-weight: 600; font-size: 1.5rem; margin-right: 16px; flex-shrink: 0;">${supplierInitial}</div>`
-    : `<div style="width: 60px; height: 60px; border-radius: 50%; background: ${generateSupplierGradient(s.name)}; display: flex; align-items: center; justify-content: center; color: white; font-weight: 600; font-size: 1.5rem; margin-right: 16px; flex-shrink: 0;">${supplierInitial}</div>`;
+       <div style="display: none; width: 60px; height: 60px; border-radius: 50%; background: ${generateSupplierGradient(s)}; align-items: center; justify-content: center; color: white; font-weight: 600; font-size: 1.5rem; margin-right: 16px; flex-shrink: 0;">${supplierInitial}</div>`
+    : `<div style="width: 60px; height: 60px; border-radius: 50%; background: ${generateSupplierGradient(s)}; display: flex; align-items: center; justify-content: center; color: white; font-weight: 600; font-size: 1.5rem; margin-right: 16px; flex-shrink: 0;">${supplierInitial}</div>`;
 
   const supplierHref = window.EventFlowSupplierLink
     ? escapeHtml(window.EventFlowSupplierLink.supplierProfileHref(s))
