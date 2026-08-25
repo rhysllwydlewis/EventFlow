@@ -164,6 +164,14 @@ function createPublicSupplierSeoRouter(options = {}) {
     }
   });
 
+  // Lets other routes (e.g. a supplier's own profile/business-name save) force
+  // an immediate refresh instead of waiting out the TTL — mirrors the
+  // suppliersRouter.invalidatePackageCaches() pattern used for package edits.
+  router.invalidateSupplierCache = () => {
+    supplierCache = null;
+    supplierCacheExpiresAt = 0;
+  };
+
   return router;
 }
 

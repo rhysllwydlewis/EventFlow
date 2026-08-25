@@ -26,7 +26,11 @@ const router = express.Router();
 // This ensures consistent validation and security across all uploads
 const avatarUpload = photoUpload.upload;
 
-async function invalidateAvatarDependentCaches() {
+async function invalidateAvatarDependentCaches(app) {
+  const seoRouter = app && app.locals && app.locals.publicSupplierSeoRouter;
+  if (seoRouter && typeof seoRouter.invalidateSupplierCache === 'function') {
+    seoRouter.invalidateSupplierCache();
+  }
   await Promise.all([
     clearSearchCache().catch(err =>
       logger.warn('Failed to clear search cache after avatar change:', err.message)
@@ -47,15 +51,14 @@ function supplierBelongsToUser(supplier, user) {
   if (!supplier || !user) {
     return false;
   }
-  if (supplier.ownerUserId && supplier.ownerUserId === user.id) {
-    return true;
+  const ownerId = supplier.ownerUserId || supplier.userId || supplier.createdByUserId;
+  if (ownerId) {
+    // An explicit owner id is authoritative once set: a matching email must
+    // never let a different account claim (and rewrite) someone else's
+    // already-owned supplier record.
+    return ownerId === user.id;
   }
-  if (supplier.userId && supplier.userId === user.id) {
-    return true;
-  }
-  if (supplier.createdByUserId && supplier.createdByUserId === user.id) {
-    return true;
-  }
+  // Email match is only a fallback for legacy records with no owner id at all.
   const userEmail = normalizeEmail(user.email);
   return Boolean(
     userEmail &&
@@ -93,6 +96,47 @@ async function syncSupplierAvatarFieldsForUser(user, avatarUrl) {
       };
     }
     await dbUnified.updateOne('suppliers', { id: supplier.id }, update);
+  }
+}
+
+/**
+ * Keeps a supplier's public display name in step with the business name on
+ * their account. New suppliers are provisioned with their public `name`
+ * defaulted to their personal account name when no company name was given
+ * at signup (see supplierProfileProvisioning.service.js) — so once they add
+ * or change a real business name here, every public surface keyed off
+ * `supplier.name` (search cards, profile hero, avatar initials/color)
+ * should pick it up without a separate edit to the supplier profile.
+ *
+ * Only fires on a non-empty company name — clearing it intentionally does
+ * NOT blank out the supplier's public name, since falling back to the
+ * person's name is the desired behaviour, not an empty listing title.
+ */
+async function syncSupplierBusinessNameForUser(user, companyName) {
+  const trimmed = typeof companyName === 'string' ? companyName.trim() : '';
+  if (!user || !user.id || !trimmed) {
+    return;
+  }
+  const suppliers = await dbUnified.read('suppliers');
+  const updates = suppliers.filter(supplier => supplierBelongsToUser(supplier, user));
+  for (const supplier of updates) {
+    if (supplier.name === trimmed) {
+      continue;
+    }
+    const wrote = await dbUnified.updateOne(
+      'suppliers',
+      { id: supplier.id },
+      { $set: { name: trimmed, updatedAt: new Date().toISOString() } }
+    );
+    if (!wrote) {
+      // updateOne resolves false rather than throwing on failure — surface it
+      // so a supplier that silently kept its old public name is discoverable,
+      // even though the account's own company field already saved.
+      logger.error('Failed to sync supplier public name from account company name', {
+        userId: user.id,
+        supplierId: supplier.id,
+      });
+    }
   }
 }
 
@@ -281,6 +325,11 @@ router.put('/', writeLimiter, authRequired, csrfProtection, async (req, res) => 
     profileUpdates.updatedAt = new Date().toISOString();
     await dbUnified.updateOne('users', { id: req.user.id }, { $set: profileUpdates });
 
+    if (user.role === 'supplier' && profileUpdates.company) {
+      await syncSupplierBusinessNameForUser(user, profileUpdates.company);
+      await invalidateAvatarDependentCaches(req.app);
+    }
+
     // Build the response from merged data
     const updated = { ...user, ...profileUpdates };
     res.json({
@@ -362,7 +411,7 @@ router.post('/avatar', uploadLimiter, authRequired, csrfProtection, (req, res) =
       );
 
       await syncSupplierAvatarFieldsForUser(user || req.user, images.optimized);
-      await invalidateAvatarDependentCaches();
+      await invalidateAvatarDependentCaches(req.app);
 
       res.json({
         ok: true,
@@ -423,7 +472,7 @@ router.delete('/avatar', writeLimiter, authRequired, csrfProtection, async (req,
     );
 
     await syncSupplierAvatarFieldsForUser(user, null);
-    await invalidateAvatarDependentCaches();
+    await invalidateAvatarDependentCaches(req.app);
 
     res.json({ ok: true });
   } catch (err) {
