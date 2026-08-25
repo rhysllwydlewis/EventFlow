@@ -85,7 +85,7 @@ class SupplierComparison {
                 <img src="${supplier.photoUrl}" alt="${this.escapeHtml(supplier.name)}" class="supplier-avatar">
               `
                   : `
-                <div class="supplier-avatar-placeholder">${supplier.name.charAt(0)}</div>
+                <div class="supplier-avatar-placeholder" style="background: ${window.EFSupplierAvatar.getSupplierAvatarGradient(supplier)}; color: #fff;">${this.escapeHtml(window.EFSupplierAvatar.getSupplierInitials(supplier.name))}</div>
               `
               }
               <h3>${this.escapeHtml(supplier.name)}</h3>
@@ -394,7 +394,7 @@ class SupplierComparison {
                 <img src="${supplier.photoUrl}" alt="${this.escapeHtml(supplier.name)}" class="result-avatar">
               `
                   : `
-                <div class="result-avatar-placeholder">${supplier.name.charAt(0)}</div>
+                <div class="result-avatar-placeholder" style="background: ${window.EFSupplierAvatar.getSupplierAvatarGradient(supplier)};">${this.escapeHtml(window.EFSupplierAvatar.getSupplierInitials(supplier.name))}</div>
               `
               }
               <div class="result-info">

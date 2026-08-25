@@ -313,19 +313,12 @@ class SupplierCard {
   }
 
   /**
-   * Generate gradient based on supplier name for consistent avatar colors
+   * Supplier avatar initials/color: shared with every other supplier
+   * avatar placeholder on the site — see
+   * public/assets/js/utils/supplier-avatar.js.
    */
-  static generateGradient(name) {
-    const colors = [
-      ['#13B6A2', '#0B8073'],
-      ['#8B5CF6', '#6D28D9'],
-      ['#F59E0B', '#D97706'],
-      ['#10B981', '#059669'],
-      ['#3B82F6', '#2563EB'],
-      ['#EC4899', '#DB2777'],
-    ];
-    const index = name ? name.charCodeAt(0) % colors.length : 0;
-    return `linear-gradient(135deg, ${colors[index][0]} 0%, ${colors[index][1]} 100%)`;
+  static generateGradient(supplierOrName) {
+    return window.EFSupplierAvatar.getSupplierAvatarGradient(supplierOrName);
   }
 
   /**
@@ -377,7 +370,7 @@ class SupplierCard {
 
     const logoHtml = hasLogo
       ? `<img class="supplier-card-logo" src="${sanitizedLogo}" alt="${this.supplier.name} logo">`
-      : `<div class="supplier-card-logo" style="background: ${SupplierCard.generateGradient(this.supplier.name)}; display: flex; align-items: center; justify-content: center; color: white; font-size: 2rem; font-weight: 600;">${this.supplier.name ? this.supplier.name.charAt(0).toUpperCase() : 'S'}</div>`;
+      : `<div class="supplier-card-logo" style="background: ${SupplierCard.generateGradient(this.supplier)}; display: flex; align-items: center; justify-content: center; color: white; font-size: 2rem; font-weight: 600;">${window.EFSupplierAvatar.getSupplierInitials(this.supplier.name)}</div>`;
 
     const badgesHtml = this.renderBadges();
 

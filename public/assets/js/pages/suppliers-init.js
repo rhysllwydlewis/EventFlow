@@ -12,6 +12,11 @@ import {
 } from '../utils/analytics.js';
 import shortlistManager from '../utils/shortlist-manager.js';
 
+// Loaded globally via a plain <script> tag (see suppliers.html) so it is
+// shared, unchanged, with every other supplier avatar placeholder on the
+// site — see public/assets/js/utils/supplier-avatar.js.
+const { getSupplierInitials, getSupplierAvatarGradient } = window.EFSupplierAvatar;
+
 // HTML escaping utility
 function escapeHtml(unsafe) {
   if (typeof unsafe !== 'string') {
@@ -93,30 +98,17 @@ function getSupplierProfileImage(supplier) {
   return typeof imageUrl === 'string' ? imageUrl.trim() : '';
 }
 
-// Generate gradient for supplier avatars
-function generateSupplierGradient(name) {
-  const colors = [
-    ['#13B6A2', '#0B8073'],
-    ['#8B5CF6', '#6D28D9'],
-    ['#F59E0B', '#D97706'],
-    ['#10B981', '#059669'],
-    ['#3B82F6', '#2563EB'],
-    ['#EC4899', '#DB2777'],
-  ];
-  const index = name ? name.charCodeAt(0) % colors.length : 0;
-  return `linear-gradient(135deg, ${colors[index][0]} 0%, ${colors[index][1]} 100%)`;
-}
-
 // Enhanced supplier card with shortlist and quote features
 function createSupplierCard(supplier, position) {
-  const supplierInitial = supplier.name ? supplier.name.charAt(0).toUpperCase() : 'S';
+  const supplierInitial = getSupplierInitials(supplier.name);
+  const supplierAvatarGradient = getSupplierAvatarGradient(supplier);
   const supplierProfileImage = getSupplierProfileImage(supplier);
 
   // Build avatar HTML
   const avatarHtml = supplierProfileImage
     ? `<img src="${escapeHtml(supplierProfileImage)}" alt="${escapeHtml(supplier.name)} profile photo" class="sp-card-avatar" data-fallback-hide data-fallback-show-next>
-       <div class="sp-card-avatar-fallback" style="display:none; background:${generateSupplierGradient(supplier.name)};">${supplierInitial}</div>`
-    : `<div class="sp-card-avatar-fallback" style="background:${generateSupplierGradient(supplier.name)};">${supplierInitial}</div>`;
+       <div class="sp-card-avatar-fallback" style="display:none; background:${supplierAvatarGradient};">${supplierInitial}</div>`
+    : `<div class="sp-card-avatar-fallback" style="background:${supplierAvatarGradient};">${supplierInitial}</div>`;
 
   const isInShortlist = shortlistManager.hasItem('supplier', supplier.id);
   const shortlistActiveClass = isInShortlist ? 'sp-btn--shortlist-active' : 'sp-btn--shortlist';

@@ -111,23 +111,14 @@
   const UNLIMITED_FOOTNOTE_ID = 'pricing-unlimited-footnote';
 
   /**
-   * Derive initials the way the public supplier profile does, so a supplier
-   * with no photo looks the same here as everywhere else on EventFlow.
+   * Derive initials the shared way, so a supplier with no photo looks the
+   * same here as everywhere else on EventFlow — see
+   * public/assets/js/utils/supplier-avatar.js.
    * @param {string} name Business name.
    * @returns {string} One or two initials.
    */
   function getInitials(name) {
-    const words = String(name || '')
-      .trim()
-      .split(/\s+/)
-      .filter(Boolean);
-    if (words.length === 0) {
-      return '?';
-    }
-    if (words.length === 1) {
-      return words[0].charAt(0).toUpperCase();
-    }
-    return `${words[0].charAt(0)}${words[words.length - 1].charAt(0)}`.toUpperCase();
+    return window.EFSupplierAvatar.getSupplierInitials(name);
   }
 
   /**

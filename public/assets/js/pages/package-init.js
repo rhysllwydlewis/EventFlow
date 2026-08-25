@@ -213,24 +213,15 @@ function buildSupplierSidebar(supplier, pkg, currentUser) {
     return;
   }
 
-  // Avatar
+  // Avatar — shared initials/color logic, see
+  // public/assets/js/utils/supplier-avatar.js.
   const avatarEl = document.getElementById('pkg-sup-avatar');
-  const FALLBACK_INITIAL = '?'; // generic character when supplier name is not yet available
-  const initial = supplier.name ? supplier.name.charAt(0).toUpperCase() : FALLBACK_INITIAL;
-  const palettes = [
-    ['#13B6A2', '#0B8073'],
-    ['#8B5CF6', '#6D28D9'],
-    ['#F59E0B', '#D97706'],
-    ['#10B981', '#059669'],
-    ['#3B82F6', '#2563EB'],
-    ['#EC4899', '#DB2777'],
-  ];
-  const pi = supplier.name ? supplier.name.charCodeAt(0) % palettes.length : 0;
-  const [c1, c2] = palettes[pi];
+  const initial = window.EFSupplierAvatar.getSupplierInitials(supplier.name);
+  const avatarGradient = window.EFSupplierAvatar.getSupplierAvatarGradient(supplier);
 
   function showAvatarInitial() {
     avatarEl.innerHTML = '';
-    avatarEl.style.background = `linear-gradient(135deg, ${c1} 0%, ${c2} 100%)`;
+    avatarEl.style.background = avatarGradient;
     avatarEl.textContent = initial;
   }
 

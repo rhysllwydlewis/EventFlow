@@ -362,6 +362,10 @@ describe('public-supplier-avatar client', () => {
   }
 
   function loadClient(dom, fetchMock) {
+    const avatarUtilCode = fs.readFileSync(
+      path.join(__dirname, '../../public/assets/js/utils/supplier-avatar.js'),
+      'utf8'
+    );
     const code = fs.readFileSync(
       path.join(__dirname, '../../public/assets/js/public-supplier-avatar.js'),
       'utf8'
@@ -373,6 +377,11 @@ describe('public-supplier-avatar client', () => {
       fetch: fetchMock,
       module: { exports: {} },
     };
+    // The shared avatar-initials/color utility attaches itself to
+    // window.EFSupplierAvatar; load it into the same sandbox first, then
+    // reset module.exports so it isn't overwritten by the client script.
+    vm.runInNewContext(avatarUtilCode, sandbox);
+    sandbox.module = { exports: {} };
     vm.runInNewContext(code, sandbox);
     return sandbox.module.exports;
   }
