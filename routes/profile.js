@@ -97,6 +97,38 @@ async function syncSupplierAvatarFieldsForUser(user, avatarUrl) {
 }
 
 /**
+ * Keeps a supplier's public display name in step with the business name on
+ * their account. New suppliers are provisioned with their public `name`
+ * defaulted to their personal account name when no company name was given
+ * at signup (see supplierProfileProvisioning.service.js) — so once they add
+ * or change a real business name here, every public surface keyed off
+ * `supplier.name` (search cards, profile hero, avatar initials/color)
+ * should pick it up without a separate edit to the supplier profile.
+ *
+ * Only fires on a non-empty company name — clearing it intentionally does
+ * NOT blank out the supplier's public name, since falling back to the
+ * person's name is the desired behaviour, not an empty listing title.
+ */
+async function syncSupplierBusinessNameForUser(user, companyName) {
+  const trimmed = typeof companyName === 'string' ? companyName.trim() : '';
+  if (!user || !user.id || !trimmed) {
+    return;
+  }
+  const suppliers = await dbUnified.read('suppliers');
+  const updates = suppliers.filter(supplier => supplierBelongsToUser(supplier, user));
+  for (const supplier of updates) {
+    if (supplier.name === trimmed) {
+      continue;
+    }
+    await dbUnified.updateOne(
+      'suppliers',
+      { id: supplier.id },
+      { $set: { name: trimmed, updatedAt: new Date().toISOString() } }
+    );
+  }
+}
+
+/**
  * GET /api/profile
  * Get current user's profile
  */
@@ -280,6 +312,11 @@ router.put('/', writeLimiter, authRequired, csrfProtection, async (req, res) => 
 
     profileUpdates.updatedAt = new Date().toISOString();
     await dbUnified.updateOne('users', { id: req.user.id }, { $set: profileUpdates });
+
+    if (user.role === 'supplier' && profileUpdates.company) {
+      await syncSupplierBusinessNameForUser(user, profileUpdates.company);
+      await invalidateAvatarDependentCaches();
+    }
 
     // Build the response from merged data
     const updated = { ...user, ...profileUpdates };
