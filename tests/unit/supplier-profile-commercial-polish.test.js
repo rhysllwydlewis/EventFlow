@@ -10,7 +10,7 @@ const css = read('public/assets/css/supplier-profile-commercial-polish.css');
 
 describe('supplier profile commercial polish contracts', () => {
   test('loads the shared component styles and final supplier polish layer', () => {
-    expect(supplierHtml).toContain('/assets/css/components.css?v=18.3.0');
+    expect(supplierHtml).toContain('/assets/css/components.css?v=18.4.1');
     expect(supplierHtml).toContain('/assets/css/supplier-profile-commercial-polish.css?v=20.2.0');
   });
 

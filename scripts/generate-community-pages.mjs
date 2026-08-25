@@ -24,7 +24,11 @@ const ASSET_VERSION = '18.3.0';
 // a bumped query string back to the shared version and serving a stale asset.
 const ASSET_VERSIONS = {
   '/assets/css/styles.css': '18.5.0',
-  '/assets/css/mobile-optimizations.css': '18.4.0',
+  '/assets/css/mobile-optimizations.css': '18.4.4',
+  // 18.4.1: PR #1551 restored the `.pack`/`.featured-fallback-card` homepage
+  // carousel rules removed by #1543 — bumped alongside that PR's other
+  // cache-busting fixes so a cached copy of components.css doesn't linger.
+  '/assets/css/components.css': '18.4.1',
   // 18.6.0: the glass surface tokens, the sidebar and rail layout fixes, the
   // hero tint that repairs its contrast, the category strip's scroll buttons,
   // the four-way reactions and the metadata separator rules all ship together.
@@ -191,7 +195,7 @@ ${page.body}
 
     <script src="/assets/js/utils/auth-state.js" defer></script>
     <script src="/assets/js/navbar.js" defer></script>
-    <script src="/assets/js/cookie-consent.js?v=2.0.0" defer></script>
+    <script src="/assets/js/cookie-consent.js?v=2.0.1" defer></script>
     <script src="/assets/js/community/core.js?v=${version('/assets/js/community/core.js')}" defer></script>
 ${scripts}
   </body>
