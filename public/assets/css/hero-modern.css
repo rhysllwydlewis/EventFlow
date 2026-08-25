@@ -102,6 +102,25 @@
   }
 }
 
+/* Center hero content on desktop too, matching mobile/tablet */
+@media (min-width: 1024px) {
+  .hero-modern .hero-grid > div:first-child {
+    text-align: center;
+  }
+
+  .hero-modern h1 {
+    align-items: center; /* Centers flex children horizontally (cross-axis) */
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  .hero-modern-subcopy {
+    margin-left: auto;
+    margin-right: auto;
+    text-align: center;
+  }
+}
+
 /* Eyebrow badge - Hidden/removed */
 .hero-eyebrow {
   display: none;
@@ -153,6 +172,9 @@
   line-height: 1.7;
   color: #475569;
   max-width: 660px;
+  /* Even out ragged line lengths instead of the default greedy wrap.
+     Unsupported browsers just keep the normal wrap — safe to always apply. */
+  text-wrap: balance;
 }
 
 /* ==========================================================================
@@ -171,13 +193,14 @@
 
 .hero-content-inner .ef-search-bar {
   margin-top: 0;
-  /* Left-align on desktop — don't center within flex column */
+  /* Centered on desktop by the min-width: 1024px block below */
   margin-left: 0;
   margin-right: 0;
 }
 
 .hero-content-inner .ef-quick-tags {
   margin-top: 0;
+  /* Centered on desktop by the min-width: 1024px block below */
   justify-content: flex-start;
 }
 
@@ -187,6 +210,19 @@
 
 /* Mobile/tablet: center-align elements within hero content */
 @media (max-width: 1023px) {
+  .hero-content-inner .ef-search-bar {
+    margin-left: auto;
+    margin-right: auto;
+  }
+  .hero-content-inner .ef-quick-tags {
+    justify-content: center;
+  }
+}
+
+/* Desktop: center-align elements within hero content too. Must come after
+   the base .hero-content-inner rules above (same selector specificity, so
+   source order decides), otherwise those left-align declarations win. */
+@media (min-width: 1024px) {
   .hero-content-inner .ef-search-bar {
     margin-left: auto;
     margin-right: auto;
@@ -509,16 +545,14 @@
   }
 }
 
-/* Desktop: Left-align CTAs for two-column layout */
+/* Desktop: the two CTAs share the row's full width equally, edge to edge —
+   no alignment choice needed since there's no leftover space to align. */
 @media (min-width: 1024px) {
-  .hero-modern-ctas {
-    justify-content: flex-start;
-  }
-
   .hero-cta-primary,
   .hero-cta-secondary {
+    flex: 1;
     width: auto;
-    min-width: 124px;
+    min-width: 0;
   }
 }
 
@@ -683,7 +717,9 @@
 /* Two-column hero grid */
 @media (min-width: 1024px) {
   .hero-modern {
-    padding-top: clamp(24px, 3vw, 40px);
+    /* Overridden by modern-landing.css's !important rule, kept in sync so
+       the two declarations don't silently drift apart. */
+    padding-top: clamp(20px, 2.5vw, 36px);
     padding-bottom: clamp(20px, 2.5vw, 36px);
   }
 
