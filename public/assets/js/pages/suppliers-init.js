@@ -12,11 +12,6 @@ import {
 } from '../utils/analytics.js';
 import shortlistManager from '../utils/shortlist-manager.js';
 
-// Loaded globally via a plain <script> tag (see suppliers.html) so it is
-// shared, unchanged, with every other supplier avatar placeholder on the
-// site — see public/assets/js/utils/supplier-avatar.js.
-const { getSupplierInitials, getSupplierAvatarGradient } = window.EFSupplierAvatar;
-
 // HTML escaping utility
 function escapeHtml(unsafe) {
   if (typeof unsafe !== 'string') {
@@ -100,8 +95,10 @@ function getSupplierProfileImage(supplier) {
 
 // Enhanced supplier card with shortlist and quote features
 function createSupplierCard(supplier, position) {
-  const supplierInitial = getSupplierInitials(supplier.name);
-  const supplierAvatarGradient = getSupplierAvatarGradient(supplier);
+  // Shared with every other supplier avatar placeholder on the site — see
+  // public/assets/js/utils/supplier-avatar.js.
+  const supplierInitial = window.EFSupplierAvatar.getSupplierInitials(supplier.name);
+  const supplierAvatarGradient = window.EFSupplierAvatar.getSupplierAvatarGradient(supplier);
   const supplierProfileImage = getSupplierProfileImage(supplier);
 
   // Build avatar HTML
