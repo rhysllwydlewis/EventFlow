@@ -10,17 +10,16 @@ function createApp(data, options = {}) {
     read: jest.fn(async collection => data[collection] || []),
   };
   const logger = { error: jest.fn() };
+  const supplierSeoRouter = createPublicSupplierSeoRouter({
+    dbUnified,
+    logger,
+    baseUrl: 'https://event-flow.co.uk',
+    ...options,
+  });
   const app = express();
-  app.use(
-    createPublicSupplierSeoRouter({
-      dbUnified,
-      logger,
-      baseUrl: 'https://event-flow.co.uk',
-      ...options,
-    })
-  );
+  app.use(supplierSeoRouter);
   app.use((_req, res) => res.status(404).send('Not found'));
-  return { app, dbUnified, logger };
+  return { app, dbUnified, logger, supplierSeoRouter };
 }
 
 const approvedSupplier = {
@@ -120,6 +119,28 @@ describe('public supplier SEO routes', () => {
     expect(dbUnified.read).toHaveBeenCalledTimes(3);
   });
 
+  test('invalidateSupplierCache() forces the next request to read a fresh snapshot early', async () => {
+    const { app, dbUnified, supplierSeoRouter } = createApp({
+      suppliers: [approvedSupplier],
+      users: [{ id: 'user-1' }],
+    });
+    const slug = buildPublicSupplierSlug(approvedSupplier);
+
+    await request(app).get(`/supplier/${slug}`).expect(200);
+    const readsAfterFirstRequest = dbUnified.read.mock.calls.length;
+
+    // Within the TTL, a second request must not hit the database again...
+    await request(app).get(`/supplier/${slug}`).expect(200);
+    expect(dbUnified.read.mock.calls.length).toBe(readsAfterFirstRequest);
+
+    // ...but once the cache is explicitly invalidated (e.g. a supplier's
+    // business name was just synced from their account), the very next
+    // request must not serve the stale cached snapshot.
+    supplierSeoRouter.invalidateSupplierCache();
+    await request(app).get(`/supplier/${slug}`).expect(200);
+    expect(dbUnified.read.mock.calls.length).toBeGreaterThan(readsAfterFirstRequest);
+  });
+
   test('reads a fresh supplier snapshot for each request in full backend browser mode', async () => {
     const originalMode = process.env.E2E_MODE;
     process.env.E2E_MODE = 'full';
@@ -136,8 +157,11 @@ describe('public supplier SEO routes', () => {
 
       expect(dbUnified.read).toHaveBeenCalledTimes(6);
     } finally {
-      if (originalMode === undefined) delete process.env.E2E_MODE;
-      else process.env.E2E_MODE = originalMode;
+      if (originalMode === undefined) {
+        delete process.env.E2E_MODE;
+      } else {
+        process.env.E2E_MODE = originalMode;
+      }
     }
   });
 
