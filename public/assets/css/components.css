@@ -1842,6 +1842,62 @@ body.ef-cookie-banner-open .jade-widget-root {
   flex-direction: column;
 }
 
+/* Featured packages carousel fallback styles */
+.featured-fallback-card {
+  display: inline-block;
+  width: calc(33.333% - 14px);
+  margin: 7px;
+  vertical-align: top;
+}
+
+.featured-fallback-link {
+  text-decoration: none;
+  color: inherit;
+}
+
+.featured-fallback-img {
+  width: 100%;
+  height: 180px;
+  object-fit: cover;
+  border-radius: 8px 8px 0 0;
+}
+
+.featured-fallback-content {
+  padding: 14px;
+}
+
+.featured-fallback-title {
+  margin: 0 0 8px 0;
+  font-size: 16px;
+}
+
+.featured-fallback-desc {
+  margin: 0;
+  font-size: 14px;
+  color: #52525b;
+}
+
+.featured-fallback-price {
+  margin-top: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #0b8073;
+}
+
+/* Mobile responsive for fallback */
+@media (max-width: 768px) {
+  .featured-fallback-card {
+    width: calc(50% - 14px);
+  }
+}
+
+@media (max-width: 480px) {
+  .featured-fallback-card {
+    width: 100%;
+    margin: 7px 0;
+  }
+}
+
 /* Quick plan form on homepage */
 .quick-plan-form {
   margin: 1.5rem 0;
@@ -2093,13 +2149,15 @@ body.ef-cookie-banner-open .jade-widget-root {
 }
 
 /* Featured Package Enhancements */
-.pack {
+.pack,
+.featured-fallback-card {
   transition:
     transform 0.3s ease,
     box-shadow 0.3s ease;
 }
 
-.pack:hover img {
+.pack:hover img,
+.featured-fallback-card:hover img {
   transform: scale(1.05);
 }
 

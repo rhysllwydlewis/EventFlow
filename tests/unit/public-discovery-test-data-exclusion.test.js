@@ -39,10 +39,25 @@ const PACKAGES = [
   },
   // Package under a test supplier: excluded because the supplier is excluded.
   { id: 'pkg-test', supplierId: 'sup-test', title: 'Test No2', approved: true },
+  // Paused package under a real, approved supplier: a supplier pausing a
+  // package must remove it from the homepage carousels even though it's
+  // still marked featured/approved — the public package-detail page 404s
+  // paused packages, so leaving one in these lists would promote a dead link.
+  {
+    id: 'pkg-paused-featured',
+    supplierId: 'sup-real',
+    title: 'Paused Featured Package',
+    approved: true,
+    featured: true,
+    paused: true,
+  },
 ];
 
 function matchesMockFilter(item, filter) {
   return Object.keys(filter).every(key => {
+    if (key === '$or') {
+      return filter.$or.some(clause => matchesMockFilter(item, clause));
+    }
     const expected = filter[key];
     if (expected && typeof expected === 'object' && '$ne' in expected) {
       return item[key] !== expected.$ne;
@@ -117,12 +132,24 @@ describe('public discovery endpoints exclude isTest suppliers/packages', () => {
     expect(ids).not.toContain('pkg-test');
   });
 
+  it('GET /api/packages/featured excludes paused packages even when featured', async () => {
+    const res = await request(app).get('/api/packages/featured').expect(200);
+    const ids = res.body.items.map(item => item.id);
+    expect(ids).not.toContain('pkg-paused-featured');
+  });
+
   it('GET /api/packages/spotlight excludes test suppliers and packages', async () => {
     const res = await request(app).get('/api/packages/spotlight').expect(200);
     const ids = res.body.items.map(item => item.id);
     expect(ids).toContain('pkg-real');
     expect(ids).not.toContain('pkg-real-supplier-test-pkg');
     expect(ids).not.toContain('pkg-test');
+  });
+
+  it('GET /api/packages/spotlight excludes paused packages', async () => {
+    const res = await request(app).get('/api/packages/spotlight').expect(200);
+    const ids = res.body.items.map(item => item.id);
+    expect(ids).not.toContain('pkg-paused-featured');
   });
 
   it('GET /api/packages/search excludes test suppliers and packages', async () => {
@@ -140,5 +167,82 @@ describe('public discovery endpoints exclude isTest suppliers/packages', () => {
       .expect(200);
     const ids = res.body.packages.map(item => item.id);
     expect(ids).toEqual(['pkg-real']);
+  });
+});
+
+// Same paused-package exclusion, but through the MongoDB `findWithOptions`
+// code path (dbType === 'mongodb') that /api/packages/featured and
+// /api/packages/spotlight use in production. Uses a freshly required router
+// instance (via jest.resetModules) so this doesn't share the local-mode
+// describe block's module-level featured/spotlight caches above.
+function buildMongoApp() {
+  jest.resetModules();
+  // eslint-disable-next-line global-require
+  const freshSuppliersRouter = require('../../routes/suppliers');
+
+  freshSuppliersRouter.initializeDependencies({
+    dbUnified: {
+      read: async collection => {
+        if (collection === 'users') {
+          return USERS.map(u => ({ ...u }));
+        }
+        if (collection === 'suppliers') {
+          return SUPPLIERS.map(s => ({ ...s }));
+        }
+        if (collection === 'packages') {
+          return PACKAGES.map(p => ({ ...p }));
+        }
+        return [];
+      },
+      find: async (collection, filter = {}) => {
+        const source = collection === 'suppliers' ? SUPPLIERS : PACKAGES;
+        return source.filter(item => matchesMockFilter(item, filter)).map(item => ({ ...item }));
+      },
+      findOne: async (collection, filter = {}) => {
+        const source = collection === 'suppliers' ? SUPPLIERS : PACKAGES;
+        const found = source.find(item => matchesMockFilter(item, filter));
+        return found ? { ...found } : null;
+      },
+      findWithOptions: async (collection, filter = {}, options = {}) => {
+        const source = collection === 'suppliers' ? SUPPLIERS : PACKAGES;
+        const matched = source
+          .filter(item => matchesMockFilter(item, filter))
+          .map(item => ({ ...item }));
+        return typeof options.limit === 'number' ? matched.slice(0, options.limit) : matched;
+      },
+      getDatabaseType: () => 'mongodb',
+    },
+    authRequired: (_req, _res, next) => next(),
+    roleRequired: () => (_req, _res, next) => next(),
+    supplierAnalytics: { trackEvent: async () => {} },
+    getUserFromCookie: async () => null,
+    supplierIsProActive: async () => false,
+    logger: { info() {}, warn() {}, error() {} },
+  });
+
+  const mongoApp = express();
+  mongoApp.use(express.json());
+  mongoApp.use('/api', freshSuppliersRouter);
+  return mongoApp;
+}
+
+describe('public discovery endpoints exclude paused packages (MongoDB path)', () => {
+  let mongoApp;
+
+  beforeAll(() => {
+    mongoApp = buildMongoApp();
+  });
+
+  it('GET /api/packages/featured excludes paused packages even when featured', async () => {
+    const res = await request(mongoApp).get('/api/packages/featured').expect(200);
+    const ids = res.body.items.map(item => item.id);
+    expect(ids).not.toContain('pkg-paused-featured');
+  });
+
+  it('GET /api/packages/spotlight excludes paused packages', async () => {
+    const res = await request(mongoApp).get('/api/packages/spotlight').expect(200);
+    const ids = res.body.items.map(item => item.id);
+    expect(ids).toContain('pkg-real');
+    expect(ids).not.toContain('pkg-paused-featured');
   });
 });

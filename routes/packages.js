@@ -890,6 +890,7 @@ router.post(
         $set: { approved: !!(req.body && req.body.approved) },
       }
     );
+    suppliersRouter.invalidatePackageCaches();
     res.json({ ok: true, package: { ...pkg, approved: !!(req.body && req.body.approved) } });
   }
 );
@@ -915,6 +916,7 @@ router.post(
         $set: { featured: !!(req.body && req.body.featured) },
       }
     );
+    suppliersRouter.invalidatePackageCaches();
     res.json({ ok: true, package: { ...pkg, featured: !!(req.body && req.body.featured) } });
   }
 );
@@ -976,6 +978,7 @@ router.put(
     pkgUpdates.updatedAt = now;
 
     await dbUnified.updateOne('packages', { id }, { $set: pkgUpdates });
+    suppliersRouter.invalidatePackageCaches();
 
     res.json({ ok: true, package: { ...pkg, ...pkgUpdates } });
   }
@@ -999,6 +1002,7 @@ router.delete(
     }
 
     await dbUnified.deleteOne('packages', id);
+    suppliersRouter.invalidatePackageCaches();
     res.json({ ok: true, message: 'Package deleted successfully' });
   }
 );

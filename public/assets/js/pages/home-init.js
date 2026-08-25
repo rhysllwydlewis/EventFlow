@@ -1,6 +1,6 @@
 /**
  * Homepage initialization script
- * Handles stats counters, notifications, and interactive elements
+ * Handles featured packages, stats counters, notifications, and interactive elements
  */
 
 // Set page identifier
@@ -177,6 +177,20 @@ document.addEventListener('DOMContentLoaded', () => {
   // Load and update hero collage images from admin-uploaded category photos
   window.EFHeroCollage.load();
 
+  // Load featured packages
+  loadPackagesCarousel({
+    endpoint: '/api/packages/featured',
+    containerId: 'featured-packages',
+    emptyMessage: 'No featured packages available yet.',
+  });
+
+  // Load spotlight packages
+  loadPackagesCarousel({
+    endpoint: '/api/packages/spotlight',
+    containerId: 'spotlight-packages',
+    emptyMessage: 'No spotlight packages available yet.',
+  });
+
   // Show notification bell for logged-in users using AuthStateManager
   const authState = window.__authState || window.AuthStateManager;
   if (authState) {
@@ -237,6 +251,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Fetch and render public stats
   fetchPublicStats();
+
+  // Fetch and render marketplace preview
+  fetchMarketplacePreview();
 
   // Fetch and render guides
   fetchGuides();
@@ -351,6 +368,224 @@ window.addEventListener('offline', () => {
 });
 
 /**
+ * Shared helper to load packages carousel with skeleton, timeout, and retry
+ * @param {Object} options - Configuration options
+ * @param {string} options.endpoint - API endpoint to fetch packages from
+ * @param {string} options.containerId - DOM container ID for carousel
+ * @param {string} options.emptyMessage - Message to show when no packages found
+ */
+async function loadPackagesCarousel({ endpoint, containerId, emptyMessage }) {
+  const container = document.getElementById(containerId);
+  if (!container) {
+    if (isDevelopmentEnvironment()) {
+      console.warn(`Container ${containerId} not found`);
+    }
+    return;
+  }
+
+  // Issue 5 & 6 Fix: Use error boundary and loading state
+  const errorBoundary = new ErrorBoundary(containerId, {
+    title: 'Could not load packages',
+    message: 'Please refresh the page to try again.',
+    showRetry: true,
+    retryCallback: () => loadPackagesCarousel({ endpoint, containerId, emptyMessage }),
+  });
+
+  // Show loading skeleton
+  LoadingState.show(containerId, 'card', 3);
+
+  try {
+    // Issue 7 Fix: Use fetch with retry
+    const response = await fetchWithRetry(endpoint, {}, 3, 1000);
+
+    if (!response.ok) {
+      // Silently handle 404s (endpoint not available in static/dev mode)
+      if (response.status === 404) {
+        LoadingState.hide(containerId);
+        container.innerHTML = `<p class="small">${emptyMessage}</p>`;
+        return;
+      }
+      throw new Error(`HTTP ${response.status}`);
+    }
+
+    const data = await response.json();
+    LoadingState.hide(containerId);
+
+    if (!data.items || data.items.length === 0) {
+      // Enhanced empty state with call-to-action
+      container.innerHTML = `
+        <div class="empty-state" style="text-align: center; padding: 3rem;">
+          <h3 style="margin-bottom: 1rem; color: #344054;">Featured packages coming soon!</h3>
+          <p style="margin-bottom: 1.5rem; color: #667085;">Check back later for curated event packages.</p>
+          <a href="/marketplace" class="cta" style="display: inline-block; text-decoration: none;">Browse All Packages</a>
+        </div>
+      `;
+      return;
+    }
+
+    // Check if Carousel class is available
+    if (typeof Carousel === 'undefined') {
+      if (isDevelopmentEnvironment()) {
+        console.error('Carousel class not loaded. Rendering fallback.');
+      }
+      renderPackageFallback(container, data.items);
+      return;
+    }
+
+    // Initialize carousel
+    try {
+      const carousel = new Carousel(containerId, {
+        itemsPerView: 3,
+        itemsPerViewTablet: 2,
+        itemsPerViewMobile: 1,
+        autoScroll: true,
+        autoScrollInterval: 5000,
+      });
+      carousel.setItems(data.items);
+    } catch (error) {
+      if (isDevelopmentEnvironment()) {
+        console.error('Failed to initialize carousel:', error);
+      }
+      renderPackageFallback(container, data.items);
+    }
+  } catch (error) {
+    // Issue 5 Fix: Use error boundary for errors
+    if (isDevelopmentEnvironment()) {
+      console.error(`Failed to load packages from ${endpoint}:`, error);
+    }
+    errorBoundary.show(error);
+  }
+}
+
+/**
+ * Render packages in fallback grid format (when Carousel is unavailable)
+ * @param {HTMLElement} container - Container element
+ * @param {Array} items - Package items to render
+ */
+function renderPackageFallback(container, items) {
+  // Use escapeHtml (defined in app.js) for safe HTML text content.
+  // Using the native escape() would URL-encode the strings (e.g. "&" → "%26"),
+  // producing garbled visible text and incorrect alt attributes.
+  // Define once before the map() to avoid recreating the function per-item.
+  const _esc =
+    typeof escapeHtml === 'function'
+      ? escapeHtml
+      : s =>
+          String(s)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
+
+  // Validate and sanitize URLs to prevent XSS
+  const sanitizeUrl = url => {
+    if (!url) {
+      return '/assets/images/placeholders/package-event.svg';
+    }
+    const urlStr = String(url).trim();
+    if (!urlStr) {
+      return '/assets/images/placeholders/package-event.svg';
+    }
+    // Block dangerous protocols to prevent XSS.
+    if (/^(javascript|data|vbscript|file):/i.test(urlStr)) {
+      return '/assets/images/placeholders/package-event.svg';
+    }
+    // The URL is inserted into an HTML attribute below (`<img src="...">`), so
+    // it must still be HTML-escaped even after the protocol check — otherwise
+    // a supplier-controlled image URL containing a `"` can break out of the
+    // attribute and inject markup. _esc() only escapes &, <, >, ", ' and does
+    // NOT percent-encode the URL (unlike the native escape()), so a normal
+    // https:// URL still loads correctly.
+    return _esc(urlStr);
+  };
+
+  // Validate slug for URL safety
+  const validateSlug = (value, fallbackId) => {
+    const slugStr = String(value || '');
+    // Only allow alphanumeric, hyphens, and underscores
+    const cleaned = slugStr.replace(/[^a-zA-Z0-9_-]/g, '');
+    // Fall back to provided id if slug becomes empty after cleaning
+    return cleaned || String(fallbackId || 'unknown');
+  };
+
+  // Format price with £ symbol if it's a number
+  const formatPrice = priceDisplay => {
+    if (!priceDisplay) {
+      return null; // Signal "not set" so the caller can emit a styled placeholder
+    }
+    const priceStr = String(priceDisplay);
+    // If it's a plain number (integer or decimal), format as £X
+    if (/^\d+(\.\d+)?$/.test(priceStr)) {
+      return `£${priceStr}`;
+    }
+    // Otherwise return as-is
+    return priceStr;
+  };
+
+  container.innerHTML = items
+    .map(item => {
+      const title = _esc(item.title || 'Untitled Package');
+      const supplierName = _esc(item.supplier_name || '');
+      const description = _esc(item.description || '');
+      const truncDesc =
+        description.length > 100 ? `${description.substring(0, 100)}...` : description;
+      const rawPrice = formatPrice(item.price_display || item.price);
+      const price = rawPrice ? _esc(rawPrice) : '<span class="price-not-set">Price not set</span>';
+      // Resolve the best available image via the shared utility when loaded,
+      // otherwise fall back to the same inline strategy for resilience.
+      const resolvedImage =
+        typeof resolvePackageImage === 'function'
+          ? resolvePackageImage(item)
+          : (() => {
+              const placeholder = '/assets/images/placeholders/package-event.svg';
+              if (item.image && item.image !== placeholder) {
+                return item.image;
+              }
+              if (Array.isArray(item.gallery) && item.gallery.length > 0) {
+                for (const img of item.gallery) {
+                  const url =
+                    typeof img === 'string'
+                      ? img
+                      : img.url ||
+                        img.src ||
+                        img.path ||
+                        img.image ||
+                        img.originalUrl ||
+                        img.thumbnail;
+                  if (url && url !== placeholder) {
+                    return url;
+                  }
+                }
+              }
+              return placeholder;
+            })();
+      const imgSrc = sanitizeUrl(resolvedImage);
+      // Emit debug info when debug mode is active (?debugImages=1 or localStorage)
+      if (typeof debugPackageImage === 'function') {
+        debugPackageImage(item, imgSrc);
+      }
+      const slug = encodeURIComponent(validateSlug(item.slug, item.id));
+
+      return `
+        <div class="card featured-fallback-card">
+          <a href="/package/${slug}" class="featured-fallback-link">
+            <img src="${imgSrc}" alt="${title}" class="featured-fallback-img"
+                 data-fallback-src="/assets/images/placeholders/package-event.svg">
+            <div class="featured-fallback-content">
+              <h3 class="featured-fallback-title">${title}</h3>
+              ${supplierName ? `<p class="featured-fallback-supplier">${supplierName}</p>` : ''}
+              <p class="featured-fallback-desc">${truncDesc}</p>
+              <div class="featured-fallback-price">${price}</div>
+            </div>
+          </a>
+        </div>
+      `;
+    })
+    .join('');
+}
+
+/**
  * Fetch and render public stats with graceful fallback
  */
 async function fetchPublicStats() {
@@ -445,6 +680,204 @@ function updateStatsUI(stats) {
       counterEl.textContent = `${stat.value.toLocaleString('en-GB')}${stat.suffix}`;
     }
   });
+}
+
+/**
+ * Fetch and render marketplace preview items
+ */
+async function fetchMarketplacePreview() {
+  const container = document.getElementById('marketplace-preview');
+  if (!container) {
+    return;
+  }
+
+  const MARKETPLACE_PREVIEW_LIMIT = 4;
+  const MARKETPLACE_CANDIDATE_LIMIT = 12;
+
+  // Issue 5 & 6 Fix: Use error boundary and loading state
+  const errorBoundary = new ErrorBoundary('marketplace-preview', {
+    title: 'Could not load marketplace items',
+    message: 'Please refresh the page to try again.',
+    showRetry: true,
+    retryCallback: fetchMarketplacePreview,
+  });
+
+  // Show loading skeleton
+  LoadingState.show('marketplace-preview', 'card', MARKETPLACE_PREVIEW_LIMIT);
+
+  try {
+    // Pull a broader candidate set and rank it for a better homepage mix
+    const response = await fetchWithRetry(
+      `/api/v1/marketplace/listings?limit=${MARKETPLACE_CANDIDATE_LIMIT}`,
+      {},
+      3
+    );
+
+    if (!response.ok) {
+      // Silently handle 404s (endpoint not available in static/dev mode)
+      if (response.status === 404) {
+        LoadingState.hide('marketplace-preview');
+        container.innerHTML = '<p class="small">Marketplace not available yet.</p>';
+        return;
+      }
+      throw new Error(`HTTP ${response.status}`);
+    }
+
+    const data = await response.json();
+    const listings = Array.isArray(data.listings) ? data.listings : [];
+
+    LoadingState.hide('marketplace-preview');
+
+    if (listings.length === 0) {
+      container.innerHTML = '<p class="small">No marketplace items available yet.</p>';
+      return;
+    }
+
+    // Helper to safely escape HTML
+    const escape = text => {
+      const div = document.createElement('div');
+      div.textContent = text || '';
+      return div.innerHTML;
+    };
+
+    const formatCategoryLabel = category => {
+      const labels = {
+        attire: 'Attire',
+        decor: 'Décor',
+        'av-equipment': 'AV Equipment',
+        photography: 'Photography',
+        'party-supplies': 'Party Supplies',
+        florals: 'Florals',
+      };
+      return labels[category] || category || 'Listing';
+    };
+
+    const formatConditionLabel = condition => {
+      const labels = {
+        new: 'New / Unused',
+        'like-new': 'Like New',
+        good: 'Good',
+        fair: 'Fair',
+      };
+      return labels[condition] || condition || '';
+    };
+
+    const formatPrice = value => {
+      const number = Number(value);
+      if (!Number.isFinite(number)) {
+        return 'Price on request';
+      }
+      return `£${number.toLocaleString('en-GB', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      })}`;
+    };
+
+    const getListingImage = listing => {
+      const imageArrays = [listing?.images, listing?.photos];
+      for (const imageArray of imageArrays) {
+        if (Array.isArray(imageArray)) {
+          const validImage = imageArray.find(item => typeof item === 'string' && item.trim());
+          if (validImage) {
+            return validImage;
+          }
+        }
+      }
+      if (typeof listing?.image === 'string' && listing.image.trim()) {
+        return listing.image;
+      }
+      return '/assets/images/collage-venue.jpg';
+    };
+
+    // Homepage selection strategy:
+    // 1) explicit featured listings first (if field exists)
+    // 2) quality signals (images + complete metadata)
+    // 3) recency
+    const scoreListing = listing => {
+      let score = 0;
+      if (listing?.featured === true || listing?.isFeatured === true) {
+        score += 1000;
+      }
+      if (getListingImage(listing) !== '/assets/images/collage-venue.jpg') {
+        score += 120;
+      }
+      if (listing?.location) {
+        score += 25;
+      }
+      if (listing?.condition) {
+        score += 20;
+      }
+      if (listing?.category) {
+        score += 20;
+      }
+      const createdAt = Date.parse(listing?.createdAt || '');
+      if (!Number.isNaN(createdAt)) {
+        const ageMs = Date.now() - createdAt;
+        const ageDays = Math.max(0, ageMs / (1000 * 60 * 60 * 24));
+        score += Math.max(0, 180 - Math.min(ageDays, 180));
+      }
+      return score;
+    };
+
+    const selectedListings = listings
+      .map(listing => ({ listing, score: scoreListing(listing) }))
+      .sort((a, b) => {
+        if (b.score !== a.score) {
+          return b.score - a.score;
+        }
+        return new Date(b.listing.createdAt || 0) - new Date(a.listing.createdAt || 0);
+      })
+      .slice(0, MARKETPLACE_PREVIEW_LIMIT)
+      .map(item => item.listing);
+
+    // Render marketplace items
+    container.innerHTML = `
+      <div class="cards">
+        ${selectedListings
+          .map(listing => {
+            const listingUrl = listing.id
+              ? `/marketplace?listing=${encodeURIComponent(listing.id)}`
+              : '/marketplace';
+            const listingImage = getListingImage(listing);
+            const isFeatured = listing?.featured === true || listing?.isFeatured === true;
+            const isNew =
+              Date.now() - new Date(listing?.createdAt || 0).getTime() < 1000 * 60 * 60 * 24 * 14;
+            return `
+          <a href="${listingUrl}" class="card card-hover" style="text-decoration: none; color: inherit; display: block; overflow: hidden;">
+            <img src="${escape(listingImage)}" alt="${escape(listing.title)}" style="width: 100%; height: 180px; object-fit: cover; border-radius: 8px 8px 0 0;" loading="lazy" data-fallback-src="/assets/images/collage-venue.jpg" />
+            <div style="padding: 1rem;">
+              <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 0.5rem;">
+                <h3 style="margin: 0; font-size: 1.125rem;">${escape(listing.title || 'Marketplace listing')}</h3>
+                ${isFeatured ? '<span class="badge badge-info" style="white-space: nowrap;">Featured</span>' : isNew ? '<span class="badge badge-secondary" style="white-space: nowrap;">New</span>' : ''}
+              </div>
+              <p class="small" style="margin: 0 0 0.5rem 0; font-weight: 600; color: var(--ink, #0b8073);">${escape(formatPrice(listing.price))}</p>
+              <div style="display: flex; gap: 0.5rem; flex-wrap: wrap; margin-top: 0.5rem;">
+                <span class="badge badge-secondary">${escape(formatCategoryLabel(listing.category))}</span>
+                ${listing.condition ? `<span class="badge badge-info">${escape(formatConditionLabel(listing.condition))}</span>` : ''}
+                ${listing.location ? `<span class="badge badge-secondary">${escape(listing.location)}</span>` : ''}
+              </div>
+            </div>
+          </a>
+        `;
+          })
+          .join('')}
+      </div>
+    `;
+
+    // Attach error handlers for marketplace preview images (CSP-safe, no inline onerror)
+    container.querySelectorAll('img[data-fallback-src]').forEach(img => {
+      img.addEventListener('error', function handler() {
+        img.removeEventListener('error', handler);
+        img.src = img.dataset.fallbackSrc;
+      });
+    });
+  } catch (error) {
+    // Issue 5 Fix: Use error boundary for errors
+    if (isDevelopmentEnvironment()) {
+      console.error('Failed to load marketplace preview:', error);
+    }
+    errorBoundary.show(error);
+  }
 }
 
 /**

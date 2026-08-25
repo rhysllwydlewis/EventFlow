@@ -634,13 +634,14 @@ router.get('/packages/featured', async (_req, res) => {
           {
             approved: true,
             isTest: { $ne: true },
+            paused: { $ne: true },
             $or: [{ featured: true }, { isFeatured: true }],
           },
           { limit: 6, sort: { createdAt: -1 } }
         ),
         dbUnified.findWithOptions(
           'packages',
-          { approved: true, isTest: { $ne: true } },
+          { approved: true, isTest: { $ne: true }, paused: { $ne: true } },
           { limit: 60, sort: { createdAt: -1 } }
         ),
       ]);
@@ -703,6 +704,7 @@ router.get('/packages/featured', async (_req, res) => {
           p =>
             p.approved &&
             !p.isTest &&
+            !p.paused &&
             (isFeaturedPackage(p) || planFeatured.has(p.supplierId)) &&
             suppliersMap.has(p.supplierId)
         )
@@ -758,13 +760,13 @@ router.get('/packages/spotlight', async (_req, res) => {
       // For MongoDB, use findWithOptions to get only approved packages
       approvedPackages = await dbUnified.findWithOptions(
         'packages',
-        { approved: true, isTest: { $ne: true } },
+        { approved: true, isTest: { $ne: true }, paused: { $ne: true } },
         { limit: 100 } // Get up to 100 to have a good pool for rotation
       );
     } else {
       // Local storage fallback
       const packages = await dbUnified.read('packages');
-      approvedPackages = packages.filter(p => p.approved && !p.isTest);
+      approvedPackages = packages.filter(p => p.approved && !p.isTest && !p.paused);
     }
 
     const allSuppliersForSpotlight = await dbUnified.read('suppliers');

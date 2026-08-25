@@ -132,6 +132,50 @@ async function settlePage(pw) {
   await pw.waitForTimeout(250);
 }
 
+/**
+ * Freeze the homepage package carousels at their first item. Cloning the
+ * rendered roots preserves their approved markup while detaching the visible
+ * elements from Carousel's live five-second timer and smooth-scroll listeners.
+ *
+ * @param {import('@playwright/test').Page} pw
+ * @param {string} pageName
+ */
+async function stabiliseDynamicUi(pw, pageName) {
+  if (pageName !== 'homepage') {
+    return;
+  }
+
+  await pw.evaluate(() => {
+    for (const carouselRoot of document.querySelectorAll(
+      '#featured-packages, #spotlight-packages'
+    )) {
+      const frozenRoot = carouselRoot.cloneNode(true);
+      if (!(frozenRoot instanceof HTMLElement)) {
+        continue;
+      }
+
+      const track = frozenRoot.querySelector('.carousel-container');
+      const previousButton = frozenRoot.querySelector('.carousel-prev');
+      const nextButton = frozenRoot.querySelector('.carousel-next');
+
+      if (track instanceof HTMLElement) {
+        track.style.scrollBehavior = 'auto';
+        track.scrollLeft = 0;
+      }
+      if (previousButton instanceof HTMLButtonElement) {
+        previousButton.disabled = true;
+      }
+      if (nextButton instanceof HTMLButtonElement) {
+        nextButton.disabled = frozenRoot.querySelectorAll('.carousel-item').length <= 1;
+      }
+
+      carouselRoot.replaceWith(frozenRoot);
+    }
+  });
+
+  await pw.waitForTimeout(100);
+}
+
 for (const page of BASELINE_PAGES) {
   test.describe(`baseline: ${page.name}`, () => {
     test('visual snapshot matches baseline', async ({ page: pw }) => {
@@ -142,6 +186,7 @@ for (const page of BASELINE_PAGES) {
       const response = await pw.goto(page.path, { waitUntil: 'domcontentloaded' });
       skipIfPageUnavailable(pw, response, page.path);
       await settlePage(pw);
+      await stabiliseDynamicUi(pw, page.name);
       await expect(pw).toHaveScreenshot(`${page.name}.png`, {
         fullPage: true,
       });
@@ -151,6 +196,7 @@ for (const page of BASELINE_PAGES) {
       const response = await pw.goto(page.path, { waitUntil: 'domcontentloaded' });
       skipIfPageUnavailable(pw, response, page.path);
       await settlePage(pw);
+      await stabiliseDynamicUi(pw, page.name);
 
       const results = await new AxeBuilder({ page: pw })
         .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'])
