@@ -545,16 +545,14 @@
   }
 }
 
-/* Desktop: Center CTAs for two-column layout */
+/* Desktop: the two CTAs share the row's full width equally, edge to edge —
+   no alignment choice needed since there's no leftover space to align. */
 @media (min-width: 1024px) {
-  .hero-modern-ctas {
-    justify-content: center;
-  }
-
   .hero-cta-primary,
   .hero-cta-secondary {
+    flex: 1;
     width: auto;
-    min-width: 124px;
+    min-width: 0;
   }
 }
 
