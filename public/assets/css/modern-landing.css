@@ -190,7 +190,9 @@ html {
 
 @media (min-width: 1024px) {
   .hero-modern {
-    padding: clamp(24px, 3vw, 40px) 0 clamp(20px, 2.5vw, 36px) !important;
+    /* Equal top/bottom padding — was 40px/36px (top/bottom), an unintentional
+       mismatch. Using the smaller, more compact value for both. */
+    padding: clamp(20px, 2.5vw, 36px) 0 !important;
   }
 }
 
