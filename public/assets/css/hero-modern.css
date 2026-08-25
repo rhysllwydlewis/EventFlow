@@ -172,6 +172,9 @@
   line-height: 1.7;
   color: #475569;
   max-width: 660px;
+  /* Even out ragged line lengths instead of the default greedy wrap.
+     Unsupported browsers just keep the normal wrap — safe to always apply. */
+  text-wrap: balance;
 }
 
 /* ==========================================================================
