@@ -101,13 +101,16 @@ const mountRoutes = (app, deps) => {
   // Public, crawlable supplier profiles with server-rendered metadata.
   // Mounted through the backend router so the existing supplier page body and CSS stay unchanged.
   if (deps && deps.dbUnified) {
-    app.use(
-      createPublicSupplierSeoRouter({
-        dbUnified: deps.dbUnified,
-        logger: deps.logger || logger,
-        baseUrl: process.env.BASE_URL || 'https://event-flow.co.uk',
-      })
-    );
+    const publicSupplierSeoRouter = createPublicSupplierSeoRouter({
+      dbUnified: deps.dbUnified,
+      logger: deps.logger || logger,
+      baseUrl: process.env.BASE_URL || 'https://event-flow.co.uk',
+    });
+    // Exposed so other routes can invalidate its supplier cache immediately
+    // on a write (e.g. routes/profile.js syncing a business-name change)
+    // instead of waiting out its TTL.
+    app.locals.publicSupplierSeoRouter = publicSupplierSeoRouter;
+    app.use(publicSupplierSeoRouter);
   }
 
   // System routes (health, config, meta) - must be first for health checks

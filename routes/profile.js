@@ -26,7 +26,11 @@ const router = express.Router();
 // This ensures consistent validation and security across all uploads
 const avatarUpload = photoUpload.upload;
 
-async function invalidateAvatarDependentCaches() {
+async function invalidateAvatarDependentCaches(app) {
+  const seoRouter = app && app.locals && app.locals.publicSupplierSeoRouter;
+  if (seoRouter && typeof seoRouter.invalidateSupplierCache === 'function') {
+    seoRouter.invalidateSupplierCache();
+  }
   await Promise.all([
     clearSearchCache().catch(err =>
       logger.warn('Failed to clear search cache after avatar change:', err.message)
@@ -47,15 +51,14 @@ function supplierBelongsToUser(supplier, user) {
   if (!supplier || !user) {
     return false;
   }
-  if (supplier.ownerUserId && supplier.ownerUserId === user.id) {
-    return true;
+  const ownerId = supplier.ownerUserId || supplier.userId || supplier.createdByUserId;
+  if (ownerId) {
+    // An explicit owner id is authoritative once set: a matching email must
+    // never let a different account claim (and rewrite) someone else's
+    // already-owned supplier record.
+    return ownerId === user.id;
   }
-  if (supplier.userId && supplier.userId === user.id) {
-    return true;
-  }
-  if (supplier.createdByUserId && supplier.createdByUserId === user.id) {
-    return true;
-  }
+  // Email match is only a fallback for legacy records with no owner id at all.
   const userEmail = normalizeEmail(user.email);
   return Boolean(
     userEmail &&
@@ -120,11 +123,20 @@ async function syncSupplierBusinessNameForUser(user, companyName) {
     if (supplier.name === trimmed) {
       continue;
     }
-    await dbUnified.updateOne(
+    const wrote = await dbUnified.updateOne(
       'suppliers',
       { id: supplier.id },
       { $set: { name: trimmed, updatedAt: new Date().toISOString() } }
     );
+    if (!wrote) {
+      // updateOne resolves false rather than throwing on failure — surface it
+      // so a supplier that silently kept its old public name is discoverable,
+      // even though the account's own company field already saved.
+      logger.error('Failed to sync supplier public name from account company name', {
+        userId: user.id,
+        supplierId: supplier.id,
+      });
+    }
   }
 }
 
@@ -315,7 +327,7 @@ router.put('/', writeLimiter, authRequired, csrfProtection, async (req, res) => 
 
     if (user.role === 'supplier' && profileUpdates.company) {
       await syncSupplierBusinessNameForUser(user, profileUpdates.company);
-      await invalidateAvatarDependentCaches();
+      await invalidateAvatarDependentCaches(req.app);
     }
 
     // Build the response from merged data
@@ -399,7 +411,7 @@ router.post('/avatar', uploadLimiter, authRequired, csrfProtection, (req, res) =
       );
 
       await syncSupplierAvatarFieldsForUser(user || req.user, images.optimized);
-      await invalidateAvatarDependentCaches();
+      await invalidateAvatarDependentCaches(req.app);
 
       res.json({
         ok: true,
@@ -460,7 +472,7 @@ router.delete('/avatar', writeLimiter, authRequired, csrfProtection, async (req,
     );
 
     await syncSupplierAvatarFieldsForUser(user, null);
-    await invalidateAvatarDependentCaches();
+    await invalidateAvatarDependentCaches(req.app);
 
     res.json({ ok: true });
   } catch (err) {

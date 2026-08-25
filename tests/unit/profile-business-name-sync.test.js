@@ -7,7 +7,7 @@ function buildApp({ user, suppliers }) {
   jest.resetModules();
   const clearSearchCache = jest.fn().mockResolvedValue(undefined);
   const invalidate = jest.fn().mockResolvedValue(undefined);
-  const updateOne = jest.fn().mockResolvedValue(undefined);
+  const updateOne = jest.fn().mockResolvedValue(true);
 
   jest.doMock('../../middleware/auth', () => ({
     authRequired: (req, _res, next) => {
@@ -121,5 +121,64 @@ describe('profile business-name sync', () => {
     await request(app).put('/api/profile').send({ company: 'Luxury Car Hire' }).expect(200);
 
     expect(updateOne).not.toHaveBeenCalledWith('suppliers', expect.anything(), expect.anything());
+  });
+
+  test('REGRESSION: an explicit owner id on a supplier is authoritative over a matching email', async () => {
+    // A supplier already owned by a different account must never be renamed
+    // just because one of its legacy email fields happens to match the
+    // account making this request.
+    const { app, updateOne } = buildApp({
+      user: { id: 'user_1', email: 'shared@example.com', role: 'supplier' },
+      suppliers: [
+        {
+          id: 'sup_1',
+          ownerUserId: 'user_other',
+          email: 'shared@example.com',
+          name: 'Other Business',
+        },
+      ],
+    });
+
+    await request(app).put('/api/profile').send({ company: 'Luxury Car Hire' }).expect(200);
+
+    expect(updateOne).not.toHaveBeenCalledWith('suppliers', expect.anything(), expect.anything());
+  });
+
+  test('logs when the supplier write fails so a stuck stale name is discoverable', async () => {
+    const { app, updateOne } = buildApp({
+      user: { id: 'user_1', email: 'owner@example.com', role: 'supplier' },
+      suppliers: [{ id: 'sup_1', ownerUserId: 'user_1', name: 'Shahnawaz Lal' }],
+    });
+    // First call is the users-collection write (succeeds); second is the
+    // suppliers-collection sync this test wants to fail.
+    updateOne.mockResolvedValueOnce(true).mockResolvedValueOnce(false);
+    const logger = require('../../utils/logger');
+    const errorSpy = jest.spyOn(logger, 'error').mockImplementation(() => {});
+
+    await request(app).put('/api/profile').send({ company: 'Luxury Car Hire' }).expect(200);
+
+    expect(errorSpy).toHaveBeenCalledWith(
+      'Failed to sync supplier public name from account company name',
+      expect.objectContaining({ userId: 'user_1', supplierId: 'sup_1' })
+    );
+    errorSpy.mockRestore();
+  });
+
+  test('invalidates the public supplier SEO route cache when it is registered on the app', async () => {
+    const { app, updateOne } = buildApp({
+      user: { id: 'user_1', email: 'owner@example.com', role: 'supplier' },
+      suppliers: [{ id: 'sup_1', ownerUserId: 'user_1', name: 'Shahnawaz Lal' }],
+    });
+    const invalidateSupplierCache = jest.fn();
+    app.locals.publicSupplierSeoRouter = { invalidateSupplierCache };
+
+    await request(app).put('/api/profile').send({ company: 'Luxury Car Hire' }).expect(200);
+
+    expect(invalidateSupplierCache).toHaveBeenCalled();
+    expect(updateOne).toHaveBeenCalledWith(
+      'suppliers',
+      { id: 'sup_1' },
+      expect.objectContaining({ $set: expect.objectContaining({ name: 'Luxury Car Hire' }) })
+    );
   });
 });
