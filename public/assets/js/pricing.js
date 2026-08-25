@@ -137,6 +137,12 @@
 
     const avatar = document.createElement('span');
     avatar.className = 'pricing-proof-avatar';
+    // Same per-supplier colour as everywhere else on the site (suppliers
+    // directory, profile hero, package cards) — see
+    // public/assets/js/utils/supplier-avatar.js. Set unconditionally so it
+    // is already correct behind a photo that later fails to load.
+    avatar.style.background = window.EFSupplierAvatar.getSupplierAvatarGradient(supplier);
+    avatar.style.color = '#fff';
 
     if (supplier.profilePhotoUrl) {
       const img = document.createElement('img');

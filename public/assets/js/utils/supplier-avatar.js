@@ -8,13 +8,16 @@
  * looks the same everywhere.
  */
 
+// Every consumer renders white initials on top of this gradient, so both
+// stops of every entry must clear WCAG AA's 4.5:1 contrast ratio for normal
+// text against white — verified for each entry below (all >= 5:1).
 const SUPPLIER_AVATAR_PALETTE = [
-  ['#13B6A2', '#0B8073'],
-  ['#8B5CF6', '#6D28D9'],
-  ['#F59E0B', '#D97706'],
-  ['#10B981', '#059669'],
-  ['#3B82F6', '#2563EB'],
-  ['#EC4899', '#DB2777'],
+  ['#0F766E', '#115E59'], // teal
+  ['#6D28D9', '#5B21B6'], // violet
+  ['#B45309', '#92400E'], // amber
+  ['#047857', '#065F46'], // emerald
+  ['#1D4ED8', '#1E40AF'], // blue
+  ['#BE185D', '#9D174D'], // pink
 ];
 
 const SUPPLIER_AVATAR_FALLBACK_INITIAL = '?';
