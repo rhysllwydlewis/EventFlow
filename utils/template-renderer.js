@@ -15,7 +15,7 @@ const { renderArticleDates } = require('../services/articleMetadata.service');
 const templateCache = new Map();
 const ANONYMOUS_SANITIZER_COMMENT = '<!-- eventflow-anonymous-sanitizer: active -->';
 const GLOBAL_ANALYTICS_SCRIPTS = [
-  '    <script src="/assets/js/cookie-consent.js?v=2.1.0" defer></script>',
+  '    <script src="/assets/js/cookie-consent.js?v=2.1.1" defer></script>',
   '    <script src="/assets/js/analytics-consent-upgrade.js?v=4" defer></script>',
   '    <script src="/assets/js/behaviour-analytics.js?v=2" defer></script>',
 ];
