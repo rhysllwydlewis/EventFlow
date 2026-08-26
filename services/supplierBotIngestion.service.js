@@ -9,7 +9,9 @@ function isSlugCharacter(char) {
 }
 
 function generateSlug(text) {
-  const input = String(text || '').toLowerCase().trim();
+  const input = String(text || '')
+    .toLowerCase()
+    .trim();
   let output = '';
   let separatorPending = false;
 
