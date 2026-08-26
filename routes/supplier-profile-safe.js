@@ -2,6 +2,8 @@
 
 const express = require('express');
 const router = express.Router();
+const { verifySupplierBotHmac } = require('../middleware/supplierBotHmac');
+const { createUnclaimedSupplierFromBot } = require('../services/supplierBotIngestion.service');
 const { resolvePackageImage } = require('../utils/packageImageUtils');
 const { safePublicPackage, safePublicSupplier } = require('../utils/supplierPublicProfile');
 const { addPublicProfilePath } = require('../utils/publicSupplierProfilePath');
@@ -68,6 +70,37 @@ async function badgeDetailsFor(supplier) {
     return [];
   }
 }
+
+router.post('/internal/supplier-bot/suppliers', verifySupplierBotHmac, async (req, res) => {
+  try {
+    if (!dbUnified) {
+      return res.status(503).json({ error: 'Database unavailable' });
+    }
+    const result = await createUnclaimedSupplierFromBot({ dbUnified, payload: req.body });
+    return res.status(result.created ? 201 : 200).json({
+      supplierId: result.supplier.id,
+      slug: result.supplier.slug,
+      status: result.supplier.status,
+      ownershipStatus: result.supplier.ownershipStatus,
+      created: result.created,
+      idempotent: result.idempotent,
+    });
+  } catch (error) {
+    if (error && error.code === 'SUPPLIER_WEBSITE_CONFLICT') {
+      return res.status(409).json({
+        error: error.message,
+        existingSupplierId: error.supplierId || null,
+      });
+    }
+    const message = error instanceof Error ? error.message : 'Invalid Supplier Bot payload';
+    const validationMessage = /required|unsupported|must be|website/i.test(message);
+    if (validationMessage) {
+      return res.status(400).json({ error: message });
+    }
+    logger.error('Supplier Bot ingestion failed:', error);
+    return res.status(500).json({ error: 'Supplier Bot ingestion failed' });
+  }
+});
 
 router.get('/suppliers/:id', async (req, res, next) => {
   try {
