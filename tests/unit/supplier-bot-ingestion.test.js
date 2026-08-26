@@ -53,7 +53,7 @@ describe('Supplier Bot ingestion', () => {
     const result = await createUnclaimedSupplierFromBot({ dbUnified, payload: payload() });
 
     expect(result.created).toBe(true);
-    expect(result.supplier.ownerUserId).toBeNull();
+    expect(result.supplier).not.toHaveProperty('ownerUserId');
     expect(result.supplier.ownershipStatus).toBe('unclaimed');
     expect(result.supplier.status).toBe('draft');
     expect(result.supplier.approved).toBe(false);
