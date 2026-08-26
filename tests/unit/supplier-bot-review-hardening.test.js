@@ -105,8 +105,9 @@ describe('Supplier Bot Phase 2 review hardening', () => {
       { supplierId: 1, requesterUserId: 1 },
       { unique: true, name: 'uniq_supplier_claim_supplier_requester' }
     );
-    expect(dbUnified.findOne).toHaveBeenCalledAfter(createIndex);
-    expect(dbUnified.insertOne).toHaveBeenCalledAfter(createIndex);
+    const secondIndexCall = createIndex.mock.invocationCallOrder[1];
+    expect(secondIndexCall).toBeLessThan(dbUnified.findOne.mock.invocationCallOrder[0]);
+    expect(secondIndexCall).toBeLessThan(dbUnified.insertOne.mock.invocationCallOrder[0]);
   });
 
   it('404s an accidentally approved unclaimed bot supplier from the public supplier API', async () => {
