@@ -1,0 +1,41 @@
+name: Phase 2 Prettier Helper
+
+on:
+  push:
+    branches:
+      - phase2-final/claims-seo-guards
+
+permissions:
+  contents: write
+
+jobs:
+  format:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: phase2-final/claims-seo-guards
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - name: Format Phase 2 files
+        run: >-
+          npx prettier --write
+          routes/supplier-profile-safe.js
+          routes/supplier-profile-package-cards.js
+          services/supplierBotClaim.service.js
+          tests/unit/supplier-bot-review-hardening.test.js
+      - name: Commit formatter output
+        run: |
+          if git diff --quiet; then
+            echo "No formatting changes needed"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add routes/supplier-profile-safe.js routes/supplier-profile-package-cards.js services/supplierBotClaim.service.js tests/unit/supplier-bot-review-hardening.test.js
+          git commit -m "style: format final Phase 2 review fixes"
+          git push origin HEAD:phase2-final/claims-seo-guards
