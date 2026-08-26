@@ -23,6 +23,9 @@ async function startSupplierBotPackageGrace({ dbUnified, supplierId, claimedAt =
   if (supplier.acquisition?.source !== 'supplier_bot') {
     throw new Error('Package grace is only available to Supplier Bot-acquired profiles');
   }
+  if (supplier.ownershipStatus !== 'claimed' || !supplier.ownerUserId) {
+    throw new Error('Package grace cannot start until Supplier Bot ownership is claimed');
+  }
 
   const started = claimedAt instanceof Date ? claimedAt : new Date(claimedAt);
   if (!Number.isFinite(started.getTime())) throw new Error('Invalid claim date');
