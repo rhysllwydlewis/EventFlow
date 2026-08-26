@@ -5,11 +5,7 @@ const { VALID_CATEGORIES } = require('../models/Supplier');
 
 function isSlugCharacter(char) {
   const code = char.charCodeAt(0);
-  return (
-    (code >= 48 && code <= 57) ||
-    (code >= 97 && code <= 122) ||
-    char === '_'
-  );
+  return (code >= 48 && code <= 57) || (code >= 97 && code <= 122) || char === '_';
 }
 
 function generateSlug(text) {
@@ -32,12 +28,21 @@ function generateSlug(text) {
 }
 
 function supplierIdForCandidate(candidateId) {
-  const digest = crypto.createHash('sha256').update(String(candidateId)).digest('hex').slice(0, 24);
+  const digest = crypto
+    .createHash('sha256')
+    .update(String(candidateId))
+    .digest('hex')
+    .slice(0, 24);
   return `sup_bot_${digest}`;
 }
 
 function canonicalWebsite(value) {
-  const url = new URL(String(value));
+  let url;
+  try {
+    url = new URL(String(value));
+  } catch (_error) {
+    throw new Error('website must be a valid URL');
+  }
   if (!['http:', 'https:'].includes(url.protocol)) {
     throw new Error('Website must use HTTP or HTTPS');
   }
@@ -49,16 +54,34 @@ function canonicalWebsite(value) {
 
 function validatePayload(payload) {
   if (!payload || typeof payload !== 'object') throw new Error('Payload is required');
-  if (!payload.candidateId || typeof payload.candidateId !== 'string') throw new Error('candidateId is required');
-  if (!payload.businessName || typeof payload.businessName !== 'string') throw new Error('businessName is required');
-  if (payload.businessName.trim().length > 100) throw new Error('businessName must be 100 characters or fewer');
-  if (!VALID_CATEGORIES.includes(payload.category)) throw new Error('Unsupported supplier category');
+  if (!payload.candidateId || typeof payload.candidateId !== 'string') {
+    throw new Error('candidateId is required');
+  }
+  if (!payload.businessName || typeof payload.businessName !== 'string') {
+    throw new Error('businessName is required');
+  }
+  if (payload.businessName.trim().length > 100) {
+    throw new Error('businessName must be 100 characters or fewer');
+  }
+  if (!VALID_CATEGORIES.includes(payload.category)) {
+    throw new Error('Unsupported supplier category');
+  }
   if (!payload.website) throw new Error('website is required');
-  if (payload.description && String(payload.description).length > 5000) throw new Error('description must be 5000 characters or fewer');
-  if (payload.publicEmail && String(payload.publicEmail).length > 254) throw new Error('publicEmail must be 254 characters or fewer');
-  if (payload.publicPhone && String(payload.publicPhone).length > 20) throw new Error('publicPhone must be 20 characters or fewer');
-  if (!Number.isFinite(Number(payload.publicationQuality))) throw new Error('publicationQuality is required');
-  if (!Number.isFinite(Number(payload.dataConfidence))) throw new Error('dataConfidence is required');
+  if (payload.description && String(payload.description).length > 5000) {
+    throw new Error('description must be 5000 characters or fewer');
+  }
+  if (payload.publicEmail && String(payload.publicEmail).length > 254) {
+    throw new Error('publicEmail must be 254 characters or fewer');
+  }
+  if (payload.publicPhone && String(payload.publicPhone).length > 20) {
+    throw new Error('publicPhone must be 20 characters or fewer');
+  }
+  if (!Number.isFinite(Number(payload.publicationQuality))) {
+    throw new Error('publicationQuality is required');
+  }
+  if (!Number.isFinite(Number(payload.dataConfidence))) {
+    throw new Error('dataConfidence is required');
+  }
   return canonicalWebsite(payload.website);
 }
 
@@ -69,9 +92,10 @@ async function createUnclaimedSupplierFromBot({ dbUnified, payload }) {
   const suppliers = await dbUnified.read('suppliers');
 
   const sameCandidate = suppliers.find(
-    item => item.id === deterministicId || (
-      item?.acquisition?.source === 'supplier_bot' && item?.acquisition?.candidateId === payload.candidateId
-    )
+    item =>
+      item.id === deterministicId ||
+      (item?.acquisition?.source === 'supplier_bot' &&
+        item?.acquisition?.candidateId === payload.candidateId)
   );
   if (sameCandidate) {
     return { supplier: sameCandidate, created: false, idempotent: true };
@@ -154,7 +178,9 @@ async function createUnclaimedSupplierFromBot({ dbUnified, payload }) {
       complianceStatus: payload.complianceStatus || null,
       compliancePolicyVersion: payload.compliancePolicyVersion || null,
       sourcePackages: Array.isArray(payload.packages) ? payload.packages.slice(0, 20) : [],
-      advertisedPrices: Array.isArray(payload.advertisedPrices) ? payload.advertisedPrices.slice(0, 50) : [],
+      advertisedPrices: Array.isArray(payload.advertisedPrices)
+        ? payload.advertisedPrices.slice(0, 50)
+        : [],
       ingestedAt: now,
     },
     createdAt: now,
@@ -168,7 +194,9 @@ async function createUnclaimedSupplierFromBot({ dbUnified, payload }) {
     if (error && error.code === 11000) {
       const current = await dbUnified.read('suppliers');
       const concurrent = current.find(item => item.id === deterministicId);
-      if (concurrent) return { supplier: concurrent, created: false, idempotent: true };
+      if (concurrent) {
+        return { supplier: concurrent, created: false, idempotent: true };
+      }
     }
     throw error;
   }
