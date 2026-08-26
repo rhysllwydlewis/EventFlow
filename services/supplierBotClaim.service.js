@@ -50,7 +50,17 @@ function collisionSignals(user, supplier) {
 
 async function findSupplierBotCollision({ dbUnified, user }) {
   if (!dbUnified || !user) return null;
-  const suppliers = await dbUnified.read('suppliers');
+
+  // Prefer the targeted/indexable path in production and in lean service
+  // adapters. Fall back to read() only for legacy database implementations.
+  let suppliers;
+  if (typeof dbUnified.find === 'function') {
+    suppliers = await dbUnified.find('suppliers', { ownershipStatus: 'unclaimed' });
+  } else if (typeof dbUnified.read === 'function') {
+    suppliers = await dbUnified.read('suppliers');
+  } else {
+    return null;
+  }
   if (!Array.isArray(suppliers)) return null;
 
   for (const supplier of suppliers) {
