@@ -146,8 +146,6 @@ describe('Supplier Bot Phase 2 review hardening', () => {
     const app = express();
     app.use(router);
 
-    await request(app())
-      .get(`/supplier-profile/${supplier.id}/package-cards`)
-      .expect(404);
+    await request(app()).get(`/supplier-profile/${supplier.id}/package-cards`).expect(404);
   });
 });

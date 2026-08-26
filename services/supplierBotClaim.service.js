@@ -29,8 +29,8 @@ function claimIdFor(supplierId, userId) {
 function isUnclaimedBotSupplier(supplier) {
   return Boolean(
     supplier &&
-      supplier.ownershipStatus === 'unclaimed' &&
-      supplier.acquisition?.source === 'supplier_bot'
+    supplier.ownershipStatus === 'unclaimed' &&
+    supplier.acquisition?.source === 'supplier_bot'
   );
 }
 
@@ -42,7 +42,8 @@ function collisionSignals(user, supplier) {
 
   const userWebsite = normalizeWebsite(user?.website);
   const supplierWebsite = normalizeWebsite(supplier?.website);
-  if (userWebsite && supplierWebsite && userWebsite === supplierWebsite) signals.push('website_exact');
+  if (userWebsite && supplierWebsite && userWebsite === supplierWebsite)
+    signals.push('website_exact');
   return signals;
 }
 
