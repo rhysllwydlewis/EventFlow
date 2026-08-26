@@ -9,6 +9,7 @@ const {
   collisionSignals,
   createSupplierBotClaimRequest,
 } = require('../services/supplierBotClaim.service');
+const { lifecycleBlockReason } = require('../services/seoRecordLifecycle.util');
 const { resolvePackageImage } = require('../utils/packageImageUtils');
 const { safePublicPackage, safePublicSupplier } = require('../utils/supplierPublicProfile');
 const { addPublicProfilePath } = require('../utils/publicSupplierProfilePath');
@@ -52,7 +53,7 @@ function canRead(req, supplier) {
   if (!supplier) {
     return false;
   }
-  if (supplier.approved) {
+  if (supplier.approved === true && lifecycleBlockReason(supplier) === null) {
     return true;
   }
   return canPreview(req, supplier);
@@ -165,13 +166,6 @@ router.get('/suppliers/:id', async (req, res, next) => {
       return next();
     }
     const supplier = await dbUnified.findOne('suppliers', { id: req.params.id });
-    // No supplier carries this id, so this router has nothing to say about the
-    // request — hand it on rather than answering 404. This router is mounted
-    // ahead of routes/suppliers.js, so answering here made every sibling path
-    // under /api/suppliers unreachable: `/api/suppliers/showcase` was read as
-    // an id lookup and 404'd before it could match its own route. A supplier
-    // that exists but may not be read still 404s below; only unmatched ids
-    // fall through, and the last router to see them answers 404 the same way.
     if (!supplier) {
       return next();
     }
@@ -218,13 +212,6 @@ router.get('/suppliers/:id/packages', async (req, res, next) => {
       return next();
     }
     const supplier = await dbUnified.findOne('suppliers', { id: req.params.id });
-    // No supplier carries this id, so this router has nothing to say about the
-    // request — hand it on rather than answering 404. This router is mounted
-    // ahead of routes/suppliers.js, so answering here made every sibling path
-    // under /api/suppliers unreachable: `/api/suppliers/showcase` was read as
-    // an id lookup and 404'd before it could match its own route. A supplier
-    // that exists but may not be read still 404s below; only unmatched ids
-    // fall through, and the last router to see them answers 404 the same way.
     if (!supplier) {
       return next();
     }
