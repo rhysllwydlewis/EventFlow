@@ -2,8 +2,13 @@
 
 const express = require('express');
 const router = express.Router();
+const { csrfProtection } = require('../middleware/csrf');
 const { verifySupplierBotHmac } = require('../middleware/supplierBotHmac');
 const { createUnclaimedSupplierFromBot } = require('../services/supplierBotIngestion.service');
+const {
+  collisionSignals,
+  createSupplierBotClaimRequest,
+} = require('../services/supplierBotClaim.service');
 const { resolvePackageImage } = require('../utils/packageImageUtils');
 const { safePublicPackage, safePublicSupplier } = require('../utils/supplierPublicProfile');
 const { addPublicProfilePath } = require('../utils/publicSupplierProfilePath');
@@ -99,6 +104,56 @@ router.post('/internal/supplier-bot/suppliers', verifySupplierBotHmac, async (re
     }
     logger.error('Supplier Bot ingestion failed:', error);
     return res.status(500).json({ error: 'Supplier Bot ingestion failed' });
+  }
+});
+
+// Creates a claim request only. This endpoint never transfers ownership. The
+// proof methods and final handover are deliberately left to the validated
+// claim lifecycle so a logged-in user cannot take over a business by merely
+// knowing its profile id or website.
+router.post('/supplier-bot/claims/:supplierId', csrfProtection, async (req, res) => {
+  try {
+    if (!dbUnified) return res.status(503).json({ error: 'Database unavailable' });
+    const sessionUser = currentUser(req);
+    if (!sessionUser?.id) return res.status(401).json({ error: 'Authentication required' });
+
+    const user = await dbUnified.findOne('users', { id: sessionUser.id });
+    if (!user || user.role !== 'supplier') {
+      return res.status(403).json({ error: 'A supplier account is required to claim this profile' });
+    }
+    if (user.verified !== true) {
+      return res.status(403).json({
+        error: 'Verify your email address before requesting a supplier profile claim',
+        code: 'EMAIL_VERIFICATION_REQUIRED',
+      });
+    }
+
+    const supplier = await dbUnified.findOne('suppliers', { id: req.params.supplierId });
+    if (!supplier) return res.status(404).json({ error: 'Supplier not found' });
+
+    const result = await createSupplierBotClaimRequest({
+      dbUnified,
+      supplier,
+      user,
+      signals: collisionSignals(user, supplier),
+      source: 'profile_claim',
+    });
+    return res.status(result.created ? 202 : 200).json({
+      claimId: result.claim.id,
+      supplierId: result.claim.supplierId,
+      status: result.claim.status,
+      created: result.created,
+      idempotent: result.idempotent,
+    });
+  } catch (error) {
+    if (error?.code === 'SUPPLIER_BOT_NOT_CLAIMABLE') {
+      return res.status(409).json({ error: error.message });
+    }
+    if (error?.code === 'SUPPLIER_BOT_CLAIM_ACCOUNT_REQUIRED') {
+      return res.status(403).json({ error: error.message });
+    }
+    logger.error('Supplier Bot claim request failed:', error);
+    return res.status(500).json({ error: 'Failed to request supplier profile claim' });
   }
 });
 
