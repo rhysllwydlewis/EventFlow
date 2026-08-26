@@ -4,6 +4,10 @@ const dbUnified = require('../db-unified');
 const logger = require('../utils/logger');
 const { auditLog, AUDIT_ACTIONS } = require('../middleware/audit');
 const { VERIFICATION_STATES } = require('../utils/supplierVerificationStateMachine');
+const {
+  createSupplierBotClaimRequest,
+  findSupplierBotCollision,
+} = require('./supplierBotClaim.service');
 
 // skipcq: JS-0067 -- CommonJS module scope prevents these declarations becoming browser globals.
 function emailLocalPart(email) {
@@ -162,6 +166,30 @@ async function ensureSupplierProfileForUser(user, options = {}) {
     return existing;
   }
 
+  // A normal supplier signup can arrive after the autonomous bot has already
+  // discovered the same business. Detect that collision before creating the
+  // user's ordinary profile and persist a claim request instead of silently
+  // losing the relationship between the two records. Ownership is deliberately
+  // NOT transferred here: Phase 5 validates email/domain/DNS/phone proof before
+  // any claim can become authoritative.
+  const collision = await findSupplierBotCollision({ dbUnified, user });
+  let pendingBotClaim = null;
+  if (collision) {
+    pendingBotClaim = await createSupplierBotClaimRequest({
+      dbUnified,
+      supplier: collision.supplier,
+      user,
+      signals: collision.signals,
+      source: 'normal_signup_collision',
+    });
+    logger.info('Supplier signup matched an unclaimed Supplier Bot profile', {
+      userId: user.id,
+      supplierId: collision.supplier.id,
+      claimId: pendingBotClaim.claim.id,
+      signals: collision.signals,
+    });
+  }
+
   const nowIso = new Date().toISOString();
   const email = typeof user.email === 'string' ? user.email.trim().toLowerCase() : '';
   const supplier = {
@@ -179,6 +207,17 @@ async function ensureSupplierProfileForUser(user, options = {}) {
     amenities: [],
     createdAt: nowIso,
     updatedAt: nowIso,
+    ...(pendingBotClaim
+      ? {
+          supplierBotCollision: {
+            supplierId: collision.supplier.id,
+            candidateId: collision.supplier.acquisition?.candidateId || null,
+            claimId: pendingBotClaim.claim.id,
+            claimStatus: pendingBotClaim.claim.status,
+            detectedAt: nowIso,
+          },
+        }
+      : {}),
     ...(await supplierApprovalDefaults(nowIso)),
   };
 
