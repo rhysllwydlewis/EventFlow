@@ -6,6 +6,7 @@ const {
   ENDPOINT_META,
   getSupplierProfilePackageCards,
 } = require('../services/supplierProfilePackageCards');
+const { lifecycleBlockReason } = require('../services/seoRecordLifecycle.util');
 
 let dbUnified;
 let getUserFromCookie;
@@ -40,7 +41,7 @@ function canReadSupplier(req, supplier) {
   if (!supplier) {
     return false;
   }
-  if (supplier.approved === true) {
+  if (supplier.approved === true && lifecycleBlockReason(supplier) === null) {
     return true;
   }
   return previewMode(req) && canPreview(req, supplier);
