@@ -148,6 +148,29 @@ async function reactivateConversionSuspendedProfile(supplier) {
   return refreshed || { ...supplier, ...updates };
 }
 
+async function rollbackNewCollisionClaim(pendingBotClaim) {
+  if (!pendingBotClaim?.created || !pendingBotClaim.claim?.id) return;
+  if (typeof dbUnified.deleteOne !== 'function') {
+    logger.warn('Could not roll back Supplier Bot collision claim because deleteOne is unavailable', {
+      claimId: pendingBotClaim.claim.id,
+    });
+    return;
+  }
+  try {
+    const removed = await dbUnified.deleteOne('supplierClaims', { id: pendingBotClaim.claim.id });
+    if (!removed) {
+      logger.warn('Supplier Bot collision claim rollback did not remove a record', {
+        claimId: pendingBotClaim.claim.id,
+      });
+    }
+  } catch (error) {
+    logger.warn('Failed to roll back Supplier Bot collision claim', {
+      claimId: pendingBotClaim.claim.id,
+      error: error.message,
+    });
+  }
+}
+
 // skipcq: JS-0067 -- CommonJS module scope prevents these declarations becoming browser globals.
 async function ensureSupplierProfileForUser(user, options = {}) {
   if (!user || user.role !== 'supplier') {
@@ -239,6 +262,12 @@ async function ensureSupplierProfileForUser(user, options = {}) {
     return afterInsertFailure;
   }
 
+  // If this signup created a brand-new collision claim but the owned supplier
+  // profile never materialised, remove that claim before the registration
+  // route rolls back the user. This prevents orphaned claim requests pointing
+  // at accounts that no longer exist. Pre-existing/idempotent claims are left
+  // untouched because they may belong to an earlier valid attempt.
+  await rollbackNewCollisionClaim(pendingBotClaim);
   throw new Error(`Failed to provision supplier profile for user ${user.id}`);
 }
 
