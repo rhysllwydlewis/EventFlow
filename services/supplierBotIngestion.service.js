@@ -28,11 +28,7 @@ function generateSlug(text) {
 }
 
 function supplierIdForCandidate(candidateId) {
-  const digest = crypto
-    .createHash('sha256')
-    .update(String(candidateId))
-    .digest('hex')
-    .slice(0, 24);
+  const digest = crypto.createHash('sha256').update(String(candidateId)).digest('hex').slice(0, 24);
   return `sup_bot_${digest}`;
 }
 
