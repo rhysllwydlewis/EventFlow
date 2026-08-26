@@ -151,9 +151,12 @@ async function reactivateConversionSuspendedProfile(supplier) {
 async function rollbackNewCollisionClaim(pendingBotClaim) {
   if (!pendingBotClaim?.created || !pendingBotClaim.claim?.id) return;
   if (typeof dbUnified.deleteOne !== 'function') {
-    logger.warn('Could not roll back Supplier Bot collision claim because deleteOne is unavailable', {
-      claimId: pendingBotClaim.claim.id,
-    });
+    logger.warn(
+      'Could not roll back Supplier Bot collision claim because deleteOne is unavailable',
+      {
+        claimId: pendingBotClaim.claim.id,
+      }
+    );
     return;
   }
   try {

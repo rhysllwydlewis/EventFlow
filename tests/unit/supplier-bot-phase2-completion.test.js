@@ -55,7 +55,11 @@ describe('Phase 2 Supplier Bot completion boundaries', () => {
   it('finds only unclaimed Supplier Bot profiles as signup collisions', async () => {
     const suppliers = [
       botSupplier(),
-      botSupplier({ id: 'sup_manual', ownershipStatus: 'claimed', acquisition: { source: 'manual' } }),
+      botSupplier({
+        id: 'sup_manual',
+        ownershipStatus: 'claimed',
+        acquisition: { source: 'manual' },
+      }),
     ];
     const dbUnified = { read: jest.fn(async () => suppliers) };
 
@@ -71,7 +75,9 @@ describe('Phase 2 Supplier Bot completion boundaries', () => {
   it('creates an idempotent claim request without transferring ownership', async () => {
     const claims = [];
     const dbUnified = {
-      findOne: jest.fn(async (_collection, filter) => claims.find(item => item.id === filter.id) || null),
+      findOne: jest.fn(
+        async (_collection, filter) => claims.find(item => item.id === filter.id) || null
+      ),
       insertOne: jest.fn(async (_collection, doc) => {
         claims.push(doc);
         return doc;
@@ -223,7 +229,9 @@ describe('normal supplier signup collision routing', () => {
       uid: jest.fn(() => 'sup_signup'),
     };
     jest.doMock('../../db-unified', () => dbUnified);
-    const { ensureSupplierProfileForUser } = require('../../services/supplierProfileProvisioning.service');
+    const {
+      ensureSupplierProfileForUser,
+    } = require('../../services/supplierProfileProvisioning.service');
 
     const created = await ensureSupplierProfileForUser({
       id: 'usr_signup',

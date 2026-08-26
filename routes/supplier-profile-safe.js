@@ -119,7 +119,9 @@ router.post('/supplier-bot/claims/:supplierId', csrfProtection, async (req, res)
 
     const user = await dbUnified.findOne('users', { id: sessionUser.id });
     if (!user || user.role !== 'supplier') {
-      return res.status(403).json({ error: 'A supplier account is required to claim this profile' });
+      return res
+        .status(403)
+        .json({ error: 'A supplier account is required to claim this profile' });
     }
     if (user.verified !== true) {
       return res.status(403).json({

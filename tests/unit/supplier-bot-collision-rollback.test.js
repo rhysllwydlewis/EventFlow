@@ -58,7 +58,9 @@ describe('supplier signup collision rollback', () => {
       uid: jest.fn(() => 'sup_signup'),
     };
     jest.doMock('../../db-unified', () => dbUnified);
-    const { ensureSupplierProfileForUser } = require('../../services/supplierProfileProvisioning.service');
+    const {
+      ensureSupplierProfileForUser,
+    } = require('../../services/supplierProfileProvisioning.service');
 
     await expect(
       ensureSupplierProfileForUser({
@@ -109,7 +111,9 @@ describe('supplier signup collision rollback', () => {
       uid: jest.fn(() => 'sup_signup'),
     };
     jest.doMock('../../db-unified', () => dbUnified);
-    const { ensureSupplierProfileForUser } = require('../../services/supplierProfileProvisioning.service');
+    const {
+      ensureSupplierProfileForUser,
+    } = require('../../services/supplierProfileProvisioning.service');
 
     await expect(
       ensureSupplierProfileForUser({
