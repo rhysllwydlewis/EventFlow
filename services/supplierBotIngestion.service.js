@@ -3,14 +3,32 @@
 const crypto = require('crypto');
 const { VALID_CATEGORIES } = require('../models/Supplier');
 
+function isSlugCharacter(char) {
+  const code = char.charCodeAt(0);
+  return (
+    (code >= 48 && code <= 57) ||
+    (code >= 97 && code <= 122) ||
+    char === '_'
+  );
+}
+
 function generateSlug(text) {
-  return String(text || '')
-    .toLowerCase()
-    .trim()
-    .replace(/[^\w\s-]/g, '')
-    .replace(/\s+/g, '-')
-    .replace(/-+/g, '-')
-    .replace(/^-+|-+$/g, '');
+  const input = String(text || '').toLowerCase().trim();
+  let output = '';
+  let separatorPending = false;
+
+  for (const char of input) {
+    if (isSlugCharacter(char)) {
+      if (separatorPending && output) output += '-';
+      output += char;
+      separatorPending = false;
+      continue;
+    }
+    if (char === '-' || char === ' ' || char === '\t' || char === '\n' || char === '\r') {
+      separatorPending = Boolean(output);
+    }
+  }
+  return output;
 }
 
 function supplierIdForCandidate(candidateId) {
