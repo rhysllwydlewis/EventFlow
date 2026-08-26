@@ -138,6 +138,19 @@ function lifecycleBlockReason(record) {
     return 'inactive';
   }
 
+  // Supplier Bot imports are intentionally ownerless until a claim has passed
+  // the separate proof lifecycle. Keep them fail-closed even if a future admin
+  // action or migration accidentally flips `approved` before ownership changes.
+  // Reusing `not_approved` means every existing public/directory/index/sitemap
+  // caller gets the same safe result without inventing a parallel SEO policy.
+  if (
+    source.ownershipStatus === 'unclaimed' &&
+    source.acquisition &&
+    source.acquisition.source === 'supplier_bot'
+  ) {
+    return 'not_approved';
+  }
+
   // Not yet (or no longer) approved covers both a record still awaiting
   // moderation and one whose approval was withdrawn — an unresolved
   // moderation state is, by definition, not an approved one.
