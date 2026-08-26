@@ -34,6 +34,7 @@ function supplierIdForCandidate(candidateId) {
   return `sup_bot_${digest}`;
 }
 
+// Canonicalize websites before duplicate checks so equivalent URLs resolve consistently.
 function canonicalWebsite(value) {
   let url;
   try {
