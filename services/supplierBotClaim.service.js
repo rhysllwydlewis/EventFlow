@@ -1,6 +1,5 @@
 'use strict';
 
-const crypto = require('crypto');
 const { canonicalWebsite } = require('./supplierBotIngestion.service');
 const { configuredGraceDays } = require('./supplierBotPackageGrace.service');
 
@@ -20,19 +19,15 @@ function normalizeWebsite(value) {
 }
 
 function claimIdFor(supplierId, userId) {
-  const digest = crypto
-    .createHash('sha256')
-    .update(`${String(supplierId)}:${String(userId)}`)
-    .digest('hex')
-    .slice(0, 24);
-  return `clm_bot_${digest}`;
+  const stablePair = `${String(supplierId)}:${String(userId)}`;
+  return `clm_bot_${Buffer.from(stablePair, 'utf8').toString('base64url')}`;
 }
 
 function isUnclaimedBotSupplier(supplier) {
   return Boolean(
     supplier &&
-    supplier.ownershipStatus === 'unclaimed' &&
-    supplier.acquisition?.source === 'supplier_bot'
+      supplier.ownershipStatus === 'unclaimed' &&
+      supplier.acquisition?.source === 'supplier_bot'
   );
 }
 
@@ -44,16 +39,13 @@ function collisionSignals(user, supplier) {
 
   const userWebsite = normalizeWebsite(user?.website);
   const supplierWebsite = normalizeWebsite(supplier?.website);
-  if (userWebsite && supplierWebsite && userWebsite === supplierWebsite)
-    signals.push('website_exact');
+  if (userWebsite && supplierWebsite && userWebsite === supplierWebsite) signals.push('website_exact');
   return signals;
 }
 
 async function findSupplierBotCollision({ dbUnified, user }) {
   if (!dbUnified || !user) return null;
 
-  // Prefer the targeted/indexable path in production and in lean service
-  // adapters. Fall back to read() only for legacy database implementations.
   let suppliers;
   if (typeof dbUnified.find === 'function') {
     suppliers = await dbUnified.find('suppliers', { ownershipStatus: 'unclaimed' });
@@ -70,6 +62,23 @@ async function findSupplierBotCollision({ dbUnified, user }) {
     if (signals.length > 0) return { supplier, signals };
   }
   return null;
+}
+
+async function advanceVerifiedClaim({ dbUnified, claim, user }) {
+  if (!claim || user?.verified !== true || claim.status !== 'pending_email_verification') {
+    return claim;
+  }
+  const now = new Date().toISOString();
+  const updates = {
+    status: 'pending_proof',
+    emailVerifiedAt: now,
+    updatedAt: now,
+  };
+  const updated = await dbUnified.updateOne('supplierClaims', { id: claim.id }, { $set: updates });
+  if (!updated) {
+    throw new Error('Failed to advance verified Supplier Bot claim request');
+  }
+  return { ...claim, ...updates };
 }
 
 async function createSupplierBotClaimRequest({
@@ -93,7 +102,13 @@ async function createSupplierBotClaimRequest({
 
   const id = claimIdFor(supplier.id, user.id);
   const existing = await dbUnified.findOne('supplierClaims', { id });
-  if (existing) return { claim: existing, created: false, idempotent: true };
+  if (existing) {
+    return {
+      claim: await advanceVerifiedClaim({ dbUnified, claim: existing, user }),
+      created: false,
+      idempotent: true,
+    };
+  }
 
   const now = new Date().toISOString();
   const claim = {
@@ -119,7 +134,13 @@ async function createSupplierBotClaimRequest({
   }
 
   const afterRace = await dbUnified.findOne('supplierClaims', { id });
-  if (afterRace) return { claim: afterRace, created: false, idempotent: true };
+  if (afterRace) {
+    return {
+      claim: await advanceVerifiedClaim({ dbUnified, claim: afterRace, user }),
+      created: false,
+      idempotent: true,
+    };
+  }
   throw new Error('Failed to persist Supplier Bot claim request');
 }
 
