@@ -1,7 +1,10 @@
 'use strict';
 
+const mongo = require('../db');
 const { canonicalWebsite } = require('./supplierBotIngestion.service');
 const { configuredGraceDays } = require('./supplierBotPackageGrace.service');
+
+let claimIndexesPromise = null;
 
 function normalizeEmail(value) {
   return typeof value === 'string' ? value.trim().toLowerCase() : '';
@@ -41,6 +44,24 @@ function collisionSignals(user, supplier) {
   const supplierWebsite = normalizeWebsite(supplier?.website);
   if (userWebsite && supplierWebsite && userWebsite === supplierWebsite) signals.push('website_exact');
   return signals;
+}
+
+async function ensureSupplierBotClaimIndexes() {
+  if (!mongo.isConnected()) return;
+  if (!claimIndexesPromise) {
+    claimIndexesPromise = (async () => {
+      const collection = await mongo.getCollection('supplierClaims');
+      await collection.createIndex({ id: 1 }, { unique: true, name: 'uniq_supplier_claim_id' });
+      await collection.createIndex(
+        { supplierId: 1, requesterUserId: 1 },
+        { unique: true, name: 'uniq_supplier_claim_supplier_requester' }
+      );
+    })().catch(error => {
+      claimIndexesPromise = null;
+      throw error;
+    });
+  }
+  await claimIndexesPromise;
 }
 
 async function findSupplierBotCollision({ dbUnified, user }) {
@@ -100,6 +121,8 @@ async function createSupplierBotClaimRequest({
     throw error;
   }
 
+  await ensureSupplierBotClaimIndexes();
+
   const id = claimIdFor(supplier.id, user.id);
   const existing = await dbUnified.findOne('supplierClaims', { id });
   if (existing) {
@@ -148,6 +171,7 @@ module.exports = {
   claimIdFor,
   collisionSignals,
   createSupplierBotClaimRequest,
+  ensureSupplierBotClaimIndexes,
   findSupplierBotCollision,
   isUnclaimedBotSupplier,
   normalizeWebsite,
