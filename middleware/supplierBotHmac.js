@@ -9,7 +9,9 @@ function signatureFor(secret, timestamp, body) {
 }
 
 function safeEqualHex(left, right) {
-  if (!/^[a-f0-9]{64}$/i.test(left || '') || !/^[a-f0-9]{64}$/i.test(right || '')) return false;
+  if (!/^[a-f0-9]{64}$/i.test(left || '') || !/^[a-f0-9]{64}$/i.test(right || '')) {
+    return false;
+  }
   const a = Buffer.from(left, 'hex');
   const b = Buffer.from(right, 'hex');
   return a.length === b.length && crypto.timingSafeEqual(a, b);
@@ -27,7 +29,9 @@ function verifySupplierBotHmac(req, res, next) {
 
   const timestamp = String(req.get('x-eventflow-bot-timestamp') || '');
   const signatureHeader = String(req.get('x-eventflow-bot-signature') || '');
-  const signature = signatureHeader.startsWith('sha256=') ? signatureHeader.slice(7) : signatureHeader;
+  const signature = signatureHeader.startsWith('sha256=')
+    ? signatureHeader.slice(7)
+    : signatureHeader;
   const timestampMs = Number(timestamp);
 
   if (!Number.isFinite(timestampMs) || Math.abs(Date.now() - timestampMs) > MAX_SKEW_MS) {
