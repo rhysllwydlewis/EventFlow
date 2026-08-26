@@ -1,7 +1,7 @@
 'use strict';
 
+const crypto = require('crypto');
 const { VALID_CATEGORIES } = require('../models/Supplier');
-const { uid } = require('../store');
 
 function generateSlug(text) {
   return String(text || '')
@@ -11,6 +11,11 @@ function generateSlug(text) {
     .replace(/\s+/g, '-')
     .replace(/-+/g, '-')
     .replace(/^-+|-+$/g, '');
+}
+
+function supplierIdForCandidate(candidateId) {
+  const digest = crypto.createHash('sha256').update(String(candidateId)).digest('hex').slice(0, 24);
+  return `sup_bot_${digest}`;
 }
 
 function canonicalWebsite(value) {
@@ -42,10 +47,13 @@ function validatePayload(payload) {
 async function createUnclaimedSupplierFromBot({ dbUnified, payload }) {
   if (!dbUnified) throw new Error('Database unavailable');
   const canonical = validatePayload(payload);
+  const deterministicId = supplierIdForCandidate(payload.candidateId);
   const suppliers = await dbUnified.read('suppliers');
 
   const sameCandidate = suppliers.find(
-    item => item?.acquisition?.source === 'supplier_bot' && item?.acquisition?.candidateId === payload.candidateId
+    item => item.id === deterministicId || (
+      item?.acquisition?.source === 'supplier_bot' && item?.acquisition?.candidateId === payload.candidateId
+    )
   );
   if (sameCandidate) {
     return { supplier: sameCandidate, created: false, idempotent: true };
@@ -66,7 +74,7 @@ async function createUnclaimedSupplierFromBot({ dbUnified, payload }) {
     throw error;
   }
 
-  const baseSlug = generateSlug(payload.businessName) || `supplier-${Date.now()}`;
+  const baseSlug = generateSlug(payload.businessName) || deterministicId;
   let slug = baseSlug;
   let suffix = 2;
   while (suppliers.some(item => item.slug === slug)) {
@@ -76,7 +84,7 @@ async function createUnclaimedSupplierFromBot({ dbUnified, payload }) {
 
   const now = new Date().toISOString();
   const supplier = {
-    id: uid('sup'),
+    id: deterministicId,
     ownerUserId: null,
     ownershipStatus: 'unclaimed',
     name: payload.businessName.trim(),
@@ -136,11 +144,21 @@ async function createUnclaimedSupplierFromBot({ dbUnified, payload }) {
     updatedAt: now,
   };
 
-  await dbUnified.insertOne('suppliers', supplier);
-  return { supplier, created: true, idempotent: false };
+  try {
+    await dbUnified.insertOne('suppliers', supplier);
+    return { supplier, created: true, idempotent: false };
+  } catch (error) {
+    if (error && error.code === 11000) {
+      const current = await dbUnified.read('suppliers');
+      const concurrent = current.find(item => item.id === deterministicId);
+      if (concurrent) return { supplier: concurrent, created: false, idempotent: true };
+    }
+    throw error;
+  }
 }
 
 module.exports = {
   canonicalWebsite,
   createUnclaimedSupplierFromBot,
+  supplierIdForCandidate,
 };
