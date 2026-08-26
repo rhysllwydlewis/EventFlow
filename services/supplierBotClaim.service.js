@@ -2,6 +2,7 @@
 
 const crypto = require('crypto');
 const { canonicalWebsite } = require('./supplierBotIngestion.service');
+const { configuredGraceDays } = require('./supplierBotPackageGrace.service');
 
 function normalizeEmail(value) {
   return typeof value === 'string' ? value.trim().toLowerCase() : '';
@@ -93,6 +94,7 @@ async function createSupplierBotClaimRequest({
     status: user.verified === true ? 'pending_proof' : 'pending_email_verification',
     source,
     signals: Array.isArray(signals) ? signals.slice(0, 10) : [],
+    packageGraceDaysOnApproval: configuredGraceDays(),
     requestedAt: now,
     updatedAt: now,
     resolvedAt: null,
