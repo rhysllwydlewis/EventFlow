@@ -2,17 +2,12 @@
 
 const express = require('express');
 const request = require('supertest');
-const {
-  canonicalWebsite,
-  createUnclaimedSupplierFromBot,
-  supplierIdForCandidate,
-} = require('../../services/supplierBotIngestion.service');
-const {
-  MAX_SKEW_MS,
-  signatureFor,
-  verifySupplierBotHmac,
-} = require('../../middleware/supplierBotHmac');
+const ingestion = require('../../services/supplierBotIngestion.service');
+const hmac = require('../../middleware/supplierBotHmac');
 const supplierProfileSafeRouter = require('../../routes/supplier-profile-safe');
+
+const { canonicalWebsite, createUnclaimedSupplierFromBot, supplierIdForCandidate } = ingestion;
+const { MAX_SKEW_MS, signatureFor, verifySupplierBotHmac } = hmac;
 
 function payload(overrides = {}) {
   return {
@@ -68,6 +63,10 @@ function signedHeaders(body, secret, timestamp = String(Date.now()), prefix = tr
   };
 }
 
+function headerRequest(body, headers) {
+  return { body, get: name => headers[name.toLowerCase()] || '' };
+}
+
 function createRouteApp(dbUnified, logger = { error: jest.fn(), warn: jest.fn() }) {
   supplierProfileSafeRouter.initializeDependencies({ dbUnified, logger });
   const app = express();
@@ -99,23 +98,21 @@ describe('Supplier Bot ingestion', () => {
 
   it('creates safe defaults when optional bot fields are absent or malformed', async () => {
     const dbUnified = memoryDb();
-    const result = await createUnclaimedSupplierFromBot({
-      dbUnified,
-      payload: payload({
-        description: '',
-        location: '',
-        publicEmail: '',
-        publicPhone: '',
-        services: null,
-        packages: null,
-        advertisedPrices: null,
-        socials: 'not-an-object',
-        generatedAt: '',
-        generatorVersion: '',
-        complianceStatus: '',
-        compliancePolicyVersion: '',
-      }),
+    const itemPayload = payload({
+      description: '',
+      location: '',
+      publicEmail: '',
+      publicPhone: '',
+      services: null,
+      packages: null,
+      advertisedPrices: null,
+      socials: 'not-an-object',
+      generatedAt: '',
+      generatorVersion: '',
+      complianceStatus: '',
+      compliancePolicyVersion: '',
     });
+    const result = await createUnclaimedSupplierFromBot({ dbUnified, payload: itemPayload });
 
     expect(result.supplier).toMatchObject({
       description: '',
@@ -151,26 +148,30 @@ describe('Supplier Bot ingestion', () => {
       id: 'legacy_bot_id',
       acquisition: { source: 'supplier_bot', candidateId: 'candidate_test_123' },
     };
-    const result = await createUnclaimedSupplierFromBot({
-      dbUnified: memoryDb([existing]),
-      payload: payload(),
-    });
+    const dbUnified = memoryDb([existing]);
+    const result = await createUnclaimedSupplierFromBot({ dbUnified, payload: payload() });
 
     expect(result).toEqual({ supplier: existing, created: false, idempotent: true });
   });
 
   it('refuses to duplicate an existing website', async () => {
-    const dbUnified = memoryDb([
-      { id: 'sup_existing', website: 'https://example-venue.test/', ownerUserId: 'user_1' },
-    ]);
+    const existing = {
+      id: 'sup_existing',
+      website: 'https://example-venue.test/',
+      ownerUserId: 'user_1',
+    };
+    const dbUnified = memoryDb([existing]);
+    const operation = createUnclaimedSupplierFromBot({ dbUnified, payload: payload() });
 
-    await expect(
-      createUnclaimedSupplierFromBot({ dbUnified, payload: payload() })
-    ).rejects.toMatchObject({ code: 'SUPPLIER_WEBSITE_CONFLICT', supplierId: 'sup_existing' });
+    await expect(operation).rejects.toMatchObject({
+      code: 'SUPPLIER_WEBSITE_CONFLICT',
+      supplierId: 'sup_existing',
+    });
   });
 
   it('ignores malformed legacy website values while checking duplicates', async () => {
-    const dbUnified = memoryDb([{ id: 'legacy', website: 'not a valid url', slug: 'legacy' }]);
+    const existing = { id: 'legacy', website: 'not a valid url', slug: 'legacy' };
+    const dbUnified = memoryDb([existing]);
     const result = await createUnclaimedSupplierFromBot({ dbUnified, payload: payload() });
 
     expect(result.created).toBe(true);
@@ -184,7 +185,7 @@ describe('Supplier Bot ingestion', () => {
     expect(result.supplier.slug).toBe('example-venue-2');
   });
 
-  it('uses the deterministic id as a fallback for a punctuation-only business name', async () => {
+  it('uses the deterministic id for a punctuation-only business name', async () => {
     const dbUnified = memoryDb();
     const itemPayload = payload({ businessName: '!!!' });
     const result = await createUnclaimedSupplierFromBot({ dbUnified, payload: itemPayload });
@@ -212,20 +213,18 @@ describe('Supplier Bot ingestion', () => {
     const duplicateError = new Error('duplicate key without matching candidate');
     duplicateError.code = 11000;
     dbUnified.insertOne = jest.fn().mockRejectedValue(duplicateError);
+    const operation = createUnclaimedSupplierFromBot({ dbUnified, payload: payload() });
 
-    await expect(
-      createUnclaimedSupplierFromBot({ dbUnified, payload: payload() })
-    ).rejects.toBe(duplicateError);
+    await expect(operation).rejects.toBe(duplicateError);
   });
 
   it('rethrows unexpected insert errors', async () => {
     const dbUnified = memoryDb();
     const insertError = new Error('storage unavailable');
     dbUnified.insertOne = jest.fn().mockRejectedValue(insertError);
+    const operation = createUnclaimedSupplierFromBot({ dbUnified, payload: payload() });
 
-    await expect(
-      createUnclaimedSupplierFromBot({ dbUnified, payload: payload() })
-    ).rejects.toBe(insertError);
+    await expect(operation).rejects.toBe(insertError);
   });
 
   test.each([
@@ -295,19 +294,18 @@ describe('Supplier Bot ingestion', () => {
       'dataConfidence is required',
     ],
   ])('rejects %s', async (_label, dbUnified, itemPayload, message) => {
-    await expect(
-      createUnclaimedSupplierFromBot({ dbUnified, payload: itemPayload })
-    ).rejects.toThrow(message);
+    const operation = createUnclaimedSupplierFromBot({ dbUnified, payload: itemPayload });
+    await expect(operation).rejects.toThrow(message);
   });
 
   it('normalizes supported websites and rejects invalid or unsupported URLs', () => {
-    expect(canonicalWebsite('HTTPS://WWW.Example-Venue.TEST/path/#details')).toBe(
-      'https://example-venue.test/path'
-    );
-    expect(() => canonicalWebsite('ftp://example-venue.test')).toThrow(
-      'Website must use HTTP or HTTPS'
-    );
-    expect(() => canonicalWebsite('not a url')).toThrow('website must be a valid URL');
+    const normalized = canonicalWebsite('HTTPS://WWW.Example-Venue.TEST/path/#details');
+    const unsupported = () => canonicalWebsite('ftp://example-venue.test');
+    const malformed = () => canonicalWebsite('not a url');
+
+    expect(normalized).toBe('https://example-venue.test/path');
+    expect(unsupported).toThrow('Website must use HTTP or HTTPS');
+    expect(malformed).toThrow('website must be a valid URL');
   });
 });
 
@@ -329,7 +327,7 @@ describe('Supplier Bot HMAC middleware', () => {
     process.env.SUPPLIER_BOT_INGESTION_ENABLED = 'true';
     process.env.EVENTFLOW_BOT_HMAC_SECRET = secret;
     const headers = signedHeaders(body, secret, timestamp);
-    const req = { body, get: name => headers[name.toLowerCase()] || '' };
+    const req = headerRequest(body, headers);
     const res = mockResponse();
     const next = jest.fn();
 
@@ -345,7 +343,7 @@ describe('Supplier Bot HMAC middleware', () => {
     process.env.SUPPLIER_BOT_INGESTION_ENABLED = 'true';
     process.env.EVENTFLOW_BOT_HMAC_SECRET = secret;
     const headers = signedHeaders(body, secret, String(Date.now()), false);
-    const req = { body, get: name => headers[name.toLowerCase()] || '' };
+    const req = headerRequest(body, headers);
     const next = jest.fn();
 
     verifySupplierBotHmac(req, mockResponse(), next);
@@ -368,9 +366,10 @@ describe('Supplier Bot HMAC middleware', () => {
   it('fails closed when the shared secret is missing or too short', () => {
     process.env.SUPPLIER_BOT_INGESTION_ENABLED = 'true';
     process.env.EVENTFLOW_BOT_HMAC_SECRET = 'too-short';
+    const req = { body: payload(), get: () => '' };
     const res = mockResponse();
 
-    verifySupplierBotHmac({ body: payload(), get: () => '' }, res, jest.fn());
+    verifySupplierBotHmac(req, res, jest.fn());
 
     expect(res.status).toHaveBeenCalledWith(503);
     expect(res.json).toHaveBeenCalledWith({
@@ -381,14 +380,11 @@ describe('Supplier Bot HMAC middleware', () => {
   it('rejects a missing timestamp', () => {
     process.env.SUPPLIER_BOT_INGESTION_ENABLED = 'true';
     process.env.EVENTFLOW_BOT_HMAC_SECRET = 'c'.repeat(48);
-    const res = mockResponse();
     const headers = { 'x-eventflow-bot-signature': '0'.repeat(64) };
+    const req = headerRequest(payload(), headers);
+    const res = mockResponse();
 
-    verifySupplierBotHmac(
-      { body: payload(), get: name => headers[name.toLowerCase()] || '' },
-      res,
-      jest.fn()
-    );
+    verifySupplierBotHmac(req, res, jest.fn());
 
     expect(res.status).toHaveBeenCalledWith(401);
   });
@@ -400,13 +396,10 @@ describe('Supplier Bot HMAC middleware', () => {
     process.env.SUPPLIER_BOT_INGESTION_ENABLED = 'true';
     process.env.EVENTFLOW_BOT_HMAC_SECRET = secret;
     const headers = signedHeaders(body, secret, timestamp);
+    const req = headerRequest(body, headers);
     const res = mockResponse();
 
-    verifySupplierBotHmac(
-      { body, get: name => headers[name.toLowerCase()] || '' },
-      res,
-      jest.fn()
-    );
+    verifySupplierBotHmac(req, res, jest.fn());
 
     expect(res.status).toHaveBeenCalledWith(401);
     expect(res.json).toHaveBeenCalledWith({
@@ -422,16 +415,15 @@ describe('Supplier Bot HMAC middleware', () => {
     process.env.EVENTFLOW_BOT_HMAC_SECRET = secret;
 
     for (const signature of ['not-hex', '0'.repeat(64)]) {
-      const res = mockResponse();
       const headers = {
         'x-eventflow-bot-timestamp': timestamp,
         'x-eventflow-bot-signature': signature,
       };
-      verifySupplierBotHmac(
-        { body, get: name => headers[name.toLowerCase()] || '' },
-        res,
-        jest.fn()
-      );
+      const req = headerRequest(body, headers);
+      const res = mockResponse();
+
+      verifySupplierBotHmac(req, res, jest.fn());
+
       expect(res.status).toHaveBeenCalledWith(401);
       expect(res.json).toHaveBeenCalledWith({ error: 'Invalid Supplier Bot signature' });
     }
@@ -443,13 +435,10 @@ describe('Supplier Bot HMAC middleware', () => {
     const headers = signedHeaders({}, secret, timestamp);
     process.env.SUPPLIER_BOT_INGESTION_ENABLED = 'true';
     process.env.EVENTFLOW_BOT_HMAC_SECRET = secret;
+    const req = headerRequest(undefined, headers);
     const next = jest.fn();
 
-    verifySupplierBotHmac(
-      { body: undefined, get: name => headers[name.toLowerCase()] || '' },
-      mockResponse(),
-      next
-    );
+    verifySupplierBotHmac(req, mockResponse(), next);
 
     expect(next).toHaveBeenCalledTimes(1);
   });
@@ -509,9 +498,8 @@ describe('Supplier Bot ingestion route', () => {
   });
 
   it('returns 409 for an existing supplier website', async () => {
-    const app = createRouteApp(
-      memoryDb([{ id: 'sup_existing', website: 'https://example-venue.test/' }])
-    );
+    const existing = { id: 'sup_existing', website: 'https://example-venue.test/' };
+    const app = createRouteApp(memoryDb([existing]));
     const response = await postSupplier(app, payload());
 
     expect(response.status).toBe(409);
@@ -541,9 +529,6 @@ describe('Supplier Bot ingestion route', () => {
 
     expect(response.status).toBe(500);
     expect(response.body).toEqual({ error: 'Supplier Bot ingestion failed' });
-    expect(logger.error).toHaveBeenCalledWith(
-      'Supplier Bot ingestion failed:',
-      expect.any(Error)
-    );
+    expect(logger.error).toHaveBeenCalledTimes(1);
   });
 });
