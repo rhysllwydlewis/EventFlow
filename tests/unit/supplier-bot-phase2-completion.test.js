@@ -7,6 +7,12 @@ const {
   normalizeWebsite,
 } = require('../../services/supplierBotClaim.service');
 const { createUnclaimedSupplierFromBot } = require('../../services/supplierBotIngestion.service');
+const {
+  DEFAULT_GRACE_DAYS,
+  configuredGraceDays,
+  isPackageGraceActive,
+  startSupplierBotPackageGrace,
+} = require('../../services/supplierBotPackageGrace.service');
 const { lifecycleBlockReason } = require('../../services/seoRecordLifecycle.util');
 const seoEligibility = require('../../services/seoEligibility.service');
 
@@ -32,6 +38,10 @@ function botSupplier(overrides = {}) {
 }
 
 describe('Phase 2 Supplier Bot completion boundaries', () => {
+  afterEach(() => {
+    delete process.env.SUPPLIER_BOT_PACKAGE_GRACE_DAYS;
+  });
+
   it('normalises signup websites and detects exact email/website collisions', () => {
     expect(normalizeWebsite('www.example-venue.test/')).toBe('https://example-venue.test/');
     expect(
@@ -141,6 +151,39 @@ describe('Phase 2 Supplier Bot completion boundaries', () => {
     expect(result.supplier.acquisition.advertisedPrices).toEqual(payload.advertisedPrices);
     expect(result.supplier.status).toBe('draft');
     expect(result.supplier.ownershipStatus).toBe('unclaimed');
+  });
+
+  it('defines a bounded time-limited package grace that starts only after a validated claim handover', async () => {
+    const supplier = botSupplier({ ownershipStatus: 'claimed', ownerUserId: 'usr_owner' });
+    const updates = [];
+    const dbUnified = {
+      findOne: jest.fn(async () => supplier),
+      updateOne: jest.fn(async (_collection, _filter, update) => {
+        updates.push(update.$set);
+        return true;
+      }),
+    };
+    const claimedAt = new Date('2026-08-27T12:00:00.000Z');
+
+    expect(configuredGraceDays()).toBe(DEFAULT_GRACE_DAYS);
+    const result = await startSupplierBotPackageGrace({
+      dbUnified,
+      supplierId: supplier.id,
+      claimedAt,
+    });
+
+    expect(updates).toHaveLength(1);
+    expect(result.supplierBotPackageGraceStartedAt).toBe('2026-08-27T12:00:00.000Z');
+    expect(result.supplierBotPackageGraceUntil).toBe('2026-09-26T12:00:00.000Z');
+    expect(isPackageGraceActive(result, new Date('2026-09-01T00:00:00.000Z'))).toBe(true);
+    expect(isPackageGraceActive(result, new Date('2026-10-01T00:00:00.000Z'))).toBe(false);
+  });
+
+  it('clamps package grace configuration instead of allowing an unlimited bypass', () => {
+    process.env.SUPPLIER_BOT_PACKAGE_GRACE_DAYS = '9999';
+    expect(configuredGraceDays()).toBe(90);
+    process.env.SUPPLIER_BOT_PACKAGE_GRACE_DAYS = '0';
+    expect(configuredGraceDays()).toBe(1);
   });
 });
 
