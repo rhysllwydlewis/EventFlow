@@ -1,7 +1,5 @@
 'use strict';
 
-const fs = require('fs');
-const path = require('path');
 const express = require('express');
 const request = require('supertest');
 
@@ -21,12 +19,20 @@ function botSupplier(overrides = {}) {
   };
 }
 
+function mockDisconnectedMongo() {
+  jest.doMock('../../db', () => ({
+    isConnected: jest.fn(() => false),
+    getCollection: jest.fn(),
+  }));
+}
+
 describe('Supplier Bot Phase 2 review hardening', () => {
   beforeEach(() => {
     jest.resetModules();
   });
 
   it('advances a pre-verification collision claim after the supplier verifies email', async () => {
+    mockDisconnectedMongo();
     const supplier = botSupplier({ status: 'draft', approved: false });
     const claim = {
       id: 'clm_existing',
@@ -68,16 +74,43 @@ describe('Supplier Bot Phase 2 review hardening', () => {
     expect(dbUnified.insertOne).not.toHaveBeenCalled();
   });
 
-  it('declares unique Mongo indexes for claim id and supplier/requester pair', () => {
-    const source = fs.readFileSync(path.join(__dirname, '..', '..', 'db-unified.js'), 'utf8');
-    expect(source).toContain("const supplierClaimsCollection = mongodb.collection('supplierClaims')");
-    expect(source).toContain("supplierClaimsCollection.createIndex({ id: 1 }, { unique: true })");
-    expect(source).toContain(
-      "supplierClaimsCollection.createIndex(\n      { supplierId: 1, requesterUserId: 1 },\n      { unique: true }"
+  it('creates and awaits unique Mongo indexes before a claim write', async () => {
+    const createIndex = jest.fn(async () => 'ok');
+    const getCollection = jest.fn(async () => ({ createIndex }));
+    jest.doMock('../../db', () => ({
+      isConnected: jest.fn(() => true),
+      getCollection,
+    }));
+    const { createSupplierBotClaimRequest } = require('../../services/supplierBotClaim.service');
+    const supplier = botSupplier({ status: 'draft', approved: false });
+    const dbUnified = {
+      findOne: jest.fn(async () => null),
+      insertOne: jest.fn(async (_collection, doc) => doc),
+    };
+
+    await createSupplierBotClaimRequest({
+      dbUnified,
+      supplier,
+      user: { id: 'usr_index', role: 'supplier', verified: true, email: supplier.email },
+    });
+
+    expect(getCollection).toHaveBeenCalledWith('supplierClaims');
+    expect(createIndex).toHaveBeenNthCalledWith(
+      1,
+      { id: 1 },
+      { unique: true, name: 'uniq_supplier_claim_id' }
     );
+    expect(createIndex).toHaveBeenNthCalledWith(
+      2,
+      { supplierId: 1, requesterUserId: 1 },
+      { unique: true, name: 'uniq_supplier_claim_supplier_requester' }
+    );
+    expect(dbUnified.findOne).toHaveBeenCalledAfter(createIndex);
+    expect(dbUnified.insertOne).toHaveBeenCalledAfter(createIndex);
   });
 
   it('404s an accidentally approved unclaimed bot supplier from the public supplier API', async () => {
+    mockDisconnectedMongo();
     const supplier = botSupplier();
     const router = require('../../routes/supplier-profile-safe');
     router.initializeDependencies({
