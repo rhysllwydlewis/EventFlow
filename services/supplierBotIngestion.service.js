@@ -85,7 +85,6 @@ async function createUnclaimedSupplierFromBot({ dbUnified, payload }) {
   const now = new Date().toISOString();
   const supplier = {
     id: deterministicId,
-    ownerUserId: null,
     ownershipStatus: 'unclaimed',
     name: payload.businessName.trim(),
     category: payload.category,
