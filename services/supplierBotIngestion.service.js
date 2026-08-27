@@ -2,6 +2,7 @@
 
 const crypto = require('crypto');
 const { VALID_CATEGORIES } = require('../models/Supplier');
+const { PILOT_SCOPE, isSupplierBotPilotProfile } = require('./supplierBotPilotVisibility.util');
 
 const MAX_SOURCE_IMAGES = 12;
 const MAX_MEDIA_EVIDENCE = 20;
@@ -177,9 +178,18 @@ function validatePayload(payload) {
   if (!Number.isFinite(Number(payload.dataConfidence))) {
     throw new Error('dataConfidence is required');
   }
+  if (
+    payload.publicationScope !== undefined &&
+    payload.publicationScope !== null &&
+    payload.publicationScope !== '' &&
+    payload.publicationScope !== PILOT_SCOPE
+  ) {
+    throw new Error('publicationScope is unsupported');
+  }
   const website = canonicalWebsite(payload.website);
   const sourceMedia = normalizeSourceMedia(payload);
-  return { website, sourceMedia };
+  const publicationScope = payload.publicationScope === PILOT_SCOPE ? PILOT_SCOPE : null;
+  return { website, sourceMedia, publicationScope };
 }
 
 async function createUnclaimedSupplierFromBot({ dbUnified, payload }) {
@@ -282,6 +292,12 @@ async function createUnclaimedSupplierFromBot({ dbUnified, payload }) {
         ? payload.advertisedPrices.slice(0, 50)
         : [],
       sourceMedia: validated.sourceMedia,
+      ...(validated.publicationScope
+        ? {
+            publicationScope: validated.publicationScope,
+            pilotPublishedAt: now,
+          }
+        : {}),
       ingestedAt: now,
     },
     createdAt: now,
@@ -297,6 +313,15 @@ async function createUnclaimedSupplierFromBot({ dbUnified, payload }) {
       const concurrent = current.find(item => item.id === deterministicId);
       if (concurrent) {
         return { supplier: concurrent, created: false, idempotent: true };
+      }
+      if (validated.publicationScope === PILOT_SCOPE) {
+        const existingPilot = current.find(item => isSupplierBotPilotProfile(item));
+        if (existingPilot) {
+          const pilotError = new Error('The one-profile Supplier Bot pilot is already in use');
+          pilotError.code = 'SUPPLIER_BOT_PILOT_LIMIT';
+          pilotError.supplierId = existingPilot.id;
+          throw pilotError;
+        }
       }
     }
     throw error;
