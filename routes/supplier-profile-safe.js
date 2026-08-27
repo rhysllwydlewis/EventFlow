@@ -9,6 +9,11 @@ const {
   collisionSignals,
   createSupplierBotClaimRequest,
 } = require('../services/supplierBotClaim.service');
+const {
+  PILOT_SCOPE,
+  isSupplierBotPilotProfile,
+  pilotPresentationSupplier,
+} = require('../services/supplierBotPilotVisibility.util');
 const { lifecycleBlockReason } = require('../services/seoRecordLifecycle.util');
 const { resolvePackageImage } = require('../utils/packageImageUtils');
 const { safePublicPackage, safePublicSupplier } = require('../utils/supplierPublicProfile');
@@ -53,6 +58,9 @@ function canRead(req, supplier) {
   if (!supplier) {
     return false;
   }
+  if (isSupplierBotPilotProfile(supplier)) {
+    return true;
+  }
   if (supplier.approved === true && lifecycleBlockReason(supplier) === null) {
     return true;
   }
@@ -77,26 +85,78 @@ async function badgeDetailsFor(supplier) {
   }
 }
 
+async function applyPilotPublicationScope(result, payload) {
+  const requestedScope = payload && payload.publicationScope;
+  if (requestedScope === undefined || requestedScope === null || requestedScope === '') {
+    return result.supplier;
+  }
+  if (requestedScope !== PILOT_SCOPE) {
+    const error = new Error('publicationScope is unsupported');
+    error.code = 'SUPPLIER_BOT_INVALID_PILOT_SCOPE';
+    throw error;
+  }
+
+  const suppliers = await dbUnified.read('suppliers');
+  const existingPilot = suppliers.find(
+    supplier =>
+      isSupplierBotPilotProfile(supplier) && supplier.id !== result.supplier.id
+  );
+  if (existingPilot) {
+    const error = new Error('The one-profile Supplier Bot pilot is already in use');
+    error.code = 'SUPPLIER_BOT_PILOT_LIMIT';
+    error.supplierId = existingPilot.id;
+    throw error;
+  }
+
+  if (isSupplierBotPilotProfile(result.supplier)) {
+    return result.supplier;
+  }
+
+  const now = new Date().toISOString();
+  const acquisition = {
+    ...(result.supplier.acquisition || {}),
+    publicationScope: PILOT_SCOPE,
+    pilotPublishedAt: now,
+  };
+  const wrote = await dbUnified.updateOne(
+    'suppliers',
+    { id: result.supplier.id },
+    { $set: { acquisition, updatedAt: now } }
+  );
+  if (!wrote) {
+    throw new Error('Failed to mark Supplier Bot pilot profile');
+  }
+  return { ...result.supplier, acquisition, updatedAt: now };
+}
+
 router.post('/internal/supplier-bot/suppliers', verifySupplierBotHmac, async (req, res) => {
   try {
     if (!dbUnified) {
       return res.status(503).json({ error: 'Database unavailable' });
     }
     const result = await createUnclaimedSupplierFromBot({ dbUnified, payload: req.body });
+    const supplier = await applyPilotPublicationScope(result, req.body);
     return res.status(result.created ? 201 : 200).json({
-      supplierId: result.supplier.id,
-      slug: result.supplier.slug,
-      status: result.supplier.status,
-      ownershipStatus: result.supplier.ownershipStatus,
+      supplierId: supplier.id,
+      slug: supplier.slug,
+      status: supplier.status,
+      ownershipStatus: supplier.ownershipStatus,
+      publicationScope: supplier.acquisition?.publicationScope || null,
       created: result.created,
       idempotent: result.idempotent,
     });
   } catch (error) {
-    if (error && error.code === 'SUPPLIER_WEBSITE_CONFLICT') {
+    if (
+      error &&
+      (error.code === 'SUPPLIER_WEBSITE_CONFLICT' || error.code === 'SUPPLIER_BOT_PILOT_LIMIT')
+    ) {
       return res.status(409).json({
         error: error.message,
         existingSupplierId: error.supplierId || null,
       });
+    }
+    if (error?.code === 'SUPPLIER_BOT_INVALID_PILOT_SCOPE') {
+      return res.status(400).json({ error: error.message });
     }
     const message = error instanceof Error ? error.message : 'Invalid Supplier Bot payload';
     const validationMessage = /required|unsupported|must be|must use|must contain|website/i.test(
@@ -185,23 +245,27 @@ router.get('/suppliers/:id', async (req, res, next) => {
     const preview = previewMode(req) && canPreview(req, supplier);
 
     const ownerUser = await findOwnerUserForSupplierFromDb(supplier, dbUnified, logger);
-    const publicSupplier = hydrateSupplierProfilePhoto(supplier, ownerUser);
+    const presentationSupplier = pilotPresentationSupplier(supplier);
+    const publicSupplier = hydrateSupplierProfilePhoto(presentationSupplier, ownerUser);
     const profilePhotoUrl = publicSupplier.profilePhotoUrl;
+    const safeSupplier = safePublicSupplier(publicSupplier, {
+      badgeDetails: await badgeDetailsFor(supplier),
+      exposeMessagingRecipient: true,
+      exposeOwnerUserId: isOwner,
+      featuredSupplier,
+      isOwner,
+      isPreview: preview,
+      isPro,
+      profilePhotoUrl,
+    });
 
-    return res.json(
-      addPublicProfilePath(
-        safePublicSupplier(publicSupplier, {
-          badgeDetails: await badgeDetailsFor(supplier),
-          exposeMessagingRecipient: true,
-          exposeOwnerUserId: isOwner,
-          featuredSupplier,
-          isOwner,
-          isPreview: preview,
-          isPro,
-          profilePhotoUrl,
-        })
-      )
-    );
+    if (isSupplierBotPilotProfile(supplier)) {
+      safeSupplier.ownershipStatus = 'unclaimed';
+      safeSupplier.isUnclaimed = true;
+      safeSupplier.isSupplierBotPilot = true;
+    }
+
+    return res.json(addPublicProfilePath(safeSupplier));
   } catch (error) {
     logger.error('Supplier profile safe route failed:', error);
     return res.status(500).json({ error: 'Failed to fetch supplier' });
