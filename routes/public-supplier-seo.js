@@ -12,11 +12,24 @@ const {
   renderSupplierHtml,
   resolvePublicSupplierBySlug,
 } = require('../services/publicSupplierSeo.service');
+const {
+  isSupplierBotPilotProfile,
+} = require('../services/supplierBotPilotVisibility.util');
 
 const TEMPLATE_PATH = path.join(__dirname, '..', 'public', 'supplier.html');
 const INDEXABLE_CACHE_CONTROL = 'public, max-age=60, s-maxage=300, stale-while-revalidate=60';
 const NON_INDEXABLE_CACHE_CONTROL = 'public, max-age=30, s-maxage=60, stale-while-revalidate=30';
 const DEFAULT_SUPPLIER_CACHE_TTL_MS = 60 * 1000;
+
+function addPilotBanner(html) {
+  const banner = `
+    <aside id="supplier-bot-unclaimed-banner" role="status" style="margin:0;padding:10px 16px;text-align:center;background:#f3f4f6;color:#374151;border-bottom:1px solid #e5e7eb;font:600 14px/1.4 system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif">
+      Unclaimed profile · This business has not claimed or verified this EventFlow profile yet.
+    </aside>`;
+  return /<body\b[^>]*>/i.test(html)
+    ? html.replace(/<body\b[^>]*>/i, match => `${match}${banner}`)
+    : html;
+}
 
 function createPublicSupplierSeoRouter(options = {}) {
   const dbUnified = options.dbUnified;
@@ -46,7 +59,7 @@ function createPublicSupplierSeoRouter(options = {}) {
     return templatePromise;
   }
 
-  async function loadPublicSuppliers() {
+  async function loadDirectlyAddressableSuppliers() {
     const [suppliers, users, supplierAnalytics] = await Promise.all([
       dbUnified.read('suppliers'),
       dbUnified.read('users'),
@@ -60,7 +73,10 @@ function createPublicSupplierSeoRouter(options = {}) {
     );
 
     return (suppliers || [])
-      .filter(supplier => isPublicSupplier(supplier, validOwnerIds))
+      .filter(
+        supplier =>
+          isPublicSupplier(supplier, validOwnerIds) || isSupplierBotPilotProfile(supplier)
+      )
       .map(supplier => {
         const summary = reviewSummaryBySupplierId.get(String(supplier.id));
         return {
@@ -75,9 +91,9 @@ function createPublicSupplierSeoRouter(options = {}) {
       });
   }
 
-  function readPublicSuppliers() {
+  function readDirectlyAddressableSuppliers() {
     if (process.env.E2E_MODE === 'full') {
-      return loadPublicSuppliers();
+      return loadDirectlyAddressableSuppliers();
     }
 
     const now = Date.now();
@@ -88,7 +104,7 @@ function createPublicSupplierSeoRouter(options = {}) {
       return supplierLoadPromise;
     }
 
-    supplierLoadPromise = loadPublicSuppliers()
+    supplierLoadPromise = loadDirectlyAddressableSuppliers()
       .then(suppliers => {
         supplierCache = suppliers;
         supplierCacheExpiresAt = Date.now() + supplierCacheTtlMs;
@@ -101,8 +117,10 @@ function createPublicSupplierSeoRouter(options = {}) {
     return supplierLoadPromise;
   }
 
-  // This is an indexable HTML page, not an API operation. It deliberately does not
-  // share apiLimiter's 100-request bucket, which could interrupt a sitemap crawl.
+  // This is an HTML profile route, not an API operation. Ordinary public suppliers
+  // retain the normal SEO policy. The explicit one-profile Supplier Bot pilot is
+  // directly addressable only so the owner can inspect the complete production
+  // render; it remains excluded from normal public discovery and forced noindex.
   router.get('/supplier/:slug', async (req, res, next) => {
     try {
       if (!extractSlugToken(req.params.slug)) {
@@ -110,7 +128,7 @@ function createPublicSupplierSeoRouter(options = {}) {
         return next();
       }
 
-      const suppliers = await readPublicSuppliers();
+      const suppliers = await readDirectlyAddressableSuppliers();
       const supplier = resolvePublicSupplierBySlug(suppliers, req.params.slug);
       if (!supplier) {
         res.setHeader('X-Robots-Tag', 'noindex, nofollow');
@@ -123,36 +141,31 @@ function createPublicSupplierSeoRouter(options = {}) {
       const queryStart = req.originalUrl.indexOf('?');
       const incomingSearch = queryStart === -1 ? '' : req.originalUrl.slice(queryStart);
 
-      // The slug and server-rendered supplier ID are authoritative. Remove legacy
-      // `id`, `preview` and arbitrary query values so metadata and visible profile
-      // content can never describe different suppliers. Recognised campaign values
-      // remain available for acquisition attribution.
       if (req.params.slug !== canonicalSlug || incomingSearch !== canonicalSearch) {
         return res.redirect(301, `/supplier/${canonicalSlug}${canonicalSearch}`);
       }
 
-      // Being viewable does not by itself mean this profile is complete
-      // enough to index (SEO-002) — a supplier record can pass isPublicSupplier
-      // while still failing the stricter canBeIndexed checks (missing
-      // category/location, a known test fixture, below the quality bar). That
-      // page still renders normally; only the robots directive changes. The
-      // owner reference was already validated when `supplier` was loaded
-      // (readPublicSuppliers only returns records that passed
-      // isPublicSupplier), so re-checking it here only needs to confirm this
-      // one supplier's own ownerUserId, not the full users collection again.
+      const pilot = isSupplierBotPilotProfile(supplier);
       const ownerIdsForIndexCheck = supplier.ownerUserId
         ? new Set([String(supplier.ownerUserId)])
         : undefined;
-      const indexable = getSupplierIndexEligibility(supplier, ownerIdsForIndexCheck).eligible;
+      const indexable =
+        !pilot && getSupplierIndexEligibility(supplier, ownerIdsForIndexCheck).eligible;
       const template = await readTemplate();
-      const html = renderSupplierHtml(template, supplier, { baseUrl }, indexable);
+      const rendered = renderSupplierHtml(template, supplier, { baseUrl }, indexable);
+      const html = pilot ? addPilotBanner(rendered) : rendered;
+
       res.setHeader(
         'Cache-Control',
         indexable ? INDEXABLE_CACHE_CONTROL : NON_INDEXABLE_CACHE_CONTROL
       );
       res.setHeader(
         'X-Robots-Tag',
-        indexable ? 'index, follow, max-image-preview:large' : 'noindex, follow'
+        pilot
+          ? 'noindex, nofollow, noarchive'
+          : indexable
+            ? 'index, follow, max-image-preview:large'
+            : 'noindex, follow'
       );
       return res.status(200).type('html').send(html);
     } catch (error) {
@@ -164,9 +177,6 @@ function createPublicSupplierSeoRouter(options = {}) {
     }
   });
 
-  // Lets other routes (e.g. a supplier's own profile/business-name save) force
-  // an immediate refresh instead of waiting out the TTL — mirrors the
-  // suppliersRouter.invalidatePackageCaches() pattern used for package edits.
   router.invalidateSupplierCache = () => {
     supplierCache = null;
     supplierCacheExpiresAt = 0;
