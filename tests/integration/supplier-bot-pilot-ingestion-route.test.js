@@ -168,6 +168,28 @@ describe('one-profile Supplier Bot ingestion pilot', () => {
     expect(repeated.body.publicProfilePath).toBe(created.body.publicProfilePath);
   });
 
+  it('returns no public profile path for ordinary draft ingestion', async () => {
+    const dbUnified = memoryDb();
+    const response = await postSupplier(
+      createApp(dbUnified),
+      payload({
+        candidateId: 'candidate_hidden',
+        businessName: 'Hidden Draft Venue',
+        website: 'https://hidden-draft.example/',
+        publicationScope: undefined,
+      })
+    );
+
+    expect(response.status).toBe(201);
+    expect(response.body).toMatchObject({
+      publicationScope: null,
+      publicProfilePath: null,
+      created: true,
+    });
+    expect(dbUnified.suppliers).toHaveLength(1);
+    expect(dbUnified.suppliers[0].acquisition?.publicationScope).toBeUndefined();
+  });
+
   it('rejects an unsupported publication scope before ingestion', async () => {
     const dbUnified = memoryDb();
     const response = await postSupplier(
