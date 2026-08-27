@@ -4,7 +4,32 @@ const seoEligibility = require('../../services/seoEligibility.service');
 const {
   ensurePublishedUnclaimedMarketplaceState,
   reconcilePublishedUnclaimedMarketplaceState,
+  sourcePackageRecords,
 } = require('../../services/supplierBotMarketplaceParity.service');
+
+function sourcePackage(overrides = {}) {
+  return {
+    name: 'Wedding Package',
+    price: 'From £2,500',
+    priceDisplay: 'From £2,500',
+    kind: 'advertised_package',
+    features: ['Exclusive use', 'Wedding breakfast'],
+    evidenceIds: ['evidence_package_1'],
+    sourceUrl: 'https://marketplace-venue.example/packages',
+    sourceObservedAt: '2026-08-27T18:30:00.000Z',
+    sourceContentHash: 'a'.repeat(64),
+    extractionConfidence: 93,
+    priceDetails: {
+      currency: 'GBP',
+      amount: 2500,
+      maxAmount: null,
+      qualifier: 'from',
+      unit: 'total',
+      vatStatus: 'unspecified',
+    },
+    ...overrides,
+  };
+}
 
 function publishedSupplier(overrides = {}) {
   return {
@@ -22,17 +47,28 @@ function publishedSupplier(overrides = {}) {
       candidateId: 'candidate_marketplace_1',
       publicationScope: 'public_unclaimed',
       publishedUnclaimedAt: '2026-08-27T18:00:00.000Z',
+      refreshedAt: '2026-08-27T18:45:00.000Z',
       sourcePackages: [
-        {
-          name: 'Wedding Package',
-          price: 'From £2,500',
-          features: ['Exclusive use', 'Wedding breakfast'],
-        },
-        {
+        sourcePackage(),
+        sourcePackage({
           name: 'Evening Celebration',
-          price: 'From £1,000',
+          price: '£1,000',
+          priceDisplay: '£1,000',
+          kind: 'priced_service',
           features: ['Evening room hire'],
-        },
+          evidenceIds: ['evidence_package_2'],
+          sourceUrl: 'https://marketplace-venue.example/evening-events',
+          sourceContentHash: 'b'.repeat(64),
+          extractionConfidence: 88,
+          priceDetails: {
+            currency: 'GBP',
+            amount: 1000,
+            maxAmount: null,
+            qualifier: 'fixed',
+            unit: 'total',
+            vatStatus: 'unspecified',
+          },
+        }),
       ],
       sourceMedia: {
         coverImage: 'https://marketplace-venue.example/cover.jpg',
@@ -70,7 +106,7 @@ function memoryDb(initialSuppliers = []) {
 }
 
 describe('published-unclaimed marketplace parity', () => {
-  it('turns an explicitly published bot profile into a normal marketplace supplier with real packages', async () => {
+  it('turns only strongly evidenced bot packages into normal marketplace packages', async () => {
     const supplier = publishedSupplier();
     const dbUnified = memoryDb([supplier]);
 
@@ -90,35 +126,116 @@ describe('published-unclaimed marketplace parity', () => {
       approved: true,
       paused: false,
       priceDisplay: 'From £2,500',
+      priceDetails: {
+        currency: 'GBP',
+        amount: 2500,
+        qualifier: 'from',
+      },
       acquisition: {
         source: 'supplier_bot',
         candidateId: 'candidate_marketplace_1',
         managedWhileUnclaimed: true,
+        sourcePackageKind: 'advertised_package',
+        sourceUrl: 'https://marketplace-venue.example/packages',
+        extractionConfidence: 93,
+        missingCount: 0,
       },
     });
     expect(dbUnified.collections.packages[0].id).toMatch(/^pkg_bot_[a-f0-9]{24}$/);
     expect(dbUnified.collections.packages[0].slug).toMatch(/^wedding-package-[a-f0-9]{8}$/);
   });
 
-  it('is idempotent and retires source packages that disappear on a later bot refresh', async () => {
+  it('does not materialise legacy, unpriced or weak package data', () => {
+    const supplier = publishedSupplier({
+      acquisition: {
+        ...publishedSupplier().acquisition,
+        sourcePackages: [
+          { name: 'Legacy package', price: '£500', features: ['Thing'] },
+          sourcePackage({ name: 'No price', price: '', priceDisplay: '' }),
+          sourcePackage({ name: 'Low confidence', extractionConfidence: 60 }),
+          sourcePackage({ name: 'Missing evidence', evidenceIds: [] }),
+        ],
+      },
+    });
+
+    expect(sourcePackageRecords(supplier)).toEqual([]);
+  });
+
+  it('requires two distinct successful source refreshes before retiring a missing package', async () => {
     const supplier = publishedSupplier();
     const dbUnified = memoryDb([supplier]);
     await ensurePublishedUnclaimedMarketplaceState({ dbUnified, supplier });
     const firstIds = dbUnified.collections.packages.map(pkg => pkg.id);
 
-    const refreshed = {
+    const firstMissingRefresh = {
       ...dbUnified.collections.suppliers[0],
       acquisition: {
         ...dbUnified.collections.suppliers[0].acquisition,
+        refreshedAt: '2026-08-28T09:00:00.000Z',
         sourcePackages: [dbUnified.collections.suppliers[0].acquisition.sourcePackages[0]],
       },
     };
-    await ensurePublishedUnclaimedMarketplaceState({ dbUnified, supplier: refreshed });
+    await ensurePublishedUnclaimedMarketplaceState({ dbUnified, supplier: firstMissingRefresh });
 
     expect(dbUnified.collections.packages).toHaveLength(2);
     expect(dbUnified.collections.packages[0].id).toBe(firstIds[0]);
-    expect(dbUnified.collections.packages[0].approved).toBe(true);
-    expect(dbUnified.collections.packages[1]).toMatchObject({ approved: false, paused: true });
+    expect(dbUnified.collections.packages[1]).toMatchObject({
+      approved: true,
+      paused: false,
+      acquisition: { missingCount: 1 },
+    });
+
+    // Reconciliation of the same source snapshot must not count as another miss.
+    await ensurePublishedUnclaimedMarketplaceState({ dbUnified, supplier: firstMissingRefresh });
+    expect(dbUnified.collections.packages[1]).toMatchObject({
+      approved: true,
+      acquisition: { missingCount: 1 },
+    });
+
+    const secondMissingRefresh = {
+      ...firstMissingRefresh,
+      acquisition: {
+        ...firstMissingRefresh.acquisition,
+        refreshedAt: '2026-08-29T09:00:00.000Z',
+      },
+    };
+    await ensurePublishedUnclaimedMarketplaceState({ dbUnified, supplier: secondMissingRefresh });
+    expect(dbUnified.collections.packages[1]).toMatchObject({
+      approved: false,
+      paused: true,
+      acquisition: { missingCount: 2 },
+    });
+  });
+
+  it('restores a package cleanly if it reappears after one missing refresh', async () => {
+    const supplier = publishedSupplier();
+    const dbUnified = memoryDb([supplier]);
+    await ensurePublishedUnclaimedMarketplaceState({ dbUnified, supplier });
+
+    const onePackage = {
+      ...supplier,
+      acquisition: {
+        ...supplier.acquisition,
+        refreshedAt: '2026-08-28T09:00:00.000Z',
+        sourcePackages: [supplier.acquisition.sourcePackages[0]],
+      },
+    };
+    await ensurePublishedUnclaimedMarketplaceState({ dbUnified, supplier: onePackage });
+    expect(dbUnified.collections.packages[1].acquisition.missingCount).toBe(1);
+
+    const restored = {
+      ...supplier,
+      acquisition: {
+        ...supplier.acquisition,
+        refreshedAt: '2026-08-29T09:00:00.000Z',
+      },
+    };
+    await ensurePublishedUnclaimedMarketplaceState({ dbUnified, supplier: restored });
+    expect(dbUnified.collections.packages[1]).toMatchObject({
+      approved: true,
+      paused: false,
+      acquisition: { missingCount: 0, missingSince: null },
+    });
   });
 
   it('repairs previously published pilot records without Hensol-specific logic', async () => {
