@@ -3,6 +3,10 @@
 const crypto = require('crypto');
 const { VALID_CATEGORIES } = require('../models/Supplier');
 const { PILOT_SCOPE, isSupplierBotPilotProfile } = require('./supplierBotPilotVisibility.util');
+const {
+  attachSupplierToPilotSlot,
+  reserveSupplierBotPilotSlot,
+} = require('./supplierBotPilotSlot.service');
 
 const MAX_SOURCE_IMAGES = 12;
 const MAX_MEDIA_EVIDENCE = 20;
@@ -206,6 +210,14 @@ async function createUnclaimedSupplierFromBot({ dbUnified, payload }) {
         item?.acquisition?.candidateId === payload.candidateId)
   );
   if (sameCandidate) {
+    if (validated.publicationScope === PILOT_SCOPE) {
+      await reserveSupplierBotPilotSlot({ dbUnified, candidateId: payload.candidateId });
+      await attachSupplierToPilotSlot({
+        dbUnified,
+        candidateId: payload.candidateId,
+        supplierId: sameCandidate.id,
+      });
+    }
     return { supplier: sameCandidate, created: false, idempotent: true };
   }
 
@@ -222,6 +234,10 @@ async function createUnclaimedSupplierFromBot({ dbUnified, payload }) {
     error.code = 'SUPPLIER_WEBSITE_CONFLICT';
     error.supplierId = sameWebsite.id;
     throw error;
+  }
+
+  if (validated.publicationScope === PILOT_SCOPE) {
+    await reserveSupplierBotPilotSlot({ dbUnified, candidateId: payload.candidateId });
   }
 
   const baseSlug = generateSlug(payload.businessName) || deterministicId;
@@ -306,6 +322,13 @@ async function createUnclaimedSupplierFromBot({ dbUnified, payload }) {
 
   try {
     await dbUnified.insertOne('suppliers', supplier);
+    if (validated.publicationScope === PILOT_SCOPE) {
+      await attachSupplierToPilotSlot({
+        dbUnified,
+        candidateId: payload.candidateId,
+        supplierId: supplier.id,
+      });
+    }
     return { supplier, created: true, idempotent: false };
   } catch (error) {
     if (error && error.code === 11000) {
