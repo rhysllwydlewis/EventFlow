@@ -47,11 +47,12 @@ function normalizedEvidenceIds(value) {
 function normalizedPriceDetails(value) {
   if (!value || typeof value !== 'object') return null;
   const amount = value.amount === null || value.amount === undefined ? null : Number(value.amount);
-  const maxAmount = value.maxAmount === null || value.maxAmount === undefined
-    ? null
-    : Number(value.maxAmount);
-  if ((amount !== null && (!Number.isFinite(amount) || amount < 0))
-    || (maxAmount !== null && (!Number.isFinite(maxAmount) || maxAmount < 0))) {
+  const maxAmount =
+    value.maxAmount === null || value.maxAmount === undefined ? null : Number(value.maxAmount);
+  if (
+    (amount !== null && (!Number.isFinite(amount) || amount < 0)) ||
+    (maxAmount !== null && (!Number.isFinite(maxAmount) || maxAmount < 0))
+  ) {
     return null;
   }
   return {
@@ -62,7 +63,14 @@ function normalizedPriceDetails(value) {
       ? value.qualifier
       : 'other',
     unit: [
-      'total', 'per_person', 'per_hour', 'per_day', 'per_event', 'per_item', 'per_night', 'other',
+      'total',
+      'per_person',
+      'per_hour',
+      'per_day',
+      'per_event',
+      'per_item',
+      'per_night',
+      'other',
     ].includes(value.unit)
       ? value.unit
       : null,
@@ -80,7 +88,9 @@ function normalizePublishableSourcePackage(item) {
   const evidenceIds = normalizedEvidenceIds(item.evidenceIds);
   const confidence = Number(item.extractionConfidence);
   const kind = PACKAGE_KINDS.has(item.kind) ? item.kind : null;
-  const sourceObservedAt = item.sourceObservedAt ? String(item.sourceObservedAt).slice(0, 80) : null;
+  const sourceObservedAt = item.sourceObservedAt
+    ? String(item.sourceObservedAt).slice(0, 80)
+    : null;
   const sourceContentHash = item.sourceContentHash
     ? String(item.sourceContentHash).trim().slice(0, 128)
     : null;
@@ -89,27 +99,32 @@ function normalizePublishableSourcePackage(item) {
   // but it is not materialised into the public marketplace until it carries the
   // new direct commercial-evidence provenance contract.
   if (
-    !title
-    || !priceDisplay
-    || !sourceUrl
-    || !evidenceIds.length
-    || !sourceContentHash
-    || !kind
-    || !Number.isFinite(confidence)
-    || confidence < MIN_PACKAGE_CONFIDENCE
+    !title ||
+    !priceDisplay ||
+    !sourceUrl ||
+    !evidenceIds.length ||
+    !sourceContentHash ||
+    !kind ||
+    !Number.isFinite(confidence) ||
+    confidence < MIN_PACKAGE_CONFIDENCE
   ) {
     return null;
   }
 
   const features = Array.isArray(item.features)
-    ? item.features.map(value => String(value).trim()).filter(Boolean).slice(0, 30)
+    ? item.features
+        .map(value => String(value).trim())
+        .filter(Boolean)
+        .slice(0, 30)
     : [];
   return {
     title,
     priceDisplay,
     kind,
     features,
-    description: String(item.description || features.join(' · ')).trim().slice(0, 2000),
+    description: String(item.description || features.join(' · '))
+      .trim()
+      .slice(0, 2000),
     sourceUrl,
     evidenceIds,
     sourceObservedAt,
@@ -123,11 +138,11 @@ function normalizePublishableSourcePackage(item) {
 function sourceRefreshKey(supplier) {
   const acquisition = supplier?.acquisition || {};
   return String(
-    acquisition.refreshedAt
-      || acquisition.generatedAt
-      || acquisition.publishedUnclaimedAt
-      || supplier?.updatedAt
-      || ''
+    acquisition.refreshedAt ||
+      acquisition.generatedAt ||
+      acquisition.publishedUnclaimedAt ||
+      supplier?.updatedAt ||
+      ''
   );
 }
 
@@ -153,7 +168,8 @@ function sourcePackageRecords(supplier, now = new Date().toISOString()) {
       const occurrence = (occurrences.get(normalizedTitle) || 0) + 1;
       occurrences.set(normalizedTitle, occurrence);
       const identity = packageIdentity(supplier.id, item.title, occurrence);
-      const image = item.image || (mediaImages.length ? mediaImages[index % mediaImages.length] : '');
+      const image =
+        item.image || (mediaImages.length ? mediaImages[index % mediaImages.length] : '');
 
       return {
         id: identity.id,
