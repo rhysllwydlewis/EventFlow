@@ -12,7 +12,10 @@ const {
   renderSupplierHtml,
   resolvePublicSupplierBySlug,
 } = require('../services/publicSupplierSeo.service');
-const { isSupplierBotPilotProfile } = require('../services/supplierBotPilotVisibility.util');
+const {
+  isPublishedUnclaimedSupplierBotProfile,
+  isSupplierBotPilotProfile,
+} = require('../services/supplierBotPilotVisibility.util');
 
 const TEMPLATE_PATH = path.join(__dirname, '..', 'public', 'supplier.html');
 const INDEXABLE_CACHE_CONTROL = 'public, max-age=60, s-maxage=300, stale-while-revalidate=60';
@@ -73,7 +76,9 @@ function createPublicSupplierSeoRouter(options = {}) {
 
     return (suppliers || [])
       .filter(
-        supplier => isPublicSupplier(supplier, validOwnerIds) || isSupplierBotPilotProfile(supplier)
+        supplier =>
+          isPublicSupplier(supplier, validOwnerIds) ||
+          isPublishedUnclaimedSupplierBotProfile(supplier)
       )
       .map(supplier => {
         const summary = reviewSummaryBySupplierId.get(String(supplier.id));
@@ -123,9 +128,9 @@ function createPublicSupplierSeoRouter(options = {}) {
   }
 
   // This is an HTML profile route, not an API operation. Ordinary public suppliers
-  // retain the normal SEO policy. The explicit one-profile Supplier Bot pilot is
-  // directly addressable only so the owner can inspect the complete production
-  // render; it remains excluded from normal public discovery and forced noindex.
+  // retain the normal SEO policy. Explicitly published Supplier Bot profiles are
+  // directly addressable while unclaimed so owners can inspect their complete
+  // production render; they remain excluded from normal discovery and forced noindex.
   router.get('/supplier/:slug', async (req, res, next) => {
     try {
       const requestedSlug = String(req.params.slug || '');
@@ -177,15 +182,15 @@ function createPublicSupplierSeoRouter(options = {}) {
         return res.redirect(301, `/supplier/${canonicalSlug}${canonicalSearch}`);
       }
 
-      const pilot = isSupplierBotPilotProfile(supplier);
+      const publishedUnclaimed = isPublishedUnclaimedSupplierBotProfile(supplier);
       const ownerIdsForIndexCheck = supplier.ownerUserId
         ? new Set([String(supplier.ownerUserId)])
         : undefined;
       const indexable =
-        !pilot && getSupplierIndexEligibility(supplier, ownerIdsForIndexCheck).eligible;
+        !publishedUnclaimed && getSupplierIndexEligibility(supplier, ownerIdsForIndexCheck).eligible;
       const template = await readTemplate();
       const rendered = renderSupplierHtml(template, supplier, { baseUrl }, indexable);
-      const html = pilot ? addPilotBanner(rendered) : rendered;
+      const html = publishedUnclaimed ? addPilotBanner(rendered) : rendered;
 
       res.setHeader(
         'Cache-Control',
@@ -193,7 +198,7 @@ function createPublicSupplierSeoRouter(options = {}) {
       );
       res.setHeader(
         'X-Robots-Tag',
-        pilot
+        publishedUnclaimed
           ? 'noindex, nofollow, noarchive'
           : indexable
             ? 'index, follow, max-image-preview:large'
