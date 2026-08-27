@@ -37,8 +37,16 @@ function createApp(suppliers) {
 function createPackageApp(suppliers) {
   const dbUnified = {
     findOne: jest.fn(async (collection, query) => {
-      if (collection !== 'suppliers') return null;
+      if (collection !== 'suppliers') {
+        return null;
+      }
       return suppliers.find(item => item.id === query.id) || null;
+    }),
+    read: jest.fn(async collection => {
+      if (collection === 'suppliers') {
+        return suppliers;
+      }
+      return [];
     }),
   };
   supplierProfilePackageCardsRouter.initializeDependencies({
@@ -138,7 +146,7 @@ describe('one-profile Supplier Bot production pilot', () => {
 
     expect(response.body.count).toBe(1);
     expect(response.body.items[0]).toMatchObject({ title: 'Exclusive hire' });
-    expect(response.body.meta.source).toBe('supplier_bot_publication_evidence');
+    expect(response.body.meta.source).toBe('supplier_bot_publication_evidence_fallback');
   });
 
   test('redirects the pilot plain-slug tester URL to its canonical tokenised profile', async () => {

@@ -573,6 +573,6 @@ describe('Supplier Bot ingestion route', () => {
 
     expect(response.status).toBe(500);
     expect(response.body).toEqual({ error: 'Supplier Bot ingestion failed' });
-    expect(logger.error).toHaveBeenCalledTimes(1);
+    expect(logger.error).toHaveBeenCalledWith('Supplier Bot ingestion failed:', expect.any(Error));
   });
 });

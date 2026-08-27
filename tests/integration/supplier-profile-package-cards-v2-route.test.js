@@ -111,7 +111,7 @@ describe('supplier profile package cards v2 route', () => {
 
     expect(res.body.meta).toMatchObject({
       endpoint: 'supplier-profile-package-cards-v2',
-      source: 'supplier_bot_publication_evidence',
+      source: 'supplier_bot_publication_evidence_fallback',
     });
     expect(res.body.items).toHaveLength(1);
     expect(res.body.items[0]).toMatchObject({
