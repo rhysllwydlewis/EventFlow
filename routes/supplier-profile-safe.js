@@ -117,7 +117,12 @@ async function applySupplierBotPublicationScope(result, payload) {
   if (![PILOT_SCOPE, PUBLIC_UNCLAIMED_SCOPE].includes(requestedScope)) {
     return result.supplier;
   }
-  if (result.supplier?.acquisition?.publicationScope === requestedScope) {
+
+  // Once a bot-managed profile is explicitly published, keep its established
+  // scope stable. This prevents the legacy pilot reconciler and the generic
+  // live worker from flipping a profile back and forth between scope labels.
+  const existingScope = result.supplier?.acquisition?.publicationScope;
+  if ([PILOT_SCOPE, PUBLIC_UNCLAIMED_SCOPE].includes(existingScope)) {
     return result.supplier;
   }
 
@@ -190,10 +195,6 @@ router.post('/internal/supplier-bot/suppliers', verifySupplierBotHmac, async (re
   }
 });
 
-// Creates a claim request only. This endpoint never transfers ownership. The
-// proof methods and final handover are deliberately left to the validated
-// claim lifecycle so a logged-in user cannot take over a business by merely
-// knowing its profile id or website.
 router.post('/supplier-bot/claims/:supplierId', csrfProtection, async (req, res) => {
   try {
     if (!dbUnified) {
