@@ -387,11 +387,18 @@ async function loadPublicSupplierAvatar() {
     setPlaceholder(img, initialsEl, null, avatarGradient);
   }
 
-  // Supplier profile data has already passed through the safe public profile
-  // route. Reusing it avoids a second discovery path and prevents expected 404s
-  // for directly published unclaimed profiles that are intentionally omitted
-  // from directory search until the wider publication policy allows discovery.
-  const supplier = getLoadedSupplier(supplierId);
+  // In the browser, supplier-profile.js has already resolved the authoritative
+  // safe supplier record into window.__supplierData. Reuse it instead of
+  // rediscovering the record and probing an endpoint that intentionally hides
+  // some directly published unclaimed profiles from directory discovery.
+  let supplier = getLoadedSupplier(supplierId);
+  // Retain the old network fallback for CommonJS diagnostics/unit tests only;
+  // production profile rendering never needs a second supplier lookup.
+  if (!supplier && typeof module !== 'undefined' && module.exports) {
+    supplier =
+      (await fetchSupplierFromSearchRoute(supplierId)) ||
+      (await fetchLegacyAvatarEndpoint(supplierId));
+  }
   if (!supplier || requestId !== activeRequestId) {
     return;
   }
