@@ -12,6 +12,12 @@ async function settle(page) {
 
 async function inspect(url) {
   const page = await context.newPage();
+  const badResponses = [];
+  page.on('response', response => {
+    if (response.status() >= 400) {
+      badResponses.push({ status: response.status(), url: response.url() });
+    }
+  });
   try {
     const response = await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 45000 });
     await settle(page);
@@ -31,9 +37,10 @@ async function inspect(url) {
       };
     });
     result.httpStatus = response?.status() || null;
+    result.badResponses = badResponses;
     return result;
   } catch (error) {
-    return { finalUrl: url, error: error.message };
+    return { finalUrl: url, error: error.message, badResponses };
   } finally {
     await page.close();
   }
