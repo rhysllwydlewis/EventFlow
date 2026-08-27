@@ -85,10 +85,10 @@ async function badgeDetailsFor(supplier) {
   }
 }
 
-async function applyPilotPublicationScope(result, payload) {
+async function assertPilotPublicationSlot(payload) {
   const requestedScope = payload && payload.publicationScope;
   if (requestedScope === undefined || requestedScope === null || requestedScope === '') {
-    return result.supplier;
+    return;
   }
   if (requestedScope !== PILOT_SCOPE) {
     const error = new Error('publicationScope is unsupported');
@@ -96,18 +96,25 @@ async function applyPilotPublicationScope(result, payload) {
     throw error;
   }
 
+  const candidateId = typeof payload.candidateId === 'string' ? payload.candidateId : '';
   const suppliers = await dbUnified.read('suppliers');
-  const existingPilot = suppliers.find(
-    supplier =>
-      isSupplierBotPilotProfile(supplier) && supplier.id !== result.supplier.id
-  );
-  if (existingPilot) {
+  const existingPilot = suppliers.find(supplier => isSupplierBotPilotProfile(supplier));
+  if (
+    existingPilot &&
+    existingPilot.acquisition?.candidateId !== candidateId
+  ) {
     const error = new Error('The one-profile Supplier Bot pilot is already in use');
     error.code = 'SUPPLIER_BOT_PILOT_LIMIT';
     error.supplierId = existingPilot.id;
     throw error;
   }
+}
 
+async function applyPilotPublicationScope(result, payload) {
+  const requestedScope = payload && payload.publicationScope;
+  if (requestedScope !== PILOT_SCOPE) {
+    return result.supplier;
+  }
   if (isSupplierBotPilotProfile(result.supplier)) {
     return result.supplier;
   }
@@ -134,6 +141,7 @@ router.post('/internal/supplier-bot/suppliers', verifySupplierBotHmac, async (re
     if (!dbUnified) {
       return res.status(503).json({ error: 'Database unavailable' });
     }
+    await assertPilotPublicationSlot(req.body);
     const result = await createUnclaimedSupplierFromBot({ dbUnified, payload: req.body });
     const supplier = await applyPilotPublicationScope(result, req.body);
     return res.status(result.created ? 201 : 200).json({
