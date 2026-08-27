@@ -99,10 +99,7 @@ async function assertPilotPublicationSlot(payload) {
   const candidateId = typeof payload.candidateId === 'string' ? payload.candidateId : '';
   const suppliers = await dbUnified.read('suppliers');
   const existingPilot = suppliers.find(supplier => isSupplierBotPilotProfile(supplier));
-  if (
-    existingPilot &&
-    existingPilot.acquisition?.candidateId !== candidateId
-  ) {
+  if (existingPilot && existingPilot.acquisition?.candidateId !== candidateId) {
     const error = new Error('The one-profile Supplier Bot pilot is already in use');
     error.code = 'SUPPLIER_BOT_PILOT_LIMIT';
     error.supplierId = existingPilot.id;
@@ -184,9 +181,13 @@ router.post('/internal/supplier-bot/suppliers', verifySupplierBotHmac, async (re
 // knowing its profile id or website.
 router.post('/supplier-bot/claims/:supplierId', csrfProtection, async (req, res) => {
   try {
-    if (!dbUnified) return res.status(503).json({ error: 'Database unavailable' });
+    if (!dbUnified) {
+      return res.status(503).json({ error: 'Database unavailable' });
+    }
     const sessionUser = currentUser(req);
-    if (!sessionUser?.id) return res.status(401).json({ error: 'Authentication required' });
+    if (!sessionUser?.id) {
+      return res.status(401).json({ error: 'Authentication required' });
+    }
 
     const user = await dbUnified.findOne('users', { id: sessionUser.id });
     if (!user || user.role !== 'supplier') {
@@ -202,7 +203,9 @@ router.post('/supplier-bot/claims/:supplierId', csrfProtection, async (req, res)
     }
 
     const supplier = await dbUnified.findOne('suppliers', { id: req.params.supplierId });
-    if (!supplier) return res.status(404).json({ error: 'Supplier not found' });
+    if (!supplier) {
+      return res.status(404).json({ error: 'Supplier not found' });
+    }
 
     const result = await createSupplierBotClaimRequest({
       dbUnified,

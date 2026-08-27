@@ -13,7 +13,9 @@ const {
 function createApp(suppliers) {
   const dbUnified = {
     read: jest.fn(async collection => {
-      if (collection === 'suppliers') return suppliers;
+      if (collection === 'suppliers') {
+        return suppliers;
+      }
       return [];
     }),
   };
@@ -69,7 +71,9 @@ describe('one-profile Supplier Bot production pilot', () => {
     expect(isSupplierBotPilotProfile(supplier)).toBe(true);
 
     const slug = buildPublicSupplierSlug(supplier);
-    const response = await request(createApp([supplier])).get(`/supplier/${slug}`).expect(200);
+    const response = await request(createApp([supplier]))
+      .get(`/supplier/${slug}`)
+      .expect(200);
 
     expect(response.headers['x-robots-tag']).toBe('noindex, nofollow, noarchive');
     expect(response.text).toContain('Unclaimed profile');
@@ -87,7 +91,9 @@ describe('one-profile Supplier Bot production pilot', () => {
     });
     const slug = buildPublicSupplierSlug(supplier);
 
-    const response = await request(createApp([supplier])).get(`/supplier/${slug}`).expect(404);
+    const response = await request(createApp([supplier]))
+      .get(`/supplier/${slug}`)
+      .expect(404);
     expect(response.headers['x-robots-tag']).toBe('noindex, nofollow');
   });
 

@@ -6,23 +6,27 @@ function isSupplierBotPilotProfile(record) {
   const source = record && typeof record === 'object' ? record : {};
   return Boolean(
     source.ownershipStatus === 'unclaimed' &&
-      source.acquisition &&
-      source.acquisition.source === 'supplier_bot' &&
-      source.acquisition.publicationScope === PILOT_SCOPE
+    source.acquisition &&
+    source.acquisition.source === 'supplier_bot' &&
+    source.acquisition.publicationScope === PILOT_SCOPE
   );
 }
 
 function pilotPresentationSupplier(record) {
-  if (!isSupplierBotPilotProfile(record)) return record;
+  if (!isSupplierBotPilotProfile(record)) {
+    return record;
+  }
 
   const source = record && typeof record === 'object' ? record : {};
-  const acquisition = source.acquisition && typeof source.acquisition === 'object'
-    ? source.acquisition
-    : {};
-  const sourceMedia = acquisition.sourceMedia && typeof acquisition.sourceMedia === 'object'
-    ? acquisition.sourceMedia
-    : {};
-  const sourcePackages = Array.isArray(acquisition.sourcePackages) ? acquisition.sourcePackages : [];
+  const acquisition =
+    source.acquisition && typeof source.acquisition === 'object' ? source.acquisition : {};
+  const sourceMedia =
+    acquisition.sourceMedia && typeof acquisition.sourceMedia === 'object'
+      ? acquisition.sourceMedia
+      : {};
+  const sourcePackages = Array.isArray(acquisition.sourcePackages)
+    ? acquisition.sourcePackages
+    : [];
   const advertisedPrices = Array.isArray(acquisition.advertisedPrices)
     ? acquisition.advertisedPrices.filter(Boolean)
     : [];

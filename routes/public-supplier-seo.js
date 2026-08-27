@@ -12,9 +12,7 @@ const {
   renderSupplierHtml,
   resolvePublicSupplierBySlug,
 } = require('../services/publicSupplierSeo.service');
-const {
-  isSupplierBotPilotProfile,
-} = require('../services/supplierBotPilotVisibility.util');
+const { isSupplierBotPilotProfile } = require('../services/supplierBotPilotVisibility.util');
 
 const TEMPLATE_PATH = path.join(__dirname, '..', 'public', 'supplier.html');
 const INDEXABLE_CACHE_CONTROL = 'public, max-age=60, s-maxage=300, stale-while-revalidate=60';
@@ -74,8 +72,7 @@ function createPublicSupplierSeoRouter(options = {}) {
 
     return (suppliers || [])
       .filter(
-        supplier =>
-          isPublicSupplier(supplier, validOwnerIds) || isSupplierBotPilotProfile(supplier)
+        supplier => isPublicSupplier(supplier, validOwnerIds) || isSupplierBotPilotProfile(supplier)
       )
       .map(supplier => {
         const summary = reviewSummaryBySupplierId.get(String(supplier.id));
