@@ -28,10 +28,14 @@ function packageIdentity(supplierId, title, occurrence) {
 }
 
 function validSourceUrl(value) {
-  if (typeof value !== 'string' || !value.trim()) return null;
+  if (typeof value !== 'string' || !value.trim()) {
+    return null;
+  }
   try {
     const url = new URL(value);
-    if (!['http:', 'https:'].includes(url.protocol)) return null;
+    if (!['http:', 'https:'].includes(url.protocol)) {
+      return null;
+    }
     url.hash = '';
     return url.href;
   } catch (_error) {
@@ -40,12 +44,16 @@ function validSourceUrl(value) {
 }
 
 function normalizedEvidenceIds(value) {
-  if (!Array.isArray(value)) return [];
+  if (!Array.isArray(value)) {
+    return [];
+  }
   return [...new Set(value.map(item => String(item || '').trim()).filter(Boolean))].slice(0, 20);
 }
 
 function normalizedPriceDetails(value) {
-  if (!value || typeof value !== 'object') return null;
+  if (!value || typeof value !== 'object') {
+    return null;
+  }
   const amount = value.amount === null || value.amount === undefined ? null : Number(value.amount);
   const maxAmount =
     value.maxAmount === null || value.maxAmount === undefined ? null : Number(value.maxAmount);
@@ -81,9 +89,15 @@ function normalizedPriceDetails(value) {
 }
 
 function normalizePublishableSourcePackage(item) {
-  if (!item || typeof item !== 'object' || !(item.name || item.title)) return null;
-  const title = String(item.name || item.title).trim().slice(0, 160);
-  const priceDisplay = String(item.priceDisplay || item.price || '').trim().slice(0, 120);
+  if (!item || typeof item !== 'object' || !(item.name || item.title)) {
+    return null;
+  }
+  const title = String(item.name || item.title)
+    .trim()
+    .slice(0, 160);
+  const priceDisplay = String(item.priceDisplay || item.price || '')
+    .trim()
+    .slice(0, 120);
   const sourceUrl = validSourceUrl(item.sourceUrl);
   const evidenceIds = normalizedEvidenceIds(item.evidenceIds);
   const confidence = Number(item.extractionConfidence);
