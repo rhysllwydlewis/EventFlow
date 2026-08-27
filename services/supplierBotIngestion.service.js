@@ -303,6 +303,24 @@ async function createUnclaimedSupplierFromBot({ dbUnified, payload }) {
       error.supplierId = sameCandidate.id;
       throw error;
     }
+
+    const websiteConflict = suppliers.find(item => {
+      if (!item.website || item.id === sameCandidate.id) {
+        return false;
+      }
+      try {
+        return canonicalWebsite(item.website) === canonical;
+      } catch (_error) {
+        return false;
+      }
+    });
+    if (websiteConflict) {
+      const error = new Error('A supplier with this website already exists');
+      error.code = 'SUPPLIER_WEBSITE_CONFLICT';
+      error.supplierId = websiteConflict.id;
+      throw error;
+    }
+
     if (validated.publicationScope === PILOT_SCOPE) {
       await reserveSupplierBotPilotSlot({ dbUnified, candidateId: payload.candidateId });
       await attachSupplierToPilotSlot({
