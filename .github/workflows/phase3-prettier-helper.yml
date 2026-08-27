@@ -6,7 +6,7 @@ on:
       - phase3/supplier-media-provenance
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   format:
@@ -14,6 +14,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v7
+        with:
+          ref: phase3/supplier-media-provenance
       - name: Setup Node.js
         uses: actions/setup-node@v7
         with:
@@ -25,12 +27,15 @@ jobs:
           HUSKY: 0
       - name: Format Phase 3 receiver files
         run: npx prettier --write routes/supplier-profile-safe.js services/supplierBotIngestion.service.js tests/unit/supplier-bot-media-provenance.test.js
-      - name: Upload formatted files
-        uses: actions/upload-artifact@v7
-        with:
-          name: phase3-prettier-output
-          path: |
-            routes/supplier-profile-safe.js
-            services/supplierBotIngestion.service.js
-            tests/unit/supplier-bot-media-provenance.test.js
-          retention-days: 1
+      - name: Commit formatted files
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add routes/supplier-profile-safe.js services/supplierBotIngestion.service.js tests/unit/supplier-bot-media-provenance.test.js
+          if git diff --cached --quiet; then
+            echo "No formatting changes to commit."
+            exit 0
+          fi
+          git commit -m "Format Phase 3 supplier media receiver"
+          git push origin HEAD:phase3/supplier-media-provenance
