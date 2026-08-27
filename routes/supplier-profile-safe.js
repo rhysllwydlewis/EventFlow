@@ -11,8 +11,10 @@ const {
 } = require('../services/supplierBotClaim.service');
 const {
   PILOT_SCOPE,
+  PUBLIC_UNCLAIMED_SCOPE,
+  isPublishedUnclaimedSupplierBotProfile,
   isSupplierBotPilotProfile,
-  pilotPresentationSupplier,
+  publishedUnclaimedPresentationSupplier,
 } = require('../services/supplierBotPilotVisibility.util');
 const { lifecycleBlockReason } = require('../services/seoRecordLifecycle.util');
 const { resolvePackageImage } = require('../utils/packageImageUtils');
@@ -58,7 +60,7 @@ function canRead(req, supplier) {
   if (!supplier) {
     return false;
   }
-  if (isSupplierBotPilotProfile(supplier)) {
+  if (isPublishedUnclaimedSupplierBotProfile(supplier)) {
     return true;
   }
   if (supplier.approved === true && lifecycleBlockReason(supplier) === null) {
@@ -85,15 +87,18 @@ async function badgeDetailsFor(supplier) {
   }
 }
 
-async function assertPilotPublicationSlot(payload) {
+async function assertSupplierBotPublicationScope(payload) {
   const requestedScope = payload && payload.publicationScope;
   if (requestedScope === undefined || requestedScope === null || requestedScope === '') {
     return;
   }
-  if (requestedScope !== PILOT_SCOPE) {
+  if (![PILOT_SCOPE, PUBLIC_UNCLAIMED_SCOPE].includes(requestedScope)) {
     const error = new Error('publicationScope is unsupported');
-    error.code = 'SUPPLIER_BOT_INVALID_PILOT_SCOPE';
+    error.code = 'SUPPLIER_BOT_INVALID_PUBLICATION_SCOPE';
     throw error;
+  }
+  if (requestedScope !== PILOT_SCOPE) {
+    return;
   }
 
   const candidateId = typeof payload.candidateId === 'string' ? payload.candidateId : '';
@@ -107,20 +112,23 @@ async function assertPilotPublicationSlot(payload) {
   }
 }
 
-async function applyPilotPublicationScope(result, payload) {
+async function applySupplierBotPublicationScope(result, payload) {
   const requestedScope = payload && payload.publicationScope;
-  if (requestedScope !== PILOT_SCOPE) {
+  if (![PILOT_SCOPE, PUBLIC_UNCLAIMED_SCOPE].includes(requestedScope)) {
     return result.supplier;
   }
-  if (isSupplierBotPilotProfile(result.supplier)) {
+  if (result.supplier?.acquisition?.publicationScope === requestedScope) {
     return result.supplier;
   }
 
   const now = new Date().toISOString();
   const acquisition = {
     ...(result.supplier.acquisition || {}),
-    publicationScope: PILOT_SCOPE,
-    pilotPublishedAt: now,
+    publicationScope: requestedScope,
+    publishedUnclaimedAt: result.supplier.acquisition?.publishedUnclaimedAt || now,
+    ...(requestedScope === PILOT_SCOPE
+      ? { pilotPublishedAt: result.supplier.acquisition?.pilotPublishedAt || now }
+      : {}),
   };
   const wrote = await dbUnified.updateOne(
     'suppliers',
@@ -128,7 +136,7 @@ async function applyPilotPublicationScope(result, payload) {
     { $set: { acquisition, updatedAt: now } }
   );
   if (!wrote) {
-    throw new Error('Failed to mark Supplier Bot pilot profile');
+    throw new Error('Failed to mark published Supplier Bot profile');
   }
   return { ...result.supplier, acquisition, updatedAt: now };
 }
@@ -138,10 +146,10 @@ router.post('/internal/supplier-bot/suppliers', verifySupplierBotHmac, async (re
     if (!dbUnified) {
       return res.status(503).json({ error: 'Database unavailable' });
     }
-    await assertPilotPublicationSlot(req.body);
+    await assertSupplierBotPublicationScope(req.body);
     const result = await createUnclaimedSupplierFromBot({ dbUnified, payload: req.body });
-    const supplier = await applyPilotPublicationScope(result, req.body);
-    const supplierWithPublicPath = isSupplierBotPilotProfile(supplier)
+    const supplier = await applySupplierBotPublicationScope(result, req.body);
+    const supplierWithPublicPath = isPublishedUnclaimedSupplierBotProfile(supplier)
       ? addPublicProfilePath(supplier)
       : null;
     return res.status(result.created ? 201 : 200).json({
@@ -153,18 +161,21 @@ router.post('/internal/supplier-bot/suppliers', verifySupplierBotHmac, async (re
       publicationScope: supplier.acquisition?.publicationScope || null,
       created: result.created,
       idempotent: result.idempotent,
+      refreshed: Boolean(result.refreshed),
     });
   } catch (error) {
     if (
       error &&
-      (error.code === 'SUPPLIER_WEBSITE_CONFLICT' || error.code === 'SUPPLIER_BOT_PILOT_LIMIT')
+      (error.code === 'SUPPLIER_WEBSITE_CONFLICT' ||
+        error.code === 'SUPPLIER_BOT_PILOT_LIMIT' ||
+        error.code === 'SUPPLIER_BOT_OWNERSHIP_CONFLICT')
     ) {
       return res.status(409).json({
         error: error.message,
         existingSupplierId: error.supplierId || null,
       });
     }
-    if (error?.code === 'SUPPLIER_BOT_INVALID_PILOT_SCOPE') {
+    if (error?.code === 'SUPPLIER_BOT_INVALID_PUBLICATION_SCOPE') {
       return res.status(400).json({ error: error.message });
     }
     const message = error instanceof Error ? error.message : 'Invalid Supplier Bot payload';
@@ -260,7 +271,7 @@ router.get('/suppliers/:id', async (req, res, next) => {
     const preview = previewMode(req) && canPreview(req, supplier);
 
     const ownerUser = await findOwnerUserForSupplierFromDb(supplier, dbUnified, logger);
-    const presentationSupplier = pilotPresentationSupplier(supplier);
+    const presentationSupplier = publishedUnclaimedPresentationSupplier(supplier);
     const publicSupplier = hydrateSupplierProfilePhoto(presentationSupplier, ownerUser);
     const profilePhotoUrl = publicSupplier.profilePhotoUrl;
     const safeSupplier = safePublicSupplier(publicSupplier, {
@@ -274,10 +285,11 @@ router.get('/suppliers/:id', async (req, res, next) => {
       profilePhotoUrl,
     });
 
-    if (isSupplierBotPilotProfile(supplier)) {
+    if (isPublishedUnclaimedSupplierBotProfile(supplier)) {
       safeSupplier.ownershipStatus = 'unclaimed';
       safeSupplier.isUnclaimed = true;
-      safeSupplier.isSupplierBotPilot = true;
+      safeSupplier.isSupplierBotProfile = true;
+      safeSupplier.isSupplierBotPilot = isSupplierBotPilotProfile(supplier);
     }
 
     return res.json(addPublicProfilePath(safeSupplier));
