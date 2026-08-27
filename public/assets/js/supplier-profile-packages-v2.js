@@ -1,4 +1,4 @@
-import './supplier-profile-polish.js';
+import './supplier-profile-polish.js?v=1';
 
 const PACKAGE_PLACEHOLDER_URL = '/assets/images/placeholders/package-event.svg';
 const ROOT_ID = 'supplier-package-cards-root';

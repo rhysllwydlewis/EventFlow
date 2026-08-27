@@ -141,8 +141,8 @@ describe('supplier profile packages and reviews', () => {
   });
 
   test('loads the profile polish layer from the existing package module entry point', () => {
-    expect(packagesJs).toContain("import './supplier-profile-polish.js'");
-    expect(supplierHtml).toContain('supplier-profile-packages-v2.js?v=19.4.3');
+    expect(packagesJs).toContain("import './supplier-profile-polish.js?v=1'");
+    expect(supplierHtml).toContain('supplier-profile-packages-v2.js?v=19.4.4');
   });
 
   test('collapses zero-review scaffolding into one EventFlow-specific empty state', () => {
