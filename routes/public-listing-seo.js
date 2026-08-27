@@ -16,12 +16,25 @@ const {
   resolvePublicEvent,
   resolvePublicPackage,
 } = require('../services/publicListingSeo.service');
+const {
+  isPublishedUnclaimedSupplierBotProfile,
+} = require('../services/supplierBotPilotVisibility.util');
 
 const PACKAGE_TEMPLATE_PATH = path.join(__dirname, '..', 'public', 'package.html');
 const EVENT_TEMPLATE_PATH = path.join(__dirname, '..', 'public', 'event-detail.html');
 const INDEXABLE_CACHE_CONTROL = 'public, max-age=60, s-maxage=300, stale-while-revalidate=60';
 const NON_INDEXABLE_CACHE_CONTROL = 'public, max-age=30, s-maxage=60, stale-while-revalidate=30';
 const DEFAULT_CACHE_TTL_MS = 60 * 1000;
+
+function addUnclaimedPackageBanner(html) {
+  const banner = `
+    <aside id="supplier-bot-unclaimed-package-banner" role="status" style="margin:0;padding:10px 16px;text-align:center;background:#f3f4f6;color:#374151;border-bottom:1px solid #e5e7eb;font:600 14px/1.4 system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif">
+      Unclaimed package · This package belongs to a business that has not claimed or verified its EventFlow profile yet.
+    </aside>`;
+  return /<body\b[^>]*>/i.test(html)
+    ? html.replace(/<body\b[^>]*>/i, match => `${match}${banner}`)
+    : html;
+}
 
 function createPublicListingSeoRouter(options = {}) {
   const dbUnified = options.dbUnified;
@@ -150,21 +163,24 @@ function createPublicListingSeoRouter(options = {}) {
         return res.redirect(301, `/package/${canonicalSlug}${canonicalSearch}`);
       }
 
-      // Being viewable does not by itself mean this package is complete
-      // enough to index (SEO-002) — see the equivalent comment in
-      // public-supplier-seo.js. The page still renders normally either way;
-      // only the robots directive and cache lifetime change.
-      const indexable = getPackageIndexEligibility(pkg, supplier).eligible;
+      const publishedUnclaimed = isPublishedUnclaimedSupplierBotProfile(supplier);
+      const indexable =
+        !publishedUnclaimed && getPackageIndexEligibility(pkg, supplier).eligible;
       const template = await readTemplate('package');
       const seo = buildPackageSeoModel(pkg, supplier, { baseUrl });
-      const html = renderSeoHtml(template, 'package', pkg.id, seo, indexable);
+      const rendered = renderSeoHtml(template, 'package', pkg.id, seo, indexable);
+      const html = publishedUnclaimed ? addUnclaimedPackageBanner(rendered) : rendered;
       res.setHeader(
         'Cache-Control',
         indexable ? INDEXABLE_CACHE_CONTROL : NON_INDEXABLE_CACHE_CONTROL
       );
       res.setHeader(
         'X-Robots-Tag',
-        indexable ? 'index, follow, max-image-preview:large' : 'noindex, follow'
+        publishedUnclaimed
+          ? 'noindex, nofollow, noarchive'
+          : indexable
+            ? 'index, follow, max-image-preview:large'
+            : 'noindex, follow'
       );
       return res.status(200).type('html').send(html);
     } catch (error) {
