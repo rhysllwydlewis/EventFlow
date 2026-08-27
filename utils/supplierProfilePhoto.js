@@ -1,5 +1,8 @@
 'use strict';
 
+const BOT_LOGO_HINT_RE = /\b(logo|brand|branding|wordmark)\b/i;
+const MIN_BOT_LOGO_SCORE = 72;
+
 function isUsableImageUrl(value) {
   if (!value || typeof value !== 'string') {
     return false;
@@ -137,6 +140,44 @@ function getUserImageCandidates(user = {}) {
   ];
 }
 
+function isManagedUnclaimedSupplierBot(supplier = {}) {
+  return Boolean(
+    supplier?.ownershipStatus === 'unclaimed' && supplier?.acquisition?.source === 'supplier_bot'
+  );
+}
+
+function getSupplierBotSourceImageCandidates(supplier = {}) {
+  if (!isManagedUnclaimedSupplierBot(supplier)) {
+    return [];
+  }
+
+  const sourceMedia = supplier?.acquisition?.sourceMedia;
+  if (!sourceMedia || typeof sourceMedia !== 'object') {
+    return [];
+  }
+
+  const evidence = Array.isArray(sourceMedia.evidence) ? sourceMedia.evidence : [];
+  const logoEvidenceUrls = evidence
+    .filter(item => {
+      if (!item || typeof item !== 'object' || !isUsableImageUrl(item.url)) {
+        return false;
+      }
+      const score = Number(item.score);
+      if (!Number.isFinite(score) || score < MIN_BOT_LOGO_SCORE) {
+        return false;
+      }
+      const hint = `${item.alt || ''} ${item.url || ''}`;
+      return BOT_LOGO_HINT_RE.test(hint);
+    })
+    .sort((a, b) => Number(b.score) - Number(a.score) || Number(b.sameSite) - Number(a.sameSite))
+    .map(item => item.url);
+
+  const images = Array.isArray(sourceMedia.images) ? sourceMedia.images : [];
+  return [sourceMedia.profileImage, ...logoEvidenceUrls, sourceMedia.coverImage, ...images].filter(
+    isUsableImageUrl
+  );
+}
+
 function resolveSupplierProfilePhoto(supplier, ownerUser) {
   const candidates = [
     // Supplier-specific profile-photo fields are authoritative when present.
@@ -148,8 +189,15 @@ function resolveSupplierProfilePhoto(supplier, ownerUser) {
     supplier?.photoUrl,
     supplier?.image,
     // If older supplier records were not backfilled, keep the public profile in
-    // sync with the owning account avatar before falling back to legacy logos.
+    // sync with the owning account avatar before falling back to bot provenance
+    // or legacy logos.
     ...getUserImageCandidates(ownerUser),
+    // Published-unclaimed Supplier Bot records deliberately keep crawler media
+    // under acquisition.sourceMedia rather than pretending it was owner-uploaded.
+    // Prefer strongly-classified logo evidence, then fall back to the existing
+    // cover/first gallery photo so pre-logo-extractor records (including the
+    // original Hensol pilot) still get a useful marketplace avatar.
+    ...getSupplierBotSourceImageCandidates(supplier),
     supplier?.logo,
   ];
 
@@ -180,10 +228,12 @@ module.exports = {
   isUsableImageUrl,
   findOwnerUserForSupplier,
   findOwnerUserForSupplierFromDb,
+  getSupplierBotSourceImageCandidates,
   getSupplierOwnerEmailCandidates,
   getSupplierOwnerIdCandidates,
   getUserImageCandidates,
   hydrateSupplierProfilePhoto,
+  isManagedUnclaimedSupplierBot,
   resolveSupplierOwnerUserId,
   resolveSupplierProfilePhoto,
 };
