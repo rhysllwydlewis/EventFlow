@@ -452,7 +452,7 @@ import { renderVerificationBadges, renderTierIcon } from '/assets/js/utils/verif
       }
       if (supplier.priceRange) {
         items.push(
-          `<span class="meta-item meta-price"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>${escapeHtml(supplier.priceRange)}</span>`
+          `<span class="meta-item meta-price"><svg width="11" height="11" viewBox="0 0 24 24" aria-hidden="true"><text x="12" y="18" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="17" font-weight="700" fill="currentColor">£</text></svg>${escapeHtml(supplier.priceRange)}</span>`
         );
       }
 
