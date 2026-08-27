@@ -16,9 +16,6 @@ function isUsableSupplierImageUrl(value) {
 }
 
 function getSupplierProfileImage(supplier) {
-  // Keep this in the same order as the suppliers listing card renderer in
-  // public/assets/js/pages/suppliers-init.js. The public profile avatar should
-  // show the same image users saw before clicking through from /suppliers.
   const candidates = [
     supplier?.profilePhotoUrl,
     supplier?.displayAvatarUrl,
@@ -29,8 +26,14 @@ function getSupplierProfileImage(supplier) {
   return typeof imageUrl === 'string' ? imageUrl.trim() : '';
 }
 
-// Shared with every other supplier avatar placeholder on the site — see
-// public/assets/js/utils/supplier-avatar.js.
+function getLoadedSupplier(supplierId) {
+  const supplier = typeof window !== 'undefined' ? window.__supplierData : null;
+  if (!supplier || typeof supplier !== 'object') {
+    return null;
+  }
+  return String(supplier.id || '') === String(supplierId) ? supplier : null;
+}
+
 function getInitialsFromName(name) {
   return window.EFSupplierAvatar.getSupplierInitials(name);
 }
@@ -117,9 +120,6 @@ function getSearchUrls() {
     const params = new URLSearchParams({ q: String(supplierName), limit: '20' });
     urls.push(`/api/v2/search/suppliers?${params.toString()}`);
   }
-  // Fallback to the same browse endpoint used by /suppliers. The exact id check
-  // below prevents a wrong supplier image being used if this page has not yet
-  // received window.__supplierData.
   urls.push('/api/v2/search/suppliers?limit=100');
   return [...new Set(urls)];
 }
@@ -141,7 +141,7 @@ async function fetchSupplierFromSearchRoute(supplierId) {
         return supplier;
       }
     } catch (_error) {
-      // Try the next search URL before falling back to initials.
+      // Compatibility helper for diagnostics and legacy callers.
     }
   }
   return null;
@@ -381,24 +381,22 @@ async function loadPublicSupplierAvatar() {
     return;
   }
 
-  // Keyed by the stable supplier id (not the mutable name) so the color
-  // never changes on a rename, and is known before the supplier fetch
-  // resolves — see public/assets/js/utils/supplier-avatar.js.
   const avatarGradient = window.EFSupplierAvatar.getSupplierAvatarGradient(supplierId);
-
   const requestId = ++activeRequestId;
   if (img.hidden || !img.getAttribute('src')) {
     setPlaceholder(img, initialsEl, null, avatarGradient);
   }
 
-  const supplier =
-    (await fetchSupplierFromSearchRoute(supplierId)) ||
-    (await fetchLegacyAvatarEndpoint(supplierId));
-  if (requestId !== activeRequestId) {
+  // Supplier profile data has already passed through the safe public profile
+  // route. Reusing it avoids a second discovery path and prevents expected 404s
+  // for directly published unclaimed profiles that are intentionally omitted
+  // from directory search until the wider publication policy allows discovery.
+  const supplier = getLoadedSupplier(supplierId);
+  if (!supplier || requestId !== activeRequestId) {
     return;
   }
 
-  const initials = getInitialsFromName(supplier?.name || window.__supplierData?.name);
+  const initials = getInitialsFromName(supplier.name || supplier.businessName);
   if (initials) {
     initialsEl.textContent = initials;
   }
@@ -459,6 +457,7 @@ if (typeof module !== 'undefined') {
     closeAvatarLightbox,
     enableAvatarLightbox,
     findSupplierInSearchPayload,
+    getLoadedSupplier,
     getSupplierProfileImage,
     loadPublicSupplierAvatar,
     openAvatarLightbox,
