@@ -17,7 +17,9 @@ function findPilotSlot(records) {
 }
 
 async function reserveSupplierBotPilotSlot({ dbUnified, candidateId }) {
-  if (!dbUnified) throw new Error('Database unavailable');
+  if (!dbUnified) {
+    throw new Error('Database unavailable');
+  }
   if (!candidateId || typeof candidateId !== 'string') {
     throw new Error('candidateId is required');
   }
@@ -61,7 +63,9 @@ async function reserveSupplierBotPilotSlot({ dbUnified, candidateId }) {
 }
 
 async function attachSupplierToPilotSlot({ dbUnified, candidateId, supplierId }) {
-  if (!dbUnified || !candidateId || !supplierId) return false;
+  if (!dbUnified || !candidateId || !supplierId) {
+    return false;
+  }
   const updatedAt = new Date().toISOString();
   return dbUnified.updateOne(
     PILOT_SLOT_COLLECTION,

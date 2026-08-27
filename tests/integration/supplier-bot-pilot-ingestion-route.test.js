@@ -44,8 +44,12 @@ function memoryDb(seed = [], options = {}) {
     suppliers,
     pilotSlots,
     async read(name) {
-      if (name === 'suppliers') return suppliers;
-      if (name === 'supplier_bot_pilot_slots') return pilotSlots;
+      if (name === 'suppliers') {
+        return suppliers;
+      }
+      if (name === 'supplier_bot_pilot_slots') {
+        return pilotSlots;
+      }
       return [];
     },
     async insertOne(name, item) {
@@ -65,7 +69,9 @@ function memoryDb(seed = [], options = {}) {
     async updateOne(name, query, update) {
       if (name === 'suppliers') {
         const supplier = suppliers.find(item => item.id === query.id);
-        if (!supplier) return false;
+        if (!supplier) {
+          return false;
+        }
         Object.assign(supplier, update.$set || {});
         return true;
       }
@@ -75,7 +81,9 @@ function memoryDb(seed = [], options = {}) {
             (!query._id || item._id === query._id) &&
             (!query.candidateId || item.candidateId === query.candidateId)
         );
-        if (!slot) return false;
+        if (!slot) {
+          return false;
+        }
         Object.assign(slot, update.$set || {});
         return true;
       }
@@ -112,10 +120,16 @@ describe('one-profile Supplier Bot ingestion pilot', () => {
   });
 
   afterAll(() => {
-    if (originalEnabled === undefined) delete process.env.SUPPLIER_BOT_INGESTION_ENABLED;
-    else process.env.SUPPLIER_BOT_INGESTION_ENABLED = originalEnabled;
-    if (originalSecret === undefined) delete process.env.EVENTFLOW_BOT_HMAC_SECRET;
-    else process.env.EVENTFLOW_BOT_HMAC_SECRET = originalSecret;
+    if (originalEnabled === undefined) {
+      delete process.env.SUPPLIER_BOT_INGESTION_ENABLED;
+    } else {
+      process.env.SUPPLIER_BOT_INGESTION_ENABLED = originalEnabled;
+    }
+    if (originalSecret === undefined) {
+      delete process.env.EVENTFLOW_BOT_HMAC_SECRET;
+    } else {
+      process.env.EVENTFLOW_BOT_HMAC_SECRET = originalSecret;
+    }
   });
 
   it('marks one explicit pilot profile and remains idempotent for the same candidate', async () => {

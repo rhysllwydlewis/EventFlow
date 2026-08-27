@@ -26,7 +26,9 @@ function generateSlug(text) {
 
   for (const char of input) {
     if (isSlugCharacter(char)) {
-      if (separatorPending && output) output += '-';
+      if (separatorPending && output) {
+        output += '-';
+      }
       output += char;
       separatorPending = false;
       continue;
@@ -63,7 +65,9 @@ function canonicalMediaUrl(value, fieldName) {
   if (typeof value !== 'string' || !value.trim()) {
     throw new Error(`${fieldName} must be a valid URL`);
   }
-  if (value.length > 2048) throw new Error(`${fieldName} must be 2048 characters or fewer`);
+  if (value.length > 2048) {
+    throw new Error(`${fieldName} must be 2048 characters or fewer`);
+  }
   let url;
   try {
     url = new URL(value);
@@ -78,7 +82,9 @@ function canonicalMediaUrl(value, fieldName) {
 }
 
 function optionalPositiveInteger(value, fieldName) {
-  if (value === null || value === undefined) return null;
+  if (value === null || value === undefined) {
+    return null;
+  }
   const number = Number(value);
   if (!Number.isInteger(number) || number <= 0 || number > 20000) {
     throw new Error(`${fieldName} must be a positive integer up to 20000`);
@@ -153,7 +159,9 @@ function normalizeSourceMedia(payload) {
 }
 
 function validatePayload(payload) {
-  if (!payload || typeof payload !== 'object') throw new Error('Payload is required');
+  if (!payload || typeof payload !== 'object') {
+    throw new Error('Payload is required');
+  }
   if (!payload.candidateId || typeof payload.candidateId !== 'string') {
     throw new Error('candidateId is required');
   }
@@ -166,7 +174,9 @@ function validatePayload(payload) {
   if (!VALID_CATEGORIES.includes(payload.category)) {
     throw new Error('Unsupported supplier category');
   }
-  if (!payload.website) throw new Error('website is required');
+  if (!payload.website) {
+    throw new Error('website is required');
+  }
   if (payload.description && String(payload.description).length > 5000) {
     throw new Error('description must be 5000 characters or fewer');
   }
@@ -197,7 +207,9 @@ function validatePayload(payload) {
 }
 
 async function createUnclaimedSupplierFromBot({ dbUnified, payload }) {
-  if (!dbUnified) throw new Error('Database unavailable');
+  if (!dbUnified) {
+    throw new Error('Database unavailable');
+  }
   const validated = validatePayload(payload);
   const canonical = validated.website;
   const deterministicId = supplierIdForCandidate(payload.candidateId);
@@ -222,7 +234,9 @@ async function createUnclaimedSupplierFromBot({ dbUnified, payload }) {
   }
 
   const sameWebsite = suppliers.find(item => {
-    if (!item.website) return false;
+    if (!item.website) {
+      return false;
+    }
     try {
       return canonicalWebsite(item.website) === canonical;
     } catch (_error) {

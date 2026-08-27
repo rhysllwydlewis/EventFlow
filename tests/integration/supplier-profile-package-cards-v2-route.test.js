@@ -107,9 +107,7 @@ describe('supplier profile package cards v2 route', () => {
     };
     const app = createApp([], supplier);
 
-    const res = await request(app)
-      .get('/api/supplier-profile/sup_pilot/package-cards')
-      .expect(200);
+    const res = await request(app).get('/api/supplier-profile/sup_pilot/package-cards').expect(200);
 
     expect(res.body.meta).toMatchObject({
       endpoint: 'supplier-profile-package-cards-v2',
