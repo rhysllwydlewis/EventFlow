@@ -114,18 +114,47 @@ function createPublicSupplierSeoRouter(options = {}) {
     return supplierLoadPromise;
   }
 
+  function resolvePilotPlainSlugAlias(suppliers, slug) {
+    return (
+      (suppliers || []).find(supplier => {
+        if (!isSupplierBotPilotProfile(supplier)) {
+          return false;
+        }
+        const canonicalSlug = buildPublicSupplierSlug(supplier);
+        const separatorIndex = canonicalSlug.lastIndexOf('--');
+        const plainSlug = separatorIndex === -1 ? '' : canonicalSlug.slice(0, separatorIndex);
+        return plainSlug === String(slug || '').toLowerCase();
+      }) || null
+    );
+  }
+
   // This is an HTML profile route, not an API operation. Ordinary public suppliers
   // retain the normal SEO policy. The explicit one-profile Supplier Bot pilot is
   // directly addressable only so the owner can inspect the complete production
   // render; it remains excluded from normal public discovery and forced noindex.
   router.get('/supplier/:slug', async (req, res, next) => {
     try {
+      const suppliers = await readDirectlyAddressableSuppliers();
+
+      // During the deliberately narrow one-profile pilot, keep the original human-
+      // readable tester URL usable. Only the explicit Supplier Bot pilot may resolve
+      // without a token; ordinary drafts still fail closed. Redirect to the canonical
+      // tokenised route so production rendering and canonical metadata remain unified.
       if (!extractSlugToken(req.params.slug)) {
-        res.setHeader('X-Robots-Tag', 'noindex, nofollow');
-        return next();
+        const pilotAlias = resolvePilotPlainSlugAlias(suppliers, req.params.slug);
+        if (!pilotAlias) {
+          res.setHeader('X-Robots-Tag', 'noindex, nofollow');
+          return next();
+        }
+
+        const canonicalSlug = buildPublicSupplierSlug(pilotAlias);
+        const campaignQuery = buildCampaignQuery(req.query);
+        const canonicalSearch = campaignQuery ? `?${campaignQuery}` : '';
+        res.setHeader('Cache-Control', 'no-store');
+        res.setHeader('X-Robots-Tag', 'noindex, nofollow, noarchive');
+        return res.redirect(302, `/supplier/${canonicalSlug}${canonicalSearch}`);
       }
 
-      const suppliers = await readDirectlyAddressableSuppliers();
       const supplier = resolvePublicSupplierBySlug(suppliers, req.params.slug);
       if (!supplier) {
         res.setHeader('X-Robots-Tag', 'noindex, nofollow');
