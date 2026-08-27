@@ -119,7 +119,11 @@ describe('POST /supplier-bot/claims/:supplierId', () => {
     expect(second.body.created).toBe(false);
     expect(second.body.idempotent).toBe(true);
     expect(claims).toHaveLength(1);
-    expect(claims[0].signals).toEqual(['public_email_exact', 'website_exact']);
+    expect(claims[0].signals).toEqual([
+      'public_email_exact',
+      'website_exact',
+      'email_domain_match',
+    ]);
     expect(supplier.ownerUserId).toBeUndefined();
     expect(supplier.ownershipStatus).toBe('unclaimed');
   });

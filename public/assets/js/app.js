@@ -6728,6 +6728,16 @@ document.addEventListener('DOMContentLoaded', () => {
             payload.ref = refParam;
           }
 
+          // Carry the specific unclaimed Supplier Bot listing through from the
+          // "claim this listing" link (see auth-init.js), so the server submits
+          // an explicit claim for that exact profile instead of only relying on
+          // an email/website match after the account is created.
+          const claimSupplierIdEl = document.getElementById('reg-claim-supplier-id');
+          const claimSupplierId = claimSupplierIdEl ? claimSupplierIdEl.value.trim() : '';
+          if (claimSupplierId) {
+            payload.claimSupplierId = claimSupplierId;
+          }
+
           // Include ALTCHA payload if the widget is present in the form.
           // Priority order: statechange-captured global → Shadow DOM hidden input → .value property.
           // Prefer lookup by id; fall back to a container-scoped query in case the widget was

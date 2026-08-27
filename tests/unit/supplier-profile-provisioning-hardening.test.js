@@ -433,6 +433,7 @@ describe('supplier registration provisioning integration', () => {
     const data = {
       users: [],
       suppliers: [],
+      supplierClaims: [],
       partner_abuse_events: [],
       partner_abuse_overrides: [],
       partner_abuse_appeals: [],
@@ -584,6 +585,69 @@ describe('supplier registration provisioning integration', () => {
     expect(data.users).toHaveLength(1);
     expect(data.users[0].role).toBe('customer');
     expect(data.suppliers).toHaveLength(0);
+  });
+
+  it('carries an explicit claimSupplierId from the claim link into a pending claim, even without a matching email/website', async () => {
+    const { app, data } = loadAuthRegistrationApp();
+    data.suppliers.push({
+      id: 'sup_bot_claim_target',
+      ownershipStatus: 'unclaimed',
+      name: 'Claimable Venue',
+      website: 'https://claimable-venue.example/',
+      email: 'info@claimable-venue.example',
+      acquisition: { source: 'supplier_bot', candidateId: 'cand_claim_target' },
+    });
+
+    const res = await request(app)
+      .post('/register')
+      .send(
+        validRegistration({
+          role: 'supplier',
+          company: 'A Different Trading Name',
+          // Deliberately unrelated to the listing's email/website — only the
+          // explicit claimSupplierId from the claim link should drive the match.
+          email: 'owner@unrelated-inbox.example',
+          claimSupplierId: 'sup_bot_claim_target',
+        })
+      );
+
+    expect(res.status).toBe(201);
+    expect(data.supplierClaims).toHaveLength(1);
+    expect(data.supplierClaims[0]).toMatchObject({
+      supplierId: 'sup_bot_claim_target',
+      requesterUserId: data.users[0].id,
+      source: 'claim_link_explicit',
+      signals: [],
+    });
+    expect(data.suppliers.find(s => s.ownerUserId === data.users[0].id)).toMatchObject({
+      supplierBotCollision: expect.objectContaining({
+        supplierId: 'sup_bot_claim_target',
+        claimId: data.supplierClaims[0].id,
+      }),
+    });
+  });
+
+  it('ignores a claimSupplierId that does not point at an unclaimed Supplier Bot profile', async () => {
+    const { app, data } = loadAuthRegistrationApp();
+    data.suppliers.push({
+      id: 'sup_claimed_already',
+      ownershipStatus: 'claimed',
+      ownerUserId: 'usr_other',
+      acquisition: { source: 'supplier_bot', candidateId: 'cand_other' },
+    });
+
+    const res = await request(app)
+      .post('/register')
+      .send(
+        validRegistration({
+          role: 'supplier',
+          company: 'Some Business',
+          claimSupplierId: 'sup_claimed_already',
+        })
+      );
+
+    expect(res.status).toBe(201);
+    expect(data.supplierClaims).toHaveLength(0);
   });
 
   it('supplier registration rolls back the new user when supplier profile provisioning fails', async () => {

@@ -1,5 +1,7 @@
 function escapeHtml(s) {
-  if (!s) return '';
+  if (!s) {
+    return '';
+  }
   const d = document.createElement('div');
   d.textContent = String(s);
   return d.innerHTML;
@@ -193,6 +195,30 @@ function escapeHtml(s) {
     });
   }
 
+  // Deep-link support for /auth?tab=create&role=supplier&claimSupplierId=...,
+  // used by the "claim this listing" link on unclaimed Supplier Bot
+  // profile/package pages so a visiting business owner lands straight on the
+  // supplier sign-up form, and so registration submits an explicit claim for
+  // the exact listing they viewed rather than relying only on an email/website
+  // match after the fact.
+  if (rolePicker) {
+    const requestedRole = new URLSearchParams(window.location.search).get('role');
+    if (requestedRole === 'supplier') {
+      const supplierRoleBtn = rolePicker.querySelector('[data-role="supplier"]');
+      if (supplierRoleBtn) {
+        selectRole(supplierRoleBtn);
+      }
+    }
+  }
+
+  const claimSupplierIdInput = document.getElementById('reg-claim-supplier-id');
+  if (claimSupplierIdInput) {
+    const claimSupplierId = new URLSearchParams(window.location.search).get('claimSupplierId');
+    if (claimSupplierId) {
+      claimSupplierIdInput.value = claimSupplierId.slice(0, 64);
+    }
+  }
+
   // ── Feature-flag pre-checks ────────────────────────────────────
   // Fetch the public feature flags once on page load, then adjust the UI
   // so users get clear feedback before attempting to submit forms.
@@ -211,6 +237,16 @@ function escapeHtml(s) {
       if (flags.supplierApplications === false) {
         const supplierBtn = rolePicker ? rolePicker.querySelector('[data-role="supplier"]') : null;
         if (supplierBtn) {
+          // A deep link (?role=supplier, e.g. from the "claim this listing" banner)
+          // pre-selects this button before the flag check above completes. If
+          // applications just closed, fall back to the customer role instead of
+          // leaving supplier-only fields required behind a disabled button.
+          if (supplierBtn.classList.contains('is-active')) {
+            const customerBtn = rolePicker.querySelector('[data-role="customer"]');
+            if (customerBtn) {
+              selectRole(customerBtn);
+            }
+          }
           supplierBtn.disabled = true;
           supplierBtn.dataset.disabled = 'true';
           supplierBtn.setAttribute('aria-disabled', 'true');
