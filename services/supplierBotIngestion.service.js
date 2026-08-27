@@ -82,7 +82,8 @@ function optionalPositiveInteger(value, fieldName) {
 }
 
 function normalizeSourceMedia(payload) {
-  const hasCover = payload.coverImage !== undefined && payload.coverImage !== null && payload.coverImage !== '';
+  const hasCover =
+    payload.coverImage !== undefined && payload.coverImage !== null && payload.coverImage !== '';
   const coverImage = hasCover ? canonicalMediaUrl(payload.coverImage, 'coverImage') : null;
 
   if (payload.images !== undefined && !Array.isArray(payload.images)) {
@@ -92,7 +93,11 @@ function normalizeSourceMedia(payload) {
     throw new Error(`images must contain no more than ${MAX_SOURCE_IMAGES} items`);
   }
   const images = Array.isArray(payload.images)
-    ? [...new Set(payload.images.map((value, index) => canonicalMediaUrl(value, `images[${index}]`)))]
+    ? [
+        ...new Set(
+          payload.images.map((value, index) => canonicalMediaUrl(value, `images[${index}]`))
+        ),
+      ]
     : [];
 
   if (payload.mediaEvidence !== undefined && !Array.isArray(payload.mediaEvidence)) {
@@ -109,9 +114,10 @@ function normalizeSourceMedia(payload) {
         if (!MEDIA_KINDS.has(item.kind)) {
           throw new Error(`mediaEvidence[${index}].kind is unsupported`);
         }
-        const alt = item.alt === null || item.alt === undefined || item.alt === ''
-          ? null
-          : String(item.alt).trim();
+        const alt =
+          item.alt === null || item.alt === undefined || item.alt === ''
+            ? null
+            : String(item.alt).trim();
         if (alt && alt.length > 300) {
           throw new Error(`mediaEvidence[${index}].alt must be 300 characters or fewer`);
         }

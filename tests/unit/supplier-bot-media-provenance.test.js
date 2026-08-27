@@ -124,32 +124,36 @@ describe('Supplier Bot media provenance', () => {
     [
       'unsupported evidence kind',
       {
-        mediaEvidence: [{
-          url: 'https://example.test/a.jpg',
-          sourcePageUrl: 'https://example.test/',
-          kind: 'advertisement',
-          alt: null,
-          width: null,
-          height: null,
-          score: 50,
-          sameSite: true,
-        }],
+        mediaEvidence: [
+          {
+            url: 'https://example.test/a.jpg',
+            sourcePageUrl: 'https://example.test/',
+            kind: 'advertisement',
+            alt: null,
+            width: null,
+            height: null,
+            score: 50,
+            sameSite: true,
+          },
+        ],
       },
       'mediaEvidence[0].kind is unsupported',
     ],
     [
       'invalid media score',
       {
-        mediaEvidence: [{
-          url: 'https://example.test/a.jpg',
-          sourcePageUrl: 'https://example.test/',
-          kind: 'inline_image',
-          alt: null,
-          width: null,
-          height: null,
-          score: 101,
-          sameSite: true,
-        }],
+        mediaEvidence: [
+          {
+            url: 'https://example.test/a.jpg',
+            sourcePageUrl: 'https://example.test/',
+            kind: 'inline_image',
+            alt: null,
+            width: null,
+            height: null,
+            score: 101,
+            sameSite: true,
+          },
+        ],
       },
       'mediaEvidence[0].score must be between 0 and 100',
     ],
