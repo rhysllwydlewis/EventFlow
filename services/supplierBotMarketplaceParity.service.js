@@ -2,9 +2,7 @@
 
 const crypto = require('crypto');
 const catalogCache = require('./catalogCache');
-const {
-  isPublishedUnclaimedSupplierBotProfile,
-} = require('./supplierBotPilotVisibility.util');
+const { isPublishedUnclaimedSupplierBotProfile } = require('./supplierBotPilotVisibility.util');
 
 function slugify(value) {
   return String(value || '')
@@ -27,7 +25,9 @@ function packageIdentity(supplierId, title, occurrence) {
 
 function sourcePackageRecords(supplier, now = new Date().toISOString()) {
   const acquisition = supplier?.acquisition || {};
-  const sourcePackages = Array.isArray(acquisition.sourcePackages) ? acquisition.sourcePackages : [];
+  const sourcePackages = Array.isArray(acquisition.sourcePackages)
+    ? acquisition.sourcePackages
+    : [];
   const sourceMedia = acquisition.sourceMedia || {};
   const mediaImages = [
     ...(Array.isArray(sourceMedia.images) ? sourceMedia.images : []),
@@ -38,16 +38,24 @@ function sourcePackageRecords(supplier, now = new Date().toISOString()) {
   return sourcePackages
     .filter(item => item && typeof item === 'object' && (item.name || item.title))
     .map((item, index) => {
-      const title = String(item.name || item.title).trim().slice(0, 160);
+      const title = String(item.name || item.title)
+        .trim()
+        .slice(0, 160);
       const normalizedTitle = slugify(title) || 'package';
       const occurrence = (occurrences.get(normalizedTitle) || 0) + 1;
       occurrences.set(normalizedTitle, occurrence);
       const identity = packageIdentity(supplier.id, title, occurrence);
       const features = Array.isArray(item.features)
-        ? item.features.map(value => String(value).trim()).filter(Boolean).slice(0, 30)
+        ? item.features
+            .map(value => String(value).trim())
+            .filter(Boolean)
+            .slice(0, 30)
         : [];
-      const description = String(item.description || features.join(' · ')).trim().slice(0, 2000);
-      const priceDisplay = item.price === null || item.price === undefined ? '' : String(item.price).trim();
+      const description = String(item.description || features.join(' · '))
+        .trim()
+        .slice(0, 2000);
+      const priceDisplay =
+        item.price === null || item.price === undefined ? '' : String(item.price).trim();
       const image = mediaImages.length ? mediaImages[index % mediaImages.length] : '';
 
       return {
@@ -131,7 +139,11 @@ async function syncBotPackages({ dbUnified, supplier, now }) {
     };
     const comparable = Object.fromEntries(Object.keys(patch).map(key => [key, existing[key]]));
     if (!sameValue(comparable, patch)) {
-      await dbUnified.updateOne('packages', { id: existing.id }, { $set: { ...patch, updatedAt: now } });
+      await dbUnified.updateOne(
+        'packages',
+        { id: existing.id },
+        { $set: { ...patch, updatedAt: now } }
+      );
       changed = true;
     }
   }
@@ -216,7 +228,9 @@ async function reconcilePublishedUnclaimedMarketplaceState({ dbUnified, logger =
   for (const supplier of published) {
     try {
       const result = await ensurePublishedUnclaimedMarketplaceState({ dbUnified, supplier });
-      if (result.changed) changed += 1;
+      if (result.changed) {
+        changed += 1;
+      }
       packages += result.packageCount;
     } catch (error) {
       logger.error('Failed to reconcile published Supplier Bot marketplace profile', {

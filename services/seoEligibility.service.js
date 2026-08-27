@@ -10,9 +10,7 @@
 const lifecycle = require('./seoRecordLifecycle.util');
 const { calculateProfileQuality, isMeaningfulText } = require('./supplierRanking.service');
 const supplierLocation = require('./supplierLocation.service');
-const {
-  isPublishedUnclaimedSupplierBotProfile,
-} = require('./supplierBotPilotVisibility.util');
+const { isPublishedUnclaimedSupplierBotProfile } = require('./supplierBotPilotVisibility.util');
 
 const REASON_CODES = Object.freeze({
   NOT_FOUND: 'not_found',

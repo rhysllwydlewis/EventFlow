@@ -164,8 +164,7 @@ function createPublicListingSeoRouter(options = {}) {
       }
 
       const publishedUnclaimed = isPublishedUnclaimedSupplierBotProfile(supplier);
-      const indexable =
-        !publishedUnclaimed && getPackageIndexEligibility(pkg, supplier).eligible;
+      const indexable = !publishedUnclaimed && getPackageIndexEligibility(pkg, supplier).eligible;
       const template = await readTemplate('package');
       const seo = buildPackageSeoModel(pkg, supplier, { baseUrl });
       const rendered = renderSeoHtml(template, 'package', pkg.id, seo, indexable);
