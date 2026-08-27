@@ -49,7 +49,23 @@ describe('Phase 2 Supplier Bot completion boundaries', () => {
         { email: 'HELLO@example-venue.test ', website: 'example-venue.test' },
         botSupplier()
       )
-    ).toEqual(['public_email_exact', 'website_exact']);
+    ).toEqual(['public_email_exact', 'website_exact', 'email_domain_match']);
+  });
+
+  it('matches a signup by email domain against the listing website without an explicit website field', () => {
+    expect(collisionSignals({ email: 'owner@example-venue.test' }, botSupplier())).toEqual([
+      'email_domain_match',
+    ]);
+  });
+
+  it('does not match an unrelated signup email on a different domain', () => {
+    expect(collisionSignals({ email: 'someone@other-business.test' }, botSupplier())).toEqual([]);
+  });
+
+  it('excludes free webmail domains from the email-domain collision signal', () => {
+    expect(
+      collisionSignals({ email: 'owner@gmail.com' }, botSupplier({ website: 'https://gmail.com/' }))
+    ).toEqual([]);
   });
 
   it('finds only unclaimed Supplier Bot profiles as signup collisions', async () => {
@@ -69,7 +85,7 @@ describe('Phase 2 Supplier Bot completion boundaries', () => {
     });
 
     expect(result.supplier.id).toBe('sup_bot_existing');
-    expect(result.signals).toEqual(['public_email_exact']);
+    expect(result.signals).toEqual(['public_email_exact', 'email_domain_match']);
   });
 
   it('creates an idempotent claim request without transferring ownership', async () => {
@@ -222,7 +238,9 @@ describe('normal supplier signup collision routing', () => {
         return null;
       }),
       insertOne: jest.fn(async (collection, doc) => {
-        if (!data[collection]) data[collection] = [];
+        if (!data[collection]) {
+          data[collection] = [];
+        }
         data[collection].push(doc);
         return doc;
       }),

@@ -227,6 +227,16 @@ function escapeHtml(s) {
       if (flags.supplierApplications === false) {
         const supplierBtn = rolePicker ? rolePicker.querySelector('[data-role="supplier"]') : null;
         if (supplierBtn) {
+          // A deep link (?role=supplier, e.g. from the "claim this listing" banner)
+          // pre-selects this button before the flag check above completes. If
+          // applications just closed, fall back to the customer role instead of
+          // leaving supplier-only fields required behind a disabled button.
+          if (supplierBtn.classList.contains('is-active')) {
+            const customerBtn = rolePicker.querySelector('[data-role="customer"]');
+            if (customerBtn) {
+              selectRole(customerBtn);
+            }
+          }
           supplierBtn.disabled = true;
           supplierBtn.dataset.disabled = 'true';
           supplierBtn.setAttribute('aria-disabled', 'true');

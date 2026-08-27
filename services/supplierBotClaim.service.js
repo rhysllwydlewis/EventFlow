@@ -12,7 +12,9 @@ function normalizeEmail(value) {
 
 function normalizeWebsite(value) {
   const raw = typeof value === 'string' ? value.trim() : '';
-  if (!raw) return '';
+  if (!raw) {
+    return '';
+  }
   try {
     const candidate = /^[a-z][a-z0-9+.-]*:\/\//i.test(raw) ? raw : `https://${raw}`;
     return canonicalWebsite(candidate);
@@ -34,21 +36,87 @@ function isUnclaimedBotSupplier(supplier) {
   );
 }
 
+// Free/consumer webmail domains are deliberately excluded from the email-domain
+// collision signal below. A bot candidate's scraped `website` occasionally ends
+// up pointing at a generic platform rather than the business's own domain (e.g.
+// a malformed crawl), and matching those against a personal Gmail/Outlook/etc.
+// address would let an unrelated signup collide with someone else's listing.
+const FREE_EMAIL_DOMAINS = new Set([
+  'gmail.com',
+  'googlemail.com',
+  'yahoo.com',
+  'yahoo.co.uk',
+  'ymail.com',
+  'hotmail.com',
+  'hotmail.co.uk',
+  'outlook.com',
+  'live.com',
+  'msn.com',
+  'icloud.com',
+  'me.com',
+  'mac.com',
+  'aol.com',
+  'protonmail.com',
+  'proton.me',
+  'gmx.com',
+  'mail.com',
+  'yandex.com',
+]);
+
+function emailDomain(email) {
+  const normalized = normalizeEmail(email);
+  const at = normalized.lastIndexOf('@');
+  return at === -1 ? '' : normalized.slice(at + 1);
+}
+
+function websiteHostname(value) {
+  const normalized = normalizeWebsite(value);
+  if (!normalized) {
+    return '';
+  }
+  try {
+    return new URL(normalized).hostname;
+  } catch (_error) {
+    return '';
+  }
+}
+
 function collisionSignals(user, supplier) {
   const signals = [];
   const userEmail = normalizeEmail(user?.email);
   const supplierEmail = normalizeEmail(supplier?.email);
-  if (userEmail && supplierEmail && userEmail === supplierEmail) signals.push('public_email_exact');
+  if (userEmail && supplierEmail && userEmail === supplierEmail) {
+    signals.push('public_email_exact');
+  }
 
   const userWebsite = normalizeWebsite(user?.website);
   const supplierWebsite = normalizeWebsite(supplier?.website);
-  if (userWebsite && supplierWebsite && userWebsite === supplierWebsite)
+  if (userWebsite && supplierWebsite && userWebsite === supplierWebsite) {
     signals.push('website_exact');
+  }
+
+  // The signup form's website field is optional, so most real claims won't set
+  // it. The far more common signal is a business owner simply signing up with
+  // their work email — match that email's domain against the listing's own
+  // website domain instead of requiring them to retype it.
+  const userDomain = emailDomain(user?.email);
+  const supplierHostname = websiteHostname(supplier?.website);
+  if (
+    userDomain &&
+    supplierHostname &&
+    !FREE_EMAIL_DOMAINS.has(userDomain) &&
+    userDomain === supplierHostname
+  ) {
+    signals.push('email_domain_match');
+  }
+
   return signals;
 }
 
 async function ensureSupplierBotClaimIndexes() {
-  if (!mongo.isConnected()) return;
+  if (!mongo.isConnected()) {
+    return;
+  }
   if (!claimIndexesPromise) {
     claimIndexesPromise = (async () => {
       const collection = await mongo.getCollection('supplierClaims');
@@ -66,7 +134,9 @@ async function ensureSupplierBotClaimIndexes() {
 }
 
 async function findSupplierBotCollision({ dbUnified, user }) {
-  if (!dbUnified || !user) return null;
+  if (!dbUnified || !user) {
+    return null;
+  }
 
   let suppliers;
   if (typeof dbUnified.find === 'function') {
@@ -76,12 +146,18 @@ async function findSupplierBotCollision({ dbUnified, user }) {
   } else {
     return null;
   }
-  if (!Array.isArray(suppliers)) return null;
+  if (!Array.isArray(suppliers)) {
+    return null;
+  }
 
   for (const supplier of suppliers) {
-    if (!isUnclaimedBotSupplier(supplier)) continue;
+    if (!isUnclaimedBotSupplier(supplier)) {
+      continue;
+    }
     const signals = collisionSignals(user, supplier);
-    if (signals.length > 0) return { supplier, signals };
+    if (signals.length > 0) {
+      return { supplier, signals };
+    }
   }
   return null;
 }
@@ -110,7 +186,9 @@ async function createSupplierBotClaimRequest({
   signals = [],
   source = 'manual_claim',
 }) {
-  if (!dbUnified) throw new Error('Database unavailable');
+  if (!dbUnified) {
+    throw new Error('Database unavailable');
+  }
   if (!isUnclaimedBotSupplier(supplier)) {
     const error = new Error('Supplier is not an unclaimed Supplier Bot profile');
     error.code = 'SUPPLIER_BOT_NOT_CLAIMABLE';
@@ -152,9 +230,13 @@ async function createSupplierBotClaimRequest({
 
   try {
     const inserted = await dbUnified.insertOne('supplierClaims', claim);
-    if (inserted) return { claim: inserted, created: true, idempotent: false };
+    if (inserted) {
+      return { claim: inserted, created: true, idempotent: false };
+    }
   } catch (error) {
-    if (!(error && error.code === 11000)) throw error;
+    if (!(error && error.code === 11000)) {
+      throw error;
+    }
   }
 
   const afterRace = await dbUnified.findOne('supplierClaims', { id });
