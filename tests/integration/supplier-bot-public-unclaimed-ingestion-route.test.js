@@ -39,23 +39,35 @@ function memoryDb() {
   return {
     suppliers,
     async read(name) {
-      if (name === 'suppliers') return suppliers;
-      if (name === 'packages' || name === 'badges' || name === 'users') return [];
+      if (name === 'suppliers') {
+        return suppliers;
+      }
+      if (name === 'packages' || name === 'badges' || name === 'users') {
+        return [];
+      }
       return [];
     },
     async findOne(name, query) {
-      if (name !== 'suppliers') return null;
+      if (name !== 'suppliers') {
+        return null;
+      }
       return suppliers.find(item => item.id === query.id) || null;
     },
     async insertOne(name, item) {
-      if (name !== 'suppliers') throw new Error(`Unexpected collection: ${name}`);
+      if (name !== 'suppliers') {
+        throw new Error(`Unexpected collection: ${name}`);
+      }
       suppliers.push(item);
       return item;
     },
     async updateOne(name, query, update) {
-      if (name !== 'suppliers') return false;
+      if (name !== 'suppliers') {
+        return false;
+      }
       const supplier = suppliers.find(item => item.id === query.id);
-      if (!supplier) return false;
+      if (!supplier) {
+        return false;
+      }
       Object.assign(supplier, update.$set || {});
       return true;
     },
@@ -93,10 +105,16 @@ describe('repeatable public-unclaimed Supplier Bot ingestion', () => {
   });
 
   afterAll(() => {
-    if (originalEnabled === undefined) delete process.env.SUPPLIER_BOT_INGESTION_ENABLED;
-    else process.env.SUPPLIER_BOT_INGESTION_ENABLED = originalEnabled;
-    if (originalSecret === undefined) delete process.env.EVENTFLOW_BOT_HMAC_SECRET;
-    else process.env.EVENTFLOW_BOT_HMAC_SECRET = originalSecret;
+    if (originalEnabled === undefined) {
+      delete process.env.SUPPLIER_BOT_INGESTION_ENABLED;
+    } else {
+      process.env.SUPPLIER_BOT_INGESTION_ENABLED = originalEnabled;
+    }
+    if (originalSecret === undefined) {
+      delete process.env.EVENTFLOW_BOT_HMAC_SECRET;
+    } else {
+      process.env.EVENTFLOW_BOT_HMAC_SECRET = originalSecret;
+    }
   });
 
   it('allows multiple independently published unclaimed profiles without the pilot slot', async () => {
@@ -177,7 +195,11 @@ describe('repeatable public-unclaimed Supplier Bot ingestion', () => {
 
     const attemptedRefresh = await postSupplier(
       app,
-      payload('candidate_collision_1', 'Collision Venue One Updated', 'https://collision-two.example/')
+      payload(
+        'candidate_collision_1',
+        'Collision Venue One Updated',
+        'https://collision-two.example/'
+      )
     );
 
     expect(first.status).toBe(201);

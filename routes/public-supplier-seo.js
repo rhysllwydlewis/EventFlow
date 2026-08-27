@@ -187,7 +187,8 @@ function createPublicSupplierSeoRouter(options = {}) {
         ? new Set([String(supplier.ownerUserId)])
         : undefined;
       const indexable =
-        !publishedUnclaimed && getSupplierIndexEligibility(supplier, ownerIdsForIndexCheck).eligible;
+        !publishedUnclaimed &&
+        getSupplierIndexEligibility(supplier, ownerIdsForIndexCheck).eligible;
       const template = await readTemplate();
       const rendered = renderSupplierHtml(template, supplier, { baseUrl }, indexable);
       const html = publishedUnclaimed ? addPilotBanner(rendered) : rendered;
