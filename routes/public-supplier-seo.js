@@ -128,6 +128,17 @@ function createPublicSupplierSeoRouter(options = {}) {
   // render; it remains excluded from normal public discovery and forced noindex.
   router.get('/supplier/:slug', async (req, res, next) => {
     try {
+      const requestedSlug = String(req.params.slug || '');
+      const slugToken = extractSlugToken(requestedSlug);
+
+      // Preserve the normal fail-fast contract for every tokenless slug except the
+      // one deliberately supported Hensol pilot tester alias. This avoids database
+      // reads (and possible database-dependent 500s) for unrelated malformed URLs.
+      if (!slugToken && requestedSlug.toLowerCase() !== PILOT_TESTER_ALIAS) {
+        res.setHeader('X-Robots-Tag', 'noindex, nofollow');
+        return next();
+      }
+
       const suppliers = await readDirectlyAddressableSuppliers();
 
       // During the deliberately narrow one-profile pilot, keep the original Hensol
@@ -135,8 +146,8 @@ function createPublicSupplierSeoRouter(options = {}) {
       // resolves only to the explicit Supplier Bot pilot. Ordinary drafts still fail
       // closed. Redirect to the canonical tokenised route so rendering and canonical
       // metadata remain unified.
-      if (!extractSlugToken(req.params.slug)) {
-        const pilotAlias = resolvePilotPlainSlugAlias(suppliers, req.params.slug);
+      if (!slugToken) {
+        const pilotAlias = resolvePilotPlainSlugAlias(suppliers, requestedSlug);
         if (!pilotAlias) {
           res.setHeader('X-Robots-Tag', 'noindex, nofollow');
           return next();
@@ -150,7 +161,7 @@ function createPublicSupplierSeoRouter(options = {}) {
         return res.redirect(302, `/supplier/${canonicalSlug}${canonicalSearch}`);
       }
 
-      const supplier = resolvePublicSupplierBySlug(suppliers, req.params.slug);
+      const supplier = resolvePublicSupplierBySlug(suppliers, requestedSlug);
       if (!supplier) {
         res.setHeader('X-Robots-Tag', 'noindex, nofollow');
         return next();
@@ -162,7 +173,7 @@ function createPublicSupplierSeoRouter(options = {}) {
       const queryStart = req.originalUrl.indexOf('?');
       const incomingSearch = queryStart === -1 ? '' : req.originalUrl.slice(queryStart);
 
-      if (req.params.slug !== canonicalSlug || incomingSearch !== canonicalSearch) {
+      if (requestedSlug !== canonicalSlug || incomingSearch !== canonicalSearch) {
         return res.redirect(301, `/supplier/${canonicalSlug}${canonicalSearch}`);
       }
 
