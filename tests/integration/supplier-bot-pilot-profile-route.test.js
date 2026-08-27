@@ -80,9 +80,23 @@ describe('one-profile Supplier Bot production pilot', () => {
     expect(response.text).not.toContain('id="supplier-structured-data"');
   });
 
-  test('does not expose an ordinary unclaimed Supplier Bot draft through the direct route', async () => {
+  test('redirects the pilot plain-slug tester URL to its canonical tokenised profile', async () => {
+    const supplier = pilotSupplier({ name: 'Hensol Castle' });
+    const canonicalSlug = buildPublicSupplierSlug(supplier);
+
+    const response = await request(createApp([supplier]))
+      .get('/supplier/hensol-castle?utm_source=pilot&junk=discarded')
+      .expect(302);
+
+    expect(response.headers.location).toBe(`/supplier/${canonicalSlug}?utm_source=pilot`);
+    expect(response.headers['cache-control']).toBe('no-store');
+    expect(response.headers['x-robots-tag']).toBe('noindex, nofollow, noarchive');
+  });
+
+  test('does not expose an ordinary unclaimed Supplier Bot draft through tokenised or plain direct routes', async () => {
     const supplier = pilotSupplier({
       id: 'sup_bot_hidden',
+      name: 'Hidden Venue',
       acquisition: {
         ...pilotSupplier().acquisition,
         candidateId: 'candidate_hidden',
@@ -91,10 +105,15 @@ describe('one-profile Supplier Bot production pilot', () => {
     });
     const slug = buildPublicSupplierSlug(supplier);
 
-    const response = await request(createApp([supplier]))
+    const tokenisedResponse = await request(createApp([supplier]))
       .get(`/supplier/${slug}`)
       .expect(404);
-    expect(response.headers['x-robots-tag']).toBe('noindex, nofollow');
+    expect(tokenisedResponse.headers['x-robots-tag']).toBe('noindex, nofollow');
+
+    const plainResponse = await request(createApp([supplier]))
+      .get('/supplier/hidden-venue')
+      .expect(404);
+    expect(plainResponse.headers['x-robots-tag']).toBe('noindex, nofollow');
   });
 
   test('projects source media, services, price and package evidence for the pilot render without mutating stored public fields', () => {
