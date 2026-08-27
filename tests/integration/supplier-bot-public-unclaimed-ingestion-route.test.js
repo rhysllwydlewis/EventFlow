@@ -163,6 +163,34 @@ describe('repeatable public-unclaimed Supplier Bot ingestion', () => {
     expect(dbUnified.suppliers[0].acquisition.publicationScope).toBe('public_unclaimed');
   });
 
+  it('rejects a refresh that would collide with another supplier website', async () => {
+    const dbUnified = memoryDb();
+    const app = createApp(dbUnified);
+    const first = await postSupplier(
+      app,
+      payload('candidate_collision_1', 'Collision Venue One', 'https://collision-one.example/')
+    );
+    const second = await postSupplier(
+      app,
+      payload('candidate_collision_2', 'Collision Venue Two', 'https://collision-two.example/')
+    );
+
+    const attemptedRefresh = await postSupplier(
+      app,
+      payload('candidate_collision_1', 'Collision Venue One Updated', 'https://collision-two.example/')
+    );
+
+    expect(first.status).toBe(201);
+    expect(second.status).toBe(201);
+    expect(attemptedRefresh.status).toBe(409);
+    expect(attemptedRefresh.body.existingSupplierId).toBe(second.body.supplierId);
+    expect(dbUnified.suppliers).toHaveLength(2);
+    expect(dbUnified.suppliers.find(item => item.id === first.body.supplierId)).toMatchObject({
+      name: 'Collision Venue One',
+      website: 'https://collision-one.example/',
+    });
+  });
+
   it('will not overwrite a profile after ownership leaves the bot-managed unclaimed state', async () => {
     const dbUnified = memoryDb();
     const app = createApp(dbUnified);
