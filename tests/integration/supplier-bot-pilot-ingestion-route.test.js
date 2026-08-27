@@ -31,26 +31,55 @@ function payload(overrides = {}) {
   };
 }
 
+function duplicateKeyError() {
+  const error = new Error('duplicate key');
+  error.code = 11000;
+  return error;
+}
+
 function memoryDb(seed = [], options = {}) {
   const suppliers = seed.map(item => ({ ...item }));
+  const pilotSlots = (options.pilotSlots || []).map(item => ({ ...item }));
   return {
     suppliers,
+    pilotSlots,
     async read(name) {
-      if (name !== 'suppliers') return [];
-      return suppliers;
+      if (name === 'suppliers') return suppliers;
+      if (name === 'supplier_bot_pilot_slots') return pilotSlots;
+      return [];
     },
     async insertOne(name, item) {
-      if (name !== 'suppliers') throw new Error(`Unexpected collection: ${name}`);
-      suppliers.push(item);
-      return item;
+      if (name === 'suppliers') {
+        suppliers.push(item);
+        return item;
+      }
+      if (name === 'supplier_bot_pilot_slots') {
+        if (pilotSlots.some(slot => slot._id === item._id)) {
+          throw duplicateKeyError();
+        }
+        pilotSlots.push(item);
+        return item;
+      }
+      throw new Error(`Unexpected collection: ${name}`);
     },
     async updateOne(name, query, update) {
-      if (options.failUpdate) return false;
-      if (name !== 'suppliers') throw new Error(`Unexpected collection: ${name}`);
-      const supplier = suppliers.find(item => item.id === query.id);
-      if (!supplier) return false;
-      Object.assign(supplier, update.$set || {});
-      return true;
+      if (name === 'suppliers') {
+        const supplier = suppliers.find(item => item.id === query.id);
+        if (!supplier) return false;
+        Object.assign(supplier, update.$set || {});
+        return true;
+      }
+      if (name === 'supplier_bot_pilot_slots') {
+        const slot = pilotSlots.find(
+          item =>
+            (!query._id || item._id === query._id) &&
+            (!query.candidateId || item.candidateId === query.candidateId)
+        );
+        if (!slot) return false;
+        Object.assign(slot, update.$set || {});
+        return true;
+      }
+      return false;
     },
   };
 }
@@ -110,6 +139,11 @@ describe('one-profile Supplier Bot ingestion pilot', () => {
       publicationScope: 'pilot_unclaimed',
     });
     expect(dbUnified.suppliers[0].acquisition.pilotPublishedAt).toEqual(expect.any(String));
+    expect(dbUnified.pilotSlots).toHaveLength(1);
+    expect(dbUnified.pilotSlots[0]).toMatchObject({
+      candidateId: 'candidate_pilot_1',
+      supplierId: dbUnified.suppliers[0].id,
+    });
     expect(repeated.status).toBe(200);
     expect(repeated.body).toMatchObject({
       publicationScope: 'pilot_unclaimed',
@@ -128,6 +162,7 @@ describe('one-profile Supplier Bot ingestion pilot', () => {
     expect(response.status).toBe(400);
     expect(response.body).toEqual({ error: 'publicationScope is unsupported' });
     expect(dbUnified.suppliers).toHaveLength(0);
+    expect(dbUnified.pilotSlots).toHaveLength(0);
   });
 
   it('rejects a second pilot candidate before creating another supplier', async () => {
@@ -159,13 +194,32 @@ describe('one-profile Supplier Bot ingestion pilot', () => {
     expect(dbUnified.suppliers).toHaveLength(1);
   });
 
-  it('fails closed if the pilot marker cannot be persisted', async () => {
-    const logger = { error: jest.fn(), warn: jest.fn() };
-    const dbUnified = memoryDb([], { failUpdate: true });
-    const response = await postSupplier(createApp(dbUnified, logger), payload());
+  it('honours an atomically reserved pilot slot even before a supplier record exists', async () => {
+    const dbUnified = memoryDb([], {
+      pilotSlots: [
+        {
+          _id: 'supplier-bot-one-profile-pilot-v1',
+          id: 'supplier-bot-one-profile-pilot-v1',
+          candidateId: 'candidate_slot_winner',
+          supplierId: 'sup_slot_winner',
+        },
+      ],
+    });
+    const response = await postSupplier(
+      createApp(dbUnified),
+      payload({
+        candidateId: 'candidate_second_pilot',
+        businessName: 'Second Pilot Venue',
+        website: 'https://second-pilot.example/',
+      })
+    );
 
-    expect(response.status).toBe(500);
-    expect(response.body).toEqual({ error: 'Supplier Bot ingestion failed' });
-    expect(logger.error).toHaveBeenCalledTimes(1);
+    expect(response.status).toBe(409);
+    expect(response.body).toMatchObject({
+      error: 'The one-profile Supplier Bot pilot is already in use',
+      existingSupplierId: 'sup_slot_winner',
+    });
+    expect(dbUnified.suppliers).toHaveLength(0);
+    expect(dbUnified.pilotSlots).toHaveLength(1);
   });
 });
