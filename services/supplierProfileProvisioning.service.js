@@ -4,6 +4,10 @@ const dbUnified = require('../db-unified');
 const logger = require('../utils/logger');
 const { auditLog, AUDIT_ACTIONS } = require('../middleware/audit');
 const { VERIFICATION_STATES } = require('../utils/supplierVerificationStateMachine');
+const {
+  createSupplierBotClaimRequest,
+  findSupplierBotCollision,
+} = require('./supplierBotClaim.service');
 
 // skipcq: JS-0067 -- CommonJS module scope prevents these declarations becoming browser globals.
 function emailLocalPart(email) {
@@ -144,6 +148,32 @@ async function reactivateConversionSuspendedProfile(supplier) {
   return refreshed || { ...supplier, ...updates };
 }
 
+async function rollbackNewCollisionClaim(pendingBotClaim) {
+  if (!pendingBotClaim?.created || !pendingBotClaim.claim?.id) return;
+  if (typeof dbUnified.deleteOne !== 'function') {
+    logger.warn(
+      'Could not roll back Supplier Bot collision claim because deleteOne is unavailable',
+      {
+        claimId: pendingBotClaim.claim.id,
+      }
+    );
+    return;
+  }
+  try {
+    const removed = await dbUnified.deleteOne('supplierClaims', { id: pendingBotClaim.claim.id });
+    if (!removed) {
+      logger.warn('Supplier Bot collision claim rollback did not remove a record', {
+        claimId: pendingBotClaim.claim.id,
+      });
+    }
+  } catch (error) {
+    logger.warn('Failed to roll back Supplier Bot collision claim', {
+      claimId: pendingBotClaim.claim.id,
+      error: error.message,
+    });
+  }
+}
+
 // skipcq: JS-0067 -- CommonJS module scope prevents these declarations becoming browser globals.
 async function ensureSupplierProfileForUser(user, options = {}) {
   if (!user || user.role !== 'supplier') {
@@ -160,6 +190,30 @@ async function ensureSupplierProfileForUser(user, options = {}) {
       return reactivateConversionSuspendedProfile(existing);
     }
     return existing;
+  }
+
+  // A normal supplier signup can arrive after the autonomous bot has already
+  // discovered the same business. Detect that collision before creating the
+  // user's ordinary profile and persist a claim request instead of silently
+  // losing the relationship between the two records. Ownership is deliberately
+  // NOT transferred here: Phase 5 validates email/domain/DNS/phone proof before
+  // any claim can become authoritative.
+  const collision = await findSupplierBotCollision({ dbUnified, user });
+  let pendingBotClaim = null;
+  if (collision) {
+    pendingBotClaim = await createSupplierBotClaimRequest({
+      dbUnified,
+      supplier: collision.supplier,
+      user,
+      signals: collision.signals,
+      source: 'normal_signup_collision',
+    });
+    logger.info('Supplier signup matched an unclaimed Supplier Bot profile', {
+      userId: user.id,
+      supplierId: collision.supplier.id,
+      claimId: pendingBotClaim.claim.id,
+      signals: collision.signals,
+    });
   }
 
   const nowIso = new Date().toISOString();
@@ -179,6 +233,17 @@ async function ensureSupplierProfileForUser(user, options = {}) {
     amenities: [],
     createdAt: nowIso,
     updatedAt: nowIso,
+    ...(pendingBotClaim
+      ? {
+          supplierBotCollision: {
+            supplierId: collision.supplier.id,
+            candidateId: collision.supplier.acquisition?.candidateId || null,
+            claimId: pendingBotClaim.claim.id,
+            claimStatus: pendingBotClaim.claim.status,
+            detectedAt: nowIso,
+          },
+        }
+      : {}),
     ...(await supplierApprovalDefaults(nowIso)),
   };
 
@@ -200,6 +265,12 @@ async function ensureSupplierProfileForUser(user, options = {}) {
     return afterInsertFailure;
   }
 
+  // If this signup created a brand-new collision claim but the owned supplier
+  // profile never materialised, remove that claim before the registration
+  // route rolls back the user. This prevents orphaned claim requests pointing
+  // at accounts that no longer exist. Pre-existing/idempotent claims are left
+  // untouched because they may belong to an earlier valid attempt.
+  await rollbackNewCollisionClaim(pendingBotClaim);
   throw new Error(`Failed to provision supplier profile for user ${user.id}`);
 }
 
