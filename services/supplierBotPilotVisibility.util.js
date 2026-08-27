@@ -1,19 +1,32 @@
 'use strict';
 
 const PILOT_SCOPE = 'pilot_unclaimed';
+const PUBLIC_UNCLAIMED_SCOPE = 'public_unclaimed';
+const PUBLISHED_UNCLAIMED_SCOPES = new Set([PILOT_SCOPE, PUBLIC_UNCLAIMED_SCOPE]);
 
-function isSupplierBotPilotProfile(record) {
+function supplierBotPublicationScope(record) {
   const source = record && typeof record === 'object' ? record : {};
-  return Boolean(
-    source.ownershipStatus === 'unclaimed' &&
-    source.acquisition &&
-    source.acquisition.source === 'supplier_bot' &&
-    source.acquisition.publicationScope === PILOT_SCOPE
-  );
+  if (
+    source.ownershipStatus !== 'unclaimed' ||
+    !source.acquisition ||
+    source.acquisition.source !== 'supplier_bot'
+  ) {
+    return null;
+  }
+  const scope = source.acquisition.publicationScope;
+  return PUBLISHED_UNCLAIMED_SCOPES.has(scope) ? scope : null;
 }
 
-function pilotPresentationSupplier(record) {
-  if (!isSupplierBotPilotProfile(record)) {
+function isPublishedUnclaimedSupplierBotProfile(record) {
+  return supplierBotPublicationScope(record) !== null;
+}
+
+function isSupplierBotPilotProfile(record) {
+  return supplierBotPublicationScope(record) === PILOT_SCOPE;
+}
+
+function publishedUnclaimedPresentationSupplier(record) {
+  if (!isPublishedUnclaimedSupplierBotProfile(record)) {
     return record;
   }
 
@@ -35,7 +48,7 @@ function pilotPresentationSupplier(record) {
     const item = pkg && typeof pkg === 'object' ? pkg : {};
     const features = Array.isArray(item.features) ? item.features.filter(Boolean).slice(0, 6) : [];
     return {
-      id: `pilot-package-${index + 1}`,
+      id: `supplier-bot-package-${index + 1}`,
       title: item.name || item.title || `Package ${index + 1}`,
       name: item.name || item.title || `Package ${index + 1}`,
       description: item.description || features.join(' · '),
@@ -77,8 +90,22 @@ function pilotPresentationSupplier(record) {
   };
 }
 
+// Backwards-compatible pilot helper retained while the one-profile pilot is
+// still represented in persisted data. New live publications use the generic
+// published-unclaimed helper above.
+function pilotPresentationSupplier(record) {
+  return isSupplierBotPilotProfile(record)
+    ? publishedUnclaimedPresentationSupplier(record)
+    : record;
+}
+
 module.exports = {
   PILOT_SCOPE,
+  PUBLIC_UNCLAIMED_SCOPE,
+  PUBLISHED_UNCLAIMED_SCOPES,
+  isPublishedUnclaimedSupplierBotProfile,
   isSupplierBotPilotProfile,
   pilotPresentationSupplier,
+  publishedUnclaimedPresentationSupplier,
+  supplierBotPublicationScope,
 };
