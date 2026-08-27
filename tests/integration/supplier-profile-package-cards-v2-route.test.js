@@ -4,12 +4,12 @@ const express = require('express');
 const request = require('supertest');
 const route = require('../../routes/supplier-profile-package-cards');
 
-function createApp(packages) {
+function createApp(packages, supplier = { id: 'sup_1', approved: true }) {
   const app = express();
   const db = {
     findOne: jest.fn(async (collection, query) => {
-      if (collection === 'suppliers' && query.id === 'sup_1') {
-        return { id: 'sup_1', approved: true };
+      if (collection === 'suppliers' && query.id === supplier.id) {
+        return supplier;
       }
       return null;
     }),
@@ -85,5 +85,41 @@ describe('supplier profile package cards v2 route', () => {
         expect.objectContaining({ source: 'gallery[0].optimized', usable: true }),
       ])
     );
+  });
+
+  it('serves Supplier Bot pilot package evidence without requiring approved package records', async () => {
+    const supplier = {
+      id: 'sup_pilot',
+      slug: 'pilot-venue',
+      approved: false,
+      ownershipStatus: 'unclaimed',
+      acquisition: {
+        source: 'supplier_bot',
+        publicationScope: 'pilot_unclaimed',
+        sourcePackages: [
+          {
+            name: 'Exclusive Wedding Package',
+            description: 'Venue hire with catering.',
+            priceDisplay: 'From £2,500',
+          },
+        ],
+      },
+    };
+    const app = createApp([], supplier);
+
+    const res = await request(app).get('/api/supplier-profile/sup_pilot/package-cards').expect(200);
+
+    expect(res.body.meta).toMatchObject({
+      endpoint: 'supplier-profile-package-cards-v2',
+      source: 'supplier_bot_pilot_evidence',
+    });
+    expect(res.body.items).toHaveLength(1);
+    expect(res.body.items[0]).toMatchObject({
+      supplierId: 'sup_pilot',
+      title: 'Exclusive Wedding Package',
+      description: 'Venue hire with catering.',
+      priceDisplay: 'From £2,500',
+      detailUrl: '/supplier/pilot-venue',
+    });
   });
 });

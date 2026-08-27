@@ -5,7 +5,12 @@ const router = express.Router();
 const {
   ENDPOINT_META,
   getSupplierProfilePackageCards,
+  toSupplierProfilePackageCard,
 } = require('../services/supplierProfilePackageCards');
+const {
+  isSupplierBotPilotProfile,
+  pilotPresentationSupplier,
+} = require('../services/supplierBotPilotVisibility.util');
 const { lifecycleBlockReason } = require('../services/seoRecordLifecycle.util');
 
 let dbUnified;
@@ -41,10 +46,45 @@ function canReadSupplier(req, supplier) {
   if (!supplier) {
     return false;
   }
+  if (isSupplierBotPilotProfile(supplier)) {
+    return true;
+  }
   if (supplier.approved === true && lifecycleBlockReason(supplier) === null) {
     return true;
   }
   return previewMode(req) && canPreview(req, supplier);
+}
+
+function pilotPackagePayload(supplier, debug) {
+  const presentation = pilotPresentationSupplier(supplier);
+  const packages = Array.isArray(presentation.topPackages) ? presentation.topPackages : [];
+  const supplierProfileUrl = supplier.slug
+    ? `/supplier/${encodeURIComponent(supplier.slug)}`
+    : '#sp-section-packages';
+  const items = packages.map(pkg => ({
+    ...toSupplierProfilePackageCard(
+      {
+        ...pkg,
+        id: '',
+        slug: '',
+        supplierId: supplier.id,
+        approved: true,
+      },
+      { debug }
+    ),
+    detailUrl: supplierProfileUrl,
+  }));
+
+  return {
+    supplierId: String(supplier.id),
+    count: items.length,
+    items,
+    meta: {
+      endpoint: ENDPOINT_META,
+      renderer: 'v2',
+      source: 'supplier_bot_pilot_evidence',
+    },
+  };
 }
 
 router.get('/supplier-profile/:supplierId/package-cards', async (req, res) => {
@@ -62,11 +102,13 @@ router.get('/supplier-profile/:supplierId/package-cards', async (req, res) => {
 
     const debug = req.query.debugImages === '1';
     const includeUnapproved = previewMode(req) && canPreview(req, supplier);
-    const payload = await getSupplierProfilePackageCards(req.params.supplierId, {
-      db: dbUnified,
-      debug,
-      includeUnapproved,
-    });
+    const payload = isSupplierBotPilotProfile(supplier)
+      ? pilotPackagePayload(supplier, debug)
+      : await getSupplierProfilePackageCards(req.params.supplierId, {
+          db: dbUnified,
+          debug,
+          includeUnapproved,
+        });
 
     res.set('X-EventFlow-Supplier-Packages-Renderer', 'v2');
     res.set('X-EventFlow-Supplier-Packages-Endpoint', ENDPOINT_META);
