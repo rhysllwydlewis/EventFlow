@@ -55,7 +55,7 @@ function canReadSupplier(req, supplier) {
   return previewMode(req) && canPreview(req, supplier);
 }
 
-function supplierBotPackagePayload(supplier, debug) {
+function supplierBotPackageFallback(supplier, debug) {
   const presentation = publishedUnclaimedPresentationSupplier(supplier);
   const packages = Array.isArray(presentation.topPackages) ? presentation.topPackages : [];
   const supplierProfileUrl = supplier.slug
@@ -82,7 +82,8 @@ function supplierBotPackagePayload(supplier, debug) {
     meta: {
       endpoint: ENDPOINT_META,
       renderer: 'v2',
-      source: 'supplier_bot_publication_evidence',
+      source: 'supplier_bot_publication_evidence_fallback',
+      unclaimed: true,
     },
   };
 }
@@ -102,13 +103,28 @@ router.get('/supplier-profile/:supplierId/package-cards', async (req, res) => {
 
     const debug = req.query.debugImages === '1';
     const includeUnapproved = previewMode(req) && canPreview(req, supplier);
-    const payload = isPublishedUnclaimedSupplierBotProfile(supplier)
-      ? supplierBotPackagePayload(supplier, debug)
-      : await getSupplierProfilePackageCards(req.params.supplierId, {
-          db: dbUnified,
-          debug,
-          includeUnapproved,
-        });
+    let payload = await getSupplierProfilePackageCards(req.params.supplierId, {
+      db: dbUnified,
+      debug,
+      includeUnapproved,
+    });
+
+    if (isPublishedUnclaimedSupplierBotProfile(supplier)) {
+      // Published Supplier Bot packages are materialised as normal EventFlow
+      // package records, so they get the same detail URLs, plan actions and
+      // marketplace behaviour as supplier-created packages. Keep the old
+      // acquisition-evidence adapter only as a fail-soft bridge while a legacy
+      // record is waiting for the startup reconciliation/backfill.
+      if (payload.count === 0) {
+        payload = supplierBotPackageFallback(supplier, debug);
+      } else {
+        payload.meta = {
+          ...payload.meta,
+          source: 'supplier_bot_marketplace_packages',
+          unclaimed: true,
+        };
+      }
+    }
 
     res.set('X-EventFlow-Supplier-Packages-Renderer', 'v2');
     res.set('X-EventFlow-Supplier-Packages-Endpoint', ENDPOINT_META);
