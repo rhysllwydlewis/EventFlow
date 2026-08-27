@@ -18,6 +18,7 @@ const TEMPLATE_PATH = path.join(__dirname, '..', 'public', 'supplier.html');
 const INDEXABLE_CACHE_CONTROL = 'public, max-age=60, s-maxage=300, stale-while-revalidate=60';
 const NON_INDEXABLE_CACHE_CONTROL = 'public, max-age=30, s-maxage=60, stale-while-revalidate=30';
 const DEFAULT_SUPPLIER_CACHE_TTL_MS = 60 * 1000;
+const PILOT_TESTER_ALIAS = 'hensol-castle';
 
 function addPilotBanner(html) {
   const banner = `
@@ -115,17 +116,10 @@ function createPublicSupplierSeoRouter(options = {}) {
   }
 
   function resolvePilotPlainSlugAlias(suppliers, slug) {
-    return (
-      (suppliers || []).find(supplier => {
-        if (!isSupplierBotPilotProfile(supplier)) {
-          return false;
-        }
-        const canonicalSlug = buildPublicSupplierSlug(supplier);
-        const separatorIndex = canonicalSlug.lastIndexOf('--');
-        const plainSlug = separatorIndex === -1 ? '' : canonicalSlug.slice(0, separatorIndex);
-        return plainSlug === String(slug || '').toLowerCase();
-      }) || null
-    );
+    if (String(slug || '').toLowerCase() !== PILOT_TESTER_ALIAS) {
+      return null;
+    }
+    return (suppliers || []).find(supplier => isSupplierBotPilotProfile(supplier)) || null;
   }
 
   // This is an HTML profile route, not an API operation. Ordinary public suppliers
@@ -136,10 +130,11 @@ function createPublicSupplierSeoRouter(options = {}) {
     try {
       const suppliers = await readDirectlyAddressableSuppliers();
 
-      // During the deliberately narrow one-profile pilot, keep the original human-
-      // readable tester URL usable. Only the explicit Supplier Bot pilot may resolve
-      // without a token; ordinary drafts still fail closed. Redirect to the canonical
-      // tokenised route so production rendering and canonical metadata remain unified.
+      // During the deliberately narrow one-profile pilot, keep the original Hensol
+      // tester URL usable. Only that exact alias may resolve without a token, and it
+      // resolves only to the explicit Supplier Bot pilot. Ordinary drafts still fail
+      // closed. Redirect to the canonical tokenised route so rendering and canonical
+      // metadata remain unified.
       if (!extractSlugToken(req.params.slug)) {
         const pilotAlias = resolvePilotPlainSlugAlias(suppliers, req.params.slug);
         if (!pilotAlias) {
