@@ -141,9 +141,11 @@ router.post('/internal/supplier-bot/suppliers', verifySupplierBotHmac, async (re
     await assertPilotPublicationSlot(req.body);
     const result = await createUnclaimedSupplierFromBot({ dbUnified, payload: req.body });
     const supplier = await applyPilotPublicationScope(result, req.body);
+    const supplierWithPublicPath = addPublicProfilePath(supplier);
     return res.status(result.created ? 201 : 200).json({
       supplierId: supplier.id,
       slug: supplier.slug,
+      publicProfilePath: supplierWithPublicPath.publicProfilePath || null,
       status: supplier.status,
       ownershipStatus: supplier.ownershipStatus,
       publicationScope: supplier.acquisition?.publicationScope || null,
