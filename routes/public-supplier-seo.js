@@ -27,6 +27,7 @@ function addPilotBanner(html) {
   const banner = `
     <aside id="supplier-bot-unclaimed-banner" role="status" style="margin:0;padding:10px 16px;text-align:center;background:#f3f4f6;color:#374151;border-bottom:1px solid #e5e7eb;font:600 14px/1.4 system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif">
       Unclaimed profile · This business has not claimed or verified this EventFlow profile yet.
+      <a href="/auth?tab=create&amp;role=supplier" style="color:#4338ca;text-decoration:underline;margin-left:6px">Is this your business? Claim it</a>
     </aside>`;
   return /<body\b[^>]*>/i.test(html)
     ? html.replace(/<body\b[^>]*>/i, match => `${match}${banner}`)

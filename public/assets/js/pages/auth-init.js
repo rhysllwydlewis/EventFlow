@@ -1,5 +1,7 @@
 function escapeHtml(s) {
-  if (!s) return '';
+  if (!s) {
+    return '';
+  }
   const d = document.createElement('div');
   d.textContent = String(s);
   return d.innerHTML;
@@ -191,6 +193,20 @@ function escapeHtml(s) {
       selectRole(next);
       next.focus();
     });
+  }
+
+  // Deep-link support for /auth?tab=create&role=supplier, used by the
+  // "claim this listing" link on unclaimed Supplier Bot profile/package
+  // pages so a visiting business owner lands straight on the supplier
+  // sign-up form.
+  if (rolePicker) {
+    const requestedRole = new URLSearchParams(window.location.search).get('role');
+    if (requestedRole === 'supplier') {
+      const supplierRoleBtn = rolePicker.querySelector('[data-role="supplier"]');
+      if (supplierRoleBtn) {
+        selectRole(supplierRoleBtn);
+      }
+    }
   }
 
   // ── Feature-flag pre-checks ────────────────────────────────────

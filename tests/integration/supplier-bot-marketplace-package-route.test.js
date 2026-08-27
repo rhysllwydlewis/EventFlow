@@ -40,9 +40,15 @@ function memoryDb() {
     supplier,
     pkg,
     async read(name) {
-      if (name === 'suppliers') return [supplier];
-      if (name === 'packages') return [pkg];
-      if (name === 'users' || name === 'public_calendar_events') return [];
+      if (name === 'suppliers') {
+        return [supplier];
+      }
+      if (name === 'packages') {
+        return [pkg];
+      }
+      if (name === 'users' || name === 'public_calendar_events') {
+        return [];
+      }
       return [];
     },
   };
@@ -67,6 +73,7 @@ describe('published-unclaimed package page parity', () => {
     expect(response.headers['x-robots-tag']).toBe('noindex, nofollow, noarchive');
     expect(response.text).toContain('id="supplier-bot-unclaimed-package-banner"');
     expect(response.text).toContain('Unclaimed package');
+    expect(response.text).toContain('href="/auth?tab=create&amp;role=supplier"');
     expect(response.text).toContain('ef-public-package-id');
     expect(response.text).toContain(dbUnified.pkg.id);
   });
