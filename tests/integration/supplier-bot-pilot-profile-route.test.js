@@ -3,9 +3,11 @@
 const express = require('express');
 const request = require('supertest');
 const createPublicSupplierSeoRouter = require('../../routes/public-supplier-seo');
+const supplierProfilePackageCardsRouter = require('../../routes/supplier-profile-package-cards');
 const { buildPublicSupplierSlug } = require('../../services/publicSupplierSeo.service');
 const { lifecycleBlockReason } = require('../../services/seoRecordLifecycle.util');
 const {
+  isPublishedUnclaimedSupplierBotProfile,
   isSupplierBotPilotProfile,
   pilotPresentationSupplier,
 } = require('../../services/supplierBotPilotVisibility.util');
@@ -29,6 +31,22 @@ function createApp(suppliers) {
     })
   );
   app.use((_req, res) => res.status(404).send('Not found'));
+  return app;
+}
+
+function createPackageApp(suppliers) {
+  const dbUnified = {
+    findOne: jest.fn(async (collection, query) => {
+      if (collection !== 'suppliers') return null;
+      return suppliers.find(item => item.id === query.id) || null;
+    }),
+  };
+  supplierProfilePackageCardsRouter.initializeDependencies({
+    dbUnified,
+    logger: { error: jest.fn() },
+  });
+  const app = express();
+  app.use(supplierProfilePackageCardsRouter);
   return app;
 }
 
@@ -78,6 +96,49 @@ describe('one-profile Supplier Bot production pilot', () => {
     expect(response.headers['x-robots-tag']).toBe('noindex, nofollow, noarchive');
     expect(response.text).toContain('Unclaimed profile');
     expect(response.text).not.toContain('id="supplier-structured-data"');
+  });
+
+  test('serves reusable public-unclaimed profiles directly with the same fail-closed SEO policy', async () => {
+    const supplier = pilotSupplier({
+      id: 'sup_bot_public_1',
+      name: 'Public Unclaimed Venue',
+      acquisition: {
+        ...pilotSupplier().acquisition,
+        candidateId: 'candidate_public_1',
+        publicationScope: 'public_unclaimed',
+      },
+    });
+    expect(isPublishedUnclaimedSupplierBotProfile(supplier)).toBe(true);
+    expect(isSupplierBotPilotProfile(supplier)).toBe(false);
+
+    const slug = buildPublicSupplierSlug(supplier);
+    const response = await request(createApp([supplier]))
+      .get(`/supplier/${slug}`)
+      .expect(200);
+
+    expect(response.headers['x-robots-tag']).toBe('noindex, nofollow, noarchive');
+    expect(response.text).toContain('Unclaimed profile');
+    expect(response.text).not.toContain('id="supplier-structured-data"');
+  });
+
+  test('serves package evidence for reusable public-unclaimed profiles', async () => {
+    const supplier = pilotSupplier({
+      id: 'sup_bot_public_packages',
+      slug: 'public-package-venue',
+      acquisition: {
+        ...pilotSupplier().acquisition,
+        candidateId: 'candidate_public_packages',
+        publicationScope: 'public_unclaimed',
+      },
+    });
+
+    const response = await request(createPackageApp([supplier]))
+      .get(`/supplier-profile/${supplier.id}/package-cards`)
+      .expect(200);
+
+    expect(response.body.count).toBe(1);
+    expect(response.body.items[0]).toMatchObject({ title: 'Exclusive hire' });
+    expect(response.body.meta.source).toBe('supplier_bot_publication_evidence');
   });
 
   test('redirects the pilot plain-slug tester URL to its canonical tokenised profile', async () => {

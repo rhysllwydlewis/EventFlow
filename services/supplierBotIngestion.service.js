@@ -2,7 +2,12 @@
 
 const crypto = require('crypto');
 const { VALID_CATEGORIES } = require('../models/Supplier');
-const { PILOT_SCOPE, isSupplierBotPilotProfile } = require('./supplierBotPilotVisibility.util');
+const {
+  PILOT_SCOPE,
+  PUBLIC_UNCLAIMED_SCOPE,
+  PUBLISHED_UNCLAIMED_SCOPES,
+  isSupplierBotPilotProfile,
+} = require('./supplierBotPilotVisibility.util');
 const {
   attachSupplierToPilotSlot,
   reserveSupplierBotPilotSlot,
@@ -196,14 +201,84 @@ function validatePayload(payload) {
     payload.publicationScope !== undefined &&
     payload.publicationScope !== null &&
     payload.publicationScope !== '' &&
-    payload.publicationScope !== PILOT_SCOPE
+    !PUBLISHED_UNCLAIMED_SCOPES.has(payload.publicationScope)
   ) {
     throw new Error('publicationScope is unsupported');
   }
   const website = canonicalWebsite(payload.website);
   const sourceMedia = normalizeSourceMedia(payload);
-  const publicationScope = payload.publicationScope === PILOT_SCOPE ? PILOT_SCOPE : null;
+  const publicationScope = PUBLISHED_UNCLAIMED_SCOPES.has(payload.publicationScope)
+    ? payload.publicationScope
+    : null;
   return { website, sourceMedia, publicationScope };
+}
+
+function isManagedUnclaimedSupplier(supplier) {
+  return Boolean(
+    supplier &&
+    supplier.ownershipStatus === 'unclaimed' &&
+    supplier.acquisition?.source === 'supplier_bot'
+  );
+}
+
+function effectivePublicationScope(existingAcquisition, requestedScope) {
+  const existingScope = existingAcquisition?.publicationScope;
+  if (PUBLISHED_UNCLAIMED_SCOPES.has(existingScope)) {
+    return existingScope;
+  }
+  return PUBLISHED_UNCLAIMED_SCOPES.has(requestedScope) ? requestedScope : null;
+}
+
+function acquisitionFromPayload(payload, validated, existingAcquisition, now) {
+  const previous =
+    existingAcquisition && typeof existingAcquisition === 'object' ? existingAcquisition : {};
+  const publicationScope = effectivePublicationScope(previous, validated.publicationScope);
+  return {
+    ...previous,
+    source: 'supplier_bot',
+    candidateId: payload.candidateId,
+    generatedAt: payload.generatedAt || null,
+    generatorVersion: payload.generatorVersion || null,
+    publicationQuality: Number(payload.publicationQuality),
+    dataConfidence: Number(payload.dataConfidence),
+    complianceStatus: payload.complianceStatus || null,
+    compliancePolicyVersion: payload.compliancePolicyVersion || null,
+    sourcePackages: Array.isArray(payload.packages) ? payload.packages.slice(0, 20) : [],
+    advertisedPrices: Array.isArray(payload.advertisedPrices)
+      ? payload.advertisedPrices.slice(0, 50)
+      : [],
+    sourceMedia: validated.sourceMedia,
+    ...(publicationScope
+      ? {
+          publicationScope,
+          publishedUnclaimedAt: previous.publishedUnclaimedAt || now,
+          ...(publicationScope === PILOT_SCOPE
+            ? { pilotPublishedAt: previous.pilotPublishedAt || now }
+            : {}),
+        }
+      : {}),
+    ingestedAt: previous.ingestedAt || now,
+    refreshedAt: now,
+  };
+}
+
+function managedRefreshPatch(existing, payload, validated, now) {
+  return {
+    name: payload.businessName.trim(),
+    category: payload.category,
+    description: payload.description ? String(payload.description).trim() : '',
+    location: payload.location || '',
+    phone: payload.publicPhone || '',
+    email: payload.publicEmail || '',
+    website: validated.website,
+    socials:
+      payload.socials && typeof payload.socials === 'object'
+        ? payload.socials
+        : existing.socials || {},
+    tags: Array.isArray(payload.services) ? payload.services.slice(0, 20) : [],
+    acquisition: acquisitionFromPayload(payload, validated, existing.acquisition, now),
+    updatedAt: now,
+  };
 }
 
 async function createUnclaimedSupplierFromBot({ dbUnified, payload }) {
@@ -222,6 +297,30 @@ async function createUnclaimedSupplierFromBot({ dbUnified, payload }) {
         item?.acquisition?.candidateId === payload.candidateId)
   );
   if (sameCandidate) {
+    if (!isManagedUnclaimedSupplier(sameCandidate)) {
+      const error = new Error('Supplier Bot candidate is already owned or no longer bot-managed');
+      error.code = 'SUPPLIER_BOT_OWNERSHIP_CONFLICT';
+      error.supplierId = sameCandidate.id;
+      throw error;
+    }
+
+    const websiteConflict = suppliers.find(item => {
+      if (!item.website || item.id === sameCandidate.id) {
+        return false;
+      }
+      try {
+        return canonicalWebsite(item.website) === canonical;
+      } catch (_error) {
+        return false;
+      }
+    });
+    if (websiteConflict) {
+      const error = new Error('A supplier with this website already exists');
+      error.code = 'SUPPLIER_WEBSITE_CONFLICT';
+      error.supplierId = websiteConflict.id;
+      throw error;
+    }
+
     if (validated.publicationScope === PILOT_SCOPE) {
       await reserveSupplierBotPilotSlot({ dbUnified, candidateId: payload.candidateId });
       await attachSupplierToPilotSlot({
@@ -230,7 +329,19 @@ async function createUnclaimedSupplierFromBot({ dbUnified, payload }) {
         supplierId: sameCandidate.id,
       });
     }
-    return { supplier: sameCandidate, created: false, idempotent: true };
+
+    const now = new Date().toISOString();
+    const patch = managedRefreshPatch(sameCandidate, payload, validated, now);
+    const wrote = await dbUnified.updateOne('suppliers', { id: sameCandidate.id }, { $set: patch });
+    if (!wrote) {
+      throw new Error('Failed to refresh existing Supplier Bot profile');
+    }
+    return {
+      supplier: { ...sameCandidate, ...patch },
+      created: false,
+      idempotent: true,
+      refreshed: true,
+    };
   }
 
   const sameWebsite = suppliers.find(item => {
@@ -276,8 +387,9 @@ async function createUnclaimedSupplierFromBot({ dbUnified, payload }) {
     website: canonical,
     socials: payload.socials && typeof payload.socials === 'object' ? payload.socials : {},
     logo: '',
-    // Supplier Bot media is deliberately NOT copied into public profile fields.
-    // Acquisition provenance is not equivalent to a licence to republish imagery.
+    // Supplier Bot media remains provenance-controlled acquisition data. Public
+    // unclaimed presentation resolves it through the shared publication-scope
+    // presenter rather than copying it into supplier-owned media fields.
     coverImage: '',
     images: [],
     isPro: false,
@@ -308,28 +420,7 @@ async function createUnclaimedSupplierFromBot({ dbUnified, payload }) {
     approved: false,
     approvedAt: null,
     approvedBy: null,
-    acquisition: {
-      source: 'supplier_bot',
-      candidateId: payload.candidateId,
-      generatedAt: payload.generatedAt || null,
-      generatorVersion: payload.generatorVersion || null,
-      publicationQuality: Number(payload.publicationQuality),
-      dataConfidence: Number(payload.dataConfidence),
-      complianceStatus: payload.complianceStatus || null,
-      compliancePolicyVersion: payload.compliancePolicyVersion || null,
-      sourcePackages: Array.isArray(payload.packages) ? payload.packages.slice(0, 20) : [],
-      advertisedPrices: Array.isArray(payload.advertisedPrices)
-        ? payload.advertisedPrices.slice(0, 50)
-        : [],
-      sourceMedia: validated.sourceMedia,
-      ...(validated.publicationScope
-        ? {
-            publicationScope: validated.publicationScope,
-            pilotPublishedAt: now,
-          }
-        : {}),
-      ingestedAt: now,
-    },
+    acquisition: acquisitionFromPayload(payload, validated, null, now),
     createdAt: now,
     updatedAt: now,
   };
@@ -343,13 +434,21 @@ async function createUnclaimedSupplierFromBot({ dbUnified, payload }) {
         supplierId: supplier.id,
       });
     }
-    return { supplier, created: true, idempotent: false };
+    return { supplier, created: true, idempotent: false, refreshed: false };
   } catch (error) {
     if (error && error.code === 11000) {
       const current = await dbUnified.read('suppliers');
       const concurrent = current.find(item => item.id === deterministicId);
       if (concurrent) {
-        return { supplier: concurrent, created: false, idempotent: true };
+        if (!isManagedUnclaimedSupplier(concurrent)) {
+          const ownershipError = new Error(
+            'Supplier Bot candidate is already owned or no longer bot-managed'
+          );
+          ownershipError.code = 'SUPPLIER_BOT_OWNERSHIP_CONFLICT';
+          ownershipError.supplierId = concurrent.id;
+          throw ownershipError;
+        }
+        return { supplier: concurrent, created: false, idempotent: true, refreshed: false };
       }
       if (validated.publicationScope === PILOT_SCOPE) {
         const existingPilot = current.find(item => isSupplierBotPilotProfile(item));
@@ -366,6 +465,7 @@ async function createUnclaimedSupplierFromBot({ dbUnified, payload }) {
 }
 
 module.exports = {
+  PUBLIC_UNCLAIMED_SCOPE,
   canonicalMediaUrl,
   canonicalWebsite,
   createUnclaimedSupplierFromBot,

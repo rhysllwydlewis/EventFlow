@@ -11,13 +11,16 @@ const {
 } = require('../services/supplierBotClaim.service');
 const {
   PILOT_SCOPE,
+  PUBLIC_UNCLAIMED_SCOPE,
+  isPublishedUnclaimedSupplierBotProfile,
   isSupplierBotPilotProfile,
-  pilotPresentationSupplier,
+  publishedUnclaimedPresentationSupplier,
 } = require('../services/supplierBotPilotVisibility.util');
 const { lifecycleBlockReason } = require('../services/seoRecordLifecycle.util');
 const { resolvePackageImage } = require('../utils/packageImageUtils');
 const { safePublicPackage, safePublicSupplier } = require('../utils/supplierPublicProfile');
 const { addPublicProfilePath } = require('../utils/publicSupplierProfilePath');
+const { supplierSlugToken } = require('../services/publicSupplierSeo.service');
 const {
   findOwnerUserForSupplierFromDb,
   hydrateSupplierProfilePhoto,
@@ -58,7 +61,7 @@ function canRead(req, supplier) {
   if (!supplier) {
     return false;
   }
-  if (isSupplierBotPilotProfile(supplier)) {
+  if (isPublishedUnclaimedSupplierBotProfile(supplier)) {
     return true;
   }
   if (supplier.approved === true && lifecycleBlockReason(supplier) === null) {
@@ -85,15 +88,18 @@ async function badgeDetailsFor(supplier) {
   }
 }
 
-async function assertPilotPublicationSlot(payload) {
+async function assertSupplierBotPublicationScope(payload) {
   const requestedScope = payload && payload.publicationScope;
   if (requestedScope === undefined || requestedScope === null || requestedScope === '') {
     return;
   }
-  if (requestedScope !== PILOT_SCOPE) {
+  if (![PILOT_SCOPE, PUBLIC_UNCLAIMED_SCOPE].includes(requestedScope)) {
     const error = new Error('publicationScope is unsupported');
-    error.code = 'SUPPLIER_BOT_INVALID_PILOT_SCOPE';
+    error.code = 'SUPPLIER_BOT_INVALID_PUBLICATION_SCOPE';
     throw error;
+  }
+  if (requestedScope !== PILOT_SCOPE) {
+    return;
   }
 
   const candidateId = typeof payload.candidateId === 'string' ? payload.candidateId : '';
@@ -107,20 +113,28 @@ async function assertPilotPublicationSlot(payload) {
   }
 }
 
-async function applyPilotPublicationScope(result, payload) {
+async function applySupplierBotPublicationScope(result, payload) {
   const requestedScope = payload && payload.publicationScope;
-  if (requestedScope !== PILOT_SCOPE) {
+  if (![PILOT_SCOPE, PUBLIC_UNCLAIMED_SCOPE].includes(requestedScope)) {
     return result.supplier;
   }
-  if (isSupplierBotPilotProfile(result.supplier)) {
+
+  // Once a bot-managed profile is explicitly published, keep its established
+  // scope stable. This prevents the legacy pilot reconciler and the generic
+  // live worker from flipping a profile back and forth between scope labels.
+  const existingScope = result.supplier?.acquisition?.publicationScope;
+  if ([PILOT_SCOPE, PUBLIC_UNCLAIMED_SCOPE].includes(existingScope)) {
     return result.supplier;
   }
 
   const now = new Date().toISOString();
   const acquisition = {
     ...(result.supplier.acquisition || {}),
-    publicationScope: PILOT_SCOPE,
-    pilotPublishedAt: now,
+    publicationScope: requestedScope,
+    publishedUnclaimedAt: result.supplier.acquisition?.publishedUnclaimedAt || now,
+    ...(requestedScope === PILOT_SCOPE
+      ? { pilotPublishedAt: result.supplier.acquisition?.pilotPublishedAt || now }
+      : {}),
   };
   const wrote = await dbUnified.updateOne(
     'suppliers',
@@ -128,9 +142,22 @@ async function applyPilotPublicationScope(result, payload) {
     { $set: { acquisition, updatedAt: now } }
   );
   if (!wrote) {
-    throw new Error('Failed to mark Supplier Bot pilot profile');
+    throw new Error('Failed to mark published Supplier Bot profile');
   }
   return { ...result.supplier, acquisition, updatedAt: now };
+}
+
+// Supplier Bot ingestion pins the public URL to the persisted slug (set once
+// at creation) rather than the shared name-derived builder, so repeat
+// crawls that refresh the business name in place don't churn the canonical
+// unclaimed profile URL. The trailing id token still lets the normal
+// name-based canonical route resolve and redirect this URL if it drifts.
+function stableSupplierBotProfilePath(supplier) {
+  if (!supplier?.id || !supplier?.slug) {
+    return null;
+  }
+  const token = supplierSlugToken(supplier.id);
+  return token ? `/supplier/${supplier.slug}--${token}` : null;
 }
 
 router.post('/internal/supplier-bot/suppliers', verifySupplierBotHmac, async (req, res) => {
@@ -138,33 +165,36 @@ router.post('/internal/supplier-bot/suppliers', verifySupplierBotHmac, async (re
     if (!dbUnified) {
       return res.status(503).json({ error: 'Database unavailable' });
     }
-    await assertPilotPublicationSlot(req.body);
+    await assertSupplierBotPublicationScope(req.body);
     const result = await createUnclaimedSupplierFromBot({ dbUnified, payload: req.body });
-    const supplier = await applyPilotPublicationScope(result, req.body);
-    const supplierWithPublicPath = isSupplierBotPilotProfile(supplier)
-      ? addPublicProfilePath(supplier)
+    const supplier = await applySupplierBotPublicationScope(result, req.body);
+    const publicProfilePath = isPublishedUnclaimedSupplierBotProfile(supplier)
+      ? stableSupplierBotProfilePath(supplier)
       : null;
     return res.status(result.created ? 201 : 200).json({
       supplierId: supplier.id,
       slug: supplier.slug,
-      publicProfilePath: supplierWithPublicPath?.publicProfilePath || null,
+      publicProfilePath,
       status: supplier.status,
       ownershipStatus: supplier.ownershipStatus,
       publicationScope: supplier.acquisition?.publicationScope || null,
       created: result.created,
       idempotent: result.idempotent,
+      refreshed: Boolean(result.refreshed),
     });
   } catch (error) {
     if (
       error &&
-      (error.code === 'SUPPLIER_WEBSITE_CONFLICT' || error.code === 'SUPPLIER_BOT_PILOT_LIMIT')
+      (error.code === 'SUPPLIER_WEBSITE_CONFLICT' ||
+        error.code === 'SUPPLIER_BOT_PILOT_LIMIT' ||
+        error.code === 'SUPPLIER_BOT_OWNERSHIP_CONFLICT')
     ) {
       return res.status(409).json({
         error: error.message,
         existingSupplierId: error.supplierId || null,
       });
     }
-    if (error?.code === 'SUPPLIER_BOT_INVALID_PILOT_SCOPE') {
+    if (error?.code === 'SUPPLIER_BOT_INVALID_PUBLICATION_SCOPE') {
       return res.status(400).json({ error: error.message });
     }
     const message = error instanceof Error ? error.message : 'Invalid Supplier Bot payload';
@@ -179,10 +209,6 @@ router.post('/internal/supplier-bot/suppliers', verifySupplierBotHmac, async (re
   }
 });
 
-// Creates a claim request only. This endpoint never transfers ownership. The
-// proof methods and final handover are deliberately left to the validated
-// claim lifecycle so a logged-in user cannot take over a business by merely
-// knowing its profile id or website.
 router.post('/supplier-bot/claims/:supplierId', csrfProtection, async (req, res) => {
   try {
     if (!dbUnified) {
@@ -260,7 +286,7 @@ router.get('/suppliers/:id', async (req, res, next) => {
     const preview = previewMode(req) && canPreview(req, supplier);
 
     const ownerUser = await findOwnerUserForSupplierFromDb(supplier, dbUnified, logger);
-    const presentationSupplier = pilotPresentationSupplier(supplier);
+    const presentationSupplier = publishedUnclaimedPresentationSupplier(supplier);
     const publicSupplier = hydrateSupplierProfilePhoto(presentationSupplier, ownerUser);
     const profilePhotoUrl = publicSupplier.profilePhotoUrl;
     const safeSupplier = safePublicSupplier(publicSupplier, {
@@ -274,10 +300,11 @@ router.get('/suppliers/:id', async (req, res, next) => {
       profilePhotoUrl,
     });
 
-    if (isSupplierBotPilotProfile(supplier)) {
+    if (isPublishedUnclaimedSupplierBotProfile(supplier)) {
       safeSupplier.ownershipStatus = 'unclaimed';
       safeSupplier.isUnclaimed = true;
-      safeSupplier.isSupplierBotPilot = true;
+      safeSupplier.isSupplierBotProfile = true;
+      safeSupplier.isSupplierBotPilot = isSupplierBotPilotProfile(supplier);
     }
 
     return res.json(addPublicProfilePath(safeSupplier));

@@ -8,8 +8,8 @@ const {
   toSupplierProfilePackageCard,
 } = require('../services/supplierProfilePackageCards');
 const {
-  isSupplierBotPilotProfile,
-  pilotPresentationSupplier,
+  isPublishedUnclaimedSupplierBotProfile,
+  publishedUnclaimedPresentationSupplier,
 } = require('../services/supplierBotPilotVisibility.util');
 const { lifecycleBlockReason } = require('../services/seoRecordLifecycle.util');
 
@@ -46,7 +46,7 @@ function canReadSupplier(req, supplier) {
   if (!supplier) {
     return false;
   }
-  if (isSupplierBotPilotProfile(supplier)) {
+  if (isPublishedUnclaimedSupplierBotProfile(supplier)) {
     return true;
   }
   if (supplier.approved === true && lifecycleBlockReason(supplier) === null) {
@@ -55,8 +55,8 @@ function canReadSupplier(req, supplier) {
   return previewMode(req) && canPreview(req, supplier);
 }
 
-function pilotPackagePayload(supplier, debug) {
-  const presentation = pilotPresentationSupplier(supplier);
+function supplierBotPackagePayload(supplier, debug) {
+  const presentation = publishedUnclaimedPresentationSupplier(supplier);
   const packages = Array.isArray(presentation.topPackages) ? presentation.topPackages : [];
   const supplierProfileUrl = supplier.slug
     ? `/supplier/${encodeURIComponent(supplier.slug)}`
@@ -82,7 +82,7 @@ function pilotPackagePayload(supplier, debug) {
     meta: {
       endpoint: ENDPOINT_META,
       renderer: 'v2',
-      source: 'supplier_bot_pilot_evidence',
+      source: 'supplier_bot_publication_evidence',
     },
   };
 }
@@ -102,8 +102,8 @@ router.get('/supplier-profile/:supplierId/package-cards', async (req, res) => {
 
     const debug = req.query.debugImages === '1';
     const includeUnapproved = previewMode(req) && canPreview(req, supplier);
-    const payload = isSupplierBotPilotProfile(supplier)
-      ? pilotPackagePayload(supplier, debug)
+    const payload = isPublishedUnclaimedSupplierBotProfile(supplier)
+      ? supplierBotPackagePayload(supplier, debug)
       : await getSupplierProfilePackageCards(req.params.supplierId, {
           db: dbUnified,
           debug,
