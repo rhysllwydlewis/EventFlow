@@ -20,6 +20,7 @@ const { lifecycleBlockReason } = require('../services/seoRecordLifecycle.util');
 const { resolvePackageImage } = require('../utils/packageImageUtils');
 const { safePublicPackage, safePublicSupplier } = require('../utils/supplierPublicProfile');
 const { addPublicProfilePath } = require('../utils/publicSupplierProfilePath');
+const { supplierSlugToken } = require('../services/publicSupplierSeo.service');
 const {
   findOwnerUserForSupplierFromDb,
   hydrateSupplierProfilePhoto,
@@ -146,6 +147,19 @@ async function applySupplierBotPublicationScope(result, payload) {
   return { ...result.supplier, acquisition, updatedAt: now };
 }
 
+// Supplier Bot ingestion pins the public URL to the persisted slug (set once
+// at creation) rather than the shared name-derived builder, so repeat
+// crawls that refresh the business name in place don't churn the canonical
+// unclaimed profile URL. The trailing id token still lets the normal
+// name-based canonical route resolve and redirect this URL if it drifts.
+function stableSupplierBotProfilePath(supplier) {
+  if (!supplier?.id || !supplier?.slug) {
+    return null;
+  }
+  const token = supplierSlugToken(supplier.id);
+  return token ? `/supplier/${supplier.slug}--${token}` : null;
+}
+
 router.post('/internal/supplier-bot/suppliers', verifySupplierBotHmac, async (req, res) => {
   try {
     if (!dbUnified) {
@@ -154,13 +168,13 @@ router.post('/internal/supplier-bot/suppliers', verifySupplierBotHmac, async (re
     await assertSupplierBotPublicationScope(req.body);
     const result = await createUnclaimedSupplierFromBot({ dbUnified, payload: req.body });
     const supplier = await applySupplierBotPublicationScope(result, req.body);
-    const supplierWithPublicPath = isPublishedUnclaimedSupplierBotProfile(supplier)
-      ? addPublicProfilePath(supplier)
+    const publicProfilePath = isPublishedUnclaimedSupplierBotProfile(supplier)
+      ? stableSupplierBotProfilePath(supplier)
       : null;
     return res.status(result.created ? 201 : 200).json({
       supplierId: supplier.id,
       slug: supplier.slug,
-      publicProfilePath: supplierWithPublicPath?.publicProfilePath || null,
+      publicProfilePath,
       status: supplier.status,
       ownershipStatus: supplier.ownershipStatus,
       publicationScope: supplier.acquisition?.publicationScope || null,

@@ -37,13 +37,28 @@ function memoryDb(seed = []) {
   return {
     suppliers,
     async read(name) {
-      if (name !== 'suppliers') throw new Error(`Unexpected collection: ${name}`);
+      if (name !== 'suppliers') {
+        throw new Error(`Unexpected collection: ${name}`);
+      }
       return suppliers;
     },
     async insertOne(name, item) {
-      if (name !== 'suppliers') throw new Error(`Unexpected collection: ${name}`);
+      if (name !== 'suppliers') {
+        throw new Error(`Unexpected collection: ${name}`);
+      }
       suppliers.push(item);
       return item;
+    },
+    async updateOne(name, filter, update) {
+      if (name !== 'suppliers') {
+        throw new Error(`Unexpected collection: ${name}`);
+      }
+      const item = suppliers.find(row => row.id === filter.id);
+      if (!item) {
+        return false;
+      }
+      Object.assign(item, update.$set || update);
+      return true;
     },
   };
 }
@@ -146,12 +161,29 @@ describe('Supplier Bot ingestion', () => {
   it('recognizes an existing bot candidate by acquisition metadata', async () => {
     const existing = {
       id: 'legacy_bot_id',
+      ownershipStatus: 'unclaimed',
       acquisition: { source: 'supplier_bot', candidateId: 'candidate_test_123' },
     };
     const dbUnified = memoryDb([existing]);
     const result = await createUnclaimedSupplierFromBot({ dbUnified, payload: payload() });
 
-    expect(result).toEqual({ supplier: existing, created: false, idempotent: true });
+    expect(result.created).toBe(false);
+    expect(result.idempotent).toBe(true);
+    expect(result.supplier.id).toBe('legacy_bot_id');
+  });
+
+  it('refuses to refresh a bot candidate that is no longer bot-managed', async () => {
+    const existing = {
+      id: 'legacy_bot_id',
+      acquisition: { source: 'supplier_bot', candidateId: 'candidate_test_123' },
+    };
+    const dbUnified = memoryDb([existing]);
+    const operation = createUnclaimedSupplierFromBot({ dbUnified, payload: payload() });
+
+    await expect(operation).rejects.toMatchObject({
+      code: 'SUPPLIER_BOT_OWNERSHIP_CONFLICT',
+      supplierId: 'legacy_bot_id',
+    });
   });
 
   it('refuses to duplicate an existing website', async () => {
@@ -314,10 +346,16 @@ describe('Supplier Bot HMAC middleware', () => {
   const originalSecret = process.env.EVENTFLOW_BOT_HMAC_SECRET;
 
   afterEach(() => {
-    if (originalEnabled === undefined) delete process.env.SUPPLIER_BOT_INGESTION_ENABLED;
-    else process.env.SUPPLIER_BOT_INGESTION_ENABLED = originalEnabled;
-    if (originalSecret === undefined) delete process.env.EVENTFLOW_BOT_HMAC_SECRET;
-    else process.env.EVENTFLOW_BOT_HMAC_SECRET = originalSecret;
+    if (originalEnabled === undefined) {
+      delete process.env.SUPPLIER_BOT_INGESTION_ENABLED;
+    } else {
+      process.env.SUPPLIER_BOT_INGESTION_ENABLED = originalEnabled;
+    }
+    if (originalSecret === undefined) {
+      delete process.env.EVENTFLOW_BOT_HMAC_SECRET;
+    } else {
+      process.env.EVENTFLOW_BOT_HMAC_SECRET = originalSecret;
+    }
   });
 
   it('accepts a fresh correctly signed request with the sha256 prefix', () => {
@@ -455,10 +493,16 @@ describe('Supplier Bot ingestion route', () => {
   });
 
   afterAll(() => {
-    if (originalEnabled === undefined) delete process.env.SUPPLIER_BOT_INGESTION_ENABLED;
-    else process.env.SUPPLIER_BOT_INGESTION_ENABLED = originalEnabled;
-    if (originalSecret === undefined) delete process.env.EVENTFLOW_BOT_HMAC_SECRET;
-    else process.env.EVENTFLOW_BOT_HMAC_SECRET = originalSecret;
+    if (originalEnabled === undefined) {
+      delete process.env.SUPPLIER_BOT_INGESTION_ENABLED;
+    } else {
+      process.env.SUPPLIER_BOT_INGESTION_ENABLED = originalEnabled;
+    }
+    if (originalSecret === undefined) {
+      delete process.env.EVENTFLOW_BOT_HMAC_SECRET;
+    } else {
+      process.env.EVENTFLOW_BOT_HMAC_SECRET = originalSecret;
+    }
   });
 
   async function postSupplier(app, body) {

@@ -230,9 +230,8 @@ function effectivePublicationScope(existingAcquisition, requestedScope) {
 }
 
 function acquisitionFromPayload(payload, validated, existingAcquisition, now) {
-  const previous = existingAcquisition && typeof existingAcquisition === 'object'
-    ? existingAcquisition
-    : {};
+  const previous =
+    existingAcquisition && typeof existingAcquisition === 'object' ? existingAcquisition : {};
   const publicationScope = effectivePublicationScope(previous, validated.publicationScope);
   return {
     ...previous,
@@ -272,9 +271,10 @@ function managedRefreshPatch(existing, payload, validated, now) {
     phone: payload.publicPhone || '',
     email: payload.publicEmail || '',
     website: validated.website,
-    socials: payload.socials && typeof payload.socials === 'object'
-      ? payload.socials
-      : existing.socials || {},
+    socials:
+      payload.socials && typeof payload.socials === 'object'
+        ? payload.socials
+        : existing.socials || {},
     tags: Array.isArray(payload.services) ? payload.services.slice(0, 20) : [],
     acquisition: acquisitionFromPayload(payload, validated, existing.acquisition, now),
     updatedAt: now,
