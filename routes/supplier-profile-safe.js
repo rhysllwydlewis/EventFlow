@@ -16,6 +16,10 @@ const {
   isSupplierBotPilotProfile,
   publishedUnclaimedPresentationSupplier,
 } = require('../services/supplierBotPilotVisibility.util');
+const {
+  ensurePublishedUnclaimedMarketplaceState,
+  reconcilePublishedUnclaimedMarketplaceState,
+} = require('../services/supplierBotMarketplaceParity.service');
 const { lifecycleBlockReason } = require('../services/seoRecordLifecycle.util');
 const { resolvePackageImage } = require('../utils/packageImageUtils');
 const { safePublicPackage, safePublicSupplier } = require('../utils/supplierPublicProfile');
@@ -36,6 +40,16 @@ function initializeDependencies(deps = {}) {
   getUserFromCookie = deps.getUserFromCookie;
   supplierIsProActive = deps.supplierIsProActive;
   logger = deps.logger || console;
+
+  // Backfill previously-published Supplier Bot profiles (including the original
+  // Hensol pilot) into the same marketplace state used by new publications.
+  // The reconciliation is idempotent and supplier-agnostic: it also materialises
+  // provenance-backed source packages as ordinary EventFlow package records.
+  if (dbUnified && typeof dbUnified.read === 'function') {
+    reconcilePublishedUnclaimedMarketplaceState({ dbUnified, logger }).catch(error => {
+      logger.error('Published Supplier Bot marketplace reconciliation failed:', error);
+    });
+  }
 }
 
 function currentUser(req) {
@@ -167,7 +181,12 @@ router.post('/internal/supplier-bot/suppliers', verifySupplierBotHmac, async (re
     }
     await assertSupplierBotPublicationScope(req.body);
     const result = await createUnclaimedSupplierFromBot({ dbUnified, payload: req.body });
-    const supplier = await applySupplierBotPublicationScope(result, req.body);
+    const scopedSupplier = await applySupplierBotPublicationScope(result, req.body);
+    const marketplace = await ensurePublishedUnclaimedMarketplaceState({
+      dbUnified,
+      supplier: scopedSupplier,
+    });
+    const supplier = marketplace.supplier;
     const publicProfilePath = isPublishedUnclaimedSupplierBotProfile(supplier)
       ? stableSupplierBotProfilePath(supplier)
       : null;
