@@ -129,8 +129,8 @@ describe('Supplier Bot Phase 2 review hardening', () => {
     app.use(express.json());
     app.use(router);
 
-    await request(app()).get(`/suppliers/${supplier.id}`).expect(404);
-    await request(app()).get(`/suppliers/${supplier.id}/packages`).expect(404);
+    await request(app).get(`/suppliers/${supplier.id}`).expect(404);
+    await request(app).get(`/suppliers/${supplier.id}/packages`).expect(404);
   });
 
   it('404s package-card data for an accidentally approved unclaimed bot supplier', async () => {
@@ -146,6 +146,6 @@ describe('Supplier Bot Phase 2 review hardening', () => {
     const app = express();
     app.use(router);
 
-    await request(app()).get(`/supplier-profile/${supplier.id}/package-cards`).expect(404);
+    await request(app).get(`/supplier-profile/${supplier.id}/package-cards`).expect(404);
   });
 });
