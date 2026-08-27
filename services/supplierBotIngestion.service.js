@@ -3,6 +3,10 @@
 const crypto = require('crypto');
 const { VALID_CATEGORIES } = require('../models/Supplier');
 
+const MAX_SOURCE_IMAGES = 12;
+const MAX_MEDIA_EVIDENCE = 20;
+const MEDIA_KINDS = new Set(['open_graph', 'inline_image', 'picture_source', 'background_image']);
+
 function isSlugCharacter(char) {
   const code = char.charCodeAt(0);
   return (code >= 48 && code <= 57) || (code >= 97 && code <= 122) || char === '_';
@@ -34,7 +38,6 @@ function supplierIdForCandidate(candidateId) {
   return `sup_bot_${digest}`;
 }
 
-// Normalize websites before duplicate checks so equivalent supplier URLs compare consistently.
 function canonicalWebsite(value) {
   let url;
   try {
@@ -49,6 +52,99 @@ function canonicalWebsite(value) {
   url.hostname = url.hostname.toLowerCase().replace(/^www\./, '');
   url.pathname = url.pathname.replace(/\/+$/, '') || '/';
   return url.href;
+}
+
+function canonicalMediaUrl(value, fieldName) {
+  if (typeof value !== 'string' || !value.trim()) {
+    throw new Error(`${fieldName} must be a valid URL`);
+  }
+  if (value.length > 2048) throw new Error(`${fieldName} must be 2048 characters or fewer`);
+  let url;
+  try {
+    url = new URL(value);
+  } catch (_error) {
+    throw new Error(`${fieldName} must be a valid URL`);
+  }
+  if (!['http:', 'https:'].includes(url.protocol)) {
+    throw new Error(`${fieldName} must use HTTP or HTTPS`);
+  }
+  url.hash = '';
+  return url.href;
+}
+
+function optionalPositiveInteger(value, fieldName) {
+  if (value === null || value === undefined) return null;
+  const number = Number(value);
+  if (!Number.isInteger(number) || number <= 0 || number > 20000) {
+    throw new Error(`${fieldName} must be a positive integer up to 20000`);
+  }
+  return number;
+}
+
+function normalizeSourceMedia(payload) {
+  const hasCover =
+    payload.coverImage !== undefined && payload.coverImage !== null && payload.coverImage !== '';
+  const coverImage = hasCover ? canonicalMediaUrl(payload.coverImage, 'coverImage') : null;
+
+  if (payload.images !== undefined && !Array.isArray(payload.images)) {
+    throw new Error('images must be an array');
+  }
+  if (Array.isArray(payload.images) && payload.images.length > MAX_SOURCE_IMAGES) {
+    throw new Error(`images must contain no more than ${MAX_SOURCE_IMAGES} items`);
+  }
+  const images = Array.isArray(payload.images)
+    ? [
+        ...new Set(
+          payload.images.map((value, index) => canonicalMediaUrl(value, `images[${index}]`))
+        ),
+      ]
+    : [];
+
+  if (payload.mediaEvidence !== undefined && !Array.isArray(payload.mediaEvidence)) {
+    throw new Error('mediaEvidence must be an array');
+  }
+  if (Array.isArray(payload.mediaEvidence) && payload.mediaEvidence.length > MAX_MEDIA_EVIDENCE) {
+    throw new Error(`mediaEvidence must contain no more than ${MAX_MEDIA_EVIDENCE} items`);
+  }
+  const mediaEvidence = Array.isArray(payload.mediaEvidence)
+    ? payload.mediaEvidence.map((item, index) => {
+        if (!item || typeof item !== 'object') {
+          throw new Error(`mediaEvidence[${index}] must be an object`);
+        }
+        if (!MEDIA_KINDS.has(item.kind)) {
+          throw new Error(`mediaEvidence[${index}].kind is unsupported`);
+        }
+        const alt =
+          item.alt === null || item.alt === undefined || item.alt === ''
+            ? null
+            : String(item.alt).trim();
+        if (alt && alt.length > 300) {
+          throw new Error(`mediaEvidence[${index}].alt must be 300 characters or fewer`);
+        }
+        const score = Number(item.score);
+        if (!Number.isFinite(score) || score < 0 || score > 100) {
+          throw new Error(`mediaEvidence[${index}].score must be between 0 and 100`);
+        }
+        if (typeof item.sameSite !== 'boolean') {
+          throw new Error(`mediaEvidence[${index}].sameSite must be boolean`);
+        }
+        return {
+          url: canonicalMediaUrl(item.url, `mediaEvidence[${index}].url`),
+          sourcePageUrl: canonicalMediaUrl(
+            item.sourcePageUrl,
+            `mediaEvidence[${index}].sourcePageUrl`
+          ),
+          kind: item.kind,
+          alt,
+          width: optionalPositiveInteger(item.width, `mediaEvidence[${index}].width`),
+          height: optionalPositiveInteger(item.height, `mediaEvidence[${index}].height`),
+          score,
+          sameSite: item.sameSite,
+        };
+      })
+    : [];
+
+  return { coverImage, images, evidence: mediaEvidence };
 }
 
 function validatePayload(payload) {
@@ -81,12 +177,15 @@ function validatePayload(payload) {
   if (!Number.isFinite(Number(payload.dataConfidence))) {
     throw new Error('dataConfidence is required');
   }
-  return canonicalWebsite(payload.website);
+  const website = canonicalWebsite(payload.website);
+  const sourceMedia = normalizeSourceMedia(payload);
+  return { website, sourceMedia };
 }
 
 async function createUnclaimedSupplierFromBot({ dbUnified, payload }) {
   if (!dbUnified) throw new Error('Database unavailable');
-  const canonical = validatePayload(payload);
+  const validated = validatePayload(payload);
+  const canonical = validated.website;
   const deterministicId = supplierIdForCandidate(payload.candidateId);
   const suppliers = await dbUnified.read('suppliers');
 
@@ -137,6 +236,8 @@ async function createUnclaimedSupplierFromBot({ dbUnified, payload }) {
     website: canonical,
     socials: payload.socials && typeof payload.socials === 'object' ? payload.socials : {},
     logo: '',
+    // Supplier Bot media is deliberately NOT copied into public profile fields.
+    // Acquisition provenance is not equivalent to a licence to republish imagery.
     coverImage: '',
     images: [],
     isPro: false,
@@ -180,6 +281,7 @@ async function createUnclaimedSupplierFromBot({ dbUnified, payload }) {
       advertisedPrices: Array.isArray(payload.advertisedPrices)
         ? payload.advertisedPrices.slice(0, 50)
         : [],
+      sourceMedia: validated.sourceMedia,
       ingestedAt: now,
     },
     createdAt: now,
@@ -202,7 +304,9 @@ async function createUnclaimedSupplierFromBot({ dbUnified, payload }) {
 }
 
 module.exports = {
+  canonicalMediaUrl,
   canonicalWebsite,
   createUnclaimedSupplierFromBot,
+  normalizeSourceMedia,
   supplierIdForCandidate,
 };

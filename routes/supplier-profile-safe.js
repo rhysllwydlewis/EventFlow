@@ -99,7 +99,9 @@ router.post('/internal/supplier-bot/suppliers', verifySupplierBotHmac, async (re
       });
     }
     const message = error instanceof Error ? error.message : 'Invalid Supplier Bot payload';
-    const validationMessage = /required|unsupported|must be|website/i.test(message);
+    const validationMessage = /required|unsupported|must be|must use|must contain|website/i.test(
+      message
+    );
     if (validationMessage) {
       return res.status(400).json({ error: message });
     }
