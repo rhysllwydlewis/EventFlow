@@ -23,11 +23,14 @@ const NON_INDEXABLE_CACHE_CONTROL = 'public, max-age=30, s-maxage=60, stale-whil
 const DEFAULT_SUPPLIER_CACHE_TTL_MS = 60 * 1000;
 const PILOT_TESTER_ALIAS = 'hensol-castle';
 
-function addPilotBanner(html) {
+function addPilotBanner(html, supplierId) {
+  const claimHref = `/auth?tab=create&amp;role=supplier${
+    supplierId ? `&amp;claimSupplierId=${encodeURIComponent(supplierId)}` : ''
+  }`;
   const banner = `
     <aside id="supplier-bot-unclaimed-banner" role="status" style="margin:0;padding:10px 16px;text-align:center;background:#f3f4f6;color:#374151;border-bottom:1px solid #e5e7eb;font:600 14px/1.4 system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif">
       Unclaimed profile · This business has not claimed or verified this EventFlow profile yet.
-      <a href="/auth?tab=create&amp;role=supplier" rel="nofollow" style="color:#4338ca;text-decoration:underline;margin-left:6px">Is this your business? Claim it</a>
+      <a href="${claimHref}" rel="nofollow" style="color:#4338ca;text-decoration:underline;margin-left:6px">Is this your business? Claim it</a>
     </aside>`;
   return /<body\b[^>]*>/i.test(html)
     ? html.replace(/<body\b[^>]*>/i, match => `${match}${banner}`)
@@ -192,7 +195,7 @@ function createPublicSupplierSeoRouter(options = {}) {
         getSupplierIndexEligibility(supplier, ownerIdsForIndexCheck).eligible;
       const template = await readTemplate();
       const rendered = renderSupplierHtml(template, supplier, { baseUrl }, indexable);
-      const html = publishedUnclaimed ? addPilotBanner(rendered) : rendered;
+      const html = publishedUnclaimed ? addPilotBanner(rendered, supplier.id) : rendered;
 
       res.setHeader(
         'Cache-Control',

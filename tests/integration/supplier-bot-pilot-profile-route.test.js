@@ -103,7 +103,9 @@ describe('one-profile Supplier Bot production pilot', () => {
 
     expect(response.headers['x-robots-tag']).toBe('noindex, nofollow, noarchive');
     expect(response.text).toContain('Unclaimed profile');
-    expect(response.text).toContain('href="/auth?tab=create&amp;role=supplier"');
+    expect(response.text).toContain(
+      'href="/auth?tab=create&amp;role=supplier&amp;claimSupplierId=sup_bot_pilot_1"'
+    );
     expect(response.text).not.toContain('id="supplier-structured-data"');
   });
 
@@ -127,7 +129,9 @@ describe('one-profile Supplier Bot production pilot', () => {
 
     expect(response.headers['x-robots-tag']).toBe('noindex, nofollow, noarchive');
     expect(response.text).toContain('Unclaimed profile');
-    expect(response.text).toContain('href="/auth?tab=create&amp;role=supplier"');
+    expect(response.text).toContain(
+      'href="/auth?tab=create&amp;role=supplier&amp;claimSupplierId=sup_bot_public_1"'
+    );
     expect(response.text).not.toContain('id="supplier-structured-data"');
   });
 

@@ -249,6 +249,7 @@ router.post(
       socials,
       captchaToken,
       ref: refCode,
+      claimSupplierId,
     } = req.body || {};
 
     // Verify ALTCHA token when the verifier is available
@@ -455,7 +456,9 @@ router.post(
 
     if (user.role === 'supplier') {
       try {
-        await ensureSupplierProfileForUser(user);
+        await ensureSupplierProfileForUser(user, {
+          claimSupplierId: trimString(claimSupplierId, 64) || undefined,
+        });
       } catch (profileError) {
         logger.error('[REGISTER] failed to provision supplier profile; rolling back user', {
           userId: user.id,

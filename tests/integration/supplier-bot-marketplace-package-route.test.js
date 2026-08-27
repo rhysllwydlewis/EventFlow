@@ -73,7 +73,9 @@ describe('published-unclaimed package page parity', () => {
     expect(response.headers['x-robots-tag']).toBe('noindex, nofollow, noarchive');
     expect(response.text).toContain('id="supplier-bot-unclaimed-package-banner"');
     expect(response.text).toContain('Unclaimed package');
-    expect(response.text).toContain('href="/auth?tab=create&amp;role=supplier"');
+    expect(response.text).toContain(
+      'href="/auth?tab=create&amp;role=supplier&amp;claimSupplierId=sup_bot_package_route_1"'
+    );
     expect(response.text).toContain('ef-public-package-id');
     expect(response.text).toContain(dbUnified.pkg.id);
   });

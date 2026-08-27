@@ -5,8 +5,10 @@ const logger = require('../utils/logger');
 const { auditLog, AUDIT_ACTIONS } = require('../middleware/audit');
 const { VERIFICATION_STATES } = require('../utils/supplierVerificationStateMachine');
 const {
+  collisionSignals,
   createSupplierBotClaimRequest,
   findSupplierBotCollision,
+  isUnclaimedBotSupplier,
 } = require('./supplierBotClaim.service');
 
 // skipcq: JS-0067 -- CommonJS module scope prevents these declarations becoming browser globals.
@@ -149,7 +151,9 @@ async function reactivateConversionSuspendedProfile(supplier) {
 }
 
 async function rollbackNewCollisionClaim(pendingBotClaim) {
-  if (!pendingBotClaim?.created || !pendingBotClaim.claim?.id) return;
+  if (!pendingBotClaim?.created || !pendingBotClaim.claim?.id) {
+    return;
+  }
   if (typeof dbUnified.deleteOne !== 'function') {
     logger.warn(
       'Could not roll back Supplier Bot collision claim because deleteOne is unavailable',
@@ -198,7 +202,28 @@ async function ensureSupplierProfileForUser(user, options = {}) {
   // losing the relationship between the two records. Ownership is deliberately
   // NOT transferred here: Phase 5 validates email/domain/DNS/phone proof before
   // any claim can become authoritative.
-  const collision = await findSupplierBotCollision({ dbUnified, user });
+  //
+  // A signup that arrived via the "claim this listing" link on a specific
+  // unclaimed profile carries that exact supplier id (options.claimSupplierId).
+  // Prefer it over the heuristic scan below so the claim always lands on the
+  // listing the visitor actually viewed, even when their signup email/website
+  // doesn't happen to match it (e.g. a different mailbox on the same domain,
+  // or an email domain the heuristic can't see because the optional website
+  // field was left blank).
+  let collision = null;
+  let collisionSource = 'normal_signup_collision';
+  const explicitClaimSupplierId =
+    typeof options.claimSupplierId === 'string' ? options.claimSupplierId.trim().slice(0, 64) : '';
+  if (explicitClaimSupplierId) {
+    const explicitSupplier = await dbUnified.findOne('suppliers', { id: explicitClaimSupplierId });
+    if (explicitSupplier && isUnclaimedBotSupplier(explicitSupplier)) {
+      collision = { supplier: explicitSupplier, signals: collisionSignals(user, explicitSupplier) };
+      collisionSource = 'claim_link_explicit';
+    }
+  }
+  if (!collision) {
+    collision = await findSupplierBotCollision({ dbUnified, user });
+  }
   let pendingBotClaim = null;
   if (collision) {
     pendingBotClaim = await createSupplierBotClaimRequest({
@@ -206,7 +231,7 @@ async function ensureSupplierProfileForUser(user, options = {}) {
       supplier: collision.supplier,
       user,
       signals: collision.signals,
-      source: 'normal_signup_collision',
+      source: collisionSource,
     });
     logger.info('Supplier signup matched an unclaimed Supplier Bot profile', {
       userId: user.id,

@@ -195,10 +195,12 @@ function escapeHtml(s) {
     });
   }
 
-  // Deep-link support for /auth?tab=create&role=supplier, used by the
-  // "claim this listing" link on unclaimed Supplier Bot profile/package
-  // pages so a visiting business owner lands straight on the supplier
-  // sign-up form.
+  // Deep-link support for /auth?tab=create&role=supplier&claimSupplierId=...,
+  // used by the "claim this listing" link on unclaimed Supplier Bot
+  // profile/package pages so a visiting business owner lands straight on the
+  // supplier sign-up form, and so registration submits an explicit claim for
+  // the exact listing they viewed rather than relying only on an email/website
+  // match after the fact.
   if (rolePicker) {
     const requestedRole = new URLSearchParams(window.location.search).get('role');
     if (requestedRole === 'supplier') {
@@ -206,6 +208,14 @@ function escapeHtml(s) {
       if (supplierRoleBtn) {
         selectRole(supplierRoleBtn);
       }
+    }
+  }
+
+  const claimSupplierIdInput = document.getElementById('reg-claim-supplier-id');
+  if (claimSupplierIdInput) {
+    const claimSupplierId = new URLSearchParams(window.location.search).get('claimSupplierId');
+    if (claimSupplierId) {
+      claimSupplierIdInput.value = claimSupplierId.slice(0, 64);
     }
   }
 
