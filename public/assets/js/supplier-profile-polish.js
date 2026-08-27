@@ -83,7 +83,7 @@ const DETAIL_ICONS = Object.freeze({
   rating:
     '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m12 3 2.8 5.7 6.2.9-4.5 4.4 1.1 6.2L12 17.3l-5.6 2.9 1.1-6.2L3 9.6l6.2-.9L12 3Z"/></svg>',
   'price range':
-    '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2v20M17 6H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>',
+    '<svg viewBox="0 0 24 24" aria-hidden="true"><text x="12" y="18" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="17" font-weight="600" fill="currentColor">£</text></svg>',
   since:
     '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 10h18"/></svg>',
   response:
@@ -320,7 +320,7 @@ const CONTACT_ICONS = Object.freeze({
   location:
     '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 10c0 5.5-8 11-8 11S4 15.5 4 10a8 8 0 1 1 16 0Z"/><circle cx="12" cy="10" r="2.5"/></svg>',
   price:
-    '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M16 7.5c0-2-1.7-3.5-4-3.5S8 5.5 8 7.5 9.7 11 12 11s4 1.5 4 3.5S14.3 18 12 18s-4-1.5-4-3.5M12 2v20"/></svg>',
+    '<svg viewBox="0 0 24 24" aria-hidden="true"><text x="12" y="18" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="17" font-weight="600" fill="currentColor">£</text></svg>',
 });
 
 function moveHeroBadgesIntoIdentity() {
