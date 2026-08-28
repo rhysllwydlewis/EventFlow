@@ -1,5 +1,5 @@
 import './supplier-profile-theme-owner.js';
-export * from './supplier-profile-polish-base.js';
+export * from './supplier-profile-polish-base.js?v=2';
 
 const PROFILE_THEME_STYLESHEET_ID = 'supplier-profile-theme-styles';
 const PROFILE_THEME_STYLESHEET_HREF = '/assets/css/supplier-profile-theme.css?v=20.1.0';

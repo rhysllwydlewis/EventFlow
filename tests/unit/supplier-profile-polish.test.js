@@ -149,8 +149,19 @@ describe('supplier profile packages and reviews', () => {
   });
 
   test('loads the profile polish layer from the existing package module entry point', () => {
-    expect(packagesJs).toContain("import './supplier-profile-polish.js?v=1'");
-    expect(supplierHtml).toContain('supplier-profile-packages-v2.js?v=19.4.4');
+    expect(packagesJs).toContain("import './supplier-profile-polish.js?v=2'");
+    expect(supplierHtml).toContain('supplier-profile-packages-v2.js?v=19.4.5');
+  });
+
+  test('the module chain that carries polish changes shares one cache-bust: bumping the leaf modules is worthless unless every importer between them and the entry <script> tag is bumped too', () => {
+    // packages-v2.js is the only <script> entry point for this chain. It
+    // imports polish.js, which re-exports base.js. staticCachingMiddleware
+    // caches JS for a week by exact URL (query string included), so a
+    // returning browser only re-fetches a module whose own import
+    // specifier's URL actually changed.
+    expect(profileThemeJs).toContain("export * from './supplier-profile-polish-base.js?v=2'");
+    expect(packagesJs).toContain("import './supplier-profile-polish.js?v=2'");
+    expect(supplierHtml).toContain('supplier-profile-packages-v2.js?v=19.4.5');
   });
 
   test('collapses zero-review scaffolding into one EventFlow-specific empty state', () => {
