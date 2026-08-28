@@ -146,7 +146,10 @@ describe('Supplier Bot pre-crawl existence lookup', () => {
     const response = await request(app)
       .post('/internal/supplier-bot/suppliers/lookup')
       .set('x-eventflow-bot-timestamp', timestamp)
-      .set('x-eventflow-bot-signature', 'sha256=0000000000000000000000000000000000000000000000000000000000000000')
+      .set(
+        'x-eventflow-bot-signature',
+        'sha256=0000000000000000000000000000000000000000000000000000000000000000'
+      )
       .send({ domain: 'example.com' });
 
     expect(response.status).toBe(401);
