@@ -413,4 +413,50 @@ describe('public-supplier-avatar client', () => {
     expect(dom.img.hidden).toBe(true);
     expect(dom.img.hasAttribute('src')).toBe(false);
   });
+
+  test('resolves the supplier id from window.EventFlowSupplierRoute on a canonical /supplier/name--token URL', async () => {
+    // The canonical profile URL (e.g. /supplier/meet-in-wales--2a97dadc1dc8b6c0)
+    // carries no ?id= query string at all. supplier-route-context.js exposes
+    // the real id via this API instead -- and, critically, it does not expire
+    // the way its own URLSearchParams.get('id') monkey-patch deliberately
+    // does shortly after DOMContentLoaded (see that file's own comment). This
+    // is the regression this test guards: on a real network, the async
+    // supplier-data fetch (and this module's resulting sp:dataReady-triggered
+    // second call) can easily land after that monkey-patch has already been
+    // restored to native -- at which point location.search has nothing for
+    // it to find, and the avatar was getting stuck on its initial-load
+    // placeholder forever even though the real photo had already loaded.
+    const dom = makeDom();
+    dom.window.location.search = '';
+    dom.window.EventFlowSupplierRoute = { getSupplierId: () => 'sup_1' };
+    dom.window.__supplierData = {
+      id: 'sup_1',
+      name: 'Romeo Test',
+      profilePhotoUrl: '/api/photos/rt',
+    };
+    const fetchMock = jest.fn();
+    const client = loadClient(dom, fetchMock);
+
+    await client.loadPublicSupplierAvatar();
+
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(dom.img.getAttribute('src')).toBe('/api/photos/rt');
+  });
+
+  test('falls back to the query string when EventFlowSupplierRoute is unavailable (e.g. supplier.html?id=... directly)', async () => {
+    const dom = makeDom();
+    dom.window.location.search = '?id=sup_legacy';
+    dom.window.__supplierData = {
+      id: 'sup_legacy',
+      name: 'Legacy Supplier',
+      profilePhotoUrl: '/api/photos/legacy',
+    };
+    const fetchMock = jest.fn();
+    const client = loadClient(dom, fetchMock);
+
+    await client.loadPublicSupplierAvatar();
+
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(dom.img.getAttribute('src')).toBe('/api/photos/legacy');
+  });
 });
