@@ -228,6 +228,65 @@ router.post('/internal/supplier-bot/suppliers', verifySupplierBotHmac, async (re
   }
 });
 
+function hostnameOf(website) {
+  const hostname = new URL(String(website)).hostname;
+  return hostname.toLowerCase().replace(/^www\./, '');
+}
+
+// Read-only existence check, called by the bot at discovery time -- before
+// it spends any crawl or AI budget on a newly-found website -- so it can
+// skip a business that already has a real EventFlow supplier record,
+// regardless of how that record got there (this bot's own past publish, a
+// different campaign run, or someone signing up directly through the site;
+// this bot never sees direct signups any other way). Deliberately returns
+// only a boolean: enough for the bot to decide whether to proceed, nothing
+// that identifies or describes the matched supplier.
+//
+// Matches by hostname, not canonicalWebsite()'s full path-sensitive
+// comparison used by the ingestion route's own conflict check above: at
+// discovery time the bot only has a bare domain from search results, not
+// yet a specific page, and every other duplicate-prevention check this bot
+// already has (published_suppliers, discovery.service.ts) is domain-keyed
+// too -- matching this endpoint to that existing, coarser granularity is
+// the intended behaviour, not an oversight. The ingestion route's stricter
+// full-URL conflict check remains the authoritative backstop at actual
+// publish time regardless.
+router.post('/internal/supplier-bot/suppliers/lookup', verifySupplierBotHmac, async (req, res) => {
+  try {
+    if (!dbUnified) {
+      return res.status(503).json({ error: 'Database unavailable' });
+    }
+    const rawDomain = typeof req.body?.domain === 'string' ? req.body.domain.trim() : '';
+    if (!rawDomain || /[\s/]/.test(rawDomain) || rawDomain.includes('://')) {
+      return res.status(400).json({ error: 'domain must be a bare hostname, e.g. "example.com"' });
+    }
+    let domain;
+    try {
+      domain = hostnameOf(`https://${rawDomain}`);
+    } catch (_error) {
+      return res.status(400).json({ error: 'domain must be a bare hostname, e.g. "example.com"' });
+    }
+    if (!domain.includes('.')) {
+      return res.status(400).json({ error: 'domain must be a bare hostname, e.g. "example.com"' });
+    }
+    const suppliers = await dbUnified.read('suppliers');
+    const exists = suppliers.some(item => {
+      if (!item.website) {
+        return false;
+      }
+      try {
+        return hostnameOf(item.website) === domain;
+      } catch (_error) {
+        return false;
+      }
+    });
+    return res.json({ exists });
+  } catch (error) {
+    logger.error('Supplier Bot lookup failed:', error);
+    return res.status(500).json({ error: 'Supplier Bot lookup failed' });
+  }
+});
+
 router.post('/supplier-bot/claims/:supplierId', csrfProtection, async (req, res) => {
   try {
     if (!dbUnified) {
