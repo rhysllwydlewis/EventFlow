@@ -490,14 +490,17 @@ import { renderVerificationBadges, renderTierIcon } from '/assets/js/utils/verif
     }
 
     // Founding
-    if (supplier.isFoundingSupplier || supplier.isFounding || supplier.founding) {
+    if (
+      badges.length < 3 &&
+      (supplier.isFoundingSupplier || supplier.isFounding || supplier.founding)
+    ) {
       badges.push(
         '<span class="badge badge-founding" aria-label="Founding supplier">Founding Supplier</span>'
       );
     }
 
     // Featured
-    if (supplier.featured || supplier.featuredSupplier) {
+    if (badges.length < 3 && (supplier.featured || supplier.featuredSupplier)) {
       badges.push(
         '<span class="badge badge-featured" aria-label="Featured supplier">Featured</span>'
       );
