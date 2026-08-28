@@ -113,7 +113,7 @@ describe('analytics consent and privacy wiring', () => {
     expect(source).toContain("person_profiles: 'never'");
     expect(source).not.toContain('posthog.identify');
     expect(source).toContain('/supplier/profile-customization');
-    expect(source).toContain('if (isSensitiveInteractionPage()) return;');
+    expect(source).toMatch(/if \(isSensitiveInteractionPage\(\)\)\s*\{?\s*return;/);
     expect(source).toContain("defaults: '2026-05-30'");
   });
 });
