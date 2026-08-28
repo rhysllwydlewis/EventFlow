@@ -745,6 +745,12 @@
   border-color: #ddd6fe;
 }
 
+.sp-badge--unclaimed {
+  background: #fff7ed;
+  color: #9a3412;
+  border-color: #fed7aa;
+}
+
 /* ─── MIDDLE COLUMN: Package horizontal carousel ───────────────── */
 
 /* Card width token — used by .sp-pkg-mini and referenced in attachCarousels() JS fallback */

@@ -303,6 +303,70 @@ describe('Search Service', () => {
 
       expect(result.results.length).toBe(0);
     });
+
+    it('should disclose ownershipStatus for an unclaimed bot-sourced supplier', async () => {
+      // Regression for a Codex review finding: projectPublicSupplierFields()'s
+      // whitelist originally dropped ownershipStatus entirely, so search-result
+      // cards could never show the Unclaimed badge for a real API response
+      // even though the field exists on the stored supplier record.
+      const unclaimedBotSupplier = {
+        id: 'sup5',
+        name: 'Orchardleigh Estate',
+        category: 'Venues',
+        location: 'Frome',
+        approved: true,
+        ownershipStatus: 'unclaimed',
+        acquisition: { source: 'supplier_bot', publicationScope: 'public_unclaimed' },
+        createdAt: new Date().toISOString(),
+      };
+      dbUnified.read.mockImplementation(collection => {
+        if (collection === 'suppliers') {
+          return Promise.resolve([...mockSuppliers, unclaimedBotSupplier]);
+        }
+        if (collection === 'packages') {
+          return Promise.resolve([...mockPackages]);
+        }
+        return Promise.resolve([]);
+      });
+
+      const result = await searchService.searchSuppliers({});
+      const found = result.results.find(s => s.id === 'sup5');
+      expect(found).toBeDefined();
+      expect(found.ownershipStatus).toBe('unclaimed');
+
+      // A normal, owned supplier must never pick up the disclosure.
+      const owned = result.results.find(s => s.id === 'sup1');
+      expect(owned.ownershipStatus).toBeUndefined();
+    });
+
+    it('should not disclose ownershipStatus when acquisition/publicationScope is missing or invalid', async () => {
+      // The raw ownershipStatus field alone is not the real signal -- a
+      // malformed or partial bot record must not falsely show Unclaimed.
+      const malformedBotSupplier = {
+        id: 'sup6',
+        name: 'Malformed Bot Record',
+        category: 'Venues',
+        location: 'Frome',
+        approved: true,
+        ownershipStatus: 'unclaimed',
+        // No acquisition.source / publicationScope
+        createdAt: new Date().toISOString(),
+      };
+      dbUnified.read.mockImplementation(collection => {
+        if (collection === 'suppliers') {
+          return Promise.resolve([...mockSuppliers, malformedBotSupplier]);
+        }
+        if (collection === 'packages') {
+          return Promise.resolve([...mockPackages]);
+        }
+        return Promise.resolve([]);
+      });
+
+      const result = await searchService.searchSuppliers({});
+      const found = result.results.find(s => s.id === 'sup6');
+      expect(found).toBeDefined();
+      expect(found.ownershipStatus).toBeUndefined();
+    });
   });
 
   describe('searchPackages', () => {

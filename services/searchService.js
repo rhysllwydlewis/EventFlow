@@ -12,6 +12,7 @@ const {
   findOwnerUserForSupplier,
   hydrateSupplierProfilePhoto,
 } = require('../utils/supplierProfilePhoto');
+const { isPublishedUnclaimedSupplierBotProfile } = require('./supplierBotPilotVisibility.util');
 
 // ─── Cached data loaders ──────────────────────────────────────────────────────
 
@@ -249,6 +250,15 @@ function projectPublicSupplierFields(supplier) {
     featured: supplier.featured,
     featuredSupplier: supplier.featuredSupplier,
     approved: supplier.approved,
+    // Public disclosure, not sensitive: whether this is a still-unclaimed
+    // bot-sourced listing. Computed the same way the single-supplier route
+    // does (routes/supplier-profile-safe.js) rather than trusting the raw
+    // stored field alone -- ownershipStatus is only ever written 'unclaimed'
+    // at ingestion, so the real signal is this helper's fuller check
+    // (acquisition.source + a valid publicationScope). Needed so
+    // search-result cards can show the Unclaimed badge
+    // (public/assets/js/pages/suppliers-init.js).
+    ownershipStatus: isPublishedUnclaimedSupplierBotProfile(supplier) ? 'unclaimed' : undefined,
     amenities: supplier.amenities,
     maxGuests: supplier.maxGuests,
     badges: supplier.badges,

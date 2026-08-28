@@ -61,6 +61,12 @@ function getBadgeSectionGroups(supplier) {
     groups.push('subscription');
   }
 
+  // Ownership — bot-sourced listings are published unclaimed until the real
+  // business claims them
+  if (supplier.ownershipStatus === 'unclaimed') {
+    groups.push('ownership');
+  }
+
   // Earned badges
   const SKIP_TYPES = new Set(['pro', 'pro-plus', 'founder', 'verified', 'featured']);
   const earnedBadges = Array.isArray(supplier.badgeDetails)
@@ -95,6 +101,43 @@ function getBadgeSectionGroups(supplier) {
   }
 
   return groups;
+}
+
+/**
+ * Build the prioritized hero badge list (mirrors _buildHeroBadges in
+ * public/assets/js/supplier-profile.js). Max 3 shown: tier, then Unclaimed,
+ * then Founding, then Featured, then Email verified/Approved -- each later
+ * addition gated so the cap actually holds regardless of how many
+ * conditions are true at once.
+ */
+function buildHeroBadges(supplier) {
+  const badges = [];
+  const tier = supplier.subscription?.tier || (supplier.isPro ? 'pro' : 'free');
+  if (tier === 'pro_plus') {
+    badges.push('pro-plus');
+  } else if (tier === 'pro') {
+    badges.push('pro');
+  } else {
+    badges.push('starter');
+  }
+  if (badges.length < 3 && supplier.ownershipStatus === 'unclaimed') {
+    badges.push('unclaimed');
+  }
+  if (
+    badges.length < 3 &&
+    (supplier.isFoundingSupplier || supplier.isFounding || supplier.founding)
+  ) {
+    badges.push('founding');
+  }
+  if (badges.length < 3 && (supplier.featured || supplier.featuredSupplier)) {
+    badges.push('featured');
+  }
+  if (badges.length < 3 && (supplier.emailVerified || supplier.verifications?.email?.verified)) {
+    badges.push('email-verified');
+  } else if (badges.length < 3 && (supplier.approved || supplier.profileApproved)) {
+    badges.push('approved');
+  }
+  return badges;
 }
 
 // --------------------------------------------------------------------------
@@ -241,6 +284,16 @@ describe('Badge section group visibility', () => {
     expect(groups).toContain('recognition');
   });
 
+  it('shows ownership group for an unclaimed bot-sourced supplier', () => {
+    const groups = getBadgeSectionGroups({ ownershipStatus: 'unclaimed' });
+    expect(groups).toContain('ownership');
+  });
+
+  it('does NOT show ownership group for a claimed supplier', () => {
+    const groups = getBadgeSectionGroups({ ownershipStatus: 'claimed' });
+    expect(groups).not.toContain('ownership');
+  });
+
   it('shows verification group for email-verified supplier', () => {
     const groups = getBadgeSectionGroups({ emailVerified: true });
     expect(groups).toContain('verification');
@@ -252,11 +305,42 @@ describe('Badge section group visibility', () => {
       badgeDetails: [{ id: 'top-rated', type: 'custom', name: 'Top Rated' }],
       isFoundingSupplier: true,
       emailVerified: true,
+      ownershipStatus: 'unclaimed',
     };
     const groups = getBadgeSectionGroups(supplier);
     expect(groups).toContain('subscription');
+    expect(groups).toContain('ownership');
     expect(groups).toContain('earned');
     expect(groups).toContain('recognition');
     expect(groups).toContain('verification');
+  });
+});
+
+describe('Hero badge cap', () => {
+  it('never exceeds 3 badges even when every condition is true at once', () => {
+    // Regression for a Codex review finding: the founding/featured pushes
+    // were unconditional, so an unclaimed + founding + featured supplier
+    // produced 4 hero badges (tier, unclaimed, founding, featured),
+    // silently dropping the function's own documented 3-badge cap.
+    const supplier = {
+      subscription: { tier: 'pro' },
+      ownershipStatus: 'unclaimed',
+      isFoundingSupplier: true,
+      featured: true,
+      emailVerified: true,
+      approved: true,
+    };
+    const badges = buildHeroBadges(supplier);
+    expect(badges.length).toBeLessThanOrEqual(3);
+    expect(badges).toEqual(['pro', 'unclaimed', 'founding']);
+  });
+
+  it('prioritizes tier, then unclaimed disclosure, over recognition badges', () => {
+    const badges = buildHeroBadges({
+      ownershipStatus: 'unclaimed',
+      isFoundingSupplier: true,
+      featured: true,
+    });
+    expect(badges).toEqual(['starter', 'unclaimed', 'founding']);
   });
 });

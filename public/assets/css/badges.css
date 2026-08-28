@@ -134,6 +134,21 @@
   font-weight: 700;
 }
 
+/* Unclaimed Listing Badge — bot-sourced profile not yet claimed by the real
+   business (ownershipStatus === 'unclaimed'). Amber/neutral, deliberately not
+   green like the trust badges above: this is a disclosure, not an endorsement. */
+.badge-unclaimed {
+  background: linear-gradient(135deg, #fff7ed 0%, #ffedd5 100%);
+  color: #9a3412;
+  border: 1px solid #fdba74;
+  box-shadow: 0 1px 3px rgba(234, 88, 12, 0.15);
+}
+
+.badge-unclaimed::before {
+  content: '🔓';
+  margin-right: 0.375rem;
+}
+
 /* Supplier Reviewer Badge */
 .badge-supplier {
   background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
