@@ -558,9 +558,6 @@ function supplierCard(s, user) {
       );
     });
   }
-  if (s.featuredSupplier) {
-    tags.unshift('<span class="badge">Featured</span>');
-  }
 
   // Build supplier badges array for consistent display
   const supplierBadges = [];
@@ -578,19 +575,30 @@ function supplierCard(s, user) {
     );
   }
 
-  // Pro/Pro Plus/Featured tier badges
+  // Pro/Pro Plus tier, resolved before the Featured check below since a
+  // legacy stored `subscriptionTier: 'featured'` value (still read by
+  // normalizeSubscriptionTier() above and by package-list.js /
+  // lead-quality-helper.js) is itself one of the signals that counts as
+  // Featured.
   const tier =
     s.subscriptionTier ||
     (s.subscription && s.subscription.tier) ||
     (s.isPro || s.pro ? 'pro' : null);
 
-  if (tier === 'featured') {
+  // Featured badge -- a curation flag, not a subscription tier, so it's
+  // checked independently of the tier ladder (a supplier is never "on the
+  // featured tier"; tier and Featured can both be true at once). Two live
+  // sources: the modern package-level flag (featuredSupplier, joined by the
+  // API from the packages collection) and the legacy stored tier value.
+  if (s.featured || s.featuredSupplier || tier === 'featured') {
     supplierBadges.push('<span class="badge badge-featured">Featured</span>');
-  } else if (tier === 'pro_plus') {
+  }
+
+  if (tier === 'pro_plus') {
     supplierBadges.push('<span class="badge badge-pro-plus">Pro Plus</span>');
   } else if (tier === 'pro') {
     supplierBadges.push('<span class="badge badge-pro">Pro</span>');
-  } else {
+  } else if (tier !== 'featured') {
     supplierBadges.push('<span class="badge badge-starter">Starter</span>');
   }
 

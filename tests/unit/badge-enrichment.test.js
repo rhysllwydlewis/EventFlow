@@ -353,3 +353,74 @@ describe('Hero badge cap', () => {
     expect(badges).toEqual(['founding', 'featured']);
   });
 });
+
+/**
+ * Mirrors the badge-building block in supplierCard() (public/assets/js/app.js),
+ * the renderer for the Plan page's shortlisted-supplier cards. Featured is a
+ * curation flag with two live sources: the modern package-level flag
+ * (`supplier.featured` / `supplier.featuredSupplier`, joined server-side from
+ * the packages collection) and the legacy stored `subscriptionTier: 'featured'`
+ * value that package-list.js and lead-quality-helper.js still handle too.
+ */
+function buildSupplierCardBadges(s) {
+  const badges = [];
+  if (s.isTest) {
+    badges.push('test-data');
+  }
+  if (s.isFounding || (s.badges && s.badges.includes('founding'))) {
+    badges.push('founding');
+  }
+  const tier = s.subscriptionTier || s.subscription?.tier || (s.isPro || s.pro ? 'pro' : null);
+  if (s.featured || s.featuredSupplier || tier === 'featured') {
+    badges.push('featured');
+  }
+  if (tier === 'pro_plus') {
+    badges.push('pro-plus');
+  } else if (tier === 'pro') {
+    badges.push('pro');
+  } else if (tier !== 'featured') {
+    badges.push('starter');
+  }
+  return badges;
+}
+
+describe('Plan page supplier card badges (app.js supplierCard)', () => {
+  it('shows a properly-styled Featured badge from the modern package-level flag', () => {
+    // Regression (Codex P1): the Featured check used to live only inside the
+    // tier ladder as `tier === 'featured'`. The Plan page's API never sends
+    // that -- `featuredSupplier` is a package-level flag joined server-side
+    // (routes/plans-legacy.js, matching routes/suppliers.js's own join
+    // against the packages collection) -- so a featured supplier's badge
+    // never rendered from supplierBadges at all. A duplicate, unstyled
+    // `<span class="badge">Featured</span>` (missing badge-featured, so no
+    // purple gradient) was pushed into a separate `tags` array instead,
+    // which is what visitors actually saw.
+    const badges = buildSupplierCardBadges({ featured: true, subscriptionTier: 'pro' });
+    expect(badges).toContain('featured');
+    expect(badges).toContain('pro');
+  });
+
+  it('shows Featured independently of tier, including for a Starter supplier', () => {
+    const badges = buildSupplierCardBadges({ featuredSupplier: true });
+    expect(badges).toEqual(['featured', 'starter']);
+  });
+
+  it('never shows Featured for a supplier who is not featured', () => {
+    const badges = buildSupplierCardBadges({ subscriptionTier: 'pro_plus' });
+    expect(badges).not.toContain('featured');
+    expect(badges).toEqual(['pro-plus']);
+  });
+
+  it('still honours the legacy stored subscriptionTier: "featured" value', () => {
+    // Regression (Codex P2): 'featured' is a supported subscriptionTier
+    // value read by normalizeSubscriptionTier() elsewhere in this file, and
+    // by package-list.js / lead-quality-helper.js. A record on that legacy
+    // tier has neither `featured` nor `featuredSupplier` set, so dropping
+    // the tier === 'featured' check entirely (rather than folding it into
+    // the Featured condition) would have silently downgraded those
+    // suppliers to Starter.
+    const badges = buildSupplierCardBadges({ subscriptionTier: 'featured' });
+    expect(badges).toEqual(['featured']);
+    expect(badges).not.toContain('starter');
+  });
+});
