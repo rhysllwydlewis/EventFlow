@@ -41,6 +41,9 @@ Source styles: `public/assets/css/badges.css`, `public/assets/css/p3-features.cs
 | ![Business Verified](badge-images/badge-business-verified.svg) | Business Verified   | `.badge-business-verified` | Verification |
 | ![Verified Customer](badge-images/badge-verified.svg)          | Verified Customer   | `.badge-verified`          | Verification |
 | ![Supplier (reviewer)](badge-images/badge-supplier.svg)        | Supplier (reviewer) | `.badge-supplier`          | Verification |
+| ![Unclaimed](badge-images/badge-unclaimed.svg)                 | Unclaimed           | `.badge-unclaimed`         | Verification |
+
+> **Unclaimed is a disclosure, not a verification:** it flags a bot-sourced listing nobody has confirmed yet (`supplier.ownershipStatus === 'unclaimed'`), not a positive trust claim. It's computed at render time in `renderVerificationBadges()`, not part of the `badges` collection — see "Dual Badge Systems" → "Unclaimed disclosure" in [BADGE_AUDIT.md](BADGE_AUDIT.md).
 
 > **Two Supplier badges:** `.badge-supplier` (indigo, `🏢 Verified Supplier`) appears on review cards when the reviewer is a supplier account — it is a trust indicator for reviewers. `.badge-supplier-account` (green, `🏪 Supplier`) is the account/profile role badge shown on supplier profiles. They are intentionally different in colour and context.
 
