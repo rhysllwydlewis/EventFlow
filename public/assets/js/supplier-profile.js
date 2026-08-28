@@ -16,7 +16,10 @@
  *  - renderBadgesSection   — badges & recognition (full-width bottom)
  */
 
-import { renderVerificationBadges, renderTierIcon } from '/assets/js/utils/verification-badges.js';
+import {
+  renderVerificationBadges,
+  renderTierIcon,
+} from '/assets/js/utils/verification-badges.js?v=1.0.0';
 
 (function () {
   'use strict';
