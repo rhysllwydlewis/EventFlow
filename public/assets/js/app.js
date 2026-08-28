@@ -558,9 +558,6 @@ function supplierCard(s, user) {
       );
     });
   }
-  if (s.featuredSupplier) {
-    tags.unshift('<span class="badge">Featured</span>');
-  }
 
   // Build supplier badges array for consistent display
   const supplierBadges = [];
@@ -578,15 +575,20 @@ function supplierCard(s, user) {
     );
   }
 
-  // Pro/Pro Plus/Featured tier badges
+  // Featured badge -- a curation flag, not a subscription tier, so it's
+  // checked independently of the tier ladder below (a supplier is never
+  // "on the featured tier"; tier and Featured can both be true at once).
+  if (s.featured || s.featuredSupplier) {
+    supplierBadges.push('<span class="badge badge-featured">Featured</span>');
+  }
+
+  // Pro/Pro Plus tier badges
   const tier =
     s.subscriptionTier ||
     (s.subscription && s.subscription.tier) ||
     (s.isPro || s.pro ? 'pro' : null);
 
-  if (tier === 'featured') {
-    supplierBadges.push('<span class="badge badge-featured">Featured</span>');
-  } else if (tier === 'pro_plus') {
+  if (tier === 'pro_plus') {
     supplierBadges.push('<span class="badge badge-pro-plus">Pro Plus</span>');
   } else if (tier === 'pro') {
     supplierBadges.push('<span class="badge badge-pro">Pro</span>');

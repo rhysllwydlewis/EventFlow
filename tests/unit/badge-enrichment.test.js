@@ -353,3 +353,58 @@ describe('Hero badge cap', () => {
     expect(badges).toEqual(['founding', 'featured']);
   });
 });
+
+/**
+ * Mirrors the badge-building block in supplierCard() (public/assets/js/app.js),
+ * the renderer for the Plan page's shortlisted-supplier cards. Featured is a
+ * curation flag (`supplier.featured` / `supplier.featuredSupplier`), never a
+ * subscription tier value -- `tier` only ever resolves to 'pro_plus', 'pro',
+ * or null/'starter'.
+ */
+function buildSupplierCardBadges(s) {
+  const badges = [];
+  if (s.isTest) {
+    badges.push('test-data');
+  }
+  if (s.isFounding || (s.badges && s.badges.includes('founding'))) {
+    badges.push('founding');
+  }
+  if (s.featured || s.featuredSupplier) {
+    badges.push('featured');
+  }
+  const tier = s.subscriptionTier || s.subscription?.tier || (s.isPro || s.pro ? 'pro' : null);
+  if (tier === 'pro_plus') {
+    badges.push('pro-plus');
+  } else if (tier === 'pro') {
+    badges.push('pro');
+  } else {
+    badges.push('starter');
+  }
+  return badges;
+}
+
+describe('Plan page supplier card badges (app.js supplierCard)', () => {
+  it('shows a properly-styled Featured badge for a featured supplier', () => {
+    // Regression: the Featured check used to live inside the tier ladder as
+    // `tier === 'featured'`, a value `tier` can never actually resolve to
+    // (it only ever comes out as 'pro_plus' / 'pro' / null) -- so a featured
+    // supplier's Featured badge never rendered from supplierBadges at all.
+    // A duplicate, unstyled `<span class="badge">Featured</span>` (missing
+    // the badge-featured class, so no purple gradient) was pushed into a
+    // separate `tags` array instead, which is what visitors actually saw.
+    const badges = buildSupplierCardBadges({ featured: true, subscriptionTier: 'pro' });
+    expect(badges).toContain('featured');
+    expect(badges).toContain('pro');
+  });
+
+  it('shows Featured independently of tier, including for a Starter supplier', () => {
+    const badges = buildSupplierCardBadges({ featuredSupplier: true });
+    expect(badges).toEqual(['featured', 'starter']);
+  });
+
+  it('never shows Featured for a supplier who is not featured', () => {
+    const badges = buildSupplierCardBadges({ subscriptionTier: 'pro_plus' });
+    expect(badges).not.toContain('featured');
+    expect(badges).toEqual(['pro-plus']);
+  });
+});
