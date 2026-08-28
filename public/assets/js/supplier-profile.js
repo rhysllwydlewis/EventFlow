@@ -16,7 +16,10 @@
  *  - renderBadgesSection   — badges & recognition (full-width bottom)
  */
 
-import { renderVerificationBadges, renderTierIcon } from '/assets/js/utils/verification-badges.js';
+import {
+  renderVerificationBadges,
+  renderTierIcon,
+} from '/assets/js/utils/verification-badges.js?v=1.0.0';
 
 (function () {
   'use strict';
@@ -384,15 +387,10 @@ import { renderVerificationBadges, renderTierIcon } from '/assets/js/utils/verif
     // ── Badges ───────────────────────────────────────────────────────────────
     const badgesContainer = document.getElementById('hero-badges');
     if (badgesContainer) {
-      if (typeof renderVerificationBadges === 'function') {
-        badgesContainer.innerHTML = renderVerificationBadges(supplier, {
-          size: 'normal',
-          maxBadges: 3,
-        });
-      } else {
-        const heroBadges = _buildHeroBadges(supplier);
-        badgesContainer.innerHTML = heroBadges.slice(0, 3).join('');
-      }
+      badgesContainer.innerHTML = renderVerificationBadges(supplier, {
+        size: 'normal',
+        maxBadges: 3,
+      });
     }
 
     // ── Title + tier icon ────────────────────────────────────────────────────
@@ -461,67 +459,6 @@ import { renderVerificationBadges, renderTierIcon } from '/assets/js/utils/verif
     }
 
     _wireHeroCTAs(supplier);
-  }
-
-  /**
-   * Build prioritized hero badge list (high-value first, max 3 shown)
-   */
-  function _buildHeroBadges(supplier) {
-    const badges = [];
-
-    // Tier — highest priority
-    const tier = supplier.subscription?.tier || (supplier.isPro ? 'pro' : 'free');
-    if (tier === 'pro_plus') {
-      badges.push('<span class="badge badge-pro-plus" aria-label="Pro Plus">Pro Plus</span>');
-    } else if (tier === 'pro') {
-      badges.push('<span class="badge badge-pro" aria-label="Pro supplier">Pro</span>');
-    } else {
-      badges.push('<span class="badge badge-starter" aria-label="Starter plan">Starter</span>');
-    }
-
-    // Bot-sourced listings are published unclaimed until the real business
-    // claims them (services/supplierBotClaim.service.js) -- surfacing that
-    // here is the only signal on the hero that nobody has confirmed this
-    // listing yet, so it outranks the honor badges below.
-    if (badges.length < 3 && supplier.ownershipStatus === 'unclaimed') {
-      badges.push(
-        '<span class="badge badge-unclaimed" aria-label="Unclaimed listing">Unclaimed</span>'
-      );
-    }
-
-    // Founding
-    if (
-      badges.length < 3 &&
-      (supplier.isFoundingSupplier || supplier.isFounding || supplier.founding)
-    ) {
-      badges.push(
-        '<span class="badge badge-founding" aria-label="Founding supplier">Founding Supplier</span>'
-      );
-    }
-
-    // Featured
-    if (badges.length < 3 && (supplier.featured || supplier.featuredSupplier)) {
-      badges.push(
-        '<span class="badge badge-featured" aria-label="Featured supplier">Featured</span>'
-      );
-    }
-
-    // Email verified — an explicit, evidence-backed fact only. `supplier.verified`
-    // historically means profile/business approval elsewhere in EventFlow and must
-    // never be used as evidence the email address itself was verified.
-    if (badges.length < 3 && (supplier.emailVerified || supplier.verifications?.email?.verified)) {
-      badges.push(
-        '<span class="badge badge-email-verified" aria-label="Email verified">Email verified</span>'
-      );
-    } else if (badges.length < 3 && (supplier.approved || supplier.profileApproved)) {
-      // No real verification evidence — only fall back to the honest, conservative
-      // "approved listing" claim (moderation/publication approval), never "Verified".
-      badges.push(
-        '<span class="badge badge-approved" aria-label="Approved listing">Approved listing</span>'
-      );
-    }
-
-    return badges;
   }
 
   /**

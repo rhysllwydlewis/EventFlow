@@ -1,6 +1,8 @@
 // skipcq: JS-0067 -- CommonJS module scope prevents these declarations becoming browser globals.
 function escapeHtml(value) {
-  if (!value) return '';
+  if (!value) {
+    return '';
+  }
   const container = document.createElement('div');
   container.textContent = String(value);
   return container.innerHTML;
@@ -64,6 +66,22 @@ export function renderVerificationBadges(supplier, options = {}) {
   } = options;
 
   const badges = [];
+
+  // Priority 0: Unclaimed — a bot-sourced listing nobody has confirmed yet
+  // (services/supplierBotClaim.service.js). This outranks every other badge:
+  // it is the one signal that undercuts all the others, so it must never be
+  // the badge that gets dropped by the maxBadges cap.
+  if (supplier.ownershipStatus === 'unclaimed') {
+    badges.push({
+      html: `<span class="badge badge-unclaimed ${size === 'small' ? 'badge-sm' : ''}"
+                   title="This listing was added automatically and has not yet been claimed by the business."
+                   role="status"
+                   aria-label="Unclaimed listing">
+               Unclaimed
+             </span>`,
+      priority: 0,
+    });
+  }
 
   // Priority 1: Founding Supplier Badge
   if (
