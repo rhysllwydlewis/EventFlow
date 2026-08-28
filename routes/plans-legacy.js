@@ -108,7 +108,16 @@ router.get('/plan', deprecationWarning, applyWriteLimiter, applyAuthRequired, as
     }
     const plans = await dbUnified.find('plans', { userId: req.user.id });
     const suppliers = (await dbUnified.read('suppliers')).filter(s => s.approved);
-    const items = plans.map(p => suppliers.find(s => s.id === p.supplierId)).filter(Boolean);
+    const matched = plans.map(p => suppliers.find(s => s.id === p.supplierId)).filter(Boolean);
+    // Featured is a package-level flag (routes/suppliers.js uses the same
+    // join), not a field stored on the supplier record itself -- without
+    // this, supplierCard() (public/assets/js/app.js) never sees it and the
+    // Featured badge silently never renders on plan cards.
+    const pkgs = await dbUnified.read('packages');
+    const items = matched.map(s => ({
+      ...s,
+      featuredSupplier: pkgs.some(p => p.supplierId === s.id && p.featured),
+    }));
     res.json({ items });
   } catch (error) {
     logger.error('Error reading plan:', error);
