@@ -145,7 +145,7 @@
 }
 
 .badge-unclaimed::before {
-  content: '🏳';
+  content: '🔓';
   margin-right: 0.375rem;
 }
 
