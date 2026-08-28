@@ -450,7 +450,7 @@ import {
       }
       if (supplier.priceRange) {
         items.push(
-          `<span class="meta-item meta-price"><svg width="11" height="11" viewBox="0 0 24 24" aria-hidden="true"><text x="12" y="18" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="17" font-weight="700" fill="currentColor">£</text></svg>${escapeHtml(supplier.priceRange)}</span>`
+          `<span class="meta-item meta-price"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M20 12V8H6a2 2 0 0 1-2-2c0-1.1.9-2 2-2h12v4"/><path d="M4 6v12c0 1.1.9 2 2 2h14v-4"/><path d="M18 12a2 2 0 0 0 0 4h4v-4Z"/></svg>${escapeHtml(supplier.priceRange)}</span>`
         );
       }
 
@@ -637,23 +637,28 @@ import {
       supplier.description_long || supplier.description_short || supplier.description || '';
     const descHtml = descText ? `<p class="sp-about__description">${escapeHtml(descText)}</p>` : '';
 
-    // About meta (phone, website, etc.)
+    // About meta (phone, website, etc.) — rendered as separate chips laid
+    // out with flex `gap`, not joined with literal " · " text nodes, so
+    // every item shares the same box model and lines up on one baseline
+    // regardless of whether it's a button-styled link or plain text.
     const metaParts = [];
     if (supplier.website) {
       metaParts.push(
-        `<a href="${escapeHtml(supplier.website)}" target="_blank" rel="noopener noreferrer">${escapeHtml(supplier.website)}</a>`
+        `<a class="sp-about__meta-item" href="${escapeHtml(supplier.website)}" target="_blank" rel="noopener noreferrer">${escapeHtml(supplier.website)}</a>`
       );
     }
     if (supplier.phone) {
       metaParts.push(
-        `<a href="tel:${escapeHtml(supplier.phone)}">${escapeHtml(supplier.phone)}</a>`
+        `<a class="sp-about__meta-item sp-about__phone" href="tel:${escapeHtml(supplier.phone)}"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 13a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.6 2.17h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 9.9a16 16 0 0 0 6.29 6.29l1.9-1.83a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>${escapeHtml(supplier.phone)}</a>`
       );
     }
     if (supplier.maxGuests) {
-      metaParts.push(`Max ${escapeHtml(String(supplier.maxGuests))} guests`);
+      metaParts.push(
+        `<span class="sp-about__meta-item sp-about__meta-item--text">Max ${escapeHtml(String(supplier.maxGuests))} guests</span>`
+      );
     }
     const aboutMetaHtml =
-      metaParts.length > 0 ? `<p class="sp-about__meta">${metaParts.join(' · ')}</p>` : '';
+      metaParts.length > 0 ? `<p class="sp-about__meta">${metaParts.join('')}</p>` : '';
 
     // Amenities
     const amenitiesHtml =

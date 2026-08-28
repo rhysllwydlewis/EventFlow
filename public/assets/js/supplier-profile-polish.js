@@ -1,8 +1,6 @@
 import './supplier-profile-theme-owner.js';
 export * from './supplier-profile-polish-base.js';
 
-const PROFILE_POLISH_STYLESHEET_ID = 'supplier-profile-polish-styles';
-const PROFILE_POLISH_STYLESHEET_HREF = '/assets/css/supplier-profile-polish.css?v=19.4.1';
 const PROFILE_THEME_STYLESHEET_ID = 'supplier-profile-theme-styles';
 const PROFILE_THEME_STYLESHEET_HREF = '/assets/css/supplier-profile-theme.css?v=20.1.0';
 
@@ -105,7 +103,14 @@ function ensureStylesheet(id, href) {
 }
 
 function ensureCurrentProfileStylesheets() {
-  ensureStylesheet(PROFILE_POLISH_STYLESHEET_ID, PROFILE_POLISH_STYLESHEET_HREF);
+  // The polish stylesheet itself is owned by supplier-profile-polish-base.js's
+  // loadProfilePolishStylesheet(), which this module re-exports and which
+  // always runs first (ES module evaluation order: the static
+  // `export * from './supplier-profile-polish-base.js'` above finishes
+  // executing before this file's own top-level code does). A second,
+  // independently-versioned href here previously fought that one and reset
+  // the browser back onto the old cached stylesheet URL on every theme
+  // apply — see the regression this replaced.
   ensureStylesheet(PROFILE_THEME_STYLESHEET_ID, PROFILE_THEME_STYLESHEET_HREF);
 }
 

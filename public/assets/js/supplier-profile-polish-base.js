@@ -1,5 +1,5 @@
 const PROFILE_POLISH_STYLESHEET_ID = 'supplier-profile-polish-styles';
-const PROFILE_POLISH_STYLESHEET_HREF = '/assets/css/supplier-profile-polish.css?v=19.4.1';
+const PROFILE_POLISH_STYLESHEET_HREF = '/assets/css/supplier-profile-polish.css?v=19.4.2';
 
 const SOCIAL_PLATFORMS = {
   facebook: {

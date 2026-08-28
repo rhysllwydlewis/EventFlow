@@ -69,13 +69,21 @@ describe('supplier profile information polish', () => {
 });
 
 describe('supplier profile theme consistency', () => {
-  test('loads preserved polish before the cache-busted theme layer', () => {
+  test('theme layer re-exports the polish module instead of loading its stylesheet a second time', () => {
+    // supplier-profile-polish.js used to hardcode its own copy of the polish
+    // stylesheet's id/href alongside supplier-profile-polish-base.js's copy.
+    // The two version strings drifted, and because this module's
+    // ensureStylesheet() ran after the base module's (ES modules evaluate
+    // imported dependencies first), it silently reset the <link> back onto
+    // the base module's *old* href on every theme apply -- undoing any
+    // cache-bust to the polish stylesheet. There must be exactly one owner.
     expect(profileThemeJs).toContain("export * from './supplier-profile-polish-base.js'");
-    expect(profileThemeJs).toContain('/assets/css/supplier-profile-polish.css?v=19.4.1');
-    expect(profileThemeJs).toContain('/assets/css/supplier-profile-theme.css?v=20.1.0');
-    expect(profileThemeJs.indexOf('PROFILE_POLISH_STYLESHEET_ID')).toBeLessThan(
-      profileThemeJs.indexOf('PROFILE_THEME_STYLESHEET_ID')
+    expect(profileThemeJs).not.toContain('PROFILE_POLISH_STYLESHEET_ID');
+    expect(profileThemeJs).not.toContain('supplier-profile-polish.css');
+    expect(profileJs).toContain(
+      "const PROFILE_POLISH_STYLESHEET_HREF = '/assets/css/supplier-profile-polish.css?v="
     );
+    expect(profileThemeJs).toContain('/assets/css/supplier-profile-theme.css?v=20.1.0');
   });
 
   test('feeds the existing profile tokens from the resolved supplier accent', () => {
