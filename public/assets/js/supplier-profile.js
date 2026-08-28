@@ -479,6 +479,16 @@ import { renderVerificationBadges, renderTierIcon } from '/assets/js/utils/verif
       badges.push('<span class="badge badge-starter" aria-label="Starter plan">Starter</span>');
     }
 
+    // Bot-sourced listings are published unclaimed until the real business
+    // claims them (services/supplierBotClaim.service.js) -- surfacing that
+    // here is the only signal on the hero that nobody has confirmed this
+    // listing yet, so it outranks the honor badges below.
+    if (badges.length < 3 && supplier.ownershipStatus === 'unclaimed') {
+      badges.push(
+        '<span class="badge badge-unclaimed" aria-label="Unclaimed listing">Unclaimed</span>'
+      );
+    }
+
     // Founding
     if (supplier.isFoundingSupplier || supplier.isFounding || supplier.founding) {
       badges.push(
@@ -1280,6 +1290,14 @@ import { renderVerificationBadges, renderTierIcon } from '/assets/js/utils/verif
     if (tierBadges.length > 0) {
       sections.push(
         `<p class="sp-badges-group-label">Subscription</p><div class="sp-badges-row">${tierBadges.join('')}</div>`
+      );
+    }
+
+    // Ownership — bot-sourced listings are published unclaimed until the real
+    // business claims them (services/supplierBotClaim.service.js).
+    if (supplier.ownershipStatus === 'unclaimed') {
+      sections.push(
+        `<p class="sp-badges-group-label">Ownership</p><div class="sp-badges-row"><span class="badge badge-unclaimed" aria-label="Unclaimed listing" title="This listing was added automatically and has not yet been claimed by the business.">Unclaimed</span></div>`
       );
     }
 

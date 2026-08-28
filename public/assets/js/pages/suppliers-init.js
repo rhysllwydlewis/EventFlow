@@ -129,6 +129,15 @@ function createSupplierCard(supplier, position) {
       `<span class="sp-badge sp-badge--founding badge-founding" title="Founding Supplier - Original member since 2024">⭐ Founding Supplier${yearLabel}</span>`
     );
   }
+  // Bot-sourced listings are published unclaimed (ownershipStatus === 'unclaimed')
+  // until the real business claims them — see services/supplierBotClaim.service.js.
+  // Disclosing that here, wherever badges normally show, matters: it's the only
+  // signal on the card that nobody at this business has confirmed the listing yet.
+  if (supplier.ownershipStatus === 'unclaimed') {
+    badges.push(
+      '<span class="sp-badge sp-badge--unclaimed badge-unclaimed" aria-label="Unclaimed listing" title="This listing was added automatically and has not yet been claimed by the business.">Unclaimed</span>'
+    );
+  }
   // EventFlow does not perform identity, insurance or capability verification on
   // suppliers (see /terms) — a supplier's "approved" flag only means the listing
   // passed moderation and is published. Never label that "Verified"; real

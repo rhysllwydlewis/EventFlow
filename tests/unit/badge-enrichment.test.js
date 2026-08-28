@@ -61,6 +61,12 @@ function getBadgeSectionGroups(supplier) {
     groups.push('subscription');
   }
 
+  // Ownership — bot-sourced listings are published unclaimed until the real
+  // business claims them
+  if (supplier.ownershipStatus === 'unclaimed') {
+    groups.push('ownership');
+  }
+
   // Earned badges
   const SKIP_TYPES = new Set(['pro', 'pro-plus', 'founder', 'verified', 'featured']);
   const earnedBadges = Array.isArray(supplier.badgeDetails)
@@ -241,6 +247,16 @@ describe('Badge section group visibility', () => {
     expect(groups).toContain('recognition');
   });
 
+  it('shows ownership group for an unclaimed bot-sourced supplier', () => {
+    const groups = getBadgeSectionGroups({ ownershipStatus: 'unclaimed' });
+    expect(groups).toContain('ownership');
+  });
+
+  it('does NOT show ownership group for a claimed supplier', () => {
+    const groups = getBadgeSectionGroups({ ownershipStatus: 'claimed' });
+    expect(groups).not.toContain('ownership');
+  });
+
   it('shows verification group for email-verified supplier', () => {
     const groups = getBadgeSectionGroups({ emailVerified: true });
     expect(groups).toContain('verification');
@@ -252,9 +268,11 @@ describe('Badge section group visibility', () => {
       badgeDetails: [{ id: 'top-rated', type: 'custom', name: 'Top Rated' }],
       isFoundingSupplier: true,
       emailVerified: true,
+      ownershipStatus: 'unclaimed',
     };
     const groups = getBadgeSectionGroups(supplier);
     expect(groups).toContain('subscription');
+    expect(groups).toContain('ownership');
     expect(groups).toContain('earned');
     expect(groups).toContain('recognition');
     expect(groups).toContain('verification');
