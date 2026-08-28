@@ -69,13 +69,21 @@ describe('supplier profile information polish', () => {
 });
 
 describe('supplier profile theme consistency', () => {
-  test('loads preserved polish before the cache-busted theme layer', () => {
+  test('theme layer re-exports the polish module instead of loading its stylesheet a second time', () => {
+    // supplier-profile-polish.js used to hardcode its own copy of the polish
+    // stylesheet's id/href alongside supplier-profile-polish-base.js's copy.
+    // The two version strings drifted, and because this module's
+    // ensureStylesheet() ran after the base module's (ES modules evaluate
+    // imported dependencies first), it silently reset the <link> back onto
+    // the base module's *old* href on every theme apply -- undoing any
+    // cache-bust to the polish stylesheet. There must be exactly one owner.
     expect(profileThemeJs).toContain("export * from './supplier-profile-polish-base.js'");
-    expect(profileThemeJs).toContain('/assets/css/supplier-profile-polish.css?v=19.4.1');
-    expect(profileThemeJs).toContain('/assets/css/supplier-profile-theme.css?v=20.1.0');
-    expect(profileThemeJs.indexOf('PROFILE_POLISH_STYLESHEET_ID')).toBeLessThan(
-      profileThemeJs.indexOf('PROFILE_THEME_STYLESHEET_ID')
+    expect(profileThemeJs).not.toContain('PROFILE_POLISH_STYLESHEET_ID');
+    expect(profileThemeJs).not.toContain('supplier-profile-polish.css');
+    expect(profileJs).toContain(
+      "const PROFILE_POLISH_STYLESHEET_HREF = '/assets/css/supplier-profile-polish.css?v="
     );
+    expect(profileThemeJs).toContain('/assets/css/supplier-profile-theme.css?v=20.1.0');
   });
 
   test('feeds the existing profile tokens from the resolved supplier accent', () => {
@@ -141,8 +149,19 @@ describe('supplier profile packages and reviews', () => {
   });
 
   test('loads the profile polish layer from the existing package module entry point', () => {
-    expect(packagesJs).toContain("import './supplier-profile-polish.js?v=1'");
-    expect(supplierHtml).toContain('supplier-profile-packages-v2.js?v=19.4.4');
+    expect(packagesJs).toContain("import './supplier-profile-polish.js?v=2'");
+    expect(supplierHtml).toContain('supplier-profile-packages-v2.js?v=19.4.5');
+  });
+
+  test('the module chain that carries polish changes shares one cache-bust: bumping the leaf modules is worthless unless every importer between them and the entry <script> tag is bumped too', () => {
+    // packages-v2.js is the only <script> entry point for this chain. It
+    // imports polish.js, which re-exports base.js. staticCachingMiddleware
+    // caches JS for a week by exact URL (query string included), so a
+    // returning browser only re-fetches a module whose own import
+    // specifier's URL actually changed.
+    expect(profileThemeJs).toContain("export * from './supplier-profile-polish-base.js?v=2'");
+    expect(packagesJs).toContain("import './supplier-profile-polish.js?v=2'");
+    expect(supplierHtml).toContain('supplier-profile-packages-v2.js?v=19.4.5');
   });
 
   test('collapses zero-review scaffolding into one EventFlow-specific empty state', () => {

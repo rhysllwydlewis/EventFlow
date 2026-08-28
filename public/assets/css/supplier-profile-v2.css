@@ -759,8 +759,27 @@
 }
 
 @media (max-width: 480px) {
+  /* The 3-track "1fr auto auto" grid this replaces gave the Message button
+     all leftover free space (its column is 1fr, the icon buttons' are
+     auto), stretching it far past its content width and leaving a 4th
+     button (Call, when a phone number is present) stranded in a new row
+     under that same oversized 1fr track. Flex-wrap sizes every button to
+     its content instead. */
   .hero-actions {
-    grid-template-columns: 1fr auto auto !important;
+    display: flex !important;
+    grid-template-columns: unset !important;
+    flex-wrap: wrap !important;
+  }
+
+  .hero-actions .btn-primary,
+  .hero-actions .btn-secondary {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+
+  .hero-actions .btn-icon {
+    flex: 0 0 auto;
+    width: auto !important;
   }
 
   .review-summary-score {

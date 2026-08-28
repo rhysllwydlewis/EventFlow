@@ -528,8 +528,15 @@ html[data-sp-hero-mode='theme'] .hero-media.sp-hero-media--fallback.sp-hero-use-
   }
 
   /* Message shrinks to make room; Call collapses to an icon so all four
-     actions fit on one line instead of wrapping/overlapping. */
+     actions fit on one line instead of wrapping/overlapping. The base
+     (desktop) rule above gives #btn-enquiry `flex: 1 1 auto`, which is
+     intentional there (a wide, prominent primary CTA) but was never reset
+     here -- so it kept its flex-grow of 1 on mobile too, and grew to
+     consume every pixel left over after Call/Save/Share, making it look
+     oversized regardless of the smaller padding/font below. Drop the grow
+     so it sizes to its own (now-reduced) content instead. */
   #btn-enquiry {
+    flex: 0 1 auto;
     min-width: 0;
   }
 

@@ -28,9 +28,19 @@ function addPilotBanner(html, supplierId) {
     supplierId ? `&amp;claimSupplierId=${encodeURIComponent(supplierId)}` : ''
   }`;
   const banner = `
-    <aside id="supplier-bot-unclaimed-banner" role="status" style="margin:0;padding:10px 16px;text-align:center;background:#f3f4f6;color:#374151;border-bottom:1px solid #e5e7eb;font:600 14px/1.4 system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif">
-      Unclaimed profile · This business has not claimed or verified this EventFlow profile yet.
-      <a href="${claimHref}" rel="nofollow" style="color:#4338ca;text-decoration:underline;margin-left:6px">Is this your business? Claim it</a>
+    <style>
+      #supplier-bot-unclaimed-banner{margin:0;padding:8px 16px;display:flex;flex-wrap:wrap;align-items:baseline;justify-content:center;column-gap:6px;row-gap:0;text-align:center;background:#f3f4f6;color:#374151;border-bottom:1px solid #e5e7eb;font:600 clamp(11px,3.1vw,14px)/1.4 system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif}
+      #supplier-bot-unclaimed-banner a{color:#4338ca;text-decoration:underline;white-space:nowrap}
+      #supplier-bot-unclaimed-banner .sbub-short{display:none}
+      @media (max-width:420px){
+        #supplier-bot-unclaimed-banner .sbub-full{display:none}
+        #supplier-bot-unclaimed-banner .sbub-short{display:inline}
+      }
+    </style>
+    <aside id="supplier-bot-unclaimed-banner" role="status">
+      <span class="sbub-full">Unclaimed profile · This business has not claimed or verified this EventFlow profile yet.</span>
+      <span class="sbub-short">Unclaimed profile — not yet verified.</span>
+      <a href="${claimHref}" rel="nofollow">Is this your business? Claim it</a>
     </aside>`;
   return /<body\b[^>]*>/i.test(html)
     ? html.replace(/<body\b[^>]*>/i, match => `${match}${banner}`)
