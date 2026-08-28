@@ -538,6 +538,14 @@ html[data-sp-hero-mode='theme'] .hero-media.sp-hero-media--fallback.sp-hero-use-
   #btn-enquiry {
     flex: 0 1 auto;
     min-width: 0;
+    /* .ef-cta's own mobile rule (styles.css, max-width:600px) sets
+       width:100%, and nothing here overrode it -- so with flex-basis:auto
+       the *used* flex-basis became that 100%, letting this button claim
+       "container width minus the other three buttons" instead of shrinking
+       to its own content. #btn-call/#btn-save/#btn-share already pin an
+       explicit width for the same reason; this was the one button that
+       didn't. */
+    width: auto;
   }
 
   #btn-enquiry.btn-primary {
