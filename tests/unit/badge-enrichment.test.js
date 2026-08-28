@@ -104,40 +104,36 @@ function getBadgeSectionGroups(supplier) {
 }
 
 /**
- * Build the prioritized hero badge list (mirrors _buildHeroBadges in
- * public/assets/js/supplier-profile.js). Max 3 shown: tier, then Unclaimed,
- * then Founding, then Featured, then Email verified/Approved -- each later
- * addition gated so the cap actually holds regardless of how many
- * conditions are true at once.
+ * Build the prioritized, capped hero badge ID list (mirrors the
+ * priority/sort/maxBadges logic in renderVerificationBadges,
+ * public/assets/js/utils/verification-badges.js -- the function the hero
+ * actually renders through). Priority 0 (Unclaimed) always wins a spot
+ * under the cap: it is the one signal that undercuts every other badge, so
+ * it must never be the one silently dropped.
  */
-function buildHeroBadges(supplier) {
+function buildHeroBadges(supplier, maxBadges = 3) {
   const badges = [];
-  const tier = supplier.subscription?.tier || (supplier.isPro ? 'pro' : 'free');
+  if (supplier.ownershipStatus === 'unclaimed') {
+    badges.push({ id: 'unclaimed', priority: 0 });
+  }
+  if (supplier.isFoundingSupplier || supplier.isFounding || supplier.founding) {
+    badges.push({ id: 'founding', priority: 1 });
+  }
+  const tier =
+    supplier.subscriptionTier || supplier.subscription?.tier || (supplier.isPro ? 'pro' : 'free');
   if (tier === 'pro_plus') {
-    badges.push('pro-plus');
+    badges.push({ id: 'pro-plus', priority: 2 });
   } else if (tier === 'pro') {
-    badges.push('pro');
-  } else {
-    badges.push('starter');
+    badges.push({ id: 'pro', priority: 2 });
   }
-  if (badges.length < 3 && supplier.ownershipStatus === 'unclaimed') {
-    badges.push('unclaimed');
+  if (supplier.featured || supplier.featuredSupplier) {
+    badges.push({ id: 'featured', priority: 2 });
   }
-  if (
-    badges.length < 3 &&
-    (supplier.isFoundingSupplier || supplier.isFounding || supplier.founding)
-  ) {
-    badges.push('founding');
+  if (supplier.emailVerified || supplier.verifications?.email?.verified) {
+    badges.push({ id: 'email-verified', priority: 3 });
   }
-  if (badges.length < 3 && (supplier.featured || supplier.featuredSupplier)) {
-    badges.push('featured');
-  }
-  if (badges.length < 3 && (supplier.emailVerified || supplier.verifications?.email?.verified)) {
-    badges.push('email-verified');
-  } else if (badges.length < 3 && (supplier.approved || supplier.profileApproved)) {
-    badges.push('approved');
-  }
-  return badges;
+  badges.sort((a, b) => a.priority - b.priority);
+  return badges.slice(0, maxBadges).map(badge => badge.id);
 }
 
 // --------------------------------------------------------------------------
@@ -317,30 +313,43 @@ describe('Badge section group visibility', () => {
 });
 
 describe('Hero badge cap', () => {
-  it('never exceeds 3 badges even when every condition is true at once', () => {
-    // Regression for a Codex review finding: the founding/featured pushes
-    // were unconditional, so an unclaimed + founding + featured supplier
-    // produced 4 hero badges (tier, unclaimed, founding, featured),
-    // silently dropping the function's own documented 3-badge cap.
+  it('never exceeds the cap even when every condition is true at once', () => {
     const supplier = {
       subscription: { tier: 'pro' },
       ownershipStatus: 'unclaimed',
       isFoundingSupplier: true,
       featured: true,
       emailVerified: true,
-      approved: true,
     };
     const badges = buildHeroBadges(supplier);
     expect(badges.length).toBeLessThanOrEqual(3);
-    expect(badges).toEqual(['pro', 'unclaimed', 'founding']);
+    expect(badges).toEqual(['unclaimed', 'founding', 'pro']);
   });
 
-  it('prioritizes tier, then unclaimed disclosure, over recognition badges', () => {
+  it('never lets the unclaimed disclosure be the badge the cap drops', () => {
+    // Unclaimed is priority 0 -- the one signal that undercuts every other
+    // badge shown -- so it must survive the cap regardless of how many
+    // higher-volume badges (tier, featured, founding) a supplier also has.
+    const badges = buildHeroBadges(
+      {
+        subscription: { tier: 'pro_plus' },
+        ownershipStatus: 'unclaimed',
+        isFoundingSupplier: true,
+        featured: true,
+      },
+      2
+    );
+    expect(badges).toContain('unclaimed');
+    expect(badges).toEqual(['unclaimed', 'founding']);
+  });
+
+  it('shows no unclaimed badge for a claimed supplier, regardless of other badges', () => {
     const badges = buildHeroBadges({
-      ownershipStatus: 'unclaimed',
+      ownershipStatus: 'claimed',
       isFoundingSupplier: true,
       featured: true,
     });
-    expect(badges).toEqual(['starter', 'unclaimed', 'founding']);
+    expect(badges).not.toContain('unclaimed');
+    expect(badges).toEqual(['founding', 'featured']);
   });
 });
