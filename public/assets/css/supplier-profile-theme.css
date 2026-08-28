@@ -619,6 +619,33 @@ html[data-sp-hero-mode='theme'] {
   --sp-hero-height-mobile: 148px;
 }
 
+/* The `.hero-media` banner box always sizes itself off `--sp-hero-height`,
+   never `--sp-hero-height-mobile` directly, relying on a `:root` rule inside
+   a max-width media query elsewhere to swap the two on small screens. That
+   `:root` rule has lower specificity (0,0,1,0) than these unconditional
+   `html[data-sp-hero-mode=...]` rules (0,0,1,1) -- and commercial-polish.css
+   has an `!important` version of it too -- so on mobile the banner was
+   silently staying pinned to its desktop height. That left a tall block of
+   empty gradient above the avatar when there's no photo, and for an
+   uploaded photo (mode 'image', where the desktop/mobile gap is largest --
+   300px vs 200px) it pulled the whole avatar down inside the photo instead
+   of the intended straddle of the banner's bottom edge, since the avatar's
+   own vertical offset is computed from `--sp-hero-height-mobile` and so
+   correctly shrinks even though the banner box next to it does not. Match
+   specificity/importance here, later in the source, so mobile actually gets
+   the shorter banner. */
+@media (max-width: 680px) {
+  html[data-sp-hero-mode='image'] {
+    --sp-hero-height: 200px !important;
+  }
+
+  html[data-sp-hero-mode='preset'],
+  html[data-sp-hero-mode='category'],
+  html[data-sp-hero-mode='theme'] {
+    --sp-hero-height: 148px !important;
+  }
+}
+
 .hero-avatar-wrap {
   top: calc(var(--sp-hero-height) - 1.75rem) !important;
 }
