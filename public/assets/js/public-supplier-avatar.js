@@ -4,6 +4,26 @@ let activeRequestId = 0;
 let activeLightbox = null;
 
 function getSupplierId() {
+  // supplier-route-context.js exposes the real id from the canonical
+  // /supplier/name--token URL (which carries no ?id= query string at all)
+  // via this stable, non-expiring API. Its own URLSearchParams.get('id')
+  // monkey-patch is explicitly temporary -- restored to native shortly
+  // after DOMContentLoaded, per its own comment -- and this module's second
+  // call, from the sp:dataReady listener below, fires once
+  // supplier-profile.js's async fetch resolves, which on a real network can
+  // easily land after that restore. Reading location.search directly at
+  // that point returns nothing on a canonical URL, so the avatar gets stuck
+  // on its initial-load placeholder forever even after the real photo has
+  // loaded. Falling back to the query string keeps this working for any
+  // non-canonical URL (e.g. supplier.html?id=... directly) where that
+  // route-context script never runs. Reproduced and verified locally with
+  // an artificial network delay on the supplier-data fetch: without this,
+  // the avatar stays on the placeholder even though window.__supplierData
+  // has the real photo URL by the time the second call runs.
+  const routeId = window.EventFlowSupplierRoute?.getSupplierId?.();
+  if (routeId) {
+    return routeId;
+  }
   return new URLSearchParams(window.location.search).get('id') || '';
 }
 

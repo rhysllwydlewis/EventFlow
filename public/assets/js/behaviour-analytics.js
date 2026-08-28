@@ -120,14 +120,30 @@
     if (pagePath === '/' || pagePath === '/index.html' || pagePath.startsWith('/home-v')) {
       return 'home';
     }
-    if (pagePath.startsWith('/suppliers')) return 'suppliers';
-    if (pagePath.startsWith('/supplier')) return 'supplier';
-    if (pagePath.startsWith('/package')) return 'package';
-    if (pagePath.startsWith('/marketplace')) return 'marketplace';
-    if (pagePath.startsWith('/guides')) return 'guides';
-    if (pagePath.startsWith('/articles/')) return 'article';
-    if (pagePath.startsWith('/pricing')) return 'pricing';
-    if (pagePath.startsWith('/auth')) return 'auth';
+    if (pagePath.startsWith('/suppliers')) {
+      return 'suppliers';
+    }
+    if (pagePath.startsWith('/supplier')) {
+      return 'supplier';
+    }
+    if (pagePath.startsWith('/package')) {
+      return 'package';
+    }
+    if (pagePath.startsWith('/marketplace')) {
+      return 'marketplace';
+    }
+    if (pagePath.startsWith('/guides')) {
+      return 'guides';
+    }
+    if (pagePath.startsWith('/articles/')) {
+      return 'article';
+    }
+    if (pagePath.startsWith('/pricing')) {
+      return 'pricing';
+    }
+    if (pagePath.startsWith('/auth')) {
+      return 'auth';
+    }
     return 'other';
   }
 
@@ -146,8 +162,12 @@
 
   function deviceType() {
     const width = Math.max(window.innerWidth || 0, document.documentElement.clientWidth || 0);
-    if (width <= 767) return 'mobile';
-    if (width <= 1100) return 'tablet';
+    if (width <= 767) {
+      return 'mobile';
+    }
+    if (width <= 1100) {
+      return 'tablet';
+    }
     return 'desktop';
   }
 
@@ -163,11 +183,25 @@
     }
   }
 
+  function currentPageSupplierId() {
+    // Canonical /supplier/name--token profile URLs carry no ?id= query string
+    // at all -- the real id is only available via the stable
+    // window.EventFlowSupplierRoute API that supplier-route-context.js
+    // exposes (see public-supplier-avatar.js for the original fix of this
+    // same class of bug). Falling back to the query string keeps this
+    // working for any non-canonical URL (e.g. supplier.html?id=...).
+    const routeId = window.EventFlowSupplierRoute?.getSupplierId?.();
+    if (routeId) {
+      return routeId;
+    }
+    return new URLSearchParams(window.location.search || '').get('id') || '';
+  }
+
   function currentEntityContext() {
     const type = pageType();
     const params = new URLSearchParams(window.location.search || '');
     if (type === 'supplier') {
-      return { supplierId: cleanIdentifier(params.get('id') || '') };
+      return { supplierId: cleanIdentifier(currentPageSupplierId()) };
     }
     if (type === 'package') {
       let packageId = params.get('id') || params.get('packageId') || params.get('slug') || '';
@@ -202,10 +236,24 @@
     };
   }
 
-  function linkEntityContext(url, type) {
+  function linkEntityContext(url, type, element) {
     if (type === 'supplier') {
+      // Supplier card/profile links use the canonical /supplier/name--token
+      // slug, which never carries an ?id= query string -- the token is a
+      // one-way hash, not the raw id. Cards render their real id straight
+      // onto the link (or an ancestor) as data-supplier-id, so prefer that
+      // before falling back to the query string for any legacy link shape.
+      const supplierNode =
+        element && typeof element.closest === 'function'
+          ? element.closest('[data-supplier-id]')
+          : null;
+      const supplierId =
+        element?.dataset?.supplierId ||
+        supplierNode?.dataset?.supplierId ||
+        url.searchParams.get('id') ||
+        '';
       return {
-        supplierId: cleanIdentifier(url.searchParams.get('id') || ''),
+        supplierId: cleanIdentifier(supplierId),
       };
     }
     let packageId =
@@ -236,7 +284,7 @@
     if (state.flushTimer || state.queue.length === 0) {
       return;
     }
-    state.flushTimer = window.setTimeout(function () {
+    state.flushTimer = window.setTimeout(() => {
       state.flushTimer = null;
       flush(false);
     }, FLUSH_DELAY_MS);
@@ -265,7 +313,7 @@
       keepalive: true,
       headers: { 'Content-Type': 'application/json' },
       body,
-    }).catch(function () {
+    }).catch(() => {
       // Analytics delivery must never affect the website experience.
     });
   }
@@ -374,7 +422,7 @@
   }
 
   function bindEngagementTracking() {
-    document.addEventListener('visibilitychange', function () {
+    document.addEventListener('visibilitychange', () => {
       if (document.visibilityState === 'hidden') {
         pauseActiveTimer();
         reportEngagement(true);
@@ -383,11 +431,11 @@
       }
     });
     window.addEventListener('focus', resumeActiveTimer);
-    window.addEventListener('blur', function () {
+    window.addEventListener('blur', () => {
       pauseActiveTimer();
       reportEngagement(false);
     });
-    window.addEventListener('pagehide', function () {
+    window.addEventListener('pagehide', () => {
       pauseActiveTimer();
       reportEngagement(true);
     });
@@ -397,15 +445,17 @@
     let scheduled = false;
     window.addEventListener(
       'scroll',
-      function () {
-        if (scheduled || isExcludedPage()) return;
+      () => {
+        if (scheduled || isExcludedPage()) {
+          return;
+        }
         scheduled = true;
-        window.requestAnimationFrame(function () {
+        window.requestAnimationFrame(() => {
           scheduled = false;
           const root = document.documentElement;
           const scrollable = Math.max(root.scrollHeight - window.innerHeight, 1);
           const depth = Math.min(100, Math.round((window.scrollY / scrollable) * 100));
-          SCROLL_MILESTONES.forEach(function (milestone) {
+          SCROLL_MILESTONES.forEach(milestone => {
             if (depth >= milestone && !state.scrollMilestones.has(milestone)) {
               state.scrollMilestones.add(milestone);
               track('scroll_depth', { scrollDepth: milestone });
@@ -424,10 +474,14 @@
   }
 
   function bindInteractionTracking() {
-    document.addEventListener('click', function (event) {
-      if (isSensitiveInteractionPage()) return;
+    document.addEventListener('click', event => {
+      if (isSensitiveInteractionPage()) {
+        return;
+      }
       const element = actionElement(event.target);
-      if (!element || element.closest('.ph-no-capture, [data-analytics-sensitive]')) return;
+      if (!element || element.closest('.ph-no-capture, [data-analytics-sensitive]')) {
+        return;
+      }
 
       const entityContext = elementEntityContext(element);
       const explicitEvent = cleanIdentifier(element.dataset && element.dataset.analyticsEvent);
@@ -470,13 +524,15 @@
         track('checkout_started', { source: pageType() });
       }
 
-      if (element.tagName !== 'A' || !element.href) return;
+      if (element.tagName !== 'A' || !element.href) {
+        return;
+      }
       try {
         const url = new URL(element.href, window.location.href);
         if (url.origin !== window.location.origin) {
           track('outbound_click', { source: url.hostname.replace(/^www\./, '') });
         } else if (url.pathname.startsWith('/supplier')) {
-          const linkContext = linkEntityContext(url, 'supplier');
+          const linkContext = linkEntityContext(url, 'supplier', element);
           track('result_clicked', {
             resultType: 'supplier',
             resultId: linkContext.supplierId,
@@ -497,10 +553,14 @@
       }
     });
 
-    document.addEventListener('submit', function (event) {
-      if (isSensitiveInteractionPage()) return;
+    document.addEventListener('submit', event => {
+      if (isSensitiveInteractionPage()) {
+        return;
+      }
       const form = event.target;
-      if (!form || form.closest('.ph-no-capture, [data-analytics-sensitive]')) return;
+      if (!form || form.closest('.ph-no-capture, [data-analytics-sensitive]')) {
+        return;
+      }
 
       let action = currentPath();
       try {
@@ -521,7 +581,7 @@
   }
 
   function bindErrorTracking() {
-    window.addEventListener('error', function (event) {
+    window.addEventListener('error', event => {
       let source = '';
       try {
         source = event.filename ? new URL(event.filename, window.location.href).pathname : '';
@@ -535,7 +595,7 @@
         column: Number(event.colno) || 0,
       });
     });
-    window.addEventListener('unhandledrejection', function (event) {
+    window.addEventListener('unhandledrejection', event => {
       track('client_error', {
         errorName: cleanIdentifier((event.reason && event.reason.name) || 'UnhandledRejection'),
         source: currentPath(),
@@ -544,9 +604,11 @@
   }
 
   function bindPerformanceTracking() {
-    if (typeof PerformanceObserver !== 'function') return;
+    if (typeof PerformanceObserver !== 'function') {
+      return;
+    }
     try {
-      const observer = new PerformanceObserver(function (list) {
+      const observer = new PerformanceObserver(list => {
         const entries = list.getEntries();
         const latest = entries[entries.length - 1];
         if (latest) {
@@ -565,9 +627,13 @@
   }
 
   function installPostHogStub() {
-    if (window.posthog && window.posthog.__SV) return;
+    if (window.posthog && window.posthog.__SV) {
+      return;
+    }
     (function (documentObject, posthog) {
-      if (posthog.__SV) return;
+      if (posthog.__SV) {
+        return;
+      }
       window.posthog = posthog;
       posthog._i = [];
       posthog.init = function (token, config, name) {
@@ -603,7 +669,7 @@
         instance.people = instance.people || [];
         const methods =
           'init capture reset opt_in_capturing opt_out_capturing stopSessionRecording'.split(' ');
-        methods.forEach(function (method) {
+        methods.forEach(method => {
           addMethod(instance, method);
         });
         posthog._i.push([token, config, instanceName]);
@@ -625,7 +691,7 @@
     // This integration is deliberately personless, so the provider flag must remain boolean false.
     properties.$process_person_profile = false;
 
-    Object.keys(properties).forEach(function (key) {
+    Object.keys(properties).forEach(key => {
       if (!key.startsWith('$web_vitals_') || !key.endsWith('_event')) {
         return;
       }
@@ -707,7 +773,9 @@
   }
 
   function installBindings() {
-    if (state.bindingsInstalled) return;
+    if (state.bindingsInstalled) {
+      return;
+    }
     bindEngagementTracking();
     bindScrollTracking();
     bindInteractionTracking();
@@ -727,13 +795,17 @@
   }
 
   function loadConfig() {
-    if (state.config) return Promise.resolve(state.config);
+    if (state.config) {
+      return Promise.resolve(state.config);
+    }
     return fetch(CONFIG_ENDPOINT, { credentials: 'same-origin', cache: 'no-store' })
       .then(response => {
-        if (!response.ok) throw new Error('Analytics configuration unavailable');
+        if (!response.ok) {
+          throw new Error('Analytics configuration unavailable');
+        }
         return response.json();
       })
-      .catch(function () {
+      .catch(() => {
         return {
           enabled: true,
           heartbeatSeconds: 15,
@@ -768,13 +840,15 @@
         trackInitialPageEvents();
 
         const seconds = Math.min(Math.max(Number(config.heartbeatSeconds) || 15, 10), 60);
-        if (state.heartbeatTimer) window.clearInterval(state.heartbeatTimer);
-        state.heartbeatTimer = window.setInterval(function () {
+        if (state.heartbeatTimer) {
+          window.clearInterval(state.heartbeatTimer);
+        }
+        state.heartbeatTimer = window.setInterval(() => {
           reportEngagement(false);
         }, seconds * 1000);
         startPostHog(config.posthog);
       })
-      .finally(function () {
+      .finally(() => {
         state.starting = false;
       });
   }
@@ -787,8 +861,12 @@
     state.pendingActiveMs = 0;
     state.queue.length = 0;
     state.scrollMilestones.clear();
-    if (state.flushTimer) window.clearTimeout(state.flushTimer);
-    if (state.heartbeatTimer) window.clearInterval(state.heartbeatTimer);
+    if (state.flushTimer) {
+      window.clearTimeout(state.flushTimer);
+    }
+    if (state.heartbeatTimer) {
+      window.clearInterval(state.heartbeatTimer);
+    }
     state.flushTimer = null;
     state.heartbeatTimer = null;
     stopPostHog();
@@ -807,7 +885,7 @@
     stop,
   };
 
-  window.addEventListener('cookieConsentChanged', function (event) {
+  window.addEventListener('cookieConsentChanged', event => {
     if (event && event.detail && event.detail.analytics === true) {
       start();
     } else {

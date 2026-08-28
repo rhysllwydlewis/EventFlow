@@ -61,7 +61,7 @@ describe('PostHog Web Analytics health hardening', () => {
 
   test('bumps the public analytics asset cache key', () => {
     const renderer = read('utils/template-renderer.js');
-    expect(renderer).toContain('/assets/js/behaviour-analytics.js?v=2');
-    expect(renderer).not.toContain('/assets/js/behaviour-analytics.js?v=1');
+    expect(renderer).toContain('/assets/js/behaviour-analytics.js?v=3');
+    expect(renderer).not.toContain('/assets/js/behaviour-analytics.js?v=2');
   });
 });
