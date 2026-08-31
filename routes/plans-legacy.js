@@ -8,6 +8,10 @@
 const express = require('express');
 const logger = require('../utils/logger');
 const router = express.Router();
+// eslint-plugin-node 11.x (unmaintained, predates nested conditional exports
+// maps) can't resolve pdfkit >=0.20's `exports["."].node.require` field and
+// reports it as missing, even though Node itself resolves it correctly.
+// eslint-disable-next-line node/no-missing-require
 const PDFDocument = require('pdfkit');
 const { writeLimiter } = require('../middleware/rateLimits');
 const { stripHtml } = require('../utils/helpers');
