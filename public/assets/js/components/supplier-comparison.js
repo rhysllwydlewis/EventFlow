@@ -463,10 +463,31 @@ class SupplierComparison {
     }
   }
 
-  contactSupplier(supplier) {
+  async contactSupplier(supplier) {
+    // Suppliers reach this component from the public search endpoint, whose
+    // response never includes ownerUserId/messagingRecipientId. Resolve the
+    // real recipient from the profile endpoint before navigating — mirroring
+    // QuickComposeV4's hydrateSupplierRecipient() — instead of sending the
+    // messenger page a deep link it has no way to complete.
+    let recipientId = supplier.messagingRecipientId || supplier.ownerUserId || '';
+    if (!recipientId && supplier.id) {
+      try {
+        const response = await fetch(`/api/suppliers/${encodeURIComponent(supplier.id)}`, {
+          credentials: 'include',
+        });
+        if (response.ok) {
+          const fullSupplier = await response.json();
+          recipientId = fullSupplier.messagingRecipientId || fullSupplier.ownerUserId || '';
+        }
+      } catch (_error) {
+        // Fall through — messenger page still opens, just without a
+        // pre-selected recipient, same as if this lookup were skipped.
+      }
+    }
+
     const params = new URLSearchParams({
       new: 'true',
-      recipientId: supplier.ownerUserId || '',
+      recipientId,
       contextType: 'supplier_profile',
       contextId: supplier.id,
       contextTitle: supplier.name || 'Supplier',
