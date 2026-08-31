@@ -12,6 +12,7 @@ const { csrfProtection } = require('../middleware/csrf');
 const { writeLimiter } = require('../middleware/rateLimits');
 const dbUnified = require('../db-unified');
 const { uid } = require('../store');
+const { stripPublicSupplierPrivateFields } = require('../utils/supplierPublicProfile');
 
 const router = express.Router();
 
@@ -31,7 +32,7 @@ router.get('/', authRequired, async (req, res) => {
     const populatedItems = userSavedItems.map(item => {
       let details = null;
       if (item.itemType === 'supplier') {
-        details = suppliers.find(s => s.id === item.itemId);
+        details = stripPublicSupplierPrivateFields(suppliers.find(s => s.id === item.itemId));
       } else if (item.itemType === 'package') {
         details = packages.find(p => p.id === item.itemId);
       }

@@ -13,6 +13,7 @@
 const express = require('express');
 const QRCode = require('qrcode');
 const logger = require('../utils/logger');
+const { stripPublicSupplierPrivateFields } = require('../utils/supplierPublicProfile');
 const router = express.Router();
 
 // These will be injected by server.js during route mounting
@@ -80,9 +81,9 @@ router.get('/venues/near', async (req, res) => {
     const { location, radiusMiles = 10 } = req.query;
 
     // Get all approved Venues category suppliers
-    let venues = (await dbUnified.read('suppliers')).filter(
-      s => s.approved && s.category === 'Venues'
-    );
+    let venues = (await dbUnified.read('suppliers'))
+      .filter(s => s.approved && s.category === 'Venues')
+      .map(stripPublicSupplierPrivateFields);
 
     // If no location provided, return all venues
     if (!location || location.trim() === '') {

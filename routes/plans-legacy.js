@@ -11,6 +11,7 @@ const router = express.Router();
 const PDFDocument = require('pdfkit');
 const { writeLimiter } = require('../middleware/rateLimits');
 const { stripHtml } = require('../utils/helpers');
+const { stripPublicSupplierPrivateFields } = require('../utils/supplierPublicProfile');
 
 // These will be injected by server.js during route mounting
 let dbUnified;
@@ -115,7 +116,7 @@ router.get('/plan', deprecationWarning, applyWriteLimiter, applyAuthRequired, as
     // Featured badge silently never renders on plan cards.
     const pkgs = await dbUnified.read('packages');
     const items = matched.map(s => ({
-      ...s,
+      ...stripPublicSupplierPrivateFields(s),
       featuredSupplier: pkgs.some(p => p.supplierId === s.id && p.featured),
     }));
     res.json({ items });
