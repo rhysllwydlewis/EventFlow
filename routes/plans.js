@@ -350,6 +350,10 @@ router.get('/:id/export', authRequired, async (req, res) => {
     }
 
     // Import PDFKit
+    // eslint-plugin-node 11.x (unmaintained, predates nested conditional
+    // exports maps) can't resolve pdfkit >=0.20's `exports["."].node.require`
+    // field and reports it as missing, even though Node resolves it fine.
+    // eslint-disable-next-line node/no-missing-require
     const PDFDocument = require('pdfkit');
     const doc = new PDFDocument({ margin: 50 });
 

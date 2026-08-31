@@ -99,7 +99,7 @@
     "morgan": "^1.11.0",
     "multer": "^2.2.0",
     "node-schedule": "^2.1.1",
-    "pdfkit": "^0.19.1",
+    "pdfkit": "^0.20.1",
     "postmark": "^4.0.7",
     "qrcode": "^1.5.4",
     "sharp": "^0.35.3",

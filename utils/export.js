@@ -5,6 +5,10 @@
 
 'use strict';
 
+// eslint-plugin-node 11.x (unmaintained, predates nested conditional exports
+// maps) can't resolve pdfkit >=0.20's `exports["."].node.require` field and
+// reports it as missing, even though Node itself resolves it correctly.
+// eslint-disable-next-line node/no-missing-require
 const PDFDocument = require('pdfkit');
 const logger = require('./logger');
 
