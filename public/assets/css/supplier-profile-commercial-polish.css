@@ -114,98 +114,10 @@ body.sp-profile-page .supplier-footer-content {
   padding-bottom: 2rem !important;
 }
 
-/* Cookie consent is a contained, readable bottom sheet on the supplier page. */
-body.sp-profile-page .cookie-consent-banner {
-  position: fixed;
-  z-index: 10050;
-  left: 50%;
-  right: auto;
-  bottom: 1rem;
-  width: min(1180px, calc(100vw - 2rem));
-  max-width: none;
-  margin: 0;
-  color: #0b1220;
-  background: rgba(255, 255, 255, 0.98);
-  border: 1px solid #d9e2e7;
-  border-radius: 16px;
-  box-shadow: 0 22px 60px rgba(15, 23, 42, 0.2);
-  opacity: 0;
-  visibility: hidden;
-  transform: translate(-50%, 1rem);
-  transition:
-    opacity 0.2s ease,
-    transform 0.2s ease,
-    visibility 0.2s ease;
-}
-
-body.sp-profile-page .cookie-consent-banner.cookie-consent-visible {
-  opacity: 1;
-  visibility: visible;
-  transform: translate(-50%, 0);
-}
-
-body.sp-profile-page .cookie-consent-banner.cookie-consent-hiding {
-  opacity: 0;
-  transform: translate(-50%, 1rem);
-}
-
-body.sp-profile-page .cookie-consent-content {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: 1rem 1.5rem;
-  align-items: end;
-  padding: 1rem 1.25rem;
-}
-
-body.sp-profile-page .cookie-consent-message p {
-  margin: 0;
-  font-size: 0.875rem;
-  line-height: 1.5;
-}
-
-body.sp-profile-page .cookie-consent-message p + p {
-  margin-top: 0.35rem;
-}
-
-body.sp-profile-page .cookie-consent-links a {
-  color: #08776c;
-  font-weight: 600;
-}
-
-body.sp-profile-page .cookie-consent-actions {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: flex-end;
-  gap: 0.55rem;
-}
-
-body.sp-profile-page .cookie-consent-btn {
-  min-height: 42px;
-  padding: 0.6rem 1rem;
-  border: 1px solid #cbd5dc;
-  border-radius: 10px;
-  font: inherit;
-  font-size: 0.875rem;
-  font-weight: 700;
-  cursor: pointer;
-}
-
-body.sp-profile-page .cookie-consent-accept {
-  color: #ffffff;
-  background: #0b8073;
-  border-color: #0b8073;
-}
-
-body.sp-profile-page .cookie-consent-reject,
-body.sp-profile-page .cookie-consent-manage {
-  color: #344054;
-  background: #ffffff;
-}
-
-body.sp-profile-page:has(#cookie-consent-banner) #ef-pwa-install-banner {
-  display: none !important;
-}
-
+/* Cookie consent banner styling itself is now standardised sitewide in
+   components.css (was previously overridden here for this page only).
+   The padding compensation below is genuinely page-specific (it targets
+   this page's own .sp-page content wrapper) so it stays. */
 body.sp-profile-page:has(#cookie-consent-banner).ef-pwa-banner-visible {
   padding-bottom: 0 !important;
 }
@@ -261,34 +173,6 @@ body.sp-profile-page:has(#cookie-consent-banner).ef-pwa-banner-visible .sp-page 
   body.sp-profile-page #reviews-widget .reviews-empty__signin-cta {
     width: 100%;
     margin-top: 0.75rem !important;
-  }
-
-  body.sp-profile-page .cookie-consent-banner {
-    bottom: 0.5rem;
-    width: calc(100vw - 1rem);
-    border-radius: 14px;
-  }
-
-  body.sp-profile-page .cookie-consent-content {
-    grid-template-columns: 1fr;
-    align-items: stretch;
-    padding: 1rem;
-  }
-
-  body.sp-profile-page .cookie-consent-actions {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    justify-content: stretch;
-  }
-
-  body.sp-profile-page .cookie-consent-manage {
-    grid-column: 1 / -1;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  body.sp-profile-page .cookie-consent-banner {
-    transition: none;
   }
 }
 
@@ -493,8 +377,10 @@ html:not([data-sp-theme-ready='true']) .supplier-packages-v2--loading {
   border-radius: 12px;
   background:
     linear-gradient(#e7ecef, #e7ecef) 1.5rem 1.35rem / 150px 15px no-repeat,
-    linear-gradient(90deg, #e9eef2 20%, #f8fafb 45%, #e9eef2 70%) 1.5rem 4.4rem / calc(50% - 2rem) 150px no-repeat,
-    linear-gradient(90deg, #e9eef2 20%, #f8fafb 45%, #e9eef2 70%) calc(50% + 0.5rem) 4.4rem / calc(50% - 2rem) 150px no-repeat,
+    linear-gradient(90deg, #e9eef2 20%, #f8fafb 45%, #e9eef2 70%) 1.5rem 4.4rem / calc(50% - 2rem)
+      150px no-repeat,
+    linear-gradient(90deg, #e9eef2 20%, #f8fafb 45%, #e9eef2 70%) calc(50% + 0.5rem) 4.4rem /
+      calc(50% - 2rem) 150px no-repeat,
     linear-gradient(#edf1f4, #edf1f4) 1.5rem 14.6rem / 30% 12px no-repeat,
     linear-gradient(#edf1f4, #edf1f4) calc(50% + 0.5rem) 14.6rem / 30% 12px no-repeat,
     #ffffff !important;
@@ -573,7 +459,8 @@ html:not([data-sp-theme-ready='true']) #sp-sidebar-enquiry:empty::before {
     min-height: 280px;
     background:
       linear-gradient(#e7ecef, #e7ecef) 1.25rem 1.25rem / 145px 15px no-repeat,
-      linear-gradient(90deg, #e9eef2 20%, #f8fafb 45%, #e9eef2 70%) 1.25rem 4.2rem / calc(100% - 2.5rem) 150px no-repeat,
+      linear-gradient(90deg, #e9eef2 20%, #f8fafb 45%, #e9eef2 70%) 1.25rem 4.2rem /
+        calc(100% - 2.5rem) 150px no-repeat,
       linear-gradient(#edf1f4, #edf1f4) 1.25rem 14.4rem / 62% 12px no-repeat,
       #ffffff !important;
   }
