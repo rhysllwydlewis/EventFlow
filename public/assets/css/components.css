@@ -1582,32 +1582,41 @@
   display: none;
 }
 
-/* Cookie Consent Banner - UK GDPR Compliant */
+/* Cookie Consent Banner - UK GDPR Compliant
+   Floating "bottom sheet" card, standardised sitewide (was previously a
+   supplier-profile-only variant in supplier-profile-commercial-polish.css;
+   every other page had a plain full-width bar — now unified on this one). */
 .cookie-consent-banner {
   position: fixed;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  background: var(--bg, #fff);
-  border-top: 2px solid var(--accent, #13b6a2);
-  box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.15);
-  z-index: 9999;
-  transform: translateY(100%);
-  transition:
-    transform 0.3s ease-out,
-    opacity 0.3s ease-out;
+  z-index: 10050;
+  left: 50%;
+  bottom: 1rem;
+  width: min(1180px, calc(100vw - 2rem));
+  margin: 0;
+  color: var(--text, #0b1220);
+  background: rgba(255, 255, 255, 0.98);
+  border: 1px solid var(--border, #d9e2e7);
+  border-radius: 16px;
+  box-shadow: 0 22px 60px rgba(15, 23, 42, 0.2);
   opacity: 0;
-  padding: 0.75rem 1rem;
+  visibility: hidden;
+  transform: translate(-50%, 1rem);
+  transition:
+    opacity 0.2s ease,
+    transform 0.2s ease,
+    visibility 0.2s ease;
+  padding: 0;
 }
 
 .cookie-consent-banner.cookie-consent-visible {
-  transform: translateY(0);
   opacity: 1;
+  visibility: visible;
+  transform: translate(-50%, 0);
 }
 
 .cookie-consent-banner.cookie-consent-hiding {
-  transform: translateY(100%);
   opacity: 0;
+  transform: translate(-50%, 1rem);
 }
 
 /* While the cookie banner occupies the bottom safe area, collapse other
@@ -1617,24 +1626,36 @@ body.ef-cookie-banner-open .jade-widget-root {
   display: none !important;
 }
 
+/* The floating card no longer spans full width like the old bar did, so it
+   no longer visually covers the PWA install prompt underneath it — hide
+   that prompt explicitly whenever the cookie banner is showing. */
+body.ef-cookie-banner-open #ef-pwa-install-banner {
+  display: none !important;
+}
+
 .cookie-consent-content {
   max-width: 1200px;
   margin: 0 auto;
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 1rem 1.5rem;
+  align-items: end;
+  padding: 1rem 1.25rem;
 }
 
 .cookie-consent-message {
-  flex: 1;
   min-width: 0;
 }
 
 .cookie-consent-message p {
   margin: 0;
   color: var(--text, #0b1220);
-  font-size: 0.8125rem;
-  line-height: 1.4;
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+
+.cookie-consent-message p + p {
+  margin-top: 0.35rem;
 }
 
 .cookie-consent-message strong {
@@ -1651,6 +1672,7 @@ body.ef-cookie-banner-open .jade-widget-root {
   /* --accent on white is 2.54:1. These are the consent notice's policy links,
      so they have to be legible: the darker brand step gives 6.4:1. */
   color: var(--ef-primary-dark, #096b60);
+  font-weight: 600;
   text-decoration: underline;
   transition: color 0.2s ease-out;
 }
@@ -1662,18 +1684,21 @@ body.ef-cookie-banner-open .jade-widget-root {
 
 .cookie-consent-actions {
   display: flex;
-  gap: 0.75rem;
   flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.55rem;
 }
 
 .cookie-consent-btn {
+  min-height: 42px;
   padding: 0.6rem 1rem;
-  border-radius: 8px;
-  font-size: 0.8125rem;
-  font-weight: 600;
+  border-radius: 10px;
+  font: inherit;
+  font-size: 0.875rem;
+  font-weight: 700;
   cursor: pointer;
   transition: all 0.2s ease-out;
-  border: 2px solid transparent;
+  border: 1px solid var(--border, #cbd5dc);
   min-width: 90px;
   white-space: nowrap;
 }
@@ -1702,9 +1727,9 @@ body.ef-cookie-banner-open .jade-widget-root {
 }
 
 .cookie-consent-reject {
-  background: transparent;
+  background: var(--bg, #fff);
   color: var(--text, #0b1220);
-  border-color: var(--border, #e7eaf0);
+  border-color: var(--border, #cbd5dc);
 }
 
 .cookie-consent-reject:hover {
@@ -1718,66 +1743,40 @@ body.ef-cookie-banner-open .jade-widget-root {
 }
 
 /* Responsive design */
-@media (min-width: 768px) {
-  .cookie-consent-content {
-    flex-direction: row;
-    align-items: center;
-    gap: 2rem;
-  }
-
-  .cookie-consent-actions {
-    flex-shrink: 0;
-  }
-}
-
 @media (max-width: 767px) {
   .cookie-consent-banner {
-    padding: 1.25rem 1rem;
     /* Sit above the fixed bottom navigation bar (~64px) */
     bottom: 64px;
     bottom: calc(64px + env(safe-area-inset-bottom, 0px));
+    width: calc(100vw - 1rem);
+    border-radius: 14px;
+  }
+
+  .cookie-consent-content {
+    grid-template-columns: 1fr;
+    align-items: stretch;
+    padding: 1rem;
   }
 
   .cookie-consent-message p {
     font-size: 0.8125rem;
   }
 
-  /* Force buttons into a single row on mobile */
   .cookie-consent-actions {
-    flex-wrap: nowrap;
-    gap: 0.5rem;
-  }
-
-  .cookie-consent-btn {
-    min-width: 0;
-    flex: 1;
-    padding: 0.5rem 0.4rem;
-    font-size: 0.75rem;
-    font-weight: 600;
-    white-space: normal;
-    word-break: normal;
-    overflow-wrap: anywhere;
-    line-height: 1.2;
-    min-height: 44px;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    text-align: center;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    justify-content: stretch;
   }
 
   .cookie-consent-manage {
-    flex: 1.5;
-    font-size: 0.75rem;
+    grid-column: 1 / -1;
   }
 }
 
 @media (max-width: 360px) {
   .cookie-consent-btn {
-    font-size: 0.6875rem;
-    padding: 0.45rem 0.3rem;
-  }
-  .cookie-consent-manage {
-    font-size: 0.6875rem;
+    font-size: 0.75rem;
+    padding: 0.5rem 0.4rem;
   }
 }
 
