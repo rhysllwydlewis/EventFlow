@@ -469,7 +469,10 @@ import {
     const btnEnquiry = document.getElementById('btn-enquiry');
     if (btnEnquiry) {
       btnEnquiry.onclick = () => {
-        if (!supplier.ownerUserId) {
+        // The public profile API strips ownerUserId for non-owner visitors
+        // and exposes messagingRecipientId instead — fall back to it.
+        const recipientId = supplier.messagingRecipientId || supplier.ownerUserId;
+        if (!recipientId) {
           window.NotificationDispatcher?.info(
             'This supplier cannot receive messages at this time.'
           );
@@ -494,7 +497,7 @@ import {
         const safeName = (supplier.name || 'Supplier').replace(/[<>'"&]/g, '').trim() || 'Supplier';
         if (window.QuickComposeV4) {
           window.QuickComposeV4.open({
-            recipientId: supplier.ownerUserId,
+            recipientId,
             contextType: 'supplier_profile',
             contextId: supplier.id,
             contextTitle: supplier.name,
@@ -503,7 +506,7 @@ import {
         } else {
           const params = new URLSearchParams({
             new: 'true',
-            recipientId: supplier.ownerUserId,
+            recipientId,
             contextType: 'supplier_profile',
             contextId: supplier.id,
             contextTitle: supplier.name,
