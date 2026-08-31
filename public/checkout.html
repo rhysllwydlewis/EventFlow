@@ -30,6 +30,7 @@
     <link rel="manifest" href="/site.webmanifest">
     <meta name="msapplication-config" content="/browserconfig.xml">
     <link rel="stylesheet" href="/assets/css/signed-in-mobile-fixes.css" />
+  <link rel="stylesheet" href="/assets/css/eventflow-footer.css">
 </head>
   <body>
 <!-- Header -->
@@ -157,7 +158,7 @@
     </main>
 
     <!-- Footer -->
-    <footer class="footer">
+    <footer class="footer" role="contentinfo">
       <div class="container">
         <p>&copy; 2025&ndash;2026 EventFlow. All rights reserved.</p>
         <p>
@@ -167,6 +168,7 @@
         <div class="footer-credit small">Operated by <a href="https://vexi.co.uk" target="_blank" rel="noopener noreferrer">VEXI</a></div>
       </div>
   </footer>
+<script src="/assets/js/components/eventflow-footer.js" defer></script>
 
     <!-- Stripe.js v3 - Required for payment processing (defer to avoid blocking) -->
     <script src="https://js.stripe.com/v3/" defer></script>

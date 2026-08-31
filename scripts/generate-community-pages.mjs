@@ -118,7 +118,7 @@ ${page.adminGuard ? '    <script src="/assets/js/dashboard-guard.js?v=17.0.2"></
     <link rel="stylesheet" href="/assets/css/navbar.css?v=${version('/assets/css/navbar.css')}" />
     <link rel="stylesheet" href="/assets/css/eventflow-brand.css?v=1.0.1" data-eventflow-brand="true" />
     <link rel="stylesheet" href="/assets/css/community.css?v=${version('/assets/css/community.css')}" />
-    <link rel="icon" href="/favicon.ico" sizes="any" />
+${page.adminGuard ? '' : '    <link rel="stylesheet" href="/assets/css/eventflow-footer.css" />\n'}    <link rel="icon" href="/favicon.ico" sizes="any" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="icon" type="image/png" sizes="144x144" href="/favicon-144x144.png" />
     <link rel="icon" type="image/png" sizes="96x96" href="/favicon-96x96.png" />
@@ -193,7 +193,7 @@ ${page.body}
       </div>
     </footer>
 
-    <script src="/assets/js/utils/auth-state.js" defer></script>
+${page.adminGuard ? '' : '    <script src="/assets/js/components/eventflow-footer.js" defer></script>\n'}    <script src="/assets/js/utils/auth-state.js" defer></script>
     <script src="/assets/js/navbar.js" defer></script>
     <script src="/assets/js/cookie-consent.js?v=2.0.1" defer></script>
     <script src="/assets/js/community/core.js?v=${version('/assets/js/community/core.js')}" defer></script>
