@@ -15,6 +15,7 @@ const {
   hydrateSupplierProfilePhoto,
 } = require('../utils/supplierProfilePhoto');
 const { addPublicProfilePath } = require('../utils/publicSupplierProfilePath');
+const { stripPublicSupplierPrivateFields } = require('../utils/supplierPublicProfile');
 
 // Dependencies injected by server.js
 let dbUnified;
@@ -117,30 +118,6 @@ function normalisePackageSlug(value) {
     .replace(/&/g, ' and ')
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-+|-+$/g, '');
-}
-
-const PUBLIC_SUPPLIER_PRIVATE_FIELDS = [
-  'email',
-  'ownerEmail',
-  'contactEmail',
-  'phone',
-  'password',
-  'passwordHash',
-  'tokens',
-  'resetToken',
-  'resetPasswordToken',
-  'verificationToken',
-  'adminNotes',
-  'moderationNotes',
-  'stripeCustomerId',
-];
-
-function stripPublicSupplierPrivateFields(supplier) {
-  const publicSupplier = { ...supplier };
-  for (const field of PUBLIC_SUPPLIER_PRIVATE_FIELDS) {
-    delete publicSupplier[field];
-  }
-  return publicSupplier;
 }
 
 function getPackageLookupValues(pkg) {
@@ -542,6 +519,30 @@ router.get('/suppliers/:id/packages', async (req, res) => {
   }
 });
 
+// Internal-only annotations that stay hidden even from the supplier who owns
+// the profile — unlike PUBLIC_SUPPLIER_PRIVATE_FIELDS, this list keeps
+// contact fields (email/phone) visible since the owner's dashboard needs
+// them for editing; only admin/moderation-facing fields are stripped.
+const OWNER_HIDDEN_SUPPLIER_FIELDS = [
+  'password',
+  'passwordHash',
+  'tokens',
+  'resetToken',
+  'resetPasswordToken',
+  'verificationToken',
+  'adminNotes',
+  'moderationNotes',
+  'stripeCustomerId',
+];
+
+function stripOwnerHiddenSupplierFields(supplier) {
+  const copy = { ...supplier };
+  for (const field of OWNER_HIDDEN_SUPPLIER_FIELDS) {
+    delete copy[field];
+  }
+  return copy;
+}
+
 /**
  * GET /api/me/suppliers
  * Get current user's suppliers (supplier role only)
@@ -571,7 +572,7 @@ router.get('/me/suppliers', applyAuthRequired, applyRoleRequired('supplier'), as
       }
     }
     const listRaw = [...suppliersById.values()].map(supplier => ({
-      ...supplier,
+      ...stripOwnerHiddenSupplierFields(supplier),
       ownerUserId: supplier.ownerUserId || req.user.id,
     }));
     // Fetch the user's subscription once and attach the plan name to every supplier object

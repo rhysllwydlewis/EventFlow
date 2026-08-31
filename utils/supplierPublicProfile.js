@@ -12,6 +12,38 @@ const INTERNAL_TRUST_BADGE_IDS = new Set([
   'licence-verified',
 ]);
 
+// Fields that must never reach a public (non-owner) API response. Any code
+// path that returns a supplier record to the public — search, discovery,
+// listings, profile — must strip these first; safePublicSupplier() below
+// already does this via its own allowlist, but code paths that spread the
+// raw record (e.g. `{ ...supplier, extraField }`) need to strip explicitly.
+const PUBLIC_SUPPLIER_PRIVATE_FIELDS = [
+  'email',
+  'ownerEmail',
+  'contactEmail',
+  'phone',
+  'password',
+  'passwordHash',
+  'tokens',
+  'resetToken',
+  'resetPasswordToken',
+  'verificationToken',
+  'adminNotes',
+  'moderationNotes',
+  'stripeCustomerId',
+];
+
+function stripPublicSupplierPrivateFields(supplier) {
+  if (!supplier || typeof supplier !== 'object') {
+    return supplier;
+  }
+  const publicSupplier = { ...supplier };
+  for (const field of PUBLIC_SUPPLIER_PRIVATE_FIELDS) {
+    delete publicSupplier[field];
+  }
+  return publicSupplier;
+}
+
 // skipcq: JS-0067 -- CommonJS module scope prevents these declarations becoming browser globals.
 function text(value, max = 500) {
   if (value === null || value === undefined) {
@@ -368,9 +400,11 @@ function safePublicSupplier(supplier = {}, extras = {}) {
 
 module.exports = {
   DATA_IMAGE_RE,
+  PUBLIC_SUPPLIER_PRIVATE_FIELDS,
   safeExternalUrl,
   safeImageUrl,
   safePublicPackage,
   safePublicSupplier,
   safeTrustVerifications,
+  stripPublicSupplierPrivateFields,
 };

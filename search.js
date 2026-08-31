@@ -7,6 +7,7 @@
 
 const dbUnified = require('./db-unified');
 const { geocodeLocation, calculateDistance } = require('./utils/geocoding');
+const { stripPublicSupplierPrivateFields } = require('./utils/supplierPublicProfile');
 const crypto = require('crypto');
 
 /**
@@ -36,7 +37,7 @@ async function searchSuppliers(query) {
     .map(s => {
       const ratingData = supplierRatings[s.id];
       return {
-        ...s,
+        ...stripPublicSupplierPrivateFields(s),
         calculatedRating: ratingData ? ratingData.total / ratingData.count : s.averageRating || 0,
         reviewCount: ratingData ? ratingData.count : s.reviewCount || 0,
       };
@@ -255,7 +256,8 @@ async function getTrendingSuppliers(limit = 10) {
       const scoreB = (b.viewCount || 0) * 2 + (b.reviewCount || 0) * 5;
       return scoreB - scoreA;
     })
-    .slice(0, limit);
+    .slice(0, limit)
+    .map(stripPublicSupplierPrivateFields);
 
   return trending;
 }
@@ -271,7 +273,8 @@ async function getNewArrivals(limit = 10) {
   const newSuppliers = suppliers
     .filter(s => s.approved)
     .sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0))
-    .slice(0, limit);
+    .slice(0, limit)
+    .map(stripPublicSupplierPrivateFields);
 
   return newSuppliers;
 }
@@ -362,7 +365,7 @@ async function getRecommendations(userId, limit = 10) {
         score += 10;
       }
 
-      return { ...supplier, recommendationScore: score };
+      return { ...stripPublicSupplierPrivateFields(supplier), recommendationScore: score };
     })
     .filter(s => s.recommendationScore > 0)
     .sort((a, b) => b.recommendationScore - a.recommendationScore)

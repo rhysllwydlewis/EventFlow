@@ -14,6 +14,7 @@ const dbUnified = require('../db-unified');
 const { csrfProtection } = require('../middleware/csrf');
 const { writeLimiter, apiLimiter } = require('../middleware/rateLimits');
 const { enforceCoreFeatureFlags } = require('../middleware/features');
+const { stripPublicSupplierPrivateFields } = require('../utils/supplierPublicProfile');
 const {
   buildHomepageManager,
   getHomepageCollageWidget,
@@ -595,7 +596,7 @@ router.get('/recommendations', async (req, res) => {
       score += (s.reviewCount || 0) * 0.1;
       score += (s.averageRating || 0) * 2;
 
-      return { ...s, recommendationScore: score };
+      return { ...stripPublicSupplierPrivateFields(s), recommendationScore: score };
     });
 
     // Sort by score descending
