@@ -1588,7 +1588,12 @@
    every other page had a plain full-width bar — now unified on this one). */
 .cookie-consent-banner {
   position: fixed;
-  z-index: 10050;
+  /* Keep the pre-existing sitewide value (not the supplier page's 10050) —
+     multiple other fixed overlays (signup-popup.css, navbar.css,
+     marketplace.css, messenger-v4.css, badges.css, p3-features.css,
+     customer-dashboard-improvements.css) sit at exactly 10000, assuming
+     they only need to out-rank this banner's old 9999. */
+  z-index: 9999;
   left: 50%;
   bottom: 1rem;
   width: min(1180px, calc(100vw - 2rem));
