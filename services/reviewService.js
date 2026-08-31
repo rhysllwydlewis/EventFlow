@@ -283,8 +283,22 @@ async function getSupplierReviews(supplierId, options = {}) {
     }
   });
 
+  // moderation.reason/moderatorId, dispute.filedBy/reason/evidence/resolvedBy,
+  // votes.voters, and sentiment.spamScore are internal moderation/analysis
+  // data and must never reach a public response.
+  const publicReviews = paginatedReviews.map(review => {
+    const { moderation, dispute, votes, sentiment, ...rest } = review;
+    return {
+      ...rest,
+      ...(moderation ? { moderation: { state: moderation.state } } : {}),
+      ...(dispute ? { dispute: { filed: dispute.filed } } : {}),
+      ...(votes ? { votes: { helpful: votes.helpful, unhelpful: votes.unhelpful } } : {}),
+      ...(sentiment ? { sentiment: { label: sentiment.label } } : {}),
+    };
+  });
+
   return {
-    reviews: paginatedReviews,
+    reviews: publicReviews,
     pagination: {
       total,
       page,

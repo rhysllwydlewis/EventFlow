@@ -341,8 +341,16 @@ async function getSupplierReviews(supplierId, options = {}) {
     const authorSupplierProfilePath = authorSupplier
       ? addPublicProfilePath(authorSupplier).publicProfilePath || null
       : null;
+    // approvedBy/flagReason/ipAddress/userAgent are internal moderation
+    // metadata and must never reach a public response. `flagged` stays —
+    // public/assets/js/reviews.js reads it to style flagged review cards.
+    const publicReview = { ...review };
+    delete publicReview.approvedBy;
+    delete publicReview.flagReason;
+    delete publicReview.ipAddress;
+    delete publicReview.userAgent;
     return {
-      ...review,
+      ...publicReview,
       isSupplier: !!authorSupplier,
       authorSupplierId: authorSupplier ? authorSupplier.id : null,
       authorSupplierProfilePath,
