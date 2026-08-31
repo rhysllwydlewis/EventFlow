@@ -193,7 +193,7 @@ ${page.body}
       </div>
     </footer>
 
-${page.adminGuard ? '' : '    <script src="/assets/js/components/eventflow-footer.js" defer></script>\n'}    <script src="/assets/js/utils/auth-state.js" defer></script>
+${page.adminGuard ? '' : '    <script src="/assets/js/components/eventflow-footer.js?v=4" defer></script>\n'}    <script src="/assets/js/utils/auth-state.js" defer></script>
     <script src="/assets/js/navbar.js" defer></script>
     <script src="/assets/js/cookie-consent.js?v=2.0.1" defer></script>
     <script src="/assets/js/community/core.js?v=${version('/assets/js/community/core.js')}" defer></script>
