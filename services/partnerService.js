@@ -43,6 +43,29 @@ function assertInserted(result, operation, context = {}) {
   return result;
 }
 
+// Per-key serialization for awardCredit's check-then-insert sequence.
+// dbUnified has no atomic "insert if not exists" primitive, so two concurrent
+// calls for the same (partnerId, supplierUserId, type) — e.g. a Stripe
+// webhook and a dashboard load both reconciling the same reward at once —
+// can both pass the duplicate check before either insert lands, double
+// crediting real, cashable-out points. Chaining same-key calls through this
+// map closes that race for calls within this process; it does not protect
+// a horizontally-scaled deployment, which would need a DB-level unique
+// index on (partnerId, supplierUserId, type) as well.
+const _awardCreditLocks = new Map();
+
+function runExclusive(key, fn) {
+  const prior = _awardCreditLocks.get(key) || Promise.resolve();
+  const next = prior.then(fn, fn);
+  // Keep the chain alive even if this call rejects, without leaking that
+  // rejection into unrelated future callers for the same key.
+  _awardCreditLocks.set(
+    key,
+    next.catch(() => {})
+  );
+  return next;
+}
+
 function maskReferralName(name, company, email) {
   const str = (name || '').trim();
   if (str.length >= 2) {
@@ -51,9 +74,13 @@ function maskReferralName(name, company, email) {
     const middle = '*'.repeat(Math.max(3, Math.min(str.length - 2, 5)));
     return `${first}${middle}${last}`;
   }
-  if (str.length === 1) return `${str}***`;
+  if (str.length === 1) {
+    return `${str}***`;
+  }
   const co = (company || '').trim();
-  if (co) return `${co.charAt(0)}***`;
+  if (co) {
+    return `${co.charAt(0)}***`;
+  }
   if (email && email.includes('@')) {
     const [local, domain] = email.split('@');
     return `${(local || 'u').charAt(0)}***@${domain}`;
@@ -66,9 +93,13 @@ function generateRefCode() {
 }
 
 function isWithinAttributionWindow(supplierCreatedAt) {
-  if (!supplierCreatedAt) return false;
+  if (!supplierCreatedAt) {
+    return false;
+  }
   const signupMs = new Date(supplierCreatedAt).getTime();
-  if (!Number.isFinite(signupMs)) return false;
+  if (!Number.isFinite(signupMs)) {
+    return false;
+  }
   return Date.now() - signupMs <= ATTRIBUTION_DAYS * 24 * 60 * 60 * 1000;
 }
 
@@ -77,7 +108,9 @@ function cleanRefCode(refCode) {
 }
 
 function sanitizeCampaignValue(value, maxLength = 80) {
-  if (typeof value !== 'string') return undefined;
+  if (typeof value !== 'string') {
+    return undefined;
+  }
   const clean = value
     .trim()
     .replace(/[^\w\s\-./:@]/g, '')
@@ -98,7 +131,9 @@ function campaignFieldsFromInput(input = {}) {
 
 async function createPartner(userId) {
   const existing = await dbUnified.findOne('partners', { userId });
-  if (existing) return existing;
+  if (existing) {
+    return existing;
+  }
 
   let refCode = null;
   for (let i = 0; i < 5; i += 1) {
@@ -108,7 +143,9 @@ async function createPartner(userId) {
       break;
     }
   }
-  if (!refCode) throw new Error('Could not generate unique ref code');
+  if (!refCode) {
+    throw new Error('Could not generate unique ref code');
+  }
 
   const now = new Date().toISOString();
   const partner = {
@@ -136,9 +173,13 @@ async function getPartnerByCurrentRefCode(refCode) {
 
 async function getPartnerByRefCode(refCode) {
   const code = cleanRefCode(refCode);
-  if (!code) return null;
+  if (!code) {
+    return null;
+  }
   const current = await getPartnerByCurrentRefCode(code);
-  if (current) return current;
+  if (current) {
+    return current;
+  }
   const historyEntry = await dbUnified.findOne('partner_code_history', { refCode: code });
   return historyEntry ? getPartnerById(historyEntry.partnerId) : null;
 }
@@ -147,7 +188,9 @@ const getPartnerByAnyRefCode = getPartnerByRefCode;
 
 async function listPartners({ search, status } = {}) {
   let list = await dbUnified.read('partners');
-  if (status) list = list.filter(partner => partner.status === status);
+  if (status) {
+    list = list.filter(partner => partner.status === status);
+  }
   if (search) {
     const value = search.toLowerCase();
     list = list.filter(
@@ -169,7 +212,9 @@ async function setPartnerStatus(partnerId, status) {
 
 async function softDeletePartnerByUserId(userId) {
   const partner = await getPartnerByUserId(userId);
-  if (!partner) return false;
+  if (!partner) {
+    return false;
+  }
   const now = new Date().toISOString();
   await dbUnified.updateOne(
     'partners',
@@ -181,7 +226,9 @@ async function softDeletePartnerByUserId(userId) {
 
 async function regenerateCode(partnerId) {
   const partner = await getPartnerById(partnerId);
-  if (!partner) throw new Error('Partner not found');
+  if (!partner) {
+    throw new Error('Partner not found');
+  }
 
   let newCode = null;
   for (let i = 0; i < 5; i += 1) {
@@ -191,7 +238,9 @@ async function regenerateCode(partnerId) {
       break;
     }
   }
-  if (!newCode) throw new Error('Could not generate unique ref code');
+  if (!newCode) {
+    throw new Error('Could not generate unique ref code');
+  }
 
   const oldCode = partner.refCode;
   const now = new Date().toISOString();
@@ -213,7 +262,9 @@ async function regenerateCode(partnerId) {
     { id: partnerId },
     { $set: { refCode: newCode, updatedAt: now } }
   );
-  if (!updated) throw new Error('Failed to update partner code');
+  if (!updated) {
+    throw new Error('Failed to update partner code');
+  }
   return { oldCode, newCode };
 }
 
@@ -226,7 +277,9 @@ async function recordReferral(input) {
   const existing = await dbUnified.findOne('partner_referrals', {
     supplierUserId: input.supplierUserId,
   });
-  if (existing) return existing;
+  if (existing) {
+    return existing;
+  }
 
   const signupDate = input.supplierCreatedAt ? new Date(input.supplierCreatedAt) : new Date();
   const expiresAt = new Date(signupDate.getTime() + ATTRIBUTION_DAYS * 86400000);
@@ -277,10 +330,16 @@ async function getPendingPoints(partnerId) {
 
   for (const referral of referrals) {
     if (isWithinAttributionWindow(referral.supplierCreatedAt)) {
-      if (!referral.packageQualified) pendingPackage += PACKAGE_BONUS;
-      if (!referral.subscriptionQualified) pendingSubscription += SUBSCRIPTION_BONUS;
+      if (!referral.packageQualified) {
+        pendingPackage += PACKAGE_BONUS;
+      }
+      if (!referral.subscriptionQualified) {
+        pendingSubscription += SUBSCRIPTION_BONUS;
+      }
     }
-    if (!reviewQualifications.has(referral.supplierUserId)) pendingReview += FIRST_REVIEW_BONUS;
+    if (!reviewQualifications.has(referral.supplierUserId)) {
+      pendingReview += FIRST_REVIEW_BONUS;
+    }
   }
 
   return {
@@ -292,35 +351,44 @@ async function getPendingPoints(partnerId) {
 }
 
 async function awardCredit({ partnerId, supplierUserId, type, amount, notes }) {
-  const duplicate = await dbUnified.findOne('partner_credit_transactions', {
-    partnerId,
-    supplierUserId,
-    type,
-  });
-  if (duplicate) return null;
+  const lockKey = `${partnerId}:${supplierUserId}:${type}`;
+  return runExclusive(lockKey, async () => {
+    const duplicate = await dbUnified.findOne('partner_credit_transactions', {
+      partnerId,
+      supplierUserId,
+      type,
+    });
+    if (duplicate) {
+      return null;
+    }
 
-  const txn = {
-    id: uid('ptx'),
-    partnerId,
-    supplierUserId,
-    type,
-    amount,
-    notes: notes || '',
-    createdAt: new Date().toISOString(),
-  };
-  assertInserted(await dbUnified.insertOne('partner_credit_transactions', txn), 'credit insert', {
-    partnerId,
-    supplierUserId,
-    type,
+    const txn = {
+      id: uid('ptx'),
+      partnerId,
+      supplierUserId,
+      type,
+      amount,
+      notes: notes || '',
+      createdAt: new Date().toISOString(),
+    };
+    assertInserted(await dbUnified.insertOne('partner_credit_transactions', txn), 'credit insert', {
+      partnerId,
+      supplierUserId,
+      type,
+    });
+    return txn;
   });
-  return txn;
 }
 
 async function awardPackageBonus(supplierUserId) {
   const referral = await getReferralBySupplierUserId(supplierUserId);
-  if (!referral || !isWithinAttributionWindow(referral.supplierCreatedAt)) return null;
+  if (!referral || !isWithinAttributionWindow(referral.supplierCreatedAt)) {
+    return null;
+  }
   const partner = await getPartnerById(referral.partnerId);
-  if (!partner || partner.status !== 'active') return null;
+  if (!partner || partner.status !== 'active') {
+    return null;
+  }
   const txn = await awardCredit({
     partnerId: referral.partnerId,
     supplierUserId,
@@ -340,9 +408,13 @@ async function awardPackageBonus(supplierUserId) {
 
 async function awardSubscriptionBonus(supplierUserId) {
   const referral = await getReferralBySupplierUserId(supplierUserId);
-  if (!referral || !isWithinAttributionWindow(referral.supplierCreatedAt)) return null;
+  if (!referral || !isWithinAttributionWindow(referral.supplierCreatedAt)) {
+    return null;
+  }
   const partner = await getPartnerById(referral.partnerId);
-  if (!partner || partner.status !== 'active') return null;
+  if (!partner || partner.status !== 'active') {
+    return null;
+  }
   const txn = await awardCredit({
     partnerId: referral.partnerId,
     supplierUserId,
@@ -362,9 +434,13 @@ async function awardSubscriptionBonus(supplierUserId) {
 
 async function awardReferralSignupBonus(supplierUserId) {
   const referral = await getReferralBySupplierUserId(supplierUserId);
-  if (!referral) return null;
+  if (!referral) {
+    return null;
+  }
   const partner = await getPartnerById(referral.partnerId);
-  if (!partner || partner.status !== 'active') return null;
+  if (!partner || partner.status !== 'active') {
+    return null;
+  }
   return awardCredit({
     partnerId: referral.partnerId,
     supplierUserId,
@@ -376,9 +452,13 @@ async function awardReferralSignupBonus(supplierUserId) {
 
 async function awardFirstReviewBonus(supplierUserId) {
   const referral = await getReferralBySupplierUserId(supplierUserId);
-  if (!referral) return null;
+  if (!referral) {
+    return null;
+  }
   const partner = await getPartnerById(referral.partnerId);
-  if (!partner || partner.status !== 'active') return null;
+  if (!partner || partner.status !== 'active') {
+    return null;
+  }
   return awardCredit({
     partnerId: referral.partnerId,
     supplierUserId,
@@ -440,7 +520,9 @@ async function reverseDebit(debitTxnId, partnerId) {
     id: debitTxnId,
     partnerId,
   });
-  if (!debit) return null;
+  if (!debit) {
+    return null;
+  }
   const reversal = {
     id: uid('ptx'),
     partnerId,
@@ -468,7 +550,9 @@ async function createCashoutHold({ partnerId, amount, cashoutId }) {
     type: CREDIT_TYPES.CASHOUT_HOLD,
     externalRef: cashoutId,
   });
-  if (existing) return existing;
+  if (existing) {
+    return existing;
+  }
 
   const txn = {
     id: uid('ptx'),
@@ -493,13 +577,17 @@ async function createCashoutHold({ partnerId, amount, cashoutId }) {
 
 async function releaseCashoutHold(holdTxnId, partnerId) {
   const hold = await dbUnified.findOne('partner_credit_transactions', { id: holdTxnId, partnerId });
-  if (!hold) return null;
+  if (!hold) {
+    return null;
+  }
   const existing = await dbUnified.findOne('partner_credit_transactions', {
     type: CREDIT_TYPES.CASHOUT_RELEASE,
     partnerId,
     externalRef: holdTxnId,
   });
-  if (existing) return existing;
+  if (existing) {
+    return existing;
+  }
 
   const release = {
     id: uid('ptx'),
@@ -546,12 +634,17 @@ async function getBalance(partnerId) {
       txn.type !== CREDIT_TYPES.ADJUSTMENT &&
       txn.type !== CREDIT_TYPES.CASHOUT_RELEASE;
 
-    if (txn.type === CREDIT_TYPES.PACKAGE_BONUS) packageBonusTotal += txn.amount;
-    else if (txn.type === CREDIT_TYPES.SUBSCRIPTION_BONUS) subscriptionBonusTotal += txn.amount;
-    else if (txn.type === CREDIT_TYPES.REFERRAL_SIGNUP_BONUS) signupBonusTotal += txn.amount;
-    else if (txn.type === CREDIT_TYPES.FIRST_REVIEW_BONUS) reviewBonusTotal += txn.amount;
-    else if (txn.type === CREDIT_TYPES.ADJUSTMENT) adjustmentTotal += txn.amount;
-    else if (txn.type === CREDIT_TYPES.REDEEM || txn.type === CREDIT_TYPES.CASHOUT_HOLD) {
+    if (txn.type === CREDIT_TYPES.PACKAGE_BONUS) {
+      packageBonusTotal += txn.amount;
+    } else if (txn.type === CREDIT_TYPES.SUBSCRIPTION_BONUS) {
+      subscriptionBonusTotal += txn.amount;
+    } else if (txn.type === CREDIT_TYPES.REFERRAL_SIGNUP_BONUS) {
+      signupBonusTotal += txn.amount;
+    } else if (txn.type === CREDIT_TYPES.FIRST_REVIEW_BONUS) {
+      reviewBonusTotal += txn.amount;
+    } else if (txn.type === CREDIT_TYPES.ADJUSTMENT) {
+      adjustmentTotal += txn.amount;
+    } else if (txn.type === CREDIT_TYPES.REDEEM || txn.type === CREDIT_TYPES.CASHOUT_HOLD) {
       redeemed += Math.abs(txn.amount);
     } else if (txn.type === CREDIT_TYPES.CASHOUT_RELEASE) {
       redeemed -= Math.abs(txn.amount);
@@ -559,8 +652,11 @@ async function getBalance(partnerId) {
 
     if (isEarnedCredit || isPositiveAdjustment) {
       totalEarned += txn.amount;
-      if (isMature || isPositiveAdjustment) availableEarned += txn.amount;
-      else maturingEarned += txn.amount;
+      if (isMature || isPositiveAdjustment) {
+        availableEarned += txn.amount;
+      } else {
+        maturingEarned += txn.amount;
+      }
     }
   }
 
