@@ -91,7 +91,12 @@ test('loading shell reserves the rendered supplier profile geometry', async ({ p
     );
     const packageCard = document.querySelector('.supplier-packages-v2--loading');
     const packageMessage = packageCard.querySelector('.supplier-packages-v2__state');
-    const footer = document.querySelector('.footer').getBoundingClientRect();
+    // Not `.footer` — eventflow-footer.js (loaded on this page for the
+    // standardised rich footer) replaces that class with `ef-footer-premium`
+    // once it enhances the element, so `role="contentinfo"` is the only
+    // selector that identifies the footer in both its pre- and
+    // post-enhancement states.
+    const footer = document.querySelector('footer[role="contentinfo"]').getBoundingClientRect();
 
     const pwa = document.createElement('div');
     pwa.id = 'ef-pwa-install-banner';
