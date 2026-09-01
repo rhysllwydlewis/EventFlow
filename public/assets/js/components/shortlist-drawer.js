@@ -36,6 +36,7 @@ class ShortlistDrawer {
    */
   createFloatingButton() {
     const button = document.createElement('button');
+    button.type = 'button';
     button.id = 'shortlist-float-btn';
     button.className = 'shortlist-float-btn';
     button.innerHTML = `

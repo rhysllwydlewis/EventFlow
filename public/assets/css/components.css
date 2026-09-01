@@ -2210,8 +2210,15 @@ body.ef-cookie-banner-open #ef-pwa-install-banner {
     background-color 0.3s ease;
   padding: 0 !important;
   margin: 0 !important;
+  min-width: unset !important;
   min-height: unset !important;
+  max-width: 44px !important;
+  max-height: 44px !important;
+  aspect-ratio: 1 / 1 !important;
+  flex-shrink: 0 !important;
   font-size: unset !important;
+  -webkit-appearance: none;
+  appearance: none;
 }
 
 .shortlist-float-btn svg {
@@ -2798,6 +2805,8 @@ body.ef-cookie-banner-open #ef-pwa-install-banner {
     right: 1rem !important;
     width: 36px !important;
     height: 36px !important;
+    max-width: 36px !important;
+    max-height: 36px !important;
   }
 
   .shortlist-float-btn svg {
