@@ -23,7 +23,7 @@ describe('FAQ page regressions', () => {
       const DomEvent = dom.window.Event;
       const visibleQuestions = [...document.querySelectorAll('.faq-item summary')].map(el => el.textContent.trim());
       const jsonLd = JSON.parse(document.querySelector('script[type="application/ld+json"]').textContent);
-      assert.strictEqual(visibleQuestions.length, 23);
+      assert.strictEqual(visibleQuestions.length, 31);
       assert.strictEqual(jsonLd.mainEntity.length, visibleQuestions.length);
       assert.deepStrictEqual(jsonLd.mainEntity.map(entity => entity.name), visibleQuestions);
 
@@ -75,6 +75,38 @@ describe('FAQ page regressions', () => {
       search.dispatchEvent(new DomEvent('input', { bubbles: true }));
       const privacyItems = [...document.querySelectorAll('.faq-item')].filter(item => item.style.display !== 'none' && !item.hidden);
       assert(privacyItems.some(item => item.dataset.category === 'account'));
+
+      // Marketplace category: filter button exists, filters to the right items,
+      // and every item links back to /marketplace or /suppliers where relevant.
+      search.value = '';
+      search.dispatchEvent(new DomEvent('input', { bubbles: true }));
+      const marketplaceBtn = document.querySelector('.faq-filter-btn[data-filter="marketplace"]');
+      assert(marketplaceBtn, 'expected a Marketplace filter button');
+      marketplaceBtn.click();
+      const marketplaceHeadings = [...document.querySelectorAll('.faq-group-heading')].filter(h => h.style.display !== 'none');
+      const marketplaceItems = [...document.querySelectorAll('.faq-item')].filter(item => !item.hidden);
+      assert.deepStrictEqual(marketplaceHeadings.map(h => h.dataset.group), ['marketplace']);
+      assert.strictEqual(marketplaceItems.length, 5);
+      assert(marketplaceItems.every(item => item.dataset.category === 'marketplace'));
+      const whatIsMarketplace = marketplaceItems.find(item => item.querySelector('summary').textContent.includes('What is the Marketplace'));
+      assert(whatIsMarketplace.querySelector('a[href="/marketplace"]'));
+      assert(whatIsMarketplace.querySelector('a[href="/suppliers"]'));
+
+      // Filter button (N) counts are populated from the actual DOM, not hardcoded,
+      // and stay in sync with the underlying item counts.
+      const countFor = filter => document.querySelectorAll('.faq-item[data-category="' + filter + '"]').length;
+      document.querySelectorAll('.faq-filter-btn[data-filter]').forEach(btn => {
+        const filter = btn.dataset.filter;
+        const countEl = btn.querySelector('.faq-filter-count');
+        assert(countEl, 'expected a count element on the "' + filter + '" filter button');
+        const expected = filter === 'all' ? document.querySelectorAll('.faq-item[data-category]').length : countFor(filter);
+        assert.strictEqual(countEl.textContent.trim(), '(' + expected + ')');
+      });
+
+      // Reset back to "All topics" and confirm every category is represented.
+      document.querySelector('.faq-filter-btn[data-filter="all"]').click();
+      const allGroups = [...document.querySelectorAll('.faq-group-heading[data-group]')].map(h => h.dataset.group);
+      assert.deepStrictEqual(allGroups, ['getting-started', 'planning', 'suppliers', 'marketplace', 'for-suppliers', 'account']);
     `);
   });
 });
