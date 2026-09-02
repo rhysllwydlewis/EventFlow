@@ -157,6 +157,15 @@ body.auth-page .auth-google-button {
   overflow: hidden;
 }
 
+/* Keep Facebook and Google provider controls visually aligned. Google GIS is
+   intentionally capped at 320px, so Facebook uses that same responsive width
+   rather than stretching across the full auth card. */
+body.auth-page .auth-facebook-button {
+  width: min(100%, var(--google-button-width, 320px));
+  margin-inline: auto;
+  max-width: 100%;
+}
+
 /* GIS repaints this container in place (e.g. swapping to the shorter
    "Continue as <name>" personalized button once it detects an active
    Google session) and sets its own inline width when it does — a
