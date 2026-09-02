@@ -195,7 +195,7 @@ function replacePlaceholders(content) {
 }
 
 function isAnonymousRequest(req) {
-  return !(req && req.user);
+  return !req?.user;
 }
 
 function setHtmlNoStoreHeaders(res) {
@@ -392,7 +392,7 @@ function stripAnonymousAuthText(content) {
     .replace(/Dashboard\s+Log out/gi, '')
     .replace(/Mark all as read/gi, '')
     .replace(/View all/gi, '')
-    .replace(/Version:\s*loading…?/gi, '');
+    .replace(/Version:\s*loading…?/giu, '');
 }
 
 function sanitiseHomepage(content) {
@@ -578,11 +578,7 @@ function shouldProcessFile(filePath) {
     return true;
   }
 
-  if (fileName.startsWith('test-')) {
-    return false;
-  }
-
-  return true;
+  return !fileName.startsWith('test-');
 }
 
 async function getFile(filePath, requestPath, req) {
@@ -627,7 +623,7 @@ async function getFile(filePath, requestPath, req) {
   if (cachingEnabled) {
     templateCache.set(cacheKey, {
       content: processedContent,
-      mtime: mtime,
+      mtime,
     });
   }
 
