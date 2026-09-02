@@ -21,6 +21,11 @@ const GLOBAL_ANALYTICS_SCRIPTS = [
 ];
 const ADMIN_BEHAVIOUR_ANALYTICS_SCRIPT =
   '    <script src="/assets/js/pages/admin-behaviour-analytics.js?v=1" defer></script>';
+const GOOGLE_ADS_TAG_SCRIPT = '    <script src="/assets/js/google-ads-tag.js"></script>';
+// Token-bearing routes: loading a third-party script here would send the
+// current URL (including the verification/reset token) to Google via the
+// Referer header, even for a visitor who has already consented to analytics.
+const GOOGLE_ADS_TAG_BLOCKED_PATHS = new Set(['/verify.html', '/reset-password.html']);
 const HOMEPAGE_INDEX_FILE = '/index.html';
 const HOMEPAGE_V2_FILE = '/home-v2.html';
 const HOMEPAGE_V2_PREVIEW_PATHS = new Set([
@@ -281,6 +286,10 @@ function injectGlobalAnalyticsScripts(content, requestPath) {
       ADMIN_BEHAVIOUR_ANALYTICS_SCRIPT,
       '/assets/js/pages/admin-behaviour-analytics.js'
     );
+  }
+
+  if (!isAdmin && !GOOGLE_ADS_TAG_BLOCKED_PATHS.has(pathName)) {
+    result = injectBodySnippet(result, GOOGLE_ADS_TAG_SCRIPT, '/assets/js/google-ads-tag.js');
   }
 
   return result;
