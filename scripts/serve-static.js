@@ -964,6 +964,7 @@ const adminPages = [
   'admin-pexels',
   'admin-reviews',
   'admin-search',
+  'admin-seo',
   'admin-photos',
   'admin-public-calendar',
   'admin-reports',

@@ -1069,6 +1069,10 @@ mountDeprecatedApiAlias(
 const adminV2Routes = require('./routes/admin-v2');
 app.use('/api/v2/admin', adminV2Routes);
 
+// Admin SEO Insights dashboard
+const adminSeoRoutes = require('./routes/admin-seo');
+app.use('/api/v2/admin/seo', adminSeoRoutes);
+
 // Reports routes
 const reportsRoutes = require('./routes/reports');
 app.use('/api/v1', reportsRoutes);
