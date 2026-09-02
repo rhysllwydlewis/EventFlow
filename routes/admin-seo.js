@@ -11,6 +11,7 @@ const express = require('express');
 const multer = require('multer');
 const { authRequired } = require('../middleware/auth');
 const { csrfProtection } = require('../middleware/csrf');
+const { apiLimiter, writeLimiter } = require('../middleware/rateLimits');
 const { PERMISSIONS, requirePermission } = require('../middleware/permissions');
 const logger = require('../utils/logger');
 
@@ -58,6 +59,7 @@ function handleError(res, error, fallbackStatus = 500) {
 router.get(
   '/status',
   authRequired,
+  apiLimiter,
   requirePermission(PERMISSIONS.SEO_DASHBOARD_VIEW),
   async (req, res) => {
     try {
@@ -81,6 +83,7 @@ router.get(
 router.get(
   '/overview',
   authRequired,
+  apiLimiter,
   requirePermission(PERMISSIONS.SEO_DASHBOARD_VIEW),
   async (req, res) => {
     try {
@@ -95,6 +98,7 @@ router.get(
 router.get(
   '/queries',
   authRequired,
+  apiLimiter,
   requirePermission(PERMISSIONS.SEO_DASHBOARD_VIEW),
   async (req, res) => {
     try {
@@ -115,6 +119,7 @@ router.get(
 router.get(
   '/striking-distance',
   authRequired,
+  apiLimiter,
   requirePermission(PERMISSIONS.SEO_DASHBOARD_VIEW),
   async (req, res) => {
     try {
@@ -134,6 +139,7 @@ router.get(
 router.get(
   '/low-ctr',
   authRequired,
+  apiLimiter,
   requirePermission(PERMISSIONS.SEO_DASHBOARD_VIEW),
   async (req, res) => {
     try {
@@ -152,6 +158,7 @@ router.get(
 router.get(
   '/content-gaps',
   authRequired,
+  apiLimiter,
   requirePermission(PERMISSIONS.SEO_DASHBOARD_VIEW),
   async (req, res) => {
     try {
@@ -169,6 +176,7 @@ router.get(
 router.get(
   '/financial-estimate',
   authRequired,
+  apiLimiter,
   requirePermission(PERMISSIONS.SEO_DASHBOARD_VIEW),
   async (req, res) => {
     try {
@@ -183,6 +191,7 @@ router.get(
 router.get(
   '/settings',
   authRequired,
+  apiLimiter,
   requirePermission(PERMISSIONS.SEO_DASHBOARD_VIEW),
   async (req, res) => {
     try {
@@ -203,6 +212,7 @@ router.put(
   authRequired,
   requirePermission(PERMISSIONS.SEO_DASHBOARD_MANAGE),
   csrfProtection,
+  writeLimiter,
   async (req, res) => {
     try {
       const { valuePerClick } = req.body;
@@ -227,6 +237,7 @@ router.post(
   authRequired,
   requirePermission(PERMISSIONS.SEO_DASHBOARD_MANAGE),
   csrfProtection,
+  writeLimiter,
   async (req, res) => {
     try {
       const { query, reason } = req.body;
@@ -254,6 +265,7 @@ router.delete(
   authRequired,
   requirePermission(PERMISSIONS.SEO_DASHBOARD_MANAGE),
   csrfProtection,
+  writeLimiter,
   async (req, res) => {
     try {
       await seoDataStore.unmarkNoiseKeyword(req.params.query);
@@ -269,6 +281,7 @@ router.post(
   authRequired,
   requirePermission(PERMISSIONS.SEO_DASHBOARD_MANAGE),
   csrfProtection,
+  writeLimiter,
   async (req, res) => {
     try {
       const data = await gscIngestion.runIngestion({ triggeredBy: req.user.email });
@@ -284,6 +297,7 @@ router.post(
   authRequired,
   requirePermission(PERMISSIONS.SEO_DASHBOARD_MANAGE),
   csrfProtection,
+  writeLimiter,
   async (req, res) => {
     try {
       const data = await keywordPlannerIngestion.runIngestion({ triggeredBy: req.user.email });
@@ -299,6 +313,7 @@ router.post(
   authRequired,
   requirePermission(PERMISSIONS.SEO_DASHBOARD_MANAGE),
   csrfProtection,
+  writeLimiter,
   csvUpload.single('file'),
   async (req, res) => {
     try {
