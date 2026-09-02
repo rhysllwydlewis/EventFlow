@@ -1,12 +1,11 @@
-(function () {
-  'use strict';
+'use strict';
 
+(function () {
   // Keep in sync with GRAPH_API_VERSION in services/facebookAuth.service.js.
   const FACEBOOK_OAUTH_DIALOG = 'https://www.facebook.com/v23.0/dialog/oauth';
   const FACEBOOK_LOGIN_PATH = '/api/auth/callback/facebook';
   const FACEBOOK_CSRF_PATH = '/api/auth/facebook/csrf';
   const PRODUCTION_ORIGIN = 'https://event-flow.co.uk';
-  const SOCIAL_BUTTON_MIN_WIDTH = 220;
   const SOCIAL_BUTTON_MAX_WIDTH = 320;
 
   function getFacebookLoginUri() {
@@ -75,7 +74,7 @@
   function syncFacebookButtonWidths() {
     document.querySelectorAll('.auth-facebook-button').forEach(button => {
       const targetWidth = getFacebookButtonTargetWidth(button);
-      button.style.width = targetWidth + 'px';
+      button.style.width = `${targetWidth}px`;
       button.style.maxWidth = '100%';
       button.style.marginInline = 'auto';
     });
@@ -112,7 +111,7 @@
       const json = JSON.stringify(payload || {});
       return btoa(unescape(encodeURIComponent(json)))
         .replace(/\+/g, '-')
-        .replace(/\//g, '_')
+        .replaceAll('/', '_')
         .replace(/=+$/g, '');
     } catch {
       return '';
@@ -123,8 +122,7 @@
     const params = new URLSearchParams(window.location.search);
     const redirect = params.get('redirect') || params.get('return') || '';
     if (
-      redirect &&
-      redirect.startsWith('/') &&
+      redirect?.startsWith('/') &&
       !redirect.startsWith('//') &&
       !redirect.includes('\\') &&
       !hasControlCharacter(redirect)
