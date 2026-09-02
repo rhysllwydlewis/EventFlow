@@ -95,8 +95,7 @@
     const params = new URLSearchParams(window.location.search);
     const redirect = params.get('redirect') || params.get('return') || '';
     if (
-      redirect &&
-      redirect.startsWith('/') &&
+      redirect?.startsWith('/') &&
       !redirect.startsWith('//') &&
       !redirect.includes('\\') &&
       !hasControlCharacter(redirect)
