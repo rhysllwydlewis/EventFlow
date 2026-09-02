@@ -218,8 +218,15 @@ async function getFinancialEstimate({ property } = {}) {
   const settings = await seoDataStore.getSettings();
   const { rows: strikingDistance } = await getStrikingDistanceReport({ property });
   const { rows: lowCtr } = await getLowCtrReport({ property });
-  const combined = [...strikingDistance, ...lowCtr];
-  return computeFinancialEstimate(combined, settings.valuePerClick);
+
+  // A query at position 4-10 can satisfy both reports; dedupe by query
+  // before valuing it, or its uplift clicks get counted twice.
+  const byQuery = new Map();
+  for (const row of [...strikingDistance, ...lowCtr]) {
+    byQuery.set(row.query, row);
+  }
+
+  return computeFinancialEstimate(Array.from(byQuery.values()), settings.valuePerClick);
 }
 
 async function getOverview({ property } = {}) {

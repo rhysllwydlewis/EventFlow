@@ -81,6 +81,9 @@ jest.mock('../../services/gscIngestion.service', () => ({
 const googleAdsClient = require('../../services/googleAdsClient');
 const keywordPlannerIngestion = require('../../services/keywordPlannerIngestion.service');
 const keywordCsvImport = require('../../services/keywordCsvImport.service');
+const gscIngestion = require('../../services/gscIngestion.service');
+const seoInsights = require('../../services/seoInsights.service');
+const seoDataStore = require('../../services/seoDataStore');
 const seoRoutes = require('../../routes/admin-seo');
 
 function createApp() {
@@ -172,5 +175,100 @@ describe('admin-seo routes', () => {
 
   it('unconfigured Google Ads client reports isConfigured() false to the status endpoint', () => {
     expect(googleAdsClient.isConfigured()).toBe(false);
+  });
+
+  it('GET /queries returns the query table', async () => {
+    seoInsights.getQueryTable.mockResolvedValueOnce({ rows: [{ query: 'wedding venue' }] });
+    const app = createApp();
+    const response = await request(app).get('/api/v2/admin/seo/queries').expect(200);
+    expect(response.body.data.rows).toHaveLength(1);
+    expect(seoInsights.getQueryTable).toHaveBeenCalledWith(
+      expect.objectContaining({ includeNoise: false, includeBranded: true })
+    );
+  });
+
+  it('GET /queries?includeNoise=true&includeBranded=false forwards the flags', async () => {
+    const app = createApp();
+    await request(app)
+      .get('/api/v2/admin/seo/queries?includeNoise=true&includeBranded=false')
+      .expect(200);
+    expect(seoInsights.getQueryTable).toHaveBeenCalledWith(
+      expect.objectContaining({ includeNoise: true, includeBranded: false })
+    );
+  });
+
+  it('GET /striking-distance returns the report', async () => {
+    seoInsights.getStrikingDistanceReport.mockResolvedValueOnce({ rows: [{ query: 'x' }] });
+    const app = createApp();
+    const response = await request(app)
+      .get('/api/v2/admin/seo/striking-distance?positionMax=15')
+      .expect(200);
+    expect(response.body.data.rows).toHaveLength(1);
+    expect(seoInsights.getStrikingDistanceReport).toHaveBeenCalledWith(
+      expect.objectContaining({ positionMax: 15 })
+    );
+  });
+
+  it('GET /low-ctr returns the report', async () => {
+    seoInsights.getLowCtrReport.mockResolvedValueOnce({ rows: [{ query: 'y' }] });
+    const app = createApp();
+    const response = await request(app).get('/api/v2/admin/seo/low-ctr').expect(200);
+    expect(response.body.data.rows).toHaveLength(1);
+  });
+
+  it('GET /content-gaps returns the report', async () => {
+    seoInsights.getContentGapReport.mockResolvedValueOnce({ rows: [{ keyword: 'z' }] });
+    const app = createApp();
+    const response = await request(app)
+      .get('/api/v2/admin/seo/content-gaps?minVolume=100')
+      .expect(200);
+    expect(response.body.data.rows).toHaveLength(1);
+    expect(seoInsights.getContentGapReport).toHaveBeenCalledWith(
+      expect.objectContaining({ minVolume: 100 })
+    );
+  });
+
+  it('GET /financial-estimate returns the estimate', async () => {
+    seoInsights.getFinancialEstimate.mockResolvedValueOnce({
+      estimatedMonthlyValue: 42,
+      needsValuePerClick: false,
+    });
+    const app = createApp();
+    const response = await request(app).get('/api/v2/admin/seo/financial-estimate').expect(200);
+    expect(response.body.data.estimatedMonthlyValue).toBe(42);
+  });
+
+  it('GET /settings returns stored settings', async () => {
+    seoDataStore.getSettings.mockResolvedValueOnce({ id: 'default', valuePerClick: 1.5 });
+    const app = createApp();
+    const response = await request(app).get('/api/v2/admin/seo/settings').expect(200);
+    expect(response.body.data.valuePerClick).toBe(1.5);
+  });
+
+  it('DELETE /noise/:query unmarks a noise keyword', async () => {
+    const app = createApp();
+    await request(app).delete('/api/v2/admin/seo/noise/venue%20flow%20systems').expect(200);
+    expect(seoDataStore.unmarkNoiseKeyword).toHaveBeenCalledWith('venue flow systems');
+  });
+
+  it('POST /ingest/gsc triggers a Search Console pull and returns the result', async () => {
+    gscIngestion.runIngestion.mockResolvedValueOnce({
+      periodStart: '2026-01-01',
+      periodEnd: '2026-01-31',
+      rowsWritten: 12,
+    });
+    const app = createApp();
+    const response = await request(app).post('/api/v2/admin/seo/ingest/gsc').expect(200);
+    expect(response.body.data.rowsWritten).toBe(12);
+    expect(gscIngestion.runIngestion).toHaveBeenCalledWith({
+      triggeredBy: 'admin@event-flow.co.uk',
+    });
+  });
+
+  it('a generic ingestion error (no .code) surfaces as a 500, not a 409', async () => {
+    gscIngestion.runIngestion.mockRejectedValueOnce(new Error('unexpected database error'));
+    const app = createApp();
+    const response = await request(app).post('/api/v2/admin/seo/ingest/gsc').expect(500);
+    expect(response.body.code).toBe('SEO_ERROR');
   });
 });

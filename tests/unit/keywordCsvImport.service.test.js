@@ -31,6 +31,13 @@ describe('keywordCsvImport.service — parseVolume', () => {
     expect(parseVolume('')).toEqual({ value: null, isBucketed: false });
     expect(parseVolume(undefined)).toEqual({ value: null, isBucketed: false });
   });
+
+  it('resolves quickly on a large non-matching input with no dash (regression guard for the range-regex ReDoS fix)', () => {
+    const adversarial = `${','.repeat(50000) + ' '.repeat(50000)}x`;
+    const start = Date.now();
+    expect(parseVolume(adversarial)).toEqual({ value: null, isBucketed: false });
+    expect(Date.now() - start).toBeLessThan(500);
+  });
 });
 
 describe('keywordCsvImport.service — parseKeywordPlannerCsv', () => {

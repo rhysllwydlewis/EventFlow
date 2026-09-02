@@ -53,9 +53,36 @@ function splitCsvLine(line) {
 }
 
 /**
+ * Parses one side of a volume figure, e.g. "1,000" or "1.5K". Anchored with
+ * no ambiguity between its two quantifiers (digits vs. a single optional
+ * trailing letter), so — unlike matching a whole "low - high" range in one
+ * pass — this can't be driven into polynomial backtracking by adversarial
+ * input. Returns a number, or null if the text isn't a plain figure.
+ */
+function parseSingleFigure(text) {
+  const match = String(text || '')
+    .trim()
+    .match(/^([\d,.]+)\s*([kK]?)$/);
+  if (!match) {
+    return null;
+  }
+  const n = parseFloat(match[1].replace(/,/g, ''));
+  if (!Number.isFinite(n)) {
+    return null;
+  }
+  return match[2].toLowerCase() === 'k' ? n * 1000 : n;
+}
+
+/**
  * Google's "Avg. monthly searches" column is sometimes an exact number and
  * sometimes a bucketed range like "1K – 10K" for accounts without enough
  * ad spend history. Returns { value, isBucketed }.
+ *
+ * The range case is split on the dash first (plain string search, not
+ * regex) and each side parsed independently — matching the whole "low -
+ * high" shape with one regex let an adversarial string with many
+ * repetitions of digits/spaces and no dash force polynomial backtracking
+ * before the match failed.
  */
 function parseVolume(raw) {
   const text = String(raw || '').trim();
@@ -63,22 +90,18 @@ function parseVolume(raw) {
     return { value: null, isBucketed: false };
   }
 
-  const rangeMatch = text.match(/^([\d,.]+)\s*([kK]?)\s*[-–]\s*([\d,.]+)\s*([kK]?)$/);
-  if (rangeMatch) {
-    const toNumber = (numStr, suffix) => {
-      const n = parseFloat(numStr.replace(/,/g, ''));
-      return suffix.toLowerCase() === 'k' ? n * 1000 : n;
-    };
-    const low = toNumber(rangeMatch[1], rangeMatch[2]);
-    const high = toNumber(rangeMatch[3], rangeMatch[4]);
-    return { value: Math.round((low + high) / 2), isBucketed: true };
+  const dashIndex = text.search(/[-–]/);
+  if (dashIndex !== -1) {
+    const low = parseSingleFigure(text.slice(0, dashIndex));
+    const high = parseSingleFigure(text.slice(dashIndex + 1));
+    if (low !== null && high !== null) {
+      return { value: Math.round((low + high) / 2), isBucketed: true };
+    }
   }
 
-  const singleMatch = text.match(/^([\d,.]+)\s*([kK]?)$/);
-  if (singleMatch) {
-    const n = parseFloat(singleMatch[1].replace(/,/g, ''));
-    const value = singleMatch[2].toLowerCase() === 'k' ? n * 1000 : n;
-    return { value: Math.round(value), isBucketed: false };
+  const single = parseSingleFigure(text);
+  if (single !== null) {
+    return { value: Math.round(single), isBucketed: false };
   }
 
   return { value: null, isBucketed: false };

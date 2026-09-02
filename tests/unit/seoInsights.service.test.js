@@ -6,6 +6,19 @@
 
 'use strict';
 
+jest.mock('../../db-unified', () => ({
+  find: jest.fn(),
+}));
+
+jest.mock('../../services/seoDataStore', () => ({
+  listNoiseKeywords: jest.fn(async () => []),
+  getSettings: jest.fn(async () => ({ id: 'default', valuePerClick: null })),
+  getAllIngestionStatus: jest.fn(async () => []),
+}));
+
+const dbUnified = require('../../db-unified');
+const seoDataStore = require('../../services/seoDataStore');
+const seoInsights = require('../../services/seoInsights.service');
 const {
   getExpectedCtr,
   computeOpportunityScore,
@@ -13,8 +26,8 @@ const {
   isLowCtrOpportunity,
   computeUpliftClicks,
   computeFinancialEstimate,
-} = require('../../services/seoInsights.service');
-const { isBrandedQuery, normaliseKeyword } = require('../../models/SeoInsights');
+} = seoInsights;
+const { COLLECTIONS, isBrandedQuery, normaliseKeyword } = require('../../models/SeoInsights');
 
 describe('seoInsights.service — expected CTR benchmark', () => {
   it('returns the tabled value for known positions', () => {
@@ -113,5 +126,288 @@ describe('models/SeoInsights — keyword normalisation', () => {
   it('handles empty/undefined input without throwing', () => {
     expect(normaliseKeyword(undefined)).toBe('');
     expect(normaliseKeyword('')).toBe('');
+  });
+
+  it('strips many repeated quote characters in linear time (no ReDoS)', () => {
+    const adversarial = `${'"'.repeat(50000)}wedding venue${'"'.repeat(50000)}`;
+    const start = Date.now();
+    expect(normaliseKeyword(adversarial)).toBe('wedding venue');
+    expect(Date.now() - start).toBeLessThan(500);
+  });
+});
+
+describe('seoInsights.service — getQueryTable (noise and brand filtering)', () => {
+  const property = 'sc-domain:event-flow.co.uk';
+  const baseRows = [
+    {
+      query: 'wedding venue',
+      property,
+      periodStart: '2026-01-01',
+      periodEnd: '2026-01-31',
+      pulledAt: '2026-02-01T00:00:00.000Z',
+      impressions: 100,
+    },
+    {
+      query: 'event flow london',
+      property,
+      periodStart: '2026-01-01',
+      periodEnd: '2026-01-31',
+      pulledAt: '2026-02-01T00:00:00.000Z',
+      impressions: 50,
+    },
+    {
+      query: 'venue flow systems',
+      property,
+      periodStart: '2026-01-01',
+      periodEnd: '2026-01-31',
+      pulledAt: '2026-02-01T00:00:00.000Z',
+      impressions: 200,
+    },
+  ];
+
+  afterEach(() => jest.clearAllMocks());
+
+  it('returns an empty result when no snapshot has ever been pulled', async () => {
+    dbUnified.find.mockResolvedValue([]);
+    const result = await seoInsights.getQueryTable({ property });
+    expect(result).toEqual({ rows: [], periodStart: null, periodEnd: null });
+  });
+
+  it('excludes branded and noise-flagged queries by default', async () => {
+    dbUnified.find.mockResolvedValue(baseRows);
+    seoDataStore.listNoiseKeywords.mockResolvedValueOnce([{ id: 'venue flow systems' }]);
+
+    const result = await seoInsights.getQueryTable({ property, includeBranded: false });
+
+    expect(result.rows.map(r => r.query)).toEqual(['wedding venue']);
+    expect(result.periodStart).toBe('2026-01-01');
+  });
+
+  it('keeps noise-flagged rows (annotated) when includeNoise is true', async () => {
+    dbUnified.find.mockResolvedValue(baseRows);
+    seoDataStore.listNoiseKeywords.mockResolvedValueOnce([{ id: 'venue flow systems' }]);
+
+    const result = await seoInsights.getQueryTable({
+      property,
+      includeNoise: true,
+      includeBranded: false,
+    });
+
+    const noiseRow = result.rows.find(r => r.query === 'venue flow systems');
+    expect(noiseRow).toBeDefined();
+    expect(noiseRow.isNoise).toBe(true);
+  });
+});
+
+describe('seoInsights.service — striking-distance and low-CTR reports', () => {
+  const property = 'sc-domain:event-flow.co.uk';
+
+  afterEach(() => jest.clearAllMocks());
+
+  it('striking-distance report scores and sorts flagged rows, excluding branded queries', async () => {
+    dbUnified.find.mockResolvedValue([
+      {
+        query: 'event flow london',
+        property,
+        periodStart: 'p',
+        periodEnd: 'p',
+        pulledAt: 't',
+        position: 6,
+        impressions: 100,
+        ctr: 0.01,
+      },
+      {
+        query: 'low volume',
+        property,
+        periodStart: 'p',
+        periodEnd: 'p',
+        pulledAt: 't',
+        position: 10,
+        impressions: 200,
+        ctr: 0.01,
+      },
+      {
+        query: 'high volume',
+        property,
+        periodStart: 'p',
+        periodEnd: 'p',
+        pulledAt: 't',
+        position: 10,
+        impressions: 500,
+        ctr: 0,
+      },
+    ]);
+
+    const { rows } = await seoInsights.getStrikingDistanceReport({ property });
+
+    expect(rows.map(r => r.query)).toEqual(['high volume', 'low volume']);
+    expect(rows[0].opportunityScore).toBeGreaterThan(rows[1].opportunityScore);
+  });
+
+  it('low-CTR report attaches the expected-CTR benchmark to each flagged row', async () => {
+    dbUnified.find.mockResolvedValue([
+      {
+        query: 'underperforming',
+        property,
+        periodStart: 'p',
+        periodEnd: 'p',
+        pulledAt: 't',
+        position: 3,
+        impressions: 100,
+        ctr: 0.01,
+      },
+    ]);
+
+    const { rows } = await seoInsights.getLowCtrReport({ property });
+
+    expect(rows).toHaveLength(1);
+    expect(rows[0].expectedCtr).toBe(getExpectedCtr(3));
+  });
+});
+
+describe('seoInsights.service — content gaps', () => {
+  const property = 'sc-domain:event-flow.co.uk';
+
+  afterEach(() => jest.clearAllMocks());
+
+  it('flags a keyword with real demand and no matching query presence', async () => {
+    dbUnified.find.mockImplementation(async collection => {
+      if (collection === COLLECTIONS.seoKeywordIdeas) {
+        return [
+          {
+            keyword: 'balloon arch hire',
+            avgMonthlySearches: 300,
+            importedAt: '2026-02-01T00:00:00.000Z',
+          },
+        ];
+      }
+      return []; // no seo_query_snapshots at all
+    });
+
+    const { rows } = await seoInsights.getContentGapReport({ property });
+
+    expect(rows).toHaveLength(1);
+    expect(rows[0].keyword).toBe('balloon arch hire');
+  });
+
+  it('does not flag a keyword the site already gets meaningful impressions for', async () => {
+    dbUnified.find.mockImplementation(async collection => {
+      if (collection === COLLECTIONS.seoKeywordIdeas) {
+        return [
+          {
+            keyword: 'wedding venue',
+            avgMonthlySearches: 300,
+            importedAt: '2026-02-01T00:00:00.000Z',
+          },
+        ];
+      }
+      return [
+        {
+          query: 'wedding venue',
+          property,
+          periodStart: 'p',
+          periodEnd: 'p',
+          pulledAt: 't',
+          impressions: 500,
+        },
+      ];
+    });
+
+    const { rows } = await seoInsights.getContentGapReport({ property });
+    expect(rows).toHaveLength(0);
+  });
+
+  it('prefers the most recently imported row when the same keyword has both sources', async () => {
+    dbUnified.find.mockImplementation(async collection => {
+      if (collection === COLLECTIONS.seoKeywordIdeas) {
+        return [
+          {
+            keyword: 'balloon arch hire',
+            avgMonthlySearches: 10,
+            importedAt: '2026-01-01T00:00:00.000Z',
+          },
+          {
+            keyword: 'balloon arch hire',
+            avgMonthlySearches: 900,
+            importedAt: '2026-02-01T00:00:00.000Z',
+          },
+        ];
+      }
+      return [];
+    });
+
+    const { rows } = await seoInsights.getContentGapReport({ property, minVolume: 50 });
+    expect(rows).toHaveLength(1);
+    expect(rows[0].avgMonthlySearches).toBe(900);
+  });
+});
+
+describe('seoInsights.service — getFinancialEstimate (overlap dedup)', () => {
+  const property = 'sc-domain:event-flow.co.uk';
+
+  afterEach(() => jest.clearAllMocks());
+
+  it('does not double-count a query that qualifies for both striking-distance and low-CTR', async () => {
+    // position 5, well below its own CTR benchmark AND inside the 4-20 striking-distance band.
+    dbUnified.find.mockResolvedValue([
+      {
+        query: 'overlapping query',
+        property,
+        periodStart: 'p',
+        periodEnd: 'p',
+        pulledAt: 't',
+        position: 5,
+        impressions: 1000,
+        clicks: 1,
+        ctr: 0.001,
+      },
+    ]);
+    seoDataStore.getSettings.mockResolvedValueOnce({ id: 'default', valuePerClick: 2 });
+
+    const result = await seoInsights.getFinancialEstimate({ property });
+
+    const expectedUplift = computeUpliftClicks({ position: 5, impressions: 1000, clicks: 1 });
+    expect(result.totalUpliftClicks).toBe(expectedUplift);
+    expect(result.estimatedMonthlyValue).toBe(expectedUplift * 2);
+  });
+
+  it('reports needsValuePerClick when no value-per-click is configured', async () => {
+    dbUnified.find.mockResolvedValue([]);
+    const result = await seoInsights.getFinancialEstimate({ property });
+    expect(result.needsValuePerClick).toBe(true);
+  });
+});
+
+describe('seoInsights.service — getOverview', () => {
+  const property = 'sc-domain:event-flow.co.uk';
+
+  afterEach(() => jest.clearAllMocks());
+
+  it('aggregates counts across all reports', async () => {
+    dbUnified.find.mockImplementation(async collection => {
+      if (collection === COLLECTIONS.seoKeywordIdeas) {
+        return [];
+      }
+      return [
+        {
+          query: 'a',
+          property,
+          periodStart: 'p',
+          periodEnd: 'p',
+          pulledAt: 't',
+          position: 6,
+          impressions: 100,
+          clicks: 10,
+          ctr: 0.1,
+        },
+      ];
+    });
+
+    const overview = await seoInsights.getOverview({ property });
+
+    expect(overview.totalNonBrandedQueries).toBe(1);
+    expect(overview.totalImpressions).toBe(100);
+    expect(overview.totalClicks).toBe(10);
+    expect(seoDataStore.getAllIngestionStatus).toHaveBeenCalled();
   });
 });

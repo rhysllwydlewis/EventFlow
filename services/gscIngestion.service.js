@@ -6,6 +6,7 @@
 
 'use strict';
 
+const dbUnified = require('../db-unified');
 const logger = require('../utils/logger');
 const googleSearchConsole = require('./googleSearchConsole.service');
 const seoDataStore = require('./seoDataStore');
@@ -60,6 +61,16 @@ async function runIngestion({ startDate, endDate, triggeredBy } = {}) {
 
   const pulledAt = new Date().toISOString();
   const property = process.env.GOOGLE_SEARCH_CONSOLE_PROPERTY;
+
+  // Replace this period's whole prior batch rather than upserting over it:
+  // a query that drops out of this run (or a run that comes back empty)
+  // would otherwise leave its stale row from the last pull in every report.
+  await dbUnified.deleteMany(COLLECTIONS.seoQuerySnapshots, {
+    property,
+    periodStart: range.startDate,
+    periodEnd: range.endDate,
+  });
+
   let written = 0;
 
   for (const row of rows) {

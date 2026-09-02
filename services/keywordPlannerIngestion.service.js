@@ -20,10 +20,12 @@ const {
   normaliseKeyword,
 } = require('../models/SeoInsights');
 
-// Google Ads caps keyword-idea seed lists; keep well under it and keep the
-// list meaningful rather than exhaustive (every category × every city would
-// be hundreds of calls). A handful of top cities plus category-only and
-// generic "wedding X" phrasings covers the highest-intent terms.
+// Google Ads caps keyword-idea seed lists per call; a handful of top cities
+// plus category-only and generic "wedding X" phrasings covers the
+// highest-intent terms without going to every category × every city.
+// The full seed list still spans every supplier category — it's sent as
+// multiple batched calls (see chunk() below) rather than truncated, so an
+// ingestion run doesn't systematically skip most of the catalogue.
 const TOP_CITY_COUNT = 6;
 const MAX_SEEDS_PER_CALL = 20;
 
@@ -40,7 +42,15 @@ function buildSeedKeywords() {
     }
   }
 
-  return Array.from(seeds).slice(0, MAX_SEEDS_PER_CALL);
+  return Array.from(seeds);
+}
+
+function chunk(list, size) {
+  const chunks = [];
+  for (let i = 0; i < list.length; i += size) {
+    chunks.push(list.slice(i, i + size));
+  }
+  return chunks;
 }
 
 /**
@@ -64,11 +74,17 @@ async function runIngestion({ triggeredBy } = {}) {
   }
 
   const seeds = buildSeedKeywords();
-  logger.info(`SEO: requesting keyword ideas for ${seeds.length} seed phrases`);
+  const batches = chunk(seeds, MAX_SEEDS_PER_CALL);
+  logger.info(
+    `SEO: requesting keyword ideas for ${seeds.length} seed phrases across ${batches.length} batch(es)`
+  );
 
-  let ideas;
+  let ideas = [];
   try {
-    ideas = await googleAdsClient.generateKeywordIdeas(seeds);
+    for (const batch of batches) {
+      const batchIdeas = await googleAdsClient.generateKeywordIdeas(batch);
+      ideas = ideas.concat(batchIdeas);
+    }
   } catch (error) {
     await seoDataStore.recordIngestionStatus(
       INGESTION_SOURCES.keywordPlannerApi,

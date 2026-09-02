@@ -43,13 +43,25 @@ function isBrandedQuery(query) {
   return BRAND_TERMS.some(term => normalised.includes(term));
 }
 
+/** Strips leading/trailing quote characters with plain indexing — no regex backtracking on attacker-controlled input. */
+function stripSurroundingQuotes(text) {
+  let start = 0;
+  let end = text.length;
+  while (start < end && (text[start] === '"' || text[start] === "'")) {
+    start += 1;
+  }
+  while (end > start && (text[end - 1] === '"' || text[end - 1] === "'")) {
+    end -= 1;
+  }
+  return text.slice(start, end);
+}
+
 /** Normalises a query/keyword for matching and dedupe: lowercase, collapsed whitespace, no surrounding quotes. */
 function normaliseKeyword(value) {
-  return String(value || '')
+  const text = String(value || '')
     .trim()
-    .toLowerCase()
-    .replace(/^["']+|["']+$/g, '')
-    .replace(/\s+/g, ' ');
+    .toLowerCase();
+  return stripSurroundingQuotes(text).replace(/\s+/g, ' ');
 }
 
 const SEO_SETTINGS_DOC_ID = 'default';
