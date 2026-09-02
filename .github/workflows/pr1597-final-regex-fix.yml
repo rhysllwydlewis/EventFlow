@@ -1,0 +1,43 @@
+name: PR1597 Final Regex Fix
+
+on:
+  push:
+    branches:
+      - fix/google-facebook-auth-button-rendering
+
+permissions:
+  contents: write
+
+jobs:
+  fix:
+    if: ${{ !contains(github.event.head_commit.message, '[skip final-regex-fix]') }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: fix/google-facebook-auth-button-rendering
+          fetch-depth: 0
+
+      - name: Replace ambiguous padding regex
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          path = Path('public/assets/js/pages/auth-facebook-init.js')
+          source = path.read_text()
+          old = ".replace(/=+$/g, '');"
+          new = ".replaceAll('=', '');"
+          if old not in source:
+              raise SystemExit('Expected padding regex not found')
+          path.write_text(source.replace(old, new, 1))
+          PY
+
+      - name: Remove helper and push fix
+        shell: bash
+        run: |
+          git rm .github/workflows/pr1597-final-regex-fix.yml
+          git config user.name "eventflow-ci-helper"
+          git config user.email "eventflow-ci-helper@users.noreply.github.com"
+          git add public/assets/js/pages/auth-facebook-init.js
+          git commit -m "Resolve final DeepSource regex finding [skip final-regex-fix]"
+          git push origin HEAD:fix/google-facebook-auth-button-rendering
