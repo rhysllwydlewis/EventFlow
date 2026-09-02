@@ -79,7 +79,7 @@ describe('auth signup layout', () => {
     );
   });
 
-  it('keeps the Facebook and Google provider buttons the same responsive width', () => {
+  it('keeps the Facebook control synchronized to the rendered Google control', () => {
     const googleSignupCss = fs.readFileSync(
       path.join(__dirname, '../../public/assets/css/auth-google-signup.css'),
       'utf8'
@@ -90,12 +90,17 @@ describe('auth signup layout', () => {
     );
 
     expect(googleSignupCss).toMatch(
-      /body\.auth-page \.auth-facebook-button\s*\{[^}]*width: min\(100%, var\(--google-button-width, 320px\)\) !important;[^}]*margin-inline: auto;/s
+      /body\.auth-page \.auth-facebook-button\s*\{[^}]*width: min\(100%, var\(--google-button-width, 320px\)\);[^}]*margin-inline: auto;/s
+    );
+    expect(googleSignupCss).not.toMatch(
+      /body\.auth-page \.auth-facebook-button\s*\{[^}]*width:[^;}]*!important/s
     );
     expect(facebookInit).toContain('const SOCIAL_BUTTON_MAX_WIDTH = 320;');
+    expect(facebookInit).toContain('function getGoogleRenderedControl(card)');
+    expect(facebookInit).toContain("return googleButton.querySelector('iframe') || googleButton.firstElementChild || googleButton;");
     expect(facebookInit).toContain('function syncFacebookButtonWidths()');
-    expect(facebookInit).toContain('const googleButton = card?.querySelector(\'.auth-google-button\');');
     expect(facebookInit).toContain('button.style.width = `${targetWidth}px`;');
     expect(facebookInit).toContain('new window.ResizeObserver(syncFacebookButtonWidths)');
+    expect(facebookInit).toContain('new window.MutationObserver(observeRenderedTargets)');
   });
 });
