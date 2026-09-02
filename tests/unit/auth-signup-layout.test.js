@@ -71,5 +71,19 @@ describe('auth signup layout', () => {
     expect(googleSignupCss).toContain(
       'width: min(100%, var(--google-button-width, 320px)) !important;'
     );
+    expect(googleSignupCss).toMatch(
+      /body\.auth-page \.auth-google-button\s*\{[^}]*overflow: visible;/s
+    );
+  });
+
+  it('keeps the Facebook and Google provider buttons the same responsive width', () => {
+    const googleSignupCss = fs.readFileSync(
+      path.join(__dirname, '../../public/assets/css/auth-google-signup.css'),
+      'utf8'
+    );
+
+    expect(googleSignupCss).toMatch(
+      /body\.auth-page \.auth-facebook-button\s*\{[^}]*width: min\(100%, var\(--google-button-width, 320px\)\);[^}]*margin-inline: auto;/s
+    );
   });
 });

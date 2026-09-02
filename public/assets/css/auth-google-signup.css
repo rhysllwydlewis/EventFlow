@@ -154,7 +154,19 @@ body.auth-page .auth-google-button {
   margin-inline: auto;
   max-inline-size: 100%;
   min-inline-size: min(100%, 220px);
-  overflow: hidden;
+  /* GIS draws the pill right up to the iframe/container edge. Clipping the
+     wrapper can shave the anti-aliased rounded edge off the personalized
+     button, so keep the wrapper open while the child remains width-bounded. */
+  overflow: visible;
+}
+
+/* Keep Facebook and Google provider controls visually aligned. Google GIS is
+   intentionally capped at 320px, so Facebook uses that same responsive width
+   rather than stretching across the full auth card. */
+body.auth-page .auth-facebook-button {
+  width: min(100%, var(--google-button-width, 320px));
+  margin-inline: auto;
+  max-width: 100%;
 }
 
 /* GIS repaints this container in place (e.g. swapping to the shorter
