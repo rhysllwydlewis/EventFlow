@@ -154,37 +154,23 @@ body.auth-page .auth-google-button {
   margin-inline: auto;
   max-inline-size: 100%;
   min-inline-size: min(100%, 220px);
-  /* GIS draws the pill right up to the iframe/container edge. Clipping the
-     wrapper can shave the anti-aliased rounded edge off the personalized
-     button, so keep the wrapper open while the child remains width-bounded. */
   overflow: visible;
 }
 
-/* Keep Facebook and Google provider controls visually aligned. Google GIS is
-   intentionally capped at 320px, so Facebook uses that same responsive width
-   rather than stretching across the full auth card. */
+/* Fallback alignment. auth-facebook-init.js also synchronizes the Facebook
+   control to the measured Google container width at runtime so the two stay
+   identical when Google changes its personalized rendering. */
 body.auth-page .auth-facebook-button {
-  width: min(100%, var(--google-button-width, 320px));
+  width: min(100%, var(--google-button-width, 320px)) !important;
   margin-inline: auto;
   max-width: 100%;
 }
 
-/* GIS repaints this container in place (e.g. swapping to the shorter
-   "Continue as <name>" personalized button once it detects an active
-   Google session) and sets its own inline width when it does — a
-   documented GIS limitation, not something we control. Only an
-   !important rule beats a later inline style, so this is the one place
-   that has to fight it: it keeps the box the same size across both the
-   generic and personalized states instead of visibly shrinking. */
+/* Keep only the EventFlow-owned container width locked. Google owns the child
+   div/iframe and its internal pixel geometry; forcing those children to 100%
+   was clipping the personalized pill's right-hand border. */
 body.auth-page .auth-google-button {
   width: min(100%, var(--google-button-width, 320px)) !important;
-}
-
-body.auth-page .auth-google-button > div,
-body.auth-page .auth-google-button iframe {
-  inline-size: 100% !important;
-  max-inline-size: 100% !important;
-  min-inline-size: 0 !important;
 }
 
 @media (max-width: 390px) {
