@@ -546,7 +546,7 @@
       }, 80);
     };
 
-    document.addEventListener('eventflow:auth-tab-change', scheduleGoogleLayoutSync);
+    window.addEventListener('eventflow:auth-tab-change', scheduleGoogleLayoutSync);
     window.addEventListener('resize', scheduleGoogleLayoutSync, { passive: true });
     setGoogleButtonsBusy(false);
   }

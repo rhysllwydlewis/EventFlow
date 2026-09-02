@@ -105,6 +105,7 @@ describe('auth signup layout', () => {
     expect(facebookInit).toContain("'eventflow:google-button-rendered'");
     expect(googleInit).toContain('function getContentWidth(element)');
     expect(googleInit).toContain("new CustomEvent('eventflow:google-button-rendered'");
-    expect(googleInit).toContain("'eventflow:auth-tab-change'");
+    expect(googleInit).toContain("window.addEventListener('eventflow:auth-tab-change'");
+    expect(googleInit).not.toContain("document.addEventListener('eventflow:auth-tab-change'");
   });
 });
