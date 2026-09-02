@@ -157,11 +157,11 @@ body.auth-page .auth-google-button {
   overflow: visible;
 }
 
-/* Fallback alignment. auth-facebook-init.js also synchronizes the Facebook
-   control to the measured Google container width at runtime so the two stay
-   identical when Google changes its personalized rendering. */
+/* Fallback alignment. auth-facebook-init.js synchronizes the Facebook control
+   to the measured rendered Google control at runtime. Keep this non-important
+   so the runtime inline width can win when GIS personalizes to a narrower size. */
 body.auth-page .auth-facebook-button {
-  width: min(100%, var(--google-button-width, 320px)) !important;
+  width: min(100%, var(--google-button-width, 320px));
   margin-inline: auto;
   max-width: 100%;
 }
