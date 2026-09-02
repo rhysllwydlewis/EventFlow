@@ -207,6 +207,13 @@ class ShortlistDrawer {
     const location = escapeHtml(item.location || '');
     const priceHint = escapeHtml(item.priceHint || 'Contact for quote');
     const rating = item.rating ? `⭐ ${escapeHtml(String(item.rating))}` : '';
+    // type/id are internal identifiers (hardcoded literals like 'listing'/'supplier' plus
+    // server-issued record IDs) in every current caller, but escape them anyway — this
+    // function's contract shouldn't silently depend on every future caller getting that
+    // right. The browser decodes HTML entities back to the original string on attribute
+    // parse, so reading these back via `.dataset.type`/`.dataset.id` is unaffected.
+    const type = escapeHtml(item.type);
+    const id = escapeHtml(item.id);
 
     return `
       <div class="shortlist-item">
@@ -225,8 +232,8 @@ class ShortlistDrawer {
         </div>
         <button
           class="ef-cta shortlist-item-remove"
-          data-type="${item.type}"
-          data-id="${item.id}"
+          data-type="${type}"
+          data-id="${id}"
           aria-label="Remove ${name} from shortlist"
           title="Remove"
         >

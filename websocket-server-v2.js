@@ -275,6 +275,17 @@ class WebSocketServerV2 {
       // Security: require authentication before granting room membership, matching the
       // chat:v5:typing-start/stop handlers below and the v4 join-conversation guard —
       // an unauthenticated socket must not be able to join and listen on a chat room.
+      //
+      // Note: this only checks authentication, not that the caller is a participant of
+      // `conversationId` — unlike messenger:v4:join-conversation, which calls
+      // isConversationParticipant() against the conversations_v4 collection. There is no
+      // equivalent to check against here: services/chat-v5.service.js and
+      // models/ChatMessage.js (the REST/data layer this socket surface was presumably
+      // built for) have already been removed from the codebase, and no route or frontend
+      // page currently emits any chat:v5:* event — verified via a repo-wide grep. If this
+      // surface is ever revived, it needs a real per-conversation participant check
+      // before it's wired to anything real; until then this is unreachable in practice,
+      // but the join call itself should not be treated as "already authorized".
       socket.on('chat:v5:join-conversation', data => {
         if (!data || !data.conversationId) {
           return;
@@ -460,11 +471,13 @@ class WebSocketServerV2 {
 
       // Security: verify the sender actually belongs to this thread before
       // sending on their behalf — without this a socket could pass any threadId
-      // and broadcast a message into a conversation it isn't part of.
+      // and broadcast a message into a conversation it isn't part of. Pass the
+      // thread already fetched above so this doesn't do a second getThread() call.
       const senderIsParticipant = await isThreadParticipant(
         socket.userId,
         threadId,
-        this.messagingService
+        this.messagingService,
+        thread
       );
       if (!senderIsParticipant) {
         socket.emit('message:error', { error: 'Not a participant in this thread' });

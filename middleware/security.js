@@ -149,6 +149,12 @@ function configureHelmet(isProduction = false) {
           // POSTHOG_API_HOST defaults to eu.i.posthog.com but is env-configurable, so this
           // covers any regional ingestion host under the same PostHog domain.
           'https://*.i.posthog.com',
+          // JadeAssist chat widget backend (jadeassist-init.v2.js / vendor/jade-widget.js,
+          // loaded site-wide). Missed in the initial connect-src narrowing because its
+          // fetch() call target is built from a runtime `this.baseUrl` variable, not a
+          // literal 'https://...' string, so it didn't turn up in a source grep for
+          // literal URLs — verified directly against jade-widget.js's fetch() call.
+          'https://jadeassistbackend-production.up.railway.app',
         ],
         frameSrc: [
           "'self'",

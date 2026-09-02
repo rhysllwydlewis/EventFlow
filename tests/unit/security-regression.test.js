@@ -228,6 +228,10 @@ describe('CSP connect-src Regression', () => {
     expect(connectSrcBlock).toContain('i.posthog.com');
   });
 
+  it('allowlists the JadeAssist chat widget backend (site-wide, fetch() target built from a runtime variable — easy to miss in a literal-URL grep)', () => {
+    expect(connectSrcBlock).toContain('jadeassistbackend-production.up.railway.app');
+  });
+
   it('imgSrc and mediaSrc keep their documented broad https: allowance (supplier-hosted media)', () => {
     const imgSrcMatch = src.match(/imgSrc:\s*\[([\s\S]*?)\n\s{8}\],/);
     const mediaSrcMatch = src.match(/mediaSrc:\s*\[([\s\S]*?)\n\s{8}\],/);

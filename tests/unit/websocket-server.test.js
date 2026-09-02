@@ -273,7 +273,7 @@ describe('WebSocket Server Initialization', () => {
       const handlerSource = handlerMatch[0];
 
       expect(handlerSource).toMatch(
-        /isThreadParticipant\(\s*socket\.userId,\s*threadId,\s*this\.messagingService\s*\)/
+        /isThreadParticipant\(\s*socket\.userId,\s*threadId,\s*this\.messagingService,\s*thread\s*\)/
       );
       expect(handlerSource).toContain('senderIsParticipant');
     });
@@ -401,6 +401,24 @@ describe('WebSocket Server Initialization', () => {
         'message:sent',
         expect.objectContaining({ threadId: 'thread-1' })
       );
+    });
+
+    it('v2 handleMessageSend: rejects missing required fields and an unknown thread', async () => {
+      const WebSocketServerV2 = require('../../websocket-server-v2');
+      const ws = new WebSocketServerV2(server, null, null);
+      const socket = { userId: 'user-1', emit: jest.fn() };
+
+      ws.messagingService = { getThread: jest.fn() };
+      await ws.handleMessageSend(socket, { threadId: 'thread-1' }); // no content, no attachments
+      expect(socket.emit).toHaveBeenCalledWith('message:error', {
+        error: 'Missing required fields',
+      });
+      expect(ws.messagingService.getThread).not.toHaveBeenCalled();
+
+      socket.emit.mockClear();
+      ws.messagingService = { getThread: jest.fn(async () => null) };
+      await ws.handleMessageSend(socket, { threadId: 'missing-thread', content: 'hi' });
+      expect(socket.emit).toHaveBeenCalledWith('message:error', { error: 'Thread not found' });
     });
   });
 });

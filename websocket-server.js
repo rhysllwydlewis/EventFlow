@@ -208,6 +208,15 @@ class WebSocketServer {
       // arbitrary conversation room would otherwise let one user receive another user's
       // realtime messenger events (IDOR), matching the guard v2 applies to the
       // equivalent messenger:v4:join-conversation event.
+      //
+      // Note: this only checks authentication, not that the caller is a participant of
+      // `conversationId` — unlike v2's messenger:v4:join-conversation, which calls
+      // isConversationParticipant(). This whole v1 server (and this "V3 Messenger
+      // Events" block specifically) is opt-in only (WEBSOCKET_MODE=v1, not the default)
+      // and already marked deprecated for removal above; a repo-wide grep found no
+      // frontend page that emits 'messenger:join', so this is unreachable in practice.
+      // If v1 is ever kept around and this gets wired to something real, it needs the
+      // same participant check v2 has before that happens.
       socket.on('messenger:join', ({ conversationId } = {}) => {
         if (!conversationId) {
           return;

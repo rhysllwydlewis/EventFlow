@@ -47,6 +47,8 @@ describe('Shortlist drawer XSS protection (regression for stored XSS in renderIt
     expect(renderItemSource).toMatch(/const category = escapeHtml\(/);
     expect(renderItemSource).toMatch(/const location = escapeHtml\(/);
     expect(renderItemSource).toMatch(/const priceHint = escapeHtml\(/);
+    expect(renderItemSource).toMatch(/const type = escapeHtml\(item\.type\)/);
+    expect(renderItemSource).toMatch(/const id = escapeHtml\(item\.id\)/);
 
     // The template must use the escaped local variables, not the raw item fields, for
     // every place user-controlled text lands inside an HTML attribute or element body.
@@ -55,6 +57,8 @@ describe('Shortlist drawer XSS protection (regression for stored XSS in renderIt
     expect(renderItemSource).not.toMatch(/\$\{item\.location/);
     expect(renderItemSource).not.toMatch(/\$\{item\.imageUrl/);
     expect(renderItemSource).not.toMatch(/\$\{item\.priceHint/);
+    expect(renderItemSource).not.toMatch(/\$\{item\.type\}/);
+    expect(renderItemSource).not.toMatch(/\$\{item\.id\}/);
   });
 });
 
