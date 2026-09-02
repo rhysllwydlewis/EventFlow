@@ -3,9 +3,8 @@
  * Adds export buttons and other P3 features
  */
 
+'use strict';
 (function () {
-  'use strict';
-
   const LAYOUT_PAINT_DELAY = 50;
   const DRAG_SCROLL_MULTIPLIER = 2; // Faster scroll for responsive feel on mobile
   const THEME_CLASSES = [

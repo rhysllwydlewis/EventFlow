@@ -9,9 +9,8 @@
  * page that does not exist yet.
  */
 
+'use strict';
 (function () {
-  'use strict';
-
   if (typeof window.fetch !== 'function') {
     return;
   }

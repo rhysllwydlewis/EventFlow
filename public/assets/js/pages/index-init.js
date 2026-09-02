@@ -1,7 +1,6 @@
 // Initialize core utilities
+'use strict';
 (function () {
-  'use strict';
-
   function loadHomepageStabilisationStyles() {
     if (document.getElementById('ef-home-stabilisation-css')) {
       return;

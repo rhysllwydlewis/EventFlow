@@ -1,6 +1,5 @@
+'use strict';
 (function () {
-  'use strict';
-
   const FALLBACK_IMAGE = '/assets/images/collage-venue.jpg';
 
   const escapeHtml = value => {

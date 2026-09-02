@@ -2,8 +2,8 @@
 // Handles data-fallback-src, data-fallback-hide, data-fallback-show-next, and
 // data-fallback-action="attachment-error" attributes set on <img> elements.
 // This replaces inline onerror="..." attributes blocked by script-src-attr 'none'.
+'use strict';
 (function () {
-  'use strict';
   if (window.__imgFallbackRegistered) {
     return;
   }

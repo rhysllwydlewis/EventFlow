@@ -5,9 +5,8 @@
  * it is removed rather than shown as an empty box.
  */
 
+'use strict';
 (function () {
-  'use strict';
-
   const EFC = window.EFCommunity;
   const root = document.getElementById('efc-home');
   if (!EFC || !root) {

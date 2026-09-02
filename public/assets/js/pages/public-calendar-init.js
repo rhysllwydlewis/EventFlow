@@ -7,9 +7,8 @@
  *  - Publisher UX: Add / Edit / Delete own events
  *  - Customer UX: Save / unsave events to dashboard calendar
  */
+'use strict';
 (function () {
-  'use strict';
-
   // ── State ─────────────────────────────────────────────────────────────────
   let currentUser = null; // populated after /api/v1/auth/me
   let supplierDoc = null; // populated if user is a supplier publisher

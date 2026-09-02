@@ -3,9 +3,8 @@
  * Applies P3 features to guide articles
  */
 
+'use strict';
 (function () {
-  'use strict';
-
   /**
    * Add reading time estimate to article — only if the article header
    * does not already contain a read-time element (guides articles do).

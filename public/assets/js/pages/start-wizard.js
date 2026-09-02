@@ -7,9 +7,8 @@
  *   PRIORITIES (2) → STYLE (3) → [category steps] → REVIEW → SUCCESS
  */
 
+'use strict';
 (function () {
-  'use strict';
-
   /* ─── Utilities ──────────────────────────────────────────────────────────── */
 
   function escapeHtml(unsafe) {

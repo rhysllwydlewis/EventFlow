@@ -4,9 +4,8 @@
  * Enhanced with JWT token support and comprehensive error handling
  */
 
+'use strict';
 (function () {
-  'use strict';
-
   // Debug logging is only enabled in local development environments
   const isDevelopment =
     window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';

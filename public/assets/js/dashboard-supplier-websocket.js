@@ -4,9 +4,8 @@
  * Extracted from inline script to comply with CSP directive
  */
 
+'use strict';
 (function () {
-  'use strict';
-
   let ws = null;
   let reconnectAttempts = 0;
   const MAX_RECONNECT_ATTEMPTS = 5;

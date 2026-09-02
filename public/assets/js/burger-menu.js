@@ -4,9 +4,8 @@
  * With accessibility features: focus trap, ARIA attributes, and inert background
  */
 
+'use strict';
 (function () {
-  'use strict';
-
   // Debug flag - set to false to disable console logs
   const DEBUG = false;
 

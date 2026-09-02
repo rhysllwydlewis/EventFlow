@@ -1,6 +1,5 @@
+'use strict';
 (function () {
-  'use strict';
-
   let allPackages = [];
   let allSuppliers = [];
   let currentImageFile = null;

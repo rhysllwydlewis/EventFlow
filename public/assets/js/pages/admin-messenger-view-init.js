@@ -3,9 +3,8 @@
  * Uses admin-only endpoints so the admin can view any conversation
  * regardless of participant status.  Read states are never modified.
  */
+'use strict';
 (function () {
-  'use strict';
-
   // Earliest cursor seen so far — used for "load earlier" pagination.
   let oldestCursor = null;
   let hasMore = false;

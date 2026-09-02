@@ -1,7 +1,6 @@
 // prettier-ignore
+'use strict';
 (() => {
-  'use strict';
-
   const body = document.body;
   const authLink = document.getElementById('hv2-auth-link');
   const dashboardLinks = document.querySelectorAll('[data-hv2-dashboard-link]');
@@ -27,7 +26,11 @@
   const categoryFallbacks = [
     { category: 'Venues', image: '/assets/images/collage-venue.jpg', name: 'Venues' },
     { category: 'Catering', image: '/assets/images/collage-catering.jpg', name: 'Catering' },
-    { category: 'Photography', image: '/assets/images/collage-photography.jpg', name: 'Photography' },
+    {
+      category: 'Photography',
+      image: '/assets/images/collage-photography.jpg',
+      name: 'Photography',
+    },
     {
       category: 'Videography',
       image:
@@ -409,8 +412,12 @@
       .slice(0, 6)
       .map(item => {
         const title = escapeHtml(item.title || item.name || 'Event package');
-        const supplier = escapeHtml(item.supplier_name || item.supplierName || 'EventFlow supplier');
-        const description = escapeHtml(item.description || 'A curated package for your next event.');
+        const supplier = escapeHtml(
+          item.supplier_name || item.supplierName || 'EventFlow supplier'
+        );
+        const description = escapeHtml(
+          item.description || 'A curated package for your next event.'
+        );
         const slug = encodeURIComponent(slugValue(item.slug, item.id));
         const image = escapeHtml(getPackageImage(item));
         const price = escapeHtml(formatPrice(item.price_display || item.price));
@@ -544,9 +551,7 @@
     }
 
     try {
-      const response = await fetch(
-        '/api/pexels/videos?query=event%20reception%20table&per_page=6'
-      );
+      const response = await fetch('/api/pexels/videos?query=event%20reception%20table&per_page=6');
       if (!response.ok) {
         return;
       }

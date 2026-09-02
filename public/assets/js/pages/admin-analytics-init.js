@@ -4,9 +4,8 @@
  * decision-focused analytics extension.
  */
 
+'use strict';
 (function () {
-  'use strict';
-
   const AUTO_REFRESH_INTERVAL_MS = 15 * 1000;
   const DECISION_STYLE = '/assets/css/admin-analytics-decision.css?v=1';
   const DECISION_SCRIPT = '/assets/js/pages/admin-analytics-decision.js?v=1';
@@ -65,7 +64,9 @@
     const notice = document.getElementById('stripeNotice');
     const badge = document.getElementById('stripeStatusBadge');
     const message = document.getElementById('stripeStatusMsg');
-    if (notice) notice.style.display = '';
+    if (notice) {
+      notice.style.display = '';
+    }
     updateRevenueLabel();
 
     if (stripeData && stripeData.available === true) {
@@ -185,7 +186,9 @@
       const timeseriesData = await AdminShared.api('/api/admin/metrics/timeseries');
       const series = (timeseriesData && timeseriesData.series) || [];
       const body = document.getElementById('an-timeseriesBody');
-      if (!body) return;
+      if (!body) {
+        return;
+      }
       body.innerHTML = series.length
         ? series
             .map(
@@ -216,7 +219,9 @@
 
   function ensureLiveRefreshStatus() {
     let status = document.getElementById('analyticsLiveRefreshStatus');
-    if (status || !refreshButton || !refreshButton.parentElement) return status;
+    if (status || !refreshButton || !refreshButton.parentElement) {
+      return status;
+    }
     status = document.createElement('span');
     status.id = 'analyticsLiveRefreshStatus';
     status.setAttribute('role', 'status');
@@ -231,7 +236,9 @@
 
   function updateLiveRefreshStatus(state) {
     const status = ensureLiveRefreshStatus();
-    if (!status) return;
+    if (!status) {
+      return;
+    }
     const dot = status.querySelector('[data-live-dot]');
     const text = status.querySelector('[data-live-text]');
     const settings = {
@@ -246,11 +253,15 @@
       dot.style.background = settings[3];
       dot.style.boxShadow = `0 0 0 4px ${state === 'paused' ? 'rgba(148,163,184,.12)' : state === 'refreshing' ? 'rgba(2,132,199,.12)' : 'rgba(22,163,74,.12)'}`;
     }
-    if (text) text.textContent = settings[4];
+    if (text) {
+      text.textContent = settings[4];
+    }
   }
 
   function isSpecificPostHogDestination(value) {
-    if (!value) return false;
+    if (!value) {
+      return false;
+    }
     try {
       return /^\/project\/[^/]+(?:\/|$)/.test(new URL(value, window.location.href).pathname);
     } catch (_error) {
@@ -260,7 +271,9 @@
 
   function ensurePostHogGuidance() {
     const link = document.getElementById('behaviourPosthogLink');
-    if (!link || !link.parentElement) return;
+    if (!link || !link.parentElement) {
+      return;
+    }
     let guidance = document.getElementById('behaviourPosthogGuidance');
     if (!link.hidden && !isSpecificPostHogDestination(link.getAttribute('href') || '')) {
       link.hidden = true;
@@ -280,7 +293,9 @@
   }
 
   async function runRefresh() {
-    if (refreshInFlight) return;
+    if (refreshInFlight) {
+      return;
+    }
     refreshInFlight = true;
     updateLiveRefreshStatus('refreshing');
     if (refreshButton) {
@@ -315,7 +330,9 @@
     }
     updateLiveRefreshStatus('live');
     autoRefreshTimer = window.setTimeout(() => {
-      if (refreshButton && !refreshButton.disabled) refreshButton.click();
+      if (refreshButton && !refreshButton.disabled) {
+        refreshButton.click();
+      }
       scheduleAutoRefresh();
     }, AUTO_REFRESH_INTERVAL_MS);
   }
@@ -326,7 +343,9 @@
       updateLiveRefreshStatus('paused');
       return;
     }
-    if (refreshButton && !refreshButton.disabled) refreshButton.click();
+    if (refreshButton && !refreshButton.disabled) {
+      refreshButton.click();
+    }
     scheduleAutoRefresh();
   }
 

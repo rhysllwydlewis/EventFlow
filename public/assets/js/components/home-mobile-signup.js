@@ -5,9 +5,8 @@
  * retaining separate Log in and Create account actions inside the burger menu.
  * Supports the shared V1/V3 navbar and the V2 navbar.
  */
+'use strict';
 (function () {
-  'use strict';
-
   if (window.__efHomeMobileSignupInitialised) {
     return;
   }

@@ -1,6 +1,5 @@
+'use strict';
 (function () {
-  'use strict';
-
   let allReports = [];
 
   async function loadReports() {

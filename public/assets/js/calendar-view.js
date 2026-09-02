@@ -8,9 +8,8 @@
  * Clicking a personal entry offers a delete confirmation.
  */
 
+'use strict';
 (function () {
-  'use strict';
-
   // ── Toast ─────────────────────────────────────────────────────────────────
 
   /**

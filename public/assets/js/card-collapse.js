@@ -3,9 +3,8 @@
  * Injects a collapse button into eligible cards on viewports ≤ 1024 px.
  * Companion CSS: /assets/css/card-collapse.css
  */
+'use strict';
 (function () {
-  'use strict';
-
   const DEFAULT_CARD_SELECTORS = [
     '.card',
     '.ef-card',

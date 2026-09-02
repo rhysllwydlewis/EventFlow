@@ -1,6 +1,5 @@
+'use strict';
 (function () {
-  'use strict';
-
   const SUMMARY_ENDPOINT = '/api/v1/analytics/behaviour/admin/summary';
   const STATUS_ENDPOINT = '/api/v1/analytics/behaviour/admin/status';
   const STYLE_PATH = '/assets/css/admin-behaviour-analytics.css?v=2';
@@ -52,19 +51,27 @@
 
   function formatDuration(seconds) {
     const total = Math.max(0, Math.round(Number(seconds) || 0));
-    if (total < 60) return `${total}s`;
+    if (total < 60) {
+      return `${total}s`;
+    }
     const minutes = Math.floor(total / 60);
     const remainder = total % 60;
-    if (minutes < 60) return remainder ? `${minutes}m ${remainder}s` : `${minutes}m`;
+    if (minutes < 60) {
+      return remainder ? `${minutes}m ${remainder}s` : `${minutes}m`;
+    }
     const hours = Math.floor(minutes / 60);
     const minuteRemainder = minutes % 60;
     return minuteRemainder ? `${hours}h ${minuteRemainder}m` : `${hours}h`;
   }
 
   function formatDateTime(value) {
-    if (!value) return 'No events yet';
+    if (!value) {
+      return 'No events yet';
+    }
     const date = new Date(value);
-    if (Number.isNaN(date.getTime())) return 'Unknown';
+    if (Number.isNaN(date.getTime())) {
+      return 'Unknown';
+    }
     return new Intl.DateTimeFormat('en-GB', {
       dateStyle: 'medium',
       timeStyle: 'short',
@@ -73,7 +80,9 @@
 
   function formatShortDate(value) {
     const date = new Date(`${value}T12:00:00Z`);
-    if (Number.isNaN(date.getTime())) return value;
+    if (Number.isNaN(date.getTime())) {
+      return value;
+    }
     return new Intl.DateTimeFormat('en-GB', {
       day: 'numeric',
       month: 'short',
@@ -99,7 +108,9 @@
   }
 
   function ensureStyles() {
-    if (document.querySelector(`link[href^="${STYLE_PATH.split('?')[0]}"]`)) return;
+    if (document.querySelector(`link[href^="${STYLE_PATH.split('?')[0]}"]`)) {
+      return;
+    }
     const link = document.createElement('link');
     link.rel = 'stylesheet';
     link.href = STYLE_PATH;
@@ -268,10 +279,14 @@
   }
 
   function insertSection() {
-    if (document.getElementById('behaviourAnalyticsSection')) return;
+    if (document.getElementById('behaviourAnalyticsSection')) {
+      return;
+    }
     const main = document.getElementById('main-content');
     const header = main && main.querySelector('.dashboard-header');
-    if (!main) return;
+    if (!main) {
+      return;
+    }
     const section = buildSection();
     if (header && header.nextSibling) {
       main.insertBefore(section, header.nextSibling);
@@ -282,11 +297,15 @@
 
   function setText(id, value) {
     const element = document.getElementById(id);
-    if (element) element.textContent = value;
+    if (element) {
+      element.textContent = value;
+    }
   }
 
   function pageHealth(page) {
-    if (Number(page.views) < 5) return { label: 'Low data', tone: 'neutral' };
+    if (Number(page.views) < 5) {
+      return { label: 'Low data', tone: 'neutral' };
+    }
     if (Number(page.avgActiveSeconds) < 12 && Number(page.exitRate) >= 50) {
       return { label: 'Review', tone: 'danger' };
     }
@@ -301,7 +320,9 @@
 
   function renderPages(pages) {
     const pagesBody = document.getElementById('baPagesBody');
-    if (!pagesBody) return;
+    if (!pagesBody) {
+      return;
+    }
     const rows = Array.isArray(pages) ? pages : [];
     pagesBody.innerHTML = rows.length
       ? rows
@@ -325,7 +346,9 @@
 
   function renderTrend(rows) {
     const container = document.getElementById('baTrend');
-    if (!container) return;
+    if (!container) {
+      return;
+    }
     const data = (Array.isArray(rows) ? rows : []).slice(-14);
     if (data.length === 0) {
       container.innerHTML =
@@ -362,7 +385,9 @@
 
   function renderFunnel(rows) {
     const container = document.getElementById('baFunnel');
-    if (!container) return;
+    if (!container) {
+      return;
+    }
     const funnelRows = Array.isArray(rows) ? rows : [];
     const maximum = Math.max(...funnelRows.map(row => Number(row.sessions) || 0), 1);
     container.innerHTML = funnelRows.length
@@ -387,7 +412,9 @@
 
   function renderBreakdown(id, rows, emptyText, labelFormatter = value => value) {
     const container = document.getElementById(id);
-    if (!container) return;
+    if (!container) {
+      return;
+    }
     const data = Array.isArray(rows) ? rows.slice(0, 8) : [];
     if (data.length === 0) {
       container.innerHTML = `<div class="behaviour-empty">${escapeHtml(emptyText)}</div>`;
@@ -407,7 +434,9 @@
 
   function renderRecommendations(rows) {
     const container = document.getElementById('baRecommendations');
-    if (!container) return;
+    if (!container) {
+      return;
+    }
     const recommendations = Array.isArray(rows) ? rows : [];
     const severityLabels = {
       high: 'Priority',
@@ -537,7 +566,9 @@
       'baRecommendations',
     ].forEach(id => {
       const element = document.getElementById(id);
-      if (element) element.innerHTML = `<div class="behaviour-empty">${escapeHtml(message)}</div>`;
+      if (element) {
+        element.innerHTML = `<div class="behaviour-empty">${escapeHtml(message)}</div>`;
+      }
     });
   }
 

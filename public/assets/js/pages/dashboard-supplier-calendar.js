@@ -15,9 +15,8 @@
  *   - Can create/delete personal calendar entries (meeting/event/appointment)
  *   - CTA link shows "View Public Calendar"
  */
+'use strict';
 (function () {
-  'use strict';
-
   let currentSupplier = null; // Current supplier's profile document
   let isPublisher = false; // Whether this supplier can publish public events (set from server)
   let calendarInstance = null; // FullCalendar instance

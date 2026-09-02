@@ -3,9 +3,8 @@
  * Handles plan selection and Stripe checkout session creation.
  */
 
+'use strict';
 (function () {
-  'use strict';
-
   const BILLING_MONTH = 'month';
   const BILLING_YEAR = 'year';
   const isDevelopment =

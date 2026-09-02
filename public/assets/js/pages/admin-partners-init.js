@@ -2,9 +2,8 @@
  * Admin Partners Page — init
  * Loads and manages partner accounts from the admin panel.
  */
+'use strict';
 (function () {
-  'use strict';
-
   let allPartners = [];
   let currentDetailId = null;
 

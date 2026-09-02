@@ -1,6 +1,5 @@
+'use strict';
 (function () {
-  'use strict';
-
   let cachedPlans = [];
   let planPromise = null;
   let sitePromise = null;
@@ -44,11 +43,15 @@
     const headers = { ...(opts.headers || {}) };
     if (method !== 'GET' && method !== 'HEAD' && !headers['X-CSRF-Token']) {
       const token = csrf();
-      if (token) headers['X-CSRF-Token'] = token;
+      if (token) {
+        headers['X-CSRF-Token'] = token;
+      }
     }
     const res = await fetch(path, { credentials: 'same-origin', ...opts, headers });
     const json = await res.json().catch(() => ({}));
-    if (!res.ok) throw new Error(json.error || json.message || 'Request failed');
+    if (!res.ok) {
+      throw new Error(json.error || json.message || 'Request failed');
+    }
     return json;
   }
 
@@ -65,7 +68,9 @@
   }
 
   async function getPlan() {
-    if (cachedPlans.length) return cachedPlans.find(isWeddingPlan) || null;
+    if (cachedPlans.length) {
+      return cachedPlans.find(isWeddingPlan) || null;
+    }
     if (!planPromise) {
       planPromise = fetch('/api/me/plans', { credentials: 'include' })
         .then(res => (res.ok ? res.json() : { plans: [] }))
@@ -79,10 +84,14 @@
   }
 
   async function getSite(force = false) {
-    if (sitePromise && !force) return sitePromise;
+    if (sitePromise && !force) {
+      return sitePromise;
+    }
     sitePromise = (async () => {
       const plan = await getPlan();
-      if (!plan?.id) return { plan: null, site: null };
+      if (!plan?.id) {
+        return { plan: null, site: null };
+      }
       const data = await api(`/api/me/plans/${encodeURIComponent(plan.id)}/wedding-website`).catch(
         () => ({})
       );
@@ -92,7 +101,9 @@
   }
 
   function injectStyles() {
-    if (document.getElementById('ww-advanced-widget-styles')) return;
+    if (document.getElementById('ww-advanced-widget-styles')) {
+      return;
+    }
     const style = document.createElement('style');
     style.id = 'ww-advanced-widget-styles';
     style.textContent = `
@@ -109,7 +120,9 @@
   }
 
   function markUnsaved(root, form) {
-    if (root.querySelector('.ww-unsaved-note')) return;
+    if (root.querySelector('.ww-unsaved-note')) {
+      return;
+    }
     form.insertAdjacentHTML(
       'beforebegin',
       '<p class="ww-unsaved-note">Unsaved changes — remember to press Save.</p>'
@@ -119,7 +132,9 @@
   function enhanceUniqueLinkWording(root) {
     root.querySelectorAll('.ww-share-card label').forEach(label => {
       const text = Array.from(label.childNodes).find(node => node.nodeType === Node.TEXT_NODE);
-      if (text && /guest link/i.test(text.textContent)) text.textContent = 'Your unique guest link';
+      if (text && /guest link/i.test(text.textContent)) {
+        text.textContent = 'Your unique guest link';
+      }
     });
     root
       .querySelector('#ww-copy-link')
@@ -128,7 +143,9 @@
 
   function enhanceBuilder(root) {
     const form = root.querySelector('#ww-builder');
-    if (!form || form.dataset.wwAdvancedEnhanced === 'true') return;
+    if (!form || form.dataset.wwAdvancedEnhanced === 'true') {
+      return;
+    }
     form.dataset.wwAdvancedEnhanced = 'true';
     const first = form.querySelector('details');
     const details = document.createElement('details');
@@ -159,7 +176,9 @@
 
   async function hydrateBuilder(form) {
     const { site } = await getSite();
-    if (!site || !form.isConnected) return;
+    if (!site || !form.isConnected) {
+      return;
+    }
     [
       'arrivalTime',
       'ceremonyTime',
@@ -177,13 +196,19 @@
       'proposalStory',
     ].forEach(name => {
       const field = form.querySelector(`[name="${name}"]`);
-      if (field && site[name] !== undefined && site[name] !== null) field.value = site[name];
+      if (field && site[name] !== undefined && site[name] !== null) {
+        field.value = site[name];
+      }
     });
   }
 
   function loadQrLibrary() {
-    if (window.QRCode?.toCanvas) return Promise.resolve(window.QRCode);
-    if (qrPromise) return qrPromise;
+    if (window.QRCode?.toCanvas) {
+      return Promise.resolve(window.QRCode);
+    }
+    if (qrPromise) {
+      return qrPromise;
+    }
     qrPromise = new Promise((resolve, reject) => {
       const existing = document.getElementById('ww-qrcode-lib');
       if (existing) {
@@ -203,32 +228,45 @@
   }
 
   async function renderQr(target, url) {
-    if (!target || target.dataset.wwQrStarted === 'true') return;
+    if (!target || target.dataset.wwQrStarted === 'true') {
+      return;
+    }
     target.dataset.wwQrStarted = 'true';
     try {
       const qr = await loadQrLibrary();
-      if (!target.isConnected) return;
+      if (!target.isConnected) {
+        return;
+      }
       const canvas = document.createElement('canvas');
       await qr.toCanvas(canvas, url, { width: 132, margin: 1, errorCorrectionLevel: 'M' });
       target.replaceWith(canvas);
     } catch (_err) {
-      if (target.isConnected) target.textContent = 'QR unavailable';
+      if (target.isConnected) {
+        target.textContent = 'QR unavailable';
+      }
     }
   }
 
   function buildVisibilityText(site) {
-    if (site.visibility === 'password')
+    if (site.visibility === 'password') {
       return site.passwordSet ? 'Password protected' : 'Password needed before publishing';
-    if (site.visibility === 'public') return 'Public and shareable';
+    }
+    if (site.visibility === 'public') {
+      return 'Public and shareable';
+    }
     return 'Private link only';
   }
 
   async function enhanceShare(root) {
     const input = root.querySelector('.ww-share-card input[readonly]');
     const actions = root.querySelector('.ww-share-card .ww-actions');
-    if (!input || !actions || root.querySelector('#ww-share-admin')) return;
+    if (!input || !actions || root.querySelector('#ww-share-admin')) {
+      return;
+    }
     const { plan, site } = await getSite();
-    if (!plan?.id || !site || !root.isConnected || root.querySelector('#ww-share-admin')) return;
+    if (!plan?.id || !site || !root.isConnected || root.querySelector('#ww-share-admin')) {
+      return;
+    }
 
     enhanceUniqueLinkWording(root);
     const url = input.value;
@@ -268,7 +306,9 @@
           slug: normalizeSlug(slugInput.value),
           visibility: visibilitySelect.value,
         };
-        if (passwordInput.value) payload.password = passwordInput.value;
+        if (passwordInput.value) {
+          payload.password = passwordInput.value;
+        }
         await api(`/api/me/plans/${encodeURIComponent(plan.id)}/wedding-website`, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
@@ -325,10 +365,14 @@
     const panel = root.querySelector('.ww-app-panel');
     const grid = root.querySelector('.seat-grid');
     const unseated = root.querySelector('.ww-unseated');
-    if (!panel || !grid || !unseated || panel.dataset.wwAdvancedSeating === 'true') return;
+    if (!panel || !grid || !unseated || panel.dataset.wwAdvancedSeating === 'true') {
+      return;
+    }
     panel.dataset.wwAdvancedSeating = 'true';
     const { plan } = await getSite();
-    if (!plan?.id || !panel.isConnected) return;
+    if (!plan?.id || !panel.isConnected) {
+      return;
+    }
 
     const tables = Array.from(grid.querySelectorAll('.seat-card'))
       .map(card => {
@@ -348,7 +392,9 @@
     panel.querySelector('.ww-actions')?.after(toolbox);
 
     async function assign(tableId, guestId) {
-      if (!tableId || !guestId) return;
+      if (!tableId || !guestId) {
+        return;
+      }
       await assignGuest(plan.id, tableId, guestId);
       toast('Guest seating updated');
       await refreshSeatingTab(root);
@@ -356,7 +402,9 @@
 
     unseated.querySelectorAll('.seat-row').forEach(row => {
       const guestId = row.querySelector('.assign-select')?.dataset.guest;
-      if (!guestId || row.dataset.wwAdvancedDrag === 'true') return;
+      if (!guestId || row.dataset.wwAdvancedDrag === 'true') {
+        return;
+      }
       row.dataset.wwAdvancedDrag = 'true';
       row.draggable = true;
       row.classList.add('ww-draggable-guest');
@@ -388,7 +436,9 @@
         });
       }
       table.card.querySelectorAll('.unassign').forEach(button => {
-        if (button.dataset.wwAdvancedMove === 'true') return;
+        if (button.dataset.wwAdvancedMove === 'true') {
+          return;
+        }
         button.dataset.wwAdvancedMove = 'true';
         const move = document.createElement('select');
         move.className = 'ww-move-select';
@@ -397,7 +447,9 @@
           .map(option => `<option value="${esc(option.id)}">${esc(option.name)}</option>`)
           .join('')}`;
         move.addEventListener('change', async () => {
-          if (move.value) await assign(move.value, button.dataset.id);
+          if (move.value) {
+            await assign(move.value, button.dataset.id);
+          }
         });
         button.after(move);
       });
@@ -411,12 +463,17 @@
       const slots = tables.flatMap(table =>
         Array(Math.max(0, table.cap - table.used)).fill(table.id)
       );
-      if (!guestIds.length) return toast('No unseated guests to auto-seat');
-      if (!slots.length) return toast('Add more table capacity first', 'warn');
+      if (!guestIds.length) {
+        return toast('No unseated guests to auto-seat');
+      }
+      if (!slots.length) {
+        return toast('Add more table capacity first', 'warn');
+      }
       button.disabled = true;
       try {
-        for (let i = 0; i < guestIds.slice(0, slots.length).length; i += 1)
+        for (let i = 0; i < guestIds.slice(0, slots.length).length; i += 1) {
           await assignGuest(plan.id, slots[i], guestIds[i]);
+        }
         toast('Auto-seating complete');
         await refreshSeatingTab(root);
       } catch (err) {
@@ -427,14 +484,18 @@
     });
 
     toolbox.querySelector('#ww-clear-seats')?.addEventListener('click', async event => {
-      if (!window.confirm('Clear all current seating assignments?')) return;
+      if (!window.confirm('Clear all current seating assignments?')) {
+        return;
+      }
       const button = event.currentTarget;
       const guestIds = Array.from(grid.querySelectorAll('.unassign'))
         .map(btn => btn.dataset.id)
         .filter(Boolean);
       button.disabled = true;
       try {
-        for (const guestId of guestIds) await unassignGuest(plan.id, guestId);
+        for (const guestId of guestIds) {
+          await unassignGuest(plan.id, guestId);
+        }
         toast('Seating cleared');
         await refreshSeatingTab(root);
       } catch (err) {
@@ -467,7 +528,9 @@
   }
 
   function scheduleEnhance() {
-    if (enhanceQueued) return;
+    if (enhanceQueued) {
+      return;
+    }
     enhanceQueued = true;
     window.requestAnimationFrame(() => {
       enhanceQueued = false;
@@ -484,7 +547,9 @@
             (node.matches('.ww-app-dialog') || node.querySelector?.('.ww-app-dialog'))
         )
       );
-      if (dialogAdded) scheduleEnhance();
+      if (dialogAdded) {
+        scheduleEnhance();
+      }
     });
     obs.observe(document.body, { childList: true, subtree: true });
   }

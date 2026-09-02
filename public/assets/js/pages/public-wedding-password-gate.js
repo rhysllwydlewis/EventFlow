@@ -1,6 +1,5 @@
+'use strict';
 (function () {
-  'use strict';
-
   const originalFetch = window.fetch.bind(window);
   const weddingGetPattern = /^\/api\/public\/wedding-websites\/([^/]+)$/;
 

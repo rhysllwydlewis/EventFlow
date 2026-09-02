@@ -3,9 +3,8 @@
  * Adds: KPI cards with trend, availability widget, performance tips,
  * review request form, animated counters, and enhanced empty states.
  */
+'use strict';
 (function () {
-  'use strict';
-
   /* ── Helpers ── */
   function esc(str) {
     const d = document.createElement('div');

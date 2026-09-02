@@ -4,9 +4,8 @@
  * Uses the /api/admin/users/summary and /api/admin/users/list endpoints
  * from services/adminUserSummary.service.js so counts match /admin dashboard.
  */
+'use strict';
 (function () {
-  'use strict';
-
   const $ = id => document.getElementById(id);
   const selectedUserIds = new Set();
 

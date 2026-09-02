@@ -12,9 +12,8 @@
  * - Admin moderation
  */
 
+'use strict';
 (function () {
-  'use strict';
-
   const ReviewsManager = {
     currentSupplierId: null,
     currentPage: 1,

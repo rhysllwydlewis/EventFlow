@@ -1,6 +1,6 @@
 /** Canonical supplier-category registry shared by Node and the browser. */
+'use strict';
 (function (root, factory) {
-  'use strict';
   const api = factory();
   if (typeof module === 'object' && module.exports) {
     module.exports = api;
@@ -9,7 +9,6 @@
     root.EventFlowCategoryLink = api;
   }
 })(typeof window !== 'undefined' ? window : globalThis, () => {
-  'use strict';
   const CATEGORY_DEFINITIONS = Object.freeze(
     [
       ['Venues', 'venues'],

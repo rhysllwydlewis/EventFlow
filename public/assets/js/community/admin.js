@@ -4,9 +4,8 @@
  * Dashboard, moderation queue, content review, categories and settings.
  */
 
+'use strict';
 (function () {
-  'use strict';
-
   const EFC = window.EFCommunity;
   const root = document.getElementById('efc-admin');
   if (!EFC || !root) {

@@ -2,9 +2,8 @@
  * Admin Debug mobile mop-up.
  * Enhances the existing rendered system-check UI without replacing its data flow.
  */
+'use strict';
 (function () {
-  'use strict';
-
   const AUTH_REDIRECT_PATTERN = /(?:\/login|\/sign-?in|\/auth(?:\/|\?|$)|login\?|signin\?)/i;
   const TAB_STORAGE_KEY = 'eventflow-admin-debug-tab';
   const EMPTY_GROUP_MESSAGES = Object.freeze({

@@ -11,9 +11,8 @@
  * publish a page, request indexing or mark it reviewed by accident.
  */
 
+'use strict';
 (function () {
-  'use strict';
-
   const listEl = document.getElementById('efl-admin-list');
   const summaryEl = document.getElementById('efl-admin-summary');
   const filterEl = document.getElementById('efl-admin-filter');

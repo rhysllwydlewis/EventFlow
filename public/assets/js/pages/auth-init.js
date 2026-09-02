@@ -1,3 +1,4 @@
+'use strict';
 function escapeHtml(s) {
   if (!s) {
     return '';
@@ -23,8 +24,6 @@ function escapeHtml(s) {
  * by app.js (which already has all CSRF / ALTCHA / API logic).
  */
 (function () {
-  'use strict';
-
   // ── Tab elements ──────────────────────────────────────────────
   const tabSign = document.getElementById('tab-signin');
   const tabCreate = document.getElementById('tab-create');

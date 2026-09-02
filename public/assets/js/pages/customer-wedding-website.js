@@ -1,6 +1,5 @@
+'use strict';
 (function () {
-  'use strict';
-
   const ROOT_ID = 'wedding-website-dashboard-root';
   const STATUS_ID = 'wedding-website-status-pill';
   const PAGE_SIZE = 25;

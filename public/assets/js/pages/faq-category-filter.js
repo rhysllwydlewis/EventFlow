@@ -5,9 +5,8 @@
  * — clicking a category clears the search; typing in search resets to "All topics".
  */
 
+'use strict';
 (function () {
-  'use strict';
-
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', initCategoryFilter);
   } else {

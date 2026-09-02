@@ -1,6 +1,5 @@
+'use strict';
 (function () {
-  'use strict';
-
   const COLLECT_ENDPOINT = '/api/v1/analytics/behaviour/collect';
   const CONFIG_ENDPOINT = '/api/v1/analytics/behaviour/config';
   const SESSION_KEY = 'ef_analytics_session_id';

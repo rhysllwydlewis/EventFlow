@@ -3,9 +3,8 @@
  * Completely rebuilt from scratch with modern, accessible interactions
  */
 
+'use strict';
 (function () {
-  'use strict';
-
   // Load the visible website brand separately from favicon/PWA/search assets.
   // This keeps the supplied mark and supplied wordmark as independent assets.
   function ensureBrandStyles() {

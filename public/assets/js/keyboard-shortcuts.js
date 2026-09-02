@@ -3,9 +3,8 @@
  * Global keyboard shortcuts for improved navigation and UX
  */
 
+'use strict';
 (function () {
-  'use strict';
-
   const isDevelopment =
     window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
 

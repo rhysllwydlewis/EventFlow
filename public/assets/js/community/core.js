@@ -6,9 +6,8 @@
  * interactive view once it has data.
  */
 
+'use strict';
 (function () {
-  'use strict';
-
   const API = '/api/v1/community';
 
   /** The only query parameters the community reads from the URL. */

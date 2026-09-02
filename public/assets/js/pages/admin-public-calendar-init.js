@@ -1,6 +1,5 @@
+'use strict';
 (function () {
-  'use strict';
-
   const API_BASE = '/api/v1/public-calendar';
   let events = [];
   let requests = [];

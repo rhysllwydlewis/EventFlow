@@ -1,6 +1,5 @@
+'use strict';
 (function () {
-  'use strict';
-
   const WEDDING_ROOT_ID = 'wedding-website-dashboard-root';
   const SCRIPT_LOAD_TIMEOUT_MS = 6000;
   const WIDGET_TYPOGRAPHY_STYLES_ID = 'ww-typography-polish-styles';

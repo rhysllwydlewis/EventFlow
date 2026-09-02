@@ -1,7 +1,8 @@
+'use strict';
 (function () {
-  'use strict';
-
-  if (window.__weddingPublishMopUpLoaded) return;
+  if (window.__weddingPublishMopUpLoaded) {
+    return;
+  }
   window.__weddingPublishMopUpLoaded = true;
 
   const rootSelector = '#wedding-website-dashboard-root';
@@ -59,7 +60,9 @@
   function getCsrfToken() {
     const meta = document.querySelector('meta[name="csrf-token"]');
     const tokenFromMeta = meta?.getAttribute('content');
-    if (tokenFromMeta) return tokenFromMeta;
+    if (tokenFromMeta) {
+      return tokenFromMeta;
+    }
     const cookieMatch = document.cookie.match(/(?:^|; )csrfToken=([^;]+)/);
     return cookieMatch ? decodeURIComponent(cookieMatch[1]) : '';
   }
@@ -70,7 +73,9 @@
     if (method !== 'GET' && method !== 'HEAD') {
       opts.headers = { ...(opts.headers || {}) };
       const csrfToken = getCsrfToken();
-      if (csrfToken && !opts.headers['X-CSRF-Token']) opts.headers['X-CSRF-Token'] = csrfToken;
+      if (csrfToken && !opts.headers['X-CSRF-Token']) {
+        opts.headers['X-CSRF-Token'] = csrfToken;
+      }
     }
     const res = await fetch(path, opts);
     const json = await res.json().catch(() => ({}));
@@ -104,16 +109,22 @@
   function focusTarget(key) {
     const root = document.querySelector(rootSelector);
     const config = readiness[key] || readiness[String(key || '').trim()];
-    if (!root || !config) return;
+    if (!root || !config) {
+      return;
+    }
     let target = root.querySelector(config.selector);
     if (!target && key === 'venue') {
       target =
         root.querySelector('[name="ceremonyVenueName"]') ||
         root.querySelector('[name="receptionVenueName"]');
     }
-    if (!target) return;
+    if (!target) {
+      return;
+    }
     const details = target.closest('details');
-    if (details) details.open = true;
+    if (details) {
+      details.open = true;
+    }
     setTimeout(() => {
       target.scrollIntoView({ behavior: 'smooth', block: 'center' });
       target.focus?.({ preventScroll: true });
@@ -132,12 +143,16 @@
 
   function normaliseDate(value) {
     const raw = String(value || '').trim();
-    if (!raw) return '';
+    if (!raw) {
+      return '';
+    }
     return raw.slice(0, 10);
   }
 
   function derivePlanEssentials(plan) {
-    if (!plan) return {};
+    if (!plan) {
+      return {};
+    }
     const venueName = firstValue(
       plan.venueName,
       plan.venue,
@@ -176,9 +191,15 @@
   function getMissingKeys(root) {
     const data = collectEssentials(root);
     const missing = [];
-    if (!data.coupleNames) missing.push('coupleNames');
-    if (!data.eventDate) missing.push('eventDate');
-    if (!data.ceremonyVenueName && !data.receptionVenueName) missing.push('venue');
+    if (!data.coupleNames) {
+      missing.push('coupleNames');
+    }
+    if (!data.eventDate) {
+      missing.push('eventDate');
+    }
+    if (!data.ceremonyVenueName && !data.receptionVenueName) {
+      missing.push('venue');
+    }
     return missing;
   }
 
@@ -202,7 +223,9 @@
 
   function renderReadinessCard(root) {
     const actions = root.querySelector('.ww-builder-actions');
-    if (!actions) return;
+    if (!actions) {
+      return;
+    }
     let card = root.querySelector('.ww-readiness-card');
     if (!card) {
       card = document.createElement('section');
@@ -225,9 +248,13 @@
   }
 
   function enhanceStatusMessage(statusEl) {
-    if (!statusEl || statusEl.dataset.enhancedChecklist === 'true') return;
+    if (!statusEl || statusEl.dataset.enhancedChecklist === 'true') {
+      return;
+    }
     const items = Array.from(statusEl.querySelectorAll('li'));
-    if (!items.length) return;
+    if (!items.length) {
+      return;
+    }
     renderMissingStatus(
       document.querySelector(rootSelector),
       items.map(li => String(li.textContent || '').trim()).filter(Boolean)
@@ -235,8 +262,12 @@
   }
 
   async function fetchWebsite(planId) {
-    if (!planId) return null;
-    if (lastPlanId === planId && lastWebsitePromise) return lastWebsitePromise;
+    if (!planId) {
+      return null;
+    }
+    if (lastPlanId === planId && lastWebsitePromise) {
+      return lastWebsitePromise;
+    }
     lastPlanId = planId;
     lastWebsitePromise = fetch(`/api/me/plans/${encodeURIComponent(planId)}/wedding-website`, {
       credentials: 'same-origin',
@@ -249,8 +280,12 @@
   }
 
   async function fetchPlan(planId) {
-    if (!planId) return null;
-    if (lastPlanId === planId && lastPlanPromise) return lastPlanPromise;
+    if (!planId) {
+      return null;
+    }
+    if (lastPlanId === planId && lastPlanPromise) {
+      return lastPlanPromise;
+    }
     lastPlanPromise = fetch('/api/me/plans', {
       credentials: 'same-origin',
       headers: { 'Cache-Control': 'no-cache' },
@@ -301,7 +336,9 @@
         .toLowerCase()
         .includes('essentials')
     );
-    if (!essentials) return;
+    if (!essentials) {
+      return;
+    }
     const fallback = derivePlanEssentials(plan);
     const panel = document.createElement('div');
     panel.className = 'ww-publish-essentials';
@@ -320,7 +357,9 @@
       const currentMissing = getMissingKeys(root);
       if (!currentMissing.length) {
         const statusEl = root.querySelector('.ww-status-msg');
-        if (statusEl?.textContent?.includes('Before publishing')) statusEl.remove();
+        if (statusEl?.textContent?.includes('Before publishing')) {
+          statusEl.remove();
+        }
       }
     });
     panel.addEventListener('change', () => renderReadinessCard(root));
@@ -328,7 +367,9 @@
 
   function enhancePreviewLink(root) {
     const preview = root.querySelector('.ww-builder-actions a[href^="/wedding/"]');
-    if (!preview || preview.dataset.publishMopUp === 'true') return;
+    if (!preview || preview.dataset.publishMopUp === 'true') {
+      return;
+    }
     preview.dataset.publishMopUp = 'true';
     preview.addEventListener('click', event => {
       const shareCard = root.querySelector('.ww-share-card');
@@ -344,7 +385,9 @@
 
   async function syncEssentialsBeforePublish(root) {
     const planId = findPlanId(root);
-    if (!planId) return;
+    if (!planId) {
+      return;
+    }
     const payload = collectEssentials(root);
     await api(`/api/me/plans/${encodeURIComponent(planId)}/wedding-website`, {
       method: 'PATCH',
@@ -356,7 +399,9 @@
 
   async function enhance(root) {
     const form = root.querySelector('#ww-builder');
-    if (!form || root.dataset.publishMopUpReady === 'true') return;
+    if (!form || root.dataset.publishMopUpReady === 'true') {
+      return;
+    }
     root.dataset.publishMopUpReady = 'true';
     const planId = findPlanId(root);
     const [website, plan] = await Promise.all([fetchWebsite(planId), fetchPlan(planId)]);
@@ -379,15 +424,20 @@
     'click',
     async event => {
       const publishButton = event.target.closest('#ww-pub');
-      if (!publishButton || publishButton.dataset.mopUpBypass === 'true') return;
+      if (!publishButton || publishButton.dataset.mopUpBypass === 'true') {
+        return;
+      }
       if (
         String(publishButton.textContent || '')
           .toLowerCase()
           .includes('unpublish')
-      )
+      ) {
         return;
+      }
       const root = document.querySelector(rootSelector);
-      if (!root?.querySelector('#ww-builder')) return;
+      if (!root?.querySelector('#ww-builder')) {
+        return;
+      }
       event.preventDefault();
       event.stopImmediatePropagation();
       const missing = getMissingKeys(root);
@@ -402,7 +452,9 @@
       try {
         await syncEssentialsBeforePublish(root);
         const statusEl = root.querySelector('.ww-status-msg');
-        if (statusEl?.textContent?.includes('Before publishing')) statusEl.remove();
+        if (statusEl?.textContent?.includes('Before publishing')) {
+          statusEl.remove();
+        }
         publishButton.dataset.mopUpBypass = 'true';
         publishButton.disabled = false;
         publishButton.textContent = 'Publish';

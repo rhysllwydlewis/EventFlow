@@ -3,9 +3,8 @@
  * Provides improved UX for auth flows with rate limiting, better errors, and api-client integration
  */
 
+'use strict';
 (function () {
-  'use strict';
-
   // Rate limit state
   let rateLimitUntil = null;
   let rateLimitTimer = null;

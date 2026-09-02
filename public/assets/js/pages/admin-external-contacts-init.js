@@ -2,9 +2,8 @@
  * EventFlow Admin — External Contacts
  * Drives /admin-external-contacts — enquiries from VEXI, Chlo etc.
  */
+'use strict';
 (function () {
-  'use strict';
-
   function esc(str) {
     const d = document.createElement('div');
     d.textContent = String(str ?? '');

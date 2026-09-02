@@ -9,9 +9,8 @@
  * table — is derived from one plan record, so the figures cannot drift apart
  * when the registry changes.
  */
+'use strict';
 (function () {
-  'use strict';
-
   const BILLING_MONTH = 'month';
   const BILLING_YEAR = 'year';
 

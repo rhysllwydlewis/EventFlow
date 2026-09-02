@@ -1,6 +1,5 @@
+'use strict';
 (function () {
-  'use strict';
-
   let allTickets = [];
 
   const STATUS_OPTIONS = [
@@ -503,8 +502,6 @@
 // External Contact Enquiries Module
 // =============================================
 (function () {
-  'use strict';
-
   let allEnquiries = [];
 
   const CONTACT_STATUS_LABELS = {

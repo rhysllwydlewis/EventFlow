@@ -15,9 +15,8 @@
  *   - Shows triggeredBy in history table
  *   - Account Tools tab with all emergency debug endpoints
  */
+'use strict';
 (function () {
-  'use strict';
-
   const API_URL = '/api/admin/system-checks';
   const RUN_URL = '/api/admin/system-checks/run';
   const CATALOG_URL = '/api/admin/system-checks/catalog';

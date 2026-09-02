@@ -12,10 +12,11 @@
  * All saves go to PATCH /api/me/suppliers/:id and rerender
  * only the affected section — no page reload.
  */
+'use strict';
 (function () {
-  'use strict';
-
-  if (window.__spOwnerEditLoaded) return;
+  if (window.__spOwnerEditLoaded) {
+    return;
+  }
   window.__spOwnerEditLoaded = true;
 
   // ── Hero preset definitions ──────────────────────────────────────────────
@@ -80,8 +81,12 @@
 
   function showToast(msg, type = 'success') {
     const existing = document.querySelector('.sp-save-toast');
-    if (existing) existing.remove();
-    if (_toastTimer) clearTimeout(_toastTimer);
+    if (existing) {
+      existing.remove();
+    }
+    if (_toastTimer) {
+      clearTimeout(_toastTimer);
+    }
 
     const toast = document.createElement('div');
     toast.className = `sp-save-toast sp-save-toast--${type}`;
@@ -136,7 +141,9 @@
     overlay.querySelector('.sp-modal__close').addEventListener('click', closeModal);
     overlay.querySelector('.js-modal-cancel').addEventListener('click', closeModal);
     overlay.addEventListener('click', e => {
-      if (e.target === overlay) closeModal();
+      if (e.target === overlay) {
+        closeModal();
+      }
     });
     document.addEventListener(
       'keydown',
@@ -154,7 +161,9 @@
     // Focus first input
     setTimeout(() => {
       const first = overlay.querySelector('input, textarea, select');
-      if (first) first.focus();
+      if (first) {
+        first.focus();
+      }
     }, 60);
 
     return { overlay, closeModal };
@@ -162,7 +171,9 @@
 
   function setSaving(overlay, saving) {
     const btn = overlay.querySelector('.js-modal-save');
-    if (!btn) return;
+    if (!btn) {
+      return;
+    }
     btn.disabled = saving;
     btn.classList.toggle('sp-btn--loading', saving);
   }
@@ -188,14 +199,18 @@
 
   // Apply patch result back to the shared supplier data object
   function mergeData(patch) {
-    if (!window.__supplierData) return;
+    if (!window.__supplierData) {
+      return;
+    }
     Object.assign(window.__supplierData, patch);
   }
 
   // ── Owner bar ─────────────────────────────────────────────────────────────
 
   function injectOwnerBar() {
-    if (document.querySelector('.sp-owner-bar')) return;
+    if (document.querySelector('.sp-owner-bar')) {
+      return;
+    }
     const bar = document.createElement('div');
     bar.className = 'sp-owner-bar';
     bar.setAttribute('role', 'banner');
@@ -217,7 +232,9 @@
 
   function addHeroEditButton(supplierId) {
     const heroMedia = document.querySelector('.hero-media');
-    if (!heroMedia || heroMedia.querySelector('.sp-hero-edit-btn')) return;
+    if (!heroMedia || heroMedia.querySelector('.sp-hero-edit-btn')) {
+      return;
+    }
 
     const btn = document.createElement('button');
     btn.className = 'sp-hero-edit-btn';
@@ -304,7 +321,9 @@
         selectedPreset = sw.dataset.preset;
         // Deselect banner URL when a preset is chosen
         const bannerInput = overlay.querySelector('#spBannerUrl');
-        if (bannerInput) bannerInput.value = '';
+        if (bannerInput) {
+          bannerInput.value = '';
+        }
         const preview = overlay.querySelector('#spBannerPreview');
         if (preview) {
           preview.classList.remove('has-image');
@@ -371,7 +390,9 @@
       }
     }
 
-    if (bannerRemove) bannerRemove.addEventListener('click', removeBanner);
+    if (bannerRemove) {
+      bannerRemove.addEventListener('click', removeBanner);
+    }
 
     // Tagline char count
     const taglineInput = overlay.querySelector('#spTagline');
@@ -400,7 +421,9 @@
           patch.heroPreset = selectedPreset !== null ? selectedPreset || 'ef-teal' : '';
         }
 
-        if (/^#[0-9A-Fa-f]{6}$/.test(newColor)) patch.themeColor = newColor;
+        if (/^#[0-9A-Fa-f]{6}$/.test(newColor)) {
+          patch.themeColor = newColor;
+        }
         patch.tagline = newTagline;
 
         await patchSupplier(supplierId, patch);
@@ -420,14 +443,18 @@
 
   function addAboutEditButton(supplierId) {
     const section = document.getElementById('sp-section-about');
-    if (!section) return;
+    if (!section) {
+      return;
+    }
 
     // Make editable
     section.classList.add('sp-editable');
 
     // Remove existing btn if present
     const existing = section.querySelector('.sp-edit-btn');
-    if (existing) existing.remove();
+    if (existing) {
+      existing.remove();
+    }
 
     const btn = document.createElement('button');
     btn.className = 'sp-edit-btn';
@@ -534,12 +561,16 @@
 
   function addGalleryEditButton() {
     const section = document.getElementById('sp-section-gallery');
-    if (!section) return;
+    if (!section) {
+      return;
+    }
 
     section.classList.add('sp-editable');
 
     const existing = section.querySelector('.sp-edit-btn');
-    if (existing) existing.remove();
+    if (existing) {
+      existing.remove();
+    }
 
     const btn = document.createElement('button');
     btn.className = 'sp-edit-btn';
@@ -570,12 +601,16 @@
 
   function addPackagesEditButton() {
     const section = document.getElementById('sp-section-packages');
-    if (!section) return;
+    if (!section) {
+      return;
+    }
 
     section.classList.add('sp-editable');
 
     const existing = section.querySelector('.sp-edit-btn');
-    if (existing) existing.remove();
+    if (existing) {
+      existing.remove();
+    }
 
     const btn = document.createElement('button');
     btn.className = 'sp-edit-btn';
@@ -591,10 +626,14 @@
 
   function addPackagesEmptyPrompt() {
     const section = document.getElementById('sp-section-packages');
-    if (!section) return;
+    if (!section) {
+      return;
+    }
     const supplier = window.__supplierData || {};
     // Only show if section is hidden (no packages)
-    if (section.style.display !== 'none' && section.innerHTML.trim() !== '') return;
+    if (section.style.display !== 'none' && section.innerHTML.trim() !== '') {
+      return;
+    }
 
     const wrapper = document.createElement('div');
     wrapper.id = 'sp-packages-empty-owner';
@@ -616,7 +655,9 @@
 
   function addNameEditButton(supplierId) {
     const heroTitle = document.getElementById('hero-title');
-    if (!heroTitle || heroTitle.querySelector('.sp-name-edit-btn')) return;
+    if (!heroTitle || heroTitle.querySelector('.sp-name-edit-btn')) {
+      return;
+    }
 
     const btn = document.createElement('button');
     btn.className = 'sp-hero-edit-btn sp-name-edit-btn';
@@ -685,12 +726,16 @@
 
   function addSidebarEditButton(supplierId) {
     const details = document.getElementById('sp-sidebar-details');
-    if (!details) return;
+    if (!details) {
+      return;
+    }
 
     details.classList.add('sp-editable');
 
     const existing = details.querySelector('.sp-edit-btn');
-    if (existing) existing.remove();
+    if (existing) {
+      existing.remove();
+    }
 
     const btn = document.createElement('button');
     btn.className = 'sp-edit-btn';
@@ -720,7 +765,9 @@
     // Insert inside the first .sp-card, or append directly
     const card = container.querySelector('.sp-card') || container;
     const existingPrompt = card.querySelector('.sp-owner-empty-prompt');
-    if (existingPrompt) existingPrompt.remove();
+    if (existingPrompt) {
+      existingPrompt.remove();
+    }
 
     if (card !== container) {
       card.appendChild(el);
@@ -745,10 +792,14 @@
     }
 
     // Only activate for the profile owner
-    if (!currentUser || !supplier || currentUser.id !== supplier.ownerUserId) return;
+    if (!currentUser || !supplier || currentUser.id !== supplier.ownerUserId) {
+      return;
+    }
 
     const supplierId = supplier.id || window.__supplierId;
-    if (!supplierId) return;
+    if (!supplierId) {
+      return;
+    }
 
     injectOwnerBar();
     addHeroEditButton(supplierId);
@@ -763,7 +814,9 @@
   // Listen for profile data ready event from supplier-profile.js
   function onDataReady(e) {
     const supplier = (e && e.detail && e.detail.supplier) || window.__supplierData;
-    if (!supplier) return;
+    if (!supplier) {
+      return;
+    }
     boot(supplier);
   }
 

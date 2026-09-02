@@ -27,9 +27,8 @@
  *   ef_tour_completed, ef_signup_popup_dismissed
  */
 
+'use strict';
 (function () {
-  'use strict';
-
   // ─── Constants ────────────────────────────────────────────────────────────
 
   const CONSENT_COOKIE_NAME = 'eventflow_cookie_consent';

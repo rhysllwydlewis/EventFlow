@@ -8,9 +8,8 @@
  * separate save action.
  */
 
+'use strict';
 (function () {
-  'use strict';
-
   let enabledEl,
     cadenceEl,
     dayOfWeekWrapEl,

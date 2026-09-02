@@ -4,9 +4,8 @@
  * Only calls /api/auth/me when a token/session is present
  */
 
+'use strict';
 (function () {
-  'use strict';
-
   // Auth state constants
   const AUTH_STATES = {
     LOADING: 'loading',
@@ -32,8 +31,12 @@
     }
 
     async init() {
-      if (this.initPromise) return this.initPromise;
-      if (this.initialized) return { state: this.state, user: this.user };
+      if (this.initPromise) {
+        return this.initPromise;
+      }
+      if (this.initialized) {
+        return { state: this.state, user: this.user };
+      }
       this.initPromise = this._initializeAuthState();
       try {
         const result = await this.initPromise;
@@ -61,12 +64,15 @@
           this._setState(AUTH_STATES.UNAUTHENTICATED, null);
           return { state: this.state, user: null };
         }
-        if (window.location.hostname === 'localhost')
+        if (window.location.hostname === 'localhost') {
           console.warn('Auth check failed with status:', response.status);
+        }
         this._setState(AUTH_STATES.UNAUTHENTICATED, null);
         return { state: this.state, user: null };
       } catch (error) {
-        if (window.location.hostname === 'localhost') console.error('Auth check failed:', error);
+        if (window.location.hostname === 'localhost') {
+          console.error('Auth check failed:', error);
+        }
         this._setState(AUTH_STATES.UNAUTHENTICATED, null);
         return { state: this.state, user: null };
       }
@@ -98,7 +104,9 @@
       const previousState = this.state;
       this.state = state;
       this.user = user;
-      if (previousState !== state) this._notifyListeners();
+      if (previousState !== state) {
+        this._notifyListeners();
+      }
     }
 
     _notifyListeners() {
@@ -106,8 +114,9 @@
         try {
           listener({ state: this.state, user: this.user });
         } catch (e) {
-          if (typeof window !== 'undefined' && window.location.hostname === 'localhost')
+          if (typeof window !== 'undefined' && window.location.hostname === 'localhost') {
             console.error('Error in auth state listener:', e);
+          }
         }
       });
     }
@@ -141,8 +150,9 @@
       try {
         wrappedCallback({ state: this.state, user: this.user });
       } catch (e) {
-        if (typeof window !== 'undefined' && window.location.hostname === 'localhost')
+        if (typeof window !== 'undefined' && window.location.hostname === 'localhost') {
           console.error('Error in auth state onchange callback:', e);
+        }
       }
       this.listeners.push(wrappedCallback);
       return () => {
@@ -162,8 +172,11 @@
     }
 
     setUser(user) {
-      if (user) this._setState(AUTH_STATES.AUTHENTICATED, user);
-      else this._setState(AUTH_STATES.UNAUTHENTICATED, null);
+      if (user) {
+        this._setState(AUTH_STATES.AUTHENTICATED, user);
+      } else {
+        this._setState(AUTH_STATES.UNAUTHENTICATED, null);
+      }
     }
   }
 
@@ -172,11 +185,15 @@
     window.AuthStateManager = authManager;
     window.AUTH_STATES = AUTH_STATES;
     window.__authState = authManager;
-    if (document.readyState === 'loading')
+    if (document.readyState === 'loading') {
       document.addEventListener('DOMContentLoaded', () => authManager.init());
-    else authManager.init();
+    } else {
+      authManager.init();
+    }
     window.addEventListener('auth-state-changed', event => {
-      if (event.detail && event.detail.user !== undefined) authManager.setUser(event.detail.user);
+      if (event.detail && event.detail.user !== undefined) {
+        authManager.setUser(event.detail.user);
+      }
     });
     const originalNotify = authManager._notifyListeners.bind(authManager);
     authManager._notifyListeners = function () {
@@ -189,10 +206,10 @@
 })();
 
 (function loadWeddingDashboardEnhancementAssets() {
-  'use strict';
-
   const customerDashboardPaths = ['/dashboard/customer', '/dashboard-customer.html'];
-  if (!customerDashboardPaths.includes(window.location.pathname)) return;
+  if (!customerDashboardPaths.includes(window.location.pathname)) {
+    return;
+  }
 
   const cssAssets = [
     [

@@ -1,6 +1,5 @@
+'use strict';
 (function () {
-  'use strict';
-
   // Safe HTML escaping
   function escapeHtml(str) {
     if (str === null || str === undefined) {
@@ -159,7 +158,7 @@
 
     updateSeo(event, image);
     panel.innerHTML = `
-      ${image ? `<img class="event-image" src="${esc(image)}" alt="${esc(event.title + ' event image')}" loading="eager" decoding="async">` : '<div class="event-image">📅</div>'}
+      ${image ? `<img class="event-image" src="${esc(image)}" alt="${esc(`${event.title} event image`)}" loading="eager" decoding="async">` : '<div class="event-image">📅</div>'}
       <div class="event-body">
         ${cancelled ? `<div class="event-cancelled">This event has been cancelled${event.cancelledReason ? `: ${esc(event.cancelledReason)}` : ''}.</div>` : ''}
         <div class="event-badges">

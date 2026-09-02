@@ -5,9 +5,8 @@
  * follow, react, mark helpful, report and share.
  */
 
+'use strict';
 (function () {
-  'use strict';
-
   const EFC = window.EFCommunity;
   const root = document.getElementById('efc-thread');
   if (!EFC || !root) {
