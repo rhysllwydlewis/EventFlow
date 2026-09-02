@@ -1,14 +1,5 @@
 'use strict';
 
-function escapeHtml(s) {
-  if (s === null || s === undefined) {
-    return '';
-  }
-  const d = document.createElement('div');
-  d.textContent = String(s);
-  return d.innerHTML;
-}
-
 // ===== SHARED HELPERS =====
 function getInitials(firstName, lastName) {
   return (

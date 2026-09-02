@@ -1,12 +1,4 @@
 'use strict';
-function escapeHtml(s) {
-  if (!s) {
-    return '';
-  }
-  const d = document.createElement('div');
-  d.textContent = String(s);
-  return d.innerHTML;
-}
 
 /**
  * Auth Page — Tab switcher + enhancements

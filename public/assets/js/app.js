@@ -816,31 +816,6 @@ async function initResults() {
   render();
 }
 
-// Helper function to adjust color brightness
-function adjustColorBrightness(hex, percent) {
-  // Remove # if present
-  // eslint-disable-next-line no-param-reassign
-  hex = hex.replace('#', '');
-
-  // Convert to RGB
-  let r = parseInt(hex.substring(0, 2), 16);
-  let g = parseInt(hex.substring(2, 4), 16);
-  let b = parseInt(hex.substring(4, 6), 16);
-
-  // Adjust brightness
-  r = Math.max(0, Math.min(255, r + (r * percent) / 100));
-  g = Math.max(0, Math.min(255, g + (g * percent) / 100));
-  b = Math.max(0, Math.min(255, b + (b * percent) / 100));
-
-  // Convert back to hex
-  const toHex = n => {
-    const hex = Math.round(n).toString(16);
-    return hex.length === 1 ? `0${hex}` : hex;
-  };
-
-  return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
-}
-
 async function initSupplier() {
   const user = await me();
   const params = new URLSearchParams(location.search);
@@ -1714,12 +1689,6 @@ function showToast(message, type = 'info') {
   const toast = document.createElement('div');
   toast.className = `toast-notification toast-notification--${type || 'info'}`;
   toast.textContent = message;
-
-  const colors = {
-    success: '#10b981',
-    error: '#ef4444',
-    info: '#3b82f6',
-  };
 
   // Colour and positioning handled by CSS class
 
@@ -3323,13 +3292,6 @@ async function initDashSupplier() {
           const name = escapeHtml(String(s.name || 'Unnamed Supplier'));
           const location = escapeHtml(String(s.location || 'Location not set'));
           const category = escapeHtml(String(s.category || 'Uncategorized'));
-          const descriptionRaw = String(s.description_short || '');
-          const description = escapeHtml(descriptionRaw);
-          const descriptionFallbackText = 'Add a short summary to improve your listing.';
-          const descriptionFallback = description || descriptionFallbackText;
-          const descriptionTitle = descriptionRaw
-            ? escapeHtml(descriptionRaw)
-            : descriptionFallbackText;
           const approved = !!s.approved;
           const profilePhotoUrl = resolveDashboardSupplierProfilePhoto(s);
 
@@ -3842,7 +3804,6 @@ async function initDashSupplier() {
       // Track whether the free tier package limit is reached.
       // Only block *creating* new packages — editing existing ones must remain allowed.
       const pkgForm = document.getElementById('package-form');
-      const pkgStatus = document.getElementById('pkg-status');
       const supplierBlocked = window._supplierProfileMissing || window._supplierApprovalBlocked;
       const supplierBlockMessage = window._supplierProfileMissing
         ? 'Complete your supplier profile setup before creating packages.'

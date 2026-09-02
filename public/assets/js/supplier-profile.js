@@ -45,6 +45,7 @@ import {
   /**
    * Format a relative date string
    */
+  // eslint-disable-next-line no-unused-vars -- retained for renderReviews; tested directly by tests/integration/skeleton-css-loading.test.js
   function formatDate(date) {
     if (!date) {
       return '';
@@ -95,6 +96,7 @@ import {
    * @param {HTMLElement} container
    * @param {number} [count=3] - number of skeleton items to render
    */
+  // eslint-disable-next-line no-unused-vars -- tested directly by tests/integration/skeleton-css-loading.test.js
   function showLoadingState(container, count = 3) {
     if (!container) {
       return;
@@ -108,11 +110,29 @@ import {
   }
 
   /**
+   * Generate star rating HTML using CSS classes
+   */
+  // eslint-disable-next-line no-unused-vars -- retained for renderReviews; tested directly by tests/integration/skeleton-css-loading.test.js
+  function generateStars(rating) {
+    const full = Math.floor(rating);
+    const empty = 5 - full;
+    let html = '';
+    for (let i = 0; i < full; i++) {
+      html += '<span class="sp-star-full" aria-hidden="true">★</span>';
+    }
+    for (let i = 0; i < empty; i++) {
+      html += '<span class="sp-star-empty" aria-hidden="true">★</span>';
+    }
+    return html;
+  }
+
+  /**
    * Render an array of review objects into list-item HTML.
    * Uses the index for stable key generation and aria-posinset attributes.
    * @param {Array} reviews
    * @returns {string} HTML string
    */
+  // eslint-disable-next-line no-unused-vars -- tested directly by tests/integration/skeleton-css-loading.test.js
   function renderReviews(reviews) {
     if (!Array.isArray(reviews) || reviews.length === 0) {
       return '';
@@ -135,22 +155,6 @@ import {
         `;
       })
       .join('');
-  }
-
-  /**
-   * Generate star rating HTML using CSS classes
-   */
-  function generateStars(rating) {
-    const full = Math.floor(rating);
-    const empty = 5 - full;
-    let html = '';
-    for (let i = 0; i < full; i++) {
-      html += '<span class="sp-star-full" aria-hidden="true">★</span>';
-    }
-    for (let i = 0; i < empty; i++) {
-      html += '<span class="sp-star-empty" aria-hidden="true">★</span>';
-    }
-    return html;
   }
 
   // ─── Meta Tags ───────────────────────────────────────────────────────────────
@@ -547,7 +551,7 @@ import {
               rating: supplier.rating || null,
             }),
           });
-          const data = await response.json();
+          await response.json();
           if (response.ok) {
             window.NotificationDispatcher?.success('Saved to your shortlist!');
             btnSave.setAttribute('aria-pressed', 'true');
@@ -618,7 +622,6 @@ import {
     const hasSocialLinks =
       supplier.socialLinks &&
       Object.keys(supplier.socialLinks).filter(k => supplier.socialLinks[k]).length > 0;
-    const hasTrust = _hasTrustItems(supplier);
     const hasStats = _hasStats(supplier);
 
     // If nothing meaningful to show, hide the section
@@ -695,19 +698,6 @@ import {
     container.innerHTML = html;
     container.style.display = '';
     container.removeAttribute('aria-hidden');
-  }
-
-  function _hasTrustItems(supplier) {
-    return !!(
-      supplier.verifications?.email ||
-      supplier.verifications?.phone ||
-      supplier.verifications?.business ||
-      supplier.emailVerified ||
-      supplier.phoneVerified ||
-      supplier.businessVerified ||
-      supplier.insurance ||
-      supplier.license
-    );
   }
 
   function _hasStats(supplier) {

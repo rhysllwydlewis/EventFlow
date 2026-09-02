@@ -44,7 +44,7 @@ function initFormValidation() {
       if (!result && loginErrorEl) {
         const errors = loginValidator.getErrors();
         if (errors.length > 0) {
-          const errorMessages = errors.map(([field, msg]) => msg).join(', ');
+          const errorMessages = errors.map(([_field, msg]) => msg).join(', ');
           loginErrorEl.textContent = errorMessages || 'Please fix the errors above';
           loginErrorEl.style.display = 'block';
         }
@@ -58,7 +58,7 @@ function initFormValidation() {
     };
 
     // Listen for valid submissions
-    loginForm.addEventListener('validsubmit', e => {
+    loginForm.addEventListener('validsubmit', () => {
       // The existing auth-init.js will handle the actual submission
     });
   }
@@ -79,7 +79,7 @@ function initFormValidation() {
     });
 
     // Listen for valid submissions
-    registerForm.addEventListener('validsubmit', e => {
+    registerForm.addEventListener('validsubmit', () => {
       // The existing auth-init.js will handle the actual submission
     });
   }

@@ -1585,4 +1585,5 @@ module.exports = { router, initialize };
 module.exports._private = {
   persistValidatedMessengerAttachments,
   createBadAttachmentError,
+  getNotificationService,
 };

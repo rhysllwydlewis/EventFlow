@@ -78,7 +78,6 @@ class SupplierGalleryManager {
   setup() {
     const dropZone = document.getElementById('sup-photo-drop');
     const previewContainer = document.getElementById('sup-photo-preview');
-    const supplierForm = document.getElementById('supplier-form');
 
     if (!dropZone || !previewContainer) {
       if (isDevelopment) {

@@ -288,7 +288,7 @@
   }
 
   // ── Actions ────────────────────────────────────────────────────────────────
-  async function saveUserChanges(id) {
+  async function saveUserChanges(_id) {
     try {
       const data = {
         name: document.getElementById('userName').value.trim(),
@@ -305,7 +305,7 @@
     }
   }
 
-  async function resetPassword(id) {
+  async function resetPassword(_id) {
     const ok = await AdminShared.showConfirmModal({
       title: 'Send password reset?',
       confirmText: 'Send',
@@ -322,7 +322,7 @@
     }
   }
 
-  async function resendVerification(id) {
+  async function resendVerification(_id) {
     const ok = await AdminShared.showConfirmModal({
       title: 'Resend verification email?',
       confirmText: 'Send',
@@ -446,7 +446,9 @@
       confirmText: 'Create profile',
       type: 'warning',
     });
-    if (!ok) return;
+    if (!ok) {
+      return;
+    }
     try {
       await AdminShared.api(
         `/api/admin/users/${encodeURIComponent(userId)}/provision-supplier-profile`,

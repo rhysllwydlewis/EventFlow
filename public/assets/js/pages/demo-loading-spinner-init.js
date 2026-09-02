@@ -67,7 +67,6 @@ document.addEventListener('DOMContentLoaded', () => {
   // Find hide buttons by their sibling context
   document.querySelectorAll('button').forEach(btn => {
     if (btn.textContent.trim() === 'Hide Spinner') {
-      const section = btn.closest('div') || btn.parentElement;
       const prev = btn.previousElementSibling;
       if (prev && prev.textContent.includes('Small')) {
         btn.addEventListener('click', hide2);

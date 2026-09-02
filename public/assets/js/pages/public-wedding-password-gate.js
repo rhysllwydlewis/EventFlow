@@ -3,20 +3,6 @@
   const originalFetch = window.fetch.bind(window);
   const weddingGetPattern = /^\/api\/public\/wedding-websites\/([^/]+)$/;
 
-  function esc(value) {
-    return String(value || '').replace(
-      /[&<>"']/g,
-      ch =>
-        ({
-          '&': '&amp;',
-          '<': '&lt;',
-          '>': '&gt;',
-          '"': '&quot;',
-          "'": '&#39;',
-        })[ch]
-    );
-  }
-
   function renderGate(slug) {
     const root = document.getElementById('public-wedding-root');
     if (!root) {

@@ -94,7 +94,7 @@
       return;
     }
 
-    const { status = 'available', blockedDates = [], notes = '' } = availability;
+    const { status = 'available', notes = '' } = availability;
     const statusLabel =
       status === 'limited' ? 'Limited' : status === 'unavailable' ? 'Unavailable' : 'Available';
     container.className = 'availability-widget';

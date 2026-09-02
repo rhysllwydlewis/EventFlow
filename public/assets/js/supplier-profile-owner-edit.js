@@ -629,7 +629,6 @@
     if (!section) {
       return;
     }
-    const supplier = window.__supplierData || {};
     // Only show if section is hidden (no packages)
     if (section.style.display !== 'none' && section.innerHTML.trim() !== '') {
       return;
