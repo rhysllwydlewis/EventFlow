@@ -48,7 +48,7 @@ async function runIngestion({ startDate, endDate, triggeredBy } = {}) {
 
   const range = startDate && endDate ? { startDate, endDate } : defaultDateRange();
 
-  let rows;
+  let rows = null;
   try {
     rows = await googleSearchConsole.fetchQueryPerformance(range);
   } catch (error) {

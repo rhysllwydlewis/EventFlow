@@ -106,7 +106,7 @@ function parseVolume(raw) {
     return { value: null, isBucketed: false };
   }
 
-  const dashIndex = text.search(/[-–]/);
+  const dashIndex = text.search(/[-–]/u);
   if (dashIndex !== -1) {
     const low = parseSingleFigure(text.slice(0, dashIndex));
     const high = parseSingleFigure(text.slice(dashIndex + 1));

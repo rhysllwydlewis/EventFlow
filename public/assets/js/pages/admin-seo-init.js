@@ -2,10 +2,9 @@
  * Admin SEO Insights page initialisation
  * Fetches Search Console / keyword-gap data and renders the dashboard.
  */
+'use strict';
 
 (function () {
-  'use strict';
-
   function formatNumber(value) {
     if (value === null || value === undefined) {
       return '—';
@@ -89,7 +88,7 @@
       el.textContent = data.needsValuePerClick
         ? 'Set value/click below'
         : formatGBP(data.estimatedMonthlyValue);
-    } catch (error) {
+    } catch {
       document.getElementById('seo-financialEstimate').textContent = '—';
     }
   }
@@ -101,7 +100,7 @@
       if (data.valuePerClick !== null && data.valuePerClick !== undefined) {
         input.value = data.valuePerClick;
       }
-    } catch (_error) {
+    } catch {
       // Non-fatal — leave the field blank
     }
   }

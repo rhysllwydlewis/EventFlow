@@ -225,9 +225,9 @@ router.put(
         });
       }
       const data = await seoDataStore.setSettings({ valuePerClick });
-      res.json({ success: true, data, timestamp: new Date().toISOString() });
+      return res.json({ success: true, data, timestamp: new Date().toISOString() });
     } catch (error) {
-      handleError(res, error);
+      return handleError(res, error);
     }
   }
 );
@@ -253,9 +253,13 @@ router.post(
         markedBy: req.user.email,
         reason,
       });
-      res.json({ success: true, data: { query: normalised }, timestamp: new Date().toISOString() });
+      return res.json({
+        success: true,
+        data: { query: normalised },
+        timestamp: new Date().toISOString(),
+      });
     } catch (error) {
-      handleError(res, error);
+      return handleError(res, error);
     }
   }
 );
@@ -329,9 +333,9 @@ router.post(
         csvText: req.file.buffer.toString('utf8'),
         importedBy: req.user.email,
       });
-      res.json({ success: true, data, timestamp: new Date().toISOString() });
+      return res.json({ success: true, data, timestamp: new Date().toISOString() });
     } catch (error) {
-      handleError(res, error, 400);
+      return handleError(res, error, 400);
     }
   }
 );

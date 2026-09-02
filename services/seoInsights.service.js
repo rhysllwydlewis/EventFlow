@@ -109,7 +109,7 @@ async function getLatestPeriod(property) {
   );
 }
 
-async function getSnapshotRows(property, { periodStart, periodEnd } = {}) {
+function getSnapshotRows(property, { periodStart, periodEnd } = {}) {
   const filter = { property };
   if (periodStart) {
     filter.periodStart = periodStart;

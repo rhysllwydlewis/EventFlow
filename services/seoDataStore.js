@@ -33,11 +33,11 @@ async function recordIngestionStatus(source, status, extra = {}) {
   });
 }
 
-async function getIngestionStatus(source) {
+function getIngestionStatus(source) {
   return dbUnified.findOne(COLLECTIONS.seoIngestionStatus, { id: source });
 }
 
-async function getAllIngestionStatus() {
+function getAllIngestionStatus() {
   return dbUnified.find(COLLECTIONS.seoIngestionStatus, {});
 }
 
@@ -57,7 +57,7 @@ async function isNoiseKeyword(keyword) {
   return Boolean(flagged);
 }
 
-async function listNoiseKeywords() {
+function listNoiseKeywords() {
   return dbUnified.find(COLLECTIONS.seoNoiseKeywords, {});
 }
 
