@@ -253,4 +253,91 @@ describe('auth account lifecycle security regressions', () => {
     expect(updates[0].update.$unset).toHaveProperty('emailVerificationToken');
     expect(updates[0].update.$unset).toHaveProperty('emailVerificationExpires');
   });
+
+  describe('login/forgot-password timing-based account enumeration (security fix regression)', () => {
+    it('POST /login runs bcrypt.compare against a dummy hash for an unknown email (not a fast-path 401)', async () => {
+      const app = buildApp({ users: [], updates: [] });
+      // Grab the same bcryptjs module instance routes/auth.js just required.
+      // eslint-disable-next-line global-require
+      const bcrypt = require('bcryptjs');
+      const compareSpy = jest.spyOn(bcrypt, 'compare');
+
+      await request(app)
+        .post('/api/auth/login')
+        .send({ email: 'nobody@example.com', password: 'whatever123' })
+        .expect(401)
+        .expect(res => {
+          expect(res.body.error).toBe('Invalid email or password');
+        });
+
+      expect(compareSpy).toHaveBeenCalledTimes(1);
+      // Must compare against the fixed dummy hash, not skip the comparison —
+      // otherwise this branch returns near-instantly relative to a real
+      // wrong-password attempt, leaking which emails are registered.
+      const [, comparedHash] = compareSpy.mock.calls[0];
+      expect(comparedHash).toMatch(/^\$2[aby]\$10\$/);
+
+      compareSpy.mockRestore();
+    });
+
+    it('POST /login still runs bcrypt.compare against the real hash for a known email with the wrong password', async () => {
+      const bcryptForHash = require('bcryptjs');
+      const passwordHash = await bcryptForHash.hash('correct-password', 10);
+      const users = [
+        {
+          id: 'usr_known',
+          email: 'known@example.com',
+          name: 'Known User',
+          role: 'customer',
+          verified: true,
+          passwordHash,
+        },
+      ];
+      const app = buildApp({ users, updates: [] });
+      // eslint-disable-next-line global-require
+      const bcrypt = require('bcryptjs');
+      const compareSpy = jest.spyOn(bcrypt, 'compare');
+
+      await request(app)
+        .post('/api/auth/login')
+        .send({ email: 'known@example.com', password: 'wrong-password' })
+        .expect(401)
+        .expect(res => {
+          expect(res.body.error).toBe('Invalid email or password');
+        });
+
+      expect(compareSpy).toHaveBeenCalledWith('wrong-password', passwordHash);
+
+      compareSpy.mockRestore();
+    });
+
+    it('POST /forgot pads the unknown-email branch with an artificial delay before responding', async () => {
+      const app = buildApp({ users: [], updates: [] });
+
+      const startedAt = Date.now();
+      await request(app)
+        .post('/api/auth/forgot')
+        .send({ email: 'nobody@example.com' })
+        .expect(200)
+        .expect(res => {
+          expect(res.body.ok).toBe(true);
+        });
+      const elapsedMs = Date.now() - startedAt;
+
+      // Real Postmark call + DB write for a known email takes noticeably longer than
+      // an instant "not found" — pad the unknown branch so it can't be distinguished
+      // by timing alone. Assert against a loose bound to avoid CI flakiness while
+      // still catching a regression that removes the delay outright.
+      expect(elapsedMs).toBeGreaterThanOrEqual(250);
+    });
+
+    it('routes/auth.js pads the /forgot not-found branch with a fixed delay', () => {
+      const fs = require('fs');
+      const path = require('path');
+      const authSource = fs.readFileSync(path.join(__dirname, '../../routes/auth.js'), 'utf8');
+      const forgotHandlerMatch = authSource.match(/router\.post\('\/forgot'[\s\S]*?\n\}\);/);
+      expect(forgotHandlerMatch).toBeTruthy();
+      expect(forgotHandlerMatch[0]).toContain('await sleep(300)');
+    });
+  });
 });
