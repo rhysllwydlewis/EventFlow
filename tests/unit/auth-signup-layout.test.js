@@ -59,10 +59,12 @@ describe('auth signup layout', () => {
     expect(authCss).toContain('white-space: normal;');
     expect(authCss).toContain('inline-size: min(100%, var(--google-button-width, 320px));');
     expect(authCss).toContain('overflow: hidden;');
-    expect(googleSignupCss).toContain('inline-size: min(100%, var(--google-button-width, 320px));');
+    expect(googleSignupCss).toContain(
+      'inline-size: min(100%, var(--google-button-width, 320px));'
+    );
   });
 
-  it('locks only the EventFlow Google container and leaves GIS child geometry alone', () => {
+  it('locks only the EventFlow Google container and preserves the GIS iframe bleed', () => {
     const googleSignupCss = fs.readFileSync(
       path.join(__dirname, '../../public/assets/css/auth-google-signup.css'),
       'utf8'
@@ -74,12 +76,15 @@ describe('auth signup layout', () => {
     expect(googleSignupCss).toMatch(
       /body\.auth-page \.auth-google-button\s*\{[^}]*overflow: visible;/s
     );
+    expect(googleSignupCss).toMatch(
+      /body\.auth-page \.auth-google-button iframe\s*\{[^}]*max-width: none;[^}]*max-inline-size: none;/s
+    );
     expect(googleSignupCss).not.toMatch(
       /\.auth-google-button > div[\s\S]*\.auth-google-button iframe[\s\S]*inline-size:\s*100%\s*!important/
     );
   });
 
-  it('keeps the Facebook control synchronized to the rendered Google control', () => {
+  it('keeps the Facebook control synchronized to the visible Google footprint', () => {
     const googleSignupCss = fs.readFileSync(
       path.join(__dirname, '../../public/assets/css/auth-google-signup.css'),
       'utf8'
@@ -97,7 +102,9 @@ describe('auth signup layout', () => {
     );
     expect(facebookInit).toContain('const SOCIAL_BUTTON_MAX_WIDTH = 320;');
     expect(facebookInit).toContain('function getGoogleRenderedControl(card)');
-    expect(facebookInit).toContain("return googleButton.querySelector('iframe') || googleButton.firstElementChild || googleButton;");
+    expect(facebookInit).toContain('function getGoogleVisibleFootprintWidth(card)');
+    expect(facebookInit).toContain("renderedControl.tagName === 'IFRAME'");
+    expect(facebookInit).toContain('renderedWidth + marginLeft + marginRight');
     expect(facebookInit).toContain('function syncFacebookButtonWidths()');
     expect(facebookInit).toContain('button.style.width = `${targetWidth}px`;');
     expect(facebookInit).toContain('new window.ResizeObserver(syncFacebookButtonWidths)');
