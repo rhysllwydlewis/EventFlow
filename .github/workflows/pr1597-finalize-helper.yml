@@ -25,7 +25,7 @@ jobs:
           node-version-file: .node-version
           cache: npm
 
-      - name: Simplify social button geometry and harden state coverage
+      - name: Fix social auth geometry
         shell: bash
         run: |
           node <<'NODE'
@@ -34,98 +34,214 @@ jobs:
           function read(path) {
             return fs.readFileSync(path, 'utf8');
           }
+
           function write(path, content) {
             fs.writeFileSync(path, content);
           }
-          function mustReplace(path, source, search, replacement) {
-            if (!search.test(source)) {
-              throw new Error(`Expected block not found in ${path}: ${search}`);
+
+          function replaceSection(source, startMarker, endMarker, replacement, path) {
+            const start = source.indexOf(startMarker);
+            const end = source.indexOf(endMarker, start + startMarker.length);
+            if (start === -1 || end === -1) {
+              throw new Error(`Expected section not found in ${path}`);
             }
-            return source.replace(search, replacement);
+            return source.slice(0, start) + replacement + source.slice(end);
           }
 
-          // The Facebook control does not need to inspect or resize Google's
-          // private iframe. Both EventFlow-owned hosts use the same responsive
-          // CSS width; Google receives that same width via renderButton().
           const facebookPath = 'public/assets/js/pages/auth-facebook-init.js';
           let facebook = read(facebookPath);
-          facebook = facebook.replace(
-            /\n  const SOCIAL_BUTTON_MIN_WIDTH = 220;\n  const SOCIAL_BUTTON_MAX_WIDTH = 320;\n/,
-            '\n'
-          );
-          facebook = mustReplace(
-            facebookPath,
+          facebook = replaceSection(
             facebook,
-            /\n  function getVisibleWidth\(element\) \{[\s\S]*?\n  function hasControlCharacter\(value\) \{/,
-            '\n  function hasControlCharacter(value) {'
+            '  function getVisibleWidth(element) {',
+            '  function hasControlCharacter(value) {',
+            `  function getVisibleWidth(element) {
+            if (!element) {
+              return 0;
+            }
+
+            const rectWidth = Math.round(element.getBoundingClientRect?.().width || 0);
+            return rectWidth || Math.round(element.clientWidth || element.offsetWidth || 0);
+          }
+
+          function getGoogleRenderedControl(card) {
+            const googleButton = card?.querySelector('.auth-google-button');
+            return googleButton?.querySelector('iframe') || googleButton?.firstElementChild || null;
+          }
+
+          function getRenderedFootprintWidth(control) {
+            const renderedWidth = getVisibleWidth(control);
+            if (!renderedWidth) {
+              return 0;
+            }
+
+            if (control.tagName !== 'IFRAME' || typeof window.getComputedStyle !== 'function') {
+              return renderedWidth;
+            }
+
+            const styles = window.getComputedStyle(control);
+            const marginLeft = Number.parseFloat(styles.marginLeft || '0') || 0;
+            const marginRight = Number.parseFloat(styles.marginRight || '0') || 0;
+            return Math.max(0, Math.round(renderedWidth + marginLeft + marginRight));
+          }
+
+          function getFacebookButtonTargetWidth(button) {
+            const card = button?.closest('.auth-card');
+            const googleButton = card?.querySelector('.auth-google-button');
+            const renderedControl = getGoogleRenderedControl(card);
+            const measuredWidth =
+              getRenderedFootprintWidth(renderedControl) || getVisibleWidth(googleButton);
+
+            return Math.min(SOCIAL_BUTTON_MAX_WIDTH, measuredWidth || SOCIAL_BUTTON_MAX_WIDTH);
+          }
+
+          function syncFacebookButtonWidths() {
+            document.querySelectorAll('.auth-facebook-button').forEach(button => {
+              const targetWidth = getFacebookButtonTargetWidth(button);
+              button.style.width = \`${'${targetWidth}'}px\`;
+              button.style.maxWidth = '100%';
+              button.style.marginInline = 'auto';
+            });
+          }
+
+          function observeGoogleButtonWidths() {
+            window.__eventflowFacebookWidthObserver?.disconnect?.();
+
+            if (typeof window.ResizeObserver !== 'function') {
+              syncFacebookButtonWidths();
+              return;
+            }
+
+            const resizeObserver = new window.ResizeObserver(syncFacebookButtonWidths);
+            document
+              .querySelectorAll('.auth-google-button iframe, .auth-google-button > *')
+              .forEach(control => resizeObserver.observe(control));
+            window.__eventflowFacebookWidthObserver = resizeObserver;
+            syncFacebookButtonWidths();
+          }
+
+          `,
+            facebookPath
           );
           facebook = facebook.replace(
-            /\n    scheduleFacebookButtonWidthSync\(\);\n    observeGoogleButtonWidths\(\);\n    window\.addEventListener\('resize', scheduleFacebookButtonWidthSync, \{ passive: true \}\);/,
-            ''
+            `    scheduleFacebookButtonWidthSync();
+            observeGoogleButtonWidths();
+            window.addEventListener('resize', scheduleFacebookButtonWidthSync, { passive: true });`,
+            `    observeGoogleButtonWidths();
+            document.addEventListener('eventflow:google-button-rendered', observeGoogleButtonWidths);
+            window.addEventListener('resize', syncFacebookButtonWidths, { passive: true });`
           );
+          if (facebook.includes('scheduleFacebookButtonWidthSync')) {
+            throw new Error('Legacy Facebook width scheduler was not fully removed');
+          }
           write(facebookPath, facebook);
 
-          // Rerender the Google button when EventFlow actually switches auth
-          // tabs or the viewport changes. Avoid observing Google's own DOM.
           const googlePath = 'public/assets/js/pages/auth-google-init.js';
           let google = read(googlePath);
-          google = google.replace(
-            /\n  function isGoogleContainerVisible\(container\) \{/,
-            `\n  /** Return whether a Google button's auth panel is currently visible. */\n  function isGoogleContainerVisible(container) {`
-          );
-          google = google.replace(
-            /\n  function rerenderVisibleGoogleButtons\(signInContainer, signUpContainer, renderOptions\) \{/,
-            `\n  /** Rerender only the Google controls whose panels can be measured. */\n  function rerenderVisibleGoogleButtons(signInContainer, signUpContainer, renderOptions) {`
-          );
-          google = mustReplace(
-            googlePath,
+          google = replaceSection(
             google,
-            /\n    if \(typeof window\.MutationObserver === 'function'\) \{[\s\S]*?\n    \}\n\n    window\.addEventListener\('resize', scheduleGoogleLayoutSync, \{ passive: true \}\);/,
-            `\n    document.addEventListener('eventflow:auth-tab-change', scheduleGoogleLayoutSync);\n    window.addEventListener('resize', scheduleGoogleLayoutSync, { passive: true });`
+            '  function getVisibleWidth(element) {',
+            '  function renderGoogleButton(container, context, baseRenderOptions) {',
+            `  function getVisibleWidth(element) {
+            if (!element) {
+              return 0;
+            }
+
+            const rectWidth = Math.floor(element.getBoundingClientRect?.().width || 0);
+            return rectWidth || Math.floor(element.clientWidth || element.offsetWidth || 0);
+          }
+
+          function getContentWidth(element) {
+            const width = getVisibleWidth(element);
+            if (!width || typeof window.getComputedStyle !== 'function') {
+              return width;
+            }
+
+            const styles = window.getComputedStyle(element);
+            const horizontalInsets =
+              (Number.parseFloat(styles.paddingLeft || '0') || 0) +
+              (Number.parseFloat(styles.paddingRight || '0') || 0) +
+              (Number.parseFloat(styles.borderLeftWidth || '0') || 0) +
+              (Number.parseFloat(styles.borderRightWidth || '0') || 0);
+            return Math.max(0, Math.floor(width - horizontalInsets));
+          }
+
+          function getGoogleButtonWidth(container) {
+            const googleBlock = container.closest('.auth-google');
+            const card = container.closest('.auth-card');
+            const measuredWidth = [getContentWidth(googleBlock), getContentWidth(card)].find(
+              width => width > 0
+            );
+            const availableWidth = Math.max(
+              GOOGLE_BUTTON_MIN_WIDTH,
+              measuredWidth || GOOGLE_BUTTON_MAX_WIDTH
+            );
+
+            return Math.min(GOOGLE_BUTTON_MAX_WIDTH, availableWidth);
+          }
+
+          `,
+            googlePath
           );
+          google = google.replace(
+            `    container.classList.add('is-ready');
+          }`,
+            `    container.classList.add('is-ready');
+            document.dispatchEvent(
+              new CustomEvent('eventflow:google-button-rendered', { detail: { context, buttonWidth } })
+            );
+          }`
+          );
+          const observerStart = google.lastIndexOf(
+            "    if (typeof window.MutationObserver === 'function') {"
+          );
+          const resizeLine =
+            "    window.addEventListener('resize', scheduleGoogleLayoutSync, { passive: true });";
+          const resizeIndex = google.indexOf(resizeLine, observerStart);
+          if (observerStart === -1 || resizeIndex === -1) {
+            throw new Error('Google panel observer block not found');
+          }
+          google =
+            google.slice(0, observerStart) +
+            "    document.addEventListener('eventflow:auth-tab-change', scheduleGoogleLayoutSync);\n" +
+            google.slice(resizeIndex);
           write(googlePath, google);
 
-          // Google's documented width is supplied by EventFlow. Personalization
-          // changes the content, not our requested outer control width. Keep the
-          // simulated GIS iframe gutter because that is the clipping regression.
-          const visualPath = 'tests/visual/auth-social-buttons.spec.mjs';
-          let visual = read(visualPath);
-          visual = visual.replace(/\nconst GOOGLE_DYNAMIC_WIDTH = 260;\n/, '\n');
-          visual = visual.replace(
-            /name: 'compact-personalized',\n    label: 'Continue as Rhys',\n    sublabel: 'rhys@example\.com',\n    width: 304,/,
-            `name: 'compact-personalized',\n    label: 'Continue as Rhys',\n    sublabel: 'rhys@example.com',\n    width: 'requested',`
-          );
-          visual = visual.replace(
-            /'compact-personalized': \{\n                label: 'Continue as Rhys',\n                sublabel: 'rhys@example\.com',\n                width: 304\n              \}/,
-            `'compact-personalized': {\n                label: 'Continue as Rhys',\n                sublabel: 'rhys@example.com',\n                width: 'requested'\n              }`
-          );
-          visual = visual.replace(
-            /var resizedWidth = Math\.min\(requestedWidth, \$\{GOOGLE_DYNAMIC_WIDTH\}\);[\s\S]*?resizedWidth,\n                          'personalized-late'/,
-            `updateFrame(\n                          frame,\n                          {\n                            label: 'Sign in as Rhys',\n                            sublabel: 'rhys@example.com'\n                          },\n                          requestedWidth,\n                          'personalized-late'`
-          );
-          // The replacement above intentionally starts with updateFrame; remove
-          // the now-duplicated call opener if it was retained by the source.
-          visual = visual.replace(/updateFrame\(\n\s*frame,\n\s*updateFrame\(/, 'updateFrame(');
-          visual = visual.replace(
-            /\n            const initialGeometry = await expectProviderGeometry\(panelRoot\);/,
-            '\n            await expectProviderGeometry(panelRoot);'
-          );
-          visual = visual.replace(
-            /\n            const personalizedGeometry = await expectProviderGeometry\(panelRoot\);\n            expect\(personalizedGeometry\.visibleWidth\)\.toBeLessThanOrEqual\(\n              initialGeometry\.visibleWidth\n            \);/,
-            '\n            await expectProviderGeometry(panelRoot);'
-          );
-          write(visualPath, visual);
-
-          // Unit coverage now enforces the simpler contract: EventFlow owns the
-          // responsive host width; Google's iframe must remain unconstrained.
           const unitPath = 'tests/unit/auth-signup-layout.test.js';
           let unit = read(unitPath);
-          unit = mustReplace(
-            unitPath,
-            unit,
-            /\n  it\('keeps the Facebook control synchronized to the visible Google footprint',[\s\S]*?\n  \}\);\n\}\);$/,
-            `\n  it('keeps Facebook on the same responsive width contract without resizing Google internals', () => {\n    const googleSignupCss = fs.readFileSync(\n      path.join(__dirname, '../../public/assets/css/auth-google-signup.css'),\n      'utf8'\n    );\n    const facebookInit = fs.readFileSync(\n      path.join(__dirname, '../../public/assets/js/pages/auth-facebook-init.js'),\n      'utf8'\n    );\n\n    expect(googleSignupCss).toMatch(\n      /body\\.auth-page \\.auth-facebook-button\\s*\\{[^}]*width: min\\(100%, var\\(--google-button-width, 320px\\)\\);[^}]*margin-inline: auto;/s\n    );\n    expect(facebookInit).not.toContain('ResizeObserver');\n    expect(facebookInit).not.toContain('MutationObserver');\n    expect(facebookInit).not.toContain('getGoogleRenderedControl');\n  });\n});`
+          const testStart = unit.indexOf(
+            "\n  it('keeps the Facebook control synchronized to the visible Google footprint'"
           );
+          const suiteEnd = unit.lastIndexOf('\n});');
+          if (testStart === -1 || suiteEnd === -1 || suiteEnd <= testStart) {
+            throw new Error('Facebook geometry unit test block not found');
+          }
+          const replacementTest = `
+            
+            it('keeps Facebook synchronized to the rendered Google control without observing Google internals', () => {
+              const googleSignupCss = fs.readFileSync(
+                path.join(__dirname, '../../public/assets/css/auth-google-signup.css'),
+                'utf8'
+              );
+              const facebookInit = fs.readFileSync(
+                path.join(__dirname, '../../public/assets/js/pages/auth-facebook-init.js'),
+                'utf8'
+              );
+              const googleInit = fs.readFileSync(
+                path.join(__dirname, '../../public/assets/js/pages/auth-google-init.js'),
+                'utf8'
+              );
+
+              expect(googleSignupCss).toMatch(
+                /body\\.auth-page \\.auth-facebook-button\\s*\\{[^}]*width: min\\(100%, var\\(--google-button-width, 320px\\)\\);[^}]*margin-inline: auto;/s
+              );
+              expect(facebookInit).toContain('new window.ResizeObserver(syncFacebookButtonWidths)');
+              expect(facebookInit).not.toContain('MutationObserver');
+              expect(facebookInit).toContain("'eventflow:google-button-rendered'");
+              expect(googleInit).toContain('function getContentWidth(element)');
+              expect(googleInit).toContain("new CustomEvent('eventflow:google-button-rendered'");
+              expect(googleInit).toContain("'eventflow:auth-tab-change'");
+            });`;
+          unit = unit.slice(0, testStart) + replacementTest + unit.slice(suiteEnd);
           write(unitPath, unit);
           NODE
 
@@ -138,7 +254,6 @@ jobs:
           public/assets/js/pages/auth-google-init.js
           public/assets/js/pages/auth-facebook-init.js
           tests/unit/auth-signup-layout.test.js
-          tests/visual/auth-social-buttons.spec.mjs
 
       - name: Run focused unit test
         run: npx jest tests/unit/auth-signup-layout.test.js --runInBand
@@ -152,6 +267,6 @@ jobs:
           git rm .github/workflows/pr1597-finalize-helper.yml
           git config user.name "eventflow-ci-helper"
           git config user.email "eventflow-ci-helper@users.noreply.github.com"
-          git add public/assets/js/pages/auth-google-init.js public/assets/js/pages/auth-facebook-init.js tests/unit/auth-signup-layout.test.js tests/visual/auth-social-buttons.spec.mjs
-          git commit -m "Simplify social auth geometry and state handling [skip pr1597-finalize]"
+          git add public/assets/js/pages/auth-google-init.js public/assets/js/pages/auth-facebook-init.js tests/unit/auth-signup-layout.test.js
+          git commit -m "Fix social auth width synchronization [skip pr1597-finalize]"
           git push origin HEAD:fix/google-facebook-auth-button-rendering
