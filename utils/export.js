@@ -85,6 +85,15 @@ function exportToExcel(data, options = {}) {
   }
 
   try {
+    // Security note (2026-09-02 audit): the xlsx package has two known high-severity
+    // CVEs (prototype pollution, ReDoS) with no upstream npm fix — the package is
+    // unmaintained there (a fixed version exists only via SheetJS's own CDN, outside
+    // npm's registry/audit coverage). Both CVEs are triggered by *parsing* a
+    // crafted .xlsx file; this app only ever *writes* workbooks from its own
+    // internal data (XLSX.utils.json_to_sheet/XLSX.write below) and never calls
+    // XLSX.read/readFile on anything user-supplied, which meaningfully narrows the
+    // exploitable surface. DISABLE_XLSX_EXPORT=true (see .env.example) removes the
+    // dependency from the request path entirely for environments that want it gone.
     // eslint-disable-next-line global-require, node/no-missing-require, node/no-unpublished-require
     const XLSX = require('xlsx');
 

@@ -1239,7 +1239,7 @@ if (apiDocsEnabled) {
 }
 
 // Sentry error handler (must be before other error handlers)
-app.use(sentry.getErrorHandler());
+sentry.setupExpressErrorHandler(app);
 
 // Use centralized error handler
 app.use(errorHandler);
