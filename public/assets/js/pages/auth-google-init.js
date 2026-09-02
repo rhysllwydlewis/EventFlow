@@ -392,6 +392,23 @@
     container.classList.add('is-ready');
   }
 
+  function isGoogleContainerVisible(container) {
+    const panel = container?.closest('.auth-tab-panel');
+    return Boolean(container && (!panel || !panel.hidden));
+  }
+
+  function rerenderVisibleGoogleButtons(signInContainer, signUpContainer, renderOptions) {
+    if (signInContainer && isGoogleContainerVisible(signInContainer)) {
+      renderGoogleButton(signInContainer, 'signin', renderOptions);
+    }
+
+    if (signUpContainer && isGoogleContainerVisible(signUpContainer)) {
+      syncSignupGoogleReadiness(false);
+      renderGoogleButton(signUpContainer, 'signup', renderOptions);
+      syncSignupGoogleReadiness(false);
+    }
+  }
+
   async function initGoogleAuth() {
     showGoogleRedirectErrorFromQuery();
     ensureRolePolishStylesheet();
@@ -498,10 +515,32 @@
           });
         });
 
-      renderGoogleButton(signUpContainer, 'signup', renderOptions);
+      if (isGoogleContainerVisible(signUpContainer)) {
+        renderGoogleButton(signUpContainer, 'signup', renderOptions);
+      }
       syncSignupGoogleReadiness(false);
     }
 
+    let layoutSyncTimer = null;
+    const scheduleGoogleLayoutSync = () => {
+      window.clearTimeout(layoutSyncTimer);
+      layoutSyncTimer = window.setTimeout(() => {
+        window.requestAnimationFrame(() => {
+          rerenderVisibleGoogleButtons(signInContainer, signUpContainer, renderOptions);
+        });
+      }, 80);
+    };
+
+    if (typeof window.MutationObserver === 'function') {
+      window.__eventflowGoogleLayoutObserver?.disconnect?.();
+      const panelObserver = new window.MutationObserver(scheduleGoogleLayoutSync);
+      document.querySelectorAll('.auth-tab-panel').forEach(panel => {
+        panelObserver.observe(panel, { attributes: true, attributeFilter: ['hidden'] });
+      });
+      window.__eventflowGoogleLayoutObserver = panelObserver;
+    }
+
+    window.addEventListener('resize', scheduleGoogleLayoutSync, { passive: true });
     setGoogleButtonsBusy(false);
   }
 

@@ -47,9 +47,7 @@
       return null;
     }
 
-    return (
-      googleButton.querySelector('iframe') || googleButton.firstElementChild || googleButton
-    );
+    return googleButton.querySelector('iframe') || googleButton.firstElementChild || googleButton;
   }
 
   function getGoogleVisibleFootprintWidth(card) {
@@ -86,10 +84,7 @@
     }
 
     const cardWidth = getVisibleWidth(card);
-    const availableWidth = Math.max(
-      SOCIAL_BUTTON_MIN_WIDTH,
-      cardWidth || SOCIAL_BUTTON_MAX_WIDTH
-    );
+    const availableWidth = Math.max(SOCIAL_BUTTON_MIN_WIDTH, cardWidth || SOCIAL_BUTTON_MAX_WIDTH);
     return Math.min(SOCIAL_BUTTON_MAX_WIDTH, availableWidth);
   }
 

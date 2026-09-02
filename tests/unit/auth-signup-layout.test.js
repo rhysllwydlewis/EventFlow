@@ -59,9 +59,7 @@ describe('auth signup layout', () => {
     expect(authCss).toContain('white-space: normal;');
     expect(authCss).toContain('inline-size: min(100%, var(--google-button-width, 320px));');
     expect(authCss).toContain('overflow: hidden;');
-    expect(googleSignupCss).toContain(
-      'inline-size: min(100%, var(--google-button-width, 320px));'
-    );
+    expect(googleSignupCss).toContain('inline-size: min(100%, var(--google-button-width, 320px));');
   });
 
   it('locks only the EventFlow Google container and preserves the GIS iframe bleed', () => {

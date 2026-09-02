@@ -364,13 +364,10 @@ test.describe('auth provider geometry', () => {
               `auth-social-${panel.name}-${state.name}-${viewport.name}px.png`
             );
             await panelRoot.locator('.auth-card').screenshot({ path: screenshotPath });
-            await testInfo.attach(
-              `auth-social-${panel.name}-${state.name}-${viewport.name}px`,
-              {
-                path: screenshotPath,
-                contentType: 'image/png',
-              }
-            );
+            await testInfo.attach(`auth-social-${panel.name}-${state.name}-${viewport.name}px`, {
+              path: screenshotPath,
+              contentType: 'image/png',
+            });
           }
         }
       });
@@ -382,7 +379,7 @@ test.describe('auth provider geometry', () => {
       await page.setViewportSize({ width: viewport.width, height: viewport.height });
       const panelRoot = await openPanel(page, PANELS[1], 'personalized-one-session');
 
-      await panelRoot.getByRole('radio', { name: /Supplier/i }).click();
+      await panelRoot.locator('[data-role="supplier"]').click();
 
       const googleButton = panelRoot.locator('.auth-google-button');
       const facebookButton = panelRoot.locator('.auth-facebook-button');
