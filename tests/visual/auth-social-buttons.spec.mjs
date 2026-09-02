@@ -62,17 +62,22 @@ test.describe('auth provider geometry', () => {
     });
   });
 
-  for (const panel of ['signin', 'signup']) {
-    test(`${panel}: Facebook matches personalized Google control without clipping it`, async ({
+  const panels = [
+    { name: 'signin', panelId: 'panel-signin' },
+    { name: 'signup', panelId: 'panel-create' },
+  ];
+
+  for (const panel of panels) {
+    test(`${panel.name}: Facebook matches personalized Google control without clipping it`, async ({
       page,
     }, testInfo) => {
       await page.goto('/auth', { waitUntil: 'domcontentloaded' });
 
-      if (panel === 'signup') {
+      if (panel.name === 'signup') {
         await page.getByRole('tab', { name: 'Create a free account' }).click();
       }
 
-      const panelRoot = page.locator(`#panel-${panel}`);
+      const panelRoot = page.locator(`#${panel.panelId}`);
       const googleHost = panelRoot.locator('.auth-google-button');
       const googleFrame = googleHost.locator('iframe[data-testid="mock-google-personalized"]');
       const facebookButton = panelRoot.locator('.auth-facebook-button');
@@ -123,9 +128,9 @@ test.describe('auth provider geometry', () => {
         frameLeftInsideHost: true,
       });
 
-      const screenshotPath = testInfo.outputPath(`auth-social-${panel}-proof.png`);
+      const screenshotPath = testInfo.outputPath(`auth-social-${panel.name}-proof.png`);
       await panelRoot.locator('.auth-card').screenshot({ path: screenshotPath });
-      await testInfo.attach(`auth-social-${panel}-proof`, {
+      await testInfo.attach(`auth-social-${panel.name}-proof`, {
         path: screenshotPath,
         contentType: 'image/png',
       });
