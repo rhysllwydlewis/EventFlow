@@ -6,6 +6,8 @@
   const FACEBOOK_LOGIN_PATH = '/api/auth/callback/facebook';
   const FACEBOOK_CSRF_PATH = '/api/auth/facebook/csrf';
   const PRODUCTION_ORIGIN = 'https://event-flow.co.uk';
+  const SOCIAL_BUTTON_MIN_WIDTH = 220;
+  const SOCIAL_BUTTON_MAX_WIDTH = 320;
 
   function getFacebookLoginUri() {
     const origin =
@@ -28,6 +30,63 @@
     if (message) {
       status.classList.add('is-visible', `is-${statusType}`);
     }
+  }
+
+  function getVisibleWidth(element) {
+    if (!element) {
+      return 0;
+    }
+
+    const rectWidth = Math.round(element.getBoundingClientRect?.().width || 0);
+    return rectWidth || Math.round(element.clientWidth || element.offsetWidth || 0);
+  }
+
+  function getFacebookButtonTargetWidth(button) {
+    const card = button?.closest('.auth-card');
+    const googleButton = card?.querySelector('.auth-google-button');
+    const googleWidth = getVisibleWidth(googleButton);
+
+    if (googleWidth > 0) {
+      return Math.min(SOCIAL_BUTTON_MAX_WIDTH, googleWidth);
+    }
+
+    const cardWidth = getVisibleWidth(card);
+    const availableWidth = Math.max(
+      SOCIAL_BUTTON_MIN_WIDTH,
+      cardWidth || SOCIAL_BUTTON_MAX_WIDTH
+    );
+    return Math.min(SOCIAL_BUTTON_MAX_WIDTH, availableWidth);
+  }
+
+  function syncFacebookButtonWidths() {
+    document.querySelectorAll('.auth-facebook-button').forEach(button => {
+      const targetWidth = getFacebookButtonTargetWidth(button);
+      button.style.width = `${targetWidth}px`;
+      button.style.maxWidth = '100%';
+      button.style.marginInline = 'auto';
+    });
+  }
+
+  function scheduleFacebookButtonWidthSync() {
+    syncFacebookButtonWidths();
+    window.requestAnimationFrame(syncFacebookButtonWidths);
+    window.setTimeout(syncFacebookButtonWidths, 250);
+  }
+
+  function observeGoogleButtonWidths() {
+    if (typeof window.ResizeObserver !== 'function') {
+      return;
+    }
+
+    const googleButtons = document.querySelectorAll('.auth-google-button');
+    if (!googleButtons.length) {
+      return;
+    }
+
+    window.__eventflowFacebookWidthObserver?.disconnect?.();
+    const observer = new window.ResizeObserver(syncFacebookButtonWidths);
+    googleButtons.forEach(button => observer.observe(button));
+    window.__eventflowFacebookWidthObserver = observer;
   }
 
   function hasControlCharacter(value) {
@@ -338,6 +397,10 @@
           });
         });
     }
+
+    scheduleFacebookButtonWidthSync();
+    observeGoogleButtonWidths();
+    window.addEventListener('resize', scheduleFacebookButtonWidthSync, { passive: true });
   }
 
   if (document.readyState === 'loading') {
