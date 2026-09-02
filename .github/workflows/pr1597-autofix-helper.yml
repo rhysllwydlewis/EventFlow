@@ -1,0 +1,96 @@
+name: PR1597 Autofix Helper
+
+on:
+  push:
+    branches:
+      - fix/google-facebook-auth-button-rendering
+
+permissions:
+  contents: write
+
+jobs:
+  autofix:
+    if: ${{ !contains(github.event.head_commit.message, '[skip pr1597-autofix]') }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout branch
+        uses: actions/checkout@v7
+        with:
+          ref: fix/google-facebook-auth-button-rendering
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version-file: .node-version
+          cache: npm
+
+      - name: Apply targeted PR fixes
+        shell: bash
+        run: |
+          node <<'NODE'
+          const fs = require('fs');
+
+          function replaceOnce(path, from, to) {
+            const current = fs.readFileSync(path, 'utf8');
+            if (!current.includes(from)) {
+              throw new Error(`Expected source block not found in ${path}`);
+            }
+            fs.writeFileSync(path, current.replace(from, to));
+          }
+
+          const packagePath = 'package.json';
+          const pkg = JSON.parse(fs.readFileSync(packagePath, 'utf8'));
+          pkg.overrides = pkg.overrides || {};
+          pkg.overrides['fast-uri'] = '^3.1.6';
+          fs.writeFileSync(packagePath, `${JSON.stringify(pkg, null, 2)}\n`);
+
+          const googlePath = 'public/assets/js/pages/auth-google-init.js';
+          replaceOnce(
+            googlePath,
+            "    container.classList.add('is-ready');\n  }\n\n  async function initGoogleAuth() {",
+            "    container.classList.add('is-ready');\n  }\n\n  function isGoogleContainerVisible(container) {\n    const panel = container?.closest('.auth-tab-panel');\n    return Boolean(container && (!panel || !panel.hidden));\n  }\n\n  function rerenderVisibleGoogleButtons(signInContainer, signUpContainer, renderOptions) {\n    if (signInContainer && isGoogleContainerVisible(signInContainer)) {\n      renderGoogleButton(signInContainer, 'signin', renderOptions);\n    }\n\n    if (signUpContainer && isGoogleContainerVisible(signUpContainer)) {\n      syncSignupGoogleReadiness(false);\n      renderGoogleButton(signUpContainer, 'signup', renderOptions);\n      syncSignupGoogleReadiness(false);\n    }\n  }\n\n  async function initGoogleAuth() {"
+          );
+
+          replaceOnce(
+            googlePath,
+            "      renderGoogleButton(signUpContainer, 'signup', renderOptions);\n      syncSignupGoogleReadiness(false);\n    }\n\n    setGoogleButtonsBusy(false);",
+            "      if (isGoogleContainerVisible(signUpContainer)) {\n        renderGoogleButton(signUpContainer, 'signup', renderOptions);\n      }\n      syncSignupGoogleReadiness(false);\n    }\n\n    let layoutSyncTimer = null;\n    const scheduleGoogleLayoutSync = () => {\n      window.clearTimeout(layoutSyncTimer);\n      layoutSyncTimer = window.setTimeout(() => {\n        window.requestAnimationFrame(() => {\n          rerenderVisibleGoogleButtons(signInContainer, signUpContainer, renderOptions);\n        });\n      }, 80);\n    };\n\n    if (typeof window.MutationObserver === 'function') {\n      window.__eventflowGoogleLayoutObserver?.disconnect?.();\n      const panelObserver = new window.MutationObserver(scheduleGoogleLayoutSync);\n      document.querySelectorAll('.auth-tab-panel').forEach(panel => {\n        panelObserver.observe(panel, { attributes: true, attributeFilter: ['hidden'] });\n      });\n      window.__eventflowGoogleLayoutObserver = panelObserver;\n    }\n\n    window.addEventListener('resize', scheduleGoogleLayoutSync, { passive: true });\n    setGoogleButtonsBusy(false);"
+          );
+
+          const visualPath = 'tests/visual/auth-social-buttons.spec.mjs';
+          replaceOnce(
+            visualPath,
+            "      await panelRoot.getByRole('radio', { name: /Supplier/i }).click();",
+            "      await panelRoot.locator('[data-role=\"supplier\"]').click();"
+          );
+          NODE
+
+      - name: Refresh lockfile for patched fast-uri
+        run: npm install --package-lock-only --ignore-scripts --no-audit --no-fund
+
+      - name: Install exact dependencies
+        run: npm ci --ignore-scripts --no-audit --no-fund
+
+      - name: Format changed JavaScript and JSON
+        run: >-
+          npx prettier --write
+          public/assets/js/pages/auth-google-init.js
+          public/assets/js/pages/auth-facebook-init.js
+          tests/unit/auth-signup-layout.test.js
+          tests/visual/auth-social-buttons.spec.mjs
+          package.json
+          package-lock.json
+
+      - name: Commit autofixes to PR branch
+        shell: bash
+        run: |
+          git config user.name "eventflow-ci-helper"
+          git config user.email "eventflow-ci-helper@users.noreply.github.com"
+          git add package.json package-lock.json public/assets/js/pages/auth-google-init.js public/assets/js/pages/auth-facebook-init.js tests/unit/auth-signup-layout.test.js tests/visual/auth-social-buttons.spec.mjs
+          if git diff --cached --quiet; then
+            echo "No changes to commit"
+            exit 0
+          fi
+          git commit -m "Fix PR 1597 CI blockers [skip pr1597-autofix]"
+          git push origin HEAD:fix/google-facebook-auth-button-rendering
