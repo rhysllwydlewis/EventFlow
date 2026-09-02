@@ -20,7 +20,7 @@
     try {
       const consent = window.CookieConsent.getConsent();
       return !!(consent && consent.analytics);
-    } catch (e) {
+    } catch {
       return false;
     }
   }
