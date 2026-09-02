@@ -54,6 +54,10 @@ const PERMISSIONS = {
 
   // Audit Permissions
   AUDIT_READ: 'admin:audit:read',
+
+  // SEO Insights Permissions
+  SEO_DASHBOARD_VIEW: 'admin:seo:view',
+  SEO_DASHBOARD_MANAGE: 'admin:seo:manage',
 };
 
 /**

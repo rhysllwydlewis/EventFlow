@@ -196,6 +196,15 @@ const REGISTRY = [
     badgeId: 'navBadgeLocations',
   },
   {
+    route: '/admin-seo',
+    htmlFile: 'admin-seo',
+    label: 'SEO Insights',
+    icon: '🔍',
+    category: 'content',
+    inNav: true,
+    desc: 'Search Console performance, keyword gaps and rewrite opportunities',
+  },
+  {
     route: '/admin-reports',
     htmlFile: 'admin-reports',
     label: 'Reports',
