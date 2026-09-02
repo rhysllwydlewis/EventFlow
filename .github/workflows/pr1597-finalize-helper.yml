@@ -181,15 +181,21 @@ jobs:
           `,
             googlePath
           );
-          google = google.replace(
-            `    container.classList.add('is-ready');
-          }`,
-            `    container.classList.add('is-ready');
-            document.dispatchEvent(
-              new CustomEvent('eventflow:google-button-rendered', { detail: { context, buttonWidth } })
-            );
-          }`
+
+          const renderStart = google.indexOf(
+            '  function renderGoogleButton(container, context, baseRenderOptions) {'
           );
+          const readyMarker = "    container.classList.add('is-ready');";
+          const readyIndex = google.indexOf(readyMarker, renderStart);
+          if (renderStart === -1 || readyIndex === -1) {
+            throw new Error('Google render completion marker not found');
+          }
+          const readyEnd = readyIndex + readyMarker.length;
+          google =
+            google.slice(0, readyEnd) +
+            "\n    document.dispatchEvent(\n      new CustomEvent('eventflow:google-button-rendered', { detail: { context, buttonWidth } })\n    );" +
+            google.slice(readyEnd);
+
           const observerStart = google.lastIndexOf(
             "    if (typeof window.MutationObserver === 'function') {"
           );
@@ -255,7 +261,7 @@ jobs:
           tests/unit/auth-signup-layout.test.js
 
       - name: Run focused unit test
-        run: npx jest tests/unit/auth-signup-layout.test.js --runInBand
+        run: npx jest tests/unit/auth-signup-layout.test.js --runInBand --coverage=false
 
       - name: Lint production auth scripts
         run: npx eslint --rulesdir eslint-rules public/assets/js/pages/auth-google-init.js public/assets/js/pages/auth-facebook-init.js
