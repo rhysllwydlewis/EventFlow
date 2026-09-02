@@ -82,32 +82,29 @@ describe('auth signup layout', () => {
     );
   });
 
-  it(
-    'keeps Facebook synchronized to the rendered Google control without DOM mutation polling',
-    () => {
-      const googleSignupCss = fs.readFileSync(
-        path.join(__dirname, '../../public/assets/css/auth-google-signup.css'),
-        'utf8'
-      );
-      const facebookInit = fs.readFileSync(
-        path.join(__dirname, '../../public/assets/js/pages/auth-facebook-init.js'),
-        'utf8'
-      );
-      const googleInit = fs.readFileSync(
-        path.join(__dirname, '../../public/assets/js/pages/auth-google-init.js'),
-        'utf8'
-      );
+  it('keeps Facebook synchronized to the rendered Google control without DOM mutation polling', () => {
+    const googleSignupCss = fs.readFileSync(
+      path.join(__dirname, '../../public/assets/css/auth-google-signup.css'),
+      'utf8'
+    );
+    const facebookInit = fs.readFileSync(
+      path.join(__dirname, '../../public/assets/js/pages/auth-facebook-init.js'),
+      'utf8'
+    );
+    const googleInit = fs.readFileSync(
+      path.join(__dirname, '../../public/assets/js/pages/auth-google-init.js'),
+      'utf8'
+    );
 
-      // Match Facebook to the visible GIS footprint rather than the iframe's raw box.
-      expect(googleSignupCss).toMatch(
-        /body\.auth-page \.auth-facebook-button\s*\{[^}]*width: min\(100%, var\(--google-button-width, 320px\)\);[^}]*margin-inline: auto;/s
-      );
-      expect(facebookInit).toContain('new window.ResizeObserver(syncFacebookButtonWidths)');
-      expect(facebookInit).not.toContain('MutationObserver');
-      expect(facebookInit).toContain("'eventflow:google-button-rendered'");
-      expect(googleInit).toContain('function getContentWidth(element)');
-      expect(googleInit).toContain("new CustomEvent('eventflow:google-button-rendered'");
-      expect(googleInit).toContain("'eventflow:auth-tab-change'");
-    }
-  );
+    // Match Facebook to the visible GIS footprint rather than the iframe's raw box.
+    expect(googleSignupCss).toMatch(
+      /body\.auth-page \.auth-facebook-button\s*\{[^}]*width: min\(100%, var\(--google-button-width, 320px\)\);[^}]*margin-inline: auto;/s
+    );
+    expect(facebookInit).toContain('new window.ResizeObserver(syncFacebookButtonWidths)');
+    expect(facebookInit).not.toContain('MutationObserver');
+    expect(facebookInit).toContain("'eventflow:google-button-rendered'");
+    expect(googleInit).toContain('function getContentWidth(element)');
+    expect(googleInit).toContain("new CustomEvent('eventflow:google-button-rendered'");
+    expect(googleInit).toContain("'eventflow:auth-tab-change'");
+  });
 });
