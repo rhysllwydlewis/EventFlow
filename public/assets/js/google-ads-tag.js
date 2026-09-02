@@ -19,7 +19,7 @@
     }
     try {
       const consent = window.CookieConsent.getConsent();
-      return !!(consent && consent.analytics);
+      return Boolean(consent?.analytics);
     } catch {
       return false;
     }
@@ -34,8 +34,8 @@
     window.dataLayer = window.dataLayer || [];
     window.gtag =
       window.gtag ||
-      function gtag() {
-        window.dataLayer.push(arguments);
+      function gtag(...args) {
+        window.dataLayer.push(args);
       };
     window.gtag('js', new Date());
     window.gtag('config', GOOGLE_ADS_ID);
@@ -49,7 +49,7 @@
   function init() {
     loadGoogleAdsTag();
     window.addEventListener('cookieConsentChanged', event => {
-      if (event && event.detail && event.detail.analytics === true) {
+      if (event?.detail?.analytics === true) {
         loadGoogleAdsTag();
       }
     });
