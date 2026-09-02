@@ -2,11 +2,13 @@
 import { test, expect } from '@playwright/test';
 
 const SOCIAL_BUTTON_MAX_WIDTH = 320;
+const GIS_HORIZONTAL_GUTTER = 10;
 const GOOGLE_DYNAMIC_WIDTH = 260;
 
 const VIEWPORTS = [
   { name: '320', width: 320, height: 568 },
   { name: '360', width: 360, height: 640 },
+  { name: '375', width: 375, height: 667 },
   { name: '389', width: 389, height: 844 },
   { name: '390', width: 390, height: 844 },
   { name: '391', width: 391, height: 844 },
@@ -26,14 +28,22 @@ const GOOGLE_STATES = [
     width: 'requested',
   },
   {
-    name: 'personalized',
-    label: 'Continue as Rhys',
-    width: 304,
+    name: 'personalized-one-session',
+    label: 'Sign in as Rhys',
+    sublabel: 'rhys@example.com',
+    width: 'requested',
   },
   {
-    name: 'returning-account',
-    label: 'Rhys Lewis',
-    width: 276,
+    name: 'personalized-multiple-sessions',
+    label: 'Sign in as Rhys',
+    sublabel: 'rhys@example.com  ▾',
+    width: 'requested',
+  },
+  {
+    name: 'compact-personalized',
+    label: 'Continue as Rhys',
+    sublabel: 'rhys@example.com',
+    width: 304,
   },
   {
     name: 'localized-long-copy',
@@ -56,20 +66,22 @@ const PANELS = [
 const SCREENSHOT_VIEWPORTS = new Set(['320', '390', '391', '768', '1440']);
 const SCREENSHOT_STATES = new Set([
   'generic',
-  'personalized',
-  'returning-account',
+  'personalized-one-session',
+  'personalized-multiple-sessions',
+  'compact-personalized',
   'localized-long-copy',
   'dynamic-personalization',
 ]);
 
 /**
- * Browser-level regression proof for the exact production failure behind #1597.
+ * Browser-level regression proof for the production failure behind #1597.
  *
- * Google's documented standard button can render either normal text or
- * personalized account information, and its locale may also change the copy
- * and resulting geometry. This harness deliberately exercises those variants,
- * a late personalization resize, both auth panels, and the responsive boundary
- * around the 390px EventFlow breakpoint.
+ * Google documents that the standard button may switch between generic and
+ * personalized content based on session state, and that locale can change its
+ * visible copy. GIS also renders the real button inside an iframe with extra
+ * horizontal gutter and negative margins. That gutter must remain intact: if
+ * EventFlow constrains the iframe itself to the host width, the right edge of
+ * the pill is cut off exactly as seen in production.
  */
 test.describe('auth provider geometry', () => {
   test.beforeEach(async ({ page }) => {
@@ -100,10 +112,24 @@ test.describe('auth provider geometry', () => {
         contentType: 'application/javascript',
         body: `
           (function () {
+            var gutter = ${GIS_HORIZONTAL_GUTTER};
             var variants = {
               generic: { label: 'Sign in with Google', width: 'requested' },
-              personalized: { label: 'Continue as Rhys', width: 304 },
-              'returning-account': { label: 'Rhys Lewis', width: 276 },
+              'personalized-one-session': {
+                label: 'Sign in as Rhys',
+                sublabel: 'rhys@example.com',
+                width: 'requested'
+              },
+              'personalized-multiple-sessions': {
+                label: 'Sign in as Rhys',
+                sublabel: 'rhys@example.com  ▾',
+                width: 'requested'
+              },
+              'compact-personalized': {
+                label: 'Continue as Rhys',
+                sublabel: 'rhys@example.com',
+                width: 304
+              },
               'localized-long-copy': {
                 label: 'Continue with your Google Account',
                 width: 'requested'
@@ -115,6 +141,46 @@ test.describe('auth provider geometry', () => {
               }
             };
 
+            function frameHtml(variant, visibleWidth) {
+              var safeLabel = String(variant.label || '')
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;');
+              var safeSublabel = String(variant.sublabel || '')
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;');
+              var secondary = safeSublabel
+                ? '<span style="display:block;color:#5f6368;font:11px Arial;margin-top:1px;overflow:hidden;text-overflow:ellipsis">' +
+                  safeSublabel +
+                  '</span>'
+                : '';
+
+              return (
+                '<!doctype html><html><body style="margin:0;width:' +
+                (visibleWidth + gutter * 2) +
+                'px;height:44px;overflow:hidden;background:transparent">' +
+                '<div data-testid="mock-google-visible-pill" style="box-sizing:border-box;margin:2px ' +
+                gutter +
+                'px;width:' +
+                visibleWidth +
+                'px;height:40px;border:1px solid #747775;border-radius:20px;background:#fff;color:#1f1f1f;display:flex;align-items:center;padding:0 10px;font-family:Arial;overflow:hidden">' +
+                '<span style="width:20px;height:20px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-weight:700;color:#4285f4;flex:0 0 20px">G</span>' +
+                '<span style="display:block;min-width:0;margin-left:10px;font-size:12px;line-height:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"><strong style="font-weight:600">' +
+                safeLabel +
+                '</strong>' +
+                secondary +
+                '</span>' +
+                '<span style="margin-left:auto;padding-left:8px;font-weight:700;color:#4285f4">G</span>' +
+                '</div></body></html>'
+              );
+            }
+
+            function updateFrame(frame, variant, visibleWidth, stateName) {
+              frame.setAttribute('data-google-state', stateName);
+              frame.setAttribute('data-visible-width', String(visibleWidth));
+              frame.style.width = visibleWidth + gutter * 2 + 'px';
+              frame.srcdoc = frameHtml(variant, visibleWidth);
+            }
+
             window.google = {
               accounts: {
                 id: {
@@ -124,37 +190,44 @@ test.describe('auth provider geometry', () => {
                     var stateName = params.get('gis_test_state') || 'generic';
                     var variant = variants[stateName] || variants.generic;
                     var requestedWidth = Number(options && options.width) || 320;
-                    var targetWidth =
+                    var visibleWidth =
                       variant.width === 'requested'
                         ? requestedWidth
                         : Math.min(requestedWidth, Number(variant.width));
 
+                    var wrapper = document.createElement('div');
+                    wrapper.className = 'S9gUrf-YoZ4jf';
+                    wrapper.style.position = 'relative';
+
+                    var placeholder = document.createElement('div');
+                    wrapper.appendChild(placeholder);
+
                     var frame = document.createElement('iframe');
                     frame.title = 'Mock Google state: ' + stateName;
                     frame.setAttribute('data-testid', 'mock-google-control');
-                    frame.setAttribute('data-google-state', stateName);
                     frame.style.display = 'block';
-                    frame.style.boxSizing = 'border-box';
-                    frame.style.width = targetWidth + 'px';
-                    frame.style.maxWidth = '100%';
-                    frame.style.height = '40px';
-                    frame.style.border = '1px solid rgb(218, 220, 224)';
-                    frame.style.borderRadius = '999px';
-                    frame.style.background = 'white';
-                    frame.srcdoc =
-                      '<!doctype html><body style="margin:0;padding:0 14px;box-sizing:border-box;font:14px Arial;display:flex;align-items:center;height:38px;white-space:nowrap;overflow:hidden"><span style="font-weight:600">' +
-                      variant.label.replace(/&/g, '&amp;').replace(/</g, '&lt;') +
-                      '</span><span style="margin-left:auto;padding-left:12px;font-weight:700">G</span></body>';
-                    container.appendChild(frame);
+                    frame.style.position = 'relative';
+                    frame.style.top = '0px';
+                    frame.style.left = '0px';
+                    frame.style.height = '44px';
+                    frame.style.border = '0px';
+                    frame.style.margin = '-2px -' + gutter + 'px';
+                    updateFrame(frame, variant, visibleWidth, stateName);
+                    wrapper.appendChild(frame);
+                    container.appendChild(wrapper);
 
                     if (variant.dynamic) {
                       window.setTimeout(function () {
                         var resizedWidth = Math.min(requestedWidth, ${GOOGLE_DYNAMIC_WIDTH});
-                        frame.style.width = resizedWidth + 'px';
-                        frame.setAttribute('data-google-state', 'personalized-late');
-                        frame.title = 'Mock Google state: personalized-late';
-                        frame.srcdoc =
-                          '<!doctype html><body style="margin:0;padding:0 14px;box-sizing:border-box;font:14px Arial;display:flex;align-items:center;height:38px;white-space:nowrap;overflow:hidden"><span style="font-weight:600">Continue as Rhys</span><span style="margin-left:auto;padding-left:12px;font-weight:700">G</span></body>';
+                        updateFrame(
+                          frame,
+                          {
+                            label: 'Sign in as Rhys',
+                            sublabel: 'rhys@example.com'
+                          },
+                          resizedWidth,
+                          'personalized-late'
+                        );
                       }, 650);
                     }
                   }
@@ -188,9 +261,9 @@ test.describe('auth provider geometry', () => {
 
     await expect
       .poll(async () => {
-        const googleBox = await googleFrame.boundingBox();
+        const visibleWidth = Number(await googleFrame.getAttribute('data-visible-width')) || 0;
         const facebookBox = await facebookButton.boundingBox();
-        return Math.abs((googleBox?.width || 0) - (facebookBox?.width || 0));
+        return Math.abs(visibleWidth - (facebookBox?.width || 0));
       })
       .toBeLessThanOrEqual(1);
 
@@ -212,36 +285,46 @@ test.describe('auth provider geometry', () => {
       const frameRect = frame.getBoundingClientRect();
       const facebookRect = facebook.getBoundingClientRect();
       const cardRect = card.getBoundingClientRect();
+      const frameStyles = getComputedStyle(frame);
+      const marginLeft = Number.parseFloat(frameStyles.marginLeft || '0') || 0;
+      const marginRight = Number.parseFloat(frameStyles.marginRight || '0') || 0;
+      const visibleWidth = Number(frame.dataset.visibleWidth || 0);
+      const footprintWidth = Math.round(frameRect.width + marginLeft + marginRight);
 
       return {
         hostWidth: Math.round(hostRect.width),
         frameWidth: Math.round(frameRect.width),
         facebookWidth: Math.round(facebookRect.width),
         cardWidth: Math.round(cardRect.width),
+        visibleWidth,
+        footprintWidth,
+        marginLeft,
+        marginRight,
         hostOverflow: getComputedStyle(host).overflow,
-        frameRightInsideHost: frameRect.right <= hostRect.right + 1,
-        frameLeftInsideHost: frameRect.left >= hostRect.left - 1,
-        frameRightInsideCard: frameRect.right <= cardRect.right + 1,
+        frameMaxWidth: frameStyles.maxWidth,
         frameLeftInsideCard: frameRect.left >= cardRect.left - 1,
-        facebookRightInsideCard: facebookRect.right <= cardRect.right + 1,
+        frameRightInsideCard: frameRect.right <= cardRect.right + 1,
         facebookLeftInsideCard: facebookRect.left >= cardRect.left - 1,
+        facebookRightInsideCard: facebookRect.right <= cardRect.right + 1,
       };
     });
 
     expect(geometry).not.toBeNull();
     expect(geometry.hostOverflow).toBe('visible');
-    expect(Math.abs(geometry.frameWidth - geometry.facebookWidth)).toBeLessThanOrEqual(1);
-    expect(geometry.frameWidth).toBeGreaterThan(0);
-    expect(geometry.facebookWidth).toBeGreaterThan(0);
-    expect(geometry.frameWidth).toBeLessThanOrEqual(SOCIAL_BUTTON_MAX_WIDTH);
+    expect(geometry.frameMaxWidth).toBe('none');
+    expect(geometry.marginLeft).toBe(-GIS_HORIZONTAL_GUTTER);
+    expect(geometry.marginRight).toBe(-GIS_HORIZONTAL_GUTTER);
+    expect(geometry.frameWidth).toBe(geometry.visibleWidth + GIS_HORIZONTAL_GUTTER * 2);
+    expect(geometry.footprintWidth).toBe(geometry.visibleWidth);
+    expect(Math.abs(geometry.facebookWidth - geometry.visibleWidth)).toBeLessThanOrEqual(1);
+    expect(geometry.visibleWidth).toBeGreaterThan(0);
+    expect(geometry.visibleWidth).toBeLessThanOrEqual(SOCIAL_BUTTON_MAX_WIDTH);
     expect(geometry.facebookWidth).toBeLessThanOrEqual(SOCIAL_BUTTON_MAX_WIDTH);
     expect(geometry.hostWidth).toBeLessThanOrEqual(SOCIAL_BUTTON_MAX_WIDTH);
-    expect(geometry.frameRightInsideHost).toBe(true);
-    expect(geometry.frameLeftInsideHost).toBe(true);
-    expect(geometry.frameRightInsideCard).toBe(true);
     expect(geometry.frameLeftInsideCard).toBe(true);
-    expect(geometry.facebookRightInsideCard).toBe(true);
+    expect(geometry.frameRightInsideCard).toBe(true);
     expect(geometry.facebookLeftInsideCard).toBe(true);
+    expect(geometry.facebookRightInsideCard).toBe(true);
 
     return geometry;
   }
@@ -264,7 +347,9 @@ test.describe('auth provider geometry', () => {
               })
               .toBe('personalized-late');
             const personalizedGeometry = await expectProviderGeometry(panelRoot);
-            expect(personalizedGeometry.frameWidth).toBeLessThanOrEqual(initialGeometry.frameWidth);
+            expect(personalizedGeometry.visibleWidth).toBeLessThanOrEqual(
+              initialGeometry.visibleWidth
+            );
           } else {
             await expectProviderGeometry(panelRoot);
           }
@@ -295,7 +380,7 @@ test.describe('auth provider geometry', () => {
   test('supplier signup disabled and ready states preserve provider geometry', async ({ page }) => {
     for (const viewport of VIEWPORTS) {
       await page.setViewportSize({ width: viewport.width, height: viewport.height });
-      const panelRoot = await openPanel(page, PANELS[1], 'personalized');
+      const panelRoot = await openPanel(page, PANELS[1], 'personalized-one-session');
 
       await panelRoot.getByRole('radio', { name: /Supplier/i }).click();
 
