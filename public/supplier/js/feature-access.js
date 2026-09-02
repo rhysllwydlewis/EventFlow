@@ -131,7 +131,7 @@ export function getFeatureLimit(featureName) {
 /**
  * Check if user has reached package limit
  */
-export async function hasReachedPackageLimit(currentCount) {
+export function hasReachedPackageLimit(currentCount) {
   const limit = getFeatureLimit('maxPackages');
   if (limit === -1) {
     return false;
@@ -142,7 +142,7 @@ export async function hasReachedPackageLimit(currentCount) {
 /**
  * Check if user has reached booking limit
  */
-export async function hasReachedBookingLimit(currentCount) {
+export function hasReachedBookingLimit(currentCount) {
   const limit = getFeatureLimit('maxBookings');
   if (limit === -1) {
     return false;
@@ -258,7 +258,7 @@ export function lockFeature(element, featureName) {
 /**
  * Check and enforce package limit
  */
-export async function enforcePackageLimit(currentPackageCount) {
+export function enforcePackageLimit(currentPackageCount) {
   const limit = getFeatureLimit('maxPackages');
 
   if (limit === -1) {

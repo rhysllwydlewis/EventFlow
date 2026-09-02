@@ -282,28 +282,28 @@
   /**
    * Enhanced login with api-client
    */
-  async function enhancedLogin(email, password, remember = false) {
+  function enhancedLogin(email, password, remember = false) {
     return makeAuthRequest('auth/login', { email, password, remember });
   }
 
   /**
    * Enhanced registration with api-client
    */
-  async function enhancedRegister(formData) {
+  function enhancedRegister(formData) {
     return makeAuthRequest('auth/register', formData);
   }
 
   /**
    * Enhanced forgot password with api-client
    */
-  async function enhancedForgotPassword(email) {
+  function enhancedForgotPassword(email) {
     return makeAuthRequest('auth/forgot', { email });
   }
 
   /**
    * Enhanced resend verification with api-client
    */
-  async function enhancedResendVerification(email) {
+  function enhancedResendVerification(email) {
     return makeAuthRequest('auth/resend-verification', { email });
   }
 

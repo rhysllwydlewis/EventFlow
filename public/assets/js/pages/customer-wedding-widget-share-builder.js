@@ -67,7 +67,7 @@
     }, 2400);
   }
 
-  async function getPlan() {
+  function getPlan() {
     if (cachedPlans.length) {
       return cachedPlans.find(isWeddingPlan) || null;
     }
@@ -83,7 +83,7 @@
     return planPromise;
   }
 
-  async function getSite(force = false) {
+  function getSite(force = false) {
     if (sitePromise && !force) {
       return sitePromise;
     }
@@ -357,7 +357,7 @@
     });
   }
 
-  async function refreshSeatingTab(root) {
+  function refreshSeatingTab(root) {
     root.closest('.ww-app-dialog')?.querySelector('.ww-app-tabs [data-tab="seating"]')?.click();
   }
 

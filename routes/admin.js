@@ -5508,7 +5508,7 @@ router.put(
  * GET /api/admin/homepage/collage-media
  * List all uploaded collage media files
  */
-router.get('/homepage/collage-media', authRequired, roleRequired('admin'), async (req, res) => {
+router.get('/homepage/collage-media', authRequired, roleRequired('admin'), (req, res) => {
   try {
     if (!fs.existsSync(collageUploadDir)) {
       return res.json({ media: [] });
@@ -5553,7 +5553,7 @@ router.post(
   roleRequired('admin'),
   csrfProtection,
   collageUpload.array('media', 10), // Allow up to 10 files at once
-  async (req, res) => {
+  (req, res) => {
     try {
       if (!req.files || req.files.length === 0) {
         return res.status(400).json({ error: 'No media files provided' });
@@ -6345,7 +6345,7 @@ router.post(
  * GET /api/admin/backup/list
  * List all available backups
  */
-router.get('/backup/list', authRequired, roleRequired('admin'), writeLimiter, async (req, res) => {
+router.get('/backup/list', authRequired, roleRequired('admin'), writeLimiter, (req, res) => {
   try {
     const backupsDir = path.join(__dirname, '..', 'backups');
 
@@ -6586,7 +6586,7 @@ router.get('/pexels/test', authRequired, roleRequired('admin'), async (req, res)
  * GET /api/admin/analytics/competitors (P3-17: Competitor Analysis)
  * Get competitor analysis dashboard data
  */
-router.get('/analytics/competitors', authRequired, roleRequired('admin'), async (req, res) => {
+router.get('/analytics/competitors', authRequired, roleRequired('admin'), (req, res) => {
   try {
     // Define key competitors
     const competitors = [

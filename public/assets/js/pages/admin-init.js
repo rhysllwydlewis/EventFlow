@@ -37,7 +37,7 @@
     }
   }
 
-  async function _adminConfirm(msg) {
+  function _adminConfirm(msg) {
     if (window.AdminShared && window.AdminShared.showConfirmModal) {
       return window.AdminShared.showConfirmModal({
         title: 'Confirm',
@@ -1292,7 +1292,7 @@
     }
   };
 
-  window.revokeAdmin = async function (id) {
+  window.revokeAdmin = function (id) {
     // Create modal content with role selection
     const content = document.createElement('div');
     content.innerHTML =
@@ -1447,7 +1447,7 @@
   };
 
   // Suspend / unsuspend a user account
-  window.suspendUser = async function (id, currentlySuspended) {
+  window.suspendUser = function (id, currentlySuspended) {
     return safeExecute(async () => {
       const action = currentlySuspended ? 'Unsuspend' : 'Suspend';
       const msg = currentlySuspended
@@ -1477,7 +1477,7 @@
   };
 
   // Supplier management functions
-  window.deleteSupplier = async function (id) {
+  window.deleteSupplier = function (id) {
     return safeExecute(async () => {
       if (typeof Modal !== 'undefined') {
         const modal = new Modal({
@@ -1656,7 +1656,7 @@
   };
 
   // Package management functions
-  window.deletePackage = async function (id) {
+  window.deletePackage = function (id) {
     return safeExecute(async () => {
       if (typeof Modal !== 'undefined') {
         const modal = new Modal({

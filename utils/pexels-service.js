@@ -364,7 +364,7 @@ class PexelsService {
           data += chunk;
         });
 
-        res.on('end', async () => {
+        res.on('end', () => {
           if (res.statusCode === 200) {
             try {
               const parsedData = JSON.parse(data);
@@ -504,7 +504,7 @@ class PexelsService {
         });
       });
 
-      req.on('error', async error => {
+      req.on('error', error => {
         logger.error('❌ Pexels API request error:', error.message);
         logger.error('💡 Hint: Check network connectivity and DNS resolution');
 
@@ -536,7 +536,7 @@ class PexelsService {
         reject(enhancedError);
       });
 
-      req.on('timeout', async () => {
+      req.on('timeout', () => {
         req.destroy();
         logger.error('❌ Pexels API request timeout (10s)');
         logger.error('💡 Hint: Consider increasing timeout or checking API responsiveness');

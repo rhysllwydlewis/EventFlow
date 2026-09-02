@@ -94,14 +94,14 @@ class APIClient {
   /**
    * GET request
    */
-  async get(path, options = {}) {
+  get(path, options = {}) {
     return this.request(path, { ...options, method: 'GET' });
   }
 
   /**
    * POST request
    */
-  async post(path, body, options = {}) {
+  post(path, body, options = {}) {
     return this.request(path, {
       ...options,
       method: 'POST',
@@ -112,7 +112,7 @@ class APIClient {
   /**
    * PUT request
    */
-  async put(path, body, options = {}) {
+  put(path, body, options = {}) {
     return this.request(path, {
       ...options,
       method: 'PUT',
@@ -123,7 +123,7 @@ class APIClient {
   /**
    * DELETE request
    */
-  async delete(path, options = {}) {
+  delete(path, options = {}) {
     return this.request(path, { ...options, method: 'DELETE' });
   }
 }

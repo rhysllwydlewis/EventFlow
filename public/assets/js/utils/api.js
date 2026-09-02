@@ -122,7 +122,7 @@ class API {
    * @param {Object} params - Query parameters
    * @returns {Promise<Object>} - Response data
    */
-  async get(endpoint, params = {}) {
+  get(endpoint, params = {}) {
     const queryString = new URLSearchParams(params).toString();
     const url = queryString ? `${endpoint}?${queryString}` : endpoint;
 
@@ -135,7 +135,7 @@ class API {
    * @param {Object} data - Request body
    * @returns {Promise<Object>} - Response data
    */
-  async post(endpoint, data = {}) {
+  post(endpoint, data = {}) {
     return this.request(endpoint, {
       method: 'POST',
       body: JSON.stringify(data),
@@ -148,7 +148,7 @@ class API {
    * @param {Object} data - Request body
    * @returns {Promise<Object>} - Response data
    */
-  async put(endpoint, data = {}) {
+  put(endpoint, data = {}) {
     return this.request(endpoint, {
       method: 'PUT',
       body: JSON.stringify(data),
@@ -160,7 +160,7 @@ class API {
    * @param {string} endpoint - API endpoint
    * @returns {Promise<Object>} - Response data
    */
-  async delete(endpoint) {
+  delete(endpoint) {
     return this.request(endpoint, { method: 'DELETE' });
   }
 
@@ -170,7 +170,7 @@ class API {
    * @param {FormData} formData - Form data with file(s)
    * @returns {Promise<Object>} - Response data
    */
-  async upload(endpoint, formData) {
+  upload(endpoint, formData) {
     return this.request(endpoint, {
       method: 'POST',
       body: formData,

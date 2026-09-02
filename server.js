@@ -415,7 +415,7 @@ if (process.env.NODE_ENV === 'production') {
 }
 
 // Email sending wrapper (for backward compatibility with inline routes)
-async function sendMail(toOrOpts, subject, text) {
+function sendMail(toOrOpts, subject, text) {
   return emailConfig.sendMail(toOrOpts, subject, text);
 }
 
@@ -858,7 +858,7 @@ supplierProfileValidationRoutes.post(
   authRequired,
   roleRequired('supplier'),
   csrfProtection,
-  async (req, res, next) => {
+  (req, res, next) => {
     const { category, venuePostcode } = req.body || {};
     if (category === 'Venues') {
       if (!venuePostcode) {
@@ -879,7 +879,7 @@ supplierProfileValidationRoutes.patch(
   authRequired,
   roleRequired('supplier'),
   csrfProtection,
-  async (req, res, next) => {
+  (req, res, next) => {
     const { category, venuePostcode } = req.body || {};
     if (category === 'Venues' && venuePostcode !== undefined && !isValidUKPostcode(venuePostcode)) {
       return res.status(400).json({ error: 'Invalid UK postcode format' });
@@ -995,7 +995,7 @@ const getAuthMeHandler = async (req, res) => {
 app.get('/api/v1/auth/me', getAuthMeHandler);
 app.get('/api/auth/me', legacyApiDeprecation('/api/auth/me', '/api/v1/auth/me'), getAuthMeHandler);
 
-const authLoginDelegationHandler = async (req, res, next) => {
+const authLoginDelegationHandler = (req, res, next) => {
   // Owner enforcement applied during login:
   // const OWNER_EMAIL = 'admin@event-flow.co.uk'
   // const isOwner = email.toLowerCase() === OWNER_EMAIL.toLowerCase()

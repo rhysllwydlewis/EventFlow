@@ -166,7 +166,7 @@ async function createPartner(userId) {
 const getPartnerByUserId = userId => dbUnified.findOne('partners', { userId });
 const getPartnerById = partnerId => dbUnified.findOne('partners', { id: partnerId });
 
-async function getPartnerByCurrentRefCode(refCode) {
+function getPartnerByCurrentRefCode(refCode) {
   const code = cleanRefCode(refCode);
   return code ? dbUnified.findOne('partners', { refCode: code }) : null;
 }
@@ -202,7 +202,7 @@ async function listPartners({ search, status } = {}) {
   return list;
 }
 
-async function setPartnerStatus(partnerId, status) {
+function setPartnerStatus(partnerId, status) {
   return dbUnified.updateOne(
     'partners',
     { id: partnerId },
@@ -350,7 +350,7 @@ async function getPendingPoints(partnerId) {
   };
 }
 
-async function awardCredit({ partnerId, supplierUserId, type, amount, notes }) {
+function awardCredit({ partnerId, supplierUserId, type, amount, notes }) {
   const lockKey = `${partnerId}:${supplierUserId}:${type}`;
   return runExclusive(lockKey, async () => {
     const duplicate = await dbUnified.findOne('partner_credit_transactions', {
@@ -468,7 +468,7 @@ async function awardFirstReviewBonus(supplierUserId) {
   });
 }
 
-async function awardProfileApprovedBonus() {
+function awardProfileApprovedBonus() {
   return null;
 }
 
