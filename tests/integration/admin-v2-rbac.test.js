@@ -5,6 +5,50 @@
 
 const fs = require('fs');
 const path = require('path');
+const request = require('supertest');
+const express = require('express');
+
+// Used only by the behavioral describe block near the bottom of this file
+// ("Mass assignment & privilege escalation protections — behavioral"). Every
+// other describe block above reads route source via fs.readFileSync and never
+// requires routes/admin-v2.js, so these mocks don't affect them.
+const mockAuthState = { user: { id: 'admin-1', email: 'admin@example.com', role: 'admin' } };
+const mockUsers = [];
+const mockSuppliers = [];
+const mockUpdateOne = jest.fn(async () => true);
+
+jest.mock('../../middleware/auth', () => ({
+  authRequired: (req, _res, next) => {
+    req.user = mockAuthState.user;
+    next();
+  },
+  roleRequired: () => (_req, _res, next) => next(),
+}));
+
+jest.mock('../../middleware/csrf', () => ({
+  csrfProtection: (_req, _res, next) => next(),
+}));
+
+jest.mock('../../utils/auditTrail', () => ({
+  createAuditLog: jest.fn(async () => undefined),
+  queryAuditLogs: jest.fn(async () => []),
+  getAuditLogById: jest.fn(async () => null),
+  getUserAuditLogs: jest.fn(async () => []),
+  getAuditStatistics: jest.fn(async () => ({})),
+}));
+
+jest.mock('../../db-unified', () => ({
+  read: jest.fn(async collection => {
+    if (collection === 'users') {
+      return mockUsers;
+    }
+    if (collection === 'suppliers') {
+      return mockSuppliers;
+    }
+    return [];
+  }),
+  updateOne: (...args) => mockUpdateOne(...args),
+}));
 
 describe('Admin v2 API Integration Tests', () => {
   describe('File Structure Verification', () => {
@@ -574,6 +618,137 @@ describe('Admin v2 API Integration Tests', () => {
 
       expect(handlerSource).toContain('PERMISSIONS.USERS_GRANT_ADMIN');
       expect(handlerSource).toMatch(/hasPermission\(req\.user, PERMISSIONS\.USERS_GRANT_ADMIN\)/);
+    });
+  });
+
+  describe('Mass assignment & privilege escalation protections — behavioral', () => {
+    // eslint-disable-next-line global-require
+    const adminV2Routes = require('../../routes/admin-v2');
+
+    function buildApp() {
+      const app = express();
+      app.use(express.json());
+      app.use('/api/v2/admin', adminV2Routes);
+      return app;
+    }
+
+    beforeEach(() => {
+      mockUsers.length = 0;
+      mockSuppliers.length = 0;
+      mockUpdateOne.mockClear();
+      mockAuthState.user = { id: 'admin-1', email: 'admin@example.com', role: 'admin' };
+    });
+
+    describe('PUT /suppliers/:id', () => {
+      beforeEach(() => {
+        mockSuppliers.push({
+          id: 'sup-1',
+          name: 'Old Name',
+          category: 'venue',
+          verified: false,
+          approved: false,
+          ownerId: 'owner-1',
+        });
+      });
+
+      it('rejects verified/approved set directly with 400 and does not write', async () => {
+        const app = buildApp();
+
+        const res = await request(app)
+          .put('/api/v2/admin/suppliers/sup-1')
+          .send({ verified: true });
+
+        expect(res.status).toBe(400);
+        expect(res.body.code).toBe('FIELD_NOT_ALLOWED');
+        expect(mockUpdateOne).not.toHaveBeenCalled();
+      });
+
+      it('only applies allowlisted fields, ignoring ownerId and other non-allowlisted keys', async () => {
+        const app = buildApp();
+
+        const res = await request(app).put('/api/v2/admin/suppliers/sup-1').send({
+          name: 'New Name',
+          ownerId: 'attacker-controlled-id',
+          notARealField: 'sneaky',
+        });
+
+        expect(res.status).toBe(200);
+        expect(res.body.data.name).toBe('New Name');
+        expect(res.body.data.ownerId).toBe('owner-1'); // unchanged
+        expect(res.body.data.notARealField).toBeUndefined();
+      });
+    });
+
+    describe('PUT /users/:id', () => {
+      beforeEach(() => {
+        mockUsers.push({
+          id: 'usr-1',
+          name: 'Old Name',
+          email: 'old@example.com',
+          role: 'customer',
+        });
+      });
+
+      it('rejects a role value outside the enum with 400', async () => {
+        const app = buildApp();
+
+        const res = await request(app).put('/api/v2/admin/users/usr-1').send({ role: 'superuser' });
+
+        expect(res.status).toBe(400);
+        expect(res.body.code).toBe('INVALID_ROLE');
+        expect(mockUpdateOne).not.toHaveBeenCalled();
+      });
+
+      it('blocks granting admin when the caller lacks USERS_GRANT_ADMIN', async () => {
+        // 'customer' role + only USERS_UPDATE (not USERS_GRANT_ADMIN) via customPermissions
+        mockAuthState.user = {
+          id: 'limited-1',
+          email: 'limited@example.com',
+          role: 'customer',
+          customPermissions: ['admin:users:update'],
+        };
+        const app = buildApp();
+
+        const res = await request(app).put('/api/v2/admin/users/usr-1').send({ role: 'admin' });
+
+        expect(res.status).toBe(403);
+        expect(res.body.code).toBe('PERMISSION_DENIED');
+        expect(res.body.requiredPermission).toBe('admin:users:grant-admin');
+        expect(mockUpdateOne).not.toHaveBeenCalled();
+      });
+
+      it('allows a caller with USERS_GRANT_ADMIN to grant admin', async () => {
+        mockAuthState.user = { id: 'admin-1', email: 'admin@example.com', role: 'admin' };
+        const app = buildApp();
+
+        const res = await request(app).put('/api/v2/admin/users/usr-1').send({ role: 'admin' });
+
+        expect(res.status).toBe(200);
+        expect(mockUpdateOne).toHaveBeenCalledWith(
+          'users',
+          { id: 'usr-1' },
+          { $set: expect.objectContaining({ role: 'admin' }) }
+        );
+      });
+
+      it('allows a non-role update (name/email) without requiring USERS_GRANT_ADMIN', async () => {
+        mockAuthState.user = {
+          id: 'limited-1',
+          email: 'limited@example.com',
+          role: 'customer',
+          customPermissions: ['admin:users:update'],
+        };
+        const app = buildApp();
+
+        const res = await request(app).put('/api/v2/admin/users/usr-1').send({ name: 'New Name' });
+
+        expect(res.status).toBe(200);
+        expect(mockUpdateOne).toHaveBeenCalledWith(
+          'users',
+          { id: 'usr-1' },
+          { $set: expect.objectContaining({ name: 'New Name' }) }
+        );
+      });
     });
   });
 

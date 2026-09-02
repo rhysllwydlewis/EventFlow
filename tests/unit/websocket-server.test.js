@@ -6,6 +6,13 @@
 const http = require('http');
 const express = require('express');
 
+// Used only by the "Room-join authorization ... behavioral" describe block below,
+// to control isThreadParticipant()'s return value when exercising
+// websocket-server-v2.js's handleMessageSend() directly.
+jest.mock('../../utils/webSocketMiddleware', () => ({
+  isThreadParticipant: jest.fn(),
+}));
+
 describe('WebSocket Server Initialization', () => {
   let server;
   let app;
@@ -269,6 +276,131 @@ describe('WebSocket Server Initialization', () => {
         /isThreadParticipant\(\s*socket\.userId,\s*threadId,\s*this\.messagingService\s*\)/
       );
       expect(handlerSource).toContain('senderIsParticipant');
+    });
+  });
+
+  describe('Room-join authorization (security fix regression) — behavioral', () => {
+    // Exercises the actual connection-handler closures registered via
+    // `this.io.on('connection', socket => { socket.on('join', ...) ... })` by
+    // capturing that listener directly (bypassing the network stack — no real
+    // socket.io-client connection needed) and invoking it with a lightweight
+    // mock socket, so these lines are actually executed rather than only
+    // pattern-matched in source.
+    function getConnectionHandler(io) {
+      const listeners = io.listeners('connection');
+      return listeners[listeners.length - 1];
+    }
+
+    function createMockSocket() {
+      const handlers = {};
+      return {
+        id: `sock-${Math.random().toString(36).slice(2)}`,
+        handshake: { headers: {} },
+        userId: undefined,
+        on: jest.fn((event, cb) => {
+          handlers[event] = cb;
+        }),
+        emit: jest.fn(),
+        join: jest.fn(),
+        leave: jest.fn(),
+        to: jest.fn(() => ({ emit: jest.fn() })),
+        trigger: (event, ...args) => handlers[event] && handlers[event](...args),
+      };
+    }
+
+    it('v1 join: rejects an unauthenticated socket, blocks reserved user: rooms, allows a real room', () => {
+      const WebSocketServer = require('../../websocket-server');
+      const ws = new WebSocketServer(server);
+      const connHandler = getConnectionHandler(ws.io);
+      const socket = createMockSocket();
+      connHandler(socket);
+
+      socket.trigger('join', 'lobby');
+      expect(socket.emit).toHaveBeenCalledWith('room:error', { error: 'unauthenticated' });
+      expect(socket.join).not.toHaveBeenCalled();
+
+      socket.userId = 'user-1';
+      socket.emit.mockClear();
+      socket.trigger('join', 'user:victim-id');
+      expect(socket.emit).toHaveBeenCalledWith('room:error', {
+        room: 'user:victim-id',
+        error: 'forbidden',
+      });
+      expect(socket.join).not.toHaveBeenCalled();
+
+      socket.trigger('join', 'supplier:abc');
+      expect(socket.join).toHaveBeenCalledWith('supplier:abc');
+    });
+
+    it('v1 messenger:join: rejects an unauthenticated socket, allows an authenticated one', () => {
+      const WebSocketServer = require('../../websocket-server');
+      const ws = new WebSocketServer(server);
+      const connHandler = getConnectionHandler(ws.io);
+      const socket = createMockSocket();
+      connHandler(socket);
+
+      socket.trigger('messenger:join', {});
+      expect(socket.emit).not.toHaveBeenCalled();
+      expect(socket.join).not.toHaveBeenCalled();
+
+      socket.trigger('messenger:join', { conversationId: 'conv-1' });
+      expect(socket.emit).toHaveBeenCalledWith('messenger:join-error', {
+        conversationId: 'conv-1',
+        error: 'unauthenticated',
+      });
+      expect(socket.join).not.toHaveBeenCalled();
+
+      socket.userId = 'user-1';
+      socket.trigger('messenger:join', { conversationId: 'conv-1' });
+      expect(socket.join).toHaveBeenCalledWith('messenger:conv-1');
+    });
+
+    it('v2 chat:v5:join-conversation: no-ops without a conversationId, rejects unauthenticated, allows authenticated', () => {
+      const WebSocketServerV2 = require('../../websocket-server-v2');
+      const ws = new WebSocketServerV2(server, null, null);
+      const connHandler = getConnectionHandler(ws.io);
+      const socket = createMockSocket();
+      connHandler(socket);
+
+      socket.trigger('chat:v5:join-conversation', {});
+      expect(socket.join).not.toHaveBeenCalled();
+
+      socket.trigger('chat:v5:join-conversation', { conversationId: 'conv-1' });
+      expect(socket.join).not.toHaveBeenCalled(); // still unauthenticated
+
+      socket.userId = 'user-1';
+      socket.trigger('chat:v5:join-conversation', { conversationId: 'conv-1' });
+      expect(socket.join).toHaveBeenCalledWith('chat:v5:conv-1');
+    });
+
+    it('v2 handleMessageSend: rejects when the sender is not a thread participant, sends when they are', async () => {
+      const WebSocketServerV2 = require('../../websocket-server-v2');
+      // eslint-disable-next-line global-require
+      const { isThreadParticipant } = require('../../utils/webSocketMiddleware');
+      const ws = new WebSocketServerV2(server, null, null);
+      ws.messagingService = {
+        getThread: jest.fn(async () => ({ participants: ['user-1', 'user-2'] })),
+        sendMessage: jest.fn(async () => ({ _id: { toString: () => 'msg-1' } })),
+      };
+      ws.presenceService = { isOnline: jest.fn(async () => true) };
+      const socket = { userId: 'attacker-id', emit: jest.fn() };
+
+      isThreadParticipant.mockResolvedValueOnce(false);
+      await ws.handleMessageSend(socket, { threadId: 'thread-1', content: 'hi' });
+      expect(socket.emit).toHaveBeenCalledWith('message:error', {
+        error: 'Not a participant in this thread',
+      });
+      expect(ws.messagingService.sendMessage).not.toHaveBeenCalled();
+
+      socket.emit.mockClear();
+      socket.userId = 'user-1';
+      isThreadParticipant.mockResolvedValueOnce(true);
+      await ws.handleMessageSend(socket, { threadId: 'thread-1', content: 'hi' });
+      expect(ws.messagingService.sendMessage).toHaveBeenCalled();
+      expect(socket.emit).toHaveBeenCalledWith(
+        'message:sent',
+        expect.objectContaining({ threadId: 'thread-1' })
+      );
     });
   });
 });

@@ -311,6 +311,25 @@ describe('auth account lifecycle security regressions', () => {
       compareSpy.mockRestore();
     });
 
+    it('POST /login returns a generic 401 (not a 500) when bcrypt.compare itself throws', async () => {
+      const app = buildApp({ users: [], updates: [] });
+      // eslint-disable-next-line global-require
+      const bcrypt = require('bcryptjs');
+      const compareSpy = jest
+        .spyOn(bcrypt, 'compare')
+        .mockRejectedValueOnce(new Error('bcrypt native binding crashed'));
+
+      await request(app)
+        .post('/api/auth/login')
+        .send({ email: 'nobody@example.com', password: 'whatever123' })
+        .expect(401)
+        .expect(res => {
+          expect(res.body.error).toBe('Invalid email or password');
+        });
+
+      compareSpy.mockRestore();
+    });
+
     it('POST /forgot pads the unknown-email branch with an artificial delay before responding', async () => {
       const app = buildApp({ users: [], updates: [] });
 
