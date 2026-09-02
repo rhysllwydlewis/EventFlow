@@ -196,6 +196,46 @@ describe('CSP unsafe-inline Regression', () => {
   });
 });
 
+// ─── connect-src wildcard regression (2026-09-02 security audit fix) ─────────
+// connect-src governs fetch/XHR/WebSocket — the classic XSS-to-exfiltration
+// vector — so unlike img-src/media-src it must NOT fall back to a bare
+// 'https:' wildcard that would let injected script call out to any host.
+describe('CSP connect-src Regression', () => {
+  const securityPath = path.join(__dirname, '../../middleware/security.js');
+  let src;
+  let connectSrcBlock;
+
+  beforeAll(() => {
+    src = fs.readFileSync(securityPath, 'utf8');
+    const match = src.match(/connectSrc:\s*\[([\s\S]*?)\n\s{8}\],/);
+    expect(match).toBeTruthy();
+    connectSrcBlock = match[1];
+  });
+
+  it("does not allow a bare 'https:' wildcard in connectSrc", () => {
+    expect(connectSrcBlock).not.toMatch(/^\s*'https:',?\s*$/m);
+  });
+
+  it('still allows same-origin requests', () => {
+    expect(connectSrcBlock).toContain("'self'");
+  });
+
+  it('explicitly allowlists the third-party APIs the app actually calls', () => {
+    expect(connectSrcBlock).toContain('googletagmanager.com');
+    expect(connectSrcBlock).toContain('google-analytics.com');
+    expect(connectSrcBlock).toContain('api.stripe.com');
+    expect(connectSrcBlock).toContain('static.cloudflareinsights.com');
+    expect(connectSrcBlock).toContain('i.posthog.com');
+  });
+
+  it('imgSrc and mediaSrc keep their documented broad https: allowance (supplier-hosted media)', () => {
+    const imgSrcMatch = src.match(/imgSrc:\s*\[([\s\S]*?)\n\s{8}\],/);
+    const mediaSrcMatch = src.match(/mediaSrc:\s*\[([\s\S]*?)\n\s{8}\],/);
+    expect(imgSrcMatch[1]).toContain("'https:'");
+    expect(mediaSrcMatch[1]).toContain("'https:'");
+  });
+});
+
 // ─── C) HTML inline handler regression ────────────────────────────────────────
 
 describe('HTML Inline Event Handler Regression', () => {

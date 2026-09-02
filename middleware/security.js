@@ -108,7 +108,11 @@ function configureHelmet(isProduction = false) {
         imgSrc: [
           "'self'",
           'data:',
-          'https:', // Allows all HTTPS images
+          // Kept broad (unlike connectSrc below) — supplier/marketplace listings hotlink
+          // photos from arbitrary hosts suppliers choose, so a fixed allowlist would
+          // routinely break real listing images. img-src also can't exfiltrate data the
+          // way fetch/XHR/WebSocket can, so the tradeoff differs from connect-src.
+          'https:',
           'blob:',
           // Explicitly list Pexels domains for documentation and clarity
           // even though 'https:' already allows them
@@ -117,7 +121,8 @@ function configureHelmet(isProduction = false) {
         ],
         mediaSrc: [
           "'self'",
-          'https:', // Allow all HTTPS video/audio sources
+          // Same reasoning as imgSrc above — kept broad for supplier-hosted video/audio.
+          'https:',
           'blob:',
           // Explicitly list Pexels video domain for clarity
           'https://videos.pexels.com',
@@ -125,11 +130,13 @@ function configureHelmet(isProduction = false) {
         ],
         connectSrc: [
           "'self'",
-          'https:',
           'wss:',
           // Allow plaintext WebSocket only in development (hot-reload, local tools).
           // In production all WebSocket traffic must use TLS (wss:).
           ...(isProduction ? [] : ['ws:']),
+          // No bare 'https:' here (unlike imgSrc/mediaSrc above): connect-src governs
+          // fetch/XHR/WebSocket, the classic XSS-to-exfiltration vector, so it's kept to
+          // an explicit allowlist of the third-party APIs the app actually calls.
           'https://googletagmanager.com',
           'https://*.googletagmanager.com',
           'https://*.google-analytics.com',
@@ -138,6 +145,10 @@ function configureHelmet(isProduction = false) {
           'https://api.stripe.com',
           'https://static.cloudflareinsights.com',
           'https://accounts.google.com',
+          // PostHog event ingestion (behaviour-analytics.js / analytics-consent-upgrade.js);
+          // POSTHOG_API_HOST defaults to eu.i.posthog.com but is env-configurable, so this
+          // covers any regional ingestion host under the same PostHog domain.
+          'https://*.i.posthog.com',
         ],
         frameSrc: [
           "'self'",
@@ -412,10 +423,14 @@ function resolveCanonicalProductionOrigin() {
  */
 function configureHTTPSRedirect(isProduction = false) {
   return (req, res, next) => {
-    if (!isProduction) return next();
+    if (!isProduction) {
+      return next();
+    }
 
     // Railway probes these endpoints directly; do not redirect health traffic.
-    if (req.path === '/api/health' || req.path === '/api/ready') return next();
+    if (req.path === '/api/health' || req.path === '/api/ready') {
+      return next();
+    }
 
     const canonicalOrigin = resolveCanonicalProductionOrigin();
     const canonicalHost = canonicalOrigin ? new URL(canonicalOrigin).host.toLowerCase() : '';
@@ -428,7 +443,9 @@ function configureHTTPSRedirect(isProduction = false) {
     const isSecure = req.secure || req.headers['x-forwarded-proto'] === 'https';
 
     if (!isSecure) {
-      if (!canonicalOrigin || !isKnownPublicHost) return next();
+      if (!canonicalOrigin || !isKnownPublicHost) {
+        return next();
+      }
       res.setHeader('Cache-Control', 'no-store');
       return res.redirect(308, canonicalOrigin + requestUrl);
     }
