@@ -157,9 +157,18 @@ body.auth-page .auth-google-button {
   overflow: visible;
 }
 
+/* Google GIS intentionally renders its iframe wider than the requested visible
+   button and offsets it with negative horizontal margins. auth.css previously
+   capped that iframe at 100%, which removed the bleed area and cut off the
+   personalized pill's right-hand edge. Never constrain Google's iframe here. */
+body.auth-page .auth-google-button iframe {
+  max-width: none;
+  max-inline-size: none;
+}
+
 /* Fallback alignment. auth-facebook-init.js synchronizes the Facebook control
-   to the measured rendered Google control at runtime. Keep this non-important
-   so the runtime inline width can win when GIS personalizes to a narrower size. */
+   to the measured visible Google footprint at runtime. Keep this non-important
+   so the runtime inline width can win when GIS changes its rendered geometry. */
 body.auth-page .auth-facebook-button {
   width: min(100%, var(--google-button-width, 320px));
   margin-inline: auto;
@@ -168,7 +177,7 @@ body.auth-page .auth-facebook-button {
 
 /* Keep only the EventFlow-owned container width locked. Google owns the child
    div/iframe and its internal pixel geometry; forcing those children to 100%
-   was clipping the personalized pill's right-hand border. */
+   clips the personalized pill's right-hand border. */
 body.auth-page .auth-google-button {
   width: min(100%, var(--google-button-width, 320px)) !important;
 }
