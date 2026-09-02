@@ -96,6 +96,7 @@ describe('auth signup layout', () => {
       'utf8'
     );
 
+    // Match Facebook to the visible GIS footprint rather than the iframe's raw box.
     expect(googleSignupCss).toMatch(
       /body\.auth-page \.auth-facebook-button\s*\{[^}]*width: min\(100%, var\(--google-button-width, 320px\)\);[^}]*margin-inline: auto;/s
     );
