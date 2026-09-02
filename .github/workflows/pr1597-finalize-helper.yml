@@ -97,7 +97,7 @@ jobs:
           function syncFacebookButtonWidths() {
             document.querySelectorAll('.auth-facebook-button').forEach(button => {
               const targetWidth = getFacebookButtonTargetWidth(button);
-              button.style.width = \`${'${targetWidth}'}px\`;
+              button.style.width = targetWidth + 'px';
               button.style.maxWidth = '100%';
               button.style.marginInline = 'auto';
             });
@@ -123,12 +123,11 @@ jobs:
             facebookPath
           );
           facebook = facebook.replace(
-            `    scheduleFacebookButtonWidthSync();
-            observeGoogleButtonWidths();
-            window.addEventListener('resize', scheduleFacebookButtonWidthSync, { passive: true });`,
-            `    observeGoogleButtonWidths();
-            document.addEventListener('eventflow:google-button-rendered', observeGoogleButtonWidths);
-            window.addEventListener('resize', syncFacebookButtonWidths, { passive: true });`
+            /\n\s*scheduleFacebookButtonWidthSync\(\);\n\s*observeGoogleButtonWidths\(\);\n\s*window\.addEventListener\('resize', scheduleFacebookButtonWidthSync, \{ passive: true \}\);/,
+            `
+              observeGoogleButtonWidths();
+              document.addEventListener('eventflow:google-button-rendered', observeGoogleButtonWidths);
+              window.addEventListener('resize', syncFacebookButtonWidths, { passive: true });`
           );
           if (facebook.includes('scheduleFacebookButtonWidthSync')) {
             throw new Error('Legacy Facebook width scheduler was not fully removed');
@@ -217,7 +216,7 @@ jobs:
           }
           const replacementTest = `
             
-            it('keeps Facebook synchronized to the rendered Google control without observing Google internals', () => {
+            it('keeps Facebook synchronized to the rendered Google control without DOM mutation polling', () => {
               const googleSignupCss = fs.readFileSync(
                 path.join(__dirname, '../../public/assets/css/auth-google-signup.css'),
                 'utf8'
