@@ -53,24 +53,40 @@ function splitCsvLine(line) {
 }
 
 /**
- * Parses one side of a volume figure, e.g. "1,000" or "1.5K". Anchored with
- * no ambiguity between its two quantifiers (digits vs. a single optional
- * trailing letter), so — unlike matching a whole "low - high" range in one
- * pass — this can't be driven into polynomial backtracking by adversarial
- * input. Returns a number, or null if the text isn't a plain figure.
+ * Parses one side of a volume figure, e.g. "1,000" or "1.5K". Plain
+ * character-by-character validation, not a regex — no quantifiers at all,
+ * so there is no backtracking of any kind to worry about, adversarial
+ * input or not. Returns a number, or null if the text isn't a plain figure.
  */
-function parseSingleFigure(text) {
-  const match = String(text || '')
-    .trim()
-    .match(/^([\d,.]+)\s*([kK]?)$/);
-  if (!match) {
+function parseSingleFigure(rawText) {
+  let text = String(rawText || '').trim();
+  if (!text) {
     return null;
   }
-  const n = parseFloat(match[1].replace(/,/g, ''));
+
+  let hasK = false;
+  const lastChar = text[text.length - 1];
+  if (lastChar === 'k' || lastChar === 'K') {
+    hasK = true;
+    text = text.slice(0, -1).trimEnd();
+  }
+  if (!text) {
+    return null;
+  }
+
+  for (let i = 0; i < text.length; i += 1) {
+    const ch = text[i];
+    const isDigit = ch >= '0' && ch <= '9';
+    if (!isDigit && ch !== ',' && ch !== '.') {
+      return null;
+    }
+  }
+
+  const n = parseFloat(text.replaceAll(',', ''));
   if (!Number.isFinite(n)) {
     return null;
   }
-  return match[2].toLowerCase() === 'k' ? n * 1000 : n;
+  return hasK ? n * 1000 : n;
 }
 
 /**
