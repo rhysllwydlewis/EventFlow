@@ -683,6 +683,7 @@ function templateMiddleware() {
       appendVaryHeader(res, 'Cookie');
       res.type('html');
       res.send(responseContent);
+      return;
     } catch (error) {
       if (error.code === 'ENOENT') {
         return next();
