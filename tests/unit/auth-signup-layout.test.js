@@ -62,7 +62,7 @@ describe('auth signup layout', () => {
     expect(googleSignupCss).toContain('inline-size: min(100%, var(--google-button-width, 320px));');
   });
 
-  it('locks the Google button container width so GIS cannot shrink it when it personalizes', () => {
+  it('locks only the EventFlow Google container and leaves GIS child geometry alone', () => {
     const googleSignupCss = fs.readFileSync(
       path.join(__dirname, '../../public/assets/css/auth-google-signup.css'),
       'utf8'
@@ -74,6 +74,9 @@ describe('auth signup layout', () => {
     expect(googleSignupCss).toMatch(
       /body\.auth-page \.auth-google-button\s*\{[^}]*overflow: visible;/s
     );
+    expect(googleSignupCss).not.toMatch(
+      /\.auth-google-button > div[\s\S]*\.auth-google-button iframe[\s\S]*inline-size:\s*100%\s*!important/
+    );
   });
 
   it('keeps the Facebook and Google provider buttons the same responsive width', () => {
@@ -81,9 +84,18 @@ describe('auth signup layout', () => {
       path.join(__dirname, '../../public/assets/css/auth-google-signup.css'),
       'utf8'
     );
+    const facebookInit = fs.readFileSync(
+      path.join(__dirname, '../../public/assets/js/pages/auth-facebook-init.js'),
+      'utf8'
+    );
 
     expect(googleSignupCss).toMatch(
-      /body\.auth-page \.auth-facebook-button\s*\{[^}]*width: min\(100%, var\(--google-button-width, 320px\)\);[^}]*margin-inline: auto;/s
+      /body\.auth-page \.auth-facebook-button\s*\{[^}]*width: min\(100%, var\(--google-button-width, 320px\)\) !important;[^}]*margin-inline: auto;/s
     );
+    expect(facebookInit).toContain('const SOCIAL_BUTTON_MAX_WIDTH = 320;');
+    expect(facebookInit).toContain('function syncFacebookButtonWidths()');
+    expect(facebookInit).toContain('const googleButton = card?.querySelector(\'.auth-google-button\');');
+    expect(facebookInit).toContain('button.style.width = `${targetWidth}px`;');
+    expect(facebookInit).toContain('new window.ResizeObserver(syncFacebookButtonWidths)');
   });
 });
