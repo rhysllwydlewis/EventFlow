@@ -267,6 +267,9 @@ function getMissingCriticalProductionConfig(baseUrl) {
   return missing;
 }
 
+// Email configuration and wrapper
+const EMAIL_ENABLED = emailConfig.EMAIL_ENABLED;
+
 function logIntegrationStartupSummary() {
   const integrationSummary = [
     {
@@ -393,9 +396,6 @@ app.use(cookieParser());
 const rateLimiters = security.createRateLimiters();
 const { authLimiter, strictAuthLimiter, passwordResetLimiter, writeLimiter, healthCheckLimiter } =
   rateLimiters;
-
-// Email configuration and wrapper
-const EMAIL_ENABLED = emailConfig.EMAIL_ENABLED;
 
 // Validate production environment
 if (process.env.NODE_ENV === 'production') {

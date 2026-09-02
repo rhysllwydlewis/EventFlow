@@ -2939,6 +2939,10 @@ function efMaybeShowOnboarding(page) {
   }
 }
 
+/** Message shown in #pkg-status when the free-tier active package limit is reached. */
+const PKG_LIMIT_MESSAGE =
+  'You have reached the active package limit on the Starter plan. Upgrade to Pro to add more.';
+
 async function initDashSupplier() {
   efMaybeShowOnboarding('dash_supplier');
 
@@ -4920,10 +4924,6 @@ async function initDashSupplier() {
 
 // Package Form Toggle, Edit, and Delete Functions
 
-/** Message shown in #pkg-status when the free-tier active package limit is reached. */
-const PKG_LIMIT_MESSAGE =
-  'You have reached the active package limit on the Starter plan. Upgrade to Pro to add more.';
-
 /**
  * Enable or disable all inputs / the submit button in #package-form and update
  * the #pkg-status message accordingly.
@@ -5981,6 +5981,16 @@ document.addEventListener('DOMContentLoaded', () => {
   };
 
   if (page === 'auth') {
+    // Helper function to get headers with CSRF token
+    const getHeadersWithCsrf = (additionalHeaders = {}) => {
+      const headers = { ...additionalHeaders };
+      const csrfToken = window.__CSRF_TOKEN__;
+      if (csrfToken) {
+        headers['X-CSRF-Token'] = csrfToken;
+      }
+      return headers;
+    };
+
     // Ensure Google auth initialisation is present even if an older cached auth.html omits it.
     if (
       !window.__eventflowGoogleAuthInitStarted &&
@@ -6120,6 +6130,33 @@ document.addEventListener('DOMContentLoaded', () => {
       const capsLockWarning = document.getElementById('caps-lock-warning');
       const regPasswordConfirm = document.getElementById('reg-password-confirm');
       const passwordMatchMsg = document.getElementById('password-match-msg');
+
+      // Password match validation
+      const validatePasswordMatch = () => {
+        if (!regPasswordConfirm || !passwordMatchMsg) {
+          return;
+        }
+
+        const password = regPassword.value;
+        const confirmPassword = regPasswordConfirm.value;
+
+        if (!confirmPassword) {
+          passwordMatchMsg.style.display = 'none';
+          return;
+        }
+
+        if (password !== confirmPassword) {
+          passwordMatchMsg.textContent = 'Passwords do not match';
+          passwordMatchMsg.style.display = 'block';
+          passwordMatchMsg.style.color = '#b00020';
+          return false;
+        } else {
+          passwordMatchMsg.textContent = '✓ Passwords match';
+          passwordMatchMsg.style.display = 'block';
+          passwordMatchMsg.style.color = '#10b981';
+          return true;
+        }
+      };
 
       // Caps lock warning
       const checkCapsLock = e => {
@@ -6266,33 +6303,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
       });
 
-      // Password match validation
-      const validatePasswordMatch = () => {
-        if (!regPasswordConfirm || !passwordMatchMsg) {
-          return;
-        }
-
-        const password = regPassword.value;
-        const confirmPassword = regPasswordConfirm.value;
-
-        if (!confirmPassword) {
-          passwordMatchMsg.style.display = 'none';
-          return;
-        }
-
-        if (password !== confirmPassword) {
-          passwordMatchMsg.textContent = 'Passwords do not match';
-          passwordMatchMsg.style.display = 'block';
-          passwordMatchMsg.style.color = '#b00020';
-          return false;
-        } else {
-          passwordMatchMsg.textContent = '✓ Passwords match';
-          passwordMatchMsg.style.display = 'block';
-          passwordMatchMsg.style.color = '#10b981';
-          return true;
-        }
-      };
-
       if (regPasswordConfirm) {
         regPasswordConfirm.addEventListener('input', validatePasswordMatch);
         regPasswordConfirm.addEventListener('blur', validatePasswordMatch);
@@ -6303,16 +6313,6 @@ document.addEventListener('DOMContentLoaded', () => {
     // selectRole() — that version also syncs aria-required on the company
     // field and manages roving tabindex/keyboard nav for the radiogroup, so
     // it fully supersedes this file's role-picker handling.
-
-    // Helper function to get headers with CSRF token
-    const getHeadersWithCsrf = function (additionalHeaders = {}) {
-      const headers = { ...additionalHeaders };
-      const csrfToken = window.__CSRF_TOKEN__;
-      if (csrfToken) {
-        headers['X-CSRF-Token'] = csrfToken;
-      }
-      return headers;
-    };
 
     const setAuthSubmitButtonState = (button, label, isLoading = false) => {
       if (!button) {

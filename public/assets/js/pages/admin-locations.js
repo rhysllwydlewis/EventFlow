@@ -105,16 +105,16 @@
         }
         resolve(answer);
       };
-      const onClick = event => {
+      function onClick(event) {
         const button = event.target.closest('button[data-confirm]');
         if (button) {
           finish(button.getAttribute('data-confirm') === 'yes');
         }
-      };
-      const onCancel = event => {
+      }
+      function onCancel(event) {
         event.preventDefault();
         finish(false);
-      };
+      }
 
       dialog.addEventListener('click', onClick);
       dialog.addEventListener('cancel', onCancel);

@@ -385,11 +385,11 @@
       document.removeEventListener('keydown', handleKeydown);
     };
 
-    const handleKeydown = event => {
+    function handleKeydown(event) {
       if (event.key === 'Escape') {
         close();
       }
-    };
+    }
 
     modal.querySelector('.modal-close').addEventListener('click', close);
     modal.addEventListener('click', event => {
@@ -795,11 +795,11 @@
       overlay.remove();
       document.removeEventListener('keydown', handleContactKeydown);
     };
-    const handleContactKeydown = e => {
+    function handleContactKeydown(e) {
       if (e.key === 'Escape') {
         close();
       }
-    };
+    }
     document.addEventListener('keydown', handleContactKeydown);
     overlay.querySelector('#cancelContactModal').addEventListener('click', close);
     overlay.querySelector('#closeContactModal').addEventListener('click', close);

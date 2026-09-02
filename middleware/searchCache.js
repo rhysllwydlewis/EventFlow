@@ -41,7 +41,7 @@ function generateCacheKey(req) {
   };
 
   // Generate hash
-  const hash = crypto.createHash('md5').update(JSON.stringify(cacheObject)).digest('hex');
+  const hash = crypto.createHash('sha256').update(JSON.stringify(cacheObject)).digest('hex');
 
   return `search:v2:${hash}`;
 }

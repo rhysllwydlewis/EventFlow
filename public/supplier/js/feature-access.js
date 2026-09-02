@@ -207,14 +207,18 @@ export function showUpgradePrompt(featureName, message = null) {
   // Close handlers
   const lastFocused = document.activeElement;
   const escapeHandler = e => {
-    if (e.key === 'Escape') closeModal();
+    if (e.key === 'Escape') {
+      closeModal();
+    }
   };
   document.addEventListener('keydown', escapeHandler);
-  const closeModal = () => {
+  function closeModal() {
     modal.remove();
     document.removeEventListener('keydown', escapeHandler);
-    if (lastFocused?.focus) lastFocused.focus();
-  };
+    if (lastFocused?.focus) {
+      lastFocused.focus();
+    }
+  }
   modal.querySelector('.upgrade-modal-close').addEventListener('click', closeModal);
   modal.querySelector('.upgrade-modal-cancel') &&
     modal.querySelector('.upgrade-modal-cancel').addEventListener('click', closeModal);
@@ -223,7 +227,9 @@ export function showUpgradePrompt(featureName, message = null) {
   modal.querySelector('.upgrade-modal-overlay').addEventListener('click', closeModal);
   requestAnimationFrame(() => {
     const f = modal.querySelector('.upgrade-modal-close');
-    if (f) f.focus();
+    if (f) {
+      f.focus();
+    }
   });
 }
 

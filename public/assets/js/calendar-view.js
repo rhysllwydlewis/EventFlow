@@ -519,11 +519,11 @@
       document.removeEventListener('click', outsideClick, true);
     };
 
-    const outsideClick = e => {
+    function outsideClick(e) {
       if (!pop.contains(e.target) && e.target !== anchorEl) {
         dismiss();
       }
-    };
+    }
 
     pop.querySelector('.cal-delete-popover__btn--edit').addEventListener('click', () => {
       dismiss();

@@ -191,12 +191,12 @@
       }
     };
 
-    const handler = e => {
+    function handler(e) {
       if (e.propertyName !== 'max-height') {
         return;
       }
       finish();
-    };
+    }
     wrapper._animationHandler = handler;
     wrapper.addEventListener('transitionend', handler);
     wrapper._animationTimer = setTimeout(finish, 350);
@@ -234,12 +234,12 @@
       }
     };
 
-    const handler = e => {
+    function handler(e) {
       if (e.propertyName !== 'max-height') {
         return;
       }
       finish();
-    };
+    }
     wrapper._animationHandler = handler;
     wrapper.addEventListener('transitionend', handler);
     wrapper._animationTimer = setTimeout(finish, 350);
