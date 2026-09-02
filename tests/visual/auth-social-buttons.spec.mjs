@@ -85,6 +85,13 @@ const SCREENSHOT_STATES = new Set([
  */
 test.describe('auth provider geometry', () => {
   test.beforeEach(async ({ page }) => {
+    // Cookie consent is unrelated to provider geometry. Record an explicit
+    // essential-only decision before app scripts execute so its banner cannot
+    // obscure auth controls during the viewport matrix.
+    await page.addInitScript(() => {
+      document.cookie = 'eventflow_cookie_consent=rejected; path=/; SameSite=Lax';
+    });
+
     await page.route('**/api/v1/config**', async route => {
       const url = new URL(route.request().url());
       if (url.searchParams.has('googleAuth')) {
@@ -339,17 +346,14 @@ test.describe('auth provider geometry', () => {
           const panelRoot = await openPanel(page, panel, state.name);
 
           if (state.dynamic) {
-            const initialGeometry = await expectProviderGeometry(panelRoot);
+            const frame = panelRoot.locator('iframe[data-testid="mock-google-control"]');
+            const initialVisibleWidth = Number(await frame.getAttribute('data-visible-width')) || 0;
+            expect(initialVisibleWidth).toBeGreaterThan(0);
             await expect
-              .poll(async () => {
-                const frame = panelRoot.locator('iframe[data-testid="mock-google-control"]');
-                return frame.getAttribute('data-google-state');
-              })
+              .poll(async () => frame.getAttribute('data-google-state'))
               .toBe('personalized-late');
             const personalizedGeometry = await expectProviderGeometry(panelRoot);
-            expect(personalizedGeometry.visibleWidth).toBeLessThanOrEqual(
-              initialGeometry.visibleWidth
-            );
+            expect(personalizedGeometry.visibleWidth).toBeLessThanOrEqual(initialVisibleWidth);
           } else {
             await expectProviderGeometry(panelRoot);
           }
