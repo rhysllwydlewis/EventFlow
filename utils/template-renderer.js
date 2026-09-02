@@ -21,6 +21,11 @@ const GLOBAL_ANALYTICS_SCRIPTS = [
 ];
 const ADMIN_BEHAVIOUR_ANALYTICS_SCRIPT =
   '    <script src="/assets/js/pages/admin-behaviour-analytics.js?v=1" defer></script>';
+const GOOGLE_ADS_TAG_SCRIPT = '    <script src="/assets/js/google-ads-tag.js"></script>';
+// Token-bearing routes: loading a third-party script here would send the
+// current URL (including the verification/reset token) to Google via the
+// Referer header, even for a visitor who has already consented to analytics.
+const GOOGLE_ADS_TAG_BLOCKED_PATHS = new Set(['/verify.html', '/reset-password.html']);
 const HOMEPAGE_INDEX_FILE = '/index.html';
 const HOMEPAGE_V2_FILE = '/home-v2.html';
 const HOMEPAGE_V2_PREVIEW_PATHS = new Set([
@@ -190,7 +195,7 @@ function replacePlaceholders(content) {
 }
 
 function isAnonymousRequest(req) {
-  return !(req && req.user);
+  return !req?.user;
 }
 
 function setHtmlNoStoreHeaders(res) {
@@ -281,6 +286,10 @@ function injectGlobalAnalyticsScripts(content, requestPath) {
       ADMIN_BEHAVIOUR_ANALYTICS_SCRIPT,
       '/assets/js/pages/admin-behaviour-analytics.js'
     );
+  }
+
+  if (!isAdmin && !GOOGLE_ADS_TAG_BLOCKED_PATHS.has(pathName)) {
+    result = injectBodySnippet(result, GOOGLE_ADS_TAG_SCRIPT, '/assets/js/google-ads-tag.js');
   }
 
   return result;
@@ -383,7 +392,7 @@ function stripAnonymousAuthText(content) {
     .replace(/Dashboard\s+Log out/gi, '')
     .replace(/Mark all as read/gi, '')
     .replace(/View all/gi, '')
-    .replace(/Version:\s*loading…?/gi, '');
+    .replace(/Version:\s*loading…?/giu, '');
 }
 
 function sanitiseHomepage(content) {
@@ -569,11 +578,7 @@ function shouldProcessFile(filePath) {
     return true;
   }
 
-  if (fileName.startsWith('test-')) {
-    return false;
-  }
-
-  return true;
+  return !fileName.startsWith('test-');
 }
 
 async function getFile(filePath, requestPath, req) {
@@ -618,7 +623,7 @@ async function getFile(filePath, requestPath, req) {
   if (cachingEnabled) {
     templateCache.set(cacheKey, {
       content: processedContent,
-      mtime: mtime,
+      mtime,
     });
   }
 
@@ -677,7 +682,7 @@ function templateMiddleware() {
       );
       appendVaryHeader(res, 'Cookie');
       res.type('html');
-      res.send(responseContent);
+      return res.send(responseContent);
     } catch (error) {
       if (error.code === 'ENOENT') {
         return next();
