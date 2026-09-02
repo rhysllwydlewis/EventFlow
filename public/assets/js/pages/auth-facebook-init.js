@@ -41,10 +41,19 @@
     return rectWidth || Math.round(element.clientWidth || element.offsetWidth || 0);
   }
 
+  function getGoogleRenderedControl(card) {
+    const googleButton = card?.querySelector('.auth-google-button');
+    if (!googleButton) {
+      return null;
+    }
+
+    return googleButton.querySelector('iframe') || googleButton.firstElementChild || googleButton;
+  }
+
   function getFacebookButtonTargetWidth(button) {
     const card = button?.closest('.auth-card');
-    const googleButton = card?.querySelector('.auth-google-button');
-    const googleWidth = getVisibleWidth(googleButton);
+    const googleRenderedControl = getGoogleRenderedControl(card);
+    const googleWidth = getVisibleWidth(googleRenderedControl);
 
     if (googleWidth > 0) {
       return Math.min(SOCIAL_BUTTON_MAX_WIDTH, googleWidth);
@@ -74,19 +83,55 @@
   }
 
   function observeGoogleButtonWidths() {
-    if (typeof window.ResizeObserver !== 'function') {
-      return;
-    }
-
-    const googleButtons = document.querySelectorAll('.auth-google-button');
+    const googleButtons = Array.from(document.querySelectorAll('.auth-google-button'));
     if (!googleButtons.length) {
       return;
     }
 
     window.__eventflowFacebookWidthObserver?.disconnect?.();
-    const observer = new window.ResizeObserver(syncFacebookButtonWidths);
-    googleButtons.forEach(button => observer.observe(button));
-    window.__eventflowFacebookWidthObserver = observer;
+
+    let resizeObserver = null;
+    if (typeof window.ResizeObserver === 'function') {
+      resizeObserver = new window.ResizeObserver(syncFacebookButtonWidths);
+    }
+
+    const observedResizeTargets = new Set();
+    const observeRenderedTargets = () => {
+      if (resizeObserver) {
+        googleButtons.forEach(container => {
+          const renderedControl =
+            container.querySelector('iframe') || container.firstElementChild || container;
+          [container, renderedControl].forEach(target => {
+            if (target && !observedResizeTargets.has(target)) {
+              resizeObserver.observe(target);
+              observedResizeTargets.add(target);
+            }
+          });
+        });
+      }
+      syncFacebookButtonWidths();
+    };
+
+    let mutationObserver = null;
+    if (typeof window.MutationObserver === 'function') {
+      mutationObserver = new window.MutationObserver(observeRenderedTargets);
+      googleButtons.forEach(container => {
+        mutationObserver.observe(container, {
+          childList: true,
+          subtree: true,
+          attributes: true,
+          attributeFilter: ['style', 'width'],
+        });
+      });
+    }
+
+    observeRenderedTargets();
+    window.__eventflowFacebookWidthObserver = {
+      disconnect() {
+        resizeObserver?.disconnect();
+        mutationObserver?.disconnect();
+      },
+    };
   }
 
   function hasControlCharacter(value) {
