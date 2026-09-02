@@ -112,7 +112,7 @@
       return btoa(unescape(encodeURIComponent(json)))
         .replace(/\+/g, '-')
         .replaceAll('/', '_')
-        .replace(/=+$/g, '');
+        .replaceAll('=', '');
     } catch {
       return '';
     }
