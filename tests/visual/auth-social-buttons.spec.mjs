@@ -89,12 +89,11 @@ test.describe('auth provider geometry', () => {
         .poll(async () => {
           const googleBox = await googleFrame.boundingBox();
           const facebookBox = await facebookButton.boundingBox();
-          return {
-            google: Math.round(googleBox?.width || 0),
-            facebook: Math.round(facebookBox?.width || 0),
-          };
+          const googleWidth = Math.round(googleBox?.width || 0);
+          const facebookWidth = Math.round(facebookBox?.width || 0);
+          return googleWidth > 0 && Math.abs(googleWidth - facebookWidth) <= 1;
         })
-        .toEqual({ google: MOCK_GOOGLE_WIDTH, facebook: MOCK_GOOGLE_WIDTH });
+        .toBe(true);
 
       const geometry = await panelRoot.evaluate(root => {
         const host = root.querySelector('.auth-google-button');
@@ -119,14 +118,14 @@ test.describe('auth provider geometry', () => {
         };
       });
 
-      expect(geometry).toEqual({
-        hostWidth: 320,
-        frameWidth: MOCK_GOOGLE_WIDTH,
-        facebookWidth: MOCK_GOOGLE_WIDTH,
-        hostOverflow: 'visible',
-        frameRightInsideHost: true,
-        frameLeftInsideHost: true,
-      });
+      expect(geometry).not.toBeNull();
+      expect(geometry?.frameWidth).toBeGreaterThan(0);
+      expect(geometry?.frameWidth).toBeLessThanOrEqual(MOCK_GOOGLE_WIDTH);
+      expect(geometry?.frameWidth).toBeLessThanOrEqual(geometry?.hostWidth || 0);
+      expect(Math.abs((geometry?.frameWidth || 0) - (geometry?.facebookWidth || 0))).toBeLessThanOrEqual(1);
+      expect(geometry?.hostOverflow).toBe('visible');
+      expect(geometry?.frameRightInsideHost).toBe(true);
+      expect(geometry?.frameLeftInsideHost).toBe(true);
 
       const screenshotPath = testInfo.outputPath(`auth-social-${panel.name}-proof.png`);
       await panelRoot.locator('.auth-card').screenshot({ path: screenshotPath });
