@@ -69,43 +69,53 @@ describe('Marketplace messaging flow fixes', () => {
     }
   );
 
-  describe('Bug 3: conversation-handler.js v1 API fallback removed', () => {
-    const conversationHandlerJs = fs.readFileSync(
-      path.join(process.cwd(), 'public/assets/js/conversation-handler.js'),
-      'utf8'
-    );
+  const conversationHandlerPath = path.join(
+    process.cwd(),
+    'public/assets/js/conversation-handler.js'
+  );
+  const conversationHandlerExists = fs.existsSync(conversationHandlerPath);
+  // conversation-handler.js was confirmed dead code (unreferenced by any page — the
+  // real messaging UI is Messenger v4) and deleted as part of the 2026-09-02 security
+  // audit fix-up (it had an unescaped XSS sink). Skip rather than fail when it's gone.
+  (conversationHandlerExists ? describe : describe.skip)(
+    'Bug 3: conversation-handler.js v1 API fallback removed',
+    () => {
+      const conversationHandlerJs = conversationHandlerExists
+        ? fs.readFileSync(conversationHandlerPath, 'utf8')
+        : '';
 
-    it('loadThread shows error message for thd_* thread IDs instead of calling v1 API', () => {
-      const loadThreadFn = conversationHandlerJs
-        .split('async function loadThread()')[1]
-        .split('async function')[0];
-      expect(loadThreadFn).toContain("threadId.startsWith('thd_')");
-      expect(loadThreadFn).not.toContain('fetch(`/api/v1/threads/${threadId}`');
-    });
+      it('loadThread shows error message for thd_* thread IDs instead of calling v1 API', () => {
+        const loadThreadFn = conversationHandlerJs
+          .split('async function loadThread()')[1]
+          .split('async function')[0];
+        expect(loadThreadFn).toContain("threadId.startsWith('thd_')");
+        expect(loadThreadFn).not.toContain('fetch(`/api/v1/threads/${threadId}`');
+      });
 
-    it('loadMessages skips v1 API for thd_* thread IDs', () => {
-      const loadMessagesFn = conversationHandlerJs
-        .split('async function loadMessages()')[1]
-        .split('async function')[0];
-      expect(loadMessagesFn).toContain("threadId.startsWith('thd_')");
-      expect(loadMessagesFn).not.toContain('fetch(`/api/v1/threads/${threadId}/messages`');
-    });
+      it('loadMessages skips v1 API for thd_* thread IDs', () => {
+        const loadMessagesFn = conversationHandlerJs
+          .split('async function loadMessages()')[1]
+          .split('async function')[0];
+        expect(loadMessagesFn).toContain("threadId.startsWith('thd_')");
+        expect(loadMessagesFn).not.toContain('fetch(`/api/v1/threads/${threadId}/messages`');
+      });
 
-    it('renderThreadHeader uses resolveOtherPartyName for displaying other party', () => {
-      const renderThreadHeaderFn = conversationHandlerJs
-        .split('function renderThreadHeader()')[1]
-        .split('function ')[0];
-      expect(renderThreadHeaderFn).toContain('resolveOtherPartyName()');
-    });
+      it('renderThreadHeader uses resolveOtherPartyName for displaying other party', () => {
+        const renderThreadHeaderFn = conversationHandlerJs
+          .split('function renderThreadHeader()')[1]
+          .split('function ')[0];
+        expect(renderThreadHeaderFn).toContain('resolveOtherPartyName()');
+      });
 
-    it('resolveOtherPartyName has proper fallback chain for peer-to-peer threads', () => {
-      const resolveOtherPartyNameFn = conversationHandlerJs
-        .split('function resolveOtherPartyName()')[1]
-        .split('function ')[0];
-      // Should check for supplierName, recipientName, and metadata.otherPartyName
-      expect(resolveOtherPartyNameFn).toContain('thread.supplierName');
-      expect(resolveOtherPartyNameFn).toContain('thread.recipientName');
-      expect(resolveOtherPartyNameFn).toContain('thread.metadata?.otherPartyName');
-    });
-  });
+      it('resolveOtherPartyName has proper fallback chain for peer-to-peer threads', () => {
+        const resolveOtherPartyNameFn = conversationHandlerJs
+          .split('function resolveOtherPartyName()')[1]
+          .split('function ')[0];
+        // Should check for supplierName, recipientName, and metadata.otherPartyName
+        expect(resolveOtherPartyNameFn).toContain('thread.supplierName');
+        expect(resolveOtherPartyNameFn).toContain('thread.recipientName');
+        expect(resolveOtherPartyNameFn).toContain('thread.metadata?.otherPartyName');
+      });
+    }
+  );
 });

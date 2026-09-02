@@ -73,41 +73,51 @@ const threadsRoutePath = path.join(process.cwd(), 'routes/threads.js');
       }
     );
 
-    describe('conversation-handler.js client-side normalization', () => {
-      const conversationHandlerJs = fs.readFileSync(
-        path.join(process.cwd(), 'public/assets/js/conversation-handler.js'),
-        'utf8'
-      );
+    // conversation-handler.js was confirmed dead code (unreferenced by any page — the
+    // real messaging UI is Messenger v4) and deleted as part of the 2026-09-02 security
+    // audit fix-up (it had an unescaped XSS sink). Skip rather than fail when it's gone.
+    const conversationHandlerPath = path.join(
+      process.cwd(),
+      'public/assets/js/conversation-handler.js'
+    );
+    const conversationHandlerExists = fs.existsSync(conversationHandlerPath);
+    (conversationHandlerExists ? describe : describe.skip)(
+      'conversation-handler.js client-side normalization',
+      () => {
+        const conversationHandlerJs = conversationHandlerExists
+          ? fs.readFileSync(conversationHandlerPath, 'utf8')
+          : '';
 
-      it('normalizes participants array in loadThread', () => {
-        const loadThreadFn = conversationHandlerJs
-          .split('async function loadThread()')[1]
-          .split('async function')[0];
-        expect(loadThreadFn).toContain('Normalize participants array for v1 threads');
-        expect(loadThreadFn).toContain(
-          'if (!thread.participants || !Array.isArray(thread.participants))'
-        );
-        expect(loadThreadFn).toContain('thread.participants = participants.filter(Boolean)');
-      });
+        it('normalizes participants array in loadThread', () => {
+          const loadThreadFn = conversationHandlerJs
+            .split('async function loadThread()')[1]
+            .split('async function')[0];
+          expect(loadThreadFn).toContain('Normalize participants array for v1 threads');
+          expect(loadThreadFn).toContain(
+            'if (!thread.participants || !Array.isArray(thread.participants))'
+          );
+          expect(loadThreadFn).toContain('thread.participants = participants.filter(Boolean)');
+        });
 
-      it('synthesizes participants from customerId and recipientId', () => {
-        const loadThreadFn = conversationHandlerJs
-          .split('async function loadThread()')[1]
-          .split('async function')[0];
-        expect(loadThreadFn).toContain('if (thread.customerId)');
-        expect(loadThreadFn).toContain('participants.push(thread.customerId)');
-        expect(loadThreadFn).toContain('if (thread.recipientId');
-        expect(loadThreadFn).toContain('participants.push(thread.recipientId)');
-      });
+        it('synthesizes participants from customerId and recipientId', () => {
+          const loadThreadFn = conversationHandlerJs
+            .split('async function loadThread()')[1]
+            .split('async function')[0];
+          expect(loadThreadFn).toContain('if (thread.customerId)');
+          expect(loadThreadFn).toContain('participants.push(thread.customerId)');
+          expect(loadThreadFn).toContain('if (thread.recipientId');
+          expect(loadThreadFn).toContain('participants.push(thread.recipientId)');
+        });
 
-      it('resolveOtherPartyName checks recipientId instead of supplierId', () => {
-        const resolveOtherPartyNameFn = conversationHandlerJs
-          .split('function resolveOtherPartyName()')[1]
-          .split('function ')[0];
-        // Should check recipientId, not supplierId (supplierId is supplier DB ID, not user ID)
-        expect(resolveOtherPartyNameFn).toContain('thread.recipientId === currentUserId');
-        expect(resolveOtherPartyNameFn).not.toContain('thread.supplierId === currentUserId');
-      });
-    });
+        it('resolveOtherPartyName checks recipientId instead of supplierId', () => {
+          const resolveOtherPartyNameFn = conversationHandlerJs
+            .split('function resolveOtherPartyName()')[1]
+            .split('function ')[0];
+          // Should check recipientId, not supplierId (supplierId is supplier DB ID, not user ID)
+          expect(resolveOtherPartyNameFn).toContain('thread.recipientId === currentUserId');
+          expect(resolveOtherPartyNameFn).not.toContain('thread.supplierId === currentUserId');
+        });
+      }
+    );
   }
 );
