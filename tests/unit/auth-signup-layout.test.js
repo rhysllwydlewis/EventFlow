@@ -82,7 +82,7 @@ describe('auth signup layout', () => {
     );
   });
 
-  it('keeps the Facebook control synchronized to the visible Google footprint', () => {
+  it('keeps Facebook synchronized to the rendered Google control without DOM mutation polling', () => {
     const googleSignupCss = fs.readFileSync(
       path.join(__dirname, '../../public/assets/css/auth-google-signup.css'),
       'utf8'
@@ -91,21 +91,19 @@ describe('auth signup layout', () => {
       path.join(__dirname, '../../public/assets/js/pages/auth-facebook-init.js'),
       'utf8'
     );
+    const googleInit = fs.readFileSync(
+      path.join(__dirname, '../../public/assets/js/pages/auth-google-init.js'),
+      'utf8'
+    );
 
     expect(googleSignupCss).toMatch(
       /body\.auth-page \.auth-facebook-button\s*\{[^}]*width: min\(100%, var\(--google-button-width, 320px\)\);[^}]*margin-inline: auto;/s
     );
-    expect(googleSignupCss).not.toMatch(
-      /body\.auth-page \.auth-facebook-button\s*\{[^}]*width:[^;}]*!important/s
-    );
-    expect(facebookInit).toContain('const SOCIAL_BUTTON_MAX_WIDTH = 320;');
-    expect(facebookInit).toContain('function getGoogleRenderedControl(card)');
-    expect(facebookInit).toContain('function getGoogleVisibleFootprintWidth(card)');
-    expect(facebookInit).toContain("renderedControl.tagName === 'IFRAME'");
-    expect(facebookInit).toContain('renderedWidth + marginLeft + marginRight');
-    expect(facebookInit).toContain('function syncFacebookButtonWidths()');
-    expect(facebookInit).toContain('button.style.width = `${targetWidth}px`;');
     expect(facebookInit).toContain('new window.ResizeObserver(syncFacebookButtonWidths)');
-    expect(facebookInit).toContain('new window.MutationObserver(observeRenderedTargets)');
+    expect(facebookInit).not.toContain('MutationObserver');
+    expect(facebookInit).toContain("'eventflow:google-button-rendered'");
+    expect(googleInit).toContain('function getContentWidth(element)');
+    expect(googleInit).toContain("new CustomEvent('eventflow:google-button-rendered'");
+    expect(googleInit).toContain("'eventflow:auth-tab-change'");
   });
 });

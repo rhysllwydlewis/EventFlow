@@ -357,14 +357,27 @@
     return rectWidth || Math.floor(element.clientWidth || element.offsetWidth || 0);
   }
 
+  function getContentWidth(element) {
+    const width = getVisibleWidth(element);
+    if (!width || typeof window.getComputedStyle !== 'function') {
+      return width;
+    }
+
+    const styles = window.getComputedStyle(element);
+    const horizontalInsets =
+      (Number.parseFloat(styles.paddingLeft || '0') || 0) +
+      (Number.parseFloat(styles.paddingRight || '0') || 0) +
+      (Number.parseFloat(styles.borderLeftWidth || '0') || 0) +
+      (Number.parseFloat(styles.borderRightWidth || '0') || 0);
+    return Math.max(0, Math.floor(width - horizontalInsets));
+  }
+
   function getGoogleButtonWidth(container) {
     const googleBlock = container.closest('.auth-google');
     const card = container.closest('.auth-card');
-    const measuredWidth = [
-      getVisibleWidth(googleBlock),
-      getVisibleWidth(container.parentElement),
-      getVisibleWidth(card),
-    ].find(width => width > 0);
+    const measuredWidth = [getContentWidth(googleBlock), getContentWidth(card)].find(
+      width => width > 0
+    );
     const availableWidth = Math.max(
       GOOGLE_BUTTON_MIN_WIDTH,
       measuredWidth || GOOGLE_BUTTON_MAX_WIDTH
@@ -390,6 +403,9 @@
       state: getGoogleButtonState(context),
     });
     container.classList.add('is-ready');
+    document.dispatchEvent(
+      new CustomEvent('eventflow:google-button-rendered', { detail: { context, buttonWidth } })
+    );
   }
 
   function isGoogleContainerVisible(container) {
@@ -531,15 +547,7 @@
       }, 80);
     };
 
-    if (typeof window.MutationObserver === 'function') {
-      window.__eventflowGoogleLayoutObserver?.disconnect?.();
-      const panelObserver = new window.MutationObserver(scheduleGoogleLayoutSync);
-      document.querySelectorAll('.auth-tab-panel').forEach(panel => {
-        panelObserver.observe(panel, { attributes: true, attributeFilter: ['hidden'] });
-      });
-      window.__eventflowGoogleLayoutObserver = panelObserver;
-    }
-
+    document.addEventListener('eventflow:auth-tab-change', scheduleGoogleLayoutSync);
     window.addEventListener('resize', scheduleGoogleLayoutSync, { passive: true });
     setGoogleButtonsBusy(false);
   }
