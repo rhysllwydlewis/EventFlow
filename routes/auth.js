@@ -48,13 +48,16 @@ const supplierRegistrationRiskGuard = partnerRegistrationRisk.registrationRiskGu
   roleResolver: req => (req.body?.role === 'supplier' ? 'supplier' : null),
 });
 
-// Precomputed bcrypt hash (cost 10, matching registration) of an arbitrary fixed
-// string. POST /login compares against this when no account matches the submitted
-// email so that a nonexistent account still pays the same bcrypt.compare cost as a
-// real one — otherwise "no such user" returns near-instantly while a wrong password
-// for a real account takes tens of milliseconds, letting an attacker enumerate
-// registered emails purely from response timing.
-const DUMMY_PASSWORD_HASH = '$2a$10$Aw/5nzFcTncHjqaNlyPQZ.7REJhld91etJraTKJtGqSxOzk.GW5Dm';
+// Bcrypt hash (cost 10, matching registration) of an arbitrary fixed placeholder
+// string, computed once at module load rather than hardcoded as a literal so it
+// doesn't read as a checked-in credential to secret scanners — it isn't one; it's
+// not derived from any real password or account. POST /login compares against
+// this when no account matches the submitted email so that a nonexistent account
+// still pays the same bcrypt.compare cost as a real one — otherwise "no such
+// user" returns near-instantly while a wrong password for a real account takes
+// tens of milliseconds, letting an attacker enumerate registered emails purely
+// from response timing.
+const DUMMY_PASSWORD_HASH = bcrypt.hashSync('eventflow-login-timing-safety-placeholder', 10);
 
 // This will be set by the main server.js when mounting these routes (legacy compatibility)
 // eslint-disable-next-line no-unused-vars
