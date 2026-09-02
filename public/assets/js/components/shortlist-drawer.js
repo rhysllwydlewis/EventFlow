@@ -4,6 +4,7 @@
  */
 
 import shortlistManager from '../utils/shortlist-manager.js';
+import { escapeHtml } from '../utils/common-helpers.js';
 
 class ShortlistDrawer {
   constructor() {
@@ -200,30 +201,33 @@ class ShortlistDrawer {
    * Render single item
    */
   renderItem(item) {
-    const imageUrl = item.imageUrl || '/assets/images/marketplace-placeholder.svg';
-    const priceHint = item.priceHint || 'Contact for quote';
-    const rating = item.rating ? `⭐ ${item.rating}` : '';
+    const imageUrl = escapeHtml(item.imageUrl || '/assets/images/marketplace-placeholder.svg');
+    const name = escapeHtml(item.name);
+    const category = escapeHtml(item.category || '');
+    const location = escapeHtml(item.location || '');
+    const priceHint = escapeHtml(item.priceHint || 'Contact for quote');
+    const rating = item.rating ? `⭐ ${escapeHtml(String(item.rating))}` : '';
 
     return `
       <div class="shortlist-item">
-        <img 
-          src="${imageUrl}" 
-          alt="${item.name}" 
-          class="shortlist-item-image" 
+        <img
+          src="${imageUrl}"
+          alt="${name}"
+          class="shortlist-item-image"
           data-fallback-src="/assets/images/marketplace-placeholder.svg"
         />
         <div class="shortlist-item-info">
-          <h3 class="shortlist-item-name">${item.name}</h3>
+          <h3 class="shortlist-item-name">${name}</h3>
           <p class="shortlist-item-meta">
-            ${item.category || ''} ${item.category && item.location ? '•' : ''} ${item.location || ''}
+            ${category} ${category && location ? '•' : ''} ${location}
           </p>
           <p class="shortlist-item-price">${priceHint} ${rating}</p>
         </div>
         <button
           class="ef-cta shortlist-item-remove"
-          data-type="${item.type}" 
+          data-type="${item.type}"
           data-id="${item.id}"
-          aria-label="Remove ${item.name} from shortlist"
+          aria-label="Remove ${name} from shortlist"
           title="Remove"
         >
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">

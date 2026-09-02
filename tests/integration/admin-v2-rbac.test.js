@@ -538,6 +538,45 @@ describe('Admin v2 API Integration Tests', () => {
     });
   });
 
+  describe('Mass assignment & privilege escalation protections (security fix regression)', () => {
+    const routeContent = fs.readFileSync(path.join(__dirname, '../../routes/admin-v2.js'), 'utf8');
+
+    it('PUT /suppliers/:id only writes an explicit allowlist of fields, not the raw request body', () => {
+      const handlerMatch = routeContent.match(/router\.put\(\s*'\/suppliers\/:id'[\s\S]*?\n\);/);
+      expect(handlerMatch).toBeTruthy();
+      const handlerSource = handlerMatch[0];
+
+      expect(handlerSource).toContain('editableFields');
+      expect(handlerSource).toMatch(/editableFields\.forEach/);
+      // The old vulnerable pattern wrote every key from the request body verbatim.
+      expect(handlerSource).not.toMatch(/Object\.keys\(updateData\)\.forEach/);
+    });
+
+    it('PUT /suppliers/:id rejects verified/approved being set directly', () => {
+      const handlerMatch = routeContent.match(/router\.put\(\s*'\/suppliers\/:id'[\s\S]*?\n\);/);
+      const handlerSource = handlerMatch[0];
+      expect(handlerSource).toContain("'verified' in updateData");
+      expect(handlerSource).toContain("'approved' in updateData");
+    });
+
+    it('PUT /users/:id validates role against an enum before accepting it', () => {
+      const handlerMatch = routeContent.match(/router\.put\(\s*'\/users\/:id'[\s\S]*?\n\);/);
+      expect(handlerMatch).toBeTruthy();
+      const handlerSource = handlerMatch[0];
+
+      expect(handlerSource).toContain('VALID_ROLES');
+      expect(handlerSource).toContain('INVALID_ROLE');
+    });
+
+    it('PUT /users/:id requires USERS_GRANT_ADMIN to grant or revoke admin', () => {
+      const handlerMatch = routeContent.match(/router\.put\(\s*'\/users\/:id'[\s\S]*?\n\);/);
+      const handlerSource = handlerMatch[0];
+
+      expect(handlerSource).toContain('PERMISSIONS.USERS_GRANT_ADMIN');
+      expect(handlerSource).toMatch(/hasPermission\(req\.user, PERMISSIONS\.USERS_GRANT_ADMIN\)/);
+    });
+  });
+
   describe('Admin Service Functions', () => {
     it('should export getDashboardOverview function', () => {
       const serviceContent = fs.readFileSync(

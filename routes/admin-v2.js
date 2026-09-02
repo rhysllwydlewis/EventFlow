@@ -9,7 +9,12 @@
 const express = require('express');
 const { authRequired, roleRequired } = require('../middleware/auth');
 const { csrfProtection } = require('../middleware/csrf');
-const { PERMISSIONS, requirePermission, getUserPermissions } = require('../middleware/permissions');
+const {
+  PERMISSIONS,
+  requirePermission,
+  getUserPermissions,
+  hasPermission,
+} = require('../middleware/permissions');
 const {
   grantPermission,
   revokePermission,
@@ -386,6 +391,16 @@ router.put(
       const { id } = req.params;
       const { name, email, role } = req.body;
 
+      const VALID_ROLES = ['customer', 'supplier', 'admin', 'moderator', 'support'];
+      if (role !== undefined && !VALID_ROLES.includes(role)) {
+        return res.status(400).json({
+          success: false,
+          error: `Invalid role. Must be one of: ${VALID_ROLES.join(', ')}`,
+          code: 'INVALID_ROLE',
+          timestamp: new Date().toISOString(),
+        });
+      }
+
       const users = await dbUnified.read('users');
       const userIndex = users.findIndex(u => u.id === id);
 
@@ -399,6 +414,25 @@ router.put(
       }
 
       const user = users[userIndex];
+
+      // Granting or revoking admin (in either direction) is a privilege boundary and
+      // requires the dedicated USERS_GRANT_ADMIN permission — USERS_UPDATE alone must
+      // not let a caller self-escalate or escalate another account to admin.
+      if (
+        role !== undefined &&
+        role !== user.role &&
+        (role === 'admin' || user.role === 'admin') &&
+        !hasPermission(req.user, PERMISSIONS.USERS_GRANT_ADMIN)
+      ) {
+        return res.status(403).json({
+          success: false,
+          error: 'Granting or revoking admin privileges requires the USERS_GRANT_ADMIN permission',
+          code: 'PERMISSION_DENIED',
+          requiredPermission: PERMISSIONS.USERS_GRANT_ADMIN,
+          timestamp: new Date().toISOString(),
+        });
+      }
+
       const changes = {};
       const adminUpdates = {};
 
@@ -780,6 +814,18 @@ router.put(
       const { id } = req.params;
       const updateData = req.body;
 
+      // Verified and approved are managed by the verification state machine endpoints
+      // (approve, reject, request-changes, suspend). Reject any attempt to set them directly.
+      if ('verified' in updateData || 'approved' in updateData) {
+        return res.status(400).json({
+          success: false,
+          error:
+            'verified and approved cannot be set directly. Use the /approve, /reject, /request-changes, or /suspend endpoints.',
+          code: 'FIELD_NOT_ALLOWED',
+          timestamp: new Date().toISOString(),
+        });
+      }
+
       const suppliers = await dbUnified.read('suppliers');
       const supplierIndex = suppliers.findIndex(s => s.id === id);
 
@@ -795,9 +841,29 @@ router.put(
       const supplier = suppliers[supplierIndex];
       const changes = {};
 
+      // Only these fields may be edited via this endpoint — mirrors the allowlist
+      // enforced by the equivalent /api/admin/suppliers/:id handler (supplier-admin.js).
+      // Everything else (id, verified, approved, ownerId, etc.) must go through a
+      // dedicated endpoint so callers can't mass-assign arbitrary/privileged fields.
+      const editableFields = [
+        'name',
+        'category',
+        'location',
+        'price_display',
+        'website',
+        'email',
+        'phone',
+        'maxGuests',
+        'description_short',
+        'description_long',
+        'blurb',
+        'amenities',
+        'tags',
+      ];
+
       // Track changes
-      Object.keys(updateData).forEach(key => {
-        if (updateData[key] !== supplier[key]) {
+      editableFields.forEach(key => {
+        if (updateData[key] !== undefined && updateData[key] !== supplier[key]) {
           changes[key] = { before: supplier[key], after: updateData[key] };
           supplier[key] = updateData[key];
         }

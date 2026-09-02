@@ -143,7 +143,7 @@
           <input type="checkbox" onchange="toggleSelection('${listing.id}')" ${selectedListings.has(listing.id) ? 'checked' : ''} style="margin-top:4px;cursor:pointer;">
           ${
             listing.images && listing.images[0]
-              ? `<img src="${listing.images[0]}" alt="${listing.title}" class="listing-image">`
+              ? `<img src="${escapeHtml(listing.images[0])}" alt="${escapeHtml(listing.title)}" class="listing-image">`
               : '<div class="listing-image"></div>'
           }
         </div>
