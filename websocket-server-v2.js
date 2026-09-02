@@ -16,6 +16,8 @@ const jwt = require('jsonwebtoken');
 const { userIdFromCookie } = require('./utils/wsAuth');
 // eslint-disable-next-line node/no-unpublished-require, node/no-missing-require
 const { ObjectId } = require('mongodb');
+// eslint-disable-next-line node/no-unpublished-require, node/no-missing-require
+const { isThreadParticipant } = require('./utils/webSocketMiddleware');
 
 // Only 24-hex-char strings are valid conversation ObjectIds — rejects
 // anything else up-front to avoid throwing inside the Mongo driver.
@@ -269,14 +271,26 @@ class WebSocketServerV2 {
 
       // ===== CHAT V5 EVENT HANDLERS =====
       // Join a conversation room
+      //
+      // Security: require authentication before granting room membership, matching the
+      // chat:v5:typing-start/stop handlers below and the v4 join-conversation guard —
+      // an unauthenticated socket must not be able to join and listen on a chat room.
       socket.on('chat:v5:join-conversation', data => {
-        if (data && data.conversationId) {
-          socket.join(`chat:v5:${data.conversationId}`);
-          logger.debug('Joined v5 conversation', {
+        if (!data || !data.conversationId) {
+          return;
+        }
+        if (!socket.userId) {
+          logger.warn('chat:v5 join denied: unauthenticated socket', {
             socketId: socket.id,
             conversationId: data.conversationId,
           });
+          return;
         }
+        socket.join(`chat:v5:${data.conversationId}`);
+        logger.debug('Joined v5 conversation', {
+          socketId: socket.id,
+          conversationId: data.conversationId,
+        });
       });
 
       // Leave a conversation room
@@ -441,6 +455,23 @@ class WebSocketServerV2 {
       const thread = await this.messagingService.getThread(threadId);
       if (!thread) {
         socket.emit('message:error', { error: 'Thread not found' });
+        return;
+      }
+
+      // Security: verify the sender actually belongs to this thread before
+      // sending on their behalf — without this a socket could pass any threadId
+      // and broadcast a message into a conversation it isn't part of.
+      const senderIsParticipant = await isThreadParticipant(
+        socket.userId,
+        threadId,
+        this.messagingService
+      );
+      if (!senderIsParticipant) {
+        socket.emit('message:error', { error: 'Not a participant in this thread' });
+        logger.warn('Rejected message:send — sender not a thread participant', {
+          userId: socket.userId,
+          threadId,
+        });
         return;
       }
 

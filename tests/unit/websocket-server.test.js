@@ -212,4 +212,63 @@ describe('WebSocket Server Initialization', () => {
       expect(result).toBe(false);
     });
   });
+
+  describe('Room-join authorization (security fix regression)', () => {
+    const fs = require('fs');
+    const path = require('path');
+
+    it('v1 generic join/leave requires authentication and blocks joining reserved user: rooms', () => {
+      const wsSource = fs.readFileSync(path.join(__dirname, '../../websocket-server.js'), 'utf8');
+      const joinHandlerMatch = wsSource.match(/socket\.on\('join', room => \{[\s\S]*?\n {6}\}\);/);
+      expect(joinHandlerMatch).toBeTruthy();
+      const joinHandlerSource = joinHandlerMatch[0];
+
+      expect(joinHandlerSource).toContain('if (!socket.userId)');
+      expect(joinHandlerSource).toMatch(/\/\^user:\//);
+    });
+
+    it('v1 messenger:join requires authentication before joining a conversation room', () => {
+      const wsSource = fs.readFileSync(path.join(__dirname, '../../websocket-server.js'), 'utf8');
+      const handlerMatch = wsSource.match(/socket\.on\('messenger:join',[\s\S]*?\n {6}\}\);/);
+      expect(handlerMatch).toBeTruthy();
+      const handlerSource = handlerMatch[0];
+
+      expect(handlerSource).toContain('if (!socket.userId)');
+    });
+
+    it('v2 chat:v5:join-conversation requires authentication before joining a chat room', () => {
+      const wsSource = fs.readFileSync(
+        path.join(__dirname, '../../websocket-server-v2.js'),
+        'utf8'
+      );
+      const handlerMatch = wsSource.match(
+        /socket\.on\('chat:v5:join-conversation', data => \{[\s\S]*?\n {6}\}\);/
+      );
+      expect(handlerMatch).toBeTruthy();
+      const handlerSource = handlerMatch[0];
+
+      expect(handlerSource).toContain('if (!socket.userId)');
+    });
+
+    it('v2 handleMessageSend verifies the sender is a thread participant before sending', () => {
+      const wsSource = fs.readFileSync(
+        path.join(__dirname, '../../websocket-server-v2.js'),
+        'utf8'
+      );
+      expect(wsSource).toContain(
+        "const { isThreadParticipant } = require('./utils/webSocketMiddleware');"
+      );
+
+      const handlerMatch = wsSource.match(
+        /async handleMessageSend\(socket, data\) \{[\s\S]*?\n {2}\}/
+      );
+      expect(handlerMatch).toBeTruthy();
+      const handlerSource = handlerMatch[0];
+
+      expect(handlerSource).toMatch(
+        /isThreadParticipant\(\s*socket\.userId,\s*threadId,\s*this\.messagingService\s*\)/
+      );
+      expect(handlerSource).toContain('senderIsParticipant');
+    });
+  });
 });
