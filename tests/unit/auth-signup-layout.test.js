@@ -72,4 +72,15 @@ describe('auth signup layout', () => {
       'width: min(100%, var(--google-button-width, 320px)) !important;'
     );
   });
+
+  it('keeps the Facebook and Google provider buttons the same responsive width', () => {
+    const googleSignupCss = fs.readFileSync(
+      path.join(__dirname, '../../public/assets/css/auth-google-signup.css'),
+      'utf8'
+    );
+
+    expect(googleSignupCss).toMatch(
+      /body\.auth-page \.auth-facebook-button\s*\{[^}]*width: min\(100%, var\(--google-button-width, 320px\)\);[^}]*margin-inline: auto;/s
+    );
+  });
 });
