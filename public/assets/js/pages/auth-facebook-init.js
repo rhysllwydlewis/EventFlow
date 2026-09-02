@@ -47,13 +47,39 @@
       return null;
     }
 
-    return googleButton.querySelector('iframe') || googleButton.firstElementChild || googleButton;
+    return (
+      googleButton.querySelector('iframe') || googleButton.firstElementChild || googleButton
+    );
+  }
+
+  function getGoogleVisibleFootprintWidth(card) {
+    const googleButton = card?.querySelector('.auth-google-button');
+    const renderedControl = getGoogleRenderedControl(card);
+    if (!googleButton || !renderedControl) {
+      return 0;
+    }
+
+    const renderedWidth = getVisibleWidth(renderedControl);
+    if (!renderedWidth) {
+      return 0;
+    }
+
+    if (renderedControl.tagName === 'IFRAME' && typeof window.getComputedStyle === 'function') {
+      const styles = window.getComputedStyle(renderedControl);
+      const marginLeft = Number.parseFloat(styles.marginLeft || '0') || 0;
+      const marginRight = Number.parseFloat(styles.marginRight || '0') || 0;
+      const footprintWidth = Math.round(renderedWidth + marginLeft + marginRight);
+      if (footprintWidth > 0) {
+        return Math.min(getVisibleWidth(googleButton) || footprintWidth, footprintWidth);
+      }
+    }
+
+    return Math.min(getVisibleWidth(googleButton) || renderedWidth, renderedWidth);
   }
 
   function getFacebookButtonTargetWidth(button) {
     const card = button?.closest('.auth-card');
-    const googleRenderedControl = getGoogleRenderedControl(card);
-    const googleWidth = getVisibleWidth(googleRenderedControl);
+    const googleWidth = getGoogleVisibleFootprintWidth(card);
 
     if (googleWidth > 0) {
       return Math.min(SOCIAL_BUTTON_MAX_WIDTH, googleWidth);
@@ -373,7 +399,7 @@
           response_type: 'code',
         });
         window.location.href = `${FACEBOOK_OAUTH_DIALOG}?${params.toString()}`;
-      } catch (error) {
+      } catch {
         button.removeAttribute('aria-busy');
         setStatus(
           'Facebook sign-in could not be started. Please try again or use email login.',
