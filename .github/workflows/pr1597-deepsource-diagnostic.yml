@@ -1,0 +1,51 @@
+name: PR1597 DeepSource Diagnostic
+
+on:
+  push:
+    branches:
+      - fix/google-facebook-auth-button-rendering
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  diagnose:
+    if: ${{ !contains(github.event.head_commit.message, '[skip dsdiag]') }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: fix/google-facebook-auth-button-rendering
+      - name: Install DeepSource CLI
+        run: curl -fsSL https://cli.deepsource.com/install | BINDIR=./bin sh
+      - name: Query PR JavaScript issues
+        shell: bash
+        env:
+          DEEPSOURCE_DSN: ${{ secrets.DEEPSOURCE_DSN }}
+          DEEPSOURCE_TOKEN: ${{ secrets.DEEPSOURCE_TOKEN }}
+          DEEPSOURCE_PAT: ${{ secrets.DEEPSOURCE_PAT }}
+        run: |
+          set +e
+          {
+            echo '=== auth status ==='
+            ./bin/deepsource auth status
+            echo "auth_exit=$?"
+            echo '=== PR 1597 JavaScript issues ==='
+            ./bin/deepsource issues --repo gh/rhysllwydlewis/EventFlow --pr 1597 --analyzer javascript --output json --verbose
+            echo "issues_exit=$?"
+            echo '=== PR 1597 metrics ==='
+            ./bin/deepsource metrics --repo gh/rhysllwydlewis/EventFlow --pr 1597 --output json --verbose
+            echo "metrics_exit=$?"
+            echo '=== PR 1597 report card ==='
+            ./bin/deepsource report-card --repo gh/rhysllwydlewis/EventFlow --pr 1597 --output json
+            echo "report_card_exit=$?"
+          } 2>&1 | tee deepsource-diagnostic.txt
+          exit 0
+      - name: Upload diagnostic output
+        uses: actions/upload-artifact@v7
+        with:
+          name: pr1597-deepsource-diagnostic
+          path: deepsource-diagnostic.txt
+          if-no-files-found: error
+          retention-days: 1
