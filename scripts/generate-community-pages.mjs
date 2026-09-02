@@ -75,7 +75,7 @@ const MOBILE_LINKS = [
   { href: '/guides', label: 'Guides' },
   { href: '/pricing', label: 'Pricing' },
   { href: '/for-suppliers', label: 'For Suppliers' },
-  { href: '/faq', label: 'FAQ' },
+  { href: '/faq', label: 'Help &amp; FAQ' },
 ];
 
 /**

@@ -27,6 +27,28 @@
 
     /* ── Helpers ──────────────────────────────────────────────────────────── */
 
+    // Populate each filter button's (N) count from the actual number of
+    // .faq-item elements in that category, so the label can never drift
+    // out of sync with the content.
+    function populateCounts() {
+      const totalItems = document.querySelectorAll('.faq-item[data-category]').length;
+
+      filterBtns.forEach(btn => {
+        const countEl = btn.querySelector('.faq-filter-count');
+        if (!countEl) {
+          return;
+        }
+        const filter = btn.dataset.filter;
+        const n =
+          filter === 'all'
+            ? totalItems
+            : document.querySelectorAll(`.faq-item[data-category="${filter}"]`).length;
+        countEl.textContent = ` (${n})`;
+      });
+    }
+
+    populateCounts();
+
     function setDisplay(el, show) {
       el.style.display = show ? '' : 'none';
       if (el.hidden !== undefined) {
