@@ -1,0 +1,45 @@
+name: PR1597 Formatting Fix
+
+on:
+  push:
+    branches:
+      - fix/google-facebook-auth-button-rendering
+
+permissions:
+  contents: write
+
+jobs:
+  format:
+    if: ${{ !contains(github.event.head_commit.message, '[skip pr1597-format-fix]') }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout PR branch
+        uses: actions/checkout@v7
+        with:
+          ref: fix/google-facebook-auth-button-rendering
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version-file: .node-version
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci --ignore-scripts --no-audit --no-fund
+
+      - name: Format failing file
+        run: npx prettier --write tests/unit/auth-signup-layout.test.js
+
+      - name: Verify formatting
+        run: npx prettier --check tests/unit/auth-signup-layout.test.js
+
+      - name: Remove helper and push formatted file
+        shell: bash
+        run: |
+          git rm .github/workflows/pr1597-format-fix.yml
+          git config user.name "eventflow-ci-helper"
+          git config user.email "eventflow-ci-helper@users.noreply.github.com"
+          git add tests/unit/auth-signup-layout.test.js
+          git commit -m "Format auth layout regression test [skip pr1597-format-fix]"
+          git push origin HEAD:fix/google-facebook-auth-button-rendering
