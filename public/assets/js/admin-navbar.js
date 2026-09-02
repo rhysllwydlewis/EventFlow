@@ -157,6 +157,13 @@
       badgeId: 'navBadgeLocations',
     },
     {
+      href: '/admin-seo',
+      icon: '🔍',
+      label: 'SEO Insights',
+      group: 'content',
+      desc: 'Search Console performance, keyword gaps and rewrite opportunities',
+    },
+    {
       href: '/admin-payments',
       icon: '💳',
       label: 'Payments',
