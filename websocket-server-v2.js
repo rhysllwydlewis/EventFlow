@@ -130,6 +130,11 @@ class WebSocketServerV2 {
     this.io.on('connection', socket => {
       logger.debug('WebSocket connected', { socketId: socket.id });
 
+      // Conversation ids this socket has already passed isConversationParticipant()
+      // for via messenger:v4:join-conversation — reused by messenger:typing so a
+      // busy typist doesn't trigger a DB lookup on every keystroke.
+      socket.v4JoinedConversations = new Set();
+
       // Authentication handler
       socket.on('auth', async data => {
         await this.handleAuth(socket, data);
@@ -219,6 +224,7 @@ class WebSocketServerV2 {
           }
 
           socket.join(`conversation:v4:${conversationId}`);
+          socket.v4JoinedConversations.add(conversationId);
           logger.debug('Joined v4 conversation', {
             socketId: socket.id,
             userId: socket.userId,
@@ -240,6 +246,7 @@ class WebSocketServerV2 {
       socket.on('messenger:v4:leave-conversation', data => {
         if (data && data.conversationId) {
           socket.leave(`conversation:v4:${data.conversationId}`);
+          socket.v4JoinedConversations.delete(data.conversationId);
           logger.debug('Left v4 conversation', {
             socketId: socket.id,
             conversationId: data.conversationId,
@@ -248,14 +255,40 @@ class WebSocketServerV2 {
       });
 
       // Typing indicator for messenger v4 (client → server → other participants in room)
-      socket.on('messenger:typing', data => {
-        if (!socket.userId || !data || !data.conversationId) {
+      socket.on('messenger:typing', async data => {
+        const conversationId = data?.conversationId;
+        if (!socket.userId || !conversationId) {
           return;
         }
+
+        // Require actual conversation participancy before broadcasting, same as
+        // messenger:v4:join-conversation above — otherwise any authenticated user
+        // who merely knows/guesses a conversationId could spoof typing indicators
+        // into a conversation they were never part of (IDOR on realtime).
+        if (typeof conversationId !== 'string' || !OBJECT_ID_RE.test(conversationId)) {
+          return;
+        }
+
+        // The composer fires this on every keystroke with no client-side throttling,
+        // so reuse the participancy already established by a successful room join
+        // instead of hitting the DB on every keystroke; fall back to a DB check for
+        // the rare case a client sends typing before/without joining.
+        const isParticipant = socket.v4JoinedConversations.has(conversationId)
+          ? true
+          : await this.isConversationParticipant(conversationId, socket.userId);
+        if (!isParticipant) {
+          logger.warn('Typing indicator denied: not a participant', {
+            socketId: socket.id,
+            userId: socket.userId,
+            conversationId,
+          });
+          return;
+        }
+
         // Broadcast to all OTHER sockets in the conversation room.
         // socket.to() excludes the sender automatically.
-        socket.to(`conversation:v4:${data.conversationId}`).emit('messenger:v4:typing', {
-          conversationId: data.conversationId,
+        socket.to(`conversation:v4:${conversationId}`).emit('messenger:v4:typing', {
+          conversationId,
           userId: socket.userId,
           userName: data.userName || '',
           // Default isTyping to true — stop-typing events carry isTyping: false
@@ -264,7 +297,7 @@ class WebSocketServerV2 {
 
         logger.debug('Typing indicator forwarded', {
           userId: socket.userId,
-          conversationId: data.conversationId,
+          conversationId,
           isTyping: data.isTyping,
         });
       });
