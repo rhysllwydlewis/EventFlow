@@ -79,7 +79,15 @@
     });
   }
 
-  function observeGoogleButtonWidths() {
+  // Google's real button mounts its iframe asynchronously (a network-loaded
+  // accounts.google.com document), unlike a synchronous render. If this runs
+  // right after renderButton() returns, the iframe may not exist in the DOM
+  // yet, so there is nothing to observe and no later resync happens once it
+  // does mount — Facebook is left at whatever width it had by default. The
+  // delayed re-check below catches that late mount and re-syncs against it.
+  const LATE_GOOGLE_MOUNT_RECHECK_MS = 500;
+
+  function attachGoogleWidthObserver() {
     window.__eventflowFacebookWidthObserver?.disconnect?.();
 
     if (typeof window.ResizeObserver !== 'function') {
@@ -93,6 +101,15 @@
       .forEach(control => resizeObserver.observe(control));
     window.__eventflowFacebookWidthObserver = resizeObserver;
     syncFacebookButtonWidths();
+  }
+
+  function observeGoogleButtonWidths() {
+    window.clearTimeout(window.__eventflowFacebookWidthRecheckTimer);
+    attachGoogleWidthObserver();
+    window.__eventflowFacebookWidthRecheckTimer = window.setTimeout(
+      attachGoogleWidthObserver,
+      LATE_GOOGLE_MOUNT_RECHECK_MS
+    );
   }
 
   function hasControlCharacter(value) {
