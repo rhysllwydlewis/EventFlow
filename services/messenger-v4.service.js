@@ -339,18 +339,11 @@ class MessengerV4Service {
     // Block check applies to every conversation type, not just 'direct' — a
     // block must stop a conversation being started regardless of type.
     if (creatorUserId) {
-      const otherCreationIds = participantIds.filter(id => id !== creatorUserId);
-      if (otherCreationIds.length > 0) {
-        const blockChecks = await Promise.all(
-          otherCreationIds.map(id => this.isBlockedEitherWay(creatorUserId, id))
-        );
-        if (blockChecks.some(Boolean)) {
-          const error = new Error('This conversation could not be started because of a block');
-          error.statusCode = 403;
-          error.code = 'MESSENGER_BLOCKED';
-          throw error;
-        }
-      }
+      await this.assertNoBlockAmong(
+        creatorUserId,
+        participantIds.filter(id => id !== creatorUserId),
+        'This conversation could not be started because of a block'
+      );
     }
 
     // For direct conversations, check if one already exists
@@ -647,20 +640,22 @@ class MessengerV4Service {
       throw new Error('User not a participant in this conversation');
     }
 
-    // Coerce to boolean — these fields are matched with $elemMatch elsewhere
-    // (getConversations' pinned/archived filters), so writing a non-boolean
-    // value here (e.g. a client sending an object) would silently break
-    // those queries for this conversation going forward.
-    if (updates.isPinned !== undefined) {
-      updateOps[`participants.${participantIndex}.isPinned`] = Boolean(updates.isPinned);
+    // Require an actual boolean rather than coercing — these fields are
+    // matched with $elemMatch elsewhere (getConversations' pinned/archived
+    // filters), so writing a non-boolean value here (e.g. a client sending
+    // an object, or the string "false", which Boolean() would turn into
+    // true) would silently corrupt or invert those queries going forward.
+    // A non-boolean value is ignored rather than written.
+    if (typeof updates.isPinned === 'boolean') {
+      updateOps[`participants.${participantIndex}.isPinned`] = updates.isPinned;
     }
 
-    if (updates.isMuted !== undefined) {
-      updateOps[`participants.${participantIndex}.isMuted`] = Boolean(updates.isMuted);
+    if (typeof updates.isMuted === 'boolean') {
+      updateOps[`participants.${participantIndex}.isMuted`] = updates.isMuted;
     }
 
-    if (updates.isArchived !== undefined) {
-      updateOps[`participants.${participantIndex}.isArchived`] = Boolean(updates.isArchived);
+    if (typeof updates.isArchived === 'boolean') {
+      updateOps[`participants.${participantIndex}.isArchived`] = updates.isArchived;
     }
 
     if (updates.markRead) {
@@ -726,20 +721,14 @@ class MessengerV4Service {
     // a block must stop messages regardless of how the conversation was
     // started (marketplace/enquiry/supplier_network/support all allow the
     // same two users to end up participants together).
-    const otherParticipants = conversation.participants.filter(
-      p => p.userId !== messageData.senderId
+    const otherParticipantIds = conversation.participants
+      .filter(p => p.userId !== messageData.senderId)
+      .map(p => p.userId);
+    await this.assertNoBlockAmong(
+      messageData.senderId,
+      otherParticipantIds,
+      'This message could not be delivered because of a block'
     );
-    if (otherParticipants.length > 0) {
-      const blockChecks = await Promise.all(
-        otherParticipants.map(p => this.isBlockedEitherWay(messageData.senderId, p.userId))
-      );
-      if (blockChecks.some(Boolean)) {
-        const error = new Error('This message could not be delivered because of a block');
-        error.statusCode = 403;
-        error.code = 'MESSENGER_BLOCKED';
-        throw error;
-      }
-    }
 
     // Idempotency: if the client supplied a clientMessageId, short-circuit on
     // a retry so double-submits (network retries, lost ACKs) do not produce
@@ -1478,6 +1467,26 @@ class MessengerV4Service {
       ],
     });
     return Boolean(block);
+  }
+
+  /**
+   * Throws MESSENGER_BLOCKED if actorId is blocked (either direction) with
+   * any of otherIds. Applies to every conversation type/action — used by
+   * createConversation (base and lifecycle-patched) and sendMessage so a
+   * block always stops a conversation being started or messaged into,
+   * regardless of type or participant count.
+   */
+  async assertNoBlockAmong(actorId, otherIds, errorMessage) {
+    if (!actorId || !otherIds || otherIds.length === 0) {
+      return;
+    }
+    const blockChecks = await Promise.all(otherIds.map(id => this.isBlockedEitherWay(actorId, id)));
+    if (blockChecks.some(Boolean)) {
+      const error = new Error(errorMessage);
+      error.statusCode = 403;
+      error.code = 'MESSENGER_BLOCKED';
+      throw error;
+    }
   }
 
   /**

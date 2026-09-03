@@ -998,8 +998,12 @@ router.delete(
     } catch (error) {
       logger.error('Error deleting message:', error);
       const msg = error.message || '';
-      res.status(error.statusCode || messengerErrorStatus(msg)).json({
-        error: msg || 'Failed to delete message',
+      const status = error.statusCode || messengerErrorStatus(msg);
+      // Only forward the message for recognised, user-facing error statuses —
+      // an unexpected (500) failure keeps the generic message so a raw
+      // exception (e.g. a DB error) is never exposed to the client.
+      res.status(status).json({
+        error: status === 500 ? 'Failed to delete message' : msg || 'Failed to delete message',
       });
     }
   }

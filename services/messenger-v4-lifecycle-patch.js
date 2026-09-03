@@ -94,18 +94,11 @@ if (!MessengerV4Service.__deleteArchiveLifecyclePatched) {
     // (marketplace/enquiry/supplier_network/support) could be created
     // between two users regardless of a block in either direction.
     if (creatorUserId) {
-      const otherCreationIds = normalisedIds.filter(id => id !== creatorUserId);
-      if (otherCreationIds.length > 0) {
-        const blockChecks = await Promise.all(
-          otherCreationIds.map(id => this.isBlockedEitherWay(creatorUserId, id))
-        );
-        if (blockChecks.some(Boolean)) {
-          const error = new Error('This conversation could not be started because of a block');
-          error.statusCode = 403;
-          error.code = 'MESSENGER_BLOCKED';
-          throw error;
-        }
-      }
+      await this.assertNoBlockAmong(
+        creatorUserId,
+        normalisedIds.filter(id => id !== creatorUserId),
+        'This conversation could not be started because of a block'
+      );
     }
 
     const participantIds = conversationData.participants.map(p => p.userId).sort();

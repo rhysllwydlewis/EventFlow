@@ -993,6 +993,22 @@ describe('MessengerV4Service', () => {
       const participant = updated.participants.find(p => p.userId === 'user1');
       expect(participant.isArchived).toBe(true);
     });
+
+    it('ignores a non-boolean isPinned/isMuted/isArchived instead of coercing it (regression: Boolean("false") === true)', async () => {
+      // A legacy/form-encoded client could send the string "false", which
+      // Boolean("false") would wrongly evaluate to true — these must be
+      // ignored (left unchanged) rather than coerced.
+      const updated = await service.updateConversation(conversation._id.toString(), 'user1', {
+        isPinned: 'false',
+        isMuted: { not: 'a boolean' },
+        isArchived: 0,
+      });
+
+      const participant = updated.participants.find(p => p.userId === 'user1');
+      expect(participant.isPinned).not.toBe(true);
+      expect(participant.isMuted).not.toBe(true);
+      expect(participant.isArchived).not.toBe(true);
+    });
   });
 
   describe('markAsRead', () => {
