@@ -101,28 +101,42 @@ document.addEventListener('DOMContentLoaded', () => {
             url = `${window.location.origin}/suppliers/${slug}`;
           }
         }
-      } catch (_e) {
+      } catch {
         /* use fallback url */
       }
       const originalText = this.textContent;
-      if (navigator.clipboard) {
-        navigator.clipboard.writeText(url).then(
-          () => {
-            if (typeof showToast === 'function') {
-              showToast('Review link copied!', 'success');
-            } else {
-              this.textContent = '✅ Copied!';
-              setTimeout(() => {
-                this.textContent = originalText;
-              }, 2000);
-            }
-          },
-          () => {
-            window.prompt('Copy this link:', url);
-          }
+      let copied = false;
+      let copyField;
+      try {
+        if (navigator.clipboard?.writeText) {
+          await navigator.clipboard.writeText(url);
+          copied = true;
+        } else {
+          copyField = document.createElement('textarea');
+          copyField.value = url;
+          copyField.setAttribute('readonly', '');
+          copyField.style.position = 'fixed';
+          copyField.style.opacity = '0';
+          document.body.appendChild(copyField);
+          copyField.select();
+          copied = document.execCommand('copy');
+        }
+      } catch {
+        copied = false;
+      } finally {
+        copyField?.remove();
+      }
+
+      if (typeof showToast === 'function') {
+        showToast(
+          copied ? 'Review link copied!' : 'Could not copy the review link. Please try again.',
+          copied ? 'success' : 'error'
         );
       } else {
-        window.prompt('Copy this link:', url);
+        this.textContent = copied ? '✅ Copied!' : 'Copy failed — try again';
+        setTimeout(() => {
+          this.textContent = originalText;
+        }, 2000);
       }
     });
   }

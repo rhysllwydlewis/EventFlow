@@ -54,6 +54,14 @@ describe('supplier dashboard quick actions', () => {
     expect(breadcrumbJs).toContain("matchMedia?.('(prefers-reduced-motion: reduce)')");
   });
 
+  it('copies review links without blocking browser prompts', () => {
+    expect(actionsJs).not.toContain('window.prompt');
+    expect(actionsJs).toContain('navigator.clipboard?.writeText');
+    expect(actionsJs).toContain("document.execCommand('copy')");
+    expect(actionsJs).toContain('copyField?.remove()');
+    expect(actionsJs).toContain('Could not copy the review link. Please try again.');
+  });
+
   it('declares non-submit types on all static dashboard buttons', () => {
     const buttons = dashboardHtml.match(/<button\b[^>]*>/g) || [];
     expect(buttons.length).toBeGreaterThan(0);
