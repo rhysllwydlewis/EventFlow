@@ -130,7 +130,7 @@ describe('auth.html – security regressions', () => {
 
   describe('Google sign-in visibility', () => {
     it('loads the Google auth init script from auth.html', () => {
-      expect(content).toContain('auth-google-init.js" defer');
+      expect(content).toMatch(/auth-google-init\.js(\?v=[0-9.]+)?" defer/);
     });
 
     it('keeps a visible fallback instead of silently hiding Google sign-in when config is missing', () => {
