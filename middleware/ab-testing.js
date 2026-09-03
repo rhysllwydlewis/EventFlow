@@ -86,7 +86,7 @@ function assignVariant(userId, experimentName) {
  * GET /api/experiments
  * Get list of active experiments
  */
-router.get('/', async (req, res) => {
+router.get('/', (req, res) => {
   try {
     const activeExperiments = Object.entries(experiments)
       .filter(([_, exp]) => exp.active)
@@ -111,7 +111,7 @@ router.get('/', async (req, res) => {
  * GET /api/experiments/:name/variant
  * Get the assigned variant for a user in an experiment
  */
-router.get('/:name/variant', async (req, res) => {
+router.get('/:name/variant', (req, res) => {
   try {
     const experimentName = req.params.name;
 

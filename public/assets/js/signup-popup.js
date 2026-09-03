@@ -5,9 +5,8 @@
  * bottom banner to signed-out visitors. Dismissing either is remembered
  * until the visitor clears functional storage.
  */
+'use strict';
 (function () {
-  'use strict';
-
   const STORAGE_KEY = 'ef_signup_popup_dismissed';
   const SETTINGS_URL = '/api/v1/public/signup-popup';
   const TITLE_ID = 'ef-signup-popup-title';

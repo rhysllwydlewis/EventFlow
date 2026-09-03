@@ -1,6 +1,5 @@
+'use strict';
 (function () {
-  'use strict';
-
   let allLogs = [];
 
   async function loadAuditLogs() {

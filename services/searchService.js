@@ -57,7 +57,7 @@ const { supplierIsProActive } = require('../utils/helpers');
  * @param {Array<Object>} suppliers
  * @returns {Promise<Array<Object>>}
  */
-async function hydrateSuppliersWithActivePro(suppliers) {
+function hydrateSuppliersWithActivePro(suppliers) {
   const proByOwner = new Map();
 
   return Promise.all(
@@ -209,7 +209,7 @@ function getPriceLevel(priceDisplay) {
 async function getSupplierOwnerUsers() {
   try {
     return await dbUnified.read('users');
-  } catch (_err) {
+  } catch {
     return [];
   }
 }
@@ -1331,7 +1331,7 @@ async function getDiscoveryFeed({
  * @param {Array} approvedSuppliers - Pre-filtered approved suppliers
  * @returns {Promise<Object|null>} Fallback object or null if none possible
  */
-async function buildZeroResultsFallback(query, approvedSuppliers) {
+function buildZeroResultsFallback(query, approvedSuppliers) {
   const relaxationSteps = [
     { name: 'minRating', label: 'minimum rating removed' },
     { name: 'amenities', label: 'amenity requirements removed' },

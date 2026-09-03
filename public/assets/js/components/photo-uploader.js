@@ -437,7 +437,7 @@ class PhotoUploader {
     this.hideError();
   }
 
-  async upload() {
+  upload() {
     if (this.files.length === 0 || this.uploading) {
       return;
     }

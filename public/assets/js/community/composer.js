@@ -12,9 +12,8 @@
  * JavaScript at all still reaches a working form.
  */
 
+'use strict';
 (function () {
-  'use strict';
-
   const EFC = window.EFCommunity;
   if (!EFC) {
     return;

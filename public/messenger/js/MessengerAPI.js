@@ -123,7 +123,7 @@ class MessengerAPI {
    * @param {Object} params.metadata - Optional metadata
    * @returns {Promise<Object>} Created conversation
    */
-  async createConversation({ type, participantIds, context = null, metadata = {} }) {
+  createConversation({ type, participantIds, context = null, metadata = {} }) {
     if (!type) {
       throw new Error('Conversation type is required');
     }
@@ -145,7 +145,7 @@ class MessengerAPI {
   /**
    * Get conversations list
    */
-  async getConversations(filters = {}) {
+  getConversations(filters = {}) {
     const params = new URLSearchParams();
     if (filters.status) {
       params.append('status', filters.status);
@@ -171,14 +171,14 @@ class MessengerAPI {
   /**
    * Get a specific conversation
    */
-  async getConversation(conversationId) {
+  getConversation(conversationId) {
     return this.request(`/conversations/${conversationId}`);
   }
 
   /**
    * Update conversation (pin, mute, archive)
    */
-  async updateConversation(conversationId, updates) {
+  updateConversation(conversationId, updates) {
     return this.request(`/conversations/${conversationId}`, {
       method: 'PATCH',
       body: JSON.stringify(updates),
@@ -188,7 +188,7 @@ class MessengerAPI {
   /**
    * Delete (archive) conversation
    */
-  async deleteConversation(conversationId) {
+  deleteConversation(conversationId) {
     return this.request(`/conversations/${conversationId}`, {
       method: 'DELETE',
     });
@@ -318,7 +318,7 @@ class MessengerAPI {
    * When `sinceSeq` is provided, the server returns messages forward in time
    * from that sequence — used for reconnection catch-up and gap fills.
    */
-  async getMessages(conversationId, beforeOrOptions = null, limit = 50) {
+  getMessages(conversationId, beforeOrOptions = null, limit = 50) {
     let before = beforeOrOptions;
     let resolvedLimit = limit;
     let sinceSeq = null;
@@ -351,7 +351,7 @@ class MessengerAPI {
   /**
    * Edit a message
    */
-  async editMessage(messageId, newContent) {
+  editMessage(messageId, newContent) {
     return this.request(`/messages/${messageId}`, {
       method: 'PATCH',
       body: JSON.stringify({
@@ -363,7 +363,7 @@ class MessengerAPI {
   /**
    * Delete a message
    */
-  async deleteMessage(messageId) {
+  deleteMessage(messageId) {
     return this.request(`/messages/${messageId}`, {
       method: 'DELETE',
     });
@@ -375,7 +375,7 @@ class MessengerAPI {
    * @param {number} [options.upToSeq] - Upper bound on `seq` to mark (for
    *   cursor-based per-message read receipts).
    */
-  async markAsRead(conversationId, options = {}) {
+  markAsRead(conversationId, options = {}) {
     const body =
       options &&
       typeof options === 'object' &&
@@ -394,7 +394,7 @@ class MessengerAPI {
    * failure is fine — delivery receipts are a best-effort UX signal and the
    * server will re-reconcile on the next `sinceSeq` fetch.
    */
-  async markDelivered(conversationId, messageIds) {
+  markDelivered(conversationId, messageIds) {
     if (!Array.isArray(messageIds) || messageIds.length === 0) {
       return { success: true, modifiedCount: 0 };
     }
@@ -407,14 +407,14 @@ class MessengerAPI {
   /**
    * Mark conversation as unread
    */
-  async markAsUnread(conversationId) {
+  markAsUnread(conversationId) {
     return this.updateConversation(conversationId, { markUnread: true });
   }
 
   /**
    * Toggle reaction on a message
    */
-  async toggleReaction(messageId, emoji) {
+  toggleReaction(messageId, emoji) {
     return this.request(`/messages/${messageId}/reactions`, {
       method: 'POST',
       body: JSON.stringify({ emoji }),
@@ -424,7 +424,7 @@ class MessengerAPI {
   /**
    * Search messages
    */
-  async searchMessages(query, conversationId = null) {
+  searchMessages(query, conversationId = null) {
     const params = new URLSearchParams();
     params.append('q', query);
     if (conversationId) {
@@ -437,7 +437,7 @@ class MessengerAPI {
   /**
    * Get contacts for new conversation
    */
-  async getContacts(searchQuery = '', options = {}) {
+  getContacts(searchQuery = '', options = {}) {
     const params = new URLSearchParams();
     if (searchQuery) {
       params.append('q', searchQuery);
@@ -455,21 +455,21 @@ class MessengerAPI {
   /**
    * Search contacts (alias for getContacts)
    */
-  async searchContacts(query = '', options = {}) {
+  searchContacts(query = '', options = {}) {
     return this.getContacts(query, options);
   }
 
   /**
    * Get unread count
    */
-  async getUnreadCount() {
+  getUnreadCount() {
     return this.request('/unread-count');
   }
 
   /**
    * Send typing indicator
    */
-  async sendTyping(conversationId, isTyping) {
+  sendTyping(conversationId, isTyping) {
     return this.request(`/conversations/${conversationId}/typing`, {
       method: 'POST',
       body: JSON.stringify({ isTyping }),
@@ -479,7 +479,7 @@ class MessengerAPI {
   /**
    * List the users the current user has blocked.
    */
-  async getBlockedUsers() {
+  getBlockedUsers() {
     return this.request('/blocked');
   }
 
@@ -487,14 +487,14 @@ class MessengerAPI {
    * Block a user. Blocks are bidirectional in effect — the two users can
    * no longer message each other once blocked.
    */
-  async blockUser(userId, reason = '') {
+  blockUser(userId, reason = '') {
     return this.request('/block', {
       method: 'POST',
       body: JSON.stringify({ userId, reason }),
     });
   }
 
-  async unblockUser(userId) {
+  unblockUser(userId) {
     return this.request(`/block/${encodeURIComponent(userId)}`, {
       method: 'DELETE',
     });

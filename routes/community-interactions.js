@@ -51,7 +51,7 @@ const REPORT_BY_KEY = new Map(REPORT_REASONS.map(item => [item.key, item]));
  * @param {string} stableId Stable identifier.
  * @returns {Promise<Object|null>} Discussion or null.
  */
-async function findDiscussion(stableId) {
+function findDiscussion(stableId) {
   const value = String(stableId || '').trim();
   if (!/^[a-f0-9]{6,32}$/i.test(value)) {
     return null;

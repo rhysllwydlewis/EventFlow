@@ -12,9 +12,8 @@
  * - Admin moderation
  */
 
+'use strict';
 (function () {
-  'use strict';
-
   const ReviewsManager = {
     currentSupplierId: null,
     currentPage: 1,
@@ -762,7 +761,7 @@
               this.currentUser = data.user;
             }
           }
-        } catch (_) {
+        } catch {
           // ignore network errors — fall through to redirect if still unauthenticated
         }
       }
@@ -1436,7 +1435,7 @@
         }
       };
 
-      const keyHandler = e => {
+      function keyHandler(e) {
         if (e.key === 'Escape') {
           close();
         } else if (e.key === 'ArrowLeft') {
@@ -1444,7 +1443,7 @@
         } else if (e.key === 'ArrowRight') {
           next();
         }
-      };
+      }
 
       document.addEventListener('keydown', keyHandler);
       lightboxEl.querySelector('.lightbox-close').addEventListener('click', close);
@@ -1811,11 +1810,11 @@
         overlay.remove();
         document.removeEventListener('keydown', escHandler);
       };
-      const escHandler = e => {
+      function escHandler(e) {
         if (e.key === 'Escape') {
           closeDelete();
         }
-      };
+      }
       document.addEventListener('keydown', escHandler);
 
       overlay.addEventListener('click', e => {
@@ -1916,11 +1915,11 @@
         overlay.remove();
         document.removeEventListener('keydown', escHandler);
       };
-      const escHandler = e => {
+      function escHandler(e) {
         if (e.key === 'Escape') {
           closeReport();
         }
-      };
+      }
       document.addEventListener('keydown', escHandler);
 
       overlay.addEventListener('click', e => {

@@ -1,6 +1,5 @@
+'use strict';
 (function () {
-  'use strict';
-
   const API_BASE = '/api/v1/public-calendar';
   let events = [];
   let requests = [];
@@ -44,7 +43,7 @@
     }
   }
 
-  async function api(url, method = 'GET', body = null) {
+  function api(url, method = 'GET', body = null) {
     return AdminShared.api(url, method, body);
   }
 

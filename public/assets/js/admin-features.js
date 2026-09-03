@@ -3,9 +3,8 @@
  * Real-time updates, charts, notifications, and more
  */
 
+'use strict';
 (function () {
-  'use strict';
-
   // HTML escaping utility
   function escapeHtml(unsafe) {
     if (typeof unsafe !== 'string') {

@@ -3,9 +3,8 @@
  * Calculates and displays supplier profile completion score
  */
 
+'use strict';
 (function () {
-  'use strict';
-
   function descriptionValue(supplier) {
     return String(
       supplier?.description_long ||

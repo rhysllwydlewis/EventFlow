@@ -343,19 +343,19 @@ class TicketingSystem {
     return this.normalizeTicket(data.ticket);
   }
 
-  async updateStatus(ticketId, status) {
+  updateStatus(ticketId, status) {
     return this.updateTicket(ticketId, { status });
   }
 
-  async updatePriority(ticketId, priority) {
+  updatePriority(ticketId, priority) {
     return this.updateTicket(ticketId, { priority });
   }
 
-  async closeTicket(ticketId) {
+  closeTicket(ticketId) {
     return this.updateStatus(ticketId, 'closed');
   }
 
-  async reopenTicket(ticketId) {
+  reopenTicket(ticketId) {
     return this.updateStatus(ticketId, 'open');
   }
 

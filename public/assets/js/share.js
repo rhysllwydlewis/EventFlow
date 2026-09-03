@@ -3,9 +3,8 @@
  * Provides share functionality for listings (suppliers, packages, etc.)
  */
 
+'use strict';
 (function () {
-  'use strict';
-
   /**
    * Share a URL using Web Share API or fallback to clipboard
    * @param {Object} options - Share options

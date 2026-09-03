@@ -4,9 +4,8 @@
  * Sends the user's email to POST /api/v1/auth/forgot and
  * shows a success or error message in response.
  */
+'use strict';
 (function () {
-  'use strict';
-
   const form = document.getElementById('forgot-form');
   const emailInput = document.getElementById('forgot-email');
   const emailError = document.getElementById('forgot-email-error');
@@ -18,7 +17,7 @@
     return;
   }
 
-  form.addEventListener('submit', async function (e) {
+  form.addEventListener('submit', async e => {
     e.preventDefault();
 
     // Clear previous state

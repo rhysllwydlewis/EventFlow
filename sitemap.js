@@ -229,7 +229,7 @@ async function loadIndexableCategoryEntries(suppliers, users, packages, events) 
  * @param {Object[]} users User records, used to validate supplier owners.
  * @returns {Promise<{categorySlug: string}[]>} Indexable category slugs.
  */
-async function loadIndexableCategoryDirectoryEntries(suppliers, users) {
+function loadIndexableCategoryDirectoryEntries(suppliers, users) {
   try {
     const validOwnerIds = new Set((users || []).map(user => user?.id).filter(Boolean));
     const eligibleSuppliers = (suppliers || []).filter(

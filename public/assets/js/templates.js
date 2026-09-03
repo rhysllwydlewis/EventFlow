@@ -3,9 +3,8 @@
  * Richer template definitions that drive meaningful wizard journeys.
  */
 
+'use strict';
 (function () {
-  'use strict';
-
   const TEMPLATES = {
     wedding: {
       id: 'wedding',
@@ -136,7 +135,9 @@
    */
   function renderTemplateSelector(containerId, onSelect) {
     const container = document.getElementById(containerId);
-    if (!container) return;
+    if (!container) {
+      return;
+    }
 
     const templates = getAllTemplates();
 
@@ -173,7 +174,9 @@
     container.querySelectorAll('.ef-template-card').forEach(card => {
       card.addEventListener('click', () => {
         const template = getTemplate(card.getAttribute('data-template-id'));
-        if (template && onSelect) onSelect(template);
+        if (template && onSelect) {
+          onSelect(template);
+        }
       });
       card.addEventListener('keydown', e => {
         if (e.key === 'Enter' || e.key === ' ') {
@@ -184,7 +187,9 @@
     });
 
     const skipBtn = document.getElementById('skip-template-btn');
-    if (skipBtn && onSelect) skipBtn.addEventListener('click', () => onSelect(null));
+    if (skipBtn && onSelect) {
+      skipBtn.addEventListener('click', () => onSelect(null));
+    }
   }
 
   function esc(str) {

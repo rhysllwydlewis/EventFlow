@@ -16,9 +16,8 @@
  * suppliers-page.css. Both values are in sync; update both if the breakpoint changes.
  */
 
+'use strict';
 (function () {
-  'use strict';
-
   /* ────────────────────────────────────────────────────────
      Constants
   ──────────────────────────────────────────────────────── */

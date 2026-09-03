@@ -61,7 +61,7 @@
     }
     const originalFetch = globalScope.fetch.bind(globalScope);
 
-    async function patchedFetch(input, init = {}) {
+    function patchedFetch(input, init = {}) {
       let nextInit = init;
       if (isNotificationWrite(typeof input === 'string' ? input : input && input.url, init)) {
         const headers = new Headers(init.headers || (input && input.headers) || {});

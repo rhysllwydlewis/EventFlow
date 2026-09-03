@@ -10,7 +10,7 @@ class ExportUtility {
   }
 
   // Load jsPDF library dynamically
-  async loadPDFLib() {
+  loadPDFLib() {
     if (this.pdfLibLoaded || typeof jsPDF !== 'undefined') {
       this.pdfLibLoaded = true;
       return Promise.resolve();
@@ -29,7 +29,7 @@ class ExportUtility {
   }
 
   // Load QRCode library dynamically
-  async loadQRCodeLib() {
+  loadQRCodeLib() {
     if (this.qrCodeLibLoaded || typeof QRCode !== 'undefined') {
       this.qrCodeLibLoaded = true;
       return Promise.resolve();

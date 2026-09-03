@@ -29,7 +29,9 @@ function getCashoutDenominations() {
     .split(',')
     .map(value => parseInt(value.trim(), 10))
     .filter(value => Number.isInteger(value) && value > 0);
-  if (configured.length) return [...new Set(configured)].sort((a, b) => a - b);
+  if (configured.length) {
+    return [...new Set(configured)].sort((a, b) => a - b);
+  }
   return Array.from({ length: 98 }, (_, index) => 15 + index * 5); // £15 to £500
 }
 
@@ -74,11 +76,13 @@ async function withPartnerCashoutLock(partnerId, work) {
     return await work();
   } finally {
     release();
-    if (cashoutLocks.get(partnerId) === tail) cashoutLocks.delete(partnerId);
+    if (cashoutLocks.get(partnerId) === tail) {
+      cashoutLocks.delete(partnerId);
+    }
   }
 }
 
-async function getPartnerForUser(userId) {
+function getPartnerForUser(userId) {
   return partnerService.getPartnerByUserId(userId);
 }
 
@@ -128,7 +132,9 @@ router.post('/register', authLimiter, csrfProtection, async (req, res) => {
         .status(400)
         .json({ error: 'Password must be at least 8 characters and include letters and numbers' });
     }
-    if (!location) return res.status(400).json({ error: 'Location is required' });
+    if (!location) {
+      return res.status(400).json({ error: 'Location is required' });
+    }
 
     const emailLower = String(email).toLowerCase();
     if (await dbUnified.findOne('users', { email: emailLower })) {
@@ -207,8 +213,12 @@ router.post('/register', authLimiter, csrfProtection, async (req, res) => {
 router.get('/me', authRequired, roleRequired('partner'), async (req, res) => {
   try {
     const partner = await getPartnerForUser(req.user.id);
-    if (!partner) return res.status(404).json({ error: 'Partner account not found' });
-    if (partner.status === 'disabled') return disabledResponse(res);
+    if (!partner) {
+      return res.status(404).json({ error: 'Partner account not found' });
+    }
+    if (partner.status === 'disabled') {
+      return disabledResponse(res);
+    }
 
     const [credits, pending, userRecord] = await Promise.all([
       partnerService.getBalance(partner.id),
@@ -250,8 +260,12 @@ router.get('/me', authRequired, roleRequired('partner'), async (req, res) => {
 router.get('/referrals', authRequired, roleRequired('partner'), async (req, res) => {
   try {
     const partner = await getPartnerForUser(req.user.id);
-    if (!partner) return res.status(404).json({ error: 'Partner account not found' });
-    if (partner.status === 'disabled') return disabledResponse(res);
+    if (!partner) {
+      return res.status(404).json({ error: 'Partner account not found' });
+    }
+    if (partner.status === 'disabled') {
+      return disabledResponse(res);
+    }
 
     const [referrals, usersById, reviewQualifications, balance] = await Promise.all([
       partnerService.listReferralsByPartnerId(partner.id),
@@ -261,7 +275,9 @@ router.get('/referrals', authRequired, roleRequired('partner'), async (req, res)
     ]);
     const transactionsBySupplier = new Map();
     for (const txn of balance.transactions) {
-      if (!txn.supplierUserId || txn.amount <= 0) continue;
+      if (!txn.supplierUserId || txn.amount <= 0) {
+        continue;
+      }
       const entries = transactionsBySupplier.get(txn.supplierUserId) || [];
       entries.push(txn);
       transactionsBySupplier.set(txn.supplierUserId, entries);
@@ -324,8 +340,12 @@ router.get('/referrals', authRequired, roleRequired('partner'), async (req, res)
 router.get('/transactions', authRequired, roleRequired('partner'), async (req, res) => {
   try {
     const partner = await getPartnerForUser(req.user.id);
-    if (!partner) return res.status(404).json({ error: 'Partner account not found' });
-    if (partner.status === 'disabled') return disabledResponse(res);
+    if (!partner) {
+      return res.status(404).json({ error: 'Partner account not found' });
+    }
+    if (partner.status === 'disabled') {
+      return disabledResponse(res);
+    }
 
     const [balance, usersById] = await Promise.all([
       partnerService.getBalance(partner.id),
@@ -343,10 +363,18 @@ router.get('/transactions', authRequired, roleRequired('partner'), async (req, r
         ? new Date(new Date(txn.createdAt).getTime() + maturityMs).toISOString()
         : null;
       let availability = 'available';
-      if (positiveReward && new Date(maturesAt).getTime() > Date.now()) availability = 'maturing';
-      if (txn.type === partnerService.CREDIT_TYPES.CASHOUT_HOLD) availability = 'held';
-      if (txn.type === partnerService.CREDIT_TYPES.CASHOUT_RELEASE) availability = 'released';
-      if (txn.type === partnerService.CREDIT_TYPES.REDEEM) availability = 'redeemed';
+      if (positiveReward && new Date(maturesAt).getTime() > Date.now()) {
+        availability = 'maturing';
+      }
+      if (txn.type === partnerService.CREDIT_TYPES.CASHOUT_HOLD) {
+        availability = 'held';
+      }
+      if (txn.type === partnerService.CREDIT_TYPES.CASHOUT_RELEASE) {
+        availability = 'released';
+      }
+      if (txn.type === partnerService.CREDIT_TYPES.REDEEM) {
+        availability = 'redeemed';
+      }
       return {
         ...txn,
         supplierName: txn.supplierUserId ? maskedUserName(usersById.get(txn.supplierUserId)) : null,
@@ -364,8 +392,12 @@ router.get('/transactions', authRequired, roleRequired('partner'), async (req, r
 router.get('/stats', authRequired, roleRequired('partner'), async (req, res) => {
   try {
     const partner = await getPartnerForUser(req.user.id);
-    if (!partner) return res.status(404).json({ error: 'Partner account not found' });
-    if (partner.status === 'disabled') return disabledResponse(res);
+    if (!partner) {
+      return res.status(404).json({ error: 'Partner account not found' });
+    }
+    if (partner.status === 'disabled') {
+      return disabledResponse(res);
+    }
 
     const [balance, referrals, reviewQualifications] = await Promise.all([
       partnerService.getBalance(partner.id),
@@ -434,8 +466,12 @@ router.post(
   async (req, res) => {
     try {
       const partner = await getPartnerForUser(req.user.id);
-      if (!partner) return res.status(404).json({ error: 'Partner account not found' });
-      if (partner.status === 'disabled') return disabledResponse(res);
+      if (!partner) {
+        return res.status(404).json({ error: 'Partner account not found' });
+      }
+      if (partner.status === 'disabled') {
+        return disabledResponse(res);
+      }
       const { oldCode, newCode } = await partnerService.regenerateCode(partner.id);
       return res.json({
         ok: true,
@@ -453,8 +489,12 @@ router.post(
 router.get('/code-history', authRequired, roleRequired('partner'), async (req, res) => {
   try {
     const partner = await getPartnerForUser(req.user.id);
-    if (!partner) return res.status(404).json({ error: 'Partner account not found' });
-    if (partner.status === 'disabled') return disabledResponse(res);
+    if (!partner) {
+      return res.status(404).json({ error: 'Partner account not found' });
+    }
+    if (partner.status === 'disabled') {
+      return disabledResponse(res);
+    }
     return res.json({ items: await partnerService.getCodeHistory(partner.id) });
   } catch (error) {
     logger.error('Error fetching code history:', error);
@@ -473,7 +513,9 @@ router.post(
   async (req, res) => {
     try {
       const partner = await getPartnerForUser(req.user.id);
-      if (!partner) return res.status(404).json({ error: 'Partner account not found' });
+      if (!partner) {
+        return res.status(404).json({ error: 'Partner account not found' });
+      }
       const user = await dbUnified.findOne('users', { id: req.user.id });
       const subject = String(req.body?.subject || '')
         .trim()
@@ -481,8 +523,12 @@ router.post(
       const message = String(req.body?.message || '')
         .trim()
         .slice(0, 2000);
-      if (!subject) return res.status(400).json({ error: 'Subject is required' });
-      if (!message) return res.status(400).json({ error: 'Message is required' });
+      if (!subject) {
+        return res.status(400).json({ error: 'Subject is required' });
+      }
+      if (!message) {
+        return res.status(400).json({ error: 'Message is required' });
+      }
 
       const now = new Date().toISOString();
       const disabled = partner.status === 'disabled';
@@ -534,7 +580,9 @@ router.post(
 router.get('/support-tickets', authRequired, roleRequired('partner'), async (req, res) => {
   try {
     const partner = await getPartnerForUser(req.user.id);
-    if (!partner) return res.status(404).json({ error: 'Partner account not found' });
+    if (!partner) {
+      return res.status(404).json({ error: 'Partner account not found' });
+    }
     const tickets = await dbUnified.find('tickets', {
       senderId: req.user.id,
       senderType: 'partner',
@@ -552,13 +600,17 @@ router.get('/support-tickets', authRequired, roleRequired('partner'), async (req
 router.get('/support-tickets/:id', authRequired, roleRequired('partner'), async (req, res) => {
   try {
     const partner = await getPartnerForUser(req.user.id);
-    if (!partner) return res.status(404).json({ error: 'Partner account not found' });
+    if (!partner) {
+      return res.status(404).json({ error: 'Partner account not found' });
+    }
     const ticket = await dbUnified.findOne('tickets', {
       id: req.params.id,
       senderId: req.user.id,
       senderType: 'partner',
     });
-    if (!ticket) return res.status(404).json({ error: 'Support ticket not found' });
+    if (!ticket) {
+      return res.status(404).json({ error: 'Support ticket not found' });
+    }
     return res.json({ ticket: ticketPublicShape(ticket) });
   } catch (error) {
     logger.error('Error fetching partner support ticket:', error);
@@ -574,19 +626,26 @@ router.post(
   async (req, res) => {
     try {
       const partner = await getPartnerForUser(req.user.id);
-      if (!partner) return res.status(404).json({ error: 'Partner account not found' });
+      if (!partner) {
+        return res.status(404).json({ error: 'Partner account not found' });
+      }
       const ticket = await dbUnified.findOne('tickets', {
         id: req.params.id,
         senderId: req.user.id,
         senderType: 'partner',
       });
-      if (!ticket) return res.status(404).json({ error: 'Support ticket not found' });
-      if (ticket.status === 'closed')
+      if (!ticket) {
+        return res.status(404).json({ error: 'Support ticket not found' });
+      }
+      if (ticket.status === 'closed') {
         return res.status(409).json({ error: 'This ticket is closed' });
+      }
       const message = String(req.body?.message || '')
         .trim()
         .slice(0, 5000);
-      if (!message) return res.status(400).json({ error: 'Reply message is required' });
+      if (!message) {
+        return res.status(400).json({ error: 'Reply message is required' });
+      }
 
       const now = new Date().toISOString();
       const responses = Array.isArray(ticket.responses) ? [...ticket.responses] : [];
@@ -612,7 +671,9 @@ router.post(
           },
         }
       );
-      if (!updated) return res.status(500).json({ error: 'Failed to send reply' });
+      if (!updated) {
+        return res.status(500).json({ error: 'Failed to send reply' });
+      }
       return res.status(201).json({ ok: true, message: 'Reply sent' });
     } catch (error) {
       logger.error('Error replying to partner support ticket:', error);
@@ -630,8 +691,12 @@ router.post(
   csrfProtection,
   async (req, res) => {
     const partner = await getPartnerForUser(req.user.id).catch(() => null);
-    if (!partner) return res.status(404).json({ error: 'Partner account not found' });
-    if (partner.status === 'disabled') return disabledResponse(res);
+    if (!partner) {
+      return res.status(404).json({ error: 'Partner account not found' });
+    }
+    if (partner.status === 'disabled') {
+      return disabledResponse(res);
+    }
 
     const config = getProgrammeConfig();
     const method = String(req.body?.method || '').trim();
@@ -695,7 +760,9 @@ router.post(
           amount: requiredPoints,
           cashoutId,
         });
-        if (!holdTxn?.id) throw new Error('Cashout hold was not persisted');
+        if (!holdTxn?.id) {
+          throw new Error('Cashout hold was not persisted');
+        }
 
         const requestRecord = {
           id: cashoutId,
@@ -729,7 +796,9 @@ router.post(
         } catch (insertError) {
           try {
             const release = await partnerService.releaseCashoutHold(holdTxn.id, partner.id);
-            if (!release?.id) throw new Error('Cashout hold rollback did not persist');
+            if (!release?.id) {
+              throw new Error('Cashout hold rollback did not persist');
+            }
           } catch (rollbackError) {
             logger.error('[PARTNER-CASHOUT] CRITICAL rollback failure', {
               partnerId: partner.id,
@@ -770,8 +839,12 @@ router.post(
 router.get('/cashout-requests', authRequired, roleRequired('partner'), async (req, res) => {
   try {
     const partner = await getPartnerForUser(req.user.id);
-    if (!partner) return res.status(404).json({ error: 'Partner account not found' });
-    if (partner.status === 'disabled') return disabledResponse(res);
+    if (!partner) {
+      return res.status(404).json({ error: 'Partner account not found' });
+    }
+    if (partner.status === 'disabled') {
+      return disabledResponse(res);
+    }
     const limit = Math.min(parseInt(req.query.limit, 10) || 50, 200);
     const records = await dbUnified.find('partner_cashout_requests', { partnerId: partner.id });
     const items = records
@@ -802,13 +875,19 @@ router.get('/cashout-requests', authRequired, roleRequired('partner'), async (re
 router.get('/cashout-requests/:id', authRequired, roleRequired('partner'), async (req, res) => {
   try {
     const partner = await getPartnerForUser(req.user.id);
-    if (!partner) return res.status(404).json({ error: 'Partner account not found' });
-    if (partner.status === 'disabled') return disabledResponse(res);
+    if (!partner) {
+      return res.status(404).json({ error: 'Partner account not found' });
+    }
+    if (partner.status === 'disabled') {
+      return disabledResponse(res);
+    }
     const requestRecord = await dbUnified.findOne('partner_cashout_requests', {
       id: req.params.id,
       partnerId: partner.id,
     });
-    if (!requestRecord) return res.status(404).json({ error: 'Cashout request not found' });
+    if (!requestRecord) {
+      return res.status(404).json({ error: 'Cashout request not found' });
+    }
     return res.json({ request: requestRecord });
   } catch (error) {
     logger.error('Error fetching cashout request:', error);
@@ -821,24 +900,35 @@ router.get('/cashout-requests/:id', authRequired, roleRequired('partner'), async
 router.patch('/me', authRequired, roleRequired('partner'), csrfProtection, async (req, res) => {
   try {
     const partner = await getPartnerForUser(req.user.id);
-    if (!partner) return res.status(404).json({ error: 'Partner account not found' });
-    if (partner.status === 'disabled') return disabledResponse(res);
+    if (!partner) {
+      return res.status(404).json({ error: 'Partner account not found' });
+    }
+    if (partner.status === 'disabled') {
+      return disabledResponse(res);
+    }
 
     const { firstName, lastName, company } = req.body || {};
     const updates = {};
     if (firstName !== undefined) {
       const value = String(firstName).trim().slice(0, 40);
-      if (!value) return res.status(400).json({ error: 'First name cannot be empty' });
+      if (!value) {
+        return res.status(400).json({ error: 'First name cannot be empty' });
+      }
       updates.firstName = value;
     }
     if (lastName !== undefined) {
       const value = String(lastName).trim().slice(0, 40);
-      if (!value) return res.status(400).json({ error: 'Last name cannot be empty' });
+      if (!value) {
+        return res.status(400).json({ error: 'Last name cannot be empty' });
+      }
       updates.lastName = value;
     }
-    if (company !== undefined)
+    if (company !== undefined) {
       updates.company = company ? String(company).trim().slice(0, 100) : null;
-    if (!Object.keys(updates).length) return res.status(400).json({ error: 'No fields to update' });
+    }
+    if (!Object.keys(updates).length) {
+      return res.status(400).json({ error: 'No fields to update' });
+    }
 
     const current = await dbUnified.findOne('users', { id: req.user.id });
     if (updates.firstName || updates.lastName) {
@@ -866,8 +956,12 @@ router.post(
   async (req, res) => {
     try {
       const partner = await getPartnerForUser(req.user.id);
-      if (!partner) return res.status(404).json({ error: 'Partner account not found' });
-      if (partner.status === 'disabled') return disabledResponse(res);
+      if (!partner) {
+        return res.status(404).json({ error: 'Partner account not found' });
+      }
+      if (partner.status === 'disabled') {
+        return disabledResponse(res);
+      }
       const { currentPassword, newPassword } = req.body || {};
       if (!currentPassword || !newPassword) {
         return res.status(400).json({ error: 'Current password and new password are required' });
@@ -878,7 +972,9 @@ router.post(
         });
       }
       const user = await dbUnified.findOne('users', { id: req.user.id });
-      if (!user?.passwordHash) return res.status(404).json({ error: 'User not found' });
+      if (!user?.passwordHash) {
+        return res.status(404).json({ error: 'User not found' });
+      }
       if (!(await bcrypt.compare(currentPassword, user.passwordHash))) {
         return res.status(400).json({ error: 'Current password is incorrect' });
       }

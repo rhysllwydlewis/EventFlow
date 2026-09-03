@@ -38,12 +38,12 @@ async function verifyPlanOwnership(req, res, next) {
   }
 }
 
-router.get('/:planId/guests', authRequired, verifyPlanOwnership, async (req, res) => {
+router.get('/:planId/guests', authRequired, verifyPlanOwnership, (req, res) => {
   const guests = getGuestList(req.plan);
   return res.json({ success: true, guests, count: guests.length });
 });
 
-router.get('/:planId/rsvp-summary', authRequired, verifyPlanOwnership, async (req, res) => {
+router.get('/:planId/rsvp-summary', authRequired, verifyPlanOwnership, (req, res) => {
   const guests = getGuestList(req.plan);
   const attending = guests.filter(g => g.rsvpStatus === 'attending');
   const declined = guests.filter(g => g.rsvpStatus === 'declined');
@@ -63,7 +63,7 @@ router.get('/:planId/rsvp-summary', authRequired, verifyPlanOwnership, async (re
   return res.json({ success: true, summary });
 });
 
-router.get('/:planId/guests/export.csv', authRequired, verifyPlanOwnership, async (req, res) => {
+router.get('/:planId/guests/export.csv', authRequired, verifyPlanOwnership, (req, res) => {
   const rows = getGuestList(req.plan);
   const headers = [
     'Name',

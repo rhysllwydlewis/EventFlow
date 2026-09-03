@@ -6,7 +6,7 @@
  *
  * Keep this file intentionally minimal (no timers, no polling, no state).
  */
+'use strict';
 (function () {
-  'use strict';
   // No-op by design.
 })();

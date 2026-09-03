@@ -42,7 +42,7 @@ let csrfPromise = null;
  * then fetching a fresh token from the server if needed.
  * @returns {Promise<string>} CSRF token
  */
-async function ensureCsrfToken(forceRefresh = false) {
+function ensureCsrfToken(forceRefresh = false) {
   if (!forceRefresh) {
     const existing = getCsrfToken();
     if (existing) {

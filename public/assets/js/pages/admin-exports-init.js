@@ -10,9 +10,8 @@
  * the Back-to-Dashboard button so behaviour is consistent with other admin pages.
  */
 
+'use strict';
 (function () {
-  'use strict';
-
   // Mapping from data-export attribute → { label, url, fileType, confirmRequired }
   const EXPORTS = {
     'users-csv': {

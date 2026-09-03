@@ -1,6 +1,5 @@
+'use strict';
 (function () {
-  'use strict';
-
   // ==========================================
   // STATE
   // ==========================================
@@ -106,7 +105,7 @@
     }
   }
 
-  function _showSimpleToast(message, color) {
+  function _showSimpleToast(message, _color) {
     const toast = document.createElement('div');
     toast.setAttribute('role', 'status');
     toast.setAttribute('aria-live', 'polite');

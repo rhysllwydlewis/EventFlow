@@ -14,8 +14,8 @@
  *     2. Remove any skip-link adjustments — the script keeps the skip link.
  */
 
+'use strict';
 (function () {
-  'use strict';
 
   // ── Nav items registry (browser copy of config/adminRegistry.js getNavItems) ──
   // Update config/adminRegistry.js first; then mirror inNav=true entries here.

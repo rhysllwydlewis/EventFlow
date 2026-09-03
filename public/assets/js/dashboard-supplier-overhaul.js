@@ -3,9 +3,8 @@
  * Adds: KPI cards with trend, availability widget, performance tips,
  * review request form, animated counters, and enhanced empty states.
  */
+'use strict';
 (function () {
-  'use strict';
-
   /* ── Helpers ── */
   function esc(str) {
     const d = document.createElement('div');
@@ -95,7 +94,7 @@
       return;
     }
 
-    const { status = 'available', blockedDates = [], notes = '' } = availability;
+    const { status = 'available', notes = '' } = availability;
     const statusLabel =
       status === 'limited' ? 'Limited' : status === 'unavailable' ? 'Unavailable' : 'Available';
     container.className = 'availability-widget';
@@ -147,7 +146,7 @@
 
     // Save
     container.querySelector('#save-availability-btn').addEventListener('click', async () => {
-      const notes = container.querySelector('.availability-notes').value;
+      const notes = container.querySelector('.availability-notes').value; // skipcq: JS-0123 - local to the save handler, unrelated to the destructured widget-render notes
       const btn = container.querySelector('#save-availability-btn');
       const statusEl = container.querySelector('#availability-save-status');
       btn.disabled = true;

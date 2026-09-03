@@ -1,12 +1,15 @@
+'use strict';
 (function () {
-  'use strict';
-
-  if (window.__publicWeddingThemeMediaLoaded) return;
+  if (window.__publicWeddingThemeMediaLoaded) {
+    return;
+  }
   window.__publicWeddingThemeMediaLoaded = true;
 
   const slug = window.location.pathname.split('/').filter(Boolean).pop();
   const root = document.getElementById('public-wedding-root');
-  if (!slug || !root) return;
+  if (!slug || !root) {
+    return;
+  }
 
   const DATA_IMAGE_RE = /^data:image\/(png|jpe?g|webp|gif);base64,[a-z0-9+/]+={0,2}$/i;
 
@@ -26,8 +29,12 @@
 
   function safeImageUrl(value) {
     const raw = String(value || '').trim();
-    if (!raw) return '';
-    if (DATA_IMAGE_RE.test(raw)) return raw;
+    if (!raw) {
+      return '';
+    }
+    if (DATA_IMAGE_RE.test(raw)) {
+      return raw;
+    }
     try {
       const url = new URL(raw, window.location.origin);
       return ['http:', 'https:'].includes(url.protocol) ? url.href : '';
@@ -42,7 +49,9 @@
   }
 
   function apply(theme) {
-    if (!theme) return;
+    if (!theme) {
+      return;
+    }
     document.documentElement.style.setProperty('--wed-accent', theme.accentColor || '#0B8073');
     document.documentElement.style.setProperty(
       '--wed-secondary',
@@ -51,7 +60,9 @@
     document.documentElement.style.setProperty('--wed-bg', theme.backgroundColor || '#FFF7FB');
     document.documentElement.style.setProperty('--wed-text', theme.textColor || '#1E1B4B');
     document.body.classList.add('wed-themed');
-    if (theme.heroLayout) document.body.dataset.heroLayout = theme.heroLayout;
+    if (theme.heroLayout) {
+      document.body.dataset.heroLayout = theme.heroLayout;
+    }
 
     const heroImage = cssUrl(theme.coverImageUrl);
     const hero = root.querySelector('.wed-hero');
@@ -66,7 +77,9 @@
           .map(item => ({ ...item, imageUrl: safeImageUrl(item && item.imageUrl) }))
           .filter(item => item && item.imageUrl)
       : [];
-    if (!gallery.length || root.querySelector('.wed-gallery')) return;
+    if (!gallery.length || root.querySelector('.wed-gallery')) {
+      return;
+    }
     const rsvp = root.querySelector('#rsvp');
     const section = document.createElement('section');
     section.className = 'wed-card wed-gallery';
@@ -76,8 +89,11 @@
           `<figure><img src="${esc(item.imageUrl)}" alt="${esc(item.alt || item.caption || 'Wedding gallery photo')}" loading="lazy">${item.caption ? `<figcaption>${esc(item.caption)}</figcaption>` : ''}</figure>`
       )
       .join('')}</div>`;
-    if (rsvp) rsvp.before(section);
-    else root.appendChild(section);
+    if (rsvp) {
+      rsvp.before(section);
+    } else {
+      root.appendChild(section);
+    }
   }
 
   async function loadFromThemeEndpoint() {
@@ -87,7 +103,9 @@
         credentials: 'same-origin',
       }
     );
-    if (!response.ok) return null;
+    if (!response.ok) {
+      return null;
+    }
     const data = await response.json().catch(() => ({}));
     return data.themeMedia || null;
   }

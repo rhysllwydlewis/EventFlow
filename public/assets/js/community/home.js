@@ -5,9 +5,8 @@
  * it is removed rather than shown as an empty box.
  */
 
+'use strict';
 (function () {
-  'use strict';
-
   const EFC = window.EFCommunity;
   const root = document.getElementById('efc-home');
   if (!EFC || !root) {
@@ -380,7 +379,7 @@
       renderRails();
       renderCategoryStrip();
       render();
-    } catch (error) {
+    } catch {
       root.innerHTML = EFC.errorState(
         'We could not load the community just now. Your connection may be offline.'
       );

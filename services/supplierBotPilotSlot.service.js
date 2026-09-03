@@ -62,7 +62,7 @@ async function reserveSupplierBotPilotSlot({ dbUnified, candidateId }) {
   }
 }
 
-async function attachSupplierToPilotSlot({ dbUnified, candidateId, supplierId }) {
+function attachSupplierToPilotSlot({ dbUnified, candidateId, supplierId }) {
   if (!dbUnified || !candidateId || !supplierId) {
     return false;
   }

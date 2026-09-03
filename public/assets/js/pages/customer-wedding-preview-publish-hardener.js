@@ -1,6 +1,5 @@
+'use strict';
 (function () {
-  'use strict';
-
   if (window.__wwPreviewPublishHardenerLoaded) {
     return;
   }
@@ -74,7 +73,7 @@
     return match ? decodeURIComponent(match[1]) : '';
   }
 
-  async function fetchPlans() {
+  function fetchPlans() {
     if (!cachedPlansPromise) {
       cachedPlansPromise = fetch('/api/me/plans?source=mongodb&wedding=1', {
         credentials: 'same-origin',

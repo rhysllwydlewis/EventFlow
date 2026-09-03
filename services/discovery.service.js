@@ -150,7 +150,7 @@ class DiscoveryService {
    * @param {number} limit - Number of recommendations
    * @returns {Promise<Array>} - Recommended packages
    */
-  async getRecommendations(userId, limit = 20) {
+  getRecommendations(userId, limit = 20) {
     // For now, return popular packages
     // In the future, this could use user preferences, view history, etc.
     logger.debug(`Getting recommendations for user ${userId}`);

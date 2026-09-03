@@ -3,9 +3,8 @@
  * Implements IntersectionObserver-based lazy loading with progressive image loading
  */
 
+'use strict';
 (function () {
-  'use strict';
-
   // Configuration
   const CONFIG = {
     rootMargin: '50px 0px', // Start loading 50px before entering viewport

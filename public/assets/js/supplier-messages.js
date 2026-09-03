@@ -155,8 +155,8 @@ function getLeadQualitySummary(conversations) {
  * @param {object} [user]           - Current user
  * @returns {string} HTML string
  */
+// eslint-disable-next-line no-unused-vars -- signature locked by tests/unit/lead-quality-filter-sort.test.js source-match assertions
 function renderConversations(conversations, supplierProfile, user) {
-  // eslint-disable-line no-unused-vars
   if (!conversations || conversations.length === 0) {
     return '<p class="small" style="color:#6b7280;padding:1rem;">No conversations yet.</p>';
   }
@@ -241,8 +241,8 @@ function renderConversations(conversations, supplierProfile, user) {
 /**
  * Apply filter, sort, and search to supplier conversations.
  */
+// eslint-disable-next-line no-unused-vars -- signature locked by tests/unit/lead-quality-filter-sort.test.js source-match assertions
 function applyFiltersSupplier(conversations, supplierProfile, user) {
-  // eslint-disable-line no-unused-vars
   if (!conversations || !Array.isArray(conversations)) {
     return [];
   }
@@ -402,8 +402,7 @@ let messagesUnsubscribe = null;
 /**
  * Open a conversation modal and load messages.
  */
-async function openConversation(conversationId, user, supplierProfile) {
-  // eslint-disable-line no-unused-vars
+async function openConversation(conversationId, user, _supplierProfile) {
   logMessageState('INIT', { conversationId });
 
   if (!conversationId) {

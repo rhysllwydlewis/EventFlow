@@ -380,20 +380,20 @@ class ConversationListV4 {
       document.removeEventListener('mousedown', closeMenu);
       document.removeEventListener('keydown', onEsc);
     };
-    const closeMenu = () => {
+    function closeMenu() {
       if (menuClicked) {
         menuClicked = false;
         return;
       }
       menu.remove();
       removeListeners();
-    };
-    const onEsc = e => {
+    }
+    function onEsc(e) {
       if (e.key === 'Escape') {
         menu.remove();
         removeListeners();
       }
-    };
+    }
     document.addEventListener('mousedown', closeMenu);
     document.addEventListener('keydown', onEsc);
 

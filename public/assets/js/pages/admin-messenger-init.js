@@ -1,6 +1,5 @@
+'use strict';
 (function () {
-  'use strict';
-
   const PAGE_SIZE = 20;
   let currentPage = 0;
   let currentSearch = '';

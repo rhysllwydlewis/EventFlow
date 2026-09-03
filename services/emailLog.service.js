@@ -133,7 +133,7 @@ function toPublicLog(log, includeEvents = false) {
   return safe;
 }
 
-async function createAttempt(options = {}) {
+function createAttempt(options = {}) {
   const timestamp = nowIso();
   const recipients = normaliseRecipients(options.to);
   const log = {
@@ -168,7 +168,7 @@ async function createAttempt(options = {}) {
   return dbUnified.insertOne(COLLECTION, log);
 }
 
-async function updateStatus(id, updates = {}) {
+function updateStatus(id, updates = {}) {
   if (!id) {
     return false;
   }

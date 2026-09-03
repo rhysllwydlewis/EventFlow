@@ -1,6 +1,6 @@
 // Message Moderation panel
+'use strict';
 (function () {
-  'use strict';
 
   const PAGE_SIZE = 20;
   let currentSkip = 0;
@@ -74,13 +74,13 @@
       return (
         `<tr class="admin-messenger-card-row" style="border-top:1px solid rgba(0,0,0,.07);display:block;padding:0.75rem 0">` +
         `<td style="display:block;padding:0.25rem 0.75rem">` +
-          `<strong style="font-size:0.85rem">${names}</strong>` +
-          (chips ? ` <span style="margin-left:4px">${chips}</span>` : '') +
-        `</td>` +
+          `<strong style="font-size:0.85rem">${names}</strong>${ 
+          chips ? ` <span style="margin-left:4px">${chips}</span>` : '' 
+        }</td>` +
         `<td style="display:block;padding:0.15rem 0.75rem;font-size:0.8rem;opacity:0.7">${snippet}</td>` +
-        `<td style="display:block;padding:0.15rem 0.75rem;font-size:0.75rem;opacity:0.55">${dateStr}` +
-          (unread > 0 ? ` · <span style="color:#dc2626;font-weight:600">${unread} unread</span>` : '') +
-        `</td>` +
+        `<td style="display:block;padding:0.15rem 0.75rem;font-size:0.75rem;opacity:0.55">${dateStr}${ 
+          unread > 0 ? ` · <span style="color:#dc2626;font-weight:600">${unread} unread</span>` : '' 
+        }</td>` +
         `<td style="display:block;padding:0.25rem 0.75rem">${openLink}</td>` +
         `</tr>`
       );

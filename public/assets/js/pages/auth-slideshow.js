@@ -18,9 +18,8 @@
  * - If anything fails the static CSS background-images remain in place.
  */
 
+'use strict';
 (function () {
-  'use strict';
-
   // Left panel is CSS-hidden on mobile — skip unnecessary work.
   if (!window.matchMedia('(min-width: 768px)').matches) {
     return;
@@ -127,7 +126,7 @@
 
   // Per-slot rotation: each slot independently cycles through photos beyond
   // the initial batch, swapping its image during its own dark window.
-  const scheduleRotation = allPhotos => {
+  function scheduleRotation(allPhotos) {
     photoSlots.forEach((slot, slotIndex) => {
       const safeOffset = SLOT_SAFE_OFFSETS_MS[slotIndex];
       let cycleCount = 1; // slot already shows photos[slotIndex] from cycle 0
@@ -152,7 +151,7 @@
         setInterval(doSwap, CYCLE_MS);
       }, safeOffset);
     });
-  };
+  }
 
   // --- fetch & init ---
 

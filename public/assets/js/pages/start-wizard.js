@@ -7,9 +7,8 @@
  *   PRIORITIES (2) → STYLE (3) → [category steps] → REVIEW → SUCCESS
  */
 
+'use strict';
 (function () {
-  'use strict';
-
   /* ─── Utilities ──────────────────────────────────────────────────────────── */
 
   function escapeHtml(unsafe) {
@@ -609,7 +608,7 @@
         <p class="small">Browse options for ${escapeHtml(category.name.toLowerCase())}. You can shortlist one now or come back later.</p>
         ${
           alreadyHave
-            ? '<div class="wz-already-have-notice"><p>✓ You\'ve indicated you already have this covered.</p> <button class="wz-undo-already-have" data-category="${escapeHtml(category.key)}" type="button">Undo</button></div>'
+            ? `<div class="wz-already-have-notice"><p>✓ You've indicated you already have this covered.</p> <button class="wz-undo-already-have" data-category="${escapeHtml(category.key)}" type="button">Undo</button></div>`
             : `
         <button class="wz-already-have-btn" data-category="${escapeHtml(category.key)}" type="button">
           I already have ${escapeHtml(category.name.toLowerCase())} covered — skip

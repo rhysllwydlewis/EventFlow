@@ -1,6 +1,6 @@
 (async function () {
   // ── Wait for AdminShared ──────────────────────────────────────────────────
-  async function waitForAdminShared(timeoutMs = 5000) {
+  function waitForAdminShared(timeoutMs = 5000) {
     if (window.AdminShared) {
       return true;
     }

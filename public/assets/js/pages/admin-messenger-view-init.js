@@ -3,9 +3,8 @@
  * Uses admin-only endpoints so the admin can view any conversation
  * regardless of participant status.  Read states are never modified.
  */
+'use strict';
 (function () {
-  'use strict';
-
   // Earliest cursor seen so far — used for "load earlier" pagination.
   let oldestCursor = null;
   let hasMore = false;
@@ -176,7 +175,7 @@
     return data.conversation;
   }
 
-  async function fetchMessages(id, cursor) {
+  function fetchMessages(id, cursor) {
     const params = new URLSearchParams({ limit: 50 });
     if (cursor) {
       params.set('cursor', cursor);

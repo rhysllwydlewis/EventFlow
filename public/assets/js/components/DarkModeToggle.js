@@ -14,7 +14,7 @@ class DarkModeToggle {
     this.setTheme('light');
   }
 
-  setTheme(theme) {
+  setTheme(_theme) {
     document.documentElement.setAttribute('data-theme', 'light');
     try {
       // Clear any previously saved dark preference

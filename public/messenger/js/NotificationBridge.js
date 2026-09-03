@@ -3,9 +3,9 @@
  * Integrates messenger with existing notification system
  */
 
+'use strict';
 const isDevelopment =
   window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-('use strict');
 
 (function () {
   // Configuration constants

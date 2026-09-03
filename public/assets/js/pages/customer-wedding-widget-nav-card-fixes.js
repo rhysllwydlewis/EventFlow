@@ -1,6 +1,5 @@
+'use strict';
 (function () {
-  'use strict';
-
   const ROOT_ID = 'wedding-website-dashboard-root';
   const CARD_ID = 'wedding-website-dashboard-card';
 

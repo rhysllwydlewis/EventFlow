@@ -1,14 +1,17 @@
+'use strict';
 (function () {
-  'use strict';
-
-  if (window.__weddingWidgetMediaStabiliserLoaded) return;
+  if (window.__weddingWidgetMediaStabiliserLoaded) {
+    return;
+  }
   window.__weddingWidgetMediaStabiliserLoaded = true;
 
   const ROOT_SELECTOR = '#wedding-website-dashboard-root';
   const STYLE_ID = 'ww-media-stabiliser-styles';
 
   function injectStyles() {
-    if (document.getElementById(STYLE_ID)) return;
+    if (document.getElementById(STYLE_ID)) {
+      return;
+    }
     const style = document.createElement('style');
     style.id = STYLE_ID;
     style.textContent = `
@@ -59,11 +62,15 @@
 
   function relabelThemeMediaPanel(root) {
     const panel = root.querySelector('.ww-theme-media-panel');
-    if (!panel || panel.dataset.mediaStabilised === 'true') return;
+    if (!panel || panel.dataset.mediaStabilised === 'true') {
+      return;
+    }
     panel.dataset.mediaStabilised = 'true';
 
     const summary = panel.querySelector('summary');
-    if (summary) summary.textContent = 'Theme & photos';
+    if (summary) {
+      summary.textContent = 'Theme & photos';
+    }
 
     panel.querySelectorAll('h4').forEach(heading => {
       if (/hero photo/i.test(heading.textContent || '')) {
@@ -75,7 +82,9 @@
     });
 
     const coverEmpty = panel.querySelector('.ww-cover-empty');
-    if (coverEmpty) coverEmpty.textContent = 'Upload a cover photo';
+    if (coverEmpty) {
+      coverEmpty.textContent = 'Upload a cover photo';
+    }
 
     panel.querySelectorAll('label').forEach(label => {
       const firstText = Array.from(label.childNodes).find(node => node.nodeType === Node.TEXT_NODE);
@@ -97,18 +106,24 @@
   function hideDuplicateCoverUpload(root) {
     const themePanel = root.querySelector('.ww-theme-media-panel');
     const builderCover = root.querySelector('.ww-cover-upload-field');
-    if (!themePanel || !builderCover || builderCover.dataset.mediaStabilised === 'true') return;
+    if (!themePanel || !builderCover || builderCover.dataset.mediaStabilised === 'true') {
+      return;
+    }
 
     builderCover.dataset.mediaStabilised = 'true';
     builderCover.hidden = true;
     builderCover.setAttribute('aria-hidden', 'true');
 
     const input = builderCover.querySelector('[name="coverImageUrl"]');
-    if (input) input.disabled = true;
+    if (input) {
+      input.disabled = true;
+    }
   }
 
   function stabilise(root) {
-    if (!root) return;
+    if (!root) {
+      return;
+    }
     injectStyles();
     relabelThemeMediaPanel(root);
     hideDuplicateCoverUpload(root);

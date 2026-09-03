@@ -158,7 +158,7 @@ router.post(
   uploadLimiter,
   applyAuthRequired,
   applyCsrfProtection,
-  async (req, res) => {
+  (req, res) => {
     if (!photoUpload) {
       return res.status(503).json({ error: 'Photo upload service is not available' });
     }

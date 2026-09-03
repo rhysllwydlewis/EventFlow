@@ -2,9 +2,8 @@
  * Map Fallback Handler
  * Detects Google Maps iframe load failures/timeouts and shows a user-friendly fallback.
  */
+'use strict';
 (function () {
-  'use strict';
-
   const MAP_TIMEOUT_MS = 10000; // 10 seconds
 
   function logMapError(reason) {

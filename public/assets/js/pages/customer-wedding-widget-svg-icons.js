@@ -1,6 +1,5 @@
+'use strict';
 (function () {
-  'use strict';
-
   const STYLE_ID = 'ww-widget-svg-icons-styles';
   const OBSERVED_SELECTOR =
     '.ww-app-dialog,.ww-app-tabs,.ww-app-icon,.ww-launcher,.ww-launcher__orb,#ww-guest-search,.ww-actions--rsvp';

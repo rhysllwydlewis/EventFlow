@@ -38,7 +38,7 @@ function validateEmailConfig() {
  * @param {string} [text] - Email text body (if using legacy format)
  * @returns {Promise<Object>} Postmark response
  */
-async function sendMail(toOrOpts, subject, text) {
+function sendMail(toOrOpts, subject, text) {
   // Support both legacy (to, subject, text) and object-based calls
   let options = {};
 
