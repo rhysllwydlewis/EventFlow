@@ -14,6 +14,8 @@
     "check:lockfile": "node scripts/check-lockfile-consistency.mjs",
     "lint": "eslint . --ext .js --rulesdir eslint-rules",
     "lint:fix": "eslint . --ext .js --rulesdir eslint-rules --fix",
+    "lint:css": "stylelint \"public/assets/css/*.css\" \"public/messenger/css/*.css\"",
+    "lint:css:fix": "stylelint \"public/assets/css/*.css\" \"public/messenger/css/*.css\" --fix",
     "format": "prettier --write \"**/*.{js,json,md}\"",
     "format:check": "prettier --check \"**/*.{js,json,md}\"",
     "test": "jest --coverage",
@@ -69,6 +71,7 @@
     "test:audit:full": "node scripts/test-audit.mjs --full",
     "test:audit:ci": "node scripts/test-audit.mjs --ci",
     "build:homepages": "tsc -p tsconfig.homepages.json && prettier --write public/assets/js/pages/home-v2.js public/assets/js/pages/home-v3.js public/assets/js/pages/home-v3-video.js",
+    "build:guides": "tsc -p tsconfig.guides.json && prettier --write public/assets/js/pages/guide-premium.js",
     "typecheck:homepages": "tsc -p tsconfig.homepages.json --noEmit"
   },
   "dependencies": {
@@ -144,6 +147,7 @@
     "playwright": "^1.59.1",
     "postcss": "^8.5.19",
     "prettier": "3.9.6",
+    "stylelint": "^17.14.1",
     "supertest": "^6.3.4",
     "typescript": "^7.0.2",
     "xlsx": "^0.18.5"
@@ -155,6 +159,9 @@
     ],
     "*.{json,md}": [
       "prettier --write"
+    ],
+    "*.css": [
+      "stylelint"
     ]
   },
   "overrides": {

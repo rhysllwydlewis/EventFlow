@@ -1,20 +1,41 @@
 {
-  "extends": "stylelint-config-standard",
+  "//no-duplicate-selectors": "Deliberately null: 283 pre-existing instances across 41 legacy stylesheets, and merging duplicate selectors reorders the cascade and risks visual regressions. That is a separate cleanup, not a gate. New stylesheets should still avoid them.",
+  "//": "Bug-class rules only. These catch CSS that is broken or dead — invalid values, declarations that can never apply, blocks that do nothing — not stylistic preference. Enforced repo-wide at zero violations by tests/unit/stylesheet-lint.test.js, which runs inside the blocking Jest suite (the same place type-scale.test.js enforces the type scale).",
   "rules": {
-    "color-hex-length": "short",
     "color-no-invalid-hex": true,
-    "comment-empty-line-before": null,
-    "declaration-block-no-duplicate-properties": true,
-    "font-family-name-quotes": "always-where-recommended",
-    "font-weight-notation": "numeric",
-    "function-url-quotes": "always",
-    "max-nesting-depth": 3,
-    "no-descending-specificity": null,
-    "no-duplicate-selectors": true,
-    "selector-class-pattern": null,
-    "selector-max-id": 0,
-    "shorthand-property-no-redundant-values": true,
-    "value-keyword-case": "lower"
+    "function-calc-no-unspaced-operator": true,
+    "string-no-newline": true,
+    "no-irregular-whitespace": true,
+    "no-invalid-position-at-import-rule": true,
+
+    "property-no-unknown": true,
+    "unit-no-unknown": true,
+    "at-rule-no-unknown": [
+      true,
+      { "ignoreAtRules": ["container", "layer", "starting-style", "property"] }
+    ],
+    "media-feature-name-no-unknown": true,
+    "selector-pseudo-class-no-unknown": true,
+    "selector-pseudo-element-no-unknown": true,
+    "selector-type-no-unknown": [true, { "ignoreTypes": ["/^ef-/"] }],
+
+    "declaration-block-no-duplicate-properties": [
+      true,
+      { "ignore": ["consecutive-duplicates-with-different-values"] }
+    ],
+    "declaration-block-no-shorthand-property-overrides": true,
+    "keyframe-declaration-no-important": true,
+    "block-no-empty": true,
+    "comment-no-empty": true,
+    "no-empty-source": true,
+
+    "no-duplicate-selectors": null
   },
-  "ignoreFiles": ["node_modules/**", "dist/**", "build/**"]
+  "ignoreFiles": [
+    "node_modules/**",
+    "dist/**",
+    "build/**",
+    "coverage/**",
+    "public/assets/vendor/**"
+  ]
 }
