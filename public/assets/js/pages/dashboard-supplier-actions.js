@@ -106,7 +106,7 @@ document.addEventListener('DOMContentLoaded', () => {
       }
       const originalText = this.textContent;
       let copied = false;
-      let copyField;
+      let copyField = null;
       try {
         if (navigator.clipboard?.writeText) {
           await navigator.clipboard.writeText(url);
