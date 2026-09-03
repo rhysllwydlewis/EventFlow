@@ -21,6 +21,7 @@ document.addEventListener('DOMContentLoaded', () => {
     Décor: '🎨',
     Stationery: '✉️',
     Marketplace: '🛍️',
+    Transport: '🚗',
   };
 
   function escHtml(str) {

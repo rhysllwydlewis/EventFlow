@@ -958,5 +958,34 @@
     "lastMaterialUpdate": "2026-03-15",
     "primaryTag": "photography",
     "ogImage": "https://images.pexels.com/photos/3014853/pexels-photo-3014853.jpeg?auto=compress&cs=tinysrgb&w=800&h=500&dpr=1"
+  },
+  {
+    "id": 34,
+    "title": "Event Travel Costs Guide: Budgeting Transport for Guests, Staff and Suppliers",
+    "description": "How to budget event travel costs for guests, staff, stakeholders, suppliers and agencies — parking, shuttles, mileage rates and fuel, plus tips to cut the bill.",
+    "excerpt": "Travel is one of the easiest event costs to underestimate. Learn how to budget for guest, staff, stakeholder and supplier transport, including mileage rates, fuel costs and practical ways to cut the bill.",
+    "image": "https://images.pexels.com/photos/210182/pexels-photo-210182.jpeg?auto=compress&cs=tinysrgb&w=800&h=500&dpr=1",
+    "category": "Transport",
+    "tags": [
+      "transport",
+      "planning",
+      "budget"
+    ],
+    "href": "/articles/event-travel-costs-guide",
+    "readingMins": 8,
+    "publishedDate": "2026-09-03",
+    "featured": false,
+    "affiliate": false,
+    "tool": {
+      "label": "Open budget planner",
+      "href": "/budget"
+    },
+    "author": "EventFlow Team",
+    "summary": "Budget guest, staff and supplier travel properly, with mileage rates, fuel costs and ways to cut the bill.",
+    "difficulty": "Beginner",
+    "lastUpdated": "2026-09-03",
+    "primaryTag": "transport",
+    "ogImage": "https://images.pexels.com/photos/210182/pexels-photo-210182.jpeg?auto=compress&cs=tinysrgb&w=800&h=500&dpr=1",
+    "lastMaterialUpdate": "2026-09-03"
   }
 ]
