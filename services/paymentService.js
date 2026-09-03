@@ -320,7 +320,7 @@ async function updatePaymentRecord(paymentId, updates) {
  * @param {string} stripePaymentId - Stripe payment intent ID
  * @returns {Promise<Object|null>} Payment record or null
  */
-async function getPaymentByStripeId(stripePaymentId) {
+function getPaymentByStripeId(stripePaymentId) {
   return dbUnified.findOne('payments', { stripePaymentId });
 }
 

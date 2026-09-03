@@ -294,7 +294,7 @@
           panelCreate.insertAdjacentElement('afterbegin', banner);
         }
       }
-    } catch (_) {
+    } catch {
       // Network error — silently leave the UI in its default (enabled) state
     }
   })();

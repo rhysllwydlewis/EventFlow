@@ -315,7 +315,7 @@
       return this.metrics;
     }
 
-    async report() {
+    report() {
       if (!this.options.enableRemoteLogging) {
         return;
       }

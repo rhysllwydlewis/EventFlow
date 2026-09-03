@@ -36,7 +36,7 @@ function canModerateReviews(req, res, next) {
  * @param {Object} res - Express response
  * @param {Function} next - Next middleware
  */
-async function canRespondToReview(req, res, next) {
+function canRespondToReview(req, res, next) {
   if (!req.user) {
     return res.status(401).json({ error: 'Authentication required' });
   }

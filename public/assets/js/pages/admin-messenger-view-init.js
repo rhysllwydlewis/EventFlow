@@ -175,7 +175,7 @@
     return data.conversation;
   }
 
-  async function fetchMessages(id, cursor) {
+  function fetchMessages(id, cursor) {
     const params = new URLSearchParams({ limit: 50 });
     if (cursor) {
       params.set('cursor', cursor);

@@ -33,7 +33,7 @@ function _enquiryTrendIconHeader() {
  * Load Chart.js library if not already loaded
  * @returns {Promise<void>}
  */
-async function loadChartJS() {
+function loadChartJS() {
   if (window.Chart) {
     return Promise.resolve();
   }

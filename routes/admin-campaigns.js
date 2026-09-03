@@ -357,7 +357,7 @@ router.put('/automation', authRequired, roleRequired('admin'), csrfProtection, a
 // No csrfProtection: preview is idempotent (renders template, no side-effects).
 // It still requires authRequired + roleRequired('admin') to prevent unauthenticated access.
 
-router.post('/preview', authRequired, roleRequired('admin'), async (req, res) => {
+router.post('/preview', authRequired, roleRequired('admin'), (req, res) => {
   try {
     const {
       templateName = 'marketing',

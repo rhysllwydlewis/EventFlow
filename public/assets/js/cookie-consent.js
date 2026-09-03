@@ -532,7 +532,7 @@
         return prefs
           ? { essential: true, functional: !!prefs.functional, analytics: !!prefs.analytics }
           : { essential: true, functional: false, analytics: false };
-      } catch (e) {
+      } catch {
         return { essential: true, functional: false, analytics: false };
       }
     },

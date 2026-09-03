@@ -51,7 +51,7 @@ function withTimeout(promise, timeoutMs, operationName) {
   ]);
 }
 
-async function initializeDatabase() {
+function initializeDatabase() {
   if (dbType) {
     if (initializationState !== 'completed') {
       initializationState = 'completed';

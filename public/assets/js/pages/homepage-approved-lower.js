@@ -33,7 +33,7 @@
       return new URL(url, window.location.origin).origin === window.location.origin
         ? url
         : fallback;
-    } catch (error) {
+    } catch {
       return fallback;
     }
   };
@@ -189,7 +189,7 @@
       return items
         .filter(category => category.visible !== false)
         .sort((a, b) => (a.order || 0) - (b.order || 0));
-    } catch (error) {
+    } catch {
       return null;
     }
   };
@@ -390,7 +390,7 @@
       const listings = Array.isArray(data.listings) ? data.listings : [];
       const listing = listings.sort((a, b) => scoreListing(b) - scoreListing(a))[0];
       renderMarketplaceCard(container, listing || null);
-    } catch (_) {
+    } catch {
       renderMarketplaceCard(container, null);
     }
   };
@@ -485,7 +485,7 @@
         throw new Error('Guides unavailable');
       }
       renderApprovedGuides(container, await response.json());
-    } catch (_) {
+    } catch {
       renderApprovedGuides(container, []);
     }
   };

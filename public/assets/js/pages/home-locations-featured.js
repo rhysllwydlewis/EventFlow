@@ -47,7 +47,7 @@
       return parsed.protocol === 'https:' && parsed.hostname === 'images.pexels.com'
         ? parsed.toString()
         : null;
-    } catch (_error) {
+    } catch {
       return null;
     }
   }

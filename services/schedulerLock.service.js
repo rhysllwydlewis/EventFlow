@@ -66,7 +66,7 @@ async function acquireLock(jobKey, ttlMs = DEFAULT_TTL_MS) {
       return null;
     }
     localLocks.set(id, { expiresAt: expiresAtDate.toISOString() });
-    return async () => {
+    return () => {
       localLocks.delete(id);
     };
   }

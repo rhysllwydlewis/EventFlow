@@ -336,7 +336,7 @@ async function loadEmailPrefs() {
     setChecked('ap-incomplete-profile', ap.incompleteProfile !== false);
     setChecked('ap-missing-photos', ap.missingPhotos !== false);
     updateApSubPrefsVisibility();
-  } catch (e) {
+  } catch {
     // Non-fatal — defaults are all ON
   }
 }
@@ -411,7 +411,7 @@ async function loadEmailNotificationPrefs(user) {
       }
     }
     _emailPrefsLoaded = true;
-  } catch (e) {
+  } catch {
     // Non-fatal — section keeps its default state
   }
 }
@@ -434,7 +434,7 @@ document.getElementById('newsletter-toggle-btn')?.addEventListener('click', asyn
     }
     _newsletterStatus = _newsletterStatus === 'active' ? 'unsubscribed' : 'pending-confirmation';
     renderNewsletterStatus();
-  } catch (e) {
+  } catch {
     const text = document.getElementById('newsletter-status-text');
     if (text) {
       text.textContent = '✗ Could not update newsletter subscription';
@@ -588,7 +588,7 @@ document.getElementById('save-settings').addEventListener('click', async () => {
     setTimeout(() => {
       status.textContent = '';
     }, 3000);
-  } catch (error) {
+  } catch {
     status.textContent = '✗ Error saving preferences';
     status.style.color = '#ef4444';
     setTimeout(() => {

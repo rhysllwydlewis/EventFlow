@@ -480,7 +480,7 @@
     let handles;
     try {
       handles = JSON.parse(container.dataset.mentions || '[]');
-    } catch (_) {
+    } catch {
       handles = [];
     }
     if (!Array.isArray(handles) || handles.length === 0) {
@@ -583,14 +583,14 @@
           try {
             await navigator.share({ title: payload.discussion.title, url });
             return;
-          } catch (_) {
+          } catch {
             /* fall through to clipboard */
           }
         }
         try {
           await navigator.clipboard.writeText(url);
           EFC.announce('Link copied to your clipboard.');
-        } catch (_) {
+        } catch {
           EFC.announce('Copy this page address to share the discussion.');
         }
       });
@@ -854,7 +854,7 @@
       ]);
       EFC.hideFallback();
       render();
-    } catch (error) {
+    } catch {
       EFC.hideFallback();
       root.innerHTML = EFC.errorState('We could not load this discussion.');
       const retry = root.querySelector('[data-efc-retry]');

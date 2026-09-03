@@ -46,7 +46,7 @@ class SupplierGalleryManager {
       if (Number.isFinite(limit)) {
         this.maxPhotos = limit;
       }
-    } catch (_error) {
+    } catch {
       // Keep the default; the server is the authority.
     }
   }

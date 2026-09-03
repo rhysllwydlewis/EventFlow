@@ -221,12 +221,12 @@ function getDynamicHeroTip(summaryData, checklistData) {
  *
  * @returns {Promise<Object|null>}
  */
-async function loadActionPromptChecklist() {
+function loadActionPromptChecklist() {
   if (!actionPromptChecklistPromise) {
     actionPromptChecklistPromise = fetch('/api/me/action-prompt-checklist', {
       credentials: 'include',
     })
-      .then(async response => {
+      .then(response => {
         if (!response.ok) {
           return null;
         }
@@ -747,7 +747,7 @@ async function displaySubscriptionStatus() {
         paymentMethodBrand = subJson.paymentMethodBrand || null;
         paymentMethodLast4 = subJson.paymentMethodLast4 || null;
       }
-    } catch (_err) {
+    } catch {
       // best-effort — subscriptionRecord stays null; billing details won't display
     }
 
@@ -768,7 +768,7 @@ async function displaySubscriptionStatus() {
             paymentCurrency = data.upcomingInvoice.currency || 'gbp';
           }
         }
-      } catch (_err) {
+      } catch {
         // best-effort
       }
     }
@@ -1066,7 +1066,7 @@ async function displayLeadQualityBreakdown() {
             .then(r => (r.ok ? r.json() : null))
             .catch(() => null);
       currentUserId = authData?.user?.id || null;
-    } catch (_e) {
+    } catch {
       /* ignore */
     }
 
@@ -1200,7 +1200,7 @@ displaySubscriptionStatus();
       if (localStorage.getItem(PROFILE_HINT_KEY) === '1') {
         return;
       }
-    } catch (_) {
+    } catch {
       /* Ignore localStorage errors */
     }
 
@@ -1257,7 +1257,7 @@ displaySubscriptionStatus();
 
     try {
       localStorage.setItem(PROFILE_HINT_KEY, '1');
-    } catch (_) {
+    } catch {
       /* Ignore localStorage errors */
     }
   }
@@ -1266,7 +1266,7 @@ displaySubscriptionStatus();
     try {
       localStorage.setItem(DISMISS_KEY, '1');
       localStorage.setItem('ef_onboarding_dismissed', '1');
-    } catch (_) {
+    } catch {
       /* Ignore localStorage errors */
     }
 

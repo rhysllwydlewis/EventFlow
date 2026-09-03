@@ -77,7 +77,7 @@
     try {
       const result = await window.AdminShared.api('/api/admin/campaigns/automation', 'GET');
       populate(result && result.automation);
-    } catch (err) {
+    } catch {
       setStatus('Could not load automation settings.', 'error');
     }
   }

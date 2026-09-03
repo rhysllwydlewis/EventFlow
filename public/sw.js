@@ -432,7 +432,7 @@ self.addEventListener('message', event => {
  * Sync form data from IndexedDB
  * @returns {Promise} Promise that resolves when sync is complete
  */
-async function syncFormData() {
+function syncFormData() {
   // This is a placeholder for actual IndexedDB integration
   // In a real implementation, you would:
   // 1. Open IndexedDB

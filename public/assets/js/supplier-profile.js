@@ -70,7 +70,7 @@ import {
         return `${Math.floor(diffDays / 30)} months ago`;
       }
       return d.toLocaleDateString('en-GB', { year: 'numeric', month: 'short' });
-    } catch (_) {
+    } catch {
       return '';
     }
   }
@@ -569,7 +569,7 @@ import {
           } else {
             window.NotificationDispatcher?.error('Could not save — please try again');
           }
-        } catch (_) {
+        } catch {
           window.NotificationDispatcher?.error('Could not save — please try again');
         }
       };
@@ -1001,7 +1001,7 @@ import {
         const data = await response.json();
         currentUser = (data && data.user) || null;
       }
-    } catch (_) {
+    } catch {
       // Network error — proceed with null (guest) user
     }
 

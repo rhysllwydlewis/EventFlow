@@ -521,7 +521,7 @@
     }
   }
 
-  async function loadAnalytics() {
+  function loadAnalytics() {
     // Real analytics are not currently implemented
     // Show "Not configured" state instead of fake data
     document.getElementById('totalViews').textContent = '—';

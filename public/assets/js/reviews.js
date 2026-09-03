@@ -761,7 +761,7 @@
               this.currentUser = data.user;
             }
           }
-        } catch (_) {
+        } catch {
           // ignore network errors — fall through to redirect if still unauthenticated
         }
       }

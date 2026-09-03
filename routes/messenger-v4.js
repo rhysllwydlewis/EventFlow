@@ -282,7 +282,7 @@ async function getDbInstance() {
 /**
  * Get or initialize messenger service (promise-based lock prevents TOCTOU race)
  */
-async function getMessengerService() {
+function getMessengerService() {
   if (!_messengerServicePromise) {
     _messengerServicePromise = getDbInstance()
       .then(dbInstance => new MessengerV4Service(dbInstance, logger))

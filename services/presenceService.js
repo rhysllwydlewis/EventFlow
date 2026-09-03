@@ -270,7 +270,7 @@ class PresenceService {
   /**
    * Cleanup inactive presence records
    */
-  async cleanup() {
+  cleanup() {
     try {
       if (!this.useRedis) {
         const now = Date.now();

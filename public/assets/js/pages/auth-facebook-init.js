@@ -268,7 +268,7 @@
           response_type: 'code',
         });
         window.location.href = `${FACEBOOK_OAUTH_DIALOG}?${params.toString()}`;
-      } catch (error) {
+      } catch {
         button.removeAttribute('aria-busy');
         setStatus(
           'Facebook sign-in could not be started. Please try again or use email login.',

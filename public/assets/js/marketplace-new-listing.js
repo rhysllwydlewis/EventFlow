@@ -183,7 +183,7 @@
   /**
    * Process selected files
    */
-  async function handleFiles(files) {
+  function handleFiles(files) {
     // Limit to 5 images total
     const remaining = 5 - selectedImages.length;
     if (remaining <= 0) {

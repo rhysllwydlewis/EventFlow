@@ -33,7 +33,7 @@
       const totalItems = document.querySelectorAll('.faq-item[data-category]').length;
 
       filterBtns.forEach(btn => {
-        const countEl = btn.querySelector('.faq-filter-count');
+        const countEl = btn.querySelector('.faq-filter-count'); // skipcq: JS-0123 - per-button local, unrelated to the outer count element
         if (!countEl) {
           return;
         }

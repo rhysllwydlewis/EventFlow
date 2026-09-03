@@ -125,7 +125,7 @@
     }
   }
 
-  async function getWebsiteState(planId) {
+  function getWebsiteState(planId) {
     if (!planId) {
       return null;
     }

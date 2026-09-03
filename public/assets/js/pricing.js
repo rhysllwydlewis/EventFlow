@@ -239,7 +239,7 @@
 
       container.hidden = false;
       startProofPaging({ strip, dots, pages });
-    } catch (_error) {
+    } catch {
       // The strip is social proof, not function. Hiding it is fine; the hero
       // just has to still look deliberate without it.
       giveUp();
@@ -525,7 +525,7 @@
       if (pricingAuthMode === 'authenticated') {
         attachCheckoutHandlers();
       }
-    } catch (_error) {
+    } catch {
       // Matching fallback prices and copy are already rendered in the HTML.
     }
   }
@@ -830,7 +830,7 @@
       }
       const data = await response.json();
       hasLiveSubscription = Boolean(data.plan && data.plan !== 'free' && data.subscription?.id);
-    } catch (_error) {
+    } catch {
       // Leave hasLiveSubscription at its default (false) — worst case a
       // subscriber briefly sees checkout-styled buttons rather than the
       // reverse, which is the direction that matters for correctness.
@@ -866,7 +866,7 @@
       await checkLiveSubscription();
       updateButtonsForAuthenticatedUser(user);
       attachCheckoutHandlers();
-    } catch (_error) {
+    } catch {
       updateButtonsForUnauthenticatedUser();
     }
   }
@@ -902,7 +902,7 @@
         let checkoutUrl = null;
         try {
           checkoutUrl = new URL(this.href, window.location.origin);
-        } catch (_error) {
+        } catch {
           return;
         }
         const planId = checkoutUrl.searchParams.get('plan');

@@ -154,7 +154,7 @@
       const host = new URL(document.referrer).hostname.replace(/^www\./, '');
       const currentHost = window.location.hostname.replace(/^www\./, '');
       return host === currentHost ? 'internal' : host;
-    } catch (_error) {
+    } catch {
       return 'direct';
     }
   }
@@ -177,7 +177,7 @@
   function decodeIdentifier(value) {
     try {
       return decodeURIComponent(value || '');
-    } catch (_error) {
+    } catch {
       return value || '';
     }
   }
@@ -301,7 +301,7 @@
         if (navigator.sendBeacon(COLLECT_ENDPOINT, blob)) {
           return;
         }
-      } catch (_error) {
+      } catch {
         // Fall through to fetch with keepalive.
       }
     }
@@ -344,7 +344,7 @@
         device_type: event.deviceType,
         ...(event.properties || {}),
       });
-    } catch (_error) {
+    } catch {
       // First-party analytics remains available if PostHog is blocked.
     }
   }
@@ -547,7 +547,7 @@
             source: pageType(),
           });
         }
-      } catch (_error) {
+      } catch {
         // Ignore malformed links.
       }
     });
@@ -564,7 +564,7 @@
       let action = currentPath();
       try {
         action = new URL(form.action || window.location.href, window.location.href).pathname;
-      } catch (_error) {
+      } catch {
         // Keep the current path.
       }
 
@@ -584,7 +584,7 @@
       let source = '';
       try {
         source = event.filename ? new URL(event.filename, window.location.href).pathname : '';
-      } catch (_error) {
+      } catch {
         source = '';
       }
       track('client_error', {
@@ -620,7 +620,7 @@
         }
       });
       observer.observe({ type: 'largest-contentful-paint', buffered: true });
-    } catch (_error) {
+    } catch {
       // The metric is not supported in this browser.
     }
   }
@@ -765,7 +765,7 @@
       if (typeof window.posthog.reset === 'function') {
         window.posthog.reset();
       }
-    } catch (_error) {
+    } catch {
       // Best-effort provider shutdown.
     }
     state.posthogStarted = false;

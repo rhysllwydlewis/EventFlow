@@ -628,7 +628,7 @@
       // The endpoint answers anonymously rather than with 401, so an explicit
       // `authenticated: false` is the logged-out signal callers expect as null.
       return viewer && viewer.authenticated === false ? null : viewer;
-    } catch (_) {
+    } catch {
       return null;
     }
   }

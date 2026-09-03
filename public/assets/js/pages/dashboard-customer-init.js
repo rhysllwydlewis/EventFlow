@@ -655,7 +655,7 @@ function initCalendar() {
 // Setup all event handlers
 function setupEventHandlers(latestPlans) {
   // Setup Open My Plan button with auth-aware navigation
-  document.getElementById('openPlanBtn')?.addEventListener('click', async e => {
+  document.getElementById('openPlanBtn')?.addEventListener('click', e => {
     e.preventDefault();
 
     // Collect ONLY supplier IDs (not package IDs) for the /suppliers?filter=saved redirect.

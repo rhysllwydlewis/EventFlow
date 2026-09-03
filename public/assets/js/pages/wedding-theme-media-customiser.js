@@ -136,7 +136,7 @@
     };
   }
 
-  async function imageToDataUrl(file) {
+  function imageToDataUrl(file) {
     if (!file || !file.type.startsWith('image/')) {
       throw new Error('Please choose an image file.');
     }

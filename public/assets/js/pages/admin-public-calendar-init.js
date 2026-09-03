@@ -43,7 +43,7 @@
     }
   }
 
-  async function api(url, method = 'GET', body = null) {
+  function api(url, method = 'GET', body = null) {
     return AdminShared.api(url, method, body);
   }
 

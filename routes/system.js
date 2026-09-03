@@ -109,7 +109,7 @@ function getIntegrationStatus() {
     // eslint-disable-next-line node/no-missing-require
     require.resolve('@socket.io/redis-adapter');
     redisAdapterInstalled = true;
-  } catch (_error) {
+  } catch {
     redisAdapterInstalled = false;
   }
 
@@ -411,12 +411,12 @@ router.get('/health', applyHealthCheckLimiter, async (_req, res) => {
           );
           response.services.pexelsCollections = hasCollectionId ? 'configured' : 'not_configured';
         }
-      } catch (settingsError) {
+      } catch {
         // Don't fail health check if settings read fails
         response.services.pexelsCollections = 'unknown';
       }
     }
-  } catch (error) {
+  } catch {
     response.services.pexels = 'unavailable';
   }
 
@@ -470,7 +470,7 @@ router.get('/ready', applyHealthCheckLimiter, async (_req, res) => {
     if (dbStatus) {
       activeBackend = dbStatus.type; // 'mongodb' or 'local'
     }
-  } catch (error) {
+  } catch {
     // Ignore errors in determining backend
   }
 

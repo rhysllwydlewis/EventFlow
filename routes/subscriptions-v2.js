@@ -256,7 +256,7 @@ function requirePlanMetadata(event) {
   }
 }
 
-router.get('/plans', async (_req, res) => {
+router.get('/plans', (_req, res) => {
   res.json({
     success: true,
     plans: subscriptionService.getAllPlans(),

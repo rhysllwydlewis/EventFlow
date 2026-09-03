@@ -63,7 +63,7 @@
     root.dataset.cacheIndependent = 'true';
   }
 
-  async function refreshFromMongo() {
+  function refreshFromMongo() {
     if (refreshPromise) {
       return refreshPromise;
     }

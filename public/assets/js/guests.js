@@ -335,7 +335,7 @@ class GuestManager {
     setTimeout(() => document.getElementById('guest-firstname').focus(), 100);
   }
 
-  async deleteGuest(id) {
+  deleteGuest(id) {
     const guest = this.guests.find(g => g.id === id);
     if (!guest) {
       return;

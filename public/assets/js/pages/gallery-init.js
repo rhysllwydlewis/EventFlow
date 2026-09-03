@@ -122,7 +122,7 @@ document.addEventListener('keydown', e => {
   }
 });
 
-async function uploadFiles() {
+function uploadFiles() {
   if (selectedFiles.length === 0) {
     return;
   }

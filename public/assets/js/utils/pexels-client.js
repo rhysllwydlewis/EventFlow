@@ -112,7 +112,7 @@ class PexelsClient {
    * @param {string} size - Photo size
    * @returns {Promise<string|null>} Photo URL or null
    */
-  async getRandomPhoto(queries, size = 'medium') {
+  getRandomPhoto(queries, size = 'medium') {
     if (!queries || queries.length === 0) {
       return null;
     }

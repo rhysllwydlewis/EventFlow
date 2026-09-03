@@ -318,7 +318,7 @@
         });
 
         await window.AppleID.auth.signIn();
-      } catch (error) {
+      } catch {
         button.removeAttribute('aria-busy');
         setStatus(
           'Apple sign-in could not be started. Please try again or use email login.',

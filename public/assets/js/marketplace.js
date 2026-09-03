@@ -957,7 +957,7 @@
     const imagePreview = document.getElementById('image-preview');
     let selectedImages = [];
 
-    imageInput.addEventListener('change', async e => {
+    imageInput.addEventListener('change', e => {
       const files = Array.from(e.target.files).slice(0, 5); // Max 5 images
       selectedImages = [];
       imagePreview.innerHTML = '';

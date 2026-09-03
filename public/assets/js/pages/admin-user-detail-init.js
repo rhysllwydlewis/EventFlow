@@ -1,4 +1,4 @@
-(async function () {
+(function () {
   const urlParams = new URLSearchParams(window.location.search);
   const userId = urlParams.get('id');
   const encodedUserId = encodeURIComponent(userId || '');
@@ -396,7 +396,7 @@
   // listing both roles would let an admin "convert" a user to the role they
   // already have, which the service correctly rejects (ALREADY_TARGET_ROLE)
   // but is a confusing no-op to offer in the first place.
-  async function openAccountTypeModal(user) {
+  function openAccountTypeModal(user) {
     if (typeof Modal === 'undefined') {
       AdminShared.showToast('Unable to open the account type dialog (Modal unavailable)', 'error');
       return;
@@ -439,6 +439,7 @@
   }
 
   async function provisionSupplierProfile(userId) {
+    // skipcq: JS-0123 - function param scoped to this handler only
     const ok = await AdminShared.showConfirmModal({
       title: 'Provision supplier profile?',
       message:

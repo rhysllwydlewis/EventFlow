@@ -237,7 +237,7 @@ function searchCacheMiddleware(options = {}) {
 function invalidateSearchCacheMiddleware(options = {}) {
   const { pattern = 'search:v2:*' } = options;
 
-  return async (req, res, next) => {
+  return (req, res, next) => {
     // Only invalidate on write operations
     if (!['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method)) {
       return next();
@@ -266,7 +266,7 @@ function invalidateSearchCacheMiddleware(options = {}) {
  * Get cache statistics for monitoring
  * @returns {Promise<Object>} Cache statistics
  */
-async function getCacheStats() {
+function getCacheStats() {
   try {
     const stats = cache.getStats
       ? cache.getStats()

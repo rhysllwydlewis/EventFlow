@@ -134,7 +134,7 @@ async function getPublicSupplierAvatar(supplierId, options = {}) {
   return result;
 }
 
-async function syncPublicSupplierAvatarForSupplier(supplierId, avatarUrl, options = {}) {
+function syncPublicSupplierAvatarForSupplier(supplierId, avatarUrl, options = {}) {
   const db = options.dbUnified || require('../db-unified');
   const now = new Date().toISOString();
   const update = { $set: { updatedAt: now } };

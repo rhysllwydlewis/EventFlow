@@ -289,7 +289,7 @@
     });
   }
 
-  async function openTicketModal(ticketId) {
+  function openTicketModal(ticketId) {
     const ticket = allTickets.find(item => item.id === ticketId);
     if (!ticket) {
       return;

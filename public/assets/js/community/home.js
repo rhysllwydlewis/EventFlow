@@ -379,7 +379,7 @@
       renderRails();
       renderCategoryStrip();
       render();
-    } catch (error) {
+    } catch {
       root.innerHTML = EFC.errorState(
         'We could not load the community just now. Your connection may be offline.'
       );

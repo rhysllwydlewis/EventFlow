@@ -115,7 +115,7 @@ function isDevelopmentEnvironment() {
  * Note: Currently unused but kept for potential future image optimization
  */
 // eslint-disable-next-line no-unused-vars
-async function supportsWebP() {
+function supportsWebP() {
   if (window.__webpSupported !== undefined) {
     return window.__webpSupported;
   }
@@ -2191,7 +2191,7 @@ function addCacheBuster(url) {
  * @param {Array} uploadGallery - Array of uploaded image URLs for fallback
  * @param {number} frameIndex - Index of the frame for fallback selection
  */
-async function loadMediaIntoFrame(
+function loadMediaIntoFrame(
   frame,
   mediaElement,
   media,
@@ -2471,7 +2471,7 @@ function cycleWidgetMedia(
     }
 
     setTimeout(
-      async () => {
+      () => {
         // Verify element still exists in DOM (safety check)
         if (!document.body.contains(currentElement)) {
           if (isDevelopmentEnvironment()) {

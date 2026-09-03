@@ -620,7 +620,7 @@ export function createProfileChecklist(completionData, containerId) {
  * Load Chart.js library (lazy, from vendor bundle or CDN fallback).
  * @returns {Promise<void>}
  */
-async function loadChartJS() {
+function loadChartJS() {
   if (window.Chart) {
     return;
   }

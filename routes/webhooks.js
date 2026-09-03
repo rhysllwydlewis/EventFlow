@@ -43,7 +43,7 @@ const router = express.Router();
  * - Open: { RecordType: "Open", MessageID, Recipient, ReceivedAt, ... }
  * - Click: { RecordType: "Click", MessageID, Recipient, OriginalLink, ... }
  */
-router.post('/postmark', express.json(), async (req, res) => {
+router.post('/postmark', express.json(), (req, res) => {
   try {
     // Basic authentication check (if configured)
     const authHeader = req.headers.authorization;

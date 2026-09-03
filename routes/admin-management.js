@@ -13,7 +13,7 @@ const { buildAdminManagementOverview } = require('../utils/admin-management-over
 const router = express.Router();
 const collageUploadDir = path.join(__dirname, '../public/uploads/homepage-collage');
 
-async function listCollageMedia() {
+function listCollageMedia() {
   try {
     if (!fs.existsSync(collageUploadDir)) {
       return [];

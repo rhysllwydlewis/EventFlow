@@ -151,7 +151,7 @@ async function getOwnedPlan(req, res, next) {
   next();
 }
 
-router.get('/:planId/wedding-website/theme-media', authRequired, getOwnedPlan, async (req, res) => {
+router.get('/:planId/wedding-website/theme-media', authRequired, getOwnedPlan, (req, res) => {
   res.json({ success: true, themeMedia: publicThemeMedia(req.plan.weddingWebsite) });
 });
 

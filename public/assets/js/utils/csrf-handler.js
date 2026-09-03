@@ -50,7 +50,7 @@ class CSRFHandler {
    * @param {boolean} forceRefresh - Force fetching a new token
    * @returns {Promise<string>} CSRF token
    */
-  async ensureToken(forceRefresh = false) {
+  ensureToken(forceRefresh = false) {
     // Check cookie first
     if (!forceRefresh) {
       const cookieToken = this.getTokenFromCookie();

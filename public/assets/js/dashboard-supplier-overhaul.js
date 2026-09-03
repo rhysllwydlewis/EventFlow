@@ -146,7 +146,7 @@
 
     // Save
     container.querySelector('#save-availability-btn').addEventListener('click', async () => {
-      const notes = container.querySelector('.availability-notes').value;
+      const notes = container.querySelector('.availability-notes').value; // skipcq: JS-0123 - local to the save handler, unrelated to the destructured widget-render notes
       const btn = container.querySelector('#save-availability-btn');
       const statusEl = container.querySelector('#availability-save-status');
       btn.disabled = true;

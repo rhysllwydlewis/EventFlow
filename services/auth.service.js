@@ -379,7 +379,7 @@ class AuthService {
    * @param {string} token - JWT token
    * @returns {Object} - Decoded token
    */
-  async validateToken(token) {
+  validateToken(token) {
     try {
       return jwt.verify(token, JWT_SECRET);
     } catch (error) {

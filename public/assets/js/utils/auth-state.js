@@ -160,7 +160,7 @@
       };
     }
 
-    async refresh() {
+    refresh() {
       this.initialized = false;
       this.initPromise = null;
       return this.init();

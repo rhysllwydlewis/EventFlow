@@ -261,7 +261,7 @@
     );
   }
 
-  async function fetchWebsite(planId) {
+  function fetchWebsite(planId) {
     if (!planId) {
       return null;
     }
@@ -279,7 +279,7 @@
     return lastWebsitePromise;
   }
 
-  async function fetchPlan(planId) {
+  function fetchPlan(planId) {
     if (!planId) {
       return null;
     }

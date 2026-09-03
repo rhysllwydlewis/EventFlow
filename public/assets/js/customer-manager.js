@@ -95,7 +95,7 @@ class CustomerManager {
    * @param {string} userId - User ID
    * @param {Object} updates - Fields to update
    */
-  async updateCustomer(userId, updates) {
+  updateCustomer(userId, updates) {
     return this.saveCustomer(userId, updates);
   }
 

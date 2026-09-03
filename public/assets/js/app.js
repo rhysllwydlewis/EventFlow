@@ -318,7 +318,7 @@ function validateRedirectForRole(redirectUrl, userRole) {
       return false;
     }
     pathname = urlObj.pathname;
-  } catch (_) {
+  } catch {
     // If URL parsing fails, treat as pathname directly
     pathname = url.split('?')[0].split('#')[0];
   }
@@ -474,7 +474,7 @@ function validateRedirectForRole(redirectUrl, userRole) {
       efErrorBanner._hideTimer = setTimeout(() => {
         efErrorBanner.style.opacity = '0';
       }, 5000);
-    } catch (_) {
+    } catch {
       /* Ignore banner display errors */
     }
   }
@@ -494,7 +494,7 @@ const LS_PLAN_LOCAL = 'eventflow_local_plan';
 function lsGet() {
   try {
     return JSON.parse(localStorage.getItem(LS_PLAN_LOCAL) || '[]');
-  } catch (_) {
+  } catch {
     return [];
   }
 }
@@ -527,7 +527,7 @@ async function me() {
     }
     const data = await r.json();
     return data.user || null;
-  } catch (_) {
+  } catch {
     return null;
   }
 }
@@ -710,7 +710,7 @@ async function initResults() {
         }
         contextEl.textContent = bits.length ? `Based on your last event: ${bits.join(' • ')}` : '';
       }
-    } catch (_e) {
+    } catch {
       // ignore
     }
   }
@@ -1176,6 +1176,7 @@ async function initSupplier() {
         // Remove from plan
         try {
           const r = await fetch(`/api/v1/plan/${encodeURIComponent(s.id)}`, {
+            // skipcq: JS-0123 - local to this fetch call, unrelated to other `r` locals in sibling blocks
             method: 'DELETE',
             headers: {
               'X-CSRF-Token': window.__CSRF_TOKEN__ || '',
@@ -1197,6 +1198,7 @@ async function initSupplier() {
         // Add to plan
         try {
           const r = await fetch('/api/v1/plan', {
+            // skipcq: JS-0123 - local to this fetch call, unrelated to other `r` locals in sibling blocks
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
@@ -1222,7 +1224,7 @@ async function initSupplier() {
 
   const startThreadBtn = document.getElementById('start-thread');
   if (startThreadBtn) {
-    startThreadBtn.addEventListener('click', async () => {
+    startThreadBtn.addEventListener('click', () => {
       if (!user) {
         alert('You need an account to contact suppliers. Please sign in or create an account.');
         return;
@@ -1259,6 +1261,7 @@ async function initSupplier() {
           },
         };
         const r = await fetch('/api/v4/messenger/conversations', {
+          // skipcq: JS-0123 - local to this fetch call, unrelated to other `r` locals in sibling blocks
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -1270,7 +1273,7 @@ async function initSupplier() {
         let d = {};
         try {
           d = await r.json();
-        } catch (_) {
+        } catch {
           /* Ignore JSON parse errors */
         }
         if (!r.ok) {
@@ -1828,7 +1831,7 @@ async function initPlan() {
         { version: 2, guests: [], tasks: [], timeline: [], notes: '' },
         obj || {}
       );
-    } catch (_e) {
+    } catch {
       return { version: 2, guests: [], tasks: [], timeline: [], notes: '' };
     }
   }
@@ -1863,7 +1866,7 @@ async function initPlan() {
       } else {
         eventSummary.textContent = 'Tell us about your event to see a quick summary here.';
       }
-    } catch (_e) {
+    } catch {
       eventSummary.textContent = 'Tell us about your event to see a quick summary here.';
     }
   }
@@ -2047,7 +2050,7 @@ async function initPlan() {
         }
       });
     }
-  } catch (_e) {
+  } catch {
     // If anything fails, we just keep the page working without AI.
   }
 
@@ -2446,7 +2449,7 @@ async function renderThreads(targetEl) {
   let user = null;
   try {
     user = await me();
-  } catch (_e) {
+  } catch {
     /* Ignore user fetch errors */
   }
   if (!user) {
@@ -2526,7 +2529,7 @@ async function renderThreads(targetEl) {
         window.location.href = `/messenger/?conversation=${id}`;
       });
     });
-  } catch (_e) {
+  } catch {
     host.innerHTML = '<p class="small">Could not load conversations.</p>';
   }
 }
@@ -2595,7 +2598,7 @@ function efMaybeShowOnboarding(page) {
     if (page === 'dash_customer' && localStorage.getItem('ef_customer_welcome_dismissed') === '1') {
       return;
     }
-  } catch (_) {
+  } catch {
     /* Ignore localStorage errors */
   }
 
@@ -2607,7 +2610,7 @@ function efMaybeShowOnboarding(page) {
       shouldShow = true;
       localStorage.setItem('eventflow_onboarding_new', '0');
     }
-  } catch (_) {
+  } catch {
     /* Ignore localStorage errors */
   }
 
@@ -2697,7 +2700,7 @@ function efMaybeShowOnboarding(page) {
       try {
         localStorage.setItem('ef_onboarding_dismissed', '1');
         localStorage.setItem('ef_supplier_welcome_dismissed', '1');
-      } catch (_) {
+      } catch {
         /* Ignore localStorage errors */
       }
       const easing = 'cubic-bezier(0.4, 0, 0.2, 1)';
@@ -2842,7 +2845,7 @@ function efMaybeShowOnboarding(page) {
       try {
         localStorage.setItem('ef_onboarding_dismissed', '1');
         localStorage.setItem('ef_customer_welcome_dismissed', '1');
-      } catch (_) {
+      } catch {
         /* Ignore localStorage errors */
       }
       const easing = 'cubic-bezier(0.4, 0, 0.2, 1)';
@@ -2900,7 +2903,7 @@ function efMaybeShowOnboarding(page) {
     btn.addEventListener('click', () => {
       try {
         localStorage.setItem('ef_onboarding_dismissed', '1');
-      } catch (_) {
+      } catch {
         /* Ignore localStorage errors */
       }
       box.remove();
@@ -2959,7 +2962,7 @@ async function initDashSupplier() {
         window.history.replaceState({}, '', cleanUrl.toString());
       }, 800);
     }
-  } catch (_e) {
+  } catch {
     /* Ignore conversation fetch errors */
   }
 
@@ -3055,7 +3058,7 @@ async function initDashSupplier() {
       let currentUser = null;
       try {
         currentUser = await me();
-      } catch (_e) {
+      } catch {
         console.warn('Unable to load current user profile for supplier photo controls');
         currentUser = null;
       }
@@ -3129,7 +3132,7 @@ async function initDashSupplier() {
           if (userTier === 'pro' || userTier === 'pro_plus') {
             currentIsPro = true;
           }
-        } catch (_) {
+        } catch {
           // Ignore — subscription endpoint unavailable; fall through to Starter display.
         }
       }
@@ -3149,7 +3152,7 @@ async function initDashSupplier() {
           if (authTier === 'pro' || authTier === 'pro_plus' || authMe?.user?.isPro) {
             currentIsPro = true;
           }
-        } catch (_) {
+        } catch {
           // Ignore — keep currentIsPro as computed from supplier/subscription endpoints.
         }
       }
@@ -3215,7 +3218,7 @@ async function initDashSupplier() {
           map.set(supplierId, (map.get(supplierId) || 0) + 1);
           return map;
         }, new Map());
-      } catch (_pkgErr) {
+      } catch {
         // Non-fatal: supplier cards should still render if packages fail to load.
       }
       supWrap.innerHTML = items
@@ -4392,7 +4395,7 @@ async function initDashSupplier() {
     let parsed;
     try {
       parsed = new URL(normalized);
-    } catch (_e) {
+    } catch {
       return { ok: false, value: raw };
     }
     if (!/^https?:$/i.test(parsed.protocol)) {
@@ -4870,14 +4873,14 @@ async function initDashSupplier() {
               return;
             }
             window.location.href = payload.url;
-          } catch (err) {
+          } catch {
             if (status) {
               status.textContent = 'Network error – please try again.';
             }
           }
         });
       }
-    } catch (_e) {
+    } catch {
       host.innerHTML = '<p class="small">Billing status is currently unavailable.</p>';
     }
   })();
@@ -5217,7 +5220,7 @@ async function togglePackagePause(packageId, pause) {
           statEl.textContent = String(activeCount);
         }
       }
-    } catch (_e) {
+    } catch {
       // Best effort — stat update failure should not block UX
     }
   } catch (e) {
@@ -5468,7 +5471,7 @@ async function savePkgGalleryOrder() {
       // Refresh "Cover" badge in case the server order differs
       _refreshFirstBadge(container);
     }
-  } catch (e) {
+  } catch {
     if (status) {
       status.textContent = 'Network error — please try again';
     }
@@ -5707,7 +5710,7 @@ async function initAdmin() {
           alert('Demo data has been reset.');
           window.location.reload();
         }
-      } catch (e) {
+      } catch {
         alert('Could not contact server to reset demo data.');
       } finally {
         resetBtn.disabled = false;
@@ -5747,7 +5750,7 @@ async function initAdmin() {
       .join(
         ', '
       )} ) · Suppliers: ${c.suppliersTotal} · Packages: ${c.packagesTotal} · Threads: ${c.threadsTotal} · Messages: ${c.messagesTotal}`;
-  } catch (e) {
+  } catch {
     metrics.textContent = 'Forbidden (admin only).';
   }
   try {
@@ -5773,7 +5776,7 @@ async function initAdmin() {
         location.reload();
       })
     );
-  } catch (e) {
+  } catch {
     supWrap.innerHTML = '<p class="small">Forbidden (admin only)</p>';
   }
   try {
@@ -5811,7 +5814,7 @@ async function initAdmin() {
         location.reload();
       })
     );
-  } catch (e) {
+  } catch {
     pkgWrap.innerHTML = '<p class="small">Forbidden (admin only)</p>';
   }
 }
@@ -5902,7 +5905,7 @@ document.addEventListener('DOMContentLoaded', () => {
         ticking = true;
       }
     });
-  } catch (_err) {
+  } catch {
     /* Ignore loader errors */
   }
 
@@ -6004,7 +6007,7 @@ document.addEventListener('DOMContentLoaded', () => {
             location.href = destination;
           }, 600);
         }
-      } catch (_) {
+      } catch {
         /* Ignore loader errors */
       }
     })();
@@ -6031,7 +6034,7 @@ document.addEventListener('DOMContentLoaded', () => {
           if (loginStatus) {
             loginStatus.textContent = "If this email is registered, we'll send reset instructions.";
           }
-        } catch (_) {
+        } catch {
           if (loginStatus) {
             loginStatus.textContent = 'Something went wrong. Please try again in a moment.';
           }
@@ -6298,6 +6301,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Helper function to show toast notification
     const showToast = function (message, type = 'info') {
+      // skipcq: JS-0123 - local helper scoped to this handler, unrelated to the top-level showToast()
       const toast = document.createElement('div');
       toast.className = `ef-toast ef-toast--${type || 'info'}`;
       toast.textContent = message;
@@ -6345,7 +6349,7 @@ document.addEventListener('DOMContentLoaded', () => {
             let data = {};
             try {
               data = await r.json();
-            } catch (_) {
+            } catch {
               /* Ignore JSON parse errors */
             }
 
@@ -6418,7 +6422,7 @@ document.addEventListener('DOMContentLoaded', () => {
           let data = {};
           try {
             data = await r.json();
-          } catch (_) {
+          } catch {
             /* Ignore JSON parse errors */
           }
           if (!r.ok) {
@@ -6462,7 +6466,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const user = data.user || {};
             try {
               localStorage.setItem('eventflow_onboarding_new', '1');
-            } catch (_e) {
+            } catch {
               /* Ignore localStorage errors */
             }
 
@@ -6725,7 +6729,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     captchaToken = shadowInput.value;
                   }
                 }
-              } catch (_) {
+              } catch {
                 // Shadow DOM not accessible in this environment
               }
               if (!captchaToken) {
@@ -6772,7 +6776,7 @@ document.addEventListener('DOMContentLoaded', () => {
           let data = {};
           try {
             data = await r.json();
-          } catch (_) {
+          } catch {
             /* Ignore JSON parse errors */
           }
           if (!r.ok) {
@@ -6809,7 +6813,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     } else {
                       showNetworkError(resendData.error || 'Failed to send email', 'error');
                     }
-                  } catch (err) {
+                  } catch {
                     showNetworkError('Network error - please try again', 'error');
                   } finally {
                     resendBtn.disabled = false;
@@ -6952,7 +6956,7 @@ async function initVerify() {
             } else {
               showNetworkError(resendData.error || 'Failed to send email', 'error');
             }
-          } catch (err) {
+          } catch {
             showNetworkError('Network error - please try again', 'error');
           } finally {
             resendBtn.disabled = false;
@@ -7014,7 +7018,7 @@ async function initVerify() {
               } else {
                 showNetworkError(resendData.error || 'Failed to send email', 'error');
               }
-            } catch (err) {
+            } catch {
               showNetworkError('Network error - please try again', 'error');
             } finally {
               resendBtn.disabled = false;
@@ -7203,7 +7207,7 @@ async function adminCharts() {
       });
     });
     document.body.appendChild(s);
-  } catch (e) {
+  } catch {
     /* Ignore confetti errors */
   }
 }
@@ -7252,6 +7256,7 @@ document.addEventListener('DOMContentLoaded', () => {
     (async () => {
       try {
         const me = await fetch('/api/v1/me/suppliers', {
+          // skipcq: JS-0123 - local to this IIFE only, unrelated to the top-level me() helper
           credentials: 'include',
         });
         const ms = await me.json();
@@ -7287,7 +7292,7 @@ document.addEventListener('DOMContentLoaded', () => {
           (mp.items || []).length,
           supplierApproved
         );
-      } catch (e) {
+      } catch {
         /* Ignore checklist render errors */
       }
     })();
@@ -7389,7 +7394,7 @@ function efInitVenueMap() {
     try {
       savedQuery = localStorage.getItem(LAST_QUERY_KEY) || '';
       savedLabel = localStorage.getItem(LAST_QUERY_LABEL_KEY) || '';
-    } catch (_) {
+    } catch {
       /* Ignore storage errors */
     }
 
@@ -7419,7 +7424,7 @@ function efInitVenueMap() {
     try {
       localStorage.setItem(LAST_QUERY_KEY, cleaned);
       localStorage.setItem(LAST_QUERY_LABEL_KEY, label);
-    } catch (_) {
+    } catch {
       /* Ignore storage errors */
     }
   }
@@ -7458,17 +7463,17 @@ function efInitVenueMap() {
 document.addEventListener('DOMContentLoaded', () => {
   try {
     efInitLoader();
-  } catch (_) {
+  } catch {
     /* Ignore loader init errors */
   }
   try {
     efInitBrandAnimation();
-  } catch (_) {
+  } catch {
     /* Ignore brand animation errors */
   }
   try {
     efInitVenueMap();
-  } catch (_) {
+  } catch {
     /* Ignore map init errors */
   }
 });
@@ -7493,7 +7498,7 @@ document.addEventListener('DOMContentLoaded', () => {
       { threshold: 0.18 }
     );
     els.forEach(el => obs.observe(el));
-  } catch (_) {
+  } catch {
     /* Ignore IntersectionObserver errors */
   }
 });
@@ -7525,7 +7530,7 @@ function efConfetti() {
     setTimeout(() => {
       layer.remove();
     }, 1300);
-  } catch (_) {
+  } catch {
     /* Ignore loader removal errors */
   }
 }
