@@ -192,7 +192,9 @@ describe('WebSocket Server Initialization', () => {
       expect(result).toBe(true);
       expect(ws.db.collection).toHaveBeenCalledWith('conversations_v4');
       expect(findOne).toHaveBeenCalledWith(
-        expect.objectContaining({ 'participants.userId': 'user-1' }),
+        expect.objectContaining({
+          participants: { $elemMatch: { userId: 'user-1', isDeleted: { $ne: true } } },
+        }),
         expect.objectContaining({ projection: { _id: 1 } })
       );
     });
@@ -217,6 +219,26 @@ describe('WebSocket Server Initialization', () => {
 
       const result = await ws.isConversationParticipant(new ObjectId().toHexString(), 'user-1');
       expect(result).toBe(false);
+    });
+
+    it('excludes a participant who hard-deleted the conversation for themselves (regression)', async () => {
+      const ws = new WebSocketServerV2(server, null, null);
+      // A real Mongo query would not match this document since the $elemMatch
+      // requires isDeleted to not be true; this mock simulates that by
+      // returning null, as a live DB would for a self-deleted participant.
+      const findOne = jest.fn().mockResolvedValue(null);
+      ws.db = {
+        collection: jest.fn(() => ({ findOne })),
+      };
+
+      const result = await ws.isConversationParticipant(new ObjectId().toHexString(), 'user-1');
+      expect(result).toBe(false);
+      expect(findOne).toHaveBeenCalledWith(
+        expect.objectContaining({
+          participants: { $elemMatch: { userId: 'user-1', isDeleted: { $ne: true } } },
+        }),
+        expect.anything()
+      );
     });
   });
 
@@ -387,6 +409,78 @@ describe('WebSocket Server Initialization', () => {
       ws.messagingService = { getThread: jest.fn(async () => null) };
       await ws.handleMessageSend(socket, { threadId: 'missing-thread', content: 'hi' });
       expect(socket.emit).toHaveBeenCalledWith('message:error', { error: 'Thread not found' });
+    });
+
+    it('v2 handleTypingStart/handleTypingStop: reject a non-participant spoofing a typing indicator at an arbitrary recipient (IDOR regression)', async () => {
+      const WebSocketServerV2 = require('../../websocket-server-v2');
+      // eslint-disable-next-line global-require
+      const { isThreadParticipant } = require('../../utils/webSocketMiddleware');
+      const ws = new WebSocketServerV2(server, null, null);
+      ws.messagingService = { getThread: jest.fn() };
+      const toEmit = jest.fn();
+      ws.io = { to: jest.fn(() => ({ emit: toEmit })) };
+      const socket = { userId: 'attacker-id', to: jest.fn(() => ({ emit: jest.fn() })) };
+
+      // Not a participant: no broadcast to the targeted recipient's room.
+      isThreadParticipant.mockResolvedValueOnce(false);
+      await ws.handleTypingStart(socket, { threadId: 'thread-1', recipientId: 'victim-id' });
+      expect(ws.io.to).not.toHaveBeenCalled();
+
+      isThreadParticipant.mockResolvedValueOnce(false);
+      await ws.handleTypingStop(socket, { threadId: 'thread-1', recipientId: 'victim-id' });
+      expect(ws.io.to).not.toHaveBeenCalled();
+
+      // Actual thread participant: broadcast goes through as before.
+      isThreadParticipant.mockResolvedValueOnce(true);
+      await ws.handleTypingStart(socket, { threadId: 'thread-1', recipientId: 'victim-id' });
+      expect(ws.io.to).toHaveBeenCalledWith('user:victim-id');
+      expect(toEmit).toHaveBeenCalledWith('typing:started', {
+        threadId: 'thread-1',
+        userId: 'attacker-id',
+      });
+    });
+
+    it('v2 handleTypingStart/handleTypingStop: fail closed when messagingService is unavailable', async () => {
+      const WebSocketServerV2 = require('../../websocket-server-v2');
+      const ws = new WebSocketServerV2(server, null, null);
+      ws.messagingService = null;
+      ws.io = { to: jest.fn(() => ({ emit: jest.fn() })) };
+      const socket = { userId: 'user-1', to: jest.fn(() => ({ emit: jest.fn() })) };
+
+      await ws.handleTypingStart(socket, { threadId: 'thread-1', recipientId: 'victim-id' });
+      expect(ws.io.to).not.toHaveBeenCalled();
+
+      await ws.handleTypingStop(socket, { threadId: 'thread-1', recipientId: 'victim-id' });
+      expect(ws.io.to).not.toHaveBeenCalled();
+    });
+
+    it('v2 handleDisconnect: clears a dangling typingUsers entry left by a mid-type disconnect', async () => {
+      const WebSocketServerV2 = require('../../websocket-server-v2');
+      const ws = new WebSocketServerV2(server, null, null);
+      ws.presenceService = { setOffline: jest.fn(async () => {}) };
+      ws.typingUsers.set('thread-1', new Set(['user-1', 'user-2']));
+      ws.userSockets.set('user-1', new Set(['socket-1']));
+      ws.socketUsers.set('socket-1', 'user-1');
+
+      await ws.handleDisconnect({ id: 'socket-1', userId: 'user-1' });
+
+      // The disconnected user is removed from the typing set, but the other
+      // (still-typing) participant is left untouched.
+      expect(ws.typingUsers.get('thread-1').has('user-1')).toBe(false);
+      expect(ws.typingUsers.get('thread-1').has('user-2')).toBe(true);
+    });
+
+    it('v2 handleDisconnect: does not clear typingUsers for a user with another socket still connected', async () => {
+      const WebSocketServerV2 = require('../../websocket-server-v2');
+      const ws = new WebSocketServerV2(server, null, null);
+      ws.presenceService = { setOffline: jest.fn(async () => {}) };
+      ws.typingUsers.set('thread-1', new Set(['user-1']));
+      ws.userSockets.set('user-1', new Set(['socket-1', 'socket-2']));
+      ws.socketUsers.set('socket-1', 'user-1');
+
+      await ws.handleDisconnect({ id: 'socket-1', userId: 'user-1' });
+
+      expect(ws.typingUsers.get('thread-1').has('user-1')).toBe(true);
     });
 
     it('v2 messenger:typing: requires participancy before broadcasting (IDOR regression)', async () => {

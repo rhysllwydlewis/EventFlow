@@ -88,6 +88,19 @@ if (!MessengerV4Service.__deleteArchiveLifecyclePatched) {
       throw new Error(`Validation failed: ${validationErrors.join(', ')}`);
     }
 
+    // Block check applies to every conversation type — this method fully
+    // replaces the base class's createConversation (which only checked
+    // blocks for type === 'direct'), so without this every non-direct type
+    // (marketplace/enquiry/supplier_network/support) could be created
+    // between two users regardless of a block in either direction.
+    if (creatorUserId) {
+      await this.assertNoBlockAmong(
+        creatorUserId,
+        normalisedIds.filter(id => id !== creatorUserId),
+        'This conversation could not be started because of a block'
+      );
+    }
+
     const participantIds = conversationData.participants.map(p => p.userId).sort();
 
     // Context conversations represent a specific supplier/listing/package. Do not let
