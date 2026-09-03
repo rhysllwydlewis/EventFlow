@@ -3866,7 +3866,7 @@ async function initDashSupplier() {
           if (!upgradeCta) {
             upgradeCta = document.createElement('a');
             upgradeCta.id = 'pkg-upgrade-cta';
-            upgradeCta.href = '/supplier/subscription.html';
+            upgradeCta.href = '/supplier/subscription';
             upgradeCta.className = 'pkg-upgrade-link';
             upgradeCta.textContent = 'Upgrade plan';
             toggleBtn.insertAdjacentElement('afterend', upgradeCta);

@@ -347,7 +347,7 @@ router.post(
         error: `Your ${features.name} plan allows up to ${packageLimit} active packages. Upgrade your plan to create more.`,
         activeCount,
         limit: packageLimit,
-        upgradeUrl: '/supplier/subscription.html',
+        upgradeUrl: '/supplier/subscription',
       });
     }
 
@@ -671,7 +671,7 @@ router.put(
             error: `Your ${planName} plan allows up to ${packageLimit} active packages. Pause another package to activate this one, or upgrade your plan.`,
             limit: packageLimit,
             activeCount,
-            upgradeUrl: '/supplier/subscription.html',
+            upgradeUrl: '/supplier/subscription',
           });
         }
       }

@@ -144,10 +144,27 @@
   function initImageUpload() {
     const zone = document.getElementById('image-upload-zone');
     const input = document.getElementById('listing-images');
+    const grid = document.getElementById('image-preview-grid');
+
+    if (!zone || !input || !grid) {
+      return;
+    }
 
     // Click to upload
-    zone.addEventListener('click', () => {
+    zone.addEventListener('click', event => {
+      // The hidden input lives inside the zone. Its synthetic click bubbles;
+      // do not feed that event back into input.click().
+      if (event.target === input) {
+        return;
+      }
       input.click();
+    });
+
+    zone.addEventListener('keydown', event => {
+      if (event.key === 'Enter' || event.key === ' ') {
+        event.preventDefault();
+        input.click();
+      }
     });
 
     // File input change
@@ -169,6 +186,17 @@
 
       const files = Array.from(e.dataTransfer.files);
       handleFiles(files);
+    });
+
+    grid.addEventListener('click', event => {
+      const removeButton = event.target.closest('[data-remove-image]');
+      if (!removeButton) {
+        return;
+      }
+      const index = Number(removeButton.dataset.removeImage);
+      if (Number.isInteger(index) && index >= 0 && index < selectedImages.length) {
+        removeImage(index);
+      }
     });
   }
 
@@ -273,27 +301,45 @@
    */
   function renderImagePreviews() {
     const grid = document.getElementById('image-preview-grid');
+    const status = document.getElementById('listing-images-status');
 
-    if (selectedImages.length === 0) {
-      grid.innerHTML = '';
+    if (!grid) {
       return;
     }
 
-    grid.innerHTML = selectedImages
-      .map(
-        (img, index) => `
-      <div class="image-preview-item">
-        <img src="${img.preview || img.url}" alt="Preview ${index + 1}">
-        <button 
-          type="button" 
-          class="ef-cta image-preview-remove" 
-          onclick="window.NewListing.removeImage(${index})"
-          aria-label="Remove image"
-        >×</button>
-      </div>
-    `
-      )
-      .join('');
+    grid.replaceChildren();
+    if (status) {
+      status.textContent = selectedImages.length
+        ? `${selectedImages.length} of 5 photos selected.`
+        : 'No photos selected.';
+    }
+
+    if (selectedImages.length === 0) {
+      return;
+    }
+
+    selectedImages.forEach((image, index) => {
+      const item = document.createElement('div');
+      item.className = 'image-preview-item';
+
+      const preview = document.createElement('img');
+      preview.src = image.preview || image.url;
+      preview.alt = `Listing photo ${index + 1}`;
+      preview.addEventListener('error', () => {
+        item.classList.add('image-preview-item--error');
+        preview.alt = `Listing photo ${index + 1} could not be loaded`;
+      });
+
+      const removeButton = document.createElement('button');
+      removeButton.type = 'button';
+      removeButton.className = 'ef-cta image-preview-remove';
+      removeButton.dataset.removeImage = String(index);
+      removeButton.setAttribute('aria-label', `Remove listing photo ${index + 1}`);
+      removeButton.textContent = '×';
+
+      item.append(preview, removeButton);
+      grid.appendChild(item);
+    });
   }
 
   /**
@@ -672,9 +718,4 @@
     document.body.appendChild(toast);
     setTimeout(() => toast.remove(), 4000);
   }
-
-  // Expose functions that need to be called from HTML onclick handlers
-  window.NewListing = {
-    removeImage,
-  };
 })();

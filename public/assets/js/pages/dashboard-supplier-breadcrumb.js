@@ -40,9 +40,17 @@ document.addEventListener('DOMContentLoaded', () => {
   const viewConvBtn = document.getElementById('viewConversationsBtn');
   if (viewConvBtn) {
     viewConvBtn.addEventListener('click', () => {
+      const messagesPill = document.querySelector('.mobile-nav-pill[data-section="threads-sup"]');
+      if (messagesPill) {
+        messagesPill.click();
+        return;
+      }
       const threadsSection = document.getElementById('threads-sup');
       if (threadsSection) {
-        threadsSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        const behavior = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
+          ? 'auto'
+          : 'smooth';
+        threadsSection.scrollIntoView({ behavior, block: 'start' });
       }
     });
   }

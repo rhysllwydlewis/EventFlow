@@ -1155,3 +1155,27 @@ body.supplier-dashboard-page .sd-empty-state {
 body.supplier-dashboard-page #eventflow-notification-container .ef-notification:not(:last-child) {
   pointer-events: none;
 }
+
+/* A consistent keyboard focus treatment was missing from the final cascade,
+   making the sticky section nav and quick actions difficult to track by eye. */
+body.supplier-dashboard-page :is(
+  .mobile-nav-pill,
+  .dashboard-action-chip,
+  .card-action-btn,
+  .sd-reviews-cta-btn,
+  .sd-ticket-create-btn,
+  .supplier-calendar-add-btn
+):focus-visible {
+  outline: 3px solid rgba(11, 128, 115, 0.28);
+  outline-offset: 3px;
+}
+
+body.supplier-dashboard-page :is(
+  #my-suppliers,
+  #my-packages,
+  #threads-sup,
+  #supplier-stats-grid,
+  #tickets-sup
+) {
+  scroll-margin-top: calc(var(--ef-header-height, 64px) + 72px);
+}

@@ -46,7 +46,7 @@ function requireSubscription(minTier = 'free') {
         error: 'Subscription upgrade required',
         currentTier: result.tier,
         requiredTier: minTier,
-        upgradeUrl: '/supplier/subscription.html',
+        upgradeUrl: '/supplier/subscription',
       });
     } catch (error) {
       logger.error('Error checking subscription:', error);
@@ -68,7 +68,7 @@ function checkFeatureLimit(feature) {
       return res.status(403).json({
         error: `Feature ${feature} requires subscription upgrade`,
         feature,
-        upgradeUrl: '/supplier/subscription.html',
+        upgradeUrl: '/supplier/subscription',
       });
     } catch (error) {
       logger.error('Error checking feature access:', error);
