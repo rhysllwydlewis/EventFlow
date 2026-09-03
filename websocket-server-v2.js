@@ -249,7 +249,7 @@ class WebSocketServerV2 {
 
       // Typing indicator for messenger v4 (client → server → other participants in room)
       socket.on('messenger:typing', async data => {
-        const conversationId = data && data.conversationId;
+        const conversationId = data?.conversationId;
         if (!socket.userId || !conversationId) {
           return;
         }
