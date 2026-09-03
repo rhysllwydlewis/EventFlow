@@ -111,7 +111,7 @@ describe('premium guide template', () => {
     expect(html).toContain('55p per mile for the first 10,000 business miles');
     expect(html).toContain('effective from 6 April 2026');
     expect(html).toContain('4.54609 litres per UK gallon');
-    expect(html).toContain('HMRC\'s current approved mileage guidance');
+    expect(html).toContain("HMRC's current approved mileage guidance");
     expect(html).not.toMatch(/\b45p\b/);
   });
 

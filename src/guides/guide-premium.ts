@@ -17,10 +17,14 @@ interface CalculatorInputs {
 }
 
 (() => {
-  const root = document.querySelector<HTMLElement>('[data-gp-article]');
-  if (!root) {
+  const articleRoot = document.querySelector<HTMLElement>('[data-gp-article]');
+  if (!articleRoot) {
     return;
   }
+  // Rebind after the guard: the hoisted initialisers below are declared before
+  // this narrowing in source order, so under `strict` they would otherwise see
+  // the nullable type again.
+  const root: HTMLElement = articleRoot;
 
   const LITRES_PER_GALLON = 4.54609;
   // HMRC approved mileage allowance for an employee's first 10,000 car/van

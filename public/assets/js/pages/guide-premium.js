@@ -11,10 +11,14 @@
  * `public/assets/js/pages/guide-premium.js` is compiled via `npm run build:guides`.
  */
 (() => {
-  const root = document.querySelector('[data-gp-article]');
-  if (!root) {
+  const articleRoot = document.querySelector('[data-gp-article]');
+  if (!articleRoot) {
     return;
   }
+  // Rebind after the guard: the hoisted initialisers below are declared before
+  // this narrowing in source order, so under `strict` they would otherwise see
+  // the nullable type again.
+  const root = articleRoot;
   const LITRES_PER_GALLON = 4.54609;
   // HMRC approved mileage allowance for an employee's first 10,000 car/van
   // business miles in the 2026/27 tax year, effective 6 April 2026.

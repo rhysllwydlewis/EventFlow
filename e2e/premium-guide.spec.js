@@ -18,7 +18,9 @@ async function expectNoPageOverflow(page) {
 }
 
 test.describe('premium event travel guide', () => {
-  test('desktop layout, reading rail and calculator render as a premium article', async ({ page }, testInfo) => {
+  test('desktop layout, reading rail and calculator render as a premium article', async ({
+    page,
+  }, testInfo) => {
     await page.setViewportSize({ width: 1440, height: 900 });
     await openGuide(page);
 
@@ -67,7 +69,9 @@ test.describe('premium event travel guide', () => {
     await expect(page.locator('[data-gp-readout="gp-calc-price"]')).toHaveText('160.0p/L');
   });
 
-  test('tablet layout stays contained and uses the compact contents navigation', async ({ page }) => {
+  test('tablet layout stays contained and uses the compact contents navigation', async ({
+    page,
+  }) => {
     await page.setViewportSize({ width: 768, height: 1024 });
     await openGuide(page);
 
@@ -77,7 +81,9 @@ test.describe('premium event travel guide', () => {
     await expectNoPageOverflow(page);
   });
 
-  test('mobile layout is overflow-safe and keeps wide tables inside their own scroller', async ({ page }, testInfo) => {
+  test('mobile layout is overflow-safe and keeps wide tables inside their own scroller', async ({
+    page,
+  }, testInfo) => {
     await page.setViewportSize({ width: 390, height: 844 });
     await openGuide(page);
 
@@ -119,7 +125,9 @@ test.describe('premium event travel guide', () => {
     await expect(
       page.locator('.gp-toc__link[href="#calculating-fuel-and-mileage-costs"]')
     ).toHaveClass(/is-active/);
-    const progress = Number((await page.locator('[data-gp-ring-pct]').textContent())?.replace('%', ''));
+    const progress = Number(
+      (await page.locator('[data-gp-ring-pct]').textContent())?.replace('%', '')
+    );
     expect(progress).toBeGreaterThan(0);
   });
 
@@ -128,16 +136,19 @@ test.describe('premium event travel guide', () => {
     await page.setViewportSize({ width: 1280, height: 900 });
     await openGuide(page);
 
-    const reveal = await page.locator('.gp-reveal').first().evaluate(element => {
-      const computed = getComputedStyle(element);
-      return { opacity: computed.opacity, animationName: computed.animationName };
-    });
+    const reveal = await page
+      .locator('.gp-reveal')
+      .first()
+      .evaluate(element => {
+        const computed = getComputedStyle(element);
+        return { opacity: computed.opacity, animationName: computed.animationName };
+      });
     expect(reveal.opacity).toBe('1');
     expect(reveal.animationName).toBe('none');
 
-    const heroAnimation = await page.locator('.gp-hero__media').evaluate(element =>
-      getComputedStyle(element).animationName
-    );
+    const heroAnimation = await page
+      .locator('.gp-hero__media')
+      .evaluate(element => getComputedStyle(element).animationName);
     expect(heroAnimation).toBe('none');
   });
 });
