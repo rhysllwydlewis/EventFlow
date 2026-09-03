@@ -74,6 +74,12 @@
   justify-content: center;
   text-align: center;
   min-width: 0;
+  /* navbar.css's .ef-mobile-primary still carries margin-top:8px for the
+     case where it's the lone stacked button (e.g. "Log in" on pages
+     without this row). Inside the row that stray margin pushes just the
+     Create account button down, and align-items:stretch then stretches
+     Log in to match — a visible height mismatch between the two. */
+  margin-top: 0;
 }
 
 /* Keep these two centered on hover/focus instead of picking up the
