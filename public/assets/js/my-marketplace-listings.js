@@ -370,7 +370,7 @@
 
     return `
       <div class="listing-card">
-        <img src="${image}" alt="${escapeHtml(listing.title)}" class="listing-card-image" data-fallback-src="${defaultImage}">
+        <img src="${escapeHtml(image)}" alt="${escapeHtml(listing.title)}" class="listing-card-image" data-fallback-src="${escapeHtml(defaultImage)}">
         <div class="listing-card-info">
           <span class="status-badge status-${listing.status}">${formatStatus(listing.status)}</span>
           <h3>${escapeHtml(listing.title)}</h3>
@@ -407,7 +407,7 @@
 
     return `
       <div class="listing-card">
-        <img src="${image}" alt="${escapeHtml(listing.title || 'Saved listing')}" class="listing-card-image" data-fallback-src="${defaultImage}">
+        <img src="${escapeHtml(image)}" alt="${escapeHtml(listing.title || 'Saved listing')}" class="listing-card-image" data-fallback-src="${escapeHtml(defaultImage)}">
         <div class="listing-card-info">
           <span class="status-badge status-${listing.status || 'active'}">Saved Item</span>
           <h3>${escapeHtml(listing.title || 'Listing unavailable')}</h3>

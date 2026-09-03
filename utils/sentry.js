@@ -12,10 +12,11 @@ let sentryEnabled = false;
 
 /**
  * Initialize Sentry for Node.js backend
- * @param {Object} app - Express app instance
+ * @param {Object} _app - Express app instance (unused since v8's expressIntegration
+ *   no longer needs an app reference at init time; kept for call-site compatibility)
  * @returns {boolean} Whether Sentry was initialized
  */
-function initSentry(app) {
+function initSentry(_app) {
   const sentryDsn = process.env.SENTRY_DSN;
   const environment = process.env.NODE_ENV || 'development';
 
@@ -28,6 +29,20 @@ function initSentry(app) {
     // eslint-disable-next-line global-require, node/no-missing-require
     Sentry = require('@sentry/node');
 
+    // Note: the class-based `Sentry.Integrations.*` API and `Sentry.Handlers.*`
+    // middleware this file used to call were removed in the @sentry/node v8 SDK
+    // (this project has been pinned to ^8.0.0 since before this rewrite) — every
+    // call below silently threw on init, was swallowed by this try/catch, and
+    // left Sentry permanently disabled regardless of SENTRY_DSN. Rewritten to the
+    // current function-style integrations API; httpIntegration/expressIntegration
+    // are already included in Sentry's default integrations, so only the
+    // non-default Mongo/Redis instrumentation needs to be listed explicitly.
+    // Note: Sentry's OpenTelemetry-based auto-instrumentation for Express route
+    // performance tracing only attaches if Sentry.init() runs before express is
+    // first required anywhere in the process; this app requires express near
+    // the top of server.js, ahead of initSentry(), so route-level tracing spans
+    // won't appear even though this DOES still initialize correctly and error
+    // capture (captureException/setupExpressErrorHandler) works regardless.
     Sentry.init({
       dsn: sentryDsn,
       environment,
@@ -38,16 +53,9 @@ function initSentry(app) {
       tracesSampleRate: environment === 'production' ? 0.1 : 1.0,
       // Set sampling rate for profiling
       profilesSampleRate: environment === 'production' ? 0.1 : 1.0,
-      // Enable automatic instrumentation
       integrations: [
-        // HTTP instrumentation
-        new Sentry.Integrations.Http({ tracing: true }),
-        // Express instrumentation
-        new Sentry.Integrations.Express({ app }),
-        // MongoDB instrumentation
-        new Sentry.Integrations.Mongo({ useMongoose: false }),
-        // Redis instrumentation (if available)
-        ...(Sentry.Integrations.Redis ? [new Sentry.Integrations.Redis()] : []),
+        Sentry.mongoIntegration({ useMongoose: false }),
+        ...(Sentry.redisIntegration ? [Sentry.redisIntegration()] : []),
       ],
       // BeforeSend hook for filtering/modifying events
       beforeSend(event) {
@@ -69,6 +77,13 @@ function initSentry(app) {
       },
     });
 
+    // v8+ registers request/tracing instrumentation automatically via the
+    // integrations above — there is no separate requestHandler/tracingHandler
+    // middleware to mount (getRequestHandler/getTracingHandler below are now
+    // no-ops, kept only so existing app.use(...) call sites stay valid).
+    // The error handler, however, must still be wired in explicitly, and must
+    // be attached after routes are registered — see setupExpressErrorHandler().
+
     sentryEnabled = true;
     logger.info('✅ Sentry error tracking initialized');
     return true;
@@ -79,47 +94,45 @@ function initSentry(app) {
 }
 
 /**
- * Get Sentry request handler middleware
- * Must be the first middleware
- * @returns {Function} Express middleware
+ * Attach Sentry's Express error handler to the app. Must be called after all
+ * routes/middleware are registered and before any other error-handling
+ * middleware (mirrors the old getErrorHandler() call site in server.js).
+ * @param {Object} app - Express app instance
+ */
+function setupExpressErrorHandler(app) {
+  if (sentryEnabled && Sentry) {
+    Sentry.setupExpressErrorHandler(app);
+  }
+}
+
+/**
+ * @deprecated No-op since the @sentry/node v8 SDK. Request tracking is now
+ * automatic via the httpIntegration/expressIntegration registered in
+ * initSentry() — there is no separate requestHandler middleware to mount.
+ * Kept so existing app.use(sentry.getRequestHandler()) call sites stay valid.
+ * @returns {Function} Pass-through Express middleware
  */
 function getRequestHandler() {
-  if (sentryEnabled && Sentry) {
-    return Sentry.Handlers.requestHandler();
-  }
   return (req, res, next) => next();
 }
 
 /**
- * Get Sentry tracing middleware
- * Should be after requestHandler
- * @returns {Function} Express middleware
+ * @deprecated No-op since the @sentry/node v8 SDK, for the same reason as
+ * getRequestHandler() above.
+ * @returns {Function} Pass-through Express middleware
  */
 function getTracingHandler() {
-  if (sentryEnabled && Sentry) {
-    return Sentry.Handlers.tracingHandler();
-  }
   return (req, res, next) => next();
 }
 
 /**
- * Get Sentry error handler middleware
- * Must be before other error handlers
- * @returns {Function} Express middleware
+ * @deprecated Use setupExpressErrorHandler(app) instead. The @sentry/node v8
+ * SDK replaced the errorHandler() middleware factory with a function that
+ * attaches itself directly to the app, so it can no longer be returned here
+ * for app.use() — this is now a pass-through no-op.
+ * @returns {Function} Pass-through Express error middleware
  */
 function getErrorHandler() {
-  if (sentryEnabled && Sentry) {
-    return Sentry.Handlers.errorHandler({
-      shouldHandleError(error) {
-        // Capture all errors with status >= 500
-        if (error.status >= 500) {
-          return true;
-        }
-        // Capture specific error types
-        return error.name === 'UnhandledPromiseRejection' || error.name === 'Error';
-      },
-    });
-  }
   return (err, req, res, next) => next(err);
 }
 
@@ -265,6 +278,7 @@ function isEnabled() {
 
 module.exports = {
   initSentry,
+  setupExpressErrorHandler,
   getRequestHandler,
   getTracingHandler,
   getErrorHandler,

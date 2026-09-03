@@ -136,7 +136,21 @@ class WebSocketServer {
       });
 
       // Handle joining rooms (for suppliers, events, etc.)
+      //
+      // Security: `user:${userId}` rooms carry a user's private notifications/messages
+      // (auto-joined on successful auth, above) — never let a client join one of those
+      // rooms on request, or any unauthenticated socket join anything, or it becomes an
+      // IDOR letting one user read another user's private realtime events.
       socket.on('join', room => {
+        if (!socket.userId) {
+          socket.emit('room:error', { error: 'unauthenticated' });
+          return;
+        }
+        if (typeof room !== 'string' || /^user:/.test(room)) {
+          socket.emit('room:error', { room, error: 'forbidden' });
+          logger.warn(`Socket ${socket.id} denied joining reserved/invalid room: ${room}`);
+          return;
+        }
         socket.join(room);
         logger.info(`Socket ${socket.id} joined room: ${room}`);
       });
@@ -189,11 +203,31 @@ class WebSocketServer {
       // ===== V3 Messenger Events =====
 
       // Join messenger conversation room
-      socket.on('messenger:join', ({ conversationId }) => {
-        if (conversationId) {
-          socket.join(`messenger:${conversationId}`);
-          logger.info(`Socket ${socket.id} joined messenger conversation: ${conversationId}`);
+      //
+      // Security: require authentication before granting room membership — joining an
+      // arbitrary conversation room would otherwise let one user receive another user's
+      // realtime messenger events (IDOR), matching the guard v2 applies to the
+      // equivalent messenger:v4:join-conversation event.
+      //
+      // Note: this only checks authentication, not that the caller is a participant of
+      // `conversationId` — unlike v2's messenger:v4:join-conversation, which calls
+      // isConversationParticipant(). This whole v1 server (and this "V3 Messenger
+      // Events" block specifically) is opt-in only (WEBSOCKET_MODE=v1, not the default)
+      // and already marked deprecated for removal above; a repo-wide grep found no
+      // frontend page that emits 'messenger:join', so this is unreachable in practice.
+      // If v1 is ever kept around and this gets wired to something real, it needs the
+      // same participant check v2 has before that happens.
+      socket.on('messenger:join', ({ conversationId } = {}) => {
+        if (!conversationId) {
+          return;
         }
+        if (!socket.userId) {
+          socket.emit('messenger:join-error', { conversationId, error: 'unauthenticated' });
+          logger.warn(`Socket ${socket.id} denied messenger:join: unauthenticated`);
+          return;
+        }
+        socket.join(`messenger:${conversationId}`);
+        logger.info(`Socket ${socket.id} joined messenger conversation: ${conversationId}`);
       });
 
       // Leave messenger conversation room

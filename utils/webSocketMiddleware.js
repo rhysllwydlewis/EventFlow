@@ -219,10 +219,19 @@ function sanitizeContent(content) {
 /**
  * Check if user is participant in thread
  * Handles both v1 threads (customerId/supplierId/recipientId) and v2 threads (participants array)
+ * @param {string} userId
+ * @param {string} threadId
+ * @param {Object} messagingService - must expose getThread(threadId); ignored when
+ *   prefetchedThread is provided
+ * @param {Object} [prefetchedThread] - pass the thread if the caller already fetched it
+ *   (e.g. to find recipients) to avoid a redundant getThread() round-trip
  */
-async function isThreadParticipant(userId, threadId, messagingService) {
+async function isThreadParticipant(userId, threadId, messagingService, prefetchedThread) {
   try {
-    const thread = await messagingService.getThread(threadId);
+    const thread =
+      prefetchedThread !== undefined
+        ? prefetchedThread
+        : await messagingService.getThread(threadId);
     if (!thread) {
       return false;
     }

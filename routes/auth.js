@@ -41,11 +41,23 @@ const userProvenance = require('../services/userProvenance.service');
 const partnerRegistrationRisk = require('../services/partnerRegistrationRiskService');
 const { ensureSupplierProfileForUser } = require('../services/supplierProfileProvisioning.service');
 const { getFounderSignupBadges } = require('../utils/founderBadge');
+const { sleep } = require('../utils/helpers');
 
 const router = express.Router();
 const supplierRegistrationRiskGuard = partnerRegistrationRisk.registrationRiskGuard({
   roleResolver: req => (req.body?.role === 'supplier' ? 'supplier' : null),
 });
+
+// Bcrypt hash (cost 10, matching registration) of an arbitrary fixed placeholder
+// string, computed once at module load rather than hardcoded as a literal so it
+// doesn't read as a checked-in credential to secret scanners — it isn't one; it's
+// not derived from any real password or account. POST /login compares against
+// this when no account matches the submitted email so that a nonexistent account
+// still pays the same bcrypt.compare cost as a real one — otherwise "no such
+// user" returns near-instantly while a wrong password for a real account takes
+// tens of milliseconds, letting an attacker enumerate registered emails purely
+// from response timing.
+const DUMMY_PASSWORD_HASH = bcrypt.hashSync('eventflow-login-timing-safety-placeholder', 10);
 
 // This will be set by the main server.js when mounting these routes (legacy compatibility)
 // eslint-disable-next-line no-unused-vars
@@ -632,6 +644,20 @@ router.post('/login', strictAuthLimiter, async (req, res) => {
   // far faster than the previous full collection scan.
   const user = await dbUnified.findOne('users', { email: normalizedEmail });
 
+  // Always run bcrypt.compare, even for a nonexistent account or one with no
+  // password hash set (e.g. Google-only sign-up) — comparing against a fixed
+  // dummy hash keeps this branch's timing in line with a real wrong-password
+  // attempt instead of returning near-instantly, which would let a caller
+  // enumerate registered emails from response timing alone.
+  let passwordMatches = false;
+  try {
+    passwordMatches = await bcrypt.compare(password, user?.passwordHash || DUMMY_PASSWORD_HASH);
+    logger.debug('[LOGIN] Password check complete', { match: passwordMatches });
+  } catch (error) {
+    logger.error('[LOGIN] Password comparison error:', error.message);
+    return res.status(401).json({ error: 'Invalid email or password' });
+  }
+
   if (!user) {
     logger.warn('[LOGIN] User not found');
     return res.status(401).json({ error: 'Invalid email or password' });
@@ -639,19 +665,8 @@ router.post('/login', strictAuthLimiter, async (req, res) => {
 
   logger.debug('[LOGIN] User found', { verified: user.verified, hasHash: !!user.passwordHash });
 
-  // Check password hash exists and is valid
   if (!user.passwordHash) {
     logger.error('[LOGIN] No password hash found');
-    return res.status(401).json({ error: 'Invalid email or password' });
-  }
-
-  // Try to compare password
-  let passwordMatches = false;
-  try {
-    passwordMatches = await bcrypt.compare(password, user.passwordHash);
-    logger.debug('[LOGIN] Password check complete', { match: passwordMatches });
-  } catch (error) {
-    logger.error('[LOGIN] Password comparison error:', error.message);
     return res.status(401).json({ error: 'Invalid email or password' });
   }
 
@@ -1148,6 +1163,11 @@ router.post('/forgot', passwordResetLimiter, async (req, res) => {
 
   if (!user) {
     logger.warn('[PASSWORD RESET] User not found');
+    // Pad this branch to roughly match the found-user path's latency (token
+    // generation + DB write + an awaited Postmark API call below) — otherwise
+    // "no such account" returns near-instantly while a real one takes noticeably
+    // longer, letting an attacker enumerate registered emails from timing alone.
+    await sleep(300);
     // Always respond success so we don't leak which emails exist
     return res.json({
       ok: true,
@@ -1910,7 +1930,7 @@ async function handleAccountUnsubscribe(req, res) {
     if (!postmark.verifyUnsubscribeToken(email, token)) {
       return res.status(400).json({ error: 'Invalid unsubscribe token' });
     }
-  } catch (err) {
+  } catch {
     // Handle token verification errors (e.g., token length mismatch)
     return res.status(400).json({ error: 'Invalid unsubscribe token' });
   }

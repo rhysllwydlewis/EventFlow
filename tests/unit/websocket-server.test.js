@@ -6,6 +6,13 @@
 const http = require('http');
 const express = require('express');
 
+// Used only by the "Room-join authorization ... behavioral" describe block below,
+// to control isThreadParticipant()'s return value when exercising
+// websocket-server-v2.js's handleMessageSend() directly.
+jest.mock('../../utils/webSocketMiddleware', () => ({
+  isThreadParticipant: jest.fn(),
+}));
+
 describe('WebSocket Server Initialization', () => {
   let server;
   let app;
@@ -210,6 +217,208 @@ describe('WebSocket Server Initialization', () => {
 
       const result = await ws.isConversationParticipant(new ObjectId().toHexString(), 'user-1');
       expect(result).toBe(false);
+    });
+  });
+
+  describe('Room-join authorization (security fix regression)', () => {
+    const fs = require('fs');
+    const path = require('path');
+
+    it('v1 generic join/leave requires authentication and blocks joining reserved user: rooms', () => {
+      const wsSource = fs.readFileSync(path.join(__dirname, '../../websocket-server.js'), 'utf8');
+      const joinHandlerMatch = wsSource.match(/socket\.on\('join', room => \{[\s\S]*?\n {6}\}\);/);
+      expect(joinHandlerMatch).toBeTruthy();
+      const joinHandlerSource = joinHandlerMatch[0];
+
+      expect(joinHandlerSource).toContain('if (!socket.userId)');
+      expect(joinHandlerSource).toMatch(/\/\^user:\//);
+    });
+
+    it('v1 messenger:join requires authentication before joining a conversation room', () => {
+      const wsSource = fs.readFileSync(path.join(__dirname, '../../websocket-server.js'), 'utf8');
+      const handlerMatch = wsSource.match(/socket\.on\('messenger:join',[\s\S]*?\n {6}\}\);/);
+      expect(handlerMatch).toBeTruthy();
+      const handlerSource = handlerMatch[0];
+
+      expect(handlerSource).toContain('if (!socket.userId)');
+    });
+
+    it('v2 chat:v5:join-conversation requires authentication before joining a chat room', () => {
+      const wsSource = fs.readFileSync(
+        path.join(__dirname, '../../websocket-server-v2.js'),
+        'utf8'
+      );
+      const handlerMatch = wsSource.match(
+        /socket\.on\('chat:v5:join-conversation', data => \{[\s\S]*?\n {6}\}\);/
+      );
+      expect(handlerMatch).toBeTruthy();
+      const handlerSource = handlerMatch[0];
+
+      expect(handlerSource).toContain('if (!socket.userId)');
+    });
+
+    it('v2 handleMessageSend verifies the sender is a thread participant before sending', () => {
+      const wsSource = fs.readFileSync(
+        path.join(__dirname, '../../websocket-server-v2.js'),
+        'utf8'
+      );
+      expect(wsSource).toContain(
+        "const { isThreadParticipant } = require('./utils/webSocketMiddleware');"
+      );
+
+      const handlerMatch = wsSource.match(
+        /async handleMessageSend\(socket, data\) \{[\s\S]*?\n {2}\}/
+      );
+      expect(handlerMatch).toBeTruthy();
+      const handlerSource = handlerMatch[0];
+
+      expect(handlerSource).toMatch(
+        /isThreadParticipant\(\s*socket\.userId,\s*threadId,\s*this\.messagingService,\s*thread\s*\)/
+      );
+      expect(handlerSource).toContain('senderIsParticipant');
+    });
+  });
+
+  describe('Room-join authorization (security fix regression) — behavioral', () => {
+    // Exercises the actual connection-handler closures registered via
+    // `this.io.on('connection', socket => { socket.on('join', ...) ... })` by
+    // capturing that listener directly (bypassing the network stack — no real
+    // socket.io-client connection needed) and invoking it with a lightweight
+    // mock socket, so these lines are actually executed rather than only
+    // pattern-matched in source.
+    function getConnectionHandler(io) {
+      const listeners = io.listeners('connection');
+      return listeners[listeners.length - 1];
+    }
+
+    function createMockSocket() {
+      const handlers = {};
+      return {
+        id: `sock-${Math.random().toString(36).slice(2)}`,
+        handshake: { headers: {} },
+        userId: undefined,
+        on: jest.fn((event, cb) => {
+          handlers[event] = cb;
+        }),
+        emit: jest.fn(),
+        join: jest.fn(),
+        leave: jest.fn(),
+        to: jest.fn(() => ({ emit: jest.fn() })),
+        trigger: (event, ...args) => handlers[event] && handlers[event](...args),
+      };
+    }
+
+    it('v1 join: rejects an unauthenticated socket, blocks reserved user: rooms, allows a real room', () => {
+      const WebSocketServer = require('../../websocket-server');
+      const ws = new WebSocketServer(server);
+      const connHandler = getConnectionHandler(ws.io);
+      const socket = createMockSocket();
+      connHandler(socket);
+
+      socket.trigger('join', 'lobby');
+      expect(socket.emit).toHaveBeenCalledWith('room:error', { error: 'unauthenticated' });
+      expect(socket.join).not.toHaveBeenCalled();
+
+      socket.userId = 'user-1';
+      socket.emit.mockClear();
+      socket.trigger('join', 'user:victim-id');
+      expect(socket.emit).toHaveBeenCalledWith('room:error', {
+        room: 'user:victim-id',
+        error: 'forbidden',
+      });
+      expect(socket.join).not.toHaveBeenCalled();
+
+      socket.trigger('join', 'supplier:abc');
+      expect(socket.join).toHaveBeenCalledWith('supplier:abc');
+    });
+
+    it('v1 messenger:join: rejects an unauthenticated socket, allows an authenticated one', () => {
+      const WebSocketServer = require('../../websocket-server');
+      const ws = new WebSocketServer(server);
+      const connHandler = getConnectionHandler(ws.io);
+      const socket = createMockSocket();
+      connHandler(socket);
+
+      socket.trigger('messenger:join', {});
+      expect(socket.emit).not.toHaveBeenCalled();
+      expect(socket.join).not.toHaveBeenCalled();
+
+      socket.trigger('messenger:join', { conversationId: 'conv-1' });
+      expect(socket.emit).toHaveBeenCalledWith('messenger:join-error', {
+        conversationId: 'conv-1',
+        error: 'unauthenticated',
+      });
+      expect(socket.join).not.toHaveBeenCalled();
+
+      socket.userId = 'user-1';
+      socket.trigger('messenger:join', { conversationId: 'conv-1' });
+      expect(socket.join).toHaveBeenCalledWith('messenger:conv-1');
+    });
+
+    it('v2 chat:v5:join-conversation: no-ops without a conversationId, rejects unauthenticated, allows authenticated', () => {
+      const WebSocketServerV2 = require('../../websocket-server-v2');
+      const ws = new WebSocketServerV2(server, null, null);
+      const connHandler = getConnectionHandler(ws.io);
+      const socket = createMockSocket();
+      connHandler(socket);
+
+      socket.trigger('chat:v5:join-conversation', {});
+      expect(socket.join).not.toHaveBeenCalled();
+
+      socket.trigger('chat:v5:join-conversation', { conversationId: 'conv-1' });
+      expect(socket.join).not.toHaveBeenCalled(); // still unauthenticated
+
+      socket.userId = 'user-1';
+      socket.trigger('chat:v5:join-conversation', { conversationId: 'conv-1' });
+      expect(socket.join).toHaveBeenCalledWith('chat:v5:conv-1');
+    });
+
+    it('v2 handleMessageSend: rejects when the sender is not a thread participant, sends when they are', async () => {
+      const WebSocketServerV2 = require('../../websocket-server-v2');
+      // eslint-disable-next-line global-require
+      const { isThreadParticipant } = require('../../utils/webSocketMiddleware');
+      const ws = new WebSocketServerV2(server, null, null);
+      ws.messagingService = {
+        getThread: jest.fn(async () => ({ participants: ['user-1', 'user-2'] })),
+        sendMessage: jest.fn(async () => ({ _id: { toString: () => 'msg-1' } })),
+      };
+      ws.presenceService = { isOnline: jest.fn(async () => true) };
+      const socket = { userId: 'attacker-id', emit: jest.fn() };
+
+      isThreadParticipant.mockResolvedValueOnce(false);
+      await ws.handleMessageSend(socket, { threadId: 'thread-1', content: 'hi' });
+      expect(socket.emit).toHaveBeenCalledWith('message:error', {
+        error: 'Not a participant in this thread',
+      });
+      expect(ws.messagingService.sendMessage).not.toHaveBeenCalled();
+
+      socket.emit.mockClear();
+      socket.userId = 'user-1';
+      isThreadParticipant.mockResolvedValueOnce(true);
+      await ws.handleMessageSend(socket, { threadId: 'thread-1', content: 'hi' });
+      expect(ws.messagingService.sendMessage).toHaveBeenCalled();
+      expect(socket.emit).toHaveBeenCalledWith(
+        'message:sent',
+        expect.objectContaining({ threadId: 'thread-1' })
+      );
+    });
+
+    it('v2 handleMessageSend: rejects missing required fields and an unknown thread', async () => {
+      const WebSocketServerV2 = require('../../websocket-server-v2');
+      const ws = new WebSocketServerV2(server, null, null);
+      const socket = { userId: 'user-1', emit: jest.fn() };
+
+      ws.messagingService = { getThread: jest.fn() };
+      await ws.handleMessageSend(socket, { threadId: 'thread-1' }); // no content, no attachments
+      expect(socket.emit).toHaveBeenCalledWith('message:error', {
+        error: 'Missing required fields',
+      });
+      expect(ws.messagingService.getThread).not.toHaveBeenCalled();
+
+      socket.emit.mockClear();
+      ws.messagingService = { getThread: jest.fn(async () => null) };
+      await ws.handleMessageSend(socket, { threadId: 'missing-thread', content: 'hi' });
+      expect(socket.emit).toHaveBeenCalledWith('message:error', { error: 'Thread not found' });
     });
   });
 });
