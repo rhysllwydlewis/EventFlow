@@ -16,7 +16,9 @@
     return;
   }
   const LITRES_PER_GALLON = 4.54609;
-  const HMRC_RATE_PER_MILE = 0.45;
+  // HMRC approved mileage allowance for an employee's first 10,000 car/van
+  // business miles in the 2026/27 tax year, effective 6 April 2026.
+  const HMRC_RATE_PER_MILE = 0.55;
   const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   const money = new Intl.NumberFormat('en-GB', {
     style: 'currency',
@@ -224,8 +226,8 @@
     });
   }
   /* ── Fuel & mileage calculator ────────────────────────────────────────
-       The worked example from the article, made interactive: fuel burn for a
-       journey versus what the HMRC approved rate would reimburse for it. */
+       The worked example from the article, made interactive: estimated fuel
+       burn for a journey versus the 2026/27 HMRC employee car/van rate. */
   function initCalculator() {
     const panel = document.querySelector('[data-gp-calc]');
     if (!panel) {
@@ -294,8 +296,8 @@
         const gap = hmrcCost - fuelCost;
         out.verdict.innerHTML =
           gap >= 0
-            ? `Reimbursing at 45p leaves <strong>${money.format(gap)}</strong> above pure fuel on this trip — that margin is meant to cover wear, tyres, servicing and insurance, not profit.`
-            : `At this price and economy the fuel alone costs <strong>${money.format(Math.abs(gap))}</strong> more than a 45p reimbursement would return. Budget the real fuel figure rather than the flat rate.`;
+            ? `Reimbursing at 55p leaves <strong>${money.format(gap)}</strong> above estimated fuel on this trip — the approved mileage rate is intended to recognise wider vehicle costs as well as fuel.`
+            : `At this price and economy the estimated fuel alone costs <strong>${money.format(Math.abs(gap))}</strong> more than a 55p reimbursement would return. Budget the real fuel figure rather than assuming the approved employee rate covers the journey.`;
       }
     };
     inputs.forEach(input => {
