@@ -1930,7 +1930,7 @@ async function handleAccountUnsubscribe(req, res) {
     if (!postmark.verifyUnsubscribeToken(email, token)) {
       return res.status(400).json({ error: 'Invalid unsubscribe token' });
     }
-  } catch (err) {
+  } catch {
     // Handle token verification errors (e.g., token length mismatch)
     return res.status(400).json({ error: 'Invalid unsubscribe token' });
   }
