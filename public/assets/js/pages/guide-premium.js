@@ -11,7 +11,6 @@
  * `public/assets/js/pages/guide-premium.js` is compiled via `npm run build:guides`.
  */
 (() => {
-  'use strict';
   const root = document.querySelector('[data-gp-article]');
   if (!root) {
     return;
@@ -46,7 +45,10 @@
     }
     const links = new Map();
     list?.querySelectorAll('a[href^="#"]').forEach(link => {
-      links.set(link.getAttribute('href').slice(1), link);
+      const href = link.getAttribute('href');
+      if (href) {
+        links.set(href.slice(1), link);
+      }
     });
     const circumference = ringBar ? 2 * Math.PI * Number(ringBar.getAttribute('r')) : 0;
     if (ringBar) {
@@ -115,10 +117,6 @@
     window.addEventListener('scroll', onScroll, { passive: true });
     window.addEventListener('resize', onScroll, { passive: true });
     update();
-    return () => {
-      window.removeEventListener('scroll', onScroll);
-      window.removeEventListener('resize', onScroll);
-    };
   }
   /* ── Animated figures ─────────────────────────────────────────────────
        Counts a statistic up to its published value the first time it scrolls
@@ -162,7 +160,6 @@
       { threshold: 0.6 }
     );
     stats.forEach(el => observer.observe(el));
-    return () => observer.disconnect();
   }
   /* ── Heading permalinks ───────────────────────────────────────────────
        Adds a copy-link affordance to each section heading. */
@@ -181,7 +178,7 @@
         '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg>';
       button.addEventListener('click', () => {
         const url = `${window.location.origin}${window.location.pathname}#${section.id}`;
-        void copyText(url).then(ok => {
+        copyText(url).then(ok => {
           if (ok) {
             flash(button);
           }
@@ -214,7 +211,7 @@
     }
     const original = button.innerHTML;
     button.addEventListener('click', () => {
-      void copyText(button.dataset.gpCopyPage || window.location.href).then(ok => {
+      copyText(button.dataset.gpCopyPage || window.location.href).then(ok => {
         button.innerHTML = ok
           ? '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"></polyline></svg>'
           : original;
@@ -230,46 +227,44 @@
        The worked example from the article, made interactive: fuel burn for a
        journey versus what the HMRC approved rate would reimburse for it. */
   function initCalculator() {
-    const form = document.querySelector('[data-gp-calc]');
-    if (!form) {
+    const panel = document.querySelector('[data-gp-calc]');
+    if (!panel) {
       return;
     }
-    const milesInput = form.querySelector('#gp-calc-miles');
-    const mpgInput = form.querySelector('#gp-calc-mpg');
-    const priceInput = form.querySelector('#gp-calc-price');
-    if (!milesInput || !mpgInput || !priceInput) {
+    const milesEl = panel.querySelector('#gp-calc-miles');
+    const mpgEl = panel.querySelector('#gp-calc-mpg');
+    const priceEl = panel.querySelector('#gp-calc-price');
+    if (!milesEl || !mpgEl || !priceEl) {
       return;
     }
-    const inputs = [milesInput, mpgInput, priceInput];
+    const inputs = [milesEl, mpgEl, priceEl];
     const out = {
-      headline: form.querySelector('[data-gp-out="fuel"]'),
-      perMile: form.querySelector('[data-gp-out="per-mile"]'),
-      fuelAmount: form.querySelector('[data-gp-out="fuel-amount"]'),
-      hmrcAmount: form.querySelector('[data-gp-out="hmrc-amount"]'),
-      fuelBar: form.querySelector('[data-gp-bar="fuel"]'),
-      hmrcBar: form.querySelector('[data-gp-bar="hmrc"]'),
-      verdict: form.querySelector('[data-gp-out="verdict"]'),
+      headline: panel.querySelector('[data-gp-out="fuel"]'),
+      perMile: panel.querySelector('[data-gp-out="per-mile"]'),
+      fuelAmount: panel.querySelector('[data-gp-out="fuel-amount"]'),
+      hmrcAmount: panel.querySelector('[data-gp-out="hmrc-amount"]'),
+      fuelBar: panel.querySelector('[data-gp-bar="fuel"]'),
+      hmrcBar: panel.querySelector('[data-gp-bar="hmrc"]'),
+      verdict: panel.querySelector('[data-gp-out="verdict"]'),
     };
-    function readValues() {
-      return {
-        miles: Number(milesInput.value),
-        mpg: Number(mpgInput.value),
-        pencePerLitre: Number(priceInput.value),
-      };
-    }
+    const readValues = () => ({
+      miles: Number(milesEl.value),
+      mpg: Number(mpgEl.value),
+      pencePerLitre: Number(priceEl.value),
+    });
     /** Paint the filled portion of a range track and its readout chip. */
-    function paintRange(input) {
+    const paintRange = input => {
       const min = Number(input.min);
       const max = Number(input.max);
       const pct = max > min ? ((Number(input.value) - min) / (max - min)) * 100 : 0;
       input.style.setProperty('--gp-range-fill', `${round(pct, 2)}%`);
-      const readout = form.querySelector(`[data-gp-readout="${input.id}"]`);
+      const readout = panel.querySelector(`[data-gp-readout="${input.id}"]`);
       if (readout) {
         const decimals = Number(input.dataset.gpDecimals ?? 0);
         readout.textContent = `${Number(input.value).toFixed(decimals)}${input.dataset.gpUnit ?? ''}`;
       }
-    }
-    function update() {
+    };
+    const update = () => {
       const { miles, mpg, pencePerLitre } = readValues();
       inputs.forEach(paintRange);
       const gallons = miles / mpg;
@@ -302,7 +297,7 @@
             ? `Reimbursing at 45p leaves <strong>${money.format(gap)}</strong> above pure fuel on this trip — that margin is meant to cover wear, tyres, servicing and insurance, not profit.`
             : `At this price and economy the fuel alone costs <strong>${money.format(Math.abs(gap))}</strong> more than a 45p reimbursement would return. Budget the real fuel figure rather than the flat rate.`;
       }
-    }
+    };
     inputs.forEach(input => {
       input.addEventListener('input', update);
       input.addEventListener('change', update);

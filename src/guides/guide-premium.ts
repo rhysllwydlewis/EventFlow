@@ -10,8 +10,6 @@
  * `public/assets/js/pages/guide-premium.js` is compiled via `npm run build:guides`.
  */
 
-type Cleanup = () => void;
-
 interface CalculatorInputs {
   miles: number;
   mpg: number;
@@ -19,8 +17,6 @@ interface CalculatorInputs {
 }
 
 (() => {
-  'use strict';
-
   const root = document.querySelector<HTMLElement>('[data-gp-article]');
   if (!root) {
     return;
@@ -51,7 +47,7 @@ interface CalculatorInputs {
   /* ── Reading state ────────────────────────────────────────────────────
      One rAF-throttled scroll pass drives both the progress dial and the
      section highlight, so the two can never disagree about where you are. */
-  function initReadingState(): Cleanup | void {
+  function initReadingState(): void {
     const list = document.querySelector<HTMLElement>('[data-gp-toc]');
     const ringBar = document.querySelector<SVGCircleElement>('[data-gp-ring]');
     const ringLabel = document.querySelector<HTMLElement>('[data-gp-ring-pct]');
@@ -63,7 +59,10 @@ interface CalculatorInputs {
 
     const links = new Map<string, HTMLAnchorElement>();
     list?.querySelectorAll<HTMLAnchorElement>('a[href^="#"]').forEach(link => {
-      links.set(link.getAttribute('href')!.slice(1), link);
+      const href = link.getAttribute('href');
+      if (href) {
+        links.set(href.slice(1), link);
+      }
     });
 
     const circumference = ringBar ? 2 * Math.PI * Number(ringBar.getAttribute('r')) : 0;
@@ -143,17 +142,12 @@ interface CalculatorInputs {
     window.addEventListener('scroll', onScroll, { passive: true });
     window.addEventListener('resize', onScroll, { passive: true });
     update();
-
-    return () => {
-      window.removeEventListener('scroll', onScroll);
-      window.removeEventListener('resize', onScroll);
-    };
   }
 
   /* ── Animated figures ─────────────────────────────────────────────────
      Counts a statistic up to its published value the first time it scrolls
      into view. The literal value is already in the DOM for crawlers. */
-  function initCountUp(): Cleanup | void {
+  function initCountUp(): void {
     const stats = Array.from(root.querySelectorAll<HTMLElement>('[data-gp-count]'));
     if (!stats.length || prefersReducedMotion) {
       return;
@@ -197,7 +191,6 @@ interface CalculatorInputs {
     );
 
     stats.forEach(el => observer.observe(el));
-    return () => observer.disconnect();
   }
 
   /* ── Heading permalinks ───────────────────────────────────────────────
@@ -219,7 +212,7 @@ interface CalculatorInputs {
 
       button.addEventListener('click', () => {
         const url = `${window.location.origin}${window.location.pathname}#${section.id}`;
-        void copyText(url).then(ok => {
+        copyText(url).then(ok => {
           if (ok) {
             flash(button);
           }
@@ -257,7 +250,7 @@ interface CalculatorInputs {
 
     const original = button.innerHTML;
     button.addEventListener('click', () => {
-      void copyText(button.dataset.gpCopyPage || window.location.href).then(ok => {
+      copyText(button.dataset.gpCopyPage || window.location.href).then(ok => {
         button.innerHTML = ok
           ? '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"></polyline></svg>'
           : original;
@@ -274,52 +267,50 @@ interface CalculatorInputs {
      The worked example from the article, made interactive: fuel burn for a
      journey versus what the HMRC approved rate would reimburse for it. */
   function initCalculator(): void {
-    const form = document.querySelector<HTMLElement>('[data-gp-calc]');
-    if (!form) {
+    const panel = document.querySelector<HTMLElement>('[data-gp-calc]');
+    if (!panel) {
       return;
     }
 
-    const milesInput = form.querySelector<HTMLInputElement>('#gp-calc-miles');
-    const mpgInput = form.querySelector<HTMLInputElement>('#gp-calc-mpg');
-    const priceInput = form.querySelector<HTMLInputElement>('#gp-calc-price');
-    if (!milesInput || !mpgInput || !priceInput) {
+    const milesEl = panel.querySelector<HTMLInputElement>('#gp-calc-miles');
+    const mpgEl = panel.querySelector<HTMLInputElement>('#gp-calc-mpg');
+    const priceEl = panel.querySelector<HTMLInputElement>('#gp-calc-price');
+    if (!milesEl || !mpgEl || !priceEl) {
       return;
     }
 
-    const inputs = [milesInput, mpgInput, priceInput];
+    const inputs = [milesEl, mpgEl, priceEl];
     const out = {
-      headline: form.querySelector<HTMLElement>('[data-gp-out="fuel"]'),
-      perMile: form.querySelector<HTMLElement>('[data-gp-out="per-mile"]'),
-      fuelAmount: form.querySelector<HTMLElement>('[data-gp-out="fuel-amount"]'),
-      hmrcAmount: form.querySelector<HTMLElement>('[data-gp-out="hmrc-amount"]'),
-      fuelBar: form.querySelector<HTMLElement>('[data-gp-bar="fuel"]'),
-      hmrcBar: form.querySelector<HTMLElement>('[data-gp-bar="hmrc"]'),
-      verdict: form.querySelector<HTMLElement>('[data-gp-out="verdict"]'),
+      headline: panel.querySelector<HTMLElement>('[data-gp-out="fuel"]'),
+      perMile: panel.querySelector<HTMLElement>('[data-gp-out="per-mile"]'),
+      fuelAmount: panel.querySelector<HTMLElement>('[data-gp-out="fuel-amount"]'),
+      hmrcAmount: panel.querySelector<HTMLElement>('[data-gp-out="hmrc-amount"]'),
+      fuelBar: panel.querySelector<HTMLElement>('[data-gp-bar="fuel"]'),
+      hmrcBar: panel.querySelector<HTMLElement>('[data-gp-bar="hmrc"]'),
+      verdict: panel.querySelector<HTMLElement>('[data-gp-out="verdict"]'),
     };
 
-    function readValues(): CalculatorInputs {
-      return {
-        miles: Number(milesInput!.value),
-        mpg: Number(mpgInput!.value),
-        pencePerLitre: Number(priceInput!.value),
-      };
-    }
+    const readValues = (): CalculatorInputs => ({
+      miles: Number(milesEl.value),
+      mpg: Number(mpgEl.value),
+      pencePerLitre: Number(priceEl.value),
+    });
 
     /** Paint the filled portion of a range track and its readout chip. */
-    function paintRange(input: HTMLInputElement): void {
+    const paintRange = (input: HTMLInputElement): void => {
       const min = Number(input.min);
       const max = Number(input.max);
       const pct = max > min ? ((Number(input.value) - min) / (max - min)) * 100 : 0;
       input.style.setProperty('--gp-range-fill', `${round(pct, 2)}%`);
 
-      const readout = form!.querySelector<HTMLElement>(`[data-gp-readout="${input.id}"]`);
+      const readout = panel.querySelector<HTMLElement>(`[data-gp-readout="${input.id}"]`);
       if (readout) {
         const decimals = Number(input.dataset.gpDecimals ?? 0);
         readout.textContent = `${Number(input.value).toFixed(decimals)}${input.dataset.gpUnit ?? ''}`;
       }
-    }
+    };
 
-    function update(): void {
+    const update = (): void => {
       const { miles, mpg, pencePerLitre } = readValues();
       inputs.forEach(paintRange);
 
@@ -355,7 +346,7 @@ interface CalculatorInputs {
             ? `Reimbursing at 45p leaves <strong>${money.format(gap)}</strong> above pure fuel on this trip — that margin is meant to cover wear, tyres, servicing and insurance, not profit.`
             : `At this price and economy the fuel alone costs <strong>${money.format(Math.abs(gap))}</strong> more than a 45p reimbursement would return. Budget the real fuel figure rather than the flat rate.`;
       }
-    }
+    };
 
     inputs.forEach(input => {
       input.addEventListener('input', update);
