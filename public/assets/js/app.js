@@ -1175,15 +1175,14 @@ async function initSupplier() {
       if (currentlyInPlan) {
         // Remove from plan
         try {
-          const r = await fetch(`/api/v1/plan/${encodeURIComponent(s.id)}`, {
-            // skipcq: JS-0123 - local to this fetch call, unrelated to other `r` locals in sibling blocks
+          const removeRes = await fetch(`/api/v1/plan/${encodeURIComponent(s.id)}`, {
             method: 'DELETE',
             headers: {
               'X-CSRF-Token': window.__CSRF_TOKEN__ || '',
             },
             credentials: 'include',
           });
-          if (r.ok) {
+          if (removeRes.ok) {
             addBtn.textContent = 'Add to my plan';
             addBtn.classList.remove('secondary');
             addBtn.dataset.inPlan = 'false';
@@ -1197,8 +1196,7 @@ async function initSupplier() {
       } else {
         // Add to plan
         try {
-          const r = await fetch('/api/v1/plan', {
-            // skipcq: JS-0123 - local to this fetch call, unrelated to other `r` locals in sibling blocks
+          const addRes = await fetch('/api/v1/plan', {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
@@ -1207,7 +1205,7 @@ async function initSupplier() {
             credentials: 'include',
             body: JSON.stringify({ supplierId: s.id }),
           });
-          if (r.ok) {
+          if (addRes.ok) {
             addBtn.textContent = 'Remove from plan';
             addBtn.classList.add('secondary');
             addBtn.dataset.inPlan = 'true';
@@ -1260,8 +1258,7 @@ async function initSupplier() {
             referenceTitle: s.name || s.businessName,
           },
         };
-        const r = await fetch('/api/v4/messenger/conversations', {
-          // skipcq: JS-0123 - local to this fetch call, unrelated to other `r` locals in sibling blocks
+        const convRes = await fetch('/api/v4/messenger/conversations', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -1272,11 +1269,11 @@ async function initSupplier() {
         });
         let d = {};
         try {
-          d = await r.json();
+          d = await convRes.json();
         } catch {
           /* Ignore JSON parse errors */
         }
-        if (!r.ok) {
+        if (!convRes.ok) {
           alert((d && d.error) || 'Could not start conversation');
           return;
         }
@@ -6300,8 +6297,7 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     // Helper function to show toast notification
-    const showToast = function (message, type = 'info') {
-      // skipcq: JS-0123 - local helper scoped to this handler, unrelated to the top-level showToast()
+    const showLocalToast = function (message, type = 'info') {
       const toast = document.createElement('div');
       toast.className = `ef-toast ef-toast--${type || 'info'}`;
       toast.textContent = message;
@@ -6331,7 +6327,7 @@ document.addEventListener('DOMContentLoaded', () => {
         resendBtn.addEventListener('click', async () => {
           const email = loginEmail.value.trim();
           if (!email) {
-            showToast('Please enter your email address', 'error');
+            showLocalToast('Please enter your email address', 'error');
             return;
           }
 
@@ -6354,7 +6350,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             if (r.ok) {
-              showToast(
+              showLocalToast(
                 data.message || 'Verification email sent! Please check your inbox.',
                 'success'
               );
@@ -6363,14 +6359,14 @@ document.addEventListener('DOMContentLoaded', () => {
                   'Verification email sent. Please check your inbox and verify your account.';
               }
             } else {
-              showToast(
+              showLocalToast(
                 data.error || 'Failed to send verification email. Please try again.',
                 'error'
               );
             }
           } catch (err) {
             console.error('Resend verification error', err);
-            showToast('Network error. Please try again.', 'error');
+            showLocalToast('Network error. Please try again.', 'error');
           } finally {
             resendBtn.disabled = false;
             resendBtn.textContent = 'Resend Verification Email';
@@ -7255,11 +7251,10 @@ document.addEventListener('DOMContentLoaded', () => {
   if (window.__EF_PAGE__ === 'dash_supplier') {
     (async () => {
       try {
-        const me = await fetch('/api/v1/me/suppliers', {
-          // skipcq: JS-0123 - local to this IIFE only, unrelated to the top-level me() helper
+        const meResponse = await fetch('/api/v1/me/suppliers', {
           credentials: 'include',
         });
-        const ms = await me.json();
+        const ms = await meResponse.json();
         const pk = await fetch('/api/v1/me/packages', {
           credentials: 'include',
         });

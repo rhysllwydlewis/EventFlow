@@ -1267,7 +1267,7 @@ function initSuppliersPage() {
           .join('');
         listEl.hidden = false;
         filterQueryEl.setAttribute('aria-expanded', 'true');
-      } catch (_) {
+      } catch {
         hideSuggestions();
       }
     }

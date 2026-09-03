@@ -438,8 +438,7 @@
     modal.show();
   }
 
-  async function provisionSupplierProfile(userId) {
-    // skipcq: JS-0123 - function param scoped to this handler only
+  async function provisionSupplierProfile(targetUserId) {
     const ok = await AdminShared.showConfirmModal({
       title: 'Provision supplier profile?',
       message:
@@ -452,7 +451,7 @@
     }
     try {
       await AdminShared.api(
-        `/api/admin/users/${encodeURIComponent(userId)}/provision-supplier-profile`,
+        `/api/admin/users/${encodeURIComponent(targetUserId)}/provision-supplier-profile`,
         'POST'
       );
       AdminShared.showToast('Supplier profile created successfully', 'success');

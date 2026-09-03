@@ -1066,7 +1066,7 @@ async function checkMongoConnection() {
     }
     await mongodb.admin().ping();
     return true;
-  } catch (error) {
+  } catch {
     return false;
   }
 }

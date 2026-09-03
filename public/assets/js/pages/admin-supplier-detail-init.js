@@ -315,7 +315,7 @@
           'success'
         );
         await loadSupplier();
-      } catch (e) {
+      } catch {
         AdminShared.showToast('Failed to update calendar override', 'error');
       }
     }

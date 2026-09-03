@@ -209,7 +209,7 @@ function getPriceLevel(priceDisplay) {
 async function getSupplierOwnerUsers() {
   try {
     return await dbUnified.read('users');
-  } catch (_err) {
+  } catch {
     return [];
   }
 }

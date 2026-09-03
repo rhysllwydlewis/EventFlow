@@ -537,7 +537,7 @@ function validateUploadUrl(url) {
   try {
     const urlObj = new URL(url);
     return urlObj.protocol === 'http:' || urlObj.protocol === 'https:';
-  } catch (e) {
+  } catch {
     // Invalid URL format
     return false;
   }
@@ -564,7 +564,7 @@ function validatePexelsUrl(url) {
     if (urlObj.protocol === 'https:' && isPexelsHost) {
       return url;
     }
-  } catch (e) {
+  } catch {
     // Invalid URL
   }
   return 'https://www.pexels.com';
@@ -652,7 +652,7 @@ function displayPexelsImage(imgElement, frame, imageData, category) {
   imgElement.alt = `${category.charAt(0).toUpperCase() + category.slice(1)} - Photo by ${imageData.photographer}`;
   imgElement.style.opacity = '1';
   frame.classList.remove('loading-pexels');
-  addCreatorCredit(frame, imageData);
+  addCreatorCredit(frame);
 }
 
 /**
@@ -768,7 +768,7 @@ async function initPexelsCollage(settings) {
                 console.warn(`   Error type: ${String(errorData.errorType)}`);
               }
             }
-          } catch (e) {
+          } catch {
             // Response wasn't valid JSON, use status text
             if (isDebugEnabled()) {
               console.warn(
@@ -1259,6 +1259,11 @@ async function initHeroVideo(
           let timeoutId = null;
           let loadingComplete = false;
           let currentUrlIndex = 0;
+          // Declared here (assigned below) so handleAllUrlsFailed/handleVideoLoaded
+          // can reference it before its own definition further down — all three
+          // handlers are mutually recursive and only ever invoked after this
+          // whole setup block has finished running.
+          let handleVideoError;
 
           // Helper function to handle complete failure (all URLs exhausted)
           const handleAllUrlsFailed = () => {
@@ -1365,7 +1370,7 @@ async function initHeroVideo(
             }
           };
 
-          const handleVideoError = () => {
+          handleVideoError = () => {
             // Already handled
             if (loadingComplete) {
               return;
@@ -1702,7 +1707,7 @@ async function initCollageWidget(widgetConfig) {
     if (window.matchMedia) {
       prefersReducedData = window.matchMedia('(prefers-reduced-data: reduce)').matches;
     }
-  } catch (e) {
+  } catch {
     // Browser doesn't support prefers-reduced-data, default to false
     if (isDevelopmentEnvironment()) {
       console.log('[Collage Widget] prefers-reduced-data not supported in this browser');
@@ -2270,7 +2275,7 @@ function loadMediaIntoFrame(
 
         // Only add credit if from Pexels (has videographer field for videos)
         if (media.videographer) {
-          addCreatorCredit(frame, media);
+          addCreatorCredit(frame);
         } else {
           // Remove any existing credits when using uploaded videos
           removeCreatorCredit(frame);
@@ -2357,7 +2362,7 @@ function loadMediaIntoFrame(
 
         // Only add creator credit for Pexels images (not uploads)
         if (media.photographer || media.videographer) {
-          addCreatorCredit(frame, media);
+          addCreatorCredit(frame);
         } else {
           // Remove any existing credits when using uploaded images
           removeCreatorCredit(frame);
@@ -2397,7 +2402,7 @@ function loadMediaIntoFrame(
 
         // Only add creator credit for Pexels images (not uploads)
         if (media.photographer || media.videographer) {
-          addCreatorCredit(frame, media);
+          addCreatorCredit(frame);
         } else {
           // Remove any existing credits when using uploaded images
           removeCreatorCredit(frame);
@@ -2510,7 +2515,7 @@ function cycleWidgetMedia(
 
             // Only add credit if from Pexels (has photographer or videographer field)
             if (nextMedia.photographer || nextMedia.videographer) {
-              addCreatorCredit(frame, nextMedia);
+              addCreatorCredit(frame);
             } else {
               // Remove any existing credits when using uploaded media
               removeCreatorCredit(frame);
@@ -2544,7 +2549,7 @@ function cycleWidgetMedia(
               currentElement.src = fallbackMedia.url;
               currentElement.alt = `${category.charAt(0).toUpperCase() + category.slice(1)} - Photo`;
               if (fallbackMedia.photographer) {
-                addCreatorCredit(frame, fallbackMedia);
+                addCreatorCredit(frame);
               } else {
                 removeCreatorCredit(frame);
               }
@@ -2606,7 +2611,7 @@ function cycleWidgetMedia(
 
             // Only add credit if from Pexels (has photographer or videographer field)
             if (nextMedia.photographer || nextMedia.videographer) {
-              addCreatorCredit(frame, nextMedia);
+              addCreatorCredit(frame);
             } else {
               // Remove any existing credits when using uploaded media
               removeCreatorCredit(frame);
@@ -2628,7 +2633,7 @@ function cycleWidgetMedia(
               currentElement.src = fallbackMedia.url;
               currentElement.alt = `${category.charAt(0).toUpperCase() + category.slice(1)} - Photo`;
               if (fallbackMedia.photographer || fallbackMedia.videographer) {
-                addCreatorCredit(frame, fallbackMedia);
+                addCreatorCredit(frame);
               } else {
                 removeCreatorCredit(frame);
               }
@@ -2739,7 +2744,7 @@ function cyclePexelsImages(imageCache, currentImageIndex, collageFrames, categor
       }
       imgElement.src = nextImage.url;
       imgElement.alt = `${category.charAt(0).toUpperCase() + category.slice(1)} - Photo by ${nextImage.photographer}`;
-      addCreatorCredit(frame, nextImage);
+      addCreatorCredit(frame);
     }, PEXELS_PRELOAD_TIMEOUT_MS);
 
     nextImg.onload = () => {
@@ -2756,7 +2761,7 @@ function cyclePexelsImages(imageCache, currentImageIndex, collageFrames, categor
         imgElement.classList.remove('fading');
 
         // Update creator credit
-        addCreatorCredit(frame, nextImage);
+        addCreatorCredit(frame);
       }, PEXELS_TRANSITION_DURATION_MS);
     };
 
@@ -2779,7 +2784,7 @@ function cyclePexelsImages(imageCache, currentImageIndex, collageFrames, categor
       if (fallbackImage && fallbackImage.url) {
         imgElement.src = fallbackImage.url;
         imgElement.alt = `${category.charAt(0).toUpperCase() + category.slice(1)} - Photo by ${fallbackImage.photographer}`;
-        addCreatorCredit(frame, fallbackImage);
+        addCreatorCredit(frame);
       }
       // If fallback also fails, the onerror of that load will be ignored
       // and the next cycle will try again
