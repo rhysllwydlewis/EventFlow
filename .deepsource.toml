@@ -1,5 +1,14 @@
 version = 1
 
+# Coverage notes for anything DeepSource cannot analyse itself:
+#   CSS  — DeepSource ships no CSS analyzer, so stylesheets are gated by
+#          tests/unit/stylesheet-lint.test.js (stylelint, bug-class rules)
+#          inside the blocking Jest suite.
+#   Test coverage — already enforced by .github/workflows/coverage-gate.yml
+#          ("Changed executable lines (80%)"), so DeepSource's coverage
+#          feature would duplicate it and needs a DEEPSOURCE_DSN secret.
+#   Secrets — covered by GitGuardian, which already runs on every PR.
+
 exclude_patterns = [
   "tests/**",
   "node_modules/**",
@@ -8,9 +17,12 @@ exclude_patterns = [
   "playwright-report/**",
   "test-results/**",
   "public/assets/vendor/**",
+  # Compiled TypeScript output. The .ts sources under src/ are analysed
+  # instead, so leaving these in reports every finding twice.
   "public/assets/js/pages/home-v2.js",
   "public/assets/js/pages/home-v3.js",
-  "public/assets/js/pages/home-v3-video.js"
+  "public/assets/js/pages/home-v3-video.js",
+  "public/assets/js/pages/guide-premium.js"
 ]
 
 test_patterns = [
@@ -20,15 +32,23 @@ test_patterns = [
   "**/*.spec.js"
 ]
 
+# Covers .js, .mjs, .cjs and .ts — `dialect = "typescript"` is what pulls the
+# TypeScript sources under src/ into analysis.
 [[analyzers]]
 name = "javascript"
 enabled = true
 
   [analyzers.meta]
   environment = ["nodejs", "browser", "jest", "mongo"]
-  module_system = "es-modules"
+  # This repo is CommonJS: ~1,000 files use require() and package.json sets no
+  # "type": "module". It was previously declared as es-modules.
+  module_system = "commonjs"
   dialect = "typescript"
   cyclomatic_complexity_threshold = "high"
+
+[[analyzers]]
+name = "python"
+enabled = true
 
 [[analyzers]]
 name = "docker"

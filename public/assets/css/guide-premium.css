@@ -49,6 +49,11 @@
   --gp-measure: 44rem;
   --gp-ease: cubic-bezier(0.22, 1, 0.36, 1);
 
+  font-family: var(--gp-sans);
+  color: var(--gp-text);
+  display: flex;
+  flex-direction: column;
+
   /* Fine film grain — keeps large flat gradients from banding. */
   --gp-grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.42'/%3E%3C/svg%3E");
 }
@@ -59,21 +64,11 @@ body.gp-page {
   background: var(--gp-surface);
 }
 
-.gp {
-  font-family: var(--gp-sans);
-  color: var(--gp-text);
-  display: flex;
-  flex-direction: column;
-}
-
 /* The server injects `.article-freshness` as the first child of <article>.
    Flex `order` lets us place that server-owned block deliberately (under the
    hero) instead of letting it land above the headline. */
 .gp .gp-hero {
   order: 1;
-}
-.gp .article-freshness {
-  order: 2;
 }
 .gp .gp-shell {
   order: 3;
@@ -308,8 +303,11 @@ body.gp-page {
     0 6px 18px -6px rgba(79, 227, 199, 0.7);
 }
 
-/* Server-rendered freshness strip, restyled to sit under the hero. */
+/* Server-rendered freshness strip, restyled to sit under the hero (order: 2
+   places it between the hero and the reading shell — see the flex order block
+   above, which exists because the server injects this element first). */
 .gp .article-freshness {
+  order: 2;
   width: min(1160px, 92%);
   margin: 0 auto;
   display: flex;
@@ -821,9 +819,6 @@ body.gp-page {
   letter-spacing: -0.02em;
   color: var(--gp-text);
   font-variant-numeric: tabular-nums;
-}
-
-.gp-stat__value {
   display: flex;
   align-items: baseline;
   gap: 1px;

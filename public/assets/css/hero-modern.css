@@ -157,7 +157,6 @@
 
 .hero-modern h1 .hero-highlight-bg {
   position: absolute;
-  inset-x: 0;
   bottom: -12px;
   height: 10px;
   background: #d1fae5;

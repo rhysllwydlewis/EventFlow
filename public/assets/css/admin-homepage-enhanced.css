@@ -399,7 +399,6 @@ input[type='file'] {
 /* Error and success cards for loading states */
 .error-card {
   background: #fef2f2;
-  border-color: #fecaca;
   padding: 20px;
   text-align: center;
   border-radius: 12px;

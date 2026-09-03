@@ -1031,7 +1031,6 @@
   margin-bottom: 0.625rem;
 }
 
-.sp-review-card__meta {}
 
 .sp-review-card__stars {
   display: flex;
@@ -1333,7 +1332,6 @@
   flex-shrink: 0;
 }
 
-.sp-badge-card__body {}
 
 .sp-badge-card__name {
   font-size: 0.8125rem;

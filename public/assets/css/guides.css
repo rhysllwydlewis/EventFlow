@@ -1976,7 +1976,6 @@ article.container {
 }
 
 .article-content h4 {
-  font-size: 1rem;
   font-weight: 700;
   color: var(--guides-teal);
   margin: 1.5rem 0 0.5rem;
