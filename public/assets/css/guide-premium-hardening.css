@@ -1,0 +1,45 @@
+/* Premium guide v1.1 hardening.
+   Kept separate from the original trial stylesheet so the first design remains
+   easy to review while production fixes stay explicit and testable. */
+
+body.gp-page {
+  --gp-surface: #fff;
+  background: var(--gp-surface);
+}
+
+/* The lighter brand lift does not provide enough contrast for small white
+   text. Keep text-bearing gradients inside the AA-safe dark brand range. */
+.gp .gp-calc__head {
+  background: linear-gradient(120deg, #073c37 0%, #0b8073 70%, #086b60 100%);
+}
+
+.gp .gp-calc__sub {
+  color: rgba(255, 255, 255, 0.92);
+}
+
+/* Focus indicators are UI state, so use the darker brand colour against
+   white instead of the lower-contrast decorative mint. */
+.gp *:focus-visible {
+  outline-color: #0b8073;
+}
+
+/* The floating back-to-top control also carries a white icon: keep the whole
+   gradient dark enough for the icon rather than ending on --gp-brand-lift. */
+body.gp-page .guides-back-to-top {
+  background: linear-gradient(135deg, #0b8073, #086b60);
+}
+
+/* Same principle for the small white feedback tick. */
+.gp .guide-feedback__icon {
+  background: linear-gradient(135deg, #0b8073, #086b60);
+}
+
+/* Make long calculator labels wrap cleanly instead of squeezing the numeric
+   readout on narrow screens. */
+@media (max-width: 480px) {
+  .gp .gp-field__top {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 6px;
+  }
+}
