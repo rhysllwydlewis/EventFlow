@@ -504,7 +504,7 @@ class WebSocketServerV2 {
   /**
    * Handle typing start
    */
-  handleTypingStart(socket, data) {
+  async handleTypingStart(socket, data) {
     try {
       if (!socket.userId) {
         return;
@@ -512,6 +512,26 @@ class WebSocketServerV2 {
 
       const { threadId, recipientId } = data;
       if (!threadId) {
+        return;
+      }
+
+      // Verify the sender actually belongs to this thread before broadcasting
+      // on their behalf — otherwise a socket could pass any threadId/recipientId
+      // and spoof a "typing" event at an arbitrary user (same check as
+      // handleMessageSend's participant guard).
+      if (!this.messagingService) {
+        return;
+      }
+      const senderIsParticipant = await isThreadParticipant(
+        socket.userId,
+        threadId,
+        this.messagingService
+      );
+      if (!senderIsParticipant) {
+        logger.warn('Rejected typing:start — sender not a thread participant', {
+          userId: socket.userId,
+          threadId,
+        });
         return;
       }
 
@@ -544,7 +564,7 @@ class WebSocketServerV2 {
   /**
    * Handle typing stop
    */
-  handleTypingStop(socket, data) {
+  async handleTypingStop(socket, data) {
     try {
       if (!socket.userId) {
         return;
@@ -552,6 +572,20 @@ class WebSocketServerV2 {
 
       const { threadId, recipientId } = data;
       if (!threadId) {
+        return;
+      }
+
+      // Same participant check as handleTypingStart — a "stop" broadcast is
+      // just as capable of spoofing a typing state at an arbitrary user.
+      if (!this.messagingService) {
+        return;
+      }
+      const senderIsParticipant = await isThreadParticipant(
+        socket.userId,
+        threadId,
+        this.messagingService
+      );
+      if (!senderIsParticipant) {
         return;
       }
 
@@ -724,6 +758,17 @@ class WebSocketServerV2 {
         }
         this.socketUsers.delete(socket.id);
 
+        // Clear any typing indicators left dangling by a mid-type disconnect
+        // (typing:stop is only emitted explicitly by the client, never on
+        // disconnect, so without this the entry lingers until process exit).
+        if (!this.userSockets.has(userId)) {
+          for (const [threadId, typingSet] of this.typingUsers) {
+            if (typingSet.delete(userId) && typingSet.size === 0) {
+              this.typingUsers.delete(threadId);
+            }
+          }
+        }
+
         // Update presence — setUserOffline removes user from online set
         await this.presenceService.setOffline(userId, socket.id);
 
@@ -867,7 +912,11 @@ class WebSocketServerV2 {
       const match = await this.db.collection('conversations_v4').findOne(
         {
           _id: new ObjectId(conversationId),
-          'participants.userId': userId,
+          // Exclude a participant who hard-deleted this conversation for
+          // themselves — otherwise they could rejoin the room and keep
+          // receiving realtime messages/typing for a conversation every
+          // REST read path already treats as gone for them.
+          participants: { $elemMatch: { userId, isDeleted: { $ne: true } } },
         },
         { projection: { _id: 1 } }
       );

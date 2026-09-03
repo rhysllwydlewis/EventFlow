@@ -38,7 +38,18 @@ const CONVERSATION_CONTEXT_TYPES = [
  */
 const CONVERSATION_V4_TYPES = ['direct', 'marketplace', 'enquiry', 'supplier_network', 'support'];
 
+/**
+ * Roles a user is allowed to discover through the messenger contact search
+ * (GET /api/v4/messenger/contacts). Deliberately excludes 'admin' and any
+ * other staff/privileged role so that endpoint can't be used to enumerate
+ * privileged accounts by name or email substring.
+ *
+ * @type {string[]}
+ */
+const MESSENGER_CONTACT_SEARCHABLE_ROLES = ['customer', 'supplier'];
+
 module.exports = {
   CONVERSATION_CONTEXT_TYPES,
   CONVERSATION_V4_TYPES,
+  MESSENGER_CONTACT_SEARCHABLE_ROLES,
 };

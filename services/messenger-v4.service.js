@@ -336,13 +336,20 @@ class MessengerV4Service {
     // Deduplicate: Check if conversation already exists between same participants
     const participantIds = conversationData.participants.map(p => p.userId).sort();
 
-    if (creatorUserId && conversationData.type === 'direct' && participantIds.length === 2) {
-      const otherId = participantIds.find(id => id !== creatorUserId);
-      if (otherId && (await this.isBlockedEitherWay(creatorUserId, otherId))) {
-        const error = new Error('This conversation could not be started because of a block');
-        error.statusCode = 403;
-        error.code = 'MESSENGER_BLOCKED';
-        throw error;
+    // Block check applies to every conversation type, not just 'direct' — a
+    // block must stop a conversation being started regardless of type.
+    if (creatorUserId) {
+      const otherCreationIds = participantIds.filter(id => id !== creatorUserId);
+      if (otherCreationIds.length > 0) {
+        const blockChecks = await Promise.all(
+          otherCreationIds.map(id => this.isBlockedEitherWay(creatorUserId, id))
+        );
+        if (blockChecks.some(Boolean)) {
+          const error = new Error('This conversation could not be started because of a block');
+          error.statusCode = 403;
+          error.code = 'MESSENGER_BLOCKED';
+          throw error;
+        }
       }
     }
 
@@ -640,16 +647,20 @@ class MessengerV4Service {
       throw new Error('User not a participant in this conversation');
     }
 
+    // Coerce to boolean — these fields are matched with $elemMatch elsewhere
+    // (getConversations' pinned/archived filters), so writing a non-boolean
+    // value here (e.g. a client sending an object) would silently break
+    // those queries for this conversation going forward.
     if (updates.isPinned !== undefined) {
-      updateOps[`participants.${participantIndex}.isPinned`] = updates.isPinned;
+      updateOps[`participants.${participantIndex}.isPinned`] = Boolean(updates.isPinned);
     }
 
     if (updates.isMuted !== undefined) {
-      updateOps[`participants.${participantIndex}.isMuted`] = updates.isMuted;
+      updateOps[`participants.${participantIndex}.isMuted`] = Boolean(updates.isMuted);
     }
 
     if (updates.isArchived !== undefined) {
-      updateOps[`participants.${participantIndex}.isArchived`] = updates.isArchived;
+      updateOps[`participants.${participantIndex}.isArchived`] = Boolean(updates.isArchived);
     }
 
     if (updates.markRead) {
@@ -698,31 +709,35 @@ class MessengerV4Service {
    * @returns {Object} Created message
    */
   async sendMessage(conversationId, messageData) {
-    // Get conversation and verify sender is a participant
+    // Get conversation and verify sender is a participant who hasn't
+    // hard-deleted it for themselves — otherwise this would succeed here but
+    // the route's post-op getConversation() (for the WS emit) throws
+    // afterward, leaving the message persisted but the caller sees an error.
     const conversation = await this.conversationsCollection.findOne({
       _id: new ObjectId(conversationId),
-      'participants.userId': messageData.senderId,
+      participants: { $elemMatch: { userId: messageData.senderId, isDeleted: { $ne: true } } },
     });
 
     if (!conversation) {
       throw new Error('Conversation not found or sender is not a participant');
     }
 
-    if (conversation.type === 'direct') {
-      const otherParticipant = conversation.participants.find(
-        p => p.userId !== messageData.senderId
+    // Block check applies to every conversation type, not just 'direct' —
+    // a block must stop messages regardless of how the conversation was
+    // started (marketplace/enquiry/supplier_network/support all allow the
+    // same two users to end up participants together).
+    const otherParticipants = conversation.participants.filter(
+      p => p.userId !== messageData.senderId
+    );
+    if (otherParticipants.length > 0) {
+      const blockChecks = await Promise.all(
+        otherParticipants.map(p => this.isBlockedEitherWay(messageData.senderId, p.userId))
       );
-      if (otherParticipant) {
-        const blocked = await this.isBlockedEitherWay(
-          messageData.senderId,
-          otherParticipant.userId
-        );
-        if (blocked) {
-          const error = new Error('This message could not be delivered because of a block');
-          error.statusCode = 403;
-          error.code = 'MESSENGER_BLOCKED';
-          throw error;
-        }
+      if (blockChecks.some(Boolean)) {
+        const error = new Error('This message could not be delivered because of a block');
+        error.statusCode = 403;
+        error.code = 'MESSENGER_BLOCKED';
+        throw error;
       }
     }
 
@@ -813,7 +828,7 @@ class MessengerV4Service {
       }
     }
     const notificationRecipients = conversation.participants
-      .filter(p => p.userId !== messageData.senderId && !p.isMuted)
+      .filter(p => p.userId !== messageData.senderId && !p.isMuted && !p.isDeleted)
       .map(p => p.userId);
     const message = {
       conversationId: new ObjectId(conversationId),
@@ -1069,6 +1084,17 @@ class MessengerV4Service {
       throw new Error('Message not found or access denied');
     }
 
+    // Reject if the author has hard-deleted the conversation for themselves
+    // — otherwise the edit would succeed here but the route's post-op
+    // getConversation() (for the WS emit) throws afterward.
+    const editConversation = await this.conversationsCollection.findOne({
+      _id: message.conversationId,
+      participants: { $elemMatch: { userId, isDeleted: { $ne: true } } },
+    });
+    if (!editConversation) {
+      throw new Error('Conversation not found or access denied');
+    }
+
     // Check 15-minute edit window
     const fifteenMinutes = 15 * 60 * 1000;
     if (Date.now() - message.createdAt.getTime() > fifteenMinutes) {
@@ -1123,6 +1149,17 @@ class MessengerV4Service {
 
     if (!message) {
       throw new Error('Message not found or access denied');
+    }
+
+    // Reject if the author has hard-deleted the conversation for themselves
+    // — otherwise the delete would succeed here but the route's post-op
+    // getConversation() (for the WS emit) throws afterward.
+    const deleteConversation = await this.conversationsCollection.findOne({
+      _id: message.conversationId,
+      participants: { $elemMatch: { userId, isDeleted: { $ne: true } } },
+    });
+    if (!deleteConversation) {
+      throw new Error('Conversation not found or access denied');
     }
 
     await this.messagesCollection.updateOne(
@@ -1193,10 +1230,12 @@ class MessengerV4Service {
       throw new Error('Message not found');
     }
 
-    // Verify the user is a participant in the conversation
+    // Verify the user is a participant in the conversation and hasn't
+    // hard-deleted it for themselves — otherwise this succeeds here but the
+    // route's post-op getConversation() (for the WS emit) throws afterward.
     const conversation = await this.conversationsCollection.findOne({
       _id: message.conversationId,
-      'participants.userId': userId,
+      participants: { $elemMatch: { userId, isDeleted: { $ne: true } } },
     });
 
     if (!conversation) {
@@ -1471,8 +1510,11 @@ class MessengerV4Service {
       ];
     }
 
+    // filters.role may be a single role string or an array of allowed roles
+    // (the route defaults to the full allowed-roles list when the caller
+    // didn't request a specific one, rather than leaving this unfiltered).
     if (filters.role) {
-      searchQuery.role = filters.role;
+      searchQuery.role = Array.isArray(filters.role) ? { $in: filters.role } : filters.role;
     }
 
     if (filters.mode === 'supplier_search') {

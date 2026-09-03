@@ -1116,6 +1116,26 @@ describe('MessengerV4Service', () => {
       expect(contacts).toHaveLength(1);
       expect(contacts[0].role).toBe('supplier');
     });
+
+    it('supports an array of allowed roles and excludes roles outside it (regression: admin enumeration)', async () => {
+      await db.collection('users').insertOne({
+        _id: 'admin1',
+        id: 'admin1',
+        displayName: 'Zed Admin',
+        name: 'Zed Admin',
+        email: 'zed-admin@example.com',
+        role: 'admin',
+      });
+
+      // Route now defaults to this array instead of leaving `role` unfiltered
+      // when the caller didn't request a specific (allowed) role.
+      const contacts = await service.searchContacts('user1', 'Z', {
+        role: ['customer', 'supplier'],
+      });
+
+      expect(contacts).toHaveLength(0);
+      expect(contacts.some(c => c.role === 'admin')).toBe(false);
+    });
   });
 
   describe('editMessage', () => {
@@ -1826,6 +1846,25 @@ describe('MessengerV4Service', () => {
       ).rejects.toThrow('block');
     });
 
+    it('sendMessage rejects a blocked sender in a non-direct conversation too (regression: block bypass)', async () => {
+      const conversation = await service.createConversation({
+        type: 'marketplace',
+        participants: [
+          { userId: 'user1', displayName: 'Alice', role: 'customer' },
+          { userId: 'user2', displayName: 'Bob', role: 'supplier' },
+        ],
+      });
+      await service.blockUser('user2', 'user1');
+
+      await expect(
+        service.sendMessage(conversation._id.toString(), {
+          senderId: 'user1',
+          senderName: 'Alice',
+          content: 'hello?',
+        })
+      ).rejects.toThrow('block');
+    });
+
     it('createConversation rejects starting a new direct chat with a blocked user', async () => {
       await service.blockUser('user2', 'user1');
 
@@ -1839,6 +1878,99 @@ describe('MessengerV4Service', () => {
           ],
         })
       ).rejects.toThrow('block');
+    });
+
+    it('createConversation rejects a non-direct conversation with a blocked user too (regression: block bypass)', async () => {
+      await service.blockUser('user2', 'user1');
+
+      await expect(
+        service.createConversation({
+          type: 'marketplace',
+          creatorUserId: 'user1',
+          participants: [
+            { userId: 'user1', displayName: 'Alice', role: 'customer' },
+            { userId: 'user2', displayName: 'Bob', role: 'supplier' },
+          ],
+        })
+      ).rejects.toThrow('block');
+    });
+  });
+
+  describe('hard-delete lockout (regression: message ops silently succeed then WS emit throws)', () => {
+    let conversation;
+    let message;
+
+    beforeEach(async () => {
+      conversation = await service.createConversation({
+        type: 'direct',
+        participants: [
+          { userId: 'user1', displayName: 'Alice', role: 'customer' },
+          { userId: 'user2', displayName: 'Bob', role: 'supplier' },
+        ],
+      });
+      message = await service.sendMessage(conversation._id.toString(), {
+        senderId: 'user1',
+        senderName: 'Alice',
+        content: 'Test message',
+      });
+    });
+
+    async function hardDeleteFor(userId) {
+      const idx = conversation.participants.findIndex(p => p.userId === userId);
+      await db
+        .collection('conversations_v4')
+        .updateOne(
+          { _id: conversation._id },
+          { $set: { [`participants.${idx}.isDeleted`]: true } }
+        );
+    }
+
+    it('sendMessage rejects once the sender has hard-deleted the conversation for themselves', async () => {
+      await hardDeleteFor('user1');
+
+      await expect(
+        service.sendMessage(conversation._id.toString(), {
+          senderId: 'user1',
+          senderName: 'Alice',
+          content: 'hello again?',
+        })
+      ).rejects.toThrow('not a participant');
+    });
+
+    it('editMessage rejects once the author has hard-deleted the conversation for themselves', async () => {
+      await hardDeleteFor('user1');
+
+      await expect(service.editMessage(message._id.toString(), 'user1', 'edited')).rejects.toThrow(
+        'access denied'
+      );
+    });
+
+    it('deleteMessage rejects once the author has hard-deleted the conversation for themselves', async () => {
+      await hardDeleteFor('user1');
+
+      await expect(service.deleteMessage(message._id.toString(), 'user1')).rejects.toThrow(
+        'access denied'
+      );
+    });
+
+    it('toggleReaction rejects once the reactor has hard-deleted the conversation for themselves', async () => {
+      await hardDeleteFor('user2');
+
+      await expect(
+        service.toggleReaction(message._id.toString(), 'user2', 'Bob', '👍')
+      ).rejects.toThrow('access denied');
+    });
+
+    it('notification fan-out excludes a recipient who hard-deleted the conversation', async () => {
+      await hardDeleteFor('user2');
+
+      const sent = await service.sendMessage(conversation._id.toString(), {
+        senderId: 'user1',
+        senderName: 'Alice',
+        content: 'are you still there?',
+      });
+
+      expect(sent.notificationFanout.recipientIds).not.toContain('user2');
     });
   });
 });

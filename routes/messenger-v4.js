@@ -14,6 +14,7 @@ const crypto = require('crypto');
 const { writeLimiter, messengerReadLimiter } = require('../middleware/rateLimits');
 const MessengerV4Service = require('../services/messenger-v4.service');
 const { CONVERSATION_V4_TYPES, CONVERSATION_CONTEXT_TYPES } = require('../models/ConversationV4');
+const { MESSENGER_CONTACT_SEARCHABLE_ROLES } = require('../utils/messengerContextTypes');
 const NotificationService = require('../services/notification.service');
 const messengerMetrics = require('../services/messengerMetrics');
 const { setQueueContext } = require('../services/queue');
@@ -996,8 +997,9 @@ router.delete(
       });
     } catch (error) {
       logger.error('Error deleting message:', error);
-      res.status(500).json({
-        error: 'Failed to delete message',
+      const msg = error.message || '';
+      res.status(error.statusCode || messengerErrorStatus(msg)).json({
+        error: msg || 'Failed to delete message',
       });
     }
   }
@@ -1094,12 +1096,16 @@ router.get('/contacts', applyAuthRequired, messengerReadLimiter, async (req, res
     const userId = req.user.id;
     const { q: query, role, mode, limit = 20 } = req.query;
 
-    // Validate role to prevent admin/privileged user enumeration
-    const ALLOWED_CONTACT_ROLES = ['customer', 'supplier'];
+    // Validate role to prevent admin/privileged user enumeration. When no
+    // specific (allowed) role is requested, fall back to the full allowed
+    // list rather than no filter at all — an unfiltered search would return
+    // admin/staff accounts too.
     const supplierOnlyMode = mode === 'supplier_search' || mode === 'supplier_only';
     const requestedRole = supplierOnlyMode ? 'supplier' : role;
     const validRole =
-      requestedRole && ALLOWED_CONTACT_ROLES.includes(requestedRole) ? requestedRole : undefined;
+      requestedRole && MESSENGER_CONTACT_SEARCHABLE_ROLES.includes(requestedRole)
+        ? requestedRole
+        : MESSENGER_CONTACT_SEARCHABLE_ROLES;
 
     const contacts = await (
       await getMessengerService()
