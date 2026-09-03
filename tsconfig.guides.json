@@ -1,0 +1,17 @@
+{
+  "compilerOptions": {
+    "target": "ES2020",
+    "module": "preserve",
+    "lib": ["DOM", "DOM.Iterable", "ES2020"],
+    "rootDir": "src/guides",
+    "outDir": "public/assets/js/pages",
+    "strict": false,
+    "noImplicitAny": false,
+    "skipLibCheck": true,
+    "noEmitOnError": true,
+    "removeComments": false,
+    "sourceMap": false,
+    "newLine": "lf"
+  },
+  "include": ["src/guides/**/*.ts", "src/guides/**/*.d.ts"]
+}

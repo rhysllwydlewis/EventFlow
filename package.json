@@ -69,6 +69,7 @@
     "test:audit:full": "node scripts/test-audit.mjs --full",
     "test:audit:ci": "node scripts/test-audit.mjs --ci",
     "build:homepages": "tsc -p tsconfig.homepages.json && prettier --write public/assets/js/pages/home-v2.js public/assets/js/pages/home-v3.js public/assets/js/pages/home-v3-video.js",
+    "build:guides": "tsc -p tsconfig.guides.json && prettier --write public/assets/js/pages/guide-premium.js",
     "typecheck:homepages": "tsc -p tsconfig.homepages.json --noEmit"
   },
   "dependencies": {
