@@ -94,8 +94,7 @@
     const params = new URLSearchParams(window.location.search);
     const redirect = params.get('redirect') || params.get('return') || '';
     if (
-      redirect &&
-      redirect.startsWith('/') &&
+      redirect?.startsWith('/') &&
       !redirect.startsWith('//') &&
       !redirect.includes('\\') &&
       !hasControlCharacter(redirect)
@@ -356,14 +355,27 @@
     return rectWidth || Math.floor(element.clientWidth || element.offsetWidth || 0);
   }
 
+  function getContentWidth(element) {
+    const width = getVisibleWidth(element);
+    if (!width || typeof window.getComputedStyle !== 'function') {
+      return width;
+    }
+
+    const styles = window.getComputedStyle(element);
+    const horizontalInsets =
+      (Number.parseFloat(styles.paddingLeft || '0') || 0) +
+      (Number.parseFloat(styles.paddingRight || '0') || 0) +
+      (Number.parseFloat(styles.borderLeftWidth || '0') || 0) +
+      (Number.parseFloat(styles.borderRightWidth || '0') || 0);
+    return Math.max(0, Math.floor(width - horizontalInsets));
+  }
+
   function getGoogleButtonWidth(container) {
     const googleBlock = container.closest('.auth-google');
     const card = container.closest('.auth-card');
-    const measuredWidth = [
-      getVisibleWidth(googleBlock),
-      getVisibleWidth(container.parentElement),
-      getVisibleWidth(card),
-    ].find(width => width > 0);
+    const measuredWidth = [getContentWidth(googleBlock), getContentWidth(card)].find(
+      width => width > 0
+    );
     const availableWidth = Math.max(
       GOOGLE_BUTTON_MIN_WIDTH,
       measuredWidth || GOOGLE_BUTTON_MAX_WIDTH
@@ -389,6 +401,26 @@
       state: getGoogleButtonState(context),
     });
     container.classList.add('is-ready');
+    document.dispatchEvent(
+      new CustomEvent('eventflow:google-button-rendered', { detail: { context, buttonWidth } })
+    );
+  }
+
+  function isGoogleContainerVisible(container) {
+    const panel = container?.closest('.auth-tab-panel');
+    return Boolean(container && (!panel || !panel.hidden));
+  }
+
+  function rerenderVisibleGoogleButtons(signInContainer, signUpContainer, renderOptions) {
+    if (signInContainer && isGoogleContainerVisible(signInContainer)) {
+      renderGoogleButton(signInContainer, 'signin', renderOptions);
+    }
+
+    if (signUpContainer && isGoogleContainerVisible(signUpContainer)) {
+      syncSignupGoogleReadiness(false);
+      renderGoogleButton(signUpContainer, 'signup', renderOptions);
+      syncSignupGoogleReadiness(false);
+    }
   }
 
   async function initGoogleAuth() {
@@ -497,10 +529,24 @@
           });
         });
 
-      renderGoogleButton(signUpContainer, 'signup', renderOptions);
+      if (isGoogleContainerVisible(signUpContainer)) {
+        renderGoogleButton(signUpContainer, 'signup', renderOptions);
+      }
       syncSignupGoogleReadiness(false);
     }
 
+    let layoutSyncTimer = null;
+    const scheduleGoogleLayoutSync = () => {
+      window.clearTimeout(layoutSyncTimer);
+      layoutSyncTimer = window.setTimeout(() => {
+        window.requestAnimationFrame(() => {
+          rerenderVisibleGoogleButtons(signInContainer, signUpContainer, renderOptions);
+        });
+      }, 80);
+    };
+
+    window.addEventListener('eventflow:auth-tab-change', scheduleGoogleLayoutSync);
+    window.addEventListener('resize', scheduleGoogleLayoutSync, { passive: true });
     setGoogleButtonsBusy(false);
   }
 
