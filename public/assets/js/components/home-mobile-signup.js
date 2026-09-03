@@ -17,7 +17,7 @@
   const NUDGE_DELAY_MS = 650;
   const NUDGE_FALLBACK_MS = 4300;
   const STYLESHEET_ID = 'ef-home-mobile-signup-css';
-  const STYLESHEET_URL = '/assets/css/home-mobile-signup.css?v=1.2.0';
+  const STYLESHEET_URL = '/assets/css/home-mobile-signup.css?v=1.3.0';
   const SHARED_HEADER_ACTIVE_CLASS = 'ef-home-mobile-signup-active';
 
   const sharedHeader = document.querySelector('.ef-header');
@@ -88,10 +88,21 @@
       menuCta = createLink({
         id: 'ef-mobile-signup-menu',
         className: 'ef-mobile-link ef-mobile-primary ef-home-mobile-signup-menu',
-        label: 'Create free account',
+        label: 'Create account',
         source: 'menu',
       });
-      mobileNav.insertBefore(menuCta, mobileAuth);
+    }
+
+    // Create account / Log in sit side by side rather than stacked, so opening
+    // the menu doesn't push the rest of the links down a whole extra row.
+    let actionsRow = document.getElementById('ef-mobile-actions-row');
+    if (!actionsRow) {
+      actionsRow = document.createElement('div');
+      actionsRow.id = 'ef-mobile-actions-row';
+      actionsRow.className = 'ef-mobile-actions-row';
+      mobileNav.insertBefore(actionsRow, mobileAuth);
+      actionsRow.appendChild(menuCta);
+      actionsRow.appendChild(mobileAuth);
     }
 
     return {
@@ -128,10 +139,19 @@
       menuCta = createLink({
         id: 'hv2-mobile-signup-menu',
         className: 'hv2-mobile-signup-menu',
-        label: 'Create free account',
+        label: 'Create account',
         source: 'menu',
       });
-      mobileNav.insertBefore(menuCta, mobileLogin);
+    }
+
+    let actionsRow = document.getElementById('hv2-mobile-actions-row');
+    if (!actionsRow) {
+      actionsRow = document.createElement('div');
+      actionsRow.id = 'hv2-mobile-actions-row';
+      actionsRow.className = 'hv2-mobile-actions-row';
+      mobileNav.insertBefore(actionsRow, mobileLogin);
+      actionsRow.appendChild(menuCta);
+      actionsRow.appendChild(mobileLogin);
     }
 
     return {

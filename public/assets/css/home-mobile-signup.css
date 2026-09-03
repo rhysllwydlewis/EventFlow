@@ -56,12 +56,34 @@
   outline-offset: 3px;
 }
 
-.ef-home-mobile-signup-menu {
-  margin-top: 8px;
+/* Create account / Log in sit side by side inside the burger menu instead of
+   stacked, so the panel doesn't grow by a whole extra row on top of the
+   nav links above it. */
+.ef-mobile-actions-row,
+.hv2-mobile-actions-row {
+  display: flex;
+  align-items: stretch;
+  gap: 10px;
+  margin-top: 6px;
+}
+
+.ef-mobile-actions-row .ef-mobile-link,
+.hv2-mobile-actions-row .hv2-mobile-signup-menu,
+.hv2-mobile-actions-row .hv2-mobile-login {
+  flex: 1 1 0%;
+  justify-content: center;
+  text-align: center;
+  min-width: 0;
+}
+
+/* Keep these two centered on hover/focus instead of picking up the
+   left-indent hover treatment the rest of the menu links use. */
+.ef-mobile-actions-row .ef-mobile-link:hover,
+.ef-mobile-actions-row .ef-mobile-link:focus {
+  padding-left: 14px;
 }
 
 .ef-home-mobile-login {
-  margin-top: 0;
   border: 1px solid rgba(11, 128, 115, 0.3);
   color: #0b8073;
   font-weight: 600;
@@ -72,14 +94,13 @@
   display: flex;
   align-items: center;
   box-sizing: border-box;
-  min-height: 44px;
+  min-height: 40px;
   border-radius: 12px;
-  padding: 13px 14px;
+  padding: 9px 14px;
   text-decoration: none;
 }
 
 .hv2-mobile-signup-menu {
-  margin-top: 8px;
   background: linear-gradient(135deg, #0b8073 0%, #13b6a2 100%);
   box-shadow: 0 4px 12px rgba(11, 128, 115, 0.28);
   color: #ffffff !important;
@@ -128,6 +149,13 @@
   .ef-home-mobile-signup,
   .hv2-home-mobile-signup {
     padding: 8px 11px;
+    font-size: 0.75rem;
+  }
+
+  .ef-mobile-actions-row .ef-mobile-link,
+  .hv2-mobile-actions-row .hv2-mobile-signup-menu,
+  .hv2-mobile-actions-row .hv2-mobile-login {
+    padding-inline: 8px;
     font-size: 0.75rem;
   }
 }

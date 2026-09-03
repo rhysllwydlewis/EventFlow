@@ -807,8 +807,8 @@
 .ef-mobile-nav {
   display: flex;
   flex-direction: column;
-  padding: 24px 20px;
-  gap: 6px;
+  padding: 14px 20px 18px;
+  gap: 2px;
   max-width: 600px;
   margin: 0 auto;
   animation: menu-items-fade-in 0.4s ease-out 0.1s both;
@@ -828,7 +828,8 @@
 .ef-mobile-link {
   display: flex;
   align-items: center;
-  padding: 13px 14px;
+  min-height: 40px;
+  padding: 9px 14px;
   border-radius: var(--ef-radius);
   color: var(--ef-text-dark);
   text-decoration: none;
@@ -838,6 +839,7 @@
   -webkit-tap-highlight-color: transparent;
   position: relative;
   overflow: hidden;
+  box-sizing: border-box;
 }
 
 .ef-mobile-link::before {
@@ -909,7 +911,7 @@
     var(--ef-border) 80%,
     transparent 100%
   );
-  margin: 16px 0;
+  margin: 8px 0;
 }
 
 /* Mobile Menu Backdrop - Real element for click detection */

@@ -123,7 +123,7 @@ async function run() {
     assert.equal(headerCta.textContent, 'Sign up');
     assert.equal(headerCta.getAttribute('href'), '/auth?tab=create');
     assert.equal(headerCta.hidden, false);
-    assert.equal(menuCta.textContent, 'Create free account');
+    assert.equal(menuCta.textContent, 'Create account');
     assert.equal(menuCta.getAttribute('href'), '/auth?tab=create');
     assert.equal(menuCta.nextElementSibling, login);
     assert.equal(login.textContent, 'Log in');
