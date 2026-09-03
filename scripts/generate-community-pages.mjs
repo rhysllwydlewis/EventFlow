@@ -41,6 +41,12 @@ const ASSET_VERSIONS = {
   // bump a returning visitor keeps last week's cached copy, which still
   // shows both.
   '/assets/css/community.css': '18.6.1',
+  // 18.4.1: the mobile burger menu's padding, link height, gap and divider
+  // were tightened and the CTA/login row was fixed to actually be compact
+  // (PR #1605). Without a bump a returning visitor keeps the previous
+  // week-cached copy against the new markup, producing mismatched button
+  // heights in the burger menu.
+  '/assets/css/navbar.css': '18.4.1',
   '/assets/js/community/core.js': '18.6.0',
   '/assets/js/community/home.js': '18.6.0',
   '/assets/js/community/thread.js': '18.6.0',
