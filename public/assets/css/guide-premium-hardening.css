@@ -17,10 +17,14 @@ body.gp-page {
   color: rgba(255, 255, 255, 0.92);
 }
 
-/* Focus indicators are UI state, so use the darker brand colour against
-   white instead of the lower-contrast decorative mint. */
+/* Focus indicators are UI state. Use the darker brand colour on light
+   surfaces, then switch to the bright mint inside the dark hero. */
 .gp *:focus-visible {
   outline-color: #0b8073;
+}
+
+.gp .gp-hero *:focus-visible {
+  outline-color: #4fe3c7;
 }
 
 /* The floating back-to-top control also carries a white icon: keep the whole
