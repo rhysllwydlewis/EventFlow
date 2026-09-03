@@ -67,22 +67,17 @@ test.describe('premium event travel guide', () => {
     await expect(page.locator('[data-gp-readout="gp-calc-price"]')).toHaveText('160.0p/L');
   });
 
-  test('tablet layout stays contained with a scrollable data table', async ({ page }) => {
+  test('tablet layout stays contained and uses the compact contents navigation', async ({ page }) => {
     await page.setViewportSize({ width: 768, height: 1024 });
     await openGuide(page);
 
     await expect(page.locator('.gp-rail')).toBeHidden();
     await expect(page.locator('.gp-toc-mobile')).toBeVisible();
+    await expect(page.locator('.gp-table-wrap')).toBeVisible();
     await expectNoPageOverflow(page);
-
-    const table = await page.locator('.gp-table-wrap').evaluate(element => ({
-      clientWidth: element.clientWidth,
-      scrollWidth: element.scrollWidth,
-    }));
-    expect(table.scrollWidth).toBeGreaterThan(table.clientWidth);
   });
 
-  test('mobile layout is overflow-safe and keeps the article usable', async ({ page }, testInfo) => {
+  test('mobile layout is overflow-safe and keeps wide tables inside their own scroller', async ({ page }, testInfo) => {
     await page.setViewportSize({ width: 390, height: 844 });
     await openGuide(page);
 
@@ -91,6 +86,12 @@ test.describe('premium event travel guide', () => {
     await page.locator('.gp-toc-mobile summary').click();
     await expect(page.locator('.gp-toc-mobile')).toHaveAttribute('open', '');
     await expectNoPageOverflow(page);
+
+    const table = await page.locator('.gp-table-wrap').evaluate(element => ({
+      clientWidth: element.clientWidth,
+      scrollWidth: element.scrollWidth,
+    }));
+    expect(table.scrollWidth).toBeGreaterThan(table.clientWidth);
 
     const heroSource = await page.locator('.gp-hero__img').evaluate(image => ({
       sizes: image.getAttribute('sizes'),
@@ -113,7 +114,7 @@ test.describe('premium event travel guide', () => {
     await page.locator('#calculating-fuel-and-mileage-costs').evaluate(element => {
       element.scrollIntoView({ block: 'start' });
     });
-    await page.waitForTimeout(150);
+    await page.waitForTimeout(250);
 
     await expect(
       page.locator('.gp-toc__link[href="#calculating-fuel-and-mileage-costs"]')
