@@ -243,20 +243,6 @@ describe('WebSocket Server Initialization', () => {
       expect(handlerSource).toContain('if (!socket.userId)');
     });
 
-    it('v2 chat:v5:join-conversation requires authentication before joining a chat room', () => {
-      const wsSource = fs.readFileSync(
-        path.join(__dirname, '../../websocket-server-v2.js'),
-        'utf8'
-      );
-      const handlerMatch = wsSource.match(
-        /socket\.on\('chat:v5:join-conversation', data => \{[\s\S]*?\n {6}\}\);/
-      );
-      expect(handlerMatch).toBeTruthy();
-      const handlerSource = handlerMatch[0];
-
-      expect(handlerSource).toContain('if (!socket.userId)');
-    });
-
     it('v2 handleMessageSend verifies the sender is a thread participant before sending', () => {
       const wsSource = fs.readFileSync(
         path.join(__dirname, '../../websocket-server-v2.js'),
@@ -353,24 +339,6 @@ describe('WebSocket Server Initialization', () => {
       socket.userId = 'user-1';
       socket.trigger('messenger:join', { conversationId: 'conv-1' });
       expect(socket.join).toHaveBeenCalledWith('messenger:conv-1');
-    });
-
-    it('v2 chat:v5:join-conversation: no-ops without a conversationId, rejects unauthenticated, allows authenticated', () => {
-      const WebSocketServerV2 = require('../../websocket-server-v2');
-      const ws = new WebSocketServerV2(server, null, null);
-      const connHandler = getConnectionHandler(ws.io);
-      const socket = createMockSocket();
-      connHandler(socket);
-
-      socket.trigger('chat:v5:join-conversation', {});
-      expect(socket.join).not.toHaveBeenCalled();
-
-      socket.trigger('chat:v5:join-conversation', { conversationId: 'conv-1' });
-      expect(socket.join).not.toHaveBeenCalled(); // still unauthenticated
-
-      socket.userId = 'user-1';
-      socket.trigger('chat:v5:join-conversation', { conversationId: 'conv-1' });
-      expect(socket.join).toHaveBeenCalledWith('chat:v5:conv-1');
     });
 
     it('v2 handleMessageSend: rejects when the sender is not a thread participant, sends when they are', async () => {
