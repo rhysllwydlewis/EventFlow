@@ -23,7 +23,9 @@ jest.mock('../../middleware/auth', () => ({
   setAuthCookie: mockSetAuthCookie,
   authRequired(req, res, next) {
     const role = req.headers['x-test-role'] || 'partner';
-    if (role === 'none') return res.status(401).json({ error: 'Unauthorized' });
+    if (role === 'none') {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
     req.user = {
       id: req.headers['x-test-user-id'] || 'usr_partner_001',
       role,
@@ -34,7 +36,9 @@ jest.mock('../../middleware/auth', () => ({
   },
   roleRequired(requiredRole) {
     return (req, res, next) => {
-      if (req.user?.role !== requiredRole) return res.status(403).json({ error: 'Forbidden' });
+      if (req.user?.role !== requiredRole) {
+        return res.status(403).json({ error: 'Forbidden' });
+      }
       return next();
     };
   },
@@ -544,8 +548,12 @@ describe('partner route integration coverage', () => {
       updatedAt: daysAgo(1),
     };
     mockDb.findOne.mockImplementation(async (collection, filter) => {
-      if (collection === 'users') return { name: 'Test Partner', email: 'partner@example.com' };
-      if (collection === 'tickets' && filter.id === ticket.id) return ticket;
+      if (collection === 'users') {
+        return { name: 'Test Partner', email: 'partner@example.com' };
+      }
+      if (collection === 'tickets' && filter.id === ticket.id) {
+        return ticket;
+      }
       return null;
     });
     mockDb.find.mockResolvedValue([ticket]);
@@ -620,5 +628,93 @@ describe('partner route integration coverage', () => {
       { id: 'usr_partner_001' },
       expect.objectContaining({ passwordHash: 'hashed-password' })
     );
+  });
+
+  it('returns 404 from every partner-scoped read/write endpoint when the user has no partner record', async () => {
+    mockPartnerService.getPartnerByUserId.mockResolvedValue(null);
+
+    const endpoints = [
+      () => request(app).get('/api/partner/me'),
+      () => request(app).get('/api/partner/referrals'),
+      () => request(app).get('/api/partner/transactions'),
+      () => request(app).get('/api/partner/stats'),
+      () => request(app).post('/api/partner/regenerate-code'),
+      () => request(app).get('/api/partner/code-history'),
+      () => request(app).post('/api/partner/support-ticket').send({ subject: 'x', message: 'y' }),
+      () => request(app).get('/api/partner/support-tickets'),
+      () => request(app).get('/api/partner/support-tickets/tkt_1'),
+      () => request(app).post('/api/partner/support-tickets/tkt_1/reply').send({ message: 'hi' }),
+      () => request(app).post('/api/partner/cashout-requests').send({ amount: 1000 }),
+    ];
+
+    for (const call of endpoints) {
+      const response = await call();
+      expect(response.status).toBe(404);
+      expect(response.body.error).toBe('Partner account not found');
+    }
+  });
+
+  it('returns the disabled response from every status-gated endpoint for a disabled partner', async () => {
+    mockPartnerService.getPartnerByUserId.mockResolvedValue({
+      ...ACTIVE_PARTNER,
+      status: 'disabled',
+    });
+
+    const endpoints = [
+      () => request(app).get('/api/partner/me'),
+      () => request(app).get('/api/partner/referrals'),
+      () => request(app).get('/api/partner/transactions'),
+      () => request(app).get('/api/partner/stats'),
+      () => request(app).post('/api/partner/regenerate-code'),
+      () => request(app).get('/api/partner/code-history'),
+      () => request(app).post('/api/partner/cashout-requests').send({ amount: 1000 }),
+    ];
+
+    for (const call of endpoints) {
+      const response = await call();
+      expect(response.status).toBe(403);
+    }
+  });
+
+  it('rejects registration missing a location', async () => {
+    const response = await request(app).post('/api/partner/register').send({
+      firstName: 'Jane',
+      lastName: 'Smith',
+      email: 'jane@example.com',
+      password: 'Password123',
+    });
+
+    expect(response.status).toBe(400);
+    expect(response.body.error).toBe('Location is required');
+  });
+
+  it('returns 404 when a support ticket does not exist', async () => {
+    mockDb.findOne.mockResolvedValue(null);
+
+    const getResponse = await request(app).get('/api/partner/support-tickets/tkt_missing');
+    expect(getResponse.status).toBe(404);
+    expect(getResponse.body.error).toBe('Support ticket not found');
+
+    const replyResponse = await request(app)
+      .post('/api/partner/support-tickets/tkt_missing/reply')
+      .send({ message: 'hello' });
+    expect(replyResponse.status).toBe(404);
+    expect(replyResponse.body.error).toBe('Support ticket not found');
+  });
+
+  it('rejects an empty support ticket reply message', async () => {
+    mockDb.findOne.mockResolvedValue({
+      id: 'tkt_1',
+      senderId: 'usr_partner_001',
+      senderType: 'partner',
+      status: 'open',
+    });
+
+    const response = await request(app)
+      .post('/api/partner/support-tickets/tkt_1/reply')
+      .send({ message: '   ' });
+
+    expect(response.status).toBe(400);
+    expect(response.body.error).toBe('Reply message is required');
   });
 });
