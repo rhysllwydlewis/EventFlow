@@ -388,5 +388,49 @@ describe('WebSocket Server Initialization', () => {
       await ws.handleMessageSend(socket, { threadId: 'missing-thread', content: 'hi' });
       expect(socket.emit).toHaveBeenCalledWith('message:error', { error: 'Thread not found' });
     });
+
+    it('v2 messenger:typing: requires participancy before broadcasting (IDOR regression)', async () => {
+      const WebSocketServerV2 = require('../../websocket-server-v2');
+      const ws = new WebSocketServerV2(server, null, null);
+      ws.isConversationParticipant = jest.fn();
+      const connHandler = getConnectionHandler(ws.io);
+      const socket = createMockSocket();
+      connHandler(socket);
+      const roomEmit = jest.fn();
+      socket.to = jest.fn(() => ({ emit: roomEmit }));
+
+      // Unauthenticated: no participancy check, no broadcast.
+      socket.trigger('messenger:typing', { conversationId: 'a'.repeat(24) });
+      await Promise.resolve();
+      expect(ws.isConversationParticipant).not.toHaveBeenCalled();
+      expect(roomEmit).not.toHaveBeenCalled();
+
+      socket.userId = 'attacker-id';
+
+      // Malformed conversationId: rejected before any DB lookup.
+      socket.trigger('messenger:typing', { conversationId: 'not-an-object-id' });
+      await Promise.resolve();
+      expect(ws.isConversationParticipant).not.toHaveBeenCalled();
+      expect(roomEmit).not.toHaveBeenCalled();
+
+      // Well-formed id, but the caller is not a participant: denied, no broadcast.
+      const conversationId = 'b'.repeat(24);
+      ws.isConversationParticipant.mockResolvedValueOnce(false);
+      socket.trigger('messenger:typing', { conversationId });
+      await Promise.resolve();
+      expect(ws.isConversationParticipant).toHaveBeenCalledWith(conversationId, 'attacker-id');
+      expect(roomEmit).not.toHaveBeenCalled();
+
+      // Actual participant: broadcast goes through.
+      socket.userId = 'real-user-id';
+      ws.isConversationParticipant.mockResolvedValueOnce(true);
+      socket.trigger('messenger:typing', { conversationId, isTyping: true });
+      await Promise.resolve();
+      expect(socket.to).toHaveBeenCalledWith(`conversation:v4:${conversationId}`);
+      expect(roomEmit).toHaveBeenCalledWith(
+        'messenger:v4:typing',
+        expect.objectContaining({ conversationId, userId: 'real-user-id', isTyping: true })
+      );
+    });
   });
 });

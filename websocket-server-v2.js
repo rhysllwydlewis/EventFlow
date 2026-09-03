@@ -248,14 +248,33 @@ class WebSocketServerV2 {
       });
 
       // Typing indicator for messenger v4 (client → server → other participants in room)
-      socket.on('messenger:typing', data => {
-        if (!socket.userId || !data || !data.conversationId) {
+      socket.on('messenger:typing', async data => {
+        const conversationId = data && data.conversationId;
+        if (!socket.userId || !conversationId) {
           return;
         }
+
+        // Require actual conversation participancy before broadcasting, same as
+        // messenger:v4:join-conversation above — otherwise any authenticated user
+        // who merely knows/guesses a conversationId could spoof typing indicators
+        // into a conversation they were never part of (IDOR on realtime).
+        if (typeof conversationId !== 'string' || !OBJECT_ID_RE.test(conversationId)) {
+          return;
+        }
+        const isParticipant = await this.isConversationParticipant(conversationId, socket.userId);
+        if (!isParticipant) {
+          logger.warn('Typing indicator denied: not a participant', {
+            socketId: socket.id,
+            userId: socket.userId,
+            conversationId,
+          });
+          return;
+        }
+
         // Broadcast to all OTHER sockets in the conversation room.
         // socket.to() excludes the sender automatically.
-        socket.to(`conversation:v4:${data.conversationId}`).emit('messenger:v4:typing', {
-          conversationId: data.conversationId,
+        socket.to(`conversation:v4:${conversationId}`).emit('messenger:v4:typing', {
+          conversationId,
           userId: socket.userId,
           userName: data.userName || '',
           // Default isTyping to true — stop-typing events carry isTyping: false
@@ -264,7 +283,7 @@ class WebSocketServerV2 {
 
         logger.debug('Typing indicator forwarded', {
           userId: socket.userId,
-          conversationId: data.conversationId,
+          conversationId,
           isTyping: data.isTyping,
         });
       });
