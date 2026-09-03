@@ -3,9 +3,8 @@
  * Real-time notifications and messaging client
  */
 
+'use strict';
 (function () {
-  'use strict';
-
   // Check if running in development environment
   const isDevelopment =
     window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';

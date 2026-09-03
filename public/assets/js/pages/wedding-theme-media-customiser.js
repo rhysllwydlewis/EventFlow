@@ -1,7 +1,8 @@
+'use strict';
 (function () {
-  'use strict';
-
-  if (window.__weddingThemeMediaCustomiserLoaded) return;
+  if (window.__weddingThemeMediaCustomiserLoaded) {
+    return;
+  }
   window.__weddingThemeMediaCustomiserLoaded = true;
 
   const rootSelector = '#wedding-website-dashboard-root';
@@ -64,7 +65,9 @@
   function getCsrfToken() {
     const meta = document.querySelector('meta[name="csrf-token"]');
     const tokenFromMeta = meta?.getAttribute('content');
-    if (tokenFromMeta) return tokenFromMeta;
+    if (tokenFromMeta) {
+      return tokenFromMeta;
+    }
     const cookieMatch = document.cookie.match(/(?:^|; )csrfToken=([^;]+)/);
     return cookieMatch ? decodeURIComponent(cookieMatch[1]) : '';
   }
@@ -75,28 +78,38 @@
     if (method !== 'GET' && method !== 'HEAD') {
       opts.headers = { ...(opts.headers || {}) };
       const token = getCsrfToken();
-      if (token && !opts.headers['X-CSRF-Token']) opts.headers['X-CSRF-Token'] = token;
+      if (token && !opts.headers['X-CSRF-Token']) {
+        opts.headers['X-CSRF-Token'] = token;
+      }
     }
     const res = await fetch(path, opts);
     const json = await res.json().catch(() => ({}));
-    if (!res.ok) throw new Error(json.error || 'Request failed');
+    if (!res.ok) {
+      throw new Error(json.error || 'Request failed');
+    }
     return json;
   }
 
   function planIdFromDom(root) {
-    if (root?.dataset?.planId) return root.dataset.planId;
+    if (root?.dataset?.planId) {
+      return root.dataset.planId;
+    }
     const candidates = Array.from(
       root.querySelectorAll("a[href*='/api/me/plans/'], a[href*='/guests/export.csv']")
     );
     for (const link of candidates) {
       const match = link.getAttribute('href')?.match(/\/api\/me\/plans\/([^/]+)/);
-      if (match) return decodeURIComponent(match[1]);
+      if (match) {
+        return decodeURIComponent(match[1]);
+      }
     }
     return '';
   }
 
   function collapseBuilderSections(root) {
-    if (!root || root.dataset.defaultCollapsed === 'true') return;
+    if (!root || root.dataset.defaultCollapsed === 'true') {
+      return;
+    }
     root.dataset.defaultCollapsed = 'true';
     const close = () =>
       root
@@ -123,9 +136,13 @@
     };
   }
 
-  async function imageToDataUrl(file) {
-    if (!file || !file.type.startsWith('image/')) throw new Error('Please choose an image file.');
-    if (file.size > 700000) throw new Error('Please choose an image under 700 KB for now.');
+  function imageToDataUrl(file) {
+    if (!file || !file.type.startsWith('image/')) {
+      throw new Error('Please choose an image file.');
+    }
+    if (file.size > 700000) {
+      throw new Error('Please choose an image under 700 KB for now.');
+    }
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
       reader.onload = () => resolve(String(reader.result || ''));
@@ -149,29 +166,35 @@
   function applyPreview(panel) {
     const state = collect(panel);
     const preview = panel.querySelector('.ww-theme-preview');
-    if (!preview) return;
+    if (!preview) {
+      return;
+    }
     preview.style.setProperty('--ww-theme-accent', state.accentColor);
     preview.style.setProperty('--ww-theme-secondary', state.secondaryColor);
     preview.style.setProperty('--ww-theme-bg', state.backgroundColor);
     preview.style.setProperty('--ww-theme-text', state.textColor);
     preview.className = `ww-theme-preview ww-theme-preview--${state.heroLayout}`;
     const hero = preview.querySelector('.ww-theme-preview__hero');
-    if (hero)
+    if (hero) {
       hero.style.backgroundImage = state.coverImageUrl
         ? `linear-gradient(135deg, rgba(0,0,0,.42), rgba(0,0,0,.08)), url('${state.coverImageUrl}')`
         : '';
+    }
     const gallery = preview.querySelector('.ww-theme-preview__gallery');
-    if (gallery)
+    if (gallery) {
       gallery.innerHTML = state.galleryImages
         .slice(0, 4)
         .map(item => `<span style="background-image:url('${esc(item.imageUrl)}')"></span>`)
         .join('');
+    }
   }
 
   function renderGallery(panel) {
     const gallery = JSON.parse(panel.dataset.galleryImages || '[]');
     const list = panel.querySelector('.ww-media-gallery-list');
-    if (!list) return;
+    if (!list) {
+      return;
+    }
     list.innerHTML = gallery.length
       ? gallery
           .map(
@@ -194,7 +217,9 @@
         const next = JSON.parse(panel.dataset.galleryImages || '[]');
         const from = Number(button.dataset.moveGallery);
         const to = button.dataset.direction === 'up' ? from - 1 : from + 1;
-        if (to < 0 || to >= next.length) return;
+        if (to < 0 || to >= next.length) {
+          return;
+        }
         const [item] = next.splice(from, 1);
         next.splice(to, 0, item);
         panel.dataset.galleryImages = JSON.stringify(next);
@@ -205,8 +230,9 @@
     list.querySelectorAll('[data-caption-index]').forEach(input =>
       input.addEventListener('input', () => {
         const next = JSON.parse(panel.dataset.galleryImages || '[]');
-        if (next[Number(input.dataset.captionIndex)])
+        if (next[Number(input.dataset.captionIndex)]) {
           next[Number(input.dataset.captionIndex)].caption = input.value;
+        }
         panel.dataset.galleryImages = JSON.stringify(next);
         applyPreview(panel);
       })
@@ -222,7 +248,9 @@
     const layout =
       panel.querySelector(`[name="heroLayout"][value="${merged.heroLayout || 'classic'}"]`) ||
       panel.querySelector('[name="heroLayout"]');
-    if (layout) layout.checked = true;
+    if (layout) {
+      layout.checked = true;
+    }
     panel.dataset.coverImageUrl = merged.coverImageUrl || '';
     panel.dataset.galleryImages = JSON.stringify(
       Array.isArray(merged.galleryImages) ? merged.galleryImages : []
@@ -233,14 +261,18 @@
       coverImg.src = merged.coverImageUrl || '';
       coverImg.hidden = !merged.coverImageUrl;
     }
-    if (coverEmpty) coverEmpty.hidden = !!merged.coverImageUrl;
+    if (coverEmpty) {
+      coverEmpty.hidden = !!merged.coverImageUrl;
+    }
     renderGallery(panel);
     applyPreview(panel);
   }
 
   function createPanel(root) {
     const form = root.querySelector('#ww-builder');
-    if (!form || form.querySelector('.ww-theme-media-panel')) return null;
+    if (!form || form.querySelector('.ww-theme-media-panel')) {
+      return null;
+    }
     const panel = document.createElement('details');
     panel.className = 'ww-theme-media-panel';
     panel.open = false;
@@ -279,19 +311,28 @@
         </div>
       </div>`;
     const privacy = form.querySelector('.ww-password-privacy-panel');
-    if (privacy) privacy.after(panel);
-    else form.prepend(panel);
+    if (privacy) {
+      privacy.after(panel);
+    } else {
+      form.prepend(panel);
+    }
     return panel;
   }
 
   async function init(root) {
     const form = root.querySelector('#ww-builder');
-    if (!form || form.dataset.themeMediaReady === 'true') return;
+    if (!form || form.dataset.themeMediaReady === 'true') {
+      return;
+    }
     const planId = planIdFromDom(root);
-    if (!planId) return;
+    if (!planId) {
+      return;
+    }
     form.dataset.themeMediaReady = 'true';
     const panel = createPanel(root);
-    if (!panel) return;
+    if (!panel) {
+      return;
+    }
     cachedPlanId = planId;
     try {
       const data = await api(
@@ -304,8 +345,9 @@
     setState(panel, cachedState);
     collapseBuilderSections(root);
     panel.addEventListener('input', event => {
-      if (event.target.matches('input[type="color"], input[name="heroLayout"]'))
+      if (event.target.matches('input[type="color"], input[name="heroLayout"]')) {
         applyPreview(panel);
+      }
     });
     panel.querySelectorAll('[data-palette]').forEach(button =>
       button.addEventListener('click', () => {
@@ -387,11 +429,15 @@
       if (root?.querySelector('#ww-builder') && planIdFromDom(root)) {
         clearInterval(timer);
         init(root);
-      } else if (attempts > 120) clearInterval(timer);
+      } else if (attempts > 120) {
+        clearInterval(timer);
+      }
     }, 250);
   }
 
-  if (document.readyState === 'loading')
+  if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', waitForBuilder);
-  else waitForBuilder();
+  } else {
+    waitForBuilder();
+  }
 })();

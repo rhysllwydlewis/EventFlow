@@ -1,6 +1,5 @@
+'use strict';
 (function () {
-  'use strict';
-
   let templates = [];
   let activeTemplate = null;
   let defaultTestEmail = '';

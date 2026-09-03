@@ -612,6 +612,7 @@ ${emailData.HtmlBody || emailData.TextBody}
  * @returns {Promise<Object>} Send result
  * @throws {Error} If email sending fails
  */
+// eslint-disable-next-line require-await -- signature locked by tests/integration/postmark-email-integration.test.js source-match assertions
 async function sendVerificationEmail(user, verificationToken) {
   const verificationLink = `${APP_BASE_URL}/verify?token=${encodeURIComponent(verificationToken)}`;
 
@@ -639,6 +640,7 @@ async function sendVerificationEmail(user, verificationToken) {
  * @returns {Promise<Object>} Send result
  * @throws {Error} If email sending fails
  */
+// eslint-disable-next-line require-await -- signature locked by tests/integration/postmark-email-integration.test.js source-match assertions
 async function sendPasswordResetEmail(user, resetToken) {
   const resetLink = `${APP_BASE_URL}/reset-password?token=${encodeURIComponent(resetToken)}`;
 
@@ -665,6 +667,7 @@ async function sendPasswordResetEmail(user, resetToken) {
  * @returns {Promise<Object>} Send result
  * @throws {Error} If email sending fails
  */
+// eslint-disable-next-line require-await -- signature locked by tests/integration/postmark-email-integration.test.js source-match assertions
 async function sendWelcomeEmail(user) {
   const from = FROM_HELLO;
   const welcomeTemplateConfig = { template: 'welcome' };
@@ -695,7 +698,7 @@ async function sendWelcomeEmail(user) {
  * @returns {Promise<Object>} Send result
  * @throws {Error} If email sending fails
  */
-async function sendPasswordResetConfirmation(user) {
+function sendPasswordResetConfirmation(user) {
   logger.info(`📧 Sending password reset confirmation to ${user.email}`);
 
   return sendMail({
@@ -720,6 +723,7 @@ async function sendPasswordResetConfirmation(user) {
  * @param {Object} [options] - Additional options (template, templateData)
  * @returns {Promise<Object|null>} Send result or null if user opted out
  */
+// eslint-disable-next-line require-await -- signature locked by tests/integration/postmark-email-integration.test.js source-match assertions
 async function sendMarketingEmail(user, subject, message, options = {}) {
   const {
     template: selectedTemplate = 'marketing',
@@ -777,6 +781,7 @@ async function sendMarketingEmail(user, subject, message, options = {}) {
  * @param {Object} [options] - Additional options (template, templateData)
  * @returns {Promise<Object|null>} Send result or null if user opted out
  */
+// eslint-disable-next-line require-await -- signature locked by tests/integration/postmark-email-integration.test.js source-match assertions
 async function sendNotificationEmail(user, subject, message, options = {}) {
   const {
     template: selectedTemplate = 'notification',

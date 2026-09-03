@@ -2,9 +2,8 @@
  * Admin Partners Page — init
  * Loads and manages partner accounts from the admin panel.
  */
+'use strict';
 (function () {
-  'use strict';
-
   let allPartners = [];
   let currentDetailId = null;
 
@@ -714,7 +713,7 @@
             ? '<span class="p-badge p-badge--deleted" style="font-size:0.72rem;">Deleted User</span>'
             : 'Unknown';
         const userEmail = r.partnerUser ? esc(r.partnerUser.email || '') : '';
-        const statusBadge =
+        const statusBadge = // skipcq: JS-0123 - per-row local, unrelated to the outer status labels map
           statusLabels[r.status] ||
           `<span class="p-badge p-badge--inactive">${esc(r.status)}</span>`;
         const statusSelectOptions = statusOptions

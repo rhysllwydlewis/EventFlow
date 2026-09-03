@@ -18,9 +18,8 @@
  * The handler is registered once and ignores subsequent errors on the same
  * element via the data-fallback-applied guard.
  */
+'use strict';
 (function () {
-  'use strict';
-
   // Guard: skip if app.js or MessengerAppV4.js already registered the handler.
   if (window.__imgFallbackRegistered) {
     return;

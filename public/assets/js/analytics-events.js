@@ -1,6 +1,5 @@
+'use strict';
 (function () {
-  'use strict';
-
   const knownImageReplacements = [
     {
       brokenFragment: '/photos/1580913/pexels-photo-1580913.jpeg',

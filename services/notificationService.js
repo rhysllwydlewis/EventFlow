@@ -42,7 +42,7 @@ class NotificationService extends CanonicalNotificationService {
    * @param {Object} [notification.data] - Arbitrary metadata (mapped to `metadata`)
    * @returns {Promise<Object>} Created notification
    */
-  async sendNotification(userId, notification) {
+  sendNotification(userId, notification) {
     return this.create({
       userId,
       type: notification.type || 'system',

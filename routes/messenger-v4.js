@@ -214,6 +214,9 @@ const upload = multer({
   fileFilter: attachmentFileFilter,
 });
 
+// Service will be initialized lazily on first request
+let _messengerServicePromise = null;
+
 /**
  * Initialize routes with dependencies
  */
@@ -279,8 +282,7 @@ async function getDbInstance() {
 /**
  * Get or initialize messenger service (promise-based lock prevents TOCTOU race)
  */
-let _messengerServicePromise = null;
-async function getMessengerService() {
+function getMessengerService() {
   if (!_messengerServicePromise) {
     _messengerServicePromise = getDbInstance()
       .then(dbInstance => new MessengerV4Service(dbInstance, logger))
@@ -1583,4 +1585,5 @@ module.exports = { router, initialize };
 module.exports._private = {
   persistValidatedMessengerAttachments,
   createBadAttachmentError,
+  getNotificationService,
 };

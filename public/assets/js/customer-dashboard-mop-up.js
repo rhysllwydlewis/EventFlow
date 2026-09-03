@@ -3,9 +3,8 @@
  * Handles welcome cleanup, wedding website status and the specialist wedding card launcher.
  * Recommendation layout is intentionally handled in customer-dashboard-polish.js to avoid double-normalising cards.
  */
+'use strict';
 (function () {
-  'use strict';
-
   const CUSTOMER_PATHS = new Set(['/dashboard/customer', '/dashboard-customer.html']);
   if (!CUSTOMER_PATHS.has(window.location.pathname)) {
     return;

@@ -1,6 +1,5 @@
+'use strict';
 (function () {
-  'use strict';
-
   const activeFilters = new Set(['users', 'suppliers', 'packages', 'tickets', 'reports']);
 
   // Toggle filter chips

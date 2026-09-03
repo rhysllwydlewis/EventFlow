@@ -1,6 +1,5 @@
+'use strict';
 (() => {
-  'use strict';
-
   function findSectionByHeading(text) {
     return Array.from(document.querySelectorAll('main > div')).find(section => {
       const heading = section.querySelector('h2');

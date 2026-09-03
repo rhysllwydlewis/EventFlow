@@ -887,7 +887,7 @@ async function cropImage(imageUrl, cropData) {
  * @param {Object} metadata - New metadata { caption, altText, tags, isFeatured, watermark }
  * @returns {Promise<Object>} Updated metadata
  */
-async function updatePhotoMetadata(photoId, metadata) {
+function updatePhotoMetadata(photoId, metadata) {
   const { caption, altText, tags, isFeatured, watermark } = metadata;
 
   return {
@@ -962,7 +962,7 @@ async function applyFilters(imageUrl, filters) {
  * @param {Array} photoOrder - Array of {photoId, order} objects
  * @returns {Promise<Array>} Updated order
  */
-async function updatePhotoOrder(photoOrder) {
+function updatePhotoOrder(photoOrder) {
   return photoOrder.map((item, index) => ({
     photoId: item.photoId,
     order: index,

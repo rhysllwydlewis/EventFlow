@@ -45,7 +45,7 @@ function userDeleteTarget(user) {
   return user;
 }
 
-async function resolveUser(userOrUserId) {
+function resolveUser(userOrUserId) {
   if (userOrUserId && typeof userOrUserId === 'object') {
     return userOrUserId;
   }

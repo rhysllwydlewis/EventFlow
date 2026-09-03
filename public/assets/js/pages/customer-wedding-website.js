@@ -1,6 +1,5 @@
+'use strict';
 (function () {
-  'use strict';
-
   const ROOT_ID = 'wedding-website-dashboard-root';
   const STATUS_ID = 'wedding-website-status-pill';
   const PAGE_SIZE = 25;
@@ -71,7 +70,7 @@
 
   const allowedCoverImageTypes = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/gif']);
 
-  async function imageFileToDataUrl(file) {
+  function imageFileToDataUrl(file) {
     if (!file) {
       return '';
     }
@@ -559,7 +558,7 @@
     });
   }
 
-  async function renderModule(plan, site, root, refresh) {
+  function renderModule(plan, site, root, refresh) {
     if (!site) {
       root.innerHTML = renderEmptyPanel(
         'Website draft',
@@ -1080,7 +1079,7 @@
     dialog.addEventListener('close', () => dialog.remove(), { once: true });
   }
 
-  async function editTableModal(table) {
+  function editTableModal(table) {
     return new Promise(resolve => {
       let resolved = false;
       const dialog = document.createElement('dialog');

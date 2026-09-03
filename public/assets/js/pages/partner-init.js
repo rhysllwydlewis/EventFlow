@@ -1,14 +1,15 @@
 /**
  * Partner Portal — entry page (login + signup).
  */
+'use strict';
 (function () {
-  'use strict';
-
   let csrfToken = '';
   let partnerCaptchaPayload = null;
 
   async function fetchCsrfToken() {
-    if (csrfToken) return csrfToken;
+    if (csrfToken) {
+      return csrfToken;
+    }
     try {
       const response = await fetch('/api/v1/csrf-token', { credentials: 'include' });
       if (response.ok) {
@@ -22,20 +23,26 @@
   }
 
   function showStatus(element, message, type) {
-    if (!element) return;
+    if (!element) {
+      return;
+    }
     element.textContent = message;
     element.className = `partner-status ${type}`;
   }
 
   function clearStatus(element) {
-    if (!element) return;
+    if (!element) {
+      return;
+    }
     element.textContent = '';
     element.style.display = '';
     element.className = 'partner-status';
   }
 
   function setButtonLoading(button, loading) {
-    if (!button) return;
+    if (!button) {
+      return;
+    }
     const label = button.querySelector('.btn-text');
     button.disabled = loading;
     if (label) {
@@ -47,10 +54,14 @@
 
   function getSafeRedirect() {
     const raw = new URLSearchParams(window.location.search).get('redirect');
-    if (!raw) return null;
+    if (!raw) {
+      return null;
+    }
     try {
       const parsed = new URL(raw, window.location.origin);
-      if (parsed.origin !== window.location.origin) return null;
+      if (parsed.origin !== window.location.origin) {
+        return null;
+      }
       return `${parsed.pathname}${parsed.search}${parsed.hash}`;
     } catch (_) {
       return null;
@@ -60,7 +71,9 @@
   async function checkAlreadyLoggedIn() {
     try {
       const response = await fetch('/api/v1/auth/me', { credentials: 'include' });
-      if (!response.ok) return;
+      if (!response.ok) {
+        return;
+      }
       const data = await response.json();
       const role = data?.user?.role || data?.role;
       if (role === 'partner') {
@@ -78,7 +91,9 @@
     const signUpTab = document.getElementById('tab-signup');
     const signInPanel = document.getElementById('panel-signin');
     const signUpPanel = document.getElementById('panel-signup');
-    if (!signInTab || !signUpTab || !signInPanel || !signUpPanel) return;
+    if (!signInTab || !signUpTab || !signInPanel || !signUpPanel) {
+      return;
+    }
 
     function activate(activeTab, inactiveTab, activePanel, inactivePanel) {
       activeTab.classList.add('active');
@@ -101,13 +116,17 @@
 
     [signInTab, signUpTab].forEach(tab => {
       tab.addEventListener('keydown', event => {
-        if (!['ArrowLeft', 'ArrowRight'].includes(event.key)) return;
+        if (!['ArrowLeft', 'ArrowRight'].includes(event.key)) {
+          return;
+        }
         event.preventDefault();
         (tab === signInTab ? signUpTab : signInTab).click();
       });
     });
 
-    if (new URLSearchParams(window.location.search).get('signup') === '1') signUpTab.click();
+    if (new URLSearchParams(window.location.search).get('signup') === '1') {
+      signUpTab.click();
+    }
   }
 
   const EYE_ICON =
@@ -118,7 +137,9 @@
   function initPasswordToggles() {
     document.querySelectorAll('.partner-pw-toggle').forEach(button => {
       const input = document.getElementById(button.dataset.target || '');
-      if (!input) return;
+      if (!input) {
+        return;
+      }
       button.addEventListener('click', () => {
         const showing = input.type === 'password';
         input.type = showing ? 'text' : 'password';
@@ -135,10 +156,15 @@
     ].forEach(([inputId, hintId]) => {
       const input = document.getElementById(inputId);
       const hint = document.getElementById(hintId);
-      if (!input || !hint) return;
+      if (!input || !hint) {
+        return;
+      }
       const update = event => {
-        if (event.getModifierState?.('CapsLock')) hint.removeAttribute('hidden');
-        else hint.setAttribute('hidden', '');
+        if (event.getModifierState?.('CapsLock')) {
+          hint.removeAttribute('hidden');
+        } else {
+          hint.setAttribute('hidden', '');
+        }
       };
       input.addEventListener('keydown', update);
       input.addEventListener('keyup', update);
@@ -146,12 +172,16 @@
   }
 
   function setFieldError(input, error, message) {
-    if (error) error.textContent = message;
+    if (error) {
+      error.textContent = message;
+    }
     input?.classList.add('partner-input--error');
   }
 
   function clearFieldError(input, error) {
-    if (error) error.textContent = '';
+    if (error) {
+      error.textContent = '';
+    }
     input?.classList.remove('partner-input--error');
   }
 
@@ -159,7 +189,9 @@
     const form = document.getElementById('partner-login-form');
     const status = document.getElementById('login-status');
     const button = document.getElementById('login-btn');
-    if (!form || !button) return;
+    if (!form || !button) {
+      return;
+    }
     button.dataset.defaultText = 'Log in to dashboard';
 
     form.addEventListener('submit', async event => {
@@ -229,7 +261,9 @@
     const link = document.getElementById('partner-forgot-link');
     const form = document.getElementById('partner-login-form');
     const status = document.getElementById('login-status');
-    if (!link || !form) return;
+    if (!link || !form) {
+      return;
+    }
 
     link.addEventListener('click', async event => {
       event.preventDefault();
@@ -263,10 +297,14 @@
   }
 
   function readAltchaPayload(widget) {
-    if (!widget) return null;
+    if (!widget) {
+      return null;
+    }
     try {
       const shadowInput = widget.shadowRoot?.querySelector('input[name="altcha"]');
-      if (shadowInput?.value) return shadowInput.value;
+      if (shadowInput?.value) {
+        return shadowInput.value;
+      }
     } catch (_) {
       // Shadow DOM access is best effort; the component value is the standard fallback.
     }
@@ -275,7 +313,9 @@
 
   function initPartnerAltcha() {
     const widget = document.getElementById('partner-reg-altcha-widget');
-    if (!widget) return;
+    if (!widget) {
+      return;
+    }
 
     widget.addEventListener('statechange', event => {
       if (event.detail?.state === 'verified') {
@@ -292,7 +332,9 @@
     const form = document.getElementById('partner-signup-form');
     const status = document.getElementById('signup-status');
     const button = document.getElementById('signup-btn');
-    if (!form || !button) return;
+    if (!form || !button) {
+      return;
+    }
     button.dataset.defaultText = 'Create partner account';
 
     form.addEventListener('submit', async event => {
@@ -387,6 +429,9 @@
     initSignupForm();
   }
 
-  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
-  else init();
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
+  }
 })();

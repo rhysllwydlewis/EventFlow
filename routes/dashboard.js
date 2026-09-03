@@ -43,7 +43,7 @@ router.get('/dashboard', apiLimiter, authRequired, (req, res) => {
  * GET /dashboard/customer
  * Serve customer dashboard HTML page
  */
-router.get('/dashboard/customer', apiLimiter, authRequired, async (req, res) => {
+router.get('/dashboard/customer', apiLimiter, authRequired, (req, res) => {
   try {
     if (req.user.role !== 'customer') {
       return res.redirect('/auth?reason=forbidden&required=customer');
@@ -60,7 +60,7 @@ router.get('/dashboard/customer', apiLimiter, authRequired, async (req, res) => 
  * Serve the customer dashboard with the plan ID embedded in the URL so the
  * client-side JS can highlight / scroll to the correct plan.
  */
-router.get('/dashboard/customer/plans/:id', apiLimiter, authRequired, async (req, res) => {
+router.get('/dashboard/customer/plans/:id', apiLimiter, authRequired, (req, res) => {
   try {
     if (req.user.role !== 'customer') {
       return res.redirect('/auth?reason=forbidden&required=customer');
@@ -81,7 +81,7 @@ router.get('/dashboard/customer/plans/:id', apiLimiter, authRequired, async (req
  * GET /dashboard/supplier
  * Serve supplier dashboard HTML page
  */
-router.get('/dashboard/supplier', apiLimiter, authRequired, async (req, res) => {
+router.get('/dashboard/supplier', apiLimiter, authRequired, (req, res) => {
   try {
     if (req.user.role !== 'supplier') {
       return res.redirect('/auth?reason=forbidden&required=supplier');
@@ -97,7 +97,7 @@ router.get('/dashboard/supplier', apiLimiter, authRequired, async (req, res) => 
  * GET /admin
  * Serve admin dashboard HTML page
  */
-router.get('/admin', apiLimiter, authRequired, async (req, res) => {
+router.get('/admin', apiLimiter, authRequired, (req, res) => {
   try {
     if (req.user.role !== 'admin') {
       return res.redirect('/auth?reason=forbidden&required=admin');
@@ -113,7 +113,7 @@ router.get('/admin', apiLimiter, authRequired, async (req, res) => {
  * GET /admin/email-previews
  * Serve admin email preview gallery
  */
-router.get('/admin/email-previews', apiLimiter, authRequired, async (req, res) => {
+router.get('/admin/email-previews', apiLimiter, authRequired, (req, res) => {
   try {
     if (req.user.role !== 'admin') {
       return res.redirect('/auth?reason=forbidden&required=admin');
@@ -129,7 +129,7 @@ router.get('/admin/email-previews', apiLimiter, authRequired, async (req, res) =
  * GET /admin-debug
  * Serve admin debug/system-checks page
  */
-router.get('/admin-debug', apiLimiter, authRequired, async (req, res) => {
+router.get('/admin-debug', apiLimiter, authRequired, (req, res) => {
   try {
     if (req.user.role !== 'admin') {
       return res.redirect('/auth?reason=forbidden&required=admin');
@@ -145,7 +145,7 @@ router.get('/admin-debug', apiLimiter, authRequired, async (req, res) => {
  * GET /admin-cashout-requests
  * Serve admin cashout requests page
  */
-router.get('/admin-cashout-requests', apiLimiter, authRequired, async (req, res) => {
+router.get('/admin-cashout-requests', apiLimiter, authRequired, (req, res) => {
   try {
     if (req.user.role !== 'admin') {
       return res.redirect('/auth?reason=forbidden&required=admin');

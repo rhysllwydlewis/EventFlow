@@ -1,6 +1,5 @@
+'use strict';
 (function () {
-  'use strict';
-
   const COOKIE_NAME = 'eventflow_cookie_consent';
   const EXPIRY_DAYS = 365;
   const FETCH_WRAPPED_FLAG = '__efAnalyticsSuccessObserver';
@@ -512,7 +511,7 @@
           'init capture identify reset opt_in_capturing opt_out_capturing startSessionRecording stopSessionRecording'.split(
             ' '
           );
-        methods.forEach(function (method) {
+        methods.forEach(method => {
           addMethod(instance, method);
         });
         posthog._i.push([token, privacyConfig, instanceName]);

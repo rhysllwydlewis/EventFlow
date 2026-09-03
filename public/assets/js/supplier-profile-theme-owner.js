@@ -215,7 +215,7 @@ function openThemeEditor(supplierId) {
     }
   };
 
-  const handleDialogKeydown = event => {
+  function handleDialogKeydown(event) {
     if (event.key === 'Escape') {
       event.preventDefault();
       dismiss();
@@ -238,7 +238,7 @@ function openThemeEditor(supplierId) {
       event.preventDefault();
       first.focus();
     }
-  };
+  }
 
   document.body.style.overflow = 'hidden';
   document.addEventListener('keydown', handleDialogKeydown);

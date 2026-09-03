@@ -29,55 +29,11 @@ function _enquiryTrendIconHeader() {
     </div>
   </div>`;
 }
-function _funnelIconHeader() {
-  return `<div class="sd-card-header">
-    <div class="sd-card-header__title-row sd-chart-metric-header">
-      <div class="sd-card-header__icon sd-card-header__icon--indigo" aria-hidden="true">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M2 5h20"/>
-          <path d="M2 5L5 9.5L19 9.5L22 5z" fill="currentColor" fill-opacity="0.15" stroke="none"/>
-          <path d="M5 9.5L8.5 13h7L19 9.5z" fill="currentColor" fill-opacity="0.12" stroke="none"/>
-          <path d="M8.5 13L9.5 15.5h5L15.5 13z" fill="currentColor" fill-opacity="0.09" stroke="none"/>
-          <line x1="5" y1="9.5" x2="19" y2="9.5"/>
-          <line x1="8.5" y1="13" x2="15.5" y2="13"/>
-          <path d="M2 5L5 9.5L8.5 13L9.5 15.5"/>
-          <path d="M22 5L19 9.5L15.5 13L14.5 15.5"/>
-          <line x1="9.5" y1="15.5" x2="14.5" y2="15.5"/>
-          <line x1="12" y1="15.5" x2="12" y2="18" stroke-width="1.5"/>
-        </svg>
-      </div>
-      <h3 class="sd-chart-metric-value">Conversion Funnel</h3>
-    </div>
-  </div>`;
-}
-
-function _stopwatchIconHeader() {
-  return `<div class="sd-card-header">
-    <div class="sd-card-header__title-row sd-chart-metric-header">
-      <div class="sd-card-header__icon sd-card-header__icon--blue" aria-hidden="true">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
-          <circle cx="12" cy="14" r="7.5" fill="currentColor" fill-opacity="0.09"/>
-          <circle cx="12" cy="14" r="7.5"/>
-          <line x1="12" y1="6.5" x2="12" y2="4"/>
-          <line x1="10" y1="4" x2="14" y2="4" stroke-width="2"/>
-          <line x1="15.5" y1="7" x2="17" y2="5.5" stroke-width="1.5"/>
-          <line x1="12" y1="14" x2="12" y2="9.5" stroke-width="2"/>
-          <line x1="12" y1="14" x2="15.5" y2="11.5" stroke-width="1.5"/>
-          <circle cx="12" cy="14" r="1" fill="currentColor"/>
-          <line x1="3.5" y1="12" x2="1.5" y2="11" stroke-width="1.25"/>
-          <line x1="4" y1="15" x2="2" y2="15.5" stroke-width="1.25"/>
-        </svg>
-      </div>
-      <h3 class="sd-chart-metric-value">Response Time</h3>
-    </div>
-  </div>`;
-}
-
 /**
  * Load Chart.js library if not already loaded
  * @returns {Promise<void>}
  */
-async function loadChartJS() {
+function loadChartJS() {
   if (window.Chart) {
     return Promise.resolve();
   }

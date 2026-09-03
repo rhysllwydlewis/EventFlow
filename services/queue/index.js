@@ -69,6 +69,7 @@ class InProcessQueue {
     return { id: opts.jobId || null };
   }
 
+  // eslint-disable-next-line require-await -- must return a Promise to stay interchangeable with BullMQ's Queue.close()
   async close() {
     return undefined;
   }

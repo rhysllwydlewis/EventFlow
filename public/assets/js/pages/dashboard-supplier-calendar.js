@@ -15,9 +15,8 @@
  *   - Can create/delete personal calendar entries (meeting/event/appointment)
  *   - CTA link shows "View Public Calendar"
  */
+'use strict';
 (function () {
-  'use strict';
-
   let currentSupplier = null; // Current supplier's profile document
   let isPublisher = false; // Whether this supplier can publish public events (set from server)
   let calendarInstance = null; // FullCalendar instance
@@ -254,7 +253,7 @@
       document
         .getElementById('sup-my-events-create')
         ?.addEventListener('click', () => openEventModal());
-    } catch (_) {
+    } catch {
       mount.innerHTML =
         '<h3 style="margin:0 0 .5rem;">My Public Events</h3><p style="color:#dc2626;margin:0;">Unable to load your public events.</p>';
     }
@@ -525,7 +524,7 @@
         }
       }
       showToast('Entry deleted.', 'success');
-    } catch (_) {
+    } catch {
       showToast('Could not delete entry. Please try again.', 'error');
     }
   }
@@ -646,7 +645,7 @@
           calEv.setProp('borderColor', colors.border);
         }
       }
-    } catch (_) {
+    } catch {
       showToast('Could not update. Please try again.', 'error');
     }
   }
@@ -922,7 +921,7 @@
     dialog.querySelector('#sup-del-pub-confirm').addEventListener('click', async () => {
       dialog.classList.remove('cal-entry-modal-overlay--visible');
       setTimeout(() => dialog.remove(), 200);
-      await deletePublicEvent(rawId || ev.id, ev.title);
+      await deletePublicEvent(rawId || ev.id);
     });
     dialog.addEventListener('keydown', e => {
       if (e.key === 'Escape') {
@@ -951,7 +950,7 @@
         }
       }
       showToast('Public event deleted.', 'success');
-    } catch (_) {
+    } catch {
       showToast('Could not delete event. Please try again.', 'error');
     }
   }
@@ -1046,7 +1045,7 @@
         const savedData = await savedRes.json();
         (savedData.events || []).forEach(ev => savedEventIds.add(String(ev.id)));
       }
-    } catch (_) {
+    } catch {
       /* ignore — saved events are optional */
     }
 
@@ -1077,7 +1076,7 @@
         });
         allEvents = allEvents.concat(pubEvents);
       }
-    } catch (_) {
+    } catch {
       /* ignore */
     }
 
@@ -1101,7 +1100,7 @@
         }));
         allEvents = allEvents.concat(entries);
       }
-    } catch (_) {
+    } catch {
       /* ignore — personal entries are optional */
     }
 

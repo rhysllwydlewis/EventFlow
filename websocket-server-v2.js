@@ -975,7 +975,7 @@ class WebSocketServerV2 {
   /**
    * Graceful shutdown
    */
-  async shutdown() {
+  shutdown() {
     try {
       logger.info('Shutting down WebSocket server...');
 

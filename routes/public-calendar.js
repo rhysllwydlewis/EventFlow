@@ -175,7 +175,7 @@ function validateEmail(value) {
   return !value || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
 }
 
-async function getSupplierForUser(user) {
+function getSupplierForUser(user) {
   if (!user || user.role !== 'supplier') {
     return null;
   }

@@ -26,6 +26,11 @@ export function loadAltchaScript() {
       return;
     }
 
+    // Declared before use: onLoaded/the interval callback below reference these,
+    // but neither runs until after both are assigned (event listener / timer callbacks).
+    let checkInterval;
+    let timeoutId;
+
     // Listen for the altcha-loaded event dispatched by the vendor shim
     const onLoaded = () => {
       clearInterval(checkInterval);
@@ -35,7 +40,7 @@ export function loadAltchaScript() {
     document.addEventListener('altcha-loaded', onLoaded, { once: true });
 
     // Also poll in case the shim loaded the element before this listener was attached
-    const checkInterval = setInterval(() => {
+    checkInterval = setInterval(() => {
       if (customElements.get('altcha-widget')) {
         clearInterval(checkInterval);
         clearTimeout(timeoutId);
@@ -76,7 +81,7 @@ export function loadAltchaScript() {
       document.head.appendChild(script);
     }
 
-    const timeoutId = setTimeout(() => {
+    timeoutId = setTimeout(() => {
       clearInterval(checkInterval);
       document.removeEventListener('altcha-loaded', onLoaded);
       reject(new Error('ALTCHA script load timeout'));

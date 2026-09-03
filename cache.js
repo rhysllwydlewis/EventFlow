@@ -315,7 +315,7 @@ async function warmCache(data, ttl = 3600) {
  */
 function generateETag(data) {
   const crypto = require('crypto');
-  const hash = crypto.createHash('md5').update(JSON.stringify(data)).digest('hex');
+  const hash = crypto.createHash('sha256').update(JSON.stringify(data)).digest('hex');
   return `"${hash}"`;
 }
 

@@ -9,9 +9,8 @@
  * - Group-level actions
  */
 
+'use strict';
 (function () {
-  'use strict';
-
   // ==========================================
   // STATE
   // ==========================================
@@ -264,7 +263,7 @@
 
     const html = sortedGroupKeys
       .map(groupKey => {
-        const groupMessages = state.groupedMessages[groupKey];
+        const groupMessages = state.groupedMessages[groupKey]; // skipcq: JS-0123 - per-group local, unrelated to the groupMessages() function
         const isExpanded = state.expandedGroups.has(groupKey);
         const unreadCount = groupMessages.filter(m => !m.isRead).length;
 
@@ -431,7 +430,7 @@
     const groupElement = document.querySelector(`[data-group-key="${groupKey}"]`);
     if (groupElement) {
       const isExpanded = state.expandedGroups.has(groupKey);
-      const groupMessages = state.groupedMessages[groupKey] || [];
+      const groupMessages = state.groupedMessages[groupKey] || []; // skipcq: JS-0123 - per-group local, unrelated to the groupMessages() function
 
       const expandBtn = groupElement.querySelector('.group-expand-btn');
       if (expandBtn) {
@@ -485,7 +484,7 @@
   }
 
   function markGroupAsRead(groupKey) {
-    const groupMessages = state.groupedMessages[groupKey];
+    const groupMessages = state.groupedMessages[groupKey]; // skipcq: JS-0123 - per-group local, unrelated to the groupMessages() function
     if (!groupMessages) {
       return;
     }
@@ -509,7 +508,7 @@
   }
 
   function showGroupActions(groupKey) {
-    const groupMessages = state.groupedMessages[groupKey];
+    const groupMessages = state.groupedMessages[groupKey]; // skipcq: JS-0123 - per-group local, unrelated to the groupMessages() function
     if (!groupMessages) {
       return;
     }
@@ -565,7 +564,7 @@
   }
 
   function starGroup(groupKey) {
-    const groupMessages = state.groupedMessages[groupKey];
+    const groupMessages = state.groupedMessages[groupKey]; // skipcq: JS-0123 - per-group local, unrelated to the groupMessages() function
     if (!groupMessages) {
       return;
     }
@@ -579,7 +578,7 @@
   }
 
   function archiveGroup(groupKey) {
-    const groupMessages = state.groupedMessages[groupKey];
+    const groupMessages = state.groupedMessages[groupKey]; // skipcq: JS-0123 - per-group local, unrelated to the groupMessages() function
     if (!groupMessages) {
       return;
     }
@@ -593,7 +592,7 @@
   }
 
   function deleteGroup(groupKey) {
-    const groupMessages = state.groupedMessages[groupKey];
+    const groupMessages = state.groupedMessages[groupKey]; // skipcq: JS-0123 - per-group local, unrelated to the groupMessages() function
     if (!groupMessages) {
       return;
     }

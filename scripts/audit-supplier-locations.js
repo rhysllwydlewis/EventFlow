@@ -172,7 +172,7 @@ function checkPreconditions(options, backend, env = process.env) {
  * @param {Object} row Audit row.
  * @returns {Promise<Object|null>} Postcode resolution, or null.
  */
-async function resolveByPostcode(row) {
+function resolveByPostcode(row) {
   if (!row.postcode || !isValidUKPostcode(row.postcode)) {
     return null;
   }

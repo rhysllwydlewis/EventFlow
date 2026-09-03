@@ -1,6 +1,5 @@
+'use strict';
 (function () {
-  'use strict';
-
   let allTickets = [];
 
   const STATUS_OPTIONS = [
@@ -290,7 +289,7 @@
     });
   }
 
-  async function openTicketModal(ticketId) {
+  function openTicketModal(ticketId) {
     const ticket = allTickets.find(item => item.id === ticketId);
     if (!ticket) {
       return;
@@ -385,11 +384,11 @@
       document.removeEventListener('keydown', handleKeydown);
     };
 
-    const handleKeydown = event => {
+    function handleKeydown(event) {
       if (event.key === 'Escape') {
         close();
       }
-    };
+    }
 
     modal.querySelector('.modal-close').addEventListener('click', close);
     modal.addEventListener('click', event => {
@@ -503,8 +502,6 @@
 // External Contact Enquiries Module
 // =============================================
 (function () {
-  'use strict';
-
   let allEnquiries = [];
 
   const CONTACT_STATUS_LABELS = {
@@ -795,11 +792,11 @@
       overlay.remove();
       document.removeEventListener('keydown', handleContactKeydown);
     };
-    const handleContactKeydown = e => {
+    function handleContactKeydown(e) {
       if (e.key === 'Escape') {
         close();
       }
-    };
+    }
     document.addEventListener('keydown', handleContactKeydown);
     overlay.querySelector('#cancelContactModal').addEventListener('click', close);
     overlay.querySelector('#closeContactModal').addEventListener('click', close);

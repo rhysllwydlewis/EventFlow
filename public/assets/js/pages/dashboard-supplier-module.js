@@ -1,9 +1,5 @@
 // Display subscription status on dashboard using MongoDB API
-import {
-  initializeFeatureAccess,
-  displayPackageLimitNotice,
-  enforcePackageLimit,
-} from '/supplier/js/feature-access.js';
+import { initializeFeatureAccess } from '/supplier/js/feature-access.js';
 
 import { createStatsGrid } from '/assets/js/dashboard-widgets.js';
 import {
@@ -12,7 +8,6 @@ import {
   createConversionFunnelWidget,
   createResponseTimeWidget,
 } from '/assets/js/supplier-analytics-chart.js';
-import { initCountUp } from '/assets/js/count-up-animation.js';
 
 // Module-level variable to store chart instance for real-time updates
 let analyticsChartInstance = null;
@@ -226,12 +221,12 @@ function getDynamicHeroTip(summaryData, checklistData) {
  *
  * @returns {Promise<Object|null>}
  */
-async function loadActionPromptChecklist() {
+function loadActionPromptChecklist() {
   if (!actionPromptChecklistPromise) {
     actionPromptChecklistPromise = fetch('/api/me/action-prompt-checklist', {
       credentials: 'include',
     })
-      .then(async response => {
+      .then(response => {
         if (!response.ok) {
           return null;
         }
@@ -488,11 +483,6 @@ async function initSupplierDashboardWidgets() {
 
     // Fetch supplier profiles to check completion
     let hasProfile = false;
-    let hasPhotos = false;
-    let hasBanner = false;
-    let hasTagline = false;
-    let hasHighlights = false;
-    let hasSocialLinks = false;
 
     try {
       const suppliersResponse = await fetch('/api/me/suppliers', {
@@ -504,11 +494,6 @@ async function initSupplierDashboardWidgets() {
         hasProfile = suppliers.length > 0;
         if (hasProfile && suppliers[0]) {
           const supplier = suppliers[0];
-          hasPhotos = supplier.photosGallery && supplier.photosGallery.length >= 5;
-          hasBanner = !!supplier.bannerUrl;
-          hasTagline = !!supplier.tagline;
-          hasHighlights = supplier.highlights && supplier.highlights.length >= 3;
-          hasSocialLinks = supplier.socialLinks && Object.keys(supplier.socialLinks).length >= 2;
 
           // Initialize Profile Health Widget with supplier data
           if (window.ProfileHealthWidget) {
@@ -526,22 +511,6 @@ async function initSupplierDashboardWidgets() {
       }
     } catch (err) {
       console.error('Error fetching suppliers:', err);
-    }
-
-    // Fetch packages to check if at least one exists
-    let hasPackage = false;
-
-    try {
-      const packagesResponse = await fetch('/api/me/packages', {
-        credentials: 'include',
-      });
-      if (packagesResponse.ok) {
-        const packagesData = await packagesResponse.json();
-        const packages = packagesData.items || [];
-        hasPackage = packages.length > 0;
-      }
-    } catch (err) {
-      console.error('Error fetching packages:', err);
     }
 
     // Check email verification status
@@ -686,6 +655,7 @@ window.addEventListener('load', () => {
           }
           hasConnectedOnce = true;
         },
+        // eslint-disable-next-line no-unused-vars -- signature locked by tests/integration/dashboard-websocket-integration.test.js source-match assertion
         onDisconnect: reason => {
           const now = Date.now();
           if (now - lastDisconnectToastAt < DISCONNECT_TOAST_THROTTLE_MS) {
@@ -777,7 +747,7 @@ async function displaySubscriptionStatus() {
         paymentMethodBrand = subJson.paymentMethodBrand || null;
         paymentMethodLast4 = subJson.paymentMethodLast4 || null;
       }
-    } catch (_err) {
+    } catch {
       // best-effort — subscriptionRecord stays null; billing details won't display
     }
 
@@ -798,7 +768,7 @@ async function displaySubscriptionStatus() {
             paymentCurrency = data.upcomingInvoice.currency || 'gbp';
           }
         }
-      } catch (_err) {
+      } catch {
         // best-effort
       }
     }
@@ -1051,9 +1021,6 @@ async function updatePackageLimitDisplay() {
     // Fetch package count from MongoDB API
     const packagesResponse = await fetch('/api/me/packages', { credentials: 'include' });
     if (packagesResponse.ok) {
-      const packagesData = await packagesResponse.json();
-      const packages = packagesData.items || [];
-
       // Hide limit notice if user has packages (implementation can be enhanced later)
       limitContainer.classList.add('sd-hidden');
     }
@@ -1099,7 +1066,7 @@ async function displayLeadQualityBreakdown() {
             .then(r => (r.ok ? r.json() : null))
             .catch(() => null);
       currentUserId = authData?.user?.id || null;
-    } catch (_e) {
+    } catch {
       /* ignore */
     }
 
@@ -1233,7 +1200,7 @@ displaySubscriptionStatus();
       if (localStorage.getItem(PROFILE_HINT_KEY) === '1') {
         return;
       }
-    } catch (_) {
+    } catch {
       /* Ignore localStorage errors */
     }
 
@@ -1290,7 +1257,7 @@ displaySubscriptionStatus();
 
     try {
       localStorage.setItem(PROFILE_HINT_KEY, '1');
-    } catch (_) {
+    } catch {
       /* Ignore localStorage errors */
     }
   }
@@ -1299,7 +1266,7 @@ displaySubscriptionStatus();
     try {
       localStorage.setItem(DISMISS_KEY, '1');
       localStorage.setItem('ef_onboarding_dismissed', '1');
-    } catch (_) {
+    } catch {
       /* Ignore localStorage errors */
     }
 

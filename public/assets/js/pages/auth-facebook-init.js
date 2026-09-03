@@ -1,5 +1,4 @@
 'use strict';
-
 (function () {
   // Keep in sync with GRAPH_API_VERSION in services/facebookAuth.service.js.
   const FACEBOOK_OAUTH_DIALOG = 'https://www.facebook.com/v23.0/dialog/oauth';

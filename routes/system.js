@@ -109,7 +109,7 @@ function getIntegrationStatus() {
     // eslint-disable-next-line node/no-missing-require
     require.resolve('@socket.io/redis-adapter');
     redisAdapterInstalled = true;
-  } catch (_error) {
+  } catch {
     redisAdapterInstalled = false;
   }
 
@@ -211,7 +211,7 @@ async function appendMessagingQueueHealth(response) {
  * Get CSRF token for form submissions
  * Sets CSRF cookie and returns token in response
  */
-router.get('/csrf-token', applyAuthLimiter, async (req, res) => {
+router.get('/csrf-token', applyAuthLimiter, (req, res) => {
   if (!getToken) {
     return res.status(503).json({ error: 'CSRF token service not initialized' });
   }
@@ -227,7 +227,7 @@ router.get('/csrf-token', applyAuthLimiter, async (req, res) => {
  * and is a public read-only endpoint, not an authentication operation.
  * The endpoint is also cached for 5 minutes to reduce server load.
  */
-router.get('/config', apiLimiter, async (req, res) => {
+router.get('/config', apiLimiter, (req, res) => {
   if (!APP_VERSION) {
     return res.status(503).json({ error: 'Configuration service not initialized' });
   }
@@ -257,7 +257,7 @@ router.get('/config', apiLimiter, async (req, res) => {
  * GET /api/meta
  * Application metadata endpoint
  */
-router.get('/meta', async (_req, res) => {
+router.get('/meta', (_req, res) => {
   if (!APP_VERSION) {
     return res.status(503).json({ error: 'Metadata service not initialized' });
   }
@@ -411,12 +411,12 @@ router.get('/health', applyHealthCheckLimiter, async (_req, res) => {
           );
           response.services.pexelsCollections = hasCollectionId ? 'configured' : 'not_configured';
         }
-      } catch (settingsError) {
+      } catch {
         // Don't fail health check if settings read fails
         response.services.pexelsCollections = 'unknown';
       }
     }
-  } catch (error) {
+  } catch {
     response.services.pexels = 'unavailable';
   }
 
@@ -470,7 +470,7 @@ router.get('/ready', applyHealthCheckLimiter, async (_req, res) => {
     if (dbStatus) {
       activeBackend = dbStatus.type; // 'mongodb' or 'local'
     }
-  } catch (error) {
+  } catch {
     // Ignore errors in determining backend
   }
 
@@ -537,7 +537,7 @@ router.get('/ready', applyHealthCheckLimiter, async (_req, res) => {
  * Used to verify performance optimizations are active
  * NOTE: Contains internal config details - should NOT be cached
  */
-router.get('/performance', applyHealthCheckLimiter, async (req, res) => {
+router.get('/performance', applyHealthCheckLimiter, (req, res) => {
   // Do NOT cache - contains internal configuration details
   res.setHeader('Cache-Control', 'no-store, private');
 

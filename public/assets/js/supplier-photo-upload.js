@@ -178,7 +178,7 @@ class SupplierPhotoUpload {
    * @param {File} file - The image file
    * @returns {Promise<Blob>} Compressed image blob
    */
-  async compressImage(file) {
+  compressImage(file) {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
 
@@ -234,7 +234,7 @@ class SupplierPhotoUpload {
    * @param {Blob} blob - Blob to convert
    * @returns {Promise<string>} Base64 string
    */
-  async blobToBase64(blob) {
+  blobToBase64(blob) {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
       reader.onloadend = () => resolve(reader.result);
@@ -248,7 +248,7 @@ class SupplierPhotoUpload {
    * @param {File} file - Image file
    * @returns {Promise<{width: number, height: number}>}
    */
-  async getImageDimensions(file) {
+  getImageDimensions(file) {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
 

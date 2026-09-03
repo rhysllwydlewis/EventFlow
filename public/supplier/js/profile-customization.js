@@ -3,9 +3,8 @@
  * Handles loading, live preview, validation and saving for supplier profile customization.
  */
 
+'use strict';
 (function () {
-  'use strict';
-
   const DEFAULT_COLOR = '#0B8073';
   const HEX_RE = /^#[0-9A-F]{6}$/i;
   const SOCIAL_PLATFORMS = ['facebook', 'instagram', 'twitter', 'linkedin', 'youtube', 'tiktok'];

@@ -1,6 +1,5 @@
+'use strict';
 (function () {
-  'use strict';
-
   const GIS_SRC = 'https://accounts.google.com/gsi/client';
   const ROLE_POLISH_CSS = '/assets/css/auth-google-signup.css?v=18.4.2';
   const GOOGLE_LOGIN_PATH = '/api/auth/callback/google';

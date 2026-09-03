@@ -32,7 +32,7 @@ function getPhotoUploadUtils() {
  * Initialize storage
  * Checks MongoDB availability for photo storage
  */
-async function initializeStorage() {
+function initializeStorage() {
   try {
     logger.info('Storage configuration initialized');
   } catch (error) {

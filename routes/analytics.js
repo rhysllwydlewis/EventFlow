@@ -259,7 +259,7 @@ router.get('/events', async (req, res) => {
  * POST /api/analytics/lead-score (P4-04: Predictive Lead Scoring)
  * Calculate lead quality score for an enquiry
  */
-router.post('/lead-score', authRequired, csrfProtection, async (req, res) => {
+router.post('/lead-score', authRequired, csrfProtection, (req, res) => {
   try {
     const { enquiry } = req.body;
 

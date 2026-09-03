@@ -1,6 +1,5 @@
+'use strict';
 (function () {
-  'use strict';
-
   // Sign in with Apple requires a paid Apple Developer Program membership
   // (£79/$99 per year) to enrol a Services ID. The integration is fully built
   // and left in place, but is switched off here until that enrolment happens.
@@ -319,7 +318,7 @@
         });
 
         await window.AppleID.auth.signIn();
-      } catch (error) {
+      } catch {
         button.removeAttribute('aria-busy');
         setStatus(
           'Apple sign-in could not be started. Please try again or use email login.',

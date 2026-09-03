@@ -61,7 +61,9 @@ const ALLOWED_MODES = new Set(['off', 'monitor', 'enforce']);
 
 function numberEnv(name, fallback, min = 0, max = Number.MAX_SAFE_INTEGER) {
   const parsed = Number.parseInt(process.env[name] || '', 10);
-  if (!Number.isFinite(parsed)) return fallback;
+  if (!Number.isFinite(parsed)) {
+    return fallback;
+  }
   return Math.min(max, Math.max(min, parsed));
 }
 
@@ -119,7 +121,9 @@ function getConfig() {
 function getHashSecret() {
   const configured =
     process.env.PARTNER_ABUSE_HASH_SECRET || process.env.JWT_SECRET || process.env.SESSION_SECRET;
-  if (configured) return configured;
+  if (configured) {
+    return configured;
+  }
   if (process.env.NODE_ENV === 'production') {
     throw new Error(
       'PARTNER_ABUSE_HASH_SECRET (or JWT_SECRET/SESSION_SECRET fallback) is required in production'
@@ -129,7 +133,9 @@ function getHashSecret() {
 }
 
 function hmac(kind, value) {
-  if (!value) return null;
+  if (!value) {
+    return null;
+  }
   return crypto
     .createHmac('sha256', getHashSecret())
     .update(`v1:${kind}:${String(value)}`)
@@ -145,16 +151,26 @@ function normaliseEmail(email) {
 function splitEmail(email) {
   const value = normaliseEmail(email);
   const at = value.lastIndexOf('@');
-  if (at <= 0 || at === value.length - 1) return { local: '', domain: '' };
+  if (at <= 0 || at === value.length - 1) {
+    return { local: '', domain: '' };
+  }
   return { local: value.slice(0, at), domain: value.slice(at + 1) };
 }
 
 function canonicalIdentityEmail(email) {
   let { local, domain } = splitEmail(email);
-  if (!local || !domain) return '';
-  if (domain === 'googlemail.com') domain = 'gmail.com';
-  if (ALIAS_NORMALISED_DOMAINS.has(domain)) local = local.split('+')[0];
-  if (domain === 'gmail.com') local = local.replace(/\./g, '');
+  if (!local || !domain) {
+    return '';
+  }
+  if (domain === 'googlemail.com') {
+    domain = 'gmail.com';
+  }
+  if (ALIAS_NORMALISED_DOMAINS.has(domain)) {
+    local = local.split('+')[0];
+  }
+  if (domain === 'gmail.com') {
+    local = local.replace(/\./g, '');
+  }
   return `${local}@${domain}`;
 }
 
@@ -192,23 +208,37 @@ function normaliseIp(value) {
   let ip = String(value || '')
     .split(',')[0]
     .trim();
-  if (!ip) return '';
-  if (ip.startsWith('::ffff:')) ip = ip.slice(7);
-  if (ip.startsWith('[') && ip.includes(']')) ip = ip.slice(1, ip.indexOf(']'));
+  if (!ip) {
+    return '';
+  }
+  if (ip.startsWith('::ffff:')) {
+    ip = ip.slice(7);
+  }
+  if (ip.startsWith('[') && ip.includes(']')) {
+    ip = ip.slice(1, ip.indexOf(']'));
+  }
   const zoneIndex = ip.indexOf('%');
-  if (zoneIndex > -1) ip = ip.slice(0, zoneIndex);
+  if (zoneIndex > -1) {
+    ip = ip.slice(0, zoneIndex);
+  }
   return net.isIP(ip) ? ip.toLowerCase() : '';
 }
 
 function expandIpv6(ip) {
   const clean = normaliseIp(ip);
-  if (net.isIP(clean) !== 6) return [];
+  if (net.isIP(clean) !== 6) {
+    return [];
+  }
   const halves = clean.split('::');
-  if (halves.length > 2) return [];
+  if (halves.length > 2) {
+    return [];
+  }
   const head = halves[0] ? halves[0].split(':').filter(Boolean) : [];
   const tail = halves.length === 2 && halves[1] ? halves[1].split(':').filter(Boolean) : [];
   const missing = 8 - head.length - tail.length;
-  if (missing < 0 || (halves.length === 1 && missing !== 0)) return [];
+  if (missing < 0 || (halves.length === 1 && missing !== 0)) {
+    return [];
+  }
   return [...head, ...Array(missing).fill('0'), ...tail].map(part =>
     part.padStart(4, '0').toLowerCase()
   );
@@ -255,14 +285,22 @@ function isHeadlessRequest(req) {
 }
 
 function requestCookie(req, name) {
-  if (req.cookies && typeof req.cookies[name] === 'string') return req.cookies[name];
+  if (req.cookies && typeof req.cookies[name] === 'string') {
+    return req.cookies[name];
+  }
   const raw = header(req, 'cookie');
-  if (!raw) return '';
+  if (!raw) {
+    return '';
+  }
   for (const pair of raw.split(';')) {
     const index = pair.indexOf('=');
-    if (index < 0) continue;
+    if (index < 0) {
+      continue;
+    }
     const key = pair.slice(0, index).trim();
-    if (key !== name) continue;
+    if (key !== name) {
+      continue;
+    }
     try {
       return decodeURIComponent(pair.slice(index + 1).trim());
     } catch (_) {
@@ -273,7 +311,9 @@ function requestCookie(req, name) {
 }
 
 function ensureDeviceToken(req, res) {
-  if (req.partnerAbuseDeviceToken) return req.partnerAbuseDeviceToken;
+  if (req.partnerAbuseDeviceToken) {
+    return req.partnerAbuseDeviceToken;
+  }
   const existing = requestCookie(req, DEVICE_COOKIE_NAME);
   if (/^[A-Za-z0-9_-]{24,128}$/.test(existing)) {
     req.partnerAbuseDeviceToken = existing;
@@ -305,9 +345,15 @@ function normaliseBusinessText(value) {
 
 function normalisePhone(value) {
   let digits = String(value || '').replace(/\D/g, '');
-  if (digits.startsWith('00')) digits = digits.slice(2);
-  if (digits.startsWith('44') && digits.length >= 11) return digits;
-  if (digits.startsWith('0') && digits.length >= 10) return `44${digits.slice(1)}`;
+  if (digits.startsWith('00')) {
+    digits = digits.slice(2);
+  }
+  if (digits.startsWith('44') && digits.length >= 11) {
+    return digits;
+  }
+  if (digits.startsWith('0') && digits.length >= 10) {
+    return `44${digits.slice(1)}`;
+  }
   return digits.length >= 7 ? digits : '';
 }
 
@@ -319,7 +365,9 @@ function normalisePostcode(value) {
 
 function websiteHost(value) {
   const raw = String(value || '').trim();
-  if (!raw) return '';
+  if (!raw) {
+    return '';
+  }
   try {
     const parsed = new URL(/^https?:\/\//i.test(raw) ? raw : `https://${raw}`);
     return parsed.hostname.toLowerCase().replace(/^www\./, '');
@@ -404,7 +452,9 @@ function dedupeRegistrationEvents(events) {
   const selected = new Map();
   for (const event of events || []) {
     const key = event.assessmentId || event.id;
-    if (!key) continue;
+    if (!key) {
+      continue;
+    }
     const current = selected.get(key);
     if (!current || (rank[event.outcome] || 0) > (rank[current.outcome] || 0)) {
       selected.set(key, event);
@@ -414,7 +464,9 @@ function dedupeRegistrationEvents(events) {
 }
 
 async function activeEmailOverride(canonicalEmailHash, nowIso = new Date().toISOString()) {
-  if (!canonicalEmailHash) return null;
+  if (!canonicalEmailHash) {
+    return null;
+  }
   let overrides;
   if (typeof dbUnified.findWithOptions === 'function') {
     overrides = await dbUnified.findWithOptions(
@@ -430,7 +482,9 @@ async function activeEmailOverride(canonicalEmailHash, nowIso = new Date().toISO
   const nowMs = Date.parse(nowIso);
   return (
     (overrides || []).find(item => {
-      if (item.revokedAt) return false;
+      if (item.revokedAt) {
+        return false;
+      }
       const expiresAt = Date.parse(item.expiresAt);
       return Number.isFinite(expiresAt) && expiresAt > nowMs;
     }) || null
@@ -439,13 +493,17 @@ async function activeEmailOverride(canonicalEmailHash, nowIso = new Date().toISO
 
 function reputationProviderUrl(ip) {
   const template = String(process.env.PARTNER_ABUSE_IP_REPUTATION_URL || '').trim();
-  if (!template || !ip) return '';
+  if (!template || !ip) {
+    return '';
+  }
   return template.includes('{ip}') ? template.replaceAll('{ip}', encodeURIComponent(ip)) : '';
 }
 
 async function lookupIpReputation(ip, timeoutMs) {
   const url = reputationProviderUrl(ip);
-  if (!url || typeof fetch !== 'function') return { available: false };
+  if (!url || typeof fetch !== 'function') {
+    return { available: false };
+  }
   try {
     const parsed = new URL(url);
     if (parsed.protocol !== 'https:' && process.env.NODE_ENV === 'production') {
@@ -463,7 +521,9 @@ async function lookupIpReputation(ip, timeoutMs) {
     } finally {
       clearTimeout(timer);
     }
-    if (!response.ok) return { available: false, status: response.status };
+    if (!response.ok) {
+      return { available: false, status: response.status };
+    }
     const data = await response.json();
     return {
       available: true,
@@ -839,13 +899,18 @@ async function assessRegistration({ req, email, role, refCode = null, now = new 
   let riskLevel =
     score >= config.blockScore ? 'high' : score >= config.reviewScore ? 'review' : 'low';
   let action = 'allow';
-  if (!override && config.mode === 'enforce' && score >= config.blockScore) action = 'block';
-  else if (score >= config.reviewScore) action = 'review';
+  if (!override && config.mode === 'enforce' && score >= config.blockScore) {
+    action = 'block';
+  } else if (score >= config.reviewScore) {
+    action = 'review';
+  }
   if (config.mode === 'off') {
     riskLevel = 'off';
     action = 'allow';
   }
-  if (override) action = 'allow';
+  if (override) {
+    action = 'allow';
+  }
 
   return {
     id: uid('pra'),
@@ -854,7 +919,7 @@ async function assessRegistration({ req, email, role, refCode = null, now = new 
     riskLevel,
     action,
     signalCodes: riskSignals.map(signal => signal.code),
-    signals: riskSignals.map(({ group, ...signal }) => signal),
+    signals: riskSignals.map(({ group: _group, ...signal }) => signal),
     hashes: {
       ipHash: signals.ipHash,
       subnetHash: signals.subnetHash,
@@ -926,7 +991,9 @@ async function recordRegistrationEvent({ assessment, outcome, userId = null, req
     expiresAtDate: new Date(expiresAt),
   };
   const inserted = await dbUnified.insertOne('partner_abuse_events', event);
-  if (!inserted) throw new Error('Partner abuse event did not persist');
+  if (!inserted) {
+    throw new Error('Partner abuse event did not persist');
+  }
   return event;
 }
 
@@ -944,7 +1011,9 @@ async function persistUserRegistrationRisk(userId, assessment) {
       },
     }
   );
-  if (!updated) throw new Error('Registration risk metadata did not persist');
+  if (!updated) {
+    throw new Error('Registration risk metadata did not persist');
+  }
   return updated;
 }
 
@@ -952,7 +1021,9 @@ function registrationRiskGuard({ roleResolver } = {}) {
   return async (req, res, next) => {
     try {
       const resolvedRole = roleResolver ? roleResolver(req) : req.body?.role;
-      if (!['partner', 'supplier'].includes(resolvedRole)) return next();
+      if (!['partner', 'supplier'].includes(resolvedRole)) {
+        return next();
+      }
       ensureDeviceToken(req, res);
       const assessment = await assessRegistration({
         req,
@@ -977,7 +1048,9 @@ function registrationRiskGuard({ roleResolver } = {}) {
       }
 
       res.once('finish', () => {
-        if (req.partnerRegistrationRiskFinalized) return;
+        if (req.partnerRegistrationRiskFinalized) {
+          return;
+        }
         req.partnerRegistrationRiskFinalized = true;
         const outcome = res.statusCode >= 400 ? 'failed' : 'completed_without_user';
         recordRegistrationEvent({ assessment, outcome }).catch(error =>
@@ -991,7 +1064,9 @@ function registrationRiskGuard({ roleResolver } = {}) {
       logger.error('[PARTNER-IDENTITY-RISK] Registration assessment failed', {
         error: error.message,
       });
-      if (process.env.PARTNER_ABUSE_FAIL_OPEN === 'true') return next();
+      if (process.env.PARTNER_ABUSE_FAIL_OPEN === 'true') {
+        return next();
+      }
       return res.status(503).json({
         error: 'Registration is temporarily unavailable. Please try again shortly.',
         code: 'REGISTRATION_RISK_UNAVAILABLE',
@@ -1002,7 +1077,9 @@ function registrationRiskGuard({ roleResolver } = {}) {
 
 async function completeRegistrationRisk(req, userId) {
   const assessment = req.partnerRegistrationRisk;
-  if (!assessment) return null;
+  if (!assessment) {
+    return null;
+  }
   await persistUserRegistrationRisk(userId, assessment);
   const event = await recordRegistrationEvent({ assessment, outcome: 'created', userId });
   req.partnerRegistrationRiskFinalized = true;
@@ -1011,9 +1088,13 @@ async function completeRegistrationRisk(req, userId) {
 
 async function createRegistrationOverride({ email, reason, adminUserId, expiresInDays = 7 }) {
   const canonical = canonicalIdentityEmail(email);
-  if (!canonical) throw new Error('A valid email identity is required for an override');
+  if (!canonical) {
+    throw new Error('A valid email identity is required for an override');
+  }
   const note = String(reason || '').trim();
-  if (note.length < 20) throw new Error('Override reason must be at least 20 characters');
+  if (note.length < 20) {
+    throw new Error('Override reason must be at least 20 characters');
+  }
   const days = Math.min(30, Math.max(1, Number.parseInt(expiresInDays, 10) || 7));
   const config = getConfig();
   const now = new Date();
@@ -1032,7 +1113,9 @@ async function createRegistrationOverride({ email, reason, adminUserId, expiresI
     retentionExpiresAtDate: new Date(retentionExpiresAt),
   };
   const inserted = await dbUnified.insertOne('partner_abuse_overrides', override);
-  if (!inserted) throw new Error('Registration override did not persist');
+  if (!inserted) {
+    throw new Error('Registration override did not persist');
+  }
   return override;
 }
 
@@ -1044,8 +1127,12 @@ async function createAppeal({ email, name, message, source = 'partner_registrati
   const cleanMessage = String(message || '')
     .trim()
     .slice(0, 3000);
-  if (!cleanEmail || !cleanEmail.includes('@')) throw new Error('A valid email is required');
-  if (cleanMessage.length < 20) throw new Error('Appeal message must be at least 20 characters');
+  if (!cleanEmail || !cleanEmail.includes('@')) {
+    throw new Error('A valid email is required');
+  }
+  if (cleanMessage.length < 20) {
+    throw new Error('Appeal message must be at least 20 characters');
+  }
   const config = getConfig();
   const now = new Date();
   const expiresAt = eventExpiry(now, config.appealRetentionDays);
@@ -1063,7 +1150,9 @@ async function createAppeal({ email, name, message, source = 'partner_registrati
     expiresAtDate: new Date(expiresAt),
   };
   const inserted = await dbUnified.insertOne('partner_abuse_appeals', appeal);
-  if (!inserted) throw new Error('Appeal did not persist');
+  if (!inserted) {
+    throw new Error('Appeal did not persist');
+  }
   return appeal;
 }
 

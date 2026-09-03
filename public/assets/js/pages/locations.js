@@ -7,9 +7,8 @@
  * the published city slug, never the text someone typed into a search box.
  */
 
+'use strict';
 (function () {
-  'use strict';
-
   /**
    * Read a meta tag's content.
    * @param {string} name Meta name.

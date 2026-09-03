@@ -1,6 +1,5 @@
+'use strict';
 (function () {
-  'use strict';
-
   const SUMMARY_ENDPOINT = '/api/v1/analytics/behaviour/admin/summary';
   const STATUS_ENDPOINT = '/api/v1/analytics/behaviour/admin/status';
   const HOMEPAGE_MANAGER_ENDPOINT = '/api/v1/admin/homepage/manager';
@@ -25,7 +24,9 @@
 
   function formatDuration(seconds) {
     const total = Math.max(0, Math.round(numeric(seconds)));
-    if (total < 60) return `${total}s`;
+    if (total < 60) {
+      return `${total}s`;
+    }
     const minutes = Math.floor(total / 60);
     const remainder = total % 60;
     return remainder ? `${minutes}m ${remainder}s` : `${minutes}m`;
@@ -133,9 +134,13 @@
 
   function ensureSection() {
     let section = document.getElementById('analyticsDecisionSection');
-    if (section) return section;
+    if (section) {
+      return section;
+    }
     const behaviour = document.getElementById('behaviourAnalyticsSection');
-    if (!behaviour?.parentNode) return null;
+    if (!behaviour?.parentNode) {
+      return null;
+    }
     section = buildSection();
     behaviour.insertAdjacentElement('afterend', section);
     document.getElementById('analyticsExportCsv')?.addEventListener('click', exportCsv);
@@ -170,7 +175,9 @@
 
   function renderComparisons(current, previous) {
     const grid = document.getElementById('analyticsComparisonGrid');
-    if (!grid) return;
+    if (!grid) {
+      return;
+    }
     const days = reportingDays();
     const coverage = comparisonCoverage(previous, days);
     const comparisonAvailable = coverage.available;
@@ -238,10 +245,13 @@
   function renderConversions(decision) {
     const conversions = decision?.conversions || {};
     const rate = document.getElementById('analyticsConversionRate');
-    if (rate)
+    if (rate) {
       rate.textContent = `${formatNumber(conversions.uniqueSessions)} sessions · ${formatPercent(conversions.sessionRate)}`;
+    }
     const container = document.getElementById('analyticsConversionBreakdown');
-    if (!container) return;
+    if (!container) {
+      return;
+    }
     const rows = Array.isArray(conversions.byType) ? conversions.byType : [];
     container.innerHTML = rows.length
       ? rows
@@ -257,13 +267,16 @@
     const active =
       state.manager?.manager?.activeVersion || state.manager?.activeVersion || 'unknown';
     const badge = document.getElementById('analyticsActiveHomepage');
-    if (badge)
+    if (badge) {
       badge.textContent =
         active === 'unknown'
           ? 'Active version unavailable'
           : `${String(active).toUpperCase()} currently live`;
+    }
     const container = document.getElementById('analyticsHomepageTable');
-    if (!container) return;
+    if (!container) {
+      return;
+    }
     const rows = Array.isArray(decision?.homepagePerformance) ? decision.homepagePerformance : [];
     container.innerHTML = rows.length
       ? `<table class="analytics-decision-table"><thead><tr><th>Homepage path</th><th>Views</th><th>Sessions</th><th>Avg active</th><th>Engaged</th><th>Exit</th><th>Bounce</th></tr></thead><tbody>${rows.map(row => `<tr><td><strong>${escapeHtml(row.label)}</strong><small>${escapeHtml((row.paths || []).join(', '))}</small></td><td>${formatNumber(row.views)}</td><td>${formatNumber(row.sessions)}</td><td>${formatDuration(row.avgActiveSeconds)}</td><td>${formatPercent(row.engagedRate)}</td><td>${formatPercent(row.exitRate)}</td><td>${formatPercent(row.bounceRate)}</td></tr>`).join('')}</tbody></table>`
@@ -278,7 +291,9 @@
 
   function renderEntities(elementId, rows, type) {
     const container = document.getElementById(elementId);
-    if (!container) return;
+    if (!container) {
+      return;
+    }
     const data = Array.isArray(rows) ? rows : [];
     container.innerHTML = data.length
       ? `<table class="analytics-decision-table"><thead><tr><th>${type === 'supplier' ? 'Supplier' : 'Package'}</th><th>Views</th><th>Saves</th><th>Enquiries</th><th>Rate</th></tr></thead><tbody>${data.map(row => `<tr><td><a href="${escapeHtml(entityLink(type, row.id))}" target="_blank" rel="noopener noreferrer">${escapeHtml(row.id)}</a><small>${formatNumber(row.sessions)} measured sessions</small></td><td>${formatNumber(row.views)}</td><td>${formatNumber(row.saves)}</td><td>${formatNumber(row.enquiries)}</td><td>${formatPercent(row.enquiryRate)}</td></tr>`).join('')}</tbody></table>`
@@ -287,7 +302,9 @@
 
   function renderDefinitions(decision) {
     const container = document.getElementById('analyticsDefinitions');
-    if (!container) return;
+    if (!container) {
+      return;
+    }
     const labels = {
       conversions: 'Conversions',
       sessions: 'Sessions',
@@ -312,7 +329,9 @@
   }
 
   function exportCsv() {
-    if (!state.current) return;
+    if (!state.current) {
+      return;
+    }
     const rows = [['section', 'label', 'value', 'secondary_value']];
     Object.entries(state.current.totals || {}).forEach(([key, value]) =>
       rows.push(['totals', key, value, ''])
@@ -343,7 +362,9 @@
   }
 
   function render() {
-    if (!state.current || !state.previous) return;
+    if (!state.current || !state.previous) {
+      return;
+    }
     renderComparisons(state.current, state.previous);
     renderConversions(state.current.decision);
     renderHomepage(state.current.decision);
@@ -361,7 +382,9 @@
   }
 
   async function load() {
-    if (state.loading || !ensureSection()) return;
+    if (state.loading || !ensureSection()) {
+      return;
+    }
     state.loading = true;
     document.getElementById('analyticsDecisionSection')?.classList.add('is-loading');
     const days = reportingDays();
@@ -381,8 +404,9 @@
       render();
     } catch (error) {
       const grid = document.getElementById('analyticsComparisonGrid');
-      if (grid)
+      if (grid) {
         grid.innerHTML = `<div class="analytics-decision-empty analytics-decision-error">${escapeHtml(error.message || 'Decision analytics could not be loaded.')}</div>`;
+      }
     } finally {
       state.loading = false;
       document.getElementById('analyticsDecisionSection')?.classList.remove('is-loading');
@@ -391,19 +415,28 @@
 
   function bind() {
     const activate = () => {
-      if (!ensureSection()) return false;
+      if (!ensureSection()) {
+        return false;
+      }
       document.getElementById('behaviourAnalyticsRange')?.addEventListener('change', load);
       document.getElementById('analyticsRefreshBtn')?.addEventListener('click', load);
       load();
       return true;
     };
-    if (activate()) return;
+    if (activate()) {
+      return;
+    }
     const observer = new MutationObserver(() => {
-      if (activate()) observer.disconnect();
+      if (activate()) {
+        observer.disconnect();
+      }
     });
     observer.observe(document.documentElement, { childList: true, subtree: true });
   }
 
-  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', bind);
-  else bind();
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', bind);
+  } else {
+    bind();
+  }
 })();

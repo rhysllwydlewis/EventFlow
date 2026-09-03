@@ -27,9 +27,8 @@
  *   ef_tour_completed, ef_signup_popup_dismissed
  */
 
+'use strict';
 (function () {
-  'use strict';
-
   // ─── Constants ────────────────────────────────────────────────────────────
 
   const CONSENT_COOKIE_NAME = 'eventflow_cookie_consent';
@@ -533,7 +532,7 @@
         return prefs
           ? { essential: true, functional: !!prefs.functional, analytics: !!prefs.analytics }
           : { essential: true, functional: false, analytics: false };
-      } catch (e) {
+      } catch {
         return { essential: true, functional: false, analytics: false };
       }
     },

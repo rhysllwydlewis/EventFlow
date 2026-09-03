@@ -7,8 +7,8 @@
 
 // Global CSP-safe image error handler for messenger pages (capture phase).
 // Mirrors the handler embedded in app.js to cover pages that load only messenger scripts.
+'use strict';
 (function () {
-  'use strict';
   function _handleImgError(e) {
     const img = e.target;
     if (!img || img.tagName !== 'IMG') {

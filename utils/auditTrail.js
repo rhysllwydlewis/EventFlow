@@ -217,7 +217,7 @@ async function getAuditLogById(logId) {
  * @param {Object} options - Query options
  * @returns {Promise<Object>} User's audit logs
  */
-async function getUserAuditLogs(userId, options = {}) {
+function getUserAuditLogs(userId, options = {}) {
   return queryAuditLogs({
     actorId: userId,
     ...options,
@@ -327,7 +327,7 @@ function formatAuditLog(log) {
  * @returns {Function} Express middleware
  */
 function auditMiddleware(action, getResourceInfo) {
-  return async (req, res, next) => {
+  return (req, res, next) => {
     // Store original res.json to intercept response
     const originalJson = res.json.bind(res);
 

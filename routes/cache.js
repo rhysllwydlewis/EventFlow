@@ -80,7 +80,7 @@ function applyCsrfProtection(req, res, next) {
 
 // ---------- Cache Routes ----------
 
-router.get('/stats', applyAuthRequired, applyRoleRequired('admin'), async (_req, res) => {
+router.get('/stats', applyAuthRequired, applyRoleRequired('admin'), (_req, res) => {
   try {
     const cacheStats = cache.getStats();
     res.json({
@@ -95,24 +95,19 @@ router.get('/stats', applyAuthRequired, applyRoleRequired('admin'), async (_req,
 });
 
 // Query performance metrics endpoint (admin only)
-router.get(
-  '/database/metrics',
-  applyAuthRequired,
-  applyRoleRequired('admin'),
-  async (_req, res) => {
-    try {
-      const queryMetrics = dbUnified.getQueryMetrics ? dbUnified.getQueryMetrics() : {};
-      res.json({
-        metrics: queryMetrics,
-        timestamp: new Date().toISOString(),
-      });
-    } catch (error) {
-      logger.error('Error getting query metrics:', error);
-      sentry.captureException(error);
-      res.status(500).json({ error: 'Failed to get database metrics' });
-    }
+router.get('/database/metrics', applyAuthRequired, applyRoleRequired('admin'), (_req, res) => {
+  try {
+    const queryMetrics = dbUnified.getQueryMetrics ? dbUnified.getQueryMetrics() : {};
+    res.json({
+      metrics: queryMetrics,
+      timestamp: new Date().toISOString(),
+    });
+  } catch (error) {
+    logger.error('Error getting query metrics:', error);
+    sentry.captureException(error);
+    res.status(500).json({ error: 'Failed to get database metrics' });
   }
-);
+});
 
 // Cache clear endpoint (admin only)
 router.post(

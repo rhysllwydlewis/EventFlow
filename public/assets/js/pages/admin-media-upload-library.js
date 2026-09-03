@@ -1,6 +1,5 @@
+'use strict';
 (() => {
-  'use strict';
-
   const container = document.querySelector('#adminManagementOverview')?.parentElement;
   if (!container || !document.getElementById('photoGrid')) {
     return;

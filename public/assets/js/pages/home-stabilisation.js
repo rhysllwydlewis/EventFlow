@@ -5,9 +5,8 @@
  * unavailable. This file intentionally runs after home-init.js so it can correct
  * legacy static fallbacks without disrupting the existing homepage components.
  */
+'use strict';
 (function () {
-  'use strict';
-
   const STATS_ENDPOINT = '/api/v1/public/stats';
   const MARKETPLACE_ENDPOINT = '/api/v1/marketplace/listings?limit=12';
   const REVIEWS_ENDPOINT = '/api/v1/reviews?limit=3&sort=rating';

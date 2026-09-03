@@ -71,7 +71,7 @@ function applyCsrfProtection(req, res, next) {
 
 // ---------- Metrics Routes ----------
 
-router.post('/metrics/track', applyCsrfProtection, async (req, res) => {
+router.post('/metrics/track', applyCsrfProtection, (req, res) => {
   // In a real deployment you could log req.body here.
   res.json({ ok: true });
 });

@@ -1,6 +1,5 @@
+'use strict';
 (function () {
-  'use strict';
-
   const STYLE_ID = 'eventflow-jadeassist-launcher-polish';
   const DOCUMENT_STYLE_ID = 'eventflow-jadeassist-launcher-host-state';
   const ROOT_SELECTOR = '.jade-widget-root';

@@ -3,9 +3,8 @@
  * Display recommended suppliers based on user preferences
  */
 
+'use strict';
 (function () {
-  'use strict';
-
   const RECOMMENDATION_LIMIT = 5;
   const isDevelopment =
     window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';

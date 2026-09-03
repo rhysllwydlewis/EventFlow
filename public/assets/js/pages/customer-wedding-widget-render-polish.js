@@ -1,6 +1,5 @@
+'use strict';
 (function () {
-  'use strict';
-
   const DIALOG_SELECTOR = '.ww-app-dialog';
   const TRUST_LINE_HTML =
     '<span class="ww-render-trust-icon" aria-hidden="true">🔒</span><span>Your data is secure and private. Only you can see your event.</span>';

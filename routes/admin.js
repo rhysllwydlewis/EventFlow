@@ -1214,7 +1214,7 @@ router.post(
         if (s.ownerUserId) {
           await dbUnified.updateOne('users', { id: s.ownerUserId }, { $set: { isPro: !!s.isPro } });
         }
-      } catch (_e) {
+      } catch {
         // ignore errors from user store
       }
 
@@ -3577,7 +3577,7 @@ router.put(
         existing.autoApproveSupplierVerification !== true
       ) {
         try {
-          const { VERIFICATION_STATES } = require('../utils/supplierVerificationStateMachine');
+          const { VERIFICATION_STATES } = require('../utils/supplierVerificationStateMachine'); // skipcq: JS-0123 - narrow try-block import, unrelated to the module-level import
           const pendingSuppliers = await dbUnified.find('suppliers', {
             $or: [
               { approved: false },
@@ -3733,7 +3733,7 @@ router.put(
         let probeJob = null;
         try {
           probeJob = schedule.scheduleJob(cron, () => {});
-        } catch (_scheduleErr) {
+        } catch {
           probeJob = null;
         }
         if (probeJob) {
@@ -5508,7 +5508,7 @@ router.put(
  * GET /api/admin/homepage/collage-media
  * List all uploaded collage media files
  */
-router.get('/homepage/collage-media', authRequired, roleRequired('admin'), async (req, res) => {
+router.get('/homepage/collage-media', authRequired, roleRequired('admin'), (req, res) => {
   try {
     if (!fs.existsSync(collageUploadDir)) {
       return res.json({ media: [] });
@@ -5553,7 +5553,7 @@ router.post(
   roleRequired('admin'),
   csrfProtection,
   collageUpload.array('media', 10), // Allow up to 10 files at once
-  async (req, res) => {
+  (req, res) => {
     try {
       if (!req.files || req.files.length === 0) {
         return res.status(400).json({ error: 'No media files provided' });
@@ -6345,7 +6345,7 @@ router.post(
  * GET /api/admin/backup/list
  * List all available backups
  */
-router.get('/backup/list', authRequired, roleRequired('admin'), writeLimiter, async (req, res) => {
+router.get('/backup/list', authRequired, roleRequired('admin'), writeLimiter, (req, res) => {
   try {
     const backupsDir = path.join(__dirname, '..', 'backups');
 
@@ -6586,7 +6586,7 @@ router.get('/pexels/test', authRequired, roleRequired('admin'), async (req, res)
  * GET /api/admin/analytics/competitors (P3-17: Competitor Analysis)
  * Get competitor analysis dashboard data
  */
-router.get('/analytics/competitors', authRequired, roleRequired('admin'), async (req, res) => {
+router.get('/analytics/competitors', authRequired, roleRequired('admin'), (req, res) => {
   try {
     // Define key competitors
     const competitors = [
@@ -6830,8 +6830,8 @@ router.get(
   async (req, res) => {
     try {
       const dateService = req.app.locals.dateService;
-      const fs = require('fs').promises;
-      const path = require('path');
+      const fs = require('fs').promises; // skipcq: JS-0123 - narrow local re-require, unrelated to the module-level import
+      const path = require('path'); // skipcq: JS-0123 - narrow local re-require, unrelated to the module-level import
 
       if (!dateService) {
         return res.status(503).json({
@@ -6852,7 +6852,7 @@ router.get(
         const configPath = path.join(__dirname, '../config/content-config.js');
         await fs.access(configPath, fs.constants.W_OK);
         configWritable = true;
-      } catch (err) {
+      } catch {
         configWritable = false;
       }
 

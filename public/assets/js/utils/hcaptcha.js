@@ -203,7 +203,7 @@ export async function addHCaptchaToForm(form, options = {}) {
 
   // Add form submit handler
   const originalSubmit = formElement.onsubmit;
-  formElement.onsubmit = async event => {
+  formElement.onsubmit = event => {
     event.preventDefault();
 
     // Get captcha response

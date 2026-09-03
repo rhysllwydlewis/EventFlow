@@ -4,9 +4,8 @@
  * Logs to console/Sentry and shows user-friendly messages
  */
 
+'use strict';
 (function () {
-  'use strict';
-
   const isDevelopment =
     window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
 

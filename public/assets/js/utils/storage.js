@@ -144,7 +144,7 @@ class Storage {
     try {
       let size = 0;
       for (const key in window[type]) {
-        if (window[type].hasOwnProperty(key)) {
+        if (Object.prototype.hasOwnProperty.call(window[type], key)) {
           size += window[type][key].length + key.length;
         }
       }

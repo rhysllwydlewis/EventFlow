@@ -91,7 +91,7 @@
   }
 
   // Calculate supplier health score
-  async function calculateSupplierHealth(supplier) {
+  function calculateSupplierHealth(supplier) {
     let score = 0;
     const breakdown = {};
 

@@ -3,9 +3,8 @@
  * Handles listing management, auth state, and "+ List an Item" UX
  */
 
+'use strict';
 (function () {
-  'use strict';
-
   let allListings = [];
   let savedListings = [];
   let currentStatus = 'all';
