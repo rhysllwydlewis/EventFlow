@@ -440,7 +440,7 @@ describe('WebSocket Server Initialization', () => {
       });
     });
 
-    it('v2 handleTypingStart: fails closed when messagingService is unavailable', async () => {
+    it('v2 handleTypingStart/handleTypingStop: fail closed when messagingService is unavailable', async () => {
       const WebSocketServerV2 = require('../../websocket-server-v2');
       const ws = new WebSocketServerV2(server, null, null);
       ws.messagingService = null;
@@ -449,6 +449,38 @@ describe('WebSocket Server Initialization', () => {
 
       await ws.handleTypingStart(socket, { threadId: 'thread-1', recipientId: 'victim-id' });
       expect(ws.io.to).not.toHaveBeenCalled();
+
+      await ws.handleTypingStop(socket, { threadId: 'thread-1', recipientId: 'victim-id' });
+      expect(ws.io.to).not.toHaveBeenCalled();
+    });
+
+    it('v2 handleDisconnect: clears a dangling typingUsers entry left by a mid-type disconnect', async () => {
+      const WebSocketServerV2 = require('../../websocket-server-v2');
+      const ws = new WebSocketServerV2(server, null, null);
+      ws.presenceService = { setOffline: jest.fn(async () => {}) };
+      ws.typingUsers.set('thread-1', new Set(['user-1', 'user-2']));
+      ws.userSockets.set('user-1', new Set(['socket-1']));
+      ws.socketUsers.set('socket-1', 'user-1');
+
+      await ws.handleDisconnect({ id: 'socket-1', userId: 'user-1' });
+
+      // The disconnected user is removed from the typing set, but the other
+      // (still-typing) participant is left untouched.
+      expect(ws.typingUsers.get('thread-1').has('user-1')).toBe(false);
+      expect(ws.typingUsers.get('thread-1').has('user-2')).toBe(true);
+    });
+
+    it('v2 handleDisconnect: does not clear typingUsers for a user with another socket still connected', async () => {
+      const WebSocketServerV2 = require('../../websocket-server-v2');
+      const ws = new WebSocketServerV2(server, null, null);
+      ws.presenceService = { setOffline: jest.fn(async () => {}) };
+      ws.typingUsers.set('thread-1', new Set(['user-1']));
+      ws.userSockets.set('user-1', new Set(['socket-1', 'socket-2']));
+      ws.socketUsers.set('socket-1', 'user-1');
+
+      await ws.handleDisconnect({ id: 'socket-1', userId: 'user-1' });
+
+      expect(ws.typingUsers.get('thread-1').has('user-1')).toBe(true);
     });
 
     it('v2 messenger:typing: requires participancy before broadcasting (IDOR regression)', async () => {

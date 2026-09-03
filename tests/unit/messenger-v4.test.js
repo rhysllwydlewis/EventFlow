@@ -1800,6 +1800,12 @@ describe('MessengerV4Service', () => {
   });
 
   describe('blocking', () => {
+    it('assertNoBlockAmong is a no-op when there is no actor or no other participants', async () => {
+      await expect(service.assertNoBlockAmong(null, ['user2'], 'blocked')).resolves.toBeUndefined();
+      await expect(service.assertNoBlockAmong('user1', [], 'blocked')).resolves.toBeUndefined();
+      await expect(service.assertNoBlockAmong('user1', null, 'blocked')).resolves.toBeUndefined();
+    });
+
     it('blockUser creates a block and is idempotent', async () => {
       const block = await service.blockUser('user1', 'user2', 'harassment');
       expect(block.userId).toBe('user1');
