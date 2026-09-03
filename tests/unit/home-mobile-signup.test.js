@@ -47,9 +47,9 @@ describe('homepage mobile sign-up CTA', () => {
     expect(css).toContain('@media (prefers-reduced-motion: reduce)');
     expect(css).toContain(`.ef-header.${ACTIVE_CLASS} .ef-header-actions > #ef-auth-link`);
     expect(css).toContain('.home-v2-page .hv2-mobile-nav .hv2-mobile-signup-menu:hover');
-    expect(homeLoader).toContain('/assets/css/home-mobile-signup.css?v=1.2.0');
-    expect(homeLoader).toContain('/assets/js/components/home-mobile-signup.js?v=1.2.0');
-    expect(v2Loader).toContain('/assets/css/home-mobile-signup.css?v=1.2.0');
-    expect(v2Loader).toContain('/assets/js/components/home-mobile-signup.js?v=1.2.0');
+    expect(homeLoader).toContain('/assets/css/home-mobile-signup.css?v=1.3.0');
+    expect(homeLoader).toContain('/assets/js/components/home-mobile-signup.js?v=1.3.0');
+    expect(v2Loader).toContain('/assets/css/home-mobile-signup.css?v=1.3.0');
+    expect(v2Loader).toContain('/assets/js/components/home-mobile-signup.js?v=1.3.0');
   });
 });
