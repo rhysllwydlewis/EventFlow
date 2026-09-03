@@ -130,6 +130,11 @@ class WebSocketServerV2 {
     this.io.on('connection', socket => {
       logger.debug('WebSocket connected', { socketId: socket.id });
 
+      // Conversation ids this socket has already passed isConversationParticipant()
+      // for via messenger:v4:join-conversation — reused by messenger:typing so a
+      // busy typist doesn't trigger a DB lookup on every keystroke.
+      socket.v4JoinedConversations = new Set();
+
       // Authentication handler
       socket.on('auth', async data => {
         await this.handleAuth(socket, data);
@@ -219,6 +224,7 @@ class WebSocketServerV2 {
           }
 
           socket.join(`conversation:v4:${conversationId}`);
+          socket.v4JoinedConversations.add(conversationId);
           logger.debug('Joined v4 conversation', {
             socketId: socket.id,
             userId: socket.userId,
@@ -240,6 +246,7 @@ class WebSocketServerV2 {
       socket.on('messenger:v4:leave-conversation', data => {
         if (data && data.conversationId) {
           socket.leave(`conversation:v4:${data.conversationId}`);
+          socket.v4JoinedConversations.delete(data.conversationId);
           logger.debug('Left v4 conversation', {
             socketId: socket.id,
             conversationId: data.conversationId,
@@ -261,7 +268,14 @@ class WebSocketServerV2 {
         if (typeof conversationId !== 'string' || !OBJECT_ID_RE.test(conversationId)) {
           return;
         }
-        const isParticipant = await this.isConversationParticipant(conversationId, socket.userId);
+
+        // The composer fires this on every keystroke with no client-side throttling,
+        // so reuse the participancy already established by a successful room join
+        // instead of hitting the DB on every keystroke; fall back to a DB check for
+        // the rare case a client sends typing before/without joining.
+        const isParticipant = socket.v4JoinedConversations.has(conversationId)
+          ? true
+          : await this.isConversationParticipant(conversationId, socket.userId);
         if (!isParticipant) {
           logger.warn('Typing indicator denied: not a participant', {
             socketId: socket.id,

@@ -432,5 +432,39 @@ describe('WebSocket Server Initialization', () => {
         expect.objectContaining({ conversationId, userId: 'real-user-id', isTyping: true })
       );
     });
+
+    it('v2 messenger:typing: reuses the participancy established by a successful room join, without re-querying per keystroke', async () => {
+      const WebSocketServerV2 = require('../../websocket-server-v2');
+      const ws = new WebSocketServerV2(server, null, null);
+      ws.isConversationParticipant = jest.fn().mockResolvedValue(true);
+      const connHandler = getConnectionHandler(ws.io);
+      const socket = createMockSocket();
+      connHandler(socket);
+      const roomEmit = jest.fn();
+      socket.to = jest.fn(() => ({ emit: roomEmit }));
+      socket.userId = 'real-user-id';
+
+      const conversationId = 'c'.repeat(24);
+      socket.trigger('messenger:v4:join-conversation', { conversationId });
+      await Promise.resolve();
+      expect(ws.isConversationParticipant).toHaveBeenCalledTimes(1);
+      expect(socket.join).toHaveBeenCalledWith(`conversation:v4:${conversationId}`);
+
+      // Simulate a busy typist: many keystrokes, each firing messenger:typing.
+      for (let i = 0; i < 5; i++) {
+        socket.trigger('messenger:typing', { conversationId, isTyping: true });
+      }
+      await Promise.resolve();
+
+      // The DB check from the join is reused — no additional lookups per keystroke.
+      expect(ws.isConversationParticipant).toHaveBeenCalledTimes(1);
+      expect(roomEmit).toHaveBeenCalledTimes(5);
+
+      // After leaving, the cache entry is dropped and typing falls back to a DB check.
+      socket.trigger('messenger:v4:leave-conversation', { conversationId });
+      socket.trigger('messenger:typing', { conversationId, isTyping: true });
+      await Promise.resolve();
+      expect(ws.isConversationParticipant).toHaveBeenCalledTimes(2);
+    });
   });
 });
