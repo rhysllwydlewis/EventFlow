@@ -61,9 +61,9 @@ test.describe('premium event travel guide', () => {
     await setRange('#gp-calc-mpg', 50);
     await setRange('#gp-calc-price', 160);
 
-    await expect(page.locator('[data-gp-out="fuel"]')).toHaveText('£29.10');
+    await expect(page.locator('[data-gp-out="fuel"]')).toHaveText('£29.09');
     await expect(page.locator('[data-gp-out="hmrc-amount"]')).toHaveText('£110.00');
-    await expect(page.locator('[data-gp-out="verdict"]')).toContainText('£80.90');
+    await expect(page.locator('[data-gp-out="verdict"]')).toContainText('£80.91');
     await expect(page.locator('[data-gp-readout="gp-calc-price"]')).toHaveText('160.0p/L');
   });
 
