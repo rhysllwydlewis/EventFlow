@@ -392,7 +392,7 @@ test.describe('auth provider geometry', () => {
       await expect(facebookButton).toHaveAttribute('aria-disabled', 'true');
       await expectProviderGeometry(panelRoot);
 
-      await panelRoot.locator('#reg-location').fill('Cardiff');
+      await panelRoot.locator('#reg-location').selectOption('Wales');
       await panelRoot.locator('#reg-company').fill('EventFlow Test Supplier');
 
       await expect(googleButton).not.toHaveClass(/auth-google-button--disabled/);
