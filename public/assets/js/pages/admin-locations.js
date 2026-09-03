@@ -11,9 +11,8 @@
  * publish a page, request indexing or mark it reviewed by accident.
  */
 
+'use strict';
 (function () {
-  'use strict';
-
   const listEl = document.getElementById('efl-admin-list');
   const summaryEl = document.getElementById('efl-admin-summary');
   const filterEl = document.getElementById('efl-admin-filter');
@@ -105,16 +104,16 @@
         }
         resolve(answer);
       };
-      const onClick = event => {
+      function onClick(event) {
         const button = event.target.closest('button[data-confirm]');
         if (button) {
           finish(button.getAttribute('data-confirm') === 'yes');
         }
-      };
-      const onCancel = event => {
+      }
+      function onCancel(event) {
         event.preventDefault();
         finish(false);
-      };
+      }
 
       dialog.addEventListener('click', onClick);
       dialog.addEventListener('cancel', onCancel);

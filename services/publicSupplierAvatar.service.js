@@ -32,7 +32,7 @@ function isSafePublicImageUrl(value) {
     try {
       const parsed = new URL(url);
       return parsed.protocol === 'http:' || parsed.protocol === 'https:';
-    } catch (_err) {
+    } catch {
       return false;
     }
   }
@@ -134,7 +134,7 @@ async function getPublicSupplierAvatar(supplierId, options = {}) {
   return result;
 }
 
-async function syncPublicSupplierAvatarForSupplier(supplierId, avatarUrl, options = {}) {
+function syncPublicSupplierAvatarForSupplier(supplierId, avatarUrl, options = {}) {
   const db = options.dbUnified || require('../db-unified');
   const now = new Date().toISOString();
   const update = { $set: { updatedAt: now } };
@@ -201,7 +201,7 @@ async function repairPublicSupplierAvatars(options = {}) {
       summary.repaired += 1;
       summary.sources = summary.sources || {};
       summary.sources[chosen.field] = (summary.sources[chosen.field] || 0) + 1;
-    } catch (_err) {
+    } catch {
       summary.failed += 1;
     }
   }
@@ -224,7 +224,7 @@ async function checkPublicImageReachability(avatarUrl, options = {}) {
     }
     try {
       target = new URL(target, baseUrl).toString();
-    } catch (_err) {
+    } catch {
       return { checked: false, reachable: false, reason: 'invalid-base-url' };
     }
   }

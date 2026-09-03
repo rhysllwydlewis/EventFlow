@@ -76,7 +76,7 @@ async function suppressEmail(rawEmail, reason, extraUserFields = {}) {
  * normalizePostmarkPayload (Bounce -> Bounced, SubscriptionChange ->
  * SubscriptionChanged).
  */
-async function applyWebhookSuppression(payload = {}) {
+function applyWebhookSuppression(payload = {}) {
   const recordType = payload.RecordType || payload.Type;
   const email = payload.Email || payload.Recipient;
 

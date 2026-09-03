@@ -3,9 +3,8 @@
  * Injects a collapse button into eligible cards on viewports ≤ 1024 px.
  * Companion CSS: /assets/css/card-collapse.css
  */
+'use strict';
 (function () {
-  'use strict';
-
   const DEFAULT_CARD_SELECTORS = [
     '.card',
     '.ef-card',
@@ -191,12 +190,12 @@
       }
     };
 
-    const handler = e => {
+    function handler(e) {
       if (e.propertyName !== 'max-height') {
         return;
       }
       finish();
-    };
+    }
     wrapper._animationHandler = handler;
     wrapper.addEventListener('transitionend', handler);
     wrapper._animationTimer = setTimeout(finish, 350);
@@ -234,12 +233,12 @@
       }
     };
 
-    const handler = e => {
+    function handler(e) {
       if (e.propertyName !== 'max-height') {
         return;
       }
       finish();
-    };
+    }
     wrapper._animationHandler = handler;
     wrapper.addEventListener('transitionend', handler);
     wrapper._animationTimer = setTimeout(finish, 350);

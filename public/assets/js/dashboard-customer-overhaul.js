@@ -2,9 +2,8 @@
  * EventFlow Customer Dashboard Overhaul — PR #1150
  * Adds: event countdown, milestone checklist, budget KPI cards, activity feed.
  */
+'use strict';
 (function () {
-  'use strict';
-
   function esc(str) {
     const d = document.createElement('div');
     d.textContent = String(str ?? '');

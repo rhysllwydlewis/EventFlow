@@ -3,9 +3,8 @@
  * Applies P3 features to supplier listings.
  */
 
+'use strict';
 (function () {
-  'use strict';
-
   function enhanceCard(card) {
     // Add new badge if supplier is new
     const createdAt = card.dataset.createdAt || card.dataset.supplierCreated;

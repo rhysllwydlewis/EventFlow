@@ -3,9 +3,8 @@
  * Shows live viewport dimensions in the header and bootstraps the
  * package carousels so the cards look identical to the live suppliers page.
  */
+'use strict';
 (function () {
-  'use strict';
-
   // ── Viewport label ─────────────────────────────────────────────────────────
   const lbl = document.getElementById('viewport-label');
   function updateLabel() {

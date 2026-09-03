@@ -46,7 +46,7 @@ class SupplierGalleryManager {
       if (Number.isFinite(limit)) {
         this.maxPhotos = limit;
       }
-    } catch (_error) {
+    } catch {
       // Keep the default; the server is the authority.
     }
   }
@@ -78,7 +78,6 @@ class SupplierGalleryManager {
   setup() {
     const dropZone = document.getElementById('sup-photo-drop');
     const previewContainer = document.getElementById('sup-photo-preview');
-    const supplierForm = document.getElementById('supplier-form');
 
     if (!dropZone || !previewContainer) {
       if (isDevelopment) {

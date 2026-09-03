@@ -10,9 +10,8 @@
  * - Query validation
  */
 
+'use strict';
 (function () {
-  'use strict';
-
   // ==========================================
   // STATE
   // ==========================================
@@ -716,7 +715,7 @@
     // Close autocomplete when clicking outside
     document.addEventListener('click', e => {
       const dropdown = document.getElementById('search-autocomplete');
-      const searchBox = document.getElementById('advanced-search-input');
+      const searchBox = document.getElementById('advanced-search-input'); // skipcq: JS-0123 - local to this click handler, unrelated to the outer setup-scope searchBox
 
       if (dropdown && searchBox && !dropdown.contains(e.target) && e.target !== searchBox) {
         hideAutocomplete();

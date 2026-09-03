@@ -1,6 +1,5 @@
+'use strict';
 (function () {
-  'use strict';
-
   const params = new URLSearchParams(window.location.search);
   const isPreview = params.get('preview') === '1';
   const planId = params.get('plan') || '';

@@ -210,7 +210,7 @@ class SettingsService {
    * @param {Object} preferences - User preferences
    * @returns {Promise<Object>} - Updated settings
    */
-  async updatePreferences(userId, preferences) {
+  updatePreferences(userId, preferences) {
     // For now, preferences are stored in user object
     // In the future, could have a separate preferences collection
     logger.debug(`Updating preferences for user ${userId}`, preferences);

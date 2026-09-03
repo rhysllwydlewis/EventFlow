@@ -1,6 +1,5 @@
+'use strict';
 (function () {
-  'use strict';
-
   const STYLE_ID = 'ww-widget-ux-polish-styles';
   const OBSERVED_WIDGET_SELECTOR =
     '.ww-app-dialog,.ww-app-panel,#ww-builder,.seat-grid,.ww-unseated,.ww-seating-command';

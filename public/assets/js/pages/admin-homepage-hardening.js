@@ -1,6 +1,5 @@
+'use strict';
 (() => {
-  'use strict';
-
   if (!document.body.classList.contains('admin-homepage-manager')) {
     return;
   }

@@ -2,9 +2,8 @@
  * Partner Dashboard v2
  * Independent section loading, current-state sharing, resilient cashouts and accessible dialogs/tabs.
  */
+'use strict';
 (function () {
-  'use strict';
-
   const API_BASE = '/api/v1/partner';
   const state = {
     user: null,
@@ -39,9 +38,13 @@
   }
 
   function formatDate(value, options = {}) {
-    if (!value) return '—';
+    if (!value) {
+      return '—';
+    }
     const date = new Date(value);
-    if (!Number.isFinite(date.getTime())) return '—';
+    if (!Number.isFinite(date.getTime())) {
+      return '—';
+    }
     return date.toLocaleDateString('en-GB', {
       day: 'numeric',
       month: 'short',
@@ -83,7 +86,9 @@
 
   function showToast(message, type = 'success') {
     const toast = byId('partner-toast');
-    if (!toast) return;
+    if (!toast) {
+      return;
+    }
     clearTimeout(toastTimer);
     toast.textContent = message;
     toast.className = `partner-toast-v2 is-visible${type === 'error' ? ' is-error' : ''}`;
@@ -94,9 +99,13 @@
   }
 
   async function getCsrfToken() {
-    if (window.__CSRF_TOKEN__) return window.__CSRF_TOKEN__;
+    if (window.__CSRF_TOKEN__) {
+      return window.__CSRF_TOKEN__;
+    }
     const response = await fetch('/api/v1/csrf-token', { credentials: 'include' });
-    if (!response.ok) return '';
+    if (!response.ok) {
+      return '';
+    }
     const body = await response.json().catch(() => ({}));
     return body.csrfToken || '';
   }
@@ -127,18 +136,24 @@
 
   function setLoading(containerId, message) {
     const container = byId(containerId);
-    if (container) container.innerHTML = loadingMarkup(message);
+    if (container) {
+      container.innerHTML = loadingMarkup(message);
+    }
   }
 
   function renderEmpty(containerId, title, message, actionHtml = '') {
     const container = byId(containerId);
-    if (!container) return;
+    if (!container) {
+      return;
+    }
     container.innerHTML = `<div class="partner-empty-v2"><strong>${escapeHtml(title)}</strong><p>${escapeHtml(message)}</p>${actionHtml}</div>`;
   }
 
   function renderSectionError(containerId, retryKey, message) {
     const container = byId(containerId);
-    if (!container) return;
+    if (!container) {
+      return;
+    }
     container.innerHTML = `<div class="partner-section-error"><strong>Unable to load this section</strong><p>${escapeHtml(message || 'Please try again.')}</p><button type="button" class="partner-secondary-btn" data-retry="${escapeHtml(retryKey)}">Retry</button></div>`;
   }
 
@@ -162,9 +177,13 @@
   function setGreeting(profile) {
     const hour = new Date().getHours();
     const greeting = hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening';
-    if (byId('partner-greeting-time')) byId('partner-greeting-time').textContent = greeting;
+    if (byId('partner-greeting-time')) {
+      byId('partner-greeting-time').textContent = greeting;
+    }
     const firstName = profile?.firstName || String(profile?.name || '').split(' ')[0] || 'Partner';
-    if (byId('partner-name-heading')) byId('partner-name-heading').textContent = firstName;
+    if (byId('partner-name-heading')) {
+      byId('partner-name-heading').textContent = firstName;
+    }
     if (byId('partner-user-name')) {
       byId('partner-user-name').textContent = profile?.name || state.user?.email || '';
     }
@@ -177,9 +196,13 @@
       const selected = tab.dataset.panel === panelName;
       tab.setAttribute('aria-selected', String(selected));
       tab.tabIndex = selected ? 0 : -1;
-      if (selected && focusTab) tab.focus();
+      if (selected && focusTab) {
+        tab.focus();
+      }
     }
-    for (const panel of panels) panel.hidden = panel.dataset.dashboardPanel !== panelName;
+    for (const panel of panels) {
+      panel.hidden = panel.dataset.dashboardPanel !== panelName;
+    }
     history.replaceState(null, '', `#${panelName}`);
   }
 
@@ -188,13 +211,23 @@
     tabs.forEach((tab, index) => {
       tab.addEventListener('click', () => selectPanel(tab.dataset.panel));
       tab.addEventListener('keydown', event => {
-        if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
+        if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) {
+          return;
+        }
         event.preventDefault();
         let nextIndex = index;
-        if (event.key === 'ArrowRight') nextIndex = (index + 1) % tabs.length;
-        if (event.key === 'ArrowLeft') nextIndex = (index - 1 + tabs.length) % tabs.length;
-        if (event.key === 'Home') nextIndex = 0;
-        if (event.key === 'End') nextIndex = tabs.length - 1;
+        if (event.key === 'ArrowRight') {
+          nextIndex = (index + 1) % tabs.length;
+        }
+        if (event.key === 'ArrowLeft') {
+          nextIndex = (index - 1 + tabs.length) % tabs.length;
+        }
+        if (event.key === 'Home') {
+          nextIndex = 0;
+        }
+        if (event.key === 'End') {
+          nextIndex = tabs.length - 1;
+        }
         selectPanel(tabs[nextIndex].dataset.panel, true);
       });
     });
@@ -202,7 +235,9 @@
       button.addEventListener('click', () => selectPanel(button.dataset.openPanel, true));
     });
     const hashPanel = location.hash.replace('#', '');
-    if (tabs.some(tab => tab.dataset.panel === hashPanel)) selectPanel(hashPanel);
+    if (tabs.some(tab => tab.dataset.panel === hashPanel)) {
+      selectPanel(hashPanel);
+    }
   }
 
   function focusableElements(dialog) {
@@ -214,13 +249,17 @@
   }
 
   function handleDialogKeydown(event) {
-    if (!activeDialog) return;
+    if (!activeDialog) {
+      return;
+    }
     if (event.key === 'Escape') {
       event.preventDefault();
       closeDialog(activeDialog);
       return;
     }
-    if (event.key !== 'Tab') return;
+    if (event.key !== 'Tab') {
+      return;
+    }
     const dialog = activeDialog.querySelector('[role="dialog"], [role="alertdialog"]');
     const focusable = dialog ? focusableElements(dialog) : [];
     if (!focusable.length) {
@@ -240,8 +279,12 @@
   }
 
   function openDialog(overlay, trigger = document.activeElement) {
-    if (!overlay) return;
-    if (activeDialog && activeDialog !== overlay) closeDialog(activeDialog, false);
+    if (!overlay) {
+      return;
+    }
+    if (activeDialog && activeDialog !== overlay) {
+      closeDialog(activeDialog, false);
+    }
     activeDialog = overlay;
     dialogTrigger = trigger;
     overlay.hidden = false;
@@ -253,19 +296,27 @@
   }
 
   function closeDialog(overlay, restoreFocus = true) {
-    if (!overlay) return;
+    if (!overlay) {
+      return;
+    }
     overlay.hidden = true;
-    if (activeDialog === overlay) activeDialog = null;
+    if (activeDialog === overlay) {
+      activeDialog = null;
+    }
     document.body.style.overflow = '';
     document.removeEventListener('keydown', handleDialogKeydown);
-    if (restoreFocus && dialogTrigger?.focus) dialogTrigger.focus();
+    if (restoreFocus && dialogTrigger?.focus) {
+      dialogTrigger.focus();
+    }
     dialogTrigger = null;
   }
 
   function initDialogs() {
     document.querySelectorAll('.partner-dialog-overlay').forEach(overlay => {
       overlay.addEventListener('click', event => {
-        if (event.target === overlay) closeDialog(overlay);
+        if (event.target === overlay) {
+          closeDialog(overlay);
+        }
       });
       overlay.querySelectorAll('[data-close-dialog]').forEach(button => {
         button.addEventListener('click', () => closeDialog(overlay));
@@ -283,7 +334,9 @@
   }
 
   function finishConfirm(result) {
-    if (confirmResolver) confirmResolver(result);
+    if (confirmResolver) {
+      confirmResolver(result);
+    }
     confirmResolver = null;
     closeDialog(byId('partner-confirm-overlay'));
   }
@@ -305,7 +358,9 @@
     });
     selectPanel('support');
     const supportTitle = byId('support-modal-title');
-    if (supportTitle) supportTitle.textContent = 'Contact account support';
+    if (supportTitle) {
+      supportTitle.textContent = 'Contact account support';
+    }
   }
 
   function renderCore() {
@@ -334,18 +389,26 @@
     const firstName = byId('settings-firstname');
     const lastName = byId('settings-lastname');
     const company = byId('settings-company');
-    if (firstName && document.activeElement !== firstName)
+    if (firstName && document.activeElement !== firstName) {
       firstName.value = state.profile.firstName || '';
-    if (lastName && document.activeElement !== lastName)
+    }
+    if (lastName && document.activeElement !== lastName) {
       lastName.value = state.profile.lastName || '';
-    if (company && document.activeElement !== company) company.value = state.profile.company || '';
+    }
+    if (company && document.activeElement !== company) {
+      company.value = state.profile.company || '';
+    }
     renderCashoutForm();
   }
 
   function nextActionMessage() {
-    if (!state.config || !state.credits) return 'Your partner account is active.';
+    if (!state.config || !state.credits) {
+      return 'Your partner account is active.';
+    }
     const minimumPoints = state.config.minimumCashoutGbp * state.config.pointsPerGbp;
-    if (state.credits.availableBalance >= minimumPoints) return 'Your rewards are ready to redeem.';
+    if (state.credits.availableBalance >= minimumPoints) {
+      return 'Your rewards are ready to redeem.';
+    }
     if (state.stats?.referralActivity?.active) {
       return `${state.stats.referralActivity.active} active referral${state.stats.referralActivity.active === 1 ? '' : 's'} can still complete milestones.`;
     }
@@ -425,7 +488,9 @@
     try {
       const body = await api('/stats');
       state.stats = body;
-      if (body.config) state.config = body.config;
+      if (body.config) {
+        state.config = body.config;
+      }
       renderStats();
     } catch (error) {
       renderSectionError('breakdown-container', 'stats', error.message);
@@ -469,8 +534,9 @@
 
   function sortedFilteredReferrals() {
     let items = [...state.referrals];
-    if (state.referralFilter !== 'all')
+    if (state.referralFilter !== 'all') {
       items = items.filter(item => item.state === state.referralFilter);
+    }
     if (state.referralSort === 'expiring') {
       items.sort(
         (a, b) =>
@@ -577,7 +643,9 @@
 
   function renderCashoutForm() {
     const container = byId('cashout-container');
-    if (!container || !state.credits || !state.config) return;
+    if (!container || !state.credits || !state.config) {
+      return;
+    }
     const availablePoints = Number(state.credits.availableBalance || 0);
     const availableGbp = availablePoints / Number(state.config.pointsPerGbp || 100);
     const denominations = (state.config.cashoutDenominations || []).filter(
@@ -602,7 +670,9 @@
   }
 
   function newCashoutKey() {
-    if (window.crypto?.randomUUID) return `cashout_${window.crypto.randomUUID()}`;
+    if (window.crypto?.randomUUID) {
+      return `cashout_${window.crypto.randomUUID()}`;
+    }
     return `cashout_${Date.now()}_${Math.random().toString(36).slice(2, 12)}`;
   }
 
@@ -622,8 +692,12 @@
     const confirmed = await confirmAction(
       `Submit a £${denominationGbp} ${methodLabel(method)} redemption request? The matching points will be held immediately.`
     );
-    if (!confirmed) return;
-    if (!state.cashoutKey) state.cashoutKey = newCashoutKey();
+    if (!confirmed) {
+      return;
+    }
+    if (!state.cashoutKey) {
+      state.cashoutKey = newCashoutKey();
+    }
     submit.disabled = true;
     status.textContent = 'Submitting securely…';
     status.style.color = '';
@@ -648,8 +722,12 @@
     } catch (error) {
       status.textContent = error.message;
       status.style.color = 'var(--partner-danger)';
-      if (error.status && error.status < 500) state.cashoutKey = null;
-      if (error.body?.reconciliationRequired) selectPanel('support', true);
+      if (error.status && error.status < 500) {
+        state.cashoutKey = null;
+      }
+      if (error.body?.reconciliationRequired) {
+        selectPanel('support', true);
+      }
     } finally {
       submit.disabled = false;
     }
@@ -722,7 +800,9 @@
     const confirmed = await confirmAction(
       'Generate a new partner code? Previous links will remain valid, but all dashboard sharing actions will switch to the new code.'
     );
-    if (!confirmed) return;
+    if (!confirmed) {
+      return;
+    }
     const button = byId('partner-regen-btn');
     button.disabled = true;
     button.textContent = 'Generating…';
@@ -933,7 +1013,9 @@
   }
 
   async function copyText(value, message) {
-    if (!value) return;
+    if (!value) {
+      return;
+    }
     try {
       await navigator.clipboard.writeText(value);
     } catch (_) {
@@ -950,7 +1032,9 @@
   }
 
   function shareWhatsApp() {
-    if (!state.partner?.refLink) return;
+    if (!state.partner?.refLink) {
+      return;
+    }
     const text = encodeURIComponent(
       `I thought your event business might be a good fit for EventFlow. You can create a supplier profile here: ${state.partner.refLink}`
     );
@@ -958,7 +1042,9 @@
   }
 
   function shareEmail() {
-    if (!state.partner?.refLink) return;
+    if (!state.partner?.refLink) {
+      return;
+    }
     const subject = encodeURIComponent('Invitation to join EventFlow as an event supplier');
     const body = encodeURIComponent(
       `Hi,\n\nI thought EventFlow might be useful for your event business. You can create a supplier profile here:\n${state.partner.refLink}\n\nBest wishes`
@@ -1026,7 +1112,9 @@
     document.querySelectorAll('[data-password-target]').forEach(button => {
       button.addEventListener('click', () => {
         const input = byId(button.dataset.passwordTarget);
-        if (!input) return;
+        if (!input) {
+          return;
+        }
         input.type = input.type === 'password' ? 'text' : 'password';
         button.textContent = input.type === 'password' ? 'Show' : 'Hide';
         button.setAttribute(
@@ -1037,7 +1125,9 @@
     });
     document.addEventListener('click', event => {
       const retry = event.target.closest('[data-retry]');
-      if (retry && retryHandlers[retry.dataset.retry]) retryHandlers[retry.dataset.retry]();
+      if (retry && retryHandlers[retry.dataset.retry]) {
+        retryHandlers[retry.dataset.retry]();
+      }
     });
   }
 
@@ -1057,7 +1147,9 @@
     registerRetryHandlers();
 
     const user = await ensureAuth();
-    if (!user) return;
+    if (!user) {
+      return;
+    }
     byId('partner-user-name').textContent = user.name || user.email || '';
 
     try {

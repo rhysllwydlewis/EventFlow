@@ -315,10 +315,6 @@ async function initCustomerDashboardWidgets(preloadedPlans) {
       }
     }
 
-    // Count messages/conversations — start at 0; the stats widget will be updated
-    // dynamically once UnreadBadgeManager receives real data (unreadCountUpdated event).
-    const unreadMessages = 0;
-
     // Count upcoming tasks from plans (suppliers that need action)
     const upcomingTasks = plans.length > 0 ? plans.length : 0;
 

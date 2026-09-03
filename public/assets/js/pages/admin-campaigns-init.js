@@ -10,9 +10,8 @@
  * headers are handled consistently with every other admin page.
  */
 
+'use strict';
 (function () {
-  'use strict';
-
   // ── Debounce helper ────────────────────────────────────────────────────────
   function debounce(fn, delay) {
     let timer;

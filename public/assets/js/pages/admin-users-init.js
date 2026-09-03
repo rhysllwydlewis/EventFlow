@@ -4,9 +4,8 @@
  * Uses the /api/admin/users/summary and /api/admin/users/list endpoints
  * from services/adminUserSummary.service.js so counts match /admin dashboard.
  */
+'use strict';
 (function () {
-  'use strict';
-
   const $ = id => document.getElementById(id);
   const selectedUserIds = new Set();
 
@@ -577,7 +576,7 @@
     }
   }
 
-  async function bulkExportSelected() {
+  function bulkExportSelected() {
     const ids = [...selectedUserIds];
     if (!ids.length) {
       AdminShared.showToast('Select visible users to export.', 'warning');
@@ -612,7 +611,7 @@
         `/api/admin/users/${encodeURIComponent(userId)}/subscription-history`
       );
       renderSubscriptionHistory(data.history || []);
-    } catch (_err) {
+    } catch {
       const target = $('subscriptionHistory');
       if (target) {
         target.innerHTML = '<div class="text-muted">Could not load subscription history.</div>';
@@ -706,7 +705,7 @@
     try {
       const data = await AdminShared.api('/api/admin/users/summary');
       renderSummaryCards(data);
-    } catch (err) {
+    } catch {
       const grid = $('ucSummaryGrid');
       if (grid) {
         grid.innerHTML = '<div class="admin-inline-error">Could not load user summary.</div>';
@@ -731,7 +730,7 @@
       renderTable(currentUsers);
       updateSummaryText(currentTotal, currentPages);
       updateBulkBar();
-    } catch (err) {
+    } catch {
       if (tbody) {
         tbody.innerHTML =
           '<tr><td colspan="12" class="uc-empty-cell">Failed to load users. Please refresh.</td></tr>';

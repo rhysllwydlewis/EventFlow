@@ -1,6 +1,5 @@
+'use strict';
 (function () {
-  'use strict';
-
   let report = null;
   let filteredItems = [];
 
@@ -14,9 +13,13 @@
   }
 
   function fmtDate(iso) {
-    if (!iso) return '—';
+    if (!iso) {
+      return '—';
+    }
     const date = new Date(iso);
-    if (Number.isNaN(date.getTime())) return '—';
+    if (Number.isNaN(date.getTime())) {
+      return '—';
+    }
     return date.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
   }
 
@@ -26,20 +29,30 @@
 
   function setText(id, value) {
     const el = document.getElementById(id);
-    if (el) el.textContent = value;
+    if (el) {
+      el.textContent = value;
+    }
   }
 
   function qualifierPills(item) {
     const pills = [];
-    if (item.packageQualified) pills.push('<span class="pcr-pill">Package</span>');
-    if (item.subscriptionQualified) pills.push('<span class="pcr-pill">Subscription</span>');
-    if (item.firstReviewQualified) pills.push('<span class="pcr-pill">Review</span>');
+    if (item.packageQualified) {
+      pills.push('<span class="pcr-pill">Package</span>');
+    }
+    if (item.subscriptionQualified) {
+      pills.push('<span class="pcr-pill">Subscription</span>');
+    }
+    if (item.firstReviewQualified) {
+      pills.push('<span class="pcr-pill">Review</span>');
+    }
     return pills.length ? pills.join(' ') : '<span class="pcr-muted">None yet</span>';
   }
 
   function renderCampaignSummary() {
     const body = document.getElementById('pcr-campaign-body');
-    if (!body) return;
+    if (!body) {
+      return;
+    }
     const rows = (report.campaignSummary || []).slice(0, 25);
     if (!rows.length) {
       body.innerHTML = '<tr><td colspan="7" class="pcr-empty">No campaign data yet.</td></tr>';
@@ -62,7 +75,9 @@
 
   function renderPartnerSummary() {
     const body = document.getElementById('pcr-partner-body');
-    if (!body) return;
+    if (!body) {
+      return;
+    }
     const rows = (report.partnerSummary || []).slice(0, 25);
     if (!rows.length) {
       body.innerHTML =
@@ -85,7 +100,9 @@
 
   function renderItems() {
     const body = document.getElementById('pcr-items-body');
-    if (!body) return;
+    if (!body) {
+      return;
+    }
     if (!filteredItems.length) {
       body.innerHTML =
         '<tr><td colspan="7" class="pcr-empty">No referrals match your search.</td></tr>';
@@ -151,22 +168,30 @@
     const campaignBody = document.getElementById('pcr-campaign-body');
     const partnerBody = document.getElementById('pcr-partner-body');
     const itemBody = document.getElementById('pcr-items-body');
-    if (campaignBody)
+    if (campaignBody) {
       campaignBody.innerHTML = '<tr><td colspan="7" class="pcr-empty">Loading…</td></tr>';
-    if (partnerBody)
+    }
+    if (partnerBody) {
       partnerBody.innerHTML = '<tr><td colspan="6" class="pcr-empty">Loading…</td></tr>';
-    if (itemBody) itemBody.innerHTML = '<tr><td colspan="7" class="pcr-empty">Loading…</td></tr>';
+    }
+    if (itemBody) {
+      itemBody.innerHTML = '<tr><td colspan="7" class="pcr-empty">Loading…</td></tr>';
+    }
 
     try {
       const data = await AdminShared.api('/api/admin/partners/campaign-report');
       renderReport(data);
     } catch (err) {
       const msg = esc(err.message || 'Failed to load campaign report.');
-      if (campaignBody)
+      if (campaignBody) {
         campaignBody.innerHTML = `<tr><td colspan="7" class="pcr-empty">${msg}</td></tr>`;
-      if (partnerBody)
+      }
+      if (partnerBody) {
         partnerBody.innerHTML = `<tr><td colspan="6" class="pcr-empty">${msg}</td></tr>`;
-      if (itemBody) itemBody.innerHTML = `<tr><td colspan="7" class="pcr-empty">${msg}</td></tr>`;
+      }
+      if (itemBody) {
+        itemBody.innerHTML = `<tr><td colspan="7" class="pcr-empty">${msg}</td></tr>`;
+      }
     }
   }
 

@@ -1883,7 +1883,7 @@ router.post(
  * GET /api/v2/admin/permission-cache/stats
  * Get permission cache statistics (for debugging)
  */
-router.get('/permission-cache/stats', authRequired, roleRequired('admin'), async (req, res) => {
+router.get('/permission-cache/stats', authRequired, roleRequired('admin'), (req, res) => {
   try {
     const stats = getPermissionCacheStats();
     res.json({
@@ -1911,7 +1911,7 @@ router.post(
   authRequired,
   roleRequired('admin'),
   csrfProtection,
-  async (req, res) => {
+  (req, res) => {
     try {
       const { userId } = req.body;
       clearPermissionCache(userId);

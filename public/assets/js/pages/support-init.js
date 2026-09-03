@@ -1,8 +1,7 @@
+'use strict';
 window.__EF_PAGE__ = 'support';
 
 (function () {
-  'use strict';
-
   let allTickets = [];
   let activeFilter = '';
 

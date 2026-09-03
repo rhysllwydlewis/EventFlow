@@ -3,9 +3,8 @@
  * Testimonials carousel functionality and other homepage-specific interactions
  */
 
+'use strict';
 (function () {
-  'use strict';
-
   function loadMobileSignupCta() {
     if (!document.getElementById('ef-home-mobile-signup-css')) {
       const stylesheet = document.createElement('link');

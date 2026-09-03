@@ -7,9 +7,8 @@
  *   2. <meta name="sentry-dsn"> and <meta name="sentry-release"> tags
  *   3. /api/v1/config endpoint (falls back to this for dynamic DSN)
  */
+'use strict';
 (function () {
-  'use strict';
-
   /**
    * Read Sentry configuration from meta tags or window config
    * @returns {{ dsn: string|null, release: string|null, environment: string }}

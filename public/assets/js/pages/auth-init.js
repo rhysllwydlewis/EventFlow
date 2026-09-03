@@ -1,11 +1,4 @@
-function escapeHtml(s) {
-  if (!s) {
-    return '';
-  }
-  const d = document.createElement('div');
-  d.textContent = String(s);
-  return d.innerHTML;
-}
+'use strict';
 
 /**
  * Auth Page — Tab switcher + enhancements
@@ -23,8 +16,6 @@ function escapeHtml(s) {
  * by app.js (which already has all CSRF / ALTCHA / API logic).
  */
 (function () {
-  'use strict';
-
   // ── Tab elements ──────────────────────────────────────────────
   const tabSign = document.getElementById('tab-signin');
   const tabCreate = document.getElementById('tab-create');
@@ -303,7 +294,7 @@ function escapeHtml(s) {
           panelCreate.insertAdjacentElement('afterbegin', banner);
         }
       }
-    } catch (_) {
+    } catch {
       // Network error — silently leave the UI in its default (enabled) state
     }
   })();

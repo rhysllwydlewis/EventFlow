@@ -12,8 +12,8 @@
  * - Grouped notifications
  */
 
+'use strict';
 (function () {
-  'use strict';
 
   // Check if running in development environment
   const isDevelopment =

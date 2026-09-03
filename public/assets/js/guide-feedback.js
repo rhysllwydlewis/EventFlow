@@ -1,6 +1,5 @@
+'use strict';
 (function () {
-  'use strict';
-
   function issueUrl(widget) {
     const slug = widget.dataset.guideSlug || window.location.pathname.split('/').pop();
     const title = encodeURIComponent(`[Report] Guide: ${slug}`);

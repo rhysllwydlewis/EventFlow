@@ -20,10 +20,10 @@ WARN=0
 
 # Function to report test result
 test_result() {
-    if [ $1 -eq 0 ]; then
+    if [ "$1" -eq 0 ]; then
         echo -e "${GREEN}✓ PASS${NC}: $2"
         ((PASS++))
-    elif [ $1 -eq 2 ]; then
+    elif [ "$1" -eq 2 ]; then
         echo -e "${YELLOW}⚠ WARN${NC}: $2"
         ((WARN++))
     else
@@ -87,7 +87,7 @@ echo "-----------------"
 
 # Check CSS file size
 CSS_LINES=$(wc -l < public/assets/css/supplier-dashboard-improvements.css)
-if [ $CSS_LINES -ge 850 ] && [ $CSS_LINES -le 900 ]; then
+if [ "$CSS_LINES" -ge 850 ] && [ "$CSS_LINES" -le 900 ]; then
     test_result 0 "CSS file size appropriate ($CSS_LINES lines)"
 else
     test_result 2 "CSS file size unexpected ($CSS_LINES lines)"
@@ -112,7 +112,7 @@ echo "------------------"
 
 # Count inline styles
 INLINE_STYLES=$(grep -c 'style="' public/dashboard-supplier.html)
-if [ $INLINE_STYLES -le 15 ]; then
+if [ "$INLINE_STYLES" -le 15 ]; then
     test_result 0 "Inline styles reduced ($INLINE_STYLES remaining)"
 else
     test_result 1 "Too many inline styles ($INLINE_STYLES)"
@@ -120,7 +120,7 @@ fi
 
 # Check classList usage
 CLASSLIST_COUNT=$(grep -c "classList" public/dashboard-supplier.html)
-if [ $CLASSLIST_COUNT -ge 8 ]; then
+if [ "$CLASSLIST_COUNT" -ge 8 ]; then
     test_result 0 "classList API used ($CLASSLIST_COUNT occurrences)"
 else
     test_result 2 "classList usage low ($CLASSLIST_COUNT occurrences)"
@@ -128,7 +128,7 @@ fi
 
 # Check for problematic style.display
 STYLE_DISPLAY=$(grep -c "style.display" public/dashboard-supplier.html)
-if [ $STYLE_DISPLAY -le 3 ]; then
+if [ "$STYLE_DISPLAY" -le 3 ]; then
     test_result 0 "style.display usage acceptable ($STYLE_DISPLAY occurrences)"
 else
     test_result 2 "style.display usage high ($STYLE_DISPLAY occurrences)"
@@ -140,7 +140,7 @@ echo "---------------"
 
 # Check for console.log
 CONSOLE_LOGS=$(grep -c "console.log" public/dashboard-supplier.html || true)
-if [ $CONSOLE_LOGS -eq 0 ]; then
+if [ "$CONSOLE_LOGS" -eq 0 ]; then
     test_result 0 "No console.log statements"
 else
     test_result 2 "Found $CONSOLE_LOGS console.log statements"
@@ -148,7 +148,7 @@ fi
 
 # Check for TODO/FIXME
 TODOS=$(grep -c "TODO\|FIXME" public/dashboard-supplier.html || true)
-if [ $TODOS -eq 0 ]; then
+if [ "$TODOS" -eq 0 ]; then
     test_result 0 "No TODO/FIXME comments"
 else
     test_result 2 "Found $TODOS TODO/FIXME comments"

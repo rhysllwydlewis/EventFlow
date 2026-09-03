@@ -1,8 +1,8 @@
+'use strict';
 (function () {
-  'use strict';
-
-  if (!['/dashboard/customer', '/dashboard-customer.html'].includes(window.location.pathname))
+  if (!['/dashboard/customer', '/dashboard-customer.html'].includes(window.location.pathname)) {
     return;
+  }
 
   const MAX_RECOMMENDATIONS = 5;
   const STYLE_ID = 'customer-dashboard-polish-styles';
@@ -29,7 +29,9 @@
   }
 
   function injectStyles() {
-    if (document.getElementById(STYLE_ID)) return;
+    if (document.getElementById(STYLE_ID)) {
+      return;
+    }
     const style = document.createElement('style');
     style.id = STYLE_ID;
     style.textContent = `
@@ -143,11 +145,14 @@
         card.dataset.efPolishCollapseReady === '1' ||
         card.id === 'wedding-website-dashboard-card' ||
         card.classList.contains('no-collapse')
-      )
+      ) {
         return;
+      }
       const header = card.querySelector(':scope > .sd-card-header');
       const body = card.querySelector(':scope > .cd-card-body');
-      if (!header || !body) return;
+      if (!header || !body) {
+        return;
+      }
       const lowerTitle = cardTitle(card).toLowerCase();
       const allowed = [
         'budget settings',
@@ -158,7 +163,9 @@
         'support tickets',
         'conversations',
       ];
-      if (!allowed.some(item => lowerTitle.includes(item))) return;
+      if (!allowed.some(item => lowerTitle.includes(item))) {
+        return;
+      }
       let actions = header.querySelector(':scope > .sd-card-header__actions');
       if (!actions) {
         actions = document.createElement('div');
@@ -179,7 +186,9 @@
         setCollapsed(card, button, !card.classList.contains('ef-dashboard-card--collapsed'));
       });
       header.addEventListener('click', event => {
-        if (event.target.closest('button,a,input,select,textarea')) return;
+        if (event.target.closest('button,a,input,select,textarea')) {
+          return;
+        }
         setCollapsed(card, button, !card.classList.contains('ef-dashboard-card--collapsed'));
       });
     });
@@ -213,7 +222,9 @@
   function normaliseRecommendations() {
     recommendationWidgets().forEach(widget => {
       const items = recommendationItems(widget);
-      if (!items.length) return;
+      if (!items.length) {
+        return;
+      }
       items.forEach((item, index) =>
         item.classList.toggle('ef-rec-hidden', index >= MAX_RECOMMENDATIONS)
       );
@@ -230,8 +241,11 @@
       if (!row) {
         row = document.createElement('div');
         row.className = 'ef-recommendations-row';
-        if (header?.parentElement === widget) header.after(row);
-        else widget.appendChild(row);
+        if (header?.parentElement === widget) {
+          header.after(row);
+        } else {
+          widget.appendChild(row);
+        }
       }
       items.forEach(item => row.appendChild(item));
     });
@@ -243,7 +257,9 @@
     normaliseRecommendations();
   }
   function queueRun() {
-    if (queued) return;
+    if (queued) {
+      return;
+    }
     queued = true;
     requestAnimationFrame(() => {
       queued = false;
@@ -257,9 +273,13 @@
   }
 
   window.addEventListener('beforeunload', () => {
-    if (observer) observer.disconnect();
+    if (observer) {
+      observer.disconnect();
+    }
   });
-  if (document.readyState === 'loading')
+  if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', init, { once: true });
-  else init();
+  } else {
+    init();
+  }
 })();

@@ -3,9 +3,8 @@
  * Tracks Core Web Vitals and custom metrics
  */
 
+'use strict';
 (function () {
-  'use strict';
-
   const isDevelopment =
     window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
   class PerformanceMonitor {
@@ -316,7 +315,7 @@
       return this.metrics;
     }
 
-    async report() {
+    report() {
       if (!this.options.enableRemoteLogging) {
         return;
       }

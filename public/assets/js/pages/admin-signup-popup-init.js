@@ -1,6 +1,5 @@
+'use strict';
 (function () {
-  'use strict';
-
   const MODES = ['disabled', 'popup', 'banner'];
   const modeInput = document.getElementById('signupPopupMode');
   const delayInput = document.getElementById('signupPopupDelay');

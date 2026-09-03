@@ -1,6 +1,5 @@
+'use strict';
 (function () {
-  'use strict';
-
   let allPackages = [];
   let allSuppliers = [];
   let currentImageFile = null;
@@ -276,7 +275,7 @@
    * Note: When editing, if user doesn't upload a new image,
    * the existing currentImageUrl will be used to preserve the image.
    */
-  window.editPackage = async function (id) {
+  window.editPackage = function (id) {
     const pkg = allPackages.find(p => p.id === id);
     if (!pkg) {
       if (typeof Toast !== 'undefined') {
@@ -495,7 +494,7 @@
 
       // Handle image upload
       let imageUrl = document.getElementById('packageImage').value;
-      const isEditing = !!id;
+      const isEditing = !!id; // skipcq: JS-0123 - local to this save handler only
 
       // If user uploaded a file, upload it after creating/updating the package
       if (currentImageFile) {

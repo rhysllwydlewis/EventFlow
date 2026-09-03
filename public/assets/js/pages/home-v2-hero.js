@@ -11,9 +11,8 @@
  * collage silently no-ops when the settings fetch fails on a cold connection,
  * and `EFHeroCollage.load` guards itself with `window.__collageWidgetInitialized`.
  */
+'use strict';
 (() => {
-  'use strict';
-
   /*
    * These are reference traces, not generated squircles/superellipses.
    *

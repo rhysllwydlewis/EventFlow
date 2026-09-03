@@ -315,7 +315,7 @@ function safePublic(site) {
   };
 }
 
-router.get('/:planId/wedding-website', authRequired, getOwnedPlan, async (req, res) => {
+router.get('/:planId/wedding-website', authRequired, getOwnedPlan, (req, res) => {
   res.json({ success: true, website: scrubCustomerWebsite(req.plan.weddingWebsite) || null });
 });
 
@@ -841,7 +841,7 @@ router.post(
 function getTables(plan) {
   return Array.isArray(plan.tables) ? plan.tables : [];
 }
-router.get('/:planId/tables', authRequired, getOwnedPlan, async (req, res) =>
+router.get('/:planId/tables', authRequired, getOwnedPlan, (req, res) =>
   res.json({ success: true, tables: getTables(req.plan) })
 );
 router.post(
@@ -1015,7 +1015,7 @@ router.post(
     res.json({ success: true });
   }
 );
-router.get('/:planId/seating-summary', authRequired, getOwnedPlan, async (req, res) => {
+router.get('/:planId/seating-summary', authRequired, getOwnedPlan, (req, res) => {
   const guests = guestListForPlan(req.plan);
   const attending = guests.filter(g => g.rsvpStatus === 'attending');
   const tables = getTables(req.plan);

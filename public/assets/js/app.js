@@ -2,8 +2,8 @@
 // Handles data-fallback-src, data-fallback-hide, data-fallback-show-next, and
 // data-fallback-action="attachment-error" attributes set on <img> elements.
 // This replaces inline onerror="..." attributes blocked by script-src-attr 'none'.
+'use strict';
 (function () {
-  'use strict';
   if (window.__imgFallbackRegistered) {
     return;
   }
@@ -318,7 +318,7 @@ function validateRedirectForRole(redirectUrl, userRole) {
       return false;
     }
     pathname = urlObj.pathname;
-  } catch (_) {
+  } catch {
     // If URL parsing fails, treat as pathname directly
     pathname = url.split('?')[0].split('#')[0];
   }
@@ -474,7 +474,7 @@ function validateRedirectForRole(redirectUrl, userRole) {
       efErrorBanner._hideTimer = setTimeout(() => {
         efErrorBanner.style.opacity = '0';
       }, 5000);
-    } catch (_) {
+    } catch {
       /* Ignore banner display errors */
     }
   }
@@ -494,7 +494,7 @@ const LS_PLAN_LOCAL = 'eventflow_local_plan';
 function lsGet() {
   try {
     return JSON.parse(localStorage.getItem(LS_PLAN_LOCAL) || '[]');
-  } catch (_) {
+  } catch {
     return [];
   }
 }
@@ -527,7 +527,7 @@ async function me() {
     }
     const data = await r.json();
     return data.user || null;
-  } catch (_) {
+  } catch {
     return null;
   }
 }
@@ -710,7 +710,7 @@ async function initResults() {
         }
         contextEl.textContent = bits.length ? `Based on your last event: ${bits.join(' • ')}` : '';
       }
-    } catch (_e) {
+    } catch {
       // ignore
     }
   }
@@ -814,31 +814,6 @@ async function initResults() {
   });
 
   render();
-}
-
-// Helper function to adjust color brightness
-function adjustColorBrightness(hex, percent) {
-  // Remove # if present
-  // eslint-disable-next-line no-param-reassign
-  hex = hex.replace('#', '');
-
-  // Convert to RGB
-  let r = parseInt(hex.substring(0, 2), 16);
-  let g = parseInt(hex.substring(2, 4), 16);
-  let b = parseInt(hex.substring(4, 6), 16);
-
-  // Adjust brightness
-  r = Math.max(0, Math.min(255, r + (r * percent) / 100));
-  g = Math.max(0, Math.min(255, g + (g * percent) / 100));
-  b = Math.max(0, Math.min(255, b + (b * percent) / 100));
-
-  // Convert back to hex
-  const toHex = n => {
-    const hex = Math.round(n).toString(16);
-    return hex.length === 1 ? `0${hex}` : hex;
-  };
-
-  return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
 }
 
 async function initSupplier() {
@@ -1200,14 +1175,14 @@ async function initSupplier() {
       if (currentlyInPlan) {
         // Remove from plan
         try {
-          const r = await fetch(`/api/v1/plan/${encodeURIComponent(s.id)}`, {
+          const removeRes = await fetch(`/api/v1/plan/${encodeURIComponent(s.id)}`, {
             method: 'DELETE',
             headers: {
               'X-CSRF-Token': window.__CSRF_TOKEN__ || '',
             },
             credentials: 'include',
           });
-          if (r.ok) {
+          if (removeRes.ok) {
             addBtn.textContent = 'Add to my plan';
             addBtn.classList.remove('secondary');
             addBtn.dataset.inPlan = 'false';
@@ -1221,7 +1196,7 @@ async function initSupplier() {
       } else {
         // Add to plan
         try {
-          const r = await fetch('/api/v1/plan', {
+          const addRes = await fetch('/api/v1/plan', {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
@@ -1230,7 +1205,7 @@ async function initSupplier() {
             credentials: 'include',
             body: JSON.stringify({ supplierId: s.id }),
           });
-          if (r.ok) {
+          if (addRes.ok) {
             addBtn.textContent = 'Remove from plan';
             addBtn.classList.add('secondary');
             addBtn.dataset.inPlan = 'true';
@@ -1247,7 +1222,7 @@ async function initSupplier() {
 
   const startThreadBtn = document.getElementById('start-thread');
   if (startThreadBtn) {
-    startThreadBtn.addEventListener('click', async () => {
+    startThreadBtn.addEventListener('click', () => {
       if (!user) {
         alert('You need an account to contact suppliers. Please sign in or create an account.');
         return;
@@ -1283,7 +1258,7 @@ async function initSupplier() {
             referenceTitle: s.name || s.businessName,
           },
         };
-        const r = await fetch('/api/v4/messenger/conversations', {
+        const convRes = await fetch('/api/v4/messenger/conversations', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -1294,11 +1269,11 @@ async function initSupplier() {
         });
         let d = {};
         try {
-          d = await r.json();
-        } catch (_) {
+          d = await convRes.json();
+        } catch {
           /* Ignore JSON parse errors */
         }
-        if (!r.ok) {
+        if (!convRes.ok) {
           alert((d && d.error) || 'Could not start conversation');
           return;
         }
@@ -1715,12 +1690,6 @@ function showToast(message, type = 'info') {
   toast.className = `toast-notification toast-notification--${type || 'info'}`;
   toast.textContent = message;
 
-  const colors = {
-    success: '#10b981',
-    error: '#ef4444',
-    info: '#3b82f6',
-  };
-
   // Colour and positioning handled by CSS class
 
   document.body.appendChild(toast);
@@ -1859,7 +1828,7 @@ async function initPlan() {
         { version: 2, guests: [], tasks: [], timeline: [], notes: '' },
         obj || {}
       );
-    } catch (_e) {
+    } catch {
       return { version: 2, guests: [], tasks: [], timeline: [], notes: '' };
     }
   }
@@ -1894,7 +1863,7 @@ async function initPlan() {
       } else {
         eventSummary.textContent = 'Tell us about your event to see a quick summary here.';
       }
-    } catch (_e) {
+    } catch {
       eventSummary.textContent = 'Tell us about your event to see a quick summary here.';
     }
   }
@@ -2078,7 +2047,7 @@ async function initPlan() {
         }
       });
     }
-  } catch (_e) {
+  } catch {
     // If anything fails, we just keep the page working without AI.
   }
 
@@ -2477,7 +2446,7 @@ async function renderThreads(targetEl) {
   let user = null;
   try {
     user = await me();
-  } catch (_e) {
+  } catch {
     /* Ignore user fetch errors */
   }
   if (!user) {
@@ -2557,7 +2526,7 @@ async function renderThreads(targetEl) {
         window.location.href = `/messenger/?conversation=${id}`;
       });
     });
-  } catch (_e) {
+  } catch {
     host.innerHTML = '<p class="small">Could not load conversations.</p>';
   }
 }
@@ -2626,7 +2595,7 @@ function efMaybeShowOnboarding(page) {
     if (page === 'dash_customer' && localStorage.getItem('ef_customer_welcome_dismissed') === '1') {
       return;
     }
-  } catch (_) {
+  } catch {
     /* Ignore localStorage errors */
   }
 
@@ -2638,7 +2607,7 @@ function efMaybeShowOnboarding(page) {
       shouldShow = true;
       localStorage.setItem('eventflow_onboarding_new', '0');
     }
-  } catch (_) {
+  } catch {
     /* Ignore localStorage errors */
   }
 
@@ -2728,7 +2697,7 @@ function efMaybeShowOnboarding(page) {
       try {
         localStorage.setItem('ef_onboarding_dismissed', '1');
         localStorage.setItem('ef_supplier_welcome_dismissed', '1');
-      } catch (_) {
+      } catch {
         /* Ignore localStorage errors */
       }
       const easing = 'cubic-bezier(0.4, 0, 0.2, 1)';
@@ -2873,7 +2842,7 @@ function efMaybeShowOnboarding(page) {
       try {
         localStorage.setItem('ef_onboarding_dismissed', '1');
         localStorage.setItem('ef_customer_welcome_dismissed', '1');
-      } catch (_) {
+      } catch {
         /* Ignore localStorage errors */
       }
       const easing = 'cubic-bezier(0.4, 0, 0.2, 1)';
@@ -2931,13 +2900,17 @@ function efMaybeShowOnboarding(page) {
     btn.addEventListener('click', () => {
       try {
         localStorage.setItem('ef_onboarding_dismissed', '1');
-      } catch (_) {
+      } catch {
         /* Ignore localStorage errors */
       }
       box.remove();
     });
   }
 }
+
+/** Message shown in #pkg-status when the free-tier active package limit is reached. */
+const PKG_LIMIT_MESSAGE =
+  'You have reached the active package limit on the Starter plan. Upgrade to Pro to add more.';
 
 async function initDashSupplier() {
   efMaybeShowOnboarding('dash_supplier');
@@ -2986,7 +2959,7 @@ async function initDashSupplier() {
         window.history.replaceState({}, '', cleanUrl.toString());
       }, 800);
     }
-  } catch (_e) {
+  } catch {
     /* Ignore conversation fetch errors */
   }
 
@@ -3082,7 +3055,7 @@ async function initDashSupplier() {
       let currentUser = null;
       try {
         currentUser = await me();
-      } catch (_e) {
+      } catch {
         console.warn('Unable to load current user profile for supplier photo controls');
         currentUser = null;
       }
@@ -3156,7 +3129,7 @@ async function initDashSupplier() {
           if (userTier === 'pro' || userTier === 'pro_plus') {
             currentIsPro = true;
           }
-        } catch (_) {
+        } catch {
           // Ignore — subscription endpoint unavailable; fall through to Starter display.
         }
       }
@@ -3176,7 +3149,7 @@ async function initDashSupplier() {
           if (authTier === 'pro' || authTier === 'pro_plus' || authMe?.user?.isPro) {
             currentIsPro = true;
           }
-        } catch (_) {
+        } catch {
           // Ignore — keep currentIsPro as computed from supplier/subscription endpoints.
         }
       }
@@ -3242,7 +3215,7 @@ async function initDashSupplier() {
           map.set(supplierId, (map.get(supplierId) || 0) + 1);
           return map;
         }, new Map());
-      } catch (_pkgErr) {
+      } catch {
         // Non-fatal: supplier cards should still render if packages fail to load.
       }
       supWrap.innerHTML = items
@@ -3319,13 +3292,6 @@ async function initDashSupplier() {
           const name = escapeHtml(String(s.name || 'Unnamed Supplier'));
           const location = escapeHtml(String(s.location || 'Location not set'));
           const category = escapeHtml(String(s.category || 'Uncategorized'));
-          const descriptionRaw = String(s.description_short || '');
-          const description = escapeHtml(descriptionRaw);
-          const descriptionFallbackText = 'Add a short summary to improve your listing.';
-          const descriptionFallback = description || descriptionFallbackText;
-          const descriptionTitle = descriptionRaw
-            ? escapeHtml(descriptionRaw)
-            : descriptionFallbackText;
           const approved = !!s.approved;
           const profilePhotoUrl = resolveDashboardSupplierProfilePhoto(s);
 
@@ -3838,7 +3804,6 @@ async function initDashSupplier() {
       // Track whether the free tier package limit is reached.
       // Only block *creating* new packages — editing existing ones must remain allowed.
       const pkgForm = document.getElementById('package-form');
-      const pkgStatus = document.getElementById('pkg-status');
       const supplierBlocked = window._supplierProfileMissing || window._supplierApprovalBlocked;
       const supplierBlockMessage = window._supplierProfileMissing
         ? 'Complete your supplier profile setup before creating packages.'
@@ -4427,7 +4392,7 @@ async function initDashSupplier() {
     let parsed;
     try {
       parsed = new URL(normalized);
-    } catch (_e) {
+    } catch {
       return { ok: false, value: raw };
     }
     if (!/^https?:$/i.test(parsed.protocol)) {
@@ -4905,24 +4870,20 @@ async function initDashSupplier() {
               return;
             }
             window.location.href = payload.url;
-          } catch (err) {
+          } catch {
             if (status) {
               status.textContent = 'Network error – please try again.';
             }
           }
         });
       }
-    } catch (_e) {
+    } catch {
       host.innerHTML = '<p class="small">Billing status is currently unavailable.</p>';
     }
   })();
 }
 
 // Package Form Toggle, Edit, and Delete Functions
-
-/** Message shown in #pkg-status when the free-tier active package limit is reached. */
-const PKG_LIMIT_MESSAGE =
-  'You have reached the active package limit on the Starter plan. Upgrade to Pro to add more.';
 
 /**
  * Enable or disable all inputs / the submit button in #package-form and update
@@ -5256,7 +5217,7 @@ async function togglePackagePause(packageId, pause) {
           statEl.textContent = String(activeCount);
         }
       }
-    } catch (_e) {
+    } catch {
       // Best effort — stat update failure should not block UX
     }
   } catch (e) {
@@ -5507,7 +5468,7 @@ async function savePkgGalleryOrder() {
       // Refresh "Cover" badge in case the server order differs
       _refreshFirstBadge(container);
     }
-  } catch (e) {
+  } catch {
     if (status) {
       status.textContent = 'Network error — please try again';
     }
@@ -5746,7 +5707,7 @@ async function initAdmin() {
           alert('Demo data has been reset.');
           window.location.reload();
         }
-      } catch (e) {
+      } catch {
         alert('Could not contact server to reset demo data.');
       } finally {
         resetBtn.disabled = false;
@@ -5786,7 +5747,7 @@ async function initAdmin() {
       .join(
         ', '
       )} ) · Suppliers: ${c.suppliersTotal} · Packages: ${c.packagesTotal} · Threads: ${c.threadsTotal} · Messages: ${c.messagesTotal}`;
-  } catch (e) {
+  } catch {
     metrics.textContent = 'Forbidden (admin only).';
   }
   try {
@@ -5812,7 +5773,7 @@ async function initAdmin() {
         location.reload();
       })
     );
-  } catch (e) {
+  } catch {
     supWrap.innerHTML = '<p class="small">Forbidden (admin only)</p>';
   }
   try {
@@ -5850,7 +5811,7 @@ async function initAdmin() {
         location.reload();
       })
     );
-  } catch (e) {
+  } catch {
     pkgWrap.innerHTML = '<p class="small">Forbidden (admin only)</p>';
   }
 }
@@ -5941,7 +5902,7 @@ document.addEventListener('DOMContentLoaded', () => {
         ticking = true;
       }
     });
-  } catch (_err) {
+  } catch {
     /* Ignore loader errors */
   }
 
@@ -5981,6 +5942,16 @@ document.addEventListener('DOMContentLoaded', () => {
   };
 
   if (page === 'auth') {
+    // Helper function to get headers with CSRF token
+    const getHeadersWithCsrf = (additionalHeaders = {}) => {
+      const headers = { ...additionalHeaders };
+      const csrfToken = window.__CSRF_TOKEN__;
+      if (csrfToken) {
+        headers['X-CSRF-Token'] = csrfToken;
+      }
+      return headers;
+    };
+
     // Ensure Google auth initialisation is present even if an older cached auth.html omits it.
     if (
       !window.__eventflowGoogleAuthInitStarted &&
@@ -6033,7 +6004,7 @@ document.addEventListener('DOMContentLoaded', () => {
             location.href = destination;
           }, 600);
         }
-      } catch (_) {
+      } catch {
         /* Ignore loader errors */
       }
     })();
@@ -6060,7 +6031,7 @@ document.addEventListener('DOMContentLoaded', () => {
           if (loginStatus) {
             loginStatus.textContent = "If this email is registered, we'll send reset instructions.";
           }
-        } catch (_) {
+        } catch {
           if (loginStatus) {
             loginStatus.textContent = 'Something went wrong. Please try again in a moment.';
           }
@@ -6120,6 +6091,33 @@ document.addEventListener('DOMContentLoaded', () => {
       const capsLockWarning = document.getElementById('caps-lock-warning');
       const regPasswordConfirm = document.getElementById('reg-password-confirm');
       const passwordMatchMsg = document.getElementById('password-match-msg');
+
+      // Password match validation
+      const validatePasswordMatch = () => {
+        if (!regPasswordConfirm || !passwordMatchMsg) {
+          return;
+        }
+
+        const password = regPassword.value;
+        const confirmPassword = regPasswordConfirm.value;
+
+        if (!confirmPassword) {
+          passwordMatchMsg.style.display = 'none';
+          return;
+        }
+
+        if (password !== confirmPassword) {
+          passwordMatchMsg.textContent = 'Passwords do not match';
+          passwordMatchMsg.style.display = 'block';
+          passwordMatchMsg.style.color = '#b00020';
+          return false;
+        } else {
+          passwordMatchMsg.textContent = '✓ Passwords match';
+          passwordMatchMsg.style.display = 'block';
+          passwordMatchMsg.style.color = '#10b981';
+          return true;
+        }
+      };
 
       // Caps lock warning
       const checkCapsLock = e => {
@@ -6266,33 +6264,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
       });
 
-      // Password match validation
-      const validatePasswordMatch = () => {
-        if (!regPasswordConfirm || !passwordMatchMsg) {
-          return;
-        }
-
-        const password = regPassword.value;
-        const confirmPassword = regPasswordConfirm.value;
-
-        if (!confirmPassword) {
-          passwordMatchMsg.style.display = 'none';
-          return;
-        }
-
-        if (password !== confirmPassword) {
-          passwordMatchMsg.textContent = 'Passwords do not match';
-          passwordMatchMsg.style.display = 'block';
-          passwordMatchMsg.style.color = '#b00020';
-          return false;
-        } else {
-          passwordMatchMsg.textContent = '✓ Passwords match';
-          passwordMatchMsg.style.display = 'block';
-          passwordMatchMsg.style.color = '#10b981';
-          return true;
-        }
-      };
-
       if (regPasswordConfirm) {
         regPasswordConfirm.addEventListener('input', validatePasswordMatch);
         regPasswordConfirm.addEventListener('blur', validatePasswordMatch);
@@ -6303,16 +6274,6 @@ document.addEventListener('DOMContentLoaded', () => {
     // selectRole() — that version also syncs aria-required on the company
     // field and manages roving tabindex/keyboard nav for the radiogroup, so
     // it fully supersedes this file's role-picker handling.
-
-    // Helper function to get headers with CSRF token
-    const getHeadersWithCsrf = function (additionalHeaders = {}) {
-      const headers = { ...additionalHeaders };
-      const csrfToken = window.__CSRF_TOKEN__;
-      if (csrfToken) {
-        headers['X-CSRF-Token'] = csrfToken;
-      }
-      return headers;
-    };
 
     const setAuthSubmitButtonState = (button, label, isLoading = false) => {
       if (!button) {
@@ -6336,7 +6297,7 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     // Helper function to show toast notification
-    const showToast = function (message, type = 'info') {
+    const showLocalToast = function (message, type = 'info') {
       const toast = document.createElement('div');
       toast.className = `ef-toast ef-toast--${type || 'info'}`;
       toast.textContent = message;
@@ -6366,7 +6327,7 @@ document.addEventListener('DOMContentLoaded', () => {
         resendBtn.addEventListener('click', async () => {
           const email = loginEmail.value.trim();
           if (!email) {
-            showToast('Please enter your email address', 'error');
+            showLocalToast('Please enter your email address', 'error');
             return;
           }
 
@@ -6384,12 +6345,12 @@ document.addEventListener('DOMContentLoaded', () => {
             let data = {};
             try {
               data = await r.json();
-            } catch (_) {
+            } catch {
               /* Ignore JSON parse errors */
             }
 
             if (r.ok) {
-              showToast(
+              showLocalToast(
                 data.message || 'Verification email sent! Please check your inbox.',
                 'success'
               );
@@ -6398,14 +6359,14 @@ document.addEventListener('DOMContentLoaded', () => {
                   'Verification email sent. Please check your inbox and verify your account.';
               }
             } else {
-              showToast(
+              showLocalToast(
                 data.error || 'Failed to send verification email. Please try again.',
                 'error'
               );
             }
           } catch (err) {
             console.error('Resend verification error', err);
-            showToast('Network error. Please try again.', 'error');
+            showLocalToast('Network error. Please try again.', 'error');
           } finally {
             resendBtn.disabled = false;
             resendBtn.textContent = 'Resend Verification Email';
@@ -6457,7 +6418,7 @@ document.addEventListener('DOMContentLoaded', () => {
           let data = {};
           try {
             data = await r.json();
-          } catch (_) {
+          } catch {
             /* Ignore JSON parse errors */
           }
           if (!r.ok) {
@@ -6501,7 +6462,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const user = data.user || {};
             try {
               localStorage.setItem('eventflow_onboarding_new', '1');
-            } catch (_e) {
+            } catch {
               /* Ignore localStorage errors */
             }
 
@@ -6764,7 +6725,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     captchaToken = shadowInput.value;
                   }
                 }
-              } catch (_) {
+              } catch {
                 // Shadow DOM not accessible in this environment
               }
               if (!captchaToken) {
@@ -6811,7 +6772,7 @@ document.addEventListener('DOMContentLoaded', () => {
           let data = {};
           try {
             data = await r.json();
-          } catch (_) {
+          } catch {
             /* Ignore JSON parse errors */
           }
           if (!r.ok) {
@@ -6848,7 +6809,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     } else {
                       showNetworkError(resendData.error || 'Failed to send email', 'error');
                     }
-                  } catch (err) {
+                  } catch {
                     showNetworkError('Network error - please try again', 'error');
                   } finally {
                     resendBtn.disabled = false;
@@ -6991,7 +6952,7 @@ async function initVerify() {
             } else {
               showNetworkError(resendData.error || 'Failed to send email', 'error');
             }
-          } catch (err) {
+          } catch {
             showNetworkError('Network error - please try again', 'error');
           } finally {
             resendBtn.disabled = false;
@@ -7053,7 +7014,7 @@ async function initVerify() {
               } else {
                 showNetworkError(resendData.error || 'Failed to send email', 'error');
               }
-            } catch (err) {
+            } catch {
               showNetworkError('Network error - please try again', 'error');
             } finally {
               resendBtn.disabled = false;
@@ -7242,7 +7203,7 @@ async function adminCharts() {
       });
     });
     document.body.appendChild(s);
-  } catch (e) {
+  } catch {
     /* Ignore confetti errors */
   }
 }
@@ -7290,10 +7251,10 @@ document.addEventListener('DOMContentLoaded', () => {
   if (window.__EF_PAGE__ === 'dash_supplier') {
     (async () => {
       try {
-        const me = await fetch('/api/v1/me/suppliers', {
+        const meResponse = await fetch('/api/v1/me/suppliers', {
           credentials: 'include',
         });
-        const ms = await me.json();
+        const ms = await meResponse.json();
         const pk = await fetch('/api/v1/me/packages', {
           credentials: 'include',
         });
@@ -7326,7 +7287,7 @@ document.addEventListener('DOMContentLoaded', () => {
           (mp.items || []).length,
           supplierApproved
         );
-      } catch (e) {
+      } catch {
         /* Ignore checklist render errors */
       }
     })();
@@ -7428,7 +7389,7 @@ function efInitVenueMap() {
     try {
       savedQuery = localStorage.getItem(LAST_QUERY_KEY) || '';
       savedLabel = localStorage.getItem(LAST_QUERY_LABEL_KEY) || '';
-    } catch (_) {
+    } catch {
       /* Ignore storage errors */
     }
 
@@ -7458,7 +7419,7 @@ function efInitVenueMap() {
     try {
       localStorage.setItem(LAST_QUERY_KEY, cleaned);
       localStorage.setItem(LAST_QUERY_LABEL_KEY, label);
-    } catch (_) {
+    } catch {
       /* Ignore storage errors */
     }
   }
@@ -7497,17 +7458,17 @@ function efInitVenueMap() {
 document.addEventListener('DOMContentLoaded', () => {
   try {
     efInitLoader();
-  } catch (_) {
+  } catch {
     /* Ignore loader init errors */
   }
   try {
     efInitBrandAnimation();
-  } catch (_) {
+  } catch {
     /* Ignore brand animation errors */
   }
   try {
     efInitVenueMap();
-  } catch (_) {
+  } catch {
     /* Ignore map init errors */
   }
 });
@@ -7532,7 +7493,7 @@ document.addEventListener('DOMContentLoaded', () => {
       { threshold: 0.18 }
     );
     els.forEach(el => obs.observe(el));
-  } catch (_) {
+  } catch {
     /* Ignore IntersectionObserver errors */
   }
 });
@@ -7564,7 +7525,7 @@ function efConfetti() {
     setTimeout(() => {
       layer.remove();
     }, 1300);
-  } catch (_) {
+  } catch {
     /* Ignore loader removal errors */
   }
 }

@@ -3,9 +3,8 @@
  * Uses Web Speech API for voice-to-text note-taking
  */
 
+'use strict';
 (function () {
-  'use strict';
-
   const isDevelopment =
     window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
   class VoiceInput {

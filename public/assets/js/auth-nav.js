@@ -10,10 +10,10 @@
  * - Cross-tab logout synchronization
  * - Duplicate event handler prevention
  */
+'use strict';
 (function () {
   const isDevelopment =
     window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-  ('use strict');
 
   // If the EF header system is present, do nothing.
   if (document.getElementById('ef-mobile-toggle') || document.getElementById('ef-mobile-menu')) {

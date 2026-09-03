@@ -113,7 +113,7 @@ router.post('/', writeLimiter, authRequired, csrfProtection, async (req, res) =>
 
     if (!userShortlist) {
       // Create new shortlist for user with the first item already included
-      const shortlistSaved = await dbUnified.insertOne('shortlists', {
+      await dbUnified.insertOne('shortlists', {
         id: `shortlist_${req.user.id}`,
         userId: req.user.id,
         items: [item],

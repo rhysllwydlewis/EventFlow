@@ -131,7 +131,7 @@ export function getFeatureLimit(featureName) {
 /**
  * Check if user has reached package limit
  */
-export async function hasReachedPackageLimit(currentCount) {
+export function hasReachedPackageLimit(currentCount) {
   const limit = getFeatureLimit('maxPackages');
   if (limit === -1) {
     return false;
@@ -142,7 +142,7 @@ export async function hasReachedPackageLimit(currentCount) {
 /**
  * Check if user has reached booking limit
  */
-export async function hasReachedBookingLimit(currentCount) {
+export function hasReachedBookingLimit(currentCount) {
   const limit = getFeatureLimit('maxBookings');
   if (limit === -1) {
     return false;
@@ -207,14 +207,18 @@ export function showUpgradePrompt(featureName, message = null) {
   // Close handlers
   const lastFocused = document.activeElement;
   const escapeHandler = e => {
-    if (e.key === 'Escape') closeModal();
+    if (e.key === 'Escape') {
+      closeModal();
+    }
   };
   document.addEventListener('keydown', escapeHandler);
-  const closeModal = () => {
+  function closeModal() {
     modal.remove();
     document.removeEventListener('keydown', escapeHandler);
-    if (lastFocused?.focus) lastFocused.focus();
-  };
+    if (lastFocused?.focus) {
+      lastFocused.focus();
+    }
+  }
   modal.querySelector('.upgrade-modal-close').addEventListener('click', closeModal);
   modal.querySelector('.upgrade-modal-cancel') &&
     modal.querySelector('.upgrade-modal-cancel').addEventListener('click', closeModal);
@@ -223,7 +227,9 @@ export function showUpgradePrompt(featureName, message = null) {
   modal.querySelector('.upgrade-modal-overlay').addEventListener('click', closeModal);
   requestAnimationFrame(() => {
     const f = modal.querySelector('.upgrade-modal-close');
-    if (f) f.focus();
+    if (f) {
+      f.focus();
+    }
   });
 }
 
@@ -252,7 +258,7 @@ export function lockFeature(element, featureName) {
 /**
  * Check and enforce package limit
  */
-export async function enforcePackageLimit(currentPackageCount) {
+export function enforcePackageLimit(currentPackageCount) {
   const limit = getFeatureLimit('maxPackages');
 
   if (limit === -1) {

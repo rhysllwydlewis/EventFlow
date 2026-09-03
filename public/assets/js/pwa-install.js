@@ -5,9 +5,8 @@
  * Mobile and tablet devices (including iOS) are intentionally excluded.
  */
 
+'use strict';
 (function () {
-  'use strict';
-
   const DISMISSED_KEY = 'ef_pwa_install_dismissed';
   const BANNER_ID = 'ef-pwa-install-banner';
   const V3_PREVIEW_PATHS = new Set([

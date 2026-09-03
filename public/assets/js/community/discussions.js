@@ -5,9 +5,8 @@
  * state is URL-backed so a filtered view can be bookmarked and shared.
  */
 
+'use strict';
 (function () {
-  'use strict';
-
   const EFC = window.EFCommunity;
   const root = document.getElementById('efc-discussions');
   if (!EFC || !root) {

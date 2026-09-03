@@ -2,9 +2,8 @@
  * Admin Debug — Background Jobs tab
  * Read-only operational visibility for scheduled EventFlow processes.
  */
+'use strict';
 (function () {
-  'use strict';
-
   const API_URL = '/api/admin/background-jobs?limit=6';
   const HEALTH_LABELS = {
     healthy: ['Healthy', '✅'],
@@ -33,22 +32,34 @@
   }
 
   function formatDate(value) {
-    if (!value) return '—';
+    if (!value) {
+      return '—';
+    }
     const date = new Date(value);
-    if (Number.isNaN(date.getTime())) return '—';
+    if (Number.isNaN(date.getTime())) {
+      return '—';
+    }
     return date.toLocaleString('en-GB', { dateStyle: 'medium', timeStyle: 'short' });
   }
 
   function formatDuration(value) {
-    if (!Number.isFinite(value)) return '—';
-    if (value < 1000) return `${value}ms`;
-    if (value < 60000) return `${(value / 1000).toFixed(1)}s`;
+    if (!Number.isFinite(value)) {
+      return '—';
+    }
+    if (value < 1000) {
+      return `${value}ms`;
+    }
+    if (value < 60000) {
+      return `${(value / 1000).toFixed(1)}s`;
+    }
     return `${(value / 60000).toFixed(1)}m`;
   }
 
   function metricRows(metrics) {
     const entries = Object.entries(metrics || {});
-    if (!entries.length) return '<span class="bj-muted">No metrics recorded</span>';
+    if (!entries.length) {
+      return '<span class="bj-muted">No metrics recorded</span>';
+    }
     return entries
       .map(
         ([key, value]) =>
@@ -58,7 +69,9 @@
   }
 
   function renderStats(summary) {
-    if (!statsEl) return;
+    if (!statsEl) {
+      return;
+    }
     const values = [
       ['Total', summary.total, 'total'],
       ['Healthy', summary.healthy, 'healthy'],
@@ -106,12 +119,19 @@
   }
 
   function renderJobs() {
-    if (!listEl || !currentData) return;
+    if (!listEl || !currentData) {
+      return;
+    }
     const jobs = (currentData.jobs || []).filter(job => {
-      if (activeFilter === 'attention')
+      if (activeFilter === 'attention') {
         return ['failed', 'overdue', 'warning', 'unknown'].includes(job.health);
-      if (activeFilter === 'disabled') return job.health === 'disabled';
-      if (activeFilter === 'healthy') return job.health === 'healthy';
+      }
+      if (activeFilter === 'disabled') {
+        return job.health === 'disabled';
+      }
+      if (activeFilter === 'healthy') {
+        return job.health === 'healthy';
+      }
       return true;
     });
 
@@ -165,21 +185,31 @@
   }
 
   async function loadBackgroundJobs(force) {
-    if (loaded && !force) return;
-    if (!listEl) return;
+    if (loaded && !force) {
+      return;
+    }
+    if (!listEl) {
+      return;
+    }
     listEl.innerHTML =
       '<div class="sc-empty"><div class="sc-empty-icon">⏳</div><p>Loading background jobs…</p></div>';
-    if (refreshBtn) refreshBtn.disabled = true;
+    if (refreshBtn) {
+      refreshBtn.disabled = true;
+    }
     try {
       currentData = await AdminShared.api(API_URL);
       loaded = true;
       renderStats(currentData.summary || {});
       renderJobs();
-      if (generatedEl) generatedEl.textContent = `Updated ${formatDate(currentData.generatedAt)}`;
+      if (generatedEl) {
+        generatedEl.textContent = `Updated ${formatDate(currentData.generatedAt)}`;
+      }
     } catch (error) {
       listEl.innerHTML = `<div class="sc-info-banner sc-info-banner--error" role="alert">Could not load background jobs: ${escapeHtml(error.message || 'Unknown error')}</div>`;
     } finally {
-      if (refreshBtn) refreshBtn.disabled = false;
+      if (refreshBtn) {
+        refreshBtn.disabled = false;
+      }
     }
   }
 
@@ -195,13 +225,15 @@
   });
 
   const tabButton = document.getElementById('tab-btn-background-jobs');
-  if (tabButton) tabButton.addEventListener('click', () => loadBackgroundJobs(false));
-  if (refreshBtn) refreshBtn.addEventListener('click', () => loadBackgroundJobs(true));
+  if (tabButton) {
+    tabButton.addEventListener('click', () => loadBackgroundJobs(false));
+  }
+  if (refreshBtn) {
+    refreshBtn.addEventListener('click', () => loadBackgroundJobs(true));
+  }
 })();
 
 (function loadAdminDebugMobileImprovements() {
-  'use strict';
-
   const version = '18.6.1';
   const stylesheetPath = `/assets/css/admin-debug-mobile-improvements.css?v=${version}`;
   const scriptPath = `/assets/js/pages/admin-debug-mobile-improvements.js?v=${version}`;

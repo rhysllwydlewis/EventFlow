@@ -1,6 +1,5 @@
+'use strict';
 (function () {
-  'use strict';
-
   let queued = false;
 
   const esc = value =>

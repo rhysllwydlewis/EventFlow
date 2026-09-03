@@ -9,9 +9,8 @@
  *
  * Exposed as window.LiquidGlass  — IIFE, no dependencies, ES6+
  */
+'use strict';
 (function () {
-  'use strict';
-
   /* =========================================================
      0. FEATURE GATES
      ========================================================= */

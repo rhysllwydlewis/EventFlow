@@ -3,9 +3,8 @@
  * Handles creating and editing marketplace listings
  */
 
+'use strict';
 (function () {
-  'use strict';
-
   const isDevelopment =
     window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
 
@@ -184,7 +183,7 @@
   /**
    * Process selected files
    */
-  async function handleFiles(files) {
+  function handleFiles(files) {
     // Limit to 5 images total
     const remaining = 5 - selectedImages.length;
     if (remaining <= 0) {

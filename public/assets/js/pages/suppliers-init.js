@@ -609,7 +609,7 @@ async function searchSuppliers(filters, page = 1, signal = null) {
 }
 
 // Initialize suppliers page
-async function initSuppliersPage() {
+function initSuppliersPage() {
   const resultsContainer = document.getElementById('results');
   const resultCountEl = document.getElementById('resultCount');
   const appliedSortEl = document.getElementById('applied-sort-indicator');
@@ -1267,7 +1267,7 @@ async function initSuppliersPage() {
           .join('');
         listEl.hidden = false;
         filterQueryEl.setAttribute('aria-expanded', 'true');
-      } catch (_) {
+      } catch {
         hideSuggestions();
       }
     }

@@ -156,7 +156,7 @@ async function searchListings(filters, page = 1) {
 }
 
 // Initialize marketplace page
-async function initMarketplacePage() {
+function initMarketplacePage() {
   const resultsContainer = document.getElementById('marketplace-results');
   const resultCountEl = document.getElementById('marketplace-count');
   const filterCategoryEl = document.getElementById('marketplace-filter-category');

@@ -7,9 +7,8 @@
  *  - Publisher UX: Add / Edit / Delete own events
  *  - Customer UX: Save / unsave events to dashboard calendar
  */
+'use strict';
 (function () {
-  'use strict';
-
   // ── State ─────────────────────────────────────────────────────────────────
   let currentUser = null; // populated after /api/v1/auth/me
   let supplierDoc = null; // populated if user is a supplier publisher
@@ -617,7 +616,7 @@
       totalEvents = data.total || 0;
       renderEvents(data.events || []);
       renderPagination();
-    } catch (err) {
+    } catch {
       if (list) {
         list.innerHTML =
           '<p style="color:#dc2626;padding:2rem;text-align:center;">Failed to load events. Please try again.</p>';
@@ -656,7 +655,7 @@
       showToast('Removed from your planning calendar', 'success');
       btn.outerHTML = `<button class="ef-cta pc-btn pc-btn-sm pc-btn-save" data-action="save" data-id="${esc(eventId)}">+ Save</button>`;
       rewireButtons();
-    } catch (e) {
+    } catch {
       btn.disabled = false;
       showToast('Failed to remove event', 'error');
     }
@@ -676,7 +675,7 @@
   }
 
   // ── Delete ────────────────────────────────────────────────────────────────
-  async function handleDelete(eventId, title, delBtn) {
+  function handleDelete(eventId, title, delBtn) {
     // Inline two-step confirmation — avoids native confirm() dialog for consistent UX
     const actionsEl = delBtn ? delBtn.closest('.pc-event-card__actions') : null;
     if (!actionsEl) {
@@ -751,7 +750,7 @@
         : 'false';
       document.getElementById('pc-form-error').style.display = 'none';
       showModal();
-    } catch (e) {
+    } catch {
       showToast('Failed to load event details', 'error');
     }
   }

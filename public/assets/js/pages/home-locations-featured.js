@@ -9,9 +9,8 @@
  * page that does not exist yet.
  */
 
+'use strict';
 (function () {
-  'use strict';
-
   if (typeof window.fetch !== 'function') {
     return;
   }
@@ -48,7 +47,7 @@
       return parsed.protocol === 'https:' && parsed.hostname === 'images.pexels.com'
         ? parsed.toString()
         : null;
-    } catch (_error) {
+    } catch {
       return null;
     }
   }

@@ -74,13 +74,10 @@ export function createBudgetTracker(budgetData, containerId) {
   const actualRemaining = remaining !== undefined ? remaining : Math.max(0, total - spent);
   const percentage = total > 0 ? (spent / total) * 100 : 0;
 
-  let badgeColor = '#22C55E';
   let badgeText = 'On Track';
   if (percentage >= 100) {
-    badgeColor = '#EF4444';
     badgeText = 'Over Budget';
   } else if (percentage >= 80) {
-    badgeColor = '#F59E0B';
     badgeText = 'Attention';
   }
 
@@ -623,7 +620,7 @@ export function createProfileChecklist(completionData, containerId) {
  * Load Chart.js library (lazy, from vendor bundle or CDN fallback).
  * @returns {Promise<void>}
  */
-async function loadChartJS() {
+function loadChartJS() {
   if (window.Chart) {
     return;
   }

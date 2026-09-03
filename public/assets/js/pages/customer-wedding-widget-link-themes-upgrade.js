@@ -1,6 +1,5 @@
+'use strict';
 (function () {
-  'use strict';
-
   let queued = false;
   let planLookupPromise = null;
 

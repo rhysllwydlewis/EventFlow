@@ -1,6 +1,5 @@
+'use strict';
 (function () {
-  'use strict';
-
   function esc(str) {
     return String(str || '')
       .replace(/&/g, '&amp;')
@@ -11,30 +10,29 @@
   }
 
   function fmtDate(iso) {
-    if (!iso) return '—';
+    if (!iso) {
+      return '—';
+    }
     const d = new Date(iso);
-    return (
-      d.toLocaleDateString('en-GB', {
-        day: 'numeric',
-        month: 'short',
-        year: 'numeric',
-        timeZone: 'Europe/London',
-      }) +
-      ' ' +
-      d.toLocaleTimeString('en-GB', {
-        hour: '2-digit',
-        minute: '2-digit',
-        timeZone: 'Europe/London',
-      })
-    );
+    return `${d.toLocaleDateString('en-GB', {
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric',
+      timeZone: 'Europe/London',
+    })} ${d.toLocaleTimeString('en-GB', {
+      hour: '2-digit',
+      minute: '2-digit',
+      timeZone: 'Europe/London',
+    })}`;
   }
 
   function showToast(msg, type) {
     const el = document.getElementById('acr-toast');
-    if (!el) return;
+    if (!el) {
+      return;
+    }
     el.textContent = msg;
-    el.className =
-      'show' + (type === 'error' ? ' toast--error' : type === 'success' ? ' toast--success' : '');
+    el.className = `show${type === 'error' ? ' toast--error' : type === 'success' ? ' toast--success' : ''}`;
     clearTimeout(el._timer);
     el._timer = setTimeout(() => {
       el.className = '';
@@ -73,13 +71,17 @@
       delivered: 'Delivered',
       rejected: 'Rejected',
     };
-    const cls = 'acr-badge acr-badge--' + (status || 'submitted');
+    const cls = `acr-badge acr-badge--${status || 'submitted'}`;
     return `<span class="${esc(cls)}">${esc(labels[status] || status || 'Unknown')}</span>`;
   }
 
   function methodLabel(method) {
-    if (method === 'amazon_voucher') return 'Amazon Voucher';
-    if (method === 'prepaid_debit_card') return 'Pre-Paid Debit Card';
+    if (method === 'amazon_voucher') {
+      return 'Amazon Voucher';
+    }
+    if (method === 'prepaid_debit_card') {
+      return 'Pre-Paid Debit Card';
+    }
     return method || '—';
   }
 
@@ -94,10 +96,18 @@
   }
 
   function identityPresentation(summary) {
-    if (!summary) return { label: 'Identity: unknown', tone: 'neutral' };
-    if (summary.eligibleSnapshot) return { label: 'Identity verified', tone: 'good' };
-    if (summary.status === 'rejected') return { label: 'Identity rejected', tone: 'bad' };
-    if (summary.expired) return { label: 'Identity expired', tone: 'warn' };
+    if (!summary) {
+      return { label: 'Identity: unknown', tone: 'neutral' };
+    }
+    if (summary.eligibleSnapshot) {
+      return { label: 'Identity verified', tone: 'good' };
+    }
+    if (summary.status === 'rejected') {
+      return { label: 'Identity rejected', tone: 'bad' };
+    }
+    if (summary.expired) {
+      return { label: 'Identity expired', tone: 'warn' };
+    }
     if (summary.reason === 'PARTNER_CASHOUT_IDENTITY_CHANGED') {
       return { label: 'Identity changed', tone: 'bad' };
     }
@@ -108,8 +118,9 @@
   }
 
   function reconciliationPresentation(summary) {
-    if (!summary || summary.status === 'not_run')
+    if (!summary || summary.status === 'not_run') {
       return { label: 'Ledger not checked', tone: 'neutral' };
+    }
     if (summary.status === 'ok') {
       return {
         label:
@@ -124,9 +135,15 @@
 
   function fraudPresentation(summary) {
     const level = summary?.riskLevel || 'not_assessed';
-    if (level === 'high') return { label: 'Fraud risk high', tone: 'bad' };
-    if (level === 'review') return { label: 'Fraud review required', tone: 'warn' };
-    if (level === 'low') return { label: 'Fraud risk low', tone: 'good' };
+    if (level === 'high') {
+      return { label: 'Fraud risk high', tone: 'bad' };
+    }
+    if (level === 'review') {
+      return { label: 'Fraud review required', tone: 'warn' };
+    }
+    if (level === 'low') {
+      return { label: 'Fraud risk low', tone: 'good' };
+    }
     return { label: 'Fraud not assessed', tone: 'neutral' };
   }
 
@@ -136,9 +153,13 @@
 
   function ensureOperationsPanel() {
     let panel = document.getElementById('acr-ops-panel');
-    if (panel) return panel;
+    if (panel) {
+      return panel;
+    }
     const stats = document.getElementById('acr-stats-bar');
-    if (!stats || !stats.parentNode) return null;
+    if (!stats || !stats.parentNode) {
+      return null;
+    }
     panel = document.createElement('section');
     panel.id = 'acr-ops-panel';
     panel.setAttribute('aria-live', 'polite');
@@ -173,7 +194,9 @@
 
   async function loadOperationsPanel() {
     const panel = ensureOperationsPanel();
-    if (!panel) return;
+    if (!panel) {
+      return;
+    }
     panel.innerHTML =
       '<div style="color:#6b7280;font-size:.875rem;">Loading cashout safety controls…</div>';
     try {
@@ -181,7 +204,9 @@
         credentials: 'include',
       });
       const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(data.error || 'Failed to load safety controls.');
+      if (!res.ok) {
+        throw new Error(data.error || 'Failed to load safety controls.');
+      }
       const controls = data.controls || {};
       const config = data.config || {};
       panel.innerHTML = `
@@ -233,32 +258,42 @@
 
     try {
       const params = new URLSearchParams({ limit: '200' });
-      if (statusFilter) params.append('status', statusFilter);
+      if (statusFilter) {
+        params.append('status', statusFilter);
+      }
 
       const res = await fetch(`/api/v1/admin/cashout-requests?${params}`, {
         credentials: 'include',
       });
       const payload = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(payload.error || 'Failed to load cashout requests');
+      if (!res.ok) {
+        throw new Error(payload.error || 'Failed to load cashout requests');
+      }
       const items = payload.items || [];
 
       const countBadge = document.getElementById('acr-count-badge');
-      if (countBadge)
+      if (countBadge) {
         countBadge.textContent = `${items.length} request${items.length === 1 ? '' : 's'}`;
+      }
 
       if (!statusFilter) {
         const counts = { submitted: 0, approved: 0, processing: 0, delivered: 0, rejected: 0 };
         items.forEach(r => {
-          if (counts[r.status] !== undefined) counts[r.status]++;
+          if (counts[r.status] !== undefined) {
+            counts[r.status]++;
+          }
         });
         ['submitted', 'approved', 'processing', 'delivered', 'rejected'].forEach(s => {
           const el = document.getElementById(`acr-stat-${s}`);
-          if (el) el.textContent = counts[s];
+          if (el) {
+            el.textContent = counts[s];
+          }
         });
       }
       if (items.length === 0) {
-        if (tbody)
+        if (tbody) {
           tbody.innerHTML = `<tr><td colspan="7"><div class="acr-empty"><div class="acr-empty-icon">📭</div><p class="acr-empty-text">No cashout requests found.</p></div></td></tr>`;
+        }
         return;
       }
 
@@ -293,14 +328,17 @@
         })
         .join('');
 
-      if (tbody) tbody.innerHTML = rows;
+      if (tbody) {
+        tbody.innerHTML = rows;
+      }
 
       document.querySelectorAll('.acr-open-btn').forEach(btn => {
         btn.addEventListener('click', () => openModal(btn.dataset.id, items));
       });
     } catch (err) {
-      if (tbody)
+      if (tbody) {
         tbody.innerHTML = `<tr><td colspan="7"><div class="acr-empty"><div class="acr-empty-icon">⚠️</div><p class="acr-empty-text">${esc(err.message || 'Error loading data')}</p></div></td></tr>`;
+      }
       showToast(err.message || 'Failed to load cashout requests', 'error');
     }
   }
@@ -321,7 +359,9 @@
   }
 
   async function setIdentityReview(status) {
-    if (!_currentRequest) return;
+    if (!_currentRequest) {
+      return;
+    }
     const reason = currentInternalNote();
     if (reason.length < 20) {
       showToast('Add an internal review note of at least 20 characters first.', 'error');
@@ -346,7 +386,9 @@
   }
 
   async function runReconciliation() {
-    if (!_currentRequest) return;
+    if (!_currentRequest) {
+      return;
+    }
     const reason =
       currentInternalNote() || 'Manual reconciliation from the cashout administration screen.';
     try {
@@ -508,12 +550,16 @@
   }
 
   function toggleDeliveryFields(statusSelect, deliveryWrap) {
-    if (!deliveryWrap) return;
+    if (!deliveryWrap) {
+      return;
+    }
     deliveryWrap.style.display = statusSelect?.value === 'delivered' ? 'block' : 'none';
   }
 
   function configureStatusOptions(statusSelect, requestStatus) {
-    if (!statusSelect) return;
+    if (!statusSelect) {
+      return;
+    }
     const allowed = {
       submitted: ['approved', 'rejected'],
       approved: ['processing', 'rejected'],
@@ -523,14 +569,22 @@
     };
     const options = allowed[requestStatus] || [];
     Array.from(statusSelect.options).forEach(option => {
-      if (option.value) option.disabled = !options.includes(option.value);
+      if (option.value) {
+        option.disabled = !options.includes(option.value);
+      }
     });
   }
 
   function resetModalFields(elements, request) {
-    if (elements.responseMsg) elements.responseMsg.value = request.adminResponseMessage || '';
-    if (elements.internalNotes) elements.internalNotes.value = request.adminInternalNotes || '';
-    if (elements.statusSelect) elements.statusSelect.value = '';
+    if (elements.responseMsg) {
+      elements.responseMsg.value = request.adminResponseMessage || '';
+    }
+    if (elements.internalNotes) {
+      elements.internalNotes.value = request.adminInternalNotes || '';
+    }
+    if (elements.statusSelect) {
+      elements.statusSelect.value = '';
+    }
     if (elements.statusMsg) {
       elements.statusMsg.textContent = '';
       elements.statusMsg.className = 'acr-modal-status';
@@ -545,7 +599,9 @@
 
   function openModal(id, items) {
     const request = items.find(item => item.id === id);
-    if (!request) return;
+    if (!request) {
+      return;
+    }
     _currentRequest = request;
     const elements = getModalElements();
     elements.content.innerHTML = renderRequestDetails(request);
@@ -557,7 +613,9 @@
 
   function closeModal() {
     const overlay = document.getElementById('acr-modal-overlay');
-    if (overlay) overlay.style.display = 'none';
+    if (overlay) {
+      overlay.style.display = 'none';
+    }
     _currentRequest = null;
   }
 
@@ -583,24 +641,32 @@
   }
 
   function setModalStatus(statusMsg, message, tone = '') {
-    if (!statusMsg) return;
+    if (!statusMsg) {
+      return;
+    }
     statusMsg.textContent = message;
     statusMsg.className = `acr-modal-status${tone ? ` acr-modal-status--${tone}` : ''}`;
   }
 
   function setSaveButtonState(saveBtn, saving) {
-    if (!saveBtn) return;
+    if (!saveBtn) {
+      return;
+    }
     saveBtn.disabled = saving;
     saveBtn.textContent = saving ? 'Saving…' : '💾 Save changes';
   }
 
   function buildCashoutUpdateBody(update) {
     const body = {};
-    if (update.newStatus) body.status = update.newStatus;
-    if (update.adminResponseMessage !== undefined)
+    if (update.newStatus) {
+      body.status = update.newStatus;
+    }
+    if (update.adminResponseMessage !== undefined) {
       body.adminResponseMessage = update.adminResponseMessage;
-    if (update.adminInternalNotes !== undefined)
+    }
+    if (update.adminInternalNotes !== undefined) {
       body.adminInternalNotes = update.adminInternalNotes;
+    }
     if (update.newStatus === 'delivered' && update.deliveryRef) {
       body.deliveryDetails = { reference: update.deliveryRef };
     }
@@ -614,7 +680,9 @@
   }
 
   async function saveChanges() {
-    if (!_currentRequest) return;
+    if (!_currentRequest) {
+      return;
+    }
     const update = readModalUpdate();
     if (!hasModalChanges(update)) {
       setModalStatus(update.statusMsg, 'No changes to save.');
@@ -648,33 +716,46 @@
     loadRequests();
 
     const refreshBtn = document.getElementById('acr-refresh-btn');
-    if (refreshBtn)
+    if (refreshBtn) {
       refreshBtn.addEventListener('click', () => {
         loadOperationsPanel();
         loadRequests();
       });
+    }
 
     const filterStatus = document.getElementById('acr-filter-status');
-    if (filterStatus) filterStatus.addEventListener('change', loadRequests);
+    if (filterStatus) {
+      filterStatus.addEventListener('change', loadRequests);
+    }
 
     const modalClose = document.getElementById('acr-modal-close');
-    if (modalClose) modalClose.addEventListener('click', closeModal);
+    if (modalClose) {
+      modalClose.addEventListener('click', closeModal);
+    }
 
     const modalCancel = document.getElementById('acr-modal-cancel-btn');
-    if (modalCancel) modalCancel.addEventListener('click', closeModal);
+    if (modalCancel) {
+      modalCancel.addEventListener('click', closeModal);
+    }
 
     const overlay = document.getElementById('acr-modal-overlay');
     if (overlay) {
       overlay.addEventListener('click', e => {
-        if (e.target === overlay) closeModal();
+        if (e.target === overlay) {
+          closeModal();
+        }
       });
     }
 
     const saveBtn = document.getElementById('acr-modal-save-btn');
-    if (saveBtn) saveBtn.addEventListener('click', saveChanges);
+    if (saveBtn) {
+      saveBtn.addEventListener('click', saveChanges);
+    }
 
     document.addEventListener('keydown', e => {
-      if (e.key === 'Escape') closeModal();
+      if (e.key === 'Escape') {
+        closeModal();
+      }
     });
   }
 

@@ -2,9 +2,8 @@
  * Payment Cancel Page — EventFlow
  * Handles analytics logging, session tracking, and UX on payment cancellation.
  */
+'use strict';
 (function () {
-  'use strict';
-
   const urlParams = new URLSearchParams(window.location.search);
   const sessionId = urlParams.get('session_id');
   const planParam = urlParams.get('plan') || '';
@@ -47,7 +46,9 @@
   function updateActionButtons() {
     // If we know which plan was being attempted, make the retry CTA more specific
     const btnContainer = document.querySelector('.action-buttons');
-    if (!btnContainer || !planParam) return;
+    if (!btnContainer || !planParam) {
+      return;
+    }
 
     const planNames = { pro: 'Pro', pro_plus: 'Pro Plus', free: 'Free' };
     const planLabel = planNames[planParam] || 'Your Plan';

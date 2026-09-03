@@ -1,6 +1,5 @@
+'use strict';
 (function () {
-  'use strict';
-
   const context = document.querySelector('meta[name="ef-public-supplier-id"]');
   const supplierId = String(context?.getAttribute('content') || '').trim();
   if (!/^[a-zA-Z0-9_-]{1,128}$/.test(supplierId)) {

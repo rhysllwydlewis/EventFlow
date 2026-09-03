@@ -92,7 +92,7 @@ async function geocodePostcode(postcode) {
  * @param {string} location
  * @returns {Promise<{lat: number, lng: number}|null>}
  */
-async function geocodeLocation(location) {
+function geocodeLocation(location) {
   if (!location || typeof location !== 'string') {
     return null;
   }

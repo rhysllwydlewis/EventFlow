@@ -5,9 +5,8 @@
  * /community/following, because all three are "a list belonging to someone".
  */
 
+'use strict';
 (function () {
-  'use strict';
-
   const EFC = window.EFCommunity;
   const profileRoot = document.getElementById('efc-member');
   const savedRoot = document.getElementById('efc-saved');

@@ -6,9 +6,8 @@
  * interactive view once it has data.
  */
 
+'use strict';
 (function () {
-  'use strict';
-
   const API = '/api/v1/community';
 
   /** The only query parameters the community reads from the URL. */
@@ -629,7 +628,7 @@
       // The endpoint answers anonymously rather than with 401, so an explicit
       // `authenticated: false` is the logged-out signal callers expect as null.
       return viewer && viewer.authenticated === false ? null : viewer;
-    } catch (_) {
+    } catch {
       return null;
     }
   }

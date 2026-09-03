@@ -241,7 +241,7 @@ async function createSubscription({
   return subscription;
 }
 
-async function getSubscription(subscriptionId) {
+function getSubscription(subscriptionId) {
   return dbUnified.findOne('subscriptions', { id: subscriptionId });
 }
 
@@ -268,7 +268,7 @@ async function getSubscriptionByUserId(userId) {
   );
 }
 
-async function getSubscriptionByStripeId(stripeSubscriptionId) {
+function getSubscriptionByStripeId(stripeSubscriptionId) {
   return dbUnified.findOne('subscriptions', { stripeSubscriptionId });
 }
 
@@ -640,7 +640,7 @@ async function getNumericAllowance(userId, feature, fallback) {
  * @param {string} ownerUserId Supplier's owner.
  * @returns {Promise<number>} Photo allowance, or -1 for unlimited.
  */
-async function getPhotoAllowance(ownerUserId) {
+function getPhotoAllowance(ownerUserId) {
   return getNumericAllowance(ownerUserId, 'maxPhotos', 10);
 }
 
@@ -653,7 +653,7 @@ async function getPhotoAllowance(ownerUserId) {
  * @param {string} ownerUserId Supplier's owner.
  * @returns {Promise<number>} Window in days.
  */
-async function getAnalyticsWindowDays(ownerUserId) {
+function getAnalyticsWindowDays(ownerUserId) {
   return getNumericAllowance(ownerUserId, 'analyticsWindowDays', 7);
 }
 
@@ -778,7 +778,7 @@ async function addBillingRecord(subscriptionId, billingRecord) {
   return updateSubscription(subscriptionId, { billingHistory });
 }
 
-async function updateBillingDates(subscriptionId, periodStart, periodEnd) {
+function updateBillingDates(subscriptionId, periodStart, periodEnd) {
   return updateSubscription(subscriptionId, {
     currentPeriodStart: periodStart.toISOString(),
     currentPeriodEnd: periodEnd.toISOString(),

@@ -1,13 +1,5 @@
 'use strict';
 
-// Safe HTML escaping — prevents XSS when inserting user-controlled data
-function escapeHtml(str) {
-  if (str === null || str === undefined) return '';
-  const d = document.createElement('div');
-  d.textContent = String(str);
-  return d.innerHTML;
-}
-
 let selectedFiles = [];
 let currentImages = [];
 let currentLightboxIndex = 0;
@@ -130,7 +122,7 @@ document.addEventListener('keydown', e => {
   }
 });
 
-async function uploadFiles() {
+function uploadFiles() {
   if (selectedFiles.length === 0) {
     return;
   }
@@ -413,34 +405,6 @@ function navigateLightbox(direction) {
 
 function viewImage(url) {
   window.open(url, '_blank');
-}
-
-async function deleteImage(url, type, id) {
-  if (!confirm('Are you sure you want to delete this image?')) {
-    return;
-  }
-
-  try {
-    const response = await fetch(
-      `${API_BASE}/photos/delete?type=${type}&id=${id}&photoUrl=${encodeURIComponent(url)}`,
-      {
-        method: 'DELETE',
-        credentials: 'include',
-      }
-    );
-
-    const result = await response.json();
-
-    if (response.ok) {
-      alert('Image deleted successfully');
-      loadGallery();
-    } else {
-      alert(`Delete failed: ${result.error || 'Unknown error'}`);
-    }
-  } catch (error) {
-    console.error('Delete error:', error);
-    alert(`Delete failed: ${error.message}`);
-  }
 }
 
 // Keyboard navigation for lightbox

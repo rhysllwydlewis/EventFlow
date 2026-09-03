@@ -1,4 +1,4 @@
-(async function () {
+(function () {
   const urlParams = new URLSearchParams(window.location.search);
   const userId = urlParams.get('id');
   const encodedUserId = encodeURIComponent(userId || '');
@@ -288,7 +288,7 @@
   }
 
   // ── Actions ────────────────────────────────────────────────────────────────
-  async function saveUserChanges(id) {
+  async function saveUserChanges(_id) {
     try {
       const data = {
         name: document.getElementById('userName').value.trim(),
@@ -305,7 +305,7 @@
     }
   }
 
-  async function resetPassword(id) {
+  async function resetPassword(_id) {
     const ok = await AdminShared.showConfirmModal({
       title: 'Send password reset?',
       confirmText: 'Send',
@@ -322,7 +322,7 @@
     }
   }
 
-  async function resendVerification(id) {
+  async function resendVerification(_id) {
     const ok = await AdminShared.showConfirmModal({
       title: 'Resend verification email?',
       confirmText: 'Send',
@@ -396,7 +396,7 @@
   // listing both roles would let an admin "convert" a user to the role they
   // already have, which the service correctly rejects (ALREADY_TARGET_ROLE)
   // but is a confusing no-op to offer in the first place.
-  async function openAccountTypeModal(user) {
+  function openAccountTypeModal(user) {
     if (typeof Modal === 'undefined') {
       AdminShared.showToast('Unable to open the account type dialog (Modal unavailable)', 'error');
       return;
@@ -438,7 +438,7 @@
     modal.show();
   }
 
-  async function provisionSupplierProfile(userId) {
+  async function provisionSupplierProfile(targetUserId) {
     const ok = await AdminShared.showConfirmModal({
       title: 'Provision supplier profile?',
       message:
@@ -446,10 +446,12 @@
       confirmText: 'Create profile',
       type: 'warning',
     });
-    if (!ok) return;
+    if (!ok) {
+      return;
+    }
     try {
       await AdminShared.api(
-        `/api/admin/users/${encodeURIComponent(userId)}/provision-supplier-profile`,
+        `/api/admin/users/${encodeURIComponent(targetUserId)}/provision-supplier-profile`,
         'POST'
       );
       AdminShared.showToast('Supplier profile created successfully', 'success');

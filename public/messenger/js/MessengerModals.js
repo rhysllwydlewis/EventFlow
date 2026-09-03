@@ -9,7 +9,7 @@ class MessengerModals {
   /**
    * Show emoji picker modal
    */
-  static async showEmojiPicker() {
+  static showEmojiPicker() {
     return new Promise(resolve => {
       const modal = document.createElement('div');
       modal.className = 'messenger-modal messenger-modal--emoji';
@@ -113,7 +113,7 @@ class MessengerModals {
   /**
    * Show edit message modal
    */
-  static async showEditPrompt(currentContent) {
+  static showEditPrompt(currentContent) {
     return new Promise(resolve => {
       const modal = document.createElement('div');
       modal.className = 'messenger-modal messenger-modal--edit';
@@ -215,7 +215,7 @@ class MessengerModals {
    * Show a report-reason prompt. Resolves to { reason, details } or null if
    * cancelled. `reason` matches the values routes/reports.js accepts.
    */
-  static async showReportPrompt(title) {
+  static showReportPrompt(title) {
     return new Promise(resolve => {
       const modal = document.createElement('div');
       modal.className = 'messenger-modal messenger-modal--edit';
@@ -306,7 +306,7 @@ class MessengerModals {
   /**
    * Show confirmation dialog
    */
-  static async showConfirm(title, message, confirmText = 'Confirm', cancelText = 'Cancel') {
+  static showConfirm(title, message, confirmText = 'Confirm', cancelText = 'Cancel') {
     return new Promise(resolve => {
       const modal = document.createElement('div');
       modal.className = 'messenger-modal messenger-modal--confirm';

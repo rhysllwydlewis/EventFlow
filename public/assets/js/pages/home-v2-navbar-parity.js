@@ -1,7 +1,6 @@
 // Align homepage V2 navbar behaviour with the shared/V3 navbar without touching V2 page content.
+'use strict';
 (() => {
-  'use strict';
-
   const body = document.body;
   const header = document.querySelector('.hv2-header');
   const authLink = document.getElementById('hv2-auth-link');

@@ -1,6 +1,5 @@
+'use strict';
 (() => {
-  'use strict';
-
   const VERSION_KEYS = ['v1', 'v2', 'v3'];
   const DEFAULT_VERSION = 'v3';
 

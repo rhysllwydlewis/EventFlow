@@ -11,9 +11,8 @@
  * - Configurable backend API URL (via window.JADEASSIST_CONFIG or built-in default)
  */
 
+'use strict';
 (function () {
-  'use strict';
-
   // Global initialization guard - prevent double-init if script loads twice
   if (window.__JADE_WIDGET_INITIALIZED__) {
     console.warn('[JadeAssist] Widget already initialized, skipping duplicate init');
@@ -833,7 +832,7 @@
     if (window.CookieConsent && !window.CookieConsent.hasConsent()) {
       window.addEventListener(
         'cookieConsentChanged',
-        function onConsent() {
+        () => {
           startInitialization();
         },
         { once: true }

@@ -3,9 +3,8 @@
  * Handles message queuing, retry logic, and localStorage persistence
  */
 
+'use strict';
 (function () {
-  'use strict';
-
   const isDevelopment =
     window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
   class OfflineQueueManager {

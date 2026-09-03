@@ -3,9 +3,8 @@
  * Simple live chat widget for customer support
  */
 
+'use strict';
 (function () {
-  'use strict';
-
   // Chat widget HTML
   const chatWidgetHTML = `
     <div id="ef-chat-widget" class="ef-chat-widget">

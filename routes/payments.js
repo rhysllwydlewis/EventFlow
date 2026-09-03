@@ -328,7 +328,7 @@ router.post('/webhook', express.raw({ type: 'application/json' }), async (req, r
   }
 });
 
-router.get('/config', authRequired, async (req, res) => {
+router.get('/config', authRequired, (req, res) => {
   try {
     const publishableKey =
       process.env.STRIPE_PUBLISHABLE_KEY || process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY;

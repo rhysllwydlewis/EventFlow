@@ -203,7 +203,7 @@ async function getSupplierAnalytics(supplierId, days = 7) {
  * @param {boolean} [isPreview] - Whether this is a preview view
  * @returns {Promise<void>}
  */
-async function trackProfileView(supplierId, userId = null, sessionId = null, isPreview = false) {
+function trackProfileView(supplierId, userId = null, sessionId = null, isPreview = false) {
   return trackEvent({
     type: EVENT_TYPES.PROFILE_VIEW,
     supplierId,
@@ -220,7 +220,7 @@ async function trackProfileView(supplierId, userId = null, sessionId = null, isP
  * @param {Object} [metadata] - Additional metadata
  * @returns {Promise<void>}
  */
-async function trackEnquiryStarted(supplierId, userId, metadata = {}) {
+function trackEnquiryStarted(supplierId, userId, metadata = {}) {
   return trackEvent({
     type: EVENT_TYPES.ENQUIRY_STARTED,
     supplierId,
@@ -236,7 +236,7 @@ async function trackEnquiryStarted(supplierId, userId, metadata = {}) {
  * @param {Object} [metadata] - Additional metadata (e.g., threadId)
  * @returns {Promise<void>}
  */
-async function trackEnquirySent(supplierId, userId, metadata = {}) {
+function trackEnquirySent(supplierId, userId, metadata = {}) {
   return trackEvent({
     type: EVENT_TYPES.ENQUIRY_SENT,
     supplierId,
@@ -252,7 +252,7 @@ async function trackEnquirySent(supplierId, userId, metadata = {}) {
  * @param {Object} [metadata] - Additional metadata (e.g., messageId, responseTime)
  * @returns {Promise<void>}
  */
-async function trackMessageReply(supplierId, userId, metadata = {}) {
+function trackMessageReply(supplierId, userId, metadata = {}) {
   return trackEvent({
     type: EVENT_TYPES.MESSAGE_REPLY,
     supplierId,
@@ -268,7 +268,7 @@ async function trackMessageReply(supplierId, userId, metadata = {}) {
  * @param {Object} [metadata] - Additional metadata (e.g., rating, reviewId)
  * @returns {Promise<void>}
  */
-async function trackReviewReceived(supplierId, userId, metadata = {}) {
+function trackReviewReceived(supplierId, userId, metadata = {}) {
   return trackEvent({
     type: EVENT_TYPES.REVIEW_RECEIVED,
     supplierId,

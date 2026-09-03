@@ -1,7 +1,8 @@
+'use strict';
 (function () {
-  'use strict';
-
-  if (window.__weddingPasswordDashboardLoaded) return;
+  if (window.__weddingPasswordDashboardLoaded) {
+    return;
+  }
   window.__weddingPasswordDashboardLoaded = true;
 
   const rootSelector = '#wedding-website-dashboard-root';
@@ -25,7 +26,9 @@
   function getCsrfToken() {
     const meta = document.querySelector('meta[name="csrf-token"]');
     const tokenFromMeta = meta?.getAttribute('content');
-    if (tokenFromMeta) return tokenFromMeta;
+    if (tokenFromMeta) {
+      return tokenFromMeta;
+    }
     const cookieMatch = document.cookie.match(/(?:^|; )csrfToken=([^;]+)/);
     return cookieMatch ? decodeURIComponent(cookieMatch[1]) : '';
   }
@@ -49,13 +52,17 @@
   }
 
   function planIdFromDom(root) {
-    if (root?.dataset?.planId) return root.dataset.planId;
+    if (root?.dataset?.planId) {
+      return root.dataset.planId;
+    }
     const candidates = Array.from(
       root.querySelectorAll("a[href*='/api/me/plans/'], a[href*='/guests/export.csv']")
     );
     for (const link of candidates) {
       const match = link.getAttribute('href')?.match(/\/api\/me\/plans\/([^/]+)/);
-      if (match) return decodeURIComponent(match[1]);
+      if (match) {
+        return decodeURIComponent(match[1]);
+      }
     }
     return '';
   }
@@ -75,7 +82,9 @@
 
   function renderShareCard(root, website) {
     const actions = root.querySelector('.ww-builder-actions, .ww-actions');
-    if (!actions || !website || root.querySelector('.ww-share-card')) return;
+    if (!actions || !website || root.querySelector('.ww-share-card')) {
+      return;
+    }
     const card = document.createElement('section');
     card.className = 'ww-share-card';
     actions.after(card);
@@ -116,9 +125,13 @@
     }
   }
 
-  async function getWebsiteState(planId) {
-    if (!planId) return null;
-    if (statePlanId === planId && statePromise) return statePromise;
+  function getWebsiteState(planId) {
+    if (!planId) {
+      return null;
+    }
+    if (statePlanId === planId && statePromise) {
+      return statePromise;
+    }
     statePlanId = planId;
     statePromise = api(`/api/me/plans/${encodeURIComponent(planId)}/wedding-website`)
       .then(data => data.website || {})
@@ -128,12 +141,15 @@
 
   async function refreshState(root, form) {
     const planId = planIdFromDom(root);
-    if (!planId) return;
+    if (!planId) {
+      return;
+    }
     const website = await getWebsiteState(planId);
     if (!website) {
       const state = form.querySelector('.ww-password-state');
-      if (state)
+      if (state) {
         state.textContent = 'Privacy settings will be saved with the rest of the website details.';
+      }
       return;
     }
     form.dataset.passwordSet = website.passwordSet ? 'true' : 'false';
@@ -141,7 +157,9 @@
     const selected = form.querySelector(
       `input[name='visibility'][value='${window.CSS?.escape ? CSS.escape(visibility) : visibility}']`
     );
-    if (selected) selected.checked = true;
+    if (selected) {
+      selected.checked = true;
+    }
     const state = form.querySelector('.ww-password-state');
     if (state) {
       state.textContent = website.passwordSet
@@ -154,7 +172,9 @@
 
   function injectControls(root) {
     const form = root.querySelector('#ww-builder');
-    if (!form || form.dataset.passwordDashboardReady === 'true') return;
+    if (!form || form.dataset.passwordDashboardReady === 'true') {
+      return;
+    }
     form.dataset.passwordDashboardReady = 'true';
     const preview = root.querySelector("a[href^='/wedding/']");
     const slug = preview ? preview.getAttribute('href').split('/').filter(Boolean).pop() : '';
@@ -179,7 +199,9 @@
       input.addEventListener('change', () => updateVisibilityUi(form))
     );
     const fallback = form.querySelector("input[name='visibility'][value='private_link']");
-    if (fallback) fallback.checked = true;
+    if (fallback) {
+      fallback.checked = true;
+    }
     updateVisibilityUi(form);
     refreshState(root, form);
   }
@@ -188,10 +210,14 @@
     'click',
     event => {
       const saveButton = event.target.closest('#ww-save');
-      if (!saveButton) return;
+      if (!saveButton) {
+        return;
+      }
       const root = document.querySelector(rootSelector);
       const form = root?.querySelector('#ww-builder');
-      if (!form) return;
+      if (!form) {
+        return;
+      }
       const visibility = form.querySelector("input[name='visibility']:checked")?.value;
       const passwordInput = form.querySelector("input[name='password']");
       if (
@@ -213,7 +239,9 @@
       setTimeout(() => {
         const freshRoot = document.querySelector(rootSelector);
         const freshForm = freshRoot?.querySelector('#ww-builder');
-        if (freshRoot && freshForm) refreshState(freshRoot, freshForm);
+        if (freshRoot && freshForm) {
+          refreshState(freshRoot, freshForm);
+        }
       }, 900);
     },
     true

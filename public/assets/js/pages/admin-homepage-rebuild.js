@@ -60,7 +60,7 @@
     showStatus(message, type === 'error');
   }
 
-  async function confirmAction(options = {}) {
+  function confirmAction(options = {}) {
     if (window.AdminShared?.showConfirmModal) {
       return window.AdminShared.showConfirmModal(options);
     }

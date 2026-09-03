@@ -148,7 +148,7 @@ async function checkDuplicate(userId, content, windowSeconds = 5) {
       // Use a per-user set of content hashes with TTL
       const key = `spam:dup:${userId}`;
       // Store content hash to bound key size
-      const contentHash = crypto.createHash('sha1').update(normalized).digest('hex');
+      const contentHash = crypto.createHash('sha256').update(normalized).digest('hex');
 
       // Check if this content hash was recently sent
       const exists = await redisClient.hexists(key, contentHash);

@@ -1,6 +1,5 @@
+'use strict';
 (function () {
-  'use strict';
-
   function initPartnerCopyButtons() {
     document.querySelectorAll('[data-copy-target]').forEach(button => {
       button.addEventListener('click', async () => {

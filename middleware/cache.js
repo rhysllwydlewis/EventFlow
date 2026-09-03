@@ -98,7 +98,7 @@ function cacheMiddleware(options = {}) {
 function invalidateCacheMiddleware(options = {}) {
   const { patternGenerator = req => `cache:GET:${req.baseUrl}*` } = options;
 
-  return async (req, res, next) => {
+  return (req, res, next) => {
     // Only invalidate on write operations
     if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method)) {
       const pattern = patternGenerator(req);

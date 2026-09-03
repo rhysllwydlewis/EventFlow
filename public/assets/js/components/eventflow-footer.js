@@ -1,6 +1,5 @@
+'use strict';
 (function () {
-  'use strict';
-
   const toast = (message, type) => {
     if (typeof window.showToast === 'function') {
       window.showToast(message, type || 'info');

@@ -133,7 +133,7 @@ function exportToExcel(data, options = {}) {
  * @param {Object} options - Export options
  * @returns {Promise<Object>} PDF data and metadata
  */
-async function exportToPDF(data, options = {}) {
+function exportToPDF(data, options = {}) {
   const {
     filename = 'export.pdf',
     title = 'Export Report',

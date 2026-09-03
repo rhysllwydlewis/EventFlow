@@ -5,9 +5,8 @@
  * Loaded via a plain <script> tag; mirrors the logic in verification-badges.js.
  */
 
+'use strict';
 (function () {
-  'use strict';
-
   /**
    * Resolve the active subscription tier for a supplier object.
    * @param {Object|null} supplier

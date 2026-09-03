@@ -1,6 +1,5 @@
+'use strict';
 (function () {
-  'use strict';
-
   const EXPECTED_ORIGIN = 'https://event-flow.co.uk';
   const EXPECTED_LOGIN_URI = 'https://event-flow.co.uk/api/auth/callback/google';
   const results = document.getElementById('results');

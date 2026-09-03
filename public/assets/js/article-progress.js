@@ -2,9 +2,8 @@
  * Article reading progress bar + back-to-top button + reading time estimate
  * Shared across all article pages. Extracted from per-article inline scripts.
  */
+'use strict';
 (function () {
-  'use strict';
-
   const bar = document.getElementById('article-progress-bar');
   const backTop = document.getElementById('article-back-to-top');
 

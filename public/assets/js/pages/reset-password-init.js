@@ -2,9 +2,8 @@
  * Password Reset Page JavaScript
  * Handles token validation, password strength checking, and password reset submission
  */
+'use strict';
 (function () {
-  'use strict';
-
   const tokenStatusEl = document.getElementById('token-status');
   const tokenMessageEl = document.getElementById('token-message');
   const resetFormEl = document.getElementById('reset-form');
