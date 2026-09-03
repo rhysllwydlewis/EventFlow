@@ -1,17 +1,36 @@
 document.addEventListener('DOMContentLoaded', () => {
+  const prefersReducedMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+  const scrollBehavior = prefersReducedMotion ? 'auto' : 'smooth';
+
+  function activateSection(sectionId) {
+    const pill = document.querySelector(`.mobile-nav-pill[data-section="${sectionId}"]`);
+    if (pill) {
+      pill.click();
+      return true;
+    }
+
+    const section = document.getElementById(sectionId);
+    if (section) {
+      section.scrollIntoView({ behavior: scrollBehavior, block: 'start' });
+      return true;
+    }
+    return false;
+  }
+
+  function expandForm(sectionId, toggleId) {
+    const section = document.getElementById(sectionId);
+    const toggle = document.getElementById(toggleId);
+    if (section && !section.classList.contains('expanded') && toggle) {
+      toggle.click();
+    }
+  }
+
   function scrollToProfileForm() {
+    expandForm('profile-form-section', 'toggle-profile-form');
     const supName = document.getElementById('sup-name');
     if (supName) {
-      supName.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      supName.scrollIntoView({ behavior: scrollBehavior, block: 'center' });
       supName.focus();
-    }
-    // Expand the profile form section if it isn't already open
-    const profileFormSection = document.getElementById('profile-form-section');
-    if (profileFormSection && !profileFormSection.classList.contains('expanded')) {
-      const toggleBtn = document.getElementById('toggle-profile-form');
-      if (toggleBtn) {
-        toggleBtn.click();
-      }
     }
   }
 
@@ -25,13 +44,17 @@ document.addEventListener('DOMContentLoaded', () => {
       scrollToProfileForm();
     }
   });
-  const btnPkg = document.querySelector('[data-action="new-package"]');
-  if (btnPkg) {
-    btnPkg.addEventListener('click', () => {
-      document.getElementById('pkg-title').focus();
-      document.getElementById('pkg-title').scrollIntoView({ behavior: 'smooth', block: 'center' });
+  document.querySelectorAll('[data-action="new-package"]').forEach(btnPkg => {
+    btnPkg.addEventListener('click', event => {
+      event.preventDefault();
+      expandForm('package-form-section', 'toggle-package-form');
+      const packageTitle = document.getElementById('pkg-title');
+      if (packageTitle) {
+        packageTitle.scrollIntoView({ behavior: scrollBehavior, block: 'center' });
+        packageTitle.focus();
+      }
     });
-  }
+  });
   const btnEarnings = document.querySelector('[data-action="view-earnings"]');
   if (btnEarnings) {
     btnEarnings.addEventListener('click', () => {
@@ -46,31 +69,20 @@ document.addEventListener('DOMContentLoaded', () => {
       if (collapseBtn && collapseBtn.getAttribute('aria-expanded') === 'false') {
         collapseBtn.click();
       }
-      earningsSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      earningsSection.scrollIntoView({ behavior: scrollBehavior, block: 'start' });
     });
   }
   const btnStats = document.querySelector('[data-action="view-stats"]');
   if (btnStats) {
     btnStats.addEventListener('click', () => {
-      document
-        .getElementById('supplier-stats-grid')
-        .scrollIntoView({ behavior: 'smooth', block: 'start' });
+      activateSection('supplier-stats-grid');
     });
   }
 
   const btnGetHelp = document.querySelector('[data-action="get-help"]');
   if (btnGetHelp) {
     btnGetHelp.addEventListener('click', () => {
-      const ticketsSection = document.getElementById('tickets-sup');
-      if (ticketsSection) {
-        ticketsSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      }
-      // Activate the Tickets pill in the mobile nav if visible
-      const ticketsPill = document.querySelector('.mobile-nav-pill[data-section="tickets-sup"]');
-      if (ticketsPill) {
-        document.querySelectorAll('.mobile-nav-pill').forEach(p => p.classList.remove('active'));
-        ticketsPill.classList.add('active');
-      }
+      activateSection('tickets-sup');
     });
   }
 
@@ -89,28 +101,42 @@ document.addEventListener('DOMContentLoaded', () => {
             url = `${window.location.origin}/suppliers/${slug}`;
           }
         }
-      } catch (_e) {
+      } catch {
         /* use fallback url */
       }
       const originalText = this.textContent;
-      if (navigator.clipboard) {
-        navigator.clipboard.writeText(url).then(
-          () => {
-            if (typeof showToast === 'function') {
-              showToast('Review link copied!', 'success');
-            } else {
-              this.textContent = '✅ Copied!';
-              setTimeout(() => {
-                this.textContent = originalText;
-              }, 2000);
-            }
-          },
-          () => {
-            window.prompt('Copy this link:', url);
-          }
+      let copied = false;
+      let copyField = null;
+      try {
+        if (navigator.clipboard?.writeText) {
+          await navigator.clipboard.writeText(url);
+          copied = true;
+        } else {
+          copyField = document.createElement('textarea');
+          copyField.value = url;
+          copyField.setAttribute('readonly', '');
+          copyField.style.position = 'fixed';
+          copyField.style.opacity = '0';
+          document.body.appendChild(copyField);
+          copyField.select();
+          copied = document.execCommand('copy');
+        }
+      } catch {
+        copied = false;
+      } finally {
+        copyField?.remove();
+      }
+
+      if (typeof showToast === 'function') {
+        showToast(
+          copied ? 'Review link copied!' : 'Could not copy the review link. Please try again.',
+          copied ? 'success' : 'error'
         );
       } else {
-        window.prompt('Copy this link:', url);
+        this.textContent = copied ? '✅ Copied!' : 'Copy failed — try again';
+        setTimeout(() => {
+          this.textContent = originalText;
+        }, 2000);
       }
     });
   }

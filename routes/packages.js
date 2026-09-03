@@ -347,7 +347,7 @@ router.post(
         error: `Your ${features.name} plan allows up to ${packageLimit} active packages. Upgrade your plan to create more.`,
         activeCount,
         limit: packageLimit,
-        upgradeUrl: '/supplier/subscription.html',
+        upgradeUrl: '/supplier/subscription',
       });
     }
 
@@ -671,7 +671,7 @@ router.put(
             error: `Your ${planName} plan allows up to ${packageLimit} active packages. Pause another package to activate this one, or upgrade your plan.`,
             limit: packageLimit,
             activeCount,
-            upgradeUrl: '/supplier/subscription.html',
+            upgradeUrl: '/supplier/subscription',
           });
         }
       }
@@ -883,15 +883,16 @@ router.post(
     if (!pkg) {
       return res.status(404).json({ error: 'Not found' });
     }
+    const approved = Boolean(req.body?.approved);
     await dbUnified.updateOne(
       'packages',
       { id: req.params.id },
       {
-        $set: { approved: !!(req.body && req.body.approved) },
+        $set: { approved },
       }
     );
     suppliersRouter.invalidatePackageCaches();
-    res.json({ ok: true, package: { ...pkg, approved: !!(req.body && req.body.approved) } });
+    return res.json({ ok: true, package: { ...pkg, approved } });
   }
 );
 
@@ -909,15 +910,16 @@ router.post(
     if (!pkg) {
       return res.status(404).json({ error: 'Not found' });
     }
+    const featured = Boolean(req.body?.featured);
     await dbUnified.updateOne(
       'packages',
       { id: req.params.id },
       {
-        $set: { featured: !!(req.body && req.body.featured) },
+        $set: { featured },
       }
     );
     suppliersRouter.invalidatePackageCaches();
-    res.json({ ok: true, package: { ...pkg, featured: !!(req.body && req.body.featured) } });
+    return res.json({ ok: true, package: { ...pkg, featured } });
   }
 );
 
@@ -958,8 +960,8 @@ router.put(
       if (!isPlaceholderImage(newImage)) {
         const existingGallery = pkg.gallery || [];
         const alreadyInGallery = existingGallery.some(item => {
-          const u = typeof item === 'string' ? item : item.url || '';
-          return u === newImage;
+          const imageUrl = typeof item === 'string' ? item : item.url || '';
+          return imageUrl === newImage;
         });
         if (!alreadyInGallery) {
           pkgUpdates.gallery = [
@@ -980,7 +982,7 @@ router.put(
     await dbUnified.updateOne('packages', { id }, { $set: pkgUpdates });
     suppliersRouter.invalidatePackageCaches();
 
-    res.json({ ok: true, package: { ...pkg, ...pkgUpdates } });
+    return res.json({ ok: true, package: { ...pkg, ...pkgUpdates } });
   }
 );
 
@@ -1003,7 +1005,7 @@ router.delete(
 
     await dbUnified.deleteOne('packages', id);
     suppliersRouter.invalidatePackageCaches();
-    res.json({ ok: true, message: 'Package deleted successfully' });
+    return res.json({ ok: true, message: 'Package deleted successfully' });
   }
 );
 
@@ -1050,8 +1052,8 @@ router.post(
       // detail-view resolvedGallery reflects the newly uploaded image.
       const existingGallery = pkg.gallery || [];
       const alreadyInGallery = existingGallery.some(item => {
-        const u = typeof item === 'string' ? item : item.url || '';
-        return u === uploadedUrl;
+        const imageUrl = typeof item === 'string' ? item : item.url || '';
+        return imageUrl === uploadedUrl;
       });
       const updatedGallery = alreadyInGallery
         ? existingGallery
@@ -1068,7 +1070,7 @@ router.post(
 
       logger.info(`Package image uploaded successfully for package ${packageId}`);
 
-      res.json({
+      return res.json({
         ok: true,
         package: { ...pkgForUpload, ...imageUpdates },
         imageUrl: imageUpdates.image,
@@ -1124,7 +1126,7 @@ router.post(
       }
 
       // Generic error fallback
-      res.status(500).json({
+      return res.status(500).json({
         error: 'Failed to upload image',
         details:
           process.env.NODE_ENV !== 'production'

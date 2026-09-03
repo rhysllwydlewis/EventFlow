@@ -365,7 +365,7 @@ describe('requireSubscription middleware', () => {
     const res = makeRes();
     const next = jest.fn();
     await requireSubscription('pro')(req, res, next);
-    expect(res._body.upgradeUrl).toBe('/supplier/subscription.html');
+    expect(res._body.upgradeUrl).toBe('/supplier/subscription');
   });
 });
 

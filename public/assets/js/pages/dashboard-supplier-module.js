@@ -1289,29 +1289,6 @@ displaySubscriptionStatus();
   window.dismissSupplierWelcome = dismissWelcomeOverlay;
 })();
 
-// Earnings Overview CTA: scroll to packages section and open the form if collapsed
-document.addEventListener('DOMContentLoaded', () => {
-  const earningsCta = document.getElementById('earnings-create-pkg-cta');
-  if (earningsCta) {
-    earningsCta.addEventListener('click', e => {
-      e.preventDefault();
-      const packagesSection = document.getElementById('packages-section');
-      if (packagesSection) {
-        packagesSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      }
-      // Open the package creation form if it is collapsed
-      const toggleBtn = document.getElementById('toggle-package-form');
-      const formSection = document.getElementById('package-form-section');
-      if (toggleBtn && formSection) {
-        const isExpanded = toggleBtn.getAttribute('aria-expanded') === 'true';
-        if (!isExpanded) {
-          toggleBtn.click();
-        }
-      }
-    });
-  }
-});
-
 // ── Next Steps / Action Checklist ─────────────────────────────────────────
 // Loads outstanding action items from the server (same logic as action-prompt emails)
 // and renders a clear card with severity badges and direct CTA links.
