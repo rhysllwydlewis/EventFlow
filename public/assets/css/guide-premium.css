@@ -813,15 +813,22 @@ body.gp-page {
   gap: 1px;
 }
 
-.gp-stat__pre,
+/* A range's other bound (e.g. the "–50%" in "45–50%") — full size and in
+   brand teal, not shrunk to unit-label scale. At half size and the same ink
+   as the counted-up figure it read as a minus sign or an exponent, not a
+   range partner; matching size keeps the dash reading as "to", and teal
+   keeps it visually distinct from the animated digit itself. */
 .gp-stat__unit {
-  font-family: var(--gp-sans);
-  font-size: 0.5em;
+  font-family: var(--gp-display);
+  font-size: 1em;
   font-weight: 600;
   color: var(--gp-brand);
-  letter-spacing: 0;
+  letter-spacing: -0.02em;
 }
 
+/* A range's leading bound (e.g. the "5–" in "5–10%") — already reads
+   correctly as part of the number since it sits before the counted-up
+   figure, so it stays the same ink rather than needing teal to disambiguate. */
 .gp-stat__pre {
   color: var(--gp-text);
   font-family: inherit;
@@ -968,6 +975,32 @@ body.gp-page {
   white-space: nowrap;
 }
 
+/* — Inline figure --------------------------------------------------------
+   A deliberate visual break partway through a long article — the same beat
+   as a section, not a narrow inline illustration, so it sits at the section
+   margin rather than the prose measure. Optional; most sections have none. */
+.gp-figure {
+  margin-top: clamp(2.75rem, 6vw, 4.25rem);
+  border-radius: var(--gp-radius-lg);
+  overflow: hidden;
+  box-shadow: var(--gp-shadow-md);
+  background: var(--gp-surface-sunk);
+}
+
+.gp-figure img {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 16 / 9;
+  object-fit: cover;
+}
+
+.gp-figure figcaption {
+  padding: 0.85rem 1.25rem;
+  border-top: 1px solid var(--gp-line);
+  font-size: 0.8125rem;
+  color: var(--gp-muted);
+}
 
 /* — FAQ ----------------------------------------------------------------- */
 .gp-faq {
