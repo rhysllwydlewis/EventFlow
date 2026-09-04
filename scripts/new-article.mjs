@@ -30,7 +30,12 @@
 import { writeFile } from 'node:fs/promises';
 import path from 'node:path';
 
-import { applyChrome, articlesDir, buildBlocks } from './lib/article-chrome.mjs';
+import {
+  applyChrome,
+  articlesDir,
+  buildBlocks,
+  HEADER_SCRIPTS_MARKUP,
+} from './lib/article-chrome.mjs';
 
 const SITE = 'https://event-flow.co.uk';
 
@@ -252,9 +257,7 @@ Print
 </main>
 <!--CHROME_FOOTER-->
 <!--CHROME_BOTTOM_NAV-->
-<script src="/assets/js/utils/auth-state.js"></script>
-<script src="/assets/js/burger-menu.js"></script>
-<script src="/assets/js/navbar.js"></script>
+<!--CHROME_HEADER_SCRIPTS-->
 <script src="/assets/js/cookie-consent.js?v=2.0.1"></script>
 <script src="/assets/js/app.js?v=18.5.0"></script>
 <script defer="" src="/assets/js/article-progress.js"></script>
@@ -297,12 +300,17 @@ async function main() {
   // Same chrome, same source, same run: the article is drift-free on write, so
   // `generate-article-shells.mjs --check` passes over it without a rewrite.
   const blocks = await buildBlocks();
-  const withChrome = draft
+  const filled = draft
     .replace('<!--CHROME_HEADER-->', () => blocks[0].markup)
     .replace('<!--CHROME_BOTTOM_NAV-->', () => blocks[1].markup)
-    .replace('<!--CHROME_FOOTER-->', () => blocks[2].markup);
+    .replace('<!--CHROME_FOOTER-->', () => blocks[2].markup)
+    .replace('<!--CHROME_HEADER_SCRIPTS-->', () => HEADER_SCRIPTS_MARKUP);
 
-  applyChrome(withChrome, `${slug}.html`, blocks);
+  // Run the placeholders through applyChrome rather than trusting them: it is
+  // the same function the shell generator runs, so whatever it adds here — the
+  // notification dropdown, which has no placeholder because it has no fixed
+  // position — the new article has from its first byte.
+  const withChrome = applyChrome(filled, `${slug}.html`, blocks);
 
   // 'wx' fails if the path exists, so the refusal to overwrite is the write
   // itself rather than a check before it. Testing with access() first and

@@ -1,4 +1,3 @@
-#!/usr/bin/env node
 /**
  * EventFlow Go-Live Audit Script
  *

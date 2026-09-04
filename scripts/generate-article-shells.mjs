@@ -2,19 +2,25 @@
  * Keeps the shared chrome inside every guide article in step with the site.
  *
  * Roughly half of each article file is not the article: it is the site header,
- * the mobile bottom navigation and the footer, copied into all 34 files. That
- * copy drifted. Before this script the 34 articles between them carried six
- * different site headers, two bottom navigations and seven footers, and every
- * one of them was serving a main navigation two links out of date.
+ * the mobile bottom navigation, the notification dropdown, the header's scripts
+ * and the footer, copied into all 34 files. That copy drifted. Before this
+ * script the 34 articles between them carried six different site headers, two
+ * bottom navigations and seven footers, and every one of them was serving a
+ * main navigation two links out of date.
  *
  * The canonical markup lives in `scripts/lib/article-chrome.mjs`, shared with
  * `new-article.mjs` so a scaffolded article is drift-free the moment it is
  * written. That module documents where each block comes from and why.
  *
- * Deliberately NOT owned yet: the `.notification-dropdown` block. It is nested
- * divs with no unique wrapper tag, so it cannot be matched safely the way the
- * three blocks here can, and it is absent from 8 of the 34 files. Unifying it
- * needs a real parser rather than a pattern, so it is left for a follow-up.
+ * The notification dropdown is owned too. It is nested divs with no unique
+ * wrapper tag, so unlike the other blocks it cannot be matched with a pattern;
+ * the shared module walks div depth to find where it ends. It was absent from 8
+ * of the 34 files and carried two different shapes across the other 26.
+ *
+ * So is the run of scripts the header depends on. Every article renders the
+ * header's notification bell and not one of them loaded notifications.js, so
+ * the bell opened nothing; eighteen instead loaded websocket-client.js, which
+ * nothing on an article ever reads.
  *
  * The generated files are committed. Re-run this after changing the markup in
  * the shared module or the header in guides.html, and commit the result.

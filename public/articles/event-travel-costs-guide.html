@@ -201,18 +201,21 @@
     </nav>
   </div>
 </header>
-<div class="notification-dropdown" id="notification-dropdown" style="display: none;">
+<!-- Notification dropdown: pre-rendered here, shown and hidden by notifications.js. -->
+<div id="notification-dropdown" class="notification-dropdown" hidden aria-hidden="true" style="display: none;">
 <div class="notification-header">
 <h3>Notifications</h3>
-<button class="notification-mark-all" id="notification-mark-all-read">Mark all as read</button>
+<button class="notification-mark-all" id="notification-mark-all-read" type="button">Mark all as read</button>
 </div>
 <div class="notification-list"></div>
-<div class="notification-footer"><a class="notification-view-all" href="/notifications">View all</a></div>
+<div class="notification-footer">
+<a href="/notifications" class="notification-view-all">View all</a>
+</div>
 </div>
 <script defer="" src="/assets/js/utils/auth-state.js"></script>
 <script defer="" src="/assets/js/burger-menu.js"></script>
 <script defer="" src="/assets/js/navbar.js"></script>
-<script defer="" src="/assets/js/websocket-client.js"></script>
+<script defer="" src="/assets/js/notifications.js"></script>
 <main id="main-content">
 <article class="gp gp--numbered" data-gp-article>
 
