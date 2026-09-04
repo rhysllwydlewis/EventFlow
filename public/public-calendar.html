@@ -510,11 +510,23 @@
           <a href="/faq" class="ef-mobile-link">Help &amp; FAQ</a>
           <div class="ef-mobile-divider"></div>
           <a href="/auth" id="ef-mobile-auth" class="ef-mobile-link ef-mobile-primary">Log in</a>
-          <a href="#" id="ef-mobile-dashboard" class="ef-mobile-link" style="display:none;">Dashboard</a>
-          <a href="#" id="ef-mobile-logout" class="ef-mobile-link" style="display:none;">Log out</a>
+          <a href="#" id="ef-mobile-dashboard" class="ef-mobile-link" style="display: none;">Dashboard</a>
+          <a href="/settings" id="ef-mobile-settings" class="ef-mobile-link" style="display: none;">Settings</a>
+          <a href="#" id="ef-mobile-logout" class="ef-mobile-link" style="display: none;">Log out</a>
         </nav>
       </div>
     </header>
+    <!-- Notification dropdown: pre-rendered here, shown and hidden by notifications.js. -->
+    <div id="notification-dropdown" class="notification-dropdown" hidden aria-hidden="true" style="display: none;">
+      <div class="notification-header">
+        <h3>Notifications</h3>
+        <button class="notification-mark-all" id="notification-mark-all-read" type="button">Mark all as read</button>
+      </div>
+      <div class="notification-list"></div>
+      <div class="notification-footer">
+        <a href="/notifications" class="notification-view-all">View all</a>
+      </div>
+    </div>
 
     <!-- Hero -->
     <section class="pc-hero" aria-label="Public Events Calendar hero">
@@ -841,6 +853,7 @@
     <script src="/assets/js/utils/auth-state.js" defer></script>
     <script src="/assets/js/burger-menu.js" defer></script>
     <script src="/assets/js/navbar.js" defer></script>
+    <script src="/assets/js/notifications.js" defer></script>
     <script src="/assets/js/cookie-consent.js?v=3.0.0" defer></script>
     <script src="/assets/js/pages/public-calendar-init.js" defer></script>
 </body>

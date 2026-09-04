@@ -30,7 +30,12 @@
 import { writeFile } from 'node:fs/promises';
 import path from 'node:path';
 
-import { applyChrome, articlesDir, buildBlocks } from './lib/article-chrome.mjs';
+import {
+  applyChrome,
+  articlesDir,
+  buildBlocks,
+  HEADER_SCRIPTS_MARKUP,
+} from './lib/article-chrome.mjs';
 
 const SITE = 'https://event-flow.co.uk';
 
@@ -69,6 +74,47 @@ function escapeHtml(value) {
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;');
+}
+
+/**
+ * Serialise a value for a `<script type="application/ld+json">` block.
+ *
+ * Script content is raw text to the HTML parser — it is never HTML-entity
+ * decoded — so `escapeHtml` is the wrong tool here even though the values also
+ * appear HTML-escaped elsewhere on the page. Interpolating title/description
+ * into a hand-written JSON string, as this used to, breaks in two ways a
+ * title can easily hit: a `"` survives HTML-escaping as the literal text
+ * `&quot;` rather than becoming a real character, and a `\` (e.g. in "10\"
+ * chairs") is not a valid JSON escape on its own, so the whole block fails to
+ * parse and the rich snippet silently disappears.
+ *
+ * `JSON.stringify` fixes the syntax; the character-by-character pass after it
+ * stops a title containing the literal text `</script>` from ending the tag
+ * early and letting whatever follows run as markup. Matches
+ * `serializeJsonLd` in services/publicListingSeo.service.js, the same
+ * technique already used for the JSON-LD this site renders server-side.
+ * @param {unknown} value The JSON-LD payload.
+ * @returns {string} Safe to place directly inside the script tag.
+ */
+function serializeJsonLd(value) {
+  const json = JSON.stringify(value);
+  let output = '';
+  for (const character of json) {
+    if (character === '<') {
+      output += '\\u003c';
+    } else if (character === '>') {
+      output += '\\u003e';
+    } else if (character === '&') {
+      output += '\\u0026';
+    } else if (character === '\u2028') {
+      output += '\\u2028';
+    } else if (character === '\u2029') {
+      output += '\\u2029';
+    } else {
+      output += character;
+    }
+  }
+  return output;
 }
 
 /**
@@ -131,17 +177,17 @@ function document_(opts) {
 <link href="/assets/css/p3-features.css?v=18.3.0" rel="stylesheet"/>
 <link href="/assets/css/public-mobile-compact.css" rel="stylesheet"/>
 <script type="application/ld+json">
-{
-  "@context": "https://schema.org",
-  "@type": "Article",
-  "headline": "${safeTitle}",
-  "description": "${safeDescription}",
-  "datePublished": "${today}",
-  "dateModified": "${today}",
-  "author": { "@type": "Organization", "name": "EventFlow" },
-  "publisher": { "@type": "Organization", "name": "EventFlow" },
-  "mainEntityOfPage": { "@type": "WebPage", "@id": "${url}" }
-}
+${serializeJsonLd({
+  '@context': 'https://schema.org',
+  '@type': 'Article',
+  headline: title,
+  description,
+  datePublished: today,
+  dateModified: today,
+  author: { '@type': 'Organization', name: 'EventFlow' },
+  publisher: { '@type': 'Organization', name: 'EventFlow' },
+  mainEntityOfPage: { '@type': 'WebPage', '@id': url },
+})}
 </script>
 </head>
 <body class="gp-page">
@@ -252,9 +298,7 @@ Print
 </main>
 <!--CHROME_FOOTER-->
 <!--CHROME_BOTTOM_NAV-->
-<script src="/assets/js/utils/auth-state.js"></script>
-<script src="/assets/js/burger-menu.js"></script>
-<script src="/assets/js/navbar.js"></script>
+<!--CHROME_HEADER_SCRIPTS-->
 <script src="/assets/js/cookie-consent.js?v=2.0.1"></script>
 <script src="/assets/js/app.js?v=18.5.0"></script>
 <script defer="" src="/assets/js/article-progress.js"></script>
@@ -284,6 +328,10 @@ async function main() {
   }
 
   const target = path.join(articlesDir, `${slug}.html`);
+  // Computed once: the document's own dates and the guides.json entry printed
+  // below must agree, not just be close, and calling new Date() a second time
+  // is one avoidable way for them not to.
+  const today = new Date().toISOString().slice(0, 10);
 
   const draft = document_({
     slug,
@@ -291,18 +339,23 @@ async function main() {
     description,
     kicker: typeof options.kicker === 'string' ? options.kicker : 'Guides',
     numbered: options['no-numbers'] !== true,
-    today: new Date().toISOString().slice(0, 10),
+    today,
   });
 
   // Same chrome, same source, same run: the article is drift-free on write, so
   // `generate-article-shells.mjs --check` passes over it without a rewrite.
   const blocks = await buildBlocks();
-  const withChrome = draft
+  const filled = draft
     .replace('<!--CHROME_HEADER-->', () => blocks[0].markup)
     .replace('<!--CHROME_BOTTOM_NAV-->', () => blocks[1].markup)
-    .replace('<!--CHROME_FOOTER-->', () => blocks[2].markup);
+    .replace('<!--CHROME_FOOTER-->', () => blocks[2].markup)
+    .replace('<!--CHROME_HEADER_SCRIPTS-->', () => HEADER_SCRIPTS_MARKUP);
 
-  applyChrome(withChrome, `${slug}.html`, blocks);
+  // Run the placeholders through applyChrome rather than trusting them: it is
+  // the same function the shell generator runs, so whatever it adds here — the
+  // notification dropdown, which has no placeholder because it has no fixed
+  // position — the new article has from its first byte.
+  const withChrome = applyChrome(filled, `${slug}.html`, blocks);
 
   // 'wx' fails if the path exists, so the refusal to overwrite is the write
   // itself rather than a check before it. Testing with access() first and
@@ -331,8 +384,8 @@ Next:
     "title": ${JSON.stringify(title)},
     "href": "/articles/${slug}",
     "description": ${JSON.stringify(description)},
-    "publishedDate": "${new Date().toISOString().slice(0, 10)}",
-    "lastUpdated": "${new Date().toISOString().slice(0, 10)}"
+    "publishedDate": "${today}",
+    "lastUpdated": "${today}"
   }
 
   3. Run: node scripts/generate-article-shells.mjs --check

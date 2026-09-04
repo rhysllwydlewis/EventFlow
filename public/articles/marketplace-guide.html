@@ -175,27 +175,26 @@
       <div class="ef-mobile-divider"></div>
       <a href="/auth" id="ef-mobile-auth" class="ef-mobile-link ef-mobile-primary">Log in</a>
       <a href="#" id="ef-mobile-dashboard" class="ef-mobile-link" style="display: none;">Dashboard</a>
+      <a href="/settings" id="ef-mobile-settings" class="ef-mobile-link" style="display: none;">Settings</a>
       <a href="#" id="ef-mobile-logout" class="ef-mobile-link" style="display: none;">Log out</a>
     </nav>
   </div>
 </header>
-<!-- Notification Dropdown (Pre-rendered, shown/hidden by JS) -->
-<div class="notification-dropdown" id="notification-dropdown" style="display: none;">
+<!-- Notification dropdown: pre-rendered here, shown and hidden by notifications.js. -->
+<div id="notification-dropdown" class="notification-dropdown" hidden aria-hidden="true" style="display: none;">
 <div class="notification-header">
 <h3>Notifications</h3>
-<button class="notification-mark-all" id="notification-mark-all-read">
-          Mark all as read
-        </button>
+<button class="notification-mark-all" id="notification-mark-all-read" type="button">Mark all as read</button>
 </div>
 <div class="notification-list"></div>
 <div class="notification-footer">
-<a class="notification-view-all" href="/notifications">View all</a>
+<a href="/notifications" class="notification-view-all">View all</a>
 </div>
 </div>
 <script defer="" src="/assets/js/utils/auth-state.js"></script>
 <script defer="" src="/assets/js/burger-menu.js"></script>
 <script defer="" src="/assets/js/navbar.js"></script>
-<script defer="" src="/assets/js/websocket-client.js"></script>
+<script defer="" src="/assets/js/notifications.js"></script>
 <main class="section" id="main-content">
 <div class="container" style="max-width: 900px;">
 <article>

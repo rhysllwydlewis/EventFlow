@@ -18,6 +18,19 @@ const path = require('path');
 
 const ROOT = path.join(__dirname, '../..');
 const GENERATOR = path.join(ROOT, 'scripts/generate-community-pages.mjs');
+const PUBLIC = path.join(ROOT, 'public');
+
+/**
+ * Every page this generator produces.
+ * @returns {Array<{name: string, html: string}>} The committed pages.
+ */
+function generatedPages() {
+  return fs
+    .readdirSync(PUBLIC)
+    .filter(name => /^(community|admin-community)/.test(name) && name.endsWith('.html'))
+    .sort()
+    .map(name => ({ name, html: fs.readFileSync(path.join(PUBLIC, name), 'utf8') }));
+}
 
 describe('the committed community shells match their template', () => {
   it('reports no drift', () => {
@@ -52,4 +65,32 @@ describe('the committed community shells match their template', () => {
     expect(template).toContain('efc-stage__card');
     expect(template).toContain('efc-catstrip');
   });
+});
+
+describe('the notification bell every community page renders actually opens something', () => {
+  // Every page here (admin-community.html included) renders #ef-notification-btn
+  // in its header. Before this, none of them loaded notifications.js or carried
+  // a #notification-dropdown for it to open — the same dead-button bug the 34
+  // guide articles had (see article-chrome.mjs) — so clicking it did nothing.
+  const pages = generatedPages();
+
+  it('has pages to check', () => {
+    expect(pages.length).toBeGreaterThanOrEqual(12);
+  });
+
+  test.each(pages.map(page => [page.name, page.html]))(
+    '%s renders the bell, the dropdown it opens, and the script that runs it',
+    (_name, html) => {
+      expect(html).toContain('id="ef-notification-btn"');
+      expect(html).toContain('id="notification-dropdown"');
+      expect(html).toContain('<script src="/assets/js/notifications.js" defer></script>');
+    }
+  );
+
+  test.each(pages.map(page => [page.name, page.html]))(
+    '%s renders exactly one notification dropdown',
+    (_name, html) => {
+      expect((html.match(/id="notification-dropdown"/g) || []).length).toBe(1);
+    }
+  );
 });

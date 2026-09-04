@@ -1,5 +1,3 @@
-#!/usr/bin/env node
-
 /**
  * Security Headers Verification Script
  *

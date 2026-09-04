@@ -128,3 +128,64 @@ describe('scripts/new-article.mjs', () => {
     ).toThrow();
   });
 });
+
+describe('scripts/new-article.mjs — JSON-LD survives an awkward title', () => {
+  // A hand-written `"headline": "${title}"` string only breaks on characters a
+  // real title can plausibly contain: a quote (survives HTML-escaping as the
+  // literal text &quot; instead of becoming a real character), a backslash (not
+  // a valid JSON escape on its own — invalidates the whole block), and
+  // `</script>` (ends the tag early regardless of what is "inside" the JSON,
+  // because the HTML parser reads raw text, not JSON).
+  const slug = 'zz-json-ld-fixture';
+  const target = path.join(ROOT, 'public/articles', `${slug}.html`);
+  const title = 'The "Best" Guide \\d </script><script>alert(1)</script>';
+  const description = 'Line one\nLine two & more';
+  let html = '';
+  let jsonLd;
+
+  beforeAll(() => {
+    if (fs.existsSync(target)) {
+      fs.unlinkSync(target);
+    }
+    execFileSync(
+      'node',
+      [SCAFFOLD, '--slug', slug, '--title', title, '--description', description],
+      { cwd: ROOT, encoding: 'utf8' }
+    );
+    html = fs.readFileSync(target, 'utf8');
+    const match = html.match(/<script type="application\/ld\+json">\n([\s\S]*?)\n<\/script>/);
+    jsonLd = match ? match[1] : null;
+  });
+
+  afterAll(() => {
+    if (fs.existsSync(target)) {
+      fs.unlinkSync(target);
+    }
+  });
+
+  it('emits exactly one ld+json block, and it is present', () => {
+    expect(jsonLd).not.toBeNull();
+    expect((html.match(/application\/ld\+json/g) || []).length).toBe(1);
+  });
+
+  it('is valid JSON', () => {
+    expect(() => JSON.parse(jsonLd)).not.toThrow();
+  });
+
+  it('round-trips the title and description exactly, not HTML-entity-mangled', () => {
+    const data = JSON.parse(jsonLd);
+    expect(data.headline).toBe(title);
+    expect(data.description).toBe(description);
+  });
+
+  it('never lets the title end the script tag early', () => {
+    // The literal case-insensitive byte sequence, wherever it sits in the
+    // document, would close the tag as far as the HTML parser is concerned —
+    // this is not a JSON-escaping question.
+    expect(jsonLd.toLowerCase()).not.toContain('</script');
+  });
+
+  it('does not inject the title as live markup elsewhere on the page', () => {
+    expect(html).not.toContain('<script>alert(1)</script>');
+  });
+});

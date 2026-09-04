@@ -94,6 +94,23 @@ Module scripts compile with the rest: `npm run build:guides` picks up any
   (`tests/visual/visual-regression.spec.mjs`); a scaffolded article passes it
   unmodified.
 
+## What "site chrome" covers
+
+`scripts/generate-article-shells.mjs` owns five things in every article and
+`--check` fails if any of them drifts. Do not hand-edit them:
+
+| Block                                                           | Canonical source                                                   |
+| --------------------------------------------------------------- | ------------------------------------------------------------------ |
+| Site header (`<header class="ef-header">`)                      | `public/guides.html`, read at generation time                      |
+| Notification dropdown                                           | `NOTIFICATION_DROPDOWN_MARKUP` in `scripts/lib/article-chrome.mjs` |
+| Header scripts (auth-state, burger-menu, navbar, notifications) | `HEADER_SCRIPTS` in the same module                                |
+| Mobile bottom navigation                                        | `BOTTOM_NAV_MARKUP` in the same module                             |
+| Footer (`<footer class="footer">`)                              | `FOOTER_MARKUP` in the same module                                 |
+
+Adding a link to the navigation means editing `public/guides.html` and
+re-running the generator; every article and every generated community page
+picks it up. Everything else in the file is the article's own.
+
 ## Verifying
 
 ```bash

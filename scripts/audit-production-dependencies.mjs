@@ -1,44 +1,37 @@
+/**
+ * Audit the production dependency tree and fail only on real findings.
+ *
+ * This used to decide pass/fail from npm's own exit code, which conflates two
+ * unrelated things: `npm audit` exits non-zero for a vulnerability at or above
+ * the threshold, and also for a registry it could not reach. When the registry
+ * was unreachable the script printed "Production audit: 0 vulnerabilities" —
+ * parsed out of a report that had no counts in it at all — and then failed the
+ * build anyway, so the output actively contradicted the result.
+ *
+ * The verdict now comes from the parsed counts, and a registry or tooling
+ * failure is reported as itself rather than dressed up as a clean audit.
+ */
+
 import { spawnSync } from 'node:child_process';
 
-const blockingLevel = process.env.NPM_AUDIT_LEVEL || 'high';
-const result = spawnSync(
-  'npm',
-  ['audit', '--omit=dev', `--audit-level=${blockingLevel}`, '--json'],
-  {
-    encoding: 'utf8',
-    shell: process.platform === 'win32',
-  }
-);
+// Ascending, so everything at or after the threshold's index blocks.
+const SEVERITIES = ['info', 'low', 'moderate', 'high', 'critical'];
 
-let report;
-try {
-  report = JSON.parse(result.stdout || '{}');
-} catch (error) {
-  console.error('npm audit did not return valid JSON.');
-  if (result.stdout) {
-    console.error(result.stdout.trim());
-  }
-  if (result.stderr) {
-    console.error(result.stderr.trim());
-  }
-  console.error(error instanceof Error ? error.message : String(error));
-  process.exit(1);
+const blockingLevel = process.env.NPM_AUDIT_LEVEL || 'high';
+
+if (!SEVERITIES.includes(blockingLevel)) {
+  console.error(
+    `NPM_AUDIT_LEVEL="${blockingLevel}" is not a severity. Use one of: ${SEVERITIES.join(', ')}.`
+  );
+  process.exitCode = 1;
 }
 
-const metadata = report.metadata?.vulnerabilities || {};
-const vulnerabilities = Object.values(report.vulnerabilities || {}).sort((left, right) => {
-  const order = { critical: 4, high: 3, moderate: 2, low: 1, info: 0 };
-  return (order[right.severity] || 0) - (order[left.severity] || 0);
-});
-
-console.log(
-  `Production audit: ${metadata.total || 0} vulnerabilities ` +
-    `(${metadata.critical || 0} critical, ${metadata.high || 0} high, ` +
-    `${metadata.moderate || 0} moderate, ${metadata.low || 0} low).`
-);
-console.log(`Blocking threshold: ${blockingLevel} and above.`);
-
-for (const vulnerability of vulnerabilities) {
+/**
+ * Print everything known about one vulnerability.
+ * @param {Object} vulnerability One entry from the audit report.
+ * @returns {void} Nothing.
+ */
+function describe(vulnerability) {
   console.log(`\n${vulnerability.name} — ${vulnerability.severity}`);
   console.log(`  direct: ${vulnerability.isDirect ? 'yes' : 'no'}`);
   console.log(`  affected range: ${vulnerability.range || 'unknown'}`);
@@ -77,8 +70,115 @@ for (const vulnerability of vulnerabilities) {
   }
 }
 
-if (result.stderr) {
-  console.error(result.stderr.trim());
+/**
+ * Parse npm's JSON report, reporting the failure rather than treating it as empty.
+ * @param {{stdout: string, stderr: string}} result The spawn result.
+ * @returns {Object|null} The report, or null when stdout was not JSON.
+ */
+function parseReport(result) {
+  try {
+    return JSON.parse(result.stdout || '{}');
+  } catch (error) {
+    console.error('npm audit did not return valid JSON, so nothing was audited.');
+    if (result.stdout) {
+      console.error(result.stdout.trim());
+    }
+    if (result.stderr) {
+      console.error(result.stderr.trim());
+    }
+    console.error(error instanceof Error ? error.message : String(error));
+    return null;
+  }
 }
 
-process.exit(result.status === 0 ? 0 : 1);
+/**
+ * Run the audit and report.
+ * @returns {number} The exit code: 0 clean, 1 blocked or unable to audit.
+ */
+function main() {
+  const result = spawnSync(
+    'npm',
+    ['audit', '--omit=dev', `--audit-level=${blockingLevel}`, '--json'],
+    {
+      encoding: 'utf8',
+      shell: process.platform === 'win32',
+    }
+  );
+
+  // spawnSync sets .error rather than throwing when the command itself never
+  // ran (npm missing from PATH, permissions). Left unchecked, result.stdout is
+  // undefined here, `JSON.parse(undefined || '{}')` succeeds, and the report
+  // that never happened gets reported as "no vulnerability counts" — exactly
+  // the kind of dressed-up failure this script exists to stop doing.
+  if (result.error) {
+    console.error('npm audit could not run, so nothing was audited.');
+    console.error(`  ${result.error.message}`);
+    return 1;
+  }
+
+  const report = parseReport(result);
+
+  if (!report) {
+    return 1;
+  }
+
+  // npm reports registry and lockfile problems inside the JSON rather than
+  // through stdout, and in that shape there are no counts to read. Saying so is
+  // the whole point: an audit that did not run is not an audit that passed.
+  if (report.error) {
+    console.error('npm audit could not complete, so nothing was audited.');
+    console.error(`  ${report.error.summary || report.error.code || 'no reason given'}`);
+    if (report.error.detail) {
+      console.error(`  ${String(report.error.detail).trim()}`);
+    }
+    return 1;
+  }
+
+  const metadata = report.metadata?.vulnerabilities;
+
+  if (!metadata) {
+    console.error('npm audit returned JSON with no vulnerability counts, so nothing was audited.');
+    if (result.stderr) {
+      console.error(result.stderr.trim());
+    }
+    return 1;
+  }
+
+  const vulnerabilities = Object.values(report.vulnerabilities || {}).sort(
+    (left, right) => SEVERITIES.indexOf(right.severity) - SEVERITIES.indexOf(left.severity)
+  );
+
+  console.log(
+    `Production audit: ${metadata.total || 0} vulnerabilities ` +
+      `(${metadata.critical || 0} critical, ${metadata.high || 0} high, ` +
+      `${metadata.moderate || 0} moderate, ${metadata.low || 0} low).`
+  );
+  console.log(`Blocking threshold: ${blockingLevel} and above.`);
+
+  for (const vulnerability of vulnerabilities) {
+    describe(vulnerability);
+  }
+
+  if (result.stderr) {
+    console.error(result.stderr.trim());
+  }
+
+  const blocking = SEVERITIES.slice(SEVERITIES.indexOf(blockingLevel)).reduce(
+    (total, severity) => total + (metadata[severity] || 0),
+    0
+  );
+
+  if (blocking > 0) {
+    console.error(
+      `\n${blocking} vulnerability/vulnerabilities at ${blockingLevel} or above block this build.`
+    );
+    return 1;
+  }
+
+  console.log(`\nNothing at ${blockingLevel} or above. Production dependencies pass.`);
+  return 0;
+}
+
+if (process.exitCode !== 1) {
+  process.exitCode = main();
+}

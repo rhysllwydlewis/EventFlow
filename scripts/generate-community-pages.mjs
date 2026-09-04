@@ -1,4 +1,3 @@
-#!/usr/bin/env node
 /**
  * Generates the EventFlow Community HTML shells.
  *
@@ -7,12 +6,20 @@
  * than copied by hand and left to drift. The generated files are committed;
  * re-run this script after changing the template and commit the result.
  *
+ * The header renders a notification bell (`#ef-notification-btn`) on every
+ * page this generates, admin-community.html included. It shipped with no
+ * `notifications.js` and no `#notification-dropdown` for it to open — the same
+ * dead-button bug the 34 guide articles had (see article-chrome.mjs) — so both
+ * are part of the template now.
+ *
  * Usage: node scripts/generate-community-pages.mjs
  */
 
 import { readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+
+import { readCanonicalMobileNav, readCanonicalNavLinks } from './lib/article-chrome.mjs';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const publicDir = path.join(here, '..', 'public');
@@ -63,26 +70,21 @@ function version(assetPath) {
   return ASSET_VERSIONS[assetPath] || ASSET_VERSION;
 }
 
-const NAV_LINKS = [
-  { href: '/start', label: 'Plan' },
-  { href: '/suppliers', label: 'Suppliers' },
-  { href: '/public-calendar', label: 'Events' },
-  { href: '/marketplace', label: 'Marketplace' },
-  { href: '/community', label: 'Community' },
-  { href: '/guides', label: 'Guides' },
-];
-
-const MOBILE_LINKS = [
-  { href: '/start', label: 'Plan an Event' },
-  { href: '/suppliers', label: 'Browse Suppliers' },
-  { href: '/public-calendar', label: 'Events Calendar' },
-  { href: '/marketplace', label: 'Marketplace' },
-  { href: '/community', label: 'Community' },
-  { href: '/guides', label: 'Guides' },
-  { href: '/pricing', label: 'Pricing' },
-  { href: '/for-suppliers', label: 'For Suppliers' },
-  { href: '/faq', label: 'Help &amp; FAQ' },
-];
+/**
+ * The main navigation is read from public/guides.html via the shared chrome
+ * module rather than declared here. It used to be a second hard-coded copy, and
+ * it had already drifted: it was missing /pricing, so all eleven generated
+ * community pages shipped a six-link desktop navigation while the rest of the
+ * site showed seven. One source means a link added to guides.html reaches the
+ * articles and these pages together.
+ *
+ * The desktop navigation is rebuilt from the link list because these pages mark
+ * Community as the current section. The mobile block is taken whole: it also
+ * carries the divider and the log-in / dashboard / log-out controls, which had
+ * drifted in their own right.
+ */
+let NAV_LINKS = [];
+let MOBILE_NAV = '';
 
 /**
  * Build the shared page shell.
@@ -95,10 +97,6 @@ function shell(page) {
       `            <a href="${link.href}" class="ef-nav-link${
         link.href === '/community' ? ' ef-nav-link--active' : ''
       }">${link.label}</a>`
-  ).join('\n');
-
-  const mobileNav = MOBILE_LINKS.map(
-    link => `          <a href="${link.href}" class="ef-mobile-link">${link.label}</a>`
   ).join('\n');
 
   const scripts = (page.scripts || [])
@@ -166,15 +164,23 @@ ${desktopNav}
         </div>
       </div>
       <div id="ef-mobile-menu" class="ef-mobile-menu" role="dialog" aria-modal="true" aria-label="Mobile navigation">
-        <nav class="ef-mobile-nav" aria-label="Primary navigation">
-${mobileNav}
-          <div class="ef-mobile-divider"></div>
-          <a href="/auth" id="ef-mobile-auth" class="ef-mobile-link ef-mobile-primary">Log in</a>
-          <a href="#" id="ef-mobile-dashboard" class="ef-mobile-link" style="display:none;">Dashboard</a>
-          <a href="#" id="ef-mobile-logout" class="ef-mobile-link" style="display:none;">Log out</a>
-        </nav>
+${MOBILE_NAV}
       </div>
     </header>
+
+    <!-- Notification dropdown: pre-rendered here, shown and hidden by notifications.js.
+         The header above always renders the bell that opens it; without this element
+         and the script below, that bell did nothing at all (see article-chrome.mjs). -->
+    <div id="notification-dropdown" class="notification-dropdown" hidden aria-hidden="true" style="display: none;">
+      <div class="notification-header">
+        <h3>Notifications</h3>
+        <button class="notification-mark-all" id="notification-mark-all-read" type="button">Mark all as read</button>
+      </div>
+      <div class="notification-list"></div>
+      <div class="notification-footer">
+        <a href="/notifications" class="notification-view-all">View all</a>
+      </div>
+    </div>
 
     <main id="main-content">
 ${page.hero || ''}
@@ -269,6 +275,7 @@ ${
 }    <script src="/assets/js/utils/auth-state.js" defer></script>
     <script src="/assets/js/burger-menu.js" defer></script>
     <script src="/assets/js/navbar.js" defer></script>
+    <script src="/assets/js/notifications.js" defer></script>
     <script src="/assets/js/cookie-consent.js?v=3.0.0" defer></script>
     <script src="/assets/js/community/core.js?v=${version('/assets/js/community/core.js')}" defer></script>
 ${scripts}
@@ -608,6 +615,11 @@ async function drift() {
  * @returns {Promise<void>} Resolves when finished.
  */
 async function main() {
+  // Load the canonical navigation before anything renders a shell — both the
+  // write path and the drift check depend on it.
+  ({ desktop: NAV_LINKS } = await readCanonicalNavLinks());
+  MOBILE_NAV = await readCanonicalMobileNav('        ');
+
   if (process.argv.includes('--check')) {
     const stale = await drift();
     if (stale.length) {

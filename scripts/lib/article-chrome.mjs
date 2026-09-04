@@ -110,6 +110,47 @@ export const FOOTER_MARKUP = `<footer class="footer" role="contentinfo">
 </div>
 </footer>`;
 
+export const NOTIFICATION_DROPDOWN_MARKUP = `<!-- Notification dropdown: pre-rendered here, shown and hidden by notifications.js. -->
+<div id="notification-dropdown" class="notification-dropdown" hidden aria-hidden="true" style="display: none;">
+<div class="notification-header">
+<h3>Notifications</h3>
+<button class="notification-mark-all" id="notification-mark-all-read" type="button">Mark all as read</button>
+</div>
+<div class="notification-list"></div>
+<div class="notification-footer">
+<a href="/notifications" class="notification-view-all">View all</a>
+</div>
+</div>`;
+
+/**
+ * The scripts the shared header needs, in the order it needs them.
+ *
+ * Every article renders the header's notification bell, and not one of the 34
+ * loaded notifications.js, so on an article the bell was a control that did
+ * nothing: no dropdown opened, no count ever appeared. Twenty-six of them even
+ * shipped the dropdown markup for the script that was not there.
+ *
+ * websocket-client.js is deliberately absent. Eighteen articles loaded it, but
+ * it only defines window.WebSocketClient and nothing on an article ever
+ * constructs one — notifications.js loads socket.io itself. It was a download
+ * with no reader.
+ */
+export const HEADER_SCRIPTS = [
+  '/assets/js/utils/auth-state.js',
+  '/assets/js/burger-menu.js',
+  '/assets/js/navbar.js',
+  '/assets/js/notifications.js',
+];
+
+export const HEADER_SCRIPTS_MARKUP = HEADER_SCRIPTS.map(
+  src => `<script defer="" src="${src}"></script>`
+).join('\n');
+
+// Matches the contiguous run of those tags, plus websocket-client.js so the run
+// is consumed whole rather than leaving an orphan behind the replacement.
+const HEADER_SCRIPTS_PATTERN =
+  /(?:<script[^>]*src="\/assets\/js\/(?:utils\/auth-state|burger-menu|navbar|websocket-client|notifications)\.js"[^>]*><\/script>\s*)+/;
+
 /**
  * Refuse to touch a block whose match is not a single, balanced element.
  *
@@ -155,6 +196,204 @@ export async function readCanonicalHeader() {
   // Articles are guides, so guides.html's own `aria-current="page"` on the
   // Guides link is already correct for them and is carried over as-is.
   return match[0];
+}
+
+/**
+ * The canonical main navigation, parsed out of the same guides.html header.
+ *
+ * Scripts that build their own header markup (the community generator marks the
+ * current section active and indents to its own shape) need the link list
+ * rather than the finished block. Deriving it here means there is still only
+ * one place the site's navigation is defined: a link added to guides.html
+ * reaches the articles and the community pages alike.
+ *
+ * Anchors carrying an id are the auth/dashboard/logout controls, which are
+ * per-page state rather than navigation, so they are excluded.
+ * @returns {Promise<{desktop: Array<{href: string, label: string}>, mobile: Array<{href: string, label: string}>}>} The link lists.
+ */
+export async function readCanonicalNavLinks() {
+  const header = await readCanonicalHeader();
+
+  const linksIn = (navPattern, linkClass) => {
+    const nav = header.match(navPattern);
+    if (!nav) {
+      throw new Error(`guides.html: no <nav> matching ${navPattern} in the canonical header.`);
+    }
+    // A class *token* match, not an exact attribute-value match: the auth,
+    // dashboard and logout controls in the same <nav> carry a second class
+    // (e.g. class="ef-mobile-link ef-mobile-primary") and must still be found
+    // here so the id-based filter below is what excludes them — not an
+    // accidental failure to match a compound class value.
+    const pattern = new RegExp(
+      `<a\\s([^>]*class="[^"]*\\b${linkClass}\\b[^"]*"[^>]*)>([^<]*)</a>`,
+      'g'
+    );
+    return [...nav[0].matchAll(pattern)]
+      .filter(match => !/\sid="/.test(match[1]))
+      .map(match => ({
+        href: (match[1].match(/href="([^"]+)"/) || [])[1],
+        label: match[2].trim(),
+      }))
+      .filter(link => link.href && link.label);
+  };
+
+  const desktop = linksIn(/<nav[^>]*class="ef-nav-desktop"[\s\S]*?<\/nav>/, 'ef-nav-link');
+  const mobile = linksIn(/<nav[^>]*class="ef-mobile-nav"[\s\S]*?<\/nav>/, 'ef-mobile-link');
+
+  if (desktop.length < 5 || mobile.length < 5) {
+    throw new Error(
+      `guides.html: parsed only ${desktop.length} desktop and ${mobile.length} mobile ` +
+        'navigation links, which is too few to be the real navigation.'
+    );
+  }
+
+  return { desktop, mobile };
+}
+
+/**
+ * The canonical mobile navigation block, ready to drop into a generated header.
+ *
+ * `readCanonicalNavLinks` gives back the public links only. The block also
+ * carries the divider and the log-in / dashboard / settings / log-out
+ * controls, and those had drifted too: pages disagreed on whether the log-out
+ * link existed at all, and #ef-mobile-settings — which navbar.js has always
+ * shown and hidden alongside dashboard and logout on every login/logout —
+ * only ever existed on two pages (dashboard-customer.html,
+ * dashboard-supplier.html) rather than in the shared template. It is part of
+ * this block now, which is also what makes it universal instead of a
+ * two-page special case that a later chrome sync can delete by accident.
+ * Returning the finished block keeps every generated header byte-identical
+ * there, so the only way to change it is to change guides.html.
+ * @param {string} indent Leading whitespace for the opening <nav> tag.
+ * @returns {Promise<string>} The block, re-indented, with no trailing newline.
+ */
+export async function readCanonicalMobileNav(indent = '') {
+  const header = await readCanonicalHeader();
+  const match = header.match(/[ \t]*<nav[^>]*class="ef-mobile-nav"[\s\S]*?<\/nav>/);
+
+  if (!match) {
+    throw new Error('guides.html: no <nav class="ef-mobile-nav"> in the canonical header.');
+  }
+
+  const block = match[0];
+  const base = block.match(/^[ \t]*/)[0];
+  return block
+    .split('\n')
+    .map(line => (line.startsWith(base) ? indent + line.slice(base.length) : line))
+    .join('\n');
+}
+
+/**
+ * Locate the notification dropdown by walking div tags rather than matching.
+ *
+ * The other three blocks are anchored on a tag that cannot nest inside itself,
+ * so a non-greedy pattern is provably safe for them. The dropdown is a <div> of
+ * nested <div>s: `<div id="notification-dropdown"[\s\S]*?</div>` stops at the
+ * first inner close and would have truncated the block in all 34 articles,
+ * deleting the rest of the page with it. Counting depth is the only honest way
+ * to find where it actually ends.
+ * @param {string} source The page HTML.
+ * @param {string} file The file name, for error messages.
+ * @returns {{start: number, end: number}|null} The span, or null when absent.
+ */
+export function findNotificationDropdown(source, file) {
+  const opener = /<div[^>]*\sid="notification-dropdown"/g;
+  const first = opener.exec(source);
+
+  if (!first) {
+    return null;
+  }
+  // test() continues from the lastIndex the exec above left, so this asks
+  // whether a second one follows the first.
+  if (opener.test(source)) {
+    throw new Error(`${file}: more than one #notification-dropdown — refusing to guess which.`);
+  }
+
+  // Nine articles label the block with a comment. Take it into the span so the
+  // replacement does not leave a second, differently worded one behind it.
+  const preamble = source
+    .slice(0, first.index)
+    .match(/<!--[^>]*[Nn]otification [Dd]ropdown[\s\S]*?-->\s*$/);
+  const start = preamble ? first.index - preamble[0].length : first.index;
+
+  // Comments are skipped rather than scanned: a commented-out <div> inside the
+  // block would otherwise raise the depth and never come back down, and the
+  // scanner would run off the end of the document swallowing the whole page.
+  const tag = /<!--[\s\S]*?-->|<div\b|<\/div>/g;
+  tag.lastIndex = first.index;
+  let depth = 0;
+
+  for (let match = tag.exec(source); match; match = tag.exec(source)) {
+    if (match[0].startsWith('<!--')) {
+      continue;
+    }
+    if (match[0] === '<div') {
+      depth += 1;
+      continue;
+    }
+    depth -= 1;
+    if (depth === 0) {
+      return { start, end: match.index + '</div>'.length };
+    }
+  }
+
+  throw new Error(`${file}: #notification-dropdown is never closed.`);
+}
+
+/**
+ * Replace the notification dropdown, or add it when the page has none.
+ *
+ * Eight of the 34 articles had no dropdown at all, so notifications.js fell back
+ * to building one at runtime — it works, but only after the script loads, and it
+ * logs a warning every time. The 26 that had one carried two shapes between
+ * them, neither with `type="button"` on the mark-all control.
+ * @param {string} source The article HTML.
+ * @param {string} file The file name, for error messages.
+ * @returns {string} The article with the canonical dropdown.
+ */
+export function applyNotificationDropdown(source, file) {
+  const span = findNotificationDropdown(source, file);
+
+  if (span) {
+    return source.slice(0, span.start) + NOTIFICATION_DROPDOWN_MARKUP + source.slice(span.end);
+  }
+
+  // It belongs immediately after the header, next to the bell that opens it.
+  const closing = '</header>';
+  const at = source.indexOf(closing);
+
+  if (at < 0) {
+    throw new Error(`${file}: no </header> to place the notification dropdown after.`);
+  }
+
+  const insertAt = at + closing.length;
+  return `${source.slice(0, insertAt)}\n${NOTIFICATION_DROPDOWN_MARKUP}${source.slice(insertAt)}`;
+}
+
+/**
+ * Replace the run of header scripts with the canonical one.
+ * @param {string} source The article HTML.
+ * @param {string} file The file name, for error messages.
+ * @returns {string} The article with the canonical script run.
+ */
+export function applyHeaderScripts(source, file) {
+  const matches = source.match(new RegExp(HEADER_SCRIPTS_PATTERN, 'g')) || [];
+
+  if (matches.length === 0) {
+    throw new Error(`${file}: no header script run found.`);
+  }
+  if (matches.length > 1) {
+    // A file that loads these in two places is doing something this does not
+    // model, and collapsing them would change load order.
+    throw new Error(
+      `${file}: header scripts appear in ${matches.length} places — refusing to rewrite them.`
+    );
+  }
+
+  const run = matches[0];
+  // Keep whatever trailing whitespace separated the run from what follows it.
+  const trailing = run.match(/\s*$/)[0];
+  return source.replace(run, () => HEADER_SCRIPTS_MARKUP + trailing);
 }
 
 /**
@@ -204,5 +443,5 @@ export function applyChrome(source, file, blocks) {
     result = result.replace(block.pattern, () => block.markup);
   }
 
-  return result;
+  return applyHeaderScripts(applyNotificationDropdown(result, file), file);
 }
