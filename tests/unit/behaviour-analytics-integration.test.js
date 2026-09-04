@@ -64,6 +64,33 @@ describe('analytics consent and privacy wiring', () => {
     expect(banner).toContain('advertising cookies for Google Ads conversion measurement');
   });
 
+  test('cache-busts the consent module everywhere it is referenced', () => {
+    // Most public pages hard-code the cookie-consent.js tag, so the server-side
+    // injection is skipped for them and its version query never reaches them.
+    // Assets are served with `max-age=604800`, so a stale hard-coded version
+    // leaves returning visitors running the previous consent script for a week —
+    // with the current analytics bridge, which no longer compensates for its
+    // "Accept All" bug. The two references have to move together.
+    const injected = read('utils/template-renderer.js').match(
+      /assets\/js\/cookie-consent\.js\?v=([\d.]+)/
+    );
+    expect(injected).not.toBeNull();
+
+    const pages = fs.readdirSync(path.join(ROOT, 'public')).filter(file => file.endsWith('.html'));
+    const versions = new Set();
+    pages.forEach(file => {
+      const source = read(path.join('public', file));
+      for (const match of source.matchAll(/assets\/js\/cookie-consent\.js\?v=([\d.]+)/g)) {
+        versions.add(match[1]);
+      }
+    });
+
+    expect(versions.size).toBeLessThanOrEqual(1);
+    if (versions.size === 1) {
+      expect([...versions][0]).toBe(injected[1]);
+    }
+  });
+
   test('keeps the consent module as the single writer of the consent cookie', () => {
     const writers = [
       'public/assets/js/analytics-consent-upgrade.js',

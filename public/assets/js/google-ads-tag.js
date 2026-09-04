@@ -10,10 +10,17 @@
  * measurement of how the site is used is not consent to advertising technology,
  * and the Cookie Policy at /legal#cookies describes them as two choices.
  *
- * Google Consent Mode v2 defaults are declared before anything loads, and are
- * updated in both directions on `cookieConsentChanged`. That matters because
- * gtag.js cannot be unloaded once it is on the page: without a `denied` update,
- * withdrawing consent would leave the tag running for the rest of the session.
+ * Two things this module must not do:
+ *
+ *   - Define `window.gtag` before consent. `pages/locations.js` and
+ *     `utils/analytics.js` both treat the existence of `window.gtag` as their
+ *     consent check, so declaring it early would let their events queue into
+ *     `dataLayer` unconsented — and gtag.js replays that queue when it loads.
+ *   - Trust `event.detail` from `cookieConsentChanged`. On sensitive pages
+ *     (messages, payments, dashboards, settings) analytics-consent-upgrade.js
+ *     wraps `CookieConsent.getConsent` to force advertising off; the event
+ *     detail comes straight from the consent module and bypasses that guard.
+ *     Every decision here is re-read through `getConsent()` for that reason.
  */
 'use strict';
 
@@ -23,16 +30,6 @@
   let loaded = false;
   let granted = false;
 
-  function ensureGtag() {
-    window.dataLayer = window.dataLayer || [];
-    if (typeof window.gtag !== 'function') {
-      window.gtag = function gtag(...args) {
-        window.dataLayer.push(args);
-      };
-    }
-    return window.gtag;
-  }
-
   function consentState(value) {
     return AD_CONSENT_KEYS.reduce((state, key) => {
       state[key] = value;
@@ -40,6 +37,7 @@
     }, {});
   }
 
+  /** Reads consent through the public API, so page-level guards still apply. */
   function hasMarketingConsent() {
     if (!window.CookieConsent || typeof window.CookieConsent.getConsent !== 'function') {
       return false;
@@ -51,49 +49,61 @@
     }
   }
 
-  function grant() {
-    const gtag = ensureGtag();
-    granted = true;
-    gtag('consent', 'update', consentState('granted'));
-
-    if (loaded) {
-      return;
+  function load() {
+    window.dataLayer = window.dataLayer || [];
+    if (typeof window.gtag !== 'function') {
+      // skipcq: JS-0244 -- gtag.js identifies queued commands by their Arguments
+      // shape, so this has to stay the arguments object Google's own snippet
+      // pushes rather than a rest-parameter array.
+      window.gtag = function gtag() {
+        window.dataLayer.push(arguments);
+      };
     }
-    loaded = true;
 
-    gtag('js', new Date());
-    gtag('config', GOOGLE_ADS_ID);
+    // Consent Mode v2: the denied default has to be the first command in the
+    // queue, ahead of the grant and the config, so the tag never starts from an
+    // assumed grant.
+    window.gtag('consent', 'default', consentState('denied'));
+    window.gtag('consent', 'update', consentState('granted'));
+    window.gtag('js', new Date());
+    window.gtag('config', GOOGLE_ADS_ID);
 
     const script = document.createElement('script');
     script.async = true;
     script.src = `https://www.googletagmanager.com/gtag/js?id=${GOOGLE_ADS_ID}`;
     document.head.appendChild(script);
+
+    loaded = true;
+    granted = true;
   }
 
-  function deny() {
-    if (!granted) {
+  /**
+   * gtag.js cannot be unloaded once it is on the page, so withdrawal is
+   * expressed as a denied Consent Mode update rather than by removing it.
+   */
+  function update(nextGranted) {
+    if (!loaded || nextGranted === granted) {
       return;
     }
-    granted = false;
-    ensureGtag()('consent', 'update', consentState('denied'));
+    granted = nextGranted;
+    window.gtag('consent', 'update', consentState(nextGranted ? 'granted' : 'denied'));
+  }
+
+  function sync() {
+    if (!hasMarketingConsent()) {
+      update(false);
+      return;
+    }
+    if (loaded) {
+      update(true);
+    } else {
+      load();
+    }
   }
 
   function init() {
-    // Declare the denied default before any consent update, so a tag that loads
-    // later in the page life cycle never starts from an assumed grant.
-    ensureGtag()('consent', 'default', consentState('denied'));
-
-    if (hasMarketingConsent()) {
-      grant();
-    }
-
-    window.addEventListener('cookieConsentChanged', event => {
-      if (event?.detail?.marketing === true) {
-        grant();
-      } else {
-        deny();
-      }
-    });
+    sync();
+    window.addEventListener('cookieConsentChanged', sync);
   }
 
   if (document.readyState === 'loading') {

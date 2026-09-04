@@ -857,8 +857,10 @@
               Ads conversion tag from Google so we can measure which adverts lead to sign-ups and
               enquiries. Google may set cookies or use similar browser storage for that purpose and
               acts as an independent controller for its own advertising processing. Advertising is a
-              separate consent choice from analytics, the tag is not loaded on admin pages, and we
-              declare Google Consent Mode defaults of denied until you consent.
+              separate consent choice from analytics, the tag is not loaded on admin pages, and
+              nothing is requested from Google until you consent. When the tag loads it declares
+              Google Consent Mode defaults of denied before recording your choice, and withdrawing
+              consent sets those signals back to denied.
             </li>
             <li>
               <strong>PostHog:</strong> If you consent to analytics, PostHog may process
@@ -1444,7 +1446,7 @@
     </nav>
 
     <script src="/assets/js/components/footer-nav.js" defer></script>
-    <script src="/assets/js/cookie-consent.js?v=2.0.1" defer></script>
+    <script src="/assets/js/cookie-consent.js?v=3.0.0" defer></script>
     <script src="/assets/js/vendor/jade-widget.js" defer></script>
     <script src="/assets/js/jadeassist-init.v2.js" defer></script>
     <script src="/assets/js/components/eventflow-footer.js?v=4" defer></script>

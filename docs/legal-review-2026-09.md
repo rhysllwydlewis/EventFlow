@@ -80,7 +80,12 @@ change:
    analytics or advertising service could start.
 3. **Withdrawal now takes effect.** `gtag.js` cannot be unloaded once it is on the page, so the tag
    declares Google Consent Mode v2 defaults of `denied` for `ad_storage`, `ad_user_data` and
-   `ad_personalization`, and updates them in both directions on `cookieConsentChanged`.
+   `ad_personalization` as its first queued command, then updates them in both directions as consent
+   changes. Nothing — not even `window.gtag` — is defined before consent: `pages/locations.js` and
+   `utils/analytics.js` both treat the existence of `window.gtag` as their own consent check, so
+   declaring it early would let their events queue into `dataLayer` unconsented, and gtag.js replays
+   that queue when it loads. Each consent change is re-read through `CookieConsent.getConsent()`
+   rather than taken from the event detail, so the sensitive-page guard below still applies.
 
 Fixing the first two at source made two workarounds in `analytics-consent-upgrade.js` not just
 redundant but harmful, so they were removed with them:

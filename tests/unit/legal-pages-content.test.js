@@ -128,8 +128,24 @@ describe('policy page rendering', () => {
     // not show its own words is worse than one that is out of date.
     expect(read('public/assets/css/mobile-optimizations.css')).toContain('-webkit-line-clamp: 3');
     expect(legalStyles).toMatch(/-webkit-line-clamp: none !important/);
-    expect(legalStyles).toMatch(/\.legal-doc-layout p,/);
-    expect(legalStyles).toMatch(/\.legal-section p,/);
+
+    const unclampBlock = legalStyles.slice(
+      legalStyles.indexOf('Legal text must never be truncated'),
+      legalStyles.indexOf('Print', legalStyles.indexOf('Legal text must never be truncated'))
+    );
+
+    // legal-pages.js moves the card into `.legal-doc-layout`, so both shapes have
+    // to be covered: the structural one for a reader with JavaScript disabled,
+    // the wrapper one for everyone else.
+    expect(unclampBlock).toMatch(/main \.container > \.card p,/);
+    expect(unclampBlock).toMatch(/\.legal-doc-layout > \.card p,/);
+    expect(unclampBlock).toMatch(/\.legal-section p \{/);
+
+    // `display: block` on a list item drops its marker, and nothing clamps `li`
+    // in the first place, so the reset must not reach them. Comments are stripped
+    // first — the rationale above naturally mentions `li`.
+    const selectorsOnly = unclampBlock.replace(/\/\*[\s\S]*?\*\//g, '');
+    expect(selectorsOnly).not.toMatch(/\bli\b/);
   });
 
   it('keeps the Legal Hub sidebar able to stick', () => {

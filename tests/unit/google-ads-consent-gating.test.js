@@ -21,6 +21,9 @@ const AD_SIGNALS = ['ad_storage', 'ad_user_data', 'ad_personalization'];
 function loadTag(consent) {
   const injectedScripts = [];
   const windowListeners = {};
+  // Mutable so a test can change what `getConsent()` reports mid-session, the
+  // way analytics-consent-upgrade.js's sensitive-page guard does.
+  const state = { consent };
 
   const documentObject = {
     readyState: 'complete',
@@ -30,7 +33,7 @@ function loadTag(consent) {
   };
 
   const windowObject = {
-    CookieConsent: consent === null ? undefined : { getConsent: () => consent },
+    CookieConsent: consent === null ? undefined : { getConsent: () => state.consent },
     addEventListener: (name, handler) => {
       windowListeners[name] = handler;
     },
@@ -48,15 +51,40 @@ function loadTag(consent) {
   return {
     injectedScripts,
     commands,
+    windowObject,
+    /** True only if the queue entries are Arguments objects, as gtag.js needs. */
+    queueIsArgumentsShaped: () =>
+      (windowObject.dataLayer || []).every(
+        entry => Object.prototype.toString.call(entry) === '[object Arguments]'
+      ),
     consentCommands: kind =>
       commands().filter(command => command[0] === 'consent' && command[1] === kind),
-    changeConsent: detail => windowListeners.cookieConsentChanged({ detail }),
+    /** Sets what `getConsent()` reports, then fires the change event. */
+    setConsent(next, detail) {
+      state.consent = next;
+      windowListeners.cookieConsentChanged({ detail: detail || next });
+    },
   };
 }
 
 describe('Google Ads tag consent gating', () => {
-  it('declares denied advertising defaults before anything loads', () => {
+  it('touches nothing at all before advertising consent', () => {
     const tag = loadTag({ essential: true, functional: false, analytics: false, marketing: false });
+
+    // `window.gtag` must not exist yet: pages/locations.js and utils/analytics.js
+    // both use its presence as their own consent check, so defining it early
+    // would let their events queue into dataLayer unconsented.
+    expect(tag.windowObject.gtag).toBeUndefined();
+    expect(tag.windowObject.dataLayer).toBeUndefined();
+    expect(tag.injectedScripts).toHaveLength(0);
+  });
+
+  it('declares the denied Consent Mode default ahead of the grant and config', () => {
+    const tag = loadTag({ essential: true, functional: true, analytics: false, marketing: true });
+
+    const kinds = tag.commands().map(command => `${command[0]}:${command[1]}`);
+    expect(kinds.slice(0, 2)).toEqual(['consent:default', 'consent:update']);
+    expect(kinds).toContain(`config:${'AW-16705708195'}`);
 
     const [defaults] = tag.consentCommands('default');
     expect(defaults[2]).toEqual({
@@ -64,7 +92,14 @@ describe('Google Ads tag consent gating', () => {
       ad_user_data: 'denied',
       ad_personalization: 'denied',
     });
-    expect(tag.injectedScripts).toHaveLength(0);
+  });
+
+  it('queues commands as Arguments objects, which is what gtag.js reads', () => {
+    const tag = loadTag({ essential: true, functional: true, analytics: false, marketing: true });
+
+    // A rest-parameter array looks equivalent but is not recognised as a gtag
+    // command, which would silently drop the consent and config calls.
+    expect(tag.queueIsArgumentsShaped()).toBe(true);
   });
 
   it('does not load on analytics consent alone', () => {
@@ -88,15 +123,29 @@ describe('Google Ads tag consent gating', () => {
     const tag = loadTag({ essential: true, functional: false, analytics: false, marketing: false });
     expect(tag.injectedScripts).toHaveLength(0);
 
-    tag.changeConsent({ analytics: true, marketing: true });
+    tag.setConsent({ essential: true, functional: true, analytics: true, marketing: true });
 
     expect(tag.injectedScripts).toHaveLength(1);
+  });
+
+  it('re-reads consent rather than trusting the event detail', () => {
+    // On sensitive pages analytics-consent-upgrade.js wraps `getConsent` to force
+    // advertising off, but the event detail comes straight from the consent
+    // module and bypasses that wrapper. Taking the detail at face value would
+    // inject gtag.js on exactly the pages the guard exists to protect.
+    const guarded = { essential: true, functional: true, analytics: false, marketing: false };
+    const tag = loadTag(guarded);
+
+    tag.setConsent(guarded, { analytics: true, marketing: true });
+
+    expect(tag.injectedScripts).toHaveLength(0);
+    expect(tag.consentCommands('update')).toHaveLength(0);
   });
 
   it('sends a denied update when advertising consent is withdrawn', () => {
     const tag = loadTag({ essential: true, functional: true, analytics: true, marketing: true });
 
-    tag.changeConsent({ analytics: true, marketing: false });
+    tag.setConsent({ essential: true, functional: true, analytics: true, marketing: false });
 
     const updates = tag.consentCommands('update');
     expect(updates).toHaveLength(2);
@@ -104,12 +153,15 @@ describe('Google Ads tag consent gating', () => {
   });
 
   it('does not re-inject the script when consent is re-granted', () => {
-    const tag = loadTag({ essential: true, functional: true, analytics: true, marketing: true });
+    const granted = { essential: true, functional: true, analytics: true, marketing: true };
+    const tag = loadTag(granted);
 
-    tag.changeConsent({ marketing: false });
-    tag.changeConsent({ marketing: true });
+    tag.setConsent({ ...granted, marketing: false });
+    tag.setConsent(granted);
 
     expect(tag.injectedScripts).toHaveLength(1);
+    // granted → denied → granted, with no duplicate updates for unchanged state.
+    expect(tag.consentCommands('update')).toHaveLength(3);
   });
 
   it('stays inert when the consent module is unavailable', () => {

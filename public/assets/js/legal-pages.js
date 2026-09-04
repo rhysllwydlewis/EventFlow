@@ -12,10 +12,12 @@
  *   - copyable anchor links on each heading; and
  *   - a reading-progress bar and a back-to-top control.
  *
- * Nothing here is required to read a policy. The markup is generated at
- * runtime, so with JavaScript disabled every page keeps its plain document
- * layout, and the styles in /assets/css/legal-pages.css are scoped to classes
- * that only exist once this has run.
+ * Nothing here is required to read a policy. Every element above is generated
+ * at runtime and its styles are scoped to classes that only exist once this has
+ * run, so with JavaScript disabled each page keeps its plain document layout.
+ * The rules in /assets/css/legal-pages.css that fix the document itself — the
+ * mobile line-clamp override and the sticky containment — are deliberately not
+ * scoped that way, because a reader without JavaScript needs them most.
  */
 'use strict';
 
@@ -107,7 +109,6 @@
       link.className = 'legal-nav__link';
       link.href = `#${entry.id}`;
       link.textContent = entry.label;
-      link.dataset.legalTarget = entry.id;
 
       item.appendChild(link);
       list.appendChild(item);
@@ -118,7 +119,7 @@
     return list;
   }
 
-  function buildFilter(entries, list) {
+  function buildFilter(entries) {
     const input = document.createElement('input');
     input.type = 'search';
     input.className = 'legal-nav__filter';
@@ -129,6 +130,9 @@
     empty.className = 'legal-nav__empty';
     empty.textContent = 'No matching section.';
     empty.hidden = true;
+    // Announced when a filter term matches nothing, which is otherwise a silent
+    // empty list for anyone not looking at it.
+    empty.setAttribute('role', 'status');
 
     input.addEventListener('input', () => {
       const query = input.value.trim().toLowerCase();
@@ -145,7 +149,7 @@
       empty.hidden = matches !== 0;
     });
 
-    return { input, empty, list };
+    return { input, empty };
   }
 
   function buildNav(entries, headingId) {
@@ -161,7 +165,7 @@
     const list = buildNavList(entries);
 
     if (entries.length >= FILTER_THRESHOLD) {
-      const filter = buildFilter(entries, list);
+      const filter = buildFilter(entries);
       inner.appendChild(filter.input);
       inner.appendChild(list);
       inner.appendChild(filter.empty);

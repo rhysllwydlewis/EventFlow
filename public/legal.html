@@ -465,7 +465,7 @@
           <ul>
             <li><strong>Google Ads conversion tag:</strong> Where you consent to advertising, EventFlow loads the Google Ads tag (gtag.js) from Google so we can measure which adverts lead to sign-ups and enquiries. Google may set cookies or use similar browser storage for advertising and conversion measurement, and receives ordinary web-request data such as an IP address, browser information and the page you were on.</li>
           </ul>
-          <p class="small" style="color:#667085;">Advertising is a separate choice from analytics: consenting to analytics does not switch advertising on. The tag is not loaded on admin pages. Until you consent, EventFlow declares Google Consent Mode defaults of <em>denied</em> for advertising storage, advertising user data and ad personalisation; if you later withdraw advertising consent, those signals are set back to <em>denied</em> for the rest of the session and the tag is not loaded again on your next visit.</p>
+          <p class="small" style="color:#667085;">Advertising is a separate choice from analytics: consenting to analytics does not switch advertising on. The tag is not loaded on admin pages, and nothing is requested from Google until you consent. When the tag does load, EventFlow first declares Google Consent Mode defaults of <em>denied</em> for advertising storage, advertising user data and ad personalisation, and only then records your consent. If you later withdraw advertising consent, those signals are set back to <em>denied</em> for the rest of the session and the tag is not loaded again on your next visit.</p>
 
           <h3 class="h5" style="margin-top:1.25rem;">Managing Your Cookie Preferences</h3>
           <p>You can manage or withdraw your consent at any time — not just on your first visit. Use the button below or the <strong>Cookie preferences</strong> link in the site footer.</p>
@@ -739,9 +739,11 @@
 
           <h3 class="h5">Claiming your listing</h3>
           <p>If the listing is yours, use the <strong>Claim this listing</strong> link on the profile.
-            Claiming asks you to verify control of the business — normally through an email address on
-            the business's own domain — after which you own the listing and can correct or complete it
-            yourself.</p>
+            We look for signals that your account belongs to the business — an email address on the
+            business's own domain is the usual one — and the request then goes to a proof stage before
+            the listing is handed over. Signing up with a personal webmail address does not on its own
+            establish the connection, so we may ask for further evidence. Once the claim is accepted
+            you own the listing and can correct or complete it yourself.</p>
 
           <h3 class="h5">Correction, objection and removal</h3>
           <p>You do not have to claim a listing in order to have it corrected or taken down. Email
@@ -1830,7 +1832,7 @@
     </nav>
 
 <script src="/assets/js/components/footer-nav.js" defer></script>
-<script src="/assets/js/cookie-consent.js?v=2.0.1" defer></script>
+<script src="/assets/js/cookie-consent.js?v=3.0.0" defer></script>
 
 <!-- JadeAssist Chat Widget -->
 <script src="/assets/js/vendor/jade-widget.js" defer></script>

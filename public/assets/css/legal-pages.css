@@ -5,10 +5,15 @@
  * Notice, Data Subject Rights, Community Guidelines, Community Help).
  *
  * The contents navigation, heading anchors, progress bar and back-to-top
- * control are all built by /assets/js/legal-pages.js. Every rule that styles
- * generated markup is scoped under a class that only exists once that script
- * has run, so a page without JavaScript keeps its plain, readable document
- * layout rather than a half-applied grid.
+ * control are all built by /assets/js/legal-pages.js, and every rule that styles
+ * that generated markup is scoped under a class which only exists once the
+ * script has run — so a page without JavaScript keeps its plain document layout
+ * rather than a half-applied grid.
+ *
+ * Two sections are deliberately not scoped that way, because they fix the
+ * document itself rather than decorate it: the sticky containment below and the
+ * mobile line-clamp override further down. A reader with JavaScript disabled
+ * needs those most.
  */
 
 :root {
@@ -325,12 +330,20 @@ body {
  * `!important` rather than a specificity contest: the clamp carries four
  * `:not()` class exclusions, so out-specifying it would need a selector far
  * longer than the intent it expresses. This file only loads on the legal pages.
+ *
+ * Both document shapes are listed because legal-pages.js moves the policy card
+ * into a `.legal-doc-layout` wrapper: `main .container > .card` matches before
+ * the script runs (and forever, for a reader with JavaScript disabled — exactly
+ * the reader this has to work for), `.legal-doc-layout > .card` after it.
+ *
+ * Only `p` is reset. Nothing in the loaded stylesheets clamps a list item, and
+ * `display: block` on an `li` drops its marker, so overriding those as well
+ * silently removed every bullet and number from the policies below 768px.
  */
 @media (max-width: 768px) {
-  .legal-doc-layout p,
-  .legal-doc-layout li,
-  .legal-section p,
-  .legal-section li {
+  main .container > .card p,
+  .legal-doc-layout > .card p,
+  .legal-section p {
     display: block !important;
     overflow: visible !important;
     text-overflow: clip !important;
