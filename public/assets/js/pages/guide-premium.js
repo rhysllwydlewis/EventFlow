@@ -136,7 +136,11 @@
       const decimals = Number(el.dataset.gpDecimals ?? 0);
       const prefix = el.dataset.gpPrefix ?? '';
       const suffix = el.dataset.gpSuffix ?? '';
-      const duration = 1100;
+      // A bigger figure counts up a touch longer than a small one — a flat
+      // duration made "5" and "1000" land in the same instant, which read as
+      // less deliberate than the animation intends. Capped so a very large
+      // figure doesn't drag.
+      const duration = clamp(900 + Math.abs(target) * 4, 900, 1700);
       const start = performance.now();
       function frame(now) {
         const progress = clamp((now - start) / duration, 0, 1);
