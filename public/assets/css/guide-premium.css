@@ -1540,12 +1540,17 @@ body.gp-page .guides-back-to-top:hover {
     padding: 0 0 1rem;
   }
 
+  /* Navigation and calls to action are noise on paper. `.gp-backlinks` covers
+     the print control that lives there below 1024px, which would otherwise
+     print a button telling the reader to print. */
   .gp-hero__media,
   .gp-hero__scrim,
   .gp-hero__aurora,
   .gp-hero__grain,
   .gp-rail,
   .gp-toc-mobile,
+  .gp-breadcrumb,
+  .gp-backlinks,
   .guides-back-to-top,
   .gp-cta,
   .gp-related,
@@ -1553,8 +1558,12 @@ body.gp-page .guides-back-to-top:hover {
     display: none !important;
   }
 
+  /* The hero loses its dark background above, so everything that was light
+     text on it has to come back to ink — the kicker was mint on white. */
   .gp-title,
   .gp-lead,
+  .gp-eyebrow,
+  .gp-meta,
   .gp-meta__item {
     color: #000 !important;
   }
