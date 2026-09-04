@@ -14,7 +14,91 @@
     <link rel="stylesheet" href="/assets/css/public-mobile-compact.css" />
 </head>
 <body>
-<header class="ef-header" role="banner"><div class="ef-container"><div class="ef-header-content"><a class="ef-brand" href="/"><div class="ef-logo" aria-hidden="true"><div class="ef-logo-inner"></div></div><span class="ef-brand-text">EventFlow</span></a><nav class="ef-nav-desktop" aria-label="Main navigation"><a class="ef-nav-link" href="/start">Plan</a><a class="ef-nav-link" href="/suppliers">Suppliers</a><a class="ef-nav-link" href="/public-calendar">Events</a><a class="ef-nav-link" href="/marketplace">Marketplace</a><a class="ef-nav-link" href="/guides" aria-current="page">Guides</a><a class="ef-nav-link" href="/pricing">Pricing</a></nav><div class="ef-header-actions"><button aria-label="View notifications" class="ef-icon-btn" id="ef-notification-btn" style="display: none;" type="button"><svg aria-hidden="true" class="ef-icon" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg><span class="ef-badge" id="ef-notification-badge" style="display: none;"></span></button><a class="ef-btn ef-btn-primary" href="/auth" id="ef-auth-link">Log in</a><a class="ef-nav-link" href="#" id="ef-dashboard-link" style="display: none;">Dashboard</a><button aria-controls="ef-mobile-menu" aria-expanded="false" aria-label="Toggle menu" class="ef-mobile-toggle" id="ef-mobile-toggle" type="button"><span class="ef-toggle-line"></span><span class="ef-toggle-line"></span><span class="ef-toggle-line"></span></button></div></div></div><div aria-label="Mobile navigation" aria-modal="true" class="ef-mobile-menu" id="ef-mobile-menu" role="dialog"><nav aria-label="Primary navigation" class="ef-mobile-nav"><a class="ef-mobile-link" href="/start">Plan</a><a class="ef-mobile-link" href="/suppliers">Suppliers</a><a class="ef-mobile-link" href="/public-calendar">Events</a><a class="ef-mobile-link" href="/marketplace">Marketplace</a><a class="ef-mobile-link" href="/guides" aria-current="page">Guides</a><a class="ef-mobile-link" href="/pricing">Pricing</a><div class="ef-mobile-divider"></div><a class="ef-mobile-link ef-mobile-primary" href="/auth" id="ef-mobile-auth">Log in</a><a class="ef-mobile-link" href="#" id="ef-mobile-dashboard" style="display: none;">Dashboard</a><a class="ef-mobile-link" href="#" id="ef-mobile-logout" style="display: none;">Log out</a></nav></div></header>
+<header class="ef-header" role="banner">
+  <div class="ef-container">
+    <div class="ef-header-content">
+      <!-- Brand Logo - Enhanced Animated -->
+      <a href="/" class="ef-brand" aria-label="EventFlow - Return to homepage">
+        <div class="ef-logo" aria-hidden="true">
+          <div class="ef-logo-inner"></div>
+        </div>
+        <span class="ef-brand-text">EventFlow</span>
+      </a>
+
+      <!-- Desktop Navigation -->
+      <nav class="ef-nav-desktop" aria-label="Main navigation">
+        <a href="/start" class="ef-nav-link">Plan</a>
+        <a href="/suppliers" class="ef-nav-link">Suppliers</a>
+        <a href="/public-calendar" class="ef-nav-link">Events</a>
+        <a href="/marketplace" class="ef-nav-link">Marketplace</a>
+        <a href="/community" class="ef-nav-link">Community</a>
+        <a href="/guides" class="ef-nav-link" aria-current="page">Guides</a>
+        <a href="/pricing" class="ef-nav-link">Pricing</a>
+      </nav>
+
+      <!-- Actions -->
+      <div class="ef-header-actions">
+        <!-- Notification Bell (hidden by default, shown when logged in) -->
+        <button 
+          id="ef-notification-btn" 
+          class="ef-icon-btn" 
+          type="button" 
+          aria-label="View notifications"
+          style="display: none;"
+        >
+          <svg class="ef-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+            <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+          </svg>
+          <span id="ef-notification-badge" class="ef-badge" style="display: none;"></span>
+        </button>
+
+        <!-- Auth Button (Desktop) -->
+        <a href="/auth" id="ef-auth-link" class="ef-btn ef-btn-primary">
+          Log in
+        </a>
+
+        <!-- Dashboard Link (Desktop, hidden by default) -->
+        <a href="#" id="ef-dashboard-link" class="ef-nav-link" style="display: none;">
+          Dashboard
+        </a>
+
+        <!-- Mobile Menu Toggle -->
+        <button 
+          id="ef-mobile-toggle" 
+          class="ef-mobile-toggle" 
+          type="button"
+          aria-label="Toggle menu"
+          aria-expanded="false"
+          aria-controls="ef-mobile-menu"
+        >
+          <span class="ef-toggle-line"></span>
+          <span class="ef-toggle-line"></span>
+          <span class="ef-toggle-line"></span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Mobile Menu -->
+  <div id="ef-mobile-menu" class="ef-mobile-menu" role="dialog" aria-modal="true" aria-label="Mobile navigation">
+    <nav class="ef-mobile-nav" aria-label="Primary navigation">
+      <a href="/start" class="ef-mobile-link">Plan an Event</a>
+      <a href="/suppliers" class="ef-mobile-link">Browse Suppliers</a>
+      <a href="/public-calendar" class="ef-mobile-link">Events Calendar</a>
+      <a href="/marketplace" class="ef-mobile-link">Marketplace</a>
+      <a href="/community" class="ef-mobile-link">Community</a>
+      <a href="/guides" class="ef-mobile-link">Guides</a>
+      <a href="/pricing" class="ef-mobile-link">Pricing</a>
+      <a href="/for-suppliers" class="ef-mobile-link">For Suppliers</a>
+      <a href="/faq" class="ef-mobile-link">Help &amp; FAQ</a>
+      <div class="ef-mobile-divider"></div>
+      <a href="/auth" id="ef-mobile-auth" class="ef-mobile-link ef-mobile-primary">Log in</a>
+      <a href="#" id="ef-mobile-dashboard" class="ef-mobile-link" style="display: none;">Dashboard</a>
+      <a href="#" id="ef-mobile-logout" class="ef-mobile-link" style="display: none;">Log out</a>
+    </nav>
+  </div>
+</header>
 <main class="section"><div class="container" style="max-width: 900px;"><article>
 <nav class="article-breadcrumb" aria-label="Breadcrumb"><a href="/">Home</a><span class="article-breadcrumb__sep">›</span><a href="/guides">Guides</a><span class="article-breadcrumb__sep">›</span><span aria-current="page">RSVP Management</span></nav>
 <header class="article-header"><p class="small">Planning</p><h1>RSVP Management Guide: Replies, Dietary Needs and Plus-Ones</h1><p class="lead">RSVPs are not just a yes-or-no list. They drive catering, seating, supplier numbers, accessibility arrangements and your final cost control.</p><p class="small">📚 7 min read • Updated June 2026</p></header>
@@ -25,6 +109,67 @@
 <div class="card"><h2 class="h3" id="chasing">Chase without making it awkward</h2><p>Set the RSVP deadline earlier than your supplier deadline. That gives you time to chase calmly, not urgently. A short, friendly message usually works best: remind them why you need the response and give a clear deadline.</p></div>
 <div class="card"><h2 class="h3" id="lock-numbers">Lock numbers before supplier deadlines</h2><p>Caterers, venues, stationers and hire companies all work from final numbers. Once those figures are submitted, changes can cost money. Before locking numbers, check plus-ones, children, allergies, evening guests and supplier meals.</p><div class="article-cta-card"><h2>Keep your guest list under control</h2><p>Use EventFlow to manage replies, dietary needs and guest information in one place.</p><a class="cta cta--inverted" href="/guests">Manage guests →</a></div></div>
 <section class="article-related"><h3 class="article-related__title">Related guides</h3><div class="article-related__grid"><a class="article-related-card" href="/articles/seating-plan-guide"><span class="article-related-card__category">Planning</span><h4 class="article-related-card__title">Seating Plan Guide</h4><span class="article-related-card__cta">Read guide →</span></a><a class="article-related-card" href="/articles/wedding-website-on-eventflow-guide"><span class="article-related-card__category">Tools</span><h4 class="article-related-card__title">Wedding Website on EventFlow</h4><span class="article-related-card__cta">Read guide →</span></a></div></section>
-</article></div></main><footer class="footer"><div class="container ef-footer-content"><div><strong>EventFlow</strong><br><span class="small">Event planning made simple.</span></div><div class="small"><a href="/guides">Guides</a> · <a href="/contact">Contact</a></div></div></footer><!-- BOTTOM NAVBAR - GOLD STANDARD REBUILD (Mobile Only) --><nav aria-label="Mobile bottom navigation" class="ef-bottom-nav" role="navigation"><a aria-label="Plan your event" class="ef-bottom-link" href="/start"><svg aria-hidden="true" class="ef-bottom-icon" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg><span class="ef-bottom-label">Plan</span></a><a aria-label="Browse suppliers" class="ef-bottom-link" href="/suppliers"><svg aria-hidden="true" class="ef-bottom-icon" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"></circle><path d="m21 21-4.35-4.35"></path></svg><span class="ef-bottom-label">Suppliers</span></a><a aria-label="View guides" class="ef-bottom-link" href="/guides"><svg aria-hidden="true" class="ef-bottom-icon" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg><span class="ef-bottom-label">Guides</span></a><!-- Dashboard with notification badge (shown when logged in, replaces Alerts) --><a aria-label="Go to dashboard" class="ef-bottom-link" href="#" id="ef-bottom-dashboard" style="display: none;"><svg aria-hidden="true" class="ef-bottom-icon" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24"><rect height="7" rx="1" width="7" x="3" y="3"></rect><rect height="7" rx="1" width="7" x="14" y="3"></rect><rect height="7" rx="1" width="7" x="14" y="14"></rect><rect height="7" rx="1" width="7" x="3" y="14"></rect></svg><span class="ef-bottom-label">Dashboard</span><span class="ef-badge" id="ef-bottom-dashboard-badge" style="display: none;"></span></a><!-- Alerts button (shown when logged out) --><a aria-label="View guides and alerts" class="ef-bottom-link" href="/guides" id="ef-bottom-alerts"><svg aria-hidden="true" class="ef-bottom-icon" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg><span class="ef-bottom-label">Alerts</span></a><button aria-controls="ef-mobile-menu" aria-expanded="false" aria-label="Open menu" class="ef-cta ef-bottom-link" id="ef-bottom-menu" type="button"><svg aria-hidden="true" class="ef-bottom-icon" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24"><line x1="3" x2="21" y1="12" y2="12"></line><line x1="3" x2="21" y1="6" y2="6"></line><line x1="3" x2="21" y1="18" y2="18"></line></svg></button></nav>
+</article></div></main><footer class="footer" role="contentinfo">
+<div class="container ef-footer-content">
+<div><strong>EventFlow</strong><br/><span class="small">Event planning made simple.</span></div>
+<div class="small">
+<a href="/guides">Guides</a> ·
+<a href="/marketplace">Marketplace</a> ·
+<a href="/credits">Credits</a> ·
+<a href="/contact">Contact</a> ·
+<a href="/legal">Legal Hub</a> ·
+<button data-cookie-prefs="" type="button">Cookie preferences</button>
+</div>
+<div class="footer-credit small">Operated by <a href="https://vexi.co.uk" rel="noopener noreferrer" target="_blank">VEXI</a></div>
+</div>
+</footer><!-- BOTTOM NAVBAR - GOLD STANDARD REBUILD (Mobile Only) --><nav aria-label="Mobile bottom navigation" class="ef-bottom-nav" role="navigation">
+<a aria-label="Plan your event" class="ef-bottom-link" href="/start">
+<svg aria-hidden="true" class="ef-bottom-icon" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24">
+<path d="M12 20h9"></path>
+<path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path>
+</svg>
+<span class="ef-bottom-label">Plan</span>
+</a>
+<a aria-label="Browse suppliers" class="ef-bottom-link" href="/suppliers">
+<svg aria-hidden="true" class="ef-bottom-icon" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24">
+<circle cx="11" cy="11" r="8"></circle>
+<path d="m21 21-4.35-4.35"></path>
+</svg>
+<span class="ef-bottom-label">Suppliers</span>
+</a>
+<a aria-label="View guides" class="ef-bottom-link" href="/guides">
+<svg aria-hidden="true" class="ef-bottom-icon" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24">
+<path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
+<path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
+</svg>
+<span class="ef-bottom-label">Guides</span>
+</a>
+<!-- Dashboard with notification badge (shown when logged in, replaces Alerts) -->
+<a aria-label="Go to dashboard" class="ef-bottom-link" href="#" id="ef-bottom-dashboard" style="display: none;">
+<svg aria-hidden="true" class="ef-bottom-icon" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24">
+<rect height="7" rx="1" width="7" x="3" y="3"></rect>
+<rect height="7" rx="1" width="7" x="14" y="3"></rect>
+<rect height="7" rx="1" width="7" x="14" y="14"></rect>
+<rect height="7" rx="1" width="7" x="3" y="14"></rect>
+</svg>
+<span class="ef-bottom-label">Dashboard</span>
+<span class="ef-badge" id="ef-bottom-dashboard-badge" style="display: none;"></span>
+</a>
+<!-- Alerts button (shown when logged out) -->
+<a aria-label="View guides and alerts" class="ef-bottom-link" href="/guides" id="ef-bottom-alerts">
+<svg aria-hidden="true" class="ef-bottom-icon" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24">
+<path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
+<path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+</svg>
+<span class="ef-bottom-label">Alerts</span>
+</a>
+<button aria-controls="ef-mobile-menu" aria-expanded="false" aria-label="Open menu" class="ef-cta ef-bottom-link" id="ef-bottom-menu" type="button">
+<svg aria-hidden="true" class="ef-bottom-icon" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24">
+<line x1="3" x2="21" y1="12" y2="12"></line>
+<line x1="3" x2="21" y1="6" y2="6"></line>
+<line x1="3" x2="21" y1="18" y2="18"></line>
+</svg>
+</button>
+</nav>
 <script defer src="/assets/js/utils/auth-state.js"></script><script defer src="/assets/js/burger-menu.js"></script><script defer src="/assets/js/navbar.js"></script><script defer src="/assets/js/analytics-events.js"></script><script defer src="/assets/js/cookie-consent.js?v=2.0.1"></script>
 </body></html>
