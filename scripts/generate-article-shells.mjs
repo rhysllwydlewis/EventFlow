@@ -1,4 +1,3 @@
-#!/usr/bin/env node
 /**
  * Generates the shared chrome inside every guide article.
  *
@@ -271,7 +270,11 @@ async function main() {
       console.error(
         `${drifted.length} article(s) have chrome that does not match the template:\n${names}\n\nRun: node scripts/generate-article-shells.mjs`
       );
-      process.exit(1);
+      // Set the code rather than calling process.exit(): exiting mid-tick can
+      // truncate buffered stderr, and the drift report above is the whole point
+      // of --check. Matches generate-community-pages.mjs.
+      process.exitCode = 1;
+      return;
     }
     console.log(`All ${files.length} articles match the template.`);
     return;
@@ -282,5 +285,5 @@ async function main() {
 
 main().catch(error => {
   console.error(error.message);
-  process.exit(1);
+  process.exitCode = 1;
 });
