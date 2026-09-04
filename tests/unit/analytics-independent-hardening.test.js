@@ -148,32 +148,24 @@ describe('independent analytics privacy hardening', () => {
     expect(runtime.windowObject.posthog._i).toHaveLength(0);
   });
 
-  test('turns Accept All into one full-consent decision instead of false then true events', () => {
+  test('no longer hijacks Accept All or rewrites the consent cookie', () => {
     const runtime = executeBridge('/suppliers');
-    const banner = { parentNode: { removeChild: jest.fn() } };
-    const target = {
-      closest: jest.fn(selector => {
-        if (selector.includes('#cookie-consent-accept')) return target;
-        if (selector === '#cookie-consent-banner') return banner;
-        return null;
-      }),
-    };
-    const event = {
-      target,
-      preventDefault: jest.fn(),
-      stopImmediatePropagation: jest.fn(),
-    };
 
-    runtime.listeners['document:click'](event);
+    // cookie-consent.js now records every optional category from Accept All, so
+    // this bridge has no reason to intercept the click — and every reason not
+    // to, since its fixed three-field record dropped the advertising decision.
+    expect(runtime.listeners['document:click']).toBeUndefined();
+    expect(runtime.documentObject.cookie).not.toContain('eventflow_cookie_consent');
+  });
 
-    expect(event.preventDefault).toHaveBeenCalledTimes(1);
-    expect(event.stopImmediatePropagation).toHaveBeenCalledTimes(1);
-    expect(banner.parentNode.removeChild).toHaveBeenCalledWith(banner);
-    expect(runtime.windowObject.dispatchEvent).toHaveBeenCalledTimes(1);
-    expect(runtime.windowObject.dispatchEvent.mock.calls[0][0].detail.analytics).toBe(true);
+  test('forces advertising off alongside analytics on sensitive pages', () => {
+    const runtime = executeBridge('/messages');
 
-    const encoded = runtime.documentObject.cookie.match(/eventflow_cookie_consent=([^;]+)/)[1];
-    expect(JSON.parse(decodeURIComponent(encoded)).analytics).toBe(true);
+    // The Google Ads tag reads the marketing category, so the sensitive-page
+    // guard has to suppress that too or the tag would run where PostHog cannot.
+    const guarded = runtime.windowObject.CookieConsent.getConsent();
+    expect(guarded.analytics).toBe(false);
+    expect(guarded.marketing).toBe(false);
   });
 
   test('uses a new asset URL so browsers do not retain the pre-hardening bridge for a week', () => {
@@ -182,8 +174,14 @@ describe('independent analytics privacy hardening', () => {
       '/suppliers.html'
     );
 
-    expect(html).toContain('/assets/js/analytics-consent-upgrade.js?v=4');
+    expect(html).toContain('/assets/js/analytics-consent-upgrade.js?v=5');
+    expect(html).not.toContain('/assets/js/analytics-consent-upgrade.js?v=4');
     expect(html).not.toContain('/assets/js/analytics-consent-upgrade.js?v=2');
     expect(html).not.toContain('/assets/js/analytics-consent-upgrade.js?v=1');
+
+    // A cached copy of the pre-advertising consent module would keep writing
+    // records with no marketing decision, so its URL moves too.
+    expect(html).toContain('/assets/js/cookie-consent.js?v=3.0.0');
+    expect(html).not.toContain('/assets/js/cookie-consent.js?v=2.1.1');
   });
 });

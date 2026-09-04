@@ -1,17 +1,25 @@
 /**
  * Cookie Consent Banner - UK GDPR/PECR Compliant
- * Version: 2.0.0
+ * Version: 3.0.0
  *
  * Category-based consent model:
  *   - essential:   always on (authentication, consent record)
  *   - functional:  theme/UI preferences stored in localStorage
- *   - analytics:   analytics/tracking (currently unused, off by default)
+ *   - analytics:   first-party behaviour analytics and PostHog (off by default)
+ *   - marketing:   advertising and conversion measurement, currently the
+ *                  Google Ads tag (off by default)
+ *
+ * Analytics and marketing are kept as separate categories on purpose. Consent to
+ * measuring how the site is used is not consent to advertising technology, so
+ * `public/assets/js/google-ads-tag.js` is gated on `marketing` alone.
  *
  * Backward compatible: old cookie values "accepted"/"rejected" are migrated
- * automatically to the new structured format on first load.
+ * automatically to the new structured format on first load. Records written by
+ * an earlier version (v1) carry no marketing decision, so marketing is treated
+ * as denied until the visitor makes one.
  *
  * Public API on window.CookieConsent:
- *   getConsent()        → { essential, functional, analytics }
+ *   getConsent()        → { essential, functional, analytics, marketing }
  *   hasConsent()        → boolean (any decision recorded)
  *   openPreferences()   → open preferences dialog (always works)
  *   revokeConsent()     → clear consent and reopen banner
@@ -33,7 +41,10 @@
 
   const CONSENT_COOKIE_NAME = 'eventflow_cookie_consent';
   const CONSENT_EXPIRY_DAYS = 365;
-  const CONSENT_VERSION = 1;
+  // Cookie schema revision, bumped when the recorded shape changes. v1 recorded
+  // essential/functional/analytics; v2 adds marketing. This is independent of
+  // the module version in the header comment.
+  const CONSENT_VERSION = 2;
 
   // localStorage keys that are "functional" (optional) and must be cleared on rejection
   const FUNCTIONAL_STORAGE_KEYS = [
@@ -97,7 +108,17 @@
   // ─── Consent state helpers ─────────────────────────────────────────────────
 
   function defaultPrefs() {
-    return { essential: true, functional: false, analytics: false };
+    return { essential: true, functional: false, analytics: false, marketing: false };
+  }
+
+  /**
+   * The state a visitor gets from an "Accept All" button. Every optional
+   * category has to be granted here: a button labelled "Accept All" that
+   * silently withholds a category is misleading, and it also leaves the
+   * consented services unable to start.
+   */
+  function acceptAllPrefs() {
+    return { essential: true, functional: true, analytics: true, marketing: true };
   }
 
   /**
@@ -112,12 +133,24 @@
 
     // Migrate legacy binary values
     if (raw === 'accepted') {
-      const migrated = { v: CONSENT_VERSION, essential: true, functional: true, analytics: false };
+      const migrated = {
+        v: CONSENT_VERSION,
+        essential: true,
+        functional: true,
+        analytics: false,
+        marketing: false,
+      };
       setCookieRaw(CONSENT_COOKIE_NAME, JSON.stringify(migrated), CONSENT_EXPIRY_DAYS);
       return migrated;
     }
     if (raw === 'rejected') {
-      const migrated = { v: CONSENT_VERSION, essential: true, functional: false, analytics: false };
+      const migrated = {
+        v: CONSENT_VERSION,
+        essential: true,
+        functional: false,
+        analytics: false,
+        marketing: false,
+      };
       setCookieRaw(CONSENT_COOKIE_NAME, JSON.stringify(migrated), CONSENT_EXPIRY_DAYS);
       return migrated;
     }
@@ -130,6 +163,9 @@
         essential: true,
         functional: !!parsed.functional,
         analytics: !!parsed.analytics,
+        // Absent on records written before marketing became its own category.
+        // No recorded decision means no consent.
+        marketing: !!parsed.marketing,
       };
     } catch (e) {
       return null;
@@ -142,6 +178,7 @@
       essential: true,
       functional: !!prefs.functional,
       analytics: !!prefs.analytics,
+      marketing: !!prefs.marketing,
     });
     setCookieRaw(CONSENT_COOKIE_NAME, encodeURIComponent(value), CONSENT_EXPIRY_DAYS);
   }
@@ -166,6 +203,7 @@
               essential: true,
               functional: !!prefs.functional,
               analytics: !!prefs.analytics,
+              marketing: !!prefs.marketing,
             },
           })
         );
@@ -258,7 +296,7 @@
     banner.innerHTML =
       '<div class="cookie-consent-content">' +
       '<div class="cookie-consent-message">' +
-      '<p><strong>We use cookies.</strong> Essential cookies keep the site working; with your consent we also use functional cookies (e.g.\u00a0theme preference). Clicking \u201cAccept All\u201d agrees to the optional ones.</p>' +
+      '<p><strong>We use cookies.</strong> Essential cookies keep the site working. With your consent we also use functional cookies (e.g.\u00a0theme preference), analytics cookies to understand how the site is used, and advertising cookies for Google Ads conversion measurement. \u201cAccept All\u201d agrees to every optional category; \u201cManage Preferences\u201d lets you choose.</p>' +
       '<p class="cookie-consent-links">' +
       '<a href="/privacy" target="_blank" rel="noopener noreferrer">Privacy Policy</a> \u00b7 ' +
       '<a href="/terms" target="_blank" rel="noopener noreferrer">Terms of Service</a> \u00b7 ' +
@@ -296,12 +334,12 @@
     }
 
     document.getElementById('cookie-consent-accept').addEventListener('click', () => {
-      applyConsent({ essential: true, functional: true, analytics: false });
+      applyConsent(acceptAllPrefs());
       removeBanner();
     });
 
     document.getElementById('cookie-consent-reject').addEventListener('click', () => {
-      applyConsent({ essential: true, functional: false, analytics: false });
+      applyConsent(defaultPrefs());
       removeBanner();
     });
 
@@ -377,10 +415,23 @@
       '<div class="cookie-prefs-category-header">' +
       '<div>' +
       '<strong class="cookie-prefs-category-name">Analytics Cookies</strong>' +
-      '<p class="cookie-prefs-category-desc">Help us understand how visitors use the site. Currently unused \u2014 off by default.</p>' +
+      '<p class="cookie-prefs-category-desc">Let us measure how the site is used, through our own privacy-minimised analytics and PostHog. Off by default.</p>' +
       '</div>' +
       `<label class="cookie-prefs-toggle" aria-label="Toggle analytics cookies">` +
       `<input type="checkbox" id="cookie-pref-analytics" ${prefs.analytics ? 'checked' : ''}>` +
+      '<span class="cookie-prefs-toggle-slider"></span>' +
+      '</label>' +
+      '</div>' +
+      '</div>' +
+      // Marketing / advertising
+      '<div class="cookie-prefs-category">' +
+      '<div class="cookie-prefs-category-header">' +
+      '<div>' +
+      '<strong class="cookie-prefs-category-name">Advertising Cookies</strong>' +
+      '<p class="cookie-prefs-category-desc">Let the Google Ads tag measure which adverts lead to sign-ups and enquiries. Off by default, and separate from analytics.</p>' +
+      '</div>' +
+      `<label class="cookie-prefs-toggle" aria-label="Toggle advertising cookies">` +
+      `<input type="checkbox" id="cookie-pref-marketing" ${prefs.marketing ? 'checked' : ''}>` +
       '<span class="cookie-prefs-toggle-slider"></span>' +
       '</label>' +
       '</div>' +
@@ -420,13 +471,14 @@
     document.getElementById('cookie-prefs-save').addEventListener('click', () => {
       const functional = document.getElementById('cookie-pref-functional').checked;
       const analytics = document.getElementById('cookie-pref-analytics').checked;
-      applyConsent({ essential: true, functional, analytics });
+      const marketing = document.getElementById('cookie-pref-marketing').checked;
+      applyConsent({ essential: true, functional, analytics, marketing });
       closePreferencesDialog(overlay);
       removeBanner();
     });
 
     document.getElementById('cookie-prefs-accept-all').addEventListener('click', () => {
-      applyConsent({ essential: true, functional: true, analytics: false });
+      applyConsent(acceptAllPrefs());
       closePreferencesDialog(overlay);
       removeBanner();
     });
@@ -525,15 +577,23 @@
   // ─── Public API ────────────────────────────────────────────────────────────
 
   window.CookieConsent = {
-    /** Returns the current structured consent object {essential, functional, analytics}. */
+    /**
+     * Returns the current structured consent object
+     * {essential, functional, analytics, marketing}.
+     */
     getConsent() {
       try {
         const prefs = readConsentCookie();
         return prefs
-          ? { essential: true, functional: !!prefs.functional, analytics: !!prefs.analytics }
-          : { essential: true, functional: false, analytics: false };
+          ? {
+              essential: true,
+              functional: !!prefs.functional,
+              analytics: !!prefs.analytics,
+              marketing: !!prefs.marketing,
+            }
+          : defaultPrefs();
       } catch {
-        return { essential: true, functional: false, analytics: false };
+        return defaultPrefs();
       }
     },
     /** Returns true if a consent decision has been recorded. */

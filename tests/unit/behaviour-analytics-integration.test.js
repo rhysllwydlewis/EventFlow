@@ -36,11 +36,43 @@ describe('global behaviour analytics injection', () => {
 });
 
 describe('analytics consent and privacy wiring', () => {
-  test('corrects both Accept All actions to include analytics consent', () => {
+  test('leaves the consent cookie to the consent module alone', () => {
     const source = read('public/assets/js/analytics-consent-upgrade.js');
-    expect(source).toContain('analytics: true');
-    expect(source).toContain('#cookie-consent-accept, #cookie-prefs-accept-all');
-    expect(source).toContain("new CustomEvent('cookieConsentChanged'");
+
+    // This module used to intercept the Accept All buttons and rewrite the
+    // cookie itself, to work around cookie-consent.js recording
+    // `analytics: false` from them. That is fixed at source, and the workaround
+    // had to go: it wrote a fixed three-field record, so it silently discarded
+    // the visitor's advertising decision.
+    expect(source).not.toContain('#cookie-consent-accept, #cookie-prefs-accept-all');
+    expect(source).not.toContain('eventflow_cookie_consent');
+    expect(source).toContain("window.addEventListener('cookieConsentChanged'");
+  });
+
+  test('leaves the consent banner and dialog copy to the consent module', () => {
+    const source = read('public/assets/js/analytics-consent-upgrade.js');
+
+    // The bridge used to rewrite this copy at runtime, matching on the phrase
+    // "functional cookies" — which the corrected banner text still contains, so
+    // the override kept replacing a message naming analytics and advertising
+    // with one that mentions neither.
+    expect(source).not.toContain('cookie-consent-message p');
+    expect(source).not.toContain('cookie-prefs-category-desc');
+
+    const banner = read('public/assets/js/cookie-consent.js');
+    expect(banner).toContain('analytics cookies');
+    expect(banner).toContain('advertising cookies for Google Ads conversion measurement');
+  });
+
+  test('keeps the consent module as the single writer of the consent cookie', () => {
+    const writers = [
+      'public/assets/js/analytics-consent-upgrade.js',
+      'public/assets/js/behaviour-analytics.js',
+      'public/assets/js/google-ads-tag.js',
+    ].filter(file => read(file).includes('eventflow_cookie_consent'));
+
+    expect(writers).toEqual([]);
+    expect(read('public/assets/js/cookie-consent.js')).toContain('eventflow_cookie_consent');
   });
 
   test('tracks real key conversions only after a successful application response', () => {
@@ -72,7 +104,9 @@ describe('analytics consent and privacy wiring', () => {
     const bridgeSource = read('public/assets/js/analytics-consent-upgrade.js');
     const collectorSource = read('public/assets/js/behaviour-analytics.js');
     const pageShowStart = bridgeSource.indexOf('function handlePostHogPageShow(event)');
-    const pageShowEnd = bridgeSource.indexOf('\n  function upgradeConsentCopy', pageShowStart);
+    // Ends at whatever declaration follows, rather than at one named function,
+    // so removing a neighbour does not silently widen the slice.
+    const pageShowEnd = bridgeSource.indexOf('\n  function ', pageShowStart + 1);
     const pageShowHandler = bridgeSource.slice(pageShowStart, pageShowEnd);
 
     expect(bridgeSource).toMatch(/window\.posthog\.capture\(\s*'\$pageleave'/);

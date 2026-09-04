@@ -34,41 +34,74 @@
       background: linear-gradient(135deg, #F9FAFB 0%, #F3F4F6 100%);
       border: 1px solid #E7EAF0;
       border-radius: 12px;
-      padding: 24px;
+      padding: 20px;
       margin-bottom: 32px;
       position: sticky;
       top: 80px;
+      /* Twenty-one entries are taller than a laptop viewport, so the list
+         scrolls inside the sidebar instead of running off the bottom. */
+      max-height: calc(100vh - 104px);
+      display: flex;
+      flex-direction: column;
     }
     .legal-toc h2 {
       margin-top: 0;
-      font-size: 1.25rem;
-      color: var(--ink, #0B8073);
+      margin-bottom: 12px;
+      font-size: 0.75rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: #667085;
     }
     .legal-toc ul {
       list-style: none;
-      padding: 0;
+      padding: 0 4px 0 0;
       margin: 0;
+      overflow-y: auto;
+      overscroll-behavior: contain;
+      scrollbar-width: thin;
+    }
+    .legal-toc ul::-webkit-scrollbar {
+      width: 6px;
+    }
+    .legal-toc ul::-webkit-scrollbar-thumb {
+      background: #D3D8E2;
+      border-radius: 999px;
     }
     .legal-toc li {
-      margin: 8px 0;
+      margin: 2px 0;
     }
     .legal-toc a {
       color: #0B1220;
       text-decoration: none;
       display: flex;
       align-items: center;
-      padding: 8px 12px;
-      border-radius: 8px;
-      transition: all 0.2s;
+      padding: 7px 10px;
+      font-size: 0.875rem;
+      border-left: 2px solid transparent;
+      border-radius: 0 8px 8px 0;
+      transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
     }
-    .legal-toc a:hover {
+    .legal-toc a:hover,
+    .legal-toc a:focus-visible {
       background: #fff;
       color: var(--ink, #0B8073);
-      transform: translateX(4px);
+    }
+    .legal-toc a[aria-current="true"] {
+      background: #fff;
+      border-left-color: #0B8073;
+      color: var(--ink, #0B8073);
+      font-weight: 600;
     }
     .legal-toc-icon {
-      margin-right: 12px;
-      font-size: 1.25rem;
+      margin-right: 10px;
+      font-size: 1.0625rem;
+      line-height: 1;
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .legal-toc a {
+        transition: none;
+      }
     }
     .legal-section {
       background: #fff;
@@ -109,11 +142,14 @@
       }
       .legal-toc {
         position: static;
+        max-height: none;
         padding: 16px;
         margin-bottom: 24px;
       }
-      .legal-toc h2 {
-        font-size: 1.125rem;
+      .legal-toc ul {
+        /* Without the sticky viewport constraint the list would push the first
+           section a full screen down on a phone. */
+        max-height: 45vh;
       }
       .legal-toc li {
         margin: 4px 0;
@@ -174,6 +210,7 @@
   </style>
   <link rel="stylesheet" href="/assets/css/eventflow-footer.css">
     <link rel="stylesheet" href="/assets/css/public-mobile-compact.css" />
+  <link rel="stylesheet" href="/assets/css/legal-pages.css?v=1.0.0">
 </head>
 <body>
 <!-- TOP NAVBAR - GOLD STANDARD REBUILD -->
@@ -291,38 +328,39 @@
     <div class="legal-grid">
       
       <!-- Table of Contents -->
-      <aside class="legal-toc" style="grid-column: 1;">
-        <h2>📑 Quick Navigation</h2>
+      <nav class="legal-toc" aria-labelledby="legal-toc-heading">
+        <h2 id="legal-toc-heading"><span aria-hidden="true">📑</span> Quick Navigation</h2>
         <ul>
-          <li><a href="#overview"><span class="legal-toc-icon">📋</span> Overview</a></li>
-          <li><a href="#terms"><span class="legal-toc-icon">📋</span> Terms of Use</a></li>
-          <li><a href="#privacy"><span class="legal-toc-icon">🔒</span> Privacy Notice</a></li>
-          <li><a href="#cookies"><span class="legal-toc-icon">🍪</span> Cookie Policy</a></li>
-          <li><a href="#gdpr"><span class="legal-toc-icon">🛡️</span> GDPR Rights</a></li>
-          <li><a href="#acceptable-use"><span class="legal-toc-icon">✓</span> Acceptable Use</a></li>
-          <li><a href="#copyright"><span class="legal-toc-icon">©</span> Copyright</a></li>
-          <li><a href="#supplier-terms"><span class="legal-toc-icon">🤝</span> Supplier Terms</a></li>
-          <li><a href="#marketplace-terms"><span class="legal-toc-icon">🛒</span> Marketplace Terms</a></li>
-          <li><a href="#community"><span class="legal-toc-icon">👥</span> Community</a></li>
-          <li><a href="#accessibility"><span class="legal-toc-icon">♿</span> Accessibility</a></li>
-          <li><a href="#security"><span class="legal-toc-icon">🔐</span> Security</a></li>
-          <li><a href="#contact"><span class="legal-toc-icon">📧</span> Contact</a></li>
-          <li><a href="#company-info"><span class="legal-toc-icon">🏢</span> Company Information</a></li>
-          <li><a href="#returns-consumer-rights"><span class="legal-toc-icon">↩️</span> Returns & Consumer Rights</a></li>
-          <li><a href="#adr"><span class="legal-toc-icon">⚖️</span> Dispute Resolution (ADR/ODR)</a></li>
-          <li><a href="#illegal-content"><span class="legal-toc-icon">🚨</span> Report Illegal Content</a></li>
-          <li><a href="#payment-security"><span class="legal-toc-icon">💳</span> Payment Security</a></li>
-          <li><a href="#age-verification"><span class="legal-toc-icon">🔞</span> Age Verification</a></li>
-          <li><a href="#partner-programme"><span class="legal-toc-icon">🤝</span> Partner Programme</a></li>
+          <li><a href="#overview"><span class="legal-toc-icon" aria-hidden="true">📋</span> Overview</a></li>
+          <li><a href="#terms"><span class="legal-toc-icon" aria-hidden="true">📋</span> Terms of Use</a></li>
+          <li><a href="#privacy"><span class="legal-toc-icon" aria-hidden="true">🔒</span> Privacy Notice</a></li>
+          <li><a href="#cookies"><span class="legal-toc-icon" aria-hidden="true">🍪</span> Cookie Policy</a></li>
+          <li><a href="#gdpr"><span class="legal-toc-icon" aria-hidden="true">🛡️</span> GDPR Rights</a></li>
+          <li><a href="#acceptable-use"><span class="legal-toc-icon" aria-hidden="true">✓</span> Acceptable Use</a></li>
+          <li><a href="#copyright"><span class="legal-toc-icon" aria-hidden="true">©</span> Copyright</a></li>
+          <li><a href="#supplier-terms"><span class="legal-toc-icon" aria-hidden="true">🤝</span> Supplier Terms</a></li>
+          <li><a href="#unclaimed-listings"><span class="legal-toc-icon" aria-hidden="true">📍</span> Unclaimed Listings</a></li>
+          <li><a href="#marketplace-terms"><span class="legal-toc-icon" aria-hidden="true">🛒</span> Marketplace Terms</a></li>
+          <li><a href="#community"><span class="legal-toc-icon" aria-hidden="true">👥</span> Community</a></li>
+          <li><a href="#accessibility"><span class="legal-toc-icon" aria-hidden="true">♿</span> Accessibility</a></li>
+          <li><a href="#security"><span class="legal-toc-icon" aria-hidden="true">🔐</span> Security</a></li>
+          <li><a href="#contact"><span class="legal-toc-icon" aria-hidden="true">📧</span> Contact</a></li>
+          <li><a href="#company-info"><span class="legal-toc-icon" aria-hidden="true">🏢</span> Company Information</a></li>
+          <li><a href="#returns-consumer-rights"><span class="legal-toc-icon" aria-hidden="true">↩️</span> Returns & Consumer Rights</a></li>
+          <li><a href="#adr"><span class="legal-toc-icon" aria-hidden="true">⚖️</span> Dispute Resolution (ADR/ODR)</a></li>
+          <li><a href="#illegal-content"><span class="legal-toc-icon" aria-hidden="true">🚨</span> Report Illegal Content</a></li>
+          <li><a href="#payment-security"><span class="legal-toc-icon" aria-hidden="true">💳</span> Payment Security</a></li>
+          <li><a href="#age-verification"><span class="legal-toc-icon" aria-hidden="true">🔞</span> Age Verification</a></li>
+          <li><a href="#partner-programme"><span class="legal-toc-icon" aria-hidden="true">🤝</span> Partner Programme</a></li>
         </ul>
-      </aside>
+      </nav>
 
       <!-- Main Content -->
       <div>
         
         <!-- Overview Section -->
         <section id="overview" class="legal-section">
-          <h2>📋 Overview</h2>
+          <h2><span aria-hidden="true">📋</span> Overview</h2>
           <p>Welcome to the EventFlow Legal Hub. This page contains all our legal documentation in one convenient location.</p>
           <p class="small" style="background:#f0fdf4;border-left:3px solid #0B8073;padding:0.75rem 1rem;border-radius:4px;">Event Flow (event-flow.co.uk) is operated by <strong>VEXI</strong>. For VEXI's corporate legal documents, visit <a href="https://vexi.co.uk/legal" target="_blank" rel="noopener noreferrer">vexi.co.uk/legal</a>.</p>
           <p><strong>VEXI</strong> (sole trader trading as 'VEXI') operates the Event Flow platform, providing event planning services and a peer-to-peer marketplace for event items. We are committed to:</p>
@@ -340,12 +378,13 @@
             <li><a href="/community/guidelines">Community Guidelines</a> - Rules for public discussions, replies and profiles</li>
             <li><a href="/community/help">Community Help and Appeals</a> - Reporting and moderation appeals</li>
             <li><a href="/data-rights">Data Subject Rights</a> - Exercise your GDPR rights</li>
+            <li><a href="#unclaimed-listings">Unclaimed Listings</a> - Claim, correct or remove a listing we created for your business</li>
           </ul>
         </section>
 
         <!-- Terms Summary -->
         <section id="terms" class="legal-section">
-          <h2>📋 Terms of Use Summary</h2>
+          <h2><span aria-hidden="true">📋</span> Terms of Use Summary</h2>
           <div class="legal-metadata" style="margin-bottom: 1.5rem; padding: 1rem; background: #f9fafb; border-left: 3px solid #0B8073; border-radius: 4px;">
             <p class="small" style="margin: 0; color: #6b7280;">
               <strong>Last materially updated:</strong> {{POLICY_TERMS_LAST_UPDATED}} |
@@ -367,7 +406,7 @@
 
         <!-- Privacy Summary -->
         <section id="privacy" class="legal-section">
-          <h2>🔒 Privacy Notice Summary</h2>
+          <h2><span aria-hidden="true">🔒</span> Privacy Notice Summary</h2>
           <div class="legal-metadata" style="margin-bottom: 1.5rem; padding: 1rem; background: #f9fafb; border-left: 3px solid #0B8073; border-radius: 4px;">
             <p class="small" style="margin: 0; color: #6b7280;">
               <strong>Last materially updated:</strong> {{POLICY_PRIVACY_LAST_UPDATED}} |
@@ -377,7 +416,7 @@
           </div>
           <p>We take your privacy seriously. Our Privacy Notice explains:</p>
           <ul>
-            <li><strong>What we collect:</strong> Account data, event plans, messages, photos</li>
+            <li><strong>What we collect:</strong> Account data, event plans, messages, photos, and supplier directory information sourced from businesses' own public websites</li>
             <li><strong>Why we collect it:</strong> To provide services, security, and communication</li>
             <li><strong>How we protect it:</strong> Encryption, secure storage, access controls</li>
             <li><strong>Your rights:</strong> Access, rectification, erasure, portability, objection</li>
@@ -389,7 +428,7 @@
 
         <!-- Cookie Policy -->
         <section id="cookies" class="legal-section">
-          <h2>🍪 Cookie Policy</h2>
+          <h2><span aria-hidden="true">🍪</span> Cookie Policy</h2>
           <div class="legal-metadata" style="margin-bottom: 1.5rem; padding: 1rem; background: #f9fafb; border-left: 3px solid #0B8073; border-radius: 4px;">
             <p class="small" style="margin: 0; color: #6b7280;">
               <strong>Last materially updated:</strong> {{POLICY_COOKIE_POLICY_LAST_UPDATED}} |
@@ -422,6 +461,12 @@
           </ul>
           <p class="small" style="color:#667085;">Analytics does not start unless you consent. Withdrawing consent stops further analytics collection and removes EventFlow's browser attribution record. PostHog may use cookies or similar browser storage as part of the consented service.</p>
 
+          <h4 class="h6" style="margin-top:1rem;">Advertising Cookies (With Your Consent)</h4>
+          <ul>
+            <li><strong>Google Ads conversion tag:</strong> Where you consent to advertising, EventFlow loads the Google Ads tag (gtag.js) from Google so we can measure which adverts lead to sign-ups and enquiries. Google may set cookies or use similar browser storage for advertising and conversion measurement, and receives ordinary web-request data such as an IP address, browser information and the page you were on.</li>
+          </ul>
+          <p class="small" style="color:#667085;">Advertising is a separate choice from analytics: consenting to analytics does not switch advertising on. The tag is not loaded on admin pages. Until you consent, EventFlow declares Google Consent Mode defaults of <em>denied</em> for advertising storage, advertising user data and ad personalisation; if you later withdraw advertising consent, those signals are set back to <em>denied</em> for the rest of the session and the tag is not loaded again on your next visit.</p>
+
           <h3 class="h5" style="margin-top:1.25rem;">Managing Your Cookie Preferences</h3>
           <p>You can manage or withdraw your consent at any time — not just on your first visit. Use the button below or the <strong>Cookie preferences</strong> link in the site footer.</p>
           <p>
@@ -436,20 +481,20 @@
           </p>
           <p class="small" style="color:#667085;">You can also <button type="button" data-cookie-revoke style="background:none;border:none;color:#0B8073;text-decoration:underline;cursor:pointer;font-size:inherit;padding:0;">reset your cookie consent</button> to be prompted again from scratch.</p>
           <ul>
-            <li><strong>Accept All:</strong> Allow all cookies including functional</li>
-            <li><strong>Reject:</strong> Only essential cookies — functional preferences cleared</li>
-            <li><strong>Manage Preferences:</strong> Choose per category</li>
+            <li><strong>Accept All:</strong> Allow every optional category — functional, analytics and advertising</li>
+            <li><strong>Reject:</strong> Only essential cookies — functional preferences are cleared, and analytics and advertising do not start</li>
+            <li><strong>Manage Preferences:</strong> Choose functional, analytics and advertising separately</li>
             <li><strong>Browser Settings:</strong> Control cookies via your browser</li>
           </ul>
 
-          <p><strong>Third-party analytics:</strong> We do not use advertising cookies. If you consent to analytics, PostHog processes analytics data for us. Ordinary web requests to PostHog may disclose technical data such as an IP address and browser information even though EventFlow's own behaviour-event store excludes raw IP addresses and raw user-agent strings.</p>
+          <p><strong>Third-party services:</strong> If you consent to analytics, PostHog processes analytics data for us. If you consent to advertising, Google receives conversion-measurement data through the Google Ads tag. Ordinary web requests to those providers may disclose technical data such as an IP address and browser information even though EventFlow's own behaviour-event store excludes raw IP addresses and raw user-agent strings.</p>
 
           <p class="small" style="color:#667085; margin-top: 16px;"><em>This notice is intended to explain our use of cookies and similar technologies. It should be reviewed against the live production configuration and is not a substitute for legal advice.</em></p>
         </section>
 
         <!-- GDPR & Data Rights -->
         <section id="gdpr" class="legal-section">
-          <h2>🛡️ Data Protection & Your Rights</h2>
+          <h2><span aria-hidden="true">🛡️</span> Data Protection & Your Rights</h2>
           <div class="legal-metadata" style="margin-bottom: 1.5rem; padding: 1rem; background: #f9fafb; border-left: 3px solid #0B8073; border-radius: 4px;">
             <p class="small" style="margin: 0; color: #6b7280;">
               <strong>Last materially updated:</strong> {{POLICY_PRIVACY_LAST_UPDATED}} |
@@ -495,7 +540,7 @@
 
         <!-- Acceptable Use Policy -->
         <section id="acceptable-use" class="legal-section">
-          <h2>✓ Acceptable Use Policy</h2>
+          <h2><span aria-hidden="true">✓</span> Acceptable Use Policy</h2>
           <p class="small" style="color:#667085;"><strong>Last materially updated:</strong> {{POLICY_ACCEPTABLE_USE_LAST_UPDATED}} | <strong>Last reviewed:</strong> {{POLICY_ACCEPTABLE_USE_LAST_REVIEWED}} | <strong>Version:</strong> {{POLICY_ACCEPTABLE_USE_VERSION}}</p>
           <p>To maintain a safe and respectful community, users must not:</p>
           
@@ -535,7 +580,7 @@
 
         <!-- Copyright Policy -->
         <section id="copyright" class="legal-section">
-          <h2>© Copyright & Intellectual Property</h2>
+          <h2><span aria-hidden="true">©</span> Copyright & Intellectual Property</h2>
           <p class="small" style="color:#667085;"><strong>Last materially updated:</strong> {{POLICY_COPYRIGHT_LAST_UPDATED}} | <strong>Last reviewed:</strong> {{POLICY_COPYRIGHT_LAST_REVIEWED}} | <strong>Version:</strong> {{POLICY_COPYRIGHT_VERSION}}</p>
           
           <h3 class="h5">Our Content</h3>
@@ -571,9 +616,10 @@
 
         <!-- Supplier Terms -->
         <section id="supplier-terms" class="legal-section">
-          <h2>🤝 Supplier-Specific Terms</h2>
+          <h2><span aria-hidden="true">🤝</span> Supplier-Specific Terms</h2>
           <p class="small" style="color:#667085;"><strong>Last materially updated:</strong> {{POLICY_SUPPLIER_TERMS_LAST_UPDATED}} | <strong>Last reviewed:</strong> {{POLICY_SUPPLIER_TERMS_LAST_REVIEWED}} | <strong>Version:</strong> {{POLICY_SUPPLIER_TERMS_VERSION}}</p>
           <p>If you are a supplier listing services on EventFlow, additional terms apply:</p>
+          <p class="small" style="background:#f0fdf4;border-left:3px solid #0B8073;padding:0.75rem 1rem;border-radius:4px;">Not signed up, but your business already appears on EventFlow? That is an <a href="#unclaimed-listings">unclaimed listing</a>. It creates no contract and no charge, and you can claim, correct or remove it.</p>
           
           <h3 class="h5">Listing Requirements</h3>
           <ul>
@@ -666,9 +712,58 @@
           <p>See our full <a href="/terms">Terms of Use</a> for complete supplier terms.</p>
         </section>
 
+        <!-- Unclaimed Listings -->
+        <section id="unclaimed-listings" class="legal-section">
+          <h2><span aria-hidden="true">📍</span> Unclaimed Listings</h2>
+          <p class="small" style="color:#667085;"><strong>Last materially updated:</strong> {{POLICY_UNCLAIMED_LISTINGS_LAST_UPDATED}} | <strong>Last reviewed:</strong> {{POLICY_UNCLAIMED_LISTINGS_LAST_REVIEWED}} | <strong>Version:</strong> {{POLICY_UNCLAIMED_LISTINGS_VERSION}}</p>
+
+          <p>Some supplier listings on EventFlow are created by us from information a business has
+            already published about itself, rather than by the business signing up. Those listings
+            are labelled <strong>Unclaimed</strong> wherever they appear.</p>
+
+          <h3 class="h5">Where the information comes from</h3>
+          <ul>
+            <li>The business's own public website, including the business name, description, category, service area, a publicly listed phone number or email address, and images published on that site</li>
+            <li>Public directory-style information such as a town, region or postcode used to place the listing on a UK location page</li>
+          </ul>
+          <p>We do not use information from a private or access-controlled source, and we do not
+            collect special category data for these listings.</p>
+
+          <h3 class="h5">What an unclaimed listing is and is not</h3>
+          <ul>
+            <li>It is <strong>not</strong> an endorsement, recommendation or verification of the business by EventFlow</li>
+            <li>It does <strong>not</strong> mean the business is an EventFlow customer, subscriber or partner, and no charge arises from it</li>
+            <li>It does <strong>not</strong> create a contract between EventFlow and the business</li>
+            <li>Information may be out of date, because it reflects what was published at the time it was collected</li>
+          </ul>
+
+          <h3 class="h5">Claiming your listing</h3>
+          <p>If the listing is yours, use the <strong>Claim this listing</strong> link on the profile.
+            Claiming asks you to verify control of the business — normally through an email address on
+            the business's own domain — after which you own the listing and can correct or complete it
+            yourself.</p>
+
+          <h3 class="h5">Correction, objection and removal</h3>
+          <p>You do not have to claim a listing in order to have it corrected or taken down. Email
+            {{ADMIN_EMAIL}} with the subject <strong>"Unclaimed listing"</strong> and the listing URL,
+            and tell us whether you want it corrected or removed. We will:</p>
+          <ul>
+            <li>act on a removal request for a listing we created, without asking you to justify it;</li>
+            <li>correct information you tell us is wrong; and</li>
+            <li>respond without undue delay and normally within one calendar month, as set out under <a href="#gdpr">Data Protection &amp; Your Rights</a>.</li>
+          </ul>
+          <p>Where the listing includes personal data — for example a sole trader's trading name or a
+            named contact — we rely on our legitimate interests in operating a UK supplier directory,
+            and you have the right to object to that processing. The <a href="/privacy#supplier-public-sources">Privacy Notice</a>
+            explains the sourcing, lawful basis and retention in full.</p>
+          <p>If an image on an unclaimed listing is yours and you would rather it were not shown, tell
+            us and we will remove it. See <a href="#copyright">Copyright &amp; Intellectual Property</a>
+            for the general notice route.</p>
+        </section>
+
         <!-- Marketplace Terms -->
         <section id="marketplace-terms" class="legal-section">
-          <h2>🛒 Marketplace Terms</h2>
+          <h2><span aria-hidden="true">🛒</span> Marketplace Terms</h2>
           <p class="small" style="color:#667085;"><strong>Last materially updated:</strong> {{POLICY_MARKETPLACE_TERMS_LAST_UPDATED}} | <strong>Last reviewed:</strong> {{POLICY_MARKETPLACE_TERMS_LAST_REVIEWED}} | <strong>Version:</strong> {{POLICY_MARKETPLACE_TERMS_VERSION}}</p>
           <p>The EventFlow Marketplace is a peer-to-peer platform for buying and selling physical event-related items. These terms apply to all marketplace users (buyers and sellers).</p>
           
@@ -975,7 +1070,7 @@
 
         <!-- Community Guidelines -->
         <section id="community" class="legal-section">
-          <h2>👥 Community Guidelines</h2>
+          <h2><span aria-hidden="true">👥</span> Community Guidelines</h2>
           <p class="small" style="color:#667085;"><strong>Last materially updated:</strong> {{POLICY_COMMUNITY_GUIDELINES_LAST_UPDATED}} | <strong>Last reviewed:</strong> {{POLICY_COMMUNITY_GUIDELINES_LAST_REVIEWED}} | <strong>Version:</strong> {{POLICY_COMMUNITY_GUIDELINES_VERSION}}</p>
           <p>The EventFlow Community is a public forum for event planners and suppliers. Published
             handles, profiles, discussions and replies may be searchable on EventFlow and indexed
@@ -1025,12 +1120,12 @@
             route</a> for suspected unlawful material. Eligible moderation decisions can be
             appealed. See <a href="/community/help">Community Help and Appeals</a> for the process.</p>
           
-          <p><a href="/community/guidelines" class="cta">Read the full Community Guidelines â†’</a></p>
+          <p><a href="/community/guidelines" class="cta">Read the full Community Guidelines &rarr;</a></p>
         </section>
 
         <!-- Accessibility Statement -->
         <section id="accessibility" class="legal-section">
-          <h2>♿ Accessibility Statement</h2>
+          <h2><span aria-hidden="true">♿</span> Accessibility Statement</h2>
           <p>EventFlow is committed to ensuring digital accessibility for people with disabilities.</p>
           
           <h3 class="h5">Our Commitment</h3>
@@ -1071,7 +1166,7 @@
 
         <!-- Security Policy -->
         <section id="security" class="legal-section">
-          <h2>🔐 Security Policy</h2>
+          <h2><span aria-hidden="true">🔐</span> Security Policy</h2>
           
           <h3 class="h5">How We Protect Your Data</h3>
           <ul>
@@ -1114,7 +1209,7 @@
 
         <!-- Contact Section -->
         <section id="contact" class="legal-section">
-          <h2>📧 Contact Information</h2>
+          <h2><span aria-hidden="true">📧</span> Contact Information</h2>
           
           <div class="card" style="background: linear-gradient(135deg, #F9FAFB 0%, #F3F4F6 100%); border: 1px solid #E7EAF0;">
             <h3 class="h5">VEXI (sole trader trading as 'VEXI')</h3>
@@ -1145,7 +1240,7 @@
 
         <!-- Company Information Section -->
         <section id="company-info" class="legal-section">
-          <h2>🏢 Company Information</h2>
+          <h2><span aria-hidden="true">🏢</span> Company Information</h2>
           
           <div class="card" style="background: linear-gradient(135deg, #F9FAFB 0%, #F3F4F6 100%); border: 1px solid #E7EAF0;">
             <p>In accordance with UK consumer protection requirements, we provide the following entity information. Event Flow (event-flow.co.uk) is operated by <strong>VEXI</strong>, a sole trader trading as 'VEXI'.</p>
@@ -1164,7 +1259,7 @@
             <ul>
               <li><strong>Type:</strong> Online platform and marketplace</li>
               <li><strong>Services:</strong> Event planning tools, supplier directory, peer-to-peer marketplace</li>
-              <li><strong>Legal Status:</strong> Information society service provider (as defined by Digital Services Act)</li>
+              <li><strong>Legal Status:</strong> Information society service provider under the Electronic Commerce (EC Directive) Regulations 2002, as they apply in the United Kingdom</li>
               <li><strong>Platform Role:</strong> Intermediary service connecting users with suppliers and marketplace sellers</li>
             </ul>
           </div>
@@ -1172,7 +1267,7 @@
 
         <!-- Returns & Consumer Rights Section -->
         <section id="returns-consumer-rights" class="legal-section">
-          <h2>↩️ Marketplace Returns & Consumer Rights</h2>
+          <h2><span aria-hidden="true">↩️</span> Marketplace Returns & Consumer Rights</h2>
           
           <div class="card" style="background: linear-gradient(135deg, #F9FAFB 0%, #F3F4F6 100%); border: 1px solid #E7EAF0;">
             <h3 class="h5">Understanding the Marketplace Model</h3>
@@ -1244,18 +1339,17 @@
 
         <!-- Alternative Dispute Resolution Section -->
         <section id="adr" class="legal-section">
-          <h2>⚖️ Alternative Dispute Resolution (ADR) & Online Dispute Resolution (ODR)</h2>
+          <h2><span aria-hidden="true">⚖️</span> Alternative Dispute Resolution (ADR) & Online Dispute Resolution (ODR)</h2>
           
           <div class="card" style="background: linear-gradient(135deg, #F9FAFB 0%, #F3F4F6 100%); border: 1px solid #E7EAF0;">
             <h3 class="h5">What is ADR/ODR?</h3>
             <p>Alternative Dispute Resolution (ADR) and Online Dispute Resolution (ODR) are processes for resolving disputes without going to court. These can include mediation, arbitration, or ombudsman schemes.</p>
             
-            <h3 class="h5" style="margin-top: 24px;">EU Online Dispute Resolution Platform</h3>
-            <p>For EU consumers, the European Commission provides an ODR platform for online purchases:</p>
+            <h3 class="h5" style="margin-top: 24px;">EU Online Dispute Resolution Platform (closed)</h3>
+            <p>The European Commission's ODR platform ceased operating on 20 July 2025 and no longer accepts complaints. It was in any event not available for UK traders after the end of the Brexit transition period. Use the UK routes below instead.</p>
             <ul>
-              <li><strong>ODR Platform:</strong> <a href="https://ec.europa.eu/consumers/odr" target="_blank" rel="noopener">https://ec.europa.eu/consumers/odr</a></li>
-              <li><strong>Purpose:</strong> Submit complaints about online purchases</li>
-              <li><strong>Process:</strong> Platform connects you with certified dispute resolution bodies</li>
+              <li><strong>EU-based consumers:</strong> Contact a national consumer body or European Consumer Centre in your own country</li>
+              <li><strong>UK consumers:</strong> Use the Citizens Advice consumer service below</li>
             </ul>
             
             <h3 class="h5" style="margin-top: 24px;">UK Dispute Resolution Services</h3>
@@ -1309,7 +1403,7 @@
 
         <!-- Report Illegal Content Section -->
         <section id="illegal-content" class="legal-section">
-          <h2>🚨 Report Illegal or Harmful Content</h2>
+          <h2><span aria-hidden="true">🚨</span> Report Illegal or Harmful Content</h2>
           
           <div class="card" style="background: linear-gradient(135deg, #FFE6E6 0%, #FFF0F0 100%); border: 2px solid #DC2626; padding: 24px;">
             <h3 class="h5" style="color: #DC2626; margin-top: 0;">This is Important - Help Keep EventFlow Safe</h3>
@@ -1413,7 +1507,7 @@
 
         <!-- Payment Security Section -->
         <section id="payment-security" class="legal-section">
-          <h2>💳 Payment Security</h2>
+          <h2><span aria-hidden="true">💳</span> Payment Security</h2>
           
           <div class="card" style="background: linear-gradient(135deg, #F9FAFB 0%, #F3F4F6 100%); border: 1px solid #E7EAF0;">
             <h3 class="h5">Current Payment Model</h3>
@@ -1497,7 +1591,7 @@
 
         <!-- Age Verification Section -->
         <section id="age-verification" class="legal-section">
-          <h2>🔞 Age Verification Policy</h2>
+          <h2><span aria-hidden="true">🔞</span> Age Verification Policy</h2>
           
           <div class="card" style="background: linear-gradient(135deg, #F9FAFB 0%, #F3F4F6 100%); border: 1px solid #E7EAF0;">
             <h3 class="h5">Age Restriction - 18+ Only</h3>
@@ -1579,7 +1673,7 @@
 
         <!-- Partner Programme Terms -->
         <section id="partner-programme" class="legal-section">
-          <h2>🤝 Partner Programme Terms</h2>
+          <h2><span aria-hidden="true">🤝</span> Partner Programme Terms</h2>
           <p>The EventFlow Partner Programme allows approved referral partners to earn credits by referring new suppliers to the platform. These terms govern participation in the programme and the cashout of accrued credits.</p>
 
           <h3 class="h5">Programme Overview</h3>
@@ -1742,5 +1836,6 @@
 <script src="/assets/js/vendor/jade-widget.js" defer></script>
 <script src="/assets/js/jadeassist-init.v2.js" defer></script>
 <script src="/assets/js/components/eventflow-footer.js?v=4" defer></script>
+    <script src="/assets/js/legal-pages.js?v=1.0.0" defer></script>
 </body>
 </html>

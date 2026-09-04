@@ -15,13 +15,14 @@ const { renderArticleDates } = require('../services/articleMetadata.service');
 const templateCache = new Map();
 const ANONYMOUS_SANITIZER_COMMENT = '<!-- eventflow-anonymous-sanitizer: active -->';
 const GLOBAL_ANALYTICS_SCRIPTS = [
-  '    <script src="/assets/js/cookie-consent.js?v=2.1.1" defer></script>',
-  '    <script src="/assets/js/analytics-consent-upgrade.js?v=4" defer></script>',
+  '    <script src="/assets/js/cookie-consent.js?v=3.0.0" defer></script>',
+  '    <script src="/assets/js/analytics-consent-upgrade.js?v=5" defer></script>',
   '    <script src="/assets/js/behaviour-analytics.js?v=3" defer></script>',
 ];
 const ADMIN_BEHAVIOUR_ANALYTICS_SCRIPT =
   '    <script src="/assets/js/pages/admin-behaviour-analytics.js?v=1" defer></script>';
-const GOOGLE_ADS_TAG_SCRIPT = '    <script src="/assets/js/google-ads-tag.js"></script>';
+const GOOGLE_ADS_TAG_SCRIPT =
+  '    <script src="/assets/js/google-ads-tag.js?v=2"></script>';
 // Token-bearing routes: loading a third-party script here would send the
 // current URL (including the verification/reset token) to Google via the
 // Referer header, even for a visitor who has already consented to analytics.
