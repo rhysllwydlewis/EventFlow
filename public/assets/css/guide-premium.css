@@ -177,6 +177,9 @@ body.gp-page {
 .gp-breadcrumb a {
   display: inline-flex;
   align-items: center;
+  /* WCAG 2.5.8 wants 24px; these were 22px tall on desktop. The site-wide
+     mobile rule already forces 44px below 768px. */
+  min-height: 24px;
   color: rgba(255, 255, 255, 0.82);
   text-decoration: none;
   border-bottom: 1px solid transparent;
@@ -301,7 +304,7 @@ body.gp-page {
   grid-template-columns: 1fr;
 }
 
-@media (min-width: 1080px) {
+@media (min-width: 1024px) {
   .gp-shell {
     grid-template-columns: 258px minmax(0, 1fr);
   }
@@ -311,7 +314,7 @@ body.gp-page {
   display: none;
 }
 
-@media (min-width: 1080px) {
+@media (min-width: 1024px) {
   .gp-rail {
     display: block;
     position: sticky;
@@ -478,7 +481,7 @@ body.gp-page {
   margin-bottom: 2rem;
 }
 
-@media (min-width: 1080px) {
+@media (min-width: 1024px) {
   .gp-toc-mobile {
     display: none;
   }
@@ -523,8 +526,20 @@ body.gp-page {
 }
 
 .gp-toc-mobile a {
+  display: flex;
+  align-items: center;
+  min-height: 44px;
   color: var(--gp-text-soft);
   text-decoration: none;
+}
+
+/* Portrait tablets have room for two columns; the list stops running as one
+   long thin ribbon down an otherwise empty panel. */
+@media (min-width: 600px) {
+  .gp-toc-mobile ol {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    column-gap: 2rem;
+  }
 }
 
 .gp-toc-mobile a:hover {
@@ -1274,7 +1289,13 @@ body.gp-page {
   color: #fff;
 }
 
+/* guides.css gives this link `min-height: 42px`; restyling it here dropped that
+   and left a 106x22 control sitting between two 44px buttons — under the 24px
+   WCAG 2.5.8 minimum, and visibly off the row's baseline. */
 .gp .guide-feedback__link {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
   font-size: 0.8125rem;
   color: var(--gp-muted);
   text-decoration: underline;
@@ -1378,7 +1399,7 @@ body.gp-page {
   color: var(--gp-brand);
 }
 
-@media (min-width: 1080px) {
+@media (min-width: 1024px) {
   .gp-backlinks__print {
     display: none;
   }
@@ -1439,7 +1460,10 @@ body.gp-page .guides-back-to-top:hover {
   box-shadow: 0 16px 34px -10px rgba(11, 128, 115, 0.7);
 }
 
-@media (min-width: 1080px) {
+/* The 90px offset above clears the mobile bottom navigation — but that bar is
+   hidden from 768px up, so between 768 and 1079 the control floated 90px above
+   nothing. Drop it as soon as the bar goes, not when the rail arrives. */
+@media (min-width: 768px) {
   body.gp-page .guides-back-to-top {
     bottom: 28px;
   }
