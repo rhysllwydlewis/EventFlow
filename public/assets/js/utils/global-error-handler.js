@@ -41,7 +41,7 @@
     const requestUrl = getRequestUrl(input);
     try {
       return new URL(requestUrl, window.location.origin).origin === window.location.origin;
-    } catch (_error) {
+    } catch {
       return false;
     }
   }
