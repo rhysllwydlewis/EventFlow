@@ -79,8 +79,8 @@ function escapeHtml(value) {
 function document_(opts) {
   const { slug, title, description, kicker, numbered, today } = opts;
   const url = `${SITE}/articles/${slug}`;
-  const t = escapeHtml(title);
-  const d = escapeHtml(description);
+  const safeTitle = escapeHtml(title);
+  const safeDescription = escapeHtml(description);
   const sections = [
     { id: 'first-section', nav: 'First section', heading: 'The first thing to say' },
     { id: 'second-section', nav: 'Second section', heading: 'The second thing to say' },
@@ -99,20 +99,20 @@ function document_(opts) {
 <meta charset="utf-8"/>
 <meta content="width=device-width, initial-scale=1, maximum-scale=5, user-scalable=yes" name="viewport"/>
 <meta content="#0B8073" name="theme-color"/>
-<title>${t} | EventFlow</title>
-<meta content="${d}" name="description"/>
+<title>${safeTitle} | EventFlow</title>
+<meta content="${safeDescription}" name="description"/>
 <link href="https://fonts.googleapis.com" rel="preconnect"/>
 <link crossorigin href="https://fonts.gstatic.com" rel="preconnect"/>
 <link href="${url}" rel="canonical"/>
 <meta content="article" property="og:type"/>
-<meta content="${t} | EventFlow" property="og:title"/>
-<meta content="${d}" property="og:description"/>
+<meta content="${safeTitle} | EventFlow" property="og:title"/>
+<meta content="${safeDescription}" property="og:description"/>
 <meta content="${url}" property="og:url"/>
 <meta content="EventFlow" property="og:site_name"/>
 <meta content="summary_large_image" name="twitter:card"/>
 <meta content="@EventFlowUK" name="twitter:site"/>
-<meta content="${t}" name="twitter:title"/>
-<meta content="${d}" name="twitter:description"/>
+<meta content="${safeTitle}" name="twitter:title"/>
+<meta content="${safeDescription}" name="twitter:description"/>
 <meta content="${today}" property="article:published_time"/>
 <meta content="${today}" property="article:modified_time"/>
 <meta content="${SITE}/about" property="article:author"/>
@@ -134,8 +134,8 @@ function document_(opts) {
 {
   "@context": "https://schema.org",
   "@type": "Article",
-  "headline": "${t}",
-  "description": "${d}",
+  "headline": "${safeTitle}",
+  "description": "${safeDescription}",
   "datePublished": "${today}",
   "dateModified": "${today}",
   "author": { "@type": "Organization", "name": "EventFlow" },
@@ -163,11 +163,11 @@ function document_(opts) {
 <span aria-hidden="true" class="gp-breadcrumb__sep">/</span>
 <a href="/guides">Guides</a>
 <span aria-hidden="true" class="gp-breadcrumb__sep">/</span>
-<span aria-current="page">${t}</span>
+<span aria-current="page">${safeTitle}</span>
 </nav>
 <p class="gp-eyebrow">${escapeHtml(kicker)}</p>
-<h1 class="gp-title">${t}</h1>
-<p class="gp-lead">${d}</p>
+<h1 class="gp-title">${safeTitle}</h1>
+<p class="gp-lead">${safeDescription}</p>
 <div class="gp-meta article-header__meta">
 <span class="gp-meta__item"><strong>EventFlow Team</strong></span>
 <span class="gp-meta__item">Published: ${today}</span>
