@@ -37,24 +37,43 @@ article pays only for what it uses.
 
 ## Blocks
 
-| Block            | Markup                                           | Notes                                                                                                                                           |
-| ---------------- | ------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------- |
-| Hero             | `.gp-hero`                                       | `.gp-hero__media` takes an optional `<img class="gp-hero__img">`; without one the hero renders on the brand gradient.                           |
-| Kicker           | `.gp-eyebrow`                                    | One short category line. Plain text — not a badge.                                                                                              |
-| Breadcrumb       | `.gp-breadcrumb`                                 |                                                                                                                                                 |
-| Byline / meta    | `.gp-meta`                                       | Author, dates, read time. No avatars.                                                                                                           |
-| Reading rail     | `.gp-rail`                                       | Progress dial, contents, share and print. Renders from 1024px.                                                                                  |
-| Mobile contents  | `.gp-toc-mobile`                                 | The rail's counterpart below 1024px. Two columns from 600px.                                                                                    |
-| Summary          | `.gp-takeaways`                                  | "The short version" list.                                                                                                                       |
-| Section          | `.gp-section[data-gp-section]`                   | `data-gp-section` is what the scrollspy and progress dial track.                                                                                |
-| Stats strip      | `.gp-stats` / `.gp-stat`                         | Figures count up on scroll. Reflows 2-up on phones, 4-up from 768px.                                                                            |
-| Callout          | `.gp-note`, `.gp-note--tip`, `.gp-note--formula` |                                                                                                                                                 |
-| Table            | `.gp-table-wrap` > `.gp-table`                   | The wrap is the scroll container and carries `role="region"` and `tabindex="0"`; give it `aria-labelledby` pointing at the table's `<caption>`. |
-| FAQ              | `.gp-faq` / `.gp-faq__item`                      | Native `<details>`. If you use it, add matching `FAQPage` JSON-LD — a test asserts the two agree.                                               |
-| Call to action   | `.gp-cta`                                        |                                                                                                                                                 |
-| Related          | `.gp-related`                                    |                                                                                                                                                 |
-| Footer links     | `.gp-backlinks`                                  | Also hosts the print control below 1024px.                                                                                                      |
-| Reveal on scroll | `.gp-reveal`                                     | Add to any block. Pure CSS scroll-driven animation; degrades to visible, and is skipped under `prefers-reduced-motion`.                         |
+| Block            | Markup                                           | Notes                                                                                                                                                                                                                                                                                                                                                         |
+| ---------------- | ------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Hero             | `.gp-hero`                                       | `.gp-hero__media` takes an optional `<img class="gp-hero__img">`; without one the hero renders on the brand gradient.                                                                                                                                                                                                                                         |
+| Kicker           | `.gp-eyebrow`                                    | One short category line. Plain text — not a badge. Source it from the article's `category` in `guides.json`, with any emoji stripped — the legacy card layout prefixed categories with an emoji (🏛️ Venues, 🌿 Sustainability); this template never does.                                                                                                     |
+| Breadcrumb       | `.gp-breadcrumb`                                 |                                                                                                                                                                                                                                                                                                                                                               |
+| Byline / meta    | `.gp-meta`                                       | Author, dates, read time, and an optional fourth `.gp-meta__item` for difficulty. When present, that item is the article's `difficulty` from `guides.json` verbatim — no suffix like "friendly" appended. It's genuinely optional: omit it rather than inventing a difficulty the manifest doesn't carry an opinion on.                                       |
+| Reading rail     | `.gp-rail`                                       | Progress dial, contents, share and print. Renders from 1024px.                                                                                                                                                                                                                                                                                                |
+| Mobile contents  | `.gp-toc-mobile`                                 | The rail's counterpart below 1024px. Two columns from 600px.                                                                                                                                                                                                                                                                                                  |
+| Summary          | `.gp-takeaways`                                  | "The short version" list.                                                                                                                                                                                                                                                                                                                                     |
+| Section          | `.gp-section[data-gp-section]`                   | `data-gp-section` is what the scrollspy and progress dial track.                                                                                                                                                                                                                                                                                              |
+| Stats strip      | `.gp-stats` / `.gp-stat`                         | Figures count up on scroll (`data-gp-count`, optionally `data-gp-decimals`). Reflows 2-up on phones, 4-up from 768px. Strictly opt-in: use it only where the article already states real, sourceable numbers in its own prose — never invent a figure to give a section "an animated part." An article with nothing worth counting simply has no stats strip. |
+| Callout          | `.gp-note`, `.gp-note--tip`, `.gp-note--formula` |                                                                                                                                                                                                                                                                                                                                                               |
+| Table            | `.gp-table-wrap` > `.gp-table`                   | The wrap is the scroll container and carries `role="region"` and `tabindex="0"`; give it `aria-labelledby` pointing at the table's `<caption>`.                                                                                                                                                                                                               |
+| FAQ              | `.gp-faq` / `.gp-faq__item`                      | Native `<details>`. If you use it, add matching `FAQPage` JSON-LD — a test asserts the two agree.                                                                                                                                                                                                                                                             |
+| Call to action   | `.gp-cta`                                        |                                                                                                                                                                                                                                                                                                                                                               |
+| Related          | `.gp-related`                                    |                                                                                                                                                                                                                                                                                                                                                               |
+| Footer links     | `.gp-backlinks`                                  | Also hosts the print control below 1024px.                                                                                                                                                                                                                                                                                                                    |
+| Reveal on scroll | `.gp-reveal`                                     | Add to any block. Pure CSS scroll-driven animation; degrades to visible, and is skipped under `prefers-reduced-motion`.                                                                                                                                                                                                                                       |
+
+## The "animated part" is two separate mechanisms, not one
+
+An article doesn't need a forced animated moment — but if it wants one, there
+are two, and they answer different questions:
+
+- **`.gp-reveal`** is the generic one. Add the class to any block — a section,
+  a note, an image — and it fades/slides in on scroll, no content requirement.
+  Use this when what you want is visual pacing, not a claim about numbers.
+- **`.gp-stats`** is the one built around real data. It only exists where the
+  article already has genuine counting numbers to show; see the Stats strip
+  row above. Don't reach for it just to give a section motion — that's what
+  `.gp-reveal` is for — and don't back-fill invented numbers to justify using
+  it.
+
+So: every article can have `.gp-reveal` moments anywhere; only articles that
+actually contain quantifiable claims get a `.gp-stats` strip. Forcing the
+latter onto every article would mean fabricating figures, which is worse than
+an article having no stats block at all.
 
 ## Section numbering
 
@@ -116,6 +135,7 @@ picks it up. Everything else in the file is the article's own.
 ```bash
 npm run build:guides                              # compile the TS modules
 node scripts/generate-article-shells.mjs --check  # chrome is in step
-npx jest tests/unit/guide-premium-template.test.js
+npx jest tests/unit/guide-premium-template.test.js       # deep checks on the reference article
+npx jest tests/unit/premium-articles-invariants.test.js  # structural checks on every premium article
 npm run test:visual                               # visual + axe
 ```
