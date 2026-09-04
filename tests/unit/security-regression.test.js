@@ -228,6 +228,14 @@ describe('CSP connect-src Regression', () => {
     expect(connectSrcBlock).toContain('i.posthog.com');
   });
 
+  it('allows the Google Ads endpoints used after marketing consent', () => {
+    expect(connectSrcBlock).toContain('pagead2.googlesyndication.com');
+    expect(connectSrcBlock).toContain('www.googleadservices.com');
+    expect(connectSrcBlock).toContain('googleads.g.doubleclick.net');
+    expect(connectSrcBlock).toContain('ad.doubleclick.net');
+    expect(connectSrcBlock).toContain('www.google.com');
+  });
+
   it('allowlists the JadeAssist chat widget backend (site-wide, fetch() target built from a runtime variable — easy to miss in a literal-URL grep)', () => {
     expect(connectSrcBlock).toContain('jadeassistbackend-production.up.railway.app');
   });

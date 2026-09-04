@@ -443,52 +443,40 @@ function validateRedirectForRole(redirectUrl, userRole) {
   return allowed.includes(pathname);
 }
 
-// Global network error handler & fetch wrapper (v5.3)
-(function () {
-  let efErrorBanner = null;
+// Shared banner used by explicit page actions that need inline network feedback.
+let efErrorBanner = null;
 
-  function showNetworkError(message) {
-    try {
-      if (!efErrorBanner) {
-        efErrorBanner = document.createElement('div');
-        efErrorBanner.id = 'ef-network-error';
-        efErrorBanner.style.position = 'fixed';
-        efErrorBanner.style.bottom = '1rem';
-        efErrorBanner.style.left = '50%';
-        efErrorBanner.style.transform = 'translateX(-50%)';
-        efErrorBanner.style.padding = '0.75rem 1.25rem';
-        efErrorBanner.style.background = '#b00020';
-        efErrorBanner.style.color = '#fff';
-        efErrorBanner.style.borderRadius = '999px';
-        efErrorBanner.style.boxShadow = '0 4px 12px rgba(0,0,0,0.25)';
-        efErrorBanner.style.fontSize = '0.875rem';
-        efErrorBanner.style.zIndex = '9999';
-        efErrorBanner.style.transition = 'opacity 0.25s ease-out';
-        efErrorBanner.style.opacity = '0';
-        document.body.appendChild(efErrorBanner);
-      }
-      efErrorBanner.textContent =
-        message || 'Could not reach EventFlow. Please check your connection and try again.';
-      efErrorBanner.style.opacity = '1';
-      clearTimeout(efErrorBanner._hideTimer);
-      efErrorBanner._hideTimer = setTimeout(() => {
-        efErrorBanner.style.opacity = '0';
-      }, 5000);
-    } catch {
-      /* Ignore banner display errors */
+function showNetworkError(message) {
+  try {
+    if (!efErrorBanner) {
+      efErrorBanner = document.createElement('div');
+      efErrorBanner.id = 'ef-network-error';
+      efErrorBanner.style.position = 'fixed';
+      efErrorBanner.style.bottom = '1rem';
+      efErrorBanner.style.left = '50%';
+      efErrorBanner.style.transform = 'translateX(-50%)';
+      efErrorBanner.style.padding = '0.75rem 1.25rem';
+      efErrorBanner.style.background = '#b00020';
+      efErrorBanner.style.color = '#fff';
+      efErrorBanner.style.borderRadius = '999px';
+      efErrorBanner.style.boxShadow = '0 4px 12px rgba(0,0,0,0.25)';
+      efErrorBanner.style.fontSize = '0.875rem';
+      efErrorBanner.style.zIndex = '9999';
+      efErrorBanner.style.transition = 'opacity 0.25s ease-out';
+      efErrorBanner.style.opacity = '0';
+      document.body.appendChild(efErrorBanner);
     }
+    efErrorBanner.textContent =
+      message || 'Could not reach EventFlow. Please check your connection and try again.';
+    efErrorBanner.style.opacity = '1';
+    clearTimeout(efErrorBanner._hideTimer);
+    efErrorBanner._hideTimer = setTimeout(() => {
+      efErrorBanner.style.opacity = '0';
+    }, 5000);
+  } catch {
+    /* Ignore banner display errors */
   }
-
-  if (typeof window !== 'undefined' && window.fetch) {
-    const realFetch = window.fetch.bind(window);
-    window.fetch = function () {
-      return realFetch.apply(this, arguments).catch(err => {
-        showNetworkError();
-        throw err;
-      });
-    };
-  }
-})();
+}
 
 const LS_PLAN_LOCAL = 'eventflow_local_plan';
 function lsGet() {

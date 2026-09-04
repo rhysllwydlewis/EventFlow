@@ -162,6 +162,12 @@ describe('global-error-handler.js – fetch interceptor null-safety', () => {
   it('fetch interceptor re-throws network errors so callers can handle them', () => {
     expect(errorHandlerJs).toContain('throw error');
   });
+
+  it('only reports failed requests to EventFlow as application network errors', () => {
+    expect(errorHandlerJs).toContain('function isEventFlowRequest(input)');
+    expect(errorHandlerJs).toContain('if (!shouldHandleError)');
+    expect(appJs).not.toContain('const realFetch = window.fetch.bind(window)');
+  });
 });
 
 // ─── Fix: supplier profile save / form interaction regressions ──────────────

@@ -37,6 +37,15 @@
     }
   }
 
+  function isEventFlowRequest(input) {
+    const requestUrl = getRequestUrl(input);
+    try {
+      return new URL(requestUrl, window.location.origin).origin === window.location.origin;
+    } catch (_error) {
+      return false;
+    }
+  }
+
   function isPhotoAssetRequest(input) {
     return /^\/api\/(?:v1\/)?photos\/[^/]+$/i.test(getRequestPath(input));
   }
@@ -217,11 +226,13 @@
     const originalFetch = window.fetch;
 
     window.fetch = async function (...args) {
+      const shouldHandleError = isEventFlowRequest(args[0]);
+
       try {
         const response = await originalFetch.apply(this, args);
 
         // Handle successful responses
-        if (response.ok) {
+        if (response.ok || !shouldHandleError) {
           return response;
         }
 
@@ -263,6 +274,12 @@
         // Return original response so calling code can still handle it
         return response;
       } catch (error) {
+        // Third-party scripts, analytics and advertising endpoints can be blocked
+        // by privacy tools or CSP. Their failure does not mean EventFlow is offline.
+        if (!shouldHandleError) {
+          throw error;
+        }
+
         // Ignore aborted fetches caused by page navigation/cancellation.
         // These are expected when users click nav links and should not show error toasts.
         if (isAbortLikeError(error)) {
