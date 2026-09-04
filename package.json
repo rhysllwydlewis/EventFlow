@@ -14,8 +14,8 @@
     "check:lockfile": "node scripts/check-lockfile-consistency.mjs",
     "lint": "eslint . --ext .js --rulesdir eslint-rules",
     "lint:fix": "eslint . --ext .js --rulesdir eslint-rules --fix",
-    "lint:css": "stylelint \"public/assets/css/*.css\" \"public/messenger/css/*.css\"",
-    "lint:css:fix": "stylelint \"public/assets/css/*.css\" \"public/messenger/css/*.css\" --fix",
+    "lint:css": "stylelint \"public/**/*.css\" --ignore-pattern \"public/**/vendor/**\"",
+    "lint:css:fix": "stylelint \"public/**/*.css\" --ignore-pattern \"public/**/vendor/**\" --fix",
     "format": "prettier --write \"**/*.{js,json,md}\"",
     "format:check": "prettier --check \"**/*.{js,json,md}\"",
     "test": "jest --coverage",
@@ -72,7 +72,8 @@
     "test:audit:ci": "node scripts/test-audit.mjs --ci",
     "build:homepages": "tsc -p tsconfig.homepages.json && prettier --write public/assets/js/pages/home-v2.js public/assets/js/pages/home-v3.js public/assets/js/pages/home-v3-video.js",
     "build:guides": "tsc -p tsconfig.guides.json && prettier --write public/assets/js/pages/guide-premium.js",
-    "typecheck:homepages": "tsc -p tsconfig.homepages.json --noEmit"
+    "typecheck:homepages": "tsc -p tsconfig.homepages.json --noEmit",
+    "typecheck:guides": "tsc -p tsconfig.guides.json --noEmit"
   },
   "dependencies": {
     "@sentry/node": "^8.0.0",

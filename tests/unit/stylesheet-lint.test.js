@@ -3,21 +3,15 @@
 /**
  * Stylesheet bug guard.
  *
- * A `.stylelintrc.json` sat in this repo for months with no stylelint
- * dependency, no npm script and no CI step — nothing ever ran it. The only
- * reference to it was a shell script checking the file existed.
- *
- * DeepSource cannot cover this gap: it has analyzers for JavaScript,
- * TypeScript, Python, Docker, Shell and others, but none for CSS.
- *
- * So CSS is enforced the same way the type scale is — a unit test inside the
+ * DeepSource has no CSS analyzer, so first-party CSS is enforced inside the
  * blocking Jest suite. The ruleset is deliberately bug-class only: invalid
  * values, declarations that can never apply, blocks that do nothing. It is not
  * a style guide, so it stays quiet unless something is genuinely broken.
  *
- * The first run found ten, including `inset-x: 0` in hero-modern.css — a
- * Tailwind class name used as a CSS property, silently discarded by every
- * browser.
+ * Discovery is recursive under public/. The original implementation only
+ * scanned the immediate children of public/assets/css and public/messenger/css,
+ * which meant first-party styles such as public/supplier/css were invisible to
+ * the gate while the test claimed every stylesheet was covered.
  */
 
 const fs = require('fs');
@@ -26,20 +20,32 @@ const os = require('os');
 const { execFileSync } = require('child_process');
 
 const repoRoot = path.join(__dirname, '../..');
-const CSS_DIRS = ['public/assets/css', 'public/messenger/css'];
+const PUBLIC_ROOT = path.join(repoRoot, 'public');
+const EXCLUDED_DIRECTORY_NAMES = new Set(['vendor', 'node_modules', 'dist', 'build', 'coverage']);
 
-function stylesheetsIn(dir) {
-  const absolute = path.join(repoRoot, dir);
-  if (!fs.existsSync(absolute)) {
+function discoverStylesheets(dir) {
+  if (!fs.existsSync(dir)) {
     return [];
   }
-  return fs
-    .readdirSync(absolute)
-    .filter(file => file.endsWith('.css'))
-    .map(file => path.join(absolute, file));
+
+  const found = [];
+  for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+    const absolute = path.join(dir, entry.name);
+    if (entry.isDirectory()) {
+      if (EXCLUDED_DIRECTORY_NAMES.has(entry.name) || entry.name.startsWith('.')) {
+        continue;
+      }
+      found.push(...discoverStylesheets(absolute));
+      continue;
+    }
+    if (entry.isFile() && entry.name.endsWith('.css')) {
+      found.push(absolute);
+    }
+  }
+  return found;
 }
 
-const stylesheets = CSS_DIRS.flatMap(stylesheetsIn);
+const stylesheets = discoverStylesheets(PUBLIC_ROOT).sort();
 
 /**
  * stylelint is ESM-only from v16, so it cannot be `require`d from this
@@ -85,19 +91,22 @@ describe('stylesheets are free of broken and dead CSS', () => {
     results = runStylelint();
   }, 180000);
 
-  test('stylelint is wired up and actually reachable', () => {
+  test('stylelint is wired up and the local command covers public recursively', () => {
     const pkg = JSON.parse(fs.readFileSync(path.join(repoRoot, 'package.json'), 'utf8'));
-    // The config existing is not enough — that was the previous state.
     expect(pkg.devDependencies.stylelint).toEqual(expect.any(String));
-    expect(pkg.scripts['lint:css']).toContain('stylelint');
+    expect(pkg.scripts['lint:css']).toContain('public/**/*.css');
     expect(pkg['lint-staged']['*.css']).toBeDefined();
   });
 
-  test('every stylesheet is discovered', () => {
+  test('recursive discovery includes CSS outside the two legacy folders', () => {
+    const relative = stylesheets.map(file => path.relative(repoRoot, file).replaceAll('\\', '/'));
     expect(stylesheets.length).toBeGreaterThan(100);
+    expect(relative).toContain('public/supplier/css/supplier-workspace.css');
+    expect(relative).toContain('public/assets/css/guide-premium-hardening.css');
+    expect(relative.some(file => file.includes('/vendor/'))).toBe(false);
   });
 
-  test('no stylesheet contains a bug-class violation', () => {
+  test('no first-party stylesheet contains a bug-class violation', () => {
     const offences = results
       .filter(result => result.warnings.length)
       .map(result => ({
@@ -109,8 +118,8 @@ describe('stylesheets are free of broken and dead CSS', () => {
 
   test('the ruleset stays bug-class, not a style guide', () => {
     const config = JSON.parse(fs.readFileSync(path.join(repoRoot, '.stylelintrc.json'), 'utf8'));
-    // Cosmetic rules belong in Prettier or nowhere; 18,824 violations of them
-    // exist today and enforcing them would mean rewriting 132 stylesheets.
+    // Cosmetic rules belong in Prettier or nowhere; enforcing them would turn
+    // this safety gate into a legacy reformatting project.
     for (const cosmetic of [
       'color-function-notation',
       'alpha-value-notation',
@@ -121,7 +130,6 @@ describe('stylesheets are free of broken and dead CSS', () => {
     ]) {
       expect(config.rules[cosmetic]).toBeUndefined();
     }
-    // And the guard must keep catching genuinely broken CSS.
     expect(config.rules['property-no-unknown']).toBe(true);
     expect(config.rules['color-no-invalid-hex']).toBe(true);
     expect(config.rules['block-no-empty']).toBe(true);

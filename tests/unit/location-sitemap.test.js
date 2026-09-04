@@ -92,7 +92,18 @@ describe('sitemap city entries', () => {
   it('uses the page content date, not the time of generation', async () => {
     const xml = await generateSitemap('https://event-flow.co.uk');
     expect(xml).toMatch(/<lastmod>2026-07-01/);
-    expect(xml).not.toMatch(new RegExp(`<lastmod>${new Date().toISOString().slice(0, 10)}`));
+
+    // The fixture sets `lastReviewedAt` to now and `updatedAt` to 2026-07-01,
+    // so a city entry carrying today's date means the sitemap fell back to the
+    // review/generation time. Scoped to the location URLs this file is about:
+    // a blanket scan also failed whenever an unrelated guide was legitimately
+    // updated on the day CI happened to run.
+    const today = new Date().toISOString().slice(0, 10);
+    const locationEntries = xml.split('<url>').filter(entry => /<loc>[^<]*\/locations/.test(entry));
+    expect(locationEntries.length).toBeGreaterThan(0);
+    for (const entry of locationEntries) {
+      expect(entry).not.toContain(`<lastmod>${today}`);
+    }
   });
 
   it('excludes a page whose editor has not requested indexing', async () => {
