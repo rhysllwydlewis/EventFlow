@@ -88,6 +88,12 @@ function configureHelmet(isProduction = false) {
           'https://*.gstatic.com',
           'https://googletagmanager.com',
           'https://*.googletagmanager.com',
+          // Google Ads conversion and remarketing scripts loaded by gtag.js after
+          // the visitor grants marketing consent.
+          'https://www.googleadservices.com',
+          'https://pagead2.googlesyndication.com',
+          'https://googleads.g.doubleclick.net',
+          'https://www.google.com',
           'https://js.stripe.com',
           'https://static.cloudflareinsights.com',
           // PostHog's official browser snippet converts the ingestion host to
@@ -141,6 +147,14 @@ function configureHelmet(isProduction = false) {
           'https://*.googletagmanager.com',
           'https://*.google-analytics.com',
           'https://*.analytics.google.com',
+          // Google Ads conversion and remarketing endpoints. Keep these explicit:
+          // connect-src deliberately has no broad https: wildcard.
+          'https://pagead2.googlesyndication.com',
+          'https://www.googleadservices.com',
+          'https://googleads.g.doubleclick.net',
+          'https://ad.doubleclick.net',
+          'https://www.google.com',
+          'https://google.com',
           'https://*.tidycal.net',
           'https://api.stripe.com',
           'https://static.cloudflareinsights.com',
@@ -158,6 +172,7 @@ function configureHelmet(isProduction = false) {
         ],
         frameSrc: [
           "'self'",
+          'https://www.googletagmanager.com',
           'https://accounts.google.com',
           'https://www.google.com',
           'https://maps.google.com',
