@@ -446,7 +446,7 @@ function validateRedirectForRole(redirectUrl, userRole) {
 // Shared banner used by explicit page actions that need inline network feedback.
 let efErrorBanner = null;
 
-function showNetworkError(message) {
+function showNetworkError(message, type = 'error') {
   try {
     if (!efErrorBanner) {
       efErrorBanner = document.createElement('div');
@@ -456,7 +456,6 @@ function showNetworkError(message) {
       efErrorBanner.style.left = '50%';
       efErrorBanner.style.transform = 'translateX(-50%)';
       efErrorBanner.style.padding = '0.75rem 1.25rem';
-      efErrorBanner.style.background = '#b00020';
       efErrorBanner.style.color = '#fff';
       efErrorBanner.style.borderRadius = '999px';
       efErrorBanner.style.boxShadow = '0 4px 12px rgba(0,0,0,0.25)';
@@ -468,6 +467,7 @@ function showNetworkError(message) {
     }
     efErrorBanner.textContent =
       message || 'Could not reach EventFlow. Please check your connection and try again.';
+    efErrorBanner.style.background = type === 'success' ? '#0f766e' : '#b00020';
     efErrorBanner.style.opacity = '1';
     clearTimeout(efErrorBanner._hideTimer);
     efErrorBanner._hideTimer = setTimeout(() => {
