@@ -26,10 +26,8 @@
   function ensureGtag() {
     window.dataLayer = window.dataLayer || [];
     if (typeof window.gtag !== 'function') {
-      window.gtag = function gtag() {
-        // gtag.js reads `arguments` off the pushed object, so the array-like
-        // shape has to be preserved rather than spread into a real array.
-        window.dataLayer.push(arguments);
+      window.gtag = function gtag(...args) {
+        window.dataLayer.push(args);
       };
     }
     return window.gtag;

@@ -161,11 +161,11 @@
       return {
         v: parsed.v || CONSENT_VERSION,
         essential: true,
-        functional: !!parsed.functional,
-        analytics: !!parsed.analytics,
+        functional: Boolean(parsed.functional),
+        analytics: Boolean(parsed.analytics),
         // Absent on records written before marketing became its own category.
         // No recorded decision means no consent.
-        marketing: !!parsed.marketing,
+        marketing: Boolean(parsed.marketing),
       };
     } catch (e) {
       return null;
@@ -176,9 +176,9 @@
     const value = JSON.stringify({
       v: CONSENT_VERSION,
       essential: true,
-      functional: !!prefs.functional,
-      analytics: !!prefs.analytics,
-      marketing: !!prefs.marketing,
+      functional: Boolean(prefs.functional),
+      analytics: Boolean(prefs.analytics),
+      marketing: Boolean(prefs.marketing),
     });
     setCookieRaw(CONSENT_COOKIE_NAME, encodeURIComponent(value), CONSENT_EXPIRY_DAYS);
   }
@@ -199,11 +199,11 @@
         window.dispatchEvent(
           new CustomEvent('cookieConsentChanged', {
             detail: {
-              accepted: !!prefs.functional,
+              accepted: Boolean(prefs.functional),
               essential: true,
-              functional: !!prefs.functional,
-              analytics: !!prefs.analytics,
-              marketing: !!prefs.marketing,
+              functional: Boolean(prefs.functional),
+              analytics: Boolean(prefs.analytics),
+              marketing: Boolean(prefs.marketing),
             },
           })
         );
@@ -404,7 +404,7 @@
       '<strong class="cookie-prefs-category-name">Functional Cookies</strong>' +
       '<p class="cookie-prefs-category-desc">Remember your preferences such as dark/light mode and UI settings. Disabling will clear saved preferences.</p>' +
       '</div>' +
-      `<label class="cookie-prefs-toggle" aria-label="Toggle functional cookies">` +
+      '<label class="cookie-prefs-toggle" aria-label="Toggle functional cookies">' +
       `<input type="checkbox" id="cookie-pref-functional" ${prefs.functional ? 'checked' : ''}>` +
       '<span class="cookie-prefs-toggle-slider"></span>' +
       '</label>' +
@@ -417,7 +417,7 @@
       '<strong class="cookie-prefs-category-name">Analytics Cookies</strong>' +
       '<p class="cookie-prefs-category-desc">Let us measure how the site is used, through our own privacy-minimised analytics and PostHog. Off by default.</p>' +
       '</div>' +
-      `<label class="cookie-prefs-toggle" aria-label="Toggle analytics cookies">` +
+      '<label class="cookie-prefs-toggle" aria-label="Toggle analytics cookies">' +
       `<input type="checkbox" id="cookie-pref-analytics" ${prefs.analytics ? 'checked' : ''}>` +
       '<span class="cookie-prefs-toggle-slider"></span>' +
       '</label>' +
@@ -430,7 +430,7 @@
       '<strong class="cookie-prefs-category-name">Advertising Cookies</strong>' +
       '<p class="cookie-prefs-category-desc">Let the Google Ads tag measure which adverts lead to sign-ups and enquiries. Off by default, and separate from analytics.</p>' +
       '</div>' +
-      `<label class="cookie-prefs-toggle" aria-label="Toggle advertising cookies">` +
+      '<label class="cookie-prefs-toggle" aria-label="Toggle advertising cookies">' +
       `<input type="checkbox" id="cookie-pref-marketing" ${prefs.marketing ? 'checked' : ''}>` +
       '<span class="cookie-prefs-toggle-slider"></span>' +
       '</label>' +
@@ -587,9 +587,9 @@
         return prefs
           ? {
               essential: true,
-              functional: !!prefs.functional,
-              analytics: !!prefs.analytics,
-              marketing: !!prefs.marketing,
+              functional: Boolean(prefs.functional),
+              analytics: Boolean(prefs.analytics),
+              marketing: Boolean(prefs.marketing),
             }
           : defaultPrefs();
       } catch {
