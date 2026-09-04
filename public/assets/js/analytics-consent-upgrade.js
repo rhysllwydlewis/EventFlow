@@ -1,7 +1,5 @@
 'use strict';
 (function () {
-  const COOKIE_NAME = 'eventflow_cookie_consent';
-  const EXPIRY_DAYS = 365;
   const FETCH_WRAPPED_FLAG = '__efAnalyticsSuccessObserver';
   const ATTRIBUTION_KEY = 'ef_attribution_v1';
   const ATTRIBUTION_TTL_MS = 90 * 24 * 60 * 60 * 1000;
@@ -112,41 +110,6 @@
 
   function isProviderBlockedPage() {
     return pathMatches(POSTHOG_PROVIDER_BLOCKED_PREFIXES);
-  }
-
-  function writeFullConsent() {
-    const value = encodeURIComponent(
-      JSON.stringify({
-        v: 1,
-        essential: true,
-        functional: true,
-        analytics: true,
-      })
-    );
-    const expires = new Date(Date.now() + EXPIRY_DAYS * 24 * 60 * 60 * 1000).toUTCString();
-    const secure = window.location.protocol === 'https:' ? '; Secure' : '';
-    document.cookie = `${COOKIE_NAME}=${value}; expires=${expires}; path=/; SameSite=Lax${secure}`;
-    window.dispatchEvent(
-      new CustomEvent('cookieConsentChanged', {
-        detail: {
-          accepted: true,
-          essential: true,
-          functional: true,
-          analytics: true,
-        },
-      })
-    );
-  }
-
-  function closeConsentUi(target) {
-    const banner = target?.closest?.('#cookie-consent-banner');
-    banner?.parentNode?.removeChild?.(banner);
-
-    const dialog = target?.closest?.('#cookie-prefs-dialog');
-    dialog?.parentNode?.removeChild?.(dialog);
-    if (dialog) {
-      document.body?.classList.remove('cookie-prefs-open');
-    }
   }
 
   function hasAnalyticsConsent() {
@@ -454,7 +417,10 @@
     const originalGetConsent = window.CookieConsent.getConsent.bind(window.CookieConsent);
     const guardedGetConsent = function () {
       const consent = originalGetConsent() || {};
-      return { ...consent, essential: true, analytics: false };
+      // `marketing` is forced off alongside `analytics`: the Google Ads tag reads
+      // the marketing category, and these are the pages (messages, payments,
+      // dashboards, settings) where no third-party tag should run at all.
+      return { ...consent, essential: true, analytics: false, marketing: false };
     };
     guardedGetConsent.__efSensitiveGuard = true;
     window.CookieConsent.getConsent = guardedGetConsent;
@@ -638,22 +604,6 @@
     capturedPostHogPageleave = false;
   }
 
-  function upgradeConsentCopy(root) {
-    const scope = typeof root?.querySelectorAll === 'function' ? root : document;
-    scope.querySelectorAll('.cookie-consent-message p').forEach(paragraph => {
-      if (paragraph.textContent?.includes('functional cookies')) {
-        paragraph.textContent =
-          'We use essential cookies to make our site work. With your consent, analytics helps us understand visits, signup sources and improve EventFlow. You can change these choices at any time.';
-      }
-    });
-    scope.querySelectorAll('.cookie-prefs-category-desc').forEach(description => {
-      if (description.textContent?.includes('Currently unused')) {
-        description.textContent =
-          'Help us understand page engagement, journeys and website performance. Analytics only runs after you consent.';
-      }
-    });
-  }
-
   function normalizedRequest(input, options) {
     let url = '';
     let method = 'GET';
@@ -793,21 +743,14 @@
   installSensitivePageConsentGuard();
   installPrivacyAwarePostHogStub();
 
-  document.addEventListener(
-    'click',
-    event => {
-      const target = event.target?.closest?.('#cookie-consent-accept, #cookie-prefs-accept-all');
-      if (!target) {
-        return;
-      }
-
-      event.preventDefault();
-      event.stopImmediatePropagation();
-      writeFullConsent();
-      closeConsentUi(target);
-    },
-    true
-  );
+  // This module used to intercept the "Accept All" buttons and rewrite the
+  // consent cookie and the banner copy itself, compensating for cookie-consent.js
+  // recording `analytics: false` from Accept All and calling analytics "currently
+  // unused". Both are fixed at source, and neither workaround could stay: the
+  // cookie write was a fixed three-field record that discarded the visitor's
+  // advertising decision, and the copy override matched on "functional cookies",
+  // which the corrected banner text still contains. cookie-consent.js now owns
+  // the consent cookie and the consent copy outright.
 
   window.addEventListener('cookieConsentChanged', handleAnalyticsConsentChange);
   window.addEventListener('pagehide', capturePostHogPageleave);
@@ -821,25 +764,11 @@
   };
 
   function init() {
-    upgradeConsentCopy(document);
     installSuccessfulConversionObserver();
     initialAttributionTouch = buildAttributionTouch();
     captureAttribution();
     startAuthPostHog();
     queuePostHogPageview();
-    if (typeof MutationObserver !== 'function' || !document.body) {
-      return;
-    }
-    const observer = new MutationObserver(mutations => {
-      mutations.forEach(mutation => {
-        mutation.addedNodes.forEach(node => {
-          if (node?.nodeType === 1) {
-            upgradeConsentCopy(node);
-          }
-        });
-      });
-    });
-    observer.observe(document.body, { childList: true, subtree: true });
   }
 
   if (document.readyState === 'loading') {

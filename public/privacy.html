@@ -34,6 +34,7 @@
     <link rel="manifest" href="/site.webmanifest" />
     <meta name="msapplication-config" content="/browserconfig.xml" />
     <link rel="stylesheet" href="/assets/css/eventflow-footer.css" />
+    <link rel="stylesheet" href="/assets/css/legal-pages.css?v=1.0.0" />
   </head>
   <body>
     <!-- TOP NAVBAR - GOLD STANDARD REBUILD -->
@@ -418,6 +419,74 @@
             personal or confidential information in free-text content.
           </p>
 
+          <h3 class="h5" id="supplier-public-sources">
+            2.9 Supplier Information Collected From Public Sources
+          </h3>
+          <p>
+            Not every supplier listing begins with someone signing up. We also create listings from
+            information a business has already published about itself, so that the EventFlow
+            directory reflects the UK event market rather than only the businesses that have found
+            us. Those listings are labelled <strong>Unclaimed</strong> everywhere they appear, and
+            this section is the transparency information required by Article 14 UK GDPR, which
+            applies where personal data is not obtained from the person it relates to.
+          </p>
+          <p><strong>Where the information comes from:</strong></p>
+          <ul>
+            <li>
+              The business's own public website — the source we record for every listing we create
+              this way
+            </li>
+            <li>
+              Publicly available location information used to place the listing on a UK city or
+              region page
+            </li>
+          </ul>
+          <p><strong>What we collect:</strong></p>
+          <ul>
+            <li>
+              <strong>Business Information:</strong> Trading name, description, category and website
+              address
+            </li>
+            <li>
+              <strong>Published Contact Details:</strong> A business phone number or email address
+              where the business publishes one
+            </li>
+            <li>
+              <strong>Location Information:</strong> Town, region or postcode, and coordinates
+              derived from it
+            </li>
+            <li>
+              <strong>Images:</strong> Images published on the business's own website, used as
+              listing or profile imagery, together with a record of where each came from
+            </li>
+          </ul>
+          <p>
+            We do not collect from private or access-controlled sources, and we do not collect
+            special category data for these listings.
+          </p>
+          <p>
+            <strong>Lawful basis:</strong> our legitimate interests, and those of people searching
+            for event suppliers, in operating a useful UK supplier directory (Article 6(1)(f) UK
+            GDPR). Most of this information is about a business rather than an identifiable
+            individual, but for a sole trader a trading name or a published contact detail can also
+            be personal data, so we treat it as such.
+          </p>
+          <p>
+            <strong>Your choices:</strong> you can claim the listing to take control of it, ask us
+            to correct it, or object to the processing and ask us to remove it. We act on a removal
+            request for a listing we created without asking you to justify it. Email
+            {{ADMIN_EMAIL}} with the subject "Unclaimed listing" and the listing URL, or use the
+            <strong>Claim this listing</strong> link on the profile. The
+            <a href="/legal#unclaimed-listings">Unclaimed Listings</a> section of the Legal Hub
+            explains the process, and Section 10 below sets out your rights in full.
+          </p>
+          <p>
+            <strong>Retention:</strong> we keep an unclaimed listing while it remains useful and
+            reasonably current. If it is claimed, it becomes an ordinary supplier account and the
+            supplier retention rules in Section 6 apply. If you object or ask for removal, we remove
+            the listing and keep only the minimum record needed to avoid recreating it.
+          </p>
+
           <h2 class="h4">3. Legal Basis for Processing</h2>
           <p>
             We process your personal data under the following lawful bases as defined by the UK
@@ -444,6 +513,10 @@
             <li>Service improvement and analytics</li>
             <li>Customer support and issue resolution</li>
             <li>Maintaining audit logs for security purposes</li>
+            <li>
+              Operating a UK supplier directory, including the unclaimed listings described in
+              Section 2.9. You can object to this processing at any time
+            </li>
           </ul>
 
           <h3 class="h5">3.4 Legal Obligation (Article 6(1)(c) UK GDPR)</h3>
@@ -777,8 +850,18 @@
             information for its own processing.
           </p>
 
-          <h3 class="h5">7.5 Analytics and Service Reliability</h3>
+          <h3 class="h5">7.5 Analytics, Advertising and Service Reliability</h3>
           <ul>
+            <li>
+              <strong>Google Ads:</strong> If you consent to advertising, EventFlow loads the Google
+              Ads conversion tag from Google so we can measure which adverts lead to sign-ups and
+              enquiries. Google may set cookies or use similar browser storage for that purpose and
+              acts as an independent controller for its own advertising processing. Advertising is a
+              separate consent choice from analytics, the tag is not loaded on admin pages, and
+              nothing is requested from Google until you consent. When the tag loads it declares
+              Google Consent Mode defaults of denied before recording your choice, and withdrawing
+              consent sets those signals back to denied.
+            </li>
             <li>
               <strong>PostHog:</strong> If you consent to analytics, PostHog may process
               privacy-minimised page, journey, attribution, conversion and performance events. If
@@ -796,10 +879,12 @@
           <p>
             <strong>Data involved:</strong> page path without query strings, event and performance
             data, acquisition source, opaque session or user identifiers, device/browser details and
-            diagnostic error context. The providers may receive an IP address as part of an ordinary
-            network request. We do not intentionally send passwords, form values or message content
-            to PostHog. Sentry error context can vary with the fault, so access is restricted and
-            reports should not be used to submit sensitive information.
+            diagnostic error context. For advertising, the conversion event and the advertising
+            identifiers Google sets in your browser. The providers may receive an IP address as part
+            of an ordinary network request. We do not intentionally send passwords, form values or
+            message content to PostHog or to Google. Sentry error context can vary with the fault,
+            so access is restricted and reports should not be used to submit sensitive
+            information.
           </p>
 
           <h2 class="h4">8. International Data Transfers</h2>
@@ -882,6 +967,11 @@
               <td style="padding: 12px; border: 1px solid #e7eaf0">Sentry (Diagnostics)</td>
               <td style="padding: 12px; border: 1px solid #e7eaf0">Configured Sentry project region</td>
               <td style="padding: 12px; border: 1px solid #e7eaf0">Event filtering, provider contract and applicable transfer mechanism</td>
+            </tr>
+            <tr>
+              <td style="padding: 12px; border: 1px solid #e7eaf0">Google Ads (Consented Advertising)</td>
+              <td style="padding: 12px; border: 1px solid #e7eaf0">Provider infrastructure and support locations</td>
+              <td style="padding: 12px; border: 1px solid #e7eaf0">Consent, provider terms and applicable transfer mechanism</td>
             </tr>
           </table>
 
@@ -973,14 +1063,21 @@
               stored in sessionStorage for the browser session
             </li>
             <li>
+              <strong>Advertising:</strong> With separate consent, the Google Ads tag may set
+              cookies or use similar browser storage to measure advert conversions
+            </li>
+            <li>
               <strong>Cookie Consent:</strong> Records your cookie consent preferences (essential,
               always stored)
             </li>
           </ul>
           <p class="small" style="color: #667085">
-            Analytics does not start unless you consent. If you withdraw analytics consent, further
-            collection stops and EventFlow's browser attribution record is removed. If you withdraw
-            or reject functional consent, EventFlow clears the functional preferences it controls.
+            Analytics and advertising are separate choices, and neither starts unless you consent to
+            that category. If you withdraw analytics consent, further collection stops and
+            EventFlow's browser attribution record is removed. If you withdraw advertising consent,
+            the advertising signals sent to Google are set back to denied and the tag is not loaded
+            again on your next visit. If you withdraw or reject functional consent, EventFlow clears
+            the functional preferences it controls.
           </p>
 
           <h3 class="h5">9.3 Managing Cookies</h3>
@@ -1349,9 +1446,10 @@
     </nav>
 
     <script src="/assets/js/components/footer-nav.js" defer></script>
-    <script src="/assets/js/cookie-consent.js?v=2.0.1" defer></script>
+    <script src="/assets/js/cookie-consent.js?v=3.0.0" defer></script>
     <script src="/assets/js/vendor/jade-widget.js" defer></script>
     <script src="/assets/js/jadeassist-init.v2.js" defer></script>
     <script src="/assets/js/components/eventflow-footer.js?v=4" defer></script>
+    <script src="/assets/js/legal-pages.js?v=1.0.0" defer></script>
   </body>
 </html>

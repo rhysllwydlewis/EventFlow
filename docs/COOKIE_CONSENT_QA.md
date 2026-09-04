@@ -1,7 +1,12 @@
 # Cookie Consent Manual QA Checklist
 
 This document covers manual verification steps for the EventFlow cookie consent system
-(v2.0.0, UK GDPR/PECR compliant).
+(v3.0.0, UK GDPR/PECR compliant).
+
+Four categories are recorded: `essential` (always on), `functional`, `analytics` and
+`marketing`. Analytics and marketing are separate on purpose — consenting to measurement of
+how the site is used is not consent to advertising technology, and only `marketing` loads the
+Google Ads tag.
 
 ---
 
@@ -30,9 +35,11 @@ Open DevTools → Application → Cookies and localStorage to inspect state.
 1. Click **Accept All** on the banner.
 2. **Expected:** Banner disappears with a slide-out animation.
 3. Check Cookies: `eventflow_cookie_consent` should be a JSON-encoded string like:
-   `{"v":1,"essential":true,"functional":true,"analytics":false}`
+   `{"v":2,"essential":true,"functional":true,"analytics":true,"marketing":true}`
+   ("Accept All" grants **every** optional category, including advertising.)
 4. Toggle dark mode — verify `theme` key appears in localStorage.
-5. Reload the page — banner should NOT reappear.
+5. Check the Network tab — `googletagmanager.com/gtag/js` should now load.
+6. Reload the page — banner should NOT reappear.
 
 ---
 
@@ -43,7 +50,7 @@ Open DevTools → Application → Cookies and localStorage to inspect state.
 3. Click **Reject** on the banner.
 4. **Expected:** Banner disappears.
 5. Check Cookies: `eventflow_cookie_consent` should be:
-   `{"v":1,"essential":true,"functional":false,"analytics":false}`
+   `{"v":2,"essential":true,"functional":false,"analytics":false,"marketing":false}`
 6. Check localStorage: `theme`, `ef_expanded_folders`, `marketplaceLocation` and other
    functional keys should be **absent**.
 7. Toggle dark mode — the theme changes visually but `theme` key should **not** be saved
@@ -57,10 +64,12 @@ Open DevTools → Application → Cookies and localStorage to inspect state.
 2. Click **Manage Preferences**.
 3. **Expected:** Banner closes; a modal dialog titled "Cookie Preferences" opens.
 4. Verify **Essential Cookies** shows "Always on" (no toggle).
-5. Verify **Functional Cookies** and **Analytics Cookies** have toggles.
-6. Toggle Functional on, Analytics off; click **Save Preferences**.
-7. Check Cookies: `functional` is `true`, `analytics` is `false`.
-8. Confirm the dialog closes and no banner reappears.
+5. Verify **Functional**, **Analytics** and **Advertising** cookies each have a toggle.
+6. Verify the Analytics description does **not** claim analytics is unused.
+7. Toggle Functional on, Analytics off, Advertising off; click **Save Preferences**.
+8. Check Cookies: `functional` is `true`, `analytics` and `marketing` are `false`.
+9. Check the Network tab — `googletagmanager.com/gtag/js` must **not** load.
+10. Confirm the dialog closes and no banner reappears.
 
 ---
 
@@ -100,8 +109,12 @@ Open DevTools → Application → Cookies and localStorage to inspect state.
    `eventflow_cookie_consent=accepted; path=/`
 2. Reload the page.
 3. **Expected:** No banner appears; the cookie is silently migrated to
-   `{"v":1,"essential":true,"functional":true,"analytics":false}`.
+   `{"v":2,"essential":true,"functional":true,"analytics":false,"marketing":false}`.
 4. Repeat with value `rejected` — expect `functional: false`.
+5. Set a v1-format cookie by hand
+   (`{"v":1,"essential":true,"functional":true,"analytics":true}`, URL-encoded) and reload.
+   **Expected:** `marketing` reads as `false` — a record written before advertising became its
+   own category carries no advertising decision, and no decision means no consent.
 
 ---
 
@@ -133,7 +146,7 @@ Open DevTools → Application → Cookies and localStorage to inspect state.
 Verify all methods work in the browser console:
 
 ```js
-CookieConsent.getConsent(); // → {essential:true, functional:bool, analytics:bool}
+CookieConsent.getConsent(); // → {essential:true, functional:bool, analytics:bool, marketing:bool}
 CookieConsent.hasConsent(); // → true/false
 CookieConsent.openPreferences(); // → opens preferences dialog
 CookieConsent.revokeConsent(); // → clears consent, shows banner
@@ -149,3 +162,28 @@ CookieConsent.show(); // → shows banner only if no consent recorded
    has been accepted.
 2. **Expected:** No banner reappears; pages load and function normally.
 3. Check browser console for errors related to `CookieConsent`.
+
+---
+
+## 13. Advertising consent is separate from analytics
+
+1. Open a fresh private window, navigate to `/`.
+2. Click **Manage Preferences**, toggle **Analytics** on and leave **Advertising** off, save.
+3. **Expected:** `analytics` is `true`, `marketing` is `false`. PostHog may load;
+   `googletagmanager.com/gtag/js` must **not** load.
+4. Reopen preferences, toggle **Advertising** on, save.
+5. **Expected:** `googletagmanager.com/gtag/js` loads, and `window.dataLayer` contains a
+   `consent`/`update` entry granting `ad_storage`, `ad_user_data` and `ad_personalization`.
+
+---
+
+## 14. Withdrawing advertising consent takes effect immediately
+
+1. With advertising consent granted (test 13), reopen preferences.
+2. Toggle **Advertising** off and save.
+3. **Expected:** `window.dataLayer` gains a `consent`/`update` entry setting the three
+   advertising signals back to `denied`.
+4. Reload the page. **Expected:** `googletagmanager.com/gtag/js` does not load again.
+
+`gtag.js` cannot be unloaded once it is on the page, so the denied update — not removal of
+the script — is what stops advertising processing for the rest of the session.
