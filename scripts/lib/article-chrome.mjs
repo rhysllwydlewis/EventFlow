@@ -219,7 +219,15 @@ export async function readCanonicalNavLinks() {
     if (!nav) {
       throw new Error(`guides.html: no <nav> matching ${navPattern} in the canonical header.`);
     }
-    const pattern = new RegExp(`<a\\s([^>]*class="${linkClass}"[^>]*)>([^<]*)</a>`, 'g');
+    // A class *token* match, not an exact attribute-value match: the auth,
+    // dashboard and logout controls in the same <nav> carry a second class
+    // (e.g. class="ef-mobile-link ef-mobile-primary") and must still be found
+    // here so the id-based filter below is what excludes them — not an
+    // accidental failure to match a compound class value.
+    const pattern = new RegExp(
+      `<a\\s([^>]*class="[^"]*\\b${linkClass}\\b[^"]*"[^>]*)>([^<]*)</a>`,
+      'g'
+    );
     return [...nav[0].matchAll(pattern)]
       .filter(match => !/\sid="/.test(match[1]))
       .map(match => ({
@@ -246,8 +254,14 @@ export async function readCanonicalNavLinks() {
  * The canonical mobile navigation block, ready to drop into a generated header.
  *
  * `readCanonicalNavLinks` gives back the public links only. The block also
- * carries the divider and the log-in / dashboard / log-out controls, and those
- * had drifted too: pages disagreed on whether the log-out link existed at all.
+ * carries the divider and the log-in / dashboard / settings / log-out
+ * controls, and those had drifted too: pages disagreed on whether the log-out
+ * link existed at all, and #ef-mobile-settings — which navbar.js has always
+ * shown and hidden alongside dashboard and logout on every login/logout —
+ * only ever existed on two pages (dashboard-customer.html,
+ * dashboard-supplier.html) rather than in the shared template. It is part of
+ * this block now, which is also what makes it universal instead of a
+ * two-page special case that a later chrome sync can delete by accident.
  * Returning the finished block keeps every generated header byte-identical
  * there, so the only way to change it is to change guides.html.
  * @param {string} indent Leading whitespace for the opening <nav> tag.

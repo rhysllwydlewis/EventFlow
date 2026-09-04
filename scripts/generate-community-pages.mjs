@@ -6,6 +6,12 @@
  * than copied by hand and left to drift. The generated files are committed;
  * re-run this script after changing the template and commit the result.
  *
+ * The header renders a notification bell (`#ef-notification-btn`) on every
+ * page this generates, admin-community.html included. It shipped with no
+ * `notifications.js` and no `#notification-dropdown` for it to open — the same
+ * dead-button bug the 34 guide articles had (see article-chrome.mjs) — so both
+ * are part of the template now.
+ *
  * Usage: node scripts/generate-community-pages.mjs
  */
 
@@ -162,6 +168,20 @@ ${MOBILE_NAV}
       </div>
     </header>
 
+    <!-- Notification dropdown: pre-rendered here, shown and hidden by notifications.js.
+         The header above always renders the bell that opens it; without this element
+         and the script below, that bell did nothing at all (see article-chrome.mjs). -->
+    <div id="notification-dropdown" class="notification-dropdown" hidden aria-hidden="true" style="display: none;">
+      <div class="notification-header">
+        <h3>Notifications</h3>
+        <button class="notification-mark-all" id="notification-mark-all-read" type="button">Mark all as read</button>
+      </div>
+      <div class="notification-list"></div>
+      <div class="notification-footer">
+        <a href="/notifications" class="notification-view-all">View all</a>
+      </div>
+    </div>
+
     <main id="main-content">
 ${page.hero || ''}
       <div class="efc-shell">
@@ -255,6 +275,7 @@ ${
 }    <script src="/assets/js/utils/auth-state.js" defer></script>
     <script src="/assets/js/burger-menu.js" defer></script>
     <script src="/assets/js/navbar.js" defer></script>
+    <script src="/assets/js/notifications.js" defer></script>
     <script src="/assets/js/cookie-consent.js?v=3.0.0" defer></script>
     <script src="/assets/js/community/core.js?v=${version('/assets/js/community/core.js')}" defer></script>
 ${scripts}

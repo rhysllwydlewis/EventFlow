@@ -77,6 +77,47 @@ function escapeHtml(value) {
 }
 
 /**
+ * Serialise a value for a `<script type="application/ld+json">` block.
+ *
+ * Script content is raw text to the HTML parser — it is never HTML-entity
+ * decoded — so `escapeHtml` is the wrong tool here even though the values also
+ * appear HTML-escaped elsewhere on the page. Interpolating title/description
+ * into a hand-written JSON string, as this used to, breaks in two ways a
+ * title can easily hit: a `"` survives HTML-escaping as the literal text
+ * `&quot;` rather than becoming a real character, and a `\` (e.g. in "10\"
+ * chairs") is not a valid JSON escape on its own, so the whole block fails to
+ * parse and the rich snippet silently disappears.
+ *
+ * `JSON.stringify` fixes the syntax; the character-by-character pass after it
+ * stops a title containing the literal text `</script>` from ending the tag
+ * early and letting whatever follows run as markup. Matches
+ * `serializeJsonLd` in services/publicListingSeo.service.js, the same
+ * technique already used for the JSON-LD this site renders server-side.
+ * @param {unknown} value The JSON-LD payload.
+ * @returns {string} Safe to place directly inside the script tag.
+ */
+function serializeJsonLd(value) {
+  const json = JSON.stringify(value);
+  let output = '';
+  for (const character of json) {
+    if (character === '<') {
+      output += '\\u003c';
+    } else if (character === '>') {
+      output += '\\u003e';
+    } else if (character === '&') {
+      output += '\\u0026';
+    } else if (character === '\u2028') {
+      output += '\\u2028';
+    } else if (character === '\u2029') {
+      output += '\\u2029';
+    } else {
+      output += character;
+    }
+  }
+  return output;
+}
+
+/**
  * Build the article document.
  * @param {{slug: string, title: string, description: string, kicker: string, numbered: boolean, today: string}} opts Article details.
  * @returns {string} The complete HTML document.
@@ -136,17 +177,17 @@ function document_(opts) {
 <link href="/assets/css/p3-features.css?v=18.3.0" rel="stylesheet"/>
 <link href="/assets/css/public-mobile-compact.css" rel="stylesheet"/>
 <script type="application/ld+json">
-{
-  "@context": "https://schema.org",
-  "@type": "Article",
-  "headline": "${safeTitle}",
-  "description": "${safeDescription}",
-  "datePublished": "${today}",
-  "dateModified": "${today}",
-  "author": { "@type": "Organization", "name": "EventFlow" },
-  "publisher": { "@type": "Organization", "name": "EventFlow" },
-  "mainEntityOfPage": { "@type": "WebPage", "@id": "${url}" }
-}
+${serializeJsonLd({
+  '@context': 'https://schema.org',
+  '@type': 'Article',
+  headline: title,
+  description,
+  datePublished: today,
+  dateModified: today,
+  author: { '@type': 'Organization', name: 'EventFlow' },
+  publisher: { '@type': 'Organization', name: 'EventFlow' },
+  mainEntityOfPage: { '@type': 'WebPage', '@id': url },
+})}
 </script>
 </head>
 <body class="gp-page">
@@ -287,6 +328,10 @@ async function main() {
   }
 
   const target = path.join(articlesDir, `${slug}.html`);
+  // Computed once: the document's own dates and the guides.json entry printed
+  // below must agree, not just be close, and calling new Date() a second time
+  // is one avoidable way for them not to.
+  const today = new Date().toISOString().slice(0, 10);
 
   const draft = document_({
     slug,
@@ -294,7 +339,7 @@ async function main() {
     description,
     kicker: typeof options.kicker === 'string' ? options.kicker : 'Guides',
     numbered: options['no-numbers'] !== true,
-    today: new Date().toISOString().slice(0, 10),
+    today,
   });
 
   // Same chrome, same source, same run: the article is drift-free on write, so
@@ -339,8 +384,8 @@ Next:
     "title": ${JSON.stringify(title)},
     "href": "/articles/${slug}",
     "description": ${JSON.stringify(description)},
-    "publishedDate": "${new Date().toISOString().slice(0, 10)}",
-    "lastUpdated": "${new Date().toISOString().slice(0, 10)}"
+    "publishedDate": "${today}",
+    "lastUpdated": "${today}"
   }
 
   3. Run: node scripts/generate-article-shells.mjs --check

@@ -163,4 +163,27 @@ describePosix('production dependency audit', () => {
     expect(result.status).toBe(1);
     expect(result.stderr).toContain('did not return valid JSON');
   });
+
+  test('reports npm itself being unavailable, rather than "no vulnerability counts"', () => {
+    // No stub written: stubDir is empty, and it is the only entry on PATH, so
+    // spawnSync cannot find an `npm` binary at all. It sets result.error rather
+    // than throwing — result.stdout is undefined, and `JSON.parse(undefined ||
+    // '{}')` happily succeeds, so a naive reading of the report would call this
+    // "no vulnerability counts" and hide the real reason nothing ran.
+    let result;
+    try {
+      const stdout = execFileSync(process.execPath, [SCRIPT], {
+        encoding: 'utf8',
+        env: { PATH: stubDir },
+        stdio: ['ignore', 'pipe', 'pipe'],
+      });
+      result = { status: 0, stdout, stderr: '' };
+    } catch (error) {
+      result = { status: error.status, stdout: error.stdout || '', stderr: error.stderr || '' };
+    }
+    expect(result.status).toBe(1);
+    expect(result.stderr).toContain('could not run');
+    expect(result.stderr).toContain('ENOENT');
+    expect(result.stderr).not.toContain('no vulnerability counts');
+  });
 });

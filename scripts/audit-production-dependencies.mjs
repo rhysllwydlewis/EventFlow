@@ -105,6 +105,17 @@ function main() {
     }
   );
 
+  // spawnSync sets .error rather than throwing when the command itself never
+  // ran (npm missing from PATH, permissions). Left unchecked, result.stdout is
+  // undefined here, `JSON.parse(undefined || '{}')` succeeds, and the report
+  // that never happened gets reported as "no vulnerability counts" — exactly
+  // the kind of dressed-up failure this script exists to stop doing.
+  if (result.error) {
+    console.error('npm audit could not run, so nothing was audited.');
+    console.error(`  ${result.error.message}`);
+    return 1;
+  }
+
   const report = parseReport(result);
 
   if (!report) {
