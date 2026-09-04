@@ -181,10 +181,13 @@ describe('every article on the premium template', () => {
       const itemBounds = starts.map((start, i) =>
         i + 1 < starts.length ? starts[i + 1] : wrapperEnd
       );
-      const badgeText = html
-        .slice(starts[3] + openTag.length, itemBounds[3])
-        .replace(/<[^>]+>/g, '')
-        .trim();
+      let badgeText = html.slice(starts[3] + openTag.length, itemBounds[3]);
+      let previous;
+      do {
+        previous = badgeText;
+        badgeText = badgeText.replace(/<[^>]+>/g, '');
+      } while (badgeText !== previous);
+      badgeText = badgeText.trim();
 
       const canonical = html.match(
         /<link href="(https:\/\/event-flow\.co\.uk\/articles\/[^"]+)" rel="canonical"\/>/
