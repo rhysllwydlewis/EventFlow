@@ -194,42 +194,15 @@ body.gp-page {
   opacity: 0.45;
 }
 
+/* A kicker, not a badge. The pill and its pulsing dot dressed one line of
+   plain text up as a live status indicator it never was. */
 .gp-eyebrow {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 6px 14px 6px 10px;
-  border-radius: 999px;
+  margin: 0;
   font-size: 0.75rem;
   font-weight: 600;
-  letter-spacing: 0.09em;
+  letter-spacing: 0.14em;
   text-transform: uppercase;
-  color: #d6fff6;
-  background: rgba(19, 182, 162, 0.16);
-  border: 1px solid rgba(79, 227, 199, 0.34);
-  backdrop-filter: blur(6px);
-  -webkit-backdrop-filter: blur(6px);
-}
-
-.gp-eyebrow__dot {
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  background: var(--gp-glow);
-  box-shadow: 0 0 0 0 rgba(79, 227, 199, 0.7);
-  animation: gp-pulse 2.6s ease-out infinite;
-}
-
-@keyframes gp-pulse {
-  0% {
-    box-shadow: 0 0 0 0 rgba(79, 227, 199, 0.6);
-  }
-  70% {
-    box-shadow: 0 0 0 9px rgba(79, 227, 199, 0);
-  }
-  100% {
-    box-shadow: 0 0 0 0 rgba(79, 227, 199, 0);
-  }
+  color: var(--gp-glow);
 }
 
 .gp-title {
@@ -285,22 +258,6 @@ body.gp-page {
 .gp-meta__item svg {
   flex: none;
   opacity: 0.75;
-}
-
-.gp-avatar {
-  width: 34px;
-  height: 34px;
-  border-radius: 50%;
-  display: grid;
-  place-items: center;
-  font-size: 0.75rem;
-  font-weight: 700;
-  letter-spacing: 0.02em;
-  color: var(--gp-abyss);
-  background: linear-gradient(135deg, var(--gp-glow), var(--gp-brand-lift));
-  box-shadow:
-    0 0 0 1px rgba(255, 255, 255, 0.2),
-    0 6px 18px -6px rgba(79, 227, 199, 0.7);
 }
 
 /* Server-rendered freshness strip, restyled to sit under the hero (order: 2
@@ -1382,6 +1339,49 @@ body.gp-page {
 
 .gp-backlinks a:hover {
   color: var(--gp-deep);
+}
+
+/* Print lives in the sticky rail on desktop. Below the rail's breakpoint the
+   rail is not rendered, so the same control surfaces here instead — centred
+   between the two navigation links at the foot of the article. Exactly one of
+   the two is ever visible, so there is no duplicate affordance.
+
+   Before this, `blog-enhancements.js` appended its own unstyled button to the
+   end of the article: `.print-button` is styled in guides.css, which this
+   template deliberately does not load, so it rendered as a bare 130x34 box
+   flush against the left edge of the page. The rail control carries that
+   script's `print-article-btn` id, which is the guard it already checks, so it
+   now steps aside rather than injecting an orphan. */
+.gp-backlinks__print {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 0 18px;
+  border: 1px solid var(--gp-line);
+  border-radius: 999px;
+  background: var(--gp-surface);
+  color: var(--gp-text-soft);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    border-color 0.2s ease,
+    color 0.2s ease,
+    background 0.2s ease;
+}
+
+.gp-backlinks__print:hover {
+  border-color: rgba(19, 182, 162, 0.45);
+  background: var(--gp-surface-tint);
+  color: var(--gp-brand);
+}
+
+@media (min-width: 1080px) {
+  .gp-backlinks__print {
+    display: none;
+  }
 }
 
 /* Reading progress bar (shared #article-progress-bar element). */

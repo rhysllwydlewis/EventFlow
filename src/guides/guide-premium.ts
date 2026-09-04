@@ -257,9 +257,21 @@
     });
   }
 
+  /* ── Print ────────────────────────────────────────────────────────────
+     One control, two homes: the sticky rail on desktop and the foot of the
+     article below the rail's breakpoint. CSS shows whichever fits, so only one
+     is ever visible; binding both keeps that a styling decision rather than a
+     scripting one. */
+  function initPrint(): void {
+    root.querySelectorAll<HTMLElement>('[data-gp-print]').forEach(control => {
+      control.addEventListener('click', () => window.print());
+    });
+  }
+
   /* ── Boot ─────────────────────────────────────────────────────────────── */
   initReadingState();
   initCountUp();
   initHeadingAnchors();
   initRailShare();
+  initPrint();
 })();
