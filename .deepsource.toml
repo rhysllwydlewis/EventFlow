@@ -40,9 +40,20 @@ enabled = true
 
   [analyzers.meta]
   environment = ["nodejs", "browser", "jest", "mongo"]
-  # This repo is CommonJS: ~1,000 files use require() and package.json sets no
-  # "type": "module". It was previously declared as es-modules.
-  module_system = "commonjs"
+  # This repo genuinely mixes both module systems: ~1,000 files use require(),
+  # and ~59 first-party files are ES modules (every scripts/*.mjs, the
+  # Playwright configs, and the browser modules under public/assets/js).
+  # DeepSource takes one global value with no "auto" and no per-path override,
+  # so the choice is which parser reads more of the repo — and the two are not
+  # symmetric. `module_system` sets the parser's sourceType:
+  #   es-modules (sourceType: module) parses BOTH — `require()` and
+  #     `module.exports` are an ordinary call and member expression, valid in a
+  #     module, so CommonJS files still parse and analyse.
+  #   commonjs (sourceType: script) cannot parse `import`/`export` at all.
+  # #1611 set this to "commonjs" reasoning from the repo's majority style. That
+  # was the wrong axis: it made all 59 ES module files unparseable, so they got
+  # no analysis at all and reported JS-0833 instead. Back to the default.
+  module_system = "es-modules"
   dialect = "typescript"
   cyclomatic_complexity_threshold = "high"
 
