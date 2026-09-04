@@ -27,7 +27,7 @@
  * is worse than an unregistered one.
  */
 
-import { access, writeFile } from 'node:fs/promises';
+import { writeFile } from 'node:fs/promises';
 import path from 'node:path';
 
 import { applyChrome, articlesDir, buildBlocks } from './lib/article-chrome.mjs';
@@ -284,14 +284,6 @@ async function main() {
   }
 
   const target = path.join(articlesDir, `${slug}.html`);
-  try {
-    await access(target);
-    throw new Error(`${slug}.html already exists — refusing to overwrite it.`);
-  } catch (error) {
-    if (error.code !== 'ENOENT') {
-      throw error;
-    }
-  }
 
   const draft = document_({
     slug,
@@ -311,7 +303,20 @@ async function main() {
     .replace('<!--CHROME_FOOTER-->', () => blocks[2].markup);
 
   applyChrome(withChrome, `${slug}.html`, blocks);
-  await writeFile(target, withChrome);
+
+  // 'wx' fails if the path exists, so the refusal to overwrite is the write
+  // itself rather than a check before it. Testing with access() first and
+  // writing afterwards leaves a window where the file can appear in between —
+  // and "refuses to overwrite an existing article" has to be a guarantee, not
+  // a likelihood.
+  try {
+    await writeFile(target, withChrome, { flag: 'wx' });
+  } catch (error) {
+    if (error.code === 'EEXIST') {
+      throw new Error(`${slug}.html already exists — refusing to overwrite it.`);
+    }
+    throw error;
+  }
 
   console.log(`Created public/articles/${slug}.html
 
