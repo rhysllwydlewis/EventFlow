@@ -207,4 +207,32 @@ describe('every article on the premium template', () => {
       expect((html.match(/data-gp-print/g) || []).length).toBeGreaterThanOrEqual(1);
     }
   );
+
+  test.each(articles.map(a => [a.name, a.html]))(
+    '%s: the <title> fits a search results page without truncating',
+    (_name, html) => {
+      // event-travel-costs-guide.html shipped at 89 characters — Google
+      // clips around 60, so " | EventFlow" (and often the last few words of
+      // the headline) never actually showed up in search results. 60 is the
+      // conservative, widely-used practical limit.
+      const title = html.match(/<title>([^<]*)<\/title>/)?.[1];
+      expect(title).toBeDefined();
+      expect(title.length).toBeLessThanOrEqual(60);
+    }
+  );
+
+  test.each(articles.map(a => [a.name, a.html]))(
+    '%s: the meta description is present and within SERP snippet length',
+    (_name, html) => {
+      // wedding-venue-selection-guide.html shipped at 177 characters of
+      // generic filler ("Discover... comprehensive guide... dream
+      // wedding") — both too long for Google's ~155-160 character snippet
+      // and exactly the boilerplate this template's copy is meant to avoid.
+      // The lower bound catches an accidentally empty or placeholder value.
+      const description = html.match(/<meta content="([^"]*)" name="description"\/>/)?.[1];
+      expect(description).toBeDefined();
+      expect(description.length).toBeGreaterThanOrEqual(50);
+      expect(description.length).toBeLessThanOrEqual(160);
+    }
+  );
 });
