@@ -4,8 +4,14 @@
  *
  * Progressive enhancement only: the article is fully readable with this file
  * blocked. Everything here is additive (scrollspy, animated figures, heading
- * permalinks, the fuel/mileage calculator; reveal-on-scroll is pure CSS) and every animation is skipped when
- * the visitor prefers reduced motion.
+ * permalinks, share and print; reveal-on-scroll is pure CSS) and every animation
+ * is skipped when the visitor prefers reduced motion.
+ *
+ * This runtime is deliberately subject-agnostic: it drives blocks any article
+ * may use, and each initialiser no-ops when its markup is absent, so an article
+ * only pays for the blocks it actually includes. Anything specific to one
+ * article's subject belongs in its own module beside this one — see
+ * `guide-travel-calculator.ts`.
  *
  * Source of truth is `src/guides/guide-premium.ts`; the browser file at
  * `public/assets/js/pages/guide-premium.js` is compiled via `npm run build:guides`.
@@ -19,17 +25,7 @@
   // this narrowing in source order, so under `strict` they would otherwise see
   // the nullable type again.
   const root = articleRoot;
-  const LITRES_PER_GALLON = 4.54609;
-  // HMRC approved mileage allowance for an employee's first 10,000 car/van
-  // business miles in the 2026/27 tax year, effective 6 April 2026.
-  const HMRC_RATE_PER_MILE = 0.55;
   const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  const money = new Intl.NumberFormat('en-GB', {
-    style: 'currency',
-    currency: 'GBP',
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  });
   /** Round to `places` decimals without float drift showing up in the UI. */
   function round(value, places = 2) {
     const factor = 10 ** places;
@@ -229,91 +225,20 @@
       });
     });
   }
-  /* ── Fuel & mileage calculator ────────────────────────────────────────
-       The worked example from the article, made interactive: estimated fuel
-       burn for a journey versus the 2026/27 HMRC employee car/van rate. */
-  function initCalculator() {
-    const panel = document.querySelector('[data-gp-calc]');
-    if (!panel) {
-      return;
-    }
-    const milesEl = panel.querySelector('#gp-calc-miles');
-    const mpgEl = panel.querySelector('#gp-calc-mpg');
-    const priceEl = panel.querySelector('#gp-calc-price');
-    if (!milesEl || !mpgEl || !priceEl) {
-      return;
-    }
-    const inputs = [milesEl, mpgEl, priceEl];
-    const out = {
-      headline: panel.querySelector('[data-gp-out="fuel"]'),
-      perMile: panel.querySelector('[data-gp-out="per-mile"]'),
-      fuelAmount: panel.querySelector('[data-gp-out="fuel-amount"]'),
-      hmrcAmount: panel.querySelector('[data-gp-out="hmrc-amount"]'),
-      fuelBar: panel.querySelector('[data-gp-bar="fuel"]'),
-      hmrcBar: panel.querySelector('[data-gp-bar="hmrc"]'),
-      verdict: panel.querySelector('[data-gp-out="verdict"]'),
-    };
-    const readValues = () => ({
-      miles: Number(milesEl.value),
-      mpg: Number(mpgEl.value),
-      pencePerLitre: Number(priceEl.value),
+  /* ── Print ────────────────────────────────────────────────────────────
+       One control, two homes: the sticky rail on desktop and the foot of the
+       article below the rail's breakpoint. CSS shows whichever fits, so only one
+       is ever visible; binding both keeps that a styling decision rather than a
+       scripting one. */
+  function initPrint() {
+    root.querySelectorAll('[data-gp-print]').forEach(control => {
+      control.addEventListener('click', () => window.print());
     });
-    /** Paint the filled portion of a range track and its readout chip. */
-    const paintRange = input => {
-      const min = Number(input.min);
-      const max = Number(input.max);
-      const pct = max > min ? ((Number(input.value) - min) / (max - min)) * 100 : 0;
-      input.style.setProperty('--gp-range-fill', `${round(pct, 2)}%`);
-      const readout = panel.querySelector(`[data-gp-readout="${input.id}"]`);
-      if (readout) {
-        const decimals = Number(input.dataset.gpDecimals ?? 0);
-        readout.textContent = `${Number(input.value).toFixed(decimals)}${input.dataset.gpUnit ?? ''}`;
-      }
-    };
-    const update = () => {
-      const { miles, mpg, pencePerLitre } = readValues();
-      inputs.forEach(paintRange);
-      const gallons = miles / mpg;
-      const fuelCost = gallons * LITRES_PER_GALLON * (pencePerLitre / 100);
-      const perMilePence = miles > 0 ? (fuelCost / miles) * 100 : 0;
-      const hmrcCost = miles * HMRC_RATE_PER_MILE;
-      const peak = Math.max(fuelCost, hmrcCost, 0.01);
-      if (out.headline) {
-        out.headline.textContent = money.format(fuelCost);
-      }
-      if (out.perMile) {
-        out.perMile.textContent = `${perMilePence.toFixed(1)}p per mile in fuel · ${miles} mile round trip`;
-      }
-      if (out.fuelAmount) {
-        out.fuelAmount.textContent = money.format(fuelCost);
-      }
-      if (out.hmrcAmount) {
-        out.hmrcAmount.textContent = money.format(hmrcCost);
-      }
-      if (out.fuelBar) {
-        out.fuelBar.style.setProperty('--gp-bar-w', `${round((fuelCost / peak) * 100, 2)}%`);
-      }
-      if (out.hmrcBar) {
-        out.hmrcBar.style.setProperty('--gp-bar-w', `${round((hmrcCost / peak) * 100, 2)}%`);
-      }
-      if (out.verdict) {
-        const gap = hmrcCost - fuelCost;
-        out.verdict.innerHTML =
-          gap >= 0
-            ? `Reimbursing at 55p leaves <strong>${money.format(gap)}</strong> above estimated fuel on this trip — the approved mileage rate is intended to recognise wider vehicle costs as well as fuel.`
-            : `At this price and economy the estimated fuel alone costs <strong>${money.format(Math.abs(gap))}</strong> more than a 55p reimbursement would return. Budget the real fuel figure rather than assuming the approved employee rate covers the journey.`;
-      }
-    };
-    inputs.forEach(input => {
-      input.addEventListener('input', update);
-      input.addEventListener('change', update);
-    });
-    update();
   }
   /* ── Boot ─────────────────────────────────────────────────────────────── */
   initReadingState();
   initCountUp();
   initHeadingAnchors();
   initRailShare();
-  initCalculator();
+  initPrint();
 })();

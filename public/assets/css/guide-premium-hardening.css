@@ -7,16 +7,6 @@ body.gp-page {
   background: var(--gp-surface);
 }
 
-/* The lighter brand lift does not provide enough contrast for small white
-   text. Keep text-bearing gradients inside the AA-safe dark brand range. */
-.gp .gp-calc__head {
-  background: linear-gradient(120deg, #073c37 0%, #0b8073 70%, #086b60 100%);
-}
-
-.gp .gp-calc__sub {
-  color: rgba(255, 255, 255, 0.92);
-}
-
 /* Focus indicators are UI state. Use the darker brand colour on light
    surfaces, then switch to the bright mint inside the dark hero. */
 .gp *:focus-visible {
@@ -36,14 +26,4 @@ body.gp-page .guides-back-to-top {
 /* Same principle for the small white feedback tick. */
 .gp .guide-feedback__icon {
   background: linear-gradient(135deg, #0b8073, #086b60);
-}
-
-/* Make long calculator labels wrap cleanly instead of squeezing the numeric
-   readout on narrow screens. */
-@media (max-width: 480px) {
-  .gp .gp-field__top {
-    align-items: flex-start;
-    flex-direction: column;
-    gap: 6px;
-  }
 }

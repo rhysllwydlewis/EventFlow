@@ -43,6 +43,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400..700;1,9..144,400..700&amp;display=swap" rel="stylesheet"/>
 <link href="/assets/css/guide-premium.css?v=1.0.0" rel="stylesheet"/>
 <link href="/assets/css/guide-premium-hardening.css?v=1.1.0" rel="stylesheet"/>
+<link href="/assets/css/guide-travel-calculator.css?v=1.0.0" rel="stylesheet"/>
 <script type="application/ld+json">
   {
     "@context": "https://schema.org",
@@ -116,49 +117,89 @@
 <body class="gp-page">
 <div aria-label="Reading progress" aria-valuemax="100" aria-valuemin="0" aria-valuenow="0" class="article-progress-bar" id="article-progress-bar" role="progressbar"></div>
 <header class="ef-header" role="banner">
-<div class="ef-container">
-<div class="ef-header-content">
-<a aria-label="EventFlow - Return to homepage" class="ef-brand" href="/">
-<div aria-hidden="true" class="ef-logo"><div class="ef-logo-inner"></div></div>
-<span class="ef-brand-text">EventFlow</span>
-</a>
-<nav aria-label="Main navigation" class="ef-nav-desktop">
-<a class="ef-nav-link" href="/start">Plan</a>
-<a class="ef-nav-link" href="/suppliers">Suppliers</a>
-<a class="ef-nav-link" href="/marketplace">Marketplace</a>
-<a aria-current="page" class="ef-nav-link" href="/guides">Guides</a>
-<a class="ef-nav-link" href="/pricing">Pricing</a>
-</nav>
-<div class="ef-header-actions">
-<button aria-label="View notifications" class="ef-icon-btn" id="ef-notification-btn" style="display: none;" type="button">
-<svg aria-hidden="true" class="ef-icon" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>
-<span class="ef-badge" id="ef-notification-badge" style="display: none;"></span>
-</button>
-<a class="ef-btn ef-btn-primary" href="/auth" id="ef-auth-link">Log in</a>
-<a class="ef-nav-link" href="#" id="ef-dashboard-link" style="display: none;">Dashboard</a>
-<button aria-controls="ef-mobile-menu" aria-expanded="false" aria-label="Toggle menu" class="ef-mobile-toggle" id="ef-mobile-toggle" type="button">
-<span class="ef-toggle-line"></span>
-<span class="ef-toggle-line"></span>
-<span class="ef-toggle-line"></span>
-</button>
-</div>
-</div>
-</div>
-<div aria-label="Mobile navigation" aria-modal="true" class="ef-mobile-menu" id="ef-mobile-menu" role="dialog">
-<nav aria-label="Primary navigation" class="ef-mobile-nav">
-<a class="ef-mobile-link" href="/start">Plan an Event</a>
-<a class="ef-mobile-link" href="/suppliers">Browse Suppliers</a>
-<a class="ef-mobile-link" href="/marketplace">Marketplace</a>
-<a class="ef-mobile-link" href="/guides">Guides</a>
-<a class="ef-mobile-link" href="/pricing">Pricing</a>
-<a class="ef-mobile-link" href="/for-suppliers">For Suppliers</a>
-<a class="ef-mobile-link" href="/faq">Help &amp; FAQ</a>
-<div class="ef-mobile-divider"></div>
-<a class="ef-mobile-link ef-mobile-primary" href="/auth" id="ef-mobile-auth">Log in</a>
-<a class="ef-mobile-link" href="#" id="ef-mobile-dashboard" style="display: none;">Dashboard</a>
-<a class="ef-mobile-link" href="#" id="ef-mobile-logout" style="display: none;">Log out</a>
-</nav>
-</div>
+  <div class="ef-container">
+    <div class="ef-header-content">
+      <!-- Brand Logo - Enhanced Animated -->
+      <a href="/" class="ef-brand" aria-label="EventFlow - Return to homepage">
+        <div class="ef-logo" aria-hidden="true">
+          <div class="ef-logo-inner"></div>
+        </div>
+        <span class="ef-brand-text">EventFlow</span>
+      </a>
+
+      <!-- Desktop Navigation -->
+      <nav class="ef-nav-desktop" aria-label="Main navigation">
+        <a href="/start" class="ef-nav-link">Plan</a>
+        <a href="/suppliers" class="ef-nav-link">Suppliers</a>
+        <a href="/public-calendar" class="ef-nav-link">Events</a>
+        <a href="/marketplace" class="ef-nav-link">Marketplace</a>
+        <a href="/community" class="ef-nav-link">Community</a>
+        <a href="/guides" class="ef-nav-link" aria-current="page">Guides</a>
+        <a href="/pricing" class="ef-nav-link">Pricing</a>
+      </nav>
+
+      <!-- Actions -->
+      <div class="ef-header-actions">
+        <!-- Notification Bell (hidden by default, shown when logged in) -->
+        <button 
+          id="ef-notification-btn" 
+          class="ef-icon-btn" 
+          type="button" 
+          aria-label="View notifications"
+          style="display: none;"
+        >
+          <svg class="ef-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+            <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+          </svg>
+          <span id="ef-notification-badge" class="ef-badge" style="display: none;"></span>
+        </button>
+
+        <!-- Auth Button (Desktop) -->
+        <a href="/auth" id="ef-auth-link" class="ef-btn ef-btn-primary">
+          Log in
+        </a>
+
+        <!-- Dashboard Link (Desktop, hidden by default) -->
+        <a href="#" id="ef-dashboard-link" class="ef-nav-link" style="display: none;">
+          Dashboard
+        </a>
+
+        <!-- Mobile Menu Toggle -->
+        <button 
+          id="ef-mobile-toggle" 
+          class="ef-mobile-toggle" 
+          type="button"
+          aria-label="Toggle menu"
+          aria-expanded="false"
+          aria-controls="ef-mobile-menu"
+        >
+          <span class="ef-toggle-line"></span>
+          <span class="ef-toggle-line"></span>
+          <span class="ef-toggle-line"></span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Mobile Menu -->
+  <div id="ef-mobile-menu" class="ef-mobile-menu" role="dialog" aria-modal="true" aria-label="Mobile navigation">
+    <nav class="ef-mobile-nav" aria-label="Primary navigation">
+      <a href="/start" class="ef-mobile-link">Plan an Event</a>
+      <a href="/suppliers" class="ef-mobile-link">Browse Suppliers</a>
+      <a href="/public-calendar" class="ef-mobile-link">Events Calendar</a>
+      <a href="/marketplace" class="ef-mobile-link">Marketplace</a>
+      <a href="/community" class="ef-mobile-link">Community</a>
+      <a href="/guides" class="ef-mobile-link">Guides</a>
+      <a href="/pricing" class="ef-mobile-link">Pricing</a>
+      <a href="/for-suppliers" class="ef-mobile-link">For Suppliers</a>
+      <a href="/faq" class="ef-mobile-link">Help &amp; FAQ</a>
+      <div class="ef-mobile-divider"></div>
+      <a href="/auth" id="ef-mobile-auth" class="ef-mobile-link ef-mobile-primary">Log in</a>
+      <a href="#" id="ef-mobile-dashboard" class="ef-mobile-link" style="display: none;">Dashboard</a>
+      <a href="#" id="ef-mobile-logout" class="ef-mobile-link" style="display: none;">Log out</a>
+    </nav>
+  </div>
 </header>
 <div class="notification-dropdown" id="notification-dropdown" style="display: none;">
 <div class="notification-header">
@@ -173,7 +214,7 @@
 <script defer="" src="/assets/js/navbar.js"></script>
 <script defer="" src="/assets/js/websocket-client.js"></script>
 <main id="main-content">
-<article class="gp" data-gp-article>
+<article class="gp gp--numbered" data-gp-article>
 
 <header class="gp-hero">
 <div class="gp-hero__media" aria-hidden="true">
@@ -190,11 +231,11 @@
 <span aria-hidden="true" class="gp-breadcrumb__sep">/</span>
 <span aria-current="page">Event Travel Costs</span>
 </nav>
-<p class="gp-eyebrow"><span aria-hidden="true" class="gp-eyebrow__dot"></span>Transport &amp; Logistics</p>
+<p class="gp-eyebrow">Transport &amp; Logistics</p>
 <h1 class="gp-title">Event Travel Costs: Budgeting Transport for Guests, Staff and <em>Suppliers</em></h1>
 <p class="gp-lead">Travel is one of the easiest event costs to underestimate. Here's how to budget properly for guests, staff, stakeholders and suppliers getting to and from your event — and where the savings actually are.</p>
 <div class="gp-meta article-header__meta">
-<span class="gp-meta__item"><span aria-hidden="true" class="gp-avatar">EF</span><strong>EventFlow Team</strong></span>
+<span class="gp-meta__item"><strong>EventFlow Team</strong></span>
 <span class="gp-meta__item">
 <svg aria-hidden="true" fill="none" height="15" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="15"><rect height="18" rx="2" ry="2" width="18" x="3" y="4"></rect><line x1="16" x2="16" y1="2" y2="6"></line><line x1="8" x2="8" y1="2" y2="6"></line><line x1="3" x2="21" y1="10" y2="10"></line></svg> Published: <time datetime="2026-08-27">27 August 2026</time>
 </span>
@@ -248,9 +289,9 @@ Beginner friendly
 <a aria-label="Share this guide on LinkedIn" class="gp-icon-btn" href="https://www.linkedin.com/sharing/share-offsite/?url=https%3A%2F%2Fevent-flow.co.uk%2Farticles%2Fevent-travel-costs-guide" rel="noopener noreferrer" target="_blank" title="Share on LinkedIn">
 <svg aria-hidden="true" fill="currentColor" height="16" viewBox="0 0 24 24" width="16"><path d="M4.98 3.5a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5zM3 9h4v12H3zM9 9h3.8v1.7h.05c.53-.95 1.83-1.95 3.77-1.95 4.03 0 4.78 2.5 4.78 5.76V21h-4v-5.6c0-1.34-.02-3.06-1.9-3.06-1.9 0-2.2 1.46-2.2 2.96V21H9z"></path></svg>
 </a>
-<a aria-label="Back to all guides" class="gp-icon-btn" href="/guides" title="All guides">
-<svg aria-hidden="true" fill="none" height="16" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="16"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg>
-</a>
+<button aria-label="Print this guide" class="gp-icon-btn" data-gp-print id="print-article-btn" title="Print this guide" type="button">
+<svg aria-hidden="true" fill="none" height="16" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="16"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect height="8" width="12" x="6" y="14"></rect></svg>
+</button>
 </div>
 </aside>
 
@@ -282,7 +323,6 @@ Beginner friendly
 
 <section class="gp-section" data-gp-section id="why-event-travel-costs-matter">
 <div class="gp-section__head">
-<span aria-hidden="true" class="gp-section__num">01</span>
 <h2>Why travel is the line that bites</h2>
 </div>
 <p class="gp-dropcap">Travel rarely gets its own line on an event budget — it gets absorbed into "miscellaneous" and then quietly becomes one of the biggest surprises on the final invoice. Parking, shuttle buses, taxis, staff mileage and supplier travel can become a material part of the total cost, particularly for remote venues, multi-site events or productions with repeated setup and breakdown journeys.</p>
@@ -310,7 +350,6 @@ Beginner friendly
 
 <section class="gp-section" data-gp-section id="guest-travel">
 <div class="gp-section__head">
-<span aria-hidden="true" class="gp-section__num">02</span>
 <h2>Getting guests to and from your event</h2>
 </div>
 <p>Guest travel is about experience as much as cost. A venue that's difficult to reach — poor parking, no nearby station, unreliable evening buses — creates friction before anyone has even arrived, and it can affect attendance.</p>
@@ -331,7 +370,6 @@ Beginner friendly
 
 <section class="gp-section" data-gp-section id="staff-stakeholders-suppliers">
 <div class="gp-section__head">
-<span aria-hidden="true" class="gp-section__num">03</span>
 <h2>Staff, stakeholders, suppliers and agencies</h2>
 </div>
 <p>This is the travel spend that catches organisers out, because it's spread across several different budget lines rather than one obvious "guest transport" heading.</p>
@@ -348,9 +386,9 @@ Beginner friendly
 <h3>Agencies and multi-site activations</h3>
 <p>If you're running a touring activation, brand roadshow or multi-venue campaign, agency crews travelling with equipment between sites can become one of the larger transport costs. Build in fuel, van hire, congestion charges and overnight stays as a distinct budget block, and revisit it as the route firms up — early estimates based on a draft schedule are rarely accurate once real dates and distances are confirmed.</p>
 
-<div class="gp-table-wrap gp-reveal">
+<div aria-labelledby="gp-travel-table-caption" class="gp-table-wrap gp-reveal" role="region" tabindex="0">
 <table class="gp-table">
-<caption class="sr-only">Who travels to an event, who pays for it, and where it belongs in the budget</caption>
+<caption class="sr-only" id="gp-travel-table-caption">Who travels to an event, who pays for it, and where it belongs in the budget</caption>
 <thead>
 <tr>
 <th scope="col">Who's travelling</th>
@@ -397,7 +435,6 @@ Beginner friendly
 
 <section class="gp-section" data-gp-section id="calculating-fuel-and-mileage-costs">
 <div class="gp-section__head">
-<span aria-hidden="true" class="gp-section__num">04</span>
 <h2>Calculating fuel and mileage costs</h2>
 </div>
 <p>If you're reimbursing an employee who uses their own car or van for business travel, HMRC's approved mileage allowance for the 2026/27 tax year is <strong>55p per mile for the first 10,000 business miles</strong>, then 25p per mile after that, effective from 6 April 2026. Payments up to the approved amount can normally be made without tax and National Insurance on the mileage element. Check <a href="https://www.gov.uk/government/publications/increase-to-approved-mileage-allowance-payments-amaps-and-self-employed-simplified-mileage-rates" rel="noopener" target="_blank">HMRC's current approved mileage guidance</a> before relying on the figure for another tax year. Freelancers and volunteers can have different expense and tax arrangements, so do not assume the employee mileage rules automatically apply to them.</p>
@@ -466,7 +503,6 @@ Trip fuel vs a 55p reimbursement
 
 <section class="gp-section" data-gp-section id="reducing-event-travel-costs">
 <div class="gp-section__head">
-<span aria-hidden="true" class="gp-section__num">05</span>
 <h2>Ways to reduce event travel costs</h2>
 </div>
 <ul>
@@ -481,7 +517,6 @@ Trip fuel vs a 55p reimbursement
 
 <section class="gp-section" data-gp-section id="building-travel-into-your-budget">
 <div class="gp-section__head">
-<span aria-hidden="true" class="gp-section__num">06</span>
 <h2>Building travel into your event budget</h2>
 </div>
 <p>Treat travel as its own budget category rather than folding it into venue or supplier costs — it makes it far easier to see where the money is actually going and to compare quotes fairly. As a starting point:</p>
@@ -495,7 +530,6 @@ Trip fuel vs a 55p reimbursement
 
 <section class="gp-section" data-gp-section id="travel-cost-faqs">
 <div class="gp-section__head">
-<span aria-hidden="true" class="gp-section__num">07</span>
 <h2>Common questions</h2>
 </div>
 <div class="gp-faq">
@@ -550,15 +584,14 @@ Open budget planner
 
 <section class="guide-feedback" data-guide-feedback data-guide-slug="event-travel-costs-guide" aria-labelledby="guide-feedback-title-event-travel-costs-guide">
   <div class="guide-feedback__header">
-    <span class="guide-feedback__icon" aria-hidden="true">✓</span>
     <div>
       <h2 class="guide-feedback__title" id="guide-feedback-title-event-travel-costs-guide">Was this guide helpful?</h2>
       <p class="guide-feedback__text">Your feedback helps us keep EventFlow guides accurate, useful and up to date.</p>
     </div>
   </div>
   <div class="guide-feedback__actions" role="group" aria-label="Guide feedback">
-    <button class="guide-feedback__button" type="button" data-feedback-value="yes" aria-pressed="false">👍 Yes</button>
-    <button class="guide-feedback__button" type="button" data-feedback-value="no" aria-pressed="false">👎 Not yet</button>
+    <button class="guide-feedback__button" type="button" data-feedback-value="yes" aria-pressed="false">Yes</button>
+    <button class="guide-feedback__button" type="button" data-feedback-value="no" aria-pressed="false">Not yet</button>
     <a class="guide-feedback__link" href="https://github.com/rhysllwydlewis/EventFlow/issues/new?title=%5BReport%5D%20Guide%3A%20event-travel-costs-guide&amp;labels=content,guides&amp;body=I%20found%20an%20issue%20in%20https%3A%2F%2Fevent-flow.co.uk%2Farticles%2Fevent-travel-costs-guide%3A%0A%0AWhat%20looks%20outdated%20or%20incorrect%3F%0A%0ASuggested%20update%3A%0A" data-report-outdated target="_blank" rel="noopener noreferrer">Report outdated</a>
   </div>
   <p class="guide-feedback__status" data-feedback-status aria-live="polite"></p>
@@ -574,6 +607,10 @@ Open budget planner
 <svg aria-hidden="true" fill="none" height="15" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="15"><line x1="19" x2="5" y1="12" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
 All guides
 </a>
+<button class="gp-backlinks__print" data-gp-print type="button">
+<svg aria-hidden="true" fill="none" height="15" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="15"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect height="8" width="12" x="6" y="14"></rect></svg>
+Print
+</button>
 <a href="/budget">Open budget planner →</a>
 </div>
 
@@ -582,18 +619,17 @@ All guides
 </article>
 </main>
 <footer class="footer" role="contentinfo">
-<div class="container" style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap">
+<div class="container ef-footer-content">
 <div><strong>EventFlow</strong><br/><span class="small">Event planning made simple.</span></div>
-<div class="version">Version: <span id="ef-version-label">loading…</span></div>
 <div class="small">
 <a href="/guides">Guides</a> ·
-      <a href="/marketplace">Marketplace</a> ·
-      <a href="/credits">Credits</a> ·
-      <a href="/contact">Contact</a> ·
-      <a href="/legal">Legal Hub</a> ·
-      <button data-cookie-prefs="" style="background:none;border:none;color:inherit;text-decoration:underline;cursor:pointer;font-size:inherit;padding:0;" type="button">Cookie preferences</button>
+<a href="/marketplace">Marketplace</a> ·
+<a href="/credits">Credits</a> ·
+<a href="/contact">Contact</a> ·
+<a href="/legal">Legal Hub</a> ·
+<button data-cookie-prefs="" type="button">Cookie preferences</button>
 </div>
-<div class="small" style="width: 100%; margin-top: 8px; text-align: center;">Operated by <a href="https://vexi.co.uk" rel="noopener noreferrer" target="_blank">VEXI</a></div>
+<div class="footer-credit small">Operated by <a href="https://vexi.co.uk" rel="noopener noreferrer" target="_blank">VEXI</a></div>
 </div>
 </footer>
 <!-- BOTTOM NAVBAR - GOLD STANDARD REBUILD (Mobile Only) -->
@@ -662,5 +698,6 @@ All guides
 <script src="/assets/js/app.js?v=18.5.0"></script>
 <script defer="" src="/assets/js/article-progress.js"></script>
 <script defer="" src="/assets/js/pages/guide-premium.js?v=1.1.0"></script>
+<script defer="" src="/assets/js/pages/guide-travel-calculator.js?v=1.0.0"></script>
 </body>
 </html>
