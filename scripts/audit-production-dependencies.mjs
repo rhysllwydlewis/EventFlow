@@ -71,6 +71,27 @@ function describe(vulnerability) {
 }
 
 /**
+ * Parse npm's JSON report, reporting the failure rather than treating it as empty.
+ * @param {{stdout: string, stderr: string}} result The spawn result.
+ * @returns {Object|null} The report, or null when stdout was not JSON.
+ */
+function parseReport(result) {
+  try {
+    return JSON.parse(result.stdout || '{}');
+  } catch (error) {
+    console.error('npm audit did not return valid JSON, so nothing was audited.');
+    if (result.stdout) {
+      console.error(result.stdout.trim());
+    }
+    if (result.stderr) {
+      console.error(result.stderr.trim());
+    }
+    console.error(error instanceof Error ? error.message : String(error));
+    return null;
+  }
+}
+
+/**
  * Run the audit and report.
  * @returns {number} The exit code: 0 clean, 1 blocked or unable to audit.
  */
@@ -84,18 +105,9 @@ function main() {
     }
   );
 
-  let report;
-  try {
-    report = JSON.parse(result.stdout || '{}');
-  } catch (error) {
-    console.error('npm audit did not return valid JSON, so nothing was audited.');
-    if (result.stdout) {
-      console.error(result.stdout.trim());
-    }
-    if (result.stderr) {
-      console.error(result.stderr.trim());
-    }
-    console.error(error instanceof Error ? error.message : String(error));
+  const report = parseReport(result);
+
+  if (!report) {
     return 1;
   }
 

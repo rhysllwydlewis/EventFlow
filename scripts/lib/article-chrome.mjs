@@ -289,7 +289,9 @@ export function findNotificationDropdown(source, file) {
   if (!first) {
     return null;
   }
-  if (opener.exec(source)) {
+  // test() continues from the lastIndex the exec above left, so this asks
+  // whether a second one follows the first.
+  if (opener.test(source)) {
     throw new Error(`${file}: more than one #notification-dropdown — refusing to guess which.`);
   }
 
