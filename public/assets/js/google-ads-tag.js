@@ -52,11 +52,11 @@
   function load() {
     window.dataLayer = window.dataLayer || [];
     if (typeof window.gtag !== 'function') {
-      // skipcq: JS-0244 -- gtag.js identifies queued commands by their Arguments
-      // shape, so this has to stay the arguments object Google's own snippet
-      // pushes rather than a rest-parameter array.
+      // gtag.js identifies queued commands by their Arguments shape, so this has
+      // to stay the arguments object Google's own snippet pushes rather than a
+      // rest-parameter array — see the test asserting the queue shape.
       window.gtag = function gtag() {
-        window.dataLayer.push(arguments);
+        window.dataLayer.push(arguments); // skipcq: JS-0244 -- see above
       };
     }
 
