@@ -269,7 +269,7 @@ ${
 }    <script src="/assets/js/utils/auth-state.js" defer></script>
     <script src="/assets/js/burger-menu.js" defer></script>
     <script src="/assets/js/navbar.js" defer></script>
-    <script src="/assets/js/cookie-consent.js?v=2.0.1" defer></script>
+    <script src="/assets/js/cookie-consent.js?v=3.0.0" defer></script>
     <script src="/assets/js/community/core.js?v=${version('/assets/js/community/core.js')}" defer></script>
 ${scripts}
   </body>

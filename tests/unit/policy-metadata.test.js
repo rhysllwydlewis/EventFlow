@@ -42,11 +42,25 @@ describe('reviewed policy metadata', () => {
 
   it('provides separate updated, effective, reviewed and version placeholders', () => {
     const placeholders = getPolicyPlaceholders();
-    expect(placeholders.POLICY_TERMS_LAST_UPDATED).toBe('6 August 2026');
-    expect(placeholders.POLICY_TERMS_LAST_REVIEWED).toBe('6 August 2026');
-    expect(placeholders.POLICY_COOKIE_POLICY_LAST_UPDATED).toBe('6 August 2026');
-    expect(placeholders.POLICY_COOKIE_POLICY_LAST_REVIEWED).toBe('6 August 2026');
-    expect(placeholders.POLICY_PRIVACY_VERSION).toBe('1.3');
+
+    // Every policy gets its own four placeholders, derived from its own metadata
+    // rather than from one shared date.
+    Object.entries(POLICY_METADATA).forEach(([key, policy]) => {
+      const prefix = `POLICY_${key.replace(/([a-z0-9])([A-Z])/g, '$1_$2').toUpperCase()}`;
+      expect(placeholders[`${prefix}_LAST_UPDATED`]).toBe(
+        formatPolicyDate(policy.lastMaterialUpdate)
+      );
+      expect(placeholders[`${prefix}_EFFECTIVE_DATE`]).toBe(formatPolicyDate(policy.effectiveFrom));
+      expect(placeholders[`${prefix}_LAST_REVIEWED`]).toBe(formatPolicyDate(policy.lastReviewed));
+      expect(placeholders[`${prefix}_VERSION`]).toBe(policy.version);
+    });
+
+    // A policy whose wording did not change keeps its own material-update date
+    // even though it was re-reviewed, so a review cannot silently restate a
+    // document as newer than it is.
+    expect(placeholders.POLICY_ACCEPTABLE_USE_LAST_UPDATED).toBe('11 June 2026');
+    expect(placeholders.POLICY_MARKETPLACE_TERMS_LAST_UPDATED).toBe('11 June 2026');
+    expect(placeholders.POLICY_COMMUNITY_HELP_LAST_UPDATED).toBe('3 August 2026');
   });
 
   it('renders every public policy page without unresolved placeholders', () => {
