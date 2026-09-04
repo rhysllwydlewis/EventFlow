@@ -13,6 +13,12 @@ const CSS = 'public/assets/css/guide-premium.css';
 const HARDENING_CSS = 'public/assets/css/guide-premium-hardening.css';
 const TS = 'src/guides/guide-premium.ts';
 const JS = 'public/assets/js/pages/guide-premium.js';
+// The travel calculator is an optional, article-specific module rather than
+// part of the core template. Both halves are asserted here so the split cannot
+// quietly regress back into the shared runtime.
+const CALC_CSS = 'public/assets/css/guide-travel-calculator.css';
+const CALC_TS = 'src/guides/guide-travel-calculator.ts';
+const CALC_JS = 'public/assets/js/pages/guide-travel-calculator.js';
 const MANIFEST = 'public/assets/data/guides.json';
 const TSCONFIG = 'tsconfig.guides.json';
 
@@ -22,17 +28,26 @@ describe('premium guide template', () => {
   const hardeningCss = read(HARDENING_CSS);
   const ts = read(TS);
   const js = read(JS);
+  const calcTs = read(CALC_TS);
+  const calcJs = read(CALC_JS);
   const manifest = JSON.parse(read(MANIFEST));
   const tsconfig = JSON.parse(read(TSCONFIG));
 
   test('the trial article opts into the template and loads its assets in order', () => {
     expect(html).toContain('<body class="gp-page">');
-    expect(html).toContain('<article class="gp" data-gp-article>');
+    expect(html).toContain('<article class="gp gp--numbered" data-gp-article>');
     const baseCss = html.indexOf('/assets/css/guide-premium.css');
     const hardening = html.indexOf('/assets/css/guide-premium-hardening.css');
     expect(baseCss).toBeGreaterThan(-1);
     expect(hardening).toBeGreaterThan(baseCss);
     expect(html).toContain('/assets/js/pages/guide-premium.js');
+    // The calculator module loads after the core template and its hardening
+    // layer — the overrides at the foot of the module sheet depend on it.
+    const calcCss = html.indexOf('/assets/css/guide-travel-calculator.css');
+    expect(calcCss).toBeGreaterThan(hardening);
+    expect(html.indexOf('/assets/js/pages/guide-travel-calculator.js')).toBeGreaterThan(
+      html.indexOf('/assets/js/pages/guide-premium.js')
+    );
     // The template is a standalone trial: it must not inherit the legacy
     // card-layout article rules in guides.css (e.g. `article header > div`,
     // which centres the hero and adds a stray 32px margin).
@@ -49,16 +64,44 @@ describe('premium guide template', () => {
         [tsc, '-p', path.join(repoRoot, TSCONFIG), '--outDir', tempDir],
         { cwd: repoRoot, stdio: 'pipe' }
       );
-      const emitted = fs.readFileSync(path.join(tempDir, 'guide-premium.js'), 'utf8');
-      const formatted = execFileSync(
-        process.execPath,
-        [prettier, '--stdin-filepath', path.join(repoRoot, JS)],
-        { cwd: repoRoot, input: emitted, encoding: 'utf8' }
-      );
-      expect(js).toBe(formatted);
+      for (const [source, committed] of [
+        ['guide-premium.js', js],
+        ['guide-travel-calculator.js', calcJs],
+      ]) {
+        const emitted = fs.readFileSync(path.join(tempDir, source), 'utf8');
+        const formatted = execFileSync(
+          process.execPath,
+          [prettier, '--stdin-filepath', path.join(repoRoot, 'public/assets/js/pages', source)],
+          { cwd: repoRoot, input: emitted, encoding: 'utf8' }
+        );
+        expect(formatted).toBe(committed);
+      }
     } finally {
       fs.rmSync(tempDir, { recursive: true, force: true });
     }
+  });
+
+  test("the core template carries no single article's subject matter", () => {
+    // The whole point of the module split: a future article that needs its own
+    // widget adds a module beside the template rather than growing the shared
+    // runtime, and articles without a calculator never download one.
+    const calcCss = read(CALC_CSS);
+    for (const selector of ['gp-calc', 'gp-field', 'gp-range', 'gp-bar', 'gp-result']) {
+      expect(css).not.toContain(selector);
+      expect(hardeningCss).not.toContain(selector);
+      expect(calcCss).toContain(selector);
+    }
+    for (const symbol of ['LITRES_PER_GALLON', 'HMRC_RATE_PER_MILE', 'gp-calc']) {
+      expect(ts).not.toContain(symbol);
+    }
+  });
+
+  test('section numbering is generated, never hand-written', () => {
+    // Hand-numbered headings drift the moment a section is inserted or cut.
+    expect(html).not.toContain('gp-section__num');
+    expect(html).toContain('class="gp gp--numbered"');
+    expect(css).toContain('counter-increment: gp-section');
+    expect(css).toContain('counter(gp-section, decimal-leading-zero)');
   });
 
   test('new premium guide TypeScript is held to strict compiler settings', () => {
@@ -106,8 +149,8 @@ describe('premium guide template', () => {
   });
 
   test('the calculator and article agree on the current 2026/27 HMRC rate', () => {
-    expect(ts).toContain('LITRES_PER_GALLON = 4.54609');
-    expect(ts).toContain('HMRC_RATE_PER_MILE = 0.55');
+    expect(calcTs).toContain('LITRES_PER_GALLON = 4.54609');
+    expect(calcTs).toContain('HMRC_RATE_PER_MILE = 0.55');
     expect(html).toContain('55p per mile for the first 10,000 business miles');
     expect(html).toContain('effective from 6 April 2026');
     expect(html).toContain('4.54609 litres per UK gallon');
@@ -118,7 +161,7 @@ describe('premium guide template', () => {
   test('the calculator default output is consistent with the 55p rate', () => {
     expect(html).toContain('data-gp-out="hmrc-amount">£66.00');
     expect(html).toContain('Reimbursing at 55p leaves <strong>£47.83</strong>');
-    expect(js).toContain('HMRC_RATE_PER_MILE = 0.55');
+    expect(calcJs).toContain('HMRC_RATE_PER_MILE = 0.55');
   });
 
   test('fuelcosts.co.uk stays one natural followed editorial reference with referral attribution', () => {
@@ -143,7 +186,7 @@ describe('premium guide template', () => {
 
   test('hardening stylesheet fixes token scope and keeps white-text controls on dark colours', () => {
     expect(hardeningCss).toMatch(/body\.gp-page\s*\{[\s\S]*--gp-surface:\s*#fff/);
-    expect(hardeningCss).toMatch(/\.gp \.gp-calc__head\s*\{[\s\S]*#086b60/);
+    expect(read(CALC_CSS)).toMatch(/\.gp \.gp-calc__head\s*\{[\s\S]*#086b60/);
     expect(hardeningCss).toMatch(/\.gp \*:focus-visible\s*\{[\s\S]*#0b8073/);
   });
 

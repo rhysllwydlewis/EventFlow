@@ -614,7 +614,21 @@ body.gp-page {
   margin-bottom: 1.1rem;
 }
 
-.gp-section__num {
+/* Section numbering is opt-in and generated, never hand-written.
+   Add `gp--numbered` to the article root and the counter does the rest, so an
+   author cannot ship 01, 02, 04 — and an article that reads better without
+   numbers (an explainer, an opinion piece, a news post) simply omits the
+   modifier and the heading closes up with no markup change. */
+.gp--numbered .gp-body {
+  counter-reset: gp-section;
+}
+
+.gp--numbered .gp-section {
+  counter-increment: gp-section;
+}
+
+.gp--numbered .gp-section > .gp-section__head::before {
+  content: counter(gp-section, decimal-leading-zero);
   font-family: var(--gp-mono);
   font-size: 0.75rem;
   font-weight: 600;
@@ -979,264 +993,6 @@ body.gp-page {
   white-space: nowrap;
 }
 
-/* — Fuel calculator ----------------------------------------------------- */
-.gp-calc {
-  margin-top: 2rem;
-  border-radius: var(--gp-radius-lg);
-  overflow: hidden;
-  background: var(--gp-surface);
-  border: 1px solid var(--gp-line);
-  box-shadow: var(--gp-shadow-md);
-}
-
-.gp-calc__head {
-  position: relative;
-  isolation: isolate;
-  padding: 1.25rem 1.4rem;
-  color: #fff;
-  background: linear-gradient(
-    120deg,
-    var(--gp-deep) 0%,
-    var(--gp-brand) 72%,
-    var(--gp-brand-lift) 130%
-  );
-  overflow: hidden;
-}
-
-.gp-calc__head::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  z-index: -1;
-  opacity: 0.2;
-  mix-blend-mode: overlay;
-  background-image: var(--gp-grain);
-}
-
-.gp-calc__title {
-  font-family: var(--gp-sans);
-  font-size: 1.125rem;
-  font-weight: 650;
-  margin: 0;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  color: #fff;
-}
-
-.gp-calc__sub {
-  margin: 6px 0 0;
-  font-size: 0.8125rem;
-  line-height: 1.55;
-  color: rgba(255, 255, 255, 0.85);
-}
-
-.gp-calc__sub a {
-  color: #fff;
-  background-image: linear-gradient(rgba(255, 255, 255, 0.6), rgba(255, 255, 255, 0.6));
-}
-
-.gp-calc__body {
-  display: grid;
-  gap: 0;
-  grid-template-columns: 1fr;
-}
-
-@media (min-width: 720px) {
-  .gp-calc__body {
-    grid-template-columns: 1.05fr 1fr;
-  }
-}
-
-.gp-calc__controls {
-  padding: 1.35rem 1.4rem;
-  display: grid;
-  gap: 1.15rem;
-  align-content: start;
-}
-
-.gp-field__top {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 10px;
-  margin-bottom: 9px;
-}
-
-.gp-field__label {
-  font-size: 0.8125rem;
-  font-weight: 600;
-  color: var(--gp-text);
-}
-
-.gp-field__value {
-  font-family: var(--gp-mono);
-  font-size: 0.8125rem;
-  font-weight: 600;
-  font-variant-numeric: tabular-nums;
-  color: var(--gp-brand);
-  background: var(--gp-surface-tint);
-  border-radius: 6px;
-  padding: 2px 8px;
-}
-
-.gp-range {
-  -webkit-appearance: none;
-  appearance: none;
-  width: 100%;
-  height: 6px;
-  border-radius: 999px;
-  background: linear-gradient(
-    90deg,
-    var(--gp-brand) 0%,
-    var(--gp-brand-lift) var(--gp-range-fill, 50%),
-    var(--gp-line) var(--gp-range-fill, 50%),
-    var(--gp-line) 100%
-  );
-  outline: none;
-  cursor: pointer;
-}
-
-.gp-range::-webkit-slider-thumb {
-  -webkit-appearance: none;
-  appearance: none;
-  width: 20px;
-  height: 20px;
-  border-radius: 50%;
-  background: #fff;
-  border: 2px solid var(--gp-brand);
-  box-shadow: var(--gp-shadow-sm);
-  cursor: grab;
-  transition:
-    transform 0.16s var(--gp-ease),
-    box-shadow 0.16s ease;
-}
-
-.gp-range::-webkit-slider-thumb:hover {
-  transform: scale(1.14);
-  box-shadow: 0 0 0 6px rgba(19, 182, 162, 0.16);
-}
-
-.gp-range:active::-webkit-slider-thumb {
-  cursor: grabbing;
-  transform: scale(1.06);
-}
-
-.gp-range::-moz-range-thumb {
-  width: 18px;
-  height: 18px;
-  border-radius: 50%;
-  background: #fff;
-  border: 2px solid var(--gp-brand);
-  box-shadow: var(--gp-shadow-sm);
-  cursor: grab;
-}
-
-.gp-range::-moz-range-track {
-  height: 6px;
-  border-radius: 999px;
-  background: transparent;
-}
-
-.gp-calc__results {
-  padding: 1.35rem 1.4rem;
-  background: var(--gp-surface-sunk);
-  border-top: 1px solid var(--gp-line);
-  display: grid;
-  gap: 1rem;
-  align-content: start;
-}
-
-@media (min-width: 720px) {
-  .gp-calc__results {
-    border-top: 0;
-    border-left: 1px solid var(--gp-line);
-  }
-}
-
-.gp-result__headline {
-  font-family: var(--gp-display);
-  font-size: clamp(2rem, 1.6rem + 1.6vw, 2.75rem);
-  font-weight: 600;
-  line-height: 1;
-  letter-spacing: -0.02em;
-  color: var(--gp-text);
-  font-variant-numeric: tabular-nums;
-  margin: 0;
-}
-
-.gp-result__caption {
-  font-size: 0.8125rem;
-  color: var(--gp-muted);
-  margin: 6px 0 0;
-}
-
-.gp-bars {
-  display: grid;
-  gap: 0.85rem;
-  margin: 0.25rem 0 0;
-}
-
-.gp-bar__top {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 10px;
-  font-size: 0.8125rem;
-  margin-bottom: 6px;
-}
-
-.gp-bar__name {
-  color: var(--gp-text-soft);
-}
-
-.gp-bar__amount {
-  font-family: var(--gp-mono);
-  font-weight: 600;
-  font-variant-numeric: tabular-nums;
-  color: var(--gp-text);
-}
-
-.gp-bar__track {
-  height: 9px;
-  border-radius: 999px;
-  background: var(--gp-line);
-  overflow: hidden;
-}
-
-.gp-bar__fill {
-  display: block;
-  height: 100%;
-  width: var(--gp-bar-w, 0%);
-  border-radius: 999px;
-  background: linear-gradient(90deg, var(--gp-brand), var(--gp-brand-lift));
-  transition: width 0.55s var(--gp-ease);
-}
-
-.gp-bar--alt .gp-bar__fill {
-  background: linear-gradient(90deg, var(--gp-amber-deep), var(--gp-amber));
-}
-
-.gp-calc__verdict {
-  font-size: 0.8125rem;
-  line-height: 1.6;
-  color: var(--gp-text-soft);
-  padding-top: 0.9rem;
-  border-top: 1px dashed var(--gp-line);
-  margin: 0;
-}
-
-.gp-calc__verdict strong {
-  color: var(--gp-text);
-}
-
-.gp-calc__foot {
-  padding: 0.85rem 1.4rem;
-  border-top: 1px solid var(--gp-line);
-  font-size: 0.75rem;
-  color: var(--gp-muted);
-  background: var(--gp-surface);
-}
 
 /* — FAQ ----------------------------------------------------------------- */
 .gp-faq {
