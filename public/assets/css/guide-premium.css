@@ -913,6 +913,27 @@ body.gp-page {
   box-shadow: var(--gp-shadow-xs);
 }
 
+/* The wrap is the scroll container, so it carries `tabindex="0"` for keyboard
+   users who cannot scroll it any other way. Give that focus somewhere visible
+   to land. */
+.gp .gp-table-wrap:focus-visible {
+  outline: 2px solid var(--gp-brand-lift);
+  outline-offset: 3px;
+}
+
+/* Below 768px mobile-optimizations.css turns every <table> into its own scroll
+   container (`display: block; overflow-x: auto; white-space: nowrap`). The
+   premium table already scrolls inside .gp-table-wrap, so that rule nests a
+   second scroller inside the first — two horizontal scrollbars for one table,
+   and every cell forced onto a single line. Opt out and let the wrap own it. */
+@media (max-width: 768px) {
+  .gp .gp-table {
+    display: table;
+    overflow-x: visible;
+    white-space: normal;
+  }
+}
+
 .gp-table {
   width: 100%;
   min-width: 560px;

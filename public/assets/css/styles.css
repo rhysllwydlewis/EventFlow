@@ -3456,6 +3456,13 @@ textarea:focus:not(:focus-visible) {
   text-align: center;
 }
 
+/* The credit link sits inside a run of text and is otherwise distinguished
+   from it by colour alone — 1.02:1 against the surrounding grey, well under
+   the 3:1 WCAG 1.4.1 needs. axe reports it as `link-in-text-block`. */
+.footer-credit a {
+  text-decoration: underline;
+}
+
 /* ===========================================
    EVENT DETAIL — REPORT MODAL
    =========================================== */

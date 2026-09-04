@@ -86,6 +86,26 @@ const BASELINE_PAGES = [
   // actually have. They belong in a backend-backed job instead.
   { name: 'community-guidelines', path: '/community/guidelines', screenshotApproved: false },
   { name: 'community-help', path: '/community/help', screenshotApproved: false },
+  // Guide articles had no coverage here at all, which is how 34 files drifted
+  // into six different site headers without anything noticing. Two are listed:
+  // one on the new premium template and one still on the legacy guide layout,
+  // so the shared chrome is audited in both contexts. Both are fully static, so
+  // the scan audits the real page rather than an error state.
+  //
+  // Screenshots are unapproved until baselines are generated in an environment
+  // that reproduces CI's rendering (`npm run test:visual:update`, reviewed, then
+  // this flag removed); the axe scan runs regardless and is the point of adding
+  // them now.
+  {
+    name: 'article-premium-template',
+    path: '/articles/event-travel-costs-guide.html',
+    screenshotApproved: false,
+  },
+  {
+    name: 'article-legacy-template',
+    path: '/articles/wedding-venue-selection-guide.html',
+    screenshotApproved: false,
+  },
 ];
 
 /**
