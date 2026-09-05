@@ -54,7 +54,11 @@ describe('guides SEO and UX assets', () => {
   test('guide cards and article finales share the standard visual template', () => {
     const css = fs.readFileSync(path.join(repoRoot, 'public/assets/css/guides.css'), 'utf8');
     const guidesHtml = readPublic('guides.html');
-    const articleHtml = readPublic('articles/event-planning-checklist-guide.html');
+    // event-planning-checklist-guide moved onto the premium (gp-*) template in the
+    // article rollout — guest-list-management-guide is this suite's still-legacy
+    // reference article (also the visual-regression a11y baseline for the same
+    // reason), so the "still loads guides.css" assertion below stays meaningful.
+    const articleHtml = readPublic('articles/guest-list-management-guide.html');
 
     expect(css).toContain('--guide-card-template-bg');
     expect(css).toContain('--guide-finale-panel-bg');
@@ -70,12 +74,12 @@ describe('guides SEO and UX assets', () => {
   });
 
   test('sample article includes schema, feedback, prefilled report link and copy button', () => {
-    const guide = guides.find(item => item.href === '/articles/event-planning-checklist-guide');
-    const html = readPublic('articles/event-planning-checklist-guide.html');
+    const guide = guides.find(item => item.href === '/articles/guest-list-management-guide');
+    const html = readPublic('articles/guest-list-management-guide.html');
     expect(html).toContain('"@type": "Article"');
     expect(html).toContain('"@type": "BreadcrumbList"');
     expect(html).toContain('data-guide-feedback');
-    expect(html).toContain('Guide%3A%20event-planning-checklist-guide');
+    expect(html).toContain('Guide%3A%20guest-list-management-guide');
     expect(html).toContain('labels=content,guides');
     expect(html).toContain('data-share-channel="copy"');
     expect(html).toContain(`data-share-url="https://event-flow.co.uk${guide.href}"`);
