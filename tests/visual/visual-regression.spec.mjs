@@ -103,11 +103,13 @@ const BASELINE_PAGES = [
   },
   {
     name: 'article-legacy-template',
-    // Was wedding-venue-selection-guide.html — that article is the second
-    // pilot onto the premium template now, so this route was repointed to a
-    // still-legacy article rather than silently starting to audit two
-    // premium pages under one "legacy" label.
-    path: '/articles/budget-planner-guide.html',
+    // Was wedding-venue-selection-guide.html, then budget-planner-guide.html
+    // — both moved onto the premium template since (the second pilot, then
+    // the first 10-article rollout batch), so this route keeps getting
+    // repointed to a still-legacy article rather than silently starting to
+    // audit two premium pages under one "legacy" label. Update again the day
+    // guest-list-management-guide.html converts.
+    path: '/articles/guest-list-management-guide.html',
     screenshotApproved: false,
   },
 ];
