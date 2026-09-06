@@ -51,14 +51,14 @@ describe('guides SEO and UX assets', () => {
     expect(init).toContain('if (searchClear)');
   });
 
-  test('guide cards and article finales share the standard visual template', () => {
+  test('guide cards and the guide index share the standard visual template', () => {
     const css = fs.readFileSync(path.join(repoRoot, 'public/assets/css/guides.css'), 'utf8');
     const guidesHtml = readPublic('guides.html');
-    // event-planning-checklist-guide moved onto the premium (gp-*) template in the
-    // article rollout — guest-list-management-guide is this suite's still-legacy
-    // reference article (also the visual-regression a11y baseline for the same
-    // reason), so the "still loads guides.css" assertion below stays meaningful.
-    const articleHtml = readPublic('articles/guest-list-management-guide.html');
+    // Every article moved onto the premium (gp-*) template in the article
+    // rollout, so guides.css is no longer loaded by any article page — only
+    // by the guide index itself. The per-article assertion this test used to
+    // carry (checking a still-legacy reference article) no longer has a
+    // subject and was removed rather than repointed.
 
     expect(css).toContain('--guide-card-template-bg');
     expect(css).toContain('--guide-finale-panel-bg');
@@ -70,16 +70,19 @@ describe('guides SEO and UX assets', () => {
     expect(css).toContain('article .card .article-cta-card a');
     expect(css).not.toContain('PR1023 follow-up');
     expect(guidesHtml).toContain('/assets/css/guides.css?v=19.8.0');
-    expect(articleHtml).toContain('/assets/css/guides.css?v=19.8.0');
   });
 
   test('sample article includes schema, feedback, prefilled report link and copy button', () => {
-    const guide = guides.find(item => item.href === '/articles/guest-list-management-guide');
-    const html = readPublic('articles/guest-list-management-guide.html');
+    // event-travel-costs-guide is the premium template's own canonical
+    // reference article (see docs/ARTICLE_TEMPLATE.md) — now that every guide
+    // has moved onto the gp-* template, it's the stable choice for a "sample
+    // article" fixture rather than any one of the 34 equally-valid articles.
+    const guide = guides.find(item => item.href === '/articles/event-travel-costs-guide');
+    const html = readPublic('articles/event-travel-costs-guide.html');
     expect(html).toContain('"@type": "Article"');
     expect(html).toContain('"@type": "BreadcrumbList"');
     expect(html).toContain('data-guide-feedback');
-    expect(html).toContain('Guide%3A%20guest-list-management-guide');
+    expect(html).toContain('Guide%3A%20event-travel-costs-guide');
     expect(html).toContain('labels=content,guides');
     expect(html).toContain('data-share-channel="copy"');
     expect(html).toContain(`data-share-url="https://event-flow.co.uk${guide.href}"`);

@@ -87,29 +87,24 @@ const BASELINE_PAGES = [
   { name: 'community-guidelines', path: '/community/guidelines', screenshotApproved: false },
   { name: 'community-help', path: '/community/help', screenshotApproved: false },
   // Guide articles had no coverage here at all, which is how 34 files drifted
-  // into six different site headers without anything noticing. Two are listed:
-  // one on the new premium template and one still on the legacy guide layout,
-  // so the shared chrome is audited in both contexts. Both are fully static, so
-  // the scan audits the real page rather than an error state.
+  // into six different site headers without anything noticing. This page is
+  // fully static, so the scan audits the real page rather than an error state.
   //
-  // Screenshots are unapproved until baselines are generated in an environment
+  // A second entry used to sit here auditing a still-legacy-template article
+  // alongside this one, repointed each time the rollout converted its
+  // predecessor (wedding-venue-selection-guide.html, then
+  // budget-planner-guide.html, then guest-list-management-guide.html). The
+  // rollout has now converted every article on the site, so there is no
+  // legacy-template page left to point it at — it was removed rather than
+  // repointed once more.
+  //
+  // Screenshot is unapproved until a baseline is generated in an environment
   // that reproduces CI's rendering (`npm run test:visual:update`, reviewed, then
   // this flag removed); the axe scan runs regardless and is the point of adding
-  // them now.
+  // it now.
   {
     name: 'article-premium-template',
     path: '/articles/event-travel-costs-guide.html',
-    screenshotApproved: false,
-  },
-  {
-    name: 'article-legacy-template',
-    // Was wedding-venue-selection-guide.html, then budget-planner-guide.html
-    // — both moved onto the premium template since (the second pilot, then
-    // the first 10-article rollout batch), so this route keeps getting
-    // repointed to a still-legacy article rather than silently starting to
-    // audit two premium pages under one "legacy" label. Update again the day
-    // guest-list-management-guide.html converts.
-    path: '/articles/guest-list-management-guide.html',
     screenshotApproved: false,
   },
 ];
