@@ -892,6 +892,7 @@ const canonicalPages = [
   'faq',
   'for-suppliers',
   'auth',
+  'about',
   'contact',
   'legal',
   'credits',
