@@ -17,6 +17,7 @@ const GUIDES_FILE = path.join(__dirname, '../public/assets/data/guides.json');
 
 const STATIC_PAGES = [
   { url: '/', changefreq: 'weekly', priority: '1.0' },
+  { url: '/about', changefreq: 'yearly', priority: '0.5' },
   { url: '/start', changefreq: 'weekly', priority: '0.9' },
   { url: '/suppliers', changefreq: 'daily', priority: '0.9' },
   { url: '/marketplace', changefreq: 'daily', priority: '0.9' },

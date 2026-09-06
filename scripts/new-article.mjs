@@ -184,8 +184,21 @@ ${serializeJsonLd({
   description,
   datePublished: today,
   dateModified: today,
-  author: { '@type': 'Organization', name: 'EventFlow' },
-  publisher: { '@type': 'Organization', name: 'EventFlow' },
+  author: { '@type': 'Organization', name: 'EventFlow Team', url: `${SITE}/about` },
+  publisher: {
+    '@type': 'Organization',
+    name: 'EventFlow',
+    url: SITE,
+    description:
+      'UK event planning platform connecting customers with approved event suppliers for weddings, parties and corporate events',
+    logo: { '@type': 'ImageObject', url: `${SITE}/icon-512.png`, width: 512, height: 512 },
+    sameAs: [
+      'https://twitter.com/EventFlowUK',
+      'https://www.facebook.com/eventflowuk',
+      'https://www.instagram.com/eventflowuk',
+      'https://www.linkedin.com/company/eventflowuk',
+    ],
+  },
   mainEntityOfPage: { '@type': 'WebPage', '@id': url },
 })}
 </script>

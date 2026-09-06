@@ -319,6 +319,7 @@ async function generateSitemap(baseUrl) {
     '/start',
     '/pricing',
     '/for-suppliers',
+    '/about',
     '/contact',
     '/faq',
     '/privacy',
