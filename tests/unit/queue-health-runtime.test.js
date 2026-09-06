@@ -16,6 +16,7 @@ const mockRedisClient = {
   multi: jest.fn(() => mockRedisMulti),
   zrem: jest.fn(async () => 1),
   quit: jest.fn(async () => 'OK'),
+  on: jest.fn(),
 };
 const mockWorkers = [];
 

@@ -93,6 +93,13 @@ function initQueues() {
     maxRetriesPerRequest: null,
     connectTimeout: 5_000,
   });
+  // ioredis logs "[ioredis] Unhandled error event" straight to stderr for any
+  // connection we own that has no 'error' listener of its own (BullMQ does not
+  // attach one on our behalf when we supply the connection). Route it through
+  // the app logger instead so outages show up in structured logs.
+  redis.on('error', error => {
+    context.logger?.error?.('[queue] redis connection error', { error: error.message });
+  });
   notificationsQueue = new Queue('notifications', {
     connection: redis,
     prefix: QUEUE_NAMESPACE,
