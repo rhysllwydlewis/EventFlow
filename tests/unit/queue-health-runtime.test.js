@@ -16,6 +16,11 @@ const mockRedisClient = {
   multi: jest.fn(() => mockRedisMulti),
   zrem: jest.fn(async () => 1),
   quit: jest.fn(async () => 'OK'),
+  handlers: {},
+  on: jest.fn(function on(event, handler) {
+    this.handlers[event] = handler;
+    return this;
+  }),
 };
 const mockWorkers = [];
 
@@ -57,6 +62,7 @@ describe('Redis queue runtime health', () => {
       REDIS_URL: 'redis://redis.internal:6379',
     };
     mockWorkers.length = 0;
+    mockRedisClient.handlers = {};
     mockRedisClient.zrevrange.mockResolvedValue(['worker-1', String(Date.now())]);
     mockRedisClient.ping.mockResolvedValue('PONG');
   });
@@ -163,6 +169,21 @@ describe('Redis queue runtime health', () => {
     await expect(
       queue.getQueueHealth({ force: true, requireWorker: false })
     ).resolves.toMatchObject({ ready: true, worker: 'not_required' });
+  });
+
+  it('routes unhandled Redis connection errors through the app logger', async () => {
+    const queue = require('../../services/queue');
+    const logger = { error: jest.fn() };
+    queue.setQueueContext({ logger });
+
+    queue.getQueues();
+    expect(mockRedisClient.handlers.error).toEqual(expect.any(Function));
+
+    mockRedisClient.handlers.error(new Error('connect ECONNREFUSED 127.0.0.1:6379'));
+
+    expect(logger.error).toHaveBeenCalledWith('[queue] redis connection error', {
+      error: 'connect ECONNREFUSED 127.0.0.1:6379',
+    });
   });
 
   it('rejects an unsafe namespace before connecting to Redis', () => {
