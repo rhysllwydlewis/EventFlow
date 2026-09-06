@@ -31,7 +31,6 @@ const WS_SERVER_INITIALIZED = Symbol.for('eventflow.wsServerInitialized');
 let RedisAdapter;
 let redisClient;
 try {
-  // eslint-disable-next-line node/no-missing-require
   const { createAdapter } = require('@socket.io/redis-adapter');
   const Redis = require('ioredis');
   RedisAdapter = createAdapter;
@@ -39,6 +38,11 @@ try {
   // Initialize Redis if REDIS_URL is set
   if (process.env.REDIS_URL) {
     redisClient = new Redis(process.env.REDIS_URL);
+    // Without a listener, ioredis logs "[ioredis] Unhandled error event" straight
+    // to stderr on every reconnect attempt instead of going through our logger.
+    redisClient.on('error', error => {
+      logger.warn('WebSocket Redis client error', { error: error.message });
+    });
     logger.info('Redis client initialized for WebSocket clustering');
   }
 } catch (error) {
@@ -102,6 +106,11 @@ class WebSocketServerV2 {
       try {
         const pubClient = redisClient;
         const subClient = pubClient.duplicate();
+        // duplicate() creates a new connection that does not inherit pubClient's
+        // 'error' listener, so it would otherwise hit ioredis's raw stderr fallback.
+        subClient.on('error', error => {
+          logger.warn('WebSocket Redis subscriber client error', { error: error.message });
+        });
         this.io.adapter(RedisAdapter(pubClient, subClient));
         logger.info('Socket.IO Redis adapter enabled for clustering');
       } catch (error) {
