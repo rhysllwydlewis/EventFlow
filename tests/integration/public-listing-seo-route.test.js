@@ -118,6 +118,37 @@ describe('public package and event SEO routes', () => {
     const { app } = createApp({ packages: [{ ...pkg, approved: false }] });
     const response = await request(app).get(`/package/${pkg.slug}`).expect(404);
     expect(response.headers['x-robots-tag']).toBe('noindex, nofollow');
+    // Serves the real package page shell (with its existing "Package not
+    // found" panel and navigation) rather than a bare, unstyled body.
+    expect(response.text).toContain('id="package-error"');
+    expect(response.text).toContain('Package not found');
+    expect(response.text).not.toContain('id="package-structured-data"');
+  });
+
+  test('never bootstraps package-init.js on a not-found package response', async () => {
+    // package-init.js fetches /api/packages/:slug independently of this
+    // router's eligibility check, and that endpoint does not enforce the
+    // same paused/suspended/deleted lifecycle rules — so if this script ran,
+    // a moderated-but-still-"approved" package could be fetched and rendered
+    // by the client despite this response's 404 status.
+    const { app } = createApp({ packages: [{ ...pkg, approved: false }] });
+    const response = await request(app).get(`/package/${pkg.slug}`).expect(404);
+    expect(response.text).not.toMatch(/<script[^>]*src="\/assets\/js\/pages\/package-init\.js/);
+  });
+
+  test('renders the not-found package shell for a package whose supplier is not public', async () => {
+    const { app } = createApp({ packages: [{ ...pkg, supplierId: 'missing-supplier' }] });
+    const response = await request(app).get(`/package/${pkg.slug}`).expect(404);
+    expect(response.headers['x-robots-tag']).toBe('noindex, nofollow');
+    expect(response.text).toContain('id="package-error"');
+  });
+
+  test('renders the not-found package shell for the legacy query lookup', async () => {
+    const { app } = createApp();
+    const response = await request(app).get('/package?slug=does-not-exist').expect(404);
+    expect(response.headers['x-robots-tag']).toBe('noindex, nofollow');
+    expect(response.text).toContain('id="package-error"');
+    expect(response.text).not.toContain('id="package-structured-data"');
   });
 
   test('serves qualifying public events with server-rendered Event JSON-LD', async () => {
@@ -164,6 +195,25 @@ describe('public package and event SEO routes', () => {
     });
     const response = await request(app).get(`/events/${futureEvent.slug}`).expect(404);
     expect(response.headers['x-robots-tag']).toBe('noindex, nofollow');
+    // Serves the real event page shell (statically) rather than a bare body.
+    expect(response.text).toContain('id="event-panel"');
+    expect(response.text).toContain('Event not found');
+    expect(response.text).not.toContain('id="event-structured-data"');
+  });
+
+  test('never bootstraps event-detail-init.js on a not-found event response', async () => {
+    // event-detail-init.js fetches /api/v1/public-calendar/events/:slug,
+    // whose canSeeEvent() returns true for any published/cancelled event
+    // regardless of isPrivate/visibility — the opposite of this router's own
+    // eligibility check. If this script ran, a published-but-private event
+    // could be fetched and fully rendered despite this response's 404 status.
+    const { app } = createApp({
+      public_calendar_events: [{ ...futureEvent, isPrivate: true }],
+    });
+    const response = await request(app).get(`/events/${futureEvent.slug}`).expect(404);
+    expect(response.text).not.toMatch(
+      /<script[^>]*src="\/assets\/js\/pages\/event-detail-init\.js/
+    );
   });
 
   test('does not apply the shared API request bucket to indexable HTML pages', async () => {
