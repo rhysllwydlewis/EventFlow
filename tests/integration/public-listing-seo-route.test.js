@@ -118,6 +118,16 @@ describe('public package and event SEO routes', () => {
     const { app } = createApp({ packages: [{ ...pkg, approved: false }] });
     const response = await request(app).get(`/package/${pkg.slug}`).expect(404);
     expect(response.headers['x-robots-tag']).toBe('noindex, nofollow');
+    // Falls through to the app's own 404 handling rather than the router
+    // terminating the response itself with a bare, unstyled body.
+    expect(response.text).toBe('Not found');
+  });
+
+  test('falls through to app 404 handling for a package with no matching supplier', async () => {
+    const { app } = createApp({ packages: [{ ...pkg, supplierId: 'missing-supplier' }] });
+    const response = await request(app).get(`/package/${pkg.slug}`).expect(404);
+    expect(response.headers['x-robots-tag']).toBe('noindex, nofollow');
+    expect(response.text).toBe('Not found');
   });
 
   test('serves qualifying public events with server-rendered Event JSON-LD', async () => {
@@ -164,6 +174,7 @@ describe('public package and event SEO routes', () => {
     });
     const response = await request(app).get(`/events/${futureEvent.slug}`).expect(404);
     expect(response.headers['x-robots-tag']).toBe('noindex, nofollow');
+    expect(response.text).toBe('Not found');
   });
 
   test('does not apply the shared API request bucket to indexable HTML pages', async () => {

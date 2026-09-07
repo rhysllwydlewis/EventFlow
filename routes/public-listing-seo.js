@@ -133,7 +133,7 @@ function createPublicListingSeoRouter(options = {}) {
       const pkg = resolvePublicPackage(listings.packages, lookup, listings.supplierIds);
       if (!pkg) {
         noindex(res);
-        return res.status(404).send('Package not found');
+        return next();
       }
       const campaignQuery = buildCampaignQuery(req.query);
       const canonicalPath = `/package/${buildPublicPackageSlug(pkg)}`;
@@ -150,12 +150,12 @@ function createPublicListingSeoRouter(options = {}) {
       const pkg = resolvePublicPackage(listings.packages, req.params.slug, listings.supplierIds);
       if (!pkg) {
         noindex(res);
-        return res.status(404).send('Package not found');
+        return next();
       }
       const supplier = listings.supplierById.get(pkg.supplierId);
       if (!supplier) {
         noindex(res);
-        return res.status(404).send('Package not found');
+        return next();
       }
 
       const canonicalSlug = buildPublicPackageSlug(pkg);
@@ -201,7 +201,7 @@ function createPublicListingSeoRouter(options = {}) {
       const event = resolvePublicEvent(listings.events, req.params.slug);
       if (!event) {
         noindex(res);
-        return res.status(404).send('Event not found');
+        return next();
       }
 
       const canonicalSlug = buildPublicEventSlug(event);
