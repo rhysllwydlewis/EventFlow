@@ -1134,5 +1134,34 @@
     "primaryTag": "budget",
     "ogImage": "https://images.pexels.com/photos/3483098/pexels-photo-3483098.jpeg?auto=compress&cs=tinysrgb&w=800&h=500&dpr=1",
     "lastMaterialUpdate": "2026-09-07"
+  },
+  {
+    "id": 40,
+    "title": "Wedding Attire Guide",
+    "description": "What to wear to a wedding as a guest, bridesmaid or mother of the bride, plus how to choose a wedding dress.",
+    "excerpt": "What to wear to a wedding as a guest, bridesmaid or mother of the bride, plus how to choose a wedding dress. Covers dress codes, bridal gown styles, bridesmaid dresses, shoes and bouquets.",
+    "image": "https://images.pexels.com/photos/1024993/pexels-photo-1024993.jpeg?auto=compress&cs=tinysrgb&w=800&h=500&dpr=1",
+    "category": "Wedding",
+    "tags": [
+      "wedding",
+      "attire",
+      "dresses"
+    ],
+    "href": "/articles/wedding-attire-guide",
+    "readingMins": 8,
+    "publishedDate": "2026-09-07",
+    "featured": false,
+    "affiliate": false,
+    "tool": {
+      "label": "Browse suppliers",
+      "href": "/suppliers"
+    },
+    "author": "EventFlow Team",
+    "summary": "What to wear to a wedding as a guest, bridesmaid or mother of the bride.",
+    "difficulty": "Beginner",
+    "lastUpdated": "2026-09-07",
+    "primaryTag": "attire",
+    "ogImage": "https://images.pexels.com/photos/1024993/pexels-photo-1024993.jpeg?auto=compress&cs=tinysrgb&w=800&h=500&dpr=1",
+    "lastMaterialUpdate": "2026-09-07"
   }
 ]
