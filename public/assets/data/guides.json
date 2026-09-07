@@ -432,10 +432,10 @@
     "author": "EventFlow Team",
     "summary": "Everything you need to know about wedding stationery, from save-the-dates to on-the-day menus.",
     "difficulty": "Beginner",
-    "lastUpdated": "2026-09-05",
+    "lastUpdated": "2026-09-07",
     "primaryTag": "stationery",
     "ogImage": "https://images.pexels.com/photos/1027130/pexels-photo-1027130.jpeg?auto=compress&cs=tinysrgb&w=800&h=500&dpr=1",
-    "lastMaterialUpdate": "2026-09-05"
+    "lastMaterialUpdate": "2026-09-07"
   },
   {
     "id": 16,
@@ -499,16 +499,17 @@
     "id": 18,
     "title": "How to Write a Wedding Speech",
     "description": "Craft a heartfelt, memorable wedding speech with our step-by-step writing guide.",
-    "excerpt": "Craft a heartfelt, memorable wedding speech with our step-by-step writing guide. Includes tips for the best man, maid of honour, parents, and the couple themselves.",
+    "excerpt": "Craft a heartfelt, memorable wedding speech with our step-by-step writing guide. Includes tips for the best man, maid of honour, parents, and the couple themselves, plus who pays for what and maid/matron of honour duties.",
     "image": "https://images.pexels.com/photos/3171837/pexels-photo-3171837.jpeg?auto=compress&cs=tinysrgb&w=800&h=500&dpr=1",
     "category": "Wedding",
     "tags": [
       "wedding",
       "speech",
-      "tips"
+      "tips",
+      "etiquette"
     ],
     "href": "/articles/how-to-write-wedding-speech",
-    "readingMins": 7,
+    "readingMins": 8,
     "publishedDate": "2026-03-13",
     "featured": false,
     "affiliate": false,
@@ -519,10 +520,10 @@
     "author": "EventFlow Team",
     "summary": "Craft a heartfelt, memorable wedding speech with our step-by-step writing guide.",
     "difficulty": "Intermediate",
-    "lastUpdated": "2026-09-05",
+    "lastUpdated": "2026-09-07",
     "primaryTag": "wedding",
     "ogImage": "https://images.pexels.com/photos/3171837/pexels-photo-3171837.jpeg?auto=compress&cs=tinysrgb&w=800&h=500&dpr=1",
-    "lastMaterialUpdate": "2026-09-05"
+    "lastMaterialUpdate": "2026-09-07"
   },
   {
     "id": 19,
@@ -751,25 +752,26 @@
     "author": "EventFlow Team",
     "summary": "Track who is coming, what they need and what still needs chasing.",
     "difficulty": "Beginner",
-    "lastUpdated": "2026-09-05",
+    "lastUpdated": "2026-09-07",
     "primaryTag": "rsvp",
     "ogImage": "https://images.pexels.com/photos/1595391/pexels-photo-1595391.jpeg?auto=compress&cs=tinysrgb&w=800&h=500&dpr=1",
-    "lastMaterialUpdate": "2026-09-05"
+    "lastMaterialUpdate": "2026-09-07"
   },
   {
     "id": 27,
     "title": "Seating Plan Guide: Tables, Guests and Layouts",
     "description": "Turn your guest list into a practical seating plan that works for the room, the meal and the people attending.",
-    "excerpt": "Turn your guest list into a practical seating plan that works for the room, the meal and the people attending. Covers table types, family dynamics, accessibility, catering and last-minute changes.",
+    "excerpt": "Turn your guest list into a practical seating plan that works for the room, the meal and the people attending. Covers table types, top-table layouts, family dynamics, accessibility, catering and last-minute changes.",
     "image": "https://images.pexels.com/photos/265722/pexels-photo-265722.jpeg?auto=compress&cs=tinysrgb&w=800&h=500&dpr=1",
     "category": "Planning",
     "tags": [
       "seating",
       "guests",
-      "planning"
+      "planning",
+      "top-table"
     ],
     "href": "/articles/seating-plan-guide",
-    "readingMins": 3,
+    "readingMins": 4,
     "publishedDate": "2026-06-14",
     "featured": false,
     "affiliate": false,
@@ -780,10 +782,10 @@
     "author": "EventFlow Team",
     "summary": "Turn your guest list into a calm, practical table plan.",
     "difficulty": "Intermediate",
-    "lastUpdated": "2026-09-05",
+    "lastUpdated": "2026-09-07",
     "primaryTag": "seating",
     "ogImage": "https://images.pexels.com/photos/265722/pexels-photo-265722.jpeg?auto=compress&cs=tinysrgb&w=800&h=500&dpr=1",
-    "lastMaterialUpdate": "2026-09-05"
+    "lastMaterialUpdate": "2026-09-07"
   },
   {
     "id": 28,
