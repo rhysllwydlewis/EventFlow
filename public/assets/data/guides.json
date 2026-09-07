@@ -171,10 +171,10 @@
     "author": "EventFlow Team",
     "summary": "Master event budgeting with expert strategies for tracking expenses, negotiating with vendors, and maximising value while staying on budget.",
     "difficulty": "Intermediate",
-    "lastUpdated": "2026-09-04",
+    "lastUpdated": "2026-09-07",
     "primaryTag": "planning",
     "ogImage": "https://images.pexels.com/photos/3483098/pexels-photo-3483098.jpeg?auto=compress&cs=tinysrgb&w=800&h=500&dpr=1",
-    "lastMaterialUpdate": "2026-09-04"
+    "lastMaterialUpdate": "2026-09-07"
   },
   {
     "id": 7,
@@ -345,10 +345,10 @@
     "author": "EventFlow Team",
     "summary": "A step-by-step walkthrough of EventFlow's built-in budget planner tool.",
     "difficulty": "Beginner",
-    "lastUpdated": "2026-09-04",
+    "lastUpdated": "2026-09-07",
     "primaryTag": "budget",
     "ogImage": "https://images.pexels.com/photos/4386431/pexels-photo-4386431.jpeg?auto=compress&cs=tinysrgb&w=800&h=500&dpr=1",
-    "lastMaterialUpdate": "2026-09-04"
+    "lastMaterialUpdate": "2026-09-07"
   },
   {
     "id": 13,
@@ -1075,6 +1075,64 @@
     "lastUpdated": "2026-09-07",
     "primaryTag": "venues",
     "ogImage": "https://images.pexels.com/photos/1024993/pexels-photo-1024993.jpeg?auto=compress&cs=tinysrgb&w=800&h=500&dpr=1",
+    "lastMaterialUpdate": "2026-09-07"
+  },
+  {
+    "id": 38,
+    "title": "Wedding Anniversary Gifts by Year",
+    "description": "The traditional and modern UK gift for every wedding anniversary milestone, from the 1st to the 60th.",
+    "excerpt": "The traditional and modern UK gift for every wedding anniversary milestone, from the 1st to the 60th, with a full year-by-year table and deep dives on the nine best-known milestones.",
+    "image": "https://images.pexels.com/photos/1024993/pexels-photo-1024993.jpeg?auto=compress&cs=tinysrgb&w=800&h=500&dpr=1",
+    "category": "Wedding",
+    "tags": [
+      "wedding",
+      "anniversary",
+      "gifts"
+    ],
+    "href": "/articles/wedding-anniversary-gifts-by-year",
+    "readingMins": 7,
+    "publishedDate": "2026-09-07",
+    "featured": false,
+    "affiliate": false,
+    "tool": {
+      "label": "View guides",
+      "href": "/guides"
+    },
+    "author": "EventFlow Team",
+    "summary": "The right gift for every wedding anniversary milestone, from the 1st to the 60th.",
+    "difficulty": "Beginner",
+    "lastUpdated": "2026-09-07",
+    "primaryTag": "anniversary",
+    "ogImage": "https://images.pexels.com/photos/1024993/pexels-photo-1024993.jpeg?auto=compress&cs=tinysrgb&w=800&h=500&dpr=1",
+    "lastMaterialUpdate": "2026-09-07"
+  },
+  {
+    "id": 39,
+    "title": "UK Wedding Cost Guide 2026",
+    "description": "What weddings really cost in the UK in 2026 — venue, catering, photography, cake and entertainment, broken down by item.",
+    "excerpt": "What weddings really cost in the UK in 2026 — venue, catering, photography, cake, entertainment, hair and makeup, rings and honeymoon, broken down by item with typical UK cost ranges.",
+    "image": "https://images.pexels.com/photos/3483098/pexels-photo-3483098.jpeg?auto=compress&cs=tinysrgb&w=800&h=500&dpr=1",
+    "category": "Wedding",
+    "tags": [
+      "wedding",
+      "budget",
+      "costs"
+    ],
+    "href": "/articles/uk-wedding-cost-guide-2026",
+    "readingMins": 8,
+    "publishedDate": "2026-09-07",
+    "featured": false,
+    "affiliate": false,
+    "tool": {
+      "label": "Open Budget Planner",
+      "href": "/budget"
+    },
+    "author": "EventFlow Team",
+    "summary": "What weddings really cost in the UK in 2026, item by item.",
+    "difficulty": "Beginner",
+    "lastUpdated": "2026-09-07",
+    "primaryTag": "budget",
+    "ogImage": "https://images.pexels.com/photos/3483098/pexels-photo-3483098.jpeg?auto=compress&cs=tinysrgb&w=800&h=500&dpr=1",
     "lastMaterialUpdate": "2026-09-07"
   }
 ]
