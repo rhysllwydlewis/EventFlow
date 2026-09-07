@@ -586,6 +586,36 @@ Crawl-delay: 1
 `;
 }
 
+/**
+ * Generate llms.txt content — a curated, plain-text reference for AI
+ * assistants and agents (per https://llmstxt.org), distinct from robots.txt
+ * crawl rules. Consistent with the Content-Signal `use=reference` policy
+ * already declared for this site, it points to the same public pages an
+ * assistant would otherwise have to discover via the sitemap.
+ * @param {string} baseUrl - Base URL of the site
+ * @returns {string} llms.txt content
+ */
+function generateLlmsTxt(baseUrl) {
+  return `# EventFlow
+
+> EventFlow is a UK event services marketplace connecting customers planning weddings, parties and corporate events with suppliers such as photographers, venues, caterers and entertainers. It also includes a pre-loved event-items marketplace, wedding websites with RSVPs, and free planning guides.
+
+## Key pages
+
+- [Find suppliers](${baseUrl}/suppliers): Search and filter UK event suppliers by category and location
+- [Marketplace](${baseUrl}/marketplace): Buy and sell pre-loved wedding and event items
+- [Planning guides](${baseUrl}/guides): Free guides covering budgeting, RSVPs, suppliers and more
+- [Location hub](${baseUrl}/locations): City-by-city guides to event suppliers across the UK
+- [Public calendar](${baseUrl}/public-calendar): Wedding fayres, open days and showcases
+- [For suppliers](${baseUrl}/for-suppliers): How suppliers list and get bookings on EventFlow
+
+## Reference
+
+- [Sitemap](${baseUrl}/sitemap.xml)
+- [FAQ](${baseUrl}/faq)
+`;
+}
+
 module.exports = {
   appendUrl,
   generateSitemap,
@@ -593,6 +623,7 @@ module.exports = {
   loadIndexableCategoryDirectoryEntries,
   loadIndexableCityEntries,
   generateRobotsTxt,
+  generateLlmsTxt,
   loadGuideEntries,
   readCollection,
   validLastModified: validLastModifiedOrFallback,
