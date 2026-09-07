@@ -118,6 +118,20 @@ function createPublicListingSeoRouter(options = {}) {
     res.setHeader('Cache-Control', 'no-store');
   }
 
+  // A missing package/event still needs a real 404 status — falling through to
+  // the client-rendered page shell via next() instead reaches server.js's own
+  // /package/:slug and /events/:slug handlers, which unconditionally 200 the
+  // template file. Sending the same template here, but with the status these
+  // routes should actually carry, keeps the existing client-side "not found"
+  // UI (package-init.js / event-detail-init.js already toggle a friendly
+  // panel with real navigation when their own API lookup 404s) without lying
+  // about whether the resource exists.
+  async function sendNotFoundPage(res, kind) {
+    noindex(res);
+    const template = await readTemplate(kind);
+    return res.status(404).type('html').send(template);
+  }
+
   router.get(['/package', '/package.html'], async (req, res, next) => {
     const lookup = String(req.query.slug || req.query.id || req.query.packageId || '').trim();
     if (!lookup) {
@@ -132,8 +146,7 @@ function createPublicListingSeoRouter(options = {}) {
       const listings = await readListings();
       const pkg = resolvePublicPackage(listings.packages, lookup, listings.supplierIds);
       if (!pkg) {
-        noindex(res);
-        return next();
+        return await sendNotFoundPage(res, 'package');
       }
       const campaignQuery = buildCampaignQuery(req.query);
       const canonicalPath = `/package/${buildPublicPackageSlug(pkg)}`;
@@ -149,13 +162,11 @@ function createPublicListingSeoRouter(options = {}) {
       const listings = await readListings();
       const pkg = resolvePublicPackage(listings.packages, req.params.slug, listings.supplierIds);
       if (!pkg) {
-        noindex(res);
-        return next();
+        return await sendNotFoundPage(res, 'package');
       }
       const supplier = listings.supplierById.get(pkg.supplierId);
       if (!supplier) {
-        noindex(res);
-        return next();
+        return await sendNotFoundPage(res, 'package');
       }
 
       const canonicalSlug = buildPublicPackageSlug(pkg);
@@ -200,8 +211,7 @@ function createPublicListingSeoRouter(options = {}) {
       const listings = await readListings();
       const event = resolvePublicEvent(listings.events, req.params.slug);
       if (!event) {
-        noindex(res);
-        return next();
+        return await sendNotFoundPage(res, 'event');
       }
 
       const canonicalSlug = buildPublicEventSlug(event);

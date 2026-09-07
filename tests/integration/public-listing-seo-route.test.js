@@ -118,16 +118,18 @@ describe('public package and event SEO routes', () => {
     const { app } = createApp({ packages: [{ ...pkg, approved: false }] });
     const response = await request(app).get(`/package/${pkg.slug}`).expect(404);
     expect(response.headers['x-robots-tag']).toBe('noindex, nofollow');
-    // Falls through to the app's own 404 handling rather than the router
-    // terminating the response itself with a bare, unstyled body.
-    expect(response.text).toBe('Not found');
+    // Serves the real package page shell (with its existing "Package not
+    // found" panel and navigation) rather than a bare, unstyled body.
+    expect(response.text).toContain('id="package-error"');
+    expect(response.text).toContain('Package not found');
+    expect(response.text).not.toContain('id="package-structured-data"');
   });
 
-  test('falls through to app 404 handling for a package with no matching supplier', async () => {
+  test('renders the not-found package shell for a package with no matching supplier', async () => {
     const { app } = createApp({ packages: [{ ...pkg, supplierId: 'missing-supplier' }] });
     const response = await request(app).get(`/package/${pkg.slug}`).expect(404);
     expect(response.headers['x-robots-tag']).toBe('noindex, nofollow');
-    expect(response.text).toBe('Not found');
+    expect(response.text).toContain('id="package-error"');
   });
 
   test('serves qualifying public events with server-rendered Event JSON-LD', async () => {
@@ -174,7 +176,10 @@ describe('public package and event SEO routes', () => {
     });
     const response = await request(app).get(`/events/${futureEvent.slug}`).expect(404);
     expect(response.headers['x-robots-tag']).toBe('noindex, nofollow');
-    expect(response.text).toBe('Not found');
+    // Serves the real event page shell so the client-side "Event not found"
+    // handling (event-detail-init.js) still runs, rather than a bare body.
+    expect(response.text).toContain('id="event-panel"');
+    expect(response.text).not.toContain('id="event-structured-data"');
   });
 
   test('does not apply the shared API request bucket to indexable HTML pages', async () => {
