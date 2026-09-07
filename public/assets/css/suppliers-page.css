@@ -2575,7 +2575,7 @@
 }
 
 .sp-seo h2 {
-  font-size: 1.15rem;
+  font-size: 1.125rem;
   color: var(--ef-text-primary, #1f2937);
   margin: 0 0 10px;
 }
@@ -2601,14 +2601,14 @@
 }
 
 .sp-seo-card h3 {
-  font-size: 0.95rem;
+  font-size: 0.875rem;
   color: var(--ef-text-primary, #1f2937);
   margin: 0 0 4px;
 }
 
 .sp-seo-card p {
   margin: 0;
-  font-size: 0.9rem;
+  font-size: 0.875rem;
 }
 
 .sp-seo-faq {
@@ -2631,5 +2631,5 @@
 
 .sp-seo-faq p {
   margin: 8px 0 0;
-  font-size: 0.9rem;
+  font-size: 0.875rem;
 }
