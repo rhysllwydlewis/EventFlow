@@ -26,6 +26,91 @@ const INDEXABLE_CACHE_CONTROL = 'public, max-age=60, s-maxage=300, stale-while-r
 const NON_INDEXABLE_CACHE_CONTROL = 'public, max-age=30, s-maxage=60, stale-while-revalidate=30';
 const DEFAULT_CACHE_TTL_MS = 60 * 1000;
 
+// Matches the page-specific bootstrap script by its known path, independent
+// of its cache-busting version query string or attribute order.
+const NOT_FOUND_SCRIPT_STRIPPERS = {
+  package:
+    /<script[^>]*\ssrc="\/assets\/js\/pages\/package-init\.js(?:\?[^"]*)?"[^>]*>\s*<\/script>\s*/,
+  event:
+    /<script[^>]*\ssrc="\/assets\/js\/pages\/event-detail-init\.js(?:\?[^"]*)?"[^>]*>\s*<\/script>\s*/,
+};
+
+// Minimal, script-free fallback used only if a template edit ever changes the
+// bootstrap script markup enough that NOT_FOUND_SCRIPT_STRIPPERS stops
+// matching it. Safety net for renderStaticNotFound returning null below —
+// serving this (rather than the unmodified template) is what keeps that
+// scenario from reopening the leak this file exists to close.
+const SAFE_NOT_FOUND_FALLBACK = {
+  package:
+    '<!doctype html><html lang="en"><head><meta charset="utf-8">' +
+    '<title>Package not found | EventFlow</title></head><body>' +
+    '<h1>Package not found</h1>' +
+    '<p>Sorry, we could not find that package. It may have been updated, removed, or be awaiting approval.</p>' +
+    '<p><a href="/suppliers">Browse suppliers</a> · <a href="/">Return home</a></p>' +
+    '</body></html>',
+  event:
+    '<!doctype html><html lang="en"><head><meta charset="utf-8">' +
+    '<title>Event not found | EventFlow</title></head><body>' +
+    '<h1>Event not found</h1>' +
+    '<p>This event is unavailable or no longer public.</p>' +
+    '<p><a href="/public-calendar">Back to public calendar</a></p>' +
+    '</body></html>',
+};
+
+/**
+ * Turn the live page template into an inert "not found" page.
+ *
+ * These templates ship their own client-side fetch to a *different* API
+ * (package-init.js / event-detail-init.js), which does not necessarily apply
+ * the same eligibility rules this router just used to decide the record is
+ * not publicly visible (e.g. a private-but-published event, or a paused/
+ * suspended-but-still-`approved` package). Serving the template unmodified
+ * would let that script independently re-fetch and render content this
+ * response is telling the client — and any crawler — does not exist. Instead
+ * this strips the bootstrap script entirely and statically renders the
+ * template's own "not found" state, so nothing here ever calls that API.
+ * @param {string} html Raw template markup.
+ * @param {'package'|'event'} kind Which template this is.
+ * @returns {string|null} The inert not-found markup, or null if the expected
+ *   bootstrap script markup was not found (see SAFE_NOT_FOUND_FALLBACK).
+ */
+function renderStaticNotFound(html, kind) {
+  const stripper = NOT_FOUND_SCRIPT_STRIPPERS[kind];
+  if (!stripper.test(html)) {
+    return null;
+  }
+  const withoutBootstrap = html.replace(stripper, '');
+
+  if (kind === 'package') {
+    return withoutBootstrap
+      .replace(
+        '<div id="package-loading" class="card pkg-skeleton-card" aria-busy="true" aria-label="Loading package details">',
+        '<div id="package-loading" class="card pkg-skeleton-card" aria-busy="true" aria-label="Loading package details" style="display: none;">'
+      )
+      .replace(
+        '<div id="package-error" style="display: none;" class="card" role="status">',
+        '<div id="package-error" style="display: block;" class="card" role="status">'
+      );
+  }
+
+  return withoutBootstrap
+    .replace(
+      /<h1 id="event-title"[^>]*>[\s\S]*?<\/h1>/,
+      '<h1 id="event-title" class="event-detail-hero__title">Event not found</h1>'
+    )
+    .replace(
+      /<article class="event-panel" id="event-panel">[\s\S]*?<\/article>/,
+      '<article class="event-panel" id="event-panel">' +
+        '<div class="event-body" style="text-align:center;padding:48px 24px;">' +
+        '<div style="font-size:2.4rem;margin-bottom:8px;" aria-hidden="true">📅</div>' +
+        '<h2 style="margin:0 0 6px;">Event not found</h2>' +
+        '<p style="color:#6b7280;margin:0 0 20px;">This event is unavailable or no longer public.</p>' +
+        '<p style="margin:0;"><a href="/public-calendar" class="ef-btn ef-btn-secondary">Back to public calendar</a></p>' +
+        '</div>' +
+        '</article>'
+    );
+}
+
 function addUnclaimedPackageBanner(html, supplierId) {
   const claimHref = `/auth?tab=create&amp;role=supplier${
     supplierId ? `&amp;claimSupplierId=${encodeURIComponent(supplierId)}` : ''
@@ -121,15 +206,21 @@ function createPublicListingSeoRouter(options = {}) {
   // A missing package/event still needs a real 404 status — falling through to
   // the client-rendered page shell via next() instead reaches server.js's own
   // /package/:slug and /events/:slug handlers, which unconditionally 200 the
-  // template file. Sending the same template here, but with the status these
-  // routes should actually carry, keeps the existing client-side "not found"
-  // UI (package-init.js / event-detail-init.js already toggle a friendly
-  // panel with real navigation when their own API lookup 404s) without lying
-  // about whether the resource exists.
+  // template file. This sends the same page shell (styling, header/nav, and
+  // the page's own "not found" copy and links) with the 404 status these
+  // routes should actually carry, but statically — see renderStaticNotFound
+  // for why the template's own bootstrap script cannot run here.
   async function sendNotFoundPage(res, kind) {
     noindex(res);
     const template = await readTemplate(kind);
-    return res.status(404).type('html').send(template);
+    const html = renderStaticNotFound(template, kind);
+    if (html === null) {
+      logger.error(
+        `${kind} template's bootstrap script markup has changed; serving minimal not-found fallback`
+      );
+      return res.status(404).type('html').send(SAFE_NOT_FOUND_FALLBACK[kind]);
+    }
+    return res.status(404).type('html').send(html);
   }
 
   router.get(['/package', '/package.html'], async (req, res, next) => {
@@ -249,3 +340,7 @@ function createPublicListingSeoRouter(options = {}) {
 }
 
 module.exports = createPublicListingSeoRouter;
+// Exposed for direct unit testing of the not-found template transform
+// (see tests/unit/public-listing-seo-not-found.test.js) — the primary API
+// surface for callers is still the default export above.
+module.exports.renderStaticNotFound = renderStaticNotFound;
