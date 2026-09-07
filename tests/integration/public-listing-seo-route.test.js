@@ -125,11 +125,19 @@ describe('public package and event SEO routes', () => {
     expect(response.text).not.toContain('id="package-structured-data"');
   });
 
-  test('renders the not-found package shell for a package with no matching supplier', async () => {
+  test('renders the not-found package shell for a package whose supplier is not public', async () => {
     const { app } = createApp({ packages: [{ ...pkg, supplierId: 'missing-supplier' }] });
     const response = await request(app).get(`/package/${pkg.slug}`).expect(404);
     expect(response.headers['x-robots-tag']).toBe('noindex, nofollow');
     expect(response.text).toContain('id="package-error"');
+  });
+
+  test('renders the not-found package shell for the legacy query lookup', async () => {
+    const { app } = createApp();
+    const response = await request(app).get('/package?slug=does-not-exist').expect(404);
+    expect(response.headers['x-robots-tag']).toBe('noindex, nofollow');
+    expect(response.text).toContain('id="package-error"');
+    expect(response.text).not.toContain('id="package-structured-data"');
   });
 
   test('serves qualifying public events with server-rendered Event JSON-LD', async () => {

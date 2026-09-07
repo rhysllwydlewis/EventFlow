@@ -164,10 +164,10 @@ function createPublicListingSeoRouter(options = {}) {
       if (!pkg) {
         return await sendNotFoundPage(res, 'package');
       }
+      // resolvePublicPackage only matches a pkg whose supplierId is in
+      // listings.supplierIds, and supplierById is built by filtering the same
+      // suppliers array against that same Set, so a match here is always present.
       const supplier = listings.supplierById.get(pkg.supplierId);
-      if (!supplier) {
-        return await sendNotFoundPage(res, 'package');
-      }
 
       const canonicalSlug = buildPublicPackageSlug(pkg);
       const campaignQuery = buildCampaignQuery(req.query);
