@@ -1163,5 +1163,34 @@
     "primaryTag": "attire",
     "ogImage": "https://images.pexels.com/photos/1024993/pexels-photo-1024993.jpeg?auto=compress&cs=tinysrgb&w=800&h=500&dpr=1",
     "lastMaterialUpdate": "2026-09-07"
+  },
+  {
+    "id": 41,
+    "title": "Wedding Gift & Favour Ideas",
+    "description": "Affordable, memorable wedding favour ideas for guests, plus gift ideas for the couple, organised by budget.",
+    "excerpt": "Affordable, memorable wedding favour ideas for guests, plus gift ideas for the couple, organised by budget from under £1 to splurge-worthy, including honeymoon fund alternatives.",
+    "image": "https://images.pexels.com/photos/796602/pexels-photo-796602.jpeg?auto=compress&cs=tinysrgb&w=800&h=500&dpr=1",
+    "category": "Wedding",
+    "tags": [
+      "wedding",
+      "gifts",
+      "favours"
+    ],
+    "href": "/articles/wedding-gift-favour-ideas",
+    "readingMins": 6,
+    "publishedDate": "2026-09-07",
+    "featured": false,
+    "affiliate": false,
+    "tool": {
+      "label": "Build wedding website",
+      "href": "/articles/wedding-website-on-eventflow-guide"
+    },
+    "author": "EventFlow Team",
+    "summary": "Wedding favour and gift ideas for every budget, from under £1 to splurge-worthy.",
+    "difficulty": "Beginner",
+    "lastUpdated": "2026-09-07",
+    "primaryTag": "gifts",
+    "ogImage": "https://images.pexels.com/photos/796602/pexels-photo-796602.jpeg?auto=compress&cs=tinysrgb&w=800&h=500&dpr=1",
+    "lastMaterialUpdate": "2026-09-07"
   }
 ]
