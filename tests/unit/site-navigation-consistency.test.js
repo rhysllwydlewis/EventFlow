@@ -135,8 +135,22 @@ describe('site navigation is the same on every non-admin page', () => {
     '%s: the settings link actually points at /settings',
     (_name, page) => {
       expect(page.html).toContain(
-        '<a href="/settings" id="ef-mobile-settings" class="ef-mobile-link"'
+        '<a href="/settings" rel="nofollow" id="ef-mobile-settings" class="ef-mobile-link"'
       );
+    }
+  );
+
+  test.each(pages.map(page => [page.name, page]))(
+    '%s: the settings link is nofollow so crawlers do not chase its login redirect',
+    (_name, page) => {
+      // The link is display:none until navbar.js reveals it for a logged-in
+      // user, but a crawler ignores CSS and follows the href anyway, hitting
+      // a 302 to /auth?redirect=/settings on every single page. rel="nofollow"
+      // keeps the link working for real users while telling crawlers to leave
+      // it alone.
+      const match = page.html.match(/<a\s[^>]*id="ef-mobile-settings"[^>]*>/);
+      expect(match).not.toBeNull();
+      expect(match[0]).toContain('rel="nofollow"');
     }
   );
 });
