@@ -8,7 +8,7 @@
 const express = require('express');
 const path = require('path');
 const dbUnified = require('../db-unified');
-const { generateSitemap, generateRobotsTxt } = require('../sitemap');
+const { generateSitemap, generateRobotsTxt, generateLlmsTxt } = require('../sitemap');
 const { authLimiter, apiLimiter } = require('../middleware/rateLimits');
 const {
   buildCampaignQuery,
@@ -181,6 +181,24 @@ router.get('/robots.txt', (req, res) => {
     logger.error('Error generating robots.txt:', error);
     sentry.captureException(error);
     res.status(500).send('Error generating robots.txt');
+  }
+});
+
+/**
+ * GET /llms.txt
+ * Dynamic llms.txt generation — a curated reference document for AI
+ * assistants and agents, distinct from the crawl rules in robots.txt.
+ */
+router.get('/llms.txt', (req, res) => {
+  try {
+    const baseUrl = process.env.BASE_URL || `${req.protocol}://${req.get('host')}`;
+    const llmsTxt = generateLlmsTxt(baseUrl);
+    res.header('Content-Type', 'text/plain');
+    res.send(llmsTxt);
+  } catch (error) {
+    logger.error('Error generating llms.txt:', error);
+    sentry.captureException(error);
+    res.status(500).send('Error generating llms.txt');
   }
 });
 
