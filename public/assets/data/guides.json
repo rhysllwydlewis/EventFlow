@@ -3,7 +3,7 @@
     "id": 1,
     "title": "The Ultimate Wedding Venue Selection Guide 2026",
     "description": "Discover how to choose the perfect wedding venue with our comprehensive guide.",
-    "excerpt": "Discover how to choose the perfect wedding venue with our comprehensive guide. Expert tips on location, capacity, budget, and must-have amenities for your dream wedding.",
+    "excerpt": "Discover how to choose the perfect wedding venue with our comprehensive guide. Expert tips on location, capacity, budget, must-have amenities and venue styles from historic estates to beach and woodland settings.",
     "image": "https://images.pexels.com/photos/1616113/pexels-photo-1616113.jpeg?auto=compress&cs=tinysrgb&w=800&h=500&dpr=1",
     "category": "Venues",
     "tags": [
@@ -24,10 +24,10 @@
     "author": "EventFlow Team",
     "summary": "Discover how to choose the perfect wedding venue with our comprehensive guide.",
     "difficulty": "Intermediate",
-    "lastUpdated": "2026-09-04",
+    "lastUpdated": "2026-09-07",
     "primaryTag": "venues",
     "ogImage": "https://images.pexels.com/photos/1616113/pexels-photo-1616113.jpeg?auto=compress&cs=tinysrgb&w=800&h=500&dpr=1",
-    "lastMaterialUpdate": "2026-09-04"
+    "lastMaterialUpdate": "2026-09-07"
   },
   {
     "id": 2,
@@ -171,10 +171,10 @@
     "author": "EventFlow Team",
     "summary": "Master event budgeting with expert strategies for tracking expenses, negotiating with vendors, and maximising value while staying on budget.",
     "difficulty": "Intermediate",
-    "lastUpdated": "2026-09-04",
+    "lastUpdated": "2026-09-07",
     "primaryTag": "planning",
     "ogImage": "https://images.pexels.com/photos/3483098/pexels-photo-3483098.jpeg?auto=compress&cs=tinysrgb&w=800&h=500&dpr=1",
-    "lastMaterialUpdate": "2026-09-04"
+    "lastMaterialUpdate": "2026-09-07"
   },
   {
     "id": 7,
@@ -345,10 +345,10 @@
     "author": "EventFlow Team",
     "summary": "A step-by-step walkthrough of EventFlow's built-in budget planner tool.",
     "difficulty": "Beginner",
-    "lastUpdated": "2026-09-04",
+    "lastUpdated": "2026-09-07",
     "primaryTag": "budget",
     "ogImage": "https://images.pexels.com/photos/4386431/pexels-photo-4386431.jpeg?auto=compress&cs=tinysrgb&w=800&h=500&dpr=1",
-    "lastMaterialUpdate": "2026-09-04"
+    "lastMaterialUpdate": "2026-09-07"
   },
   {
     "id": 13,
@@ -432,10 +432,10 @@
     "author": "EventFlow Team",
     "summary": "Everything you need to know about wedding stationery, from save-the-dates to on-the-day menus.",
     "difficulty": "Beginner",
-    "lastUpdated": "2026-09-05",
+    "lastUpdated": "2026-09-07",
     "primaryTag": "stationery",
     "ogImage": "https://images.pexels.com/photos/1027130/pexels-photo-1027130.jpeg?auto=compress&cs=tinysrgb&w=800&h=500&dpr=1",
-    "lastMaterialUpdate": "2026-09-05"
+    "lastMaterialUpdate": "2026-09-07"
   },
   {
     "id": 16,
@@ -461,10 +461,10 @@
     "author": "EventFlow Team",
     "summary": "Plan your dream destination wedding with confidence, whether you're getting married in the UK countryside or overseas.",
     "difficulty": "Intermediate",
-    "lastUpdated": "2026-09-04",
+    "lastUpdated": "2026-09-07",
     "primaryTag": "wedding",
     "ogImage": "https://images.pexels.com/photos/1024993/pexels-photo-1024993.jpeg?auto=compress&cs=tinysrgb&w=800&h=500&dpr=1",
-    "lastMaterialUpdate": "2026-09-04"
+    "lastMaterialUpdate": "2026-09-07"
   },
   {
     "id": 17,
@@ -499,16 +499,17 @@
     "id": 18,
     "title": "How to Write a Wedding Speech",
     "description": "Craft a heartfelt, memorable wedding speech with our step-by-step writing guide.",
-    "excerpt": "Craft a heartfelt, memorable wedding speech with our step-by-step writing guide. Includes tips for the best man, maid of honour, parents, and the couple themselves.",
+    "excerpt": "Craft a heartfelt, memorable wedding speech with our step-by-step writing guide. Includes tips for the best man, maid of honour, parents, and the couple themselves, plus who pays for what and maid/matron of honour duties.",
     "image": "https://images.pexels.com/photos/3171837/pexels-photo-3171837.jpeg?auto=compress&cs=tinysrgb&w=800&h=500&dpr=1",
     "category": "Wedding",
     "tags": [
       "wedding",
       "speech",
-      "tips"
+      "tips",
+      "etiquette"
     ],
     "href": "/articles/how-to-write-wedding-speech",
-    "readingMins": 7,
+    "readingMins": 8,
     "publishedDate": "2026-03-13",
     "featured": false,
     "affiliate": false,
@@ -519,10 +520,10 @@
     "author": "EventFlow Team",
     "summary": "Craft a heartfelt, memorable wedding speech with our step-by-step writing guide.",
     "difficulty": "Intermediate",
-    "lastUpdated": "2026-09-05",
+    "lastUpdated": "2026-09-07",
     "primaryTag": "wedding",
     "ogImage": "https://images.pexels.com/photos/3171837/pexels-photo-3171837.jpeg?auto=compress&cs=tinysrgb&w=800&h=500&dpr=1",
-    "lastMaterialUpdate": "2026-09-05"
+    "lastMaterialUpdate": "2026-09-07"
   },
   {
     "id": 19,
@@ -751,25 +752,26 @@
     "author": "EventFlow Team",
     "summary": "Track who is coming, what they need and what still needs chasing.",
     "difficulty": "Beginner",
-    "lastUpdated": "2026-09-05",
+    "lastUpdated": "2026-09-07",
     "primaryTag": "rsvp",
     "ogImage": "https://images.pexels.com/photos/1595391/pexels-photo-1595391.jpeg?auto=compress&cs=tinysrgb&w=800&h=500&dpr=1",
-    "lastMaterialUpdate": "2026-09-05"
+    "lastMaterialUpdate": "2026-09-07"
   },
   {
     "id": 27,
     "title": "Seating Plan Guide: Tables, Guests and Layouts",
     "description": "Turn your guest list into a practical seating plan that works for the room, the meal and the people attending.",
-    "excerpt": "Turn your guest list into a practical seating plan that works for the room, the meal and the people attending. Covers table types, family dynamics, accessibility, catering and last-minute changes.",
+    "excerpt": "Turn your guest list into a practical seating plan that works for the room, the meal and the people attending. Covers table types, top-table layouts, family dynamics, accessibility, catering and last-minute changes.",
     "image": "https://images.pexels.com/photos/265722/pexels-photo-265722.jpeg?auto=compress&cs=tinysrgb&w=800&h=500&dpr=1",
     "category": "Planning",
     "tags": [
       "seating",
       "guests",
-      "planning"
+      "planning",
+      "top-table"
     ],
     "href": "/articles/seating-plan-guide",
-    "readingMins": 3,
+    "readingMins": 4,
     "publishedDate": "2026-06-14",
     "featured": false,
     "affiliate": false,
@@ -780,10 +782,10 @@
     "author": "EventFlow Team",
     "summary": "Turn your guest list into a calm, practical table plan.",
     "difficulty": "Intermediate",
-    "lastUpdated": "2026-09-05",
+    "lastUpdated": "2026-09-07",
     "primaryTag": "seating",
     "ogImage": "https://images.pexels.com/photos/265722/pexels-photo-265722.jpeg?auto=compress&cs=tinysrgb&w=800&h=500&dpr=1",
-    "lastMaterialUpdate": "2026-09-05"
+    "lastMaterialUpdate": "2026-09-07"
   },
   {
     "id": 28,
@@ -1072,6 +1074,151 @@
     "difficulty": "Beginner",
     "lastUpdated": "2026-09-07",
     "primaryTag": "venues",
+    "ogImage": "https://images.pexels.com/photos/1024993/pexels-photo-1024993.jpeg?auto=compress&cs=tinysrgb&w=800&h=500&dpr=1",
+    "lastMaterialUpdate": "2026-09-07"
+  },
+  {
+    "id": 38,
+    "title": "Wedding Anniversary Gifts by Year",
+    "description": "The traditional and modern UK gift for every wedding anniversary milestone, from the 1st to the 60th.",
+    "excerpt": "The traditional and modern UK gift for every wedding anniversary milestone, from the 1st to the 60th, with a full year-by-year table and deep dives on the nine best-known milestones.",
+    "image": "https://images.pexels.com/photos/1024993/pexels-photo-1024993.jpeg?auto=compress&cs=tinysrgb&w=800&h=500&dpr=1",
+    "category": "Wedding",
+    "tags": [
+      "wedding",
+      "anniversary",
+      "gifts"
+    ],
+    "href": "/articles/wedding-anniversary-gifts-by-year",
+    "readingMins": 7,
+    "publishedDate": "2026-09-07",
+    "featured": false,
+    "affiliate": false,
+    "tool": {
+      "label": "View guides",
+      "href": "/guides"
+    },
+    "author": "EventFlow Team",
+    "summary": "The right gift for every wedding anniversary milestone, from the 1st to the 60th.",
+    "difficulty": "Beginner",
+    "lastUpdated": "2026-09-07",
+    "primaryTag": "anniversary",
+    "ogImage": "https://images.pexels.com/photos/1024993/pexels-photo-1024993.jpeg?auto=compress&cs=tinysrgb&w=800&h=500&dpr=1",
+    "lastMaterialUpdate": "2026-09-07"
+  },
+  {
+    "id": 39,
+    "title": "UK Wedding Cost Guide 2026",
+    "description": "What weddings really cost in the UK in 2026 — venue, catering, photography, cake and entertainment, broken down by item.",
+    "excerpt": "What weddings really cost in the UK in 2026 — venue, catering, photography, cake, entertainment, hair and makeup, rings and honeymoon, broken down by item with typical UK cost ranges.",
+    "image": "https://images.pexels.com/photos/3483098/pexels-photo-3483098.jpeg?auto=compress&cs=tinysrgb&w=800&h=500&dpr=1",
+    "category": "Wedding",
+    "tags": [
+      "wedding",
+      "budget",
+      "costs"
+    ],
+    "href": "/articles/uk-wedding-cost-guide-2026",
+    "readingMins": 8,
+    "publishedDate": "2026-09-07",
+    "featured": false,
+    "affiliate": false,
+    "tool": {
+      "label": "Open Budget Planner",
+      "href": "/budget"
+    },
+    "author": "EventFlow Team",
+    "summary": "What weddings really cost in the UK in 2026, item by item.",
+    "difficulty": "Beginner",
+    "lastUpdated": "2026-09-07",
+    "primaryTag": "budget",
+    "ogImage": "https://images.pexels.com/photos/3483098/pexels-photo-3483098.jpeg?auto=compress&cs=tinysrgb&w=800&h=500&dpr=1",
+    "lastMaterialUpdate": "2026-09-07"
+  },
+  {
+    "id": 40,
+    "title": "Wedding Attire Guide",
+    "description": "What to wear to a wedding as a guest, bridesmaid or mother of the bride, plus how to choose a wedding dress.",
+    "excerpt": "What to wear to a wedding as a guest, bridesmaid or mother of the bride, plus how to choose a wedding dress. Covers dress codes, bridal gown styles, bridesmaid dresses, shoes and bouquets.",
+    "image": "https://images.pexels.com/photos/1024993/pexels-photo-1024993.jpeg?auto=compress&cs=tinysrgb&w=800&h=500&dpr=1",
+    "category": "Wedding",
+    "tags": [
+      "wedding",
+      "attire",
+      "dresses"
+    ],
+    "href": "/articles/wedding-attire-guide",
+    "readingMins": 8,
+    "publishedDate": "2026-09-07",
+    "featured": false,
+    "affiliate": false,
+    "tool": {
+      "label": "Browse suppliers",
+      "href": "/suppliers"
+    },
+    "author": "EventFlow Team",
+    "summary": "What to wear to a wedding as a guest, bridesmaid or mother of the bride.",
+    "difficulty": "Beginner",
+    "lastUpdated": "2026-09-07",
+    "primaryTag": "attire",
+    "ogImage": "https://images.pexels.com/photos/1024993/pexels-photo-1024993.jpeg?auto=compress&cs=tinysrgb&w=800&h=500&dpr=1",
+    "lastMaterialUpdate": "2026-09-07"
+  },
+  {
+    "id": 41,
+    "title": "Wedding Gift & Favour Ideas",
+    "description": "Affordable, memorable wedding favour ideas for guests, plus gift ideas for the couple, organised by budget.",
+    "excerpt": "Affordable, memorable wedding favour ideas for guests, plus gift ideas for the couple, organised by budget from under £1 to splurge-worthy, including honeymoon fund alternatives.",
+    "image": "https://images.pexels.com/photos/796602/pexels-photo-796602.jpeg?auto=compress&cs=tinysrgb&w=800&h=500&dpr=1",
+    "category": "Wedding",
+    "tags": [
+      "wedding",
+      "gifts",
+      "favours"
+    ],
+    "href": "/articles/wedding-gift-favour-ideas",
+    "readingMins": 6,
+    "publishedDate": "2026-09-07",
+    "featured": false,
+    "affiliate": false,
+    "tool": {
+      "label": "Build wedding website",
+      "href": "/articles/wedding-website-on-eventflow-guide"
+    },
+    "author": "EventFlow Team",
+    "summary": "Wedding favour and gift ideas for every budget, from under £1 to splurge-worthy.",
+    "difficulty": "Beginner",
+    "lastUpdated": "2026-09-07",
+    "primaryTag": "gifts",
+    "ogImage": "https://images.pexels.com/photos/796602/pexels-photo-796602.jpeg?auto=compress&cs=tinysrgb&w=800&h=500&dpr=1",
+    "lastMaterialUpdate": "2026-09-07"
+  },
+  {
+    "id": 42,
+    "title": "Best Honeymoon Destinations",
+    "description": "Where UK couples actually go on honeymoon in 2026, from short-haul Europe to long-haul dream trips, plus when to book.",
+    "excerpt": "Where UK couples actually go on honeymoon in 2026, from short-haul Europe to long-haul dream trips, adventure honeymoons and UK staycations, plus when to book and passport/visa reminders.",
+    "image": "https://images.pexels.com/photos/1024993/pexels-photo-1024993.jpeg?auto=compress&cs=tinysrgb&w=800&h=500&dpr=1",
+    "category": "Wedding",
+    "tags": [
+      "wedding",
+      "honeymoon",
+      "travel"
+    ],
+    "href": "/articles/best-honeymoon-destinations",
+    "readingMins": 6,
+    "publishedDate": "2026-09-07",
+    "featured": false,
+    "affiliate": false,
+    "tool": {
+      "label": "Destination wedding guide",
+      "href": "/articles/destination-wedding-planning-guide"
+    },
+    "author": "EventFlow Team",
+    "summary": "Where UK couples go on honeymoon, from short-haul Europe to long-haul dream trips.",
+    "difficulty": "Beginner",
+    "lastUpdated": "2026-09-07",
+    "primaryTag": "honeymoon",
     "ogImage": "https://images.pexels.com/photos/1024993/pexels-photo-1024993.jpeg?auto=compress&cs=tinysrgb&w=800&h=500&dpr=1",
     "lastMaterialUpdate": "2026-09-07"
   }
