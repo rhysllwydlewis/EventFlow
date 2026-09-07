@@ -197,7 +197,7 @@ const CATEGORY_NAMED_FAQS = Object.freeze({
  * @returns {Object|null} FAQPage structured data, or null when this category has none.
  */
 function buildCategoryNamedFaqStructuredData(category) {
-  const faq = CATEGORY_NAMED_FAQS[category && category.slug];
+  const faq = CATEGORY_NAMED_FAQS[category?.slug];
   if (!faq) {
     return null;
   }
