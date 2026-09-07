@@ -461,10 +461,10 @@
     "author": "EventFlow Team",
     "summary": "Plan your dream destination wedding with confidence, whether you're getting married in the UK countryside or overseas.",
     "difficulty": "Intermediate",
-    "lastUpdated": "2026-09-04",
+    "lastUpdated": "2026-09-07",
     "primaryTag": "wedding",
     "ogImage": "https://images.pexels.com/photos/1024993/pexels-photo-1024993.jpeg?auto=compress&cs=tinysrgb&w=800&h=500&dpr=1",
-    "lastMaterialUpdate": "2026-09-04"
+    "lastMaterialUpdate": "2026-09-07"
   },
   {
     "id": 17,
@@ -1191,6 +1191,35 @@
     "lastUpdated": "2026-09-07",
     "primaryTag": "gifts",
     "ogImage": "https://images.pexels.com/photos/796602/pexels-photo-796602.jpeg?auto=compress&cs=tinysrgb&w=800&h=500&dpr=1",
+    "lastMaterialUpdate": "2026-09-07"
+  },
+  {
+    "id": 42,
+    "title": "Best Honeymoon Destinations",
+    "description": "Where UK couples actually go on honeymoon in 2026, from short-haul Europe to long-haul dream trips, plus when to book.",
+    "excerpt": "Where UK couples actually go on honeymoon in 2026, from short-haul Europe to long-haul dream trips, adventure honeymoons and UK staycations, plus when to book and passport/visa reminders.",
+    "image": "https://images.pexels.com/photos/1024993/pexels-photo-1024993.jpeg?auto=compress&cs=tinysrgb&w=800&h=500&dpr=1",
+    "category": "Wedding",
+    "tags": [
+      "wedding",
+      "honeymoon",
+      "travel"
+    ],
+    "href": "/articles/best-honeymoon-destinations",
+    "readingMins": 6,
+    "publishedDate": "2026-09-07",
+    "featured": false,
+    "affiliate": false,
+    "tool": {
+      "label": "Destination wedding guide",
+      "href": "/articles/destination-wedding-planning-guide"
+    },
+    "author": "EventFlow Team",
+    "summary": "Where UK couples go on honeymoon, from short-haul Europe to long-haul dream trips.",
+    "difficulty": "Beginner",
+    "lastUpdated": "2026-09-07",
+    "primaryTag": "honeymoon",
+    "ogImage": "https://images.pexels.com/photos/1024993/pexels-photo-1024993.jpeg?auto=compress&cs=tinysrgb&w=800&h=500&dpr=1",
     "lastMaterialUpdate": "2026-09-07"
   }
 ]
