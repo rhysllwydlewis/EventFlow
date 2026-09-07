@@ -285,7 +285,8 @@ function createWorker(queueName, processor) {
     } else if (queueName === 'email') {
       emailQueue.processor = processor;
     }
-    return { close: async () => {} };
+    // skipcq: JS-0116 -- stub queue has nothing to await; kept async to stay interchangeable with BullMQ's Worker.close()
+    return { close: async () => undefined };
   }
   const worker = new Worker(queueName, processor, {
     connection: redis,
@@ -363,7 +364,8 @@ async function shutdownQueues() {
   workers.length = 0;
   workerStates.clear();
   await Promise.all([notificationsQueue?.close?.(), emailQueue?.close?.()]);
-  await redis?.quit?.().catch(() => {});
+  // Best-effort disconnect during shutdown; nothing to do if it fails.
+  await redis?.quit?.().catch(() => undefined);
   notificationsQueue = null;
   emailQueue = null;
   redis = null;
