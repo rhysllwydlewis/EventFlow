@@ -285,6 +285,7 @@ function createWorker(queueName, processor) {
     } else if (queueName === 'email') {
       emailQueue.processor = processor;
     }
+    // skipcq: JS-0116 -- stub queue has nothing to await; kept async to stay interchangeable with BullMQ's Worker.close()
     return { close: async () => undefined };
   }
   const worker = new Worker(queueName, processor, {
