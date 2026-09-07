@@ -987,5 +987,92 @@
     "primaryTag": "transport",
     "ogImage": "https://images.pexels.com/photos/210182/pexels-photo-210182.jpeg?auto=compress&cs=tinysrgb&w=800&h=500&dpr=1",
     "lastMaterialUpdate": "2026-09-03"
+  },
+  {
+    "id": 35,
+    "title": "Prenups in the UK: A Complete Guide",
+    "description": "What a UK prenuptial agreement is, whether it's legally binding, and how to get one before your wedding.",
+    "excerpt": "What a UK prenuptial agreement is, whether it's legally binding, and how to get one before your wedding. Covers Radmacher v Granatino, independent legal advice and the steps to take.",
+    "image": "https://images.pexels.com/photos/1181772/pexels-photo-1181772.jpeg?auto=compress&cs=tinysrgb&w=800&h=500&dpr=1",
+    "category": "Legal",
+    "tags": [
+      "prenup",
+      "legal",
+      "wedding"
+    ],
+    "href": "/articles/prenups-uk-guide",
+    "readingMins": 5,
+    "publishedDate": "2026-09-07",
+    "featured": false,
+    "affiliate": false,
+    "tool": {
+      "label": "Plan an event",
+      "href": "/start"
+    },
+    "author": "EventFlow Team",
+    "summary": "What a UK prenup is, whether it holds up in court, and the steps to get one before your wedding.",
+    "difficulty": "Intermediate",
+    "lastUpdated": "2026-09-07",
+    "primaryTag": "legal",
+    "ogImage": "https://images.pexels.com/photos/1181772/pexels-photo-1181772.jpeg?auto=compress&cs=tinysrgb&w=800&h=500&dpr=1",
+    "lastMaterialUpdate": "2026-09-07"
+  },
+  {
+    "id": 36,
+    "title": "Civil Partnerships in the UK: A Complete Guide",
+    "description": "What a civil partnership is, how it differs from marriage, and how to register one in the UK.",
+    "excerpt": "What a civil partnership is, how it differs from marriage, and how to register one in the UK. Covers eligibility, the notice period and what changed for opposite-sex couples in 2019.",
+    "image": "https://images.pexels.com/photos/1181772/pexels-photo-1181772.jpeg?auto=compress&cs=tinysrgb&w=800&h=500&dpr=1",
+    "category": "Legal",
+    "tags": [
+      "civil partnership",
+      "legal",
+      "wedding"
+    ],
+    "href": "/articles/civil-partnerships-uk-guide",
+    "readingMins": 5,
+    "publishedDate": "2026-09-07",
+    "featured": false,
+    "affiliate": false,
+    "tool": {
+      "label": "Plan an event",
+      "href": "/start"
+    },
+    "author": "EventFlow Team",
+    "summary": "What a UK civil partnership is, how it differs from marriage, and how to register one.",
+    "difficulty": "Beginner",
+    "lastUpdated": "2026-09-07",
+    "primaryTag": "legal",
+    "ogImage": "https://images.pexels.com/photos/1181772/pexels-photo-1181772.jpeg?auto=compress&cs=tinysrgb&w=800&h=500&dpr=1",
+    "lastMaterialUpdate": "2026-09-07"
+  },
+  {
+    "id": 37,
+    "title": "Getting Married at Gretna Green",
+    "description": "Why couples marry at Gretna Green, the residency rules that apply, and how to book a ceremony there.",
+    "excerpt": "Why couples marry at Gretna Green, the residency rules that apply, and how to book a ceremony there. Covers the Old Blacksmith's Shop, marriage notice timing and what to book first.",
+    "image": "https://images.pexels.com/photos/1024993/pexels-photo-1024993.jpeg?auto=compress&cs=tinysrgb&w=800&h=500&dpr=1",
+    "category": "Venues",
+    "tags": [
+      "gretna green",
+      "scotland",
+      "wedding"
+    ],
+    "href": "/articles/getting-married-at-gretna-green",
+    "readingMins": 5,
+    "publishedDate": "2026-09-07",
+    "featured": false,
+    "affiliate": false,
+    "tool": {
+      "label": "Find suppliers",
+      "href": "/suppliers"
+    },
+    "author": "EventFlow Team",
+    "summary": "Why Gretna Green became a wedding destination, and how to book a ceremony there today.",
+    "difficulty": "Beginner",
+    "lastUpdated": "2026-09-07",
+    "primaryTag": "venues",
+    "ogImage": "https://images.pexels.com/photos/1024993/pexels-photo-1024993.jpeg?auto=compress&cs=tinysrgb&w=800&h=500&dpr=1",
+    "lastMaterialUpdate": "2026-09-07"
   }
 ]
