@@ -2563,3 +2563,73 @@
     padding: 8px 10px !important;
   }
 }
+
+/* SEO content block — plain, readable copy below the interactive results,
+   not styled as another results card so it never reads as a listing. */
+.sp-seo {
+  margin-top: var(--ef-space-6, 32px);
+  padding-top: var(--ef-space-5, 24px);
+  border-top: 1px solid var(--ef-border, #e5e7eb);
+  color: var(--ef-text-secondary, #475569);
+  line-height: 1.6;
+}
+
+.sp-seo h2 {
+  font-size: 1.15rem;
+  color: var(--ef-text-primary, #1f2937);
+  margin: 0 0 10px;
+}
+
+.sp-seo h2:not(:first-child) {
+  margin-top: 32px;
+}
+
+.sp-seo > p {
+  max-width: 70ch;
+}
+
+.sp-seo a {
+  color: var(--ef-brand, #0b8073);
+  text-decoration: underline;
+}
+
+.sp-seo-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 16px;
+  margin: 16px 0;
+}
+
+.sp-seo-card h3 {
+  font-size: 0.95rem;
+  color: var(--ef-text-primary, #1f2937);
+  margin: 0 0 4px;
+}
+
+.sp-seo-card p {
+  margin: 0;
+  font-size: 0.9rem;
+}
+
+.sp-seo-faq {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.sp-seo-faq details {
+  border: 1px solid var(--ef-border, #e5e7eb);
+  border-radius: 8px;
+  padding: 10px 14px;
+}
+
+.sp-seo-faq summary {
+  font-weight: 600;
+  color: var(--ef-text-primary, #1f2937);
+  cursor: pointer;
+}
+
+.sp-seo-faq p {
+  margin: 8px 0 0;
+  font-size: 0.9rem;
+}

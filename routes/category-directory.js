@@ -280,6 +280,17 @@ function renderCategoryDirectoryPage(model) {
     </section>`);
   }
 
+  const namedFaq = categoryDirectoryPages.CATEGORY_NAMED_FAQS[category.slug];
+  if (namedFaq) {
+    sections.push(`<section class="efl-section" aria-labelledby="efl-named-faq">
+      <h2 id="efl-named-faq">Common questions</h2>
+      <details class="efl-faq">
+        <summary>${escapeHtml(namedFaq.question)}</summary>
+        <p>${escapeHtml(namedFaq.answer)}</p>
+      </details>
+    </section>`);
+  }
+
   if (relatedCategories.length) {
     const links = relatedCategories
       .map(
@@ -396,6 +407,9 @@ router.get('/categories/:categorySlug', publicReadLimiter, async (req, res, next
       baseUrl: BASE_URL,
     });
 
+    const namedFaqStructuredData =
+      categoryDirectoryPages.buildCategoryNamedFaqStructuredData(category);
+
     const structuredData = [
       model.breadcrumbs,
       categoryDirectoryPages.buildCategoryDirectoryStructuredData({
@@ -408,6 +422,7 @@ router.get('/categories/:categorySlug', publicReadLimiter, async (req, res, next
           return suffix ? `${BASE_URL}${suffix}` : '';
         },
       }),
+      ...(namedFaqStructuredData ? [namedFaqStructuredData] : []),
     ];
 
     const html = applyContent(

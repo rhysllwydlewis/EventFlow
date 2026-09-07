@@ -110,6 +110,25 @@ describe('GET /categories/:categorySlug', () => {
     expect(response.text).not.toContain('test-no2-yy7lo4');
   });
 
+  it('names wedding cake explicitly on the Cake category page', async () => {
+    mockDb.seed('suppliers', [supplier('1', 'Cake'), supplier('2', 'Cake'), supplier('3', 'Cake')]);
+    const response = await request(buildApp()).get('/categories/cake');
+    expect(response.status).toBe(200);
+    expect(response.text).toContain('Does EventFlow list wedding cake suppliers?');
+    expect(response.text).toContain('"@type":"FAQPage"');
+  });
+
+  it('names photo booth explicitly on the Entertainment category page', async () => {
+    mockDb.seed('suppliers', [
+      supplier('1', 'Entertainment'),
+      supplier('2', 'Entertainment'),
+      supplier('3', 'Entertainment'),
+    ]);
+    const response = await request(buildApp()).get('/categories/entertainment');
+    expect(response.status).toBe(200);
+    expect(response.text).toContain('Does EventFlow list photo booth suppliers?');
+  });
+
   it('redirects a non-canonical slug spelling to the canonical one', async () => {
     mockDb.seed('suppliers', []);
     const response = await request(buildApp()).get('/categories/Venues');

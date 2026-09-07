@@ -171,6 +171,50 @@ function composeCategoryDirectoryIntro(category, { rankedSuppliers = [], package
 }
 
 /**
+ * A short, named-subtopic FAQ for categories whose highest-volume missed
+ * search query names a specific kind of supplier the category page doesn't
+ * otherwise mention by name — e.g. "wedding cake" under Cake, "photo booth"
+ * under Entertainment. Deliberately a fixed lookup rather than a generic
+ * per-category FAQ generator: it exists for the handful of named sub-topics
+ * worth calling out, not as boilerplate for every category.
+ */
+const CATEGORY_NAMED_FAQS = Object.freeze({
+  cake: Object.freeze({
+    question: 'Does EventFlow list wedding cake suppliers?',
+    answer:
+      'Yes — wedding cake makers are listed under the Cake category. Browse profiles, portfolios and pricing, then message a supplier directly to discuss your design and delivery.',
+  }),
+  entertainment: Object.freeze({
+    question: 'Does EventFlow list photo booth suppliers?',
+    answer:
+      'Yes — photo booth operators are listed under Entertainment alongside bands and DJs. Filter by price and postcode to compare photo booth suppliers near your venue.',
+  }),
+});
+
+/**
+ * FAQPage structured data for a category's named-subtopic FAQ, if it has one.
+ * @param {{slug: string}} category Canonical category.
+ * @returns {Object|null} FAQPage structured data, or null when this category has none.
+ */
+function buildCategoryNamedFaqStructuredData(category) {
+  const faq = CATEGORY_NAMED_FAQS[category && category.slug];
+  if (!faq) {
+    return null;
+  }
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'FAQPage',
+    mainEntity: [
+      {
+        '@type': 'Question',
+        name: faq.question,
+        acceptedAnswer: { '@type': 'Answer', text: faq.answer },
+      },
+    ],
+  };
+}
+
+/**
  * Breadcrumb JSON-LD for a category directory page.
  * @param {{name: string, slug: string}} category Canonical category.
  * @param {string} baseUrl Base URL.
@@ -310,11 +354,13 @@ function buildCategoryDirectoryPageModel(input) {
 }
 
 module.exports = {
+  CATEGORY_NAMED_FAQS,
   MAX_SUPPLIERS_PER_PAGE,
   buildCategoryDirectoryBreadcrumbs,
   buildCategoryDirectoryMetadata,
   buildCategoryDirectoryPageModel,
   buildCategoryDirectoryStructuredData,
+  buildCategoryNamedFaqStructuredData,
   composeCategoryDirectoryIntro,
   isIndexable,
   populatedCategories,

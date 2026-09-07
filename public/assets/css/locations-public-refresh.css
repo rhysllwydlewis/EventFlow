@@ -392,6 +392,24 @@
   content: '';
 }
 
+.efl-faq {
+  padding: 1rem 1.25rem;
+  border: 1px solid rgba(11, 128, 115, 0.16);
+  border-radius: 12px;
+  background: #fff;
+}
+
+.efl-faq summary {
+  font-weight: 650;
+  color: #10231f;
+  cursor: pointer;
+}
+
+.efl-faq p {
+  margin: 0.6rem 0 0;
+  color: #4c5f5a;
+}
+
 .efl-chips {
   gap: 0.55rem;
 }

@@ -223,3 +223,23 @@ describe('populatedCategories', () => {
     expect(entries[0].category.name).toBe('Venues');
   });
 });
+
+describe('buildCategoryNamedFaqStructuredData', () => {
+  it('names wedding cake explicitly for the Cake category', () => {
+    const cake = categoryDirectoryPages.resolveCategory('cake');
+    const faq = categoryDirectoryPages.buildCategoryNamedFaqStructuredData(cake);
+    expect(faq['@type']).toBe('FAQPage');
+    expect(faq.mainEntity[0].name).toMatch(/wedding cake/i);
+  });
+
+  it('names photo booth explicitly for the Entertainment category', () => {
+    const entertainment = categoryDirectoryPages.resolveCategory('entertainment');
+    const faq = categoryDirectoryPages.buildCategoryNamedFaqStructuredData(entertainment);
+    expect(faq['@type']).toBe('FAQPage');
+    expect(faq.mainEntity[0].name).toMatch(/photo booth/i);
+  });
+
+  it('returns null for a category with no named FAQ', () => {
+    expect(categoryDirectoryPages.buildCategoryNamedFaqStructuredData(venues)).toBeNull();
+  });
+});
