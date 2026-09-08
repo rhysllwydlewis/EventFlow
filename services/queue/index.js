@@ -26,7 +26,14 @@ const WORKER_HEARTBEAT_INTERVAL_MS = 10_000;
 const WORKER_HEARTBEAT_TTL_SECONDS = 45;
 const WORKER_HEARTBEAT_STALE_MS = 30_000;
 const QUEUE_HEALTH_TIMEOUT_MS = 1_500;
-const WORKER_READY_TIMEOUT_MS = 10_000;
+// Railway's private network path to a freshly started container can take longer than a
+// few seconds to become reachable (observed as repeated ECONNREFUSED from ioredis's own
+// automatic retries, not a genuine Redis outage - the always-on web process on the prior
+// deployment kept working throughout). scripts/worker.js treats a readiness timeout here
+// as fatal and, by design, brings the sibling web process down with it, so a value that's
+// too tight turns a brief networking hiccup into a full deployment failure. 90s leaves a
+// safety margin under railway.json's 120s healthcheckTimeout for the eventflow service.
+const WORKER_READY_TIMEOUT_MS = 90_000;
 const QUEUE_HEALTH_CACHE_MS = 5_000;
 const REQUIRED_WORKER_QUEUES = new Set(['notifications', 'email']);
 
