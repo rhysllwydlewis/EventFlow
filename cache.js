@@ -89,7 +89,9 @@ async function connectRedis() {
       // If the timeout below wins the race, this promise is abandoned; catch
       // it here so an eventual rejection doesn't surface as an unhandled
       // promise rejection.
-      connectPromise.catch(() => {});
+      connectPromise.catch(err => {
+        logger.error('Redis connection attempt abandoned after timeout:', err);
+      });
 
       await Promise.race([
         connectPromise,
@@ -126,7 +128,7 @@ async function connectRedis() {
  * in-flight connection attempt, rather than each racing to construct their
  * own Redis client.
  */
-async function initializeCache() {
+function initializeCache() {
   if (cacheEnabled) {
     return cacheType;
   }
