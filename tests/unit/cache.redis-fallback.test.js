@@ -27,13 +27,16 @@ describe('cache.js Redis connection fallback', () => {
   it('falls back to the in-memory cache when the Redis connection is refused', async () => {
     process.env.REDIS_URL = 'redis://127.0.0.1:1';
 
-    jest.doMock('ioredis', () =>
-      jest.fn().mockImplementation(() => ({
+    let capturedOptions;
+    const IORedisMock = jest.fn().mockImplementation((_url, options) => {
+      capturedOptions = options;
+      return {
         on: jest.fn(),
         connect: jest.fn().mockRejectedValue(new Error('connect ECONNREFUSED 127.0.0.1:1')),
         disconnect: jest.fn(),
-      }))
-    );
+      };
+    });
+    jest.doMock('ioredis', () => IORedisMock);
 
     let cache;
     jest.isolateModules(() => {
@@ -45,6 +48,34 @@ describe('cache.js Redis connection fallback', () => {
     expect(cache.getStats().type).toBe('memory');
 
     // The in-memory fallback must actually work, not just be selected.
+    expect(await cache.set('greeting', 'hello')).toBe(true);
+    expect(await cache.get('greeting')).toBe('hello');
+
+    // The bounded retry strategy passed to ioredis must actually give up
+    // after a few attempts, rather than retrying forever in the background.
+    expect(capturedOptions.retryStrategy(1)).toBeGreaterThan(0);
+    expect(capturedOptions.retryStrategy(10)).toBeNull();
+  });
+
+  it('still falls back to memory when disconnecting the dead client itself throws', async () => {
+    process.env.REDIS_URL = 'redis://127.0.0.1:1';
+
+    jest.doMock('ioredis', () =>
+      jest.fn().mockImplementation(() => ({
+        on: jest.fn(),
+        connect: jest.fn().mockRejectedValue(new Error('connect ECONNREFUSED 127.0.0.1:1')),
+        disconnect: jest.fn(() => {
+          throw new Error('already closed');
+        }),
+      }))
+    );
+
+    let cache;
+    jest.isolateModules(() => {
+      cache = require('../../cache');
+    });
+
+    await expect(cache.initializeCache()).resolves.toBe('memory');
     expect(await cache.set('greeting', 'hello')).toBe(true);
     expect(await cache.get('greeting')).toBe('hello');
   });
