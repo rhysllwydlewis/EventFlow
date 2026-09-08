@@ -25,6 +25,39 @@ const accountTypeConversionRiskGuard = partnerRegistrationRisk.registrationRiskG
   roleResolver: req => (req.body?.targetRole === 'supplier' ? 'supplier' : null),
 });
 
+// Keep this list in sync with services/actionPromptService.js's action keys.
+const ACTION_PROMPT_BOOLEAN_FIELDS = [
+  'enabled',
+  'missingPackages',
+  'incompleteProfile',
+  'missingPhotos',
+  'uncategorized',
+];
+
+/**
+ * Validate emailPrefs.actionPrompts.* boolean fields and stage the provided
+ * ones onto updateFields. Pulled out of the POST handler below purely to keep
+ * its cyclomatic complexity down as the field list has grown — behaviour
+ * (validation order, error text, which fields get written) is unchanged.
+ *
+ * @param {Object} ap - req.body.emailPrefs.actionPrompts
+ * @param {Object} updateFields - Mutated in place with any valid fields
+ * @returns {string|null} Error message if a field fails validation, else null
+ */
+function applyActionPromptPrefs(ap, updateFields) {
+  for (const field of ACTION_PROMPT_BOOLEAN_FIELDS) {
+    if (ap[field] !== undefined && typeof ap[field] !== 'boolean') {
+      return `emailPrefs.actionPrompts.${field} must be a boolean`;
+    }
+  }
+  for (const field of ACTION_PROMPT_BOOLEAN_FIELDS) {
+    if (ap[field] !== undefined) {
+      updateFields[`emailPrefs.actionPrompts.${field}`] = ap[field];
+    }
+  }
+  return null;
+}
+
 const ACCOUNT_TYPE_CONVERSION_STATUS_BY_CODE = {
   NOT_FOUND: 404,
   ADMIN_ROLE_PROTECTED: 403,
@@ -127,46 +160,9 @@ router.post('/', writeLimiter, authRequired, csrfProtection, async (req, res) =>
 
     // Update emailPrefs.actionPrompts if provided
     if (body.emailPrefs && typeof body.emailPrefs.actionPrompts === 'object') {
-      const ap = body.emailPrefs.actionPrompts;
-      if (ap.enabled !== undefined && typeof ap.enabled !== 'boolean') {
-        return res
-          .status(400)
-          .json({ error: 'emailPrefs.actionPrompts.enabled must be a boolean' });
-      }
-      if (ap.missingPackages !== undefined && typeof ap.missingPackages !== 'boolean') {
-        return res
-          .status(400)
-          .json({ error: 'emailPrefs.actionPrompts.missingPackages must be a boolean' });
-      }
-      if (ap.incompleteProfile !== undefined && typeof ap.incompleteProfile !== 'boolean') {
-        return res
-          .status(400)
-          .json({ error: 'emailPrefs.actionPrompts.incompleteProfile must be a boolean' });
-      }
-      if (ap.missingPhotos !== undefined && typeof ap.missingPhotos !== 'boolean') {
-        return res
-          .status(400)
-          .json({ error: 'emailPrefs.actionPrompts.missingPhotos must be a boolean' });
-      }
-      if (ap.uncategorized !== undefined && typeof ap.uncategorized !== 'boolean') {
-        return res
-          .status(400)
-          .json({ error: 'emailPrefs.actionPrompts.uncategorized must be a boolean' });
-      }
-      if (ap.enabled !== undefined) {
-        updateFields['emailPrefs.actionPrompts.enabled'] = ap.enabled;
-      }
-      if (ap.missingPackages !== undefined) {
-        updateFields['emailPrefs.actionPrompts.missingPackages'] = ap.missingPackages;
-      }
-      if (ap.incompleteProfile !== undefined) {
-        updateFields['emailPrefs.actionPrompts.incompleteProfile'] = ap.incompleteProfile;
-      }
-      if (ap.missingPhotos !== undefined) {
-        updateFields['emailPrefs.actionPrompts.missingPhotos'] = ap.missingPhotos;
-      }
-      if (ap.uncategorized !== undefined) {
-        updateFields['emailPrefs.actionPrompts.uncategorized'] = ap.uncategorized;
+      const actionPromptError = applyActionPromptPrefs(body.emailPrefs.actionPrompts, updateFields);
+      if (actionPromptError) {
+        return res.status(400).json({ error: actionPromptError });
       }
     }
 
