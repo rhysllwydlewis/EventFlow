@@ -54,6 +54,7 @@ describe('Redis queue runtime health', () => {
   const originalEnv = process.env;
 
   beforeEach(() => {
+    jest.useRealTimers();
     jest.resetModules();
     jest.clearAllMocks();
     process.env = {
@@ -184,6 +185,73 @@ describe('Redis queue runtime health', () => {
     expect(logger.error).toHaveBeenCalledWith('[queue] redis connection error', {
       error: 'connect ECONNREFUSED 127.0.0.1:6379',
     });
+  });
+
+  it('describes an AggregateError by its nested reasons when its own message is empty', async () => {
+    const queue = require('../../services/queue');
+    const logger = { error: jest.fn() };
+    queue.setQueueContext({ logger });
+
+    queue.getQueues();
+    const aggregate = new AggregateError(
+      [
+        new Error('connect ECONNREFUSED 10.0.0.5:6379'),
+        new Error('connect ECONNREFUSED [::1]:6379'),
+      ],
+      ''
+    );
+
+    mockRedisClient.handlers.error(aggregate);
+
+    expect(logger.error).toHaveBeenCalledWith('[queue] redis connection error', {
+      error: 'connect ECONNREFUSED 10.0.0.5:6379; connect ECONNREFUSED [::1]:6379',
+    });
+  });
+
+  it('routes worker connection errors and shutdown failures through the app logger', async () => {
+    const queue = require('../../services/queue');
+    const logger = { error: jest.fn(), warn: jest.fn() };
+    queue.setQueueContext({ logger });
+
+    const worker = queue.createWorker('notifications', jest.fn());
+    worker.handlers.error(new Error('worker connection lost'));
+    expect(logger.error).toHaveBeenCalledWith('[queue] worker connection error', {
+      queueName: 'notifications',
+      error: 'worker connection lost',
+    });
+
+    mockRedisClient.zrem.mockRejectedValueOnce(new Error('zrem failed'));
+    mockWorkerClose.mockRejectedValueOnce(new Error('close failed'));
+    await queue.shutdownQueues();
+
+    expect(logger.warn).toHaveBeenCalledWith(
+      '[queue] failed to remove worker heartbeat during shutdown',
+      { error: 'zrem failed' }
+    );
+    expect(logger.warn).toHaveBeenCalledWith('[queue] failed to close worker cleanly', {
+      error: 'close failed',
+    });
+  });
+
+  it('logs a warning when a periodic heartbeat write fails', async () => {
+    jest.useFakeTimers();
+    const queue = require('../../services/queue');
+    const logger = { error: jest.fn(), warn: jest.fn() };
+    queue.setQueueContext({ logger });
+
+    queue.createWorker('notifications', jest.fn());
+    queue.createWorker('email', jest.fn());
+    await queue.startWorkerHeartbeat({ intervalMs: 50 });
+
+    mockRedisMultiExec.mockRejectedValueOnce(new Error('heartbeat write failed'));
+    await jest.advanceTimersByTimeAsync(50);
+
+    expect(logger.error).toHaveBeenCalledWith('[queue] worker heartbeat failed', {
+      error: 'heartbeat write failed',
+    });
+
+    jest.useRealTimers();
+    await queue.shutdownQueues();
   });
 
   it('rejects an unsafe namespace before connecting to Redis', () => {
