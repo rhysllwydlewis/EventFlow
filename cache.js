@@ -97,7 +97,8 @@ async function connectRedis() {
         connectPromise,
         new Promise((_resolve, reject) => {
           setTimeout(
-            () => reject(new Error(`Redis connection timed out after ${REDIS_CONNECT_TIMEOUT_MS}ms`)),
+            () =>
+              reject(new Error(`Redis connection timed out after ${REDIS_CONNECT_TIMEOUT_MS}ms`)),
             REDIS_CONNECT_TIMEOUT_MS
           );
         }),
