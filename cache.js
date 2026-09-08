@@ -65,12 +65,22 @@ async function initializeCache() {
         cacheStats.errors++;
       });
     } else {
-      // Using ioredis package
-      redisClient = new redis(redisUrl);
+      // Using ioredis package. lazyConnect plus an explicit, bounded connect()
+      // below means a connection failure actually rejects and falls through
+      // to the in-memory cache in the catch block — without this, ioredis
+      // connects in the background with its own indefinite retry strategy,
+      // so cacheType got set to 'redis' whether or not the connection ever
+      // succeeded, and every get()/set() call silently failed forever
+      // instead of using the in-memory fallback it was supposed to have.
+      redisClient = new redis(redisUrl, {
+        lazyConnect: true,
+        retryStrategy: times => (times > 3 ? null : Math.min(times * 200, 1000)),
+      });
       redisClient.on('error', err => {
         logger.error('Redis error:', err);
         cacheStats.errors++;
       });
+      await redisClient.connect();
     }
 
     cacheType = 'redis';
@@ -79,6 +89,14 @@ async function initializeCache() {
     return cacheType;
   } catch (error) {
     logger.info('⚠️  Redis not available, using in-memory cache:', error.message);
+    if (redisClient) {
+      try {
+        redisClient.disconnect();
+      } catch (disconnectError) {
+        logger.error('Error disconnecting failed Redis client:', disconnectError);
+      }
+      redisClient = null;
+    }
     cacheType = 'memory';
     cacheEnabled = true;
     return cacheType;
