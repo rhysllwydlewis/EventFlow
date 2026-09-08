@@ -589,9 +589,8 @@ Crawl-delay: 1
 /**
  * Generate llms.txt content — a curated, plain-text reference for AI
  * assistants and agents (per https://llmstxt.org), distinct from robots.txt
- * crawl rules. Consistent with the Content-Signal `use=reference` policy
- * already declared for this site, it points to the same public pages an
- * assistant would otherwise have to discover via the sitemap.
+ * crawl rules. It points to the same public pages an assistant would
+ * otherwise have to discover via the sitemap.
  * @param {string} baseUrl - Base URL of the site
  * @returns {string} llms.txt content
  */
