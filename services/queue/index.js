@@ -39,6 +39,24 @@ let redis;
 let workerHeartbeatTimer = null;
 const healthCache = new Map();
 
+// AggregateError (thrown by Node/ioredis when every resolved address for a
+// host refuses the connection) commonly has an *empty* top-level `.message`,
+// with the actual per-attempt reasons nested in `.errors`. Logging
+// `error.message` directly for these silently produced `{"error":""}` in
+// production, hiding the real cause of Redis connection failures.
+function describeError(error) {
+  if (!error) {
+    return 'unknown error';
+  }
+  if (error.message) {
+    return error.message;
+  }
+  if (Array.isArray(error.errors) && error.errors.length > 0) {
+    return error.errors.map(inner => inner?.message || String(inner)).join('; ');
+  }
+  return String(error);
+}
+
 function stableJobId(kind, values) {
   const digest = crypto
     .createHash('sha256')
@@ -98,7 +116,7 @@ function initQueues() {
   // attach one on our behalf when we supply the connection). Route it through
   // the app logger instead so outages show up in structured logs.
   redis.on('error', error => {
-    context.logger?.error?.('[queue] redis connection error', { error: error.message });
+    context.logger?.error?.('[queue] redis connection error', { error: describeError(error) });
   });
   notificationsQueue = new Queue('notifications', {
     connection: redis,
@@ -226,7 +244,7 @@ async function startWorkerHeartbeat({ intervalMs = WORKER_HEARTBEAT_INTERVAL_MS 
   }
   workerHeartbeatTimer = setInterval(() => {
     writeWorkerHeartbeat().catch(error => {
-      context.logger?.error?.('[queue] worker heartbeat failed', { error: error.message });
+      context.logger?.error?.('[queue] worker heartbeat failed', { error: describeError(error) });
     });
   }, intervalMs);
   workerHeartbeatTimer.unref?.();
@@ -301,7 +319,7 @@ function createWorker(queueName, processor) {
     state.ready = false;
     context.logger?.error?.('[queue] worker connection error', {
       queueName,
-      error: error.message,
+      error: describeError(error),
     });
   });
   worker.on('closing', () => {
@@ -350,14 +368,16 @@ async function shutdownQueues() {
   if (redis && !USE_STUB) {
     await redis.zrem(WORKER_HEARTBEAT_KEY, WORKER_INSTANCE_ID).catch(error => {
       context.logger?.warn?.('[queue] failed to remove worker heartbeat during shutdown', {
-        error: error.message,
+        error: describeError(error),
       });
     });
   }
   await Promise.all(
     workers.map(w =>
       w.close().catch(error => {
-        context.logger?.warn?.('[queue] failed to close worker cleanly', { error: error.message });
+        context.logger?.warn?.('[queue] failed to close worker cleanly', {
+          error: describeError(error),
+        });
       })
     )
   );
