@@ -108,7 +108,12 @@ async function connectRedis() {
     logger.info('✅ Redis cache initialized');
     return 'redis';
   } catch (error) {
-    logger.info('⚠️  Redis not available, using in-memory cache:', error.message);
+    // Pass the Error object itself, not error.message: winston only merges a
+    // trailing argument into the rendered log line when it's an Error
+    // instance — a plain string second argument is silently dropped, which
+    // is exactly what made every earlier version of this log line useless
+    // for diagnosing *why* Redis was unavailable.
+    logger.info('⚠️  Redis not available, using in-memory cache:', error);
     if (redisClient) {
       try {
         redisClient.disconnect();
