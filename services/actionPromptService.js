@@ -6,6 +6,8 @@
  *  1. missingPackages   — supplier has 0 packages                (RED — critical)
  *  2. incompleteProfile — supplier profile missing required fields (AMBER)
  *  3. missingPhotos     — supplier has no photos/gallery          (AMBER)
+ *  4. uncategorized     — supplier has no category, or is stuck on
+ *                         the catch-all "Other" category          (AMBER)
  *
  * Cadence (per-supplier while actions remain outstanding):
  *  • FIRST reminder : 24 h after outstanding actions are first detected
@@ -40,6 +42,11 @@ const { hasSupplierGalleryPhotos, hasSupplierPostcode } = require('./supplierPro
 // just profile cosmetics — a supplier with a location but no postcode won't
 // surface correctly in radius-based search.
 const REQUIRED_PROFILE_FIELDS = ['name', 'description_short', 'location', 'postcode'];
+
+// "Other" is the catch-all category value (see models/Supplier.js VALID_CATEGORIES)
+// used both when a supplier never picked one and when nothing else fits — a
+// listing stuck here is invisible to category-filtered browse/search.
+const UNCATEGORIZED_VALUE = 'Other';
 
 // One send at each introductory stage before moving on.
 const DAILY_SENDS_BEFORE_WEEKLY = 1;
@@ -79,6 +86,13 @@ const ACTION_DEFINITIONS = {
       'Profiles with photos attract far more views. Upload high-quality images of your work to make a great first impression.',
     ctaText: 'Upload Photos',
   },
+  uncategorized: {
+    severity: 'amber',
+    title: 'Choose a category for your listing',
+    description:
+      "Your listing doesn't have a specific category, so it won't appear when customers browse or filter by category. Pick the option that best matches what you offer.",
+    ctaText: 'Update Category',
+  },
 };
 
 // Human-readable labels for completed checks
@@ -86,7 +100,20 @@ const COMPLETE_LABELS = {
   hasPackages: 'Service packages listed',
   profileComplete: 'Profile details complete',
   hasPhotos: 'Photos uploaded',
+  categorized: 'Category selected',
 };
+
+/**
+ * Whether a supplier has no usable category — either never set, or left on
+ * the catch-all "Other" value.
+ *
+ * @param {Object} supplier - Supplier document
+ * @returns {boolean}
+ */
+function isSupplierUncategorized(supplier) {
+  const category = String(supplier.category || '').trim();
+  return !category || category === UNCATEGORIZED_VALUE;
+}
 
 /**
  * Which of REQUIRED_PROFILE_FIELDS are missing on this supplier. Postcode is
@@ -160,6 +187,18 @@ function computeActions(supplier, packages, settings, user) {
     actions.push({
       key: 'missingPhotos',
       ...ACTION_DEFINITIONS.missingPhotos,
+      ctaUrl: `${baseUrl}/dashboard/supplier`,
+      status: 'incomplete',
+    });
+  }
+
+  // 4. Uncategorized listing (AMBER — behind global and user toggles)
+  const globalUncategorized = promptTypes.uncategorized !== false;
+  const userUncategorizedPref = userPrefs.uncategorized !== false;
+  if (globalUncategorized && userUncategorizedPref && isSupplierUncategorized(supplier)) {
+    actions.push({
+      key: 'uncategorized',
+      ...ACTION_DEFINITIONS.uncategorized,
       ctaUrl: `${baseUrl}/dashboard/supplier`,
       status: 'incomplete',
     });
@@ -247,6 +286,27 @@ function computeFullReport(supplier, packages, settings, user) {
     completed.push({
       key: 'hasPhotos',
       title: COMPLETE_LABELS.hasPhotos,
+      status: 'complete',
+      severity: 'green',
+    });
+  }
+
+  // 4. Category (behind global and user toggles)
+  const globalUncategorized = promptTypes.uncategorized !== false;
+  const userUncategorizedPref = userPrefs.uncategorized !== false;
+  if (isSupplierUncategorized(supplier)) {
+    if (globalUncategorized && userUncategorizedPref) {
+      outstanding.push({
+        key: 'uncategorized',
+        ...ACTION_DEFINITIONS.uncategorized,
+        ctaUrl: `${baseUrl}/dashboard/supplier`,
+        status: 'incomplete',
+      });
+    }
+  } else {
+    completed.push({
+      key: 'categorized',
+      title: COMPLETE_LABELS.categorized,
       status: 'complete',
       severity: 'green',
     });
@@ -546,6 +606,7 @@ module.exports = {
   updateCadenceState,
   REQUIRED_PROFILE_FIELDS,
   missingProfileFields,
+  isSupplierUncategorized,
   hasGalleryPhotos: hasSupplierGalleryPhotos,
   DAILY_SENDS_BEFORE_WEEKLY,
   WEEKLY_SENDS_BEFORE_MONTHLY,

@@ -1365,6 +1365,7 @@ router.get(
         missingPackages: promptTypes.missingPackages !== false,
         incompleteProfile: promptTypes.incompleteProfile !== false,
         missingPhotos: promptTypes.missingPhotos !== false,
+        uncategorized: promptTypes.uncategorized !== false,
       };
 
       // User state
@@ -1375,6 +1376,7 @@ router.get(
         missingPackages: userEmailPrefs.missingPackages !== false,
         incompleteProfile: userEmailPrefs.incompleteProfile !== false,
         missingPhotos: userEmailPrefs.missingPhotos !== false,
+        uncategorized: userEmailPrefs.uncategorized !== false,
       };
 
       // Outstanding actions — always compute using a synthetic all-prefs-enabled user when
@@ -1387,6 +1389,7 @@ router.get(
             missingPackages: true,
             incompleteProfile: true,
             missingPhotos: true,
+            uncategorized: true,
           },
         },
       };
@@ -1434,13 +1437,13 @@ router.get(
         `Generated: ${new Date().toISOString()}`,
         '',
         `Global enabled: ${globalEnabled}`,
-        `Global prompt-type toggles: missingPackages=${globalToggles.missingPackages}, incompleteProfile=${globalToggles.incompleteProfile}, missingPhotos=${globalToggles.missingPhotos}`,
+        `Global prompt-type toggles: missingPackages=${globalToggles.missingPackages}, incompleteProfile=${globalToggles.incompleteProfile}, missingPhotos=${globalToggles.missingPhotos}, uncategorized=${globalToggles.uncategorized}`,
         '',
         `Supplier: ${supplier.name || 'N/A'} (${supplierId})`,
         `Owner user: ${user ? `${user.email} (${user.id})` : 'NO USER LINKED'}`,
         `User verified: ${userVerified}`,
         `User prefs enabled: ${userPrefsEnabled}`,
-        `User per-type prefs: missingPackages=${userPerTypePrefs.missingPackages}, incompleteProfile=${userPerTypePrefs.incompleteProfile}, missingPhotos=${userPerTypePrefs.missingPhotos}`,
+        `User per-type prefs: missingPackages=${userPerTypePrefs.missingPackages}, incompleteProfile=${userPerTypePrefs.incompleteProfile}, missingPhotos=${userPerTypePrefs.missingPhotos}, uncategorized=${userPerTypePrefs.uncategorized}`,
         '',
         `Outstanding actions (${outstandingActions.length}): ${outstandingActions.map(a => a.key).join(', ') || 'none'}`,
         `Completed actions (${completedActions.length}): ${completedActions.map(a => a.key).join(', ') || 'none'}`,

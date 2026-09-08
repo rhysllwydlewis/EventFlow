@@ -84,6 +84,7 @@ router.get('/', authRequired, async (req, res) => {
           missingPackages: actionPrompts.missingPackages !== false,
           incompleteProfile: actionPrompts.incompleteProfile !== false,
           missingPhotos: actionPrompts.missingPhotos !== false,
+          uncategorized: actionPrompts.uncategorized !== false,
         },
       },
       newsletterStatus,
@@ -147,6 +148,11 @@ router.post('/', writeLimiter, authRequired, csrfProtection, async (req, res) =>
           .status(400)
           .json({ error: 'emailPrefs.actionPrompts.missingPhotos must be a boolean' });
       }
+      if (ap.uncategorized !== undefined && typeof ap.uncategorized !== 'boolean') {
+        return res
+          .status(400)
+          .json({ error: 'emailPrefs.actionPrompts.uncategorized must be a boolean' });
+      }
       if (ap.enabled !== undefined) {
         updateFields['emailPrefs.actionPrompts.enabled'] = ap.enabled;
       }
@@ -158,6 +164,9 @@ router.post('/', writeLimiter, authRequired, csrfProtection, async (req, res) =>
       }
       if (ap.missingPhotos !== undefined) {
         updateFields['emailPrefs.actionPrompts.missingPhotos'] = ap.missingPhotos;
+      }
+      if (ap.uncategorized !== undefined) {
+        updateFields['emailPrefs.actionPrompts.uncategorized'] = ap.uncategorized;
       }
     }
 
