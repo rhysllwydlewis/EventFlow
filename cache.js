@@ -11,6 +11,15 @@ let redis = null;
 let redisClient = null;
 let cacheEnabled = false;
 let cacheType = 'none';
+let initializingPromise = null;
+
+// How long to wait for the *initial* Redis connection before giving up and
+// using the in-memory cache instead. This bounds only the startup decision —
+// once connected, ioredis's own default (indefinite) retry strategy stays in
+// force for the rest of the client's life, so a later, transient outage
+// still reconnects instead of leaving the cache permanently pointed at a
+// dead client.
+const REDIS_CONNECT_TIMEOUT_MS = 5000;
 
 // In-memory fallback cache
 const memoryCache = new Map();
@@ -26,23 +35,18 @@ let cacheStats = {
 };
 
 /**
- * Initialize Redis connection
- * Falls back to in-memory cache if Redis is not available
+ * Attempt to connect to Redis, falling back to the in-memory cache on any
+ * failure. Never throws — always resolves to the cache type that ended up
+ * active.
+ * @returns {Promise<'redis'|'memory'>} The cache type now in effect.
  */
-async function initializeCache() {
-  if (cacheEnabled) {
-    return cacheType;
-  }
-
-  // Try to load Redis
+async function connectRedis() {
   try {
     const redisUrl = process.env.REDIS_URL || process.env.REDIS_URI;
 
     if (!redisUrl) {
       logger.info('ℹ️  No Redis configuration found, using in-memory cache');
-      cacheType = 'memory';
-      cacheEnabled = true;
-      return cacheType;
+      return 'memory';
     }
 
     // Try to load ioredis
@@ -65,28 +69,41 @@ async function initializeCache() {
         cacheStats.errors++;
       });
     } else {
-      // Using ioredis package. lazyConnect plus an explicit, bounded connect()
-      // below means a connection failure actually rejects and falls through
-      // to the in-memory cache in the catch block — without this, ioredis
-      // connects in the background with its own indefinite retry strategy,
-      // so cacheType got set to 'redis' whether or not the connection ever
-      // succeeded, and every get()/set() call silently failed forever
-      // instead of using the in-memory fallback it was supposed to have.
-      redisClient = new redis(redisUrl, {
-        lazyConnect: true,
-        retryStrategy: times => (times > 3 ? null : Math.min(times * 200, 1000)),
-      });
+      // Using ioredis package, with lazyConnect so we control the initial
+      // connection attempt explicitly instead of ioredis connecting in the
+      // background: a REDIS_CONNECT_TIMEOUT_MS-bounded race decides whether
+      // startup used Redis or the in-memory fallback. Deliberately no custom
+      // retryStrategy — that would also govern *reconnection* after a
+      // successful startup, and a strategy bounded for "give up quickly at
+      // startup" would just as readily give up permanently during a later,
+      // transient outage, leaving the cache stuck on a dead client until the
+      // process restarts. ioredis's own default strategy keeps retrying
+      // indefinitely, which is what we want once connected.
+      redisClient = new redis(redisUrl, { lazyConnect: true });
       redisClient.on('error', err => {
         logger.error('Redis error:', err);
         cacheStats.errors++;
       });
-      await redisClient.connect();
+
+      const connectPromise = redisClient.connect();
+      // If the timeout below wins the race, this promise is abandoned; catch
+      // it here so an eventual rejection doesn't surface as an unhandled
+      // promise rejection.
+      connectPromise.catch(() => {});
+
+      await Promise.race([
+        connectPromise,
+        new Promise((_resolve, reject) => {
+          setTimeout(
+            () => reject(new Error(`Redis connection timed out after ${REDIS_CONNECT_TIMEOUT_MS}ms`)),
+            REDIS_CONNECT_TIMEOUT_MS
+          );
+        }),
+      ]);
     }
 
-    cacheType = 'redis';
-    cacheEnabled = true;
     logger.info('✅ Redis cache initialized');
-    return cacheType;
+    return 'redis';
   } catch (error) {
     logger.info('⚠️  Redis not available, using in-memory cache:', error.message);
     if (redisClient) {
@@ -97,10 +114,36 @@ async function initializeCache() {
       }
       redisClient = null;
     }
-    cacheType = 'memory';
-    cacheEnabled = true;
+    return 'memory';
+  }
+}
+
+/**
+ * Initialize Redis connection
+ * Falls back to in-memory cache if Redis is not available
+ *
+ * Concurrent calls before the first attempt finishes share the same
+ * in-flight connection attempt, rather than each racing to construct their
+ * own Redis client.
+ */
+async function initializeCache() {
+  if (cacheEnabled) {
     return cacheType;
   }
+
+  if (!initializingPromise) {
+    initializingPromise = connectRedis()
+      .then(type => {
+        cacheType = type;
+        cacheEnabled = true;
+        return cacheType;
+      })
+      .finally(() => {
+        initializingPromise = null;
+      });
+  }
+
+  return initializingPromise;
 }
 
 /**
