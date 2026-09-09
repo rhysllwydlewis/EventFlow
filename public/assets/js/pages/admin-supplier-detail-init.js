@@ -1183,6 +1183,7 @@
             <tr><td style="padding:0.3rem 0;color:#6b7280;">Missing packages</td><td>${apBool(g.promptTypes.missingPackages)}</td></tr>
             <tr><td style="padding:0.3rem 0;color:#6b7280;">Incomplete profile</td><td>${apBool(g.promptTypes.incompleteProfile)}</td></tr>
             <tr><td style="padding:0.3rem 0;color:#6b7280;">Missing photos</td><td>${apBool(g.promptTypes.missingPhotos)}</td></tr>
+            <tr><td style="padding:0.3rem 0;color:#6b7280;">Uncategorized</td><td>${apBool(g.promptTypes.uncategorized)}</td></tr>
           </table>
         </div>
         <!-- User / Supplier settings -->
@@ -1198,6 +1199,7 @@
             <tr><td style="padding:0.3rem 0;color:#6b7280;">Pref: packages</td><td>${apBool(user.emailPrefsPerType.missingPackages)}</td></tr>
             <tr><td style="padding:0.3rem 0;color:#6b7280;">Pref: profile</td><td>${apBool(user.emailPrefsPerType.incompleteProfile)}</td></tr>
             <tr><td style="padding:0.3rem 0;color:#6b7280;">Pref: photos</td><td>${apBool(user.emailPrefsPerType.missingPhotos)}</td></tr>
+            <tr><td style="padding:0.3rem 0;color:#6b7280;">Pref: category</td><td>${apBool(user.emailPrefsPerType.uncategorized)}</td></tr>
           </table>`
               : `<p style="color:#dc2626;font-size:0.875rem;margin:0;">⚠ No user account linked to this supplier.</p>`
           }

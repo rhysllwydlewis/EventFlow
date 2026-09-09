@@ -198,4 +198,95 @@ describe('POST /api/me/settings — preference fields', () => {
       }
     );
   });
+
+  describe('emailPrefs.actionPrompts', () => {
+    it.each(['enabled', 'missingPackages', 'incompleteProfile', 'missingPhotos', 'uncategorized'])(
+      'rejects a non-boolean %s',
+      async field => {
+        const db = buildDb({ users: [{ id: 'user_1', email: 'u@example.com' }] });
+        const app = buildApp(db);
+
+        const res = await request(app)
+          .post('/api/me/settings')
+          .send({ emailPrefs: { actionPrompts: { [field]: 'yes' } } })
+          .expect(400);
+
+        expect(res.body.error).toBe(`emailPrefs.actionPrompts.${field} must be a boolean`);
+        expect(db.updateOne).not.toHaveBeenCalled();
+      }
+    );
+
+    it('stops at the first invalid field without writing any of the valid ones ahead of it', async () => {
+      const db = buildDb({ users: [{ id: 'user_1', email: 'u@example.com' }] });
+      const app = buildApp(db);
+
+      const res = await request(app)
+        .post('/api/me/settings')
+        .send({ emailPrefs: { actionPrompts: { enabled: true, missingPackages: 'nope' } } })
+        .expect(400);
+
+      expect(res.body.error).toBe('emailPrefs.actionPrompts.missingPackages must be a boolean');
+      expect(db.updateOne).not.toHaveBeenCalled();
+    });
+
+    it('writes every provided actionPrompts field as its own dot-path key', async () => {
+      const db = buildDb({ users: [{ id: 'user_1', email: 'u@example.com' }] });
+      const app = buildApp(db);
+
+      await request(app)
+        .post('/api/me/settings')
+        .send({
+          emailPrefs: {
+            actionPrompts: {
+              enabled: true,
+              missingPackages: false,
+              incompleteProfile: true,
+              missingPhotos: false,
+              uncategorized: true,
+            },
+          },
+        })
+        .expect(200);
+
+      expect(db.updateOne).toHaveBeenCalledWith(
+        'users',
+        { id: 'user_1' },
+        {
+          $set: {
+            'emailPrefs.actionPrompts.enabled': true,
+            'emailPrefs.actionPrompts.missingPackages': false,
+            'emailPrefs.actionPrompts.incompleteProfile': true,
+            'emailPrefs.actionPrompts.missingPhotos': false,
+            'emailPrefs.actionPrompts.uncategorized': true,
+          },
+        }
+      );
+    });
+
+    it('only writes the fields actually provided, leaving the rest untouched', async () => {
+      const db = buildDb({ users: [{ id: 'user_1', email: 'u@example.com' }] });
+      const app = buildApp(db);
+
+      await request(app)
+        .post('/api/me/settings')
+        .send({ emailPrefs: { actionPrompts: { uncategorized: false } } })
+        .expect(200);
+
+      const [, , setArg] = db.updateOne.mock.calls[0];
+      expect(setArg.$set).toEqual({ 'emailPrefs.actionPrompts.uncategorized': false });
+    });
+
+    it('ignores emailPrefs.actionPrompts when it is not an object', async () => {
+      const db = buildDb({ users: [{ id: 'user_1', email: 'u@example.com' }] });
+      const app = buildApp(db);
+
+      await request(app)
+        .post('/api/me/settings')
+        .send({ notify: true, emailPrefs: { actionPrompts: 'nope' } })
+        .expect(200);
+
+      const [, , setArg] = db.updateOne.mock.calls[0];
+      expect(setArg.$set).not.toHaveProperty('emailPrefs.actionPrompts.enabled');
+    });
+  });
 });

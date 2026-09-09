@@ -46,6 +46,7 @@ function makeSupplier(overrides = {}) {
     location: 'London',
     basePostcode: 'SW1A 1AA',
     email: 'supplier@test.com',
+    category: 'Catering', // has a real category by default (not 'Other')
     photosGallery: [{ url: '/img/1.jpg' }], // has photos by default
     ...overrides,
   };
@@ -233,6 +234,61 @@ describe('computeActions', () => {
     const actions = computeActions(noPhotosSupplier, [makePackage()], makeSettings(), user);
     expect(actions.some(a => a.key === 'missingPhotos')).toBe(false);
   });
+
+  it('returns uncategorized action when supplier has no category', () => {
+    const supplier = makeSupplier({ category: undefined });
+    const actions = computeActions(supplier, [makePackage()], makeSettings(), makeUser());
+    expect(actions.some(a => a.key === 'uncategorized')).toBe(true);
+  });
+
+  it('returns uncategorized action when supplier category is "Other"', () => {
+    const supplier = makeSupplier({ category: 'Other' });
+    const actions = computeActions(supplier, [makePackage()], makeSettings(), makeUser());
+    expect(actions.some(a => a.key === 'uncategorized')).toBe(true);
+  });
+
+  it('uncategorized action has severity amber', () => {
+    const supplier = makeSupplier({ category: 'Other' });
+    const actions = computeActions(supplier, [makePackage()], makeSettings(), makeUser());
+    const cat = actions.find(a => a.key === 'uncategorized');
+    expect(cat.severity).toBe('amber');
+  });
+
+  it('does not return uncategorized when supplier has a real category', () => {
+    const actions = computeActions(makeSupplier(), [makePackage()], makeSettings(), makeUser());
+    expect(actions.some(a => a.key === 'uncategorized')).toBe(false);
+  });
+
+  it('respects global uncategorized disable', () => {
+    const settings = makeSettings({
+      promptTypes: {
+        missingPackages: true,
+        incompleteProfile: true,
+        missingPhotos: true,
+        uncategorized: false,
+      },
+    });
+    const supplier = makeSupplier({ category: 'Other' });
+    const actions = computeActions(supplier, [makePackage()], settings, makeUser());
+    expect(actions.some(a => a.key === 'uncategorized')).toBe(false);
+  });
+
+  it('respects user uncategorized opt-out', () => {
+    const user = makeUser({
+      emailPrefs: {
+        actionPrompts: {
+          enabled: true,
+          missingPackages: true,
+          incompleteProfile: true,
+          missingPhotos: true,
+          uncategorized: false,
+        },
+      },
+    });
+    const supplier = makeSupplier({ category: 'Other' });
+    const actions = computeActions(supplier, [makePackage()], makeSettings(), user);
+    expect(actions.some(a => a.key === 'uncategorized')).toBe(false);
+  });
 });
 
 // ── computeFullReport ────────────────────────────────────────────────────────
@@ -262,8 +318,12 @@ describe('computeFullReport', () => {
   });
 
   it('completionPercent is 0 when all outstanding', () => {
-    // No packages, incomplete profile, no photos
-    const supplier = makeSupplier({ description_short: '', photosGallery: [] });
+    // No packages, incomplete profile, no photos, no category
+    const supplier = makeSupplier({
+      description_short: '',
+      photosGallery: [],
+      category: undefined,
+    });
     const report = computeFullReport(supplier, [], makeSettings(), makeUser());
     expect(report.completionPercent).toBe(0);
   });
@@ -274,10 +334,29 @@ describe('computeFullReport', () => {
   });
 
   it('completionPercent is proportional', () => {
-    // 2 outstanding (missingPackages + missingPhotos), 1 completed (profileComplete)
+    // 2 outstanding (missingPackages + missingPhotos), 2 completed (profileComplete + categorized)
     const supplier = makeSupplier({ photosGallery: [] });
     const report = computeFullReport(supplier, [], makeSettings(), makeUser());
-    expect(report.completionPercent).toBe(33); // 1/3
+    expect(report.completionPercent).toBe(50); // 2/4
+  });
+
+  it('returns outstanding uncategorized and no categorized completed item when category is "Other"', () => {
+    const supplier = makeSupplier({ category: 'Other' });
+    const report = computeFullReport(supplier, [makePackage()], makeSettings(), makeUser());
+    expect(report.outstanding.some(a => a.key === 'uncategorized')).toBe(true);
+    expect(report.completed.some(a => a.key === 'categorized')).toBe(false);
+  });
+
+  it('returns completed categorized item when category is set to a real category', () => {
+    const report = computeFullReport(makeSupplier(), [makePackage()], makeSettings(), makeUser());
+    expect(report.completed.some(a => a.key === 'categorized')).toBe(true);
+    expect(report.outstanding.some(a => a.key === 'uncategorized')).toBe(false);
+  });
+
+  it('ragStatus is amber when only uncategorized is outstanding', () => {
+    const supplier = makeSupplier({ category: 'Other' });
+    const report = computeFullReport(supplier, [makePackage()], makeSettings(), makeUser());
+    expect(report.ragStatus).toBe('amber');
   });
 });
 

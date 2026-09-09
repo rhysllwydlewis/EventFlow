@@ -311,6 +311,7 @@ describe('Action Prompt Admin — diagnostics logic', () => {
       description_short: 'A description',
       location: 'London',
       basePostcode: 'SW1A 1AA',
+      category: 'Catering',
       photosGallery: ['photo1.jpg'],
       ...overrides,
     };

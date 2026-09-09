@@ -207,6 +207,11 @@ function getDynamicHeroTip(summaryData, checklistData) {
     return '📸 Add quality photos to increase profile views and improve trust with planners';
   }
 
+  const uncategorized = outstanding.find(action => action?.key === 'uncategorized');
+  if (uncategorized) {
+    return '🏷️ Choose a category for your listing so customers can find you when browsing';
+  }
+
   const totalReviewCount = summaryData?.reviews?.total || 0;
   if (totalReviewCount === 0) {
     return '⭐ Ask your first customer for a review — social proof triples enquiry conversion';

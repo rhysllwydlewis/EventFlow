@@ -102,7 +102,7 @@
     "link-preview-js": "^4.0.0",
     "mongodb": "^6.10.0",
     "morgan": "^1.11.0",
-    "multer": "^2.2.0",
+    "multer": "^2.3.0",
     "node-schedule": "^2.1.1",
     "pdfkit": "^0.20.1",
     "postmark": "^4.0.7",
@@ -168,7 +168,7 @@
   },
   "overrides": {
     "@apidevtools/json-schema-ref-parser": {
-      "js-yaml": "4.3.1"
+      "js-yaml": "4.3.2"
     },
     "axios": "^1.18.0",
     "brace-expansion": "5.0.9",
