@@ -64,7 +64,7 @@
     "title": "Complete Guide to Event Photography: Tips for Perfect Memories",
     "description": "Master event photography with our comprehensive guide.",
     "excerpt": "Master event photography with our comprehensive guide. Learn expert tips on capturing special moments, working with photographers, and creating lasting memories.",
-    "image": "https://images.pexels.com/photos/2788792/pexels-photo-2788792.jpeg?auto=compress&cs=tinysrgb&w=800&h=500&dpr=1",
+    "image": "https://images.pexels.com/photos/35325793/pexels-photo-35325793.jpeg?auto=compress&cs=tinysrgb&w=800&h=500&dpr=1",
     "category": "Photography",
     "tags": [
       "photography",
@@ -72,11 +72,11 @@
       "wedding"
     ],
     "href": "/articles/event-photography-complete-guide",
-    "readingMins": 6,
+    "readingMins": 8,
     "publishedDate": "2026-03-01",
     "featured": true,
     "featuredOrder": 3,
-    "affiliate": false,
+    "affiliate": true,
     "tool": {
       "label": "Find photographers",
       "href": "/suppliers"
@@ -84,10 +84,10 @@
     "author": "EventFlow Team",
     "summary": "Master event photography with our comprehensive guide.",
     "difficulty": "Intermediate",
-    "lastUpdated": "2026-09-05",
+    "lastUpdated": "2026-09-09",
     "primaryTag": "photography",
-    "ogImage": "https://images.pexels.com/photos/2788792/pexels-photo-2788792.jpeg?auto=compress&cs=tinysrgb&w=800&h=500&dpr=1",
-    "lastMaterialUpdate": "2026-09-05"
+    "ogImage": "https://images.pexels.com/photos/35325793/pexels-photo-35325793.jpeg?auto=compress&cs=tinysrgb&w=800&h=500&dpr=1",
+    "lastMaterialUpdate": "2026-09-09"
   },
   {
     "id": 4,
