@@ -76,7 +76,7 @@
     "publishedDate": "2026-03-01",
     "featured": true,
     "featuredOrder": 3,
-    "affiliate": false,
+    "affiliate": true,
     "tool": {
       "label": "Find photographers",
       "href": "/suppliers"
