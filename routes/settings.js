@@ -32,6 +32,7 @@ const ACTION_PROMPT_BOOLEAN_FIELDS = [
   'incompleteProfile',
   'missingPhotos',
   'uncategorized',
+  'packagesMissingPhotos',
 ];
 
 /**
@@ -118,6 +119,7 @@ router.get('/', authRequired, async (req, res) => {
           incompleteProfile: actionPrompts.incompleteProfile !== false,
           missingPhotos: actionPrompts.missingPhotos !== false,
           uncategorized: actionPrompts.uncategorized !== false,
+          packagesMissingPhotos: actionPrompts.packagesMissingPhotos !== false,
         },
       },
       newsletterStatus,

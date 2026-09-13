@@ -1178,6 +1178,8 @@
         incompleteProfile: document.getElementById('emailAutoIncompleteProfile')?.checked ?? true,
         missingPhotos: document.getElementById('emailAutoMissingPhotos')?.checked ?? true,
         uncategorized: document.getElementById('emailAutoUncategorized')?.checked ?? true,
+        packagesMissingPhotos:
+          document.getElementById('emailAutoPackagesMissingPhotos')?.checked ?? true,
       },
     };
   }
@@ -1223,6 +1225,7 @@
       setVal('emailAutoIncompleteProfile', data.promptTypes?.incompleteProfile !== false);
       setVal('emailAutoMissingPhotos', data.promptTypes?.missingPhotos !== false);
       setVal('emailAutoUncategorized', data.promptTypes?.uncategorized !== false);
+      setVal('emailAutoPackagesMissingPhotos', data.promptTypes?.packagesMissingPhotos !== false);
       setTxt('emailAutoCron', data.cron || '0 9 * * *');
 
       originalEmailAuto = getEmailAutoValues();

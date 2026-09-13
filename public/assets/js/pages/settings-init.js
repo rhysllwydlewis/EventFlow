@@ -336,6 +336,7 @@ async function loadEmailPrefs() {
     setChecked('ap-incomplete-profile', ap.incompleteProfile !== false);
     setChecked('ap-missing-photos', ap.missingPhotos !== false);
     setChecked('ap-uncategorized', ap.uncategorized !== false);
+    setChecked('ap-packages-missing-photos', ap.packagesMissingPhotos !== false);
     updateApSubPrefsVisibility();
   } catch {
     // Non-fatal — defaults are all ON
@@ -555,6 +556,8 @@ document.getElementById('save-settings').addEventListener('click', async () => {
           incompleteProfile: document.getElementById('ap-incomplete-profile')?.checked !== false,
           missingPhotos: document.getElementById('ap-missing-photos')?.checked !== false,
           uncategorized: document.getElementById('ap-uncategorized')?.checked !== false,
+          packagesMissingPhotos:
+            document.getElementById('ap-packages-missing-photos')?.checked !== false,
         },
       };
     }

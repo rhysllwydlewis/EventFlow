@@ -3759,6 +3759,30 @@ async function initDashSupplier() {
   // closure) can delegate to it and benefit from the complete field population logic
   window._efPopulateSupplierForm = populateSupplierForm;
 
+  // Known placeholder paths a package's `image` field falls back to when it has
+  // no real photo — mirrors utils/packageImageUtils.js's KNOWN_PLACEHOLDERS so
+  // the "No photo" badge below agrees with the server-side nudge that uses the
+  // same definition of "missing".
+  const PKG_CARD_PLACEHOLDER_PATHS = new Set([
+    '/assets/images/package-placeholder.webp',
+    '/assets/images/package-placeholder.svg',
+    '/assets/images/placeholders/package-event.svg',
+    '/assets/images/placeholder-package.jpg',
+  ]);
+
+  function isPackagePhotoMissing(p) {
+    const raw = String((p && p.image) || '').trim();
+    if (!raw) {
+      return true;
+    }
+    try {
+      const path = new URL(raw, window.location.origin).pathname;
+      return PKG_CARD_PLACEHOLDER_PATHS.has(path);
+    } catch (_e) {
+      return PKG_CARD_PLACEHOLDER_PATHS.has(raw.split(/[?#]/)[0]);
+    }
+  }
+
   async function loadPackages() {
     try {
       if (!pkgsWrap) {
@@ -3902,6 +3926,9 @@ async function initDashSupplier() {
           const pausedBadge = paused
             ? '<span class="badge badge-paused" title="This package is paused and not visible publicly">Paused</span>'
             : '';
+          const noPhotoBadge = isPackagePhotoMissing(p)
+            ? '<span class="badge badge-no-photo" title="This package shows a placeholder image to customers. Upload a photo below.">No photo</span>'
+            : '';
           // Package price chip — only rendered when a price exists, so no empty pill appears
           const priceBadgeHtml = priceDisplay
             ? `<span class="badge pkg-price-badge">${escapeHtml(priceDisplay)}</span>`
@@ -3922,7 +3949,7 @@ async function initDashSupplier() {
       <img src="${image}" alt="${title} image" data-fallback-src="/assets/images/package-placeholder.svg">
       <div class="package-card-content">
         <h3>${title}</h3>
-        <div class="small">${priceBadgeHtml} ${featured ? '<span class="badge badge-featured">Featured</span>' : ''} ${approvalBadge} ${pausedBadge}</div>
+        <div class="small">${priceBadgeHtml} ${featured ? '<span class="badge badge-featured">Featured</span>' : ''} ${approvalBadge} ${pausedBadge} ${noPhotoBadge}</div>
         <p class="small">${description}</p>
         <div class="card-actions">
           <button type="button" class="ef-cta card-action-btn edit-btn" data-action="edit-package" data-package-id="${packageId}">Edit</button>
@@ -4699,13 +4726,17 @@ async function initDashSupplier() {
       }
 
       try {
-        await api(path, {
+        const saveResult = await api(path, {
           method,
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload),
         });
         await loadPackages();
-        alert('Saved package.');
+        alert(
+          saveResult && saveResult.imageProcessingError
+            ? saveResult.imageProcessingError
+            : 'Saved package.'
+        );
         pkgForm.reset();
 
         // Clear photo preview and hidden image input so old images don't bleed into new packages
