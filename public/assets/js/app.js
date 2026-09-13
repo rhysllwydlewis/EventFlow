@@ -3960,7 +3960,7 @@ async function initDashSupplier() {
           // Links straight to the batch photo manager for this one package —
           // the package form's own drop zone only ever handles one image at a
           // time, so this is how a supplier adds a second, third, etc. photo.
-          const photosBtn = `<a href="/gallery?type=package&id=${packageId}" class="ef-cta card-action-btn photos-btn">Photos</a>`;
+          const photosBtn = `<a href="/gallery?type=package&id=${packageId}" target="_blank" class="ef-cta card-action-btn photos-btn">Photos</a>`;
 
           return `<div class="card package-card${paused ? ' package-card--paused' : ''}" data-package-id="${packageId}">
       <img src="${image}" alt="${title} image" data-fallback-src="/assets/images/package-placeholder.svg">

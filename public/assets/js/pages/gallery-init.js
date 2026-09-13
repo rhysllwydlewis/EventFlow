@@ -116,7 +116,7 @@ async function loadSelectOptions(preselectId) {
 
 // Radio button change handler
 document.querySelectorAll('input[name="uploadType"]').forEach(radio => {
-  radio.addEventListener('change', loadSelectOptions);
+  radio.addEventListener('change', () => loadSelectOptions());
 });
 
 modalClose.addEventListener('click', hideModal);
