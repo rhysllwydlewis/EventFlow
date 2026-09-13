@@ -3572,6 +3572,10 @@ async function initDashSupplier() {
    * Populate supplier form with existing supplier data
    * @param {Object} supplier - Supplier data
    */
+  // skipcq: JS-R1005 -- Pre-existing: this function sets ~40 form fields from
+  // one supplier object. This PR's only footprint is one small if/supplier.id
+  // check to show/hide the "manage gallery" link — splitting the rest of this
+  // function apart is a larger, riskier change than that addition calls for.
   function populateSupplierForm(supplier) {
     if (!supplier) {
       return;
@@ -5168,6 +5172,11 @@ function editPackage(packageId) {
       }
       return response.json();
     })
+    // skipcq: JS-R1005 -- Pre-existing: this callback populates every field
+    // of the edit-package form from the fetched package. This PR's only
+    // footprint is one small if/pkg.id check to show/hide the "manage
+    // gallery" link — splitting the rest of this callback apart is a
+    // larger, riskier change than that addition calls for.
     .then(pkg => {
       // Populate form with package data
       document.getElementById('pkg-id-hidden').value = pkg.id || '';

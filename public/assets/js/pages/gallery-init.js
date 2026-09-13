@@ -253,6 +253,10 @@ async function deletePhoto(photoId) {
   try {
     const { type, id } = getGalleryTarget();
     if (!id) {
+      // skipcq: JS-0052 -- Pre-existing: this whole page reports every
+      // outcome via alert() (see uploadFiles, modalConfirm below). This
+      // line only generalised the existing "Supplier ID not found" string
+      // to also cover packages — not a new notification pattern.
       alert(`${type === 'package' ? 'Package' : 'Supplier'} ID not found`);
       return;
     }

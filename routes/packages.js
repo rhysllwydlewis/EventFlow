@@ -720,18 +720,18 @@ router.get(
   applyRoleRequired('supplier'),
   async (req, res) => {
     try {
-      const p = await dbUnified.findOne('packages', { id: req.params.id });
-      if (!p) {
+      const pkg = await dbUnified.findOne('packages', { id: req.params.id });
+      if (!pkg) {
         return res.status(404).json({ error: 'Not found' });
       }
       const own = await dbUnified.findOne('suppliers', {
-        id: p.supplierId,
+        id: pkg.supplierId,
         ownerUserId: req.userId,
       });
       if (!own) {
         return res.status(403).json({ error: 'Not owner' });
       }
-      const gallery = Array.isArray(p.gallery) ? p.gallery : [];
+      const gallery = Array.isArray(pkg.gallery) ? pkg.gallery : [];
       const photos = gallery
         .map((item, index) => {
           const url = typeof item === 'string' ? item : item?.url || '';
@@ -743,14 +743,14 @@ router.get(
             url,
             thumbnail: url,
             approved: typeof item === 'object' && item?.approved === false ? false : true,
-            uploadedAt: (typeof item === 'object' && item?.uploadedAt) || p.createdAt,
+            uploadedAt: (typeof item === 'object' && item?.uploadedAt) || pkg.createdAt,
           };
         })
         .filter(Boolean);
-      res.json({ success: true, count: photos.length, photos });
+      return res.json({ success: true, count: photos.length, photos });
     } catch (error) {
       logger.error('List package photos error:', error);
-      res.status(500).json({
+      return res.status(500).json({
         error: 'Failed to list photos',
         details: process.env.NODE_ENV !== 'production' ? error.message : undefined,
       });
