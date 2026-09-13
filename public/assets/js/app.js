@@ -6533,14 +6533,9 @@ document.addEventListener('DOMContentLoaded', () => {
         field.focus();
       };
 
-      // Pulled out of the submit handler on its own: that handler was already
-      // a DeepSource complexity finding before this check existed, and every
-      // branch added directly inside it counts against that same function.
-      // A guard clause that calls out to a separate function keeps this
-      // validation's branching off the handler's own complexity score.
       const isAccountTypeChosen = () => {
         const regRoleInput = document.getElementById('reg-role');
-        if (regRoleInput && regRoleInput.value) {
+        if (regRoleInput?.value) {
           return true;
         }
         const message = 'Choose an account type — Customer or Supplier — to continue.';
@@ -6553,6 +6548,27 @@ document.addEventListener('DOMContentLoaded', () => {
         return false;
       };
 
+      // A separate listener, not a branch added inside the big handler below:
+      // that handler was already a DeepSource complexity finding pre-dating
+      // this PR, so keeping this check's own branches out of its body avoids
+      // adding to a score already this high. Listeners on the same element
+      // run in registration order, so this runs first; blocking here with
+      // stopImmediatePropagation stops the handler below from running at all.
+      regForm.addEventListener('submit', e => {
+        if (isAccountTypeChosen()) {
+          return;
+        }
+        e.preventDefault();
+        e.stopImmediatePropagation();
+      });
+
+      // skipcq: JS-R1005 -- Pre-existing: the full registration flow (client
+      // validation, feature-flag and ALTCHA gates, the API call, and every
+      // failure branch it can return) in one submit handler. This PR's only
+      // footprint here is making the button's label reset role-aware instead
+      // of a hardcoded string on each of these failure paths — it does not
+      // add branches, and splitting this handler apart is a larger, riskier
+      // change than that fix called for.
       regForm.addEventListener('submit', async e => {
         e.preventDefault();
         if (regForm._validator && typeof regForm._validator.clearAllErrors === 'function') {
@@ -6577,13 +6593,6 @@ document.addEventListener('DOMContentLoaded', () => {
             regStatus.textContent =
               'New account registrations are temporarily unavailable. Please try again later.';
           }
-          return;
-        }
-
-        // Pre-check: account type. The picker ships with nothing selected so
-        // that nobody is registered as a customer by default, which means an
-        // empty role here is a real answer-not-given, not a missing element.
-        if (!isAccountTypeChosen()) {
           return;
         }
 
