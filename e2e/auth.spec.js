@@ -408,6 +408,11 @@ test.describe('ALTCHA Registration Payload', () => {
    * submission handler reaches the ALTCHA check.
    */
   async function fillRequiredFields(page) {
+    // Account type is required and deliberately has no default — the form used
+    // to submit as "customer" for anyone who never touched the picker, which is
+    // how people ended up in the wrong account. Choose it first: without it the
+    // submit handler stops here and never reaches the ALTCHA guard under test.
+    await page.click('.auth-role-option[data-role="customer"]');
     await page.fill('#reg-firstname', 'Test');
     await page.fill('#reg-lastname', 'User');
     await page.fill('#reg-email', `altcha-test-${Date.now()}@example.com`);
