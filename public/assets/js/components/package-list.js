@@ -322,6 +322,161 @@ class PackageList {
   }
 
   /**
+   * Escape a value for safe insertion into innerHTML.
+   */
+  static escapeHtml(str) {
+    if (!str) {
+      return '';
+    }
+    const div = document.createElement('div');
+    div.textContent = str;
+    return div.innerHTML;
+  }
+
+  /**
+   * Featured/test-data badges shown on the card itself (not the supplier's).
+   */
+  buildCardBadgesHtml(pkg) {
+    const isFeatured = pkg.featured || pkg.isFeatured || false;
+    const isTest = pkg.isTest || false;
+    const badges = [];
+    if (isFeatured) {
+      badges.push(
+        '<div class="package-card-featured-badge package-card-badge-featured">Featured</div>'
+      );
+    }
+    if (isTest) {
+      badges.push(
+        '<div class="package-card-featured-badge package-card-badge-test">🧪 Test data</div>'
+      );
+    }
+    return badges.join('');
+  }
+
+  /**
+   * Supplier info section (name, avatar, tier/verification badges) shown on
+   * the card when the caller opts in and the package carries an embedded
+   * supplier object.
+   */
+  buildSupplierSectionHtml(pkg) {
+    if (!this.options.showSupplierInfo || !pkg.supplier) {
+      return '';
+    }
+    const escapeHtml = PackageList.escapeHtml;
+    const supplier = pkg.supplier;
+    const supplierName = escapeHtml(supplier.name || pkg.supplierName || 'Unknown Supplier');
+    const supplierHref = window.EventFlowSupplierLink
+      ? window.EventFlowSupplierLink.supplierProfileHref(supplier)
+      : supplier.publicProfilePath || '/suppliers';
+
+    // Sanitize supplier avatar URL
+    const rawSupplierAvatar =
+      supplier.avatar ||
+      supplier.logo ||
+      pkg.supplierAvatar ||
+      '/assets/images/placeholders/avatar.svg';
+    const supplierAvatar = escapeHtml(this.sanitizeImageUrl(rawSupplierAvatar));
+
+    // Build supplier badges (using same logic as SupplierCard component)
+    const supplierBadges = [];
+
+    // Test data badge
+    if (supplier.isTest) {
+      supplierBadges.push(
+        '<span class="badge badge-test-data" style="font-size: 0.6875rem; padding: 2px 6px;">Test data</span>'
+      );
+    }
+
+    // Founding supplier badge
+    if (supplier.isFounding) {
+      supplierBadges.push(
+        '<span class="badge badge-founding" style="font-size: 0.6875rem; padding: 2px 6px;">Founding</span>'
+      );
+    }
+
+    // Pro/Pro Plus/Featured tier badges
+    const tier =
+      supplier.subscriptionTier || supplier.subscription?.tier || (supplier.isPro ? 'pro' : null);
+
+    if (tier === 'featured') {
+      supplierBadges.push(
+        '<span class="badge badge-featured" style="font-size: 0.6875rem; padding: 2px 6px;">Featured</span>'
+      );
+    } else if (tier === 'pro_plus') {
+      supplierBadges.push(
+        '<span class="badge badge-pro-plus" style="font-size: 0.6875rem; padding: 2px 6px;">Pro Plus</span>'
+      );
+    } else if (tier === 'pro') {
+      supplierBadges.push(
+        '<span class="badge badge-pro" style="font-size: 0.6875rem; padding: 2px 6px;">Pro</span>'
+      );
+    } else {
+      supplierBadges.push(
+        '<span class="badge badge-starter" style="font-size: 0.6875rem; padding: 2px 6px;">Starter</span>'
+      );
+    }
+
+    // Verification badges
+    if (supplier.verifications?.email?.verified) {
+      supplierBadges.push(
+        '<span class="badge badge-email-verified" style="font-size: 0.6875rem; padding: 2px 6px;">Email</span>'
+      );
+    }
+    if (supplier.verifications?.phone?.verified) {
+      supplierBadges.push(
+        '<span class="badge badge-phone-verified" style="font-size: 0.6875rem; padding: 2px 6px;">Phone</span>'
+      );
+    }
+    if (supplier.verifications?.business?.verified) {
+      supplierBadges.push(
+        '<span class="badge badge-business-verified" style="font-size: 0.6875rem; padding: 2px 6px;">Business</span>'
+      );
+    }
+
+    const supplierBadgesHtml =
+      supplierBadges.length > 0
+        ? `<div style="display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px;">${supplierBadges.join('')}</div>`
+        : '';
+
+    // Inline tier icon — use shared EFTierIcon helper if available (tier-icon.js)
+    const tierIcon = typeof EFTierIcon !== 'undefined' ? EFTierIcon.render(supplier) : '';
+
+    // NOTE: `supplierId` here is a pre-existing reference to a variable that
+    // is never declared/assigned anywhere in this file. In practice this
+    // branch is never reached today — the only current caller
+    // (category-init.js) never populates pkg.supplier — so it has never
+    // thrown. Preserved as-is rather than silently changed while extracting
+    // this method; worth a follow-up fix if this component gains a caller
+    // that does supply pkg.supplier.
+    if (supplierId) {
+      return `
+        <div class="package-card-supplier">
+          <a href="${escapeHtml(supplierHref)}" class="package-card-supplier-link" data-supplier-link>
+            <img src="${supplierAvatar}" alt="${supplierName}" class="package-card-supplier-avatar" loading="lazy" data-fallback-hide data-fallback-show-next>
+            <div style="display: none; width: clamp(32px, 8vw, 40px); height: clamp(32px, 8vw, 40px); border-radius: 50%; background: ${PackageList.generateGradient(supplier)}; align-items: center; justify-content: center; color: white; font-weight: 600; font-size: 1rem;">${escapeHtml(window.EFSupplierAvatar.getSupplierInitials(supplier.name || pkg.supplierName))}</div>
+            <div style="flex: 1;">
+              <span class="package-card-supplier-name">${supplierName}</span>${tierIcon}
+              ${supplierBadgesHtml}
+            </div>
+          </a>
+        </div>
+      `;
+    }
+    return `
+      <div class="package-card-supplier">
+        <div class="package-card-supplier-link">
+          <img src="${supplierAvatar}" alt="${supplierName}" class="package-card-supplier-avatar" loading="lazy" data-fallback-hide data-fallback-show-next>
+          <div style="display: none; width: clamp(32px, 8vw, 40px); height: clamp(32px, 8vw, 40px); border-radius: 50%; background: ${PackageList.generateGradient(supplier)}; align-items: center; justify-content: center; color: white; font-weight: 600; font-size: 1rem;">${escapeHtml(window.EFSupplierAvatar.getSupplierInitials(supplier.name || pkg.supplierName))}</div>
+          <div style="flex: 1;">
+            <span class="package-card-supplier-name">${supplierName}</span>${tierIcon}
+            ${supplierBadgesHtml}
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  /**
    * Sanitize image URL to replace blocked sources with placeholder
    */
   sanitizeImageUrl(url) {
@@ -389,32 +544,8 @@ class PackageList {
       }
     });
 
-    const isFeatured = pkg.featured || pkg.isFeatured || false;
-    const isTest = pkg.isTest || false;
-
-    // Build badges with specific classes for styling
-    const badges = [];
-    if (isFeatured) {
-      badges.push(
-        '<div class="package-card-featured-badge package-card-badge-featured">Featured</div>'
-      );
-    }
-    if (isTest) {
-      badges.push(
-        '<div class="package-card-featured-badge package-card-badge-test">🧪 Test data</div>'
-      );
-    }
-    const badgesHtml = badges.join('');
-
-    // Escape HTML to prevent XSS
-    const escapeHtml = str => {
-      if (!str) {
-        return '';
-      }
-      const div = document.createElement('div');
-      div.textContent = str;
-      return div.innerHTML;
-    };
+    const badgesHtml = this.buildCardBadgesHtml(pkg);
+    const escapeHtml = PackageList.escapeHtml;
 
     // Resolve the best available image: prefer pkg.image, fall back to gallery.
     // Uses resolvePackageImage() from package-image-resolver.js when available,
@@ -452,117 +583,7 @@ class PackageList {
       ? escapeHtml(priceValue)
       : '<span class="price-not-set">Price not set</span>';
     const location = pkg.location ? escapeHtml(pkg.location) : '';
-
-    // Build supplier info section if available
-    let supplierHtml = '';
-    if (this.options.showSupplierInfo && pkg.supplier) {
-      const supplierName = escapeHtml(pkg.supplier.name || pkg.supplierName || 'Unknown Supplier');
-      const supplierHref = window.EventFlowSupplierLink
-        ? window.EventFlowSupplierLink.supplierProfileHref(pkg.supplier)
-        : pkg.supplier.publicProfilePath || '/suppliers';
-
-      // Sanitize supplier avatar URL
-      const rawSupplierAvatar =
-        pkg.supplier.avatar ||
-        pkg.supplier.logo ||
-        pkg.supplierAvatar ||
-        '/assets/images/placeholders/avatar.svg';
-      const sanitizedSupplierAvatar = this.sanitizeImageUrl(rawSupplierAvatar);
-      const supplierAvatar = escapeHtml(sanitizedSupplierAvatar);
-
-      // Build supplier badges (using same logic as SupplierCard component)
-      const supplierBadges = [];
-      const supplier = pkg.supplier;
-
-      // Test data badge
-      if (supplier.isTest) {
-        supplierBadges.push(
-          '<span class="badge badge-test-data" style="font-size: 0.6875rem; padding: 2px 6px;">Test data</span>'
-        );
-      }
-
-      // Founding supplier badge
-      if (supplier.isFounding) {
-        supplierBadges.push(
-          '<span class="badge badge-founding" style="font-size: 0.6875rem; padding: 2px 6px;">Founding</span>'
-        );
-      }
-
-      // Pro/Pro Plus/Featured tier badges
-      const tier =
-        supplier.subscriptionTier || supplier.subscription?.tier || (supplier.isPro ? 'pro' : null);
-
-      if (tier === 'featured') {
-        supplierBadges.push(
-          '<span class="badge badge-featured" style="font-size: 0.6875rem; padding: 2px 6px;">Featured</span>'
-        );
-      } else if (tier === 'pro_plus') {
-        supplierBadges.push(
-          '<span class="badge badge-pro-plus" style="font-size: 0.6875rem; padding: 2px 6px;">Pro Plus</span>'
-        );
-      } else if (tier === 'pro') {
-        supplierBadges.push(
-          '<span class="badge badge-pro" style="font-size: 0.6875rem; padding: 2px 6px;">Pro</span>'
-        );
-      } else {
-        supplierBadges.push(
-          '<span class="badge badge-starter" style="font-size: 0.6875rem; padding: 2px 6px;">Starter</span>'
-        );
-      }
-
-      // Verification badges
-      if (supplier.verifications?.email?.verified) {
-        supplierBadges.push(
-          '<span class="badge badge-email-verified" style="font-size: 0.6875rem; padding: 2px 6px;">Email</span>'
-        );
-      }
-      if (supplier.verifications?.phone?.verified) {
-        supplierBadges.push(
-          '<span class="badge badge-phone-verified" style="font-size: 0.6875rem; padding: 2px 6px;">Phone</span>'
-        );
-      }
-      if (supplier.verifications?.business?.verified) {
-        supplierBadges.push(
-          '<span class="badge badge-business-verified" style="font-size: 0.6875rem; padding: 2px 6px;">Business</span>'
-        );
-      }
-
-      const supplierBadgesHtml =
-        supplierBadges.length > 0
-          ? `<div style="display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px;">${supplierBadges.join('')}</div>`
-          : '';
-
-      // Inline tier icon — use shared EFTierIcon helper if available (tier-icon.js)
-      const tierIcon = typeof EFTierIcon !== 'undefined' ? EFTierIcon.render(supplier) : '';
-
-      if (supplierId) {
-        supplierHtml = `
-          <div class="package-card-supplier">
-            <a href="${escapeHtml(supplierHref)}" class="package-card-supplier-link" data-supplier-link>
-              <img src="${supplierAvatar}" alt="${supplierName}" class="package-card-supplier-avatar" loading="lazy" data-fallback-hide data-fallback-show-next>
-              <div style="display: none; width: clamp(32px, 8vw, 40px); height: clamp(32px, 8vw, 40px); border-radius: 50%; background: ${PackageList.generateGradient(supplier)}; align-items: center; justify-content: center; color: white; font-weight: 600; font-size: 1rem;">${escapeHtml(window.EFSupplierAvatar.getSupplierInitials(supplier.name || pkg.supplierName))}</div>
-              <div style="flex: 1;">
-                <span class="package-card-supplier-name">${supplierName}</span>${tierIcon}
-                ${supplierBadgesHtml}
-              </div>
-            </a>
-          </div>
-        `;
-      } else {
-        supplierHtml = `
-          <div class="package-card-supplier">
-            <div class="package-card-supplier-link">
-              <img src="${supplierAvatar}" alt="${supplierName}" class="package-card-supplier-avatar" loading="lazy" data-fallback-hide data-fallback-show-next>
-              <div style="display: none; width: clamp(32px, 8vw, 40px); height: clamp(32px, 8vw, 40px); border-radius: 50%; background: ${PackageList.generateGradient(supplier)}; align-items: center; justify-content: center; color: white; font-weight: 600; font-size: 1rem;">${escapeHtml(window.EFSupplierAvatar.getSupplierInitials(supplier.name || pkg.supplierName))}</div>
-              <div style="flex: 1;">
-                <span class="package-card-supplier-name">${supplierName}</span>${tierIcon}
-                ${supplierBadgesHtml}
-              </div>
-            </div>
-          </div>
-        `;
-      }
-    }
+    const supplierHtml = this.buildSupplierSectionHtml(pkg);
 
     card.innerHTML = `
       ${badgesHtml}
