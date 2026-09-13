@@ -70,6 +70,16 @@ const CITY_HEROES = Object.freeze({
     credit: 'Pexels',
     sourceUrl: 'https://www.pexels.com/photo/edinburgh-castle-scotland-27879520/',
   }),
+  // Added once the homepage grid started surfacing this city by live supplier
+  // count: the automatic Pexels search for "Coventry West Midlands England
+  // United Kingdom city landmark" wasn't returning a result naming the place
+  // (photoNamesPlace), so the card fell through to the no-photo placeholder.
+  coventry: Object.freeze({
+    url: `https://images.pexels.com/photos/35751281/pexels-photo-35751281.jpeg?${IMAGE_PARAMS}`,
+    alt: 'Historic Coventry Cathedral ruins under a cloudy sky in England',
+    credit: 'Imtiaz Mohammad',
+    sourceUrl: 'https://www.pexels.com/photo/ruins-of-coventry-cathedral-in-england-35751281/',
+  }),
 });
 
 /**

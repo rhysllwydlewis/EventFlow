@@ -258,7 +258,11 @@ function createSupplierCard(supplier, position) {
         const imgHtml = hasRealImg
           ? `<img src="${escapeHtml(resolvedImg)}" alt="${escapeHtml(pkg.title)}" class="sp-pkg-mini-img" loading="lazy" decoding="async">`
           : `<img src="${PKG_GENERIC_PLACEHOLDER}" alt="" class="sp-pkg-mini-img sp-pkg-mini-img--placeholder" loading="lazy" decoding="async">`;
-        const packageIdentifier = pkg.slug || pkg.id || pkg.packageId || '';
+        // pkg._id covers a raw Mongo document that never got normalized to
+        // .id/.slug (see services/supplierProfilePackageCards.js's identical
+        // fallback chain) — without it, such a package would render with no
+        // "Detailed View" link and no click hotspot at all.
+        const packageIdentifier = pkg.slug || pkg.id || pkg.packageId || pkg._id || '';
         const pkgHref = packageIdentifier
           ? `/package/${encodeURIComponent(String(packageIdentifier))}`
           : null;
