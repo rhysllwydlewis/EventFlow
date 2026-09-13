@@ -3572,6 +3572,10 @@ async function initDashSupplier() {
    * Populate supplier form with existing supplier data
    * @param {Object} supplier - Supplier data
    */
+  // skipcq: JS-R1005 -- Pre-existing: this function sets ~40 form fields from
+  // one supplier object. This PR's only footprint is one small if/supplier.id
+  // check to show/hide the "manage gallery" link — splitting the rest of this
+  // function apart is a larger, riskier change than that addition calls for.
   function populateSupplierForm(supplier) {
     if (!supplier) {
       return;
@@ -3595,6 +3599,15 @@ async function initDashSupplier() {
 
     if (supId) {
       supId.value = supplier.id || '';
+    }
+    const supManageGalleryLink = document.getElementById('sup-manage-gallery-link');
+    if (supManageGalleryLink) {
+      if (supplier.id) {
+        supManageGalleryLink.href = `/gallery?type=supplier&id=${encodeURIComponent(supplier.id)}`;
+        supManageGalleryLink.style.display = '';
+      } else {
+        supManageGalleryLink.style.display = 'none';
+      }
     }
     if (supName) {
       supName.value = supplier.name || '';
@@ -3770,8 +3783,8 @@ async function initDashSupplier() {
     '/assets/images/placeholder-package.jpg',
   ]);
 
-  function isPackagePhotoMissing(p) {
-    const raw = String(p?.image || '').trim();
+  function isKnownPlaceholderUrl(rawUrl) {
+    const raw = String(rawUrl || '').trim();
     if (!raw) {
       return true;
     }
@@ -3781,6 +3794,10 @@ async function initDashSupplier() {
     } catch {
       return PKG_CARD_PLACEHOLDER_PATHS.has(raw.split(/[?#]/)[0]);
     }
+  }
+
+  function isPackagePhotoMissing(p) {
+    return isKnownPlaceholderUrl(p?.image);
   }
 
   async function loadPackages() {
@@ -3944,6 +3961,10 @@ async function initDashSupplier() {
               ? `<a href="/package?slug=${slug}" target="_blank" class="ef-cta card-action-btn view-btn">View</a>`
               : `<button type="button" class="ef-cta card-action-btn view-btn" disabled aria-disabled="true" title="${viewUnavailableReason}">View</button>`;
           const pauseBtn = `<button type="button" class="ef-cta card-action-btn ${paused ? 'unpause-btn' : 'pause-btn'}" data-action="${paused ? 'unpause-package' : 'pause-package'}" data-package-id="${packageId}" aria-label="${paused ? 'Unpause package' : 'Pause package'}">${paused ? '<svg width="10" height="11" viewBox="0 0 10 11" fill="currentColor" aria-hidden="true"><polygon points="0,0 10,5.5 0,11"/></svg> Resume' : '<svg width="10" height="11" viewBox="0 0 10 11" fill="currentColor" aria-hidden="true"><rect x="0" y="0" width="3.5" height="11" rx="0.75"/><rect x="6.5" y="0" width="3.5" height="11" rx="0.75"/></svg> Pause'}</button>`;
+          // Links straight to the batch photo manager for this one package —
+          // the package form's own drop zone only ever handles one image at a
+          // time, so this is how a supplier adds a second, third, etc. photo.
+          const photosBtn = `<a href="/gallery?type=package&id=${packageId}" target="_blank" class="ef-cta card-action-btn photos-btn">Photos</a>`;
 
           return `<div class="card package-card${paused ? ' package-card--paused' : ''}" data-package-id="${packageId}">
       <img src="${image}" alt="${title} image" data-fallback-src="/assets/images/package-placeholder.svg">
@@ -3954,6 +3975,7 @@ async function initDashSupplier() {
         <div class="card-actions">
           <button type="button" class="ef-cta card-action-btn edit-btn" data-action="edit-package" data-package-id="${packageId}">Edit</button>
           ${viewBtn}
+          ${photosBtn}
           ${pauseBtn}
           <button type="button" class="ef-cta card-action-btn delete-btn" data-action="delete-package" data-package-id="${packageId}">Delete</button>
         </div>
@@ -4764,6 +4786,10 @@ async function initDashSupplier() {
         if (galleryRow) {
           galleryRow.style.display = 'none';
         }
+        const pkgManageGalleryLink = document.getElementById('pkg-manage-gallery-link');
+        if (pkgManageGalleryLink) {
+          pkgManageGalleryLink.style.display = 'none';
+        }
 
         // Form has been reset to create mode. Re-apply limit restrictions if needed
         // so the user cannot immediately attempt to create a new package over the limit.
@@ -4830,6 +4856,93 @@ async function initDashSupplier() {
       }
     }
   );
+
+  // "Use a photo from your profile" — lets a supplier attach an already-uploaded
+  // profile photo to a package instead of re-uploading the same file. The photo
+  // list comes from window._efCachedSuppliers (populated when the profile section
+  // loads), so this needs no extra API call.
+  (() => {
+    const reuseBtn = document.getElementById('pkg-use-profile-photo-btn');
+    const reusePanel = document.getElementById('pkg-reuse-photo-panel');
+    if (!reuseBtn || !reusePanel) {
+      return;
+    }
+
+    function selectReusePhoto(url) {
+      const pkgImageInput = document.getElementById('pkg-image');
+      if (pkgImageInput) {
+        pkgImageInput.value = url;
+      }
+      const pkgPreview = document.getElementById('pkg-photo-preview');
+      if (pkgPreview) {
+        pkgPreview.innerHTML = '';
+        const wrapper = document.createElement('div');
+        wrapper.className = 'photo-preview-item';
+        const img = document.createElement('img');
+        img.src = url;
+        img.alt = '';
+        wrapper.appendChild(img);
+        const removeBtn = document.createElement('button');
+        removeBtn.type = 'button';
+        removeBtn.className = 'photo-preview-remove';
+        removeBtn.setAttribute('aria-label', 'Remove image');
+        removeBtn.textContent = '✕';
+        removeBtn.addEventListener('click', () => {
+          wrapper.remove();
+          if (pkgImageInput) {
+            pkgImageInput.value = '';
+          }
+        });
+        wrapper.appendChild(removeBtn);
+        pkgPreview.appendChild(wrapper);
+      }
+      reusePanel.style.display = 'none';
+      reusePanel.innerHTML = '';
+    }
+
+    reuseBtn.addEventListener('click', () => {
+      const isOpen = reusePanel.style.display !== 'none';
+      reusePanel.innerHTML = '';
+      if (isOpen) {
+        reusePanel.style.display = 'none';
+        return;
+      }
+
+      const supplierId =
+        document.getElementById('pkg-supplier')?.value ||
+        document.getElementById('sup-id')?.value ||
+        '';
+      const supplier = (window._efCachedSuppliers || []).find(
+        item => String(item.id) === String(supplierId)
+      );
+      const photos = Array.isArray(supplier?.photosGallery) ? supplier.photosGallery : [];
+      const usableUrls = photos
+        .map(p => (typeof p === 'string' ? p : p?.url || ''))
+        .filter(url => url && !isKnownPlaceholderUrl(url));
+
+      if (usableUrls.length === 0) {
+        const empty = document.createElement('p');
+        empty.className = 'tiny';
+        empty.textContent =
+          "You haven't uploaded any profile photos yet — add some in the Photos section above, then come back here.";
+        reusePanel.appendChild(empty);
+      } else {
+        usableUrls.forEach(url => {
+          const option = document.createElement('button');
+          option.type = 'button';
+          option.className = 'photo-preview-item pkg-reuse-photo-option';
+          option.setAttribute('aria-label', 'Use this photo for the package');
+          const img = document.createElement('img');
+          img.src = url;
+          img.alt = '';
+          option.appendChild(img);
+          option.addEventListener('click', () => selectReusePhoto(url));
+          reusePanel.appendChild(option);
+        });
+      }
+      reusePanel.style.display = '';
+    });
+  })();
 
   // Supplier billing card
   (async () => {
@@ -4978,6 +5091,10 @@ function togglePackageForm() {
     if (galleryRowReset) {
       galleryRowReset.style.display = 'none';
     }
+    const pkgManageGalleryLinkReset = document.getElementById('pkg-manage-gallery-link');
+    if (pkgManageGalleryLinkReset) {
+      pkgManageGalleryLinkReset.style.display = 'none';
+    }
 
     // Form is returning to create mode — re-apply package limit restrictions if needed.
     if (window._pkgAtLimit) {
@@ -5055,9 +5172,23 @@ function editPackage(packageId) {
       }
       return response.json();
     })
+    // skipcq: JS-R1005 -- Pre-existing: this callback populates every field
+    // of the edit-package form from the fetched package. This PR's only
+    // footprint is one small if/pkg.id check to show/hide the "manage
+    // gallery" link — splitting the rest of this callback apart is a
+    // larger, riskier change than that addition calls for.
     .then(pkg => {
       // Populate form with package data
       document.getElementById('pkg-id-hidden').value = pkg.id || '';
+      const pkgManageGalleryLink = document.getElementById('pkg-manage-gallery-link');
+      if (pkgManageGalleryLink) {
+        if (pkg.id) {
+          pkgManageGalleryLink.href = `/gallery?type=package&id=${encodeURIComponent(pkg.id)}`;
+          pkgManageGalleryLink.style.display = '';
+        } else {
+          pkgManageGalleryLink.style.display = 'none';
+        }
+      }
       document.getElementById('pkg-title').value = pkg.title || '';
       document.getElementById('pkg-price').value = pkg.price_display || '';
       document.getElementById('pkg-desc').value = pkg.description || '';

@@ -6312,6 +6312,23 @@ body:not(.supplier-dashboard-page) .section > .container {
   box-shadow: 0 2px 6px rgba(217, 119, 6, 0.3);
 }
 
+/* Clickable thumbnail options in the "Use a photo from your profile" picker —
+   plain <button> elements reset to look like the existing preview tiles. */
+.pkg-reuse-photo-option {
+  border: 2px solid transparent;
+  background: none;
+  padding: 0;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: border-color 0.15s;
+}
+
+.pkg-reuse-photo-option:hover,
+.pkg-reuse-photo-option:focus-visible {
+  border-color: #0b8073;
+  outline: none;
+}
+
 /* Pause/unpause carry an icon plus a visible label — Edit/View/Delete beside
    them are text-only, and an icon with no label wasn't self-explanatory. */
 .card-action-btn.pause-btn,

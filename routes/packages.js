@@ -709,6 +709,56 @@ router.put(
 );
 
 /**
+ * GET /api/me/packages/:id/photos
+ * List all gallery photos for a package. Mirrors GET /api/me/suppliers/:id/photos
+ * in routes/suppliers-v2.js so /gallery.html can manage package photos the same
+ * way it already manages supplier photos.
+ */
+router.get(
+  '/me/packages/:id/photos',
+  applyAuthRequired,
+  applyRoleRequired('supplier'),
+  async (req, res) => {
+    try {
+      const pkg = await dbUnified.findOne('packages', { id: req.params.id });
+      if (!pkg) {
+        return res.status(404).json({ error: 'Not found' });
+      }
+      const own = await dbUnified.findOne('suppliers', {
+        id: pkg.supplierId,
+        ownerUserId: req.userId,
+      });
+      if (!own) {
+        return res.status(403).json({ error: 'Not owner' });
+      }
+      const gallery = Array.isArray(pkg.gallery) ? pkg.gallery : [];
+      const photos = gallery
+        .map((item, index) => {
+          const url = typeof item === 'string' ? item : item?.url || '';
+          if (!url || isPlaceholderImage(url)) {
+            return null;
+          }
+          return {
+            id: `photo_${index}`,
+            url,
+            thumbnail: url,
+            approved: typeof item === 'object' && item?.approved === false ? false : true,
+            uploadedAt: (typeof item === 'object' && item?.uploadedAt) || pkg.createdAt,
+          };
+        })
+        .filter(Boolean);
+      return res.json({ success: true, count: photos.length, photos });
+    } catch (error) {
+      logger.error('List package photos error:', error);
+      return res.status(500).json({
+        error: 'Failed to list photos',
+        details: process.env.NODE_ENV !== 'production' ? error.message : undefined,
+      });
+    }
+  }
+);
+
+/**
  * POST /api/me/packages/:id/photos
  * Upload package photo (base64)
  */

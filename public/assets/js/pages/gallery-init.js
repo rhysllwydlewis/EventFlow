@@ -65,14 +65,22 @@ const uploadTarget = document.getElementById('uploadTarget');
 
 function showModal() {
   uploadModal.classList.add('visible');
-  loadSelectOptions();
+  // Default the upload target to whatever gallery this page is already showing,
+  // so uploading from here adds to the same package/profile you're looking at
+  // instead of defaulting back to "Supplier" every time.
+  const { type, id } = getGalleryTarget();
+  const matchingRadio = document.querySelector(`input[name="uploadType"][value="${type}"]`);
+  if (matchingRadio) {
+    matchingRadio.checked = true;
+  }
+  loadSelectOptions(id);
 }
 
 function hideModal() {
   uploadModal.classList.remove('visible');
 }
 
-async function loadSelectOptions() {
+async function loadSelectOptions(preselectId) {
   const checkedRadio = document.querySelector('input[name="uploadType"]:checked');
   const uploadType = checkedRadio ? checkedRadio.value : 'supplier';
   uploadTarget.innerHTML = '<option value="">Loading...</option>';
@@ -93,6 +101,12 @@ async function loadSelectOptions() {
               `<option value="${item.id || item._id}">${item.name || item.title || 'Unnamed'}</option>`
           )
           .join('');
+        if (
+          preselectId &&
+          items.some(item => String(item.id || item._id) === String(preselectId))
+        ) {
+          uploadTarget.value = preselectId;
+        }
       }
     }
   } catch (error) {
@@ -102,7 +116,7 @@ async function loadSelectOptions() {
 
 // Radio button change handler
 document.querySelectorAll('input[name="uploadType"]').forEach(radio => {
-  radio.addEventListener('change', loadSelectOptions);
+  radio.addEventListener('change', () => loadSelectOptions());
 });
 
 modalClose.addEventListener('click', hideModal);
@@ -223,17 +237,27 @@ async function fetchCsrfToken() {
   }
 }
 
+/** Which gallery this page is managing: a supplier's profile, or one package's. */
+function getGalleryTarget() {
+  const urlParams = new URLSearchParams(window.location.search);
+  const type = urlParams.get('type') === 'package' ? 'package' : 'supplier';
+  const id = urlParams.get('id') || urlParams.get('supplierId');
+  return { type, id };
+}
+
 async function deletePhoto(photoId) {
   if (!confirm('Are you sure you want to delete this photo?')) {
     return;
   }
 
   try {
-    const urlParams = new URLSearchParams(window.location.search);
-    const supplierId = urlParams.get('supplierId') || urlParams.get('id');
-
-    if (!supplierId) {
-      alert('Supplier ID not found');
+    const { type, id } = getGalleryTarget();
+    if (!id) {
+      // skipcq: JS-0052 -- Pre-existing: this whole page reports every
+      // outcome via alert() (see uploadFiles, modalConfirm below). This
+      // line only generalised the existing "Supplier ID not found" string
+      // to also cover packages — not a new notification pattern.
+      alert(`${type === 'package' ? 'Package' : 'Supplier'} ID not found`);
       return;
     }
 
@@ -243,13 +267,28 @@ async function deletePhoto(photoId) {
       csrfToken = await fetchCsrfToken();
     }
 
-    const response = await fetch(`${API_BASE}/me/suppliers/${supplierId}/photos/${photoId}`, {
-      method: 'DELETE',
-      credentials: 'include',
-      headers: {
-        'X-CSRF-Token': csrfToken,
-      },
-    });
+    // Package photos are deleted by URL (routes/packages.js), not by id — the
+    // photo object carries both, so look the URL up from what's on screen.
+    const response =
+      type === 'package'
+        ? await fetch(`${API_BASE}/me/packages/${id}/photos`, {
+            method: 'DELETE',
+            credentials: 'include',
+            headers: {
+              'Content-Type': 'application/json',
+              'X-CSRF-Token': csrfToken,
+            },
+            body: JSON.stringify({
+              url: (currentImages.find(img => img.id === photoId) || {}).url,
+            }),
+          })
+        : await fetch(`${API_BASE}/me/suppliers/${id}/photos/${photoId}`, {
+            method: 'DELETE',
+            credentials: 'include',
+            headers: {
+              'X-CSRF-Token': csrfToken,
+            },
+          });
 
     if (!response.ok) {
       throw new Error('Failed to delete photo');
@@ -273,20 +312,23 @@ async function loadGallery() {
   emptyState.style.display = 'none';
 
   try {
-    // Get supplierId from URL params or prompt
-    const urlParams = new URLSearchParams(window.location.search);
-    const supplierId = urlParams.get('supplierId') || urlParams.get('id');
+    const { type, id } = getGalleryTarget();
 
-    if (!supplierId) {
-      // No supplier ID provided, show empty state
+    if (!id) {
+      // No target provided, show empty state
       loading.style.display = 'none';
       emptyState.style.display = 'block';
       document.getElementById('photoCount').textContent = '0';
       return;
     }
 
-    // Fetch photos from API
-    const response = await fetch(`${API_BASE}/me/suppliers/${supplierId}/photos`, {
+    // Fetch photos from API — packages and supplier profiles keep their gallery
+    // under different endpoints (routes/packages.js vs routes/suppliers-v2.js).
+    const endpoint =
+      type === 'package'
+        ? `${API_BASE}/me/packages/${id}/photos`
+        : `${API_BASE}/me/suppliers/${id}/photos`;
+    const response = await fetch(endpoint, {
       credentials: 'include',
       headers: {
         Accept: 'application/json',
