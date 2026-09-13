@@ -91,9 +91,13 @@
     }
 
     const selectedRole = document.querySelector(
-      '.auth-role-picker [aria-checked="true"][data-role], .role-toggle [aria-checked="true"][data-role]'
+      '.auth-role-picker [aria-checked="true"][data-role]'
     );
-    return selectedRole?.dataset.role === 'supplier' ? 'supplier' : 'customer';
+    const role = selectedRole?.dataset.role;
+    // '' when nothing is chosen. The picker no longer defaults to customer, so
+    // an unanswered choice must gate the social signup buttons rather than
+    // quietly creating a customer account for someone who meant supplier.
+    return role === 'supplier' || role === 'customer' ? role : '';
   }
 
   function getSignupFormSnapshot() {
@@ -144,6 +148,9 @@
 
   function getSupplierReadiness() {
     const snapshot = getSignupFormSnapshot();
+    if (!snapshot.role) {
+      return { ready: false, role: '', missing: ['account type'] };
+    }
     if (snapshot.role !== 'supplier') {
       return { ready: true, role: snapshot.role, missing: [] };
     }
@@ -393,13 +400,10 @@
           el.addEventListener('change', syncAppleSignupButtonReadiness);
         });
 
-      document
-        .querySelectorAll('.auth-role-picker [data-role], .role-toggle [data-role]')
-        .forEach(btn => {
-          btn.addEventListener('click', () => {
-            window.setTimeout(syncAppleSignupButtonReadiness, 0);
-          });
-        });
+      // Covers every path that changes the account type — pointer, keyboard,
+      // deep link, and the "Change" control on the pre-submit recap — where a
+      // per-button click listener only caught the first of those.
+      window.addEventListener('eventflow:auth-role-change', syncAppleSignupButtonReadiness);
     }
   }
 

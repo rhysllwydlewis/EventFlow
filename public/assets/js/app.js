@@ -6560,6 +6560,21 @@ document.addEventListener('DOMContentLoaded', () => {
           return;
         }
 
+        // Pre-check: account type. The picker ships with nothing selected so
+        // that nobody is registered as a customer by default, which means an
+        // empty role here is a real answer-not-given, not a missing element.
+        const regRoleInput = document.getElementById('reg-role');
+        if (regRoleInput && !regRoleInput.value) {
+          const message = 'Choose an account type — Customer or Supplier — to continue.';
+          if (regStatus) {
+            regStatus.textContent = message;
+          }
+          if (window.EventFlowAuthRole) {
+            window.EventFlowAuthRole.flagMissing(message);
+          }
+          return;
+        }
+
         // Validate password requirements
         const password = regPassword.value;
         const regPasswordConfirm = document.getElementById('reg-password-confirm');
@@ -6649,7 +6664,7 @@ document.addEventListener('DOMContentLoaded', () => {
               regStatus.textContent = message;
             }
             setAuthFieldError(locationEl, message);
-            setAuthSubmitButtonState(regBtn, 'Create account');
+            setAuthSubmitButtonState(regBtn, regBtn?.dataset?.defaultLabel || 'Create account');
             return;
           }
 
@@ -6659,7 +6674,7 @@ document.addEventListener('DOMContentLoaded', () => {
               regStatus.textContent = message;
             }
             setAuthFieldError(companyEl, message);
-            setAuthSubmitButtonState(regBtn, 'Create account');
+            setAuthSubmitButtonState(regBtn, regBtn?.dataset?.defaultLabel || 'Create account');
             return;
           }
 
@@ -6727,7 +6742,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 regStatus.textContent =
                   'Please complete the verification challenge before creating your account.';
               }
-              setAuthSubmitButtonState(regBtn, 'Create account');
+              setAuthSubmitButtonState(regBtn, regBtn?.dataset?.defaultLabel || 'Create account');
               return;
             }
 
@@ -6738,7 +6753,7 @@ document.addEventListener('DOMContentLoaded', () => {
               regStatus.textContent =
                 'Verification is unavailable. Please refresh the page and try again.';
             }
-            setAuthSubmitButtonState(regBtn, 'Create account');
+            setAuthSubmitButtonState(regBtn, regBtn?.dataset?.defaultLabel || 'Create account');
             return;
           } else if (altchaContainer) {
             // Container exists but widget element isn't in DOM yet (still loading).
@@ -6747,7 +6762,7 @@ document.addEventListener('DOMContentLoaded', () => {
               regStatus.textContent =
                 'Please wait for the verification to load and complete the challenge.';
             }
-            setAuthSubmitButtonState(regBtn, 'Create account');
+            setAuthSubmitButtonState(regBtn, regBtn?.dataset?.defaultLabel || 'Create account');
             return;
           }
 
@@ -6873,7 +6888,7 @@ document.addEventListener('DOMContentLoaded', () => {
           }
           console.error('Register error', err);
         } finally {
-          setAuthSubmitButtonState(regBtn, 'Create account');
+          setAuthSubmitButtonState(regBtn, regBtn?.dataset?.defaultLabel || 'Create account');
         }
       });
     }

@@ -919,6 +919,13 @@ function renderAccountType(user) {
       locationInput.value = user.location;
     }
   }
+
+  // The card is display:none until this point, so the browser has already
+  // given up on a #account-type-card fragment by the time it exists. Links
+  // that send people here to fix a wrong account type rely on this scroll.
+  if (window.location.hash === '#account-type-card') {
+    card.scrollIntoView({ block: 'start', behavior: 'smooth' });
+  }
 }
 
 (function () {

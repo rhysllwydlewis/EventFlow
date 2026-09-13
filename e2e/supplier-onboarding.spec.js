@@ -24,7 +24,7 @@ test.describe('Current account-first supplier onboarding @backend', () => {
   }) => {
     await page.goto('/auth');
     await page.locator('#tab-create').click();
-    await page.locator('.role-pill[data-role="supplier"]').click();
+    await page.locator('.auth-role-option[data-role="supplier"]').click();
 
     await expect(page.locator('#reg-role')).toHaveValue('supplier');
     await expect(page.locator('#supplier-fields')).toBeVisible();
@@ -42,7 +42,7 @@ test.describe('Current account-first supplier onboarding @backend', () => {
   test('keeps supplier-specific fields out of the customer account path', async ({ page }) => {
     await page.goto('/auth');
     await page.locator('#tab-create').click();
-    await page.locator('.role-pill[data-role="customer"]').click();
+    await page.locator('.auth-role-option[data-role="customer"]').click();
 
     await expect(page.locator('#reg-role')).toHaveValue('customer');
     await expect(page.locator('#supplier-fields')).toBeHidden();
