@@ -76,7 +76,7 @@ class ShortlistManager {
         return false;
       }
       const data = await response.json();
-      return Boolean(data && data.user);
+      return Boolean(data?.user);
     } catch (error) {
       return false;
     }
