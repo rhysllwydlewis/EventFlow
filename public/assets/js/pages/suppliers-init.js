@@ -273,12 +273,14 @@ function createSupplierCard(supplier, position) {
           ? `<p class="sp-pkg-mini-desc">${escapeHtml(pkg.description)}</p>`
           : '';
         const displayPrice = formatPackagePrice(pkg.price);
-        // data-pkg-href + tabindex/role let the whole mini-card act as a
-        // "Detailed View" hotspot (see attachCardHandlers' click delegation)
-        // while the button/link inside it keep their own click behavior.
-        const pkgHotspotAttrs = pkgHref
-          ? ` data-pkg-href="${escapeHtml(pkgHref)}" role="link" tabindex="0" aria-label="View details for ${escapeHtml(pkg.title)}"`
-          : '';
+        // data-pkg-href lets the whole mini-card act as a click/tap
+        // "Detailed View" hotspot (see attachCardHotspots()'s click
+        // delegation) while the button/link inside it keep their own click
+        // behavior. No role/tabindex here: the Detailed View link below
+        // already gives keyboard users the same destination, and marking
+        // this container focusable/link-like would nest interactive roles
+        // (button + link) inside another interactive role — invalid ARIA.
+        const pkgHotspotAttrs = pkgHref ? ` data-pkg-href="${escapeHtml(pkgHref)}"` : '';
         return `
         <div class="sp-pkg-mini"${pkgHotspotAttrs}>
           <div class="sp-pkg-mini-thumb">${imgHtml}</div>
@@ -1115,21 +1117,6 @@ function initSuppliersPage() {
         if (href) {
           window.location.href = href;
         }
-      }
-    });
-
-    resultsContainer.addEventListener('keydown', e => {
-      if (e.key !== 'Enter' && e.key !== ' ') {
-        return;
-      }
-      const pkgMini = e.target.closest && e.target.closest('.sp-pkg-mini');
-      if (!pkgMini || e.target !== pkgMini) {
-        return;
-      }
-      const pkgHref = pkgMini.dataset.pkgHref;
-      if (pkgHref) {
-        e.preventDefault();
-        window.location.href = pkgHref;
       }
     });
   }
