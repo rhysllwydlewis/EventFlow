@@ -65,7 +65,18 @@ class ShortlistManager {
       const response = await fetch('/api/v1/auth/me', {
         credentials: 'include',
       });
-      return response.ok;
+      // GET /api/auth/me always answers 200, even for a logged-out visitor —
+      // it responds `{ user: null }` rather than 401 (see routes/auth.js).
+      // response.ok is therefore true for every visitor, authenticated or
+      // not; the actual signal is the `user` field in the body. Using
+      // response.ok alone made every anonymous page load call
+      // loadFromServer(), which correctly 401s against /api/v1/shortlist —
+      // a real, needless console error on every anonymous visit.
+      if (!response.ok) {
+        return false;
+      }
+      const data = await response.json();
+      return Boolean(data && data.user);
     } catch (error) {
       return false;
     }

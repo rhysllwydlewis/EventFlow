@@ -25,7 +25,16 @@
   }
   
   /* Exception for inline links in paragraphs */
-  p a, .small a, li a {
+  /* #package-breadcrumb/#category-breadcrumb: their "Home" links aren't
+     wrapped in a <li> like the supplier-page breadcrumb is (which the
+     `li a` exception below already covers), so without an equally-specific
+     override they alone got inflated to 44px next to their much shorter
+     sibling crumbs — "Home" visibly floated above the rest of the trail
+     instead of sitting on the same line. An ID selector is needed here,
+     not another class/attribute one: the touch-target rule above chains
+     seven `:not(.class)` exclusions, so anything short of ID-level
+     specificity loses to it regardless of source order. */
+  p a, .small a, li a, #package-breadcrumb a, #category-breadcrumb a {
     min-height: unset;
     min-width: unset;
     padding: 2px 0;
