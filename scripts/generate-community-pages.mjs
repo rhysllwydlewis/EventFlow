@@ -31,7 +31,11 @@ const ASSET_VERSION = '18.3.0';
 // a bumped query string back to the shared version and serving a stale asset.
 const ASSET_VERSIONS = {
   '/assets/css/styles.css': '18.5.0',
-  '/assets/css/mobile-optimizations.css': '18.4.4',
+  // 18.4.5: the touch-target exception list (`p a, .small a, li a`) now also
+  // covers #package-breadcrumb/#category-breadcrumb, whose "Home" links
+  // aren't wrapped in a <li> and so were the only crumb inflated to 44px —
+  // visibly floating above their siblings on the same breadcrumb line.
+  '/assets/css/mobile-optimizations.css': '18.4.5',
   // 18.4.1: PR #1551 restored the `.pack`/`.featured-fallback-card` homepage
   // carousel rules removed by #1543 — bumped alongside that PR's other
   // cache-busting fixes so a cached copy of components.css doesn't linger.
