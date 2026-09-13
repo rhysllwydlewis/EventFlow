@@ -883,6 +883,13 @@
                   You can upload multiple photos – they&apos;ll be shown on your public listing.
                   Drag to reorder &bull; first photo is the cover image.
                 </p>
+                <a
+                  href="/gallery"
+                  id="sup-manage-gallery-link"
+                  class="pkg-gallery-hint"
+                  style="display:none"
+                  >Manage all profile photos &rarr;</a
+                >
               </div>
 
               <!-- Profile Customization Link -->
@@ -1173,10 +1180,21 @@
                   Drag &amp; drop an image here, or click to choose a file.
                 </div>
                 <div id="pkg-photo-preview" class="photo-preview-grid"></div>
+                <button type="button" id="pkg-use-profile-photo-btn" class="cta secondary cta-sm">
+                  Use a photo from your profile
+                </button>
+                <div id="pkg-reuse-photo-panel" class="photo-preview-grid" style="display:none"></div>
                 <p class="tiny">
                   Packages without a photo show a plain placeholder to customers browsing search
                   results — it's the single biggest reason a listing gets skipped.
                 </p>
+                <a
+                  href="#"
+                  id="pkg-manage-gallery-link"
+                  class="pkg-gallery-hint"
+                  style="display:none"
+                  >Manage all photos for this package &rarr;</a
+                >
               </div>
               <div class="form-row" id="pkg-gallery-row" style="display:none">
                 <div class="pkg-gallery-row-header">
