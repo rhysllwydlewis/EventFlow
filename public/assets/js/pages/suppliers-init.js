@@ -273,8 +273,14 @@ function createSupplierCard(supplier, position) {
           ? `<p class="sp-pkg-mini-desc">${escapeHtml(pkg.description)}</p>`
           : '';
         const displayPrice = formatPackagePrice(pkg.price);
+        // data-pkg-href + tabindex/role let the whole mini-card act as a
+        // "Detailed View" hotspot (see attachCardHandlers' click delegation)
+        // while the button/link inside it keep their own click behavior.
+        const pkgHotspotAttrs = pkgHref
+          ? ` data-pkg-href="${escapeHtml(pkgHref)}" role="link" tabindex="0" aria-label="View details for ${escapeHtml(pkg.title)}"`
+          : '';
         return `
-        <div class="sp-pkg-mini">
+        <div class="sp-pkg-mini"${pkgHotspotAttrs}>
           <div class="sp-pkg-mini-thumb">${imgHtml}</div>
           <div class="sp-pkg-mini-body">
             <p class="sp-pkg-mini-title">${escapeHtml(pkg.title)}</p>
@@ -1082,6 +1088,55 @@ function initSuppliersPage() {
     // Wire up horizontal package carousels
     attachCarousels();
   }
+
+  // Navigate to a package's detail page or a supplier's profile when the
+  // click/keypress didn't land on one of the card's own interactive
+  // elements (buttons, links, the carousel arrows, etc.), which already
+  // have their own handlers registered above.
+  function attachCardHotspots() {
+    resultsContainer.addEventListener('click', e => {
+      if (e.target.closest('a, button, input, textarea, select, label')) {
+        return;
+      }
+
+      const pkgMini = e.target.closest('.sp-pkg-mini');
+      if (pkgMini) {
+        const pkgHref = pkgMini.dataset.pkgHref;
+        if (pkgHref) {
+          window.location.href = pkgHref;
+        }
+        return;
+      }
+
+      const card = e.target.closest('.sp-card');
+      if (card) {
+        const link = card.querySelector('.sp-card-link');
+        const href = link && link.getAttribute('href');
+        if (href) {
+          window.location.href = href;
+        }
+      }
+    });
+
+    resultsContainer.addEventListener('keydown', e => {
+      if (e.key !== 'Enter' && e.key !== ' ') {
+        return;
+      }
+      const pkgMini = e.target.closest && e.target.closest('.sp-pkg-mini');
+      if (!pkgMini || e.target !== pkgMini) {
+        return;
+      }
+      const pkgHref = pkgMini.dataset.pkgHref;
+      if (pkgHref) {
+        e.preventDefault();
+        window.location.href = pkgHref;
+      }
+    });
+  }
+
+  // Delegated on resultsContainer (which persists across re-renders) so it
+  // is wired up exactly once, rather than re-attached on every renderResults().
+  attachCardHotspots();
 
   /* NOTE: the description "Show more" clamp/toggle is owned by
      suppliers-mobile.js (sp-description-toggle), which injects and syncs

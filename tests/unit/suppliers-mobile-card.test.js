@@ -159,10 +159,9 @@ describe('Carousel markup and behaviour', () => {
     // actions row was nested inside .sp-pkg-mini-body it was confined to
     // the narrow text column and the two buttons overlapped (reported on
     // device at ~375px). This pins the flattened structure.
-    const mini = JS_SRC.slice(
-      JS_SRC.indexOf('<div class="sp-pkg-mini">'),
-      JS_SRC.indexOf('</div>`;', JS_SRC.indexOf('<div class="sp-pkg-mini">'))
-    );
+    const miniOpenTagMatch = JS_SRC.match(/<div class="sp-pkg-mini"[^>]*>/);
+    const miniStart = miniOpenTagMatch.index;
+    const mini = JS_SRC.slice(miniStart, JS_SRC.indexOf('</div>`;', miniStart));
     const bodyStart = mini.indexOf('sp-pkg-mini-body');
     const bodyEnd = mini.indexOf('</div>', bodyStart);
     const actionsStart = mini.indexOf('sp-pkg-mini-actions');

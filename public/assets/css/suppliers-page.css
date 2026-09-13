@@ -421,6 +421,7 @@
   transition: box-shadow 0.2s, transform 0.2s, border-color 0.2s;
   overflow: hidden;
   position: relative;
+  cursor: pointer;
 }
 
 .sp-card:hover {
