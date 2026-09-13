@@ -1111,7 +1111,7 @@ function initSuppliersPage() {
       const card = e.target.closest('.sp-card');
       if (card) {
         const link = card.querySelector('.sp-card-link');
-        const href = link && link.getAttribute('href');
+        const href = link?.getAttribute('href');
         if (href) {
           window.location.href = href;
         }
