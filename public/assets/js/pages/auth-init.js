@@ -336,9 +336,9 @@
   const avatarName = document.getElementById('reg-avatar-name');
   if (avatarInput && avatarName) {
     avatarInput.addEventListener('change', () => {
-      const file = avatarInput.files && avatarInput.files[0];
+      const file = avatarInput.files?.[0];
       avatarName.textContent = file ? file.name : 'No image selected';
-      avatarName.classList.toggle('has-file', !!file);
+      avatarName.classList.toggle('has-file', Boolean(file));
     });
   }
 
