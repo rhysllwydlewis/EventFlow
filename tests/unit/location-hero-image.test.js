@@ -36,6 +36,7 @@ describe('city hero defaults', () => {
     ['birmingham', '335727', /Birmingham/i],
     ['leeds', '30226376', /Leeds/i],
     ['edinburgh', '27879520', /Edinburgh/i],
+    ['coventry', '35751281', /Coventry/i],
   ])('uses a geographically specific Pexels photo for %s', (slug, photoId, cityPattern) => {
     const hero = heroImages.getCuratedHero(slug);
 
@@ -55,6 +56,7 @@ describe('city hero defaults', () => {
       'birmingham',
       'leeds',
       'edinburgh',
+      'coventry',
     ];
     const urls = slugs.map(slug => heroImages.getCuratedHero(slug).url);
     expect(new Set(urls).size).toBe(urls.length);

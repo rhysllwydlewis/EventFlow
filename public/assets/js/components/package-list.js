@@ -356,7 +356,11 @@ class PackageList {
       card.setAttribute('aria-label', `View ${pkg.title} package details`);
     }
 
-    const packageIdentifier = pkg.slug || pkg.id || pkg.packageId || '';
+    // pkg._id covers a raw Mongo document that never got normalized to
+    // .id/.slug (see services/supplierProfilePackageCards.js's identical
+    // fallback chain) — without it, such a package would render with no
+    // click-through at all.
+    const packageIdentifier = pkg.slug || pkg.id || pkg.packageId || pkg._id || '';
     const packageHref = packageIdentifier
       ? `/package/${encodeURIComponent(String(packageIdentifier))}`
       : '';
