@@ -368,6 +368,7 @@
   transition: transform 0.22s ease, box-shadow 0.22s ease !important;
   border-radius: var(--sp-card-radius) !important;
   overflow: hidden;
+  cursor: pointer;
 }
 
 .supplier-package-card-v2:hover,

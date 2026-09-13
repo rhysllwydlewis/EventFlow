@@ -502,6 +502,19 @@
   text-transform: uppercase;
 }
 
+/*
+ * "Stretched link" — extends a card's one real, already-present link to
+ * cover the whole card (avatar/arrow/meta text included) without adding any
+ * JS or a second link. .efl-card already has position: relative, so this
+ * pseudo-element on the link fills that ancestor. Cards this is applied to
+ * have exactly one link; nothing else inside them is interactive.
+ */
+.efl-card__stretched-link::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+}
+
 .efl-card h3 {
   color: #10231f;
   font-size: 1rem;

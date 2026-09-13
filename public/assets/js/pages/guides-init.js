@@ -365,6 +365,23 @@ document.addEventListener('DOMContentLoaded', () => {
             ${article.tool ? `<a href="${escHtml(article.tool.href)}" class="article-end-cta__tool guide-card__tool-link" aria-label="${escHtml(article.tool.label)}">${escHtml(article.tool.label)}</a>` : ''}
           </div>
         </div>`;
+      // Whole-card click-through: the image, badges, title, summary, excerpt
+      // and meta row have no link of their own. The "Read guide"/tool links
+      // keep their own click behavior (excluded below) — including their
+      // own guide_card_click tracking via the delegated listener below, so
+      // fire the same event here too or a whole-card click would go
+      // silently untracked.
+      card.addEventListener('click', e => {
+        if (e.target.closest('a')) {
+          return;
+        }
+        trackGuideEvent('guide_card_click', {
+          guide_slug: article.slug || '',
+          guide_title: article.title,
+          location: 'guides_grid',
+        });
+        window.location.href = article.link;
+      });
       guidesGrid.appendChild(card);
     });
 

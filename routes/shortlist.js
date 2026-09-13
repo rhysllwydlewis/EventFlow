@@ -49,6 +49,31 @@ function isValidImageUrl(url) {
 }
 
 /**
+ * Validate a saved item's link to its own page. Root-relative only (no
+ * protocol/host, so this can never point off-site), and never the legacy
+ * `/supplier?id=` or `/category?slug=` query forms — those are barred from
+ * every internally-generated link (see tests/unit/no-internal-supplier-query-links.test.js)
+ * because Search Console flagged them as non-canonical internal links.
+ * @param {string} href - Candidate href to validate.
+ * @returns {boolean} True if safe to store and render as-is.
+ */
+function isValidItemHref(href) {
+  if (!href || typeof href !== 'string') {
+    return false;
+  }
+  if (!href.startsWith('/') || href.startsWith('//')) {
+    return false;
+  }
+  if (href.includes('..')) {
+    return false;
+  }
+  if (href.startsWith('/supplier?id=') || href.startsWith('/category?slug=')) {
+    return false;
+  }
+  return /^\/[a-zA-Z0-9\-._~/%?=&]*$/.test(href);
+}
+
+/**
  * GET /api/shortlist
  * Get the authenticated user's shortlist (requires login)
  */
@@ -78,7 +103,7 @@ router.get('/', authRequired, async (req, res) => {
  */
 router.post('/', writeLimiter, authRequired, csrfProtection, async (req, res) => {
   try {
-    const { type, id, name, imageUrl, category, location, priceHint, rating } = req.body;
+    const { type, id, name, imageUrl, category, location, priceHint, rating, href } = req.body;
 
     // Validate required fields
     if (!type || !id || !name) {
@@ -106,6 +131,7 @@ router.post('/', writeLimiter, authRequired, csrfProtection, async (req, res) =>
       location: location ? validator.escape(location) : null,
       priceHint: priceHint ? validator.escape(priceHint) : null,
       rating: rating && !isNaN(rating) ? Number(rating) : null,
+      href: isValidItemHref(href) ? href : null,
       addedAt: new Date().toISOString(),
     };
 

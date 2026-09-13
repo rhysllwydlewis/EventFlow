@@ -136,6 +136,11 @@ describe('GET /locations/:citySlug — marketplace module', () => {
     expect(response.text).toContain('Wedding arch');
     expect(response.text).toContain('href="/marketplace?listing=mkt_1"');
     expect(response.text).toContain('Listed in Cardiff');
+    // The description/price/relationship text below the title isn't a link
+    // itself; .efl-card__stretched-link extends the title link to the whole card.
+    expect(response.text).toContain(
+      '<a class="efl-card__stretched-link" href="/marketplace?listing=mkt_1">Wedding arch</a>'
+    );
   });
 
   it('omits the module entirely when there is nothing eligible, rather than showing an empty shelf', async () => {

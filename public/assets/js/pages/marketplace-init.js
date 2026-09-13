@@ -297,6 +297,7 @@ function initMarketplacePage() {
             location: btn.dataset.listingLocation,
             imageUrl: btn.dataset.listingImage,
             priceHint: btn.dataset.listingPrice,
+            href: `/marketplace?listing=${encodeURIComponent(listingId)}`,
           };
           await shortlistManager.addItem(item);
           btn.classList.add('btn-shortlist-active');

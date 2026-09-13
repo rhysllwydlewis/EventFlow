@@ -129,6 +129,21 @@ describe('GET /categories/:categorySlug', () => {
     expect(response.text).toContain('Does EventFlow list photo booth suppliers?');
   });
 
+  it('makes the whole supplier card clickable, not just the name', async () => {
+    // The avatar/arrow and meta text around the name aren't links themselves;
+    // .efl-card__stretched-link (locations-public-refresh.css) extends the
+    // one real link to cover the whole card.
+    mockDb.seed('suppliers', [
+      supplier('1', 'Venues'),
+      supplier('2', 'Venues'),
+      supplier('3', 'Venues'),
+    ]);
+    const response = await request(buildApp()).get('/categories/venues');
+    expect(response.text).toMatch(
+      /<a class="efl-card__stretched-link" href="\/supplier\/supplier-1--[a-f0-9]{16}"/
+    );
+  });
+
   it('redirects a non-canonical slug spelling to the canonical one', async () => {
     mockDb.seed('suppliers', []);
     const response = await request(buildApp()).get('/categories/Venues');
@@ -165,6 +180,20 @@ describe('GET /categories', () => {
     expect(response.text).toContain('href="/categories/catering"');
     expect(response.text.indexOf('/categories/venues')).toBeLessThan(
       response.text.indexOf('/categories/catering')
+    );
+  });
+
+  it('makes the whole category tile clickable, not just the name', async () => {
+    // The supplier-count meta line isn't a link itself; .efl-card__stretched-link
+    // extends the one real link (the category name) to cover the whole tile.
+    mockDb.seed('suppliers', [
+      supplier('1', 'Venues'),
+      supplier('2', 'Venues'),
+      supplier('3', 'Venues'),
+    ]);
+    const response = await request(buildApp()).get('/categories');
+    expect(response.text).toContain(
+      '<a class="efl-card__stretched-link" href="/categories/venues">Venues</a>'
     );
   });
 });

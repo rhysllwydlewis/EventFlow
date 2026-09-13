@@ -284,6 +284,7 @@ function buildSupplierSidebar(supplier, pkg, currentUser) {
   // View Profile link
   const viewBtn = document.getElementById('pkg-view-profile-btn');
   const isSupplierFallback = supplier.isPackageSupplierFallback === true;
+  let supplierProfileHref = '/suppliers';
   if (isSupplierFallback) {
     viewBtn.href = '/suppliers';
     viewBtn.textContent = 'Browse Suppliers';
@@ -294,9 +295,10 @@ function buildSupplierSidebar(supplier, pkg, currentUser) {
       blurbEl.style.display = '';
     }
   } else if (supplier.id) {
-    viewBtn.href = window.EventFlowSupplierLink
+    supplierProfileHref = window.EventFlowSupplierLink
       ? window.EventFlowSupplierLink.supplierProfileHref(supplier)
       : supplier.publicProfilePath || '/suppliers';
+    viewBtn.href = supplierProfileHref;
   }
 
   // Save / shortlist button
@@ -345,6 +347,7 @@ function buildSupplierSidebar(supplier, pkg, currentUser) {
         category: supplier.category || '',
         location: supplier.location || '',
         imageUrl: supplierProfileImage,
+        href: supplierProfileHref,
       });
       saveBtn.classList.replace('sp-btn--shortlist', 'sp-btn--shortlist-active');
       saveBtn.innerHTML = '❤️ Saved';

@@ -365,7 +365,7 @@
       .join('');
 
     container.innerHTML = `
-      <article class="ef-approved-marketplace-card">
+      <article class="ef-approved-marketplace-card" data-listing-href="${escapeHtml(url)}">
         <a class="ef-approved-marketplace-image" href="${escapeHtml(url)}">
           <img src="${escapeHtml(safeImageUrl(getListingImage(listing)))}" alt="${escapeHtml(listing.title || 'Marketplace listing')}" loading="lazy" data-fallback-src="${FALLBACK_IMAGE}">
         </a>
@@ -378,6 +378,20 @@
         <a class="ef-approved-marketplace-cta" href="/marketplace">View all marketplace items</a>
       </article>`;
     attachImageFallbacks(container);
+
+    // Whole-card click-through: the title/price/description/tags area has no
+    // link of its own, so clicking there fell through to nothing. The image
+    // link and the "View all marketplace items" CTA keep their own distinct
+    // destinations (this listing vs. the generic marketplace page).
+    const card = container.querySelector('.ef-approved-marketplace-card');
+    if (card) {
+      card.addEventListener('click', e => {
+        if (e.target.closest('a')) {
+          return;
+        }
+        window.location.href = url;
+      });
+    }
   };
 
   const loadApprovedMarketplace = async container => {

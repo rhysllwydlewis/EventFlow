@@ -168,6 +168,24 @@ describe('GET /locations/:citySlug/:categorySlug', () => {
     expect(response.text).not.toContain('data-supplier-id="c1"');
   });
 
+  it('makes the whole supplier card clickable, not just the name', async () => {
+    // The avatar/arrow and meta text around the name aren't links themselves;
+    // .efl-card__stretched-link (locations-public-refresh.css) extends the
+    // one real link to cover the whole card.
+    const response = await request(buildApp()).get('/locations/cardiff/venues');
+    expect(response.text).toMatch(
+      /<a class="efl-card__stretched-link" href="\/supplier\/supplier-v1--[a-f0-9]{16}"/
+    );
+  });
+
+  it('makes a package card in the category page clickable to its detail page', async () => {
+    mockDb.seed('packages', [{ id: 'pkg-venue-1', supplierId: 'v1', name: 'Venue Hire Package' }]);
+    const response = await request(buildApp()).get('/locations/cardiff/venues');
+    expect(response.text).toContain(
+      '<a class="efl-card__stretched-link" href="/package/pkg-venue-1">Venue Hire Package</a>'
+    );
+  });
+
   it('carries its own breadcrumb trail including the category', async () => {
     const response = await request(buildApp()).get('/locations/cardiff/venues');
     expect(response.text).toContain('aria-label="Breadcrumb"');

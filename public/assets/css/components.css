@@ -2374,6 +2374,7 @@ body.ef-cookie-banner-open #ef-pwa-install-banner {
   border-radius: 8px;
   margin-bottom: 12px;
   transition: box-shadow 0.2s ease;
+  cursor: pointer;
 }
 
 .shortlist-item:hover {
