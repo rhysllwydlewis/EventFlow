@@ -294,7 +294,15 @@ const mockCarouselPackages = [
 ];
 
 app.get('/api/packages/spotlight', (req, res) => {
-  res.json({ items: mockCarouselPackages });
+  // Reuses the same fixture objects as /featured (so both endpoints still
+  // exercise all three image-resolution cases the e2e spec at
+  // e2e/homepage-carousel-image-resolution.spec.js checks for), but in a
+  // different order. In production these two endpoints already draw from
+  // different queries (featured=true vs an hour-seeded rotation over the
+  // approved pool — see routes/suppliers.js) and rarely match; returning
+  // the identical order here made the homepage's Featured and Spotlight
+  // carousels look like duplicated content in this static/dev fixture.
+  res.json({ items: [...mockCarouselPackages].reverse() });
 });
 
 app.get('/api/packages/featured', (req, res) => {

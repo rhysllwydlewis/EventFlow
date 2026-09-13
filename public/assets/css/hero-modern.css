@@ -689,12 +689,14 @@
 
   .hero-modern-subcopy {
     font-size: 16px;
-    /* Truncate subcopy on mobile for text-lite version */
-    display: -webkit-box;
-    -webkit-line-clamp: 2;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
     line-height: 1.5;
+  }
+
+  /* Mobile text-lite version: show only the first sentence. Unlike the old
+     -webkit-line-clamp: 2, this always ends on a full stop instead of
+     mid-word wherever the second line happened to wrap. */
+  .hero-modern-subcopy__more {
+    display: none;
   }
 
   .hero-trust-item {

@@ -95,23 +95,31 @@
       description: 'Decorations, flowers and styling.',
     },
     {
+      // No AV/lighting photo exists in this asset set yet — reusing the
+      // Entertainment collage photo (a violinist) here was actively
+      // misleading rather than merely generic, so this shows the neutral
+      // "no photo" placeholder until a real one is available.
       title: 'AV & Lighting',
       category: 'Music/DJ',
-      image: '/assets/images/collage-entertainment.jpg',
+      image: '/assets/images/placeholders/package-event.svg',
       icon: 'av',
       description: 'Sound systems and lighting equipment.',
     },
     {
+      // Same reasoning: no Transport photo exists, and the Venues collage
+      // photo (a manor house) doesn't depict transport.
       title: 'Transport',
       category: 'Transport',
-      image: '/assets/images/collage-venue.jpg',
+      image: '/assets/images/placeholders/package-event.svg',
       icon: 'transport',
       description: 'Cars and coaches for you and your guests.',
     },
     {
+      // Same reasoning: no Cakes/Florals photo exists, and the Catering
+      // collage photo doesn't depict either.
       title: 'Cakes & Florals',
       category: 'Cake',
-      image: '/assets/images/collage-catering.jpg',
+      image: '/assets/images/placeholders/package-event.svg',
       icon: 'cake',
       description: 'Celebration cakes and floral arrangements.',
     },
