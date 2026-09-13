@@ -404,8 +404,8 @@ router.post(
     // Check if admin has enabled "Require Package Approval" — if so, new packages need manual review
     try {
       const settings = (await dbUnified.read('settings')) || {};
-      const features = settings.features || {};
-      if (features.requirePackageApproval === true) {
+      const siteFeatures = settings.features || {};
+      if (siteFeatures.requirePackageApproval === true) {
         pkg.approved = false;
       }
     } catch (_e) {
