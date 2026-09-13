@@ -51,6 +51,24 @@ describe('guides SEO and UX assets', () => {
     expect(init).toContain('if (searchClear)');
   });
 
+  test('the whole guide card is clickable and still fires guide_card_click analytics', () => {
+    const init = fs.readFileSync(
+      path.join(repoRoot, 'public/assets/js/pages/guides-init.js'),
+      'utf8'
+    );
+    // Regression: the card-level click handler used to only navigate, so a
+    // click anywhere except the "Read guide" link went untracked even though
+    // the click-target-based delegated listener (document.addEventListener)
+    // exists precisely to catch guide_card_click events.
+    const cardClickHandler = init.slice(
+      init.indexOf("card.addEventListener('click'"),
+      init.indexOf('guidesGrid.appendChild(card)')
+    );
+    expect(cardClickHandler).toContain("trackGuideEvent('guide_card_click'");
+    expect(cardClickHandler).toContain("location: 'guides_grid'");
+    expect(cardClickHandler).toContain('window.location.href = article.link');
+  });
+
   test('guide cards and the guide index share the standard visual template', () => {
     const css = fs.readFileSync(path.join(repoRoot, 'public/assets/css/guides.css'), 'utf8');
     const guidesHtml = readPublic('guides.html');
