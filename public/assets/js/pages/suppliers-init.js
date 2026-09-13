@@ -363,6 +363,7 @@ function createSupplierCard(supplier, position) {
                 data-supplier-image="${escapeHtml(supplierProfileImage)}"
                 data-supplier-price="${escapeHtml(priceDisplay)}"
                 data-supplier-rating="${supplier.rating || ''}"
+                data-supplier-href="${profileHref}"
                 aria-label="${isInShortlist ? 'Remove from' : 'Save to'} shortlist">
           ${shortlistBtnText}
         </button>
@@ -1017,6 +1018,7 @@ function initSuppliersPage() {
             category: btn.dataset.supplierCategory,
             location: btn.dataset.supplierLocation,
             imageUrl: btn.dataset.supplierImage,
+            href: btn.dataset.supplierHref,
             priceHint: btn.dataset.supplierPrice,
             rating: btn.dataset.supplierRating ? parseFloat(btn.dataset.supplierRating) : null,
           };

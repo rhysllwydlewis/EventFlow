@@ -293,10 +293,12 @@ function buildSupplierSidebar(supplier, pkg, currentUser) {
         'Supplier profile details are currently unavailable, but this package information is still available.';
       blurbEl.style.display = '';
     }
-  } else if (supplier.id) {
-    viewBtn.href = window.EventFlowSupplierLink
-      ? window.EventFlowSupplierLink.supplierProfileHref(supplier)
-      : supplier.publicProfilePath || '/suppliers';
+  }
+  const supplierProfileHref = window.EventFlowSupplierLink
+    ? window.EventFlowSupplierLink.supplierProfileHref(supplier)
+    : supplier.publicProfilePath || '/suppliers';
+  if (!isSupplierFallback && supplier.id) {
+    viewBtn.href = supplierProfileHref;
   }
 
   // Save / shortlist button
@@ -345,6 +347,7 @@ function buildSupplierSidebar(supplier, pkg, currentUser) {
         category: supplier.category || '',
         location: supplier.location || '',
         imageUrl: supplierProfileImage,
+        href: supplierProfileHref,
       });
       saveBtn.classList.replace('sp-btn--shortlist', 'sp-btn--shortlist-active');
       saveBtn.innerHTML = '❤️ Saved';

@@ -532,7 +532,9 @@ router.get('/api/v1/locations/featured', publicReadLimiter, async (req, res) => 
 function renderSupplierCard(entry) {
   const url = supplierPath(entry.supplier);
   const name = escapeHtml(entry.supplier.name || entry.supplier.businessName || 'Event supplier');
-  const heading = url ? `<a href="${escapeHtml(url)}">${name}</a>` : name;
+  const heading = url
+    ? `<a class="efl-card__stretched-link" href="${escapeHtml(url)}">${name}</a>`
+    : name;
   const initials = String(entry.supplier.name || entry.supplier.businessName || 'Event supplier')
     .split(/\s+/)
     .filter(Boolean)
@@ -548,6 +550,9 @@ function renderSupplierCard(entry) {
       ? `<span class="efl-card__rating"><span aria-hidden="true">&#9733;</span> ${Number(summary.averageRating).toFixed(1)} &middot; ${Number(summary.reviewCount)} reviews</span>`
       : '';
 
+  // The avatar/arrow and meta text aren't links themselves — the whole card
+  // is clickable via .efl-card__stretched-link on the name above (see
+  // locations-public-refresh.css), so a tap anywhere on the card works.
   return `<li class="efl-card" data-supplier-id="${escapeHtml(entry.supplier.id)}" data-relationship="${escapeHtml(entry.relationship)}">
     <div class="efl-card__top">
       <span class="efl-card__avatar" aria-hidden="true">${escapeHtml(initials || 'EF')}</span>
@@ -676,12 +681,16 @@ function renderCityPage(model) {
   if (packages.length) {
     const items = packages
       .slice(0, 6)
-      .map(
-        pkg => `<li class="efl-card">
-          <h3>${escapeHtml(pkg.name || pkg.title || 'Package')}</h3>
+      .map(pkg => {
+        const pkgId = pkg.slug || pkg.id || pkg.packageId || '';
+        const pkgHeading = pkgId
+          ? `<a class="efl-card__stretched-link" href="/package/${encodeURIComponent(String(pkgId))}">${escapeHtml(pkg.name || pkg.title || 'Package')}</a>`
+          : escapeHtml(pkg.name || pkg.title || 'Package');
+        return `<li class="efl-card">
+          <h3>${pkgHeading}</h3>
           ${pkg.description ? `<p>${escapeHtml(String(pkg.description).slice(0, 160))}</p>` : ''}
-        </li>`
-      )
+        </li>`;
+      })
       .join('');
     sections.push(`<section class="efl-section" aria-labelledby="efl-packages">
       <h2 id="efl-packages">Packages from ${escapeHtml(city.name)} suppliers</h2>
@@ -714,7 +723,7 @@ function renderCityPage(model) {
           ? `<p>${escapeHtml(String(listing.description).slice(0, 140))}</p>`
           : '';
         return `<li class="efl-card" data-relationship="${escapeHtml(entry.relationship)}">
-          <h3><a href="/marketplace?listing=${encodeURIComponent(listing.id)}">${escapeHtml(listing.title || 'Marketplace listing')}</a></h3>
+          <h3><a class="efl-card__stretched-link" href="/marketplace?listing=${encodeURIComponent(listing.id)}">${escapeHtml(listing.title || 'Marketplace listing')}</a></h3>
           ${description}
           <p class="efl-card__meta"><strong>${escapeHtml(price)}</strong> <span class="efl-relationship">${escapeHtml(entry.label)}</span></p>
         </li>`;
@@ -754,7 +763,7 @@ function renderCityPage(model) {
     const items = guides
       .map(
         guide => `<li class="efl-card">
-          <h3><a href="${escapeHtml(guide.href)}">${escapeHtml(guide.title)}</a></h3>
+          <h3><a class="efl-card__stretched-link" href="${escapeHtml(guide.href)}">${escapeHtml(guide.title)}</a></h3>
           ${guide.excerpt ? `<p>${escapeHtml(guide.excerpt)}</p>` : ''}
         </li>`
       )
@@ -990,12 +999,16 @@ function renderCategoryPage(model) {
   if (packages.length) {
     const items = packages
       .slice(0, 6)
-      .map(
-        pkg => `<li class="efl-card">
-          <h3>${escapeHtml(pkg.name || pkg.title || 'Package')}</h3>
+      .map(pkg => {
+        const pkgId = pkg.slug || pkg.id || pkg.packageId || '';
+        const pkgHeading = pkgId
+          ? `<a class="efl-card__stretched-link" href="/package/${encodeURIComponent(String(pkgId))}">${escapeHtml(pkg.name || pkg.title || 'Package')}</a>`
+          : escapeHtml(pkg.name || pkg.title || 'Package');
+        return `<li class="efl-card">
+          <h3>${pkgHeading}</h3>
           ${pkg.description ? `<p>${escapeHtml(String(pkg.description).slice(0, 160))}</p>` : ''}
-        </li>`
-      )
+        </li>`;
+      })
       .join('');
     sections.push(`<section class="efl-section" aria-labelledby="efl-packages">
       <h2 id="efl-packages">Packages from ${escapeHtml(city.name)} ${escapeHtml(category.name.toLowerCase())} suppliers</h2>
@@ -1047,7 +1060,7 @@ function renderCategoryPage(model) {
     const items = guides
       .map(
         guide => `<li class="efl-card">
-          <h3><a href="${escapeHtml(guide.href)}">${escapeHtml(guide.title)}</a></h3>
+          <h3><a class="efl-card__stretched-link" href="${escapeHtml(guide.href)}">${escapeHtml(guide.title)}</a></h3>
           ${guide.excerpt ? `<p>${escapeHtml(guide.excerpt)}</p>` : ''}
         </li>`
       )

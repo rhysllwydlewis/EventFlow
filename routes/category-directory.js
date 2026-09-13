@@ -210,7 +210,9 @@ function readCategoryData() {
 function renderSupplierCard(entry) {
   const url = supplierPath(entry.supplier);
   const name = escapeHtml(entry.supplier.name || entry.supplier.businessName || 'Event supplier');
-  const heading = url ? `<a href="${escapeHtml(url)}">${name}</a>` : name;
+  const heading = url
+    ? `<a class="efl-card__stretched-link" href="${escapeHtml(url)}">${name}</a>`
+    : name;
   const initials = String(entry.supplier.name || entry.supplier.businessName || 'Event supplier')
     .split(/\s+/)
     .filter(Boolean)
@@ -320,7 +322,7 @@ function renderHub(entries) {
   const cards = entries
     .map(
       entry => `<li class="efl-card">
-      <h3><a href="/categories/${escapeHtml(entry.category.slug)}">${escapeHtml(entry.category.name)}</a></h3>
+      <h3><a class="efl-card__stretched-link" href="/categories/${escapeHtml(entry.category.slug)}">${escapeHtml(entry.category.name)}</a></h3>
       <p class="efl-card__meta">${entry.rankedSuppliers.length} ${entry.rankedSuppliers.length === 1 ? 'supplier' : 'suppliers'}</p>
     </li>`
     )

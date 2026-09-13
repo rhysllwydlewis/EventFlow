@@ -537,9 +537,23 @@
           const href = escapeHtml(guide.href || '/guides');
           const category = escapeHtml(guide.category || 'Guide');
           const mins = escapeHtml(String(guide.readingMins || 4));
-          return `<article class="hv2-card"><h3>${title}</h3><p>${description}</p><span class="hv2-chip">${category}</span><span class="hv2-chip">${mins} min read</span><a href="${href}">Read guide</a></article>`;
+          return `<article class="hv2-card" data-guide-href="${href}"><h3>${title}</h3><p>${description}</p><span class="hv2-chip">${category}</span><span class="hv2-chip">${mins} min read</span><a href="${href}">Read guide</a></article>`;
         })
         .join('');
+
+      // Whole-card click-through: title/description/chips have no link of
+      // their own. The "Read guide" link keeps its own click behavior.
+      guidesList.querySelectorAll('.hv2-card').forEach(card => {
+        card.addEventListener('click', e => {
+          if (e.target.closest('a')) {
+            return;
+          }
+          const cardHref = card.dataset.guideHref;
+          if (cardHref) {
+            window.location.href = cardHref;
+          }
+        });
+      });
     } catch {
       // Keep the static guide cards.
     }

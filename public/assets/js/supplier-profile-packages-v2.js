@@ -207,6 +207,17 @@ function createPackageCard(item, debugImages, fallbackSupplierId) {
   footer.append(price, actions);
   body.append(title, description, footer);
   article.append(mediaLink, body);
+
+  // Whole-card click-through: description and price have no link of their
+  // own. The media/title links, "View details" and "Add to plan" keep their
+  // own click behavior (excluded below).
+  article.addEventListener('click', e => {
+    if (e.target.closest('a, button')) {
+      return;
+    }
+    window.location.href = detailUrl;
+  });
+
   return article;
 }
 

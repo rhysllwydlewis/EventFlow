@@ -1229,6 +1229,7 @@
             location: listing.location || '',
             priceHint: formatPrice(listing.price),
             imageUrl: getListingImages(listing)[0] || '/assets/images/collage-venue.jpg',
+            href: `/marketplace?listing=${encodeURIComponent(listing.id)}`,
           });
         }
       }

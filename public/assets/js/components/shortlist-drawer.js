@@ -103,6 +103,22 @@ class ShortlistDrawer {
     const clearBtn = this.container.querySelector('#clear-shortlist-btn');
     clearBtn.addEventListener('click', () => this.clearAll());
 
+    // Whole-item click-through to the saved supplier/package/listing —
+    // delegated once here (rather than per-render in render()) since the
+    // content is rebuilt on every shortlist change. The remove button keeps
+    // its own click behavior.
+    const content = this.container.querySelector('#shortlist-content');
+    content.addEventListener('click', e => {
+      if (e.target.closest('button')) {
+        return;
+      }
+      const item = e.target.closest('.shortlist-item');
+      const href = item?.dataset.itemHref;
+      if (href) {
+        window.location.href = href;
+      }
+    });
+
     // ESC to close, Tab to stay trapped inside the panel while open
     document.addEventListener('keydown', e => {
       if (!this.isOpen) {
@@ -214,9 +230,17 @@ class ShortlistDrawer {
     // parse, so reading these back via `.dataset.type`/`.dataset.id` is unaffected.
     const type = escapeHtml(item.type);
     const id = escapeHtml(item.id);
+    // The canonical link is resolved and attached by the caller when the
+    // item is saved (see suppliers-init.js/package-init.js/marketplace.js)
+    // and validated server-side (routes/shortlist.js) — never reconstructed
+    // here from just a type + id, which would mean guessing a supplier's
+    // slug or falling back to the banned `/supplier?id=` query form (see
+    // tests/unit/no-internal-supplier-query-links.test.js). Items saved
+    // before this field existed simply render without a click-through.
+    const href = this.isSafeItemHref(item.href) ? escapeHtml(item.href) : '';
 
     return `
-      <div class="shortlist-item">
+      <div class="shortlist-item" data-item-href="${href}">
         <img
           src="${imageUrl}"
           alt="${name}"
@@ -244,6 +268,23 @@ class ShortlistDrawer {
         </button>
       </div>
     `;
+  }
+
+  /**
+   * Structural safety net for item.href: root-relative only, no path
+   * traversal, restricted charset. The server (routes/shortlist.js) is the
+   * authoritative validator and already rejects the legacy query-form links
+   * before anything is stored — this just guards against stale/local-only
+   * state that predates server-side validation.
+   */
+  isSafeItemHref(href) {
+    if (!href || typeof href !== 'string') {
+      return false;
+    }
+    if (!href.startsWith('/') || href.startsWith('//') || href.includes('..')) {
+      return false;
+    }
+    return /^\/[a-zA-Z0-9\-._~/%?=&]*$/.test(href);
   }
 
   /**

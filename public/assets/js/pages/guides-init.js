@@ -365,6 +365,15 @@ document.addEventListener('DOMContentLoaded', () => {
             ${article.tool ? `<a href="${escHtml(article.tool.href)}" class="article-end-cta__tool guide-card__tool-link" aria-label="${escHtml(article.tool.label)}">${escHtml(article.tool.label)}</a>` : ''}
           </div>
         </div>`;
+      // Whole-card click-through: the image, badges, title, summary, excerpt
+      // and meta row have no link of their own. The "Read guide"/tool links
+      // keep their own click behavior (excluded below).
+      card.addEventListener('click', e => {
+        if (e.target.closest('a')) {
+          return;
+        }
+        window.location.href = article.link;
+      });
       guidesGrid.appendChild(card);
     });
 

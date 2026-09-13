@@ -199,6 +199,7 @@
   background: rgba(255, 255, 255, 0.86);
   box-shadow: 0 14px 34px rgba(7, 41, 34, 0.08);
   padding: 22px;
+  cursor: pointer;
 }
 
 .home-v2-page .hv2-card h3 {
