@@ -155,7 +155,7 @@ function missingProfileFields(supplier) {
  * @returns {boolean}
  */
 function hasPackageMissingPhoto(supplierPackages) {
-  return supplierPackages.some(p => isPlaceholderImage(p && p.image));
+  return supplierPackages.some(p => isPlaceholderImage(p?.image));
 }
 
 /**

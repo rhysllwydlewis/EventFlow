@@ -261,6 +261,12 @@ router.post(
   applyRequireVerifiedUser,
   applyRequireApprovedSupplier,
   applyCsrfProtection,
+  // skipcq: JS-R1005 -- Pre-existing: field validation, the subscription
+  // package-limit check, image processing, and package-document assembly
+  // all live in this one handler. This PR's only footprint is recording
+  // imageProcessingError alongside the existing image-pipeline try/catch —
+  // it does not add branches, and splitting this handler apart is a larger,
+  // riskier change than that fix called for.
   async (req, res) => {
     let { supplierId } = req.body || {};
     const { title, description, price, image, primaryCategoryKey, eventTypes } = req.body || {};

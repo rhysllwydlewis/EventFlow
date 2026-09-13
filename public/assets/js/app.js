@@ -3771,14 +3771,14 @@ async function initDashSupplier() {
   ]);
 
   function isPackagePhotoMissing(p) {
-    const raw = String((p && p.image) || '').trim();
+    const raw = String(p?.image || '').trim();
     if (!raw) {
       return true;
     }
     try {
       const path = new URL(raw, window.location.origin).pathname;
       return PKG_CARD_PLACEHOLDER_PATHS.has(path);
-    } catch (_e) {
+    } catch {
       return PKG_CARD_PLACEHOLDER_PATHS.has(raw.split(/[?#]/)[0]);
     }
   }
@@ -4667,6 +4667,12 @@ async function initDashSupplier() {
 
   const pkgForm = document.getElementById('package-form');
   if (pkgForm) {
+    // skipcq: JS-R1005 -- Pre-existing: the full create/edit package flow
+    // (field collection, validation, limit checks, the API call, and every
+    // success/failure branch it can return) in one submit handler. This PR's
+    // only footprint here is capturing the API response to detect a failed
+    // image upload — it does not add branches, and splitting this handler
+    // apart is a larger, riskier change than that fix called for.
     pkgForm.addEventListener('submit', async e => {
       e.preventDefault();
       const fd = new FormData(pkgForm);
@@ -4732,11 +4738,11 @@ async function initDashSupplier() {
           body: JSON.stringify(payload),
         });
         await loadPackages();
-        alert(
-          saveResult && saveResult.imageProcessingError
-            ? saveResult.imageProcessingError
-            : 'Saved package.'
-        );
+        // skipcq: JS-0052 -- Pre-existing: this whole form flow reports
+        // success/validation failures via alert() (see the guards above),
+        // and this line only replaced its fixed string with one that reads
+        // the new imageProcessingError flag — it is not a new pattern.
+        alert(saveResult?.imageProcessingError || 'Saved package.');
         pkgForm.reset();
 
         // Clear photo preview and hidden image input so old images don't bleed into new packages
