@@ -1513,8 +1513,10 @@ body.auth-page .auth-role-picker .auth-role-copy {
   gap: 1px;
 }
 
+/* #667085 rather than the lighter #98a2b3 used elsewhere for meta text:
+   at 11px this needs to clear 4.5:1 against the white row. */
 body.auth-page .auth-role-picker .auth-role-tag {
-  color: #98a2b3;
+  color: #667085;
   font-size: 0.6875rem;
   font-weight: 700;
   letter-spacing: 0.02em;
