@@ -189,9 +189,9 @@
     <link rel="preload" href="/assets/css/design-system.css?v=18.3.0" as="style" />
     <link rel="preload" href="/assets/css/liquid-glass.css?v=18.3.0" as="style" />
     <link rel="preload" href="/assets/css/styles.css?v=18.5.0" as="style" />
-    <link rel="preload" href="/assets/css/components.css?v=18.4.1" as="style" />
+    <link rel="preload" href="/assets/css/components.css?v=18.4.2" as="style" />
     <link rel="preload" href="/assets/css/homepage-enhancements.css?v=18.3.0" as="style" />
-    <link rel="preload" href="/assets/css/hero-modern.css?v=18.3.5" as="style" />
+    <link rel="preload" href="/assets/css/hero-modern.css?v=18.3.6" as="style" />
     <link rel="preload" href="/assets/css/modern-landing.css?v=18.3.1" as="style" />
 
     <!-- Critical Stylesheets - Load synchronously -->
@@ -199,9 +199,9 @@
     <link rel="stylesheet" href="/assets/css/design-system.css?v=18.3.0" />
     <link rel="stylesheet" href="/assets/css/liquid-glass.css?v=18.3.0" />
     <link rel="stylesheet" href="/assets/css/styles.css?v=18.5.0" />
-    <link rel="stylesheet" href="/assets/css/components.css?v=18.4.1" />
+    <link rel="stylesheet" href="/assets/css/components.css?v=18.4.2" />
     <link rel="stylesheet" href="/assets/css/homepage-enhancements.css?v=18.3.0" />
-    <link rel="stylesheet" href="/assets/css/hero-modern.css?v=18.3.5" />
+    <link rel="stylesheet" href="/assets/css/hero-modern.css?v=18.3.6" />
     <link rel="stylesheet" href="/assets/css/ef-search-bar.css?v=18.3.0">
     
     <!-- Issue Fix CSS - Error boundaries, loading states, marketplace skeleton -->
@@ -212,7 +212,7 @@
     <link rel="stylesheet" href="/assets/css/modern-landing.css?v=18.3.1" />
     
     <!-- Non-critical CSS - Defer via preload -->
-    <link rel="stylesheet" href="/assets/css/navbar.css?v=18.4.1" /><link rel="stylesheet" href="/assets/css/eventflow-brand.css?v=1.0.1" data-eventflow-brand="true" />
+    <link rel="stylesheet" href="/assets/css/navbar.css?v=18.4.2" /><link rel="stylesheet" href="/assets/css/eventflow-brand.css?v=1.0.1" data-eventflow-brand="true" />
     <link rel="stylesheet" href="/assets/css/eventflow-17.0.0.css?v=18.3.0" />
     <link rel="stylesheet" href="/assets/css/utilities.css?v=18.3.0" />
     <link rel="stylesheet" href="/assets/css/animations.css?v=18.3.2" />
@@ -452,8 +452,13 @@
 
             <!-- Subcopy -->
             <p class="hero-modern-subcopy ef-fade-up delay-3">
-              Simplify your event planning: find venues, catering, entertainment and more. Add options to your plan instantly,
-              message suppliers when you're ready, and keep budgets, notes and decisions together.
+              <span class="hero-modern-subcopy__primary"
+                >Simplify your event planning: find venues, catering, entertainment and more.</span
+              >
+              <span class="hero-modern-subcopy__more"
+                >Add options to your plan instantly, message suppliers when you're ready, and keep
+                budgets, notes and decisions together.</span
+              >
             </p>
 
             <!-- New Unified Search Component -->
@@ -1238,8 +1243,8 @@
     <!-- Shared hero collage module - must load before home-init.js, which calls
          window.EFHeroCollage and reuses its isDebugEnabled/isDevelopmentEnvironment helpers -->
     <script src="/assets/js/collage/hero-collage.js?v=2" defer></script>
-    <script src="/assets/js/pages/home-init.js?v=18.3.3" defer></script>
-    <script src="/assets/js/pages/homepage-approved-lower.js?v=9" defer></script>
+    <script src="/assets/js/pages/home-init.js?v=18.3.4" defer></script>
+    <script src="/assets/js/pages/homepage-approved-lower.js?v=10" defer></script>
     <script src="/assets/js/pages/home-locations-featured.js?v=2" defer></script>
     <script src="/assets/js/home.js" defer></script>
     <script src="/assets/js/pages/index-init.js" defer></script>

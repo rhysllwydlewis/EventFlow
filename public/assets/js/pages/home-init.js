@@ -182,6 +182,7 @@ document.addEventListener('DOMContentLoaded', () => {
     endpoint: '/api/packages/featured',
     containerId: 'featured-packages',
     emptyMessage: 'No featured packages available yet.',
+    ariaLabel: 'Featured packages carousel',
   });
 
   // Load spotlight packages
@@ -189,6 +190,7 @@ document.addEventListener('DOMContentLoaded', () => {
     endpoint: '/api/packages/spotlight',
     containerId: 'spotlight-packages',
     emptyMessage: 'No spotlight packages available yet.',
+    ariaLabel: 'Spotlight packages carousel',
   });
 
   // Show notification bell for logged-in users using AuthStateManager
@@ -373,8 +375,9 @@ window.addEventListener('offline', () => {
  * @param {string} options.endpoint - API endpoint to fetch packages from
  * @param {string} options.containerId - DOM container ID for carousel
  * @param {string} options.emptyMessage - Message to show when no packages found
+ * @param {string} options.ariaLabel - Accessible name for the carousel region
  */
-async function loadPackagesCarousel({ endpoint, containerId, emptyMessage }) {
+async function loadPackagesCarousel({ endpoint, containerId, emptyMessage, ariaLabel }) {
   const container = document.getElementById(containerId);
   if (!container) {
     if (isDevelopmentEnvironment()) {
@@ -388,7 +391,7 @@ async function loadPackagesCarousel({ endpoint, containerId, emptyMessage }) {
     title: 'Could not load packages',
     message: 'Please refresh the page to try again.',
     showRetry: true,
-    retryCallback: () => loadPackagesCarousel({ endpoint, containerId, emptyMessage }),
+    retryCallback: () => loadPackagesCarousel({ endpoint, containerId, emptyMessage, ariaLabel }),
   });
 
   // Show loading skeleton
@@ -440,6 +443,7 @@ async function loadPackagesCarousel({ endpoint, containerId, emptyMessage }) {
         itemsPerViewMobile: 1,
         autoScroll: true,
         autoScrollInterval: 5000,
+        ariaLabel,
       });
       carousel.setItems(data.items);
     } catch (error) {

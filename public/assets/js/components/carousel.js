@@ -28,6 +28,7 @@ class Carousel {
       itemsPerViewMobile: options.itemsPerViewMobile || 1,
       autoScroll: options.autoScroll || false,
       autoScrollInterval: options.autoScrollInterval || 5000,
+      ariaLabel: options.ariaLabel || 'Featured packages carousel',
     };
 
     this.items = [];
@@ -286,7 +287,7 @@ class Carousel {
     // Create carousel structure
     const html = `
       <button class="carousel-prev" aria-label="Previous">‹</button>
-      <div class="carousel-container" tabindex="0" role="region" aria-label="Featured packages carousel">
+      <div class="carousel-container" tabindex="0" role="region" aria-label="${this.options.ariaLabel}">
         ${this.items.map(item => this._renderItem(item)).join('')}
       </div>
       <button class="carousel-next" aria-label="Next">›</button>
