@@ -336,7 +336,7 @@ class PackageList {
   /**
    * Featured/test-data badges shown on the card itself (not the supplier's).
    */
-  buildCardBadgesHtml(pkg) {
+  static buildCardBadgesHtml(pkg) {
     const isFeatured = pkg.featured || pkg.isFeatured || false;
     const isTest = pkg.isTest || false;
     const badges = [];
@@ -351,6 +351,71 @@ class PackageList {
       );
     }
     return badges.join('');
+  }
+
+  /**
+   * Tier/verification/test/founding badges shown beside the supplier's name
+   * (using the same logic as the SupplierCard component), as one HTML string.
+   */
+  static buildSupplierBadgesHtml(supplier) {
+    const badges = [];
+
+    // Test data badge
+    if (supplier.isTest) {
+      badges.push(
+        '<span class="badge badge-test-data" style="font-size: 0.6875rem; padding: 2px 6px;">Test data</span>'
+      );
+    }
+
+    // Founding supplier badge
+    if (supplier.isFounding) {
+      badges.push(
+        '<span class="badge badge-founding" style="font-size: 0.6875rem; padding: 2px 6px;">Founding</span>'
+      );
+    }
+
+    // Pro/Pro Plus/Featured tier badges
+    const tier =
+      supplier.subscriptionTier || supplier.subscription?.tier || (supplier.isPro ? 'pro' : null);
+
+    if (tier === 'featured') {
+      badges.push(
+        '<span class="badge badge-featured" style="font-size: 0.6875rem; padding: 2px 6px;">Featured</span>'
+      );
+    } else if (tier === 'pro_plus') {
+      badges.push(
+        '<span class="badge badge-pro-plus" style="font-size: 0.6875rem; padding: 2px 6px;">Pro Plus</span>'
+      );
+    } else if (tier === 'pro') {
+      badges.push(
+        '<span class="badge badge-pro" style="font-size: 0.6875rem; padding: 2px 6px;">Pro</span>'
+      );
+    } else {
+      badges.push(
+        '<span class="badge badge-starter" style="font-size: 0.6875rem; padding: 2px 6px;">Starter</span>'
+      );
+    }
+
+    // Verification badges
+    if (supplier.verifications?.email?.verified) {
+      badges.push(
+        '<span class="badge badge-email-verified" style="font-size: 0.6875rem; padding: 2px 6px;">Email</span>'
+      );
+    }
+    if (supplier.verifications?.phone?.verified) {
+      badges.push(
+        '<span class="badge badge-phone-verified" style="font-size: 0.6875rem; padding: 2px 6px;">Phone</span>'
+      );
+    }
+    if (supplier.verifications?.business?.verified) {
+      badges.push(
+        '<span class="badge badge-business-verified" style="font-size: 0.6875rem; padding: 2px 6px;">Business</span>'
+      );
+    }
+
+    return badges.length > 0
+      ? `<div style="display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px;">${badges.join('')}</div>`
+      : '';
   }
 
   /**
@@ -376,67 +441,7 @@ class PackageList {
       pkg.supplierAvatar ||
       '/assets/images/placeholders/avatar.svg';
     const supplierAvatar = escapeHtml(this.sanitizeImageUrl(rawSupplierAvatar));
-
-    // Build supplier badges (using same logic as SupplierCard component)
-    const supplierBadges = [];
-
-    // Test data badge
-    if (supplier.isTest) {
-      supplierBadges.push(
-        '<span class="badge badge-test-data" style="font-size: 0.6875rem; padding: 2px 6px;">Test data</span>'
-      );
-    }
-
-    // Founding supplier badge
-    if (supplier.isFounding) {
-      supplierBadges.push(
-        '<span class="badge badge-founding" style="font-size: 0.6875rem; padding: 2px 6px;">Founding</span>'
-      );
-    }
-
-    // Pro/Pro Plus/Featured tier badges
-    const tier =
-      supplier.subscriptionTier || supplier.subscription?.tier || (supplier.isPro ? 'pro' : null);
-
-    if (tier === 'featured') {
-      supplierBadges.push(
-        '<span class="badge badge-featured" style="font-size: 0.6875rem; padding: 2px 6px;">Featured</span>'
-      );
-    } else if (tier === 'pro_plus') {
-      supplierBadges.push(
-        '<span class="badge badge-pro-plus" style="font-size: 0.6875rem; padding: 2px 6px;">Pro Plus</span>'
-      );
-    } else if (tier === 'pro') {
-      supplierBadges.push(
-        '<span class="badge badge-pro" style="font-size: 0.6875rem; padding: 2px 6px;">Pro</span>'
-      );
-    } else {
-      supplierBadges.push(
-        '<span class="badge badge-starter" style="font-size: 0.6875rem; padding: 2px 6px;">Starter</span>'
-      );
-    }
-
-    // Verification badges
-    if (supplier.verifications?.email?.verified) {
-      supplierBadges.push(
-        '<span class="badge badge-email-verified" style="font-size: 0.6875rem; padding: 2px 6px;">Email</span>'
-      );
-    }
-    if (supplier.verifications?.phone?.verified) {
-      supplierBadges.push(
-        '<span class="badge badge-phone-verified" style="font-size: 0.6875rem; padding: 2px 6px;">Phone</span>'
-      );
-    }
-    if (supplier.verifications?.business?.verified) {
-      supplierBadges.push(
-        '<span class="badge badge-business-verified" style="font-size: 0.6875rem; padding: 2px 6px;">Business</span>'
-      );
-    }
-
-    const supplierBadgesHtml =
-      supplierBadges.length > 0
-        ? `<div style="display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px;">${supplierBadges.join('')}</div>`
-        : '';
+    const supplierBadgesHtml = PackageList.buildSupplierBadgesHtml(supplier);
 
     // Inline tier icon — use shared EFTierIcon helper if available (tier-icon.js)
     const tierIcon = typeof EFTierIcon !== 'undefined' ? EFTierIcon.render(supplier) : '';
@@ -544,7 +549,7 @@ class PackageList {
       }
     });
 
-    const badgesHtml = this.buildCardBadgesHtml(pkg);
+    const badgesHtml = PackageList.buildCardBadgesHtml(pkg);
     const escapeHtml = PackageList.escapeHtml;
 
     // Resolve the best available image: prefer pkg.image, fall back to gallery.
