@@ -261,6 +261,12 @@ router.post(
   applyRequireVerifiedUser,
   applyRequireApprovedSupplier,
   applyCsrfProtection,
+  // skipcq: JS-R1005 -- Pre-existing: field validation, the subscription
+  // package-limit check, image processing, and package-document assembly
+  // all live in this one handler. This PR's only footprint is recording
+  // imageProcessingError alongside the existing image-pipeline try/catch —
+  // it does not add branches, and splitting this handler apart is a larger,
+  // riskier change than that fix called for.
   async (req, res) => {
     let { supplierId } = req.body || {};
     const { title, description, price, image, primaryCategoryKey, eventTypes } = req.body || {};
@@ -360,6 +366,10 @@ router.post(
     // detail page and mini-card carousels always have a consistent source of truth.
     let resolvedImage = '';
     const gallery = [];
+    // Set when the upload pipeline fails, so the response can tell the supplier
+    // the package saved without its photo instead of reporting a flat success —
+    // previously this was only logged server-side and the caller had no way to know.
+    let imageProcessingError = null;
     if (image && typeof image === 'string' && image.startsWith('data:')) {
       try {
         const rand = Math.random().toString(36).slice(2, 8);
@@ -367,6 +377,8 @@ router.post(
         gallery.push({ url: resolvedImage, approved: true, uploadedAt: Date.now() });
       } catch (e) {
         logger.warn('Package create: image processing failed, storing without image:', e.message);
+        imageProcessingError =
+          'Package saved, but the photo could not be processed. Please try uploading it again.';
       }
     } else if (image && typeof image === 'string' && image.trim()) {
       resolvedImage = image.trim();
@@ -392,8 +404,8 @@ router.post(
     // Check if admin has enabled "Require Package Approval" — if so, new packages need manual review
     try {
       const settings = (await dbUnified.read('settings')) || {};
-      const features = settings.features || {};
-      if (features.requirePackageApproval === true) {
+      const siteFeatures = settings.features || {};
+      if (siteFeatures.requirePackageApproval === true) {
         pkg.approved = false;
       }
     } catch (_e) {
@@ -419,7 +431,7 @@ router.post(
       logger.warn('Partner package bonus award failed (non-blocking):', _pe.message);
     }
 
-    res.json({ ok: true, package: pkg });
+    res.json({ ok: true, package: pkg, ...(imageProcessingError ? { imageProcessingError } : {}) });
   }
 );
 
@@ -494,6 +506,9 @@ router.put(
       const { pkg } = result;
 
       const pkgUpdates = {};
+      // Mirrors the create route's flag: set when image processing fails, so the
+      // response can tell the supplier their other edits saved but the photo did not.
+      let imageProcessingError = null;
       if (req.body.title !== undefined) {
         pkgUpdates.title = String(req.body.title).slice(0, 120);
       }
@@ -528,6 +543,8 @@ router.put(
               'Package update: image processing failed, keeping existing image:',
               e.message
             );
+            imageProcessingError =
+              'Package saved, but the new photo could not be processed — the previous photo was kept. Please try uploading it again.';
           }
         } else if (
           newImage &&
@@ -566,7 +583,11 @@ router.put(
       await dbUnified.updateOne('packages', { id: pkg.id }, { $set: pkgUpdates });
       suppliersRouter.invalidatePackageCaches();
 
-      res.json({ ok: true, package: { ...pkg, ...pkgUpdates } });
+      res.json({
+        ok: true,
+        package: { ...pkg, ...pkgUpdates },
+        ...(imageProcessingError ? { imageProcessingError } : {}),
+      });
     } catch (error) {
       logger.error('Error updating supplier package:', error);
       return res.status(500).json({ error: 'Internal server error' });

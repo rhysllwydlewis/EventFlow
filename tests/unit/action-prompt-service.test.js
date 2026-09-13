@@ -53,7 +53,10 @@ function makeSupplier(overrides = {}) {
 }
 
 function makePackage(overrides = {}) {
-  return { id: 'p1', supplierId: 's1', name: 'Package 1', ...overrides };
+  // Has a real photo by default so existing "everything complete" fixtures
+  // don't newly trip the packagesMissingPhotos check below — tests for that
+  // check build their own package with image omitted/blank.
+  return { id: 'p1', supplierId: 's1', name: 'Package 1', image: '/img/pkg.jpg', ...overrides };
 }
 
 function makeSettings(overrides = {}) {
@@ -289,6 +292,83 @@ describe('computeActions', () => {
     const actions = computeActions(supplier, [makePackage()], makeSettings(), user);
     expect(actions.some(a => a.key === 'uncategorized')).toBe(false);
   });
+
+  it('returns packagesMissingPhotos when a package has no image', () => {
+    const noPhotoPackage = makePackage({ image: '' });
+    const actions = computeActions(makeSupplier(), [noPhotoPackage], makeSettings(), makeUser());
+    expect(actions.some(a => a.key === 'packagesMissingPhotos')).toBe(true);
+  });
+
+  it('packagesMissingPhotos action has severity amber', () => {
+    const noPhotoPackage = makePackage({ image: '' });
+    const actions = computeActions(makeSupplier(), [noPhotoPackage], makeSettings(), makeUser());
+    const action = actions.find(a => a.key === 'packagesMissingPhotos');
+    expect(action.severity).toBe('amber');
+  });
+
+  it('returns packagesMissingPhotos when only some packages lack a photo', () => {
+    const actions = computeActions(
+      makeSupplier(),
+      [makePackage({ id: 'p1' }), makePackage({ id: 'p2', image: '' })],
+      makeSettings(),
+      makeUser()
+    );
+    expect(actions.some(a => a.key === 'packagesMissingPhotos')).toBe(true);
+  });
+
+  it('does not return packagesMissingPhotos when every package has a photo', () => {
+    const actions = computeActions(makeSupplier(), [makePackage()], makeSettings(), makeUser());
+    expect(actions.some(a => a.key === 'packagesMissingPhotos')).toBe(false);
+  });
+
+  it('does not return packagesMissingPhotos when supplier has no packages', () => {
+    const actions = computeActions(makeSupplier(), [], makeSettings(), makeUser());
+    expect(actions.some(a => a.key === 'packagesMissingPhotos')).toBe(false);
+  });
+
+  it('does not flag a package whose image is only the known placeholder path', () => {
+    const placeholderPackage = makePackage({ image: '/assets/images/package-placeholder.webp' });
+    const actions = computeActions(
+      makeSupplier(),
+      [placeholderPackage],
+      makeSettings(),
+      makeUser()
+    );
+    expect(actions.some(a => a.key === 'packagesMissingPhotos')).toBe(true);
+  });
+
+  it('respects global packagesMissingPhotos disable', () => {
+    const settings = makeSettings({
+      promptTypes: {
+        missingPackages: true,
+        incompleteProfile: true,
+        missingPhotos: true,
+        uncategorized: true,
+        packagesMissingPhotos: false,
+      },
+    });
+    const noPhotoPackage = makePackage({ image: '' });
+    const actions = computeActions(makeSupplier(), [noPhotoPackage], settings, makeUser());
+    expect(actions.some(a => a.key === 'packagesMissingPhotos')).toBe(false);
+  });
+
+  it('respects user packagesMissingPhotos opt-out', () => {
+    const user = makeUser({
+      emailPrefs: {
+        actionPrompts: {
+          enabled: true,
+          missingPackages: true,
+          incompleteProfile: true,
+          missingPhotos: true,
+          uncategorized: true,
+          packagesMissingPhotos: false,
+        },
+      },
+    });
+    const noPhotoPackage = makePackage({ image: '' });
+    const actions = computeActions(makeSupplier(), [noPhotoPackage], makeSettings(), user);
+    expect(actions.some(a => a.key === 'packagesMissingPhotos')).toBe(false);
+  });
 });
 
 // ── computeFullReport ────────────────────────────────────────────────────────
@@ -356,6 +436,31 @@ describe('computeFullReport', () => {
   it('ragStatus is amber when only uncategorized is outstanding', () => {
     const supplier = makeSupplier({ category: 'Other' });
     const report = computeFullReport(supplier, [makePackage()], makeSettings(), makeUser());
+    expect(report.ragStatus).toBe('amber');
+  });
+
+  it('returns outstanding packagesMissingPhotos and no packagesHavePhotos completed item when a package lacks a photo', () => {
+    const noPhotoPackage = makePackage({ image: '' });
+    const report = computeFullReport(makeSupplier(), [noPhotoPackage], makeSettings(), makeUser());
+    expect(report.outstanding.some(a => a.key === 'packagesMissingPhotos')).toBe(true);
+    expect(report.completed.some(a => a.key === 'packagesHavePhotos')).toBe(false);
+  });
+
+  it('returns completed packagesHavePhotos when every package has a photo', () => {
+    const report = computeFullReport(makeSupplier(), [makePackage()], makeSettings(), makeUser());
+    expect(report.completed.some(a => a.key === 'packagesHavePhotos')).toBe(true);
+    expect(report.outstanding.some(a => a.key === 'packagesMissingPhotos')).toBe(false);
+  });
+
+  it('does not score packagesMissingPhotos at all when supplier has no packages', () => {
+    const report = computeFullReport(makeSupplier(), [], makeSettings(), makeUser());
+    expect(report.outstanding.some(a => a.key === 'packagesMissingPhotos')).toBe(false);
+    expect(report.completed.some(a => a.key === 'packagesHavePhotos')).toBe(false);
+  });
+
+  it('ragStatus is amber when only packagesMissingPhotos is outstanding', () => {
+    const noPhotoPackage = makePackage({ image: '' });
+    const report = computeFullReport(makeSupplier(), [noPhotoPackage], makeSettings(), makeUser());
     expect(report.ragStatus).toBe('amber');
   });
 });

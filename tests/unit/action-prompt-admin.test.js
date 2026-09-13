@@ -334,7 +334,7 @@ describe('Action Prompt Admin — diagnostics logic', () => {
   });
 
   it('computeFullReport returns green status when packages exist and profile complete', () => {
-    const pkgs = [{ id: 'p1', supplierId: 'sup_1' }];
+    const pkgs = [{ id: 'p1', supplierId: 'sup_1', image: '/img/pkg.jpg' }];
     const report = computeFullReport(makeSupplier(), pkgs, baseSettings, makeUser());
     expect(report.ragStatus).toBe('green');
     expect(report.outstanding).toHaveLength(0);

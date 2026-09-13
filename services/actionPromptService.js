@@ -3,11 +3,14 @@
  * Detects outstanding actions for supplier users and manages cadence escalation.
  *
  * Outstanding actions detected:
- *  1. missingPackages   — supplier has 0 packages                (RED — critical)
- *  2. incompleteProfile — supplier profile missing required fields (AMBER)
- *  3. missingPhotos     — supplier has no photos/gallery          (AMBER)
- *  4. uncategorized     — supplier has no category, or is stuck on
- *                         the catch-all "Other" category          (AMBER)
+ *  1. missingPackages       — supplier has 0 packages                (RED — critical)
+ *  2. incompleteProfile     — supplier profile missing required fields (AMBER)
+ *  3. missingPhotos         — supplier has no photos/gallery          (AMBER)
+ *  4. uncategorized         — supplier has no category, or is stuck on
+ *                             the catch-all "Other" category          (AMBER)
+ *  5. packagesMissingPhotos — supplier has packages, but at least one has
+ *                             no real photo of its own (profile photos
+ *                             don't count — see utils/packageImageUtils.js) (AMBER)
  *
  * Cadence (per-supplier while actions remain outstanding):
  *  • FIRST reminder : 24 h after outstanding actions are first detected
@@ -33,6 +36,7 @@
 const dbUnified = require('../db-unified');
 const logger = require('../utils/logger');
 const { hasSupplierGalleryPhotos, hasSupplierPostcode } = require('./supplierProfileCompleteness');
+const { isPlaceholderImage } = require('../utils/packageImageUtils');
 
 // Required supplier profile fields for "complete profile" check.
 // 'postcode' is a virtual entry — see missingProfileFields() — the dashboard
@@ -93,6 +97,13 @@ const ACTION_DEFINITIONS = {
       "Your listing doesn't have a specific category, so it won't appear when customers browse or filter by category. Pick the option that best matches what you offer.",
     ctaText: 'Update Category',
   },
+  packagesMissingPhotos: {
+    severity: 'amber',
+    title: 'Add photos to your packages',
+    description:
+      "Uploading photos to your profile doesn't add them to your packages — each one needs its own. Packages without a photo show a plain placeholder to customers browsing search results.",
+    ctaText: 'Add Package Photos',
+  },
 };
 
 // Human-readable labels for completed checks
@@ -101,6 +112,7 @@ const COMPLETE_LABELS = {
   profileComplete: 'Profile details complete',
   hasPhotos: 'Photos uploaded',
   categorized: 'Category selected',
+  packagesHavePhotos: 'All packages have photos',
 };
 
 /**
@@ -134,6 +146,19 @@ function missingProfileFields(supplier) {
 }
 
 /**
+ * Whether at least one of this supplier's packages has no usable photo of
+ * its own. A supplier can have uploaded profile photos while every package
+ * still shows a placeholder — the two are unrelated fields — so this checks
+ * `package.image` directly rather than the supplier's gallery.
+ *
+ * @param {Array} supplierPackages - Packages already filtered to one supplier
+ * @returns {boolean}
+ */
+function hasPackageMissingPhoto(supplierPackages) {
+  return supplierPackages.some(p => isPlaceholderImage(p?.image));
+}
+
+/**
  * Compute outstanding action items for a single supplier.
  * Returns only outstanding (incomplete) actions — filtered by global settings and user prefs.
  *
@@ -148,12 +173,12 @@ function computeActions(supplier, packages, settings, user) {
   const baseUrl = process.env.APP_BASE_URL || process.env.BASE_URL || 'http://localhost:3000';
   const promptTypes = settings.emailAutomation?.actionPrompts?.promptTypes || {};
   const userPrefs = user?.emailPrefs?.actionPrompts || {};
+  const supplierPackages = packages.filter(p => p.supplierId === supplier.id);
 
   // 1. Missing packages (RED)
   const globalMissingPkg = promptTypes.missingPackages !== false;
   const userMissingPkgPref = userPrefs.missingPackages !== false;
   if (globalMissingPkg && userMissingPkgPref) {
-    const supplierPackages = packages.filter(p => p.supplierId === supplier.id);
     if (supplierPackages.length === 0) {
       actions.push({
         key: 'missingPackages',
@@ -199,6 +224,25 @@ function computeActions(supplier, packages, settings, user) {
     actions.push({
       key: 'uncategorized',
       ...ACTION_DEFINITIONS.uncategorized,
+      ctaUrl: `${baseUrl}/dashboard/supplier`,
+      status: 'incomplete',
+    });
+  }
+
+  // 5. Packages missing their own photo (AMBER — behind global and user toggles).
+  // Only meaningful once the supplier has packages at all — missingPackages
+  // already covers the zero-package case.
+  const globalPackagesMissingPhotos = promptTypes.packagesMissingPhotos !== false;
+  const userPackagesMissingPhotosPref = userPrefs.packagesMissingPhotos !== false;
+  if (
+    globalPackagesMissingPhotos &&
+    userPackagesMissingPhotosPref &&
+    supplierPackages.length > 0 &&
+    hasPackageMissingPhoto(supplierPackages)
+  ) {
+    actions.push({
+      key: 'packagesMissingPhotos',
+      ...ACTION_DEFINITIONS.packagesMissingPhotos,
       ctaUrl: `${baseUrl}/dashboard/supplier`,
       status: 'incomplete',
     });
@@ -310,6 +354,30 @@ function computeFullReport(supplier, packages, settings, user) {
       status: 'complete',
       severity: 'green',
     });
+  }
+
+  // 5. Package photos (behind global and user toggles) — only scored once the
+  // supplier has packages; the zero-package case is covered by missingPackages.
+  const globalPackagesMissingPhotos = promptTypes.packagesMissingPhotos !== false;
+  const userPackagesMissingPhotosPref = userPrefs.packagesMissingPhotos !== false;
+  if (supplierPackages.length > 0) {
+    if (hasPackageMissingPhoto(supplierPackages)) {
+      if (globalPackagesMissingPhotos && userPackagesMissingPhotosPref) {
+        outstanding.push({
+          key: 'packagesMissingPhotos',
+          ...ACTION_DEFINITIONS.packagesMissingPhotos,
+          ctaUrl: `${baseUrl}/dashboard/supplier`,
+          status: 'incomplete',
+        });
+      }
+    } else {
+      completed.push({
+        key: 'packagesHavePhotos',
+        title: COMPLETE_LABELS.packagesHavePhotos,
+        status: 'complete',
+        severity: 'green',
+      });
+    }
   }
 
   // Overall RAG status

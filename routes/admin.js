@@ -3681,6 +3681,7 @@ router.get('/settings/email-automation', authRequired, roleRequired('admin'), as
         incompleteProfile: true,
         missingPhotos: true,
         uncategorized: true,
+        packagesMissingPhotos: true,
       },
     };
     const emailAutomation = settings.emailAutomation || {};
@@ -3693,6 +3694,7 @@ router.get('/settings/email-automation', authRequired, roleRequired('admin'), as
         incompleteProfile: actionPrompts.promptTypes?.incompleteProfile !== false,
         missingPhotos: actionPrompts.promptTypes?.missingPhotos !== false,
         uncategorized: actionPrompts.promptTypes?.uncategorized !== false,
+        packagesMissingPhotos: actionPrompts.promptTypes?.packagesMissingPhotos !== false,
       },
       updatedAt: actionPrompts.updatedAt,
       updatedBy: actionPrompts.updatedBy,
@@ -3774,6 +3776,10 @@ router.put(
             promptTypes?.uncategorized !== undefined
               ? promptTypes.uncategorized
               : existingActionPrompts.promptTypes?.uncategorized !== false,
+          packagesMissingPhotos:
+            promptTypes?.packagesMissingPhotos !== undefined
+              ? promptTypes.packagesMissingPhotos
+              : existingActionPrompts.promptTypes?.packagesMissingPhotos !== false,
         },
         updatedAt: new Date().toISOString(),
         updatedBy: req.user.email,
