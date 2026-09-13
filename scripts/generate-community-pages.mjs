@@ -35,7 +35,10 @@ const ASSET_VERSIONS = {
   // 18.4.1: PR #1551 restored the `.pack`/`.featured-fallback-card` homepage
   // carousel rules removed by #1543 — bumped alongside that PR's other
   // cache-busting fixes so a cached copy of components.css doesn't linger.
-  '/assets/css/components.css': '18.4.1',
+  // 18.4.2: the mobile cookie-consent banner's bottom offset moved from a
+  // 64px estimate of .ef-bottom-nav's height to the correct ~76px, closing
+  // a ~5px gap where the banner painted over the nav's top edge.
+  '/assets/css/components.css': '18.4.2',
   // 18.6.0: the glass surface tokens, the sidebar and rail layout fixes, the
   // hero tint that repairs its contrast, the category strip's scroll buttons,
   // the four-way reactions and the metadata separator rules all ship together.
@@ -53,7 +56,10 @@ const ASSET_VERSIONS = {
   // (PR #1605). Without a bump a returning visitor keeps the previous
   // week-cached copy against the new markup, producing mismatched button
   // heights in the burger menu.
-  '/assets/css/navbar.css': '18.4.1',
+  // 18.4.2: added the shared --ef-bottom-nav-height custom property (read by
+  // components.css's cookie banner, see above) and pointed the body's own
+  // bottom-nav padding at it instead of a separate hardcoded 76px.
+  '/assets/css/navbar.css': '18.4.2',
   '/assets/js/community/core.js': '18.6.0',
   '/assets/js/community/home.js': '18.6.0',
   '/assets/js/community/thread.js': '18.6.0',

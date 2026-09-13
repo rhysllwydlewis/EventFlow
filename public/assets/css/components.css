@@ -1752,10 +1752,12 @@ body.ef-cookie-banner-open #ef-pwa-install-banner {
   .cookie-consent-banner {
     /* Sit above the fixed bottom navigation bar. .ef-bottom-nav (navbar.css)
        renders at ~69px tall (10px+12px padding plus icon content), so the
-       previous 64px estimate left a ~5px sliver where this banner's
-       higher z-index painted over the nav's top edge. */
-    bottom: 76px;
-    bottom: calc(76px + env(safe-area-inset-bottom, 0px));
+       previous hardcoded 64px estimate left a ~5px sliver where this
+       banner's higher z-index painted over the nav's top edge. Reads the
+       same --ef-bottom-nav-height navbar.css uses for its own body
+       padding, so the two can't drift apart again the way 64px did. */
+    bottom: var(--ef-bottom-nav-height, 76px);
+    bottom: calc(var(--ef-bottom-nav-height, 76px) + env(safe-area-inset-bottom, 0px));
     width: calc(100vw - 1rem);
     border-radius: 14px;
   }

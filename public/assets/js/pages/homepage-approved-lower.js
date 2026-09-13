@@ -1,6 +1,7 @@
 'use strict';
 (function () {
   const FALLBACK_IMAGE = '/assets/images/collage-venue.jpg';
+  const PLACEHOLDER_IMAGE = '/assets/images/placeholders/package-event.svg';
 
   const escapeHtml = value => {
     const div = document.createElement('div');
@@ -101,7 +102,7 @@
       // "no photo" placeholder until a real one is available.
       title: 'AV & Lighting',
       category: 'Music/DJ',
-      image: '/assets/images/placeholders/package-event.svg',
+      image: PLACEHOLDER_IMAGE,
       icon: 'av',
       description: 'Sound systems and lighting equipment.',
     },
@@ -110,7 +111,7 @@
       // photo (a manor house) doesn't depict transport.
       title: 'Transport',
       category: 'Transport',
-      image: '/assets/images/placeholders/package-event.svg',
+      image: PLACEHOLDER_IMAGE,
       icon: 'transport',
       description: 'Cars and coaches for you and your guests.',
     },
@@ -119,7 +120,7 @@
       // collage photo doesn't depict either.
       title: 'Cakes & Florals',
       category: 'Cake',
-      image: '/assets/images/placeholders/package-event.svg',
+      image: PLACEHOLDER_IMAGE,
       icon: 'cake',
       description: 'Celebration cakes and floral arrangements.',
     },

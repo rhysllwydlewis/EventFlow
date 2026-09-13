@@ -11,6 +11,11 @@
 
 :root {
   --ef-header-height: 64px;
+  /* .ef-bottom-nav's rendered height (padding + icon content) — kept as a
+     variable so anything reserving space for it (the body padding below,
+     the cookie banner's mobile offset in components.css) stays in sync
+     instead of drifting into separate hardcoded guesses again. */
+  --ef-bottom-nav-height: 76px;
   --ef-z-header: 2000;
   --ef-z-menu: 2001;
   --ef-z-backdrop: 1998;
@@ -1104,7 +1109,7 @@ body.ef-menu-open {
 
 /* Body padding for bottom nav */
 body {
-  padding-bottom: 76px;
+  padding-bottom: var(--ef-bottom-nav-height, 76px);
 }
 
 /* ========================================
