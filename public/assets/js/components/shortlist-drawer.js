@@ -237,7 +237,7 @@ class ShortlistDrawer {
     // slug or falling back to the banned `/supplier?id=` query form (see
     // tests/unit/no-internal-supplier-query-links.test.js). Items saved
     // before this field existed simply render without a click-through.
-    const href = this.isSafeItemHref(item.href) ? escapeHtml(item.href) : '';
+    const href = ShortlistDrawer.isSafeItemHref(item.href) ? escapeHtml(item.href) : '';
 
     return `
       <div class="shortlist-item" data-item-href="${href}">
@@ -277,7 +277,7 @@ class ShortlistDrawer {
    * before anything is stored — this just guards against stale/local-only
    * state that predates server-side validation.
    */
-  isSafeItemHref(href) {
+  static isSafeItemHref(href) {
     if (!href || typeof href !== 'string') {
       return false;
     }

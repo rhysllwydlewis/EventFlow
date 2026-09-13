@@ -284,6 +284,7 @@ function buildSupplierSidebar(supplier, pkg, currentUser) {
   // View Profile link
   const viewBtn = document.getElementById('pkg-view-profile-btn');
   const isSupplierFallback = supplier.isPackageSupplierFallback === true;
+  let supplierProfileHref = '/suppliers';
   if (isSupplierFallback) {
     viewBtn.href = '/suppliers';
     viewBtn.textContent = 'Browse Suppliers';
@@ -293,11 +294,10 @@ function buildSupplierSidebar(supplier, pkg, currentUser) {
         'Supplier profile details are currently unavailable, but this package information is still available.';
       blurbEl.style.display = '';
     }
-  }
-  const supplierProfileHref = window.EventFlowSupplierLink
-    ? window.EventFlowSupplierLink.supplierProfileHref(supplier)
-    : supplier.publicProfilePath || '/suppliers';
-  if (!isSupplierFallback && supplier.id) {
+  } else if (supplier.id) {
+    supplierProfileHref = window.EventFlowSupplierLink
+      ? window.EventFlowSupplierLink.supplierProfileHref(supplier)
+      : supplier.publicProfilePath || '/suppliers';
     viewBtn.href = supplierProfileHref;
   }
 
