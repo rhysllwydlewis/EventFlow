@@ -30,7 +30,7 @@ describe('auth signup layout', () => {
   it('keeps the auth page compact and free from unwanted skip-link chrome', () => {
     expect(authHtml).not.toContain('Skip to sign in');
     expect(authHtml).not.toContain('auth-skip-link');
-    expect(authHtml).toContain('/assets/css/auth.css?v=18.6.0');
+    expect(authHtml).toContain('/assets/css/auth.css?v=18.7.0');
     expect(authHtml).toContain('County or region *');
     expect(authHtml).toContain('Company name *');
     expect(authHtml).toContain('Profile picture');
@@ -43,6 +43,78 @@ describe('auth signup layout', () => {
     expect(authHtml).toContain('List your business and manage enquiries.');
     expect(authHtml).toContain('Step 2');
     expect(authHtml).toContain('Continue with Google, Facebook or email');
+  });
+
+  it('ships the account type picker with nothing pre-selected', () => {
+    const pickerStart = authHtml.indexOf('id="reg-role-picker"');
+    const pickerEnd = authHtml.indexOf('</div>', authHtml.indexOf('data-role="supplier"'));
+    const picker = authHtml.slice(pickerStart, pickerEnd);
+
+    // A pre-selected Customer option is how people register as the wrong
+    // account type without ever noticing the question was asked.
+    expect(picker).not.toContain('aria-checked="true"');
+    expect(picker).not.toContain('auth-role-option--active');
+    expect(picker).not.toContain('is-active');
+    expect(authHtml).toContain('<input type="hidden" id="reg-role" name="role" value="" />');
+  });
+
+  it('names the account type on the picker and again before submit', () => {
+    expect(authHtml).toContain('Customer account');
+    expect(authHtml).toContain('Supplier account');
+    expect(authHtml).toContain('id="reg-role-recap"');
+    expect(authHtml).toContain('id="reg-role-recap-name"');
+    expect(authHtml).toContain('data-default-label="Create account"');
+  });
+
+  it('blocks email signup until an account type is chosen', () => {
+    const appJs = fs.readFileSync(path.join(__dirname, '../../public/assets/js/app.js'), 'utf8');
+    const authInit = fs.readFileSync(
+      path.join(__dirname, '../../public/assets/js/pages/auth-init.js'),
+      'utf8'
+    );
+
+    expect(appJs).toContain('Choose an account type — Customer or Supplier — to continue.');
+    expect(appJs).toContain('window.EventFlowAuthRole.flagMissing');
+    expect(authInit).toContain('window.EventFlowAuthRole');
+  });
+
+  it('gates social signup on the account type instead of defaulting to customer', () => {
+    ['auth-google-init.js', 'auth-facebook-init.js', 'auth-apple-init.js'].forEach(file => {
+      const source = fs.readFileSync(
+        path.join(__dirname, '../../public/assets/js/pages', file),
+        'utf8'
+      );
+
+      expect(source).toContain("return role === 'supplier' || role === 'customer' ? role : '';");
+      expect(source).toContain("return { ready: false, role: '', missing: ['account type'] };");
+      expect(source).toContain("window.addEventListener('eventflow:auth-role-change'");
+    });
+  });
+
+  it('opens the create tab for supplier deep links', () => {
+    const authInit = fs.readFileSync(
+      path.join(__dirname, '../../public/assets/js/pages/auth-init.js'),
+      'utf8'
+    );
+
+    // /for-suppliers links here with ?role=supplier&action=register — before
+    // this, those landed on the sign-in tab with the choice hidden away.
+    expect(authInit).toContain("initialParams.get('action') === 'register'");
+    expect(authInit).toContain("initialRole === 'supplier'");
+  });
+
+  it('themes the profile picture control instead of using the native file button', () => {
+    const authCss = fs.readFileSync(
+      path.join(__dirname, '../../public/assets/css/auth.css'),
+      'utf8'
+    );
+
+    expect(authHtml).toContain('class="auth-file-btn"');
+    expect(authHtml).toContain('id="reg-avatar-name"');
+    expect(authHtml).toContain('class="auth-file-input"');
+    // Visually hidden, never display:none — it stays focusable and keeps
+    // carrying the file.
+    expect(authCss).toContain('.auth-file-input:focus-visible + .auth-file-btn');
   });
 
   it('keeps auth tabs readable and Google buttons fitted to the card', () => {

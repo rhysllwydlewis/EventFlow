@@ -243,8 +243,12 @@ describe('app.js registration ALTCHA submission guard', () => {
 
     // Verify the guard exists
     expect(content).toContain('Please complete the verification challenge');
-    // Verify it restores the non-loading submit state before returning early
-    expect(content).toContain("setAuthSubmitButtonState(regBtn, 'Create account')");
+    // Verify it restores the non-loading submit state before returning early.
+    // The label is role-aware ("Create your Supplier account"), so the reset
+    // reads it back from the button rather than hardcoding the generic text.
+    expect(content).toContain(
+      "setAuthSubmitButtonState(regBtn, regBtn?.dataset?.defaultLabel || 'Create account')"
+    );
   });
 
   it('handles __altchaUnavailable flag correctly', () => {

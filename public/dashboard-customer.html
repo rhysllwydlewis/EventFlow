@@ -29,6 +29,7 @@
     <link rel="stylesheet" href="/assets/css/customer-dashboard-welcome-card.css?v=1.0.7" />
     <link rel="stylesheet" href="/assets/css/customer-dashboard-welcome-scale.css?v=1.0.2" />
     <link rel="stylesheet" href="/assets/css/customer-wedding-website.css?v=1.0.4" />
+    <link rel="stylesheet" href="/assets/css/account-type-notice.css?v=1.0.0" />
     <!-- NOTE: the fullcalendar global bundle injects its own <style> tag at
          runtime — there is no separate CSS file in the package. The <link>
          that previously pointed to index.global.min.css returned a 404 on
@@ -180,6 +181,29 @@
       <!-- Screen-reader landmark heading — visually hidden, paired with the <h2> welcome card -->
       <h1 class="sr-only">Customer Dashboard</h1>
       <div class="container">
+        <!-- Wrong-account-type recovery. Switching customer → supplier has
+             always been possible in Settings, but that is not where someone
+             looks when they realise they signed up as the wrong type — they
+             open a ticket instead. Surface it where the mistake shows up. -->
+        <div id="account-type-notice" class="account-type-notice" hidden>
+          <span class="account-type-notice__icon" aria-hidden="true">🏪</span>
+          <p class="account-type-notice__text">
+            You’re signed up as a <strong>Customer</strong>. Meant to list a business and take
+            enquiries instead? Switch to a Supplier account — your details come with you.
+          </p>
+          <a class="account-type-notice__cta" href="/settings#account-type-card"
+            >Switch to Supplier</a
+          >
+          <button
+            type="button"
+            class="account-type-notice__dismiss"
+            id="account-type-notice-dismiss"
+            aria-label="Dismiss account type notice"
+          >
+            ×
+          </button>
+        </div>
+
         <!-- Welcome Section -->
         <div id="welcome-section" class="customer-welcome-card card no-collapse">
           <div class="customer-welcome-hero">
@@ -832,6 +856,7 @@
     <script src="/assets/js/vendor/confetti-safe.js?v=18.3.0" defer></script>
     <script src="/assets/js/utils/p3-features.js" defer></script>
     <script src="/assets/js/customer-dashboard-enhancements.js" defer></script>
+    <script src="/assets/js/pages/dashboard-account-type-notice.js?v=1.0.0" defer></script>
 
     <!-- JadeAssist Chat Widget -->
     <script src="/assets/js/vendor/jade-widget.js" defer></script>

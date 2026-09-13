@@ -96,27 +96,76 @@
       });
     });
 
-    // Activate the correct tab based on URL hash / query-param (no focus steal on load)
-    const initialTab = new URLSearchParams(window.location.search).get('tab');
-    if (window.location.hash === '#create' || initialTab === 'create') {
+    // Activate the correct tab based on URL hash / query-param (no focus steal on load).
+    // `role=` / `action=register` are what the "For suppliers" and "claim this
+    // listing" CTAs send — without them here those links opened the sign-in tab
+    // with the supplier choice hidden inside the collapsed create panel.
+    const initialParams = new URLSearchParams(window.location.search);
+    const initialTab = initialParams.get('tab');
+    const initialRole = initialParams.get('role');
+    const wantsRegister =
+      window.location.hash === '#create' ||
+      initialTab === 'create' ||
+      initialParams.get('action') === 'register' ||
+      initialRole === 'supplier' ||
+      initialRole === 'customer';
+    if (wantsRegister) {
       activateTab(tabCreate, panelCreate, tabSign, panelSign, false);
     }
   }
 
   // ── Role-picker active class management ───────────────────────
-  // Works for both `.role-pill` (legacy) and `.auth-role-option` (new).
-  const rolePicker = document.querySelector('.auth-role-picker, .role-toggle');
+  //
+  // Nothing is pre-selected: a signup that reaches the server with the
+  // wrong role is a support ticket, so the choice has to be made rather
+  // than inherited from a default.
+  const rolePicker = document.querySelector('.auth-role-picker');
   const roleInput = document.getElementById('reg-role');
   const supplierFields = document.getElementById('supplier-fields');
   const supplierCompanyInput = document.getElementById('reg-company');
+  const roleError = document.getElementById('reg-role-error');
+  const roleRecap = document.getElementById('reg-role-recap');
+  const roleRecapName = document.getElementById('reg-role-recap-name');
+  const roleRecapDesc = document.getElementById('reg-role-recap-desc');
+  const registerSubmit = document.querySelector('#register-form .auth-submit');
+
+  const ROLE_COPY = {
+    customer: {
+      name: 'Customer',
+      recap: 'plan an event, shortlist and message suppliers.',
+      submit: 'Create your Customer account',
+    },
+    supplier: {
+      name: 'Supplier',
+      recap: 'list your business and manage enquiries.',
+      submit: 'Create your Supplier account',
+    },
+  };
+
+  function setSubmitLabel(label) {
+    if (!registerSubmit) {
+      return;
+    }
+    // app.js restores this label after a failed submit.
+    registerSubmit.dataset.defaultLabel = label;
+    const labelEl = registerSubmit.querySelector('.auth-submit-text');
+    if (labelEl) {
+      labelEl.textContent = label;
+    }
+  }
 
   function selectRole(btn) {
     if (!btn || btn.dataset.disabled === 'true' || btn.getAttribute('aria-disabled') === 'true') {
       return;
     }
 
-    const selectedRole = btn.getAttribute('data-role') || 'customer';
-    rolePicker.querySelectorAll('.role-pill, .auth-role-option').forEach(option => {
+    const selectedRole = btn.getAttribute('data-role');
+    const copy = ROLE_COPY[selectedRole];
+    if (!copy) {
+      return;
+    }
+
+    rolePicker.querySelectorAll('.auth-role-option').forEach(option => {
       const isSelected = option === btn;
       option.classList.toggle('is-active', isSelected);
       option.classList.toggle('auth-role-option--active', isSelected);
@@ -126,6 +175,12 @@
 
     rolePicker.classList.toggle('is-customer-selected', selectedRole === 'customer');
     rolePicker.classList.toggle('is-supplier-selected', selectedRole === 'supplier');
+    rolePicker.classList.add('is-role-chosen');
+    rolePicker.classList.remove('is-role-missing');
+
+    if (roleError) {
+      roleError.textContent = '';
+    }
 
     if (roleInput) {
       roleInput.value = selectedRole;
@@ -141,23 +196,103 @@
         selectedRole === 'supplier' ? 'true' : 'false'
       );
     }
+
+    if (roleRecap) {
+      roleRecap.hidden = false;
+    }
+    if (roleRecapName) {
+      roleRecapName.textContent = copy.name;
+    }
+    if (roleRecapDesc) {
+      roleRecapDesc.textContent = copy.recap;
+    }
+    setSubmitLabel(copy.submit);
+
+    window.dispatchEvent(
+      new CustomEvent('eventflow:auth-role-change', { detail: { role: selectedRole } })
+    );
   }
 
+  function clearRole() {
+    if (!rolePicker) {
+      return;
+    }
+
+    rolePicker.querySelectorAll('.auth-role-option').forEach((option, index) => {
+      option.classList.remove('is-active', 'auth-role-option--active');
+      option.setAttribute('aria-checked', 'false');
+      option.tabIndex = index === 0 ? 0 : -1;
+    });
+    rolePicker.classList.remove(
+      'is-customer-selected',
+      'is-supplier-selected',
+      'is-role-chosen',
+      'is-role-missing'
+    );
+
+    if (roleInput) {
+      roleInput.value = '';
+    }
+    if (supplierFields) {
+      supplierFields.style.display = 'none';
+    }
+    if (supplierCompanyInput) {
+      supplierCompanyInput.required = false;
+      supplierCompanyInput.setAttribute('aria-required', 'false');
+    }
+    if (roleRecap) {
+      roleRecap.hidden = true;
+    }
+    setSubmitLabel('Create account');
+
+    window.dispatchEvent(new CustomEvent('eventflow:auth-role-change', { detail: { role: '' } }));
+  }
+
+  function focusRolePicker() {
+    const firstOption = rolePicker ? rolePicker.querySelector('.auth-role-option') : null;
+    if (firstOption) {
+      firstOption.focus();
+      firstOption.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    }
+  }
+
+  // Exposed so app.js can flag a submit attempted with no account type chosen.
+  window.EventFlowAuthRole = {
+    flagMissing(message) {
+      if (rolePicker) {
+        rolePicker.classList.add('is-role-missing');
+      }
+      if (roleError) {
+        roleError.textContent = message;
+      }
+      focusRolePicker();
+    },
+  };
+
   if (rolePicker) {
-    rolePicker.querySelectorAll('.role-pill, .auth-role-option').forEach(option => {
+    rolePicker.querySelectorAll('.auth-role-option').forEach(option => {
       option.tabIndex = option.getAttribute('aria-checked') === 'true' ? 0 : -1;
     });
 
+    // With nothing selected the roving tabindex would leave the whole
+    // radiogroup unreachable — keep the first option focusable.
+    if (!rolePicker.querySelector('[aria-checked="true"]')) {
+      const firstOption = rolePicker.querySelector('.auth-role-option');
+      if (firstOption) {
+        firstOption.tabIndex = 0;
+      }
+    }
+
     rolePicker.addEventListener('click', e => {
-      selectRole(e.target.closest('.role-pill, .auth-role-option'));
+      selectRole(e.target.closest('.auth-role-option'));
     });
 
     rolePicker.addEventListener('keydown', e => {
-      const current = e.target.closest('.role-pill, .auth-role-option');
+      const current = e.target.closest('.auth-role-option');
       if (!current) {
         return;
       }
-      const options = [...rolePicker.querySelectorAll('.role-pill, .auth-role-option')].filter(
+      const options = [...rolePicker.querySelectorAll('.auth-role-option')].filter(
         option =>
           option.dataset.disabled !== 'true' && option.getAttribute('aria-disabled') !== 'true'
       );
@@ -186,6 +321,27 @@
     });
   }
 
+  const roleRecapChange = document.getElementById('reg-role-recap-change');
+  if (roleRecapChange) {
+    roleRecapChange.addEventListener('click', () => {
+      clearRole();
+      focusRolePicker();
+    });
+  }
+
+  // ── Profile picture: theme-styled file control ────────────────
+  // The native input is visually hidden behind its <label>, so the chosen
+  // filename has to be echoed back or the control looks like it did nothing.
+  const avatarInput = document.getElementById('reg-avatar');
+  const avatarName = document.getElementById('reg-avatar-name');
+  if (avatarInput && avatarName) {
+    avatarInput.addEventListener('change', () => {
+      const file = avatarInput.files?.[0];
+      avatarName.textContent = file ? file.name : 'No image selected';
+      avatarName.classList.toggle('has-file', Boolean(file));
+    });
+  }
+
   // Deep-link support for /auth?tab=create&role=supplier&claimSupplierId=...,
   // used by the "claim this listing" link on unclaimed Supplier Bot
   // profile/package pages so a visiting business owner lands straight on the
@@ -194,10 +350,10 @@
   // match after the fact.
   if (rolePicker) {
     const requestedRole = new URLSearchParams(window.location.search).get('role');
-    if (requestedRole === 'supplier') {
-      const supplierRoleBtn = rolePicker.querySelector('[data-role="supplier"]');
-      if (supplierRoleBtn) {
-        selectRole(supplierRoleBtn);
+    if (requestedRole === 'supplier' || requestedRole === 'customer') {
+      const requestedRoleBtn = rolePicker.querySelector(`[data-role="${requestedRole}"]`);
+      if (requestedRoleBtn) {
+        selectRole(requestedRoleBtn);
       }
     }
   }
@@ -230,13 +386,11 @@
         if (supplierBtn) {
           // A deep link (?role=supplier, e.g. from the "claim this listing" banner)
           // pre-selects this button before the flag check above completes. If
-          // applications just closed, fall back to the customer role instead of
-          // leaving supplier-only fields required behind a disabled button.
+          // applications just closed, clear the choice rather than quietly
+          // switching them to customer — landing in the wrong account type
+          // without noticing is the exact failure this picker guards against.
           if (supplierBtn.classList.contains('is-active')) {
-            const customerBtn = rolePicker.querySelector('[data-role="customer"]');
-            if (customerBtn) {
-              selectRole(customerBtn);
-            }
+            clearRole();
           }
           supplierBtn.disabled = true;
           supplierBtn.dataset.disabled = 'true';

@@ -27,7 +27,7 @@
     <link rel="stylesheet" href="/assets/css/navbar.css?v=18.4.1" /><link rel="stylesheet" href="/assets/css/eventflow-brand.css?v=1.0.1" data-eventflow-brand="true" />
     <link rel="stylesheet" href="/assets/css/p3-features.css?v=18.3.0" />
     <link rel="stylesheet" href="/assets/css/liquid-glass.css?v=18.3.0" />
-    <link rel="stylesheet" href="/assets/css/auth.css?v=18.6.0" />
+    <link rel="stylesheet" href="/assets/css/auth.css?v=18.7.0" />
     <meta name="sentry-dsn" content="" />
     <meta name="sentry-release" content="eventflow@18.1.0" />
     <meta name="sentry-environment" content="production" />
@@ -472,50 +472,90 @@
                         >Choose your account type</span
                       >
                       <p class="auth-field-help small" id="signup-choice-help">
-                        We’ll tune your signup and dashboard for planning an event or managing a
-                        supplier business.
+                        This decides which dashboard you get, so pick the one that describes you.
+                        You can switch later in Settings.
                       </p>
                     </div>
                   </div>
 
                   <div
-                    class="role-toggle auth-role-picker"
+                    class="auth-role-picker"
                     role="radiogroup"
                     aria-labelledby="role-label"
+                    aria-required="true"
                     id="reg-role-picker"
                   >
                     <button
                       type="button"
-                      class="role-pill auth-role-option auth-role-option--active is-active"
+                      class="auth-role-option"
                       data-role="customer"
                       role="radio"
-                      aria-checked="true"
+                      aria-checked="false"
                     >
-                      <span class="auth-role-icon" aria-hidden="true">🎉</span>
+                      <span class="auth-role-icon" aria-hidden="true">
+                        <svg
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          stroke-width="1.8"
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                        >
+                          <path d="M8 2v4M16 2v4M3 10h18" />
+                          <path d="M5 4h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z" />
+                          <path d="m9 16 2 2 4-4" />
+                        </svg>
+                      </span>
                       <span class="auth-role-copy">
-                        <span class="auth-role-title">Customer</span>
+                        <span class="auth-role-tag">Customer account</span>
+                        <span class="auth-role-title">I’m planning an event</span>
                         <span class="auth-role-description"
                           >Plan, shortlist and message suppliers.</span
                         >
                       </span>
+                      <span class="auth-role-check" aria-hidden="true"></span>
                     </button>
                     <button
                       type="button"
-                      class="role-pill auth-role-option"
+                      class="auth-role-option"
                       data-role="supplier"
                       role="radio"
                       aria-checked="false"
                     >
-                      <span class="auth-role-icon" aria-hidden="true">🏪</span>
+                      <span class="auth-role-icon" aria-hidden="true">
+                        <svg
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          stroke-width="1.8"
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                        >
+                          <path d="M3.5 9.5 5 4.2A1.5 1.5 0 0 1 6.4 3h11.2a1.5 1.5 0 0 1 1.4 1.2l1.5 5.3" />
+                          <path d="M4.5 9.5v10a1.5 1.5 0 0 0 1.5 1.5h12a1.5 1.5 0 0 0 1.5-1.5v-10" />
+                          <path d="M9.5 21v-5.5h5V21" />
+                        </svg>
+                      </span>
                       <span class="auth-role-copy">
-                        <span class="auth-role-title">Supplier</span>
+                        <span class="auth-role-tag">Supplier account</span>
+                        <span class="auth-role-title">I run a business</span>
                         <span class="auth-role-description"
                           >List your business and manage enquiries.</span
                         >
                       </span>
+                      <span class="auth-role-check" aria-hidden="true"></span>
                     </button>
                   </div>
-                  <input type="hidden" id="reg-role" name="role" value="customer" />
+                  <p class="auth-role-hint" id="reg-role-hint">
+                    Required — choose one before creating your account.
+                  </p>
+                  <span
+                    class="auth-field-error small auth-role-error"
+                    id="reg-role-error"
+                    role="alert"
+                    aria-live="polite"
+                  ></span>
+                  <input type="hidden" id="reg-role" name="role" value="" />
                   <input type="hidden" id="reg-claim-supplier-id" name="claimSupplierId" value="" />
 
                   <div class="auth-signup-choice__divider"><span>Profile essentials</span></div>
@@ -846,9 +886,27 @@
                       id="reg-avatar"
                       name="avatar"
                       type="file"
+                      class="auth-file-input"
                       accept="image/jpeg,image/jpg,image/png,image/webp"
                       aria-describedby="reg-avatar-help"
                     />
+                    <label class="auth-file-btn" for="reg-avatar">
+                      <svg
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        aria-hidden="true"
+                      >
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                        <polyline points="17 8 12 3 7 8" />
+                        <line x1="12" y1="3" x2="12" y2="15" />
+                      </svg>
+                      Choose image
+                    </label>
+                    <span class="auth-file-name" id="reg-avatar-name">No image selected</span>
                   </div>
                   <span class="small auth-file-help" id="reg-avatar-help"
                     >Max 5MB. Formats: JPEG, PNG, WebP</span
@@ -899,9 +957,22 @@
                   ></altcha-widget>
                 </div>
 
+                <div class="auth-role-recap" id="reg-role-recap" hidden>
+                  <span class="auth-role-recap__icon" aria-hidden="true">✓</span>
+                  <span class="auth-role-recap__text">
+                    You’re creating a
+                    <strong id="reg-role-recap-name">Customer</strong> account —
+                    <span id="reg-role-recap-desc"></span>
+                  </span>
+                  <button type="button" class="auth-role-recap__change" id="reg-role-recap-change">
+                    Change
+                  </button>
+                </div>
+
                 <button
                   class="auth-submit cta ef-btn ef-btn-primary auth-submit--full"
                   type="submit"
+                  data-default-label="Create account"
                 >
                   <span class="auth-submit-text">Create account</span>
                   <span class="auth-submit-spinner" aria-hidden="true"></span>

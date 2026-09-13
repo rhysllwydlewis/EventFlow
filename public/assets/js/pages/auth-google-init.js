@@ -1,7 +1,7 @@
 'use strict';
 (function () {
   const GIS_SRC = 'https://accounts.google.com/gsi/client';
-  const ROLE_POLISH_CSS = '/assets/css/auth-google-signup.css?v=18.4.2';
+  const ROLE_POLISH_CSS = '/assets/css/auth-google-signup.css?v=18.7.0';
   const GOOGLE_LOGIN_PATH = '/api/auth/callback/google';
   const PRODUCTION_ORIGIN = 'https://event-flow.co.uk';
   const GOOGLE_SIGNUP_RERENDER_DELAY = 160;
@@ -122,9 +122,13 @@
     }
 
     const selectedRole = document.querySelector(
-      '.auth-role-picker [aria-checked="true"][data-role], .role-toggle [aria-checked="true"][data-role]'
+      '.auth-role-picker [aria-checked="true"][data-role]'
     );
-    return selectedRole?.dataset.role === 'supplier' ? 'supplier' : 'customer';
+    const role = selectedRole?.dataset.role;
+    // '' when nothing is chosen. The picker no longer defaults to customer, so
+    // an unanswered choice must gate the social signup buttons rather than
+    // quietly creating a customer account for someone who meant supplier.
+    return role === 'supplier' || role === 'customer' ? role : '';
   }
 
   function getSignupFormSnapshot() {
@@ -273,7 +277,7 @@
   }
 
   function syncRolePickerState() {
-    const rolePicker = document.querySelector('.auth-role-picker, .role-toggle');
+    const rolePicker = document.querySelector('.auth-role-picker');
     const role = getSelectedSignupRole();
     const roleInput = document.getElementById('reg-role');
     const supplierFields = document.getElementById('supplier-fields');
@@ -292,6 +296,9 @@
 
   function getSupplierReadiness() {
     const snapshot = getSignupFormSnapshot();
+    if (!snapshot.role) {
+      return { ready: false, role: '', missing: ['account type'] };
+    }
     if (snapshot.role !== 'supplier') {
       return { ready: true, role: snapshot.role, missing: [] };
     }
@@ -321,7 +328,11 @@
 
     if (note) {
       note.classList.remove('is-ready', 'is-warning');
-      if (readiness.role === 'supplier') {
+      if (!readiness.role) {
+        note.textContent =
+          'Choose Customer or Supplier above first — that decides which account Google creates for you.';
+        note.classList.add('is-warning');
+      } else if (readiness.role === 'supplier') {
         if (readiness.ready) {
           note.textContent =
             'Supplier Google signup is ready — we’ll create your supplier account and send you to the supplier dashboard.';
@@ -332,13 +343,16 @@
         }
       } else {
         note.textContent =
-          'Creating a customer account with Google is quick and free. Choose Supplier first if you are registering a business.';
+          'Google will create your customer account and take you to the planning dashboard.';
+        note.classList.add('is-ready');
       }
     }
 
     if (!readiness.ready && showMessage) {
       setStatus(
-        `Please add your ${readiness.missing.join(' and ')} before continuing with Google as a supplier.`,
+        readiness.role
+          ? `Please add your ${readiness.missing.join(' and ')} before continuing with Google as a supplier.`
+          : 'Choose Customer or Supplier above before continuing with Google.',
         'warning'
       );
     }
@@ -521,13 +535,10 @@
           el.addEventListener('change', rerenderSignupButton);
         });
 
-      document
-        .querySelectorAll('.auth-role-picker [data-role], .role-toggle [data-role]')
-        .forEach(btn => {
-          btn.addEventListener('click', () => {
-            window.setTimeout(rerenderSignupButton, 0);
-          });
-        });
+      // Covers every path that changes the account type — pointer, keyboard,
+      // deep link, and the "Change" control on the pre-submit recap — where a
+      // per-button click listener only caught the first of those.
+      window.addEventListener('eventflow:auth-role-change', rerenderSignupButton);
 
       if (isGoogleContainerVisible(signUpContainer)) {
         renderGoogleButton(signUpContainer, 'signup', renderOptions);

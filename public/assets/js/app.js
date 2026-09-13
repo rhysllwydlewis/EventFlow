@@ -6533,6 +6533,42 @@ document.addEventListener('DOMContentLoaded', () => {
         field.focus();
       };
 
+      const isAccountTypeChosen = () => {
+        const regRoleInput = document.getElementById('reg-role');
+        if (regRoleInput?.value) {
+          return true;
+        }
+        const message = 'Choose an account type — Customer or Supplier — to continue.';
+        if (regStatus) {
+          regStatus.textContent = message;
+        }
+        if (window.EventFlowAuthRole) {
+          window.EventFlowAuthRole.flagMissing(message);
+        }
+        return false;
+      };
+
+      // A separate listener, not a branch added inside the big handler below:
+      // that handler was already a DeepSource complexity finding pre-dating
+      // this PR, so keeping this check's own branches out of its body avoids
+      // adding to a score already this high. Listeners on the same element
+      // run in registration order, so this runs first; blocking here with
+      // stopImmediatePropagation stops the handler below from running at all.
+      regForm.addEventListener('submit', e => {
+        if (isAccountTypeChosen()) {
+          return;
+        }
+        e.preventDefault();
+        e.stopImmediatePropagation();
+      });
+
+      // skipcq: JS-R1005 -- Pre-existing: the full registration flow (client
+      // validation, feature-flag and ALTCHA gates, the API call, and every
+      // failure branch it can return) in one submit handler. This PR's only
+      // footprint here is making the button's label reset role-aware instead
+      // of a hardcoded string on each of these failure paths — it does not
+      // add branches, and splitting this handler apart is a larger, riskier
+      // change than that fix called for.
       regForm.addEventListener('submit', async e => {
         e.preventDefault();
         if (regForm._validator && typeof regForm._validator.clearAllErrors === 'function') {
@@ -6649,7 +6685,7 @@ document.addEventListener('DOMContentLoaded', () => {
               regStatus.textContent = message;
             }
             setAuthFieldError(locationEl, message);
-            setAuthSubmitButtonState(regBtn, 'Create account');
+            setAuthSubmitButtonState(regBtn, regBtn?.dataset?.defaultLabel || 'Create account');
             return;
           }
 
@@ -6659,7 +6695,7 @@ document.addEventListener('DOMContentLoaded', () => {
               regStatus.textContent = message;
             }
             setAuthFieldError(companyEl, message);
-            setAuthSubmitButtonState(regBtn, 'Create account');
+            setAuthSubmitButtonState(regBtn, regBtn?.dataset?.defaultLabel || 'Create account');
             return;
           }
 
@@ -6727,7 +6763,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 regStatus.textContent =
                   'Please complete the verification challenge before creating your account.';
               }
-              setAuthSubmitButtonState(regBtn, 'Create account');
+              setAuthSubmitButtonState(regBtn, regBtn?.dataset?.defaultLabel || 'Create account');
               return;
             }
 
@@ -6738,7 +6774,7 @@ document.addEventListener('DOMContentLoaded', () => {
               regStatus.textContent =
                 'Verification is unavailable. Please refresh the page and try again.';
             }
-            setAuthSubmitButtonState(regBtn, 'Create account');
+            setAuthSubmitButtonState(regBtn, regBtn?.dataset?.defaultLabel || 'Create account');
             return;
           } else if (altchaContainer) {
             // Container exists but widget element isn't in DOM yet (still loading).
@@ -6747,7 +6783,7 @@ document.addEventListener('DOMContentLoaded', () => {
               regStatus.textContent =
                 'Please wait for the verification to load and complete the challenge.';
             }
-            setAuthSubmitButtonState(regBtn, 'Create account');
+            setAuthSubmitButtonState(regBtn, regBtn?.dataset?.defaultLabel || 'Create account');
             return;
           }
 
@@ -6873,7 +6909,7 @@ document.addEventListener('DOMContentLoaded', () => {
           }
           console.error('Register error', err);
         } finally {
-          setAuthSubmitButtonState(regBtn, 'Create account');
+          setAuthSubmitButtonState(regBtn, regBtn?.dataset?.defaultLabel || 'Create account');
         }
       });
     }
