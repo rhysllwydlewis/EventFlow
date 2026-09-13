@@ -299,6 +299,23 @@ describe('GET /locations/:citySlug', () => {
     expect(response.text).toMatch(/href="\/supplier\/supplier-s1--[a-f0-9]{16}"/);
   });
 
+  it('makes the whole supplier card clickable, not just the name', async () => {
+    // The avatar/arrow and meta text around the name aren't links themselves;
+    // .efl-card__stretched-link (locations-public-refresh.css) extends the
+    // one real link to cover the whole card.
+    const response = await request(buildApp()).get('/locations/cardiff');
+    expect(response.text).toMatch(
+      /<a class="efl-card__stretched-link" href="\/supplier\/supplier-s1--[a-f0-9]{16}"/
+    );
+  });
+
+  it('makes a package card in the city page clickable to its detail page', async () => {
+    const response = await request(buildApp()).get('/locations/cardiff');
+    expect(response.text).toContain(
+      '<a class="efl-card__stretched-link" href="/package/pkg-1">Winter package</a>'
+    );
+  });
+
   it('redirects an alias permanently to the canonical slug', async () => {
     const response = await request(buildApp()).get('/locations/caerdydd');
     expect(response.status).toBe(301);
