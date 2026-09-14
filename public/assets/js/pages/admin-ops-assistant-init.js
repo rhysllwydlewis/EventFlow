@@ -6,8 +6,20 @@
   const resultBox = document.getElementById('opsAssistantSecretResult');
   const secretValue = document.getElementById('opsAssistantSecretValue');
   const secretInstructions = document.getElementById('opsAssistantSecretInstructions');
+  const confirmModal = document.getElementById('opsAssistantConfirmModal');
+  const confirmCancel = document.getElementById('opsAssistantConfirmCancel');
+  const confirmGenerate = document.getElementById('opsAssistantConfirmGenerate');
 
-  if (!statusBox || !statusText || !generateButton || !resultBox || !secretValue) {
+  if (
+    !statusBox ||
+    !statusText ||
+    !generateButton ||
+    !resultBox ||
+    !secretValue ||
+    !confirmModal ||
+    !confirmCancel ||
+    !confirmGenerate
+  ) {
     return;
   }
 
@@ -27,13 +39,24 @@
     }
   }
 
-  generateButton.addEventListener('click', async () => {
-    const confirmed = window.confirm(
-      'Generate a new Ops Assistant secret? The old one will keep working until you replace it in your environment variables.'
-    );
-    if (!confirmed) {
-      return;
+  function openConfirmModal() {
+    confirmModal.style.display = 'flex';
+  }
+
+  function closeConfirmModal() {
+    confirmModal.style.display = 'none';
+  }
+
+  generateButton.addEventListener('click', openConfirmModal);
+  confirmCancel.addEventListener('click', closeConfirmModal);
+  confirmModal.addEventListener('click', event => {
+    if (event.target === confirmModal) {
+      closeConfirmModal();
     }
+  });
+
+  confirmGenerate.addEventListener('click', async () => {
+    closeConfirmModal();
 
     await AdminShared.safeAction(
       generateButton,

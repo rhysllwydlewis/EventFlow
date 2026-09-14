@@ -662,6 +662,18 @@
         <code id="opsAssistantSecretValue" style="display:block;word-break:break-all;background:#fff;border:1px solid #d1fae5;border-radius:6px;padding:0.625rem 0.75rem;font-size:0.85rem;"></code>
         <div class="small" style="margin-top:0.5rem;color:#166534;" id="opsAssistantSecretInstructions"></div>
       </div>
+
+      <!-- Confirmation modal for generating a new secret -->
+      <div id="opsAssistantConfirmModal" role="dialog" aria-modal="true" aria-labelledby="opsAssistantConfirmTitle" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.4);z-index:9999;align-items:center;justify-content:center;">
+        <div style="background:#fff;border-radius:12px;padding:1.5rem 1.75rem;max-width:440px;width:90%;box-shadow:0 20px 60px rgba(0,0,0,0.3);">
+          <h3 id="opsAssistantConfirmTitle" style="margin:0 0 0.75rem;font-size:1.1rem;color:#0B8073;">Generate a new Ops Assistant secret?</h3>
+          <p style="margin:0 0 1.25rem;font-size:0.9rem;color:#374151;">The old secret will keep working until you replace it in your environment variables &mdash; this only creates a new one to copy in.</p>
+          <div style="display:flex;gap:0.625rem;justify-content:flex-end;">
+            <button class="ef-cta btn" id="opsAssistantConfirmCancel">Cancel</button>
+            <button class="ef-cta btn btn-primary" id="opsAssistantConfirmGenerate">Yes, Generate</button>
+          </div>
+        </div>
+      </div>
     </div>
 
     <!-- System Information -->
