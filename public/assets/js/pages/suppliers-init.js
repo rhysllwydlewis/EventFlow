@@ -111,9 +111,10 @@ function createSupplierCard(supplier, position) {
   const shortlistActiveClass = isInShortlist ? 'sp-btn--shortlist-active' : 'sp-btn--shortlist';
   const shortlistBtnText = isInShortlist ? '❤️ Saved' : '♡ Save';
 
-  // Build badges — use subscriptionTier field first (most reliable), then isPro fallback
-  const tier =
-    supplier.subscriptionTier || supplier.subscription?.tier || (supplier.isPro ? 'pro' : null);
+  // Build badges. Tier resolution is shared with app.js, lead-quality-helper.js,
+  // package-list.js and supplier-profile.js via EFTierIcon (utils/tier-icon.js)
+  // so it can't drift between them.
+  const tier = typeof EFTierIcon !== 'undefined' ? EFTierIcon.resolve(supplier) : 'free';
   const badges = [];
 
   // Founding supplier badge

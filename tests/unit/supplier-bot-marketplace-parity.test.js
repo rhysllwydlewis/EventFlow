@@ -5,6 +5,7 @@ const {
   ensurePublishedUnclaimedMarketplaceState,
   reconcilePublishedUnclaimedMarketplaceState,
   sourcePackageRecords,
+  packageIdentity,
 } = require('../../services/supplierBotMarketplaceParity.service');
 
 function sourcePackage(overrides = {}) {
@@ -92,13 +93,17 @@ function memoryDb(initialSuppliers = []) {
       return collections[name] || [];
     },
     async insertOne(name, item) {
-      if (!collections[name]) collections[name] = [];
+      if (!collections[name]) {
+        collections[name] = [];
+      }
       collections[name].push(structuredClone(item));
       return item;
     },
     async updateOne(name, query, update) {
       const item = (collections[name] || []).find(entry => String(entry.id) === String(query.id));
-      if (!item) return false;
+      if (!item) {
+        return false;
+      }
       Object.assign(item, structuredClone(update.$set || {}));
       return true;
     },
@@ -236,6 +241,82 @@ describe('published-unclaimed marketplace parity', () => {
       paused: false,
       acquisition: { missingCount: 0, missingSince: null },
     });
+  });
+
+  it('caps published packages at 3 to match the Starter badge unclaimed listings display', async () => {
+    const extraPackages = ['Third', 'Fourth', 'Fifth'].map((label, index) =>
+      sourcePackage({
+        name: `${label} Package`,
+        evidenceIds: [`evidence_package_extra_${index}`],
+        sourceContentHash: `${index}${'c'.repeat(63)}`,
+      })
+    );
+    const supplier = publishedSupplier({
+      acquisition: {
+        ...publishedSupplier().acquisition,
+        sourcePackages: [...publishedSupplier().acquisition.sourcePackages, ...extraPackages],
+      },
+    });
+    const dbUnified = memoryDb([supplier]);
+
+    await ensurePublishedUnclaimedMarketplaceState({ dbUnified, supplier });
+
+    // Only the first 3 (in source order) are ever materialised -- the other
+    // 2 are excluded by the cap from the start, not created then removed.
+    expect(dbUnified.collections.packages).toHaveLength(3);
+    const published = dbUnified.collections.packages.filter(pkg => pkg.approved !== false);
+    expect(published).toHaveLength(3);
+  });
+
+  it('retires already-published packages beyond the cap immediately, not via the two-strike missing flow', async () => {
+    // Simulates a listing published back when MAX_PUBLIC_BOT_PACKAGES was 10:
+    // a 4th package is already live in the packages collection even though
+    // the source site still genuinely lists it (it's just beyond today's cap
+    // of 3), and the supplier record hasn't gone through reconciliation since.
+    const thirdSourcePackage = sourcePackage({
+      name: 'Third Package',
+      evidenceIds: ['evidence_package_third'],
+      sourceContentHash: 'c'.repeat(64),
+    });
+    const fourthSourcePackage = sourcePackage({
+      name: 'Fourth Package',
+      evidenceIds: ['evidence_package_fourth'],
+      sourceContentHash: 'd'.repeat(64),
+    });
+    const supplier = publishedSupplier({
+      acquisition: {
+        ...publishedSupplier().acquisition,
+        sourcePackages: [
+          ...publishedSupplier().acquisition.sourcePackages,
+          thirdSourcePackage,
+          fourthSourcePackage,
+        ],
+      },
+    });
+    const dbUnified = memoryDb([supplier]);
+    const fourthIdentity = packageIdentity(supplier.id, fourthSourcePackage.name, 1);
+    dbUnified.collections.packages.push({
+      id: fourthIdentity.id,
+      supplierId: supplier.id,
+      title: fourthSourcePackage.name,
+      approved: true,
+      paused: false,
+      acquisition: { source: 'supplier_bot', missingCount: 0 },
+    });
+
+    await ensurePublishedUnclaimedMarketplaceState({ dbUnified, supplier });
+
+    const published = dbUnified.collections.packages.filter(pkg => pkg.approved !== false);
+    expect(published).toHaveLength(3);
+
+    const fourth = dbUnified.collections.packages.find(pkg => pkg.id === fourthIdentity.id);
+    expect(fourth).toMatchObject({
+      approved: false,
+      paused: true,
+      acquisition: expect.objectContaining({ retiredReason: 'exceeds_bot_package_cap' }),
+    });
+    // Retired on the very first reconciliation pass -- no missingCount build-up needed.
+    expect(fourth.acquisition.missingCount ?? 0).toBe(0);
   });
 
   it('repairs previously published pilot records without Hensol-specific logic', async () => {

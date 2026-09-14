@@ -374,25 +374,19 @@ class PackageList {
       );
     }
 
-    // Pro/Pro Plus/Featured tier badges
-    const tier =
-      supplier.subscriptionTier || supplier.subscription?.tier || (supplier.isPro ? 'pro' : null);
+    // Pro/Pro Plus/Featured tier badges. Starter/Pro/Pro Plus is shared with
+    // app.js, lead-quality-helper.js and supplier-profile.js via EFTierIcon
+    // (utils/tier-icon.js) so the label can't drift between them.
+    const badgeStyle = 'font-size: 0.6875rem; padding: 2px 6px;';
+    const rawTier = supplier.subscriptionTier || supplier.subscription?.tier || null;
 
-    if (tier === 'featured') {
-      badges.push(
-        '<span class="badge badge-featured" style="font-size: 0.6875rem; padding: 2px 6px;">Featured</span>'
-      );
-    } else if (tier === 'pro_plus') {
-      badges.push(
-        '<span class="badge badge-pro-plus" style="font-size: 0.6875rem; padding: 2px 6px;">Pro Plus</span>'
-      );
-    } else if (tier === 'pro') {
-      badges.push(
-        '<span class="badge badge-pro" style="font-size: 0.6875rem; padding: 2px 6px;">Pro</span>'
-      );
+    if (rawTier === 'featured') {
+      badges.push(`<span class="badge badge-featured" style="${badgeStyle}">Featured</span>`);
     } else {
       badges.push(
-        '<span class="badge badge-starter" style="font-size: 0.6875rem; padding: 2px 6px;">Starter</span>'
+        typeof EFTierIcon !== 'undefined'
+          ? EFTierIcon.renderBadge(supplier, { style: badgeStyle })
+          : `<span class="badge badge-starter" style="${badgeStyle}">Starter</span>`
       );
     }
 

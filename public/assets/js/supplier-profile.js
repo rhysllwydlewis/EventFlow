@@ -1209,20 +1209,14 @@ import {
 
     const sections = [];
 
-    // Subscription tier
-    const tier =
+    // Subscription tier -- shared with app.js, lead-quality-helper.js and
+    // package-list.js via EFTierIcon (utils/tier-icon.js) so the label
+    // can't drift between them.
+    const tierBadges = [
       typeof EFTierIcon !== 'undefined'
-        ? EFTierIcon.resolve(supplier)
-        : supplier.subscription?.tier || (supplier.isPro ? 'pro' : 'free');
-
-    const tierBadges = [];
-    if (tier === 'pro_plus') {
-      tierBadges.push('<span class="badge badge-pro-plus" aria-label="Pro Plus">Pro Plus</span>');
-    } else if (tier === 'pro') {
-      tierBadges.push('<span class="badge badge-pro" aria-label="Pro">Pro</span>');
-    } else {
-      tierBadges.push('<span class="badge badge-starter" aria-label="Starter plan">Starter</span>');
-    }
+        ? EFTierIcon.renderBadge(supplier)
+        : '<span class="badge badge-starter" aria-label="Starter">Starter</span>',
+    ];
     if (tierBadges.length > 0) {
       sections.push(
         `<p class="sp-badges-group-label">Subscription</p><div class="sp-badges-row">${tierBadges.join('')}</div>`
