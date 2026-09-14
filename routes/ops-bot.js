@@ -66,9 +66,9 @@ router.get('/audit-log', async (req, res) => {
       endDate: req.query.endDate,
       limit: limitValue(req.query.limit),
     });
-    res.json({ ok: true, logs, count: logs.length });
+    return res.json({ ok: true, logs, count: logs.length });
   } catch (error) {
-    handleReadError(res, 'audit log', error);
+    return handleReadError(res, 'audit log', error);
   }
 });
 
@@ -113,15 +113,15 @@ router.get('/seo-insights/:report', async (req, res) => {
         return res.status(404).json({ ok: false, error: 'Unknown SEO report' });
     }
   } catch (error) {
-    handleReadError(res, 'SEO insights', error);
+    return handleReadError(res, 'SEO insights', error);
   }
 });
 
 router.get('/email-summary', async (_req, res) => {
   try {
-    res.json({ ok: true, summary: await emailLog.getSummary() });
+    return res.json({ ok: true, summary: await emailLog.getSummary() });
   } catch (error) {
-    handleReadError(res, 'email summary', error);
+    return handleReadError(res, 'email summary', error);
   }
 });
 
@@ -136,17 +136,17 @@ router.get('/email-logs', async (req, res) => {
       fromDate: req.query.fromDate,
       toDate: req.query.toDate,
     });
-    res.json({ ok: true, ...result });
+    return res.json({ ok: true, ...result });
   } catch (error) {
-    handleReadError(res, 'email logs', error);
+    return handleReadError(res, 'email logs', error);
   }
 });
 
 router.get('/reviews/flagged', async (_req, res) => {
   try {
-    res.json({ ok: true, reviews: await getFlaggedReviews() });
+    return res.json({ ok: true, reviews: await getFlaggedReviews() });
   } catch (error) {
-    handleReadError(res, 'flagged reviews', error);
+    return handleReadError(res, 'flagged reviews', error);
   }
 });
 
@@ -162,9 +162,9 @@ router.get('/content-reports', async (req, res) => {
     }
     reports.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
     const limit = limitValue(req.query.limit, 100, 500);
-    res.json({ ok: true, reports: reports.slice(0, limit), total: reports.length });
+    return res.json({ ok: true, reports: reports.slice(0, limit), total: reports.length });
   } catch (error) {
-    handleReadError(res, 'content reports', error);
+    return handleReadError(res, 'content reports', error);
   }
 });
 
@@ -179,7 +179,7 @@ router.get('/suppliers/pending-verification', async (_req, res) => {
           s.verificationStatus === VERIFICATION_STATES.UNVERIFIED ||
           s.verificationStatus === VERIFICATION_STATES.PENDING_REVIEW)
     );
-    res.json({
+    return res.json({
       ok: true,
       suppliers: pending.map(s => ({
         id: s.id,
@@ -194,7 +194,7 @@ router.get('/suppliers/pending-verification', async (_req, res) => {
       count: pending.length,
     });
   } catch (error) {
-    handleReadError(res, 'pending supplier verifications', error);
+    return handleReadError(res, 'pending supplier verifications', error);
   }
 });
 
@@ -222,9 +222,9 @@ router.get('/suppliers/duplicates', async (_req, res) => {
           createdAt: s.createdAt,
         })),
       }));
-    res.json({ ok: true, duplicateGroups, count: duplicateGroups.length });
+    return res.json({ ok: true, duplicateGroups, count: duplicateGroups.length });
   } catch (error) {
-    handleReadError(res, 'supplier duplicates', error);
+    return handleReadError(res, 'supplier duplicates', error);
   }
 });
 
@@ -239,9 +239,9 @@ router.get('/partner-abuse/events', async (req, res) => {
       events = events.filter(e => e.riskLevel === req.query.riskLevel);
     }
     events.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-    res.json({ ok: true, items: events.slice(0, limit), total: events.length });
+    return res.json({ ok: true, items: events.slice(0, limit), total: events.length });
   } catch (error) {
-    handleReadError(res, 'partner abuse events', error);
+    return handleReadError(res, 'partner abuse events', error);
   }
 });
 
@@ -253,9 +253,9 @@ router.get('/partner-abuse/appeals', async (req, res) => {
       appeals = appeals.filter(a => a.status === req.query.status);
     }
     appeals.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-    res.json({ ok: true, items: appeals.slice(0, limit), total: appeals.length });
+    return res.json({ ok: true, items: appeals.slice(0, limit), total: appeals.length });
   } catch (error) {
-    handleReadError(res, 'partner abuse appeals', error);
+    return handleReadError(res, 'partner abuse appeals', error);
   }
 });
 
