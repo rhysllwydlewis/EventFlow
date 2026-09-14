@@ -24,7 +24,13 @@ function createApp() {
 
 function signedRequest(app, method, path, body = {}) {
   const timestamp = String(Date.now());
-  const signature = signatureFor(secret, timestamp, JSON.stringify(body));
+  const signature = signatureFor(
+    secret,
+    timestamp,
+    method.toUpperCase(),
+    path,
+    JSON.stringify(body)
+  );
   return request(app)
     [method](path)
     .set('x-eventflow-bot-timestamp', timestamp)
@@ -112,6 +118,28 @@ describe('Ops Assistant worker API', () => {
     );
 
     expect(res.status).toBe(404);
+  });
+
+  it('rejects a validly signed request replayed against a different task id', async () => {
+    const app = createApp();
+    const body = { status: 'completed', outcome: 'no_change' };
+    const timestamp = String(Date.now());
+    const signature = signatureFor(
+      secret,
+      timestamp,
+      'PATCH',
+      '/internal/ops-bot/content-review-tasks/article-review-2026-09',
+      JSON.stringify(body)
+    );
+
+    const res = await request(app)
+      .patch('/internal/ops-bot/content-review-tasks/a-different-task')
+      .set('x-eventflow-bot-timestamp', timestamp)
+      .set('x-eventflow-bot-signature', `sha256=${signature}`)
+      .send(body);
+
+    expect(res.status).toBe(401);
+    expect(mockReviewTasks.updateTask).not.toHaveBeenCalled();
   });
 
   it('is disabled entirely when OPS_ASSISTANT_ENABLED is not true', async () => {

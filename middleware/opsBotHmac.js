@@ -4,8 +4,14 @@ const crypto = require('crypto');
 
 const MAX_SKEW_MS = 5 * 60 * 1000;
 
-function signatureFor(secret, timestamp, body) {
-  return crypto.createHmac('sha256', secret).update(`${timestamp}.${body}`).digest('hex');
+// Binds the signature to the method and path (not just the timestamp and body)
+// so a captured signed request can't be replayed against a different route or
+// a different resource id within the skew window.
+function signatureFor(secret, timestamp, method, path, body) {
+  return crypto
+    .createHmac('sha256', secret)
+    .update(`${timestamp}.${method}.${path}.${body}`)
+    .digest('hex');
 }
 
 function safeEqualHex(left, right) {
@@ -41,7 +47,7 @@ function verifyOpsBotHmac(req, res, next) {
   }
 
   const body = JSON.stringify(req.body || {});
-  const expected = signatureFor(secret, timestamp, body);
+  const expected = signatureFor(secret, timestamp, req.method, req.originalUrl, body);
   if (!safeEqualHex(signature, expected)) {
     return res.status(401).json({ error: 'Invalid Ops Assistant signature' });
   }

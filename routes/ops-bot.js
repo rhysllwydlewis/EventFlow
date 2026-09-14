@@ -2,10 +2,11 @@
 
 const express = require('express');
 const { verifyOpsBotHmac } = require('../middleware/opsBotHmac');
+const { apiLimiter } = require('../middleware/rateLimits');
 const reviewTasks = require('../services/contentReviewTask.service');
 
 const router = express.Router();
-router.use(verifyOpsBotHmac);
+router.use(apiLimiter, verifyOpsBotHmac);
 
 const OPS_BOT_ACTOR = { id: 'ops-bot' };
 

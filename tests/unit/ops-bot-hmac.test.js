@@ -20,16 +20,26 @@ function mockResponse() {
   };
 }
 
-function signedHeaders(body, secret, timestamp = String(Date.now()), prefix = true) {
-  const signature = signatureFor(secret, timestamp, JSON.stringify(body));
+const DEFAULT_METHOD = 'PATCH';
+const DEFAULT_PATH = '/internal/ops-bot/content-review-tasks/article-review-2026-09';
+
+function signedHeaders(
+  body,
+  secret,
+  timestamp = String(Date.now()),
+  prefix = true,
+  method = DEFAULT_METHOD,
+  path = DEFAULT_PATH
+) {
+  const signature = signatureFor(secret, timestamp, method, path, JSON.stringify(body));
   return {
     'x-eventflow-bot-timestamp': timestamp,
     'x-eventflow-bot-signature': prefix ? `sha256=${signature}` : signature,
   };
 }
 
-function headerRequest(body, headers) {
-  return { body, get: name => headers[name.toLowerCase()] || '' };
+function headerRequest(body, headers, method = DEFAULT_METHOD, path = DEFAULT_PATH) {
+  return { body, method, originalUrl: path, get: name => headers[name.toLowerCase()] || '' };
 }
 
 describe('Ops Assistant HMAC middleware', () => {
@@ -156,5 +166,44 @@ describe('Ops Assistant HMAC middleware', () => {
       expect(res.status).toHaveBeenCalledWith(401);
       expect(res.json).toHaveBeenCalledWith({ error: 'Invalid Ops Assistant signature' });
     }
+  });
+
+  it('rejects a validly signed request replayed against a different path', () => {
+    const secret = 'f'.repeat(48);
+    const body = payload();
+    const timestamp = String(Date.now());
+    process.env.OPS_ASSISTANT_ENABLED = 'true';
+    process.env.EVENTFLOW_OPS_BOT_HMAC_SECRET = secret;
+    const headers = signedHeaders(body, secret, timestamp);
+    // Same signed headers and body, but replayed against a different task id.
+    const req = headerRequest(
+      body,
+      headers,
+      DEFAULT_METHOD,
+      '/internal/ops-bot/content-review-tasks/a-different-task'
+    );
+    const res = mockResponse();
+
+    verifyOpsBotHmac(req, res, jest.fn());
+
+    expect(res.status).toHaveBeenCalledWith(401);
+    expect(res.json).toHaveBeenCalledWith({ error: 'Invalid Ops Assistant signature' });
+  });
+
+  it('rejects a validly signed request replayed with a different method', () => {
+    const secret = 'g'.repeat(48);
+    const body = payload();
+    const timestamp = String(Date.now());
+    process.env.OPS_ASSISTANT_ENABLED = 'true';
+    process.env.EVENTFLOW_OPS_BOT_HMAC_SECRET = secret;
+    const headers = signedHeaders(body, secret, timestamp);
+    // Same signed headers and body, but replayed with a different HTTP method.
+    const req = headerRequest(body, headers, 'DELETE', DEFAULT_PATH);
+    const res = mockResponse();
+
+    verifyOpsBotHmac(req, res, jest.fn());
+
+    expect(res.status).toHaveBeenCalledWith(401);
+    expect(res.json).toHaveBeenCalledWith({ error: 'Invalid Ops Assistant signature' });
   });
 });
