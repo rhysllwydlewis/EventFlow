@@ -135,17 +135,18 @@ export function getSupplierBadges(supplier) {
     );
   }
 
-  // Subscription tier badge
-  const tier =
-    supplier.subscriptionTier || supplier.subscription?.tier || (supplier.isPro ? 'pro' : null);
-  if (tier === 'featured') {
+  // Subscription tier badge -- shared with app.js, package-list.js and
+  // supplier-profile.js via EFTierIcon (utils/tier-icon.js) so the label
+  // can't drift between them.
+  const rawTier = supplier.subscriptionTier || supplier.subscription?.tier || null;
+  if (rawTier === 'featured') {
     badges.push('<span class="badge badge-featured">Featured</span>');
-  } else if (tier === 'pro_plus') {
-    badges.push('<span class="badge badge-pro-plus">Pro Plus</span>');
-  } else if (tier === 'pro') {
-    badges.push('<span class="badge badge-pro">Pro</span>');
   } else {
-    badges.push('<span class="badge badge-starter">Starter</span>');
+    badges.push(
+      typeof EFTierIcon !== 'undefined'
+        ? EFTierIcon.renderBadge(supplier)
+        : '<span class="badge badge-starter">Starter</span>'
+    );
   }
 
   // Verification badges

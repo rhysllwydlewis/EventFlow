@@ -94,6 +94,10 @@ function getSupplierProfileImage(supplier) {
 }
 
 // Enhanced supplier card with shortlist and quote features
+// skipcq: JS-R1005 -- Supplier-card rendering intentionally centralises badge
+// priority and compatibility rules (mirrors verification-badges.js); the
+// complexity is inherent to that, not something a structural split would
+// remove without duplicating the ordering logic across pieces.
 function createSupplierCard(supplier, position) {
   // Shared with every other supplier avatar placeholder on the site — see
   // public/assets/js/utils/supplier-avatar.js.
@@ -111,9 +115,10 @@ function createSupplierCard(supplier, position) {
   const shortlistActiveClass = isInShortlist ? 'sp-btn--shortlist-active' : 'sp-btn--shortlist';
   const shortlistBtnText = isInShortlist ? '❤️ Saved' : '♡ Save';
 
-  // Build badges — use subscriptionTier field first (most reliable), then isPro fallback
-  const tier =
-    supplier.subscriptionTier || supplier.subscription?.tier || (supplier.isPro ? 'pro' : null);
+  // Build badges. Tier resolution is shared with app.js, lead-quality-helper.js,
+  // package-list.js and supplier-profile.js via EFTierIcon (utils/tier-icon.js)
+  // so it can't drift between them.
+  const tier = typeof EFTierIcon !== 'undefined' ? EFTierIcon.resolve(supplier) : 'free';
   const badges = [];
 
   // Founding supplier badge

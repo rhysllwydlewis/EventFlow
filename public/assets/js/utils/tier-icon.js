@@ -38,9 +38,35 @@
     return '';
   }
 
+  /**
+   * Render the full "Starter" / "Pro" / "Pro Plus" tier badge shown on
+   * supplier cards and profiles. Previously reimplemented near-identically
+   * in app.js, lead-quality-helper.js, package-list.js, supplier-profile.js
+   * and admin-suppliers-init.js -- kept in one place so the label and the
+   * tier it corresponds to can't drift apart between them again.
+   * @param {Object|null} supplier
+   * @param {Object} [options]
+   * @param {string} [options.style] - extra inline style attribute value
+   * @param {string} [options.ariaLabelSuffix] - appended to the aria-label, e.g. " plan"
+   * @returns {string} HTML string -- a single <span>
+   */
+  function renderTierBadge(supplier, options = {}) {
+    const tier = resolveSupplierTier(supplier);
+    const styleAttr = options.style ? ` style="${options.style}"` : '';
+    const labelSuffix = options.ariaLabelSuffix || '';
+    if (tier === 'pro_plus') {
+      return `<span class="badge badge-pro-plus"${styleAttr} aria-label="Pro Plus${labelSuffix}">Pro Plus</span>`;
+    }
+    if (tier === 'pro') {
+      return `<span class="badge badge-pro"${styleAttr} aria-label="Pro${labelSuffix}">Pro</span>`;
+    }
+    return `<span class="badge badge-starter"${styleAttr} aria-label="Starter${labelSuffix}">Starter</span>`;
+  }
+
   // Expose on window so non-module scripts can use EFTierIcon.resolve() / EFTierIcon.render()
   window.EFTierIcon = {
     resolve: resolveSupplierTier,
     render: renderTierIcon,
+    renderBadge: renderTierBadge,
   };
 })();
