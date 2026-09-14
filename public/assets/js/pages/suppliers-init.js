@@ -94,6 +94,10 @@ function getSupplierProfileImage(supplier) {
 }
 
 // Enhanced supplier card with shortlist and quote features
+// skipcq: JS-R1005 -- Supplier-card rendering intentionally centralises badge
+// priority and compatibility rules (mirrors verification-badges.js); the
+// complexity is inherent to that, not something a structural split would
+// remove without duplicating the ordering logic across pieces.
 function createSupplierCard(supplier, position) {
   // Shared with every other supplier avatar placeholder on the site — see
   // public/assets/js/utils/supplier-avatar.js.

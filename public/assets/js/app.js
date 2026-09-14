@@ -528,6 +528,10 @@ async function listSuppliers(params = {}) {
   return d.items || [];
 }
 
+// skipcq: JS-R1005 -- Supplier-card rendering intentionally centralises badge
+// priority and compatibility rules (mirrors verification-badges.js); the
+// complexity is inherent to that, not something a structural split would
+// remove without duplicating the ordering logic across pieces.
 function supplierCard(s, user) {
   const showAddAccount = !!user && user.role === 'customer';
   const alreadyLocal = lsGet().includes(s.id);
@@ -567,7 +571,7 @@ function supplierCard(s, user) {
   // 'featured'` sentinel (still read by package-list.js / lead-quality-helper.js)
   // below -- resolved before the Featured check since that sentinel is itself
   // one of the signals that counts as Featured.
-  const rawTier = s.subscriptionTier || (s.subscription && s.subscription.tier) || null;
+  const rawTier = s.subscriptionTier || s.subscription?.tier || null;
 
   // Featured badge -- a curation flag, not a subscription tier, so it's
   // checked independently of the tier ladder (a supplier is never "on the
