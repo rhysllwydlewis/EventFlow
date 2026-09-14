@@ -21,8 +21,10 @@ treat every change as something a paying user could be affected by today.
 ## Merge policy — read this every run
 
 The product owner has authorised this routine to merge its own pull
-requests, on the condition that the following sequence is actually followed,
-in full, every time:
+requests **fully autonomously and without exception for any area of the
+codebase** — payments/billing, auth, legal/compliance content, and data
+deletion/migration included — on the condition that the following sequence
+is actually followed, in full, every time:
 
 1. Implement the change.
 2. Run the relevant tests. If anything is red, diagnose the real cause and
@@ -42,17 +44,19 @@ in full, every time:
 6. Only now, merge the pull request autonomously.
 
 Do not merge, and instead leave the PR open with a clear comment explaining
-why, when:
+why, only when:
 - Tests cannot honestly be made green after real effort (not a flake — see
   the known-flake note below).
-- The change touches payments/billing, authentication or access control,
-  legal/compliance content (policy pages, DPIA-relevant Community code),
-  or deletes/migrates data — these get a human's eyes before merge even
-  though the general policy is auto-merge, because the blast radius of a
-  mistake is financial or legal, not just cosmetic. Note this in the handoff
-  and move on to other work rather than blocking on it.
-- Anything requiring money, credentials, legal sign-off, or an external
-  message sent in the owner's name.
+- Completing the work genuinely requires something this routine cannot do
+  itself: spending money, credentials it doesn't have, real external
+  legal/regulatory sign-off, or an external message sent in the owner's
+  name.
+
+Do not hold a PR open merely because it touches a sensitive area of the code
+(payments, auth, legal/compliance content, data deletion/migration) — full
+autonomy is authorised there too. The more sensitive the area, the harder
+step 3 below (the independent review pass) should work, not a reason to wait
+for the owner.
 
 Known false-positive check: **DeepSource: JavaScript** has been red on a
 dashboard-configured metric across several recent merged PRs (#1430, #1433)
