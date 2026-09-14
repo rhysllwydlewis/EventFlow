@@ -16,6 +16,7 @@
     !generateButton ||
     !resultBox ||
     !secretValue ||
+    !secretInstructions ||
     !confirmModal ||
     !confirmCancel ||
     !confirmGenerate
