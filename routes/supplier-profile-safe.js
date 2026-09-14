@@ -4,7 +4,11 @@ const express = require('express');
 const router = express.Router();
 const { csrfProtection } = require('../middleware/csrf');
 const { verifySupplierBotHmac } = require('../middleware/supplierBotHmac');
-const { createUnclaimedSupplierFromBot } = require('../services/supplierBotIngestion.service');
+const {
+  createUnclaimedSupplierFromBot,
+  isManagedUnclaimedSupplier,
+} = require('../services/supplierBotIngestion.service');
+const catalogCache = require('../services/catalogCache');
 const {
   collisionSignals,
   createSupplierBotClaimRequest,
@@ -227,6 +231,65 @@ router.post('/internal/supplier-bot/suppliers', verifySupplierBotHmac, async (re
     return res.status(500).json({ error: 'Supplier Bot ingestion failed' });
   }
 });
+
+// Reverses the effect of the ingestion route above for one supplier, for the
+// rare case where a published unclaimed profile turns out not to belong on
+// the marketplace at all (wrong region, wrong category, a directory page
+// mistaken for a business) rather than merely having fixable data problems a
+// recrawl-and-refresh would correct. Deliberately restricted to records the
+// bot itself still owns (isManagedUnclaimedSupplier) so this can never touch
+// a claimed supplier or one that predates the bot, however this endpoint is
+// called. approved:false mirrors the exact field the admin reject/delete
+// routes and search-v2.js's own listing filters already treat as "not
+// visible"; clearing acquisition.publicationScope additionally turns off
+// isPublishedUnclaimedSupplierBotProfile()'s own gate (supplier-profile-safe
+// GET /suppliers/:id and the marketplace-parity sync both key off it), so
+// the profile disappears from both paths rather than just one of them.
+router.post(
+  '/internal/supplier-bot/suppliers/:id/unpublish',
+  verifySupplierBotHmac,
+  async (req, res) => {
+    try {
+      if (!dbUnified) {
+        return res.status(503).json({ error: 'Database unavailable' });
+      }
+      const supplier = await dbUnified.findOne('suppliers', { id: req.params.id });
+      if (!supplier) {
+        return res.status(404).json({ error: 'Supplier not found' });
+      }
+      if (!isManagedUnclaimedSupplier(supplier)) {
+        return res.status(409).json({ error: 'Supplier is not a bot-managed unclaimed profile' });
+      }
+
+      const reason =
+        typeof req.body?.reason === 'string' ? req.body.reason.trim().slice(0, 500) || null : null;
+      const now = new Date().toISOString();
+      const acquisition = {
+        ...(supplier.acquisition && typeof supplier.acquisition === 'object'
+          ? supplier.acquisition
+          : {}),
+        publicationScope: null,
+        unpublishedAt: now,
+        unpublishedReason: reason,
+      };
+      const wrote = await dbUnified.updateOne(
+        'suppliers',
+        { id: supplier.id },
+        { $set: { approved: false, acquisition, updatedAt: now } }
+      );
+      if (!wrote) {
+        return res.status(500).json({ error: 'Failed to unpublish supplier' });
+      }
+      if (catalogCache && typeof catalogCache.invalidate === 'function') {
+        await catalogCache.invalidate().catch(() => undefined);
+      }
+      return res.json({ success: true, supplierId: supplier.id });
+    } catch (error) {
+      logger.error('Supplier Bot unpublish failed:', error);
+      return res.status(500).json({ error: 'Supplier Bot unpublish failed' });
+    }
+  }
+);
 
 function hostnameOf(website) {
   const hostname = new URL(String(website)).hostname;

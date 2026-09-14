@@ -469,6 +469,7 @@ module.exports = {
   canonicalMediaUrl,
   canonicalWebsite,
   createUnclaimedSupplierFromBot,
+  isManagedUnclaimedSupplier,
   normalizeSourceMedia,
   supplierIdForCandidate,
 };
