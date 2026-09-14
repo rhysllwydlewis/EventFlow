@@ -8,8 +8,39 @@ const mockReviewTasks = {
   listTasks: jest.fn(),
   updateTask: jest.fn(),
 };
+const mockDbUnified = {
+  read: jest.fn(),
+};
+const mockAudit = {
+  getAuditLogs: jest.fn(),
+};
+const mockSeoInsights = {
+  getOverview: jest.fn(),
+  getQueryTable: jest.fn(),
+  getStrikingDistanceReport: jest.fn(),
+  getLowCtrReport: jest.fn(),
+  getContentGapReport: jest.fn(),
+  getFinancialEstimate: jest.fn(),
+};
+const mockSeoDataStore = {
+  getAllIngestionStatus: jest.fn(),
+  getSettings: jest.fn(),
+};
+const mockEmailLog = {
+  getSummary: jest.fn(),
+  listLogs: jest.fn(),
+};
+const mockReviews = {
+  getFlaggedReviews: jest.fn(),
+};
 
 jest.mock('../../services/contentReviewTask.service', () => mockReviewTasks);
+jest.mock('../../db-unified', () => mockDbUnified);
+jest.mock('../../middleware/audit', () => mockAudit);
+jest.mock('../../services/seoInsights.service', () => mockSeoInsights);
+jest.mock('../../services/seoDataStore', () => mockSeoDataStore);
+jest.mock('../../services/emailLog.service', () => mockEmailLog);
+jest.mock('../../reviews', () => mockReviews);
 
 const opsBotRouter = require('../../routes/ops-bot');
 
@@ -149,5 +180,151 @@ describe('Ops Assistant worker API', () => {
     const res = await signedRequest(app, 'get', '/internal/ops-bot/content-review-tasks');
 
     expect(res.status).toBe(503);
+  });
+
+  describe('read-only reporting endpoints', () => {
+    it('returns audit log entries', async () => {
+      mockAudit.getAuditLogs.mockResolvedValue([{ id: 'log-1', action: 'user.suspend' }]);
+      const app = createApp();
+
+      const res = await signedRequest(app, 'get', '/internal/ops-bot/audit-log');
+
+      expect(res.status).toBe(200);
+      expect(res.body).toEqual({
+        ok: true,
+        logs: [{ id: 'log-1', action: 'user.suspend' }],
+        count: 1,
+      });
+    });
+
+    it('returns an SEO insights report by name', async () => {
+      mockSeoInsights.getOverview.mockResolvedValue({ clicks: 100 });
+      const app = createApp();
+
+      const res = await signedRequest(app, 'get', '/internal/ops-bot/seo-insights/overview');
+
+      expect(res.status).toBe(200);
+      expect(res.body).toEqual({ ok: true, data: { clicks: 100 } });
+    });
+
+    it('rejects an unknown SEO report name', async () => {
+      const app = createApp();
+
+      const res = await signedRequest(app, 'get', '/internal/ops-bot/seo-insights/not-a-report');
+
+      expect(res.status).toBe(404);
+    });
+
+    it('returns the email summary', async () => {
+      mockEmailLog.getSummary.mockResolvedValue({ bounceRate: 0.01 });
+      const app = createApp();
+
+      const res = await signedRequest(app, 'get', '/internal/ops-bot/email-summary');
+
+      expect(res.status).toBe(200);
+      expect(res.body).toEqual({ ok: true, summary: { bounceRate: 0.01 } });
+    });
+
+    it('returns flagged reviews', async () => {
+      mockReviews.getFlaggedReviews.mockResolvedValue([{ id: 'review-1', flagged: true }]);
+      const app = createApp();
+
+      const res = await signedRequest(app, 'get', '/internal/ops-bot/reviews/flagged');
+
+      expect(res.status).toBe(200);
+      expect(res.body).toEqual({ ok: true, reviews: [{ id: 'review-1', flagged: true }] });
+    });
+
+    it('filters content reports by status', async () => {
+      mockDbUnified.read.mockResolvedValue([
+        { id: 'r1', status: 'pending', createdAt: '2026-09-01' },
+        { id: 'r2', status: 'resolved', createdAt: '2026-09-02' },
+      ]);
+      const app = createApp();
+
+      const res = await signedRequest(app, 'get', '/internal/ops-bot/content-reports');
+
+      expect(res.status).toBe(200);
+      expect(res.body.reports).toEqual([{ id: 'r1', status: 'pending', createdAt: '2026-09-01' }]);
+      expect(mockDbUnified.read).toHaveBeenCalledWith('reports');
+    });
+
+    it('lists suppliers pending verification', async () => {
+      mockDbUnified.read.mockResolvedValue([
+        { id: 's1', name: 'Verified Co', verified: true },
+        { id: 's2', name: 'Pending Co', verified: false, verificationStatus: 'pending' },
+      ]);
+      const app = createApp();
+
+      const res = await signedRequest(
+        app,
+        'get',
+        '/internal/ops-bot/suppliers/pending-verification'
+      );
+
+      expect(res.status).toBe(200);
+      expect(res.body.count).toBe(1);
+      expect(res.body.suppliers[0].id).toBe('s2');
+    });
+
+    it('groups suppliers sharing an owner as duplicate candidates', async () => {
+      mockDbUnified.read.mockResolvedValue([
+        { id: 's1', name: 'A', ownerUserId: 'owner-1' },
+        { id: 's2', name: 'B', ownerUserId: 'owner-1' },
+        { id: 's3', name: 'C', ownerUserId: 'owner-2' },
+      ]);
+      const app = createApp();
+
+      const res = await signedRequest(app, 'get', '/internal/ops-bot/suppliers/duplicates');
+
+      expect(res.status).toBe(200);
+      expect(res.body.count).toBe(1);
+      expect(res.body.duplicateGroups[0].ownerUserId).toBe('owner-1');
+      expect(res.body.duplicateGroups[0].suppliers).toHaveLength(2);
+    });
+
+    it('lists partner abuse events filtered by risk level', async () => {
+      mockDbUnified.read.mockResolvedValue([
+        { id: 'e1', riskLevel: 'high', createdAt: '2026-09-02' },
+        { id: 'e2', riskLevel: 'low', createdAt: '2026-09-01' },
+      ]);
+      const app = createApp();
+
+      const res = await signedRequest(
+        app,
+        'get',
+        '/internal/ops-bot/partner-abuse/events?riskLevel=high'
+      );
+
+      expect(res.status).toBe(200);
+      expect(res.body.items).toEqual([{ id: 'e1', riskLevel: 'high', createdAt: '2026-09-02' }]);
+    });
+
+    it('lists partner abuse appeals filtered by status', async () => {
+      mockDbUnified.read.mockResolvedValue([
+        { id: 'a1', status: 'open', createdAt: '2026-09-02' },
+        { id: 'a2', status: 'resolved', createdAt: '2026-09-01' },
+      ]);
+      const app = createApp();
+
+      const res = await signedRequest(
+        app,
+        'get',
+        '/internal/ops-bot/partner-abuse/appeals?status=open'
+      );
+
+      expect(res.status).toBe(200);
+      expect(res.body.items).toEqual([{ id: 'a1', status: 'open', createdAt: '2026-09-02' }]);
+    });
+
+    it('returns a read error as a 500 without leaking internals', async () => {
+      mockDbUnified.read.mockRejectedValue(new Error('db exploded'));
+      const app = createApp();
+
+      const res = await signedRequest(app, 'get', '/internal/ops-bot/content-reports');
+
+      expect(res.status).toBe(500);
+      expect(res.body).toEqual({ ok: false, error: 'Internal server error' });
+    });
   });
 });
