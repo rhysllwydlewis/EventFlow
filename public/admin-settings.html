@@ -642,6 +642,40 @@
       </div>
     </div>
     
+    <!-- Ops Assistant -->
+    <div class="card">
+      <h2>Ops Assistant</h2>
+      <p class="small">A scheduled worker that helps with admin tasks (starting with the content review queue) by calling a signed internal API. It authenticates with its own secret key, separate from any admin login.</p>
+
+      <div id="opsAssistantStatus" class="feature-flags-status" style="display:none;">
+        <strong>Status:</strong> <span id="opsAssistantStatusText">Loading...</span>
+      </div>
+
+      <div class="warning-banner" style="margin-top:0.75rem;">
+        <strong>⚠️ Warning:</strong> Generating a new secret does not disable the old one automatically &mdash; the change only takes effect once you update the <code>EVENTFLOW_OPS_BOT_HMAC_SECRET</code> environment variable and redeploy. The secret is shown once and is never stored or displayed again.
+      </div>
+
+      <button class="ef-cta btn btn-primary mt-1" id="generateOpsAssistantSecret">Generate New Secret</button>
+
+      <div id="opsAssistantSecretResult" style="display:none;margin-top:1rem;padding:0.875rem 1rem;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;">
+        <div class="small" style="margin-bottom:0.5rem;color:#166534;">Copy this now &mdash; it will not be shown again:</div>
+        <code id="opsAssistantSecretValue" style="display:block;word-break:break-all;background:#fff;border:1px solid #d1fae5;border-radius:6px;padding:0.625rem 0.75rem;font-size:0.85rem;"></code>
+        <div class="small" style="margin-top:0.5rem;color:#166534;" id="opsAssistantSecretInstructions"></div>
+      </div>
+
+      <!-- Confirmation modal for generating a new secret -->
+      <div id="opsAssistantConfirmModal" role="dialog" aria-modal="true" aria-labelledby="opsAssistantConfirmTitle" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.4);z-index:9999;align-items:center;justify-content:center;">
+        <div style="background:#fff;border-radius:12px;padding:1.5rem 1.75rem;max-width:440px;width:90%;box-shadow:0 20px 60px rgba(0,0,0,0.3);">
+          <h3 id="opsAssistantConfirmTitle" style="margin:0 0 0.75rem;font-size:1.1rem;color:#0B8073;">Generate a new Ops Assistant secret?</h3>
+          <p style="margin:0 0 1.25rem;font-size:0.9rem;color:#374151;">The old secret will keep working until you replace it in your environment variables &mdash; this only creates a new one to copy in.</p>
+          <div style="display:flex;gap:0.625rem;justify-content:flex-end;">
+            <button class="ef-cta btn" id="opsAssistantConfirmCancel">Cancel</button>
+            <button class="ef-cta btn btn-primary" id="opsAssistantConfirmGenerate">Yes, Generate</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- System Information -->
     <div class="card">
       <h2>System Information</h2>
@@ -678,6 +712,7 @@
 <script src="/assets/js/admin-shared.js?v=18.3.0"></script>
 <script src="/assets/js/pages/admin-settings-init.js?v=18.3.2" defer></script>
 <script src="/assets/js/pages/admin-signup-popup-init.js?v=1.0.0" defer></script>
+<script src="/assets/js/pages/admin-ops-assistant-init.js?v=1.0.0" defer></script>
 
 <script src="/assets/js/cookie-consent.js?v=3.0.0" defer></script>
 </body>
