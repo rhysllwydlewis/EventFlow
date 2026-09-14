@@ -642,6 +642,28 @@
       </div>
     </div>
     
+    <!-- Ops Assistant -->
+    <div class="card">
+      <h2>Ops Assistant</h2>
+      <p class="small">A scheduled worker that helps with admin tasks (starting with the content review queue) by calling a signed internal API. It authenticates with its own secret key, separate from any admin login.</p>
+
+      <div id="opsAssistantStatus" class="feature-flags-status" style="display:none;">
+        <strong>Status:</strong> <span id="opsAssistantStatusText">Loading...</span>
+      </div>
+
+      <div class="warning-banner" style="margin-top:0.75rem;">
+        <strong>⚠️ Warning:</strong> Generating a new secret does not disable the old one automatically &mdash; the change only takes effect once you update the <code>EVENTFLOW_OPS_BOT_HMAC_SECRET</code> environment variable and redeploy. The secret is shown once and is never stored or displayed again.
+      </div>
+
+      <button class="ef-cta btn btn-primary mt-1" id="generateOpsAssistantSecret">Generate New Secret</button>
+
+      <div id="opsAssistantSecretResult" style="display:none;margin-top:1rem;padding:0.875rem 1rem;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;">
+        <div class="small" style="margin-bottom:0.5rem;color:#166534;">Copy this now &mdash; it will not be shown again:</div>
+        <code id="opsAssistantSecretValue" style="display:block;word-break:break-all;background:#fff;border:1px solid #d1fae5;border-radius:6px;padding:0.625rem 0.75rem;font-size:0.85rem;"></code>
+        <div class="small" style="margin-top:0.5rem;color:#166534;" id="opsAssistantSecretInstructions"></div>
+      </div>
+    </div>
+
     <!-- System Information -->
     <div class="card">
       <h2>System Information</h2>
@@ -678,6 +700,7 @@
 <script src="/assets/js/admin-shared.js?v=18.3.0"></script>
 <script src="/assets/js/pages/admin-settings-init.js?v=18.3.2" defer></script>
 <script src="/assets/js/pages/admin-signup-popup-init.js?v=1.0.0" defer></script>
+<script src="/assets/js/pages/admin-ops-assistant-init.js?v=1.0.0" defer></script>
 
 <script src="/assets/js/cookie-consent.js?v=3.0.0" defer></script>
 </body>

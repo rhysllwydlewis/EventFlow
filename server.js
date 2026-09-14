@@ -1048,6 +1048,12 @@ mountDeprecatedApiAlias(
   adminContentReviewRoutes
 );
 
+// Ops Assistant: admin-facing key management, and the HMAC-signed worker API
+const adminOpsAssistantRoutes = require('./routes/admin-ops-assistant');
+app.use('/api/v1/admin/ops-assistant', adminOpsAssistantRoutes);
+const opsBotRoutes = require('./routes/ops-bot');
+app.use('/internal/ops-bot', opsBotRoutes);
+
 // External contacts ingestion (server-to-server from VEXI, Chlo, etc.)
 const externalContactsIngestRoutes = require('./routes/integrations-external-contacts');
 app.use('/api/v1/integrations/external-contacts', externalContactsIngestRoutes);
