@@ -152,16 +152,23 @@ existing product already funnels every hero search box to the one canonical
 search results page, so this follows that precedent rather than inventing
 new, untested in-place filtering behaviour on the index page.
 
-**Status at hand-off:** PR #1669 opened
-(https://github.com/rhysllwydlewis/EventFlow/pull/1669), CI just started
-(all checks queued, none reported yet), subscribed to PR activity so this
-account will keep driving it — will merge once CI is green per the merge
-policy above; if CI turns up a real (non-DeepSource) failure it'll be fixed
-and re-pushed before merging, not left open.
+**Outcome: merged.** PR #1669
+(https://github.com/rhysllwydlewis/EventFlow/pull/1669) went green end to
+end — every CI check passed, including all four DeepSource analyzers
+(JavaScript included, despite that one being the known dashboard-metric
+false positive on other PRs — it simply reported clean here), Lighthouse
+desktop/mobile, the full E2E shard set, Visual + a11y, Visual Regression,
+Build/Browser Verification and the Go-Live Audit. No human review comments
+were posted. Merged autonomously into `main` as `af0203a` at 18:52 UTC.
+Two transient "Build Verification"/"Browser Verification" failures seen
+mid-run were self-inflicted noise, not real: I pushed the handoff-doc commit
+while the first CI run (for commit `1ea3915`) was still in flight, GitHub
+cancelled that run's prerequisites, and those two gate jobs correctly
+reported the cancellation as a failure. The re-triggered run for the actual
+final commit (`9a21462`) ran clean start to finish. Lesson for next time:
+push the code and the handoff-doc update together in one commit (or wait
+for CI on the first push before adding a second), so as not to spend a
+CI cycle on a run that's guaranteed to be superseded.
 
-**Next, if this session doesn't get to merge:** check PR #1669 first — CI
-may have finished. If it's green with no review comments, merge it. If red,
-diagnose per the merge policy (DeepSource JavaScript is the one known,
-already-investigated false positive — see above, don't re-chase it). Once
-#1669 is closed out, the next open item is `/community/category/:slug`'s
+**Next session:** the next open item is `/community/category/:slug`'s
 missing hero (see backlog), then the general site-wide sweep.
