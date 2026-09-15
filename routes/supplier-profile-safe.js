@@ -357,17 +357,25 @@ router.post('/internal/supplier-bot/suppliers/lookup', verifySupplierBotHmac, as
 const MAX_AUDIT_QUEUE_LIMIT = 50;
 const DEFAULT_AUDIT_QUEUE_LIMIT = 20;
 const MAX_AUDIT_EXCLUDE_IDS = 500;
-const AUDIT_GAP_COUNT = 7; // keep in sync with the gap fields set in supplierQualityGaps()
+const AUDIT_GAP_COUNT = 6; // keep in sync with the gap fields set in supplierQualityGaps()
 
 // Scores one published unclaimed profile's real data gaps -- missing cover/
-// gallery photos, thin contact/description/tag data, and packages whose
-// image resolves to the public placeholder -- against the same fields the
-// public profile and package cards actually render, so a gap reported here
-// is a gap a visitor would actually see, not a false positive off stale
-// acquisition bookkeeping. Resolves cover/gallery/package-fallback the same
-// way the public routes do (publishedUnclaimedPresentationSupplier), rather
-// than reading acquisition.sourceMedia directly, so a canonical/admin-
-// corrected field takes precedence exactly like it does for a real visitor.
+// gallery photos, thin description/tag data, missing phone, and packages
+// whose image resolves to the public placeholder -- against the same fields
+// the public profile and package cards actually render, so a gap reported
+// here is a gap a visitor would actually see, not a false positive off
+// stale acquisition bookkeeping. Resolves cover/gallery/package-fallback
+// the same way the public routes do (publishedUnclaimedPresentationSupplier),
+// rather than reading acquisition.sourceMedia directly, so a canonical/
+// admin-corrected field takes precedence exactly like it does for a real
+// visitor.
+//
+// Deliberately excludes email: `email`/`ownerEmail`/`contactEmail` are in
+// PUBLIC_SUPPLIER_PRIVATE_FIELDS and safePublicSupplier() never puts a raw
+// address in its output -- the public profile shows only an "Email
+// verified" badge, driven by emailVerified (a claim-flow fact this routine
+// has no way to produce). Scoring the raw email field would flag a "gap"
+// no visitor can ever see and no re-crawl can ever visibly fix.
 function supplierQualityGaps(supplier, packages) {
   const presentation = publishedUnclaimedPresentationSupplier(supplier);
   const hasCoverImage = Boolean(presentation.coverImage || presentation.bannerUrl);
@@ -411,7 +419,6 @@ function supplierQualityGaps(supplier, packages) {
     missingGalleryImages: galleryCount === 0,
     missingDescription: description.length < 20,
     missingPhone: !safePhone(supplier?.phone),
-    missingEmail: !String(supplier?.email || '').trim(),
     missingTags: !Array.isArray(supplier?.tags) || supplier.tags.length === 0,
     packagesMissingPhotos,
   };
@@ -421,7 +428,6 @@ function supplierQualityGaps(supplier, packages) {
     Number(gaps.missingGalleryImages) +
     Number(gaps.missingDescription) +
     Number(gaps.missingPhone) +
-    Number(gaps.missingEmail) +
     Number(gaps.missingTags) +
     (packagesMissingPhotos.length > 0 ? 1 : 0);
   const completenessScore = Math.round(((AUDIT_GAP_COUNT - gapCount) / AUDIT_GAP_COUNT) * 100);

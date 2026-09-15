@@ -179,11 +179,35 @@ describe('Supplier Bot unclaimed-profile quality audit queue', () => {
       missingGalleryImages: true,
       missingDescription: true,
       missingPhone: true,
-      missingEmail: true,
       missingTags: true,
     });
     expect(entry.gaps.packagesMissingPhotos).toEqual([{ id: 'pkg_2', title: 'Half Day Coverage' }]);
+    expect(entry.gaps).not.toHaveProperty('missingEmail');
     expect(entry.completenessScore).toBe(0);
+  });
+
+  it('never scores email as a gap -- it is never shown on the public unclaimed profile', async () => {
+    // Even a profile that is otherwise perfect but has no email on record
+    // must not be penalised: only an "Email verified" badge is ever public,
+    // and this routine cannot produce that verification via re-crawling.
+    const dbUnified = memoryDb({
+      suppliers: [publishedUnclaimedSupplier({ id: 'sup_no_email', email: '', slug: 'no-email' })],
+      packages: [
+        {
+          id: 'pkg_1',
+          supplierId: 'sup_no_email',
+          title: 'Full Day Coverage',
+          image: 'https://complete-photography.example/package-1.jpg',
+          acquisition: { source: 'supplier_bot' },
+        },
+      ],
+    });
+    const app = createApp(dbUnified);
+
+    const response = await auditQueue(app);
+
+    expect(response.body.totalNeedingWork).toBe(0);
+    expect(response.body.queue).toEqual([]);
   });
 
   it('ignores non-published and non-bot suppliers, and packages that belong to other suppliers or sources', async () => {
