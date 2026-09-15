@@ -192,5 +192,36 @@ push the code and the handoff-doc update together in one commit (or wait
 for CI on the first push before adding a second), so as not to spend a
 CI cycle on a run that's guaranteed to be superseded.
 
+**Concurrent session collision (important).** While PR #1669 was merging,
+a _second, independent_ instance of this same routine was running on this
+same branch at the same time (a different Claude-Session id,
+`session_01BoUj6YiTD9hsNiMr2kkeWH`). It restarted the branch from `main`
+after #1669 merged — same as this session did — and pushed its own commit
+("Add mandatory post-merge deploy verification to the merge policy", now
+step 7 above) on top of mine while PR #1670 was already open and its CI was
+mid-run. No data was lost — git history is linear, nothing was overwritten —
+but the extra push cancelled that in-flight CI run, producing the same
+misleading "Build Verification"/"Browser Verification" failure pattern as
+the #1669 cycle, this time from a session other than the one watching the
+PR. Recovered by re-fetching the actual current head and re-polling CI for
+_that_ commit rather than trusting the cancelled run. **If a future session
+sees CI failures it didn't cause, or the branch has commits it doesn't
+recognise, check for a concurrently-running sibling session before assuming
+something is broken** — it may simply be two instances of this routine
+overlapping. Worth flagging to the owner: if the schedule that fires this
+routine can overlap with itself, that's worth preventing at the source
+(e.g. a run lock) rather than relying on sessions to notice and cope.
+
+**PR #1670** (the docs update above, plus the concurrent session's
+post-merge-verification policy addition) also went fully green — same
+clean CI profile as #1669, DeepSource grade A, no review comments — and was
+merged autonomously as `549b0ff` at 19:06 UTC. Applied its own new step 7
+immediately: polled `https://event-flow.co.uk/api/ready` three times at
+~25s intervals post-merge, all HTTP 200 with `"status":"ready"` and every
+subsystem (MongoDB, Redis queue, worker) reporting healthy — deploy
+confirmed good, no revert needed.
+
 **Next session:** the next open item is `/community/category/:slug`'s
-missing hero (see backlog), then the general site-wide sweep.
+missing hero (see backlog), then the general site-wide sweep. Also worth a
+glance: whether the owner wants the schedule fixed so this routine can't
+run twice concurrently (see collision note above).
