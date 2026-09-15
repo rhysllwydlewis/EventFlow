@@ -294,20 +294,48 @@ ${scripts}
 `;
 }
 
-const hero = (title, lead, actions = '') => `    <section class="efc-hero">
-      <div class="efc-hero__inner">
-        <h1>${title}</h1>
-        <p>${lead}</p>
-        ${actions}
+// Every hero on the community section is a floating card on the same
+// decorative `.efc-stage` background — the home page's own card, flanked by
+// two preview rails, and the plain, unflanked card the sibling list pages
+// (`/community/discussions`, `/community/search`) use. `stageHero()` builds
+// that shared card; the home page's richer composition is `homeHero` below,
+// reproduced verbatim so that regenerating the shells cannot quietly revert
+// either one to the pre-redesign `.efc-hero` band they replaced.
+const stageBadge = `          <span class="efc-stage__badge" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" focusable="false">
+              <path d="M17 12a5 5 0 0 1-5 5H8l-4 3v-4.6A5 5 0 0 1 3 12V9a5 5 0 0 1 5-5h4a5 5 0 0 1 5 5Z" />
+              <path d="M20 8a4 4 0 0 1 1 2.6V14a4 4 0 0 1-2 3.4" />
+            </svg>
+          </span>`;
+
+/**
+ * Build a standalone stage hero: the same card as the home page's, without the
+ * flanking rails, category strip or join bar. CSS grid centres the card on its
+ * own — the flanking columns simply have nothing in them at the width where
+ * the home page would otherwise put rails there.
+ * @param {Object} opts Hero content.
+ * @param {string} opts.title Heading text.
+ * @param {string} opts.lead Supporting paragraph.
+ * @param {string} [opts.searchForm] Pre-built search form markup, if any.
+ * @param {string} [opts.actions] Pre-built call-to-action markup, if any.
+ * @returns {string} Section markup.
+ */
+const stageHero = ({ title, lead, searchForm = '', actions = '' }) => `    <section class="efc-stage efc-stage--compact">
+      <div class="efc-stage__decor" aria-hidden="true">
+        <span class="efc-blob efc-blob--a"></span>
+        <span class="efc-blob efc-blob--b"></span>
+      </div>
+      <div class="efc-stage__inner">
+        <div class="efc-stage__card">
+${stageBadge}
+          <h1>${title}</h1>
+          <p>${lead}</p>
+${searchForm}${actions}        </div>
       </div>
     </section>
 
 `;
 
-// The community home page does not use the shared `hero()` band. Its hero is a
-// composed stage — a floating card between two preview rails, over a decorative
-// background — and it is reproduced here verbatim so that regenerating the
-// shells cannot quietly revert it to the old band.
 const homeHero = `    <section class="efc-stage">
       <!-- Decoration only: soft brand blobs and the dashed lines that run from
            the hero out to the preview rails. Hidden from assistive technology
@@ -401,11 +429,24 @@ const pages = [
   },
   {
     file: 'community-discussions.html',
-    hero: hero(
-      'All discussions',
-      'Every discussion in the EventFlow Community. Filter by category, event type, UK region, freshness and whether a question has been answered.',
-      '<div class="efc-hero__actions"><a class="btn btn-primary" href="/community/new">Start a discussion</a></div>'
-    ),
+    hero: stageHero({
+      title: 'All discussions',
+      lead: 'Every discussion in the EventFlow Community. Filter by category, event type, UK region, freshness and whether a question has been answered.',
+      searchForm: `          <form class="efc-stage__search" role="search" action="/community/search" method="GET">
+            <label class="efc-sr-only" for="efc-search-input">Search the community</label>
+            <input id="efc-search-input" type="search" name="q" placeholder="Search discussions, ideas or suppliers" />
+            <button type="submit" class="efc-searchbtn" aria-label="Search discussions">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <circle cx="11" cy="11" r="7" /><path d="m20 20-3.5-3.5" />
+              </svg>
+            </button>
+          </form>
+`,
+      actions: `          <div class="efc-stage__actions">
+            <a class="efc-cta efc-cta--solid" href="/community/new">Start a discussion</a>
+          </div>
+`,
+    }),
     body: `        <div id="efc-discussions" data-mode="index">${listBody}</div>`,
     scripts: ['/assets/js/community/discussions.js', '/assets/js/community/composer.js'],
   },
@@ -419,15 +460,20 @@ ${listBody}
   },
   {
     file: 'community-search.html',
-    hero: hero(
-      'Search the community',
-      'Search titles, original posts, replies and tags. Current advice is ranked above equally relevant answers from years ago.',
-      `<form class="efc-search" role="search" action="/community/search" method="GET">
-          <label class="efc-sr-only" for="efc-search-input">Search the community</label>
-          <input id="efc-search-input" type="search" name="q" placeholder="What do you need help with?" />
-          <button type="submit" class="btn btn-primary">Search</button>
-        </form>`
-    ),
+    hero: stageHero({
+      title: 'Search the community',
+      lead: 'Search titles, original posts, replies and tags. Current advice is ranked above equally relevant answers from years ago.',
+      searchForm: `          <form class="efc-stage__search" role="search" action="/community/search" method="GET">
+            <label class="efc-sr-only" for="efc-search-input">Search the community</label>
+            <input id="efc-search-input" type="search" name="q" placeholder="What do you need help with?" />
+            <button type="submit" class="efc-searchbtn" aria-label="Search">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <circle cx="11" cy="11" r="7" /><path d="m20 20-3.5-3.5" />
+              </svg>
+            </button>
+          </form>
+`,
+    }),
     body: `        <div id="efc-discussions" data-mode="search">${listBody}</div>`,
     scripts: ['/assets/js/community/discussions.js'],
   },

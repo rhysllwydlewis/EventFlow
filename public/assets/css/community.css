@@ -156,6 +156,14 @@
   border-bottom: var(--efc-border);
 }
 
+/* The sibling list pages (`/community/discussions`, `/community/search`) carry
+   just the hero card, with no rails, category strip or join bar to taper into.
+   The home page's 2rem bottom padding was sized to lead into those; on its own
+   the card reads as cramped against the border below it. */
+.efc-stage--compact {
+  padding: 3rem 0;
+}
+
 /* ── Stage decoration ──────────────────────────────────────────────────── */
 
 .efc-stage__decor {
@@ -880,21 +888,8 @@
   }
 }
 
-/* ── Hero ──────────────────────────────────────────────────────────────── */
+/* ── Heading ───────────────────────────────────────────────────────────── */
 
-.efc-hero {
-  background: linear-gradient(135deg, var(--efc-tint) 0%, var(--efc-page) 65%);
-  border-bottom: var(--efc-border);
-  padding: 2.5rem 0 2rem;
-}
-
-.efc-hero__inner {
-  max-width: 1180px;
-  margin: 0 auto;
-  padding: 0 1rem;
-}
-
-.efc-hero h1,
 .efc-shell h1 {
   /* Deliberately restrained: large enough to anchor the page, small enough that
      a long discussion title does not dominate the screen on mobile. */
@@ -903,39 +898,6 @@
   line-height: 1.25;
 }
 
-.efc-hero p {
-  margin: 0;
-  max-width: 62ch;
-  color: var(--efc-muted);
-}
-
-.efc-hero__actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.625rem;
-  margin-top: 1.25rem;
-}
-
-/* ── Search ────────────────────────────────────────────────────────────── */
-
-.efc-search {
-  display: flex;
-  gap: 0.5rem;
-  margin-top: 1.25rem;
-  max-width: 640px;
-}
-
-.efc-search input[type='search'] {
-  flex: 1 1 auto;
-  min-height: 48px;
-  padding: 0 0.875rem;
-  border-radius: 10px;
-  border: var(--efc-border);
-  background: #fff;
-  font-size: 1rem;
-}
-
-.efc-search input[type='search']:focus-visible,
 .efc-field input:focus-visible,
 .efc-field select:focus-visible,
 .efc-field textarea:focus-visible {
