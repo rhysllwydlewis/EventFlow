@@ -42,6 +42,28 @@ is actually followed, in full, every time:
 5. Re-run the tests. They must come back green again after the review fixes,
    not just after step 2.
 6. Only now, merge the pull request autonomously.
+7. Verify the deploy, not just the merge. Merging is not the finish line —
+   Railway building and shipping the new code, cleanly, is. After merging:
+   - Poll `https://event-flow.co.uk/api/ready` every ~20–30s for up to
+     ~10 minutes. It returns HTTP 503 with `"status":"not_ready"` while the
+     database isn't connected, and 200 once the server is genuinely ready
+     (not just `/api/health`'s "starting" state, which is always 200 even
+     mid-boot — `/ready` is the strict one, use it).
+   - A steady run of 200s is success — the new deploy is live and healthy.
+     Record that in the session log and move on.
+   - If it stays unhealthy (persistent 503, connection failures, or 5xx)
+     past that window, treat it as a bad deploy from your merge: revert the
+     merge commit on `main` immediately (`git revert -m 1 <merge-sha>`),
+     open that as its own PR, and merge it yourself under the same
+     authority — restoring service is the priority, don't wait for a human.
+     Re-poll `/ready` after the revert to confirm service is actually
+     restored. Record exactly what broke, in enough detail that whoever
+     looks at this later can fix it without re-diagnosing from scratch, and
+     do not attempt further merges that session — stop and hand off.
+   - If Railway MCP tools happen to be available this run, also check the
+     `eventflow` production service's latest deployment status as a second
+     signal — but the public `/api/ready` check is the one that actually
+     matters and must run regardless of whether those tools are present.
 
 Do not merge, and instead leave the PR open with a clear comment explaining
 why, only when:
