@@ -25,8 +25,12 @@ const {
   reconcilePublishedUnclaimedMarketplaceState,
 } = require('../services/supplierBotMarketplaceParity.service');
 const { lifecycleBlockReason } = require('../services/seoRecordLifecycle.util');
-const { resolvePackageImage } = require('../utils/packageImageUtils');
-const { safePublicPackage, safePublicSupplier } = require('../utils/supplierPublicProfile');
+const { isPlaceholderImage, resolvePackageImage } = require('../utils/packageImageUtils');
+const {
+  safePhone,
+  safePublicPackage,
+  safePublicSupplier,
+} = require('../utils/supplierPublicProfile');
 const { addPublicProfilePath } = require('../utils/publicSupplierProfilePath');
 const { supplierSlugToken } = require('../services/publicSupplierSeo.service');
 const {
@@ -349,6 +353,178 @@ router.post('/internal/supplier-bot/suppliers/lookup', verifySupplierBotHmac, as
     return res.status(500).json({ error: 'Supplier Bot lookup failed' });
   }
 });
+
+const MAX_AUDIT_QUEUE_LIMIT = 50;
+const DEFAULT_AUDIT_QUEUE_LIMIT = 20;
+const MAX_AUDIT_EXCLUDE_IDS = 500;
+const AUDIT_GAP_COUNT = 6; // keep in sync with the gap fields set in supplierQualityGaps()
+
+// Scores one published unclaimed profile's real data gaps -- missing cover/
+// gallery photos, thin description/tag data, missing phone, and packages
+// whose image resolves to the public placeholder -- against the same fields
+// the public profile and package cards actually render, so a gap reported
+// here is a gap a visitor would actually see, not a false positive off
+// stale acquisition bookkeeping. Resolves cover/gallery/package-fallback
+// the same way the public routes do (publishedUnclaimedPresentationSupplier),
+// rather than reading acquisition.sourceMedia directly, so a canonical/
+// admin-corrected field takes precedence exactly like it does for a real
+// visitor.
+//
+// Deliberately excludes email: `email`/`ownerEmail`/`contactEmail` are in
+// PUBLIC_SUPPLIER_PRIVATE_FIELDS and safePublicSupplier() never puts a raw
+// address in its output -- the public profile shows only an "Email
+// verified" badge, driven by emailVerified (a claim-flow fact this routine
+// has no way to produce). Scoring the raw email field would flag a "gap"
+// no visitor can ever see and no re-crawl can ever visibly fix.
+function supplierQualityGaps(supplier, packages) {
+  const presentation = publishedUnclaimedPresentationSupplier(supplier);
+  const hasCoverImage = Boolean(presentation.coverImage || presentation.bannerUrl);
+  // presentation.photosGallery and presentation.images each independently
+  // fall back to acquisition.sourceMedia.images only when their own
+  // same-named canonical field is empty -- so a profile with real photos in
+  // one canonical field but not the other (e.g. images set, photosGallery
+  // never populated) can have one of these resolve non-empty while the
+  // other resolves to sourceMedia's own (possibly empty) list. Neither
+  // field is reliably a superset of the other, so take whichever is larger
+  // rather than treating photosGallery as authoritative.
+  const galleryCount = Math.max(
+    Array.isArray(presentation.photosGallery) ? presentation.photosGallery.length : 0,
+    Array.isArray(presentation.images) ? presentation.images.length : 0
+  );
+  const description = String(supplier?.description || '').trim();
+
+  // Packages retired by marketplace-parity reconciliation (approved:false)
+  // are excluded from public package-card queries, so they must be excluded
+  // here too -- otherwise a retired package with no photo can permanently
+  // keep an otherwise-complete supplier in this queue.
+  const materializedPackages = packages.filter(pkg => pkg && pkg.approved !== false);
+  const packagesMissingPhotos =
+    materializedPackages.length > 0
+      ? materializedPackages
+          .filter(pkg => isPlaceholderImage(resolvePackageImage(pkg)))
+          .map(pkg => ({ id: pkg.id, title: pkg.title || null }))
+      : // No materialised package record yet (pending the startup
+        // reconciliation/backfill) -- the public package-cards route falls
+        // back to rendering acquisition.sourcePackages evidence cards
+        // directly, and that fallback never carries an image field, so
+        // every one of them is a real missing-photo gap a visitor sees
+        // today, not an absence of packages.
+        (Array.isArray(presentation.topPackages) ? presentation.topPackages : []).map(pkg => ({
+          id: pkg.id,
+          title: pkg.title || pkg.name || null,
+        }));
+
+  const gaps = {
+    missingCoverImage: !hasCoverImage,
+    missingGalleryImages: galleryCount === 0,
+    missingDescription: description.length < 20,
+    missingPhone: !safePhone(supplier?.phone),
+    missingTags: !Array.isArray(supplier?.tags) || supplier.tags.length === 0,
+    packagesMissingPhotos,
+  };
+
+  const gapCount =
+    Number(gaps.missingCoverImage) +
+    Number(gaps.missingGalleryImages) +
+    Number(gaps.missingDescription) +
+    Number(gaps.missingPhone) +
+    Number(gaps.missingTags) +
+    (packagesMissingPhotos.length > 0 ? 1 : 0);
+  const completenessScore = Math.round(((AUDIT_GAP_COUNT - gapCount) / AUDIT_GAP_COUNT) * 100);
+
+  return { gaps, completenessScore };
+}
+
+// Read-only feed for the Unclaimed Profile Quality routine: a capped,
+// worst-first batch of published unclaimed Supplier Bot profiles together
+// with their real data-quality gaps, so that routine can decide what to
+// re-crawl and fix without re-deriving completeness rules itself from raw
+// supplier/package records. Never writes anything -- fixes still go back
+// through the existing idempotent POST /internal/supplier-bot/suppliers
+// refresh path above.
+router.post(
+  '/internal/supplier-bot/suppliers/audit-queue',
+  verifySupplierBotHmac,
+  async (req, res) => {
+    try {
+      if (!dbUnified) {
+        return res.status(503).json({ error: 'Database unavailable' });
+      }
+      const rawLimit = Number(req.body?.limit);
+      const limit =
+        Number.isFinite(rawLimit) && rawLimit > 0
+          ? Math.min(Math.floor(rawLimit), MAX_AUDIT_QUEUE_LIMIT)
+          : DEFAULT_AUDIT_QUEUE_LIMIT;
+
+      // Lets a caller that already attempted (and couldn't improve) a
+      // profile's worst offenders exclude them this call, so a persistently
+      // unfixable gap can't monopolise every worst-first batch forever and
+      // starve the rest of the queue of ever being seen.
+      const excludeSupplierIds = new Set(
+        (Array.isArray(req.body?.excludeSupplierIds) ? req.body.excludeSupplierIds : [])
+          .slice(0, MAX_AUDIT_EXCLUDE_IDS)
+          .map(id => String(id))
+      );
+
+      const [suppliers, allPackages] = await Promise.all([
+        dbUnified.read('suppliers'),
+        dbUnified.read('packages'),
+      ]);
+      const published = (suppliers || []).filter(
+        supplier =>
+          isPublishedUnclaimedSupplierBotProfile(supplier) &&
+          !excludeSupplierIds.has(String(supplier.id))
+      );
+
+      const packagesBySupplier = new Map();
+      for (const pkg of allPackages || []) {
+        if (!pkg || pkg.acquisition?.source !== 'supplier_bot') {
+          continue;
+        }
+        const supplierKey = pkg.supplierId || pkg.supplier_id;
+        if (!supplierKey) {
+          continue;
+        }
+        const key = String(supplierKey);
+        if (!packagesBySupplier.has(key)) {
+          packagesBySupplier.set(key, []);
+        }
+        packagesBySupplier.get(key).push(pkg);
+      }
+
+      const audited = published.map(supplier => {
+        const packages = packagesBySupplier.get(String(supplier.id)) || [];
+        const { gaps, completenessScore } = supplierQualityGaps(supplier, packages);
+        return {
+          supplierId: supplier.id,
+          candidateId: supplier.acquisition?.candidateId || null,
+          website: supplier.website,
+          slug: supplier.slug,
+          name: supplier.name,
+          publicationScope: supplier.acquisition?.publicationScope || null,
+          publishedUnclaimedAt: supplier.acquisition?.publishedUnclaimedAt || null,
+          completenessScore,
+          gaps,
+        };
+      });
+
+      const needsWork = audited.filter(item => item.completenessScore < 100);
+      const queue = needsWork
+        .slice()
+        .sort((a, b) => a.completenessScore - b.completenessScore)
+        .slice(0, limit);
+
+      return res.json({
+        totalPublished: published.length,
+        totalNeedingWork: needsWork.length,
+        queue,
+      });
+    } catch (error) {
+      logger.error('Supplier Bot audit-queue failed:', error);
+      return res.status(500).json({ error: 'Supplier Bot audit-queue failed' });
+    }
+  }
+);
 
 router.post('/supplier-bot/claims/:supplierId', csrfProtection, async (req, res) => {
   try {
