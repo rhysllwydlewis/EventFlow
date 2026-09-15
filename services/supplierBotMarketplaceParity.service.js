@@ -4,7 +4,12 @@ const crypto = require('crypto');
 const catalogCache = require('./catalogCache');
 const { isPublishedUnclaimedSupplierBotProfile } = require('./supplierBotPilotVisibility.util');
 
-const MAX_PUBLIC_BOT_PACKAGES = 10;
+// Matches the Starter/free plan's real 3-active-package cap (routes/packages.js,
+// config/billingPlans.js PLAN_PRESENTATION.free). Unclaimed bot listings show a
+// "Starter" badge (they carry no subscription.tier), so the packages they can
+// display must be capped the same way a real Starter supplier's would be --
+// otherwise the badge misrepresents what the listing actually offers.
+const MAX_PUBLIC_BOT_PACKAGES = 3;
 const MIN_PACKAGE_CONFIDENCE = 85;
 const PACKAGE_KINDS = new Set(['advertised_package', 'priced_service']);
 
@@ -160,7 +165,11 @@ function sourceRefreshKey(supplier) {
   );
 }
 
-function sourcePackageRecords(supplier, now = new Date().toISOString()) {
+function sourcePackageRecords(supplier, now = new Date().toISOString(), options = {}) {
+  // typeof, not Number.isFinite: Infinity is a legitimate "no cap" override
+  // (used to compute the full still-on-source-site set) and Number.isFinite(Infinity)
+  // is false, which would silently fall back to the default cap below.
+  const limit = typeof options.limit === 'number' ? options.limit : MAX_PUBLIC_BOT_PACKAGES;
   const acquisition = supplier?.acquisition || {};
   const sourcePackages = Array.isArray(acquisition.sourcePackages)
     ? acquisition.sourcePackages
@@ -176,7 +185,7 @@ function sourcePackageRecords(supplier, now = new Date().toISOString()) {
   return sourcePackages
     .map(normalizePublishableSourcePackage)
     .filter(Boolean)
-    .slice(0, MAX_PUBLIC_BOT_PACKAGES)
+    .slice(0, limit)
     .map((item, index) => {
       const normalizedTitle = slugify(item.title) || 'package';
       const occurrence = (occurrences.get(normalizedTitle) || 0) + 1;
@@ -235,6 +244,12 @@ function sameValue(left, right) {
 
 async function syncBotPackages({ dbUnified, supplier, now }) {
   const desired = sourcePackageRecords(supplier, now);
+  // Uncapped, so a package that's still genuinely present on the source site
+  // but now falls outside MAX_PUBLIC_BOT_PACKAGES can be told apart from one
+  // that has actually disappeared from the source.
+  const stillValidIds = new Set(
+    sourcePackageRecords(supplier, now, { limit: Infinity }).map(pkg => String(pkg.id))
+  );
   const allPackages = (await dbUnified.read('packages')) || [];
   const current = allPackages.filter(
     pkg =>
@@ -293,6 +308,30 @@ async function syncBotPackages({ dbUnified, supplier, now }) {
 
   for (const existing of current) {
     if (desiredIds.has(String(existing.id)) || existing.approved === false) {
+      continue;
+    }
+
+    // Still genuinely on the source site -- just beyond the (lowered) publish
+    // cap. This isn't the transient-crawl-miss case the two-strike flow below
+    // guards against, so it doesn't need to wait for it: retire immediately.
+    if (stillValidIds.has(String(existing.id))) {
+      await dbUnified.updateOne(
+        'packages',
+        { id: existing.id },
+        {
+          $set: {
+            approved: false,
+            paused: true,
+            retiredAt: now,
+            acquisition: {
+              ...(existing.acquisition || {}),
+              retiredReason: 'exceeds_bot_package_cap',
+            },
+            updatedAt: now,
+          },
+        }
+      );
+      changed = true;
       continue;
     }
 

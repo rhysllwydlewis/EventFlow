@@ -528,6 +528,10 @@ async function listSuppliers(params = {}) {
   return d.items || [];
 }
 
+// skipcq: JS-R1005 -- Supplier-card rendering intentionally centralises badge
+// priority and compatibility rules (mirrors verification-badges.js); the
+// complexity is inherent to that, not something a structural split would
+// remove without duplicating the ordering logic across pieces.
 function supplierCard(s, user) {
   const showAddAccount = !!user && user.role === 'customer';
   const alreadyLocal = lsGet().includes(s.id);
@@ -563,31 +567,33 @@ function supplierCard(s, user) {
     );
   }
 
-  // Pro/Pro Plus tier, resolved before the Featured check below since a
-  // legacy stored `subscriptionTier: 'featured'` value (still read by
-  // normalizeSubscriptionTier() above and by package-list.js /
-  // lead-quality-helper.js) is itself one of the signals that counts as
-  // Featured.
-  const tier =
-    s.subscriptionTier ||
-    (s.subscription && s.subscription.tier) ||
-    (s.isPro || s.pro ? 'pro' : null);
+  // Raw stored tier value, kept only to detect the legacy `subscriptionTier:
+  // 'featured'` sentinel (still read by package-list.js / lead-quality-helper.js)
+  // below -- resolved before the Featured check since that sentinel is itself
+  // one of the signals that counts as Featured.
+  const rawTier = s.subscriptionTier || s.subscription?.tier || null;
 
   // Featured badge -- a curation flag, not a subscription tier, so it's
   // checked independently of the tier ladder (a supplier is never "on the
   // featured tier"; tier and Featured can both be true at once). Two live
   // sources: the modern package-level flag (featuredSupplier, joined by the
   // API from the packages collection) and the legacy stored tier value.
-  if (s.featured || s.featuredSupplier || tier === 'featured') {
+  if (s.featured || s.featuredSupplier || rawTier === 'featured') {
     supplierBadges.push('<span class="badge badge-featured">Featured</span>');
   }
 
-  if (tier === 'pro_plus') {
-    supplierBadges.push('<span class="badge badge-pro-plus">Pro Plus</span>');
-  } else if (tier === 'pro') {
-    supplierBadges.push('<span class="badge badge-pro">Pro</span>');
-  } else if (tier !== 'featured') {
-    supplierBadges.push('<span class="badge badge-starter">Starter</span>');
+  // Starter/Pro/Pro Plus badge -- shared with lead-quality-helper.js,
+  // package-list.js and supplier-profile.js via EFTierIcon
+  // (utils/tier-icon.js) so the label can't drift between them.
+  // (admin-suppliers-init.js keeps its own resolution -- it also has to
+  // recognise a legacy 'cancelled' subscription.tier value, which this
+  // shared resolver doesn't.)
+  if (rawTier !== 'featured') {
+    supplierBadges.push(
+      typeof EFTierIcon !== 'undefined'
+        ? EFTierIcon.renderBadge(s)
+        : '<span class="badge badge-starter">Starter</span>'
+    );
   }
 
   // Verification badges
