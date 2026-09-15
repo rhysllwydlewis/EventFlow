@@ -45,6 +45,7 @@ is actually followed, in full, every time:
 
 Do not merge, and instead leave the PR open with a clear comment explaining
 why, only when:
+
 - Tests cannot honestly be made green after real effort (not a flake — see
   the known-flake note below).
 - Completing the work genuinely requires something this routine cannot do
@@ -68,9 +69,15 @@ dashboard to diagnose, not more pushes.
 
 ## Backlog
 
-- [ ] Carried over from the old forum routine: `/community/discussions` and
+- [x] Carried over from the old forum routine: `/community/discussions` and
       `/community/search` still use the old `.efc-hero` band and look like a
       different site next to the redesigned homepage (redesigned in #1431).
+      Done in PR #1669 (2026-09-15) — see session log.
+- [ ] `/community/category/:slug` still has no hero at all (noted as an open
+      question in the old forum routine's handoff, never picked up). Decide
+      whether it gets the same standalone `stageHero()` card #1669 gave the
+      other two sibling pages, or stays bare because a category page is
+      reached mid-browse rather than as a landing page.
 - [ ] General site-wide sweep: with no specific backlog item pending, spend
       the session looking for real defects anywhere in the product — broken
       flows, poor states, accessibility issues, inconsistent UI, missing
@@ -78,8 +85,22 @@ dashboard to diagnose, not more pushes.
 
 ## Discovered along the way
 
-(Empty — add anything found that isn't today's task, with enough detail for
-a future session to act on it without re-discovering it from scratch.)
+- **`npm test` requires `npm install` first in a fresh checkout/container.**
+  `node_modules` was not present at the start of this session despite a
+  committed `package-lock.json` — `npx jest` happened to still run a subset
+  of tests (enough to look like it worked), but `npm test` failed outright
+  with `jest: not found` until `npm install` was run. Not a bug in the repo,
+  just a trap for a cold session: run `npm install` before trusting any test
+  output, especially a partial one from `npx`.
+- **`tests/unit/marketplace-image-deletion.test.js` times out in this sandbox.**
+  `deleteMarketplaceImages should return 0 when MongoDB is not available`
+  tries to make a real connection to a MongoDB host
+  (`hayabusa.proxy.rlwy.net`) and hits Jest's 10s timeout when that host is
+  unreachable from the container. Reproduced identically on `main` with no
+  changes applied, so it is an environment/connectivity limitation of this
+  sandbox, not a defect in the test or the code it covers. If it shows up
+  red in an environment that _does_ have DB access, treat it as real; here,
+  it isn't.
 
 ## History
 
@@ -92,5 +113,55 @@ the policy above.
 
 ## Session log
 
-(Empty — each run appends a dated entry: what changed, what's green, what's
-still open, anything needing a decision.)
+### 2026-09-15 — session 1
+
+First run of the consolidated dev-ops routine. Branch had only the handoff
+doc itself (no PR yet), so re-based it onto latest `main` (a clean merge, no
+conflicts) and picked the top backlog item: carry the redesigned community
+hero to `/community/discussions` and `/community/search`.
+
+**What changed.** Added `stageHero()` to `scripts/generate-community-pages.mjs`
+— the same `.efc-stage__card` component the homepage uses (badge, heading,
+lead, search, CTA), without the homepage's flanking rails/category
+strip/join bar. Those simply aren't emitted for the two sibling pages;
+CSS grid centres the lone card on its own rather than anything faking an
+empty rail. `/community/discussions` gained a working hero search field it
+never had, wired to the existing (already mode-agnostic) `#efc-search-input`
+sync in `discussions.js`. Removed the now-dead `.efc-hero`/`.efc-hero__inner`/
+`.efc-hero p`/`.efc-hero__actions`/`.efc-search` CSS that only the old band
+used — kept `.efc-shell h1` and the shared `.efc-field` focus rules, which
+apply across the whole community section, not just the hero.
+
+**Verified before opening the PR:** `generate-community-pages.mjs --check`
+reports no drift; full `npm test` — 12182 passing, the only failure being the
+pre-existing MongoDB-connectivity timeout noted above (confirmed unrelated by
+reproducing it on `main` with these changes stashed); axe scan clean (zero
+violations) on both pages at 1440px; Playwright screenshot sweep at
+390/768/1440px on both pages, no horizontal overflow, mobile search button
+keeps its fixed width via the existing `.efc-searchbtn` carve-out.
+
+**Independent review pass (before merge):** re-read the diff cold. Checked
+that `.efc-hero`/`.efc-search` had no other references anywhere in the repo
+(HTML, other CSS, tests) before deleting their rules — confirmed via grep.
+Checked the shared `.efc-hero h1, .efc-shell h1` selector wasn't accidentally
+gutted — kept `.efc-shell h1` alone, since it's load-bearing for h1 sizing
+across every community page, not just the old hero band. Checked the search
+form's target (`/community/search`, matching the homepage's own hero search)
+rather than a self-filtering submit to `/community/discussions` — the
+existing product already funnels every hero search box to the one canonical
+search results page, so this follows that precedent rather than inventing
+new, untested in-place filtering behaviour on the index page.
+
+**Status at hand-off:** PR #1669 opened
+(https://github.com/rhysllwydlewis/EventFlow/pull/1669), CI just started
+(all checks queued, none reported yet), subscribed to PR activity so this
+account will keep driving it — will merge once CI is green per the merge
+policy above; if CI turns up a real (non-DeepSource) failure it'll be fixed
+and re-pushed before merging, not left open.
+
+**Next, if this session doesn't get to merge:** check PR #1669 first — CI
+may have finished. If it's green with no review comments, merge it. If red,
+diagnose per the merge policy (DeepSource JavaScript is the one known,
+already-investigated false positive — see above, don't re-chase it). Once
+#1669 is closed out, the next open item is `/community/category/:slug`'s
+missing hero (see backlog), then the general site-wide sweep.
