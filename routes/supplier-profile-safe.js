@@ -26,7 +26,11 @@ const {
 } = require('../services/supplierBotMarketplaceParity.service');
 const { lifecycleBlockReason } = require('../services/seoRecordLifecycle.util');
 const { isPlaceholderImage, resolvePackageImage } = require('../utils/packageImageUtils');
-const { safePublicPackage, safePublicSupplier } = require('../utils/supplierPublicProfile');
+const {
+  safePhone,
+  safePublicPackage,
+  safePublicSupplier,
+} = require('../utils/supplierPublicProfile');
 const { addPublicProfilePath } = require('../utils/publicSupplierProfilePath');
 const { supplierSlugToken } = require('../services/publicSupplierSeo.service');
 const {
@@ -352,6 +356,7 @@ router.post('/internal/supplier-bot/suppliers/lookup', verifySupplierBotHmac, as
 
 const MAX_AUDIT_QUEUE_LIMIT = 50;
 const DEFAULT_AUDIT_QUEUE_LIMIT = 20;
+const MAX_AUDIT_EXCLUDE_IDS = 500;
 const AUDIT_GAP_COUNT = 7; // keep in sync with the gap fields set in supplierQualityGaps()
 
 // Scores one published unclaimed profile's real data gaps -- missing cover/
@@ -359,25 +364,53 @@ const AUDIT_GAP_COUNT = 7; // keep in sync with the gap fields set in supplierQu
 // image resolves to the public placeholder -- against the same fields the
 // public profile and package cards actually render, so a gap reported here
 // is a gap a visitor would actually see, not a false positive off stale
-// acquisition bookkeeping.
+// acquisition bookkeeping. Resolves cover/gallery/package-fallback the same
+// way the public routes do (publishedUnclaimedPresentationSupplier), rather
+// than reading acquisition.sourceMedia directly, so a canonical/admin-
+// corrected field takes precedence exactly like it does for a real visitor.
 function supplierQualityGaps(supplier, packages) {
-  const acquisition = supplier?.acquisition || {};
-  const sourceMedia =
-    acquisition.sourceMedia && typeof acquisition.sourceMedia === 'object'
-      ? acquisition.sourceMedia
-      : {};
-  const hasCoverImage = Boolean(supplier?.coverImage || sourceMedia.coverImage);
-  const galleryCount = Array.isArray(sourceMedia.images) ? sourceMedia.images.length : 0;
+  const presentation = publishedUnclaimedPresentationSupplier(supplier);
+  const hasCoverImage = Boolean(presentation.coverImage || presentation.bannerUrl);
+  // presentation.photosGallery and presentation.images each independently
+  // fall back to acquisition.sourceMedia.images only when their own
+  // same-named canonical field is empty -- so a profile with real photos in
+  // one canonical field but not the other (e.g. images set, photosGallery
+  // never populated) can have one of these resolve non-empty while the
+  // other resolves to sourceMedia's own (possibly empty) list. Neither
+  // field is reliably a superset of the other, so take whichever is larger
+  // rather than treating photosGallery as authoritative.
+  const galleryCount = Math.max(
+    Array.isArray(presentation.photosGallery) ? presentation.photosGallery.length : 0,
+    Array.isArray(presentation.images) ? presentation.images.length : 0
+  );
   const description = String(supplier?.description || '').trim();
-  const packagesMissingPhotos = packages
-    .filter(pkg => isPlaceholderImage(pkg?.image))
-    .map(pkg => ({ id: pkg.id, title: pkg.title || null }));
+
+  // Packages retired by marketplace-parity reconciliation (approved:false)
+  // are excluded from public package-card queries, so they must be excluded
+  // here too -- otherwise a retired package with no photo can permanently
+  // keep an otherwise-complete supplier in this queue.
+  const materializedPackages = packages.filter(pkg => pkg && pkg.approved !== false);
+  const packagesMissingPhotos =
+    materializedPackages.length > 0
+      ? materializedPackages
+          .filter(pkg => isPlaceholderImage(resolvePackageImage(pkg)))
+          .map(pkg => ({ id: pkg.id, title: pkg.title || null }))
+      : // No materialised package record yet (pending the startup
+        // reconciliation/backfill) -- the public package-cards route falls
+        // back to rendering acquisition.sourcePackages evidence cards
+        // directly, and that fallback never carries an image field, so
+        // every one of them is a real missing-photo gap a visitor sees
+        // today, not an absence of packages.
+        (Array.isArray(presentation.topPackages) ? presentation.topPackages : []).map(pkg => ({
+          id: pkg.id,
+          title: pkg.title || pkg.name || null,
+        }));
 
   const gaps = {
     missingCoverImage: !hasCoverImage,
     missingGalleryImages: galleryCount === 0,
     missingDescription: description.length < 20,
-    missingPhone: !String(supplier?.phone || '').trim(),
+    missingPhone: !safePhone(supplier?.phone),
     missingEmail: !String(supplier?.email || '').trim(),
     missingTags: !Array.isArray(supplier?.tags) || supplier.tags.length === 0,
     packagesMissingPhotos,
@@ -417,18 +450,36 @@ router.post(
           ? Math.min(Math.floor(rawLimit), MAX_AUDIT_QUEUE_LIMIT)
           : DEFAULT_AUDIT_QUEUE_LIMIT;
 
+      // Lets a caller that already attempted (and couldn't improve) a
+      // profile's worst offenders exclude them this call, so a persistently
+      // unfixable gap can't monopolise every worst-first batch forever and
+      // starve the rest of the queue of ever being seen.
+      const excludeSupplierIds = new Set(
+        (Array.isArray(req.body?.excludeSupplierIds) ? req.body.excludeSupplierIds : [])
+          .slice(0, MAX_AUDIT_EXCLUDE_IDS)
+          .map(id => String(id))
+      );
+
       const [suppliers, allPackages] = await Promise.all([
         dbUnified.read('suppliers'),
         dbUnified.read('packages'),
       ]);
-      const published = (suppliers || []).filter(isPublishedUnclaimedSupplierBotProfile);
+      const published = (suppliers || []).filter(
+        supplier =>
+          isPublishedUnclaimedSupplierBotProfile(supplier) &&
+          !excludeSupplierIds.has(String(supplier.id))
+      );
 
       const packagesBySupplier = new Map();
       for (const pkg of allPackages || []) {
         if (!pkg || pkg.acquisition?.source !== 'supplier_bot') {
           continue;
         }
-        const key = String(pkg.supplierId);
+        const supplierKey = pkg.supplierId || pkg.supplier_id;
+        if (!supplierKey) {
+          continue;
+        }
+        const key = String(supplierKey);
         if (!packagesBySupplier.has(key)) {
           packagesBySupplier.set(key, []);
         }

@@ -265,4 +265,177 @@ describe('Supplier Bot unclaimed-profile quality audit queue', () => {
     expect(response.status).toBe(200);
     expect(response.body.queue).toHaveLength(3);
   });
+
+  it('excludes a retired (unapproved) package from the photo gap instead of letting it block the supplier forever', async () => {
+    const dbUnified = memoryDb({
+      suppliers: [publishedUnclaimedSupplier()],
+      packages: [
+        {
+          id: 'pkg_retired',
+          supplierId: 'sup_bot_1',
+          title: 'Old Package',
+          image: '',
+          approved: false,
+          acquisition: { source: 'supplier_bot' },
+        },
+      ],
+    });
+    const app = createApp(dbUnified);
+
+    const response = await auditQueue(app);
+
+    expect(response.body.totalNeedingWork).toBe(0);
+    expect(response.body.queue).toEqual([]);
+  });
+
+  it('resolves a package image through gallery/images fallbacks instead of only the raw image field', async () => {
+    const dbUnified = memoryDb({
+      suppliers: [publishedUnclaimedSupplier()],
+      packages: [
+        {
+          id: 'pkg_gallery_fallback',
+          supplierId: 'sup_bot_1',
+          title: 'Has Gallery Photo',
+          image: '',
+          gallery: [{ url: 'https://complete-photography.example/gallery-package.jpg' }],
+          acquisition: { source: 'supplier_bot' },
+        },
+      ],
+    });
+    const app = createApp(dbUnified);
+
+    const response = await auditQueue(app);
+
+    expect(response.body.totalNeedingWork).toBe(0);
+    expect(response.body.queue).toEqual([]);
+  });
+
+  it('treats an unusable phone value (fails public safePhone validation) as missing', async () => {
+    const dbUnified = memoryDb({
+      suppliers: [
+        publishedUnclaimedSupplier({ id: 'sup_bad_phone', phone: 'N/A', slug: 'bad-phone' }),
+      ],
+      packages: [
+        {
+          id: 'pkg_1',
+          supplierId: 'sup_bad_phone',
+          title: 'Full Day Coverage',
+          image: 'https://complete-photography.example/package-1.jpg',
+          acquisition: { source: 'supplier_bot' },
+        },
+      ],
+    });
+    const app = createApp(dbUnified);
+
+    const response = await auditQueue(app);
+
+    expect(response.body.totalNeedingWork).toBe(1);
+    expect(response.body.queue[0].gaps.missingPhone).toBe(true);
+  });
+
+  it('reads the gallery from canonical images/photosGallery fields, not only acquisition.sourceMedia', async () => {
+    const dbUnified = memoryDb({
+      suppliers: [
+        publishedUnclaimedSupplier({
+          id: 'sup_canonical_gallery',
+          slug: 'canonical-gallery',
+          images: ['https://complete-photography.example/canonical-1.jpg'],
+          acquisition: {
+            source: 'supplier_bot',
+            candidateId: 'cand_canonical',
+            publicationScope: 'public_unclaimed',
+            sourceMedia: {
+              coverImage: 'https://complete-photography.example/cover.jpg',
+              images: [],
+            },
+          },
+        }),
+      ],
+      packages: [
+        {
+          id: 'pkg_1',
+          supplierId: 'sup_canonical_gallery',
+          title: 'Full Day Coverage',
+          image: 'https://complete-photography.example/package-1.jpg',
+          acquisition: { source: 'supplier_bot' },
+        },
+      ],
+    });
+    const app = createApp(dbUnified);
+
+    const response = await auditQueue(app);
+
+    expect(response.body.totalNeedingWork).toBe(0);
+    expect(response.body.queue).toEqual([]);
+  });
+
+  it('flags every sourcePackages evidence card as a photo gap when no package has been materialised yet', async () => {
+    const dbUnified = memoryDb({
+      suppliers: [
+        publishedUnclaimedSupplier({
+          id: 'sup_pending_reconciliation',
+          slug: 'pending-reconciliation',
+          acquisition: {
+            source: 'supplier_bot',
+            candidateId: 'cand_pending',
+            publicationScope: 'public_unclaimed',
+            sourceMedia: {
+              coverImage: 'https://complete-photography.example/cover.jpg',
+              images: ['https://complete-photography.example/gallery-1.jpg'],
+            },
+            sourcePackages: [{ name: 'Full Day Coverage', price: '£1,200' }],
+          },
+        }),
+      ],
+      packages: [],
+    });
+    const app = createApp(dbUnified);
+
+    const response = await auditQueue(app);
+
+    expect(response.body.totalNeedingWork).toBe(1);
+    expect(response.body.queue[0].gaps.packagesMissingPhotos).toEqual([
+      { id: 'supplier-bot-package-1', title: 'Full Day Coverage' },
+    ]);
+  });
+
+  it('groups a legacy package stored under supplier_id (not supplierId) with its owning supplier', async () => {
+    const dbUnified = memoryDb({
+      suppliers: [publishedUnclaimedSupplier({ id: 'sup_legacy', slug: 'legacy' })],
+      packages: [
+        {
+          id: 'pkg_legacy',
+          supplier_id: 'sup_legacy',
+          title: 'Legacy Package',
+          image: '',
+          acquisition: { source: 'supplier_bot' },
+        },
+      ],
+    });
+    const app = createApp(dbUnified);
+
+    const response = await auditQueue(app);
+
+    expect(response.body.totalNeedingWork).toBe(1);
+    expect(response.body.queue[0].gaps.packagesMissingPhotos).toEqual([
+      { id: 'pkg_legacy', title: 'Legacy Package' },
+    ]);
+  });
+
+  it('excludes supplier ids the caller already attempted this run via excludeSupplierIds', async () => {
+    const dbUnified = memoryDb({
+      suppliers: [
+        publishedUnclaimedSupplier({ id: 'sup_a', slug: 'a', description: 'Too short' }),
+        publishedUnclaimedSupplier({ id: 'sup_b', slug: 'b', description: 'Too short' }),
+      ],
+      packages: [],
+    });
+    const app = createApp(dbUnified);
+
+    const response = await auditQueue(app, { excludeSupplierIds: ['sup_a'] });
+
+    expect(response.status).toBe(200);
+    expect(response.body.totalPublished).toBe(1);
+    expect(response.body.queue.map(item => item.supplierId)).toEqual(['sup_b']);
+  });
 });
