@@ -95,11 +95,9 @@ dashboard to diagnose, not more pushes.
       `/community/search` still use the old `.efc-hero` band and look like a
       different site next to the redesigned homepage (redesigned in #1431).
       Done in PR #1669 (2026-09-15) — see session log.
-- [ ] `/community/category/:slug` still has no hero at all (noted as an open
-      question in the old forum routine's handoff, never picked up). Decide
-      whether it gets the same standalone `stageHero()` card #1669 gave the
-      other two sibling pages, or stays bare because a category page is
-      reached mid-browse rather than as a landing page.
+- [x] `/community/category/:slug` still has no hero at all (noted as an open
+      question in the old forum routine's handoff, never picked up). Decided
+      and done in this session — see session log below.
 - [ ] General site-wide sweep: with no specific backlog item pending, spend
       the session looking for real defects anywhere in the product — broken
       flows, poor states, accessibility issues, inconsistent UI, missing
@@ -134,6 +132,75 @@ now, this broader routine covers the whole site and merges autonomously under
 the policy above.
 
 ## Session log
+
+### 2026-09-16 — session 2
+
+Branch's last PR (#1671) was already merged into `main`, so restarted
+`claude/eventflow-devops` from latest `main` (clean, no unmerged commits to
+carry over). No open PR, no red CI, no review comments waiting — moved to
+the next backlog item: `/community/category/:slug`'s missing hero.
+
+**Decision.** Category pages are true landing pages — indexable, with their
+own canonical URL, meta description and breadcrumb structured data, same as
+`/community/discussions` and `/community/search` — so leaving them
+completely bare (the "reached mid-browse" alternative in the backlog note)
+didn't hold up. But they're not a good fit for the _generic_ `stageHero()`
+card either: `#efc-category-header` is JS-rendered per category with real
+functional content — icon + name, description, a category rules notice, a
+marketplace-safety notice, discussion/follower counts and a follow button —
+that a generic badge/heading/lead/search/CTA card has no room for.
+
+**What changed.** Gave `#efc-category-header` the same glass-card surface
+the homepage's preview rail cards (`.efc-preview`) already use — translucent
+background, border, shadow, backdrop-filter behind an `@supports` guard —
+via a new `.efc-category-hero` class, added in
+`scripts/generate-community-pages.mjs`'s body definition for
+`community-category.html` and in `public/assets/css/community.css`. Kept it
+in place inside `.efc-shell` rather than moving it into a full-bleed
+`.efc-stage` band above the shell (what the other two pages use): the header
+is empty until discussions.js's category API call resolves, and a full-bleed
+decorative band would paint as an empty band during that window, and
+permanently for anyone without JavaScript. `.efc-category-hero:empty {
+display: none; }` hides it in exactly that window, the same pattern
+`.efc-rail:empty` already uses for the homepage's rails. Bumped
+`community.css` to 18.6.2 (cache-busting) and regenerated all twelve
+community shells from the template so the committed files and the generator
+can't drift.
+
+**Verified before opening the PR.** `generate-community-pages.mjs --check`
+reports no drift. Full `npm test` (after `npm install` — `node_modules` was
+missing in this fresh checkout, as previously noted below): 12202 passing,
+one failure, the same pre-existing MongoDB-connectivity timeout in
+`marketplace-image-deletion.test.js` already documented below as an
+environment limitation, not a regression. Built a standalone static preview
+of the real category-header markup (heading, both notice types, counts,
+follow button) against the actual `community.css`, screenshotted it at
+390px and 1440px with Playwright — clean, legible, no overflow or
+overlap — and ran an axe-core scan against it: zero violations on the real
+content (the two contrast findings axe reported were on my own throwaway
+`color:#888` placeholder text standing in for the results/filters slots,
+not on anything shipped). Separately confirmed the `:empty` fallback
+actually applies (`getComputedStyle` reported `display: none` on the header
+with no children).
+
+**Independent review pass (before merge):** re-read the diff cold. Checked
+`#efc-category-header` isn't targeted by any other CSS rule that could fight
+the new class (grepped — only the one ID reference exists, in
+discussions.js's `getElementById`, which doesn't care about classes).
+Checked no other shell or script hardcodes the old `community.css?v=18.6.1`
+query string that regenerating would leave stale (none). Confirmed the
+route's `fallbackHeading()` no-JS-heading logic is unaffected: the shell
+still has no static `<h1>` (the category name is JS-injected, same as
+before), so the SSR fallback still correctly emits an `<h1>` rather than
+double-heading. Confirmed the change is additive only — no existing markup,
+IDs, or JS behaviour touched, just a class added and CSS added — so the
+already-passing `community-pages-access.test.js` suite (which renders this
+exact shell through the real route with a mocked DB) is a genuine, not
+coincidental, pass.
+
+**Outcome:** merge and deploy-verification result to be recorded once CI
+and the merge complete — see next entry if this session continues, or the
+following session's log if it doesn't.
 
 ### 2026-09-15 — session 1
 

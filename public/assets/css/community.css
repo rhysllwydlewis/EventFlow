@@ -898,6 +898,37 @@
   line-height: 1.25;
 }
 
+/* ── Category page header ─────────────────────────────────────────────────
+   `/community/category/:slug` had no card treatment at all above its
+   discussion list, unlike every other landing page in the section (home,
+   discussions, search), which all lead with a glass hero card. It isn't
+   given the same full-bleed `.efc-stage` band those pages use, because its
+   heading, description, rules notice, follower count and follow button are
+   category-specific and only rendered by discussions.js once the category
+   API call resolves — a full-bleed hero would paint as an empty decorative
+   band before that, and permanently for anyone without JavaScript. Instead
+   it gets the smaller in-shell card treatment `.efc-preview` already uses,
+   and `:empty` hides it while there is nothing inside to show, the same
+   pattern `.efc-rail:empty` uses above for the homepage's rails. */
+.efc-category-hero {
+  padding: 1.5rem;
+  border-radius: 20px;
+  background: var(--efc-glass-bg-strong);
+  border: var(--efc-glass-border);
+  box-shadow: var(--efc-glass-shadow-sm);
+}
+
+.efc-category-hero:empty {
+  display: none;
+}
+
+@supports (backdrop-filter: blur(8px)) or (-webkit-backdrop-filter: blur(8px)) {
+  .efc-category-hero {
+    -webkit-backdrop-filter: var(--efc-glass-blur-sm);
+    backdrop-filter: var(--efc-glass-blur-sm);
+  }
+}
+
 .efc-field input:focus-visible,
 .efc-field select:focus-visible,
 .efc-field textarea:focus-visible {
