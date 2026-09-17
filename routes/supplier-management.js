@@ -100,18 +100,19 @@ const normaliseWebsiteUrl = rawValue => {
     return '';
   }
   const candidate = /^https?:\/\//i.test(raw) ? raw : `https://${raw}`;
-  let href;
-  try {
-    const parsed = new URL(candidate);
-    if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
-      throw new Error('unsupported protocol');
+  const href = (() => {
+    try {
+      const parsed = new URL(candidate);
+      if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+        throw new Error('unsupported protocol');
+      }
+      return parsed.href;
+    } catch {
+      const error = new Error('Website must be a valid http or https URL');
+      error.name = 'ValidationError';
+      throw error;
     }
-    href = parsed.href;
-  } catch {
-    const error = new Error('Website must be a valid http or https URL');
-    error.name = 'ValidationError';
-    throw error;
-  }
+  })();
   if (href.length > 200) {
     const error = new Error('Website URL must be 200 characters or fewer');
     error.name = 'ValidationError';
