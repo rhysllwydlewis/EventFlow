@@ -13,6 +13,7 @@ const { buildSupplierThemeMutation } = require('../utils/supplierTheme');
 const photoUpload = require('../photo-upload');
 const supplierLocation = require('../services/supplierLocation.service');
 const { MAPPING_SOURCES } = require('../models/LocationContent');
+const { VALID_CATEGORIES } = require('../models/Supplier');
 const { auditLog, AUDIT_ACTIONS } = require('../middleware/audit');
 const subscriptionService = require('../services/subscriptionService');
 const router = express.Router();
@@ -83,6 +84,33 @@ const normaliseStoredBannerUrl = value => {
   const error = new Error('Banner must be an uploaded image or a valid http/https image URL');
   error.name = 'ValidationError';
   throw error;
+};
+
+/**
+ * Normalise a supplier website URL: empty clears the field, a scheme-less
+ * domain is promoted to HTTPS, and only http/https survive. Anything else
+ * (javascript:, data:, malformed input) is rejected rather than silently
+ * truncated, so a save cannot report success while storing an unusable value.
+ * @param {string} rawValue Raw website input.
+ * @returns {string} Normalised URL, or '' to clear the field.
+ */
+const normaliseWebsiteUrl = rawValue => {
+  const raw = String(rawValue || '').trim();
+  if (!raw) {
+    return '';
+  }
+  const candidate = /^https?:\/\//i.test(raw) ? raw : `https://${raw}`;
+  try {
+    const parsed = new URL(candidate);
+    if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+      throw new Error('unsupported protocol');
+    }
+    return parsed.href.slice(0, 200);
+  } catch {
+    const error = new Error('Website must be a valid http or https URL');
+    error.name = 'ValidationError';
+    throw error;
+  }
 };
 
 const buildBannerPatch = async rawValue => {
@@ -385,8 +413,21 @@ router.post(
   // skipcq: JS-R1005 -- Existing create-route orchestration is regression-covered; decomposition is a separate refactor.
   async (req, res) => {
     const b = req.body || {};
-    if (!b.name || !b.category) {
+    const trimmedName = typeof b.name === 'string' ? b.name.trim() : '';
+    if (!trimmedName || !b.category) {
       return res.status(400).json({ error: 'Missing fields' });
+    }
+    if (!VALID_CATEGORIES.includes(b.category)) {
+      return res.status(400).json({ error: 'Invalid category' });
+    }
+
+    let websiteUrl = '';
+    if (typeof b.website === 'string' && b.website.trim()) {
+      try {
+        websiteUrl = normaliseWebsiteUrl(b.website);
+      } catch (error) {
+        return res.status(400).json({ error: error.message });
+      }
     }
 
     // Enforce 1:1 relationship: one supplier profile per user account.
@@ -453,11 +494,11 @@ router.post(
     const s = {
       id: uid('sup'),
       ownerUserId: req.user.id,
-      name: String(b.name).slice(0, 120),
+      name: trimmedName.slice(0, 120),
       category: b.category,
       location: String(b.location || '').slice(0, 120),
       price_display: String(b.price_display || '').slice(0, 60),
-      website: String(b.website || '').slice(0, 200),
+      website: websiteUrl,
       license: String(b.license || '').slice(0, 120),
       amenities,
       maxGuests: parseInt(b.maxGuests || 0, 10),
@@ -583,24 +624,51 @@ router.patch(
     }
     const b = req.body || {};
     const supplierPatch = {};
+    const supplierUnset = {};
 
-    // If updating a Venues category supplier with venuePostcode
+    // Required-field validation: an explicitly supplied name or category must
+    // not be allowed to trim to an empty string, and a category must be one
+    // of the platform's canonical values.
+    if (typeof b.name === 'string') {
+      const requestedName = b.name.trim();
+      if (!requestedName) {
+        return res.status(400).json({ error: 'Name cannot be empty' });
+      }
+    }
+    const requestedCategory = typeof b.category === 'string' ? b.category.trim() : undefined;
+    if (requestedCategory !== undefined) {
+      if (!requestedCategory) {
+        return res.status(400).json({ error: 'Category cannot be empty' });
+      }
+      if (!VALID_CATEGORIES.includes(requestedCategory)) {
+        return res.status(400).json({ error: 'Invalid category' });
+      }
+    }
+
+    // Compute the intended next category *before* validating/geocoding the
+    // venue postcode, so a category change and a postcode change submitted in
+    // the same request are validated against where the supplier is heading,
+    // not where it currently is.
+    const nextCategory = requestedCategory !== undefined ? requestedCategory : s.category;
+    const enteringVenues = nextCategory === 'Venues' && s.category !== 'Venues';
+    const remainingVenues = nextCategory === 'Venues' && s.category === 'Venues';
+    const leavingVenues = nextCategory !== 'Venues' && s.category === 'Venues';
+
     const requestedVenuePostcode =
       typeof b.venuePostcode === 'string' ? b.venuePostcode.trim().toUpperCase() : '';
-    const venuePostcodeChanged =
-      requestedVenuePostcode &&
-      comparableLocationInput('venuePostcode', requestedVenuePostcode) !==
-        comparableLocationInput('venuePostcode', s.venuePostcode);
-    if (venuePostcodeChanged && s.category === 'Venues') {
+
+    if (enteringVenues) {
+      if (!requestedVenuePostcode) {
+        return res.status(400).json({
+          error: 'Venue postcode is required for suppliers in the Venues category',
+        });
+      }
       if (!geocoding.isValidUKPostcode(requestedVenuePostcode)) {
         return res.status(400).json({
           error: 'Invalid UK postcode format',
         });
       }
-
-      // Update postcode and geocode
       supplierPatch.venuePostcode = requestedVenuePostcode;
-
       try {
         const coords = await geocoding.geocodePostcode(supplierPatch.venuePostcode);
         if (coords) {
@@ -614,6 +682,40 @@ router.patch(
       } catch (error) {
         logger.error('Geocoding error:', error);
       }
+    } else if (remainingVenues) {
+      const venuePostcodeChanged =
+        requestedVenuePostcode &&
+        comparableLocationInput('venuePostcode', requestedVenuePostcode) !==
+          comparableLocationInput('venuePostcode', s.venuePostcode);
+      if (venuePostcodeChanged) {
+        if (!geocoding.isValidUKPostcode(requestedVenuePostcode)) {
+          return res.status(400).json({
+            error: 'Invalid UK postcode format',
+          });
+        }
+
+        supplierPatch.venuePostcode = requestedVenuePostcode;
+
+        try {
+          const coords = await geocoding.geocodePostcode(supplierPatch.venuePostcode);
+          if (coords) {
+            supplierPatch.latitude = coords.latitude;
+            supplierPatch.longitude = coords.longitude;
+            supplierPatch.venuePostcode = coords.postcode;
+            logger.info(`✅ Geocoded venue ${s.name}: ${coords.latitude}, ${coords.longitude}`);
+          } else {
+            logger.warn(`⚠️ Could not geocode postcode ${supplierPatch.venuePostcode}`);
+          }
+        } catch (error) {
+          logger.error('Geocoding error:', error);
+        }
+      }
+    } else if (leavingVenues) {
+      // Stale venue-only location data must not survive a category change
+      // away from Venues.
+      supplierUnset.venuePostcode = 1;
+      supplierUnset.latitude = 1;
+      supplierUnset.longitude = 1;
     }
 
     // Banner uploads from the profile customiser arrive as data URLs. Persist
@@ -638,8 +740,23 @@ router.patch(
       }
     }
 
+    // Website URLs are truncated then rejected by the public serializer if
+    // they use an unsupported scheme, so a save could previously report
+    // success while the value silently disappeared after reload.
+    if (typeof b.website === 'string') {
+      if (!b.website.trim()) {
+        supplierPatch.website = '';
+      } else {
+        try {
+          supplierPatch.website = normaliseWebsiteUrl(b.website);
+        } catch (error) {
+          return res.status(400).json({ error: error.message });
+        }
+      }
+    }
+
     for (const [k, maxLen] of Object.entries(PATCH_FIELD_MAX_LENGTHS)) {
-      if (k === 'bannerUrl') {
+      if (k === 'bannerUrl' || k === 'website') {
         continue;
       }
       if (typeof b[k] === 'string') {
@@ -673,9 +790,11 @@ router.patch(
     }
     Object.assign(supplierPatch, themeMutation.set);
 
-    // Handle array fields
-    if (b.amenities) {
-      supplierPatch.amenities = String(b.amenities)
+    // Handle array fields. Presence, not truthiness, decides whether amenities
+    // are touched: an explicitly cleared (empty-string) field must write an
+    // empty array rather than leaving the previous amenities in place.
+    if (b.amenities !== undefined) {
+      supplierPatch.amenities = String(b.amenities || '')
         .split(',')
         .map(x => x.trim())
         .filter(Boolean);
@@ -755,14 +874,21 @@ router.patch(
 
     // Re-derive only when the supplier actually moved: a banner change should
     // not cost a geocoder call, and should not disturb an existing mapping.
-    if (hasLocationInputChanged(s, supplierPatch)) {
-      Object.assign(supplierPatch, await deriveSupplierGeography({ ...s, ...supplierPatch }));
+    // Leaving Venues always counts as a move, even though the unset venue
+    // fields live in supplierUnset rather than supplierPatch.
+    if (leavingVenues || hasLocationInputChanged(s, supplierPatch)) {
+      const supplierForDerivation = { ...s, ...supplierPatch };
+      for (const key of Object.keys(supplierUnset)) {
+        delete supplierForDerivation[key];
+      }
+      Object.assign(supplierPatch, await deriveSupplierGeography(supplierForDerivation));
     }
     // NOTE: do NOT touch approved here — supplier edits must never revoke approval.
     supplierPatch.updatedAt = new Date().toISOString();
+    const combinedUnset = { ...themeMutation.unset, ...supplierUnset };
     const update = { $set: supplierPatch };
-    if (Object.keys(themeMutation.unset).length > 0) {
-      update.$unset = themeMutation.unset;
+    if (Object.keys(combinedUnset).length > 0) {
+      update.$unset = combinedUnset;
     }
     const persisted = await dbUnified.updateOne('suppliers', { id: req.params.id }, update);
     if (!persisted) {
@@ -781,7 +907,7 @@ router.patch(
       .catch(e => logger.warn('[catalogCache] invalidate error:', e.message));
 
     const updatedSupplier = { ...s, ...supplierPatch };
-    Object.keys(themeMutation.unset).forEach(key => delete updatedSupplier[key]);
+    Object.keys(combinedUnset).forEach(key => delete updatedSupplier[key]);
     res.json({ ok: true, supplier: updatedSupplier });
   }
 );
