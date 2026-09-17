@@ -269,10 +269,12 @@ async function main() {
 
 if (require.main === module) {
   main()
-    .then(code => process.exit(code))
+    .then(code => {
+      process.exitCode = code;
+    })
     .catch(error => {
       console.error('Orphan supplier data audit failed:', error.message);
-      process.exit(1);
+      process.exitCode = 1;
     });
 }
 
