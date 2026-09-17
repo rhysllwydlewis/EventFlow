@@ -33,6 +33,7 @@ jest.mock('../../utils/logger', () => ({
 
 const {
   EXIT_CODES,
+  auditOrphanedSupplierData,
   checkPreconditions,
   resolveBackend,
 } = require('../../scripts/audit-orphaned-supplier-data');
@@ -81,6 +82,21 @@ describe('checkPreconditions', () => {
 
   it('allows a dry run regardless of backend', () => {
     expect(checkPreconditions({ apply: false }, LOCAL).allowed).toBe(true);
+  });
+});
+
+describe('auditOrphanedSupplierData() called directly (bypassing main())', () => {
+  it('refuses to apply against local storage even when called programmatically', async () => {
+    await expect(auditOrphanedSupplierData({ apply: true, backend: LOCAL })).rejects.toThrow(
+      /Refusing to --apply against backend "local"/
+    );
+    expect(mockDb.deleteMany).not.toHaveBeenCalled();
+  });
+
+  it('proceeds when called programmatically against a healthy MongoDB backend', async () => {
+    await expect(auditOrphanedSupplierData({ apply: true, backend: MONGO })).resolves.toMatchObject(
+      { backend: MONGO }
+    );
   });
 });
 

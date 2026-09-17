@@ -234,6 +234,17 @@ describe('supplier PATCH: venue transitions, category/name validation, website U
       expect(res.status).toBe(200);
       expect(res.body.supplier.website).toBe('');
     });
+
+    test('a URL over 200 characters is rejected rather than silently truncated', async () => {
+      const longPath = 'a'.repeat(200);
+      const res = await request(app())
+        .patch('/sup_1')
+        .send({ website: `https://example.com/${longPath}` });
+
+      expect(res.status).toBe(400);
+      expect(res.body.error).toMatch(/200 characters/i);
+      expect(updateOne).not.toHaveBeenCalled();
+    });
   });
 
   describe('amenities clearing', () => {

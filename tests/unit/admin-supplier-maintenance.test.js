@@ -248,7 +248,10 @@ describe('admin supplier maintenance hardening', () => {
     const catalogCache = require('../../services/catalogCache');
     const { auditOrphanedSupplierData } = require('../../scripts/audit-orphaned-supplier-data');
 
-    const summary = await auditOrphanedSupplierData({ apply: true });
+    const summary = await auditOrphanedSupplierData({
+      apply: true,
+      backend: { type: 'mongodb', connected: true, state: 'completed', error: null },
+    });
 
     expect(summary.removedSuppliers).toBe(1);
     expect(summary.removedPackages).toBe(2);

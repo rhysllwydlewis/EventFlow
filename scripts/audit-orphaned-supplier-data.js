@@ -103,6 +103,18 @@ async function auditOrphanedSupplierData(options = {}) {
   const apply = options.apply === true;
   const backend = options.backend || (await resolveBackend());
 
+  // main() already gates --apply on this same check before calling here, but
+  // this function is the actual reusable API (tests and any future caller can
+  // reach it directly), so the safety rule must hold regardless of entry point.
+  if (apply) {
+    const decision = checkPreconditions({ apply }, backend);
+    if (!decision.allowed) {
+      const error = new Error(decision.refusals.join(' '));
+      error.name = 'BackendPreconditionError';
+      throw error;
+    }
+  }
+
   const [users, suppliers, packages, photos, analytics, calendarEvents, listings] =
     await Promise.all([
       dbUnified.read('users'),

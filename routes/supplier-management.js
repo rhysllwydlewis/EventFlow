@@ -100,17 +100,24 @@ const normaliseWebsiteUrl = rawValue => {
     return '';
   }
   const candidate = /^https?:\/\//i.test(raw) ? raw : `https://${raw}`;
+  let href;
   try {
     const parsed = new URL(candidate);
     if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
       throw new Error('unsupported protocol');
     }
-    return parsed.href.slice(0, 200);
+    href = parsed.href;
   } catch {
     const error = new Error('Website must be a valid http or https URL');
     error.name = 'ValidationError';
     throw error;
   }
+  if (href.length > 200) {
+    const error = new Error('Website URL must be 200 characters or fewer');
+    error.name = 'ValidationError';
+    throw error;
+  }
+  return href;
 };
 
 const buildBannerPatch = async rawValue => {
@@ -277,6 +284,41 @@ function hasLocationInputChanged(current, patch) {
       comparableLocationInput(field, patch[field]) !==
         comparableLocationInput(field, current[field])
   );
+}
+
+/**
+ * Validate and geocode a venue postcode, writing the normalized postcode and
+ * coordinates onto `supplierPatch`. Shared by the "entering Venues" and
+ * "remaining a Venue with a changed postcode" PATCH branches so postcode
+ * handling (normalization, geocoder failure logging) can't drift between them.
+ *
+ * A geocoder miss or error is not fatal: the caller has already validated the
+ * postcode's *format*, so the patch still proceeds with the uppercased,
+ * trimmed postcode and no coordinates rather than blocking the save.
+ * @param {string} postcode Already format-validated venue postcode.
+ * @param {Object} supplierPatch Patch object to write venuePostcode/lat/long onto.
+ * @param {string} supplierId Supplier ID, for log correlation only.
+ * @returns {Promise<void>} Resolves once the patch has been updated.
+ */
+async function geocodeVenuePostcode(postcode, supplierPatch, supplierId) {
+  supplierPatch.venuePostcode = postcode;
+  try {
+    const coords = await geocoding.geocodePostcode(supplierPatch.venuePostcode);
+    if (coords) {
+      supplierPatch.latitude = coords.latitude;
+      supplierPatch.longitude = coords.longitude;
+      supplierPatch.venuePostcode = coords.postcode;
+      logger.info('✅ Geocoded venue', {
+        supplierId,
+        latitude: coords.latitude,
+        longitude: coords.longitude,
+      });
+    } else {
+      logger.warn('⚠️ Could not geocode postcode for venue', { supplierId });
+    }
+  } catch (error) {
+    logger.error('Geocoding error:', error);
+  }
 }
 
 /**
@@ -672,24 +714,7 @@ router.patch(
           error: 'Invalid UK postcode format',
         });
       }
-      supplierPatch.venuePostcode = requestedVenuePostcode;
-      try {
-        const coords = await geocoding.geocodePostcode(supplierPatch.venuePostcode);
-        if (coords) {
-          supplierPatch.latitude = coords.latitude;
-          supplierPatch.longitude = coords.longitude;
-          supplierPatch.venuePostcode = coords.postcode;
-          logger.info('✅ Geocoded venue', {
-            supplierId: s.id,
-            latitude: coords.latitude,
-            longitude: coords.longitude,
-          });
-        } else {
-          logger.warn('⚠️ Could not geocode postcode for venue', { supplierId: s.id });
-        }
-      } catch (error) {
-        logger.error('Geocoding error:', error);
-      }
+      await geocodeVenuePostcode(requestedVenuePostcode, supplierPatch, s.id);
     } else if (remainingVenues) {
       const venuePostcodeChanged =
         requestedVenuePostcode &&
@@ -701,26 +726,7 @@ router.patch(
             error: 'Invalid UK postcode format',
           });
         }
-
-        supplierPatch.venuePostcode = requestedVenuePostcode;
-
-        try {
-          const coords = await geocoding.geocodePostcode(supplierPatch.venuePostcode);
-          if (coords) {
-            supplierPatch.latitude = coords.latitude;
-            supplierPatch.longitude = coords.longitude;
-            supplierPatch.venuePostcode = coords.postcode;
-            logger.info('✅ Geocoded venue', {
-              supplierId: s.id,
-              latitude: coords.latitude,
-              longitude: coords.longitude,
-            });
-          } else {
-            logger.warn('⚠️ Could not geocode postcode for venue', { supplierId: s.id });
-          }
-        } catch (error) {
-          logger.error('Geocoding error:', error);
-        }
+        await geocodeVenuePostcode(requestedVenuePostcode, supplierPatch, s.id);
       }
     } else if (leavingVenues) {
       // Stale venue-only location data must not survive a category change
