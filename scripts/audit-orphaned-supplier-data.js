@@ -1,8 +1,36 @@
 #!/usr/bin/env node
+/**
+ * Audit (and optionally repair) orphaned supplier-linked records.
+ *
+ * Dry run by default: reads every collection and reports what it finds.
+ * Nothing is deleted or modified unless `--apply` is passed.
+ *
+ * Safety rule, matching `scripts/audit-supplier-locations.js` and
+ * `scripts/audit-marketplace-listing-locations.js`: `--apply` refuses to run
+ * unless the active backend is a healthy MongoDB connection. Local file
+ * storage is a development fallback — deleting "orphans" out of a copy of
+ * the data nobody is serving would look like a real cleanup while touching
+ * nothing that matters, or worse, permanently losing local-only state that
+ * was never actually orphaned in production.
+ *
+ * The dry-run report always names the backend it actually read from
+ * (`report.backend`), so "0 orphans found" against local fallback storage
+ * can't be mistaken for a clean result against production data.
+ */
 'use strict';
 
 const dbUnified = require('../db-unified');
+const logger = require('../utils/logger');
 const { invalidatePublicSupplierCaches } = require('../services/adminUserDeletion.service');
+
+/** The only backend an --apply run may modify. */
+const REQUIRED_BACKEND = 'mongodb';
+
+/** Exit codes, so a CI job or a runbook can tell the failures apart. */
+const EXIT_CODES = {
+  ok: 0,
+  refused: 2,
+};
 
 function hasFlag(flag, argv = process.argv.slice(2)) {
   return argv.includes(flag);
@@ -25,9 +53,55 @@ async function updateMany(collection, filter, update) {
   return 0;
 }
 
+/**
+ * Initialise the database and describe the backend the audit actually read
+ * from, so a report against local fallback storage can never be confused
+ * with a report against production.
+ * @returns {Promise<Object>} `{type, connected, state, error}`.
+ */
+async function resolveBackend() {
+  try {
+    await dbUnified.initializeDatabase();
+  } catch (error) {
+    return { type: 'unknown', connected: false, state: 'failed', error: error.message };
+  }
+
+  try {
+    const status = (dbUnified.getDatabaseStatus && dbUnified.getDatabaseStatus()) || {};
+    return {
+      type: status.type || (dbUnified.getDatabaseType ? dbUnified.getDatabaseType() : 'unknown'),
+      connected: Boolean(status.connected),
+      state: status.state || 'unknown',
+      error: status.error ? String(status.error.message || status.error) : null,
+    };
+  } catch (error) {
+    return { type: 'unknown', connected: false, state: 'unknown', error: error.message };
+  }
+}
+
+/**
+ * Decide whether an `--apply` run is allowed to proceed.
+ * @param {Object} options Parsed options.
+ * @param {Object} backend Backend description.
+ * @returns {{allowed: boolean, refusals: string[]}} Decision.
+ */
+function checkPreconditions(options, backend) {
+  const refusals = [];
+  const healthyMongo = backend.type === REQUIRED_BACKEND && backend.connected;
+
+  if (options.apply && !healthyMongo) {
+    refusals.push(
+      `Refusing to --apply against backend "${backend.type}" (connected: ${backend.connected}). ` +
+        'Orphaned supplier data may only be deleted from MongoDB.'
+    );
+  }
+
+  return { allowed: refusals.length === 0, refusals };
+}
+
 async function auditOrphanedSupplierData(options = {}) {
   const apply = options.apply === true;
-  await dbUnified.initializeDatabase();
+  const backend = options.backend || (await resolveBackend());
 
   const [users, suppliers, packages, photos, analytics, calendarEvents, listings] =
     await Promise.all([
@@ -67,6 +141,7 @@ async function auditOrphanedSupplierData(options = {}) {
   );
 
   const summary = {
+    backend,
     checkedSuppliers: suppliers.length,
     legacyUnownedSuppliers: legacyUnownedSuppliers.length,
     orphanSuppliers: orphanSuppliers.length,
@@ -88,6 +163,12 @@ async function auditOrphanedSupplierData(options = {}) {
   };
 
   console.log(`${apply ? 'Applying repair' : 'Dry run'}: orphaned supplier data audit`);
+  console.log(`Database backend: ${backend.type} (connected: ${backend.connected})`);
+  if (backend.type !== REQUIRED_BACKEND || !backend.connected) {
+    console.log(
+      '⚠️  Not reading from a healthy MongoDB connection — this report reflects local fallback storage, not production data. Treat "0 findings" as inconclusive, not clean.'
+    );
+  }
   console.log('Orphan supplier ids:', ids(orphanSuppliers));
   console.log(
     'Legacy/unowned supplier ids (reported only by default):',
@@ -170,11 +251,35 @@ async function auditOrphanedSupplierData(options = {}) {
   return summary;
 }
 
-if (require.main === module) {
-  auditOrphanedSupplierData({ apply: hasFlag('--apply') }).catch(error => {
-    console.error('Orphan supplier data audit failed:', error.message);
-    process.exitCode = 1;
-  });
+async function main() {
+  const options = { apply: hasFlag('--apply') };
+  const backend = await resolveBackend();
+  const decision = checkPreconditions(options, backend);
+
+  if (!decision.allowed) {
+    for (const refusal of decision.refusals) {
+      logger.error(refusal);
+    }
+    return EXIT_CODES.refused;
+  }
+
+  await auditOrphanedSupplierData({ ...options, backend });
+  return EXIT_CODES.ok;
 }
 
-module.exports = { auditOrphanedSupplierData };
+if (require.main === module) {
+  main()
+    .then(code => process.exit(code))
+    .catch(error => {
+      console.error('Orphan supplier data audit failed:', error.message);
+      process.exit(1);
+    });
+}
+
+module.exports = {
+  EXIT_CODES,
+  auditOrphanedSupplierData,
+  checkPreconditions,
+  main,
+  resolveBackend,
+};
