@@ -523,9 +523,13 @@ router.post(
           s.latitude = coords.latitude;
           s.longitude = coords.longitude;
           s.venuePostcode = coords.postcode; // Use normalized postcode from API
-          logger.info(`✅ Geocoded venue ${s.name}: ${coords.latitude}, ${coords.longitude}`);
+          logger.info('✅ Geocoded venue', {
+            supplierId: s.id,
+            latitude: coords.latitude,
+            longitude: coords.longitude,
+          });
         } else {
-          logger.warn(`⚠️ Could not geocode postcode ${s.venuePostcode} for venue ${s.name}`);
+          logger.warn('⚠️ Could not geocode postcode for venue', { supplierId: s.id });
         }
       } catch (error) {
         logger.error('Geocoding error:', error);
@@ -675,9 +679,13 @@ router.patch(
           supplierPatch.latitude = coords.latitude;
           supplierPatch.longitude = coords.longitude;
           supplierPatch.venuePostcode = coords.postcode;
-          logger.info(`✅ Geocoded venue ${s.name}: ${coords.latitude}, ${coords.longitude}`);
+          logger.info('✅ Geocoded venue', {
+            supplierId: s.id,
+            latitude: coords.latitude,
+            longitude: coords.longitude,
+          });
         } else {
-          logger.warn(`⚠️ Could not geocode postcode ${supplierPatch.venuePostcode}`);
+          logger.warn('⚠️ Could not geocode postcode for venue', { supplierId: s.id });
         }
       } catch (error) {
         logger.error('Geocoding error:', error);
@@ -702,9 +710,13 @@ router.patch(
             supplierPatch.latitude = coords.latitude;
             supplierPatch.longitude = coords.longitude;
             supplierPatch.venuePostcode = coords.postcode;
-            logger.info(`✅ Geocoded venue ${s.name}: ${coords.latitude}, ${coords.longitude}`);
+            logger.info('✅ Geocoded venue', {
+              supplierId: s.id,
+              latitude: coords.latitude,
+              longitude: coords.longitude,
+            });
           } else {
-            logger.warn(`⚠️ Could not geocode postcode ${supplierPatch.venuePostcode}`);
+            logger.warn('⚠️ Could not geocode postcode for venue', { supplierId: s.id });
           }
         } catch (error) {
           logger.error('Geocoding error:', error);
