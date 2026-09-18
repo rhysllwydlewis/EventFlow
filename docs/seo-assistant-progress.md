@@ -75,9 +75,30 @@ green, or the work needs something you cannot do yourself.
 
 ## Discovered along the way
 
-(Empty — add anything found that isn't today's task.)
+- Ops Assistant's separate internal-analytics routine is currently blocked
+  two days running: ops-bot HMAC signature mismatch (#1679, 401 on
+  `/internal/ops-bot/...`) and MongoDB unreachable from the scheduled
+  session (#1680, dry-run scripts falling back to empty local storage).
+  Not this routine's data source and not actioned here, but worth knowing
+  if a future SEO cycle wants to cross-check against internal analytics —
+  that path is currently dark. Not an SEO fix in itself, so not picked up
+  as this cycle's work.
 
 ## Session log
 
-(Empty — each run appends a dated entry: what the Semrush data showed, what
-changed, what's green, what's still open.)
+### 2026-09-18
+
+Every Semrush MCP tool (`domain_overview`, `site_audit`, `projects`) returned
+`no_api_units` — the Semrush subscription is active but out of API units for
+this account. Per the mandate ("if they are not available, note that ... and
+stop — do not attempt this routine's work without real data"), stopped
+before Steps 2–5: no site audit, no position tracking, no backlink/competitor
+data pulled, no code change made, nothing merged this cycle. Checked open
+`[Ops Assistant]` issues first (per mandate) — most recent (#1686) is about
+that routine's own internal-analytics access being blocked (#1679, #1680),
+unrelated to this routine's Semrush-based work; noted above under
+"discovered along the way" but not actioned since it isn't a Semrush finding
+and isn't this routine's job to fix. Backlog item ("First run: pull a site
+audit and position-tracking snapshot") remains outstanding — could not be
+done this cycle for lack of API units. Next run: retry Semrush calls first;
+if units are available, proceed with the full mandate from Step 1.
