@@ -89,6 +89,15 @@ size). Do not spend effort chasing this again or let it block a merge that is
 otherwise clean — note it and move on. It needs the owner's DeepSource
 dashboard to diagnose, not more pushes.
 
+Second known false-positive check (2026-09-17, session 3): **github-advanced-security**
+failed on PR #1678 with `SessionModelError: CAPIError: 400 The requested
+model is not supported`, crashing inside GitHub's own Copilot code-scanning
+backend before it ever inspected the diff. Not present at all in the 28
+checks that ran on the prior PR (#1673), so treat it as a newly-surfaced,
+unreliable GitHub-side check rather than a real finding — verify the crash
+is at session-creation time (not a real analysis failure) before assuming
+otherwise, but don't hold an otherwise-clean merge for it.
+
 ## Backlog
 
 - [x] Carried over from the old forum routine: `/community/discussions` and
@@ -228,7 +237,49 @@ issue (`<main class="marketplace-main">` inside `<main id="main-content">`)
 that this PR intentionally does not touch, to keep the change to the one
 duplicate-script defect.
 
-**Outcome:** [pending — see next log entry or PR link above once merged]
+**Outcome: merged.** PR #1678
+(https://github.com/rhysllwydlewis/EventFlow/pull/1678) went green on every
+check this repo's own CI gates on — DeepSource grade A across all four
+analyzers, ESLint/Formatting/Security Audit, the full E2E shard set +
+E2E Auth Focus, Mongo Replica Set Transactions, Lighthouse desktop/mobile,
+Visual + a11y, Visual Regression, Build/Browser/Dedicated Visual
+Verification, Go-Live Audit, CodeQL, GitGuardian, Smoke Tests and Full
+Regression — all passed. One check, `github-advanced-security`, failed —
+investigated and confirmed to be a GitHub-side infrastructure failure
+unrelated to this diff: the job log shows it crashed inside GitHub's own
+Copilot code-scanning backend before analyzing any code
+(`SessionModelError: CAPIError: 400 The requested model is not supported`,
+thrown at Copilot session creation). This check doesn't appear at all in
+the 28 checks that ran on the previous PR (#1673) on this same branch, so
+it looks like a newly-surfaced, unreliable check rather than something
+this change broke. Attempted the one re-run this routine's policy allows
+for a suspected flake; the API refused it (`403 This workflow run cannot
+be retried`) since it isn't a retriable repo workflow. Posted one PR
+comment naming the failure, why it isn't this PR's, and that no fix exists
+within this PR's scope (it's not our code) before continuing — see the
+comment on #1678 for the full write-up. Worth flagging to the owner
+alongside the existing DeepSource-dashboard false positive: this repo now
+has two known-flaky, non-code CI checks that don't reflect the actual
+diff. Merged into `main` as `ece3873a7` at 09:46 UTC — merged_by shows the
+owner's account, consistent with either this routine's own autonomous
+merge or the owner merging by hand after seeing it green; either way the
+outcome (merged, all real checks green) is the same.
+
+**Post-merge deploy verification.** Polled
+`https://event-flow.co.uk/api/ready` via `WebFetch` (with a cache-busting
+`?_cb=` query param each time, per the operational note from session 2)
+twice at 09:47 UTC, both HTTP 200 with `"status":"ready"`, MongoDB
+connected and the Redis queue's producer/worker both healthy. Deploy
+confirmed good, no revert needed.
+
+**Next session:** two more candidates surfaced by this session's sweep,
+not yet picked up — missing dialog accessibility (`role="dialog"`,
+`aria-modal`, accessible name, focus handling, Escape-to-close) on the
+hand-rolled modals in `compare.html`/`supplier-comparison.js` (best next
+pick — public-facing, no login needed), `budget.html`/`budget.js`, and
+`timeline.html`/`timeline-builder.js`; and a dead "Alerts" bottom-nav
+link/CSS/JS shipped on ~90 pages that can never become visible in any auth
+state (low priority, cosmetic dead-code removal only, not user-visible).
 
 ### 2026-09-16 — session 2
 
