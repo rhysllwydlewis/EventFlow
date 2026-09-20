@@ -42,11 +42,12 @@ Changed files:
 - [ ] Fix Venue and non-Venue PATCH transitions.
 - [ ] Validate required name and category values on PATCH.
 - [ ] Validate website and banner URLs server-side.
-- [ ] Persist server-generated gallery photo IDs.
-- [ ] Enforce the gallery maximum on the server.
-- [ ] Add gallery timestamps, cache invalidation and atomic mutation hardening.
-- [ ] Merge canonical supplier responses in every inline editor.
-- [ ] Refresh all category-dependent views after category changes.
+- [x] Persist server-generated gallery photo IDs.
+- [x] Enforce the gallery maximum on the server.
+- [x] Add gallery timestamps and cache invalidation on every mutation.
+- [ ] Atomic mutation hardening (still read-modify-write; not yet using `$push`/`$pull`).
+- [x] Merge canonical supplier responses in every inline editor.
+- [x] Refresh all category-dependent views after category changes.
 - [ ] Consolidate dialog behaviour.
 - [ ] Remove duplicate customisation and theme controllers.
 - [ ] Correct dashboard deep links.
@@ -291,24 +292,29 @@ The current delete and reorder routes accept the stored URL, so immediate operat
 
 ### Remaining backend implementation
 
-Persist a canonical gallery record with:
+Done in `routes/suppliers-v2.js`:
 
-- a server-generated photo ID;
-- optimized URL;
-- thumbnail URL;
-- large URL;
-- original URL;
-- approval state;
-- upload timestamp.
+- the upload route (`POST /:id/photos`) now assigns a server-generated
+  `photo_<timestamp>_<hex>` id to every gallery record (previously only
+  the deprecated moderation-queue path in `routes/photos.js` did this);
+- the upload route now rejects an eleventh photo with 400
+  (`PHOTO_LIMIT_REACHED`), matching the cap the reorder route already
+  enforced;
+- upload and delete now stamp `updatedAt` on the supplier (reorder
+  already did);
+- upload and delete now invalidate the catalogue cache (reorder already
+  did) via a shared `invalidateCatalogCache()` helper.
 
-Also enforce:
+Still remaining:
 
-- maximum ten photos on the server;
-- `updatedAt` on upload, delete and reorder;
-- catalogue cache invalidation on every mutation;
-- an atomic update strategy where supported;
-- one consistent response shape;
-- temporary support for legacy URL identity.
+- an atomic update strategy (`$push`/`$pull` instead of read-modify-write
+  with `$set` of the whole array) — deferred because the file-store
+  fallback backend (`db-unified.js`, used when `MONGODB_URI` is unset)
+  only applies `$set`/`$unset`, so switching to `$push`/`$pull` would
+  silently no-op gallery mutations outside MongoDB;
+- optimized/thumbnail/large/original derivative URLs are already
+  returned and stored per record; no further change needed there;
+- approval state and upload timestamp are already stored per record.
 
 ### Acceptance tests
 

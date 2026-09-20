@@ -6,9 +6,21 @@
 'use strict';
 
 const express = require('express');
+const crypto = require('crypto');
 const logger = require('../utils/logger');
 const catalogCache = require('../services/catalogCache');
 const router = express.Router();
+
+const MAX_GALLERY_PHOTOS = 10;
+
+/**
+ * Bust the public catalogue cache after a gallery mutation. Non-fatal:
+ * a cache-invalidation failure must not fail the request that already
+ * persisted the change.
+ */
+function invalidateCatalogCache() {
+  catalogCache.invalidate().catch(e => logger.warn('[catalogCache] invalidate error:', e.message));
+}
 
 // Dependencies injected by server.js
 let dbUnified;
@@ -197,6 +209,15 @@ router.post(
     if (!s) {
       return res.status(403).json({ error: 'Not owner' });
     }
+    const photosGallery = s.photosGallery || [];
+    if (photosGallery.length >= MAX_GALLERY_PHOTOS) {
+      return res.status(400).json({
+        error: `Gallery is limited to ${MAX_GALLERY_PHOTOS} photos. Delete a photo before uploading another.`,
+        code: 'PHOTO_LIMIT_REACHED',
+        limit: MAX_GALLERY_PHOTOS,
+        current: photosGallery.length,
+      });
+    }
     let imageVariants;
     try {
       imageVariants = await saveImageBase64(image, `supplier_${req.params.id}_${Date.now()}`);
@@ -207,17 +228,26 @@ router.post(
       }
       return res.status(503).json({ error: 'Photo storage unavailable', details: e.message });
     }
-    const photosGallery = s.photosGallery || [];
+    const updatedAt = new Date().toISOString();
     const photoRecord = {
+      id: `photo_${Date.now()}_${crypto.randomBytes(8).toString('hex')}`,
       url: imageVariants.url,
       thumbnail: imageVariants.thumbnail,
       large: imageVariants.large,
       original: imageVariants.original,
       approved: true,
-      uploadedAt: new Date().toISOString(),
+      uploadedAt: updatedAt,
     };
     photosGallery.push(photoRecord);
-    await dbUnified.updateOne('suppliers', { id: req.params.id }, { $set: { photosGallery } });
+    await dbUnified.updateOne(
+      'suppliers',
+      { id: req.params.id },
+      { $set: { photosGallery, updatedAt } }
+    );
+
+    // Bust catalog cache — a new gallery photo affects public listing display
+    invalidateCatalogCache();
+
     res.json({ ok: true, url: photoRecord.url, photo: photoRecord });
   }
 );
@@ -275,13 +305,16 @@ router.delete(
         }
       );
 
-      // Delete the photo from MongoDB (for /api/photos/ URLs) or skip gracefully for legacy /uploads/ paths
+      // Delete the physical file from MongoDB (for /api/photos/ URLs) or skip gracefully for legacy /uploads/ paths
       if (removedPhoto.url) {
         if (removedPhoto.url.startsWith('/api/photos/')) {
           await photoUpload.deleteImage(removedPhoto.url);
         }
         // Legacy /uploads/ URLs: the file may not exist on disk; just remove the reference (already done above)
       }
+
+      // Bust catalog cache — a removed gallery photo affects public listing display
+      invalidateCatalogCache();
 
       res.json({
         success: true,
@@ -320,8 +353,10 @@ router.patch(
         return res.status(400).json({ error: 'photoIds must be an array' });
       }
 
-      if (photoIds.length > 10) {
-        return res.status(400).json({ error: 'Cannot have more than 10 photos' });
+      if (photoIds.length > MAX_GALLERY_PHOTOS) {
+        return res
+          .status(400)
+          .json({ error: `Cannot have more than ${MAX_GALLERY_PHOTOS} photos` });
       }
 
       const suppliers = await dbUnified.read('suppliers');
@@ -372,9 +407,7 @@ router.patch(
       );
 
       // Bust catalog cache — photo order affects public listing
-      catalogCache
-        .invalidate()
-        .catch(e => logger.warn('[catalogCache] invalidate error:', e.message));
+      invalidateCatalogCache();
 
       res.json({
         success: true,

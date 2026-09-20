@@ -111,7 +111,8 @@ describe('Suppliers V2 — PATCH /:id/photos/order guards', () => {
   });
 
   it('enforces a max of 10 photos', () => {
-    expect(block).toContain('photoIds.length > 10');
+    expect(block).toContain('photoIds.length > MAX_GALLERY_PHOTOS');
+    expect(routesContent).toContain('MAX_GALLERY_PHOTOS = 10');
   });
 
   it('checks supplier ownership', () => {
@@ -124,8 +125,9 @@ describe('Suppliers V2 — PATCH /:id/photos/order guards', () => {
   });
 
   it('busts the catalog cache after reorder', () => {
-    expect(block).toContain('catalogCache');
-    expect(block).toContain('invalidate');
+    expect(block).toContain('invalidateCatalogCache()');
+    expect(routesContent).toContain('catalogCache');
+    expect(routesContent).toContain('.invalidate()');
   });
 });
 
