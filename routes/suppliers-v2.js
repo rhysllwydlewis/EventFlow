@@ -143,6 +143,23 @@ async function saveImageBase64(base64, namePrefix) {
 }
 
 /**
+ * Wrap saveImageBase64 so a banner-upload failure comes back as a plain
+ * result instead of a thrown error, letting the route assign the outcome
+ * on declaration rather than declaring a variable and mutating it in a
+ * try/catch.
+ * @param {string} image - Base64 data URI.
+ * @param {string} namePrefix - Filename prefix for the stored image.
+ * @returns {Promise<{imageVariants?: object, error?: Error}>} Outcome.
+ */
+async function processBannerImage(image, namePrefix) {
+  try {
+    return { imageVariants: await saveImageBase64(image, namePrefix) };
+  } catch (error) {
+    return { error };
+  }
+}
+
+/**
  * GET /api/me/suppliers/:id/photos
  * List all photos for a supplier
  */
@@ -271,22 +288,23 @@ router.post(
       return res.status(400).json({ error: 'Missing image' });
     }
     const suppliers = await dbUnified.read('suppliers');
-    const s = suppliers.find(x => x.id === req.params.id && x.ownerUserId === req.user.id);
-    if (!s) {
+    const supplier = suppliers.find(x => x.id === req.params.id && x.ownerUserId === req.user.id);
+    if (!supplier) {
       return res.status(403).json({ error: 'Not owner' });
     }
-    let imageVariants;
-    try {
-      imageVariants = await saveImageBase64(
-        image,
-        `supplier_banner_${req.params.id}_${Date.now()}`
-      );
-    } catch (e) {
-      logger.error('Supplier banner upload failed:', e.message);
-      if (e.name === 'InvalidImageError' || e.name === 'ValidationError') {
-        return res.status(400).json({ error: 'Invalid image', details: e.message });
+    const { imageVariants, error: uploadError } = await processBannerImage(
+      image,
+      `supplier_banner_${req.params.id}_${Date.now()}`
+    );
+    if (uploadError) {
+      logger.error('Supplier banner upload failed:', uploadError.message);
+      if (uploadError.name === 'InvalidImageError' || uploadError.name === 'ValidationError') {
+        return res.status(400).json({ error: 'Invalid image', details: uploadError.message });
       }
-      return res.status(503).json({ error: 'Photo storage unavailable', details: e.message });
+      return res.status(503).json({
+        error: 'Photo storage unavailable',
+        details: uploadError.message,
+      });
     }
     const updatedAt = new Date().toISOString();
     await dbUnified.updateOne(
@@ -298,8 +316,8 @@ router.post(
     // Bust catalog cache — a new banner affects public listing/profile display
     invalidateCatalogCache();
 
-    const supplier = { ...s, bannerUrl: imageVariants.url, updatedAt };
-    res.json({ ok: true, url: imageVariants.url, supplier });
+    const updatedSupplier = { ...supplier, bannerUrl: imageVariants.url, updatedAt };
+    return res.json({ ok: true, url: imageVariants.url, supplier: updatedSupplier });
   }
 );
 

@@ -1021,11 +1021,11 @@
       return;
     }
 
-    let dataUrl;
-    try {
-      dataUrl = await readFileAsDataUrl(file);
-    } catch (error) {
+    const dataUrl = await readFileAsDataUrl(file).catch(error => {
       notify('error', error.message || 'Failed to read the selected file.');
+      return null;
+    });
+    if (!dataUrl) {
       return;
     }
 
