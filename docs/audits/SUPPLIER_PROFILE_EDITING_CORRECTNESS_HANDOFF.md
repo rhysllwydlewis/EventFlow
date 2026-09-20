@@ -50,7 +50,7 @@ Changed files:
 - [x] Refresh all category-dependent views after category changes.
 - [ ] Consolidate dialog behaviour.
 - [ ] Remove duplicate customisation and theme controllers.
-- [ ] Correct dashboard deep links.
+- [x] Correct dashboard deep links (`#photos`/`#packages` now route to real sections via a hash router in `dashboard-supplier-actions.js`; see below).
 - [ ] Add unsaved-navigation protection.
 - [ ] Align create, PATCH and UI field limits.
 - [x] Allow amenities to be cleared.
@@ -523,13 +523,22 @@ Check for field presence rather than truthiness and write an empty array when th
 
 Add a route test for clearing amenities.
 
-## Additional confirmed issue: dashboard fragments
+## Fixed: dashboard fragments
 
-The public owner editor links to `#photos` and `#packages`, but the dashboard uses different element IDs and no reliable translation was found.
+### Root cause
 
-Use real target fragments or add one explicit dashboard hash router.
+The public owner editor links to `#photos` and `#packages`, but the dashboard used different element IDs and no reliable translation existed — the browser landed on the dashboard with no scroll, and the supplier had to hunt for the right card themselves.
 
-Browser coverage should verify the correct section expands, scrolls into view and receives focus where appropriate.
+### Implementation
+
+Added an explicit hash router (`handleDashboardDeepLink`) in `public/assets/js/pages/dashboard-supplier-actions.js`, run on load and on `hashchange`, reusing the same expand-then-scroll helpers the page's own quick-action buttons already use:
+
+- `#photos` expands the collapsed profile form (`expandForm('profile-form-section', 'toggle-profile-form')`) and scrolls to the photo drop zone (`sup-photo-drop`).
+- `#packages` expands the packages card if a mobile card-collapse toggle has collapsed it, then scrolls to the existing package list (`my-packages`) rather than opening the create-package form.
+
+### Test coverage
+
+`tests/unit/dashboard-supplier-deep-links.test.js` loads the real script in jsdom and confirms each fragment expands and scrolls the right section, and that an unrelated hash touches neither.
 
 ## Additional confirmed issue: completion measurements
 
