@@ -364,13 +364,18 @@ app.use(configureSanitization());
 app.use(inputValidationMiddleware);
 
 //Body parsing and cookies
-// Package routes receive base64-encoded images in the JSON body (pkg-image field).
-// Base64 encoding adds ~33% overhead, so a 5 MB image becomes ~6.7 MB encoded.
-// Allow up to 10 MB on package paths so images up to ~7.5 MB can be submitted;
-// the client-side efSetupPhotoDropZone cap of 5 MB keeps most requests well under that.
+// Package and supplier-gallery/banner routes receive base64-encoded images in
+// the JSON body (pkg-image, gallery photo and banner fields). Base64 encoding
+// adds ~33% overhead, so a 5 MB image becomes ~6.7 MB encoded. Allow up to
+// 10 MB on these paths so images up to ~7.5 MB can be submitted; client-side
+// compression (efSetupPhotoDropZone, supplier-photo-upload.js) keeps most
+// requests well under that.
 // The more-specific route parser must be registered BEFORE the global 2 MB parser;
 // body-parser skips re-parsing when req._body is already set.
-app.use(['/api/me/packages', '/api/v1/me/packages'], express.json({ limit: '10mb' }));
+app.use(
+  ['/api/me/packages', '/api/v1/me/packages', '/api/me/suppliers', '/api/v1/me/suppliers'],
+  express.json({ limit: '10mb' })
+);
 
 // Skip JSON parsing for Stripe webhook endpoints — they need the raw body
 // for signature verification (express.raw is applied at the route level).

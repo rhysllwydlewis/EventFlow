@@ -37,11 +37,11 @@ Changed files:
 
 ### Remaining
 
-- [ ] Add persistent local banner uploads.
-- [ ] Add one server-owned supplier category definition.
-- [ ] Fix Venue and non-Venue PATCH transitions.
-- [ ] Validate required name and category values on PATCH.
-- [ ] Validate website and banner URLs server-side.
+- [x] Add persistent local banner uploads (backend persistence fixed earlier; this work replaces the multi-file-capable drop zone with a dedicated single-image uploader — see "Confirmed defect: local banner upload").
+- [x] Add one server-owned supplier category definition (`VALID_CATEGORIES` in `models/Supplier.js`, used by create, PATCH and the owner-edit UI).
+- [x] Fix Venue and non-Venue PATCH transitions.
+- [x] Validate required name and category values on PATCH.
+- [x] Validate website and banner URLs server-side.
 - [x] Persist server-generated gallery photo IDs.
 - [x] Enforce the gallery maximum on the server.
 - [x] Add gallery timestamps and cache invalidation on every mutation.
@@ -53,7 +53,7 @@ Changed files:
 - [ ] Correct dashboard deep links.
 - [ ] Add unsaved-navigation protection.
 - [ ] Align create, PATCH and UI field limits.
-- [ ] Allow amenities to be cleared.
+- [x] Allow amenities to be cleared.
 - [ ] Clarify the different profile-completion measurements.
 
 ## Priority
@@ -88,59 +88,55 @@ Changed files:
 
 ### Severity
 
-Critical customer-facing defect.
+Was a critical customer-facing defect; the data-loss half of it was already fixed server-side (see below) before this section's remaining item was picked up. The residual issue is a moderate UX/robustness one.
 
-### Root cause
+### Root cause (data-loss half — already fixed)
 
-The dedicated Profile Customisation page reuses a generic multi-image drop-zone helper for a single banner.
+The dedicated Profile Customisation page used to store a banner's data URL in the hidden `bannerUrl` field and send it through the ordinary supplier PATCH route, which truncated `bannerUrl` to 500 characters while the public serializer excluded data-image URLs outright — a save could report success while the banner never persisted or rendered publicly.
 
-That helper:
+`routes/supplier-management.js`'s PATCH handler (`buildBannerPatch`/`decodeBannerDataUrl`/`normaliseStoredBannerUrl`) now detects a `data:image/...` `bannerUrl`, validates its type and size, persists it through `photoUpload.processAndSaveImage`, and stores only the resulting `/api/photos/...` URL — skipping the generic 500-char truncation loop for `bannerUrl` so the persisted URL is never re-truncated. Catalogue cache invalidation and `updatedAt` stamping already run for every successful PATCH, banner included. **This half of the defect no longer needs fixing.**
 
-- accepts multiple files;
-- converts files to data URLs;
-- calls the page callback;
-- appends its own preview after the page callback has already rebuilt the preview.
+### Root cause (remaining half — fixed by this work)
 
-The customisation controller stores the data URL in the hidden `bannerUrl` field and sends it through the ordinary supplier PATCH route.
+The dedicated Profile Customisation page reused a generic multi-image drop-zone helper (`efSetupPhotoDropZone`) for a single banner. That helper:
 
-The PATCH route truncates `bannerUrl` to 500 characters. The public serializer excludes data-image URLs. The supplier can therefore see a preview and a successful save while the banner does not persist or render publicly.
+- accepts multiple files (`input.multiple = true`);
+- calls the page callback once per file, so only the _last_ selected file's data URL ends up in the hidden input;
+- appends its own preview per file, so selecting more than one file left duplicate/stale banner previews even though the model supports exactly one banner.
 
-The helper can also leave duplicate or multiple banner previews even though the model supports one banner.
+Because the backend now persists whatever `bannerUrl` value arrives, the save itself was no longer silently lossy — but the editor's own UI could still show multiple banner previews and briefly hold a multi-megabyte base64 payload in the DOM before Save, unlike every other image upload surface in the app (gallery, package photos), which uploads immediately through a dedicated endpoint.
 
 ### Files to inspect
 
 - `public/supplier/profile-customization.html`
 - `public/supplier/js/profile-customization.js`
-- the shared photo drop-zone helper used by that page
+- `public/assets/js/app.js` (`efSetupPhotoDropZone`)
+- `routes/suppliers-v2.js`
 - `routes/supplier-management.js`
-- `photo-upload.js`
-- `utils/supplierPublicProfile.js`
 
-### Required implementation
+### Implementation
 
-Add an authenticated supplier banner upload route that:
+Added `POST /api/me/suppliers/:id/banner` (`routes/suppliers-v2.js`) that:
 
-1. verifies authentication, supplier role, verified-user status, CSRF and ownership;
+1. verifies authentication, verified-user status, CSRF and ownership;
 2. accepts exactly one image;
-3. uses `photoUpload.processAndSaveImage` with supplier context;
+3. uses `photoUpload.processAndSaveImage` (via the existing `saveImageBase64` helper already used for gallery uploads);
 4. stores an EventFlow-hosted `/api/photos/...` URL;
 5. updates `bannerUrl` and `updatedAt` atomically;
 6. invalidates the catalogue cache;
 7. returns the canonical updated supplier.
 
-Replace the generic multi-image drop-zone behaviour with a dedicated single-image banner uploader.
-
-Do not store base64 or data URLs in supplier documents.
+Replaced `setupBannerUpload()`'s use of the generic multi-image drop-zone helper with a dedicated single-image uploader (`public/supplier/js/profile-customization.js`) that uploads immediately on file select/drop, matching the gallery's upload-on-select UX, and never puts a data URL in the hidden `bannerUrl` input.
 
 ### Acceptance tests
 
-- A JPEG, PNG or WebP upload stores a usable EventFlow URL.
-- Reloading Profile Customisation preserves the banner.
-- The public supplier API returns the saved banner.
-- Multiple file selection is impossible or clearly reduced to one file.
-- Invalid file type and oversize uploads return useful errors.
-- A supplier cannot upload a banner for another supplier.
-- Catalogue cache invalidation runs after success.
+- [x] A JPEG, PNG or WebP upload stores a usable EventFlow URL — already true via `buildBannerPatch`; also true via the new dedicated route.
+- [x] Reloading Profile Customisation preserves the banner — already true.
+- [x] The public supplier API returns the saved banner — already true once the stored value is a real URL.
+- [x] Multiple file selection is impossible or clearly reduced to one file — fixed by this work (dedicated single-file uploader).
+- [x] Invalid file type and oversize uploads return useful errors — already true server-side; also enforced client-side by the new uploader.
+- [x] A supplier cannot upload a banner for another supplier — already true; also enforced by the new route's ownership check.
+- [x] Catalogue cache invalidation runs after success — already true; also invalidated by the new route.
 
 ## Confirmed defect: Venue transitions
 
