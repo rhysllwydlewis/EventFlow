@@ -250,8 +250,8 @@ class TimelineBuilder {
     modal.innerHTML = `
       <div class="modal-content">
         <div class="modal-header">
-          <h2>${isEdit ? 'Edit Event' : 'Add Event'}</h2>
-          <button class="ef-cta modal-close" onclick="this.closest('.modal-overlay').remove()">×</button>
+          <h2 id="timeline-event-modal-title">${isEdit ? 'Edit Event' : 'Add Event'}</h2>
+          <button class="ef-cta modal-close" aria-label="Close" onclick="this.closest('.modal-overlay').remove()">×</button>
         </div>
         <form id="event-form" class="modal-body">
           <div class="form-group">
@@ -295,6 +295,9 @@ class TimelineBuilder {
     `;
 
     document.body.appendChild(modal);
+    if (window.EFModalA11y) {
+      window.EFModalA11y.enhance(modal, { labelledBy: 'timeline-event-modal-title' });
+    }
 
     // Handle form submission
     const form = modal.querySelector('#event-form');

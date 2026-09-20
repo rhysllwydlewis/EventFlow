@@ -310,8 +310,8 @@ class SupplierComparison {
     modal.innerHTML = `
       <div class="modal-content">
         <div class="modal-header">
-          <h2>Add Supplier to Compare</h2>
-          <button class="ef-cta modal-close" onclick="this.closest('.modal-overlay').remove()">×</button>
+          <h2 id="compare-search-modal-title">Add Supplier to Compare</h2>
+          <button class="ef-cta modal-close" aria-label="Close" onclick="this.closest('.modal-overlay').remove()">×</button>
         </div>
         <div class="modal-body">
           <div class="search-bar">
@@ -325,6 +325,9 @@ class SupplierComparison {
     `;
 
     document.body.appendChild(modal);
+    if (window.EFModalA11y) {
+      window.EFModalA11y.enhance(modal, { labelledBy: 'compare-search-modal-title' });
+    }
 
     const searchInput = modal.querySelector('#supplier-search');
     const resultsContainer = modal.querySelector('#supplier-search-results');
