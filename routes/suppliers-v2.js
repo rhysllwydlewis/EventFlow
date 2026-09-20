@@ -6,9 +6,20 @@
 'use strict';
 
 const express = require('express');
+const crypto = require('crypto');
 const logger = require('../utils/logger');
 const catalogCache = require('../services/catalogCache');
+const { checkPhotoAllowance, photoLimitError } = require('../utils/photoGalleryAllowance');
 const router = express.Router();
+
+/**
+ * Bust the public catalogue cache after a gallery mutation. Non-fatal:
+ * a cache-invalidation failure must not fail the request that already
+ * persisted the change.
+ */
+function invalidateCatalogCache() {
+  catalogCache.invalidate().catch(e => logger.warn('[catalogCache] invalidate error:', e.message));
+}
 
 // Dependencies injected by server.js
 let dbUnified;
@@ -197,6 +208,11 @@ router.post(
     if (!s) {
       return res.status(403).json({ error: 'Not owner' });
     }
+    const photosGallery = s.photosGallery || [];
+    const allowance = await checkPhotoAllowance(s, 1);
+    if (!allowance.allowed) {
+      return res.status(403).json(photoLimitError(allowance.limit, allowance.current));
+    }
     let imageVariants;
     try {
       imageVariants = await saveImageBase64(image, `supplier_${req.params.id}_${Date.now()}`);
@@ -207,17 +223,26 @@ router.post(
       }
       return res.status(503).json({ error: 'Photo storage unavailable', details: e.message });
     }
-    const photosGallery = s.photosGallery || [];
+    const updatedAt = new Date().toISOString();
     const photoRecord = {
+      id: `photo_${Date.now()}_${crypto.randomBytes(8).toString('hex')}`,
       url: imageVariants.url,
       thumbnail: imageVariants.thumbnail,
       large: imageVariants.large,
       original: imageVariants.original,
       approved: true,
-      uploadedAt: new Date().toISOString(),
+      uploadedAt: updatedAt,
     };
     photosGallery.push(photoRecord);
-    await dbUnified.updateOne('suppliers', { id: req.params.id }, { $set: { photosGallery } });
+    await dbUnified.updateOne(
+      'suppliers',
+      { id: req.params.id },
+      { $set: { photosGallery, updatedAt } }
+    );
+
+    // Bust catalog cache — a new gallery photo affects public listing display
+    invalidateCatalogCache();
+
     res.json({ ok: true, url: photoRecord.url, photo: photoRecord });
   }
 );
@@ -275,13 +300,16 @@ router.delete(
         }
       );
 
-      // Delete the photo from MongoDB (for /api/photos/ URLs) or skip gracefully for legacy /uploads/ paths
+      // Delete the physical file from MongoDB (for /api/photos/ URLs) or skip gracefully for legacy /uploads/ paths
       if (removedPhoto.url) {
         if (removedPhoto.url.startsWith('/api/photos/')) {
           await photoUpload.deleteImage(removedPhoto.url);
         }
         // Legacy /uploads/ URLs: the file may not exist on disk; just remove the reference (already done above)
       }
+
+      // Bust catalog cache — a removed gallery photo affects public listing display
+      invalidateCatalogCache();
 
       res.json({
         success: true,
@@ -320,10 +348,6 @@ router.patch(
         return res.status(400).json({ error: 'photoIds must be an array' });
       }
 
-      if (photoIds.length > 10) {
-        return res.status(400).json({ error: 'Cannot have more than 10 photos' });
-      }
-
       const suppliers = await dbUnified.read('suppliers');
       const supplier = suppliers.find(s => s.id === id);
 
@@ -337,6 +361,16 @@ router.patch(
       }
 
       const existingGallery = supplier.photosGallery || [];
+
+      // A reorder can never legitimately name more entries than the gallery
+      // actually has — bound by the real gallery size (which itself already
+      // reflects the plan allowance) rather than a hard-coded ceiling that
+      // would reject a valid reorder for a supplier on an unlimited plan.
+      if (photoIds.length > existingGallery.length) {
+        return res.status(400).json({
+          error: `photoIds contains more entries (${photoIds.length}) than the gallery has (${existingGallery.length})`,
+        });
+      }
 
       // Validate that all provided IDs exist in this supplier's gallery
       const existingIds = new Set(existingGallery.map((p, i) => p.id || p.url || `photo_${i}`));
@@ -372,9 +406,7 @@ router.patch(
       );
 
       // Bust catalog cache — photo order affects public listing
-      catalogCache
-        .invalidate()
-        .catch(e => logger.warn('[catalogCache] invalidate error:', e.message));
+      invalidateCatalogCache();
 
       res.json({
         success: true,
