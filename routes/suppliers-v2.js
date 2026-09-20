@@ -248,6 +248,62 @@ router.post(
 );
 
 /**
+ * POST /api/me/suppliers/:id/banner
+ * Upload a supplier's public-profile banner image (base64, single image).
+ *
+ * The general supplier PATCH route truncates `bannerUrl` to 500 characters
+ * and the public serializer excludes data-image URLs, so a banner sent
+ * through it as a data URL can appear to save successfully in the editor
+ * while never actually persisting or rendering publicly. This route stores
+ * the banner through the same MongoDB-backed photo pipeline the gallery
+ * uses, so `bannerUrl` is always a short, stable `/api/photos/...` URL.
+ */
+router.post(
+  '/:id/banner',
+  applyWriteLimiter,
+  applyFeatureRequired('photoUploads'),
+  applyAuthRequired,
+  applyRequireVerifiedUser,
+  applyCsrfProtection,
+  async (req, res) => {
+    const { image } = req.body || {};
+    if (!image) {
+      return res.status(400).json({ error: 'Missing image' });
+    }
+    const suppliers = await dbUnified.read('suppliers');
+    const s = suppliers.find(x => x.id === req.params.id && x.ownerUserId === req.user.id);
+    if (!s) {
+      return res.status(403).json({ error: 'Not owner' });
+    }
+    let imageVariants;
+    try {
+      imageVariants = await saveImageBase64(
+        image,
+        `supplier_banner_${req.params.id}_${Date.now()}`
+      );
+    } catch (e) {
+      logger.error('Supplier banner upload failed:', e.message);
+      if (e.name === 'InvalidImageError' || e.name === 'ValidationError') {
+        return res.status(400).json({ error: 'Invalid image', details: e.message });
+      }
+      return res.status(503).json({ error: 'Photo storage unavailable', details: e.message });
+    }
+    const updatedAt = new Date().toISOString();
+    await dbUnified.updateOne(
+      'suppliers',
+      { id: req.params.id },
+      { $set: { bannerUrl: imageVariants.url, updatedAt } }
+    );
+
+    // Bust catalog cache — a new banner affects public listing/profile display
+    invalidateCatalogCache();
+
+    const supplier = { ...s, bannerUrl: imageVariants.url, updatedAt };
+    res.json({ ok: true, url: imageVariants.url, supplier });
+  }
+);
+
+/**
  * DELETE /api/me/suppliers/:id/photos/:photoId
  * Delete a specific photo from supplier gallery
  */

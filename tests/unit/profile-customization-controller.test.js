@@ -68,4 +68,24 @@ describe('profile customization controller', () => {
     expect(controller).toContain('@keyframes pcColorRingGlow');
     expect(controller).not.toContain('inset: 8px');
   });
+
+  it('uploads the banner to the persistent banner route instead of storing a data URL', () => {
+    // The generic multi-image drop-zone helper (efSetupPhotoDropZone) stored
+    // the raw base64 data URL in the hidden bannerUrl field, which the
+    // general supplier PATCH route truncates to 500 characters and the
+    // public serializer strips outright — a save could report success while
+    // the banner never persisted or rendered publicly. Uploading immediately
+    // through the dedicated banner route fixes that.
+    expect(controller).not.toContain('window.efSetupPhotoDropZone');
+    expect(controller).toContain('function uploadBannerFile(file)');
+    expect(controller).toContain('/banner`');
+    expect(controller).toContain("method: 'POST'");
+  });
+
+  it('rejects more than one banner file at a time', () => {
+    // Unlike the gallery drop zone, a banner is exactly one image.
+    expect(controller).not.toContain('input.multiple = true');
+    expect(controller).toContain('e.dataTransfer?.files?.[0]');
+    expect(controller).toContain('input.files?.[0]');
+  });
 });
