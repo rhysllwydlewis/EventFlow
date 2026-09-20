@@ -54,6 +54,32 @@
     },
   ];
 
+  // Mirrors models/Supplier.js VALID_CATEGORIES (and the canonical dropdown in
+  // dashboard-supplier.html) — a free-text category input can no longer be
+  // saved, since the server now rejects any value outside this list.
+  const VALID_CATEGORIES = [
+    'Venues',
+    'Catering',
+    'Photography',
+    'Videography',
+    'Entertainment',
+    'Music/DJ',
+    'Florist',
+    'Decor',
+    'Transport',
+    'Cake',
+    'Stationery',
+    'Hair & Makeup',
+    'Beauty',
+    'Bridalwear',
+    'Jewellery',
+    'Celebrant',
+    'Event Planner',
+    'Wedding Fayre',
+    'Planning',
+    'Other',
+  ];
+
   // ── Utilities ────────────────────────────────────────────────────────────
 
   const esc = str =>
@@ -197,12 +223,29 @@
     return resp.json();
   }
 
-  // Apply patch result back to the shared supplier data object
-  function mergeData(patch) {
-    if (!window.__supplierData) {
+  // Apply the server's canonical supplier record back onto the shared data
+  // object — never the outbound patch. The server trims, normalises and
+  // validates (category, URLs, theme fields…) and may unset fields the
+  // request never touched (e.g. leaving Venues clears venuePostcode); merging
+  // the request instead of the response would silently lose all of that and
+  // let a save "succeed" while displaying data the server never actually
+  // stored.
+  function mergeData(canonicalSupplier) {
+    if (!window.__supplierData || !canonicalSupplier) {
       return;
     }
-    Object.assign(window.__supplierData, patch);
+    Object.assign(window.__supplierData, canonicalSupplier);
+  }
+
+  // Re-inject every owner-edit affordance after a full section rerender
+  // (window.__spRerender.all()) replaces their DOM.
+  function reinjectOwnerControls(supplierId) {
+    addHeroEditButton(supplierId);
+    addNameEditButton(supplierId);
+    addAboutEditButton(supplierId);
+    addGalleryEditButton();
+    addPackagesEditButton();
+    addSidebarEditButton(supplierId);
   }
 
   // ── Owner bar ─────────────────────────────────────────────────────────────
@@ -426,8 +469,8 @@
         }
         patch.tagline = newTagline;
 
-        await patchSupplier(supplierId, patch);
-        mergeData(patch);
+        const result = await patchSupplier(supplierId, patch);
+        mergeData(result.supplier);
         window.__spRerender?.hero();
         addHeroEditButton(supplierId); // Re-inject after rerender
         showToast('Hero updated ✓');
@@ -542,8 +585,8 @@
           location: overlay.querySelector('#spLocation').value.trim(),
           price_display: overlay.querySelector('#spPriceDisplay').value.trim(),
         };
-        await patchSupplier(supplierId, patch);
-        mergeData(patch);
+        const result = await patchSupplier(supplierId, patch);
+        mergeData(result.supplier);
         window.__spRerender?.about();
         addAboutEditButton(supplierId);
         window.__spRerender?.sidebar();
@@ -673,6 +716,12 @@
 
   function openNameModal(supplierId) {
     const supplier = window.__supplierData || {};
+    const currentCategory = supplier.category || '';
+
+    const categoryOptions = VALID_CATEGORIES.map(
+      cat =>
+        `<option value="${esc(cat)}"${cat === currentCategory ? ' selected' : ''}>${esc(cat)}</option>`
+    ).join('');
 
     const bodyHtml = `
       <div class="sp-field">
@@ -681,7 +730,7 @@
       </div>
       <div class="sp-field">
         <label class="sp-field__label" for="spCategory">Category</label>
-        <input type="text" id="spCategory" class="sp-field__input" value="${esc(supplier.category || '')}" maxlength="80" placeholder="e.g. Photography, Catering, Venues" />
+        <select id="spCategory" class="sp-field__input">${categoryOptions}</select>
       </div>
     `;
 
@@ -705,13 +754,15 @@
       try {
         const patch = {
           name,
-          category: overlay.querySelector('#spCategory').value.trim(),
+          category: overlay.querySelector('#spCategory').value,
         };
-        await patchSupplier(supplierId, patch);
-        mergeData(patch);
-        window.__spRerender?.hero();
-        addHeroEditButton(supplierId);
-        addNameEditButton(supplierId);
+        const result = await patchSupplier(supplierId, patch);
+        mergeData(result.supplier);
+        // A category change affects the hero, sidebar and automatic theme
+        // together; rerendering only the hero left the sidebar's category
+        // and the theme accent stale until the next full page load.
+        window.__spRerender?.all();
+        reinjectOwnerControls(supplierId);
         showToast('Business name updated ✓');
         closeModal();
       } catch (err) {
