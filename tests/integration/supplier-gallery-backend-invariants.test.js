@@ -5,8 +5,9 @@
  * docs/audits/SUPPLIER_PROFILE_EDITING_CORRECTNESS_HANDOFF.md):
  *
  * - every uploaded gallery photo gets a server-generated id;
- * - the gallery is capped at 10 photos on the server, not just in the
- *   browser or the reorder route;
+ * - the gallery upload enforces the same plan-based allowance
+ *   (utils/photoGalleryAllowance.checkPhotoAllowance) as routes/photos.js,
+ *   not a hard-coded ceiling that would cap an unlimited plan at ten;
  * - every gallery mutation (upload, delete, reorder) stamps `updatedAt`
  *   and invalidates the public catalogue cache.
  */
@@ -19,12 +20,17 @@ jest.mock('../../services/catalogCache', () => ({
   invalidate: jest.fn(() => Promise.resolve()),
 }));
 
+jest.mock('../../services/subscriptionService', () => ({
+  getPhotoAllowance: jest.fn(() => Promise.resolve(10)),
+}));
+
 function createApp(existingSupplier) {
   jest.resetModules();
   const router = require('../../routes/suppliers-v2');
   // Re-require after resetModules so assertions see the same mock instance
   // the router itself picked up from the fresh module registry.
   const catalogCache = require('../../services/catalogCache');
+  const subscriptionService = require('../../services/subscriptionService');
   const dbUnified = {
     read: jest.fn(async collection => (collection === 'suppliers' ? [existingSupplier] : [])),
     updateOne: jest.fn(async () => true),
@@ -57,7 +63,7 @@ function createApp(existingSupplier) {
   const app = express();
   app.use(express.json({ limit: '15mb' }));
   app.use('/api/me/suppliers', router);
-  return { app, dbUnified, photoUpload, catalogCache };
+  return { app, dbUnified, photoUpload, catalogCache, subscriptionService };
 }
 
 const TINY_PNG_BASE64 =
@@ -91,7 +97,7 @@ describe('supplier gallery backend invariants', () => {
     expect(catalogCache.invalidate).toHaveBeenCalledTimes(1);
   });
 
-  test('rejects an eleventh photo with 400 without touching storage', async () => {
+  test('rejects an eleventh photo on a 10-photo plan with 403 without touching storage', async () => {
     const tenPhotos = Array.from({ length: 10 }, (_, i) => ({
       id: `photo_${i}`,
       url: `/api/photos/existing_${i}`,
@@ -106,12 +112,33 @@ describe('supplier gallery backend invariants', () => {
     const res = await request(app)
       .post('/api/me/suppliers/sup_2/photos')
       .send({ image: TINY_PNG_BASE64 })
-      .expect(400);
+      .expect(403);
 
     expect(res.body.code).toBe('PHOTO_LIMIT_REACHED');
     expect(photoUpload.processAndSaveImage).not.toHaveBeenCalled();
     expect(dbUnified.updateOne).not.toHaveBeenCalled();
     expect(catalogCache.invalidate).not.toHaveBeenCalled();
+  });
+
+  test('an unlimited plan can upload past ten photos', async () => {
+    const elevenPhotos = Array.from({ length: 11 }, (_, i) => ({
+      id: `photo_${i}`,
+      url: `/api/photos/existing_${i}`,
+    }));
+    const existingSupplier = {
+      id: 'sup_4',
+      ownerUserId: 'user_4',
+      photosGallery: elevenPhotos,
+    };
+    const { app, subscriptionService } = createApp(existingSupplier);
+    subscriptionService.getPhotoAllowance.mockResolvedValueOnce(-1);
+
+    const res = await request(app)
+      .post('/api/me/suppliers/sup_4/photos')
+      .send({ image: TINY_PNG_BASE64 })
+      .expect(200);
+
+    expect(res.body.photo.id).toEqual(expect.stringMatching(/^photo_\d+_[0-9a-f]+$/));
   });
 
   test('delete busts the catalogue cache', async () => {

@@ -9,9 +9,8 @@ const express = require('express');
 const crypto = require('crypto');
 const logger = require('../utils/logger');
 const catalogCache = require('../services/catalogCache');
+const { checkPhotoAllowance, photoLimitError } = require('../utils/photoGalleryAllowance');
 const router = express.Router();
-
-const MAX_GALLERY_PHOTOS = 10;
 
 /**
  * Bust the public catalogue cache after a gallery mutation. Non-fatal:
@@ -210,13 +209,9 @@ router.post(
       return res.status(403).json({ error: 'Not owner' });
     }
     const photosGallery = s.photosGallery || [];
-    if (photosGallery.length >= MAX_GALLERY_PHOTOS) {
-      return res.status(400).json({
-        error: `Gallery is limited to ${MAX_GALLERY_PHOTOS} photos. Delete a photo before uploading another.`,
-        code: 'PHOTO_LIMIT_REACHED',
-        limit: MAX_GALLERY_PHOTOS,
-        current: photosGallery.length,
-      });
+    const allowance = await checkPhotoAllowance(s, 1);
+    if (!allowance.allowed) {
+      return res.status(403).json(photoLimitError(allowance.limit, allowance.current));
     }
     let imageVariants;
     try {
@@ -353,12 +348,6 @@ router.patch(
         return res.status(400).json({ error: 'photoIds must be an array' });
       }
 
-      if (photoIds.length > MAX_GALLERY_PHOTOS) {
-        return res
-          .status(400)
-          .json({ error: `Cannot have more than ${MAX_GALLERY_PHOTOS} photos` });
-      }
-
       const suppliers = await dbUnified.read('suppliers');
       const supplier = suppliers.find(s => s.id === id);
 
@@ -372,6 +361,16 @@ router.patch(
       }
 
       const existingGallery = supplier.photosGallery || [];
+
+      // A reorder can never legitimately name more entries than the gallery
+      // actually has — bound by the real gallery size (which itself already
+      // reflects the plan allowance) rather than a hard-coded ceiling that
+      // would reject a valid reorder for a supplier on an unlimited plan.
+      if (photoIds.length > existingGallery.length) {
+        return res.status(400).json({
+          error: `photoIds contains more entries (${photoIds.length}) than the gallery has (${existingGallery.length})`,
+        });
+      }
 
       // Validate that all provided IDs exist in this supplier's gallery
       const existingIds = new Set(existingGallery.map((p, i) => p.id || p.url || `photo_${i}`));

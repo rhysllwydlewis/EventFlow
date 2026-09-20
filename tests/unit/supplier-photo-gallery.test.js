@@ -110,9 +110,8 @@ describe('Suppliers V2 — PATCH /:id/photos/order guards', () => {
     expect(block).toContain('Array.isArray(photoIds)');
   });
 
-  it('enforces a max of 10 photos', () => {
-    expect(block).toContain('photoIds.length > MAX_GALLERY_PHOTOS');
-    expect(routesContent).toContain('MAX_GALLERY_PHOTOS = 10');
+  it('bounds photoIds to the actual gallery size rather than a hard-coded ceiling', () => {
+    expect(block).toContain('photoIds.length > existingGallery.length');
   });
 
   it('checks supplier ownership', () => {
@@ -179,6 +178,14 @@ describe('Suppliers V2 — POST /:id/photos ownership check', () => {
     const block = extractRouteBlock('post', '/:id/photos');
     expect(block).not.toContain('req.userId');
     expect(block).toContain('req.user.id');
+  });
+
+  it('enforces the shared plan-based allowance, not a hard-coded photo ceiling', () => {
+    // A hard cap here would reintroduce the bug subscriptionService.getPhotoAllowance
+    // was built to fix: every plan tier capped at ten regardless of what it promises.
+    const block = extractRouteBlock('post', '/:id/photos');
+    expect(block).toContain('checkPhotoAllowance(s, 1)');
+    expect(routesContent).toContain("require('../utils/photoGalleryAllowance')");
   });
 });
 
