@@ -504,6 +504,31 @@
     }
   }
 
+  /**
+   * Guard before assigning a banner value to an <img src>. bannerUrl can be
+   * a relative /api/photos/... or /uploads/... path, an absolute http(s)
+   * URL (stock photo), or a local data: URL held during upload — but never
+   * anything else. In particular a data:image/svg+xml value can embed a
+   * <script> tag that executes in some rendering contexts, so only bitmap
+   * MIME types are allowed through the data: branch.
+   * @param {string} url - Candidate image source.
+   * @returns {boolean} Whether it is safe to assign to an <img>'s src.
+   */
+  function isSafeImageSrc(url) {
+    if (typeof url !== 'string' || !url) {
+      return false;
+    }
+    if (/^data:/i.test(url)) {
+      return /^data:image\/(png|jpe?g|webp|gif);base64,[a-z0-9+/]+=*$/i.test(url);
+    }
+    try {
+      const parsed = new URL(url, window.location.origin);
+      return parsed.protocol === 'http:' || parsed.protocol === 'https:';
+    } catch {
+      return false;
+    }
+  }
+
   function renderBannerPreview(imageUrl) {
     const bannerPreview = $('sup-banner-preview');
     if (!bannerPreview) {
@@ -512,8 +537,9 @@
     while (bannerPreview.firstChild) {
       bannerPreview.removeChild(bannerPreview.firstChild);
     }
-    $('sup-banner-drop')?.classList.toggle('has-image', !!imageUrl);
-    if (!imageUrl) {
+    const isSafe = isSafeImageSrc(imageUrl);
+    $('sup-banner-drop')?.classList.toggle('has-image', isSafe);
+    if (!isSafe) {
       return;
     }
 
@@ -548,7 +574,7 @@
       return;
     }
     clearChildren(pBanner);
-    if (imageUrl) {
+    if (isSafeImageSrc(imageUrl)) {
       pBanner.style.background = 'none';
       const pImg = document.createElement('img');
       pImg.src = imageUrl;

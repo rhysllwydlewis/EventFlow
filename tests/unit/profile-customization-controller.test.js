@@ -88,4 +88,15 @@ describe('profile customization controller', () => {
     expect(controller).toContain('e.dataTransfer?.files?.[0]');
     expect(controller).toContain('input.files?.[0]');
   });
+
+  it('validates a banner value before assigning it to an <img> src', () => {
+    // CodeQL flagged both img.src = imageUrl sinks (renderBannerPreview and
+    // updatePreviewBanner) once bannerUrl could also come from a fetch
+    // response, not just a local FileReader read. A data:image/svg+xml
+    // value can embed a <script> tag, so only bitmap MIME types are let
+    // through the data: branch; everything else must be http(s).
+    expect(controller).toContain('function isSafeImageSrc(url)');
+    expect(controller).toContain('if (!isSafe)');
+    expect(controller).toContain('if (isSafeImageSrc(imageUrl))');
+  });
 });
