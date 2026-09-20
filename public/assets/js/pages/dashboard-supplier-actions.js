@@ -34,6 +34,41 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
+  function ensureCardExpanded(section) {
+    if (!section) {
+      return;
+    }
+    const collapseBtn = section.querySelector(':scope > .card-collapse-btn');
+    if (collapseBtn && collapseBtn.getAttribute('aria-expanded') === 'false') {
+      collapseBtn.click();
+    }
+  }
+
+  // The public owner-edit overlay links back here with #photos and
+  // #packages, but neither fragment ever matched a real element id on this
+  // page, so the browser landed with no scroll and the supplier had to hunt
+  // for the right card themselves. Route both to their actual sections,
+  // reusing the same expand-then-scroll pattern the on-page buttons above use.
+  function handleDashboardDeepLink() {
+    const hash = window.location.hash.slice(1);
+    if (hash === 'photos') {
+      expandForm('profile-form-section', 'toggle-profile-form');
+      document
+        .getElementById('sup-photo-drop')
+        ?.scrollIntoView({ behavior: scrollBehavior, block: 'center' });
+    } else if (hash === 'packages') {
+      const packagesSection = document.getElementById('packages-section');
+      ensureCardExpanded(packagesSection);
+      (document.getElementById('my-packages') || packagesSection)?.scrollIntoView({
+        behavior: scrollBehavior,
+        block: 'start',
+      });
+    }
+  }
+
+  handleDashboardDeepLink();
+  window.addEventListener('hashchange', handleDashboardDeepLink);
+
   const btn = document.querySelector('[data-action="create-profile"]');
   if (btn) {
     btn.addEventListener('click', scrollToProfileForm);
