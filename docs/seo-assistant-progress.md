@@ -121,3 +121,28 @@ Semrush calls first; if units are still unavailable after three-plus
 consecutive blocked cycles, consider flagging to the owner directly (via
 notification) that the Semrush subscription may need attention, rather than
 only logging silently again.
+
+### 2026-09-21 (11:09 UTC)
+
+Retried Semrush again, per the previous entry. `domain_overview` still
+returned `no_api_units` — this is now the fourth consecutive blocked cycle
+(2026-09-17 implied, 2026-09-18, 2026-09-21 morning, and this run), spanning
+at least three calendar days with zero API units available on the account
+the whole time. Checked open `[Ops Assistant] ...` issues first (per
+mandate): the most recent (#1696, #1688, #1686, #1682, #1683, #1681, #1679)
+are all about that routine's own internal-analytics access (ops-bot HMAC 401
+and MongoDB unreachable) — none are Semrush-specific or SEO-content
+findings, so nothing to avoid duplicating and nothing actionable here. Ran
+`git checkout claude/eventflow-seo` (branch already existed with prior
+cycles' log entries; not restarted since its last PR was not previously
+merged into main in a way that orphaned it — confirmed the branch tracks
+origin cleanly). Stopped before Step 3 (pick work) per the mandate — did not
+attempt technical or content fixes without real Semrush data. No code or
+content change this cycle. Backlog item ("First run: pull a site audit and
+position-tracking snapshot") still outstanding, now blocked for four
+consecutive cycles. Sent the owner a direct notification this cycle, per the
+previous entry's own recommendation once the three-plus-cycle threshold was
+reached — flagging that the Semrush subscription likely needs API units
+topped up before this routine can do any real work. Next run: retry Semrush
+calls first; if units are restored, proceed with the full mandate from Step
+2 onward using this cycle's baseline-still-needed backlog item.
