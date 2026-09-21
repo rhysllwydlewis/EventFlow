@@ -149,11 +149,22 @@ describe('pricing page rebuild', () => {
     expect(PLAN_FEATURES.pro.features.maxPhotos).toBe(500);
     expect(PLAN_FEATURES.pro_plus.features.maxPhotos).toBe(-1);
 
+    // checkPhotoAllowance/PHOTO_LIMIT_REACHED live in one shared module so
+    // every gallery upload route enforces the same plan-based allowance
+    // instead of one route consulting the plan and another falling back to
+    // a hard-coded ceiling that recreates the "every tier capped at ten" bug.
+    const allowanceModule = readAsset('utils/photoGalleryAllowance.js');
+    expect(allowanceModule).toContain('checkPhotoAllowance');
+    expect(allowanceModule).toContain('PHOTO_LIMIT_REACHED');
+
     const photos = readAsset('routes/photos.js');
-    expect(photos).toContain('checkPhotoAllowance');
-    expect(photos).toContain('PHOTO_LIMIT_REACHED');
-    // Both upload paths are guarded, not just the single-file one.
+    expect(photos).toContain("require('../utils/photoGalleryAllowance')");
+    // Both upload paths in routes/photos.js are guarded, not just the single-file one.
     expect(photos.match(/await checkPhotoAllowance\(/g)).toHaveLength(2);
+
+    const suppliersV2 = readAsset('routes/suppliers-v2.js');
+    expect(suppliersV2).toContain("require('../utils/photoGalleryAllowance')");
+    expect(suppliersV2.match(/await checkPhotoAllowance\(/g)).toHaveLength(1);
 
     // The browser reads its allowance rather than carrying its own ceiling.
     const gallery = readAsset('public/assets/js/supplier-gallery.js');

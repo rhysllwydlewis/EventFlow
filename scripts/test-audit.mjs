@@ -176,14 +176,37 @@ async function gitInfo(cmd) {
   });
 }
 
-function runShell(command, timeoutMs = 300000) {
+// Env vars that only the isolated full-backend Playwright suite (playwright-full,
+// launched via `npm run test:e2e:full` / `test:e2e:backend`, both of which already
+// set E2E_MODE=full themselves) is meant to see. The scheduled test-audit workflow
+// sets these at job/step scope for that suite's benefit, but every check here inherits
+// the same process env. Plain Jest checks (jest-ci/smoke/full-regression) are written
+// and verified against per-file isolated local storage; leaking a real, persistent
+// MONGODB_URI and the E2E_MODE=full cache/rate-limit bypass into them causes state to
+// accumulate across test files in one Jest run and produces spurious failures that
+// don't reproduce when a test file is run on its own. Strip both for any check that
+// isn't the backend-E2E suite itself.
+const BACKEND_E2E_ONLY_ENV_VARS = ['E2E_MODE', 'MONGODB_URI'];
+const BACKEND_E2E_CHECK_IDS = new Set(['playwright-full']);
+
+function envForCheck(checkId) {
+  const env = { ...process.env, TEST_AUDIT: 'true' };
+  if (!BACKEND_E2E_CHECK_IDS.has(checkId)) {
+    for (const key of BACKEND_E2E_ONLY_ENV_VARS) {
+      delete env[key];
+    }
+  }
+  return env;
+}
+
+function runShell(command, timeoutMs = 300000, checkId = null) {
   return new Promise(resolve => {
     const seconds = Math.max(1, Math.ceil(timeoutMs / 1000));
     const wrappedCommand = `timeout -k 10s ${seconds}s bash -lc ${JSON.stringify(command)}`;
     const child = spawn(wrappedCommand, {
       cwd: ROOT,
       shell: true,
-      env: { ...process.env, TEST_AUDIT: 'true' },
+      env: envForCheck(checkId),
     });
     let stdout = '';
     let stderr = '';
@@ -388,11 +411,11 @@ async function main() {
   for (const check of selectedChecks()) {
     let cleanupNote = '';
     if (check.preCommand) {
-      const cleanup = await runShell(check.preCommand, 10000);
+      const cleanup = await runShell(check.preCommand, 10000, check.id);
       cleanupNote = `$ ${check.preCommand}  # audit cleanup only\n${cleanup.stdout}${cleanup.stderr}\n`;
     }
     const start = new Date();
-    const { code, stdout, stderr } = await runShell(check.command, check.timeoutMs);
+    const { code, stdout, stderr } = await runShell(check.command, check.timeoutMs, check.id);
     const end = new Date();
     await writeFile(
       path.join(LOGS, check.log),

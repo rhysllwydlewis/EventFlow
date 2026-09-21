@@ -403,6 +403,7 @@ module.exports = {
   PUBLIC_SUPPLIER_PRIVATE_FIELDS,
   safeExternalUrl,
   safeImageUrl,
+  safePhone,
   safePublicPackage,
   safePublicSupplier,
   safeTrustVerifications,

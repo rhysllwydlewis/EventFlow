@@ -54,7 +54,12 @@ const ASSET_VERSIONS = {
   // scroll buttons and edge scrim already carry that affordance; without a
   // bump a returning visitor keeps last week's cached copy, which still
   // shows both.
-  '/assets/css/community.css': '18.6.1',
+  // 18.6.2: `/community/category/:slug` had no visual identity above its
+  // discussion list — a plain heading on the bare page background, unlike
+  // every other landing page in the section. Added a glass-card treatment
+  // for #efc-category-header; without a bump a returning visitor keeps the
+  // old stylesheet and sees a bare header again.
+  '/assets/css/community.css': '18.6.2',
   // 18.4.1: the mobile burger menu's padding, link height, gap and divider
   // were tightened and the CTA/login row was fixed to actually be compact
   // (PR #1605). Without a bump a returning visitor keeps the previous
@@ -453,7 +458,7 @@ const pages = [
   {
     file: 'community-category.html',
     body: `        <div id="efc-discussions" data-mode="category">
-          <div id="efc-category-header" class="efc-section"></div>
+          <div id="efc-category-header" class="efc-section efc-category-hero"></div>
 ${listBody}
         </div>`,
     scripts: ['/assets/js/community/discussions.js'],

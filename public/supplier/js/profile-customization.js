@@ -504,6 +504,31 @@
     }
   }
 
+  /**
+   * Guard before assigning a banner value to an <img src>. bannerUrl can be
+   * a relative /api/photos/... or /uploads/... path, an absolute http(s)
+   * URL (stock photo), or a local data: URL held during upload — but never
+   * anything else. In particular a data:image/svg+xml value can embed a
+   * <script> tag that executes in some rendering contexts, so only bitmap
+   * MIME types are allowed through the data: branch.
+   * @param {string} url - Candidate image source.
+   * @returns {boolean} Whether it is safe to assign to an <img>'s src.
+   */
+  function isSafeImageSrc(url) {
+    if (typeof url !== 'string' || !url) {
+      return false;
+    }
+    if (/^data:/i.test(url)) {
+      return /^data:image\/(png|jpe?g|webp|gif);base64,[a-z0-9+/]+=*$/i.test(url);
+    }
+    try {
+      const parsed = new URL(url, window.location.origin);
+      return parsed.protocol === 'http:' || parsed.protocol === 'https:';
+    } catch {
+      return false;
+    }
+  }
+
   function renderBannerPreview(imageUrl) {
     const bannerPreview = $('sup-banner-preview');
     if (!bannerPreview) {
@@ -512,8 +537,9 @@
     while (bannerPreview.firstChild) {
       bannerPreview.removeChild(bannerPreview.firstChild);
     }
-    $('sup-banner-drop')?.classList.toggle('has-image', !!imageUrl);
-    if (!imageUrl) {
+    const isSafe = isSafeImageSrc(imageUrl);
+    $('sup-banner-drop')?.classList.toggle('has-image', isSafe);
+    if (!isSafe) {
       return;
     }
 
@@ -548,7 +574,7 @@
       return;
     }
     clearChildren(pBanner);
-    if (imageUrl) {
+    if (isSafeImageSrc(imageUrl)) {
       pBanner.style.background = 'none';
       const pImg = document.createElement('img');
       pImg.src = imageUrl;
@@ -983,64 +1009,152 @@
     });
   }
 
-  function setupBannerUpload() {
-    const dropZone = $('sup-banner-drop');
-    if (dropZone) {
-      dropZone.addEventListener('keydown', event => {
-        if (event.key === 'Enter' || event.key === ' ') {
-          event.preventDefault();
-          dropZone.click();
-        }
-      });
-    }
+  // A banner is exactly one image, unlike the gallery drop zone that
+  // efSetupPhotoDropZone was built for (it accepts multiple files and can
+  // leave duplicate previews). Reusing it here previously meant a "saved"
+  // banner was only ever a base64 data URL sitting in the hidden input:
+  // the general supplier PATCH route truncates bannerUrl to 500 characters
+  // and the public serializer strips data-image URLs, so the editor could
+  // show success while the banner never actually persisted or rendered
+  // publicly. This dedicated uploader posts straight to the banner route,
+  // which stores a real, stable /api/photos/... URL.
+  const BANNER_ALLOWED_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp']);
+  const BANNER_MAX_FILE_SIZE_BYTES = 5 * 1024 * 1024;
 
-    if (typeof window.efSetupPhotoDropZone === 'function') {
-      window.efSetupPhotoDropZone(
-        'sup-banner-drop',
-        'sup-banner-preview',
-        dataUrl => {
-          const input = $('sup-banner');
-          setInputValue(input, dataUrl);
-          updateBannerPreview(dataUrl);
-          markDirty();
-        },
-        () => {
-          const input = $('sup-banner');
-          setInputValue(input, '');
-          updateBannerPreview('');
-          markDirty();
-        }
+  function readFileAsDataUrl(file) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(String(reader.result || ''));
+      reader.onerror = () => reject(new Error('Failed to read the selected file.'));
+      reader.readAsDataURL(file);
+    });
+  }
+
+  async function uploadBannerFile(file) {
+    if (!currentEditingSupplierId) {
+      notify('error', 'Please select a supplier profile first.');
+      return;
+    }
+    if (!file.type || !BANNER_ALLOWED_TYPES.has(file.type)) {
+      notify(
+        'error',
+        `"${file.name}" is not a supported image type. Please use JPEG, PNG or WebP.`
       );
       return;
     }
+    if (file.size > BANNER_MAX_FILE_SIZE_BYTES) {
+      notify('error', `"${file.name}" is too large. Maximum allowed size is 5 MB.`);
+      return;
+    }
 
+    const dataUrl = await readFileAsDataUrl(file).catch(error => {
+      notify('error', error.message || 'Failed to read the selected file.');
+      return null;
+    });
+    if (!dataUrl) {
+      return;
+    }
+
+    // Optimistic local preview while the upload is in flight.
+    updateBannerPreview(dataUrl);
+    setStatus('Uploading banner...', 'muted');
+
+    const bannerInput = document.getElementById('sup-banner');
+    const previouslyPersistedUrl = bannerInput?.value || '';
+
+    try {
+      const csrfToken = await ensureCsrfToken();
+      const response = await api(
+        `/api/me/suppliers/${encodeURIComponent(currentEditingSupplierId)}/banner`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-Token': csrfToken,
+          },
+          body: JSON.stringify({ image: dataUrl }),
+        }
+      );
+
+      const url = response?.url || response?.supplier?.bannerUrl;
+      if (!url) {
+        throw new Error('Upload did not return a usable image URL');
+      }
+
+      setInputValue(bannerInput, url);
+      updateBannerPreview(url);
+      markDirty();
+
+      const index = suppliers.findIndex(supplier => supplier.id === currentEditingSupplierId);
+      if (index !== -1) {
+        suppliers[index] = {
+          ...suppliers[index],
+          bannerUrl: url,
+          updatedAt: response?.supplier?.updatedAt || new Date().toISOString(),
+        };
+      }
+
+      notify('success', 'Banner uploaded successfully.');
+      setStatus('', 'muted');
+    } catch (error) {
+      console.error('Error uploading banner:', error);
+      notify('error', error.message || 'Failed to upload banner. Please try again.');
+      // The upload failed — revert the optimistic preview to whatever is
+      // actually persisted rather than leaving a banner shown that isn't real.
+      updateBannerPreview(previouslyPersistedUrl);
+      setStatus('', 'muted');
+    }
+  }
+
+  function setupBannerUpload() {
+    const dropZone = $('sup-banner-drop');
     if (!dropZone) {
       return;
     }
-    const fallbackInput = document.createElement('input');
-    fallbackInput.type = 'file';
-    fallbackInput.accept = 'image/jpeg,image/png,image/webp';
-    fallbackInput.hidden = true;
-    document.body.appendChild(fallbackInput);
-    dropZone.addEventListener('click', () => fallbackInput.click());
-    fallbackInput.addEventListener('change', () => {
-      const file = fallbackInput.files && fallbackInput.files[0];
-      if (!file) {
-        return;
+
+    dropZone.addEventListener('keydown', event => {
+      if (event.key === 'Enter' || event.key === ' ') {
+        event.preventDefault();
+        dropZone.click();
       }
-      if (!/^image\/(jpeg|png|webp)$/.test(file.type) || file.size > 5 * 1024 * 1024) {
-        notify('error', 'Please choose a JPG, PNG or WebP image under 5 MB.');
-        fallbackInput.value = '';
-        return;
+    });
+
+    function stop(e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+
+    ['dragenter', 'dragover'].forEach(evt => {
+      dropZone.addEventListener(evt, e => {
+        stop(e);
+        dropZone.classList.add('dragover');
+      });
+    });
+    ['dragleave', 'drop'].forEach(evt => {
+      dropZone.addEventListener(evt, e => {
+        stop(e);
+        dropZone.classList.remove('dragover');
+      });
+    });
+    dropZone.addEventListener('drop', e => {
+      stop(e);
+      const file = e.dataTransfer?.files?.[0];
+      if (file) {
+        uploadBannerFile(file);
       }
-      const reader = new FileReader();
-      reader.onload = () => {
-        const input = $('sup-banner');
-        setInputValue(input, String(reader.result || ''));
-        updateBannerPreview(String(reader.result || ''));
-        markDirty();
-      };
-      reader.readAsDataURL(file);
+    });
+
+    dropZone.addEventListener('click', () => {
+      const input = document.createElement('input');
+      input.type = 'file';
+      input.accept = Array.from(BANNER_ALLOWED_TYPES).join(',');
+      input.addEventListener('change', () => {
+        const file = input.files?.[0];
+        if (file) {
+          uploadBannerFile(file);
+        }
+      });
+      input.click();
     });
   }
 
