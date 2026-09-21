@@ -102,3 +102,22 @@ and isn't this routine's job to fix. Backlog item ("First run: pull a site
 audit and position-tracking snapshot") remains outstanding — could not be
 done this cycle for lack of API units. Next run: retry Semrush calls first;
 if units are available, proceed with the full mandate from Step 1.
+
+### 2026-09-21
+
+Retried Semrush first, per the previous entry's note. `domain_overview` and
+`projects` both still returned `no_api_units` — three days running now
+(2026-09-17 implied by this being the second logged occurrence, 2026-09-18,
+2026-09-21) with no API units available on the account. Checked open
+`[Ops Assistant] ...` issues first (per mandate): most recent are #1688 and
+#1686 (run summaries) and #1679/#1680 (ops-bot HMAC 401 and MongoDB
+unreachable) — all about that routine's internal-analytics path, not
+Semrush, so not actioned here. No new `[Ops Assistant]` SEO-specific issue
+since the last cycle. Stopped before Step 3 (pick work) per the mandate —
+did not attempt technical or content fixes without real Semrush data. No
+code or content change this cycle. Backlog item ("First run: pull a site
+audit and position-tracking snapshot") still outstanding. Next run: retry
+Semrush calls first; if units are still unavailable after three-plus
+consecutive blocked cycles, consider flagging to the owner directly (via
+notification) that the Semrush subscription may need attention, rather than
+only logging silently again.
