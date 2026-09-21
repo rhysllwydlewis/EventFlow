@@ -61,7 +61,6 @@
       mobileSettings: document.getElementById('ef-mobile-settings'),
       mobileLogout: document.getElementById('ef-mobile-logout'),
       bottomDashboard: document.getElementById('ef-bottom-dashboard'),
-      bottomAlerts: document.getElementById('ef-bottom-alerts'),
       bottomSettings: document.getElementById('ef-bottom-settings'),
 
       // Notifications
@@ -272,7 +271,7 @@
         });
       }
 
-      // Show bottom dashboard with badge (replaces alerts)
+      // Show bottom dashboard with badge
       if (elements.bottomDashboard) {
         elements.bottomDashboard.href = dashboardUrl;
         elements.bottomDashboard.style.display = 'flex';
@@ -281,11 +280,6 @@
       // Show bottom settings link when logged in
       if (elements.bottomSettings) {
         elements.bottomSettings.style.display = 'flex';
-      }
-
-      // Hide bottom alerts button when logged in
-      if (elements.bottomAlerts) {
-        elements.bottomAlerts.style.display = 'none';
       }
 
       // Re-run active-page highlighting now that dashboard href is resolved
@@ -347,11 +341,6 @@
       // Hide bottom settings link when logged out
       if (elements.bottomSettings) {
         elements.bottomSettings.style.display = 'none';
-      }
-
-      // Hide bottom alerts button when logged out (matches top navbar behavior)
-      if (elements.bottomAlerts) {
-        elements.bottomAlerts.style.display = 'none';
       }
 
       // Hide notification bell
