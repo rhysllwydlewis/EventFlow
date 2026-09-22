@@ -130,13 +130,18 @@ otherwise, but don't hold an otherwise-clean merge for it.
         `aria-labelledby`, or focus management — the same defect class fixed
         on compare/budget/timeline in PR #1685, just missed on this page.
         Best next pick — customer-facing.
-  - [ ] Same missing dialog semantics on admin-only modals: `#categoryModal`
-        in `public/admin-homepage.html`, `#photoModal` in
+  - [ ] Same missing dialog semantics on admin-only modals: `#photoModal` in
         `public/admin-media.html` and `public/admin-pexels.html`. Lower
         priority (internal tool, smaller blast radius) — note
         `admin-media.html`'s own `#assignmentModal` already has correct
         `role="dialog" aria-modal="true"`, so the fix is just bringing the
-        other modals in line with that file's own convention.
+        other modals in line with that file's own convention. (Originally
+        this item also listed `#categoryModal` in `public/admin-homepage.html`
+        — removed after a PR #1700 review comment correctly pointed out that
+        `admin-homepage-hardening.js`'s `syncModalAccessibility()` already
+        sets `role="dialog"`, `aria-modal`, `aria-labelledby`, focus
+        management and Tab/Escape trapping on it; verified directly in the
+        file before correcting this entry.)
 
 ## Discovered along the way
 
