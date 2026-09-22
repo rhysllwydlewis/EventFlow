@@ -115,12 +115,28 @@ otherwise, but don't hold an otherwise-clean merge for it.
 - [x] Dead "Alerts" bottom-nav link/CSS/JS shipped on ~90 pages (the other
       candidate from the 2026-09-17 session). Done in PR #1697 — see
       2026-09-21 session log.
+- [x] Brute-forceable phone verification code: `POST /api/me/phone/verify-code`
+      had no rate limiter at all (candidate from the 2026-09-22 sweep). Done in
+      PR #1699 — see session log.
 - [ ] General site-wide sweep: with no specific backlog item pending, spend
       the session looking for real defects anywhere in the product — broken
       flows, poor states, accessibility issues, inconsistent UI, missing
       error handling, flaky tests — verify each one is real before fixing it.
-      (Kept open/ongoing — no new candidates queued as of 2026-09-21; next
-      session should pick a fresh sweep target.)
+      (Kept open/ongoing.) Two candidates queued from the 2026-09-22 sweep,
+      not yet picked up:
+  - [ ] Gallery upload modal (`public/gallery.html` `#uploadModal` /
+        `public/assets/js/pages/gallery-init.js`) has Escape-key and
+        backdrop-click handling but no `role="dialog"`, `aria-modal`,
+        `aria-labelledby`, or focus management — the same defect class fixed
+        on compare/budget/timeline in PR #1685, just missed on this page.
+        Best next pick — customer-facing.
+  - [ ] Same missing dialog semantics on admin-only modals: `#categoryModal`
+        in `public/admin-homepage.html`, `#photoModal` in
+        `public/admin-media.html` and `public/admin-pexels.html`. Lower
+        priority (internal tool, smaller blast radius) — note
+        `admin-media.html`'s own `#assignmentModal` already has correct
+        `role="dialog" aria-modal="true"`, so the fix is just bringing the
+        other modals in line with that file's own convention.
 
 ## Discovered along the way
 
@@ -151,6 +167,83 @@ now, this broader routine covers the whole site and merges autonomously under
 the policy above.
 
 ## Session log
+
+### 2026-09-22 — session 5
+
+Branch's last PR (#1698, the session-4 handoff-doc update) had already been
+merged into `main` as `fcab835cb`, so restarted `claude/eventflow-devops`
+from latest `main` (confirmed via `git diff` that the old branch's content
+was byte-identical to the squash-merge, then force-with-lease pushed the
+restart per policy). No open PR, no red CI, no review comments waiting on
+the fresh branch — the general sweep backlog item had no queued candidates,
+so delegated a fresh research-only sweep to a subagent (explicitly pointed
+at the already-fixed defect classes and known non-issues from prior
+sessions, so it wouldn't rediscover them).
+
+**Investigation.** The sweep's top finding: `POST /api/me/phone/verify-code`
+(`routes/phoneVerification.js`) had no rate limiter at all — only
+`csrfProtection, authRequired` — unlike `/send-code` (`writeLimiter`) and
+every other short-code verification endpoint in the codebase. The code is a
+random 6-digit number (1,000,000 possible values, generated via
+`crypto.randomInt`) valid for 10 minutes with no attempt counter or
+lockout, so an authenticated attacker could script unlimited guesses
+against it within that window. Confirmed by reading the route directly.
+The sweep's other two findings (missing dialog a11y on
+`gallery.html`'s upload modal, and on three admin-only modals) were real
+but lower priority than an active brute-force gap — queued in the backlog
+above for a future sweep rather than picked up this session, to keep this
+PR to one coherent security fix.
+
+**What changed.** Added `strictAuthLimiter` (the same limiter already used
+for `/login-2fa`) to `/verify-code`, plus a test
+(`tests/unit/phone-verification-rate-limit.test.js`) mounting the real
+route with the real limiter and confirming a 429 after 5 incorrect
+guesses, and that a correct code still verifies under the limit.
+
+**Independent review pass surfaced a real second bug before merge.** A
+Codex review bot comment on the opened PR pointed out that
+`strictAuthLimiter` is a module-level singleton also applied to `/login`,
+`/google`, and `/login-2fa` in `routes/auth.js` — so reusing it here meant
+phone-code guesses and login attempts would drain the _same_ per-IP
+bucket, letting trouble on one flow lock a user out of the other (and,
+since the limiter ran before `authRequired`, even unauthenticated requests
+would consume it). Verified this by reading `routes/auth.js`'s own uses of
+the same import. Fixed by adding a dedicated `phoneVerifyLimiter` (same
+5-per-15-min strictness, separate in-memory store) in
+`middleware/rateLimits.js`, switching the route to use it instead, and
+adding a third test that exhausts the login limiter in one app instance
+and confirms the phone-verification bucket is unaffected. Replied on the
+review thread with the fix commit and resolved it.
+
+**Verified before and after the review fix.** `npx jest
+tests/unit/phone-verification-rate-limit.test.js` — 3/3 passing after the
+fix (2/2 before it). Full `npm test` (after `npm install`, `node_modules`
+missing in this fresh checkout as previously noted below) run twice:
+12247/12248 passing after the initial fix, 12248/12249 passing after the
+review fix (one more real test each time) — the one constant failure both
+times is the same pre-existing MongoDB-connectivity timeout in
+`marketplace-image-deletion.test.js` documented below as an environment
+limitation, not a regression.
+
+**Outcome: merged.** PR #1699
+(https://github.com/rhysllwydlewis/EventFlow/pull/1699) went green on
+every one of the 31 GitHub Actions/CodeQL/GitGuardian/Railway checks —
+`github-advanced-security` included this time, unlike the flake seen on
+#1678/#1697 — except `DeepSource: JavaScript`, which failed with the exact
+same signature as the known dashboard-metric false positive documented
+above (grade A across all four categories, zero inline issues). Posted one
+PR comment naming it and why it wasn't held against the merge, then merged
+autonomously into `main` as `da5a146de` at 05:40 UTC.
+
+**Post-merge deploy verification.** Polled
+`https://event-flow.co.uk/api/ready` via `WebFetch` (cache-busting query
+param each call) four times over 05:40–05:49 UTC: all HTTP 200 with
+`"status":"ready"`, MongoDB connected and the Redis queue's producer/worker
+both healthy throughout. Deploy confirmed good, no revert needed.
+
+**Next session:** two dialog-accessibility candidates from this session's
+sweep are queued in the backlog above (gallery upload modal, then the
+admin-only modals) — pick up the gallery one first, it's customer-facing.
 
 ### 2026-09-21 — session 4
 
