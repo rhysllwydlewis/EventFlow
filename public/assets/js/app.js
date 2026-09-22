@@ -3049,6 +3049,8 @@ async function initDashSupplier() {
   let supplierServiceAreaPicks = [];
   let supplierServiceAreaAllowance = 3;
   let supplierServiceAreaSearchTimer = null;
+  /** Currently rendered, not-yet-picked search results — lets Enter pick the top one. */
+  let supplierServiceAreaSearchResults = [];
 
   async function loadSuppliers() {
     try {
@@ -4759,6 +4761,7 @@ async function initDashSupplier() {
   function hideSupplierServiceAreaResults() {
     const resultsEl = document.getElementById('sup-service-area-results');
     const searchEl = document.getElementById('sup-service-area-search');
+    supplierServiceAreaSearchResults = [];
     if (resultsEl) {
       resultsEl.innerHTML = '';
       resultsEl.hidden = true;
@@ -4849,11 +4852,19 @@ async function initDashSupplier() {
     if (!resultsEl) {
       return;
     }
+    // A search can still be in flight when a different action (the
+    // nationwide button) reaches the limit first; without this, its results
+    // would reopen a dropdown the limit has already closed.
+    if (supplierServiceAreaPicks.length >= supplierServiceAreaAllowance) {
+      hideSupplierServiceAreaResults();
+      return;
+    }
     resultsEl.innerHTML = '';
     const selectedSlugs = new Set(
       supplierServiceAreaPicks.filter(p => p.type === 'city').map(p => p.slug)
     );
     const available = cities.filter(city => !selectedSlugs.has(city.slug));
+    supplierServiceAreaSearchResults = available;
     if (!available.length) {
       hideSupplierServiceAreaResults();
       return;
@@ -4910,6 +4921,20 @@ async function initDashSupplier() {
     supServiceAreaSearchEl.addEventListener('blur', () => {
       // Let a click on a result register before the list disappears.
       setTimeout(hideSupplierServiceAreaResults, 150);
+    });
+    // This field sits inside <form id="supplier-form">, which has a submit
+    // button — so without this, Enter here would submit (and save) the whole
+    // profile instead of picking a city, the same as Enter does in any
+    // ordinary combobox's text field.
+    supServiceAreaSearchEl.addEventListener('keydown', e => {
+      if (e.key !== 'Enter') {
+        return;
+      }
+      e.preventDefault();
+      const top = supplierServiceAreaSearchResults[0];
+      if (top) {
+        addSupplierServiceAreaPick({ type: 'city', slug: top.slug, name: top.name });
+      }
     });
   }
   const supServiceAreaNationwideBtn = document.getElementById('sup-service-area-add-nationwide');

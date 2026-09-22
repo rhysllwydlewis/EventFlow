@@ -645,6 +645,34 @@ describe('Supplier form – "areas you serve" picker serialization', () => {
     expect(payloadAssignment).toBeGreaterThan(picksMap);
     expect(replaceFlag).toBeGreaterThan(payloadAssignment);
   });
+
+  it('prevents Enter in the areas-you-serve search box from submitting the whole profile form', () => {
+    // The search box lives inside <form id="supplier-form">, which has a
+    // submit button — without a guard, Enter there saves the profile instead
+    // of picking a city, the same as Enter does in any ordinary text field
+    // when a form has a default submit button.
+    const searchIdx = appJs.indexOf('const supServiceAreaSearchEl = document.getElementById(');
+    expect(searchIdx).toBeGreaterThan(-1);
+    const listenerBlock = appJs.slice(searchIdx, searchIdx + 1400);
+    const keydownIdx = listenerBlock.indexOf("addEventListener('keydown'");
+    expect(keydownIdx).toBeGreaterThan(-1);
+    const keydownBlock = listenerBlock.slice(keydownIdx, keydownIdx + 300);
+    expect(keydownBlock).toContain("e.key !== 'Enter'");
+    expect(keydownBlock).toContain('e.preventDefault()');
+    expect(keydownBlock).toContain('addSupplierServiceAreaPick');
+  });
+
+  it('does not reopen the areas-you-serve results dropdown once the pick limit is reached', () => {
+    // A search can still be in flight when a different action (the
+    // nationwide button) reaches the limit first; its results must not
+    // reopen a dropdown the limit has already closed.
+    const renderStart = appJs.indexOf('function renderSupplierServiceAreaResults(cities)');
+    expect(renderStart).toBeGreaterThan(-1);
+    const renderBlock = appJs.slice(renderStart, renderStart + 600);
+    expect(renderBlock).toContain(
+      'supplierServiceAreaPicks.length >= supplierServiceAreaAllowance'
+    );
+  });
 });
 
 describe('Banner error state – ⚠ warning indicator consistency', () => {
