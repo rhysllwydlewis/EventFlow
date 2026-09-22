@@ -107,15 +107,41 @@ otherwise, but don't hold an otherwise-clean merge for it.
 - [x] `/community/category/:slug` still has no hero at all (noted as an open
       question in the old forum routine's handoff, never picked up). Decided
       and done in this session — see session log below.
+- [x] Missing dialog accessibility on `compare.html`/`budget.html`/
+      `timeline.html`'s hand-rolled modals (candidate surfaced in the
+      2026-09-17 session). Done in PR #1685, merged 2026-09-20 — see note in
+      the 2026-09-21 session log below (this PR was merged by a session that
+      never recorded it here; backfilled now).
+- [x] Dead "Alerts" bottom-nav link/CSS/JS shipped on ~90 pages (the other
+      candidate from the 2026-09-17 session). Done in PR #1697 — see
+      2026-09-21 session log.
+- [x] Brute-forceable phone verification code: `POST /api/me/phone/verify-code`
+      had no rate limiter at all (candidate from the 2026-09-22 sweep). Done in
+      PR #1699 — see session log.
 - [ ] General site-wide sweep: with no specific backlog item pending, spend
       the session looking for real defects anywhere in the product — broken
       flows, poor states, accessibility issues, inconsistent UI, missing
       error handling, flaky tests — verify each one is real before fixing it.
-      (Kept open/ongoing — this session picked one finding from it; see
-      2026-09-17 session log for two more candidates left for next time:
-      missing dialog accessibility on `compare.html`/`budget.html`/
-      `timeline.html`'s hand-rolled modals, and a dead "Alerts" bottom-nav
-      link shipped on ~90 pages.)
+      (Kept open/ongoing.) Two candidates queued from the 2026-09-22 sweep,
+      not yet picked up:
+  - [ ] Gallery upload modal (`public/gallery.html` `#uploadModal` /
+        `public/assets/js/pages/gallery-init.js`) has Escape-key and
+        backdrop-click handling but no `role="dialog"`, `aria-modal`,
+        `aria-labelledby`, or focus management — the same defect class fixed
+        on compare/budget/timeline in PR #1685, just missed on this page.
+        Best next pick — customer-facing.
+  - [ ] Same missing dialog semantics on admin-only modals: `#photoModal` in
+        `public/admin-media.html` and `public/admin-pexels.html`. Lower
+        priority (internal tool, smaller blast radius) — note
+        `admin-media.html`'s own `#assignmentModal` already has correct
+        `role="dialog" aria-modal="true"`, so the fix is just bringing the
+        other modals in line with that file's own convention. (Originally
+        this item also listed `#categoryModal` in `public/admin-homepage.html`
+        — removed after a PR #1700 review comment correctly pointed out that
+        `admin-homepage-hardening.js`'s `syncModalAccessibility()` already
+        sets `role="dialog"`, `aria-modal`, `aria-labelledby`, focus
+        management and Tab/Escape trapping on it; verified directly in the
+        file before correcting this entry.)
 
 ## Discovered along the way
 
@@ -146,6 +172,181 @@ now, this broader routine covers the whole site and merges autonomously under
 the policy above.
 
 ## Session log
+
+### 2026-09-22 — session 5
+
+Branch's last PR (#1698, the session-4 handoff-doc update) had already been
+merged into `main` as `fcab835cb`, so restarted `claude/eventflow-devops`
+from latest `main` (confirmed via `git diff` that the old branch's content
+was byte-identical to the squash-merge, then force-with-lease pushed the
+restart per policy). No open PR, no red CI, no review comments waiting on
+the fresh branch — the general sweep backlog item had no queued candidates,
+so delegated a fresh research-only sweep to a subagent (explicitly pointed
+at the already-fixed defect classes and known non-issues from prior
+sessions, so it wouldn't rediscover them).
+
+**Investigation.** The sweep's top finding: `POST /api/me/phone/verify-code`
+(`routes/phoneVerification.js`) had no rate limiter at all — only
+`csrfProtection, authRequired` — unlike `/send-code` (`writeLimiter`) and
+every other short-code verification endpoint in the codebase. The code is a
+random 6-digit number (1,000,000 possible values, generated via
+`crypto.randomInt`) valid for 10 minutes with no attempt counter or
+lockout, so an authenticated attacker could script unlimited guesses
+against it within that window. Confirmed by reading the route directly.
+The sweep's other two findings (missing dialog a11y on
+`gallery.html`'s upload modal, and on three admin-only modals) were real
+but lower priority than an active brute-force gap — queued in the backlog
+above for a future sweep rather than picked up this session, to keep this
+PR to one coherent security fix.
+
+**What changed.** Added `strictAuthLimiter` (the same limiter already used
+for `/login-2fa`) to `/verify-code`, plus a test
+(`tests/unit/phone-verification-rate-limit.test.js`) mounting the real
+route with the real limiter and confirming a 429 after 5 incorrect
+guesses, and that a correct code still verifies under the limit.
+
+**Independent review pass surfaced a real second bug before merge.** A
+Codex review bot comment on the opened PR pointed out that
+`strictAuthLimiter` is a module-level singleton also applied to `/login`,
+`/google`, and `/login-2fa` in `routes/auth.js` — so reusing it here meant
+phone-code guesses and login attempts would drain the _same_ per-IP
+bucket, letting trouble on one flow lock a user out of the other (and,
+since the limiter ran before `authRequired`, even unauthenticated requests
+would consume it). Verified this by reading `routes/auth.js`'s own uses of
+the same import. Fixed by adding a dedicated `phoneVerifyLimiter` (same
+5-per-15-min strictness, separate in-memory store) in
+`middleware/rateLimits.js`, switching the route to use it instead, and
+adding a third test that exhausts the login limiter in one app instance
+and confirms the phone-verification bucket is unaffected. Replied on the
+review thread with the fix commit and resolved it.
+
+**Verified before and after the review fix.** `npx jest
+tests/unit/phone-verification-rate-limit.test.js` — 3/3 passing after the
+fix (2/2 before it). Full `npm test` (after `npm install`, `node_modules`
+missing in this fresh checkout as previously noted below) run twice:
+12247/12248 passing after the initial fix, 12248/12249 passing after the
+review fix (one more real test each time) — the one constant failure both
+times is the same pre-existing MongoDB-connectivity timeout in
+`marketplace-image-deletion.test.js` documented below as an environment
+limitation, not a regression.
+
+**Outcome: merged.** PR #1699
+(https://github.com/rhysllwydlewis/EventFlow/pull/1699) went green on
+every one of the 31 GitHub Actions/CodeQL/GitGuardian/Railway checks —
+`github-advanced-security` included this time, unlike the flake seen on
+#1678/#1697 — except `DeepSource: JavaScript`, which failed with the exact
+same signature as the known dashboard-metric false positive documented
+above (grade A across all four categories, zero inline issues). Posted one
+PR comment naming it and why it wasn't held against the merge, then merged
+autonomously into `main` as `da5a146de` at 05:40 UTC.
+
+**Post-merge deploy verification.** Polled
+`https://event-flow.co.uk/api/ready` via `WebFetch` (cache-busting query
+param each call) four times over 05:40–05:49 UTC: all HTTP 200 with
+`"status":"ready"`, MongoDB connected and the Redis queue's producer/worker
+both healthy throughout. Deploy confirmed good, no revert needed.
+
+**Next session:** two dialog-accessibility candidates from this session's
+sweep are queued in the backlog above (gallery upload modal, then the
+admin-only modals) — pick up the gallery one first, it's customer-facing.
+
+### 2026-09-21 — session 4
+
+Branch's last PR (#1685, the dialog-accessibility fix from session 3's
+sweep) had already been merged into `main` as `fd25f83ac` — by a session
+that never recorded it here, so this handoff file didn't mention it at
+all. Confirmed via `git diff` that the branch's 3 unmerged commits were
+byte-identical to the squash-merge on `main` (aside from one unrelated
+doc file from a different routine), so restarted `claude/eventflow-devops`
+from latest `main` per policy and backfilled the missing backlog tick
+above. No open PR, no red CI, no review comments waiting on the fresh
+branch — picked the other candidate from the 2026-09-17 sweep: the dead
+"Alerts" bottom-nav link.
+
+**Investigation.** `navbar.js`'s `updateAuthUI()` set `display: none` on
+`#ef-bottom-alerts` in _both_ the logged-in and logged-out branches, so it
+could never be shown by JS. Checked further and found `navbar.css` also
+carried a belt-and-braces `#ef-bottom-alerts { display: none; }` rule with
+a comment confirming the same ("Alerts tab should never appear in bottom
+nav") — so, unlike my first-pass assumption of a possible flash-of-
+content bug, this was already fully suppressed from first paint by CSS,
+not just JS. Confirmed it really was dead code, not a live regression:
+grepped for the id across the whole repo and found it hardcoded in 99
+`public/*.html` pages (46 hand-maintained, 42 articles generated by
+`scripts/generate-article-shells.mjs` from `scripts/lib/article-chrome.mjs`,
+and 12 community pages generated by `scripts/generate-community-pages.mjs`).
+
+**What changed.** Removed the anchor (and its stale "Alerts button (shown
+when logged out)" comment) from both page-chrome generator templates,
+regenerated all 54 templated pages from them (`--check` clean before and
+after), then removed it by hand from the other 46 pages using a script-
+assisted regex pass (validated on a handful of files first, since the
+markup's whitespace/attribute-line-wrapping varied — some files had all
+attributes on one line, some wrapped one per line, three were fully
+minified single-line nav blocks — and iterated the regex once after the
+first pass missed the multi-line-attribute variant on 7 files). Also
+removed the `bottomAlerts` element reference and both hide branches from
+`navbar.js`, the now-unreachable CSS rule from `navbar.css`, and the
+stale "(replaces Alerts)" aside on the neighbouring Dashboard button's
+comment (also present in both generator templates and needing the same
+regenerate-then-hand-edit treatment).
+
+**Verified before opening the PR.** Wrote a small jsdom-based structural
+validator and ran it over all 99 changed HTML files: confirmed no parse
+errors, no leftover `#ef-bottom-alerts` element, no stray text nodes left
+in the bottom-nav container, and that the menu button is still the last
+child in every file. Repo-wide grep for `ef-bottom-alerts` / `bottomAlerts`
+/ "replaces Alerts" after the change: zero hits anywhere (markup, JS, CSS,
+tests, docs). `generate-community-pages.mjs --check` and
+`generate-article-shells.mjs --check` both clean. Targeted Jest suites
+touching navbar/page-chrome/generators: 1248/1248 passing. Full
+`npm test` (after `npm install` — `node_modules` missing in this fresh
+checkout, as previously noted below): 12245/12246 passing, the one
+failure being the same pre-existing MongoDB-connectivity timeout in
+`marketplace-image-deletion.test.js` documented below.
+
+**Independent review pass (before merge), plus a second pass after the
+owner asked for one given the PR's size (103 files):** re-read every diff
+cold — confirmed each changed file only had content removed (the 3
+minified files show as one changed line since the removed markup was
+inline, but the line itself only shrank). Re-checked that removing the
+element is layout-neutral: it was already `display: none` before this
+change, so it was never part of the rendered flex layout, and grepped for
+any `nth-child` CSS keyed to bottom-nav position (none exist) — so no
+visual regression was possible by construction. CI's own Visual Regression
+Tests, Visual + a11y, and Lighthouse desktop/mobile checks came back green,
+confirming that. Re-verified `navbar.js`'s `setCurrentPage()` uses a
+generic `.ef-bottom-link` class selector rather than hardcoded ids, so it
+never depended on the removed element either.
+
+**Outcome: merged.** PR #1697
+(https://github.com/rhysllwydlewis/EventFlow/pull/1697) went green on
+every check except `github-advanced-security`, which failed with the
+exact same signature already documented below for PR #1678
+(`SessionModelError: CAPIError: 400 The requested model is not supported`,
+thrown at Copilot session creation before any diff analysis). Confirmed
+via the job log this run crashed at the identical point. Attempted the
+one re-run this routine's policy allows; the API again refused it (`403
+This workflow run cannot be retried`). Posted one PR comment naming the
+failure and why it wasn't held against the merge, then merged
+autonomously into `main` as `24a2ff843` at 11:55 UTC — DeepSource JavaScript
+included this time (grade A, not the other known dashboard false
+positive).
+
+**Post-merge deploy verification.** Polled
+`https://event-flow.co.uk/api/ready` directly via `curl` (unlike sessions
+2–3, this session's Bash was not blocked from reaching the production
+host) six times at ~25s intervals over 11:56–11:58 UTC: all HTTP 200 with
+`"status":"ready"`, MongoDB connected and the Redis queue's producer/worker
+both healthy throughout. Deploy confirmed good, no revert needed.
+
+**Next session:** the general site-wide sweep backlog item has no queued
+candidates left — pick a fresh target. Also worth a glance: this session
+found a real gap in the handoff process (PR #1685 merged into `main`
+without ever being recorded here) — worth the owner considering whether
+merges should be blocked from landing without a corresponding handoff-doc
+update, since a cold session trusting this file over its own git log
+would otherwise have missed that PR's existence entirely.
 
 ### 2026-09-17 — session 3
 

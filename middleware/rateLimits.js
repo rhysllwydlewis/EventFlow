@@ -107,6 +107,22 @@ const passwordResetLimiter = rateLimit({
 });
 
 /**
+ * Rate limit for guessing a short-lived phone verification code.
+ * Kept separate from strictAuthLimiter (login/2FA) so a user's login attempts
+ * and phone-code attempts don't drain the same shared bucket — otherwise
+ * trouble on one flow could lock a user out of the other.
+ * 5 requests per 15 minutes.
+ */
+const phoneVerifyLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 5,
+  message: 'Too many verification attempts, please try again later.',
+  standardHeaders: true,
+  legacyHeaders: false,
+  skip: isBackendE2ERequest,
+});
+
+/**
  * Rate limit for AI/OpenAI endpoints (expensive operations)
  * Prevents excessive usage of costly AI services
  * 50 requests per hour
@@ -304,6 +320,7 @@ const apiDocsLimiter = rateLimit({
 module.exports = {
   authLimiter,
   strictAuthLimiter,
+  phoneVerifyLimiter,
   passwordResetLimiter,
   aiLimiter,
   uploadLimiter,
