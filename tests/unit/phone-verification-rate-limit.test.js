@@ -3,8 +3,11 @@
  * values) valid for 10 minutes. Unlike /send-code, /login-2fa, and every other
  * short-code verification endpoint in this codebase, it previously carried no
  * rate limiter at all, so an authenticated attacker could script unlimited
- * guesses against it within the code's validity window. This locks it to the
- * same strictAuthLimiter already used for /login-2fa.
+ * guesses against it within the code's validity window. This locks it to its
+ * own dedicated phoneVerifyLimiter (deliberately not the shared
+ * strictAuthLimiter, which also guards /login, /google and /login-2fa — reusing
+ * that singleton would let phone-code attempts and login attempts drain the
+ * same bucket).
  */
 'use strict';
 
@@ -66,5 +69,24 @@ describe('POST /api/me/phone/verify-code — brute-force protection', () => {
 
     expect(res.status).toBe(200);
     expect(res.body.ok).toBe(true);
+  });
+
+  test('does not share its bucket with the login rate limiter', async () => {
+    jest.resetModules();
+    const { strictAuthLimiter, phoneVerifyLimiter } = require('../../middleware/rateLimits');
+
+    const app = express();
+    app.post('/login', strictAuthLimiter, (_req, res) => res.status(401).json({ ok: false }));
+    app.post('/verify-code', phoneVerifyLimiter, (_req, res) =>
+      res.status(400).json({ ok: false })
+    );
+
+    for (let i = 0; i < 5; i += 1) {
+      await request(app).post('/login');
+    }
+    expect((await request(app).post('/login')).status).toBe(429);
+
+    // Exhausting the login limiter must not touch the phone-verification bucket.
+    expect((await request(app).post('/verify-code')).status).toBe(400);
   });
 });

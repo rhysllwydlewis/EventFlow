@@ -12,7 +12,7 @@ const logger = require('../utils/logger');
 const dbUnified = require('../db-unified');
 const { authRequired } = require('../middleware/auth');
 const { csrfProtection } = require('../middleware/csrf');
-const { writeLimiter, strictAuthLimiter } = require('../middleware/rateLimits');
+const { writeLimiter, phoneVerifyLimiter } = require('../middleware/rateLimits');
 
 const router = express.Router();
 
@@ -129,7 +129,7 @@ router.post('/send-code', csrfProtection, writeLimiter, authRequired, async (req
  * POST /api/me/phone/verify-code
  * Verify phone number with code
  */
-router.post('/verify-code', csrfProtection, strictAuthLimiter, authRequired, async (req, res) => {
+router.post('/verify-code', csrfProtection, phoneVerifyLimiter, authRequired, async (req, res) => {
   try {
     const userId = req.user.id;
     const { code } = req.body;
