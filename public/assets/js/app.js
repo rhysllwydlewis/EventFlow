@@ -3041,6 +3041,15 @@ async function initDashSupplier() {
   let currentIsPro = false;
   let currentEditingSupplierId = null; // Track which supplier is being edited
 
+  // "Other areas you serve" picker state — named cities, and a single
+  // nationwide claim, that a supplier picks on top of (or instead of) a
+  // travel radius from one base. Declared here, ahead of every reader, rather
+  // than beside the functions that use them further down this scope.
+  const NATIONWIDE_PICK_NAME = 'Nationwide (all of the UK)';
+  let supplierServiceAreaPicks = [];
+  let supplierServiceAreaAllowance = 3;
+  let supplierServiceAreaSearchTimer = null;
+
   async function loadSuppliers() {
     try {
       const d = await api('/api/me/suppliers');
@@ -3675,15 +3684,17 @@ async function initDashSupplier() {
     // Titles start as a readable guess from the slug; upgrade them to the
     // registry's canonical spelling (e.g. aliases, hyphenation) once resolved.
     if (cityAreas.length) {
-      Promise.all(cityAreas.map(area => resolveSupplierServiceAreaCityName(area.slug)))
-        .then(names => {
+      // resolveSupplierServiceAreaCityName() never rejects — a failed lookup
+      // resolves to its title-cased fallback — so this needs no .catch().
+      Promise.all(cityAreas.map(area => resolveSupplierServiceAreaCityName(area.slug))).then(
+        names => {
           const nameBySlug = new Map(cityAreas.map((area, i) => [area.slug, names[i]]));
           supplierServiceAreaPicks = supplierServiceAreaPicks.map(pick =>
             pick.type === 'city' ? { ...pick, name: nameBySlug.get(pick.slug) || pick.name } : pick
           );
           renderSupplierServiceAreaTags();
-        })
-        .catch(() => {});
+        }
+      );
     }
 
     // New customization fields
@@ -4673,10 +4684,7 @@ async function initDashSupplier() {
   // one town. Capped to the supplier's plan allowance, enforced by the API;
   // this client-side copy of the limit is presentation only, so it starts at
   // the free-tier default and is corrected once the real allowance loads.
-  const NATIONWIDE_PICK_NAME = 'Nationwide (all of the UK)';
-  let supplierServiceAreaPicks = [];
-  let supplierServiceAreaAllowance = 3;
-  let supplierServiceAreaSearchTimer = null;
+  // (State declared earlier in this scope, ahead of populateSupplierForm.)
 
   /**
    * Turn a registry slug into a readable guess ("stoke-on-trent" → "Stoke On

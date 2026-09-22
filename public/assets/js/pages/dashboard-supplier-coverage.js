@@ -57,7 +57,7 @@
   // checkbox here, so the picker (public/assets/js/app.js) tells us about it.
   if (radius) {
     document.addEventListener('ef:supplier-service-areas-changed', e => {
-      radius.disabled = Boolean(e.detail && e.detail.hasNationwide);
+      radius.disabled = Boolean(e.detail?.hasNationwide);
     });
   }
 
