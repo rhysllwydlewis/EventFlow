@@ -146,3 +146,34 @@ reached — flagging that the Semrush subscription likely needs API units
 topped up before this routine can do any real work. Next run: retry Semrush
 calls first; if units are restored, proceed with the full mandate from Step
 2 onward using this cycle's baseline-still-needed backlog item.
+
+### 2026-09-22
+
+Branch's last PR (#1695) had been merged, so per this run's branch-restart
+instructions checked out `origin/claude/eventflow-seo` and merged latest
+`origin/main` into it (keeping the branch name), rather than discarding the
+still-unmerged 2026-09-21 (11:09 UTC) entry above, which had never landed on
+`main`. Retried Semrush first, per the previous entry's note —
+`domain_overview` still returned `no_api_units`. This is now the fifth
+consecutive blocked cycle (2026-09-17 implied, 2026-09-18, 2026-09-21
+morning, 2026-09-21 11:09, and this run), spanning at least five calendar
+days with zero API units available on the account throughout. Checked open
+`[Ops Assistant] ...` issues first (per mandate): most recent (#1701, #1696,
+#1688, #1686) are all about that routine's own internal-analytics access
+path, not Semrush-specific, so nothing to avoid duplicating there. Also
+found a same-day `[Fleet Supervisor]` issue (#1703) already tracking this
+exact problem — filed 2026-09-22T07:21 UTC, correctly summarizing the
+API-unit exhaustion across the prior logged cycles and recommending the
+owner renew the Semrush subscription's unit allowance. Since that issue
+already surfaces the problem today and the previous cycle already sent a
+direct owner notification for the same standing issue, did not send a
+duplicate notification this cycle — nothing new to report beyond "still
+blocked," which #1703 already covers. Stopped before Step 3 (pick work) per
+the mandate — did not attempt technical or content fixes without real
+Semrush data. No code or content change this cycle. Backlog item ("First
+run: pull a site audit and position-tracking snapshot") still outstanding,
+now blocked for five consecutive cycles. Next run: retry Semrush calls
+first; if units are restored, proceed with the full mandate from Step 2
+onward using this cycle's baseline-still-needed backlog item. If still
+blocked next run, re-check whether #1703 is still open/accurate before
+deciding whether a fresh owner notification is warranted.
