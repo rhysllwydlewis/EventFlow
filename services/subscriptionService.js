@@ -645,6 +645,16 @@ function getPhotoAllowance(ownerUserId) {
 }
 
 /**
+ * How many extra named areas (or a single "nationwide" pick) a supplier may
+ * add themselves on the profile form, on top of their one based-in city.
+ * @param {string} ownerUserId Supplier's owner.
+ * @returns {Promise<number>} Service area allowance, or -1 for unlimited.
+ */
+function getServiceAreaAllowance(ownerUserId) {
+  return getNumericAllowance(ownerUserId, 'maxServiceAreas', 3);
+}
+
+/**
  * How far back a supplier may look in their profile analytics.
  *
  * Every tier can see their analytics; the paid plans see more history. That
@@ -842,6 +852,7 @@ module.exports = {
   getUserFeatures,
   getNumericAllowance,
   getPhotoAllowance,
+  getServiceAreaAllowance,
   getAnalyticsWindowDays,
   enforceActivePackageLimit,
   enforcePhotoGalleryLimit,

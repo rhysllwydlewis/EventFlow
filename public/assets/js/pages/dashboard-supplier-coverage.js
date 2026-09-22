@@ -11,7 +11,6 @@
   const input = document.getElementById('sup-base-postcode');
   const error = document.getElementById('sup-base-postcode-error');
   const radius = document.getElementById('sup-travel-radius');
-  const nationwide = document.getElementById('sup-travel-nationwide');
 
   if (!input || !error) {
     return;
@@ -54,12 +53,12 @@
   });
 
   // A supplier who covers the whole UK has no use for a mileage figure.
-  if (radius && nationwide) {
-    const syncRadiusState = () => {
-      radius.disabled = nationwide.checked;
-    };
-    nationwide.addEventListener('change', syncRadiusState);
-    syncRadiusState();
+  // Nationwide is now one of the "other areas you serve" picks rather than a
+  // checkbox here, so the picker (public/assets/js/app.js) tells us about it.
+  if (radius) {
+    document.addEventListener('ef:supplier-service-areas-changed', e => {
+      radius.disabled = Boolean(e.detail && e.detail.hasNationwide);
+    });
   }
 
   window.validateBasePostcode = function () {

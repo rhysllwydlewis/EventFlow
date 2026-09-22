@@ -28,10 +28,14 @@ const geocodePostcode = jest.fn(
 const isValidUKPostcode = jest.fn(postcode =>
   /^[A-Z]{1,2}\d{1,2}[A-Z]?\s*\d[A-Z]{2}$/i.test(String(postcode || '').trim())
 );
+/** Free-plan default; individual tests override this for a paid-plan supplier. */
+const getServiceAreaAllowance = jest.fn(async () => 3);
 
 beforeEach(() => {
   geocodePostcode.mockClear();
   isValidUKPostcode.mockClear();
+  getServiceAreaAllowance.mockClear();
+  getServiceAreaAllowance.mockImplementation(async () => 3);
 });
 
 describe('deriveBaseLocation', () => {
@@ -231,6 +235,10 @@ describe('supplier profile routes', () => {
       error: jest.fn(),
       debug: jest.fn(),
     }));
+    jest.doMock('../../services/subscriptionService', () => ({
+      getServiceAreaAllowance,
+      checkFeatureAccess: jest.fn(async () => false),
+    }));
   });
 
   /**
@@ -329,6 +337,28 @@ describe('supplier profile routes', () => {
     expect(inserted.serviceAreas).toEqual([{ type: 'city', slug: 'newport' }]);
   });
 
+  it('rejects more picks than the plan allows on create', async () => {
+    getServiceAreaAllowance.mockImplementation(async () => 3);
+
+    const response = await request(app())
+      .post('/')
+      .send({
+        name: 'New Co',
+        category: 'Photography',
+        location: 'Cardiff',
+        serviceAreas: [
+          { type: 'city', slug: 'cardiff' },
+          { type: 'city', slug: 'bristol' },
+          { type: 'city', slug: 'newport' },
+          { type: 'nationwide' },
+        ],
+      });
+
+    expect(response.status).toBe(400);
+    expect(response.body.error).toMatch(/up to 3/i);
+    expect(inserted).toBeNull();
+  });
+
   it('re-derives the mapping when an edit moves the supplier', async () => {
     const response = await request(app()).patch('/sup_1').send({ basePostcode: 'BS1 4DJ' });
 
@@ -368,7 +398,7 @@ describe('supplier profile routes', () => {
     });
   });
 
-  it('preserves explicit city coverage when the dashboard updates travel controls', async () => {
+  it('preserves existing picks when only the travel radius is edited', async () => {
     supplier.serviceAreas = [
       { type: 'city', slug: 'cardiff' },
       { type: 'radius', miles: 30 },
@@ -377,14 +407,13 @@ describe('supplier profile routes', () => {
     const response = await request(app())
       .patch('/sup_1')
       .send({
-        serviceAreas: [{ type: 'radius', miles: 50 }, { type: 'nationwide' }],
+        serviceAreas: [{ type: 'radius', miles: 50 }],
       });
 
     expect(response.status).toBe(200);
     expect(supplier.serviceAreas).toEqual([
       { type: 'city', slug: 'cardiff' },
       { type: 'radius', miles: 50 },
-      { type: 'nationwide' },
     ]);
   });
 
@@ -397,6 +426,71 @@ describe('supplier profile routes', () => {
 
     expect(response.status).toBe(200);
     expect(supplier.serviceAreas).toEqual([{ type: 'city', slug: 'bristol' }]);
+  });
+
+  it('treats an explicit nationwide claim the same as a city replacement', async () => {
+    supplier.serviceAreas = [{ type: 'city', slug: 'cardiff' }];
+
+    const response = await request(app())
+      .patch('/sup_1')
+      .send({ serviceAreas: [{ type: 'nationwide' }] });
+
+    expect(response.status).toBe(200);
+    expect(supplier.serviceAreas).toEqual([{ type: 'nationwide' }]);
+  });
+
+  it('clears every pick when the picker sends an empty list with the replace flag', async () => {
+    supplier.serviceAreas = [
+      { type: 'city', slug: 'cardiff' },
+      { type: 'radius', miles: 30 },
+    ];
+
+    const response = await request(app())
+      .patch('/sup_1')
+      .send({
+        serviceAreas: [{ type: 'radius', miles: 30 }],
+        replaceServiceAreaPicks: true,
+      });
+
+    expect(response.status).toBe(200);
+    expect(supplier.serviceAreas).toEqual([{ type: 'radius', miles: 30 }]);
+  });
+
+  it('rejects more picks than the free plan allows', async () => {
+    getServiceAreaAllowance.mockImplementation(async () => 3);
+
+    const response = await request(app())
+      .patch('/sup_1')
+      .send({
+        serviceAreas: [
+          { type: 'city', slug: 'cardiff' },
+          { type: 'city', slug: 'bristol' },
+          { type: 'city', slug: 'newport' },
+          { type: 'nationwide' },
+        ],
+      });
+
+    expect(response.status).toBe(400);
+    expect(response.body.error).toMatch(/up to 3/i);
+    expect(response.body.limit).toBe(3);
+  });
+
+  it('allows a paid-plan supplier a higher self-service quota', async () => {
+    getServiceAreaAllowance.mockImplementation(async () => 5);
+
+    const response = await request(app())
+      .patch('/sup_1')
+      .send({
+        serviceAreas: [
+          { type: 'city', slug: 'cardiff' },
+          { type: 'city', slug: 'bristol' },
+          { type: 'city', slug: 'newport' },
+          { type: 'nationwide' },
+        ],
+      });
+
+    expect(response.status).toBe(200);
+    expect(supplier.serviceAreas).toHaveLength(4);
   });
 
   it('does not geocode an unchanged venue postcode from a full form save', async () => {

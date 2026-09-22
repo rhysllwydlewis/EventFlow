@@ -522,6 +522,34 @@ router.get('/api/v1/locations/featured', publicReadLimiter, async (req, res) => 
   }
 });
 
+/**
+ * GET /api/v1/locations/search
+ *
+ * Typeahead over the full city registry, for the supplier profile form's
+ * "areas you serve" picker. Every registry city is a valid result here, not
+ * just published ones: the relationship a supplier records now is honoured
+ * on that city's page the moment it is published, not before, so the picker
+ * cannot be limited to today's published set without going stale on its own.
+ */
+router.get('/api/v1/locations/search', publicReadLimiter, (req, res) => {
+  try {
+    const query = typeof req.query.q === 'string' ? req.query.q : '';
+    const limit = Math.min(10, Math.max(1, Number.parseInt(req.query.limit, 10) || 8));
+    const cities = registry.searchCities(query, limit).map(city => ({
+      slug: city.slug,
+      name: city.name,
+      nation: city.nation,
+      region: city.region || city.nation,
+    }));
+
+    res.set('Cache-Control', 'public, max-age=300, s-maxage=3600');
+    return res.json({ success: true, data: { cities } });
+  } catch (error) {
+    logger.error('Could not search locations:', error);
+    return res.status(500).json({ success: false, error: 'Failed to search locations' });
+  }
+});
+
 // ─── City page ───────────────────────────────────────────────────────────────
 
 /**

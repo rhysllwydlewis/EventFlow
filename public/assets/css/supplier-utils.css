@@ -455,3 +455,104 @@
   opacity: 0.55;
   cursor: not-allowed;
 }
+
+.supplier-service-area-nationwide-btn {
+  display: inline-block;
+  margin-top: 0.6rem;
+  padding: 0.4rem 0.75rem;
+  border: 1px solid var(--ef-border, #e5e7eb);
+  border-radius: 999px;
+  background: var(--ef-surface, #fff);
+  font: inherit;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+.supplier-service-area-nationwide-btn:hover,
+.supplier-service-area-nationwide-btn:focus-visible {
+  background: var(--ef-surface-hover, #f3f4f6);
+}
+
+.supplier-service-area-nationwide-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.supplier-service-area-results {
+  list-style: none;
+  margin: 0.35rem 0 0;
+  padding: 0.25rem;
+  border: 1px solid var(--ef-border, #e5e7eb);
+  border-radius: 10px;
+  max-height: 220px;
+  overflow-y: auto;
+  background: var(--ef-surface, #fff);
+}
+
+.supplier-service-area-results:empty {
+  display: none;
+}
+
+.supplier-service-area-results li {
+  margin: 0;
+}
+
+.supplier-service-area-results button {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 0.5rem 0.6rem;
+  border: 0;
+  background: none;
+  border-radius: 8px;
+  font: inherit;
+  cursor: pointer;
+}
+
+.supplier-service-area-results button:hover,
+.supplier-service-area-results button:focus-visible {
+  background: var(--ef-surface-hover, #f3f4f6);
+}
+
+.supplier-service-area-tags {
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin: 0.6rem 0 0;
+  padding: 0;
+}
+
+.supplier-service-area-tags:empty {
+  margin: 0;
+}
+
+.supplier-service-area-tags li {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.3rem 0.4rem 0.3rem 0.75rem;
+  border-radius: 999px;
+  background: var(--ef-surface-hover, #f3f4f6);
+  font-size: 0.85rem;
+}
+
+.supplier-service-area-tags button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.25rem;
+  height: 1.25rem;
+  border: 0;
+  border-radius: 50%;
+  background: none;
+  color: inherit;
+  cursor: pointer;
+  font-size: 1rem;
+  line-height: 1;
+}
+
+.supplier-service-area-tags button:hover,
+.supplier-service-area-tags button:focus-visible {
+  background: rgba(0, 0, 0, 0.08);
+}

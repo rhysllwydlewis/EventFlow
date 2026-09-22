@@ -48,6 +48,22 @@ const DEFAULT_TRAVEL_RADIUS_MILES = 0;
 const MAX_TRAVEL_RADIUS_MILES = 200;
 
 /**
+ * How many extra named areas (or a single "nationwide" pick) a supplier may
+ * add themselves, beyond their one based-in city, is a plan allowance — see
+ * `maxServiceAreas` in `models/Subscription.js` and
+ * `subscriptionService.getServiceAreaAllowance()` — not something this module
+ * decides. "serves" already outranks every relationship but based_in (see
+ * RELATIONSHIP_WEIGHTS), so an uncapped list would let a large or national
+ * business crowd out locally based suppliers across every city page in the
+ * country; folding `nationwide` into that same capped quota, rather than
+ * leaving it a free unlimited checkbox, means claiming the whole UK costs a
+ * supplier one of their picks, the same as naming any other city. Only *how
+ * many* areas a supplier may claim depends on plan — never how those areas
+ * rank once claimed, which stays the flat RELATIONSHIP_WEIGHTS value for
+ * every supplier regardless of plan.
+ */
+
+/**
  * Largest relevance bonus a paid tier may contribute.
  *
  * This is deliberately smaller than the gap between any two relationship tiers

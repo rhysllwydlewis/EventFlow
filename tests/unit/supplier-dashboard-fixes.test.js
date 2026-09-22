@@ -630,19 +630,20 @@ describe('Supplier form – website URL normalization', () => {
   });
 });
 
-describe('Supplier form – structured city coverage preservation', () => {
-  it('retains existing city service areas before serializing editable travel controls', () => {
+describe('Supplier form – "areas you serve" picker serialization', () => {
+  it("serializes the picker's current picks, flagged as authoritative, before travel radius", () => {
     const coverageStart = appJs.indexOf('function applyCoverageToPayload(payload)');
     expect(coverageStart).toBeGreaterThan(-1);
 
     const coverageBlock = appJs.slice(coverageStart, coverageStart + 1800);
-    const cityFilter = coverageBlock.indexOf("area.type === 'city'");
+    const picksMap = coverageBlock.indexOf('supplierServiceAreaPicks.map');
     const payloadAssignment = coverageBlock.indexOf('payload.serviceAreas = serviceAreas');
+    const replaceFlag = coverageBlock.indexOf('payload.replaceServiceAreaPicks = true');
 
-    expect(coverageBlock).toContain('cachedSuppliers.find');
-    expect(coverageBlock).toContain('currentEditingSupplierId');
-    expect(cityFilter).toBeGreaterThan(-1);
-    expect(payloadAssignment).toBeGreaterThan(cityFilter);
+    expect(coverageBlock).toContain('hasServiceAreaWidget');
+    expect(picksMap).toBeGreaterThan(-1);
+    expect(payloadAssignment).toBeGreaterThan(picksMap);
+    expect(replaceFlag).toBeGreaterThan(payloadAssignment);
   });
 });
 

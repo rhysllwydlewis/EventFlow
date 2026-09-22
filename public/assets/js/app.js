@@ -3040,7 +3040,6 @@ async function initDashSupplier() {
   const proRibbon = document.getElementById('supplier-pro-ribbon');
   let currentIsPro = false;
   let currentEditingSupplierId = null; // Track which supplier is being edited
-  let cachedSuppliers = []; // Cache loaded suppliers for edit lookups
 
   async function loadSuppliers() {
     try {
@@ -3088,7 +3087,6 @@ async function initDashSupplier() {
           .map(part => part.charAt(0).toUpperCase())
           .join('') || 'U'
       );
-      cachedSuppliers = items; // Cache for use within initDashSupplier scope
       window._efCachedSuppliers = items; // Expose globally for editProfile()
       const hasSupplierProfile = items.length > 0;
       const hasApprovedSupplierProfile = items.some(s => s && s.approved === true);
@@ -3650,7 +3648,6 @@ async function initDashSupplier() {
     // the stored service areas so an edit never silently drops it.
     const supBasePostcode = document.getElementById('sup-base-postcode');
     const supTravelRadius = document.getElementById('sup-travel-radius');
-    const supNationwide = document.getElementById('sup-travel-nationwide');
     const serviceAreas = Array.isArray(supplier.serviceAreas) ? supplier.serviceAreas : [];
 
     if (supBasePostcode) {
@@ -3660,8 +3657,33 @@ async function initDashSupplier() {
       const radius = serviceAreas.find(area => area && area.type === 'radius');
       supTravelRadius.value = radius && radius.miles ? radius.miles : '';
     }
-    if (supNationwide) {
-      supNationwide.checked = serviceAreas.some(area => area && area.type === 'nationwide');
+
+    // Self-service "picks": named cities, and a single nationwide claim,
+    // shown and edited together in the same picker.
+    const cityAreas = serviceAreas.filter(area => area && area.type === 'city' && area.slug);
+    const hasNationwide = serviceAreas.some(area => area && area.type === 'nationwide');
+    supplierServiceAreaPicks = [
+      ...cityAreas.map(area => ({
+        type: 'city',
+        slug: area.slug,
+        name: titleCaseCitySlug(area.slug),
+      })),
+      ...(hasNationwide ? [{ type: 'nationwide', name: NATIONWIDE_PICK_NAME }] : []),
+    ];
+    renderSupplierServiceAreaTags();
+    loadSupplierServiceAreaAllowance();
+    // Titles start as a readable guess from the slug; upgrade them to the
+    // registry's canonical spelling (e.g. aliases, hyphenation) once resolved.
+    if (cityAreas.length) {
+      Promise.all(cityAreas.map(area => resolveSupplierServiceAreaCityName(area.slug)))
+        .then(names => {
+          const nameBySlug = new Map(cityAreas.map((area, i) => [area.slug, names[i]]));
+          supplierServiceAreaPicks = supplierServiceAreaPicks.map(pick =>
+            pick.type === 'city' ? { ...pick, name: nameBySlug.get(pick.slug) || pick.name } : pick
+          );
+          renderSupplierServiceAreaTags();
+        })
+        .catch(() => {});
     }
 
     // New customization fields
@@ -4289,36 +4311,36 @@ async function initDashSupplier() {
   /**
    * Translate the coverage controls into the service-area shape the API stores.
    *
-   * Suppliers are asked two plain questions — how far they travel, and whether
-   * they cover the whole UK — rather than being asked to think in service
-   * areas. The API re-validates whatever arrives, so this is only a translation.
+   * Suppliers are asked two plain questions — how far they travel from their
+   * base, and which specific other areas (if any) they serve, nationwide
+   * cover included — rather than being asked to think in service areas
+   * directly. The API re-validates and caps whatever arrives, so this is only
+   * a translation.
    * @param {Object} payload - Supplier payload, modified in place.
    */
   function applyCoverageToPayload(payload) {
     const radiusInput = document.getElementById('sup-travel-radius');
-    const nationwideInput = document.getElementById('sup-travel-nationwide');
+    const hasServiceAreaWidget = Boolean(document.getElementById('sup-service-area-tags'));
 
-    if (radiusInput || nationwideInput) {
-      const existingSupplier = cachedSuppliers.find(
-        supplier => supplier && supplier.id === currentEditingSupplierId
-      );
-      // Explicit city coverage is assigned outside this form. Preserve it while
-      // translating the radius/nationwide controls that suppliers can edit.
-      const serviceAreas = Array.isArray(existingSupplier?.serviceAreas)
-        ? existingSupplier.serviceAreas.filter(area => area && area.type === 'city')
+    if (radiusInput || hasServiceAreaWidget) {
+      const serviceAreas = hasServiceAreaWidget
+        ? supplierServiceAreaPicks.map(pick =>
+            pick.type === 'nationwide' ? { type: 'nationwide' } : { type: 'city', slug: pick.slug }
+          )
         : [];
       const radiusMiles = Number(payload.travelRadiusMiles);
       if (Number.isFinite(radiusMiles) && radiusMiles > 0) {
         serviceAreas.push({ type: 'radius', miles: Math.min(200, Math.round(radiusMiles)) });
       }
-      if (nationwideInput && nationwideInput.checked) {
-        serviceAreas.push({ type: 'nationwide' });
-      }
       payload.serviceAreas = serviceAreas;
+      // Tells the API this list of picks is authoritative — including empty,
+      // once every picked area has been removed — rather than "untouched".
+      if (hasServiceAreaWidget) {
+        payload.replaceServiceAreaPicks = true;
+      }
     }
 
     delete payload.travelRadiusMiles;
-    delete payload.travelNationwide;
   }
 
   function buildSupplierPayload(form) {
@@ -4643,6 +4665,254 @@ async function initDashSupplier() {
         supForm.setAttribute('aria-busy', 'false');
       }
     });
+  }
+
+  // "Other areas you serve" picker — lets a supplier add specific named
+  // cities, and/or a single nationwide claim, on top of (or instead of) a
+  // travel radius from one base — e.g. a caterer with branches in more than
+  // one town. Capped to the supplier's plan allowance, enforced by the API;
+  // this client-side copy of the limit is presentation only, so it starts at
+  // the free-tier default and is corrected once the real allowance loads.
+  const NATIONWIDE_PICK_NAME = 'Nationwide (all of the UK)';
+  let supplierServiceAreaPicks = [];
+  let supplierServiceAreaAllowance = 3;
+  let supplierServiceAreaSearchTimer = null;
+
+  /**
+   * Turn a registry slug into a readable guess ("stoke-on-trent" → "Stoke On
+   * Trent") for the moment before the real name has loaded.
+   * @param {string} slug City slug.
+   * @returns {string} Readable guess.
+   */
+  function titleCaseCitySlug(slug) {
+    return String(slug || '')
+      .split('-')
+      .filter(Boolean)
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(' ');
+  }
+
+  /**
+   * Look up a city's canonical display name from the registry search endpoint.
+   * Falls back to a title-cased guess from the slug if the lookup fails or the
+   * slug is no longer recognised.
+   * @param {string} slug City slug.
+   * @returns {Promise<string>} Display name.
+   */
+  async function resolveSupplierServiceAreaCityName(slug) {
+    const fallback = titleCaseCitySlug(slug);
+    try {
+      const resp = await fetch(`/api/v1/locations/search?q=${encodeURIComponent(slug)}&limit=1`, {
+        credentials: 'include',
+      });
+      if (!resp.ok) {
+        return fallback;
+      }
+      const data = await resp.json().catch(() => null);
+      const match = (data?.data?.cities || []).find(city => city.slug === slug);
+      return match?.name || fallback;
+    } catch {
+      return fallback;
+    }
+  }
+
+  function renderSupplierServiceAreaTags() {
+    const list = document.getElementById('sup-service-area-tags');
+    if (!list) {
+      return;
+    }
+    list.innerHTML = '';
+    supplierServiceAreaPicks.forEach(pick => {
+      const li = document.createElement('li');
+      const label = document.createElement('span');
+      label.textContent = pick.name;
+      const removeBtn = document.createElement('button');
+      removeBtn.type = 'button';
+      removeBtn.setAttribute('aria-label', `Remove ${pick.name}`);
+      removeBtn.textContent = '×';
+      removeBtn.addEventListener('click', () => {
+        supplierServiceAreaPicks = supplierServiceAreaPicks.filter(
+          p => !(p.type === pick.type && p.slug === pick.slug)
+        );
+        renderSupplierServiceAreaTags();
+        updateSupplierServiceAreaAvailability();
+      });
+      li.appendChild(label);
+      li.appendChild(removeBtn);
+      list.appendChild(li);
+    });
+    document.dispatchEvent(
+      new CustomEvent('ef:supplier-service-areas-changed', {
+        detail: { hasNationwide: supplierServiceAreaPicks.some(p => p.type === 'nationwide') },
+      })
+    );
+  }
+
+  function hideSupplierServiceAreaResults() {
+    const resultsEl = document.getElementById('sup-service-area-results');
+    const searchEl = document.getElementById('sup-service-area-search');
+    if (resultsEl) {
+      resultsEl.innerHTML = '';
+      resultsEl.hidden = true;
+    }
+    if (searchEl) {
+      searchEl.setAttribute('aria-expanded', 'false');
+    }
+  }
+
+  function updateSupplierServiceAreaAvailability() {
+    const searchEl = document.getElementById('sup-service-area-search');
+    const nationwideBtn = document.getElementById('sup-service-area-add-nationwide');
+    const maxEl = document.getElementById('sup-service-area-max');
+    const errorEl = document.getElementById('sup-service-area-error');
+    const atLimit = supplierServiceAreaPicks.length >= supplierServiceAreaAllowance;
+    const hasNationwide = supplierServiceAreaPicks.some(p => p.type === 'nationwide');
+
+    if (maxEl) {
+      maxEl.textContent = String(supplierServiceAreaAllowance);
+    }
+    if (searchEl) {
+      searchEl.disabled = atLimit;
+      searchEl.placeholder = atLimit
+        ? `Limit of ${supplierServiceAreaAllowance} reached — remove one to add another`
+        : 'Search for a city or town…';
+    }
+    if (nationwideBtn) {
+      nationwideBtn.disabled = hasNationwide || atLimit;
+    }
+    if (errorEl && !atLimit) {
+      errorEl.textContent = '';
+    }
+    if (atLimit) {
+      hideSupplierServiceAreaResults();
+    }
+  }
+
+  /**
+   * Read the viewer's service-area allowance from their subscription.
+   *
+   * A failure leaves the free-tier default in place: the API enforces the
+   * real limit either way, so the worst case is a paid supplier being briefly
+   * shown a lower ceiling than they actually have.
+   * @returns {Promise<void>} Nothing.
+   */
+  async function loadSupplierServiceAreaAllowance() {
+    try {
+      const resp = await fetch('/api/v2/subscriptions/me', { credentials: 'include' });
+      if (!resp.ok) {
+        return;
+      }
+      const data = await resp.json().catch(() => null);
+      const limit = data?.limits?.maxServiceAreas;
+      if (Number.isFinite(limit) && limit >= 0) {
+        supplierServiceAreaAllowance = limit;
+      }
+    } catch {
+      // Keep the default; the API is the authority.
+    } finally {
+      updateSupplierServiceAreaAvailability();
+    }
+  }
+
+  function addSupplierServiceAreaPick(pick) {
+    if (!pick) {
+      return;
+    }
+    const isDuplicate = supplierServiceAreaPicks.some(
+      p => p.type === pick.type && p.slug === pick.slug
+    );
+    if (isDuplicate || supplierServiceAreaPicks.length >= supplierServiceAreaAllowance) {
+      return;
+    }
+    supplierServiceAreaPicks.push(pick);
+    renderSupplierServiceAreaTags();
+    updateSupplierServiceAreaAvailability();
+    hideSupplierServiceAreaResults();
+    const searchEl = document.getElementById('sup-service-area-search');
+    if (searchEl) {
+      searchEl.value = '';
+      searchEl.focus();
+    }
+  }
+
+  function renderSupplierServiceAreaResults(cities) {
+    const resultsEl = document.getElementById('sup-service-area-results');
+    const searchEl = document.getElementById('sup-service-area-search');
+    if (!resultsEl) {
+      return;
+    }
+    resultsEl.innerHTML = '';
+    const selectedSlugs = new Set(
+      supplierServiceAreaPicks.filter(p => p.type === 'city').map(p => p.slug)
+    );
+    const available = cities.filter(city => !selectedSlugs.has(city.slug));
+    if (!available.length) {
+      hideSupplierServiceAreaResults();
+      return;
+    }
+    available.forEach(city => {
+      const li = document.createElement('li');
+      li.setAttribute('role', 'option');
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      const region = city.region && city.region !== city.name ? `, ${city.region}` : '';
+      btn.textContent = `${city.name}${region}`;
+      btn.addEventListener('click', () =>
+        addSupplierServiceAreaPick({ type: 'city', slug: city.slug, name: city.name })
+      );
+      li.appendChild(btn);
+      resultsEl.appendChild(li);
+    });
+    resultsEl.hidden = false;
+    if (searchEl) {
+      searchEl.setAttribute('aria-expanded', 'true');
+    }
+  }
+
+  async function searchSupplierServiceAreaCities(query) {
+    const trimmed = query.trim();
+    if (!trimmed) {
+      hideSupplierServiceAreaResults();
+      return;
+    }
+    try {
+      const resp = await fetch(`/api/v1/locations/search?q=${encodeURIComponent(trimmed)}`, {
+        credentials: 'include',
+      });
+      if (!resp.ok) {
+        return;
+      }
+      const data = await resp.json().catch(() => null);
+      renderSupplierServiceAreaResults(data?.data?.cities || []);
+    } catch (err) {
+      console.error('City search failed:', err);
+    }
+  }
+
+  const supServiceAreaSearchEl = document.getElementById('sup-service-area-search');
+  if (supServiceAreaSearchEl) {
+    supServiceAreaSearchEl.addEventListener('input', () => {
+      clearTimeout(supplierServiceAreaSearchTimer);
+      const value = supServiceAreaSearchEl.value;
+      supplierServiceAreaSearchTimer = setTimeout(
+        () => searchSupplierServiceAreaCities(value),
+        250
+      );
+    });
+    supServiceAreaSearchEl.addEventListener('blur', () => {
+      // Let a click on a result register before the list disappears.
+      setTimeout(hideSupplierServiceAreaResults, 150);
+    });
+  }
+  const supServiceAreaNationwideBtn = document.getElementById('sup-service-area-add-nationwide');
+  if (supServiceAreaNationwideBtn) {
+    supServiceAreaNationwideBtn.addEventListener('click', () => {
+      addSupplierServiceAreaPick({ type: 'nationwide', name: NATIONWIDE_PICK_NAME });
+    });
+  }
+  if (supServiceAreaSearchEl || supServiceAreaNationwideBtn) {
+    updateSupplierServiceAreaAvailability();
+    loadSupplierServiceAreaAllowance();
   }
 
   // Preview button handler
