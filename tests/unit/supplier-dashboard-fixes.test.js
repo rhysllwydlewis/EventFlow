@@ -737,6 +737,18 @@ describe('Supplier form – "areas you serve" picker serialization', () => {
     expect(focusBlock).toContain('browseSupplierServiceAreaCities()');
   });
 
+  it('retires an in-flight search/browse fetch whenever the dropdown is closed', () => {
+    // Blur closes the dropdown on a 150ms delay to let a click register first;
+    // without bumping the request id here too, a slow response arriving after
+    // that close could still call renderSupplierServiceAreaResults and
+    // reopen a dropdown this function just closed (blur, the limit, or
+    // nationwide are all reachable while a fetch is still in flight).
+    const hideStart = appJs.indexOf('function hideSupplierServiceAreaResults()');
+    expect(hideStart).toBeGreaterThan(-1);
+    const hideBlock = appJs.slice(hideStart, hideStart + 700);
+    expect(hideBlock).toContain('supplierServiceAreaSearchRequestId += 1');
+  });
+
   it('surfaces a SERVICE_AREA_LIMIT_EXCEEDED save error next to the picker', () => {
     // The picker's own allowance is presentation only — the API's rejection
     // is the one that can actually happen (e.g. a downgrade landing mid

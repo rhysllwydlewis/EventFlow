@@ -4786,6 +4786,11 @@ async function initDashSupplier() {
     const resultsEl = document.getElementById('sup-service-area-results');
     const searchEl = document.getElementById('sup-service-area-search');
     supplierServiceAreaSearchResults = [];
+    // Also retires whatever search/browse fetch is still in flight — without
+    // this, a slow response landing after blur (or after the limit/nationwide
+    // closed this dropdown for an unrelated reason) could still call
+    // renderSupplierServiceAreaResults and reopen a list this call just closed.
+    supplierServiceAreaSearchRequestId += 1;
     if (resultsEl) {
       resultsEl.innerHTML = '';
       resultsEl.hidden = true;

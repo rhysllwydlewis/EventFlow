@@ -339,6 +339,11 @@
   color: #92400e;
 }
 
+.efl-badge--neutral {
+  background: #e5e7eb;
+  color: #374151;
+}
+
 .efl-btn {
   display: inline-block;
   padding: 0.7rem 1.25rem;

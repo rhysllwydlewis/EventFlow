@@ -184,6 +184,7 @@ function describeCity(city, data) {
   return {
     slug: city.slug,
     name: city.name,
+    type: city.type,
     nation: city.nation,
     region: city.region,
     alternateNames: city.alternateNames,
@@ -290,10 +291,17 @@ function buildWarnings(city, page, model, data) {
 router.get('/', apiLimiter, async (req, res) => {
   try {
     const data = await loadGateInputs();
-    const items = registry.listCities().map(city => describeCity(city, data));
+    // Alphabetical, not the registry's file order — cities then counties, one
+    // big undistinguished block at the end, is not a list an admin can scan.
+    const items = registry
+      .listCities()
+      .slice()
+      .sort((a, b) => a.name.localeCompare(b.name))
+      .map(city => describeCity(city, data));
     const status = String(req.query.status || '').trim();
     const managedBy = String(req.query.managedBy || '').trim();
     const needsReviewOnly = String(req.query.needsReview || '').trim() === 'true';
+    const type = String(req.query.type || '').trim();
 
     let filtered = status ? items.filter(item => item.status === status) : items;
     if (managedBy) {
@@ -301,6 +309,9 @@ router.get('/', apiLimiter, async (req, res) => {
     }
     if (needsReviewOnly) {
       filtered = filtered.filter(item => item.needsReview);
+    }
+    if (type) {
+      filtered = filtered.filter(item => item.type === type);
     }
 
     // Public suppliers the registry cannot place. Every one of these is a
