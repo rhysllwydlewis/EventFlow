@@ -148,7 +148,7 @@
     "mongodb-memory-server": "^11.0.1",
     "playwright": "^1.59.1",
     "postcss": "^8.5.19",
-    "prettier": "3.9.6",
+    "prettier": "3.9.8",
     "stylelint": "^17.14.1",
     "supertest": "^6.3.4",
     "typescript": "^7.0.2",
