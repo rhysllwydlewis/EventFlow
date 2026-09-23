@@ -3051,6 +3051,8 @@ async function initDashSupplier() {
   let supplierServiceAreaSearchTimer = null;
   /** Currently rendered, not-yet-picked search results — lets Enter pick the top one. */
   let supplierServiceAreaSearchResults = [];
+  /** Bumped on every search request so a slower, older response can't overwrite a newer one. */
+  let supplierServiceAreaSearchRequestId = 0;
 
   async function loadSuppliers() {
     try {
@@ -4668,6 +4670,17 @@ async function initDashSupplier() {
           statusEl.style.color = '#ef4444';
           scheduleSupplierStatusClear(statusEl, 8000);
         }
+        // The allowance shown client-side is presentation only, so the API's
+        // own rejection is the one that can actually happen (e.g. a plan
+        // downgrade landing mid-session, before the picker's local copy of
+        // the limit has refreshed) — show it right by the picker, not just
+        // in the general status banner.
+        if (err.code === 'SERVICE_AREA_LIMIT_EXCEEDED') {
+          const areaErrorEl = document.getElementById('sup-service-area-error');
+          if (areaErrorEl) {
+            areaErrorEl.textContent = err.message;
+          }
+        }
       } finally {
         if (saveBtn) {
           saveBtn.disabled = false;
@@ -4809,11 +4822,15 @@ async function initDashSupplier() {
    */
   async function loadSupplierServiceAreaAllowance() {
     try {
-      const resp = await fetch('/api/v2/subscriptions/me', { credentials: 'include' });
-      if (!resp.ok) {
-        return;
-      }
-      const data = await resp.json().catch(() => null);
+      // This function itself is called more than once per page load (once as
+      // the form populates, once as its controls are wired up), and other
+      // dashboard modules request this same endpoint concurrently — so share
+      // one request rather than triggering several live subscription lookups.
+      const data = window._efFetchOnceJSON
+        ? await window._efFetchOnceJSON('/api/v2/subscriptions/me', { credentials: 'include' })
+        : await fetch('/api/v2/subscriptions/me', { credentials: 'include' }).then(r =>
+            r.ok ? r.json() : null
+          );
       const limit = data?.limits?.maxServiceAreas;
       if (Number.isFinite(limit) && limit >= 0) {
         supplierServiceAreaAllowance = limit;
@@ -4894,14 +4911,21 @@ async function initDashSupplier() {
       hideSupplierServiceAreaResults();
       return;
     }
+    // A faster later keystroke's response can land before an earlier one's —
+    // only the most recently *sent* request is allowed to render, so a slow
+    // response for a stale query can never overwrite fresher results.
+    const requestId = ++supplierServiceAreaSearchRequestId;
     try {
       const resp = await fetch(`/api/v1/locations/search?q=${encodeURIComponent(trimmed)}`, {
         credentials: 'include',
       });
-      if (!resp.ok) {
+      if (!resp.ok || requestId !== supplierServiceAreaSearchRequestId) {
         return;
       }
       const data = await resp.json().catch(() => null);
+      if (requestId !== supplierServiceAreaSearchRequestId) {
+        return;
+      }
       renderSupplierServiceAreaResults(data?.data?.cities || []);
     } catch (err) {
       console.error('City search failed:', err);

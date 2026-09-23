@@ -673,6 +673,37 @@ describe('Supplier form – "areas you serve" picker serialization', () => {
       'supplierServiceAreaPicks.length >= supplierServiceAreaAllowance'
     );
   });
+
+  it('ignores a stale areas-you-serve search response that resolves out of order', () => {
+    // A faster later keystroke's response can land before an earlier one's;
+    // only the most recently sent request may render its results, or a slow
+    // response for text the supplier has since changed could overwrite them.
+    const searchStart = appJs.indexOf('async function searchSupplierServiceAreaCities(query)');
+    expect(searchStart).toBeGreaterThan(-1);
+    const searchBlock = appJs.slice(searchStart, searchStart + 900);
+    expect(searchBlock).toContain('supplierServiceAreaSearchRequestId');
+    const requestIdAssignIdx = searchBlock.indexOf('++supplierServiceAreaSearchRequestId');
+    const guardIdx = searchBlock.indexOf('requestId !== supplierServiceAreaSearchRequestId');
+    const renderCallIdx = searchBlock.indexOf('renderSupplierServiceAreaResults(');
+    expect(requestIdAssignIdx).toBeGreaterThan(-1);
+    expect(guardIdx).toBeGreaterThan(requestIdAssignIdx);
+    expect(renderCallIdx).toBeGreaterThan(guardIdx);
+  });
+
+  it('surfaces a SERVICE_AREA_LIMIT_EXCEEDED save error next to the picker', () => {
+    // The picker's own allowance is presentation only — the API's rejection
+    // is the one that can actually happen (e.g. a downgrade landing mid
+    // session before the picker's local copy of the limit refreshes), so it
+    // must reach the field-level error element, not just the general banner.
+    const submitIdx = appJs.indexOf("supForm.addEventListener('submit'");
+    expect(submitIdx).toBeGreaterThan(-1);
+    const handlerBlock = appJs.slice(submitIdx, submitIdx + 9000);
+    const catchIdx = handlerBlock.indexOf('} catch (err) {');
+    expect(catchIdx).toBeGreaterThan(-1);
+    const catchBlock = handlerBlock.slice(catchIdx, catchIdx + 1200);
+    expect(catchBlock).toContain("err.code === 'SERVICE_AREA_LIMIT_EXCEEDED'");
+    expect(catchBlock).toContain("getElementById('sup-service-area-error')");
+  });
 });
 
 describe('Banner error state – ⚠ warning indicator consistency', () => {
