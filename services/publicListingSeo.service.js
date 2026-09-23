@@ -391,7 +391,9 @@ function buildPackageSeoModel(pkg, supplier, options = {}) {
       pkg?.description_short ||
       pkg?.descriptionShort ||
       pkg?.description ||
-      `${name} from ${supplierName} on EventFlow.`,
+      `${name} from ${supplierName}${category ? `, a ${category} package` : ''}${
+        location ? ` in ${location}` : ''
+      } on EventFlow — compare pricing, photos and availability for UK event suppliers.`,
     160
   );
   const image = packageImage(pkg, baseUrl);
@@ -444,11 +446,17 @@ function buildEventSeoModel(event, options = {}) {
   const slug = buildPublicEventSlug(event);
   const canonicalUrl = `${baseUrl}/events/${slug}`;
   const name = stripMarkup(event?.title) || 'Public event';
-  const description = truncate(event?.description || `View ${name} on EventFlow.`, 160);
+  const locationName = eventLocationSummary(event);
+  const description = truncate(
+    event?.description ||
+      `${name} on EventFlow${
+        locationName ? `, ${locationName}` : ''
+      } — see the date, venue and booking details for this public event.`,
+    160
+  );
   const image = safeImageUrl(event?.featuredImageUrl || event?.imageUrl, baseUrl);
   const startDate = validDate(event?.startDate)?.toISOString();
   const endDate = validDate(event?.endDate)?.toISOString();
-  const locationName = eventLocationSummary(event);
   const organizerName = stripMarkup(event?.organiserName || 'EventFlow supplier');
   const status = eventStatus(event);
   const title = truncate(`${name} | EventFlow`, 70);

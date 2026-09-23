@@ -243,7 +243,9 @@ function buildSupplierSeoModel(supplier, options = {}) {
       supplier.descriptionShort ||
       supplier.tagline ||
       supplier.description ||
-      `${name}${location ? ` in ${location}` : ''} on EventFlow.`,
+      `${name}${category ? `, a ${category} supplier` : ''}${
+        location ? ` based in ${location}` : ''
+      } on EventFlow — compare packages, pricing and reviews from UK event suppliers.`,
     160
   );
   const image = safeImageUrl(
