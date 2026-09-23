@@ -695,14 +695,24 @@ describe('Supplier form – "areas you serve" picker serialization', () => {
     // is the one that can actually happen (e.g. a downgrade landing mid
     // session before the picker's local copy of the limit refreshes), so it
     // must reach the field-level error element, not just the general banner.
+    //
+    // This is a dedicated function (not an inline branch in the submit
+    // handler's catch block) so the handler's own cyclomatic complexity —
+    // already flagged as very-high-risk by static analysis — doesn't grow
+    // with it.
     const submitIdx = appJs.indexOf("supForm.addEventListener('submit'");
     expect(submitIdx).toBeGreaterThan(-1);
     const handlerBlock = appJs.slice(submitIdx, submitIdx + 9000);
     const catchIdx = handlerBlock.indexOf('} catch (err) {');
     expect(catchIdx).toBeGreaterThan(-1);
-    const catchBlock = handlerBlock.slice(catchIdx, catchIdx + 1200);
-    expect(catchBlock).toContain("err.code === 'SERVICE_AREA_LIMIT_EXCEEDED'");
-    expect(catchBlock).toContain("getElementById('sup-service-area-error')");
+    const catchBlock = handlerBlock.slice(catchIdx, catchIdx + 500);
+    expect(catchBlock).toContain('surfaceServiceAreaLimitError(err)');
+
+    const fnStart = appJs.indexOf('function surfaceServiceAreaLimitError(err)');
+    expect(fnStart).toBeGreaterThan(-1);
+    const fnBlock = appJs.slice(fnStart, fnStart + 400);
+    expect(fnBlock).toContain("err.code !== 'SERVICE_AREA_LIMIT_EXCEEDED'");
+    expect(fnBlock).toContain("getElementById('sup-service-area-error')");
   });
 });
 

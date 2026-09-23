@@ -4670,17 +4670,7 @@ async function initDashSupplier() {
           statusEl.style.color = '#ef4444';
           scheduleSupplierStatusClear(statusEl, 8000);
         }
-        // The allowance shown client-side is presentation only, so the API's
-        // own rejection is the one that can actually happen (e.g. a plan
-        // downgrade landing mid-session, before the picker's local copy of
-        // the limit has refreshed) — show it right by the picker, not just
-        // in the general status banner.
-        if (err.code === 'SERVICE_AREA_LIMIT_EXCEEDED') {
-          const areaErrorEl = document.getElementById('sup-service-area-error');
-          if (areaErrorEl) {
-            areaErrorEl.textContent = err.message;
-          }
-        }
+        surfaceServiceAreaLimitError(err);
       } finally {
         if (saveBtn) {
           saveBtn.disabled = false;
@@ -4769,6 +4759,27 @@ async function initDashSupplier() {
         detail: { hasNationwide: supplierServiceAreaPicks.some(p => p.type === 'nationwide') },
       })
     );
+  }
+
+  /**
+   * Show a SERVICE_AREA_LIMIT_EXCEEDED save rejection next to the picker.
+   *
+   * The allowance shown client-side is presentation only, so the API's own
+   * rejection is the one that can actually happen (e.g. a plan downgrade
+   * landing mid-session, before the picker's local copy of the limit has
+   * refreshed) — this puts it right by the picker, not just in the general
+   * status banner.
+   * @param {Error & {code?: string}} err Error thrown by a failed save.
+   * @returns {void} Nothing.
+   */
+  function surfaceServiceAreaLimitError(err) {
+    if (err.code !== 'SERVICE_AREA_LIMIT_EXCEEDED') {
+      return;
+    }
+    const areaErrorEl = document.getElementById('sup-service-area-error');
+    if (areaErrorEl) {
+      areaErrorEl.textContent = err.message;
+    }
   }
 
   function hideSupplierServiceAreaResults() {
