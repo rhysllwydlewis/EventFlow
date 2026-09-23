@@ -233,17 +233,18 @@ function defaultSupplierDescription(name, category, location) {
   return `${name}${categoryPart}${locationPart} on EventFlow — compare packages, pricing and reviews from UK event suppliers.`;
 }
 
-function buildSupplierSeoModel(supplier, options = {}) {
-  const baseUrl = safeBaseUrl(options.baseUrl);
-  const slug = buildPublicSupplierSlug(supplier);
-  const canonicalUrl = `${baseUrl}/supplier/${slug}`;
-  const name = supplierDisplayName(supplier) || 'Event supplier';
-  const category = stripMarkup(supplier.category || supplier.primaryCategory || '');
-  const location = stripMarkup(
+function supplierCategory(supplier) {
+  return stripMarkup(supplier.category || supplier.primaryCategory || '');
+}
+
+function supplierLocation(supplier) {
+  return stripMarkup(
     supplier.location || supplier.city || supplier.town || supplier.addressLocality || ''
   );
-  const title = truncate([name, category, 'EventFlow'].filter(Boolean).join(' | '), 70);
-  const description = truncate(
+}
+
+function supplierDescription(supplier, name, category, location) {
+  return truncate(
     supplier.metaDescription ||
       supplier.description_short ||
       supplier.descriptionShort ||
@@ -252,7 +253,10 @@ function buildSupplierSeoModel(supplier, options = {}) {
       defaultSupplierDescription(name, category, location),
     160
   );
-  const image = safeImageUrl(
+}
+
+function supplierImage(supplier, baseUrl) {
+  return safeImageUrl(
     supplier.openGraphImage ||
       supplier.bannerUrl ||
       supplier.coverImage ||
@@ -260,15 +264,35 @@ function buildSupplierSeoModel(supplier, options = {}) {
       supplier.profileImage,
     baseUrl
   );
+}
 
-  // The route injects this summary from supplierAnalytics, which is derived from approved reviews.
-  const approvedReviewSummary =
-    supplier.approvedReviewSummary && typeof supplier.approvedReviewSummary === 'object'
-      ? supplier.approvedReviewSummary
-      : {};
-  const ratingValue = numericValue(approvedReviewSummary.averageRating);
-  const reviewCount = numericValue(approvedReviewSummary.reviewCount);
+// The route injects this summary from supplierAnalytics, which is derived from approved reviews.
+function approvedReviewSummary(supplier) {
+  return supplier.approvedReviewSummary && typeof supplier.approvedReviewSummary === 'object'
+    ? supplier.approvedReviewSummary
+    : {};
+}
 
+function supplierAggregateRating(supplier) {
+  const summary = approvedReviewSummary(supplier);
+  const ratingValue = numericValue(summary.averageRating);
+  const reviewCount = numericValue(summary.reviewCount);
+  if (!(ratingValue > 0 && reviewCount > 0)) {
+    return null;
+  }
+  return {
+    '@type': 'AggregateRating',
+    ratingValue: Math.min(5, Math.max(0, ratingValue)),
+    reviewCount: Math.max(1, Math.floor(reviewCount)),
+    bestRating: 5,
+    worstRating: 1,
+  };
+}
+
+function buildSupplierStructuredData(
+  supplier,
+  { name, canonicalUrl, description, image, category, location }
+) {
   const structuredData = {
     '@context': 'https://schema.org',
     '@type': 'ProfessionalService',
@@ -285,18 +309,36 @@ function buildSupplierSeoModel(supplier, options = {}) {
   if (location) {
     structuredData.areaServed = { '@type': 'Place', name: location };
   }
-  if (supplier.price_display || supplier.priceRange) {
-    structuredData.priceRange = stripMarkup(supplier.price_display || supplier.priceRange);
+  const priceDisplay = supplier.price_display || supplier.priceRange;
+  if (priceDisplay) {
+    structuredData.priceRange = stripMarkup(priceDisplay);
   }
-  if (ratingValue > 0 && reviewCount > 0) {
-    structuredData.aggregateRating = {
-      '@type': 'AggregateRating',
-      ratingValue: Math.min(5, Math.max(0, ratingValue)),
-      reviewCount: Math.max(1, Math.floor(reviewCount)),
-      bestRating: 5,
-      worstRating: 1,
-    };
+  const aggregateRating = supplierAggregateRating(supplier);
+  if (aggregateRating) {
+    structuredData.aggregateRating = aggregateRating;
   }
+
+  return structuredData;
+}
+
+function buildSupplierSeoModel(supplier, options = {}) {
+  const baseUrl = safeBaseUrl(options.baseUrl);
+  const slug = buildPublicSupplierSlug(supplier);
+  const canonicalUrl = `${baseUrl}/supplier/${slug}`;
+  const name = supplierDisplayName(supplier) || 'Event supplier';
+  const category = supplierCategory(supplier);
+  const location = supplierLocation(supplier);
+  const title = truncate([name, category, 'EventFlow'].filter(Boolean).join(' | '), 70);
+  const description = supplierDescription(supplier, name, category, location);
+  const image = supplierImage(supplier, baseUrl);
+  const structuredData = buildSupplierStructuredData(supplier, {
+    name,
+    canonicalUrl,
+    description,
+    image,
+    category,
+    location,
+  });
 
   return {
     slug,
