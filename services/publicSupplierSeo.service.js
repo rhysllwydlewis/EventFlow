@@ -227,6 +227,12 @@ function numericValue(...values) {
   return null;
 }
 
+function defaultSupplierDescription(name, category, location) {
+  const categoryPart = category ? `, a ${category} supplier` : '';
+  const locationPart = location ? ` based in ${location}` : '';
+  return `${name}${categoryPart}${locationPart} on EventFlow — compare packages, pricing and reviews from UK event suppliers.`;
+}
+
 function buildSupplierSeoModel(supplier, options = {}) {
   const baseUrl = safeBaseUrl(options.baseUrl);
   const slug = buildPublicSupplierSlug(supplier);
@@ -243,9 +249,7 @@ function buildSupplierSeoModel(supplier, options = {}) {
       supplier.descriptionShort ||
       supplier.tagline ||
       supplier.description ||
-      `${name}${category ? `, a ${category} supplier` : ''}${
-        location ? ` based in ${location}` : ''
-      } on EventFlow — compare packages, pricing and reviews from UK event suppliers.`,
+      defaultSupplierDescription(name, category, location),
     160
   );
   const image = safeImageUrl(

@@ -376,6 +376,12 @@ function numericPrice(value) {
   return Number.isFinite(number) ? number : null;
 }
 
+function defaultPackageDescription(name, supplierName, category, location) {
+  const categoryPart = category ? `, a ${category} package` : '';
+  const locationPart = location ? ` in ${location}` : '';
+  return `${name} from ${supplierName}${categoryPart}${locationPart} on EventFlow — compare pricing, photos and availability for UK event suppliers.`;
+}
+
 function buildPackageSeoModel(pkg, supplier, options = {}) {
   const baseUrl = safeBaseUrl(options.baseUrl);
   const slug = buildPublicPackageSlug(pkg);
@@ -391,9 +397,7 @@ function buildPackageSeoModel(pkg, supplier, options = {}) {
       pkg?.description_short ||
       pkg?.descriptionShort ||
       pkg?.description ||
-      `${name} from ${supplierName}${category ? `, a ${category} package` : ''}${
-        location ? ` in ${location}` : ''
-      } on EventFlow — compare pricing, photos and availability for UK event suppliers.`,
+      defaultPackageDescription(name, supplierName, category, location),
     160
   );
   const image = packageImage(pkg, baseUrl);
@@ -441,6 +445,11 @@ function eventLocationSummary(event) {
   );
 }
 
+function defaultEventDescription(name, locationName) {
+  const locationPart = locationName ? `, ${locationName}` : '';
+  return `${name} on EventFlow${locationPart} — see the date, venue and booking details for this public event.`;
+}
+
 function buildEventSeoModel(event, options = {}) {
   const baseUrl = safeBaseUrl(options.baseUrl);
   const slug = buildPublicEventSlug(event);
@@ -448,10 +457,7 @@ function buildEventSeoModel(event, options = {}) {
   const name = stripMarkup(event?.title) || 'Public event';
   const locationName = eventLocationSummary(event);
   const description = truncate(
-    event?.description ||
-      `${name} on EventFlow${
-        locationName ? `, ${locationName}` : ''
-      } — see the date, venue and booking details for this public event.`,
+    event?.description || defaultEventDescription(name, locationName),
     160
   );
   const image = safeImageUrl(event?.featuredImageUrl || event?.imageUrl, baseUrl);
