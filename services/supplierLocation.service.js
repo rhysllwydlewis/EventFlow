@@ -507,6 +507,14 @@ function sanitiseServiceAreas(value) {
     }
   }
 
+  // Nationwide already covers every city, so a city pick alongside it adds no
+  // real coverage — it only burns the supplier's limited pick allowance and
+  // shows a redundant tag. Drop city picks once nationwide is present,
+  // regardless of which order the two arrived in.
+  if (hasNationwide) {
+    return areas.filter(area => area.type !== SERVICE_AREA_TYPES.city);
+  }
+
   return areas;
 }
 

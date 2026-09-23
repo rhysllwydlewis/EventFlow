@@ -668,10 +668,34 @@ describe('Supplier form – "areas you serve" picker serialization', () => {
     // reopen a dropdown the limit has already closed.
     const renderStart = appJs.indexOf('function renderSupplierServiceAreaResults(cities)');
     expect(renderStart).toBeGreaterThan(-1);
-    const renderBlock = appJs.slice(renderStart, renderStart + 600);
+    const renderBlock = appJs.slice(renderStart, renderStart + 800);
     expect(renderBlock).toContain(
       'supplierServiceAreaPicks.length >= supplierServiceAreaAllowance'
     );
+  });
+
+  it('does not reopen the areas-you-serve results dropdown once nationwide is picked', () => {
+    // Nationwide already covers every city, so a stale search response that
+    // resolves after nationwide was picked must not reopen the dropdown and
+    // offer a now-redundant city.
+    const renderStart = appJs.indexOf('function renderSupplierServiceAreaResults(cities)');
+    expect(renderStart).toBeGreaterThan(-1);
+    const renderBlock = appJs.slice(renderStart, renderStart + 800);
+    expect(renderBlock).toContain("supplierServiceAreaPicks.some(p => p.type === 'nationwide')");
+    expect(renderBlock).toContain('hasNationwide ||');
+  });
+
+  it('rejects a city pick added while nationwide is already selected', () => {
+    // Covers a click straight through addSupplierServiceAreaPick, not just
+    // the UI paths (disabled search box, hidden dropdown) that normally keep
+    // a user from getting here — e.g. a stale search result landing after
+    // nationwide was picked.
+    const addStart = appJs.indexOf('function addSupplierServiceAreaPick(pick)');
+    expect(addStart).toBeGreaterThan(-1);
+    const addBlock = appJs.slice(addStart, addStart + 700);
+    expect(addBlock).toContain("pick.type === 'city'");
+    expect(addBlock).toContain("p.type === 'nationwide'");
+    expect(addBlock).toContain('redundantUnderNationwide');
   });
 
   it('ignores a stale areas-you-serve search response that resolves out of order', () => {

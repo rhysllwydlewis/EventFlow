@@ -187,6 +187,33 @@ describe('sanitiseServiceAreas', () => {
     expect(supplierLocation.sanitiseServiceAreas(undefined)).toEqual([]);
   });
 
+  it('drops city picks once nationwide is present, in either order', () => {
+    expect(
+      supplierLocation.sanitiseServiceAreas([
+        { type: 'nationwide' },
+        { type: 'city', slug: 'cardiff' },
+      ])
+    ).toEqual([{ type: 'nationwide' }]);
+
+    expect(
+      supplierLocation.sanitiseServiceAreas([
+        { type: 'city', slug: 'cardiff' },
+        { type: 'city', slug: 'bristol' },
+        { type: 'nationwide' },
+      ])
+    ).toEqual([{ type: 'nationwide' }]);
+  });
+
+  it('keeps a radius alongside nationwide — only city picks are redundant', () => {
+    expect(
+      supplierLocation.sanitiseServiceAreas([
+        { type: 'nationwide' },
+        { type: 'radius', miles: 30 },
+        { type: 'city', slug: 'cardiff' },
+      ])
+    ).toEqual([{ type: 'nationwide' }, { type: 'radius', miles: 30 }]);
+  });
+
   it('round-trips through the read path the pages use', () => {
     const areas = supplierLocation.sanitiseServiceAreas([
       { type: 'city', slug: 'caerdydd' },
@@ -350,7 +377,7 @@ describe('supplier profile routes', () => {
           { type: 'city', slug: 'cardiff' },
           { type: 'city', slug: 'bristol' },
           { type: 'city', slug: 'newport' },
-          { type: 'nationwide' },
+          { type: 'city', slug: 'swansea' },
         ],
       });
 
@@ -466,7 +493,7 @@ describe('supplier profile routes', () => {
           { type: 'city', slug: 'cardiff' },
           { type: 'city', slug: 'bristol' },
           { type: 'city', slug: 'newport' },
-          { type: 'nationwide' },
+          { type: 'city', slug: 'swansea' },
         ],
       });
 
@@ -485,12 +512,34 @@ describe('supplier profile routes', () => {
           { type: 'city', slug: 'cardiff' },
           { type: 'city', slug: 'bristol' },
           { type: 'city', slug: 'newport' },
-          { type: 'nationwide' },
+          { type: 'city', slug: 'swansea' },
         ],
       });
 
     expect(response.status).toBe(200);
     expect(supplier.serviceAreas).toHaveLength(4);
+  });
+
+  it('does not let a redundant nationwide+city request falsely trip the allowance cap', async () => {
+    // Nationwide collapses away any city picks sent alongside it (see
+    // sanitiseServiceAreas), so a request that *looks* like 4 picks but is
+    // really just "go nationwide" must not be rejected as over a 2-pick
+    // allowance — only the resulting 1 real pick counts against it.
+    getServiceAreaAllowance.mockImplementation(async () => 2);
+
+    const response = await request(app())
+      .patch('/sup_1')
+      .send({
+        serviceAreas: [
+          { type: 'city', slug: 'cardiff' },
+          { type: 'city', slug: 'bristol' },
+          { type: 'city', slug: 'newport' },
+          { type: 'nationwide' },
+        ],
+      });
+
+    expect(response.status).toBe(200);
+    expect(supplier.serviceAreas).toEqual([{ type: 'nationwide' }]);
   });
 
   describe('downgrading a plan while already over the new allowance', () => {
@@ -500,7 +549,7 @@ describe('supplier profile routes', () => {
       { type: 'city', slug: 'bristol' },
       { type: 'city', slug: 'newport' },
       { type: 'city', slug: 'london' },
-      { type: 'nationwide' },
+      { type: 'city', slug: 'swansea' },
     ];
 
     beforeEach(() => {
@@ -527,7 +576,7 @@ describe('supplier profile routes', () => {
         { type: 'city', slug: 'bristol' },
         { type: 'city', slug: 'newport' },
         { type: 'city', slug: 'manchester' },
-        { type: 'nationwide' },
+        { type: 'city', slug: 'leeds' },
       ];
 
       const response = await request(app()).patch('/sup_1').send({ serviceAreas: swapped });
