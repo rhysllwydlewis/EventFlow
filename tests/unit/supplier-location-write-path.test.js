@@ -493,6 +493,105 @@ describe('supplier profile routes', () => {
     expect(supplier.serviceAreas).toHaveLength(4);
   });
 
+  describe('downgrading a plan while already over the new allowance', () => {
+    /** Five picks — more than the free plan's allowance of 2 — as if saved while on a paid plan. */
+    const fivePicks = [
+      { type: 'city', slug: 'cardiff' },
+      { type: 'city', slug: 'bristol' },
+      { type: 'city', slug: 'newport' },
+      { type: 'city', slug: 'london' },
+      { type: 'nationwide' },
+    ];
+
+    beforeEach(() => {
+      supplier.serviceAreas = fivePicks;
+      getServiceAreaAllowance.mockImplementation(async () => 2);
+    });
+
+    it('keeps every existing pick when an unrelated field is saved', async () => {
+      // The dashboard resends the supplier's full current pick list on every
+      // save, even one that only touches an unrelated field — this must not
+      // be read as "add 5 picks" and rejected against the new, lower cap.
+      const response = await request(app())
+        .patch('/sup_1')
+        .send({ tagline: 'Now serving five cities', serviceAreas: fivePicks });
+
+      expect(response.status).toBe(200);
+      expect(supplier.serviceAreas).toEqual(fivePicks);
+      expect(supplier.tagline).toBe('Now serving five cities');
+    });
+
+    it('lets a downgraded supplier rearrange picks without shrinking below the old count', async () => {
+      const swapped = [
+        { type: 'city', slug: 'cardiff' },
+        { type: 'city', slug: 'bristol' },
+        { type: 'city', slug: 'newport' },
+        { type: 'city', slug: 'manchester' },
+        { type: 'nationwide' },
+      ];
+
+      const response = await request(app()).patch('/sup_1').send({ serviceAreas: swapped });
+
+      expect(response.status).toBe(200);
+      expect(supplier.serviceAreas).toEqual(swapped);
+    });
+
+    it('lets a downgraded supplier shrink their picks below the old count', async () => {
+      const response = await request(app())
+        .patch('/sup_1')
+        .send({
+          serviceAreas: [
+            { type: 'city', slug: 'cardiff' },
+            { type: 'city', slug: 'bristol' },
+            { type: 'city', slug: 'newport' },
+          ],
+        });
+
+      expect(response.status).toBe(200);
+      expect(supplier.serviceAreas).toHaveLength(3);
+    });
+
+    it('still rejects a downgraded supplier trying to add a 6th pick', async () => {
+      const response = await request(app())
+        .patch('/sup_1')
+        .send({
+          serviceAreas: [...fivePicks, { type: 'city', slug: 'manchester' }],
+        });
+
+      expect(response.status).toBe(400);
+      expect(response.body.error).toMatch(/up to 2/i);
+      expect(supplier.serviceAreas).toEqual(fivePicks);
+    });
+
+    it('re-enforces the cap once the supplier is back at or under their new allowance', async () => {
+      // Shrink to exactly the new limit first...
+      const atLimit = await request(app())
+        .patch('/sup_1')
+        .send({
+          serviceAreas: [
+            { type: 'city', slug: 'cardiff' },
+            { type: 'city', slug: 'bristol' },
+          ],
+        });
+      expect(atLimit.status).toBe(200);
+
+      // ...then growing even by one is rejected again, same as any other
+      // supplier at their plan's limit.
+      const grown = await request(app())
+        .patch('/sup_1')
+        .send({
+          serviceAreas: [
+            { type: 'city', slug: 'cardiff' },
+            { type: 'city', slug: 'bristol' },
+            { type: 'city', slug: 'newport' },
+          ],
+        });
+
+      expect(grown.status).toBe(400);
+      expect(grown.body.error).toMatch(/up to 2/i);
+    });
+  });
+
   it('does not geocode an unchanged venue postcode from a full form save', async () => {
     supplier.category = 'Venues';
     supplier.venuePostcode = 'CF10 1AA';

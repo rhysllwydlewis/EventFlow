@@ -130,8 +130,18 @@ against the allowance. Folding nationwide into the same capped quota, rather
 than leaving it a free unlimited checkbox, means claiming the whole UK costs a
 supplier one of their picks, the same as naming any other city — only _how
 many_ areas a supplier may claim depends on plan; how those areas rank once
-claimed stays the flat `RELATIONSHIP_WEIGHTS` value for every supplier
-regardless of plan (see Matching and ranking, below).
+claimed stays flat for every supplier regardless of plan (below).
+
+The allowance is read live off the current subscription on every save, so an
+upgrade raises it immediately, with no migration step. A downgrade is never
+retroactive: the dashboard resends a supplier's whole current pick list on
+every save, including ones that touch nothing about location, so the cap
+only ever blocks a request that would _grow_ the pick count past the
+allowance (`requestedPicks.length > retainedPicks.length` in
+`routes/supplier-management.js`). A supplier who ends up over their new
+plan's limit keeps every pick they already had — rearranging or shrinking
+that set is always allowed — and only regains the ability to add another
+once they are back at or under it.
 
 ## Matching and ranking
 

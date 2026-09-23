@@ -909,7 +909,16 @@ router.patch(
       const requestedPicks = requestedAreas.filter(isPick);
       const requestedRadiusAreas = requestedAreas.filter(area => !isPick(area));
 
-      if (requestedPicks.length > 0) {
+      // The dashboard always resends the supplier's *entire* current pick
+      // list on every save, not just the ones a request actually changed —
+      // so a plain "is this over the allowance" check would lock a
+      // downgraded supplier out of saving anything at all (even an unrelated
+      // field) until they manually pruned back down themselves. Only a
+      // request that grows the pick count is checked against the allowance;
+      // one that holds steady or shrinks is always let through, so a
+      // supplier who ends up over plan on downgrade keeps what they had and
+      // can rearrange it freely, but cannot add more until back under.
+      if (requestedPicks.length > 0 && requestedPicks.length > retainedPicks.length) {
         const serviceAreaAllowance = await subscriptionService.getServiceAreaAllowance(
           s.ownerUserId
         );
