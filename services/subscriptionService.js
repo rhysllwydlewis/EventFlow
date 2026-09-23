@@ -651,7 +651,7 @@ function getPhotoAllowance(ownerUserId) {
  * @returns {Promise<number>} Service area allowance, or -1 for unlimited.
  */
 function getServiceAreaAllowance(ownerUserId) {
-  return getNumericAllowance(ownerUserId, 'maxServiceAreas', 3);
+  return getNumericAllowance(ownerUserId, 'maxServiceAreas', 2);
 }
 
 /**

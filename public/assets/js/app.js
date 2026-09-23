@@ -3047,7 +3047,7 @@ async function initDashSupplier() {
   // than beside the functions that use them further down this scope.
   const NATIONWIDE_PICK_NAME = 'Nationwide (all of the UK)';
   let supplierServiceAreaPicks = [];
-  let supplierServiceAreaAllowance = 3;
+  let supplierServiceAreaAllowance = 2; // Free-plan default, until the real allowance loads.
   let supplierServiceAreaSearchTimer = null;
   /** Currently rendered, not-yet-picked search results — lets Enter pick the top one. */
   let supplierServiceAreaSearchResults = [];

@@ -119,10 +119,12 @@ types are dropped rather than stored as coverage the pages would not honour.
 
 Named cities and a nationwide claim are both a supplier's explicit "picks",
 capped by plan allowance (`maxServiceAreas` in `models/Subscription.js`,
-read through `subscriptionService.getServiceAreaAllowance()`) — 3 on the free
-plan, 5 on a paid one — and enforced server-side in `routes/supplier-management.js`
-on both create and edit, independent of the dashboard's own client-side copy
-of the limit. Radius coverage is not a pick: it is a single value derived from
+read through `subscriptionService.getServiceAreaAllowance()`) — 2 on the free
+plan, 4 on Pro, 9 on Pro Plus, each counted on top of the one base city every
+supplier already has from signup, for 3/5/10 areas in total per plan — and
+enforced server-side in `routes/supplier-management.js` on both create and
+edit, independent of the dashboard's own client-side copy of the limit.
+Radius coverage is not a pick: it is a single value derived from
 one base point, not a claim on a specific extra place, so it never counts
 against the allowance. Folding nationwide into the same capped quota, rather
 than leaving it a free unlimited checkbox, means claiming the whole UK costs a

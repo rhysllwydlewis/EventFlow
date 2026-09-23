@@ -29,13 +29,13 @@ const isValidUKPostcode = jest.fn(postcode =>
   /^[A-Z]{1,2}\d{1,2}[A-Z]?\s*\d[A-Z]{2}$/i.test(String(postcode || '').trim())
 );
 /** Free-plan default; individual tests override this for a paid-plan supplier. */
-const getServiceAreaAllowance = jest.fn(async () => 3);
+const getServiceAreaAllowance = jest.fn(async () => 2);
 
 beforeEach(() => {
   geocodePostcode.mockClear();
   isValidUKPostcode.mockClear();
   getServiceAreaAllowance.mockClear();
-  getServiceAreaAllowance.mockImplementation(async () => 3);
+  getServiceAreaAllowance.mockImplementation(async () => 2);
 });
 
 describe('deriveBaseLocation', () => {
@@ -338,7 +338,7 @@ describe('supplier profile routes', () => {
   });
 
   it('rejects more picks than the plan allows on create', async () => {
-    getServiceAreaAllowance.mockImplementation(async () => 3);
+    getServiceAreaAllowance.mockImplementation(async () => 2);
 
     const response = await request(app())
       .post('/')
@@ -355,7 +355,7 @@ describe('supplier profile routes', () => {
       });
 
     expect(response.status).toBe(400);
-    expect(response.body.error).toMatch(/up to 3/i);
+    expect(response.body.error).toMatch(/up to 2/i);
     expect(inserted).toBeNull();
   });
 
@@ -457,7 +457,7 @@ describe('supplier profile routes', () => {
   });
 
   it('rejects more picks than the free plan allows', async () => {
-    getServiceAreaAllowance.mockImplementation(async () => 3);
+    getServiceAreaAllowance.mockImplementation(async () => 2);
 
     const response = await request(app())
       .patch('/sup_1')
@@ -471,12 +471,12 @@ describe('supplier profile routes', () => {
       });
 
     expect(response.status).toBe(400);
-    expect(response.body.error).toMatch(/up to 3/i);
-    expect(response.body.limit).toBe(3);
+    expect(response.body.error).toMatch(/up to 2/i);
+    expect(response.body.limit).toBe(2);
   });
 
   it('allows a paid-plan supplier a higher self-service quota', async () => {
-    getServiceAreaAllowance.mockImplementation(async () => 5);
+    getServiceAreaAllowance.mockImplementation(async () => 4);
 
     const response = await request(app())
       .patch('/sup_1')
