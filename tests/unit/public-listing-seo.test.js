@@ -106,6 +106,48 @@ describe('public listing SEO service', () => {
     );
   });
 
+  test('falls back to a generated package description with category and location', () => {
+    const undescribedPkg = { ...pkg, description: '', description_short: '', descriptionShort: '' };
+    const seo = buildPackageSeoModel(undescribedPkg, supplier, {
+      baseUrl: 'https://event-flow.co.uk',
+    });
+    expect(seo.description).toBe(
+      'Full Day Wedding Photography from Cwm Valley Events, a photography package in Cardiff on EventFlow — compare pricing, photos and availability for UK event supp…'
+    );
+    expect(seo.description).toHaveLength(160);
+  });
+
+  test('falls back to a generated package description without category or location', () => {
+    const bareSupplier = { id: 'supplier-2', name: 'Acme Events' };
+    const barePkg = {
+      id: 'pkg-2',
+      supplierId: bareSupplier.id,
+      approved: true,
+      title: 'Party Package',
+      slug: 'party-package-pkg002',
+    };
+    const seo = buildPackageSeoModel(barePkg, bareSupplier, {
+      baseUrl: 'https://event-flow.co.uk',
+    });
+    expect(seo.description).toBe(
+      'Party Package from Acme Events on EventFlow — compare pricing, photos and availability for UK event suppliers.'
+    );
+  });
+
+  test('falls back to a generated event description with and without a location', () => {
+    const undescribedEvent = { ...futureEvent, description: '' };
+    const seo = buildEventSeoModel(undescribedEvent, { baseUrl: 'https://event-flow.co.uk' });
+    expect(seo.description).toBe(
+      'Cardiff Wedding Fair on EventFlow, Cardiff City Hall, Cardiff, CF10 3ND — see the date, venue and booking details for this public event.'
+    );
+
+    const noLocationEvent = { ...undescribedEvent, venueName: '', townCity: '', postcode: '' };
+    const bareSeo = buildEventSeoModel(noLocationEvent, { baseUrl: 'https://event-flow.co.uk' });
+    expect(bareSeo.description).toBe(
+      'Cardiff Wedding Fair on EventFlow — see the date, venue and booking details for this public event.'
+    );
+  });
+
   test('replaces generic metadata without changing body markup', () => {
     const template = `<!doctype html><html><head><title>Generic</title><meta name="description" content="Generic"><link rel="canonical" href="https://event-flow.co.uk/events/"><script type="application/ld+json" id="event-structured-data">{}</script></head><body><main id="content">Unchanged body</main></body></html>`;
     const seo = buildEventSeoModel(futureEvent, { baseUrl: 'https://event-flow.co.uk' });

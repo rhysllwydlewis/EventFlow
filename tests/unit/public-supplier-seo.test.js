@@ -168,4 +168,34 @@ describe('public supplier SEO service', () => {
     expect(withoutCount.structuredData.aggregateRating).toBeUndefined();
     expect(legacyOnly.structuredData.aggregateRating).toBeUndefined();
   });
+
+  test('falls back to a generated description built from category and location', () => {
+    const undescribed = {
+      ...supplier,
+      description_short: '',
+      descriptionShort: undefined,
+      tagline: undefined,
+      description: undefined,
+      metaDescription: undefined,
+    };
+    const seo = buildSupplierSeoModel(undescribed);
+
+    expect(seo.description).toBe(
+      'Cŵm Valley Photography, a Photography supplier based in Cardiff on EventFlow — compare packages, pricing and reviews from UK event suppliers.'
+    );
+  });
+
+  test('falls back to a bare description when category and location are unknown', () => {
+    const bareSupplier = {
+      id: 'supplier-456',
+      approved: true,
+      ownerUserId: 'user-1',
+      name: 'Acme Events',
+    };
+    const seo = buildSupplierSeoModel(bareSupplier);
+
+    expect(seo.description).toBe(
+      'Acme Events on EventFlow — compare packages, pricing and reviews from UK event suppliers.'
+    );
+  });
 });
