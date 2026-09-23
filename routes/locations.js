@@ -530,17 +530,36 @@ router.get('/api/v1/locations/featured', publicReadLimiter, async (req, res) => 
  * just published ones: the relationship a supplier records now is honoured
  * on that city's page the moment it is published, not before, so the picker
  * cannot be limited to today's published set without going stale on its own.
+ *
+ * `browse=true` with an empty `q` returns the whole registry, alphabetically —
+ * the same picker's "browse everywhere we recognise" list rather than a
+ * typed search. A `q` empty for any other reason (nothing typed yet, an
+ * existing integration that doesn't send `browse`) keeps returning nothing,
+ * so this is additive rather than a change to what empty-query already meant.
  */
 router.get('/api/v1/locations/search', publicReadLimiter, (req, res) => {
   try {
     const query = typeof req.query.q === 'string' ? req.query.q : '';
     const limit = Math.min(10, Math.max(1, Number.parseInt(req.query.limit, 10) || 8));
-    const cities = registry.searchCities(query, limit).map(city => ({
+    const toResult = city => ({
       slug: city.slug,
       name: city.name,
       nation: city.nation,
       region: city.region || city.nation,
-    }));
+      type: city.type,
+    });
+
+    if (!query.trim() && req.query.browse === 'true') {
+      const all = registry
+        .listCities()
+        .slice()
+        .sort((a, b) => a.name.localeCompare(b.name))
+        .map(toResult);
+      res.set('Cache-Control', 'public, max-age=300, s-maxage=3600');
+      return res.json({ success: true, data: { cities: all } });
+    }
+
+    const cities = registry.searchCities(query, limit).map(toResult);
 
     res.set('Cache-Control', 'public, max-age=300, s-maxage=3600');
     return res.json({ success: true, data: { cities } });

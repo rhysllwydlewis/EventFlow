@@ -93,7 +93,9 @@ function normalisePageRecord(city, stored) {
       heroSource,
       heroImageUrl,
       heroImageAlt: heroImageUrl
-        ? content.heroImageAlt || (matchedHero && matchedHero.alt) || `${city.name} cityscape`
+        ? content.heroImageAlt ||
+          (matchedHero && matchedHero.alt) ||
+          `${city.name} ${city.type === 'county' ? 'countryside' : 'cityscape'}`
         : null,
       heroImageCredit: heroImageUrl
         ? content.heroImageCredit || (matchedHero && matchedHero.credit) || null
@@ -445,8 +447,11 @@ function buildCollectionStructuredData(input) {
       name: city.name,
       address: {
         '@type': 'PostalAddress',
-        addressLocality: city.name,
-        addressRegion: city.region || undefined,
+        // A county entry's own name is the region — schema.org's
+        // addressLocality means a city/town within one, not the county
+        // itself, so a county has no locality to name here.
+        addressLocality: city.type === 'county' ? undefined : city.name,
+        addressRegion: city.type === 'county' ? city.name : city.region || undefined,
         addressCountry: 'GB',
       },
       geo: {

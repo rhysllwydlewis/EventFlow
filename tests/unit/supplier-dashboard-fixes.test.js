@@ -653,7 +653,7 @@ describe('Supplier form – "areas you serve" picker serialization', () => {
     // when a form has a default submit button.
     const searchIdx = appJs.indexOf('const supServiceAreaSearchEl = document.getElementById(');
     expect(searchIdx).toBeGreaterThan(-1);
-    const listenerBlock = appJs.slice(searchIdx, searchIdx + 1400);
+    const listenerBlock = appJs.slice(searchIdx, searchIdx + 1900);
     const keydownIdx = listenerBlock.indexOf("addEventListener('keydown'");
     expect(keydownIdx).toBeGreaterThan(-1);
     const keydownBlock = listenerBlock.slice(keydownIdx, keydownIdx + 300);
@@ -712,6 +712,29 @@ describe('Supplier form – "areas you serve" picker serialization', () => {
     expect(requestIdAssignIdx).toBeGreaterThan(-1);
     expect(guardIdx).toBeGreaterThan(requestIdAssignIdx);
     expect(renderCallIdx).toBeGreaterThan(guardIdx);
+  });
+
+  it('browses the whole registry, alphabetically, once the search box is empty', () => {
+    // An empty query used to just hide the dropdown; it now shows every
+    // place the registry recognises instead of requiring a supplier to type
+    // something first to see anything at all.
+    const browseStart = appJs.indexOf('async function browseSupplierServiceAreaCities()');
+    expect(browseStart).toBeGreaterThan(-1);
+    const browseBlock = appJs.slice(browseStart, browseStart + 700);
+    expect(browseBlock).toContain('/api/v1/locations/search?browse=true');
+    expect(browseBlock).toContain('renderSupplierServiceAreaResults(');
+
+    const searchStart = appJs.indexOf('async function searchSupplierServiceAreaCities(query)');
+    const searchBlock = appJs.slice(searchStart, searchStart + 300);
+    expect(searchBlock).toContain('browseSupplierServiceAreaCities()');
+  });
+
+  it('shows the browse list as soon as the empty search box is focused', () => {
+    const focusIdx = appJs.indexOf("supServiceAreaSearchEl.addEventListener('focus'");
+    expect(focusIdx).toBeGreaterThan(-1);
+    const focusBlock = appJs.slice(focusIdx, focusIdx + 250);
+    expect(focusBlock).toContain('supServiceAreaSearchEl.value.trim()');
+    expect(focusBlock).toContain('browseSupplierServiceAreaCities()');
   });
 
   it('surfaces a SERVICE_AREA_LIMIT_EXCEEDED save error next to the picker', () => {

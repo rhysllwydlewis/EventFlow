@@ -220,6 +220,29 @@ describe('GET /api/v1/locations/search', () => {
     expect(response.body.data.cities).toEqual([]);
   });
 
+  it('still returns nothing for an empty query when browse is not explicitly requested', async () => {
+    const response = await request(buildApp()).get('/api/v1/locations/search?browse=false');
+    expect(response.body.data.cities).toEqual([]);
+  });
+
+  it('browse=true with an empty query returns the whole registry, alphabetically', async () => {
+    const response = await request(buildApp()).get('/api/v1/locations/search?browse=true');
+    expect(response.status).toBe(200);
+    const { cities } = response.body.data;
+    expect(cities.length).toBeGreaterThan(100);
+    const names = cities.map(c => c.name);
+    expect(names).toEqual([...names].sort((a, b) => a.localeCompare(b)));
+    expect(cities.map(c => c.slug)).toContain('cardiff');
+    expect(cities.map(c => c.slug)).toContain('ceredigion');
+    expect(cities.find(c => c.slug === 'cardiff').type).toBe('city');
+    expect(cities.find(c => c.slug === 'ceredigion').type).toBe('county');
+  });
+
+  it('ignores browse=true when a real query is also given', async () => {
+    const response = await request(buildApp()).get('/api/v1/locations/search?q=card&browse=true');
+    expect(response.body.data.cities.map(c => c.slug)).toEqual(['cardiff']);
+  });
+
   it("includes an unpublished city — the picker is not limited to today's live pages", async () => {
     // No location_pages seeded at all: every registry city is a draft, and
     // the picker still has to be able to name it.

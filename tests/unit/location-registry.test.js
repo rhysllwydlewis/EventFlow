@@ -165,6 +165,37 @@ describe('distance and nearest city', () => {
     // Mid-Atlantic: no UK city is within the default cutoff.
     expect(registry.nearestCity({ latitude: 40, longitude: -30 })).toBeNull();
   });
+
+  it('never matches a county, even one whose centre is closer than any city', () => {
+    // Ceredigion's own centre point, which a county-blind search would pick
+    // over any real city — nearestCity exists to auto-detect a supplier's
+    // own precise base city, so a broad county centroid must lose every time.
+    const nearest = registry.nearestCity(
+      { latitude: 52.2954, longitude: -4.1922 },
+      { maxMiles: 60 }
+    );
+    expect(nearest).not.toBeNull();
+    expect(nearest.city.type).toBe('city');
+  });
+});
+
+describe('city vs county entries', () => {
+  it('defaults every pre-existing entry (no type field) to city', () => {
+    const cardiff = registry.getCity('cardiff');
+    expect(cardiff.type).toBe('city');
+  });
+
+  it('tags the new county entries as county, not city', () => {
+    const ceredigion = registry.getCity('ceredigion');
+    expect(ceredigion).not.toBeNull();
+    expect(ceredigion.type).toBe('county');
+  });
+
+  it('resolves and searches counties the same way as cities', () => {
+    expect(registry.resolveCity('Ceredigion').city.slug).toBe('ceredigion');
+    const results = registry.searchCities('ceredig', 5);
+    expect(results.map(c => c.slug)).toContain('ceredigion');
+  });
 });
 
 describe('postcode resolution', () => {

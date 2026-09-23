@@ -134,7 +134,18 @@ function forLog(value, maxLength) {
 }
 
 /**
- * Build a disambiguated Pexels query for any registered UK city.
+ * "City landmark" reads oddly for a county-scale entry (e.g. Ceredigion) —
+ * both the Pexels query and the hero's fallback alt text ask for the kind of
+ * photograph that actually suits what the place is.
+ * @param {Object} city Registry entry (city or county).
+ * @returns {string} Search/description suffix.
+ */
+function locationPhotoSubject(city) {
+  return city && city.type === 'county' ? 'countryside landscape' : 'city landmark';
+}
+
+/**
+ * Build a disambiguated Pexels query for any registered UK city or county.
  * @param {Object} city Registry city record.
  * @returns {string} Search query.
  */
@@ -143,7 +154,7 @@ function buildCitySearchQuery(city) {
     city && city.name,
     city && city.region,
     city && city.nation,
-    'United Kingdom city landmark',
+    `United Kingdom ${locationPhotoSubject(city)}`,
   ]
     .filter(Boolean)
     .join(' ');
@@ -250,7 +261,7 @@ function heroFromPhoto(photo, city) {
   image.search = IMAGE_PARAMS;
   return {
     url: image.toString(),
-    alt: String((photo && photo.alt) || `${city.name} city landmark`).trim(),
+    alt: String((photo && photo.alt) || `${city.name} ${locationPhotoSubject(city)}`).trim(),
     credit: String((photo && photo.photographer) || 'Pexels').trim(),
     sourceUrl: source.toString(),
   };

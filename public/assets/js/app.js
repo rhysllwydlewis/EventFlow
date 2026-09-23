@@ -4935,10 +4935,35 @@ async function initDashSupplier() {
     }
   }
 
+  /**
+   * Fetch every place the registry recognises, alphabetically, for the
+   * picker's "browse everywhere" list — shown when the search box is empty
+   * rather than only once the supplier starts typing.
+   * @returns {Promise<void>} Nothing.
+   */
+  async function browseSupplierServiceAreaCities() {
+    const requestId = ++supplierServiceAreaSearchRequestId;
+    try {
+      const resp = await fetch('/api/v1/locations/search?browse=true', {
+        credentials: 'include',
+      });
+      if (!resp.ok || requestId !== supplierServiceAreaSearchRequestId) {
+        return;
+      }
+      const data = await resp.json().catch(() => null);
+      if (requestId !== supplierServiceAreaSearchRequestId) {
+        return;
+      }
+      renderSupplierServiceAreaResults(data?.data?.cities || []);
+    } catch (err) {
+      console.error('City browse failed:', err);
+    }
+  }
+
   async function searchSupplierServiceAreaCities(query) {
     const trimmed = query.trim();
     if (!trimmed) {
-      hideSupplierServiceAreaResults();
+      await browseSupplierServiceAreaCities();
       return;
     }
     // A faster later keystroke's response can land before an earlier one's —
@@ -4971,6 +4996,14 @@ async function initDashSupplier() {
         () => searchSupplierServiceAreaCities(value),
         250
       );
+    });
+    // Show the full alphabetical list the moment the (empty) box is focused,
+    // rather than making a supplier type something first to see anything at
+    // all — the same list an empty keystroke already produces via 'input'.
+    supServiceAreaSearchEl.addEventListener('focus', () => {
+      if (!supServiceAreaSearchEl.value.trim()) {
+        browseSupplierServiceAreaCities();
+      }
     });
     supServiceAreaSearchEl.addEventListener('blur', () => {
       // Let a click on a result register before the list disappears.

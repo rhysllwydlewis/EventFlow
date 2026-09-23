@@ -33,6 +33,7 @@ const UK_BOUNDS = {
 };
 
 const VALID_NATIONS = ['England', 'Scotland', 'Wales', 'Northern Ireland'];
+const VALID_TYPES = ['city', 'county'];
 
 let cachedRegistry = null;
 
@@ -90,6 +91,9 @@ function validateEntry(entry, index) {
   if (!VALID_NATIONS.includes(entry.nation)) {
     problems.push(`${label}: nation must be one of ${VALID_NATIONS.join(', ')}`);
   }
+  if (entry.type !== undefined && !VALID_TYPES.includes(entry.type)) {
+    problems.push(`${label}: type must be one of ${VALID_TYPES.join(', ')}`);
+  }
 
   const centre = entry.centre || {};
   const latitude = Number(centre.latitude);
@@ -137,6 +141,9 @@ function freezeEntry(entry) {
     name: entry.name,
     alternateNames: Object.freeze([...(entry.alternateNames || [])]),
     nation: entry.nation,
+    // Absent on every entry the registry shipped with before counties existed —
+    // those, and any entry that omits it, are cities.
+    type: entry.type || 'city',
     region: entry.region || null,
     centre: Object.freeze({ latitude, longitude }),
     coordinates: Object.freeze({
@@ -363,6 +370,12 @@ function distanceToCity(city, point) {
 
 /**
  * The registry city nearest to a coordinate, within an optional cutoff.
+ *
+ * Only considers `type: 'city'` entries — this is used to auto-detect the one
+ * precise place a postcode belongs to (a supplier's own base location), and a
+ * county's much larger centre-and-radius would otherwise win that comparison
+ * for postcodes nowhere near its centre point, purely because the county
+ * circle is broad enough to reach them.
  * @param {{latitude: number, longitude: number}} point Coordinate.
  * @param {Object} [options] Options.
  * @param {number} [options.maxMiles] Reject matches beyond this distance.
@@ -373,6 +386,9 @@ function nearestCity(point, options = {}) {
   let best = null;
 
   for (const city of listCities()) {
+    if (city.type !== 'city') {
+      continue;
+    }
     const distanceMiles = distanceToCity(city, point);
     if (distanceMiles === null) {
       return null;
