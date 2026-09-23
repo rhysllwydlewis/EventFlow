@@ -122,14 +122,14 @@ otherwise, but don't hold an otherwise-clean merge for it.
       the session looking for real defects anywhere in the product — broken
       flows, poor states, accessibility issues, inconsistent UI, missing
       error handling, flaky tests — verify each one is real before fixing it.
-      (Kept open/ongoing.) Two candidates queued from the 2026-09-22 sweep,
+      (Kept open/ongoing.) One candidate queued from the 2026-09-22 sweep,
       not yet picked up:
-  - [ ] Gallery upload modal (`public/gallery.html` `#uploadModal` /
+  - [x] Gallery upload modal (`public/gallery.html` `#uploadModal` /
         `public/assets/js/pages/gallery-init.js`) has Escape-key and
         backdrop-click handling but no `role="dialog"`, `aria-modal`,
         `aria-labelledby`, or focus management — the same defect class fixed
         on compare/budget/timeline in PR #1685, just missed on this page.
-        Best next pick — customer-facing.
+        Done in PR #1707 (2026-09-23) — see session log.
   - [ ] Same missing dialog semantics on admin-only modals: `#photoModal` in
         `public/admin-media.html` and `public/admin-pexels.html`. Lower
         priority (internal tool, smaller blast radius) — note
@@ -248,17 +248,40 @@ Tab-trap listener (different key, different element). Confirmed this is
 purely additive with no change to `showModal()`/`hideModal()`'s existing
 logic beyond the new code appended after them.
 
-**Outcome: PR opened, not yet merged this cycle — CI was still running
-when this update was written.** Opened PR #1707
-(https://github.com/rhysllwydlewis/EventFlow/pull/1707). If a later session
-or a CI-event wake picks this back up: check CI status first, apply the
-review-then-merge sequence in the merge policy above once green, and record
-the deploy verification (step 7) in a new dated entry rather than editing
-this one.
+**CI and the known-flake check.** Every check went green on the current
+head (`046a1abbe`) except `github-advanced-security`, which failed with the
+exact signature already documented above for #1678/#1697:
+`SessionModelError: CAPIError: 400 The requested model is not supported`,
+crashing inside GitHub's own Copilot code-scanning backend at session
+creation, before any diff analysis (confirmed via the job log). Attempted
+the one re-run this routine's policy allows; the API refused it the same
+way as before (`403 This workflow run cannot be retried`). Posted one PR
+comment naming the failure and why it wasn't held against the merge before
+continuing. Two of the wake events during this cycle (`Build Verification`,
+`Browser Verification` failures) were for the superseded first commit
+(`137c8d2b9`, before the handoff-doc commit was pushed on top of it) rather
+than the final head — same self-inflicted-noise pattern session 1 first
+documented; no action needed, the final head's own runs of both were green.
+DeepSource JavaScript came back grade A on the final head (not the other
+known dashboard-metric false positive this time).
 
-**Next session (if this one didn't get to merge/deploy-verify):** the other
-candidate from session 5's sweep — missing dialog semantics on
-`admin-media.html`'s and `admin-pexels.html`'s `#photoModal` — is still
+**Outcome: merged.** PR #1707
+(https://github.com/rhysllwydlewis/EventFlow/pull/1707) merged into `main`
+as `c4a5cc3a3` at 07:15 UTC. `merged_by` shows the owner's account — as
+with PR #1678, consistent with either this routine's own autonomous merge
+or the owner merging by hand after seeing it green; either way CI was fully
+green (modulo the documented false positive) before the merge landed.
+
+**Post-merge deploy verification.** Polled
+`https://event-flow.co.uk/api/ready` via `curl` (Bash's outbound network
+was not blocked this session, cache-busting query param each call) four
+times at ~25s intervals over 07:15–07:17 UTC: all HTTP 200 with
+`"status":"ready"`, MongoDB connected and the Redis queue's producer/worker
+both healthy throughout. Deploy confirmed good, no revert needed.
+
+**Next session:** the other candidate from session 5's sweep — missing
+dialog semantics on `admin-media.html`'s and `admin-pexels.html`'s
+`#photoModal` — is still
 queued in the backlog above (lower priority, internal tool).
 
 ### 2026-09-22 — session 5
