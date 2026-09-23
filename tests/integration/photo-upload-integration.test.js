@@ -77,6 +77,24 @@ jest.mock('fs', () => {
 // Mock upload validation
 jest.mock('../../utils/uploadValidation', () => ({
   validateUpload: jest.fn().mockResolvedValue({ valid: true, errors: [] }),
+  // photo-upload.js reads these at module-load time to build its multer()
+  // config — multer now validates `limits.fileSize` eagerly at construction
+  // (rejects anything that isn't a non-negative integer or Infinity), so an
+  // incomplete mock here left it computing Math.max(undefined, undefined)
+  // and crashing every test in this file on require(). Mirror the real
+  // module's defaults (utils/uploadValidation.js) so the mock behaves the
+  // same as production for the parts photo-upload.js actually reads.
+  MAX_FILE_SIZE_SUPPLIER: 10 * 1024 * 1024,
+  MAX_FILE_SIZE_MARKETPLACE: 10 * 1024 * 1024,
+  MAX_FILE_SIZE_AVATAR: 5 * 1024 * 1024,
+  ALLOWED_IMAGE_TYPES: [
+    'image/jpeg',
+    'image/png',
+    'image/webp',
+    'image/gif',
+    'image/avif',
+    'image/heic',
+  ],
 }));
 
 // Mock logger
@@ -110,6 +128,17 @@ describe('Photo Upload — Input Validation (unit)', () => {
     }));
     jest.mock('../../utils/uploadValidation', () => ({
       validateUpload: jest.fn().mockResolvedValue({ valid: true, errors: [] }),
+      MAX_FILE_SIZE_SUPPLIER: 10 * 1024 * 1024,
+      MAX_FILE_SIZE_MARKETPLACE: 10 * 1024 * 1024,
+      MAX_FILE_SIZE_AVATAR: 5 * 1024 * 1024,
+      ALLOWED_IMAGE_TYPES: [
+        'image/jpeg',
+        'image/png',
+        'image/webp',
+        'image/gif',
+        'image/avif',
+        'image/heic',
+      ],
     }));
     jest.mock('../../utils/logger', () => ({
       info: jest.fn(),
