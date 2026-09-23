@@ -80,6 +80,60 @@ function hideModal() {
   uploadModal.classList.remove('visible');
 }
 
+// Dialog accessibility: uploadModal is a persistent element toggled with the
+// 'visible' class rather than appended/removed from the DOM, so it needs its
+// own focus trap and focus restore rather than the DOM-removal-based
+// assets/js/utils/modal-a11y.js utility used by compare/budget/timeline.
+// Mirrors the same class/attribute-mutation-observer pattern already used
+// for admin-homepage.html's #categoryModal.
+function focusableElements(container) {
+  return Array.from(
+    container.querySelectorAll(
+      'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+    )
+  ).filter(element => !element.hidden && element.getClientRects().length > 0);
+}
+
+let lastFocusedElement = null;
+
+function syncModalAccessibility() {
+  uploadModal.setAttribute('role', 'dialog');
+  uploadModal.setAttribute('aria-modal', 'true');
+  uploadModal.setAttribute('aria-labelledby', 'uploadModalTitle');
+  if (uploadModal.classList.contains('visible')) {
+    lastFocusedElement = document.activeElement;
+    window.setTimeout(() => focusableElements(uploadModal)[0]?.focus(), 0);
+  } else if (lastFocusedElement instanceof HTMLElement) {
+    lastFocusedElement.focus();
+    lastFocusedElement = null;
+  }
+}
+
+uploadModal.addEventListener('keydown', e => {
+  if (e.key !== 'Tab') {
+    return;
+  }
+  const focusable = focusableElements(uploadModal);
+  if (!focusable.length) {
+    return;
+  }
+  const first = focusable[0];
+  const last = focusable[focusable.length - 1];
+  if (e.shiftKey && document.activeElement === first) {
+    e.preventDefault();
+    last.focus();
+  } else if (!e.shiftKey && document.activeElement === last) {
+    e.preventDefault();
+    first.focus();
+  }
+});
+
+new MutationObserver(syncModalAccessibility).observe(uploadModal, {
+  attributes: true,
+  attributeFilter: ['class'],
+});
+syncModalAccessibility();
+
 async function loadSelectOptions(preselectId) {
   const checkedRadio = document.querySelector('input[name="uploadType"]:checked');
   const uploadType = checkedRadio ? checkedRadio.value : 'supplier';
