@@ -456,21 +456,18 @@
   cursor: not-allowed;
 }
 
+/*
+ * The rest of this button's paint (colour, border, radius, hover) comes
+ * from the shared .cta.secondary system (supplier-dashboard-aesthetic-
+ * refresh.css) — this rule only handles what's specific to sitting inside
+ * .supplier-coverage's single-column grid (styles.css .form-row): a grid
+ * item stretches to fill its column by default regardless of the item's
+ * own display value, which without justify-self would turn this into a
+ * full-width bar instead of a normal-sized button.
+ */
 .supplier-service-area-nationwide-btn {
-  display: inline-block;
+  justify-self: start;
   margin-top: 0.6rem;
-  padding: 0.4rem 0.75rem;
-  border: 1px solid var(--ef-border, #e5e7eb);
-  border-radius: 999px;
-  background: var(--ef-surface, #fff);
-  font: inherit;
-  font-size: 0.875rem;
-  cursor: pointer;
-}
-
-.supplier-service-area-nationwide-btn:hover,
-.supplier-service-area-nationwide-btn:focus-visible {
-  background: var(--ef-surface-hover, #f3f4f6);
 }
 
 .supplier-service-area-nationwide-btn:disabled {
