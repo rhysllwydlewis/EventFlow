@@ -110,11 +110,38 @@ further rules protect existing decisions:
   geocoder call and cannot disturb a good mapping.
 
 Suppliers set this themselves on the profile form: an optional base postcode
-(never shown publicly — only the city it falls in), a travel radius in miles and
-a "whole UK" checkbox, which the client translates into the `serviceAreas`
-shape. The API re-validates everything through `sanitiseServiceAreas()`:
-unknown cities, out-of-range radii and unrecognised types are dropped rather
-than stored as coverage the pages would not honour.
+(never shown publicly — only the city it falls in), a travel radius in miles,
+and an "other areas you serve" picker where they can name specific extra
+cities and/or a single nationwide claim — the client translates all of this
+into the `serviceAreas` shape. The API re-validates everything through
+`sanitiseServiceAreas()`: unknown cities, out-of-range radii and unrecognised
+types are dropped rather than stored as coverage the pages would not honour.
+
+Named cities and a nationwide claim are both a supplier's explicit "picks",
+capped by plan allowance (`maxServiceAreas` in `models/Subscription.js`,
+read through `subscriptionService.getServiceAreaAllowance()`) — 2 on the free
+plan, 4 on Pro, 9 on Pro Plus, each counted on top of the one base city every
+supplier already has from signup, for 3/5/10 areas in total per plan — and
+enforced server-side in `routes/supplier-management.js` on both create and
+edit, independent of the dashboard's own client-side copy of the limit.
+Radius coverage is not a pick: it is a single value derived from
+one base point, not a claim on a specific extra place, so it never counts
+against the allowance. Folding nationwide into the same capped quota, rather
+than leaving it a free unlimited checkbox, means claiming the whole UK costs a
+supplier one of their picks, the same as naming any other city — only _how
+many_ areas a supplier may claim depends on plan; how those areas rank once
+claimed stays flat for every supplier regardless of plan (below).
+
+The allowance is read live off the current subscription on every save, so an
+upgrade raises it immediately, with no migration step. A downgrade is never
+retroactive: the dashboard resends a supplier's whole current pick list on
+every save, including ones that touch nothing about location, so the cap
+only ever blocks a request that would _grow_ the pick count past the
+allowance (`requestedPicks.length > retainedPicks.length` in
+`routes/supplier-management.js`). A supplier who ends up over their new
+plan's limit keeps every pick they already had — rearranging or shrinking
+that set is always allowed — and only regains the ability to add another
+once they are back at or under it.
 
 ## Matching and ranking
 

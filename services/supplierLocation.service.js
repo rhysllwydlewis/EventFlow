@@ -47,6 +47,14 @@ const DEFAULT_TRAVEL_RADIUS_MILES = 0;
 /** Longest journey a supplier may claim through a radius service area. */
 const MAX_TRAVEL_RADIUS_MILES = 200;
 
+// How many extra named areas (or a single "nationwide" pick) a supplier may
+// add themselves, beyond their one based-in city, is a plan allowance — see
+// `maxServiceAreas` in models/Subscription.js and
+// `subscriptionService.getServiceAreaAllowance()` — not something this module
+// decides. Only *how many* areas a supplier may claim depends on plan; how
+// those areas rank once claimed stays the flat RELATIONSHIP_WEIGHTS value
+// below, for every supplier regardless of plan.
+
 /**
  * Largest relevance bonus a paid tier may contribute.
  *

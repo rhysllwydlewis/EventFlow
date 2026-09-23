@@ -160,6 +160,10 @@ const PLAN_FEATURES = {
       maxPackages: 3,
       maxPhotos: 10,
       maxBookings: 10,
+      // Extra named areas (or a single "nationwide" pick) a supplier may add
+      // themselves on the profile form, on top of their one based-in city —
+      // 2 here plus that one base city is 3 areas in total for this plan.
+      maxServiceAreas: 2,
       // Every tier can see its own analytics; the paid plans see more history.
       analyticsWindowDays: 7,
       messaging: true,
@@ -181,6 +185,8 @@ const PLAN_FEATURES = {
       maxPackages: 50,
       maxPhotos: 500,
       maxBookings: 50,
+      // 4 extra plus the one base city is 5 areas in total for this plan.
+      maxServiceAreas: 4,
       analyticsWindowDays: 90,
       messaging: true,
       analytics: true,
@@ -201,6 +207,8 @@ const PLAN_FEATURES = {
       maxPackages: -1,
       maxPhotos: -1,
       maxBookings: -1,
+      // 9 extra plus the one base city is 10 areas in total for this plan.
+      maxServiceAreas: 9,
       analyticsWindowDays: 365,
       messaging: true,
       analytics: true,

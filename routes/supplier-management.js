@@ -40,6 +40,18 @@ const PATCH_FIELD_MAX_LENGTHS = {
 const BANNER_DATA_URL_RE = /^data:image\/(png|jpe?g|webp|gif);base64,([a-z0-9+/]+={0,2})$/i;
 const MAX_BANNER_BYTES = 5 * 1024 * 1024;
 
+/**
+ * How many of a supplier's self-service picks (named cities, and a single
+ * "nationwide" claim counted the same as any one city) a set of sanitised
+ * service areas uses up. Radius coverage is not a pick — it is a single value
+ * derived from one base point, not a claim on a specific extra place, so it
+ * never counts against the plan's `maxServiceAreas` allowance.
+ * @param {Array<{type: string}>} serviceAreas Sanitised service areas.
+ * @returns {number} Number of self-service picks used.
+ */
+const countSelfServiceAreaPicks = serviceAreas =>
+  serviceAreas.filter(area => area.type === 'city' || area.type === 'nationwide').length;
+
 const decodeBannerDataUrl = value => {
   const match = BANNER_DATA_URL_RE.exec(String(value || '').trim());
   if (!match) {
@@ -584,6 +596,17 @@ router.post(
       s.basePostcode = basePostcode;
     }
     const serviceAreas = supplierLocation.sanitiseServiceAreas(b.serviceAreas);
+    const selfServiceAreaPicks = countSelfServiceAreaPicks(serviceAreas);
+    if (selfServiceAreaPicks > 0) {
+      const serviceAreaAllowance = await subscriptionService.getServiceAreaAllowance(req.user.id);
+      if (serviceAreaAllowance !== -1 && selfServiceAreaPicks > serviceAreaAllowance) {
+        return res.status(400).json({
+          error: `You can select up to ${serviceAreaAllowance} extra areas you serve`,
+          code: 'SERVICE_AREA_LIMIT_EXCEEDED',
+          limit: serviceAreaAllowance,
+        });
+      }
+    }
     if (serviceAreas.length) {
       s.serviceAreas = serviceAreas;
     }
@@ -876,18 +899,49 @@ router.patch(
       supplierPatch.basePostcode = basePostcode || null;
     }
     if (b.serviceAreas !== undefined) {
-      // The supplier dashboard can edit radius/nationwide coverage, but it has
-      // no controls for explicit city assignments. Retain those assignments so
-      // an ordinary profile save cannot remove an admin/API coverage decision.
-      const retainedCityAreas = supplierLocation
-        .sanitiseServiceAreas(s.serviceAreas)
-        .filter(area => area.type === 'city');
+      // A supplier's self-service "picks" are named cities and/or a single
+      // nationwide claim — the picker lets them choose either, up to their
+      // plan's allowance. Travel radius is a separate, single-value field the
+      // dashboard has always fully controlled, so it stays outside this.
+      const isPick = area => area.type === 'city' || area.type === 'nationwide';
+      const retainedPicks = supplierLocation.sanitiseServiceAreas(s.serviceAreas).filter(isPick);
       const requestedAreas = supplierLocation.sanitiseServiceAreas(b.serviceAreas);
-      const requestedCityAreas = requestedAreas.filter(area => area.type === 'city');
-      const requestedTravelAreas = requestedAreas.filter(area => area.type !== 'city');
+      const requestedPicks = requestedAreas.filter(isPick);
+      const requestedRadiusAreas = requestedAreas.filter(area => !isPick(area));
+
+      // The dashboard always resends the supplier's *entire* current pick
+      // list on every save, not just the ones a request actually changed —
+      // so a plain "is this over the allowance" check would lock a
+      // downgraded supplier out of saving anything at all (even an unrelated
+      // field) until they manually pruned back down themselves. Only a
+      // request that grows the pick count is checked against the allowance;
+      // one that holds steady or shrinks is always let through, so a
+      // supplier who ends up over plan on downgrade keeps what they had and
+      // can rearrange it freely, but cannot add more until back under.
+      if (requestedPicks.length > 0 && requestedPicks.length > retainedPicks.length) {
+        const serviceAreaAllowance = await subscriptionService.getServiceAreaAllowance(
+          s.ownerUserId
+        );
+        if (serviceAreaAllowance !== -1 && requestedPicks.length > serviceAreaAllowance) {
+          return res.status(400).json({
+            error: `You can select up to ${serviceAreaAllowance} extra areas you serve`,
+            code: 'SERVICE_AREA_LIMIT_EXCEEDED',
+            limit: serviceAreaAllowance,
+          });
+        }
+      }
+
+      // The dashboard's "areas you serve" picker always sends its complete,
+      // current list of picks — including empty, once the supplier has
+      // removed every one — and flags that with `replaceServiceAreaPicks` so
+      // an empty list is read as "clear them" rather than "left untouched".
+      // A request that omits the flag (an older API client, or one only ever
+      // sending a travel radius) keeps the old, safe behaviour: it cannot
+      // silently wipe coverage it never mentioned.
+      const replacingPicks = b.replaceServiceAreaPicks === true || requestedPicks.length > 0;
       supplierPatch.serviceAreas = supplierLocation.sanitiseServiceAreas([
-        ...(requestedCityAreas.length ? requestedCityAreas : retainedCityAreas),
-        ...requestedTravelAreas,
+        ...(replacingPicks ? requestedPicks : retainedPicks),
+        ...requestedRadiusAreas,
       ]);
     }
 

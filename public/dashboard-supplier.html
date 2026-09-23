@@ -783,10 +783,47 @@
                   Leave blank if you only work in your own city.
                 </p>
 
-                <label class="supplier-coverage-check">
-                  <input id="sup-travel-nationwide" name="travelNationwide" type="checkbox" />
-                  I cover the whole UK
-                </label>
+                <label for="sup-service-area-search">Other areas you serve (optional)</label>
+                <p class="small form-help-text" id="sup-service-area-help">
+                  Have branches or a base in more than one town or city, or cover the whole UK?
+                  Add each area — up to <span id="sup-service-area-max">2</span> more on your
+                  current plan.
+                </p>
+                <button
+                  type="button"
+                  id="sup-service-area-add-nationwide"
+                  class="supplier-service-area-nationwide-btn"
+                >
+                  + Nationwide (all of the UK)
+                </button>
+                <input
+                  id="sup-service-area-search"
+                  type="text"
+                  autocomplete="off"
+                  placeholder="Search for a city or town…"
+                  aria-describedby="sup-service-area-help"
+                  aria-expanded="false"
+                  aria-autocomplete="list"
+                  role="combobox"
+                  aria-controls="sup-service-area-results"
+                />
+                <ul
+                  id="sup-service-area-results"
+                  class="supplier-service-area-results"
+                  role="listbox"
+                  hidden
+                ></ul>
+                <ul
+                  id="sup-service-area-tags"
+                  class="supplier-service-area-tags"
+                  aria-live="polite"
+                ></ul>
+                <p
+                  class="small form-error-text"
+                  id="sup-service-area-error"
+                  role="alert"
+                  aria-live="polite"
+                ></p>
               </fieldset>
 
               <div class="form-row">

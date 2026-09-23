@@ -200,6 +200,45 @@ describe('GET /api/v1/locations/featured', () => {
   });
 });
 
+describe('GET /api/v1/locations/search', () => {
+  it('matches a prefix of a city name and shapes the result for the picker', async () => {
+    const response = await request(buildApp()).get('/api/v1/locations/search?q=card');
+    expect(response.status).toBe(200);
+    expect(response.body.success).toBe(true);
+    expect(response.body.data.cities[0]).toEqual(
+      expect.objectContaining({ slug: 'cardiff', name: 'Cardiff', nation: 'Wales' })
+    );
+  });
+
+  it('matches an alternative name onto its canonical city', async () => {
+    const response = await request(buildApp()).get('/api/v1/locations/search?q=caerdydd');
+    expect(response.body.data.cities.map(city => city.slug)).toContain('cardiff');
+  });
+
+  it('returns nothing for an empty query rather than the whole registry', async () => {
+    const response = await request(buildApp()).get('/api/v1/locations/search');
+    expect(response.body.data.cities).toEqual([]);
+  });
+
+  it("includes an unpublished city — the picker is not limited to today's live pages", async () => {
+    // No location_pages seeded at all: every registry city is a draft, and
+    // the picker still has to be able to name it.
+    const response = await request(buildApp()).get('/api/v1/locations/search?q=newport');
+    expect(response.body.data.cities.map(city => city.slug)).toContain('newport');
+  });
+
+  it('defaults the result count and honours an explicit, capped limit', async () => {
+    const defaultLimit = await request(buildApp()).get('/api/v1/locations/search?q=a');
+    expect(defaultLimit.body.data.cities.length).toBeLessThanOrEqual(8);
+
+    const requested = await request(buildApp()).get('/api/v1/locations/search?q=a&limit=2');
+    expect(requested.body.data.cities.length).toBeLessThanOrEqual(2);
+
+    const overRequested = await request(buildApp()).get('/api/v1/locations/search?q=a&limit=999');
+    expect(overRequested.body.data.cities.length).toBeLessThanOrEqual(10);
+  });
+});
+
 describe('GET /locations/:citySlug', () => {
   it('returns 200 for a published city with full metadata', async () => {
     // The hero is set explicitly, because an editor choosing one is the only

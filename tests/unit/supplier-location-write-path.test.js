@@ -28,10 +28,14 @@ const geocodePostcode = jest.fn(
 const isValidUKPostcode = jest.fn(postcode =>
   /^[A-Z]{1,2}\d{1,2}[A-Z]?\s*\d[A-Z]{2}$/i.test(String(postcode || '').trim())
 );
+/** Free-plan default; individual tests override this for a paid-plan supplier. */
+const getServiceAreaAllowance = jest.fn(async () => 2);
 
 beforeEach(() => {
   geocodePostcode.mockClear();
   isValidUKPostcode.mockClear();
+  getServiceAreaAllowance.mockClear();
+  getServiceAreaAllowance.mockImplementation(async () => 2);
 });
 
 describe('deriveBaseLocation', () => {
@@ -231,6 +235,10 @@ describe('supplier profile routes', () => {
       error: jest.fn(),
       debug: jest.fn(),
     }));
+    jest.doMock('../../services/subscriptionService', () => ({
+      getServiceAreaAllowance,
+      checkFeatureAccess: jest.fn(async () => false),
+    }));
   });
 
   /**
@@ -329,6 +337,28 @@ describe('supplier profile routes', () => {
     expect(inserted.serviceAreas).toEqual([{ type: 'city', slug: 'newport' }]);
   });
 
+  it('rejects more picks than the plan allows on create', async () => {
+    getServiceAreaAllowance.mockImplementation(async () => 2);
+
+    const response = await request(app())
+      .post('/')
+      .send({
+        name: 'New Co',
+        category: 'Photography',
+        location: 'Cardiff',
+        serviceAreas: [
+          { type: 'city', slug: 'cardiff' },
+          { type: 'city', slug: 'bristol' },
+          { type: 'city', slug: 'newport' },
+          { type: 'nationwide' },
+        ],
+      });
+
+    expect(response.status).toBe(400);
+    expect(response.body.error).toMatch(/up to 2/i);
+    expect(inserted).toBeNull();
+  });
+
   it('re-derives the mapping when an edit moves the supplier', async () => {
     const response = await request(app()).patch('/sup_1').send({ basePostcode: 'BS1 4DJ' });
 
@@ -368,7 +398,7 @@ describe('supplier profile routes', () => {
     });
   });
 
-  it('preserves explicit city coverage when the dashboard updates travel controls', async () => {
+  it('preserves existing picks when only the travel radius is edited', async () => {
     supplier.serviceAreas = [
       { type: 'city', slug: 'cardiff' },
       { type: 'radius', miles: 30 },
@@ -377,14 +407,13 @@ describe('supplier profile routes', () => {
     const response = await request(app())
       .patch('/sup_1')
       .send({
-        serviceAreas: [{ type: 'radius', miles: 50 }, { type: 'nationwide' }],
+        serviceAreas: [{ type: 'radius', miles: 50 }],
       });
 
     expect(response.status).toBe(200);
     expect(supplier.serviceAreas).toEqual([
       { type: 'city', slug: 'cardiff' },
       { type: 'radius', miles: 50 },
-      { type: 'nationwide' },
     ]);
   });
 
@@ -397,6 +426,170 @@ describe('supplier profile routes', () => {
 
     expect(response.status).toBe(200);
     expect(supplier.serviceAreas).toEqual([{ type: 'city', slug: 'bristol' }]);
+  });
+
+  it('treats an explicit nationwide claim the same as a city replacement', async () => {
+    supplier.serviceAreas = [{ type: 'city', slug: 'cardiff' }];
+
+    const response = await request(app())
+      .patch('/sup_1')
+      .send({ serviceAreas: [{ type: 'nationwide' }] });
+
+    expect(response.status).toBe(200);
+    expect(supplier.serviceAreas).toEqual([{ type: 'nationwide' }]);
+  });
+
+  it('clears every pick when the picker sends an empty list with the replace flag', async () => {
+    supplier.serviceAreas = [
+      { type: 'city', slug: 'cardiff' },
+      { type: 'radius', miles: 30 },
+    ];
+
+    const response = await request(app())
+      .patch('/sup_1')
+      .send({
+        serviceAreas: [{ type: 'radius', miles: 30 }],
+        replaceServiceAreaPicks: true,
+      });
+
+    expect(response.status).toBe(200);
+    expect(supplier.serviceAreas).toEqual([{ type: 'radius', miles: 30 }]);
+  });
+
+  it('rejects more picks than the free plan allows', async () => {
+    getServiceAreaAllowance.mockImplementation(async () => 2);
+
+    const response = await request(app())
+      .patch('/sup_1')
+      .send({
+        serviceAreas: [
+          { type: 'city', slug: 'cardiff' },
+          { type: 'city', slug: 'bristol' },
+          { type: 'city', slug: 'newport' },
+          { type: 'nationwide' },
+        ],
+      });
+
+    expect(response.status).toBe(400);
+    expect(response.body.error).toMatch(/up to 2/i);
+    expect(response.body.limit).toBe(2);
+  });
+
+  it('allows a paid-plan supplier a higher self-service quota', async () => {
+    getServiceAreaAllowance.mockImplementation(async () => 4);
+
+    const response = await request(app())
+      .patch('/sup_1')
+      .send({
+        serviceAreas: [
+          { type: 'city', slug: 'cardiff' },
+          { type: 'city', slug: 'bristol' },
+          { type: 'city', slug: 'newport' },
+          { type: 'nationwide' },
+        ],
+      });
+
+    expect(response.status).toBe(200);
+    expect(supplier.serviceAreas).toHaveLength(4);
+  });
+
+  describe('downgrading a plan while already over the new allowance', () => {
+    /** Five picks — more than the free plan's allowance of 2 — as if saved while on a paid plan. */
+    const fivePicks = [
+      { type: 'city', slug: 'cardiff' },
+      { type: 'city', slug: 'bristol' },
+      { type: 'city', slug: 'newport' },
+      { type: 'city', slug: 'london' },
+      { type: 'nationwide' },
+    ];
+
+    beforeEach(() => {
+      supplier.serviceAreas = fivePicks;
+      getServiceAreaAllowance.mockImplementation(async () => 2);
+    });
+
+    it('keeps every existing pick when an unrelated field is saved', async () => {
+      // The dashboard resends the supplier's full current pick list on every
+      // save, even one that only touches an unrelated field — this must not
+      // be read as "add 5 picks" and rejected against the new, lower cap.
+      const response = await request(app())
+        .patch('/sup_1')
+        .send({ tagline: 'Now serving five cities', serviceAreas: fivePicks });
+
+      expect(response.status).toBe(200);
+      expect(supplier.serviceAreas).toEqual(fivePicks);
+      expect(supplier.tagline).toBe('Now serving five cities');
+    });
+
+    it('lets a downgraded supplier rearrange picks without shrinking below the old count', async () => {
+      const swapped = [
+        { type: 'city', slug: 'cardiff' },
+        { type: 'city', slug: 'bristol' },
+        { type: 'city', slug: 'newport' },
+        { type: 'city', slug: 'manchester' },
+        { type: 'nationwide' },
+      ];
+
+      const response = await request(app()).patch('/sup_1').send({ serviceAreas: swapped });
+
+      expect(response.status).toBe(200);
+      expect(supplier.serviceAreas).toEqual(swapped);
+    });
+
+    it('lets a downgraded supplier shrink their picks below the old count', async () => {
+      const response = await request(app())
+        .patch('/sup_1')
+        .send({
+          serviceAreas: [
+            { type: 'city', slug: 'cardiff' },
+            { type: 'city', slug: 'bristol' },
+            { type: 'city', slug: 'newport' },
+          ],
+        });
+
+      expect(response.status).toBe(200);
+      expect(supplier.serviceAreas).toHaveLength(3);
+    });
+
+    it('still rejects a downgraded supplier trying to add a 6th pick', async () => {
+      const response = await request(app())
+        .patch('/sup_1')
+        .send({
+          serviceAreas: [...fivePicks, { type: 'city', slug: 'manchester' }],
+        });
+
+      expect(response.status).toBe(400);
+      expect(response.body.error).toMatch(/up to 2/i);
+      expect(supplier.serviceAreas).toEqual(fivePicks);
+    });
+
+    it('re-enforces the cap once the supplier is back at or under their new allowance', async () => {
+      // Shrink to exactly the new limit first...
+      const atLimit = await request(app())
+        .patch('/sup_1')
+        .send({
+          serviceAreas: [
+            { type: 'city', slug: 'cardiff' },
+            { type: 'city', slug: 'bristol' },
+          ],
+        });
+      expect(atLimit.status).toBe(200);
+
+      // ...then growing even by one is rejected again, same as any other
+      // supplier at their plan's limit.
+      const grown = await request(app())
+        .patch('/sup_1')
+        .send({
+          serviceAreas: [
+            { type: 'city', slug: 'cardiff' },
+            { type: 'city', slug: 'bristol' },
+            { type: 'city', slug: 'newport' },
+          ],
+        });
+
+      expect(grown.status).toBe(400);
+      expect(grown.body.error).toMatch(/up to 2/i);
+    });
   });
 
   it('does not geocode an unchanged venue postcode from a full form save', async () => {

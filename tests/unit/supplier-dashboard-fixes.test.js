@@ -630,19 +630,89 @@ describe('Supplier form – website URL normalization', () => {
   });
 });
 
-describe('Supplier form – structured city coverage preservation', () => {
-  it('retains existing city service areas before serializing editable travel controls', () => {
+describe('Supplier form – "areas you serve" picker serialization', () => {
+  it("serializes the picker's current picks, flagged as authoritative, before travel radius", () => {
     const coverageStart = appJs.indexOf('function applyCoverageToPayload(payload)');
     expect(coverageStart).toBeGreaterThan(-1);
 
     const coverageBlock = appJs.slice(coverageStart, coverageStart + 1800);
-    const cityFilter = coverageBlock.indexOf("area.type === 'city'");
+    const picksMap = coverageBlock.indexOf('supplierServiceAreaPicks.map');
     const payloadAssignment = coverageBlock.indexOf('payload.serviceAreas = serviceAreas');
+    const replaceFlag = coverageBlock.indexOf('payload.replaceServiceAreaPicks = true');
 
-    expect(coverageBlock).toContain('cachedSuppliers.find');
-    expect(coverageBlock).toContain('currentEditingSupplierId');
-    expect(cityFilter).toBeGreaterThan(-1);
-    expect(payloadAssignment).toBeGreaterThan(cityFilter);
+    expect(coverageBlock).toContain('hasServiceAreaWidget');
+    expect(picksMap).toBeGreaterThan(-1);
+    expect(payloadAssignment).toBeGreaterThan(picksMap);
+    expect(replaceFlag).toBeGreaterThan(payloadAssignment);
+  });
+
+  it('prevents Enter in the areas-you-serve search box from submitting the whole profile form', () => {
+    // The search box lives inside <form id="supplier-form">, which has a
+    // submit button — without a guard, Enter there saves the profile instead
+    // of picking a city, the same as Enter does in any ordinary text field
+    // when a form has a default submit button.
+    const searchIdx = appJs.indexOf('const supServiceAreaSearchEl = document.getElementById(');
+    expect(searchIdx).toBeGreaterThan(-1);
+    const listenerBlock = appJs.slice(searchIdx, searchIdx + 1400);
+    const keydownIdx = listenerBlock.indexOf("addEventListener('keydown'");
+    expect(keydownIdx).toBeGreaterThan(-1);
+    const keydownBlock = listenerBlock.slice(keydownIdx, keydownIdx + 300);
+    expect(keydownBlock).toContain("e.key !== 'Enter'");
+    expect(keydownBlock).toContain('e.preventDefault()');
+    expect(keydownBlock).toContain('addSupplierServiceAreaPick');
+  });
+
+  it('does not reopen the areas-you-serve results dropdown once the pick limit is reached', () => {
+    // A search can still be in flight when a different action (the
+    // nationwide button) reaches the limit first; its results must not
+    // reopen a dropdown the limit has already closed.
+    const renderStart = appJs.indexOf('function renderSupplierServiceAreaResults(cities)');
+    expect(renderStart).toBeGreaterThan(-1);
+    const renderBlock = appJs.slice(renderStart, renderStart + 600);
+    expect(renderBlock).toContain(
+      'supplierServiceAreaPicks.length >= supplierServiceAreaAllowance'
+    );
+  });
+
+  it('ignores a stale areas-you-serve search response that resolves out of order', () => {
+    // A faster later keystroke's response can land before an earlier one's;
+    // only the most recently sent request may render its results, or a slow
+    // response for text the supplier has since changed could overwrite them.
+    const searchStart = appJs.indexOf('async function searchSupplierServiceAreaCities(query)');
+    expect(searchStart).toBeGreaterThan(-1);
+    const searchBlock = appJs.slice(searchStart, searchStart + 900);
+    expect(searchBlock).toContain('supplierServiceAreaSearchRequestId');
+    const requestIdAssignIdx = searchBlock.indexOf('++supplierServiceAreaSearchRequestId');
+    const guardIdx = searchBlock.indexOf('requestId !== supplierServiceAreaSearchRequestId');
+    const renderCallIdx = searchBlock.indexOf('renderSupplierServiceAreaResults(');
+    expect(requestIdAssignIdx).toBeGreaterThan(-1);
+    expect(guardIdx).toBeGreaterThan(requestIdAssignIdx);
+    expect(renderCallIdx).toBeGreaterThan(guardIdx);
+  });
+
+  it('surfaces a SERVICE_AREA_LIMIT_EXCEEDED save error next to the picker', () => {
+    // The picker's own allowance is presentation only — the API's rejection
+    // is the one that can actually happen (e.g. a downgrade landing mid
+    // session before the picker's local copy of the limit refreshes), so it
+    // must reach the field-level error element, not just the general banner.
+    //
+    // This is a dedicated function (not an inline branch in the submit
+    // handler's catch block) so the handler's own cyclomatic complexity —
+    // already flagged as very-high-risk by static analysis — doesn't grow
+    // with it.
+    const submitIdx = appJs.indexOf("supForm.addEventListener('submit'");
+    expect(submitIdx).toBeGreaterThan(-1);
+    const handlerBlock = appJs.slice(submitIdx, submitIdx + 9000);
+    const catchIdx = handlerBlock.indexOf('} catch (err) {');
+    expect(catchIdx).toBeGreaterThan(-1);
+    const catchBlock = handlerBlock.slice(catchIdx, catchIdx + 500);
+    expect(catchBlock).toContain('surfaceServiceAreaLimitError(err)');
+
+    const fnStart = appJs.indexOf('function surfaceServiceAreaLimitError(err)');
+    expect(fnStart).toBeGreaterThan(-1);
+    const fnBlock = appJs.slice(fnStart, fnStart + 400);
+    expect(fnBlock).toContain("err.code !== 'SERVICE_AREA_LIMIT_EXCEEDED'");
+    expect(fnBlock).toContain("getElementById('sup-service-area-error')");
   });
 });
 

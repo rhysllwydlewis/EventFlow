@@ -103,6 +103,32 @@ describe('analytics history window', () => {
   });
 });
 
+describe('service area allowance', () => {
+  // Each plan's self-service allowance is one less than its advertised total:
+  // every supplier already has one base city from signup, so free's 2 extra
+  // picks make 3 areas in total, pro's 4 make 5, and pro_plus's 9 make 10.
+  it.each([
+    ['free', 2],
+    ['pro', 4],
+    ['pro_plus', 9],
+  ])('gives a live %s subscriber %s self-service picks', async (plan, expected) => {
+    given({ subscription: liveSub(plan) });
+    await expect(subscriptionService.getServiceAreaAllowance('usr-1')).resolves.toBe(expected);
+  });
+
+  it('falls back to the free allowance when the user has no subscription', async () => {
+    given();
+    await expect(subscriptionService.getServiceAreaAllowance('usr-1')).resolves.toBe(2);
+  });
+
+  it('drops a lapsed Professional back to the free allowance', async () => {
+    given({
+      subscription: { ...liveSub('pro'), currentPeriodEnd: past() },
+    });
+    await expect(subscriptionService.getServiceAreaAllowance('usr-1')).resolves.toBe(2);
+  });
+});
+
 describe('numeric allowance resolution', () => {
   it('returns the caller fallback for a feature the matrix does not define', async () => {
     given({ subscription: liveSub('pro') });
