@@ -176,6 +176,29 @@ describe('pricing page rebuild', () => {
     expect(pricingPage).toContain('Unlimited portfolio photos');
   });
 
+  it('promises only the service-area allowances routes/supplier-management.js enforces', () => {
+    // maxServiceAreas is how many extra areas a supplier may pick themselves,
+    // beyond the one base city every supplier already has from signup — the
+    // page always advertises the total (base + extra), since that is the
+    // number a supplier actually cares about, so it is this plus one.
+    expect(PLAN_FEATURES.free.features.maxServiceAreas).toBe(2);
+    expect(PLAN_FEATURES.pro.features.maxServiceAreas).toBe(4);
+    expect(PLAN_FEATURES.pro_plus.features.maxServiceAreas).toBe(9);
+
+    const supplierManagement = readAsset('routes/supplier-management.js');
+    expect(supplierManagement).toContain('getServiceAreaAllowance');
+    expect(supplierManagement).toContain('SERVICE_AREA_LIMIT_EXCEEDED');
+
+    expect(PLAN_PRESENTATION.free.highlights.join(' ')).toContain('Up to 3 areas you serve');
+    expect(PLAN_PRESENTATION.pro.highlights.join(' ')).toContain('Up to 5 areas you serve');
+    expect(PLAN_PRESENTATION.pro_plus.highlights.join(' ')).toContain('Up to 10 areas you serve');
+
+    const comparisonRow = pricingPage.split('Areas you serve</th>')[1].split('</tr>')[0];
+    expect(comparisonRow).toContain('<td>3</td>');
+    expect(comparisonRow).toContain('>5</td>');
+    expect(comparisonRow).toContain('>10</td>');
+  });
+
   it('promises only the messaging allowances config/messagingLimits.js enforces', () => {
     const { getMessagingLimitsForTier } = require('../../config/messagingLimits');
     const free = getMessagingLimitsForTier('free');

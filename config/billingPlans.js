@@ -61,6 +61,7 @@ const PLAN_PRESENTATION = {
       'Up to 10 portfolio photos — show your work on your profile',
       'Up to 10 enquiry replies a day — answer the enquiries that come in, at no cost',
       'Standard search placement — appear in results when customers browse your category and area',
+      'Up to 3 areas you serve — add towns or branches beyond your base city so customers further out can find you',
       '7 days of profile analytics — see who viewed your profile this week',
     ],
     pricing: {
@@ -90,6 +91,7 @@ const PLAN_PRESENTATION = {
       // no daily cap, but there is an hourly anti-abuse ceiling.
       'Unlimited enquiry replies* — never leave an enquiry waiting because you have hit a daily cap',
       'Longer messages — up to 5,000 characters, so a full quote fits in one reply',
+      'Up to 5 areas you serve — add towns or branches beyond your base city so customers further out can find you',
       '90 days of profile analytics — see what draws interest across a season, not just a week',
       'Priority support — your questions go to the front of the queue',
     ],
@@ -114,6 +116,7 @@ const PLAN_PRESENTATION = {
       'Top search placement — the strongest ranking boost EventFlow gives, above Professional profiles',
       'Unlimited package listings — no cap on how much of your range you publish',
       'Unlimited portfolio photos — a complete portfolio, however large it gets',
+      'Up to 10 areas you serve — add towns, branches or claim the whole UK, so customers everywhere can find you',
       'A full year of profile analytics — compare this season against last',
       'Dedicated onboarding call — we build your profile with you so it works from day one',
       'Monthly performance review — a monthly read on what is working and what to change',
