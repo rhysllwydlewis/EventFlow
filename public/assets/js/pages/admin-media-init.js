@@ -580,6 +580,12 @@
 
   document.getElementById('modalUseHomepage').addEventListener('click', () => {
     if (selectedMedia) {
+      // Closing photoModal here hands off straight to assignmentModal, so skip
+      // the focus-restore branch in syncPhotoModalAccessibility() (it runs as a
+      // MutationObserver microtask, after showAssignmentModal() below has
+      // already focused assignmentSave) — otherwise it steals focus back to
+      // the original trigger behind the newly opened dialog.
+      lastFocusedPhotoModalElement = null;
       document.getElementById('photoModal').classList.remove('active');
       showAssignmentModal(selectedMedia);
     }

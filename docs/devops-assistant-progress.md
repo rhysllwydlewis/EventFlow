@@ -122,15 +122,15 @@ otherwise, but don't hold an otherwise-clean merge for it.
       the session looking for real defects anywhere in the product — broken
       flows, poor states, accessibility issues, inconsistent UI, missing
       error handling, flaky tests — verify each one is real before fixing it.
-      (Kept open/ongoing.) One candidate queued from the 2026-09-22 sweep,
-      not yet picked up:
+      (Kept open/ongoing.) No candidates queued — pick a fresh target next
+      session.
   - [x] Gallery upload modal (`public/gallery.html` `#uploadModal` /
         `public/assets/js/pages/gallery-init.js`) has Escape-key and
         backdrop-click handling but no `role="dialog"`, `aria-modal`,
         `aria-labelledby`, or focus management — the same defect class fixed
         on compare/budget/timeline in PR #1685, just missed on this page.
         Done in PR #1707 (2026-09-23) — see session log.
-  - [ ] Same missing dialog semantics on admin-only modals: `#photoModal` in
+  - [x] Same missing dialog semantics on admin-only modals: `#photoModal` in
         `public/admin-media.html` and `public/admin-pexels.html`. Lower
         priority (internal tool, smaller blast radius) — note
         `admin-media.html`'s own `#assignmentModal` already has correct
@@ -141,7 +141,8 @@ otherwise, but don't hold an otherwise-clean merge for it.
         `admin-homepage-hardening.js`'s `syncModalAccessibility()` already
         sets `role="dialog"`, `aria-modal`, `aria-labelledby`, focus
         management and Tab/Escape trapping on it; verified directly in the
-        file before correcting this entry.)
+        file before correcting this entry.) Done in PR #1714 (2026-09-24) —
+        see session log.
 
 ## Discovered along the way
 
@@ -172,6 +173,81 @@ now, this broader routine covers the whole site and merges autonomously under
 the policy above.
 
 ## Session log
+
+### 2026-09-24 — session 7
+
+Branch's last commit (session 6's handoff-doc update, `8b555ef52`) was not
+itself merged into `main` — only PR #1707 (`c4a5cc3a3`, the gallery a11y
+fix) was. Restarted `claude/eventflow-devops` from latest `main` and
+cherry-picked the unmerged doc-update commit onto the new base (its content
+diffed identical to itself, so no history was lost), then force-with-lease
+pushed per policy. No open PR, no review comments waiting — picked the next
+unchecked backlog item: the admin-only `#photoModal` dialog-accessibility
+gap in `admin-media.html`/`admin-pexels.html`, queued since session 5.
+
+**What changed.** Same defect class as PR #1707 (gallery upload modal): both
+pages' `#photoModal` had no `role="dialog"`, `aria-modal`, `aria-labelledby`,
+or focus management. Toggled via an `active` class (persistent element, not
+DOM-removed), so reused the same class-mutation-observer pattern: a
+`sr-only` heading wired to `aria-labelledby`, focus moved into the modal on
+open and restored to the trigger on close, a Tab-key focus trap, and
+document-level Escape-to-close (matching gallery-init.js's own listener
+placement, not a listener on the modal itself, to avoid an edge case where
+Escape pressed before the focus-trap's first tick wouldn't bubble through
+the modal). Also bumped both scripts' `?v=` cache-busting query strings in
+`admin-media.html`/`admin-pexels.html` (initially missed, caught in the
+independent review pass below and by a Codex review comment after push —
+both landed the same fix, so no further action needed there).
+
+**Independent review pass caught a real bug before merge.** Re-reading the
+diff cold: `admin-media-init.js`'s `modalUseHomepage` click handler closes
+`photoModal` and immediately opens `assignmentModal` in the same
+synchronous handler. Codex's automated review (posted after the first push)
+flagged the same issue independently: the `MutationObserver` callback that
+restores focus to `photoModal`'s original trigger runs as a microtask,
+_after_ `showAssignmentModal()` has already synchronously focused
+`assignmentSave` — so it steals focus back to the trigger behind the
+newly-opened dialog. Fixed by clearing `lastFocusedPhotoModalElement` before
+removing `photoModal`'s `active` class in that one handler, so the restore
+branch is a no-op for this specific handoff. Verified with a jsdom
+regression test that renders the real curated-photos flow, clicks the real
+"View" button (with an explicit `.focus()` first — jsdom, unlike real
+browsers, doesn't auto-focus a clicked button, so the test wouldn't
+reproduce the race without it) then the real "Use on homepage" button, and
+asserts focus lands on and stays on `assignmentSave`; confirmed the test
+fails without the fix and passes with it before trusting it.
+
+**Verified before opening the PR, and again after the review-pass fixes.**
+`npx eslint` clean on both changed scripts. A standalone jsdom verification
+script (not committed) loading the real patched HTML/JS for both pages:
+`role="dialog"`/`aria-modal="true"`/`aria-labelledby` set on load, opening
+moves focus in, Tab-trap wraps at both ends, Escape closes, focus restores
+to the trigger — plus the `modalUseHomepage` handoff regression test above.
+`npx jest tests/unit/admin-media-upload-library.test.js` — 5/5 passing.
+Full `npm test` (`npm install` first — `node_modules` missing in this fresh
+checkout, as previously noted below) run twice, before and after the
+Codex-review fix: 12278/12279 passing both times, the one constant failure
+the same pre-existing MongoDB-connectivity timeout in
+`marketplace-image-deletion.test.js` documented below as an environment
+limitation.
+
+**CI infra outage, not a real failure.** Every check on both pushed commits
+failed within 2–18 seconds across every workflow (CI, CodeQL, Test, E2E,
+Visual Regression, Lighthouse) — confirmed via each job's `runner_id: 0`
+(no runner was ever assigned) and log downloads 404ing. Ruled out
+self-inflicted second-push cancellation (the documented pattern from
+session 1): the final commit's own runs failed identically with no later
+push to blame. Confirmed main's most recent push (PR #1713, ~10 hours
+earlier) ran green normally, so this was a fresh, transient GitHub Actions
+runner-availability outage, not anything about this diff. Re-ran failed
+jobs once each (`rerun_failed_jobs`) on all 6 real workflow runs for the
+final commit per the merge policy's "died before any test body ran" flake
+carve-out.
+
+_(This entry is being written mid-cycle, before the merge/deploy-verify
+outcome is known, in case of an interruption — see the top of the file for
+why. If a later entry above this one already covers the outcome, trust
+that one.)_
 
 ### 2026-09-23 — session 6
 
