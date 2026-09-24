@@ -239,6 +239,67 @@
     }
   });
 
+  // Dialog accessibility: photoModal is a persistent element toggled with the
+  // 'active' class rather than appended/removed from the DOM, so it needs its
+  // own focus trap and focus restore. Mirrors the same class/attribute-
+  // mutation-observer pattern used for gallery.html's #uploadModal (PR #1707).
+  function focusableElements(container) {
+    return Array.from(
+      container.querySelectorAll(
+        'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+      )
+    ).filter(element => !element.hidden && element.getClientRects().length > 0);
+  }
+
+  let lastFocusedPhotoModalElement = null;
+
+  function syncPhotoModalAccessibility() {
+    const photoModal = document.getElementById('photoModal');
+    photoModal.setAttribute('role', 'dialog');
+    photoModal.setAttribute('aria-modal', 'true');
+    photoModal.setAttribute('aria-labelledby', 'photoModalTitle');
+    if (photoModal.classList.contains('active')) {
+      lastFocusedPhotoModalElement = document.activeElement;
+      window.setTimeout(() => focusableElements(photoModal)[0]?.focus(), 0);
+    } else if (lastFocusedPhotoModalElement instanceof HTMLElement) {
+      lastFocusedPhotoModalElement.focus();
+      lastFocusedPhotoModalElement = null;
+    }
+  }
+
+  document.addEventListener('keydown', e => {
+    const photoModal = document.getElementById('photoModal');
+    if (e.key === 'Escape' && photoModal.classList.contains('active')) {
+      photoModal.classList.remove('active');
+    }
+  });
+
+  document.getElementById('photoModal').addEventListener('keydown', e => {
+    if (e.key !== 'Tab') {
+      return;
+    }
+    const photoModal = document.getElementById('photoModal');
+    const focusable = focusableElements(photoModal);
+    if (!focusable.length) {
+      return;
+    }
+    const first = focusable[0];
+    const last = focusable[focusable.length - 1];
+    if (e.shiftKey && document.activeElement === first) {
+      e.preventDefault();
+      last.focus();
+    } else if (!e.shiftKey && document.activeElement === last) {
+      e.preventDefault();
+      first.focus();
+    }
+  });
+
+  new MutationObserver(syncPhotoModalAccessibility).observe(document.getElementById('photoModal'), {
+    attributes: true,
+    attributeFilter: ['class'],
+  });
+  syncPhotoModalAccessibility();
+
   // Modal event listeners
   document.getElementById('modalClose').addEventListener('click', () => {
     document.getElementById('photoModal').classList.remove('active');
