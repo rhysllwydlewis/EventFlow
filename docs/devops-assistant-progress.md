@@ -231,23 +231,41 @@ the same pre-existing MongoDB-connectivity timeout in
 `marketplace-image-deletion.test.js` documented below as an environment
 limitation.
 
-**CI infra outage, not a real failure.** Every check on both pushed commits
-failed within 2–18 seconds across every workflow (CI, CodeQL, Test, E2E,
-Visual Regression, Lighthouse) — confirmed via each job's `runner_id: 0`
-(no runner was ever assigned) and log downloads 404ing. Ruled out
-self-inflicted second-push cancellation (the documented pattern from
-session 1): the final commit's own runs failed identically with no later
-push to blame. Confirmed main's most recent push (PR #1713, ~10 hours
-earlier) ran green normally, so this was a fresh, transient GitHub Actions
-runner-availability outage, not anything about this diff. Re-ran failed
-jobs once each (`rerun_failed_jobs`) on all 6 real workflow runs for the
-final commit per the merge policy's "died before any test body ran" flake
-carve-out.
+**CI infra outage, not a real failure — PR left open, not merged.** Every
+check on both pushed commits (`9bd7b9b46`, then the current head
+`96ce8e596` after the Codex-review fix) failed within 2–18 seconds across
+every workflow (CI, CodeQL, Test, E2E, Visual Regression, Lighthouse) —
+confirmed via each job's `runner_id: 0` (no runner was ever assigned) and
+log downloads 404ing. Ruled out self-inflicted second-push cancellation
+(the documented pattern from session 1): each commit's own runs failed
+identically with no later push to blame at the time. Confirmed `main`'s
+most recent push (PR #1713, ~10 hours earlier) ran green normally, and
+`DeepSource: JavaScript` — separate, non-GitHub-Actions infrastructure —
+passed with grade A on the current head, so this is specifically a
+GitHub-hosted-runner outage, not anything about this diff or a DeepSource
+problem. Re-ran failed jobs once on every real workflow run for both
+commits (`rerun_failed_jobs`) per the merge policy's "died before any test
+body ran" flake carve-out — same result both times, so did not re-run
+again. `github-advanced-security` also failed but is non-retriable (`403`),
+matching the already-documented known false positive for that check.
 
-_(This entry is being written mid-cycle, before the merge/deploy-verify
-outcome is known, in case of an interruption — see the top of the file for
-why. If a later entry above this one already covers the outcome, trust
-that one.)_
+Per merge policy, only merge once tests/CI are actually green — an
+infrastructure outage that prevents CI from running at all is not
+something a re-run or a code change can fix, so **PR #1714 was left open,
+not merged**, with one PR comment documenting all of the above (title:
+"CI is red for infrastructure reasons unrelated to this PR's diff").
+Everything that can be verified locally is green (lint clean, full
+`npm test` 12278/12279 — the one failure being the pre-existing
+MongoDB-connectivity sandbox limitation below). PR subscription is still
+active, so a future CI-success event on this PR will wake a session
+automatically once GitHub's runners recover; if this file is read cold
+before that happens, check `https://github.com/rhysllwydlewis/EventFlow/pull/1714`'s
+current CI status directly rather than assuming the outage is still
+ongoing — GitHub Actions outages are typically resolved within
+minutes to hours, not days.
+
+**No deploy-verification step was run this session** — merging step 7 of
+the merge policy doesn't apply since nothing merged into `main`.
 
 ### 2026-09-23 — session 6
 
