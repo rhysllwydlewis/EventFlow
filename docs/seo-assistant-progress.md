@@ -211,3 +211,39 @@ re-check whether #1703 (or a successor issue) is still open/accurate before
 deciding whether a fresh owner notification is warranted — the exhaustion
 has now persisted long enough that a renewed direct notification may be
 due soon if #1703 goes stale or is closed without the units being restored.
+
+### 2026-09-24
+
+Branch's last PR (#1709) had been merged, so per this run's branch-restart
+instructions restarted `claude/eventflow-seo` from `origin/main`
+(`git checkout -B claude/eventflow-seo origin/main`) — no unmerged
+prior-cycle entries were left behind (the previous cycle's own restart
+already recovered the one orphaned entry, and 2026-09-23 landed cleanly on
+`main` via #1709). Checked open `[Ops Assistant] ...` issues first (per
+mandate): the most recent (#1715, 2026-09-24 morning) again reports that
+routine's own internal-analytics path blocked (ops-bot 401, #1679, now 13
+consecutive blocked runs / 8 days; MongoDB unreachable, #1680) — unrelated
+to this routine's Semrush data source, and its two clean checks (sitemap
+integrity, article metadata) aren't SEO findings, so nothing to action
+here. Retried Semrush (`domain_overview`, `projects`) — both still returned
+`no_api_units`. This is now the seventh consecutive blocked cycle
+(2026-09-17 implied, 2026-09-18, 2026-09-21 morning, 2026-09-21 11:09,
+2026-09-22, 2026-09-23, and this run), spanning at least seven calendar
+days with zero API units available on the account throughout. Re-checked
+#1703 (Fleet Supervisor) per the previous entry's stated trigger condition
+("if #1703 goes stale or is closed without the units being restored"):
+still open, still accurate (units still not restored), and only 2 days old
+— not stale by that test — so no fresh owner notification sent this cycle;
+a duplicate would add nothing #1703 and the 2026-09-21 direct notification
+don't already cover. Stopped before Step 3 (pick work) per the mandate —
+did not attempt technical or content fixes without real Semrush data. No
+code or content change this cycle. Backlog item ("First run: pull a site
+audit and position-tracking snapshot") still outstanding, now blocked for
+seven consecutive cycles. Next run: retry Semrush calls first; if units are
+restored, proceed with the full mandate from Step 2 onward using this
+cycle's baseline-still-needed backlog item. If still blocked next run and
+#1703 has gone stale (no update) or been closed without units restored,
+that is the trigger condition for a fresh direct owner notification per the
+2026-09-21 entry's own criterion — send one then rather than deferring
+further, since a full week of zero output from a "daily" routine is
+approaching the point where silent logging alone under-serves the owner.
