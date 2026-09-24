@@ -227,6 +227,38 @@ describe('GET /api/v1/admin/locations', () => {
       const slugs = response.body.data.items.map(item => item.slug).sort();
       expect(slugs).toEqual(['cardiff', 'swansea']);
     });
+
+    it('lists every entry alphabetically by name, not the registry file order', async () => {
+      const response = await request(buildApp())
+        .get('/api/v1/admin/locations')
+        .set('Cookie', authCookie(admin));
+      const names = response.body.data.items.map(item => item.name);
+      expect(names).toEqual([...names].sort((a, b) => a.localeCompare(b)));
+    });
+
+    it("tags each row with the registry's type, so a county isn't mistaken for a city", async () => {
+      const response = await request(buildApp())
+        .get('/api/v1/admin/locations')
+        .set('Cookie', authCookie(admin));
+      const cardiff = response.body.data.items.find(item => item.slug === 'cardiff');
+      const ceredigion = response.body.data.items.find(item => item.slug === 'ceredigion');
+      expect(cardiff.type).toBe('city');
+      expect(ceredigion.type).toBe('county');
+    });
+
+    it('filters to only counties, or only cities', async () => {
+      const counties = await request(buildApp())
+        .get('/api/v1/admin/locations?type=county')
+        .set('Cookie', authCookie(admin));
+      expect(counties.body.data.items.length).toBeGreaterThan(50);
+      expect(counties.body.data.items.every(item => item.type === 'county')).toBe(true);
+
+      const cities = await request(buildApp())
+        .get('/api/v1/admin/locations?type=city')
+        .set('Cookie', authCookie(admin));
+      expect(cities.body.data.items.map(item => item.slug)).toContain('cardiff');
+      expect(cities.body.data.items.every(item => item.type === 'city')).toBe(true);
+    });
   });
 
   describe('unmapped suppliers', () => {

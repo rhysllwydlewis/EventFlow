@@ -219,7 +219,7 @@
         : '';
 
     return `<div class="efl-card" data-slug="${escapeHtml(item.slug)}">
-      <h3>${escapeHtml(item.name)}</h3>
+      <h3>${escapeHtml(item.name)}${item.type === 'county' ? ' <span class="efl-badge efl-badge--neutral" title="A county, not a single city">County</span>' : ''}</h3>
       <p class="efl-card__meta">
         <span class="efl-relationship">${escapeHtml(item.status)}</span>
         <span>Score ${escapeHtml(item.gate.score)}/${escapeHtml(item.gate.passMark)}</span>

@@ -4786,6 +4786,11 @@ async function initDashSupplier() {
     const resultsEl = document.getElementById('sup-service-area-results');
     const searchEl = document.getElementById('sup-service-area-search');
     supplierServiceAreaSearchResults = [];
+    // Also retires whatever search/browse fetch is still in flight — without
+    // this, a slow response landing after blur (or after the limit/nationwide
+    // closed this dropdown for an unrelated reason) could still call
+    // renderSupplierServiceAreaResults and reopen a list this call just closed.
+    supplierServiceAreaSearchRequestId += 1;
     if (resultsEl) {
       resultsEl.innerHTML = '';
       resultsEl.hidden = true;
@@ -4802,15 +4807,22 @@ async function initDashSupplier() {
     const errorEl = document.getElementById('sup-service-area-error');
     const atLimit = supplierServiceAreaPicks.length >= supplierServiceAreaAllowance;
     const hasNationwide = supplierServiceAreaPicks.some(p => p.type === 'nationwide');
+    // Nationwide already covers every city, so picking one alongside it adds
+    // no real coverage — it would just spend a slot of the supplier's
+    // allowance on a redundant tag. Block the search the same way the limit
+    // does, rather than letting them add cities the save would later drop.
+    const searchBlocked = atLimit || hasNationwide;
 
     if (maxEl) {
       maxEl.textContent = String(supplierServiceAreaAllowance);
     }
     if (searchEl) {
-      searchEl.disabled = atLimit;
-      searchEl.placeholder = atLimit
-        ? `Limit of ${supplierServiceAreaAllowance} reached — remove one to add another`
-        : 'Search for a city or town…';
+      searchEl.disabled = searchBlocked;
+      searchEl.placeholder = hasNationwide
+        ? 'Nationwide already covers every city — remove it to pick specific areas'
+        : atLimit
+          ? `Limit of ${supplierServiceAreaAllowance} reached — remove one to add another`
+          : 'Search for a city or town…';
     }
     if (nationwideBtn) {
       nationwideBtn.disabled = hasNationwide || atLimit;
@@ -4818,7 +4830,7 @@ async function initDashSupplier() {
     if (errorEl && !atLimit) {
       errorEl.textContent = '';
     }
-    if (atLimit) {
+    if (searchBlocked) {
       hideSupplierServiceAreaResults();
     }
   }
@@ -4860,7 +4872,17 @@ async function initDashSupplier() {
     const isDuplicate = supplierServiceAreaPicks.some(
       p => p.type === pick.type && p.slug === pick.slug
     );
-    if (isDuplicate || supplierServiceAreaPicks.length >= supplierServiceAreaAllowance) {
+    // A city pick adds nothing once nationwide is already selected — it
+    // covers every city already — so reject it here too, not just in the UI
+    // that normally prevents it, in case a stale search result (a response
+    // that landed after nationwide was picked) reaches this call directly.
+    const redundantUnderNationwide =
+      pick.type === 'city' && supplierServiceAreaPicks.some(p => p.type === 'nationwide');
+    if (
+      isDuplicate ||
+      redundantUnderNationwide ||
+      supplierServiceAreaPicks.length >= supplierServiceAreaAllowance
+    ) {
       return;
     }
     supplierServiceAreaPicks.push(pick);
@@ -4881,9 +4903,11 @@ async function initDashSupplier() {
       return;
     }
     // A search can still be in flight when a different action (the
-    // nationwide button) reaches the limit first; without this, its results
-    // would reopen a dropdown the limit has already closed.
-    if (supplierServiceAreaPicks.length >= supplierServiceAreaAllowance) {
+    // nationwide button, reaching the limit, or a plain remove) changes what
+    // the picker allows first; without this, its results would reopen a
+    // dropdown that action has already closed.
+    const hasNationwide = supplierServiceAreaPicks.some(p => p.type === 'nationwide');
+    if (hasNationwide || supplierServiceAreaPicks.length >= supplierServiceAreaAllowance) {
       hideSupplierServiceAreaResults();
       return;
     }
@@ -4916,10 +4940,35 @@ async function initDashSupplier() {
     }
   }
 
+  /**
+   * Fetch every place the registry recognises, alphabetically, for the
+   * picker's "browse everywhere" list — shown when the search box is empty
+   * rather than only once the supplier starts typing.
+   * @returns {Promise<void>} Nothing.
+   */
+  async function browseSupplierServiceAreaCities() {
+    const requestId = ++supplierServiceAreaSearchRequestId;
+    try {
+      const resp = await fetch('/api/v1/locations/search?browse=true', {
+        credentials: 'include',
+      });
+      if (!resp.ok || requestId !== supplierServiceAreaSearchRequestId) {
+        return;
+      }
+      const data = await resp.json().catch(() => null);
+      if (requestId !== supplierServiceAreaSearchRequestId) {
+        return;
+      }
+      renderSupplierServiceAreaResults(data?.data?.cities || []);
+    } catch (err) {
+      console.error('City browse failed:', err);
+    }
+  }
+
   async function searchSupplierServiceAreaCities(query) {
     const trimmed = query.trim();
     if (!trimmed) {
-      hideSupplierServiceAreaResults();
+      await browseSupplierServiceAreaCities();
       return;
     }
     // A faster later keystroke's response can land before an earlier one's —
@@ -4952,6 +5001,14 @@ async function initDashSupplier() {
         () => searchSupplierServiceAreaCities(value),
         250
       );
+    });
+    // Show the full alphabetical list the moment the (empty) box is focused,
+    // rather than making a supplier type something first to see anything at
+    // all — the same list an empty keystroke already produces via 'input'.
+    supServiceAreaSearchEl.addEventListener('focus', () => {
+      if (!supServiceAreaSearchEl.value.trim()) {
+        browseSupplierServiceAreaCities();
+      }
     });
     supServiceAreaSearchEl.addEventListener('blur', () => {
       // Let a click on a result register before the list disappears.

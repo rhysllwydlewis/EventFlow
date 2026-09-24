@@ -87,11 +87,15 @@ describe('city hero defaults', () => {
       .listCities()
       .map(city => [city, heroImages.buildCitySearchQuery(city)]);
 
-    expect(queries).toHaveLength(59);
+    expect(queries.length).toBe(registry.listCities().length);
     queries.forEach(([city, query]) => {
       expect(query).toContain(city.name);
       expect(query).toContain(city.nation);
-      expect(query).toContain('United Kingdom city landmark');
+      expect(query).toContain(
+        city.type === 'county'
+          ? 'United Kingdom countryside landscape'
+          : 'United Kingdom city landmark'
+      );
     });
   });
 

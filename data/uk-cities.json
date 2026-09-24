@@ -2,12 +2,12 @@
   {
     "slug": "london",
     "name": "London",
-    "alternateNames": ["Greater London", "Llundain"],
+    "alternateNames": ["Greater London","Llundain"],
     "nation": "England",
     "region": "Greater London",
     "centre": { "latitude": 51.5074, "longitude": -0.1278 },
     "defaultServiceRadiusMiles": 20,
-    "nearbyLocationSlugs": ["reading", "brighton", "cambridge", "oxford"]
+    "nearbyLocationSlugs": ["reading","brighton","cambridge","oxford"]
   },
   {
     "slug": "birmingham",
@@ -17,7 +17,7 @@
     "region": "West Midlands",
     "centre": { "latitude": 52.4862, "longitude": -1.8904 },
     "defaultServiceRadiusMiles": 25,
-    "nearbyLocationSlugs": ["coventry", "wolverhampton", "leicester", "nottingham"]
+    "nearbyLocationSlugs": ["coventry","wolverhampton","leicester","nottingham"]
   },
   {
     "slug": "manchester",
@@ -27,7 +27,7 @@
     "region": "Greater Manchester",
     "centre": { "latitude": 53.4808, "longitude": -2.2426 },
     "defaultServiceRadiusMiles": 25,
-    "nearbyLocationSlugs": ["liverpool", "leeds", "sheffield", "chester"]
+    "nearbyLocationSlugs": ["liverpool","leeds","sheffield","chester"]
   },
   {
     "slug": "leeds",
@@ -37,7 +37,7 @@
     "region": "West Yorkshire",
     "centre": { "latitude": 53.8008, "longitude": -1.5491 },
     "defaultServiceRadiusMiles": 25,
-    "nearbyLocationSlugs": ["york", "sheffield", "manchester", "bradford"]
+    "nearbyLocationSlugs": ["york","sheffield","manchester","bradford"]
   },
   {
     "slug": "bradford",
@@ -47,7 +47,7 @@
     "region": "West Yorkshire",
     "centre": { "latitude": 53.795, "longitude": -1.7594 },
     "defaultServiceRadiusMiles": 20,
-    "nearbyLocationSlugs": ["leeds", "manchester", "york"]
+    "nearbyLocationSlugs": ["leeds","manchester","york"]
   },
   {
     "slug": "sheffield",
@@ -57,7 +57,7 @@
     "region": "South Yorkshire",
     "centre": { "latitude": 53.3811, "longitude": -1.4701 },
     "defaultServiceRadiusMiles": 25,
-    "nearbyLocationSlugs": ["leeds", "nottingham", "manchester", "derby"]
+    "nearbyLocationSlugs": ["leeds","nottingham","manchester","derby"]
   },
   {
     "slug": "liverpool",
@@ -67,7 +67,7 @@
     "region": "Merseyside",
     "centre": { "latitude": 53.4084, "longitude": -2.9916 },
     "defaultServiceRadiusMiles": 25,
-    "nearbyLocationSlugs": ["manchester", "chester", "preston"]
+    "nearbyLocationSlugs": ["manchester","chester","preston"]
   },
   {
     "slug": "bristol",
@@ -77,7 +77,7 @@
     "region": "South West England",
     "centre": { "latitude": 51.4545, "longitude": -2.5879 },
     "defaultServiceRadiusMiles": 25,
-    "nearbyLocationSlugs": ["bath", "cardiff", "newport", "exeter"]
+    "nearbyLocationSlugs": ["bath","cardiff","newport","exeter"]
   },
   {
     "slug": "bath",
@@ -87,7 +87,7 @@
     "region": "South West England",
     "centre": { "latitude": 51.3811, "longitude": -2.359 },
     "defaultServiceRadiusMiles": 20,
-    "nearbyLocationSlugs": ["bristol", "swindon", "cardiff"]
+    "nearbyLocationSlugs": ["bristol","swindon","cardiff"]
   },
   {
     "slug": "newcastle-upon-tyne",
@@ -97,7 +97,7 @@
     "region": "North East England",
     "centre": { "latitude": 54.9783, "longitude": -1.6178 },
     "defaultServiceRadiusMiles": 25,
-    "nearbyLocationSlugs": ["sunderland", "durham", "york"]
+    "nearbyLocationSlugs": ["sunderland","durham","york"]
   },
   {
     "slug": "sunderland",
@@ -107,7 +107,7 @@
     "region": "North East England",
     "centre": { "latitude": 54.9069, "longitude": -1.3838 },
     "defaultServiceRadiusMiles": 20,
-    "nearbyLocationSlugs": ["newcastle-upon-tyne", "durham"]
+    "nearbyLocationSlugs": ["newcastle-upon-tyne","durham"]
   },
   {
     "slug": "durham",
@@ -117,7 +117,7 @@
     "region": "North East England",
     "centre": { "latitude": 54.7761, "longitude": -1.5733 },
     "defaultServiceRadiusMiles": 20,
-    "nearbyLocationSlugs": ["newcastle-upon-tyne", "sunderland"]
+    "nearbyLocationSlugs": ["newcastle-upon-tyne","sunderland"]
   },
   {
     "slug": "nottingham",
@@ -127,7 +127,7 @@
     "region": "East Midlands",
     "centre": { "latitude": 52.9548, "longitude": -1.1581 },
     "defaultServiceRadiusMiles": 25,
-    "nearbyLocationSlugs": ["derby", "leicester", "sheffield"]
+    "nearbyLocationSlugs": ["derby","leicester","sheffield"]
   },
   {
     "slug": "derby",
@@ -137,7 +137,7 @@
     "region": "East Midlands",
     "centre": { "latitude": 52.9226, "longitude": -1.4746 },
     "defaultServiceRadiusMiles": 20,
-    "nearbyLocationSlugs": ["nottingham", "leicester", "sheffield"]
+    "nearbyLocationSlugs": ["nottingham","leicester","sheffield"]
   },
   {
     "slug": "leicester",
@@ -147,7 +147,7 @@
     "region": "East Midlands",
     "centre": { "latitude": 52.6369, "longitude": -1.1398 },
     "defaultServiceRadiusMiles": 20,
-    "nearbyLocationSlugs": ["nottingham", "derby", "coventry"]
+    "nearbyLocationSlugs": ["nottingham","derby","coventry"]
   },
   {
     "slug": "coventry",
@@ -157,7 +157,7 @@
     "region": "West Midlands",
     "centre": { "latitude": 52.4068, "longitude": -1.5197 },
     "defaultServiceRadiusMiles": 20,
-    "nearbyLocationSlugs": ["birmingham", "leicester", "wolverhampton"]
+    "nearbyLocationSlugs": ["birmingham","leicester","wolverhampton"]
   },
   {
     "slug": "wolverhampton",
@@ -167,7 +167,7 @@
     "region": "West Midlands",
     "centre": { "latitude": 52.5862, "longitude": -2.1288 },
     "defaultServiceRadiusMiles": 20,
-    "nearbyLocationSlugs": ["birmingham", "coventry", "stoke-on-trent"]
+    "nearbyLocationSlugs": ["birmingham","coventry","stoke-on-trent"]
   },
   {
     "slug": "stoke-on-trent",
@@ -177,7 +177,7 @@
     "region": "Staffordshire",
     "centre": { "latitude": 53.0027, "longitude": -2.1794 },
     "defaultServiceRadiusMiles": 20,
-    "nearbyLocationSlugs": ["wolverhampton", "manchester", "chester"]
+    "nearbyLocationSlugs": ["wolverhampton","manchester","chester"]
   },
   {
     "slug": "chester",
@@ -187,7 +187,7 @@
     "region": "Cheshire",
     "centre": { "latitude": 53.1934, "longitude": -2.8931 },
     "defaultServiceRadiusMiles": 20,
-    "nearbyLocationSlugs": ["liverpool", "manchester", "stoke-on-trent"]
+    "nearbyLocationSlugs": ["liverpool","manchester","stoke-on-trent"]
   },
   {
     "slug": "preston",
@@ -197,7 +197,7 @@
     "region": "Lancashire",
     "centre": { "latitude": 53.7632, "longitude": -2.7031 },
     "defaultServiceRadiusMiles": 20,
-    "nearbyLocationSlugs": ["liverpool", "manchester", "lancaster"]
+    "nearbyLocationSlugs": ["liverpool","manchester","lancaster"]
   },
   {
     "slug": "lancaster",
@@ -207,7 +207,7 @@
     "region": "Lancashire",
     "centre": { "latitude": 54.0466, "longitude": -2.8007 },
     "defaultServiceRadiusMiles": 20,
-    "nearbyLocationSlugs": ["preston", "carlisle"]
+    "nearbyLocationSlugs": ["preston","carlisle"]
   },
   {
     "slug": "carlisle",
@@ -217,7 +217,7 @@
     "region": "Cumbria",
     "centre": { "latitude": 54.8951, "longitude": -2.9382 },
     "defaultServiceRadiusMiles": 25,
-    "nearbyLocationSlugs": ["lancaster", "newcastle-upon-tyne"]
+    "nearbyLocationSlugs": ["lancaster","newcastle-upon-tyne"]
   },
   {
     "slug": "york",
@@ -227,7 +227,7 @@
     "region": "North Yorkshire",
     "centre": { "latitude": 53.9591, "longitude": -1.0815 },
     "defaultServiceRadiusMiles": 20,
-    "nearbyLocationSlugs": ["leeds", "hull", "bradford", "scarborough"]
+    "nearbyLocationSlugs": ["leeds","hull","bradford","scarborough"]
   },
   {
     "slug": "hull",
@@ -237,7 +237,7 @@
     "region": "East Yorkshire",
     "centre": { "latitude": 53.7676, "longitude": -0.3274 },
     "defaultServiceRadiusMiles": 20,
-    "nearbyLocationSlugs": ["york", "leeds", "scarborough"]
+    "nearbyLocationSlugs": ["york","leeds","scarborough"]
   },
   {
     "slug": "scarborough",
@@ -247,7 +247,7 @@
     "region": "North Yorkshire",
     "centre": { "latitude": 54.2803, "longitude": -0.4013 },
     "defaultServiceRadiusMiles": 20,
-    "nearbyLocationSlugs": ["york", "hull", "leeds"]
+    "nearbyLocationSlugs": ["york","hull","leeds"]
   },
   {
     "slug": "norwich",
@@ -257,7 +257,7 @@
     "region": "Norfolk",
     "centre": { "latitude": 52.6309, "longitude": 1.2974 },
     "defaultServiceRadiusMiles": 25,
-    "nearbyLocationSlugs": ["cambridge", "ipswich"]
+    "nearbyLocationSlugs": ["cambridge","ipswich"]
   },
   {
     "slug": "ipswich",
@@ -267,7 +267,7 @@
     "region": "Suffolk",
     "centre": { "latitude": 52.0567, "longitude": 1.1482 },
     "defaultServiceRadiusMiles": 20,
-    "nearbyLocationSlugs": ["norwich", "cambridge", "colchester"]
+    "nearbyLocationSlugs": ["norwich","cambridge","colchester"]
   },
   {
     "slug": "colchester",
@@ -277,7 +277,7 @@
     "region": "Essex",
     "centre": { "latitude": 51.8892, "longitude": 0.9042 },
     "defaultServiceRadiusMiles": 20,
-    "nearbyLocationSlugs": ["ipswich", "chelmsford", "london"]
+    "nearbyLocationSlugs": ["ipswich","chelmsford","london"]
   },
   {
     "slug": "chelmsford",
@@ -287,7 +287,7 @@
     "region": "Essex",
     "centre": { "latitude": 51.7356, "longitude": 0.4685 },
     "defaultServiceRadiusMiles": 20,
-    "nearbyLocationSlugs": ["colchester", "london", "southend-on-sea"]
+    "nearbyLocationSlugs": ["colchester","london","southend-on-sea"]
   },
   {
     "slug": "southend-on-sea",
@@ -297,7 +297,7 @@
     "region": "Essex",
     "centre": { "latitude": 51.5378, "longitude": 0.7143 },
     "defaultServiceRadiusMiles": 20,
-    "nearbyLocationSlugs": ["chelmsford", "london"]
+    "nearbyLocationSlugs": ["chelmsford","london"]
   },
   {
     "slug": "cambridge",
@@ -307,7 +307,7 @@
     "region": "Cambridgeshire",
     "centre": { "latitude": 52.2053, "longitude": 0.1218 },
     "defaultServiceRadiusMiles": 20,
-    "nearbyLocationSlugs": ["peterborough", "norwich", "london"]
+    "nearbyLocationSlugs": ["peterborough","norwich","london"]
   },
   {
     "slug": "peterborough",
@@ -317,7 +317,7 @@
     "region": "Cambridgeshire",
     "centre": { "latitude": 52.5695, "longitude": -0.2405 },
     "defaultServiceRadiusMiles": 20,
-    "nearbyLocationSlugs": ["cambridge", "leicester", "nottingham"]
+    "nearbyLocationSlugs": ["cambridge","leicester","nottingham"]
   },
   {
     "slug": "oxford",
@@ -327,7 +327,7 @@
     "region": "Oxfordshire",
     "centre": { "latitude": 51.752, "longitude": -1.2577 },
     "defaultServiceRadiusMiles": 20,
-    "nearbyLocationSlugs": ["reading", "swindon", "london"]
+    "nearbyLocationSlugs": ["reading","swindon","london"]
   },
   {
     "slug": "reading",
@@ -337,7 +337,7 @@
     "region": "Berkshire",
     "centre": { "latitude": 51.4543, "longitude": -0.9781 },
     "defaultServiceRadiusMiles": 20,
-    "nearbyLocationSlugs": ["oxford", "southampton", "london"]
+    "nearbyLocationSlugs": ["oxford","southampton","london"]
   },
   {
     "slug": "swindon",
@@ -347,7 +347,7 @@
     "region": "Wiltshire",
     "centre": { "latitude": 51.5558, "longitude": -1.7797 },
     "defaultServiceRadiusMiles": 20,
-    "nearbyLocationSlugs": ["oxford", "bath", "bristol"]
+    "nearbyLocationSlugs": ["oxford","bath","bristol"]
   },
   {
     "slug": "southampton",
@@ -357,7 +357,7 @@
     "region": "Hampshire",
     "centre": { "latitude": 50.9097, "longitude": -1.4044 },
     "defaultServiceRadiusMiles": 20,
-    "nearbyLocationSlugs": ["portsmouth", "bournemouth", "reading"]
+    "nearbyLocationSlugs": ["portsmouth","bournemouth","reading"]
   },
   {
     "slug": "portsmouth",
@@ -367,7 +367,7 @@
     "region": "Hampshire",
     "centre": { "latitude": 50.8198, "longitude": -1.088 },
     "defaultServiceRadiusMiles": 20,
-    "nearbyLocationSlugs": ["southampton", "brighton", "bournemouth"]
+    "nearbyLocationSlugs": ["southampton","brighton","bournemouth"]
   },
   {
     "slug": "bournemouth",
@@ -377,17 +377,17 @@
     "region": "Dorset",
     "centre": { "latitude": 50.7192, "longitude": -1.8808 },
     "defaultServiceRadiusMiles": 20,
-    "nearbyLocationSlugs": ["southampton", "portsmouth", "exeter"]
+    "nearbyLocationSlugs": ["southampton","portsmouth","exeter"]
   },
   {
     "slug": "brighton",
     "name": "Brighton",
-    "alternateNames": ["Brighton and Hove", "Brighton & Hove"],
+    "alternateNames": ["Brighton and Hove","Brighton & Hove"],
     "nation": "England",
     "region": "East Sussex",
     "centre": { "latitude": 50.8225, "longitude": -0.1372 },
     "defaultServiceRadiusMiles": 20,
-    "nearbyLocationSlugs": ["london", "portsmouth", "canterbury"]
+    "nearbyLocationSlugs": ["london","portsmouth","canterbury"]
   },
   {
     "slug": "canterbury",
@@ -397,7 +397,7 @@
     "region": "Kent",
     "centre": { "latitude": 51.28, "longitude": 1.0789 },
     "defaultServiceRadiusMiles": 20,
-    "nearbyLocationSlugs": ["brighton", "london"]
+    "nearbyLocationSlugs": ["brighton","london"]
   },
   {
     "slug": "exeter",
@@ -407,7 +407,7 @@
     "region": "Devon",
     "centre": { "latitude": 50.7184, "longitude": -3.5339 },
     "defaultServiceRadiusMiles": 25,
-    "nearbyLocationSlugs": ["plymouth", "bristol", "bournemouth"]
+    "nearbyLocationSlugs": ["plymouth","bristol","bournemouth"]
   },
   {
     "slug": "plymouth",
@@ -417,7 +417,7 @@
     "region": "Devon",
     "centre": { "latitude": 50.3755, "longitude": -4.1427 },
     "defaultServiceRadiusMiles": 25,
-    "nearbyLocationSlugs": ["exeter", "truro"]
+    "nearbyLocationSlugs": ["exeter","truro"]
   },
   {
     "slug": "truro",
@@ -427,7 +427,7 @@
     "region": "Cornwall",
     "centre": { "latitude": 50.2632, "longitude": -5.051 },
     "defaultServiceRadiusMiles": 25,
-    "nearbyLocationSlugs": ["plymouth", "exeter"]
+    "nearbyLocationSlugs": ["plymouth","exeter"]
   },
   {
     "slug": "cardiff",
@@ -437,7 +437,7 @@
     "region": "South Wales",
     "centre": { "latitude": 51.4816, "longitude": -3.1791 },
     "defaultServiceRadiusMiles": 25,
-    "nearbyLocationSlugs": ["newport", "swansea", "bristol"]
+    "nearbyLocationSlugs": ["newport","swansea","bristol"]
   },
   {
     "slug": "swansea",
@@ -447,7 +447,7 @@
     "region": "South Wales",
     "centre": { "latitude": 51.6214, "longitude": -3.9436 },
     "defaultServiceRadiusMiles": 25,
-    "nearbyLocationSlugs": ["cardiff", "newport"]
+    "nearbyLocationSlugs": ["cardiff","newport"]
   },
   {
     "slug": "newport",
@@ -457,7 +457,7 @@
     "region": "South Wales",
     "centre": { "latitude": 51.5842, "longitude": -2.9977 },
     "defaultServiceRadiusMiles": 20,
-    "nearbyLocationSlugs": ["cardiff", "bristol", "swansea"]
+    "nearbyLocationSlugs": ["cardiff","bristol","swansea"]
   },
   {
     "slug": "wrexham",
@@ -467,7 +467,7 @@
     "region": "North Wales",
     "centre": { "latitude": 53.0466, "longitude": -2.9925 },
     "defaultServiceRadiusMiles": 25,
-    "nearbyLocationSlugs": ["chester", "liverpool"]
+    "nearbyLocationSlugs": ["chester","liverpool"]
   },
   {
     "slug": "bangor",
@@ -477,7 +477,7 @@
     "region": "North Wales",
     "centre": { "latitude": 53.2274, "longitude": -4.1293 },
     "defaultServiceRadiusMiles": 25,
-    "nearbyLocationSlugs": ["wrexham", "chester"]
+    "nearbyLocationSlugs": ["wrexham","chester"]
   },
   {
     "slug": "edinburgh",
@@ -487,7 +487,7 @@
     "region": "Lothian",
     "centre": { "latitude": 55.9533, "longitude": -3.1883 },
     "defaultServiceRadiusMiles": 25,
-    "nearbyLocationSlugs": ["glasgow", "dundee", "stirling"]
+    "nearbyLocationSlugs": ["glasgow","dundee","stirling"]
   },
   {
     "slug": "glasgow",
@@ -497,7 +497,7 @@
     "region": "Strathclyde",
     "centre": { "latitude": 55.8642, "longitude": -4.2518 },
     "defaultServiceRadiusMiles": 25,
-    "nearbyLocationSlugs": ["edinburgh", "stirling", "ayr"]
+    "nearbyLocationSlugs": ["edinburgh","stirling","ayr"]
   },
   {
     "slug": "stirling",
@@ -507,7 +507,7 @@
     "region": "Central Scotland",
     "centre": { "latitude": 56.1165, "longitude": -3.9369 },
     "defaultServiceRadiusMiles": 25,
-    "nearbyLocationSlugs": ["glasgow", "edinburgh", "perth"]
+    "nearbyLocationSlugs": ["glasgow","edinburgh","perth"]
   },
   {
     "slug": "perth",
@@ -517,7 +517,7 @@
     "region": "Perthshire",
     "centre": { "latitude": 56.3969, "longitude": -3.4368 },
     "defaultServiceRadiusMiles": 25,
-    "nearbyLocationSlugs": ["dundee", "stirling"]
+    "nearbyLocationSlugs": ["dundee","stirling"]
   },
   {
     "slug": "dundee",
@@ -527,7 +527,7 @@
     "region": "Tayside",
     "centre": { "latitude": 56.462, "longitude": -2.9707 },
     "defaultServiceRadiusMiles": 25,
-    "nearbyLocationSlugs": ["perth", "aberdeen", "edinburgh"]
+    "nearbyLocationSlugs": ["perth","aberdeen","edinburgh"]
   },
   {
     "slug": "aberdeen",
@@ -537,7 +537,7 @@
     "region": "Grampian",
     "centre": { "latitude": 57.1497, "longitude": -2.0943 },
     "defaultServiceRadiusMiles": 30,
-    "nearbyLocationSlugs": ["dundee", "inverness"]
+    "nearbyLocationSlugs": ["dundee","inverness"]
   },
   {
     "slug": "inverness",
@@ -567,7 +567,7 @@
     "region": "County Antrim",
     "centre": { "latitude": 54.5973, "longitude": -5.9301 },
     "defaultServiceRadiusMiles": 25,
-    "nearbyLocationSlugs": ["lisburn", "londonderry"]
+    "nearbyLocationSlugs": ["lisburn","londonderry"]
   },
   {
     "slug": "lisburn",
@@ -588,5 +588,1061 @@
     "centre": { "latitude": 54.9966, "longitude": -7.3086 },
     "defaultServiceRadiusMiles": 25,
     "nearbyLocationSlugs": ["belfast"]
+  },
+  {
+    "slug": "bedfordshire",
+    "name": "Bedfordshire",
+    "alternateNames": [],
+    "nation": "England",
+    "region": null,
+    "centre": { "latitude": 51.9874, "longitude": -0.4546 },
+    "defaultServiceRadiusMiles": 28,
+    "type": "county",
+    "nearbyLocationSlugs": ["buckinghamshire","hertfordshire","northamptonshire","cambridgeshire"]
+  },
+  {
+    "slug": "berkshire",
+    "name": "Berkshire",
+    "alternateNames": [],
+    "nation": "England",
+    "region": null,
+    "centre": { "latitude": 51.4588, "longitude": -0.8488 },
+    "defaultServiceRadiusMiles": 35,
+    "type": "county",
+    "nearbyLocationSlugs": ["surrey","buckinghamshire","oxfordshire","hertfordshire"]
+  },
+  {
+    "slug": "buckinghamshire",
+    "name": "Buckinghamshire",
+    "alternateNames": [],
+    "nation": "England",
+    "region": null,
+    "centre": { "latitude": 51.8236, "longitude": -0.7321 },
+    "defaultServiceRadiusMiles": 30,
+    "type": "county",
+    "nearbyLocationSlugs": ["bedfordshire","hertfordshire","oxfordshire","berkshire"]
+  },
+  {
+    "slug": "cambridgeshire",
+    "name": "Cambridgeshire",
+    "alternateNames": [],
+    "nation": "England",
+    "region": null,
+    "centre": { "latitude": 52.3794, "longitude": -0.032 },
+    "defaultServiceRadiusMiles": 33,
+    "type": "county",
+    "nearbyLocationSlugs": ["bedfordshire","rutland","northamptonshire","hertfordshire"]
+  },
+  {
+    "slug": "cheshire",
+    "name": "Cheshire",
+    "alternateNames": [],
+    "nation": "England",
+    "region": null,
+    "centre": { "latitude": 53.2762, "longitude": -2.5798 },
+    "defaultServiceRadiusMiles": 28,
+    "type": "county",
+    "nearbyLocationSlugs": ["merseyside","greater-manchester","flintshire","denbighshire"]
+  },
+  {
+    "slug": "cornwall",
+    "name": "Cornwall",
+    "alternateNames": [],
+    "nation": "England",
+    "region": null,
+    "centre": { "latitude": 50.3201, "longitude": -4.951 },
+    "defaultServiceRadiusMiles": 60,
+    "type": "county",
+    "nearbyLocationSlugs": ["devon","pembrokeshire","bridgend","vale-of-glamorgan"]
+  },
+  {
+    "slug": "cumbria",
+    "name": "Cumbria",
+    "alternateNames": [],
+    "nation": "England",
+    "region": null,
+    "centre": { "latitude": 54.5334, "longitude": -3.1068 },
+    "defaultServiceRadiusMiles": 48,
+    "type": "county",
+    "nearbyLocationSlugs": ["dumfries-and-galloway","lancashire","county-durham","tyne-and-wear"]
+  },
+  {
+    "slug": "derbyshire",
+    "name": "Derbyshire",
+    "alternateNames": [],
+    "nation": "England",
+    "region": null,
+    "centre": { "latitude": 53.0573, "longitude": -1.4704 },
+    "defaultServiceRadiusMiles": 40,
+    "type": "county",
+    "nearbyLocationSlugs": ["nottinghamshire","staffordshire","south-yorkshire","leicestershire"]
+  },
+  {
+    "slug": "devon",
+    "name": "Devon",
+    "alternateNames": [],
+    "nation": "England",
+    "region": null,
+    "centre": { "latitude": 50.5912, "longitude": -3.7779 },
+    "defaultServiceRadiusMiles": 50,
+    "type": "county",
+    "nearbyLocationSlugs": ["cornwall","vale-of-glamorgan","somerset","bridgend"]
+  },
+  {
+    "slug": "dorset",
+    "name": "Dorset",
+    "alternateNames": [],
+    "nation": "England",
+    "region": null,
+    "centre": { "latitude": 50.7362, "longitude": -2.0916 },
+    "defaultServiceRadiusMiles": 43,
+    "type": "county",
+    "nearbyLocationSlugs": ["isle-of-wight","hampshire","somerset","wiltshire"]
+  },
+  {
+    "slug": "county-durham",
+    "name": "County Durham",
+    "alternateNames": [],
+    "nation": "England",
+    "region": null,
+    "centre": { "latitude": 54.7209, "longitude": -1.598 },
+    "defaultServiceRadiusMiles": 32,
+    "type": "county",
+    "nearbyLocationSlugs": ["tyne-and-wear","northumberland","north-yorkshire","cumbria"]
+  },
+  {
+    "slug": "east-riding-of-yorkshire",
+    "name": "East Riding of Yorkshire",
+    "alternateNames": [],
+    "nation": "England",
+    "region": null,
+    "centre": { "latitude": 53.7963, "longitude": -0.4041 },
+    "defaultServiceRadiusMiles": 34,
+    "type": "county",
+    "nearbyLocationSlugs": ["north-yorkshire","lincolnshire","south-yorkshire","west-yorkshire"]
+  },
+  {
+    "slug": "east-sussex",
+    "name": "East Sussex",
+    "alternateNames": [],
+    "nation": "England",
+    "region": null,
+    "centre": { "latitude": 50.8446, "longitude": 0.1079 },
+    "defaultServiceRadiusMiles": 37,
+    "type": "county",
+    "nearbyLocationSlugs": ["west-sussex","surrey","kent","hampshire"]
+  },
+  {
+    "slug": "essex",
+    "name": "Essex",
+    "alternateNames": [],
+    "nation": "England",
+    "region": null,
+    "centre": { "latitude": 51.6752, "longitude": 0.5692 },
+    "defaultServiceRadiusMiles": 41,
+    "type": "county",
+    "nearbyLocationSlugs": ["kent","hertfordshire","suffolk","bedfordshire"]
+  },
+  {
+    "slug": "gloucestershire",
+    "name": "Gloucestershire",
+    "alternateNames": [],
+    "nation": "England",
+    "region": null,
+    "centre": { "latitude": 51.7649, "longitude": -2.2447 },
+    "defaultServiceRadiusMiles": 36,
+    "type": "county",
+    "nearbyLocationSlugs": ["monmouthshire","wiltshire","herefordshire","worcestershire"]
+  },
+  {
+    "slug": "greater-manchester",
+    "name": "Greater Manchester",
+    "alternateNames": [],
+    "nation": "England",
+    "region": null,
+    "centre": { "latitude": 53.5121, "longitude": -2.2751 },
+    "defaultServiceRadiusMiles": 24,
+    "type": "county",
+    "nearbyLocationSlugs": ["cheshire","lancashire","merseyside","west-yorkshire"]
+  },
+  {
+    "slug": "hampshire",
+    "name": "Hampshire",
+    "alternateNames": [],
+    "nation": "England",
+    "region": null,
+    "centre": { "latitude": 50.9804, "longitude": -1.1933 },
+    "defaultServiceRadiusMiles": 37,
+    "type": "county",
+    "nearbyLocationSlugs": ["isle-of-wight","west-sussex","berkshire","surrey"]
+  },
+  {
+    "slug": "herefordshire",
+    "name": "Herefordshire",
+    "alternateNames": [],
+    "nation": "England",
+    "region": null,
+    "centre": { "latitude": 52.077, "longitude": -2.7006 },
+    "defaultServiceRadiusMiles": 27,
+    "type": "county",
+    "nearbyLocationSlugs": ["monmouthshire","worcestershire","gloucestershire","blaenau-gwent"]
+  },
+  {
+    "slug": "hertfordshire",
+    "name": "Hertfordshire",
+    "alternateNames": [],
+    "nation": "England",
+    "region": null,
+    "centre": { "latitude": 51.7637, "longitude": -0.2805 },
+    "defaultServiceRadiusMiles": 28,
+    "type": "county",
+    "nearbyLocationSlugs": ["bedfordshire","buckinghamshire","berkshire","surrey"]
+  },
+  {
+    "slug": "isle-of-wight",
+    "name": "Isle of Wight",
+    "alternateNames": [],
+    "nation": "England",
+    "region": null,
+    "centre": { "latitude": 50.698, "longitude": -1.2491 },
+    "defaultServiceRadiusMiles": 19,
+    "type": "county",
+    "nearbyLocationSlugs": ["hampshire","dorset","west-sussex","surrey"]
+  },
+  {
+    "slug": "kent",
+    "name": "Kent",
+    "alternateNames": [],
+    "nation": "England",
+    "region": null,
+    "centre": { "latitude": 51.2938, "longitude": 0.7739 },
+    "defaultServiceRadiusMiles": 37,
+    "type": "county",
+    "nearbyLocationSlugs": ["essex","east-sussex","surrey","west-sussex"]
+  },
+  {
+    "slug": "lancashire",
+    "name": "Lancashire",
+    "alternateNames": [],
+    "nation": "England",
+    "region": null,
+    "centre": { "latitude": 53.7911, "longitude": -2.6505 },
+    "defaultServiceRadiusMiles": 33,
+    "type": "county",
+    "nearbyLocationSlugs": ["greater-manchester","merseyside","cheshire","west-yorkshire"]
+  },
+  {
+    "slug": "leicestershire",
+    "name": "Leicestershire",
+    "alternateNames": [],
+    "nation": "England",
+    "region": null,
+    "centre": { "latitude": 52.6449, "longitude": -1.1669 },
+    "defaultServiceRadiusMiles": 32,
+    "type": "county",
+    "nearbyLocationSlugs": ["rutland","warwickshire","northamptonshire","nottinghamshire"]
+  },
+  {
+    "slug": "lincolnshire",
+    "name": "Lincolnshire",
+    "alternateNames": [],
+    "nation": "England",
+    "region": null,
+    "centre": { "latitude": 53.247, "longitude": -0.3239 },
+    "defaultServiceRadiusMiles": 47,
+    "type": "county",
+    "nearbyLocationSlugs": ["nottinghamshire","east-riding-of-yorkshire","rutland","south-yorkshire"]
+  },
+  {
+    "slug": "merseyside",
+    "name": "Merseyside",
+    "alternateNames": [],
+    "nation": "England",
+    "region": null,
+    "centre": { "latitude": 53.4269, "longitude": -2.9375 },
+    "defaultServiceRadiusMiles": 24,
+    "type": "county",
+    "nearbyLocationSlugs": ["flintshire","cheshire","denbighshire","lancashire"]
+  },
+  {
+    "slug": "norfolk",
+    "name": "Norfolk",
+    "alternateNames": [],
+    "nation": "England",
+    "region": null,
+    "centre": { "latitude": 52.6536, "longitude": 1.1208 },
+    "defaultServiceRadiusMiles": 45,
+    "type": "county",
+    "nearbyLocationSlugs": ["suffolk","cambridgeshire","essex","lincolnshire"]
+  },
+  {
+    "slug": "north-yorkshire",
+    "name": "North Yorkshire",
+    "alternateNames": [],
+    "nation": "England",
+    "region": null,
+    "centre": { "latitude": 54.0705, "longitude": -1.1937 },
+    "defaultServiceRadiusMiles": 60,
+    "type": "county",
+    "nearbyLocationSlugs": ["west-yorkshire","east-riding-of-yorkshire","south-yorkshire","county-durham"]
+  },
+  {
+    "slug": "northamptonshire",
+    "name": "Northamptonshire",
+    "alternateNames": [],
+    "nation": "England",
+    "region": null,
+    "centre": { "latitude": 52.3012, "longitude": -0.8199 },
+    "defaultServiceRadiusMiles": 33,
+    "type": "county",
+    "nearbyLocationSlugs": ["rutland","bedfordshire","leicestershire","warwickshire"]
+  },
+  {
+    "slug": "northumberland",
+    "name": "Northumberland",
+    "alternateNames": [],
+    "nation": "England",
+    "region": null,
+    "centre": { "latitude": 55.1744, "longitude": -1.6902 },
+    "defaultServiceRadiusMiles": 50,
+    "type": "county",
+    "nearbyLocationSlugs": ["tyne-and-wear","county-durham","scottish-borders","cumbria"]
+  },
+  {
+    "slug": "nottinghamshire",
+    "name": "Nottinghamshire",
+    "alternateNames": [],
+    "nation": "England",
+    "region": null,
+    "centre": { "latitude": 53.0493, "longitude": -1.1348 },
+    "defaultServiceRadiusMiles": 35,
+    "type": "county",
+    "nearbyLocationSlugs": ["derbyshire","leicestershire","south-yorkshire","rutland"]
+  },
+  {
+    "slug": "oxfordshire",
+    "name": "Oxfordshire",
+    "alternateNames": [],
+    "nation": "England",
+    "region": null,
+    "centre": { "latitude": 51.7658, "longitude": -1.2816 },
+    "defaultServiceRadiusMiles": 32,
+    "type": "county",
+    "nearbyLocationSlugs": ["buckinghamshire","berkshire","wiltshire","bedfordshire"]
+  },
+  {
+    "slug": "rutland",
+    "name": "Rutland",
+    "alternateNames": [],
+    "nation": "England",
+    "region": null,
+    "centre": { "latitude": 52.6522, "longitude": -0.6792 },
+    "defaultServiceRadiusMiles": 15,
+    "type": "county",
+    "nearbyLocationSlugs": ["leicestershire","northamptonshire","cambridgeshire","nottinghamshire"]
+  },
+  {
+    "slug": "shropshire",
+    "name": "Shropshire",
+    "alternateNames": [],
+    "nation": "England",
+    "region": null,
+    "centre": { "latitude": 52.6774, "longitude": -2.5764 },
+    "defaultServiceRadiusMiles": 36,
+    "type": "county",
+    "nearbyLocationSlugs": ["staffordshire","west-midlands","worcestershire","powys"]
+  },
+  {
+    "slug": "somerset",
+    "name": "Somerset",
+    "alternateNames": [],
+    "nation": "England",
+    "region": null,
+    "centre": { "latitude": 51.2211, "longitude": -2.7566 },
+    "defaultServiceRadiusMiles": 49,
+    "type": "county",
+    "nearbyLocationSlugs": ["vale-of-glamorgan","monmouthshire","torfaen","caerphilly"]
+  },
+  {
+    "slug": "south-yorkshire",
+    "name": "South Yorkshire",
+    "alternateNames": [],
+    "nation": "England",
+    "region": null,
+    "centre": { "latitude": 53.447, "longitude": -1.372 },
+    "defaultServiceRadiusMiles": 26,
+    "type": "county",
+    "nearbyLocationSlugs": ["west-yorkshire","derbyshire","nottinghamshire","greater-manchester"]
+  },
+  {
+    "slug": "staffordshire",
+    "name": "Staffordshire",
+    "alternateNames": [],
+    "nation": "England",
+    "region": null,
+    "centre": { "latitude": 52.8579, "longitude": -2.033 },
+    "defaultServiceRadiusMiles": 35,
+    "type": "county",
+    "nearbyLocationSlugs": ["west-midlands","shropshire","derbyshire","cheshire"]
+  },
+  {
+    "slug": "suffolk",
+    "name": "Suffolk",
+    "alternateNames": [],
+    "nation": "England",
+    "region": null,
+    "centre": { "latitude": 52.1812, "longitude": 1.1066 },
+    "defaultServiceRadiusMiles": 40,
+    "type": "county",
+    "nearbyLocationSlugs": ["norfolk","essex","cambridgeshire","kent"]
+  },
+  {
+    "slug": "surrey",
+    "name": "Surrey",
+    "alternateNames": [],
+    "nation": "England",
+    "region": null,
+    "centre": { "latitude": 51.3059, "longitude": -0.4381 },
+    "defaultServiceRadiusMiles": 27,
+    "type": "county",
+    "nearbyLocationSlugs": ["berkshire","west-sussex","hertfordshire","buckinghamshire"]
+  },
+  {
+    "slug": "tyne-and-wear",
+    "name": "Tyne and Wear",
+    "alternateNames": [],
+    "nation": "England",
+    "region": null,
+    "centre": { "latitude": 54.9597, "longitude": -1.5276 },
+    "defaultServiceRadiusMiles": 17,
+    "type": "county",
+    "nearbyLocationSlugs": ["northumberland","county-durham","north-yorkshire","scottish-borders"]
+  },
+  {
+    "slug": "warwickshire",
+    "name": "Warwickshire",
+    "alternateNames": [],
+    "nation": "England",
+    "region": null,
+    "centre": { "latitude": 52.3746, "longitude": -1.5018 },
+    "defaultServiceRadiusMiles": 34,
+    "type": "county",
+    "nearbyLocationSlugs": ["west-midlands","leicestershire","worcestershire","northamptonshire"]
+  },
+  {
+    "slug": "west-midlands",
+    "name": "West Midlands",
+    "alternateNames": [],
+    "nation": "England",
+    "region": null,
+    "centre": { "latitude": 52.4972, "longitude": -1.9086 },
+    "defaultServiceRadiusMiles": 25,
+    "type": "county",
+    "nearbyLocationSlugs": ["warwickshire","worcestershire","staffordshire","shropshire"]
+  },
+  {
+    "slug": "west-sussex",
+    "name": "West Sussex",
+    "alternateNames": [],
+    "nation": "England",
+    "region": null,
+    "centre": { "latitude": 50.9395, "longitude": -0.3734 },
+    "defaultServiceRadiusMiles": 30,
+    "type": "county",
+    "nearbyLocationSlugs": ["east-sussex","surrey","hampshire","berkshire"]
+  },
+  {
+    "slug": "west-yorkshire",
+    "name": "West Yorkshire",
+    "alternateNames": [],
+    "nation": "England",
+    "region": null,
+    "centre": { "latitude": 53.7572, "longitude": -1.6463 },
+    "defaultServiceRadiusMiles": 26,
+    "type": "county",
+    "nearbyLocationSlugs": ["south-yorkshire","north-yorkshire","greater-manchester","lancashire"]
+  },
+  {
+    "slug": "wiltshire",
+    "name": "Wiltshire",
+    "alternateNames": [],
+    "nation": "England",
+    "region": null,
+    "centre": { "latitude": 51.4014, "longitude": -1.9289 },
+    "defaultServiceRadiusMiles": 38,
+    "type": "county",
+    "nearbyLocationSlugs": ["gloucestershire","oxfordshire","somerset","hampshire"]
+  },
+  {
+    "slug": "worcestershire",
+    "name": "Worcestershire",
+    "alternateNames": [],
+    "nation": "England",
+    "region": null,
+    "centre": { "latitude": 52.2524, "longitude": -2.1336 },
+    "defaultServiceRadiusMiles": 26,
+    "type": "county",
+    "nearbyLocationSlugs": ["west-midlands","herefordshire","warwickshire","gloucestershire"]
+  },
+  {
+    "slug": "aberdeenshire",
+    "name": "Aberdeenshire",
+    "alternateNames": [],
+    "nation": "Scotland",
+    "region": null,
+    "centre": { "latitude": 57.3194, "longitude": -2.2449 },
+    "defaultServiceRadiusMiles": 58,
+    "type": "county",
+    "nearbyLocationSlugs": ["moray","angus","highland","perth-and-kinross"]
+  },
+  {
+    "slug": "angus",
+    "name": "Angus",
+    "alternateNames": [],
+    "nation": "Scotland",
+    "region": null,
+    "centre": { "latitude": 56.6069, "longitude": -2.7083 },
+    "defaultServiceRadiusMiles": 31,
+    "type": "county",
+    "nearbyLocationSlugs": ["perth-and-kinross","fife","east-lothian","aberdeenshire"]
+  },
+  {
+    "slug": "argyll-and-bute",
+    "name": "Argyll and Bute",
+    "alternateNames": [],
+    "nation": "Scotland",
+    "region": null,
+    "centre": { "latitude": 56.0178, "longitude": -5.1302 },
+    "defaultServiceRadiusMiles": 60,
+    "type": "county",
+    "nearbyLocationSlugs": ["inverclyde","west-dunbartonshire","north-ayrshire","renfrewshire"]
+  },
+  {
+    "slug": "clackmannanshire",
+    "name": "Clackmannanshire",
+    "alternateNames": [],
+    "nation": "Scotland",
+    "region": null,
+    "centre": { "latitude": 56.1309, "longitude": -3.7861 },
+    "defaultServiceRadiusMiles": 15,
+    "type": "county",
+    "nearbyLocationSlugs": ["falkirk","west-lothian","north-lanarkshire","fife"]
+  },
+  {
+    "slug": "dumfries-and-galloway",
+    "name": "Dumfries and Galloway",
+    "alternateNames": [],
+    "nation": "Scotland",
+    "region": null,
+    "centre": { "latitude": 55.0381, "longitude": -3.8113 },
+    "defaultServiceRadiusMiles": 59,
+    "type": "county",
+    "nearbyLocationSlugs": ["east-ayrshire","south-ayrshire","cumbria","south-lanarkshire"]
+  },
+  {
+    "slug": "east-ayrshire",
+    "name": "East Ayrshire",
+    "alternateNames": [],
+    "nation": "Scotland",
+    "region": null,
+    "centre": { "latitude": 55.5636, "longitude": -4.428 },
+    "defaultServiceRadiusMiles": 24,
+    "type": "county",
+    "nearbyLocationSlugs": ["south-ayrshire","north-ayrshire","east-renfrewshire","renfrewshire"]
+  },
+  {
+    "slug": "east-dunbartonshire",
+    "name": "East Dunbartonshire",
+    "alternateNames": [],
+    "nation": "Scotland",
+    "region": null,
+    "centre": { "latitude": 55.9269, "longitude": -4.2404 },
+    "defaultServiceRadiusMiles": 15,
+    "type": "county",
+    "nearbyLocationSlugs": ["renfrewshire","west-dunbartonshire","east-renfrewshire","north-lanarkshire"]
+  },
+  {
+    "slug": "east-lothian",
+    "name": "East Lothian",
+    "alternateNames": [],
+    "nation": "Scotland",
+    "region": null,
+    "centre": { "latitude": 55.9671, "longitude": -2.8802 },
+    "defaultServiceRadiusMiles": 24,
+    "type": "county",
+    "nearbyLocationSlugs": ["midlothian","fife","scottish-borders","west-lothian"]
+  },
+  {
+    "slug": "east-renfrewshire",
+    "name": "East Renfrewshire",
+    "alternateNames": [],
+    "nation": "Scotland",
+    "region": null,
+    "centre": { "latitude": 55.7857, "longitude": -4.3351 },
+    "defaultServiceRadiusMiles": 15,
+    "type": "county",
+    "nearbyLocationSlugs": ["renfrewshire","east-dunbartonshire","south-lanarkshire","west-dunbartonshire"]
+  },
+  {
+    "slug": "na-h-eileanan-siar",
+    "name": "Na h-Eileanan Siar",
+    "alternateNames": ["Eilean Siar","Western Isles","Outer Hebrides"],
+    "nation": "Scotland",
+    "region": null,
+    "centre": { "latitude": 58.211, "longitude": -6.3817 },
+    "defaultServiceRadiusMiles": 60,
+    "type": "county",
+    "nearbyLocationSlugs": ["highland","moray","orkney-islands","argyll-and-bute"]
+  },
+  {
+    "slug": "falkirk",
+    "name": "Falkirk",
+    "alternateNames": [],
+    "nation": "Scotland",
+    "region": null,
+    "centre": { "latitude": 56.0058, "longitude": -3.7765 },
+    "defaultServiceRadiusMiles": 15,
+    "type": "county",
+    "nearbyLocationSlugs": ["clackmannanshire","west-lothian","north-lanarkshire","east-dunbartonshire"]
+  },
+  {
+    "slug": "fife",
+    "name": "Fife",
+    "alternateNames": [],
+    "nation": "Scotland",
+    "region": null,
+    "centre": { "latitude": 56.1553, "longitude": -3.2151 },
+    "defaultServiceRadiusMiles": 29,
+    "type": "county",
+    "nearbyLocationSlugs": ["east-lothian","midlothian","perth-and-kinross","clackmannanshire"]
+  },
+  {
+    "slug": "highland",
+    "name": "Highland",
+    "alternateNames": [],
+    "nation": "Scotland",
+    "region": null,
+    "centre": { "latitude": 57.5358, "longitude": -4.2671 },
+    "defaultServiceRadiusMiles": 60,
+    "type": "county",
+    "nearbyLocationSlugs": ["moray","aberdeenshire","perth-and-kinross","angus"]
+  },
+  {
+    "slug": "inverclyde",
+    "name": "Inverclyde",
+    "alternateNames": [],
+    "nation": "Scotland",
+    "region": null,
+    "centre": { "latitude": 55.9399, "longitude": -4.7557 },
+    "defaultServiceRadiusMiles": 15,
+    "type": "county",
+    "nearbyLocationSlugs": ["west-dunbartonshire","renfrewshire","argyll-and-bute","north-ayrshire"]
+  },
+  {
+    "slug": "midlothian",
+    "name": "Midlothian",
+    "alternateNames": [],
+    "nation": "Scotland",
+    "region": null,
+    "centre": { "latitude": 55.8666, "longitude": -3.1134 },
+    "defaultServiceRadiusMiles": 15,
+    "type": "county",
+    "nearbyLocationSlugs": ["east-lothian","west-lothian","fife","scottish-borders"]
+  },
+  {
+    "slug": "moray",
+    "name": "Moray",
+    "alternateNames": [],
+    "nation": "Scotland",
+    "region": null,
+    "centre": { "latitude": 57.6413, "longitude": -3.2593 },
+    "defaultServiceRadiusMiles": 39,
+    "type": "county",
+    "nearbyLocationSlugs": ["highland","aberdeenshire","angus","perth-and-kinross"]
+  },
+  {
+    "slug": "north-ayrshire",
+    "name": "North Ayrshire",
+    "alternateNames": [],
+    "nation": "Scotland",
+    "region": null,
+    "centre": { "latitude": 55.6693, "longitude": -4.7383 },
+    "defaultServiceRadiusMiles": 31,
+    "type": "county",
+    "nearbyLocationSlugs": ["east-ayrshire","south-ayrshire","renfrewshire","east-renfrewshire"]
+  },
+  {
+    "slug": "north-lanarkshire",
+    "name": "North Lanarkshire",
+    "alternateNames": [],
+    "nation": "Scotland",
+    "region": null,
+    "centre": { "latitude": 55.8537, "longitude": -3.9879 },
+    "defaultServiceRadiusMiles": 15,
+    "type": "county",
+    "nearbyLocationSlugs": ["south-lanarkshire","east-dunbartonshire","falkirk","east-renfrewshire"]
+  },
+  {
+    "slug": "orkney-islands",
+    "name": "Orkney Islands",
+    "alternateNames": ["Orkney"],
+    "nation": "Scotland",
+    "region": null,
+    "centre": { "latitude": 58.9896, "longitude": -3.0385 },
+    "defaultServiceRadiusMiles": 39,
+    "type": "county",
+    "nearbyLocationSlugs": ["moray","shetland-islands","highland","aberdeenshire"]
+  },
+  {
+    "slug": "perth-and-kinross",
+    "name": "Perth and Kinross",
+    "alternateNames": [],
+    "nation": "Scotland",
+    "region": null,
+    "centre": { "latitude": 56.4142, "longitude": -3.4755 },
+    "defaultServiceRadiusMiles": 53,
+    "type": "county",
+    "nearbyLocationSlugs": ["fife","clackmannanshire","falkirk","angus"]
+  },
+  {
+    "slug": "renfrewshire",
+    "name": "Renfrewshire",
+    "alternateNames": [],
+    "nation": "Scotland",
+    "region": null,
+    "centre": { "latitude": 55.8485, "longitude": -4.459 },
+    "defaultServiceRadiusMiles": 15,
+    "type": "county",
+    "nearbyLocationSlugs": ["east-renfrewshire","west-dunbartonshire","east-dunbartonshire","inverclyde"]
+  },
+  {
+    "slug": "scottish-borders",
+    "name": "Scottish Borders",
+    "alternateNames": [],
+    "nation": "Scotland",
+    "region": null,
+    "centre": { "latitude": 55.6, "longitude": -2.721 },
+    "defaultServiceRadiusMiles": 36,
+    "type": "county",
+    "nearbyLocationSlugs": ["midlothian","east-lothian","west-lothian","fife"]
+  },
+  {
+    "slug": "shetland-islands",
+    "name": "Shetland Islands",
+    "alternateNames": ["Shetland"],
+    "nation": "Scotland",
+    "region": null,
+    "centre": { "latitude": 60.1654, "longitude": -1.1751 },
+    "defaultServiceRadiusMiles": 50,
+    "type": "county",
+    "nearbyLocationSlugs": ["orkney-islands","moray","aberdeenshire","highland"]
+  },
+  {
+    "slug": "south-ayrshire",
+    "name": "South Ayrshire",
+    "alternateNames": [],
+    "nation": "Scotland",
+    "region": null,
+    "centre": { "latitude": 55.4615, "longitude": -4.6426 },
+    "defaultServiceRadiusMiles": 34,
+    "type": "county",
+    "nearbyLocationSlugs": ["east-ayrshire","north-ayrshire","east-renfrewshire","renfrewshire"]
+  },
+  {
+    "slug": "south-lanarkshire",
+    "name": "South Lanarkshire",
+    "alternateNames": [],
+    "nation": "Scotland",
+    "region": null,
+    "centre": { "latitude": 55.7598, "longitude": -4.0553 },
+    "defaultServiceRadiusMiles": 32,
+    "type": "county",
+    "nearbyLocationSlugs": ["north-lanarkshire","east-renfrewshire","east-dunbartonshire","renfrewshire"]
+  },
+  {
+    "slug": "west-dunbartonshire",
+    "name": "West Dunbartonshire",
+    "alternateNames": [],
+    "nation": "Scotland",
+    "region": null,
+    "centre": { "latitude": 55.9423, "longitude": -4.504 },
+    "defaultServiceRadiusMiles": 15,
+    "type": "county",
+    "nearbyLocationSlugs": ["renfrewshire","inverclyde","east-dunbartonshire","east-renfrewshire"]
+  },
+  {
+    "slug": "west-lothian",
+    "name": "West Lothian",
+    "alternateNames": [],
+    "nation": "Scotland",
+    "region": null,
+    "centre": { "latitude": 55.901, "longitude": -3.5775 },
+    "defaultServiceRadiusMiles": 15,
+    "type": "county",
+    "nearbyLocationSlugs": ["falkirk","north-lanarkshire","clackmannanshire","midlothian"]
+  },
+  {
+    "slug": "isle-of-anglesey",
+    "name": "Isle of Anglesey",
+    "alternateNames": ["Anglesey","Ynys Mon"],
+    "nation": "Wales",
+    "region": null,
+    "centre": { "latitude": 53.2909, "longitude": -4.3944 },
+    "defaultServiceRadiusMiles": 19,
+    "type": "county",
+    "nearbyLocationSlugs": ["gwynedd","conwy","denbighshire","flintshire"]
+  },
+  {
+    "slug": "blaenau-gwent",
+    "name": "Blaenau Gwent",
+    "alternateNames": [],
+    "nation": "Wales",
+    "region": null,
+    "centre": { "latitude": 51.7683, "longitude": -3.1915 },
+    "defaultServiceRadiusMiles": 15,
+    "type": "county",
+    "nearbyLocationSlugs": ["merthyr-tydfil","caerphilly","torfaen","rhondda-cynon-taf"]
+  },
+  {
+    "slug": "bridgend",
+    "name": "Bridgend",
+    "alternateNames": [],
+    "nation": "Wales",
+    "region": null,
+    "centre": { "latitude": 51.531, "longitude": -3.5998 },
+    "defaultServiceRadiusMiles": 15,
+    "type": "county",
+    "nearbyLocationSlugs": ["rhondda-cynon-taf","neath-port-talbot","vale-of-glamorgan","merthyr-tydfil"]
+  },
+  {
+    "slug": "caerphilly",
+    "name": "Caerphilly",
+    "alternateNames": [],
+    "nation": "Wales",
+    "region": null,
+    "centre": { "latitude": 51.6405, "longitude": -3.2077 },
+    "defaultServiceRadiusMiles": 15,
+    "type": "county",
+    "nearbyLocationSlugs": ["torfaen","merthyr-tydfil","blaenau-gwent","rhondda-cynon-taf"]
+  },
+  {
+    "slug": "carmarthenshire",
+    "name": "Carmarthenshire",
+    "alternateNames": [],
+    "nation": "Wales",
+    "region": null,
+    "centre": { "latitude": 51.7665, "longitude": -4.1561 },
+    "defaultServiceRadiusMiles": 33,
+    "type": "county",
+    "nearbyLocationSlugs": ["neath-port-talbot","bridgend","rhondda-cynon-taf","pembrokeshire"]
+  },
+  {
+    "slug": "ceredigion",
+    "name": "Ceredigion",
+    "alternateNames": [],
+    "nation": "Wales",
+    "region": null,
+    "centre": { "latitude": 52.2954, "longitude": -4.1922 },
+    "defaultServiceRadiusMiles": 30,
+    "type": "county",
+    "nearbyLocationSlugs": ["carmarthenshire","powys","neath-port-talbot","pembrokeshire"]
+  },
+  {
+    "slug": "conwy",
+    "name": "Conwy",
+    "alternateNames": [],
+    "nation": "Wales",
+    "region": null,
+    "centre": { "latitude": 53.2847, "longitude": -3.7662 },
+    "defaultServiceRadiusMiles": 29,
+    "type": "county",
+    "nearbyLocationSlugs": ["denbighshire","gwynedd","isle-of-anglesey","flintshire"]
+  },
+  {
+    "slug": "denbighshire",
+    "name": "Denbighshire",
+    "alternateNames": [],
+    "nation": "Wales",
+    "region": null,
+    "centre": { "latitude": 53.2638, "longitude": -3.4263 },
+    "defaultServiceRadiusMiles": 29,
+    "type": "county",
+    "nearbyLocationSlugs": ["conwy","flintshire","merseyside","gwynedd"]
+  },
+  {
+    "slug": "flintshire",
+    "name": "Flintshire",
+    "alternateNames": [],
+    "nation": "Wales",
+    "region": null,
+    "centre": { "latitude": 53.1892, "longitude": -3.0953 },
+    "defaultServiceRadiusMiles": 20,
+    "type": "county",
+    "nearbyLocationSlugs": ["denbighshire","merseyside","cheshire","conwy"]
+  },
+  {
+    "slug": "gwynedd",
+    "name": "Gwynedd",
+    "alternateNames": [],
+    "nation": "Wales",
+    "region": null,
+    "centre": { "latitude": 53.028, "longitude": -4.1495 },
+    "defaultServiceRadiusMiles": 39,
+    "type": "county",
+    "nearbyLocationSlugs": ["isle-of-anglesey","conwy","denbighshire","flintshire"]
+  },
+  {
+    "slug": "merthyr-tydfil",
+    "name": "Merthyr Tydfil",
+    "alternateNames": [],
+    "nation": "Wales",
+    "region": null,
+    "centre": { "latitude": 51.7265, "longitude": -3.3606 },
+    "defaultServiceRadiusMiles": 15,
+    "type": "county",
+    "nearbyLocationSlugs": ["rhondda-cynon-taf","blaenau-gwent","caerphilly","torfaen"]
+  },
+  {
+    "slug": "monmouthshire",
+    "name": "Monmouthshire",
+    "alternateNames": [],
+    "nation": "Wales",
+    "region": null,
+    "centre": { "latitude": 51.6978, "longitude": -2.8283 },
+    "defaultServiceRadiusMiles": 24,
+    "type": "county",
+    "nearbyLocationSlugs": ["torfaen","blaenau-gwent","caerphilly","merthyr-tydfil"]
+  },
+  {
+    "slug": "neath-port-talbot",
+    "name": "Neath Port Talbot",
+    "alternateNames": [],
+    "nation": "Wales",
+    "region": null,
+    "centre": { "latitude": 51.6704, "longitude": -3.7872 },
+    "defaultServiceRadiusMiles": 15,
+    "type": "county",
+    "nearbyLocationSlugs": ["bridgend","rhondda-cynon-taf","carmarthenshire","merthyr-tydfil"]
+  },
+  {
+    "slug": "pembrokeshire",
+    "name": "Pembrokeshire",
+    "alternateNames": [],
+    "nation": "Wales",
+    "region": null,
+    "centre": { "latitude": 51.7687, "longitude": -4.9192 },
+    "defaultServiceRadiusMiles": 30,
+    "type": "county",
+    "nearbyLocationSlugs": ["carmarthenshire","ceredigion","neath-port-talbot","bridgend"]
+  },
+  {
+    "slug": "powys",
+    "name": "Powys",
+    "alternateNames": [],
+    "nation": "Wales",
+    "region": null,
+    "centre": { "latitude": 52.357, "longitude": -3.3035 },
+    "defaultServiceRadiusMiles": 51,
+    "type": "county",
+    "nearbyLocationSlugs": ["herefordshire","shropshire","ceredigion","blaenau-gwent"]
+  },
+  {
+    "slug": "rhondda-cynon-taf",
+    "name": "Rhondda Cynon Taf",
+    "alternateNames": [],
+    "nation": "Wales",
+    "region": null,
+    "centre": { "latitude": 51.633, "longitude": -3.4282 },
+    "defaultServiceRadiusMiles": 15,
+    "type": "county",
+    "nearbyLocationSlugs": ["merthyr-tydfil","caerphilly","bridgend","blaenau-gwent"]
+  },
+  {
+    "slug": "torfaen",
+    "name": "Torfaen",
+    "alternateNames": [],
+    "nation": "Wales",
+    "region": null,
+    "centre": { "latitude": 51.6805, "longitude": -3.0353 },
+    "defaultServiceRadiusMiles": 15,
+    "type": "county",
+    "nearbyLocationSlugs": ["caerphilly","monmouthshire","blaenau-gwent","merthyr-tydfil"]
+  },
+  {
+    "slug": "vale-of-glamorgan",
+    "name": "Vale of Glamorgan",
+    "alternateNames": [],
+    "nation": "Wales",
+    "region": null,
+    "centre": { "latitude": 51.4149, "longitude": -3.2972 },
+    "defaultServiceRadiusMiles": 20,
+    "type": "county",
+    "nearbyLocationSlugs": ["bridgend","caerphilly","rhondda-cynon-taf","torfaen"]
+  },
+  {
+    "slug": "county-antrim",
+    "name": "County Antrim",
+    "alternateNames": [],
+    "nation": "Northern Ireland",
+    "region": null,
+    "centre": { "latitude": 55, "longitude": -6.16667 },
+    "defaultServiceRadiusMiles": 25,
+    "type": "county",
+    "nearbyLocationSlugs": ["county-londonderry","county-tyrone","county-down","county-armagh"]
+  },
+  {
+    "slug": "county-armagh",
+    "name": "County Armagh",
+    "alternateNames": [],
+    "nation": "Northern Ireland",
+    "region": null,
+    "centre": { "latitude": 54.25, "longitude": -6.5 },
+    "defaultServiceRadiusMiles": 25,
+    "type": "county",
+    "nearbyLocationSlugs": ["county-tyrone","county-down","county-fermanagh","county-londonderry"]
+  },
+  {
+    "slug": "county-down",
+    "name": "County Down",
+    "alternateNames": [],
+    "nation": "Northern Ireland",
+    "region": null,
+    "centre": { "latitude": 54.33333, "longitude": -5.75 },
+    "defaultServiceRadiusMiles": 25,
+    "type": "county",
+    "nearbyLocationSlugs": ["county-armagh","county-antrim","county-tyrone","county-londonderry"]
+  },
+  {
+    "slug": "county-fermanagh",
+    "name": "County Fermanagh",
+    "alternateNames": [],
+    "nation": "Northern Ireland",
+    "region": null,
+    "centre": { "latitude": 54.33333, "longitude": -7.5 },
+    "defaultServiceRadiusMiles": 25,
+    "type": "county",
+    "nearbyLocationSlugs": ["county-tyrone","county-armagh","county-londonderry","county-antrim"]
+  },
+  {
+    "slug": "county-londonderry",
+    "name": "County Londonderry",
+    "alternateNames": [],
+    "nation": "Northern Ireland",
+    "region": null,
+    "centre": { "latitude": 54.91667, "longitude": -6.91667 },
+    "defaultServiceRadiusMiles": 25,
+    "type": "county",
+    "nearbyLocationSlugs": ["county-tyrone","county-antrim","county-fermanagh","county-armagh"]
+  },
+  {
+    "slug": "county-tyrone",
+    "name": "County Tyrone",
+    "alternateNames": [],
+    "nation": "Northern Ireland",
+    "region": null,
+    "centre": { "latitude": 54.58333, "longitude": -7 },
+    "defaultServiceRadiusMiles": 25,
+    "type": "county",
+    "nearbyLocationSlugs": ["county-londonderry","county-fermanagh","county-armagh","county-antrim"]
   }
 ]

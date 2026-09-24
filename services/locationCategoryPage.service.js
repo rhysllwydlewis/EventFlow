@@ -332,8 +332,9 @@ function buildCategoryCollectionStructuredData(input) {
       name: city.name,
       address: {
         '@type': 'PostalAddress',
-        addressLocality: city.name,
-        addressRegion: city.region || undefined,
+        // A county entry's own name is the region, not a locality within one.
+        addressLocality: city.type === 'county' ? undefined : city.name,
+        addressRegion: city.type === 'county' ? city.name : city.region || undefined,
         addressCountry: 'GB',
       },
       geo: {

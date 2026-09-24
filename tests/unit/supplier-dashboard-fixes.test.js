@@ -653,7 +653,7 @@ describe('Supplier form – "areas you serve" picker serialization', () => {
     // when a form has a default submit button.
     const searchIdx = appJs.indexOf('const supServiceAreaSearchEl = document.getElementById(');
     expect(searchIdx).toBeGreaterThan(-1);
-    const listenerBlock = appJs.slice(searchIdx, searchIdx + 1400);
+    const listenerBlock = appJs.slice(searchIdx, searchIdx + 1900);
     const keydownIdx = listenerBlock.indexOf("addEventListener('keydown'");
     expect(keydownIdx).toBeGreaterThan(-1);
     const keydownBlock = listenerBlock.slice(keydownIdx, keydownIdx + 300);
@@ -668,10 +668,34 @@ describe('Supplier form – "areas you serve" picker serialization', () => {
     // reopen a dropdown the limit has already closed.
     const renderStart = appJs.indexOf('function renderSupplierServiceAreaResults(cities)');
     expect(renderStart).toBeGreaterThan(-1);
-    const renderBlock = appJs.slice(renderStart, renderStart + 600);
+    const renderBlock = appJs.slice(renderStart, renderStart + 800);
     expect(renderBlock).toContain(
       'supplierServiceAreaPicks.length >= supplierServiceAreaAllowance'
     );
+  });
+
+  it('does not reopen the areas-you-serve results dropdown once nationwide is picked', () => {
+    // Nationwide already covers every city, so a stale search response that
+    // resolves after nationwide was picked must not reopen the dropdown and
+    // offer a now-redundant city.
+    const renderStart = appJs.indexOf('function renderSupplierServiceAreaResults(cities)');
+    expect(renderStart).toBeGreaterThan(-1);
+    const renderBlock = appJs.slice(renderStart, renderStart + 800);
+    expect(renderBlock).toContain("supplierServiceAreaPicks.some(p => p.type === 'nationwide')");
+    expect(renderBlock).toContain('hasNationwide ||');
+  });
+
+  it('rejects a city pick added while nationwide is already selected', () => {
+    // Covers a click straight through addSupplierServiceAreaPick, not just
+    // the UI paths (disabled search box, hidden dropdown) that normally keep
+    // a user from getting here — e.g. a stale search result landing after
+    // nationwide was picked.
+    const addStart = appJs.indexOf('function addSupplierServiceAreaPick(pick)');
+    expect(addStart).toBeGreaterThan(-1);
+    const addBlock = appJs.slice(addStart, addStart + 700);
+    expect(addBlock).toContain("pick.type === 'city'");
+    expect(addBlock).toContain("p.type === 'nationwide'");
+    expect(addBlock).toContain('redundantUnderNationwide');
   });
 
   it('ignores a stale areas-you-serve search response that resolves out of order', () => {
@@ -688,6 +712,41 @@ describe('Supplier form – "areas you serve" picker serialization', () => {
     expect(requestIdAssignIdx).toBeGreaterThan(-1);
     expect(guardIdx).toBeGreaterThan(requestIdAssignIdx);
     expect(renderCallIdx).toBeGreaterThan(guardIdx);
+  });
+
+  it('browses the whole registry, alphabetically, once the search box is empty', () => {
+    // An empty query used to just hide the dropdown; it now shows every
+    // place the registry recognises instead of requiring a supplier to type
+    // something first to see anything at all.
+    const browseStart = appJs.indexOf('async function browseSupplierServiceAreaCities()');
+    expect(browseStart).toBeGreaterThan(-1);
+    const browseBlock = appJs.slice(browseStart, browseStart + 700);
+    expect(browseBlock).toContain('/api/v1/locations/search?browse=true');
+    expect(browseBlock).toContain('renderSupplierServiceAreaResults(');
+
+    const searchStart = appJs.indexOf('async function searchSupplierServiceAreaCities(query)');
+    const searchBlock = appJs.slice(searchStart, searchStart + 300);
+    expect(searchBlock).toContain('browseSupplierServiceAreaCities()');
+  });
+
+  it('shows the browse list as soon as the empty search box is focused', () => {
+    const focusIdx = appJs.indexOf("supServiceAreaSearchEl.addEventListener('focus'");
+    expect(focusIdx).toBeGreaterThan(-1);
+    const focusBlock = appJs.slice(focusIdx, focusIdx + 250);
+    expect(focusBlock).toContain('supServiceAreaSearchEl.value.trim()');
+    expect(focusBlock).toContain('browseSupplierServiceAreaCities()');
+  });
+
+  it('retires an in-flight search/browse fetch whenever the dropdown is closed', () => {
+    // Blur closes the dropdown on a 150ms delay to let a click register first;
+    // without bumping the request id here too, a slow response arriving after
+    // that close could still call renderSupplierServiceAreaResults and
+    // reopen a dropdown this function just closed (blur, the limit, or
+    // nationwide are all reachable while a fetch is still in flight).
+    const hideStart = appJs.indexOf('function hideSupplierServiceAreaResults()');
+    expect(hideStart).toBeGreaterThan(-1);
+    const hideBlock = appJs.slice(hideStart, hideStart + 700);
+    expect(hideBlock).toContain('supplierServiceAreaSearchRequestId += 1');
   });
 
   it('surfaces a SERVICE_AREA_LIMIT_EXCEEDED save error next to the picker', () => {

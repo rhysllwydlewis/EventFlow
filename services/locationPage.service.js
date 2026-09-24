@@ -41,6 +41,45 @@ function normaliseWebUrl(value) {
 }
 
 /**
+ * 'automation' once the auto-publish job has claimed a never-touched city,
+ * 'admin' once a human has ever saved it through the editor, null for a city
+ * nobody has acted on yet.
+ * @param {Object} record Stored page record (possibly empty).
+ * @returns {'automation'|'admin'|null} Who manages this page.
+ */
+function resolveManagedBy(record) {
+  if (record.managedBy === 'automation') {
+    return 'automation';
+  }
+  return record.managedBy ? 'admin' : null;
+}
+
+/**
+ * The hero's editorial-facing fields, resolved from what an editor has saved,
+ * a matched curated default, and (for alt text only) a final generic fallback
+ * — or all null when there is no hero image to describe at all.
+ * @param {Object} city Registry city record.
+ * @param {Object} content Normalised `content` from the stored record.
+ * @param {string|null} heroImageUrl Already-validated hero image URL.
+ * @param {Object|null} matchedHero Curated hero matching heroImageUrl, if any.
+ * @param {string|null} storedHeroSourceUrl Already-validated stored source URL.
+ * @returns {{heroImageAlt: string|null, heroImageCredit: string|null, heroImageSourceUrl: string|null}} Resolved hero fields.
+ */
+function resolveHeroFields(city, content, heroImageUrl, matchedHero, storedHeroSourceUrl) {
+  if (!heroImageUrl) {
+    return { heroImageAlt: null, heroImageCredit: null, heroImageSourceUrl: null };
+  }
+  return {
+    heroImageAlt:
+      content.heroImageAlt ||
+      matchedHero?.alt ||
+      `${city.name} ${city.type === 'county' ? 'countryside' : 'cityscape'}`,
+    heroImageCredit: content.heroImageCredit || matchedHero?.credit || null,
+    heroImageSourceUrl: storedHeroSourceUrl || matchedHero?.sourceUrl || null,
+  };
+}
+
+/**
  * The stored editorial record for a city, with defaults applied.
  *
  * A city with no record at all is a draft: new registry entries are never
@@ -71,6 +110,13 @@ function normalisePageRecord(city, stored) {
   const heroSource = HERO_SOURCE_VALUES.includes(content.heroSource)
     ? content.heroSource
     : HERO_SOURCES.auto;
+  const heroFields = resolveHeroFields(
+    city,
+    content,
+    heroImageUrl,
+    matchedHero,
+    storedHeroSourceUrl
+  );
 
   return {
     locationSlug: city.slug,
@@ -78,10 +124,7 @@ function normalisePageRecord(city, stored) {
     // Indexing is opt-in and additionally gated on quality, so flipping this
     // flag alone can never index a thin page.
     indexingRequested: record.indexingRequested === true,
-    // 'automation' once the auto-publish job has claimed a never-touched
-    // city, 'admin' once a human has ever saved it through the editor, null
-    // for a city nobody has acted on yet.
-    managedBy: record.managedBy === 'automation' ? 'automation' : record.managedBy ? 'admin' : null,
+    managedBy: resolveManagedBy(record),
     publishedAt: record.publishedAt || null,
     lastReviewedAt: record.lastReviewedAt || null,
     reviewedBy: record.reviewedBy || null,
@@ -92,15 +135,7 @@ function normalisePageRecord(city, stored) {
     content: {
       heroSource,
       heroImageUrl,
-      heroImageAlt: heroImageUrl
-        ? content.heroImageAlt || (matchedHero && matchedHero.alt) || `${city.name} cityscape`
-        : null,
-      heroImageCredit: heroImageUrl
-        ? content.heroImageCredit || (matchedHero && matchedHero.credit) || null
-        : null,
-      heroImageSourceUrl: heroImageUrl
-        ? storedHeroSourceUrl || (matchedHero && matchedHero.sourceUrl) || null
-        : null,
+      ...heroFields,
       intro: content.intro || '',
       planningSections: Array.isArray(content.planningSections)
         ? content.planningSections.slice(0, LIMITS.maxSections)
@@ -445,8 +480,11 @@ function buildCollectionStructuredData(input) {
       name: city.name,
       address: {
         '@type': 'PostalAddress',
-        addressLocality: city.name,
-        addressRegion: city.region || undefined,
+        // A county entry's own name is the region — schema.org's
+        // addressLocality means a city/town within one, not the county
+        // itself, so a county has no locality to name here.
+        addressLocality: city.type === 'county' ? undefined : city.name,
+        addressRegion: city.type === 'county' ? city.name : city.region || undefined,
         addressCountry: 'GB',
       },
       geo: {
