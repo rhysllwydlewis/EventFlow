@@ -673,7 +673,7 @@ function describeCategory(city, category, data) {
     packageCount: model.packages.length,
     eventCount: model.events.length,
     siblingCategories: model.siblingCategories.map(entry => entry.name),
-    nearbySameCategory: model.nearbySameCategory.map(nearby => nearby.slug),
+    nearbySameCategory: model.nearbySameCategory.map(nearbyEntry => nearbyEntry.slug),
     guides: locationGuides.relatedGuidesForCategory(city, category),
     warnings: buildCategoryWarnings(city, category, page, model),
   };
