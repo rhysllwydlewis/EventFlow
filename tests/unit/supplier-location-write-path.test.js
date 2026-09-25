@@ -287,10 +287,12 @@ describe('supplier profile routes', () => {
           return filter.id === supplier.id ? supplier : null;
         }),
         updateOne,
-        insertOne: jest.fn(async (_collection, record) => {
-          inserted = record;
-          return true;
-        }),
+        insertOne:
+          overrides.insertOne ||
+          jest.fn(async (_collection, record) => {
+            inserted = record;
+            return true;
+          }),
         find: jest.fn(async () => []),
         read: jest.fn(async () => []),
       },
@@ -380,6 +382,37 @@ describe('supplier profile routes', () => {
     expect(inserted.description_short).toBe(description_short);
     expect(inserted.description_long).toBe(description_long);
     expect(inserted.location).toBe(location);
+  });
+
+  it('geocodes a Venues postcode on create and stores the normalized coordinates', async () => {
+    const response = await request(app())
+      .post('/')
+      .send({ name: 'New Venue', category: 'Venues', venuePostcode: 'cf10 1aa' });
+
+    expect(response.status).toBe(200);
+    expect(inserted.venuePostcode).toBe('CF10 1AA');
+    expect(inserted.latitude).toBe(51.4816);
+    expect(inserted.longitude).toBe(-3.1791);
+  });
+
+  it('creates a Venues profile even when the postcode cannot be geocoded', async () => {
+    const response = await request(app())
+      .post('/')
+      .send({ name: 'New Venue', category: 'Venues', venuePostcode: 'sw1a 1aa' });
+
+    expect(response.status).toBe(200);
+    expect(inserted.venuePostcode).toBe('SW1A 1AA');
+    expect(inserted.latitude).toBeUndefined();
+    expect(inserted.longitude).toBeUndefined();
+  });
+
+  it('returns 500 without a race when the profile fails to insert', async () => {
+    const response = await request(app({ insertOne: jest.fn(async () => false) }))
+      .post('/')
+      .send({ name: 'New Co', category: 'Photography' });
+
+    expect(response.status).toBe(500);
+    expect(response.body.error).toMatch(/failed to create supplier profile/i);
   });
 
   it('rejects more picks than the plan allows on create', async () => {
