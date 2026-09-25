@@ -22,6 +22,7 @@ const userProvenance = require('../services/userProvenance.service');
 const adminUserSummary = require('../services/adminUserSummary.service');
 const { ensureSupplierProfileForUser } = require('../services/supplierProfileProvisioning.service');
 const accountTypeConversion = require('../services/accountTypeConversion.service');
+const supplierLocation = require('../services/supplierLocation.service');
 const {
   buildSupplierProGrantUpdate,
   buildSupplierProRevokeUpdate,
@@ -1838,7 +1839,14 @@ router.put(
         supplier.location = location;
       }
       if (serviceAreas !== undefined) {
-        supplier.serviceAreas = serviceAreas;
+        // This route is the only place a city gets assigned without going
+        // through the supplier's own self-service picker (which has no city
+        // controls at all), so every city entry saved here is authoritatively
+        // tagged as admin-assigned — never taken from the request body — so
+        // the supplier's own profile PATCH can never remove or replace it.
+        supplier.serviceAreas = supplierLocation
+          .sanitiseServiceAreas(serviceAreas)
+          .map(area => (area.type === 'city' ? { ...area, source: 'admin' } : area));
       }
 
       supplier.updatedAt = new Date().toISOString();

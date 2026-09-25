@@ -364,6 +364,24 @@ describe('supplier profile routes', () => {
     expect(inserted.serviceAreas).toEqual([{ type: 'city', slug: 'newport' }]);
   });
 
+  it('accepts the same field lengths on create as an edit later would', async () => {
+    const description_short = 'x'.repeat(250);
+    const description_long = 'y'.repeat(3000);
+    const location = 'z'.repeat(150);
+
+    await request(app()).post('/').send({
+      name: 'New Co',
+      category: 'Photography',
+      description_short,
+      description_long,
+      location,
+    });
+
+    expect(inserted.description_short).toBe(description_short);
+    expect(inserted.description_long).toBe(description_long);
+    expect(inserted.location).toBe(location);
+  });
+
   it('rejects more picks than the plan allows on create', async () => {
     getServiceAreaAllowance.mockImplementation(async () => 2);
 
@@ -464,6 +482,88 @@ describe('supplier profile routes', () => {
 
     expect(response.status).toBe(200);
     expect(supplier.serviceAreas).toEqual([{ type: 'nationwide' }]);
+  });
+
+  describe('admin-assigned service areas', () => {
+    it('is retained when the supplier replaces their own picks', async () => {
+      supplier.serviceAreas = [
+        { type: 'city', slug: 'cardiff', source: 'admin' },
+        { type: 'city', slug: 'bristol' },
+      ];
+
+      const response = await request(app())
+        .patch('/sup_1')
+        .send({ serviceAreas: [{ type: 'city', slug: 'newport' }] });
+
+      expect(response.status).toBe(200);
+      expect(supplier.serviceAreas).toEqual(
+        expect.arrayContaining([
+          { type: 'city', slug: 'cardiff', source: 'admin' },
+          { type: 'city', slug: 'newport' },
+        ])
+      );
+      expect(supplier.serviceAreas).not.toEqual(
+        expect.arrayContaining([{ type: 'city', slug: 'bristol' }])
+      );
+    });
+
+    it('is retained when the picker clears every self-service pick', async () => {
+      supplier.serviceAreas = [
+        { type: 'city', slug: 'cardiff', source: 'admin' },
+        { type: 'city', slug: 'bristol' },
+      ];
+
+      const response = await request(app())
+        .patch('/sup_1')
+        .send({ serviceAreas: [], replaceServiceAreaPicks: true });
+
+      expect(response.status).toBe(200);
+      expect(supplier.serviceAreas).toEqual([{ type: 'city', slug: 'cardiff', source: 'admin' }]);
+    });
+
+    it('is retained when the supplier claims nationwide coverage', async () => {
+      supplier.serviceAreas = [{ type: 'city', slug: 'cardiff', source: 'admin' }];
+
+      const response = await request(app())
+        .patch('/sup_1')
+        .send({ serviceAreas: [{ type: 'nationwide' }] });
+
+      expect(response.status).toBe(200);
+      expect(supplier.serviceAreas).toEqual(
+        expect.arrayContaining([
+          { type: 'city', slug: 'cardiff', source: 'admin' },
+          { type: 'nationwide' },
+        ])
+      );
+    });
+
+    it('does not count against the supplier self-service allowance', async () => {
+      getServiceAreaAllowance.mockImplementation(async () => 1);
+      supplier.serviceAreas = [{ type: 'city', slug: 'cardiff', source: 'admin' }];
+
+      const response = await request(app())
+        .patch('/sup_1')
+        .send({ serviceAreas: [{ type: 'city', slug: 'newport' }] });
+
+      expect(response.status).toBe(200);
+      expect(supplier.serviceAreas).toEqual(
+        expect.arrayContaining([
+          { type: 'city', slug: 'cardiff', source: 'admin' },
+          { type: 'city', slug: 'newport' },
+        ])
+      );
+    });
+
+    it('cannot be minted by a supplier tagging their own request as admin-assigned', async () => {
+      supplier.serviceAreas = [];
+
+      const response = await request(app())
+        .patch('/sup_1')
+        .send({ serviceAreas: [{ type: 'city', slug: 'cardiff', source: 'admin' }] });
+
+      expect(response.status).toBe(200);
+      expect(supplier.serviceAreas).toEqual([{ type: 'city', slug: 'cardiff' }]);
+    });
   });
 
   it('clears every pick when the picker sends an empty list with the replace flag', async () => {

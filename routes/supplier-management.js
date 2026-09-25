@@ -549,16 +549,24 @@ router.post(
     const s = {
       id: uid('sup'),
       ownerUserId: req.user.id,
-      name: trimmedName.slice(0, 120),
+      // Reuse the PATCH-route limits so a value a supplier can save while
+      // editing was never silently shorter at creation time.
+      name: trimmedName.slice(0, PATCH_FIELD_MAX_LENGTHS.name),
       category: b.category,
-      location: String(b.location || '').slice(0, 120),
-      price_display: String(b.price_display || '').slice(0, 60),
+      location: String(b.location || '').slice(0, PATCH_FIELD_MAX_LENGTHS.location),
+      price_display: String(b.price_display || '').slice(0, PATCH_FIELD_MAX_LENGTHS.price_display),
       website: websiteUrl,
-      license: String(b.license || '').slice(0, 120),
+      license: String(b.license || '').slice(0, PATCH_FIELD_MAX_LENGTHS.license),
       amenities,
       maxGuests: parseInt(b.maxGuests || 0, 10),
-      description_short: String(b.description_short || '').slice(0, 220),
-      description_long: String(b.description_long || '').slice(0, 2000),
+      description_short: String(b.description_short || '').slice(
+        0,
+        PATCH_FIELD_MAX_LENGTHS.description_short
+      ),
+      description_long: String(b.description_long || '').slice(
+        0,
+        PATCH_FIELD_MAX_LENGTHS.description_long
+      ),
       photosGallery: [],
       email: ownerUser?.email || req.user.email || '',
       profileComplete: false,
@@ -903,8 +911,20 @@ router.patch(
       // nationwide claim — the picker lets them choose either, up to their
       // plan's allowance. Travel radius is a separate, single-value field the
       // dashboard has always fully controlled, so it stays outside this.
-      const isPick = area => area.type === 'city' || area.type === 'nationwide';
-      const retainedPicks = supplierLocation.sanitiseServiceAreas(s.serviceAreas).filter(isPick);
+      //
+      // An admin can also assign a city by hand (or via the internal API),
+      // tagged `source: 'admin'` — the dashboard has no controls for those at
+      // all, so they must never be treated as part of the supplier's own pick
+      // pool: not counted against the allowance, not replaced when the
+      // picker sends its full list, and never removable from this route.
+      const isAdminCity = area => area.type === 'city' && area.source === 'admin';
+      const isPick = area =>
+        (area.type === 'city' || area.type === 'nationwide') && !isAdminCity(area);
+      const currentAreas = supplierLocation.sanitiseServiceAreas(s.serviceAreas, {
+        preserveSource: true,
+      });
+      const retainedAdminCities = currentAreas.filter(isAdminCity);
+      const retainedPicks = currentAreas.filter(isPick);
       const requestedAreas = supplierLocation.sanitiseServiceAreas(b.serviceAreas);
       const requestedPicks = requestedAreas.filter(isPick);
       const requestedRadiusAreas = requestedAreas.filter(area => !isPick(area));
@@ -939,10 +959,14 @@ router.patch(
       // sending a travel radius) keeps the old, safe behaviour: it cannot
       // silently wipe coverage it never mentioned.
       const replacingPicks = b.replaceServiceAreaPicks === true || requestedPicks.length > 0;
-      supplierPatch.serviceAreas = supplierLocation.sanitiseServiceAreas([
-        ...(replacingPicks ? requestedPicks : retainedPicks),
-        ...requestedRadiusAreas,
-      ]);
+      supplierPatch.serviceAreas = supplierLocation.sanitiseServiceAreas(
+        [
+          ...retainedAdminCities,
+          ...(replacingPicks ? requestedPicks : retainedPicks),
+          ...requestedRadiusAreas,
+        ],
+        { preserveSource: true }
+      );
     }
 
     // Re-derive only when the supplier actually moved: a banner change should

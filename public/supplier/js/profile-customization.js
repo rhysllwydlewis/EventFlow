@@ -405,6 +405,18 @@
     }
   }
 
+  // Reload, tab close and navigation away all bypass the in-page save/discard
+  // bar, so unlike those this listener stays registered for the page's whole
+  // lifetime and simply no-ops while clean, rather than being added/removed
+  // around each dirty/clean transition.
+  window.addEventListener('beforeunload', event => {
+    if (!dirty) {
+      return;
+    }
+    event.preventDefault();
+    event.returnValue = '';
+  });
+
   function setSaving(isSaving) {
     const ids = [
       'sup-save-btn',
