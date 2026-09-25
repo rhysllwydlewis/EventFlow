@@ -1221,5 +1221,121 @@
     "primaryTag": "honeymoon",
     "ogImage": "https://images.pexels.com/photos/2788792/pexels-photo-2788792.jpeg?auto=compress&cs=tinysrgb&w=800&h=500&dpr=1",
     "lastMaterialUpdate": "2026-09-07"
+  },
+  {
+    "id": 43,
+    "title": "Wedding Flowers & Bouquets Guide",
+    "description": "How to choose wedding flowers on budget, from bouquet styles to seasonal blooms and working with a florist.",
+    "excerpt": "How to choose wedding flowers on budget, from bouquet styles to seasonal blooms and working with a florist. Covers costs, seasonal availability, ceremony and reception florals, and what to ask before booking.",
+    "image": "https://images.pexels.com/photos/931177/pexels-photo-931177.jpeg?auto=compress&cs=tinysrgb&w=800&h=500&dpr=1",
+    "category": "Wedding",
+    "tags": [
+      "wedding",
+      "flowers",
+      "florist"
+    ],
+    "href": "/articles/wedding-flowers-bouquets-guide",
+    "readingMins": 7,
+    "publishedDate": "2026-09-25",
+    "featured": false,
+    "affiliate": false,
+    "tool": {
+      "label": "Browse florists",
+      "href": "/suppliers"
+    },
+    "author": "EventFlow Team",
+    "summary": "Bouquet styles, seasonal flowers and costs, and how to work with a florist.",
+    "difficulty": "Beginner",
+    "lastUpdated": "2026-09-25",
+    "primaryTag": "flowers",
+    "ogImage": "https://images.pexels.com/photos/931177/pexels-photo-931177.jpeg?auto=compress&cs=tinysrgb&w=800&h=500&dpr=1",
+    "lastMaterialUpdate": "2026-09-25"
+  },
+  {
+    "id": 44,
+    "title": "Wedding Cake Guide",
+    "description": "How to choose a wedding cake, from style and flavour to sizing, costs and ordering timeline.",
+    "excerpt": "How to choose a wedding cake, from style and flavour to sizing, costs and ordering timeline. Covers cake sizing by guest count, UK cost ranges, and alternatives to a traditional tiered cake.",
+    "image": "https://images.pexels.com/photos/4386431/pexels-photo-4386431.jpeg?auto=compress&cs=tinysrgb&w=800&h=500&dpr=1",
+    "category": "Wedding",
+    "tags": [
+      "wedding",
+      "cake",
+      "catering"
+    ],
+    "href": "/articles/wedding-cake-guide",
+    "readingMins": 7,
+    "publishedDate": "2026-09-25",
+    "featured": false,
+    "affiliate": false,
+    "tool": {
+      "label": "Browse cake suppliers",
+      "href": "/suppliers"
+    },
+    "author": "EventFlow Team",
+    "summary": "Cake styles, sizing by guest count, UK costs and alternatives to a tiered cake.",
+    "difficulty": "Beginner",
+    "lastUpdated": "2026-09-25",
+    "primaryTag": "cake",
+    "ogImage": "https://images.pexels.com/photos/4386431/pexels-photo-4386431.jpeg?auto=compress&cs=tinysrgb&w=800&h=500&dpr=1",
+    "lastMaterialUpdate": "2026-09-25"
+  },
+  {
+    "id": 45,
+    "title": "Wedding Rings & Jewellery Guide",
+    "description": "Choosing engagement rings, wedding bands and jewellery for the wedding party, with buying and insurance tips.",
+    "excerpt": "Choosing engagement rings, wedding bands and jewellery for the wedding party, with buying and insurance tips. Covers the 4 Cs, lab-grown diamonds, matching bands and how to insure your rings.",
+    "image": "https://images.pexels.com/photos/1027130/pexels-photo-1027130.jpeg?auto=compress&cs=tinysrgb&w=800&h=500&dpr=1",
+    "category": "Wedding",
+    "tags": [
+      "wedding",
+      "rings",
+      "jewellery"
+    ],
+    "href": "/articles/wedding-rings-jewellery-guide",
+    "readingMins": 7,
+    "publishedDate": "2026-09-25",
+    "featured": false,
+    "affiliate": false,
+    "tool": {
+      "label": "Browse suppliers",
+      "href": "/suppliers"
+    },
+    "author": "EventFlow Team",
+    "summary": "Engagement rings, wedding bands and jewellery for the wedding party, plus buying and insurance tips.",
+    "difficulty": "Beginner",
+    "lastUpdated": "2026-09-25",
+    "primaryTag": "rings",
+    "ogImage": "https://images.pexels.com/photos/1027130/pexels-photo-1027130.jpeg?auto=compress&cs=tinysrgb&w=800&h=500&dpr=1",
+    "lastMaterialUpdate": "2026-09-25"
+  },
+  {
+    "id": 46,
+    "title": "Hen Do & Stag Do Planning Guide",
+    "description": "How to plan a hen do or stag do, including budget, who pays, timing and ideas for every style.",
+    "excerpt": "How to plan a hen do or stag do, including budget, who pays, timing and ideas for every style. Covers UK costs, etiquette, and relaxed, active and city-break ideas.",
+    "image": "https://images.pexels.com/photos/1190297/pexels-photo-1190297.jpeg?auto=compress&cs=tinysrgb&w=800&h=500&dpr=1",
+    "category": "Wedding",
+    "tags": [
+      "wedding",
+      "hen do",
+      "stag do"
+    ],
+    "href": "/articles/hen-do-stag-do-planning-guide",
+    "readingMins": 6,
+    "publishedDate": "2026-09-25",
+    "featured": false,
+    "affiliate": false,
+    "tool": {
+      "label": "Start planning",
+      "href": "/start"
+    },
+    "author": "EventFlow Team",
+    "summary": "Budget, who pays, timing and ideas for a hen do or stag do of any style.",
+    "difficulty": "Beginner",
+    "lastUpdated": "2026-09-25",
+    "primaryTag": "hen-do",
+    "ogImage": "https://images.pexels.com/photos/1190297/pexels-photo-1190297.jpeg?auto=compress&cs=tinysrgb&w=800&h=500&dpr=1",
+    "lastMaterialUpdate": "2026-09-25"
   }
 ]
