@@ -122,15 +122,15 @@ otherwise, but don't hold an otherwise-clean merge for it.
       the session looking for real defects anywhere in the product — broken
       flows, poor states, accessibility issues, inconsistent UI, missing
       error handling, flaky tests — verify each one is real before fixing it.
-      (Kept open/ongoing.) Two candidates queued from the 2026-09-22 sweep,
-      not yet picked up:
-  - [ ] Gallery upload modal (`public/gallery.html` `#uploadModal` /
+      (Kept open/ongoing.) No candidates queued — pick a fresh target next
+      session.
+  - [x] Gallery upload modal (`public/gallery.html` `#uploadModal` /
         `public/assets/js/pages/gallery-init.js`) has Escape-key and
         backdrop-click handling but no `role="dialog"`, `aria-modal`,
         `aria-labelledby`, or focus management — the same defect class fixed
         on compare/budget/timeline in PR #1685, just missed on this page.
-        Best next pick — customer-facing.
-  - [ ] Same missing dialog semantics on admin-only modals: `#photoModal` in
+        Done in PR #1707 (2026-09-23) — see session log.
+  - [x] Same missing dialog semantics on admin-only modals: `#photoModal` in
         `public/admin-media.html` and `public/admin-pexels.html`. Lower
         priority (internal tool, smaller blast radius) — note
         `admin-media.html`'s own `#assignmentModal` already has correct
@@ -141,7 +141,8 @@ otherwise, but don't hold an otherwise-clean merge for it.
         `admin-homepage-hardening.js`'s `syncModalAccessibility()` already
         sets `role="dialog"`, `aria-modal`, `aria-labelledby`, focus
         management and Tab/Escape trapping on it; verified directly in the
-        file before correcting this entry.)
+        file before correcting this entry.) Done in PR #1714 (2026-09-24) —
+        see session log.
 
 ## Discovered along the way
 
@@ -172,6 +173,99 @@ now, this broader routine covers the whole site and merges autonomously under
 the policy above.
 
 ## Session log
+
+### 2026-09-24 — session 7
+
+Branch's last commit (session 6's handoff-doc update, `8b555ef52`) was not
+itself merged into `main` — only PR #1707 (`c4a5cc3a3`, the gallery a11y
+fix) was. Restarted `claude/eventflow-devops` from latest `main` and
+cherry-picked the unmerged doc-update commit onto the new base (its content
+diffed identical to itself, so no history was lost), then force-with-lease
+pushed per policy. No open PR, no review comments waiting — picked the next
+unchecked backlog item: the admin-only `#photoModal` dialog-accessibility
+gap in `admin-media.html`/`admin-pexels.html`, queued since session 5.
+
+**What changed.** Same defect class as PR #1707 (gallery upload modal): both
+pages' `#photoModal` had no `role="dialog"`, `aria-modal`, `aria-labelledby`,
+or focus management. Toggled via an `active` class (persistent element, not
+DOM-removed), so reused the same class-mutation-observer pattern: a
+`sr-only` heading wired to `aria-labelledby`, focus moved into the modal on
+open and restored to the trigger on close, a Tab-key focus trap, and
+document-level Escape-to-close (matching gallery-init.js's own listener
+placement, not a listener on the modal itself, to avoid an edge case where
+Escape pressed before the focus-trap's first tick wouldn't bubble through
+the modal). Also bumped both scripts' `?v=` cache-busting query strings in
+`admin-media.html`/`admin-pexels.html` (initially missed, caught in the
+independent review pass below and by a Codex review comment after push —
+both landed the same fix, so no further action needed there).
+
+**Independent review pass caught a real bug before merge.** Re-reading the
+diff cold: `admin-media-init.js`'s `modalUseHomepage` click handler closes
+`photoModal` and immediately opens `assignmentModal` in the same
+synchronous handler. Codex's automated review (posted after the first push)
+flagged the same issue independently: the `MutationObserver` callback that
+restores focus to `photoModal`'s original trigger runs as a microtask,
+_after_ `showAssignmentModal()` has already synchronously focused
+`assignmentSave` — so it steals focus back to the trigger behind the
+newly-opened dialog. Fixed by clearing `lastFocusedPhotoModalElement` before
+removing `photoModal`'s `active` class in that one handler, so the restore
+branch is a no-op for this specific handoff. Verified with a jsdom
+regression test that renders the real curated-photos flow, clicks the real
+"View" button (with an explicit `.focus()` first — jsdom, unlike real
+browsers, doesn't auto-focus a clicked button, so the test wouldn't
+reproduce the race without it) then the real "Use on homepage" button, and
+asserts focus lands on and stays on `assignmentSave`; confirmed the test
+fails without the fix and passes with it before trusting it.
+
+**Verified before opening the PR, and again after the review-pass fixes.**
+`npx eslint` clean on both changed scripts. A standalone jsdom verification
+script (not committed) loading the real patched HTML/JS for both pages:
+`role="dialog"`/`aria-modal="true"`/`aria-labelledby` set on load, opening
+moves focus in, Tab-trap wraps at both ends, Escape closes, focus restores
+to the trigger — plus the `modalUseHomepage` handoff regression test above.
+`npx jest tests/unit/admin-media-upload-library.test.js` — 5/5 passing.
+Full `npm test` (`npm install` first — `node_modules` missing in this fresh
+checkout, as previously noted below) run twice, before and after the
+Codex-review fix: 12278/12279 passing both times, the one constant failure
+the same pre-existing MongoDB-connectivity timeout in
+`marketplace-image-deletion.test.js` documented below as an environment
+limitation.
+
+**CI infra outage, not a real failure — PR left open, not merged.** Every
+check on both pushed commits (`9bd7b9b46`, then the current head
+`96ce8e596` after the Codex-review fix) failed within 2–18 seconds across
+every workflow (CI, CodeQL, Test, E2E, Visual Regression, Lighthouse) —
+confirmed via each job's `runner_id: 0` (no runner was ever assigned) and
+log downloads 404ing. Ruled out self-inflicted second-push cancellation
+(the documented pattern from session 1): each commit's own runs failed
+identically with no later push to blame at the time. Confirmed `main`'s
+most recent push (PR #1713, ~10 hours earlier) ran green normally, and
+`DeepSource: JavaScript` — separate, non-GitHub-Actions infrastructure —
+passed with grade A on the current head, so this is specifically a
+GitHub-hosted-runner outage, not anything about this diff or a DeepSource
+problem. Re-ran failed jobs once on every real workflow run for both
+commits (`rerun_failed_jobs`) per the merge policy's "died before any test
+body ran" flake carve-out — same result both times, so did not re-run
+again. `github-advanced-security` also failed but is non-retriable (`403`),
+matching the already-documented known false positive for that check.
+
+Per merge policy, only merge once tests/CI are actually green — an
+infrastructure outage that prevents CI from running at all is not
+something a re-run or a code change can fix, so **PR #1714 was left open,
+not merged**, with one PR comment documenting all of the above (title:
+"CI is red for infrastructure reasons unrelated to this PR's diff").
+Everything that can be verified locally is green (lint clean, full
+`npm test` 12278/12279 — the one failure being the pre-existing
+MongoDB-connectivity sandbox limitation below). PR subscription is still
+active, so a future CI-success event on this PR will wake a session
+automatically once GitHub's runners recover; if this file is read cold
+before that happens, check `https://github.com/rhysllwydlewis/EventFlow/pull/1714`'s
+current CI status directly rather than assuming the outage is still
+ongoing — GitHub Actions outages are typically resolved within
+minutes to hours, not days.
+
+**No deploy-verification step was run this session** — merging step 7 of
+the merge policy doesn't apply since nothing merged into `main`.
 
 ### 2026-09-23 — session 6
 
@@ -248,17 +342,40 @@ Tab-trap listener (different key, different element). Confirmed this is
 purely additive with no change to `showModal()`/`hideModal()`'s existing
 logic beyond the new code appended after them.
 
-**Outcome: PR opened, not yet merged this cycle — CI was still running
-when this update was written.** Opened PR #1707
-(https://github.com/rhysllwydlewis/EventFlow/pull/1707). If a later session
-or a CI-event wake picks this back up: check CI status first, apply the
-review-then-merge sequence in the merge policy above once green, and record
-the deploy verification (step 7) in a new dated entry rather than editing
-this one.
+**CI and the known-flake check.** Every check went green on the current
+head (`046a1abbe`) except `github-advanced-security`, which failed with the
+exact signature already documented above for #1678/#1697:
+`SessionModelError: CAPIError: 400 The requested model is not supported`,
+crashing inside GitHub's own Copilot code-scanning backend at session
+creation, before any diff analysis (confirmed via the job log). Attempted
+the one re-run this routine's policy allows; the API refused it the same
+way as before (`403 This workflow run cannot be retried`). Posted one PR
+comment naming the failure and why it wasn't held against the merge before
+continuing. Two of the wake events during this cycle (`Build Verification`,
+`Browser Verification` failures) were for the superseded first commit
+(`137c8d2b9`, before the handoff-doc commit was pushed on top of it) rather
+than the final head — same self-inflicted-noise pattern session 1 first
+documented; no action needed, the final head's own runs of both were green.
+DeepSource JavaScript came back grade A on the final head (not the other
+known dashboard-metric false positive this time).
 
-**Next session (if this one didn't get to merge/deploy-verify):** the other
-candidate from session 5's sweep — missing dialog semantics on
-`admin-media.html`'s and `admin-pexels.html`'s `#photoModal` — is still
+**Outcome: merged.** PR #1707
+(https://github.com/rhysllwydlewis/EventFlow/pull/1707) merged into `main`
+as `c4a5cc3a3` at 07:15 UTC. `merged_by` shows the owner's account — as
+with PR #1678, consistent with either this routine's own autonomous merge
+or the owner merging by hand after seeing it green; either way CI was fully
+green (modulo the documented false positive) before the merge landed.
+
+**Post-merge deploy verification.** Polled
+`https://event-flow.co.uk/api/ready` via `curl` (Bash's outbound network
+was not blocked this session, cache-busting query param each call) four
+times at ~25s intervals over 07:15–07:17 UTC: all HTTP 200 with
+`"status":"ready"`, MongoDB connected and the Redis queue's producer/worker
+both healthy throughout. Deploy confirmed good, no revert needed.
+
+**Next session:** the other candidate from session 5's sweep — missing
+dialog semantics on `admin-media.html`'s and `admin-pexels.html`'s
+`#photoModal` — is still
 queued in the backlog above (lower priority, internal tool).
 
 ### 2026-09-22 — session 5
