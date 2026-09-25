@@ -985,7 +985,7 @@
             border: 1px solid #e5e7eb;
           `;
           preview.innerHTML = `
-            <img src="${base64}" style="width: 100%; height: 100%; object-fit: cover;">
+            <img src="${base64}" alt="Selected listing photo preview" style="width: 100%; height: 100%; object-fit: cover;">
             <button type="button" style="position: absolute; top: 2px; right: 2px; background: rgba(0,0,0,0.5); color: white; border: none; border-radius: 50%; width: 20px; height: 20px; cursor: pointer; font-size: 12px; line-height: 1;" onclick="this.parentElement.remove()">×</button>
           `;
           imagePreview.appendChild(preview);
