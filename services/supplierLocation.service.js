@@ -465,13 +465,22 @@ async function deriveBaseLocation(supplier, dependencies = {}) {
  * with whatever is already on disk. This is the write path, so it is strict:
  * unknown cities, out-of-range radii and unrecognised types are dropped, and a
  * supplier can never store coverage the pages would not honour.
- * @param {*} value Raw `serviceAreas` from a request body.
+ *
+ * `source: 'admin'` on a city entry marks coverage an admin assigned by hand
+ * (through the admin console, not the supplier's own self-service picker).
+ * That tag is trusted only when `options.preserveSource` is set — callers
+ * re-reading a supplier's already-stored `serviceAreas` pass it; callers
+ * sanitising a request body a supplier controls must not, so a supplier can
+ * never mint the tag themselves by sending it in their own PATCH.
+ * @param {*} value Raw `serviceAreas` from a request body or stored record.
+ * @param {Object} [options] `{preserveSource}`.
  * @returns {Object[]} Clean service areas.
  */
-function sanitiseServiceAreas(value) {
+function sanitiseServiceAreas(value, options = {}) {
   if (!Array.isArray(value)) {
     return [];
   }
+  const preserveSource = options.preserveSource === true;
 
   const areas = [];
   const seenCities = new Set();
@@ -486,7 +495,11 @@ function sanitiseServiceAreas(value) {
       const resolved = registry.resolveCity(area.slug);
       if (resolved && !seenCities.has(resolved.city.slug)) {
         seenCities.add(resolved.city.slug);
-        areas.push({ type: SERVICE_AREA_TYPES.city, slug: resolved.city.slug });
+        const entry = { type: SERVICE_AREA_TYPES.city, slug: resolved.city.slug };
+        if (preserveSource && area.source === 'admin') {
+          entry.source = 'admin';
+        }
+        areas.push(entry);
       }
       continue;
     }
@@ -507,12 +520,15 @@ function sanitiseServiceAreas(value) {
     }
   }
 
-  // Nationwide already covers every city, so a city pick alongside it adds no
-  // real coverage — it only burns the supplier's limited pick allowance and
-  // shows a redundant tag. Drop city picks once nationwide is present,
-  // regardless of which order the two arrived in.
+  // Nationwide already covers every city, so a self-service city pick
+  // alongside it adds no real coverage — it only burns the supplier's
+  // limited pick allowance and shows a redundant tag. Drop those city picks
+  // once nationwide is present, regardless of which order the two arrived
+  // in. An admin-assigned city is not part of that self-service allowance,
+  // so it survives — dropping it here would silently erase an admin
+  // decision the moment a supplier claimed nationwide coverage.
   if (hasNationwide) {
-    return areas.filter(area => area.type !== SERVICE_AREA_TYPES.city);
+    return areas.filter(area => area.type !== SERVICE_AREA_TYPES.city || area.source === 'admin');
   }
 
   return areas;

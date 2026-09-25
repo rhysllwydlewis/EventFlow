@@ -539,26 +539,34 @@ router.post(
     // the autoApproveSupplierVerification feature flag. When ON, the service
     // returns { approved: true, approvedAt, approvedBy: 'system', ... }.
     // When OFF it returns { approved: false, verified: false, ... }.
-    // We spread these onto s so the flag is always set explicitly.
+    // We spread these onto newSupplier so the flag is always set explicitly.
     const approvalDefaults = await supplierApprovalDefaults(nowIso);
     // approvalDefaults.approved is either true (auto-approve ON) or false (manual approval needed).
-    // s.approved = true  → set by service when autoApproveSupplierVerification === true
-    // s.approvedAt / s.approvedBy = 'system' → set by service on auto-approval
+    // newSupplier.approved = true  → set by service when autoApproveSupplierVerification === true
+    // newSupplier.approvedAt / newSupplier.approvedBy = 'system' → set by service on auto-approval
     // approved: false, → default when auto-approve is OFF (manual admin review required)
 
-    const s = {
+    const newSupplier = {
       id: uid('sup'),
       ownerUserId: req.user.id,
-      name: trimmedName.slice(0, 120),
+      // Reuse the PATCH-route limits so a value a supplier can save while
+      // editing was never silently shorter at creation time.
+      name: trimmedName.slice(0, PATCH_FIELD_MAX_LENGTHS.name),
       category: b.category,
-      location: String(b.location || '').slice(0, 120),
-      price_display: String(b.price_display || '').slice(0, 60),
+      location: String(b.location || '').slice(0, PATCH_FIELD_MAX_LENGTHS.location),
+      price_display: String(b.price_display || '').slice(0, PATCH_FIELD_MAX_LENGTHS.price_display),
       website: websiteUrl,
-      license: String(b.license || '').slice(0, 120),
+      license: String(b.license || '').slice(0, PATCH_FIELD_MAX_LENGTHS.license),
       amenities,
       maxGuests: parseInt(b.maxGuests || 0, 10),
-      description_short: String(b.description_short || '').slice(0, 220),
-      description_long: String(b.description_long || '').slice(0, 2000),
+      description_short: String(b.description_short || '').slice(
+        0,
+        PATCH_FIELD_MAX_LENGTHS.description_short
+      ),
+      description_long: String(b.description_long || '').slice(
+        0,
+        PATCH_FIELD_MAX_LENGTHS.description_long
+      ),
       photosGallery: [],
       email: ownerUser?.email || req.user.email || '',
       profileComplete: false,
@@ -569,22 +577,22 @@ router.post(
 
     // Add venue-specific fields if category is Venues
     if (b.category === 'Venues' && b.venuePostcode) {
-      s.venuePostcode = String(b.venuePostcode).trim().toUpperCase();
+      newSupplier.venuePostcode = String(b.venuePostcode).trim().toUpperCase();
 
       // Geocode the postcode to get coordinates
       try {
-        const coords = await geocoding.geocodePostcode(s.venuePostcode);
+        const coords = await geocoding.geocodePostcode(newSupplier.venuePostcode);
         if (coords) {
-          s.latitude = coords.latitude;
-          s.longitude = coords.longitude;
-          s.venuePostcode = coords.postcode; // Use normalized postcode from API
+          newSupplier.latitude = coords.latitude;
+          newSupplier.longitude = coords.longitude;
+          newSupplier.venuePostcode = coords.postcode; // Use normalized postcode from API
           logger.info('✅ Geocoded venue', {
-            supplierId: s.id,
+            supplierId: newSupplier.id,
             latitude: coords.latitude,
             longitude: coords.longitude,
           });
         } else {
-          logger.warn('⚠️ Could not geocode postcode for venue', { supplierId: s.id });
+          logger.warn('⚠️ Could not geocode postcode for venue', { supplierId: newSupplier.id });
         }
       } catch (error) {
         logger.error('Geocoding error:', error);
@@ -593,7 +601,7 @@ router.post(
     }
 
     if (basePostcode) {
-      s.basePostcode = basePostcode;
+      newSupplier.basePostcode = basePostcode;
     }
     const serviceAreas = supplierLocation.sanitiseServiceAreas(b.serviceAreas);
     const selfServiceAreaPicks = countSelfServiceAreaPicks(serviceAreas);
@@ -608,11 +616,11 @@ router.post(
       }
     }
     if (serviceAreas.length) {
-      s.serviceAreas = serviceAreas;
+      newSupplier.serviceAreas = serviceAreas;
     }
-    Object.assign(s, await deriveSupplierGeography(s));
+    Object.assign(newSupplier, await deriveSupplierGeography(newSupplier));
 
-    const suppInserted = await dbUnified.insertOne('suppliers', s);
+    const suppInserted = await dbUnified.insertOne('suppliers', newSupplier);
     if (!suppInserted) {
       const racedExisting = await dbUnified.findOne('suppliers', { ownerUserId: req.user.id });
       if (racedExisting) {
@@ -628,7 +636,7 @@ router.post(
             'You already have a supplier profile. Each account can only have one supplier profile.',
         });
       }
-      logger.error('[SUPP-MGMT] insertOne failed', { supplierId: s.id });
+      logger.error('[SUPP-MGMT] insertOne failed', { supplierId: newSupplier.id });
       return res
         .status(500)
         .json({ error: 'Failed to create supplier profile. Please try again.' });
@@ -636,42 +644,42 @@ router.post(
 
     // Auto-approved profiles previously skipped the verification audit trail,
     // leaving admins with an approved record and no corresponding approval event.
-    if (s.approved === true && s.approvedBy === 'system') {
+    if (newSupplier.approved === true && newSupplier.approvedBy === 'system') {
       try {
         const auditEntry = await auditLog({
           adminId: 'system',
           adminEmail: 'system',
           action: AUDIT_ACTIONS.SUPPLIER_APPROVED,
           targetType: 'supplier',
-          targetId: s.id,
+          targetId: newSupplier.id,
           details: {
-            name: s.name,
+            name: newSupplier.name,
             source: 'autoApproveSupplierVerification',
-            ownerUserId: s.ownerUserId,
+            ownerUserId: newSupplier.ownerUserId,
           },
         });
         if (!auditEntry) {
           // Creation remains non-blocking by design, but do not silently treat an
           // audit storage outage as a successfully recorded approval event.
           logger.warn('Automatic supplier approval audit could not be persisted', {
-            supplierId: s.id,
+            supplierId: newSupplier.id,
           });
         }
       } catch (auditError) {
         // Profile creation must not fail solely because audit persistence is unavailable.
         logger.warn('Failed to record automatic supplier approval audit event', {
-          supplierId: s.id,
+          supplierId: newSupplier.id,
           error: auditError.message,
         });
       }
     }
 
     logger.info('Supplier profile created', {
-      supplierId: s.id,
+      supplierId: newSupplier.id,
       userId: req.user.id,
-      approved: s.approved,
+      approved: newSupplier.approved,
     });
-    res.json({ ok: true, supplier: s });
+    res.json({ ok: true, supplier: newSupplier });
   }
 );
 
@@ -903,8 +911,20 @@ router.patch(
       // nationwide claim — the picker lets them choose either, up to their
       // plan's allowance. Travel radius is a separate, single-value field the
       // dashboard has always fully controlled, so it stays outside this.
-      const isPick = area => area.type === 'city' || area.type === 'nationwide';
-      const retainedPicks = supplierLocation.sanitiseServiceAreas(s.serviceAreas).filter(isPick);
+      //
+      // An admin can also assign a city by hand (or via the internal API),
+      // tagged `source: 'admin'` — the dashboard has no controls for those at
+      // all, so they must never be treated as part of the supplier's own pick
+      // pool: not counted against the allowance, not replaced when the
+      // picker sends its full list, and never removable from this route.
+      const isAdminCity = area => area.type === 'city' && area.source === 'admin';
+      const isPick = area =>
+        (area.type === 'city' || area.type === 'nationwide') && !isAdminCity(area);
+      const currentAreas = supplierLocation.sanitiseServiceAreas(s.serviceAreas, {
+        preserveSource: true,
+      });
+      const retainedAdminCities = currentAreas.filter(isAdminCity);
+      const retainedPicks = currentAreas.filter(isPick);
       const requestedAreas = supplierLocation.sanitiseServiceAreas(b.serviceAreas);
       const requestedPicks = requestedAreas.filter(isPick);
       const requestedRadiusAreas = requestedAreas.filter(area => !isPick(area));
@@ -939,10 +959,14 @@ router.patch(
       // sending a travel radius) keeps the old, safe behaviour: it cannot
       // silently wipe coverage it never mentioned.
       const replacingPicks = b.replaceServiceAreaPicks === true || requestedPicks.length > 0;
-      supplierPatch.serviceAreas = supplierLocation.sanitiseServiceAreas([
-        ...(replacingPicks ? requestedPicks : retainedPicks),
-        ...requestedRadiusAreas,
-      ]);
+      supplierPatch.serviceAreas = supplierLocation.sanitiseServiceAreas(
+        [
+          ...retainedAdminCities,
+          ...(replacingPicks ? requestedPicks : retainedPicks),
+          ...requestedRadiusAreas,
+        ],
+        { preserveSource: true }
+      );
     }
 
     // Re-derive only when the supplier actually moved: a banner change should
