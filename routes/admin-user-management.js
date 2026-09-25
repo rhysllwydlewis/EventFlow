@@ -1844,9 +1844,18 @@ router.put(
         // controls at all), so every city entry saved here is authoritatively
         // tagged as admin-assigned — never taken from the request body — so
         // the supplier's own profile PATCH can never remove or replace it.
-        supplier.serviceAreas = supplierLocation
-          .sanitiseServiceAreas(serviceAreas)
-          .map(area => (area.type === 'city' ? { ...area, source: 'admin' } : area));
+        //
+        // Tag *before* sanitising, not after: sanitiseServiceAreas() drops a
+        // city pick that arrives alongside a nationwide claim on the
+        // assumption it's a redundant self-service pick, but an admin
+        // assignment is not part of that self-service pool and must survive
+        // even when nationwide is also being set in the same request.
+        const adminTaggedAreas = (Array.isArray(serviceAreas) ? serviceAreas : []).map(area =>
+          area && area.type === 'city' ? { ...area, source: 'admin' } : area
+        );
+        supplier.serviceAreas = supplierLocation.sanitiseServiceAreas(adminTaggedAreas, {
+          preserveSource: true,
+        });
       }
 
       supplier.updatedAt = new Date().toISOString();

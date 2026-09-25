@@ -99,4 +99,21 @@ describe('PUT /api/admin/suppliers/:id — service area source tagging', () => {
     expect(res.status).toBe(200);
     expect(stored.serviceAreas).toEqual([]);
   });
+
+  it('keeps an admin-assigned city alongside a nationwide claim set in the same request', async () => {
+    // sanitiseServiceAreas() ordinarily drops a city pick once nationwide is
+    // present, on the assumption it's a redundant self-service pick — an
+    // admin assignment is not part of that pool and must survive.
+    const res = await request(app())
+      .put('/api/admin/suppliers/sup1')
+      .send({ serviceAreas: [{ type: 'nationwide' }, { type: 'city', slug: 'cardiff' }] });
+
+    expect(res.status).toBe(200);
+    expect(stored.serviceAreas).toEqual(
+      expect.arrayContaining([
+        { type: 'nationwide' },
+        { type: 'city', slug: 'cardiff', source: 'admin' },
+      ])
+    );
+  });
 });
