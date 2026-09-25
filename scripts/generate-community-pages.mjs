@@ -42,7 +42,9 @@ const ASSET_VERSIONS = {
   // 18.4.2: the mobile cookie-consent banner's bottom offset moved from a
   // 64px estimate of .ef-bottom-nav's height to the correct ~76px, closing
   // a ~5px gap where the banner painted over the nav's top edge.
-  '/assets/css/components.css': '18.4.2',
+  // 18.4.3: the back-to-top and shortlist floating buttons became matching
+  // rounded squares (40px on mobile) stacked with a 10px gap.
+  '/assets/css/components.css': '18.4.3',
   // 18.6.0: the glass surface tokens, the sidebar and rail layout fixes, the
   // hero tint that repairs its contrast, the category strip's scroll buttons,
   // the four-way reactions and the metadata separator rules all ship together.

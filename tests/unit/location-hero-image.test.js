@@ -26,6 +26,12 @@ beforeEach(() => {
   heroImages.resetAutomaticHeroCache();
 });
 
+// Every registry place now has a reviewed photo, so the automatic-search
+// fallback is exercised with a Bath-shaped record whose slug is not curated.
+function uncuratedBath() {
+  return { ...registry.getCity('bath'), slug: 'bath-uncurated' };
+}
+
 describe('city hero defaults', () => {
   it.each([
     ['cardiff', '5743996', /Cardiff/i],
@@ -60,6 +66,40 @@ describe('city hero defaults', () => {
     ];
     const urls = slugs.map(slug => heroImages.getCuratedHero(slug).url);
     expect(new Set(urls).size).toBe(urls.length);
+  });
+
+  it('has a reviewed photo for every registry city and county', () => {
+    const missing = registry
+      .listCities()
+      .filter(city => !heroImages.getCuratedHero(city))
+      .map(city => city.slug);
+    expect(missing).toEqual([]);
+  });
+
+  it('only curates places that exist in the registry', () => {
+    const unknown = Object.keys(heroImages.CITY_HEROES).filter(slug => !registry.getCity(slug));
+    expect(unknown).toEqual([]);
+  });
+
+  it('keeps every curated photo a well-formed, distinct Pexels photo', () => {
+    const ids = Object.entries(heroImages.CITY_HEROES).map(([slug, hero]) => {
+      const image = new URL(hero.url);
+      const imageId = image.pathname.match(/^\/photos\/(\d+)\/pexels-photo-\1\.(?:jpeg|png)$/);
+      const source = new URL(hero.sourceUrl);
+      expect({ slug, protocol: image.protocol, host: image.hostname }).toEqual({
+        slug,
+        protocol: 'https:',
+        host: 'images.pexels.com',
+      });
+      expect(imageId).not.toBeNull();
+      expect(source.hostname).toBe('www.pexels.com');
+      // The credit page and the image must be the same photograph.
+      expect(source.pathname).toMatch(new RegExp(`^/photo/[a-z0-9-]*-${imageId[1]}/$`));
+      expect(hero.alt.trim().length).toBeGreaterThan(10);
+      expect(hero.credit.trim()).toBeTruthy();
+      return imageId[1];
+    });
+    expect(new Set(ids).size).toBe(ids.length);
   });
 
   it('has no invented fallback for a city that has not been curated', () => {
@@ -100,7 +140,7 @@ describe('city hero defaults', () => {
   });
 
   it('resolves an uncurated city from the existing Pexels service', async () => {
-    const city = registry.getCity('bath');
+    const city = uncuratedBath();
     const photo = pexelsPhoto({
       alt: 'The Roman Baths in Bath, England',
       url: 'https://www.pexels.com/photo/roman-baths-bath-123/',
@@ -129,7 +169,7 @@ describe('city hero defaults', () => {
   });
 
   it('prefers a result that explicitly names the city', async () => {
-    const city = registry.getCity('bath');
+    const city = uncuratedBath();
     const pexels = {
       isConfigured: () => true,
       searchPhotos: async () => ({
@@ -192,7 +232,7 @@ describe('city hero defaults', () => {
       }),
     };
 
-    const resolved = await heroImages.resolvePageHero(registry.getCity('bath'), page, { pexels });
+    const resolved = await heroImages.resolvePageHero(uncuratedBath(), page, { pexels });
     expect(resolved.content.heroImageUrl).toContain('/photos/901/');
     expect(resolved.content.heroImageAlt).toBe('The Roman Baths in Bath, England');
   });
@@ -207,7 +247,7 @@ describe('city hero defaults', () => {
     };
     const pexels = { isConfigured: jest.fn(() => false), searchPhotos: jest.fn() };
 
-    const resolved = await heroImages.resolvePageHero(registry.getCity('bath'), page, { pexels });
+    const resolved = await heroImages.resolvePageHero(uncuratedBath(), page, { pexels });
     expect(resolved.content.heroImageUrl).toBeNull();
     expect(pexels.searchPhotos).not.toHaveBeenCalled();
   });
@@ -233,7 +273,7 @@ describe('city hero defaults', () => {
       }),
     };
 
-    const resolved = await heroImages.resolvePageHero(registry.getCity('bath'), page, { pexels });
+    const resolved = await heroImages.resolvePageHero(uncuratedBath(), page, { pexels });
     expect(resolved.content.heroImageUrl).toContain('/photos/901/');
   });
 
@@ -241,9 +281,7 @@ describe('city hero defaults', () => {
     const page = { content: { heroImageUrl: null } };
     const pexels = { isConfigured: () => false, searchPhotos: jest.fn() };
 
-    await expect(
-      heroImages.resolvePageHero(registry.getCity('bath'), page, { pexels })
-    ).resolves.toBe(page);
+    await expect(heroImages.resolvePageHero(uncuratedBath(), page, { pexels })).resolves.toBe(page);
     expect(pexels.searchPhotos).not.toHaveBeenCalled();
   });
   it('declines a photograph that does not say it is of this city', async () => {
@@ -267,9 +305,7 @@ describe('city hero defaults', () => {
     };
     const page = { content: { heroImageUrl: null } };
 
-    await expect(
-      heroImages.resolvePageHero(registry.getCity('bath'), page, { pexels })
-    ).resolves.toBe(page);
+    await expect(heroImages.resolvePageHero(uncuratedBath(), page, { pexels })).resolves.toBe(page);
   });
 
   it('accepts a photograph whose own description names the city', async () => {
@@ -291,7 +327,7 @@ describe('city hero defaults', () => {
     };
 
     const resolved = await heroImages.resolvePageHero(
-      registry.getCity('bath'),
+      uncuratedBath(),
       { content: { heroImageUrl: null } },
       { pexels }
     );
@@ -310,14 +346,14 @@ describe('city hero defaults', () => {
       },
     };
 
-    await heroImages.resolveAutomaticHero(registry.getCity('bath'), { pexels });
+    await heroImages.resolveAutomaticHero(uncuratedBath(), { pexels });
 
     expect(warn).toHaveBeenCalled();
     // The message itself is a constant, and the two tainted values travel as
     // metadata — neither may carry a line break into the log.
     const [message, meta] = warn.mock.calls[0];
     expect(message).toBe('Could not resolve a Pexels location hero');
-    expect(meta.citySlug).toBe('bath');
+    expect(meta.citySlug).toBe('bath-uncurated');
     expect(meta.error).not.toContain('\n');
     expect(meta.error).toContain('boom');
     warn.mockRestore();
