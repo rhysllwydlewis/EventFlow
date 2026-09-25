@@ -274,9 +274,11 @@ body {
     visibility 0.2s ease;
 }
 
-/* components.js adds the site-wide .back-to-top to every page; here it sat
-   almost on top of .legal-top, so the legal control (which also returns focus
-   to the heading) is the only one shown once it exists. */
+/* components.js adds the site-wide .back-to-top to every page, where it sat
+   almost on top of .legal-top. legal-pages.js actually removes it (:has()
+   support is not universal on mobile, so that removal — not this rule — is
+   what guarantees only one button shows); this is a same-effect fallback for
+   the moment before that script runs, on browsers where :has() does work. */
 body:has(.legal-top) .back-to-top {
   display: none;
 }

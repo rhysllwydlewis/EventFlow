@@ -329,15 +329,18 @@ describe('GET /locations/:citySlug', () => {
   it('server-renders the reviewed Pexels hero for a city without searching Pexels', async () => {
     mockPexelsService.isConfigured.mockReturnValue(true);
     mockDb.seed('location_pages', [pageRecord('bath')]);
+    // Read from the same curated data the app serves, rather than hardcoding
+    // this city's current photo ID/alt/credit, so this test still proves the
+    // real render pipeline once someone updates Bath's reviewed photo.
+    const curated = locationHeroImages.getCuratedHero('bath');
 
     const response = await request(buildApp()).get('/locations/bath');
 
     expect(response.status).toBe(200);
-    expect(response.text).toContain('images.pexels.com/photos/18222697/');
-    expect(response.text).toContain(
-      'alt="Pulteney Bridge spanning the River Avon in Bath, England"'
-    );
-    expect(response.text).toContain('Eren Çebeci');
+    expect(curated.url).toContain('images.pexels.com/photos/');
+    expect(response.text).toContain(curated.url.split('?')[0]);
+    expect(response.text).toContain(`alt="${curated.alt}"`);
+    expect(response.text).toContain(curated.credit);
     expect(response.text).toContain(' on Pexels');
     expect(response.text).toContain('<meta property="og:image"');
     expect(mockPexelsService.searchPhotos).not.toHaveBeenCalled();

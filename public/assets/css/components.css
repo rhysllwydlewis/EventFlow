@@ -2236,9 +2236,17 @@ body.ef-cookie-banner-open #ef-pwa-install-banner {
   box-shadow: 0 8px 24px rgba(11, 128, 115, 0.4);
 }
 
-/* Filled/red state once at least one item is saved */
+/* Filled/red state once at least one item is saved. The teal box-shadow
+   above is tuned to the teal background it normally sits under, so once the
+   button turns red it needs its own red-tinted shadow too — otherwise a red
+   button would glow teal both at rest and on hover. */
 .shortlist-float-btn.has-items {
   background: #c62828;
+  box-shadow: 0 4px 16px rgba(198, 40, 40, 0.3);
+}
+
+.shortlist-float-btn.has-items:hover {
+  box-shadow: 0 8px 24px rgba(198, 40, 40, 0.4);
 }
 
 .shortlist-float-btn.has-items svg {
