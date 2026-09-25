@@ -1,4 +1,12 @@
 # EventFlow robots.txt
+#
+# NOTE: production does not serve this file. The live app's /robots.txt route
+# (routes/static.js) generates one dynamically via sitemap.js#generateRobotsTxt
+# and that route is mounted ahead of express.static(), so it always wins. This
+# static file is only actually served by the E2E "static mode" preview server
+# (scripts/serve-static.js, used by CI), which falls through to express.static()
+# for anything without an explicit route. Keep it in sync with the private
+# page list below (protectedHtmlPages in server.js) so the two never diverge.
 User-agent: *
 Allow: /
 
@@ -37,6 +45,15 @@ Disallow: /payment-cancel
 Disallow: /reset-password
 Disallow: /verify
 Disallow: /data-rights
+Disallow: /notifications
+Disallow: /messages
+Disallow: /guests
+Disallow: /plan
+Disallow: /timeline
+Disallow: /budget
+Disallow: /gallery
+Disallow: /my-marketplace-listings
+Disallow: /support
 Disallow: /api/
 Disallow: /uploads/
 
