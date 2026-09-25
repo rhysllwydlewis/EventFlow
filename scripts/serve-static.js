@@ -96,7 +96,7 @@ app.use((req, res, next) => {
 // Add X-Robots-Tag: noindex, nofollow for private/authenticated pages
 // This mirrors the behavior of middleware/seo.js in the main server
 const noindexPatterns = [
-  /^\/(auth|reset-password|dashboard|dashboard-customer|dashboard-supplier|messages|guests|checkout|my-marketplace-listings|budget)(\.html)?($|\?)/,
+  /^\/(auth|reset-password|dashboard|dashboard-customer|dashboard-supplier|messages|guests|checkout|my-marketplace-listings|budget|gallery)(\.html)?($|\?)/,
   /^\/(admin)([-/].+)?(\.html)?($|\?)/,
   /^\/(messenger|chat)(\/.*)?($|\?)/,
 ];
@@ -123,6 +123,7 @@ const protectedStaticPaths = [
   '/plan',
   '/timeline',
   '/budget',
+  '/gallery',
   '/dashboard',
   '/dashboard/customer',
   '/dashboard/supplier',

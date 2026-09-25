@@ -703,6 +703,7 @@ const protectedHtmlPages = [
   'my-marketplace-listings',
   'budget',
   'support',
+  'gallery',
 ];
 
 protectedHtmlPages.forEach(page => {
