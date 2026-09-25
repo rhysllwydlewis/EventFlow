@@ -991,7 +991,7 @@
   background: linear-gradient(135deg, #0b8073, #13b6a2);
   color: #fff;
   border: none;
-  border-radius: 50%;
+  border-radius: 12px;
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -1013,7 +1013,7 @@
 }
 
 .back-to-top:hover {
-  transform: translateY(-3px) scale(1.05);
+  transform: translateY(-2px);
   box-shadow: 0 8px 24px rgba(11, 128, 115, 0.4);
 }
 
@@ -1070,9 +1070,9 @@
   .back-to-top {
     bottom: calc(4.5rem + env(safe-area-inset-bottom, 0px));
     right: 1rem;
-    width: 36px;
-    height: 36px;
-    font-size: 1rem;
+    width: 40px;
+    height: 40px;
+    font-size: 1.125rem;
   }
 
   /* Keep tap target accessible (44×44 minimum) via invisible pseudo-element */
@@ -1084,7 +1084,7 @@
     transform: translate(-50%, -50%);
     width: 44px;
     height: 44px;
-    border-radius: 50%;
+    border-radius: 12px;
   }
 
   .stats-grid {
@@ -2190,20 +2190,20 @@ body.ef-cookie-banner-open #ef-pwa-install-banner {
    ======================================== */
 
 /* Floating Shortlist Button
-   Sized and stacked to match .back-to-top exactly (same width/height/right
-   offset at every breakpoint) with a fixed 12px gap between them, so the two
-   floating buttons never overlap or drift out of alignment. */
+   Sized, shaped and stacked to match .back-to-top exactly (same width/height,
+   rounded-square corners and right offset at every breakpoint) with a fixed
+   10px gap above it, so the two floating buttons read as one column. */
 .shortlist-float-btn {
   position: fixed !important;
-  bottom: calc(5rem + 44px + 12px) !important;
+  bottom: calc(5rem + 44px + 10px) !important;
   right: 1.5rem !important;
   width: 44px !important;
   height: 44px !important;
-  border-radius: 50% !important;
-  background: var(--ink, #0b8073);
+  border-radius: 12px !important;
+  background: linear-gradient(135deg, #0b8073, #13b6a2);
   color: white;
   border: none;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 4px 16px rgba(11, 128, 115, 0.3);
   cursor: pointer;
   display: flex !important;
   align-items: center;
@@ -2232,8 +2232,8 @@ body.ef-cookie-banner-open #ef-pwa-install-banner {
 }
 
 .shortlist-float-btn:hover {
-  transform: scale(1.1);
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(11, 128, 115, 0.4);
 }
 
 /* Filled/red state once at least one item is saved */
@@ -2797,27 +2797,27 @@ body.ef-cookie-banner-open #ef-pwa-install-banner {
 
   /* Unify with .back-to-top's mobile sizing/position (overrides the
      640px block above) so both floating buttons share the same right
-     offset and width/height, and stay stacked with a constant 12px gap. */
+     offset and width/height, and stay stacked with a constant 10px gap. */
   .back-to-top {
     bottom: calc(4.5rem + env(safe-area-inset-bottom, 0px)) !important;
     right: 1rem !important;
-    width: 36px !important;
-    height: 36px !important;
-    font-size: 1rem !important;
+    width: 40px !important;
+    height: 40px !important;
+    font-size: 1.125rem !important;
   }
 
   .shortlist-float-btn {
-    bottom: calc(4.5rem + env(safe-area-inset-bottom, 0px) + 36px + 12px) !important;
+    bottom: calc(4.5rem + env(safe-area-inset-bottom, 0px) + 40px + 10px) !important;
     right: 1rem !important;
-    width: 36px !important;
-    height: 36px !important;
-    max-width: 36px !important;
-    max-height: 36px !important;
+    width: 40px !important;
+    height: 40px !important;
+    max-width: 40px !important;
+    max-height: 40px !important;
   }
 
   .shortlist-float-btn svg {
-    width: 18px;
-    height: 18px;
+    width: 20px;
+    height: 20px;
   }
 }
 

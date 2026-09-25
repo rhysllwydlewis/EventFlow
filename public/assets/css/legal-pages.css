@@ -260,7 +260,7 @@ body {
   width: 44px;
   height: 44px;
   border: 1px solid var(--legal-border);
-  border-radius: 999px;
+  border-radius: 12px;
   background: var(--legal-surface-raised);
   color: var(--legal-brand);
   box-shadow: 0 6px 18px rgb(11 18 32 / 12%);
@@ -272,6 +272,13 @@ body {
     opacity 0.2s ease,
     transform 0.2s ease,
     visibility 0.2s ease;
+}
+
+/* components.js adds the site-wide .back-to-top to every page; here it sat
+   almost on top of .legal-top, so the legal control (which also returns focus
+   to the heading) is the only one shown once it exists. */
+body:has(.legal-top) .back-to-top {
+  display: none;
 }
 
 .legal-top--visible {

@@ -326,33 +326,21 @@ describe('GET /locations/:citySlug', () => {
     expect(response.text).not.toContain('City Photographer on Pexels');
   });
 
-  it('server-renders a city-specific Pexels hero for an uncurated registry city', async () => {
+  it('server-renders the reviewed Pexels hero for a city without searching Pexels', async () => {
     mockPexelsService.isConfigured.mockReturnValue(true);
-    mockPexelsService.searchPhotos.mockResolvedValue({
-      photos: [
-        {
-          id: 456,
-          width: 1800,
-          height: 1200,
-          url: 'https://www.pexels.com/photo/bath-roman-baths-456/',
-          photographer: 'Bath Photographer',
-          alt: 'The Roman Baths in Bath, England',
-          src: {
-            landscape: 'https://images.pexels.com/photos/456/bath-456.jpeg?w=1200',
-          },
-        },
-      ],
-    });
     mockDb.seed('location_pages', [pageRecord('bath')]);
 
     const response = await request(buildApp()).get('/locations/bath');
 
     expect(response.status).toBe(200);
-    expect(response.text).toContain('images.pexels.com/photos/456/bath-456.jpeg');
-    expect(response.text).toContain('alt="The Roman Baths in Bath, England"');
-    expect(response.text).toContain('Bath Photographer');
+    expect(response.text).toContain('images.pexels.com/photos/18222697/');
+    expect(response.text).toContain(
+      'alt="Pulteney Bridge spanning the River Avon in Bath, England"'
+    );
+    expect(response.text).toContain('Eren Çebeci');
     expect(response.text).toContain(' on Pexels');
     expect(response.text).toContain('<meta property="og:image"');
+    expect(mockPexelsService.searchPhotos).not.toHaveBeenCalled();
   });
 
   it('links to supplier profiles with their relationship labels', async () => {
