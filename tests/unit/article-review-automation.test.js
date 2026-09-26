@@ -21,7 +21,7 @@ describe('article review and SEO metadata', () => {
       .map(article => article.slug)
       .sort();
     expect(slugs).toEqual(files);
-    expect(slugs).toHaveLength(50);
+    expect(slugs).toHaveLength(53);
   });
 
   test('renders truthful material dates and an automatically current review month', () => {
@@ -55,8 +55,8 @@ describe('article review and SEO metadata', () => {
 
   test('the sitemap inventory contains all article records with material dates', () => {
     const entries = loadGuideEntries();
-    expect(entries).toHaveLength(50);
-    expect(new Set(entries.map(entry => entry.slug)).size).toBe(50);
+    expect(entries).toHaveLength(53);
+    expect(new Set(entries.map(entry => entry.slug)).size).toBe(53);
     expect(entries.every(entry => /^\d{4}-\d{2}-\d{2}$/.test(entry.lastmod))).toBe(true);
   });
 

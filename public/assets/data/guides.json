@@ -1453,5 +1453,92 @@
     "primaryTag": "suit",
     "ogImage": "https://images.pexels.com/photos/1181406/pexels-photo-1181406.jpeg?auto=compress&cs=tinysrgb&w=800&h=500&dpr=1",
     "lastMaterialUpdate": "2026-09-25"
+  },
+  {
+    "id": 51,
+    "title": "Wedding Dress Buying Guide",
+    "description": "How to choose a wedding dress: silhouettes, fabrics, sizing, ordering timeline, budgeting and where to buy in the UK.",
+    "excerpt": "How to choose a wedding dress: silhouettes, fabrics, sizing, ordering timeline, budgeting and where to buy in the UK. Covers made-to-order lead times, UK cost ranges and second-hand or rental options.",
+    "image": "https://images.pexels.com/photos/931177/pexels-photo-931177.jpeg?auto=compress&cs=tinysrgb&w=800&h=500&dpr=1",
+    "category": "Wedding",
+    "tags": [
+      "wedding",
+      "dress",
+      "bridalwear"
+    ],
+    "href": "/articles/wedding-dress-buying-guide",
+    "readingMins": 7,
+    "publishedDate": "2026-09-26",
+    "featured": false,
+    "affiliate": false,
+    "tool": {
+      "label": "Browse bridalwear suppliers",
+      "href": "/categories/bridalwear"
+    },
+    "author": "EventFlow Team",
+    "summary": "Silhouettes, fabrics, sizing and ordering timelines, UK cost ranges and where to buy.",
+    "difficulty": "Beginner",
+    "lastUpdated": "2026-09-26",
+    "primaryTag": "dress",
+    "ogImage": "https://images.pexels.com/photos/931177/pexels-photo-931177.jpeg?auto=compress&cs=tinysrgb&w=800&h=500&dpr=1",
+    "lastMaterialUpdate": "2026-09-26"
+  },
+  {
+    "id": 52,
+    "title": "How to Choose a Wedding Photographer",
+    "description": "What to ask a wedding photographer before booking, how much it costs in the UK, and how to compare styles and packages.",
+    "excerpt": "What to ask a wedding photographer before booking, how much it costs in the UK, and how to compare styles and packages. Covers traditional vs documentary styles and booking timelines.",
+    "image": "https://images.pexels.com/photos/35325793/pexels-photo-35325793.jpeg?auto=compress&cs=tinysrgb&w=800&h=500&dpr=1",
+    "category": "Wedding",
+    "tags": [
+      "wedding",
+      "photography",
+      "planning"
+    ],
+    "href": "/articles/choosing-a-wedding-photographer-guide",
+    "readingMins": 7,
+    "publishedDate": "2026-09-26",
+    "featured": false,
+    "affiliate": false,
+    "tool": {
+      "label": "Browse photography suppliers",
+      "href": "/categories/photography"
+    },
+    "author": "EventFlow Team",
+    "summary": "Photography styles, what to ask before booking, UK costs and a booking timeline.",
+    "difficulty": "Beginner",
+    "lastUpdated": "2026-09-26",
+    "primaryTag": "photography",
+    "ogImage": "https://images.pexels.com/photos/35325793/pexels-photo-35325793.jpeg?auto=compress&cs=tinysrgb&w=800&h=500&dpr=1",
+    "lastMaterialUpdate": "2026-09-26"
+  },
+  {
+    "id": 53,
+    "title": "Wedding Planner vs DIY Planning Guide",
+    "description": "What a wedding planner costs and does, DIY planning pros and cons, and hybrid options like partial planning or day-of coordination.",
+    "excerpt": "What a wedding planner costs and does, DIY planning pros and cons, and hybrid options like partial planning or day-of coordination. Covers full planning, partial planning and day-of coordination tiers.",
+    "image": "https://images.pexels.com/photos/3299906/pexels-photo-3299906.jpeg?auto=compress&cs=tinysrgb&w=800&h=500&dpr=1",
+    "category": "Wedding",
+    "tags": [
+      "wedding",
+      "planning",
+      "planner"
+    ],
+    "href": "/articles/wedding-planner-vs-diy-guide",
+    "readingMins": 7,
+    "publishedDate": "2026-09-26",
+    "featured": false,
+    "affiliate": false,
+    "tool": {
+      "label": "Browse event planners",
+      "href": "/categories/event-planner"
+    },
+    "author": "EventFlow Team",
+    "summary": "What planners do and cost, DIY pros and cons, and hybrid options like day-of coordination.",
+    "difficulty": "Beginner",
+    "lastUpdated": "2026-09-26",
+    "primaryTag": "planner",
+    "ogImage": "https://images.pexels.com/photos/3299906/pexels-photo-3299906.jpeg?auto=compress&cs=tinysrgb&w=800&h=500&dpr=1",
+    "lastMaterialUpdate": "2026-09-26"
   }
 ]
