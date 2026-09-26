@@ -209,6 +209,7 @@ function describeCity(city, data) {
     metadata: model.metadata,
     gate: model.gate,
     supplierCount: model.rankedSuppliers.length,
+    unclaimedSupplierCount: model.rankedSuppliers.filter(entry => entry.unclaimed).length,
     categoryCount: model.categories.length,
     packageCount: model.packages.length,
     eventCount: model.events.length,
@@ -273,6 +274,9 @@ function buildWarnings(city, page, model, data) {
   }
   if (model.rankedSuppliers.length < 3) {
     warnings.push('Fewer than three suppliers currently cover this city');
+  }
+  if (model.rankedSuppliers.length > 0 && model.rankedSuppliers.every(entry => entry.unclaimed)) {
+    warnings.push('Every supplier covering this city is an unclaimed listing');
   }
   if (page.status === PUBLICATION_STATES.published && !model.nearby.length) {
     warnings.push('No published nearby pages are available to link to');
@@ -670,6 +674,12 @@ function describeCategory(city, category, data) {
     metadata: model.metadata,
     gate: model.gate,
     supplierCount: model.rankedSuppliers.length,
+    // How many of the counted suppliers are unclaimed Supplier Bot listings —
+    // real businesses shown with a disclosure badge, not yet claimed. An
+    // editor deciding whether to request indexing should see this: a page
+    // whose depth comes entirely from unclaimed listings is a different call
+    // than one covered by verified, claimed suppliers.
+    unclaimedSupplierCount: model.rankedSuppliers.filter(entry => entry.unclaimed).length,
     packageCount: model.packages.length,
     eventCount: model.events.length,
     siblingCategories: model.siblingCategories.map(entry => entry.name),
@@ -700,6 +710,11 @@ function buildCategoryWarnings(city, category, page, model) {
   if (model.rankedSuppliers.length < 3) {
     warnings.push(
       `Fewer than three suppliers currently cover ${category.name.toLowerCase()} in ${city.name}`
+    );
+  }
+  if (model.rankedSuppliers.length > 0 && model.rankedSuppliers.every(entry => entry.unclaimed)) {
+    warnings.push(
+      `Every ${category.name.toLowerCase()} supplier in ${city.name} is an unclaimed listing`
     );
   }
   if (page.indexingRequested && !model.indexable) {

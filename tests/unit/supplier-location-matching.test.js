@@ -254,6 +254,58 @@ describe('eligibility', () => {
   it('includes an ordinary approved supplier', () => {
     expect(supplierLocation.isEligibleForLocationPages(supplier(), owners)).toBe(true);
   });
+
+  describe('published-unclaimed Supplier Bot listings', () => {
+    function botListing(overrides = {}) {
+      return supplier({
+        ownershipStatus: 'unclaimed',
+        acquisition: { source: 'supplier_bot', publicationScope: 'public_unclaimed' },
+        ...overrides,
+      });
+    }
+
+    it('includes one, despite lifecycleBlockReason treating it as not_approved', () => {
+      expect(supplierLocation.isEligibleForLocationPages(botListing(), owners)).toBe(true);
+    });
+
+    it('excludes a bot record not yet promoted to a published scope', () => {
+      const candidate = botListing({
+        acquisition: { source: 'supplier_bot', publicationScope: 'candidate' },
+      });
+      expect(supplierLocation.isEligibleForLocationPages(candidate, owners)).toBe(false);
+    });
+
+    it('still excludes one that is suspended, deleted or a test fixture', () => {
+      expect(
+        supplierLocation.isEligibleForLocationPages(botListing({ suspended: true }), owners)
+      ).toBe(false);
+      expect(
+        supplierLocation.isEligibleForLocationPages(
+          botListing({ deletedAt: '2026-01-01T00:00:00.000Z' }),
+          owners
+        )
+      ).toBe(false);
+      expect(
+        supplierLocation.isEligibleForLocationPages(botListing({ isTest: true }), owners)
+      ).toBe(false);
+    });
+
+    it('is surfaced as unclaimed on the matched entry, for the page to disclose', () => {
+      const match = supplierLocation.matchSupplierToCity(
+        botListing({ baseLocation: baseIn('cardiff') }),
+        cardiff
+      );
+      expect(match.unclaimed).toBe(true);
+    });
+
+    it('is not flagged unclaimed for an ordinary claimed supplier', () => {
+      const match = supplierLocation.matchSupplierToCity(
+        supplier({ baseLocation: baseIn('cardiff') }),
+        cardiff
+      );
+      expect(match.unclaimed).toBe(false);
+    });
+  });
 });
 
 describe('ranking', () => {

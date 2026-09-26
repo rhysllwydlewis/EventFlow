@@ -132,6 +132,28 @@ const strongVenueInventory = [
   supplier('v4', 'cardiff', { category: 'Venues' }),
 ];
 
+/**
+ * A published-unclaimed Supplier Bot listing: a real scraped business, not
+ * yet claimed, already shown publicly on its own profile page and in
+ * marketplace search per seoEligibility.service.js's supplierViewability.
+ * @param {string} id Supplier id.
+ * @param {string} citySlug City slug.
+ * @param {Object} overrides Extra fields.
+ * @returns {Object} Supplier record.
+ */
+function unclaimedBotSupplier(id, citySlug, overrides = {}) {
+  return {
+    id,
+    name: `Bot Listing ${id}`,
+    category: 'Venues',
+    approved: true,
+    ownershipStatus: 'unclaimed',
+    acquisition: { source: 'supplier_bot', publicationScope: 'public_unclaimed' },
+    baseLocation: { citySlug, source: 'admin_verified', confidence: 'high' },
+    ...overrides,
+  };
+}
+
 beforeEach(() => {
   mockDb.reset();
   mockPexelsService.isConfigured.mockReturnValue(false);
@@ -166,6 +188,32 @@ describe('GET /locations/:citySlug/:categorySlug', () => {
     const response = await request(buildApp()).get('/locations/cardiff/venues');
     expect(response.text).toContain('data-supplier-id="v1"');
     expect(response.text).not.toContain('data-supplier-id="c1"');
+  });
+
+  it('includes a published-unclaimed Supplier Bot listing, with a disclosure badge', async () => {
+    mockDb.seed('suppliers', [...strongVenueInventory, unclaimedBotSupplier('bot1', 'cardiff')]);
+    const response = await request(buildApp()).get('/locations/cardiff/venues');
+    expect(response.text).toContain('data-supplier-id="bot1"');
+    expect(response.text).toContain('data-unclaimed="true"');
+    expect(response.text).toContain('badge-unclaimed');
+    expect(response.text).toContain('Unclaimed');
+  });
+
+  it('does not badge or list an unpublished (candidate-stage) Supplier Bot record', async () => {
+    mockDb.seed('suppliers', [
+      ...strongVenueInventory,
+      unclaimedBotSupplier('bot2', 'cardiff', {
+        acquisition: { source: 'supplier_bot', publicationScope: 'candidate' },
+      }),
+    ]);
+    const response = await request(buildApp()).get('/locations/cardiff/venues');
+    expect(response.text).not.toContain('data-supplier-id="bot2"');
+  });
+
+  it('does not badge an approved, claimed supplier as unclaimed', async () => {
+    const response = await request(buildApp()).get('/locations/cardiff/venues');
+    expect(response.text).not.toContain('data-unclaimed="true"');
+    expect(response.text).not.toContain('badge-unclaimed');
   });
 
   it('makes the whole supplier card clickable, not just the name', async () => {
