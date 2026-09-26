@@ -528,6 +528,15 @@
   text-decoration: none;
 }
 
+/* Unclaimed-listing disclosure badge on a location-page supplier card — sits
+   under the name, small enough not to compete with it for attention. */
+.efl-card__body .badge-unclaimed {
+  display: inline-flex;
+  margin-top: 0.4rem;
+  padding: 0.15rem 0.5rem;
+  font-size: 0.6875rem;
+}
+
 .efl-card__meta {
   align-items: center;
   justify-content: space-between;
