@@ -47,12 +47,13 @@ function scaffold(extra = []) {
 
 describe('scripts/new-article.mjs', () => {
   let html = '';
+  let stdout = '';
 
   beforeAll(() => {
     if (fs.existsSync(TARGET)) {
       fs.unlinkSync(TARGET);
     }
-    scaffold();
+    stdout = scaffold();
     html = fs.readFileSync(TARGET, 'utf8');
   });
 
@@ -101,6 +102,33 @@ describe('scripts/new-article.mjs', () => {
     const sectionIds = [...html.matchAll(/data-gp-section id="([^"]+)"/g)].map(m => m[1]);
     const tocTargets = [...html.matchAll(/class="gp-toc__link" href="#([^"]+)"/g)].map(m => m[1]);
     expect(tocTargets).toEqual(sectionIds);
+  });
+
+  it('shows the .gp-figure pattern as a commented, deletable example', () => {
+    // 28 of 56 legacy guides shipped sharing a thumbnail with other guides,
+    // and 54 had no in-body image at all — nobody scaffolding a new article
+    // had any hint the block existed. Commented (not live markup) so an
+    // unfilled `src=""`/`alt=""` never ships by accident, but present so the
+    // pattern is discoverable without reading the CSS or the docs.
+    expect(html).toContain('<!-- Optional: a photo partway through the article');
+    expect(html).toContain('<figure class="gp-figure gp-reveal">');
+    expect(html).toContain('-->');
+    // Genuinely commented out, not live: no gp-figure markup outside the
+    // <!-- --> pair.
+    const liveHtml = html.replace(/<!--[\s\S]*?-->/g, '');
+    expect(liveHtml).not.toContain('gp-figure');
+  });
+
+  it('reminds the author to pick a real, unique image and prints the fields to fill in', () => {
+    // The same duplicate-thumbnail bug, guarded at the point it starts: the
+    // printed guides.json entry now carries image/ogImage placeholders and
+    // says outright that guides-seo-ux.test.js fails the build on a
+    // duplicate — the instructions used to omit both fields entirely.
+    expect(stdout).toContain('no other guide in guides.json already uses');
+    expect(stdout).toContain('guides-seo-ux.test.js');
+    expect(stdout).toContain('fails the build if any two guides share an image');
+    expect(stdout).toContain('"image":');
+    expect(stdout).toContain('"ogImage":');
   });
 
   it('drops the numbering modifier when asked', () => {
