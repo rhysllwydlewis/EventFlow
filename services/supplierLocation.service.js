@@ -18,6 +18,7 @@
 const registry = require('./locationRegistry.service');
 const geocoding = require('../utils/geocoding');
 const lifecycle = require('./seoRecordLifecycle.util');
+const { isPublishedUnclaimedSupplierBotProfile } = require('./supplierBotPilotVisibility.util');
 const {
   AUDIT_STATUSES,
   CONFIDENCE,
@@ -540,6 +541,15 @@ function sanitiseServiceAreas(value, options = {}) {
  * Reuses the platform's existing public-supplier rule and adds the exclusions
  * the location work introduces: suspended records, seeded test accounts and
  * suppliers whose owning user has gone.
+ *
+ * A published-unclaimed Supplier Bot listing (`ownershipStatus: 'unclaimed'`,
+ * a real scraped business already shown on its own profile page and in
+ * marketplace search per `seoEligibility.service.js`'s `supplierViewability`)
+ * is allowed through on the same terms, rather than blocked purely for being
+ * unclaimed: real business, real address, just not yet claimed. Anything else
+ * `lifecycleBlockReason` flags — deleted, suspended, rejected, genuinely
+ * unapproved — still blocks it, claimed or not. Callers that render these
+ * suppliers must disclose the unclaimed status, matching the profile page.
  * @param {Object} supplier Supplier record.
  * @param {Set<string>} validOwnerIds IDs of users that still exist.
  * @returns {boolean} True when the supplier is eligible.
@@ -548,16 +558,15 @@ function isEligibleForLocationPages(supplier, validOwnerIds) {
   if (!supplier || !supplier.id || !supplierDisplayName(supplier)) {
     return false;
   }
-  if (supplier.approved !== true) {
-    return false;
-  }
   if (!lifecycle.isOwnerValid(supplier, validOwnerIds)) {
     return false;
   }
   if (lifecycle.isKnownTestFixture(supplier) || supplier.testAccount === true) {
     return false;
   }
-  if (lifecycle.lifecycleBlockReason(supplier)) {
+  const publishedUnclaimed = isPublishedUnclaimedSupplierBotProfile(supplier);
+  const blockReason = lifecycle.lifecycleBlockReason(supplier);
+  if (blockReason && !(blockReason === 'not_approved' && publishedUnclaimed)) {
     return false;
   }
   return true;
@@ -626,6 +635,7 @@ function matchSupplierToCity(supplier, city) {
     citySlug: city.slug,
     baseCitySlug: base ? base.citySlug : null,
     weight: RELATIONSHIP_WEIGHTS[relationship] || 0,
+    unclaimed: isPublishedUnclaimedSupplierBotProfile(supplier),
   });
 
   if (base && base.citySlug === city.slug) {
@@ -745,6 +755,7 @@ function rankSuppliersForCity(suppliers, city, options = {}) {
       relationship: match.relationship,
       label: match.label,
       distanceMiles: match.distanceMiles,
+      unclaimed: match.unclaimed,
       score: Math.round((match.weight + qualityScore(supplier) + tierBoost(supplier)) * 100) / 100,
     };
 
