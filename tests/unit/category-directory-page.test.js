@@ -240,8 +240,7 @@ describe('buildCategoryNamedFaqStructuredData', () => {
   });
 
   it('returns null for a category with no named FAQ', () => {
-    const jewellery = categoryDirectoryPages.resolveCategory('jewellery');
-    expect(categoryDirectoryPages.buildCategoryNamedFaqStructuredData(jewellery)).toBeNull();
+    expect(categoryDirectoryPages.buildCategoryNamedFaqStructuredData(venues)).toBeNull();
   });
 
   it('names wedding invitations explicitly for the Stationery category', () => {
@@ -284,11 +283,5 @@ describe('buildCategoryNamedFaqStructuredData', () => {
     const faq = categoryDirectoryPages.buildCategoryNamedFaqStructuredData(catering);
     expect(faq['@type']).toBe('FAQPage');
     expect(faq.mainEntity[0].name).toMatch(/hog roasts/i);
-  });
-
-  it('names marquee hire explicitly for the Venues category', () => {
-    const faq = categoryDirectoryPages.buildCategoryNamedFaqStructuredData(venues);
-    expect(faq['@type']).toBe('FAQPage');
-    expect(faq.mainEntity[0].name).toMatch(/marquee hire/i);
   });
 });

@@ -214,11 +214,6 @@ const CATEGORY_NAMED_FAQS = Object.freeze({
     answer:
       'Yes — hog roasts, ice cream vans, candy floss machines and other novelty catering are listed under Catering alongside traditional caterers. Filter by price and postcode to compare suppliers near your venue.',
   }),
-  venues: Object.freeze({
-    question: 'Does EventFlow list marquee hire companies?',
-    answer:
-      'Yes — marquee hire companies are listed under Venues alongside traditional wedding venues. Compare sizes and pricing, then message a supplier directly to check availability for your date.',
-  }),
   stationery: Object.freeze({
     question: 'Does EventFlow list wedding invitation suppliers?',
     answer:
