@@ -1,7 +1,7 @@
 [
   {
     "id": 1,
-    "title": "The Ultimate Wedding Venue Selection Guide 2026",
+    "title": "How to Choose a Wedding Venue: 2026 Guide",
     "description": "Discover how to choose the perfect wedding venue with our comprehensive guide.",
     "excerpt": "Discover how to choose the perfect wedding venue with our comprehensive guide. Expert tips on location, capacity, budget, must-have amenities and venue styles from historic estates to beach and woodland settings.",
     "image": "https://images.pexels.com/photos/1616113/pexels-photo-1616113.jpeg?auto=compress&cs=tinysrgb&w=800&h=500&dpr=1",
@@ -91,9 +91,9 @@
   },
   {
     "id": 4,
-    "title": "Perfect Wedding Day Timeline: Hour-by-Hour Planning Guide 2026",
-    "description": "Create the perfect wedding day timeline with our comprehensive hour-by-hour guide.",
-    "excerpt": "Create the perfect wedding day timeline with our comprehensive hour-by-hour guide. Expert tips on scheduling, timing, and coordinating every moment for a stress-free celebration.",
+    "title": "How to Plan a Wedding Timeline: Guide 2026",
+    "description": "How to plan a wedding timeline, hour by hour: sample schedules, key timing factors, and the most common mistakes to avoid.",
+    "excerpt": "How to plan a wedding timeline, hour by hour: sample schedules, key timing factors, and the most common mistakes to avoid. Expert tips on scheduling, timing, and coordinating every moment for a stress-free celebration.",
     "image": "https://images.pexels.com/photos/265722/pexels-photo-265722.jpeg?auto=compress&cs=tinysrgb&w=800&h=500&dpr=1",
     "category": "Timelines",
     "tags": [
@@ -111,7 +111,7 @@
       "href": "/timeline"
     },
     "author": "EventFlow Team",
-    "summary": "Create the perfect wedding day timeline with our comprehensive hour-by-hour guide.",
+    "summary": "How to plan a wedding timeline, hour by hour: sample schedules, key timing factors, and the most common mistakes to avoid.",
     "difficulty": "Intermediate",
     "lastUpdated": "2026-09-05",
     "primaryTag": "planning",
@@ -149,9 +149,9 @@
   },
   {
     "id": 6,
-    "title": "Event Budget Management: Complete Guide 2026",
-    "description": "Master event budgeting with expert strategies for tracking expenses, negotiating with vendors, and maximising value while staying on budget.",
-    "excerpt": "Master event budgeting with expert strategies for tracking expenses, negotiating with vendors, and maximising value while staying on budget.",
+    "title": "How to Budget for a Wedding: Guide 2026",
+    "description": "How to budget for a wedding, step by step: allocate spend by category, track expenses, and avoid the most common wedding budgeting mistakes.",
+    "excerpt": "How to budget for a wedding, step by step: allocate spend by category, track expenses, and avoid the most common wedding budgeting mistakes.",
     "image": "https://images.pexels.com/photos/3483098/pexels-photo-3483098.jpeg?auto=compress&cs=tinysrgb&w=800&h=500&dpr=1",
     "category": "Budget",
     "tags": [
@@ -169,7 +169,7 @@
       "href": "/budget"
     },
     "author": "EventFlow Team",
-    "summary": "Master event budgeting with expert strategies for tracking expenses, negotiating with vendors, and maximising value while staying on budget.",
+    "summary": "How to budget for a wedding, step by step: allocate spend by category, track expenses, and avoid the most common wedding budgeting mistakes.",
     "difficulty": "Intermediate",
     "lastUpdated": "2026-09-07",
     "primaryTag": "planning",
@@ -354,9 +354,9 @@
     "id": 13,
     "title": "Event Decoration & Styling on a Budget",
     "description": "Create a stunning event aesthetic without overspending.",
-    "excerpt": "Create a stunning event aesthetic without overspending. Discover DIY d\u00e9cor ideas, how to hire styling props, and the secrets to making a venue look spectacular on any budget.",
+    "excerpt": "Create a stunning event aesthetic without overspending. Discover DIY décor ideas, how to hire styling props, and the secrets to making a venue look spectacular on any budget.",
     "image": "https://images.pexels.com/photos/931177/pexels-photo-931177.jpeg?auto=compress&cs=tinysrgb&w=800&h=500&dpr=1",
-    "category": "D\u00e9cor",
+    "category": "Décor",
     "tags": [
       "decor",
       "styling",
@@ -730,9 +730,9 @@
   },
   {
     "id": 26,
-    "title": "RSVP Management Guide: Replies, Dietary Needs and Plus-Ones",
-    "description": "Track replies, plus-ones, menu choices and dietary needs without losing control of your guest list.",
-    "excerpt": "Track replies, plus-ones, menu choices and dietary needs without losing control of your guest list. Learn how to collect the right details, chase politely and lock numbers before supplier deadlines.",
+    "title": "RSVP Meaning & Management Guide 2026",
+    "description": "What does RSVP mean, and how do you manage replies, dietary needs and plus-ones without losing control of your guest list?",
+    "excerpt": "What does RSVP mean, and how do you manage replies, dietary needs and plus-ones without losing control of your guest list? Learn how to collect the right details, chase politely and lock numbers before supplier deadlines.",
     "image": "https://images.pexels.com/photos/1595391/pexels-photo-1595391.jpeg?auto=compress&cs=tinysrgb&w=800&h=500&dpr=1",
     "category": "Planning",
     "tags": [
@@ -759,9 +759,9 @@
   },
   {
     "id": 27,
-    "title": "Seating Plan Guide: Tables, Guests and Layouts",
-    "description": "Turn your guest list into a practical seating plan that works for the room, the meal and the people attending.",
-    "excerpt": "Turn your guest list into a practical seating plan that works for the room, the meal and the people attending. Covers table types, top-table layouts, family dynamics, accessibility, catering and last-minute changes.",
+    "title": "Seating Chart & Seating Plan Guide 2026",
+    "description": "What is a seating chart, and how do you plan one? A practical guide to tables, guests and layouts.",
+    "excerpt": "What is a seating chart, and how do you plan one? A practical guide to tables, guests and layouts. Covers table types, top-table layouts, family dynamics, accessibility, catering and last-minute changes.",
     "image": "https://images.pexels.com/photos/265722/pexels-photo-265722.jpeg?auto=compress&cs=tinysrgb&w=800&h=500&dpr=1",
     "category": "Planning",
     "tags": [
@@ -964,7 +964,7 @@
   {
     "id": 34,
     "title": "Event Travel Costs Guide: Budgeting Transport for Guests, Staff and Suppliers",
-    "description": "How to budget event travel costs for guests, staff, stakeholders, suppliers and agencies \u2014 parking, shuttles, mileage rates and fuel, plus tips to cut the bill.",
+    "description": "How to budget event travel costs for guests, staff, stakeholders, suppliers and agencies — parking, shuttles, mileage rates and fuel, plus tips to cut the bill.",
     "excerpt": "Travel is one of the easiest event costs to underestimate. Learn how to budget for guest, staff, stakeholder and supplier transport, including mileage rates, fuel costs and practical ways to cut the bill.",
     "image": "https://images.pexels.com/photos/210182/pexels-photo-210182.jpeg?auto=compress&cs=tinysrgb&w=800&h=500&dpr=1",
     "category": "Transport",
