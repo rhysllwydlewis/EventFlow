@@ -963,7 +963,13 @@ router.patch(
         mappedAt: new Date().toISOString(),
       });
 
-      const acknowledged = await dbUnified.updateOne(
+      // Don't gate on the update's own acknowledgement: on MongoDB it reports
+      // via modifiedCount, which is 0 (falsy) whenever the document already
+      // held these exact values — a harmless no-op on a retried call, not a
+      // failure. The re-read below is the real proof either way: it catches
+      // a genuine write failure just as reliably (the stored citySlug simply
+      // won't match), without misreporting an idempotent replay as broken.
+      await dbUnified.updateOne(
         'suppliers',
         { id },
         {
@@ -972,14 +978,6 @@ router.patch(
           updatedAt: new Date().toISOString(),
         }
       );
-      if (!acknowledged) {
-        return res.status(500).json({
-          success: false,
-          error: 'Update was not acknowledged by the database',
-          code: 'LOCATION_MAPPING_WRITE_FAILED',
-          timestamp: new Date().toISOString(),
-        });
-      }
 
       // Re-read and prove the write landed and the legacy location text was
       // not disturbed, exactly as the audit script's own writeMapping does.
@@ -998,14 +996,24 @@ router.patch(
         });
       }
 
-      await createAuditLog({
-        actor: { id: req.user.id, email: req.user.email, role: req.user.role },
-        action: 'SUPPLIER_LOCATION_MAPPED',
-        resource: { type: 'supplier', id },
-        changes: { baseLocation: { before, after: verified.baseLocation } },
-        ipAddress: req.ip,
-        userAgent: req.get('user-agent'),
-      });
+      // The mapping itself is written and verified at this point — an audit
+      // log hiccup is worth surfacing, but must never turn an already-durable,
+      // already-verified write into a reported failure the caller might retry.
+      try {
+        await createAuditLog({
+          actor: { id: req.user.id, email: req.user.email, role: req.user.role },
+          action: 'SUPPLIER_LOCATION_MAPPED',
+          resource: { type: 'supplier', id },
+          changes: { baseLocation: { before, after: verified.baseLocation } },
+          ipAddress: req.ip,
+          userAgent: req.get('user-agent'),
+        });
+      } catch (auditError) {
+        logger.error('Supplier location mapping succeeded but audit log write failed', {
+          supplierId: id,
+          error: auditError.message,
+        });
+      }
 
       return res.json({
         success: true,

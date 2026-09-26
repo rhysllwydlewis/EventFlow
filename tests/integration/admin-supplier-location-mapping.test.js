@@ -57,6 +57,8 @@ jest.mock('../../db-unified', () => ({
   }),
 }));
 
+const dbUnified = require('../../db-unified');
+const { createAuditLog } = require('../../utils/auditTrail');
 const adminV2Routes = require('../../routes/admin-v2');
 
 function buildApp() {
@@ -158,6 +160,60 @@ describe('PATCH /api/v2/admin/suppliers/:id/location-mapping', () => {
 
     expect(res.status).toBe(404);
     expect(res.body.code).toBe('SUPPLIER_NOT_FOUND');
+  });
+
+  it('still succeeds when updateOne reports no modification (idempotent replay)', async () => {
+    // MongoDB's updateOne reports via modifiedCount, which is 0 (falsy) when the
+    // document already holds these exact values — e.g. a retried call after a
+    // dropped response. That must not be reported as a failure: the document
+    // really is already in the desired state, which is what the re-read proves.
+    mockSuppliers[0].baseLocation = { citySlug: 'cardiff' };
+    dbUnified.updateOne.mockImplementationOnce(async () => false);
+    const app = buildApp();
+
+    const res = await request(app)
+      .patch('/api/v2/admin/suppliers/sup-tramshed/location-mapping')
+      .send({ citySlug: 'cardiff' });
+
+    expect(res.status).toBe(200);
+    expect(res.body.success).toBe(true);
+  });
+
+  it('reports LOCATION_MAPPING_VERIFY_FAILED when the write genuinely did not land', async () => {
+    // updateOne can report success while the underlying write did not really
+    // apply (e.g. a stale read winning a race). The endpoint must trust the
+    // re-read, not the acknowledgement, so a genuine mismatch is still caught.
+    dbUnified.updateOne.mockImplementationOnce(async () => true);
+    dbUnified.findOne.mockImplementationOnce(async (collection, filter) =>
+      mockSuppliers.find(row => row.id === filter.id)
+    ); // supplier lookup
+    dbUnified.findOne.mockImplementationOnce(async () => ({
+      ...mockSuppliers[0],
+      baseLocation: null, // the verify re-read shows the write never landed
+    }));
+    const app = buildApp();
+
+    const res = await request(app)
+      .patch('/api/v2/admin/suppliers/sup-tramshed/location-mapping')
+      .send({ citySlug: 'cardiff' });
+
+    expect(res.status).toBe(500);
+    expect(res.body.code).toBe('LOCATION_MAPPING_VERIFY_FAILED');
+  });
+
+  it('still reports success when the mapping write succeeds but the audit log write fails', async () => {
+    createAuditLog.mockImplementationOnce(async () => {
+      throw new Error('audit_logs collection unavailable');
+    });
+    const app = buildApp();
+
+    const res = await request(app)
+      .patch('/api/v2/admin/suppliers/sup-tramshed/location-mapping')
+      .send({ citySlug: 'cardiff' });
+
+    expect(res.status).toBe(200);
+    expect(res.body.success).toBe(true);
+    expect(mockSuppliers[0].baseLocation.citySlug).toBe('cardiff');
   });
 
   it('requires the SUPPLIERS_UPDATE permission', async () => {
