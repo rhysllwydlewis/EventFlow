@@ -1511,5 +1511,34 @@
     "primaryTag": "preloved",
     "ogImage": "https://images.pexels.com/photos/5632459/pexels-photo-5632459.jpeg?auto=compress&cs=tinysrgb&w=800&h=500&dpr=1",
     "lastMaterialUpdate": "2026-09-26"
+  },
+  {
+    "id": 53,
+    "title": "Wedding Venues Near Me: A UK Search Guide",
+    "description": "Find wedding venues near you in the UK. Compare ten venue styles, search London and Norfolk, and build a practical shortlist around your guests and budget.",
+    "excerpt": "Search locally with purpose: compare ten venue styles, practical travel, capacity and quotes, with pointers for London, Norfolk and wider England.",
+    "image": "https://images.pexels.com/photos/17206077/pexels-photo-17206077.jpeg?auto=compress&cs=tinysrgb&w=800&h=500&dpr=1",
+    "category": "Venues",
+    "tags": [
+      "wedding",
+      "venues",
+      "local"
+    ],
+    "href": "/articles/wedding-venues-near-me-uk-guide",
+    "readingMins": 11,
+    "publishedDate": "2026-09-26",
+    "featured": false,
+    "affiliate": false,
+    "tool": {
+      "label": "Browse suppliers",
+      "href": "/suppliers"
+    },
+    "author": "EventFlow Team",
+    "summary": "Local search strategy and ten venue styles for UK couples.",
+    "difficulty": "Intermediate",
+    "lastUpdated": "2026-09-26",
+    "primaryTag": "venues",
+    "ogImage": "https://images.pexels.com/photos/17206077/pexels-photo-17206077.jpeg?auto=compress&cs=tinysrgb&w=800&h=500&dpr=1",
+    "lastMaterialUpdate": "2026-09-26"
   }
 ]
