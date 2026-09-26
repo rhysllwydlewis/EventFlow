@@ -601,7 +601,7 @@ function renderSupplierCard(entry) {
   // automatically, not yet claimed. Same badge language and claim link the
   // supplier's own profile page already shows (public-supplier-seo.js).
   const unclaimedBadge = entry.unclaimed
-    ? `<span class="badge badge-unclaimed" aria-label="Unclaimed listing" title="This listing was added automatically and has not yet been claimed by the business.">Unclaimed</span>`
+    ? '<span class="badge badge-unclaimed" aria-label="Unclaimed listing" title="This listing was added automatically and has not yet been claimed by the business.">Unclaimed</span>'
     : '';
 
   // The avatar/arrow and meta text aren't links themselves — the whole card

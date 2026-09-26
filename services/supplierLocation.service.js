@@ -566,10 +566,7 @@ function isEligibleForLocationPages(supplier, validOwnerIds) {
   }
   const publishedUnclaimed = isPublishedUnclaimedSupplierBotProfile(supplier);
   const blockReason = lifecycle.lifecycleBlockReason(supplier);
-  if (blockReason && !(blockReason === 'not_approved' && publishedUnclaimed)) {
-    return false;
-  }
-  return true;
+  return !blockReason || (blockReason === 'not_approved' && publishedUnclaimed);
 }
 
 /**
