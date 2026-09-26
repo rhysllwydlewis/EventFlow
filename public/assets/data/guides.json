@@ -1482,5 +1482,34 @@
     "primaryTag": "invitations",
     "ogImage": "https://images.pexels.com/photos/1027130/pexels-photo-1027130.jpeg?auto=compress&cs=tinysrgb&w=800&h=500&dpr=1",
     "lastMaterialUpdate": "2026-09-26"
+  },
+  {
+    "id": 52,
+    "title": "How to Sell Wedding Clothes Online",
+    "description": "Prepare, photograph and price preloved wedding dresses and bridal outfits for UK buyers, with measurements, listing tips and safe handover advice.",
+    "excerpt": "Prepare and price a preloved wedding dress or bridal outfit, take useful photos, describe alterations and handle UK buyer enquiries with confidence.",
+    "image": "https://images.pexels.com/photos/5632459/pexels-photo-5632459.jpeg?auto=compress&cs=tinysrgb&w=800&h=500&dpr=1",
+    "category": "Marketplace",
+    "tags": [
+      "wedding",
+      "preloved",
+      "attire"
+    ],
+    "href": "/articles/sell-wedding-clothes-online-guide",
+    "readingMins": 7,
+    "publishedDate": "2026-09-26",
+    "featured": false,
+    "affiliate": false,
+    "tool": {
+      "label": "Browse marketplace",
+      "href": "/marketplace"
+    },
+    "author": "EventFlow Team",
+    "summary": "A practical guide to selling second hand wedding clothes in the UK.",
+    "difficulty": "Beginner",
+    "lastUpdated": "2026-09-26",
+    "primaryTag": "preloved",
+    "ogImage": "https://images.pexels.com/photos/5632459/pexels-photo-5632459.jpeg?auto=compress&cs=tinysrgb&w=800&h=500&dpr=1",
+    "lastMaterialUpdate": "2026-09-26"
   }
 ]
