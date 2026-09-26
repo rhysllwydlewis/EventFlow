@@ -110,13 +110,23 @@ describe('scripts/new-article.mjs', () => {
     // had any hint the block existed. Commented (not live markup) so an
     // unfilled `src=""`/`alt=""` never ships by accident, but present so the
     // pattern is discoverable without reading the CSS or the docs.
-    expect(html).toContain('<!-- Optional: a photo partway through the article');
-    expect(html).toContain('<figure class="gp-figure gp-reveal">');
-    expect(html).toContain('-->');
-    // Genuinely commented out, not live: no gp-figure markup outside the
-    // <!-- --> pair.
-    const liveHtml = html.replace(/<!--[\s\S]*?-->/g, '');
-    expect(liveHtml).not.toContain('gp-figure');
+    //
+    // Bounded, single-comment extraction (indexOf, not a global regex strip)
+    // deliberately, rather than a generic "remove every <!-- --> in the
+    // document" pass: that shape of regex is a known incomplete-sanitization
+    // pattern (nested/overlapping markers can leave a live fragment behind).
+    // This only ever looks at the one comment the scaffold itself writes.
+    const commentStart = html.indexOf('<!-- Optional: a photo partway through the article');
+    expect(commentStart).toBeGreaterThan(-1);
+    const commentEnd = html.indexOf('-->', commentStart);
+    expect(commentEnd).toBeGreaterThan(commentStart);
+    const comment = html.slice(commentStart, commentEnd + '-->'.length);
+    expect(comment).toContain('<figure class="gp-figure gp-reveal">');
+
+    // Genuinely commented out, not live: the only "gp-figure" text anywhere
+    // in the file is inside that one comment block.
+    const withoutComment = html.slice(0, commentStart) + html.slice(commentEnd + '-->'.length);
+    expect(withoutComment).not.toContain('gp-figure');
   });
 
   it('reminds the author to pick a real, unique image and prints the fields to fill in', () => {
