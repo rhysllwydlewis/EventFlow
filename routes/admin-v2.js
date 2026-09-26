@@ -46,6 +46,9 @@ const {
 const { ensureSupplierProfileForUser } = require('../services/supplierProfileProvisioning.service');
 const { deleteUserAndOwnedData } = require('../services/adminUserDeletion.service');
 const { sanitiseText } = require('../utils/sanitise');
+const registry = require('../services/locationRegistry.service');
+const supplierLocation = require('../services/supplierLocation.service');
+const { MAPPING_SOURCES, CONFIDENCE } = require('../models/LocationContent');
 
 const router = express.Router();
 
@@ -901,6 +904,121 @@ router.put(
         success: false,
         error: error.message,
         code: 'UPDATE_SUPPLIER_FAILED',
+        timestamp: new Date().toISOString(),
+      });
+    }
+  }
+);
+
+/**
+ * PATCH /api/v2/admin/suppliers/:id/location-mapping
+ *
+ * Confirm the registry city a supplier's free-text location maps to. Backs the
+ * human-review step of `scripts/audit-supplier-locations.js`: that script only
+ * ever auto-writes its `high_confidence` rows, and deliberately leaves anything
+ * ambiguous ("review_required") for a person to confirm one at a time. This is
+ * that confirmation endpoint.
+ *
+ * Only the structured `baseLocation` field is written — the supplier's own
+ * `location` text is never touched, so a wrong call is always recoverable. The
+ * mapping is recorded with `source: admin_verified`, which
+ * `deriveSupplierGeography` (routes/supplier-management.js) already treats as
+ * a locked-in human decision that a later profile edit must not silently
+ * overwrite.
+ */
+router.patch(
+  '/suppliers/:id/location-mapping',
+  authRequired,
+  requirePermission(PERMISSIONS.SUPPLIERS_UPDATE),
+  csrfProtection,
+  async (req, res) => {
+    try {
+      const { id } = req.params;
+      const citySlug =
+        typeof req.body?.citySlug === 'string' ? req.body.citySlug.trim().toLowerCase() : '';
+      const city = registry.getCity(citySlug);
+      if (!citySlug || !city) {
+        return res.status(400).json({
+          success: false,
+          error: 'citySlug must be an exact, existing registry city slug',
+          code: 'INVALID_CITY_SLUG',
+          timestamp: new Date().toISOString(),
+        });
+      }
+
+      const supplier = await dbUnified.findOne('suppliers', { id });
+      if (!supplier) {
+        return res.status(404).json({
+          success: false,
+          error: 'Supplier not found',
+          code: 'SUPPLIER_NOT_FOUND',
+          timestamp: new Date().toISOString(),
+        });
+      }
+
+      const before = supplier.baseLocation || null;
+      const baseLocation = supplierLocation.buildBaseLocationDocument(city, {
+        source: MAPPING_SOURCES.adminVerified,
+        confidence: CONFIDENCE.high,
+        mappedAt: new Date().toISOString(),
+      });
+
+      const acknowledged = await dbUnified.updateOne(
+        'suppliers',
+        { id },
+        {
+          baseLocation,
+          locationMappingReviewRequired: false,
+          updatedAt: new Date().toISOString(),
+        }
+      );
+      if (!acknowledged) {
+        return res.status(500).json({
+          success: false,
+          error: 'Update was not acknowledged by the database',
+          code: 'LOCATION_MAPPING_WRITE_FAILED',
+          timestamp: new Date().toISOString(),
+        });
+      }
+
+      // Re-read and prove the write landed and the legacy location text was
+      // not disturbed, exactly as the audit script's own writeMapping does.
+      const verified = await dbUnified.findOne('suppliers', { id });
+      const legacyUnchanged = (verified?.location || null) === (supplier.location || null);
+      if (
+        !verified?.baseLocation ||
+        verified.baseLocation.citySlug !== city.slug ||
+        !legacyUnchanged
+      ) {
+        return res.status(500).json({
+          success: false,
+          error: 'Location mapping did not verify after write',
+          code: 'LOCATION_MAPPING_VERIFY_FAILED',
+          timestamp: new Date().toISOString(),
+        });
+      }
+
+      await createAuditLog({
+        actor: { id: req.user.id, email: req.user.email, role: req.user.role },
+        action: 'SUPPLIER_LOCATION_MAPPED',
+        resource: { type: 'supplier', id },
+        changes: { baseLocation: { before, after: verified.baseLocation } },
+        ipAddress: req.ip,
+        userAgent: req.get('user-agent'),
+      });
+
+      return res.json({
+        success: true,
+        data: { supplierId: id, baseLocation: verified.baseLocation },
+        message: `Supplier mapped to ${city.name}, ${city.nation}`,
+        timestamp: new Date().toISOString(),
+      });
+    } catch (error) {
+      logger.error('Failed to set supplier location mapping', { error: error.message });
+      return res.status(500).json({
+        success: false,
+        error: error.message,
+        code: 'LOCATION_MAPPING_FAILED',
         timestamp: new Date().toISOString(),
       });
     }
