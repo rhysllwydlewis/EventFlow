@@ -1453,5 +1453,34 @@
     "primaryTag": "suit",
     "ogImage": "https://images.pexels.com/photos/1181406/pexels-photo-1181406.jpeg?auto=compress&cs=tinysrgb&w=800&h=500&dpr=1",
     "lastMaterialUpdate": "2026-09-25"
+  },
+  {
+    "id": 51,
+    "title": "Wedding Invitation Wording & Design Ideas",
+    "description": "Seven wedding invitation ideas and ready-to-adapt wording examples for UK couples, from formal and evening invites to destination weddings.",
+    "excerpt": "Seven wedding invitation design ideas, ready-to-adapt wording for full-day and evening guests, and a final proofing checklist.",
+    "image": "https://images.pexels.com/photos/1027130/pexels-photo-1027130.jpeg?auto=compress&cs=tinysrgb&w=800&h=500&dpr=1",
+    "category": "Stationery",
+    "tags": [
+      "wedding",
+      "invitations",
+      "wording"
+    ],
+    "href": "/articles/wedding-invitation-wording-ideas-guide",
+    "readingMins": 8,
+    "publishedDate": "2026-09-26",
+    "featured": false,
+    "affiliate": false,
+    "tool": {
+      "label": "Browse suppliers",
+      "href": "/suppliers"
+    },
+    "author": "EventFlow Team",
+    "summary": "Seven invitation design ideas and adaptable wording examples for UK weddings.",
+    "difficulty": "Beginner",
+    "lastUpdated": "2026-09-26",
+    "primaryTag": "invitations",
+    "ogImage": "https://images.pexels.com/photos/1027130/pexels-photo-1027130.jpeg?auto=compress&cs=tinysrgb&w=800&h=500&dpr=1",
+    "lastMaterialUpdate": "2026-09-26"
   }
 ]
