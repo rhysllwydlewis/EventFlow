@@ -202,6 +202,16 @@ main.section {
   stroke-width: 2.4;
 }
 
+/* This button also carries .ef-cta, whose !important padding otherwise
+   leaves only a few px of content width inside the fixed 44x44 box,
+   squeezing the svg icon into a thin sliver instead of its intended
+   26px size — same bug class as admin-navbar.css's close button fix. */
+.btn-icon.ef-cta {
+  padding: 0 !important;
+  font-size: inherit !important;
+  font-weight: inherit !important;
+}
+
 .btn-icon:hover {
   background: #f3f4f6;
   border-color: #0B8073;
@@ -1551,6 +1561,18 @@ tbody tr.selected td {
   justify-content: center;
   border-radius: 8px;
   transition: all 0.2s;
+}
+
+/* .modal-close also carries the shared .ef-cta class on several admin pages
+   (admin-homepage.html, admin-users.html, …). .ef-cta forces
+   padding/font-size/font-weight with !important, which otherwise wins over
+   the plain declarations above and squeezes this 40x40 button's × glyph
+   into a ~4px sliver — the same bug class documented in admin-navbar.css's
+   "ICON BUTTON VISIBILITY FIX". */
+.modal-close.ef-cta {
+  padding: 0 !important;
+  font-size: 34px !important;
+  font-weight: 500 !important;
 }
 
 .modal-close:hover {
