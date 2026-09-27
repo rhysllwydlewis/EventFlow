@@ -850,7 +850,7 @@
 
   // Support ?tab= query param to activate a specific tab on load
   (function activateTabFromQuery() {
-    const KNOWN_TABS = ['homepage', 'announcements', 'faqs', 'featured', 'legalDates'];
+    const KNOWN_TABS = ['announcements', 'faqs', 'featured', 'legalDates'];
     const params = new URLSearchParams(window.location.search);
     const tab = params.get('tab');
     if (tab && KNOWN_TABS.includes(tab)) {
