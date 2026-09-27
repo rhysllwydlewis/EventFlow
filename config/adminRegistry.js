@@ -208,10 +208,10 @@ const REGISTRY = [
     route: '/admin-reports',
     htmlFile: 'admin-reports',
     label: 'Reports',
-    icon: '📈',
+    icon: '🚩',
     category: 'moderation',
     inNav: true,
-    desc: 'Platform analytics',
+    desc: 'User-submitted content reports & moderation actions',
     badgeId: 'navBadgeReports',
   },
   {

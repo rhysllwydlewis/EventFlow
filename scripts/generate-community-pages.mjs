@@ -139,7 +139,15 @@ ${page.adminGuard ? '    <script src="/assets/js/dashboard-guard.js?v=17.0.2"></
     <link rel="stylesheet" href="/assets/css/navbar.css?v=${version('/assets/css/navbar.css')}" />
     <link rel="stylesheet" href="/assets/css/eventflow-brand.css?v=1.0.1" data-eventflow-brand="true" />
     <link rel="stylesheet" href="/assets/css/community.css?v=${version('/assets/css/community.css')}" />
-${page.adminGuard ? '' : '    <link rel="stylesheet" href="/assets/css/eventflow-footer.css" />\n'}    <link rel="icon" href="/favicon.ico" sizes="any" />
+${
+  page.adminGuard
+    ? `    <link rel="stylesheet" href="/assets/css/admin.css?v=18.3.0" />
+    <link rel="stylesheet" href="/assets/css/admin-enhanced.css?v=18.3.1" />
+    <link rel="stylesheet" href="/assets/css/admin-navbar.css?v=18.3.0" />
+    <link rel="stylesheet" href="/assets/css/admin-cards.css?v=18.3.0" />
+`
+    : '    <link rel="stylesheet" href="/assets/css/eventflow-footer.css" />\n'
+}    <link rel="icon" href="/favicon.ico" sizes="any" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="icon" type="image/png" sizes="144x144" href="/favicon-144x144.png" />
     <link rel="icon" type="image/png" sizes="96x96" href="/favicon-96x96.png" />
@@ -149,9 +157,13 @@ ${page.adminGuard ? '' : '    <link rel="stylesheet" href="/assets/css/eventflow
     <link rel="manifest" href="/site.webmanifest" />
     <meta name="msapplication-config" content="/browserconfig.xml" />
   </head>
-  <body class="efc">
+  <body class="efc${page.adminGuard ? ' admin-body' : ''}">
     <a class="efc-skip" href="#main-content">Skip to main content</a>
-
+${
+  page.adminGuard
+    ? `    <div id="adminNavbarMount"></div>
+`
+    : `
     <header class="ef-header" role="banner">
       <div class="ef-container">
         <div class="ef-header-content">
@@ -198,7 +210,8 @@ ${MOBILE_NAV}
         <a href="/notifications" class="notification-view-all">View all</a>
       </div>
     </div>
-
+`
+}
     <main id="main-content">
 ${page.hero || ''}
       <div class="efc-shell">
@@ -211,13 +224,19 @@ ${page.body}
 
     <footer class="footer" role="contentinfo">
       <div class="container ef-footer-content">
-        <div><strong>EventFlow</strong><br /><span class="small">Event planning made simple.</span></div>
+        <div><strong>EventFlow</strong><br /><span class="small">${page.adminGuard ? 'Admin Panel' : 'Event planning made simple.'}</span></div>
         <div class="small">
-          <a href="/community">Community</a> · <a href="/community/guidelines">Community guidelines</a> ·
+${
+  page.adminGuard
+    ? `          <a href="/admin">Dashboard</a> · <a href="/community">Community</a> ·
+          <a href="/legal">Legal Hub</a> ·
+          <button type="button" data-cookie-prefs>Cookie preferences</button>`
+    : `          <a href="/community">Community</a> · <a href="/community/guidelines">Community guidelines</a> ·
           <a href="/guides">Guides</a> · <a href="/marketplace">Marketplace</a> ·
           <a href="/public-calendar">Events Calendar</a> · <a href="/suppliers">Suppliers</a> ·
           <a href="/legal">Legal Hub</a> ·
-          <button type="button" data-cookie-prefs>Cookie preferences</button>
+          <button type="button" data-cookie-prefs>Cookie preferences</button>`
+}
         </div>
       </div>
     </footer>
@@ -280,11 +299,18 @@ ${
 
     <script src="/assets/js/components/eventflow-footer.js?v=4" defer></script>
 `
-}    <script src="/assets/js/utils/auth-state.js" defer></script>
+}${
+    page.adminGuard
+      ? `    <script src="/assets/js/admin-shared.js?v=18.3.0"></script>
+    <script src="/assets/js/components.js?v=18.3.0" defer></script>
+    <script src="/assets/js/admin-navbar.js?v=18.3.0" defer></script>
+`
+      : `    <script src="/assets/js/utils/auth-state.js" defer></script>
     <script src="/assets/js/burger-menu.js" defer></script>
     <script src="/assets/js/navbar.js" defer></script>
     <script src="/assets/js/notifications.js" defer></script>
-    <script src="/assets/js/cookie-consent.js?v=3.0.0" defer></script>
+`
+  }    <script src="/assets/js/cookie-consent.js?v=3.0.0" defer></script>
     <script src="/assets/js/community/core.js?v=${version('/assets/js/community/core.js')}" defer></script>
 ${scripts}
   </body>
@@ -318,7 +344,12 @@ const stageBadge = `          <span class="efc-stage__badge" aria-hidden="true">
  * @param {string} [opts.actions] Pre-built call-to-action markup, if any.
  * @returns {string} Section markup.
  */
-const stageHero = ({ title, lead, searchForm = '', actions = '' }) => `    <section class="efc-stage efc-stage--compact">
+const stageHero = ({
+  title,
+  lead,
+  searchForm = '',
+  actions = '',
+}) => `    <section class="efc-stage efc-stage--compact">
       <div class="efc-stage__decor" aria-hidden="true">
         <span class="efc-blob efc-blob--a"></span>
         <span class="efc-blob efc-blob--b"></span>

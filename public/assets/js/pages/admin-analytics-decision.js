@@ -405,7 +405,15 @@
     } catch (error) {
       const grid = document.getElementById('analyticsComparisonGrid');
       if (grid) {
-        grid.innerHTML = `<div class="analytics-decision-empty analytics-decision-error">${escapeHtml(error.message || 'Decision analytics could not be loaded.')}</div>`;
+        // A raw TypeError means the fetch itself never completed — commonly an
+        // ad blocker or privacy extension blocking a same-origin "/analytics/"
+        // path, not an application error, so give the admin something actionable
+        // instead of the browser's generic "Failed to fetch" message.
+        const message =
+          error instanceof TypeError
+            ? 'Could not reach the analytics service. If you use an ad blocker or privacy extension, try allowing this site and refresh.'
+            : error.message || 'Decision analytics could not be loaded.';
+        grid.innerHTML = `<div class="analytics-decision-empty analytics-decision-error">${escapeHtml(message)}</div>`;
       }
     } finally {
       state.loading = false;

@@ -91,7 +91,9 @@
           label: 'Pexels API configuration',
         },
         {
-          value: `${overview.media.pexels.cacheHitRate}%`,
+          // cacheHitRate already comes formatted from the backend (e.g.
+          // "25.00%" or "N/A") — appending another "%" here produced "25.00%%".
+          value: overview.media.pexels.cacheHitRate,
           label: `${overview.media.pexels.totalRequests} Pexels requests tracked`,
         },
       ],

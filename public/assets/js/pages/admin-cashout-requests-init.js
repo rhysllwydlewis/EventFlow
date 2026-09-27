@@ -257,7 +257,11 @@
     }
 
     try {
-      const params = new URLSearchParams({ limit: '200' });
+      // The shared /api pagination middleware (middleware/pagination.js)
+      // hard-caps limit at 100 for every endpoint; requesting 200 here always
+      // failed validation with a 400 "Invalid pagination parameter" before
+      // this list could ever render.
+      const params = new URLSearchParams({ limit: '100' });
       if (statusFilter) {
         params.append('status', statusFilter);
       }

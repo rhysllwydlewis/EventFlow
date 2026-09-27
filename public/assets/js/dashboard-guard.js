@@ -258,17 +258,44 @@
     window.setTimeout(publish, 750);
   }
 
+  const AUTH_CHECK_MAX_RETRIES = 2;
+  const AUTH_CHECK_RETRY_DELAY_MS = 600;
+
+  // A thrown fetch (offline blip, proxy timeout, DNS hiccup) or a non-2xx
+  // status other than 401/403 doesn't prove the session is invalid — only a
+  // confirmed 401/403 does. Retry a couple of times before bouncing an
+  // otherwise-authenticated user out of the dashboard they were using.
+  async function fetchAuthMe(retriesLeft) {
+    let response = null;
+    try {
+      const cacheBuster = `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+      response = await fetch(`/api/v1/auth/me?t=${cacheBuster}`, {
+        credentials: 'include',
+        headers: {
+          'Cache-Control': 'no-cache',
+          Pragma: 'no-cache',
+        },
+      });
+    } catch (networkError) {
+      if (retriesLeft > 0) {
+        await new Promise(resolve => setTimeout(resolve, AUTH_CHECK_RETRY_DELAY_MS));
+        return fetchAuthMe(retriesLeft - 1);
+      }
+      throw networkError;
+    }
+
+    if (!response.ok && response.status !== 401 && response.status !== 403 && retriesLeft > 0) {
+      await new Promise(resolve => setTimeout(resolve, AUTH_CHECK_RETRY_DELAY_MS));
+      return fetchAuthMe(retriesLeft - 1);
+    }
+
+    return response;
+  }
+
   try {
     // Important: use the real fetch for the role gate. The timeout/fallback wrapper
     // is installed only after a real authenticated user has been confirmed.
-    const cacheBuster = `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
-    const response = await fetch(`/api/v1/auth/me?t=${cacheBuster}`, {
-      credentials: 'include',
-      headers: {
-        'Cache-Control': 'no-cache',
-        Pragma: 'no-cache',
-      },
-    });
+    const response = await fetchAuthMe(AUTH_CHECK_MAX_RETRIES);
 
     if (!response.ok) {
       if (isDevelopment) {

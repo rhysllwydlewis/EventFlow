@@ -41,7 +41,7 @@
         <div class="header-content">
           <div>
             <h1 class="dashboard-title">Support Tickets &amp; Enquiries</h1>
-            <p class="dashboard-subtitle">Manage support requests and external contact form enquiries. Tickets are prioritized automatically by account tier (Pro Plus → Urgent, Pro → High, Free → Medium). Tab badges show outstanding queue items; the navbar bell includes unread notifications and outstanding admin queue items.</p>
+            <p class="dashboard-subtitle">Manage support requests and enquiries submitted through EventFlow's own contact form. Tickets are prioritized automatically by account tier (Pro Plus → Urgent, Pro → High, Free → Medium). Tab badges show outstanding queue items; the navbar bell includes unread notifications and outstanding admin queue items. For enquiries relayed from VEXI, Chlo and other integrated sites, see <a href="/admin-external-contacts">External Contacts</a>.</p>
           </div>
           <div class="header-actions">
             <button class="ef-cta btn-secondary" id="backToDashboard">← Back to Dashboard</button>
@@ -57,8 +57,8 @@
             <span class="admin-tab-badge" id="openSupportTicketsBadge" title="Outstanding support ticket queue count" aria-label="Outstanding support ticket queue count" style="display:none;"></span>
           </button>
           <button class="ef-cta admin-tab" id="tab-contacts" role="tab" aria-selected="false" aria-controls="panel-contacts" data-tab="contacts">
-            📬 External Contacts
-            <span class="admin-tab-badge" id="contactEnquiriesBadge" title="Outstanding external contact enquiry queue count" aria-label="Outstanding external contact enquiry queue count" style="display:none;"></span>
+            📬 Contact Form Enquiries
+            <span class="admin-tab-badge" id="contactEnquiriesBadge" title="Outstanding contact form enquiry queue count" aria-label="Outstanding contact form enquiry queue count" style="display:none;"></span>
           </button>
         </div>
 
@@ -113,7 +113,9 @@
           </div>
         </div>
 
-        <!-- PANEL: External Contacts -->
+        <!-- PANEL: Contact Form Enquiries (EventFlow's own /contact form — not to be
+             confused with /admin-external-contacts, which lists enquiries relayed
+             from VEXI, Chlo and other integrated sites; separate data, separate page) -->
         <div id="panel-contacts" class="admin-tab-panel data-section" role="tabpanel" aria-labelledby="tab-contacts" style="display:none;">
           <div class="admin-toolbar">
             <input
@@ -121,7 +123,7 @@
               id="contactSearch"
               placeholder="Search enquiries..."
               class="search-input"
-              aria-label="Search contact enquiries"
+              aria-label="Search contact form enquiries"
             />
             <select id="contactStatusFilter" class="filter-select" aria-label="Filter by status">
               <option value="">All Status</option>

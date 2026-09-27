@@ -128,10 +128,10 @@
     },
     {
       href: '/admin-reports',
-      icon: '📈',
+      icon: '🚩',
       label: 'Reports',
       group: 'moderation',
-      desc: 'Platform analytics',
+      desc: 'User-submitted content reports & moderation actions',
       badgeId: 'navBadgeReports',
     },
     {
@@ -817,10 +817,14 @@
       })
       .catch(error => {
         console.error('Failed to fetch database status:', error);
-        statusBadge.className = 'db-status-badge db-local';
-        statusBadge.innerHTML = '<span class="db-status-dot"></span> Local Storage';
-        statusBadge.title = 'Using local file storage';
-        statusBadge.setAttribute('aria-label', 'Database status: Using local file storage');
+        // A failed status check isn't proof the DB fell back to local
+        // storage — that used to be asserted here, which falsely tells the
+        // admin their data isn't persisting to the real database on what
+        // may just be a transient network blip. Show "Unknown" instead.
+        statusBadge.className = 'db-status-badge db-loading';
+        statusBadge.innerHTML = '<span class="db-status-dot"></span> Unknown';
+        statusBadge.title = 'Could not check database status';
+        statusBadge.setAttribute('aria-label', 'Database status: Could not check database status');
       });
   }
 
@@ -1152,6 +1156,22 @@
         '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>',
       system:
         '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>',
+      // The remaining entries in NOTIFICATION_TYPES (models/index.js) — added
+      // here alongside matching .admin-notif-item-icon--{type} backgrounds in
+      // admin-enhanced.css. Without both, a notification of one of these
+      // types fell through to the white "system" icon on the default
+      // (uncoloured, white) circle — a white icon on a white background,
+      // effectively invisible.
+      reminder:
+        '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>',
+      approval:
+        '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>',
+      update:
+        '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>',
+      marketing:
+        '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>',
+      announcement:
+        '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>',
     };
     return icons[type] || icons.system;
   }
