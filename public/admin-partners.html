@@ -482,32 +482,22 @@
   </div>
 
   <!-- ── Withdrawal (Cashout) Requests section ─────────────────────────────── -->
+  <!-- This used to embed its own copy of the cashout requests table (its own
+       fetch/render/status-update/delete logic against /api/admin/cashout-requests),
+       duplicating /admin-cashout-requests — which has the same table plus the
+       safety controls (pause cashouts, master-pause payouts, per-period limits)
+       this page never had. Kept as a link to the one real implementation
+       instead of two UIs drifting against the same API. -->
   <div id="ap-cashout-section" style="margin-top:1.5rem;">
     <div class="ap-section" style="margin-top:0;">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;flex-wrap:wrap;gap:0.75rem;">
+      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:0.75rem;">
         <div>
           <div class="ap-section-title" style="margin:0 0 0.2rem;">Withdrawal Requests</div>
           <p style="font-size:0.8rem;color:#6b7280;margin:0;">
             Partner cashout requests — approve, process, and mark as delivered. Minimum withdrawal: <strong>£15</strong>.
           </p>
         </div>
-        <div style="display:flex;gap:0.5rem;align-items:center;flex-wrap:wrap;">
-          <select id="cashoutStatusFilter" aria-label="Filter withdrawal requests by status"
-            style="background:#fff;border:1px solid #d1d5db;border-radius:9px;color:#374151;padding:0.4rem 0.7rem;font-size:0.8rem;">
-            <option value="">All statuses</option>
-            <option value="submitted">Submitted</option>
-            <option value="approved">Approved</option>
-            <option value="processing">Processing</option>
-            <option value="delivered">Delivered</option>
-            <option value="rejected">Rejected</option>
-          </select>
-          <button id="refreshCashoutsBtn" class="ef-cta btn-icon" title="Refresh withdrawal requests" aria-label="Refresh withdrawal requests" style="width:32px;height:32px;">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
-          </button>
-        </div>
-      </div>
-      <div id="cashout-requests-container">
-        <div style="text-align:center;padding:2rem;color:#9ca3af;">Loading withdrawal requests…</div>
+        <a href="/admin-cashout-requests" class="ef-cta btn-primary" style="white-space:nowrap;">Manage Cashout Requests →</a>
       </div>
     </div>
   </div>
