@@ -713,7 +713,7 @@
    * corresponds to the current browser path.
    */
   function highlightActiveTile() {
-    const currentPath = window.location.pathname;
+    const currentPath = window.location.pathname.replace(/\.html$/, '');
     const tiles = document.querySelectorAll('.admin-qnav-tile');
     tiles.forEach(tile => {
       const href = tile.getAttribute('href');
@@ -832,7 +832,7 @@
    * Highlight the active page in navigation
    */
   function highlightActivePage() {
-    const currentPath = window.location.pathname;
+    const currentPath = window.location.pathname.replace(/\.html$/, '');
     const navLinks = document.querySelectorAll('.admin-nav-btn');
 
     navLinks.forEach(link => {

@@ -1,0 +1,18 @@
+/* Search uses the same restrained palette as the rest of admin. */
+body.has-admin-navbar.admin .global-search-bar { gap: 8px; margin: 0 0 14px; }
+body.has-admin-navbar.admin .global-search-bar input { min-width: 0; border-color: #dbe5e6; border-radius: 8px; font-size: 14px; }
+body.has-admin-navbar.admin .global-search-bar button { background: #0b8073; border-radius: 8px; font-size: 13px; padding: 9px 18px; }
+body.has-admin-navbar.admin .global-search-bar button:hover { background: #096d62; }
+body.has-admin-navbar.admin .global-search-bar button:disabled { opacity: .55; }
+body.has-admin-navbar.admin .search-filters { margin: 0; gap: 7px; }
+body.has-admin-navbar.admin .search-filter-chip { border-radius: 7px; padding: 6px 11px; color: #536c72; background: #f8faf9; border-color: #dfe8e8; font-size: 12px; }
+body.has-admin-navbar.admin .search-filter-chip.active { background: #e6f4ef; border-color: #8ecbc0; color: #116558; }
+body.has-admin-navbar.admin .admin-search-status { color: #647b81; font-size: 12px; margin: 12px 3px; }
+body.has-admin-navbar.admin .search-results-section { padding: 0; overflow: hidden; margin-bottom: 12px; }
+body.has-admin-navbar.admin .search-results-section h3 { color: #18363d; border-color: #e8eeee; padding: 14px 17px; font-size: 14px; margin: 0; }
+body.has-admin-navbar.admin .search-result-item { gap: 14px; padding: 13px 17px; }
+body.has-admin-navbar.admin .search-result-primary { color: #19343b; font-size: 13px; }
+body.has-admin-navbar.admin .search-result-secondary { color: #708288; overflow-wrap: anywhere; }
+body.has-admin-navbar.admin .search-result-meta { flex-wrap: wrap; justify-content: flex-end; }
+body.has-admin-navbar.admin .search-empty-state { background: #fff; border: 1px solid #e2e9e9; border-radius: 12px; color: #647b81; }
+@media (max-width: 620px) { body.has-admin-navbar.admin .search-result-item { align-items: flex-start; flex-direction: column; } body.has-admin-navbar.admin .search-result-meta { justify-content: flex-start; } }

@@ -61,7 +61,17 @@
   let allContacts = [];
   let summaryData = null;
   let debounceTimer = null;
+  let detailRequest = 0;
+  let detailTrigger = null;
   const $ = id => document.getElementById(id);
+
+  function closeDetail() {
+    $('ecDetailModal').hidden = true;
+    document.body.style.overflow = '';
+    detailRequest++;
+    detailTrigger?.focus();
+    detailTrigger = null;
+  }
 
   // ── Summary cards ──────────────────────────────────────────────────────────
   function renderSummaryCards(s) {
@@ -217,11 +227,16 @@
       return;
     }
 
+    if (modal.hidden) detailTrigger = document.activeElement;
+    const request = ++detailRequest;
     modal.hidden = false;
+    document.body.style.overflow = 'hidden';
+    $('ecCloseModal').focus();
     body.innerHTML = '<div class="skeleton" style="height:200px;border-radius:8px;"></div>';
 
     try {
       const data = await AdminShared.api(`/api/admin/external-contacts/${encodeURIComponent(id)}`);
+      if (request !== detailRequest || modal.hidden) return;
       const c = data.contact;
       if (!c) {
         throw new Error('Not found');
@@ -277,18 +292,22 @@
       // Status save
       $('ecSaveStatusBtn').addEventListener('click', async () => {
         const newStatus = $('ecStatusSelect').value;
+        const saveButton = $('ecSaveStatusBtn');
+        saveButton.disabled = true;
         try {
           await AdminShared.api(`/api/admin/external-contacts/${encodeURIComponent(id)}`, 'PATCH', {
             status: newStatus,
           });
           AdminShared.showToast('Status updated.', 'success');
           await loadData();
-          openDetail(id);
+          if (!modal.hidden) openDetail(id);
         } catch (err) {
           AdminShared.showToast(`Failed: ${err.message}`, 'error');
+          saveButton.disabled = false;
         }
       });
     } catch (err) {
+      if (request !== detailRequest || modal.hidden) return;
       body.innerHTML = `<p class="small">Failed to load: ${esc(err.message)}</p>`;
     }
   }
@@ -317,14 +336,8 @@
 
     $('ecRefreshBtn') && $('ecRefreshBtn').addEventListener('click', loadData);
     $('ecClearFilters') && $('ecClearFilters').addEventListener('click', clearFilters);
-    $('ecCloseModal') &&
-      $('ecCloseModal').addEventListener('click', () => {
-        $('ecDetailModal').hidden = true;
-      });
-    $('ecModalBackdrop') &&
-      $('ecModalBackdrop').addEventListener('click', () => {
-        $('ecDetailModal').hidden = true;
-      });
+    $('ecCloseModal')?.addEventListener('click', closeDetail);
+    $('ecModalBackdrop')?.addEventListener('click', closeDetail);
 
     document.addEventListener('keydown', e => {
       if (
@@ -332,7 +345,14 @@
         $('ecDetailModal') &&
         !$('ecDetailModal').hidden
       ) {
-        $('ecDetailModal').hidden = true;
+        closeDetail();
+      }
+      if (e.key === 'Tab' && !$('ecDetailModal').hidden) {
+        const controls = [...$('ecDetailModal').querySelectorAll('button:not([disabled]), select:not([disabled]), a[href]')];
+        const first = controls[0];
+        const last = controls[controls.length - 1];
+        if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+        else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
       }
     });
 
