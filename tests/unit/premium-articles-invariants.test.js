@@ -235,4 +235,58 @@ describe('every article on the premium template', () => {
       expect(description.length).toBeLessThanOrEqual(160);
     }
   );
+
+  test.each(articles.map(a => [a.name, a.html]))(
+    '%s: the committed dateModified/article:modified_time matches guides.json',
+    (_name, html) => {
+      // articleMetadata.service.js rewrites these two fields from guides.json
+      // at serve time (utils/template-renderer.js calls renderArticleDates on
+      // every article request), so a stale committed value is never visible
+      // on the live site — but it is still a real drift bug: it misleads
+      // anyone reading the repo file directly, and only one article
+      // (event-travel-costs-guide, via guide-premium-template.test.js) had
+      // this pinned. Three others had already drifted from guides.json
+      // before that was ever checked here. Mirrors renderArticleDates'
+      // exact fallback chain: lastMaterialUpdate, then lastUpdated, then
+      // publishedDate.
+      const canonical = html.match(
+        /<link href="(https:\/\/event-flow\.co\.uk\/articles\/[^"]+)" rel="canonical"\/>/
+      )?.[1];
+      if (!canonical) {
+        return;
+      }
+      const href = canonical.replace('https://event-flow.co.uk', '');
+      const entry = MANIFEST.find(g => g.href === href);
+      if (!entry) {
+        // Not every gp-page article is a registered guide (e.g. a scaffold
+        // test fixture written to public/articles/ mid-run).
+        return;
+      }
+
+      const expectedPublished = entry.publishedDate;
+      const expectedModified = entry.lastMaterialUpdate || entry.lastUpdated || expectedPublished;
+
+      const jsonPublished = html.match(/"datePublished"\s*:\s*"([^"]+)"/)?.[1];
+      const jsonModified = html.match(/"dateModified"\s*:\s*"([^"]+)"/)?.[1];
+      const metaPublished = html.match(
+        /<meta content="([^"]+)"\s*property="article:published_time"\/>/
+      )?.[1];
+      const metaModified = html.match(
+        /<meta content="([^"]+)"\s*property="article:modified_time"\/>/
+      )?.[1];
+
+      if (jsonPublished) {
+        expect(jsonPublished).toBe(expectedPublished);
+      }
+      if (metaPublished) {
+        expect(metaPublished).toBe(expectedPublished);
+      }
+      if (jsonModified) {
+        expect(jsonModified).toBe(expectedModified);
+      }
+      if (metaModified) {
+        expect(metaModified).toBe(expectedModified);
+      }
+    }
+  );
 });

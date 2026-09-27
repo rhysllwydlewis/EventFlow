@@ -286,6 +286,19 @@ modifier on the article root, so sections can be added, moved or removed freely.
   )
   .join('\n\n')}
 
+<!-- Optional: a photo partway through the article — see .gp-figure in
+     docs/ARTICLE_TEMPLATE.md. Real, accurate alt text; a caption that adds
+     information, not just repeats it. Use a different photo from the hero
+     above and from every other guide's image/ogImage in guides.json — a
+     test (guides-seo-ux.test.js) fails the build on a duplicate. Delete
+     this whole block if the article does not need one.
+<figure class="gp-figure gp-reveal">
+<img alt="" height="900" loading="lazy" sizes="(min-width: 1024px) 840px, 100vw" src="" srcset="" width="1600"/>
+<figcaption></figcaption>
+</figure>
+-->
+
+
 <!-- Optional: end-of-article call to action. -->
 <div class="gp-cta gp-reveal">
 <h2>A heading for the next step</h2>
@@ -390,18 +403,24 @@ Next:
   1. Write the article. Every block in the file is optional — delete what you
      do not need. Section numbering comes from the gp--numbered modifier on
      <article>, so never hand-write numbers.
-  2. Register it in public/assets/data/guides.json so it reaches the hub, the
+  2. Pick a real photo for "image"/"ogImage" below — this is the card shown
+     on /guides, so it has to be a photo, not a placeholder, and it has to be
+     one no other guide in guides.json already uses. guides-seo-ux.test.js
+     fails the build if any two guides share an image.
+  3. Register it in public/assets/data/guides.json so it reaches the hub, the
      filters and the sitemap:
 
   {
     "title": ${JSON.stringify(title)},
     "href": "/articles/${slug}",
     "description": ${JSON.stringify(description)},
+    "image": "REPLACE — a real, unique photo URL",
+    "ogImage": "REPLACE — usually the same URL as image",
     "publishedDate": "${today}",
     "lastUpdated": "${today}"
   }
 
-  3. Run: node scripts/generate-article-shells.mjs --check
+  4. Run: node scripts/generate-article-shells.mjs --check
 `);
 }
 
