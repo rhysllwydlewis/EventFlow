@@ -404,6 +404,13 @@
     });
   }
 
+  // Unlike community/home.js, discussions.js, member.js, thread.js and
+  // composer.js (the public community pages), this admin module never called
+  // EFC.hideFallback() — so admin-community.html's server-rendered
+  // #efc-noscript fallback (real HTML for no-JS/SEO) stayed visible forever,
+  // showing a faint, wrongly-positioned "Community centre" heading behind
+  // the real admin UI once this script took over.
+  EFC.hideFallback();
   shell();
   load();
 })();

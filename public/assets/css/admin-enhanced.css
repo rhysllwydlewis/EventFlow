@@ -1645,6 +1645,17 @@ tbody tr.selected td {
   font-family: inherit;
 }
 
+/* .form-control's own width: 100% is right for a full-width text field, but
+   admin-users.html's page-size <select> uses this "sm" variant expecting a
+   compact, content-sized control — that class was referenced but never
+   defined, so the select just inherited the full-width behaviour and, as a
+   flex child of .uc-pagination, stretched to fill the remaining row width. */
+.form-control-sm {
+  width: auto;
+  padding: 6px 10px;
+  font-size: 13px;
+}
+
 .form-control:focus {
   outline: none;
   border-color: #0B8073;
@@ -4253,7 +4264,19 @@ tbody tr.selected td {
 .uc-issue-badge--danger { background: #fee2e2; color: #991b1b; }
 
 /* Pagination */
-.uc-pagination { display: flex; justify-content: flex-end; }
+/* admin-users.html puts Previous/Next/page-size/total directly inside this
+   element rather than nesting a .uc-pagination-inner wrapper, so it needs
+   align-items/gap/wrap itself — without them, the buttons, "Page X of Y"
+   text and "Page size" label had no spacing and visually ran into each
+   other, and the <select> (see .form-control-sm below) stretched to fill
+   the remaining flex space instead of sizing to its content. */
+.uc-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 12px;
+}
 .uc-pagination--bottom { padding: 12px 16px; border-top: 1px solid #f3f4f6; }
 .uc-pagination-inner { display: flex; align-items: center; gap: 8px; }
 .uc-pagination-label { font-size: 12px; color: #6b7280; }
