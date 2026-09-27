@@ -210,10 +210,10 @@ const AdminShared = (function () {
       opts.body = JSON.stringify(body);
     }
 
-    let response;
+    let response = null;
     try {
       response = await fetch(url, opts);
-    } catch (networkError) {
+    } catch {
       throw new Error(NETWORK_ERROR_MESSAGE);
     }
     const contentType = response.headers.get('content-type');
@@ -304,10 +304,10 @@ const AdminShared = (function () {
         opts.body = typeof options.body === 'string' ? options.body : JSON.stringify(options.body);
       }
 
-      let response;
+      let response = null;
       try {
         response = await fetch(url, opts);
-      } catch (networkError) {
+      } catch {
         throw new Error(NETWORK_ERROR_MESSAGE);
       }
       const contentType = response.headers.get('content-type');
