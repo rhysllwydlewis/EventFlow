@@ -998,6 +998,15 @@
   color: #111827;
 }
 
+/* Also carries .ef-cta, whose !important padding/font-size would otherwise
+   squeeze this 34x34 button's × glyph into a sliver — same bug class as
+   admin-navbar.css's close button fix. */
+.partner-detail-close.ef-cta {
+  padding: 0 !important;
+  font-size: 1rem !important;
+  font-weight: 700 !important;
+}
+
 .partner-detail-body {
   padding: 1.5rem;
   flex: 1;

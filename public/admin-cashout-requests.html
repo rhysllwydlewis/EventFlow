@@ -198,6 +198,14 @@
       padding: 0 0.25rem;
     }
     .acr-modal-close:hover { color: #111827; }
+    /* Also carries .ef-cta, whose !important padding/font-size would
+       otherwise override the compact sizing above — same bug class as
+       admin-navbar.css's close button fix. */
+    .acr-modal-close.ef-cta {
+      padding: 0 0.25rem !important;
+      font-size: 1.4rem !important;
+      font-weight: 400 !important;
+    }
     .acr-modal-title {
       font-size: 1.2rem;
       font-weight: 700;

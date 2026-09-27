@@ -15,7 +15,11 @@
   const ADMIN = '/api/v1/admin/community';
   const TABS = [
     { key: 'dashboard', label: 'Dashboard' },
-    { key: 'reports', label: 'Reports' },
+    // Labelled "Discussion Reports" (not just "Reports") to distinguish this
+    // community-content moderation queue (community_reports collection) from
+    // the separate, unrelated /admin-reports page (general content reports,
+    // reports collection) that also appears in the admin nav.
+    { key: 'reports', label: 'Discussion Reports' },
     { key: 'content', label: 'Content' },
     { key: 'categories', label: 'Categories' },
     { key: 'appeals', label: 'Appeals' },
@@ -192,7 +196,7 @@
                 </li>`
               )
               .join('')}</ul>`
-          : EFC.emptyState('The queue is clear', 'There are no open reports to review.');
+          : EFC.emptyState('The queue is clear', 'There are no open discussion reports to review.');
         wireReportActions();
         return;
       }
@@ -400,6 +404,13 @@
     });
   }
 
+  // Unlike community/home.js, discussions.js, member.js, thread.js and
+  // composer.js (the public community pages), this admin module never called
+  // EFC.hideFallback() — so admin-community.html's server-rendered
+  // #efc-noscript fallback (real HTML for no-JS/SEO) stayed visible forever,
+  // showing a faint, wrongly-positioned "Community centre" heading behind
+  // the real admin UI once this script took over.
+  EFC.hideFallback();
   shell();
   load();
 })();

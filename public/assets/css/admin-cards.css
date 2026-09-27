@@ -456,6 +456,16 @@
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
+/* This button also carries .ef-cta, whose !important padding otherwise
+   leaves only ~6px of content width inside the fixed 44x44 box, squeezing
+   the svg icon into a thin sliver instead of its intended 26-28px size —
+   same bug class as admin-navbar.css's close button fix. */
+.btn-icon.ef-cta {
+  padding: 0 !important;
+  font-size: inherit !important;
+  font-weight: inherit !important;
+}
+
 .btn-secondary {
   padding: 10px 20px;
   background: white;

@@ -311,7 +311,13 @@ ${
     <script src="/assets/js/notifications.js" defer></script>
 `
   }    <script src="/assets/js/cookie-consent.js?v=3.0.0" defer></script>
-    <script src="/assets/js/community/core.js?v=${version('/assets/js/community/core.js')}" defer></script>
+${
+  page.adminGuard
+    ? ''
+    : `    <link rel="stylesheet" href="/assets/css/announcement-banner.css?v=1.0.0">
+    <script src="/assets/js/announcement-banner.js?v=1.0.0" defer></script>
+`
+}    <script src="/assets/js/community/core.js?v=${version('/assets/js/community/core.js')}" defer></script>
 ${scripts}
   </body>
 </html>
