@@ -16,52 +16,6 @@
     });
   });
 
-  // Homepage hero form
-  document.getElementById('heroForm').addEventListener('submit', async e => {
-    e.preventDefault();
-
-    const data = {
-      title: document.getElementById('heroTitle').value,
-      subtitle: document.getElementById('heroSubtitle').value,
-      ctaText: document.getElementById('heroCTA').value,
-    };
-
-    try {
-      await AdminShared.api('/api/admin/content/homepage', 'PUT', data);
-      AdminShared.showToast('Homepage content updated successfully', 'success');
-    } catch (err) {
-      AdminShared.showToast(`Failed to update: ${err.message}`, 'error');
-    }
-  });
-
-  // Preview hero
-  document.getElementById('previewHero').addEventListener('click', () => {
-    window.open('/', '_blank');
-  });
-
-  // Load homepage content
-  async function loadHomepageContent() {
-    const heroForm = document.getElementById('heroForm');
-    const saveBtn = heroForm ? heroForm.querySelector('button[type="submit"]') : null;
-    if (saveBtn) {
-      saveBtn.disabled = true;
-      saveBtn.textContent = 'Loading...';
-    }
-    try {
-      const content = await AdminShared.api('/api/admin/content/homepage');
-      document.getElementById('heroTitle').value = content.title || '';
-      document.getElementById('heroSubtitle').value = content.subtitle || '';
-      document.getElementById('heroCTA').value = content.ctaText || '';
-    } catch (err) {
-      console.error('Failed to load homepage content:', err);
-    } finally {
-      if (saveBtn) {
-        saveBtn.disabled = false;
-        saveBtn.textContent = 'Save Homepage Content';
-      }
-    }
-  }
-
   // Add announcement
   document.getElementById('addAnnouncementBtn').addEventListener('click', () => {
     showAnnouncementModal();
@@ -668,7 +622,6 @@
   };
 
   // Initial load
-  loadHomepageContent();
   loadAnnouncements();
   loadFAQs();
   loadFeaturedPackages();
