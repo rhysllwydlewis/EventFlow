@@ -717,8 +717,29 @@ function buildHeadBlock(kind, id, seo, indexable = true) {
     .join('\n');
 }
 
-function renderSeoHtml(templateHtml, kind, id, seo, indexable = true) {
-  const cleanTemplate = removeSeoTags(templateHtml, SEO_BLOCK_MARKERS[kind]);
+// package-init.js always does `element.textContent = pkg.description` on
+// hydration (a wholesale overwrite, never an append), so pre-filling this
+// element server-side is safe. Without it, a crawler that doesn't execute JS
+// sees an empty <p>, which is why package pages were flagged for thin
+// content/low text-to-HTML ratio.
+const PACKAGE_DESCRIPTION_PATTERN = /(<p\b[^>]*\bid="package-description"[^>]*>)([\s\S]*?)(<\/p>)/i;
+
+function injectPackageDescription(html, pkg) {
+  const descriptionText = stripMarkup(pkg?.description || '');
+  if (!descriptionText || !PACKAGE_DESCRIPTION_PATTERN.test(html)) {
+    return html;
+  }
+  return html.replace(
+    PACKAGE_DESCRIPTION_PATTERN,
+    (_match, open, _inner, close) => `${open}${escapeHtml(descriptionText)}${close}`
+  );
+}
+
+function renderSeoHtml(templateHtml, kind, id, seo, indexable = true, record) {
+  let cleanTemplate = removeSeoTags(templateHtml, SEO_BLOCK_MARKERS[kind]);
+  if (kind === 'package' && record) {
+    cleanTemplate = injectPackageDescription(cleanTemplate, record);
+  }
   const closingHead = cleanTemplate.toLowerCase().indexOf('</head>');
   if (closingHead < 0) {
     throw new Error(`${kind} template is missing a closing head tag`);
@@ -739,6 +760,7 @@ module.exports = {
   eventEndDate,
   eventTitleSlug,
   getPackageIndexEligibility,
+  injectPackageDescription,
   isIndexablePublicEvent,
   isPublicEventVisible,
   isPublicPackage,

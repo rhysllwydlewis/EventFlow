@@ -273,7 +273,7 @@ function createPublicListingSeoRouter(options = {}) {
       const indexable = !publishedUnclaimed && getPackageIndexEligibility(pkg, supplier).eligible;
       const template = await readTemplate('package');
       const seo = buildPackageSeoModel(pkg, supplier, { baseUrl });
-      const rendered = renderSeoHtml(template, 'package', pkg.id, seo, indexable);
+      const rendered = renderSeoHtml(template, 'package', pkg.id, seo, indexable, pkg);
       const html = publishedUnclaimed ? addUnclaimedPackageBanner(rendered, supplier.id) : rendered;
       res.setHeader(
         'Cache-Control',
