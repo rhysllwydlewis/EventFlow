@@ -180,6 +180,17 @@ const AdminShared = (function () {
     }
   }
 
+  // A rejected fetch() (as opposed to a resolved response with a non-2xx
+  // status) means the request never reached the server — commonly an ad
+  // blocker or privacy extension blocking the URL, or a genuine connectivity
+  // problem, surfaced by the browser as a bare TypeError with a generic
+  // message like "Failed to fetch". Every caller of api()/adminFetch() across
+  // the admin pages renders err.message directly, so that raw browser string
+  // was ending up in front of admins verbatim. Centralized here since both
+  // wrappers hit the same fetch() call.
+  const NETWORK_ERROR_MESSAGE =
+    'Could not reach the server. Check your connection, or if you use an ad blocker or privacy extension, try allowing this site and refresh.';
+
   // API wrapper with CSRF token support
   async function api(url, method = 'GET', body = null) {
     const opts = {
@@ -199,7 +210,12 @@ const AdminShared = (function () {
       opts.body = JSON.stringify(body);
     }
 
-    const response = await fetch(url, opts);
+    let response;
+    try {
+      response = await fetch(url, opts);
+    } catch (networkError) {
+      throw new Error(NETWORK_ERROR_MESSAGE);
+    }
     const contentType = response.headers.get('content-type');
     const isJson = contentType && contentType.includes('application/json');
 
@@ -288,7 +304,12 @@ const AdminShared = (function () {
         opts.body = typeof options.body === 'string' ? options.body : JSON.stringify(options.body);
       }
 
-      const response = await fetch(url, opts);
+      let response;
+      try {
+        response = await fetch(url, opts);
+      } catch (networkError) {
+        throw new Error(NETWORK_ERROR_MESSAGE);
+      }
       const contentType = response.headers.get('content-type');
       const isJson = contentType && contentType.includes('application/json');
 
@@ -1617,6 +1638,9 @@ const AdminShared = (function () {
       clearTimeout(timeoutId);
       if (error.name === 'AbortError') {
         throw new Error(`Request timed out after ${timeoutMs}ms`);
+      }
+      if (error instanceof TypeError) {
+        throw new Error(NETWORK_ERROR_MESSAGE);
       }
       throw error;
     }

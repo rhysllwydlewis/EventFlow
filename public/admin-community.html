@@ -18,6 +18,10 @@
     <link rel="stylesheet" href="/assets/css/navbar.css?v=18.4.2" />
     <link rel="stylesheet" href="/assets/css/eventflow-brand.css?v=1.0.1" data-eventflow-brand="true" />
     <link rel="stylesheet" href="/assets/css/community.css?v=18.6.2" />
+    <link rel="stylesheet" href="/assets/css/admin.css?v=18.3.0" />
+    <link rel="stylesheet" href="/assets/css/admin-enhanced.css?v=18.3.1" />
+    <link rel="stylesheet" href="/assets/css/admin-navbar.css?v=18.3.0" />
+    <link rel="stylesheet" href="/assets/css/admin-cards.css?v=18.3.0" />
     <link rel="icon" href="/favicon.ico" sizes="any" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="icon" type="image/png" sizes="144x144" href="/favicon-144x144.png" />
@@ -28,76 +32,9 @@
     <link rel="manifest" href="/site.webmanifest" />
     <meta name="msapplication-config" content="/browserconfig.xml" />
   </head>
-  <body class="efc">
+  <body class="efc admin-body">
     <a class="efc-skip" href="#main-content">Skip to main content</a>
-
-    <header class="ef-header" role="banner">
-      <div class="ef-container">
-        <div class="ef-header-content">
-          <a href="/" class="ef-brand" aria-label="EventFlow - Return to homepage">
-            <div class="ef-logo" aria-hidden="true"><div class="ef-logo-inner"></div></div>
-            <span class="ef-brand-text">EventFlow</span>
-          </a>
-          <nav class="ef-nav-desktop" aria-label="Main navigation">
-            <a href="/start" class="ef-nav-link">Plan</a>
-            <a href="/suppliers" class="ef-nav-link">Suppliers</a>
-            <a href="/public-calendar" class="ef-nav-link">Events</a>
-            <a href="/marketplace" class="ef-nav-link">Marketplace</a>
-            <a href="/community" class="ef-nav-link ef-nav-link--active">Community</a>
-            <a href="/guides" class="ef-nav-link">Guides</a>
-            <a href="/pricing" class="ef-nav-link">Pricing</a>
-          </nav>
-          <div class="ef-header-actions">
-            <button id="ef-notification-btn" class="ef-icon-btn" type="button" aria-label="View notifications" style="display:none;">
-              <svg class="ef-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
-                <path d="M13.73 21a2 2 0 0 1-3.46 0" />
-              </svg>
-              <span id="ef-notification-badge" class="ef-badge" style="display:none;"></span>
-            </button>
-            <a href="/auth" id="ef-auth-link" class="ef-btn ef-btn-primary">Log in</a>
-            <a href="#" id="ef-dashboard-link" class="ef-nav-link" style="display:none;">Dashboard</a>
-            <button id="ef-mobile-toggle" class="ef-mobile-toggle" type="button" aria-label="Toggle menu" aria-expanded="false" aria-controls="ef-mobile-menu">
-              <span class="ef-toggle-line"></span>
-              <span class="ef-toggle-line"></span>
-              <span class="ef-toggle-line"></span>
-            </button>
-          </div>
-        </div>
-      </div>
-      <div id="ef-mobile-menu" class="ef-mobile-menu" role="dialog" aria-modal="true" aria-label="Mobile navigation">
-        <nav class="ef-mobile-nav" aria-label="Primary navigation">
-          <a href="/start" class="ef-mobile-link">Plan an Event</a>
-          <a href="/suppliers" class="ef-mobile-link">Browse Suppliers</a>
-          <a href="/public-calendar" class="ef-mobile-link">Events Calendar</a>
-          <a href="/marketplace" class="ef-mobile-link">Marketplace</a>
-          <a href="/community" class="ef-mobile-link">Community</a>
-          <a href="/guides" class="ef-mobile-link">Guides</a>
-          <a href="/pricing" class="ef-mobile-link">Pricing</a>
-          <a href="/for-suppliers" class="ef-mobile-link">For Suppliers</a>
-          <a href="/faq" class="ef-mobile-link">Help &amp; FAQ</a>
-          <div class="ef-mobile-divider"></div>
-          <a href="/auth" id="ef-mobile-auth" class="ef-mobile-link ef-mobile-primary">Log in</a>
-          <a href="#" id="ef-mobile-dashboard" class="ef-mobile-link" style="display: none;">Dashboard</a>
-          <a href="/settings" rel="nofollow" id="ef-mobile-settings" class="ef-mobile-link" style="display: none;">Settings</a>
-          <a href="#" id="ef-mobile-logout" class="ef-mobile-link" style="display: none;">Log out</a>
-        </nav>
-      </div>
-    </header>
-
-    <!-- Notification dropdown: pre-rendered here, shown and hidden by notifications.js.
-         The header above always renders the bell that opens it; without this element
-         and the script below, that bell did nothing at all (see article-chrome.mjs). -->
-    <div id="notification-dropdown" class="notification-dropdown" hidden aria-hidden="true" style="display: none;">
-      <div class="notification-header">
-        <h3>Notifications</h3>
-        <button class="notification-mark-all" id="notification-mark-all-read" type="button">Mark all as read</button>
-      </div>
-      <div class="notification-list"></div>
-      <div class="notification-footer">
-        <a href="/notifications" class="notification-view-all">View all</a>
-      </div>
-    </div>
+    <div id="adminNavbarMount"></div>
 
     <main id="main-content">
 
@@ -111,21 +48,18 @@
 
     <footer class="footer" role="contentinfo">
       <div class="container ef-footer-content">
-        <div><strong>EventFlow</strong><br /><span class="small">Event planning made simple.</span></div>
+        <div><strong>EventFlow</strong><br /><span class="small">Admin Panel</span></div>
         <div class="small">
-          <a href="/community">Community</a> · <a href="/community/guidelines">Community guidelines</a> ·
-          <a href="/guides">Guides</a> · <a href="/marketplace">Marketplace</a> ·
-          <a href="/public-calendar">Events Calendar</a> · <a href="/suppliers">Suppliers</a> ·
+          <a href="/admin">Dashboard</a> · <a href="/community">Community</a> ·
           <a href="/legal">Legal Hub</a> ·
           <button type="button" data-cookie-prefs>Cookie preferences</button>
         </div>
       </div>
     </footer>
 
-    <script src="/assets/js/utils/auth-state.js" defer></script>
-    <script src="/assets/js/burger-menu.js" defer></script>
-    <script src="/assets/js/navbar.js" defer></script>
-    <script src="/assets/js/notifications.js" defer></script>
+    <script src="/assets/js/admin-shared.js?v=18.3.0"></script>
+    <script src="/assets/js/components.js?v=18.3.0" defer></script>
+    <script src="/assets/js/admin-navbar.js?v=18.3.0" defer></script>
     <script src="/assets/js/cookie-consent.js?v=3.0.0" defer></script>
     <script src="/assets/js/community/core.js?v=18.6.0" defer></script>
     <script src="/assets/js/community/admin.js?v=18.3.0" defer></script>

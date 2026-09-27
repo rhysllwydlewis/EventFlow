@@ -128,10 +128,10 @@
     },
     {
       href: '/admin-reports',
-      icon: '📈',
+      icon: '🚩',
       label: 'Reports',
       group: 'moderation',
-      desc: 'Platform analytics',
+      desc: 'User-submitted content reports & moderation actions',
       badgeId: 'navBadgeReports',
     },
     {
