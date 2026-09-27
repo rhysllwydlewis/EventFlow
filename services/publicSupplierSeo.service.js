@@ -243,6 +243,18 @@ function supplierLocation(supplier) {
   );
 }
 
+function supplierPostalAddress(supplier, location) {
+  const postalCode = stripMarkup(supplier.postcode || supplier.postalCode || '');
+  const address = { '@type': 'PostalAddress', addressCountry: 'GB' };
+  if (location) {
+    address.addressLocality = location;
+  }
+  if (postalCode) {
+    address.postalCode = postalCode;
+  }
+  return address;
+}
+
 function supplierDescription(supplier, name, category, location) {
   return truncate(
     supplier.metaDescription ||
@@ -291,7 +303,7 @@ function supplierAggregateRating(supplier) {
 
 function buildSupplierStructuredData(
   supplier,
-  { name, canonicalUrl, description, image, category, location }
+  { name, canonicalUrl, description, image, location }
 ) {
   const structuredData = {
     '@context': 'https://schema.org',
@@ -303,9 +315,10 @@ function buildSupplierStructuredData(
     image,
   };
 
-  if (category) {
-    structuredData.serviceType = category;
-  }
+  // `serviceType` is not a recognised property of LocalBusiness/ProfessionalService per
+  // schema.org — Google's structured data validator flags it as NOT_RECOGNIZED. Category is
+  // already conveyed via `name`/`description`, so it isn't re-emitted here.
+  structuredData.address = supplierPostalAddress(supplier, location);
   if (location) {
     structuredData.areaServed = { '@type': 'Place', name: location };
   }
@@ -379,6 +392,32 @@ function removeExistingSupplierSeoTags(html) {
     .replace(/<script\b[^>]*id=["']supplier-structured-data["'][^>]*>[\s\S]*?<\/script>\s*/gi, '');
 }
 
+// supplier-profile.js always does `container.innerHTML = ''` before rebuilding
+// this section client-side (see renderAboutSection), so pre-filling it here is
+// safe — it's replaced wholesale on hydration, never appended to or duplicated.
+// Without this, a crawler that doesn't execute JS sees only a loading skeleton
+// and no supplier bio text, which is why supplier pages were flagged for thin
+// content/low text-to-HTML ratio.
+const ABOUT_SKELETON_PATTERN =
+  /<!-- Loading skeleton -->\s*<div class="sp-card sp-section-skeleton"[^>]*>[\s\S]*?<div class="skeleton skeleton-text skeleton-text-medium"><\/div>\s*<\/div>/;
+
+function supplierAboutText(supplier) {
+  return stripMarkup(
+    supplier.description_long || supplier.description_short || supplier.description || ''
+  );
+}
+
+function injectSupplierAboutSection(html, supplier) {
+  const aboutText = supplierAboutText(supplier);
+  if (!aboutText || !ABOUT_SKELETON_PATTERN.test(html)) {
+    return html;
+  }
+  return html.replace(
+    ABOUT_SKELETON_PATTERN,
+    `<p class="sp-about__description">${escapeHtml(aboutText)}</p>`
+  );
+}
+
 /**
  * Render a supplier's public profile HTML, including its head metadata.
  *
@@ -395,7 +434,10 @@ function removeExistingSupplierSeoTags(html) {
  */
 function renderSupplierHtml(templateHtml, supplier, options = {}, indexable = true) {
   const seo = buildSupplierSeoModel(supplier, options);
-  const cleanTemplate = removeExistingSupplierSeoTags(templateHtml);
+  const cleanTemplate = injectSupplierAboutSection(
+    removeExistingSupplierSeoTags(templateHtml),
+    supplier
+  );
   const jsonLd = serializeJsonLd(seo.structuredData);
   const robots = indexable ? 'index,follow,max-image-preview:large' : 'noindex,follow';
   const block = [
@@ -437,6 +479,7 @@ module.exports = {
   buildSupplierSeoModel,
   extractSlugToken,
   getSupplierIndexEligibility,
+  injectSupplierAboutSection,
   isPublicSupplier,
   renderSupplierHtml,
   resolvePublicSupplierBySlug,
