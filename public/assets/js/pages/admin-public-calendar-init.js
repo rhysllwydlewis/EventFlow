@@ -5,6 +5,11 @@
   let requests = [];
   let featureFlags = null;
   let editingEvent = null;
+  let eventOffset = 0;
+  let eventTotal = 0;
+  let eventLoadToken = 0;
+  let modalTrigger = null;
+  const PAGE_SIZE = 25;
 
   function esc(value) {
     return AdminShared.escapeHtml(value || '');
@@ -22,12 +27,23 @@
     if (Number.isNaN(date.getTime())) {
       return '';
     }
-    return date.toISOString().slice(0, 16);
+    const local = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
+    return local.toISOString().slice(0, 16);
   }
 
   function badge(value) {
     const safe = esc(value || 'unknown');
-    return `<span class="calendar-admin-badge calendar-admin-badge--${safe}">${safe.replace(/_/g, ' ')}</span>`;
+    const statusClass = String(value || 'unknown').replace(/[^a-z_]/g, '');
+    return `<span class="calendar-admin-badge calendar-admin-badge--${statusClass}">${safe.replace(/_/g, ' ')}</span>`;
+  }
+
+  function safeUrl(value) {
+    try {
+      const url = new URL(value);
+      return ['https:', 'http:'].includes(url.protocol) ? url.href : '';
+    } catch {
+      return '';
+    }
   }
 
   function showLoading(containerId, message) {
@@ -49,8 +65,8 @@
 
   function buildEventQuery() {
     const params = new URLSearchParams({
-      limit: '100',
-      offset: '0',
+      limit: String(PAGE_SIZE),
+      offset: String(eventOffset),
       status: document.getElementById('eventStatusFilter')?.value || 'all',
       includePast: document.getElementById('eventIncludePastFilter')?.value || 'true',
     });
@@ -82,26 +98,58 @@
       document.getElementById('adminCalendarPendingRequests').textContent = requestsData.total || 0;
     } catch (err) {
       console.warn('Failed to load calendar stats:', err.message);
+      ['adminCalendarTotalEvents', 'adminCalendarPublishedEvents', 'adminCalendarPendingRequests']
+        .forEach(id => { document.getElementById(id).textContent = '—'; });
     }
   }
 
   async function loadEvents() {
+    const token = ++eventLoadToken;
     showLoading('adminCalendarEventsContainer', 'Loading calendar events…');
     try {
       const data = await api(`${API_BASE}/events?${buildEventQuery()}`);
+      if (token !== eventLoadToken) return;
       events = data.events || [];
+      eventTotal = Number(data.total) || 0;
+      if (eventOffset >= eventTotal && eventOffset > 0) {
+        eventOffset = Math.max(0, Math.ceil(eventTotal / PAGE_SIZE) - 1) * PAGE_SIZE;
+        return loadEvents();
+      }
       renderEvents();
     } catch (err) {
+      if (token !== eventLoadToken) return;
       document.getElementById('adminCalendarEventsContainer').innerHTML =
-        '<div class="calendar-admin-empty" style="color:#dc2626;">Failed to load calendar events.</div>';
+        '<div class="calendar-admin-empty" role="alert">Failed to load calendar events. Please try refreshing.</div>';
+      document.getElementById('adminCalendarResultCount').textContent = '';
+      document.getElementById('adminCalendarPagination').replaceChildren();
     }
   }
 
   function renderEvents() {
     const container = document.getElementById('adminCalendarEventsContainer');
+    document.getElementById('adminCalendarResultCount').textContent = eventTotal
+      ? `Showing ${eventOffset + 1}–${eventOffset + events.length} of ${eventTotal} events`
+      : '0 events';
+    const pagination = document.getElementById('adminCalendarPagination');
+    pagination.replaceChildren();
+    if (eventTotal > PAGE_SIZE) {
+      const previous = document.createElement('button');
+      previous.type = 'button';
+      previous.textContent = 'Previous';
+      previous.disabled = eventOffset === 0;
+      previous.addEventListener('click', () => { eventOffset -= PAGE_SIZE; loadEvents(); });
+      const label = document.createElement('span');
+      label.textContent = `Page ${Math.floor(eventOffset / PAGE_SIZE) + 1} of ${Math.ceil(eventTotal / PAGE_SIZE)}`;
+      const next = document.createElement('button');
+      next.type = 'button';
+      next.textContent = 'Next';
+      next.disabled = eventOffset + PAGE_SIZE >= eventTotal;
+      next.addEventListener('click', () => { eventOffset += PAGE_SIZE; loadEvents(); });
+      pagination.append(previous, label, next);
+    }
     if (!events.length) {
       container.innerHTML =
-        '<div class="calendar-admin-empty">No events match these filters.</div>';
+        '<div class="calendar-admin-empty">No events match these filters. Try all dates or clear the filters.</div>';
       return;
     }
 
@@ -121,7 +169,7 @@
                   <td>${Number(event.savesCount || 0)}</td>
                   <td><div class="calendar-admin-actions-inline">
                     <button class="ef-cta btn-sm" data-event-action="edit" data-id="${esc(event.id)}">Edit</button>
-                    <a class="ef-cta btn-sm" href="/events/${encodeURIComponent(event.slug || event.id)}" target="_blank" rel="noopener noreferrer">View</a>
+                    ${['published', 'cancelled'].includes(event.status) ? `<a class="ef-cta btn-sm" href="/events/${encodeURIComponent(event.slug || event.id)}" target="_blank" rel="noopener noreferrer">View</a>` : ''}
                     <a class="ef-cta btn-sm" href="${API_BASE}/events/${encodeURIComponent(event.id)}/ics">ICS</a>
                     ${event.status !== 'published' ? `<button class="ef-cta btn-sm btn-success" data-event-action="status" data-status="published" data-id="${esc(event.id)}">Publish</button>` : `<button class="ef-cta btn-sm" data-event-action="status" data-status="draft" data-id="${esc(event.id)}">Unpublish</button>`}
                     ${event.status !== 'cancelled' ? `<button class="ef-cta btn-sm btn-danger" data-event-action="status" data-status="cancelled" data-id="${esc(event.id)}">Cancel</button>` : ''}
@@ -160,20 +208,20 @@
     container.innerHTML = requests
       .map(
         request => `
-          <article class="calendar-admin-panel" style="box-shadow:none;margin:0 0 .75rem;">
-            <div class="calendar-admin-panel__header">
+          <article class="cal-request-card">
+            <div class="cal-request-card__header">
               <div>
                 <h3 class="calendar-admin-panel__title">${esc(request.supplierName || request.supplierId)}</h3>
                 <p class="calendar-admin-panel__subtitle">${esc(request.supplierCategory || 'Unknown category')} · ${formatDate(request.createdAt)}</p>
               </div>
               ${badge(request.status || 'pending')}
             </div>
-            <p>${esc(request.reason)}</p>
+            <p class="cal-request-card__reason">${esc(request.reason)}</p>
             <p class="small"><strong>Event types:</strong> ${esc(request.eventTypes || 'Not specified')} · <strong>Example:</strong> ${esc(request.exampleEventTitle || 'Not specified')} · <strong>Frequency:</strong> ${esc(request.expectedFrequency || 'Not specified')}</p>
             <div class="calendar-admin-actions-inline">
               <button class="ef-cta btn-sm btn-success" data-request-action="approve" data-id="${esc(request.id)}">Approve</button>
               <button class="ef-cta btn-sm btn-danger" data-request-action="reject" data-id="${esc(request.id)}">Reject</button>
-              ${request.supportingUrl ? `<a class="ef-cta btn-sm" href="${esc(request.supportingUrl)}" target="_blank" rel="noopener noreferrer">Supporting URL ↗</a>` : ''}
+              ${safeUrl(request.supportingUrl) ? `<a class="ef-cta btn-sm" href="${esc(safeUrl(request.supportingUrl))}" target="_blank" rel="noopener noreferrer">Supporting URL ↗</a>` : ''}
             </div>
           </article>`
       )
@@ -246,6 +294,7 @@
 
   function openEventModal(event = null) {
     editingEvent = event;
+    modalTrigger = document.activeElement;
     document.getElementById('adminCalendarEventModalTitle').textContent = event
       ? 'Edit event'
       : 'Create event';
@@ -260,7 +309,7 @@
     document.getElementById('eventFormCounty').value = event?.county || '';
     document.getElementById('eventFormPostcode').value = event?.postcode || '';
     document.getElementById('eventFormPriceType').value = event?.priceType || 'unknown';
-    document.getElementById('eventFormTicketPrice').value = event?.ticketPrice || '';
+    document.getElementById('eventFormTicketPrice').value = event?.ticketPrice ?? '';
     document.getElementById('eventFormBookingRequired').value = event?.bookingRequired
       ? 'true'
       : 'false';
@@ -271,15 +320,17 @@
     document.getElementById('eventFormDescription').value = event?.description || '';
     document.getElementById('eventFormCancelledReason').value = event?.cancelledReason || '';
     document.getElementById('adminCalendarEventFormError').style.display = 'none';
-    document.getElementById('adminCalendarEventModal').style.display = 'flex';
+    document.getElementById('adminCalendarEventModal').hidden = false;
     document.body.style.overflow = 'hidden';
     document.getElementById('eventFormTitle').focus();
   }
 
   function closeEventModal() {
-    document.getElementById('adminCalendarEventModal').style.display = 'none';
+    document.getElementById('adminCalendarEventModal').hidden = true;
     document.body.style.overflow = '';
     editingEvent = null;
+    modalTrigger?.focus();
+    modalTrigger = null;
   }
 
   function eventFormBody() {
@@ -287,8 +338,10 @@
     return {
       title: document.getElementById('eventFormTitle').value,
       status: document.getElementById('eventFormStatus').value,
-      startDate: document.getElementById('eventFormStart').value,
-      endDate: document.getElementById('eventFormEnd').value || undefined,
+      startDate: new Date(document.getElementById('eventFormStart').value).toISOString(),
+      endDate: document.getElementById('eventFormEnd').value
+        ? new Date(document.getElementById('eventFormEnd').value).toISOString()
+        : '',
       eventType,
       category: eventType,
       venueName: document.getElementById('eventFormVenue').value,
@@ -312,17 +365,26 @@
     const errorEl = document.getElementById('adminCalendarEventFormError');
     const submitBtn = document.getElementById('adminCalendarEventSave');
     errorEl.style.display = 'none';
+    const start = document.getElementById('eventFormStart').value;
+    const end = document.getElementById('eventFormEnd').value;
+    if (end && new Date(end) < new Date(start)) {
+      errorEl.textContent = 'End must be on or after the start date and time.';
+      errorEl.style.display = 'block';
+      document.getElementById('eventFormEnd').focus();
+      return;
+    }
     submitBtn.disabled = true;
     submitBtn.textContent = 'Saving…';
     try {
       const body = eventFormBody();
+      const wasEditing = Boolean(editingEvent);
       if (editingEvent) {
         await api(`${API_BASE}/events/${encodeURIComponent(editingEvent.id)}`, 'PUT', body);
       } else {
         await api(`${API_BASE}/events`, 'POST', body);
       }
       closeEventModal();
-      showToast(editingEvent ? 'Event updated' : 'Event created', 'success');
+      showToast(wasEditing ? 'Event updated' : 'Event created', 'success');
       await refreshAll();
     } catch (err) {
       errorEl.textContent = err.message || 'Failed to save event';
@@ -373,6 +435,7 @@
     }
     const manualApproval = featureFlags.requirePublicCalendarApproval === true;
     toggle.checked = manualApproval;
+    toggle.disabled = false;
     status.textContent = manualApproval
       ? 'Manual approval is ON — new supplier-created public events are held as pending review until an admin publishes them.'
       : 'Auto-publish is ON — authorised suppliers can publish public events immediately.';
@@ -392,6 +455,8 @@
       if (status) {
         status.textContent = 'Failed to load approval setting.';
       }
+      document.getElementById('adminCalendarApprovalMode').textContent = 'Setting unavailable';
+      document.getElementById('adminCalendarRequireApproval').disabled = true;
     }
   }
 
@@ -412,20 +477,9 @@
       if (!featureFlags) {
         featureFlags = await api('/api/admin/settings/features');
       }
-      const payload = {
-        registration: featureFlags.registration !== false,
-        supplierApplications: featureFlags.supplierApplications !== false,
-        reviews: featureFlags.reviews !== false,
-        photoUploads: featureFlags.photoUploads !== false,
-        supportTickets: featureFlags.supportTickets !== false,
-        pexelsCollage: featureFlags.pexelsCollage === true,
-        requirePackageApproval: featureFlags.requirePackageApproval === true,
+      const result = await api('/api/admin/settings/features', 'PUT', {
         requirePublicCalendarApproval: nextValue,
-        photoAutoApprove: featureFlags.photoAutoApprove !== false,
-        autoApproveReviews: featureFlags.autoApproveReviews !== false,
-        autoApproveSupplierVerification: featureFlags.autoApproveSupplierVerification === true,
-      };
-      const result = await api('/api/admin/settings/features', 'PUT', payload);
+      });
       featureFlags = result.features || {
         ...featureFlags,
         requirePublicCalendarApproval: nextValue,
@@ -434,9 +488,8 @@
       showToast(nextValue ? 'Manual event approval enabled' : 'Auto-publish enabled', 'success');
     } catch (err) {
       toggle.checked = previousValue;
-      if (status) {
-        status.textContent = 'Failed to save approval setting.';
-      }
+      updateApprovalSettingUi();
+      if (status) status.textContent = 'Failed to save approval setting. Please try again.';
       showToast(err.message || 'Failed to save approval setting', 'error');
     } finally {
       toggle.disabled = false;
@@ -455,7 +508,16 @@
     document
       .getElementById('adminCalendarRefreshRequests')
       ?.addEventListener('click', loadRequests);
-    document.getElementById('adminCalendarApplyFilters')?.addEventListener('click', loadEvents);
+    document.getElementById('adminCalendarFilters')?.addEventListener('submit', e => {
+      e.preventDefault();
+      eventOffset = 0;
+      loadEvents();
+    });
+    document.getElementById('adminCalendarClearFilters')?.addEventListener('click', () => {
+      document.getElementById('adminCalendarFilters').reset();
+      eventOffset = 0;
+      loadEvents();
+    });
     document
       .getElementById('adminCalendarRequireApproval')
       ?.addEventListener('change', handleApprovalToggle);
@@ -469,12 +531,16 @@
         closeEventModal();
       }
     });
-    ['eventSearchFilter', 'eventCountyFilter'].forEach(id => {
-      document.getElementById(id)?.addEventListener('keydown', e => {
-        if (e.key === 'Enter') {
-          loadEvents();
-        }
-      });
+    document.addEventListener('keydown', e => {
+      const modal = document.getElementById('adminCalendarEventModal');
+      if (modal.hidden) return;
+      if (e.key === 'Escape') closeEventModal();
+      if (e.key !== 'Tab') return;
+      const focusable = [...modal.querySelectorAll('button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled])')];
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+      else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
     });
   }
 
