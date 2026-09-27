@@ -499,7 +499,8 @@
 })();
 
 // =============================================
-// External Contact Enquiries Module
+// Contact Form Enquiries Module (EventFlow's own /contact form — distinct
+// from /admin-external-contacts, which covers VEXI/Chlo integrations)
 // =============================================
 (function () {
   let allEnquiries = [];
