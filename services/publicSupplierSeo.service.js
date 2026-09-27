@@ -243,6 +243,18 @@ function supplierLocation(supplier) {
   );
 }
 
+function supplierPostalAddress(supplier, location) {
+  const postalCode = stripMarkup(supplier.postcode || supplier.postalCode || '');
+  const address = { '@type': 'PostalAddress', addressCountry: 'GB' };
+  if (location) {
+    address.addressLocality = location;
+  }
+  if (postalCode) {
+    address.postalCode = postalCode;
+  }
+  return address;
+}
+
 function supplierDescription(supplier, name, category, location) {
   return truncate(
     supplier.metaDescription ||
@@ -291,7 +303,7 @@ function supplierAggregateRating(supplier) {
 
 function buildSupplierStructuredData(
   supplier,
-  { name, canonicalUrl, description, image, category, location }
+  { name, canonicalUrl, description, image, location }
 ) {
   const structuredData = {
     '@context': 'https://schema.org',
@@ -303,9 +315,10 @@ function buildSupplierStructuredData(
     image,
   };
 
-  if (category) {
-    structuredData.serviceType = category;
-  }
+  // `serviceType` is not a recognised property of LocalBusiness/ProfessionalService per
+  // schema.org — Google's structured data validator flags it as NOT_RECOGNIZED. Category is
+  // already conveyed via `name`/`description`, so it isn't re-emitted here.
+  structuredData.address = supplierPostalAddress(supplier, location);
   if (location) {
     structuredData.areaServed = { '@type': 'Place', name: location };
   }

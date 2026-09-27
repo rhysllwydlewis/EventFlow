@@ -376,6 +376,18 @@ function numericPrice(value) {
   return Number.isFinite(number) ? number : null;
 }
 
+function providerPostalAddress(supplier, location) {
+  const postalCode = stripMarkup(supplier?.postcode || supplier?.postalCode || '');
+  const address = { '@type': 'PostalAddress', addressCountry: 'GB' };
+  if (location) {
+    address.addressLocality = location;
+  }
+  if (postalCode) {
+    address.postalCode = postalCode;
+  }
+  return address;
+}
+
 function defaultPackageDescription(name, supplierName, category, location) {
   const categoryPart = category ? `, a ${category} package` : '';
   const locationPart = location ? ` in ${location}` : '';
@@ -411,7 +423,11 @@ function buildPackageSeoModel(pkg, supplier, options = {}) {
     description,
     url: canonicalUrl,
     image,
-    provider: { '@type': 'ProfessionalService', name: supplierName },
+    provider: {
+      '@type': 'ProfessionalService',
+      name: supplierName,
+      address: providerPostalAddress(supplier, location),
+    },
   };
   if (category) {
     structuredData.serviceType = category;
