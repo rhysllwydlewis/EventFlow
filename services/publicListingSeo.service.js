@@ -735,7 +735,7 @@ function injectPackageDescription(html, pkg) {
   );
 }
 
-function renderSeoHtml(templateHtml, kind, id, seo, indexable = true, record) {
+function renderSeoHtml(templateHtml, kind, id, seo, indexable = true, record = null) {
   let cleanTemplate = removeSeoTags(templateHtml, SEO_BLOCK_MARKERS[kind]);
   if (kind === 'package' && record) {
     cleanTemplate = injectPackageDescription(cleanTemplate, record);
