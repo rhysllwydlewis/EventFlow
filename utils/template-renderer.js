@@ -371,8 +371,19 @@ function injectHomepageManagerAdminScript(content) {
   );
 }
 
+// A stripped auth-nav placeholder (empty text, hidden via CSS) still has
+// href="#" in its opening tag, which crawlers read as a real internal link
+// with no anchor text. Dropping the href avoids flagging it as a link at
+// all; the auth-only ids below all have their real href set by navbar.js
+// once a session is confirmed, so the static placeholder never needs one.
+function stripHashHref(content, id) {
+  return content.replace(new RegExp(`<a\\b[^>]*\\bid="${id}"[^>]*>`, 'gi'), tag =>
+    tag.replace(/\s+href="#"/i, '')
+  );
+}
+
 function stripAnonymousAuthText(content) {
-  return content
+  let result = content
     .replace(
       /<!--(?:(?!-->)[\s\S])*(?:Dashboard|Notification|Alerts|auth)(?:(?!-->)[\s\S])*-->/gi,
       ''
@@ -394,6 +405,17 @@ function stripAnonymousAuthText(content) {
     .replace(/Mark all as read/gi, '')
     .replace(/View all/gi, '')
     .replace(/Version:\s*loading…?/giu, '');
+
+  for (const id of [
+    'ef-dashboard-link',
+    'ef-mobile-dashboard',
+    'ef-mobile-logout',
+    'ef-bottom-dashboard',
+  ]) {
+    result = stripHashHref(result, id);
+  }
+
+  return result;
 }
 
 function sanitiseHomepage(content) {
