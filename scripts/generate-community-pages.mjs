@@ -143,7 +143,7 @@ ${
   page.adminGuard
     ? `    <link rel="stylesheet" href="/assets/css/admin.css?v=18.3.0" />
     <link rel="stylesheet" href="/assets/css/admin-enhanced.css?v=18.3.1" />
-    <link rel="stylesheet" href="/assets/css/admin-navbar.css?v=18.3.0" />
+    <link rel="stylesheet" href="/assets/css/admin-navbar.css?v=18.3.1" />
     <link rel="stylesheet" href="/assets/css/admin-cards.css?v=18.3.0" />
 `
     : '    <link rel="stylesheet" href="/assets/css/eventflow-footer.css" />\n'
@@ -157,7 +157,7 @@ ${
     <link rel="manifest" href="/site.webmanifest" />
     <meta name="msapplication-config" content="/browserconfig.xml" />
   </head>
-  <body class="efc${page.adminGuard ? ' admin-body' : ''}">
+  <body class="efc${page.adminGuard ? ' admin-body admin' : ''}">
     <a class="efc-skip" href="#main-content">Skip to main content</a>
 ${
   page.adminGuard
@@ -303,7 +303,7 @@ ${
     page.adminGuard
       ? `    <script src="/assets/js/admin-shared.js?v=18.3.0"></script>
     <script src="/assets/js/components.js?v=18.3.0" defer></script>
-    <script src="/assets/js/admin-navbar.js?v=18.3.0" defer></script>
+    <script src="/assets/js/admin-navbar.js?v=18.3.1" defer></script>
 `
       : `    <script src="/assets/js/utils/auth-state.js" defer></script>
     <script src="/assets/js/burger-menu.js" defer></script>

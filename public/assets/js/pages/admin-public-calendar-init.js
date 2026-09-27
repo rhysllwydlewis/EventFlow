@@ -98,8 +98,13 @@
       document.getElementById('adminCalendarPendingRequests').textContent = requestsData.total || 0;
     } catch (err) {
       console.warn('Failed to load calendar stats:', err.message);
-      ['adminCalendarTotalEvents', 'adminCalendarPublishedEvents', 'adminCalendarPendingRequests']
-        .forEach(id => { document.getElementById(id).textContent = '—'; });
+      [
+        'adminCalendarTotalEvents',
+        'adminCalendarPublishedEvents',
+        'adminCalendarPendingRequests',
+      ].forEach(id => {
+        document.getElementById(id).textContent = '—';
+      });
     }
   }
 
@@ -108,16 +113,21 @@
     showLoading('adminCalendarEventsContainer', 'Loading calendar events…');
     try {
       const data = await api(`${API_BASE}/events?${buildEventQuery()}`);
-      if (token !== eventLoadToken) return;
+      if (token !== eventLoadToken) {
+        return;
+      }
       events = data.events || [];
       eventTotal = Number(data.total) || 0;
       if (eventOffset >= eventTotal && eventOffset > 0) {
         eventOffset = Math.max(0, Math.ceil(eventTotal / PAGE_SIZE) - 1) * PAGE_SIZE;
-        return loadEvents();
+        await loadEvents();
+        return;
       }
       renderEvents();
     } catch (err) {
-      if (token !== eventLoadToken) return;
+      if (token !== eventLoadToken) {
+        return;
+      }
       document.getElementById('adminCalendarEventsContainer').innerHTML =
         '<div class="calendar-admin-empty" role="alert">Failed to load calendar events. Please try refreshing.</div>';
       document.getElementById('adminCalendarResultCount').textContent = '';
@@ -137,14 +147,20 @@
       previous.type = 'button';
       previous.textContent = 'Previous';
       previous.disabled = eventOffset === 0;
-      previous.addEventListener('click', () => { eventOffset -= PAGE_SIZE; loadEvents(); });
+      previous.addEventListener('click', () => {
+        eventOffset -= PAGE_SIZE;
+        loadEvents();
+      });
       const label = document.createElement('span');
       label.textContent = `Page ${Math.floor(eventOffset / PAGE_SIZE) + 1} of ${Math.ceil(eventTotal / PAGE_SIZE)}`;
       const next = document.createElement('button');
       next.type = 'button';
       next.textContent = 'Next';
       next.disabled = eventOffset + PAGE_SIZE >= eventTotal;
-      next.addEventListener('click', () => { eventOffset += PAGE_SIZE; loadEvents(); });
+      next.addEventListener('click', () => {
+        eventOffset += PAGE_SIZE;
+        loadEvents();
+      });
       pagination.append(previous, label, next);
     }
     if (!events.length) {
@@ -489,7 +505,9 @@
     } catch (err) {
       toggle.checked = previousValue;
       updateApprovalSettingUi();
-      if (status) status.textContent = 'Failed to save approval setting. Please try again.';
+      if (status) {
+        status.textContent = 'Failed to save approval setting. Please try again.';
+      }
       showToast(err.message || 'Failed to save approval setting', 'error');
     } finally {
       toggle.disabled = false;
@@ -533,14 +551,29 @@
     });
     document.addEventListener('keydown', e => {
       const modal = document.getElementById('adminCalendarEventModal');
-      if (modal.hidden) return;
-      if (e.key === 'Escape') closeEventModal();
-      if (e.key !== 'Tab') return;
-      const focusable = [...modal.querySelectorAll('button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled])')];
+      if (modal.hidden) {
+        return;
+      }
+      if (e.key === 'Escape') {
+        closeEventModal();
+      }
+      if (e.key !== 'Tab') {
+        return;
+      }
+      const focusable = [
+        ...modal.querySelectorAll(
+          'button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled])'
+        ),
+      ];
       const first = focusable[0];
       const last = focusable[focusable.length - 1];
-      if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
-      else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault();
+        first.focus();
+      }
     });
   }
 

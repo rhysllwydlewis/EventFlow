@@ -227,7 +227,9 @@
       return;
     }
 
-    if (modal.hidden) detailTrigger = document.activeElement;
+    if (modal.hidden) {
+      detailTrigger = document.activeElement;
+    }
     const request = ++detailRequest;
     modal.hidden = false;
     document.body.style.overflow = 'hidden';
@@ -236,7 +238,9 @@
 
     try {
       const data = await AdminShared.api(`/api/admin/external-contacts/${encodeURIComponent(id)}`);
-      if (request !== detailRequest || modal.hidden) return;
+      if (request !== detailRequest || modal.hidden) {
+        return;
+      }
       const c = data.contact;
       if (!c) {
         throw new Error('Not found');
@@ -300,14 +304,18 @@
           });
           AdminShared.showToast('Status updated.', 'success');
           await loadData();
-          if (!modal.hidden) openDetail(id);
+          if (!modal.hidden) {
+            openDetail(id);
+          }
         } catch (err) {
           AdminShared.showToast(`Failed: ${err.message}`, 'error');
           saveButton.disabled = false;
         }
       });
     } catch (err) {
-      if (request !== detailRequest || modal.hidden) return;
+      if (request !== detailRequest || modal.hidden) {
+        return;
+      }
       body.innerHTML = `<p class="small">Failed to load: ${esc(err.message)}</p>`;
     }
   }
@@ -348,11 +356,20 @@
         closeDetail();
       }
       if (e.key === 'Tab' && !$('ecDetailModal').hidden) {
-        const controls = [...$('ecDetailModal').querySelectorAll('button:not([disabled]), select:not([disabled]), a[href]')];
+        const controls = [
+          ...$('ecDetailModal').querySelectorAll(
+            'button:not([disabled]), select:not([disabled]), a[href]'
+          ),
+        ];
         const first = controls[0];
         const last = controls[controls.length - 1];
-        if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
-        else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+        if (e.shiftKey && document.activeElement === first) {
+          e.preventDefault();
+          last.focus();
+        } else if (!e.shiftKey && document.activeElement === last) {
+          e.preventDefault();
+          first.focus();
+        }
       }
     });
 

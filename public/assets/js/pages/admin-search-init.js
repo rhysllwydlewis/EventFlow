@@ -24,7 +24,10 @@
         status.textContent = 'Select at least one category to search.';
         document.getElementById('searchResultsContainer').innerHTML = '';
       }
-      if (document.getElementById('globalSearchInput').value.trim().length >= 2 && activeFilters.size) {
+      if (
+        document.getElementById('globalSearchInput').value.trim().length >= 2 &&
+        activeFilters.size
+      ) {
         performSearch();
       }
     });
@@ -52,21 +55,30 @@
       const data = await AdminShared.api(
         `/api/admin/search?q=${encodeURIComponent(q)}&types=${encodeURIComponent(types)}`
       );
-      if (token !== searchToken) return;
+      if (token !== searchToken) {
+        return;
+      }
       renderResults(data.results, q);
     } catch (err) {
-      if (token !== searchToken) return;
+      if (token !== searchToken) {
+        return;
+      }
       status.textContent = 'Search failed. Please try again.';
       container.innerHTML = `<div class="card"><p style="color:#ef4444;">Search failed: ${AdminShared.escapeHtml(err.message)}</p></div>`;
     } finally {
-      if (token === searchToken) searchButton.disabled = false;
+      if (token === searchToken) {
+        searchButton.disabled = false;
+      }
     }
   }
 
   function renderResults(results, query) {
     const container = document.getElementById('searchResultsContainer');
     const sections = [];
-    const count = Object.values(results || {}).reduce((sum, items) => sum + (Array.isArray(items) ? items.length : 0), 0);
+    const count = Object.values(results || {}).reduce(
+      (sum, items) => sum + (Array.isArray(items) ? items.length : 0),
+      0
+    );
     status.textContent = `${count} result${count === 1 ? '' : 's'} for “${query}”${Object.values(results || {}).some(items => Array.isArray(items) && items.length === 10) ? ' · up to 10 per category shown' : ''}`;
 
     if (results.users && results.users.length > 0) {
@@ -121,7 +133,7 @@
             <div class="search-result-item">
               <div>
                 <div class="search-result-primary">${AdminShared.escapeHtml(p.title || 'Unknown')}</div>
-                <div class="search-result-secondary">${AdminShared.escapeHtml(p.supplierName || '')} ${Number.isFinite(Number(p.price)) && p.price !== '' && p.price != null ? `· £${AdminShared.escapeHtml(Number(p.price).toFixed(2))}` : ''}</div>
+                <div class="search-result-secondary">${AdminShared.escapeHtml(p.supplierName || '')} ${Number.isFinite(Number(p.price)) && p.price !== '' && p.price !== null ? `· £${AdminShared.escapeHtml(Number(p.price).toFixed(2))}` : ''}</div>
               </div>
               <div class="search-result-meta">
                 <span class="badge">${AdminShared.escapeHtml(p.status || 'active')}</span>
