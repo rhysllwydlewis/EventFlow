@@ -4480,6 +4480,15 @@ tbody tr.selected td {
 .admin-notif-item-icon--system  { background: #6b7280; }
 .admin-notif-item-icon--booking { background: #7c3aed; }
 .admin-notif-item-icon--payment { background: #059669; }
+/* The rest of NOTIFICATION_TYPES (models/index.js) — without a background
+   here, one of these types fell back to this element's default (uncoloured)
+   background, leaving the icon's white `color: #fff` stroke invisible
+   against it. */
+.admin-notif-item-icon--reminder     { background: #dc2626; }
+.admin-notif-item-icon--approval     { background: #0891b2; }
+.admin-notif-item-icon--update       { background: #4f46e5; }
+.admin-notif-item-icon--marketing    { background: #db2777; }
+.admin-notif-item-icon--announcement { background: #ea580c; }
 
 .admin-notif-item-body { flex: 1; min-width: 0; }
 

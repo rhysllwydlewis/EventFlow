@@ -1332,6 +1332,18 @@ body.admin {
   border-radius: 10px !important;
 }
 
+/* .admin-qnav-close (the Quick Nav panel's close button) has the same
+   .ef-cta + 40×40 icon-button shape as the buttons above and was missing
+   from this reset — its 26×26 X icon was being squeezed into the ~4px-wide
+   content area .ef-cta's padding leaves inside a 40px box, rendering as a
+   barely-visible sliver instead of a normal close icon. Its own circular
+   border-radius (50%) is preserved rather than reset to 10px. */
+.admin-qnav-close.ef-cta {
+  padding: 0 !important;
+  font-size: inherit !important;
+  font-weight: inherit !important;
+}
+
 /* Explicit dark colour so SVG currentColor is always legible.
    This beats any inherited transparent / white value. */
 .navbar-icon-btn,
