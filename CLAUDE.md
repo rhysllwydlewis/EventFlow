@@ -59,6 +59,38 @@ related code, check whether the same class of bug exists nearby.
   changing the generator, re-run it and diff every generated file to
   confirm only the intended page(s) changed.
 
+- **An admin form that writes to a DB field is not proof the field is
+  read anywhere.** `admin-content.html` had a whole "Homepage Hero
+  Section" tab (title/subtitle/CTA, the _default_ tab) that saved to
+  `content.homepage` — a field nothing on the live site ever reads;
+  `index.html`'s hero heading is hardcoded static markup. Before trusting
+  that an admin editing tool does something, grep for every reader of the
+  field it writes (not just the obvious page — check whether the public
+  page in question is even templated/dynamic, or fully static HTML like
+  `index.html` and `faq.html` are here). A tool that silently does nothing
+  is worse than no tool: it wastes an admin's time and they won't know why
+  their change "didn't work."
+
+- **Community's client-side modules must call `EFC.hideFallback()`.**
+  `admin-community.html` (and the public community pages) render a real,
+  server-side "noscript" fallback into `#efc-noscript` for no-JS/SEO,
+  which every page-specific module is expected to hide once its own view
+  has content — `community/home.js`, `discussions.js`, `member.js`,
+  `thread.js` and `composer.js` all call `EFC.hideFallback()`, but
+  `community/admin.js` didn't, so the fallback's own heading stayed
+  visible forever, faintly overlapping the real UI. If you add a new
+  community module, check it calls this too.
+
+- **A `.form-control`-style class with `width: 100%` will stretch to
+  fill a flex row unless something constrains it.** `admin-users.html`'s
+  page-size `<select>` used a `form-control-sm` class that was referenced
+  in the HTML but never defined in any CSS file, so it fell back to plain
+  `.form-control`'s `width: 100%` and, as an unconstrained flex child,
+  ballooned across the whole pagination row. When you see a `-sm`/`-lg`/
+  variant class name in markup, grep for its actual definition before
+  assuming it does anything — a missing modifier class fails silently,
+  it doesn't error.
+
 ## Process lessons from this repo's admin audit
 
 - **Don't run `prettier --write` on a whole `admin-*.html` file to "fix" a
