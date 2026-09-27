@@ -817,10 +817,14 @@
       })
       .catch(error => {
         console.error('Failed to fetch database status:', error);
-        statusBadge.className = 'db-status-badge db-local';
-        statusBadge.innerHTML = '<span class="db-status-dot"></span> Local Storage';
-        statusBadge.title = 'Using local file storage';
-        statusBadge.setAttribute('aria-label', 'Database status: Using local file storage');
+        // A failed status check isn't proof the DB fell back to local
+        // storage — that used to be asserted here, which falsely tells the
+        // admin their data isn't persisting to the real database on what
+        // may just be a transient network blip. Show "Unknown" instead.
+        statusBadge.className = 'db-status-badge db-loading';
+        statusBadge.innerHTML = '<span class="db-status-dot"></span> Unknown';
+        statusBadge.title = 'Could not check database status';
+        statusBadge.setAttribute('aria-label', 'Database status: Could not check database status');
       });
   }
 
