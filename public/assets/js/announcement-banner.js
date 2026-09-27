@@ -75,7 +75,7 @@
   }
 
   async function init() {
-    let data;
+    let data = null;
     try {
       const response = await fetch('/api/v1/announcements', { credentials: 'omit' });
       if (!response.ok) {
@@ -93,7 +93,7 @@
     }
 
     const dismissed = getDismissed();
-    announcements.filter(a => a && a.id && !dismissed.includes(a.id)).forEach(renderBanner);
+    announcements.filter(a => a?.id && !dismissed.includes(a.id)).forEach(renderBanner);
   }
 
   if (document.readyState === 'loading') {
