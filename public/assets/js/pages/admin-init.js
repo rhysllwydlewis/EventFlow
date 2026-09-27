@@ -494,29 +494,24 @@
     // Shared public calendar management card — load asynchronously (best-effort)
     (async () => {
       try {
-        const [eventsData, publishedData, requestsData, reportsData] = await Promise.all([
+        const [eventsData, publishedData, requestsData] = await Promise.allSettled([
           AdminShared.api('/api/v1/public-calendar/events?status=all&includePast=true&limit=1'),
           AdminShared.api(
             '/api/v1/public-calendar/events?status=published&includePast=true&limit=1'
           ),
           AdminShared.api('/api/v1/public-calendar/publisher-requests?status=pending'),
-          AdminShared.api('/api/v1/public-calendar/reports?status=open'),
         ]);
         const totalCalendarEventsEl = document.getElementById('totalCalendarEventsCountCard');
-        if (totalCalendarEventsEl) {
-          totalCalendarEventsEl.textContent = eventsData.total || 0;
+        if (totalCalendarEventsEl && eventsData.status === 'fulfilled') {
+          totalCalendarEventsEl.textContent = eventsData.value.total || 0;
         }
         const publishedCalendarEventsEl = document.getElementById('publishedCalendarEventsCount');
-        if (publishedCalendarEventsEl) {
-          publishedCalendarEventsEl.textContent = publishedData.total || 0;
+        if (publishedCalendarEventsEl && publishedData.status === 'fulfilled') {
+          publishedCalendarEventsEl.textContent = publishedData.value.total || 0;
         }
         const pendingRequestsEl = document.getElementById('pendingCalendarRequestsCount');
-        if (pendingRequestsEl) {
-          pendingRequestsEl.textContent = requestsData.total || 0;
-        }
-        const openReportsEl = document.getElementById('openCalendarReportsCount');
-        if (openReportsEl) {
-          openReportsEl.textContent = reportsData.total || 0;
+        if (pendingRequestsEl && requestsData.status === 'fulfilled') {
+          pendingRequestsEl.textContent = requestsData.value.total || 0;
         }
       } catch (_) {
         // Non-blocking — card shows — if API fails stats stay at —

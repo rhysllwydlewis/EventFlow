@@ -1,0 +1,38 @@
+/* Quiet, consistent admin surface across the management pages. */
+body.has-admin-navbar.admin { background: #f5f7f8; color: #19343b; }
+body.has-admin-navbar.admin main.section,
+body.has-admin-navbar.admin main.admin-main-content { width: 100%; max-width: 1440px; box-sizing: border-box; margin: 0 auto; padding: 24px clamp(16px, 2.5vw, 36px) 56px; }
+body.has-admin-navbar.admin .dashboard-header:not(.email-centre-hero):not(.email-preview-hero) { background: #fff; border: 1px solid #e2e9e9; box-shadow: none; border-radius: 13px; padding: 22px 26px; margin-bottom: 18px; }
+body.has-admin-navbar.admin .dashboard-title { color: #163239; font-size: clamp(23px, 2.5vw, 31px); letter-spacing: -.035em; line-height: 1.2; margin: 0; }
+body.has-admin-navbar.admin .dashboard-subtitle { color: #62777d; font-size: 13px; line-height: 1.5; margin: 6px 0 0; }
+body.has-admin-navbar.admin .section-header { margin: 24px 0 12px; gap: 8px 20px; }
+body.has-admin-navbar.admin .section-title { color: #19343b; font-size: 18px; letter-spacing: -.02em; }
+body.has-admin-navbar.admin .section-description { color: #6b7c81; font-size: 12px; }
+body.has-admin-navbar.admin .card,
+body.has-admin-navbar.admin .admin-card,
+body.has-admin-navbar.admin .data-section { border: 1px solid #e2e9e9; border-radius: 12px; box-shadow: 0 2px 8px rgba(26,57,62,.025); background: #fff; }
+body.has-admin-navbar.admin .stats-grid { gap: 12px; margin-bottom: 18px; }
+body.has-admin-navbar.admin .stats-grid .stat-card { border: 1px solid #e2e9e9; border-radius: 12px; box-shadow: none; padding: 18px; }
+body.has-admin-navbar.admin .stats-grid .stat-card::before { display: none; }
+body.has-admin-navbar.admin .stats-grid .stat-card:hover { transform: none; box-shadow: 0 2px 8px rgba(26,57,62,.07); }
+body.has-admin-navbar.admin .admin-toolbar { gap: 10px; }
+body.has-admin-navbar.admin .table-wrapper { max-width: 100%; overflow-x: auto; }
+body.has-admin-navbar.admin .table-wrapper :is(th,td) { vertical-align: middle; }
+body.has-admin-navbar.admin :is(input,select,textarea):focus-visible,
+body.has-admin-navbar.admin :is(button,a):focus-visible { outline: 2px solid #0b8073; outline-offset: 2px; }
+body.has-admin-navbar.admin :is(button,input,select,textarea):disabled { cursor: not-allowed; }
+body.has-admin-navbar.admin .btn-icon:hover { transform: none; box-shadow: none; }
+@media (max-width: 700px) {
+  body.has-admin-navbar.admin main.section,
+  body.has-admin-navbar.admin main.admin-main-content { padding: 16px 12px 40px; }
+  body.has-admin-navbar.admin .dashboard-header { padding: 18px; }
+  body.has-admin-navbar.admin .header-content { align-items: flex-start; }
+  body.has-admin-navbar.admin .header-actions { flex-wrap: wrap; gap: 8px; }
+  body.has-admin-navbar.admin .stats-grid { grid-template-columns: repeat(2,minmax(0,1fr)); }
+}
+@media (max-width: 420px) {
+  body.has-admin-navbar.admin .stats-grid { grid-template-columns: 1fr; }
+}
+@media (prefers-reduced-motion: reduce) {
+  body.has-admin-navbar.admin :is(.stat-card,.admin-card,.card,.btn-icon) { transition: none; }
+}

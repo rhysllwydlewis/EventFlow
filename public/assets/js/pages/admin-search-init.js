@@ -1,6 +1,10 @@
 'use strict';
 (function () {
   const activeFilters = new Set(['users', 'suppliers', 'packages', 'tickets', 'reports']);
+  let searchToken = 0;
+  const status = document.getElementById('adminSearchStatus');
+  const searchButton = document.getElementById('globalSearchBtn');
+  const badgeClass = value => String(value || '').replace(/[^a-z0-9_-]/gi, '');
 
   // Toggle filter chips
   document.querySelectorAll('.search-filter-chip').forEach(chip => {
@@ -12,6 +16,19 @@
       } else {
         activeFilters.add(type);
         chip.classList.add('active');
+      }
+      chip.setAttribute('aria-pressed', String(activeFilters.has(type)));
+      if (!activeFilters.size) {
+        searchToken++;
+        searchButton.disabled = false;
+        status.textContent = 'Select at least one category to search.';
+        document.getElementById('searchResultsContainer').innerHTML = '';
+      }
+      if (
+        document.getElementById('globalSearchInput').value.trim().length >= 2 &&
+        activeFilters.size
+      ) {
+        performSearch();
       }
     });
   });
@@ -28,6 +45,9 @@
     }
 
     const container = document.getElementById('searchResultsContainer');
+    const token = ++searchToken;
+    searchButton.disabled = true;
+    status.textContent = 'Searching…';
     container.innerHTML = '<div class="search-empty-state"><p>Searching...</p></div>';
 
     try {
@@ -35,15 +55,31 @@
       const data = await AdminShared.api(
         `/api/admin/search?q=${encodeURIComponent(q)}&types=${encodeURIComponent(types)}`
       );
+      if (token !== searchToken) {
+        return;
+      }
       renderResults(data.results, q);
     } catch (err) {
+      if (token !== searchToken) {
+        return;
+      }
+      status.textContent = 'Search failed. Please try again.';
       container.innerHTML = `<div class="card"><p style="color:#ef4444;">Search failed: ${AdminShared.escapeHtml(err.message)}</p></div>`;
+    } finally {
+      if (token === searchToken) {
+        searchButton.disabled = false;
+      }
     }
   }
 
   function renderResults(results, query) {
     const container = document.getElementById('searchResultsContainer');
     const sections = [];
+    const count = Object.values(results || {}).reduce(
+      (sum, items) => sum + (Array.isArray(items) ? items.length : 0),
+      0
+    );
+    status.textContent = `${count} result${count === 1 ? '' : 's'} for “${query}”${Object.values(results || {}).some(items => Array.isArray(items) && items.length === 10) ? ' · up to 10 per category shown' : ''}`;
 
     if (results.users && results.users.length > 0) {
       sections.push(`
@@ -97,7 +133,7 @@
             <div class="search-result-item">
               <div>
                 <div class="search-result-primary">${AdminShared.escapeHtml(p.title || 'Unknown')}</div>
-                <div class="search-result-secondary">${AdminShared.escapeHtml(p.supplierName || '')} · ${p.price ? `£${p.price}` : ''}</div>
+                <div class="search-result-secondary">${AdminShared.escapeHtml(p.supplierName || '')} ${Number.isFinite(Number(p.price)) && p.price !== '' && p.price !== null ? `· £${AdminShared.escapeHtml(Number(p.price).toFixed(2))}` : ''}</div>
               </div>
               <div class="search-result-meta">
                 <span class="badge">${AdminShared.escapeHtml(p.status || 'active')}</span>
@@ -121,8 +157,8 @@
                 <div class="search-result-secondary">${AdminShared.escapeHtml(t.senderEmail || '')} · ${AdminShared.formatDate ? AdminShared.formatDate(t.createdAt) : t.createdAt || ''}</div>
               </div>
               <div class="search-result-meta">
-                <span class="badge badge-${t.status || 'open'}">${AdminShared.escapeHtml(t.status || 'open')}</span>
-                <span class="badge badge-${t.priority || 'medium'}">${AdminShared.escapeHtml(t.priority || 'medium')}</span>
+                <span class="badge badge-${badgeClass(t.status || 'open')}">${AdminShared.escapeHtml(t.status || 'open')}</span>
+                <span class="badge badge-${badgeClass(t.priority || 'medium')}">${AdminShared.escapeHtml(t.priority || 'medium')}</span>
                 <a href="/admin-tickets" class="btn-sm btn-secondary">View Tickets</a>
               </div>
             </div>`
@@ -144,7 +180,7 @@
                 <div class="search-result-secondary">Reporter: ${AdminShared.escapeHtml(r.reporterEmail || 'unknown')}</div>
               </div>
               <div class="search-result-meta">
-                <span class="badge badge-${r.status || 'pending'}">${AdminShared.escapeHtml(r.status || 'pending')}</span>
+                <span class="badge badge-${badgeClass(r.status || 'pending')}">${AdminShared.escapeHtml(r.status || 'pending')}</span>
                 <a href="/admin-reports" class="btn-sm btn-secondary">View Reports</a>
               </div>
             </div>`
@@ -164,11 +200,9 @@
     }
   }
 
-  document.getElementById('globalSearchBtn').addEventListener('click', performSearch);
-  document.getElementById('globalSearchInput').addEventListener('keydown', e => {
-    if (e.key === 'Enter') {
-      performSearch();
-    }
+  document.getElementById('globalSearchForm').addEventListener('submit', e => {
+    e.preventDefault();
+    performSearch();
   });
   document.getElementById('backToDashboard')?.addEventListener('click', () => {
     window.location.href = '/admin';

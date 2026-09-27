@@ -1378,3 +1378,17 @@ body.admin {
   outline: 2px solid #0B8073;
   outline-offset: 2px;
 }
+
+/* Admin shell refresh — calm surfaces and legible controls. */
+.admin-top-navbar { background: #fff; backdrop-filter: none; -webkit-backdrop-filter: none; box-shadow: 0 1px 0 #e2e9e9; }
+.admin-navbar-logo { background: none; -webkit-text-fill-color: #087d71; color: #087d71; filter: none; }
+.admin-qnav-btn { background: #f3f8f6; border: 1px solid #d4e8e2; border-radius: 8px; box-shadow: none; }
+.admin-qnav-btn:hover { transform: none; box-shadow: none; background: #e8f4f0; }
+.admin-qnav-btn[aria-expanded="true"] { background: #0b8073; box-shadow: none; }
+.navbar-icon-btn, .admin-user-btn { background: #fff; backdrop-filter: none; -webkit-backdrop-filter: none; border: 1px solid #dfe7e8; box-shadow: none; border-radius: 8px; }
+.navbar-icon-btn:hover, .admin-user-btn:hover { transform: none; box-shadow: none; background: #f1f8f5; }
+.admin-user-avatar { background: #0b8073; box-shadow: none; }
+.admin-dropdown-menu { background: #fff; backdrop-filter: none; -webkit-backdrop-filter: none; border: 1px solid #e2e9e9; border-radius: 10px; box-shadow: 0 12px 28px rgba(20,48,54,.12); }
+.admin-qnav-tile:hover { transform: none; }
+@media (max-width: 768px) { .admin-qnav-btn { border-radius: 8px; } }
+@media (prefers-reduced-motion: reduce) { .admin-qnav-tile, .admin-qnav-btn { transition: none; animation: none; } }
