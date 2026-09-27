@@ -266,7 +266,7 @@
   // confirmed 401/403 does. Retry a couple of times before bouncing an
   // otherwise-authenticated user out of the dashboard they were using.
   async function fetchAuthMe(retriesLeft) {
-    let response;
+    let response = null;
     try {
       const cacheBuster = `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
       response = await fetch(`/api/v1/auth/me?t=${cacheBuster}`, {
