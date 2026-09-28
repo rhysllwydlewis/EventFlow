@@ -196,7 +196,6 @@ ${serializeJsonLd({
       'https://twitter.com/EventFlowUK',
       'https://www.facebook.com/eventflowuk',
       'https://www.instagram.com/eventflowuk',
-      'https://www.linkedin.com/company/eventflowuk',
     ],
   },
   mainEntityOfPage: { '@type': 'WebPage', '@id': url },

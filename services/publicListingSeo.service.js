@@ -394,6 +394,34 @@ function defaultPackageDescription(name, supplierName, category, location) {
   return `${name} from ${supplierName}${categoryPart}${locationPart} on EventFlow — compare pricing, photos and availability for UK event suppliers.`;
 }
 
+function normalizeForComparison(value) {
+  return stripMarkup(value).toLowerCase();
+}
+
+// A package's own description sometimes gets filled in with a straight copy of
+// the supplier's business bio (e.g. a single-package supplier who never wrote
+// package-specific copy). When that happens, the package page's meta
+// description and the supplier page's meta description resolve to the exact
+// same text, which search engines flag as duplicate content. Falling back to
+// the generated description in that case keeps every package page unique
+// without needing a content edit on the supplier's side.
+function isReusedSupplierBio(packageDescription, supplier) {
+  const normalizedPackageDescription = normalizeForComparison(packageDescription);
+  if (!normalizedPackageDescription) {
+    return false;
+  }
+  const supplierBioFields = [
+    supplier?.metaDescription,
+    supplier?.description_short,
+    supplier?.descriptionShort,
+    supplier?.tagline,
+    supplier?.description,
+  ];
+  return supplierBioFields.some(
+    field => field && normalizeForComparison(field) === normalizedPackageDescription
+  );
+}
+
 function buildPackageSeoModel(pkg, supplier, options = {}) {
   const baseUrl = safeBaseUrl(options.baseUrl);
   const slug = buildPublicPackageSlug(pkg);
@@ -404,11 +432,10 @@ function buildPackageSeoModel(pkg, supplier, options = {}) {
   const location = stripMarkup(
     pkg?.location || supplier?.location || supplier?.town || supplier?.city || ''
   );
+  const ownPackageDescription =
+    pkg?.metaDescription || pkg?.description_short || pkg?.descriptionShort || pkg?.description;
   const description = truncate(
-    pkg?.metaDescription ||
-      pkg?.description_short ||
-      pkg?.descriptionShort ||
-      pkg?.description ||
+    (!isReusedSupplierBio(ownPackageDescription, supplier) && ownPackageDescription) ||
       defaultPackageDescription(name, supplierName, category, location),
     160
   );
