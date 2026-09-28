@@ -69,9 +69,14 @@ green, or the work needs something you cannot do yourself.
 
 ## Backlog
 
-- [ ] First run: pull a site audit and position-tracking snapshot for
-      event-flow.co.uk to establish a real baseline before picking work —
-      don't assume anything about current SEO health without checking.
+- [ ] First run (this routine's own branch): pull a site audit and
+      position-tracking snapshot for event-flow.co.uk to establish a real
+      baseline before picking work — still outstanding for this routine
+      specifically, though see the 2026-09-28 "discovered along the way"
+      entry below: real Semrush-audit-driven fixes have landed on `main`
+      via a different session/branch in the meantime, so the site's SEO
+      health is not actually unknown, just not established _through this
+      routine's own data pull_.
 
 ## Discovered along the way
 
@@ -83,6 +88,31 @@ green, or the work needs something you cannot do yourself.
   if a future SEO cycle wants to cross-check against internal analytics —
   that path is currently dark. Not an SEO fix in itself, so not picked up
   as this cycle's work.
+
+- **2026-09-28: at least one other session has had working Semrush access
+  recently — but this does NOT prove units are available now, and doesn't
+  by itself tell us whether #1703's renewal recommendation is right or
+  wrong.** `git log --all --grep=Semrush` on `main` shows real,
+  successful Semrush-audit-driven fixes merged as recently as 2026-09-27
+  22:57 UTC (PR #1735, "Fix Semrush audit findings: structured data,
+  broken email links, weak anchor text"), plus a "SEO Phase 1–5" series
+  (PRs #1722–#1730) earlier the same week — all via a different branch
+  (`claude/epic-bell-ucw28d`), not this routine's `claude/eventflow-seo`.
+  A prior version of this entry over-read that as proof #1703's "renew
+  the subscription" diagnosis was stale/wrong; a same-day reviewer
+  correctly pointed out that's not a valid inference — those other
+  sessions' usage is equally consistent with them having _consumed_ the
+  quota this routine's cycle then found empty, which would mean the
+  account genuinely does need more units, just possibly because multiple
+  automations now share one budget rather than because nothing works.
+  Posted (and then corrected) a comment on #1703 this cycle; do not treat
+  either direction as settled. Future cycles: don't assert the account's
+  quota/renewal state from indirect evidence like this — if it matters,
+  check total usage/quota directly (Semrush account dashboard) or ask the
+  owner. What _is_ worth flagging regardless: two separate automations
+  appear to be doing overlapping Semrush-driven SEO work on different
+  branches, which is useful context for whoever manages the shared unit
+  budget even without resolving the renewal question.
 
 ## Session log
 
@@ -247,3 +277,55 @@ that is the trigger condition for a fresh direct owner notification per the
 2026-09-21 entry's own criterion — send one then rather than deferring
 further, since a full week of zero output from a "daily" routine is
 approaching the point where silent logging alone under-serves the owner.
+
+### 2026-09-28
+
+Branch's last PR (#1717) had been merged, so per this run's branch-restart
+instructions restarted `claude/eventflow-seo` from `origin/main`. Since a
+straight `git checkout -B ... origin/main` followed by a force-with-lease
+push was blocked here, merged `origin/main` into the branch instead. This
+is only _tree-equivalent_ to a true restart, not history-equivalent: the
+old branch tip (PR #1717) was squash-merged into `main`, so its original
+pre-squash commits are not ancestors of `main` and merging brought them
+along as extra history on top of `origin/main`, producing a merge commit
+with parents `main` + the old branch tip rather than a branch that's
+literally `origin/main` plus new commits. The resulting file tree matched
+`origin/main` exactly for this file, but a future cycle should not assume
+this branch's _commit history_ is clean — the next restart-from-main (once
+this cycle's PR is itself squash-merged) will actually produce that clean
+state, so prefer that over merging again if force-with-lease is available
+by then. This pulled in four days of unrelated `main` history the branch
+had drifted behind (including a large admin-workspace overhaul, #1736),
+which is expected regardless of merge-vs-reset. Checked open
+`[Ops Assistant] ...` issues first (per mandate): the most recent open one
+is still #1715 (2026-09-24 morning) — no newer open Ops Assistant issue
+exists, and nothing in it is Semrush-specific or SEO-content-related, so
+nothing to avoid duplicating. Retried Semrush (`projects`,
+`domain_overview`) — both still returned `no_api_units`. This is the
+eighth consecutive blocked cycle for this routine since 2026-09-17.
+
+This cycle found something the prior entries hadn't checked: `git log` on
+`main` shows genuine Semrush-audit-driven SEO fixes merged as recently as
+2026-09-27 (PR #1735 and the "SEO Phase 1–5" series, #1722–#1730), all via
+a different branch/session (`claude/epic-bell-ucw28d`), not this routine's
+own branch. An earlier version of this entry (and of the #1703 comment
+posted this cycle) read that as proof issue #1703's "renew the
+subscription" diagnosis was stale/wrong — a same-day PR reviewer
+(`chatgpt-codex-connector`) correctly flagged that as an invalid
+inference: other sessions succeeding on 2026-09-27 is equally consistent
+with them having _consumed_ the quota this cycle then found empty, which
+would mean a top-up genuinely is warranted, just possibly sized for
+several concurrent consumers rather than this routine alone. Updated the
+#1703 comment and this doc to withdraw the "it's likely wrong" claim
+rather than assert the opposite without evidence either way. Stopped
+before Step 3 (pick work) per the mandate — did not attempt technical or
+content fixes without real Semrush data from this routine's own calls. No
+code changes this cycle; this doc update plus the #1703 comment (posted,
+then corrected) are the only outputs. Backlog item (this routine's own
+baseline site audit/position-tracking pull) still outstanding, now
+blocked for eight consecutive cycles — see the "discovered along the way"
+entry above for the now-corrected framing of why. Next run: retry Semrush
+calls first; if still blocked, do NOT assert the account's quota/renewal
+state from indirect evidence in either direction — if it matters, check
+usage/quota directly or ask the owner, rather than reasoning from which
+branches have recently succeeded.
