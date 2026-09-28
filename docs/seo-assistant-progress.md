@@ -75,8 +75,8 @@ green, or the work needs something you cannot do yourself.
       specifically, though see the 2026-09-28 "discovered along the way"
       entry below: real Semrush-audit-driven fixes have landed on `main`
       via a different session/branch in the meantime, so the site's SEO
-      health is not actually unknown, just not established *through this
-      routine's own data pull*.
+      health is not actually unknown, just not established _through this
+      routine's own data pull_.
 
 ## Discovered along the way
 
