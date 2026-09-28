@@ -189,6 +189,36 @@ const CATEGORY_NAMED_FAQS = Object.freeze({
     answer:
       'Yes — photo booth operators are listed under Entertainment alongside bands and DJs. Filter by price and postcode to compare photo booth suppliers near your venue.',
   }),
+  transport: Object.freeze({
+    question: 'Does EventFlow list wedding car hire suppliers?',
+    answer:
+      'Yes — wedding car hire, limousines and other event transport are listed under Transport. Compare vehicles and prices, then message a supplier directly to check availability for your date.',
+  }),
+  videography: Object.freeze({
+    question: 'Does EventFlow list wedding videographers?',
+    answer:
+      'Yes — wedding videographers are listed under Videography, separate from Photography. Browse show-reels and packages, then message a supplier directly to check availability for your date.',
+  }),
+  florist: Object.freeze({
+    question: 'Does EventFlow list wedding florists?',
+    answer:
+      'Yes — wedding florists and flower suppliers are listed under Florist. Browse portfolios and pricing, then message a supplier directly about your colour scheme and flower choices.',
+  }),
+  'music-dj': Object.freeze({
+    question: 'Does EventFlow list wedding DJs and bands?',
+    answer:
+      'Yes — wedding DJs and live bands are both listed under Music/DJ. Compare set styles and pricing, then message a supplier directly to check availability for your date.',
+  }),
+  catering: Object.freeze({
+    question: 'Does EventFlow list hog roasts, ice cream vans and other novelty catering?',
+    answer:
+      'Yes — hog roasts, ice cream vans, candy floss machines and other novelty catering are listed under Catering alongside traditional caterers. Filter by price and postcode to compare suppliers near your venue.',
+  }),
+  stationery: Object.freeze({
+    question: 'Does EventFlow list wedding invitation suppliers?',
+    answer:
+      'Yes — wedding invitation and stationery designers are listed under Stationery. Browse portfolios and pricing, then message a supplier directly about your save-the-dates and invitations.',
+  }),
 });
 
 /**

@@ -51,31 +51,6 @@
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://event-flow.co.uk/gallery</loc>
-    <changefreq>weekly</changefreq>
-    <priority>0.6</priority>
-  </url>
-  <url>
-    <loc>https://event-flow.co.uk/plan</loc>
-    <changefreq>monthly</changefreq>
-    <priority>0.7</priority>
-  </url>
-  <url>
-    <loc>https://event-flow.co.uk/budget</loc>
-    <changefreq>monthly</changefreq>
-    <priority>0.7</priority>
-  </url>
-  <url>
-    <loc>https://event-flow.co.uk/timeline</loc>
-    <changefreq>monthly</changefreq>
-    <priority>0.7</priority>
-  </url>
-  <url>
-    <loc>https://event-flow.co.uk/guests</loc>
-    <changefreq>monthly</changefreq>
-    <priority>0.7</priority>
-  </url>
-  <url>
     <loc>https://event-flow.co.uk/legal</loc>
     <changefreq>monthly</changefreq>
     <priority>0.4</priority>
@@ -97,7 +72,7 @@
   </url>
   <url>
     <loc>https://event-flow.co.uk/articles/wedding-venue-selection-guide</loc>
-    <lastmod>2026-09-04</lastmod>
+    <lastmod>2026-09-07</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
@@ -127,7 +102,7 @@
   </url>
   <url>
     <loc>https://event-flow.co.uk/articles/event-budget-management-guide</loc>
-    <lastmod>2026-09-04</lastmod>
+    <lastmod>2026-09-07</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
@@ -163,31 +138,31 @@
   </url>
   <url>
     <loc>https://event-flow.co.uk/articles/budget-planner-guide</loc>
-    <lastmod>2026-09-04</lastmod>
+    <lastmod>2026-09-07</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
     <loc>https://event-flow.co.uk/articles/event-decoration-styling-guide</loc>
-    <lastmod>2026-09-04</lastmod>
+    <lastmod>2026-09-08</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
     <loc>https://event-flow.co.uk/articles/choosing-event-caterer-guide</loc>
-    <lastmod>2026-09-04</lastmod>
+    <lastmod>2026-09-08</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
     <loc>https://event-flow.co.uk/articles/wedding-stationery-invitations-guide</loc>
-    <lastmod>2026-09-05</lastmod>
+    <lastmod>2026-09-07</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
     <loc>https://event-flow.co.uk/articles/destination-wedding-planning-guide</loc>
-    <lastmod>2026-09-04</lastmod>
+    <lastmod>2026-09-07</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
@@ -199,7 +174,7 @@
   </url>
   <url>
     <loc>https://event-flow.co.uk/articles/how-to-write-wedding-speech</loc>
-    <lastmod>2026-09-05</lastmod>
+    <lastmod>2026-09-07</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
@@ -247,13 +222,13 @@
   </url>
   <url>
     <loc>https://event-flow.co.uk/articles/rsvp-management-guide</loc>
-    <lastmod>2026-09-05</lastmod>
+    <lastmod>2026-09-07</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
     <loc>https://event-flow.co.uk/articles/seating-plan-guide</loc>
-    <lastmod>2026-09-05</lastmod>
+    <lastmod>2026-09-07</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
@@ -296,6 +271,78 @@
   <url>
     <loc>https://event-flow.co.uk/articles/event-travel-costs-guide</loc>
     <lastmod>2026-09-03</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://event-flow.co.uk/articles/prenups-uk-guide</loc>
+    <lastmod>2026-09-07</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://event-flow.co.uk/articles/civil-partnerships-uk-guide</loc>
+    <lastmod>2026-09-07</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://event-flow.co.uk/articles/getting-married-at-gretna-green</loc>
+    <lastmod>2026-09-07</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://event-flow.co.uk/articles/wedding-anniversary-gifts-by-year</loc>
+    <lastmod>2026-09-07</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://event-flow.co.uk/articles/uk-wedding-cost-guide-2026</loc>
+    <lastmod>2026-09-08</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://event-flow.co.uk/articles/wedding-attire-guide</loc>
+    <lastmod>2026-09-07</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://event-flow.co.uk/articles/wedding-gift-favour-ideas</loc>
+    <lastmod>2026-09-07</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://event-flow.co.uk/articles/best-honeymoon-destinations</loc>
+    <lastmod>2026-09-07</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://event-flow.co.uk/articles/wedding-flowers-bouquets-guide</loc>
+    <lastmod>2026-09-25</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://event-flow.co.uk/articles/wedding-cake-guide</loc>
+    <lastmod>2026-09-25</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://event-flow.co.uk/articles/wedding-rings-jewellery-guide</loc>
+    <lastmod>2026-09-25</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://event-flow.co.uk/articles/hen-do-stag-do-planning-guide</loc>
+    <lastmod>2026-09-25</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>

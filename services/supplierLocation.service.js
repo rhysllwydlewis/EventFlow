@@ -18,6 +18,7 @@
 const registry = require('./locationRegistry.service');
 const geocoding = require('../utils/geocoding');
 const lifecycle = require('./seoRecordLifecycle.util');
+const { isPublishedUnclaimedSupplierBotProfile } = require('./supplierBotPilotVisibility.util');
 const {
   AUDIT_STATUSES,
   CONFIDENCE,
@@ -465,13 +466,22 @@ async function deriveBaseLocation(supplier, dependencies = {}) {
  * with whatever is already on disk. This is the write path, so it is strict:
  * unknown cities, out-of-range radii and unrecognised types are dropped, and a
  * supplier can never store coverage the pages would not honour.
- * @param {*} value Raw `serviceAreas` from a request body.
+ *
+ * `source: 'admin'` on a city entry marks coverage an admin assigned by hand
+ * (through the admin console, not the supplier's own self-service picker).
+ * That tag is trusted only when `options.preserveSource` is set — callers
+ * re-reading a supplier's already-stored `serviceAreas` pass it; callers
+ * sanitising a request body a supplier controls must not, so a supplier can
+ * never mint the tag themselves by sending it in their own PATCH.
+ * @param {*} value Raw `serviceAreas` from a request body or stored record.
+ * @param {Object} [options] `{preserveSource}`.
  * @returns {Object[]} Clean service areas.
  */
-function sanitiseServiceAreas(value) {
+function sanitiseServiceAreas(value, options = {}) {
   if (!Array.isArray(value)) {
     return [];
   }
+  const preserveSource = options.preserveSource === true;
 
   const areas = [];
   const seenCities = new Set();
@@ -486,7 +496,11 @@ function sanitiseServiceAreas(value) {
       const resolved = registry.resolveCity(area.slug);
       if (resolved && !seenCities.has(resolved.city.slug)) {
         seenCities.add(resolved.city.slug);
-        areas.push({ type: SERVICE_AREA_TYPES.city, slug: resolved.city.slug });
+        const entry = { type: SERVICE_AREA_TYPES.city, slug: resolved.city.slug };
+        if (preserveSource && area.source === 'admin') {
+          entry.source = 'admin';
+        }
+        areas.push(entry);
       }
       continue;
     }
@@ -507,12 +521,15 @@ function sanitiseServiceAreas(value) {
     }
   }
 
-  // Nationwide already covers every city, so a city pick alongside it adds no
-  // real coverage — it only burns the supplier's limited pick allowance and
-  // shows a redundant tag. Drop city picks once nationwide is present,
-  // regardless of which order the two arrived in.
+  // Nationwide already covers every city, so a self-service city pick
+  // alongside it adds no real coverage — it only burns the supplier's
+  // limited pick allowance and shows a redundant tag. Drop those city picks
+  // once nationwide is present, regardless of which order the two arrived
+  // in. An admin-assigned city is not part of that self-service allowance,
+  // so it survives — dropping it here would silently erase an admin
+  // decision the moment a supplier claimed nationwide coverage.
   if (hasNationwide) {
-    return areas.filter(area => area.type !== SERVICE_AREA_TYPES.city);
+    return areas.filter(area => area.type !== SERVICE_AREA_TYPES.city || area.source === 'admin');
   }
 
   return areas;
@@ -524,6 +541,15 @@ function sanitiseServiceAreas(value) {
  * Reuses the platform's existing public-supplier rule and adds the exclusions
  * the location work introduces: suspended records, seeded test accounts and
  * suppliers whose owning user has gone.
+ *
+ * A published-unclaimed Supplier Bot listing (`ownershipStatus: 'unclaimed'`,
+ * a real scraped business already shown on its own profile page and in
+ * marketplace search per `seoEligibility.service.js`'s `supplierViewability`)
+ * is allowed through on the same terms, rather than blocked purely for being
+ * unclaimed: real business, real address, just not yet claimed. Anything else
+ * `lifecycleBlockReason` flags — deleted, suspended, rejected, genuinely
+ * unapproved — still blocks it, claimed or not. Callers that render these
+ * suppliers must disclose the unclaimed status, matching the profile page.
  * @param {Object} supplier Supplier record.
  * @param {Set<string>} validOwnerIds IDs of users that still exist.
  * @returns {boolean} True when the supplier is eligible.
@@ -532,19 +558,15 @@ function isEligibleForLocationPages(supplier, validOwnerIds) {
   if (!supplier || !supplier.id || !supplierDisplayName(supplier)) {
     return false;
   }
-  if (supplier.approved !== true) {
-    return false;
-  }
   if (!lifecycle.isOwnerValid(supplier, validOwnerIds)) {
     return false;
   }
   if (lifecycle.isKnownTestFixture(supplier) || supplier.testAccount === true) {
     return false;
   }
-  if (lifecycle.lifecycleBlockReason(supplier)) {
-    return false;
-  }
-  return true;
+  const publishedUnclaimed = isPublishedUnclaimedSupplierBotProfile(supplier);
+  const blockReason = lifecycle.lifecycleBlockReason(supplier);
+  return !blockReason || (blockReason === 'not_approved' && publishedUnclaimed);
 }
 
 /**
@@ -610,6 +632,7 @@ function matchSupplierToCity(supplier, city) {
     citySlug: city.slug,
     baseCitySlug: base ? base.citySlug : null,
     weight: RELATIONSHIP_WEIGHTS[relationship] || 0,
+    unclaimed: isPublishedUnclaimedSupplierBotProfile(supplier),
   });
 
   if (base && base.citySlug === city.slug) {
@@ -729,6 +752,7 @@ function rankSuppliersForCity(suppliers, city, options = {}) {
       relationship: match.relationship,
       label: match.label,
       distanceMiles: match.distanceMiles,
+      unclaimed: match.unclaimed,
       score: Math.round((match.weight + qualityScore(supplier) + tierBoost(supplier)) * 100) / 100,
     };
 

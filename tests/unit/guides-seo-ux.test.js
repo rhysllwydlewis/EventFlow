@@ -21,8 +21,41 @@ describe('guides SEO and UX assets', () => {
       expect(['Beginner', 'Intermediate', 'Advanced']).toContain(guide.difficulty);
       expect(guide.lastUpdated).toMatch(/^\d{4}-\d{2}-\d{2}$/);
       expect(guide.primaryTag).toEqual(expect.any(String));
+      expect(guide.image).toEqual(expect.any(String));
+      expect(guide.image.length).toBeGreaterThan(0);
       expect(guide.ogImage).toEqual(expect.any(String));
     }
+  });
+
+  test('no two guides share a thumbnail — each card needs its own image', () => {
+    // Regression guard: 28 of 56 guides were once found sharing a photo with
+    // 1-4 other, unrelated guides (one image reused across 5 different
+    // cards on /guides). A duplicate thumbnail is never correct — two
+    // different articles are never actually the same picture — so this is a
+    // hard invariant, not a "should" that tolerates exceptions.
+    const byImage = new Map();
+    for (const guide of guides) {
+      const existing = byImage.get(guide.image) || [];
+      existing.push(guide.href);
+      byImage.set(guide.image, existing);
+    }
+    const duplicates = [...byImage.entries()].filter(([, hrefs]) => hrefs.length > 1);
+    expect(duplicates).toEqual([]);
+  });
+
+  test('a guide never reuses its own thumbnail as its ogImage or vice versa across guides', () => {
+    // ogImage mirrors image for every guide today (the same photo shown on
+    // the card and shared to social); if that ever diverges, ogImage must
+    // stay just as unique as image — a shared preview image is the same bug
+    // by a different name.
+    const byOgImage = new Map();
+    for (const guide of guides) {
+      const existing = byOgImage.get(guide.ogImage) || [];
+      existing.push(guide.href);
+      byOgImage.set(guide.ogImage, existing);
+    }
+    const duplicates = [...byOgImage.entries()].filter(([, hrefs]) => hrefs.length > 1);
+    expect(duplicates).toEqual([]);
   });
 
   test('/guides exposes server-rendered meta and ItemList schema', () => {

@@ -3,6 +3,22 @@
  * Verifies that images are properly cleaned up when listings are deleted
  */
 
+// "MongoDB is not available" has to be simulated, not left to whatever the
+// environment happens to do: deleteMarketplaceImages only returns 0 quickly
+// when db.isMongoAvailable() itself says no. If a real MONGODB_URI happens to
+// be set (true in some environments, including CI) but the host is
+// unreachable, isMongoAvailable() reports true anyway — it checks
+// configuration, not connectivity — so the function goes on to attempt a real
+// connection with a 30s server-selection timeout and up to 3 retries before
+// its own catch block returns 0, which starved this test past Jest's default
+// timeout. Mocking the module keeps this a fast, deterministic unit test of
+// the documented "not available" path, matching the same convention used in
+// tests/integration/photo-upload-integration.test.js.
+jest.mock('../../db', () => ({
+  isMongoAvailable: jest.fn().mockResolvedValue(false),
+  getDb: jest.fn(),
+}));
+
 describe('Marketplace Image Deletion', () => {
   test('deleteImage function should be exported from photo-upload', () => {
     const photoUpload = require('../../photo-upload');
@@ -17,12 +33,11 @@ describe('Marketplace Image Deletion', () => {
   test('deleteMarketplaceImages should return 0 when MongoDB is not available', async () => {
     const photoUpload = require('../../photo-upload');
 
-    // This test will pass when MongoDB is not available
-    // In a real environment with MongoDB, it would test actual deletion
+    // db.isMongoAvailable() is mocked to resolve false above, so this hits
+    // the fast "not available" branch without attempting any connection.
     const deletedCount = await photoUpload.deleteMarketplaceImages('test-listing-123');
 
-    // When MongoDB is unavailable, it should return 0 and not throw
-    expect(typeof deletedCount).toBe('number');
+    expect(deletedCount).toBe(0);
   });
 });
 

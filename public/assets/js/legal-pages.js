@@ -331,6 +331,20 @@
 
     document.body.appendChild(button);
 
+    // components.js creates the site-wide .back-to-top on the same
+    // DOMContentLoaded pass, and — because that script tag comes first on
+    // every legal page and both scripts are deferred — its handler always
+    // runs before this one. Removing it here, rather than only hiding it in
+    // CSS, is what actually stops the two floating buttons from landing on
+    // top of each other: legal-pages.css also hides it with a :has()
+    // selector for the (fast) common case, but :has() is not supported on
+    // every mobile browser this site targets, and a CSS rule that silently
+    // fails to match would bring the overlap right back.
+    const siteWideBackToTop = document.querySelector('.back-to-top');
+    if (siteWideBackToTop) {
+      siteWideBackToTop.remove();
+    }
+
     return () => {
       button.classList.toggle('legal-top--visible', window.scrollY > 600);
     };

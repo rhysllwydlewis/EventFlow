@@ -586,7 +586,16 @@
       renderSummary(summaryPayload.summary || {});
       setText('baLastRefreshed', formatDateTime(new Date().toISOString()));
     } catch (error) {
-      renderError(error.message || 'Failed to load behaviour analytics.');
+      // A raw TypeError (rather than the Error thrown by fetchJson for a bad
+      // response) means the fetch itself never completed — commonly an ad
+      // blocker or privacy extension blocking a same-origin "/analytics/"
+      // path, not an application error. Surfacing the browser's generic
+      // "Failed to fetch" message doesn't help the admin diagnose that.
+      const message =
+        error instanceof TypeError
+          ? 'Could not reach the analytics service. If you use an ad blocker or privacy extension, try allowing this site and refresh.'
+          : error.message || 'Failed to load behaviour analytics.';
+      renderError(message);
     } finally {
       section?.classList.remove('is-loading');
     }

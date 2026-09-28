@@ -22,6 +22,7 @@ const userProvenance = require('../services/userProvenance.service');
 const adminUserSummary = require('../services/adminUserSummary.service');
 const { ensureSupplierProfileForUser } = require('../services/supplierProfileProvisioning.service');
 const accountTypeConversion = require('../services/accountTypeConversion.service');
+const supplierLocation = require('../services/supplierLocation.service');
 const {
   buildSupplierProGrantUpdate,
   buildSupplierProRevokeUpdate,
@@ -1838,7 +1839,23 @@ router.put(
         supplier.location = location;
       }
       if (serviceAreas !== undefined) {
-        supplier.serviceAreas = serviceAreas;
+        // This route is the only place a city gets assigned without going
+        // through the supplier's own self-service picker (which has no city
+        // controls at all), so every city entry saved here is authoritatively
+        // tagged as admin-assigned — never taken from the request body — so
+        // the supplier's own profile PATCH can never remove or replace it.
+        //
+        // Tag *before* sanitising, not after: sanitiseServiceAreas() drops a
+        // city pick that arrives alongside a nationwide claim on the
+        // assumption it's a redundant self-service pick, but an admin
+        // assignment is not part of that self-service pool and must survive
+        // even when nationwide is also being set in the same request.
+        const adminTaggedAreas = (Array.isArray(serviceAreas) ? serviceAreas : []).map(area =>
+          area && area.type === 'city' ? { ...area, source: 'admin' } : area
+        );
+        supplier.serviceAreas = supplierLocation.sanitiseServiceAreas(adminTaggedAreas, {
+          preserveSource: true,
+        });
       }
 
       supplier.updatedAt = new Date().toISOString();

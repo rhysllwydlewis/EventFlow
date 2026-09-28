@@ -50,9 +50,11 @@ describe('public location discovery', () => {
     expect(locationSection[0]).toContain('href="/locations"');
     expect(locationSection[0]).toContain('name="location"');
     expect(locationSection[0]).toContain('Where is your event?');
-    // The city list is a fixed editorial selection, so it must not be labelled
-    // as a live popularity ranking — nothing here measures popularity.
-    expect(locationSection[0]).toContain('Major UK cities');
+    // The grid is filled live from cities and counties ranked by supplier
+    // coverage, so the label must cover both kinds of place and must not claim
+    // a popularity ranking — nothing here measures popularity.
+    expect(locationSection[0]).toContain('Explore cities &amp; counties');
+    expect(locationSection[0]).not.toContain('Major UK cities');
     expect(locationSection[0]).not.toContain('Popular right now');
     expect(homepage).toContain('/assets/css/homepage-locations-refresh.css?v=3');
   });

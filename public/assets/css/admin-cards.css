@@ -62,6 +62,16 @@
   overflow: hidden;
 }
 
+/* Some pages (admin-payments, admin-seo) build stat cards as a plain
+ * h3 + .stat-value + .stat-change stack with no icon/content wrapper.
+ * admin-enhanced.css's older .stat-card rule makes .stat-card a flex row,
+ * which was meant for the icon+content variant — applied to this plain
+ * variant it squeezes the label into a narrow wrapped column beside the
+ * value. Force those cards back to a vertical stack. */
+.stat-card:has(> h3) {
+  display: block;
+}
+
 .stat-card:hover {
   transform: translateY(-4px);
   box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
@@ -444,6 +454,16 @@
   background: rgba(255, 255, 255, 0.35);
   transform: scale(1.08);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+/* This button also carries .ef-cta, whose !important padding otherwise
+   leaves only ~6px of content width inside the fixed 44x44 box, squeezing
+   the svg icon into a thin sliver instead of its intended 26-28px size —
+   same bug class as admin-navbar.css's close button fix. */
+.btn-icon.ef-cta {
+  padding: 0 !important;
+  font-size: inherit !important;
+  font-weight: inherit !important;
 }
 
 .btn-secondary {

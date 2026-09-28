@@ -211,6 +211,15 @@
   line-height: 1;
 }
 
+/* This button also carries .ef-cta, whose !important padding/font-size
+   would otherwise squeeze its × glyph into a sliver inside the fixed
+   40x40 box — same bug class as admin-navbar.css's close button fix. */
+.modal-close.ef-cta {
+  padding: 0 !important;
+  font-size: 1.5rem !important;
+  font-weight: 400 !important;
+}
+
 .loading {
   text-align: center;
   padding: 3rem;

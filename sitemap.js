@@ -324,6 +324,8 @@ async function generateSitemap(baseUrl) {
     '/faq',
     '/privacy',
     '/terms',
+    '/legal',
+    '/credits',
   ];
   staticPages.forEach(page => appendUrl(xmlParts, normalizedBaseUrl + page));
   track('static', staticPages.length);

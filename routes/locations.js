@@ -597,15 +597,22 @@ function renderSupplierCard(entry) {
       ? `<span class="efl-card__rating"><span aria-hidden="true">&#9733;</span> ${Number(summary.averageRating).toFixed(1)} &middot; ${Number(summary.reviewCount)} reviews</span>`
       : '';
 
+  // Disclosure, not an endorsement — a real business scraped and published
+  // automatically, not yet claimed. Same badge language and claim link the
+  // supplier's own profile page already shows (public-supplier-seo.js).
+  const unclaimedBadge = entry.unclaimed
+    ? '<span class="badge badge-unclaimed" aria-label="Unclaimed listing" title="This listing was added automatically and has not yet been claimed by the business.">Unclaimed</span>'
+    : '';
+
   // The avatar/arrow and meta text aren't links themselves — the whole card
   // is clickable via .efl-card__stretched-link on the name above (see
   // locations-public-refresh.css), so a tap anywhere on the card works.
-  return `<li class="efl-card" data-supplier-id="${escapeHtml(entry.supplier.id)}" data-relationship="${escapeHtml(entry.relationship)}">
+  return `<li class="efl-card" data-supplier-id="${escapeHtml(entry.supplier.id)}" data-relationship="${escapeHtml(entry.relationship)}"${entry.unclaimed ? ' data-unclaimed="true"' : ''}>
     <div class="efl-card__top">
       <span class="efl-card__avatar" aria-hidden="true">${escapeHtml(initials || 'EF')}</span>
       <span class="efl-card__arrow" aria-hidden="true">&#8599;</span>
     </div>
-    <div class="efl-card__body">${category}<h3>${heading}</h3></div>
+    <div class="efl-card__body">${category}<h3>${heading}</h3>${unclaimedBadge}</div>
     <p class="efl-card__meta"><span class="efl-relationship">${escapeHtml(entry.label)}</span>${rating}</p>
   </li>`;
 }

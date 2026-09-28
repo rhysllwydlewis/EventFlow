@@ -4,6 +4,17 @@
  * Static Sitemap Generator for EventFlow.
  * Mirrors sitemap.js for static deployments and includes the guide index plus
  * every guide article from public/assets/data/guides.json with per-guide lastmod.
+ *
+ * The file this writes (public/sitemap.xml) is NOT the sitemap production
+ * serves — the live app's /sitemap.xml route (routes/static.js) generates one
+ * dynamically from the database via sitemap.js, and that route is mounted
+ * ahead of express.static() so it always wins. This static file is only ever
+ * actually served by the E2E "static mode" preview server
+ * (scripts/serve-static.js, used by CI), which has no database and falls
+ * through to express.static() for anything without an explicit route. Keep
+ * this list limited to pages that are genuinely public and indexable —
+ * anything behind server-side auth (see protectedHtmlPages in server.js)
+ * does not belong here.
  */
 
 'use strict';
@@ -26,11 +37,6 @@ const STATIC_PAGES = [
   { url: '/faq', changefreq: 'monthly', priority: '0.7' },
   { url: '/contact', changefreq: 'monthly', priority: '0.6' },
   { url: '/for-suppliers', changefreq: 'monthly', priority: '0.7' },
-  { url: '/gallery', changefreq: 'weekly', priority: '0.6' },
-  { url: '/plan', changefreq: 'monthly', priority: '0.7' },
-  { url: '/budget', changefreq: 'monthly', priority: '0.7' },
-  { url: '/timeline', changefreq: 'monthly', priority: '0.7' },
-  { url: '/guests', changefreq: 'monthly', priority: '0.7' },
   { url: '/legal', changefreq: 'monthly', priority: '0.4' },
   { url: '/privacy', changefreq: 'monthly', priority: '0.4' },
   { url: '/terms', changefreq: 'monthly', priority: '0.4' },

@@ -129,6 +129,42 @@ describe('GET /categories/:categorySlug', () => {
     expect(response.text).toContain('Does EventFlow list photo booth suppliers?');
   });
 
+  it('names wedding car hire explicitly on the Transport category page', async () => {
+    mockDb.seed('suppliers', [
+      supplier('1', 'Transport'),
+      supplier('2', 'Transport'),
+      supplier('3', 'Transport'),
+    ]);
+    const response = await request(buildApp()).get('/categories/transport');
+    expect(response.status).toBe(200);
+    expect(response.text).toContain('Does EventFlow list wedding car hire suppliers?');
+    expect(response.text).toContain('"@type":"FAQPage"');
+  });
+
+  it('names novelty catering explicitly on the Catering category page', async () => {
+    mockDb.seed('suppliers', [
+      supplier('1', 'Catering'),
+      supplier('2', 'Catering'),
+      supplier('3', 'Catering'),
+    ]);
+    const response = await request(buildApp()).get('/categories/catering');
+    expect(response.status).toBe(200);
+    expect(response.text).toContain(
+      'Does EventFlow list hog roasts, ice cream vans and other novelty catering?'
+    );
+  });
+
+  it('names wedding invitations explicitly on the Stationery category page', async () => {
+    mockDb.seed('suppliers', [
+      supplier('1', 'Stationery'),
+      supplier('2', 'Stationery'),
+      supplier('3', 'Stationery'),
+    ]);
+    const response = await request(buildApp()).get('/categories/stationery');
+    expect(response.status).toBe(200);
+    expect(response.text).toContain('Does EventFlow list wedding invitation suppliers?');
+  });
+
   it('makes the whole supplier card clickable, not just the name', async () => {
     // The avatar/arrow and meta text around the name aren't links themselves;
     // .efl-card__stretched-link (locations-public-refresh.css) extends the

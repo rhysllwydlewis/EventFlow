@@ -10,12 +10,12 @@
   <link rel="stylesheet" href="/assets/css/styles.css?v=18.5.0">
   <link rel="stylesheet" href="/assets/css/eventflow-17.0.0.css?v=18.3.0">
   <link rel="stylesheet" href="/assets/css/utilities.css?v=18.3.0">
-  <link rel="stylesheet" href="/assets/css/components.css?v=18.4.2">
+  <link rel="stylesheet" href="/assets/css/components.css?v=18.4.3">
   <link rel="stylesheet" href="/assets/css/animations.css?v=18.3.2">
   <link rel="stylesheet" href="/assets/css/mobile-optimizations.css?v=18.4.5">
   <link rel="stylesheet" href="/assets/css/admin.css?v=18.3.0">
   <link rel="stylesheet" href="/assets/css/admin-enhanced.css?v=18.3.1">
-  <link rel="stylesheet" href="/assets/css/admin-navbar.css?v=18.3.0">
+  <link rel="stylesheet" href="/assets/css/admin-navbar.css?v=18.3.1">
   <link rel="stylesheet" href="/assets/css/admin-cards.css?v=18.3.0">
   <link rel="stylesheet" href="/assets/css/ui-ux-fixes.css?v=18.4.0">
   <link rel="stylesheet" href="/assets/css/admin-ui-improvements.css?v=18.3.2">
@@ -30,7 +30,7 @@
     <link rel="manifest" href="/site.webmanifest">
     <meta name="msapplication-config" content="/browserconfig.xml">
   <script src="/assets/js/components.js?v=18.3.0" defer></script>
-  <script src="/assets/js/admin-navbar.js?v=18.3.0" defer></script>
+  <script src="/assets/js/admin-navbar.js?v=18.3.1" defer></script>
 <style>
   .info-card { margin-bottom: 1.5rem; }
   .info-row { display:flex;justify-content:space-between;padding:0.75rem 0;border-bottom:1px solid #f3f4f6; }
@@ -110,6 +110,7 @@
     align-items: center;
   }
 </style>
+  <link rel="stylesheet" href="/assets/css/admin-workspace.css?v=1">
 </head>
 <body class="has-admin-navbar admin">
 <div id="adminNavbarMount"></div>
@@ -123,44 +124,24 @@
 
     <section id="adminManagementOverview" data-management-surface="content"></section>
     
+    <!-- This used to have a first "Homepage" tab with a Hero Title/Subtitle/CTA
+         form saving to content.homepage via PUT /api/admin/content/homepage.
+         Nothing on the live site ever read that field — index.html's actual
+         hero heading and subcopy are hardcoded markup, not templated from any
+         API — so the form silently did nothing every time an admin used it,
+         while also being the default tab an admin lands on first. The real
+         homepage content/imagery tool is /admin-homepage. Removed rather than
+         fixed forward: wiring the live homepage hero to be admin-editable
+         would be a separate, larger feature, not a bug fix. -->
     <div class="tab-buttons">
-      <button class="ef-cta tab-button active" data-tab="homepage">Homepage</button>
-      <button class="ef-cta tab-button" data-tab="announcements">Announcements</button>
+      <button class="ef-cta tab-button active" data-tab="announcements">Announcements</button>
       <button class="ef-cta tab-button" data-tab="faqs">FAQs</button>
       <button class="ef-cta tab-button" data-tab="featured">Featured Packages</button>
       <button class="ef-cta tab-button" data-tab="legalDates">Policy Reviews</button>
     </div>
-    
-    <!-- Homepage Content Tab -->
-    <div id="homepage" class="tab-content active">
-      <div class="card">
-        <h2>Homepage Hero Section</h2>
-        <form id="heroForm" action="#">
-          <div class="form-row">
-            <label for="heroTitle">Hero Title</label>
-            <input type="text" id="heroTitle" placeholder="Plan Your Perfect Event">
-          </div>
-          
-          <div class="form-row">
-            <label for="heroSubtitle">Hero Subtitle</label>
-            <textarea id="heroSubtitle" rows="2" placeholder="Discover amazing suppliers and packages for your special day"></textarea>
-          </div>
-          
-          <div class="form-row">
-            <label for="heroCTA">Call-to-Action Text</label>
-            <input type="text" id="heroCTA" placeholder="Start Planning">
-          </div>
-          
-          <div class="action-buttons">
-            <button type="submit" class="ef-cta btn btn-primary">Save Homepage Content</button>
-            <button type="button" class="ef-cta btn btn-secondary" id="previewHero">Preview</button>
-          </div>
-        </form>
-      </div>
-    </div>
-    
+
     <!-- Announcements Tab -->
-    <div id="announcements" class="tab-content">
+    <div id="announcements" class="tab-content active">
       <div class="card">
         <h2>Site-Wide Announcements</h2>
         <p class="small">Create announcements that appear at the top of the site for all users. You can also push them as in-app notifications to users.</p>

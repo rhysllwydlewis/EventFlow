@@ -61,11 +61,11 @@ describe('supplier-management.js — createSupplier defaults', () => {
     expect(content).toContain('autoApproveSupplierVerification');
   });
 
-  it('comment documents that s.approved = true is set by service on auto-approval', () => {
+  it('comment documents that newSupplier.approved = true is set by service on auto-approval', () => {
     const content = fs.readFileSync(SUPPLIER_MANAGEMENT, 'utf8');
-    expect(content).toContain('s.approved = true');
-    expect(content).toContain('s.approvedAt');
-    expect(content).toContain("s.approvedBy = 'system'");
+    expect(content).toContain('newSupplier.approved = true');
+    expect(content).toContain('newSupplier.approvedAt');
+    expect(content).toContain("newSupplier.approvedBy = 'system'");
   });
 
   it('comment documents the approved: false, default when auto-approve is OFF', () => {

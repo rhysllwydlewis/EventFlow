@@ -82,6 +82,17 @@ describe('profile customization controller', () => {
     expect(controller).toContain("method: 'POST'");
   });
 
+  it('warns before an unsaved navigation, unlike every other dirty-state page here', () => {
+    // Dirty state previously only controlled the in-page save bar — reload,
+    // tab close and navigating away all bypassed it entirely, unlike
+    // start-wizard.js's equivalent guard.
+    expect(controller).toContain("window.addEventListener('beforeunload'");
+    const guardIndex = controller.indexOf("window.addEventListener('beforeunload'");
+    const guardBody = controller.slice(guardIndex, guardIndex + 200);
+    expect(guardBody).toContain('if (!dirty)');
+    expect(guardBody).toContain('event.preventDefault()');
+  });
+
   it('rejects more than one banner file at a time', () => {
     // Unlike the gallery drop zone, a banner is exactly one image.
     expect(controller).not.toContain('input.multiple = true');

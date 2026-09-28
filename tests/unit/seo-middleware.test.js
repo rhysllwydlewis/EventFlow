@@ -46,6 +46,21 @@ describe('SEO noindex middleware — authenticated pages', () => {
     '/checkout.html',
     '/my-marketplace-listings.html',
     '/budget.html',
+    // Canonical extensionless paths — what production actually serves at
+    // these routes (templateMiddleware maps /checkout -> checkout.html
+    // internally; a direct /checkout.html request 301s to /checkout before
+    // any client sees it), so these must carry the header too.
+    '/auth',
+    '/reset-password',
+    '/dashboard',
+    '/dashboard-customer',
+    '/dashboard-supplier',
+    '/messages',
+    '/guests',
+    '/checkout',
+    '/my-marketplace-listings',
+    '/budget',
+    '/gallery',
     // Canonical messenger SPA
     '/messenger',
     '/messenger/',
@@ -57,6 +72,8 @@ describe('SEO noindex middleware — authenticated pages', () => {
     // Admin pages
     '/admin/users.html',
     '/admin-tickets.html',
+    '/admin-tickets',
+    '/admin',
   ])('noindex applied to %s', path => {
     expect(isNoindex(path)).toBe(true);
   });

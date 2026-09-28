@@ -10,12 +10,12 @@
   <link rel="stylesheet" href="/assets/css/styles.css?v=18.5.0">
   <link rel="stylesheet" href="/assets/css/eventflow-17.0.0.css?v=18.3.0">
   <link rel="stylesheet" href="/assets/css/utilities.css?v=18.3.0">
-  <link rel="stylesheet" href="/assets/css/components.css?v=18.4.2">
+  <link rel="stylesheet" href="/assets/css/components.css?v=18.4.3">
   <link rel="stylesheet" href="/assets/css/animations.css?v=18.3.2">
   <link rel="stylesheet" href="/assets/css/mobile-optimizations.css?v=18.4.5">
   <link rel="stylesheet" href="/assets/css/admin.css?v=18.3.0">
   <link rel="stylesheet" href="/assets/css/admin-enhanced.css?v=18.3.1">
-  <link rel="stylesheet" href="/assets/css/admin-navbar.css?v=18.3.0">
+  <link rel="stylesheet" href="/assets/css/admin-navbar.css?v=18.3.1">
   <link rel="stylesheet" href="/assets/css/admin-cards.css?v=18.3.0">
     <link rel="icon" href="/favicon.ico" sizes="any">
     <link rel="icon" type="image/svg+xml" href="/favicon.svg">
@@ -29,11 +29,13 @@
   <script src="/assets/js/dashboard-guard.js?v=17.0.2"></script>
   <script src="/assets/js/admin-shared.js?v=18.3.0"></script>
   <script src="/assets/js/components.js?v=18.3.0" defer></script>
-  <script src="/assets/js/admin-navbar.js?v=18.3.0" defer></script>
+  <script src="/assets/js/admin-navbar.js?v=18.3.1" defer></script>
   <link rel="stylesheet" href="/assets/css/ui-ux-fixes.css?v=18.4.0">
   <link rel="stylesheet" href="/assets/css/admin-ui-improvements.css?v=18.3.2">
+  <link rel="stylesheet" href="/assets/css/admin-workspace.css?v=1">
+  <link rel="stylesheet" href="/assets/css/admin-dashboard-refresh.css?v=1">
 </head>
-<body class="has-admin-navbar admin">
+<body class="has-admin-navbar admin admin-dashboard-page">
 <div id="adminNavbarMount"></div>
 
 <!-- Main Content -->
@@ -43,8 +45,8 @@
   <div class="dashboard-header">
     <div class="header-content">
       <div>
-        <h1 class="dashboard-title">Admin Dashboard</h1>
-        <p class="dashboard-subtitle">Welcome back! Here's what's happening today.</p>
+        <h1 class="dashboard-title">Overview</h1>
+        <p class="dashboard-subtitle">Platform activity, moderation queues and management tools.</p>
       </div>
       <div class="header-actions">
         <div id="status" class="status-badge" aria-live="polite">Loading…</div>
@@ -276,7 +278,7 @@
 
   <!-- Data Tables Section -->
   <div class="section-header section-spacer">
-    <h2 class="section-title">Recent Activity</h2>
+    <h2 class="section-title">Manage and export</h2>
     <div class="button-group">
       <button id="downloadMarketingCsv" class="ef-cta btn-sm">Export Marketing</button>
       <button id="downloadAllJson" class="ef-cta btn-sm">Export All Data</button>
@@ -338,15 +340,15 @@
         <div class="management-badge" id="totalCalendarEventsCountCard">—</div>
       </div>
       <h3 class="management-title">Shared Events Calendar</h3>
-      <p class="management-description">Manage public events, supplier publishing requests, reports and calendar visibility</p>
+      <p class="management-description">Manage public events and supplier publishing access</p>
       <div class="management-stats">
         <div class="stat-item">
           <span class="stat-value" id="pendingCalendarRequestsCount">—</span>
           <span class="stat-label-sm">Access Requests</span>
         </div>
         <div class="stat-item">
-          <span class="stat-value" id="openCalendarReportsCount">—</span>
-          <span class="stat-label-sm">Open Reports</span>
+          <span class="stat-value" id="publishedCalendarEventsCount">—</span>
+          <span class="stat-label-sm">Published</span>
         </div>
       </div>
       <a href="/admin-public-calendar" class="btn-manage">
@@ -455,7 +457,7 @@
 <script src="/assets/js/utils/global-error-handler.js?v=18.3.0" defer></script>
 <script src="/assets/js/utils/sentry-browser-init.js" defer></script>
 <script src="/assets/js/pages/admin-verification-source-init.js?v=18.5.0" defer></script>
-<script src="/assets/js/pages/admin-init.js?v=18.5.0" defer></script>
+<script src="/assets/js/pages/admin-init.js?v=18.5.1" defer></script>
 <script src="/assets/js/admin-features.js?v=18.3.0" defer></script>
 <script src="/assets/js/pages/admin-messages-init.js?v=18.3.0" defer></script>
 
@@ -476,4 +478,3 @@
 <script src="/assets/js/cookie-consent.js?v=3.0.0" defer></script>
 </body>
 </html>
-

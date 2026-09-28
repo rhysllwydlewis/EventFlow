@@ -170,8 +170,15 @@ describe('community page shells', () => {
     const html = fs.readFileSync(path.join(publicDir, file), 'utf8');
     expect(html).toContain('class="efc-skip"');
     expect(html).toContain('id="main-content"');
-    expect(html).toContain('role="banner"');
     expect(html).toContain('role="contentinfo"');
+    if (file === 'admin-community.html') {
+      // Unlike the public shells, the admin variant renders the shared admin
+      // top navbar client-side (like every other admin-*.html page) rather
+      // than a static <header role="banner">.
+      expect(html).toContain('id="adminNavbarMount"');
+    } else {
+      expect(html).toContain('role="banner"');
+    }
   });
 
   it.each(shells)('%s loads the shared community stylesheet and core script', file => {

@@ -18,6 +18,19 @@ test.describe('SEO Noindex Headers', () => {
     '/guests.html',
     '/checkout.html',
     '/my-marketplace-listings.html',
+    // Canonical extensionless URLs — these are what production actually
+    // serves; a bare X-Robots-Tag check on only the .html suffix previously
+    // let a real gap ship unnoticed (see middleware/seo.js).
+    '/auth',
+    '/reset-password',
+    '/dashboard',
+    '/dashboard-customer',
+    '/dashboard-supplier',
+    '/messages',
+    '/guests',
+    '/checkout',
+    '/my-marketplace-listings',
+    '/gallery',
   ];
 
   const adminPages = [

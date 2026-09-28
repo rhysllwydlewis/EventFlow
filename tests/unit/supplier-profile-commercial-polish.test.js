@@ -11,7 +11,7 @@ const componentsCss = read('public/assets/css/components.css');
 
 describe('supplier profile commercial polish contracts', () => {
   test('loads the shared component styles and final supplier polish layer', () => {
-    expect(supplierHtml).toContain('/assets/css/components.css?v=18.4.2');
+    expect(supplierHtml).toContain('/assets/css/components.css?v=18.4.3');
     expect(supplierHtml).toContain('/assets/css/supplier-profile-commercial-polish.css?v=20.2.0');
   });
 

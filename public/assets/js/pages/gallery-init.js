@@ -95,14 +95,34 @@ function focusableElements(container) {
 }
 
 let lastFocusedElement = null;
+// Tracks whether we've already reacted to the modal being open, so a
+// MutationObserver firing on some *other* class mutation (attributeFilter
+// only narrows to the 'class' attribute as a whole, not the 'visible' token)
+// is a no-op instead of re-capturing focus and re-arming the open timeout.
+let modalOpen = false;
 
 function syncModalAccessibility() {
   uploadModal.setAttribute('role', 'dialog');
   uploadModal.setAttribute('aria-modal', 'true');
   uploadModal.setAttribute('aria-labelledby', 'uploadModalTitle');
-  if (uploadModal.classList.contains('visible')) {
+
+  const isVisible = uploadModal.classList.contains('visible');
+  if (isVisible === modalOpen) {
+    return;
+  }
+  modalOpen = isVisible;
+
+  if (isVisible) {
     lastFocusedElement = document.activeElement;
-    window.setTimeout(() => focusableElements(uploadModal)[0]?.focus(), 0);
+    // Guard against the modal closing again before this macrotask runs —
+    // without this check, a fast open-then-close would still yank focus
+    // back into the now-hidden modal, clobbering the restore-to-trigger
+    // that just happened on close.
+    window.setTimeout(() => {
+      if (uploadModal.classList.contains('visible')) {
+        focusableElements(uploadModal)[0]?.focus();
+      }
+    }, 0);
   } else if (lastFocusedElement instanceof HTMLElement) {
     lastFocusedElement.focus();
     lastFocusedElement = null;

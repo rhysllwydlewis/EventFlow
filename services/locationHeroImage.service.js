@@ -8,79 +8,36 @@
 
 'use strict';
 
+const fs = require('fs');
+const path = require('path');
 const logger = require('../utils/logger');
 const { getPexelsService } = require('../utils/pexels-service');
 
+const HEROES_PATH = path.join(__dirname, '..', 'data', 'location-heroes.json');
 const IMAGE_PARAMS = 'auto=compress&cs=tinysrgb&w=1600&h=1100&fit=crop';
 const AUTO_HERO_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
 const autoHeroCache = new Map();
 
-const CITY_HEROES = Object.freeze({
-  cardiff: Object.freeze({
-    url: `https://images.pexels.com/photos/5743996/pexels-photo-5743996.jpeg?${IMAGE_PARAMS}`,
-    alt: 'Cardiff Bay waterfront with the red-brick Pierhead Building and city skyline',
-    credit: 'Balazs Bezeczky',
-    sourceUrl: 'https://www.pexels.com/photo/cardiff-bay-5743996/',
-  }),
-  bristol: Object.freeze({
-    url: `https://images.pexels.com/photos/19100348/pexels-photo-19100348.jpeg?${IMAGE_PARAMS}`,
-    alt: 'Clifton Suspension Bridge illuminated above the Avon Gorge in Bristol at dusk',
-    credit: 'Boys in Bristol Photography',
-    sourceUrl:
-      'https://www.pexels.com/photo/clifton-suspension-bridge-at-dusk-bristol-england-19100348/',
-  }),
-  newport: Object.freeze({
-    url: `https://images.pexels.com/photos/34106705/pexels-photo-34106705.jpeg?${IMAGE_PARAMS}`,
-    alt: 'Aerial view across Newport in South Wales',
-    credit: 'Altaf Shah',
-    sourceUrl: 'https://www.pexels.com/photo/aerial-view-of-industrial-area-in-wales-34106705/',
-  }),
-  // The homepage's "major UK cities" grid needs one instantly-recognisable
-  // landmark shot per city rather than whatever an automatic search ranks
-  // top, so these five are curated the same way as the entries above.
-  london: Object.freeze({
-    url: `https://images.pexels.com/photos/30624831/pexels-photo-30624831.jpeg?${IMAGE_PARAMS}`,
-    alt: 'Big Ben and Westminster Bridge in London',
-    credit: 'Pexels',
-    sourceUrl:
-      'https://www.pexels.com/photo/iconic-big-ben-and-westminster-bridge-in-london-30624831/',
-  }),
-  manchester: Object.freeze({
-    url: `https://images.pexels.com/photos/29005978/pexels-photo-29005978.jpeg?${IMAGE_PARAMS}`,
-    alt: 'Aerial view of the Manchester skyline and skyscrapers',
-    credit: 'Mylo Kaye',
-    sourceUrl: 'https://www.pexels.com/photo/stunning-aerial-view-of-manchester-skyline-29005978/',
-  }),
-  birmingham: Object.freeze({
-    url: `https://images.pexels.com/photos/335727/pexels-photo-335727.jpeg?${IMAGE_PARAMS}`,
-    alt: 'Birmingham city centre in the West Midlands, England',
-    credit: 'Yuri Loginov',
-    sourceUrl:
-      'https://www.pexels.com/photo/birmingham-england-united-kingdom-west-midlands-335727/',
-  }),
-  leeds: Object.freeze({
-    url: `https://images.pexels.com/photos/30226376/pexels-photo-30226376.jpeg?${IMAGE_PARAMS}`,
-    alt: 'Aerial view of the Leeds skyline at sunset',
-    credit: 'Pexels',
-    sourceUrl: 'https://www.pexels.com/photo/aerial-view-of-leeds-skyline-at-sunset-30226376/',
-  }),
-  edinburgh: Object.freeze({
-    url: `https://images.pexels.com/photos/27879520/pexels-photo-27879520.jpeg?${IMAGE_PARAMS}`,
-    alt: 'Edinburgh Castle standing on its rock above the city',
-    credit: 'Pexels',
-    sourceUrl: 'https://www.pexels.com/photo/edinburgh-castle-scotland-27879520/',
-  }),
-  // Added once the homepage grid started surfacing this city by live supplier
-  // count: the automatic Pexels search for "Coventry West Midlands England
-  // United Kingdom city landmark" wasn't returning a result naming the place
-  // (photoNamesPlace), so the card fell through to the no-photo placeholder.
-  coventry: Object.freeze({
-    url: `https://images.pexels.com/photos/35751281/pexels-photo-35751281.jpeg?${IMAGE_PARAMS}`,
-    alt: 'Historic Coventry Cathedral ruins under a cloudy sky in England',
-    credit: 'Imtiaz Mohammad',
-    sourceUrl: 'https://www.pexels.com/photo/ruins-of-coventry-cathedral-in-england-35751281/',
-  }),
-});
+// One reviewed photograph per registry city and county. The automatic search
+// below only accepts results whose own metadata names the place, and Pexels
+// rarely names counties or smaller cities that way, so without these the
+// homepage grid and location pages fell back to plain placeholders. Each
+// entry was checked against its Pexels page, including the photo's recorded
+// location. Where Pexels holds nothing of a place, the alt text says what the
+// photo actually shows (e.g. a nearby landmark) rather than claiming it.
+const CITY_HEROES = Object.freeze(
+  Object.fromEntries(
+    Object.entries(JSON.parse(fs.readFileSync(HEROES_PATH, 'utf8'))).map(([slug, hero]) => [
+      slug,
+      Object.freeze({
+        url: `${hero.image}?${IMAGE_PARAMS}`,
+        alt: hero.alt,
+        credit: hero.credit,
+        sourceUrl: hero.sourceUrl,
+      }),
+    ])
+  )
+);
 
 /**
  * Return a copy of the curated hero for a city.

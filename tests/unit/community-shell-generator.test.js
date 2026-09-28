@@ -68,14 +68,22 @@ describe('the committed community shells match their template', () => {
 });
 
 describe('the notification bell every community page renders actually opens something', () => {
-  // Every page here (admin-community.html included) renders #ef-notification-btn
-  // in its header. Before this, none of them loaded notifications.js or carried
-  // a #notification-dropdown for it to open — the same dead-button bug the 34
+  // Every public page here renders #ef-notification-btn in its header. Before
+  // this, none of them loaded notifications.js or carried a
+  // #notification-dropdown for it to open — the same dead-button bug the 34
   // guide articles had (see article-chrome.mjs) — so clicking it did nothing.
-  const pages = generatedPages();
+  //
+  // admin-community.html is the exception: it renders the shared admin navbar
+  // client-side (like the other 29 admin-*.html pages), which mounts its own
+  // already-functional notification bell (#adminNotifBadge / #adminNotifPanel
+  // in admin-navbar.js) rather than the public one, so it's checked separately
+  // below for the markup that mounts *that* bell instead.
+  const pages = generatedPages().filter(page => page.name !== 'admin-community.html');
+  const adminPage = generatedPages().find(page => page.name === 'admin-community.html');
 
   it('has pages to check', () => {
-    expect(pages.length).toBeGreaterThanOrEqual(12);
+    expect(pages.length).toBeGreaterThanOrEqual(11);
+    expect(adminPage).toBeDefined();
   });
 
   test.each(pages.map(page => [page.name, page.html]))(
@@ -93,4 +101,15 @@ describe('the notification bell every community page renders actually opens some
       expect((html.match(/id="notification-dropdown"/g) || []).length).toBe(1);
     }
   );
+
+  it('admin-community.html mounts the shared admin navbar and its own notification bell', () => {
+    expect(adminPage.html).toContain('id="adminNavbarMount"');
+    expect(adminPage.html).toContain(
+      '<script src="/assets/js/admin-navbar.js?v=18.3.1" defer></script>'
+    );
+    // The public bell/dropdown must not also be present — that would be a
+    // second, dead notification button alongside the real one.
+    expect(adminPage.html).not.toContain('id="ef-notification-btn"');
+    expect(adminPage.html).not.toContain('id="notification-dropdown"');
+  });
 });

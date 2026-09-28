@@ -156,6 +156,9 @@ data/*.json.bak
 # data: the location pages resolve every city slug through it, so it has to be
 # in the repository rather than in whatever a deployment happens to have on disk.
 !data/uk-cities.json
+# Reviewed hero photographs for those registry places, loaded at startup by
+# services/locationHeroImage.service.js — reference data for the same reason.
+!data/location-heroes.json
 
 # Preserve sample data for reference
 !data/sample/

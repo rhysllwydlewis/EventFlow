@@ -703,6 +703,7 @@ const protectedHtmlPages = [
   'my-marketplace-listings',
   'budget',
   'support',
+  'gallery',
 ];
 
 protectedHtmlPages.forEach(page => {
@@ -1089,6 +1090,11 @@ app.use('/api/v2/admin/seo', adminSeoRoutes);
 const reportsRoutes = require('./routes/reports');
 app.use('/api/v1', reportsRoutes);
 mountDeprecatedApiAlias('/api', '/api/v1', reportsRoutes); // Backward compatibility
+
+// Public announcements (site-wide banner), managed by admin-content.html
+const announcementsRoutes = require('./routes/announcements');
+app.use('/api/v1', announcementsRoutes);
+mountDeprecatedApiAlias('/api', '/api/v1', announcementsRoutes); // Backward compatibility
 
 // Tickets routes
 const ticketsRoutes = require('./routes/tickets');

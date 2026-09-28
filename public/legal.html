@@ -9,7 +9,7 @@
   <link rel='stylesheet' href='/assets/css/styles.css?v=18.5.0'>
   <link rel='stylesheet' href='/assets/css/eventflow-17.0.0.css?v=18.3.0'>
   <link rel='stylesheet' href='/assets/css/utilities.css?v=18.3.0'>
-  <link rel='stylesheet' href='/assets/css/components.css?v=18.4.2'>
+  <link rel='stylesheet' href='/assets/css/components.css?v=18.4.3'>
   <link rel='stylesheet' href='/assets/css/animations.css?v=18.3.2'><link rel="stylesheet" href="/assets/css/mobile-optimizations.css?v=18.4.5">
   <link rel="stylesheet" href="/assets/css/ui-ux-fixes.css?v=18.4.0">
     <link rel="stylesheet" href="/assets/css/navbar.css?v=18.4.2" /><link rel="stylesheet" href="/assets/css/eventflow-brand.css?v=1.0.1" data-eventflow-brand="true" />
@@ -210,7 +210,7 @@
   </style>
   <link rel="stylesheet" href="/assets/css/eventflow-footer.css">
     <link rel="stylesheet" href="/assets/css/public-mobile-compact.css" />
-  <link rel="stylesheet" href="/assets/css/legal-pages.css?v=1.0.0">
+  <link rel="stylesheet" href="/assets/css/legal-pages.css?v=1.0.1">
 </head>
 <body>
 <!-- TOP NAVBAR - GOLD STANDARD REBUILD -->
@@ -422,7 +422,7 @@
             <li><strong>How we protect it:</strong> Encryption, secure storage, access controls</li>
             <li><strong>Your rights:</strong> Access, rectification, erasure, portability, objection</li>
             <li><strong>Retention:</strong> We keep data only as long as necessary</li>
-            <li><strong>Contact:</strong> {{ADMIN_EMAIL}} for data protection queries</li>
+            <li><strong>Contact:</strong> <!--email_off--><a href="mailto:{{ADMIN_EMAIL}}">{{ADMIN_EMAIL}}</a><!--/email_off--> for data protection queries</li>
           </ul>
           <p><a href="/privacy" class="cta">Read Full Privacy Notice →</a></p>
         </section>
@@ -508,7 +508,7 @@
           <div class="card" style="background: #F9FAFB; border: 1px solid #E7EAF0; margin: 16px 0;">
             <h3 class="h5">Right to Access</h3>
             <p>Request a copy of all your personal data we hold.</p>
-            <p><strong>How:</strong> Email {{ADMIN_EMAIL}} with "Data Access Request"</p>
+            <p><strong>How:</strong> Email <!--email_off--><a href="mailto:{{ADMIN_EMAIL}}">{{ADMIN_EMAIL}}</a><!--/email_off--> with "Data Access Request"</p>
           </div>
           
           <div class="card" style="background: #F9FAFB; border: 1px solid #E7EAF0; margin: 16px 0;">
@@ -520,13 +520,13 @@
           <div class="card" style="background: #F9FAFB; border: 1px solid #E7EAF0; margin: 16px 0;">
             <h3 class="h5">Right to Erasure</h3>
             <p>Request deletion of your personal data ("right to be forgotten").</p>
-            <p><strong>How:</strong> Email {{ADMIN_EMAIL}} with "Account Deletion Request"</p>
+            <p><strong>How:</strong> Email <!--email_off--><a href="mailto:{{ADMIN_EMAIL}}">{{ADMIN_EMAIL}}</a><!--/email_off--> with "Account Deletion Request"</p>
           </div>
           
           <div class="card" style="background: #F9FAFB; border: 1px solid #E7EAF0; margin: 16px 0;">
             <h3 class="h5">Right to Data Portability</h3>
             <p>Receive your data in machine-readable format (JSON).</p>
-            <p><strong>How:</strong> Email {{ADMIN_EMAIL}} with "Data Portability Request"</p>
+            <p><strong>How:</strong> Email <!--email_off--><a href="mailto:{{ADMIN_EMAIL}}">{{ADMIN_EMAIL}}</a><!--/email_off--> with "Data Portability Request"</p>
           </div>
           
           <div class="card" style="background: #F9FAFB; border: 1px solid #E7EAF0; margin: 16px 0;">
@@ -576,7 +576,7 @@
             <li>Legal action in serious cases</li>
           </ul>
           
-          <p><strong>Report Violations:</strong> Email {{ABUSE_EMAIL}}</p>
+          <p><strong>Report Violations:</strong> Email <!--email_off--><a href="mailto:{{ABUSE_EMAIL}}">{{ABUSE_EMAIL}}</a><!--/email_off--></p>
         </section>
 
         <!-- Copyright Policy -->
@@ -605,7 +605,7 @@
           <h3 class="h5">Copyright Infringement</h3>
           <p>If you believe content on EventFlow infringes your copyright:</p>
           <ol>
-            <li>Email {{ADMIN_EMAIL}} with "Copyright Claim"</li>
+            <li>Email <!--email_off--><a href="mailto:{{ADMIN_EMAIL}}">{{ADMIN_EMAIL}}</a><!--/email_off--> with "Copyright Claim"</li>
             <li>Provide details of the copyrighted work</li>
             <li>Identify the infringing content (URL)</li>
             <li>Include your contact information</li>
@@ -748,7 +748,7 @@
 
           <h3 class="h5">Correction, objection and removal</h3>
           <p>You do not have to claim a listing in order to have it corrected or taken down. Email
-            {{ADMIN_EMAIL}} with the subject <strong>"Unclaimed listing"</strong> and the listing URL,
+            <!--email_off--><a href="mailto:{{ADMIN_EMAIL}}">{{ADMIN_EMAIL}}</a><!--/email_off--> with the subject <strong>"Unclaimed listing"</strong> and the listing URL,
             and tell us whether you want it corrected or removed. We will:</p>
           <ul>
             <li>act on a removal request for a listing we created, without asking you to justify it;</li>
@@ -884,7 +884,7 @@
           <h4 style="margin-top: 16px; margin-bottom: 8px;"><strong>Step 2: Platform Mediation</strong></h4>
           <p>If direct resolution fails after 48 hours or other party is unresponsive:</p>
           <ul>
-            <li><strong>Contact:</strong> {{ABUSE_EMAIL}}</li>
+            <li><strong>Contact:</strong> <!--email_off--><a href="mailto:{{ABUSE_EMAIL}}">{{ABUSE_EMAIL}}</a><!--/email_off--></li>
             <li><strong>Subject Line:</strong> "Marketplace Dispute - [Order/Listing Number]"</li>
             <li><strong>Include in Your Report:</strong>
               <ul>
@@ -1161,7 +1161,7 @@
           
           <h3 class="h5">Feedback</h3>
           <p>If you encounter accessibility barriers, please let us know:</p>
-          <p><strong>Email:</strong> {{ADMIN_EMAIL}}<br>
+          <p><strong>Email:</strong> <!--email_off--><a href="mailto:{{ADMIN_EMAIL}}">{{ADMIN_EMAIL}}</a><!--/email_off--><br>
           <strong>Subject:</strong> "Accessibility Feedback"</p>
           
           <p>We will review accessibility feedback and respond as soon as reasonably practicable.</p>
@@ -1193,7 +1193,7 @@
           <h3 class="h5">Reporting Security Issues</h3>
           <p>If you discover a security vulnerability:</p>
           <ol>
-            <li>Email {{ADMIN_EMAIL}} with "Security Issue"</li>
+            <li>Email <!--email_off--><a href="mailto:{{ADMIN_EMAIL}}">{{ADMIN_EMAIL}}</a><!--/email_off--> with "Security Issue"</li>
             <li>Describe the vulnerability in detail</li>
             <li>Do not publicly disclose before we can address it</li>
             <li>We will assess the report as soon as reasonably practicable, prioritising credible high-risk issues</li>
@@ -1225,7 +1225,7 @@
             
             <h4 style="margin-top: 24px; margin-bottom: 8px;">Privacy & Data Protection</h4>
             <p><strong>Email:</strong> <!--email_off--><a href="mailto:{{ADMIN_EMAIL}}">{{ADMIN_EMAIL}}</a><!--/email_off--><br>
-            <strong>Data Protection Officer:</strong> {{ADMIN_EMAIL}}</p>
+            <strong>Data Protection Officer:</strong> <!--email_off--><a href="mailto:{{ADMIN_EMAIL}}">{{ADMIN_EMAIL}}</a><!--/email_off--></p>
             
             <h4 style="margin-top: 24px; margin-bottom: 8px;">Report Abuse or Violations</h4>
             <p><strong>Email:</strong> <!--email_off--><a href="mailto:{{ABUSE_EMAIL}}">{{ABUSE_EMAIL}}</a><!--/email_off--></p>
@@ -1302,7 +1302,7 @@
               <li><strong>Provide Evidence:</strong> Include photos if item is damaged or not as described</li>
               <li><strong>Wait for Response:</strong> Seller should respond within 48 hours</li>
               <li><strong>Arrange Return:</strong> If seller agrees, arrange return shipping (who pays depends on reason for return)</li>
-              <li><strong>Platform Mediation:</strong> If seller doesn't respond or refuses unfairly, contact {{ABUSE_EMAIL}}</li>
+              <li><strong>Platform Mediation:</strong> If seller doesn't respond or refuses unfairly, contact <!--email_off--><a href="mailto:{{ABUSE_EMAIL}}">{{ABUSE_EMAIL}}</a><!--/email_off--></li>
             </ol>
             
             <h3 class="h5" style="margin-top: 24px;">EventFlow's Limited Role</h3>
@@ -1383,7 +1383,7 @@
             <h3 class="h5" style="margin-top: 24px;">Making a Complaint About EventFlow</h3>
             <p>If you have a complaint about EventFlow's service (not a marketplace transaction):</p>
             <ol>
-              <li><strong>Email:</strong> {{ADMIN_EMAIL}} with subject "Formal Complaint"</li>
+              <li><strong>Email:</strong> <!--email_off--><a href="mailto:{{ADMIN_EMAIL}}">{{ADMIN_EMAIL}}</a><!--/email_off--> with subject "Formal Complaint"</li>
               <li><strong>Include:</strong> Detailed description, evidence, desired resolution</li>
               <li><strong>Response Time:</strong> We will acknowledge and review the complaint as soon as reasonably practicable</li>
               <li><strong>Investigation:</strong> Timing depends on the issue, evidence and any third-party input required</li>
@@ -1399,7 +1399,7 @@
             </ul>
             
             <div class="notice" style="margin-top: 24px; padding: 16px; background: #FFF5E6; border-left: 4px solid #8A5A00; border-radius: 8px;">
-              <p><strong>We Encourage Amicable Resolution:</strong> Most disputes can be resolved through open communication. Contact us at {{ABUSE_EMAIL}} before pursuing formal dispute resolution, and we will do our best to help facilitate a fair outcome.</p>
+              <p><strong>We Encourage Amicable Resolution:</strong> Most disputes can be resolved through open communication. Contact us at <!--email_off--><a href="mailto:{{ABUSE_EMAIL}}">{{ABUSE_EMAIL}}</a><!--/email_off--> before pursuing formal dispute resolution, and we will do our best to help facilitate a fair outcome.</p>
             </div>
           </div>
         </section>
@@ -1580,8 +1580,8 @@
             <h3 class="h5" style="margin-top: 24px;">Reporting Payment Issues</h3>
             <p>If you experience payment problems:</p>
             <ul>
-              <li><strong>Scams/Fraud:</strong> Email {{ABUSE_EMAIL}} immediately</li>
-              <li><strong>Subscription Billing:</strong> Email {{SUPPORT_EMAIL}}</li>
+              <li><strong>Scams/Fraud:</strong> Email <!--email_off--><a href="mailto:{{ABUSE_EMAIL}}">{{ABUSE_EMAIL}}</a><!--/email_off--> immediately</li>
+              <li><strong>Subscription Billing:</strong> Email <!--email_off--><a href="mailto:{{SUPPORT_EMAIL}}">{{SUPPORT_EMAIL}}</a><!--/email_off--></li>
               <li><strong>Marketplace Disputes:</strong> Follow dispute resolution process (see ADR section)</li>
               <li><strong>Suspected Fraud:</strong> Also report to Action Fraud: 0300 123 2040</li>
             </ul>
@@ -1644,7 +1644,7 @@
             <h3 class="h5" style="margin-top: 24px;">Reporting Underage Users</h3>
             <p>If you believe a user is under 18:</p>
             <ul>
-              <li><strong>Email:</strong> {{ABUSE_EMAIL}} with subject "Underage User Report"</li>
+              <li><strong>Email:</strong> <!--email_off--><a href="mailto:{{ABUSE_EMAIL}}">{{ABUSE_EMAIL}}</a><!--/email_off--> with subject "Underage User Report"</li>
               <li><strong>Include:</strong> Username, evidence (if available), reason for concern</li>
               <li><strong>Investigation:</strong> Reports are prioritised according to the apparent risk and information available</li>
               <li><strong>Action:</strong> Appropriate action taken based on findings</li>
@@ -1825,6 +1825,8 @@
 
 <script src="/assets/js/components/footer-nav.js" defer></script>
 <script src="/assets/js/cookie-consent.js?v=3.0.0" defer></script>
+<link rel="stylesheet" href="/assets/css/announcement-banner.css?v=1.0.0">
+<script src="/assets/js/announcement-banner.js?v=1.0.0" defer></script>
 
 <!-- JadeAssist Chat Widget -->
 <script src="/assets/js/vendor/jade-widget.js" defer></script>

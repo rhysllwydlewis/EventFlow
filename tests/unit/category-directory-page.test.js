@@ -242,4 +242,46 @@ describe('buildCategoryNamedFaqStructuredData', () => {
   it('returns null for a category with no named FAQ', () => {
     expect(categoryDirectoryPages.buildCategoryNamedFaqStructuredData(venues)).toBeNull();
   });
+
+  it('names wedding invitations explicitly for the Stationery category', () => {
+    const stationery = categoryDirectoryPages.resolveCategory('stationery');
+    const faq = categoryDirectoryPages.buildCategoryNamedFaqStructuredData(stationery);
+    expect(faq['@type']).toBe('FAQPage');
+    expect(faq.mainEntity[0].name).toMatch(/wedding invitation/i);
+  });
+
+  it('names wedding car hire explicitly for the Transport category', () => {
+    const transport = categoryDirectoryPages.resolveCategory('transport');
+    const faq = categoryDirectoryPages.buildCategoryNamedFaqStructuredData(transport);
+    expect(faq['@type']).toBe('FAQPage');
+    expect(faq.mainEntity[0].name).toMatch(/wedding car hire/i);
+  });
+
+  it('names wedding videographers explicitly for the Videography category', () => {
+    const videography = categoryDirectoryPages.resolveCategory('videography');
+    const faq = categoryDirectoryPages.buildCategoryNamedFaqStructuredData(videography);
+    expect(faq['@type']).toBe('FAQPage');
+    expect(faq.mainEntity[0].name).toMatch(/videographers/i);
+  });
+
+  it('names wedding florists explicitly for the Florist category', () => {
+    const florist = categoryDirectoryPages.resolveCategory('florist');
+    const faq = categoryDirectoryPages.buildCategoryNamedFaqStructuredData(florist);
+    expect(faq['@type']).toBe('FAQPage');
+    expect(faq.mainEntity[0].name).toMatch(/florists/i);
+  });
+
+  it('names wedding DJs and bands explicitly for the Music/DJ category', () => {
+    const musicDj = categoryDirectoryPages.resolveCategory('music-dj');
+    const faq = categoryDirectoryPages.buildCategoryNamedFaqStructuredData(musicDj);
+    expect(faq['@type']).toBe('FAQPage');
+    expect(faq.mainEntity[0].name).toMatch(/djs and bands/i);
+  });
+
+  it('names novelty catering explicitly for the Catering category', () => {
+    const catering = categoryDirectoryPages.resolveCategory('catering');
+    const faq = categoryDirectoryPages.buildCategoryNamedFaqStructuredData(catering);
+    expect(faq['@type']).toBe('FAQPage');
+    expect(faq.mainEntity[0].name).toMatch(/hog roasts/i);
+  });
 });

@@ -105,6 +105,7 @@ describe('server.js — protectedHtmlPages array', () => {
     'timeline',
     'my-marketplace-listings',
     'budget',
+    'gallery',
   ];
 
   it('defines the protectedHtmlPages array', () => {
@@ -179,6 +180,7 @@ describe('Page guard — unauthenticated → 302 redirect', () => {
     '/guests',
     '/messages',
     '/my-marketplace-listings',
+    '/gallery',
   ])('redirects unauthenticated request to %s', originalUrl => {
     const { redirected, location, nextCalled } = runPageGuard(false, originalUrl);
     expect(redirected).toBe(true);
@@ -197,6 +199,7 @@ describe('Page guard — authenticated → next() called', () => {
     '/guests',
     '/messages',
     '/my-marketplace-listings',
+    '/gallery',
   ])('passes authenticated request for %s', originalUrl => {
     const { redirected, nextCalled } = runPageGuard(true, originalUrl);
     expect(redirected).toBe(false);
@@ -289,6 +292,7 @@ describe('serve-static.js — protectedStaticPaths mirrors production', () => {
     '/timeline',
     '/my-marketplace-listings',
     '/budget',
+    '/gallery',
     '/messenger',
     '/chat',
   ];
