@@ -69,9 +69,14 @@ green, or the work needs something you cannot do yourself.
 
 ## Backlog
 
-- [ ] First run: pull a site audit and position-tracking snapshot for
-      event-flow.co.uk to establish a real baseline before picking work —
-      don't assume anything about current SEO health without checking.
+- [ ] First run (this routine's own branch): pull a site audit and
+      position-tracking snapshot for event-flow.co.uk to establish a real
+      baseline before picking work — still outstanding for this routine
+      specifically, though see the 2026-09-28 "discovered along the way"
+      entry below: real Semrush-audit-driven fixes have landed on `main`
+      via a different session/branch in the meantime, so the site's SEO
+      health is not actually unknown, just not established *through this
+      routine's own data pull*.
 
 ## Discovered along the way
 
@@ -83,6 +88,23 @@ green, or the work needs something you cannot do yourself.
   if a future SEO cycle wants to cross-check against internal analytics —
   that path is currently dark. Not an SEO fix in itself, so not picked up
   as this cycle's work.
+
+- **2026-09-28: the Semrush account is not permanently exhausted — this
+  routine's own calls just keep losing whatever shared unit budget the
+  account has.** `git log --all --grep=Semrush` on `main` shows real,
+  successful Semrush-audit-driven fixes merged as recently as 2026-09-27
+  22:57 UTC (PR #1735, "Fix Semrush audit findings: structured data,
+  broken email links, weak anchor text"), plus a "SEO Phase 1–5" series
+  (PRs #1722–#1730) earlier the same week — all via a different branch
+  (`claude/epic-bell-ucw28d`), not this routine's `claude/eventflow-seo`.
+  So issue #1703's original diagnosis ("renew the Semrush subscription")
+  is likely stale/wrong: the account clearly has working Semrush access,
+  just not reliably at this routine's own scheduled run time. Posted a
+  correction comment on #1703 this cycle. Future cycles: if still blocked,
+  don't re-file this as "subscription needs renewing" — it's more likely
+  contention with other sessions/branches using the same account's unit
+  budget. Worth the owner knowing two separate automations may be doing
+  overlapping Semrush-driven SEO work on different branches.
 
 ## Session log
 
@@ -247,3 +269,47 @@ that is the trigger condition for a fresh direct owner notification per the
 2026-09-21 entry's own criterion — send one then rather than deferring
 further, since a full week of zero output from a "daily" routine is
 approaching the point where silent logging alone under-serves the owner.
+
+### 2026-09-28
+
+Branch's last PR (#1717) had been merged, so per this run's branch-restart
+instructions restarted `claude/eventflow-seo` from `origin/main`. Since a
+straight `git checkout -B ... origin/main` followed by a force-with-lease
+push was blocked here, merged `origin/main` into the branch instead
+(non-destructive, same net result since the branch held only already-
+merged history — the old tip, PR #1717, squash-merged into `main` with an
+identical tree for this file). This pulled in four days of unrelated
+`main` history the branch had drifted behind (including a large
+admin-workspace overhaul, #1736), which is expected. Checked open
+`[Ops Assistant] ...` issues first (per mandate): the most recent open one
+is still #1715 (2026-09-24 morning) — no newer open Ops Assistant issue
+exists, and nothing in it is Semrush-specific or SEO-content-related, so
+nothing to avoid duplicating. Retried Semrush (`projects`,
+`domain_overview`) — both still returned `no_api_units`. This is the
+eighth consecutive blocked cycle for this routine since 2026-09-17.
+
+This cycle found something the prior entries hadn't checked: `git log` on
+`main` shows genuine Semrush-audit-driven SEO fixes merged as recently as
+2026-09-27 (PR #1735 and the "SEO Phase 1–5" series, #1722–#1730), all via
+a different branch/session (`claude/epic-bell-ucw28d`), not this routine's
+own branch. That means the account's Semrush access is not dead — issue
+#1703's "renew the subscription" framing looks like a misdiagnosis in
+hindsight; the real pattern looks like this routine's scheduled slot
+losing out to other sessions sharing the same unit budget. Posted a
+correction comment on #1703 (still open, still the standing tracking
+issue) rather than filing a duplicate issue. The prior 2026-09-24 entry's
+trigger condition for a fresh owner notification (#1703 stale, no update
+since its 2026-09-22 creation — now 6 days) was met, so a notification
+went out this cycle too, but framed around the corrected diagnosis rather
+than repeating "subscription needs renewing." Stopped before Step 3 (pick
+work) per the mandate — did not attempt technical or content fixes without
+real Semrush data from this routine's own calls. No code changes this
+cycle; this doc update plus the #1703 comment are the only outputs.
+Backlog item (this routine's own baseline site audit/position-tracking
+pull) still outstanding, now blocked for eight consecutive cycles — see
+the "discovered along the way" entry above for why that's less concerning
+than it sounds in isolation. Next run: retry Semrush calls first; if still
+blocked, do NOT reflexively suggest a subscription top-up again — check
+first whether `claude/epic-bell-ucw28d` (or any other branch) has had
+recent successful Semrush activity, which would confirm this is still a
+contention issue rather than a new root cause.
