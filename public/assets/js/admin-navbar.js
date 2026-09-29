@@ -1236,7 +1236,7 @@
           const time = formatNotifTime(n.createdAt);
           const href = n.actionUrl || '#';
           return `<div class="admin-notif-item ${isUnread ? 'admin-notif-item--unread' : ''}"
-                     data-notif-id="${n.id}" data-action-url="${href}">
+                     data-notif-id="${escapeHtml(String(n.id))}" data-action-url="${escapeHtml(href)}">
           <span class="admin-notif-item-icon admin-notif-item-icon--${n.type || 'system'}" aria-hidden="true">${icon}</span>
           <div class="admin-notif-item-body">
             <p class="admin-notif-item-title">${escapeHtml(n.title || 'Notification')}</p>
@@ -1271,7 +1271,8 @@
           }
 
           await fetchUnreadCount();
-          if (url && url !== '#') {
+          // Only follow same-site paths; never a javascript:/data: or off-site URL
+          if (url && url !== '#' && /^\/(?![/\\])/.test(url)) {
             window.location.href = url;
           }
         });
