@@ -188,6 +188,26 @@ regression assertions in `admin-notification-centre.test.js`. Full `npm test`:
 12856 passed, 0 failed. Note: `npx eslint` on admin-navbar.js reports a
 pre-existing `no-direct-notifications` rule-not-found error (same on main).
 
+### 2026-09-29 — session 8
+
+Branch was fully merged (PR #1714 landed later as `a4d68ab37` once CI
+recovered — session 7's "left open" outcome is superseded). Restarted from
+`main`; no open PRs at start. Sweep: frontend `limit=` values all ≤100 and the
+notification icon/colour maps cover all 11 types (both known bug classes
+clean). Found and fixed a real hardening gap in `admin-navbar.js`'s
+notification dropdown: `n.id`/`actionUrl` were interpolated unescaped into
+HTML attributes and click-navigation accepted any URL (incl. `javascript:`).
+**PR #1743 merged** (squash, `c9aa72dad`): attributes escaped; navigation
+resolves via `new URL()` and only follows same-origin. Codex review caught two
+real issues on the first push (tab/LF-stripping bypass of my regex; stale
+`admin-navbar.js?v=` cache key) — both fixed (`?v=18.3.2` across 36 refs) and
+threads answered. Full `npm test` 12856 passed; all CI green except the known
+`github-advanced-security` CAPIError false positive. **Deploy check passed:**
+24 polls of `/api/ready` over ~10 min, all HTTP 200; live
+`admin-navbar.js` contains the fix. Open: nothing. Note: `npx eslint` on
+admin-navbar.js locally reports a pre-existing `no-direct-notifications`
+rule-not-found error without `--rulesdir eslint-rules` (CI ESLint passes).
+
 ### 2026-09-24 — session 7
 
 Branch's last commit (session 6's handoff-doc update, `8b555ef52`) was not
