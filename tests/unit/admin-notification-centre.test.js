@@ -233,3 +233,20 @@ describe('Admin notification event coverage', () => {
     expect(src).toContain('Partner Programme');
   });
 });
+
+describe('admin-navbar.js notification dropdown hardening', () => {
+  const src = fs.readFileSync(
+    path.join(__dirname, '../../public/assets/js/admin-navbar.js'),
+    'utf8'
+  );
+
+  test('escapes id and action URL interpolated into HTML attributes', () => {
+    expect(src).toContain('data-notif-id="${escapeHtml(String(n.id))}"');
+    expect(src).toContain('data-action-url="${escapeHtml(href)}"');
+  });
+
+  test('only navigates to same-origin URLs, resolved via URL()', () => {
+    expect(src).toContain('new URL(url, window.location.origin)');
+    expect(src).toContain('resolved.origin === window.location.origin');
+  });
+});

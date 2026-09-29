@@ -174,6 +174,20 @@ the policy above.
 
 ## Session log
 
+### 2026-09-29 — session 8
+
+Branch was fully merged (PR #1714 did land later, as `a4d68ab37`, after CI
+recovered — session 7's "left open" outcome is superseded). Restarted from
+`main`; no open PRs. Sweep: frontend `limit=` values all ≤100 and the
+notification icon/colour maps cover all 11 types (both known bug classes
+clean). Found and fixed a real hardening gap in `admin-navbar.js`'s
+notification dropdown: `n.id` and `actionUrl` were interpolated unescaped
+into HTML attributes and click-navigation accepted any URL (incl.
+`javascript:`). Now escaped, and only same-site paths are followed. Added
+regression assertions in `admin-notification-centre.test.js`. Full `npm test`:
+12856 passed, 0 failed. Note: `npx eslint` on admin-navbar.js reports a
+pre-existing `no-direct-notifications` rule-not-found error (same on main).
+
 ### 2026-09-24 — session 7
 
 Branch's last commit (session 6's handoff-doc update, `8b555ef52`) was not

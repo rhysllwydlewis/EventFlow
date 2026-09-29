@@ -1236,7 +1236,7 @@
           const time = formatNotifTime(n.createdAt);
           const href = n.actionUrl || '#';
           return `<div class="admin-notif-item ${isUnread ? 'admin-notif-item--unread' : ''}"
-                     data-notif-id="${n.id}" data-action-url="${href}">
+                     data-notif-id="${escapeHtml(String(n.id))}" data-action-url="${escapeHtml(href)}">
           <span class="admin-notif-item-icon admin-notif-item-icon--${n.type || 'system'}" aria-hidden="true">${icon}</span>
           <div class="admin-notif-item-body">
             <p class="admin-notif-item-title">${escapeHtml(n.title || 'Notification')}</p>
@@ -1271,8 +1271,22 @@
           }
 
           await fetchUnreadCount();
-          if (url && url !== '#') {
-            window.location.href = url;
+          // Only follow same-site URLs; never javascript:/data: or off-site. Resolve
+          // against the page so URL-parser quirks (stripped tab/CR/LF) can't sneak
+          // a protocol-relative URL past a string check.
+          let target = null;
+          if (url && url !== '#' && url.startsWith('/')) {
+            try {
+              const resolved = new URL(url, window.location.origin);
+              if (resolved.origin === window.location.origin) {
+                target = resolved.pathname + resolved.search + resolved.hash;
+              }
+            } catch {
+              /* invalid URL — stay on page */
+            }
+          }
+          if (target) {
+            window.location.href = target;
           }
         });
       });
