@@ -1271,9 +1271,22 @@
           }
 
           await fetchUnreadCount();
-          // Only follow same-site paths; never a javascript:/data: or off-site URL
-          if (url && url !== '#' && /^\/(?![/\\])/.test(url)) {
-            window.location.href = url;
+          // Only follow same-site URLs; never javascript:/data: or off-site. Resolve
+          // against the page so URL-parser quirks (stripped tab/CR/LF) can't sneak
+          // a protocol-relative URL past a string check.
+          let target = null;
+          if (url && url !== '#' && url.startsWith('/')) {
+            try {
+              const resolved = new URL(url, window.location.origin);
+              if (resolved.origin === window.location.origin) {
+                target = resolved.pathname + resolved.search + resolved.hash;
+              }
+            } catch {
+              /* invalid URL — stay on page */
+            }
+          }
+          if (target) {
+            window.location.href = target;
           }
         });
       });

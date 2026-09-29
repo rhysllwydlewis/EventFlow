@@ -245,7 +245,8 @@ describe('admin-navbar.js notification dropdown hardening', () => {
     expect(src).toContain('data-action-url="${escapeHtml(href)}"');
   });
 
-  test('only navigates to same-site paths', () => {
-    expect(src).toContain('/^\\/(?![/\\\\])/.test(url)');
+  test('only navigates to same-origin URLs, resolved via URL()', () => {
+    expect(src).toContain('new URL(url, window.location.origin)');
+    expect(src).toContain('resolved.origin === window.location.origin');
   });
 });
