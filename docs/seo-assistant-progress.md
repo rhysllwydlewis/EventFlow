@@ -329,3 +329,14 @@ calls first; if still blocked, do NOT assert the account's quota/renewal
 state from indirect evidence in either direction — if it matters, check
 usage/quota directly or ask the owner, rather than reasoning from which
 branches have recently succeeded.
+
+### 2026-09-29
+
+Branch's last PR (#1741) had been merged, so restarted `claude/eventflow-seo`
+from `origin/main`. Retried Semrush (`projects`) — still `no_api_units`
+(trace 8c5514265a6acab570ccf35800789510). Ninth consecutive blocked cycle.
+Issue #1703 still open. Stopped before Step 3 per the mandate; no code or
+content change. Sent a direct owner notification this cycle, per the
+2026-09-24 entry's own criterion for a week-plus of zero output. Next run:
+retry Semrush first; if units are restored, do the baseline site audit and
+position-tracking pull.
