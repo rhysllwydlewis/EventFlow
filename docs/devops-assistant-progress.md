@@ -176,17 +176,20 @@ the policy above.
 
 ### 2026-09-30 — session 9
 
-Branch restarted from `main` (`1d6fc909e`); no open PRs, no red CI, nothing
-unchecked in the backlog. Sweep (read-only, no code changes): (1) every
-`public/*.html` with modal markup either has `role="dialog"` or sets it via
-JS (`admin-homepage.html`, `admin-pexels.html` verified — JS-applied); (2)
-every admin `ef-cta` icon-only close button (`admin-cashout-requests`,
-`admin-media` x2, `admin-pexels`, `admin-homepage`) has a padding/font-size
-reset (page CSS or the global `.modal-close.ef-cta` rule in
-`admin-enhanced.css`). Both known bug classes clean. Nothing to merge, so no
-deploy check this session. Open: nothing; next session should pick a new
-sweep area (untouched so far: supplier/customer dashboards' empty/error
-states, email templates).
+Branch restarted from `main`; no open PRs at start. Sweep (modal dialog
+semantics, `.ef-cta` icon-button resets) found both known bug classes clean.
+Opening docs-only PR #1747 then surfaced a real problem: the **Security Audit**
+CI job (`npm run audit`, fails on high+) was red on `main` too — new advisories
+published against our _pinned_ `overrides` (brace-expansion 5.0.9 →
+GHSA-q2hr/qhr7/6j4f, engine.io 6.6.9 → GHSA-2gc4, fast-uri 3.1.7, undici
+7.29). Fixed in the same PR: overrides bumped to brace-expansion 5.0.12,
+engine.io 6.6.11, fast-uri ^3.1.8, plus lockfile refresh (undici 7.30.0,
+socket.io 4.8.4, etc.). `npm run audit` now passes; full `npm test` 12856
+passed. Remaining moderates (`@sentry/node` → needs major 11.x) don't block
+the gate — candidate backlog item. **Lesson:** exact-pinned `overrides` go
+stale silently; when Security Audit goes red on an unrelated PR, check
+whether main is red too and bump the pins. `github-advanced-security` CAPIError
+false positive also seen (known).
 
 ### 2026-09-29 — session 8
 
