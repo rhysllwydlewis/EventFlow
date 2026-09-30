@@ -340,3 +340,12 @@ content change. Sent a direct owner notification this cycle, per the
 2026-09-24 entry's own criterion for a week-plus of zero output. Next run:
 retry Semrush first; if units are restored, do the baseline site audit and
 position-tracking pull.
+
+### 2026-09-30
+
+Branch's last PR (#1745) had been merged, so restarted `claude/eventflow-seo`
+from `origin/main`. Retried Semrush (`projects`) — still `no_api_units`
+(trace 6a58b22e32b43ead360e3203336af3ef). Tenth consecutive blocked cycle.
+Stopped before Step 3 per the mandate; no code or content change, nothing
+merged. Sent an owner notification. Next run: retry Semrush first; if units
+are restored, do the baseline site audit and position-tracking pull.
