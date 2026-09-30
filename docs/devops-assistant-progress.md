@@ -174,6 +174,29 @@ the policy above.
 
 ## Session log
 
+### 2026-09-30 — session 9
+
+Branch restarted from `main`; no open PRs at start. Sweep of static
+HTML found modal/`.ef-cta` classes clean, but Codex review correctly pointed
+out the sweep had skipped JS-generated markup: `showShortcutsHelp()` in
+`admin-shared.js` (Ctrl/Cmd+/ on 34 admin pages) had no dialog role/label/
+focus handling and a `.ef-cta.modal-close` button with no reset on pages
+lacking `admin-enhanced.css`. Fixed in this PR (role/aria-modal/labelledby,
+labelled close button without `.ef-cta`, focus in/out, `admin-shared.js?v=18.3.1`).
+**Lesson:** sweeps must grep `innerHTML`/`createElement` templates in JS too.
+Opening docs-only PR #1747 then surfaced a real problem: the **Security Audit**
+CI job (`npm run audit`, fails on high+) was red on `main` too — new advisories
+published against our _pinned_ `overrides` (brace-expansion 5.0.9 →
+GHSA-q2hr/qhr7/6j4f, engine.io 6.6.9 → GHSA-2gc4, fast-uri 3.1.7, undici
+7.29). Fixed in the same PR: overrides bumped to brace-expansion 5.0.12,
+engine.io 6.6.11, fast-uri ^3.1.8, plus lockfile refresh (undici 7.30.0,
+socket.io 4.8.4, etc.). `npm run audit` now passes; full `npm test` 12856
+passed. Remaining moderates (`@sentry/node` → needs major 11.x) don't block
+the gate — candidate backlog item. **Lesson:** exact-pinned `overrides` go
+stale silently; when Security Audit goes red on an unrelated PR, check
+whether main is red too and bump the pins. `github-advanced-security` CAPIError
+false positive also seen (known).
+
 ### 2026-09-29 — session 8
 
 Branch was fully merged (PR #1714 landed later as `a4d68ab37` once CI
