@@ -176,8 +176,14 @@ the policy above.
 
 ### 2026-09-30 — session 9
 
-Branch restarted from `main`; no open PRs at start. Sweep (modal dialog
-semantics, `.ef-cta` icon-button resets) found both known bug classes clean.
+Branch restarted from `main`; no open PRs at start. Sweep of static
+HTML found modal/`.ef-cta` classes clean, but Codex review correctly pointed
+out the sweep had skipped JS-generated markup: `showShortcutsHelp()` in
+`admin-shared.js` (Ctrl/Cmd+/ on 34 admin pages) had no dialog role/label/
+focus handling and a `.ef-cta.modal-close` button with no reset on pages
+lacking `admin-enhanced.css`. Fixed in this PR (role/aria-modal/labelledby,
+labelled close button without `.ef-cta`, focus in/out, `admin-shared.js?v=18.3.1`).
+**Lesson:** sweeps must grep `innerHTML`/`createElement` templates in JS too.
 Opening docs-only PR #1747 then surfaced a real problem: the **Security Audit**
 CI job (`npm run audit`, fails on high+) was red on `main` too — new advisories
 published against our _pinned_ `overrides` (brace-expansion 5.0.9 →

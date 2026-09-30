@@ -1273,11 +1273,12 @@ const AdminShared = (function () {
   function showShortcutsHelp() {
     const helpModal = document.createElement('div');
     helpModal.className = 'modal-overlay';
+    const previouslyFocused = document.activeElement;
     helpModal.innerHTML = `
-      <div class="modal-dialog" style="max-width: 500px;">
+      <div class="modal-dialog" style="max-width: 500px;" role="dialog" aria-modal="true" aria-labelledby="shortcutsHelpTitle" tabindex="-1">
         <div class="modal-header">
-          <h3 class="modal-title">Keyboard Shortcuts</h3>
-          <button class="ef-cta modal-close" onclick="this.closest('.modal-overlay').remove()">&times;</button>
+          <h3 class="modal-title" id="shortcutsHelpTitle">Keyboard Shortcuts</h3>
+          <button type="button" class="modal-close" aria-label="Close keyboard shortcuts">&times;</button>
         </div>
         <div class="modal-body">
           <div class="shortcuts-list">
@@ -1319,9 +1320,26 @@ const AdminShared = (function () {
     `;
     document.body.appendChild(helpModal);
 
+    const closeBtn = helpModal.querySelector('.modal-close');
+    const closeHelp = () => {
+      helpModal.remove();
+      if (previouslyFocused && typeof previouslyFocused.focus === 'function') {
+        previouslyFocused.focus();
+      }
+    };
+    closeBtn.addEventListener('click', closeHelp);
+    // Only one focusable control in the dialog, so keep Tab on it.
+    helpModal.addEventListener('keydown', e => {
+      if (e.key === 'Tab') {
+        e.preventDefault();
+        closeBtn.focus();
+      }
+    });
+    closeBtn.focus();
+
     helpModal.addEventListener('click', e => {
       if (e.target === helpModal) {
-        helpModal.remove();
+        closeHelp();
       }
     });
   }
