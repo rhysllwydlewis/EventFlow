@@ -349,3 +349,11 @@ from `origin/main`. Retried Semrush (`projects`) — still `no_api_units`
 Stopped before Step 3 per the mandate; no code or content change, nothing
 merged. Sent an owner notification. Next run: retry Semrush first; if units
 are restored, do the baseline site audit and position-tracking pull.
+
+### 2026-10-01
+
+Retried Semrush (`projects`) — still `no_api_units` (trace
+eca442c474a3923e592d852353edf83d). Eleventh consecutive blocked cycle.
+Stopped before Step 3 per the mandate; no code or content change, nothing
+merged. Sent an owner notification. Next run: retry Semrush first; if units
+are restored, do the baseline site audit and position-tracking pull.
