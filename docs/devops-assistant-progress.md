@@ -194,6 +194,11 @@ fix, passes with). Other JS-built modals with no dialog wiring still to audit:
 `marketplace.js` (grep heuristic — verify each; some may be covered by
 `utils/modal-a11y.js`).
 
+Security Audit went red on `main` and this PR again (axios 1.19.0 →
+GHSA-vh66-26gq-q6x8 / GHSA-9fr6-4gfg-395g); bumped the axios override to
+^1.20.0 + lockfile; `npm run audit` clean, unit tests green. Same lesson as
+session 9: pinned overrides go stale — bump them.
+
 ### 2026-09-30 — session 9
 
 Branch restarted from `main`; no open PRs at start. Sweep of static
