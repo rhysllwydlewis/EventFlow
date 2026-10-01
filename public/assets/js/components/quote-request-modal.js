@@ -10,6 +10,8 @@ class QuoteRequestModal {
     this.isOpen = false;
     this.container = null;
     this.suppliers = [];
+    this.showingSuccess = false;
+    this.previouslyFocused = null;
     this.init();
   }
 
@@ -34,6 +36,9 @@ class QuoteRequestModal {
     this.createModal();
     this.attachEventListeners();
 
+    // ESC to close and Tab focus trap (registered once; survives modal rebuilds)
+    document.addEventListener('keydown', e => this.handleKeydown(e));
+
     // Listen for custom event to open modal
     window.addEventListener('openQuoteRequestModal', e => {
       this.open(e.detail.items || []);
@@ -47,11 +52,14 @@ class QuoteRequestModal {
     const modal = document.createElement('div');
     modal.id = 'quote-request-modal';
     modal.className = 'quote-modal';
+    modal.setAttribute('role', 'dialog');
+    modal.setAttribute('aria-modal', 'true');
+    modal.setAttribute('aria-labelledby', 'quote-modal-title');
     modal.innerHTML = `
       <div class="quote-modal-overlay"></div>
       <div class="quote-modal-content">
         <div class="quote-modal-header">
-          <h2>Request Quotes</h2>
+          <h2 id="quote-modal-title">Request Quotes</h2>
           <button class="ef-cta quote-modal-close-btn" aria-label="Close">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <line x1="18" y1="6" x2="6" y2="18"></line>
@@ -161,13 +169,51 @@ class QuoteRequestModal {
       e.preventDefault();
       this.submitRequest();
     });
+  }
 
-    // ESC key to close
-    document.addEventListener('keydown', e => {
-      if (e.key === 'Escape' && this.isOpen) {
-        this.close();
-      }
-    });
+  /**
+   * Escape-to-close and keep Tab focus inside the open dialog
+   */
+  handleKeydown(e) {
+    if (!this.isOpen) {
+      return;
+    }
+    if (e.key === 'Escape') {
+      this.close();
+      return;
+    }
+    if (e.key !== 'Tab') {
+      return;
+    }
+    const focusable = Array.from(
+      this.container.querySelectorAll(
+        'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled])'
+      )
+    ).filter(el => el.offsetParent !== null);
+    if (focusable.length === 0) {
+      return;
+    }
+    const first = focusable[0];
+    const last = focusable[focusable.length - 1];
+    if (!this.container.contains(document.activeElement)) {
+      e.preventDefault();
+      first.focus();
+    } else if (e.shiftKey && document.activeElement === first) {
+      e.preventDefault();
+      last.focus();
+    } else if (!e.shiftKey && document.activeElement === last) {
+      e.preventDefault();
+      first.focus();
+    }
+  }
+
+  /**
+   * Escape text for safe interpolation into HTML
+   */
+  escapeHtml(value) {
+    const div = document.createElement('div');
+    div.textContent = value === null || value === undefined ? '' : String(value);
+    return div.innerHTML;
   }
 
   /**
@@ -188,8 +234,8 @@ class QuoteRequestModal {
           .map(
             s => `
           <li class="quote-supplier-item">
-            <strong>${s.name}</strong>
-            ${s.category ? `<span class="quote-supplier-category">${s.category}</span>` : ''}
+            <strong>${this.escapeHtml(s.name)}</strong>
+            ${s.category ? `<span class="quote-supplier-category">${this.escapeHtml(s.category)}</span>` : ''}
           </li>
         `
           )
@@ -296,6 +342,7 @@ class QuoteRequestModal {
    */
   showSuccess(supplierCount) {
     const modalBody = this.container.querySelector('.quote-modal-body');
+    this.showingSuccess = true;
     modalBody.innerHTML = `
       <div class="quote-success">
         <div class="quote-success-icon">✓</div>
@@ -312,12 +359,22 @@ class QuoteRequestModal {
     // Attach close button
     const closeBtn = modalBody.querySelector('#quote-success-close');
     closeBtn.addEventListener('click', () => this.close());
+    closeBtn.focus();
   }
 
   /**
    * Open modal
    */
   open(items = []) {
+    // After a successful send the form was replaced by the success view;
+    // rebuild the dialog so a second request starts from a working form.
+    if (this.showingSuccess) {
+      this.container.remove();
+      this.showingSuccess = false;
+      this.createModal();
+      this.attachEventListeners();
+    }
+
     // Convert items to suppliers format
     this.suppliers = items.map(item => ({
       id: item.id,
@@ -325,10 +382,15 @@ class QuoteRequestModal {
       category: item.category,
     }));
 
+    this.previouslyFocused = document.activeElement;
     this.isOpen = true;
     this.container.classList.add('open');
     this.renderSuppliers();
     document.body.style.overflow = 'hidden';
+    const closeBtn = this.container.querySelector('.quote-modal-close-btn');
+    if (closeBtn) {
+      closeBtn.focus();
+    }
   }
 
   /**
@@ -344,6 +406,11 @@ class QuoteRequestModal {
     if (form) {
       form.reset();
     }
+
+    if (this.previouslyFocused && typeof this.previouslyFocused.focus === 'function') {
+      this.previouslyFocused.focus();
+    }
+    this.previouslyFocused = null;
   }
 }
 
