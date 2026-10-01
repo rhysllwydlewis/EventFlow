@@ -26,14 +26,17 @@ const doc = dom.window.document;
 const modal = new dom.window.__Q();
 const out = {};
 const el = doc.getElementById('quote-request-modal');
-out.role = el.getAttribute('role');
-out.ariaModal = el.getAttribute('aria-modal');
+out.closedRole = el.getAttribute('role');
+out.closedInert = el.hasAttribute('inert');
 const label = doc.getElementById(el.getAttribute('aria-labelledby'));
 out.label = label && label.textContent;
 
 const trigger = doc.getElementById('trigger');
 trigger.focus();
 modal.open([{ id: '1', name: '<img src=x onerror=alert(1)>', category: '<b>x</b>' }]);
+out.role = el.getAttribute('role');
+out.ariaModal = el.getAttribute('aria-modal');
+out.openInert = el.hasAttribute('inert');
 out.focusOnOpen = doc.activeElement.classList.contains('quote-modal-close-btn');
 const list = doc.getElementById('quote-suppliers-list');
 out.injectedImg = !!list.querySelector('img');
@@ -42,16 +45,23 @@ out.listText = list.textContent;
 doc.dispatchEvent(new dom.window.KeyboardEvent('keydown', { key: 'Escape' }));
 out.closedByEscape = modal.isOpen === false;
 out.focusRestored = doc.activeElement === trigger;
+out.reclosedInert = el.hasAttribute('inert') && !el.hasAttribute('role');
 
 modal.open([{ id: '1', name: 'A' }]);
+const sameEl = doc.getElementById('quote-request-modal');
 modal.showSuccess(1);
 modal.close();
+// A late success response after closing must not steal focus back.
+trigger.focus();
+modal.showSuccess(1);
+out.lateSuccessKeepsFocus = doc.activeElement === trigger;
 try {
   modal.open([{ id: '2', name: 'B' }]);
   out.reopenOk = true;
 } catch (e) {
   out.reopenOk = false;
 }
+out.sameElement = doc.getElementById('quote-request-modal') === sameEl;
 out.modalCount = doc.querySelectorAll('#quote-request-modal').length;
 out.formBack = !!doc.getElementById('quote-request-form');
 out.reopenList = doc.getElementById('quote-suppliers-list').textContent;
@@ -70,10 +80,21 @@ describe('QuoteRequestModal accessibility and robustness', () => {
     );
   });
 
-  test('exposes dialog semantics labelled by its heading', () => {
+  test('is inert and role-less while closed (no AT exposure, no observer trap)', () => {
+    expect(out.closedRole).toBeNull();
+    expect(out.closedInert).toBe(true);
+    expect(out.reclosedInert).toBe(true);
+  });
+
+  test('exposes dialog semantics labelled by its heading while open', () => {
     expect(out.role).toBe('dialog');
     expect(out.ariaModal).toBe('true');
+    expect(out.openInert).toBe(false);
     expect(out.label).toBe('Request Quotes');
+  });
+
+  test('success view does not steal focus once closed', () => {
+    expect(out.lateSuccessKeepsFocus).toBe(true);
   });
 
   test('moves focus in on open, Escape closes and restores focus', () => {
@@ -90,6 +111,7 @@ describe('QuoteRequestModal accessibility and robustness', () => {
 
   test('can be re-opened after the success view replaced the form', () => {
     expect(out.reopenOk).toBe(true);
+    expect(out.sameElement).toBe(true);
     expect(out.modalCount).toBe(1);
     expect(out.formBack).toBe(true);
     expect(out.reopenList).toContain('B');

@@ -52,8 +52,11 @@ class QuoteRequestModal {
     const modal = document.createElement('div');
     modal.id = 'quote-request-modal';
     modal.className = 'quote-modal';
-    modal.setAttribute('role', 'dialog');
-    modal.setAttribute('aria-modal', 'true');
+    // Closed state: inert so it is out of the tab order and hidden from assistive
+    // technology. role/aria-modal are only applied while open (see setOpenState) -
+    // adding role="dialog" at insertion time would also trip keyboard-nav.js's
+    // MutationObserver, which installs a page-wide focus trap for new dialogs.
+    modal.setAttribute('inert', '');
     modal.setAttribute('aria-labelledby', 'quote-modal-title');
     modal.innerHTML = `
       <div class="quote-modal-overlay"></div>
@@ -145,6 +148,7 @@ class QuoteRequestModal {
 
     document.body.appendChild(modal);
     this.container = modal;
+    this.initialBodyHtml = modal.querySelector('.quote-modal-body').innerHTML;
   }
 
   /**
@@ -155,20 +159,40 @@ class QuoteRequestModal {
     const closeBtn = this.container.querySelector('.quote-modal-close-btn');
     closeBtn.addEventListener('click', () => this.close());
 
-    // Cancel button
-    const cancelBtn = this.container.querySelector('#quote-cancel-btn');
-    cancelBtn.addEventListener('click', () => this.close());
-
     // Overlay click
     const overlay = this.container.querySelector('.quote-modal-overlay');
     overlay.addEventListener('click', () => this.close());
 
-    // Form submit
+    this.attachFormListeners();
+  }
+
+  /**
+   * Attach listeners to the form view (re-run after the success view is replaced)
+   */
+  attachFormListeners() {
+    const cancelBtn = this.container.querySelector('#quote-cancel-btn');
+    cancelBtn.addEventListener('click', () => this.close());
+
     const form = this.container.querySelector('#quote-request-form');
     form.addEventListener('submit', e => {
       e.preventDefault();
       this.submitRequest();
     });
+  }
+
+  /**
+   * Toggle the dialog's accessibility state without touching the DOM tree
+   */
+  setOpenState(open) {
+    if (open) {
+      this.container.removeAttribute('inert');
+      this.container.setAttribute('role', 'dialog');
+      this.container.setAttribute('aria-modal', 'true');
+    } else {
+      this.container.setAttribute('inert', '');
+      this.container.removeAttribute('role');
+      this.container.removeAttribute('aria-modal');
+    }
   }
 
   /**
@@ -359,7 +383,9 @@ class QuoteRequestModal {
     // Attach close button
     const closeBtn = modalBody.querySelector('#quote-success-close');
     closeBtn.addEventListener('click', () => this.close());
-    closeBtn.focus();
+    if (this.isOpen) {
+      closeBtn.focus();
+    }
   }
 
   /**
@@ -367,12 +393,11 @@ class QuoteRequestModal {
    */
   open(items = []) {
     // After a successful send the form was replaced by the success view;
-    // rebuild the dialog so a second request starts from a working form.
+    // restore it in place so a second request starts from a working form.
     if (this.showingSuccess) {
-      this.container.remove();
+      this.container.querySelector('.quote-modal-body').innerHTML = this.initialBodyHtml;
       this.showingSuccess = false;
-      this.createModal();
-      this.attachEventListeners();
+      this.attachFormListeners();
     }
 
     // Convert items to suppliers format
@@ -384,6 +409,7 @@ class QuoteRequestModal {
 
     this.previouslyFocused = document.activeElement;
     this.isOpen = true;
+    this.setOpenState(true);
     this.container.classList.add('open');
     this.renderSuppliers();
     document.body.style.overflow = 'hidden';
@@ -398,6 +424,7 @@ class QuoteRequestModal {
    */
   close() {
     this.isOpen = false;
+    this.setOpenState(false);
     this.container.classList.remove('open');
     document.body.style.overflow = '';
 

@@ -194,6 +194,16 @@ fix, passes with). Other JS-built modals with no dialog wiring still to audit:
 `marketplace.js` (grep heuristic — verify each; some may be covered by
 `utils/modal-a11y.js`).
 
+Codex review on #1750 caught four real issues in the first fix, all addressed: stale
+cache keys on marketplace/suppliers (bumped `components.css?v=18.4.4` and added
+`?v=` to the module), permanent `aria-modal` exposed while closed (now `inert` +
+role only while open), `keyboard-nav.js`'s MutationObserver installing a
+page-wide focus trap on any inserted `role=dialog` (so the dialog is never
+rebuilt/inserted with a role — body is restored in place), and late success
+response stealing focus. **Lesson:** `keyboard-nav.js` auto-traps any
+newly-inserted `role="dialog"`/`.modal` node — account for it when adding
+JS-built dialogs.
+
 Security Audit went red on `main` and this PR again (axios 1.19.0 →
 GHSA-vh66-26gq-q6x8 / GHSA-9fr6-4gfg-395g); bumped the axios override to
 ^1.20.0 + lockfile; `npm run audit` clean, unit tests green. Same lesson as
