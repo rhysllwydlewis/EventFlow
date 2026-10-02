@@ -174,6 +174,10 @@ the policy above.
 
 ## Session log
 
+### 2026-10-02 — session 11
+
+PR #1750 (quote-request modal a11y/escaping/reopen fix + axios override bump) was open with all CI green (only the known github-advanced-security CAPIError false positive red) and all four Codex threads already answered in 3597d44. Re-reviewed the diff cold (no new issues), ran the new unit test (6 passed), and squash-merged as `8010fd8a`. **Deploy check passed:** 12 polls of `/api/ready` over ~5 min all HTTP 200; live `quote-request-modal.js` contains the fix. Note: first curl of the live JS returned a cached old copy — add a `?x=` query when verifying. No new work started. Open: audit remaining JS-built modals listed in session 10 (`admin-features.js`, `advanced-search.js`, `app.js`, `budget.js`, `components/Modal.js`, `global-search.js`, `pexels-selector.js`, `supplier-comparison.js`, `timeline-builder.js`, `folders.js`, `labels.js`, `marketplace.js`); `@sentry/node` 11.x major.
+
 ### 2026-10-01 — session 10
 
 Branch restarted from `main` (session 9's outcome-only docs commit carried over
