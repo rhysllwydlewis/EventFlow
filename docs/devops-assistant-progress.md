@@ -174,6 +174,41 @@ the policy above.
 
 ## Session log
 
+### 2026-10-01 — session 10
+
+Branch restarted from `main` (session 9's outcome-only docs commit carried over
+as it was never merged). No open PRs. Sweep of JS-built modals (per session 9's
+lesson) found `components/quote-request-modal.js` (marketplace/suppliers
+"Request Quotes") with: no dialog role/aria-modal/label, no focus in/restore,
+no Tab trap; supplier name/category interpolated unescaped into `innerHTML`;
+`.ef-cta` icon close button with no padding reset (known bug class); and a
+real functional bug — after a successful send the form was replaced by the
+success view and never restored, so re-opening threw a TypeError
+(`#quote-suppliers-list` null). Fixed all (dialog wiring, focus handling,
+escaping, dialog rebuilt on re-open, `padding: 8px !important` on the close
+button). New `tests/unit/quote-request-modal-a11y.test.js` (fails without the
+fix, passes with). Other JS-built modals with no dialog wiring still to audit:
+`admin-features.js`, `advanced-search.js`, `app.js`, `budget.js`,
+`components/Modal.js`, `global-search.js`, `pexels-selector.js`,
+`supplier-comparison.js`, `timeline-builder.js`, `folders.js`, `labels.js`,
+`marketplace.js` (grep heuristic — verify each; some may be covered by
+`utils/modal-a11y.js`).
+
+Codex review on #1750 caught four real issues in the first fix, all addressed: stale
+cache keys on marketplace/suppliers (bumped `components.css?v=18.4.4` and added
+`?v=` to the module), permanent `aria-modal` exposed while closed (now `inert` +
+role only while open), `keyboard-nav.js`'s MutationObserver installing a
+page-wide focus trap on any inserted `role=dialog` (so the dialog is never
+rebuilt/inserted with a role — body is restored in place), and late success
+response stealing focus. **Lesson:** `keyboard-nav.js` auto-traps any
+newly-inserted `role="dialog"`/`.modal` node — account for it when adding
+JS-built dialogs.
+
+Security Audit went red on `main` and this PR again (axios 1.19.0 →
+GHSA-vh66-26gq-q6x8 / GHSA-9fr6-4gfg-395g); bumped the axios override to
+^1.20.0 + lockfile; `npm run audit` clean, unit tests green. Same lesson as
+session 9: pinned overrides go stale — bump them.
+
 ### 2026-09-30 — session 9
 
 Branch restarted from `main`; no open PRs at start. Sweep of static
@@ -196,6 +231,13 @@ the gate — candidate backlog item. **Lesson:** exact-pinned `overrides` go
 stale silently; when Security Audit goes red on an unrelated PR, check
 whether main is red too and bump the pins. `github-advanced-security` CAPIError
 false positive also seen (known).
+
+**Outcome:** PR #1747 merged 2026-09-30 07:14 UTC (merged by an external
+actor/auto-merge, not by this session, after CI went green). **Deploy check
+passed:** `/api/ready` returned HTTP 200 `"ready"` on every poll (~9 polls over
+~4 min, MongoDB connected), and live `admin-shared.js` contains the shortcuts
+dialog fix. Open: nothing. Backlog candidate: `@sentry/node` major (11.x) to
+clear the remaining moderate advisories.
 
 ### 2026-09-29 — session 8
 

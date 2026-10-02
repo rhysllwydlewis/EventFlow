@@ -2583,7 +2583,7 @@ body.ef-cookie-banner-open #ef-pwa-install-banner {
   background: none;
   border: none;
   cursor: pointer;
-  padding: 8px;
+  padding: 8px !important; /* beat .ef-cta's 10px 18px, which squeezes the icon */
   display: flex;
   align-items: center;
   justify-content: center;
