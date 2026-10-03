@@ -174,6 +174,26 @@ the policy above.
 
 ## Session log
 
+### 2026-10-03 — session 12
+
+Branch restarted from `main` (#1753 merged); no open PRs, nothing red. Worked the
+JS-built modal audit from session 10/11. Findings: `advanced-search.js`,
+`folders.js`, `labels.js` are not loaded by any page (dead code — left alone, candidate
+for deletion); `budget.js` already uses `EFModalA11y`. Real defects in
+`marketplace.js` (marketplace page): the listing-detail, location and
+create-listing overlays had no dialog role/aria-modal/label and no focus-in/restore;
+create-listing and location close buttons carried `.ef-cta` with a non-`!important`
+`padding: 0` (known squished-icon class); leaked Escape listeners when closed by
+any means other than Escape. Fixed with an `enhanceDialog()` helper + `closeModal`
+cleanup/focus restore, `EFModalA11y` for the form modal (script added to
+`marketplace.html`, cache keys bumped to `?v=18.4.5`), padding resets. New
+`tests/unit/marketplace-dialogs-a11y.test.js`. Full `npm test`: 12866 passed.
+Pre-existing, unrelated: `eslint` reports missing rule `no-direct-notifications` on
+marketplace.js; `prettier --check` flags marketplace.css (both reproduce on main).
+Still to audit: `admin-features.js`, `app.js` (`modal-backdrop`, `lightbox-modal`),
+`components/Modal.js`, `global-search`, `pexels-selector`, `supplier-comparison`,
+`timeline-builder` (some filenames may have moved); `@sentry/node` 11.x major.
+
 ### 2026-10-02 — session 11
 
 PR #1750 (quote-request modal a11y/escaping/reopen fix + axios override bump) was open with all CI green (only the known github-advanced-security CAPIError false positive red) and all four Codex threads already answered in 3597d44. Re-reviewed the diff cold (no new issues), ran the new unit test (6 passed), and squash-merged as `8010fd8a`. **Deploy check passed:** 12 polls of `/api/ready` over ~5 min all HTTP 200; live `quote-request-modal.js` contains the fix. Note: first curl of the live JS returned a cached old copy — add a `?x=` query when verifying. No new work started. Open: audit remaining JS-built modals listed in session 10 (`admin-features.js`, `advanced-search.js`, `app.js`, `budget.js`, `components/Modal.js`, `global-search.js`, `pexels-selector.js`, `supplier-comparison.js`, `timeline-builder.js`, `folders.js`, `labels.js`, `marketplace.js`); `@sentry/node` 11.x major.

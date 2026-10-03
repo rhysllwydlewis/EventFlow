@@ -514,7 +514,7 @@
           <div class="listing-detail-header">
             <div class="listing-detail-header-content">
               <div class="listing-detail-price">${formatPrice(listing.price)}</div>
-              <h2 class="listing-detail-title">${escapeHtml(listing.title)}</h2>
+              <h2 class="listing-detail-title" id="listing-detail-title">${escapeHtml(listing.title)}</h2>
             </div>
             <button class="listing-detail-close" aria-label="Close">&times;</button>
           </div>
@@ -619,10 +619,12 @@
     const handleEscape = e => {
       if (e.key === 'Escape') {
         closeModal(overlay);
-        document.removeEventListener('keydown', handleEscape);
       }
     };
     document.addEventListener('keydown', handleEscape);
+    overlay._cleanup = () => document.removeEventListener('keydown', handleEscape);
+
+    enhanceDialog(overlay, 'listing-detail-title', '.listing-detail-close');
 
     const messageToggleBtn = overlay.querySelector('.listing-message-toggle');
     const inlineComposer = overlay.querySelector('.listing-inline-composer');
@@ -684,8 +686,32 @@
     });
   }
 
+  // Dialog semantics + focus handling for the overlays built in this file.
+  // Call right after the overlay is appended to the body.
+  function enhanceDialog(overlay, labelledBy, focusSelector) {
+    overlay.setAttribute('role', 'dialog');
+    overlay.setAttribute('aria-modal', 'true');
+    overlay.setAttribute('aria-labelledby', labelledBy);
+    overlay._returnFocus = document.activeElement;
+    const target = overlay.querySelector(focusSelector);
+    if (target) {
+      target.focus();
+    }
+  }
+
   function closeModal(overlay) {
+    if (overlay._closing) {
+      return;
+    }
+    overlay._closing = true;
     overlay.classList.remove('active');
+    if (typeof overlay._cleanup === 'function') {
+      overlay._cleanup();
+    }
+    const returnFocus = overlay._returnFocus;
+    if (returnFocus && typeof returnFocus.focus === 'function' && returnFocus.isConnected) {
+      returnFocus.focus();
+    }
     setTimeout(() => overlay.remove(), 300);
   }
 
@@ -829,8 +855,8 @@
     modal.innerHTML = `
       <div class="modal-content" style="max-width: 600px;">
         <div class="modal-header">
-          <h2>Create new listing</h2>
-          <button class="ef-cta modal-close" onclick="this.closest('.modal-overlay').remove()">×</button>
+          <h2 id="list-item-modal-title">Create new listing</h2>
+          <button class="ef-cta modal-close" aria-label="Close" onclick="this.closest('.modal-overlay').remove()">×</button>
         </div>
         <div class="modal-body">
           <form id="list-item-form">
@@ -945,12 +971,15 @@
       cursor: pointer;
       color: #6b7280;
       line-height: 1;
-      padding: 0;
+      padding: 0 !important;
       width: 32px;
       height: 32px;
     `;
 
     document.body.appendChild(modal);
+    if (window.EFModalA11y) {
+      window.EFModalA11y.enhance(modal, { labelledBy: 'list-item-modal-title' });
+    }
 
     // Handle image upload and preview
     const imageInput = document.getElementById('item-images');
@@ -1270,7 +1299,7 @@
     overlay.innerHTML = `
       <div class="location-modal">
         <div class="location-modal-header">
-          <h3>Change Location</h3>
+          <h3 id="location-modal-title">Change Location</h3>
           <button class="ef-cta location-modal-close" aria-label="Close">&times;</button>
         </div>
         <div class="location-modal-body">
@@ -1318,10 +1347,12 @@
     const handleEscape = e => {
       if (e.key === 'Escape') {
         closeModal(overlay);
-        document.removeEventListener('keydown', handleEscape);
       }
     };
     document.addEventListener('keydown', handleEscape);
+    overlay._cleanup = () => document.removeEventListener('keydown', handleEscape);
+
+    enhanceDialog(overlay, 'location-modal-title', '#location-postcode');
 
     // Use my location
     const useLocationBtn = overlay.querySelector('#use-my-location');
