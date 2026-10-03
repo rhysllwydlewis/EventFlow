@@ -686,6 +686,15 @@
     });
   }
 
+  const DIALOG_FOCUSABLE =
+    'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
+
+  function visibleFocusables(root) {
+    return Array.from(root.querySelectorAll(DIALOG_FOCUSABLE)).filter(
+      el => el.getClientRects().length > 0
+    );
+  }
+
   // Dialog semantics + focus handling for the overlays built in this file.
   // Call right after the overlay is appended to the body.
   function enhanceDialog(overlay, labelledBy, focusSelector) {
@@ -693,10 +702,47 @@
     overlay.setAttribute('aria-modal', 'true');
     overlay.setAttribute('aria-labelledby', labelledBy);
     overlay._returnFocus = document.activeElement;
-    const target = overlay.querySelector(focusSelector);
-    if (target) {
-      target.focus();
-    }
+
+    // Capture-phase Tab trap that only counts visible controls (hidden ones such as the
+    // collapsed inline composer must not become the "last" element). It stops the event so
+    // keyboard-nav.js's own, visibility-unaware trap doesn't also act on it.
+    overlay.addEventListener(
+      'keydown',
+      e => {
+        if (e.key !== 'Tab') {
+          return;
+        }
+        e.stopPropagation();
+        const items = visibleFocusables(overlay);
+        if (items.length === 0) {
+          e.preventDefault();
+          return;
+        }
+        const first = items[0];
+        const last = items[items.length - 1];
+        const active = document.activeElement;
+        if (e.shiftKey && (active === first || !overlay.contains(active))) {
+          e.preventDefault();
+          last.focus();
+        } else if (!e.shiftKey && (active === last || !overlay.contains(active))) {
+          e.preventDefault();
+          first.focus();
+        }
+      },
+      true
+    );
+
+    // The overlay only becomes visible (and focusable) once its `active` class is applied by
+    // the caller's timer, so move focus in after that.
+    setTimeout(() => {
+      if (!overlay.isConnected || overlay._closing) {
+        return;
+      }
+      const target = overlay.querySelector(focusSelector);
+      if (target) {
+        target.focus();
+      }
+    }, 30);
   }
 
   function closeModal(overlay) {
@@ -708,6 +754,10 @@
     if (typeof overlay._cleanup === 'function') {
       overlay._cleanup();
     }
+    // Drop the modal semantics before moving focus out, so assistive tech announces the
+    // opener rather than ignoring focus that lands outside an aria-modal subtree.
+    overlay.removeAttribute('role');
+    overlay.removeAttribute('aria-modal');
     const returnFocus = overlay._returnFocus;
     if (returnFocus && typeof returnFocus.focus === 'function' && returnFocus.isConnected) {
       returnFocus.focus();
