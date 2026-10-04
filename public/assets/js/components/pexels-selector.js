@@ -64,6 +64,15 @@ class PexelsSelector {
     document.body.appendChild(wrapper);
 
     this.activeOverlay = wrapper;
+
+    // Dialog semantics, Tab trap, Escape-to-close and focus restore (shared helper).
+    if (window.EFModalA11y) {
+      window.EFModalA11y.enhance(wrapper, { labelledBy: 'pexels-selector-title' });
+      const field = wrapper.querySelector('.search-field');
+      if (field) {
+        field.focus();
+      }
+    }
   }
 
   createHeader() {
@@ -73,6 +82,7 @@ class PexelsSelector {
 
     const title = document.createElement('h3');
     title.style.cssText = 'margin:0;font-size:1.25rem;color:#111827;';
+    title.id = 'pexels-selector-title';
     title.textContent = 'Select Stock Photo';
 
     const closeBtn = document.createElement('button');

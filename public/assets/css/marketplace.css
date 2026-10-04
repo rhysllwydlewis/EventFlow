@@ -693,7 +693,8 @@
   color: var(--muted, #667085);
   cursor: pointer;
   line-height: 1;
-  padding: 0;
+  padding: 0 !important; /* beat .ef-cta's padding so the glyph isn't squeezed */
+  font-weight: inherit;
   width: 32px;
   height: 32px;
   display: flex;

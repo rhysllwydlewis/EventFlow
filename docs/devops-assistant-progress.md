@@ -174,6 +174,71 @@ the policy above.
 
 ## Session log
 
+### 2026-10-04 — session 13
+
+Branch restarted from `main`; open PRs were only #1751 (SEO routine) and #1752 (dependabot) — nothing red on this branch. Continued the JS-built modal audit. Findings: `supplier-comparison.js` and `timeline-builder.js` already use `EFModalA11y`; `global-search.js` is loaded by no page (dead code, candidate for deletion, like `advanced-search.js`/`folders.js`/`labels.js`); `admin-features.js` `showShortcutsHelp` is a duplicate of the one fixed in `admin-shared.js` (session 9) and still has no dialog wiring (admin.html/admin-supplier-detail.html — small follow-up). Real defect fixed: `components/pexels-selector.js` (admin-locations + supplier profile customization) had no dialog role/label, no focus-in/restore, no Escape. Now uses `EFModalA11y` (script added to both pages, cache key bumped) and focuses the search field. New `tests/unit/pexels-selector-a11y.test.js` (fails without fix). Full `npm test` 12868 passed; eslint shows only the known `no-direct-notifications` rule error. Still to audit: `components/Modal.js`, `app.js` (`modal-backdrop`, `lightbox-modal`), `admin-features.js` shortcuts dialog; `@sentry/node` 11.x major.
+
+### 2026-10-03 — session 12
+
+Branch restarted from `main` (#1753 merged); no open PRs, nothing red. Worked the
+JS-built modal audit from session 10/11. Findings: `advanced-search.js`,
+`folders.js`, `labels.js` are not loaded by any page (dead code — left alone, candidate
+for deletion); `budget.js` already uses `EFModalA11y`. Real defects in
+`marketplace.js` (marketplace page): the listing-detail, location and
+create-listing overlays had no dialog role/aria-modal/label and no focus-in/restore;
+create-listing and location close buttons carried `.ef-cta` with a non-`!important`
+`padding: 0` (known squished-icon class); leaked Escape listeners when closed by
+any means other than Escape. Fixed with an `enhanceDialog()` helper + `closeModal`
+cleanup/focus restore, `EFModalA11y` for the form modal (script added to
+`marketplace.html`, cache keys bumped to `?v=18.4.5`), padding resets. New
+`tests/unit/marketplace-dialogs-a11y.test.js`. Full `npm test`: 12866 passed.
+Pre-existing, unrelated: `eslint` reports missing rule `no-direct-notifications` on
+marketplace.js; `prettier --check` flags marketplace.css (both reproduce on main).
+Still to audit: `admin-features.js`, `app.js` (`modal-backdrop`, `lightbox-modal`),
+`components/Modal.js`, `global-search`, `pexels-selector`, `supplier-comparison`,
+`timeline-builder` (some filenames may have moved); `@sentry/node` 11.x major.
+
+**Outcome:** PR #1754 squash-merged as `1daf330d8` after all 30 CI checks went green. Codex raised three real P2s on the first push, all fixed in `9ac823e5c`: `keyboard-nav.js` auto-traps new `role=dialog` nodes but counts hidden controls (listing overlay's collapsed composer), so overlays now carry their own capture-phase visible-only Tab trap; initial focus must wait for the overlay's `.active` class (visibility:hidden isn't focusable); drop `role`/`aria-modal` before restoring focus to the opener. **Deploy check passed:** 14 polls of `/api/ready` over ~5.5 min all HTTP 200; live `marketplace.js` contains the fix. Note: the branch had to be force-with-lease pushed once at the start because the remote still held session 11's already-merged commit.
+
+### 2026-10-02 — session 11
+
+PR #1750 (quote-request modal a11y/escaping/reopen fix + axios override bump) was open with all CI green (only the known github-advanced-security CAPIError false positive red) and all four Codex threads already answered in 3597d44. Re-reviewed the diff cold (no new issues), ran the new unit test (6 passed), and squash-merged as `8010fd8a`. **Deploy check passed:** 12 polls of `/api/ready` over ~5 min all HTTP 200; live `quote-request-modal.js` contains the fix. Note: first curl of the live JS returned a cached old copy — add a `?x=` query when verifying. No new work started. Open: audit remaining JS-built modals listed in session 10 (`admin-features.js`, `advanced-search.js`, `app.js`, `budget.js`, `components/Modal.js`, `global-search.js`, `pexels-selector.js`, `supplier-comparison.js`, `timeline-builder.js`, `folders.js`, `labels.js`, `marketplace.js`); `@sentry/node` 11.x major.
+
+### 2026-10-01 — session 10
+
+Branch restarted from `main` (session 9's outcome-only docs commit carried over
+as it was never merged). No open PRs. Sweep of JS-built modals (per session 9's
+lesson) found `components/quote-request-modal.js` (marketplace/suppliers
+"Request Quotes") with: no dialog role/aria-modal/label, no focus in/restore,
+no Tab trap; supplier name/category interpolated unescaped into `innerHTML`;
+`.ef-cta` icon close button with no padding reset (known bug class); and a
+real functional bug — after a successful send the form was replaced by the
+success view and never restored, so re-opening threw a TypeError
+(`#quote-suppliers-list` null). Fixed all (dialog wiring, focus handling,
+escaping, dialog rebuilt on re-open, `padding: 8px !important` on the close
+button). New `tests/unit/quote-request-modal-a11y.test.js` (fails without the
+fix, passes with). Other JS-built modals with no dialog wiring still to audit:
+`admin-features.js`, `advanced-search.js`, `app.js`, `budget.js`,
+`components/Modal.js`, `global-search.js`, `pexels-selector.js`,
+`supplier-comparison.js`, `timeline-builder.js`, `folders.js`, `labels.js`,
+`marketplace.js` (grep heuristic — verify each; some may be covered by
+`utils/modal-a11y.js`).
+
+Codex review on #1750 caught four real issues in the first fix, all addressed: stale
+cache keys on marketplace/suppliers (bumped `components.css?v=18.4.4` and added
+`?v=` to the module), permanent `aria-modal` exposed while closed (now `inert` +
+role only while open), `keyboard-nav.js`'s MutationObserver installing a
+page-wide focus trap on any inserted `role=dialog` (so the dialog is never
+rebuilt/inserted with a role — body is restored in place), and late success
+response stealing focus. **Lesson:** `keyboard-nav.js` auto-traps any
+newly-inserted `role="dialog"`/`.modal` node — account for it when adding
+JS-built dialogs.
+
+Security Audit went red on `main` and this PR again (axios 1.19.0 →
+GHSA-vh66-26gq-q6x8 / GHSA-9fr6-4gfg-395g); bumped the axios override to
+^1.20.0 + lockfile; `npm run audit` clean, unit tests green. Same lesson as
+session 9: pinned overrides go stale — bump them.
+
 ### 2026-09-30 — session 9
 
 Branch restarted from `main`; no open PRs at start. Sweep of static
@@ -196,6 +261,13 @@ the gate — candidate backlog item. **Lesson:** exact-pinned `overrides` go
 stale silently; when Security Audit goes red on an unrelated PR, check
 whether main is red too and bump the pins. `github-advanced-security` CAPIError
 false positive also seen (known).
+
+**Outcome:** PR #1747 merged 2026-09-30 07:14 UTC (merged by an external
+actor/auto-merge, not by this session, after CI went green). **Deploy check
+passed:** `/api/ready` returned HTTP 200 `"ready"` on every poll (~9 polls over
+~4 min, MongoDB connected), and live `admin-shared.js` contains the shortcuts
+dialog fix. Open: nothing. Backlog candidate: `@sentry/node` major (11.x) to
+clear the remaining moderate advisories.
 
 ### 2026-09-29 — session 8
 
