@@ -64,7 +64,8 @@ function inferAuthProvider(user) {
   if (!user) {
     return 'unknown';
   }
-  if ((hasGoogleLink(user) || hasFacebookLink(user)) && user.passwordHash) {
+  const linkedCount = [hasGoogleLink(user), hasFacebookLink(user)].filter(Boolean).length;
+  if (linkedCount > 1 || (linkedCount > 0 && user.passwordHash)) {
     return 'mixed';
   }
   if (user.authProvider) {

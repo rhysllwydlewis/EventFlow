@@ -250,7 +250,7 @@ router.get('/users/summary', authRequired, roleRequired('admin'), async (req, re
  * GET /api/admin/users/list
  * Paginated, filtered, safe user list for the Users Centre.
  * Supports: role, signupMethod, verificationMethod, issue, search, page, limit.
- * Never returns raw secrets (googleSub, resetToken, verificationToken, passwordHash).
+ * Never returns raw secrets (googleSub, facebookSub, resetToken, verificationToken, passwordHash).
  */
 router.get('/users/list', authRequired, roleRequired('admin'), async (req, res) => {
   try {

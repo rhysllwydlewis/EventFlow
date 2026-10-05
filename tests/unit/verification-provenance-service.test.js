@@ -3,6 +3,11 @@
 const provenance = require('../../services/verificationProvenance.service');
 
 describe('verification provenance service', () => {
+  afterEach(() => {
+    jest.dontMock('../../db-unified');
+    jest.resetModules();
+  });
+
   it('marks Google signups as Google verified', () => {
     const result = provenance.summariseUser(
       {
@@ -58,6 +63,61 @@ describe('verification provenance service', () => {
     expect(result.signupMethod).toBe('email_password');
     expect(result.authProvider).toBe('mixed');
     expect(result.hasFacebookLink).toBe(true);
+  });
+
+  it('reports mixed auth provider for an account linked to both Google and Facebook', () => {
+    const result = provenance.summariseUser(
+      { email: 'p@example.com', verified: true, googleSub: 'g', facebookSub: 'f' },
+      []
+    );
+    expect(result.authProvider).toBe('mixed');
+    expect(result.hasGoogleLink).toBe(true);
+    expect(result.hasFacebookLink).toBe(true);
+  });
+
+  it('flags Facebook provider inconsistencies in the integrity report', async () => {
+    jest.resetModules();
+    const recent = new Date().toISOString();
+    jest.doMock('../../db-unified', () => ({
+      read: jest.fn(async collection =>
+        collection === 'users'
+          ? [
+              {
+                id: 'a',
+                email: 'a@x.com',
+                verified: true,
+                authProvider: 'facebook',
+                createdAt: recent,
+              },
+              {
+                id: 'b',
+                email: 'b@x.com',
+                verified: true,
+                facebookSub: 'f',
+                authProvider: 'local',
+                createdAt: recent,
+              },
+              {
+                id: 'c',
+                email: 'c@x.com',
+                verified: true,
+                facebookSub: 'f2',
+                authProvider: 'facebook',
+                verificationMethod: 'facebook_verified_email',
+                createdAt: recent,
+              },
+            ]
+          : []
+      ),
+    }));
+    const fresh = require('../../services/verificationProvenance.service');
+    const report = await fresh.getVerificationIntegrity({});
+    const codes = report.issues.map(issue => `${issue.issue}:${issue.userId}`);
+    expect(codes).toContain('facebook_provider_missing_facebook_link:a');
+    expect(codes).toContain('facebook_link_with_non_facebook_provider:b');
+    expect(codes.some(code => code.endsWith(':c') && code.startsWith('facebook_'))).toBe(false);
+    // b infers facebook_verified_email from its link; a has no link so stays unknown.
+    expect(report.summary.facebookUsersWithValidProvenance).toBe(2);
   });
 
   it('marks admin-created accounts as admin created', () => {

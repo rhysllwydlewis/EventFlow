@@ -22,6 +22,27 @@ function hasFacebookLink(user) {
   );
 }
 
+/**
+ * authProvider to store when `provider` is linked to an existing account.
+ * "mixed" means the account can sign in more than one way: a password and/or
+ * another already-linked social provider. Without this, linking Facebook to a
+ * Google-only account would overwrite 'google' with 'facebook'.
+ * @param {Object} existingUser - Raw user record before linking
+ * @param {'google'|'facebook'|'apple'} provider - Provider being linked
+ * @returns {string}
+ */
+function linkedAuthProvider(existingUser, provider) {
+  if (existingUser && existingUser.passwordHash) {
+    return 'mixed';
+  }
+  const otherLinked = [
+    ['google', hasGoogleLink],
+    ['facebook', hasFacebookLink],
+    ['apple', hasAppleLink],
+  ].some(([name, isLinked]) => name !== provider && isLinked(existingUser));
+  return otherLinked ? 'mixed' : provider;
+}
+
 function safeVerifiedBy(verifiedBy) {
   if (!verifiedBy || typeof verifiedBy !== 'object') {
     return null;
@@ -120,7 +141,7 @@ function googleLinkProvenance(existingUser, nowIso) {
   const missingMethod =
     !existingUser.verificationMethod || existingUser.verificationMethod === 'unknown';
   const updates = {
-    authProvider: existingUser && existingUser.passwordHash ? 'mixed' : 'google',
+    authProvider: linkedAuthProvider(existingUser, 'google'),
   };
   if (!existingUser.signupMethod) {
     updates.signupMethod = existingUser.passwordHash ? 'email_password' : 'google';
@@ -242,7 +263,7 @@ function facebookLinkProvenance(existingUser, nowIso) {
   const missingMethod =
     !existingUser.verificationMethod || existingUser.verificationMethod === 'unknown';
   const updates = {
-    authProvider: existingUser && existingUser.passwordHash ? 'mixed' : 'facebook',
+    authProvider: linkedAuthProvider(existingUser, 'facebook'),
   };
   if (!existingUser.signupMethod) {
     updates.signupMethod = existingUser.passwordHash ? 'email_password' : 'facebook';
@@ -356,7 +377,10 @@ function inferAuthProvider(user) {
   if (!user) {
     return 'unknown';
   }
-  if ((hasGoogleLink(user) || hasAppleLink(user) || hasFacebookLink(user)) && user.passwordHash) {
+  const linkedCount = [hasGoogleLink, hasAppleLink, hasFacebookLink].filter(isLinked =>
+    isLinked(user)
+  ).length;
+  if (linkedCount > 1 || (linkedCount > 0 && user.passwordHash)) {
     return 'mixed';
   }
   if (user.authProvider) {
@@ -450,6 +474,7 @@ module.exports = {
   hasGoogleLink,
   hasAppleLink,
   hasFacebookLink,
+  linkedAuthProvider,
   safeVerifiedBy,
   metadataFromSendResult,
   emailPasswordPendingProvenance,
