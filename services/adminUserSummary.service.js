@@ -12,7 +12,7 @@
  *   built once per call then O(1) per user.
  * - Provenance classification mirrors the logic in the email centre diagnostics
  *   so counts stay consistent across /admin, /admin-users, and /admin-emails.
- * - No raw secrets (googleSub, resetToken, passwordHash, verificationToken) are
+ * - No raw secrets (googleSub, facebookSub, resetToken, passwordHash, verificationToken) are
  *   returned. The service produces safe summary fields only.
  */
 
@@ -28,14 +28,35 @@ const emailLogService = require('./emailLog.service');
 // Provenance classification (mirrors email-centre diagnostics)
 // ---------------------------------------------------------------------------
 
+function hasGoogleIdentity(u) {
+  return (
+    u.authProvider === 'google' ||
+    !!(u.googleSub || (u.authProviderIds && u.authProviderIds.google))
+  );
+}
+
+function hasFacebookIdentity(u) {
+  return (
+    u.authProvider === 'facebook' ||
+    !!(u.facebookSub || (u.authProviderIds && u.authProviderIds.facebook))
+  );
+}
+
 /**
  * Derive a safe signupMethod string from a raw user record.
  * @param {Object} u - Raw user record
- * @returns {'google'|'email_password'|'admin_created'|'owner'|'unknown'}
+ * @returns {'google'|'facebook'|'email_password'|'admin_created'|'owner'|'unknown'}
  */
 function classifySignupMethod(u = {}) {
-  if (u.authProvider === 'google' || u.googleSub) {
+  // A password account that later linked Google/Facebook still signed up with a password.
+  if (u.signupMethod === 'email_password' && u.passwordHash) {
+    return 'email_password';
+  }
+  if (hasGoogleIdentity(u)) {
     return 'google';
+  }
+  if (hasFacebookIdentity(u)) {
+    return 'facebook';
   }
   if (u.role === 'admin' && !u.passwordHash && !u.authProvider) {
     return 'admin_created';
@@ -52,15 +73,27 @@ function classifySignupMethod(u = {}) {
 /**
  * Derive a safe verificationMethod string from a raw user record.
  * @param {Object} u - Raw user record
- * @returns {'google'|'email_link'|'admin'|'legacy'|'pending'|'unknown'}
+ * @returns {'google'|'facebook'|'email_link'|'admin'|'legacy'|'pending'|'unknown'}
  */
 function classifyVerificationMethod(u = {}) {
   const verified = u.verified === true || u.emailVerified === true;
   if (!verified) {
     return 'pending';
   }
-  if (u.verifiedBy === 'google' || u.authProvider === 'google') {
+  if (
+    u.verifiedBy === 'google' ||
+    u.authProvider === 'google' ||
+    u.verificationMethod === 'google_verified_email'
+  ) {
     return 'google';
+  }
+  if (
+    u.verifiedBy === 'facebook' ||
+    u.authProvider === 'facebook' ||
+    u.verificationMethod === 'facebook_verified_email' ||
+    (u.verifiedBy && typeof u.verifiedBy === 'object' && u.verifiedBy.type === 'facebook')
+  ) {
+    return 'facebook';
   }
   if (
     u.verificationMethod === 'manual_admin' ||
@@ -87,7 +120,7 @@ function classifyVerificationMethod(u = {}) {
 
 /**
  * Project a raw user record into the safe shape used by admin list endpoints.
- * Strips: passwordHash, password, googleSub, resetToken, resetTokenExpiresAt,
+ * Strips: passwordHash, password, googleSub, facebookSub, resetToken, resetTokenExpiresAt,
  *   verificationToken, emailVerificationToken, authProviderIds.
  *
  * @param {Object} u - Raw user record
@@ -188,7 +221,7 @@ function projectUser(u, supplier, verificationLogs = []) {
     lastLoginAt: user.lastLoginAt || null,
     subscription: user.subscription || { tier: 'free', status: 'active' },
     subscriptionHistory: Array.isArray(user.subscriptionHistory) ? user.subscriptionHistory : [],
-    // Provenance (safe — no raw tokens or googleSub)
+    // Provenance (safe — no raw tokens or provider subject IDs)
     signupMethod,
     verificationMethod,
     verifiedAt: user.verifiedAt || provenance.verifiedAt || null,
@@ -198,6 +231,15 @@ function projectUser(u, supplier, verificationLogs = []) {
     hasGoogleLink:
       provenance.hasGoogleLink ||
       !!(user.googleSub || (user.authProviderIds && user.authProviderIds.google)),
+    hasFacebookLink:
+      provenance.hasFacebookLink ||
+      !!(user.facebookSub || (user.authProviderIds && user.authProviderIds.facebook)),
+    googleLinkedAt: provenance.googleLinkedAt || null,
+    facebookLinkedAt: provenance.facebookLinkedAt || null,
+    verifiedBy: provenance.verifiedBy || null,
+    lastVerificationEmailLogId: provenance.lastVerificationEmailLogId || null,
+    lastVerificationEmailPostmarkMessageId:
+      provenance.lastVerificationEmailPostmarkMessageId || null,
     // Supplier linkage summary
     supplierProfile: supplierSummary,
     // Account health flags
@@ -235,12 +277,13 @@ function createRoleCounter() {
 }
 
 function createSignupCounter() {
-  return { google: 0, email_password: 0, admin_created: 0, owner: 0, unknown: 0 };
+  return { google: 0, facebook: 0, email_password: 0, admin_created: 0, owner: 0, unknown: 0 };
 }
 
 function createVerificationCounter() {
   return {
     google: 0,
+    facebook: 0,
     email_link: 0,
     admin: 0,
     legacy: 0,
@@ -253,6 +296,7 @@ function createHealthSummary() {
   return {
     emailPasswordPending: 0,
     googleVerified: 0,
+    facebookVerified: 0,
     eventflowEmailVerified: 0,
     adminCreated: 0,
     ownerAccounts: 0,
@@ -326,6 +370,12 @@ function updateVerificationHealth(health, user, provenance, signupMethod, verifi
     (provenance.verified || user.verified)
   ) {
     health.googleVerified += 1;
+  }
+  if (
+    (provenance.signupMethod === 'facebook' || signupMethod === 'facebook') &&
+    (provenance.verified || user.verified)
+  ) {
+    health.facebookVerified += 1;
   }
   if (provenance.verificationMethod === 'eventflow_email' || verificationMethod === 'email_link') {
     health.eventflowEmailVerified += 1;
@@ -716,7 +766,7 @@ async function listUsers(opts = {}) {
 
 /**
  * Get a single user with full safe detail including supplier linkage.
- * Never returns: passwordHash, password, googleSub, resetToken, verificationToken.
+ * Never returns: passwordHash, password, googleSub, facebookSub, resetToken, verificationToken.
  *
  * @param {string} userId
  * @returns {Promise<Object|null>}

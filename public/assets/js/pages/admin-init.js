@@ -369,6 +369,12 @@
               warn: false,
             },
             {
+              label: 'Facebook sign-in',
+              value: bySig.facebook || 0,
+              href: '/admin-users?signupMethod=facebook',
+              warn: false,
+            },
+            {
               label: 'Email / password',
               value: bySig.email_password || 0,
               href: '/admin-users?signupMethod=email_password',

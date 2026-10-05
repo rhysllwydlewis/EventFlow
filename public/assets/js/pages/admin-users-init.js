@@ -94,6 +94,7 @@
   function signupBadge(method) {
     const map = {
       google: badge('Google', 'google'),
+      facebook: badge('Facebook', 'facebook'),
       email_password: badge('Email/password', 'email'),
       admin_created: badge('Admin-created', 'admin-created'),
       owner: badge('Owner', 'admin'),
@@ -106,6 +107,8 @@
     const map = {
       google: badge('Google verified', 'google'),
       google_verified_email: badge('Google verified', 'google'),
+      facebook: badge('Facebook verified', 'facebook'),
+      facebook_verified_email: badge('Facebook verified', 'facebook'),
       email_link: badge('Email link', 'yes'),
       eventflow_email: badge('EventFlow email', 'yes'),
       admin: badge('Admin verified', 'admin-created'),
@@ -192,6 +195,12 @@
         'amber'
       ),
       card(health.googleVerified, 'Google verified', '/admin-users?signupMethod=google', 'green'),
+      card(
+        health.facebookVerified,
+        'Facebook verified',
+        '/admin-users?signupMethod=facebook',
+        'blue'
+      ),
       card(
         health.emailPasswordPending,
         'Email/password pending',

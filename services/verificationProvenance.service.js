@@ -17,6 +17,12 @@ function hasGoogleLink(user) {
   return Boolean(user && (user.googleSub || (user.authProviderIds && user.authProviderIds.google)));
 }
 
+function hasFacebookLink(user) {
+  return Boolean(
+    user && (user.facebookSub || (user.authProviderIds && user.authProviderIds.facebook))
+  );
+}
+
 function maskEmail(email) {
   const value = String(email || '');
   const parts = value.split('@');
@@ -42,6 +48,9 @@ function inferSignupMethod(user) {
   if (hasGoogleLink(user)) {
     return 'google';
   }
+  if (hasFacebookLink(user)) {
+    return 'facebook';
+  }
   if (user.passwordHash) {
     return 'email_password';
   }
@@ -52,7 +61,7 @@ function inferAuthProvider(user) {
   if (!user) {
     return 'unknown';
   }
-  if (hasGoogleLink(user) && user.passwordHash) {
+  if ((hasGoogleLink(user) || hasFacebookLink(user)) && user.passwordHash) {
     return 'mixed';
   }
   if (user.authProvider) {
@@ -60,6 +69,9 @@ function inferAuthProvider(user) {
   }
   if (hasGoogleLink(user)) {
     return 'google';
+  }
+  if (hasFacebookLink(user)) {
+    return 'facebook';
   }
   if (user.createdBy && user.verified === true && !user.passwordHash) {
     return 'admin';
@@ -89,6 +101,9 @@ function inferVerificationMethod(user) {
   if (hasGoogleLink(user)) {
     return 'google_verified_email';
   }
+  if (hasFacebookLink(user)) {
+    return 'facebook_verified_email';
+  }
   if (user.verifiedAt && user.verificationEmailSentAt) {
     return 'eventflow_email';
   }
@@ -109,6 +124,13 @@ function inferVerifiedBy(user, method) {
       type: 'google',
       provider: 'google',
       reason: 'Google account email was verified by Google',
+    };
+  }
+  if (method === 'facebook_verified_email') {
+    return {
+      type: 'facebook',
+      provider: 'facebook',
+      reason: 'Facebook account email was confirmed via the Facebook Graph API',
     };
   }
   if (method === 'admin_created') {
@@ -168,7 +190,13 @@ function inferEmailDeliveryStatus(user, logs) {
   }
   const method = inferVerificationMethod(user);
   if (
-    ['google_verified_email', 'admin_created', 'owner_account', 'not_required'].includes(method)
+    [
+      'google_verified_email',
+      'facebook_verified_email',
+      'admin_created',
+      'owner_account',
+      'not_required',
+    ].includes(method)
   ) {
     return 'not_required';
   }
@@ -199,6 +227,9 @@ function summariseUser(user, logs) {
     (verificationMethod === 'google_verified_email'
       ? iso((user && user.googleLinkedAt) || (user && user.createdAt))
       : null) ||
+    (verificationMethod === 'facebook_verified_email'
+      ? iso((user && user.facebookLinkedAt) || (user && user.createdAt))
+      : null) ||
     (verificationMethod === 'admin_created' ? iso(user && user.createdAt) : null) ||
     (verificationMethod === 'owner_account' ? iso(user && user.createdAt) : null);
   return {
@@ -219,6 +250,8 @@ function summariseUser(user, logs) {
     emailDeliveryStatus: inferEmailDeliveryStatus(user, logs),
     hasGoogleLink: hasGoogleLink(user),
     googleLinkedAt: iso(user && user.googleLinkedAt),
+    hasFacebookLink: hasFacebookLink(user),
+    facebookLinkedAt: iso(user && user.facebookLinkedAt),
   };
 }
 
@@ -350,6 +383,25 @@ async function getVerificationIntegrity(options) {
         { authProvider: user.authProvider || 'missing' }
       );
     }
+    if (user.authProvider === 'facebook' && !hasFacebookLink(user)) {
+      addIssue(
+        issues,
+        'critical',
+        user,
+        'facebook_provider_missing_facebook_link',
+        'Facebook-authenticated user has no Facebook link field.'
+      );
+    }
+    if (hasFacebookLink(user) && !['facebook', 'mixed'].includes(user.authProvider)) {
+      addIssue(
+        issues,
+        'warning',
+        user,
+        'facebook_link_with_non_facebook_provider',
+        'User has Facebook linkage but stored authProvider is not facebook or mixed.',
+        { authProvider: user.authProvider || 'missing' }
+      );
+    }
     for (const log of userLogs) {
       if (production && log.provider === 'outbox') {
         addIssue(
@@ -418,6 +470,9 @@ async function getVerificationIntegrity(options) {
     googleUsersWithValidProvenance: checkedUsers.filter(
       user => summariseUser(user, logs).verificationMethod === 'google_verified_email'
     ).length,
+    facebookUsersWithValidProvenance: checkedUsers.filter(
+      user => summariseUser(user, logs).verificationMethod === 'facebook_verified_email'
+    ).length,
     verificationEmailLogs: logsInLookback.length,
     outboxVerificationEmailLogs: logsInLookback.filter(log => log.provider === 'outbox').length,
     failedVerificationEmailLogs: logsInLookback.filter(log => log.status === 'failed').length,
@@ -441,6 +496,7 @@ async function getVerificationIntegrity(options) {
 
 module.exports = {
   hasGoogleLink,
+  hasFacebookLink,
   inferSignupMethod,
   inferAuthProvider,
   inferVerificationMethod,

@@ -51,11 +51,16 @@
       return false;
     }
     if (
-      ['google_verified_email', 'admin_created', 'owner_account'].includes(user.verificationMethod)
+      [
+        'google_verified_email',
+        'facebook_verified_email',
+        'admin_created',
+        'owner_account',
+      ].includes(user.verificationMethod)
     ) {
       return false;
     }
-    if (['google', 'admin_created', 'owner_seed'].includes(user.signupMethod)) {
+    if (['google', 'facebook', 'admin_created', 'owner_seed'].includes(user.signupMethod)) {
       return false;
     }
     return true;
@@ -82,6 +87,8 @@
           <div class="info-item"><div class="info-label">Verified by</div><div class="info-value">${AdminShared.escapeHtml(verifiedBy)}</div></div>
           <div class="info-item"><div class="info-label">Google linked</div><div class="info-value">${user.hasGoogleLink ? 'Yes' : 'No'}</div></div>
           <div class="info-item"><div class="info-label">Google linked at</div><div class="info-value">${AdminShared.escapeHtml(AdminShared.formatDate(user.googleLinkedAt))}</div></div>
+          <div class="info-item"><div class="info-label">Facebook linked</div><div class="info-value">${user.hasFacebookLink ? 'Yes' : 'No'}</div></div>
+          <div class="info-item"><div class="info-label">Facebook linked at</div><div class="info-value">${AdminShared.escapeHtml(AdminShared.formatDate(user.facebookLinkedAt))}</div></div>
           <div class="info-item"><div class="info-label">Verification email sent at</div><div class="info-value">${AdminShared.escapeHtml(AdminShared.formatDate(user.verificationEmailSentAt))}</div></div>
           <div class="info-item"><div class="info-label">Last verification email status</div><div class="info-value">${AdminShared.escapeHtml(humanize(user.emailDeliveryStatus))}</div></div>
           <div class="info-item"><div class="info-label">Postmark MessageID</div><div class="info-value">${AdminShared.escapeHtml(user.lastVerificationEmailPostmarkMessageId || 'N/A')}</div></div>
@@ -115,6 +122,8 @@
     const map = {
       google: badge('Google verified', 'google'),
       google_verified_email: badge('Google verified', 'google'),
+      facebook: badge('Facebook verified', 'facebook'),
+      facebook_verified_email: badge('Facebook verified', 'facebook'),
       email_link: badge('Email link', 'yes'),
       eventflow_email: badge('EventFlow email', 'yes'),
       admin: badge('Admin verified', 'admin-created'),
@@ -130,6 +139,7 @@
   function signupLabel(method) {
     const map = {
       google: 'Google',
+      facebook: 'Facebook',
       email_password: 'Email / password',
       admin_created: 'Admin-created',
       owner: 'Owner',
@@ -196,9 +206,10 @@
           <div class="ud-info-item"><div class="ud-info-label">Verified</div><div class="ud-info-value">${user.verified ? '<span class="badge badge-yes">Yes</span>' : '<span class="badge badge-no">No</span>'}</div></div>
           <div class="ud-info-item"><div class="ud-info-label">Verified at</div><div class="ud-info-value">${fmtDate(user.verifiedAt)}</div></div>
           <div class="ud-info-item"><div class="ud-info-label">Google linked</div><div class="ud-info-value">${user.hasGoogleLink ? '<span class="badge badge-google">Yes — Google</span>' : '—'}</div></div>
+          <div class="ud-info-item"><div class="ud-info-label">Facebook linked</div><div class="ud-info-value">${user.hasFacebookLink ? '<span class="badge badge-facebook">Yes — Facebook</span>' : '—'}</div></div>
         </div>
         <div class="ud-provenance-note">
-          <p class="small">No raw tokens, reset links, password hashes or Google subject IDs are shown here for security. Use the <a href="/admin-emails">Email Centre</a> for delivery logs.</p>
+          <p class="small">No raw tokens, reset links, password hashes or provider subject IDs are shown here for security. Use the <a href="/admin-emails">Email Centre</a> for delivery logs.</p>
         </div>
       </div>
       ${provenancePanel(user)}
