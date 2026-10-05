@@ -718,7 +718,9 @@
                 <div class="auth-google auth-google--signup">
                   <div class="auth-google-heading">
                     <span class="auth-step-badge auth-step-badge--muted">Step 2</span>
-                    <span class="auth-step-title">Continue with Google, Facebook or email</span>
+                    <span class="auth-step-title" id="auth-signup-step-title"
+                      >Continue with Google, Facebook or email</span
+                    >
                   </div>
                   <div
                     id="google-signup-button"
@@ -1019,14 +1021,17 @@
     <!-- Fetch CSRF token on page load using api-client -->
     <script src="/assets/js/pages/auth-api-init.js" defer></script>
 
+    <!-- Keeps the sign-up heading in step with which providers are available (must load before the provider scripts) -->
+    <script src="/assets/js/pages/auth-provider-heading.js?v=18.7.0" defer></script>
+
     <!-- Google Identity Services sign-in/sign-up -->
-    <script src="/assets/js/pages/auth-google-init.js?v=18.6.1" defer></script>
+    <script src="/assets/js/pages/auth-google-init.js?v=18.6.2" defer></script>
 
     <!-- Sign in with Apple -->
     <script src="/assets/js/pages/auth-apple-init.js" defer></script>
 
     <!-- Continue with Facebook -->
-    <script src="/assets/js/pages/auth-facebook-init.js?v=18.6.2" defer></script>
+    <script src="/assets/js/pages/auth-facebook-init.js?v=18.6.3" defer></script>
 
     <!-- Initialize form validation -->
     <script src="/assets/js/pages/auth-form-init.js" defer></script>

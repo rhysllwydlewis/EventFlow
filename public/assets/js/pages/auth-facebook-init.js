@@ -367,6 +367,19 @@
     });
   }
 
+  /**
+   * Tell the sign-up heading (auth-provider-heading.js) whether this provider
+   * can currently be used, so it never advertises a missing button.
+   * @param {boolean} available
+   */
+  function announceFacebookAvailability(available) {
+    document.dispatchEvent(
+      new CustomEvent('eventflow:auth-provider-availability', {
+        detail: { provider: 'facebook', available },
+      })
+    );
+  }
+
   async function initFacebookAuth() {
     showFacebookRedirectErrorFromQuery();
 
@@ -384,12 +397,16 @@
       });
       config = await res.json();
     } catch {
+      announceFacebookAvailability(false);
       return;
     }
 
     if (!config.facebookAppId) {
+      announceFacebookAvailability(false);
       return;
     }
+
+    announceFacebookAvailability(true);
 
     if (signInWrap) {
       signInWrap.hidden = false;

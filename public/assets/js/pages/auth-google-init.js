@@ -50,8 +50,22 @@
     });
   }
 
+  /**
+   * Tell the sign-up heading (auth-provider-heading.js) whether this provider
+   * can currently be used, so it never advertises a missing button.
+   * @param {boolean} available
+   */
+  function announceGoogleAvailability(available) {
+    document.dispatchEvent(
+      new CustomEvent('eventflow:auth-provider-availability', {
+        detail: { provider: 'google', available },
+      })
+    );
+  }
+
   function showGoogleUnavailable(message) {
     setGoogleButtonsBusy(false);
+    announceGoogleAvailability(false);
     const fallback = message || 'Google sign-in not configured. Please use email login for now.';
     document.querySelectorAll('.auth-google-button').forEach(el => {
       el.classList.add('auth-google-button--unavailable');
@@ -459,6 +473,7 @@
       config = await res.json();
     } catch {
       setGoogleButtonsBusy(false);
+      announceGoogleAvailability(false);
       setStatus('Google sign-in configuration could not be loaded.', 'error');
       return;
     }
@@ -472,12 +487,14 @@
       await loadGoogleScript();
     } catch {
       setGoogleButtonsBusy(false);
+      announceGoogleAvailability(false);
       setStatus('Google sign-in could not be loaded. Please refresh and try again.', 'error');
       return;
     }
 
     if (!window.google || !window.google.accounts || !window.google.accounts.id) {
       setGoogleButtonsBusy(false);
+      announceGoogleAvailability(false);
       setStatus('Google sign-in is unavailable in this browser.', 'error');
       return;
     }
