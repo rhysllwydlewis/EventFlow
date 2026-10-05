@@ -1,4 +1,3 @@
-#!/usr/bin/env node
 /**
  * Cache-busting guard.
  *
@@ -117,8 +116,10 @@ export function run(argv = process.argv.slice(2), env = process.env) {
   const mergeBase = tryGit(root, ['merge-base', options.base, 'HEAD']);
   if (!mergeBase) {
     console.error(
-      `check-asset-versions: cannot find a merge base with "${options.base}". ` +
-        'In CI, check out with fetch-depth: 0 (or fetch the base branch) first.'
+      [
+        `check-asset-versions: cannot find a merge base with "${options.base}".`,
+        'In CI, check out with fetch-depth: 0 (or fetch the base branch) first.',
+      ].join(' ')
     );
     return 2;
   }
@@ -168,9 +169,9 @@ export function run(argv = process.argv.slice(2), env = process.env) {
   const unreferenced = changedAssets.filter(url => !referenced.has(url) && !allow.includes(url));
 
   if (unreferenced.length > 0) {
+    const list = unreferenced.map(url => `  ${url}`).join('\n');
     console.log(
-      'check-asset-versions: not loaded directly by any page (cannot check, make sure whatever loads them is versioned):\n' +
-        unreferenced.map(url => `  ${url}`).join('\n')
+      `check-asset-versions: not loaded directly by any page (cannot check, make sure whatever loads them is versioned):\n${list}`
     );
   }
 
@@ -192,9 +193,12 @@ export function run(argv = process.argv.slice(2), env = process.env) {
   const inCi = env.GITHUB_ACTIONS === 'true';
   const log = options.warnOnly ? console.warn : console.error;
   log(
-    'check-asset-versions: these assets changed but some pages still load them under an unchanged URL.\n' +
-      'Browsers and the CDN keep the old copy for up to 7 days, so visitors can run stale code.\n' +
-      'Change the ?v= value on each reference (add one if it is missing).\n'
+    [
+      'check-asset-versions: these assets changed but some pages still load them under an unchanged URL.',
+      'Browsers and the CDN keep the old copy for up to 7 days, so visitors can run stale code.',
+      'Change the ?v= value on each reference (add one if it is missing).',
+      '',
+    ].join('\n')
   );
   for (const [asset, items] of byAsset) {
     const shown = options.verbose ? items : items.slice(0, 5);
@@ -206,15 +210,17 @@ export function run(argv = process.argv.slice(2), env = process.env) {
     }
     log(`  ${asset}: ${items.length} page(s)\n${lines.join('\n')}`);
     if (inCi) {
-      console.log(
-        `::${options.warnOnly ? 'warning' : 'error'} file=public/assets${asset.replace('/assets', '')}` +
-          `::${items.length} page(s) still load this changed asset under an unchanged URL (e.g. ${items[0].page}). Bump its ?v=.`
-      );
+      const level = options.warnOnly ? 'warning' : 'error';
+      const file = `public${asset}`;
+      const message = `${items.length} page(s) still load this changed asset under an unchanged URL (e.g. ${items[0].page}). Bump its ?v=.`;
+      console.log(`::${level} file=${file}::${message}`);
     }
   }
   log(
-    '\nIf a change genuinely cannot affect behaviour (for example a comment), set ' +
-      'ASSET_VERSION_ALLOW=/assets/path/to/file.js for that run.'
+    [
+      '',
+      'If a change genuinely cannot affect behaviour (for example a comment), set ASSET_VERSION_ALLOW=/assets/path/to/file.js for that run.',
+    ].join('\n')
   );
   return options.warnOnly ? 0 : 1;
 }
