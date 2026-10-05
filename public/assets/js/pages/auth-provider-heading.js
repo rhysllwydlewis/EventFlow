@@ -10,9 +10,8 @@
  *
  * Load this script before auth-google-init.js and auth-facebook-init.js.
  */
+'use strict';
 (function () {
-  'use strict';
-
   const HEADING_ID = 'auth-signup-step-title';
   const AVAILABILITY_EVENT = 'eventflow:auth-provider-availability';
   const PROVIDER_LABELS = { google: 'Google', facebook: 'Facebook' };
