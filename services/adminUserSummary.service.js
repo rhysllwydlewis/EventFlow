@@ -28,18 +28,22 @@ const emailLogService = require('./emailLog.service');
 // Provenance classification (mirrors email-centre diagnostics)
 // ---------------------------------------------------------------------------
 
+/**
+ * Whether a raw user record is authenticated with, or linked to, Google.
+ * @param {Object} u - Raw user record
+ * @returns {boolean}
+ */
 function hasGoogleIdentity(u) {
-  return (
-    u.authProvider === 'google' ||
-    !!(u.googleSub || (u.authProviderIds && u.authProviderIds.google))
-  );
+  return u.authProvider === 'google' || Boolean(u.googleSub || u.authProviderIds?.google);
 }
 
+/**
+ * Whether a raw user record is authenticated with, or linked to, Facebook.
+ * @param {Object} u - Raw user record
+ * @returns {boolean}
+ */
 function hasFacebookIdentity(u) {
-  return (
-    u.authProvider === 'facebook' ||
-    !!(u.facebookSub || (u.authProviderIds && u.authProviderIds.facebook))
-  );
+  return u.authProvider === 'facebook' || Boolean(u.facebookSub || u.authProviderIds?.facebook);
 }
 
 /**
@@ -229,11 +233,9 @@ function projectUser(u, supplier, verificationLogs = []) {
     emailDeliveryStatus: provenance.emailDeliveryStatus || 'unknown',
     verificationEmailSentAt: provenance.verificationEmailSentAt || null,
     hasGoogleLink:
-      provenance.hasGoogleLink ||
-      !!(user.googleSub || (user.authProviderIds && user.authProviderIds.google)),
+      provenance.hasGoogleLink || Boolean(user.googleSub || user.authProviderIds?.google),
     hasFacebookLink:
-      provenance.hasFacebookLink ||
-      !!(user.facebookSub || (user.authProviderIds && user.authProviderIds.facebook)),
+      provenance.hasFacebookLink || Boolean(user.facebookSub || user.authProviderIds?.facebook),
     googleLinkedAt: provenance.googleLinkedAt || null,
     facebookLinkedAt: provenance.facebookLinkedAt || null,
     verifiedBy: provenance.verifiedBy || null,

@@ -17,10 +17,13 @@ function hasGoogleLink(user) {
   return Boolean(user && (user.googleSub || (user.authProviderIds && user.authProviderIds.google)));
 }
 
+/**
+ * Whether a raw user record has a linked Facebook identity.
+ * @param {Object} user - Raw user record
+ * @returns {boolean}
+ */
 function hasFacebookLink(user) {
-  return Boolean(
-    user && (user.facebookSub || (user.authProviderIds && user.authProviderIds.facebook))
-  );
+  return Boolean(user && (user.facebookSub || user.authProviderIds?.facebook));
 }
 
 function maskEmail(email) {
