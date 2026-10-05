@@ -12,6 +12,7 @@
     "migrate": "node migrate-to-mongodb.js",
     "migrate:messenger-v4": "node scripts/migrate-to-messenger-v4.js",
     "check:lockfile": "node scripts/check-lockfile-consistency.mjs",
+    "check:asset-versions": "node scripts/check-asset-versions.mjs",
     "lint": "eslint . --ext .js --rulesdir eslint-rules",
     "lint:fix": "eslint . --ext .js --rulesdir eslint-rules --fix",
     "lint:css": "stylelint \"public/**/*.css\" --ignore-pattern \"public/**/vendor/**\"",

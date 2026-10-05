@@ -1,0 +1,36 @@
+name: Asset versions
+
+# Warns (does not block) when a PR changes a file under public/assets/ but a page
+# still loads it under an unchanged URL. Assets are cached for 7 days, so visitors
+# keep running the old copy unless the ?v= value on each reference changes.
+# See scripts/check-asset-versions.mjs and the cache-busting note in CLAUDE.md.
+
+on:
+  pull_request:
+    paths:
+      - 'public/assets/**'
+      - 'public/*.html'
+      - 'scripts/check-asset-versions.mjs'
+
+permissions:
+  contents: read
+
+jobs:
+  asset-versions:
+    name: Asset versions
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version-file: '.node-version'
+
+      - name: Check changed assets are re-versioned
+        run: node scripts/check-asset-versions.mjs --base=origin/${{ github.base_ref }} --warn-only

@@ -10,6 +10,18 @@ admin pages, generated files, or shared button/notification styling.
 These have each caused a real, shipped bug at least once. When touching
 related code, check whether the same class of bug exists nearby.
 
+- **A changed asset needs a new `?v=` on every page that loads it.**
+  Everything under `public/assets/` is served with `max-age=604800` (7 days)
+  behind a CDN, so returning visitors keep the old copy until the URL changes.
+  The auth redesign (rhysllwydlewis/EventFlow#1763) removed the confirm-password
+  field and changed `app.js` but left `app.js?v=18.5.0`; anyone with the cached
+  script got "Passwords do not match" on every sign-up, and `auth-init.js` had no
+  `?v=` at all so the new social icons did nothing. When you edit a JS/CSS file,
+  bump (or add) the `?v=` on each page that references it, then run
+  `npm run check:asset-versions` (compares against `origin/main`; a PR warning
+  runs in `.github/workflows/asset-versions.yml`). Note most of the repo
+  does not follow this yet, so the check warns instead of blocking.
+
 - **`.ef-cta` squishes icon-only buttons.** `styles.css`'s `.ef-cta` class
   forces `padding: 10px 18px !important`. Any button meant to be a small
   fixed-size icon button (e.g. 32×32/40×40, just an SVG or a single
