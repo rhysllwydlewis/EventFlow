@@ -3030,3 +3030,45 @@ body.auth-page .auth-card select.auth-input--icon:required:invalid {
 #login-form .form-row {
   gap: 4px;
 }
+
+/* Checkbox rows: the empty custom-box span only added a 16px gap before the text,
+   and the global label weight made the copy bold */
+.auth-checkbox-custom {
+  display: none;
+}
+
+body.auth-page .auth-card .form-row .checkbox-label-right {
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: #475467;
+  gap: 10px;
+}
+
+/* Step 1 helper text matches the step title scale at every width */
+.auth-signup-choice__header .auth-field-help {
+  font-size: 0.8125rem;
+  margin: 2px 0 0;
+}
+
+/* Profile picture row: tighter box, hint centred on the button */
+.auth-file-upload {
+  padding: 6px 10px;
+}
+
+.auth-file-btn {
+  padding: 0.45rem 0.75rem;
+}
+
+.auth-file-upload .auth-file-help {
+  line-height: 1.3;
+}
+
+/* Phones: the 44px touch-target min-width pushed the checkbox text far to the right.
+   The whole label is the tap target, so keep it tall and let the box be its own size. */
+body.auth-page .auth-card .auth-checkbox {
+  min-width: 1rem !important;
+}
+
+body.auth-page .auth-card .form-row .checkbox-label-right {
+  min-height: 28px;
+}
