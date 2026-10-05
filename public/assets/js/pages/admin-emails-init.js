@@ -64,6 +64,7 @@
         provenance.emailPasswordUsersMissingVerificationEmailLogs,
       ],
       ['Google users with valid provenance', provenance.googleUsersWithValidProvenance],
+      ['Facebook users with valid provenance', provenance.facebookUsersWithValidProvenance],
       ['Verification email logs', provenance.verificationEmailLogs],
       ['Verification emails saved to outbox', provenance.outboxVerificationEmailLogs],
       ['Failed verification emails', provenance.failedVerificationEmailLogs],

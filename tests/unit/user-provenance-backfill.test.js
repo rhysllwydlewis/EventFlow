@@ -44,6 +44,106 @@ describe('user provenance helpers and backfill', () => {
     });
   });
 
+  test('Facebook signup provenance records Facebook verification without email delivery', () => {
+    expect(provenance.facebookSignupProvenance('2026-06-06T00:00:00.000Z')).toMatchObject({
+      signupMethod: 'facebook',
+      authProvider: 'facebook',
+      verificationMethod: 'facebook_verified_email',
+      verifiedBy: { type: 'facebook' },
+      emailDeliveryStatus: 'not_required',
+    });
+  });
+
+  describe('linkedAuthProvider', () => {
+    test('stays the linked provider for an account with no other sign-in method', () => {
+      expect(provenance.linkedAuthProvider({}, 'facebook')).toBe('facebook');
+      expect(provenance.linkedAuthProvider({ facebookSub: 'f1' }, 'facebook')).toBe('facebook');
+    });
+    test('is mixed when the account has a password', () => {
+      expect(provenance.linkedAuthProvider({ passwordHash: 'h' }, 'facebook')).toBe('mixed');
+      expect(provenance.linkedAuthProvider({ passwordHash: 'h' }, 'google')).toBe('mixed');
+    });
+    test('is mixed when a different provider is already linked', () => {
+      expect(provenance.linkedAuthProvider({ googleSub: 'g1' }, 'facebook')).toBe('mixed');
+      expect(provenance.linkedAuthProvider({ authProviderIds: { facebook: 'f1' } }, 'google')).toBe(
+        'mixed'
+      );
+    });
+    test('linking Facebook to a Google-only account no longer overwrites google', () => {
+      const updates = provenance.facebookLinkProvenance(
+        { verified: true, signupMethod: 'google', googleSub: 'g1', authProvider: 'google' },
+        '2026-06-06T00:00:00.000Z'
+      );
+      expect(updates.authProvider).toBe('mixed');
+      expect(updates).not.toHaveProperty('signupMethod');
+    });
+    test('linking Google to a Facebook-only account no longer overwrites facebook', () => {
+      const updates = provenance.googleLinkProvenance(
+        { verified: true, signupMethod: 'facebook', facebookSub: 'f1', authProvider: 'facebook' },
+        '2026-06-06T00:00:00.000Z'
+      );
+      expect(updates.authProvider).toBe('mixed');
+    });
+  });
+
+  test('inferAuthProvider reports mixed for two linked providers or provider + password', () => {
+    expect(provenance.inferAuthProvider({ googleSub: 'g', facebookSub: 'f' })).toBe('mixed');
+    expect(provenance.inferAuthProvider({ facebookSub: 'f', passwordHash: 'h' })).toBe('mixed');
+    expect(provenance.inferAuthProvider({ facebookSub: 'f' })).toBe('facebook');
+    expect(provenance.inferAuthProvider({ googleSub: 'g' })).toBe('google');
+  });
+
+  describe('backfill for social accounts', () => {
+    const now = new Date().toISOString();
+    test('Facebook account with no provenance gets Facebook (not email/password) fields', () => {
+      const updates = backfill.buildBackfillUpdates({
+        id: 'u1',
+        verified: true,
+        facebookSub: 'f1',
+        facebookLinkedAt: '2026-05-01T00:00:00.000Z',
+        createdAt: now,
+      });
+      expect(updates).toMatchObject({
+        signupMethod: 'facebook',
+        authProvider: 'facebook',
+        verificationMethod: 'facebook_verified_email',
+        verifiedAt: '2026-05-01T00:00:00.000Z',
+        verifiedBy: { type: 'facebook', provider: 'facebook' },
+        emailDeliveryStatus: 'not_required',
+      });
+    });
+    test('Facebook backfill is idempotent once applied', () => {
+      const user = { id: 'u1', verified: true, facebookSub: 'f1', createdAt: now };
+      const applied = { ...user, ...backfill.buildBackfillUpdates(user) };
+      expect(backfill.buildBackfillUpdates(applied)).toEqual({});
+    });
+    test('Facebook account with a password becomes mixed', () => {
+      const updates = backfill.buildBackfillUpdates({
+        id: 'u1',
+        verified: true,
+        facebookSub: 'f1',
+        passwordHash: 'h',
+        createdAt: now,
+      });
+      expect(updates.authProvider).toBe('mixed');
+      expect(updates.signupMethod).toBe('facebook');
+    });
+    test('account linked to both Google and Facebook keeps Google provenance and is mixed', () => {
+      const updates = backfill.buildBackfillUpdates({
+        id: 'u1',
+        verified: true,
+        googleSub: 'g1',
+        facebookSub: 'f1',
+        createdAt: now,
+      });
+      expect(updates).toMatchObject({
+        signupMethod: 'google',
+        authProvider: 'mixed',
+        verificationMethod: 'google_verified_email',
+      });
+    });
+  });
+
   test('owner backfill is idempotent after owner provenance is present', () => {
     const user = {
       id: 'owner',

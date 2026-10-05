@@ -119,6 +119,8 @@ router.get(
         lastVerificationEmailPostmarkMessageId: summary.lastVerificationEmailPostmarkMessageId,
         hasGoogleLink: summary.hasGoogleLink,
         googleLinkedAt: summary.googleLinkedAt,
+        hasFacebookLink: summary.hasFacebookLink,
+        facebookLinkedAt: summary.facebookLinkedAt,
       };
     });
     items.sort(

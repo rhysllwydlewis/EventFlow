@@ -4302,6 +4302,7 @@ tbody tr.selected td {
 
 /* Badge extras */
 .badge-google { background: #fef3c7; color: #92400e; }
+.badge-facebook { background: #dbeafe; color: #1e40af; }
 .badge-email { background: #eff6ff; color: #1d4ed8; }
 .badge-admin-created { background: #f3e8ff; color: #7c3aed; }
 .badge-customer { background: #ecfdf5; color: #065f46; }

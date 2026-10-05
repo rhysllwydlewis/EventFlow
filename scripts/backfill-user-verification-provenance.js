@@ -19,10 +19,67 @@ function setObjectIfMissing(updates, user, field, value) {
   }
 }
 
+const SOCIAL_PROVIDERS = {
+  google: {
+    hasLink: userProvenance.hasGoogleLink,
+    verificationMethod: 'google_verified_email',
+    linkedAtField: 'googleLinkedAt',
+    reason: 'Google ID token email_verified=true',
+  },
+  facebook: {
+    hasLink: userProvenance.hasFacebookLink,
+    verificationMethod: 'facebook_verified_email',
+    linkedAtField: 'facebookLinkedAt',
+    reason: 'Facebook Graph API confirmed account email',
+  },
+};
+
+/**
+ * Which social provider (if any) an account belongs to. Google is checked
+ * first so accounts linked to both keep their existing Google provenance.
+ * @param {Object} user - Raw user record
+ * @returns {'google'|'facebook'|null}
+ */
+function detectSocialProvider(user) {
+  return (
+    Object.keys(SOCIAL_PROVIDERS).find(
+      provider => SOCIAL_PROVIDERS[provider].hasLink(user) || user.authProvider === provider
+    ) || null
+  );
+}
+
+function backfillSocialProvider(updates, user, provider, nowIso) {
+  const config = SOCIAL_PROVIDERS[provider];
+  setIfMissing(updates, user, 'signupMethod', provider);
+  const expectedAuthProvider = userProvenance.linkedAuthProvider(user, provider);
+  if (
+    missing(user.authProvider) ||
+    (expectedAuthProvider === 'mixed' && user.authProvider !== 'mixed')
+  ) {
+    updates.authProvider = expectedAuthProvider;
+  }
+  if (missing(user.verificationMethod)) {
+    updates.verificationMethod = config.verificationMethod;
+  }
+  if (user.verified !== true) {
+    updates.verified = true;
+  }
+  if (!user.verifiedAt) {
+    updates.verifiedAt = user[config.linkedAtField] || user.createdAt || nowIso;
+  }
+  setObjectIfMissing(updates, user, 'verifiedBy', {
+    type: provider,
+    provider,
+    reason: config.reason,
+  });
+  setIfMissing(updates, user, 'emailDeliveryStatus', 'not_required');
+  return updates;
+}
+
 function buildBackfillUpdates(user) {
   const updates = {};
   const nowIso = new Date().toISOString();
-  const hasGoogle = userProvenance.hasGoogleLink(user) || user.authProvider === 'google';
+  const socialProvider = detectSocialProvider(user);
 
   if (user.isOwner) {
     setIfMissing(updates, user, 'signupMethod', 'owner_seed');
@@ -43,27 +100,8 @@ function buildBackfillUpdates(user) {
     return updates;
   }
 
-  if (hasGoogle) {
-    setIfMissing(updates, user, 'signupMethod', 'google');
-    if (missing(user.authProvider) || (user.passwordHash && user.authProvider !== 'mixed')) {
-      updates.authProvider = user.passwordHash ? 'mixed' : 'google';
-    }
-    if (missing(user.verificationMethod)) {
-      updates.verificationMethod = 'google_verified_email';
-    }
-    if (user.verified !== true) {
-      updates.verified = true;
-    }
-    if (!user.verifiedAt) {
-      updates.verifiedAt = user.googleLinkedAt || user.createdAt || nowIso;
-    }
-    setObjectIfMissing(updates, user, 'verifiedBy', {
-      type: 'google',
-      provider: 'google',
-      reason: 'Google ID token email_verified=true',
-    });
-    setIfMissing(updates, user, 'emailDeliveryStatus', 'not_required');
-    return updates;
+  if (socialProvider) {
+    return backfillSocialProvider(updates, user, socialProvider, nowIso);
   }
 
   if (user.createdBy && user.verified === true) {

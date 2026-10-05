@@ -56,7 +56,7 @@ Created as the single source of truth for all user counting and projection logic
 - `getUserDetail(id)` — safe enriched projection with supplier linkage
 - `classifySignupMethod()` / `classifyVerificationMethod()` — provenance logic
 - `buildAccountIssues()` — account health flag generator
-- `projectUser()` — strips all secrets (passwordHash, googleSub, resetToken, verificationToken, authProviderIds)
+- `projectUser()` — strips all secrets (passwordHash, googleSub, facebookSub, resetToken, verificationToken, authProviderIds)
 
 ---
 
@@ -112,13 +112,13 @@ All of the above are now stripped by both `GET /api/admin/users/:id` and by `pro
 1. Visit `/admin` — confirm user overview cards load with correct counts
 2. Click a count card — should open Users Centre (URL-based filter pending JS update)
 3. Visit `/admin-users` — confirm Users Centre loads with summary cards and user table
-4. Confirm Google sign-up users show "Google" badge in sign-up column
+4. Confirm Google sign-up users show "Google" badge and Facebook sign-up users show "Facebook" badge in sign-up column (neither should appear as "Unknown")
 5. Confirm email/password pending users show "Pending" in verification column
 6. Confirm supplier users show supplier profile status and link
 7. Try searching by name and email — results should update
 8. Try role filter — confirm customer/supplier/admin filtering works
 9. Open a user detail — confirm Account Provenance panel is visible
 10. Confirm supplier-linked user has supplier profile panel with link
-11. Confirm no raw googleSub, resetToken or password hashes appear in browser (DevTools → Network → API response)
+11. Confirm no raw googleSub, facebookSub, resetToken or password hashes appear in browser (DevTools → Network → API response)
 12. Try bulk-selecting admin/owner accounts and confirm bulk delete/suspend are blocked with a message
 13. Visit `/admin-supplier-detail?id=X` — verify linked user panel shows with link to user detail

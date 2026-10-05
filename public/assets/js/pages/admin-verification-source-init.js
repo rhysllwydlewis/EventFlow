@@ -27,6 +27,9 @@
     if (user.authProvider === 'google' || user.googleSub || user.hasGoogleLink) {
       return 'google';
     }
+    if (user.authProvider === 'facebook' || user.facebookSub || user.hasFacebookLink) {
+      return 'facebook';
+    }
     return user.verified ? 'unknown' : 'pending';
   }
 
@@ -37,6 +40,9 @@
     if (user.authProvider === 'google' || user.googleSub || user.hasGoogleLink) {
       return 'google';
     }
+    if (user.authProvider === 'facebook' || user.facebookSub || user.hasFacebookLink) {
+      return 'facebook';
+    }
     return 'unknown';
   }
 
@@ -44,13 +50,15 @@
     if (user.emailDeliveryStatus) {
       return user.emailDeliveryStatus;
     }
-    return signupMethod(user) === 'google' ? 'not_required' : 'unknown';
+    return ['google', 'facebook'].includes(signupMethod(user)) ? 'not_required' : 'unknown';
   }
 
   function badge(method) {
     const labelMap = {
       google: 'Google',
       google_verified_email: 'Google',
+      facebook: 'Facebook',
+      facebook_verified_email: 'Facebook',
       email_link: 'Email link',
       eventflow_email: 'Email link',
       admin: 'Admin',
@@ -64,6 +72,8 @@
     const colourMap = {
       google: '#dcfce7;color:#166534;border:1px solid #86efac;',
       google_verified_email: '#dcfce7;color:#166534;border:1px solid #86efac;',
+      facebook: '#dbeafe;color:#1e40af;border:1px solid #93c5fd;',
+      facebook_verified_email: '#dbeafe;color:#1e40af;border:1px solid #93c5fd;',
       email_link: '#dbeafe;color:#1d4ed8;border:1px solid #93c5fd;',
       eventflow_email: '#dbeafe;color:#1d4ed8;border:1px solid #93c5fd;',
       admin: '#ede9fe;color:#6d28d9;border:1px solid #c4b5fd;',

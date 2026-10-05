@@ -743,3 +743,137 @@ describe('Admin registry', () => {
     expect(allowlist).toContain('/admin-users.html');
   });
 });
+
+// ── Facebook + mixed-provider handling ───────────────────────────────────────
+describe('Facebook sign-ups in admin user systems', () => {
+  const facebookUser = (overrides = {}) =>
+    makeUser({
+      id: 'fb1',
+      email: 'fb@example.com',
+      passwordHash: undefined,
+      authProvider: 'facebook',
+      signupMethod: 'facebook',
+      verificationMethod: 'facebook_verified_email',
+      facebookSub: 'fb-sub-1',
+      authProviderIds: { facebook: 'fb-sub-1' },
+      facebookLinkedAt: '2026-06-01T00:00:00.000Z',
+      ...overrides,
+    });
+
+  test('classifySignupMethod detects facebook by authProvider, facebookSub or authProviderIds', () => {
+    expect(classifySignupMethod({ authProvider: 'facebook' })).toBe('facebook');
+    expect(classifySignupMethod({ facebookSub: 'f1' })).toBe('facebook');
+    expect(classifySignupMethod({ authProviderIds: { facebook: 'f1' } })).toBe('facebook');
+  });
+
+  test('classifySignupMethod detects google via authProviderIds', () => {
+    expect(classifySignupMethod({ authProviderIds: { google: 'g1' } })).toBe('google');
+  });
+
+  test('a password account that later linked a provider stays email_password', () => {
+    const base = {
+      passwordHash: '$2b$10$x',
+      signupMethod: 'email_password',
+      authProvider: 'mixed',
+    };
+    expect(classifySignupMethod({ ...base, facebookSub: 'f1' })).toBe('email_password');
+    expect(classifySignupMethod({ ...base, googleSub: 'g1' })).toBe('email_password');
+  });
+
+  test('classifyVerificationMethod returns facebook for Facebook-verified users', () => {
+    expect(classifyVerificationMethod({ verified: true, authProvider: 'facebook' })).toBe(
+      'facebook'
+    );
+    expect(
+      classifyVerificationMethod({ verified: true, verificationMethod: 'facebook_verified_email' })
+    ).toBe('facebook');
+    expect(classifyVerificationMethod({ verified: false, authProvider: 'facebook' })).toBe(
+      'pending'
+    );
+  });
+
+  test('classifyVerificationMethod honours stored google_verified_email', () => {
+    expect(
+      classifyVerificationMethod({
+        verified: true,
+        authProvider: 'mixed',
+        verificationMethod: 'google_verified_email',
+      })
+    ).toBe('google');
+  });
+
+  test('projectUser exposes hasFacebookLink but never facebookSub', () => {
+    const p = projectUser(facebookUser(), null);
+    expect(p.signupMethod).toBe('facebook');
+    expect(p.verificationMethod).toBe('facebook');
+    expect(p.hasFacebookLink).toBe(true);
+    expect(p.hasGoogleLink).toBe(false);
+    expect(p).not.toHaveProperty('facebookSub');
+    expect(p).not.toHaveProperty('authProviderIds');
+    expect(p.accountIssues).toEqual([]);
+  });
+
+  test('projectUser surfaces link timestamps and verifiedBy for the provenance panel', () => {
+    const p = projectUser(
+      facebookUser({
+        verifiedBy: { type: 'facebook', provider: 'facebook', reason: 'ok', secret: 'nope' },
+      }),
+      null
+    );
+    expect(p.facebookLinkedAt).toBe('2026-06-01T00:00:00.000Z');
+    expect(p.verifiedBy).toEqual({
+      type: 'facebook',
+      provider: 'facebook',
+      userId: null,
+      reason: 'ok',
+    });
+    const g = projectUser(
+      makeUser({ googleSub: 'g1', authProvider: 'google', googleLinkedAt: '2026-05-01T00:00:00Z' }),
+      null
+    );
+    expect(g.googleLinkedAt).toBe('2026-05-01T00:00:00.000Z');
+  });
+
+  describe('summary and filtering', () => {
+    const users = [
+      makeUser({ id: 'u1', verified: true, passwordHash: '$2b$10$x' }),
+      makeUser({
+        id: 'u4',
+        verified: true,
+        passwordHash: undefined,
+        authProvider: 'google',
+        googleSub: 'g1',
+      }),
+      facebookUser(),
+      facebookUser({
+        id: 'fb2',
+        email: 'fb2@example.com',
+        verified: false,
+        emailVerified: false,
+        facebookSub: 'fb-sub-2',
+        authProviderIds: { facebook: 'fb-sub-2' },
+      }),
+    ];
+
+    beforeEach(() => {
+      jest.resetAllMocks();
+      mockDb.read.mockImplementation(async col => (col === 'users' ? users : []));
+    });
+
+    test('buildUserSummary counts Facebook sign-ups and verified Facebook users', async () => {
+      const s = await buildUserSummary();
+      expect(s.bySignup.facebook).toBe(2);
+      expect(s.bySignup.unknown).toBe(0);
+      expect(s.byVerification.facebook).toBe(1);
+      expect(s.health.facebookVerified).toBe(1);
+      expect(s.newLast7BySignup.facebook).toBe(2);
+    });
+
+    test('listUsers filters by signupMethod and verificationMethod facebook', async () => {
+      const bySignup = await listUsers({ signupMethod: 'facebook' });
+      expect(bySignup.items.map(u => u.id).sort()).toEqual(['fb1', 'fb2']);
+      const byVerification = await listUsers({ verificationMethod: 'facebook' });
+      expect(byVerification.items.map(u => u.id)).toEqual(['fb1']);
+    });
+  });
+});
