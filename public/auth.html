@@ -27,7 +27,7 @@
     <link rel="stylesheet" href="/assets/css/navbar.css?v=18.4.2" /><link rel="stylesheet" href="/assets/css/eventflow-brand.css?v=1.0.1" data-eventflow-brand="true" />
     <link rel="stylesheet" href="/assets/css/p3-features.css?v=18.3.0" />
     <link rel="stylesheet" href="/assets/css/liquid-glass.css?v=18.3.0" />
-    <link rel="stylesheet" href="/assets/css/auth.css?v=18.7.0" />
+    <link rel="stylesheet" href="/assets/css/auth.css?v=18.8.0" />
     <meta name="sentry-dsn" content="" />
     <meta name="sentry-release" content="eventflow@18.1.0" />
     <meta name="sentry-environment" content="production" />
@@ -217,25 +217,28 @@
             />
             <p class="auth-brand-tagline">Plan unforgettable events</p>
             <ul class="auth-brand-features">
-              <li><span aria-hidden="true">🎉</span> Discover local suppliers &amp; venues</li>
-              <li><span aria-hidden="true">📋</span> Build detailed event timelines</li>
-              <li><span aria-hidden="true">💬</span> Message suppliers directly</li>
-              <li><span aria-hidden="true">⭐</span> Compare reviews &amp; packages</li>
+              <li><span class="auth-feature-icon"><svg class="auth-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22s7-6.5 7-12a7 7 0 1 0-14 0c0 5.5 7 12 7 12z"/><circle cx="12" cy="10" r="2.5"/></svg></span> Discover local suppliers &amp; venues</li>
+              <li><span class="auth-feature-icon"><svg class="auth-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg></span> Build detailed event timelines</li>
+              <li><span class="auth-feature-icon"><svg class="auth-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a8 8 0 0 1-11.5 7.2L4 20l1-4.5A8 8 0 1 1 21 12z"/></svg></span> Message suppliers directly</li>
+              <li><span class="auth-feature-icon"><svg class="auth-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 2l3 6.5 7 .9-5.2 4.8 1.4 7L12 17.8 5.8 21.2l1.4-7L2 9.400l7-.9z"/></svg></span> Compare reviews &amp; packages</li>
             </ul>
           </div>
           <!-- Trust stats row at the bottom -->
           <div class="auth-panel-stats">
             <div class="auth-panel-stat">
+              <span class="auth-panel-stat-icon"><svg class="auth-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l7 3v5c0 4.5-3 8-7 10-4-2-7-5.5-7-10V6z"/><path d="M9 12l2 2 4-4"/></svg></span>
               <span class="auth-panel-stat-value">Approved</span>
               <span class="auth-panel-stat-label">Supplier profiles</span>
             </div>
             <div class="auth-panel-stat-divider"></div>
             <div class="auth-panel-stat">
+              <span class="auth-panel-stat-icon"><svg class="auth-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a8 8 0 0 1-11.5 7.2L4 20l1-4.5A8 8 0 1 1 21 12z"/></svg></span>
               <span class="auth-panel-stat-value">Secure</span>
               <span class="auth-panel-stat-label">Direct messaging</span>
             </div>
             <div class="auth-panel-stat-divider"></div>
             <div class="auth-panel-stat">
+              <span class="auth-panel-stat-icon"><svg class="auth-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 12v8H4v-8M2 7h20v5H2zM12 22V7M12 7H7.5a2.5 2.5 0 1 1 0-5C11 2 12 7 12 7zM12 7h4.5a2.5 2.5 0 1 0 0-5C13 2 12 7 12 7z"/></svg></span>
               <span class="auth-panel-stat-value">Free</span>
               <span class="auth-panel-stat-label">Always free to join</span>
             </div>
@@ -247,16 +250,8 @@
         <!-- Right panel: auth form -->
         <div class="auth-split-right">
           <div class="auth-container">
-            <nav class="auth-breadcrumbs" aria-label="Breadcrumb">
-              <a href="/">Home</a>
-              <span aria-hidden="true">/</span>
-              <span>Account</span>
-            </nav>
             <div class="auth-header">
               <h1 class="auth-heading">Welcome back</h1>
-              <p class="auth-subtitle">
-                Sign in to your EventFlow account or create a new one to get started.
-              </p>
             </div>
 
             <!-- Intent-based contextual notice (populated by auth-intent.js) -->
@@ -466,14 +461,13 @@
 
                 <div class="auth-signup-choice" aria-describedby="signup-choice-help">
                   <div class="auth-signup-choice__header">
-                    <span class="auth-step-badge">Step 1</span>
+                    <span class="auth-step-badge" aria-label="Step 1">1</span>
                     <div>
                       <span class="auth-label auth-step-title" id="role-label"
                         >Choose your account type</span
                       >
                       <p class="auth-field-help small" id="signup-choice-help">
-                        This decides which dashboard you get, so pick the one that describes you.
-                        You can switch later in Settings.
+                        You can change this later in Settings.
                       </p>
                     </div>
                   </div>
@@ -507,7 +501,6 @@
                         </svg>
                       </span>
                       <span class="auth-role-copy">
-                        <span class="auth-role-tag">Customer account</span>
                         <span class="auth-role-title">I’m planning an event</span>
                         <span class="auth-role-description"
                           >Plan, shortlist and message suppliers.</span
@@ -537,7 +530,6 @@
                         </svg>
                       </span>
                       <span class="auth-role-copy">
-                        <span class="auth-role-tag">Supplier account</span>
                         <span class="auth-role-title">I run a business</span>
                         <span class="auth-role-description"
                           >List your business and manage enquiries.</span
@@ -546,9 +538,6 @@
                       <span class="auth-role-check" aria-hidden="true"></span>
                     </button>
                   </div>
-                  <p class="auth-role-hint" id="reg-role-hint">
-                    Required — choose one before creating your account.
-                  </p>
                   <span
                     class="auth-field-error small auth-role-error"
                     id="reg-role-error"
@@ -562,15 +551,15 @@
 
                   <div class="auth-field-row auth-field-row--location">
                     <div class="auth-field form-row">
-                      <label class="auth-label" for="reg-location">County or region *</label>
+                      <label class="auth-label auth-sr-only" for="reg-location">County or region *</label>
                       <select
                         id="reg-location"
                         name="location"
-                        class="auth-input"
+                        class="auth-input auth-input--icon auth-input--pin"
                         required
                         aria-required="true"
                       >
-                        <option value="">Select your county...</option>
+                        <option value="">County or region</option>
                         <option value="Bedfordshire">Bedfordshire</option>
                         <option value="Berkshire">Berkshire</option>
                         <option value="Bristol">Bristol</option>
@@ -624,15 +613,15 @@
                     </div>
 
                     <div class="auth-field form-row">
-                      <label class="auth-label" for="reg-postcode"
+                      <label class="auth-label auth-sr-only" for="reg-postcode"
                         >Postcode <span class="auth-label-optional">(Optional)</span></label
                       >
                       <input
                         id="reg-postcode"
                         name="postcode"
                         type="text"
-                        class="auth-input"
-                        placeholder="e.g. SW1A 1AA"
+                        class="auth-input auth-input--icon auth-input--pin"
+                        placeholder="Postcode"
                         autocomplete="postal-code"
                       />
                     </div>
@@ -641,75 +630,87 @@
                   <!-- Supplier-specific fields (shown when supplier role is selected) -->
                   <div id="supplier-fields" class="auth-supplier-fields" style="display: none">
                     <div class="auth-field form-row">
-                      <label class="auth-label" for="reg-company">Company name *</label>
+                      <label class="auth-label auth-sr-only" for="reg-company">Company name *</label>
                       <input
                         id="reg-company"
                         name="company"
                         type="text"
-                        class="auth-input"
-                        placeholder="Your business name"
+                        class="auth-input auth-input--icon auth-input--shop"
+                        placeholder="Business name"
                         autocomplete="organization"
                       />
                     </div>
                     <div class="auth-field-row auth-field-row--supplier">
                       <div class="auth-field form-row">
-                        <label class="auth-label" for="reg-jobtitle"
+                        <label class="auth-label auth-sr-only" for="reg-jobtitle"
                           >Job Title <span class="auth-label-optional">(Optional)</span></label
                         >
                         <input
                           id="reg-jobtitle"
                           name="jobtitle"
                           type="text"
-                          class="auth-input"
-                          placeholder="e.g. Event Manager"
+                          class="auth-input auth-input--icon auth-input--user"
+                          placeholder="Job title (optional)"
                           autocomplete="organization-title"
                         />
                       </div>
                       <div class="auth-field form-row">
-                        <label class="auth-label" for="reg-website"
+                        <label class="auth-label auth-sr-only" for="reg-website"
                           >Website <span class="auth-label-optional">(Optional)</span></label
                         >
                         <input
                           id="reg-website"
                           name="website"
                           type="url"
-                          class="auth-input"
-                          placeholder="https://example.com"
+                          class="auth-input auth-input--icon auth-input--globe"
+                          placeholder="Website (optional)"
                           autocomplete="url"
                         />
                       </div>
                     </div>
-                    <div class="auth-field form-row">
-                      <label class="auth-label"
-                        >Social Media <span class="auth-label-optional">(Optional)</span></label
-                      >
+                    <div class="auth-field form-row auth-social-links">
+                      <div class="auth-social-toggles" role="group" aria-label="Social media links (optional)">
+                        <span class="auth-social-toggles__label">Socials <span class="auth-label-optional">(Optional)</span></span>
+                        <button type="button" class="auth-social-toggle" data-social-target="reg-instagram" aria-pressed="false" aria-label="Add Instagram link" title="Instagram"><svg class="auth-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><path d="M17.5 6.5h.01"/></svg></button>
+                        <button type="button" class="auth-social-toggle" data-social-target="reg-facebook" aria-pressed="false" aria-label="Add Facebook link" title="Facebook"><svg class="auth-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 8h3V4h-3a4 4 0 0 0-4 4v3H7v4h3v6h4v-6h3l1-4h-4V8z"/></svg></button>
+                        <button type="button" class="auth-social-toggle" data-social-target="reg-twitter" aria-pressed="false" aria-label="Add X / Twitter link" title="X / Twitter"><svg class="auth-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 4l16 16M20 4L4 20"/></svg></button>
+                        <button type="button" class="auth-social-toggle" data-social-target="reg-linkedin" aria-pressed="false" aria-label="Add LinkedIn link" title="LinkedIn"><svg class="auth-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="3"/><path d="M8 11v6M8 7.5h.01M12 17v-6M12 13a3 3 0 0 1 6 0v4"/></svg></button>
+                      </div>
                       <input
                         id="reg-instagram"
                         name="instagram"
                         type="url"
-                        class="auth-input auth-input--stacked"
+                        class="auth-input auth-input--stacked auth-social-input"
                         placeholder="Instagram URL"
+                        aria-label="Instagram link"
+                        hidden
                       />
                       <input
                         id="reg-facebook"
                         name="facebook"
                         type="url"
-                        class="auth-input auth-input--stacked"
+                        class="auth-input auth-input--stacked auth-social-input"
                         placeholder="Facebook URL"
+                        aria-label="Facebook link"
+                        hidden
                       />
                       <input
                         id="reg-twitter"
                         name="twitter"
                         type="url"
-                        class="auth-input auth-input--stacked"
+                        class="auth-input auth-input--stacked auth-social-input"
                         placeholder="Twitter/X URL"
+                        aria-label="X / Twitter link"
+                        hidden
                       />
                       <input
                         id="reg-linkedin"
                         name="linkedin"
                         type="url"
-                        class="auth-input auth-input--stacked"
+                        class="auth-input auth-input--stacked auth-social-input"
                         placeholder="LinkedIn URL"
+                        aria-label="LinkedIn link"
+                        hidden
                       />
                     </div>
                   </div>
@@ -717,7 +718,7 @@
 
                 <div class="auth-google auth-google--signup">
                   <div class="auth-google-heading">
-                    <span class="auth-step-badge auth-step-badge--muted">Step 2</span>
+                    <span class="auth-step-badge auth-step-badge--muted" aria-label="Step 2">2</span>
                     <span class="auth-step-title" id="auth-signup-step-title"
                       >Continue with Google, Facebook or email</span
                     >
@@ -768,43 +769,43 @@
 
                 <div class="auth-field-row">
                   <div class="auth-field form-row">
-                    <label class="auth-label" for="reg-firstname">First name</label>
+                    <label class="auth-label auth-sr-only" for="reg-firstname">First name</label>
                     <input
                       id="reg-firstname"
                       name="firstname"
                       type="text"
-                      class="auth-input"
+                      class="auth-input auth-input--icon auth-input--user"
                       autocomplete="given-name"
                       required
-                      placeholder="Jane"
+                      placeholder="First name"
                       aria-required="true"
                     />
                   </div>
                   <div class="auth-field form-row">
-                    <label class="auth-label" for="reg-lastname">Last name</label>
+                    <label class="auth-label auth-sr-only" for="reg-lastname">Last name</label>
                     <input
                       id="reg-lastname"
                       name="lastname"
                       type="text"
-                      class="auth-input"
+                      class="auth-input auth-input--icon auth-input--user"
                       autocomplete="family-name"
                       required
-                      placeholder="Smith"
+                      placeholder="Last name"
                       aria-required="true"
                     />
                   </div>
                 </div>
 
                 <div class="auth-field form-row">
-                  <label class="auth-label" for="reg-email">Email address</label>
+                  <label class="auth-label auth-sr-only" for="reg-email">Email address</label>
                   <input
                     id="reg-email"
                     name="email"
                     type="email"
-                    class="auth-input"
+                    class="auth-input auth-input--icon auth-input--mail"
                     autocomplete="email"
                     required
-                    placeholder="you@example.com"
+                    placeholder="Email address"
                     aria-required="true"
                     aria-describedby="email-validation-msg"
                   />
@@ -816,16 +817,16 @@
                 </div>
 
                 <div class="auth-field form-row">
-                  <label class="auth-label" for="reg-password">Password</label>
+                  <label class="auth-label auth-sr-only" for="reg-password">Password</label>
                   <div class="auth-input-wrap auth-pw-wrap">
                     <input
                       id="reg-password"
                       name="password"
                       type="password"
-                      class="auth-input has-toggle"
+                      class="auth-input auth-input--icon auth-input--lock has-toggle"
                       autocomplete="new-password"
                       required
-                      placeholder="Min. 8 characters"
+                      placeholder="Password (8+ characters)"
                       aria-required="true"
                       aria-describedby="password-strength-msg password-requirements"
                     />
@@ -858,28 +859,6 @@
                 </div>
 
                 <div class="auth-field form-row">
-                  <label class="auth-label" for="reg-password-confirm">Confirm password</label>
-                  <div class="auth-input-wrap auth-pw-wrap">
-                    <input
-                      id="reg-password-confirm"
-                      name="passwordConfirm"
-                      type="password"
-                      class="auth-input has-toggle"
-                      autocomplete="new-password"
-                      required
-                      placeholder="Re-enter your password"
-                      aria-required="true"
-                      aria-describedby="password-match-msg"
-                    />
-                  </div>
-                  <span
-                    class="small auth-match-msg auth-field-error"
-                    id="password-match-msg"
-                    role="alert"
-                  ></span>
-                </div>
-
-                <div class="auth-field form-row">
                   <label class="auth-label" for="reg-avatar"
                     >Profile picture <span class="auth-label-optional">(Optional)</span></label
                   >
@@ -893,25 +872,13 @@
                       aria-describedby="reg-avatar-help"
                     />
                     <label class="auth-file-btn" for="reg-avatar">
-                      <svg
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        stroke-width="2"
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                        aria-hidden="true"
-                      >
-                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                        <polyline points="17 8 12 3 7 8" />
-                        <line x1="12" y1="3" x2="12" y2="15" />
-                      </svg>
-                      Choose image
+                      <svg class="auth-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8h3l2-3h6l2 3h3v12H4z"/><circle cx="12" cy="13" r="3.5"/></svg>
+                      Add a photo
                     </label>
                     <span class="auth-file-name" id="reg-avatar-name">No image selected</span>
                   </div>
                   <span class="small auth-file-help" id="reg-avatar-help"
-                    >Max 5MB. Formats: JPEG, PNG, WebP</span
+                    >JPEG, PNG or WebP, max 5MB</span
                   >
                 </div>
 
@@ -924,7 +891,7 @@
                       class="auth-checkbox"
                     />
                     <span class="auth-checkbox-custom"></span>
-                    <span>Send me the occasional EventFlow update and planning tips.</span>
+                    <span>Send me planning tips and updates.</span>
                   </label>
                 </div>
 
@@ -979,10 +946,7 @@
                   <span class="auth-submit-text">Create account</span>
                   <span class="auth-submit-spinner" aria-hidden="true"></span>
                 </button>
-                <p class="auth-security-note small">
-                  Protected by CSRF checks, encrypted sessions and anti-bot verification. We never
-                  sell your data.
-                </p>
+                <p class="auth-security-note small"><svg class="auth-icon auth-icon--sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg> Your data is never sold.</p>
                 <span
                   class="small auth-status-inline"
                   id="reg-status"

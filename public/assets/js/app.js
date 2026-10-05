@@ -7185,8 +7185,9 @@ document.addEventListener('DOMContentLoaded', () => {
           return;
         }
 
-        // Check password confirmation
-        if (password !== passwordConfirm) {
+        // Check password confirmation (the field is optional markup; the show/hide
+        // toggle replaces it on the redesigned auth page)
+        if (regPasswordConfirm && password !== passwordConfirm) {
           if (regStatus) {
             regStatus.textContent = 'Passwords do not match';
           }
