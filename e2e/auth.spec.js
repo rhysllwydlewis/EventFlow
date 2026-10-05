@@ -365,18 +365,9 @@ test.describe('Authentication Flow', () => {
     const pwToggles = page.locator('.auth-pw-wrap:has(#reg-password) .password-toggle');
     await expect(pwToggles).toHaveCount(1);
 
-    // Check confirm password field – exactly one toggle before typing
-    const confirmToggles = page.locator(
-      '.auth-pw-wrap:has(#reg-password-confirm) .password-toggle'
-    );
-    await expect(confirmToggles).toHaveCount(1);
-
-    // Type into the password fields and verify no second toggle appears
+    // Type into the password field and verify no second toggle appears
     await page.fill('#reg-password', 'TestPassword1');
     await expect(pwToggles).toHaveCount(1);
-
-    await page.fill('#reg-password-confirm', 'TestPassword1');
-    await expect(confirmToggles).toHaveCount(1);
   });
 });
 
@@ -417,7 +408,6 @@ test.describe('ALTCHA Registration Payload', () => {
     await page.fill('#reg-lastname', 'User');
     await page.fill('#reg-email', `altcha-test-${Date.now()}@example.com`);
     await page.fill('#reg-password', 'TestPass123');
-    await page.fill('#reg-password-confirm', 'TestPass123');
     // Location is required — select any valid UK county.
     await page.selectOption('#reg-location', 'Greater London');
     // Terms checkbox is required before the handler proceeds.

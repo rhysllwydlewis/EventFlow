@@ -30,18 +30,18 @@ describe('auth signup layout', () => {
   it('keeps the auth page compact and free from unwanted skip-link chrome', () => {
     expect(authHtml).not.toContain('Skip to sign in');
     expect(authHtml).not.toContain('auth-skip-link');
-    expect(authHtml).toContain('/assets/css/auth.css?v=18.7.0');
+    expect(authHtml).toContain('/assets/css/auth.css?v=18.8.1');
     expect(authHtml).toContain('County or region *');
     expect(authHtml).toContain('Company name *');
     expect(authHtml).toContain('Profile picture');
   });
 
   it('labels the signup choice as a guided two-step flow', () => {
-    expect(authHtml).toContain('Step 1');
+    expect(authHtml).toContain('aria-label="Step 1"');
     expect(authHtml).toContain('Choose your account type');
     expect(authHtml).toContain('Plan, shortlist and message suppliers.');
     expect(authHtml).toContain('List your business and manage enquiries.');
-    expect(authHtml).toContain('Step 2');
+    expect(authHtml).toContain('aria-label="Step 2"');
     expect(authHtml).toContain('Continue with Google, Facebook or email');
   });
 
@@ -59,8 +59,8 @@ describe('auth signup layout', () => {
   });
 
   it('names the account type on the picker and again before submit', () => {
-    expect(authHtml).toContain('Customer account');
-    expect(authHtml).toContain('Supplier account');
+    expect(authHtml).toContain('I’m planning an event');
+    expect(authHtml).toContain('I run a business');
     expect(authHtml).toContain('id="reg-role-recap"');
     expect(authHtml).toContain('id="reg-role-recap-name"');
     expect(authHtml).toContain('data-default-label="Create account"');

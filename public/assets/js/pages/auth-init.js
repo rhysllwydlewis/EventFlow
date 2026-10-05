@@ -329,6 +329,27 @@
     });
   }
 
+  // ── Supplier social links: icon toggles reveal one URL field each ──
+  document.querySelectorAll('.auth-social-toggle').forEach(toggle => {
+    const target = document.getElementById(toggle.dataset.socialTarget);
+    if (!target) {
+      return;
+    }
+    // A field that already holds a value (e.g. restored by the browser) stays open.
+    if (target.value) {
+      target.hidden = false;
+      toggle.setAttribute('aria-pressed', 'true');
+    }
+    toggle.addEventListener('click', () => {
+      const open = toggle.getAttribute('aria-pressed') !== 'true';
+      toggle.setAttribute('aria-pressed', String(open));
+      target.hidden = !open;
+      if (open) {
+        target.focus();
+      }
+    });
+  });
+
   // ── Profile picture: theme-styled file control ────────────────
   // The native input is visually hidden behind its <label>, so the chosen
   // filename has to be echoed back or the control looks like it did nothing.
