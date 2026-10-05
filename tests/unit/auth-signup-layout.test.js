@@ -30,7 +30,7 @@ describe('auth signup layout', () => {
   it('keeps the auth page compact and free from unwanted skip-link chrome', () => {
     expect(authHtml).not.toContain('Skip to sign in');
     expect(authHtml).not.toContain('auth-skip-link');
-    expect(authHtml).toContain('/assets/css/auth.css?v=18.8.1');
+    expect(authHtml).toContain('/assets/css/auth.css?v=18.9.0');
     expect(authHtml).toContain('County or region *');
     expect(authHtml).toContain('Company name *');
     expect(authHtml).toContain('Profile picture');
@@ -68,8 +68,8 @@ describe('auth signup layout', () => {
   });
 
   it('names the account type on the picker and again before submit', () => {
-    expect(authHtml).toContain('I’m planning an event');
-    expect(authHtml).toContain('I run a business');
+    expect(authHtml).toContain('<span class="auth-role-title">Customer</span>');
+    expect(authHtml).toContain('<span class="auth-role-title">Supplier</span>');
     expect(authHtml).toContain('id="reg-role-recap"');
     expect(authHtml).toContain('id="reg-role-recap-name"');
     expect(authHtml).toContain('data-default-label="Create account"');

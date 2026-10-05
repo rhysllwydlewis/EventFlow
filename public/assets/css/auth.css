@@ -3072,3 +3072,34 @@ body.auth-page .auth-card .auth-checkbox {
 body.auth-page .auth-card .form-row .checkbox-label-right {
   min-height: 28px;
 }
+
+/* Account type: two icon-led cards side by side; the one-line descriptions stay
+   in the markup for screen readers only */
+body.auth-page .auth-card .auth-role-picker {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+body.auth-page .auth-card .auth-role-picker .auth-role-option {
+  flex-direction: column;
+  justify-content: center;
+  gap: 8px;
+  padding: 18px 10px 14px;
+  text-align: center;
+}
+
+body.auth-page .auth-card .auth-role-picker .auth-role-copy {
+  align-items: center;
+  text-align: center;
+}
+
+body.auth-page .auth-card .auth-role-picker .auth-role-title {
+  font-size: 1rem;
+}
+
+body.auth-page .auth-card .auth-role-picker .auth-role-check {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+}
