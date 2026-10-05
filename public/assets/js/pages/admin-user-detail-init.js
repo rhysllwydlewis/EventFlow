@@ -148,6 +148,10 @@
     return map[method] || humanize(method || 'unknown');
   }
 
+  function linkedBadge(isLinked, type, label) {
+    return isLinked ? `<span class="badge badge-${type}">Yes — ${label}</span>` : '—';
+  }
+
   function renderUserDetails(user) {
     const container = document.getElementById('userDetailsContainer');
     const issues = user.accountIssues || [];
@@ -206,7 +210,7 @@
           <div class="ud-info-item"><div class="ud-info-label">Verified</div><div class="ud-info-value">${user.verified ? '<span class="badge badge-yes">Yes</span>' : '<span class="badge badge-no">No</span>'}</div></div>
           <div class="ud-info-item"><div class="ud-info-label">Verified at</div><div class="ud-info-value">${fmtDate(user.verifiedAt)}</div></div>
           <div class="ud-info-item"><div class="ud-info-label">Google linked</div><div class="ud-info-value">${user.hasGoogleLink ? '<span class="badge badge-google">Yes — Google</span>' : '—'}</div></div>
-          <div class="ud-info-item"><div class="ud-info-label">Facebook linked</div><div class="ud-info-value">${user.hasFacebookLink ? '<span class="badge badge-facebook">Yes — Facebook</span>' : '—'}</div></div>
+          <div class="ud-info-item"><div class="ud-info-label">Facebook linked</div><div class="ud-info-value">${linkedBadge(user.hasFacebookLink, 'facebook', 'Facebook')}</div></div>
         </div>
         <div class="ud-provenance-note">
           <p class="small">No raw tokens, reset links, password hashes or provider subject IDs are shown here for security. Use the <a href="/admin-emails">Email Centre</a> for delivery logs.</p>

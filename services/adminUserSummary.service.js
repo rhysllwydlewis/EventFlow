@@ -188,6 +188,28 @@ async function safeRead(collection, stage) {
   }
 }
 
+/**
+ * Safe provider-link and verification-source fields for the admin user
+ * projection. Kept separate so projectUser stays readable. Never returns raw
+ * provider subject IDs.
+ * @param {Object} user - Raw user record
+ * @param {Object} provenance - Safe provenance from userProvenance.safeUserProvenance
+ * @returns {Object}
+ */
+function projectProviderFields(user, provenance) {
+  return {
+    hasFacebookLink: Boolean(
+      provenance.hasFacebookLink || user.facebookSub || user.authProviderIds?.facebook
+    ),
+    googleLinkedAt: provenance.googleLinkedAt || null,
+    facebookLinkedAt: provenance.facebookLinkedAt || null,
+    verifiedBy: provenance.verifiedBy || null,
+    lastVerificationEmailLogId: provenance.lastVerificationEmailLogId || null,
+    lastVerificationEmailPostmarkMessageId:
+      provenance.lastVerificationEmailPostmarkMessageId || null,
+  };
+}
+
 function projectUser(u, supplier, verificationLogs = []) {
   const user = u || {};
   const verificationSummary = verificationProvenance.summariseUser(user, verificationLogs);
@@ -233,15 +255,9 @@ function projectUser(u, supplier, verificationLogs = []) {
     emailDeliveryStatus: provenance.emailDeliveryStatus || 'unknown',
     verificationEmailSentAt: provenance.verificationEmailSentAt || null,
     hasGoogleLink:
-      provenance.hasGoogleLink || Boolean(user.googleSub || user.authProviderIds?.google),
-    hasFacebookLink:
-      provenance.hasFacebookLink || Boolean(user.facebookSub || user.authProviderIds?.facebook),
-    googleLinkedAt: provenance.googleLinkedAt || null,
-    facebookLinkedAt: provenance.facebookLinkedAt || null,
-    verifiedBy: provenance.verifiedBy || null,
-    lastVerificationEmailLogId: provenance.lastVerificationEmailLogId || null,
-    lastVerificationEmailPostmarkMessageId:
-      provenance.lastVerificationEmailPostmarkMessageId || null,
+      provenance.hasGoogleLink ||
+      !!(user.googleSub || (user.authProviderIds && user.authProviderIds.google)),
+    ...projectProviderFields(user, provenance),
     // Supplier linkage summary
     supplierProfile: supplierSummary,
     // Account health flags

@@ -219,6 +219,27 @@ function inferEmailDeliveryStatus(user, logs) {
   return user && user.verified === true ? 'unknown' : 'pending';
 }
 
+/**
+ * Facebook-specific parts of a user's verification summary. Facebook-verified
+ * accounts without an explicit verifiedAt fall back to when Facebook was linked.
+ * @param {Object} user - Raw user record
+ * @param {string} verificationMethod - Inferred verification method
+ * @param {string|null} verifiedAt - verifiedAt computed so far
+ * @returns {{verifiedAt: string|null, hasFacebookLink: boolean, facebookLinkedAt: string|null}}
+ */
+function summariseFacebookFields(user, verificationMethod, verifiedAt) {
+  const facebookLinkedAt = iso(user && user.facebookLinkedAt);
+  const facebookVerifiedAt =
+    verificationMethod === 'facebook_verified_email'
+      ? facebookLinkedAt || iso(user && user.createdAt)
+      : null;
+  return {
+    verifiedAt: verifiedAt || facebookVerifiedAt,
+    hasFacebookLink: hasFacebookLink(user),
+    facebookLinkedAt,
+  };
+}
+
 function summariseUser(user, logs) {
   const signupMethod = inferSignupMethod(user);
   const authProvider = inferAuthProvider(user);
@@ -229,9 +250,6 @@ function summariseUser(user, logs) {
     iso(user && user.verifiedAt) ||
     (verificationMethod === 'google_verified_email'
       ? iso((user && user.googleLinkedAt) || (user && user.createdAt))
-      : null) ||
-    (verificationMethod === 'facebook_verified_email'
-      ? iso((user && user.facebookLinkedAt) || (user && user.createdAt))
       : null) ||
     (verificationMethod === 'admin_created' ? iso(user && user.createdAt) : null) ||
     (verificationMethod === 'owner_account' ? iso(user && user.createdAt) : null);
@@ -253,8 +271,7 @@ function summariseUser(user, logs) {
     emailDeliveryStatus: inferEmailDeliveryStatus(user, logs),
     hasGoogleLink: hasGoogleLink(user),
     googleLinkedAt: iso(user && user.googleLinkedAt),
-    hasFacebookLink: hasFacebookLink(user),
-    facebookLinkedAt: iso(user && user.facebookLinkedAt),
+    ...summariseFacebookFields(user, verificationMethod, verifiedAt),
   };
 }
 
@@ -272,6 +289,33 @@ function addIssue(issues, severity, user, issue, message, details) {
     message,
     details: details || {},
   });
+}
+
+/**
+ * Flag inconsistent Facebook provider fields on a user.
+ * @param {Object[]} issues - Issue list to append to
+ * @param {Object} user - Raw user record
+ */
+function addFacebookProviderIssues(issues, user) {
+  if (user.authProvider === 'facebook' && !hasFacebookLink(user)) {
+    addIssue(
+      issues,
+      'critical',
+      user,
+      'facebook_provider_missing_facebook_link',
+      'Facebook-authenticated user has no Facebook link field.'
+    );
+  }
+  if (hasFacebookLink(user) && !['facebook', 'mixed'].includes(user.authProvider)) {
+    addIssue(
+      issues,
+      'warning',
+      user,
+      'facebook_link_with_non_facebook_provider',
+      'User has Facebook linkage but stored authProvider is not facebook or mixed.',
+      { authProvider: user.authProvider || 'missing' }
+    );
+  }
 }
 
 async function getVerificationIntegrity(options) {
@@ -386,25 +430,7 @@ async function getVerificationIntegrity(options) {
         { authProvider: user.authProvider || 'missing' }
       );
     }
-    if (user.authProvider === 'facebook' && !hasFacebookLink(user)) {
-      addIssue(
-        issues,
-        'critical',
-        user,
-        'facebook_provider_missing_facebook_link',
-        'Facebook-authenticated user has no Facebook link field.'
-      );
-    }
-    if (hasFacebookLink(user) && !['facebook', 'mixed'].includes(user.authProvider)) {
-      addIssue(
-        issues,
-        'warning',
-        user,
-        'facebook_link_with_non_facebook_provider',
-        'User has Facebook linkage but stored authProvider is not facebook or mixed.',
-        { authProvider: user.authProvider || 'missing' }
-      );
-    }
+    addFacebookProviderIssues(issues, user);
     for (const log of userLogs) {
       if (production && log.provider === 'outbox') {
         addIssue(
