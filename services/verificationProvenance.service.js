@@ -228,10 +228,10 @@ function inferEmailDeliveryStatus(user, logs) {
  * @returns {{verifiedAt: string|null, hasFacebookLink: boolean, facebookLinkedAt: string|null}}
  */
 function summariseFacebookFields(user, verificationMethod, verifiedAt) {
-  const facebookLinkedAt = iso(user && user.facebookLinkedAt);
+  const facebookLinkedAt = iso(user?.facebookLinkedAt);
   const facebookVerifiedAt =
     verificationMethod === 'facebook_verified_email'
-      ? facebookLinkedAt || iso(user && user.createdAt)
+      ? facebookLinkedAt || iso(user?.createdAt)
       : null;
   return {
     verifiedAt: verifiedAt || facebookVerifiedAt,

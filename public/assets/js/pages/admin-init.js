@@ -24,7 +24,7 @@
   // HTML sanitization helper to prevent XSS
   // Read a numeric counter from a summary breakdown (e.g. bySignup.facebook).
   function countOf(counters, key) {
-    return (counters && counters[key]) || 0;
+    return counters?.[key] || 0;
   }
 
   function escapeHtml(unsafe) {
