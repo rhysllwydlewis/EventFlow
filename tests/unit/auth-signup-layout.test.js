@@ -36,6 +36,15 @@ describe('auth signup layout', () => {
     expect(authHtml).toContain('Profile picture');
   });
 
+  it('versions the scripts it changed so cached copies cannot break sign-up', () => {
+    // Returning visitors keep scripts for up to a week. An old app.js still
+    // requires a confirm-password field the page no longer has, which blocks
+    // every email sign-up; an old auth-init.js leaves the social icons dead.
+    expect(authHtml).toContain('/assets/js/app.js?v=18.5.1');
+    expect(authHtml).toMatch(/\/assets\/js\/pages\/auth-init\.js\?v=[\d.]+/);
+    expect(authHtml).not.toContain('id="reg-password-confirm"');
+  });
+
   it('labels the signup choice as a guided two-step flow', () => {
     expect(authHtml).toContain('aria-label="Step 1"');
     expect(authHtml).toContain('Choose your account type');
