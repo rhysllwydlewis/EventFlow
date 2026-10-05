@@ -32,7 +32,7 @@ function hasFacebookLink(user) {
  * @returns {string}
  */
 function linkedAuthProvider(existingUser, provider) {
-  if (existingUser && existingUser.passwordHash) {
+  if (existingUser?.passwordHash) {
     return 'mixed';
   }
   const otherLinked = [
