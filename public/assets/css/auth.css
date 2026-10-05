@@ -2971,3 +2971,62 @@ body.auth-page .auth-card .auth-input.auth-input--shop {
 body.auth-page .auth-card .form-row .auth-social-toggles {
   flex-direction: row;
 }
+
+/* Compact checkbox rows: global label margins plus .form-row spacing made each ~49px tall */
+#panel-create .auth-field--inline .auth-checkbox-label {
+  margin: 0;
+}
+
+#panel-create .auth-field--inline.form-row {
+  margin-bottom: 8px;
+}
+
+/* County select: fixed height so the text is not clipped by the vertical padding */
+body.auth-page .auth-card .auth-input.auth-input--icon:is(select) {
+  height: 42px;
+  padding-block: 0;
+  line-height: 1.2;
+}
+
+/* Profile picture: one compact row (button + hint) */
+.auth-file-upload {
+  padding: 8px 12px;
+}
+
+.auth-file-upload .auth-file-help {
+  flex: 1 1 auto;
+  min-width: 0;
+  margin: 0;
+  font-size: 0.75rem;
+}
+
+.auth-file-name.has-file + .auth-file-help {
+  display: none;
+}
+
+/* Empty county select reads as a placeholder, like the text inputs */
+body.auth-page .auth-card select.auth-input--icon:required:invalid {
+  color: #98a2b3;
+}
+
+/* Field rows: even spacing at every width (row children carry no margin of their own) */
+#panel-create .auth-field-row {
+  gap: 0.625rem;
+  margin-bottom: 12px;
+}
+
+#panel-create .auth-field-row > .form-row {
+  margin-bottom: 0;
+}
+
+/* Short fields (first / last name) stay side by side on phones */
+@media (max-width: 640px) {
+  #panel-create .auth-field-row:not(.auth-field-row--location):not(.auth-field-row--supplier) {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+/* Log in: tighter label-to-input spacing */
+#login-form .form-row {
+  gap: 4px;
+}
