@@ -174,6 +174,10 @@ the policy above.
 
 ## Session log
 
+### 2026-10-06 — session 15
+
+Branch restarted from `main` (session 14's handoff commit cherry-picked since it never reached main); no open PRs, nothing red. Continued the JS-built modal audit with `app.js`. Real defects on the supplier page: the "Send an enquiry" dialog had no dialog role/label, no focus-in/restore, no Escape; the photo lightbox had no dialog semantics/focus handling, its cleanup listened for a nonexistent DOM `remove` event (so the document keydown listener leaked after every close), and `updateImage()` double-escaped the URL with `escapeHtml` (broke photos whose URL has `&`). Fixed via `EFModalA11y` (script added to `supplier.html`, `?v=18.8.0` on both) plus a MutationObserver cleanup. New `tests/unit/supplier-dialogs-a11y.test.js` (fails without fix). Full `npm test` 12954 passed. Still to audit: `components/Modal.js` (no page loads it by script tag, likely dead), dead-code candidates `global-search.js`, `advanced-search.js`, `folders.js`, `labels.js`; `@sentry/node` 11.x major.
+
 ### 2026-10-05 — session 14
 
 Branch restarted from `main` (session 13's #1756 merged); no open PRs, nothing red. Verified `window.Shortcuts` (admin-features.js `KeyboardShortcuts`) has no callers anywhere in `public/` or `tests/` — its `showShortcutsHelp()` (the un-wired duplicate of the dialog fixed in `admin-shared.js`, session 9) and `showCommandPalette()` were unreachable dead code, so deleted them outright (68 lines) rather than adding dialog wiring. Still to audit: `components/Modal.js`, `app.js` (`modal-backdrop`, `lightbox-modal`); dead-code deletion candidates `global-search.js`, `advanced-search.js`, `folders.js`, `labels.js`; `@sentry/node` 11.x major.

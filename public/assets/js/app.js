@@ -1225,7 +1225,7 @@ async function initSupplier() {
       modal.className = 'modal-backdrop';
       modal.innerHTML = `
         <div class="modal">
-          <h2>Send an enquiry</h2>
+          <h2 id="thread-modal-title">Send an enquiry</h2>
           <p class="small">Tell this supplier a bit about your event. They will reply via your EventFlow messages.</p>
           <textarea id="thread-message" rows="4" placeholder="Hi! We are planning an event on [DATE] for around [GUESTS] guests at [LOCATION]. Are you available, and could you share your pricing or packages?"></textarea>
           <div class="form-actions">
@@ -1235,6 +1235,9 @@ async function initSupplier() {
         </div>
       `;
       document.body.appendChild(modal);
+      if (window.EFModalA11y) {
+        window.EFModalA11y.enhance(modal, { labelledBy: 'thread-modal-title' });
+      }
 
       modal.querySelector('#cancel-thread').addEventListener('click', () => modal.remove());
 
@@ -1726,6 +1729,7 @@ function openLightbox(photos, startIndex = 0) {
 
   const modal = document.createElement('div');
   modal.className = 'lightbox-modal';
+  modal.setAttribute('aria-label', 'Photo gallery');
   modal.innerHTML = `
     <div class="lightbox-content">
       <button class="ef-cta lightbox-close" aria-label="Close lightbox">&times;</button>
@@ -1737,6 +1741,10 @@ function openLightbox(photos, startIndex = 0) {
 
   document.body.appendChild(modal);
   document.body.style.overflow = 'hidden';
+  if (window.EFModalA11y) {
+    // Dialog role, focus trap, Escape-to-close and focus restore
+    window.EFModalA11y.enhance(modal);
+  }
 
   const img = modal.querySelector('.lightbox-image');
   const closeBtn = modal.querySelector('.lightbox-close');
@@ -1744,10 +1752,7 @@ function openLightbox(photos, startIndex = 0) {
   const nextBtn = modal.querySelector('.lightbox-next');
 
   // Close lightbox
-  const closeLightbox = () => {
-    modal.remove();
-    document.body.style.overflow = '';
-  };
+  const closeLightbox = () => modal.remove();
 
   closeBtn.addEventListener('click', closeLightbox);
   modal.addEventListener('click', e => {
@@ -1758,7 +1763,7 @@ function openLightbox(photos, startIndex = 0) {
 
   // Navigate photos
   const updateImage = () => {
-    img.src = escapeHtml(photos[currentIndex]);
+    img.src = photos[currentIndex];
     img.alt = `Gallery photo ${currentIndex + 1}`;
   };
 
@@ -1793,10 +1798,16 @@ function openLightbox(photos, startIndex = 0) {
 
   document.addEventListener('keydown', handleKeydown);
 
-  // Clean up on close
-  modal.addEventListener('remove', () => {
+  // Clean up however the lightbox is closed (the DOM has no 'remove' event)
+  const closeObserver = new MutationObserver(() => {
+    if (modal.isConnected) {
+      return;
+    }
+    closeObserver.disconnect();
     document.removeEventListener('keydown', handleKeydown);
+    document.body.style.overflow = '';
   });
+  closeObserver.observe(document.body, { childList: true });
 }
 
 async function initPlan() {
