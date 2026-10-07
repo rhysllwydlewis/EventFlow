@@ -20,6 +20,8 @@ const MONGO_CONNECT_TIMEOUT_MS = process.env.NODE_ENV === 'test' ? 3000 : 10000;
 
 let dbType = null;
 let mongodb = null;
+// Reads that failed against MongoDB and were served from local storage instead.
+let readFallbackCount = 0;
 
 // Singleton promise to prevent concurrent initializations from each racing
 // to connect to MongoDB in parallel (causes N×10s timeouts in test environments).
@@ -386,6 +388,7 @@ async function read(collectionName) {
     logger.error(`Error reading from ${collectionName}:`, error.message);
     if (dbType !== 'local') {
       logger.info(`Falling back to local storage for ${collectionName}`);
+      readFallbackCount++;
       return store.read(collectionName);
     }
     return SINGLETON_COLLECTIONS.has(collectionName) ? {} : [];
@@ -643,6 +646,17 @@ function uid(prefix = 'id') {
 
 function getDatabaseType() {
   return dbType || 'unknown';
+}
+
+/**
+ * Number of reads that fell back to local storage after a MongoDB error.
+ * getDatabaseStatus() keeps describing the initialised backend, so callers
+ * that must not mistake fallback data for the real thing (the audit scripts)
+ * check this as well.
+ * @returns {number} Fallback read count since process start.
+ */
+function getReadFallbackCount() {
+  return readFallbackCount;
 }
 
 function getDatabaseStatus() {
@@ -1100,6 +1114,7 @@ module.exports = {
   uid,
   getDatabaseType,
   getDatabaseStatus,
+  getReadFallbackCount,
   getQueryMetrics,
   resetQueryMetrics,
   withPerformanceTracking,

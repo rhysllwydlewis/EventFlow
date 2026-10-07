@@ -335,6 +335,27 @@ async function run(options, backend = null) {
 }
 
 /**
+ * Warning to print when the audit did not read from a healthy MongoDB
+ * connection. Local file storage is a development fallback holding none of
+ * the production data, so an all-zero report against it is inconclusive, not
+ * a clean result. A read that failed mid-run is served from local storage
+ * while the backend still reports a connected MongoDB, so the count of such
+ * reads matters as much as the initial backend.
+ * @param {Object} backend Backend description.
+ * @param {number} [readFallbacks] Reads that fell back to local storage.
+ * @returns {string|null} Warning text, or null when reading from healthy MongoDB.
+ */
+function backendFallbackWarning(backend, readFallbacks = 0) {
+  if (backend && backend.type === REQUIRED_BACKEND && backend.connected) {
+    if (readFallbacks > 0) {
+      return `⚠️  ${readFallbacks} read(s) failed against MongoDB and were served from local fallback storage — this report is partly or wholly not production data. Treat "0 findings" as inconclusive, not clean.`;
+    }
+    return null;
+  }
+  return '⚠️  Not reading from a healthy MongoDB connection — this report reflects local fallback storage, not production data. Treat "0 findings" as inconclusive, not clean.';
+}
+
+/**
  * Print a human-readable summary.
  * @param {Object} report Report.
  * @returns {void} Nothing.
@@ -347,6 +368,13 @@ function printReport(report) {
   logger.info(
     `Database backend:      ${report.backend.type} (connected: ${report.backend.connected})`
   );
+  const fallbackWarning = backendFallbackWarning(
+    report.backend,
+    typeof dbUnified.getReadFallbackCount === 'function' ? dbUnified.getReadFallbackCount() : 0
+  );
+  if (fallbackWarning) {
+    logger.warn(fallbackWarning);
+  }
   logger.info(`NODE_ENV:              ${report.nodeEnv}`);
   logger.info(`Suppliers read:        ${report.totalSuppliers}`);
   logger.info(`Suppliers audited:     ${report.audited}`);
@@ -428,10 +456,12 @@ if (require.main === module) {
 
 module.exports = {
   EXIT_CODES,
+  backendFallbackWarning,
   buildBaseLocation,
   checkPreconditions,
   main,
   parseArgs,
+  printReport,
   resolveBackend,
   run,
   writeMapping,
