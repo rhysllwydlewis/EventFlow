@@ -48,7 +48,7 @@ Changed files:
 - [ ] Atomic mutation hardening (still read-modify-write; not yet using `$push`/`$pull`).
 - [x] Merge canonical supplier responses in every inline editor.
 - [x] Refresh all category-dependent views after category changes.
-- [ ] Consolidate dialog behaviour.
+- [x] Consolidate dialog behaviour (legacy owner-edit modals now use `EFModalA11y.enhance`, which gained `lockScroll`/`onEscape`; covered by `tests/unit/supplier-profile-modal-a11y.test.js`).
 - [ ] Remove duplicate customisation and theme controllers.
 - [x] Correct dashboard deep links (`#photos`/`#packages` now route to real sections via a hash router in `dashboard-supplier-actions.js`; see below).
 - [x] Add unsaved-navigation protection (Profile Customisation `beforeunload` guard).
