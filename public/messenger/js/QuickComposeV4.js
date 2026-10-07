@@ -485,6 +485,8 @@
     // Keyboard close
     _panel.addEventListener('keydown', e => {
       if (e.key === 'Escape') {
+        // Stop global Escape shortcuts (keyboard-nav.js blurs the active element)
+        e.stopPropagation();
         _close();
         return;
       }
@@ -515,7 +517,7 @@
    * @param {Object} opts
    */
   async function open(opts = {}) {
-    _opener = document.activeElement;
+    const opener = document.activeElement;
     _ensurePanel();
 
     // Auth gate
@@ -538,6 +540,7 @@
 
     const hydratedOpts = await hydrateSupplierRecipient(opts);
     _buildPanelContent(hydratedOpts);
+    _opener = opener;
     _isOpen = true;
 
     // Animate in (next frame)
@@ -549,7 +552,7 @@
     // Focus textarea
     setTimeout(() => {
       const ta = document.getElementById('qcv4-message');
-      if (ta) {
+      if (ta && _isOpen) {
         ta.focus();
       }
     }, 320);
