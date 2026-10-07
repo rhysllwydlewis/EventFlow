@@ -108,3 +108,39 @@ describe('Database Unified - Status Caching', () => {
     });
   });
 });
+
+describe('Database Unified - read fallback counter', () => {
+  const loadWithMongo = readError => {
+    jest.resetModules();
+    const collection = {
+      createIndex: jest.fn(async () => undefined),
+      find: jest.fn(() => ({
+        toArray: readError
+          ? jest.fn(async () => Promise.reject(readError))
+          : jest.fn(async () => []),
+      })),
+    };
+    jest.doMock('../../db', () => ({
+      isMongoAvailable: () => true,
+      connect: jest.fn(async () => ({ collection: () => collection })),
+    }));
+    jest.doMock('../../store', () => ({ read: jest.fn(() => []), uid: jest.fn() }));
+    return require('../../db-unified');
+  };
+
+  it('counts reads that failed against MongoDB and were served from local storage', async () => {
+    const dbUnified = loadWithMongo(new Error('connection lost'));
+    expect(dbUnified.getReadFallbackCount()).toBe(0);
+    await dbUnified.read('suppliers');
+    // The status still describes the initialised backend...
+    expect(dbUnified.getDatabaseStatus()).toMatchObject({ type: 'mongodb', connected: true });
+    // ...so the counter is what reveals the fallback.
+    expect(dbUnified.getReadFallbackCount()).toBe(1);
+  });
+
+  it('does not count successful MongoDB reads', async () => {
+    const dbUnified = loadWithMongo(null);
+    await dbUnified.read('suppliers');
+    expect(dbUnified.getReadFallbackCount()).toBe(0);
+  });
+});

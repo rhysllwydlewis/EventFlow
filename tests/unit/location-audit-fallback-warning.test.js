@@ -15,6 +15,7 @@ const mockDb = {
   read: jest.fn(async () => []),
   findOne: jest.fn(async () => null),
   updateOne: jest.fn(async () => true),
+  getReadFallbackCount: jest.fn(() => 0),
 };
 const mockLogger = { info: jest.fn(), warn: jest.fn(), error: jest.fn(), debug: jest.fn() };
 
@@ -39,7 +40,10 @@ const fallbacks = {
 };
 
 describe.each(Object.entries(scripts))('%s fallback warning', (_name, script) => {
-  beforeEach(() => jest.clearAllMocks());
+  beforeEach(() => {
+    jest.clearAllMocks();
+    mockDb.getReadFallbackCount.mockReturnValue(0);
+  });
 
   const warningsAfterPrinting = async backend => {
     const report = await script.run(script.parseArgs(['node', 'script']), backend);
@@ -62,4 +66,13 @@ describe.each(Object.entries(scripts))('%s fallback warning', (_name, script) =>
       expect(warnings[0]).toMatch(/inconclusive, not clean/);
     }
   );
+
+  test('warns when a read fell back mid-run even though the backend still says MongoDB', async () => {
+    expect(script.backendFallbackWarning(healthy, 2)).toMatch(/2 read\(s\) failed/);
+    mockDb.getReadFallbackCount.mockReturnValue(1);
+    const warnings = await warningsAfterPrinting(healthy);
+    expect(warnings).toHaveLength(1);
+    expect(warnings[0]).toMatch(/served from local fallback storage/);
+    expect(warnings[0]).toMatch(/inconclusive, not clean/);
+  });
 });
