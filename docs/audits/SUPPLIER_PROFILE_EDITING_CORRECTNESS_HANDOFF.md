@@ -49,7 +49,8 @@ Changed files:
 - [x] Merge canonical supplier responses in every inline editor.
 - [x] Refresh all category-dependent views after category changes.
 - [x] Consolidate dialog behaviour (legacy owner-edit modals now use `EFModalA11y.enhance`, which gained `lockScroll`/`onEscape`; covered by `tests/unit/supplier-profile-modal-a11y.test.js`).
-- [ ] Remove duplicate customisation and theme controllers.
+- [x] Remove duplicate customisation controllers (the inline controller in `profile-customization.html` is gone; `js/profile-customization.js` is the single owner, covered by `tests/unit/profile-customization-single-controller.test.js`).
+- [ ] Remove the obsolete hero and theme editor path.
 - [x] Correct dashboard deep links (`#photos`/`#packages` now route to real sections via a hash router in `dashboard-supplier-actions.js`; see below).
 - [x] Add unsaved-navigation protection (Profile Customisation `beforeunload` guard).
 - [x] Align create, PATCH and UI field limits (create and PATCH share `PATCH_FIELD_MAX_LENGTHS`; dashboard `maxlength`s are pinned to it by `tests/unit/dashboard-supplier-field-limits.test.js`).

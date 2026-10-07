@@ -46,11 +46,14 @@ describe('profile customization controller', () => {
     expect(controller).toContain('Stock photo selected successfully');
   });
 
-  it('owns key click targets instead of letting legacy inline handlers double-fire', () => {
-    expect(controller).toContain('function cleanInteractiveElement');
-    expect(controller).toContain("cleanInteractiveSelector('.color-preset')");
-    expect(controller).toContain("cleanInteractiveElement($('pc-save-bar-save'))");
-    expect(controller).toContain("cleanInteractiveElement($('pc-save-bar-discard'))");
+  it('binds its controls directly now that no inline controller competes for them', () => {
+    // It used to clone each control to strip a second, inline controller's
+    // listeners; see profile-customization-single-controller.test.js.
+    expect(controller).not.toContain('cleanInteractiveElement');
+    expect(controller).not.toContain('cleanInteractiveSelector');
+    expect(controller).toContain("const saveBarSave = $('pc-save-bar-save')");
+    expect(controller).toContain("const saveBarDiscard = $('pc-save-bar-discard')");
+    expect(controller).toContain("document.querySelectorAll('.color-preset')");
   });
 
   it('adds runtime UX polish for focus states, previews, sidebar and floating save bar', () => {
