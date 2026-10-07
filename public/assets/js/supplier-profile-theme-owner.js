@@ -1,19 +1,10 @@
 const OWNER_THEME_EDITOR_CLASS = 'sp-theme-edit-btn-v2';
-const DEFAULT_COLOR = '#0B8073';
+// Presets, defaults and the stored-mode rules come from the shared theme module
+// (shared/supplier-theme-core.js, loaded as a classic script before this one).
+const sharedTheme = globalThis.EFSupplierTheme;
+const DEFAULT_COLOR = sharedTheme.DEFAULT_THEME_COLOR;
 const HEX_RE = /^#[0-9A-F]{6}$/i;
-
-const HERO_PRESETS = Object.freeze([
-  ['ef-teal', 'EventFlow', 'linear-gradient(135deg,#0B8073 0%,#13B6A2 100%)'],
-  ['midnight', 'Midnight', 'linear-gradient(135deg,#1a1a2e 0%,#0f3460 100%)'],
-  ['rose-gold', 'Rose Gold', 'linear-gradient(135deg,#b76e79 0%,#f9c8c8 100%)'],
-  ['forest', 'Forest', 'linear-gradient(135deg,#1b4332 0%,#40916c 100%)'],
-  ['ocean', 'Ocean', 'linear-gradient(135deg,#03045e 0%,#00b4d8 100%)'],
-  ['sunset', 'Sunset', 'linear-gradient(135deg,#f77f00 0%,#d62828 100%)'],
-  ['purple', 'Purple', 'linear-gradient(135deg,#3d0066 0%,#a855f7 100%)'],
-  ['charcoal', 'Charcoal', 'linear-gradient(135deg,#1a1a1a 0%,#4a5568 100%)'],
-  ['blush', 'Blush', 'linear-gradient(135deg,#c2185b 0%,#ff80ab 100%)'],
-  ['champagne', 'Champagne', 'linear-gradient(135deg,#9c7c38 0%,#e8d5a3 100%)'],
-]);
+const HERO_PRESETS = sharedTheme.HERO_PRESETS;
 
 const escapeHtml = value =>
   String(value ?? '')
@@ -23,17 +14,7 @@ const escapeHtml = value =>
     .replace(/"/g, '&quot;');
 
 function resolveStoredMode(supplier = {}) {
-  const explicit = String(supplier.themeMode || '').toLowerCase();
-  if (['automatic', 'preset', 'custom'].includes(explicit)) {
-    return explicit;
-  }
-  if (HEX_RE.test(String(supplier.themeColor || ''))) {
-    return 'custom';
-  }
-  if (HERO_PRESETS.some(([id]) => id === supplier.heroPreset)) {
-    return 'preset';
-  }
-  return 'automatic';
+  return sharedTheme.normaliseStoredSupplierTheme(supplier).themeMode;
 }
 
 function readCookie(name) {
@@ -130,7 +111,7 @@ function openThemeEditor(supplierId) {
     : DEFAULT_COLOR;
 
   const presetButtons = HERO_PRESETS.map(
-    ([id, label, gradient]) => `
+    ({ id, label, gradient }) => `
       <button type="button" class="sp-preset-swatch${selectedMode === 'preset' && selectedPreset === id ? ' is-selected' : ''}"
         data-theme-mode="preset" data-preset="${escapeHtml(id)}" style="background:${gradient}"
         aria-label="${escapeHtml(label)} theme">

@@ -1,77 +1,16 @@
-import './supplier-profile-theme-owner.js';
+import './supplier-profile-theme-owner.js?v=2';
 export * from './supplier-profile-polish-base.js?v=2';
 
 const PROFILE_THEME_STYLESHEET_ID = 'supplier-profile-theme-styles';
 const PROFILE_THEME_STYLESHEET_HREF = '/assets/css/supplier-profile-theme.css?v=20.1.0';
 
-const DEFAULT_ACCENT = '#0b8073';
 const INK = '#0b1220';
 const WHITE = '#ffffff';
 
-const PRESET_ACCENTS = Object.freeze({
-  'ef-teal': '#0b8073',
-  midnight: '#0f3460',
-  'rose-gold': '#b76e79',
-  forest: '#40916c',
-  ocean: '#0077b6',
-  sunset: '#d62828',
-  purple: '#7e22ce',
-  charcoal: '#374151',
-  blush: '#c2185b',
-  champagne: '#9c7c38',
-});
-
-const CATEGORY_PRESETS = Object.freeze({
-  wedding: 'wedding',
-  weddings: 'wedding',
-  'wedding planner': 'wedding',
-  'event planner': 'wedding',
-  planning: 'wedding',
-  'wedding fayre': 'wedding',
-  stationery: 'wedding',
-  celebrant: 'wedding',
-  photography: 'photography',
-  photographer: 'photography',
-  videography: 'photography',
-  videographer: 'photography',
-  catering: 'catering',
-  caterer: 'catering',
-  food: 'catering',
-  cake: 'catering',
-  music: 'music',
-  'music/dj': 'music',
-  dj: 'music',
-  band: 'music',
-  musicians: 'music',
-  entertainment: 'entertainment',
-  flowers: 'flowers',
-  florist: 'flowers',
-  floral: 'flowers',
-  decor: 'flowers',
-  venue: 'venue',
-  venues: 'venue',
-  transport: 'transport',
-  cars: 'transport',
-  chauffeur: 'transport',
-  beauty: 'beauty',
-  'hair & makeup': 'beauty',
-  bridalwear: 'beauty',
-  jewellery: 'beauty',
-  other: 'default',
-});
-
-const CATEGORY_ACCENTS = Object.freeze({
-  wedding: '#b76e79',
-  photography: '#1a3a5c',
-  catering: '#7f5539',
-  music: '#6a0dad',
-  entertainment: '#c2185b',
-  flowers: '#386641',
-  venue: '#4a5568',
-  transport: '#1a6b8a',
-  beauty: '#9d174d',
-  default: DEFAULT_ACCENT,
-});
+// Preset, category and mode definitions and the effective-theme resolver are
+// shared with the server and the other editors (shared/supplier-theme-core.js,
+// loaded as a classic script before this module).
+const sharedTheme = globalThis.EFSupplierTheme;
 
 const DETAIL_ICONS = Object.freeze({
   category:
@@ -121,12 +60,7 @@ function normaliseHex(value) {
   return /^#[0-9a-f]{6}$/.test(candidate) ? candidate : null;
 }
 
-function normaliseThemeMode(value) {
-  const candidate = String(value || '')
-    .trim()
-    .toLowerCase();
-  return ['automatic', 'preset', 'custom'].includes(candidate) ? candidate : null;
-}
+const normaliseThemeMode = sharedTheme.normaliseThemeMode;
 
 function hexToRgb(hex) {
   const value = Number.parseInt(hex.slice(1), 16);
@@ -159,51 +93,10 @@ function rgba(hex, alpha) {
   return `rgba(${r}, ${g}, ${b}, ${alpha})`;
 }
 
-function resolveCategoryKey(category) {
-  return (
-    CATEGORY_PRESETS[
-      String(category || '')
-        .trim()
-        .toLowerCase()
-    ] || 'default'
-  );
-}
-
-function resolveAutomaticTheme(supplier = {}) {
-  const categoryKey = resolveCategoryKey(supplier.category);
-  if (categoryKey !== 'default' && CATEGORY_ACCENTS[categoryKey]) {
-    return { accent: CATEGORY_ACCENTS[categoryKey], source: 'category' };
-  }
-  return { accent: DEFAULT_ACCENT, source: 'default' };
-}
-
+// Lower-case accent, matching how this module has always emitted colours.
 function resolveSupplierTheme(supplier = {}) {
-  const mode = normaliseThemeMode(supplier.themeMode);
-  const chosen = normaliseHex(supplier.themeColor);
-  const preset = String(supplier.heroPreset || '')
-    .trim()
-    .toLowerCase();
-
-  if (mode === 'custom') {
-    return chosen ? { accent: chosen, source: 'themeColor' } : resolveAutomaticTheme(supplier);
-  }
-  if (mode === 'preset') {
-    return PRESET_ACCENTS[preset]
-      ? { accent: PRESET_ACCENTS[preset], source: 'heroPreset' }
-      : resolveAutomaticTheme(supplier);
-  }
-  if (mode === 'automatic') {
-    return resolveAutomaticTheme(supplier);
-  }
-
-  // Legacy profiles had no explicit themeMode. Preserve their previous priority.
-  if (chosen) {
-    return { accent: chosen, source: 'themeColor' };
-  }
-  if (PRESET_ACCENTS[preset]) {
-    return { accent: PRESET_ACCENTS[preset], source: 'heroPreset' };
-  }
-  return resolveAutomaticTheme(supplier);
+  const theme = sharedTheme.resolveSupplierTheme(supplier);
+  return { accent: theme.accent.toLowerCase(), source: theme.source };
 }
 
 function createSupplierPalette(accent) {
@@ -243,38 +136,18 @@ function applyAvatarTheme(accent) {
   avatar.style.background = `linear-gradient(135deg, ${accent} 0%, ${mixHex(accent, WHITE, 0.7)} 100%)`;
 }
 
+const HERO_MODE_BY_VISUAL_KIND = Object.freeze({
+  preset: 'preset',
+  color: 'theme',
+  category: 'category',
+  default: 'theme',
+});
+
 function resolveHeroMode(supplier = {}) {
   if (supplier.bannerUrl || supplier.coverImage) {
     return 'image';
   }
-  const mode = normaliseThemeMode(supplier.themeMode);
-  const preset = String(supplier.heroPreset || '')
-    .trim()
-    .toLowerCase();
-  if (mode === 'preset') {
-    return PRESET_ACCENTS[preset]
-      ? 'preset'
-      : resolveCategoryKey(supplier.category) !== 'default'
-        ? 'category'
-        : 'theme';
-  }
-  if (mode === 'custom') {
-    return normaliseHex(supplier.themeColor)
-      ? 'theme'
-      : resolveCategoryKey(supplier.category) !== 'default'
-        ? 'category'
-        : 'theme';
-  }
-  if (mode === 'automatic') {
-    return resolveCategoryKey(supplier.category) !== 'default' ? 'category' : 'theme';
-  }
-  if (PRESET_ACCENTS[preset]) {
-    return 'preset';
-  }
-  if (normaliseHex(supplier.themeColor)) {
-    return 'theme';
-  }
-  return resolveCategoryKey(supplier.category) !== 'default' ? 'category' : 'theme';
+  return HERO_MODE_BY_VISUAL_KIND[sharedTheme.resolveHeroVisual(supplier).kind];
 }
 
 function updateHeroThemeState(supplier, theme) {

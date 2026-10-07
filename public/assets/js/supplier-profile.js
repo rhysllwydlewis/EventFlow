@@ -216,69 +216,10 @@ import {
 
   // ─── Hero Section ────────────────────────────────────────────────────────────
 
-  // Map supplier categories to visual preset keys
-  const CATEGORY_PRESETS = {
-    wedding: 'wedding',
-    weddings: 'wedding',
-    'wedding planner': 'wedding',
-    'event planner': 'wedding',
-    planning: 'wedding',
-    'wedding fayre': 'wedding',
-    stationery: 'wedding',
-    celebrant: 'wedding',
-    photography: 'photography',
-    photographer: 'photography',
-    videography: 'photography',
-    videographer: 'photography',
-    catering: 'catering',
-    caterer: 'catering',
-    food: 'catering',
-    cake: 'catering',
-    music: 'music',
-    'music/dj': 'music',
-    dj: 'music',
-    band: 'music',
-    musicians: 'music',
-    entertainment: 'entertainment',
-    flowers: 'flowers',
-    florist: 'flowers',
-    floral: 'flowers',
-    decor: 'flowers',
-    venue: 'venue',
-    venues: 'venue',
-    transport: 'transport',
-    cars: 'transport',
-    chauffeur: 'transport',
-    beauty: 'beauty',
-    'hair & makeup': 'beauty',
-    bridalwear: 'beauty',
-    jewellery: 'beauty',
-  };
-
-  const PRESET_GRADIENTS_V2 = {
-    'ef-teal': 'linear-gradient(135deg,#0B8073 0%,#13B6A2 100%)',
-    midnight: 'linear-gradient(135deg,#1a1a2e 0%,#0f3460 100%)',
-    'rose-gold': 'linear-gradient(135deg,#b76e79 0%,#f9c8c8 100%)',
-    forest: 'linear-gradient(135deg,#1b4332 0%,#40916c 100%)',
-    ocean: 'linear-gradient(135deg,#03045e 0%,#00b4d8 100%)',
-    sunset: 'linear-gradient(135deg,#f77f00 0%,#d62828 100%)',
-    purple: 'linear-gradient(135deg,#3d0066 0%,#a855f7 100%)',
-    charcoal: 'linear-gradient(135deg,#1a1a1a 0%,#4a5568 100%)',
-    blush: 'linear-gradient(135deg,#c2185b 0%,#ff80ab 100%)',
-    champagne: 'linear-gradient(135deg,#9c7c38 0%,#e8d5a3 100%)',
-  };
-
-  const CATEGORY_ACCENT = {
-    wedding: '#b76e79',
-    photography: '#1a3a5c',
-    catering: '#7f5539',
-    music: '#6a0dad',
-    entertainment: '#c2185b',
-    flowers: '#386641',
-    venue: '#4a5568',
-    transport: '#1a6b8a',
-    beauty: '#9d174d',
-  };
+  // Preset, category and mode definitions and the effective-theme resolver are
+  // shared with the server and the editors (shared/supplier-theme-core.js, loaded
+  // as a classic script before this module).
+  const sharedTheme = globalThis.EFSupplierTheme;
 
   function _getInitials(name) {
     if (!name || typeof name !== 'string') {
@@ -313,15 +254,9 @@ import {
     const avatarImgEl = document.getElementById('hero-avatar-img');
     if (avatarEl && avatarInitialsEl) {
       avatarInitialsEl.textContent = _getInitials(supplier.name);
-      // Accent colour: supplier theme → category → EF teal
-      const catKey = (supplier.category || '').toLowerCase().trim();
-      const catPreset = CATEGORY_PRESETS[catKey] || null;
-      const accentColor =
-        (supplier.themeColor && /^#[0-9A-F]{6}$/i.test(supplier.themeColor)
-          ? supplier.themeColor
-          : null) ||
-        (catPreset ? CATEGORY_ACCENT[catPreset] : null) ||
-        '#0B8073';
+      // Accent colour: the supplier's effective theme (custom colour, preset,
+      // or category/default when automatic)
+      const accentColor = sharedTheme.resolveSupplierTheme(supplier).accent;
       // Always set gradient first — acts as loading placeholder and fallback
       avatarEl.style.background = `linear-gradient(135deg, ${accentColor} 0%, ${_lightenHex(accentColor, 30)} 100%)`;
 
@@ -344,16 +279,7 @@ import {
     const heroMedia = heroSection ? heroSection.querySelector('.hero-media') : null;
 
     if (heroBanner) {
-      const themeMode = ['automatic', 'preset', 'custom'].includes(supplier.themeMode)
-        ? supplier.themeMode
-        : null;
-      const preset = supplier.heroPreset && PRESET_GRADIENTS_V2[supplier.heroPreset];
-      const catKey = (supplier.category || '').toLowerCase().trim();
-      const catPreset = CATEGORY_PRESETS[catKey];
-      const validThemeColor =
-        supplier.themeColor && /^#[0-9A-F]{6}$/i.test(supplier.themeColor)
-          ? supplier.themeColor
-          : null;
+      const heroVisual = sharedTheme.resolveHeroVisual(supplier);
 
       heroSection?.removeAttribute('data-category-preset');
       heroMedia?.style.removeProperty('--supplier-theme');
@@ -369,18 +295,14 @@ import {
         heroBanner.removeAttribute('src');
         heroBanner.style.display = 'none';
         if (heroMedia) {
-          const usePreset = themeMode === 'preset' || (!themeMode && preset);
-          const useCustom = themeMode === 'custom' || (!themeMode && !preset && validThemeColor);
-          if (usePreset && preset) {
-            heroMedia.style.backgroundImage = preset;
-          } else if (useCustom && validThemeColor) {
-            heroMedia.style.backgroundImage = '';
-            heroMedia.style.setProperty('--supplier-theme', validThemeColor);
-          } else if (catPreset && heroSection) {
-            heroSection.setAttribute('data-category-preset', catPreset);
-            heroMedia.style.backgroundImage = '';
-          } else {
-            heroMedia.style.backgroundImage = '';
+          heroMedia.style.backgroundImage = '';
+          if (heroVisual.kind === 'preset') {
+            heroMedia.style.backgroundImage =
+              sharedTheme.HERO_PRESET_GRADIENTS[heroVisual.heroPreset];
+          } else if (heroVisual.kind === 'color') {
+            heroMedia.style.setProperty('--supplier-theme', heroVisual.themeColor);
+          } else if (heroVisual.kind === 'category' && heroSection) {
+            heroSection.setAttribute('data-category-preset', heroVisual.categoryFamily);
           }
         }
       }
