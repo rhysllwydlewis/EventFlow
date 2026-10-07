@@ -174,6 +174,12 @@ the policy above.
 
 ## Session log
 
+### 2026-10-07 — session 16
+
+Branch restarted from `main` (#1767 merged by owner). Audited the live supplier dialogs: `image-carousel.js` lightbox is already fine (role/aria-modal/focus restore/Tab trap/Escape). `QuickComposeV4` (loaded on marketplace, package, supplier, suppliers) had role/label/Escape but no focus restore to the opener and no Tab trap; fixed, plus `?v=18.5.1` added to its script tag on the 4 pages (previously unversioned). New `tests/unit/quickcompose-focus.test.js` (fails without fix). Full `npm test` green (12953 + 2 new).
+
+**Next:** `app.js` legacy `initSupplier` dead-code deletion; `components/Modal.js` (likely dead); dead `global-search.js`, `advanced-search.js`, `folders.js`, `labels.js`; `@sentry/node` 11.x major.
+
 ### 2026-10-06 — session 15
 
 Branch restarted from `main` (session 14's handoff commit cherry-picked since it never reached main); no open PRs, nothing red. Audited `app.js` modals and wrote an a11y fix for the supplier enquiry dialog and `openLightbox()` — then Codex's review on PR #1767 correctly pointed out it was **dead code**: `initSupplier()` returns early because the live `supplier.html` has no `#supplier-container`, and nothing in the HTML has `#start-thread`. The live supplier page is rendered by `supplier-profile.js` using `QuickComposeV4` (enquiry) and `ImageCarousel` (`image-carousel.js`, photos). Reverted that work (lesson: verify the code path is reachable on the live page before fixing it — the same trap as session 14's dead `Shortcuts`). What remains in the PR: **CI fix** — the "Security Audit" check was red from new advisories on transitive deps (`proxy-addr` critical, `source-map-js` high), unrelated to any diff; lockfile-only bumps to proxy-addr 2.0.8 / source-map-js 1.2.2 (local `npm install` also churns `libc` fields in the lockfile — don't commit that). `github-advanced-security` failed too (known Copilot infra failure). Full `npm test` passed before the revert (12954).
