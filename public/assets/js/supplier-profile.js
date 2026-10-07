@@ -243,12 +243,8 @@ import {
     return `#${((r << 16) | (g << 8) | b).toString(16).padStart(6, '0')}`;
   }
 
-  function renderHeroSection(supplier) {
-    if (!supplier) {
-      return;
-    }
-
-    // ── Avatar initials + optional profile photo ─────────────────────────────
+  // Avatar initials and the themed placeholder gradient behind the profile photo.
+  function _applyHeroAvatar(supplier) {
     const avatarEl = document.getElementById('hero-avatar');
     const avatarInitialsEl = document.getElementById('hero-avatar-initials');
     const avatarImgEl = document.getElementById('hero-avatar-img');
@@ -271,8 +267,10 @@ import {
         avatarInitialsEl.style.display = '';
       }
     }
+  }
 
-    // ── Hero banner / gradient ───────────────────────────────────────────────
+  // Hero banner image, or the preset / colour / category artwork when there is none.
+  function _applyHeroBanner(supplier) {
     const heroBanner = document.getElementById('hero-banner');
     const bannerUrl = supplier.bannerUrl || supplier.coverImage || null;
     const heroSection = document.getElementById('supplier-hero');
@@ -307,6 +305,15 @@ import {
         }
       }
     }
+  }
+
+  function renderHeroSection(supplier) {
+    if (!supplier) {
+      return;
+    }
+
+    _applyHeroAvatar(supplier);
+    _applyHeroBanner(supplier);
 
     // ── Badges ───────────────────────────────────────────────────────────────
     const badgesContainer = document.getElementById('hero-badges');
