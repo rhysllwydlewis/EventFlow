@@ -40,7 +40,7 @@ describe('auth signup layout', () => {
     // Returning visitors keep scripts for up to a week. An old app.js still
     // requires a confirm-password field the page no longer has, which blocks
     // every email sign-up; an old auth-init.js leaves the social icons dead.
-    expect(authHtml).toContain('/assets/js/app.js?v=18.5.1');
+    expect(authHtml).toContain('/assets/js/app.js?v=18.5.2');
     expect(authHtml).toMatch(/\/assets\/js\/pages\/auth-init\.js\?v=[\d.]+/);
     expect(authHtml).not.toContain('id="reg-password-confirm"');
   });

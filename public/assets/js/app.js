@@ -4455,6 +4455,9 @@ async function initDashSupplier() {
     }
   }
 
+  // Mirrors PATCH_FIELD_MAX_LENGTHS.website in routes/supplier-management.js.
+  const SUPPLIER_WEBSITE_MAX_LENGTH = 200;
+
   function normalizeAndValidateWebsiteInput(inputEl) {
     if (!inputEl) {
       return { ok: true, value: '' };
@@ -4487,6 +4490,11 @@ async function initDashSupplier() {
       if (!host || (!isLikelyDomain && !isLocalhost && !isIPv4)) {
         return { ok: false, value: raw };
       }
+    }
+    // The server stores (and length-limits) the normalised href, which can be
+    // longer than what was typed once https:// is prepended.
+    if (parsed.href.length > SUPPLIER_WEBSITE_MAX_LENGTH) {
+      return { ok: false, value: raw, tooLong: true };
     }
     inputEl.value = normalized;
     return { ok: true, value: normalized };
@@ -4559,7 +4567,9 @@ async function initDashSupplier() {
         setSupplierFieldError(
           websiteEl,
           websiteErrorEl,
-          'Please enter a valid website (for example: https://example.com, www.example.com, or example.com).'
+          websiteCheck.tooLong
+            ? `Website address must be ${SUPPLIER_WEBSITE_MAX_LENGTH} characters or fewer.`
+            : 'Please enter a valid website (for example: https://example.com, www.example.com, or example.com).'
         );
         if (statusEl) {
           clearSupplierStatusTimer();
