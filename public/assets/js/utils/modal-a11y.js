@@ -6,7 +6,11 @@
  * were missing, without requiring any change to how they're closed.
  *
  * Usage: call `enhance(overlayElement, { labelledBy })` once, right after
- * the overlay is appended to `document.body`. Every existing way the caller
+ * the overlay is appended to `document.body`. Options:
+ *   labelledBy  id of the element that labels the dialog
+ *   lockScroll  stop the page behind the dialog scrolling while it is open
+ *   onEscape    called instead of removing the overlay outright, for dialogs
+ *               that animate or otherwise manage their own closing Every existing way the caller
  * already closes the modal (`.remove()`, backdrop click, form submit,
  * `parentNode.removeChild`) is picked up automatically because they all
  * detach the overlay from `document.body`.
@@ -25,6 +29,10 @@
     }
 
     const previouslyFocused = document.activeElement;
+    const previousBodyOverflow = document.body.style.overflow;
+    if (options.lockScroll) {
+      document.body.style.overflow = 'hidden';
+    }
     const initialFocusable = overlay.querySelectorAll(FOCUSABLE_SELECTOR);
     if (initialFocusable.length > 0) {
       initialFocusable[0].focus();
@@ -33,7 +41,11 @@
     function handleKeydown(e) {
       if (e.key === 'Escape') {
         e.stopPropagation();
-        overlay.remove();
+        if (typeof options.onEscape === 'function') {
+          options.onEscape();
+        } else {
+          overlay.remove();
+        }
         return;
       }
       if (e.key !== 'Tab') {
@@ -62,6 +74,9 @@
       }
       observer.disconnect();
       document.removeEventListener('keydown', handleKeydown, true);
+      if (options.lockScroll) {
+        document.body.style.overflow = previousBodyOverflow;
+      }
       if (previouslyFocused && typeof previouslyFocused.focus === 'function') {
         previouslyFocused.focus();
       }

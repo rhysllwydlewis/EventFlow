@@ -171,18 +171,15 @@
         closeModal();
       }
     });
-    document.addEventListener(
-      'keydown',
-      function onKey(e) {
-        if (e.key === 'Escape') {
-          closeModal();
-          document.removeEventListener('keydown', onKey);
-        }
-      },
-      { once: true }
-    );
 
     document.body.appendChild(overlay);
+
+    // Tab trap, Escape at any time, scroll lock and focus restore come from the
+    // shared helper (a one-shot Escape listener here used to be spent by the
+    // first Tab, so Escape then stopped closing the dialog).
+    if (window.EFModalA11y) {
+      window.EFModalA11y.enhance(overlay, { lockScroll: true, onEscape: closeModal });
+    }
 
     // Focus first input
     setTimeout(() => {
