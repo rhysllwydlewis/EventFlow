@@ -176,11 +176,10 @@
     // time the dialog closes the original trigger is detached. Remember where it
     // was so focus can go to its replacement.
     const trigger = document.activeElement;
-    const triggerScope = trigger && trigger.closest ? trigger.closest('[id]') : null;
-    const triggerSelector =
-      trigger && trigger.classList && trigger.classList.length
-        ? `${triggerScope ? `#${triggerScope.id} ` : ''}.${Array.from(trigger.classList).join('.')}`
-        : null;
+    const triggerScope = trigger?.closest?.('[id]') ?? null;
+    const triggerSelector = trigger?.classList?.length
+      ? `${triggerScope ? `#${triggerScope.id} ` : ''}.${Array.from(trigger.classList).join('.')}`
+      : null;
 
     document.body.appendChild(overlay);
 

@@ -132,7 +132,7 @@
       }
       const replacement =
         typeof options.restoreFocus === 'function' ? options.restoreFocus() : null;
-      const target = replacement && replacement.isConnected ? replacement : previouslyFocused;
+      const target = replacement?.isConnected ? replacement : previouslyFocused;
       if (target && typeof target.focus === 'function') {
         target.focus();
       }
