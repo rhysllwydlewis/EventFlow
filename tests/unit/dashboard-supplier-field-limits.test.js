@@ -43,8 +43,10 @@ describe('dashboard website length check (app.js)', () => {
   // eslint-disable-next-line no-new-func
   const validate = new Function(
     'SUPPLIER_WEBSITE_MAX_LENGTH',
+    'SUPPLIER_WEBSITE_INVALID_MESSAGE',
+    'SUPPLIER_WEBSITE_TOO_LONG_MESSAGE',
     `${fnSource}; return normalizeAndValidateWebsiteInput;`
-  )(limit);
+  )(limit, 'INVALID', 'TOO_LONG');
   const check = value => validate({ value });
 
   test('client limit matches the server limit', () => {
@@ -60,18 +62,17 @@ describe('dashboard website length check (app.js)', () => {
   test('rejects a scheme-less URL that only overflows once https:// is prepended', () => {
     const raw = `example.com/${'a'.repeat(limit - 'example.com/'.length)}`;
     expect(raw.length).toBe(limit);
-    expect(check(raw)).toMatchObject({ ok: false, tooLong: true });
+    expect(check(raw)).toMatchObject({ ok: false, message: 'TOO_LONG' });
   });
 
   test('rejects an over-long URL that already has a scheme', () => {
     expect(check(`https://example.com/${'a'.repeat(limit)}`)).toMatchObject({
       ok: false,
-      tooLong: true,
+      message: 'TOO_LONG',
     });
   });
 
   test('malformed input is not flagged as too long', () => {
-    expect(check('not a url')).toMatchObject({ ok: false });
-    expect(check('not a url').tooLong).toBeUndefined();
+    expect(check('not a url')).toMatchObject({ ok: false, message: 'INVALID' });
   });
 });

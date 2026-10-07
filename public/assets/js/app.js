@@ -4457,7 +4457,17 @@ async function initDashSupplier() {
 
   // Mirrors PATCH_FIELD_MAX_LENGTHS.website in routes/supplier-management.js.
   const SUPPLIER_WEBSITE_MAX_LENGTH = 200;
+  const SUPPLIER_WEBSITE_INVALID_MESSAGE =
+    'Please enter a valid website (for example: https://example.com, www.example.com, or example.com).';
+  const SUPPLIER_WEBSITE_TOO_LONG_MESSAGE = `Website address must be ${SUPPLIER_WEBSITE_MAX_LENGTH} characters or fewer.`;
 
+  /**
+   * Normalise the supplier website input (prepend https:// when no scheme is
+   * given) and validate it, including the length of the normalised URL.
+   * @param {HTMLInputElement|null} inputEl Website input.
+   * @returns {{ok: boolean, value: string, message?: string}} Result; `message`
+   *   is the user-facing error when `ok` is false.
+   */
   function normalizeAndValidateWebsiteInput(inputEl) {
     if (!inputEl) {
       return { ok: true, value: '' };
@@ -4468,7 +4478,7 @@ async function initDashSupplier() {
       return { ok: true, value: '' };
     }
     if (/\s/.test(raw)) {
-      return { ok: false, value: raw };
+      return { ok: false, value: raw, message: SUPPLIER_WEBSITE_INVALID_MESSAGE };
     }
     const hasHttpScheme = /^https?:\/\//i.test(raw);
     const normalized = hasHttpScheme ? raw : `https://${raw.replace(/^\/+/, '')}`;
@@ -4476,10 +4486,10 @@ async function initDashSupplier() {
     try {
       parsed = new URL(normalized);
     } catch {
-      return { ok: false, value: raw };
+      return { ok: false, value: raw, message: SUPPLIER_WEBSITE_INVALID_MESSAGE };
     }
     if (!/^https?:$/i.test(parsed.protocol)) {
-      return { ok: false, value: raw };
+      return { ok: false, value: raw, message: SUPPLIER_WEBSITE_INVALID_MESSAGE };
     }
     // For no-scheme input, require a plausible host shape (domain, localhost, or IPv4).
     if (!hasHttpScheme) {
@@ -4488,13 +4498,13 @@ async function initDashSupplier() {
       const isLocalhost = host === 'localhost';
       const isIPv4 = /^(?:\d{1,3}\.){3}\d{1,3}$/.test(host);
       if (!host || (!isLikelyDomain && !isLocalhost && !isIPv4)) {
-        return { ok: false, value: raw };
+        return { ok: false, value: raw, message: SUPPLIER_WEBSITE_INVALID_MESSAGE };
       }
     }
     // The server stores (and length-limits) the normalised href, which can be
     // longer than what was typed once https:// is prepended.
     if (parsed.href.length > SUPPLIER_WEBSITE_MAX_LENGTH) {
-      return { ok: false, value: raw, tooLong: true };
+      return { ok: false, value: raw, message: SUPPLIER_WEBSITE_TOO_LONG_MESSAGE };
     }
     inputEl.value = normalized;
     return { ok: true, value: normalized };
@@ -4564,13 +4574,7 @@ async function initDashSupplier() {
       }
       const websiteCheck = normalizeAndValidateWebsiteInput(websiteEl);
       if (!websiteCheck.ok) {
-        setSupplierFieldError(
-          websiteEl,
-          websiteErrorEl,
-          websiteCheck.tooLong
-            ? `Website address must be ${SUPPLIER_WEBSITE_MAX_LENGTH} characters or fewer.`
-            : 'Please enter a valid website (for example: https://example.com, www.example.com, or example.com).'
-        );
+        setSupplierFieldError(websiteEl, websiteErrorEl, websiteCheck.message);
         if (statusEl) {
           clearSupplierStatusTimer();
           statusEl.setAttribute('data-tone', 'error');

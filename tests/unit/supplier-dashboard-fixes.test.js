@@ -626,7 +626,10 @@ describe('Supplier form – website URL normalization', () => {
     const handlerBlock = appJs.slice(submitIdx, submitIdx + 8000);
     expect(handlerBlock).toContain('normalizeAndValidateWebsiteInput');
     expect(handlerBlock).toContain('Please fix the website URL and try again.');
-    expect(handlerBlock).toContain('www.example.com');
+    // The user-facing hint comes from the validator's result rather than being
+    // inlined in the (already very complex) submit handler.
+    expect(handlerBlock).toContain('websiteCheck.message');
+    expect(appJs).toMatch(/SUPPLIER_WEBSITE_INVALID_MESSAGE =\s*'[^']*www\.example\.com/);
   });
 });
 
