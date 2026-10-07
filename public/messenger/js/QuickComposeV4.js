@@ -166,6 +166,7 @@
   let _panel = null;
   let _backdrop = null;
   let _isOpen = false;
+  let _opener = null;
 
   function _ensurePanel() {
     if (_panel) {
@@ -484,7 +485,27 @@
     // Keyboard close
     _panel.addEventListener('keydown', e => {
       if (e.key === 'Escape') {
+        // Stop global Escape shortcuts (keyboard-nav.js blurs the active element)
+        e.stopPropagation();
         _close();
+        return;
+      }
+      if (e.key === 'Tab') {
+        const items = Array.from(
+          _panel.querySelectorAll('button, [href], input, select, textarea, [tabindex]')
+        ).filter(el => !el.disabled && el.tabIndex >= 0 && el.offsetParent !== null);
+        if (!items.length) {
+          return;
+        }
+        const first = items[0];
+        const last = items[items.length - 1];
+        if (e.shiftKey && document.activeElement === first) {
+          e.preventDefault();
+          last.focus();
+        } else if (!e.shiftKey && document.activeElement === last) {
+          e.preventDefault();
+          first.focus();
+        }
       }
     });
   }
@@ -496,6 +517,7 @@
    * @param {Object} opts
    */
   async function open(opts = {}) {
+    const opener = document.activeElement;
     _ensurePanel();
 
     // Auth gate
@@ -518,6 +540,7 @@
 
     const hydratedOpts = await hydrateSupplierRecipient(opts);
     _buildPanelContent(hydratedOpts);
+    _opener = opener;
     _isOpen = true;
 
     // Animate in (next frame)
@@ -529,7 +552,7 @@
     // Focus textarea
     setTimeout(() => {
       const ta = document.getElementById('qcv4-message');
-      if (ta) {
+      if (ta && _isOpen) {
         ta.focus();
       }
     }, 320);
@@ -546,6 +569,10 @@
     _panel.classList.remove('qcv4-panel--visible');
     _isOpen = false;
     document.body.style.overflow = '';
+    if (_opener && typeof _opener.focus === 'function' && document.contains(_opener)) {
+      _opener.focus();
+    }
+    _opener = null;
     setTimeout(() => {
       if (_panel) {
         _panel.innerHTML = '';
