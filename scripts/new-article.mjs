@@ -325,7 +325,7 @@ Print
 <!--CHROME_BOTTOM_NAV-->
 <!--CHROME_HEADER_SCRIPTS-->
 <script src="/assets/js/cookie-consent.js?v=2.0.1"></script>
-<script src="/assets/js/app.js?v=18.5.0"></script>
+<script src="/assets/js/app.js?v=18.5.2"></script>
 <script defer="" src="/assets/js/article-progress.js"></script>
 <script defer="" src="/assets/js/pages/guide-premium.js?v=1.1.0"></script>
 </body>

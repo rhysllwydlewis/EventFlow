@@ -51,8 +51,8 @@ Changed files:
 - [ ] Consolidate dialog behaviour.
 - [ ] Remove duplicate customisation and theme controllers.
 - [x] Correct dashboard deep links (`#photos`/`#packages` now route to real sections via a hash router in `dashboard-supplier-actions.js`; see below).
-- [ ] Add unsaved-navigation protection.
-- [ ] Align create, PATCH and UI field limits.
+- [x] Add unsaved-navigation protection (Profile Customisation `beforeunload` guard).
+- [x] Align create, PATCH and UI field limits (create and PATCH share `PATCH_FIELD_MAX_LENGTHS`; dashboard `maxlength`s are pinned to it by `tests/unit/dashboard-supplier-field-limits.test.js`).
 - [x] Allow amenities to be cleared.
 - [ ] Clarify the different profile-completion measurements.
 
