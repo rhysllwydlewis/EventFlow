@@ -172,13 +172,27 @@
       }
     });
 
+    // A successful save rerenders the section holding the edit button, so by the
+    // time the dialog closes the original trigger is detached. Remember where it
+    // was so focus can go to its replacement.
+    const trigger = document.activeElement;
+    const triggerScope = trigger && trigger.closest ? trigger.closest('[id]') : null;
+    const triggerSelector =
+      trigger && trigger.classList && trigger.classList.length
+        ? `${triggerScope ? `#${triggerScope.id} ` : ''}.${Array.from(trigger.classList).join('.')}`
+        : null;
+
     document.body.appendChild(overlay);
 
     // Tab trap, Escape at any time, scroll lock and focus restore come from the
     // shared helper (a one-shot Escape listener here used to be spent by the
     // first Tab, so Escape then stopped closing the dialog).
     if (window.EFModalA11y) {
-      window.EFModalA11y.enhance(overlay, { lockScroll: true, onEscape: closeModal });
+      window.EFModalA11y.enhance(overlay, {
+        lockScroll: true,
+        onEscape: closeModal,
+        restoreFocus: () => (triggerSelector ? document.querySelector(triggerSelector) : null),
+      });
     }
 
     // Focus first input
