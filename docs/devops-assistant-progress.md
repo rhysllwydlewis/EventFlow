@@ -176,6 +176,14 @@ the policy above.
 
 ### 2026-10-07 — session 16
 
+Audited the live supplier dialogs: `image-carousel.js` lightbox already fine. `QuickComposeV4` (supplier, suppliers, marketplace, package pages) lacked focus restore to the opener and a Tab trap; fixed, and its script tag got `?v=18.5.1` on the 4 pages. Codex raised three real P2s on the first push, all fixed in `8f0afa1`: Escape now `stopPropagation()`s (keyboard-nav.js blurs the active element otherwise), delayed autofocus guarded by `_isOpen`, opener captured per `open()` call. New `tests/unit/quickcompose-focus.test.js`. Full `npm test` 12958 passed.
+
+**Outcome:** PR #1769 was squash-merged as `b2f5b92f0` by someone other than this session (merge arrived while the session was idle; CI state at merge time was not observed by this session beyond DeepSource grade A and the known `github-advanced-security` failure). That check failed with `errorType: quota, 402 — exceeded your monthly quota` from GitHub's Copilot backend — a new variant of the known infra failure; needs the owner's Copilot quota/plan. **Deploy check passed:** `/api/ready` returned 200 on every poll (~14 polls over ~6 min); live `QuickComposeV4.js` contains the fix.
+
+**Next:** `app.js` legacy `initSupplier` dead-code deletion; `components/Modal.js` (likely dead); dead `global-search.js`, `advanced-search.js`, `folders.js`, `labels.js`; `@sentry/node` 11.x major.
+
+### 2026-10-07 — session 16
+
 Branch restarted from `main` (#1767 merged by owner). Audited the live supplier dialogs: `image-carousel.js` lightbox is already fine (role/aria-modal/focus restore/Tab trap/Escape). `QuickComposeV4` (loaded on marketplace, package, supplier, suppliers) had role/label/Escape but no focus restore to the opener and no Tab trap; fixed, plus `?v=18.5.1` added to its script tag on the 4 pages (previously unversioned). New `tests/unit/quickcompose-focus.test.js` (fails without fix). Full `npm test` green (12953 + 2 new).
 
 **Next:** `app.js` legacy `initSupplier` dead-code deletion; `components/Modal.js` (likely dead); dead `global-search.js`, `advanced-search.js`, `folders.js`, `labels.js`; `@sentry/node` 11.x major.
