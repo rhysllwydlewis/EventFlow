@@ -1047,3 +1047,4 @@ router.post('/verification-request', (_req, res) => {
 
 module.exports = router;
 module.exports.initializeDependencies = initializeDependencies;
+module.exports.PATCH_FIELD_MAX_LENGTHS = PATCH_FIELD_MAX_LENGTHS;
