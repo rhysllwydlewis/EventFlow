@@ -20,7 +20,7 @@
   } else {
     root.EFSupplierTheme = api;
   }
-})(typeof self !== 'undefined' ? self : globalThis, function () {
+})(typeof self !== 'undefined' ? self : globalThis, () => {
   const DEFAULT_THEME_COLOR = '#0B8073';
   const VALID_THEME_MODES = Object.freeze(['automatic', 'preset', 'custom']);
 
