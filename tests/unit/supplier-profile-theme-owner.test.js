@@ -49,7 +49,7 @@ describe('supplier profile owner theme editing', () => {
     expect(editor).toContain('window.SupplierProfileTheme?.applySupplierProfileTheme');
 
     const theme = read('public/assets/js/supplier-profile-polish.js');
-    expect(theme).toContain("import './supplier-profile-theme-owner.js'");
+    expect(theme).toContain("import './supplier-profile-theme-owner.js?v=2'");
     expect(theme).toContain('applyAvatarTheme(theme.accent)');
   });
 });

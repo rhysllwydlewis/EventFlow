@@ -498,6 +498,8 @@ Choose one source of truth through one of these approaches:
 
 Adding a category or preset should require one authoritative edit.
 
+**Done (preset and category-family half):** `public/assets/js/shared/supplier-theme-core.js` is now the single definition of the hero presets (id, label, accent, gradient), the category families and accents, and the effective-theme and hero-visual resolvers. `utils/supplierTheme.js` re-exports it and keeps only the PATCH mutation builder; the four browser files load it as `window.EFSupplierTheme`. `tests/unit/supplier-theme-core.test.js` fails if a second copy of the preset table appears or a supplier category lacks a theme family. The category _dropdown_ list in `supplier-profile-owner-edit.js` still mirrors `models/Supplier.js` `VALID_CATEGORIES`.
+
 ## Additional confirmed issue: field limits differ
 
 The dashboard, create route and PATCH route currently allow different maximum lengths for several fields, including:

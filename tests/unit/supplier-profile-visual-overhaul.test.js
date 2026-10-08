@@ -6,35 +6,48 @@ const path = require('path');
 const read = relative => fs.readFileSync(path.join(__dirname, '../..', relative), 'utf8');
 
 const themeJs = read('public/assets/js/supplier-profile-polish.js');
+const sharedTheme = require('../../public/assets/js/shared/supplier-theme-core');
 const themeCss = read('public/assets/css/supplier-profile-theme.css');
 const categoryCss = read('public/assets/css/supplier-profile-v2.css');
 
 describe('supplier profile visual overhaul contracts', () => {
   test('resolves the profile accent from explicit mode, legacy values, category, then EventFlow default', () => {
-    expect(themeJs).toContain("if (mode === 'custom')");
-    expect(themeJs).toContain("if (mode === 'preset')");
-    expect(themeJs).toContain("if (mode === 'automatic')");
-    expect(themeJs).toContain("return { accent: chosen, source: 'themeColor' }");
-    expect(themeJs).toContain("return { accent: PRESET_ACCENTS[preset], source: 'heroPreset' }");
-    expect(themeJs).toContain(
-      "return { accent: CATEGORY_ACCENTS[categoryKey], source: 'category' }"
-    );
-    expect(themeJs).toContain("return { accent: DEFAULT_ACCENT, source: 'default' }");
+    const resolve = supplier => sharedTheme.resolveSupplierTheme(supplier);
+    expect(resolve({ themeMode: 'custom', themeColor: '#ec4899' })).toMatchObject({
+      accent: '#EC4899',
+      source: 'themeColor',
+    });
+    expect(resolve({ themeMode: 'preset', heroPreset: 'midnight' })).toMatchObject({
+      accent: '#0F3460',
+      source: 'heroPreset',
+    });
+    expect(resolve({ themeMode: 'automatic', category: 'Photography' })).toMatchObject({
+      accent: '#1A3A5C',
+      source: 'category',
+    });
+    // Legacy records had no mode: a colour wins, then a preset, then the category.
+    expect(resolve({ themeColor: '#ec4899', heroPreset: 'midnight' }).source).toBe('themeColor');
+    expect(resolve({ heroPreset: 'midnight' }).source).toBe('heroPreset');
+    expect(resolve({ category: 'Venues' }).source).toBe('category');
+    expect(resolve({})).toMatchObject({ accent: '#0B8073', source: 'default' });
+    // The profile module lower-cases the shared accent for its own CSS variables.
+    expect(themeJs).toContain('accent: theme.accent.toLowerCase()');
   });
 
   test('covers every canonical category family used by the supplier dashboard', () => {
-    expect(themeJs).toContain("'music/dj': 'music'");
-    expect(themeJs).toContain("videography: 'photography'");
-    expect(themeJs).toContain("'event planner': 'wedding'");
-    expect(themeJs).toContain("'hair & makeup': 'beauty'");
-    expect(themeJs).toContain("decor: 'flowers'");
-    expect(themeJs).toContain("cake: 'catering'");
+    const families = sharedTheme.CATEGORY_THEME_FAMILIES;
+    expect(families['music/dj']).toBe('music');
+    expect(families.videography).toBe('photography');
+    expect(families['event planner']).toBe('wedding');
+    expect(families['hair & makeup']).toBe('beauty');
+    expect(families.decor).toBe('flowers');
+    expect(families.cake).toBe('catering');
     expect(categoryCss).toContain('data-category-preset="beauty"');
     expect(categoryCss).toContain('#9d174d');
   });
 
   test('preserves explicit hero presets and themes only the colour fallback', () => {
-    expect(themeJs).toContain("return 'preset'");
+    expect(themeJs).toContain('sharedTheme.resolveHeroVisual(supplier)');
     expect(themeJs).toContain(
       "heroMedia?.classList.toggle('sp-hero-use-accent', heroMode === 'theme')"
     );

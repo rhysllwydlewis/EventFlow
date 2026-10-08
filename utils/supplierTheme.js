@@ -1,147 +1,30 @@
 'use strict';
 
-const DEFAULT_THEME_COLOR = '#0B8073';
-const VALID_THEME_MODES = Object.freeze(['automatic', 'preset', 'custom']);
+/**
+ * Server-side supplier theme helpers. The theme definitions and the effective-
+ * theme resolver live in the environment-neutral shared module so the public
+ * profile, the inline owner editor and the Profile Customisation page resolve
+ * themes identically; this file adds the PATCH mutation builder on top.
+ */
+const core = require('../public/assets/js/shared/supplier-theme-core');
 
-const HERO_PRESET_ACCENTS = Object.freeze({
-  'ef-teal': '#0B8073',
-  midnight: '#0F3460',
-  'rose-gold': '#B76E79',
-  forest: '#40916C',
-  ocean: '#0077B6',
-  sunset: '#D62828',
-  purple: '#7E22CE',
-  charcoal: '#374151',
-  blush: '#C2185B',
-  champagne: '#9C7C38',
-});
-
-const CATEGORY_THEME_FAMILIES = Object.freeze({
-  wedding: 'wedding',
-  weddings: 'wedding',
-  'wedding planner': 'wedding',
-  'event planner': 'wedding',
-  planning: 'wedding',
-  'wedding fayre': 'wedding',
-  stationery: 'wedding',
-  celebrant: 'wedding',
-  photography: 'photography',
-  photographer: 'photography',
-  videography: 'photography',
-  videographer: 'photography',
-  catering: 'catering',
-  caterer: 'catering',
-  food: 'catering',
-  cake: 'catering',
-  music: 'music',
-  'music/dj': 'music',
-  dj: 'music',
-  band: 'music',
-  musicians: 'music',
-  entertainment: 'entertainment',
-  flowers: 'flowers',
-  florist: 'flowers',
-  floral: 'flowers',
-  decor: 'flowers',
-  venue: 'venue',
-  venues: 'venue',
-  transport: 'transport',
-  cars: 'transport',
-  chauffeur: 'transport',
-  beauty: 'beauty',
-  'hair & makeup': 'beauty',
-  bridalwear: 'beauty',
-  jewellery: 'beauty',
-  other: 'default',
-});
-
-const CATEGORY_ACCENTS = Object.freeze({
-  wedding: '#B76E79',
-  photography: '#1A3A5C',
-  catering: '#7F5539',
-  music: '#6A0DAD',
-  entertainment: '#C2185B',
-  flowers: '#386641',
-  venue: '#4A5568',
-  transport: '#1A6B8A',
-  beauty: '#9D174D',
-  default: DEFAULT_THEME_COLOR,
-});
+const {
+  CATEGORY_ACCENTS,
+  CATEGORY_THEME_FAMILIES,
+  DEFAULT_THEME_COLOR,
+  HERO_PRESETS,
+  HERO_PRESET_ACCENTS,
+  HERO_PRESET_GRADIENTS,
+  VALID_THEME_MODES,
+  normaliseHeroPreset,
+  normaliseStoredSupplierTheme,
+  normaliseThemeColor,
+  normaliseThemeMode,
+  resolveCategoryTheme,
+  resolveSupplierTheme,
+} = core;
 
 const hasOwn = (value, key) => Object.prototype.hasOwnProperty.call(value || {}, key);
-
-function normaliseThemeColor(value) {
-  const candidate = String(value || '').trim();
-  return /^#[0-9A-F]{6}$/i.test(candidate) ? candidate.toUpperCase() : null;
-}
-
-function normaliseHeroPreset(value) {
-  const candidate = String(value || '')
-    .trim()
-    .toLowerCase();
-  return HERO_PRESET_ACCENTS[candidate] ? candidate : null;
-}
-
-function normaliseThemeMode(value) {
-  const candidate = String(value || '')
-    .trim()
-    .toLowerCase();
-  return VALID_THEME_MODES.includes(candidate) ? candidate : null;
-}
-
-function resolveCategoryTheme(category) {
-  const key = String(category || '')
-    .trim()
-    .toLowerCase();
-  const family = CATEGORY_THEME_FAMILIES[key] || 'default';
-  return { family, accent: CATEGORY_ACCENTS[family] || DEFAULT_THEME_COLOR };
-}
-
-function normaliseStoredSupplierTheme(supplier = {}) {
-  const storedMode = normaliseThemeMode(supplier.themeMode);
-  const themeColor = normaliseThemeColor(supplier.themeColor);
-  const heroPreset = normaliseHeroPreset(supplier.heroPreset);
-
-  if (storedMode === 'automatic') {
-    return { themeMode: 'automatic', themeColor: null, heroPreset: null };
-  }
-  if (storedMode === 'preset' && heroPreset) {
-    return { themeMode: 'preset', themeColor: null, heroPreset };
-  }
-  if (storedMode === 'custom' && themeColor) {
-    return { themeMode: 'custom', themeColor, heroPreset: null };
-  }
-
-  // Legacy records had no explicit mode. Preserve their effective historical priority.
-  if (themeColor) {
-    return { themeMode: 'custom', themeColor, heroPreset: null };
-  }
-  if (heroPreset) {
-    return { themeMode: 'preset', themeColor: null, heroPreset };
-  }
-  return { themeMode: 'automatic', themeColor: null, heroPreset: null };
-}
-
-function resolveSupplierTheme(supplier = {}) {
-  const stored = normaliseStoredSupplierTheme(supplier);
-  if (stored.themeMode === 'custom') {
-    return { ...stored, accent: stored.themeColor, source: 'themeColor' };
-  }
-  if (stored.themeMode === 'preset') {
-    return {
-      ...stored,
-      accent: HERO_PRESET_ACCENTS[stored.heroPreset],
-      source: 'heroPreset',
-    };
-  }
-  const category = resolveCategoryTheme(supplier.category);
-  return {
-    ...stored,
-    accent: category.accent,
-    source: category.family === 'default' ? 'default' : 'category',
-    categoryFamily: category.family,
-  };
-}
 
 function buildSupplierThemeMutation(body = {}, existing = {}) {
   const set = {};
@@ -251,7 +134,9 @@ module.exports = {
   CATEGORY_ACCENTS,
   CATEGORY_THEME_FAMILIES,
   DEFAULT_THEME_COLOR,
+  HERO_PRESETS,
   HERO_PRESET_ACCENTS,
+  HERO_PRESET_GRADIENTS,
   VALID_THEME_MODES,
   buildSupplierThemeMutation,
   normaliseHeroPreset,
