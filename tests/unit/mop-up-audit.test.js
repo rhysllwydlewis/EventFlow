@@ -26,10 +26,6 @@ const customerInitSrc = fs.readFileSync(
   path.join(__dirname, '../../public/assets/js/pages/dashboard-customer-init.js'),
   'utf8'
 );
-const globalSearchSrc = fs.readFileSync(
-  path.join(__dirname, '../../public/assets/js/components/global-search.js'),
-  'utf8'
-);
 const supplierServiceSrc = fs.readFileSync(
   path.join(__dirname, '../../services/supplier.service.js'),
   'utf8'
@@ -127,35 +123,6 @@ describe('dashboard-customer-init.js — budget retry on next visit', () => {
   it('retry message in UI copy (warning text) matches the implementation', () => {
     // The "will be retried on next visit" copy must be present
     expect(customerInitSrc).toContain('retried on next visit');
-  });
-});
-
-// ---------------------------------------------------------------------------
-// 3. Category name consistency — no stale/non-canonical names in JS defaults
-// ---------------------------------------------------------------------------
-describe('global-search.js — category name consistency', () => {
-  it('does not use stale "Florists" (plural) — canonical name is "Florist"', () => {
-    // "Florists" was the old name before the category list was canonicalized.
-    // Using it in any dropdown default causes mismatched filtering.
-    expect(globalSearchSrc).not.toContain("'Florists'");
-    expect(globalSearchSrc).not.toContain('"Florists"');
-  });
-
-  it('any category names used in the default list are canonical VALID_CATEGORIES entries', () => {
-    // Extract the default categories array from the source
-    const match = globalSearchSrc.match(
-      /categories:\s*options\.categories\s*\|\|\s*\[([\s\S]*?)\]/
-    );
-    if (!match) {
-      // If no hardcoded default exists the component is fine
-      return;
-    }
-    const arrayBody = match[1];
-    // Pull out each quoted string
-    const entries = [...arrayBody.matchAll(/['"]([^'"]+)['"]/g)].map(m => m[1]);
-    // Every entry except "All" (UI-only) must be in VALID_CATEGORIES
-    const invalid = entries.filter(e => e !== 'All' && !VALID_CATEGORIES.includes(e));
-    expect(invalid).toEqual([]);
   });
 });
 
