@@ -178,6 +178,8 @@ the policy above.
 
 Branch restarted onto `main` (#1777 merged). No red CI. The `app.js` `initSupplier` deletion is still blocked on the classifier (see session 17), so I did the other queued dead-code item instead. Verified `global-search.js`, `advanced-search.js`, `folders.js` and `labels.js` have zero references: no HTML script tags, no imports, no server or service-worker lists. Deleted all four (about 3.1k lines) and removed the `global-search.js` source-reading block from `tests/unit/mop-up-audit.test.js`. `advanced-search-csrf.test.js` only simulates the logic inline, so it stays. Full `npm test` passed (12989).
 
+**Outcome:** PR #1778 squash-merged as `472fbceb`. All CI green except the known `github-advanced-security` infra failure (Lighthouse desktop was still running at merge; mobile passed). Codex found nothing. **Deploy check passed:** `/api/ready` returned 200 on 22 of 22 polls over about 9 minutes.
+
 **Next:** `app.js` legacy `initSupplier` deletion (needs small Edit calls or owner go-ahead); `components/Modal.js` (references are ambiguous, needs a closer look); `@sentry/node` 11.x.
 
 ### 2026-10-08 — session 17
