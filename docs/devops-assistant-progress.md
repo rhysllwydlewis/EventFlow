@@ -174,6 +174,12 @@ the policy above.
 
 ## Session log
 
+### 2026-10-10 — session 19
+
+Branch restarted onto `main` (#1779 merged). No open PR on this branch, nothing red. Verified `public/assets/js/components/Modal.js` (347 lines) is unreferenced: no HTML script tag, import, test, service-worker or script reference (the `new Modal({...})` callers in budget/guests/admin-init use other `Modal` classes, e.g. in `components.js`). Deleted it. Full `npm test` passed (12988).
+
+**Next:** `app.js` legacy `initSupplier` deletion (still needs small Edit calls or owner go-ahead); `@sentry/node` 11.x.
+
 ### 2026-10-09 — session 18
 
 Branch restarted onto `main` (#1777 merged). No red CI. The `app.js` `initSupplier` deletion is still blocked on the classifier (see session 17), so I did the other queued dead-code item instead. Verified `global-search.js`, `advanced-search.js`, `folders.js` and `labels.js` have zero references: no HTML script tags, no imports, no server or service-worker lists. Deleted all four (about 3.1k lines) and removed the `global-search.js` source-reading block from `tests/unit/mop-up-audit.test.js`. `advanced-search-csrf.test.js` only simulates the logic inline, so it stays. Full `npm test` passed (12989).
