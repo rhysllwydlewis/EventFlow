@@ -53,6 +53,20 @@ function initSentry(_app) {
       tracesSampleRate: environment === 'production' ? 0.1 : 1.0,
       // Set sampling rate for profiling
       profilesSampleRate: environment === 'production' ? 0.1 : 1.0,
+      // @sentry/node v9+ replaced sendDefaultPii with dataCollection, and v11's
+      // unset defaults COLLECT user info, cookies, headers, HTTP bodies, DB query
+      // data and local variables. Keep the pre-upgrade restrictive baseline;
+      // opt in to categories deliberately.
+      dataCollection: {
+        userInfo: false,
+        cookies: false,
+        httpHeaders: false,
+        httpBodies: [],
+        urlQueryParams: false,
+        databaseQueryData: false,
+        queues: false,
+        stackFrameVariables: false,
+      },
       integrations: [
         Sentry.mongoIntegration({ useMongoose: false }),
         ...(Sentry.redisIntegration ? [Sentry.redisIntegration()] : []),

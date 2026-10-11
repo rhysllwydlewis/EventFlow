@@ -176,7 +176,7 @@ the policy above.
 
 ### 2026-10-11 — session 20
 
-Branch restarted onto `main` (#1780 merged). No open PR, nothing red. `app.js` `initSupplier` deletion still blocked (needs small Edit calls or owner go-ahead). Did the `@sentry/node` 8 → ^11.6.0 bump instead: the app only uses `init`, `mongoIntegration`, `redisIntegration`, `setupExpressErrorHandler`, `captureException` (utils/sentry.js), all still exported in 11.6.0; smoke-initialised with a fake DSN. Prod audit now 0 vulnerabilities (was 2 moderates). Full `npm test` passed (12988). `@sentry/browser` is still 8.x (frontend, loaded separately) — left alone.
+Branch restarted onto `main` (#1780 merged). No open PR, nothing red. `app.js` `initSupplier` deletion still blocked (needs small Edit calls or owner go-ahead). Did the `@sentry/node` 8 → ^11.6.0 bump instead: the app only uses `init`, `mongoIntegration`, `redisIntegration`, `setupExpressErrorHandler`, `captureException` (utils/sentry.js), all still exported in 11.6.0; smoke-initialised with a fake DSN. Prod audit now 0 vulnerabilities (was 2 moderates). Full `npm test` passed (12988). Codex P1 on the PR was real: v11's unset `dataCollection` defaults collect user info, cookies, headers, HTTP bodies and DB data (v8 did not), so `utils/sentry.js` now sets an explicit restrictive `dataCollection` baseline, with a regression test. Codex P2 (restore `req.user` association) deliberately not done: it would mean sending user identifiers, which the restrictive baseline excludes; revisit only if the owner wants it. `@sentry/browser` is still 8.x (frontend, loaded separately) — left alone.
 
 ### 2026-10-10 — session 19
 
