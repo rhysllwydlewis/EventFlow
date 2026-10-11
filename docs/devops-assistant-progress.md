@@ -174,6 +174,10 @@ the policy above.
 
 ## Session log
 
+### 2026-10-11 — session 20
+
+Branch restarted onto `main` (#1780 merged). No open PR, nothing red. `app.js` `initSupplier` deletion still blocked (needs small Edit calls or owner go-ahead). Did the `@sentry/node` 8 → ^11.6.0 bump instead: the app only uses `init`, `mongoIntegration`, `redisIntegration`, `setupExpressErrorHandler`, `captureException` (utils/sentry.js), all still exported in 11.6.0; smoke-initialised with a fake DSN. Prod audit now 0 vulnerabilities (was 2 moderates). Full `npm test` passed (12988). `@sentry/browser` is still 8.x (frontend, loaded separately) — left alone.
+
 ### 2026-10-10 — session 19
 
 Branch restarted onto `main` (#1779 merged). No open PR on this branch, nothing red. Verified `public/assets/js/components/Modal.js` (347 lines) is unreferenced: no HTML script tag, import, test, service-worker or script reference (the `new Modal({...})` callers in budget/guests/admin-init use other `Modal` classes, e.g. in `components.js`). Deleted it. Full `npm test` passed (12988).

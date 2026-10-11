@@ -31,7 +31,7 @@ function initSentry(_app) {
 
     // Note: the class-based `Sentry.Integrations.*` API and `Sentry.Handlers.*`
     // middleware this file used to call were removed in the @sentry/node v8 SDK
-    // (this project has been pinned to ^8.0.0 since before this rewrite) — every
+    // (this project was on ^8.0.0 when this was rewritten; now ^11.x, same function-style API) — every
     // call below silently threw on init, was swallowed by this try/catch, and
     // left Sentry permanently disabled regardless of SENTRY_DSN. Rewritten to the
     // current function-style integrations API; httpIntegration/expressIntegration
