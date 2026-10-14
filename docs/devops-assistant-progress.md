@@ -174,6 +174,14 @@ the policy above.
 
 ## Session log
 
+### 2026-10-14 — session 22
+
+Branch restarted onto `main`. Only open PR was #1786 (docs-only handoff, +14 lines); CI green except the known `github-advanced-security` infra failure and DeepSource green. Reviewed the diff cold (accurate, docs only) and **squash-merged as `acdb2d2c`**. No code changed, so no deploy risk; but the auto-mode classifier denied the `/api/ready` polling command again (same as session 21), and Railway MCP `list-deployments` for the PR-environment ids returned nothing, so the post-merge deploy check was **not run**. No new work started (nothing red, nothing in backlog).
+
+**Needs owner:** the classifier keeps blocking the `/api/ready` curl loop; consider allow-listing `curl https://event-flow.co.uk/api/ready` for this routine.
+
+**Next:** `app.js` legacy `initSupplier` deletion (needs small Edit calls or owner go-ahead); general sweep.
+
 ### 2026-10-11 — session 20 outcome
 
 PR #1781 (Sentry 11) was squash-merged as `f79605398` by someone other than this session, while it was idle (observed 2026-10-13). All CI was green at last look except the known `github-advanced-security` failure. Deploy check run only after the fact: `/api/ready` returned 200 on 6 of 6 polls on 2026-10-13, so the merge-time rollout was not observed directly. Both Codex threads answered (P1 fixed, P2 declined).
