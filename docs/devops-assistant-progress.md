@@ -174,6 +174,10 @@ the policy above.
 
 ## Session log
 
+### 2026-10-16 — session 24
+
+Branch restarted onto `main` (#1789 merged). No open PR, nothing red, backlog empty, so did the sweep. Found nine front-end scripts with zero references anywhere in the repo (no HTML tags, imports, tests, service worker, scripts; globals such as `VoiceInput`, `offlineQueueManager`, `OnboardingTour`, `skeleton`, `darkModeToggle` also have no other users): `live-chat.js`, `voice-input.js`, `customer-manager.js`, `offline-queue-manager.js`, and `components/` `photo-gallery`, `onboarding-tour`, `LoadingSkeleton`, `DarkModeToggle`, `ImageZoom`. Deleted them (about 2.7k lines, pure deletions). Full `npm test` passed (12986). Other zero-reference files from the same scan not yet examined: `firebase-config.js`, `components/Toast.js`, `config/api-version.js`, `grouping.js`, `share.js`, `guide-feedback.js`, `utils/{messaging-constants,formatters,sanitizer,api-debug,hcaptcha,password-strength,debounce}.js`; verify each (basename grep is only a first pass).
+
 ### 2026-10-15 — session 23
 
 Branch restarted onto `main`. No open PR, nothing red. Did the queued `app.js` legacy supplier dead-code deletion (the earlier `sed -i` was blocked, so used a small node line-splice script, reviewable in the diff): removed `initSupplier`, `initContactFormValidation`, `initSupplierGallery`, `openLightbox` and the `page === 'supplier'` call (about 960 lines). `showToast` kept (still used). `app.js?v=` bumped 18.5.2 → 18.5.3 on every page and in `scripts/new-article.mjs`; `auth-signup-layout.test.js` now matches any `app.js?v=` version rather than pinning one. Full `npm test` passed (12988); eslint no-undef clean.
