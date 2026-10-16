@@ -21,38 +21,9 @@
 
   // ── Hero preset definitions ──────────────────────────────────────────────
 
-  const HERO_PRESETS = [
-    {
-      id: 'ef-teal',
-      label: 'EventFlow',
-      gradient: 'linear-gradient(135deg,#0B8073 0%,#13B6A2 100%)',
-    },
-    {
-      id: 'midnight',
-      label: 'Midnight',
-      gradient: 'linear-gradient(135deg,#1a1a2e 0%,#0f3460 100%)',
-    },
-    {
-      id: 'rose-gold',
-      label: 'Rose Gold',
-      gradient: 'linear-gradient(135deg,#b76e79 0%,#f9c8c8 100%)',
-    },
-    { id: 'forest', label: 'Forest', gradient: 'linear-gradient(135deg,#1b4332 0%,#40916c 100%)' },
-    { id: 'ocean', label: 'Ocean', gradient: 'linear-gradient(135deg,#03045e 0%,#00b4d8 100%)' },
-    { id: 'sunset', label: 'Sunset', gradient: 'linear-gradient(135deg,#f77f00 0%,#d62828 100%)' },
-    { id: 'purple', label: 'Purple', gradient: 'linear-gradient(135deg,#3d0066 0%,#a855f7 100%)' },
-    {
-      id: 'charcoal',
-      label: 'Charcoal',
-      gradient: 'linear-gradient(135deg,#1a1a1a 0%,#4a5568 100%)',
-    },
-    { id: 'blush', label: 'Blush', gradient: 'linear-gradient(135deg,#c2185b 0%,#ff80ab 100%)' },
-    {
-      id: 'champagne',
-      label: 'Champagne',
-      gradient: 'linear-gradient(135deg,#9c7c38 0%,#e8d5a3 100%)',
-    },
-  ];
+  // Shared with the server and the other theme editors
+  // (shared/supplier-theme-core.js, loaded as a classic script before this one).
+  const HERO_PRESETS = window.EFSupplierTheme.HERO_PRESETS;
 
   // Mirrors models/Supplier.js VALID_CATEGORIES (and the canonical dropdown in
   // dashboard-supplier.html) — a free-text category input can no longer be
