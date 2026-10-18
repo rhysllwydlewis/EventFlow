@@ -14,7 +14,12 @@
   const OPEN_BUTTON_SELECTOR = '.ww-card-open-app-btn';
   const PAGE_SIZE = 20;
   const MAX_GALLERY = 12;
-  const MAX_IMAGE_BYTES = 700000;
+  // The server drops any image over 900,000 characters, and every photo travels in one JSON
+  // body (limit 10 MB). Photos are shrunk to ~0.6 M characters so a full gallery fits.
+  const TARGET_IMAGE_CHARS = 600000;
+  const MAX_SOURCE_BYTES = 12 * 1024 * 1024;
+  const SAFE_IMAGE_RE =
+    /^(?:data:image\/(?:png|jpe?g|webp|gif);base64,[a-z0-9+/]+={0,2}|https?:\/\/[^\s"'()<>\\]+)$/i;
   const IMAGE_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/gif']);
 
   const TABS = [
@@ -510,22 +515,82 @@
       .slice(0, 80);
   }
 
-  function readImage(file) {
-    if (!file) {
-      return Promise.resolve('');
+  /** Returns the URL only if it is an https/http link or an image data URL, otherwise ''. */
+  function safeImageUrl(value) {
+    const url = String(value || '').trim();
+    return SAFE_IMAGE_RE.test(url) ? url : '';
+  }
+
+  /** Normalises #rgb / #rrggbb to #RRGGBB, falling back when the value is not a hex colour. */
+  function safeColour(value, fallback) {
+    const raw = String(value || '').trim();
+    const short = raw.match(/^#([0-9a-f])([0-9a-f])([0-9a-f])$/i);
+    if (short) {
+      return `#${short[1]}${short[1]}${short[2]}${short[2]}${short[3]}${short[3]}`.toUpperCase();
     }
-    if (!IMAGE_TYPES.has(file.type)) {
-      return Promise.reject(new Error('Please choose a JPG, PNG, WebP or GIF image.'));
-    }
-    if (file.size > MAX_IMAGE_BYTES) {
-      return Promise.reject(new Error('Please choose an image under 700 KB.'));
-    }
+    return /^#[0-9a-f]{6}$/i.test(raw) ? raw.toUpperCase() : fallback;
+  }
+
+  function fileToDataUrl(file) {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
       reader.onload = () => resolve(String(reader.result || ''));
       reader.onerror = () => reject(new Error('Unable to read this image.'));
       reader.readAsDataURL(file);
     });
+  }
+
+  /** Redraws the photo on a canvas at decreasing sizes and qualities until it is small enough. */
+  async function shrinkImage(file) {
+    let bitmap;
+    try {
+      bitmap = await createImageBitmap(file);
+    } catch {
+      throw new Error('Unable to read this image.');
+    }
+    try {
+      for (const longestSide of [1600, 1280, 1024, 800]) {
+        const scale = Math.min(1, longestSide / Math.max(bitmap.width, bitmap.height));
+        const canvas = document.createElement('canvas');
+        canvas.width = Math.max(1, Math.round(bitmap.width * scale));
+        canvas.height = Math.max(1, Math.round(bitmap.height * scale));
+        const context = canvas.getContext('2d');
+        // JPEG has no transparency, so flatten onto white.
+        context.fillStyle = '#fff';
+        context.fillRect(0, 0, canvas.width, canvas.height);
+        context.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+        for (const quality of [0.85, 0.72, 0.6]) {
+          const url = canvas.toDataURL('image/jpeg', quality);
+          if (url.length <= TARGET_IMAGE_CHARS) {
+            return url;
+          }
+        }
+      }
+    } finally {
+      bitmap.close?.();
+    }
+    throw new Error('Unable to shrink this image enough. Please try a smaller one.');
+  }
+
+  /** Reads a chosen photo as a data URL, shrinking anything too big for the server to keep. */
+  async function readImage(file) {
+    if (!file) {
+      return '';
+    }
+    if (!IMAGE_TYPES.has(file.type)) {
+      throw new Error('Please choose a JPG, PNG, WebP or GIF image.');
+    }
+    if (file.size > MAX_SOURCE_BYTES) {
+      throw new Error('Please choose a photo under 12 MB.');
+    }
+    const original = await fileToDataUrl(file);
+    if (original.length <= TARGET_IMAGE_CHARS) {
+      return original;
+    }
+    if (file.type === 'image/gif') {
+      throw new Error('That GIF is too large. Please use a smaller GIF, or a JPG or PNG.');
+    }
+    return shrinkImage(file);
   }
 
   const isSeated = guest => Boolean(guest.tableId || guest.tableName || guest.table);
@@ -611,7 +676,7 @@
     if (!plan?.id) {
       return null;
     }
-    const data = await api(planPath(plan, '/wedding-website')).catch(() => ({}));
+    const data = await api(planPath(plan, '/wedding-website'));
     return data.website || data.site || data.data?.website || null;
   }
 
@@ -637,8 +702,8 @@
       return;
     }
     const [guests, tables] = await Promise.all([
-      api(planPath(S.plan, '/guests')).catch(() => ({ guests: [] })),
-      api(planPath(S.plan, '/tables')).catch(() => ({ tables: [] })),
+      api(planPath(S.plan, '/guests')),
+      api(planPath(S.plan, '/tables')),
     ]);
     S.guests = guests.guests || [];
     S.tables = tables.tables || [];
@@ -679,7 +744,9 @@
       }
       draft[key] = String(value || fallback[key] || '');
     });
-    draft.template = site.template || 'classic';
+    if (!TEMPLATES.some(t => t.value === draft.template)) {
+      draft.template = 'classic';
+    }
     Object.keys(LISTS).forEach(name => {
       if (name === 'mealOptions') {
         draft.lists[name] = (site.mealOptions || []).map(value => ({ id: uid('meal'), value }));
@@ -696,26 +763,25 @@
       }
     });
     draft.theme = {
-      accentColor: site.accentColor || PALETTES[0].accent,
-      secondaryColor: site.secondaryColor || PALETTES[0].secondary,
-      backgroundColor: site.backgroundColor || PALETTES[0].background,
-      textColor: site.textColor || PALETTES[0].text,
-      heroLayout: site.heroLayout || 'classic',
-      coverImageUrl: site.coverImageUrl || '',
-      galleryImages: Array.isArray(site.galleryImages)
-        ? site.galleryImages.map(item => ({ ...item }))
-        : [],
+      accentColor: safeColour(site.accentColor, PALETTES[0].accent),
+      secondaryColor: safeColour(site.secondaryColor, PALETTES[0].secondary),
+      backgroundColor: safeColour(site.backgroundColor, PALETTES[0].background),
+      textColor: safeColour(site.textColor, PALETTES[0].text),
+      heroLayout: HERO_LAYOUTS.some(l => l.value === site.heroLayout) ? site.heroLayout : 'classic',
+      coverImageUrl: safeImageUrl(site.coverImageUrl),
+      galleryImages: (Array.isArray(site.galleryImages) ? site.galleryImages : [])
+        .map(item => ({ ...item, imageUrl: safeImageUrl(item?.imageUrl) }))
+        .filter(item => item.imageUrl),
     };
     return draft;
   }
 
   function draftPayload() {
     const draft = S.draft;
-    const payload = { rsvpEnabled: draft.rsvpEnabled, accentColor: draft.theme.accentColor };
+    const payload = { rsvpEnabled: draft.rsvpEnabled };
     SCALAR_KEYS.forEach(key => {
       payload[key] = draft[key];
     });
-    payload.coverImageUrl = draft.theme.coverImageUrl;
     Object.keys(LISTS).forEach(name => {
       const rows = draft.lists[name];
       if (name === 'mealOptions') {
@@ -736,7 +802,10 @@
               .filter(Boolean),
           }));
       } else {
-        payload[name] = rows;
+        // Rows the customer added but never filled in are not sent.
+        payload[name] = rows.filter(item =>
+          Object.entries(item).some(([key, value]) => key !== 'id' && String(value || '').trim())
+        );
       }
     });
     return payload;
@@ -755,8 +824,10 @@
     };
   }
 
-  function setDirty(value) {
+  /** Marks the editor dirty; `part` records whether the site text or the theme/photos changed. */
+  function setDirty(value, part) {
     S.dirty = value;
+    S.touched = value ? { ...S.touched, [part || 'site']: true } : { site: false, theme: false };
     const bar = S.dialog?.querySelector('.ww-savebar');
     if (bar) {
       bar.dataset.state = value ? 'dirty' : 'clean';
@@ -818,14 +889,6 @@
   function nextStep() {
     const st = stats();
     const site = S.site;
-    if (!S.plan) {
-      return {
-        title: 'Set up your wedding hub',
-        body: 'Create your guest website, RSVP form, guest list and seating plan in one place.',
-        cta: 'Get started',
-        go: 'website',
-      };
-    }
     if (!site) {
       return {
         title: 'Create your wedding website',
@@ -890,11 +953,16 @@
    * ------------------------------------------------------------------ */
 
   function toast(message, type = 'ok') {
-    const host = S?.dialog?.querySelector('.ww-toasts') || document.body;
+    const host = S?.dialog?.querySelector('.ww-toasts');
+    if (!host) {
+      return;
+    }
     host.querySelectorAll('.ww-toast').forEach(old => old.remove());
     const el = document.createElement('div');
     el.className = `ww-toast ww-toast--${type}`;
-    el.setAttribute('role', type === 'warn' ? 'alert' : 'status');
+    if (type === 'warn') {
+      el.setAttribute('role', 'alert');
+    }
     el.innerHTML = `${icon(type === 'warn' ? 'info' : 'check', 16)}<span>${esc(message)}</span>`;
     host.appendChild(el);
     window.requestAnimationFrame(() => el.classList.add('is-in'));
@@ -992,6 +1060,16 @@
     return '<div class="ww-skeleton" aria-hidden="true"><i></i><i></i><i></i></div>';
   }
 
+  function loadErrorHtml() {
+    return `<div class="ww-card">${emptyState({
+      iconName: 'info',
+      title: 'We could not load your wedding workspace',
+      body: S.loadError,
+      actions:
+        '<button type="button" class="ww-btn ww-btn--primary" data-action="retry-load">Try again</button>',
+    })}</div>`;
+  }
+
   function updateChrome() {
     const meta = statusMeta(S.site, S.plan);
     const status = S.dialog.querySelector('#ww-status');
@@ -1002,6 +1080,9 @@
     guestsCount.hidden = !S.guests.length;
     guestsCount.textContent = S.guests.length;
   }
+
+  const scrollBehavior = () =>
+    window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth';
 
   function goTo(tab, opts = {}) {
     if (!TABS.some(item => item.key === tab)) {
@@ -1031,7 +1112,7 @@
       window.requestAnimationFrame(() => {
         S.dialog
           .querySelector(`[data-section="${opts.section}"]`)
-          ?.scrollIntoView({ block: 'start', behavior: 'smooth' });
+          ?.scrollIntoView({ block: 'start', behavior: scrollBehavior() });
       });
     }
   }
@@ -1050,7 +1131,13 @@
       seating: viewSeating,
       share: viewShare,
     };
-    pane.innerHTML = S.loading ? loadingHtml() : views[S.tab]();
+    if (S.loading) {
+      pane.innerHTML = loadingHtml();
+    } else if (S.loadError) {
+      pane.innerHTML = loadErrorHtml();
+    } else {
+      pane.innerHTML = views[S.tab]();
+    }
     scroller.scrollTop = resetScroll ? 0 : top;
     updateChrome();
   }
@@ -1263,8 +1350,8 @@
           tpl =>
             `<option value="${tpl.value}" ${S.draft.template === tpl.value ? 'selected' : ''}>${esc(tpl.label)}</option>`
         ).join('')}</select></label></div>
-        <div class="ww-group"><h5>Cover photo</h5><div class="ww-actions-row"><label class="ww-btn ww-btn--secondary">${icon('image', 16)}${theme.coverImageUrl ? 'Replace photo' : 'Choose photo'}<input type="file" accept="image/png,image/jpeg,image/webp,image/gif" data-upload="cover" hidden></label>${theme.coverImageUrl ? '<button type="button" class="ww-btn ww-btn--ghost" data-action="cover-remove">Remove</button>' : ''}</div><p class="ww-hint">JPG, PNG, WebP or GIF under 700 KB.</p></div>
-        <div class="ww-group"><h5>Gallery <span class="ww-muted">${theme.galleryImages.length}/${MAX_GALLERY}</span></h5>${gallery ? `<div class="ww-gallery">${gallery}</div>` : ''}<div class="ww-actions-row"><label class="ww-btn ww-btn--secondary ${theme.galleryImages.length >= MAX_GALLERY ? 'is-disabled' : ''}">${icon('plus', 16)}Add photos<input type="file" accept="image/png,image/jpeg,image/webp,image/gif" multiple data-upload="gallery" hidden ${theme.galleryImages.length >= MAX_GALLERY ? 'disabled' : ''}></label></div></div>
+        <div class="ww-group"><h5>Cover photo</h5><div class="ww-actions-row"><label class="ww-btn ww-btn--secondary">${icon('image', 16)}${theme.coverImageUrl ? 'Replace photo' : 'Choose photo'}<input type="file" accept="image/png,image/jpeg,image/webp,image/gif" data-upload="cover" class="ww-sr"></label>${theme.coverImageUrl ? '<button type="button" class="ww-btn ww-btn--ghost" data-action="cover-remove">Remove</button>' : ''}</div><p class="ww-hint">JPG, PNG, WebP or GIF. Large photos are resized for you.</p></div>
+        <div class="ww-group"><h5>Gallery <span class="ww-muted">${theme.galleryImages.length}/${MAX_GALLERY}</span></h5>${gallery ? `<div class="ww-gallery">${gallery}</div>` : ''}<div class="ww-actions-row"><label class="ww-btn ww-btn--secondary ${theme.galleryImages.length >= MAX_GALLERY ? 'is-disabled' : ''}">${icon('plus', 16)}Add photos<input type="file" accept="image/png,image/jpeg,image/webp,image/gif" multiple data-upload="gallery" class="ww-sr" ${theme.galleryImages.length >= MAX_GALLERY ? 'disabled' : ''}></label></div></div>
       </div>
       <aside class="ww-look__preview" aria-label="Website preview">
         <p class="ww-eyebrow">Live preview</p>
@@ -1386,7 +1473,7 @@
       <div class="ww-savebar" data-state="${S.dirty ? 'dirty' : 'clean'}">
         <span class="ww-savebar__dot"></span><span class="ww-savebar__text">${S.dirty ? 'You have unsaved changes' : 'All changes saved'}</span>
         <div class="ww-savebar__actions">
-          <a class="ww-btn ww-btn--ghost" href="${esc(previewUrl())}" target="_blank" rel="noopener">${icon('eye', 16)}${live ? 'View live site' : 'Preview draft'}</a>
+          ${previewUrl() ? `<a class="ww-btn ww-btn--ghost" href="${esc(previewUrl())}" target="_blank" rel="noopener">${icon('eye', 16)}${live ? 'View live site' : 'Preview draft'}</a>` : ''}
           <button type="button" class="ww-btn ww-btn--secondary" data-action="${live ? 'unpublish' : 'publish'}">${live ? 'Unpublish' : 'Publish'}</button>
           <button type="button" class="ww-btn ww-btn--primary" data-action="save" id="ww-save">Save changes</button>
         </div>
@@ -1422,12 +1509,16 @@
     }
   }
 
+  /** Saves the editor. Photos and colours travel separately and only when they changed. */
   async function saveWebsite({ quiet = false } = {}) {
+    const themeChanged = Boolean(S.touched.theme);
     await api(planPath(S.plan, '/wedding-website'), { method: 'PATCH', body: draftPayload() });
-    await api(planPath(S.plan, '/wedding-website/theme-media'), {
-      method: 'PATCH',
-      body: themePayload(),
-    });
+    if (themeChanged) {
+      await api(planPath(S.plan, '/wedding-website/theme-media'), {
+        method: 'PATCH',
+        body: themePayload(),
+      });
+    }
     S.site = await getWebsite(S.plan);
     S.draft = makeDraft(S.site, S.plan);
     setDirty(false);
@@ -1437,14 +1528,41 @@
     renderActive();
   }
 
-  async function publishWebsite(button) {
+  /** True when the Share tab has a new link or privacy choice that has not been saved yet. */
+  function shareDirty() {
+    if (!S.site) {
+      return false;
+    }
+    const slugChanged = S.ui.slug !== undefined && normalizeSlug(S.ui.slug) !== S.site.slug;
+    const privacyChanged =
+      S.ui.visibility !== undefined && S.ui.visibility !== (S.site.visibility || 'private_link');
+    return slugChanged || privacyChanged;
+  }
+
+  /** Sends the customer to the place where a publish blocker can be fixed. */
+  function explainPublishBlockers(keys) {
+    const labels = keys.map(key => (READINESS_LABELS[key] || key).toLowerCase());
+    toast(`Before publishing: ${labels.join(', ')}`, 'warn');
+    const essential = keys.find(key => ['coupleNames', 'eventDate', 'venue'].includes(key));
+    if (essential) {
+      focusField(essential);
+    } else if (keys.includes('rsvpEnabled')) {
+      goTo('website', { section: 'rsvp' });
+    } else {
+      goTo('share');
+    }
+  }
+
+  /** Saves any edits, then publishes. Works from the Website and Share tabs. */
+  async function publish(button) {
     const missing = essentialsMissing(S.draft);
     if (missing.length) {
-      toast(
-        `Before publishing: ${missing.map(k => READINESS_LABELS[k].toLowerCase()).join(', ')}`,
-        'warn'
-      );
-      focusField(missing[0]);
+      explainPublishBlockers(missing);
+      return;
+    }
+    if (shareDirty()) {
+      toast('Save your link settings before publishing', 'warn');
+      goTo('share');
       return;
     }
     await guard(button, async () => {
@@ -1454,14 +1572,7 @@
       } catch (err) {
         const keys = err.payload?.checklist?.missing;
         if (Array.isArray(keys) && keys.length) {
-          const needsShare = keys.some(key => key === 'slug' || key === 'password');
-          toast(
-            `Before publishing: ${keys.map(k => (READINESS_LABELS[k] || k).toLowerCase()).join(', ')}`,
-            'warn'
-          );
-          if (needsShare) {
-            goTo('share');
-          }
+          explainPublishBlockers(keys);
           return;
         }
         throw err;
@@ -1504,7 +1615,7 @@
     }
     window.requestAnimationFrame(() => {
       const input = S.dialog.querySelector(`[data-f="${target}"]`);
-      input?.scrollIntoView({ block: 'center', behavior: 'smooth' });
+      input?.scrollIntoView({ block: 'center', behavior: scrollBehavior() });
       input?.focus({ preventScroll: true });
     });
   }
@@ -1546,7 +1657,7 @@
       .filter(
         g =>
           !query ||
-          [g.name, g.email, g.householdName, g.plusOneName].some(value =>
+          [g.name, g.email, g.phone, g.householdName, g.plusOneName].some(value =>
             String(value || '')
               .toLowerCase()
               .includes(query)
@@ -1578,7 +1689,7 @@
         ]
           .map(text => `<span class="ww-tag">${esc(text)}</span>`)
           .join('');
-        const table = g.tableName || g.table || S.tables.find(t => t.id === g.tableId)?.name || '';
+        const table = S.tables.find(t => t.id === g.tableId)?.name || g.tableName || g.table || '';
         return `<tr>
           <td data-label="Guest"><div class="ww-person"><span class="ww-avatar">${esc(initials(g.name))}</span><div><strong>${esc(g.name)}</strong>${sub ? `<small>${esc(sub)}</small>` : ''}</div></div></td>
           <td data-label="RSVP">${badge(g.rsvpStatus)}</td>
@@ -1816,10 +1927,13 @@
     return `<svg class="ww-table-svg" viewBox="0 0 160 120" role="img" aria-label="${used} of ${cap} seats taken">${body}${dots}<text x="80" y="64" text-anchor="middle" class="ww-tbl-text">${used}/${cap}</text></svg>`;
   }
 
+  /** Guests who currently exist and sit at this table (ignores ids of deleted guests). */
   function seatedAt(table) {
     const ids = new Set(table.guestIds || []);
     return S.guests.filter(g => ids.has(g.id));
   }
+
+  const freeSeats = table => Math.max(0, Number(table.capacity || 0) - seatedAt(table).length);
 
   function viewSeating() {
     if (!S.plan) {
@@ -1829,11 +1943,7 @@
     const attending = S.guests.filter(isAttending);
     const unseated = attending.filter(g => !isSeated(g));
     const capacity = S.tables.reduce((sum, table) => sum + (Number(table.capacity) || 0), 0);
-    const over = S.tables.filter(
-      table => (table.guestIds || []).length > Number(table.capacity || 0)
-    );
-    const freeSeats = table =>
-      Math.max(0, Number(table.capacity || 0) - (table.guestIds || []).length);
+    const over = S.tables.filter(table => seatedAt(table).length > Number(table.capacity || 0));
 
     const toolbar = `<div class="ww-toolbar ww-toolbar--plain"><div class="ww-seatstats"><div><strong>${S.tables.length}</strong><span>Tables</span></div><div><strong>${capacity}</strong><span>Seats</span></div><div><strong>${st.seated}</strong><span>Seated</span></div><div class="${st.unseated ? 'is-alert' : ''}"><strong>${st.unseated}</strong><span>Unseated</span></div></div><div class="ww-toolbar__actions"><button type="button" class="ww-btn ww-btn--ghost" data-action="auto-seat" ${unseated.length && S.tables.length ? '' : 'disabled'}>${icon('wand', 16)}Auto-seat</button><button type="button" class="ww-btn ww-btn--ghost" data-action="clear-seating" ${st.seated ? '' : 'disabled'}>Clear seating</button><button type="button" class="ww-btn ww-btn--primary" data-action="table-add">${icon('plus', 16)}Add table</button></div></div>`;
 
@@ -1955,9 +2065,7 @@
           String(a.householdName || '~').localeCompare(String(b.householdName || '~')) ||
           String(a.name || '').localeCompare(String(b.name || ''))
       );
-    const slots = S.tables.flatMap(table =>
-      Array(Math.max(0, Number(table.capacity || 0) - (table.guestIds || []).length)).fill(table.id)
-    );
+    const slots = S.tables.flatMap(table => Array(freeSeats(table)).fill(table.id));
     if (!unseated.length) {
       toast('Everyone attending already has a seat');
       return;
@@ -2048,7 +2156,7 @@
     return `<div class="ww-stack">
       <section class="ww-card ww-live ${live ? 'is-live' : ''}">
         <div class="ww-live__head"><span class="ww-dot ${live ? 'is-live' : ''}"></span><div><h4>${live ? 'Your website is live' : 'Your website is a draft'}</h4><p>${live ? 'Guests can open your link and send RSVPs.' : 'Publish when you are ready. Guests cannot see it until then.'}</p></div><button type="button" class="ww-btn ${live ? 'ww-btn--secondary' : 'ww-btn--primary'}" data-action="${live ? 'unpublish' : 'publish'}">${live ? 'Unpublish' : 'Publish website'}</button></div>
-        <div class="ww-copybox"><span class="ww-copybox__icon">${icon('link', 16)}</span><input readonly value="${esc(url)}" aria-label="Guest website link"><button type="button" class="ww-btn ww-btn--secondary" data-action="copy-link">${icon('copy', 16)}Copy</button><a class="ww-btn ww-btn--ghost" href="${esc(live ? url : previewUrl())}" target="_blank" rel="noopener">${icon('external', 16)}${live ? 'Open' : 'Preview'}</a></div>
+        <div class="ww-copybox"><span class="ww-copybox__icon">${icon('link', 16)}</span><input readonly value="${esc(url)}" aria-label="Guest website link"><button type="button" class="ww-btn ww-btn--secondary" data-action="copy-link">${icon('copy', 16)}Copy</button>${live || previewUrl() ? `<a class="ww-btn ww-btn--ghost" href="${esc(live ? url : previewUrl())}" target="_blank" rel="noopener">${icon('external', 16)}${live ? 'Open' : 'Preview'}</a>` : ''}</div>
       </section>
 
       <div class="ww-columns">
@@ -2101,6 +2209,11 @@
       errorEl.hidden = false;
       return;
     }
+    if (password && password.length < 6) {
+      errorEl.textContent = 'Passwords need at least 6 characters.';
+      errorEl.hidden = false;
+      return;
+    }
     await guard(button, async () => {
       try {
         const body = { slug, visibility };
@@ -2121,12 +2234,30 @@
     });
   }
 
+  /** Shows the text in a selectable box when the browser blocks clipboard access. */
+  function showCopyFallback(text) {
+    const dialog = document.createElement('dialog');
+    dialog.className = 'ww-modal ww-modal--narrow';
+    dialog.setAttribute('aria-labelledby', 'ww-copy-title');
+    dialog.innerHTML = `<div class="ww-modal__body"><h3 id="ww-copy-title" class="ww-modal__title">Copy this text</h3><p class="ww-modal__text">Your browser did not allow automatic copying. Select the text below and copy it.</p><textarea class="ww-input" rows="3" readonly aria-label="Text to copy">${esc(text)}</textarea></div><div class="ww-modal__foot"><button type="button" class="ww-btn ww-btn--primary" data-modal="cancel">Done</button></div>`;
+    dialog.addEventListener('click', event => {
+      if (event.target.closest('[data-modal="cancel"]')) {
+        dialog.close();
+      }
+    });
+    dialog.addEventListener('close', () => dialog.remove());
+    openModal(dialog);
+    const field = dialog.querySelector('textarea');
+    field.focus();
+    field.select();
+  }
+
   async function copyText(text, message) {
     try {
       await navigator.clipboard.writeText(text);
       toast(message);
     } catch {
-      window.prompt('Copy this text:', text);
+      showCopyFallback(text);
     }
   }
 
@@ -2138,17 +2269,19 @@
     const el = event.target;
     if (el.matches('[data-f]')) {
       S.draft[el.dataset.f] = el.type === 'checkbox' ? el.checked : el.value;
-      setDirty(true);
+      setDirty(true, 'site');
       refreshEditorMeta();
       return;
     }
     if (el.matches('[data-list]')) {
-      const row = S.draft.lists[el.dataset.list][Number(el.dataset.i)];
-      row[el.dataset.k] = el.value;
-      if (el.dataset.list === 'customRsvpQuestions' && el.dataset.k === 'type') {
+      const { list, i, k } = el.dataset;
+      S.draft.lists[list][Number(i)][k] = el.value;
+      setDirty(true, 'site');
+      if (list === 'customRsvpQuestions' && k === 'type') {
+        // Choosing "Pick one" reveals a field, so redraw and keep focus on the select.
         renderActive();
+        S.dialog.querySelector(`[data-list="${list}"][data-i="${i}"][data-k="${k}"]`)?.focus();
       }
-      setDirty(true);
       refreshEditorMeta();
       return;
     }
@@ -2161,7 +2294,7 @@
       if (chip) {
         chip.style.background = el.value;
       }
-      setDirty(true);
+      setDirty(true, 'theme');
       refreshEditorMeta();
       return;
     }
@@ -2169,7 +2302,7 @@
       const item = S.draft.theme.galleryImages[Number(el.dataset.galleryCaption)];
       if (item) {
         item.caption = el.value;
-        setDirty(true);
+        setDirty(true, 'theme');
       }
       return;
     }
@@ -2218,26 +2351,43 @@
   async function handleUpload(input) {
     const files = Array.from(input.files || []);
     input.value = '';
-    try {
-      if (input.dataset.upload === 'cover') {
-        S.draft.theme.coverImageUrl = await readImage(files[0]);
-        toast('Cover photo ready. Save to publish it.');
-      } else {
-        const room = MAX_GALLERY - S.draft.theme.galleryImages.length;
-        for (const file of files.slice(0, room)) {
-          S.draft.theme.galleryImages.push({
+    const theme = S.draft.theme;
+    let failure = '';
+    let added = 0;
+    if (input.dataset.upload === 'cover') {
+      try {
+        theme.coverImageUrl = await readImage(files[0]);
+        added = 1;
+      } catch (err) {
+        failure = err.message;
+      }
+    } else {
+      const room = MAX_GALLERY - theme.galleryImages.length;
+      if (files.length > room) {
+        failure = `Only ${plural(room, 'more photo')} fit in the gallery.`;
+      }
+      for (const file of files.slice(0, room)) {
+        try {
+          theme.galleryImages.push({
             id: uid('gallery'),
             imageUrl: await readImage(file),
             caption: '',
             alt: '',
           });
+          added += 1;
+        } catch (err) {
+          failure = err.message;
         }
-        toast('Photos ready. Save to publish them.');
       }
-      setDirty(true);
+    }
+    if (added) {
+      setDirty(true, 'theme');
       renderActive();
-    } catch (err) {
-      toast(err.message, 'warn');
+    }
+    if (failure) {
+      toast(failure, 'warn');
+    } else if (added) {
+      toast('Photos ready. Save to add them to your website.');
     }
   }
 
@@ -2274,7 +2424,7 @@
           item[field.key] = field.key === 'type' ? 'text' : field.key === 'required' ? 'false' : '';
         });
         rows.push(item);
-        setDirty(true);
+        setDirty(true, 'site');
         renderActive();
         window.requestAnimationFrame(() => {
           const inputs = S.dialog.querySelectorAll(
@@ -2286,7 +2436,7 @@
       }
       case 'remove-item':
         S.draft.lists[el.dataset.list].splice(Number(el.dataset.i), 1);
-        setDirty(true);
+        setDirty(true, 'site');
         renderActive();
         break;
       case 'focus-field':
@@ -2300,18 +2450,18 @@
           backgroundColor: palette.background,
           textColor: palette.text,
         });
-        setDirty(true);
+        setDirty(true, 'theme');
         renderActive();
         break;
       }
       case 'cover-remove':
         S.draft.theme.coverImageUrl = '';
-        setDirty(true);
+        setDirty(true, 'theme');
         renderActive();
         break;
       case 'gallery-remove':
         S.draft.theme.galleryImages.splice(Number(el.dataset.i), 1);
-        setDirty(true);
+        setDirty(true, 'theme');
         renderActive();
         break;
       case 'gallery-move': {
@@ -2320,7 +2470,7 @@
         const to = from + Number(el.dataset.dir);
         if (to >= 0 && to < list.length) {
           list.splice(to, 0, list.splice(from, 1)[0]);
-          setDirty(true);
+          setDirty(true, 'theme');
           renderActive();
         }
         break;
@@ -2329,13 +2479,10 @@
         await guard(el, () => saveWebsite());
         break;
       case 'publish':
-        if (S.dirty || S.tab === 'website') {
-          await publishWebsite(el);
-        } else {
-          await guard(el, async () => {
-            await publishFromShare();
-          });
-        }
+        await publish(el);
+        break;
+      case 'retry-load':
+        await loadWorkspace();
         break;
       case 'unpublish':
         await unpublishWebsite(el);
@@ -2396,9 +2543,13 @@
       case 'guest-add':
         editGuest(null);
         break;
-      case 'guest-edit':
-        editGuest(S.guests.find(g => String(g.id) === String(el.dataset.id)));
+      case 'guest-edit': {
+        const guest = S.guests.find(g => String(g.id) === String(el.dataset.id));
+        if (guest) {
+          editGuest(guest);
+        }
         break;
+      }
       case 'guest-delete':
         await deleteGuest(el.dataset.id, el);
         break;
@@ -2410,6 +2561,9 @@
       case 'guest-page':
         S.ui.guestPage += Number(el.dataset.dir);
         renderGuestResults();
+        S.dialog
+          .querySelector('.ww-filters')
+          ?.scrollIntoView({ block: 'nearest', behavior: scrollBehavior() });
         break;
       case 'guest-reset':
         Object.assign(S.ui, {
@@ -2486,36 +2640,6 @@
     }
   }
 
-  async function publishFromShare() {
-    const missing = essentialsMissing(S.site);
-    if (missing.length) {
-      toast(
-        `Before publishing: ${missing.map(k => READINESS_LABELS[k].toLowerCase()).join(', ')}`,
-        'warn'
-      );
-      focusField(missing[0]);
-      return;
-    }
-    try {
-      await api(planPath(S.plan, '/wedding-website/publish'), { method: 'POST' });
-    } catch (err) {
-      const keys = err.payload?.checklist?.missing;
-      if (Array.isArray(keys) && keys.length) {
-        toast(
-          `Before publishing: ${keys.map(k => (READINESS_LABELS[k] || k).toLowerCase()).join(', ')}`,
-          'warn'
-        );
-        return;
-      }
-      throw err;
-    }
-    S.site = await getWebsite(S.plan);
-    S.draft = makeDraft(S.site, S.plan);
-    setHeaderStatus(statusMeta(S.site, S.plan));
-    toast('Your website is live');
-    renderActive();
-  }
-
   async function adoptPlan(plan) {
     S.plan = plan;
     S.site = await ensureWebsite(plan);
@@ -2580,6 +2704,16 @@
   }
 
   function onKeydown(event) {
+    if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 's') {
+      const saveButton = S.dialog.querySelector('#ww-save');
+      if (saveButton && !event.target.closest('.ww-modal')) {
+        event.preventDefault();
+        if (S.dirty) {
+          saveButton.click();
+        }
+      }
+      return;
+    }
     const tab = event.target.closest('.ww-nav__item');
     if (!tab) {
       return;
@@ -2606,12 +2740,96 @@
    * Open / close
    * ------------------------------------------------------------------ */
 
+  /** Loads the website, guests and tables for the open app, with a retry on failure. */
+  async function loadWorkspace() {
+    const state = S;
+    state.loading = true;
+    state.loadError = '';
+    renderActive();
+    try {
+      if (state.plan) {
+        const site = await getWebsite(state.plan);
+        state.site = site;
+        state.draft = site ? makeDraft(site, state.plan) : null;
+        await loadGuestsAndTables();
+      }
+    } catch (err) {
+      state.loadError = err.message || 'Please check your connection and try again.';
+    }
+    if (S !== state) {
+      return;
+    }
+    state.loading = false;
+    renderActive();
+  }
+
+  /** True when closing now would lose edits the customer has not saved. */
+  const hasUnsavedChanges = () => S.dirty || shareDirty();
+
+  function bindAppEvents(dialog) {
+    dialog.addEventListener('click', onClick);
+    dialog.addEventListener('input', onInput);
+    dialog.addEventListener('change', onChange);
+    dialog.addEventListener('keydown', onKeydown);
+    dialog.addEventListener('dragstart', onDragStart);
+    dialog.addEventListener('dragend', onDragEnd);
+    dialog.addEventListener('dragover', onDragOver);
+    dialog.addEventListener('dragleave', onDragLeave);
+    dialog.addEventListener('drop', onDrop);
+    dialog.addEventListener('submit', event => event.preventDefault());
+    dialog.addEventListener('cancel', async event => {
+      event.preventDefault();
+      if (hasUnsavedChanges()) {
+        const ok = await confirmAction({
+          title: 'Discard unsaved changes?',
+          message: 'You have changes that have not been saved.',
+          confirmLabel: 'Discard changes',
+          danger: true,
+        });
+        if (!ok) {
+          return;
+        }
+      }
+      dialog.close();
+    });
+    // Only a press that starts on the backdrop closes the app, so dragging a text selection out
+    // of a field and releasing outside the window does not.
+    let pressedBackdrop = false;
+    dialog.addEventListener('mousedown', event => {
+      pressedBackdrop = event.target === dialog;
+    });
+    dialog.addEventListener('click', event => {
+      if (event.target === dialog && pressedBackdrop) {
+        dialog.dispatchEvent(new Event('cancel', { cancelable: true }));
+      }
+    });
+    // A QR image that fails to load is replaced with a message instead of a broken icon.
+    dialog.addEventListener(
+      'error',
+      event => {
+        const wrapper = event.target.closest?.('.ww-qr');
+        if (wrapper) {
+          wrapper.innerHTML = `<p class="ww-muted-note">${icon('info', 14)} The QR code could not be loaded right now. Please try again later.</p>`;
+        }
+      },
+      true
+    );
+    dialog.addEventListener('close', closeApp, { once: true });
+  }
+
+  let opening = false;
+
   async function openApp(opener) {
-    if (S) {
+    if (S || opening) {
       return;
     }
     if (!initialised) {
-      cachedPlans = await fetchPlans(cachedPlans);
+      opening = true;
+      try {
+        cachedPlans = await fetchPlans(cachedPlans);
+      } finally {
+        opening = false;
+      }
     }
     const plan = pickPlan(cachedPlans);
     const dialog = document.createElement('dialog');
@@ -2625,10 +2843,12 @@
       site: null,
       draft: null,
       dirty: false,
+      touched: { site: false, theme: false },
       guests: [],
       tables: [],
       tab: 'overview',
       loading: true,
+      loadError: '',
       ui: {
         openSection: 'essentials',
         guestFilter: 'all',
@@ -2640,63 +2860,14 @@
     };
     document.body.appendChild(dialog);
     document.body.classList.add('ww-app-open');
-
-    dialog.addEventListener('click', onClick);
-    dialog.addEventListener('input', onInput);
-    dialog.addEventListener('change', onChange);
-    dialog.addEventListener('keydown', onKeydown);
-    dialog.addEventListener('dragstart', onDragStart);
-    dialog.addEventListener('dragend', onDragEnd);
-    dialog.addEventListener('dragover', onDragOver);
-    dialog.addEventListener('dragleave', onDragLeave);
-    dialog.addEventListener('drop', onDrop);
-    dialog.addEventListener('submit', event => event.preventDefault());
-    dialog.addEventListener('cancel', async event => {
-      event.preventDefault();
-      if (S.dirty) {
-        const ok = await confirmAction({
-          title: 'Discard unsaved changes?',
-          message: 'You have changes to your website that have not been saved.',
-          confirmLabel: 'Discard changes',
-          danger: true,
-        });
-        if (!ok) {
-          return;
-        }
-      }
-      dialog.close();
-    });
-    dialog.addEventListener('click', event => {
-      if (event.target === dialog) {
-        dialog.dispatchEvent(new Event('cancel', { cancelable: true }));
-      }
-    });
-    dialog.addEventListener('close', closeApp, { once: true });
-
+    bindAppEvents(dialog);
     try {
       dialog.showModal();
     } catch {
       dialog.show();
     }
-    renderActive();
     dialog.querySelector('.ww-nav__item[aria-selected="true"]')?.focus({ preventScroll: true });
-
-    const state = S;
-    try {
-      if (plan) {
-        const site = await getWebsite(plan);
-        state.site = site;
-        state.draft = site ? makeDraft(site, plan) : null;
-        await loadGuestsAndTables();
-      }
-    } catch (err) {
-      toast(err.message || 'Unable to load your wedding workspace', 'warn');
-    }
-    if (S !== state) {
-      return;
-    }
-    S.loading = false;
-    renderActive();
+    await loadWorkspace();
   }
 
   function closeApp() {

@@ -885,6 +885,7 @@ router.patch(
     }
     const now = new Date().toISOString();
     const t = { ...tables[i] };
+    const previousName = String(tables[i].name || '').trim();
     if (req.body.name !== undefined) {
       t.name = sanitize(req.body.name, 80);
     }
@@ -899,7 +900,17 @@ router.patch(
     }
     t.updatedAt = now;
     tables[i] = t;
-    await dbUnified.updateOne('plans', { id: req.plan.id }, { $set: { tables, updatedAt: now } });
+    const update = { tables, updatedAt: now };
+    if (t.name !== previousName) {
+      // Guests carry a copy of their table's name (shown in the guest list and CSV export).
+      const renamed = guestListForPlan(req.plan).map(g =>
+        g.tableId === t.id || (!g.tableId && previousName && g.tableName === previousName)
+          ? { ...g, tableName: t.name }
+          : g
+      );
+      Object.assign(update, setGuestList(req.plan, renamed));
+    }
+    await dbUnified.updateOne('plans', { id: req.plan.id }, { $set: update });
     res.json({ success: true, table: t });
   }
 );

@@ -33,6 +33,7 @@ const plans = [
       rsvpEnabled: true,
     },
   },
+  { id: 'p4', userId: 'u1', name: 'Seating fixture', tables: [], guestList: [] },
 ];
 
 jest.mock('../../db-unified', () => ({
@@ -214,6 +215,24 @@ describe('wedding websites routes', () => {
     expect(plans[1].guestList[1].table).toBeNull();
     expect(plans[1].guestList[2].tableId).toBe('t2');
     expect(plans[1].guestList[2].tableName).toBe('Table 2');
+  });
+
+  test('renaming a table updates the table name stored on its guests', async () => {
+    plans[2].tables = [{ id: 'rt1', name: 'Old name', capacity: 10, guestIds: ['r1', 'r2'] }];
+    plans[2].guestList = [
+      { id: 'r1', name: 'Rae', rsvpStatus: 'attending', tableId: 'rt1', tableName: 'Old name' },
+      { id: 'r2', name: 'Rob', rsvpStatus: 'attending', tableName: 'Old name' },
+      { id: 'r3', name: 'Rex', rsvpStatus: 'attending', tableId: 'other', tableName: 'Elsewhere' },
+    ];
+
+    const res = await request(app)
+      .patch('/api/me/plans/p4/tables/rt1')
+      .send({ name: 'Family table' });
+    expect(res.status).toBe(200);
+    expect(plans[2].tables[0].name).toBe('Family table');
+    expect(plans[2].guestList[0].tableName).toBe('Family table');
+    expect(plans[2].guestList[1].tableName).toBe('Family table');
+    expect(plans[2].guestList[2].tableName).toBe('Elsewhere');
   });
 
   test('seating summary reflects guests unseated after table deletion', async () => {
