@@ -125,7 +125,7 @@ describe('Email Verification System', () => {
 
       expect(templateContent).toContain('{{verificationLink}}');
       expect(templateContent).toContain('cta-button');
-      expect(templateContent).toContain('Verify Email');
+      expect(templateContent).toMatch(/verify email/i);
     });
 
     it('should be mobile responsive', () => {

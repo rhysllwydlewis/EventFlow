@@ -77,6 +77,7 @@ const {
 } = require('./middleware/auth');
 const { featureRequired } = require('./middleware/features');
 const { apiCacheControlMiddleware, staticCachingMiddleware } = require('./middleware/cache');
+const { emailAssetsCrossOrigin } = require('./middleware/emailAssets');
 const { noindexMiddleware } = require('./middleware/seo');
 const { adminPageProtectionMiddleware } = require('./middleware/adminPages');
 const { apiLimiter, apiDocsLimiter } = require('./middleware/rateLimits');
@@ -445,6 +446,10 @@ app.use('/api', apiCacheControlMiddleware());
 // This MUST come before express.static() so it intercepts HTML file requests
 app.use(noindexMiddleware());
 
+// Email logos are embedded in outgoing mail and loaded cross-origin; see middleware/emailAssets.js.
+// Must come before express.static() so the header is set on the response it serves.
+app.use('/assets/email', emailAssetsCrossOrigin());
+
 // Static assets with caching strategy
 app.use(staticCachingMiddleware());
 
@@ -592,6 +597,14 @@ app.get('/dashboard-supplier.html', (req, res) => {
 // Newsletter result pages — redirect .html to canonical
 app.get('/newsletter/confirmed.html', (req, res) => res.redirect(301, '/newsletter/confirmed'));
 app.get('/newsletter/expired.html', (req, res) => res.redirect(301, '/newsletter/expired'));
+
+// The confirmation email links to /newsletter/confirm, but the handler lives at
+// /api/newsletter/confirm, so the emailed link 404'd and nobody could confirm.
+// Not a 301: this is a single-use token link and must not be cached.
+app.get('/newsletter/confirm', (req, res) => {
+  const qs = req.url.includes('?') ? req.url.slice(req.url.indexOf('?')) : '';
+  res.redirect(302, `/api/newsletter/confirm${qs}`);
+});
 
 // Article pages — serve clean URLs and redirect .html to canonical
 app.get('/articles/:slug', (req, res, next) => {

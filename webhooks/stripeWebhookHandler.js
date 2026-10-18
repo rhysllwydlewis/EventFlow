@@ -12,6 +12,7 @@ const dbUnified = require('../db-unified');
 const { uid } = require('../store');
 const postmark = require('../utils/postmark');
 const { normalisePlanRequest } = require('../config/billingPlans');
+const { renderDetailRow } = require('../utils/emailComponents');
 
 function timestampToIso(timestamp) {
   return timestamp ? new Date(timestamp * 1000).toISOString() : null;
@@ -29,6 +30,16 @@ function formatPlanName(tier) {
     pro_plus: 'Pro Plus',
   };
   return names[tier] || tier || 'Unknown';
+}
+
+/**
+ * "1 day" / "3 days". Email subjects and bodies both use this so a reminder
+ * never says "1 days".
+ * @param {number} count
+ * @returns {string}
+ */
+function formatDayCount(count) {
+  return `${count} day${count === 1 ? '' : 's'}`;
 }
 
 /**
@@ -432,12 +443,7 @@ async function handleSubscriptionCreated(stripeSubscription) {
       // "Trial period: 0 days" on a direct paid activation reads as if a
       // trial existed and already ran out, which is confusing.
       const trialRow =
-        trialDaysCount > 0
-          ? `<tr>
-                        <td style="padding:9px 0;font-size:14px;color:#667085;border-bottom:1px solid #E7EAF0;">Trial period</td>
-                        <td style="padding:9px 0;font-size:14px;color:#0B1220;font-weight:600;text-align:right;border-bottom:1px solid #E7EAF0;">${trialDaysCount} days</td>
-                      </tr>`
-          : '';
+        trialDaysCount > 0 ? renderDetailRow('Trial period', formatDayCount(trialDaysCount)) : '';
 
       await postmark.sendMail({
         to: user.email,
@@ -627,13 +633,14 @@ async function handleSubscriptionTrialWillEnd(stripeSubscription) {
 
     await postmark.sendMail({
       to: user.email,
-      subject: `Your EventFlow trial ends in ${daysRemaining} day${daysRemaining !== 1 ? 's' : ''}`,
+      subject: `Your EventFlow trial ends in ${formatDayCount(daysRemaining)}`,
       template: 'subscription-trial-ending',
       templateData: {
         name: user.name || 'there',
         planName: formatPlanName(subscription.plan),
         trialDays: String(trialDays),
         daysLeft: String(daysRemaining),
+        daysLeftLabel: formatDayCount(daysRemaining),
         trialEndDate: formattedTrialEnd,
         amount,
         billingCycle: billingInterval,
@@ -836,12 +843,13 @@ async function handleInvoiceUpcoming(invoice) {
   try {
     await postmark.sendMail({
       to: user.email,
-      subject: `Your EventFlow subscription renews in ${daysUntilRenewal} day${daysUntilRenewal !== 1 ? 's' : ''}`,
+      subject: `Your EventFlow subscription renews in ${formatDayCount(daysUntilRenewal)}`,
       template: 'subscription-renewal-reminder',
       templateData: {
         name: user.name || 'there',
         planName: formatPlanName(subscription.plan),
         daysUntilRenewal: String(daysUntilRenewal),
+        daysUntilRenewalLabel: formatDayCount(daysUntilRenewal),
         renewalDate: formattedRenewalDate,
         amount: (invoice.amount_due / 100).toFixed(2),
         autoRenew,

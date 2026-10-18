@@ -50,6 +50,7 @@ const {
 const fs = require('fs');
 const crypto = require('crypto');
 const emailLogService = require('../services/emailLog.service');
+const { buildEmailButton } = require('./emailComponents');
 
 // Lazy-load Postmark to avoid errors if not configured
 let postmarkClient = null;
@@ -188,16 +189,23 @@ function maskEmail(email) {
   return `${maskedLocal}@${domain}`;
 }
 
-function escapeHtmlValue(text) {
-  if (typeof text !== 'string') {
-    return text;
-  }
-  return text
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#039;');
+/**
+ * Human-readable UK timestamp for email bodies, e.g. "18 October 2026, 19:25".
+ * `toLocaleString()` with no arguments uses the server's locale and timezone
+ * (US-style month-first on a UTC host), which reads as the wrong date to UK users.
+ * @param {Date} date
+ * @returns {string}
+ */
+function formatEmailTimestamp(date) {
+  return new Intl.DateTimeFormat('en-GB', {
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    timeZone: 'Europe/London',
+    timeZoneName: 'short',
+  }).format(date);
 }
 
 function safeHttpUrl(url) {
@@ -221,11 +229,15 @@ const RAW_HTML_TEMPLATE_KEYS = new Set([
   'previewHtml',
 ]);
 
+// Trailing zero-width characters stop mail clients pulling the first lines of the
+// body into the inbox preview after the preheader text.
+const PREHEADER_PADDING = '&#847;&zwnj;&nbsp;'.repeat(40);
+
 function buildHiddenPreheader(preheader) {
   if (!preheader) {
     return '';
   }
-  return `<div class="ef-preheader" style="display:none!important;visibility:hidden;opacity:0;color:transparent;height:0;width:0;max-height:0;max-width:0;overflow:hidden;mso-hide:all;font-size:1px;line-height:1px;">${preheader}</div>`;
+  return `<div class="ef-preheader" style="display:none!important;visibility:hidden;opacity:0;color:transparent;height:0;width:0;max-height:0;max-width:0;overflow:hidden;mso-hide:all;font-size:1px;line-height:1px;">${preheader}${PREHEADER_PADDING}</div>`;
 }
 
 function injectPreheader(html, preheader) {
@@ -237,17 +249,6 @@ function injectPreheader(html, preheader) {
     return html.replace(/<body([^>]*)>/i, `<body$1>${hidden}`);
   }
   return `${hidden}${html}`;
-}
-
-function injectEmailBranding(html) {
-  const fallbackTile =
-    '<span style="display:inline-block;width:100%;height:100%;line-height:inherit;color:inherit;font:inherit;letter-spacing:inherit;">EF</span>';
-  return html
-    .replace(/<td([^>]*?)>EF<\/td>/, `<td$1>${fallbackTile}</td>`)
-    .replace(
-      />EventFlow<\/div>/,
-      '>EventFlow<span style="font-size:13px;font-weight:500;opacity:.82;"> &middot; Event planning made simple</span></div>'
-    );
 }
 
 /**
@@ -300,7 +301,6 @@ function loadEmailTemplate(templateName, data = {}) {
     const preheader = escapeHtml(data.preheader || getPreheader(templateName));
     html = html.replace(/{{preheader}}/g, preheader);
     html = injectPreheader(html, preheader);
-    html = injectEmailBranding(html);
 
     // Clear any remaining unresolved template placeholders
     html = html.replace(/\{\{[^}]+\}\}/g, '');
@@ -707,7 +707,7 @@ function sendPasswordResetConfirmation(user) {
     template: 'password-reset-confirmation',
     templateData: {
       name: user.name || 'there',
-      resetTime: new Date().toLocaleString(),
+      resetTime: formatEmailTimestamp(new Date()),
     },
     from: FROM_NOREPLY,
     tags: ['password-reset-confirmation', 'transactional'],
@@ -747,9 +747,7 @@ async function sendMarketingEmail(user, subject, message, options = {}) {
   // Build message with optional CTA button
   let fullMessage = message;
   if (ctaText && ctaLink) {
-    fullMessage += `\n\n<div style="text-align: center; margin: 24px 0;">
-      <a href="${safeHttpUrl(ctaLink)}" class="cta-button" style="display: inline-block; padding: 14px 28px; background: linear-gradient(180deg, #16c3ad, #0ea896); color: #ffffff; text-decoration: none; border-radius: 12px; font-weight: 700; font-size: 16px;">${escapeHtmlValue(ctaText)}</a>
-    </div>`;
+    fullMessage += `\n\n<div style="margin:24px 0;">${buildEmailButton(safeHttpUrl(ctaLink), ctaText)}</div>`;
   }
 
   const templateData = {
@@ -802,7 +800,7 @@ async function sendNotificationEmail(user, subject, message, options = {}) {
   const actionText = optionActionText || extraTemplateData.actionText;
   const ctaSection =
     actionUrl && actionText && /^https?:\/\//i.test(actionUrl)
-      ? `<table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom:24px;"><tr><td align="center"><a href="${safeHttpUrl(actionUrl)}" style="display:inline-block;padding:15px 40px;background:linear-gradient(135deg,#0B8073,#13B6A2);color:#ffffff;text-decoration:none;border-radius:10px;font-weight:700;font-size:15px;letter-spacing:0.2px;">${escapeHtmlValue(actionText)}</a></td></tr></table>`
+      ? `<table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom:24px;"><tr><td align="center">${buildEmailButton(actionUrl, actionText)}</td></tr></table>`
       : '';
 
   const templateData = {
@@ -810,7 +808,7 @@ async function sendNotificationEmail(user, subject, message, options = {}) {
     name: user.name || 'there',
     title: subject,
     message: message,
-    preferencesLink: `${APP_BASE_URL}/settings/notifications`,
+    preferencesLink: `${APP_BASE_URL}/settings`,
     ctaSection,
   };
 
@@ -870,6 +868,7 @@ module.exports = {
   isPostmarkEnabled,
   getPostmarkStatus,
   loadEmailTemplate,
+  formatEmailTimestamp,
   RAW_HTML_TEMPLATE_KEYS,
   generateUnsubscribeToken,
   verifyUnsubscribeToken,

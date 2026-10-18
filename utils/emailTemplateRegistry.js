@@ -2,6 +2,7 @@
 
 const fs = require('fs');
 const path = require('path');
+const { buildEmailButton } = require('./emailComponents');
 
 const APP_BASE_URL = process.env.APP_BASE_URL || process.env.BASE_URL || 'http://localhost:3000';
 const SUPPORT_EMAIL = process.env.SUPPORT_EMAIL || 'support@event-flow.co.uk';
@@ -206,6 +207,7 @@ const META = {
       'name',
       'planName',
       'daysUntilRenewal',
+      'daysUntilRenewalLabel',
       'renewalDate',
       'amount',
       'autoRenew',
@@ -221,6 +223,7 @@ const META = {
       'planName',
       'trialDays',
       'daysLeft',
+      'daysLeftLabel',
       'trialEndDate',
       'amount',
       'billingCycle',
@@ -251,15 +254,15 @@ function buildSampleData(name) {
     notification: {
       title: 'Your EventFlow notification settings were updated',
       message: 'This is a sample account notification for preview and deliverability review.',
-      preferencesLink: `${APP_BASE_URL}/settings/notifications`,
-      ctaSection: `<table width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td align="center"><a href="${APP_BASE_URL}/settings" style="display:inline-block;padding:15px 40px;background:#0B8073;color:#ffffff;text-decoration:none;border-radius:10px;font-weight:700;">Review settings</a></td></tr></table>`,
+      preferencesLink: `${APP_BASE_URL}/settings`,
+      ctaSection: `<table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom:24px;"><tr><td align="center">${buildEmailButton(`${APP_BASE_URL}/settings`, 'Review settings')}</td></tr></table>`,
     },
     'support-ticket-reply': {
       name: 'Olivia Hart',
       ticketSubject: 'Question about supplier package approval',
       replyMessageHtml:
         '<p>Thanks for getting in touch. Your package is now with our supplier review team.</p><p>We will update you as soon as the review is complete, usually within one working day.</p>',
-      ticketUrl: `${APP_BASE_URL}/tickets/ticket-preview-123`,
+      ticketUrl: `${APP_BASE_URL}/support`,
       supportEmail: SUPPORT_EMAIL,
       preheader: 'The EventFlow Support Team has replied to your ticket.',
     },
@@ -268,8 +271,8 @@ function buildSampleData(name) {
       actionsHtml:
         '<ul><li>Add two more portfolio images.</li><li>Confirm your service area.</li></ul>',
       loginUrl: `${APP_BASE_URL}/dashboard/supplier`,
-      managePrefsUrl: `${APP_BASE_URL}/settings/notifications`,
-      unsubscribeSection: ` &middot; <a href="${APP_BASE_URL}/api/auth/unsubscribe?preview=1" style="color:#94A3B8;text-decoration:none;">Unsubscribe from reminders</a>`,
+      managePrefsUrl: `${APP_BASE_URL}/settings`,
+      unsubscribeSection: ` &middot; <a href="${APP_BASE_URL}/api/auth/unsubscribe?preview=1" style="color:#006D7F;text-decoration:none;font-weight:600;">Unsubscribe from reminders</a>`,
     },
     'newsletter-confirm': {
       confirmLink: `${APP_BASE_URL}/api/newsletter/confirm?token=preview-token`,
@@ -286,7 +289,7 @@ function buildSampleData(name) {
       statusTitle: 'Verification approved',
       statusMessage: 'Your supplier profile has passed review and is ready to receive enquiries.',
       notesSection:
-        '<div style="background:#F0FDF4;border:1px solid #BBF7D0;border-radius:10px;padding:12px 14px;"><strong>Reviewer note:</strong> Portfolio and insurance details look complete.</div>',
+        '<div style="background:#F0FDF4;border:1px solid #BBF7D0;border-radius:10px;padding:12px 14px;margin-bottom:24px;"><strong>Reviewer note:</strong> Portfolio and insurance details look complete.</div>',
       dashboardUrl: `${APP_BASE_URL}/dashboard/supplier`,
       headerGradient: 'linear-gradient(135deg,#059669,#10B981)',
       ctaGradient: 'linear-gradient(135deg,#059669,#10B981)',
@@ -335,6 +338,7 @@ function buildSampleData(name) {
     'subscription-renewal-reminder': {
       planName: 'Professional',
       daysUntilRenewal: '3',
+      daysUntilRenewalLabel: '3 days',
       renewalDate: '12 April 2026',
       amount: '29.00',
       autoRenew: 'Enabled',
@@ -345,6 +349,7 @@ function buildSampleData(name) {
       planName: 'Professional',
       trialDays: '14',
       daysLeft: '3',
+      daysLeftLabel: '3 days',
       trialEndDate: '19 March 2026',
       amount: '29.00',
       billingCycle: 'monthly',
@@ -461,6 +466,14 @@ function renderPlainTextTemplate(name, data = {}) {
       );
       break;
     case 'welcome-customer':
+      lines.push(
+        'Your event planning dashboard is ready.',
+        '',
+        `Start planning: ${APP_BASE_URL}/dashboard/customer`,
+        '',
+        `Need help? Email ${HELLO_EMAIL}.`
+      );
+      break;
     case 'welcome':
       lines.push(
         'Your event planning dashboard is ready.',
@@ -571,7 +584,7 @@ function renderPlainTextTemplate(name, data = {}) {
       break;
     case 'subscription-payment-failed':
       lines.push(
-        `We could not collect ${merged.amount} for your ${merged.planName} supplier subscription on ${merged.attemptDate}.`,
+        `We could not collect £${merged.amount} for your ${merged.planName} supplier subscription on ${merged.attemptDate}.`,
         '',
         `Your premium features are paused. Update your payment method to restore them straight away — we'll also automatically retry the charge on ${merged.nextRetryDate}.`,
         '',
@@ -584,8 +597,8 @@ function renderPlainTextTemplate(name, data = {}) {
       lines.push(
         `Your ${merged.planName} supplier subscription is active.`,
         '',
-        `Amount: ${merged.amount} (${merged.billingCycle})`,
-        `Next billing date: ${merged.nextBillingDate}`,
+        `Amount: £${merged.amount}/${merged.billingCycle}`,
+        `Next billing date: ${merged.renewalDate}`,
         '',
         `Manage subscription: ${APP_BASE_URL}/supplier/subscription`
       );
@@ -594,7 +607,49 @@ function renderPlainTextTemplate(name, data = {}) {
       lines.push(
         `Your ${merged.planName} supplier subscription cancellation has been confirmed.`,
         '',
-        `Access remains available until: ${merged.accessEndDate}`,
+        `Access remains available until: ${merged.endDate}`,
+        '',
+        `Manage subscription: ${APP_BASE_URL}/supplier/subscription`
+      );
+      break;
+    case 'subscription-upgraded':
+      lines.push(
+        `Your EventFlow plan has been upgraded from ${merged.previousPlan} to ${merged.newPlan}.`,
+        '',
+        `Effective date: ${merged.effectiveDate}`,
+        `Amount: £${merged.amount}/${merged.billingCycle}`,
+        '',
+        `Open your dashboard: ${APP_BASE_URL}/dashboard/supplier`
+      );
+      break;
+    case 'subscription-downgrade-scheduled':
+      lines.push(
+        `Your EventFlow plan will change from ${merged.currentPlan} to ${merged.newPlan} on ${merged.effectiveDate}.`,
+        `You keep your ${merged.currentPlan} features until then.`,
+        '',
+        `Current billing: £${merged.currentAmount}/${merged.billingCycle}`,
+        `New billing: £${merged.newAmount}/${merged.billingCycle}`,
+        '',
+        `Manage subscription: ${APP_BASE_URL}/supplier/subscription`
+      );
+      break;
+    case 'subscription-renewal-reminder':
+      lines.push(
+        `Your ${merged.planName} subscription renews in ${merged.daysUntilRenewalLabel}, on ${merged.renewalDate}.`,
+        '',
+        `Amount: £${merged.amount}`,
+        `Auto-renew: ${merged.autoRenew}`,
+        '',
+        merged.renewalMessage,
+        '',
+        `Manage subscription: ${APP_BASE_URL}/supplier/subscription`
+      );
+      break;
+    case 'subscription-trial-ending':
+      lines.push(
+        `Your ${merged.trialDays}-day free trial of ${merged.planName} ends in ${merged.daysLeftLabel}, on ${merged.trialEndDate}.`,
+        '',
+        `After the trial your paid subscription begins automatically: £${merged.amount}/${merged.billingCycle}. You can cancel before ${merged.trialEndDate} at no charge.`,
         '',
         `Manage subscription: ${APP_BASE_URL}/supplier/subscription`
       );
