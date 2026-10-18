@@ -71,6 +71,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `docs/EMAIL_TEMPLATES.md` listed `{{gracePeriodEnd}}` for the payment-failed email; the template uses `{{nextRetryDate}}`
   - The newsletter confirmation email linked to `/newsletter/confirm`, which returned 404 (the handler is `/api/newsletter/confirm`), so subscribers could not confirm. `/newsletter/confirm` now redirects to the API handler with the token, which also rescues links already sent
   - "View your ticket" in the support reply emails linked to `/tickets/<id>`, which does not exist; it now links to `/support`, where customers see their tickets
+  - Upgrade and downgrade emails rendered "£29.00/monthly" because `subscriptionService` passed `monthly`/`yearly` while the Stripe handler passed `month`/`year`; both now pass `month`/`year`
   - `/assets/email/` now sends `Cross-Origin-Resource-Policy: cross-origin`, so browser-based webmail can load the logos despite Helmet's `same-origin` default
 
 - **Notification Audit Mop-up**:

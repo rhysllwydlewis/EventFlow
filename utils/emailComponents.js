@@ -14,11 +14,11 @@ const EMAIL_ASSET_VERSION = '1';
 
 const COLORS = {
   brandDark: '#006D7F',
-  brandMid: '#008C96',
+  brandMid: '#00808F',
   brandLight: '#00E1D0',
   ink: '#0B1F2A',
   body: '#4A5B67',
-  muted: '#6B7C88',
+  muted: '#5B6B77',
   line: '#E6EEF0',
 };
 

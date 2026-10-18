@@ -118,7 +118,7 @@ async function sendVerificationEmail(supplier, action, notes) {
         'Great news — your supplier profile has been reviewed and approved. ' +
         'You can now appear in search results, receive enquiries, and accept bookings on EventFlow.',
       headerGradient: 'linear-gradient(135deg,#065F46 0%,#059669 100%)',
-      ctaGradient: 'linear-gradient(135deg,#047857,#059669)',
+      ctaGradient: 'linear-gradient(135deg,#065F46,#047857)',
       ctaText: 'Go to Your Dashboard',
     },
     rejected: {

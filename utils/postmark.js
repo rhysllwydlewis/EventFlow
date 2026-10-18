@@ -190,22 +190,29 @@ function maskEmail(email) {
 }
 
 /**
- * Human-readable UK timestamp for email bodies, e.g. "18 October 2026, 19:25".
+ * Human-readable UK timestamp for email bodies, e.g. "18 October 2026 at 19:25 BST".
  * `toLocaleString()` with no arguments uses the server's locale and timezone
  * (US-style month-first on a UTC host), which reads as the wrong date to UK users.
+ * The parts are joined by hand because the date/time connector ("," or "at")
+ * differs between ICU versions.
  * @param {Date} date
  * @returns {string}
  */
 function formatEmailTimestamp(date) {
-  return new Intl.DateTimeFormat('en-GB', {
+  const parts = {};
+  for (const { type, value } of new Intl.DateTimeFormat('en-GB', {
     day: 'numeric',
     month: 'long',
     year: 'numeric',
     hour: '2-digit',
     minute: '2-digit',
+    hourCycle: 'h23',
     timeZone: 'Europe/London',
     timeZoneName: 'short',
-  }).format(date);
+  }).formatToParts(date)) {
+    parts[type] = value;
+  }
+  return `${parts.day} ${parts.month} ${parts.year} at ${parts.hour}:${parts.minute} ${parts.timeZoneName}`;
 }
 
 function safeHttpUrl(url) {

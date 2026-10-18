@@ -625,8 +625,9 @@ describe('Email preview registry, preheaders and plain text', () => {
     expect(html).toMatch(
       /<img[^>]+src="[^"]*\/assets\/email\/eventflow-wordmark\.png\?v=\d+"[^>]*alt="EventFlow"/
     );
+    // The footer mark sits beside the text "EventFlow", so it is decorative.
     expect(html).toMatch(
-      /<img[^>]+src="[^"]*\/assets\/email\/eventflow-mark-white\.png\?v=\d+"[^>]*alt="EventFlow"/
+      /<img[^>]+src="[^"]*\/assets\/email\/eventflow-mark-white\.png\?v=\d+"[^>]*alt=""/
     );
     expect(html).not.toContain('>EF</td>');
     expect(html).not.toContain('/bimi.svg');
@@ -659,7 +660,7 @@ describe('Email preview registry, preheaders and plain text', () => {
   test('billing plain-text bodies use the template variables and show the £ symbol', () => {
     const activated = registry.renderPlainTextTemplate('subscription-activated', {});
     expect(activated).toContain('Next billing date: 12 April 2026');
-    expect(activated).toContain('£29.00/monthly');
+    expect(activated).toContain('£29.00/month');
     const cancelled = registry.renderPlainTextTemplate('subscription-cancelled', {});
     expect(cancelled).toContain('Access remains available until: 12 April 2026');
     const failed = registry.renderPlainTextTemplate('subscription-payment-failed', {});
@@ -707,6 +708,12 @@ describe('formatEmailTimestamp', () => {
     // BST (UTC+1) runs until Sunday 25 October 2026, so 18:25 UTC is 19:25 local.
     const formatted = formatEmailTimestamp(new Date('2026-10-18T18:25:00Z'));
     expect(formatted).toBe('18 October 2026 at 19:25 BST');
+  });
+
+  test('renders midnight as 00:05, never 24:05', () => {
+    expect(formatEmailTimestamp(new Date('2026-12-01T00:05:00Z'))).toBe(
+      '1 December 2026 at 00:05 GMT'
+    );
   });
 
   test('switches to GMT in winter', () => {

@@ -176,7 +176,7 @@ const steps = items =>
   `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 28px;">${items
     .map(([title, text], i) => {
       const rule = i === items.length - 1 ? '' : `border-bottom:1px solid ${C.line};`;
-      return `<tr><td class="rule" width="52" valign="top" style="padding:18px 0;${rule}"><table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr><td width="36" height="36" align="center" valign="middle" bgcolor="${C.brandDark}" style="width:36px;height:36px;border-radius:18px;background-color:${C.brandDark};background:linear-gradient(135deg,${C.brandDark},#00B7B0);color:#ffffff;font-size:15px;font-weight:800;">${i + 1}</td></tr></table></td><td class="rule" valign="top" style="padding:18px 0;${rule}"><p class="h1" style="margin:2px 0 3px;font-size:16px;font-weight:700;color:${C.ink};">${title}</p><p class="txt" style="margin:0;font-size:14px;line-height:1.6;color:${C.body};">${text}</p></td></tr>`;
+      return `<tr><td class="rule" width="52" valign="top" style="padding:18px 0;${rule}"><table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr><td width="36" height="36" align="center" valign="middle" bgcolor="${C.brandDark}" style="width:36px;height:36px;border-radius:18px;background-color:${C.brandDark};background:linear-gradient(135deg,${C.brandDark},${C.brandMid});color:#ffffff;font-size:15px;font-weight:800;">${i + 1}</td></tr></table></td><td class="rule" valign="top" style="padding:18px 0;${rule}"><p class="h1" style="margin:2px 0 3px;font-size:16px;font-weight:700;color:${C.ink};">${title}</p><p class="txt" style="margin:0;font-size:14px;line-height:1.6;color:${C.body};">${text}</p></td></tr>`;
     })
     .join('')}</table>`;
 
@@ -269,14 +269,14 @@ function shell({ title, strip = STRIP, heroSpec, body, footerNotes = [], footerE
           <!-- ── Footer ──────────────────────────────────────── -->
           <tr>
             <td class="email-footer pad" align="center" style="background-color:#062B33;padding:34px 40px 30px;">
-              <img src="${asset('eventflow-mark-white.png')}" width="44" height="28" alt="EventFlow" style="display:block;margin:0 auto 14px;width:44px;height:auto;">
+              <img src="${asset('eventflow-mark-white.png')}" width="44" height="28" alt="" style="display:block;margin:0 auto 14px;width:44px;height:auto;">
               <p style="margin:0 0 4px;font-size:14px;font-weight:600;color:#ffffff;letter-spacing:0.1px;">Plan brilliantly. Book confidently.</p>
               <p style="margin:0 0 20px;font-size:12px;color:#7FA3A8;">EventFlow &middot; Operated by VEXI</p>
               ${footerNotes.map(footerNote).join('\n              ')}
               <p style="margin:0 0 18px;font-size:13px;line-height:1.9;">
             ${links}
               </p>
-              <p style="margin:0;font-size:12px;line-height:1.7;color:#6F9298;">&copy; 2025&ndash;{{year}} EventFlow. All rights reserved.<br>${footerLink('{{baseUrl}}', 'event-flow.co.uk', '#6F9298').replace('text-decoration:none', 'text-decoration:underline')}</p>${footerExtra}
+              <p style="margin:0;font-size:12px;line-height:1.7;color:#7BA0A6;">&copy; 2025&ndash;{{year}} EventFlow. All rights reserved.<br>${footerLink('{{baseUrl}}', 'event-flow.co.uk', '#7BA0A6').replace('text-decoration:none', 'text-decoration:underline')}</p>${footerExtra}
             </td>
           </tr>
 

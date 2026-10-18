@@ -44,6 +44,8 @@ No Postmark-hosted templates are used — all templates live in `email-templates
 
 **Note:** `daysUntilRenewalLabel` and `daysLeftLabel` are pre-pluralised strings (`"1 day"`, `"3 days"`) built with `formatDayCount()` in `webhooks/stripeWebhookHandler.js`, so the email never says "1 days". The numeric `daysUntilRenewal` / `daysLeft` are still passed but no longer rendered.
 
+**Note:** `{{billingCycle}}` is `month` or `year` (the Stripe interval), because the templates render `£{{amount}}/{{billingCycle}}`. Do not pass `monthly` / `yearly`.
+
 **Note:** `{{amount}}` and its variants (`currentAmount`, `newAmount`) are always bare number strings (e.g. `"29.00"`) — every billing template's own markup prepends the `£` symbol. Never pass a pre-formatted `"£29.00"` string.
 
 ---

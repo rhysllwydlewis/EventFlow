@@ -305,7 +305,7 @@ function buildSampleData(name) {
       trialRow: '',
       renewalDate: '12 April 2026',
       amount: '29.00',
-      billingCycle: 'monthly',
+      billingCycle: 'month',
       features:
         '<li>Unlimited messaging</li><li>Advanced analytics</li><li>Priority listing</li><li>Priority support</li>',
     },
@@ -318,7 +318,7 @@ function buildSampleData(name) {
       newPlan: 'Professional',
       effectiveDate: '12 March 2026',
       amount: '29.00',
-      billingCycle: 'monthly',
+      billingCycle: 'month',
       features: '<li>Unlimited packages</li><li>Priority placement</li>',
     },
     'subscription-downgrade-scheduled': {
@@ -326,7 +326,7 @@ function buildSampleData(name) {
       newPlan: 'Starter',
       currentAmount: '29.00',
       newAmount: '9.00',
-      billingCycle: 'monthly',
+      billingCycle: 'month',
       effectiveDate: '12 April 2026',
     },
     'subscription-payment-failed': {
@@ -352,7 +352,7 @@ function buildSampleData(name) {
       daysLeftLabel: '3 days',
       trialEndDate: '19 March 2026',
       amount: '29.00',
-      billingCycle: 'monthly',
+      billingCycle: 'month',
     },
     'new-message': {
       senderName: 'Jordan Lee',
