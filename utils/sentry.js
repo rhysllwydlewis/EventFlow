@@ -31,7 +31,7 @@ function initSentry(_app) {
 
     // Note: the class-based `Sentry.Integrations.*` API and `Sentry.Handlers.*`
     // middleware this file used to call were removed in the @sentry/node v8 SDK
-    // (this project has been pinned to ^8.0.0 since before this rewrite) — every
+    // (this project was on ^8.0.0 when this was rewritten; now ^11.x, same function-style API) — every
     // call below silently threw on init, was swallowed by this try/catch, and
     // left Sentry permanently disabled regardless of SENTRY_DSN. Rewritten to the
     // current function-style integrations API; httpIntegration/expressIntegration
@@ -53,6 +53,20 @@ function initSentry(_app) {
       tracesSampleRate: environment === 'production' ? 0.1 : 1.0,
       // Set sampling rate for profiling
       profilesSampleRate: environment === 'production' ? 0.1 : 1.0,
+      // @sentry/node v9+ replaced sendDefaultPii with dataCollection, and v11's
+      // unset defaults COLLECT user info, cookies, headers, HTTP bodies, DB query
+      // data and local variables. Keep the pre-upgrade restrictive baseline;
+      // opt in to categories deliberately.
+      dataCollection: {
+        userInfo: false,
+        cookies: false,
+        httpHeaders: false,
+        httpBodies: [],
+        urlQueryParams: false,
+        databaseQueryData: false,
+        queues: false,
+        stackFrameVariables: false,
+      },
       integrations: [
         Sentry.mongoIntegration({ useMongoose: false }),
         ...(Sentry.redisIntegration ? [Sentry.redisIntegration()] : []),
