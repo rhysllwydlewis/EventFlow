@@ -51,6 +51,24 @@ describe('utils/sentry.js backend init (v8 SDK compatibility)', () => {
     expect(mockSentry.init).not.toHaveBeenCalled();
   });
 
+  it('passes a restrictive dataCollection baseline (v11 defaults collect PII)', () => {
+    process.env.SENTRY_DSN = 'https://fake@sentry.example/1';
+    const mockSentry = buildMockSentry();
+    jest.doMock('@sentry/node', () => mockSentry);
+    const sentry = require('../../utils/sentry');
+    sentry.initSentry({});
+    const { dataCollection } = mockSentry.init.mock.calls[0][0];
+    expect(dataCollection).toMatchObject({
+      userInfo: false,
+      cookies: false,
+      httpHeaders: false,
+      httpBodies: [],
+      urlQueryParams: false,
+      databaseQueryData: false,
+      stackFrameVariables: false,
+    });
+  });
+
   it('initializes successfully using only function-style integrations (no Integrations/Handlers classes)', () => {
     process.env.SENTRY_DSN = 'https://fake@sentry.example/1';
     process.env.NODE_ENV = 'production';

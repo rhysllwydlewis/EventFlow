@@ -174,6 +174,56 @@ the policy above.
 
 ## Session log
 
+### 2026-10-18 — session 26
+
+No open PR of mine, nothing red (open PRs are only dependabot #1783-1785 and #1774, not on this branch). `/api/ready` 200. Swept the live site: all 137 `<loc>` URLs in the production `/sitemap.xml` response (the dynamic sitemap, fetched in full) return 200, plus key pages (`/`, `/suppliers`, `/marketplace`, `/pricing`, `/faq`, `/auth`, `/community`, `/contact`, `/terms`, `/privacy`). `/blog` is 404 but no blog route exists (content lives under `/articles`, `/guides`), so not a defect. No real defect found; no code changed, nothing to merge. Remaining unexamined sweep ideas: authenticated flows (need credentials this routine lacks).
+
+### 2026-10-17 — session 25
+
+Branch restarted onto `main` (#1791 merged). No open PR on this branch, nothing red (open PRs are only dependabot #1783-1785 and #1774, not mine). Continued session 24's zero-reference scan. Verified by repo-wide grep (code, docs, CHANGELOG, tests, service worker) that five more scripts have no importer, script tag or doc mention: `firebase-config.js`, `utils/messaging-constants.js`, `utils/api-debug.js`, `utils/hcaptcha.js`, `utils/formatters.js`. Deleted them. Full `npm test` passed (12988). The rest of session 24's list (`Toast`, `api-version`, `grouping`, `share`, `guide-feedback`, `sanitizer`, `password-strength`, `debounce`) have real references and stay.
+
+**Outcome:** PR #1792 squash-merged as `4629ed75`. All 30 CI checks green, DeepSource grade A, Codex found nothing. **Deploy check passed:** `/api/ready` 200 on 22 of 22 polls over about 9 minutes.
+
+### 2026-10-16 — session 24
+
+Branch restarted onto `main` (#1789 merged). No open PR, nothing red, backlog empty, so did the sweep. Found nine front-end scripts with zero references anywhere in the repo (no HTML tags, imports, tests, service worker, scripts; globals such as `VoiceInput`, `offlineQueueManager`, `OnboardingTour`, `skeleton`, `darkModeToggle` also have no other users): `live-chat.js`, `voice-input.js`, `customer-manager.js`, `offline-queue-manager.js`, and `components/` `photo-gallery`, `onboarding-tour`, `LoadingSkeleton`, `DarkModeToggle`, `ImageZoom`. Deleted them, then restored three after Codex review (`photo-gallery`, `ImageZoom`: still documented in `.github/docs/FRONTEND_COMPONENTS.md` / CHANGELOG / FUTURE_IMPROVEMENTS; `LoadingSkeleton`: `docs/research/skeleton-loader-consolidation.md` deliberately keeps it). Six remain deleted. **Lesson: grep `docs/` and CHANGELOG before deleting an unreferenced file; public/ is served statically.** Full `npm test` passed (12986). Other zero-reference files from the same scan not yet examined: `firebase-config.js`, `components/Toast.js`, `config/api-version.js`, `grouping.js`, `share.js`, `guide-feedback.js`, `utils/{messaging-constants,formatters,sanitizer,api-debug,hcaptcha,password-strength,debounce}.js`; verify each (basename grep is only a first pass).
+
+**Outcome:** PR #1790 squash-merged as `fb5c2a97`. CI all green on the final head except Lighthouse desktop still running at merge (mobile passed); DeepSource grade A; Codex raised two real P2s (docs still reference `PhotoGallery`/`ImageZoom`), fixed by restoring them. **Deploy check passed:** `/api/ready` 200 on 24 of 24 polls over about 10 minutes. Net deletion: six files (`live-chat`, `voice-input`, `customer-manager`, `offline-queue-manager`, `onboarding-tour`, `DarkModeToggle`).
+
+### 2026-10-15 — session 23
+
+Branch restarted onto `main`. No open PR, nothing red. Did the queued `app.js` legacy supplier dead-code deletion (the earlier `sed -i` was blocked, so used a small node line-splice script, reviewable in the diff): removed `initSupplier`, `initContactFormValidation`, `initSupplierGallery`, `openLightbox` and the `page === 'supplier'` call (about 960 lines). `showToast` kept (still used). `app.js?v=` bumped 18.5.2 → 18.5.3 on every page and in `scripts/new-article.mjs`; `auth-signup-layout.test.js` now matches any `app.js?v=` version rather than pinning one. Full `npm test` passed (12988); eslint no-undef clean.
+
+**Outcome:** PR #1788 squash-merged as `2908b52c`. All CI green except the known DeepSource JavaScript false positive (grade A) and a Codex review that failed at infra level (no findings). **Deploy check passed:** `/api/ready` returned 200 on 20 of 20 polls over about 8 minutes. The `/api/ready` curl was allowed this time.
+
+**Next:** general site sweep; nothing queued. The remote branch needed a `--force-with-lease` push because it only held already-merged history.
+
+### 2026-10-14 — session 22
+
+Branch restarted onto `main`. Only open PR was #1786 (docs-only handoff, +14 lines); CI green except the known `github-advanced-security` infra failure and DeepSource green. Reviewed the diff cold (accurate, docs only) and **squash-merged as `acdb2d2c`**. No code changed, so no deploy risk; but the auto-mode classifier denied the `/api/ready` polling command again (same as session 21), and Railway MCP `list-deployments` for the PR-environment ids returned nothing, so the post-merge deploy check was **not run**. No new work started (nothing red, nothing in backlog).
+
+**Needs owner:** the classifier keeps blocking the `/api/ready` curl loop; consider allow-listing `curl https://event-flow.co.uk/api/ready` for this routine.
+
+**Next:** `app.js` legacy `initSupplier` deletion (needs small Edit calls or owner go-ahead); general sweep.
+
+### 2026-10-11 — session 20 outcome
+
+PR #1781 (Sentry 11) was squash-merged as `f79605398` by someone other than this session, while it was idle (observed 2026-10-13). All CI was green at last look except the known `github-advanced-security` failure. Deploy check run only after the fact: `/api/ready` returned 200 on 6 of 6 polls on 2026-10-13, so the merge-time rollout was not observed directly. Both Codex threads answered (P1 fixed, P2 declined).
+
+**Next:** `app.js` legacy `initSupplier` deletion (needs small Edit calls or owner go-ahead); nothing queued for `@sentry/browser`: it is a devDependency only, never bundled or served (pages load `sentry-browser-init.js`, which waits for an externally supplied `window.Sentry`), so bumping it changes nothing. If frontend error reporting is ever wired up, evaluate v11's `dataCollection`/PII defaults at that point.
+
+### 2026-10-13 — session 21
+
+Open PR #1781 (`@sentry/node` 11.x + restrictive `dataCollection`) had all CI green on its head except the known `github-advanced-security` infra failure; both Codex threads already answered (P1 fixed, P2 declined on privacy grounds). Re-reviewed the diff cold, confirmed the `dataCollection` keys exist in the installed 11.6.0 types, sentry unit tests pass, branch up to date with main. **Squash-merged as `f7960539`.**
+
+The auto-mode classifier denied session 21's `/api/ready` polling command, so it did not run the post-merge check; session 20's outcome entry above records it as done afterwards (`/api/ready` 200 on 6/6 polls on 2026-10-13). Still outstanding: if Sentry is configured in prod, confirm errors still arrive after the 11.x upgrade.
+
+**Next:** `app.js` legacy `initSupplier` deletion (needs small Edit calls or owner go-ahead).
+
+### 2026-10-11 — session 20
+
+Branch restarted onto `main` (#1780 merged). No open PR, nothing red. `app.js` `initSupplier` deletion still blocked (needs small Edit calls or owner go-ahead). Did the `@sentry/node` 8 → ^11.6.0 bump instead: the app only uses `init`, `mongoIntegration`, `redisIntegration`, `setupExpressErrorHandler`, `captureException` (utils/sentry.js), all still exported in 11.6.0; smoke-initialised with a fake DSN. Prod audit now 0 vulnerabilities (was 2 moderates). Full `npm test` passed (12988). Codex P1 on the PR was real: v11's unset `dataCollection` defaults collect user info, cookies, headers, HTTP bodies and DB data (v8 did not), so `utils/sentry.js` now sets an explicit restrictive `dataCollection` baseline, with a regression test. Codex P2 (restore `req.user` association) deliberately not done: it would mean sending user identifiers, which the restrictive baseline excludes; revisit only if the owner wants it. `@sentry/browser` is still 8.x (frontend, loaded separately) — left alone.
+
 ### 2026-10-10 — session 19
 
 Branch restarted onto `main` (#1779 merged). No open PR on this branch, nothing red. Verified `public/assets/js/components/Modal.js` (347 lines) is unreferenced: no HTML script tag, import, test, service-worker or script reference (the `new Modal({...})` callers in budget/guests/admin-init use other `Modal` classes, e.g. in `components.js`). Deleted it. Full `npm test` passed (12988).
