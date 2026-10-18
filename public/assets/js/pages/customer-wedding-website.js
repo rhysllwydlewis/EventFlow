@@ -601,7 +601,7 @@
       if (Array.isArray(data.plans)) {
         return data.plans;
       }
-    } catch (_err) {
+    } catch {
       /* fall back to the plans the dashboard already loaded */
     }
     return fallback || [];
@@ -710,14 +710,14 @@
   }
 
   function draftPayload() {
-    const d = S.draft;
-    const payload = { rsvpEnabled: d.rsvpEnabled, accentColor: d.theme.accentColor };
+    const draft = S.draft;
+    const payload = { rsvpEnabled: draft.rsvpEnabled, accentColor: draft.theme.accentColor };
     SCALAR_KEYS.forEach(key => {
-      payload[key] = d[key];
+      payload[key] = draft[key];
     });
-    payload.coverImageUrl = d.theme.coverImageUrl;
+    payload.coverImageUrl = draft.theme.coverImageUrl;
     Object.keys(LISTS).forEach(name => {
-      const rows = d.lists[name];
+      const rows = draft.lists[name];
       if (name === 'mealOptions') {
         payload.mealOptions = rows.map(item => String(item.value || '').trim()).filter(Boolean);
       } else if (name === 'customRsvpQuestions') {
@@ -743,15 +743,15 @@
   }
 
   function themePayload() {
-    const t = S.draft.theme;
+    const theme = S.draft.theme;
     return {
-      accentColor: t.accentColor,
-      secondaryColor: t.secondaryColor,
-      backgroundColor: t.backgroundColor,
-      textColor: t.textColor,
-      heroLayout: t.heroLayout,
-      coverImageUrl: t.coverImageUrl,
-      galleryImages: t.galleryImages,
+      accentColor: theme.accentColor,
+      secondaryColor: theme.secondaryColor,
+      backgroundColor: theme.backgroundColor,
+      textColor: theme.textColor,
+      heroLayout: theme.heroLayout,
+      coverImageUrl: theme.coverImageUrl,
+      galleryImages: theme.galleryImages,
     };
   }
 
@@ -930,7 +930,7 @@
     document.body.appendChild(dialog);
     try {
       dialog.showModal();
-    } catch (_err) {
+    } catch {
       dialog.show();
     }
   }
@@ -1070,7 +1070,7 @@
 
   function needsWorkspace() {
     const cards = [
-      `<article class="ww-choice ww-choice--primary"><h4>Free wedding website</h4><p>The quickest way to a guest website, RSVP form, guest list and seating plan.</p><button type="button" class="ww-btn ww-btn--primary" id="ww-quick-start" data-action="quick-start">Create wedding website</button></article>`,
+      '<article class="ww-choice ww-choice--primary"><h4>Free wedding website</h4><p>The quickest way to a guest website, RSVP form, guest list and seating plan.</p><button type="button" class="ww-btn ww-btn--primary" id="ww-quick-start" data-action="quick-start">Create wedding website</button></article>',
     ];
     if (cachedPlans.length) {
       cards.push(
@@ -1085,7 +1085,7 @@
       );
     }
     cards.push(
-      `<article class="ww-choice"><h4>Full event plan</h4><p>Add budget, suppliers and tasks alongside your wedding website.</p><a class="ww-btn ww-btn--secondary" href="/start">Create event plan</a></article>`
+      '<article class="ww-choice"><h4>Full event plan</h4><p>Add budget, suppliers and tasks alongside your wedding website.</p><a class="ww-btn ww-btn--secondary" href="/start">Create event plan</a></article>'
     );
     return `<div class="ww-start"><span class="ww-start__icon">${icon('heart', 28)}</span><h4>Let's set up your wedding hub</h4><p>Choose how you would like to begin. You can change anything later.</p><div class="ww-start__grid">${cards.join('')}</div></div>`;
   }
@@ -1163,7 +1163,7 @@
             .join('')}</ul>
         </section>
         <section class="ww-card">
-          <header class="ww-card__head"><h4>Latest replies</h4>${st.replied ? `<button type="button" class="ww-link" data-go="guests">View all</button>` : ''}</header>
+          <header class="ww-card__head"><h4>Latest replies</h4>${st.replied ? '<button type="button" class="ww-link" data-go="guests">View all</button>' : ''}</header>
           ${
             recent.length
               ? `<ul class="ww-feed">${recent
@@ -1172,7 +1172,7 @@
                       `<li><span class="ww-avatar">${esc(initials(g.name))}</span><div><strong>${esc(g.name)}</strong><small>${esc(timeAgo(g.updatedAt))}${g.source === 'public_rsvp' ? ' · via RSVP form' : ''}</small></div>${badge(g.rsvpStatus)}</li>`
                   )
                   .join('')}</ul>`
-              : `<p class="ww-muted-note">Replies will appear here as soon as guests respond.</p>`
+              : '<p class="ww-muted-note">Replies will appear here as soon as guests respond.</p>'
           }
         </section>
       </div>
@@ -1232,15 +1232,15 @@
   }
 
   function lookHtml() {
-    const t = S.draft.theme;
-    const gallery = t.galleryImages
+    const theme = S.draft.theme;
+    const gallery = theme.galleryImages
       .map(
         (item, index) =>
-          `<article class="ww-thumb"><img src="${esc(item.imageUrl)}" alt="${esc(item.alt || item.caption || `Gallery photo ${index + 1}`)}"><input class="ww-input" data-gallery-caption="${index}" value="${esc(item.caption || '')}" placeholder="Caption (optional)" aria-label="Caption for photo ${index + 1}"><div class="ww-thumb__tools"><button type="button" class="ww-icon-btn" data-action="gallery-move" data-i="${index}" data-dir="-1" ${index === 0 ? 'disabled' : ''} aria-label="Move photo ${index + 1} earlier">${icon('chevronUp', 16)}</button><button type="button" class="ww-icon-btn" data-action="gallery-move" data-i="${index}" data-dir="1" ${index === t.galleryImages.length - 1 ? 'disabled' : ''} aria-label="Move photo ${index + 1} later">${icon('chevron', 16)}</button><button type="button" class="ww-icon-btn ww-icon-btn--danger" data-action="gallery-remove" data-i="${index}" aria-label="Remove photo ${index + 1}">${icon('trash', 16)}</button></div></article>`
+          `<article class="ww-thumb"><img src="${esc(item.imageUrl)}" alt="${esc(item.alt || item.caption || `Gallery photo ${index + 1}`)}"><input class="ww-input" data-gallery-caption="${index}" value="${esc(item.caption || '')}" placeholder="Caption (optional)" aria-label="Caption for photo ${index + 1}"><div class="ww-thumb__tools"><button type="button" class="ww-icon-btn" data-action="gallery-move" data-i="${index}" data-dir="-1" ${index === 0 ? 'disabled' : ''} aria-label="Move photo ${index + 1} earlier">${icon('chevronUp', 16)}</button><button type="button" class="ww-icon-btn" data-action="gallery-move" data-i="${index}" data-dir="1" ${index === theme.galleryImages.length - 1 ? 'disabled' : ''} aria-label="Move photo ${index + 1} later">${icon('chevron', 16)}</button><button type="button" class="ww-icon-btn ww-icon-btn--danger" data-action="gallery-remove" data-i="${index}" aria-label="Remove photo ${index + 1}">${icon('trash', 16)}</button></div></article>`
       )
       .join('');
     const colour = (key, label) =>
-      `<label class="ww-swatch"><input type="color" data-theme="${key}" value="${esc(t[key])}"><span class="ww-swatch__chip" style="background:${esc(t[key])}"></span><span class="ww-swatch__label">${label}</span></label>`;
+      `<label class="ww-swatch"><input type="color" data-theme="${key}" value="${esc(theme[key])}"><span class="ww-swatch__chip" style="background:${esc(theme[key])}"></span><span class="ww-swatch__label">${label}</span></label>`;
     const names = S.draft.coupleNames || 'Your names';
     const dateLine = [
       S.draft.eventDate ? formatDate(S.draft.eventDate) : '',
@@ -1257,22 +1257,22 @@
           <div class="ww-swatches">${colour('accentColor', 'Accent')}${colour('secondaryColor', 'Secondary')}${colour('backgroundColor', 'Background')}${colour('textColor', 'Text')}</div></div>
         <div class="ww-group"><h5>Hero layout</h5><div class="ww-segment" role="radiogroup" aria-label="Hero layout">${HERO_LAYOUTS.map(
           layout =>
-            `<label class="ww-segment__item"><input type="radio" name="ww-hero-layout" data-theme="heroLayout" value="${layout.value}" ${t.heroLayout === layout.value ? 'checked' : ''}><span><strong>${esc(layout.label)}</strong><small>${esc(layout.hint)}</small></span></label>`
+            `<label class="ww-segment__item"><input type="radio" name="ww-hero-layout" data-theme="heroLayout" value="${layout.value}" ${theme.heroLayout === layout.value ? 'checked' : ''}><span><strong>${esc(layout.label)}</strong><small>${esc(layout.hint)}</small></span></label>`
         ).join('')}</div></div>
         <div class="ww-group"><h5>Style</h5><label class="ww-field"><span class="ww-label">Website template</span><select class="ww-input" data-f="template">${TEMPLATES.map(
           tpl =>
             `<option value="${tpl.value}" ${S.draft.template === tpl.value ? 'selected' : ''}>${esc(tpl.label)}</option>`
         ).join('')}</select></label></div>
-        <div class="ww-group"><h5>Cover photo</h5><div class="ww-actions-row"><label class="ww-btn ww-btn--secondary">${icon('image', 16)}${t.coverImageUrl ? 'Replace photo' : 'Choose photo'}<input type="file" accept="image/png,image/jpeg,image/webp,image/gif" data-upload="cover" hidden></label>${t.coverImageUrl ? `<button type="button" class="ww-btn ww-btn--ghost" data-action="cover-remove">Remove</button>` : ''}</div><p class="ww-hint">JPG, PNG, WebP or GIF under 700 KB.</p></div>
-        <div class="ww-group"><h5>Gallery <span class="ww-muted">${t.galleryImages.length}/${MAX_GALLERY}</span></h5>${gallery ? `<div class="ww-gallery">${gallery}</div>` : ''}<div class="ww-actions-row"><label class="ww-btn ww-btn--secondary ${t.galleryImages.length >= MAX_GALLERY ? 'is-disabled' : ''}">${icon('plus', 16)}Add photos<input type="file" accept="image/png,image/jpeg,image/webp,image/gif" multiple data-upload="gallery" hidden ${t.galleryImages.length >= MAX_GALLERY ? 'disabled' : ''}></label></div></div>
+        <div class="ww-group"><h5>Cover photo</h5><div class="ww-actions-row"><label class="ww-btn ww-btn--secondary">${icon('image', 16)}${theme.coverImageUrl ? 'Replace photo' : 'Choose photo'}<input type="file" accept="image/png,image/jpeg,image/webp,image/gif" data-upload="cover" hidden></label>${theme.coverImageUrl ? '<button type="button" class="ww-btn ww-btn--ghost" data-action="cover-remove">Remove</button>' : ''}</div><p class="ww-hint">JPG, PNG, WebP or GIF under 700 KB.</p></div>
+        <div class="ww-group"><h5>Gallery <span class="ww-muted">${theme.galleryImages.length}/${MAX_GALLERY}</span></h5>${gallery ? `<div class="ww-gallery">${gallery}</div>` : ''}<div class="ww-actions-row"><label class="ww-btn ww-btn--secondary ${theme.galleryImages.length >= MAX_GALLERY ? 'is-disabled' : ''}">${icon('plus', 16)}Add photos<input type="file" accept="image/png,image/jpeg,image/webp,image/gif" multiple data-upload="gallery" hidden ${theme.galleryImages.length >= MAX_GALLERY ? 'disabled' : ''}></label></div></div>
       </div>
       <aside class="ww-look__preview" aria-label="Website preview">
         <p class="ww-eyebrow">Live preview</p>
         <div class="ww-mini" data-mini style="${miniVars()}">
-          <div class="ww-mini__hero" data-layout="${esc(t.heroLayout)}" ${t.coverImageUrl ? `style="background-image:url('${esc(t.coverImageUrl)}')"` : ''}><small>We're getting married</small><strong>${esc(names)}</strong><span>${esc(dateLine || 'Date · Venue')}</span></div>
+          <div class="ww-mini__hero" data-layout="${esc(theme.heroLayout)}" ${theme.coverImageUrl ? `style="background-image:url('${esc(theme.coverImageUrl)}')"` : ''}><small>We're getting married</small><strong>${esc(names)}</strong><span>${esc(dateLine || 'Date · Venue')}</span></div>
           <div class="ww-mini__body"><p>Join us for a day of love, laughter and celebration.</p><span class="ww-mini__btn">RSVP</span>${
-            t.galleryImages.length
-              ? `<div class="ww-mini__gallery">${t.galleryImages
+            theme.galleryImages.length
+              ? `<div class="ww-mini__gallery">${theme.galleryImages
                   .slice(0, 4)
                   .map(item => `<i style="background-image:url('${esc(item.imageUrl)}')"></i>`)
                   .join('')}</div>`
@@ -1284,43 +1284,48 @@
   }
 
   function isActivePalette(palette) {
-    const t = S.draft.theme;
+    const theme = S.draft.theme;
     const same = (a, b) => String(a).toLowerCase() === String(b).toLowerCase();
     return (
-      same(t.accentColor, palette.accent) &&
-      same(t.secondaryColor, palette.secondary) &&
-      same(t.backgroundColor, palette.background) &&
-      same(t.textColor, palette.text)
+      same(theme.accentColor, palette.accent) &&
+      same(theme.secondaryColor, palette.secondary) &&
+      same(theme.backgroundColor, palette.background) &&
+      same(theme.textColor, palette.text)
     );
   }
 
   function miniVars() {
-    const t = S.draft.theme;
-    return `--m-accent:${esc(t.accentColor)};--m-2:${esc(t.secondaryColor)};--m-bg:${esc(t.backgroundColor)};--m-text:${esc(t.textColor)}`;
+    const theme = S.draft.theme;
+    return `--m-accent:${esc(theme.accentColor)};--m-2:${esc(theme.secondaryColor)};--m-bg:${esc(theme.backgroundColor)};--m-text:${esc(theme.textColor)}`;
   }
 
   function sectionSummary(section) {
-    const d = S.draft;
+    const draft = S.draft;
     if (section.id === 'essentials') {
-      const missing = essentialsMissing(d);
+      const missing = essentialsMissing(draft);
       return missing.length ? `${missing.length} to complete` : 'Complete';
     }
     if (section.lists && !section.fields) {
-      const count = section.lists.reduce((sum, name) => sum + d.lists[name].length, 0);
+      const count = section.lists.reduce((sum, name) => sum + draft.lists[name].length, 0);
       return count ? `${count} added` : section.hint;
     }
     if (section.id === 'rsvp') {
-      return d.rsvpEnabled
-        ? d.rsvpDeadline
-          ? `Reply by ${formatDate(d.rsvpDeadline)}`
+      return draft.rsvpEnabled
+        ? draft.rsvpDeadline
+          ? `Reply by ${formatDate(draft.rsvpDeadline)}`
           : 'No deadline set'
         : 'RSVPs are off';
     }
     if (section.id === 'look') {
-      return `${d.theme.galleryImages.length ? plural(d.theme.galleryImages.length, 'photo') : 'No gallery yet'}`;
+      return `${draft.theme.galleryImages.length ? plural(draft.theme.galleryImages.length, 'photo') : 'No gallery yet'}`;
     }
-    const filled = (section.fields || []).filter(field => String(d[field.key] || '').trim()).length;
-    const listCount = (section.lists || []).reduce((sum, name) => sum + d.lists[name].length, 0);
+    const filled = (section.fields || []).filter(field =>
+      String(draft[field.key] || '').trim()
+    ).length;
+    const listCount = (section.lists || []).reduce(
+      (sum, name) => sum + draft.lists[name].length,
+      0
+    );
     return filled + listCount ? `${filled + listCount} added` : section.hint;
   }
 
@@ -2116,7 +2121,7 @@
     try {
       await navigator.clipboard.writeText(text);
       toast(message);
-    } catch (_err) {
+    } catch {
       window.prompt('Copy this text:', text);
     }
   }
@@ -2666,7 +2671,7 @@
 
     try {
       dialog.showModal();
-    } catch (_err) {
+    } catch {
       dialog.show();
     }
     renderActive();
@@ -2743,7 +2748,7 @@
       const plan = pickPlan(cachedPlans);
       const site = plan ? await getWebsite(plan) : null;
       setHeaderStatus(statusMeta(site, plan));
-    } catch (_err) {
+    } catch {
       /* the card keeps its default status */
     }
   }
