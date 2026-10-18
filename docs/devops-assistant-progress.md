@@ -176,7 +176,7 @@ the policy above.
 
 ### 2026-10-18 — session 26
 
-No open PR of mine, nothing red (open PRs are only dependabot #1783-1785 and #1774, not on this branch). `/api/ready` 200. Swept the live site: all 60 URLs in `sitemap.xml` return 200, plus key pages (`/`, `/suppliers`, `/marketplace`, `/pricing`, `/faq`, `/auth`, `/community`, `/contact`, `/terms`, `/privacy`). `/blog` is 404 but no blog route exists (content lives under `/articles`, `/guides`), so not a defect. No real defect found; no code changed, nothing to merge. Remaining unexamined sweep ideas: authenticated flows (need credentials this routine lacks).
+No open PR of mine, nothing red (open PRs are only dependabot #1783-1785 and #1774, not on this branch). `/api/ready` 200. Swept the live site: all 137 `<loc>` URLs in the production `/sitemap.xml` response (the dynamic sitemap, fetched in full) return 200, plus key pages (`/`, `/suppliers`, `/marketplace`, `/pricing`, `/faq`, `/auth`, `/community`, `/contact`, `/terms`, `/privacy`). `/blog` is 404 but no blog route exists (content lives under `/articles`, `/guides`), so not a defect. No real defect found; no code changed, nothing to merge. Remaining unexamined sweep ideas: authenticated flows (need credentials this routine lacks).
 
 ### 2026-10-17 — session 25
 
