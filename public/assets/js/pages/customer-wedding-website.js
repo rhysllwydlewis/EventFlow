@@ -562,12 +562,9 @@
 
   /** Redraws the photo on a canvas at decreasing sizes and qualities until it is small enough. */
   async function shrinkImage(file) {
-    let bitmap;
-    try {
-      bitmap = await createImageBitmap(file);
-    } catch {
+    const bitmap = await createImageBitmap(file).catch(() => {
       throw new Error('Unable to read this image.');
-    }
+    });
     try {
       for (const longestSide of [1600, 1280, 1024, 800]) {
         const scale = Math.min(1, longestSide / Math.max(bitmap.width, bitmap.height));
