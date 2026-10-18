@@ -1667,7 +1667,7 @@
   }
 
   function editGuest(guest) {
-    const g = guest || {
+    const current = guest || {
       name: '',
       email: '',
       phone: '',
@@ -1682,7 +1682,7 @@
       notes: '',
     };
     const text = (name, label, extra = '') =>
-      `<label class="ww-field"><span class="ww-label">${label}</span><input class="ww-input" name="${name}" value="${esc(g[name] ?? '')}" ${extra}></label>`;
+      `<label class="ww-field"><span class="ww-label">${label}</span><input class="ww-input" name="${name}" value="${esc(current[name] ?? '')}" ${extra}></label>`;
     const area = (name, label, value) =>
       `<label class="ww-field ww-field--wide"><span class="ww-label">${label}</span><textarea class="ww-input" name="${name}" rows="2">${esc(value ?? '')}</textarea></label>`;
     const dialog = document.createElement('dialog');
@@ -1692,7 +1692,7 @@
       <div class="ww-modal__head"><h3 id="ww-guest-title" class="ww-modal__title">${guest ? 'Edit guest' : 'Add guest'}</h3><button type="button" class="ww-icon-btn" data-modal="cancel" aria-label="Close">${icon('close', 20)}</button></div>
       <div class="ww-modal__body">
         <div class="ww-grid">
-          <label class="ww-field ww-field--wide"><span class="ww-label">Name<em>Required</em></span><input class="ww-input" name="name" value="${esc(g.name)}" required autocomplete="off"><small class="ww-error" hidden>Please enter a name.</small></label>
+          <label class="ww-field ww-field--wide"><span class="ww-label">Name<em>Required</em></span><input class="ww-input" name="name" value="${esc(current.name)}" required autocomplete="off"><small class="ww-error" hidden>Please enter a name.</small></label>
           ${text('email', 'Email', 'type="email"')}
           ${text('phone', 'Phone', 'type="tel"')}
           <label class="ww-field"><span class="ww-label">RSVP</span><select class="ww-input" name="rsvpStatus">${Object.entries(
@@ -1700,17 +1700,17 @@
           )
             .map(
               ([value, label]) =>
-                `<option value="${value}" ${(g.rsvpStatus || 'pending') === value ? 'selected' : ''}>${label}</option>`
+                `<option value="${value}" ${(current.rsvpStatus || 'pending') === value ? 'selected' : ''}>${label}</option>`
             )
             .join('')}</select></label>
-          <label class="ww-field"><span class="ww-label">Party size</span><input class="ww-input" name="partySize" type="number" min="1" max="20" value="${Number(g.partySize || 1)}"></label>
-          <label class="ww-field"><span class="ww-label">Children</span><input class="ww-input" name="childrenCount" type="number" min="0" max="10" value="${Number(g.childrenCount || 0)}"></label>
+          <label class="ww-field"><span class="ww-label">Party size</span><input class="ww-input" name="partySize" type="number" min="1" max="20" value="${Number(current.partySize || 1)}"></label>
+          <label class="ww-field"><span class="ww-label">Children</span><input class="ww-input" name="childrenCount" type="number" min="0" max="10" value="${Number(current.childrenCount || 0)}"></label>
           ${text('plusOneName', 'Plus one')}
           ${text('mealChoice', 'Meal choice')}
-          ${area('dietaryRequirements', 'Dietary requirements', g.dietaryRequirements || g.dietary)}
-          ${area('accessibilityRequirements', 'Accessibility needs', g.accessibilityRequirements)}
+          ${area('dietaryRequirements', 'Dietary requirements', current.dietaryRequirements || current.dietary)}
+          ${area('accessibilityRequirements', 'Accessibility needs', current.accessibilityRequirements)}
           ${text('songRequest', 'Song request')}
-          ${area('notes', 'Notes', g.notes)}
+          ${area('notes', 'Notes', current.notes)}
         </div>
       </div>
       <div class="ww-modal__foot"><button type="button" class="ww-btn ww-btn--ghost" data-modal="cancel">Cancel</button><button type="submit" class="ww-btn ww-btn--primary">${guest ? 'Save guest' : 'Add guest'}</button></div>
@@ -1796,10 +1796,14 @@
       body = '<rect x="26" y="48" width="108" height="24" rx="6" class="ww-tbl"/>';
     } else {
       const radius = cap > 14 ? 46 : 41;
-      const r = cap > 20 ? 3.4 : cap > 14 ? 4 : 5;
+      const seatSize = cap > 20 ? 3.4 : cap > 14 ? 4 : 5;
       for (let i = 0; i < cap; i += 1) {
         const angle = (Math.PI * 2 * i) / cap - Math.PI / 2;
-        seats.push({ x: 80 + Math.cos(angle) * radius, y: 60 + Math.sin(angle) * radius, r });
+        seats.push({
+          x: 80 + Math.cos(angle) * radius,
+          y: 60 + Math.sin(angle) * radius,
+          r: seatSize,
+        });
       }
       body = '<circle cx="80" cy="60" r="27" class="ww-tbl"/>';
     }
@@ -2695,7 +2699,7 @@
     renderActive();
   }
 
-  async function closeApp() {
+  function closeApp() {
     const { dialog, opener, plan } = S;
     const finalPlan = S.plan || plan;
     const finalSite = S.site;
