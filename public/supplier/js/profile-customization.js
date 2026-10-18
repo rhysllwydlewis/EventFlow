@@ -5,7 +5,10 @@
 
 'use strict';
 (function () {
-  const DEFAULT_COLOR = '#0B8073';
+  // Presets, category accents and the effective-theme resolver are shared with the
+  // public profile and the inline editor; see assets/js/shared/supplier-theme-core.js.
+  const sharedTheme = window.EFSupplierTheme;
+  const DEFAULT_COLOR = sharedTheme.DEFAULT_THEME_COLOR;
   const HEX_RE = /^#[0-9A-F]{6}$/i;
   const SOCIAL_PLATFORMS = ['facebook', 'instagram', 'twitter', 'linkedin', 'youtube', 'tiktok'];
   const SOCIAL_LABELS = {
@@ -32,11 +35,18 @@
       '<svg viewBox="0 0 24 24" fill="#000" width="9" height="9"><path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-2.88 2.5 2.89 2.89 0 0 1-2.89-2.89 2.89 2.89 0 0 1 2.89-2.89c.28 0 .54.04.79.1V9.01a6.34 6.34 0 0 0-.79-.05 6.34 6.34 0 0 0-6.34 6.34 6.34 6.34 0 0 0 6.34 6.34 6.34 6.34 0 0 0 6.33-6.34l.04-8.95a8.16 8.16 0 0 0 4.77 1.52V4.43a4.85 4.85 0 0 1-1.04-.74z"/></svg>',
   };
 
+  const THEME_CONTROL_SELECTOR = '[name="themeMode"], #sup-theme-color, #sup-theme-color-hex';
+
   let currentEditingSupplierId = null;
   let suppliers = [];
   let dirty = false;
   let initialising = false;
   let themeSelectionChanged = false;
+  // The theme being edited. `themeColor` and `heroPreset` are remembered across mode
+  // switches so flipping back to a mode restores that mode's last choice.
+  const theme = { mode: 'automatic', heroPreset: null, themeColor: DEFAULT_COLOR };
+  let customColorChosen = false;
+  let editingCategory = '';
 
   function $(id) {
     return document.getElementById(id);
@@ -458,49 +468,153 @@
     input.dispatchEvent(new Event('change', { bubbles: true }));
   }
 
-  function getThemeColor() {
-    const candidate =
-      $('sup-theme-color')?.value || $('sup-theme-color-hex')?.value || DEFAULT_COLOR;
-    return HEX_RE.test(candidate) ? candidate : DEFAULT_COLOR;
+  function currentThemeSupplier() {
+    return {
+      themeMode: theme.mode,
+      heroPreset: theme.heroPreset,
+      themeColor: theme.themeColor,
+      category: editingCategory,
+    };
   }
 
-  function applyThemeColor(color, shouldMarkDirty = false) {
-    const safeColor = HEX_RE.test(color) ? color : DEFAULT_COLOR;
+  /** What the banner shows when no image is uploaded, resolved as the public profile does. */
+  function themeBannerBackground() {
+    const supplier = currentThemeSupplier();
+    const hero = sharedTheme.resolveHeroVisual(supplier);
+    if (hero.kind === 'preset') {
+      return sharedTheme.HERO_PRESET_GRADIENTS[hero.heroPreset];
+    }
+    const { accent } = sharedTheme.resolveSupplierTheme(supplier);
+    return `linear-gradient(135deg, ${accent}, ${accent}cc)`;
+  }
+
+  function automaticThemeNote() {
+    const { family } = sharedTheme.resolveCategoryTheme(editingCategory);
+    return family === 'default'
+      ? 'EventFlow teal is used, because your category has no colour of its own.'
+      : `Your ${editingCategory} category colour is applied to your profile automatically.`;
+  }
+
+  /** Paints every theme control and preview from the theme being edited. */
+  function paintTheme() {
+    const { accent } = sharedTheme.resolveSupplierTheme(currentThemeSupplier());
+
+    document.querySelectorAll('input[name="themeMode"]').forEach(radio => {
+      radio.checked = radio.value === theme.mode;
+    });
+    sharedTheme.VALID_THEME_MODES.forEach(mode => {
+      const panel = $(`pc-theme-panel-${mode}`);
+      if (panel) {
+        panel.hidden = mode !== theme.mode;
+      }
+    });
+    const autoNote = $('pc-theme-auto-note');
+    if (autoNote) {
+      autoNote.textContent = automaticThemeNote();
+    }
+
     const colorPicker = $('sup-theme-color');
     const colorHex = $('sup-theme-color-hex');
     if (colorPicker) {
-      colorPicker.value = safeColor;
+      colorPicker.value = theme.themeColor;
     }
     if (colorHex) {
-      colorHex.value = safeColor;
-    }
-    const previewHeader = $('color-preview-header');
-    const previewButton = $('color-preview-button');
-    if (previewHeader) {
-      previewHeader.style.backgroundColor = safeColor;
-    }
-    if (previewButton) {
-      previewButton.style.backgroundColor = safeColor;
+      colorHex.value = theme.themeColor;
     }
     document.querySelectorAll('.color-preset').forEach(preset => {
       preset.classList.toggle(
         'active',
-        String(preset.dataset.color || '').toLowerCase() === safeColor.toLowerCase()
+        theme.mode === 'custom' &&
+          String(preset.dataset.color || '').toLowerCase() === theme.themeColor.toLowerCase()
       );
     });
+    document.querySelectorAll('.pc-theme-preset').forEach(button => {
+      const selected = theme.mode === 'preset' && button.dataset.preset === theme.heroPreset;
+      button.classList.toggle('active', selected);
+      button.setAttribute('aria-pressed', String(selected));
+    });
+
+    const previewHeader = $('color-preview-header');
+    const previewButton = $('color-preview-button');
+    if (previewHeader) {
+      previewHeader.style.background = themeBannerBackground();
+    }
+    if (previewButton) {
+      previewButton.style.backgroundColor = accent;
+    }
     const previewBanner = $('preview-banner');
     if (previewBanner && !previewBanner.querySelector('img')) {
-      previewBanner.style.background = `linear-gradient(135deg, ${safeColor}, ${safeColor}cc)`;
+      previewBanner.style.background = themeBannerBackground();
     }
     document.querySelectorAll('.pc-preview-tag').forEach(tag => {
-      tag.style.background = `${safeColor}1a`;
-      tag.style.color = safeColor;
+      tag.style.background = `${accent}1a`;
+      tag.style.color = accent;
     });
-    if (shouldMarkDirty) {
-      themeSelectionChanged = true;
-      markDirty();
-      updateLivePreview();
+  }
+
+  function themeChanged() {
+    themeSelectionChanged = true;
+    markDirty();
+    updateLivePreview();
+  }
+
+  function setThemeMode(mode) {
+    if (!sharedTheme.VALID_THEME_MODES.includes(mode) || mode === theme.mode) {
+      paintTheme();
+      return;
     }
+    const accentBefore = sharedTheme.resolveSupplierTheme(currentThemeSupplier()).accent;
+    theme.mode = mode;
+    if (mode === 'preset' && !theme.heroPreset) {
+      theme.heroPreset = sharedTheme.HERO_PRESETS[0].id;
+    }
+    if (mode === 'custom' && !customColorChosen) {
+      // Start from the colour the profile shows now rather than jumping to teal.
+      theme.themeColor = accentBefore;
+    }
+    themeChanged();
+  }
+
+  function chooseCustomColor(color) {
+    if (!HEX_RE.test(color)) {
+      return;
+    }
+    theme.mode = 'custom';
+    theme.themeColor = color;
+    customColorChosen = true;
+    themeChanged();
+  }
+
+  function chooseHeroPreset(id) {
+    const heroPreset = sharedTheme.normaliseHeroPreset(id);
+    if (!heroPreset) {
+      return;
+    }
+    theme.mode = 'preset';
+    theme.heroPreset = heroPreset;
+    themeChanged();
+  }
+
+  /** Shows a supplier's saved theme, resolved the way the public profile resolves it. */
+  function loadTheme(supplier) {
+    const stored = sharedTheme.normaliseStoredSupplierTheme(supplier);
+    editingCategory = supplier.category || '';
+    theme.mode = stored.themeMode;
+    theme.heroPreset = stored.heroPreset;
+    theme.themeColor = stored.themeColor || DEFAULT_COLOR;
+    customColorChosen = Boolean(stored.themeColor);
+    themeSelectionChanged = false;
+    paintTheme();
+  }
+
+  function themePayload() {
+    if (theme.mode === 'automatic') {
+      return { themeMode: 'automatic' };
+    }
+    if (theme.mode === 'preset') {
+      return { themeMode: 'preset', heroPreset: theme.heroPreset };
+    }
+    return { themeMode: 'custom', themeColor: theme.themeColor };
   }
 
   function clearChildren(el) {
@@ -589,8 +703,7 @@
       pImg.alt = '';
       pBanner.appendChild(pImg);
     } else {
-      const color = getThemeColor();
-      pBanner.style.background = `linear-gradient(135deg, ${color}, ${color}cc)`;
+      pBanner.style.background = themeBannerBackground();
     }
   }
 
@@ -655,8 +768,7 @@
       socialLinks: readSocialLinks(),
     };
     if (themeSelectionChanged) {
-      payload.themeMode = 'custom';
-      payload.themeColor = getThemeColor();
+      Object.assign(payload, themePayload());
     }
     return payload;
   }
@@ -703,8 +815,8 @@
         tag.textContent = service;
         pSvc.appendChild(tag);
       });
-      applyThemeColor(getThemeColor(), false);
     }
+    paintTheme();
 
     const activeSocial = SOCIAL_PLATFORMS.filter(platform =>
       $(`sup-social-${platform}`)?.value?.trim()
@@ -772,8 +884,7 @@
       tagline.value = supplier.tagline || '';
       updateTaglineCount();
     }
-    applyThemeColor(supplier.themeColor || DEFAULT_COLOR, false);
-    themeSelectionChanged = false;
+    loadTheme(supplier);
 
     for (let i = 1; i <= 5; i++) {
       const input = $(`sup-highlight-${i}`);
@@ -960,24 +1071,53 @@
     const colorHex = $('sup-theme-color-hex');
     const resetBtn = $('reset-theme-color');
     const presets = document.querySelectorAll('.color-preset');
+    const presetList = $('pc-theme-presets');
+
+    document.querySelectorAll('input[name="themeMode"]').forEach(radio => {
+      radio.addEventListener('change', () => {
+        if (radio.checked) {
+          setThemeMode(radio.value);
+        }
+      });
+    });
+
+    if (presetList) {
+      sharedTheme.HERO_PRESETS.forEach(preset => {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'pc-theme-preset';
+        button.dataset.preset = preset.id;
+        button.setAttribute('aria-pressed', 'false');
+        const swatch = document.createElement('span');
+        swatch.className = 'pc-theme-preset-swatch';
+        swatch.style.background = preset.gradient;
+        swatch.setAttribute('aria-hidden', 'true');
+        const label = document.createElement('span');
+        label.className = 'pc-theme-preset-label';
+        label.textContent = preset.label;
+        button.append(swatch, label);
+        button.addEventListener('click', event => {
+          event.preventDefault();
+          chooseHeroPreset(preset.id);
+        });
+        presetList.appendChild(button);
+      });
+    }
 
     colorPicker?.addEventListener('input', function () {
-      applyThemeColor(this.value, true);
+      chooseCustomColor(this.value);
     });
     colorHex?.addEventListener('input', function () {
-      const hex = this.value.trim();
-      if (HEX_RE.test(hex)) {
-        applyThemeColor(hex, true);
-      }
+      chooseCustomColor(this.value.trim());
     });
     resetBtn?.addEventListener('click', event => {
       event.preventDefault();
-      applyThemeColor(DEFAULT_COLOR, true);
+      chooseCustomColor(DEFAULT_COLOR);
     });
     presets.forEach(preset => {
       preset?.addEventListener('click', function (event) {
         event.preventDefault();
-        applyThemeColor(this.dataset.color || DEFAULT_COLOR, true);
+        chooseCustomColor(this.dataset.color || DEFAULT_COLOR);
       });
     });
   }
@@ -988,7 +1128,10 @@
       return;
     }
     form.addEventListener('submit', handleFormSubmit, true);
-    form.querySelectorAll('input, textarea').forEach(el => {
+    // The theme controls repaint the whole form from the theme state, so they mark
+    // themselves dirty through themeChanged() instead; a generic repaint on their
+    // own input event would reset them before their handler reads the new value.
+    form.querySelectorAll(`input:not(${THEME_CONTROL_SELECTOR}), textarea`).forEach(el => {
       el.addEventListener('input', () => {
         updateTaglineCount();
         updateLivePreview();
