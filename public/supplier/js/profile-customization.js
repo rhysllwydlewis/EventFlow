@@ -484,6 +484,9 @@
     if (hero.kind === 'preset') {
       return sharedTheme.HERO_PRESET_GRADIENTS[hero.heroPreset];
     }
+    if (hero.kind === 'category') {
+      return sharedTheme.CATEGORY_HERO_GRADIENTS[hero.categoryFamily];
+    }
     const { accent } = sharedTheme.resolveSupplierTheme(supplier);
     return `linear-gradient(135deg, ${accent}, ${accent}cc)`;
   }

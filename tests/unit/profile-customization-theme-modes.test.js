@@ -143,7 +143,7 @@ describe('profile customisation theme modes', () => {
           mode: checked && checked.value,
           visiblePanels,
           note: document.getElementById('pc-theme-auto-note').textContent,
-          bannerMatchesCategory: document.getElementById('preview-banner').style.background === paint('linear-gradient(135deg, #1A3A5C, #1A3A5Ccc)'),
+          bannerMatchesCategoryArtwork: document.getElementById('preview-banner').style.background === paint(core.CATEGORY_HERO_GRADIENTS.photography),
           tagColourMatches: document.querySelector('.pc-preview-tag').style.color === paintColour('#1A3A5C'),
         };
       `
@@ -152,7 +152,7 @@ describe('profile customisation theme modes', () => {
     expect(result.mode).toBe('automatic');
     expect(result.visiblePanels).toEqual(['automatic']);
     expect(result.note).toContain('Photography');
-    expect(result.bannerMatchesCategory).toBe(true);
+    expect(result.bannerMatchesCategoryArtwork).toBe(true);
     expect(result.tagColourMatches).toBe(true);
   });
 
