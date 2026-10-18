@@ -174,6 +174,10 @@ the policy above.
 
 ## Session log
 
+### 2026-10-18 — session 26
+
+No open PR of mine, nothing red (open PRs are only dependabot #1783-1785 and #1774, not on this branch). `/api/ready` 200. Swept the live site: all 60 URLs in `sitemap.xml` return 200, plus key pages (`/`, `/suppliers`, `/marketplace`, `/pricing`, `/faq`, `/auth`, `/community`, `/contact`, `/terms`, `/privacy`). `/blog` is 404 but no blog route exists (content lives under `/articles`, `/guides`), so not a defect. No real defect found; no code changed, nothing to merge. Remaining unexamined sweep ideas: authenticated flows (need credentials this routine lacks).
+
 ### 2026-10-17 — session 25
 
 Branch restarted onto `main` (#1791 merged). No open PR on this branch, nothing red (open PRs are only dependabot #1783-1785 and #1774, not mine). Continued session 24's zero-reference scan. Verified by repo-wide grep (code, docs, CHANGELOG, tests, service worker) that five more scripts have no importer, script tag or doc mention: `firebase-config.js`, `utils/messaging-constants.js`, `utils/api-debug.js`, `utils/hcaptcha.js`, `utils/formatters.js`. Deleted them. Full `npm test` passed (12988). The rest of session 24's list (`Toast`, `api-version`, `grouping`, `share`, `guide-feedback`, `sanitizer`, `password-strength`, `debounce`) have real references and stay.
