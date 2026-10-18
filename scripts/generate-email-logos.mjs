@@ -36,10 +36,12 @@ const OUTPUTS = [
   { source: 'eventflow-mark.svg', file: 'eventflow-mark-white.png', width: 176, white: true },
 ];
 
+/** Replace the SVG's gradient fills with solid white. */
 function toWhite(svg) {
   return svg.replace(/fill="url\(#[^)]+\)"/g, 'fill="#ffffff"');
 }
 
+/** Rasterise each brand SVG into its email PNG. */
 async function main() {
   await mkdir(outDir, { recursive: true });
   for (const { source, file, width, white } of OUTPUTS) {

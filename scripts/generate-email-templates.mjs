@@ -33,6 +33,7 @@ const here = path.dirname(fileURLToPath(import.meta.url));
 const outDir = path.join(here, '..', 'email-templates');
 
 const ASSET_BASE = '{{baseUrl}}/assets/email';
+/** Absolute, cache-versioned URL for a logo under public/assets/email. */
 const asset = file => `${ASSET_BASE}/${file}?v=${EMAIL_ASSET_VERSION}`;
 
 // ── Tones ───────────────────────────────────────────────────────────────────
@@ -84,14 +85,15 @@ const PILL = {
 
 const STRIP = `linear-gradient(90deg,${C.brandDark} 0%,${C.brandLight} 100%)`;
 
+/** Dark-mode class rules for one tone map (`.pn-*` panels, `.pl-*` pills). */
 const toneCss = (map, cls, bgKey, fgKey, bdKey) =>
   Object.entries(map)
-    .map(([name, t]) => {
-      const rules = [`background-color:${t[bgKey]} !important`];
+    .map(([name, swatch]) => {
+      const rules = [`background-color:${swatch[bgKey]} !important`];
       if (bdKey) {
-        rules.push(`border-color:${t[bdKey]} !important`);
+        rules.push(`border-color:${swatch[bdKey]} !important`);
       }
-      return `    .${cls}-${name} { ${rules.join(';')}; }\n    .${cls}t-${name} { color:${t[fgKey]} !important; }`;
+      return `    .${cls}-${name} { ${rules.join(';')}; }\n    .${cls}t-${name} { color:${swatch[fgKey]} !important; }`;
     })
     .join('\n');
 
@@ -137,31 +139,39 @@ ${toneCss(PILL, 'pl', 'dbg', 'dfg')}
 
 // ── Components ──────────────────────────────────────────────────────────────
 
+/** A body paragraph. `tone` is `txt` (body colour) or `muted` (captions). */
 const para = (html, { mb = 16, size = 15, tone = 'txt', extra = '' } = {}) => {
   const color = tone === 'muted' ? C.muted : C.body;
   return `<p class="${tone}" style="margin:0 0 ${mb}px;font-size:${size}px;line-height:1.7;color:${color};${extra}">${html}</p>`;
 };
 
+/** An inline brand-coloured link. */
 const link = (href, label) =>
   `<a class="lnk" href="${href}" style="color:${C.brandDark};text-decoration:none;font-weight:600;">${label}</a>`;
 
+/** Bold text in the heading ink colour. */
 const strong = html => `<strong class="h1" style="color:${C.ink};">${html}</strong>`;
 
+/** The small uppercase label above a hero heading. */
 const pill = (text, tone = 'brand') => {
-  const t = PILL[tone];
-  return `<span class="pl-${tone} plt-${tone}" style="display:inline-block;padding:6px 14px;background-color:${t.bg};color:${t.fg};border-radius:999px;font-size:11px;font-weight:700;letter-spacing:1.4px;line-height:1.2;text-transform:uppercase;">${text}</span>`;
+  const swatch = PILL[tone];
+  return `<span class="pl-${tone} plt-${tone}" style="display:inline-block;padding:6px 14px;background-color:${swatch.bg};color:${swatch.fg};border-radius:999px;font-size:11px;font-weight:700;letter-spacing:1.4px;line-height:1.2;text-transform:uppercase;">${text}</span>`;
 };
 
+/** The shared call-to-action button (see utils/emailComponents.js). */
 const button = (href, label, background) => renderEmailButton({ href, label, background });
 
+/** A centred button in its own full-width block with a bottom margin. */
 const buttonBlock = (href, label, { mb = 24, background } = {}) =>
   `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 ${mb}px;"><tr><td align="center">${button(href, label, background)}</td></tr></table>`;
 
+/** A tinted notice box. `tone` is `teal`, `amber`, `red` or `grey`. */
 const panel = (tone, html, { mb = 24 } = {}) => {
-  const t = PANEL[tone];
-  return `<table class="pn-${tone}" role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 ${mb}px;background-color:${t.bg};border:1px solid ${t.bd};border-radius:12px;"><tr><td class="pnt-${tone}" style="padding:16px 20px;font-size:14px;line-height:1.6;color:${t.fg};">${html}</td></tr></table>`;
+  const swatch = PANEL[tone];
+  return `<table class="pn-${tone}" role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 ${mb}px;background-color:${swatch.bg};border:1px solid ${swatch.bd};border-radius:12px;"><tr><td class="pnt-${tone}" style="padding:16px 20px;font-size:14px;line-height:1.6;color:${swatch.fg};">${html}</td></tr></table>`;
 };
 
+/** A small uppercase caption used inside cards. */
 const label = text =>
   `<p class="muted" style="margin:0 0 6px;font-size:11px;font-weight:700;letter-spacing:1.4px;text-transform:uppercase;color:${C.muted};">${text}</p>`;
 
@@ -169,6 +179,7 @@ const label = text =>
 const detailsCard = (title, rows, { mb = 24 } = {}) =>
   `<table class="soft" role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 ${mb}px;background-color:#F6F9FA;border:1px solid #E1EAEC;border-radius:12px;"><tr><td style="padding:18px 22px 10px;">${label(title)}<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">${rows}</table></td></tr></table>`;
 
+/** Render `[label, value]` pairs as detail rows; a `['raw', html]` pair is passed through. */
 const rows = pairs => pairs.map(([k, v]) => (k === 'raw' ? v : renderDetailRow(k, v))).join('');
 
 /** Numbered steps, separated by hairlines. */
@@ -180,6 +191,7 @@ const steps = items =>
     })
     .join('')}</table>`;
 
+/** A list of ticked items. */
 const checklist = (items, { mb = 28 } = {}) =>
   `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 ${mb}px;">${items
     .map(
@@ -192,12 +204,15 @@ const checklist = (items, { mb = 28 } = {}) =>
 const quote = (title, html, { mb = 24 } = {}) =>
   `<table class="soft" role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 ${mb}px;background-color:#F6F9FA;border:1px solid #E1EAEC;border-radius:12px;"><tr><td style="padding:18px 22px;">${title ? label(title) : ''}<div class="txt" style="font-size:15px;line-height:1.7;color:${C.body};">${html}</div></td></tr></table>`;
 
+/** A label and a bold value, separated from what follows by a hairline. */
 const subjectBlock = (title, valueHtml) =>
   `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 16px;"><tr><td class="rule" style="padding:0 0 16px;border-bottom:1px solid ${C.line};">${label(title)}<p class="h1" style="margin:0;font-size:17px;font-weight:700;line-height:1.4;color:${C.ink};">${valueHtml}</p></td></tr></table>`;
 
+/** "Button not working?" text plus the raw link in a copyable box. */
 const fallbackLink = token =>
   `${para('Button not working? Copy and paste this link into your browser:', { mb: 8, size: 13, tone: 'muted' })}<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td class="soft lnk" style="background-color:#F6F9FA;border:1px solid #E1EAEC;border-radius:10px;padding:12px 16px;font-size:12px;line-height:1.5;color:${C.brandDark};word-break:break-all;">${token}</td></tr></table>`;
 
+/** A centred muted help line at the end of a body. */
 const supportLine = html =>
   para(html, { mb: 0, size: 13, tone: 'muted', extra: 'text-align:center;' });
 
@@ -208,6 +223,7 @@ const FOOTER_LINKS = [
   ['Contact', '/contact'],
 ];
 
+/** Label pill, heading and optional intro line at the top of the card. */
 const hero = ({ pill: pillSpec, h1, sub }) =>
   `<div style="padding:40px 0 0;">${pill(pillSpec[0], pillSpec[1])}</div>
           <h1 class="h1 hero-h1" style="margin:18px 0 ${sub ? 12 : 8}px;font-size:30px;line-height:1.2;font-weight:800;letter-spacing:-0.6px;color:${C.ink};">${h1}</h1>${
@@ -217,12 +233,25 @@ const hero = ({ pill: pillSpec, h1, sub }) =>
               : ''
           }`;
 
+/** A small note paragraph inside the dark footer. */
 const footerNote = html =>
   `<p style="margin:0 0 18px;font-size:12px;line-height:1.7;color:#8FB6BB;">${html}</p>`;
 
+/** A link styled for the dark footer. */
 const footerLink = (href, text, color = '#8FE3DA') =>
   `<a href="${href}" style="color:${color};text-decoration:none;">${text}</a>`;
 
+/**
+ * Wrap a hero and body in the shared email shell.
+ * @param {Object} options
+ * @param {string} options.title - Document title
+ * @param {string} [options.strip] - CSS `background` for the 6px brand strip
+ * @param {Object} options.heroSpec - `{ pill: [text, tone], h1, sub? }`
+ * @param {string} options.body - Body markup
+ * @param {string[]} [options.footerNotes] - Note paragraphs for the footer
+ * @param {string} [options.footerExtra] - Extra markup after the copyright line
+ * @returns {string} Complete HTML document
+ */
 function shell({ title, strip = STRIP, heroSpec, body, footerNotes = [], footerExtra = '' }) {
   const links = FOOTER_LINKS.map(([text, route]) => footerLink(`{{baseUrl}}${route}`, text)).join(
     '\n            <span style="color:#3E6A71;">&nbsp;&nbsp;|&nbsp;&nbsp;</span>\n            '
@@ -297,9 +326,6 @@ const HELP_LINE = supportLine(
 const BILLING_HELP = supportLine(
   `Need help? ${link('{{baseUrl}}/contact', 'Contact support')} or email ${link('mailto:billing@event-flow.co.uk', 'billing@event-flow.co.uk')}`
 );
-const SUPPORT_NOTE = footerNote(
-  `Need more help? Email ${footerLink('mailto:{{supportEmail}}', '{{supportEmail}}')}`
-);
 
 const NEWSLETTER_BENEFITS = [
   'New suppliers and venues joining the platform',
@@ -308,6 +334,7 @@ const NEWSLETTER_BENEFITS = [
   'Platform updates and improvements',
 ];
 
+/** A tip box; amber by default. */
 const TIP = (html, tone = 'amber') => panel(tone, html, { mb: 24 });
 
 const TEMPLATES = {
@@ -323,7 +350,7 @@ const TEMPLATES = {
         buttonBlock('{{verificationLink}}', 'Verify email address', { mb: 28 }),
         panel(
           'teal',
-          `<strong>Security note.</strong> This link expires in 24 hours. If you didn’t create an EventFlow account, you can safely ignore this email.`,
+          '<strong>Security note.</strong> This link expires in 24 hours. If you didn’t create an EventFlow account, you can safely ignore this email.',
           { mb: 26 }
         ),
         fallbackLink('{{verificationLink}}'),
@@ -517,7 +544,7 @@ const TEMPLATES = {
         buttonBlock('{{confirmLink}}', 'Confirm subscription', { mb: 28 }),
         panel(
           'teal',
-          `<strong>Note.</strong> This confirmation link expires in 24 hours. If you didn’t subscribe to our newsletter, you can safely ignore this email.`,
+          '<strong>Note.</strong> This confirmation link expires in 24 hours. If you didn’t subscribe to our newsletter, you can safely ignore this email.',
           { mb: 0 }
         ),
       ].join('\n              '),
@@ -646,7 +673,7 @@ const TEMPLATES = {
         buttonBlock('{{reviewLink}}', 'Leave a review', { mb: 28 }),
         panel(
           'teal',
-          `This secure link expires in {{expiresInDays}} days and is intended for the email address that received it. You may be asked to sign in or create an EventFlow account before submitting your review.`,
+          'This secure link expires in {{expiresInDays}} days and is intended for the email address that received it. You may be asked to sign in or create an EventFlow account before submitting your review.',
           { mb: 20 }
         ),
         para(
@@ -731,7 +758,7 @@ const TEMPLATES = {
       body: [
         panel(
           'amber',
-          `<strong>You’ll retain access to premium features until {{endDate}}.</strong>`
+          '<strong>You’ll retain access to premium features until {{endDate}}.</strong>'
         ),
         detailsCard(
           'What happens next',
@@ -789,7 +816,7 @@ const TEMPLATES = {
       body: [
         panel(
           'amber',
-          `<strong>You’ll retain full access to your {{currentPlan}} features until {{effectiveDate}}.</strong>`
+          '<strong>You’ll retain full access to your {{currentPlan}} features until {{effectiveDate}}.</strong>'
         ),
         detailsCard(
           'Plan change details',
@@ -821,7 +848,7 @@ const TEMPLATES = {
       body: [
         panel(
           'red',
-          `<strong>Update your payment method.</strong> Your premium features are paused right now. Update your card to restore {{planName}} straight away. We’ll also automatically retry the charge on {{nextRetryDate}}, so updating first means you won’t need to do anything else.`
+          '<strong>Update your payment method.</strong> Your premium features are paused right now. Update your card to restore {{planName}} straight away. We’ll also automatically retry the charge on {{nextRetryDate}}, so updating first means you won’t need to do anything else.'
         ),
         detailsCard(
           'Payment details',
@@ -874,7 +901,7 @@ const TEMPLATES = {
       body: [
         panel(
           'teal',
-          `<strong>After your trial ends, your paid subscription will begin automatically.</strong> No action is needed if you’d like to continue.`
+          '<strong>After your trial ends, your paid subscription will begin automatically.</strong> No action is needed if you’d like to continue.'
         ),
         detailsCard(
           'Subscription details',
@@ -895,6 +922,7 @@ const TEMPLATES = {
 
 const names = Object.keys(TEMPLATES).sort();
 
+/** Names of committed templates that differ from what the generator would write. */
 async function drift() {
   const stale = [];
   for (const name of names) {
@@ -907,6 +935,7 @@ async function drift() {
   return stale;
 }
 
+/** Write the templates, or with `--check` report any that have drifted. */
 async function main() {
   if (process.argv.includes('--check')) {
     const stale = await drift();

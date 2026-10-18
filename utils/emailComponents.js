@@ -26,6 +26,11 @@ const COLORS = {
 const BUTTON_FALLBACK_BG = COLORS.brandDark;
 const BUTTON_BACKGROUND = `linear-gradient(135deg,${COLORS.brandDark} 0%,${COLORS.brandMid} 100%)`;
 
+/**
+ * Escape a value for use in HTML text or a quoted attribute.
+ * @param {*} value
+ * @returns {string}
+ */
 function escapeHtml(value) {
   return String(value === undefined || value === null ? '' : value)
     .replace(/&/g, '&amp;')
