@@ -47,6 +47,8 @@ test.describe('Wedding website smoke coverage', () => {
     await page.evaluate(() => {
       window.initWeddingWebsiteDashboard([]);
     });
+    await page.click('.ww-card-open-app-btn');
+    await page.click('#ww-tab-website');
     await page.click('#ww-quick-start');
     await expect(page.locator('#ww-create')).toBeVisible();
   });
