@@ -420,7 +420,7 @@ async function handleSubscriptionCreated(stripeSubscription) {
     if (user) {
       const item = stripeSubscription.items?.data?.[0];
       const unitAmount = item?.price?.unit_amount ?? 0;
-      const billingInterval = item?.price?.recurring?.interval ?? 'month';
+      const emailBillingInterval = item?.price?.recurring?.interval ?? 'month';
       const amount = (unitAmount / 100).toFixed(2);
 
       const trialDaysCount = trialEnd
@@ -456,7 +456,7 @@ async function handleSubscriptionCreated(stripeSubscription) {
           trialRow,
           renewalDate,
           amount,
-          billingCycle: billingInterval,
+          billingCycle: emailBillingInterval,
           features,
         },
         from: postmark.FROM_BILLING,

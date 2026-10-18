@@ -1584,14 +1584,14 @@ function startServer() {
       }
 
       // Basic check for obvious placeholder values (detailed validation in db.js)
-      const hasPlaceholder =
+      const uriHasPlaceholder =
         uri.includes('username:password') ||
         uri.includes('your-') ||
         uri.includes('YourCluster') ||
         uri.includes('<password>') ||
         uri.includes('<username>');
 
-      if (hasPlaceholder) {
+      if (uriHasPlaceholder) {
         logger.error('');
         logger.error('❌ MONGODB_URI CONTAINS PLACEHOLDER VALUES');
         logger.error(
