@@ -90,14 +90,16 @@ describe('supplier profile theme consistency', () => {
     expect(profileThemeCss).toContain('--sp-profile-accent: #0b8073');
     expect(profileThemeCss).toContain('--sp-primary: var(--sp-profile-accent-strong)');
     expect(profileThemeCss).toContain('--sp-card-border: var(--sp-profile-accent-border)');
-    expect(profileThemeJs).toContain("source: 'heroPreset'");
-    expect(profileThemeJs).toContain("source: 'category'");
+    const sharedTheme = require('../../public/assets/js/shared/supplier-theme-core');
+    expect(sharedTheme.resolveSupplierTheme({ heroPreset: 'midnight' }).source).toBe('heroPreset');
+    expect(sharedTheme.resolveSupplierTheme({ category: 'Venues' }).source).toBe('category');
+    expect(profileThemeJs).toContain('sharedTheme.resolveSupplierTheme(supplier)');
   });
 
   test('themes only the colour fallback and preserves explicit hero presets', () => {
     expect(profileThemeCss).toContain("html[data-sp-hero-mode='theme']");
     expect(profileThemeCss).toContain('.sp-hero-use-accent');
-    expect(profileThemeJs).toContain("return 'preset'");
+    expect(profileThemeJs).toContain('sharedTheme.resolveHeroVisual(supplier)');
     expect(profileThemeJs).toContain("heroMode === 'theme'");
   });
 
@@ -149,8 +151,8 @@ describe('supplier profile packages and reviews', () => {
   });
 
   test('loads the profile polish layer from the existing package module entry point', () => {
-    expect(packagesJs).toContain("import './supplier-profile-polish.js?v=2'");
-    expect(supplierHtml).toContain('supplier-profile-packages-v2.js?v=19.4.5');
+    expect(packagesJs).toContain("import './supplier-profile-polish.js?v=3'");
+    expect(supplierHtml).toContain('supplier-profile-packages-v2.js?v=19.4.6');
   });
 
   test('the module chain that carries polish changes shares one cache-bust: bumping the leaf modules is worthless unless every importer between them and the entry <script> tag is bumped too', () => {
@@ -160,8 +162,8 @@ describe('supplier profile packages and reviews', () => {
     // returning browser only re-fetches a module whose own import
     // specifier's URL actually changed.
     expect(profileThemeJs).toContain("export * from './supplier-profile-polish-base.js?v=2'");
-    expect(packagesJs).toContain("import './supplier-profile-polish.js?v=2'");
-    expect(supplierHtml).toContain('supplier-profile-packages-v2.js?v=19.4.5');
+    expect(packagesJs).toContain("import './supplier-profile-polish.js?v=3'");
+    expect(supplierHtml).toContain('supplier-profile-packages-v2.js?v=19.4.6');
   });
 
   test('collapses zero-review scaffolding into one EventFlow-specific empty state', () => {
