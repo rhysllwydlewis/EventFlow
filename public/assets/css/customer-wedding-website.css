@@ -492,6 +492,7 @@ body.ww-app-open {
 
 .ww-stack {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: 16px;
 }
 
@@ -743,6 +744,7 @@ body.ww-app-open {
 
 .ww-field {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   align-content: start;
   gap: 6px;
   min-width: 0;
@@ -1168,6 +1170,7 @@ select.ww-input {
 
 .ww-checklist {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
 }
 
 .ww-check {
@@ -1225,6 +1228,7 @@ select.ww-input {
 
 .ww-feed {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: 14px;
 }
 
@@ -1348,7 +1352,7 @@ select.ww-input {
 }
 
 .ww-tag {
-  max-width: 220px;
+  max-width: 100%;
   padding: 2px 8px;
   overflow: hidden;
   border-radius: 6px;
@@ -1427,6 +1431,7 @@ select.ww-input {
 
 .ww-sections {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: 12px;
 }
 
@@ -1508,6 +1513,7 @@ select.ww-input {
 
 .ww-list {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: 12px;
 }
 
@@ -2038,6 +2044,27 @@ select.ww-input {
 .ww-table {
   width: 100%;
   border-collapse: collapse;
+  table-layout: fixed;
+}
+
+.ww-table th:nth-child(2) {
+  width: 116px;
+}
+
+.ww-table th:nth-child(3) {
+  width: 64px;
+}
+
+.ww-table th:nth-child(4) {
+  width: 22%;
+}
+
+.ww-table th:nth-child(5) {
+  width: 120px;
+}
+
+.ww-table th:nth-child(6) {
+  width: 92px;
 }
 
 .ww-table th {
@@ -2070,6 +2097,8 @@ select.ww-input {
 
 .ww-table td[data-label='Table'],
 .ww-table td[data-label='Party'] {
+  overflow: hidden;
+  text-overflow: ellipsis;
   white-space: nowrap;
 }
 
@@ -2077,7 +2106,12 @@ select.ww-input {
   display: flex;
   align-items: center;
   gap: 12px;
-  min-width: 180px;
+  min-width: 0;
+}
+
+.ww-person > div {
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 .ww-person strong {
@@ -2182,6 +2216,7 @@ select.ww-input {
 
 .ww-seatlist {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   max-height: 420px;
   margin: 0 -4px 12px;
   padding: 0 4px;
@@ -2244,8 +2279,18 @@ select.ww-input {
 }
 
 .ww-tablecard__head h4 {
+  display: -webkit-box;
+  overflow: hidden;
   font-size: 16px;
   font-weight: 600;
+  overflow-wrap: anywhere;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+}
+
+.ww-tablecard__head > div:first-child {
+  min-width: 0;
 }
 
 .ww-tablecard__head small {
@@ -2327,10 +2372,22 @@ select.ww-input {
   cursor: grab;
 }
 
-.ww-chips li span {
+.ww-chips__name {
+  min-width: 0;
+  padding: 0;
   overflow: hidden;
+  border: 0;
+  background: none;
+  color: inherit;
+  font-size: 13px;
+  text-align: left;
   text-overflow: ellipsis;
   white-space: nowrap;
+  cursor: pointer;
+}
+
+.ww-chips__name:hover {
+  text-decoration: underline;
 }
 
 .ww-chips li button {
@@ -2370,6 +2427,7 @@ select.ww-input {
 
 .ww-live {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: 16px;
 }
 
@@ -2453,6 +2511,7 @@ select.ww-input {
 
 .ww-radios {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: 8px;
   min-width: 0;
   margin: 0 0 16px;
@@ -2742,6 +2801,76 @@ select.ww-input {
   }
 }
 
+/* The guest table needs about 700px of main column; below that each guest becomes a card. */
+@media (max-width: 920px) {
+  /* Guest table becomes a list of cards. */
+  .ww-table thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+  }
+
+  .ww-table,
+  .ww-table tbody {
+    display: block;
+  }
+
+  .ww-table tr {
+    position: relative;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 8px;
+    padding: 16px;
+    border-top: 1px solid var(--ww-line-2);
+  }
+
+  .ww-table tbody tr:first-child {
+    border-top: 0;
+  }
+
+  .ww-table td {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 0;
+    border: 0;
+  }
+
+  .ww-table td[data-label]:not(:first-child)::before {
+    content: attr(data-label);
+    color: var(--ww-muted);
+    font-size: 12px;
+    font-weight: 500;
+  }
+
+  .ww-table td {
+    min-width: 0;
+  }
+
+  .ww-table td .ww-tags {
+    min-width: 0;
+    justify-content: flex-end;
+  }
+
+  .ww-table td:first-child {
+    padding-right: 80px;
+  }
+
+  .ww-td-actions {
+    position: absolute;
+    top: 10px;
+    right: 8px;
+    width: auto;
+  }
+
+  .ww-table {
+    table-layout: auto;
+  }
+}
+
 @media (max-width: 760px) {
   .ww-app,
   .ww-app .ww-shell {
@@ -2892,60 +3021,6 @@ select.ww-input {
 
   .ww-toasts {
     bottom: 84px;
-  }
-
-  /* Guest table becomes a list of cards. */
-  .ww-table thead {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    overflow: hidden;
-    clip: rect(0 0 0 0);
-  }
-
-  .ww-table,
-  .ww-table tbody {
-    display: block;
-  }
-
-  .ww-table tr {
-    position: relative;
-    display: grid;
-    gap: 8px;
-    padding: 16px;
-    border-top: 1px solid var(--ww-line-2);
-  }
-
-  .ww-table tbody tr:first-child {
-    border-top: 0;
-  }
-
-  .ww-table td,
-  .ww-table tbody tr:first-child td {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 12px;
-    padding: 0;
-    border: 0;
-  }
-
-  .ww-table td[data-label]:not(:first-child)::before {
-    content: attr(data-label);
-    color: var(--ww-muted);
-    font-size: 12px;
-    font-weight: 500;
-  }
-
-  .ww-table td:first-child {
-    padding-right: 80px;
-  }
-
-  .ww-td-actions {
-    position: absolute;
-    top: 10px;
-    right: 8px;
-    width: auto;
   }
 
   .ww-pager {

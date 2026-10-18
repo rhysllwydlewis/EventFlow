@@ -3,7 +3,7 @@
  * Wedding Website & RSVPs — customer dashboard app.
  *
  * One self-contained module: a modal "app" with five views (Overview, Website, Guests,
- * Seating, Share). State lives in `S` while the app is open and every view renders from it;
+ * Seating, Share). State lives in `app` while the app is open and every view renders from it;
  * nothing here depends on other scripts patching the DOM. Styles: customer-wedding-website.css.
  *
  * Public surface: window.initWeddingWebsiteDashboard(plans) — called by the customer dashboard.
@@ -201,6 +201,7 @@
     customRsvpQuestions: {
       noun: 'question',
       title: 'Extra RSVP questions',
+      defaults: { type: 'text', required: 'false' },
       fields: [
         { key: 'label', label: 'Question', wide: true },
         {
@@ -365,6 +366,7 @@
     link: '<path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>',
   };
 
+  /** Inline SVG for a named icon (decorative, so hidden from screen readers). */
   function icon(name, size = 18) {
     return `<svg class="ww-icon" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">${ICONS[name] || ''}</svg>`;
   }
@@ -375,8 +377,9 @@
 
   let cachedPlans = [];
   let initialised = false;
-  let S = null;
+  let app = null;
 
+  /** Escapes a value for safe use in HTML text and attribute values. */
   function esc(value) {
     return String(value ?? '').replace(
       /[&<>"']/g,
@@ -384,14 +387,17 @@
     );
   }
 
+  /** Short random id with a readable prefix, for new rows created in the editor. */
   function uid(prefix) {
     return `${prefix}_${Math.random().toString(36).slice(2, 9)}`;
   }
 
+  /** Formats a count with its noun, e.g. "1 guest" / "3 guests". */
   function plural(count, one, many) {
     return `${count} ${count === 1 ? one : many || `${one}s`}`;
   }
 
+  /** Whole-number percentage of `value` in `total`, clamped to 0–100. */
   function percent(value, total) {
     if (!total) {
       return 0;
@@ -399,17 +405,20 @@
     return Math.max(0, Math.min(100, Math.round((Number(value || 0) / Number(total)) * 100)));
   }
 
+  /** True for plans that are weddings or already carry a wedding website. */
   function isWeddingPlan(plan) {
     const type = String(plan?.eventType || '').toLowerCase();
     const name = String(plan?.name || plan?.eventName || '').toLowerCase();
     return Boolean(plan?.weddingWebsite) || type === 'wedding' || name.includes('wedding');
   }
 
+  /** The plan the app works on: one with a website first, otherwise any wedding plan. */
   function pickPlan(plans) {
     const weddingPlans = (plans || []).filter(isWeddingPlan);
     return weddingPlans.find(plan => plan.weddingWebsite) || weddingPlans[0] || null;
   }
 
+  /** CSRF token from the page meta tag or cookie, needed on every write request. */
   function getCsrfToken() {
     const fromMeta = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
     if (fromMeta) {
@@ -419,6 +428,10 @@
     return match ? decodeURIComponent(match[1]) : '';
   }
 
+  /**
+   * fetch wrapper: sends cookies and the CSRF token, JSON-encodes object bodies and throws an
+   * Error with the server message (and `payload`) on failure.
+   */
   async function api(path, opts = {}) {
     const options = { credentials: 'same-origin', ...opts, headers: { ...(opts.headers || {}) } };
     const method = String(options.method || 'GET').toUpperCase();
@@ -445,8 +458,10 @@
     return json;
   }
 
+  /** URL for a plan-scoped API endpoint. */
   const planPath = (plan, suffix = '') => `/api/me/plans/${encodeURIComponent(plan.id)}${suffix}`;
 
+  /** UK-style short date, e.g. "9 Mar 2027" (or "9 Mar" without the year). */
   function formatDate(value, withYear = true) {
     if (!value) {
       return '';
@@ -462,6 +477,7 @@
     });
   }
 
+  /** Whole days from today until the given date (negative once it has passed), or null. */
   function daysUntil(value) {
     if (!value) {
       return null;
@@ -475,6 +491,7 @@
     return Math.round((target - today) / 86400000);
   }
 
+  /** Relative time such as "5 min ago" or "3d ago"; older dates fall back to a short date. */
   function timeAgo(iso) {
     const then = new Date(iso).getTime();
     if (!then) {
@@ -495,6 +512,7 @@
     return days < 8 ? `${days}d ago` : formatDate(iso, false);
   }
 
+  /** Up to two capital letters for an avatar. */
   function initials(name) {
     const parts = String(name || '?')
       .trim()
@@ -505,6 +523,7 @@
     ).toUpperCase();
   }
 
+  /** Lower-case, dash-separated website link, matching the server rules. */
   function normalizeSlug(value) {
     return String(value || '')
       .toLowerCase()
@@ -531,6 +550,7 @@
     return /^#[0-9a-f]{6}$/i.test(raw) ? raw.toUpperCase() : fallback;
   }
 
+  /** Reads a file as a data URL. */
   function fileToDataUrl(file) {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
@@ -593,26 +613,33 @@
     return shrinkImage(file);
   }
 
+  /** Whether the guest has a table. */
   const isSeated = guest => Boolean(guest.tableId || guest.tableName || guest.table);
+  /** Whether the guest has said they are coming. */
   const isAttending = guest => guest.rsvpStatus === 'attending';
+  /** Whether the guest has not replied yet. */
   const isAwaiting = guest => !guest.rsvpStatus || guest.rsvpStatus === 'pending';
+  /** Whether the guest has dietary or accessibility notes. */
   const hasNotes = guest =>
     Boolean(guest.dietaryRequirements || guest.dietary || guest.accessibilityRequirements);
 
+  /** The guest-facing URL of the website, or an empty string before it has a link. */
   const publicUrl = site => (site?.slug ? `${window.location.origin}/wedding/${site.slug}` : '');
 
+  /** Owner-only preview URL that also works while the website is still a draft. */
   function previewUrl() {
-    const slug = S?.site?.slug;
-    if (!slug || !S.plan) {
+    const slug = app?.site?.slug;
+    if (!slug || !app.plan) {
       return '';
     }
-    return `/wedding/${encodeURIComponent(slug)}?preview=1&plan=${encodeURIComponent(S.plan.id)}`;
+    return `/wedding/${encodeURIComponent(slug)}?preview=1&plan=${encodeURIComponent(app.plan.id)}`;
   }
 
   /* ------------------------------------------------------------------ *
    * Status (dashboard card pill)
    * ------------------------------------------------------------------ */
 
+  /** Which of names / date / venue are still empty (the minimum needed to publish). */
   function essentialsMissing(source) {
     const missing = [];
     if (!String(source?.coupleNames || '').trim()) {
@@ -630,6 +657,7 @@
     return missing;
   }
 
+  /** Label and key for the status pill, derived from the plan and website. */
   function statusMeta(site, plan) {
     if (!plan) {
       return { key: 'not-started', label: 'Not started' };
@@ -646,6 +674,7 @@
     return { key: 'in-progress', label: 'In progress' };
   }
 
+  /** Updates the status pill on the dashboard card. */
   function setHeaderStatus(meta) {
     const pill = document.getElementById(STATUS_ID);
     if (!pill) {
@@ -660,6 +689,7 @@
    * Data
    * ------------------------------------------------------------------ */
 
+  /** The customer's plans from the server, falling back to those the dashboard already has. */
   async function fetchPlans(fallback) {
     try {
       const data = await api('/api/me/plans?source=mongodb&wedding=1', { cache: 'no-store' });
@@ -672,6 +702,7 @@
     return fallback || [];
   }
 
+  /** The plan's wedding website, or null when it has none yet. Network errors propagate. */
   async function getWebsite(plan) {
     if (!plan?.id) {
       return null;
@@ -680,6 +711,7 @@
     return data.website || data.site || data.data?.website || null;
   }
 
+  /** Returns the plan's website, creating a draft first when there is none. */
   async function ensureWebsite(plan) {
     const existing = await getWebsite(plan);
     if (existing) {
@@ -695,20 +727,22 @@
     return getWebsite(plan);
   }
 
+  /** Loads the guest list and tables into the app state. Errors propagate. */
   async function loadGuestsAndTables() {
-    if (!S.plan) {
-      S.guests = [];
-      S.tables = [];
+    if (!app.plan) {
+      app.guests = [];
+      app.tables = [];
       return;
     }
     const [guests, tables] = await Promise.all([
-      api(planPath(S.plan, '/guests')),
-      api(planPath(S.plan, '/tables')),
+      api(planPath(app.plan, '/guests')),
+      api(planPath(app.plan, '/tables')),
     ]);
-    S.guests = guests.guests || [];
-    S.tables = tables.tables || [];
+    app.guests = guests.guests || [];
+    app.tables = tables.tables || [];
   }
 
+  /** Refreshes guests and tables from the server, then redraws the current view. */
   async function reloadGuestsAndRender() {
     await loadGuestsAndTables();
     renderActive();
@@ -718,6 +752,7 @@
    * Draft (editable copy of the website)
    * ------------------------------------------------------------------ */
 
+  /** Date and venue taken from the plan, used to pre-fill empty website fields. */
   function planFallbacks(plan) {
     const first = (...values) => values.map(v => String(v || '').trim()).find(Boolean) || '';
     const venue = first(plan?.venueName, plan?.venue, plan?.location, plan?.selectedVenue?.name);
@@ -728,6 +763,7 @@
     };
   }
 
+  /** Editable copy of the website for the form, with validated colours and image URLs. */
   function makeDraft(site, plan) {
     const fallback = planFallbacks(plan);
     const draft = { rsvpEnabled: site.rsvpEnabled !== false, lists: {}, theme: {} };
@@ -776,8 +812,9 @@
     return draft;
   }
 
+  /** Body for the website PATCH: text fields and lists only (photos go with the theme). */
   function draftPayload() {
-    const draft = S.draft;
+    const draft = app.draft;
     const payload = { rsvpEnabled: draft.rsvpEnabled };
     SCALAR_KEYS.forEach(key => {
       payload[key] = draft[key];
@@ -811,8 +848,9 @@
     return payload;
   }
 
+  /** Body for the theme/media PATCH: colours, hero layout, cover and gallery. */
   function themePayload() {
-    const theme = S.draft.theme;
+    const theme = app.draft.theme;
     return {
       accentColor: theme.accentColor,
       secondaryColor: theme.secondaryColor,
@@ -826,9 +864,11 @@
 
   /** Marks the editor dirty; `part` records whether the site text or the theme/photos changed. */
   function setDirty(value, part) {
-    S.dirty = value;
-    S.touched = value ? { ...S.touched, [part || 'site']: true } : { site: false, theme: false };
-    const bar = S.dialog?.querySelector('.ww-savebar');
+    app.dirty = value;
+    app.touched = value
+      ? { ...app.touched, [part || 'site']: true }
+      : { site: false, theme: false };
+    const bar = app.dialog?.querySelector('.ww-savebar');
     if (bar) {
       bar.dataset.state = value ? 'dirty' : 'clean';
       bar.querySelector('.ww-savebar__text').textContent = value
@@ -841,8 +881,9 @@
    * Derived numbers
    * ------------------------------------------------------------------ */
 
+  /** Guest and seating counts used across the views. */
   function stats() {
-    const guests = S.guests;
+    const guests = app.guests;
     const attending = guests.filter(isAttending);
     const awaiting = guests.filter(isAwaiting);
     const seated = attending.filter(isSeated).length;
@@ -860,9 +901,10 @@
     };
   }
 
+  /** The five setup steps on the Overview, with their completion state. */
   function checklist() {
     const st = stats();
-    const site = S.site;
+    const site = app.site;
     return [
       {
         label: 'Add your wedding details',
@@ -886,9 +928,10 @@
     ];
   }
 
+  /** The single most useful thing to do next, based on what is already done. */
   function nextStep() {
     const st = stats();
-    const site = S.site;
+    const site = app.site;
     if (!site) {
       return {
         title: 'Create your wedding website',
@@ -952,8 +995,9 @@
    * Toasts, confirm dialog, busy buttons
    * ------------------------------------------------------------------ */
 
+  /** Brief status message shown inside the open app. */
   function toast(message, type = 'ok') {
-    const host = S?.dialog?.querySelector('.ww-toasts');
+    const host = app?.dialog?.querySelector('.ww-toasts');
     if (!host) {
       return;
     }
@@ -972,6 +1016,7 @@
     }, 3200);
   }
 
+  /** Disables a button and flags it busy while a request is running. */
   function setBusy(button, busy) {
     if (!button) {
       return;
@@ -980,6 +1025,7 @@
     button.setAttribute('aria-busy', String(Boolean(busy)));
   }
 
+  /** Runs an async task with the button disabled, turning any error into a warning toast. */
   async function guard(button, task) {
     setBusy(button, true);
     try {
@@ -994,6 +1040,7 @@
     }
   }
 
+  /** Appends a dialog to the page and shows it as a modal. */
   function openModal(dialog) {
     document.body.appendChild(dialog);
     try {
@@ -1003,6 +1050,7 @@
     }
   }
 
+  /** Asks the customer to confirm; resolves true only when they choose to continue. */
   function confirmAction({ title, message, confirmLabel = 'Continue', danger = false }) {
     return new Promise(resolve => {
       const dialog = document.createElement('dialog');
@@ -1030,6 +1078,7 @@
    * App shell
    * ------------------------------------------------------------------ */
 
+  /** The app frame: sidebar navigation, top bar, tab panels and toast area. */
   function shellHtml() {
     const nav = TABS.map(
       (tab, index) =>
@@ -1056,52 +1105,60 @@
     </div>`;
   }
 
+  /** Placeholder blocks shown while data loads. */
   function loadingHtml() {
     return '<div class="ww-skeleton" aria-hidden="true"><i></i><i></i><i></i></div>';
   }
 
+  /** Message and retry button shown when the workspace could not be loaded. */
   function loadErrorHtml() {
     return `<div class="ww-card">${emptyState({
       iconName: 'info',
       title: 'We could not load your wedding workspace',
-      body: S.loadError,
+      body: app.loadError,
       actions:
         '<button type="button" class="ww-btn ww-btn--primary" data-action="retry-load">Try again</button>',
     })}</div>`;
   }
 
+  /** Syncs the status pill, page title and guest count with the current state. */
   function updateChrome() {
-    const meta = statusMeta(S.site, S.plan);
-    const status = S.dialog.querySelector('#ww-status');
+    const meta = statusMeta(app.site, app.plan);
+    const status = app.dialog.querySelector('#ww-status');
     status.textContent = meta.label;
     status.dataset.status = meta.key;
-    S.dialog.querySelector('#ww-top-title').textContent = TABS.find(t => t.key === S.tab).title;
-    const guestsCount = S.dialog.querySelector('[data-count="guests"]');
-    guestsCount.hidden = !S.guests.length;
-    guestsCount.textContent = S.guests.length;
+    app.dialog.querySelector('#ww-top-title').textContent = TABS.find(t => t.key === app.tab).title;
+    const guestsCount = app.dialog.querySelector('[data-count="guests"]');
+    guestsCount.hidden = !app.guests.length;
+    guestsCount.textContent = app.guests.length;
   }
 
+  /** Smooth scrolling, unless the customer prefers reduced motion. */
   const scrollBehavior = () =>
     window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth';
 
+  /**
+   * Switches tab, optionally opening an editor section, applying a guest filter or opening the
+   * add-guest form.
+   */
   function goTo(tab, opts = {}) {
     if (!TABS.some(item => item.key === tab)) {
       return;
     }
-    S.tab = tab;
+    app.tab = tab;
     if (opts.section) {
-      S.ui.openSection = opts.section;
+      app.ui.openSection = opts.section;
     }
     if (opts.filter) {
-      S.ui.guestFilter = opts.filter;
-      S.ui.guestPage = 1;
+      app.ui.guestFilter = opts.filter;
+      app.ui.guestPage = 1;
     }
-    S.dialog.querySelectorAll('.ww-nav__item').forEach(button => {
+    app.dialog.querySelectorAll('.ww-nav__item').forEach(button => {
       const active = button.dataset.go === tab;
       button.setAttribute('aria-selected', String(active));
       button.tabIndex = active ? 0 : -1;
     });
-    S.dialog.querySelectorAll('.ww-pane').forEach(pane => {
+    app.dialog.querySelectorAll('.ww-pane').forEach(pane => {
       pane.hidden = pane.dataset.pane !== tab;
     });
     renderActive({ resetScroll: !opts.keepScroll });
@@ -1110,20 +1167,24 @@
     }
     if (opts.section) {
       window.requestAnimationFrame(() => {
-        S.dialog
+        app.dialog
           .querySelector(`[data-section="${opts.section}"]`)
           ?.scrollIntoView({ block: 'start', behavior: scrollBehavior() });
       });
     }
   }
 
+  /**
+   * Redraws the visible tab from the current state, keeping the scroll position unless asked
+   * to reset it.
+   */
   function renderActive({ resetScroll = false } = {}) {
-    if (!S) {
+    if (!app) {
       return;
     }
-    const scroller = S.dialog.querySelector('#ww-scroll');
+    const scroller = app.dialog.querySelector('#ww-scroll');
     const top = scroller.scrollTop;
-    const pane = S.dialog.querySelector(`[data-pane="${S.tab}"]`);
+    const pane = app.dialog.querySelector(`[data-pane="${app.tab}"]`);
     const views = {
       overview: viewOverview,
       website: viewWebsite,
@@ -1131,12 +1192,12 @@
       seating: viewSeating,
       share: viewShare,
     };
-    if (S.loading) {
+    if (app.loading) {
       pane.innerHTML = loadingHtml();
-    } else if (S.loadError) {
+    } else if (app.loadError) {
       pane.innerHTML = loadErrorHtml();
     } else {
-      pane.innerHTML = views[S.tab]();
+      pane.innerHTML = views[app.tab]();
     }
     scroller.scrollTop = resetScroll ? 0 : top;
     updateChrome();
@@ -1146,15 +1207,18 @@
    * Shared view fragments
    * ------------------------------------------------------------------ */
 
+  /** Centred icon, heading and message with optional action buttons. */
   function emptyState({ iconName, title, body, actions = '' }) {
     return `<div class="ww-empty">${`<span class="ww-empty__icon">${icon(iconName, 26)}</span>`}<h4>${esc(title)}</h4><p>${esc(body)}</p>${actions ? `<div class="ww-empty__actions">${actions}</div>` : ''}</div>`;
   }
 
+  /** Coloured RSVP status pill. */
   function badge(status) {
     const key = String(status || 'pending').toLowerCase();
     return `<span class="ww-badge ww-badge--${esc(key)}">${esc(RSVP_LABELS[key] || key)}</span>`;
   }
 
+  /** First-run choices shown when the customer has no wedding plan yet. */
   function needsWorkspace() {
     const cards = [
       '<article class="ww-choice ww-choice--primary"><h4>Free wedding website</h4><p>The quickest way to a guest website, RSVP form, guest list and seating plan.</p><button type="button" class="ww-btn ww-btn--primary" id="ww-quick-start" data-action="quick-start">Create wedding website</button></article>',
@@ -1181,6 +1245,7 @@
    * View: Overview
    * ------------------------------------------------------------------ */
 
+  /** One figure on the Overview, optionally with a progress bar. */
   function statCard({ label, value, sub, pct }) {
     return `<div class="ww-stat"><p class="ww-stat__label">${esc(label)}</p><p class="ww-stat__value">${value}</p>${
       pct === undefined
@@ -1189,57 +1254,57 @@
     }<p class="ww-stat__sub">${esc(sub)}</p></div>`;
   }
 
-  function viewOverview() {
-    if (!S.plan) {
-      return needsWorkspace();
+  /** The "N days to go" badge (or "N days ago" once the wedding has passed). */
+  function countdownHtml(days) {
+    if (days === null) {
+      return '';
     }
-    const st = stats();
-    const site = S.site;
-    const items = checklist();
-    const done = items.filter(item => item.done).length;
-    const next = nextStep();
+    const past = days < 0;
+    const count = Math.abs(days);
+    return `<div class="ww-countdown ${past ? 'ww-countdown--past' : ''}"><strong>${count}</strong><span>${count === 1 ? 'day' : 'days'} ${past ? 'ago' : 'to go'}</span></div>`;
+  }
+
+  /** Names, date and venue at the top of the Overview. */
+  function overviewHero(site) {
     const days = daysUntil(site?.eventDate);
-    const url = publicUrl(site);
-    const live = site?.status === 'published';
-    const recent = [...S.guests]
-      .filter(g => !isAwaiting(g) && g.updatedAt)
-      .sort((a, b) => String(b.updatedAt).localeCompare(String(a.updatedAt)))
-      .slice(0, 5);
-    const names = site?.coupleNames || S.plan.name || 'Your wedding';
+    const names = site?.coupleNames || app.plan.name || 'Your wedding';
     const meta = [
       site?.eventDate ? formatDate(site.eventDate) : '',
       site?.ceremonyVenueName || site?.venueName,
     ]
       .filter(Boolean)
       .join(' · ');
-
-    return `<div class="ww-stack">
-      <section class="ww-card ww-hero">
+    return `<section class="ww-card ww-hero">
         <div class="ww-hero__text"><p class="ww-eyebrow">Your wedding</p><h4 class="ww-hero__title">${esc(names)}</h4><p class="ww-hero__meta">${esc(meta || 'Add your date and venue to complete your details.')}</p></div>
-        ${
-          days !== null && days >= 0
-            ? `<div class="ww-countdown"><strong>${days}</strong><span>${days === 1 ? 'day' : 'days'} to go</span></div>`
-            : days !== null
-              ? `<div class="ww-countdown ww-countdown--past"><strong>${Math.abs(days)}</strong><span>${Math.abs(days) === 1 ? 'day' : 'days'} ago</span></div>`
-              : ''
-        }
-      </section>
+${countdownHtml(days)}
+      </section>`;
+  }
 
-      <section class="ww-card ww-next">
+  /** The highlighted "next step" card. */
+  function overviewNext() {
+    const next = nextStep();
+    return `<section class="ww-card ww-next">
         <span class="ww-next__icon">${icon('arrow', 20)}</span>
         <div class="ww-next__text"><p class="ww-eyebrow">Next step</p><h4>${esc(next.title)}</h4><p>${esc(next.body)}</p></div>
         <button type="button" class="ww-btn ww-btn--primary" data-go="${next.go}" ${next.section ? `data-section-target="${next.section}"` : ''} ${next.filter ? `data-filter-target="${next.filter}"` : ''} ${next.add ? 'data-add-target="1"' : ''}>${esc(next.cta)}</button>
-      </section>
+      </section>`;
+  }
 
-      <div class="ww-stats">
+  /** The four headline figures: guests, replies, attending and seated. */
+  function overviewStats(st) {
+    return `<div class="ww-stats">
         ${statCard({ label: 'Guests', value: st.total, sub: st.total ? `${plural(st.notes, 'dietary or access note')}` : 'No guests added yet' })}
         ${statCard({ label: 'Replied', value: `${st.replied}<small>/${st.total}</small>`, sub: st.awaiting ? `${st.awaiting} awaiting a reply` : st.total ? 'Everyone has replied' : 'Waiting for guests', pct: percent(st.replied, st.total) })}
         ${statCard({ label: 'Attending', value: st.attending, sub: st.headcount ? `${plural(st.headcount, 'person', 'people')} including plus ones` : `${st.declined} declined` })}
         ${statCard({ label: 'Seated', value: `${st.seated}<small>/${st.attending}</small>`, sub: st.unseated ? `${st.unseated} still need a table` : st.attending ? 'Everyone has a seat' : 'No attending guests yet', pct: percent(st.seated, st.attending) })}
-      </div>
+      </div>`;
+  }
 
-      <div class="ww-columns">
-        <section class="ww-card">
+  /** Setup checklist card with overall progress. */
+  function overviewChecklist() {
+    const items = checklist();
+    const done = items.filter(item => item.done).length;
+    return `<section class="ww-card">
           <header class="ww-card__head"><h4>Setup checklist</h4><span class="ww-pill">${done} of ${items.length}</span></header>
           <div class="ww-meter ww-meter--lg" role="img" aria-label="Setup ${percent(done, items.length)}% complete"><span style="width:${percent(done, items.length)}%"></span></div>
           <ul class="ww-checklist">${items
@@ -1248,8 +1313,16 @@
                 `<li><button type="button" class="ww-check ${item.done ? 'is-done' : ''}" data-go="${item.go}" ${item.section ? `data-section-target="${item.section}"` : ''}><span class="ww-check__box">${item.done ? icon('check', 14) : ''}</span><span class="ww-check__label">${esc(item.label)}</span>${icon('arrow', 16)}</button></li>`
             )
             .join('')}</ul>
-        </section>
-        <section class="ww-card">
+        </section>`;
+  }
+
+  /** The most recent RSVP responses. */
+  function overviewReplies(st) {
+    const recent = [...app.guests]
+      .filter(g => !isAwaiting(g) && g.updatedAt)
+      .sort((a, b) => String(b.updatedAt).localeCompare(String(a.updatedAt)))
+      .slice(0, 5);
+    return `<section class="ww-card">
           <header class="ww-card__head"><h4>Latest replies</h4>${st.replied ? '<button type="button" class="ww-link" data-go="guests">View all</button>' : ''}</header>
           ${
             recent.length
@@ -1261,14 +1334,33 @@
                   .join('')}</ul>`
               : '<p class="ww-muted-note">Replies will appear here as soon as guests respond.</p>'
           }
-        </section>
-      </div>
+        </section>`;
+  }
 
-      ${
-        url
-          ? `<section class="ww-card ww-linkbar"><div class="ww-linkbar__text"><span class="ww-dot ${live ? 'is-live' : ''}"></span><div><p class="ww-eyebrow">${live ? 'Live guest link' : 'Guest link (not live yet)'}</p><p class="ww-linkbar__url">${esc(url.replace(/^https?:\/\//, ''))}</p></div></div><div class="ww-linkbar__actions"><button type="button" class="ww-btn ww-btn--secondary" data-action="copy-link">${icon('copy', 16)}Copy link</button><button type="button" class="ww-btn ww-btn--ghost" data-go="share">Share tools</button></div></section>`
-          : ''
-      }
+  /** Guest link with copy and share shortcuts, once the website has a link. */
+  function overviewLinkBar(site) {
+    const url = publicUrl(site);
+    const live = site?.status === 'published';
+    return url
+      ? `<section class="ww-card ww-linkbar"><div class="ww-linkbar__text"><span class="ww-dot ${live ? 'is-live' : ''}"></span><div><p class="ww-eyebrow">${live ? 'Live guest link' : 'Guest link (not live yet)'}</p><p class="ww-linkbar__url">${esc(url.replace(/^https?:\/\//, ''))}</p></div></div><div class="ww-linkbar__actions"><button type="button" class="ww-btn ww-btn--secondary" data-action="copy-link">${icon('copy', 16)}Copy link</button><button type="button" class="ww-btn ww-btn--ghost" data-go="share">Share tools</button></div></section>`
+      : '';
+  }
+
+  /** Overview tab. */
+  function viewOverview() {
+    if (!app.plan) {
+      return needsWorkspace();
+    }
+    const st = stats();
+    return `<div class="ww-stack">
+      ${overviewHero(app.site)}
+      ${overviewNext()}
+      ${overviewStats(st)}
+      <div class="ww-columns">
+        ${overviewChecklist()}
+        ${overviewReplies(st)}
+      </div>
+      ${overviewLinkBar(app.site)}
     </div>`;
   }
 
@@ -1276,6 +1368,7 @@
    * View: Website (editor)
    * ------------------------------------------------------------------ */
 
+  /** The input, textarea or select for a form field, bound by data attributes. */
   function inputControl(field, value, attrs) {
     const common = `class="ww-input" ${attrs}`;
     if (field.type === 'textarea') {
@@ -1292,13 +1385,15 @@
     return `<input ${common} type="${field.type || 'text'}" value="${esc(value)}" placeholder="${esc(field.placeholder || '')}" autocomplete="off">`;
   }
 
+  /** A labelled form field. */
   function fieldHtml(field, value, attrs) {
     return `<label class="ww-field ${field.wide ? 'ww-field--wide' : ''}"><span class="ww-label">${esc(field.label)}${field.required ? '<em>Required</em>' : ''}</span>${inputControl(field, value, attrs)}</label>`;
   }
 
+  /** An editable list of rows (FAQs, places to stay, meal options…) with an add button. */
   function listHtml(name) {
     const def = LISTS[name];
-    const rows = S.draft.lists[name];
+    const rows = app.draft.lists[name];
     const noun = def.noun;
     const items = rows
       .map((item, index) => {
@@ -1318,8 +1413,12 @@
     return `<div class="ww-list"><div class="ww-list__head"><h5>${esc(def.title)}</h5><span class="ww-muted">${rows.length ? plural(rows.length, 'entry', 'entries') : 'Optional'}</span></div>${items}<button type="button" class="ww-add" data-action="add-item" data-list="${name}">${icon('plus', 16)}Add ${esc(noun)}</button></div>`;
   }
 
+  /**
+   * The "Look & photos" section: palette, colours, hero layout, template, photos and live
+   * preview.
+   */
   function lookHtml() {
-    const theme = S.draft.theme;
+    const theme = app.draft.theme;
     const gallery = theme.galleryImages
       .map(
         (item, index) =>
@@ -1328,10 +1427,10 @@
       .join('');
     const colour = (key, label) =>
       `<label class="ww-swatch"><input type="color" data-theme="${key}" value="${esc(theme[key])}"><span class="ww-swatch__chip" style="background:${esc(theme[key])}"></span><span class="ww-swatch__label">${label}</span></label>`;
-    const names = S.draft.coupleNames || 'Your names';
+    const names = app.draft.coupleNames || 'Your names';
     const dateLine = [
-      S.draft.eventDate ? formatDate(S.draft.eventDate) : '',
-      S.draft.ceremonyVenueName,
+      app.draft.eventDate ? formatDate(app.draft.eventDate) : '',
+      app.draft.ceremonyVenueName,
     ]
       .filter(Boolean)
       .join(' · ');
@@ -1348,7 +1447,7 @@
         ).join('')}</div></div>
         <div class="ww-group"><h5>Style</h5><label class="ww-field"><span class="ww-label">Website template</span><select class="ww-input" data-f="template">${TEMPLATES.map(
           tpl =>
-            `<option value="${tpl.value}" ${S.draft.template === tpl.value ? 'selected' : ''}>${esc(tpl.label)}</option>`
+            `<option value="${tpl.value}" ${app.draft.template === tpl.value ? 'selected' : ''}>${esc(tpl.label)}</option>`
         ).join('')}</select></label></div>
         <div class="ww-group"><h5>Cover photo</h5><div class="ww-actions-row"><label class="ww-btn ww-btn--secondary">${icon('image', 16)}${theme.coverImageUrl ? 'Replace photo' : 'Choose photo'}<input type="file" accept="image/png,image/jpeg,image/webp,image/gif" data-upload="cover" class="ww-sr"></label>${theme.coverImageUrl ? '<button type="button" class="ww-btn ww-btn--ghost" data-action="cover-remove">Remove</button>' : ''}</div><p class="ww-hint">JPG, PNG, WebP or GIF. Large photos are resized for you.</p></div>
         <div class="ww-group"><h5>Gallery <span class="ww-muted">${theme.galleryImages.length}/${MAX_GALLERY}</span></h5>${gallery ? `<div class="ww-gallery">${gallery}</div>` : ''}<div class="ww-actions-row"><label class="ww-btn ww-btn--secondary ${theme.galleryImages.length >= MAX_GALLERY ? 'is-disabled' : ''}">${icon('plus', 16)}Add photos<input type="file" accept="image/png,image/jpeg,image/webp,image/gif" multiple data-upload="gallery" class="ww-sr" ${theme.galleryImages.length >= MAX_GALLERY ? 'disabled' : ''}></label></div></div>
@@ -1370,8 +1469,9 @@
     </div>`;
   }
 
+  /** Whether the current colours exactly match a preset palette. */
   function isActivePalette(palette) {
-    const theme = S.draft.theme;
+    const theme = app.draft.theme;
     const same = (a, b) => String(a).toLowerCase() === String(b).toLowerCase();
     return (
       same(theme.accentColor, palette.accent) &&
@@ -1381,13 +1481,15 @@
     );
   }
 
+  /** CSS custom properties that colour the live preview. */
   function miniVars() {
-    const theme = S.draft.theme;
+    const theme = app.draft.theme;
     return `--m-accent:${esc(theme.accentColor)};--m-2:${esc(theme.secondaryColor)};--m-bg:${esc(theme.backgroundColor)};--m-text:${esc(theme.textColor)}`;
   }
 
+  /** The one-line status shown under each editor section title. */
   function sectionSummary(section) {
-    const draft = S.draft;
+    const draft = app.draft;
     if (section.id === 'essentials') {
       const missing = essentialsMissing(draft);
       return missing.length ? `${missing.length} to complete` : 'Complete';
@@ -1416,25 +1518,27 @@
     return filled + listCount ? `${filled + listCount} added` : section.hint;
   }
 
+  /** Fields and lists of an editor section (only rendered while it is open). */
   function sectionBody(section) {
     if (section.custom === 'look') {
       return lookHtml();
     }
     const toggle = section.toggle
-      ? `<label class="ww-toggle"><input type="checkbox" data-f="${section.toggle}" ${S.draft[section.toggle] ? 'checked' : ''}><span class="ww-toggle__track"></span><span class="ww-toggle__text"><strong>Collect RSVPs on your website</strong><small>Guests reply with the form on your public page.</small></span></label>`
+      ? `<label class="ww-toggle"><input type="checkbox" data-f="${section.toggle}" ${app.draft[section.toggle] ? 'checked' : ''}><span class="ww-toggle__track"></span><span class="ww-toggle__text"><strong>Collect RSVPs on your website</strong><small>Guests reply with the form on your public page.</small></span></label>`
       : '';
     const fields = section.fields
-      ? `<div class="ww-grid">${section.fields.map(field => fieldHtml(field, S.draft[field.key], `data-f="${field.key}"`)).join('')}</div>`
+      ? `<div class="ww-grid">${section.fields.map(field => fieldHtml(field, app.draft[field.key], `data-f="${field.key}"`)).join('')}</div>`
       : '';
     const lists = (section.lists || []).map(listHtml).join('');
     return `${toggle}${fields}${lists}`;
   }
 
+  /** Banner at the top of the editor: live, ready to publish, or what is still missing. */
   function readinessBanner() {
-    if (S.site?.status === 'published') {
-      return `<div class="ww-banner ww-banner--ok">${icon('check', 18)}<div><strong>Your website is live</strong><span>Changes go live as soon as you save.</span></div><a class="ww-link" href="${esc(publicUrl(S.site))}" target="_blank" rel="noopener">View site</a></div>`;
+    if (app.site?.status === 'published') {
+      return `<div class="ww-banner ww-banner--ok">${icon('check', 18)}<div><strong>Your website is live</strong><span>Changes go live as soon as you save.</span></div><a class="ww-link" href="${esc(publicUrl(app.site))}" target="_blank" rel="noopener">View site</a></div>`;
     }
-    const missing = essentialsMissing(S.draft);
+    const missing = essentialsMissing(app.draft);
     if (!missing.length) {
       return `<div class="ww-banner ww-banner--ok">${icon('check', 18)}<div><strong>Ready to publish</strong><span>Save, preview, then publish when you are happy.</span></div></div>`;
     }
@@ -1446,11 +1550,12 @@
       .join('')}</span></div></div>`;
   }
 
+  /** Website tab: the editor sections and the sticky save bar. */
   function viewWebsite() {
-    if (!S.plan) {
+    if (!app.plan) {
       return needsWorkspace();
     }
-    if (!S.site) {
+    if (!app.site) {
       return `<div class="ww-card">${emptyState({
         iconName: 'website',
         title: 'Create your free wedding website',
@@ -1459,9 +1564,9 @@
           '<button type="button" class="ww-btn ww-btn--primary" id="ww-create" data-action="create-site">Create website</button>',
       })}</div>`;
     }
-    const live = S.site.status === 'published';
+    const live = app.site.status === 'published';
     const sections = SECTIONS.map(section => {
-      const open = S.ui.openSection === section.id;
+      const open = app.ui.openSection === section.id;
       return `<section class="ww-section ${open ? 'is-open' : ''}" data-section="${section.id}">
         <h4 class="ww-section__head"><button type="button" class="ww-section__toggle" data-action="toggle-section" data-id="${section.id}" aria-expanded="${open}" aria-controls="ww-sec-${section.id}"><span class="ww-section__icon">${icon(section.icon, 18)}</span><span class="ww-section__titles"><strong>${esc(section.title)}</strong><small data-summary="${section.id}">${esc(sectionSummary(section))}</small></span><span class="ww-section__chev">${icon('chevron', 18)}</span></button></h4>
         <div class="ww-section__body" id="ww-sec-${section.id}" ${open ? '' : 'hidden'}>${open ? sectionBody(section) : ''}</div>
@@ -1470,10 +1575,10 @@
     return `<div class="ww-stack ww-stack--editor">
       <div data-readiness>${readinessBanner()}</div>
       <div class="ww-sections">${sections}</div>
-      <div class="ww-savebar" data-state="${S.dirty ? 'dirty' : 'clean'}">
-        <span class="ww-savebar__dot"></span><span class="ww-savebar__text">${S.dirty ? 'You have unsaved changes' : 'All changes saved'}</span>
+      <div class="ww-savebar" data-state="${app.dirty ? 'dirty' : 'clean'}">
+        <span class="ww-savebar__dot"></span><span class="ww-savebar__text">${app.dirty ? 'You have unsaved changes' : 'All changes saved'}</span>
         <div class="ww-savebar__actions">
-          ${previewUrl() ? `<a class="ww-btn ww-btn--ghost" href="${esc(previewUrl())}" target="_blank" rel="noopener">${icon('eye', 16)}${live ? 'View live site' : 'Preview draft'}</a>` : ''}
+          ${previewUrl() ? `<a class="ww-btn ww-btn--ghost" data-preview href="${esc(previewUrl())}" target="_blank" rel="noopener">${icon('eye', 16)}${live ? 'View live site' : 'Preview draft'}</a>` : ''}
           <button type="button" class="ww-btn ww-btn--secondary" data-action="${live ? 'unpublish' : 'publish'}">${live ? 'Unpublish' : 'Publish'}</button>
           <button type="button" class="ww-btn ww-btn--primary" data-action="save" id="ww-save">Save changes</button>
         </div>
@@ -1481,8 +1586,9 @@
     </div>`;
   }
 
+  /** Updates the banner, section summaries and live preview without redrawing the form. */
   function refreshEditorMeta() {
-    const dialog = S.dialog;
+    const dialog = app.dialog;
     const banner = dialog.querySelector('[data-readiness]');
     if (banner) {
       banner.innerHTML = readinessBanner();
@@ -1497,13 +1603,13 @@
     if (mini) {
       mini.setAttribute('style', miniVars());
       const hero = mini.querySelector('.ww-mini__hero');
-      hero.dataset.layout = S.draft.theme.heroLayout;
-      hero.style.backgroundImage = S.draft.theme.coverImageUrl
-        ? `url('${S.draft.theme.coverImageUrl}')`
+      hero.dataset.layout = app.draft.theme.heroLayout;
+      hero.style.backgroundImage = app.draft.theme.coverImageUrl
+        ? `url('${app.draft.theme.coverImageUrl}')`
         : '';
-      hero.querySelector('strong').textContent = S.draft.coupleNames || 'Your names';
+      hero.querySelector('strong').textContent = app.draft.coupleNames || 'Your names';
       hero.querySelector('span').textContent =
-        [S.draft.eventDate ? formatDate(S.draft.eventDate) : '', S.draft.ceremonyVenueName]
+        [app.draft.eventDate ? formatDate(app.draft.eventDate) : '', app.draft.ceremonyVenueName]
           .filter(Boolean)
           .join(' · ') || 'Date · Venue';
     }
@@ -1511,16 +1617,16 @@
 
   /** Saves the editor. Photos and colours travel separately and only when they changed. */
   async function saveWebsite({ quiet = false } = {}) {
-    const themeChanged = Boolean(S.touched.theme);
-    await api(planPath(S.plan, '/wedding-website'), { method: 'PATCH', body: draftPayload() });
+    const themeChanged = Boolean(app.touched.theme);
+    await api(planPath(app.plan, '/wedding-website'), { method: 'PATCH', body: draftPayload() });
     if (themeChanged) {
-      await api(planPath(S.plan, '/wedding-website/theme-media'), {
+      await api(planPath(app.plan, '/wedding-website/theme-media'), {
         method: 'PATCH',
         body: themePayload(),
       });
     }
-    S.site = await getWebsite(S.plan);
-    S.draft = makeDraft(S.site, S.plan);
+    app.site = await getWebsite(app.plan);
+    app.draft = makeDraft(app.site, app.plan);
     setDirty(false);
     if (!quiet) {
       toast('Changes saved');
@@ -1530,12 +1636,13 @@
 
   /** True when the Share tab has a new link or privacy choice that has not been saved yet. */
   function shareDirty() {
-    if (!S.site) {
+    if (!app.site) {
       return false;
     }
-    const slugChanged = S.ui.slug !== undefined && normalizeSlug(S.ui.slug) !== S.site.slug;
+    const slugChanged = app.ui.slug !== undefined && normalizeSlug(app.ui.slug) !== app.site.slug;
     const privacyChanged =
-      S.ui.visibility !== undefined && S.ui.visibility !== (S.site.visibility || 'private_link');
+      app.ui.visibility !== undefined &&
+      app.ui.visibility !== (app.site.visibility || 'private_link');
     return slugChanged || privacyChanged;
   }
 
@@ -1555,7 +1662,7 @@
 
   /** Saves any edits, then publishes. Works from the Website and Share tabs. */
   async function publish(button) {
-    const missing = essentialsMissing(S.draft);
+    const missing = essentialsMissing(app.draft);
     if (missing.length) {
       explainPublishBlockers(missing);
       return;
@@ -1568,7 +1675,7 @@
     await guard(button, async () => {
       await saveWebsite({ quiet: true });
       try {
-        await api(planPath(S.plan, '/wedding-website/publish'), { method: 'POST' });
+        await api(planPath(app.plan, '/wedding-website/publish'), { method: 'POST' });
       } catch (err) {
         const keys = err.payload?.checklist?.missing;
         if (Array.isArray(keys) && keys.length) {
@@ -1577,14 +1684,15 @@
         }
         throw err;
       }
-      S.site = await getWebsite(S.plan);
-      S.draft = makeDraft(S.site, S.plan);
-      setHeaderStatus(statusMeta(S.site, S.plan));
+      app.site = await getWebsite(app.plan);
+      app.draft = makeDraft(app.site, app.plan);
+      setHeaderStatus(statusMeta(app.site, app.plan));
       toast('Your website is live');
       renderActive();
     });
   }
 
+  /** Takes the website offline after confirmation. */
   async function unpublishWebsite(button) {
     const ok = await confirmAction({
       title: 'Unpublish your website?',
@@ -1597,24 +1705,25 @@
       return;
     }
     await guard(button, async () => {
-      await api(planPath(S.plan, '/wedding-website/unpublish'), { method: 'POST' });
-      S.site = await getWebsite(S.plan);
-      setHeaderStatus(statusMeta(S.site, S.plan));
+      await api(planPath(app.plan, '/wedding-website/unpublish'), { method: 'POST' });
+      app.site = await getWebsite(app.plan);
+      setHeaderStatus(statusMeta(app.site, app.plan));
       toast('Website unpublished');
       renderActive();
     });
   }
 
+  /** Opens the essentials section and focuses the field behind a publish blocker. */
   function focusField(key) {
     const target = key === 'venue' ? 'ceremonyVenueName' : key;
-    S.ui.openSection = 'essentials';
-    if (S.tab !== 'website') {
+    app.ui.openSection = 'essentials';
+    if (app.tab !== 'website') {
       goTo('website', { section: 'essentials' });
     } else {
       renderActive();
     }
     window.requestAnimationFrame(() => {
-      const input = S.dialog.querySelector(`[data-f="${target}"]`);
+      const input = app.dialog.querySelector(`[data-f="${target}"]`);
       input?.scrollIntoView({ block: 'center', behavior: scrollBehavior() });
       input?.focus({ preventScroll: true });
     });
@@ -1642,10 +1751,11 @@
     unseated: g => isAttending(g) && !isSeated(g),
   };
 
+  /** Guests matching the current filter, source, search and sort. */
   function filteredGuests() {
-    const { guestFilter, guestSearch, guestSort, guestSource } = S.ui;
+    const { guestFilter, guestSearch, guestSort, guestSource } = app.ui;
     const query = guestSearch.trim().toLowerCase();
-    const list = S.guests
+    const list = app.guests
       .filter(guestPredicates[guestFilter] || guestPredicates.all)
       .filter(g =>
         guestSource === 'any'
@@ -1674,6 +1784,7 @@
     });
   }
 
+  /** Table rows for one page of guests. */
   function guestRows(shown) {
     return shown
       .map(g => {
@@ -1689,7 +1800,8 @@
         ]
           .map(text => `<span class="ww-tag">${esc(text)}</span>`)
           .join('');
-        const table = S.tables.find(t => t.id === g.tableId)?.name || g.tableName || g.table || '';
+        const table =
+          app.tables.find(t => t.id === g.tableId)?.name || g.tableName || g.table || '';
         return `<tr>
           <td data-label="Guest"><div class="ww-person"><span class="ww-avatar">${esc(initials(g.name))}</span><div><strong>${esc(g.name)}</strong>${sub ? `<small>${esc(sub)}</small>` : ''}</div></div></td>
           <td data-label="RSVP">${badge(g.rsvpStatus)}</td>
@@ -1702,13 +1814,14 @@
       .join('');
   }
 
+  /** The guest table with pager, or an empty state. */
   function guestResults() {
     const sorted = filteredGuests();
     const totalPages = Math.max(1, Math.ceil(sorted.length / PAGE_SIZE));
-    const page = Math.min(Math.max(1, S.ui.guestPage), totalPages);
-    S.ui.guestPage = page;
+    const page = Math.min(Math.max(1, app.ui.guestPage), totalPages);
+    app.ui.guestPage = page;
     const shown = sorted.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
-    if (!S.guests.length) {
+    if (!app.guests.length) {
       return emptyState({
         iconName: 'guests',
         title: 'No guests yet',
@@ -1727,11 +1840,12 @@
       });
     }
     return `<div class="ww-table-wrap"><table class="ww-table"><thead><tr><th>Guest</th><th>RSVP</th><th>Party</th><th>Requirements</th><th>Table</th><th><span class="ww-sr">Actions</span></th></tr></thead><tbody>${guestRows(shown)}</tbody></table></div>
-      <div class="ww-pager"><span>${sorted.length === S.guests.length ? plural(sorted.length, 'guest') : `${sorted.length} of ${S.guests.length} guests`}</span><div><button type="button" class="ww-btn ww-btn--ghost" data-action="guest-page" data-dir="-1" ${page <= 1 ? 'disabled' : ''}>Previous</button><span class="ww-pager__page">Page ${page} of ${totalPages}</span><button type="button" class="ww-btn ww-btn--ghost" data-action="guest-page" data-dir="1" ${page >= totalPages ? 'disabled' : ''}>Next</button></div></div>`;
+      <div class="ww-pager"><span>${sorted.length === app.guests.length ? plural(sorted.length, 'guest') : `${sorted.length} of ${app.guests.length} guests`}</span><div><button type="button" class="ww-btn ww-btn--ghost" data-action="guest-page" data-dir="-1" ${page <= 1 ? 'disabled' : ''}>Previous</button><span class="ww-pager__page">Page ${page} of ${totalPages}</span><button type="button" class="ww-btn ww-btn--ghost" data-action="guest-page" data-dir="1" ${page >= totalPages ? 'disabled' : ''}>Next</button></div></div>`;
   }
 
+  /** Guests tab: summary, toolbar, filters and results. */
   function viewGuests() {
-    if (!S.plan) {
+    if (!app.plan) {
       return needsWorkspace();
     }
     const st = stats();
@@ -1750,33 +1864,35 @@
       <div class="ww-card ww-ministats">${pills}</div>
       <section class="ww-card ww-flush">
         <div class="ww-toolbar">
-          <label class="ww-search">${icon('search', 16)}<input type="search" data-ui="guestSearch" value="${esc(S.ui.guestSearch)}" placeholder="Search guests" aria-label="Search guests" autocomplete="off"></label>
-          <select class="ww-input ww-select" data-ui="guestSort" aria-label="Sort guests"><option value="updated_desc" ${S.ui.guestSort === 'updated_desc' ? 'selected' : ''}>Recently updated</option><option value="name_asc" ${S.ui.guestSort === 'name_asc' ? 'selected' : ''}>Name A–Z</option><option value="status" ${S.ui.guestSort === 'status' ? 'selected' : ''}>RSVP status</option></select>
-          <select class="ww-input ww-select" data-ui="guestSource" aria-label="Filter by source"><option value="any" ${S.ui.guestSource === 'any' ? 'selected' : ''}>All sources</option><option value="form" ${S.ui.guestSource === 'form' ? 'selected' : ''}>RSVP form</option><option value="manual" ${S.ui.guestSource === 'manual' ? 'selected' : ''}>Added by you</option></select>
-          <a class="ww-btn ww-btn--secondary" href="${planPath(S.plan, '/guests/export.csv')}">${icon('download', 16)}Export</a>
+          <label class="ww-search">${icon('search', 16)}<input type="search" data-ui="guestSearch" value="${esc(app.ui.guestSearch)}" placeholder="Search guests" aria-label="Search guests" autocomplete="off"></label>
+          <select class="ww-input ww-select" data-ui="guestSort" aria-label="Sort guests"><option value="updated_desc" ${app.ui.guestSort === 'updated_desc' ? 'selected' : ''}>Recently updated</option><option value="name_asc" ${app.ui.guestSort === 'name_asc' ? 'selected' : ''}>Name A–Z</option><option value="status" ${app.ui.guestSort === 'status' ? 'selected' : ''}>RSVP status</option></select>
+          <select class="ww-input ww-select" data-ui="guestSource" aria-label="Filter by source"><option value="any" ${app.ui.guestSource === 'any' ? 'selected' : ''}>All sources</option><option value="form" ${app.ui.guestSource === 'form' ? 'selected' : ''}>RSVP form</option><option value="manual" ${app.ui.guestSource === 'manual' ? 'selected' : ''}>Added by you</option></select>
+          <a class="ww-btn ww-btn--secondary" href="${planPath(app.plan, '/guests/export.csv')}">${icon('download', 16)}Export</a>
           <button type="button" class="ww-btn ww-btn--primary" data-action="guest-add">${icon('plus', 16)}Add guest</button>
         </div>
         <div class="ww-filters" role="group" aria-label="Filter guests">${GUEST_FILTERS.map(
           ([key, label]) =>
-            `<button type="button" class="ww-filter ${S.ui.guestFilter === key ? 'is-active' : ''}" data-action="guest-filter" data-f="${key}" aria-pressed="${S.ui.guestFilter === key}">${label}</button>`
+            `<button type="button" class="ww-filter ${app.ui.guestFilter === key ? 'is-active' : ''}" data-action="guest-filter" data-f="${key}" aria-pressed="${app.ui.guestFilter === key}">${label}</button>`
         ).join('')}</div>
         <div id="ww-guest-results">${guestResults()}</div>
       </section>
     </div>`;
   }
 
+  /** Redraws only the results and filter buttons so typing in the search box keeps focus. */
   function renderGuestResults() {
-    const host = S.dialog.querySelector('#ww-guest-results');
+    const host = app.dialog.querySelector('#ww-guest-results');
     if (host) {
       host.innerHTML = guestResults();
     }
-    S.dialog.querySelectorAll('[data-action="guest-filter"]').forEach(button => {
-      const active = button.dataset.f === S.ui.guestFilter;
+    app.dialog.querySelectorAll('[data-action="guest-filter"]').forEach(button => {
+      const active = button.dataset.f === app.ui.guestFilter;
       button.classList.toggle('is-active', active);
       button.setAttribute('aria-pressed', String(active));
     });
   }
 
+  /** Add/edit guest dialog. Pass null to add a new guest. */
   function editGuest(guest) {
     const current = guest || {
       name: '',
@@ -1849,7 +1965,7 @@
       const submit = form.querySelector('[type="submit"]');
       setBusy(submit, true);
       try {
-        await api(planPath(S.plan, `/guests${guest ? `/${encodeURIComponent(guest.id)}` : ''}`), {
+        await api(planPath(app.plan, `/guests${guest ? `/${encodeURIComponent(guest.id)}` : ''}`), {
           method: guest ? 'PATCH' : 'POST',
           body: payload,
         });
@@ -1866,8 +1982,9 @@
     form.elements.name.focus();
   }
 
+  /** Deletes a guest after confirmation. */
   async function deleteGuest(id, button) {
-    const guest = S.guests.find(g => String(g.id) === String(id));
+    const guest = app.guests.find(g => String(g.id) === String(id));
     const ok = await confirmAction({
       title: `Delete ${guest?.name || 'this guest'}?`,
       message: 'This removes the guest and their RSVP details from your workspace.',
@@ -1878,7 +1995,7 @@
       return;
     }
     await guard(button, async () => {
-      await api(planPath(S.plan, `/guests/${encodeURIComponent(id)}`), { method: 'DELETE' });
+      await api(planPath(app.plan, `/guests/${encodeURIComponent(id)}`), { method: 'DELETE' });
       toast('Guest deleted');
       await reloadGuestsAndRender();
     });
@@ -1888,6 +2005,7 @@
    * View: Seating
    * ------------------------------------------------------------------ */
 
+  /** Top-down diagram of a table with one dot per seat, filled for seated guests. */
   function tableSvg(table, used) {
     const cap = Math.max(1, Number(table.capacity) || 1);
     const type = table.type || 'round';
@@ -1930,24 +2048,26 @@
   /** Guests who currently exist and sit at this table (ignores ids of deleted guests). */
   function seatedAt(table) {
     const ids = new Set(table.guestIds || []);
-    return S.guests.filter(g => ids.has(g.id));
+    return app.guests.filter(g => ids.has(g.id));
   }
 
+  /** Seats still free at a table. */
   const freeSeats = table => Math.max(0, Number(table.capacity || 0) - seatedAt(table).length);
 
+  /** Seating tab: summary, guests needing a seat and the tables. */
   function viewSeating() {
-    if (!S.plan) {
+    if (!app.plan) {
       return needsWorkspace();
     }
     const st = stats();
-    const attending = S.guests.filter(isAttending);
+    const attending = app.guests.filter(isAttending);
     const unseated = attending.filter(g => !isSeated(g));
-    const capacity = S.tables.reduce((sum, table) => sum + (Number(table.capacity) || 0), 0);
-    const over = S.tables.filter(table => seatedAt(table).length > Number(table.capacity || 0));
+    const capacity = app.tables.reduce((sum, table) => sum + (Number(table.capacity) || 0), 0);
+    const over = app.tables.filter(table => seatedAt(table).length > Number(table.capacity || 0));
 
-    const toolbar = `<div class="ww-toolbar ww-toolbar--plain"><div class="ww-seatstats"><div><strong>${S.tables.length}</strong><span>Tables</span></div><div><strong>${capacity}</strong><span>Seats</span></div><div><strong>${st.seated}</strong><span>Seated</span></div><div class="${st.unseated ? 'is-alert' : ''}"><strong>${st.unseated}</strong><span>Unseated</span></div></div><div class="ww-toolbar__actions"><button type="button" class="ww-btn ww-btn--ghost" data-action="auto-seat" ${unseated.length && S.tables.length ? '' : 'disabled'}>${icon('wand', 16)}Auto-seat</button><button type="button" class="ww-btn ww-btn--ghost" data-action="clear-seating" ${st.seated ? '' : 'disabled'}>Clear seating</button><button type="button" class="ww-btn ww-btn--primary" data-action="table-add">${icon('plus', 16)}Add table</button></div></div>`;
+    const toolbar = `<div class="ww-toolbar ww-toolbar--plain"><div class="ww-seatstats"><div><strong>${app.tables.length}</strong><span>Tables</span></div><div><strong>${capacity}</strong><span>Seats</span></div><div><strong>${st.seated}</strong><span>Seated</span></div><div class="${st.unseated ? 'is-alert' : ''}"><strong>${st.unseated}</strong><span>Unseated</span></div></div><div class="ww-toolbar__actions"><button type="button" class="ww-btn ww-btn--ghost" data-action="auto-seat" ${unseated.length && app.tables.length ? '' : 'disabled'}>${icon('wand', 16)}Auto-seat</button><button type="button" class="ww-btn ww-btn--ghost" data-action="clear-seating" ${st.seated ? '' : 'disabled'}>Clear seating</button><button type="button" class="ww-btn ww-btn--primary" data-action="table-add">${icon('plus', 16)}Add table</button></div></div>`;
 
-    if (!S.tables.length && !attending.length) {
+    if (!app.tables.length && !attending.length) {
       return `<div class="ww-stack">${toolbar}<div class="ww-card">${emptyState({
         iconName: 'seating',
         title: 'Plan your seating',
@@ -1962,7 +2082,7 @@
         ? `<ul class="ww-seatlist">${unseated
             .map(
               g =>
-                `<li draggable="true" data-guest="${esc(g.id)}"><span class="ww-avatar">${esc(initials(g.name))}</span><span class="ww-seatlist__name"><strong>${esc(g.name)}</strong>${Number(g.partySize) > 1 ? `<small>Party of ${Number(g.partySize)}</small>` : ''}</span><select class="ww-input ww-select ww-select--sm" data-assign="${esc(g.id)}" aria-label="Seat ${esc(g.name)} at a table"><option value="">Seat at…</option>${S.tables
+                `<li draggable="true" data-guest="${esc(g.id)}"><span class="ww-avatar">${esc(initials(g.name))}</span><span class="ww-seatlist__name"><strong>${esc(g.name)}</strong>${Number(g.partySize) > 1 ? `<small>Party of ${Number(g.partySize)}</small>` : ''}</span><select class="ww-input ww-select ww-select--sm" data-assign="${esc(g.id)}" aria-label="Seat ${esc(g.name)} at a table"><option value="">Seat at…</option>${app.tables
                   .map(
                     table =>
                       `<option value="${esc(table.id)}" ${freeSeats(table) ? '' : 'disabled'}>${esc(table.name)} (${freeSeats(table)} free)</option>`
@@ -1973,17 +2093,17 @@
         : `<p class="ww-muted-note">${attending.length ? 'Everyone attending has a seat.' : 'Guests who RSVP “attending” will appear here.'}</p>`
     }<p class="ww-hint">${icon('info', 14)} Drag a guest onto a table, or use the menu.</p></aside>`;
 
-    const grid = S.tables.length
-      ? `<div class="ww-tables">${S.tables
+    const grid = app.tables.length
+      ? `<div class="ww-tables">${app.tables
           .map(table => {
             const guests = seatedAt(table);
             const full = guests.length > Number(table.capacity || 0);
-            return `<article class="ww-card ww-tablecard ${full ? 'is-over' : ''}" data-drop="table" data-table="${esc(table.id)}"><header class="ww-tablecard__head"><div><h4>${esc(table.name)}</h4><small>${esc(TABLE_TYPES[table.type] || 'Table')} · ${guests.length}/${Number(table.capacity) || 0}</small></div><div><button type="button" class="ww-icon-btn" data-action="table-edit" data-id="${esc(table.id)}" aria-label="Edit ${esc(table.name)}">${icon('edit', 16)}</button><button type="button" class="ww-icon-btn ww-icon-btn--danger" data-action="table-delete" data-id="${esc(table.id)}" aria-label="Delete ${esc(table.name)}">${icon('trash', 16)}</button></div></header>${tableSvg(table, guests.length)}${full ? '<p class="ww-warn-text">Over capacity. Move a guest or add seats.</p>' : ''}<ul class="ww-chips">${
+            return `<article class="ww-card ww-tablecard ${full ? 'is-over' : ''}" data-drop="table" data-table="${esc(table.id)}"><header class="ww-tablecard__head"><div><h4 title="${esc(table.name)}">${esc(table.name)}</h4><small>${esc(TABLE_TYPES[table.type] || 'Table')} · ${guests.length}/${Number(table.capacity) || 0}</small></div><div><button type="button" class="ww-icon-btn" data-action="table-edit" data-id="${esc(table.id)}" aria-label="Edit ${esc(table.name)}">${icon('edit', 16)}</button><button type="button" class="ww-icon-btn ww-icon-btn--danger" data-action="table-delete" data-id="${esc(table.id)}" aria-label="Delete ${esc(table.name)}">${icon('trash', 16)}</button></div></header>${tableSvg(table, guests.length)}${full ? '<p class="ww-warn-text">Over capacity. Move a guest or add seats.</p>' : ''}<ul class="ww-chips">${
               guests.length
                 ? guests
                     .map(
                       g =>
-                        `<li draggable="true" data-guest="${esc(g.id)}"><span>${esc(g.name)}</span><button type="button" data-action="seat-unassign" data-id="${esc(g.id)}" aria-label="Unseat ${esc(g.name)}">${icon('close', 12)}</button></li>`
+                        `<li draggable="true" data-guest="${esc(g.id)}"><button type="button" class="ww-chips__name" data-action="seat-move" data-id="${esc(g.id)}" aria-label="Move ${esc(g.name)} to another table">${esc(g.name)}</button><button type="button" data-action="seat-unassign" data-id="${esc(g.id)}" aria-label="Unseat ${esc(g.name)}">${icon('close', 12)}</button></li>`
                     )
                     .join('')
                 : '<li class="ww-chips__empty">Drop guests here</li>'
@@ -2001,6 +2121,7 @@
     return `<div class="ww-stack">${toolbar}${over.length ? `<div class="ww-banner ww-banner--warn">${icon('info', 18)}<div><strong>${plural(over.length, 'table')} over capacity</strong><span>Move a guest or increase seats.</span></div></div>` : ''}<div class="ww-seating">${aside}${grid}</div></div>`;
   }
 
+  /** Add/edit table dialog. Resolves with the form values, or null if cancelled. */
   function editTable(table) {
     return new Promise(resolve => {
       const dialog = document.createElement('dialog');
@@ -2046,26 +2167,71 @@
     });
   }
 
+  /** Dialog to move a seated guest to another table (no dragging needed), or to unseat them. */
+  function moveGuestDialog(guest) {
+    const here = app.tables.find(table => seatedAt(table).some(g => g.id === guest.id));
+    const options = app.tables
+      .filter(table => table !== here)
+      .map(
+        table =>
+          `<option value="${esc(table.id)}" ${freeSeats(table) ? '' : 'disabled'}>${esc(table.name)} (${freeSeats(table)} free)</option>`
+      )
+      .join('');
+    const dialog = document.createElement('dialog');
+    dialog.className = 'ww-modal ww-modal--narrow';
+    dialog.setAttribute('aria-labelledby', 'ww-move-title');
+    dialog.innerHTML = `<form class="ww-modal__form" novalidate>
+      <div class="ww-modal__head"><h3 id="ww-move-title" class="ww-modal__title">Move ${esc(guest.name)}</h3><button type="button" class="ww-icon-btn" data-modal="cancel" aria-label="Close">${icon('close', 20)}</button></div>
+      <div class="ww-modal__body"><label class="ww-field"><span class="ww-label">Now at ${esc(here?.name || 'no table')}. Move to</span><select class="ww-input" name="table"><option value="">Nowhere (unseat)</option>${options}</select></label></div>
+      <div class="ww-modal__foot"><button type="button" class="ww-btn ww-btn--ghost" data-modal="cancel">Cancel</button><button type="submit" class="ww-btn ww-btn--primary">Move</button></div>
+    </form>`;
+    dialog.addEventListener('click', event => {
+      if (event.target.closest('[data-modal="cancel"]')) {
+        dialog.close();
+      }
+    });
+    dialog.querySelector('form').addEventListener('submit', async event => {
+      event.preventDefault();
+      const target = event.currentTarget.elements.table.value;
+      const submit = event.currentTarget.querySelector('[type="submit"]');
+      setBusy(submit, true);
+      try {
+        await (target ? assignGuest(guest.id, target) : unassignGuest(guest.id));
+        dialog.close();
+        await reloadGuestsAndRender();
+      } catch (err) {
+        setBusy(submit, false);
+        toast(err.message, 'warn');
+      }
+    });
+    dialog.addEventListener('close', () => dialog.remove(), { once: true });
+    openModal(dialog);
+    dialog.querySelector('select').focus();
+  }
+
+  /** Seats a guest at a table (moving them if they were already seated). */
   async function assignGuest(guestId, tableId) {
-    await api(planPath(S.plan, `/tables/${encodeURIComponent(tableId)}/assign-guest`), {
+    await api(planPath(app.plan, `/tables/${encodeURIComponent(tableId)}/assign-guest`), {
       method: 'POST',
       body: { guestId },
     });
   }
 
+  /** Removes a guest from their table. */
   async function unassignGuest(guestId) {
-    await api(planPath(S.plan, '/tables/unassign-guest'), { method: 'POST', body: { guestId } });
+    await api(planPath(app.plan, '/tables/unassign-guest'), { method: 'POST', body: { guestId } });
   }
 
+  /** Seats unseated guests into free seats table by table, keeping households together. */
   async function autoSeat(button) {
-    const unseated = S.guests
+    const unseated = app.guests
       .filter(g => isAttending(g) && !isSeated(g))
       .sort(
         (a, b) =>
           String(a.householdName || '~').localeCompare(String(b.householdName || '~')) ||
           String(a.name || '').localeCompare(String(b.name || ''))
       );
-    const slots = S.tables.flatMap(table => Array(freeSeats(table)).fill(table.id));
+    const slots = app.tables.flatMap(table => Array(freeSeats(table)).fill(table.id));
     if (!unseated.length) {
       toast('Everyone attending already has a seat');
       return;
@@ -2088,6 +2254,7 @@
     });
   }
 
+  /** Unseats every guest after confirmation. */
   async function clearSeating(button) {
     const ok = await confirmAction({
       title: 'Clear all seating?',
@@ -2099,7 +2266,7 @@
       return;
     }
     await guard(button, async () => {
-      for (const guest of S.guests.filter(g => isAttending(g) && isSeated(g))) {
+      for (const guest of app.guests.filter(g => isAttending(g) && isSeated(g))) {
         await unassignGuest(guest.id);
       }
       toast('Seating cleared');
@@ -2132,35 +2299,24 @@
     },
   ];
 
-  function viewShare() {
-    if (!S.plan) {
-      return needsWorkspace();
-    }
-    if (!S.site) {
-      return `<div class="ww-card">${emptyState({
-        iconName: 'share',
-        title: 'Create your website first',
-        body: 'Once your website exists you can set its link, privacy and share it with guests.',
-        actions:
-          '<button type="button" class="ww-btn ww-btn--primary" data-go="website">Go to website</button>',
-      })}</div>`;
-    }
-    const site = S.site;
+  /** Ready-made message that carries the guest link. */
+  const inviteMessage = url => `We would love you to RSVP on our wedding website: ${url}`;
+
+  /** Publish state, guest link and copy/preview buttons. */
+  function shareLiveCard(site) {
     const live = site.status === 'published';
     const url = publicUrl(site);
-    const qr = url ? `/api/tools/qr.png?url=${encodeURIComponent(url)}` : '';
-    const message = `We would love you to RSVP on our wedding website: ${url}`;
-    const visibility = S.ui.visibility || site.visibility || 'private_link';
-    const slug = S.ui.slug ?? site.slug ?? '';
-
-    return `<div class="ww-stack">
-      <section class="ww-card ww-live ${live ? 'is-live' : ''}">
+    return `<section class="ww-card ww-live ${live ? 'is-live' : ''}">
         <div class="ww-live__head"><span class="ww-dot ${live ? 'is-live' : ''}"></span><div><h4>${live ? 'Your website is live' : 'Your website is a draft'}</h4><p>${live ? 'Guests can open your link and send RSVPs.' : 'Publish when you are ready. Guests cannot see it until then.'}</p></div><button type="button" class="ww-btn ${live ? 'ww-btn--secondary' : 'ww-btn--primary'}" data-action="${live ? 'unpublish' : 'publish'}">${live ? 'Unpublish' : 'Publish website'}</button></div>
         <div class="ww-copybox"><span class="ww-copybox__icon">${icon('link', 16)}</span><input readonly value="${esc(url)}" aria-label="Guest website link"><button type="button" class="ww-btn ww-btn--secondary" data-action="copy-link">${icon('copy', 16)}Copy</button>${live || previewUrl() ? `<a class="ww-btn ww-btn--ghost" href="${esc(live ? url : previewUrl())}" target="_blank" rel="noopener">${icon('external', 16)}${live ? 'Open' : 'Preview'}</a>` : ''}</div>
-      </section>
+      </section>`;
+  }
 
-      <div class="ww-columns">
-        <section class="ww-card">
+  /** Website link, privacy choice and password settings. */
+  function sharePrivacyCard(site) {
+    const visibility = app.ui.visibility || site.visibility || 'private_link';
+    const slug = app.ui.slug ?? site.slug ?? '';
+    return `<section class="ww-card">
           <header class="ww-card__head"><h4>Link &amp; privacy</h4></header>
           <label class="ww-field"><span class="ww-label">Website link</span><span class="ww-slug"><span class="ww-slug__prefix">/wedding/</span><input class="ww-input" data-ui-slug value="${esc(slug)}" placeholder="our-wedding" autocomplete="off" spellcheck="false" aria-label="Custom website link"></span><small class="ww-hint">Letters, numbers and dashes. Choose something personal.</small></label>
           <button type="button" class="ww-link ww-link--inline" data-action="regen-slug">${icon('refresh', 14)}Suggest a new link</button>
@@ -2171,9 +2327,16 @@
           <label class="ww-field" ${visibility === 'password' ? '' : 'hidden'} data-password-field><span class="ww-label">Website password</span><input class="ww-input" type="password" data-ui-password minlength="6" autocomplete="new-password" placeholder="${site.passwordSet ? 'Leave blank to keep your current password' : 'At least 6 characters'}"><small class="ww-hint">Saved passwords are never shown again. Share it with guests separately.</small></label>
           <p class="ww-error" data-share-error hidden></p>
           <div class="ww-actions-row"><button type="button" class="ww-btn ww-btn--primary" data-action="save-share">Save link settings</button></div>
-        </section>
+        </section>`;
+  }
 
-        <section class="ww-card">
+  /** QR code and WhatsApp, email and copy-message shortcuts. */
+  function shareInviteCard(site) {
+    const live = site.status === 'published';
+    const url = publicUrl(site);
+    const qr = url ? `/api/tools/qr.png?url=${encodeURIComponent(url)}` : '';
+    const message = inviteMessage(url);
+    return `<section class="ww-card">
           <header class="ww-card__head"><h4>Invite guests</h4></header>
           ${
             live && qr
@@ -2186,13 +2349,35 @@
             <button type="button" class="ww-btn ww-btn--secondary" data-action="copy-message" ${live ? '' : 'disabled'}>${icon('copy', 16)}Copy message</button>
           </div>
           <div class="ww-tips"><h5>Before you send</h5><ul><li>Check your RSVP deadline and meal options.</li><li>Open the link in a private window to see what guests see.</li><li>Ask one trusted guest to test the RSVP form.</li></ul></div>
-        </section>
+        </section>`;
+  }
+
+  /** Share tab. */
+  function viewShare() {
+    if (!app.plan) {
+      return needsWorkspace();
+    }
+    if (!app.site) {
+      return `<div class="ww-card">${emptyState({
+        iconName: 'share',
+        title: 'Create your website first',
+        body: 'Once your website exists you can set its link, privacy and share it with guests.',
+        actions:
+          '<button type="button" class="ww-btn ww-btn--primary" data-go="website">Go to website</button>',
+      })}</div>`;
+    }
+    return `<div class="ww-stack">
+      ${shareLiveCard(app.site)}
+      <div class="ww-columns">
+        ${sharePrivacyCard(app.site)}
+        ${shareInviteCard(app.site)}
       </div>
     </div>`;
   }
 
+  /** Saves the website link, privacy and password. */
   async function saveShareSettings(button) {
-    const dialog = S.dialog;
+    const dialog = app.dialog;
     const errorEl = dialog.querySelector('[data-share-error]');
     errorEl.hidden = true;
     const slug = normalizeSlug(dialog.querySelector('[data-ui-slug]').value);
@@ -2204,7 +2389,7 @@
       errorEl.hidden = false;
       return;
     }
-    if (visibility === 'password' && !password && !S.site.passwordSet) {
+    if (visibility === 'password' && !password && !app.site.passwordSet) {
       errorEl.textContent = 'Please set a password before enabling password protection.';
       errorEl.hidden = false;
       return;
@@ -2220,15 +2405,15 @@
         if (password) {
           body.password = password;
         }
-        await api(planPath(S.plan, '/wedding-website'), { method: 'PATCH', body });
+        await api(planPath(app.plan, '/wedding-website'), { method: 'PATCH', body });
       } catch (err) {
         errorEl.textContent = err.message;
         errorEl.hidden = false;
         return;
       }
-      S.site = await getWebsite(S.plan);
-      S.ui.slug = undefined;
-      S.ui.visibility = undefined;
+      app.site = await getWebsite(app.plan);
+      app.ui.slug = undefined;
+      app.ui.visibility = undefined;
       toast('Link settings saved');
       renderActive();
     });
@@ -2252,6 +2437,7 @@
     field.select();
   }
 
+  /** Copies text to the clipboard, or shows it for manual copying if the browser refuses. */
   async function copyText(text, message) {
     try {
       await navigator.clipboard.writeText(text);
@@ -2265,22 +2451,23 @@
    * Event handling
    * ------------------------------------------------------------------ */
 
+  /** Keeps the draft in step with what is typed, and records which part changed. */
   function onInput(event) {
     const el = event.target;
     if (el.matches('[data-f]')) {
-      S.draft[el.dataset.f] = el.type === 'checkbox' ? el.checked : el.value;
+      app.draft[el.dataset.f] = el.type === 'checkbox' ? el.checked : el.value;
       setDirty(true, 'site');
       refreshEditorMeta();
       return;
     }
     if (el.matches('[data-list]')) {
       const { list, i, k } = el.dataset;
-      S.draft.lists[list][Number(i)][k] = el.value;
+      app.draft.lists[list][Number(i)][k] = el.value;
       setDirty(true, 'site');
       if (list === 'customRsvpQuestions' && k === 'type') {
         // Choosing "Pick one" reveals a field, so redraw and keep focus on the select.
         renderActive();
-        S.dialog.querySelector(`[data-list="${list}"][data-i="${i}"][data-k="${k}"]`)?.focus();
+        app.dialog.querySelector(`[data-list="${list}"][data-i="${i}"][data-k="${k}"]`)?.focus();
       }
       refreshEditorMeta();
       return;
@@ -2289,7 +2476,7 @@
       if (el.type === 'radio' && !el.checked) {
         return;
       }
-      S.draft.theme[el.dataset.theme] = el.value;
+      app.draft.theme[el.dataset.theme] = el.value;
       const chip = el.parentElement.querySelector('.ww-swatch__chip');
       if (chip) {
         chip.style.background = el.value;
@@ -2299,7 +2486,7 @@
       return;
     }
     if (el.matches('[data-gallery-caption]')) {
-      const item = S.draft.theme.galleryImages[Number(el.dataset.galleryCaption)];
+      const item = app.draft.theme.galleryImages[Number(el.dataset.galleryCaption)];
       if (item) {
         item.caption = el.value;
         setDirty(true, 'theme');
@@ -2307,21 +2494,22 @@
       return;
     }
     if (el.matches('[data-ui="guestSearch"]')) {
-      S.ui.guestSearch = el.value;
-      S.ui.guestPage = 1;
+      app.ui.guestSearch = el.value;
+      app.ui.guestPage = 1;
       renderGuestResults();
       return;
     }
     if (el.matches('[data-ui-slug]')) {
-      S.ui.slug = el.value;
+      app.ui.slug = el.value;
     }
   }
 
+  /** Handles selects, radios and file pickers. */
   function onChange(event) {
     const el = event.target;
     if (el.matches('[data-ui]') && el.dataset.ui !== 'guestSearch') {
-      S.ui[el.dataset.ui] = el.value;
-      S.ui.guestPage = 1;
+      app.ui[el.dataset.ui] = el.value;
+      app.ui.guestPage = 1;
       renderGuestResults();
       return;
     }
@@ -2333,11 +2521,11 @@
       return;
     }
     if (el.matches('input[name="ww-visibility"]')) {
-      S.ui.visibility = el.value;
-      S.dialog.querySelectorAll('.ww-radio').forEach(label => {
+      app.ui.visibility = el.value;
+      app.dialog.querySelectorAll('.ww-radio').forEach(label => {
         label.classList.toggle('is-selected', label.contains(el));
       });
-      const field = S.dialog.querySelector('[data-password-field]');
+      const field = app.dialog.querySelector('[data-password-field]');
       if (field) {
         field.hidden = el.value !== 'password';
       }
@@ -2348,10 +2536,14 @@
     }
   }
 
+  /**
+   * Adds chosen photos to the draft, keeping those that worked and reporting those that did
+   * not.
+   */
   async function handleUpload(input) {
     const files = Array.from(input.files || []);
     input.value = '';
-    const theme = S.draft.theme;
+    const theme = app.draft.theme;
     let failure = '';
     let added = 0;
     if (input.dataset.upload === 'cover') {
@@ -2391,7 +2583,12 @@
     }
   }
 
+  /** Single click handler for the app: tab/shortcut buttons and data-action buttons. */
   async function onClick(event) {
+    if (app.dirty && event.target.closest('[data-preview]')) {
+      // The preview page shows the saved version, so let the customer know edits are not in it.
+      toast('Preview shows your last saved version. Save to include your latest edits.');
+    }
     const goEl = event.target.closest('[data-go]');
     const actionEl = event.target.closest('[data-action]');
     if (actionEl) {
@@ -2407,250 +2604,240 @@
     }
   }
 
-  async function runAction(el, event) {
-    const { action } = el.dataset;
-    switch (action) {
-      case 'close':
-        S.dialog.dispatchEvent(new Event('cancel', { cancelable: true }));
-        break;
-      case 'toggle-section':
-        S.ui.openSection = S.ui.openSection === el.dataset.id ? '' : el.dataset.id;
-        renderActive();
-        break;
-      case 'add-item': {
-        const rows = S.draft.lists[el.dataset.list];
-        const item = { id: uid(el.dataset.list) };
-        LISTS[el.dataset.list].fields.forEach(field => {
-          item[field.key] = field.key === 'type' ? 'text' : field.key === 'required' ? 'false' : '';
-        });
-        rows.push(item);
-        setDirty(true, 'site');
-        renderActive();
-        window.requestAnimationFrame(() => {
-          const inputs = S.dialog.querySelectorAll(
-            `[data-list="${el.dataset.list}"][data-i="${rows.length - 1}"]`
-          );
-          inputs[0]?.focus();
-        });
-        break;
-      }
-      case 'remove-item':
-        S.draft.lists[el.dataset.list].splice(Number(el.dataset.i), 1);
-        setDirty(true, 'site');
-        renderActive();
-        break;
-      case 'focus-field':
-        focusField(el.dataset.key);
-        break;
-      case 'palette': {
-        const palette = PALETTES[Number(el.dataset.i)];
-        Object.assign(S.draft.theme, {
-          accentColor: palette.accent,
-          secondaryColor: palette.secondary,
-          backgroundColor: palette.background,
-          textColor: palette.text,
-        });
-        setDirty(true, 'theme');
-        renderActive();
-        break;
-      }
-      case 'cover-remove':
-        S.draft.theme.coverImageUrl = '';
-        setDirty(true, 'theme');
-        renderActive();
-        break;
-      case 'gallery-remove':
-        S.draft.theme.galleryImages.splice(Number(el.dataset.i), 1);
-        setDirty(true, 'theme');
-        renderActive();
-        break;
-      case 'gallery-move': {
-        const list = S.draft.theme.galleryImages;
-        const from = Number(el.dataset.i);
-        const to = from + Number(el.dataset.dir);
-        if (to >= 0 && to < list.length) {
-          list.splice(to, 0, list.splice(from, 1)[0]);
-          setDirty(true, 'theme');
-          renderActive();
-        }
-        break;
-      }
-      case 'save':
-        await guard(el, () => saveWebsite());
-        break;
-      case 'publish':
-        await publish(el);
-        break;
-      case 'retry-load':
-        await loadWorkspace();
-        break;
-      case 'unpublish':
-        await unpublishWebsite(el);
-        break;
-      case 'create-site':
-        await guard(el, async () => {
-          await api(planPath(S.plan, '/wedding-website'), { method: 'POST', body: {} });
-          S.site = await getWebsite(S.plan);
-          S.draft = makeDraft(S.site, S.plan);
-          setHeaderStatus(statusMeta(S.site, S.plan));
-          toast('Website draft created');
-          renderActive();
-        });
-        break;
-      case 'quick-start':
-        await guard(el, async () => {
-          const res = await api('/api/me/plans/wedding-workspace', { method: 'POST' });
-          await adoptPlan(res.plan);
-          toast('Wedding workspace created');
-        });
-        break;
-      case 'use-existing': {
-        const chosen = S.dialog.querySelector('#ww-existing-plan')?.value;
-        const plan = cachedPlans.find(item => String(item.id) === String(chosen));
-        if (!plan) {
-          toast('Choose a plan first', 'warn');
-          break;
-        }
-        await guard(el, async () => {
-          await adoptPlan(plan);
-        });
-        break;
-      }
-      case 'copy-link':
-        await copyText(publicUrl(S.site), 'Link copied');
-        break;
-      case 'copy-message':
-        await copyText(
-          `We would love you to RSVP on our wedding website: ${publicUrl(S.site)}`,
-          'Message copied'
-        );
-        break;
-      case 'save-share':
-        await saveShareSettings(el);
-        break;
-      case 'regen-slug':
-        await guard(el, async () => {
-          const res = await api(planPath(S.plan, '/wedding-website/regenerate-slug'), {
-            method: 'POST',
-            body: {},
-          });
-          S.site = res.website || (await getWebsite(S.plan));
-          S.ui.slug = undefined;
-          toast('New link suggested');
-          renderActive();
-        });
-        break;
-      case 'guest-add':
-        editGuest(null);
-        break;
-      case 'guest-edit': {
-        const guest = S.guests.find(g => String(g.id) === String(el.dataset.id));
-        if (guest) {
-          editGuest(guest);
-        }
-        break;
-      }
-      case 'guest-delete':
-        await deleteGuest(el.dataset.id, el);
-        break;
-      case 'guest-filter':
-        S.ui.guestFilter = el.dataset.f;
-        S.ui.guestPage = 1;
-        renderGuestResults();
-        break;
-      case 'guest-page':
-        S.ui.guestPage += Number(el.dataset.dir);
-        renderGuestResults();
-        S.dialog
-          .querySelector('.ww-filters')
-          ?.scrollIntoView({ block: 'nearest', behavior: scrollBehavior() });
-        break;
-      case 'guest-reset':
-        Object.assign(S.ui, {
-          guestFilter: 'all',
-          guestSearch: '',
-          guestSource: 'any',
-          guestPage: 1,
-        });
-        renderActive();
-        break;
-      case 'table-add': {
-        const payload = await editTable({
-          name: `Table ${S.tables.length + 1}`,
-          capacity: 10,
-          type: 'round',
-        });
-        if (payload) {
-          await guard(el, async () => {
-            await api(planPath(S.plan, '/tables'), { method: 'POST', body: payload });
-            toast('Table added');
-            await reloadGuestsAndRender();
-          });
-        }
-        break;
-      }
-      case 'table-edit': {
-        const table = S.tables.find(item => String(item.id) === String(el.dataset.id));
-        const payload = table && (await editTable(table));
-        if (payload) {
-          await guard(el, async () => {
-            await api(planPath(S.plan, `/tables/${encodeURIComponent(table.id)}`), {
-              method: 'PATCH',
-              body: payload,
-            });
-            await reloadGuestsAndRender();
-          });
-        }
-        break;
-      }
-      case 'table-delete': {
-        const table = S.tables.find(item => String(item.id) === String(el.dataset.id));
-        const ok = await confirmAction({
-          title: `Delete ${table?.name || 'table'}?`,
-          message:
-            'Guests at this table become unseated. Their RSVP details stay in your guest list.',
-          confirmLabel: 'Delete table',
-          danger: true,
-        });
-        if (ok) {
-          await guard(el, async () => {
-            await api(planPath(S.plan, `/tables/${encodeURIComponent(el.dataset.id)}`), {
-              method: 'DELETE',
-            });
-            await reloadGuestsAndRender();
-          });
-        }
-        break;
-      }
-      case 'seat-unassign':
-        event.preventDefault();
-        await guard(el, async () => {
-          await unassignGuest(el.dataset.id);
-          await reloadGuestsAndRender();
-        });
-        break;
-      case 'auto-seat':
-        await autoSeat(el);
-        break;
-      case 'clear-seating':
-        await clearSeating(el);
-        break;
-      default:
-        break;
-    }
+  /** Marks the website editor as changed and redraws it. */
+  function editorChanged(part) {
+    setDirty(true, part);
+    renderActive();
   }
 
+  /** Repeating rows (FAQs, places to stay…), the colour theme and the photo gallery. */
+  const EDITOR_ACTIONS = {
+    'toggle-section': el => {
+      app.ui.openSection = app.ui.openSection === el.dataset.id ? '' : el.dataset.id;
+      renderActive();
+    },
+    'focus-field': el => focusField(el.dataset.key),
+    'add-item': el => {
+      const { list } = el.dataset;
+      const rows = app.draft.lists[list];
+      const item = { id: uid(list) };
+      LISTS[list].fields.forEach(field => {
+        item[field.key] = LISTS[list].defaults?.[field.key] ?? '';
+      });
+      rows.push(item);
+      editorChanged('site');
+      window.requestAnimationFrame(() => {
+        app.dialog.querySelector(`[data-list="${list}"][data-i="${rows.length - 1}"]`)?.focus();
+      });
+    },
+    'remove-item': el => {
+      app.draft.lists[el.dataset.list].splice(Number(el.dataset.i), 1);
+      editorChanged('site');
+    },
+    palette: el => {
+      const palette = PALETTES[Number(el.dataset.i)];
+      Object.assign(app.draft.theme, {
+        accentColor: palette.accent,
+        secondaryColor: palette.secondary,
+        backgroundColor: palette.background,
+        textColor: palette.text,
+      });
+      editorChanged('theme');
+    },
+    'cover-remove': () => {
+      app.draft.theme.coverImageUrl = '';
+      editorChanged('theme');
+    },
+    'gallery-remove': el => {
+      app.draft.theme.galleryImages.splice(Number(el.dataset.i), 1);
+      editorChanged('theme');
+    },
+    'gallery-move': el => {
+      const list = app.draft.theme.galleryImages;
+      const from = Number(el.dataset.i);
+      const to = from + Number(el.dataset.dir);
+      if (to >= 0 && to < list.length) {
+        list.splice(to, 0, list.splice(from, 1)[0]);
+        editorChanged('theme');
+      }
+    },
+    save: el => guard(el, () => saveWebsite()),
+    publish: el => publish(el),
+    unpublish: el => unpublishWebsite(el),
+    'create-site': el =>
+      guard(el, async () => {
+        await api(planPath(app.plan, '/wedding-website'), { method: 'POST', body: {} });
+        app.site = await getWebsite(app.plan);
+        app.draft = makeDraft(app.site, app.plan);
+        setHeaderStatus(statusMeta(app.site, app.plan));
+        toast('Website draft created');
+        renderActive();
+      }),
+  };
+
+  /** Starting out: new workspace, or attach the website to an existing plan. */
+  const SETUP_ACTIONS = {
+    'quick-start': el =>
+      guard(el, async () => {
+        const res = await api('/api/me/plans/wedding-workspace', { method: 'POST' });
+        await adoptPlan(res.plan);
+        toast('Wedding workspace created');
+      }),
+    'use-existing': el => {
+      const chosen = app.dialog.querySelector('#ww-existing-plan')?.value;
+      const plan = cachedPlans.find(item => String(item.id) === String(chosen));
+      if (!plan) {
+        toast('Choose a plan first', 'warn');
+        return undefined;
+      }
+      return guard(el, () => adoptPlan(plan));
+    },
+    'retry-load': () => loadWorkspace(),
+  };
+
+  /** Link, privacy and the share buttons. */
+  const SHARE_ACTIONS = {
+    'copy-link': () => copyText(publicUrl(app.site), 'Link copied'),
+    'copy-message': () => copyText(inviteMessage(publicUrl(app.site)), 'Message copied'),
+    'save-share': el => saveShareSettings(el),
+    'regen-slug': el =>
+      guard(el, async () => {
+        const res = await api(planPath(app.plan, '/wedding-website/regenerate-slug'), {
+          method: 'POST',
+          body: {},
+        });
+        app.site = res.website || (await getWebsite(app.plan));
+        app.ui.slug = undefined;
+        toast('New link suggested');
+        renderActive();
+      }),
+  };
+
+  /** The guest list: add, edit, delete, filter and page. */
+  const GUEST_ACTIONS = {
+    'guest-add': () => editGuest(null),
+    'guest-edit': el => {
+      const guest = app.guests.find(g => String(g.id) === String(el.dataset.id));
+      if (guest) {
+        editGuest(guest);
+      }
+    },
+    'guest-delete': el => deleteGuest(el.dataset.id, el),
+    'guest-filter': el => {
+      app.ui.guestFilter = el.dataset.f;
+      app.ui.guestPage = 1;
+      renderGuestResults();
+    },
+    'guest-page': el => {
+      app.ui.guestPage += Number(el.dataset.dir);
+      renderGuestResults();
+      app.dialog
+        .querySelector('.ww-filters')
+        ?.scrollIntoView({ block: 'nearest', behavior: scrollBehavior() });
+    },
+    'guest-reset': () => {
+      Object.assign(app.ui, {
+        guestFilter: 'all',
+        guestSearch: '',
+        guestSource: 'any',
+        guestPage: 1,
+      });
+      renderActive();
+    },
+  };
+
+  /** Tables and seating. */
+  const SEATING_ACTIONS = {
+    'table-add': async el => {
+      const payload = await editTable({
+        name: `Table ${app.tables.length + 1}`,
+        capacity: 10,
+        type: 'round',
+      });
+      if (payload) {
+        await guard(el, async () => {
+          await api(planPath(app.plan, '/tables'), { method: 'POST', body: payload });
+          toast('Table added');
+          await reloadGuestsAndRender();
+        });
+      }
+    },
+    'table-edit': async el => {
+      const table = app.tables.find(item => String(item.id) === String(el.dataset.id));
+      const payload = table && (await editTable(table));
+      if (payload) {
+        await guard(el, async () => {
+          await api(planPath(app.plan, `/tables/${encodeURIComponent(table.id)}`), {
+            method: 'PATCH',
+            body: payload,
+          });
+          await reloadGuestsAndRender();
+        });
+      }
+    },
+    'table-delete': async el => {
+      const table = app.tables.find(item => String(item.id) === String(el.dataset.id));
+      const ok = await confirmAction({
+        title: `Delete ${table?.name || 'table'}?`,
+        message:
+          'Guests at this table become unseated. Their RSVP details stay in your guest list.',
+        confirmLabel: 'Delete table',
+        danger: true,
+      });
+      if (ok) {
+        await guard(el, async () => {
+          await api(planPath(app.plan, `/tables/${encodeURIComponent(el.dataset.id)}`), {
+            method: 'DELETE',
+          });
+          await reloadGuestsAndRender();
+        });
+      }
+    },
+    'seat-unassign': (el, event) => {
+      event.preventDefault();
+      return guard(el, async () => {
+        await unassignGuest(el.dataset.id);
+        await reloadGuestsAndRender();
+      });
+    },
+    'seat-move': el => {
+      const guest = app.guests.find(g => String(g.id) === String(el.dataset.id));
+      if (guest) {
+        moveGuestDialog(guest);
+      }
+    },
+    'auto-seat': el => autoSeat(el),
+    'clear-seating': el => clearSeating(el),
+  };
+
+  /** Every click handler, keyed by the `data-action` attribute of the clicked element. */
+  const ACTIONS = {
+    close: () => app.dialog.dispatchEvent(new Event('cancel', { cancelable: true })),
+    ...EDITOR_ACTIONS,
+    ...SETUP_ACTIONS,
+    ...SHARE_ACTIONS,
+    ...GUEST_ACTIONS,
+    ...SEATING_ACTIONS,
+  };
+
+  /** Runs the handler registered for a data-action. */
+  async function runAction(el, event) {
+    await ACTIONS[el.dataset.action]?.(el, event);
+  }
+
+  /** Starts working on a plan (new or existing), creating its website if needed. */
   async function adoptPlan(plan) {
-    S.plan = plan;
-    S.site = await ensureWebsite(plan);
-    S.draft = S.site ? makeDraft(S.site, plan) : null;
+    app.plan = plan;
+    app.site = await ensureWebsite(plan);
+    app.draft = app.site ? makeDraft(app.site, plan) : null;
     await loadGuestsAndTables();
-    setHeaderStatus(statusMeta(S.site, S.plan));
-    goTo(S.site ? 'overview' : 'website');
+    setHeaderStatus(statusMeta(app.site, app.plan));
+    goTo(app.site ? 'overview' : 'website');
   }
 
   /* Drag and drop for seating (mouse); menus cover keyboard and touch. */
 
+  /** Starts dragging a guest between the unseated list and tables. */
   function onDragStart(event) {
     const item = event.target.closest('[data-guest]');
     if (!item) {
@@ -2661,13 +2848,15 @@
     item.classList.add('is-dragging');
   }
 
+  /** Clears drag highlighting. */
   function onDragEnd(event) {
     event.target.closest?.('[data-guest]')?.classList.remove('is-dragging');
-    S.dialog
+    app.dialog
       .querySelectorAll('.is-drop-target')
       .forEach(el => el.classList.remove('is-drop-target'));
   }
 
+  /** Highlights a table or the unseated list as a valid drop target. */
   function onDragOver(event) {
     const zone = event.target.closest('[data-drop]');
     if (zone) {
@@ -2676,6 +2865,7 @@
     }
   }
 
+  /** Removes drop highlighting when the pointer leaves a target. */
   function onDragLeave(event) {
     const zone = event.target.closest('[data-drop]');
     if (zone && !zone.contains(event.relatedTarget)) {
@@ -2683,6 +2873,7 @@
     }
   }
 
+  /** Seats the dragged guest at the table, or unseats them when dropped on the list. */
   async function onDrop(event) {
     const zone = event.target.closest('[data-drop]');
     const guestId = event.dataTransfer.getData('text/plain');
@@ -2694,7 +2885,7 @@
     try {
       if (zone.dataset.drop === 'table') {
         await assignGuest(guestId, zone.dataset.table);
-      } else if (isSeated(S.guests.find(g => String(g.id) === String(guestId)) || {})) {
+      } else if (isSeated(app.guests.find(g => String(g.id) === String(guestId)) || {})) {
         await unassignGuest(guestId);
       }
       await reloadGuestsAndRender();
@@ -2703,12 +2894,13 @@
     }
   }
 
+  /** Arrow/Home/End navigation between tabs, and Ctrl/Cmd+S to save the editor. */
   function onKeydown(event) {
     if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 's') {
-      const saveButton = S.dialog.querySelector('#ww-save');
+      const saveButton = app.dialog.querySelector('#ww-save');
       if (saveButton && !event.target.closest('.ww-modal')) {
         event.preventDefault();
-        if (S.dirty) {
+        if (app.dirty) {
           saveButton.click();
         }
       }
@@ -2718,7 +2910,7 @@
     if (!tab) {
       return;
     }
-    const tabs = Array.from(S.dialog.querySelectorAll('.ww-nav__item'));
+    const tabs = Array.from(app.dialog.querySelectorAll('.ww-nav__item'));
     const index = tabs.indexOf(tab);
     const next = {
       ArrowDown: (index + 1) % tabs.length,
@@ -2742,7 +2934,7 @@
 
   /** Loads the website, guests and tables for the open app, with a retry on failure. */
   async function loadWorkspace() {
-    const state = S;
+    const state = app;
     state.loading = true;
     state.loadError = '';
     renderActive();
@@ -2756,7 +2948,7 @@
     } catch (err) {
       state.loadError = err.message || 'Please check your connection and try again.';
     }
-    if (S !== state) {
+    if (app !== state) {
       return;
     }
     state.loading = false;
@@ -2764,8 +2956,9 @@
   }
 
   /** True when closing now would lose edits the customer has not saved. */
-  const hasUnsavedChanges = () => S.dirty || shareDirty();
+  const hasUnsavedChanges = () => app.dirty || shareDirty();
 
+  /** Wires every event handler onto the app dialog. */
   function bindAppEvents(dialog) {
     dialog.addEventListener('click', onClick);
     dialog.addEventListener('input', onInput);
@@ -2819,8 +3012,9 @@
 
   let opening = false;
 
+  /** Opens the app from the dashboard card and loads the customer's workspace. */
   async function openApp(opener) {
-    if (S || opening) {
+    if (app || opening) {
       return;
     }
     if (!initialised) {
@@ -2836,7 +3030,7 @@
     dialog.className = 'ww-app';
     dialog.setAttribute('aria-labelledby', 'ww-app-title');
     dialog.innerHTML = shellHtml();
-    S = {
+    app = {
       dialog,
       opener,
       plan,
@@ -2870,11 +3064,12 @@
     await loadWorkspace();
   }
 
+  /** Removes the app, refreshes the card status and returns focus to the launcher. */
   function closeApp() {
-    const { dialog, opener, plan } = S;
-    const finalPlan = S.plan || plan;
-    const finalSite = S.site;
-    S = null;
+    const { dialog, opener, plan } = app;
+    const finalPlan = app.plan || plan;
+    const finalSite = app.site;
+    app = null;
     dialog.remove();
     document.body.classList.remove('ww-app-open');
     setHeaderStatus(statusMeta(finalSite, finalPlan));
@@ -2898,6 +3093,7 @@
 
   let buttonBound = false;
 
+  /** Makes the dashboard card's "Open app" button launch the app. */
   function bindOpenButton() {
     if (buttonBound) {
       return;
@@ -2912,6 +3108,7 @@
     });
   }
 
+  /** Entry point called by the customer dashboard: loads the plans and sets the card status. */
   async function initWeddingWebsiteDashboard(plans) {
     cachedPlans = plans || [];
     if (!document.getElementById(ROOT_ID)) {

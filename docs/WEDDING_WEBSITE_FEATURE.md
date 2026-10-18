@@ -42,7 +42,8 @@ Wedding Website & RSVPs is now a production feature area for customer wedding pl
 ## Known Limitations
 
 - Legacy data model conflict (`plan.guests` number vs guest array) still exists historically. Current code avoids worsening it by writing guest records to `guestList` unless `guests` is already an array.
-- Theme/gallery media currently uses conservative data URL storage and gallery limits. This should be replaced with durable uploaded image URLs.
+- Theme/gallery media is stored as data URLs on the website record. The dashboard app shrinks each photo in the browser to about 600,000 characters (the server drops any single image over 900,000, and the JSON body limit for `/api/me/plans` is 10 MB, enough for the 12-photo gallery plus the cover). `tests/unit/wedding-widget-contract.test.js` ties those numbers together. This should be replaced with durable uploaded image URLs.
+- Seating integrity: only attending guests hold seats. Deleting a guest, or changing a seated guest to declined/pending/maybe, frees the seat; renaming a table updates the table name stored on its guests.
 - The dashboard app is one module (`public/assets/js/pages/customer-wedding-website.js`) and one stylesheet (`public/assets/css/customer-wedding-website.css`). It renders every view from in-memory state and does not rely on other scripts patching its DOM; keep it that way rather than adding enhancer layers. `wedding-mobile-stabilisation.css` and `wedding-compact-polish.css` remain only because the public `/wedding/:slug` page imports them.
 - Visual regression and accessibility coverage should be kept in sync with the intentional UI changes.
 
