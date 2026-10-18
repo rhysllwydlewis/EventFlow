@@ -106,7 +106,7 @@ async function sendVerificationEmail(supplier, action, notes) {
 
   const BASE_URL = process.env.BASE_URL || process.env.APP_BASE_URL || 'https://event-flow.co.uk';
   const supplierName = supplier.name || 'Supplier';
-  const dashboardUrl = `${BASE_URL}/dashboard-supplier`;
+  const dashboardUrl = `${BASE_URL}/dashboard/supplier`;
   const supportEmail = 'support@event-flow.co.uk';
 
   // Per-status configuration for the supplier-verification-status.html template
@@ -118,7 +118,7 @@ async function sendVerificationEmail(supplier, action, notes) {
         'Great news — your supplier profile has been reviewed and approved. ' +
         'You can now appear in search results, receive enquiries, and accept bookings on EventFlow.',
       headerGradient: 'linear-gradient(135deg,#065F46 0%,#059669 100%)',
-      ctaGradient: 'linear-gradient(135deg,#059669,#10B981)',
+      ctaGradient: 'linear-gradient(135deg,#065F46,#047857)',
       ctaText: 'Go to Your Dashboard',
     },
     rejected: {
@@ -128,7 +128,7 @@ async function sendVerificationEmail(supplier, action, notes) {
         'Thank you for applying to join EventFlow. Unfortunately, after review, we’re unable to approve your profile in its current form. ' +
         'You may update your profile and resubmit for review at any time.',
       headerGradient: 'linear-gradient(135deg,#7C3AED 0%,#8B5CF6 100%)',
-      ctaGradient: 'linear-gradient(135deg,#7C3AED,#8B5CF6)',
+      ctaGradient: 'linear-gradient(135deg,#6D28D9,#7C3AED)',
       ctaText: 'Update Your Profile',
     },
     needs_changes: {
@@ -138,7 +138,7 @@ async function sendVerificationEmail(supplier, action, notes) {
         'We have reviewed your supplier profile and need some updates before we can approve it. ' +
         'Please log in, make the changes noted below, and resubmit for review.',
       headerGradient: 'linear-gradient(135deg,#B45309 0%,#D97706 100%)',
-      ctaGradient: 'linear-gradient(135deg,#D97706,#F59E0B)',
+      ctaGradient: 'linear-gradient(135deg,#B45309,#C2570C)',
       ctaText: 'Update Your Profile',
     },
     suspended: {
@@ -148,7 +148,7 @@ async function sendVerificationEmail(supplier, action, notes) {
         'Your EventFlow supplier account has been temporarily suspended and is not currently visible to customers. ' +
         'If you believe this is in error, please contact our support team.',
       headerGradient: 'linear-gradient(135deg,#DC2626 0%,#EF4444 100%)',
-      ctaGradient: 'linear-gradient(135deg,#DC2626,#EF4444)',
+      ctaGradient: 'linear-gradient(135deg,#B91C1C,#DC2626)',
       ctaText: 'Contact Support',
     },
   };

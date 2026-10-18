@@ -192,7 +192,7 @@ describe('supplier-verification-status template', () => {
     ctaGradient: 'linear-gradient(135deg,#059669,#10B981)',
     ctaText: 'Go to Dashboard',
     notesSection: '',
-    dashboardUrl: 'https://event-flow.co.uk/dashboard-supplier',
+    dashboardUrl: 'https://event-flow.co.uk/dashboard/supplier',
     supportEmail: 'support@event-flow.co.uk',
   };
 
@@ -603,7 +603,7 @@ describe('Email preview registry, preheaders and plain text', () => {
       name: '<img src=x onerror=alert(1)>',
       ticketSubject: '<script>alert(1)</script>',
       replyMessageHtml: 'Hello&lt;br&gt;&lt;strong&gt;escaped&lt;/strong&gt;',
-      ticketUrl: 'https://event-flow.co.uk/tickets/t1',
+      ticketUrl: 'https://event-flow.co.uk/support',
       supportEmail: 'support@event-flow.co.uk',
       preheader: registry.getPreheader('support-ticket-reply'),
     });
@@ -620,11 +620,70 @@ describe('Email preview registry, preheaders and plain text', () => {
     expect(src).toContain('safeLineBreakHtml(message)');
   });
 
-  test('email branding keeps text-only fallback and avoids remote logo dependency', () => {
+  test('emails carry the real EventFlow logos with readable alt text and no BIMI dependency', () => {
     const html = loadEmailTemplate('verification', registry.buildSampleData('verification'));
-    expect(html).toContain('Event planning made simple');
-    expect(html).toContain('>EF</span>');
+    expect(html).toMatch(
+      /<img[^>]+src="[^"]*\/assets\/email\/eventflow-wordmark\.png\?v=\d+"[^>]*alt="EventFlow"/
+    );
+    // The footer mark sits beside the text "EventFlow", so it is decorative.
+    expect(html).toMatch(
+      /<img[^>]+src="[^"]*\/assets\/email\/eventflow-mark-white\.png\?v=\d+"[^>]*alt=""/
+    );
+    expect(html).not.toContain('>EF</td>');
     expect(html).not.toContain('/bimi.svg');
+  });
+
+  test('every email names the sender in the footer and links the shared footer pages', () => {
+    fs.readdirSync(TEMPLATES_DIR)
+      .filter(f => f.endsWith('.html'))
+      .forEach(file => {
+        const html = fs.readFileSync(path.join(TEMPLATES_DIR, file), 'utf8');
+        expect(html).toContain('Operated by VEXI');
+        ['/privacy', '/terms', '/faq', '/contact'].forEach(route => {
+          expect(html).toContain(`{{baseUrl}}${route}"`);
+        });
+      });
+  });
+
+  test('preheader is padded so inbox previews do not pull in body text', () => {
+    const html = loadEmailTemplate('verification', registry.buildSampleData('verification'));
+    expect(html).toMatch(/class="ef-preheader"[^>]*>[^<]*(&#847;&zwnj;&nbsp;){10,}/);
+  });
+
+  test('plain-text bodies never print undefined, NaN or object placeholders', () => {
+    registry.listTemplateDetails().forEach(({ name, sampleData }) => {
+      const text = registry.renderPlainTextTemplate(name, sampleData);
+      expect(text).not.toMatch(/undefined|NaN|\[object/);
+    });
+  });
+
+  test('billing plain-text bodies use the template variables and show the £ symbol', () => {
+    const activated = registry.renderPlainTextTemplate('subscription-activated', {});
+    expect(activated).toContain('Next billing date: 12 April 2026');
+    expect(activated).toContain('£29.00/month');
+    const cancelled = registry.renderPlainTextTemplate('subscription-cancelled', {});
+    expect(cancelled).toContain('Access remains available until: 12 April 2026');
+    const failed = registry.renderPlainTextTemplate('subscription-payment-failed', {});
+    expect(failed).toContain('£29.00');
+  });
+
+  test('day counts in reminder emails come from pre-pluralised labels', () => {
+    const renewal = loadEmailTemplate('subscription-renewal-reminder', {
+      ...registry.buildSampleData('subscription-renewal-reminder'),
+      daysUntilRenewalLabel: '1 day',
+    });
+    expect(renewal).toContain('will renew in 1 day.');
+    const trial = loadEmailTemplate('subscription-trial-ending', {
+      ...registry.buildSampleData('subscription-trial-ending'),
+      daysLeftLabel: '1 day',
+    });
+    expect(trial).toContain('ends in 1 day, on');
+  });
+
+  test('new-message footer links to a real settings page', () => {
+    const html = loadEmailTemplate('new-message', registry.buildSampleData('new-message'));
+    expect(html).not.toContain('/settings/notifications');
+    expect(html).toContain('/settings"');
   });
 });
 
@@ -639,5 +698,27 @@ describe('Admin email previews route module', () => {
     expect(src).toContain('writeLimiter');
     expect(src).toContain('[TEST]');
     expect(src).toContain('validator.isEmail');
+  });
+});
+
+describe('formatEmailTimestamp', () => {
+  const { formatEmailTimestamp } = require('../../utils/postmark');
+
+  test('formats in UK date order and London time regardless of server locale', () => {
+    // BST (UTC+1) runs until Sunday 25 October 2026, so 18:25 UTC is 19:25 local.
+    const formatted = formatEmailTimestamp(new Date('2026-10-18T18:25:00Z'));
+    expect(formatted).toBe('18 October 2026 at 19:25 BST');
+  });
+
+  test('renders midnight as 00:05, never 24:05', () => {
+    expect(formatEmailTimestamp(new Date('2026-12-01T00:05:00Z'))).toBe(
+      '1 December 2026 at 00:05 GMT'
+    );
+  });
+
+  test('switches to GMT in winter', () => {
+    expect(formatEmailTimestamp(new Date('2026-12-01T09:05:00Z'))).toBe(
+      '1 December 2026 at 09:05 GMT'
+    );
   });
 });

@@ -361,7 +361,7 @@ async function sendActionPromptEmail(user, report, baseUrl, dryRun) {
     loginUrl,
     managePrefsUrl,
     unsubscribeSection: unsubscribeUrl
-      ? `&nbsp;&middot;&nbsp;<a href="${unsubscribeUrl}" style="color:#94A3B8;text-decoration:none;">Unsubscribe from reminders</a>`
+      ? `&nbsp;&middot;&nbsp;<a href="${unsubscribeUrl}" style="color:#006D7F;text-decoration:none;font-weight:600;">Unsubscribe from reminders</a>`
       : '',
   };
 

@@ -2,6 +2,7 @@
 
 const fs = require('fs');
 const path = require('path');
+const { buildEmailButton } = require('./emailComponents');
 
 const APP_BASE_URL = process.env.APP_BASE_URL || process.env.BASE_URL || 'http://localhost:3000';
 const SUPPORT_EMAIL = process.env.SUPPORT_EMAIL || 'support@event-flow.co.uk';
@@ -206,6 +207,7 @@ const META = {
       'name',
       'planName',
       'daysUntilRenewal',
+      'daysUntilRenewalLabel',
       'renewalDate',
       'amount',
       'autoRenew',
@@ -221,6 +223,7 @@ const META = {
       'planName',
       'trialDays',
       'daysLeft',
+      'daysLeftLabel',
       'trialEndDate',
       'amount',
       'billingCycle',
@@ -251,15 +254,15 @@ function buildSampleData(name) {
     notification: {
       title: 'Your EventFlow notification settings were updated',
       message: 'This is a sample account notification for preview and deliverability review.',
-      preferencesLink: `${APP_BASE_URL}/settings/notifications`,
-      ctaSection: `<table width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td align="center"><a href="${APP_BASE_URL}/settings" style="display:inline-block;padding:15px 40px;background:#0B8073;color:#ffffff;text-decoration:none;border-radius:10px;font-weight:700;">Review settings</a></td></tr></table>`,
+      preferencesLink: `${APP_BASE_URL}/settings`,
+      ctaSection: `<table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom:24px;"><tr><td align="center">${buildEmailButton(`${APP_BASE_URL}/settings`, 'Review settings')}</td></tr></table>`,
     },
     'support-ticket-reply': {
       name: 'Olivia Hart',
       ticketSubject: 'Question about supplier package approval',
       replyMessageHtml:
         '<p>Thanks for getting in touch. Your package is now with our supplier review team.</p><p>We will update you as soon as the review is complete, usually within one working day.</p>',
-      ticketUrl: `${APP_BASE_URL}/tickets/ticket-preview-123`,
+      ticketUrl: `${APP_BASE_URL}/support`,
       supportEmail: SUPPORT_EMAIL,
       preheader: 'The EventFlow Support Team has replied to your ticket.',
     },
@@ -268,8 +271,8 @@ function buildSampleData(name) {
       actionsHtml:
         '<ul><li>Add two more portfolio images.</li><li>Confirm your service area.</li></ul>',
       loginUrl: `${APP_BASE_URL}/dashboard/supplier`,
-      managePrefsUrl: `${APP_BASE_URL}/settings/notifications`,
-      unsubscribeSection: ` &middot; <a href="${APP_BASE_URL}/api/auth/unsubscribe?preview=1" style="color:#94A3B8;text-decoration:none;">Unsubscribe from reminders</a>`,
+      managePrefsUrl: `${APP_BASE_URL}/settings`,
+      unsubscribeSection: ` &middot; <a href="${APP_BASE_URL}/api/auth/unsubscribe?preview=1" style="color:#006D7F;text-decoration:none;font-weight:600;">Unsubscribe from reminders</a>`,
     },
     'newsletter-confirm': {
       confirmLink: `${APP_BASE_URL}/api/newsletter/confirm?token=preview-token`,
@@ -286,7 +289,7 @@ function buildSampleData(name) {
       statusTitle: 'Verification approved',
       statusMessage: 'Your supplier profile has passed review and is ready to receive enquiries.',
       notesSection:
-        '<div style="background:#F0FDF4;border:1px solid #BBF7D0;border-radius:10px;padding:12px 14px;"><strong>Reviewer note:</strong> Portfolio and insurance details look complete.</div>',
+        '<div style="background:#F0FDF4;border:1px solid #BBF7D0;border-radius:10px;padding:12px 14px;margin-bottom:24px;"><strong>Reviewer note:</strong> Portfolio and insurance details look complete.</div>',
       dashboardUrl: `${APP_BASE_URL}/dashboard/supplier`,
       headerGradient: 'linear-gradient(135deg,#059669,#10B981)',
       ctaGradient: 'linear-gradient(135deg,#059669,#10B981)',
@@ -302,7 +305,7 @@ function buildSampleData(name) {
       trialRow: '',
       renewalDate: '12 April 2026',
       amount: '29.00',
-      billingCycle: 'monthly',
+      billingCycle: 'month',
       features:
         '<li>Unlimited messaging</li><li>Advanced analytics</li><li>Priority listing</li><li>Priority support</li>',
     },
@@ -315,7 +318,7 @@ function buildSampleData(name) {
       newPlan: 'Professional',
       effectiveDate: '12 March 2026',
       amount: '29.00',
-      billingCycle: 'monthly',
+      billingCycle: 'month',
       features: '<li>Unlimited packages</li><li>Priority placement</li>',
     },
     'subscription-downgrade-scheduled': {
@@ -323,7 +326,7 @@ function buildSampleData(name) {
       newPlan: 'Starter',
       currentAmount: '29.00',
       newAmount: '9.00',
-      billingCycle: 'monthly',
+      billingCycle: 'month',
       effectiveDate: '12 April 2026',
     },
     'subscription-payment-failed': {
@@ -335,6 +338,7 @@ function buildSampleData(name) {
     'subscription-renewal-reminder': {
       planName: 'Professional',
       daysUntilRenewal: '3',
+      daysUntilRenewalLabel: '3 days',
       renewalDate: '12 April 2026',
       amount: '29.00',
       autoRenew: 'Enabled',
@@ -345,9 +349,10 @@ function buildSampleData(name) {
       planName: 'Professional',
       trialDays: '14',
       daysLeft: '3',
+      daysLeftLabel: '3 days',
       trialEndDate: '19 March 2026',
       amount: '29.00',
-      billingCycle: 'monthly',
+      billingCycle: 'month',
     },
     'new-message': {
       senderName: 'Jordan Lee',
@@ -431,183 +436,205 @@ function stripHtml(value) {
     .trim();
 }
 
+/**
+ * Plain-text bodies per template. Each builder receives the sample data merged
+ * with the real send data and returns the lines that follow the greeting.
+ * Templates without an entry use `defaultPlainTextBody`.
+ */
+const PLAIN_TEXT_BODIES = {
+  verification: m => [
+    'Confirm your email address to finish setting up your EventFlow account.',
+    '',
+    `Confirm your email: ${m.verificationLink}`,
+    '',
+    'If you did not create an EventFlow account, you can ignore this email.',
+  ],
+  'password-reset': m => [
+    'Use this secure link to reset your EventFlow password. It expires in 1 hour.',
+    '',
+    `Reset your password: ${m.resetLink}`,
+    '',
+    'If you did not request this reset, ignore this email and your password will stay unchanged.',
+  ],
+  'password-reset-confirmation': m => [
+    `Your EventFlow password was changed successfully${m.resetTime ? ` at ${m.resetTime}` : ''}.`,
+    '',
+    `If this was not you, contact ${SUPPORT_EMAIL} immediately.`,
+  ],
+  'welcome-customer': () => [
+    'Your event planning dashboard is ready.',
+    '',
+    `Start planning: ${APP_BASE_URL}/dashboard/customer`,
+    '',
+    `Need help? Email ${HELLO_EMAIL}.`,
+  ],
+  welcome: () => [
+    'Your event planning dashboard is ready.',
+    '',
+    `Start planning: ${APP_BASE_URL}/start`,
+    '',
+    `Need help? Email ${HELLO_EMAIL}.`,
+  ],
+  'welcome-supplier': () => [
+    'Complete your supplier profile and prepare to receive enquiries.',
+    '',
+    `Open your supplier dashboard: ${APP_BASE_URL}/dashboard/supplier`,
+    '',
+    `Need support? Email ${SUPPORT_EMAIL}.`,
+  ],
+  'partner-welcome': m => [
+    `Your referral code is ${m.refCode}.`,
+    '',
+    `Referral link: ${m.refLink}`,
+    `Partner dashboard: ${m.dashboardLink}`,
+  ],
+  'supplier-verification-status': m => [
+    m.statusTitle,
+    stripHtml(m.statusMessage),
+    stripHtml(m.notesSection),
+    '',
+    `${m.ctaText || 'Open dashboard'}: ${m.dashboardUrl}`,
+    '',
+    `Questions? Email ${m.supportEmail || SUPPORT_EMAIL}.`,
+  ],
+  'support-ticket-reply': m => [
+    'We’ve replied to your support ticket.',
+    '',
+    `Ticket: ${m.ticketSubject}`,
+    '',
+    stripHtml(m.replyMessageHtml),
+    '',
+    `View your ticket: ${m.ticketUrl}`,
+    '',
+    `The EventFlow Support Team — ${m.supportEmail || SUPPORT_EMAIL}`,
+  ],
+  'contact-enquiry-reply': m => [
+    'We’ve replied to your enquiry.',
+    '',
+    `Enquiry: ${m.enquirySubject}`,
+    '',
+    stripHtml(m.replyMessageHtml),
+    '',
+    `Contact us again: ${APP_BASE_URL}/contact`,
+    '',
+    `The EventFlow Team — ${m.supportEmail || SUPPORT_EMAIL}`,
+  ],
+  'review-request': m => [
+    `${m.supplierName} invited you to leave a review on EventFlow.`,
+    '',
+    `Leave a review: ${m.reviewLink}`,
+    '',
+    `This link expires in ${m.expiresInDays} days.`,
+  ],
+  marketing: m => [m.title, '', stripHtml(m.message), '', `Unsubscribe: ${m.unsubscribeLink}`],
+  'newsletter-confirm': m => [
+    'Confirm your subscription to receive EventFlow updates.',
+    '',
+    `Confirm subscription: ${m.confirmLink}`,
+  ],
+  'newsletter-welcome': m => [
+    'You are now subscribed to EventFlow updates.',
+    '',
+    `Browse suppliers: ${APP_BASE_URL}/suppliers`,
+    '',
+    `Unsubscribe: ${m.unsubscribeLink}`,
+  ],
+  'subscription-payment-failed': m => [
+    `We could not collect £${m.amount} for your ${m.planName} supplier subscription on ${m.attemptDate}.`,
+    '',
+    `Your premium features are paused. Update your payment method to restore them straight away — we'll also automatically retry the charge on ${m.nextRetryDate}.`,
+    '',
+    `Manage billing: ${APP_BASE_URL}/supplier/subscription`,
+    '',
+    `Need help? Email ${SUPPORT_EMAIL}.`,
+  ],
+  'subscription-activated': m => [
+    `Your ${m.planName} supplier subscription is active.`,
+    '',
+    `Amount: £${m.amount}/${m.billingCycle}`,
+    `Next billing date: ${m.renewalDate}`,
+    '',
+    `Manage subscription: ${APP_BASE_URL}/supplier/subscription`,
+  ],
+  'subscription-cancelled': m => [
+    `Your ${m.planName} supplier subscription cancellation has been confirmed.`,
+    '',
+    `Access remains available until: ${m.endDate}`,
+    '',
+    `Manage subscription: ${APP_BASE_URL}/supplier/subscription`,
+  ],
+  'subscription-upgraded': m => [
+    `Your EventFlow plan has been upgraded from ${m.previousPlan} to ${m.newPlan}.`,
+    '',
+    `Effective date: ${m.effectiveDate}`,
+    `Amount: £${m.amount}/${m.billingCycle}`,
+    '',
+    `Open your dashboard: ${APP_BASE_URL}/dashboard/supplier`,
+  ],
+  'subscription-downgrade-scheduled': m => [
+    `Your EventFlow plan will change from ${m.currentPlan} to ${m.newPlan} on ${m.effectiveDate}.`,
+    `You keep your ${m.currentPlan} features until then.`,
+    '',
+    `Current billing: £${m.currentAmount}/${m.billingCycle}`,
+    `New billing: £${m.newAmount}/${m.billingCycle}`,
+    '',
+    `Manage subscription: ${APP_BASE_URL}/supplier/subscription`,
+  ],
+  'subscription-renewal-reminder': m => [
+    `Your ${m.planName} subscription renews in ${m.daysUntilRenewalLabel}, on ${m.renewalDate}.`,
+    '',
+    `Amount: £${m.amount}`,
+    `Auto-renew: ${m.autoRenew}`,
+    '',
+    m.renewalMessage,
+    '',
+    `Manage subscription: ${APP_BASE_URL}/supplier/subscription`,
+  ],
+  'subscription-trial-ending': m => [
+    `Your ${m.trialDays}-day free trial of ${m.planName} ends in ${m.daysLeftLabel}, on ${m.trialEndDate}.`,
+    '',
+    `After the trial your paid subscription begins automatically: £${m.amount}/${m.billingCycle}. You can cancel before ${m.trialEndDate} at no charge.`,
+    '',
+    `Manage subscription: ${APP_BASE_URL}/supplier/subscription`,
+  ],
+  'new-message': m => {
+    const contextText = m.contextSuffix ? ` ${stripHtml(m.contextSuffix)}` : '';
+    return [
+      `${m.senderName} sent you a message${contextText}:`,
+      '',
+      `"${stripHtml(m.previewHtml)}"`,
+      '',
+      `View conversation: ${m.conversationUrl}`,
+    ];
+  },
+};
+
+/**
+ * Fallback plain-text body for templates without a curated one.
+ * @param {Object} m - Merged template data
+ * @param {string} name - Template name
+ * @returns {string[]} Lines after the greeting
+ */
+const defaultPlainTextBody = (m, name) => [
+  m.title || getPreheader(name),
+  '',
+  stripHtml(m.message || m.statusMessage || ''),
+  '',
+  `Open EventFlow: ${APP_BASE_URL}`,
+];
+
+/**
+ * Render the plain-text alternative of a local template.
+ * @param {string} name - Template name
+ * @param {Object} [data] - Real send data; missing keys fall back to sample data
+ * @returns {string} Plain text with no HTML and no unresolved placeholders
+ */
 function renderPlainTextTemplate(name, data = {}) {
   const merged = { ...buildSampleData(name), ...data };
-  const lines = [`EventFlow`, '', `Hi ${merged.name || 'there'},`, ''];
-  switch (name) {
-    case 'verification':
-      lines.push(
-        'Confirm your email address to finish setting up your EventFlow account.',
-        '',
-        `Confirm your email: ${merged.verificationLink}`,
-        '',
-        'If you did not create an EventFlow account, you can ignore this email.'
-      );
-      break;
-    case 'password-reset':
-      lines.push(
-        'Use this secure link to reset your EventFlow password. It expires in 1 hour.',
-        '',
-        `Reset your password: ${merged.resetLink}`,
-        '',
-        'If you did not request this reset, ignore this email and your password will stay unchanged.'
-      );
-      break;
-    case 'password-reset-confirmation':
-      lines.push(
-        `Your EventFlow password was changed successfully${merged.resetTime ? ` at ${merged.resetTime}` : ''}.`,
-        '',
-        `If this was not you, contact ${SUPPORT_EMAIL} immediately.`
-      );
-      break;
-    case 'welcome-customer':
-    case 'welcome':
-      lines.push(
-        'Your event planning dashboard is ready.',
-        '',
-        `Start planning: ${APP_BASE_URL}/start`,
-        '',
-        `Need help? Email ${HELLO_EMAIL}.`
-      );
-      break;
-    case 'welcome-supplier':
-      lines.push(
-        'Complete your supplier profile and prepare to receive enquiries.',
-        '',
-        `Open your supplier dashboard: ${APP_BASE_URL}/dashboard/supplier`,
-        '',
-        `Need support? Email ${SUPPORT_EMAIL}.`
-      );
-      break;
-    case 'partner-welcome':
-      lines.push(
-        `Your referral code is ${merged.refCode}.`,
-        '',
-        `Referral link: ${merged.refLink}`,
-        `Partner dashboard: ${merged.dashboardLink}`
-      );
-      break;
-    case 'supplier-verification-status':
-      lines.push(
-        merged.statusTitle,
-        stripHtml(merged.statusMessage),
-        stripHtml(merged.notesSection),
-        '',
-        `${merged.ctaText || 'Open dashboard'}: ${merged.dashboardUrl}`,
-        '',
-        `Questions? Email ${merged.supportEmail || SUPPORT_EMAIL}.`
-      );
-      break;
-    case 'support-ticket-reply':
-      lines.push(
-        'We’ve replied to your support ticket.',
-        '',
-        `Ticket: ${merged.ticketSubject}`,
-        '',
-        stripHtml(merged.replyMessageHtml),
-        '',
-        `View your ticket: ${merged.ticketUrl}`,
-        '',
-        `The EventFlow Support Team — ${merged.supportEmail || SUPPORT_EMAIL}`
-      );
-      break;
-    case 'contact-enquiry-reply':
-      lines.push(
-        'We’ve replied to your enquiry.',
-        '',
-        `Enquiry: ${merged.enquirySubject}`,
-        '',
-        stripHtml(merged.replyMessageHtml),
-        '',
-        `Contact us again: ${APP_BASE_URL}/contact`,
-        '',
-        `The EventFlow Team — ${merged.supportEmail || SUPPORT_EMAIL}`
-      );
-      break;
-    case 'review-request':
-      lines.push(
-        `${merged.supplierName} invited you to leave a review on EventFlow.`,
-        '',
-        `Leave a review: ${merged.reviewLink}`,
-        '',
-        `This link expires in ${merged.expiresInDays} days.`
-      );
-      break;
-    case 'new-message': {
-      const contextText = merged.contextSuffix ? ` ${stripHtml(merged.contextSuffix)}` : '';
-      lines.push(
-        `${merged.senderName} sent you a message${contextText}:`,
-        '',
-        `"${stripHtml(merged.previewHtml)}"`,
-        '',
-        `View conversation: ${merged.conversationUrl}`
-      );
-      break;
-    }
-    case 'marketing':
-      lines.push(
-        merged.title,
-        '',
-        stripHtml(merged.message),
-        '',
-        `Unsubscribe: ${merged.unsubscribeLink}`
-      );
-      break;
-    case 'newsletter-confirm':
-      lines.push(
-        'Confirm your subscription to receive EventFlow updates.',
-        '',
-        `Confirm subscription: ${merged.confirmLink}`
-      );
-      break;
-    case 'newsletter-welcome':
-      lines.push(
-        'You are now subscribed to EventFlow updates.',
-        '',
-        `Browse suppliers: ${APP_BASE_URL}/suppliers`,
-        '',
-        `Unsubscribe: ${merged.unsubscribeLink}`
-      );
-      break;
-    case 'subscription-payment-failed':
-      lines.push(
-        `We could not collect ${merged.amount} for your ${merged.planName} supplier subscription on ${merged.attemptDate}.`,
-        '',
-        `Your premium features are paused. Update your payment method to restore them straight away — we'll also automatically retry the charge on ${merged.nextRetryDate}.`,
-        '',
-        `Manage billing: ${APP_BASE_URL}/supplier/subscription`,
-        '',
-        `Need help? Email ${SUPPORT_EMAIL}.`
-      );
-      break;
-    case 'subscription-activated':
-      lines.push(
-        `Your ${merged.planName} supplier subscription is active.`,
-        '',
-        `Amount: ${merged.amount} (${merged.billingCycle})`,
-        `Next billing date: ${merged.nextBillingDate}`,
-        '',
-        `Manage subscription: ${APP_BASE_URL}/supplier/subscription`
-      );
-      break;
-    case 'subscription-cancelled':
-      lines.push(
-        `Your ${merged.planName} supplier subscription cancellation has been confirmed.`,
-        '',
-        `Access remains available until: ${merged.accessEndDate}`,
-        '',
-        `Manage subscription: ${APP_BASE_URL}/supplier/subscription`
-      );
-      break;
-    default:
-      lines.push(
-        merged.title || getPreheader(name),
-        '',
-        stripHtml(merged.message || merged.statusMessage || ''),
-        '',
-        `Open EventFlow: ${APP_BASE_URL}`
-      );
-  }
+  const body = Object.hasOwn(PLAIN_TEXT_BODIES, name)
+    ? PLAIN_TEXT_BODIES[name](merged)
+    : defaultPlainTextBody(merged, name);
+  const lines = ['EventFlow', '', `Hi ${merged.name || 'there'},`, '', ...body];
   return lines
     .filter((line, index, arr) => line !== '' || arr[index - 1] !== '')
     .join('\n')

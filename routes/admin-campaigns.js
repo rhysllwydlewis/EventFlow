@@ -24,6 +24,7 @@ const { csrfProtection } = require('../middleware/csrf');
 const { writeLimiter } = require('../middleware/rateLimits');
 const dbUnified = require('../db-unified');
 const postmark = require('../utils/postmark');
+const { renderEmailButton } = require('../utils/emailComponents');
 const { EMAIL_ENABLED } = require('../config/email');
 const {
   sanitizeContent,
@@ -131,11 +132,11 @@ function buildTemplateData(fields) {
   // Append a CTA button to the message body if both button fields are present
   let message = blocks.join('\n');
   if (ctaText && ctaUrl) {
-    // Inline-styled button for email client compatibility (existing template uses inline styles)
-    message += `\n<p style="margin:24px 0 0;text-align:center;">
-  <a href="${escapeAttr(ctaUrl)}"
-     style="display:inline-block;background:#0B8073;color:#ffffff;text-decoration:none;font-size:15px;font-weight:700;padding:14px 32px;border-radius:10px;">${escapeHtml(ctaText)}</a>
-</p>`;
+    // Same button as every other email, so campaigns match the rest of the system.
+    message += `\n<div style="margin:24px 0 0;">${renderEmailButton({
+      href: escapeAttr(ctaUrl),
+      label: escapeHtml(ctaText),
+    })}</div>`;
   }
 
   return { title, message, name };

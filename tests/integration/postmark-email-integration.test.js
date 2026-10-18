@@ -221,6 +221,45 @@ describe('Postmark — sendMail with mocked client', () => {
     expect(htmlBody).not.toContain('<script>');
     expect(htmlBody).not.toContain('alert(1)');
   });
+
+  it('sendNotificationEmail renders the shared button for a valid action and none for a bad URL', async () => {
+    const user = { email: 'notify@example.com', name: 'Notify User', notify_account: true };
+    await postmark.sendNotificationEmail(user, 'Subject', 'Body', {
+      actionUrl: 'https://event-flow.co.uk/dashboard/customer',
+      actionText: 'Open <dashboard>',
+    });
+    const withCta = mockSendEmail.mock.calls[0][0].HtmlBody;
+    expect(withCta).toContain('class="cta-button"');
+    expect(withCta).toContain('href="https://event-flow.co.uk/dashboard/customer"');
+    expect(withCta).toContain('Open &lt;dashboard&gt;');
+
+    mockSendEmail.mockClear();
+    await postmark.sendNotificationEmail(user, 'Subject', 'Body', {
+      actionUrl: 'javascript:alert(1)',
+      actionText: 'Click',
+    });
+    const withoutCta = mockSendEmail.mock.calls[0][0].HtmlBody;
+    expect(withoutCta).not.toContain('javascript:');
+    expect(withoutCta).not.toContain('class="cta-button"');
+  });
+
+  it('sendMarketingEmail renders the shared button and skips a non-http(s) CTA link', async () => {
+    const user = { email: 'marketing@example.com', name: 'M', notify_marketing: true };
+    await postmark.sendMarketingEmail(user, 'Subject', 'Body', {
+      ctaText: 'See offer',
+      ctaLink: 'https://event-flow.co.uk/offers',
+    });
+    expect(mockSendEmail.mock.calls[0][0].HtmlBody).toContain('class="cta-button"');
+
+    mockSendEmail.mockClear();
+    await postmark.sendMarketingEmail(user, 'Subject', 'Body', {
+      ctaText: 'See offer',
+      ctaLink: 'ftp://nope',
+    });
+    const html = mockSendEmail.mock.calls[0][0].HtmlBody;
+    expect(html).not.toContain('class="cta-button"');
+    expect(html).not.toContain('href="#"');
+  });
 });
 
 describe('Postmark — Email Function Contracts', () => {
@@ -255,6 +294,13 @@ describe('Postmark — Email Function Contracts', () => {
     const fnBody = src.substring(fnStart, fnStart + 600);
     expect(fnBody).toContain('resetLink');
     expect(fnBody).toContain('encodeURIComponent');
+  });
+
+  it('sendPasswordResetConfirmation formats the time for UK readers, not the server locale', () => {
+    const fnStart = src.indexOf('function sendPasswordResetConfirmation');
+    const fnBody = src.substring(fnStart, fnStart + 700);
+    expect(fnBody).toContain('formatEmailTimestamp(new Date())');
+    expect(fnBody).not.toContain('toLocaleString()');
   });
 
   it('sendWelcomeEmail uses hello@ from address', () => {
