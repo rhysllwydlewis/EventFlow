@@ -68,8 +68,9 @@ Fields used: `name`, `email`, `phone`, `rsvpStatus` (pending, attending, maybe, 
 
 ## Left alone
 
-The shared `dash-*` utilities and the now-unused `guests-*` rules in `styles.css` were not touched
-(`styles.css` is global and other pages use the `dash-*` classes). The page still loads the shared
+The shared `dash-*` utilities in `styles.css` were not touched (other pages use them). The old
+`guests-*` and `budget-*` page rules were removed from `styles.css` in a later clean-up (nothing
+used them; `styles.css` is `?v=18.5.1`). The page still loads the shared
 site-chrome stylesheets (`styles.css`, `utilities.css`, `components.css`, `mobile-optimizations.css`,
 `ui-ux-fixes.css`, `navbar.css`, `eventflow-brand.css`, `eventflow-footer.css`): the header, footer
 and cookie banner depend on them. `eventflow-17.0.0.css` and `animations.css` were dropped from this
