@@ -551,7 +551,7 @@ router.post(
       // the saved list has moved on; clients that send no version behave as before.
       const checkVersion = baseVersion !== undefined;
       const savedVersion = plan.budgetUpdatedAt || '';
-      const sendConflict = async current => {
+      const sendConflict = current => {
         const latest = current || plan;
         return res.status(409).json({
           error: 'This budget was changed somewhere else. Reload to see the latest.',
