@@ -68,7 +68,7 @@
   function readStorage(key) {
     try {
       return window.localStorage.getItem(key);
-    } catch (_) {
+    } catch {
       return null;
     }
   }
@@ -78,7 +78,7 @@
     try {
       window.localStorage.setItem(key, value);
       return true;
-    } catch (_) {
+    } catch {
       return false;
     }
   }
@@ -91,7 +91,7 @@
     }
     try {
       return JSON.parse(raw);
-    } catch (_) {
+    } catch {
       return null;
     }
   }
@@ -114,7 +114,7 @@
     if (match) {
       try {
         return decodeURIComponent(match[1]);
-      } catch (_) {
+      } catch {
         return match[1];
       }
     }
@@ -135,7 +135,7 @@
         window.__CSRF_TOKEN__ = token;
       }
       return token;
-    } catch (_) {
+    } catch {
       return '';
     }
   }
@@ -153,7 +153,7 @@
     }
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
-    let res;
+    let res = null;
     try {
       res = await fetch(path, {
         method,
@@ -162,7 +162,7 @@
         signal: controller.signal,
         body: options.body ? JSON.stringify(options.body) : undefined,
       });
-    } catch (_) {
+    } catch {
       throw new Error('We could not reach EventFlow. Check your connection and try again.');
     } finally {
       clearTimeout(timer);
@@ -261,7 +261,7 @@
     state.status = 'loading';
     state.error = '';
     render();
-    let plans;
+    let plans = [];
     try {
       const data = await api('/api/me/plans');
       plans = Array.isArray(data.plans) ? data.plans : [];
@@ -377,7 +377,7 @@
     const parts = [];
     if (state.status === 'ready' && state.mode === 'device') {
       parts.push(
-        `<div class="bp-notice"><p><strong>Saved on this device only.</strong> Create an event plan to keep your budget in your account and see it on your dashboard.</p><a class="bp-btn bp-btn--secondary" href="/start">Create an event plan</a></div>`
+        '<div class="bp-notice"><p><strong>Saved on this device only.</strong> Create an event plan to keep your budget in your account and see it on your dashboard.</p><a class="bp-btn bp-btn--secondary" href="/start">Create an event plan</a></div>'
       );
     }
     if (
@@ -442,7 +442,8 @@
       return;
     }
     if (!state.items.length && !state.total) {
-      host.innerHTML = `<div class="bp-state"><h2 class="bp-h2" id="bp-summary-title">Start your budget</h2><p>Set a total, then add what you expect to pay for, such as the venue, catering and photography. Add the real cost and what you have paid as things are confirmed, and your remaining budget updates as you go.</p><div class="bp-state__actions"><button type="button" class="bp-btn bp-btn--primary" data-action="add">Add your first item</button><button type="button" class="bp-btn bp-btn--secondary" data-action="set-budget">Set total budget</button></div></div>`;
+      host.innerHTML =
+        '<div class="bp-state"><h2 class="bp-h2" id="bp-summary-title">Start your budget</h2><p>Set a total, then add what you expect to pay for, such as the venue, catering and photography. Add the real cost and what you have paid as things are confirmed, and your remaining budget updates as you go.</p><div class="bp-state__actions"><button type="button" class="bp-btn bp-btn--primary" data-action="add">Add your first item</button><button type="button" class="bp-btn bp-btn--secondary" data-action="set-budget">Set total budget</button></div></div>';
       return;
     }
     const figures = Calc.summarise(state.items, state.total);
@@ -574,12 +575,14 @@
     renderFilters();
     const host = byId('bp-items');
     if (!state.items.length) {
-      host.innerHTML = `<div class="bp-state bp-state--inline"><p>No items yet. Add the first thing you expect to pay for.</p><button type="button" class="bp-btn bp-btn--primary" data-action="add">Add item</button></div>`;
+      host.innerHTML =
+        '<div class="bp-state bp-state--inline"><p>No items yet. Add the first thing you expect to pay for.</p><button type="button" class="bp-btn bp-btn--primary" data-action="add">Add item</button></div>';
       return;
     }
     const rows = visibleItems();
     if (!rows.length) {
-      host.innerHTML = `<div class="bp-state bp-state--inline"><p>No items match these filters.</p><button type="button" class="bp-btn bp-btn--secondary" data-action="clear-filters">Clear filters</button></div>`;
+      host.innerHTML =
+        '<div class="bp-state bp-state--inline"><p>No items match these filters.</p><button type="button" class="bp-btn bp-btn--secondary" data-action="clear-filters">Clear filters</button></div>';
       return;
     }
     const totals = {
@@ -686,7 +689,7 @@
 
   /** Opens the item dialog for a new item, or for an existing one when an id is given. */
   function openItemDialog(id) {
-    const item = id ? state.items.find(item => item.id === id) : null;
+    const item = id ? state.items.find(entry => entry.id === id) : null;
     if (id && !item) {
       return;
     }
@@ -821,7 +824,7 @@
 
   /** Opens the delete confirmation for an item. */
   function openDeleteDialog(id) {
-    const item = state.items.find(item => item.id === id);
+    const item = state.items.find(entry => entry.id === id);
     if (!item) {
       return;
     }
@@ -933,7 +936,7 @@
         `eventflow-budget-${today()}.pdf`
       );
       toast('Budget downloaded as PDF');
-    } catch (_) {
+    } catch {
       toast('We could not create the PDF. Try the CSV instead.');
     }
   }
@@ -950,25 +953,32 @@
     }
   }
 
+  /** Click handlers keyed by the data-action value on a button. */
   const ACTIONS = {
+    /** Opens the dialog for a new item. */
     add: () => openItemDialog(null),
+    /** Opens the dialog for the item whose id is on the clicked row. */
     edit: el => openItemDialog(el.dataset.id),
     'set-budget': openBudgetDialog,
     retry: load,
     'import-legacy': importLegacy,
+    /** Hides the import notice until the next visit. */
     'dismiss-import': () => {
       state.importDismissed = true;
       renderNotices();
     },
+    /** Resets both filters and redraws the items. */
     'clear-filters': () => {
       state.filterCategory = '';
       state.filterPayment = '';
       renderItems();
     },
+    /** Closes the export menu and downloads the CSV. */
     'export-csv': () => {
       closeExportMenu();
       exportCsv();
     },
+    /** Closes the export menu and downloads the PDF. */
     'export-pdf': () => {
       closeExportMenu();
       exportPdf();
