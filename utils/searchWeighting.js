@@ -74,6 +74,9 @@ const RANKING_CONFIG = {
     tagMatchBonus: 5,
     // Budget proximity: points awarded when price tier is within 1 level of preference
     budgetProximityBonus: 10,
+    // Most suppliers of one category shown before a feed is topped up with more of the same,
+    // so five suggestions are not five caterers
+    maxPerCategory: 2,
   },
   similarSuppliers: {
     // Base score for same-category match
@@ -567,6 +570,9 @@ function getMatchingFields(item, query) {
   return [...new Set(matchedFields)]; // Remove duplicates
 }
 
+/** What getRankingReason says when none of its signals apply. */
+const DEFAULT_RANKING_REASON = 'Good match for your search';
+
 /**
  * Produce a human-readable primary reason why this supplier ranked where it did.
  *
@@ -637,7 +643,7 @@ function getRankingReason(item, query = '', context = {}) {
     return 'Popular with great reviews';
   }
 
-  return 'Good match for your search';
+  return DEFAULT_RANKING_REASON;
 }
 
 module.exports = {
@@ -648,6 +654,7 @@ module.exports = {
   calculateQualityScore,
   calculateProfileCompleteness,
   getRankingReason,
+  DEFAULT_RANKING_REASON,
   getMatchingSnippets,
   getMatchingFields,
 };

@@ -44,6 +44,7 @@ const {
   getMatchingSnippets,
   getMatchingFields,
   getRankingReason,
+  DEFAULT_RANKING_REASON,
   RANKING_CONFIG,
 } = require('../utils/searchWeighting');
 const { geocodeLocation, calculateDistance } = require('../utils/geocoding');
@@ -1419,9 +1420,24 @@ function buildFallbackMessage(originalQuery, relaxedFilters) {
 async function getPersonalizedFeed(userId, context = {}, options = {}) {
   const { limit = 12, historyDays = 30 } = options;
   const { eventType, location, budget } = context;
+  // Categories the customer's plan has not covered yet (the dashboard works these out from the
+  // plan's budget lines). Compared by canonical name and without regard to case, so an older
+  // listing filed under an alias ("Decorations") still matches the dashboard's "Decor".
+  const categoryKey = value =>
+    (canonicalCategoryValue(value) || String(value || '').trim()).toLowerCase();
+  const neededCategories = new Set(
+    (Array.isArray(context.neededCategories) ? context.neededCategories : [])
+      .filter(c => typeof c === 'string' && c.trim())
+      .map(categoryKey)
+  );
 
+  // Hydrate the same way as supplier search, so a photo that lives on the owner's account or
+  // under the Supplier Bot's source media reaches the dashboard card too.
   const suppliersRaw = await getCachedSuppliers();
-  const suppliers = await hydrateSuppliersWithActivePro(suppliersRaw);
+  const ownerUsers = await getSupplierOwnerUsers();
+  const suppliers = await hydrateSuppliersWithActivePro(
+    enrichSuppliersWithProfilePhotos(suppliersRaw, ownerUsers)
+  );
   const approved = suppliers.filter(s => s.approved);
 
   // Build personalization signals from user search history when userId is known
@@ -1472,10 +1488,24 @@ async function getPersonalizedFeed(userId, context = {}, options = {}) {
 
   // Merge explicit context signals (take precedence over inferred signals)
   const topCategory = eventType || preferredCategories[0] || null;
-  const topLocation = location || preferredLocations[0] || null;
+  // A plan's location is often "Cardiff, Wales" while suppliers say "Cardiff & South Wales", so
+  // match on the town (the part before the first comma).
+  const rawLocation = location || preferredLocations[0] || null;
+  const topLocation = rawLocation ? String(rawLocation).split(',')[0].trim() || null : null;
 
-  const { categoryMatchBonus, locationMatchBonus, tagMatchBonus, budgetProximityBonus } =
-    RANKING_CONFIG.personalization;
+  const {
+    categoryMatchBonus,
+    locationMatchBonus,
+    tagMatchBonus,
+    budgetProximityBonus,
+    maxPerCategory,
+  } = RANKING_CONFIG.personalization;
+
+  // The town as a whole word, so "York" does not also match "Yorkshire" or "Bath" "Bathgate".
+  const escapedTown = topLocation ? topLocation.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') : '';
+  const townPattern = topLocation
+    ? new RegExp(`(?<![\\p{L}\\p{N}])${escapedTown}(?![\\p{L}\\p{N}])`, 'iu')
+    : null;
 
   // Score each approved supplier against personalization signals
   const scored = approved.map(s => {
@@ -1487,11 +1517,7 @@ async function getPersonalizedFeed(userId, context = {}, options = {}) {
       matchReasons.push(topCategory);
     }
 
-    if (
-      topLocation &&
-      typeof s.location === 'string' &&
-      s.location.toLowerCase().includes(topLocation.toLowerCase())
-    ) {
+    if (townPattern && typeof s.location === 'string' && townPattern.test(s.location)) {
       personalizationScore += locationMatchBonus;
       matchReasons.push(topLocation);
     }
@@ -1510,14 +1536,35 @@ async function getPersonalizedFeed(userId, context = {}, options = {}) {
       }
     }
 
+    const needed = Boolean(s.category) && neededCategories.has(categoryKey(s.category));
+
     const personalized = matchReasons.length > 0;
-    return { supplier: s, score: personalizationScore, personalized, matchReasons };
+    return { supplier: s, score: personalizationScore, personalized, matchReasons, needed };
   });
 
-  // Sort by personalization score descending
-  scored.sort((a, b) => b.score - a.score);
+  // Suppliers in a category the plan still needs come first, whatever their quality score (a
+  // strong venue must not push out the photographer the plan has no one for); within each group,
+  // by personalization score descending.
+  scored.sort((a, b) => Number(b.needed) - Number(a.needed) || b.score - a.score);
 
-  const isPersonalized = topCategory !== null || topLocation !== null;
+  // Take the best few of each category first so the feed is not five of the same kind, then top
+  // up with more of the strongest categories if there are not enough different ones.
+  const perCategory = new Map();
+  const picked = [];
+  const overflow = [];
+  scored.forEach(entry => {
+    const key = String(entry.supplier.category || '').toLowerCase();
+    const count = perCategory.get(key) || 0;
+    if (count < maxPerCategory) {
+      perCategory.set(key, count + 1);
+      picked.push(entry);
+    } else {
+      overflow.push(entry);
+    }
+  });
+  const ranked = picked.concat(overflow);
+
+  const isPersonalized = topCategory !== null || topLocation !== null || neededCategories.size > 0;
   const contextSummary = {
     isPersonalized,
     preferredCategory: topCategory,
@@ -1525,19 +1572,29 @@ async function getPersonalizedFeed(userId, context = {}, options = {}) {
     signalSource:
       userId && preferredCategories.length > 0
         ? 'history'
-        : eventType || location || budget !== undefined
+        : eventType || location || budget !== undefined || neededCategories.size > 0
           ? 'context'
           : 'none',
   };
 
-  const results = scored.slice(0, limit).map(({ supplier, personalized }) => ({
-    ...projectPublicSupplierFields(supplier),
-    relevanceScore: calculateQualityScore(supplier),
-    rankingReason: getRankingReason(supplier, '', {
+  // Why a supplier is in the feed. With no search behind it, the catch-all "good match for your
+  // search" is not a reason, so that becomes ''.
+  const reasonFor = ({ supplier, personalized, needed }) => {
+    if (needed) {
+      return `Still to find: ${supplier.category}`;
+    }
+    const reason = getRankingReason(supplier, '', {
       isPersonalized: personalized,
       preferredCategory: topCategory,
       preferredLocation: topLocation,
-    }),
+    });
+    return reason === DEFAULT_RANKING_REASON ? '' : reason;
+  };
+
+  const results = ranked.slice(0, limit).map(entry => ({
+    ...projectPublicSupplierFields(entry.supplier),
+    relevanceScore: calculateQualityScore(entry.supplier),
+    rankingReason: reasonFor(entry),
   }));
 
   return { results, context: contextSummary };

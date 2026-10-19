@@ -466,21 +466,6 @@ th {
   background: #F9FAFB;
 }
 
-/* Conversations/threads */
-#threads-cust,
-.threads-list {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.thread-item {
-  padding: 12px;
-  border: 1px solid var(--border, #E7EAF0);
-  border-radius: 10px;
-  background: #F9FAFB;
-}
-
 /* Message panels */
 .message-panel {
   display: flex;

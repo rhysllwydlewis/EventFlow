@@ -49,6 +49,29 @@ Plans card marks the one in the summary. The budget form saves to that same plan
   steps sit in a real `<details>` ("6 completed").
 - If the plans request fails the page says so and offers a retry; it does not
   show an empty dashboard.
+- **Suggested for you** is `GET /api/v2/search/personalized`, asked with the focus plan's
+  location and the supplier categories the plan has not covered yet (`needed`). A budget category
+  counts as covered once the plan has a budget line whose category contains its name, so "Venue
+  hire" covers Venue (`CustomerDashboardHome.neededSupplierCategories`: Venue, Catering,
+  Photography, Entertainment, Decor, Transport, and Attire for a wedding, each mapped to the
+  supplier categories it stands for). Suppliers in a still-needed category come first, whatever
+  their rating (a strong venue does not push out the photographer the plan has no one for), ordered
+  by quality with a boost for the plan's town; suppliers in categories the plan already has only
+  fill the rest.
+  No more than two of one category come before the others. A card with no real reason shows none
+  (never "good match for your search": nobody searched); a still-needed one says "Still to find:
+  Photography". Each card opens the supplier's public profile (`publicProfilePath`, built by the
+  server), and shows their photo (`profilePhotoUrl`, else `displayAvatarUrl`, `avatarUrl`, `logo`)
+  or, with none, the shared placeholder from `utils/supplier-avatar.js`: white initials on that
+  supplier's own colour. The response is `private` and never stored in the shared search cache,
+  because it depends on who is signed in.
+- **Account-type notice** ("Want to list a business? Switch to a supplier account."): shown to
+  customers until dismissed (per browser). Its layout follows its own width (container query
+  units): one line with the whole sentence on desktop and tablet (the text scaling down to 12px
+  as it narrows), one line with just the question on a narrower tablet, and two lines on a phone
+  (the question, then Switch and Dismiss side by side; the label shortens to "Switch" under about
+  345px, keeping the full accessible name). Browsers without container queries get the same
+  steps from the screen width. Both buttons keep the site's 44px touch target.
 
 ## Stylesheet
 

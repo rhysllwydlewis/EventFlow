@@ -1797,16 +1797,14 @@ body.ef-cookie-banner-open #ef-pwa-install-banner {
   }
 }
 
-/* Ticket and Messaging Components */
-.ticket-list,
-.thread-list {
+/* Ticket Components */
+.ticket-list {
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
 }
 
-.ticket-item,
-.thread-item {
+.ticket-item {
   transition:
     background 0.2s,
     transform 0.2s,
@@ -1814,8 +1812,7 @@ body.ef-cookie-banner-open #ef-pwa-install-banner {
   border-radius: 10px;
 }
 
-.ticket-item:hover,
-.thread-item:hover {
+.ticket-item:hover {
   background: rgba(11, 128, 115, 0.04);
   transform: translateY(-2px);
   box-shadow: 0 4px 14px rgba(11, 128, 115, 0.1);

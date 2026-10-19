@@ -24,52 +24,53 @@
   }
 
   /**
-   * Sanitize a URL to only allow http/https schemes (blocks javascript: URIs).
+   * Markup for a supplier's avatar: their photo when they have one, otherwise the shared initials
+   * placeholder (white initials on a colour that is the same for that supplier everywhere — see
+   * public/assets/js/utils/supplier-avatar.js). The colour is applied from script after the markup
+   * is in the page (see paintAvatars), because the page's CSP does not allow style attributes.
    */
-  function safeSrc(url) {
-    if (!url || typeof url !== 'string') {
-      return '';
-    }
-    try {
-      const parsed = new URL(url, window.location.origin);
-      if (parsed.protocol === 'http:' || parsed.protocol === 'https:') {
-        return url;
-      }
-    } catch (_) {
-      // If URL is relative (no protocol), only allow if it doesn't start with a dangerous scheme
-      const lower = url.toLowerCase().replace(/\s/g, '');
-      if (
-        !lower.startsWith('javascript:') &&
-        !lower.startsWith('data:') &&
-        !lower.startsWith('vbscript:')
-      ) {
-        return url;
-      }
-    }
-    return '';
-  }
+  function recommendationAvatar(supplier) {
+    const avatar = window.EFSupplierAvatar;
+    const initial = escapeHtml(avatar.getSupplierInitials(supplier.name || supplier.businessName));
+    const gradient = escapeHtml(avatar.getSupplierAvatarGradient(supplier));
+    const photo = avatar.getSupplierPhotoUrl(supplier);
+    const placeholder = `<span class="recommendation-avatar recommendation-avatar--fallback" data-avatar-gradient="${gradient}" aria-hidden="true">${initial}</span>`;
 
-  /**
-   * Markup for a supplier's avatar: their logo when there is one, otherwise the initials badge.
-   * Initials are shared with every other supplier avatar placeholder on the site — see
-   * public/assets/js/utils/supplier-avatar.js.
-   */
-  function recommendationAvatar(supplierOrName, logoSrc) {
-    const name =
-      supplierOrName && typeof supplierOrName === 'object' ? supplierOrName.name : supplierOrName;
-    const initial = escapeHtml(window.EFSupplierAvatar.getSupplierInitials(name));
-    const fallback = `<span class="recommendation-avatar recommendation-avatar--fallback" aria-hidden="true">${initial}</span>`;
-
-    if (!logoSrc) {
-      return fallback;
+    if (!photo) {
+      return placeholder;
     }
 
-    // A logo that fails to load is swapped for the initials in renderRecommendations().
+    // A photo that fails to load is swapped for the placeholder (see paintAvatars).
     return (
-      `<span class="recommendation-avatar-wrap" data-rec-initial="${initial}">` +
-      `<img src="${escapeHtml(logoSrc)}" alt="" class="recommendation-avatar" loading="lazy">` +
+      `<span class="recommendation-avatar-wrap" data-rec-initial="${initial}" data-avatar-gradient="${gradient}">` +
+      `<img src="${escapeHtml(photo)}" alt="" class="recommendation-avatar" loading="lazy">` +
       `</span>`
     );
+  }
+
+  /** Puts each placeholder's colour on, and swaps a photo that will not load for its placeholder. */
+  function paintAvatars(widget) {
+    widget.querySelectorAll('.recommendation-avatar--fallback').forEach(el => {
+      el.style.background = el.dataset.avatarGradient;
+    });
+    widget.querySelectorAll('.recommendation-avatar-wrap img').forEach(img => {
+      img.addEventListener(
+        'error',
+        () => {
+          const wrap = img.closest('.recommendation-avatar-wrap');
+          if (!wrap) {
+            return;
+          }
+          const fallback = document.createElement('span');
+          fallback.className = 'recommendation-avatar recommendation-avatar--fallback';
+          fallback.setAttribute('aria-hidden', 'true');
+          fallback.textContent = wrap.dataset.recInitial || '?';
+          fallback.style.background = wrap.dataset.avatarGradient;
+          wrap.replaceChildren(fallback);
+        },
+        { once: true }
+      );
+    });
   }
 
   /**
@@ -86,6 +87,7 @@
     const location = widget.dataset.location || localStorage.getItem('preferredLocation');
     const budget = widget.dataset.budget;
     const eventType = widget.dataset.eventType;
+    const needed = widget.dataset.needed;
 
     try {
       const recommendations = await fetchRecommendations({
@@ -93,6 +95,7 @@
         location,
         budget,
         eventType,
+        needed,
       });
 
       renderRecommendations(widget, recommendations);
@@ -123,6 +126,10 @@
     if (params.eventType) {
       // eventType takes precedence over category when both are supplied
       queryParams.set('eventType', params.eventType);
+    }
+    if (params.needed) {
+      // Supplier categories the plan has not covered yet, comma-separated
+      queryParams.set('needed', params.needed);
     }
     queryParams.set('limit', String(RECOMMENDATION_LIMIT));
 
@@ -164,10 +171,10 @@
             const location = escapeHtml(
               typeof supplier.location === 'string' ? supplier.location : ''
             );
-            const logoSrc = safeSrc(supplier.logo || '');
+            // The helper only returns a validated /supplier/<name>--<token> path, else the directory.
             const href = window.EventFlowSupplierLink
               ? window.EventFlowSupplierLink.supplierProfileHref(supplier)
-              : supplier.publicProfilePath || '/suppliers';
+              : '/suppliers';
             const ratingText = supplier.averageRating
               ? `${Number(supplier.averageRating).toFixed(1)} rating (${supplier.reviewCount || 0} reviews)`
               : '';
@@ -175,7 +182,7 @@
             return `
           <a href="${href}" class="recommendation-card" aria-label="View ${name}">
             <div class="recommendation-card__top">
-              ${recommendationAvatar(supplier, logoSrc)}
+              ${recommendationAvatar(supplier)}
               <div class="recommendation-card__identity">
                 <h3 class="recommendation-card__name">${name}</h3>
                 ${category ? `<p class="recommendation-card__category">${category}</p>` : ''}
@@ -191,18 +198,7 @@
       </div>
     `;
 
-    widget.querySelectorAll('.recommendation-avatar-wrap img').forEach(img => {
-      img.addEventListener(
-        'error',
-        () => {
-          const wrap = img.closest('.recommendation-avatar-wrap');
-          if (wrap) {
-            wrap.innerHTML = `<span class="recommendation-avatar recommendation-avatar--fallback" aria-hidden="true">${wrap.dataset.recInitial || '?'}</span>`;
-          }
-        },
-        { once: true }
-      );
-    });
+    paintAvatars(widget);
 
     // Reveal the widget now that it has content
     widget.hidden = false;
@@ -239,6 +235,9 @@
     }
     if (options.eventType) {
       widget.dataset.eventType = options.eventType;
+    }
+    if (options.needed) {
+      widget.dataset.needed = options.needed;
     }
 
     container.appendChild(widget);

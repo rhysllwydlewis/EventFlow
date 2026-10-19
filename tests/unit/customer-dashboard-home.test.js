@@ -418,3 +418,220 @@ describe('customer dashboard home: data handling', () => {
     expect(read('public/assets/js/recommendations-widget.js')).not.toMatch(/style="/);
   });
 });
+
+describe('what the suggestions panel is told about the plan', () => {
+  const vm = require('vm');
+  const dashboard = (() => {
+    const window = { location: { search: '', hash: '', pathname: '/' }, addEventListener() {} };
+    const document = {
+      getElementById: () => null,
+      addEventListener() {},
+      readyState: 'loading',
+      querySelector: () => null,
+      querySelectorAll: () => [],
+    };
+    vm.runInNewContext(homeJs, {
+      window,
+      document,
+      console,
+      localStorage: { getItem: () => null, setItem() {} },
+      setTimeout,
+    });
+    return window.CustomerDashboardHome;
+  })();
+  const needed = plan => dashboard.neededSupplierCategories(plan);
+  const lines = (...categories) => categories.map(category => ({ category, item: 'x' }));
+
+  test('a plan with no budget lines still needs everything, so suggestions start broad', () => {
+    expect(needed({ eventType: 'party', budgetItems: [] })).toEqual(
+      expect.arrayContaining(['Venues', 'Catering', 'Photography', 'Entertainment', 'Decor'])
+    );
+    expect(needed(null)).toEqual(expect.arrayContaining(['Venues', 'Catering']));
+  });
+
+  test('a category with a budget line is no longer needed', () => {
+    const list = needed({ eventType: 'party', budgetItems: lines('Venue', 'Catering') });
+    expect(list).not.toContain('Venues');
+    expect(list).not.toContain('Catering');
+    expect(list).toEqual(expect.arrayContaining(['Photography', 'Entertainment', 'Decor']));
+  });
+
+  test('one budget category covers every supplier category it stands for', () => {
+    expect(needed({ budgetItems: lines('Photography') })).not.toEqual(
+      expect.arrayContaining(['Photography'])
+    );
+    expect(needed({ budgetItems: lines('Photography') })).not.toContain('Videography');
+    expect(needed({ budgetItems: lines('Decor') })).not.toContain('Florist');
+  });
+
+  test('a budget line named like the supplier category counts too, whatever its case', () => {
+    expect(needed({ budgetItems: lines('venues', ' CATERING ') })).not.toEqual(
+      expect.arrayContaining(['Venues'])
+    );
+  });
+
+  test('attire (bridalwear) is only needed for a wedding', () => {
+    expect(needed({ eventType: 'wedding', budgetItems: [] })).toContain('Bridalwear');
+    expect(needed({ eventType: 'corporate', budgetItems: [] })).not.toContain('Bridalwear');
+  });
+
+  test('a wedding is recognised the way the guest list recognises one', () => {
+    expect(needed({ name: 'Our Wedding', budgetItems: [] })).toContain('Bridalwear');
+    expect(needed({ eventName: 'Sam and Alex wedding', budgetItems: [] })).toContain('Bridalwear');
+    expect(needed({ weddingWebsite: { slug: 'sam-alex' }, budgetItems: [] })).toContain(
+      'Bridalwear'
+    );
+    expect(needed({ name: 'Office party', budgetItems: [] })).not.toContain('Bridalwear');
+  });
+
+  test('a budget line you wrote yourself still counts when its category names the thing', () => {
+    const list = needed({
+      eventType: 'party',
+      budgetItems: lines('Venue hire', 'Photography & video', 'Catering and drinks', 'Decoration'),
+    });
+    expect(list).not.toEqual(expect.arrayContaining(['Venues']));
+    expect(list).not.toEqual(expect.arrayContaining(['Photography']));
+    expect(list).not.toContain('Videography');
+    expect(list).not.toContain('Catering');
+    expect(list).not.toContain('Decor');
+    expect(list).not.toContain('Florist');
+    expect(list).toEqual(expect.arrayContaining(['Entertainment', 'Transport']));
+  });
+
+  test('a blank or unrelated category covers nothing', () => {
+    const list = needed({ eventType: 'party', budgetItems: lines('', '   ', 'Other', 'Misc') });
+    expect(list).toEqual(expect.arrayContaining(['Venues', 'Catering', 'Photography']));
+  });
+
+  test('a plan that has covered everything needs nothing', () => {
+    const all = lines('Venue', 'Catering', 'Photography', 'Entertainment', 'Decor', 'Transport');
+    expect(needed({ eventType: 'party', budgetItems: all })).toEqual([]);
+  });
+
+  test('odd budget lines are ignored rather than breaking the panel', () => {
+    expect(() => needed({ budgetItems: [null, {}, { category: 42 }, 'x'] })).not.toThrow();
+  });
+
+  test('only real supplier categories are ever sent', () => {
+    const { VALID_CATEGORIES } = require('../../models/Supplier');
+    needed({ eventType: 'wedding', budgetItems: [] }).forEach(name => {
+      expect(VALID_CATEGORIES).toContain(name);
+    });
+  });
+
+  test('the panel is told the location and the categories still needed, not an event type or a total', () => {
+    const loader = homeJs.slice(homeJs.indexOf('function loadSuggestions('));
+    const body = loader.slice(0, loader.indexOf('window.RecommendationsWidget.init()'));
+    expect(body).toContain('widget.dataset.location = plan.location');
+    expect(body).toContain('widget.dataset.needed = needed.join');
+    expect(body).not.toContain('dataset.eventType');
+    expect(body).not.toContain('dataset.budget');
+  });
+});
+
+describe('the account-type notice', () => {
+  const notice = html.slice(
+    html.indexOf('<div id="account-type-notice"'),
+    html.indexOf('</main>', html.indexOf('<div id="account-type-notice"'))
+  );
+  const noticeHtml = notice;
+  const rule = selector => {
+    const at = css.indexOf(`${selector} {`);
+    return at < 0 ? '' : css.slice(at, css.indexOf('}', at) + 1);
+  };
+
+  test('says it in one short sentence, with the rest of the message only where there is room', () => {
+    expect(noticeHtml).toMatch(/Want to list a business\?/);
+    expect(noticeHtml).toMatch(
+      /<span class="cdh-notice__more"> Switch to a supplier account\.<\/span>/
+    );
+    expect(noticeHtml).not.toMatch(/You’re signed up as a/);
+    const text = noticeHtml.match(/<p class="cdh-notice__text">([\s\S]*?)<\/p>/)[1];
+    // The only markup inside the sentence is the one span, so remove exactly that.
+    const spoken = text
+      .replace('<span class="cdh-notice__more">', '')
+      .replace('</span>', '')
+      .replace(/\s+/g, ' ')
+      .trim();
+    expect(spoken).toBe('Want to list a business? Switch to a supplier account.');
+    expect(spoken).not.toContain('<');
+    expect(spoken.length).toBeLessThan(60);
+  });
+
+  test('keeps the "details come with you" reassurance on the button', () => {
+    expect(noticeHtml).toMatch(/title="Your details come with you"/);
+  });
+
+  test('Switch and Dismiss are one group, next to each other, and Dismiss is a labelled button', () => {
+    const actions = noticeHtml.match(
+      /<div class="cdh-notice__actions">([\s\S]*?)<\/div>\s*<\/div>/
+    )[1];
+    expect(actions).toMatch(/class="cdh-notice__cta"[^>]*href="\/settings#account-type-card"/);
+    expect(actions.indexOf('cdh-notice__cta')).toBeLessThan(actions.indexOf('cdh-notice__dismiss'));
+    expect(actions).toMatch(
+      /<button type="button" class="cdh-notice__dismiss" id="account-type-notice-dismiss">\s*Dismiss\s*<\/button>/
+    );
+    expect(noticeHtml).not.toMatch(/aria-label="Dismiss account type notice"/);
+  });
+
+  test('on the narrowest phones the label shortens to "Switch" but keeps its full accessible name', () => {
+    expect(noticeHtml).toMatch(/aria-label="Switch to Supplier"/);
+    // One inline label holds both parts, so the space between them survives inside the flex link.
+    expect(noticeHtml).toContain(
+      '<span class="cdh-notice__cta-label">Switch<span class="cdh-notice__cta-more"> to Supplier</span></span>'
+    );
+    expect(css).toMatch(
+      /@container cdh-notice \(max-width: 259px\) \{\s*\.cdh-page \.cdh-notice__cta-more \{\s*display: none;/
+    );
+  });
+
+  test('on a phone the main button gets the room and Dismiss stays as wide as its word', () => {
+    const phone = css.slice(css.indexOf('@container cdh-notice (max-width: 459px)'));
+    expect(phone).toMatch(/grid-template-columns: 1fr auto;/);
+    expect(phone).not.toMatch(/grid-template-columns: 1fr 1fr;/);
+  });
+
+  test('the other banner on the page keeps its text filling the row', () => {
+    // dashboard-customer-init.js builds a .cdh-banner with a .cdh-banner__text; it shares no rule
+    // with the notice, so the notice's own rules must not stand in for it.
+    expect(rule('.cdh-page .cdh-banner__text')).toMatch(/flex: 1 1 auto;/);
+    expect(rule('.cdh-page .cdh-banner__text')).toMatch(/min-width: 0;/);
+  });
+
+  test('the text scales with the notice, between 12px and 14px, on one line', () => {
+    const text = rule('.cdh-page .cdh-notice__text');
+    expect(text).toMatch(/white-space: nowrap;/);
+    expect(text).toMatch(/font-size: clamp\(12px, calc\(\(100cqi - \d+px\) \/ \d+\), 14px\);/);
+    expect(rule('.cdh-page .cdh-notice')).toMatch(/container: cdh-notice \/ inline-size;/);
+  });
+
+  test('sizes follow the notice, in three steps: full message, just the question, then two lines', () => {
+    expect(css).toMatch(
+      /@container cdh-notice \(max-width: 599px\) \{[^@]*\.cdh-notice__more \{\s*display: none;/
+    );
+    const phone = css.slice(css.indexOf('@container cdh-notice (max-width: 459px)'));
+    expect(phone).toMatch(/\.cdh-notice__inner \{\s*flex-direction: column;/);
+    expect(phone).toMatch(
+      /\.cdh-notice__actions \{\s*display: grid;\s*grid-template-columns: 1fr auto;/
+    );
+  });
+
+  test('browsers without container queries get the same three steps from the screen width', () => {
+    const fallback = css.slice(css.indexOf('@supports not (container-type: inline-size)'));
+    expect(fallback).toMatch(
+      /@media \(max-width: 760px\) \{\s*\.cdh-page \.cdh-notice__more \{\s*display: none;/
+    );
+    expect(fallback).toMatch(/@media \(max-width: 540px\) \{[^@]*flex-direction: column;/);
+    expect(fallback).toMatch(
+      /@media \(max-width: 345px\) \{\s*\.cdh-page \.cdh-notice__cta-more \{\s*display: none;/
+    );
+  });
+
+  test('both buttons are the same height (the site touch-target size) and the old corner × is gone', () => {
+    expect(rule('.cdh-page .cdh-notice__cta,\n.cdh-page .cdh-notice__dismiss')).toMatch(
+      /min-height: 44px;/
+    );
+    expect(css).not.toMatch(/\.cdh-notice__dismiss \{[^}]*position: absolute/);
+    expect(css).not.toMatch(/padding-right: 48px/);
+  });
+});

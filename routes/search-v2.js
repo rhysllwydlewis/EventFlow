@@ -19,8 +19,12 @@ const {
 } = require('../middleware/searchCache');
 const searchService = require('../services/rankedSupplierSearch.service');
 const { addPublicProfilePaths } = require('../utils/publicSupplierProfilePath');
+const { VALID_CATEGORIES } = require('../models/Supplier');
 const searchAnalytics = require('../utils/searchAnalytics');
 const validator = require('validator');
+
+/** Supplier categories by lower-case name, for reading the `needed` query parameter. */
+const KNOWN_CATEGORIES = new Map(VALID_CATEGORIES.map(c => [c.toLowerCase(), c]));
 
 // Generate session ID for anonymous users
 function getSessionId(req) {
@@ -765,9 +769,13 @@ router.get('/discovery', searchCacheMiddleware({ fixedTtl: 600 }), async (req, r
  *   eventType  - Event type hint (e.g. "wedding", "corporate")
  *   location   - Location preference hint
  *   budget     - Price-tier preference (1–4)
+ *   needed     - Comma-separated supplier categories the customer's plan has not covered yet
+ *                (e.g. "Photography,Florist"); suppliers in them rank higher. Unknown names are ignored.
  *   limit      - Max suppliers to return (default 12, max 24)
+ *
+ * The response depends on who is signed in, so it is private and never stored in the shared cache.
  */
-router.get('/personalized', searchCacheMiddleware({ fixedTtl: null }), async (req, res) => {
+router.get('/personalized', async (req, res) => {
   try {
     const user = await getUserFromCookie(req);
     const userId = user?.id || null;
@@ -779,17 +787,33 @@ router.get('/personalized', searchCacheMiddleware({ fixedTtl: null }), async (re
     const budget =
       !isNaN(parsedBudget) && parsedBudget >= 1 && parsedBudget <= 4 ? parsedBudget : undefined;
 
+    // `needed` is a comma-separated list of supplier categories the plan has not covered yet.
+    // Only real categories are used, whatever else is sent.
+    const neededCategories = [
+      ...new Set(
+        String(req.query.needed || '')
+          .split(',')
+          .map(c => KNOWN_CATEGORIES.get(c.trim().toLowerCase()))
+          .filter(Boolean)
+      ),
+    ];
+
     const context = {
       eventType: req.query.eventType ? String(req.query.eventType).trim().slice(0, 100) : undefined,
-      location: req.query.location ? String(req.query.location).trim() : undefined,
+      location: req.query.location ? String(req.query.location).trim().slice(0, 100) : undefined,
       budget,
+      neededCategories,
     };
 
     const feed = await searchService.getPersonalizedFeed(userId, context, { limit });
 
+    // The feed depends on who is signed in (their search history), so it must not sit in the shared
+    // search cache or in a shared HTTP cache: one customer's feed would be served to the next.
+    res.set('Cache-Control', 'private, max-age=60');
+    res.vary('Cookie');
     return res.json({
       success: true,
-      data: feed,
+      data: addPublicProfilePaths(feed),
       timestamp: new Date().toISOString(),
     });
   } catch (error) {

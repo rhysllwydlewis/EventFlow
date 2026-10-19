@@ -103,3 +103,67 @@ describe('supplier-avatar shared utility', () => {
     });
   });
 });
+
+describe('supplier-avatar shared utility: photos', () => {
+  const {
+    getSupplierPhotoUrl,
+    isUsableSupplierImageUrl,
+  } = require('../../public/assets/js/utils/supplier-avatar.js');
+
+  test('uses the same order as the supplier cards and profile page', () => {
+    const all = {
+      profilePhotoUrl: 'https://x.test/profile.jpg',
+      displayAvatarUrl: 'https://x.test/display.jpg',
+      avatarUrl: 'https://x.test/avatar.jpg',
+      logo: 'https://x.test/logo.jpg',
+    };
+    expect(getSupplierPhotoUrl(all)).toBe('https://x.test/profile.jpg');
+    expect(getSupplierPhotoUrl({ ...all, profilePhotoUrl: '' })).toBe('https://x.test/display.jpg');
+    expect(getSupplierPhotoUrl({ ...all, profilePhotoUrl: '', displayAvatarUrl: null })).toBe(
+      'https://x.test/avatar.jpg'
+    );
+    expect(getSupplierPhotoUrl({ logo: '/uploads/logo.png' })).toBe('/uploads/logo.png');
+  });
+
+  test('is empty when the supplier has no photo, so the placeholder shows', () => {
+    expect(getSupplierPhotoUrl({})).toBe('');
+    expect(getSupplierPhotoUrl(null)).toBe('');
+    expect(getSupplierPhotoUrl(undefined)).toBe('');
+    expect(getSupplierPhotoUrl({ logo: '   ' })).toBe('');
+  });
+
+  test('skips an unusable address and falls through to the next one', () => {
+    expect(
+      getSupplierPhotoUrl({ profilePhotoUrl: 'not a url', avatarUrl: 'https://x.test/a.jpg' })
+    ).toBe('https://x.test/a.jpg');
+  });
+
+  test('trims the address it returns', () => {
+    expect(getSupplierPhotoUrl({ avatarUrl: '  https://x.test/a.jpg ' })).toBe(
+      'https://x.test/a.jpg'
+    );
+  });
+
+  test.each([
+    'javascript:alert(1)',
+    'JavaScript:alert(1)',
+    'data:image/svg+xml,<svg onload=alert(1)>',
+    'vbscript:x',
+    '//evil.test/x.png',
+    '\\\\server\\share\\x.png',
+    'https://x.test/a b.jpg',
+    '',
+    42,
+    {},
+  ])('never accepts %p', value => {
+    expect(isUsableSupplierImageUrl(value)).toBe(false);
+    expect(getSupplierPhotoUrl({ profilePhotoUrl: value })).toBe('');
+  });
+
+  test.each(['https://x.test/a.jpg', 'http://x.test/a.jpg', '/uploads/a.jpg'])(
+    'accepts %s',
+    value => {
+      expect(isUsableSupplierImageUrl(value)).toBe(true);
+    }
+  );
+});
