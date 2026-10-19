@@ -373,6 +373,10 @@ describe('page invariants', () => {
     );
   });
 
+  test('links back to the dashboard', () => {
+    expect(html).toContain('href="/dashboard/customer"');
+  });
+
   test('respects reduced motion', () => {
     expect(css).toMatch(/prefers-reduced-motion:\s*reduce/);
   });

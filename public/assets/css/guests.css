@@ -135,6 +135,22 @@
   margin-bottom: 24px;
 }
 
+.gm .gm-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-bottom: 8px;
+  padding-block: 6px;
+  color: var(--gm-muted);
+  font-size: 13px;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.gm .gm-back:hover {
+  color: var(--gm-ink);
+}
+
 .gm .gm-title {
   font-size: 28px;
   font-weight: 650;
