@@ -13,7 +13,7 @@ class ExportUtility {
   // Content-Security-Policy does not allow scripts from cdnjs.cloudflare.com, so loading it from
   // there is blocked and every PDF export failed.
   loadPDFLib() {
-    if (this.pdfLibLoaded || (window.jspdf && window.jspdf.jsPDF)) {
+    if (this.pdfLibLoaded || window.jspdf?.jsPDF) {
       this.pdfLibLoaded = true;
       return Promise.resolve();
     }

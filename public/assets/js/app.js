@@ -5202,6 +5202,8 @@ function efDetectPage(pathname) {
   return match ? match[0] : '';
 }
 
+// skipcq: JS-R1005 -- One DOMContentLoaded handler keeps every page's setup in one place; the
+// sign-in/sign-up block is most of it.
 document.addEventListener('DOMContentLoaded', () => {
   const page = window.__EF_PAGE__ || efDetectPage(location.pathname);
 
