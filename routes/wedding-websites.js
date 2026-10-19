@@ -1067,7 +1067,7 @@ router.post(
       { id: req.plan.id },
       { $set: { tables, ...setGuestList(req.plan, guests), updatedAt: now } }
     );
-    res.json({ success: true, seated, skipped: assignments.length - seated });
+    return res.json({ success: true, seated, skipped: assignments.length - seated });
   }
 );
 router.post(
