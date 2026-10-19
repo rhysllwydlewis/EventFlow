@@ -30,9 +30,38 @@ async function main() {
     url: 'http://localhost/guests',
     runScripts: 'outside-only',
   });
+  if (scenario.search) {
+    dom.reconfigure({ url: `http://localhost/guests${scenario.search}` });
+  }
   const { window } = dom;
   window.__CSRF_TOKEN__ = 'test-token';
-  window.fetch = async url => {
+  // jsdom has no <dialog> behaviour; give it the two calls the page makes.
+  const dialogProto = window.HTMLDialogElement.prototype;
+  dialogProto.showModal =
+    dialogProto.showModal ||
+    function showModal() {
+      this.setAttribute('open', '');
+    };
+  dialogProto.close =
+    dialogProto.close ||
+    function close() {
+      this.removeAttribute('open');
+      this.dispatchEvent(new window.Event('close'));
+    };
+  const writes = [];
+  window.fetch = async (url, options = {}) => {
+    if (String(url).endsWith('/api/csrf-token')) {
+      return { ok: true, status: 200, json: async () => ({ csrfToken: 'test-token' }) };
+    }
+    if (options.method && options.method !== 'GET') {
+      writes.push({
+        method: options.method,
+        url: String(url),
+        body: JSON.parse(options.body || '{}'),
+      });
+      const guest = { ...(scenario.guests || [])[0], ...JSON.parse(options.body || '{}') };
+      return { ok: true, status: 200, json: async () => ({ guest }) };
+    }
     if (String(url).endsWith('/api/me/plans')) {
       return { ok: true, status: 200, json: async () => ({ plans }) };
     }
@@ -75,8 +104,23 @@ async function main() {
     },
   };
 
+  result.selectedPlan = doc.querySelector('#gm-plan-select')?.value ?? null;
+  result.urlSearch = window.location.search;
+
   const edit = doc.querySelector('[data-action="edit"]');
-  if (edit) {
+  if (edit && scenario.submitEdit) {
+    edit.click();
+    const dialog = doc.querySelector('dialog');
+    Object.entries(scenario.submitEdit).forEach(([name, value]) => {
+      dialog.querySelector(`[name="${name}"]`).value = value;
+    });
+    dialog.querySelector('form').dispatchEvent(new window.Event('submit', { cancelable: true }));
+    await settle();
+    result.error = (
+      dialog.querySelector('.gm-form-error, [role="alert"]')?.textContent || ''
+    ).trim();
+    result.toast = (doc.querySelector('.gm-toast')?.textContent || '').trim();
+  } else if (edit) {
     edit.click();
     const dialog = doc.querySelector('dialog');
     result.editDialog = {
@@ -90,6 +134,7 @@ async function main() {
       title: [...doc.querySelectorAll('dialog h2')].map(h => h.textContent).join(' // '),
     };
   }
+  result.writes = writes;
   result.pwned = window.__pwned === undefined ? null : window.__pwned;
   process.stdout.write(JSON.stringify(result));
 }
