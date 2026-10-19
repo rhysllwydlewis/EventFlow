@@ -546,6 +546,23 @@ describe('the account-type notice', () => {
     expect(noticeHtml).not.toMatch(/aria-label="Dismiss account type notice"/);
   });
 
+  test('on the narrowest phones the label shortens to "Switch" but keeps its full accessible name', () => {
+    expect(noticeHtml).toMatch(/aria-label="Switch to Supplier"/);
+    // One inline label holds both parts, so the space between them survives inside the flex link.
+    expect(noticeHtml).toContain(
+      '<span class="cdh-notice__cta-label">Switch<span class="cdh-notice__cta-more"> to Supplier</span></span>'
+    );
+    expect(css).toMatch(
+      /@container cdh-notice \(max-width: 259px\) \{\s*\.cdh-page \.cdh-notice__cta-more \{\s*display: none;/
+    );
+  });
+
+  test('on a phone the main button gets the room and Dismiss stays as wide as its word', () => {
+    const phone = css.slice(css.indexOf('@container cdh-notice (max-width: 459px)'));
+    expect(phone).toMatch(/grid-template-columns: 1fr auto;/);
+    expect(phone).not.toMatch(/grid-template-columns: 1fr 1fr;/);
+  });
+
   test('the text scales with the notice, between 12px and 14px, on one line', () => {
     const text = rule('.cdh-page .cdh-notice__text');
     expect(text).toMatch(/white-space: nowrap;/);
@@ -560,7 +577,7 @@ describe('the account-type notice', () => {
     const phone = css.slice(css.indexOf('@container cdh-notice (max-width: 459px)'));
     expect(phone).toMatch(/\.cdh-notice__inner \{\s*flex-direction: column;/);
     expect(phone).toMatch(
-      /\.cdh-notice__actions \{\s*display: grid;\s*grid-template-columns: 1fr 1fr;/
+      /\.cdh-notice__actions \{\s*display: grid;\s*grid-template-columns: 1fr auto;/
     );
   });
 

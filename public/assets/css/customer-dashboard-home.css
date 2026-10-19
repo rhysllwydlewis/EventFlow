@@ -242,9 +242,17 @@
     font-size: 14px;
   }
 
+  /* Switch gets the room Dismiss does not need; Dismiss stays as wide as its word. */
   .cdh-page .cdh-notice__actions {
     display: grid;
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: 1fr auto;
+  }
+}
+
+/* On the narrowest phones even that is too tight for the whole label: just "Switch". */
+@container cdh-notice (max-width: 259px) {
+  .cdh-page .cdh-notice__cta-more {
+    display: none;
   }
 }
 
