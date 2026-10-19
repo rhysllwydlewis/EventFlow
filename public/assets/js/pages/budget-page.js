@@ -38,6 +38,7 @@
     filterCategory: '',
     filterPayment: '',
     error: '',
+    signedOut: false, // the plans request was refused: the session has ended
     legacy: null, // converted legacy data waiting to be imported into the plan
     importDismissed: false,
     editingId: null,
@@ -264,6 +265,7 @@
   async function load() {
     state.status = 'loading';
     state.error = '';
+    state.signedOut = false;
     render();
     let plans = [];
     try {
@@ -272,6 +274,7 @@
     } catch (err) {
       state.status = 'error';
       state.error = err.message;
+      state.signedOut = err.status === 401 || err.status === 403;
       render();
       return;
     }
@@ -440,9 +443,14 @@
       return;
     }
     if (state.status === 'error') {
-      host.innerHTML = `<div class="bp-state bp-state--error" role="alert"><h2 class="bp-h2" id="bp-summary-title">We could not load your budget</h2><p>${esc(
+      // A refused request means the session has ended; trying again cannot help, logging in can.
+      const action = state.signedOut
+        ? '<a class="bp-btn bp-btn--primary" href="/auth?redirect=%2Fbudget">Log in</a>'
+        : '<button type="button" class="bp-btn bp-btn--primary" data-action="retry">Try again</button>';
+      const title = state.signedOut ? 'Log in to see your budget' : 'We could not load your budget';
+      host.innerHTML = `<div class="bp-state${state.signedOut ? '' : ' bp-state--error'}" role="alert"><h2 class="bp-h2" id="bp-summary-title">${title}</h2><p>${esc(
         state.error
-      )}</p><button type="button" class="bp-btn bp-btn--primary" data-action="retry">Try again</button></div>`;
+      )}</p>${action}</div>`;
       return;
     }
     if (!state.items.length && !state.total) {

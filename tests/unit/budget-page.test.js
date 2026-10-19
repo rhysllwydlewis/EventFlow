@@ -213,6 +213,11 @@ describe('budget page styling invariants', () => {
     expect(css).toMatch(/@media \(max-width: 600px\) \{[^}]*\.bp \{[^}]*margin-left: -10px;/);
   });
 
+  test('an ended session offers a log-in link that returns to the budget, not a retry', () => {
+    expect(js).toContain('state.signedOut = err.status === 401 || err.status === 403;');
+    expect(js).toContain('/auth?redirect=%2Fbudget');
+  });
+
   test('the export menu opens rightwards on phones, where Export sits at the left edge', () => {
     const phone = css.slice(css.indexOf('@media (max-width: 720px)'));
     expect(phone).toMatch(/\.bp \.bp-menu__panel \{[^}]*right: auto;[^}]*left: 0;/);
