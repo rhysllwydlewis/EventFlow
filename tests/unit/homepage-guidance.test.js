@@ -134,11 +134,12 @@ describe.each([
     dbUnified.writeAndVerify.mockImplementation(async (_name, data) => ({ success: true, data }));
   });
 
-  test('is rate limited before anything else runs', async () => {
+  test('is rate limited before any handler work, for authorised callers', async () => {
     mockLimiter.mockClear();
-    await request(app()).get(url).expect(401);
+    await request(app()).get(url).set('x-test-role', 'admin').expect(200);
     expect(mockLimiter).toHaveBeenCalledTimes(1);
 
+    dbUnified.read.mockClear();
     mockLimiter.mockImplementationOnce((req, res) => res.status(429).json({ error: 'slow down' }));
     await request(app()).get(url).set('x-test-role', 'admin').expect(429);
     expect(dbUnified.read).not.toHaveBeenCalled();
