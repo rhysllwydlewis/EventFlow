@@ -149,7 +149,8 @@ router.get(
       const manager = buildHomepageManager(settings);
       const version = manager.versions[req.params.version];
       if (!version) {
-        return res.status(400).json({ error: 'Choose a valid homepage version.' });
+        res.status(400).json({ error: 'Choose a valid homepage version.' });
+        return;
       }
       res.json({
         success: true,
@@ -296,7 +297,8 @@ router.put(
     try {
       const validationError = validateHomepageVersionPayload(req.body);
       if (validationError) {
-        return res.status(400).json({ error: validationError });
+        res.status(400).json({ error: validationError });
+        return;
       }
 
       const settings = (await dbUnified.read('settings')) || {};
