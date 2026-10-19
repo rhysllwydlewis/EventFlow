@@ -168,7 +168,16 @@ router.get('/milestones', authRequired, async (req, res) => {
     const hasPlan = plans.length > 0;
     const hasDate = plans.some(p => p.eventDate || p.date);
     const hasLocation = plans.some(p => p.location);
-    const hasGuestCount = plans.some(p => p.guestCount || p.guests);
+    // `guests` is a head count on newer plans and the guest list itself on older ones, which keep
+    // new guests in `guestList`; an empty list is still an array, so it is measured, not truthy.
+    const listLength = value => (Array.isArray(value) ? value.length : 0);
+    const hasGuestCount = plans.some(
+      p =>
+        Number(p.guestCount) > 0 ||
+        listLength(p.guests) > 0 ||
+        listLength(p.guestList) > 0 ||
+        (!Array.isArray(p.guests) && Number(p.guests) > 0)
+    );
     const hasBudget = plans.some(p => p.budget || p.totalBudget);
     const hasSavedSuppliers = savedItems.length > 0;
     // hasVenue: check savedItems category only (plan.packages stores IDs — resolving

@@ -110,4 +110,108 @@ describe('guests routes', () => {
       expect(seatedPlan().tables[0].guestIds).toEqual(['a', 'b']);
     });
   });
+
+  describe('guest notes', () => {
+    test('saving a guest keeps notes up to the length allowed on create', async () => {
+      const plan = plans.find(p => p.id === 'p3');
+      plan.guestList = [{ id: 'n1', name: 'Nia', rsvpStatus: 'pending', notes: '' }];
+      const long = 'x'.repeat(900);
+      const res = await request(app).patch('/api/me/plans/p3/guests/n1').send({ notes: long });
+      expect(res.status).toBe(200);
+      expect(plan.guestList[0].notes).toHaveLength(900);
+      const over = await request(app)
+        .patch('/api/me/plans/p3/guests/n1')
+        .send({ notes: 'y'.repeat(1500) });
+      expect(over.status).toBe(200);
+      expect(plan.guestList[0].notes).toHaveLength(1000);
+    });
+  });
+
+  describe('bulk import', () => {
+    const plan = () => plans.find(p => p.id === 'p3');
+    beforeEach(() => {
+      plan().guestList = [{ id: 'old', name: 'Existing', rsvpStatus: 'pending' }];
+    });
+
+    test('adds every named guest in one request and reports the rows it skipped', async () => {
+      const res = await request(app)
+        .post('/api/me/plans/p3/guests/bulk')
+        .send({
+          guests: [
+            { name: 'Ann', email: 'ann@example.com', rsvpStatus: 'attending', partySize: 2 },
+            { email: 'no-name@example.com' },
+            { name: '   ' },
+            { name: 'Bob <b>Smith</b>', notes: 'x'.repeat(1200), partySize: 99 },
+          ],
+        });
+      expect(res.status).toBe(201);
+      expect(res.body.guests).toHaveLength(2);
+      expect(res.body.skipped).toEqual([
+        { index: 1, error: 'Guest name is required' },
+        { index: 2, error: 'Guest name is required' },
+      ]);
+      expect(plan().guestList.map(g => g.name)).toEqual(['Existing', 'Ann', 'Bob Smith']);
+      const [ann, bob] = res.body.guests;
+      expect(ann).toMatchObject({ rsvpStatus: 'attending', partySize: 2, source: 'manual' });
+      expect(bob.partySize).toBe(20);
+      expect(bob.notes).toHaveLength(1000);
+    });
+
+    test('rejects an empty, malformed or oversized list without changing anything', async () => {
+      const post = body => request(app).post('/api/me/plans/p3/guests/bulk').send(body);
+      expect((await post({})).status).toBe(400);
+      expect((await post({ guests: [] })).status).toBe(400);
+      expect((await post({ guests: 'Ann' })).status).toBe(400);
+      const tooMany = Array.from({ length: 501 }, (_, i) => ({ name: `Guest ${i}` }));
+      expect((await post({ guests: tooMany })).status).toBe(400);
+      expect(plan().guestList).toHaveLength(1);
+    });
+
+    test('only real names count: tag-only and non-string names are skipped', async () => {
+      const res = await request(app)
+        .post('/api/me/plans/p3/guests/bulk')
+        .send({
+          guests: [{ name: '<b></b>' }, { name: { $ne: '' } }, { name: 42 }, null, 'Ann', []],
+        });
+      expect(res.status).toBe(201);
+      expect(res.body.guests).toEqual([]);
+      expect(res.body.skipped.map(s => s.index)).toEqual([0, 1, 2, 3, 4, 5]);
+    });
+
+    test('free-text fields that were stored as given are sanitised on create and import', async () => {
+      const row = { name: 'Ann', source: '<img src=x onerror=1>csv', tableId: { $gt: '' } };
+      const bulk = await request(app)
+        .post('/api/me/plans/p3/guests/bulk')
+        .send({ guests: [row, { name: 'Bob', source: 's'.repeat(300), tableId: '<i>t1</i>' }] });
+      const [ann, bob] = bulk.body.guests;
+      expect(ann.source).toBe('csv');
+      expect(ann.tableId).toBeNull();
+      expect(bob.source).toHaveLength(50);
+      expect(bob.tableId).toBe('t1');
+      const single = await request(app).post('/api/me/plans/p3/guests').send(row);
+      expect(single.body.guest.source).toBe('csv');
+      const blank = await request(app).post('/api/me/plans/p3/guests').send({ name: '<b></b>' });
+      expect(blank.status).toBe(400);
+      const missing = await request(app).post('/api/me/plans/p3/guests').send({ name: 7 });
+      expect(missing.status).toBe(400);
+    });
+
+    test('a failed database write is reported, not answered as added', async () => {
+      require('../../db-unified').updateOne.mockResolvedValueOnce(false);
+      const res = await request(app)
+        .post('/api/me/plans/p3/guests/bulk')
+        .send({ guests: [{ name: 'Ann' }] });
+      expect(res.status).toBe(500);
+      expect(plan().guestList).toHaveLength(1);
+    });
+
+    test('a list with only unnamed rows adds nothing', async () => {
+      const res = await request(app)
+        .post('/api/me/plans/p3/guests/bulk')
+        .send({ guests: [{ email: 'a@b.co' }] });
+      expect(res.status).toBe(201);
+      expect(res.body.guests).toEqual([]);
+      expect(plan().guestList).toHaveLength(1);
+    });
+  });
 });

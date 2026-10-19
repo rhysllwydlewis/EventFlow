@@ -121,6 +121,42 @@ router.get('/:planId/guests/export.csv', authRequired, verifyPlanOwnership, (req
   return res.status(200).send(lines.join('\n'));
 });
 
+/** Most guests one bulk import may add. */
+const MAX_BULK_GUESTS = 500;
+
+/** True when `fields` has a name that is still something once tags are stripped. */
+const hasName = fields =>
+  Boolean(fields) && typeof fields.name === 'string' && Boolean(sanitize(fields.name, 200));
+
+/** A new guest record from request fields, sanitised the same way wherever guests are created. */
+const buildGuest = (plan, user, fields) => {
+  const now = new Date().toISOString();
+  return {
+    id: uid('guest'),
+    planId: plan.id,
+    userId: user.id,
+    name: sanitize(fields.name, 200),
+    email: sanitize(fields.email, 200),
+    phone: sanitize(fields.phone, 30),
+    invitationStatus: 'invited',
+    rsvpStatus: STATUS.has(fields.rsvpStatus) ? fields.rsvpStatus : 'pending',
+    source: (typeof fields.source === 'string' && sanitize(fields.source, 50)) || 'manual',
+    partySize: Math.max(1, Math.min(20, Number(fields.partySize) || 1)),
+    plusOneAllowed: Boolean(fields.plusOneAllowed),
+    plusOneName: sanitize(fields.plusOneName, 200),
+    childrenCount: Math.max(0, Math.min(10, Number(fields.childrenCount) || 0)),
+    mealChoice: sanitize(fields.mealChoice, 100),
+    dietaryRequirements: sanitize(fields.dietaryRequirements || fields.dietary, 500),
+    accessibilityRequirements: sanitize(fields.accessibilityRequirements, 500),
+    songRequest: sanitize(fields.songRequest, 200),
+    notes: sanitize(fields.notes, 1000),
+    tableId: (typeof fields.tableId === 'string' && sanitize(fields.tableId, 200)) || null,
+    tableName: sanitize(fields.tableName || fields.table, 100),
+    createdAt: now,
+    updatedAt: now,
+  };
+};
+
 router.post(
   '/:planId/guests',
   writeLimiter,
@@ -129,43 +165,71 @@ router.post(
   csrfProtection,
   verifyPlanOwnership,
   async (req, res) => {
-    const { name } = req.body;
-    if (!name) {
+    if (!hasName(req.body)) {
       return res.status(400).json({ error: 'Guest name is required' });
     }
-    const now = new Date().toISOString();
-    const guest = {
-      id: uid('guest'),
-      planId: req.plan.id,
-      userId: req.user.id,
-      name: sanitize(name, 200),
-      email: sanitize(req.body.email, 200),
-      phone: sanitize(req.body.phone, 30),
-      invitationStatus: 'invited',
-      rsvpStatus: STATUS.has(req.body.rsvpStatus) ? req.body.rsvpStatus : 'pending',
-      source: req.body.source || 'manual',
-      partySize: Math.max(1, Math.min(20, Number(req.body.partySize) || 1)),
-      plusOneAllowed: !!req.body.plusOneAllowed,
-      plusOneName: sanitize(req.body.plusOneName, 200),
-      childrenCount: Math.max(0, Math.min(10, Number(req.body.childrenCount) || 0)),
-      mealChoice: sanitize(req.body.mealChoice, 100),
-      dietaryRequirements: sanitize(req.body.dietaryRequirements || req.body.dietary, 500),
-      accessibilityRequirements: sanitize(req.body.accessibilityRequirements, 500),
-      songRequest: sanitize(req.body.songRequest, 200),
-      notes: sanitize(req.body.notes, 1000),
-      tableId: req.body.tableId || null,
-      tableName: sanitize(req.body.tableName || req.body.table, 100),
-      createdAt: now,
-      updatedAt: now,
-    };
+    const guest = buildGuest(req.plan, req.user, req.body);
     const guests = getGuestList(req.plan);
     guests.push(guest);
     await dbUnified.updateOne(
       'plans',
       { id: req.plan.id },
-      { $set: { [guestPatchTarget(req.plan)]: guests, updatedAt: now } }
+      { $set: { [guestPatchTarget(req.plan)]: guests, updatedAt: guest.createdAt } }
     );
     return res.status(201).json({ success: true, guest });
+  }
+);
+
+/**
+ * POST /:planId/guests/bulk  { guests: [{ name, email, ... }] }
+ * Adds many guests in one write (an import used to need one request per guest). Rows without a
+ * name are skipped and reported by position; the rest are added.
+ */
+router.post(
+  '/:planId/guests/bulk',
+  writeLimiter,
+  authRequired,
+  requireVerifiedUser,
+  csrfProtection,
+  verifyPlanOwnership,
+  async (req, res) => {
+    const rows = req.body.guests;
+    if (!Array.isArray(rows) || rows.length === 0) {
+      return res.status(400).json({ error: 'guests must be a non-empty array' });
+    }
+    if (rows.length > MAX_BULK_GUESTS) {
+      return res
+        .status(400)
+        .json({ error: `You can import up to ${MAX_BULK_GUESTS} guests at a time` });
+    }
+    const added = [];
+    const skipped = [];
+    rows.forEach((row, index) => {
+      if (!hasName(row)) {
+        skipped.push({ index, error: 'Guest name is required' });
+        return;
+      }
+      added.push(buildGuest(req.plan, req.user, row));
+    });
+    if (added.length) {
+      const guests = getGuestList(req.plan).concat(added);
+      const saved = await dbUnified.updateOne(
+        'plans',
+        { id: req.plan.id },
+        {
+          $set: {
+            [guestPatchTarget(req.plan)]: guests,
+            updatedAt: new Date().toISOString(),
+          },
+        }
+      );
+      if (!saved) {
+        // Nothing was stored, so none of these guests exist; do not report them as added.
+        logger.error('bulk guest import was not saved', { planId: req.plan.id });
+        return res.status(500).json({ error: 'Failed to save guests' });
+      }
+    }
+    return res.status(201).json({ success: true, guests: added, skipped });
   }
 );
 
@@ -184,20 +248,15 @@ router.patch(
     }
     const guest = { ...guests[i] };
     const now = new Date().toISOString();
-    [
-      'name',
-      'email',
-      'phone',
-      'plusOneName',
-      'mealChoice',
-      'songRequest',
-      'notes',
-      'tableId',
-    ].forEach(k => {
+    ['name', 'email', 'phone', 'plusOneName', 'mealChoice', 'songRequest', 'tableId'].forEach(k => {
       if (req.body[k] !== undefined) {
         guest[k] = sanitize(req.body[k], 200);
       }
     });
+    // Same limit as on create, so saving a guest never shortens notes that were already saved.
+    if (req.body.notes !== undefined) {
+      guest.notes = sanitize(req.body.notes, 1000);
+    }
     if (req.body.table !== undefined || req.body.tableName !== undefined) {
       guest.tableName = sanitize(req.body.tableName || req.body.table, 100);
     }

@@ -16,6 +16,18 @@ const { stripHtml } = require('../utils/helpers');
 
 const router = express.Router();
 
+const MAX_BUDGET_ITEMS = 500;
+const MAX_BUDGET_AMOUNT = 1000000000;
+
+/** A budget amount in pounds: finite, never negative, capped, rounded to pence. */
+const budgetAmount = value => {
+  const amount = parseFloat(value);
+  if (!Number.isFinite(amount) || amount <= 0) {
+    return 0;
+  }
+  return Math.round(Math.min(amount, MAX_BUDGET_AMOUNT) * 100) / 100;
+};
+
 /**
  * GET /api/me/plans
  * Get all plans for the current user
@@ -513,10 +525,13 @@ router.post(
     try {
       const userId = req.user.id;
       const { planId } = req.params;
-      const { budgetItems } = req.body;
+      const { budgetItems, baseVersion } = req.body;
 
       if (!Array.isArray(budgetItems)) {
         return res.status(400).json({ error: 'budgetItems must be an array' });
+      }
+      if (budgetItems.some(item => !item || typeof item !== 'object' || Array.isArray(item))) {
+        return res.status(400).json({ error: 'Every budget item must be an object' });
       }
 
       const plan = await dbUnified.findOne('plans', { id: planId, userId: userId });
@@ -525,31 +540,76 @@ router.post(
         return res.status(404).json({ error: 'Plan not found' });
       }
 
+      // A list that grew past the cap before it existed can still be edited or shrunk; it just
+      // cannot get any longer.
+      const savedCount = Array.isArray(plan.budgetItems) ? plan.budgetItems.length : 0;
+      if (budgetItems.length > MAX_BUDGET_ITEMS && budgetItems.length > savedCount) {
+        return res
+          .status(400)
+          .json({ error: `A budget can have at most ${MAX_BUDGET_ITEMS} items` });
+      }
+
+      // The list is saved whole, so a second tab or device working from an older copy would wipe
+      // out the other's changes. A client that says which version it started from is refused when
+      // the saved list has moved on; clients that send no version behave as before.
+      const checkVersion = baseVersion !== undefined;
+      const savedVersion = plan.budgetUpdatedAt || '';
+      const sendConflict = current => {
+        const latest = current || plan;
+        return res.status(409).json({
+          error: 'This budget was changed somewhere else. Reload to see the latest.',
+          budgetItems: latest.budgetItems || [],
+          budgetUpdatedAt: latest.budgetUpdatedAt || '',
+        });
+      };
+      if (checkVersion && savedVersion !== String(baseVersion || '')) {
+        return sendConflict();
+      }
+
       const now = new Date().toISOString();
 
       // Validate and sanitize budget items
       const sanitizedItems = budgetItems.map(item => ({
-        id: item.id || uid('budget'),
+        id:
+          typeof item.id === 'string' && stripHtml(item.id).trim()
+            ? stripHtml(item.id).trim().slice(0, 100)
+            : uid('budget'),
         category: item.category ? stripHtml(String(item.category).trim()).slice(0, 100) : '',
         item: item.item ? stripHtml(String(item.item).trim()).slice(0, 200) : '',
-        estimated: item.estimated ? Math.max(0, parseFloat(item.estimated) || 0) : 0,
-        actual: item.actual ? Math.max(0, parseFloat(item.actual) || 0) : 0,
-        paid: item.paid ? Math.max(0, parseFloat(item.paid) || 0) : 0,
+        estimated: budgetAmount(item.estimated),
+        actual: budgetAmount(item.actual),
+        paid: budgetAmount(item.paid),
         notes: item.notes ? stripHtml(String(item.notes).trim()).slice(0, 500) : '',
         updatedAt: now,
       }));
 
-      await dbUnified.updateOne(
+      // The version is part of the update itself, so two saves that both read the same version
+      // cannot both win: the second finds the version already moved on and matches nothing. The
+      // filter uses the stored version, never the one the client sent.
+      const versionFilter = savedVersion
+        ? { budgetUpdatedAt: savedVersion }
+        : { budgetUpdatedAt: { $in: [null, '', undefined] } };
+      const saved = await dbUnified.updateOne(
         'plans',
-        { id: planId },
+        checkVersion ? { id: planId, userId, ...versionFilter } : { id: planId },
         {
-          $set: { budgetItems: sanitizedItems, updatedAt: now },
+          $set: { budgetItems: sanitizedItems, budgetUpdatedAt: now, updatedAt: now },
         }
       );
+      if (!saved) {
+        // updateOne also answers false when the database call failed, which is not a conflict:
+        // only report one when the saved list really has moved on.
+        const current = await dbUnified.findOne('plans', { id: planId, userId });
+        if (checkVersion && current && (current.budgetUpdatedAt || '') !== savedVersion) {
+          return sendConflict(current);
+        }
+        throw new Error('Budget was not saved');
+      }
 
       res.json({
         success: true,
         budgetItems: sanitizedItems,
+        budgetUpdatedAt: now,
         count: sanitizedItems.length,
       });
     } catch (error) {
