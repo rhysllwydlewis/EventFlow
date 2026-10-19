@@ -16,16 +16,16 @@
  * ------------------------------------------------------------------ */
 
 .bp {
-  --bp-bg: #f5f8f7;
+  --bp-bg: #f7f6f3;
   --bp-surface: #fff;
   --bp-ink: #17202f;
   --bp-muted: #566176;
-  --bp-line: #dfe7e5;
-  --bp-line-soft: #eef2f1;
+  --bp-line: #e8e5de;
+  --bp-line-soft: #f0eee9;
   --bp-accent: #0b8073;
   --bp-accent-hover: #086b60;
   --bp-accent-deep: #064f46;
-  --bp-accent-soft: #eaf8f5;
+  --bp-accent-soft: #e7f3f0;
   --bp-accent-mid: #8fcfc5;
   --bp-ring: rgba(11, 128, 115, 0.3);
   --bp-danger: #b42318;
@@ -76,7 +76,7 @@
 }
 
 .bp .bp__inner {
-  width: min(1120px, calc(100% - 48px));
+  width: min(1152px, calc(100% - 48px));
   margin-inline: auto;
 }
 
@@ -182,8 +182,8 @@
 }
 
 .bp .bp-btn--secondary:hover {
-  border-color: #c4d2cf;
-  background: #fbfdfc;
+  border-color: #cfcbc0;
+  background: #fbfaf8;
 }
 
 .bp .bp-btn--quiet {
@@ -351,7 +351,7 @@
   margin-bottom: 20px;
   padding: 16px 20px;
   background: var(--bp-accent-soft);
-  border: 1px solid #cfe9e4;
+  border: 1px solid #c4e1da;
   border-radius: var(--bp-radius-sm);
   color: var(--bp-accent-deep);
 }
@@ -547,7 +547,7 @@
 
 .bp .bp-dot--free {
   background: var(--bp-line-soft);
-  box-shadow: inset 0 0 0 1px #c4d2cf;
+  box-shadow: inset 0 0 0 1px #cfcbc0;
 }
 
 .bp .bp-dot--over {
@@ -631,7 +631,7 @@
 .bp .bp-table thead th {
   padding-block: 10px;
   color: var(--bp-muted);
-  background: #fafcfb;
+  background: #fbfaf8;
   border-top: 1px solid var(--bp-line);
   font-size: 12px;
   font-weight: 600;
@@ -654,7 +654,7 @@
 
 .bp .bp-table tfoot th,
 .bp .bp-table tfoot td {
-  background: #fafcfb;
+  background: #fbfaf8;
   border-top: 1px solid var(--bp-line);
   font-weight: 600;
 }
@@ -758,7 +758,7 @@
 .bp .bp-badge--paid {
   color: var(--bp-accent-deep);
   background: var(--bp-accent-soft);
-  border-color: #cfe9e4;
+  border-color: #c4e1da;
 }
 
 .bp .bp-badge--partial {
@@ -859,7 +859,7 @@
   padding: 0 14px;
   color: var(--bp-ink);
   background-color: var(--bp-surface);
-  border: 1px solid #c4d2cf;
+  border: 1px solid #cfcbc0;
   border-radius: var(--bp-radius-sm);
   font-size: 16px;
 }
@@ -1211,7 +1211,7 @@
     grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 6px 12px;
     padding: 16px;
-    background: #fafcfb;
+    background: #fbfaf8;
     border-top: 1px solid var(--bp-line);
   }
 
