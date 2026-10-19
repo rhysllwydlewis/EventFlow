@@ -33,9 +33,7 @@ class EFSearchBar {
     window.addEventListener('resize', () => this.scheduleQuickTagBalance());
 
     // Measured again once web fonts are in, since they change the tags' widths
-    if (document.fonts && document.fonts.ready) {
-      document.fonts.ready.then(() => this.scheduleQuickTagBalance());
-    }
+    document.fonts?.ready?.then(() => this.scheduleQuickTagBalance());
   }
 
   scheduleQuickTagBalance() {

@@ -110,7 +110,9 @@ describe('homepage flow readability', () => {
   test('quick links keep their width and are dropped, not squeezed, when the row is tight', () => {
     expect(css).toMatch(/\.ef-quick-tags__tag\s*\{[^}]*flex:\s*0 0 auto/);
     const searchBar = read('public/assets/js/ef-search-bar.js');
-    expect(searchBar).toContain('document.fonts.ready.then(() => this.scheduleQuickTagBalance())');
+    expect(searchBar).toContain(
+      'document.fonts?.ready?.then(() => this.scheduleQuickTagBalance())'
+    );
     expect(index).toMatch(/ef-search-bar\.js\?v=/);
   });
 
