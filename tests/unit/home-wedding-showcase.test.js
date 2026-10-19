@@ -68,7 +68,7 @@ describe('homepage wedding showcase section', () => {
     const html = sections[0];
     expect(html.match(/<h2\b/g)).toHaveLength(1);
     expect(html).not.toMatch(/<h1\b/);
-    expect(html.match(/<h3\b/g).length).toBeGreaterThanOrEqual(6);
+    expect(html.match(/<h3\b/g).length).toBeGreaterThanOrEqual(5);
     expect(html).not.toMatch(/<h4\b/);
   });
 

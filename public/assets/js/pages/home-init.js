@@ -386,6 +386,17 @@ async function loadPackagesCarousel({ endpoint, containerId, emptyMessage, ariaL
     return;
   }
 
+  // A package row with nothing in it is dead space between real sections, so
+  // the whole section is hidden until there is something to show. Errors keep
+  // the section visible: the error boundary needs its retry button on screen.
+  const setSectionHidden = hidden => {
+    const section = container.closest('section');
+    if (section) {
+      section.hidden = hidden;
+    }
+  };
+  setSectionHidden(false);
+
   // Issue 5 & 6 Fix: Use error boundary and loading state
   const errorBoundary = new ErrorBoundary(containerId, {
     title: 'Could not load packages',
@@ -406,6 +417,7 @@ async function loadPackagesCarousel({ endpoint, containerId, emptyMessage, ariaL
       if (response.status === 404) {
         LoadingState.hide(containerId);
         container.innerHTML = `<p class="small">${emptyMessage}</p>`;
+        setSectionHidden(true);
         return;
       }
       throw new Error(`HTTP ${response.status}`);
@@ -423,6 +435,7 @@ async function loadPackagesCarousel({ endpoint, containerId, emptyMessage, ariaL
           <a href="/marketplace" class="cta" style="display: inline-block; text-decoration: none;">Browse All Packages</a>
         </div>
       `;
+      setSectionHidden(true);
       return;
     }
 

@@ -103,6 +103,7 @@
       title: 'AV & Lighting',
       category: 'Music/DJ',
       image: PLACEHOLDER_IMAGE,
+      tone: 'teal',
       icon: 'av',
       description: 'Sound systems and lighting equipment.',
     },
@@ -112,6 +113,7 @@
       title: 'Transport',
       category: 'Transport',
       image: PLACEHOLDER_IMAGE,
+      tone: 'blue',
       icon: 'transport',
       description: 'Cars and coaches for you and your guests.',
     },
@@ -121,6 +123,7 @@
       title: 'Cakes & Florals',
       category: 'Cake',
       image: PLACEHOLDER_IMAGE,
+      tone: 'rose',
       icon: 'cake',
       description: 'Celebration cakes and floral arrangements.',
     },
@@ -167,6 +170,7 @@
       categoryDirectoryHref(category.category) ||
       `/suppliers?category=${encodeURIComponent(category.category)}`,
     image: safeImageUrl(category.image),
+    tone: category.image === PLACEHOLDER_IMAGE ? category.tone || 'teal' : '',
     iconHtml: categoryIcon(category.icon),
     description: category.description,
   });
@@ -208,11 +212,17 @@
       return;
     }
 
+    // A category with no photo gets a coloured art panel carrying its own icon,
+    // sized exactly like the photo it stands in for, instead of a grey image box.
     const cards = categories
       .map(
         category => `
           <a class="ef-approved-category-card" href="${escapeHtml(category.href)}">
-            <img src="${escapeHtml(category.image)}" alt="${escapeHtml(category.title)}" loading="lazy" data-fallback-src="${FALLBACK_IMAGE}">
+            ${
+              category.tone
+                ? `<div class="ef-approved-category-art ef-approved-category-art--${escapeHtml(category.tone)}" aria-hidden="true">${category.iconHtml}</div>`
+                : `<img src="${escapeHtml(category.image)}" alt="${escapeHtml(category.title)}" loading="lazy" data-fallback-src="${FALLBACK_IMAGE}">`
+            }
             <div class="ef-approved-category-copy">
               <span class="ef-approved-category-icon">${category.iconHtml}</span>
               <h3>${escapeHtml(category.title)}</h3>

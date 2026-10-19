@@ -160,11 +160,6 @@
   background: var(--hws-mint);
 }
 
-.hws .hws__btn--light {
-  color: var(--hws-teal-deep);
-  background: #fff;
-}
-
 .hws .hws__note {
   margin-top: 16px;
   font-size: 13px;
@@ -968,37 +963,6 @@
 .hws .hws__more .hws-icon {
   width: 16px;
   height: 16px;
-}
-
-/* ------------------------------------------------------------------ CTA */
-
-.hws .hws__cta {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 20px 40px;
-  align-items: center;
-  justify-content: space-between;
-  margin-top: clamp(32px, 4vw, 48px);
-  padding: clamp(20px, 3vw, 28px) clamp(22px, 4vw, 36px);
-  color: #fff;
-  background:
-    radial-gradient(circle at 90% 0%, rgba(19, 182, 162, 0.35), transparent 24rem),
-    linear-gradient(135deg, var(--hws-teal-deep), #0b6e63);
-  border-radius: 24px;
-}
-
-.hws .hws__cta h3 {
-  font-size: 24px;
-  font-weight: 800;
-  line-height: 1.25;
-}
-
-.hws .hws__cta .hws__actions {
-  margin-top: 0;
-}
-
-.hws .hws__cta :where(a):focus-visible {
-  outline-color: #fff;
 }
 
 @media (max-width: 520px) {
