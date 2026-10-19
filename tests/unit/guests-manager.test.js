@@ -320,6 +320,31 @@ describe('the app, rendered into guests.html (jsdom)', () => {
   });
 });
 
+describe('formatDate', () => {
+  /** Runs formatDate in a child process whose time zone is west of Greenwich. */
+  const inNewYork = value =>
+    require('child_process')
+      .execFileSync(
+        process.execPath,
+        [
+          '-e',
+          `process.stdout.write(require(${JSON.stringify(require.resolve('../../public/assets/js/guests.js'))}).formatDate(${JSON.stringify(value)}))`,
+        ],
+        { env: { ...process.env, TZ: 'America/New_York' }, encoding: 'utf8' }
+      )
+      .trim();
+
+  test('shows a plan date as the same calendar day in a time zone west of Greenwich', () => {
+    expect(inNewYork('2027-06-19')).toBe('19 Jun 2027');
+    expect(inNewYork('2027-06-19T00:00:00.000Z')).toBe('19 Jun 2027');
+  });
+
+  test('returns an empty string for a missing or invalid date', () => {
+    expect(lib.formatDate('')).toBe('');
+    expect(lib.formatDate('not a date')).toBe('');
+  });
+});
+
 describe('decodeCsvBytes', () => {
   test('reads UTF-8 files, with or without a byte-order mark', () => {
     const utf8 = Buffer.from('\uFEFFName\nZoë Brontë\n', 'utf8');

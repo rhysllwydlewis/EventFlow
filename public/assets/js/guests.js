@@ -373,9 +373,16 @@
     return (upcoming || dated[dated.length - 1] || { plan: plans[0] }).plan;
   }
 
-  /** A UK-style short date such as "19 Jun 2027", or '' for a missing or invalid value. */
+  /**
+   * A UK-style short date such as "19 Jun 2027", or '' for a missing or invalid value. A plan's
+   * date is a calendar day, so 2027-06-19 is read as that day in the visitor's own time zone;
+   * parsing it as a UTC instant would show 18 Jun anywhere west of Greenwich.
+   */
   function formatDate(value) {
-    const date = new Date(value);
+    const match = /^(\d{4})-(\d{2})-(\d{2})/u.exec(String(value || ''));
+    const date = match
+      ? new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]))
+      : new Date(value);
     if (!value || Number.isNaN(date.getTime())) {
       return '';
     }
@@ -1219,6 +1226,7 @@
     toPayload,
     isWeddingPlan,
     pickFocusPlan,
+    formatDate,
     createGuestApp,
     MAX_IMPORT,
   };
