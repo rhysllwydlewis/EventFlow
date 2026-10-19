@@ -25,15 +25,21 @@ Before the redesign the page kept everything in `localStorage` under `ef_budget`
 the API, so it could not agree with the dashboard, which reads the event plan. The page now uses the
 same fields the dashboard reads:
 
-| Data         | Source                                                                          | Endpoint                                                                         |
-| ------------ | ------------------------------------------------------------------------------- | -------------------------------------------------------------------------------- |
-| Total budget | `plan.budget` (a string)                                                        | `PATCH /api/me/plans/:id` with `{ budget }`                                      |
-| Items        | `plan.budgetItems` (`category`, `item`, `estimated`, `actual`, `paid`, `notes`) | `POST /api/me/plans/:id/budget` with `{ budgetItems }` (replaces the whole list) |
-| Read         | one `GET /api/me/plans`, which returns both                                     |                                                                                  |
+| Data         | Source                                                                          | Endpoint                                                                                    |
+| ------------ | ------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------- |
+| Total budget | `plan.budget` (a string)                                                        | `PATCH /api/me/plans/:id` with `{ budget }`                                                 |
+| Items        | `plan.budgetItems` (`category`, `item`, `estimated`, `actual`, `paid`, `notes`) | `POST /api/me/plans/:id/budget` with `{ budgetItems }` (replaces the whole list; see below) |
+| Read         | one `GET /api/me/plans`, which returns both                                     |                                                                                             |
 
 No new backend was needed. Writes need a verified account and a CSRF token (the server enforces
 both; the page shows the server's message if a save is refused). Nothing is saved optimistically:
 a dialog stays open with its message until the server accepts the change.
+
+The list is saved whole, so every save also sends `baseVersion` (the plan's `budgetUpdatedAt`).
+If the saved list has changed since the page loaded (a second tab or device), the server answers
+409 and the dialog shows "This budget was changed somewhere else. Reload to see the latest."
+Clients that send no `baseVersion` are not checked. The server also caps a budget at 500 items and
+each amount at £1,000,000,000.
 
 Which plan: `?plan=<id>`, else the last plan picked here, else the first plan with a budget, else
 the first plan. A plan switcher appears only when there is more than one.

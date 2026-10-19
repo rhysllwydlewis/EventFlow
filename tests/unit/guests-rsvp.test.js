@@ -110,4 +110,20 @@ describe('guests routes', () => {
       expect(seatedPlan().tables[0].guestIds).toEqual(['a', 'b']);
     });
   });
+
+  describe('guest notes', () => {
+    test('saving a guest keeps notes up to the length allowed on create', async () => {
+      const plan = plans.find(p => p.id === 'p3');
+      plan.guestList = [{ id: 'n1', name: 'Nia', rsvpStatus: 'pending', notes: '' }];
+      const long = 'x'.repeat(900);
+      const res = await request(app).patch('/api/me/plans/p3/guests/n1').send({ notes: long });
+      expect(res.status).toBe(200);
+      expect(plan.guestList[0].notes).toHaveLength(900);
+      const over = await request(app)
+        .patch('/api/me/plans/p3/guests/n1')
+        .send({ notes: 'y'.repeat(1500) });
+      expect(over.status).toBe(200);
+      expect(plan.guestList[0].notes).toHaveLength(1000);
+    });
+  });
 });

@@ -342,11 +342,14 @@
         paid: line.paid,
         notes: line.notes,
       })),
+      // Lets the server refuse the save if another tab or device has changed the list since.
+      baseVersion: state.plan.budgetUpdatedAt || '',
     };
     const data = await api(planUrl(state.plan, '/budget'), { method: 'POST', body });
     const saved = Array.isArray(data.budgetItems) ? data.budgetItems : items;
     state.items = saved.map((raw, index) => Calc.normaliseItem(raw, `item_${index}`));
     state.plan.budgetItems = state.items;
+    state.plan.budgetUpdatedAt = data.budgetUpdatedAt || state.plan.budgetUpdatedAt || '';
   }
 
   /** Saves the total budget to the plan (or this device) and updates the state. */
