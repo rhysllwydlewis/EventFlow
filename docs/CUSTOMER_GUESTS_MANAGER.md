@@ -50,6 +50,14 @@ Fields used: `name`, `email`, `phone`, `rsvpStatus` (pending, attending, maybe, 
 - Import matches columns by header name, so the previous `FirstName, LastName, PlusOne` layout still
   works. It posts one guest at a time and is limited to 50 rows because the write limiter allows 80
   writes per 10 minutes. Rows without a name are listed as skipped rather than dropped silently.
+  Files over 1 MB are refused, and guests already on the list (same name and email, ignoring case)
+  are skipped, so importing a previous export does not double the list.
+- Editing sends only the fields that changed. The server keeps the first 200 characters of every
+  text field on edit, so re-sending an untouched long note would silently cut it. Saving with no
+  changes sends nothing. A reply change away from "Attending" frees the guest's seat on the server;
+  the toast says so.
+- The page opens the plan in `?plan=<id>` if there is one, otherwise the next upcoming dated plan
+  (the same rule as the dashboard summary), and keeps the choice in the address bar.
 - All requests use `limit`-free endpoints, so the `/api` pagination cap does not apply.
 
 ## Left alone

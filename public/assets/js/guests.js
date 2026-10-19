@@ -31,6 +31,10 @@
   // The write limiter allows 80 writes per 10 minutes, and a CSV import is one write per guest.
   const MAX_IMPORT = 50;
   const MAX_PARTY = 20;
+  // The server keeps the first 200 characters of notes when a guest is edited.
+  const MAX_NOTES = 200;
+  const MAX_IMPORT_BYTES = 1048576;
+  const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/u;
 
   /* ------------------------------------------------------------------ *
    * Pure helpers
@@ -336,6 +340,79 @@
     return Boolean(plan?.weddingWebsite) || type === 'wedding' || name.includes('wedding');
   }
 
+  /**
+   * The plan to show first: the one named in the address, else the next upcoming dated plan, else
+   * the latest dated plan, else the first. This is the same "focus plan" the dashboard summarises,
+   * so both pages describe the same guest list.
+   */
+  function pickPlan(plans, wantedId = '') {
+    const list = Array.isArray(plans) ? plans : [];
+    const wanted = list.find(plan => plan.id === wantedId);
+    if (wanted || !list.length) {
+      return wanted || null;
+    }
+    const startOfToday = new Date();
+    startOfToday.setHours(0, 0, 0, 0);
+    const dated = list
+      .map(plan => {
+        const value = plan.eventDate || plan.date;
+        return { plan, time: value ? new Date(value).getTime() : Number.NaN };
+      })
+      .filter(item => Number.isFinite(item.time))
+      .sort((left, right) => left.time - right.time);
+    const upcoming = dated.find(item => item.time >= startOfToday.getTime());
+    if (upcoming) {
+      return upcoming.plan;
+    }
+    return dated.length ? dated[dated.length - 1].plan : list[0];
+  }
+
+  /**
+   * The fields in an edit payload that differ from the guest as loaded. Only these are sent, so
+   * saving one change never rewrites (or, for long notes, truncates) anything else.
+   */
+  function changedFields(current, payload) {
+    const same = {
+      name: current.name,
+      email: current.email,
+      phone: current.phone,
+      rsvpStatus: current.status,
+      partySize: current.partySize,
+      dietary: current.dietary,
+      notes: current.notes,
+      table: current.table,
+    };
+    const changes = {};
+    Object.keys(payload).forEach(key => {
+      const before = same[key];
+      const after = typeof before === 'number' ? payload[key] : payload[key] || '';
+      if (after !== before) {
+        changes[key] = payload[key];
+      }
+    });
+    return changes;
+  }
+
+  /** A lowercase "name|email" key used to spot a guest that is already on the list. */
+  function guestKey(guest) {
+    return `${String(guest.name || '')
+      .trim()
+      .toLowerCase()}|${String(guest.email || '')
+      .trim()
+      .toLowerCase()}`;
+  }
+
+  /** Splits incoming guests into new ones and ones already on the list (same name and email). */
+  function splitDuplicates(existing, incoming) {
+    const seen = new Set(existing.map(guestKey));
+    const fresh = [];
+    const duplicates = [];
+    incoming.forEach(guest => {
+      (seen.has(guestKey(guest)) ? duplicates : fresh).push(guest);
+    });
+    return { fresh, duplicates };
+  }
+
   /** A UK-style short date such as "19 Jun 2027", or '' for a missing or invalid value. */
   function formatDate(value) {
     const date = new Date(value);
@@ -505,6 +582,17 @@
 
     /* ---- plans and guests ---- */
 
+    /** Keeps the chosen plan in the address, so a refresh or shared link shows the same list. */
+    function rememberPlan() {
+      try {
+        const url = new URL(window.location.href);
+        url.searchParams.set('plan', state.plan.id);
+        window.history.replaceState(null, '', url);
+      } catch {
+        /* the address is only a convenience */
+      }
+    }
+
     /** Loads the plans (first time only) and the current plan's guests, then redraws the page. */
     async function load() {
       state.phase = 'loading';
@@ -519,8 +607,8 @@
             renderStage();
             return;
           }
-          const wanted = new URLSearchParams(window.location.search).get('plan');
-          state.plan = state.plans.find(p => p.id === wanted) || state.plans[0];
+          const wanted = new URLSearchParams(window.location.search).get('plan') || '';
+          state.plan = pickPlan(state.plans, wanted);
         }
         const data = await api(guestsPath(''));
         state.guests = (data.guests || []).map(normalizeGuest);
@@ -781,7 +869,7 @@
             ${field('phone', 'Phone', input('phone', 'tel', current.phone, 'maxlength="30" autocomplete="off"'))}
             ${field('dietary', 'Dietary needs', input('dietary', 'text', current.dietary, 'maxlength="500" placeholder="e.g. Vegetarian, nut allergy"'))}
             ${field('table', 'Table', input('table', 'text', current.table, `maxlength="100" ${current.seated ? 'disabled aria-describedby="gm-h-table"' : ''}`), false, current.seated ? 'Seated in your seating plan. Change it there.' : '')}
-            ${field('notes', 'Notes', `<textarea class="gm-input" id="gm-f-notes" name="notes" rows="2" maxlength="200">${esc(current.notes)}</textarea>`, true)}
+            ${field('notes', 'Notes', `<textarea class="gm-input" id="gm-f-notes" name="notes" rows="2" maxlength="${MAX_NOTES}">${esc(current.notes)}</textarea>`, true)}
           </div>
           <p class="gm-error gm-form-error" role="alert" hidden></p>
           <p class="gm-form-status" role="status"></p>
@@ -800,6 +888,9 @@
         nameError.hidden = true;
         nameInput.removeAttribute('aria-invalid');
       });
+      form.elements.email.addEventListener('input', () => {
+        form.elements.email.removeAttribute('aria-invalid');
+      });
       form.addEventListener('submit', async event => {
         event.preventDefault();
         const again = event.submitter?.value === 'another';
@@ -811,20 +902,44 @@
           return;
         }
         formError.hidden = true;
+        const payload = toPayload(values, { includeTable: !current.seated });
+        const changes = guest ? changedFields(guest, payload) : payload;
+        if (payload.email && !EMAIL_PATTERN.test(payload.email)) {
+          form.elements.email.setAttribute('aria-invalid', 'true');
+          formError.textContent = 'Enter a valid email address, or leave it blank.';
+          formError.hidden = false;
+          form.elements.email.focus();
+          return;
+        }
+        if (changes.notes && changes.notes.length > MAX_NOTES) {
+          formError.textContent = `Notes can be up to ${MAX_NOTES} characters.`;
+          formError.hidden = false;
+          form.elements.notes.focus();
+          return;
+        }
+        if (guest && !Object.keys(changes).length) {
+          toast('No changes to save');
+          dialog.close();
+          return;
+        }
         const buttons = [...form.querySelectorAll('[type="submit"]')];
-        buttons.forEach(b => setBusy(b, true));
+        buttons.forEach(button => setBusy(button, true));
         try {
-          const payload = toPayload(values, { includeTable: !current.seated });
           if (guest) {
             const res = await api(guestsPath(`/${encodeURIComponent(guest.id)}`), {
               method: 'PATCH',
-              body: payload,
+              body: changes,
             });
-            const i = state.guests.findIndex(x => x.id === guest.id);
-            if (i >= 0) {
-              state.guests[i] = normalizeGuest(res.guest);
+            const index = state.guests.findIndex(entry => entry.id === guest.id);
+            const updated = normalizeGuest(res.guest);
+            if (index >= 0) {
+              state.guests[index] = updated;
             }
-            toast('Guest updated');
+            toast(
+              guest.seated && !updated.seated
+                ? 'Guest updated. Their seat in your seating plan was released.'
+                : 'Guest updated'
+            );
           } else {
             const res = await api(guestsPath(''), { method: 'POST', body: payload });
             state.guests.push(normalizeGuest(res.guest));
@@ -836,13 +951,13 @@
             form.reset();
             form.querySelector('.gm-form-status').textContent =
               `${payload.name} added. Add the next guest.`;
-            buttons.forEach(b => setBusy(b, false));
+            buttons.forEach(button => setBusy(button, false));
             nameInput.focus();
             return;
           }
           dialog.close();
         } catch (err) {
-          buttons.forEach(b => setBusy(b, false));
+          buttons.forEach(button => setBusy(button, false));
           formError.textContent = err.message;
           formError.hidden = false;
         }
@@ -873,7 +988,7 @@
         error.hidden = true;
         try {
           await api(guestsPath(`/${encodeURIComponent(guest.id)}`), { method: 'DELETE' });
-          state.guests = state.guests.filter(x => x.id !== guest.id);
+          state.guests = state.guests.filter(entry => entry.id !== guest.id);
           toast(`${guest.name} removed`);
           renderSummary();
           renderResults();
@@ -900,7 +1015,7 @@
       document.body.appendChild(link);
       link.click();
       link.remove();
-      URL.revokeObjectURL(url);
+      window.setTimeout(() => URL.revokeObjectURL(url), 1000);
     }
 
     /** Downloads every guest as a CSV file. */
@@ -924,7 +1039,7 @@
       dialog.innerHTML = `<form class="gm-form" novalidate>
         <div class="gm-dialog__head"><h2 class="gm-dialog__title" id="gm-dialog-title">Import guests from CSV</h2><button type="button" class="gm-icon-btn" data-dialog-close aria-label="Close">${icon('close', 20)}</button></div>
         <div class="gm-dialog__body">
-          <p class="gm-dialog__text">Use a file with a header row. Name is required; Email, Phone, RSVP, Party size, Dietary, Table and Notes are optional. FirstName and LastName columns work too. Up to ${MAX_IMPORT} guests per import.</p>
+          <p class="gm-dialog__text">Use a file with a header row. Name is required; Email, Phone, RSVP, Party size, Dietary, Table and Notes are optional. FirstName and LastName columns work too. Up to ${MAX_IMPORT} guests per import, up to 1 MB. Guests already on your list (same name and email) are skipped.</p>
           <p class="gm-dialog__text"><button type="button" class="gm-link" data-template>Download a template</button></p>
           <div class="gm-field gm-field--wide"><label class="gm-label" for="gm-csv">CSV file</label><input class="gm-input gm-file" id="gm-csv" type="file" accept=".csv,text/csv" aria-describedby="gm-import-status"></div>
           <p class="gm-import-status" id="gm-import-status" role="status"></p>
@@ -969,6 +1084,11 @@
           status.textContent = '';
           return;
         }
+        if (file.size > MAX_IMPORT_BYTES) {
+          status.textContent = 'That file is larger than 1 MB. Split it into smaller files.';
+          status.className = 'gm-import-status gm-error';
+          return;
+        }
         const result = guestsFromCsv(parseCsv(await file.text()));
         if (result.error) {
           status.textContent = result.error;
@@ -980,14 +1100,27 @@
           status.className = 'gm-import-status gm-error';
           return;
         }
-        if (result.guests.length > MAX_IMPORT) {
-          status.textContent = `That file has ${result.guests.length} guests. Import up to ${MAX_IMPORT} at a time.`;
+        const { fresh, duplicates } = splitDuplicates(state.guests, result.guests);
+        if (!fresh.length) {
+          status.textContent = `All ${plural(duplicates.length, 'guest')} in that file are already on your list.`;
           status.className = 'gm-import-status gm-error';
           return;
         }
-        parsed = result;
+        if (fresh.length > MAX_IMPORT) {
+          status.textContent = `That file has ${fresh.length} new guests. Import up to ${MAX_IMPORT} at a time.`;
+          status.className = 'gm-import-status gm-error';
+          return;
+        }
+        parsed = { guests: fresh };
+        const notes = [];
+        if (duplicates.length) {
+          notes.push(`${plural(duplicates.length, 'guest')} already on your list will be skipped`);
+        }
+        if (result.skipped.length) {
+          notes.push(`${plural(result.skipped.length, 'row')} without a name will be skipped`);
+        }
         status.className = 'gm-import-status';
-        status.textContent = `${plural(result.guests.length, 'guest')} ready to import${result.skipped.length ? `, ${plural(result.skipped.length, 'row')} without a name will be skipped` : ''}.`;
+        status.textContent = `${plural(fresh.length, 'new guest')} ready to import${notes.length ? `, ${notes.join(', ')}` : ''}.`;
         submit.disabled = false;
       });
       form.addEventListener('submit', async event => {
@@ -1089,7 +1222,8 @@
         state.page = 1;
         renderResults();
       } else if (id === 'gm-plan-select') {
-        state.plan = state.plans.find(p => p.id === value) || state.plan;
+        state.plan = state.plans.find(plan => plan.id === value) || state.plan;
+        rememberPlan();
         state.query = '';
         state.status = '';
         state.page = 1;
@@ -1115,6 +1249,10 @@
     toPayload,
     isWeddingPlan,
     createGuestApp,
+    pickPlan,
+    changedFields,
+    guestKey,
+    splitDuplicates,
     MAX_IMPORT,
   };
 

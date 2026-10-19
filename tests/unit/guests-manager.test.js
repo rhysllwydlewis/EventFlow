@@ -231,6 +231,79 @@ describe('isWeddingPlan', () => {
   });
 });
 
+describe('pickPlan', () => {
+  const plans = [
+    { id: 'old', eventDate: '2020-01-01' },
+    { id: 'soon', eventDate: '2999-05-01' },
+    { id: 'later', eventDate: '2999-09-01' },
+    { id: 'undated' },
+  ];
+
+  test('uses the plan named in the link when it exists', () => {
+    expect(lib.pickPlan(plans, 'later').id).toBe('later');
+  });
+
+  test('otherwise picks the next upcoming dated plan, like the dashboard', () => {
+    expect(lib.pickPlan(plans).id).toBe('soon');
+    expect(lib.pickPlan(plans, 'missing').id).toBe('soon');
+  });
+
+  test('falls back to the latest dated plan, then the first plan', () => {
+    expect(lib.pickPlan([plans[0], { id: 'x' }]).id).toBe('old');
+    expect(lib.pickPlan([{ id: 'x' }, { id: 'y' }]).id).toBe('x');
+    expect(lib.pickPlan([])).toBeNull();
+  });
+});
+
+describe('changedFields', () => {
+  const current = guest({
+    partySize: 2,
+    dietaryRequirements: 'Vegan',
+    notes: 'x'.repeat(300),
+    tableName: 'Top',
+  });
+  const payload = values => ({
+    name: 'Jane Smith',
+    email: '',
+    phone: '',
+    rsvpStatus: 'pending',
+    partySize: 2,
+    dietary: 'Vegan',
+    notes: 'x'.repeat(300),
+    table: 'Top',
+    ...values,
+  });
+
+  test('is empty when nothing was edited', () => {
+    expect(lib.changedFields(current, payload({}))).toEqual({});
+  });
+
+  test('returns only the fields that differ', () => {
+    expect(lib.changedFields(current, payload({ name: 'Jane Jones', partySize: 3 }))).toEqual({
+      name: 'Jane Jones',
+      partySize: 3,
+    });
+  });
+
+  test('treats a cleared field as a change', () => {
+    expect(lib.changedFields(current, payload({ dietary: '' }))).toEqual({ dietary: '' });
+  });
+});
+
+describe('splitDuplicates', () => {
+  const existing = [guest({ id: '1', name: 'Jane Smith', email: 'Jane@Example.com' })];
+
+  test('matches on name and email, ignoring case and spacing', () => {
+    const { fresh, duplicates } = lib.splitDuplicates(existing, [
+      { name: ' jane smith ', email: 'jane@example.com' },
+      { name: 'Jane Smith', email: 'other@example.com' },
+      { name: 'Sam Lee', email: '' },
+    ]);
+    expect(duplicates.map(g => g.name)).toEqual([' jane smith ']);
+    expect(fresh.map(g => g.name)).toEqual(['Jane Smith', 'Sam Lee']);
+  });
+});
+
 describe('the app, rendered into guests.html (jsdom)', () => {
   const runner = path.join(__dirname, '../helpers/guests-manager-scenario.js');
   const run = scenario =>
@@ -317,6 +390,46 @@ describe('the app, rendered into guests.html (jsdom)', () => {
     const result = run({ plans: [] });
     expect(result.emptyTitle).toMatch(/Start a plan/);
     expect(result.addHidden).toBe(true);
+  });
+
+  test('editing a guest sends only the changed fields, so long notes are not cut off', () => {
+    const result = run({
+      guests: [{ id: 'a', name: 'Jane Smith', rsvpStatus: 'pending', notes: 'n'.repeat(300) }],
+      submitEdit: { name: 'Jane Jones' },
+    });
+    expect(result.writes).toHaveLength(1);
+    expect(result.writes[0].method).toBe('PATCH');
+    expect(result.writes[0].body).toEqual({ name: 'Jane Jones' });
+  });
+
+  test('saving an edit with no changes sends nothing', () => {
+    const result = run({
+      guests: [{ id: 'a', name: 'Jane Smith', rsvpStatus: 'pending' }],
+      submitEdit: {},
+    });
+    expect(result.writes).toHaveLength(0);
+    expect(result.toast).toMatch(/No changes/);
+  });
+
+  test('an invalid email is rejected before any request is sent', () => {
+    const result = run({
+      guests: [{ id: 'a', name: 'Jane Smith', rsvpStatus: 'pending' }],
+      submitEdit: { email: 'not-an-email' },
+    });
+    expect(result.writes).toHaveLength(0);
+    expect(result.error).toMatch(/valid email/);
+  });
+
+  test('the plan in the link is the one that opens, and the link keeps it', () => {
+    const result = run({
+      plans: [
+        { id: 'p1', name: 'First', eventType: 'wedding', eventDate: '2999-05-01' },
+        { id: 'p2', name: 'Second', eventType: 'wedding', eventDate: '2999-09-01' },
+      ],
+      search: '?plan=p2',
+      guests: [],
+    });
+    expect(result.selectedPlan).toBe('p2');
   });
 });
 
