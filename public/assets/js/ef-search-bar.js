@@ -31,6 +31,9 @@ class EFSearchBar {
     // Keep quick tags on one line and hide only if space is actually tight
     this.balanceQuickTags();
     window.addEventListener('resize', () => this.scheduleQuickTagBalance());
+
+    // Measured again once web fonts are in, since they change the tags' widths
+    document.fonts?.ready?.then(() => this.scheduleQuickTagBalance());
   }
 
   scheduleQuickTagBalance() {

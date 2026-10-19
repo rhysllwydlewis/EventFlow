@@ -18,7 +18,7 @@
   <link rel="stylesheet" href="/assets/css/admin-cards.css?v=18.3.0">
   <link rel="stylesheet" href="/assets/css/utilities.css?v=18.3.0">
   <link rel="stylesheet" href="/assets/css/components.css?v=18.4.3">
-  <link rel="stylesheet" href="/assets/css/admin-homepage-rebuild.css?v=18.4.1">
+  <link rel="stylesheet" href="/assets/css/admin-homepage-rebuild.css?v=18.4.2">
   <link rel="icon" href="/favicon.ico" sizes="any">
   <link rel="icon" type="image/svg+xml" href="/favicon.svg">
   <link rel="icon" type="image/png" sizes="144x144" href="/favicon-144x144.png">
@@ -60,6 +60,25 @@
       <p>Homepage 1 is the original site. Homepage 2 and 3 can be edited and previewed before you make either one live.</p>
     </div>
     <div id="homepageVersionCards" class="homepage-version-grid" aria-live="polite"></div>
+  </section>
+
+  <section id="homepageGuidanceWorkspace" class="homepage-manager-section homepage-guidance" aria-labelledby="guidanceHeading">
+    <div class="homepage-section-heading">
+      <div>
+        <p class="homepage-admin-eyebrow">Page guidance</p>
+        <h2 id="guidanceHeading">Guide visitors down the page</h2>
+      </div>
+      <p>Adds a "Next" arrow between sections, a "Browse" cue on each category card, a dotted path down the margin on wide screens and a Start planning card after the early-access steps. It applies to Homepage 1 and 3 and takes effect as soon as you switch it.</p>
+    </div>
+    <div class="homepage-guidance-control">
+      <label class="homepage-guidance-switch" for="homepageGuidanceToggle">
+        <input id="homepageGuidanceToggle" type="checkbox" role="switch" disabled aria-describedby="homepageGuidanceMeta">
+        <span class="homepage-guidance-track" aria-hidden="true"></span>
+        <span id="homepageGuidanceLabel" class="homepage-guidance-label">Loading...</span>
+      </label>
+      <p id="homepageGuidanceMeta" class="homepage-guidance-meta" aria-live="polite"></p>
+      <a class="ef-cta btn btn-secondary" href="/" target="_blank" rel="noopener">Open homepage</a>
+    </div>
   </section>
 
   <section class="homepage-manager-layout" aria-label="Homepage editing workspace">
@@ -271,6 +290,7 @@
 <script src="/assets/js/admin-shared.js?v=18.3.1"></script>
 <script src="/assets/js/pages/admin-homepage-rebuild.js?v=18.4.0" defer></script>
 <script src="/assets/js/pages/admin-homepage-hardening.js?v=1.0.0" defer></script>
+<script src="/assets/js/pages/admin-homepage-guidance.js?v=1.0.0" defer></script>
 <script src="/assets/js/cookie-consent.js?v=3.0.0" defer></script>
 </body>
 </html>
