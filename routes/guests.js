@@ -21,6 +21,14 @@ const normalize = v =>
 const getGuestList = plan =>
   Array.isArray(plan.guestList) ? plan.guestList : Array.isArray(plan.guests) ? plan.guests : [];
 const guestPatchTarget = plan => (Array.isArray(plan.guests) ? 'guests' : 'guestList');
+const isSeated = guest => Boolean(guest.tableId || guest.tableName || guest.table);
+
+/** Copy of the plan's tables with one guest removed from every seat list. */
+const tablesWithoutGuest = (plan, guestId) =>
+  (Array.isArray(plan.tables) ? plan.tables : []).map(table => ({
+    ...table,
+    guestIds: (table.guestIds || []).filter(id => id !== guestId),
+  }));
 
 async function verifyPlanOwnership(req, res, next) {
   try {
@@ -208,13 +216,20 @@ router.patch(
     if (req.body.childrenCount !== undefined) {
       guest.childrenCount = Math.max(0, Math.min(10, Number(req.body.childrenCount) || 0));
     }
+    // Only attending guests can hold a seat; free it when a guest declines or goes back to pending.
+    const losesSeat = guest.rsvpStatus !== 'attending' && isSeated(guest);
+    if (losesSeat) {
+      guest.tableId = null;
+      guest.tableName = null;
+      guest.table = null;
+    }
     guest.updatedAt = now;
     guests[i] = guest;
-    await dbUnified.updateOne(
-      'plans',
-      { id: req.plan.id },
-      { $set: { [guestPatchTarget(req.plan)]: guests, updatedAt: now } }
-    );
+    const update = { [guestPatchTarget(req.plan)]: guests, updatedAt: now };
+    if (losesSeat && Array.isArray(req.plan.tables)) {
+      update.tables = tablesWithoutGuest(req.plan, guest.id);
+    }
+    await dbUnified.updateOne('plans', { id: req.plan.id }, { $set: update });
     return res.json({ success: true, guest });
   }
 );
@@ -232,11 +247,11 @@ router.delete(
     if (next.length === guests.length) {
       return res.status(404).json({ error: 'Guest not found' });
     }
-    await dbUnified.updateOne(
-      'plans',
-      { id: req.plan.id },
-      { $set: { [guestPatchTarget(req.plan)]: next, updatedAt: new Date().toISOString() } }
-    );
+    const update = { [guestPatchTarget(req.plan)]: next, updatedAt: new Date().toISOString() };
+    if (Array.isArray(req.plan.tables)) {
+      update.tables = tablesWithoutGuest(req.plan, req.params.id);
+    }
+    await dbUnified.updateOne('plans', { id: req.plan.id }, { $set: update });
     return res.json({ success: true, message: 'Guest removed successfully' });
   }
 );

@@ -99,6 +99,24 @@
     default: DEFAULT_THEME_COLOR,
   });
 
+  /**
+   * Hero artwork shown for a category family when a profile has no uploaded banner
+   * and no named preset. The public profile paints the same gradients from
+   * supplier-profile-v2.css (`.supplier-hero[data-category-preset]`); a unit test
+   * keeps the two in step so the editors' previews show what visitors will see.
+   */
+  const CATEGORY_HERO_GRADIENTS = Object.freeze({
+    wedding: 'linear-gradient(135deg, #b76e79 0%, #e8a0ab 50%, #f4c2ca 100%)',
+    photography: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%)',
+    catering: 'linear-gradient(135deg, #7f5539 0%, #b08968 50%, #ddb892 100%)',
+    music: 'linear-gradient(135deg, #1a0533 0%, #3a0c6e 50%, #6a0dad 100%)',
+    entertainment: 'linear-gradient(135deg, #c2185b 0%, #e91e8c 50%, #ff80ab 100%)',
+    flowers: 'linear-gradient(135deg, #386641 0%, #6a994e 50%, #a7c957 100%)',
+    venue: 'linear-gradient(135deg, #2d3748 0%, #4a5568 50%, #718096 100%)',
+    transport: 'linear-gradient(135deg, #1a3a4a 0%, #1a6b8a 50%, #2196c0 100%)',
+    beauty: 'linear-gradient(135deg, #831843 0%, #9d174d 50%, #db2777 100%)',
+  });
+
   function normaliseThemeColor(value) {
     const candidate = String(value || '').trim();
     return /^#[0-9A-F]{6}$/i.test(candidate) ? candidate.toUpperCase() : null;
@@ -223,6 +241,7 @@
 
   return Object.freeze({
     CATEGORY_ACCENTS,
+    CATEGORY_HERO_GRADIENTS,
     CATEGORY_THEME_FAMILIES,
     DEFAULT_THEME_COLOR,
     HERO_PRESETS,
