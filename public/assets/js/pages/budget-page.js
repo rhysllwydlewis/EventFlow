@@ -23,7 +23,7 @@
   const LOCAL_KEY = 'ef_budget_v2'; // device-only budget: { total, items: [...] }
   const IMPORTED_KEY = 'ef_budget_imported'; // set once the legacy data has been moved to a plan
   const DASHBOARD_BUDGET_KEY = 'eventflow_custom_budget'; // read by the dashboard as a fallback
-  const PLAN_PICK_KEY = 'ef_budget_plan';
+  const PLAN_PICK_KEY = 'ef_customer_plan'; // shared with the guest list so both stay on one event
   const REQUEST_TIMEOUT_MS = 20000;
 
   const STATUS_TEXT = { paid: 'Paid', partial: 'Part paid', unpaid: 'Unpaid', none: '' };
@@ -209,15 +209,32 @@
    * Loading and saving
    * ------------------------------------------------------------------ */
 
-  /** Chooses which plan to show: the ?plan= id, the last one picked, the first with a budget, else the first. */
+  /** Local midnight for a plan date string such as 2027-06-19, or null when it has none. */
+  function planDay(plan) {
+    const match = /^(\d{4})-(\d{2})-(\d{2})/u.exec(String(plan?.eventDate || plan?.date || ''));
+    return match ? new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3])) : null;
+  }
+
+  /**
+   * The plan the customer dashboard summarises: the next upcoming date, else the latest dated
+   * plan, else the first, so all three customer pages start on the same event.
+   */
+  function pickFocusPlan(plans) {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const dated = plans
+      .map(plan => ({ plan, day: planDay(plan) }))
+      .filter(item => item.day)
+      .sort((left, right) => left.day - right.day);
+    const upcoming = dated.find(item => item.day >= today);
+    return (upcoming || dated[dated.length - 1] || { plan: plans[0] }).plan;
+  }
+
+  /** Chooses which plan to show: the ?plan= id, the last one picked, else the dashboard's focus plan. */
   function pickPlan(plans) {
     const wanted =
       new URLSearchParams(window.location.search).get('plan') || readStorage(PLAN_PICK_KEY);
-    return (
-      plans.find(plan => plan.id === wanted) ||
-      plans.find(plan => Calc.parsePlanBudget(plan.budget) > 0) ||
-      plans[0]
-    );
+    return plans.find(plan => plan.id === wanted) || pickFocusPlan(plans);
   }
 
   /** Reads the old page's device data, converted to budget lines, or null when there is none to import. */

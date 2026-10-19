@@ -218,6 +218,12 @@ describe('budget page styling invariants', () => {
     expect(js).toContain('/auth?redirect=%2Fbudget');
   });
 
+  test('starts on the dashboard focus plan and shares the remembered plan with the guest list', () => {
+    expect(js).toContain("PLAN_PICK_KEY = 'ef_customer_plan'");
+    expect(js).toContain('function pickFocusPlan(');
+    expect(js).toMatch(/plans\.find\(plan => plan\.id === wanted\) \|\| pickFocusPlan\(plans\)/);
+  });
+
   test('the export menu opens rightwards on phones, where Export sits at the left edge', () => {
     const phone = css.slice(css.indexOf('@media (max-width: 720px)'));
     expect(phone).toMatch(/\.bp \.bp-menu__panel \{[^}]*right: auto;[^}]*left: 0;/);

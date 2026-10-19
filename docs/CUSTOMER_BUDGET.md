@@ -80,6 +80,10 @@ reads them as tables). Type sizes use the site scale; animation and transitions 
 
 Item rows have an Edit button; Delete is inside the edit dialog and asks for confirmation.
 
+With no `?plan=` the page opens on the plan last picked here or on the guest list (shared in
+`localStorage` as `ef_customer_plan`), otherwise on the dashboard's focus plan (the next dated
+plan). A refused plans request (ended session) offers a log-in link that returns to `/budget`.
+
 The page shares its warm neutral palette, 1152px content width and rounded-rectangle shapes (no
 pills) with the guest list and the dashboard, so moving between them does not shift the layout or
 the tone. Notes use a textarea (the server keeps 500 characters); the table clamps a long note to
