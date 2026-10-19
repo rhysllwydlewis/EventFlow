@@ -291,7 +291,7 @@ describe('the app, rendered into guests.html (jsdom)', () => {
       'Declined|1|Not coming',
     ]);
     expect(result.rows).toBe(2);
-    expect(result.noteHref).toBe('/dashboard/customer');
+    expect(result.noteHref).toBe('/dashboard/customer#wedding-website-dashboard-card');
   });
 
   test('with no guests it offers to add or import, and shows no summary, filters or pointer', () => {

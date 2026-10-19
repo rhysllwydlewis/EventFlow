@@ -673,7 +673,7 @@
       }
       const note = find('#gm-note');
       note.innerHTML = isWeddingPlan(state.plan)
-        ? `<p class="gm-note">${icon('heart')}<span>This is the same guest list your Wedding Website &amp; RSVPs uses. Replies from your website appear here; seating is arranged there. <a href="/dashboard/customer">Open Wedding Website &amp; RSVPs</a></span></p>`
+        ? `<p class="gm-note">${icon('heart')}<span>This is the same guest list your Wedding Website &amp; RSVPs uses. Replies from your website appear here; seating is arranged there. <a href="/dashboard/customer#wedding-website-dashboard-card">Open Wedding Website &amp; RSVPs</a></span></p>`
         : '';
     }
 
