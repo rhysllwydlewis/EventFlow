@@ -51,7 +51,8 @@ router.put('/guidance', authRequired, roleRequired('admin'), csrfProtection, asy
   try {
     const validationError = validateHomepageGuidancePayload(req.body);
     if (validationError) {
-      return res.status(400).json({ error: validationError });
+      res.status(400).json({ error: validationError });
+      return;
     }
 
     const settings = (await dbUnified.read('settings')) || {};

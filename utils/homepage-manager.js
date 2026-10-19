@@ -789,13 +789,13 @@ function validateHomepageGuidancePayload(payload) {
   return null;
 }
 
-function updateHomepageGuidance(settings = {}, enabled, user = {}) {
+function updateHomepageGuidance(settings, enabled, user) {
   return {
     ...settings,
     homepageGuidance: {
       enabled: enabled === true,
       updatedAt: new Date().toISOString(),
-      updatedBy: user.email || user.id || null,
+      updatedBy: user?.email || user?.id || null,
     },
   };
 }
