@@ -48,6 +48,16 @@ Wedding Website & RSVPs is now a production feature area for customer wedding pl
 - The public page is likewise one module (`public/assets/js/pages/public-wedding-site.js`) and one stylesheet (`public/assets/css/public-wedding-site.css`). `GET /api/public/wedding-websites/:slug` returns the validated palette, hero layout, cover photo and gallery (via `publicThemeMedia` in `routes/wedding-theme-media.js`), so the page needs one request. Before this, those fields were left out of the public response and guests only saw the accent colour and cover photo. The page derives readable text, link and button colours from the couple's four picks, so a low-contrast palette still passes WCAG AA.
 - Visual regression and accessibility coverage should be kept in sync with the intentional UI changes.
 
+## Homepage showcase
+
+The homepage advertises this feature in a section with its own illustrations (`#wedding-website-rsvp`):
+
+- Markup: the block between `<!-- hws:start -->` and `<!-- hws:end -->` in `public/index.html` (homepage v1 and v3) and `public/home-v2.html` (v2). The admin can switch the live homepage version, so the two copies must stay identical; `tests/unit/home-wedding-showcase.test.js` fails if they drift. Edit one, then copy it to the other.
+- Styles: `public/assets/css/home-wedding-showcase.css`, every selector prefixed `.hws` so it cannot restyle (or be restyled by) the rest of either homepage. Bump the `?v=` on both pages when it changes.
+- Graphics: HTML, CSS and inline SVG only (a guest wedding website on a phone, an RSVP tracker, a seating plan, a QR chip). They are decorative and hidden from assistive technology; one `role="img"` label describes them. They use sample names and numbers and are captioned as an illustrative preview. Do not add testimonials, ratings or usage numbers (the anonymous-page sanitizer and a test both guard against that).
+- SEO: keyword-led heading and copy, visible FAQ with matching `FAQPage` JSON-LD, a `Service` JSON-LD block (free for customers), and internal links to `/articles/wedding-website-on-eventflow-guide`, `/auth?tab=create&role=customer` and `/faq`. Keep the FAQ text and the JSON-LD identical (the test checks it). The homepage `<title>` and meta description were deliberately left unchanged.
+- Copy must describe only what the feature does today (free for customers, no account needed for guests to RSVP, hidden from search engines by default, only attending guests hold seats).
+
 ## How customers use it
 
 1. Open Customer Dashboard → Wedding Website & RSVPs.
