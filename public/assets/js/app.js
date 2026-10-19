@@ -5185,28 +5185,25 @@ async function initAdmin() {
   }
 }
 
+/** The page tag for a URL path, for pages that do not set window.__EF_PAGE__ themselves. */
+function efDetectPage(pathname) {
+  // Order matters: '/suppliers' also starts with '/supplier', so it is tested first.
+  const routes = [
+    ['admin_users', p => p.endsWith('admin-users.html') || p === '/admin-users'],
+    ['admin', p => p.endsWith('admin.html') || p === '/admin'],
+    ['auth', p => p.endsWith('auth.html') || p === '/auth'],
+    ['verify', p => p.endsWith('verify.html') || p === '/verify'],
+    ['dash_supplier', p => p.endsWith('dashboard-supplier.html') || p === '/dashboard/supplier'],
+    ['suppliers', p => p.endsWith('suppliers.html') || p === '/suppliers'],
+    ['supplier', p => p.endsWith('supplier.html') || p.startsWith('/supplier')],
+    ['plan', p => p.endsWith('plan.html') || p === '/plan'],
+  ];
+  const match = routes.find(([, test]) => test(pathname));
+  return match ? match[0] : '';
+}
+
 document.addEventListener('DOMContentLoaded', () => {
-  const page =
-    window.__EF_PAGE__ ||
-    (location.pathname.endsWith('admin-users.html') || location.pathname === '/admin-users'
-      ? 'admin_users'
-      : location.pathname.endsWith('admin.html') || location.pathname === '/admin'
-        ? 'admin'
-        : location.pathname.endsWith('auth.html') || location.pathname === '/auth'
-          ? 'auth'
-          : location.pathname.endsWith('verify.html') || location.pathname === '/verify'
-            ? 'verify'
-            : location.pathname.endsWith('dashboard-supplier.html') ||
-                location.pathname === '/dashboard/supplier'
-              ? 'dash_supplier'
-              : location.pathname.endsWith('suppliers.html') || location.pathname === '/suppliers'
-                ? 'suppliers'
-                : location.pathname.endsWith('supplier.html') ||
-                    location.pathname.startsWith('/supplier')
-                  ? 'supplier'
-                  : location.pathname.endsWith('plan.html') || location.pathname === '/plan'
-                    ? 'plan'
-                    : '');
+  const page = window.__EF_PAGE__ || efDetectPage(location.pathname);
 
   // Version display is handled by admin-shared.js for admin pages.
   // Public pages keep the version wrapper hidden via the HTML hidden attribute.
