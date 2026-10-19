@@ -788,7 +788,7 @@
           <div class="gm-grid">
             ${field('name', 'Name <span class="gm-req">Required</span>', `${input('name', 'text', current.name, 'required maxlength="200" autocomplete="off" aria-describedby="gm-name-error"')}<small class="gm-error" id="gm-name-error" hidden>Enter the guest’s name.</small>`, true)}
             ${field('rsvpStatus', 'Reply', `<select class="gm-input gm-select" id="gm-f-rsvpStatus" name="rsvpStatus">${STATUSES.map(s => `<option value="${s}" ${current.status === s ? 'selected' : ''}>${STATUS_LABELS[s]}</option>`).join('')}</select>`)}
-            ${field('partySize', 'Party size', input('partySize', 'number', current.partySize, `min="1" max="${MAX_PARTY}" inputmode="numeric" aria-describedby="gm-h-partySize"`), false, 'People in this booking, including the guest.')}
+            ${field('partySize', 'Party size', `${input('partySize', 'number', current.partySize, `min="1" max="${MAX_PARTY}" inputmode="numeric" aria-describedby="gm-party-error gm-h-partySize"`)}<small class="gm-error" id="gm-party-error" hidden>Enter a whole number from 1 to ${MAX_PARTY}.</small>`, false, 'People in this booking, including the guest.')}
             ${field('email', 'Email', input('email', 'email', current.email, 'maxlength="200" autocomplete="off"'))}
             ${field('phone', 'Phone', input('phone', 'tel', current.phone, 'maxlength="30" autocomplete="off"'))}
             ${field('dietary', 'Dietary needs', input('dietary', 'text', current.dietary, 'maxlength="500" placeholder="e.g. Vegetarian, nut allergy"'))}
@@ -807,10 +807,16 @@
       const form = dialog.querySelector('form');
       const nameInput = form.elements.name;
       const nameError = form.querySelector('#gm-name-error');
+      const partyInput = form.elements.partySize;
+      const partyError = form.querySelector('#gm-party-error');
       const formError = form.querySelector('.gm-form-error');
       nameInput.addEventListener('input', () => {
         nameError.hidden = true;
         nameInput.removeAttribute('aria-invalid');
+      });
+      partyInput.addEventListener('input', () => {
+        partyError.hidden = true;
+        partyInput.removeAttribute('aria-invalid');
       });
       form.addEventListener('submit', async event => {
         event.preventDefault();
@@ -820,6 +826,14 @@
           nameError.hidden = false;
           nameInput.setAttribute('aria-invalid', 'true');
           nameInput.focus();
+          return;
+        }
+        // The server caps a party at MAX_PARTY, so say so instead of quietly changing the number.
+        const party = Number(String(values.partySize ?? '').trim() || 1);
+        if (!Number.isInteger(party) || party < 1 || party > MAX_PARTY) {
+          partyError.hidden = false;
+          partyInput.setAttribute('aria-invalid', 'true');
+          partyInput.focus();
           return;
         }
         formError.hidden = true;

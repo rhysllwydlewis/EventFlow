@@ -360,6 +360,12 @@ describe('page invariants', () => {
     expect(rule).toMatch(/white-space: normal;/);
   });
 
+  test('a party size outside 1 to the server maximum is reported, not quietly changed', () => {
+    const js = fs.readFileSync(path.join(PUBLIC, 'assets/js/guests.js'), 'utf8');
+    expect(js).toContain('id="gm-party-error"');
+    expect(js).toMatch(/party > MAX_PARTY/);
+  });
+
   test('respects reduced motion', () => {
     expect(css).toMatch(/prefers-reduced-motion:\s*reduce/);
   });
