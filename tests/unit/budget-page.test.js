@@ -267,7 +267,7 @@ describe('budget page styling invariants', () => {
     const utility = read('assets/js/export-utility.js');
     const policy = fs.readFileSync(path.join(__dirname, '../../middleware/security.js'), 'utf8');
     expect(policy).not.toContain('cdnjs.cloudflare.com');
-    expect(utility).not.toMatch(/cdnjs\.cloudflare\.com\/ajax\/libs\/jspdf/);
+    expect(utility).not.toContain('cdnjs.cloudflare.com/ajax/libs/jspdf');
     expect(utility).toContain('/assets/js/vendor/jspdf.umd.min.js');
     expect(fs.existsSync(path.join(PUBLIC, 'assets/js/vendor/jspdf.umd.min.js'))).toBe(true);
     expect(html).toMatch(/export-utility\.js\?v=/);
