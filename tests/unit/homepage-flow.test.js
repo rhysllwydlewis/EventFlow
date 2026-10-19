@@ -138,7 +138,7 @@ describe('homepage guidance', () => {
 
   test('with the class absent, the pointers, card cues and closing call to action are hidden', () => {
     expect(css).toMatch(
-      /body\.ef-home-flow:not\(\.ef-home-guidance\) :is\([^)]*\.ef-flow-seam[^)]*\.ef-approved-category-go[^)]*\.ef-approved-step-cta[^)]*\)\s*\{[^}]*display:\s*none\s*!important/
+      /body\.ef-home-flow:not\(\.ef-home-guidance\)\s+:is\([^)]*\.ef-flow-seam[^)]*\.ef-approved-category-go[^)]*\.ef-approved-step-cta[^)]*\)\s*\{[^}]*display:\s*none\s*!important/
     );
   });
 
