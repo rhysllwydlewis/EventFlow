@@ -31,7 +31,9 @@
   // The write limiter allows 80 writes per 10 minutes, and a CSV import is one write per guest.
   const MAX_IMPORT = 50;
   const MAX_PARTY = 20;
-  // The server keeps the first 200 characters of notes when a guest is edited.
+  // PATCH keeps only the first 200 characters of notes on the server as it stands (POST keeps
+  // 1000), so a longer edit would be cut off silently. This is the one place to raise when the
+  // server's PATCH limit goes up; until then it is the safe limit for old and new servers alike.
   const MAX_NOTES = 200;
   const MAX_IMPORT_BYTES = 1048576;
   const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/u;
@@ -329,10 +331,19 @@
     return { guests, skipped, error: '' };
   }
 
+  /** A string with LF line breaks and no surrounding space; used before comparing or sending. */
+  const tidy = value =>
+    String(value ?? '')
+      .replace(/\r\n?/g, '\n')
+      .trim();
+
   /** The request body for a guest created from the form or a CSV row. Empty fields are null. */
   function toPayload(values, { includeTable = true } = {}) {
-    /** A trimmed string, or null when it is empty (the API stores empty fields as null). */
-    const text = v => String(v ?? '').trim() || null;
+    /**
+     * A trimmed string with LF line breaks (a textarea's FormData value uses CRLF), or null when it
+     * is empty (the API stores empty fields as null).
+     */
+    const text = v => tidy(v) || null;
     const payload = {
       name: String(values.name || '').trim(),
       email: text(values.email),
@@ -372,8 +383,8 @@
     };
     const changes = {};
     Object.keys(payload).forEach(key => {
-      const before = same[key];
-      const after = typeof before === 'number' ? payload[key] : payload[key] || '';
+      const before = typeof same[key] === 'number' ? same[key] : tidy(same[key]);
+      const after = typeof before === 'number' ? payload[key] : tidy(payload[key]);
       if (after !== before) {
         changes[key] = payload[key];
       }
@@ -381,22 +392,26 @@
     return changes;
   }
 
-  /** A lowercase "name|email" key used to spot a guest that is already on the list. */
+  /** A lowercase "name|email" key (spacing collapsed) used to spot a guest already on the list. */
   function guestKey(guest) {
-    return `${String(guest.name || '')
+    const name = String(guest.name || '')
       .trim()
-      .toLowerCase()}|${String(guest.email || '')
-      .trim()
-      .toLowerCase()}`;
+      .replace(/\s+/g, ' ');
+    return `${name}|${String(guest.email || '').trim()}`.toLowerCase();
   }
 
-  /** Splits incoming guests into new ones and ones already on the list (same name and email). */
+  /**
+   * Splits incoming guests into new ones and duplicates: a guest with the same name and email as
+   * one already on the list, or as an earlier row in the same file.
+   */
   function splitDuplicates(existing, incoming) {
     const seen = new Set(existing.map(guestKey));
     const fresh = [];
     const duplicates = [];
     incoming.forEach(guest => {
-      (seen.has(guestKey(guest)) ? duplicates : fresh).push(guest);
+      const key = guestKey(guest);
+      (seen.has(key) ? duplicates : fresh).push(guest);
+      seen.add(key);
     });
     return { fresh, duplicates };
   }
@@ -929,6 +944,9 @@
       form.elements.email.addEventListener('input', () => {
         form.elements.email.removeAttribute('aria-invalid');
       });
+      form.elements.notes.addEventListener('input', () => {
+        form.elements.notes.removeAttribute('aria-invalid');
+      });
       partyInput.addEventListener('input', () => {
         partyError.hidden = true;
         partyInput.removeAttribute('aria-invalid');
@@ -975,7 +993,9 @@
         formError.hidden = true;
         const payload = toPayload(values, { includeTable: !current.seated });
         const changes = guest ? changedFields(guest, payload) : payload;
-        if (payload.email && !EMAIL_PATTERN.test(payload.email)) {
+        // Only a changed email is checked: an unchanged one is never sent, so an older guest whose
+        // saved email would not pass can still have their name or reply edited.
+        if (changes.email && !EMAIL_PATTERN.test(changes.email)) {
           form.elements.email.setAttribute('aria-invalid', 'true');
           formError.textContent = 'Enter a valid email address, or leave it blank.';
           formError.hidden = false;
@@ -983,8 +1003,9 @@
           return;
         }
         if (changes.notes && changes.notes.length > MAX_NOTES) {
-          formError.textContent = `Notes can be up to ${MAX_NOTES} characters.`;
+          formError.textContent = `Notes can be up to ${MAX_NOTES} characters. These are ${changes.notes.length}.`;
           formError.hidden = false;
+          form.elements.notes.setAttribute('aria-invalid', 'true');
           form.elements.notes.focus();
           return;
         }
@@ -1006,10 +1027,17 @@
             if (index >= 0) {
               state.guests[index] = updated;
             }
+            const clearedTable =
+              guest.table &&
+              !updated.table &&
+              updated.status !== 'attending' &&
+              !('table' in changes);
             toast(
               guest.seated && !updated.seated
                 ? 'Guest updated. Their seat in your seating plan was released.'
-                : 'Guest updated'
+                : clearedTable
+                  ? 'Guest updated. Their table was cleared because they are not attending.'
+                  : 'Guest updated'
             );
           } else {
             const res = await api(guestsPath(''), { method: 'POST', body: payload });
@@ -1185,7 +1213,9 @@
         parsed = { guests: fresh };
         const notes = [];
         if (duplicates.length) {
-          notes.push(`${plural(duplicates.length, 'guest')} already on your list will be skipped`);
+          notes.push(
+            `${plural(duplicates.length, 'guest')} already on your list or repeated in the file will be skipped`
+          );
         }
         if (result.skipped.length) {
           notes.push(`${plural(result.skipped.length, 'row')} without a name will be skipped`);

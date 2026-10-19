@@ -59,7 +59,11 @@ async function main() {
         url: String(url),
         body: JSON.parse(options.body || '{}'),
       });
-      const guest = { ...(scenario.guests || [])[0], ...JSON.parse(options.body || '{}') };
+      const guest = {
+        ...(scenario.guests || [])[0],
+        ...JSON.parse(options.body || '{}'),
+        ...(scenario.serverChanges || {}),
+      };
       return { ok: true, status: 200, json: async () => ({ guest }) };
     }
     if (String(url).endsWith('/api/me/plans')) {
@@ -120,6 +124,7 @@ async function main() {
       dialog.querySelector('.gm-form-error, [role="alert"]')?.textContent || ''
     ).trim();
     result.toast = (doc.querySelector('.gm-toast')?.textContent || '').trim();
+    result.invalid = [...dialog.querySelectorAll('[aria-invalid]')].map(field => field.name);
   } else if (edit) {
     edit.click();
     const dialog = doc.querySelector('dialog');
