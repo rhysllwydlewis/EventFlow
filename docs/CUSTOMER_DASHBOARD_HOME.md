@@ -57,7 +57,9 @@ for this page.
 
 - Every selector starts with `.cdh-page`, the class on `<body>`, so nothing can
   leak to another page. Dialogs that scripts append to `<body>` (calendar entry,
-  plan editor, ticket) are covered by the same scope.
+  plan editor, ticket) are covered by the same scope. The plan editor and the delete
+  confirmation are native `<dialog>` elements (focus moves in, stays in and returns to the
+  button that opened them; bottom sheets on phones), not inline-styled overlays.
   `tests/unit/customer-dashboard-home.test.js` fails on any unscoped selector.
 - Tokens are declared once on `.cdh-page` (`--cdh-*`): ink `#17202f`, muted
   `#566176`, accent `#0b8073` / deep `#064f46`, hairline `#e8e5de`, same values
