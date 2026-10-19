@@ -1569,27 +1569,25 @@ async function getPersonalizedFeed(userId, context = {}, options = {}) {
           : 'none',
   };
 
-  const results = ranked.slice(0, limit).map(({ supplier, personalized, needed }) => {
-    let rankingReason;
+  // Why a supplier is in the feed. With no search behind it, the catch-all "good match for your
+  // search" is not a reason, so that becomes ''.
+  const reasonFor = ({ supplier, personalized, needed }) => {
     if (needed) {
-      rankingReason = `Still to find: ${supplier.category}`;
-    } else {
-      rankingReason = getRankingReason(supplier, '', {
-        isPersonalized: personalized,
-        preferredCategory: topCategory,
-        preferredLocation: topLocation,
-      });
-      // With no search behind it, the catch-all "good match for your search" is not a reason.
-      if (rankingReason === DEFAULT_RANKING_REASON) {
-        rankingReason = '';
-      }
+      return `Still to find: ${supplier.category}`;
     }
-    return {
-      ...projectPublicSupplierFields(supplier),
-      relevanceScore: calculateQualityScore(supplier),
-      rankingReason,
-    };
-  });
+    const reason = getRankingReason(supplier, '', {
+      isPersonalized: personalized,
+      preferredCategory: topCategory,
+      preferredLocation: topLocation,
+    });
+    return reason === DEFAULT_RANKING_REASON ? '' : reason;
+  };
+
+  const results = ranked.slice(0, limit).map(entry => ({
+    ...projectPublicSupplierFields(entry.supplier),
+    relevanceScore: calculateQualityScore(entry.supplier),
+    rankingReason: reasonFor(entry),
+  }));
 
   return { results, context: contextSummary };
 }
