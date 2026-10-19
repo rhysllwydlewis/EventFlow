@@ -18,32 +18,34 @@ Wedding Website & RSVPs is now a production feature area for customer wedding pl
 - Password-protected wedding websites with hashed password storage, short-lived access cookie/token behaviour, password gate and RSVP blocking until access is proven.
 - Privacy modes: `private_link`, `public` and `password`.
 - Theme customisation with colour presets, colour pickers, hero layout, hero photo and gallery photos.
-- Public theme/media enhancement for colours, hero image, layout and gallery rendering.
-- Mobile-first stabilisation styles for dashboard cards, builder panels, tables, modals, theme/media controls and public wedding pages.
+- Guest-facing page (`/wedding/:slug`) rendered by one script and one stylesheet: three hero layouts (classic, editorial, full bleed), the couple's palette with automatic contrast correction, photo gallery with a lightbox, add-to-calendar, and a shorter RSVP form that only asks the attendance questions of guests who are coming.
+- The password page, the owner's draft preview and the unavailable/error pages are part of the same script (no fetch patching or DOM observers).
 - Public page default robots `noindex,nofollow`.
 
 ## Partially Implemented
 
-- Public website design is premium and mobile-conscious, but further template/typography choices remain future work.
-- Seating dashboard UI is usable but remains compact versus a full drag-and-drop seating planner.
+- Public website design is premium and mobile-conscious, but typography choices and section ordering remain future work.
+- Seating supports drag-and-drop between the unseated list and tables, auto-seat and table diagrams, but there is no free-form floor plan (positioning tables on a canvas).
 - Custom RSVP questions support text, textarea, select and checkbox flows, but deeper analytics and schema controls remain future work.
 - Theme/media currently stores selected image values within the wedding website record. This works for the current feature but should be moved to the durable media/upload pipeline in a future hardening PR.
 - Mobile optimisation has a dedicated stabilisation layer, but should continue to be covered by Playwright mobile smoke tests as UI changes are made.
 
 ## Not Yet Implemented
 
-- Full drag-and-drop seating planner.
+- Free-form floor-plan seating (positioning tables on a canvas).
 - Dedicated wedding media object-storage/upload pipeline.
-- Invite links, QR codes and email sending.
+- Invite links and email sending (QR codes, WhatsApp and mailto sharing are done).
 - Advanced custom RSVP analytics/reporting.
 - Image crop/focal-point controls.
-- Full public template system with typography and section ordering.
+- Typography choices and section ordering on the public page.
 
 ## Known Limitations
 
 - Legacy data model conflict (`plan.guests` number vs guest array) still exists historically. Current code avoids worsening it by writing guest records to `guestList` unless `guests` is already an array.
-- Theme/gallery media currently uses conservative data URL storage and gallery limits. This should be replaced with durable uploaded image URLs.
-- Dashboard feature code has grown through layered enhancement scripts. A future refactor should consolidate the Wedding Website dashboard loader/module.
+- Theme/gallery media is stored as data URLs on the website record. The dashboard app shrinks each photo in the browser to about 600,000 characters (the server drops any single image over 900,000, and the JSON body limit for `/api/me/plans` is 10 MB, enough for the 12-photo gallery plus the cover). `tests/unit/wedding-widget-contract.test.js` ties those numbers together. This should be replaced with durable uploaded image URLs.
+- Seating integrity: only attending guests hold seats. Deleting a guest, or changing a seated guest to declined/pending/maybe, frees the seat; renaming a table updates the table name stored on its guests.
+- The dashboard app is one module (`public/assets/js/pages/customer-wedding-website.js`) and one stylesheet (`public/assets/css/customer-wedding-website.css`). It renders every view from in-memory state and does not rely on other scripts patching its DOM; keep it that way rather than adding enhancer layers.
+- The public page is likewise one module (`public/assets/js/pages/public-wedding-site.js`) and one stylesheet (`public/assets/css/public-wedding-site.css`). `GET /api/public/wedding-websites/:slug` returns the validated palette, hero layout, cover photo and gallery (via `publicThemeMedia` in `routes/wedding-theme-media.js`), so the page needs one request. Before this, those fields were left out of the public response and guests only saw the accent colour and cover photo. The page derives readable text, link and button colours from the couple's four picks, so a low-contrast palette still passes WCAG AA.
 - Visual regression and accessibility coverage should be kept in sync with the intentional UI changes.
 
 ## How customers use it
@@ -100,7 +102,7 @@ Wedding Website & RSVPs is now a production feature area for customer wedding pl
 | RSVP dashboard                   | Partial | Summary/table/add-edit-delete/search/sort/filter/pagination live; deeper analytics future.  |
 | CSV export                       | Done    | `/guests/export.csv`.                                                                       |
 | Seating backend                  | Done    | CRUD plus assign/unassign and summary APIs.                                                 |
-| Seating dashboard UI             | Partial | Compact non-drag-and-drop UI. Full planner remains future work.                             |
+| Seating dashboard UI             | Done    | Drag-and-drop, auto-seat, table diagrams. Free-form floor plan remains future work.         |
 | Privacy/noindex/public-safe data | Done    | Safe public serialisation and noindex defaults.                                             |
 | plan.guests conflict mitigation  | Done    | guestList-first compatibility logic maintained.                                             |
 | Tests                            | Partial | Route/unit and browser smoke coverage exists; more mobile, visual and a11y coverage needed. |
@@ -110,7 +112,6 @@ Wedding Website & RSVPs is now a production feature area for customer wedding pl
 
 1. Move wedding media from data URLs into the durable upload/object-storage pipeline.
 2. Add invite links, QR codes and email sending.
-3. Add full drag-and-drop seating planner.
+3. Add a free-form floor-plan seating view.
 4. Add RSVP analytics/reporting.
 5. Add public template, typography and section ordering controls.
-6. Consolidate layered wedding dashboard enhancement scripts into a single loader/module.

@@ -20,6 +20,7 @@ const path = require('path');
 
 const HTML_PATH = 'public/supplier/profile-customization.html';
 const CONTROLLER_PATH = 'public/supplier/js/profile-customization.js';
+const THEME_CORE_PATH = 'public/assets/js/shared/supplier-theme-core.js';
 
 function runNodeSmoke(source) {
   return execFileSync(process.execPath, ['-e', source], {
@@ -54,6 +55,7 @@ describe('profile customisation page: single controller', () => {
       const fs = require('fs');
       const html = fs.readFileSync(${JSON.stringify(HTML_PATH)}, 'utf8');
       const controller = fs.readFileSync(${JSON.stringify(CONTROLLER_PATH)}, 'utf8');
+      const themeCore = fs.readFileSync(${JSON.stringify(THEME_CORE_PATH)}, 'utf8');
 
       // runScripts:'dangerously' executes any inline script, as a browser would.
       // Subresources are not fetched, so the external module is evaluated by hand.
@@ -75,6 +77,7 @@ describe('profile customisation page: single controller', () => {
         }
         throw new Error('unexpected fetch: ' + u);
       };
+      window.eval(themeCore);
       window.eval(controller);
 
       const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
