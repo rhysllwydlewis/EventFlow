@@ -57,6 +57,8 @@ Fields used: `name`, `email`, `phone`, `rsvpStatus` (pending, attending, maybe, 
 - Export writes `Name, Email, Phone, RSVP, Party size, Dietary, Table, Notes`. Cells that start with
   `=`, `+`, `-`, `@`, tab or CR get a leading apostrophe so spreadsheets do not run them as
   formulas; import removes that guard again.
+- Import reads UTF-8 and falls back to Windows-1252 when the bytes are not valid UTF-8, because
+  Excel on Windows saves "CSV" that way and accents would otherwise be corrupted.
 - Import matches columns by header name, so the previous `FirstName, LastName, PlusOne` layout still
   works. It posts one guest at a time and is limited to 50 rows because the write limiter allows 80
   writes per 10 minutes. Rows without a name are listed as skipped rather than dropped silently.

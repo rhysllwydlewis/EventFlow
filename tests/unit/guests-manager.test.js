@@ -320,6 +320,18 @@ describe('the app, rendered into guests.html (jsdom)', () => {
   });
 });
 
+describe('decodeCsvBytes', () => {
+  test('reads UTF-8 files, with or without a byte-order mark', () => {
+    const utf8 = Buffer.from('\uFEFFName\nZoë Brontë\n', 'utf8');
+    expect(lib.parseCsv(lib.decodeCsvBytes(utf8))).toEqual([['Name'], ['Zoë Brontë']]);
+  });
+
+  test('reads a Windows-1252 file (what Excel saves as "CSV") without corrupting accents', () => {
+    const legacy = Buffer.from([0x4e, 0x0a, 0x5a, 0x6f, 0xeb, 0x20, 0x4a, 0x6f, 0x73, 0xe9]);
+    expect(lib.decodeCsvBytes(legacy)).toBe('N\nZoë José');
+  });
+});
+
 describe('pickFocusPlan', () => {
   const day = offset => {
     const d = new Date();

@@ -232,6 +232,19 @@
   /** Reverses the apostrophe guard that csvCell adds. */
   const unguardCell = value => String(value).replace(/^'(?=[=+\-@\t\r])/, '');
 
+  /**
+   * Text of an uploaded CSV. Excel on Windows saves "CSV" in a legacy code page, not UTF-8, which
+   * would turn "Zoë" into "Zo\uFFFD" if read as UTF-8, so bytes that are not valid UTF-8 are read
+   * as Windows-1252 instead.
+   */
+  function decodeCsvBytes(buffer) {
+    try {
+      return new TextDecoder('utf-8', { fatal: true }).decode(buffer);
+    } catch {
+      return new TextDecoder('windows-1252').decode(buffer);
+    }
+  }
+
   const STATUS_WORDS = {
     attending: 'attending',
     accepted: 'attending',
@@ -1058,7 +1071,7 @@
           status.textContent = '';
           return;
         }
-        const result = guestsFromCsv(parseCsv(await file.text()));
+        const result = guestsFromCsv(parseCsv(decodeCsvBytes(await file.arrayBuffer())));
         if (result.error) {
           status.textContent = result.error;
           status.className = 'gm-import-status gm-error';
@@ -1202,6 +1215,7 @@
     buildCsv,
     parseCsv,
     guestsFromCsv,
+    decodeCsvBytes,
     toPayload,
     isWeddingPlan,
     pickFocusPlan,
