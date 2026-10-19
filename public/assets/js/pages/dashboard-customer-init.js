@@ -499,11 +499,12 @@ function decodeEntities(value) {
  */
 function savedSupplierHref(item) {
   const own = typeof item.href === 'string' ? item.href : '';
+  // An internal path only: not protocol-relative, no '..', and not the old query-string forms of
+  // the supplier and category pages (the server rejects those when it stores a link too).
   if (
     /^\/(?!\/)[\w\-./~%?=&]*$/u.test(own) &&
     !own.includes('..') &&
-    !own.startsWith('/supplier?id=') &&
-    !own.startsWith('/category?slug=')
+    !/^\/(?:supplier|category)\?/u.test(own)
   ) {
     return own;
   }
