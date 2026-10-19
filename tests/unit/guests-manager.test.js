@@ -481,4 +481,12 @@ describe('page invariants', () => {
     expect(css).toMatch(/\.gm \.gm-title \{\s*font-size: 28px;\s*font-weight: 700;/);
     expect(css).toMatch(/@media \(max-width: 720px\) \{\s*\.gm \.gm-title \{\s*font-size: 24px;/);
   });
+
+  test('an import is one bulk request, up to 500 guests, and skips emails already on the list', () => {
+    const js = fs.readFileSync(path.join(PUBLIC, 'assets/js/guests.js'), 'utf8');
+    expect(js).toMatch(/const MAX_IMPORT = 500;/);
+    expect(js).toMatch(/guestsPath\('\/bulk'\)/);
+    expect(js).not.toMatch(/for \(const \[i, row\] of parsed\.guests\.entries\(\)\)/);
+    expect(js).toMatch(/already on your list \(same email\)/);
+  });
 });

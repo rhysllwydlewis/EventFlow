@@ -29,7 +29,7 @@
   ];
   const PAGE_SIZE = 25;
   // The write limiter allows 80 writes per 10 minutes, and a CSV import is one write per guest.
-  const MAX_IMPORT = 50;
+  const MAX_IMPORT = 500;
   const MAX_PARTY = 20;
   // The last plan picked on the guest list or the budget page, shared so they stay on one event.
   const PLAN_KEY = 'ef_customer_plan';
@@ -1108,9 +1108,45 @@
           status.className = 'gm-import-status gm-error';
           return;
         }
-        parsed = result;
+        // Anyone whose email is already on the list (or repeated in the file) is left out, so
+        // importing the same file twice does not double everyone up.
+        const seen = new Set(
+          state.guests.map(g => String(g.email || '').toLowerCase()).filter(Boolean)
+        );
+        const fresh = result.guests.filter(row => {
+          const email = String(row.email || '')
+            .trim()
+            .toLowerCase();
+          if (!email) {
+            return true;
+          }
+          if (seen.has(email)) {
+            return false;
+          }
+          seen.add(email);
+          return true;
+        });
+        const duplicates = result.guests.length - fresh.length;
+        if (!fresh.length) {
+          status.textContent =
+            duplicates === 1
+              ? 'That guest is already on your list (same email).'
+              : `All ${duplicates} guests in that file are already on your list (same email).`;
+          status.className = 'gm-import-status gm-error';
+          return;
+        }
+        parsed = { ...result, guests: fresh };
         status.className = 'gm-import-status';
-        status.textContent = `${plural(result.guests.length, 'guest')} ready to import${result.skipped.length ? `, ${plural(result.skipped.length, 'row')} without a name will be skipped` : ''}.`;
+        const notes = [];
+        if (result.skipped.length) {
+          notes.push(`${plural(result.skipped.length, 'row')} without a name will be skipped`);
+        }
+        if (duplicates) {
+          notes.push(
+            `${plural(duplicates, 'guest')} already on your list (same email) will be skipped`
+          );
+        }
+        status.textContent = `${plural(fresh.length, 'guest')} ready to import${notes.length ? `, ${notes.join(' and ')}` : ''}.`;
         submit.disabled = false;
       });
       form.addEventListener('submit', async event => {
@@ -1120,33 +1156,36 @@
         }
         setBusy(submit, true);
         fileInput.disabled = true;
-        let added = 0;
-        const failed = [];
-        for (const [i, row] of parsed.guests.entries()) {
-          status.textContent = `Importing ${i + 1} of ${parsed.guests.length}…`;
-          try {
-            const res = await api(guestsPath(''), { method: 'POST', body: toPayload(row) });
-            state.guests.push(normalizeGuest(res.guest));
-            added += 1;
-          } catch (err) {
-            failed.push(`${row.name}: ${err.message}`);
-            if (err.status === 429) {
-              failed.push('Too many requests. Wait a few minutes and import the rest.');
-              break;
-            }
+        status.textContent = `Importing ${plural(parsed.guests.length, 'guest')}…`;
+        try {
+          const res = await api(guestsPath('/bulk'), {
+            method: 'POST',
+            body: { guests: parsed.guests.map(row => toPayload(row)) },
+          });
+          const added = Array.isArray(res.guests) ? res.guests : [];
+          added.forEach(guest => state.guests.push(normalizeGuest(guest)));
+          renderSummary();
+          renderResults();
+          const refused = (Array.isArray(res.skipped) ? res.skipped : []).map(
+            entry =>
+              `${parsed.guests[entry.index]?.name || `Row ${entry.index + 1}`}: ${entry.error}`
+          );
+          status.textContent = `Imported ${plural(added.length, 'guest')}${refused.length ? `. ${plural(refused.length, 'row')} could not be added:` : '.'}`;
+          if (refused.length) {
+            status.className = 'gm-import-status gm-error';
+            skippedList.innerHTML = refused.map(line => `<li>${esc(line)}</li>`).join('');
+            skippedList.hidden = false;
+            submit.hidden = true;
+          } else {
+            toast(`Imported ${plural(added.length, 'guest')}`);
+            dialog.close();
           }
-        }
-        renderSummary();
-        renderResults();
-        status.textContent = `Imported ${plural(added, 'guest')}${failed.length ? `. ${plural(failed.length, 'row')} could not be added:` : '.'}`;
-        if (failed.length) {
+        } catch (err) {
+          // Nothing was added, so the file can be tried again.
+          status.textContent = err.message;
           status.className = 'gm-import-status gm-error';
-          skippedList.innerHTML = failed.map(line => `<li>${esc(line)}</li>`).join('');
-          skippedList.hidden = false;
-          submit.hidden = true;
-        } else {
-          toast(`Imported ${plural(added, 'guest')}`);
-          dialog.close();
+          fileInput.disabled = false;
+          setBusy(submit, false);
         }
       });
       openDialog(dialog, { opener });
