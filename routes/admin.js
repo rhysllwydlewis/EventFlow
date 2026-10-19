@@ -3968,7 +3968,7 @@ router.post(
         loginUrl: `${baseUrl}/dashboard/supplier`,
         managePrefsUrl: `${baseUrl}/settings`,
         unsubscribeSection: unsubscribeUrl
-          ? `&nbsp;&middot;&nbsp;<a href="${unsubscribeUrl}" style="color:#94A3B8;text-decoration:none;">Unsubscribe from reminders</a>`
+          ? `&nbsp;&middot;&nbsp;<a href="${unsubscribeUrl}" style="color:#006D7F;text-decoration:none;font-weight:600;">Unsubscribe from reminders</a>`
           : '',
       };
 
@@ -4071,7 +4071,7 @@ router.post(
         loginUrl: `${baseUrl}/dashboard/supplier`,
         managePrefsUrl: `${baseUrl}/settings`,
         unsubscribeSection: unsubscribeUrl
-          ? `&nbsp;&middot;&nbsp;<a href="${unsubscribeUrl}" style="color:#94A3B8;text-decoration:none;">Unsubscribe from reminders</a>`
+          ? `&nbsp;&middot;&nbsp;<a href="${unsubscribeUrl}" style="color:#006D7F;text-decoration:none;font-weight:600;">Unsubscribe from reminders</a>`
           : '',
       };
 
@@ -4535,7 +4535,8 @@ router.post(
       if (ticket.senderEmail) {
         const baseUrl =
           process.env.BASE_URL || process.env.APP_BASE_URL || 'https://event-flow.co.uk';
-        const ticketUrl = `${baseUrl.replace(/\/$/, '')}/tickets/${encodeURIComponent(ticket.id)}`;
+        // /support lists the customer's tickets; there is no per-ticket page.
+        const ticketUrl = `${baseUrl.replace(/\/$/, '')}/support`;
         const senderName = ticket.senderName || 'there';
         const subjectText = ticket.subject || 'your support ticket';
 

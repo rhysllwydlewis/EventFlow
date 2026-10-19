@@ -400,7 +400,7 @@ async function upgradeSubscription(subscriptionId, newPlan, { skipStripe = false
       year: 'numeric',
     }),
     amount: getCanonicalPlanPrice(newPlan, subscription.billingInterval).toFixed(2),
-    billingCycle: subscription.billingInterval === 'year' ? 'yearly' : 'monthly',
+    billingCycle: subscription.billingInterval === 'year' ? 'year' : 'month',
     features: PLAN_EMAIL_FEATURES[newPlan] || PLAN_EMAIL_FEATURES.free,
   });
 
@@ -448,7 +448,7 @@ async function downgradeSubscription(subscriptionId, newPlan, { skipStripe = fal
       2
     ),
     newAmount: getCanonicalPlanPrice(newPlan, subscription.billingInterval).toFixed(2),
-    billingCycle: subscription.billingInterval === 'year' ? 'yearly' : 'monthly',
+    billingCycle: subscription.billingInterval === 'year' ? 'year' : 'month',
     effectiveDate,
   });
 

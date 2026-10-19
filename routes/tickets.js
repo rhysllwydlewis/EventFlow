@@ -54,9 +54,11 @@ function safeLineBreakHtml(str) {
     .join('<br>');
 }
 
-function publicTicketUrl(ticketId) {
+// Customers read their tickets on /support (login required). There is no per-ticket
+// page, so an emailed `/tickets/<id>` link 404s.
+function publicTicketUrl() {
   const baseUrl = process.env.APP_BASE_URL || process.env.BASE_URL || 'https://event-flow.co.uk';
-  return `${baseUrl.replace(/\/$/, '')}/tickets/${encodeURIComponent(ticketId)}`;
+  return `${baseUrl.replace(/\/$/, '')}/support`;
 }
 
 /**
@@ -603,7 +605,7 @@ router.post('/:id/reply', authRequired, csrfProtection, writeLimiter, async (req
     // Send email notification to ticket creator (if reply is from admin)
     if (userRole === 'admin' && ticket.senderEmail) {
       try {
-        const ticketUrl = publicTicketUrl(ticket.id);
+        const ticketUrl = publicTicketUrl();
         await postmark.sendMail({
           to: ticket.senderEmail,
           from: postmark.FROM_SUPPORT,
