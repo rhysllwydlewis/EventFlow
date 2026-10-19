@@ -505,8 +505,12 @@
 
     /* ---- plans and guests ---- */
 
+    // Bumped by every load so a slow response for a plan the visitor has already left is ignored.
+    let loadId = 0;
+
     /** Loads the plans (first time only) and the current plan's guests, then redraws the page. */
     async function load() {
+      const thisLoad = ++loadId;
       state.phase = 'loading';
       renderStage();
       try {
@@ -523,9 +527,15 @@
           state.plan = state.plans.find(p => p.id === wanted) || state.plans[0];
         }
         const data = await api(guestsPath(''));
+        if (thisLoad !== loadId) {
+          return;
+        }
         state.guests = (data.guests || []).map(normalizeGuest);
         state.phase = 'ready';
       } catch (err) {
+        if (thisLoad !== loadId) {
+          return;
+        }
         state.phase = err.status === 401 || err.status === 403 ? 'signin' : 'error';
         state.error =
           state.phase === 'error' ? err.message || 'Something went wrong. Please try again.' : '';
@@ -705,6 +715,8 @@
         return;
       }
       find('.gm-toolbar').hidden = !state.guests.length;
+      // Exporting an empty list only produces a warning, so the button waits for the first guest.
+      root.querySelector('.gm-head [data-action="export"]').hidden = !state.guests.length;
       if (!state.guests.length) {
         host.innerHTML = emptyState({
           iconName: 'users',

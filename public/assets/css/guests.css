@@ -556,6 +556,9 @@
   width: 100%;
   border-collapse: collapse;
   font-size: 14px;
+  /* mobile-optimizations.css sets `table { white-space: nowrap }` at 768px and below, which
+     would push long names, emails and dietary notes out of the cards. */
+  white-space: normal;
 }
 
 .gm .gm-table th {
@@ -955,9 +958,7 @@
   .gm .gm-stat:nth-child(n + 3) {
     border-top: 1px solid var(--gm-line-2);
   }
-}
 
-@media (max-width: 860px) {
   /* The table becomes one card per guest. */
   .gm .gm-table thead {
     position: absolute;

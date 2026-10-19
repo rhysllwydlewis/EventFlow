@@ -42,7 +42,7 @@ Fields used: `name`, `email`, `phone`, `rsvpStatus` (pending, attending, maybe, 
   platform; the page returns focus to the same guest's Edit button after saving). On phones they
   become bottom sheets. Delete asks for confirmation and focuses Cancel.
 - Add has "Save and add another" for entering several guests quickly.
-- The table becomes one card per guest at 860px and below. Lists are paged 25 at a time.
+- The table becomes one card per guest at 900px and below. Lists are paged 25 at a time.
 - Guest data is always escaped (`esc()`); a test proves an `<img onerror>` name never becomes markup.
 - Export writes `Name, Email, Phone, RSVP, Party size, Dietary, Table, Notes`. Cells that start with
   `=`, `+`, `-`, `@`, tab or CR get a leading apostrophe so spreadsheets do not run them as

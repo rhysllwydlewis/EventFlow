@@ -355,6 +355,10 @@ describe('page invariants', () => {
     expect(sizes.filter(px => !scale.includes(px))).toEqual([]);
   });
 
+  test('the table undoes the global nowrap that mobile-optimizations.css gives every table', () => {
+    expect(css).toMatch(/\.gm \.gm-table \{[^}]*white-space: normal;/);
+  });
+
   test('respects reduced motion', () => {
     expect(css).toMatch(/prefers-reduced-motion:\s*reduce/);
   });
