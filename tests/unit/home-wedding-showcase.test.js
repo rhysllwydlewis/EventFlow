@@ -55,8 +55,8 @@ describe('homepage wedding showcase section', () => {
     [
       'wedding website',
       'free wedding website',
-      'online rsvp',
-      'wedding rsvp',
+      'online wedding rsvp',
+      'wedding rsvps',
       'guest list',
       'seating plan',
       'qr code',
