@@ -79,3 +79,9 @@ reads them as tables). Type sizes use the site scale; animation and transitions 
 `prefers-reduced-motion: no-preference`.
 
 Item rows have an Edit button; Delete is inside the edit dialog and asks for confirmation.
+
+The page shares its warm neutral palette, 1152px content width and rounded-rectangle shapes (no
+pills) with the guest list and the dashboard, so moving between them does not shift the layout or
+the tone. Notes use a textarea (the server keeps 500 characters); the table clamps a long note to
+two lines on tablets and the card to three on phones, and the full text is in the edit dialog. On
+phones the export menu opens rightwards from the Export button so it stays on screen.
