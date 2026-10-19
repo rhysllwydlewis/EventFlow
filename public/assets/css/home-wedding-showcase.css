@@ -78,9 +78,14 @@
   border-radius: 999px;
 }
 
+.hws .hws__copy {
+  text-align: center;
+}
+
 .hws .hws__copy h2 {
   max-width: 17em;
   margin-top: 18px;
+  margin-inline: auto;
   font-size: clamp(30px, 3.6vw, 44px);
   font-weight: 800;
   line-height: 1.12;
@@ -92,6 +97,7 @@
 .hws .hws__lead {
   max-width: 34em;
   margin-top: 18px;
+  margin-inline: auto;
   font-size: 18px;
   line-height: 1.65;
   color: var(--hws-muted);
@@ -101,6 +107,7 @@
   display: flex;
   flex-wrap: wrap;
   gap: 12px;
+  justify-content: center;
   margin-top: 28px;
 }
 
@@ -784,6 +791,20 @@
 @media (min-width: 1180px) {
   .hws .hws__hero {
     grid-template-columns: minmax(0, 1fr) 640px;
+  }
+
+  /* Beside the graphic the copy reads left-aligned; stacked above it, it is centred */
+  .hws .hws__copy {
+    text-align: left;
+  }
+
+  .hws .hws__copy h2,
+  .hws .hws__lead {
+    margin-inline: 0;
+  }
+
+  .hws .hws__copy .hws__actions {
+    justify-content: flex-start;
   }
 }
 
