@@ -377,6 +377,12 @@ describe('page invariants', () => {
     expect(html).toContain('href="/dashboard/customer"');
   });
 
+  test('editing warns that a guest who is not attending loses their table', () => {
+    const js = fs.readFileSync(path.join(PUBLIC, 'assets/js/guests.js'), 'utf8');
+    expect(js).toContain('id="gm-seat-note"');
+    expect(js).toMatch(/replySelect\.value !== 'attending'/);
+  });
+
   test('respects reduced motion', () => {
     expect(css).toMatch(/prefers-reduced-motion:\s*reduce/);
   });

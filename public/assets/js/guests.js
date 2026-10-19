@@ -787,7 +787,7 @@
         <div class="gm-dialog__body">
           <div class="gm-grid">
             ${field('name', 'Name <span class="gm-req">Required</span>', `${input('name', 'text', current.name, 'required maxlength="200" autocomplete="off" aria-describedby="gm-name-error"')}<small class="gm-error" id="gm-name-error" hidden>Enter the guest’s name.</small>`, true)}
-            ${field('rsvpStatus', 'Reply', `<select class="gm-input gm-select" id="gm-f-rsvpStatus" name="rsvpStatus">${STATUSES.map(s => `<option value="${s}" ${current.status === s ? 'selected' : ''}>${STATUS_LABELS[s]}</option>`).join('')}</select>`)}
+            ${field('rsvpStatus', 'Reply', `<select class="gm-input gm-select" id="gm-f-rsvpStatus" name="rsvpStatus" aria-describedby="gm-seat-note">${STATUSES.map(s => `<option value="${s}" ${current.status === s ? 'selected' : ''}>${STATUS_LABELS[s]}</option>`).join('')}</select><small class="gm-hint" id="gm-seat-note" role="status" hidden>Only guests who are attending keep a table. Saving with this reply clears their table.</small>`)}
             ${field('partySize', 'Party size', `${input('partySize', 'number', current.partySize, `min="1" max="${MAX_PARTY}" inputmode="numeric" aria-describedby="gm-party-error gm-h-partySize"`)}<small class="gm-error" id="gm-party-error" hidden>Enter a whole number from 1 to ${MAX_PARTY}.</small>`, false, 'People in this booking, including the guest.')}
             ${field('email', 'Email', input('email', 'email', current.email, 'maxlength="200" autocomplete="off"'))}
             ${field('phone', 'Phone', input('phone', 'tel', current.phone, 'maxlength="30" autocomplete="off"'))}
@@ -818,6 +818,19 @@
         partyError.hidden = true;
         partyInput.removeAttribute('aria-invalid');
       });
+      // The server frees the table of any guest who is not attending whenever they are saved,
+      // including a table typed in this very form, so say so before it happens.
+      const replySelect = form.elements.rsvpStatus;
+      const seatNote = form.querySelector('#gm-seat-note');
+      const tableField = form.elements.table;
+      /** Shows the table warning when an edited guest would lose a table on save. */
+      const syncSeatNote = () => {
+        const hasTable = current.seated || tableField.value.trim() !== '';
+        seatNote.hidden = !(guest && hasTable && replySelect.value !== 'attending');
+      };
+      replySelect.addEventListener('change', syncSeatNote);
+      tableField.addEventListener('input', syncSeatNote);
+      syncSeatNote();
       // Enter submits with the form's first submit button, which is "Save and add another" when
       // adding. Send it to the primary button instead.
       form.addEventListener('keydown', event => {
