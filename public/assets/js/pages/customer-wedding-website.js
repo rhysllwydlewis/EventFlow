@@ -1640,7 +1640,7 @@ ${countdownHtml(days)}
     const privacyChanged =
       app.ui.visibility !== undefined &&
       app.ui.visibility !== (app.site.visibility || 'private_link');
-    return slugChanged || privacyChanged;
+    return slugChanged || privacyChanged || Boolean(app.ui.password);
   }
 
   /** Sends the customer to the place where a publish blocker can be fixed. */
@@ -2239,9 +2239,14 @@ ${countdownHtml(days)}
     }
     await guard(button, async () => {
       const count = Math.min(unseated.length, slots.length);
-      for (let i = 0; i < count; i += 1) {
-        await assignGuest(unseated[i].id, slots[i]);
-      }
+      // One request for the whole plan: seating guests one at a time hits the write limit.
+      const assignments = unseated
+        .slice(0, count)
+        .map((guest, i) => ({ guestId: guest.id, tableId: slots[i] }));
+      await api(planPath(app.plan, '/tables/seat-guests'), {
+        method: 'POST',
+        body: { assignments },
+      });
       toast(
         count < unseated.length
           ? `Seated ${count}. ${unseated.length - count} more need seats.`
@@ -2263,9 +2268,7 @@ ${countdownHtml(days)}
       return;
     }
     await guard(button, async () => {
-      for (const guest of app.guests.filter(g => isAttending(g) && isSeated(g))) {
-        await unassignGuest(guest.id);
-      }
+      await api(planPath(app.plan, '/tables/clear-seating'), { method: 'POST', body: {} });
       toast('Seating cleared');
       await reloadGuestsAndRender();
     });
@@ -2313,6 +2316,7 @@ ${countdownHtml(days)}
   function sharePrivacyCard(site) {
     const visibility = app.ui.visibility || site.visibility || 'private_link';
     const slug = app.ui.slug ?? site.slug ?? '';
+    const password = app.ui.password || '';
     return `<section class="ww-card">
           <header class="ww-card__head"><h4>Link &amp; privacy</h4></header>
           <label class="ww-field"><span class="ww-label">Website link</span><span class="ww-slug"><span class="ww-slug__prefix">/wedding/</span><input class="ww-input" data-ui-slug value="${esc(slug)}" placeholder="our-wedding" autocomplete="off" spellcheck="false" aria-label="Custom website link"></span><small class="ww-hint">Letters, numbers and dashes. Choose something personal.</small></label>
@@ -2321,7 +2325,7 @@ ${countdownHtml(days)}
             option =>
               `<label class="ww-radio ${visibility === option.value ? 'is-selected' : ''}"><input type="radio" name="ww-visibility" value="${option.value}" ${visibility === option.value ? 'checked' : ''}><span class="ww-radio__icon">${icon(option.icon, 18)}</span><span class="ww-radio__text"><strong>${esc(option.title)}</strong><small>${esc(option.text)}</small></span></label>`
           ).join('')}</fieldset>
-          <label class="ww-field" ${visibility === 'password' ? '' : 'hidden'} data-password-field><span class="ww-label">Website password</span><input class="ww-input" type="password" data-ui-password minlength="6" autocomplete="new-password" placeholder="${site.passwordSet ? 'Leave blank to keep your current password' : 'At least 6 characters'}"><small class="ww-hint">Saved passwords are never shown again. Share it with guests separately.</small></label>
+          <label class="ww-field" ${visibility === 'password' ? '' : 'hidden'} data-password-field><span class="ww-label">Website password</span><input class="ww-input" type="password" data-ui-password value="${esc(password)}" minlength="6" autocomplete="new-password" placeholder="${site.passwordSet ? 'Leave blank to keep your current password' : 'At least 6 characters'}"><small class="ww-hint">Saved passwords are never shown again. Share it with guests separately.</small></label>
           <p class="ww-error" data-share-error hidden></p>
           <div class="ww-actions-row"><button type="button" class="ww-btn ww-btn--primary" data-action="save-share">Save link settings</button></div>
         </section>`;
@@ -2411,6 +2415,7 @@ ${countdownHtml(days)}
       app.site = await getWebsite(app.plan);
       app.ui.slug = undefined;
       app.ui.visibility = undefined;
+      app.ui.password = undefined;
       toast('Link settings saved');
       renderActive();
     });
@@ -2498,6 +2503,10 @@ ${countdownHtml(days)}
     }
     if (el.matches('[data-ui-slug]')) {
       app.ui.slug = el.value;
+      return;
+    }
+    if (el.matches('[data-ui-password]')) {
+      app.ui.password = el.value;
     }
   }
 
@@ -2699,13 +2708,13 @@ ${countdownHtml(days)}
     'save-share': el => saveShareSettings(el),
     'regen-slug': el =>
       guard(el, async () => {
+        // Preview only: the live link is not changed until the customer saves it.
         const res = await api(planPath(app.plan, '/wedding-website/regenerate-slug'), {
           method: 'POST',
-          body: {},
+          body: { preview: true },
         });
-        app.site = res.website || (await getWebsite(app.plan));
-        app.ui.slug = undefined;
-        toast('New link suggested');
+        app.ui.slug = res.slug;
+        toast('New link suggested. Save link settings to use it.');
         renderActive();
       }),
   };

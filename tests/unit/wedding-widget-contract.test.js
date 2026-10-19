@@ -146,3 +146,27 @@ describe('Public wedding page is a single script and stylesheet', () => {
     expect(publicSite).not.toMatch(/\son[a-z]+\s*=\s*["']/i);
   });
 });
+
+describe('Wedding Website app avoids per-guest write storms and silent link changes', () => {
+  const slice = (from, to) => widget.slice(widget.indexOf(from), widget.indexOf(to));
+
+  test('auto-seat and clear-seating each send one request, not one per guest', () => {
+    const seating = slice('async function autoSeat(', 'View: Share');
+    expect(seating).toContain('/tables/seat-guests');
+    expect(seating).toContain('/tables/clear-seating');
+    expect(seating).not.toMatch(/for \([^)]*\)[^{]*\{[^}]*(assignGuest|unassignGuest)\(/);
+  });
+
+  test('"Suggest a new link" asks for a preview and does not replace the saved link', () => {
+    const action = slice("'regen-slug': el =>", '/** The guest list: add');
+    expect(action).toContain('preview: true');
+    expect(action).not.toContain('app.site = ');
+  });
+
+  test('a typed website password counts as an unsaved Share change', () => {
+    expect(slice('function shareDirty()', 'function explainPublishBlockers')).toContain(
+      'app.ui.password'
+    );
+    expect(widget).toMatch(/matches\('\[data-ui-password\]'\)/);
+  });
+});

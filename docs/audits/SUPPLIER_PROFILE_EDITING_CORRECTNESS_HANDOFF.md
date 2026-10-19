@@ -486,6 +486,8 @@ Use the same explicit mode model in both editing surfaces and use the shared eff
 
 Unrelated saves must not change theme mode.
 
+**Done (Profile Customisation page):** step 4 of `public/supplier/profile-customization.html` is now "Profile Theme" with an automatic, preset or custom choice. The preset swatches are built from `EFSupplierTheme.HERO_PRESETS`, and the controller loads the saved theme with `normaliseStoredSupplierTheme` and previews it with `resolveSupplierTheme` / `resolveHeroVisual`, so a preset or automatic supplier no longer opens as default teal. A save sends only the fields for the chosen mode (`automatic`; `preset` + `heroPreset`; `custom` + `themeColor`), and nothing is sent unless the theme was changed. Covered by `tests/unit/profile-customization-theme-modes.test.js` (which also checks every payload against `buildSupplierThemeMutation`) and `e2e/profile-customization-theme-modes.spec.js`.
+
 ## Confirmed duplication: theme and category mappings
 
 Category and preset definitions exist in several server and browser files.
@@ -497,6 +499,8 @@ Choose one source of truth through one of these approaches:
 - use one environment-neutral shared module.
 
 Adding a category or preset should require one authoritative edit.
+
+**Done (preset and category-family half):** `public/assets/js/shared/supplier-theme-core.js` is now the single definition of the hero presets (id, label, accent, gradient), the category families and accents, and the effective-theme and hero-visual resolvers. `utils/supplierTheme.js` re-exports it and keeps only the PATCH mutation builder; the four browser files load it as `window.EFSupplierTheme`. `tests/unit/supplier-theme-core.test.js` fails if a second copy of the preset table appears or a supplier category lacks a theme family. The category _dropdown_ list in `supplier-profile-owner-edit.js` still mirrors `models/Supplier.js` `VALID_CATEGORIES`.
 
 ## Additional confirmed issue: field limits differ
 

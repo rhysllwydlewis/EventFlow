@@ -275,6 +275,94 @@ describe('wedding websites routes', () => {
     expect(plans[2].guestList[2].tableName).toBe('Elsewhere');
   });
 
+  test('seat-guests seats a whole batch in one write and reports what it skipped', async () => {
+    const { updateOne } = require('../../db-unified');
+    plans[2].tables = [
+      { id: 'bt1', name: 'Bulk 1', capacity: 10, guestIds: [] },
+      { id: 'bt2', name: 'Bulk 2', capacity: 10, guestIds: [] },
+    ];
+    plans[2].guestList = [
+      { id: 'b1', name: 'Bea', rsvpStatus: 'attending' },
+      { id: 'b2', name: 'Bo', rsvpStatus: 'attending' },
+      { id: 'b3', name: 'Bit', rsvpStatus: 'declined' },
+    ];
+    updateOne.mockClear();
+
+    const res = await request(app)
+      .post('/api/me/plans/p4/tables/seat-guests')
+      .send({
+        assignments: [
+          { guestId: 'b1', tableId: 'bt1' },
+          { guestId: 'b2', tableId: 'bt2' },
+          { guestId: 'b3', tableId: 'bt1' },
+          { guestId: 'missing', tableId: 'bt1' },
+          { guestId: 'b1', tableId: 'nope' },
+        ],
+      });
+
+    expect(res.status).toBe(200);
+    expect(res.body).toMatchObject({ seated: 2, skipped: 3 });
+    expect(updateOne).toHaveBeenCalledTimes(1);
+    expect(plans[2].tables[0].guestIds).toEqual(['b1']);
+    expect(plans[2].tables[1].guestIds).toEqual(['b2']);
+    expect(plans[2].guestList[0]).toMatchObject({ tableId: 'bt1', tableName: 'Bulk 1' });
+    expect(plans[2].guestList[2].tableId).toBeUndefined();
+  });
+
+  test('seat-guests moves an already seated guest instead of seating them twice', async () => {
+    const res = await request(app)
+      .post('/api/me/plans/p4/tables/seat-guests')
+      .send({ assignments: [{ guestId: 'b1', tableId: 'bt2' }] });
+    expect(res.status).toBe(200);
+    expect(plans[2].tables[0].guestIds).toEqual([]);
+    expect(plans[2].tables[1].guestIds).toEqual(['b2', 'b1']);
+  });
+
+  test('seat-guests rejects an empty or oversized batch', async () => {
+    let res = await request(app).post('/api/me/plans/p4/tables/seat-guests').send({});
+    expect(res.status).toBe(400);
+    res = await request(app)
+      .post('/api/me/plans/p4/tables/seat-guests')
+      .send({ assignments: Array(501).fill({ guestId: 'b1', tableId: 'bt1' }) });
+    expect(res.status).toBe(400);
+  });
+
+  test('clear-seating unseats every guest and empties every table in one write', async () => {
+    const { updateOne } = require('../../db-unified');
+    updateOne.mockClear();
+    const res = await request(app).post('/api/me/plans/p4/tables/clear-seating').send({});
+    expect(res.status).toBe(200);
+    expect(updateOne).toHaveBeenCalledTimes(1);
+    expect(plans[2].tables.every(t => t.guestIds.length === 0)).toBe(true);
+    expect(plans[2].guestList.every(g => !g.tableId && !g.tableName)).toBe(true);
+  });
+
+  test('renaming a table updates the list that is read when a plan has both guest fields', async () => {
+    plans[2].tables = [{ id: 'dt1', name: 'Before', capacity: 10, guestIds: ['d1'] }];
+    plans[2].guestList = [
+      { id: 'd1', name: 'Dee', rsvpStatus: 'attending', tableId: 'dt1', tableName: 'Before' },
+    ];
+    plans[2].guests = [{ id: 'old', name: 'Legacy copy', rsvpStatus: 'attending' }];
+
+    const res = await request(app).patch('/api/me/plans/p4/tables/dt1').send({ name: 'After' });
+    expect(res.status).toBe(200);
+    expect(plans[2].guestList[0].tableName).toBe('After');
+    expect(plans[2].guests).toEqual([{ id: 'old', name: 'Legacy copy', rsvpStatus: 'attending' }]);
+    delete plans[2].guests;
+  });
+
+  test('regenerate-slug with preview suggests a link without changing the live one', async () => {
+    const before = plans[1].weddingWebsite.slug;
+    const res = await request(app)
+      .post('/api/me/plans/p2/wedding-website/regenerate-slug')
+      .send({ preview: true });
+    expect(res.status).toBe(200);
+    expect(typeof res.body.slug).toBe('string');
+    expect(res.body.slug.length).toBeGreaterThan(0);
+    expect(res.body.website).toBeUndefined();
+    expect(plans[1].weddingWebsite.slug).toBe(before);
+  });
+
   test('seating summary reflects guests unseated after table deletion', async () => {
     const res = await request(app).get('/api/me/plans/p2/seating-summary');
     expect(res.status).toBe(200);
