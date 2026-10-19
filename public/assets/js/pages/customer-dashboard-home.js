@@ -656,7 +656,7 @@
     );
     // A line counts when its category contains the name, so "Venue hire" covers Venue and
     // "Photography & video" covers Photography.
-    const hasLineFor = name => categories.some(category => category && category.includes(name));
+    const hasLineFor = name => categories.some(category => category?.includes(name));
     // The same test the guest list uses for "is this a wedding".
     const isWedding =
       Boolean(plan?.weddingWebsite) ||
