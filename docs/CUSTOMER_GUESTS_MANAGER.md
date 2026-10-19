@@ -24,6 +24,11 @@ views of one data set, not duplicates, so there is nothing to consolidate on the
 Fields used: `name`, `email`, `phone`, `rsvpStatus` (pending, attending, maybe, declined),
 `partySize`, `dietaryRequirements`, `tableName`, `notes`.
 
+`POST /api/me/plans/:planId/guests/bulk` with `{ guests: [...] }` adds up to 500 guests in one write.
+It builds each guest exactly as the single add does (`buildGuest`); rows without a text name are
+skipped and returned in `skipped` by position. `notes` keep up to 1,000 characters on both create
+and edit.
+
 ## What changed from the old page
 
 - The old page sent a `plusOne` flag and read `dietary`, `table` and `plusOne` back. The server

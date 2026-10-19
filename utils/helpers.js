@@ -243,9 +243,30 @@ function parsePaginationParams(query) {
  * @returns {string} Sanitized string
  */
 function stripHtml(str) {
-  return String(str)
-    .replace(/<[^>]*>/g, '')
-    .replace(/[<>]/g, '');
+  const text = String(str);
+  let out = '';
+  let noCloserLeft = false;
+  let i = 0;
+  // One pass instead of /<[^>]*>/g, which re-scans to the end of the string for every '<' that
+  // has no '>' after it and so takes quadratic time on input such as '<<<<<<...'.
+  while (i < text.length) {
+    const ch = text[i];
+    if (ch === '<') {
+      const end = noCloserLeft ? -1 : text.indexOf('>', i + 1);
+      if (end === -1) {
+        noCloserLeft = true; // no later '<' can find a '>' either
+        i += 1; // an unmatched '<' is dropped
+      } else {
+        i = end + 1; // drop the whole tag
+      }
+      continue;
+    }
+    if (ch !== '>') {
+      out += ch; // a stray '>' is dropped
+    }
+    i += 1;
+  }
+  return out;
 }
 
 module.exports = {
