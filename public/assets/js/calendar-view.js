@@ -1009,8 +1009,10 @@
     container.classList.add('fc-loaded');
 
     // Initialize FullCalendar
-    // FullCalendar draws the prev/next arrows as role="img" spans with no label; the buttons
-    // around them already carry the accessible name, so the glyphs are hidden from assistive tech.
+    /**
+     * Hides FullCalendar's prev/next arrow glyphs from assistive tech. They are role="img" spans
+     * with no label; the buttons around them already carry the accessible name.
+     */
     const hideDecorativeIcons = () => {
       container
         .querySelectorAll('.fc-icon')

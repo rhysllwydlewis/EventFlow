@@ -49,8 +49,11 @@
     return '';
   }
 
-  // Supplier avatar initials: shared with every other supplier avatar
-  // placeholder on the site — see public/assets/js/utils/supplier-avatar.js.
+  /**
+   * Markup for a supplier's avatar: their logo when there is one, otherwise the initials badge.
+   * Initials are shared with every other supplier avatar placeholder on the site — see
+   * public/assets/js/utils/supplier-avatar.js.
+   */
   function recommendationAvatar(supplierOrName, logoSrc) {
     const name =
       supplierOrName && typeof supplierOrName === 'object' ? supplierOrName.name : supplierOrName;

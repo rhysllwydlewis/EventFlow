@@ -39,30 +39,33 @@
     suggestions: 'recommendations-widget',
   };
 
-  const $ = id => document.getElementById(id);
+  /** Shorthand for document.getElementById. */
+  const byId = id => document.getElementById(id);
 
   /* ------------------------------------------------------------------ *
    * Small helpers
    * ------------------------------------------------------------------ */
 
+  /** HTML-escapes any value (null and undefined become an empty string) for safe use in markup. */
   function esc(value) {
     const div = document.createElement('div');
     div.textContent = String(value === null || value === undefined ? '' : value);
     return div.innerHTML;
   }
 
+  /** Formats a number as whole pounds, e.g. £3,500 (non-numbers become £0). */
   function gbp(amount) {
     return `£${Math.round(Number(amount) || 0).toLocaleString('en-GB')}`;
   }
 
-  function plural(n, one, many) {
-    return `${n} ${n === 1 ? one : many || `${one}s`}`;
+  /** "1 day" / "2 days": the count followed by the singular or plural noun. */
+  function plural(count, one, many) {
+    return `${count} ${count === 1 ? one : many || `${one}s`}`;
   }
 
+  /** True when the visitor has asked their system for reduced motion. */
   function prefersReducedMotion() {
-    return Boolean(
-      window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches
-    );
+    return Boolean(window.matchMedia?.('(prefers-reduced-motion: reduce)').matches);
   }
 
   /** A read-only JSON GET. Resolves to null on any failure so one bad call never blanks the page. */
@@ -70,14 +73,14 @@
     try {
       const response = await fetch(url, { credentials: 'include' });
       return response.ok ? await response.json() : null;
-    } catch (_) {
+    } catch {
       return null;
     }
   }
 
   /** Local midnight for a plan date string such as 2027-06-19 or 2027-06-19T00:00:00Z. */
   function parsePlanDate(value) {
-    const match = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(value || ''));
+    const match = /^(\d{4})-(\d{2})-(\d{2})/u.exec(String(value || ''));
     if (!match) {
       return null;
     }
@@ -85,12 +88,14 @@
     return Number.isNaN(date.getTime()) ? null : date;
   }
 
+  /** Whole days from today (local midnight) to the given date; negative once it has passed. */
   function daysUntil(date) {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     return Math.round((date.getTime() - today.getTime()) / 86400000);
   }
 
+  /** Long British date, e.g. Saturday 19 June 2027. */
   function formatDate(date) {
     return date.toLocaleDateString('en-GB', {
       weekday: 'long',
@@ -100,10 +105,12 @@
     });
   }
 
+  /** The plan's display name, falling back to its event type and then a generic phrase. */
   function planName(plan) {
     return plan.name || plan.eventName || plan.eventType || 'your event';
   }
 
+  /** The plan's event date as a local Date, or null when it has none. */
   function planDate(plan) {
     return parsePlanDate(plan.eventDate || plan.date);
   }
@@ -117,7 +124,7 @@
     const dated = list
       .map(plan => ({ plan, date: planDate(plan) }))
       .filter(item => item.date)
-      .sort((a, b) => a.date - b.date);
+      .sort((left, right) => left.date - right.date);
     const upcoming = dated.find(item => daysUntil(item.date) >= 0);
     if (upcoming) {
       return upcoming.plan;
@@ -137,20 +144,22 @@
     if (!priceStr || typeof priceStr !== 'string') {
       return 0;
     }
-    const cleaned = priceStr.replace(/from/gi, '').replace(/£/g, '').replace(/,/g, '').trim();
-    const match = cleaned.match(/(\d+(?:\.\d+)?)/);
+    const cleaned = priceStr.replace(/from/gi, '').replace(/£/gu, '').replace(/,/gu, '').trim();
+    const match = cleaned.match(/(\d+(?:\.\d+)?)/u);
     return match ? parseFloat(match[1]) || 0 : 0;
   }
 
+  /** True when a package's price text is per head ("pp", "per person", "per guest"). */
   function isPerPerson(pkg) {
     return /\bpp\b|per person|per guest/i.test(String(pkg.price || pkg.price_display || ''));
   }
 
+  /** The budget saved in this browser, or 0 when none is stored or storage is unavailable. */
   function readStoredBudget() {
     try {
       const stored = parseFloat(localStorage.getItem(BUDGET_STORAGE_KEY));
       return stored > 0 ? stored : 0;
-    } catch (_) {
+    } catch {
       return 0;
     }
   }
@@ -177,8 +186,8 @@
 
     const guests = parseInt(plan.guestCount || plan.guests || 0, 10) || 0;
     const chunks = [];
-    for (let i = 0; i < packageIds.length; i += BULK_CHUNK) {
-      chunks.push(packageIds.slice(i, i + BULK_CHUNK));
+    for (let start = 0; start < packageIds.length; start += BULK_CHUNK) {
+      chunks.push(packageIds.slice(start, start + BULK_CHUNK));
     }
 
     // One bulk request per 50 packages — never one request per package.
@@ -192,7 +201,7 @@
             body: JSON.stringify({ ids: chunk }),
           });
           return response.ok ? (await response.json()).packages || [] : [];
-        } catch (_) {
+        } catch {
           return [];
         }
       })
@@ -225,7 +234,7 @@
     if (fromPlan > 0) {
       return fromPlan;
     }
-    const anyPlanBudget = (plans || []).some(p => parseFloat(p.budget) > 0);
+    const anyPlanBudget = (plans || []).some(candidate => parseFloat(candidate.budget) > 0);
     return anyPlanBudget ? 0 : readStoredBudget();
   }
 
@@ -233,15 +242,18 @@
    * Summary row
    * ------------------------------------------------------------------ */
 
+  /** Markup for a thin progress bar, with the percentage clamped to 0-100. */
   function bar(percent, label, tone) {
     const value = Math.max(0, Math.min(100, Math.round(percent)));
     return `<div class="cdh-bar${tone ? ` cdh-bar--${tone}` : ''}" role="progressbar" aria-label="${esc(label)}" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${value}"><span style="width:${value}%"></span></div>`;
   }
 
+  /** Wraps a label, body markup and optional action markup in one summary tile. */
   function tile(label, body, action) {
     return `<div class="cdh-tile"><div class="cdh-tile__label"><span>${esc(label)}</span>${action || ''}</div>${body}</div>`;
   }
 
+  /** Summary tile showing the days remaining until the plan's date. */
   function countdownTile(plan) {
     const date = planDate(plan);
     if (!date) {
@@ -252,7 +264,7 @@
       );
     }
     const days = daysUntil(date);
-    let value;
+    let value = '';
     if (days > 0) {
       value = `${days.toLocaleString('en-GB')}<span class="cdh-tile__unit">${days === 1 ? ' day' : ' days'}</span>`;
     } else if (days === 0) {
@@ -266,6 +278,7 @@
     );
   }
 
+  /** Summary tile for budget: spent against the total, or a prompt to set one. */
   function budgetTile(total, money) {
     const edit = `<button type="button" class="cdh-link" data-edit-budget aria-expanded="false" aria-controls="${ids.panel}">${total > 0 ? 'Edit' : 'Set budget'}</button>`;
     if (total <= 0) {
@@ -294,11 +307,12 @@
     );
   }
 
+  /** Summary tile for checklist progress, linking to the next unfinished step. */
   function progressTile(steps) {
     if (!steps) {
       return '';
     }
-    const next = steps.milestones.find(m => !m.done);
+    const next = steps.milestones.find(milestone => !milestone.done);
     const sub = next
       ? `Next: <a class="cdh-link" href="${esc(next.href)}">${esc(next.label)}</a>`
       : 'Everything on the checklist is done.';
@@ -310,9 +324,11 @@
     );
   }
 
+  /** Summary tile for guest replies, falling back to the expected guest count or an empty prompt. */
   function guestsTile(plan, rsvp) {
+    /** An inline link to the guest list page with the given label markup. */
     const link = text => `<a class="cdh-link" href="/guests">${text}</a>`;
-    if (rsvp && rsvp.totalGuests > 0) {
+    if (rsvp?.totalGuests > 0) {
       const replied = rsvp.responsesReceived || 0;
       return tile(
         'Guests',
@@ -335,16 +351,17 @@
     );
   }
 
+  /** Fills the summary grid with the four tiles, or an empty-state note when there is no plan. */
   function renderSummary(plan, money, steps, rsvp) {
-    const grid = $(ids.summary);
+    const grid = byId(ids.summary);
     if (!grid) {
       return;
     }
     grid.setAttribute('aria-busy', 'false');
     if (!plan) {
       grid.className = 'cdh-summary__grid cdh-summary__grid--empty';
-      grid.innerHTML = `
-        <p class="cdh-note">Create a plan and your countdown, budget and guest replies will appear here.</p>`;
+      grid.innerHTML =
+        '<p class="cdh-note">Create a plan and your countdown, budget and guest replies will appear here.</p>';
       return;
     }
     grid.className = 'cdh-summary__grid';
@@ -360,6 +377,7 @@
    * Greeting and next action
    * ------------------------------------------------------------------ */
 
+  /** The one-line greeting under the page heading for the focus plan. */
   function ledeFor(plan) {
     if (!plan) {
       return 'Start with a plan and EventFlow will keep your budget, guests and suppliers together.';
@@ -379,17 +397,18 @@
     return `${name} has passed. Start a new plan whenever you are ready.`;
   }
 
+  /** Sets the greeting line and points the primary action at the most useful next step. */
   function renderHero(plan, steps) {
-    const lede = $(ids.lede);
+    const lede = byId(ids.lede);
     if (lede) {
       lede.textContent = ledeFor(plan);
     }
-    const primary = $(ids.primary);
-    const secondary = $(ids.secondary);
+    const primary = byId(ids.primary);
+    const secondary = byId(ids.secondary);
     if (!primary) {
       return;
     }
-    const next = steps && steps.milestones.find(m => !m.done);
+    const next = steps?.milestones.find(milestone => !milestone.done);
     if (!plan) {
       primary.textContent = 'Create your plan';
       primary.setAttribute('href', '/start');
@@ -414,9 +433,10 @@
   const CHEVRON =
     '<svg class="cdh-step__go" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 18l6-6-6-6"/></svg>';
 
+  /** Draws the Next steps checklist (to do first, finished ones folded away), or its error state. */
   function renderSteps(steps) {
-    const body = $(ids.stepsBody);
-    const sub = $(ids.stepsSub);
+    const body = byId(ids.stepsBody);
+    const sub = byId(ids.stepsSub);
     if (!body) {
       return;
     }
@@ -429,8 +449,8 @@
       return;
     }
 
-    const todo = steps.milestones.filter(m => !m.done);
-    const done = steps.milestones.filter(m => m.done);
+    const todo = steps.milestones.filter(milestone => !milestone.done);
+    const done = steps.milestones.filter(milestone => milestone.done);
     if (sub) {
       sub.textContent = todo.length
         ? `${steps.completed} of ${steps.total} done. Start with the first one.`
@@ -440,8 +460,8 @@
     const todoList = todo.length
       ? `<ul class="cdh-steps">${todo
           .map(
-            m =>
-              `<li><a class="cdh-step" href="${esc(m.href)}"><span class="cdh-step__mark" aria-hidden="true"></span><span class="cdh-step__label">${esc(m.label)}</span>${CHEVRON}</a></li>`
+            milestone =>
+              `<li><a class="cdh-step" href="${esc(milestone.href)}"><span class="cdh-step__mark" aria-hidden="true"></span><span class="cdh-step__label">${esc(milestone.label)}</span>${CHEVRON}</a></li>`
           )
           .join('')}</ul>`
       : '<p class="cdh-note">Nicely done. You can still change any of these from your plan.</p>';
@@ -449,8 +469,8 @@
     const doneList = done.length
       ? `<details class="cdh-done"><summary>${done.length} completed</summary><ul class="cdh-steps cdh-steps--done">${done
           .map(
-            m =>
-              `<li class="cdh-step cdh-step--done"><span class="cdh-step__mark" aria-hidden="true">${CHECK}</span><span class="cdh-step__label">${esc(m.label)}<span class="cdh-sr"> (done)</span></span></li>`
+            milestone =>
+              `<li class="cdh-step cdh-step--done"><span class="cdh-step__mark" aria-hidden="true">${CHECK}</span><span class="cdh-step__label">${esc(milestone.label)}<span class="cdh-sr"> (done)</span></span></li>`
           )
           .join('')}</ul></details>`
       : '';
@@ -464,14 +484,17 @@
       return null;
     }
     const milestones = data.milestones
-      .filter(m => m && m.label)
-      .map(m => ({
-        id: m.id,
-        label: String(m.label),
-        done: Boolean(m.done),
-        href: typeof m.href === 'string' && /^(\/|#)/.test(m.href) ? m.href : '/start',
+      .filter(milestone => milestone?.label)
+      .map(milestone => ({
+        id: milestone.id,
+        label: String(milestone.label),
+        done: Boolean(milestone.done),
+        href:
+          typeof milestone.href === 'string' && /^(\/|#)/u.test(milestone.href)
+            ? milestone.href
+            : '/start',
       }));
-    const completed = milestones.filter(m => m.done).length;
+    const completed = milestones.filter(milestone => milestone.done).length;
     return { milestones, completed, total: milestones.length };
   }
 
@@ -479,8 +502,9 @@
    * Budget panel
    * ------------------------------------------------------------------ */
 
+  /** Shows or hides the budget form, syncing the toggles' aria-expanded and focusing the input. */
   function setBudgetPanel(open, options) {
-    const panel = $(ids.panel);
+    const panel = byId(ids.panel);
     if (!panel) {
       return;
     }
@@ -489,8 +513,8 @@
       button.setAttribute('aria-expanded', String(open));
     });
     if (open) {
-      const input = $(ids.input);
-      if (!options || options.scroll !== false) {
+      const input = byId(ids.input);
+      if (options?.scroll !== false) {
         panel.scrollIntoView({
           behavior: prefersReducedMotion() ? 'auto' : 'smooth',
           block: 'center',
@@ -502,33 +526,34 @@
     }
   }
 
+  /** Wires the page-level clicks, Escape key and #budget-settings-form hash for the budget panel and plan links. */
   function bindPageEvents() {
     document.addEventListener('click', event => {
-      const budgetButton = event.target.closest && event.target.closest('[data-edit-budget]');
+      const budgetButton = event.target.closest?.('[data-edit-budget]');
       if (budgetButton) {
-        const panel = $(ids.panel);
-        setBudgetPanel(Boolean(panel && panel.hidden));
+        const budgetPanel = byId(ids.panel);
+        setBudgetPanel(Boolean(budgetPanel?.hidden));
         return;
       }
-      const anchor = event.target.closest && event.target.closest(`a[href="${BUDGET_HASH}"]`);
+      const anchor = event.target.closest?.(`a[href="${BUDGET_HASH}"]`);
       if (anchor) {
         event.preventDefault();
         setBudgetPanel(true);
         return;
       }
-      const editPlan = event.target.closest && event.target.closest('[data-edit-plan]');
+      const editPlan = event.target.closest?.('[data-edit-plan]');
       if (editPlan) {
         document.dispatchEvent(
           new CustomEvent('cdh:edit-plan', { detail: { planId: editPlan.dataset.editPlan } })
         );
         return;
       }
-      if (event.target.closest && event.target.closest('[data-retry-steps]')) {
+      if (event.target.closest?.('[data-retry-steps]')) {
         document.dispatchEvent(new CustomEvent('cdh:reload'));
       }
     });
 
-    const cancel = $(ids.cancel);
+    const cancel = byId(ids.cancel);
     if (cancel) {
       cancel.addEventListener('click', () => {
         setBudgetPanel(false);
@@ -539,7 +564,7 @@
       });
     }
 
-    const panel = $(ids.panel);
+    const panel = byId(ids.panel);
     if (panel) {
       panel.addEventListener('keydown', event => {
         if (event.key === 'Escape') {
@@ -562,8 +587,9 @@
    * Suggestions and entry point
    * ------------------------------------------------------------------ */
 
+  /** Passes the focus plan's type, location and budget to the suggestions widget, then starts it. */
   function loadSuggestions(plan, total) {
-    const widget = $(ids.suggestions);
+    const widget = byId(ids.suggestions);
     if (!widget || !window.RecommendationsWidget) {
       return;
     }
@@ -581,6 +607,7 @@
     window.RecommendationsWidget.init();
   }
 
+  /** Fires the confetti once after a profile is completed (?profile_completed=true), then cleans the URL. */
   function celebrateCompletedProfile() {
     const params = new URLSearchParams(window.location.search);
     if (
@@ -592,7 +619,7 @@
     window.setTimeout(() => {
       try {
         triggerSuccessConfetti(); // eslint-disable-line no-undef
-      } catch (_) {
+      } catch {
         /* decorative only */
       }
       window.history.replaceState({}, '', window.location.pathname);
@@ -601,20 +628,16 @@
 
   /** The plans themselves could not be fetched — say so instead of showing an empty dashboard. */
   function renderLoadError() {
-    const lede = $(ids.lede);
+    const lede = byId(ids.lede);
     if (lede) {
       lede.textContent = 'We could not load your plans just now.';
     }
-    const grid = $(ids.summary);
+    const grid = byId(ids.summary);
     if (grid) {
       grid.setAttribute('aria-busy', 'false');
       grid.className = 'cdh-summary__grid cdh-summary__grid--empty';
-      grid.innerHTML = `
-        <div class="cdh-empty">
-          <p class="cdh-empty__title">Your summary could not be loaded</p>
-          <p class="cdh-empty__text">Check your connection and try again.</p>
-          <button type="button" class="cdh-btn cdh-btn--secondary cdh-btn--sm" data-retry-steps>Try again</button>
-        </div>`;
+      grid.innerHTML =
+        '<div class="cdh-empty"><p class="cdh-empty__title">Your summary could not be loaded</p><p class="cdh-empty__text">Check your connection and try again.</p><button type="button" class="cdh-btn cdh-btn--secondary cdh-btn--sm" data-retry-steps>Try again</button></div>';
     }
     renderSteps(null);
   }
@@ -633,7 +656,7 @@
     const [stepsData, money, rsvpData] = await Promise.all([
       getJson('/api/v1/customer/milestones'),
       plan ? calculateSpent(plan) : Promise.resolve({ spent: 0, unpriced: 0 }),
-      plan && plan.id
+      plan?.id
         ? getJson(`/api/me/plans/${encodeURIComponent(plan.id)}/rsvp-summary`)
         : Promise.resolve(null),
     ]);
@@ -643,7 +666,7 @@
     const summary = { ...money, total };
 
     renderHero(plan, steps);
-    renderSummary(plan, summary, steps, rsvpData && rsvpData.summary);
+    renderSummary(plan, summary, steps, rsvpData?.summary);
     renderSteps(steps);
 
     if (!suggestionsRequested) {
@@ -652,6 +675,7 @@
     }
   }
 
+  /** Binds the page events once the DOM is ready. */
   function init() {
     bindPageEvents();
     celebrateCompletedProfile();

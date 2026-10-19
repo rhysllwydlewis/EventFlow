@@ -10,7 +10,10 @@ function dbg(...args) {
 /** Plans the page last loaded; the budget form and the plan editor both work from this. */
 let dashboardPlans = [];
 
-// Load customer plans
+/**
+ * Draws the "Your plans" list (the page's own plans, or a fresh fetch when none are passed).
+ * @param {Array} [preloadedPlans] - Plans already fetched by the caller
+ */
 async function loadCustomerPlans(preloadedPlans) {
   const container = document.getElementById('customer-plans-list');
   if (!container) {
@@ -18,7 +21,7 @@ async function loadCustomerPlans(preloadedPlans) {
   }
 
   try {
-    let plans;
+    let plans = [];
     if (preloadedPlans) {
       plans = preloadedPlans;
     } else {
@@ -34,12 +37,8 @@ async function loadCustomerPlans(preloadedPlans) {
     dashboardPlans = plans;
 
     if (plans.length === 0) {
-      container.innerHTML = `
-        <div class="cdh-empty">
-          <p class="cdh-empty__title">No plans yet</p>
-          <p class="cdh-empty__text">Start with the plan wizard and EventFlow will build your checklist.</p>
-        </div>
-      `;
+      container.innerHTML =
+        '<div class="cdh-empty"><p class="cdh-empty__title">No plans yet</p><p class="cdh-empty__text">Start with the plan wizard and EventFlow will build your checklist.</p></div>';
       return;
     }
 
@@ -84,9 +83,9 @@ async function loadCustomerPlans(preloadedPlans) {
 
     // Attach event listeners for edit/delete
     container.querySelectorAll('.plan-edit-btn').forEach(btn => {
-      btn.addEventListener('click', e => {
-        e.stopPropagation();
-        const plan = plans.find(p => p.id === btn.dataset.planId);
+      btn.addEventListener('click', event => {
+        event.stopPropagation();
+        const plan = plans.find(candidate => candidate.id === btn.dataset.planId);
         if (plan) {
           showEditPlanModal(plan, reloadDashboard);
         }
@@ -94,9 +93,9 @@ async function loadCustomerPlans(preloadedPlans) {
     });
 
     container.querySelectorAll('.plan-delete-btn').forEach(btn => {
-      btn.addEventListener('click', e => {
-        e.stopPropagation();
-        const plan = plans.find(p => p.id === btn.dataset.planId);
+      btn.addEventListener('click', event => {
+        event.stopPropagation();
+        const plan = plans.find(candidate => candidate.id === btn.dataset.planId);
         if (plan) {
           confirmDeletePlan(plan, reloadDashboard);
         }
@@ -130,14 +129,19 @@ async function reloadDashboard() {
   ]);
 }
 
+/**
+ * Opens the Edit Plan dialog and PATCHes the plan on save.
+ * @param {object} plan - The plan being edited
+ * @param {Function} onSaved - Called after a successful save
+ */
 function showEditPlanModal(plan, onSaved) {
   // Inject animation keyframes once
   if (!document.getElementById('_dash_modal_styles')) {
-    const s = document.createElement('style');
-    s.id = '_dash_modal_styles';
-    s.textContent =
+    const styleEl = document.createElement('style');
+    styleEl.id = '_dash_modal_styles';
+    styleEl.textContent =
       '@keyframes ef-modal-in{from{opacity:0;transform:translateY(10px) scale(0.98)}to{opacity:1;transform:none}}';
-    document.head.appendChild(s);
+    document.head.appendChild(styleEl);
   }
 
   const titleId = '_dash_plan_edit_title';
@@ -187,13 +191,15 @@ function showEditPlanModal(plan, onSaved) {
 
   document.body.appendChild(overlay);
 
+  /** Removes the dialog and restores page scrolling and the Escape handler. */
   const close = () => {
     overlay.remove();
     document.body.style.overflow = '';
     document.removeEventListener('keydown', handleEscEdit);
   };
-  function handleEscEdit(e) {
-    if (e.key === 'Escape') {
+  /** Closes the Edit Plan dialog on Escape. */
+  function handleEscEdit(event) {
+    if (event.key === 'Escape') {
       close();
     }
   }
@@ -201,8 +207,8 @@ function showEditPlanModal(plan, onSaved) {
   document.addEventListener('keydown', handleEscEdit);
   overlay.querySelector('#_dash_plan_edit_close').addEventListener('click', close);
   overlay.querySelector('#_pf_cancel').addEventListener('click', close);
-  overlay.addEventListener('click', e => {
-    if (e.target === overlay) {
+  overlay.addEventListener('click', event => {
+    if (event.target === overlay) {
       close();
     }
   });
@@ -221,7 +227,7 @@ function showEditPlanModal(plan, onSaved) {
     statusEl.textContent = '';
     try {
       const csrf = await getCsrfToken();
-      const r = await fetch(`/api/me/plans/${encodeURIComponent(plan.id)}`, {
+      const response = await fetch(`/api/me/plans/${encodeURIComponent(plan.id)}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrf },
         credentials: 'include',
@@ -232,9 +238,9 @@ function showEditPlanModal(plan, onSaved) {
           notes: overlay.querySelector('#_pf_notes').value.trim() || null,
         }),
       });
-      const d = await r.json();
-      if (!r.ok) {
-        throw new Error(d.error || 'Failed to save');
+      const payload = await response.json();
+      if (!response.ok) {
+        throw new Error(payload.error || 'Failed to save');
       }
       close();
       if (typeof onSaved === 'function') {
@@ -250,6 +256,11 @@ function showEditPlanModal(plan, onSaved) {
   });
 }
 
+/**
+ * Opens the Delete Plan confirmation and DELETEs the plan when confirmed.
+ * @param {object} plan - The plan to delete
+ * @param {Function} onDeleted - Called after a successful delete
+ */
 function confirmDeletePlan(plan, onDeleted) {
   const displayName = escapeHtml(plan.name || plan.eventType || 'this plan');
   const existing = document.getElementById('_dash_plan_delete_modal');
@@ -277,21 +288,23 @@ function confirmDeletePlan(plan, onDeleted) {
 
   document.body.appendChild(overlay);
 
+  /** Removes the dialog and restores page scrolling and the Escape handler. */
   const close = () => {
     overlay.remove();
     document.body.style.overflow = '';
     document.removeEventListener('keydown', handleEscDel);
   };
-  function handleEscDel(e) {
-    if (e.key === 'Escape') {
+  /** Closes the Delete Plan dialog on Escape. */
+  function handleEscDel(event) {
+    if (event.key === 'Escape') {
       close();
     }
   }
   document.body.style.overflow = 'hidden';
   document.addEventListener('keydown', handleEscDel);
   overlay.querySelector('#_del_cancel').addEventListener('click', close);
-  overlay.addEventListener('click', e => {
-    if (e.target === overlay) {
+  overlay.addEventListener('click', event => {
+    if (event.target === overlay) {
       close();
     }
   });
@@ -303,14 +316,14 @@ function confirmDeletePlan(plan, onDeleted) {
     delBtn.textContent = 'Deleting…';
     try {
       const csrf = await getCsrfToken();
-      const r = await fetch(`/api/me/plans/${encodeURIComponent(plan.id)}`, {
+      const response = await fetch(`/api/me/plans/${encodeURIComponent(plan.id)}`, {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrf },
         credentials: 'include',
       });
-      const d = await r.json();
-      if (!r.ok) {
-        throw new Error(d.error || 'Failed to delete');
+      const payload = await response.json();
+      if (!response.ok) {
+        throw new Error(payload.error || 'Failed to delete');
       }
       close();
       if (typeof onDeleted === 'function') {
@@ -324,6 +337,7 @@ function confirmDeletePlan(plan, onDeleted) {
   });
 }
 
+/** HTML-escapes a string for safe use in markup (non-strings become an empty string). */
 function escapeHtml(unsafe) {
   if (typeof unsafe !== 'string') {
     return '';
@@ -333,6 +347,7 @@ function escapeHtml(unsafe) {
   return div.innerHTML;
 }
 
+/** Long British date in London time, or an empty string when the input is missing or invalid. */
 function formatPlanDate(dateString) {
   if (!dateString) {
     return '';
@@ -348,12 +363,12 @@ function formatPlanDate(dateString) {
       year: 'numeric',
       timeZone: 'Europe/London',
     });
-  } catch (_) {
+  } catch {
     return '';
   }
 }
 
-// Check authentication on page load
+/** Resolves to the signed-in user from /api/v1/auth/me, or null when signed out or on error. */
 async function checkAuth() {
   try {
     const response = await fetch('/api/v1/auth/me', { credentials: 'include' });
@@ -368,7 +383,7 @@ async function checkAuth() {
   }
 }
 
-// Setup navigation with auth check and consolidated initialization
+/** Page start-up: checks sign-in, then loads every dashboard section in parallel. */
 async function initDashboard() {
   // Ensure a CSRF token is available before any state-changing requests
   await ensureCsrfToken();
@@ -398,7 +413,7 @@ async function initDashboard() {
 
   // Load all dashboard components IN PARALLEL
   // Fetch /api/me/plans once and share the result to avoid duplicate requests
-  let sharedPlans;
+  let sharedPlans = null;
   try {
     const plansResponse = await fetch('/api/me/plans', { credentials: 'include' });
     if (plansResponse.ok) {
@@ -412,7 +427,7 @@ async function initDashboard() {
 
   document.addEventListener('cdh:reload', reloadDashboard);
   document.addEventListener('cdh:edit-plan', event => {
-    const plan = dashboardPlans.find(p => p.id === event.detail?.planId);
+    const plan = dashboardPlans.find(candidate => candidate.id === event.detail?.planId);
     if (plan) {
       showEditPlanModal(plan, reloadDashboard);
     }
@@ -463,10 +478,10 @@ async function populateSavedSupplierStatus() {
   let savedSupplierIds = [];
   let loaded = false;
   try {
-    const r = await fetch('/api/v1/shortlist', { credentials: 'include' });
-    if (r.ok) {
-      const d = await r.json();
-      const items = (d.data && d.data.items) || [];
+    const response = await fetch('/api/v1/shortlist', { credentials: 'include' });
+    if (response.ok) {
+      const payload = await response.json();
+      const items = payload.data?.items || [];
       // Count only supplier-type items
       savedItems = items.filter(item => {
         const kind = item.type || item.itemType;
@@ -479,15 +494,15 @@ async function populateSavedSupplierStatus() {
       // Keep legacy localStorage key in sync so redirect logic still works
       try {
         localStorage.setItem('eventflow_saved_suppliers', JSON.stringify(savedSupplierIds));
-      } catch (_) {
+      } catch {
         /* ignore */
       }
     }
-  } catch (_) {
+  } catch {
     // Fallback to localStorage on network error
     try {
       savedSupplierIds = JSON.parse(localStorage.getItem('eventflow_saved_suppliers') || '[]');
-    } catch (__) {
+    } catch {
       /* ignore */
     }
   }
@@ -500,13 +515,8 @@ async function populateSavedSupplierStatus() {
   }
 
   if (savedCount === 0) {
-    savedStatusEl.innerHTML = `
-      <div class="cdh-empty">
-        <p class="cdh-empty__title">No saved suppliers yet</p>
-        <p class="cdh-empty__text">Save suppliers while you browse and they will be kept here for you to compare.</p>
-        <a href="/suppliers" class="cdh-btn cdh-btn--primary cdh-btn--sm">Browse suppliers</a>
-      </div>
-    `;
+    savedStatusEl.innerHTML =
+      '<div class="cdh-empty"><p class="cdh-empty__title">No saved suppliers yet</p><p class="cdh-empty__text">Save suppliers while you browse and they will be kept here for you to compare.</p><a href="/suppliers" class="cdh-btn cdh-btn--primary cdh-btn--sm">Browse suppliers</a></div>';
     // The empty state's own action replaces the "View saved suppliers" button
     if (openPlanBtn) {
       openPlanBtn.hidden = true;
@@ -520,10 +530,9 @@ async function populateSavedSupplierStatus() {
   const rows = savedItems
     .slice(0, MAX_LISTED)
     .map(item => {
-      const href =
-        window.EventFlowSupplierLink && window.EventFlowSupplierLink.supplierProfileHref
-          ? window.EventFlowSupplierLink.supplierProfileHref(item)
-          : '/suppliers';
+      const href = window.EventFlowSupplierLink?.supplierProfileHref
+        ? window.EventFlowSupplierLink.supplierProfileHref(item)
+        : '/suppliers';
       const name = escapeHtml(String(item.name || 'Supplier'));
       const category = item.category ? escapeHtml(String(item.category)) : '';
       return `<li><a class="cdh-list__link" href="${href}"><span class="cdh-list__name">${name}</span>${category ? `<span class="cdh-list__meta">${category}</span>` : ''}</a></li>`;
@@ -541,7 +550,7 @@ async function populateSavedSupplierStatus() {
   }
 }
 
-// Initialize calendar
+/** Starts the events calendar, resolving once it has been set up (or its fallback message shown). */
 function initCalendar() {
   return new Promise(resolve => {
     const calendarEl = document.getElementById('events-calendar');
@@ -591,17 +600,15 @@ function showPageNotice(title, message) {
   return notice;
 }
 
-// Setup all event handlers
+/** Wires the Open My Plan button and the budget form, and syncs the stored budget with the server. */
 function setupEventHandlers() {
-  // The plan the summary row describes — the budget form must edit that same plan.
+  /** The plan the summary row describes — the budget form must edit that same plan. */
   const focusPlan = () =>
-    (window.CustomerDashboardHome && window.CustomerDashboardHome.pickFocusPlan(dashboardPlans)) ||
-    dashboardPlans[0] ||
-    null;
+    window.CustomerDashboardHome?.pickFocusPlan(dashboardPlans) || dashboardPlans[0] || null;
 
   // Setup Open My Plan button with auth-aware navigation
-  document.getElementById('openPlanBtn')?.addEventListener('click', e => {
-    e.preventDefault();
+  document.getElementById('openPlanBtn')?.addEventListener('click', event => {
+    event.preventDefault();
 
     // Collect ONLY supplier IDs (not package IDs) for the /suppliers?filter=saved redirect.
     // plan.suppliers holds supplier IDs; localStorage eventflow_saved_suppliers also holds
@@ -644,8 +651,8 @@ function setupEventHandlers() {
   });
 
   // Budget settings handler
-  document.getElementById('budget-settings-form')?.addEventListener('submit', async e => {
-    e.preventDefault();
+  document.getElementById('budget-settings-form')?.addEventListener('submit', async event => {
+    event.preventDefault();
 
     const input = document.getElementById('custom-budget-input');
     const budget = parseFloat(input.value);
@@ -727,7 +734,7 @@ function setupEventHandlers() {
 
   // Load saved budget on page load — prefer server plan budget, fall back to localStorage
   const budgetFromPlan = dashboardPlans.length
-    ? dashboardPlans.find(p => p.budget && parseFloat(p.budget) > 0)
+    ? dashboardPlans.find(candidate => candidate.budget && parseFloat(candidate.budget) > 0)
     : null;
 
   try {
@@ -759,7 +766,7 @@ function setupEventHandlers() {
     let lsBudgetForRetry = null;
     try {
       lsBudgetForRetry = localStorage.getItem('eventflow_custom_budget');
-    } catch (_) {
+    } catch {
       /* ignore */
     }
     const pendingBudget = lsBudgetForRetry ? parseFloat(lsBudgetForRetry) : NaN;
@@ -840,15 +847,15 @@ function getCsrfToken() {
     return window.__CSRF_TOKEN__;
   }
   const meta = document.querySelector('meta[name="csrf-token"]');
-  if (meta && meta.getAttribute('content')) {
+  if (meta?.getAttribute('content')) {
     return meta.getAttribute('content');
   }
   // Try cookies (both canonical and legacy names)
-  const match = document.cookie.match(/(?:^|;\s*)(?:csrf|csrfToken)=([^;]+)/);
+  const match = document.cookie.match(/(?:^|;\s*)(?:csrf|csrfToken)=([^;]+)/u);
   if (match) {
     try {
       return decodeURIComponent(match[1]);
-    } catch (_) {
+    } catch {
       return match[1];
     }
   }
@@ -877,7 +884,7 @@ async function ensureCsrfToken() {
       }
       return token;
     }
-  } catch (_) {
+  } catch {
     /* network error — fall back to cookie/meta if available */
   }
   return getCsrfToken();
@@ -929,7 +936,7 @@ async function showCustomerEmailVerificationBanner(email) {
         resendBtn.textContent = 'Resend email';
         msg.textContent = 'Could not resend the verification email. Please try again.';
       }
-    } catch (err) {
+    } catch {
       resendBtn.disabled = false;
       resendBtn.textContent = 'Resend email';
     }
@@ -940,7 +947,7 @@ async function showCustomerEmailVerificationBanner(email) {
 
   // Sit above the greeting, inside the page column
   const hero = document.querySelector('.cdh-hero');
-  if (hero && hero.parentNode) {
+  if (hero?.parentNode) {
     hero.parentNode.insertBefore(banner, hero);
   } else {
     document.body.insertBefore(banner, document.body.firstChild);
