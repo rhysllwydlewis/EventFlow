@@ -100,7 +100,7 @@
 .gm .gm-wrap {
   position: relative;
   width: 100%;
-  max-width: 1080px;
+  max-width: 1200px;
   margin: 0 auto;
   padding: 0 24px;
 }
@@ -133,6 +133,22 @@
   justify-content: space-between;
   gap: 16px 24px;
   margin-bottom: 24px;
+}
+
+.gm .gm-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-bottom: 8px;
+  padding-block: 6px;
+  color: var(--gm-muted);
+  font-size: 13px;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.gm .gm-back:hover {
+  color: var(--gm-ink);
 }
 
 .gm .gm-title {
@@ -556,6 +572,9 @@
   width: 100%;
   border-collapse: collapse;
   font-size: 14px;
+  /* mobile-optimizations.css sets `table { white-space: nowrap }` at 768px and below, which
+     would push long names, emails and dietary notes out of the cards. */
+  white-space: normal;
 }
 
 .gm .gm-table th {
@@ -661,9 +680,10 @@
 
 .gm .gm-pager {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
+  gap: 8px 12px;
   padding: 12px 24px;
   border-top: 1px solid var(--gm-line);
   font-size: 13px;
@@ -674,6 +694,7 @@
   display: flex;
   align-items: center;
   gap: 8px;
+  white-space: nowrap;
 }
 
 /* ------------------------------------------------------------------ *
@@ -955,9 +976,7 @@
   .gm .gm-stat:nth-child(n + 3) {
     border-top: 1px solid var(--gm-line-2);
   }
-}
 
-@media (max-width: 860px) {
   /* The table becomes one card per guest. */
   .gm .gm-table thead {
     position: absolute;
@@ -1081,6 +1100,10 @@
 
   .gm .gm-pager {
     padding: 12px 16px;
+  }
+
+  .gm .gm-pager .gm-btn {
+    min-height: 40px;
   }
 }
 

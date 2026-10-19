@@ -42,11 +42,23 @@ Fields used: `name`, `email`, `phone`, `rsvpStatus` (pending, attending, maybe, 
   platform; the page returns focus to the same guest's Edit button after saving). On phones they
   become bottom sheets. Delete asks for confirmation and focuses Cancel.
 - Add has "Save and add another" for entering several guests quickly.
-- The table becomes one card per guest at 860px and below. Lists are paged 25 at a time.
+- The server frees the table of any guest who is not attending each time they are saved (including
+  a table typed in the same form), so the edit dialog says so when that is about to happen.
+- With no `?plan=` the page opens on the plan last picked here or on the budget page (shared in
+  `localStorage` as `ef_customer_plan`), otherwise on the dashboard's focus plan (the next dated
+  plan), so the three customer pages start on the same event. The dashboard's guest links carry
+  `?plan=`.
+- A party size outside 1 to 20 (the server's limit) is reported next to the field instead of being
+  quietly changed.
+- The page uses the same warm neutrals, 1200px frame and rounded-rectangle shapes as the budget page
+  and the dashboard.
+- The table becomes one card per guest at 900px and below. Lists are paged 25 at a time.
 - Guest data is always escaped (`esc()`); a test proves an `<img onerror>` name never becomes markup.
 - Export writes `Name, Email, Phone, RSVP, Party size, Dietary, Table, Notes`. Cells that start with
   `=`, `+`, `-`, `@`, tab or CR get a leading apostrophe so spreadsheets do not run them as
   formulas; import removes that guard again.
+- Import reads UTF-8 and falls back to Windows-1252 when the bytes are not valid UTF-8, because
+  Excel on Windows saves "CSV" that way and accents would otherwise be corrupted.
 - Import matches columns by header name, so the previous `FirstName, LastName, PlusOne` layout still
   works. It posts one guest at a time and is limited to 50 rows because the write limiter allows 80
   writes per 10 minutes. Rows without a name are listed as skipped rather than dropped silently.

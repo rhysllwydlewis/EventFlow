@@ -231,30 +231,6 @@ describe('isWeddingPlan', () => {
   });
 });
 
-describe('pickPlan', () => {
-  const plans = [
-    { id: 'old', eventDate: '2020-01-01' },
-    { id: 'soon', eventDate: '2999-05-01' },
-    { id: 'later', eventDate: '2999-09-01' },
-    { id: 'undated' },
-  ];
-
-  test('uses the plan named in the link when it exists', () => {
-    expect(lib.pickPlan(plans, 'later').id).toBe('later');
-  });
-
-  test('otherwise picks the next upcoming dated plan, like the dashboard', () => {
-    expect(lib.pickPlan(plans).id).toBe('soon');
-    expect(lib.pickPlan(plans, 'missing').id).toBe('soon');
-  });
-
-  test('falls back to the latest dated plan, then the first plan', () => {
-    expect(lib.pickPlan([plans[0], { id: 'x' }]).id).toBe('old');
-    expect(lib.pickPlan([{ id: 'x' }, { id: 'y' }]).id).toBe('x');
-    expect(lib.pickPlan([])).toBeNull();
-  });
-});
-
 describe('changedFields', () => {
   const current = guest({
     partySize: 2,
@@ -364,7 +340,7 @@ describe('the app, rendered into guests.html (jsdom)', () => {
       'Declined|1|Not coming',
     ]);
     expect(result.rows).toBe(2);
-    expect(result.noteHref).toBe('/dashboard/customer');
+    expect(result.noteHref).toBe('/dashboard/customer#wedding-website-dashboard-card');
   });
 
   test('with no guests it offers to add or import, and shows no summary, filters or pointer', () => {
@@ -433,6 +409,90 @@ describe('the app, rendered into guests.html (jsdom)', () => {
   });
 });
 
+describe('signing in from the guest list', () => {
+  test('the sign-in link returns to /guests, which the customer redirect allowlist permits', () => {
+    const js = fs.readFileSync(path.join(PUBLIC, 'assets/js/guests.js'), 'utf8');
+    expect(js).toContain('/auth?redirect=%2Fguests');
+    const app = fs.readFileSync(path.join(PUBLIC, 'assets/js/app.js'), 'utf8');
+    const customer = app.slice(app.indexOf('    customer: ['));
+    expect(customer.slice(0, customer.indexOf('    ],'))).toMatch(/'\/guests',\s+'\/guests\.html'/);
+  });
+});
+
+describe('formatDate', () => {
+  /** Runs formatDate in a child process whose time zone is west of Greenwich. */
+  const inNewYork = value =>
+    require('child_process')
+      .execFileSync(
+        process.execPath,
+        [
+          '-e',
+          `process.stdout.write(require(${JSON.stringify(require.resolve('../../public/assets/js/guests.js'))}).formatDate(${JSON.stringify(value)}))`,
+        ],
+        { env: { ...process.env, TZ: 'America/New_York' }, encoding: 'utf8' }
+      )
+      .trim();
+
+  test('shows a plan date as the same calendar day in a time zone west of Greenwich', () => {
+    expect(inNewYork('2027-06-19')).toBe('19 Jun 2027');
+    expect(inNewYork('2027-06-19T00:00:00.000Z')).toBe('19 Jun 2027');
+  });
+
+  test('returns an empty string for a missing or invalid date', () => {
+    expect(lib.formatDate('')).toBe('');
+    expect(lib.formatDate('not a date')).toBe('');
+  });
+});
+
+describe('decodeCsvBytes', () => {
+  test('reads UTF-8 files, with or without a byte-order mark', () => {
+    const utf8 = Buffer.from('\uFEFFName\nZoë Brontë\n', 'utf8');
+    expect(lib.parseCsv(lib.decodeCsvBytes(utf8))).toEqual([['Name'], ['Zoë Brontë']]);
+  });
+
+  test('reads a Windows-1252 file (what Excel saves as "CSV") without corrupting accents', () => {
+    const legacy = Buffer.from([0x4e, 0x0a, 0x5a, 0x6f, 0xeb, 0x20, 0x4a, 0x6f, 0x73, 0xe9]);
+    expect(lib.decodeCsvBytes(legacy)).toBe('N\nZoë José');
+  });
+});
+
+describe('pickFocusPlan', () => {
+  const day = offset => {
+    const d = new Date();
+    d.setDate(d.getDate() + offset);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  };
+
+  test('picks the next upcoming plan, as the dashboard summary does', () => {
+    const plans = [
+      { id: 'far', eventDate: day(200) },
+      { id: 'past', eventDate: day(-30) },
+      { id: 'soon', eventDate: day(20) },
+      { id: 'undated' },
+    ];
+    expect(lib.pickFocusPlan(plans).id).toBe('soon');
+  });
+
+  test('falls back to the latest dated plan when all have passed, then to the first plan', () => {
+    expect(
+      lib.pickFocusPlan([
+        { id: 'old', eventDate: day(-90) },
+        { id: 'recent', eventDate: day(-5) },
+      ]).id
+    ).toBe('recent');
+    expect(lib.pickFocusPlan([{ id: 'a' }, { id: 'b' }]).id).toBe('a');
+  });
+
+  test('a plan dated today still counts as upcoming', () => {
+    expect(
+      lib.pickFocusPlan([
+        { id: 'later', eventDate: day(10) },
+        { id: 'today', eventDate: day(0) },
+      ]).id
+    ).toBe('today');
+  });
+});
+
 describe('page invariants', () => {
   test('loads one page stylesheet and the single guests script, both versioned', () => {
     expect(html).toMatch(/\/assets\/css\/guests\.css\?v=[\w.]+/);
@@ -466,6 +526,34 @@ describe('page invariants', () => {
     const scale = [10, 11, 12, 13, 14, 16, 18, 20, 24, 28, 32];
     const sizes = [...css.matchAll(/font-size:\s*([0-9.]+)px/g)].map(m => Number(m[1]));
     expect(sizes.filter(px => !scale.includes(px))).toEqual([]);
+  });
+
+  test('the table undoes the global nowrap that mobile-optimizations.css gives every table', () => {
+    const rule = css.match(/\.gm \.gm-table \{[\s\S]*?\n\}/)[0];
+    expect(rule).toMatch(/white-space: normal;/);
+  });
+
+  test('a party size outside 1 to the server maximum is reported, not quietly changed', () => {
+    const js = fs.readFileSync(path.join(PUBLIC, 'assets/js/guests.js'), 'utf8');
+    expect(js).toContain('id="gm-party-error"');
+    expect(js).toMatch(/party > MAX_PARTY/);
+  });
+
+  test('Enter in a field submits with the primary button, not "Save and add another"', () => {
+    const js = fs.readFileSync(path.join(PUBLIC, 'assets/js/guests.js'), 'utf8');
+    expect(js).toContain(
+      'form.requestSubmit(form.querySelector(\'[type="submit"][value="done"]\'))'
+    );
+  });
+
+  test('links back to the dashboard', () => {
+    expect(html).toContain('href="/dashboard/customer"');
+  });
+
+  test('editing warns that a guest who is not attending loses their table', () => {
+    const js = fs.readFileSync(path.join(PUBLIC, 'assets/js/guests.js'), 'utf8');
+    expect(js).toContain('id="gm-seat-note"');
+    expect(js).toMatch(/replySelect\.value !== 'attending'/);
   });
 
   test('respects reduced motion', () => {

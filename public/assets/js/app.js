@@ -434,6 +434,8 @@ function validateRedirectForRole(redirectUrl, userRole) {
       '/timeline.html',
       '/budget',
       '/budget.html',
+      '/guests',
+      '/guests.html',
       '/start',
       '/start.html',
     ],

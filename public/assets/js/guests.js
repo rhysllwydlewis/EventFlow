@@ -35,6 +35,8 @@
   const MAX_NOTES = 200;
   const MAX_IMPORT_BYTES = 1048576;
   const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/u;
+  // The last plan picked on the guest list or the budget page, shared so they stay on one event.
+  const PLAN_KEY = 'ef_customer_plan';
 
   /* ------------------------------------------------------------------ *
    * Pure helpers
@@ -234,6 +236,19 @@
   /** Reverses the apostrophe guard that csvCell adds. */
   const unguardCell = value => String(value).replace(/^'(?=[=+\-@\t\r])/, '');
 
+  /**
+   * Text of an uploaded CSV. Excel on Windows saves "CSV" in a legacy code page, not UTF-8, which
+   * would turn "Zoë" into "Zo\uFFFD" if read as UTF-8, so bytes that are not valid UTF-8 are read
+   * as Windows-1252 instead.
+   */
+  function decodeCsvBytes(buffer) {
+    try {
+      return new TextDecoder('utf-8', { fatal: true }).decode(buffer);
+    } catch {
+      return new TextDecoder('windows-1252').decode(buffer);
+    }
+  }
+
   const STATUS_WORDS = {
     attending: 'attending',
     accepted: 'attending',
@@ -341,33 +356,6 @@
   }
 
   /**
-   * The plan to show first: the one named in the address, else the next upcoming dated plan, else
-   * the latest dated plan, else the first. This is the same "focus plan" the dashboard summarises,
-   * so both pages describe the same guest list.
-   */
-  function pickPlan(plans, wantedId = '') {
-    const list = Array.isArray(plans) ? plans : [];
-    const wanted = list.find(plan => plan.id === wantedId);
-    if (wanted || !list.length) {
-      return wanted || null;
-    }
-    const startOfToday = new Date();
-    startOfToday.setHours(0, 0, 0, 0);
-    const dated = list
-      .map(plan => {
-        const value = plan.eventDate || plan.date;
-        return { plan, time: value ? new Date(value).getTime() : Number.NaN };
-      })
-      .filter(item => Number.isFinite(item.time))
-      .sort((left, right) => left.time - right.time);
-    const upcoming = dated.find(item => item.time >= startOfToday.getTime());
-    if (upcoming) {
-      return upcoming.plan;
-    }
-    return dated.length ? dated[dated.length - 1].plan : list[0];
-  }
-
-  /**
    * The fields in an edit payload that differ from the guest as loaded. Only these are sent, so
    * saving one change never rewrites (or, for long notes, truncates) anything else.
    */
@@ -413,13 +401,60 @@
     return { fresh, duplicates };
   }
 
-  /** A UK-style short date such as "19 Jun 2027", or '' for a missing or invalid value. */
+  /** Local midnight for a plan date string such as 2027-06-19, or null when it has none. */
+  function planDay(plan) {
+    const match = /^(\d{4})-(\d{2})-(\d{2})/u.exec(String(plan?.eventDate || plan?.date || ''));
+    return match ? new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3])) : null;
+  }
+
+  /**
+   * The plan the customer dashboard summarises: the next upcoming date, else the latest dated
+   * plan, else the first. Used when the page is opened without ?plan= and nothing is remembered,
+   * so all three customer pages start on the same event.
+   */
+  function pickFocusPlan(plans) {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const dated = plans
+      .map(plan => ({ plan, day: planDay(plan) }))
+      .filter(item => item.day)
+      .sort((left, right) => left.day - right.day);
+    const upcoming = dated.find(item => item.day >= today);
+    return (upcoming || dated[dated.length - 1] || { plan: plans[0] }).plan;
+  }
+
+  /**
+   * A UK-style short date such as "19 Jun 2027", or '' for a missing or invalid value. A plan's
+   * date is a calendar day, so 2027-06-19 is read as that day in the visitor's own time zone;
+   * parsing it as a UTC instant would show 18 Jun anywhere west of Greenwich.
+   */
   function formatDate(value) {
-    const date = new Date(value);
+    const match = /^(\d{4})-(\d{2})-(\d{2})/u.exec(String(value || ''));
+    const date = match
+      ? new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]))
+      : new Date(value);
     if (!value || Number.isNaN(date.getTime())) {
       return '';
     }
     return date.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+  }
+
+  /** The remembered plan id, or '' when nothing is stored or storage is blocked. */
+  function remembered() {
+    try {
+      return window.localStorage.getItem(PLAN_KEY) || '';
+    } catch {
+      return '';
+    }
+  }
+
+  /** Remembers the picked plan for the next visit (ignored when storage is blocked). */
+  function remember(id) {
+    try {
+      window.localStorage.setItem(PLAN_KEY, id);
+    } catch {
+      /* the choice just is not remembered */
+    }
   }
 
   /** The name to show for a plan. */
@@ -582,19 +617,12 @@
 
     /* ---- plans and guests ---- */
 
-    /** Keeps the chosen plan in the address, so a refresh or shared link shows the same list. */
-    function rememberPlan() {
-      try {
-        const url = new URL(window.location.href);
-        url.searchParams.set('plan', state.plan.id);
-        window.history.replaceState(null, '', url);
-      } catch {
-        /* the address is only a convenience */
-      }
-    }
+    // Bumped by every load so a slow response for a plan the visitor has already left is ignored.
+    let loadId = 0;
 
     /** Loads the plans (first time only) and the current plan's guests, then redraws the page. */
     async function load() {
+      const thisLoad = ++loadId;
       state.phase = 'loading';
       renderStage();
       try {
@@ -607,13 +635,19 @@
             renderStage();
             return;
           }
-          const wanted = new URLSearchParams(window.location.search).get('plan') || '';
-          state.plan = pickPlan(state.plans, wanted);
+          const wanted = new URLSearchParams(window.location.search).get('plan') || remembered();
+          state.plan = state.plans.find(p => p.id === wanted) || pickFocusPlan(state.plans);
         }
         const data = await api(guestsPath(''));
+        if (thisLoad !== loadId) {
+          return;
+        }
         state.guests = (data.guests || []).map(normalizeGuest);
         state.phase = 'ready';
       } catch (err) {
+        if (thisLoad !== loadId) {
+          return;
+        }
         state.phase = err.status === 401 || err.status === 403 ? 'signin' : 'error';
         state.error =
           state.phase === 'error' ? err.message || 'Something went wrong. Please try again.' : '';
@@ -681,7 +715,7 @@
           iconName: 'users',
           title: 'Sign in to manage your guests',
           body: 'Your guest list is private to your account.',
-          actions: '<a class="gm-btn gm-btn--primary" href="/auth">Sign in</a>',
+          actions: '<a class="gm-btn gm-btn--primary" href="/auth?redirect=%2Fguests">Sign in</a>',
         }),
         noplans: emptyState({
           iconName: 'users',
@@ -751,7 +785,7 @@
       }
       const note = find('#gm-note');
       note.innerHTML = isWeddingPlan(state.plan)
-        ? `<p class="gm-note">${icon('heart')}<span>This is the same guest list your Wedding Website &amp; RSVPs uses. Replies from your website appear here; seating is arranged there. <a href="/dashboard/customer">Open Wedding Website &amp; RSVPs</a></span></p>`
+        ? `<p class="gm-note">${icon('heart')}<span>This is the same guest list your Wedding Website &amp; RSVPs uses. Replies from your website appear here; seating is arranged there. <a href="/dashboard/customer#wedding-website-dashboard-card">Open Wedding Website &amp; RSVPs</a></span></p>`
         : '';
     }
 
@@ -793,6 +827,8 @@
         return;
       }
       find('.gm-toolbar').hidden = !state.guests.length;
+      // Exporting an empty list only produces a warning, so the button waits for the first guest.
+      root.querySelector('.gm-head [data-action="export"]').hidden = !state.guests.length;
       if (!state.guests.length) {
         host.innerHTML = emptyState({
           iconName: 'users',
@@ -863,8 +899,8 @@
         <div class="gm-dialog__body">
           <div class="gm-grid">
             ${field('name', 'Name <span class="gm-req">Required</span>', `${input('name', 'text', current.name, 'required maxlength="200" autocomplete="off" aria-describedby="gm-name-error"')}<small class="gm-error" id="gm-name-error" hidden>Enter the guest’s name.</small>`, true)}
-            ${field('rsvpStatus', 'Reply', `<select class="gm-input gm-select" id="gm-f-rsvpStatus" name="rsvpStatus">${STATUSES.map(s => `<option value="${s}" ${current.status === s ? 'selected' : ''}>${STATUS_LABELS[s]}</option>`).join('')}</select>`)}
-            ${field('partySize', 'Party size', input('partySize', 'number', current.partySize, `min="1" max="${MAX_PARTY}" inputmode="numeric" aria-describedby="gm-h-partySize"`), false, 'People in this booking, including the guest.')}
+            ${field('rsvpStatus', 'Reply', `<select class="gm-input gm-select" id="gm-f-rsvpStatus" name="rsvpStatus" aria-describedby="gm-seat-note">${STATUSES.map(s => `<option value="${s}" ${current.status === s ? 'selected' : ''}>${STATUS_LABELS[s]}</option>`).join('')}</select><small class="gm-hint" id="gm-seat-note" role="status" hidden>Only guests who are attending keep a table. Saving with this reply clears their table.</small>`)}
+            ${field('partySize', 'Party size', `${input('partySize', 'number', current.partySize, `min="1" max="${MAX_PARTY}" inputmode="numeric" aria-describedby="gm-party-error gm-h-partySize"`)}<small class="gm-error" id="gm-party-error" hidden>Enter a whole number from 1 to ${MAX_PARTY}.</small>`, false, 'People in this booking, including the guest.')}
             ${field('email', 'Email', input('email', 'email', current.email, 'maxlength="200" autocomplete="off"'))}
             ${field('phone', 'Phone', input('phone', 'tel', current.phone, 'maxlength="30" autocomplete="off"'))}
             ${field('dietary', 'Dietary needs', input('dietary', 'text', current.dietary, 'maxlength="500" placeholder="e.g. Vegetarian, nut allergy"'))}
@@ -883,6 +919,8 @@
       const form = dialog.querySelector('form');
       const nameInput = form.elements.name;
       const nameError = form.querySelector('#gm-name-error');
+      const partyInput = form.elements.partySize;
+      const partyError = form.querySelector('#gm-party-error');
       const formError = form.querySelector('.gm-form-error');
       nameInput.addEventListener('input', () => {
         nameError.hidden = true;
@@ -890,6 +928,31 @@
       });
       form.elements.email.addEventListener('input', () => {
         form.elements.email.removeAttribute('aria-invalid');
+      });
+      partyInput.addEventListener('input', () => {
+        partyError.hidden = true;
+        partyInput.removeAttribute('aria-invalid');
+      });
+      // The server frees the table of any guest who is not attending whenever they are saved,
+      // including a table typed in this very form, so say so before it happens.
+      const replySelect = form.elements.rsvpStatus;
+      const seatNote = form.querySelector('#gm-seat-note');
+      const tableField = form.elements.table;
+      /** Shows the table warning when an edited guest would lose a table on save. */
+      const syncSeatNote = () => {
+        const hasTable = current.seated || tableField.value.trim() !== '';
+        seatNote.hidden = !(guest && hasTable && replySelect.value !== 'attending');
+      };
+      replySelect.addEventListener('change', syncSeatNote);
+      tableField.addEventListener('input', syncSeatNote);
+      syncSeatNote();
+      // Enter submits with the form's first submit button, which is "Save and add another" when
+      // adding. Send it to the primary button instead.
+      form.addEventListener('keydown', event => {
+        if (event.key === 'Enter' && event.target.tagName === 'INPUT') {
+          event.preventDefault();
+          form.requestSubmit(form.querySelector('[type="submit"][value="done"]'));
+        }
       });
       form.addEventListener('submit', async event => {
         event.preventDefault();
@@ -899,6 +962,14 @@
           nameError.hidden = false;
           nameInput.setAttribute('aria-invalid', 'true');
           nameInput.focus();
+          return;
+        }
+        // The server caps a party at MAX_PARTY, so say so instead of quietly changing the number.
+        const party = Number(String(values.partySize ?? '').trim() || 1);
+        if (!Number.isInteger(party) || party < 1 || party > MAX_PARTY) {
+          partyError.hidden = false;
+          partyInput.setAttribute('aria-invalid', 'true');
+          partyInput.focus();
           return;
         }
         formError.hidden = true;
@@ -1089,7 +1160,7 @@
           status.className = 'gm-import-status gm-error';
           return;
         }
-        const result = guestsFromCsv(parseCsv(await file.text()));
+        const result = guestsFromCsv(parseCsv(decodeCsvBytes(await file.arrayBuffer())));
         if (result.error) {
           status.textContent = result.error;
           status.className = 'gm-import-status gm-error';
@@ -1222,8 +1293,8 @@
         state.page = 1;
         renderResults();
       } else if (id === 'gm-plan-select') {
-        state.plan = state.plans.find(plan => plan.id === value) || state.plan;
-        rememberPlan();
+        state.plan = state.plans.find(p => p.id === value) || state.plan;
+        remember(state.plan.id);
         state.query = '';
         state.status = '';
         state.page = 1;
@@ -1246,10 +1317,12 @@
     buildCsv,
     parseCsv,
     guestsFromCsv,
+    decodeCsvBytes,
     toPayload,
     isWeddingPlan,
+    pickFocusPlan,
+    formatDate,
     createGuestApp,
-    pickPlan,
     changedFields,
     guestKey,
     splitDuplicates,
