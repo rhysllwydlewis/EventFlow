@@ -126,4 +126,54 @@ describe('guests routes', () => {
       expect(plan.guestList[0].notes).toHaveLength(1000);
     });
   });
+
+  describe('bulk import', () => {
+    const plan = () => plans.find(p => p.id === 'p3');
+    beforeEach(() => {
+      plan().guestList = [{ id: 'old', name: 'Existing', rsvpStatus: 'pending' }];
+    });
+
+    test('adds every named guest in one request and reports the rows it skipped', async () => {
+      const res = await request(app)
+        .post('/api/me/plans/p3/guests/bulk')
+        .send({
+          guests: [
+            { name: 'Ann', email: 'ann@example.com', rsvpStatus: 'attending', partySize: 2 },
+            { email: 'no-name@example.com' },
+            { name: '   ' },
+            { name: 'Bob <b>Smith</b>', notes: 'x'.repeat(1200), partySize: 99 },
+          ],
+        });
+      expect(res.status).toBe(201);
+      expect(res.body.guests).toHaveLength(2);
+      expect(res.body.skipped).toEqual([
+        { index: 1, error: 'Guest name is required' },
+        { index: 2, error: 'Guest name is required' },
+      ]);
+      expect(plan().guestList.map(g => g.name)).toEqual(['Existing', 'Ann', 'Bob Smith']);
+      const [ann, bob] = res.body.guests;
+      expect(ann).toMatchObject({ rsvpStatus: 'attending', partySize: 2, source: 'manual' });
+      expect(bob.partySize).toBe(20);
+      expect(bob.notes).toHaveLength(1000);
+    });
+
+    test('rejects an empty, malformed or oversized list without changing anything', async () => {
+      const post = body => request(app).post('/api/me/plans/p3/guests/bulk').send(body);
+      expect((await post({})).status).toBe(400);
+      expect((await post({ guests: [] })).status).toBe(400);
+      expect((await post({ guests: 'Ann' })).status).toBe(400);
+      const tooMany = Array.from({ length: 501 }, (_, i) => ({ name: `Guest ${i}` }));
+      expect((await post({ guests: tooMany })).status).toBe(400);
+      expect(plan().guestList).toHaveLength(1);
+    });
+
+    test('a list with only unnamed rows adds nothing', async () => {
+      const res = await request(app)
+        .post('/api/me/plans/p3/guests/bulk')
+        .send({ guests: [{ email: 'a@b.co' }] });
+      expect(res.status).toBe(201);
+      expect(res.body.guests).toEqual([]);
+      expect(plan().guestList).toHaveLength(1);
+    });
+  });
 });
