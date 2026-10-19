@@ -706,6 +706,95 @@
         }
       }
 
+      /* ── Theme modes ── */
+      .pc-theme-modes {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        margin: 0 0 0.875rem;
+        padding: 0;
+        border: 0;
+        min-width: 0;
+      }
+      .pc-theme-mode {
+        position: relative;
+        flex: 1 1 9rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.6rem 0.75rem;
+        border: 1.5px solid #e5e7eb;
+        border-radius: 10px;
+        background: #fff;
+        cursor: pointer;
+      }
+      .pc-theme-mode:has(input:checked) {
+        border-color: #0b8073;
+        background: rgba(11, 128, 115, 0.06);
+      }
+      .pc-theme-mode:has(input:focus-visible) {
+        outline: 2px solid #0b8073;
+        outline-offset: 2px;
+      }
+      .pc-theme-mode input {
+        accent-color: #0b8073;
+        margin: 0;
+      }
+      .pc-theme-mode input:focus-visible {
+        outline: none; /* the label draws the focus ring */
+      }
+      .pc-theme-mode-text {
+        display: flex;
+        flex-direction: column;
+        font-size: 0.86rem;
+        color: #374151;
+      }
+      .pc-theme-mode-text small {
+        font-size: 0.74rem;
+        color: #6b7280;
+      }
+      .pc-theme-panel[hidden] {
+        display: none;
+      }
+      .pc-theme-panel {
+        margin-bottom: 0.875rem;
+      }
+      .pc-theme-presets {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(6.5rem, 1fr));
+        gap: 0.5rem;
+      }
+      .pc-theme-preset {
+        display: flex;
+        flex-direction: column;
+        gap: 0.35rem;
+        padding: 0.4rem;
+        border: 2px solid transparent;
+        border-radius: 10px;
+        background: #fff;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+        cursor: pointer;
+        font: inherit;
+      }
+      .pc-theme-preset:focus-visible {
+        outline: 2px solid #0b8073;
+        outline-offset: 2px;
+      }
+      .pc-theme-preset.active {
+        border-color: #0b8073;
+        box-shadow: 0 0 0 3px rgba(11, 128, 115, 0.25);
+      }
+      .pc-theme-preset-swatch {
+        display: block;
+        height: 2.25rem;
+        border-radius: 6px;
+      }
+      .pc-theme-preset-label {
+        font-size: 0.78rem;
+        font-weight: 600;
+        color: #374151;
+      }
+
       /* ── Color preset button polish ── */
       .color-preset {
         width: 28px;
@@ -1010,11 +1099,36 @@
                 <div class="pc-step-header">
                   <span class="pc-step-num">4</span>
                   <span class="pc-step-emoji">🎨</span>
-                  <span class="pc-step-title">Brand Theme Color</span>
+                  <span class="pc-step-title">Profile Theme</span>
                 </div>
-                <p class="pc-step-desc">Choose a color that matches your brand — it will accent your profile header, buttons, and highlights.</p>
+                <p class="pc-step-desc">Choose how your profile is coloured — it accents your header, buttons, and highlights.</p>
 
-                <div class="pc-color-row">
+                <fieldset class="pc-theme-modes">
+                  <legend class="sr-only">Theme style</legend>
+                  <label class="pc-theme-mode">
+                    <input type="radio" name="themeMode" value="automatic" checked>
+                    <span class="pc-theme-mode-text"><strong>Automatic</strong><small>Matches your category</small></span>
+                  </label>
+                  <label class="pc-theme-mode">
+                    <input type="radio" name="themeMode" value="preset">
+                    <span class="pc-theme-mode-text"><strong>Preset</strong><small>Pick a ready-made look</small></span>
+                  </label>
+                  <label class="pc-theme-mode">
+                    <input type="radio" name="themeMode" value="custom">
+                    <span class="pc-theme-mode-text"><strong>Custom</strong><small>Use your brand colour</small></span>
+                  </label>
+                </fieldset>
+
+                <div class="pc-theme-panel" id="pc-theme-panel-automatic">
+                  <p class="small" id="pc-theme-auto-note"></p>
+                </div>
+
+                <div class="pc-theme-panel" id="pc-theme-panel-preset" hidden>
+                  <div class="pc-theme-presets" id="pc-theme-presets" role="group" aria-label="Theme presets"></div>
+                </div>
+
+                <div class="pc-theme-panel" id="pc-theme-panel-custom" hidden>
+                  <div class="pc-color-row">
                   <button type="button" class="ef-cta color-preset active" data-color="#0B8073" style="background-color:#0B8073;" aria-label="Teal" title="Teal"></button>
                   <button type="button" class="ef-cta color-preset" data-color="#3B82F6" style="background-color:#3B82F6;" aria-label="Blue" title="Blue"></button>
                   <button type="button" class="ef-cta color-preset" data-color="#8B5CF6" style="background-color:#8B5CF6;" aria-label="Purple" title="Purple"></button>
@@ -1030,6 +1144,7 @@
                   <input type="text" id="sup-theme-color-hex" placeholder="#0B8073" maxlength="7" class="color-hex-input">
                   <button type="button" id="reset-theme-color" class="cta secondary" style="font-size:0.84rem;padding:0.45rem 0.875rem;">Reset</button>
                 </div>
+                </div>
 
                 <!-- Live Preview -->
                 <div class="color-preview-card">
@@ -1037,7 +1152,7 @@
                     <h4>Profile Header Preview</h4>
                   </div>
                   <div class="color-preview-body">
-                    <p class="small">Your brand color accents your profile header and call-to-action buttons.</p>
+                    <p class="small">Your theme accents your profile header and call-to-action buttons.</p>
                     <button type="button" class="ef-cta color-preview-button" id="color-preview-button" style="background-color:#0B8073;">Enquire Now</button>
                   </div>
                 </div>
@@ -1205,7 +1320,8 @@
     <script src="/assets/js/components.js?v=18.3.0"></script>
     <script src="/assets/js/utils/modal-a11y.js?v=18.8.1"></script>
     <script src="/assets/js/components/pexels-selector.js?v=18.8.1"></script>
-    <script src="js/profile-customization.js?v=18.9.0"></script>
+    <script src="/assets/js/shared/supplier-theme-core.js?v=1.1.0"></script>
+    <script src="js/profile-customization.js?v=18.10.1"></script>
     <script>window.__EF_PAGE__ = 'profile_customization';</script>
 
     <script src="/assets/js/cookie-consent.js?v=3.0.0" defer></script>

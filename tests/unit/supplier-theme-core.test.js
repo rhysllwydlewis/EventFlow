@@ -49,6 +49,25 @@ describe('shared supplier theme data', () => {
     }
   });
 
+  test('category hero gradients cover every themed family and match the public profile CSS', () => {
+    const families = new Set(Object.values(core.CATEGORY_THEME_FAMILIES));
+    families.delete('default');
+    expect(Object.keys(core.CATEGORY_HERO_GRADIENTS).sort()).toEqual([...families].sort());
+
+    const css = fs.readFileSync(
+      path.join(ROOT, 'public/assets/css/supplier-profile-v2.css'),
+      'utf8'
+    );
+    const normalise = value => value.replace(/\s+/g, ' ').trim().toLowerCase();
+    for (const [family, gradient] of Object.entries(core.CATEGORY_HERO_GRADIENTS)) {
+      const rule = new RegExp(
+        `\\.supplier-hero\\[data-category-preset="${family}"\\] \\.hero-media \\{\\s*background:\\s*([^;]+);`
+      ).exec(css);
+      expect(rule).not.toBeNull();
+      expect(normalise(rule[1])).toBe(normalise(gradient));
+    }
+  });
+
   test('rejects prototype keys as presets or categories', () => {
     expect(core.normaliseHeroPreset('__proto__')).toBeNull();
     expect(core.normaliseHeroPreset('constructor')).toBeNull();

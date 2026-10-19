@@ -33,6 +33,28 @@ const plans = [
       rsvpEnabled: true,
     },
   },
+  { id: 'p4', userId: 'u1', name: 'Seating fixture', tables: [], guestList: [] },
+  {
+    id: 'p5',
+    userId: 'u1',
+    name: 'Themed',
+    weddingWebsite: {
+      slug: 'themed-site',
+      status: 'published',
+      coupleNames: 'C&D',
+      accentColor: '#8d3f6f',
+      secondaryColor: '#f4a6c8',
+      backgroundColor: 'red;}</style>',
+      textColor: '#2b1b2f',
+      heroLayout: 'editorial',
+      coverImageUrl: 'data:image/png;base64,aaaa',
+      galleryImages: [
+        { imageUrl: 'data:image/png;base64,bbbb', caption: 'Bath' },
+        { imageUrl: 'javascript:alert(1)' },
+      ],
+      passwordHash: 'secret-hash',
+    },
+  },
 ];
 
 jest.mock('../../db-unified', () => ({
@@ -91,6 +113,25 @@ describe('wedding websites routes', () => {
   test('blocks draft public access', async () => {
     const res = await request(app).get('/api/public/wedding-websites/amy-ben-2026');
     expect(res.status).toBe(404);
+  });
+
+  test('public website carries the palette, hero layout and gallery guests need to see', async () => {
+    const res = await request(app).get('/api/public/wedding-websites/themed-site');
+    expect(res.status).toBe(200);
+    const site = res.body.website;
+    expect(site).toMatchObject({
+      accentColor: '#8D3F6F',
+      secondaryColor: '#F4A6C8',
+      textColor: '#2B1B2F',
+      heroLayout: 'editorial',
+      coverImageUrl: 'data:image/png;base64,aaaa',
+    });
+    expect(site.galleryImages).toEqual([
+      expect.objectContaining({ imageUrl: 'data:image/png;base64,bbbb', caption: 'Bath' }),
+    ]);
+    // An invalid stored colour falls back to the default instead of reaching the page.
+    expect(site.backgroundColor).toBe('#FFF7FB');
+    expect(site.passwordHash).toBeUndefined();
   });
 
   test('returns published public website safe shape', async () => {
@@ -214,6 +255,112 @@ describe('wedding websites routes', () => {
     expect(plans[1].guestList[1].table).toBeNull();
     expect(plans[1].guestList[2].tableId).toBe('t2');
     expect(plans[1].guestList[2].tableName).toBe('Table 2');
+  });
+
+  test('renaming a table updates the table name stored on its guests', async () => {
+    plans[2].tables = [{ id: 'rt1', name: 'Old name', capacity: 10, guestIds: ['r1', 'r2'] }];
+    plans[2].guestList = [
+      { id: 'r1', name: 'Rae', rsvpStatus: 'attending', tableId: 'rt1', tableName: 'Old name' },
+      { id: 'r2', name: 'Rob', rsvpStatus: 'attending', tableName: 'Old name' },
+      { id: 'r3', name: 'Rex', rsvpStatus: 'attending', tableId: 'other', tableName: 'Elsewhere' },
+    ];
+
+    const res = await request(app)
+      .patch('/api/me/plans/p4/tables/rt1')
+      .send({ name: 'Family table' });
+    expect(res.status).toBe(200);
+    expect(plans[2].tables[0].name).toBe('Family table');
+    expect(plans[2].guestList[0].tableName).toBe('Family table');
+    expect(plans[2].guestList[1].tableName).toBe('Family table');
+    expect(plans[2].guestList[2].tableName).toBe('Elsewhere');
+  });
+
+  test('seat-guests seats a whole batch in one write and reports what it skipped', async () => {
+    const { updateOne } = require('../../db-unified');
+    plans[2].tables = [
+      { id: 'bt1', name: 'Bulk 1', capacity: 10, guestIds: [] },
+      { id: 'bt2', name: 'Bulk 2', capacity: 10, guestIds: [] },
+    ];
+    plans[2].guestList = [
+      { id: 'b1', name: 'Bea', rsvpStatus: 'attending' },
+      { id: 'b2', name: 'Bo', rsvpStatus: 'attending' },
+      { id: 'b3', name: 'Bit', rsvpStatus: 'declined' },
+    ];
+    updateOne.mockClear();
+
+    const res = await request(app)
+      .post('/api/me/plans/p4/tables/seat-guests')
+      .send({
+        assignments: [
+          { guestId: 'b1', tableId: 'bt1' },
+          { guestId: 'b2', tableId: 'bt2' },
+          { guestId: 'b3', tableId: 'bt1' },
+          { guestId: 'missing', tableId: 'bt1' },
+          { guestId: 'b1', tableId: 'nope' },
+        ],
+      });
+
+    expect(res.status).toBe(200);
+    expect(res.body).toMatchObject({ seated: 2, skipped: 3 });
+    expect(updateOne).toHaveBeenCalledTimes(1);
+    expect(plans[2].tables[0].guestIds).toEqual(['b1']);
+    expect(plans[2].tables[1].guestIds).toEqual(['b2']);
+    expect(plans[2].guestList[0]).toMatchObject({ tableId: 'bt1', tableName: 'Bulk 1' });
+    expect(plans[2].guestList[2].tableId).toBeUndefined();
+  });
+
+  test('seat-guests moves an already seated guest instead of seating them twice', async () => {
+    const res = await request(app)
+      .post('/api/me/plans/p4/tables/seat-guests')
+      .send({ assignments: [{ guestId: 'b1', tableId: 'bt2' }] });
+    expect(res.status).toBe(200);
+    expect(plans[2].tables[0].guestIds).toEqual([]);
+    expect(plans[2].tables[1].guestIds).toEqual(['b2', 'b1']);
+  });
+
+  test('seat-guests rejects an empty or oversized batch', async () => {
+    let res = await request(app).post('/api/me/plans/p4/tables/seat-guests').send({});
+    expect(res.status).toBe(400);
+    res = await request(app)
+      .post('/api/me/plans/p4/tables/seat-guests')
+      .send({ assignments: Array(501).fill({ guestId: 'b1', tableId: 'bt1' }) });
+    expect(res.status).toBe(400);
+  });
+
+  test('clear-seating unseats every guest and empties every table in one write', async () => {
+    const { updateOne } = require('../../db-unified');
+    updateOne.mockClear();
+    const res = await request(app).post('/api/me/plans/p4/tables/clear-seating').send({});
+    expect(res.status).toBe(200);
+    expect(updateOne).toHaveBeenCalledTimes(1);
+    expect(plans[2].tables.every(t => t.guestIds.length === 0)).toBe(true);
+    expect(plans[2].guestList.every(g => !g.tableId && !g.tableName)).toBe(true);
+  });
+
+  test('renaming a table updates the list that is read when a plan has both guest fields', async () => {
+    plans[2].tables = [{ id: 'dt1', name: 'Before', capacity: 10, guestIds: ['d1'] }];
+    plans[2].guestList = [
+      { id: 'd1', name: 'Dee', rsvpStatus: 'attending', tableId: 'dt1', tableName: 'Before' },
+    ];
+    plans[2].guests = [{ id: 'old', name: 'Legacy copy', rsvpStatus: 'attending' }];
+
+    const res = await request(app).patch('/api/me/plans/p4/tables/dt1').send({ name: 'After' });
+    expect(res.status).toBe(200);
+    expect(plans[2].guestList[0].tableName).toBe('After');
+    expect(plans[2].guests).toEqual([{ id: 'old', name: 'Legacy copy', rsvpStatus: 'attending' }]);
+    delete plans[2].guests;
+  });
+
+  test('regenerate-slug with preview suggests a link without changing the live one', async () => {
+    const before = plans[1].weddingWebsite.slug;
+    const res = await request(app)
+      .post('/api/me/plans/p2/wedding-website/regenerate-slug')
+      .send({ preview: true });
+    expect(res.status).toBe(200);
+    expect(typeof res.body.slug).toBe('string');
+    expect(res.body.slug.length).toBeGreaterThan(0);
+    expect(res.body.website).toBeUndefined();
+    expect(plans[1].weddingWebsite.slug).toBe(before);
   });
 
   test('seating summary reflects guests unseated after table deletion', async () => {

@@ -28,7 +28,7 @@
     <link rel="stylesheet" href="/assets/css/customer-dashboard-liquid-glass.css?v=1.0.0" />
     <link rel="stylesheet" href="/assets/css/customer-dashboard-welcome-card.css?v=1.0.7" />
     <link rel="stylesheet" href="/assets/css/customer-dashboard-welcome-scale.css?v=1.0.2" />
-    <link rel="stylesheet" href="/assets/css/customer-wedding-website.css?v=1.0.4" />
+    <link rel="stylesheet" href="/assets/css/customer-wedding-website.css?v=2.0.2" />
     <link rel="stylesheet" href="/assets/css/account-type-notice.css?v=1.0.0" />
     <!-- NOTE: the fullcalendar global bundle injects its own <style> tag at
          runtime — there is no separate CSS file in the package. The <link>
@@ -167,7 +167,7 @@
     </div>
 
     <!-- Load auth state manager first -->
-    <script src="/assets/js/utils/auth-state.js" defer></script>
+    <script src="/assets/js/utils/auth-state.js?v=1.0.1" defer></script>
     <!-- Global error handler - catches all unhandled errors and API failures -->
     <script src="/assets/js/utils/global-error-handler.js" defer></script>
     <script src="/assets/js/utils/sentry-browser-init.js" defer></script>
@@ -282,12 +282,13 @@
           <div class="sd-card-header sd-card-header--rose">
             <div class="sd-card-header__left">
               <div class="sd-card-header__title-row">
-                <span class="customer-wedding-heading-badge" aria-hidden="true">💍</span>
+                <span class="customer-wedding-heading-badge" aria-hidden="true"
+                  ><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg
+                ></span>
                 <h3 class="sd-card-header__heading">Wedding Website & RSVPs</h3>
               </div>
               <p class="sd-card-header__subtitle">
-                Create one beautiful guest link with your wedding details, RSVP form, guest list and
-                seating tools.
+                Your guest website, RSVP form, guest list, seating plan and share tools in one place.
               </p>
             </div>
             <div class="sd-card-header__actions">
@@ -671,7 +672,7 @@
     <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.js" defer></script>
     <script src="/assets/js/calendar-view.js" defer></script>
     <script type="module" src="/assets/js/pages/dashboard-customer-module.js"></script>
-    <script src="/assets/js/pages/customer-wedding-website.js" defer></script>
+    <script src="/assets/js/pages/customer-wedding-website.js?v=2.0.6" defer></script>
     <script src="/assets/js/pages/dashboard-customer-init.js" defer></script>
     <!-- BOTTOM NAVBAR - GOLD STANDARD REBUILD (Mobile Only) -->
     <nav class="ef-bottom-nav" role="navigation" aria-label="Mobile bottom navigation">
@@ -834,7 +835,7 @@
     <script src="/assets/js/keyboard-shortcuts.js" defer></script>
     <script src="/assets/js/vendor/confetti-safe.js?v=18.3.0" defer></script>
     <script src="/assets/js/utils/p3-features.js" defer></script>
-    <script src="/assets/js/customer-dashboard-enhancements.js" defer></script>
+    <script src="/assets/js/customer-dashboard-enhancements.js?v=1.0.1" defer></script>
     <script src="/assets/js/pages/dashboard-account-type-notice.js?v=1.0.0" defer></script>
 
     <!-- JadeAssist Chat Widget -->

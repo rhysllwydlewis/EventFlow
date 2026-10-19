@@ -374,7 +374,15 @@ app.use(inputValidationMiddleware);
 // The more-specific route parser must be registered BEFORE the global 2 MB parser;
 // body-parser skips re-parsing when req._body is already set.
 app.use(
-  ['/api/me/packages', '/api/v1/me/packages', '/api/me/suppliers', '/api/v1/me/suppliers'],
+  [
+    '/api/me/packages',
+    '/api/v1/me/packages',
+    '/api/me/suppliers',
+    '/api/v1/me/suppliers',
+    // Wedding website cover and gallery photos are sent as data URLs (up to 13 x ~0.6 MB).
+    '/api/me/plans',
+    '/api/v1/me/plans',
+  ],
   express.json({ limit: '10mb' })
 );
 
