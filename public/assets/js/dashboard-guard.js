@@ -218,28 +218,6 @@
     document.head.appendChild(style);
   }
 
-  function loadCustomerScript(id, src) {
-    if (requiredRole !== 'customer' || document.getElementById(id)) {
-      return;
-    }
-    const script = document.createElement('script');
-    script.id = id;
-    script.src = src;
-    script.defer = true;
-    document.head.appendChild(script);
-  }
-
-  function loadCustomerDashboardMopUp() {
-    loadCustomerScript(
-      'customer-dashboard-mop-up-script',
-      '/assets/js/customer-dashboard-mop-up.js?v=1.0.5'
-    );
-    loadCustomerScript(
-      'customer-dashboard-polish-script',
-      '/assets/js/customer-dashboard-polish.js?v=1.0.3'
-    );
-  }
-
   function publishVerifiedUser(user) {
     const publish = () => {
       try {
@@ -361,7 +339,6 @@
     }
 
     installCustomerDashboardFetchGuard();
-    loadCustomerDashboardMopUp();
     showPage();
   } catch (error) {
     console.error('Dashboard guard error:', error);

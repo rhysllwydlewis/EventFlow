@@ -7,33 +7,8 @@ function dbg(...args) {
   }
 }
 
-// --- Customer welcome overlay dismiss logic ---
-(function initCustomerWelcomeOverlayDismiss() {
-  const DISMISS_KEY = 'ef_customer_welcome_dismissed';
-
-  function dismissCustomerWelcomeOverlay() {
-    try {
-      localStorage.setItem(DISMISS_KEY, '1');
-      localStorage.setItem('ef_customer_welcome_dismissed', '1');
-    } catch (_) {
-      /* Ignore localStorage errors */
-    }
-
-    // Target the actual welcome section element used in the current HTML
-    const section = document.getElementById('welcome-section');
-    if (section) {
-      const ease = 'cubic-bezier(0.4, 0, 0.2, 1)';
-      section.style.transition = `opacity 0.3s ${ease}, transform 0.3s ${ease}`;
-      section.style.opacity = '0';
-      section.style.transform = 'scale(0.97)';
-      setTimeout(() => {
-        section.style.display = 'none';
-      }, 300);
-    }
-  }
-
-  window.dismissCustomerWelcome = dismissCustomerWelcomeOverlay;
-})();
+/** Plans the page last loaded; the budget form and the plan editor both work from this. */
+let dashboardPlans = [];
 
 // Load customer plans
 async function loadCustomerPlans(preloadedPlans) {
@@ -49,45 +24,60 @@ async function loadCustomerPlans(preloadedPlans) {
     } else {
       const response = await fetch('/api/me/plans', { credentials: 'include' });
       if (!response.ok) {
-        container.innerHTML = '<p class="small" style="color:#667085;">Unable to load plans.</p>';
+        container.innerHTML =
+          '<p class="cdh-note">We could not load your plans. Please refresh to try again.</p>';
         return;
       }
       const data = await response.json();
       plans = data.plans || [];
     }
+    dashboardPlans = plans;
 
     if (plans.length === 0) {
       container.innerHTML = `
-        <div class="empty-state">
-          <div class="empty-state-icon">📋</div>
-          <div class="empty-state-title">No plans yet</div>
-          <div class="empty-state-description">Start planning your perfect event with our wizard.</div>
+        <div class="cdh-empty">
+          <p class="cdh-empty__title">No plans yet</p>
+          <p class="cdh-empty__text">Start with the plan wizard and EventFlow will build your checklist.</p>
         </div>
       `;
       return;
     }
+
+    const focus = window.CustomerDashboardHome
+      ? window.CustomerDashboardHome.pickFocusPlan(plans)
+      : null;
 
     container.innerHTML = plans
       .map(plan => {
         const packageCount = (plan.packages || []).length;
         const displayName = plan.name || plan.eventName || plan.eventType || 'Untitled Event';
         const eventDate = plan.eventDate || plan.date;
+        const meta = [
+          plan.eventType && plan.eventType !== displayName
+            ? plan.eventType.charAt(0).toUpperCase() + plan.eventType.slice(1)
+            : '',
+          plan.location,
+          eventDate ? formatPlanDate(eventDate) || eventDate : '',
+          packageCount ? `${packageCount} package${packageCount === 1 ? '' : 's'}` : '',
+        ]
+          .filter(Boolean)
+          .map(escapeHtml)
+          .join(' · ');
+        const inSummary =
+          plans.length > 1 && focus && focus.id === plan.id
+            ? '<span class="cdh-pill cdh-pill--accent">In your summary</span>'
+            : '';
         return `
-        <div class="customer-plan-item" data-plan-id="${escapeHtml(plan.id)}">
-          <div class="customer-plan-item__header">
-            <div>
-              <strong class="customer-plan-item__name">${escapeHtml(displayName)}</strong>
-              ${plan.eventType ? `<span class="small customer-plan-item__type">${escapeHtml(plan.eventType)}</span>` : ''}
-            </div>
-            <span class="small customer-plan-item__count">${packageCount} packages</span>
+        <article class="customer-plan-item cdh-plan" data-plan-id="${escapeHtml(plan.id)}">
+          <div class="cdh-plan__main">
+            <h3 class="cdh-plan__name">${escapeHtml(displayName)} ${inSummary}</h3>
+            ${meta ? `<p class="cdh-plan__meta">${meta}</p>` : '<p class="cdh-plan__meta">No details yet</p>'}
           </div>
-          ${plan.location ? `<p class="small customer-plan-item__detail">📍 ${escapeHtml(plan.location)}</p>` : ''}
-          ${eventDate ? `<p class="small customer-plan-item__detail">📅 ${escapeHtml(formatPlanDate(eventDate) || eventDate)}</p>` : ''}
-          <div class="customer-plan-item__actions" style="margin-top:0.75rem;display:flex;gap:0.5rem;padding-top:0.625rem;border-top:1px solid #f3f4f6;">
-            <button class="cta secondary plan-edit-btn" data-plan-id="${escapeHtml(plan.id)}" style="padding:0.3rem 0.875rem;font-size: 0.75rem;border-radius:6px;" aria-label="Edit ${escapeHtml(displayName)}">✏️ Edit</button>
-            <button class="plan-delete-btn" data-plan-id="${escapeHtml(plan.id)}" style="padding:0.3rem 0.875rem;font-size: 0.75rem;border-radius:6px;background:none;border:1px solid #fecaca;color:#dc2626;cursor:pointer;font-family:inherit;font-weight:600;font-size: 0.75rem;transition:background 0.15s,border-color 0.15s;" aria-label="Delete ${escapeHtml(displayName)}">🗑 Delete</button>
+          <div class="cdh-plan__actions">
+            <button type="button" class="cdh-link plan-edit-btn" data-plan-id="${escapeHtml(plan.id)}" aria-label="Edit ${escapeHtml(displayName)}">Edit</button>
+            <button type="button" class="cdh-link cdh-link--danger plan-delete-btn" data-plan-id="${escapeHtml(plan.id)}" aria-label="Delete ${escapeHtml(displayName)}">Delete</button>
           </div>
-        </div>
+        </article>
       `;
       })
       .join('');
@@ -96,10 +86,9 @@ async function loadCustomerPlans(preloadedPlans) {
     container.querySelectorAll('.plan-edit-btn').forEach(btn => {
       btn.addEventListener('click', e => {
         e.stopPropagation();
-        const planId = btn.dataset.planId;
-        const plan = plans.find(p => p.id === planId);
+        const plan = plans.find(p => p.id === btn.dataset.planId);
         if (plan) {
-          showEditPlanModal(plan, () => loadCustomerPlans(null));
+          showEditPlanModal(plan, reloadDashboard);
         }
       });
     });
@@ -107,17 +96,38 @@ async function loadCustomerPlans(preloadedPlans) {
     container.querySelectorAll('.plan-delete-btn').forEach(btn => {
       btn.addEventListener('click', e => {
         e.stopPropagation();
-        const planId = btn.dataset.planId;
-        const plan = plans.find(p => p.id === planId);
+        const plan = plans.find(p => p.id === btn.dataset.planId);
         if (plan) {
-          confirmDeletePlan(plan, () => loadCustomerPlans(null));
+          confirmDeletePlan(plan, reloadDashboard);
         }
       });
     });
   } catch (err) {
     console.error('Error loading plans:', err);
-    container.innerHTML = '<p class="small" style="color:#667085;">Error loading plans.</p>';
+    container.innerHTML =
+      '<p class="cdh-note">We could not load your plans. Please refresh to try again.</p>';
   }
+}
+
+/** Reloads the plans and redraws everything that depends on them. */
+async function reloadDashboard() {
+  let plans = dashboardPlans;
+  try {
+    const response = await fetch('/api/me/plans', { credentials: 'include' });
+    if (response.ok) {
+      plans = (await response.json()).plans || [];
+    }
+  } catch (err) {
+    console.warn('Could not refresh plans:', err);
+  }
+  dashboardPlans = plans;
+  await Promise.allSettled([
+    loadCustomerPlans(plans),
+    window.CustomerDashboardHome ? window.CustomerDashboardHome.render(plans) : Promise.resolve(),
+    window.initWeddingWebsiteDashboard
+      ? window.initWeddingWebsiteDashboard(plans)
+      : Promise.resolve(),
+  ]);
 }
 
 function showEditPlanModal(plan, onSaved) {
@@ -169,8 +179,8 @@ function showEditPlanModal(plan, onSaved) {
         <p id="_pf_status" style="font-size:0.875rem;margin:0.75rem 0 0;" role="status" aria-live="polite"></p>
       </div>
       <div style="padding:1rem 1.5rem;border-top:1px solid #f3f4f6;display:flex;justify-content:flex-end;gap:0.75rem;">
-        <button id="_pf_cancel" type="button" class="cta secondary">Cancel</button>
-        <button id="_pf_save" type="button" class="cta">Save Changes</button>
+        <button id="_pf_cancel" type="button" class="cdh-btn cdh-btn--secondary">Cancel</button>
+        <button id="_pf_save" type="button" class="cdh-btn cdh-btn--primary">Save Changes</button>
       </div>
     </div>
   `;
@@ -259,8 +269,8 @@ function confirmDeletePlan(plan, onDeleted) {
       <p style="margin:0 0 1.5rem;font-size: 0.875rem;color:#374151;">Are you sure you want to delete <strong>${displayName}</strong>? This cannot be undone.</p>
       <p id="_del_status" style="font-size:0.875rem;margin:0 0 0.75rem;color:#ef4444;" role="status" aria-live="polite"></p>
       <div style="display:flex;justify-content:flex-end;gap:0.75rem;">
-        <button id="_del_cancel" type="button" class="cta secondary">Cancel</button>
-        <button id="_del_confirm" type="button" class="cta" style="background:#ef4444;border-color:#ef4444;">Delete</button>
+        <button id="_del_cancel" type="button" class="cdh-btn cdh-btn--secondary">Cancel</button>
+        <button id="_del_confirm" type="button" class="cdh-btn cdh-btn--danger">Delete</button>
       </div>
     </div>
   `;
@@ -371,46 +381,11 @@ async function initDashboard() {
     return;
   }
 
-  // Personalize welcome message
+  // Personalise the greeting
   const welcomeHeading = document.getElementById('welcome-heading');
   if (welcomeHeading) {
-    if (user.firstName) {
-      welcomeHeading.textContent = `Welcome back, ${user.firstName}!`;
-    } else if (user.name) {
-      const firstName = user.name.split(' ')[0];
-      welcomeHeading.textContent = `Welcome back, ${firstName}!`;
-    } else {
-      welcomeHeading.textContent = 'Welcome back!';
-    }
-  }
-
-  // Welcome card dismiss logic (persisted in localStorage)
-  const WELCOME_DISMISS_KEY = 'ef_welcome_dismissed';
-  const welcomeSection = document.getElementById('welcome-section');
-  if (welcomeSection) {
-    let dismissed = false;
-    try {
-      dismissed =
-        localStorage.getItem(WELCOME_DISMISS_KEY) === '1' ||
-        localStorage.getItem('ef_customer_welcome_dismissed') === '1';
-    } catch (_) {
-      /* ignore storage errors */
-    }
-    if (dismissed) {
-      welcomeSection.style.display = 'none';
-    } else {
-      const dismissBtn = document.getElementById('welcome-dismiss-btn');
-      if (dismissBtn) {
-        dismissBtn.addEventListener('click', () => {
-          welcomeSection.style.display = 'none';
-          try {
-            localStorage.setItem(WELCOME_DISMISS_KEY, '1');
-          } catch (_) {
-            /* ignore storage errors */
-          }
-        });
-      }
-    }
+    const firstName = user.firstName || (user.name ? user.name.split(' ')[0] : '');
+    welcomeHeading.textContent = firstName ? `Welcome back, ${firstName}` : 'Welcome back';
   }
 
   // Check for guest plan token and claim it
@@ -433,20 +408,33 @@ async function initDashboard() {
   } catch (err) {
     console.error('Error pre-fetching plans:', err);
   }
+  dashboardPlans = sharedPlans || [];
+
+  document.addEventListener('cdh:reload', reloadDashboard);
+  document.addEventListener('cdh:edit-plan', event => {
+    const plan = dashboardPlans.find(p => p.id === event.detail?.planId);
+    if (plan) {
+      showEditPlanModal(plan, reloadDashboard);
+    }
+  });
 
   const componentNames = [
     'loadCustomerPlans',
-    'initCustomerDashboardWidgets',
+    'CustomerDashboardHome.render',
     'initCalendar',
     'initWeddingWebsiteDashboard',
+    'populateSavedSupplierStatus',
   ];
   const settledResults = await Promise.allSettled([
     loadCustomerPlans(sharedPlans),
-    initCustomerDashboardWidgets(sharedPlans),
+    window.CustomerDashboardHome
+      ? window.CustomerDashboardHome.render(sharedPlans)
+      : Promise.resolve(),
     initCalendar(),
     window.initWeddingWebsiteDashboard
       ? window.initWeddingWebsiteDashboard(sharedPlans || [], user)
       : Promise.resolve(),
+    populateSavedSupplierStatus(),
   ]);
 
   settledResults.forEach((result, index) => {
@@ -458,35 +446,36 @@ async function initDashboard() {
     }
   });
 
-  // Populate saved supplier status and make welcome section contextual
-  populateSavedSupplierStatus();
-  makeWelcomeContextual(sharedPlans || []);
-
   // Setup event handlers
-  setupEventHandlers(sharedPlans);
+  setupEventHandlers();
 
   dbg('✅ Dashboard initialized successfully');
 }
 
 /**
- * Populate the saved suppliers dashboard status from the server shortlist API.
+ * Populate the saved suppliers card from the server shortlist API.
  * The count is also written back to localStorage so other parts of the UI stay
  * in sync with the authoritative shortlist data.
  */
 async function populateSavedSupplierStatus() {
-  let savedCount = 0;
+  const MAX_LISTED = 4;
+  let savedItems = [];
   let savedSupplierIds = [];
+  let loaded = false;
   try {
     const r = await fetch('/api/v1/shortlist', { credentials: 'include' });
     if (r.ok) {
       const d = await r.json();
       const items = (d.data && d.data.items) || [];
       // Count only supplier-type items
-      savedSupplierIds = items
-        .filter(item => item.itemType === 'supplier' || !item.itemType)
+      savedItems = items.filter(item => {
+        const kind = item.type || item.itemType;
+        return kind === 'supplier' || !kind;
+      });
+      savedSupplierIds = savedItems
         .map(item => item.supplierId || item.id || item.itemId)
         .filter(Boolean);
-      savedCount = savedSupplierIds.length;
+      loaded = true;
       // Keep legacy localStorage key in sync so redirect logic still works
       try {
         localStorage.setItem('eventflow_saved_suppliers', JSON.stringify(savedSupplierIds));
@@ -498,132 +487,58 @@ async function populateSavedSupplierStatus() {
     // Fallback to localStorage on network error
     try {
       savedSupplierIds = JSON.parse(localStorage.getItem('eventflow_saved_suppliers') || '[]');
-      savedCount = savedSupplierIds.length;
     } catch (__) {
       /* ignore */
     }
   }
+  const savedCount = savedSupplierIds.length;
 
-  // Populate saved suppliers card status
   const savedStatusEl = document.getElementById('saved-suppliers-status');
   const openPlanBtn = document.getElementById('openPlanBtn');
-  if (savedStatusEl) {
-    if (savedCount === 0) {
-      savedStatusEl.innerHTML = `
-        <div class="empty-state">
-          <div class="empty-state-icon">⭐</div>
-          <div class="empty-state-title">No saved suppliers yet</div>
-          <div class="empty-state-description">Save your favorites while browsing to build your supplier shortlist.</div>
-          <a href="/suppliers" class="empty-state-action">Browse Suppliers</a>
-        </div>
-      `;
-      // Hide the "View Saved Items" button — the empty-state action above replaces it
-      if (openPlanBtn) {
-        openPlanBtn.style.display = 'none';
-      }
-    } else {
-      savedStatusEl.innerHTML = `<p class="small" style="color:var(--ef-text-muted);margin:0 0 0.75rem;">${savedCount} saved supplier${savedCount !== 1 ? 's' : ''} in your list.</p>`;
-      // Ensure the button is visible when there are saved suppliers
-      if (openPlanBtn) {
-        openPlanBtn.style.display = '';
-      }
-    }
-  }
-}
-
-/**
- * Make welcome section contextual based on user data
- */
-function makeWelcomeContextual(plans) {
-  const promptContainer = document.getElementById('welcome-contextual-prompt');
-  if (!promptContainer) {
+  if (!savedStatusEl) {
     return;
   }
 
-  if (plans.length === 0) {
-    promptContainer.innerHTML = `
-      <div class="customer-welcome-prompt">
-        <span>🚀</span>
-        <span>Ready to get started? <a href="/start" style="color:inherit;font-weight:600;text-decoration:underline;">Create your first event plan</a> to kick things off!</span>
-      </div>`;
-    return;
-  }
-
-  // Check if budget is set (server plan is authoritative)
-  const hasBudget = plans.some(p => p.budget && parseFloat(p.budget) > 0);
-  let lsBudget = null;
-  try {
-    lsBudget = localStorage.getItem('eventflow_custom_budget');
-  } catch (_) {
-    /* ignore */
-  }
-
-  if (!hasBudget && !lsBudget) {
-    promptContainer.innerHTML = `
-      <div class="customer-welcome-prompt customer-welcome-prompt--budget" role="link" tabindex="0" aria-label="Set your budget">
-        <span>💰</span>
-        <span>Don't forget to <a href="#budget-settings-form" style="color:inherit;font-weight:600;text-decoration:underline;">set your budget</a> so we can track your spending accurately.</span>
-      </div>`;
-
-    const budgetPrompt = promptContainer.querySelector('.customer-welcome-prompt--budget');
-    const scrollToBudget = () => {
-      const budgetForm = document.getElementById('budget-settings-form');
-      if (budgetForm) {
-        budgetForm.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        const firstInput = budgetForm.querySelector('input, select, textarea, button');
-        if (firstInput && typeof firstInput.focus === 'function') {
-          firstInput.focus({ preventScroll: true });
-        }
-      } else {
-        window.location.hash = 'budget-settings-form';
-      }
-    };
-
-    if (budgetPrompt) {
-      budgetPrompt.addEventListener('click', event => {
-        if (event.target.closest('a')) {
-          return;
-        }
-        scrollToBudget();
-      });
-      budgetPrompt.addEventListener('keydown', event => {
-        if (event.key === 'Enter' || event.key === ' ') {
-          event.preventDefault();
-          scrollToBudget();
-        }
-      });
+  if (savedCount === 0) {
+    savedStatusEl.innerHTML = `
+      <div class="cdh-empty">
+        <p class="cdh-empty__title">No saved suppliers yet</p>
+        <p class="cdh-empty__text">Save suppliers while you browse and they will be kept here for you to compare.</p>
+        <a href="/suppliers" class="cdh-btn cdh-btn--primary cdh-btn--sm">Browse suppliers</a>
+      </div>
+    `;
+    // The empty state's own action replaces the "View saved suppliers" button
+    if (openPlanBtn) {
+      openPlanBtn.hidden = true;
     }
     return;
   }
 
-  // Listen for unread count once it arrives from the messaging system (async).
-  // makeWelcomeContextual can run more than once after dashboard refreshes, so guard
-  // the window listener to avoid duplicate prompts and repeated DOM work.
-  if (window.__heroUnreadListenerAdded) {
-    return;
+  if (openPlanBtn) {
+    openPlanBtn.hidden = false;
   }
-  window.__heroUnreadListenerAdded = true;
-  window.addEventListener('unreadCountUpdated', function onUnreadForPrompt(e) {
-    window.removeEventListener('unreadCountUpdated', onUnreadForPrompt);
-    const unreadCount =
-      typeof e.detail?.count === 'number' ? Math.max(0, Math.floor(e.detail.count)) : 0;
-    if (unreadCount > 0 && !promptContainer.querySelector('.customer-welcome-prompt--messages')) {
-      const prompt = document.createElement('div');
-      prompt.className = 'customer-welcome-prompt customer-welcome-prompt--messages';
-      const icon = document.createElement('span');
-      icon.textContent = '💬';
-      const text = document.createElement('span');
-      text.textContent = `You have ${unreadCount} unread message${unreadCount !== 1 ? 's' : ''}. `;
-      const link = document.createElement('a');
-      link.href = '/messenger/';
-      link.style.cssText = 'color:inherit;font-weight:600;text-decoration:underline;';
-      link.textContent = 'Check your inbox';
-      text.appendChild(link);
-      prompt.appendChild(icon);
-      prompt.appendChild(text);
-      promptContainer.replaceChildren(prompt);
-    }
-  });
+  const rows = savedItems
+    .slice(0, MAX_LISTED)
+    .map(item => {
+      const href =
+        window.EventFlowSupplierLink && window.EventFlowSupplierLink.supplierProfileHref
+          ? window.EventFlowSupplierLink.supplierProfileHref(item)
+          : '/suppliers';
+      const name = escapeHtml(String(item.name || 'Supplier'));
+      const category = item.category ? escapeHtml(String(item.category)) : '';
+      return `<li><a class="cdh-list__link" href="${href}"><span class="cdh-list__name">${name}</span>${category ? `<span class="cdh-list__meta">${category}</span>` : ''}</a></li>`;
+    })
+    .join('');
+  const more =
+    savedCount > MAX_LISTED ? `<p class="cdh-note">and ${savedCount - MAX_LISTED} more</p>` : '';
+  const heading = `${savedCount} saved supplier${savedCount === 1 ? '' : 's'}`;
+  savedStatusEl.innerHTML = `<p class="cdh-note cdh-note--lead">${heading}</p>${rows ? `<ul class="cdh-list">${rows}</ul>` : ''}${rows ? more : ''}`;
+  if (!loaded) {
+    savedStatusEl.insertAdjacentHTML(
+      'beforeend',
+      '<p class="cdh-note">Showing your last saved list while we reconnect.</p>'
+    );
+  }
 }
 
 // Initialize calendar
@@ -641,19 +556,49 @@ function initCalendar() {
         console.error('Calendar init failed:', err);
         if (calendarEl) {
           calendarEl.innerHTML =
-            '<p class="small customer-calendar-empty" style="text-align:center;color:#667085;padding:2rem 0;">📅 Calendar could not be loaded. <a href="/start">Create an event</a> to see it here.</p>';
+            '<p class="cdh-note customer-calendar-empty">Calendar could not be loaded. <a href="/start">Create an event</a> to see it here.</p>';
         }
       }
     } else if (calendarEl) {
       calendarEl.innerHTML =
-        '<p class="small customer-calendar-empty" style="text-align:center;color:#667085;padding:2rem 0;">📅 No events scheduled yet. <a href="/start">Create a plan</a> to see your calendar.</p>';
+        '<p class="cdh-note customer-calendar-empty">No events scheduled yet. <a href="/start">Create a plan</a> to see your calendar.</p>';
     }
     resolve();
   });
 }
 
+/** Shows a short message under the budget form. tone: success | warn | error */
+function showBudgetStatus(message, tone) {
+  const budgetStatus = document.getElementById('budget-status');
+  if (!budgetStatus) {
+    return;
+  }
+  budgetStatus.dataset.tone = tone;
+  budgetStatus.textContent = message;
+}
+
+/** A brief non-blocking notice at the top of the page. */
+function showPageNotice(title, message) {
+  const notice = document.createElement('div');
+  notice.className = 'cdh-toast';
+  notice.setAttribute('role', 'status');
+  const strong = document.createElement('strong');
+  strong.textContent = title;
+  const text = document.createElement('span');
+  text.textContent = message;
+  notice.append(strong, text);
+  document.body.appendChild(notice);
+  return notice;
+}
+
 // Setup all event handlers
-function setupEventHandlers(latestPlans) {
+function setupEventHandlers() {
+  // The plan the summary row describes — the budget form must edit that same plan.
+  const focusPlan = () =>
+    (window.CustomerDashboardHome && window.CustomerDashboardHome.pickFocusPlan(dashboardPlans)) ||
+    dashboardPlans[0] ||
+    null;
+
   // Setup Open My Plan button with auth-aware navigation
   document.getElementById('openPlanBtn')?.addEventListener('click', e => {
     e.preventDefault();
@@ -663,13 +608,11 @@ function setupEventHandlers(latestPlans) {
     // supplier IDs. plan.packages holds package IDs and must NOT be mixed in here.
     const savedSupplierIdSet = new Set();
     try {
-      if (latestPlans && latestPlans.length > 0) {
-        latestPlans.forEach(plan => {
-          if (Array.isArray(plan.suppliers)) {
-            plan.suppliers.forEach(id => savedSupplierIdSet.add(id));
-          }
-        });
-      }
+      dashboardPlans.forEach(plan => {
+        if (Array.isArray(plan.suppliers)) {
+          plan.suppliers.forEach(id => savedSupplierIdSet.add(id));
+        }
+      });
     } catch (err) {
       console.error('Error reading supplier IDs from plans:', err);
     }
@@ -685,24 +628,13 @@ function setupEventHandlers(latestPlans) {
     }
 
     if (savedSupplierIdSet.size === 0) {
-      // Show styled notification instead of alert
-      const notification = document.createElement('div');
-      notification.style.cssText =
-        'position:fixed;top:20px;left:50%;transform:translateX(-50%);background:#FEF2F2;border:1px solid #FCA5A5;padding:1rem 1.5rem;border-radius:8px;box-shadow:0 4px 6px rgba(0,0,0,0.1);z-index:10000;max-width:400px;';
-      notification.innerHTML = `
-        <div style="display:flex;align-items:center;gap:0.75rem;">
-          <span style="font-size:1.5rem;">ℹ️</span>
-          <div>
-            <strong style="display:block;color:#991B1B;margin-bottom:0.25rem;">No Saved Suppliers</strong>
-            <p style="margin:0;color:#7F1D1D;font-size: 0.875rem;">You haven't saved any suppliers yet. Browse suppliers to get started!</p>
-          </div>
-        </div>
-      `;
-      document.body.appendChild(notification);
-
+      const notice = showPageNotice(
+        'No saved suppliers',
+        "You haven't saved any suppliers yet. Taking you to browse suppliers."
+      );
       // Remove notification after 3 seconds and redirect
       setTimeout(() => {
-        notification.remove();
+        notice.remove();
         window.location.href = '/suppliers';
       }, 3000);
     } else {
@@ -716,16 +648,12 @@ function setupEventHandlers(latestPlans) {
     e.preventDefault();
 
     const input = document.getElementById('custom-budget-input');
-    const budgetStatus = document.getElementById('budget-status');
     const budget = parseFloat(input.value);
 
     // Validate budget (also enforce in JS, not just HTML)
     // isFinite() guard rejects Infinity and -Infinity which pass isNaN/<=0
     if (isNaN(budget) || !isFinite(budget) || budget <= 0 || budget > 1_000_000_000) {
-      budgetStatus.style.display = 'block';
-      budgetStatus.style.background = '#FEF2F2';
-      budgetStatus.innerHTML =
-        '<p class="small" style="margin:0;color:#DC2626;">❌ Please enter a valid budget between £1 and £1,000,000,000</p>';
+      showBudgetStatus('Please enter a budget between £1 and £1,000,000,000.', 'error');
       return;
     }
 
@@ -734,18 +662,15 @@ function setupEventHandlers(latestPlans) {
       localStorage.setItem('eventflow_custom_budget', budget.toString());
     } catch (err) {
       console.error('Failed to save budget to localStorage:', err);
-      budgetStatus.style.display = 'block';
-      budgetStatus.style.background = '#FEF2F2';
-      budgetStatus.innerHTML =
-        '<p class="small" style="margin:0;color:#DC2626;">❌ Failed to save budget. Storage may be full.</p>';
+      showBudgetStatus('Failed to save budget. Storage may be full.', 'error');
       return;
     }
 
-    // Also persist to server on the user's first/primary plan.
+    // Also persist to server on the focus plan (the one the summary row describes).
     // Always check response.ok — a CSRF/auth failure must not be silently swallowed.
     let serverSyncFailed = false;
-    if (latestPlans && latestPlans.length > 0) {
-      const primaryPlan = latestPlans[0];
+    const primaryPlan = focusPlan();
+    if (primaryPlan) {
       try {
         const patchResp = await fetch(`/api/me/plans/${encodeURIComponent(primaryPlan.id)}`, {
           method: 'PATCH',
@@ -759,6 +684,9 @@ function setupEventHandlers(latestPlans) {
         if (!patchResp.ok) {
           console.warn('Budget PATCH failed with status:', patchResp.status);
           serverSyncFailed = true;
+        } else {
+          // Keep the in-memory plan current so the summary shows the new figure straight away
+          primaryPlan.budget = budget;
         }
       } catch (err) {
         console.warn('Failed to persist budget to server (will use localStorage):', err);
@@ -767,63 +695,57 @@ function setupEventHandlers(latestPlans) {
     }
 
     // Show result — distinguish between full success and local-only save
-    budgetStatus.style.display = 'block';
     if (serverSyncFailed) {
-      budgetStatus.style.background = '#FFFBEB';
-      const budgetP = document.createElement('p');
-      budgetP.className = 'small';
-      budgetP.style.cssText = 'margin:0;color:#92400E;';
-      budgetP.textContent = `⚠️ Budget saved locally (£${budget.toLocaleString()}) but couldn't sync to server. It will be retried on next visit.`;
-      budgetStatus.replaceChildren(budgetP);
+      showBudgetStatus(
+        `Budget saved locally (£${budget.toLocaleString()}) but couldn't sync to server. It will be retried on next visit.`,
+        'warn'
+      );
+      // Show the figure the person just entered, not the stale server value
+      if (primaryPlan) {
+        primaryPlan.budget = budget;
+      }
     } else {
-      budgetStatus.style.background = '#F0FDF4';
-      const budgetP = document.createElement('p');
-      budgetP.className = 'small';
-      budgetP.style.cssText = 'margin:0;color:#059669;';
-      budgetP.textContent = `✅ Budget set to £${budget.toLocaleString()}`;
-      budgetStatus.replaceChildren(budgetP);
+      showBudgetStatus(`Budget set to £${budget.toLocaleString()}`, 'success');
     }
 
-    // Reload widgets with new budget - with error handling
+    // Redraw the summary with the new budget
     try {
-      await initCustomerDashboardWidgets(latestPlans);
+      if (window.CustomerDashboardHome) {
+        await window.CustomerDashboardHome.render(dashboardPlans);
+      }
     } catch (err) {
-      console.error('Failed to reload widgets after budget update:', err);
+      console.error('Failed to refresh the summary after budget update:', err);
       // Don't show error to user since budget was saved successfully
-      // Widgets will reload on next page visit
     }
 
-    // Hide status message after 3 seconds
+    // Close the form shortly afterwards so the new figure is visible
     setTimeout(() => {
-      budgetStatus.style.display = 'none';
-    }, 3000);
+      document.getElementById('budget-settings-cancel')?.click();
+      showBudgetStatus('', 'success');
+    }, 2500);
   });
 
   // Load saved budget on page load — prefer server plan budget, fall back to localStorage
-  const budgetFromPlan =
-    latestPlans && latestPlans.length > 0
-      ? latestPlans.find(p => p.budget && parseFloat(p.budget) > 0)
-      : null;
+  const budgetFromPlan = dashboardPlans.length
+    ? dashboardPlans.find(p => p.budget && parseFloat(p.budget) > 0)
+    : null;
 
   try {
     const input = document.getElementById('custom-budget-input');
     if (input) {
-      if (budgetFromPlan) {
-        input.value = parseFloat(budgetFromPlan.budget);
-        // Sync server value to localStorage for fast client-side access
-        try {
-          localStorage.setItem(
-            'eventflow_custom_budget',
-            String(parseFloat(budgetFromPlan.budget))
-          );
-        } catch (storageErr) {
-          console.warn('Could not sync server budget to localStorage:', storageErr);
-        }
-      } else {
-        const savedBudget = localStorage.getItem('eventflow_custom_budget');
-        if (savedBudget) {
-          input.value = savedBudget;
-        }
+      const focusBudget = window.CustomerDashboardHome
+        ? window.CustomerDashboardHome.totalBudgetFor(focusPlan(), dashboardPlans)
+        : 0;
+      if (focusBudget > 0) {
+        input.value = focusBudget;
+      }
+    }
+    if (budgetFromPlan) {
+      // Sync server value to localStorage for fast client-side access
+      try {
+        localStorage.setItem('eventflow_custom_budget', String(parseFloat(budgetFromPlan.budget)));
+      } catch (storageErr) {
+        console.warn('Could not sync server budget to localStorage:', storageErr);
       }
     }
   } catch (err) {
@@ -833,7 +755,7 @@ function setupEventHandlers(latestPlans) {
   // Retry: if localStorage has a budget that didn't make it to the server (e.g. a
   // previous PATCH failed), silently attempt to sync it now.  This fulfils the
   // "will be retried on next visit" message shown when the initial save fails.
-  if (!budgetFromPlan && latestPlans && latestPlans.length > 0) {
+  if (!budgetFromPlan && dashboardPlans.length > 0) {
     let lsBudgetForRetry = null;
     try {
       lsBudgetForRetry = localStorage.getItem('eventflow_custom_budget');
@@ -842,7 +764,7 @@ function setupEventHandlers(latestPlans) {
     }
     const pendingBudget = lsBudgetForRetry ? parseFloat(lsBudgetForRetry) : NaN;
     if (!isNaN(pendingBudget) && pendingBudget > 0) {
-      const primaryPlan = latestPlans[0];
+      const primaryPlan = focusPlan();
       // Fire-and-forget: don't block page load; failures are non-fatal
       (async () => {
         try {
@@ -975,22 +897,18 @@ async function showCustomerEmailVerificationBanner(email) {
 
   const banner = document.createElement('div');
   banner.id = 'email-verify-banner';
+  banner.className = 'cdh-banner';
   banner.setAttribute('role', 'alert');
-  banner.style.cssText =
-    'background:#fffbeb;border:1px solid #fcd34d;border-radius:8px;padding:0.75rem 1rem;' +
-    'margin-bottom:1rem;display:flex;align-items:center;gap:0.75rem;flex-wrap:wrap;font-size:0.875rem;';
 
   const msg = document.createElement('span');
+  msg.className = 'cdh-banner__text';
   msg.textContent =
-    '⚠️ Please verify your email address to unlock all features. Check your inbox for a verification link.';
-  msg.style.flex = '1';
+    'Please verify your email address to unlock all features. Check your inbox for a verification link.';
 
   const resendBtn = document.createElement('button');
   resendBtn.type = 'button';
+  resendBtn.className = 'cdh-btn cdh-btn--secondary cdh-btn--sm';
   resendBtn.textContent = 'Resend email';
-  resendBtn.style.cssText =
-    'background:none;border:1px solid #d97706;border-radius:6px;padding:0.25rem 0.75rem;' +
-    'cursor:pointer;color:#92400e;font-size: 0.75rem;white-space:nowrap;';
 
   resendBtn.addEventListener('click', async () => {
     resendBtn.disabled = true;
@@ -1004,12 +922,12 @@ async function showCustomerEmailVerificationBanner(email) {
         body: JSON.stringify({ email }),
       });
       if (resp.ok) {
-        msg.textContent = '✓ Verification email sent! Please check your inbox.';
+        msg.textContent = 'Verification email sent. Please check your inbox.';
         resendBtn.remove();
       } else {
         resendBtn.disabled = false;
         resendBtn.textContent = 'Resend email';
-        msg.textContent = '⚠️ Could not resend verification email. Please try again.';
+        msg.textContent = 'Could not resend the verification email. Please try again.';
       }
     } catch (err) {
       resendBtn.disabled = false;
@@ -1020,11 +938,10 @@ async function showCustomerEmailVerificationBanner(email) {
   banner.appendChild(msg);
   banner.appendChild(resendBtn);
 
-  const firstSection =
-    document.querySelector('main > *:first-child, .cd-section, .dashboard-hero') ||
-    document.body.firstElementChild;
-  if (firstSection && firstSection.parentNode) {
-    firstSection.parentNode.insertBefore(banner, firstSection);
+  // Sit above the greeting, inside the page column
+  const hero = document.querySelector('.cdh-hero');
+  if (hero && hero.parentNode) {
+    hero.parentNode.insertBefore(banner, hero);
   } else {
     document.body.insertBefore(banner, document.body.firstChild);
   }

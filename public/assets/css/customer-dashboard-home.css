@@ -1,0 +1,2258 @@
+/*
+ * Customer dashboard home (/dashboard/customer).
+ *
+ * One stylesheet for the whole page. Every selector sits under .cdh-page (the
+ * <body> class) so nothing here can leak into another page, and elements that
+ * scripts append to <body> (calendar dialog, plan editor, toasts) are covered
+ * by the same scope.
+ *
+ * Design: calm warm-neutral surfaces, one teal accent, hairline borders and
+ * generous space. Hierarchy comes from type size, weight and spacing, not from
+ * tinted cards or gradients. Type sizes stay on the site scale
+ * (10 11 12 13 14 16 18 20 24 28 32).
+ *
+ * Structure, top to bottom:
+ *   1. Tokens and page reset
+ *   2. Page frame, notice, banner, hero
+ *   3. Buttons, links, badges, pills, skeletons
+ *   4. Summary row and budget form
+ *   5. Layout and cards
+ *   6. Card content: steps, plans, saved suppliers, suggestions, tickets, messages
+ *   7. Wedding Website & RSVPs launcher
+ *   8. Calendar (FullCalendar theme, legend, fallback list, dialog, popover)
+ *   9. Responsive and motion
+ */
+
+/* ------------------------------------------------------------------ *
+ * 1. Tokens and page reset
+ * ------------------------------------------------------------------ */
+
+.cdh-page {
+  --cdh-bg: #f7f6f3;
+  --cdh-surface: #fff;
+  --cdh-ink: #17202f;
+  --cdh-ink-2: #3d4955;
+  --cdh-muted: #566176;
+  --cdh-line: #e8e5de;
+  --cdh-line-soft: #f0eee9;
+  --cdh-line-strong: #d6d2c8;
+  --cdh-accent: #0b8073;
+  --cdh-accent-hover: #086b60;
+  --cdh-accent-deep: #064f46;
+  --cdh-accent-soft: #e7f3f0;
+  --cdh-accent-line: #c4e1da;
+  --cdh-ring: rgba(11, 128, 115, 0.32);
+  --cdh-warn: #8a5300;
+  --cdh-warn-soft: #fdf4df;
+  --cdh-warn-line: #f3dca6;
+  --cdh-danger: #b42318;
+  --cdh-danger-soft: #fdecea;
+  --cdh-ok: #17784c;
+  --cdh-ok-soft: #e6f4ec;
+  --cdh-radius: 16px;
+  --cdh-radius-sm: 10px;
+  --cdh-shadow: 0 1px 2px rgba(23, 33, 43, 0.04), 0 1px 1px rgba(23, 33, 43, 0.03);
+  --cdh-pop: 0 18px 48px rgba(23, 33, 43, 0.2), 0 4px 12px rgba(23, 33, 43, 0.08);
+  --cdh-col-side: 360px;
+
+  background: var(--cdh-bg);
+  color: var(--cdh-ink);
+}
+
+.cdh-page .cdh,
+.cdh-page .cdh *,
+.cdh-page .cdh *::before,
+.cdh-page .cdh *::after {
+  box-sizing: border-box;
+}
+
+.cdh-page .cdh {
+  padding: 32px 0 72px;
+  color: var(--cdh-ink);
+  font-size: 14px;
+  line-height: 1.5;
+  background: var(--cdh-bg);
+}
+
+.cdh-page .cdh :where(h1, h2, h3, h4, p, ul, ol, dl, figure) {
+  margin: 0;
+  padding: 0;
+  font-family: inherit;
+  letter-spacing: normal;
+}
+
+.cdh-page .cdh :where(ul, ol) {
+  list-style: none;
+}
+
+.cdh-page .cdh [hidden] {
+  display: none !important;
+}
+
+.cdh-page .cdh :where(a) {
+  color: var(--cdh-accent-deep);
+}
+
+.cdh-page :where(a, button, input, select, textarea, summary):focus-visible {
+  outline: 2px solid var(--cdh-accent);
+  outline-offset: 2px;
+}
+
+.cdh-page .cdh-sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* ------------------------------------------------------------------ *
+ * 2. Page frame, notice, banner, hero
+ * ------------------------------------------------------------------ */
+
+.cdh-page .cdh-wrap {
+  width: min(1200px, 100%);
+  margin-inline: auto;
+  padding-inline: 24px;
+}
+
+.cdh-page .cdh-notice,
+.cdh-page .cdh-banner {
+  display: flex;
+  align-items: center;
+  gap: 12px 16px;
+  margin-bottom: 20px;
+  padding: 12px 16px;
+  border: 1px solid var(--cdh-warn-line);
+  border-radius: var(--cdh-radius-sm);
+  background: var(--cdh-warn-soft);
+  color: var(--cdh-warn);
+  font-size: 14px;
+}
+
+.cdh-page .cdh-notice {
+  position: relative;
+  padding-right: 48px;
+}
+
+.cdh-page .cdh-notice__text,
+.cdh-page .cdh-banner__text {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.cdh-page .cdh-notice__text strong {
+  color: inherit;
+}
+
+.cdh-page .cdh-notice__cta {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  min-height: 36px;
+  padding: 0 14px;
+  border-radius: 8px;
+  background: var(--cdh-accent);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.cdh-page .cdh-notice__cta:hover {
+  background: var(--cdh-accent-hover);
+  color: #fff;
+}
+
+.cdh-page .cdh-notice__dismiss {
+  position: absolute;
+  top: 50%;
+  right: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  margin-top: -16px;
+  padding: 0;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--cdh-warn);
+  cursor: pointer;
+}
+
+.cdh-page .cdh-notice__dismiss:hover {
+  background: rgba(138, 83, 0, 0.1);
+}
+
+.cdh-page .cdh-hero {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px 32px;
+  margin-bottom: 24px;
+}
+
+.cdh-page .cdh-hero__title {
+  color: var(--cdh-ink);
+  font-size: 28px;
+  font-weight: 700;
+  line-height: 1.2;
+  letter-spacing: -0.01em;
+}
+
+.cdh-page .cdh-hero__lede {
+  margin-top: 6px;
+  color: var(--cdh-muted);
+  font-size: 16px;
+  line-height: 1.5;
+}
+
+.cdh-page .cdh-hero__actions {
+  display: flex;
+  flex: none;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+/* ------------------------------------------------------------------ *
+ * 3. Buttons, links, badges, pills, skeletons
+ * ------------------------------------------------------------------ */
+
+.cdh-page .cdh-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 0 20px;
+  border: 1px solid transparent;
+  border-radius: var(--cdh-radius-sm);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.2;
+  text-align: center;
+  text-decoration: none;
+  white-space: nowrap;
+  cursor: pointer;
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease,
+    color 0.15s ease;
+}
+
+.cdh-page .cdh-btn--primary {
+  background: var(--cdh-accent);
+  color: #fff;
+  box-shadow: 0 1px 2px rgba(11, 128, 115, 0.3);
+}
+
+.cdh-page .cdh-btn--primary:hover {
+  background: var(--cdh-accent-hover);
+  color: #fff;
+}
+
+.cdh-page .cdh-btn--secondary {
+  border-color: var(--cdh-line-strong);
+  background: var(--cdh-surface);
+  color: var(--cdh-ink);
+}
+
+.cdh-page .cdh-btn--secondary:hover {
+  border-color: var(--cdh-accent);
+  background: var(--cdh-accent-soft);
+  color: var(--cdh-accent-deep);
+}
+
+.cdh-page .cdh-btn--quiet {
+  background: transparent;
+  color: var(--cdh-muted);
+}
+
+.cdh-page .cdh-btn--quiet:hover {
+  background: var(--cdh-line-soft);
+  color: var(--cdh-ink);
+}
+
+.cdh-page .cdh-btn--danger {
+  background: var(--cdh-danger);
+  color: #fff;
+}
+
+.cdh-page .cdh-btn--danger:hover {
+  background: #8f1c12;
+  color: #fff;
+}
+
+.cdh-page .cdh-btn--sm {
+  min-height: 36px;
+  padding: 0 14px;
+  font-size: 13px;
+}
+
+.cdh-page .cdh-btn--block {
+  width: 100%;
+}
+
+.cdh-page .cdh-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+/* The site-wide touch-target rule gives every <main> button a 44px box. Text links keep that
+   hit area but pull it out of the layout with a negative margin so rows keep their rhythm. */
+.cdh-page .cdh-link {
+  display: inline;
+  margin-block: -12px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--cdh-accent-deep);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  text-decoration: underline;
+  text-decoration-color: var(--cdh-accent-line);
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+.cdh-page .cdh-link:hover {
+  color: var(--cdh-accent);
+  text-decoration-color: currentcolor;
+}
+
+.cdh-page .cdh-link--danger {
+  color: var(--cdh-danger);
+  text-decoration-color: rgba(180, 35, 24, 0.3);
+}
+
+.cdh-page .cdh-link--danger:hover {
+  color: #8f1c12;
+}
+
+.cdh-page .cdh-pill {
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
+  padding: 0 10px;
+  border: 1px solid var(--cdh-line);
+  border-radius: 999px;
+  background: var(--cdh-surface);
+  color: var(--cdh-ink-2);
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.cdh-page .cdh-pill--accent {
+  border-color: var(--cdh-accent-line);
+  background: var(--cdh-accent-soft);
+  color: var(--cdh-accent-deep);
+}
+
+.cdh-page .cdh-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 20px;
+  margin-left: 6px;
+  padding: 0 7px;
+  border-radius: 999px;
+  background: var(--cdh-accent);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1;
+  vertical-align: 2px;
+}
+
+.cdh-page .cdh-skel {
+  display: block;
+  border-radius: 8px;
+  background: linear-gradient(90deg, #efede8 0%, #f7f6f3 50%, #efede8 100%);
+  background-size: 200% 100%;
+  animation: cdh-shimmer 1.4s ease-in-out infinite;
+}
+
+.cdh-page .cdh-skel--sm {
+  width: 40%;
+  height: 12px;
+}
+
+.cdh-page .cdh-skel--md {
+  width: 60%;
+  height: 12px;
+}
+
+.cdh-page .cdh-skel--lg {
+  width: 55%;
+  height: 28px;
+}
+
+.cdh-page .cdh-skel--row {
+  height: 44px;
+}
+
+.cdh-page .cdh-skel--row + .cdh-skel--row {
+  margin-top: 10px;
+}
+
+@keyframes cdh-shimmer {
+  from {
+    background-position: 200% 0;
+  }
+
+  to {
+    background-position: -200% 0;
+  }
+}
+
+.cdh-page .cdh-note {
+  color: var(--cdh-muted);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.cdh-page .cdh-note--lead {
+  margin-bottom: 8px;
+  color: var(--cdh-ink-2);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.cdh-page .cdh-note + .cdh-btn,
+.cdh-page .cdh-note + .cdh-note {
+  margin-top: 8px;
+}
+
+.cdh-page .cdh-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+}
+
+.cdh-page .cdh-empty__title {
+  color: var(--cdh-ink);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.cdh-page .cdh-empty__text {
+  max-width: 44ch;
+  margin-bottom: 4px;
+  color: var(--cdh-muted);
+  font-size: 13px;
+}
+
+.cdh-page .cdh-empty__text + .cdh-btn {
+  margin-top: 8px;
+}
+
+.cdh-page .cdh-toast {
+  position: fixed;
+  top: 88px;
+  left: 50%;
+  z-index: 10050;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  width: min(420px, calc(100vw - 32px));
+  padding: 12px 16px;
+  border: 1px solid var(--cdh-line-strong);
+  border-radius: var(--cdh-radius-sm);
+  background: var(--cdh-surface);
+  box-shadow: var(--cdh-pop);
+  color: var(--cdh-ink);
+  font-size: 14px;
+  transform: translateX(-50%);
+}
+
+.cdh-page .cdh-toast span {
+  color: var(--cdh-muted);
+  font-size: 13px;
+}
+
+/* ------------------------------------------------------------------ *
+ * 4. Summary row and budget form
+ * ------------------------------------------------------------------ */
+
+.cdh-page .cdh-summary {
+  margin-bottom: 24px;
+  border: 1px solid var(--cdh-line);
+  border-radius: var(--cdh-radius);
+  background: var(--cdh-surface);
+  box-shadow: var(--cdh-shadow);
+}
+
+.cdh-page .cdh-summary__grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.cdh-page .cdh-summary__grid--empty {
+  display: block;
+  padding: 20px 24px;
+}
+
+.cdh-page .cdh-tile {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+  padding: 20px 24px;
+}
+
+.cdh-page .cdh-tile + .cdh-tile {
+  border-left: 1px solid var(--cdh-line-soft);
+}
+
+.cdh-page .cdh-tile--loading {
+  gap: 12px;
+}
+
+.cdh-page .cdh-tile__label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-height: 20px;
+  color: var(--cdh-muted);
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 20px;
+}
+
+.cdh-page .cdh-tile__value {
+  color: var(--cdh-ink);
+  font-size: 28px;
+  font-weight: 700;
+  line-height: 1.15;
+  letter-spacing: -0.01em;
+  font-variant-numeric: tabular-nums;
+}
+
+.cdh-page .cdh-tile__value--empty {
+  color: var(--cdh-muted);
+  font-size: 20px;
+  font-weight: 600;
+}
+
+.cdh-page .cdh-tile__value--muted {
+  color: var(--cdh-muted);
+}
+
+.cdh-page .cdh-tile__unit {
+  color: var(--cdh-muted);
+  font-size: 14px;
+  font-weight: 500;
+  letter-spacing: 0;
+}
+
+.cdh-page .cdh-tile__sub {
+  color: var(--cdh-muted);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.cdh-page .cdh-tile__sub--warn {
+  color: var(--cdh-danger);
+  font-weight: 600;
+}
+
+.cdh-page .cdh-bar {
+  height: 6px;
+  margin: 4px 0 2px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--cdh-line-soft);
+}
+
+.cdh-page .cdh-bar > span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--cdh-accent);
+}
+
+.cdh-page .cdh-bar--warn > span {
+  background: var(--cdh-danger);
+}
+
+.cdh-page .cdh-budget-panel {
+  padding: 16px 24px 20px;
+  border-top: 1px solid var(--cdh-line-soft);
+  background: #fbfaf8;
+  border-radius: 0 0 var(--cdh-radius) var(--cdh-radius);
+}
+
+.cdh-page .cdh-budget-form {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 12px 16px;
+}
+
+.cdh-page .cdh-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: min(280px, 100%);
+}
+
+.cdh-page .cdh-label {
+  color: var(--cdh-ink-2);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.cdh-page .cdh-input {
+  width: 100%;
+  min-height: 44px;
+  padding: 0 14px;
+  border: 1px solid var(--cdh-line-strong);
+  border-radius: var(--cdh-radius-sm);
+  background: var(--cdh-surface);
+  color: var(--cdh-ink);
+  font: inherit;
+  font-size: 16px;
+}
+
+.cdh-page .cdh-input:focus-visible {
+  border-color: var(--cdh-accent);
+  outline: 2px solid var(--cdh-ring);
+  outline-offset: 0;
+}
+
+.cdh-page .cdh-budget-form__actions {
+  display: flex;
+  gap: 8px;
+}
+
+.cdh-page .cdh-form-status {
+  min-height: 0;
+  margin-top: 8px;
+  font-size: 13px;
+}
+
+.cdh-page .cdh-form-status:empty {
+  display: none;
+}
+
+.cdh-page .cdh-form-status[data-tone='success'] {
+  color: var(--cdh-ok);
+}
+
+.cdh-page .cdh-form-status[data-tone='warn'] {
+  color: var(--cdh-warn);
+}
+
+.cdh-page .cdh-form-status[data-tone='error'] {
+  color: var(--cdh-danger);
+}
+
+/* ------------------------------------------------------------------ *
+ * 5. Layout and cards
+ * ------------------------------------------------------------------ */
+
+.cdh-page .cdh-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) var(--cdh-col-side);
+  gap: 24px;
+  align-items: start;
+}
+
+.cdh-page .cdh-col {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  min-width: 0;
+}
+
+.cdh-page .cdh-card {
+  min-width: 0;
+  border: 1px solid var(--cdh-line);
+  border-radius: var(--cdh-radius);
+  background: var(--cdh-surface);
+  box-shadow: var(--cdh-shadow);
+}
+
+.cdh-page .cdh-card__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 16px;
+  padding: 20px 24px 0;
+}
+
+.cdh-page .cdh-card__titles {
+  min-width: 0;
+}
+
+.cdh-page .cdh-card__title {
+  color: var(--cdh-ink);
+  font-size: 18px;
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+.cdh-page .cdh-card__sub {
+  margin-top: 2px;
+  color: var(--cdh-muted);
+  font-size: 13px;
+}
+
+.cdh-page .cdh-card__actions {
+  display: flex;
+  flex: none;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px 12px;
+}
+
+.cdh-page .cdh-card__body {
+  padding: 16px 24px 24px;
+}
+
+/* ------------------------------------------------------------------ *
+ * 6. Card content
+ * ------------------------------------------------------------------ */
+
+/* Next steps */
+
+.cdh-page .cdh-steps {
+  margin-top: 12px;
+}
+
+.cdh-page .cdh-steps li + li {
+  border-top: 1px solid var(--cdh-line-soft);
+}
+
+.cdh-page .cdh-step {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 48px;
+  padding: 8px 4px;
+  color: var(--cdh-ink);
+  font-size: 14px;
+  text-decoration: none;
+}
+.cdh-page a.cdh-step:hover .cdh-step__label {
+  color: var(--cdh-accent-deep);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.cdh-page .cdh-step__mark {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border: 1.5px solid var(--cdh-line-strong);
+  border-radius: 50%;
+  color: #fff;
+}
+
+.cdh-page .cdh-step__label {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.cdh-page .cdh-step__go {
+  flex: none;
+  color: var(--cdh-muted);
+}
+
+.cdh-page .cdh-step--done {
+  color: var(--cdh-muted);
+}
+
+.cdh-page .cdh-step--done .cdh-step__mark {
+  border-color: var(--cdh-accent);
+  background: var(--cdh-accent);
+}
+
+.cdh-page .cdh-done {
+  margin-top: 8px;
+  border-top: 1px solid var(--cdh-line-soft);
+}
+
+.cdh-page .cdh-done summary {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  color: var(--cdh-muted);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  list-style: none;
+}
+
+.cdh-page .cdh-done summary::-webkit-details-marker {
+  display: none;
+}
+
+.cdh-page .cdh-done summary::before {
+  content: '';
+  width: 8px;
+  height: 8px;
+  border-right: 2px solid currentcolor;
+  border-bottom: 2px solid currentcolor;
+  transform: rotate(-45deg);
+  transition: transform 0.15s ease;
+}
+
+.cdh-page .cdh-done[open] summary::before {
+  transform: rotate(45deg);
+}
+
+.cdh-page .cdh-steps--done {
+  margin-top: 0;
+}
+
+/* Plans */
+
+.cdh-page .cdh-plan {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 0;
+}
+
+.cdh-page .cdh-plan + .cdh-plan {
+  border-top: 1px solid var(--cdh-line-soft);
+}
+
+.cdh-page .cdh-plan:first-child {
+  padding-top: 0;
+}
+
+.cdh-page .cdh-plan:last-child {
+  padding-bottom: 0;
+}
+
+.cdh-page .cdh-plan__main {
+  min-width: 0;
+}
+
+.cdh-page .cdh-plan__name {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 8px;
+  color: var(--cdh-ink);
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+
+.cdh-page .cdh-plan__meta {
+  margin-top: 2px;
+  color: var(--cdh-muted);
+  font-size: 13px;
+  text-transform: none;
+}
+
+.cdh-page .cdh-plan__actions {
+  display: flex;
+  flex: none;
+  gap: 14px;
+  padding-top: 2px;
+}
+
+/* Lists (saved suppliers) */
+
+.cdh-page .cdh-list {
+  margin-bottom: 12px;
+}
+
+.cdh-page .cdh-list li + li {
+  border-top: 1px solid var(--cdh-line-soft);
+}
+
+.cdh-page .cdh-list__link {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 44px;
+  padding: 10px 0;
+  color: var(--cdh-ink);
+  font-size: 14px;
+  text-decoration: none;
+}
+
+.cdh-page .cdh-list__link:hover .cdh-list__name {
+  color: var(--cdh-accent-deep);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.cdh-page .cdh-list__name {
+  min-width: 0;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.cdh-page .cdh-list__meta {
+  flex: none;
+  color: var(--cdh-muted);
+  font-size: 13px;
+}
+
+.cdh-page #saved-suppliers-status > .cdh-note {
+  margin-bottom: 12px;
+}
+
+.cdh-page #saved-suppliers-status > .cdh-list + .cdh-note {
+  margin: -4px 0 12px;
+}
+
+/* Suggested suppliers (recommendations-widget.js) */
+
+.cdh-page .recommendations-widget {
+  padding: 0;
+}
+
+.cdh-page .recommendations-widget[hidden] {
+  display: none;
+}
+
+.cdh-page .recommendations-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 20px 24px 0;
+}
+
+.cdh-page .recommendations-title {
+  color: var(--cdh-ink);
+  font-size: 18px;
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+.cdh-page .recommendations-view-all {
+  color: var(--cdh-accent-deep);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.cdh-page .recommendations-grid {
+  padding: 8px 24px 20px;
+}
+
+.cdh-page .recommendation-card {
+  display: block;
+  padding: 12px 0;
+  color: inherit;
+  text-decoration: none;
+}
+
+.cdh-page .recommendation-card + .recommendation-card {
+  border-top: 1px solid var(--cdh-line-soft);
+}
+
+.cdh-page .recommendation-card__top {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.cdh-page .recommendation-avatar-wrap,
+.cdh-page .recommendation-avatar {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.cdh-page .recommendation-avatar--fallback {
+  background: var(--cdh-accent-soft);
+  color: var(--cdh-accent-deep);
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.cdh-page .recommendation-card__identity {
+  min-width: 0;
+  flex: 1;
+}
+
+.cdh-page .recommendation-card__name {
+  color: var(--cdh-ink);
+  font-size: 14px;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.cdh-page .recommendation-card:hover .recommendation-card__name {
+  color: var(--cdh-accent-deep);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.cdh-page .recommendation-card__category,
+.cdh-page .recommendation-card__meta {
+  color: var(--cdh-muted);
+  font-size: 13px;
+}
+
+.cdh-page .recommendation-card__meta {
+  margin-top: 4px;
+  padding-left: 52px;
+}
+
+.cdh-page .recommendation-card__reason {
+  margin-top: 4px;
+  padding-left: 52px;
+  color: var(--cdh-muted);
+  font-size: 12px;
+}
+
+/* Support tickets (customer-tickets.js) */
+
+.cdh-page .ticket-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.cdh-page .customer-ticket-item {
+  padding: 12px 8px;
+  margin: 0 -8px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.cdh-page .customer-ticket-item + .customer-ticket-item {
+  border-top: 1px solid var(--cdh-line-soft);
+  border-top-left-radius: 0;
+  border-top-right-radius: 0;
+}
+
+.cdh-page .customer-ticket-item:hover {
+  background: #fbfaf8;
+}
+
+.cdh-page .customer-ticket-item__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  color: var(--cdh-ink);
+  font-size: 14px;
+}
+
+.cdh-page .customer-ticket-item__badges .badge {
+  display: inline-flex;
+  align-items: center;
+  min-height: 22px;
+  padding: 0 8px;
+  border-radius: 999px;
+  background: var(--cdh-accent-soft);
+  color: var(--cdh-accent-deep);
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: capitalize;
+  white-space: nowrap;
+}
+
+.cdh-page .customer-ticket-item__preview,
+.cdh-page .customer-ticket-item__meta {
+  margin-top: 2px;
+  color: var(--cdh-muted);
+  font-size: 13px;
+}
+
+.cdh-page .customer-tickets-view-all {
+  display: inline-block;
+  margin-top: 12px;
+  color: var(--cdh-accent-deep);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.cdh-page #tickets-cust .empty-state,
+.cdh-page #tickets-cust .error-state {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  width: 100%;
+  max-width: none;
+  margin: 0;
+  padding: 0;
+  text-align: left;
+}
+
+.cdh-page #tickets-cust .empty-state-icon {
+  display: none;
+}
+
+.cdh-page #tickets-cust .empty-state-title {
+  color: var(--cdh-ink);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.cdh-page #tickets-cust .empty-state-description {
+  color: var(--cdh-muted);
+  font-size: 13px;
+}
+
+.cdh-page #tickets-cust .empty-state-action {
+  margin-top: 8px;
+  color: var(--cdh-accent-deep);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+/* Ticket dialogs (shared .modal markup from customer-tickets.js). The close button also carries
+   .ef-cta, whose sitewide padding and 100%-width-on-phones rules would squash the glyph. */
+
+.cdh-page .modal-overlay .modal-header {
+  gap: 12px;
+}
+
+.cdh-page .modal-overlay .modal-header h3 {
+  margin: 0;
+  color: var(--cdh-ink);
+  font-size: 18px;
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+.cdh-page .modal-overlay .modal-close {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 36px !important;
+  height: 36px !important;
+  padding: 0 !important;
+  border: 0;
+  border-radius: 8px !important;
+  background: transparent;
+  box-shadow: none;
+  color: var(--cdh-muted);
+  font-size: 20px !important;
+  font-weight: 400 !important;
+  line-height: 1;
+}
+
+.cdh-page .modal-overlay .modal-close:hover {
+  background: var(--cdh-line-soft);
+  color: var(--cdh-ink);
+  transform: none;
+}
+
+/* Messages (MessengerWidgetV4 renders the list; this card supplies the heading) */
+
+.cdh-page .customer-messenger-widget .mwv4 {
+  border: 0;
+  border-radius: 0;
+  background: none;
+  box-shadow: none;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  overflow: visible;
+}
+
+.cdh-page .customer-messenger-widget .mwv4__header {
+  display: none;
+}
+
+.cdh-page .customer-messenger-widget .mwv4__item {
+  border-bottom: 1px solid var(--cdh-line-soft);
+}
+
+.cdh-page .customer-messenger-widget .mwv4__item:last-child {
+  border-bottom: 0;
+}
+
+.cdh-page .customer-messenger-widget .mwv4__item--unread {
+  background: none;
+}
+
+.cdh-page .customer-messenger-widget .mwv4__item-btn {
+  padding: 12px 0;
+}
+
+.cdh-page .customer-messenger-widget .mwv4__item-btn:hover {
+  background: none;
+}
+
+.cdh-page .customer-messenger-widget .mwv4__item-btn:focus-visible {
+  outline: 2px solid var(--cdh-accent);
+  outline-offset: 2px;
+}
+
+.cdh-page .customer-messenger-widget .mwv4__name {
+  color: var(--cdh-ink);
+  font-size: 14px;
+}
+
+.cdh-page .customer-messenger-widget .mwv4__preview,
+.cdh-page .customer-messenger-widget .mwv4__time {
+  color: var(--cdh-muted);
+  font-size: 13px;
+}
+
+.cdh-page .customer-messenger-widget .mwv4__empty {
+  align-items: flex-start;
+  padding: 0;
+  color: var(--cdh-muted);
+}
+
+.cdh-page .customer-messenger-widget .mwv4__empty-icon {
+  display: none;
+}
+
+.cdh-page .customer-messenger-widget .mwv4__empty-text {
+  text-align: left;
+  font-size: 13px;
+}
+
+/* ------------------------------------------------------------------ *
+ * 7. Wedding Website & RSVPs launcher
+ *    The app itself is styled by customer-wedding-website.css.
+ * ------------------------------------------------------------------ */
+
+.cdh-page .customer-wedding-card .cdh-card__head {
+  padding-bottom: 20px;
+}
+
+.cdh-page #wedding-website-status-pill {
+  min-height: 32px;
+  padding: 0 12px;
+  font-size: 13px;
+}
+
+.cdh-page #wedding-website-status-pill[data-status='in-progress'] {
+  border-color: var(--cdh-warn-line);
+  background: var(--cdh-warn-soft);
+  color: var(--cdh-warn);
+}
+
+.cdh-page #wedding-website-status-pill[data-status='ready'] {
+  border-color: var(--cdh-accent-line);
+  background: var(--cdh-accent-soft);
+  color: var(--cdh-accent-deep);
+}
+
+.cdh-page #wedding-website-status-pill[data-status='published'] {
+  border-color: #bfe3cf;
+  background: var(--cdh-ok-soft);
+  color: var(--cdh-ok);
+}
+
+/* ------------------------------------------------------------------ *
+ * 8. Calendar
+ * ------------------------------------------------------------------ */
+
+.cdh-page .cdh-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 16px;
+  margin-bottom: 16px;
+  color: var(--cdh-muted);
+  font-size: 12px;
+}
+
+.cdh-page .cal-legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.cdh-page .cal-legend-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--cdh-accent);
+}
+
+.cdh-page .cal-legend-dot--event {
+  background: #0b8073;
+}
+
+.cdh-page .cal-legend-dot--meeting {
+  background: #6366f1;
+}
+
+.cdh-page .cal-legend-dot--appointment {
+  background: #f59e0b;
+}
+
+.cdh-page .cal-legend-dot--public {
+  background: #7c3aed;
+}
+
+/* FullCalendar theme */
+
+.cdh-page .customer-calendar-viewport {
+  --fc-border-color: var(--cdh-line);
+  --fc-page-bg-color: var(--cdh-surface);
+  --fc-neutral-bg-color: #fbfaf8;
+  --fc-today-bg-color: var(--cdh-accent-soft);
+  --fc-button-bg-color: var(--cdh-surface);
+  --fc-button-border-color: var(--cdh-line-strong);
+  --fc-button-text-color: var(--cdh-ink);
+  --fc-button-hover-bg-color: var(--cdh-accent-soft);
+  --fc-button-hover-border-color: var(--cdh-accent);
+  --fc-button-active-bg-color: var(--cdh-accent-soft);
+  --fc-button-active-border-color: var(--cdh-accent);
+  --fc-event-border-color: transparent;
+
+  font-size: 13px;
+}
+
+.cdh-page .customer-calendar-viewport.fc-loaded {
+  min-height: 360px;
+}
+
+/* height: 'auto' view — let the grid size itself instead of scrolling inside the card. */
+.cdh-page .customer-calendar-viewport.fc,
+.cdh-page .customer-calendar-viewport .fc-view-harness,
+.cdh-page .customer-calendar-viewport .fc-scroller,
+.cdh-page .customer-calendar-viewport .fc-scroller-liquid-absolute {
+  position: relative !important;
+  max-width: 100%;
+  height: auto !important;
+  overflow: visible !important;
+}
+
+/* Site-wide mobile table rules (scrolling block tables, min-width, sticky th) must not reach the grid. */
+.cdh-page .customer-calendar-viewport table {
+  display: table;
+  min-width: 0;
+  overflow: visible;
+  font-size: inherit;
+  white-space: normal;
+}
+
+.cdh-page .customer-calendar-viewport thead {
+  display: table-header-group;
+}
+
+.cdh-page .customer-calendar-viewport tbody {
+  display: table-row-group;
+}
+
+.cdh-page .customer-calendar-viewport tr {
+  display: table-row;
+}
+
+.cdh-page .customer-calendar-viewport th,
+.cdh-page .customer-calendar-viewport td {
+  position: static;
+  padding: 0;
+  background: transparent;
+  text-align: inherit;
+}
+
+.cdh-page .customer-calendar-viewport th.fc-col-header-cell {
+  background: var(--fc-neutral-bg-color);
+}
+
+.cdh-page .customer-calendar-viewport .fc-toolbar {
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.cdh-page .customer-calendar-viewport .fc-toolbar-title {
+  color: var(--cdh-ink);
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.cdh-page .customer-calendar-viewport .fc-button {
+  min-height: 32px;
+  padding: 0 12px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  text-transform: none;
+  box-shadow: none;
+}
+
+.cdh-page .customer-calendar-viewport .fc-button:focus-visible {
+  outline: 2px solid var(--cdh-accent);
+  outline-offset: 2px;
+  box-shadow: none;
+}
+
+.cdh-page .customer-calendar-viewport .fc-button-primary:not(:disabled).fc-button-active,
+.cdh-page .customer-calendar-viewport .fc-button-primary:not(:disabled):active {
+  color: var(--cdh-accent-deep);
+}
+
+.cdh-page .customer-calendar-viewport .fc-scrollgrid {
+  overflow: hidden;
+  border-radius: var(--cdh-radius-sm);
+}
+
+.cdh-page .customer-calendar-viewport .fc-col-header-cell-cushion {
+  padding: 8px 4px;
+  color: var(--cdh-muted);
+  font-size: 12px;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.cdh-page .customer-calendar-viewport .fc-daygrid-day-number {
+  padding: 6px 8px;
+  color: var(--cdh-ink-2);
+  font-size: 12px;
+  text-decoration: none;
+}
+
+/* Days from the neighbouring months: tinted, but still readable. */
+.cdh-page .customer-calendar-viewport .fc-day-other {
+  background: #fbfaf8;
+}
+
+.cdh-page .customer-calendar-viewport .fc-day-other .fc-daygrid-day-top {
+  opacity: 1;
+}
+
+.cdh-page .customer-calendar-viewport .fc-day-other .fc-daygrid-day-number {
+  color: var(--cdh-muted);
+}
+
+.cdh-page .customer-calendar-viewport .fc-daygrid-day-frame {
+  position: relative;
+  min-height: 64px;
+}
+
+.cdh-page .customer-calendar-viewport .fc-event {
+  border-radius: 6px;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.cdh-page .customer-calendar-viewport .fc-event-title {
+  text-transform: none;
+}
+
+.cdh-page .cal-day-add-btn {
+  position: absolute;
+  top: 4px;
+  left: 4px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: 1px solid var(--cdh-line-strong);
+  border-radius: 6px;
+  background: var(--cdh-surface);
+  color: var(--cdh-accent-deep);
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.12s ease;
+}
+
+.cdh-page .fc-daygrid-day:hover .cal-day-add-btn,
+.cdh-page .fc-daygrid-day:focus-within .cal-day-add-btn,
+.cdh-page .cal-day-add-btn:focus-visible {
+  opacity: 1;
+}
+
+@media (hover: none) {
+  .cdh-page .cal-day-add-btn {
+    display: none;
+  }
+}
+
+.cdh-page .cal-no-events {
+  padding: 24px 0;
+  color: var(--cdh-muted);
+  font-size: 13px;
+  text-align: center;
+}
+
+.cdh-page .customer-calendar-next-up {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 16px;
+  padding: 14px 16px;
+  border: 1px solid var(--cdh-line);
+  border-radius: var(--cdh-radius-sm);
+  background: #fbfaf8;
+}
+
+.cdh-page .customer-calendar-next-up__eyebrow {
+  color: var(--cdh-muted);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.cdh-page .customer-calendar-next-up__body {
+  color: var(--cdh-ink-2);
+  font-size: 14px;
+}
+
+.cdh-page .customer-calendar-next-up__title {
+  color: var(--cdh-ink);
+  font-weight: 600;
+}
+
+.cdh-page .customer-calendar-next-up__meta {
+  margin-top: 2px;
+  color: var(--cdh-muted);
+  font-size: 13px;
+}
+
+.cdh-page .customer-calendar-next-up__badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-right: 8px;
+  padding: 2px 10px 2px 8px;
+  border: 1px solid var(--cdh-line);
+  border-radius: 999px;
+  background: var(--cdh-surface);
+  color: var(--cdh-ink-2);
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: capitalize;
+}
+
+.cdh-page .customer-calendar-next-up__badge::before {
+  content: '';
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--cal-color, var(--cdh-accent));
+}
+
+.cdh-page .customer-calendar-empty {
+  padding: 16px 0;
+}
+
+/* Fallback month + list when FullCalendar cannot load */
+
+.cdh-page .cal-fallback-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.cdh-page .cal-fallback-month {
+  overflow: hidden;
+  border: 1px solid var(--cdh-line);
+  border-radius: var(--cdh-radius-sm);
+}
+
+.cdh-page .cal-fallback-month__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--cdh-line);
+}
+
+.cdh-page .cal-fallback-month__eyebrow {
+  color: var(--cdh-muted);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.cdh-page .cal-fallback-month__title {
+  color: var(--cdh-ink);
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.cdh-page .cal-fallback-month__hint {
+  color: var(--cdh-muted);
+  font-size: 12px;
+  text-align: right;
+}
+
+.cdh-page .cal-fallback-month__weekdays,
+.cdh-page .cal-fallback-month__grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+}
+
+.cdh-page .cal-fallback-month__weekdays span {
+  padding: 8px 4px;
+  background: #fbfaf8;
+  color: var(--cdh-muted);
+  font-size: 12px;
+  font-weight: 600;
+  text-align: center;
+}
+
+.cdh-page .cal-fallback-day {
+  min-height: 64px;
+  padding: 6px;
+  border: 0;
+  border-right: 1px solid var(--cdh-line-soft);
+  border-bottom: 1px solid var(--cdh-line-soft);
+  background: var(--cdh-surface);
+  color: var(--cdh-ink-2);
+  font: inherit;
+  font-size: 12px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.cdh-page .cal-fallback-day:nth-child(7n) {
+  border-right: 0;
+}
+
+.cdh-page .cal-fallback-day:hover {
+  background: var(--cdh-accent-soft);
+}
+
+.cdh-page .cal-fallback-day:focus-visible {
+  outline-offset: -2px;
+}
+
+.cdh-page .cal-fallback-day--muted {
+  background: #fbfaf8;
+  color: #8a93a3;
+}
+
+.cdh-page .cal-fallback-day--today .cal-fallback-day__num {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--cdh-accent);
+  color: #fff;
+  font-weight: 700;
+}
+
+.cdh-page .cal-fallback-day__events {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-top: 4px;
+}
+
+.cdh-page .cal-fallback-day__event {
+  display: block;
+  padding: 1px 4px;
+  overflow: hidden;
+  border-radius: 4px;
+  color: #fff;
+  font-size: 11px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cdh-page .cal-fallback-day__more {
+  color: var(--cdh-muted);
+  font-size: 11px;
+}
+
+.cdh-page .cal-fallback-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.cdh-page .cal-fallback-item {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 12px;
+  padding: 10px 0;
+  border-top: 1px solid var(--cdh-line-soft);
+  font-size: 14px;
+}
+
+.cdh-page .cal-fallback-item__dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+}
+
+.cdh-page .cal-fallback-item__date {
+  color: var(--cdh-muted);
+  font-size: 13px;
+}
+
+.cdh-page .cal-fallback-item__title {
+  flex: 1 1 140px;
+  min-width: 0;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.cdh-page .cal-fallback-item__edit,
+.cdh-page .cal-fallback-item__delete {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0 !important;
+  border: 1px solid var(--cdh-line);
+  border-radius: 8px;
+  background: var(--cdh-surface);
+  box-shadow: none;
+  color: var(--cdh-muted);
+  cursor: pointer;
+}
+
+.cdh-page .cal-fallback-item__delete:hover {
+  border-color: var(--cdh-danger);
+  color: var(--cdh-danger);
+}
+
+.cdh-page .cal-fallback-item__edit:hover {
+  border-color: var(--cdh-accent);
+  color: var(--cdh-accent-deep);
+}
+
+.cdh-page .cal-fallback-empty {
+  padding: 8px 0;
+  color: var(--cdh-muted);
+  font-size: 13px;
+  list-style: none;
+}
+
+.cdh-page .cal-fallback-empty__icon {
+  display: none;
+}
+
+.cdh-page .cal-fallback-empty__text {
+  margin: 0;
+}
+
+.cdh-page .cal-entry-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--cdh-line-soft);
+  color: var(--cdh-ink-2);
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: capitalize;
+}
+
+.cdh-page .cal-entry-badge--meeting {
+  background: #eceefe;
+  color: #3730a3;
+}
+
+.cdh-page .cal-entry-badge--appointment {
+  background: var(--cdh-warn-soft);
+  color: var(--cdh-warn);
+}
+
+.cdh-page .cal-entry-badge--event {
+  background: var(--cdh-accent-soft);
+  color: var(--cdh-accent-deep);
+}
+
+/* Hover details */
+
+.cdh-page .calendar-tooltip {
+  position: fixed;
+  z-index: 10060;
+  max-width: 260px;
+  padding: 10px 12px;
+  border: 1px solid var(--cdh-line-strong);
+  border-radius: var(--cdh-radius-sm);
+  background: var(--cdh-surface);
+  box-shadow: var(--cdh-pop);
+  color: var(--cdh-ink);
+  font-size: 13px;
+  line-height: 1.45;
+  pointer-events: none;
+  opacity: 0;
+}
+
+.cdh-page .calendar-tooltip.is-visible {
+  opacity: 1;
+}
+
+/* Entry actions popover */
+
+.cdh-page .ef-cal-popup {
+  position: fixed;
+  z-index: 10060;
+  padding: 12px;
+  border: 1px solid var(--cdh-line-strong);
+  border-radius: var(--cdh-radius-sm);
+  background: var(--cdh-surface);
+  box-shadow: var(--cdh-pop);
+  color: var(--cdh-ink);
+}
+
+.cdh-page .cal-delete-popover__msg {
+  margin: 0 0 12px;
+  font-size: 14px;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.cdh-page .cal-delete-popover__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.cdh-page .cal-delete-popover__btn {
+  min-height: 32px;
+  padding: 0 12px !important;
+  border: 1px solid var(--cdh-line-strong);
+  border-radius: 8px;
+  background: var(--cdh-surface);
+  box-shadow: none;
+  color: var(--cdh-ink);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.cdh-page .cal-delete-popover__btn--edit {
+  border-color: var(--cdh-accent);
+  background: var(--cdh-accent);
+  color: #fff;
+}
+
+.cdh-page .cal-delete-popover__btn--delete,
+.cdh-page .cal-delete-popover__btn--confirm {
+  border-color: var(--cdh-danger);
+  background: var(--cdh-surface);
+  color: var(--cdh-danger);
+}
+
+.cdh-page .cal-delete-popover__btn--confirm {
+  background: var(--cdh-danger);
+  color: #fff;
+}
+
+/* Add / edit entry dialog */
+
+.cdh-page .cal-entry-modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 10040;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  background: rgba(23, 32, 47, 0.5);
+}
+
+.cdh-page .cal-entry-modal {
+  width: min(480px, 100%);
+  max-height: calc(100dvh - 32px);
+  overflow-y: auto;
+  border-radius: var(--cdh-radius);
+  background: var(--cdh-surface);
+  box-shadow: var(--cdh-pop);
+  color: var(--cdh-ink);
+}
+
+.cdh-page .cal-entry-modal__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 20px 24px 0;
+}
+
+.cdh-page .cal-entry-modal__title {
+  margin: 0;
+  color: var(--cdh-ink);
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.cdh-page .cal-entry-modal__close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  padding: 0 !important;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  box-shadow: none;
+  color: var(--cdh-muted);
+  cursor: pointer;
+}
+
+.cdh-page .cal-entry-modal__close:hover {
+  background: var(--cdh-line-soft);
+  color: var(--cdh-ink);
+}
+
+.cdh-page .cal-entry-modal__form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 16px 24px 24px;
+}
+
+.cdh-page .cal-entry-modal__row {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.cdh-page .cal-entry-modal__field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.cdh-page .cal-entry-modal__label {
+  color: var(--cdh-ink-2);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.cdh-page .cal-entry-modal__optional {
+  color: var(--cdh-muted);
+  font-weight: 400;
+}
+
+.cdh-page .cal-entry-modal__input,
+.cdh-page .cal-entry-modal__textarea {
+  width: 100%;
+  min-height: 44px;
+  padding: 10px 14px;
+  border: 1px solid var(--cdh-line-strong);
+  border-radius: var(--cdh-radius-sm);
+  background: var(--cdh-surface);
+  color: var(--cdh-ink);
+  font: inherit;
+  font-size: 16px;
+}
+
+.cdh-page .cal-entry-modal__textarea {
+  resize: vertical;
+}
+
+.cdh-page .cal-entry-modal__input:focus-visible,
+.cdh-page .cal-entry-modal__textarea:focus-visible {
+  border-color: var(--cdh-accent);
+  outline: 2px solid var(--cdh-ring);
+  outline-offset: 0;
+}
+
+.cdh-page .cal-entry-modal__error {
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: var(--cdh-danger-soft);
+  color: var(--cdh-danger);
+  font-size: 13px;
+}
+
+.cdh-page .cal-entry-modal__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.cdh-page .cal-entry-modal__btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 40px;
+  padding: 0 18px !important;
+  border: 1px solid var(--cdh-line-strong);
+  border-radius: var(--cdh-radius-sm);
+  background: var(--cdh-surface);
+  box-shadow: none;
+  color: var(--cdh-ink);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.cdh-page .cal-entry-modal__btn--save {
+  border-color: var(--cdh-accent);
+  background: var(--cdh-accent);
+  color: #fff;
+}
+
+.cdh-page .cal-entry-modal__btn--save:hover {
+  background: var(--cdh-accent-hover);
+}
+
+.cdh-page .cal-toast {
+  position: fixed;
+  right: 24px;
+  bottom: 24px;
+  z-index: 11000;
+  max-width: 320px;
+  padding: 12px 16px;
+  border-radius: var(--cdh-radius-sm);
+  background: var(--cdh-ink);
+  box-shadow: var(--cdh-pop);
+  color: #fff;
+  font-size: 14px;
+  opacity: 0;
+  transform: translateY(8px);
+  transition:
+    opacity 0.2s ease,
+    transform 0.2s ease;
+  pointer-events: none;
+}
+
+.cdh-page .cal-toast--visible {
+  opacity: 1;
+  transform: none;
+}
+
+.cdh-page .cal-toast--error {
+  background: var(--cdh-danger);
+}
+
+/* ------------------------------------------------------------------ *
+ * 9. Responsive and motion
+ * ------------------------------------------------------------------ */
+
+@media (max-width: 1099px) {
+  .cdh-page {
+    --cdh-col-side: 320px;
+  }
+}
+
+@media (max-width: 1023px) {
+  .cdh-page .cdh-summary__grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .cdh-page .cdh-tile:nth-child(3) {
+    border-left: 0;
+  }
+
+  .cdh-page .cdh-tile:nth-child(n + 3) {
+    border-top: 1px solid var(--cdh-line-soft);
+  }
+
+  /* One column: the two column wrappers dissolve so cards can be ordered across them. */
+  .cdh-page .cdh-layout {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 16px;
+  }
+
+  .cdh-page .cdh-col {
+    display: contents;
+  }
+
+  .cdh-page .cdh-card--steps {
+    order: 1;
+  }
+
+  .cdh-page .customer-wedding-card {
+    order: 2;
+  }
+
+  .cdh-page .cdh-card--plans {
+    order: 3;
+  }
+
+  .cdh-page .cdh-card--messages {
+    order: 4;
+  }
+
+  .cdh-page .cdh-card--saved {
+    order: 5;
+  }
+
+  .cdh-page .recommendations-widget {
+    order: 6;
+  }
+
+  .cdh-page .cdh-card--calendar {
+    order: 7;
+  }
+
+  .cdh-page .cdh-card--support {
+    order: 8;
+  }
+}
+
+@media (max-width: 767px) {
+  .cdh-page .cdh {
+    padding: 20px 0 56px;
+  }
+
+  .cdh-page .cdh-hero {
+    flex-direction: column;
+    align-items: stretch;
+    margin-bottom: 16px;
+  }
+
+  .cdh-page .cdh-hero__title {
+    font-size: 24px;
+  }
+
+  .cdh-page .cdh-hero__lede {
+    font-size: 14px;
+  }
+
+  .cdh-page .cdh-hero__actions .cdh-btn {
+    flex: 1 1 160px;
+  }
+
+  .cdh-page .cdh-summary {
+    margin-bottom: 16px;
+  }
+}
+
+@media (max-width: 639px) {
+  .cdh-page .cdh-wrap {
+    padding-inline: 16px;
+  }
+
+  .cdh-page .cdh-tile {
+    padding: 16px;
+  }
+
+  .cdh-page .cdh-tile__value {
+    font-size: 24px;
+  }
+
+  .cdh-page .cdh-tile__value--empty {
+    font-size: 18px;
+  }
+
+  .cdh-page .cdh-card__head {
+    padding: 16px 16px 0;
+  }
+
+  .cdh-page .cdh-card__body {
+    padding: 12px 16px 20px;
+  }
+
+  .cdh-page .customer-wedding-card .cdh-card__head {
+    flex-direction: column;
+    align-items: stretch;
+    padding-bottom: 16px;
+  }
+
+  .cdh-page .customer-wedding-card .cdh-card__actions {
+    justify-content: space-between;
+  }
+
+  .cdh-page .cdh-budget-panel {
+    padding: 16px;
+  }
+
+  .cdh-page .cdh-budget-form,
+  .cdh-page .cdh-field {
+    width: 100%;
+  }
+
+  .cdh-page .cdh-notice {
+    flex-wrap: wrap;
+    padding-right: 48px;
+  }
+
+  .cdh-page .cdh-notice__cta {
+    flex: 1 1 100%;
+    justify-content: center;
+  }
+
+  .cdh-page .cdh-banner {
+    flex-wrap: wrap;
+  }
+
+  .cdh-page .cal-entry-modal__row {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .cdh-page .customer-calendar-viewport .fc-daygrid-day-frame {
+    min-height: 48px;
+  }
+
+  .cdh-page .customer-calendar-viewport .fc-toolbar-title {
+    font-size: 14px;
+  }
+
+  .cdh-page .cal-fallback-day {
+    min-height: 48px;
+    padding: 4px;
+  }
+
+  .cdh-page .cal-fallback-day__event {
+    display: none;
+  }
+
+  .cdh-page .cal-toast {
+    right: 16px;
+    bottom: 80px;
+    left: 16px;
+    max-width: none;
+  }
+
+  .cdh-page .recommendations-header,
+  .cdh-page .recommendations-grid {
+    padding-inline: 16px;
+  }
+}
+
+@media (max-width: 359px) {
+  .cdh-page .cdh-summary__grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .cdh-page .cdh-tile + .cdh-tile {
+    border-left: 0;
+    border-top: 1px solid var(--cdh-line-soft);
+  }
+
+  .cdh-page .cdh-tile:nth-child(n + 3) {
+    border-top: 1px solid var(--cdh-line-soft);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cdh-page .cdh *,
+  .cdh-page .cdh *::before,
+  .cdh-page .cdh *::after,
+  .cdh-page .cal-toast,
+  .cdh-page .cal-day-add-btn {
+    animation: none !important;
+    transition: none !important;
+  }
+}

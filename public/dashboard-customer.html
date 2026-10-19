@@ -6,9 +6,6 @@
     <title>Customer Dashboard — EventFlow</title>
     <meta name="robots" content="noindex,nofollow" />
     <meta name="csrf-token" content="" />
-    <!-- Performance: preconnect for Google Fonts (loaded by customer-dashboard-welcome-card.css) -->
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link rel="stylesheet" href="/assets/css/styles.css?v=18.5.0" />
     <link rel="stylesheet" href="/assets/css/eventflow-17.0.0.css?v=18.3.0" />
     <link rel="stylesheet" href="/assets/css/utilities.css?v=18.3.0" />
@@ -18,23 +15,13 @@
     <link rel="stylesheet" href="/assets/css/ui-ux-fixes.css?v=18.4.0" />
     <link rel="stylesheet" href="/assets/css/navbar.css?v=18.4.2" /><link rel="stylesheet" href="/assets/css/eventflow-brand.css?v=1.0.1" data-eventflow-brand="true" />
     <link rel="stylesheet" href="/assets/css/skeleton.css?v=2.0.1" />
-    <link rel="stylesheet" href="/assets/css/dashboard-animations.css?v=18.3.2" />
-    <link rel="stylesheet" href="/assets/css/liquid-glass.css?v=18.3.0" />
-    <link rel="stylesheet" href="/assets/css/messaging-glass-enhancements.css?v=18.3.0" />
-    <link rel="stylesheet" href="/assets/css/p3-features.css?v=18.3.0" />
-    <link rel="stylesheet" href="/assets/css/customer-dashboard-improvements.css?v=1.0.6" />
-    <link rel="stylesheet" href="/assets/css/dashboard-mobile.css?v=1.0.1" />
-    <link rel="stylesheet" href="/assets/css/card-collapse.css?v=1.0.1" />
-    <link rel="stylesheet" href="/assets/css/customer-dashboard-liquid-glass.css?v=1.0.0" />
-    <link rel="stylesheet" href="/assets/css/customer-dashboard-welcome-card.css?v=1.0.7" />
-    <link rel="stylesheet" href="/assets/css/customer-dashboard-welcome-scale.css?v=1.0.2" />
-    <link rel="stylesheet" href="/assets/css/customer-wedding-website.css?v=2.0.2" />
-    <link rel="stylesheet" href="/assets/css/account-type-notice.css?v=1.0.0" />
+    <link rel="stylesheet" href="/assets/css/customer-wedding-website.css?v=2.0.3" />
+    <link rel="stylesheet" href="/assets/css/customer-dashboard-home.css?v=1.0.0" />
     <!-- NOTE: the fullcalendar global bundle injects its own <style> tag at
          runtime — there is no separate CSS file in the package. The <link>
          that previously pointed to index.global.min.css returned a 404 on
          every page load and has been removed. -->
-    <script src="/assets/js/dashboard-guard.js?v=17.0.2"></script>
+    <script src="/assets/js/dashboard-guard.js?v=17.1.0"></script>
     <link rel="stylesheet" href="/messenger/css/messenger-widget-v4.css" />
     <link rel="icon" href="/favicon.ico" sizes="any">
     <link rel="icon" type="image/svg+xml" href="/favicon.svg">
@@ -45,12 +32,10 @@
     <link rel="mask-icon" href="/safari-pinned-tab.svg" color="#0B8073">
     <link rel="manifest" href="/site.webmanifest">
     <meta name="msapplication-config" content="/browserconfig.xml">
-    <link rel="stylesheet" href="/assets/css/dashboard-overhaul.css?v=18.3.1">
-    <link rel="stylesheet" href="/assets/css/customer-dashboard-polish.css?v=1.0.2">
     <link rel="stylesheet" href="/assets/css/signed-in-mobile-fixes.css" />
   <link rel="stylesheet" href="/assets/css/eventflow-footer.css">
 </head>
-  <body class="customer-dashboard-page">
+  <body class="customer-dashboard-page cdh-page">
     <!-- TOP NAVBAR - GOLD STANDARD REBUILD -->
     <header class="ef-header" role="banner">
       <div class="ef-container">
@@ -177,492 +162,236 @@
     <script src="/assets/js/notifications.js" defer></script>
 
     <script src="/assets/js/websocket-client.js" defer></script>
-    <main id="main-content" class="section">
-      <!-- Screen-reader landmark heading — visually hidden, paired with the <h2> welcome card -->
-      <h1 class="sr-only">Customer Dashboard</h1>
-      <div class="container">
+    <main id="main-content" class="cdh">
+      <div class="cdh-wrap">
         <!-- Wrong-account-type recovery. Switching customer → supplier has
              always been possible in Settings, but that is not where someone
              looks when they realise they signed up as the wrong type — they
              open a ticket instead. Surface it where the mistake shows up. -->
-        <div id="account-type-notice" class="account-type-notice" hidden>
-          <span class="account-type-notice__icon" aria-hidden="true">🏪</span>
-          <p class="account-type-notice__text">
+        <div id="account-type-notice" class="cdh-notice" hidden>
+          <p class="cdh-notice__text">
             You’re signed up as a <strong>Customer</strong>. Meant to list a business and take
             enquiries instead? Switch to a Supplier account — your details come with you.
           </p>
-          <a class="account-type-notice__cta" href="/settings#account-type-card"
-            >Switch to Supplier</a
-          >
+          <a class="cdh-notice__cta" href="/settings#account-type-card">Switch to Supplier</a>
           <button
             type="button"
-            class="account-type-notice__dismiss"
+            class="cdh-notice__dismiss"
             id="account-type-notice-dismiss"
             aria-label="Dismiss account type notice"
           >
-            ×
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+              <path d="M3.5 3.5l9 9M12.5 3.5l-9 9" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" />
+            </svg>
           </button>
         </div>
 
-        <!-- Welcome Section -->
-        <div id="welcome-section" class="customer-welcome-card card no-collapse">
-          <div class="customer-welcome-hero">
-            <div class="customer-welcome-copy">
-              <div class="customer-welcome-kicker">Your planning hub</div>
-              <h2 id="welcome-heading" class="customer-welcome-heading">
-                Welcome to your EventFlow dashboard!
-              </h2>
-              <p class="small customer-welcome-intro">
-                Plan smarter, stay organised, and keep every detail running smoothly with
-                <strong>EventFlow.</strong>
-              </p>
-            </div>
-            <div class="customer-welcome-hero-art" aria-hidden="true"></div>
+        <!-- Greeting and the single most useful next action. The lede and the
+             primary button are filled in by customer-dashboard-home.js. -->
+        <header class="cdh-hero">
+          <div class="cdh-hero__copy">
+            <h1 id="welcome-heading" class="cdh-hero__title">Welcome back</h1>
+            <p id="cdh-lede" class="cdh-hero__lede" aria-live="polite">
+              Your plans, budget, guests and suppliers in one place.
+            </p>
           </div>
-          <div id="what-you-can-do" class="customer-welcome-actions">
-            <h3 class="customer-welcome-actions__title">Start with what matters most:</h3>
-            <div class="customer-welcome-actions__grid">
-              <a href="/start" class="customer-welcome-action-card customer-welcome-action-card--plan">
-                <span class="customer-welcome-action-card__icon" aria-hidden="true">
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="2" width="8" height="4" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="M12 11h4M12 16h4M8 11h.01M8 16h.01"/></svg>
-                </span>
-                <span><strong>Create your plan</strong><small>Turn ideas into a clear event checklist.</small></span>
-              </a>
-              <a href="/suppliers" class="customer-welcome-action-card customer-welcome-action-card--find">
-                <span class="customer-welcome-action-card__icon" aria-hidden="true">
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
-                </span>
-                <span><strong>Find suppliers</strong><small>Browse, compare, and save your favourites.</small></span>
-              </a>
-              <a href="/public-calendar" class="customer-welcome-action-card customer-welcome-action-card--events">
-                <span class="customer-welcome-action-card__icon" aria-hidden="true">
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2v4M16 2v4M3 10h18M5 4h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z"/></svg>
-                </span>
-                <span><strong>Discover events</strong><small>Save fayres and showcases to your calendar.</small></span>
-              </a>
-              <a href="#budget-settings-form" class="customer-welcome-action-card customer-welcome-action-card--budget">
-                <span class="customer-welcome-action-card__icon" aria-hidden="true">
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12V7H5a2 2 0 0 1 0-4h14v4"/><path d="M3 5v14a2 2 0 0 0 2 2h16v-5"/><path d="M18 12a2 2 0 0 0 0 4h4v-4z"/></svg>
-                </span>
-                <span><strong>Track budget</strong><small>Keep spend visible as your plans evolve.</small></span>
-              </a>
-            </div>
+          <div class="cdh-hero__actions">
+            <a id="cdh-next-action" class="cdh-btn cdh-btn--primary" href="/start">Create your plan</a>
+            <a id="cdh-secondary-action" class="cdh-btn cdh-btn--secondary" href="/suppliers">Find suppliers</a>
           </div>
-          <!-- Contextual prompt shown dynamically by JS -->
-          <div id="welcome-contextual-prompt" class="customer-welcome-contextual-prompt"></div>
-          <div class="customer-welcome-footer">
-            <p>Everything you save or schedule now appears in your dashboard calendar below.</p>
-            <button
-              id="welcome-dismiss-btn"
-              type="button"
-              class="ef-cta customer-welcome-dismiss"
-              aria-label="Dismiss welcome message"
-            >
-              Got it! 🎉
-            </button>
+        </header>
+
+        <!-- The one summary row: countdown, budget, progress, guests.
+             Filled in by customer-dashboard-home.js for the focus plan. -->
+        <section class="cdh-summary" aria-labelledby="cdh-summary-title">
+          <h2 id="cdh-summary-title" class="cdh-sr">Summary of your next event</h2>
+          <div id="cdh-summary-grid" class="cdh-summary__grid" aria-live="polite" aria-busy="true">
+            <div class="cdh-tile cdh-tile--loading" aria-hidden="true"><span class="cdh-skel cdh-skel--sm"></span><span class="cdh-skel cdh-skel--lg"></span><span class="cdh-skel cdh-skel--md"></span></div>
+            <div class="cdh-tile cdh-tile--loading" aria-hidden="true"><span class="cdh-skel cdh-skel--sm"></span><span class="cdh-skel cdh-skel--lg"></span><span class="cdh-skel cdh-skel--md"></span></div>
+            <div class="cdh-tile cdh-tile--loading" aria-hidden="true"><span class="cdh-skel cdh-skel--sm"></span><span class="cdh-skel cdh-skel--lg"></span><span class="cdh-skel cdh-skel--md"></span></div>
+            <div class="cdh-tile cdh-tile--loading" aria-hidden="true"><span class="cdh-skel cdh-skel--sm"></span><span class="cdh-skel cdh-skel--lg"></span><span class="cdh-skel cdh-skel--md"></span></div>
           </div>
-        </div>
-
-        <!-- Section: At a Glance -->
-        <div class="cd-section-label" role="presentation"><span>At a Glance</span></div>
-
-        <!-- Event Countdown — rendered by dashboard-customer-overhaul.js -->
-        <div id="customer-event-countdown" aria-live="polite" style="margin-bottom:20px">
-          <div class="skeleton" style="height:100px;border-radius:16px;"></div>
-        </div>
-
-        <!-- Statistics Widgets -->
-        <div id="customer-stats-grid" aria-live="polite" aria-label="Dashboard statistics"></div>
-
-        <section
-          id="wedding-website-dashboard-card"
-          class="card cd-card customer-wedding-card"
-          aria-live="polite"
-        >
-          <div class="sd-card-header sd-card-header--rose">
-            <div class="sd-card-header__left">
-              <div class="sd-card-header__title-row">
-                <span class="customer-wedding-heading-badge" aria-hidden="true"
-                  ><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg
-                ></span>
-                <h3 class="sd-card-header__heading">Wedding Website & RSVPs</h3>
-              </div>
-              <p class="sd-card-header__subtitle">
-                Your guest website, RSVP form, guest list, seating plan and share tools in one place.
-              </p>
-            </div>
-            <div class="sd-card-header__actions">
-              <span id="wedding-website-status-pill" class="customer-wedding-status-pill"
-                >Not started</span
-              >
-              <button
-                type="button"
-                class="cta ww-card-open-app-btn"
-                aria-label="Open Wedding Website and RSVPs app"
-              >
-                Open app
-              </button>
-            </div>
-          </div>
-          <div class="cd-card-body"><div id="wedding-website-dashboard-root"></div></div>
-        </section>
-
-        <!-- Budget Tracker and Progress Ring -->
-        <div class="customer-widgets-grid">
-          <div id="budget-tracker-widget" aria-live="polite"></div>
-          <div id="progress-ring-widget" aria-live="polite"></div>
-        </div>
-
-        <!-- Budget KPI Cards -->
-        <div id="customer-budget-kpis" aria-live="polite" aria-label="Budget overview" style="margin-bottom:16px">
-          <div class="skeleton" style="height:80px;border-radius:16px;"></div>
-        </div>
-
-        <!-- Milestone Checklist -->
-        <div id="customer-milestones-widget" aria-live="polite" style="margin-bottom:20px">
-          <div class="skeleton" style="height:200px;border-radius:16px;"></div>
-        </div>
-
-        <!-- Budget Settings Card -->
-        <div class="card cd-card customer-budget-card">
-          <div class="sd-card-header sd-card-header--amber">
-            <div class="sd-card-header__left">
-              <div class="sd-card-header__title-row">
-                <div class="sd-card-header__icon sd-card-header__icon--amber" aria-hidden="true">
-                  <svg
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    stroke-width="1.75"
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                  >
-                    <path d="M21 12V7H5a2 2 0 0 1 0-4h14v4" />
-                    <path d="M3 5v14a2 2 0 0 0 2 2h16v-5" />
-                    <path d="M18 12a2 2 0 0 0 0 4h4v-4z" />
-                  </svg>
-                </div>
-                <h3 class="sd-card-header__heading">Budget Settings</h3>
-              </div>
-              <p class="sd-card-header__subtitle">
-                Set your total event budget to track spending accurately.
-              </p>
-            </div>
-          </div>
-          <div class="cd-card-body">
-            <form id="budget-settings-form" class="customer-budget-form">
-              <div class="customer-budget-form__field">
-                <label for="custom-budget-input" class="customer-budget-form__label">
-                  Total Budget (£)
-                </label>
+          <div id="budget-settings-panel" class="cdh-budget-panel" hidden>
+            <form id="budget-settings-form" class="cdh-budget-form" novalidate>
+              <div class="cdh-field">
+                <label for="custom-budget-input" class="cdh-label">Total budget (£)</label>
                 <input
                   type="number"
                   id="custom-budget-input"
+                  class="cdh-input"
                   min="0"
                   max="1000000000"
                   step="100"
-                  placeholder="5000"
-                  class="customer-budget-form__input"
+                  inputmode="decimal"
+                  placeholder="e.g. 20000"
                 />
               </div>
-              <button type="submit" class="cta customer-budget-form__submit">Update Budget</button>
-            </form>
-
-            <div id="budget-status" class="customer-budget-status">
-              <p class="small customer-budget-status__message">Budget updated successfully!</p>
-            </div>
-          </div>
-        </div>
-
-        <!-- Upcoming Events Timeline -->
-        <div id="upcoming-events-timeline" aria-live="polite"></div>
-
-        <!-- Section: Your Calendar -->
-        <div class="cd-section-label" role="presentation"><span>Your Calendar</span></div>
-
-        <!-- Calendar View Card -->
-        <div class="card cd-card customer-calendar-card">
-          <div class="sd-card-header sd-card-header--teal">
-            <div class="sd-card-header__left">
-              <div class="sd-card-header__title-row">
-                <div class="sd-card-header__icon sd-card-header__icon--teal" aria-hidden="true">
-                  <svg
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    stroke-width="1.75"
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                  >
-                    <path
-                      d="M8 2v4M16 2v4M3 10h18M5 4h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z"
-                    />
-                  </svg>
-                </div>
-                <h3 class="sd-card-header__heading">Events Calendar</h3>
+              <div class="cdh-budget-form__actions">
+                <button type="submit" class="cdh-btn cdh-btn--primary cdh-btn--sm">Save budget</button>
+                <button type="button" id="budget-settings-cancel" class="cdh-btn cdh-btn--quiet cdh-btn--sm">Cancel</button>
               </div>
-              <p class="sd-card-header__subtitle">Track and manage your upcoming events.</p>
-            </div>
-            <div class="sd-card-header__actions">
-              <button
-                type="button"
-                id="cal-add-entry-btn"
-                class="cta secondary customer-calendar-add-btn"
-                aria-label="Add calendar entry"
-              >
-                <svg
-                  width="14"
-                  height="14"
-                  viewBox="0 0 14 14"
-                  fill="none"
-                  aria-hidden="true"
-                  style="flex-shrink: 0"
-                >
-                  <path
-                    d="M7 1v12M1 7h12"
-                    stroke="currentColor"
-                    stroke-width="2"
-                    stroke-linecap="round"
-                  />
-                </svg>
-                Add Entry
-              </button>
-            </div>
+            </form>
+            <p id="budget-status" class="cdh-form-status" role="status" aria-live="polite"></p>
           </div>
-          <div class="cd-card-body">
-            <div
-              id="cal-legend"
-              class="customer-calendar-legend"
-              aria-label="Calendar colour legend"
+        </section>
+
+        <div class="cdh-layout">
+          <div class="cdh-col cdh-col--main">
+            <!-- Next steps -->
+            <section id="cdh-next-steps" class="cdh-card cdh-card--steps" aria-labelledby="cdh-steps-title">
+              <div class="cdh-card__head">
+                <div class="cdh-card__titles">
+                  <h2 id="cdh-steps-title" class="cdh-card__title">Next steps</h2>
+                  <p id="cdh-steps-sub" class="cdh-card__sub">What to do to get your event organised.</p>
+                </div>
+              </div>
+              <div id="cdh-steps-body" class="cdh-card__body" aria-live="polite">
+                <div class="cdh-skel cdh-skel--row"></div>
+                <div class="cdh-skel cdh-skel--row"></div>
+                <div class="cdh-skel cdh-skel--row"></div>
+              </div>
+            </section>
+
+            <!-- Wedding Website & RSVPs entry. The app itself is opened as a
+                 dialog by customer-wedding-website.js. -->
+            <section
+              id="wedding-website-dashboard-card"
+              class="cdh-card customer-wedding-card"
+              aria-labelledby="wedding-website-heading"
             >
-              <span class="cal-legend-item"
-                ><span class="cal-legend-dot" style="background: #0b8073"></span>Event / Plan</span
-              >
-              <span class="cal-legend-item"
-                ><span class="cal-legend-dot" style="background: #6366f1"></span>Meeting</span
-              >
-              <span class="cal-legend-item"
-                ><span class="cal-legend-dot" style="background: #f59e0b"></span>Appointment</span
-              >
-              <span class="cal-legend-item"
-                ><span class="cal-legend-dot" style="background: #7c3aed"></span>Public</span
-              >
-            </div>
-            <div id="events-calendar" class="customer-calendar-viewport"></div>
-            <section id="calendar-next-up" class="customer-calendar-next-up" aria-live="polite">
-              <div class="customer-calendar-next-up__eyebrow">Next up</div>
-              <div class="customer-calendar-next-up__body">
-                Your next meeting, appointment, or event will appear here.
+              <div class="cdh-card__head">
+                <div class="cdh-card__titles">
+                  <h2 id="wedding-website-heading" class="cdh-card__title">Wedding Website &amp; RSVPs</h2>
+                  <p class="cdh-card__sub">
+                    Your guest website, RSVP form, guest list, seating plan and share tools in one place.
+                  </p>
+                </div>
+                <div class="cdh-card__actions">
+                  <span id="wedding-website-status-pill" class="customer-wedding-status-pill cdh-pill">Not started</span>
+                  <button type="button" class="cdh-btn cdh-btn--primary ww-card-open-app-btn" aria-label="Open Wedding Website and RSVPs app">
+                    Open app
+                  </button>
+                </div>
+              </div>
+              <div id="wedding-website-dashboard-root" hidden></div>
+            </section>
+
+            <!-- Calendar -->
+            <section class="cdh-card cdh-card--calendar" aria-labelledby="cdh-calendar-title">
+              <div class="cdh-card__head">
+                <div class="cdh-card__titles">
+                  <h2 id="cdh-calendar-title" class="cdh-card__title">Calendar</h2>
+                  <p class="cdh-card__sub">Meetings, appointments and events you have saved.</p>
+                </div>
+                <div class="cdh-card__actions">
+                  <button type="button" id="cal-add-entry-btn" class="cdh-btn cdh-btn--secondary cdh-btn--sm" aria-label="Add calendar entry">
+                    <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+                      <path d="M7 1.5v11M1.5 7h11" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" />
+                    </svg>
+                    Add entry
+                  </button>
+                </div>
+              </div>
+              <div class="cdh-card__body">
+                <ul id="cal-legend" class="cdh-legend" aria-label="Calendar colour legend">
+                  <li class="cal-legend-item"><span class="cal-legend-dot cal-legend-dot--event" aria-hidden="true"></span>Event or plan</li>
+                  <li class="cal-legend-item"><span class="cal-legend-dot cal-legend-dot--meeting" aria-hidden="true"></span>Meeting</li>
+                  <li class="cal-legend-item"><span class="cal-legend-dot cal-legend-dot--appointment" aria-hidden="true"></span>Appointment</li>
+                  <li class="cal-legend-item"><span class="cal-legend-dot cal-legend-dot--public" aria-hidden="true"></span>Public event</li>
+                </ul>
+                <div id="events-calendar" class="customer-calendar-viewport"></div>
+                <div id="calendar-next-up" class="customer-calendar-next-up" aria-live="polite">
+                  <div class="customer-calendar-next-up__eyebrow">Next up</div>
+                  <div class="customer-calendar-next-up__body">
+                    Your next meeting, appointment, or event will appear here.
+                  </div>
+                </div>
+              </div>
+            </section>
+          </div>
+
+          <div class="cdh-col cdh-col--side">
+            <!-- Plans -->
+            <section class="cdh-card cdh-card--plans" aria-labelledby="cdh-plans-title">
+              <div class="cdh-card__head">
+                <div class="cdh-card__titles">
+                  <h2 id="cdh-plans-title" class="cdh-card__title">Your plans</h2>
+                </div>
+                <div class="cdh-card__actions">
+                  <a href="/start" class="cdh-link">New plan</a>
+                </div>
+              </div>
+              <div class="cdh-card__body">
+                <!-- Regression guard: id="customer-plans-list" aria-live="polite" -->
+                <div id="customer-plans-list" aria-live="polite" class="customer-plans-list-container">
+                  <div class="cdh-skel cdh-skel--row"></div>
+                  <div class="cdh-skel cdh-skel--row"></div>
+                </div>
+              </div>
+            </section>
+
+            <!-- Messages: MessengerWidgetV4 renders the list; its own heading is hidden here. -->
+            <section class="cdh-card cdh-card--messages" aria-labelledby="cdh-messages-title">
+              <div class="cdh-card__head">
+                <div class="cdh-card__titles">
+                  <h2 id="cdh-messages-title" class="cdh-card__title">
+                    Messages
+                    <span id="unreadMessageBadge" class="cdh-badge" style="display: none" aria-label="No unread messages"></span>
+                  </h2>
+                </div>
+                <div class="cdh-card__actions">
+                  <a href="/messenger/" class="cdh-link">Open inbox</a>
+                </div>
+              </div>
+              <div class="cdh-card__body">
+                <!-- Messenger Dashboard Widget (sole conversation UI) -->
+                <div id="messenger-dashboard-widget" class="customer-messenger-widget"></div>
+              </div>
+            </section>
+
+            <!-- Saved suppliers -->
+            <section class="cdh-card cdh-card--saved" aria-labelledby="cdh-saved-title">
+              <div class="cdh-card__head">
+                <div class="cdh-card__titles">
+                  <h2 id="cdh-saved-title" class="cdh-card__title">Saved suppliers</h2>
+                </div>
+                <div class="cdh-card__actions">
+                  <a href="/suppliers" class="cdh-link">Browse</a>
+                </div>
+              </div>
+              <div class="cdh-card__body">
+                <div id="saved-suppliers-status" aria-live="polite">
+                  <div class="cdh-skel cdh-skel--row"></div>
+                </div>
+                <button type="button" class="cdh-btn cdh-btn--secondary cdh-btn--sm cdh-btn--block" id="openPlanBtn">
+                  View saved suppliers
+                </button>
+              </div>
+            </section>
+
+            <!-- Suggestions: hidden until recommendations-widget.js has something to show. -->
+            <section id="recommendations-widget" class="cdh-card recommendations-widget" hidden aria-label="Suggested suppliers"></section>
+
+            <!-- Support -->
+            <section class="cdh-card cdh-card--support" aria-labelledby="cdh-support-title">
+              <div class="cdh-card__head">
+                <div class="cdh-card__titles">
+                  <h2 id="cdh-support-title" class="cdh-card__title">Support</h2>
+                  <p class="cdh-card__sub">Get help or report an issue with our team.</p>
+                </div>
+                <div class="cdh-card__actions">
+                  <button type="button" class="cdh-btn cdh-btn--secondary cdh-btn--sm" id="createTicketBtn">New ticket</button>
+                </div>
+              </div>
+              <div class="cdh-card__body">
+                <div id="tickets-cust" aria-live="polite">
+                  <div class="cdh-skel cdh-skel--row"></div>
+                  <div class="cdh-skel cdh-skel--row"></div>
+                </div>
               </div>
             </section>
           </div>
         </div>
-
-        <!-- Section: Your Hub -->
-        <div class="cd-section-label" role="presentation"><span>Your Hub</span></div>
-
-        <div class="cards">
-          <!-- Your Plans Card -->
-          <div class="card cd-card cd-card--plans">
-            <div class="sd-card-header sd-card-header--blue">
-              <div class="sd-card-header__left">
-                <div class="sd-card-header__title-row">
-                  <div class="sd-card-header__icon sd-card-header__icon--blue" aria-hidden="true">
-                    <svg
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      stroke-width="1.75"
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                    >
-                      <rect x="8" y="2" width="8" height="4" rx="1" ry="1" />
-                      <path
-                        d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"
-                      />
-                      <path d="M12 11h4M12 16h4M8 11h.01M8 16h.01" />
-                    </svg>
-                  </div>
-                  <h3 class="sd-card-header__heading">Your Plans</h3>
-                </div>
-                <p class="sd-card-header__subtitle">Event plans created with the wizard.</p>
-              </div>
-            </div>
-            <div class="cd-card-body">
-              <!-- Regression guard: id="customer-plans-list" aria-live="polite" -->
-              <div
-                id="customer-plans-list"
-                aria-live="polite"
-                class="customer-plans-list-container"
-              >
-                <div class="skeleton skeleton-text skeleton-text-long"></div>
-                <div class="skeleton skeleton-text skeleton-text-medium"></div>
-              </div>
-              <a href="/start" class="cta secondary customer-card-action">Create New Plan</a>
-            </div>
-          </div>
-          <!-- Conversations Card -->
-          <div class="card cd-card cd-card--conversations">
-            <div class="sd-card-header sd-card-header--indigo">
-              <div class="sd-card-header__left">
-                <div class="sd-card-header__title-row">
-                  <div class="sd-card-header__icon sd-card-header__icon--indigo" aria-hidden="true">
-                    <svg
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      stroke-width="1.75"
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                    >
-                      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-                    </svg>
-                  </div>
-                  <h3 class="sd-card-header__heading">Conversations</h3>
-                </div>
-                <p class="sd-card-header__subtitle">Messages with your event suppliers.</p>
-              </div>
-              <div class="sd-card-header__actions">
-                <span id="unreadMessageBadge" class="badge badge-info customer-unread-badge"
-                  >0 unread</span
-                >
-                <a href="/messenger/" class="cta customer-inbox-btn">View Inbox</a>
-              </div>
-            </div>
-            <div class="cd-card-body">
-              <div class="customer-conversations-controls">
-                <!-- Mini search bar -->
-                <input
-                  type="search"
-                  id="widget-search-input"
-                  placeholder="Search conversations..."
-                  class="customer-conversations-search"
-                />
-
-                <!-- Filter dropdown -->
-                <select id="widget-filter-select" class="customer-conversations-filter">
-                  <option value="all">All</option>
-                  <option value="unread">Unread</option>
-                  <option value="starred">Starred</option>
-                </select>
-              </div>
-              <!-- Messenger Dashboard Widget (sole conversation UI) -->
-              <div id="messenger-dashboard-widget" class="customer-messenger-widget"></div>
-            </div>
-          </div>
-          <!-- Your Saved Suppliers Card -->
-          <div class="card cd-card">
-            <div class="sd-card-header sd-card-header--amber">
-              <div class="sd-card-header__left">
-                <div class="sd-card-header__title-row">
-                  <div class="sd-card-header__icon sd-card-header__icon--amber" aria-hidden="true">
-                    <svg
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      stroke-width="1.75"
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                    >
-                      <polygon
-                        points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"
-                      />
-                    </svg>
-                  </div>
-                  <h3 class="sd-card-header__heading">Saved Suppliers</h3>
-                </div>
-                <p class="sd-card-header__subtitle">Review and manage your saved suppliers.</p>
-              </div>
-            </div>
-            <div class="cd-card-body">
-              <div id="saved-suppliers-status" aria-live="polite"></div>
-              <button class="cta customer-card-action--full" id="openPlanBtn">
-                View Saved Items
-              </button>
-            </div>
-          </div>
-          <!-- Quick Actions Card -->
-          <div class="card cd-card">
-            <div class="sd-card-header sd-card-header--emerald">
-              <div class="sd-card-header__left">
-                <div class="sd-card-header__title-row">
-                  <div
-                    class="sd-card-header__icon sd-card-header__icon--emerald"
-                    aria-hidden="true"
-                  >
-                    <svg
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      stroke-width="1.75"
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                    >
-                      <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
-                    </svg>
-                  </div>
-                  <h3 class="sd-card-header__heading">Quick Actions</h3>
-                </div>
-                <p class="sd-card-header__subtitle">Common tasks to help plan your event.</p>
-              </div>
-            </div>
-            <div class="cd-card-body">
-              <div class="customer-quick-actions">
-                <a href="/suppliers" class="cd-quick-action">
-                  <span class="cd-quick-action__icon cd-quick-action__icon--teal" aria-hidden="true">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
-                  </span>
-                  <span class="cd-quick-action__label">Browse Suppliers</span>
-                  <svg class="cd-quick-action__chevron" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M9 18l6-6-6-6"/></svg>
-                </a>
-                <a href="/budget" class="cd-quick-action">
-                  <span class="cd-quick-action__icon cd-quick-action__icon--blue" aria-hidden="true">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12V7H5a2 2 0 0 1 0-4h14v4"/><path d="M3 5v14a2 2 0 0 0 2 2h16v-5"/><path d="M18 12a2 2 0 0 0 0 4h4v-4z"/></svg>
-                  </span>
-                  <span class="cd-quick-action__label">Budget Calculator</span>
-                  <svg class="cd-quick-action__chevron" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M9 18l6-6-6-6"/></svg>
-                </a>
-                <a href="/settings" class="cd-quick-action">
-                  <span class="cd-quick-action__icon cd-quick-action__icon--purple" aria-hidden="true">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
-                  </span>
-                  <span class="cd-quick-action__label">Account Settings</span>
-                  <svg class="cd-quick-action__chevron" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M9 18l6-6-6-6"/></svg>
-                </a>
-              </div>
-            </div>
-          </div>
-          <!-- Support Tickets Card -->
-          <div class="card cd-card cd-card--support">
-            <div class="sd-card-header sd-card-header--red">
-              <div class="sd-card-header__left">
-                <div class="sd-card-header__title-row">
-                  <div class="sd-card-header__icon sd-card-header__icon--red" aria-hidden="true">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
-                      <circle cx="12" cy="12" r="10"/>
-                      <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/>
-                      <line x1="12" y1="17" x2="12.01" y2="17"/>
-                    </svg>
-                  </div>
-                  <h3 class="sd-card-header__heading">Support Tickets</h3>
-                </div>
-                <p class="sd-card-header__subtitle">Get help or report an issue with our team.</p>
-              </div>
-              <div class="sd-card-header__actions">
-                <button class="cta customer-tickets-create-btn" id="createTicketBtn">
-                  Create Ticket
-                </button>
-              </div>
-            </div>
-            <div class="cd-card-body">
-              <div id="tickets-cust" class="section" aria-live="polite">
-                <div class="skeleton skeleton-text skeleton-text-long"></div>
-                <div class="skeleton skeleton-text skeleton-text-medium"></div>
-              </div>
-            </div>
-          </div>
-        </div>
-
       </div>
     </main>
     <script src="/assets/js/utils/supplier-avatar.js?v=1.0.1"></script>
@@ -670,10 +399,10 @@
     <script src="/assets/js/unread-badge-manager.js?v=18.3.0" defer></script>
     <script type="module" src="/assets/js/customer-tickets.js?v=18.3.0"></script>
     <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.js" defer></script>
-    <script src="/assets/js/calendar-view.js" defer></script>
-    <script type="module" src="/assets/js/pages/dashboard-customer-module.js"></script>
+    <script src="/assets/js/calendar-view.js?v=2.0.0" defer></script>
     <script src="/assets/js/pages/customer-wedding-website.js?v=2.0.6" defer></script>
-    <script src="/assets/js/pages/dashboard-customer-init.js" defer></script>
+    <script src="/assets/js/pages/customer-dashboard-home.js?v=1.0.0" defer></script>
+    <script src="/assets/js/pages/dashboard-customer-init.js?v=2.0.0" defer></script>
     <!-- BOTTOM NAVBAR - GOLD STANDARD REBUILD (Mobile Only) -->
     <nav class="ef-bottom-nav" role="navigation" aria-label="Mobile bottom navigation">
       <a href="/start" class="ef-bottom-link" aria-label="Plan your event">
@@ -825,17 +554,15 @@
     </footer>
 <script src="/assets/js/components/eventflow-footer.js?v=4" defer></script>
     <!-- Dashboard Overhaul — PR #1150 -->
-    <script src="/assets/js/dashboard-customer-overhaul.js" defer></script>
     <script src="/assets/js/cookie-consent.js?v=3.0.0" defer></script>
     <link rel="stylesheet" href="/assets/css/announcement-banner.css?v=1.0.0">
     <script src="/assets/js/announcement-banner.js?v=1.0.0" defer></script>
 
     <script src="/assets/js/utils/supplier-link.js" defer></script>
-    <script src="/assets/js/recommendations-widget.js?v=1.0.0" defer></script>
+    <script src="/assets/js/recommendations-widget.js?v=2.0.0" defer></script>
     <script src="/assets/js/keyboard-shortcuts.js" defer></script>
     <script src="/assets/js/vendor/confetti-safe.js?v=18.3.0" defer></script>
     <script src="/assets/js/utils/p3-features.js" defer></script>
-    <script src="/assets/js/customer-dashboard-enhancements.js?v=1.0.1" defer></script>
     <script src="/assets/js/pages/dashboard-account-type-notice.js?v=1.0.0" defer></script>
 
     <!-- JadeAssist Chat Widget -->
@@ -847,7 +574,6 @@
     <script src="/messenger/js/MessengerTrigger.js" defer></script>
     <script src="/messenger/js/NotificationBridgeV4.js" defer></script>
     <script src="/assets/js/pages/dashboard-customer-messenger.js"></script>
-    <script src="/assets/js/card-collapse.js?v=1.0.1" defer></script>
   </body>
 </html>
 

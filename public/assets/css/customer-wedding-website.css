@@ -1,8 +1,9 @@
 /*
  * Wedding Website & RSVPs — customer dashboard app.
  *
- * One stylesheet for the whole feature: the dashboard card, the app shell and
- * every view inside it. Markup comes from customer-wedding-website.js.
+ * One stylesheet for the whole feature: the app shell and
+ * every view inside it. The dashboard launcher card is styled by
+ * customer-dashboard-home.css. Markup comes from customer-wedding-website.js.
  *
  * Design: quiet warm neutrals, one teal accent, generous space, hairline
  * borders. Hierarchy comes from type and spacing rather than decoration.
@@ -132,115 +133,6 @@ body.ww-app-open {
   overflow: hidden;
   clip: rect(0 0 0 0);
   white-space: nowrap;
-}
-
-/* ------------------------------------------------------------------ *
- * Dashboard card (the launcher that opens the app)
- * ------------------------------------------------------------------ */
-
-.customer-wedding-card {
-  position: relative;
-  overflow: hidden;
-  border: 1px solid #e8e5de !important;
-  border-radius: 20px !important;
-  background: linear-gradient(180deg, #fff, #fbfaf7) !important;
-  box-shadow: 0 1px 2px rgba(23, 33, 43, 0.05) !important;
-}
-
-.customer-wedding-card .sd-card-header {
-  position: relative;
-  z-index: 1;
-  border-bottom: 0 !important;
-  background: transparent !important;
-}
-
-.customer-wedding-card > .cd-card-body,
-.customer-wedding-card .customer-wedding-collapse-toggle,
-.customer-wedding-card .card-collapse-btn,
-.customer-wedding-card .ef-dashboard-collapse-toggle {
-  display: none !important;
-}
-
-.customer-wedding-card .sd-card-header__actions {
-  align-items: center;
-  gap: 12px;
-}
-
-.customer-wedding-heading-badge {
-  display: inline-flex;
-  width: 40px;
-  height: 40px;
-  flex: none;
-  align-items: center;
-  justify-content: center;
-  border-radius: 12px;
-  background: #e7f3f0 !important;
-  color: #075e54;
-}
-
-.customer-wedding-heading-badge svg {
-  display: block;
-}
-
-#wedding-website-status-pill.customer-wedding-status-pill {
-  display: inline-flex;
-  align-items: center;
-  min-height: 32px;
-  padding: 0 12px;
-  border: 1px solid #e8e5de;
-  border-radius: 999px;
-  background: #fff;
-  color: #3d4955;
-  font-size: 13px;
-  font-weight: 600;
-  line-height: 1;
-  white-space: nowrap;
-}
-
-#wedding-website-status-pill[data-status='in-progress'] {
-  border-color: #f3dca6;
-  background: #fdf4df;
-  color: #8a5300;
-}
-
-#wedding-website-status-pill[data-status='ready'] {
-  border-color: #c4e1da;
-  background: #e7f3f0;
-  color: #075e54;
-}
-
-#wedding-website-status-pill[data-status='published'] {
-  border-color: #bfe3cf;
-  background: #e6f4ec;
-  color: #17784c;
-}
-
-.customer-wedding-card .ww-card-open-app-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 40px;
-  padding: 0 20px;
-  border: 0 !important;
-  border-radius: 10px !important;
-  background: #0b8073 !important;
-  color: #fff !important;
-  font-size: 14px;
-  font-weight: 600;
-  box-shadow: 0 1px 2px rgba(11, 128, 115, 0.3) !important;
-  transition:
-    background-color 0.15s ease,
-    transform 0.15s ease;
-}
-
-.customer-wedding-card .ww-card-open-app-btn:hover {
-  background: #086b60 !important;
-  transform: none;
-}
-
-.customer-wedding-card .ww-card-open-app-btn:focus-visible {
-  outline: 2px solid #0b8073;
-  outline-offset: 3px;
 }
 
 /* ------------------------------------------------------------------ *

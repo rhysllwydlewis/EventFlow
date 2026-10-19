@@ -454,7 +454,7 @@
       ? `<div class="customer-calendar-next-up__meta">📍 ${escapeHtml(next.location)}</div>`
       : '';
     body.innerHTML = `
-      <div><span class="customer-calendar-next-up__badge" style="background:${escapeHtml(next.color)};">${escapeHtml(next.type)}</span><span class="customer-calendar-next-up__title">${escapeHtml(next.title)}</span></div>
+      <div><span class="customer-calendar-next-up__badge" style="--cal-color:${escapeHtml(next.color)};">${escapeHtml(next.type)}</span><span class="customer-calendar-next-up__title">${escapeHtml(next.title)}</span></div>
       <div class="customer-calendar-next-up__meta">${escapeHtml(formatDateTime(next.start))}</div>
       ${location}
     `;
@@ -1009,7 +1009,16 @@
     container.classList.add('fc-loaded');
 
     // Initialize FullCalendar
+    // FullCalendar draws the prev/next arrows as role="img" spans with no label; the buttons
+    // around them already carry the accessible name, so the glyphs are hidden from assistive tech.
+    const hideDecorativeIcons = () => {
+      container
+        .querySelectorAll('.fc-icon')
+        .forEach(icon => icon.setAttribute('aria-hidden', 'true'));
+    };
+
     const calendar = new FullCalendar.Calendar(container, {
+      datesSet: hideDecorativeIcons,
       initialView: options.initialView || 'dayGridMonth',
       headerToolbar: {
         left: 'prev,next today',
