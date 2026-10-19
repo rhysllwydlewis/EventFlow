@@ -21,10 +21,10 @@ describe('profile customization controller', () => {
     expect(controller).not.toContain('if (Object.keys(socialLinks).length > 0)');
   });
 
-  it('only writes an explicit custom theme after the supplier changes the colour', () => {
+  it('only writes a theme after the supplier changes it', () => {
     expect(controller).toContain('let themeSelectionChanged = false');
-    expect(controller).toContain("payload.themeMode = 'custom'");
     expect(controller).toContain('if (themeSelectionChanged)');
+    expect(controller).toContain('Object.assign(payload, themePayload())');
     expect(controller).not.toContain('themeColor: getThemeColor(),');
   });
 
