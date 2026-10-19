@@ -49,6 +49,13 @@
     });
   }
 
+  // Accessible names for each visible label. A name must contain its visible text
+  // (WCAG 2.5.3 Label in Name), so these extend the label rather than replace it.
+  const ARIA_LABELS = {
+    'Sign up': 'Sign up for a free EventFlow account',
+    'Create account': 'Create account and join EventFlow for free',
+  };
+
   function createLink({ id, className, label, source }) {
     const link = document.createElement('a');
     link.id = id;
@@ -56,7 +63,7 @@
     link.href = SIGNUP_URL;
     link.textContent = label;
     link.dataset.mobileSignupSource = source;
-    link.setAttribute('aria-label', 'Create a free EventFlow account');
+    link.setAttribute('aria-label', ARIA_LABELS[label] || label);
     link.hidden = true;
     link.setAttribute('aria-hidden', 'true');
     return link;
