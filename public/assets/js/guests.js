@@ -49,6 +49,7 @@
     return `${count} ${count === 1 ? one : many || `${one}s`}`;
   }
 
+  /** A party size as a whole number from 1 to the server's maximum; anything unusable becomes 1. */
   function clampParty(value) {
     const n = Math.round(Number(value));
     return Number.isFinite(n) ? Math.max(1, Math.min(MAX_PARTY, n)) : 1;
@@ -116,21 +117,21 @@
 
   /** Guests matching a search term (name, email, phone, table, dietary) and a reply status. */
   function filterGuests(guests, { query = '', status = '' } = {}) {
-    const q = String(query).trim().toLowerCase();
+    const needle = String(query).trim().toLowerCase();
     return guests.filter(g => {
       if (status && g.status !== status) {
         return false;
       }
-      if (!q) {
+      if (!needle) {
         return true;
       }
       return [g.name, g.email, g.phone, g.table, g.dietary].some(value =>
-        value.toLowerCase().includes(q)
+        value.toLowerCase().includes(needle)
       );
     });
   }
 
-  /** "Jane Q Smith" sorts as "smith jane q". */
+  /** "Jane Q Smith" sorts as "smith jane needle". */
   function surnameKey(name) {
     const parts = String(name).trim().toLowerCase().split(/\s+/).filter(Boolean);
     if (parts.length < 2) {
@@ -142,6 +143,7 @@
   /** A sorted copy: by surname, newest first, or by reply (attending, maybe, awaiting, declined). */
   function sortGuests(guests, key = 'name') {
     const order = { attending: 0, maybe: 1, pending: 2, declined: 3 };
+    /** Orders two guests by surname, then first names. */
     const byName = (a, b) => surnameKey(a.name).localeCompare(surnameKey(b.name));
     const list = [...guests];
     if (key === 'recent') {
@@ -189,7 +191,7 @@
     let row = [];
     let cell = '';
     let quoted = false;
-    const src = String(text).replace(/^\uFEFF/, '');
+    const src = String(text).replace(/^\uFEFF/u, '');
     for (let i = 0; i < src.length; i += 1) {
       const ch = src[i];
       if (quoted) {
@@ -281,6 +283,7 @@
     const guests = [];
     const skipped = [];
     rows.slice(1).forEach((row, i) => {
+      /** The trimmed value of a mapped CSV column for the current row ('' when the column is absent). */
       const get = key => (col[key] === undefined ? '' : unguardCell((row[col[key]] || '').trim()));
       const name =
         col.name !== undefined ? get('name') : [get('firstName'), get('lastName')].join(' ').trim();
@@ -309,6 +312,7 @@
 
   /** The request body for a guest created from the form or a CSV row. Empty fields are null. */
   function toPayload(values, { includeTable = true } = {}) {
+    /** A trimmed string, or null when it is empty (the API stores empty fields as null). */
     const text = v => String(v ?? '').trim() || null;
     const payload = {
       name: String(values.name || '').trim(),
@@ -332,6 +336,7 @@
     return Boolean(plan?.weddingWebsite) || type === 'wedding' || name.includes('wedding');
   }
 
+  /** A UK-style short date such as "19 Jun 2027", or '' for a missing or invalid value. */
   function formatDate(value) {
     const date = new Date(value);
     if (!value || Number.isNaN(date.getTime())) {
@@ -340,6 +345,7 @@
     return date.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
   }
 
+  /** The name to show for a plan. */
   const planTitle = plan => plan?.name || plan?.eventName || plan?.eventType || 'Your plan';
 
   /* ------------------------------------------------------------------ *
@@ -360,6 +366,7 @@
       '<path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/>',
   };
 
+  /** Inline SVG markup for one of the page's icons, hidden from assistive technology. */
   function icon(name, size = 16) {
     return `<svg class="gm-icon" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">${ICONS[name] || ''}</svg>`;
   }
@@ -368,8 +375,16 @@
    * The app
    * ------------------------------------------------------------------ */
 
+  /**
+   * Starts the guest manager inside `root`: loads the plan and its guests, renders every view and
+   * wires up the events.
+   * @param {HTMLElement} root The page root (`#gm-root`); dialogs are appended inside it.
+   * @returns {{state: object, load: Function, ready: Promise}} The live state, a reload function
+   * and a promise that settles once the first load has finished.
+   */
   function createGuestApp(root) {
-    const $ = selector => root.querySelector(selector);
+    /** The first element inside the page root that matches `selector`, or null. */
+    const find = selector => root.querySelector(selector);
     const state = {
       phase: 'loading', // loading | ready | error | signin | noplans
       error: '',
@@ -381,11 +396,12 @@
       sort: 'name',
       page: 1,
     };
-    const stage = $('#gm-stage');
-    const toasts = $('#gm-toasts');
+    const stage = find('#gm-stage');
+    const toasts = find('#gm-toasts');
 
     /* ---- network ---- */
 
+    /** The CSRF token for write requests: cached, fetched from the API, or read from a cookie. */
     async function csrfToken() {
       if (window.__CSRF_TOKEN__) {
         return window.__CSRF_TOKEN__;
@@ -400,7 +416,7 @@
           }
           return token;
         }
-      } catch (_) {
+      } catch {
         /* fall through to the cookie */
       }
       const match = document.cookie.match(/(?:^|;\s*)(?:csrf|csrfToken)=([^;]+)/);
@@ -431,11 +447,13 @@
       return json;
     }
 
+    /** URL of the current plan's guests endpoint, with an optional path suffix. */
     const guestsPath = suffix =>
       `/api/me/plans/${encodeURIComponent(state.plan.id)}/guests${suffix}`;
 
     /* ---- small UI helpers ---- */
 
+    /** Shows a short status message; warnings are announced immediately. */
     function toast(message, type = 'ok') {
       const el = document.createElement('div');
       el.className = `gm-toast gm-toast--${type}`;
@@ -448,6 +466,7 @@
       window.setTimeout(() => el.remove(), 4000);
     }
 
+    /** Disables a button and flags it busy while a request runs. */
     function setBusy(button, busy) {
       if (button) {
         button.disabled = Boolean(busy);
@@ -455,8 +474,9 @@
       }
     }
 
+    /** Moves focus to the element matching `selector`, falling back to the list heading. */
     function focusList(selector) {
-      const target = (selector && $(selector)) || $('#gm-list-title');
+      const target = (selector && find(selector)) || find('#gm-list-title');
       target?.focus({ preventScroll: false });
     }
 
@@ -478,13 +498,14 @@
       });
       try {
         dialog.showModal();
-      } catch (_) {
+      } catch {
         dialog.setAttribute('open', '');
       }
     }
 
     /* ---- plans and guests ---- */
 
+    /** Loads the plans (first time only) and the current plan's guests, then redraws the page. */
     async function load() {
       state.phase = 'loading';
       renderStage();
@@ -515,17 +536,18 @@
 
     /* ---- rendering: page chrome ---- */
 
+    /** Syncs the header (subtitle, plan picker, action buttons) with the current state. */
     function renderChrome() {
       const ready = state.phase === 'ready';
       root.querySelectorAll('[data-needs-plan]').forEach(el => {
         el.hidden = !ready;
       });
-      const sub = $('#gm-sub');
+      const sub = find('#gm-sub');
       const date = formatDate(state.plan?.eventDate || state.plan?.date);
       sub.textContent = state.plan
         ? [planTitle(state.plan), date].filter(Boolean).join(' · ')
         : 'Track replies and keep everyone in one place.';
-      const picker = $('#gm-plan-picker');
+      const picker = find('#gm-plan-picker');
       picker.hidden = state.plans.length < 2;
       if (state.plans.length > 1) {
         picker.querySelector('select').innerHTML = state.plans
@@ -537,14 +559,16 @@
       }
     }
 
+    /** Markup for a centred icon, heading, message and optional action buttons. */
     function emptyState({ iconName, title, body, actions = '' }) {
       return `<div class="gm-empty"><span class="gm-empty__icon">${icon(iconName, 24)}</span><h2 class="gm-empty__title">${esc(title)}</h2><p class="gm-empty__body">${body}</p>${actions ? `<div class="gm-empty__actions">${actions}</div>` : ''}</div>`;
     }
 
+    /** Draws the main area for the current phase: loading, error, sign-in, no plans or ready. */
     function renderStage() {
       stage.removeAttribute('aria-busy');
       if (state.phase === 'ready') {
-        if (!$('#gm-results')) {
+        if (!find('#gm-results')) {
           stage.innerHTML = readyShell();
         }
         renderSummary();
@@ -581,6 +605,7 @@
       stage.innerHTML = `<div class="gm-panel">${views[state.phase] || ''}</div>`;
     }
 
+    /** The static frame of the ready view: summary, pointer note, toolbar and results host. */
     function readyShell() {
       const filterOptions = [['', 'All replies'], ...STATUSES.map(s => [s, STATUS_LABELS[s]])]
         .map(
@@ -603,43 +628,46 @@
         </section>`;
     }
 
+    /** Redraws the counts, progress bar, dietary tags and the wedding pointer. */
     function renderSummary() {
-      const s = summarise(state.guests);
-      const host = $('#gm-summary');
-      if (!s.total) {
+      const counts = summarise(state.guests);
+      const host = find('#gm-summary');
+      if (!counts.total) {
         host.hidden = true;
       } else {
         host.hidden = false;
+        /** Markup for one summary figure. */
         const stat = (label, value, note) =>
           `<li class="gm-stat"><span class="gm-stat__label">${label}</span><strong class="gm-stat__value">${value}</strong><span class="gm-stat__note">${note}</span></li>`;
         const bar = ['attending', 'maybe', 'declined', 'pending']
-          .filter(k => s[k])
+          .filter(k => counts[k])
           .map(
             k =>
-              `<i class="gm-bar__seg gm-bar__seg--${k}" style="width:${(s[k] / s.total) * 100}%"></i>`
+              `<i class="gm-bar__seg gm-bar__seg--${k}" style="width:${(counts[k] / counts.total) * 100}%"></i>`
           )
           .join('');
-        const summaryLabel = `${s.attending} attending, ${s.maybe} maybe, ${s.declined} declined, ${s.pending} awaiting a reply`;
-        const dietary = s.dietary.length
-          ? `<div class="gm-dietary"><span class="gm-dietary__label">Dietary needs (attending)</span><ul class="gm-tags">${s.dietary
+        const summaryLabel = `${counts.attending} attending, ${counts.maybe} maybe, ${counts.declined} declined, ${counts.pending} awaiting a reply`;
+        const dietary = counts.dietary.length
+          ? `<div class="gm-dietary"><span class="gm-dietary__label">Dietary needs (attending)</span><ul class="gm-tags">${counts.dietary
               .map(d => `<li class="gm-tag">${esc(d.label)} <b>${d.count}</b></li>`)
               .join('')}</ul></div>`
           : '';
         host.innerHTML = `<ul class="gm-stats">
-            ${stat('Guests', s.total, `${plural(s.totalPeople, 'person', 'people')} invited`)}
-            ${stat('Attending', s.attending, `${plural(s.attendingPeople, 'person', 'people')}`)}
-            ${stat('Awaiting reply', s.pending, s.maybe ? `${s.maybe} maybe` : 'No maybes')}
-            ${stat('Declined', s.declined, s.declined ? 'Not coming' : 'None so far')}
+            ${stat('Guests', counts.total, `${plural(counts.totalPeople, 'person', 'people')} invited`)}
+            ${stat('Attending', counts.attending, `${plural(counts.attendingPeople, 'person', 'people')}`)}
+            ${stat('Awaiting reply', counts.pending, counts.maybe ? `${counts.maybe} maybe` : 'No maybes')}
+            ${stat('Declined', counts.declined, counts.declined ? 'Not coming' : 'None so far')}
           </ul>
-          <div class="gm-progress"><div class="gm-bar" role="img" aria-label="${esc(summaryLabel)}">${bar}</div><p class="gm-progress__text">${s.replied} of ${s.total} have replied</p></div>
+          <div class="gm-progress"><div class="gm-bar" role="img" aria-label="${esc(summaryLabel)}">${bar}</div><p class="gm-progress__text">${counts.replied} of ${counts.total} have replied</p></div>
           ${dietary}`;
       }
-      const note = $('#gm-note');
+      const note = find('#gm-note');
       note.innerHTML = isWeddingPlan(state.plan)
         ? `<p class="gm-note">${icon('heart')}<span>This is the same guest list your Wedding Website &amp; RSVPs uses. Replies from your website appear here; seating is arranged there. <a href="/dashboard/customer">Open Wedding Website &amp; RSVPs</a></span></p>`
         : '';
     }
 
+    /** The guests that match the current search and filter, in the chosen sort order. */
     function visibleGuests() {
       return sortGuests(
         filterGuests(state.guests, { query: state.query, status: state.status }),
@@ -647,10 +675,12 @@
       );
     }
 
+    /** Markup for a reply status badge. */
     function badge(status) {
       return `<span class="gm-badge gm-badge--${esc(status)}">${esc(STATUS_LABELS[status])}</span>`;
     }
 
+    /** Markup for one guest's table row (which becomes a card on phones). */
     function rowHtml(g) {
       const contact = [g.email, g.phone].filter(Boolean);
       const sub = [...contact, g.source === 'public_rsvp' ? 'Replied via your website' : '']
@@ -668,12 +698,13 @@
       </tr>`;
     }
 
+    /** Redraws the guest table with its pager, or the matching empty state. */
     function renderResults() {
-      const host = $('#gm-results');
+      const host = find('#gm-results');
       if (!host) {
         return;
       }
-      $('.gm-toolbar').hidden = !state.guests.length;
+      find('.gm-toolbar').hidden = !state.guests.length;
       if (!state.guests.length) {
         host.innerHTML = emptyState({
           iconName: 'users',
@@ -713,8 +744,13 @@
 
     /* ---- add / edit ---- */
 
+    /**
+     * Opens the add or edit guest dialog.
+     * @param {object|null} guest The normalised guest to edit, or null to add a new one.
+     * @param {HTMLElement} opener The button that opened it, so focus can return there.
+     */
     function guestDialog(guest, opener) {
-      const g = guest || {
+      const current = guest || {
         name: '',
         email: '',
         phone: '',
@@ -725,8 +761,10 @@
         seated: false,
         notes: '',
       };
+      /** Markup for a labelled form field with an optional hint. */
       const field = (name, label, control, wide = false, hint = '') =>
         `<div class="gm-field${wide ? ' gm-field--wide' : ''}"><label class="gm-label" for="gm-f-${name}">${label}</label>${control}${hint ? `<small class="gm-hint" id="gm-h-${name}">${hint}</small>` : ''}</div>`;
+      /** Markup for a text-like input bound to a guest value. */
       const input = (name, type, value, extra = '') =>
         `<input class="gm-input" id="gm-f-${name}" name="${name}" type="${type}" value="${esc(value)}" ${extra}>`;
       const dialog = document.createElement('dialog');
@@ -736,14 +774,14 @@
         <div class="gm-dialog__head"><h2 class="gm-dialog__title" id="gm-dialog-title">${guest ? 'Edit guest' : 'Add guest'}</h2><button type="button" class="gm-icon-btn" data-dialog-close aria-label="Close">${icon('close', 20)}</button></div>
         <div class="gm-dialog__body">
           <div class="gm-grid">
-            ${field('name', 'Name <span class="gm-req">Required</span>', `${input('name', 'text', g.name, 'required maxlength="200" autocomplete="off" aria-describedby="gm-name-error"')}<small class="gm-error" id="gm-name-error" hidden>Enter the guest’s name.</small>`, true)}
-            ${field('rsvpStatus', 'Reply', `<select class="gm-input gm-select" id="gm-f-rsvpStatus" name="rsvpStatus">${STATUSES.map(s => `<option value="${s}" ${g.status === s ? 'selected' : ''}>${STATUS_LABELS[s]}</option>`).join('')}</select>`)}
-            ${field('partySize', 'Party size', input('partySize', 'number', g.partySize, `min="1" max="${MAX_PARTY}" inputmode="numeric" aria-describedby="gm-h-partySize"`), false, 'People in this booking, including the guest.')}
-            ${field('email', 'Email', input('email', 'email', g.email, 'maxlength="200" autocomplete="off"'))}
-            ${field('phone', 'Phone', input('phone', 'tel', g.phone, 'maxlength="30" autocomplete="off"'))}
-            ${field('dietary', 'Dietary needs', input('dietary', 'text', g.dietary, 'maxlength="500" placeholder="e.g. Vegetarian, nut allergy"'))}
-            ${field('table', 'Table', input('table', 'text', g.table, `maxlength="100" ${g.seated ? 'disabled aria-describedby="gm-h-table"' : ''}`), false, g.seated ? 'Seated in your seating plan. Change it there.' : '')}
-            ${field('notes', 'Notes', `<textarea class="gm-input" id="gm-f-notes" name="notes" rows="2" maxlength="200">${esc(g.notes)}</textarea>`, true)}
+            ${field('name', 'Name <span class="gm-req">Required</span>', `${input('name', 'text', current.name, 'required maxlength="200" autocomplete="off" aria-describedby="gm-name-error"')}<small class="gm-error" id="gm-name-error" hidden>Enter the guest’s name.</small>`, true)}
+            ${field('rsvpStatus', 'Reply', `<select class="gm-input gm-select" id="gm-f-rsvpStatus" name="rsvpStatus">${STATUSES.map(s => `<option value="${s}" ${current.status === s ? 'selected' : ''}>${STATUS_LABELS[s]}</option>`).join('')}</select>`)}
+            ${field('partySize', 'Party size', input('partySize', 'number', current.partySize, `min="1" max="${MAX_PARTY}" inputmode="numeric" aria-describedby="gm-h-partySize"`), false, 'People in this booking, including the guest.')}
+            ${field('email', 'Email', input('email', 'email', current.email, 'maxlength="200" autocomplete="off"'))}
+            ${field('phone', 'Phone', input('phone', 'tel', current.phone, 'maxlength="30" autocomplete="off"'))}
+            ${field('dietary', 'Dietary needs', input('dietary', 'text', current.dietary, 'maxlength="500" placeholder="e.g. Vegetarian, nut allergy"'))}
+            ${field('table', 'Table', input('table', 'text', current.table, `maxlength="100" ${current.seated ? 'disabled aria-describedby="gm-h-table"' : ''}`), false, current.seated ? 'Seated in your seating plan. Change it there.' : '')}
+            ${field('notes', 'Notes', `<textarea class="gm-input" id="gm-f-notes" name="notes" rows="2" maxlength="200">${esc(current.notes)}</textarea>`, true)}
           </div>
           <p class="gm-error gm-form-error" role="alert" hidden></p>
           <p class="gm-form-status" role="status"></p>
@@ -776,7 +814,7 @@
         const buttons = [...form.querySelectorAll('[type="submit"]')];
         buttons.forEach(b => setBusy(b, true));
         try {
-          const payload = toPayload(values, { includeTable: !g.seated });
+          const payload = toPayload(values, { includeTable: !current.seated });
           if (guest) {
             const res = await api(guestsPath(`/${encodeURIComponent(guest.id)}`), {
               method: 'PATCH',
@@ -820,6 +858,7 @@
 
     /* ---- delete ---- */
 
+    /** Opens the remove-guest confirmation; focus starts on Cancel. */
     function confirmDelete(guest, opener) {
       const dialog = document.createElement('dialog');
       dialog.className = 'gm-dialog gm-dialog--narrow';
@@ -851,18 +890,20 @@
 
     /* ---- CSV import / export ---- */
 
+    /** Saves `text` as a CSV file download (with a byte-order mark so Excel reads UTF-8). */
     function download(filename, text) {
-      const blob = new Blob(['﻿', text], { type: 'text/csv;charset=utf-8' });
+      const blob = new Blob(['\uFEFF', text], { type: 'text/csv;charset=utf-8' });
       const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = filename;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
       URL.revokeObjectURL(url);
     }
 
+    /** Downloads every guest as a CSV file. */
     function exportGuests() {
       if (!state.guests.length) {
         toast('There are no guests to export yet', 'warn');
@@ -875,6 +916,7 @@
       toast('Guest list exported');
     }
 
+    /** Opens the CSV import dialog: choose a file, preview what it contains, then import it. */
     function importDialog(opener) {
       const dialog = document.createElement('dialog');
       dialog.className = 'gm-dialog';
@@ -1011,10 +1053,10 @@
         state.query = '';
         state.status = '';
         state.page = 1;
-        $('#gm-search').value = '';
-        $('#gm-filter').value = '';
+        find('#gm-search').value = '';
+        find('#gm-filter').value = '';
         renderResults();
-        $('#gm-search').focus();
+        find('#gm-search').focus();
       },
       page: el => {
         state.page += Number(el.dataset.dir) || 0;

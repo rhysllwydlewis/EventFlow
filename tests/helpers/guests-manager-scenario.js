@@ -14,6 +14,7 @@ const { JSDOM } = require('jsdom');
 
 const root = path.join(__dirname, '../..');
 
+/** Waits long enough for the fetch, render and DOM updates to finish. */
 async function settle() {
   for (let i = 0; i < 8; i++) {
     await new Promise(resolve => setTimeout(resolve, 0));
@@ -21,6 +22,7 @@ async function settle() {
   await new Promise(resolve => setTimeout(resolve, 30));
 }
 
+/** Loads the page in jsdom with the scenario's mock API and prints what it rendered as JSON. */
 async function main() {
   const scenario = JSON.parse(Buffer.from(process.argv[2] || 'e30=', 'base64').toString('utf8'));
   const plans = scenario.plans || [{ id: 'p1', name: 'Our wedding', eventType: 'wedding' }];
@@ -50,6 +52,7 @@ async function main() {
   await settle();
 
   const doc = window.document;
+  /** The whitespace-normalised text of the first element matching `selector`. */
   const text = selector =>
     (doc.querySelector(selector)?.textContent || '').replace(/\s+/g, ' ').trim();
   const result = {
