@@ -665,7 +665,7 @@
           iconName: 'users',
           title: 'Sign in to manage your guests',
           body: 'Your guest list is private to your account.',
-          actions: '<a class="gm-btn gm-btn--primary" href="/auth">Sign in</a>',
+          actions: '<a class="gm-btn gm-btn--primary" href="/auth?redirect=%2Fguests">Sign in</a>',
         }),
         noplans: emptyState({
           iconName: 'users',

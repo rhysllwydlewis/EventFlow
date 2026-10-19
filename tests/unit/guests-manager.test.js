@@ -320,6 +320,16 @@ describe('the app, rendered into guests.html (jsdom)', () => {
   });
 });
 
+describe('signing in from the guest list', () => {
+  test('the sign-in link returns to /guests, which the customer redirect allowlist permits', () => {
+    const js = fs.readFileSync(path.join(PUBLIC, 'assets/js/guests.js'), 'utf8');
+    expect(js).toContain('/auth?redirect=%2Fguests');
+    const app = fs.readFileSync(path.join(PUBLIC, 'assets/js/app.js'), 'utf8');
+    const customer = app.slice(app.indexOf('    customer: ['));
+    expect(customer.slice(0, customer.indexOf('    ],'))).toMatch(/'\/guests',\s+'\/guests\.html'/);
+  });
+});
+
 describe('formatDate', () => {
   /** Runs formatDate in a child process whose time zone is west of Greenwich. */
   const inNewYork = value =>
