@@ -30,6 +30,16 @@ const tablesWithoutGuest = (plan, guestId) =>
     guestIds: (table.guestIds || []).filter(id => id !== guestId),
   }));
 
+/** The plan as it is now, null when it is gone, or undefined when the database could not be read. */
+async function rereadPlan(planId, userId) {
+  try {
+    return await dbUnified.findOne('plans', { id: planId, userId });
+  } catch (error) {
+    logger.error('changeGuests: could not re-read the plan', error);
+    return undefined;
+  }
+}
+
 const MAX_WRITE_ATTEMPTS = 5;
 
 /**
@@ -68,11 +78,8 @@ async function changeGuests(req, mutate) {
       return { ...outcome, saved: true };
     }
     // updateOne also answers false when the database call failed, which is not a conflict.
-    let current;
-    try {
-      current = await dbUnified.findOne('plans', { id: plan.id, userId: req.user.id });
-    } catch (error) {
-      logger.error('changeGuests: could not re-read the plan', error);
+    const current = await rereadPlan(plan.id, req.user.id);
+    if (current === undefined) {
       return { failed: true };
     }
     if (!current) {

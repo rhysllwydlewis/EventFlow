@@ -500,3 +500,72 @@ describe('what the suggestions panel is told about the plan', () => {
     expect(body).not.toContain('dataset.budget');
   });
 });
+
+describe('the account-type notice', () => {
+  const notice = html.slice(
+    html.indexOf('<div id="account-type-notice"'),
+    html.indexOf('</main>', html.indexOf('<div id="account-type-notice"'))
+  );
+  const noticeHtml = notice;
+  const rule = selector => {
+    const at = css.indexOf(`${selector} {`);
+    return at < 0 ? '' : css.slice(at, css.indexOf('}', at) + 1);
+  };
+
+  test('says it in one short sentence, with the rest of the message only where there is room', () => {
+    expect(noticeHtml).toMatch(/Want to list a business\?/);
+    expect(noticeHtml).toMatch(
+      /<span class="cdh-notice__more"> Switch to a supplier account\.<\/span>/
+    );
+    expect(noticeHtml).not.toMatch(/You’re signed up as a/);
+    const text = noticeHtml.match(/<p class="cdh-notice__text">([\s\S]*?)<\/p>/)[1];
+    expect(
+      text
+        .replace(/<[^>]+>/g, '')
+        .replace(/\s+/g, ' ')
+        .trim().length
+    ).toBeLessThan(60);
+  });
+
+  test('keeps the "details come with you" reassurance on the button', () => {
+    expect(noticeHtml).toMatch(/title="Your details come with you"/);
+  });
+
+  test('Switch and Dismiss are one group, next to each other, and Dismiss is a labelled button', () => {
+    const actions = noticeHtml.match(
+      /<div class="cdh-notice__actions">([\s\S]*?)<\/div>\s*<\/div>/
+    )[1];
+    expect(actions).toMatch(/class="cdh-notice__cta"[^>]*href="\/settings#account-type-card"/);
+    expect(actions.indexOf('cdh-notice__cta')).toBeLessThan(actions.indexOf('cdh-notice__dismiss'));
+    expect(actions).toMatch(
+      /<button type="button" class="cdh-notice__dismiss" id="account-type-notice-dismiss">\s*Dismiss\s*<\/button>/
+    );
+    expect(noticeHtml).not.toMatch(/aria-label="Dismiss account type notice"/);
+  });
+
+  test('the text scales with the notice, between 12px and 14px, on one line', () => {
+    const text = rule('.cdh-page .cdh-notice__text');
+    expect(text).toMatch(/white-space: nowrap;/);
+    expect(text).toMatch(/font-size: clamp\(12px, calc\(\(100cqi - \d+px\) \/ \d+\), 14px\);/);
+    expect(rule('.cdh-page .cdh-notice')).toMatch(/container: cdh-notice \/ inline-size;/);
+  });
+
+  test('sizes follow the notice, in three steps: full message, just the question, then two lines', () => {
+    expect(css).toMatch(
+      /@container cdh-notice \(max-width: 599px\) \{[^@]*\.cdh-notice__more \{\s*display: none;/
+    );
+    const phone = css.slice(css.indexOf('@container cdh-notice (max-width: 459px)'));
+    expect(phone).toMatch(/\.cdh-notice__inner \{\s*flex-direction: column;/);
+    expect(phone).toMatch(
+      /\.cdh-notice__actions \{\s*display: grid;\s*grid-template-columns: 1fr 1fr;/
+    );
+  });
+
+  test('both buttons are the same height (the site touch-target size) and the old corner × is gone', () => {
+    expect(rule('.cdh-page .cdh-notice__cta,\n.cdh-page .cdh-notice__dismiss')).toMatch(
+      /min-height: 44px;/
+    );
+    expect(css).not.toMatch(/\.cdh-notice__dismiss \{[^}]*position: absolute/);
+    expect(css).not.toMatch(/padding-right: 48px/);
+  });
+});

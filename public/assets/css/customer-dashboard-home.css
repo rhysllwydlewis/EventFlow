@@ -141,32 +141,67 @@
   font-size: 14px;
 }
 
+/*
+ * Account-type notice, in three steps by the notice's own width (container query units, so it
+ * also holds when the page is squeezed by a sidebar or zoom, not just by the screen):
+ *   wide (desktop, tablet): one line, "Want to list a business? Switch to a supplier account.",
+ *     the text scaling down to 12px as the notice narrows so it still fits;
+ *   narrower tablet: still one line, with just the question;
+ *   phone: two lines, the question, then the two buttons side by side.
+ * The buttons keep the site's 44px touch target (mobile-optimizations.css), so the padding is
+ * trimmed instead to keep the banner slim.
+ */
 .cdh-page .cdh-notice {
-  position: relative;
-  padding-right: 48px;
+  container: cdh-notice / inline-size;
+  padding-block: 8px;
 }
 
-.cdh-page .cdh-notice__text,
-.cdh-page .cdh-banner__text {
+.cdh-page .cdh-notice__inner {
+  display: flex;
   flex: 1 1 auto;
   min-width: 0;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px 16px;
 }
 
-.cdh-page .cdh-notice__text strong {
-  color: inherit;
+.cdh-page .cdh-notice__text {
+  min-width: 0;
+  margin: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 13px;
+  font-size: clamp(12px, calc((100cqi - 252px) / 33), 14px);
+  font-weight: 500;
+}
+
+.cdh-page .cdh-notice__actions {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 8px;
+}
+
+.cdh-page .cdh-notice__cta,
+.cdh-page .cdh-notice__dismiss {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  /* The site's touch-target size; the link would otherwise be shorter than the button beside it. */
+  min-height: 44px;
+  padding: 0 14px;
+  border-radius: 8px;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1;
+  white-space: nowrap;
 }
 
 .cdh-page .cdh-notice__cta {
-  flex: none;
-  display: inline-flex;
-  align-items: center;
-  min-height: 36px;
-  padding: 0 14px;
-  border-radius: 8px;
   background: var(--cdh-accent);
   color: #fff;
-  font-size: 13px;
-  font-weight: 600;
   text-decoration: none;
 }
 
@@ -176,18 +211,7 @@
 }
 
 .cdh-page .cdh-notice__dismiss {
-  position: absolute;
-  top: 50%;
-  right: 8px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 32px;
-  height: 32px;
-  margin-top: -16px;
-  padding: 0;
-  border: 0;
-  border-radius: 8px;
+  border: 1px solid var(--cdh-warn-line);
   background: transparent;
   color: var(--cdh-warn);
   cursor: pointer;
@@ -195,6 +219,33 @@
 
 .cdh-page .cdh-notice__dismiss:hover {
   background: rgba(138, 83, 0, 0.1);
+}
+
+@container cdh-notice (max-width: 599px) {
+  /* The question alone; the button says the rest. */
+  .cdh-page .cdh-notice__more {
+    display: none;
+  }
+
+  .cdh-page .cdh-notice__text {
+    font-size: 13px;
+  }
+}
+
+@container cdh-notice (max-width: 459px) {
+  .cdh-page .cdh-notice__inner {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .cdh-page .cdh-notice__text {
+    font-size: 14px;
+  }
+
+  .cdh-page .cdh-notice__actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+  }
 }
 
 .cdh-page .cdh-hero {
@@ -2427,16 +2478,6 @@
   .cdh-page .cdh-budget-form,
   .cdh-page .cdh-field {
     width: 100%;
-  }
-
-  .cdh-page .cdh-notice {
-    flex-wrap: wrap;
-    padding-right: 48px;
-  }
-
-  .cdh-page .cdh-notice__cta {
-    flex: 1 1 100%;
-    justify-content: center;
   }
 
   .cdh-page .cdh-banner {
