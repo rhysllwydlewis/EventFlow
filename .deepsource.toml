@@ -17,6 +17,8 @@ exclude_patterns = [
   "playwright-report/**",
   "test-results/**",
   "public/assets/vendor/**",
+  # Third-party minified library (jsPDF), served from our own origin.
+  "public/assets/js/vendor/jspdf.umd.min.js",
   # Compiled TypeScript output. The .ts sources under src/ are analysed
   # instead, so leaving these in reports every finding twice.
   "public/assets/js/pages/home-v2.js",

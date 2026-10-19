@@ -153,7 +153,7 @@
 
 .gm .gm-title {
   font-size: 28px;
-  font-weight: 650;
+  font-weight: 700;
   line-height: 1.15;
   color: var(--gm-ink);
 }
@@ -1057,6 +1057,10 @@
 }
 
 @media (max-width: 720px) {
+  .gm .gm-title {
+    font-size: 24px;
+  }
+
   .gm {
     padding: 24px 0 96px;
   }

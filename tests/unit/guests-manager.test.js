@@ -665,4 +665,23 @@ describe('page invariants', () => {
   test('respects reduced motion', () => {
     expect(css).toMatch(/prefers-reduced-motion:\s*reduce/);
   });
+
+  test('switching plans updates the address, so a reload does not jump back to the linked plan', () => {
+    const js = fs.readFileSync(path.join(PUBLIC, 'assets/js/guests.js'), 'utf8');
+    expect(js).toMatch(/url\.searchParams\.set\('plan', id\)/);
+    expect(js).toMatch(/remember\(state\.plan\.id\);\s*showPlanInUrl\(state\.plan\.id\);/);
+  });
+
+  test('the page title matches the other customer pages (28px, 24px on phones)', () => {
+    expect(css).toMatch(/\.gm \.gm-title \{\s*font-size: 28px;\s*font-weight: 700;/);
+    expect(css).toMatch(/@media \(max-width: 720px\) \{\s*\.gm \.gm-title \{\s*font-size: 24px;/);
+  });
+
+  test('an import is one bulk request, up to 500 guests, and skips guests already on the list', () => {
+    const js = fs.readFileSync(path.join(PUBLIC, 'assets/js/guests.js'), 'utf8');
+    expect(js).toMatch(/const MAX_IMPORT = 500;/);
+    expect(js).toMatch(/guestsPath\('\/bulk'\)/);
+    expect(js).not.toMatch(/for \(const \[i, row\] of parsed\.guests\.entries\(\)\)/);
+    expect(js).toMatch(/splitDuplicates\(state\.guests, result\.guests\)/);
+  });
 });

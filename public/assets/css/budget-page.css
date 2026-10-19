@@ -125,25 +125,24 @@
   color: var(--bp-ink);
 }
 
-.bp .bp-eyebrow {
-  margin-bottom: 4px;
-  color: var(--bp-accent-deep);
-  font-size: 13px;
-  font-weight: 600;
+.bp .bp-plan-line {
+  margin-top: 6px;
+  color: var(--bp-muted);
+  font-size: 14px;
 }
 
 .bp .bp-title {
   color: var(--bp-ink);
-  font-size: 32px;
+  font-size: 28px;
   font-weight: 700;
   line-height: 1.15;
 }
 
 .bp .bp-lede {
   max-width: 52ch;
-  margin-top: 8px;
+  margin-top: 2px;
   color: var(--bp-muted);
-  font-size: 16px;
+  font-size: 14px;
 }
 
 .bp .bp-head__actions {
@@ -1048,11 +1047,7 @@
   }
 
   .bp .bp-title {
-    font-size: 28px;
-  }
-
-  .bp .bp-lede {
-    font-size: 14px;
+    font-size: 24px;
   }
 
   .bp .bp-head {

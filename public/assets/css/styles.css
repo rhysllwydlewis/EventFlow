@@ -979,61 +979,6 @@ body.legacy-nav-open .legacy-nav-menu{
   color: #6b7280;
 }
 
-/* Thread list */
-.thread-list {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-.thread-row {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  justify-content: space-between;
-  padding: 8px 10px;
-  border-radius: 10px;
-  border: 1px solid rgba(255,255,255,0.06);
-  cursor: pointer;
-}
-.thread-row:hover {
-  background: rgba(255,255,255,0.03);
-}
-.thread-row-main {
-  display: flex;
-  flex-direction: column;
-  flex: 1;
-  min-width: 0;
-}
-.thread-row-avatar {
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
-  overflow: hidden;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 0.8125rem;
-  font-weight: 700;
-  color: #fff;
-  background: linear-gradient(135deg, #0b8073 0%, #0a6b5f 100%);
-  flex-shrink: 0;
-  background-size: cover;
-  background-position: center;
-}
-.thread-row-title {
-  font-size: 0.875rem;
-  font-weight: 500;
-}
-.thread-row-snippet {
-  font-size: 0.75rem;
-  opacity: 0.7;
-}
-.thread-row-meta {
-  font-size: 0.75rem;
-  opacity: 0.7;
-}
-
-
 /* Drag & drop photo upload */
 .photo-drop-zone{
   border:1px dashed rgba(255,255,255,0.25);
@@ -3108,17 +3053,6 @@ textarea:focus:not(:focus-visible) {
    Replacing inline styles across authenticated pages
    =========================================== */
 
-/* Guests empty state */
-.guests-empty-state {
-  text-align: center;
-  padding: 3rem 1rem;
-}
-
-.guests-empty-text {
-  margin-bottom: 1rem;
-  color: var(--ef-text-muted, #6b7280);
-}
-
 /* Notifications toast */
 .notif-toast-inner {
   position: fixed;
@@ -3358,90 +3292,6 @@ textarea:focus:not(:focus-visible) {
 
 .settings-action-btn:focus-visible,
 .settings-action-btn--secondary:focus-visible {
-  outline: 2px solid #0B8073;
-  outline-offset: 2px;
-}
-
-/* ===========================================
-   GUESTS PAGE CLASSES
-   =========================================== */
-.guests-header-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  flex-wrap: wrap;
-  gap: 0.75rem;
-  margin-bottom: 1.25rem;
-}
-
-.guests-action-row {
-  display: flex;
-  gap: 0.75rem;
-  flex-wrap: wrap;
-}
-
-.guests-stats-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-  gap: 1rem;
-  margin-bottom: 1.5rem;
-}
-
-.guests-save-indicator {
-  color: #0B8073;
-  margin-top: 0.25rem;
-  font-weight: 500;
-  font-size: 0.875rem;
-}
-
-.guests-save-indicator[hidden] { display: none !important; }
-
-.guests-empty-icon {
-  font-size: 2rem;
-  margin-bottom: 0.5rem;
-}
-
-/* ===========================================
-   BUDGET PAGE CLASSES
-   =========================================== */
-.budget-header-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  flex-wrap: wrap;
-  gap: 0.75rem;
-  margin-bottom: 1.25rem;
-}
-
-.budget-stats-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-  gap: 1rem;
-  margin-bottom: 1.5rem;
-}
-
-.budget-empty-icon {
-  font-size: 2rem;
-  margin-bottom: 0.5rem;
-}
-
-.budget-period-btn {
-  padding: 0.5rem 1rem;
-  font-size: 0.875rem;
-  border: 1px solid var(--border, #e5e7eb);
-  border-radius: 6px;
-  background: white;
-  cursor: pointer;
-  font-family: inherit;
-  transition: border-color 0.15s ease, background 0.15s ease;
-}
-
-.budget-period-btn:hover {
-  border-color: #0B8073;
-  background: #f0fdf4;
-}
-
-.budget-period-btn:focus-visible {
   outline: 2px solid #0B8073;
   outline-offset: 2px;
 }

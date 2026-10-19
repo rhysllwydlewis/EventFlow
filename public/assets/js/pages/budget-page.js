@@ -181,6 +181,20 @@
     return json;
   }
 
+  /**
+   * Puts the picked plan in the address bar. A ?plan= in the link wins over the remembered plan,
+   * so without this a reload after switching plans would jump back to the plan in the link.
+   */
+  function showPlanInUrl(id) {
+    try {
+      const url = new URL(window.location.href);
+      url.searchParams.set('plan', id);
+      window.history.replaceState(window.history.state, '', url);
+    } catch {
+      /* the address just stays as it was */
+    }
+  }
+
   /** URL of the plan endpoint for the given plan, with an optional suffix such as "/budget". */
   const planUrl = (plan, suffix = '') => `/api/me/plans/${encodeURIComponent(plan.id)}${suffix}`;
 
@@ -1079,6 +1093,7 @@
       const plan = state.plans.find(candidate => candidate.id === event.target.value);
       if (plan) {
         writeStorage(PLAN_PICK_KEY, plan.id);
+        showPlanInUrl(plan.id);
         state.filterCategory = '';
         state.filterPayment = '';
         applyPlan(plan);

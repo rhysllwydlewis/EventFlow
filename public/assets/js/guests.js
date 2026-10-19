@@ -29,7 +29,7 @@
   ];
   const PAGE_SIZE = 25;
   // The write limiter allows 80 writes per 10 minutes, and a CSV import is one write per guest.
-  const MAX_IMPORT = 50;
+  const MAX_IMPORT = 500;
   const MAX_PARTY = 20;
   // PATCH keeps only the first 200 characters of notes on the server as it stands (POST keeps
   // 1000), so a longer edit would be cut off silently. This is the one place to raise when the
@@ -469,6 +469,20 @@
       window.localStorage.setItem(PLAN_KEY, id);
     } catch {
       /* the choice just is not remembered */
+    }
+  }
+
+  /**
+   * Puts the picked plan in the address bar. A ?plan= in the link wins over the remembered plan,
+   * so without this a reload after switching plans would jump back to the plan in the link.
+   */
+  function showPlanInUrl(id) {
+    try {
+      const url = new URL(window.location.href);
+      url.searchParams.set('plan', id);
+      window.history.replaceState(window.history.state, '', url);
+    } catch {
+      /* the address just stays as it was */
     }
   }
 
@@ -1205,6 +1219,7 @@
           status.className = 'gm-import-status gm-error';
           return;
         }
+        // The cap is on what is sent, so guests that are left out above do not count towards it.
         if (fresh.length > MAX_IMPORT) {
           status.textContent = `That file has ${fresh.length} new guests. Import up to ${MAX_IMPORT} at a time.`;
           status.className = 'gm-import-status gm-error';
@@ -1231,33 +1246,36 @@
         }
         setBusy(submit, true);
         fileInput.disabled = true;
-        let added = 0;
-        const failed = [];
-        for (const [i, row] of parsed.guests.entries()) {
-          status.textContent = `Importing ${i + 1} of ${parsed.guests.length}…`;
-          try {
-            const res = await api(guestsPath(''), { method: 'POST', body: toPayload(row) });
-            state.guests.push(normalizeGuest(res.guest));
-            added += 1;
-          } catch (err) {
-            failed.push(`${row.name}: ${err.message}`);
-            if (err.status === 429) {
-              failed.push('Too many requests. Wait a few minutes and import the rest.');
-              break;
-            }
+        status.textContent = `Importing ${plural(parsed.guests.length, 'guest')}…`;
+        try {
+          const res = await api(guestsPath('/bulk'), {
+            method: 'POST',
+            body: { guests: parsed.guests.map(row => toPayload(row)) },
+          });
+          const added = Array.isArray(res.guests) ? res.guests : [];
+          added.forEach(guest => state.guests.push(normalizeGuest(guest)));
+          renderSummary();
+          renderResults();
+          const refused = (Array.isArray(res.skipped) ? res.skipped : []).map(
+            entry =>
+              `${parsed.guests[entry.index]?.name || `Row ${entry.index + 1}`}: ${entry.error}`
+          );
+          status.textContent = `Imported ${plural(added.length, 'guest')}${refused.length ? `. ${plural(refused.length, 'row')} could not be added:` : '.'}`;
+          if (refused.length) {
+            status.className = 'gm-import-status gm-error';
+            skippedList.innerHTML = refused.map(line => `<li>${esc(line)}</li>`).join('');
+            skippedList.hidden = false;
+            submit.hidden = true;
+          } else {
+            toast(`Imported ${plural(added.length, 'guest')}`);
+            dialog.close();
           }
-        }
-        renderSummary();
-        renderResults();
-        status.textContent = `Imported ${plural(added, 'guest')}${failed.length ? `. ${plural(failed.length, 'row')} could not be added:` : '.'}`;
-        if (failed.length) {
+        } catch (err) {
+          // Nothing was added, so the file can be tried again.
+          status.textContent = err.message;
           status.className = 'gm-import-status gm-error';
-          skippedList.innerHTML = failed.map(line => `<li>${esc(line)}</li>`).join('');
-          skippedList.hidden = false;
-          submit.hidden = true;
-        } else {
-          toast(`Imported ${plural(added, 'guest')}`);
-          dialog.close();
+          fileInput.disabled = false;
+          setBusy(submit, false);
         }
       });
       openDialog(dialog, { opener });
@@ -1325,6 +1343,7 @@
       } else if (id === 'gm-plan-select') {
         state.plan = state.plans.find(p => p.id === value) || state.plan;
         remember(state.plan.id);
+        showPlanInUrl(state.plan.id);
         state.query = '';
         state.status = '';
         state.page = 1;

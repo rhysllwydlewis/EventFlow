@@ -249,4 +249,27 @@ describe('budget page styling invariants', () => {
     expect(js).toMatch(/baseVersion: state\.plan\.budgetUpdatedAt \|\| ''/);
     expect(js).toMatch(/state\.plan\.budgetUpdatedAt = data\.budgetUpdatedAt/);
   });
+
+  test('switching plans updates the address, so a reload does not jump back to the linked plan', () => {
+    expect(js).toMatch(/url\.searchParams\.set\('plan', id\)/);
+    expect(js).toMatch(/writeStorage\(PLAN_PICK_KEY, plan\.id\);\s*showPlanInUrl\(plan\.id\);/);
+  });
+
+  test('the header matches the other customer pages: title, then the plan line, 28px and 24px on phones', () => {
+    expect(html).toMatch(
+      /<h1 class="bp-title">Budget<\/h1>\s*<p class="bp-plan-line" id="bp-plan-line">/
+    );
+    expect(css).toMatch(/\.bp \.bp-title \{[^}]*font-size: 28px;[^}]*font-weight: 700;/);
+    expect(css).toMatch(/\.bp \.bp-title \{\s*font-size: 24px;/);
+  });
+
+  test('the PDF library is served from our own origin, because the CSP does not allow cdnjs', () => {
+    const utility = read('assets/js/export-utility.js');
+    const policy = fs.readFileSync(path.join(__dirname, '../../middleware/security.js'), 'utf8');
+    expect(policy).not.toContain('cdnjs.cloudflare.com');
+    expect(utility).not.toContain('cdnjs.cloudflare.com/ajax/libs/jspdf');
+    expect(utility).toContain('/assets/js/vendor/jspdf.umd.min.js');
+    expect(fs.existsSync(path.join(PUBLIC, 'assets/js/vendor/jspdf.umd.min.js'))).toBe(true);
+    expect(html).toMatch(/export-utility\.js\?v=/);
+  });
 });

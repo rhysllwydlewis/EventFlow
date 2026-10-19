@@ -30,7 +30,7 @@ const ASSET_VERSION = '18.3.0';
 // is per file, so pinning them here keeps a regeneration from silently reverting
 // a bumped query string back to the shared version and serving a stale asset.
 const ASSET_VERSIONS = {
-  '/assets/css/styles.css': '18.5.0',
+  '/assets/css/styles.css': '18.5.1',
   // 18.4.5: the touch-target exception list (`p a, .small a, li a`) now also
   // covers #package-breadcrumb/#category-breadcrumb, whose "Home" links
   // aren't wrapped in a <li> and so were the only crumb inflated to 44px —

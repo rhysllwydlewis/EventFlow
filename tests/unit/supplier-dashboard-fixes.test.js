@@ -295,7 +295,6 @@ describe('Supplier dashboard/profile UI polish', () => {
 
   it('dashboard and messenger avatar URLs allow safe https CDN and rooted relative forms', () => {
     expect(messengerWidgetJs).toContain('/^(https?:\\/\\/|\\/[^:])/i.test(avatarUrl)');
-    expect(appJs).toContain('/^(https?:\\/\\/|\\/[^:])/i.test(otherParticipant.avatar)');
     expect(supplierMessagesJs).toContain('/^(https?:\\/\\/|\\/[^:])/i.test(avatarUrl.trim())');
     expect(supplierMessagesJs).toContain(
       "const initial = escapeHtml((name || 'U').charAt(0).toUpperCase())"

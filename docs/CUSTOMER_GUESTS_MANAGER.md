@@ -65,12 +65,14 @@ and edit.
 - Import reads UTF-8 and falls back to Windows-1252 when the bytes are not valid UTF-8, because
   Excel on Windows saves "CSV" that way and accents would otherwise be corrupted.
 - Import matches columns by header name, so the previous `FirstName, LastName, PlusOne` layout still
-  works. It posts one guest at a time and is limited to 50 rows because the write limiter allows 80
-  writes per 10 minutes. Rows without a name are listed as skipped rather than dropped silently.
-  Files over 1 MB are refused before they are read. A guest with the same name and email as one
-  already on the list, or as an earlier row in the same file (ignoring case and extra spaces), is
-  skipped, so importing a previous export does not double the list. Two different people with the
-  same name and no email look identical and count as one.
+  works. A file is sent in one `POST /api/me/plans/:id/guests/bulk` request (up to 500 guests; it used
+  to be one request per guest, which the write limiter capped at 50). Rows without a name are listed
+  as skipped rather than dropped silently. Files over 1 MB are refused before they are read. A guest
+  with the same name and email as one already on the list, or as an earlier row in the same file
+  (ignoring case and extra spaces), is skipped, so importing a previous export does not double the
+  list. Two different people with the same name and no email look identical and count as one. The
+  500 limit counts the guests that would be sent, so guests left out as duplicates do not count
+  towards it.
 - Editing sends only the fields that changed. `PATCH` keeps only the first 200 characters of notes
   (500 for dietary, 100 for table), so re-sending an untouched long note would silently cut it.
   Saving with no changes sends nothing. Notes over 200 characters in an edit are refused with a
@@ -81,8 +83,9 @@ and edit.
 
 ## Left alone
 
-The shared `dash-*` utilities and the now-unused `guests-*` rules in `styles.css` were not touched
-(`styles.css` is global and other pages use the `dash-*` classes). The page still loads the shared
+The shared `dash-*` utilities in `styles.css` were not touched (other pages use them). The old
+`guests-*` and `budget-*` page rules were removed from `styles.css` in a later clean-up (nothing
+used them; `styles.css` is `?v=18.5.1`). The page still loads the shared
 site-chrome stylesheets (`styles.css`, `utilities.css`, `components.css`, `mobile-optimizations.css`,
 `ui-ux-fixes.css`, `navbar.css`, `eventflow-brand.css`, `eventflow-footer.css`): the header, footer
 and cookie banner depend on them. `eventflow-17.0.0.css` and `animations.css` were dropped from this
