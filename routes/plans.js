@@ -530,11 +530,6 @@ router.post(
       if (!Array.isArray(budgetItems)) {
         return res.status(400).json({ error: 'budgetItems must be an array' });
       }
-      if (budgetItems.length > MAX_BUDGET_ITEMS) {
-        return res
-          .status(400)
-          .json({ error: `A budget can have at most ${MAX_BUDGET_ITEMS} items` });
-      }
 
       const plan = await dbUnified.findOne('plans', { id: planId, userId: userId });
 
@@ -542,15 +537,30 @@ router.post(
         return res.status(404).json({ error: 'Plan not found' });
       }
 
+      // A list that grew past the cap before it existed can still be edited or shrunk; it just
+      // cannot get any longer.
+      const savedCount = Array.isArray(plan.budgetItems) ? plan.budgetItems.length : 0;
+      if (budgetItems.length > MAX_BUDGET_ITEMS && budgetItems.length > savedCount) {
+        return res
+          .status(400)
+          .json({ error: `A budget can have at most ${MAX_BUDGET_ITEMS} items` });
+      }
+
       // The list is saved whole, so a second tab or device working from an older copy would wipe
       // out the other's changes. A client that says which version it started from is refused when
       // the saved list has moved on; clients that send no version behave as before.
-      if (baseVersion !== undefined && (plan.budgetUpdatedAt || '') !== String(baseVersion || '')) {
+      const checkVersion = baseVersion !== undefined;
+      const savedVersion = plan.budgetUpdatedAt || '';
+      const sendConflict = async current => {
+        const latest = current || plan;
         return res.status(409).json({
           error: 'This budget was changed somewhere else. Reload to see the latest.',
-          budgetItems: plan.budgetItems || [],
-          budgetUpdatedAt: plan.budgetUpdatedAt || '',
+          budgetItems: latest.budgetItems || [],
+          budgetUpdatedAt: latest.budgetUpdatedAt || '',
         });
+      };
+      if (checkVersion && savedVersion !== String(baseVersion || '')) {
+        return sendConflict();
       }
 
       const now = new Date().toISOString();
@@ -567,13 +577,22 @@ router.post(
         updatedAt: now,
       }));
 
-      await dbUnified.updateOne(
+      // The version is part of the update itself, so two saves that both read the same version
+      // cannot both win: the second finds the version already moved on and matches nothing. The
+      // filter uses the stored version, never the one the client sent.
+      const versionFilter = savedVersion
+        ? { budgetUpdatedAt: savedVersion }
+        : { budgetUpdatedAt: { $in: [null, '', undefined] } };
+      const saved = await dbUnified.updateOne(
         'plans',
-        { id: planId },
+        checkVersion ? { id: planId, userId, ...versionFilter } : { id: planId },
         {
           $set: { budgetItems: sanitizedItems, budgetUpdatedAt: now, updatedAt: now },
         }
       );
+      if (checkVersion && !saved) {
+        return sendConflict(await dbUnified.findOne('plans', { id: planId, userId }));
+      }
 
       res.json({
         success: true,
