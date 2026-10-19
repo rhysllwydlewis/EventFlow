@@ -172,6 +172,70 @@ describe('location', () => {
   });
 });
 
+describe('town matching', () => {
+  const town = (id, location) => supplier(id, `Hall ${id}`, 'Venues', location);
+
+  test('a town does not match a longer place name that merely contains it', async () => {
+    dbUnified.read.mockImplementation(async c =>
+      c === 'suppliers' ? [town('y1', 'Yorkshire Dales'), town('y2', 'York')] : []
+    );
+    const feed = await feedFor({ location: 'York, North Yorkshire' }, { limit: 2 });
+    expect(feed.results[0].id).toBe('y2');
+    expect(feed.results.find(r => r.id === 'y1').rankingReason).not.toMatch(/Available near/);
+  });
+
+  test('a town still matches inside a longer location ("Cardiff & South Wales")', async () => {
+    const feed = await feedFor({ location: 'Cardiff, Wales' }, { limit: 1 });
+    expect(feed.results[0].rankingReason).toBe('Available near Cardiff & South Wales');
+  });
+
+  test('punctuation in a plan location is not read as a pattern', async () => {
+    await expect(feedFor({ location: 'St. Albans (Herts) [UK]+' })).resolves.toBeTruthy();
+  });
+});
+
+describe('older listings', () => {
+  test('a supplier filed under a category alias counts as the category the plan needs', async () => {
+    dbUnified.read.mockImplementation(async c =>
+      c === 'suppliers'
+        ? [
+            supplier('x1', 'Plain Caterer', 'Catering', 'Leeds', { verified: true }),
+            supplier('x2', 'Old Decor Co', 'Decorations', 'Leeds'),
+          ]
+        : []
+    );
+    const feed = await feedFor({ neededCategories: ['Decor'] }, { limit: 2 });
+    expect(feed.results[0].id).toBe('x2');
+    expect(feed.results[0].rankingReason).toBe('Still to find: Decorations');
+  });
+
+  test('a photo that lives on the owner account reaches the feed', async () => {
+    dbUnified.read.mockImplementation(async c => {
+      if (c === 'suppliers') {
+        return [supplier('o1', 'Owner Photo Co', 'Photography', 'Leeds', { ownerUserId: 'u1' })];
+      }
+      if (c === 'users') {
+        return [{ id: 'u1', avatarUrl: 'https://img.example.test/owner.jpg' }];
+      }
+      return [];
+    });
+    const feed = await feedFor({});
+    expect(feed.results[0].profilePhotoUrl).toBe('https://img.example.test/owner.jpg');
+    expect(feed.results[0].displayAvatarUrl).toBe('https://img.example.test/owner.jpg');
+  });
+
+  test('an unreadable users collection does not break the feed', async () => {
+    dbUnified.read.mockImplementation(async c => {
+      if (c === 'users') {
+        throw new Error('users unavailable');
+      }
+      return c === 'suppliers' ? suppliers : [];
+    });
+    const feed = await feedFor({});
+    expect(feed.results.length).toBeGreaterThan(0);
+  });
+});
+
 describe('reasons', () => {
   test('never the catch-all "good match for your search" (nobody searched)', async () => {
     const feed = await feedFor({ neededCategories: ['Photography'], location: 'Cardiff' });

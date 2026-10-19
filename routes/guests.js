@@ -30,7 +30,12 @@ const tablesWithoutGuest = (plan, guestId) =>
     guestIds: (table.guestIds || []).filter(id => id !== guestId),
   }));
 
-/** The plan as it is now, null when it is gone, or undefined when the database could not be read. */
+/**
+ * The plan as it is now, null when it is gone, or undefined when the database could not be read.
+ * `dbUnified.findOne` turns a failed query into null as well, so only a failure to open the
+ * database (which it does not catch) reaches the `undefined` case; a failed query reads as a
+ * missing plan.
+ */
 async function rereadPlan(planId, userId) {
   try {
     return await dbUnified.findOne('plans', { id: planId, userId });

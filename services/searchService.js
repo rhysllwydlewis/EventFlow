@@ -1421,15 +1421,23 @@ async function getPersonalizedFeed(userId, context = {}, options = {}) {
   const { limit = 12, historyDays = 30 } = options;
   const { eventType, location, budget } = context;
   // Categories the customer's plan has not covered yet (the dashboard works these out from the
-  // plan's budget lines). Compared without regard to case.
+  // plan's budget lines). Compared by canonical name and without regard to case, so an older
+  // listing filed under an alias ("Decorations") still matches the dashboard's "Decor".
+  const categoryKey = value =>
+    (canonicalCategoryValue(value) || String(value || '').trim()).toLowerCase();
   const neededCategories = new Set(
     (Array.isArray(context.neededCategories) ? context.neededCategories : [])
       .filter(c => typeof c === 'string' && c.trim())
-      .map(c => c.trim().toLowerCase())
+      .map(categoryKey)
   );
 
+  // Hydrate the same way as supplier search, so a photo that lives on the owner's account or
+  // under the Supplier Bot's source media reaches the dashboard card too.
   const suppliersRaw = await getCachedSuppliers();
-  const suppliers = await hydrateSuppliersWithActivePro(suppliersRaw);
+  const ownerUsers = await getSupplierOwnerUsers();
+  const suppliers = await hydrateSuppliersWithActivePro(
+    enrichSuppliersWithProfilePhotos(suppliersRaw, ownerUsers)
+  );
   const approved = suppliers.filter(s => s.approved);
 
   // Build personalization signals from user search history when userId is known
@@ -1493,6 +1501,12 @@ async function getPersonalizedFeed(userId, context = {}, options = {}) {
     maxPerCategory,
   } = RANKING_CONFIG.personalization;
 
+  // The town as a whole word, so "York" does not also match "Yorkshire" or "Bath" "Bathgate".
+  const escapedTown = topLocation ? topLocation.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') : '';
+  const townPattern = topLocation
+    ? new RegExp(`(?<![\\p{L}\\p{N}])${escapedTown}(?![\\p{L}\\p{N}])`, 'iu')
+    : null;
+
   // Score each approved supplier against personalization signals
   const scored = approved.map(s => {
     let personalizationScore = calculateQualityScore(s);
@@ -1503,11 +1517,7 @@ async function getPersonalizedFeed(userId, context = {}, options = {}) {
       matchReasons.push(topCategory);
     }
 
-    if (
-      topLocation &&
-      typeof s.location === 'string' &&
-      s.location.toLowerCase().includes(topLocation.toLowerCase())
-    ) {
+    if (townPattern && typeof s.location === 'string' && townPattern.test(s.location)) {
       personalizationScore += locationMatchBonus;
       matchReasons.push(topLocation);
     }
@@ -1526,7 +1536,7 @@ async function getPersonalizedFeed(userId, context = {}, options = {}) {
       }
     }
 
-    const needed = Boolean(s.category) && neededCategories.has(String(s.category).toLowerCase());
+    const needed = Boolean(s.category) && neededCategories.has(categoryKey(s.category));
 
     const personalized = matchReasons.length > 0;
     return { supplier: s, score: personalizationScore, personalized, matchReasons, needed };
