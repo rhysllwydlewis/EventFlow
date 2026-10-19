@@ -418,3 +418,85 @@ describe('customer dashboard home: data handling', () => {
     expect(read('public/assets/js/recommendations-widget.js')).not.toMatch(/style="/);
   });
 });
+
+describe('what the suggestions panel is told about the plan', () => {
+  const vm = require('vm');
+  const dashboard = (() => {
+    const window = { location: { search: '', hash: '', pathname: '/' }, addEventListener() {} };
+    const document = {
+      getElementById: () => null,
+      addEventListener() {},
+      readyState: 'loading',
+      querySelector: () => null,
+      querySelectorAll: () => [],
+    };
+    vm.runInNewContext(homeJs, {
+      window,
+      document,
+      console,
+      localStorage: { getItem: () => null, setItem() {} },
+      setTimeout,
+    });
+    return window.CustomerDashboardHome;
+  })();
+  const needed = plan => dashboard.neededSupplierCategories(plan);
+  const lines = (...categories) => categories.map(category => ({ category, item: 'x' }));
+
+  test('a plan with no budget lines still needs everything, so suggestions start broad', () => {
+    expect(needed({ eventType: 'party', budgetItems: [] })).toEqual(
+      expect.arrayContaining(['Venues', 'Catering', 'Photography', 'Entertainment', 'Decor'])
+    );
+    expect(needed(null)).toEqual(expect.arrayContaining(['Venues', 'Catering']));
+  });
+
+  test('a category with a budget line is no longer needed', () => {
+    const list = needed({ eventType: 'party', budgetItems: lines('Venue', 'Catering') });
+    expect(list).not.toContain('Venues');
+    expect(list).not.toContain('Catering');
+    expect(list).toEqual(expect.arrayContaining(['Photography', 'Entertainment', 'Decor']));
+  });
+
+  test('one budget category covers every supplier category it stands for', () => {
+    expect(needed({ budgetItems: lines('Photography') })).not.toEqual(
+      expect.arrayContaining(['Photography'])
+    );
+    expect(needed({ budgetItems: lines('Photography') })).not.toContain('Videography');
+    expect(needed({ budgetItems: lines('Decor') })).not.toContain('Florist');
+  });
+
+  test('a budget line named like the supplier category counts too, whatever its case', () => {
+    expect(needed({ budgetItems: lines('venues', ' CATERING ') })).not.toEqual(
+      expect.arrayContaining(['Venues'])
+    );
+  });
+
+  test('attire (bridalwear) is only needed for a wedding', () => {
+    expect(needed({ eventType: 'wedding', budgetItems: [] })).toContain('Bridalwear');
+    expect(needed({ eventType: 'corporate', budgetItems: [] })).not.toContain('Bridalwear');
+  });
+
+  test('a plan that has covered everything needs nothing', () => {
+    const all = lines('Venue', 'Catering', 'Photography', 'Entertainment', 'Decor', 'Transport');
+    expect(needed({ eventType: 'party', budgetItems: all })).toEqual([]);
+  });
+
+  test('odd budget lines are ignored rather than breaking the panel', () => {
+    expect(() => needed({ budgetItems: [null, {}, { category: 42 }, 'x'] })).not.toThrow();
+  });
+
+  test('only real supplier categories are ever sent', () => {
+    const { VALID_CATEGORIES } = require('../../models/Supplier');
+    needed({ eventType: 'wedding', budgetItems: [] }).forEach(name => {
+      expect(VALID_CATEGORIES).toContain(name);
+    });
+  });
+
+  test('the panel is told the location and the categories still needed, not an event type or a total', () => {
+    const loader = homeJs.slice(homeJs.indexOf('function loadSuggestions('));
+    const body = loader.slice(0, loader.indexOf('window.RecommendationsWidget.init()'));
+    expect(body).toContain('widget.dataset.location = plan.location');
+    expect(body).toContain('widget.dataset.needed = needed.join');
+    expect(body).not.toContain('dataset.eventType');
+    expect(body).not.toContain('dataset.budget');
+  });
+});

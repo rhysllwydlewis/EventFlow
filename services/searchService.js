@@ -44,6 +44,7 @@ const {
   getMatchingSnippets,
   getMatchingFields,
   getRankingReason,
+  DEFAULT_RANKING_REASON,
   RANKING_CONFIG,
 } = require('../utils/searchWeighting');
 const { geocodeLocation, calculateDistance } = require('../utils/geocoding');
@@ -1419,6 +1420,13 @@ function buildFallbackMessage(originalQuery, relaxedFilters) {
 async function getPersonalizedFeed(userId, context = {}, options = {}) {
   const { limit = 12, historyDays = 30 } = options;
   const { eventType, location, budget } = context;
+  // Categories the customer's plan has not covered yet (the dashboard works these out from the
+  // plan's budget lines). Compared without regard to case.
+  const neededCategories = new Set(
+    (Array.isArray(context.neededCategories) ? context.neededCategories : [])
+      .filter(c => typeof c === 'string' && c.trim())
+      .map(c => c.trim().toLowerCase())
+  );
 
   const suppliersRaw = await getCachedSuppliers();
   const suppliers = await hydrateSuppliersWithActivePro(suppliersRaw);
@@ -1472,10 +1480,19 @@ async function getPersonalizedFeed(userId, context = {}, options = {}) {
 
   // Merge explicit context signals (take precedence over inferred signals)
   const topCategory = eventType || preferredCategories[0] || null;
-  const topLocation = location || preferredLocations[0] || null;
+  // A plan's location is often "Cardiff, Wales" while suppliers say "Cardiff & South Wales", so
+  // match on the town (the part before the first comma).
+  const rawLocation = location || preferredLocations[0] || null;
+  const topLocation = rawLocation ? String(rawLocation).split(',')[0].trim() || null : null;
 
-  const { categoryMatchBonus, locationMatchBonus, tagMatchBonus, budgetProximityBonus } =
-    RANKING_CONFIG.personalization;
+  const {
+    categoryMatchBonus,
+    locationMatchBonus,
+    tagMatchBonus,
+    budgetProximityBonus,
+    neededCategoryBonus,
+    maxPerCategory,
+  } = RANKING_CONFIG.personalization;
 
   // Score each approved supplier against personalization signals
   const scored = approved.map(s => {
@@ -1510,14 +1527,36 @@ async function getPersonalizedFeed(userId, context = {}, options = {}) {
       }
     }
 
+    const needed = Boolean(s.category) && neededCategories.has(String(s.category).toLowerCase());
+    if (needed) {
+      personalizationScore += neededCategoryBonus;
+    }
+
     const personalized = matchReasons.length > 0;
-    return { supplier: s, score: personalizationScore, personalized, matchReasons };
+    return { supplier: s, score: personalizationScore, personalized, matchReasons, needed };
   });
 
   // Sort by personalization score descending
   scored.sort((a, b) => b.score - a.score);
 
-  const isPersonalized = topCategory !== null || topLocation !== null;
+  // Take the best few of each category first so the feed is not five of the same kind, then top
+  // up with more of the strongest categories if there are not enough different ones.
+  const perCategory = new Map();
+  const picked = [];
+  const overflow = [];
+  scored.forEach(entry => {
+    const key = String(entry.supplier.category || '').toLowerCase();
+    const count = perCategory.get(key) || 0;
+    if (count < maxPerCategory) {
+      perCategory.set(key, count + 1);
+      picked.push(entry);
+    } else {
+      overflow.push(entry);
+    }
+  });
+  const ranked = picked.concat(overflow);
+
+  const isPersonalized = topCategory !== null || topLocation !== null || neededCategories.size > 0;
   const contextSummary = {
     isPersonalized,
     preferredCategory: topCategory,
@@ -1525,20 +1564,32 @@ async function getPersonalizedFeed(userId, context = {}, options = {}) {
     signalSource:
       userId && preferredCategories.length > 0
         ? 'history'
-        : eventType || location || budget !== undefined
+        : eventType || location || budget !== undefined || neededCategories.size > 0
           ? 'context'
           : 'none',
   };
 
-  const results = scored.slice(0, limit).map(({ supplier, personalized }) => ({
-    ...projectPublicSupplierFields(supplier),
-    relevanceScore: calculateQualityScore(supplier),
-    rankingReason: getRankingReason(supplier, '', {
-      isPersonalized: personalized,
-      preferredCategory: topCategory,
-      preferredLocation: topLocation,
-    }),
-  }));
+  const results = ranked.slice(0, limit).map(({ supplier, personalized, needed }) => {
+    let rankingReason;
+    if (needed) {
+      rankingReason = `Still to find: ${supplier.category}`;
+    } else {
+      rankingReason = getRankingReason(supplier, '', {
+        isPersonalized: personalized,
+        preferredCategory: topCategory,
+        preferredLocation: topLocation,
+      });
+      // With no search behind it, the catch-all "good match for your search" is not a reason.
+      if (rankingReason === DEFAULT_RANKING_REASON) {
+        rankingReason = '';
+      }
+    }
+    return {
+      ...projectPublicSupplierFields(supplier),
+      relevanceScore: calculateQualityScore(supplier),
+      rankingReason,
+    };
+  });
 
   return { results, context: contextSummary };
 }

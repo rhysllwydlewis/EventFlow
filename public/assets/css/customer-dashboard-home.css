@@ -1006,8 +1006,10 @@
 }
 
 .cdh-page .recommendation-avatar--fallback {
-  background: var(--cdh-accent-soft);
-  color: var(--cdh-accent-deep);
+  /* The supplier's own colour (the shared avatar gradient) is put on from script; this stands in
+     until then. White initials, as on every other supplier avatar placeholder. */
+  background: var(--cdh-accent-deep);
+  color: #fff;
   font-size: 14px;
   font-weight: 700;
 }

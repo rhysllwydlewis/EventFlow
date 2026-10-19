@@ -92,6 +92,33 @@ function getSupplierAvatarGradient(supplierOrKey) {
   return `linear-gradient(135deg, ${from} 0%, ${to} 100%)`;
 }
 
+/**
+ * @param {*} value
+ * @returns {boolean} True for an absolute http(s) URL or a site-relative path.
+ */
+function isUsableSupplierImageUrl(value) {
+  if (!value || typeof value !== 'string') {
+    return false;
+  }
+  return /^(https?:\/\/[^\s]+|\/[^/\\:][^:]*)$/i.test(value.trim());
+}
+
+/**
+ * The supplier's profile photo URL, or '' when they have none. Same order as the supplier
+ * cards and the profile page: profile photo, display avatar, avatar, then logo.
+ * @param {object} supplier
+ * @returns {string}
+ */
+function getSupplierPhotoUrl(supplier) {
+  const found = [
+    supplier?.profilePhotoUrl,
+    supplier?.displayAvatarUrl,
+    supplier?.avatarUrl,
+    supplier?.logo,
+  ].find(isUsableSupplierImageUrl);
+  return found ? found.trim() : '';
+}
+
 const api = {
   SUPPLIER_AVATAR_PALETTE,
   SUPPLIER_AVATAR_FALLBACK_INITIAL,
@@ -99,6 +126,8 @@ const api = {
   getSupplierAvatarKey,
   getSupplierAvatarColors,
   getSupplierAvatarGradient,
+  isUsableSupplierImageUrl,
+  getSupplierPhotoUrl,
 };
 
 if (typeof module !== 'undefined' && module.exports) {

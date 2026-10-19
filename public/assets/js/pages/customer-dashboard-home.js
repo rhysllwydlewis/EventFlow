@@ -629,21 +629,60 @@
    * Suggestions and entry point
    * ------------------------------------------------------------------ */
 
-  /** Passes the focus plan's type, location and budget to the suggestions widget, then starts it. */
-  function loadSuggestions(plan, total) {
+  /**
+   * The budget page's categories, and the supplier categories each one stands for. A plan with a
+   * budget line in a category has started on it; one without has not.
+   */
+  const BUDGET_TO_SUPPLIER_CATEGORIES = {
+    venue: ['Venues'],
+    catering: ['Catering'],
+    photography: ['Photography', 'Videography'],
+    entertainment: ['Entertainment', 'Music/DJ'],
+    decor: ['Decor', 'Florist'],
+    transport: ['Transport'],
+    attire: ['Bridalwear'],
+  };
+
+  /**
+   * Supplier categories the plan has not covered yet, which is what the suggestions lean towards:
+   * a plan with venue and catering lines is shown photographers and entertainment, not more
+   * venues. Attire only counts for a wedding.
+   */
+  function neededSupplierCategories(plan) {
+    const covered = new Set(
+      (Array.isArray(plan?.budgetItems) ? plan.budgetItems : []).map(item =>
+        String(item?.category || '')
+          .trim()
+          .toLowerCase()
+      )
+    );
+    const isWedding = /wedding/i.test(`${plan?.eventType || ''} ${plan?.type || ''}`);
+    return Object.entries(BUDGET_TO_SUPPLIER_CATEGORIES)
+      .filter(([budgetCategory, supplierCategories]) => {
+        if (budgetCategory === 'attire' && !isWedding) {
+          return false;
+        }
+        return !(
+          covered.has(budgetCategory) ||
+          supplierCategories.some(name => covered.has(name.toLowerCase()))
+        );
+      })
+      .flatMap(([, supplierCategories]) => supplierCategories);
+  }
+
+  /** Tells the suggestions widget where the plan is and what it still lacks, then starts it. */
+  function loadSuggestions(plan) {
     const widget = byId(ids.suggestions);
     if (!widget || !window.RecommendationsWidget) {
       return;
     }
     if (plan) {
-      if (plan.eventType) {
-        widget.dataset.eventType = plan.eventType;
-      }
       if (plan.location) {
         widget.dataset.location = plan.location;
       }
-      if (total > 0) {
-        widget.dataset.budget = String(total);
+      const needed = neededSupplierCategories(plan);
+      if (needed.length) {
+        widget.dataset.needed = needed.join(',');
       }
     }
     window.RecommendationsWidget.init();
@@ -718,7 +757,7 @@
 
     if (!suggestionsRequested) {
       suggestionsRequested = true;
-      loadSuggestions(plan, total);
+      loadSuggestions(plan);
     }
   }
 
@@ -728,7 +767,12 @@
     celebrateCompletedProfile();
   }
 
-  window.CustomerDashboardHome = { render, pickFocusPlan, totalBudgetFor };
+  window.CustomerDashboardHome = {
+    render,
+    pickFocusPlan,
+    totalBudgetFor,
+    neededSupplierCategories,
+  };
 
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', init);

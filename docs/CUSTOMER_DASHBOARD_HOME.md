@@ -49,6 +49,19 @@ Plans card marks the one in the summary. The budget form saves to that same plan
   steps sit in a real `<details>` ("6 completed").
 - If the plans request fails the page says so and offers a retry; it does not
   show an empty dashboard.
+- **Suggested for you** is `GET /api/v2/search/personalized`, asked with the focus plan's
+  location and the supplier categories the plan has not covered yet (`needed`). A budget
+  category counts as covered once the plan has a budget line in it
+  (`CustomerDashboardHome.neededSupplierCategories`: Venue, Catering, Photography, Entertainment,
+  Decor, Transport, and Attire for a wedding, each mapped to the supplier categories it stands for).
+  Suppliers in a still-needed category rank higher ("Still to find: Photography"), then ones in the
+  plan's town, then by quality; no more than two of one category come before the rest. A card with
+  no real reason shows none (never "good match for your search": nobody searched). Each card opens
+  the supplier's public profile (`publicProfilePath`, built by the server), and shows their photo
+  (`profilePhotoUrl`, else `displayAvatarUrl`, `avatarUrl`, `logo`) or, with none, the shared
+  placeholder from `utils/supplier-avatar.js`: white initials on that supplier's own colour. The
+  response is `private` and never stored in the shared search cache, because it depends on who is
+  signed in.
 
 ## Stylesheet
 
