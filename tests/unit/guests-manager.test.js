@@ -231,6 +231,112 @@ describe('isWeddingPlan', () => {
   });
 });
 
+describe('changedFields', () => {
+  const current = guest({
+    partySize: 2,
+    dietaryRequirements: 'Vegan',
+    notes: 'x'.repeat(300),
+    tableName: 'Top',
+  });
+  const payload = values => ({
+    name: 'Jane Smith',
+    email: '',
+    phone: '',
+    rsvpStatus: 'pending',
+    partySize: 2,
+    dietary: 'Vegan',
+    notes: 'x'.repeat(300),
+    table: 'Top',
+    ...values,
+  });
+
+  test('is empty when nothing was edited', () => {
+    expect(lib.changedFields(current, payload({}))).toEqual({});
+  });
+
+  test('returns only the fields that differ', () => {
+    expect(lib.changedFields(current, payload({ name: 'Jane Jones', partySize: 3 }))).toEqual({
+      name: 'Jane Jones',
+      partySize: 3,
+    });
+  });
+
+  test('treats a cleared field as a change', () => {
+    expect(lib.changedFields(current, payload({ dietary: '' }))).toEqual({ dietary: '' });
+    expect(lib.changedFields(current, payload({ notes: null }))).toEqual({ notes: null });
+  });
+
+  test('a field the guest never had stays unchanged when it is left empty (null or "")', () => {
+    expect(lib.changedFields(current, payload({ email: null, phone: null }))).toEqual({});
+  });
+
+  test('line breaks (a textarea submits CRLF) and edge spacing are not changes', () => {
+    const multiline = guest({ notes: 'Table by the door\nNo nuts', phone: '07700 900123 ' });
+    const same = { notes: 'Table by the door\r\nNo nuts', phone: '07700 900123' };
+    expect(lib.changedFields(multiline, same)).toEqual({});
+    expect(lib.changedFields(multiline, { notes: 'Table by the door\r\nNo nuts!' })).toEqual({
+      notes: 'Table by the door\r\nNo nuts!',
+    });
+  });
+
+  test('compares reply and party size by value, not by type', () => {
+    expect(lib.changedFields(current, { rsvpStatus: 'pending', partySize: 2 })).toEqual({});
+    expect(lib.changedFields(current, { rsvpStatus: 'declined', partySize: 1 })).toEqual({
+      rsvpStatus: 'declined',
+      partySize: 1,
+    });
+  });
+});
+
+describe('toPayload', () => {
+  test('stores line breaks as LF and empty or blank fields as null', () => {
+    const payload = lib.toPayload({ name: ' Jane ', notes: 'a\r\nb\rc', email: '  ', phone: '' });
+    expect(payload).toMatchObject({ name: 'Jane', notes: 'a\nb\nc', email: null, phone: null });
+  });
+});
+
+describe('splitDuplicates', () => {
+  const existing = [guest({ id: '1', name: 'Jane Smith', email: 'Jane@Example.com' })];
+
+  test('matches on name and email, ignoring case and spacing', () => {
+    const { fresh, duplicates } = lib.splitDuplicates(existing, [
+      { name: ' jane smith ', email: 'jane@example.com' },
+      { name: 'Jane Smith', email: 'other@example.com' },
+      { name: 'Sam Lee', email: '' },
+    ]);
+    expect(duplicates.map(g => g.name)).toEqual([' jane smith ']);
+    expect(fresh.map(g => g.name)).toEqual(['Jane Smith', 'Sam Lee']);
+  });
+
+  test('treats extra spaces inside a name as the same guest', () => {
+    const { fresh, duplicates } = lib.splitDuplicates(existing, [
+      { name: 'Jane   Smith', email: 'JANE@example.com ' },
+    ]);
+    expect(fresh).toEqual([]);
+    expect(duplicates).toHaveLength(1);
+  });
+
+  test('a repeated row in the same file is a duplicate, the first one is kept', () => {
+    const { fresh, duplicates } = lib.splitDuplicates(existing, [
+      { name: 'Sam Lee', email: 'sam@example.com', notes: 'first' },
+      { name: 'sam lee', email: 'SAM@example.com', notes: 'second' },
+      { name: 'Sam Lee', email: 'other@example.com' },
+    ]);
+    expect(fresh.map(g => g.notes || g.email)).toEqual(['first', 'other@example.com']);
+    expect(duplicates.map(g => g.notes)).toEqual(['second']);
+  });
+
+  test('the same name with no email on both sides is one guest; a different email is not', () => {
+    const list = [guest({ id: '2', name: 'Sam Lee' })];
+    const { fresh, duplicates } = lib.splitDuplicates(list, [
+      { name: 'Sam Lee', email: '' },
+      { name: 'Sam Lee', email: 'sam@example.com' },
+    ]);
+    expect(duplicates).toHaveLength(1);
+    expect(fresh.map(g => g.email)).toEqual(['sam@example.com']);
+  });
+});
+
 describe('the app, rendered into guests.html (jsdom)', () => {
   const runner = path.join(__dirname, '../helpers/guests-manager-scenario.js');
   const run = scenario =>
@@ -317,6 +423,95 @@ describe('the app, rendered into guests.html (jsdom)', () => {
     const result = run({ plans: [] });
     expect(result.emptyTitle).toMatch(/Start a plan/);
     expect(result.addHidden).toBe(true);
+  });
+
+  test('editing a guest sends only the changed fields, so long notes are not cut off', () => {
+    const result = run({
+      guests: [{ id: 'a', name: 'Jane Smith', rsvpStatus: 'pending', notes: 'n'.repeat(300) }],
+      submitEdit: { name: 'Jane Jones' },
+    });
+    expect(result.writes).toHaveLength(1);
+    expect(result.writes[0].method).toBe('PATCH');
+    expect(result.writes[0].body).toEqual({ name: 'Jane Jones' });
+  });
+
+  test('saving an edit with no changes sends nothing', () => {
+    const result = run({
+      guests: [{ id: 'a', name: 'Jane Smith', rsvpStatus: 'pending' }],
+      submitEdit: {},
+    });
+    expect(result.writes).toHaveLength(0);
+    expect(result.toast).toMatch(/No changes/);
+  });
+
+  test('an invalid email is rejected before any request is sent', () => {
+    const result = run({
+      guests: [{ id: 'a', name: 'Jane Smith', rsvpStatus: 'pending' }],
+      submitEdit: { email: 'not-an-email' },
+    });
+    expect(result.writes).toHaveLength(0);
+    expect(result.error).toMatch(/valid email/);
+  });
+
+  test('an unchanged email that would not pass the check does not block an edit of something else', () => {
+    const result = run({
+      guests: [{ id: 'a', name: 'Jane Smith', rsvpStatus: 'pending', email: 'jane@localhost' }],
+      submitEdit: { name: 'Jane Jones' },
+    });
+    expect(result.writes.map(write => write.body)).toEqual([{ name: 'Jane Jones' }]);
+  });
+
+  test('an untouched multi-line note is not sent again', () => {
+    const result = run({
+      guests: [{ id: 'a', name: 'Jane Smith', rsvpStatus: 'pending', notes: 'Line one\nLine two' }],
+      submitEdit: { name: 'Jane Jones' },
+    });
+    expect(result.writes.map(write => write.body)).toEqual([{ name: 'Jane Jones' }]);
+  });
+
+  test('a changed note over 200 characters is refused in the form, with the field flagged', () => {
+    const result = run({
+      guests: [{ id: 'a', name: 'Jane Smith', rsvpStatus: 'pending', notes: 'n'.repeat(300) }],
+      submitEdit: { notes: 'm'.repeat(250) },
+    });
+    expect(result.writes).toHaveLength(0);
+    expect(result.error).toBe('Notes can be up to 200 characters. These are 250.');
+    expect(result.invalid).toEqual(['notes']);
+  });
+
+  test('a reply change that clears a typed table says so', () => {
+    const result = run({
+      guests: [
+        { id: 'a', name: 'Jane Smith', rsvpStatus: 'attending', tableName: 'Top', partySize: 1 },
+      ],
+      submitEdit: { rsvpStatus: 'declined' },
+      serverChanges: { rsvpStatus: 'declined', tableName: null, table: null },
+    });
+    expect(result.writes.map(write => write.body)).toEqual([{ rsvpStatus: 'declined' }]);
+    expect(result.toast).toMatch(/table was cleared/);
+  });
+
+  test('a reply change that frees a seat says so', () => {
+    const result = run({
+      guests: [
+        { id: 'a', name: 'Jane Smith', rsvpStatus: 'attending', tableName: 'Top', tableId: 't1' },
+      ],
+      submitEdit: { rsvpStatus: 'maybe' },
+      serverChanges: { rsvpStatus: 'maybe', tableId: null, tableName: null },
+    });
+    expect(result.toast).toMatch(/seat in your seating plan was released/);
+  });
+
+  test('the plan in the link is the one that opens', () => {
+    const result = run({
+      plans: [
+        { id: 'p1', name: 'First', eventType: 'wedding', eventDate: '2999-05-01' },
+        { id: 'p2', name: 'Second', eventType: 'wedding', eventDate: '2999-09-01' },
+      ],
+      search: '?plan=p2',
+      guests: [],
+    });
+    expect(result.selectedPlan).toBe('p2');
   });
 });
 
