@@ -184,9 +184,16 @@
   /** URL of the plan endpoint for the given plan, with an optional suffix such as "/budget". */
   const planUrl = (plan, suffix = '') => `/api/me/plans/${encodeURIComponent(plan.id)}${suffix}`;
 
-  /** Formats a date as e.g. "19 Jun 2027", or an empty string when it is missing or invalid. */
+  /**
+   * Formats a plan date as e.g. "19 Jun 2027", or an empty string when it is missing or invalid.
+   * A plan's date is a calendar day, so 2027-06-19 is read as that day in the visitor's own time
+   * zone; parsing it as a UTC instant would show 18 Jun anywhere west of Greenwich.
+   */
   function formatDate(value) {
-    const date = new Date(value);
+    const match = /^(\d{4})-(\d{2})-(\d{2})/u.exec(String(value || ''));
+    const date = match
+      ? new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]))
+      : new Date(value);
     if (!value || Number.isNaN(date.getTime())) {
       return '';
     }

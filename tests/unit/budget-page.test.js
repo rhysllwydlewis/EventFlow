@@ -224,6 +224,12 @@ describe('budget page styling invariants', () => {
     expect(js).toMatch(/plans\.find\(plan => plan\.id === wanted\) \|\| pickFocusPlan\(plans\)/);
   });
 
+  test('plan dates are read as calendar days, so they do not shift a day west of Greenwich', () => {
+    expect(js).toMatch(
+      /new Date\(Number\(match\[1\]\), Number\(match\[2\]\) - 1, Number\(match\[3\]\)\)/
+    );
+  });
+
   test('the export menu opens rightwards on phones, where Export sits at the left edge', () => {
     const phone = css.slice(css.indexOf('@media (max-width: 720px)'));
     expect(phone).toMatch(/\.bp \.bp-menu__panel \{[^}]*right: auto;[^}]*left: 0;/);
