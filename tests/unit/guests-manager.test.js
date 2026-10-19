@@ -141,9 +141,7 @@ describe('CSV', () => {
   test('buildCsv writes a header and one guarded row per guest', () => {
     const csv = lib.buildCsv([guest({ name: '=HYPERLINK("x")', rsvpStatus: 'attending' })]);
     const [header, row] = csv.split('\r\n');
-    expect(header).toBe(
-      '"Name","Email","Phone","RSVP","Party size","Dietary","Table","Notes"'.replace(/"/g, '"')
-    );
+    expect(header).toBe('"Name","Email","Phone","RSVP","Party size","Dietary","Table","Notes"');
     expect(row.startsWith(`"'=HYPERLINK(""x"")"`)).toBe(true);
     expect(row).toContain('"Attending"');
   });
