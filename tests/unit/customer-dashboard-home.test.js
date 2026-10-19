@@ -369,6 +369,16 @@ describe('customer dashboard home: data handling', () => {
     expect(homeJs).toContain('rsvp.partySizeTotal');
   });
 
+  test('summary links open the guest list and budget on the plan the summary describes', () => {
+    expect(homeJs).toContain('/guests?plan=${encodeURIComponent(plan.id)}');
+    expect(homeJs).toContain('/budget?plan=${encodeURIComponent(plan.id)}');
+  });
+
+  test('the page scrolls to the section named in the URL hash once it has loaded', () => {
+    expect(initJs).toContain('function scrollToHashTarget(');
+    expect(initJs).toMatch(/setupEventHandlers\(\);\s+scrollToHashTarget\(\);/);
+  });
+
   test('the primary action starts hidden so it never flashes the wrong label while plans load', () => {
     expect(html).toMatch(/id="cdh-next-action"[^>]*\bhidden\b/);
   });

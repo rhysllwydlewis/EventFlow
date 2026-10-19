@@ -330,8 +330,10 @@
 
   /** Summary tile for guest replies, falling back to the expected guest count or an empty prompt. */
   function guestsTile(plan, rsvp) {
+    // The summary describes this plan, so the guest list must open on it, not on the first plan.
+    const guestsHref = plan?.id ? `/guests?plan=${encodeURIComponent(plan.id)}` : '/guests';
     /** An inline link to the guest list page with the given label markup. */
-    const link = text => `<a class="cdh-link" href="/guests">${text}</a>`;
+    const link = text => `<a class="cdh-link" href="${guestsHref}">${text}</a>`;
     if (rsvp?.totalGuests > 0) {
       const replied = rsvp.responsesReceived || 0;
       // People, not guest records: a reply can cover a whole party, and the guest list page

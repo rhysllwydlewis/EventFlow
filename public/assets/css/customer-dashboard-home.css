@@ -85,6 +85,13 @@
   list-style: none;
 }
 
+/* Sections that links and emails jump to (#events-calendar, the wedding card) keep some air above. */
+.cdh-page .cdh-card,
+.cdh-page .cdh-summary,
+.cdh-page #events-calendar {
+  scroll-margin-top: 24px;
+}
+
 .cdh-page .cdh [hidden] {
   display: none !important;
 }

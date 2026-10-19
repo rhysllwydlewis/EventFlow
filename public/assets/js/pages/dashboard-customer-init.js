@@ -368,6 +368,29 @@ async function checkAuth() {
   }
 }
 
+/**
+ * Scrolls to the section named in the URL hash (the guest list links to the wedding card, and
+ * emails link to the calendar). The browser's own jump happens while the page is still hidden
+ * by the sign-in guard and before the cards have their content, so it lands in the wrong place.
+ * The budget form hash is handled by the home module, which opens the form.
+ */
+function scrollToHashTarget() {
+  let id = '';
+  try {
+    id = decodeURIComponent(window.location.hash.slice(1));
+  } catch {
+    return;
+  }
+  if (!id || id === 'budget-settings-form') {
+    return;
+  }
+  const target = document.getElementById(id);
+  if (target) {
+    const calm = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+    target.scrollIntoView({ behavior: calm ? 'auto' : 'smooth', block: 'start' });
+  }
+}
+
 /** Page start-up: checks sign-in, then loads every dashboard section in parallel. */
 async function initDashboard() {
   // Ensure a CSRF token is available before any state-changing requests
@@ -448,6 +471,8 @@ async function initDashboard() {
 
   // Setup event handlers
   setupEventHandlers();
+
+  scrollToHashTarget();
 
   dbg('✅ Dashboard initialized successfully');
 }
