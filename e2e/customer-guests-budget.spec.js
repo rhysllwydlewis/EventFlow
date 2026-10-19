@@ -143,6 +143,31 @@ test.describe('Customer budget page', () => {
     await expect(page.locator('#bp-toast')).toContainText('downloaded as PDF');
   });
 
+  test('if the PDF library fails to load the page says so, and the next try loads it again', async ({
+    page,
+    context,
+    baseURL,
+  }) => {
+    await mockPlans(page, [makePlan()], route => json(route, {}, 500));
+    let attempts = 0;
+    await page.route('**/assets/js/vendor/jspdf.umd.min.js*', route => {
+      attempts += 1;
+      return attempts === 1 ? route.abort() : route.continue();
+    });
+    await open(page, context, baseURL, '/budget.html');
+    await expect(page.locator('.bp-table--items tbody tr')).toHaveCount(2);
+    await page.locator('#bp-export-menu summary').click();
+    await page.locator('[data-action="export-pdf"]').click();
+    await expect(page.locator('#bp-toast')).toContainText('could not create the PDF');
+    await page.locator('#bp-export-menu summary').click();
+    const [download] = await Promise.all([
+      page.waitForEvent('download'),
+      page.locator('[data-action="export-pdf"]').click(),
+    ]);
+    expect(download.suggestedFilename()).toMatch(/\.pdf$/);
+    expect(attempts).toBe(2);
+  });
+
   test('switching plan puts it in the address, so a reload stays on that plan', async ({
     page,
     context,
@@ -171,8 +196,11 @@ test.describe('Customer guest list', () => {
     },
   ];
 
-  /** Answers the plan and guest APIs; bulk imports are recorded in `bulk`. */
-  async function mockGuests(page, bulk) {
+  /**
+   * Answers the plan and guest APIs; bulk imports are recorded in `bulk`. `respond(route, body)`
+   * can answer a bulk import differently from the default (every guest added, none skipped).
+   */
+  async function mockGuests(page, bulk, respond) {
     await page.route('**/api/**', route => {
       const request = route.request();
       const { pathname } = new URL(request.url());
@@ -190,6 +218,9 @@ test.describe('Customer guest list', () => {
       if (pathname.endsWith('/guests/bulk') && request.method() === 'POST') {
         const body = JSON.parse(request.postData());
         bulk.push(body);
+        if (respond) {
+          return respond(route, body);
+        }
         return json(
           route,
           {
@@ -231,6 +262,82 @@ test.describe('Customer guest list', () => {
     expect(bulk).toHaveLength(1);
     expect(bulk[0].guests.map(guest => guest.name)).toEqual(['Bob New', 'Cy New']);
     await expect(page.locator('.gm-name')).toHaveCount(3);
+  });
+
+  /** A CSV file with `count` new guests, plus any extra lines. */
+  const csvFile = (count, extra = '') => ({
+    name: 'guests.csv',
+    mimeType: 'text/csv',
+    buffer: Buffer.from(
+      `Name,Email\n${Array.from({ length: count }, (_, i) => `Guest ${i},g${i}@example.com`).join('\n')}\n${extra}`
+    ),
+  });
+
+  test('rows the server refuses are listed by name and the rest are added', async ({
+    page,
+    context,
+    baseURL,
+  }) => {
+    await mockGuests(page, [], (route, body) =>
+      json(
+        route,
+        {
+          success: true,
+          guests: [body.guests[0], body.guests[2]].map((guest, i) => ({ id: `new${i}`, ...guest })),
+          skipped: [{ index: 1, error: 'Guest name is required' }],
+        },
+        201
+      )
+    );
+    await open(page, context, baseURL, '/guests.html?plan=p1');
+    await page.locator('[data-action="import"]').first().click();
+    await page.setInputFiles('#gm-csv', csvFile(3));
+    await expect(page.locator('#gm-import-status')).toContainText('3 guests ready to import');
+    await page.locator('dialog [type="submit"]').click();
+    await expect(page.locator('#gm-import-status')).toContainText(
+      'Imported 2 guests. 1 row could not be added:'
+    );
+    await expect(page.locator('.gm-import-skipped li')).toHaveText([
+      'Guest 1: Guest name is required',
+    ]);
+    await expect(page.locator('dialog[open]')).toHaveCount(1);
+    await expect(page.locator('.gm-name')).toHaveCount(3);
+  });
+
+  test('a refused import adds nothing and can be tried again', async ({
+    page,
+    context,
+    baseURL,
+  }) => {
+    await mockGuests(page, [], route =>
+      json(route, { error: 'Too many requests. Please wait a few minutes.' }, 429)
+    );
+    await open(page, context, baseURL, '/guests.html?plan=p1');
+    await page.locator('[data-action="import"]').first().click();
+    await page.setInputFiles('#gm-csv', csvFile(2));
+    await page.locator('dialog [type="submit"]').click();
+    await expect(page.locator('#gm-import-status')).toContainText('Too many requests');
+    await expect(page.locator('dialog [type="submit"]')).toBeEnabled();
+    await expect(page.locator('#gm-csv')).toBeEnabled();
+    await expect(page.locator('.gm-name')).toHaveCount(1);
+  });
+
+  test('the 500 guest limit counts guests that would be sent, not ones already on the list', async ({
+    page,
+    context,
+    baseURL,
+  }) => {
+    await mockGuests(page, []);
+    await open(page, context, baseURL, '/guests.html?plan=p1');
+    await page.locator('[data-action="import"]').first().click();
+    await page.setInputFiles('#gm-csv', csvFile(501));
+    await expect(page.locator('#gm-import-status')).toContainText('Import up to 500 at a time');
+    await expect(page.locator('dialog [type="submit"]')).toBeDisabled();
+    await page.setInputFiles('#gm-csv', csvFile(500, 'Ann Again,ann@example.com\n'));
+    await expect(page.locator('#gm-import-status')).toContainText(
+      '500 guests ready to import, 1 guest already on your list'
+    );
+    await expect(page.locator('dialog [type="submit"]')).toBeEnabled();
   });
 
   test('switching plan puts it in the address, so a reload stays on that plan', async ({

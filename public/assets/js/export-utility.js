@@ -6,6 +6,7 @@
 class ExportUtility {
   constructor() {
     this.pdfLibLoaded = false;
+    this.pdfLibLoading = null;
     this.qrCodeLibLoaded = false;
   }
 
@@ -18,16 +19,28 @@ class ExportUtility {
       return Promise.resolve();
     }
 
-    return new Promise((resolve, reject) => {
+    // A second request while the first is still loading waits for it instead of adding a second
+    // <script>; a failed load is forgotten so the next attempt tries again.
+    if (this.pdfLibLoading) {
+      return this.pdfLibLoading;
+    }
+
+    this.pdfLibLoading = new Promise((resolve, reject) => {
       const script = document.createElement('script');
       script.src = '/assets/js/vendor/jspdf.umd.min.js?v=4.2.1';
       script.addEventListener('load', () => {
         this.pdfLibLoaded = true;
+        this.pdfLibLoading = null;
         resolve();
       });
-      script.addEventListener('error', reject);
+      script.addEventListener('error', () => {
+        script.remove();
+        this.pdfLibLoading = null;
+        reject(new Error('The PDF library could not be loaded'));
+      });
       document.head.appendChild(script);
     });
+    return this.pdfLibLoading;
   }
 
   // Load QRCode library dynamically

@@ -105,7 +105,8 @@ From this page (the files are deleted only where nothing else loaded them):
 
 - Done in a later clean-up: the old first-visit onboarding box for customers (`dash_customer` in `app.js`), its
   `renderThreads` helper and the `#customer-*` placeholder rules in `skeleton.css` were
-  removed afterwards. `app.js` is now `?v=18.5.6` and `skeleton.css` `?v=2.1.0` everywhere.
+  removed afterwards, along with the `.thread-list`/`.thread-row*` rules in `styles.css` that only
+  `renderThreads` used. `app.js` is now `?v=18.5.6` and `skeleton.css` `?v=2.1.0` everywhere.
   A first-visit welcome for new customers does not exist any more; if wanted, build it
   into the dashboard home rather than restoring the script.
 - `dashboard-guard.js` changed (it no longer injects the removed scripts), so its

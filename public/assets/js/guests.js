@@ -1103,20 +1103,15 @@
           status.className = 'gm-import-status gm-error';
           return;
         }
-        if (result.guests.length > MAX_IMPORT) {
-          status.textContent = `That file has ${result.guests.length} guests. Import up to ${MAX_IMPORT} at a time.`;
-          status.className = 'gm-import-status gm-error';
-          return;
-        }
         // Anyone whose email is already on the list (or repeated in the file) is left out, so
         // importing the same file twice does not double everyone up.
-        const seen = new Set(
-          state.guests.map(g => String(g.email || '').toLowerCase()).filter(Boolean)
-        );
+        const emailKey = value => {
+          const email = String(value || '').trim();
+          return email.toLowerCase();
+        };
+        const seen = new Set(state.guests.map(g => emailKey(g.email)).filter(Boolean));
         const fresh = result.guests.filter(row => {
-          const email = String(row.email || '')
-            .trim()
-            .toLowerCase();
+          const email = emailKey(row.email);
           if (!email) {
             return true;
           }
@@ -1132,6 +1127,12 @@
             duplicates === 1
               ? 'That guest is already on your list (same email).'
               : `All ${duplicates} guests in that file are already on your list (same email).`;
+          status.className = 'gm-import-status gm-error';
+          return;
+        }
+        // The cap is on what is sent, so guests that are left out above do not count towards it.
+        if (fresh.length > MAX_IMPORT) {
+          status.textContent = `That file has ${fresh.length} new guests. Import up to ${MAX_IMPORT} at a time.`;
           status.className = 'gm-import-status gm-error';
           return;
         }

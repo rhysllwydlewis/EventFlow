@@ -63,7 +63,8 @@ Fields used: `name`, `email`, `phone`, `rsvpStatus` (pending, attending, maybe, 
   works. A file is sent in one `POST /api/me/plans/:id/guests/bulk` request (up to 500 guests; it used
   to be one request per guest, which the write limiter capped at 50). Rows without a name are listed
   as skipped rather than dropped silently, and rows whose email is already on the list (or repeated
-  in the file) are left out so importing a file twice does not double everyone up.
+  in the file) are left out so importing a file twice does not double everyone up. The 500 limit counts the
+  guests that would be sent, so guests left out as already on the list do not count towards it.
 - All requests use `limit`-free endpoints, so the `/api` pagination cap does not apply.
 
 ## Left alone
