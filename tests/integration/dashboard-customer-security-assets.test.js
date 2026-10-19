@@ -16,7 +16,7 @@ describe('Dashboard customer security-oriented script loading', () => {
       path.resolve(__dirname, '..', '..', 'public', 'dashboard-customer.html'),
       'utf8'
     )}\n${fs.readFileSync(
-      path.join(pagesDir, 'dashboard-customer-module.js'),
+      path.join(pagesDir, 'customer-dashboard-home.js'),
       'utf8'
     )}\n${fs.readFileSync(
       path.join(pagesDir, 'dashboard-customer-init.js'),
@@ -42,8 +42,8 @@ describe('Dashboard customer security-oriented script loading', () => {
     expect(match[0]).toMatch(/\bdefer\b/);
   });
 
-  it('has customer-dashboard-improvements.css linked', () => {
-    expect(dashboardContent).toContain('customer-dashboard-improvements.css');
+  it('links the single page stylesheet', () => {
+    expect(dashboardContent).toContain('customer-dashboard-home.css');
   });
 
   it('does not contain a legacy #threads-cust message section', () => {
@@ -55,31 +55,19 @@ describe('Dashboard customer security-oriented script loading', () => {
     expect(dashboardContent).toContain('MessengerWidgetV4');
   });
 
-  it('exposes initCustomerDashboardWidgets to global scope from module script', () => {
-    expect(dashboardContent).toContain(
-      'window.initCustomerDashboardWidgets = initCustomerDashboardWidgets'
-    );
+  it('exposes the home renderer on window for the init script', () => {
+    expect(dashboardContent).toContain('window.CustomerDashboardHome =');
   });
 
-  it('hero section stats use event listeners, not synchronous badge reads', () => {
-    // hero-stat-messages must not be set from unreadMessageBadge text content synchronously.
-    // It should instead be wired via addEventListener('unreadCountUpdated', ...).
-    // We verify that the old synchronous pattern is absent and the event pattern is present.
+  it('never reads the unread badge text synchronously', () => {
+    // The unread count reaches the page through UnreadBadgeManager, which writes
+    // #unreadMessageBadge itself; nothing here should scrape that element.
     expect(dashboardContent).not.toContain("getElementById('unreadMessageBadge')");
-    // Must use the event-driven update
-    expect(dashboardContent).toContain('unreadCountUpdated');
   });
 
-  it('stats grid Messages stat starts at 0 and uses event for real count', () => {
-    // The stats grid must register the unread event listener
-    expect(dashboardContent).toContain('onUnreadForStats');
-  });
-
-  it('budget priority is server-first then localStorage fallback', () => {
-    // Priority 1 comment must reference server plan
-    expect(dashboardContent).toContain('Priority 1: Server plan budget');
-    // Priority 2 comment must reference localStorage
-    expect(dashboardContent).toContain('Priority 2: localStorage fallback');
+  it('budget is server-first, with the stored figure only as a fallback', () => {
+    expect(dashboardContent).toContain('function totalBudgetFor(');
+    expect(dashboardContent).toContain('anyPlanBudget');
   });
 
   it('calendar shows empty state when CalendarView unavailable', () => {
@@ -88,10 +76,13 @@ describe('Dashboard customer security-oriented script loading', () => {
   });
 
   it('aria-live regions are present on dynamic content containers', () => {
-    expect(dashboardContent).toContain('id="customer-stats-grid" aria-live="polite"');
+    expect(dashboardContent).toContain(
+      'id="cdh-summary-grid" class="cdh-summary__grid" aria-live="polite"'
+    );
     expect(dashboardContent).toContain('id="customer-plans-list" aria-live="polite"');
     expect(dashboardContent).toContain('id="tickets-cust"');
     expect(dashboardContent).toMatch(/id="tickets-cust"[^>]*aria-live="polite"/);
+    expect(dashboardContent).toMatch(/id="cdh-steps-body"[^>]*aria-live="polite"/);
   });
 
   it('customer-tickets.js renders a "View all" link when the display limit (5) is reached', () => {

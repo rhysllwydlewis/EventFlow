@@ -454,7 +454,7 @@
       ? `<div class="customer-calendar-next-up__meta">📍 ${escapeHtml(next.location)}</div>`
       : '';
     body.innerHTML = `
-      <div><span class="customer-calendar-next-up__badge" style="background:${escapeHtml(next.color)};">${escapeHtml(next.type)}</span><span class="customer-calendar-next-up__title">${escapeHtml(next.title)}</span></div>
+      <div><span class="customer-calendar-next-up__badge" style="--cal-color:${escapeHtml(next.color)};">${escapeHtml(next.type)}</span><span class="customer-calendar-next-up__title">${escapeHtml(next.title)}</span></div>
       <div class="customer-calendar-next-up__meta">${escapeHtml(formatDateTime(next.start))}</div>
       ${location}
     `;
@@ -644,7 +644,7 @@
         <div class="cal-fallback-month__header">
           <div>
             <div class="cal-fallback-month__eyebrow">Calendar view</div>
-            <h4 class="cal-fallback-month__title">${monthStart.toLocaleDateString('en-GB', { month: 'long', year: 'numeric' })}</h4>
+            <h3 class="cal-fallback-month__title">${monthStart.toLocaleDateString('en-GB', { month: 'long', year: 'numeric' })}</h3>
           </div>
           <p class="cal-fallback-month__hint">Click any day to add an entry.</p>
         </div>
@@ -1009,7 +1009,18 @@
     container.classList.add('fc-loaded');
 
     // Initialize FullCalendar
+    /**
+     * Hides FullCalendar's prev/next arrow glyphs from assistive tech. They are role="img" spans
+     * with no label; the buttons around them already carry the accessible name.
+     */
+    const hideDecorativeIcons = () => {
+      container
+        .querySelectorAll('.fc-icon')
+        .forEach(icon => icon.setAttribute('aria-hidden', 'true'));
+    };
+
     const calendar = new FullCalendar.Calendar(container, {
+      datesSet: hideDecorativeIcons,
       initialView: options.initialView || 'dayGridMonth',
       headerToolbar: {
         left: 'prev,next today',
@@ -1022,16 +1033,16 @@
         week: 'Week',
         list: 'List',
       },
-      events: events,
+      events,
       expandRows: false,
       contentHeight: 'auto',
       selectable: true,
       nowIndicator: true,
       // Open the "Add Entry" modal when the user clicks a day cell
-      dateClick: function (info) {
+      dateClick(info) {
         openModal(modal, info.dateStr, calendar);
       },
-      eventClick: function (info) {
+      eventClick(info) {
         info.jsEvent.preventDefault();
         // Personal entries: show edit/delete action popover instead of navigating
         if (info.event.extendedProps.personalEntry) {
@@ -1046,7 +1057,7 @@
           window.location.href = info.event.url;
         }
       },
-      eventDidMount: function (info) {
+      eventDidMount(info) {
         // Tooltip with event details on hover
         const desc = info.event.extendedProps.description;
         const loc = info.event.extendedProps.location;
@@ -1062,7 +1073,7 @@
               ? `<span class="cal-entry-badge cal-entry-badge--${escapeHtml(entryType)}">${escapeHtml(entryType)}</span><br>`
               : '';
           const actionHint = entryType
-            ? `<br><small style="color:#9ca3af;font-size:0.75rem;">Click to edit or delete</small>`
+            ? '<br><small style="color:#9ca3af;font-size:0.75rem;">Click to edit or delete</small>'
             : '';
           tooltip.innerHTML = `
             ${typeLabel}
@@ -1089,7 +1100,7 @@
         }
       },
       // Show a "+" hint on day cells to prompt entry creation
-      dayCellDidMount: function (info) {
+      dayCellDidMount(info) {
         const addBtn = document.createElement('button');
         addBtn.type = 'button';
         addBtn.className = 'cal-day-add-btn';
@@ -1106,7 +1117,7 @@
         }
       },
       // Show a usage hint inside the "no events" area
-      noEventsContent: function () {
+      noEventsContent() {
         return {
           html: '<div class="cal-no-events">No events yet. Click any day to add one.</div>',
         };

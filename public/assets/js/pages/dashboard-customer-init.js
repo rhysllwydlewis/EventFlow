@@ -7,35 +7,13 @@ function dbg(...args) {
   }
 }
 
-// --- Customer welcome overlay dismiss logic ---
-(function initCustomerWelcomeOverlayDismiss() {
-  const DISMISS_KEY = 'ef_customer_welcome_dismissed';
+/** Plans the page last loaded; the budget form and the plan editor both work from this. */
+let dashboardPlans = [];
 
-  function dismissCustomerWelcomeOverlay() {
-    try {
-      localStorage.setItem(DISMISS_KEY, '1');
-      localStorage.setItem('ef_customer_welcome_dismissed', '1');
-    } catch (_) {
-      /* Ignore localStorage errors */
-    }
-
-    // Target the actual welcome section element used in the current HTML
-    const section = document.getElementById('welcome-section');
-    if (section) {
-      const ease = 'cubic-bezier(0.4, 0, 0.2, 1)';
-      section.style.transition = `opacity 0.3s ${ease}, transform 0.3s ${ease}`;
-      section.style.opacity = '0';
-      section.style.transform = 'scale(0.97)';
-      setTimeout(() => {
-        section.style.display = 'none';
-      }, 300);
-    }
-  }
-
-  window.dismissCustomerWelcome = dismissCustomerWelcomeOverlay;
-})();
-
-// Load customer plans
+/**
+ * Draws the "Your plans" list (the page's own plans, or a fresh fetch when none are passed).
+ * @param {Array} [preloadedPlans] - Plans already fetched by the caller
+ */
 async function loadCustomerPlans(preloadedPlans) {
   const container = document.getElementById('customer-plans-list');
   if (!container) {
@@ -43,277 +21,337 @@ async function loadCustomerPlans(preloadedPlans) {
   }
 
   try {
-    let plans;
+    let plans = [];
     if (preloadedPlans) {
       plans = preloadedPlans;
     } else {
       const response = await fetch('/api/me/plans', { credentials: 'include' });
       if (!response.ok) {
-        container.innerHTML = '<p class="small" style="color:#667085;">Unable to load plans.</p>';
+        container.innerHTML =
+          '<p class="cdh-note">We could not load your plans. Please refresh to try again.</p>';
         return;
       }
       const data = await response.json();
       plans = data.plans || [];
     }
+    dashboardPlans = plans;
 
     if (plans.length === 0) {
-      container.innerHTML = `
-        <div class="empty-state">
-          <div class="empty-state-icon">📋</div>
-          <div class="empty-state-title">No plans yet</div>
-          <div class="empty-state-description">Start planning your perfect event with our wizard.</div>
-        </div>
-      `;
+      container.innerHTML =
+        '<div class="cdh-empty"><p class="cdh-empty__title">No plans yet</p><p class="cdh-empty__text">Start with the plan wizard and EventFlow will build your checklist.</p></div>';
       return;
     }
+
+    const focus = window.CustomerDashboardHome
+      ? window.CustomerDashboardHome.pickFocusPlan(plans)
+      : null;
 
     container.innerHTML = plans
       .map(plan => {
         const packageCount = (plan.packages || []).length;
         const displayName = plan.name || plan.eventName || plan.eventType || 'Untitled Event';
         const eventDate = plan.eventDate || plan.date;
+        const meta = [
+          plan.eventType && plan.eventType !== displayName
+            ? plan.eventType.charAt(0).toUpperCase() + plan.eventType.slice(1)
+            : '',
+          plan.location,
+          eventDate ? formatPlanDate(eventDate) || eventDate : '',
+          packageCount ? `${packageCount} package${packageCount === 1 ? '' : 's'}` : '',
+        ]
+          .filter(Boolean)
+          .map(escapeHtml)
+          .join(' · ');
+        const inSummary =
+          plans.length > 1 && focus && focus.id === plan.id
+            ? '<span class="cdh-pill cdh-pill--accent">In your summary</span>'
+            : '';
         return `
-        <div class="customer-plan-item" data-plan-id="${escapeHtml(plan.id)}">
-          <div class="customer-plan-item__header">
-            <div>
-              <strong class="customer-plan-item__name">${escapeHtml(displayName)}</strong>
-              ${plan.eventType ? `<span class="small customer-plan-item__type">${escapeHtml(plan.eventType)}</span>` : ''}
-            </div>
-            <span class="small customer-plan-item__count">${packageCount} packages</span>
+        <article class="customer-plan-item cdh-plan" data-plan-id="${escapeHtml(plan.id)}">
+          <div class="cdh-plan__main">
+            <h3 class="cdh-plan__name">${escapeHtml(displayName)} ${inSummary}</h3>
+            ${meta ? `<p class="cdh-plan__meta">${meta}</p>` : '<p class="cdh-plan__meta">No details yet</p>'}
           </div>
-          ${plan.location ? `<p class="small customer-plan-item__detail">📍 ${escapeHtml(plan.location)}</p>` : ''}
-          ${eventDate ? `<p class="small customer-plan-item__detail">📅 ${escapeHtml(formatPlanDate(eventDate) || eventDate)}</p>` : ''}
-          <div class="customer-plan-item__actions" style="margin-top:0.75rem;display:flex;gap:0.5rem;padding-top:0.625rem;border-top:1px solid #f3f4f6;">
-            <button class="cta secondary plan-edit-btn" data-plan-id="${escapeHtml(plan.id)}" style="padding:0.3rem 0.875rem;font-size: 0.75rem;border-radius:6px;" aria-label="Edit ${escapeHtml(displayName)}">✏️ Edit</button>
-            <button class="plan-delete-btn" data-plan-id="${escapeHtml(plan.id)}" style="padding:0.3rem 0.875rem;font-size: 0.75rem;border-radius:6px;background:none;border:1px solid #fecaca;color:#dc2626;cursor:pointer;font-family:inherit;font-weight:600;font-size: 0.75rem;transition:background 0.15s,border-color 0.15s;" aria-label="Delete ${escapeHtml(displayName)}">🗑 Delete</button>
+          <div class="cdh-plan__actions">
+            <button type="button" class="cdh-link plan-edit-btn" data-plan-id="${escapeHtml(plan.id)}" aria-label="Edit ${escapeHtml(displayName)}">Edit</button>
+            <button type="button" class="cdh-link cdh-link--danger plan-delete-btn" data-plan-id="${escapeHtml(plan.id)}" aria-label="Delete ${escapeHtml(displayName)}">Delete</button>
           </div>
-        </div>
+        </article>
       `;
       })
       .join('');
 
     // Attach event listeners for edit/delete
     container.querySelectorAll('.plan-edit-btn').forEach(btn => {
-      btn.addEventListener('click', e => {
-        e.stopPropagation();
-        const planId = btn.dataset.planId;
-        const plan = plans.find(p => p.id === planId);
+      btn.addEventListener('click', event => {
+        event.stopPropagation();
+        const plan = plans.find(candidate => candidate.id === btn.dataset.planId);
         if (plan) {
-          showEditPlanModal(plan, () => loadCustomerPlans(null));
+          showEditPlanModal(plan, reloadDashboard);
         }
       });
     });
 
     container.querySelectorAll('.plan-delete-btn').forEach(btn => {
-      btn.addEventListener('click', e => {
-        e.stopPropagation();
-        const planId = btn.dataset.planId;
-        const plan = plans.find(p => p.id === planId);
+      btn.addEventListener('click', event => {
+        event.stopPropagation();
+        const plan = plans.find(candidate => candidate.id === btn.dataset.planId);
         if (plan) {
-          confirmDeletePlan(plan, () => loadCustomerPlans(null));
+          confirmDeletePlan(plan, reloadDashboard);
         }
       });
     });
   } catch (err) {
     console.error('Error loading plans:', err);
-    container.innerHTML = '<p class="small" style="color:#667085;">Error loading plans.</p>';
+    container.innerHTML =
+      '<p class="cdh-note">We could not load your plans. Please refresh to try again.</p>';
   }
 }
 
-function showEditPlanModal(plan, onSaved) {
-  // Inject animation keyframes once
-  if (!document.getElementById('_dash_modal_styles')) {
-    const s = document.createElement('style');
-    s.id = '_dash_modal_styles';
-    s.textContent =
-      '@keyframes ef-modal-in{from{opacity:0;transform:translateY(10px) scale(0.98)}to{opacity:1;transform:none}}';
-    document.head.appendChild(s);
-  }
-
-  const titleId = '_dash_plan_edit_title';
-  const existing = document.getElementById('_dash_plan_edit_modal');
-  if (existing) {
-    existing.remove();
-  }
-
-  const overlay = document.createElement('div');
-  overlay.id = '_dash_plan_edit_modal';
-  overlay.setAttribute('role', 'dialog');
-  overlay.setAttribute('aria-modal', 'true');
-  overlay.setAttribute('aria-labelledby', titleId);
-  overlay.style.cssText =
-    'position:fixed;inset:0;z-index:9000;background:rgba(0,0,0,0.45);display:flex;align-items:center;justify-content:center;padding:1rem;';
-  overlay.innerHTML = `
-    <div style="background:#fff;border-radius:12px;max-width:480px;width:100%;box-shadow:0 20px 50px rgba(0,0,0,0.2);max-height:90vh;overflow-y:auto;animation:ef-modal-in 0.2s ease both;">
-      <div style="padding:1.25rem 1.5rem;border-bottom:1px solid #f3f4f6;display:flex;align-items:center;justify-content:space-between;">
-        <h3 id="${titleId}" style="margin:0;font-size: 1.125rem;font-weight:700;">Edit Plan</h3>
-        <button id="_dash_plan_edit_close" type="button" aria-label="Close" style="background:none;border:none;cursor:pointer;color:#9ca3af;font-size: 1.5rem;line-height:1;padding:0.25rem;">&times;</button>
-      </div>
-      <div style="padding:1.5rem;">
-        <div style="margin-bottom:1rem;">
-          <label style="display:block;font-size:0.875rem;font-weight:600;margin-bottom:0.35rem;">Plan Name</label>
-          <input type="text" id="_pf_name" value="${escapeHtml(plan.name || plan.eventType || '')}" style="width:100%;box-sizing:border-box;padding:0.625rem 0.75rem;border:1.5px solid #e5e7eb;border-radius:6px;font-size: 0.875rem;font-family:inherit;" maxlength="200" placeholder="e.g. Our Wedding 2025">
-        </div>
-        <div style="margin-bottom:1rem;">
-          <label style="display:block;font-size:0.875rem;font-weight:600;margin-bottom:0.35rem;">Event Date</label>
-          <input type="date" id="_pf_date" value="${escapeHtml((plan.eventDate || plan.date || '').split('T')[0])}" style="width:100%;box-sizing:border-box;padding:0.625rem 0.75rem;border:1.5px solid #e5e7eb;border-radius:6px;font-size: 0.875rem;font-family:inherit;">
-        </div>
-        <div style="margin-bottom:1rem;">
-          <label style="display:block;font-size:0.875rem;font-weight:600;margin-bottom:0.35rem;">Location</label>
-          <input type="text" id="_pf_location" value="${escapeHtml(plan.location || '')}" style="width:100%;box-sizing:border-box;padding:0.625rem 0.75rem;border:1.5px solid #e5e7eb;border-radius:6px;font-size: 0.875rem;font-family:inherit;" maxlength="200" placeholder="e.g. London">
-        </div>
-        <div>
-          <label style="display:block;font-size:0.875rem;font-weight:600;margin-bottom:0.35rem;">Notes</label>
-          <textarea id="_pf_notes" rows="3" style="width:100%;box-sizing:border-box;padding:0.625rem 0.75rem;border:1.5px solid #e5e7eb;border-radius:6px;font-size: 0.875rem;font-family:inherit;" maxlength="2000" placeholder="Any additional notes…">${escapeHtml(plan.notes || '')}</textarea>
-        </div>
-        <p id="_pf_status" style="font-size:0.875rem;margin:0.75rem 0 0;" role="status" aria-live="polite"></p>
-      </div>
-      <div style="padding:1rem 1.5rem;border-top:1px solid #f3f4f6;display:flex;justify-content:flex-end;gap:0.75rem;">
-        <button id="_pf_cancel" type="button" class="cta secondary">Cancel</button>
-        <button id="_pf_save" type="button" class="cta">Save Changes</button>
-      </div>
-    </div>
-  `;
-
-  document.body.appendChild(overlay);
-
-  const close = () => {
-    overlay.remove();
-    document.body.style.overflow = '';
-    document.removeEventListener('keydown', handleEscEdit);
-  };
-  function handleEscEdit(e) {
-    if (e.key === 'Escape') {
-      close();
+/** Reloads the plans and redraws everything that depends on them. */
+async function reloadDashboard() {
+  let plans = dashboardPlans;
+  try {
+    const response = await fetch('/api/me/plans', { credentials: 'include' });
+    if (response.ok) {
+      plans = (await response.json()).plans || [];
     }
+  } catch (err) {
+    console.warn('Could not refresh plans:', err);
   }
-  document.body.style.overflow = 'hidden';
-  document.addEventListener('keydown', handleEscEdit);
-  overlay.querySelector('#_dash_plan_edit_close').addEventListener('click', close);
-  overlay.querySelector('#_pf_cancel').addEventListener('click', close);
-  overlay.addEventListener('click', e => {
-    if (e.target === overlay) {
-      close();
+  dashboardPlans = plans;
+  await Promise.allSettled([
+    loadCustomerPlans(plans),
+    window.CustomerDashboardHome ? window.CustomerDashboardHome.render(plans) : Promise.resolve(),
+    window.initWeddingWebsiteDashboard
+      ? window.initWeddingWebsiteDashboard(plans)
+      : Promise.resolve(),
+  ]);
+}
+
+/**
+ * Shows a native modal dialog: the browser traps focus inside it and closes it on Escape.
+ * Focus goes back to the button that opened it when that button is still on the page.
+ * @param {HTMLDialogElement} dialog - The dialog to show
+ * @param {Element|null} opener - The element to return focus to
+ */
+function showDialog(dialog, opener) {
+  document.body.appendChild(dialog);
+  dialog.addEventListener('close', () => {
+    dialog.remove();
+    if (opener?.isConnected) {
+      opener.focus();
     }
   });
+  dialog.addEventListener('click', event => {
+    if (event.target === dialog || event.target.closest('[data-dialog-close]')) {
+      dialog.close();
+    }
+  });
+  try {
+    dialog.showModal();
+  } catch {
+    dialog.setAttribute('open', '');
+  }
+}
 
-  overlay.querySelector('#_pf_save').addEventListener('click', async () => {
-    const saveBtn = overlay.querySelector('#_pf_save');
-    const statusEl = overlay.querySelector('#_pf_status');
-    const name = overlay.querySelector('#_pf_name').value.trim();
+/** Reads a JSON response body, or an empty object when the server sent something else. */
+async function readJson(response) {
+  try {
+    return await response.json();
+  } catch {
+    return {};
+  }
+}
+
+/**
+ * Opens the Edit Plan dialog and PATCHes the plan on save.
+ * @param {object} plan - The plan being edited
+ * @param {Function} onSaved - Called after a successful save
+ * @param {string} [focusId] - Id of the field to focus first (a checklist step opens it on its field)
+ */
+function showEditPlanModal(plan, onSaved, focusId) {
+  document.getElementById('cdh-plan-edit-dialog')?.remove();
+  const opener = document.activeElement;
+
+  // A few old plans keep the guest list itself in `guests`; a number must never overwrite that.
+  const guestCountEditable = !Array.isArray(plan.guests);
+  const expectedGuests = Number.parseInt(plan.guestCount || plan.guests, 10) || '';
+
+  const dialog = document.createElement('dialog');
+  dialog.id = 'cdh-plan-edit-dialog';
+  dialog.className = 'cdh-dialog';
+  dialog.setAttribute('aria-labelledby', 'cdh-plan-edit-title');
+  dialog.innerHTML = `
+    <form class="cdh-dialog__form" novalidate>
+      <div class="cdh-dialog__head">
+        <h2 class="cdh-dialog__title" id="cdh-plan-edit-title">Edit plan</h2>
+        <button type="button" class="cdh-dialog__close" data-dialog-close aria-label="Close">&times;</button>
+      </div>
+      <div class="cdh-dialog__body">
+        <div class="cdh-field">
+          <label class="cdh-label" for="cdh-pf-name">Plan name</label>
+          <input class="cdh-input" type="text" id="cdh-pf-name" value="${escapeHtml(plan.name || plan.eventType || '')}" maxlength="200" placeholder="e.g. Our wedding" autocomplete="off" required>
+        </div>
+        <div class="cdh-field">
+          <label class="cdh-label" for="cdh-pf-date">Event date</label>
+          <input class="cdh-input" type="date" id="cdh-pf-date" value="${escapeHtml((plan.eventDate || plan.date || '').split('T')[0])}">
+        </div>
+        <div class="cdh-field">
+          <label class="cdh-label" for="cdh-pf-location">Location</label>
+          <input class="cdh-input" type="text" id="cdh-pf-location" value="${escapeHtml(plan.location || '')}" maxlength="200" placeholder="e.g. London" autocomplete="off">
+        </div>
+        ${
+          guestCountEditable
+            ? `<div class="cdh-field">
+          <label class="cdh-label" for="cdh-pf-guests">Expected guests</label>
+          <input class="cdh-input" type="number" id="cdh-pf-guests" value="${escapeHtml(String(expectedGuests))}" min="0" max="10000" step="1" inputmode="numeric" placeholder="e.g. 80">
+        </div>`
+            : ''
+        }
+        <div class="cdh-field">
+          <label class="cdh-label" for="cdh-pf-notes">Notes</label>
+          <textarea class="cdh-input cdh-input--area" id="cdh-pf-notes" rows="3" maxlength="2000" placeholder="Anything else worth keeping with this plan">${escapeHtml(plan.notes || '')}</textarea>
+        </div>
+        <p class="cdh-form-status" id="cdh-pf-status" role="status" aria-live="polite"></p>
+      </div>
+      <div class="cdh-dialog__foot">
+        <button type="button" class="cdh-btn cdh-btn--quiet" data-dialog-close>Cancel</button>
+        <button type="submit" class="cdh-btn cdh-btn--primary" id="cdh-pf-save">Save changes</button>
+      </div>
+    </form>
+  `;
+
+  const nameInput = dialog.querySelector('#cdh-pf-name');
+  const statusEl = dialog.querySelector('#cdh-pf-status');
+  const saveBtn = dialog.querySelector('#cdh-pf-save');
+  dialog.addEventListener('input', event => {
+    statusEl.textContent = '';
+    event.target.removeAttribute('aria-invalid');
+  });
+
+  dialog.querySelector('form').addEventListener('submit', async event => {
+    event.preventDefault();
+    const name = nameInput.value.trim();
     if (!name) {
-      statusEl.textContent = '✗ Plan name is required';
-      statusEl.style.color = '#ef4444';
+      statusEl.dataset.tone = 'error';
+      statusEl.textContent = 'Enter a name for this plan.';
+      nameInput.setAttribute('aria-invalid', 'true');
+      nameInput.focus();
+      return;
+    }
+    const guestsInput = dialog.querySelector('#cdh-pf-guests');
+    const guestsText = guestsInput ? guestsInput.value.trim() : '';
+    if (guestsInput && guestsText !== '' && !/^\d{1,5}$/u.test(guestsText)) {
+      statusEl.dataset.tone = 'error';
+      statusEl.textContent = 'Enter the number of guests as a whole number, up to 10,000.';
+      guestsInput.setAttribute('aria-invalid', 'true');
+      guestsInput.focus();
       return;
     }
     saveBtn.disabled = true;
     saveBtn.textContent = 'Saving…';
     statusEl.textContent = '';
     try {
-      const csrf = await getCsrfToken();
-      const r = await fetch(`/api/me/plans/${encodeURIComponent(plan.id)}`, {
+      const csrf = await ensureCsrfToken();
+      const changes = {
+        name,
+        eventDate: dialog.querySelector('#cdh-pf-date').value || null,
+        location: dialog.querySelector('#cdh-pf-location').value.trim() || null,
+        notes: dialog.querySelector('#cdh-pf-notes').value.trim() || null,
+      };
+      if (guestsInput) {
+        changes.guests = guestsText === '' ? null : Number(guestsText);
+      }
+      const response = await fetch(`/api/me/plans/${encodeURIComponent(plan.id)}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrf },
         credentials: 'include',
-        body: JSON.stringify({
-          name,
-          eventDate: overlay.querySelector('#_pf_date').value || null,
-          location: overlay.querySelector('#_pf_location').value.trim() || null,
-          notes: overlay.querySelector('#_pf_notes').value.trim() || null,
-        }),
+        body: JSON.stringify(changes),
       });
-      const d = await r.json();
-      if (!r.ok) {
-        throw new Error(d.error || 'Failed to save');
+      const payload = await readJson(response);
+      if (!response.ok) {
+        throw new Error(payload.error || 'We could not save your changes. Please try again.');
       }
-      close();
+      dialog.close();
       if (typeof onSaved === 'function') {
         onSaved();
       }
     } catch (err) {
-      statusEl.textContent = `✗ ${err.message}`;
-      statusEl.style.color = '#ef4444';
-    } finally {
+      statusEl.dataset.tone = 'error';
+      statusEl.textContent = err.message;
       saveBtn.disabled = false;
-      saveBtn.textContent = 'Save Changes';
+      saveBtn.textContent = 'Save changes';
     }
   });
+
+  showDialog(dialog, opener);
+  const wanted = /^cdh-pf-[a-z]+$/u.test(focusId || '')
+    ? dialog.querySelector(`#${focusId}`)
+    : null;
+  (wanted || nameInput).focus();
 }
 
+/**
+ * Opens the Delete Plan confirmation and DELETEs the plan when confirmed.
+ * @param {object} plan - The plan to delete
+ * @param {Function} onDeleted - Called after a successful delete
+ */
 function confirmDeletePlan(plan, onDeleted) {
+  document.getElementById('cdh-plan-delete-dialog')?.remove();
+  const opener = document.activeElement;
   const displayName = escapeHtml(plan.name || plan.eventType || 'this plan');
-  const existing = document.getElementById('_dash_plan_delete_modal');
-  if (existing) {
-    existing.remove();
-  }
 
-  const overlay = document.createElement('div');
-  overlay.id = '_dash_plan_delete_modal';
-  overlay.setAttribute('role', 'dialog');
-  overlay.setAttribute('aria-modal', 'true');
-  overlay.style.cssText =
-    'position:fixed;inset:0;z-index:9000;background:rgba(0,0,0,0.45);display:flex;align-items:center;justify-content:center;padding:1rem;';
-  overlay.innerHTML = `
-    <div style="background:#fff;border-radius:12px;max-width:400px;width:100%;box-shadow:0 20px 50px rgba(0,0,0,0.2);padding:1.5rem;animation:ef-modal-in 0.2s ease both;">
-      <h3 style="margin:0 0 0.75rem;font-size: 1.125rem;font-weight:700;">Delete Plan</h3>
-      <p style="margin:0 0 1.5rem;font-size: 0.875rem;color:#374151;">Are you sure you want to delete <strong>${displayName}</strong>? This cannot be undone.</p>
-      <p id="_del_status" style="font-size:0.875rem;margin:0 0 0.75rem;color:#ef4444;" role="status" aria-live="polite"></p>
-      <div style="display:flex;justify-content:flex-end;gap:0.75rem;">
-        <button id="_del_cancel" type="button" class="cta secondary">Cancel</button>
-        <button id="_del_confirm" type="button" class="cta" style="background:#ef4444;border-color:#ef4444;">Delete</button>
-      </div>
+  const dialog = document.createElement('dialog');
+  dialog.id = 'cdh-plan-delete-dialog';
+  dialog.className = 'cdh-dialog cdh-dialog--narrow';
+  dialog.setAttribute('aria-labelledby', 'cdh-plan-delete-title');
+  dialog.setAttribute('aria-describedby', 'cdh-plan-delete-text');
+  dialog.innerHTML = `
+    <div class="cdh-dialog__body">
+      <h2 class="cdh-dialog__title" id="cdh-plan-delete-title">Delete ${displayName}?</h2>
+      <p class="cdh-dialog__text" id="cdh-plan-delete-text">This removes the plan and everything saved on it, including its budget and guest list. It cannot be undone.</p>
+      <p class="cdh-form-status" id="cdh-del-status" role="status" aria-live="polite"></p>
+    </div>
+    <div class="cdh-dialog__foot">
+      <button type="button" class="cdh-btn cdh-btn--quiet" data-dialog-close autofocus>Cancel</button>
+      <button type="button" class="cdh-btn cdh-btn--danger" id="cdh-del-confirm">Delete plan</button>
     </div>
   `;
 
-  document.body.appendChild(overlay);
-
-  const close = () => {
-    overlay.remove();
-    document.body.style.overflow = '';
-    document.removeEventListener('keydown', handleEscDel);
-  };
-  function handleEscDel(e) {
-    if (e.key === 'Escape') {
-      close();
-    }
-  }
-  document.body.style.overflow = 'hidden';
-  document.addEventListener('keydown', handleEscDel);
-  overlay.querySelector('#_del_cancel').addEventListener('click', close);
-  overlay.addEventListener('click', e => {
-    if (e.target === overlay) {
-      close();
-    }
-  });
-
-  overlay.querySelector('#_del_confirm').addEventListener('click', async () => {
-    const delBtn = overlay.querySelector('#_del_confirm');
-    const statusEl = overlay.querySelector('#_del_status');
-    delBtn.disabled = true;
-    delBtn.textContent = 'Deleting…';
+  const confirmBtn = dialog.querySelector('#cdh-del-confirm');
+  const statusEl = dialog.querySelector('#cdh-del-status');
+  confirmBtn.addEventListener('click', async () => {
+    confirmBtn.disabled = true;
+    confirmBtn.textContent = 'Deleting…';
+    statusEl.textContent = '';
     try {
-      const csrf = await getCsrfToken();
-      const r = await fetch(`/api/me/plans/${encodeURIComponent(plan.id)}`, {
+      const csrf = await ensureCsrfToken();
+      const response = await fetch(`/api/me/plans/${encodeURIComponent(plan.id)}`, {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrf },
         credentials: 'include',
       });
-      const d = await r.json();
-      if (!r.ok) {
-        throw new Error(d.error || 'Failed to delete');
+      const payload = await readJson(response);
+      if (!response.ok) {
+        throw new Error(payload.error || 'We could not delete this plan. Please try again.');
       }
-      close();
+      dialog.close();
       if (typeof onDeleted === 'function') {
         onDeleted();
       }
     } catch (err) {
-      statusEl.textContent = `✗ ${err.message}`;
-      delBtn.disabled = false;
-      delBtn.textContent = 'Delete';
+      statusEl.dataset.tone = 'error';
+      statusEl.textContent = err.message;
+      confirmBtn.disabled = false;
+      confirmBtn.textContent = 'Delete plan';
     }
   });
+
+  showDialog(dialog, opener);
 }
 
+/** HTML-escapes a string for safe use in markup (non-strings become an empty string). */
 function escapeHtml(unsafe) {
   if (typeof unsafe !== 'string') {
     return '';
@@ -323,6 +361,7 @@ function escapeHtml(unsafe) {
   return div.innerHTML;
 }
 
+/** Long British date in London time, or an empty string when the input is missing or invalid. */
 function formatPlanDate(dateString) {
   if (!dateString) {
     return '';
@@ -338,12 +377,12 @@ function formatPlanDate(dateString) {
       year: 'numeric',
       timeZone: 'Europe/London',
     });
-  } catch (_) {
+  } catch {
     return '';
   }
 }
 
-// Check authentication on page load
+/** Resolves to the signed-in user from /api/v1/auth/me, or null when signed out or on error. */
 async function checkAuth() {
   try {
     const response = await fetch('/api/v1/auth/me', { credentials: 'include' });
@@ -358,7 +397,30 @@ async function checkAuth() {
   }
 }
 
-// Setup navigation with auth check and consolidated initialization
+/**
+ * Scrolls to the section named in the URL hash (the guest list links to the wedding card, and
+ * emails link to the calendar). The browser's own jump happens while the page is still hidden
+ * by the sign-in guard and before the cards have their content, so it lands in the wrong place.
+ * The budget form hash is handled by the home module, which opens the form.
+ */
+function scrollToHashTarget() {
+  let id = '';
+  try {
+    id = decodeURIComponent(window.location.hash.slice(1));
+  } catch {
+    return;
+  }
+  if (!id || id === 'budget-settings-form') {
+    return;
+  }
+  const target = document.getElementById(id);
+  if (target) {
+    const calm = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+    target.scrollIntoView({ behavior: calm ? 'auto' : 'smooth', block: 'start' });
+  }
+}
+
+/** Page start-up: checks sign-in, then loads every dashboard section in parallel. */
 async function initDashboard() {
   // Ensure a CSRF token is available before any state-changing requests
   await ensureCsrfToken();
@@ -371,46 +433,11 @@ async function initDashboard() {
     return;
   }
 
-  // Personalize welcome message
+  // Personalise the greeting
   const welcomeHeading = document.getElementById('welcome-heading');
   if (welcomeHeading) {
-    if (user.firstName) {
-      welcomeHeading.textContent = `Welcome back, ${user.firstName}!`;
-    } else if (user.name) {
-      const firstName = user.name.split(' ')[0];
-      welcomeHeading.textContent = `Welcome back, ${firstName}!`;
-    } else {
-      welcomeHeading.textContent = 'Welcome back!';
-    }
-  }
-
-  // Welcome card dismiss logic (persisted in localStorage)
-  const WELCOME_DISMISS_KEY = 'ef_welcome_dismissed';
-  const welcomeSection = document.getElementById('welcome-section');
-  if (welcomeSection) {
-    let dismissed = false;
-    try {
-      dismissed =
-        localStorage.getItem(WELCOME_DISMISS_KEY) === '1' ||
-        localStorage.getItem('ef_customer_welcome_dismissed') === '1';
-    } catch (_) {
-      /* ignore storage errors */
-    }
-    if (dismissed) {
-      welcomeSection.style.display = 'none';
-    } else {
-      const dismissBtn = document.getElementById('welcome-dismiss-btn');
-      if (dismissBtn) {
-        dismissBtn.addEventListener('click', () => {
-          welcomeSection.style.display = 'none';
-          try {
-            localStorage.setItem(WELCOME_DISMISS_KEY, '1');
-          } catch (_) {
-            /* ignore storage errors */
-          }
-        });
-      }
-    }
+    const firstName = user.firstName || (user.name ? user.name.split(' ')[0] : '');
+    welcomeHeading.textContent = firstName ? `Welcome back, ${firstName}` : 'Welcome back';
   }
 
   // Check for guest plan token and claim it
@@ -423,7 +450,7 @@ async function initDashboard() {
 
   // Load all dashboard components IN PARALLEL
   // Fetch /api/me/plans once and share the result to avoid duplicate requests
-  let sharedPlans;
+  let sharedPlans = null;
   try {
     const plansResponse = await fetch('/api/me/plans', { credentials: 'include' });
     if (plansResponse.ok) {
@@ -433,20 +460,33 @@ async function initDashboard() {
   } catch (err) {
     console.error('Error pre-fetching plans:', err);
   }
+  dashboardPlans = sharedPlans || [];
+
+  document.addEventListener('cdh:reload', reloadDashboard);
+  document.addEventListener('cdh:edit-plan', event => {
+    const plan = dashboardPlans.find(candidate => candidate.id === event.detail?.planId);
+    if (plan) {
+      showEditPlanModal(plan, reloadDashboard, event.detail?.field);
+    }
+  });
 
   const componentNames = [
     'loadCustomerPlans',
-    'initCustomerDashboardWidgets',
+    'CustomerDashboardHome.render',
     'initCalendar',
     'initWeddingWebsiteDashboard',
+    'populateSavedSupplierStatus',
   ];
   const settledResults = await Promise.allSettled([
     loadCustomerPlans(sharedPlans),
-    initCustomerDashboardWidgets(sharedPlans),
+    window.CustomerDashboardHome
+      ? window.CustomerDashboardHome.render(sharedPlans)
+      : Promise.resolve(),
     initCalendar(),
     window.initWeddingWebsiteDashboard
       ? window.initWeddingWebsiteDashboard(sharedPlans || [], user)
       : Promise.resolve(),
+    populateSavedSupplierStatus(),
   ]);
 
   settledResults.forEach((result, index) => {
@@ -458,175 +498,133 @@ async function initDashboard() {
     }
   });
 
-  // Populate saved supplier status and make welcome section contextual
-  populateSavedSupplierStatus();
-  makeWelcomeContextual(sharedPlans || []);
-
   // Setup event handlers
-  setupEventHandlers(sharedPlans);
+  setupEventHandlers();
+
+  scrollToHashTarget();
 
   dbg('✅ Dashboard initialized successfully');
 }
 
 /**
- * Populate the saved suppliers dashboard status from the server shortlist API.
+ * Turns the HTML entities the shortlist API stores (it escapes names on the way in, so "Tom & Co"
+ * is kept as "Tom &amp; Co") back into text, so escapeHtml does not escape them a second time.
+ * A textarea only ever holds text, so nothing in the value is parsed as markup.
+ * @param {*} value - A stored string
+ * @returns {string} The plain text
+ */
+function decodeEntities(value) {
+  const holder = document.createElement('textarea');
+  holder.innerHTML = String(value ?? '');
+  return holder.value;
+}
+
+/**
+ * Where a saved supplier's row should go: its own canonical link when the shortlist kept one,
+ * the supplier profile path when the item carries it, otherwise the saved list (shortlist items
+ * saved from a profile page carry neither).
+ * @param {object} item - A shortlist item
+ * @returns {string} An internal path
+ */
+function savedSupplierHref(item) {
+  const own = typeof item.href === 'string' ? item.href : '';
+  // An internal path only: not protocol-relative, no '..', and not the old query-string forms of
+  // the supplier and category pages (the server rejects those when it stores a link too).
+  if (
+    /^\/(?!\/)[\w\-./~%?=&]*$/u.test(own) &&
+    !own.includes('..') &&
+    !/^\/(?:supplier|category)\?/u.test(own)
+  ) {
+    return own;
+  }
+  const profile = window.EventFlowSupplierLink?.supplierProfileHref
+    ? window.EventFlowSupplierLink.supplierProfileHref(item)
+    : '/suppliers';
+  return profile === '/suppliers' ? '/suppliers?filter=saved' : profile;
+}
+
+/**
+ * Populate the saved suppliers card from the server shortlist API.
  * The count is also written back to localStorage so other parts of the UI stay
  * in sync with the authoritative shortlist data.
  */
 async function populateSavedSupplierStatus() {
-  let savedCount = 0;
+  const MAX_LISTED = 4;
+  let savedItems = [];
   let savedSupplierIds = [];
+  let loaded = false;
   try {
-    const r = await fetch('/api/v1/shortlist', { credentials: 'include' });
-    if (r.ok) {
-      const d = await r.json();
-      const items = (d.data && d.data.items) || [];
+    const response = await fetch('/api/v1/shortlist', { credentials: 'include' });
+    if (response.ok) {
+      const payload = await response.json();
+      const items = payload.data?.items || [];
       // Count only supplier-type items
-      savedSupplierIds = items
-        .filter(item => item.itemType === 'supplier' || !item.itemType)
+      savedItems = items.filter(item => {
+        const kind = item.type || item.itemType;
+        return kind === 'supplier' || !kind;
+      });
+      savedSupplierIds = savedItems
         .map(item => item.supplierId || item.id || item.itemId)
         .filter(Boolean);
-      savedCount = savedSupplierIds.length;
+      loaded = true;
       // Keep legacy localStorage key in sync so redirect logic still works
       try {
         localStorage.setItem('eventflow_saved_suppliers', JSON.stringify(savedSupplierIds));
-      } catch (_) {
+      } catch {
         /* ignore */
       }
     }
-  } catch (_) {
+  } catch {
     // Fallback to localStorage on network error
     try {
       savedSupplierIds = JSON.parse(localStorage.getItem('eventflow_saved_suppliers') || '[]');
-      savedCount = savedSupplierIds.length;
-    } catch (__) {
+    } catch {
       /* ignore */
     }
   }
+  const savedCount = savedSupplierIds.length;
 
-  // Populate saved suppliers card status
   const savedStatusEl = document.getElementById('saved-suppliers-status');
   const openPlanBtn = document.getElementById('openPlanBtn');
-  if (savedStatusEl) {
-    if (savedCount === 0) {
-      savedStatusEl.innerHTML = `
-        <div class="empty-state">
-          <div class="empty-state-icon">⭐</div>
-          <div class="empty-state-title">No saved suppliers yet</div>
-          <div class="empty-state-description">Save your favorites while browsing to build your supplier shortlist.</div>
-          <a href="/suppliers" class="empty-state-action">Browse Suppliers</a>
-        </div>
-      `;
-      // Hide the "View Saved Items" button — the empty-state action above replaces it
-      if (openPlanBtn) {
-        openPlanBtn.style.display = 'none';
-      }
-    } else {
-      savedStatusEl.innerHTML = `<p class="small" style="color:var(--ef-text-muted);margin:0 0 0.75rem;">${savedCount} saved supplier${savedCount !== 1 ? 's' : ''} in your list.</p>`;
-      // Ensure the button is visible when there are saved suppliers
-      if (openPlanBtn) {
-        openPlanBtn.style.display = '';
-      }
+  if (!savedStatusEl) {
+    return;
+  }
+
+  if (savedCount === 0) {
+    savedStatusEl.innerHTML =
+      '<div class="cdh-empty"><p class="cdh-empty__title">No saved suppliers yet</p><p class="cdh-empty__text">Save suppliers while you browse and they will be kept here for you to compare.</p><a href="/suppliers" class="cdh-btn cdh-btn--primary cdh-btn--sm">Browse suppliers</a></div>';
+    // The empty state's own action replaces the "View saved suppliers" button
+    if (openPlanBtn) {
+      openPlanBtn.hidden = true;
     }
+    return;
+  }
+
+  if (openPlanBtn) {
+    openPlanBtn.hidden = false;
+  }
+  const rows = savedItems
+    .slice(0, MAX_LISTED)
+    .map(item => {
+      const href = escapeHtml(savedSupplierHref(item));
+      const name = escapeHtml(decodeEntities(item.name || 'Supplier'));
+      const category = item.category ? escapeHtml(decodeEntities(item.category)) : '';
+      return `<li><a class="cdh-list__link" href="${href}"><span class="cdh-list__name">${name}</span>${category ? `<span class="cdh-list__meta">${category}</span>` : ''}</a></li>`;
+    })
+    .join('');
+  const more =
+    savedCount > MAX_LISTED ? `<p class="cdh-note">and ${savedCount - MAX_LISTED} more</p>` : '';
+  const heading = `${savedCount} saved supplier${savedCount === 1 ? '' : 's'}`;
+  savedStatusEl.innerHTML = `<p class="cdh-note cdh-note--lead">${heading}</p>${rows ? `<ul class="cdh-list">${rows}</ul>` : ''}${rows ? more : ''}`;
+  if (!loaded) {
+    savedStatusEl.insertAdjacentHTML(
+      'beforeend',
+      '<p class="cdh-note">Showing your last saved list while we reconnect.</p>'
+    );
   }
 }
 
-/**
- * Make welcome section contextual based on user data
- */
-function makeWelcomeContextual(plans) {
-  const promptContainer = document.getElementById('welcome-contextual-prompt');
-  if (!promptContainer) {
-    return;
-  }
-
-  if (plans.length === 0) {
-    promptContainer.innerHTML = `
-      <div class="customer-welcome-prompt">
-        <span>🚀</span>
-        <span>Ready to get started? <a href="/start" style="color:inherit;font-weight:600;text-decoration:underline;">Create your first event plan</a> to kick things off!</span>
-      </div>`;
-    return;
-  }
-
-  // Check if budget is set (server plan is authoritative)
-  const hasBudget = plans.some(p => p.budget && parseFloat(p.budget) > 0);
-  let lsBudget = null;
-  try {
-    lsBudget = localStorage.getItem('eventflow_custom_budget');
-  } catch (_) {
-    /* ignore */
-  }
-
-  if (!hasBudget && !lsBudget) {
-    promptContainer.innerHTML = `
-      <div class="customer-welcome-prompt customer-welcome-prompt--budget" role="link" tabindex="0" aria-label="Set your budget">
-        <span>💰</span>
-        <span>Don't forget to <a href="#budget-settings-form" style="color:inherit;font-weight:600;text-decoration:underline;">set your budget</a> so we can track your spending accurately.</span>
-      </div>`;
-
-    const budgetPrompt = promptContainer.querySelector('.customer-welcome-prompt--budget');
-    const scrollToBudget = () => {
-      const budgetForm = document.getElementById('budget-settings-form');
-      if (budgetForm) {
-        budgetForm.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        const firstInput = budgetForm.querySelector('input, select, textarea, button');
-        if (firstInput && typeof firstInput.focus === 'function') {
-          firstInput.focus({ preventScroll: true });
-        }
-      } else {
-        window.location.hash = 'budget-settings-form';
-      }
-    };
-
-    if (budgetPrompt) {
-      budgetPrompt.addEventListener('click', event => {
-        if (event.target.closest('a')) {
-          return;
-        }
-        scrollToBudget();
-      });
-      budgetPrompt.addEventListener('keydown', event => {
-        if (event.key === 'Enter' || event.key === ' ') {
-          event.preventDefault();
-          scrollToBudget();
-        }
-      });
-    }
-    return;
-  }
-
-  // Listen for unread count once it arrives from the messaging system (async).
-  // makeWelcomeContextual can run more than once after dashboard refreshes, so guard
-  // the window listener to avoid duplicate prompts and repeated DOM work.
-  if (window.__heroUnreadListenerAdded) {
-    return;
-  }
-  window.__heroUnreadListenerAdded = true;
-  window.addEventListener('unreadCountUpdated', function onUnreadForPrompt(e) {
-    window.removeEventListener('unreadCountUpdated', onUnreadForPrompt);
-    const unreadCount =
-      typeof e.detail?.count === 'number' ? Math.max(0, Math.floor(e.detail.count)) : 0;
-    if (unreadCount > 0 && !promptContainer.querySelector('.customer-welcome-prompt--messages')) {
-      const prompt = document.createElement('div');
-      prompt.className = 'customer-welcome-prompt customer-welcome-prompt--messages';
-      const icon = document.createElement('span');
-      icon.textContent = '💬';
-      const text = document.createElement('span');
-      text.textContent = `You have ${unreadCount} unread message${unreadCount !== 1 ? 's' : ''}. `;
-      const link = document.createElement('a');
-      link.href = '/messenger/';
-      link.style.cssText = 'color:inherit;font-weight:600;text-decoration:underline;';
-      link.textContent = 'Check your inbox';
-      text.appendChild(link);
-      prompt.appendChild(icon);
-      prompt.appendChild(text);
-      promptContainer.replaceChildren(prompt);
-    }
-  });
-}
-
-// Initialize calendar
+/** Starts the events calendar, resolving once it has been set up (or its fallback message shown). */
 function initCalendar() {
   return new Promise(resolve => {
     const calendarEl = document.getElementById('events-calendar');
@@ -641,35 +639,61 @@ function initCalendar() {
         console.error('Calendar init failed:', err);
         if (calendarEl) {
           calendarEl.innerHTML =
-            '<p class="small customer-calendar-empty" style="text-align:center;color:#667085;padding:2rem 0;">📅 Calendar could not be loaded. <a href="/start">Create an event</a> to see it here.</p>';
+            '<p class="cdh-note customer-calendar-empty">Calendar could not be loaded. <a href="/start">Create an event</a> to see it here.</p>';
         }
       }
     } else if (calendarEl) {
       calendarEl.innerHTML =
-        '<p class="small customer-calendar-empty" style="text-align:center;color:#667085;padding:2rem 0;">📅 No events scheduled yet. <a href="/start">Create a plan</a> to see your calendar.</p>';
+        '<p class="cdh-note customer-calendar-empty">No events scheduled yet. <a href="/start">Create a plan</a> to see your calendar.</p>';
     }
     resolve();
   });
 }
 
-// Setup all event handlers
-function setupEventHandlers(latestPlans) {
+/** Shows a short message under the budget form. tone: success | warn | error */
+function showBudgetStatus(message, tone) {
+  const budgetStatus = document.getElementById('budget-status');
+  if (!budgetStatus) {
+    return;
+  }
+  budgetStatus.dataset.tone = tone;
+  budgetStatus.textContent = message;
+}
+
+/** A brief non-blocking notice at the top of the page. */
+function showPageNotice(title, message) {
+  const notice = document.createElement('div');
+  notice.className = 'cdh-toast';
+  notice.setAttribute('role', 'status');
+  const strong = document.createElement('strong');
+  strong.textContent = title;
+  const text = document.createElement('span');
+  text.textContent = message;
+  notice.append(strong, text);
+  document.body.appendChild(notice);
+  return notice;
+}
+
+/** Wires the Open My Plan button and the budget form, and syncs the stored budget with the server. */
+function setupEventHandlers() {
+  /** The plan the summary row describes — the budget form must edit that same plan. */
+  const focusPlan = () =>
+    window.CustomerDashboardHome?.pickFocusPlan(dashboardPlans) || dashboardPlans[0] || null;
+
   // Setup Open My Plan button with auth-aware navigation
-  document.getElementById('openPlanBtn')?.addEventListener('click', e => {
-    e.preventDefault();
+  document.getElementById('openPlanBtn')?.addEventListener('click', event => {
+    event.preventDefault();
 
     // Collect ONLY supplier IDs (not package IDs) for the /suppliers?filter=saved redirect.
     // plan.suppliers holds supplier IDs; localStorage eventflow_saved_suppliers also holds
     // supplier IDs. plan.packages holds package IDs and must NOT be mixed in here.
     const savedSupplierIdSet = new Set();
     try {
-      if (latestPlans && latestPlans.length > 0) {
-        latestPlans.forEach(plan => {
-          if (Array.isArray(plan.suppliers)) {
-            plan.suppliers.forEach(id => savedSupplierIdSet.add(id));
-          }
-        });
-      }
+      dashboardPlans.forEach(plan => {
+        if (Array.isArray(plan.suppliers)) {
+          plan.suppliers.forEach(id => savedSupplierIdSet.add(id));
+        }
+      });
     } catch (err) {
       console.error('Error reading supplier IDs from plans:', err);
     }
@@ -685,24 +709,13 @@ function setupEventHandlers(latestPlans) {
     }
 
     if (savedSupplierIdSet.size === 0) {
-      // Show styled notification instead of alert
-      const notification = document.createElement('div');
-      notification.style.cssText =
-        'position:fixed;top:20px;left:50%;transform:translateX(-50%);background:#FEF2F2;border:1px solid #FCA5A5;padding:1rem 1.5rem;border-radius:8px;box-shadow:0 4px 6px rgba(0,0,0,0.1);z-index:10000;max-width:400px;';
-      notification.innerHTML = `
-        <div style="display:flex;align-items:center;gap:0.75rem;">
-          <span style="font-size:1.5rem;">ℹ️</span>
-          <div>
-            <strong style="display:block;color:#991B1B;margin-bottom:0.25rem;">No Saved Suppliers</strong>
-            <p style="margin:0;color:#7F1D1D;font-size: 0.875rem;">You haven't saved any suppliers yet. Browse suppliers to get started!</p>
-          </div>
-        </div>
-      `;
-      document.body.appendChild(notification);
-
+      const notice = showPageNotice(
+        'No saved suppliers',
+        "You haven't saved any suppliers yet. Taking you to browse suppliers."
+      );
       // Remove notification after 3 seconds and redirect
       setTimeout(() => {
-        notification.remove();
+        notice.remove();
         window.location.href = '/suppliers';
       }, 3000);
     } else {
@@ -712,20 +725,16 @@ function setupEventHandlers(latestPlans) {
   });
 
   // Budget settings handler
-  document.getElementById('budget-settings-form')?.addEventListener('submit', async e => {
-    e.preventDefault();
+  document.getElementById('budget-settings-form')?.addEventListener('submit', async event => {
+    event.preventDefault();
 
     const input = document.getElementById('custom-budget-input');
-    const budgetStatus = document.getElementById('budget-status');
     const budget = parseFloat(input.value);
 
     // Validate budget (also enforce in JS, not just HTML)
     // isFinite() guard rejects Infinity and -Infinity which pass isNaN/<=0
     if (isNaN(budget) || !isFinite(budget) || budget <= 0 || budget > 1_000_000_000) {
-      budgetStatus.style.display = 'block';
-      budgetStatus.style.background = '#FEF2F2';
-      budgetStatus.innerHTML =
-        '<p class="small" style="margin:0;color:#DC2626;">❌ Please enter a valid budget between £1 and £1,000,000,000</p>';
+      showBudgetStatus('Please enter a budget between £1 and £1,000,000,000.', 'error');
       return;
     }
 
@@ -734,18 +743,15 @@ function setupEventHandlers(latestPlans) {
       localStorage.setItem('eventflow_custom_budget', budget.toString());
     } catch (err) {
       console.error('Failed to save budget to localStorage:', err);
-      budgetStatus.style.display = 'block';
-      budgetStatus.style.background = '#FEF2F2';
-      budgetStatus.innerHTML =
-        '<p class="small" style="margin:0;color:#DC2626;">❌ Failed to save budget. Storage may be full.</p>';
+      showBudgetStatus('Failed to save budget. Storage may be full.', 'error');
       return;
     }
 
-    // Also persist to server on the user's first/primary plan.
+    // Also persist to server on the focus plan (the one the summary row describes).
     // Always check response.ok — a CSRF/auth failure must not be silently swallowed.
     let serverSyncFailed = false;
-    if (latestPlans && latestPlans.length > 0) {
-      const primaryPlan = latestPlans[0];
+    const primaryPlan = focusPlan();
+    if (primaryPlan) {
       try {
         const patchResp = await fetch(`/api/me/plans/${encodeURIComponent(primaryPlan.id)}`, {
           method: 'PATCH',
@@ -759,6 +765,9 @@ function setupEventHandlers(latestPlans) {
         if (!patchResp.ok) {
           console.warn('Budget PATCH failed with status:', patchResp.status);
           serverSyncFailed = true;
+        } else {
+          // Keep the in-memory plan current so the summary shows the new figure straight away
+          primaryPlan.budget = budget;
         }
       } catch (err) {
         console.warn('Failed to persist budget to server (will use localStorage):', err);
@@ -767,63 +776,57 @@ function setupEventHandlers(latestPlans) {
     }
 
     // Show result — distinguish between full success and local-only save
-    budgetStatus.style.display = 'block';
     if (serverSyncFailed) {
-      budgetStatus.style.background = '#FFFBEB';
-      const budgetP = document.createElement('p');
-      budgetP.className = 'small';
-      budgetP.style.cssText = 'margin:0;color:#92400E;';
-      budgetP.textContent = `⚠️ Budget saved locally (£${budget.toLocaleString()}) but couldn't sync to server. It will be retried on next visit.`;
-      budgetStatus.replaceChildren(budgetP);
+      showBudgetStatus(
+        `Budget saved locally (£${budget.toLocaleString()}) but couldn't sync to server. It will be retried on next visit.`,
+        'warn'
+      );
+      // Show the figure the person just entered, not the stale server value
+      if (primaryPlan) {
+        primaryPlan.budget = budget;
+      }
     } else {
-      budgetStatus.style.background = '#F0FDF4';
-      const budgetP = document.createElement('p');
-      budgetP.className = 'small';
-      budgetP.style.cssText = 'margin:0;color:#059669;';
-      budgetP.textContent = `✅ Budget set to £${budget.toLocaleString()}`;
-      budgetStatus.replaceChildren(budgetP);
+      showBudgetStatus(`Budget set to £${budget.toLocaleString()}`, 'success');
     }
 
-    // Reload widgets with new budget - with error handling
+    // Redraw the summary with the new budget
     try {
-      await initCustomerDashboardWidgets(latestPlans);
+      if (window.CustomerDashboardHome) {
+        await window.CustomerDashboardHome.render(dashboardPlans);
+      }
     } catch (err) {
-      console.error('Failed to reload widgets after budget update:', err);
+      console.error('Failed to refresh the summary after budget update:', err);
       // Don't show error to user since budget was saved successfully
-      // Widgets will reload on next page visit
     }
 
-    // Hide status message after 3 seconds
+    // Close the form shortly afterwards so the new figure is visible
     setTimeout(() => {
-      budgetStatus.style.display = 'none';
-    }, 3000);
+      document.getElementById('budget-settings-cancel')?.click();
+      showBudgetStatus('', 'success');
+    }, 2500);
   });
 
   // Load saved budget on page load — prefer server plan budget, fall back to localStorage
-  const budgetFromPlan =
-    latestPlans && latestPlans.length > 0
-      ? latestPlans.find(p => p.budget && parseFloat(p.budget) > 0)
-      : null;
+  const budgetFromPlan = dashboardPlans.length
+    ? dashboardPlans.find(candidate => candidate.budget && parseFloat(candidate.budget) > 0)
+    : null;
 
   try {
     const input = document.getElementById('custom-budget-input');
     if (input) {
-      if (budgetFromPlan) {
-        input.value = parseFloat(budgetFromPlan.budget);
-        // Sync server value to localStorage for fast client-side access
-        try {
-          localStorage.setItem(
-            'eventflow_custom_budget',
-            String(parseFloat(budgetFromPlan.budget))
-          );
-        } catch (storageErr) {
-          console.warn('Could not sync server budget to localStorage:', storageErr);
-        }
-      } else {
-        const savedBudget = localStorage.getItem('eventflow_custom_budget');
-        if (savedBudget) {
-          input.value = savedBudget;
-        }
+      const focusBudget = window.CustomerDashboardHome
+        ? window.CustomerDashboardHome.totalBudgetFor(focusPlan(), dashboardPlans)
+        : 0;
+      if (focusBudget > 0) {
+        input.value = focusBudget;
+      }
+    }
+    if (budgetFromPlan) {
+      // Sync server value to localStorage for fast client-side access
+      try {
+        localStorage.setItem('eventflow_custom_budget', String(parseFloat(budgetFromPlan.budget)));
+      } catch (storageErr) {
+        console.warn('Could not sync server budget to localStorage:', storageErr);
       }
     }
   } catch (err) {
@@ -833,16 +836,16 @@ function setupEventHandlers(latestPlans) {
   // Retry: if localStorage has a budget that didn't make it to the server (e.g. a
   // previous PATCH failed), silently attempt to sync it now.  This fulfils the
   // "will be retried on next visit" message shown when the initial save fails.
-  if (!budgetFromPlan && latestPlans && latestPlans.length > 0) {
+  if (!budgetFromPlan && dashboardPlans.length > 0) {
     let lsBudgetForRetry = null;
     try {
       lsBudgetForRetry = localStorage.getItem('eventflow_custom_budget');
-    } catch (_) {
+    } catch {
       /* ignore */
     }
     const pendingBudget = lsBudgetForRetry ? parseFloat(lsBudgetForRetry) : NaN;
     if (!isNaN(pendingBudget) && pendingBudget > 0) {
-      const primaryPlan = latestPlans[0];
+      const primaryPlan = focusPlan();
       // Fire-and-forget: don't block page load; failures are non-fatal
       (async () => {
         try {
@@ -918,15 +921,15 @@ function getCsrfToken() {
     return window.__CSRF_TOKEN__;
   }
   const meta = document.querySelector('meta[name="csrf-token"]');
-  if (meta && meta.getAttribute('content')) {
+  if (meta?.getAttribute('content')) {
     return meta.getAttribute('content');
   }
   // Try cookies (both canonical and legacy names)
-  const match = document.cookie.match(/(?:^|;\s*)(?:csrf|csrfToken)=([^;]+)/);
+  const match = document.cookie.match(/(?:^|;\s*)(?:csrf|csrfToken)=([^;]+)/u);
   if (match) {
     try {
       return decodeURIComponent(match[1]);
-    } catch (_) {
+    } catch {
       return match[1];
     }
   }
@@ -955,7 +958,7 @@ async function ensureCsrfToken() {
       }
       return token;
     }
-  } catch (_) {
+  } catch {
     /* network error — fall back to cookie/meta if available */
   }
   return getCsrfToken();
@@ -975,22 +978,18 @@ async function showCustomerEmailVerificationBanner(email) {
 
   const banner = document.createElement('div');
   banner.id = 'email-verify-banner';
+  banner.className = 'cdh-banner';
   banner.setAttribute('role', 'alert');
-  banner.style.cssText =
-    'background:#fffbeb;border:1px solid #fcd34d;border-radius:8px;padding:0.75rem 1rem;' +
-    'margin-bottom:1rem;display:flex;align-items:center;gap:0.75rem;flex-wrap:wrap;font-size:0.875rem;';
 
   const msg = document.createElement('span');
+  msg.className = 'cdh-banner__text';
   msg.textContent =
-    '⚠️ Please verify your email address to unlock all features. Check your inbox for a verification link.';
-  msg.style.flex = '1';
+    'Please verify your email address to unlock all features. Check your inbox for a verification link.';
 
   const resendBtn = document.createElement('button');
   resendBtn.type = 'button';
+  resendBtn.className = 'cdh-btn cdh-btn--secondary cdh-btn--sm';
   resendBtn.textContent = 'Resend email';
-  resendBtn.style.cssText =
-    'background:none;border:1px solid #d97706;border-radius:6px;padding:0.25rem 0.75rem;' +
-    'cursor:pointer;color:#92400e;font-size: 0.75rem;white-space:nowrap;';
 
   resendBtn.addEventListener('click', async () => {
     resendBtn.disabled = true;
@@ -1004,14 +1003,14 @@ async function showCustomerEmailVerificationBanner(email) {
         body: JSON.stringify({ email }),
       });
       if (resp.ok) {
-        msg.textContent = '✓ Verification email sent! Please check your inbox.';
+        msg.textContent = 'Verification email sent. Please check your inbox.';
         resendBtn.remove();
       } else {
         resendBtn.disabled = false;
         resendBtn.textContent = 'Resend email';
-        msg.textContent = '⚠️ Could not resend verification email. Please try again.';
+        msg.textContent = 'Could not resend the verification email. Please try again.';
       }
-    } catch (err) {
+    } catch {
       resendBtn.disabled = false;
       resendBtn.textContent = 'Resend email';
     }
@@ -1020,11 +1019,10 @@ async function showCustomerEmailVerificationBanner(email) {
   banner.appendChild(msg);
   banner.appendChild(resendBtn);
 
-  const firstSection =
-    document.querySelector('main > *:first-child, .cd-section, .dashboard-hero') ||
-    document.body.firstElementChild;
-  if (firstSection && firstSection.parentNode) {
-    firstSection.parentNode.insertBefore(banner, firstSection);
+  // Sit above the greeting, inside the page column
+  const hero = document.querySelector('.cdh-hero');
+  if (hero?.parentNode) {
+    hero.parentNode.insertBefore(banner, hero);
   } else {
     document.body.insertBefore(banner, document.body.firstChild);
   }
