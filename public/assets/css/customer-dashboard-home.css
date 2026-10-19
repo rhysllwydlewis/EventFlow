@@ -218,6 +218,14 @@
   flex: none;
   flex-wrap: wrap;
   gap: 8px;
+  max-width: 100%;
+}
+
+/* The primary action is the next checklist step, so its label can be long: let it wrap. */
+.cdh-page .cdh-hero__actions .cdh-btn {
+  max-width: 100%;
+  padding-block: 8px;
+  white-space: normal;
 }
 
 /* ------------------------------------------------------------------ *

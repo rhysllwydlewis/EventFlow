@@ -291,7 +291,7 @@
           : 'Set a total to see what is left as you book.';
       return tile(
         'Budget',
-        `<p class="cdh-tile__value cdh-tile__value--empty">Not set</p><p class="cdh-tile__sub">${esc(committed)} ${manage}</p>`,
+        `<p class="cdh-tile__value cdh-tile__value--empty">Not set</p><p class="cdh-tile__sub">${esc(committed)}</p><p class="cdh-tile__sub">${manage}</p>`,
         edit
       );
     }
@@ -305,7 +305,8 @@
       'Budget',
       `<p class="cdh-tile__value">${gbp(money.spent)}<span class="cdh-tile__unit"> of ${gbp(total)}</span></p>
        ${bar(percent, `Budget used: ${Math.round(percent)}%`, over ? 'warn' : '')}
-       <p class="cdh-tile__sub${over ? ' cdh-tile__sub--warn' : ''}">${esc(left + unpriced)} · ${manage}</p>`,
+       <p class="cdh-tile__sub${over ? ' cdh-tile__sub--warn' : ''}">${esc(left + unpriced)}</p>
+       <p class="cdh-tile__sub">${manage}</p>`,
       edit
     );
   }
