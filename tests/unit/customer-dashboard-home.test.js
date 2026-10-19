@@ -359,6 +359,16 @@ describe('customer dashboard home: data handling', () => {
     expect(homeJs).toMatch(/primary\.hidden = false/);
   });
 
+  test('saved suppliers decode the entities the shortlist stores and never link every row to /suppliers', () => {
+    expect(initJs).toContain('escapeHtml(decodeEntities(item.name');
+    expect(initJs).toContain('function savedSupplierHref(');
+    expect(initJs).toContain("'/suppliers?filter=saved'");
+  });
+
+  test('the guests tile counts people attending, as the guest list page does', () => {
+    expect(homeJs).toContain('rsvp.partySizeTotal');
+  });
+
   test('the primary action starts hidden so it never flashes the wrong label while plans load', () => {
     expect(html).toMatch(/id="cdh-next-action"[^>]*\bhidden\b/);
   });

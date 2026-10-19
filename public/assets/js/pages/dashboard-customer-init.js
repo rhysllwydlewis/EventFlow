@@ -453,6 +453,42 @@ async function initDashboard() {
 }
 
 /**
+ * Turns the HTML entities the shortlist API stores (it escapes names on the way in, so "Tom & Co"
+ * is kept as "Tom &amp; Co") back into text, so escapeHtml does not escape them a second time.
+ * A textarea only ever holds text, so nothing in the value is parsed as markup.
+ * @param {*} value - A stored string
+ * @returns {string} The plain text
+ */
+function decodeEntities(value) {
+  const holder = document.createElement('textarea');
+  holder.innerHTML = String(value ?? '');
+  return holder.value;
+}
+
+/**
+ * Where a saved supplier's row should go: its own canonical link when the shortlist kept one,
+ * the supplier profile path when the item carries it, otherwise the saved list (shortlist items
+ * saved from a profile page carry neither).
+ * @param {object} item - A shortlist item
+ * @returns {string} An internal path
+ */
+function savedSupplierHref(item) {
+  const own = typeof item.href === 'string' ? item.href : '';
+  if (
+    /^\/(?!\/)[\w\-./~%?=&]*$/u.test(own) &&
+    !own.includes('..') &&
+    !own.startsWith('/supplier?id=') &&
+    !own.startsWith('/category?slug=')
+  ) {
+    return own;
+  }
+  const profile = window.EventFlowSupplierLink?.supplierProfileHref
+    ? window.EventFlowSupplierLink.supplierProfileHref(item)
+    : '/suppliers';
+  return profile === '/suppliers' ? '/suppliers?filter=saved' : profile;
+}
+
+/**
  * Populate the saved suppliers card from the server shortlist API.
  * The count is also written back to localStorage so other parts of the UI stay
  * in sync with the authoritative shortlist data.
@@ -515,11 +551,9 @@ async function populateSavedSupplierStatus() {
   const rows = savedItems
     .slice(0, MAX_LISTED)
     .map(item => {
-      const href = window.EventFlowSupplierLink?.supplierProfileHref
-        ? window.EventFlowSupplierLink.supplierProfileHref(item)
-        : '/suppliers';
-      const name = escapeHtml(String(item.name || 'Supplier'));
-      const category = item.category ? escapeHtml(String(item.category)) : '';
+      const href = escapeHtml(savedSupplierHref(item));
+      const name = escapeHtml(decodeEntities(item.name || 'Supplier'));
+      const category = item.category ? escapeHtml(decodeEntities(item.category)) : '';
       return `<li><a class="cdh-list__link" href="${href}"><span class="cdh-list__name">${name}</span>${category ? `<span class="cdh-list__meta">${category}</span>` : ''}</a></li>`;
     })
     .join('');

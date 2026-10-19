@@ -334,11 +334,15 @@
     const link = text => `<a class="cdh-link" href="/guests">${text}</a>`;
     if (rsvp?.totalGuests > 0) {
       const replied = rsvp.responsesReceived || 0;
+      // People, not guest records: a reply can cover a whole party, and the guest list page
+      // counts the same way.
+      const people = rsvp.partySizeTotal || rsvp.attending || 0;
+      const attending = `${plural(people, 'person', 'people')} attending`;
       return tile(
         'Guests',
         `<p class="cdh-tile__value">${replied}<span class="cdh-tile__unit"> of ${rsvp.totalGuests} replied</span></p>
          ${bar((replied / rsvp.totalGuests) * 100, `${replied} of ${rsvp.totalGuests} guests have replied`)}
-         <p class="cdh-tile__sub">${plural(rsvp.attending || 0, 'attending', 'attending')} · ${link('Manage guests')}</p>`
+         <p class="cdh-tile__sub">${attending} · ${link('Manage guests')}</p>`
       );
     }
     const expected = parseInt(plan.guestCount || plan.guests || 0, 10) || 0;
