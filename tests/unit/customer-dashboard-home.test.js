@@ -519,12 +519,15 @@ describe('the account-type notice', () => {
     );
     expect(noticeHtml).not.toMatch(/You’re signed up as a/);
     const text = noticeHtml.match(/<p class="cdh-notice__text">([\s\S]*?)<\/p>/)[1];
-    expect(
-      text
-        .replace(/<[^>]+>/g, '')
-        .replace(/\s+/g, ' ')
-        .trim().length
-    ).toBeLessThan(60);
+    // The only markup inside the sentence is the one span, so remove exactly that.
+    const spoken = text
+      .replace('<span class="cdh-notice__more">', '')
+      .replace('</span>', '')
+      .replace(/\s+/g, ' ')
+      .trim();
+    expect(spoken).toBe('Want to list a business? Switch to a supplier account.');
+    expect(spoken).not.toContain('<');
+    expect(spoken.length).toBeLessThan(60);
   });
 
   test('keeps the "details come with you" reassurance on the button', () => {
