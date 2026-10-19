@@ -52,6 +52,10 @@ describe('homepage flow layer wiring', () => {
     ].forEach(sheet => expect(at('homepage-flow.css')).toBeGreaterThan(at(sheet)));
   });
 
+  test('the homepage body carries the scope class from first paint, not only after the script runs', () => {
+    expect(index).toMatch(/<body class="ef-home-flow">/);
+  });
+
   test('every rule is scoped to the production homepage', () => {
     const selectors = css
       .replace(/\/\*[\s\S]*?\*\//g, '')
@@ -60,12 +64,14 @@ describe('homepage flow layer wiring', () => {
       .map(part => part.split('}').pop().trim())
       .filter(part => part && !part.startsWith('@'))
       .flatMap(part => part.split(/,(?![^(]*\))/).map(sel => sel.trim()));
-    expect(selectors.filter(sel => !/ef-approved-lower-home/.test(sel))).toEqual([]);
+    expect(selectors.filter(sel => !/body\.ef-home-flow|^\.ef-flow-/.test(sel))).toEqual([]);
   });
 
-  test('adds no decoration: no scripts, animation, filters or pill shapes', () => {
+  test('nothing moves on its own: no script, keyframes, animation, filters or pill shapes', () => {
     expect(index).not.toContain('homepage-flow.js');
-    expect(css).not.toMatch(/@keyframes|animation:|filter:|backdrop-filter|border-radius: 999px/);
+    expect(css).not.toMatch(/@keyframes|animation:|filter:|backdrop-filter/);
+    // a single 999px radius is a pill; the wedding arch uses four values and is allowed
+    expect(css).not.toMatch(/border-radius:\s*999px\s*;/);
   });
 });
 
