@@ -24,6 +24,16 @@ body.ef-home-flow {
   background: #fff;
 }
 
+/* styles.css pads the whole body by 10px on phones, which leaves a white strip down
+   both sides of the colour bands, the hero and the footer. They are meant to run
+   edge to edge. */
+@media (max-width: 600px) {
+  body.ef-home-flow {
+    padding-left: 0;
+    padding-right: 0;
+  }
+}
+
 /* The mobile bottom nav is the only reason for the 70px body padding. */
 @media (min-width: 768px) {
   body.ef-home-flow {
@@ -331,6 +341,12 @@ body.ef-home-flow main :is(.ef-approved-steps-section, .hws)::after {
 body.ef-home-flow:not(.ef-home-guidance)
   :is(.ef-flow-seam, .ef-approved-category-go, .ef-approved-step-cta) {
   display: none !important;
+}
+
+/* Where a pointer lands, the section starts just under the sticky header. */
+body.ef-home-flow.ef-home-guidance
+  :is(#home-locations, #wedding-website-rsvp, #guides-section, #launch-section, #supplier-cta) {
+  scroll-margin-top: 80px;
 }
 
 /* A "next" pointer sits on each seam between sections. It is a real link to the

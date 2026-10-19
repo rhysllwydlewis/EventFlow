@@ -44,7 +44,12 @@ const {
   updateHomepageGuidance,
   validateHomepageGuidancePayload,
 } = require('../../utils/homepage-manager');
-const { applyHomepageGuidance, removeBodyClass } = require('../../utils/template-renderer');
+const {
+  applyHomepageGuidance,
+  removeBodyClass,
+  templateMiddleware,
+  clearCache,
+} = require('../../utils/template-renderer');
 const router = require('../../routes/admin-homepage-manager');
 
 const ROOT = path.resolve(__dirname, '../..');
@@ -190,6 +195,56 @@ describe('homepage body class', () => {
   });
 });
 
+describe('homepage served through the template middleware', () => {
+  const app = () => {
+    const instance = express();
+    instance.use(templateMiddleware());
+    return instance;
+  };
+  const bodyTag = res => res.text.match(/<body\b[^>]*>/i)[0];
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    clearCache();
+  });
+
+  test('guidance is on when nothing is stored', async () => {
+    dbUnified.read.mockResolvedValue({});
+    const res = await request(app()).get('/').expect(200);
+    expect(bodyTag(res)).toContain('ef-home-guidance');
+    expect(res.text).toContain('class="ef-flow-seam"');
+  });
+
+  test('switching it off drops the class on every route that serves the homepage template', async () => {
+    dbUnified.read.mockResolvedValue({ homepageGuidance: { enabled: false } });
+    for (const route of ['/', '/index.html', '/home-v3-preview']) {
+      const res = await request(app()).get(route).expect(200);
+      expect(bodyTag(res)).toContain('ef-home-flow');
+      expect(bodyTag(res)).not.toContain('ef-home-guidance');
+    }
+  });
+
+  test('the Homepage 2 file is left alone', async () => {
+    dbUnified.read.mockResolvedValue({ homepageGuidance: { enabled: false } });
+    const res = await request(app()).get('/home-v2-preview').expect(200);
+    expect(res.text).not.toContain('ef-flow-seam');
+  });
+
+  test('a setting that cannot be read leaves guidance on, and the answer is never cached', async () => {
+    dbUnified.read.mockRejectedValue(new Error('db down'));
+    const on = await request(app()).get('/index.html').expect(200);
+    expect(bodyTag(on)).toContain('ef-home-guidance');
+
+    dbUnified.read.mockResolvedValue({ homepageGuidance: { enabled: false } });
+    const off = await request(app()).get('/index.html').expect(200);
+    expect(bodyTag(off)).not.toContain('ef-home-guidance');
+
+    dbUnified.read.mockResolvedValue({ homepageGuidance: { enabled: true } });
+    const again = await request(app()).get('/index.html').expect(200);
+    expect(bodyTag(again)).toContain('ef-home-guidance');
+  });
+});
+
 describe('admin homepage guidance card', () => {
   const html = read('public/admin-homepage.html');
   const script = read('public/assets/js/pages/admin-homepage-guidance.js');
@@ -199,6 +254,20 @@ describe('admin homepage guidance card', () => {
     expect(html).toContain('id="homepageGuidanceLabel"');
     expect(html).toMatch(/id="homepageGuidanceMeta"[^>]*aria-live="polite"/);
     expect(html).toMatch(/admin-homepage-guidance\.js\?v=/);
+  });
+
+  test('the switch keeps a visible boundary when off, and survives forced colours', () => {
+    const adminCss = read('public/assets/css/admin-homepage-rebuild.css');
+    const off = adminCss.match(
+      /\.homepage-guidance-track\s*\{[^}]*background:\s*(#[0-9a-f]{6})/i
+    )[1];
+    const lum = hex =>
+      [1, 3, 5]
+        .map(i => parseInt(hex.slice(i, i + 2), 16) / 255)
+        .map(c => (c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4))
+        .reduce((sum, c, i) => sum + c * [0.2126, 0.7152, 0.0722][i], 0);
+    expect((1 + 0.05) / (lum(off) + 0.05)).toBeGreaterThanOrEqual(3);
+    expect(adminCss).toMatch(/@media \(forced-colors: active\)[\s\S]*homepage-guidance-track/);
   });
 
   test('the script uses the admin API with a CSRF token and undoes a failed save', () => {

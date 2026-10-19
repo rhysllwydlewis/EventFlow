@@ -90,6 +90,12 @@ describe('homepage flow readability', () => {
     expect(css).toContain('section:not(.ef-approved-supplier-section)');
   });
 
+  test('colour bands run edge to edge on phones, past the global 10px body padding', () => {
+    expect(css).toMatch(
+      /@media \(max-width: 600px\)\s*\{\s*body\.ef-home-flow\s*\{\s*padding-left: 0;\s*padding-right: 0;/
+    );
+  });
+
   test('narrow phones get the locations link at a readable size', () => {
     expect(css).toMatch(/@media \(max-width: 560px\)[\s\S]*--btn-fs:\s*1[2-9]px/);
   });
@@ -104,6 +110,17 @@ describe('homepage guidance', () => {
     expect(seams.length).toBeGreaterThanOrEqual(5);
     seams.forEach(([, target]) => {
       expect(index).toMatch(new RegExp(`id="${target}"`));
+    });
+  });
+
+  test('every pointer target clears the sticky header, and is a section rather than just a heading', () => {
+    const offset = css.match(/:is\(([^)]*)\)\s*\{\s*scroll-margin-top:\s*(\d+)px/);
+    expect(offset).not.toBeNull();
+    expect(Number(offset[2])).toBeGreaterThanOrEqual(76);
+    const covered = offset[1].split(',').map(sel => sel.trim());
+    seams.forEach(([, target]) => {
+      expect(covered).toContain(`#${target}`);
+      expect(index).toMatch(new RegExp(`<(section|div)[^>]*\\bid="${target}"`));
     });
   });
 

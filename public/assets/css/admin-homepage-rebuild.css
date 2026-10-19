@@ -1011,7 +1011,7 @@ button:disabled,
   width: 52px;
   height: 30px;
   border-radius: 999px;
-  background: #c3ccd8;
+  background: #667085;
   transition: background-color 160ms ease;
 }
 
@@ -1064,5 +1064,25 @@ button:disabled,
   .homepage-guidance-track,
   .homepage-guidance-track::after {
     transition: none;
+  }
+}
+
+@media (forced-colors: active) {
+  .homepage-guidance-track {
+    border: 2px solid ButtonText;
+    background: Canvas;
+  }
+
+  .homepage-guidance-track::after {
+    background: ButtonText;
+    box-shadow: none;
+  }
+
+  .homepage-guidance-switch input:checked + .homepage-guidance-track {
+    background: Highlight;
+  }
+
+  .homepage-guidance-switch input:checked + .homepage-guidance-track::after {
+    background: HighlightText;
   }
 }
