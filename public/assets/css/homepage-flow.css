@@ -178,7 +178,7 @@ body.ef-home-flow main .hws .hws__actions {
 
 body.ef-home-flow main .hws .hws__btn {
   min-height: 44px;
-  font-size: 15px;
+  font-size: 14px;
 }
 
 body.ef-home-flow main .hws .hws__note {
@@ -203,7 +203,6 @@ body.ef-home-flow main .hws .hws__feature-icon {
 
 body.ef-home-flow main .hws .hws__feature h3 {
   margin-top: 10px;
-  font-size: 15px;
 }
 
 body.ef-home-flow main .hws .hws__feature p {
@@ -243,7 +242,7 @@ body.ef-home-flow main .hws .hws__faq-item {
 
 body.ef-home-flow main .hws .hws__faq-item summary {
   padding: 12px 16px;
-  font-size: 15px;
+  font-size: 14px;
 }
 
 body.ef-home-flow main .hws .hws__faq-item p {
