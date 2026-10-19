@@ -407,6 +407,20 @@
     }
   }
 
+  /**
+   * Puts the picked plan in the address bar. A ?plan= in the link wins over the remembered plan,
+   * so without this a reload after switching plans would jump back to the plan in the link.
+   */
+  function showPlanInUrl(id) {
+    try {
+      const url = new URL(window.location.href);
+      url.searchParams.set('plan', id);
+      window.history.replaceState(window.history.state, '', url);
+    } catch {
+      /* the address just stays as it was */
+    }
+  }
+
   /** The name to show for a plan. */
   const planTitle = plan => plan?.name || plan?.eventName || plan?.eventType || 'Your plan';
 
@@ -1200,6 +1214,7 @@
       } else if (id === 'gm-plan-select') {
         state.plan = state.plans.find(p => p.id === value) || state.plan;
         remember(state.plan.id);
+        showPlanInUrl(state.plan.id);
         state.query = '';
         state.status = '';
         state.page = 1;
