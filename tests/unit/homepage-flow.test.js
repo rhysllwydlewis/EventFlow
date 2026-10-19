@@ -69,7 +69,10 @@ describe('homepage flow layer wiring', () => {
 
   test('nothing moves on its own: no script, keyframes, animation, filters or pill shapes', () => {
     expect(index).not.toContain('homepage-flow.js');
-    expect(css).not.toMatch(/@keyframes|animation:|filter:|backdrop-filter/);
+    // turning an effect off (`none`) is fine; switching one on is not
+    expect(css).not.toMatch(
+      /@keyframes|animation:(?!\s*none)|(?<!backdrop-)filter:(?!\s*none)|backdrop-filter:(?!\s*none)/
+    );
     // a single 999px radius is a pill; the wedding arch uses four values and is allowed
     expect(css).not.toMatch(/border-radius:\s*999px\s*;/);
   });
@@ -96,6 +99,21 @@ describe('homepage flow readability', () => {
     );
   });
 
+  test('the hero quick links never depend on their entrance animation to be seen', () => {
+    const rule = css.match(/main \.ef-quick-tags\s*\{([^}]*)\}/)[1];
+    expect(rule).toMatch(/animation:\s*none\s*!important/);
+    expect(rule).toMatch(/opacity:\s*1\s*!important/);
+    expect(rule).toMatch(/filter:\s*none\s*!important/);
+    expect(css).toMatch(/\.ef-quick-tags__tag\s*\{[^}]*backdrop-filter:\s*none\s*!important/);
+  });
+
+  test('quick links keep their width and are dropped, not squeezed, when the row is tight', () => {
+    expect(css).toMatch(/\.ef-quick-tags__tag\s*\{[^}]*flex:\s*0 0 auto/);
+    const searchBar = read('public/assets/js/ef-search-bar.js');
+    expect(searchBar).toContain('document.fonts.ready.then(() => this.scheduleQuickTagBalance())');
+    expect(index).toMatch(/ef-search-bar\.js\?v=/);
+  });
+
   test('narrow phones get the locations link at a readable size', () => {
     expect(css).toMatch(/@media \(max-width: 560px\)[\s\S]*--btn-fs:\s*1[2-9]px/);
   });
@@ -111,6 +129,29 @@ describe('homepage guidance', () => {
     seams.forEach(([, target]) => {
       expect(index).toMatch(new RegExp(`id="${target}"`));
     });
+  });
+
+  test('the margin path covers every band between its first and last stop, and ends at the closing card', () => {
+    const block = css.slice(css.indexOf('@media (min-width: 1360px)'));
+    const segmentSections = block.match(
+      /\.ef-approved-benefits-section,[\s\S]*?\)\s*> :is\(\.container, \.hws__inner\)::before/
+    )[0];
+    [
+      'ef-approved-category-section',
+      'ef-home-locations',
+      'hws',
+      'ef-approved-guides-section',
+      'home-featured-section',
+      'home-spotlight-section',
+      'ef-approved-marketplace-section',
+      'ef-approved-steps-section',
+    ].forEach(name => expect(block).toContain(name));
+    expect(segmentSections).toContain('home-featured-section');
+    expect(segmentSections).toContain('home-spotlight-section');
+    // the closing card is the last stop: a filled marker, a link into it, and a line that stops at its middle
+    expect(block).toMatch(/--spine-bottom:\s*calc\(var\(--cta-h\) \/ -2\)/);
+    expect(block).toMatch(/\.ef-approved-step-cta::before[^}]*background:\s*var\(--flow-label\)/);
+    expect(block).toMatch(/\.ef-approved-step-cta::after[^}]*border-top:\s*2px dotted/);
   });
 
   test('every pointer target clears the sticky header, and is a section rather than just a heading', () => {

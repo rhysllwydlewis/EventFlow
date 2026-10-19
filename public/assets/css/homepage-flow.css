@@ -94,6 +94,29 @@ body.ef-home-flow main .hws {
   padding-block: calc(var(--flow-pad) + 16px) !important;
 }
 
+/* The quick links under the hero search are always shown as they are. They used to
+   fade in with a blur filter while their own buttons carry a backdrop blur, and in
+   some browsers that combination can leave them stuck on the first frame: faint and
+   shifted down, while the row still takes up its space. */
+body.ef-home-flow main .ef-quick-tags {
+  animation: none !important;
+  opacity: 1 !important;
+  transform: none !important;
+  filter: none !important;
+}
+
+/* Chips keep their own width. Squeezing them left the labels touching the edges;
+   ef-search-bar.js hides trailing ones instead when the row is too narrow. */
+body.ef-home-flow main .ef-quick-tags__tag {
+  flex: 0 0 auto;
+  max-width: none;
+  overflow: visible;
+  text-overflow: clip;
+  background: rgba(255, 255, 255, 0.92) !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
 /* Package rows with nothing in them are hidden by home-init.js. */
 body.ef-home-flow main .home-featured-section[hidden],
 body.ef-home-flow main .home-spotlight-section[hidden] {
@@ -437,6 +460,8 @@ body.ef-home-flow.ef-home-guidance .ef-flow-seam__label {
       .ef-approved-benefits-section,
       .hws,
       .ef-approved-guides-section,
+      .home-featured-section,
+      .home-spotlight-section,
       .ef-approved-marketplace-section,
       .ef-approved-steps-section
     )
@@ -451,8 +476,9 @@ body.ef-home-flow.ef-home-guidance .ef-flow-seam__label {
     pointer-events: none;
   }
 
+  /* Starts at the first stop rather than at the edge of the band. */
   body.ef-home-flow.ef-home-guidance main .ef-approved-category-section {
-    --spine-top: -6px;
+    --spine-top: -8px;
   }
   body.ef-home-flow.ef-home-guidance main .ef-home-locations {
     --spine-bottom: 32px;
@@ -467,6 +493,19 @@ body.ef-home-flow.ef-home-guidance .ef-flow-seam__label {
   body.ef-home-flow.ef-home-guidance main .ef-approved-marketplace-section {
     --spine-top: 0px;
   }
+  /* These two bands have half the padding of the others, and each segment has to
+     reach the edge of its own band so the path has no gaps between them. */
+  body.ef-home-flow.ef-home-guidance main :is(.home-featured-section, .home-spotlight-section) {
+    --spine-top: 32px;
+    --spine-bottom: 32px;
+  }
+
+  /* The path ends at the middle of the closing card, with a filled stop and a
+     short link into it. */
+  body.ef-home-flow.ef-home-guidance main .ef-approved-steps-section {
+    --cta-h: 118px;
+    --spine-bottom: calc(var(--cta-h) / -2);
+  }
 
   body.ef-home-flow.ef-home-guidance
     main
@@ -475,10 +514,12 @@ body.ef-home-flow.ef-home-guidance .ef-flow-seam__label {
       .ef-home-locations,
       .hws,
       .ef-approved-guides-section,
+      .home-featured-section,
+      .home-spotlight-section,
       .ef-approved-marketplace-section,
       .ef-approved-steps-section
     )
-    :is(.ef-approved-kicker, .ef-home-locations__kicker, .hws__kicker) {
+    :is(.ef-approved-kicker, .ef-section__kicker, .ef-home-locations__kicker, .hws__kicker) {
     position: relative;
   }
 
@@ -489,10 +530,12 @@ body.ef-home-flow.ef-home-guidance .ef-flow-seam__label {
       .ef-home-locations,
       .hws,
       .ef-approved-guides-section,
+      .home-featured-section,
+      .home-spotlight-section,
       .ef-approved-marketplace-section,
       .ef-approved-steps-section
     )
-    :is(.ef-approved-kicker, .ef-home-locations__kicker, .hws__kicker)::after {
+    :is(.ef-approved-kicker, .ef-section__kicker, .ef-home-locations__kicker, .hws__kicker)::after {
     content: '';
     position: absolute;
     top: 50%;
@@ -504,6 +547,35 @@ body.ef-home-flow.ef-home-guidance .ef-flow-seam__label {
     border: 3px solid var(--flow-label);
     border-radius: 50%;
     background: #fff;
+  }
+
+  body.ef-home-flow.ef-home-guidance main .ef-approved-step-cta {
+    position: relative;
+    min-height: var(--cta-h, 118px);
+    box-sizing: border-box;
+  }
+
+  body.ef-home-flow.ef-home-guidance main .ef-approved-step-cta::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: -59px;
+    box-sizing: border-box;
+    width: 14px;
+    height: 14px;
+    margin-top: -7px;
+    border: 3px solid var(--flow-label);
+    border-radius: 50%;
+    background: var(--flow-label);
+  }
+
+  body.ef-home-flow.ef-home-guidance main .ef-approved-step-cta::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: -45px;
+    width: 45px;
+    border-top: 2px dotted rgba(8, 106, 96, 0.4);
   }
 
   /* The locations label sits inside a card, so its stop is further out. */
