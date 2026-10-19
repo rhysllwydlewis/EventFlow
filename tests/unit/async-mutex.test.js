@@ -63,14 +63,25 @@ describe('withLock — serialisation', () => {
 
 describe('withLock — parallel execution for different keys', () => {
   it('does not block operations on different keys', async () => {
-    const start = Date.now();
+    // Assert on ordering rather than wall-clock time, which is flaky on loaded CI runners.
+    // If the keys were serialised, 'a:end' would come before 'b:start'.
+    const events = [];
 
-    // Both take 30 ms; if serialised they would take ≥ 60 ms.
-    await Promise.all([withLock('key_a', () => delay(30)), withLock('key_b', () => delay(30))]);
+    await Promise.all([
+      withLock('key_a', async () => {
+        events.push('a:start');
+        await delay(30);
+        events.push('a:end');
+      }),
+      withLock('key_b', async () => {
+        events.push('b:start');
+        await delay(30);
+        events.push('b:end');
+      }),
+    ]);
 
-    const elapsed = Date.now() - start;
-    // Allow generous overhead (3× the delay) while still being well under 2× serial time.
-    expect(elapsed).toBeLessThan(90);
+    expect(events.slice(0, 2)).toEqual(['a:start', 'b:start']);
+    expect(events.slice(2).sort()).toEqual(['a:end', 'b:end']);
   });
 });
 
