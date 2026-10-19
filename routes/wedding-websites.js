@@ -10,6 +10,7 @@ const { writeLimiter } = require('../middleware/rateLimits');
 const dbUnified = require('../db-unified');
 const { uid } = require('../store');
 const { stripHtml } = require('../utils/helpers');
+const { publicThemeMedia } = require('./wedding-theme-media');
 
 const router = express.Router({ mergeParams: true });
 const PUBLIC_SLUGS = new Set([
@@ -284,7 +285,6 @@ function safePublic(site) {
     welcomeMessage: site.welcomeMessage,
     eventDate: site.eventDate || null,
     template: site.template,
-    accentColor: site.accentColor,
     ceremonyVenueName: site.ceremonyVenueName,
     ceremonyVenueAddress: site.ceremonyVenueAddress,
     receptionVenueName: site.receptionVenueName,
@@ -306,12 +306,13 @@ function safePublic(site) {
     weddingParty: site.weddingParty || [],
     loveStory: site.loveStory,
     proposalStory: site.proposalStory,
-    coverImageUrl: site.coverImageUrl,
     rsvpEnabled: site.rsvpEnabled !== false,
     rsvpDeadline: site.rsvpDeadline || null,
     rsvpIntroText: site.rsvpIntroText || '',
     mealOptions: site.mealOptions || [],
     customRsvpQuestions: site.customRsvpQuestions || [],
+    // Validated palette, hero layout, cover photo and gallery, so the guest page matches the editor.
+    ...publicThemeMedia(site),
   };
 }
 

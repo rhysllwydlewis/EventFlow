@@ -83,6 +83,12 @@ describe('Wedding Website app is a single module', () => {
     'wedding-theme-media-customiser',
     'wedding-mongodb-authority',
     'wedding-theme-media-polish',
+    'public-wedding-theme-media',
+    'public-wedding-password-gate',
+    'public-wedding-preview-client',
+    'wedding-password-protection',
+    'wedding-mobile-stabilisation',
+    'wedding-compact-polish',
   ];
 
   const sourceFiles = dir =>
@@ -117,5 +123,26 @@ describe('Wedding Website app is a single module', () => {
 
   test('the app never falls back to window.prompt for copying', () => {
     expect(widget).not.toMatch(/window\.prompt/);
+  });
+});
+
+describe('Public wedding page is a single script and stylesheet', () => {
+  const html = read('public/wedding.html');
+  const publicSite = read('public/assets/js/pages/public-wedding-site.js');
+
+  test('wedding.html loads one versioned script and one versioned stylesheet', () => {
+    expect(html.match(/<script\b[^>]*\bsrc=/g)).toHaveLength(1);
+    expect(html.match(/rel="stylesheet"/g)).toHaveLength(1);
+    expect(html).toMatch(/public-wedding-site\.js\?v=[\d.]+/);
+    expect(html).toMatch(/public-wedding-site\.css\?v=[\d.]+/);
+  });
+
+  test('the page does not patch window.fetch or watch the DOM for other scripts', () => {
+    expect(publicSite).not.toMatch(/window\.fetch\s*=/);
+    expect(publicSite).not.toMatch(/MutationObserver/);
+  });
+
+  test('no inline event handlers (the CSP forbids them)', () => {
+    expect(publicSite).not.toMatch(/\son[a-z]+\s*=\s*["']/i);
   });
 });

@@ -34,6 +34,27 @@ const plans = [
     },
   },
   { id: 'p4', userId: 'u1', name: 'Seating fixture', tables: [], guestList: [] },
+  {
+    id: 'p5',
+    userId: 'u1',
+    name: 'Themed',
+    weddingWebsite: {
+      slug: 'themed-site',
+      status: 'published',
+      coupleNames: 'C&D',
+      accentColor: '#8d3f6f',
+      secondaryColor: '#f4a6c8',
+      backgroundColor: 'red;}</style>',
+      textColor: '#2b1b2f',
+      heroLayout: 'editorial',
+      coverImageUrl: 'data:image/png;base64,aaaa',
+      galleryImages: [
+        { imageUrl: 'data:image/png;base64,bbbb', caption: 'Bath' },
+        { imageUrl: 'javascript:alert(1)' },
+      ],
+      passwordHash: 'secret-hash',
+    },
+  },
 ];
 
 jest.mock('../../db-unified', () => ({
@@ -92,6 +113,25 @@ describe('wedding websites routes', () => {
   test('blocks draft public access', async () => {
     const res = await request(app).get('/api/public/wedding-websites/amy-ben-2026');
     expect(res.status).toBe(404);
+  });
+
+  test('public website carries the palette, hero layout and gallery guests need to see', async () => {
+    const res = await request(app).get('/api/public/wedding-websites/themed-site');
+    expect(res.status).toBe(200);
+    const site = res.body.website;
+    expect(site).toMatchObject({
+      accentColor: '#8D3F6F',
+      secondaryColor: '#F4A6C8',
+      textColor: '#2B1B2F',
+      heroLayout: 'editorial',
+      coverImageUrl: 'data:image/png;base64,aaaa',
+    });
+    expect(site.galleryImages).toEqual([
+      expect.objectContaining({ imageUrl: 'data:image/png;base64,bbbb', caption: 'Bath' }),
+    ]);
+    // An invalid stored colour falls back to the default instead of reaching the page.
+    expect(site.backgroundColor).toBe('#FFF7FB');
+    expect(site.passwordHash).toBeUndefined();
   });
 
   test('returns published public website safe shape', async () => {
