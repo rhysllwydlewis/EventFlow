@@ -7,13 +7,11 @@
       content="width=device-width, initial-scale=1, maximum-scale=5, user-scalable=yes"
     />
     <meta name="theme-color" content="#0B8073" />
-    <title>Budget Tracker — EventFlow</title>
+    <title>Budget — EventFlow</title>
 <meta name="robots" content="noindex,nofollow">
     <link rel="stylesheet" href="/assets/css/styles.css?v=18.5.0" />
-    <link rel="stylesheet" href="/assets/css/eventflow-17.0.0.css?v=18.3.0" />
     <link rel="stylesheet" href="/assets/css/utilities.css?v=18.3.0" />
     <link rel="stylesheet" href="/assets/css/components.css?v=18.4.3" />
-    <link rel="stylesheet" href="/assets/css/animations.css?v=18.3.2" />
     <link rel="stylesheet" href="/assets/css/mobile-optimizations.css?v=18.4.5" />
     <link rel="stylesheet" href="/assets/css/ui-ux-fixes.css?v=18.4.0" />
     <link rel="stylesheet" href="/assets/css/navbar.css?v=18.4.2" /><link rel="stylesheet" href="/assets/css/eventflow-brand.css?v=1.0.1" data-eventflow-brand="true" />
@@ -28,6 +26,7 @@
     <meta name="msapplication-config" content="/browserconfig.xml">
       <link rel="stylesheet" href="/assets/css/signed-in-mobile-fixes.css" />
   <link rel="stylesheet" href="/assets/css/eventflow-footer.css">
+    <link rel="stylesheet" href="/assets/css/budget-page.css?v=1.0.0" />
 </head>
   <body>
 <!-- TOP NAVBAR - GOLD STANDARD REBUILD -->
@@ -154,139 +153,168 @@
     <script src="/assets/js/search.js" defer></script>
     <script src="/assets/js/websocket-client.js" defer></script>
 
-    <main id="main-content" class="section">
-      <div class="container">
-        <div class="breadcrumbs mb-4">
-          <a href="/" class="breadcrumb-item">Home</a>
-          <span class="breadcrumb-separator">›</span>
-          <span class="breadcrumb-item active">Budget Tracker</span>
-        </div>
-
-        <div class="flex items-center justify-between mb-6 dash-flex-wrap">
-          <div>
-            <h1 class="mb-2">Budget Tracker</h1>
-            <p class="small">Manage your event budget and track expenses</p>
+    <main id="main-content" class="bp" aria-busy="true">
+      <div class="bp__inner">
+        <header class="bp-head">
+          <div class="bp-head__text">
+            <p class="bp-eyebrow" id="bp-plan-line">Your event</p>
+            <h1 class="bp-title">Budget</h1>
+            <p class="bp-lede">Set what you plan to spend, then record what each thing really costs.</p>
           </div>
-          <div class="flex gap-2" style="flex-wrap: wrap">
-            <button class="cta secondary" id="export-budget">📊 Export Budget</button>
-            <button class="cta" id="add-expense">➕ Add Expense</button>
+          <div class="bp-head__actions">
+            <div class="bp-select-wrap" id="bp-plan-switch" hidden>
+              <label class="bp-sr" for="bp-plan-select">Event plan</label>
+              <select id="bp-plan-select" class="bp-select"></select>
+            </div>
+            <details class="bp-menu" id="bp-export-menu">
+              <summary class="bp-btn bp-btn--secondary" aria-label="Export budget">Export</summary>
+              <div class="bp-menu__panel">
+                <button type="button" class="bp-menu__item" data-action="export-csv">Download CSV</button>
+                <button type="button" class="bp-menu__item" data-action="export-pdf">Download PDF</button>
+              </div>
+            </details>
+            <button type="button" class="bp-btn bp-btn--primary" data-action="add" id="bp-add-btn" disabled>Add item</button>
           </div>
-        </div>
+        </header>
 
-        <!-- Budget Overview Cards -->
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-          <div class="card card-hover">
-            <div class="small mb-2" style="color: var(--muted)">Total Budget</div>
-            <div class="text-3xl font-bold mb-1" id="total-budget">£0</div>
-            <button
-              class="cta ghost budget-period-btn"
-             
-              id="set-budget"
-            >
-              Set Budget
+        <div class="bp-notices" id="bp-notices"></div>
+
+        <section class="bp-card bp-summary" id="bp-summary" aria-labelledby="bp-summary-title">
+          <h2 class="bp-sr" id="bp-summary-title">Budget summary</h2>
+          <div class="bp-skeleton" aria-hidden="true">
+            <span></span><span></span><span></span>
+          </div>
+          <p class="bp-sr">Loading your budget.</p>
+        </section>
+
+        <section class="bp-card bp-section" id="bp-categories-section" aria-labelledby="bp-categories-title" hidden>
+          <div class="bp-section__head">
+            <h2 class="bp-h2" id="bp-categories-title">By category</h2>
+            <p class="bp-hint">Planned is what you set aside. Committed is the actual cost, or your plan where there is no actual yet.</p>
+          </div>
+          <div id="bp-categories"></div>
+        </section>
+
+        <section class="bp-card bp-section" id="bp-items-section" aria-labelledby="bp-items-title" hidden>
+          <div class="bp-section__head bp-section__head--row">
+            <h2 class="bp-h2" id="bp-items-title" tabindex="-1">Items</h2>
+            <div class="bp-filters" id="bp-filters">
+              <select id="filter-category" class="bp-select" aria-label="Filter by category">
+                <option value="">All categories</option>
+              </select>
+              <select id="filter-status" class="bp-select" aria-label="Filter by payment status">
+                <option value="">All payments</option>
+                <option value="paid">Paid</option>
+                <option value="partial">Part paid</option>
+                <option value="unpaid">Unpaid</option>
+              </select>
+            </div>
+          </div>
+          <div id="bp-items"></div>
+        </section>
+      </div>
+
+      <dialog class="bp-dialog" id="bp-item-dialog" aria-labelledby="bp-item-title">
+        <form class="bp-form" id="bp-item-form" novalidate>
+          <div class="bp-dialog__head">
+            <h2 class="bp-h2" id="bp-item-title">Add item</h2>
+            <button type="button" class="bp-icon-btn" data-close aria-label="Close">
+              <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" /></svg>
             </button>
           </div>
-
-          <div class="card card-hover">
-            <div class="small mb-2" style="color: var(--muted)">Total Spent</div>
-            <div class="text-3xl font-bold mb-1" id="total-spent">£0</div>
-            <div class="small" id="spent-percentage">0% of budget</div>
-            <div class="progress mt-3">
-              <div class="progress-bar" id="spent-progress" style="width: 0%"></div>
+          <div class="bp-dialog__body">
+            <div class="bp-field">
+              <label for="bp-f-item">Item</label>
+              <input id="bp-f-item" name="item" type="text" maxlength="200" autocomplete="off" required aria-describedby="bp-f-item-err" placeholder="e.g. Venue hire" />
+              <p class="bp-field__err" id="bp-f-item-err"></p>
             </div>
-          </div>
-
-          <div class="card card-hover">
-            <div class="small mb-2" style="color: var(--muted)">Remaining</div>
-            <div class="text-3xl font-bold mb-1" id="budget-remaining">£0</div>
-            <div class="small" id="remaining-status">On track</div>
-          </div>
-        </div>
-
-        <!-- Budget Chart and Breakdown -->
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-          <!-- Chart -->
-          <div class="card">
-            <h3 class="mb-4">Budget Breakdown</h3>
-            <div
-              style="
-                position: relative;
-                height: 300px;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-              "
-            >
-              <canvas id="budget-chart"></canvas>
-              <div id="chart-empty" class="dash-empty-state" hidden>
-                <div class="budget-empty-icon">📊</div>
-                <div class="small">No expenses yet</div>
+            <div class="bp-field">
+              <label for="bp-f-category">Category</label>
+              <select id="bp-f-category" name="category" required></select>
+              <p class="bp-field__err"></p>
+            </div>
+            <div class="bp-field-row">
+              <div class="bp-field">
+                <label for="bp-f-estimated">Planned (£)</label>
+                <input id="bp-f-estimated" name="estimated" type="text" inputmode="decimal" autocomplete="off" required aria-describedby="bp-f-estimated-err" placeholder="0" />
+                <p class="bp-field__err" id="bp-f-estimated-err"></p>
+              </div>
+              <div class="bp-field">
+                <label for="bp-f-actual">Actual cost (£) <span class="bp-opt">optional</span></label>
+                <input id="bp-f-actual" name="actual" type="text" inputmode="decimal" autocomplete="off" aria-describedby="bp-f-actual-err" placeholder="Once you have a quote" />
+                <p class="bp-field__err" id="bp-f-actual-err"></p>
               </div>
             </div>
-          </div>
-
-          <!-- Category Breakdown -->
-          <div class="card">
-            <h3 class="mb-4">Category Breakdown</h3>
-            <div id="category-list" class="dash-scroll-300">
-              <div class="dash-empty-msg">
-                <div class="small">Add expenses to see breakdown</div>
+            <div class="bp-field-row">
+              <div class="bp-field">
+                <label for="bp-f-paid">Paid so far (£) <span class="bp-opt">optional</span></label>
+                <input id="bp-f-paid" name="paid" type="text" inputmode="decimal" autocomplete="off" aria-describedby="bp-f-paid-err" placeholder="0" />
+                <p class="bp-field__err" id="bp-f-paid-err"></p>
+              </div>
+              <div class="bp-field">
+                <label for="bp-f-notes">Notes <span class="bp-opt">optional</span></label>
+                <input id="bp-f-notes" name="notes" type="text" maxlength="500" autocomplete="off" aria-describedby="bp-f-notes-err" />
+                <p class="bp-field__err" id="bp-f-notes-err"></p>
               </div>
             </div>
+            <p class="bp-form__error" id="bp-form-error" role="alert"></p>
+          </div>
+          <div class="bp-dialog__foot">
+            <button type="button" class="bp-btn bp-btn--danger-quiet" id="bp-item-delete" hidden>Delete</button>
+            <span class="bp-spacer"></span>
+            <button type="button" class="bp-btn bp-btn--secondary" data-close>Cancel</button>
+            <button type="submit" class="bp-btn bp-btn--primary" id="bp-item-save">Save item</button>
+          </div>
+        </form>
+      </dialog>
+
+      <dialog class="bp-dialog bp-dialog--narrow" id="bp-budget-dialog" aria-labelledby="bp-budget-title">
+        <form class="bp-form" id="bp-budget-form" novalidate>
+          <div class="bp-dialog__head">
+            <h2 class="bp-h2" id="bp-budget-title">Total budget</h2>
+            <button type="button" class="bp-icon-btn" data-close aria-label="Close">
+              <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" /></svg>
+            </button>
+          </div>
+          <div class="bp-dialog__body">
+            <div class="bp-field">
+              <label for="bp-f-total">Total budget (£)</label>
+              <input id="bp-f-total" name="total" type="text" inputmode="decimal" autocomplete="off" aria-describedby="bp-f-total-err" placeholder="e.g. 15000" />
+              <p class="bp-field__err" id="bp-f-total-err"></p>
+            </div>
+            <p class="bp-form__error" id="bp-budget-error" role="alert"></p>
+          </div>
+          <div class="bp-dialog__foot">
+            <span class="bp-spacer"></span>
+            <button type="button" class="bp-btn bp-btn--secondary" data-close>Cancel</button>
+            <button type="submit" class="bp-btn bp-btn--primary" id="bp-budget-save">Save budget</button>
+          </div>
+        </form>
+      </dialog>
+
+      <dialog class="bp-dialog bp-dialog--narrow" id="bp-confirm-dialog" aria-labelledby="bp-confirm-title" aria-describedby="bp-confirm-text">
+        <div class="bp-form">
+          <div class="bp-dialog__head">
+            <h2 class="bp-h2" id="bp-confirm-title">Delete this item?</h2>
+          </div>
+          <div class="bp-dialog__body">
+            <p id="bp-confirm-text" class="bp-confirm-text"></p>
+            <p class="bp-form__error" id="bp-confirm-error" role="alert"></p>
+          </div>
+          <div class="bp-dialog__foot">
+            <span class="bp-spacer"></span>
+            <button type="button" class="bp-btn bp-btn--secondary" data-close>Keep it</button>
+            <button type="button" class="bp-btn bp-btn--danger" id="bp-confirm-yes">Delete</button>
           </div>
         </div>
+      </dialog>
 
-        <!-- Expenses List -->
-        <div class="card">
-          <div class="flex items-center justify-between mb-4 dash-flex-wrap">
-            <h3 class="m-0">Expenses</h3>
-            <div class="flex gap-2" style="flex-wrap: wrap">
-              <select
-                id="filter-category"
-                class="dash-btn-sm"
-              >
-                <option value="">All Categories</option>
-                <option value="Venue">Venue</option>
-                <option value="Catering">Catering</option>
-                <option value="Photography">Photography</option>
-                <option value="Entertainment">Entertainment</option>
-                <option value="Decor">Decor</option>
-                <option value="Transport">Transport</option>
-                <option value="Attire">Attire</option>
-                <option value="Other">Other</option>
-              </select>
-              <select
-                id="filter-status"
-                class="dash-btn-sm"
-              >
-                <option value="">All Status</option>
-                <option value="paid">Paid</option>
-                <option value="pending">Pending</option>
-                <option value="overdue">Overdue</option>
-              </select>
-            </div>
-          </div>
-
-          <div id="expenses-list">
-            <div class="dash-empty-full">
-              <div class="dash-empty-icon">💰</div>
-              <div class="text-lg font-semibold mb-2">No expenses yet</div>
-              <div class="small mb-4">
-                Start tracking your event budget by adding your first expense
-              </div>
-              <button class="cta" id="addFirstExpenseBtn">Add First Expense</button>
-            </div>
-          </div>
-        </div>
-      </div>
+      <div class="bp-toast" id="bp-toast" role="status" aria-live="polite"></div>
     </main>
 
-    <!-- Chart.js CDN -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <script src="/assets/js/export-utility.js"></script>
-    <script src="/assets/js/utils/modal-a11y.js?v=18.8.1"></script>
-    <script src="/assets/js/budget.js" defer></script>
-    <script src="/assets/js/pages/budget-init.js"></script>
+    <script src="/assets/js/budget-calc.js?v=1.0.0"></script>
+    <script src="/assets/js/pages/budget-page.js?v=1.0.0" defer></script>
 
     <footer class="footer" role="contentinfo">
       <div class="container ef-footer-content">

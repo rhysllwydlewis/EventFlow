@@ -1,0 +1,1005 @@
+'use strict';
+/**
+ * Customer budget page (/budget).
+ *
+ * One self-contained module. The page keeps the budget on the customer's event plan, the same
+ * place the dashboard reads it from:
+ *   GET   /api/me/plans                 plans, each with `budget` (total) and `budgetItems`
+ *   PATCH /api/me/plans/:id             { budget }       the total
+ *   POST  /api/me/plans/:id/budget      { budgetItems }  replaces the whole list
+ * Customers with no event plan yet keep their budget on this device instead (localStorage), in
+ * the same shape, and it moves into a plan the next time they have one.
+ *
+ * Maths lives in budget-calc.js (window.EFBudgetCalc); styles in budget-page.css (.bp-*).
+ */
+/* global exportUtility */
+(function () {
+  const Calc = window.EFBudgetCalc;
+  if (!Calc) {
+    return;
+  }
+
+  const LEGACY_KEY = 'ef_budget'; // the previous page's data: { total, expenses: [...] }
+  const LOCAL_KEY = 'ef_budget_v2'; // device-only budget: { total, items: [...] }
+  const IMPORTED_KEY = 'ef_budget_imported'; // set once the legacy data has been moved to a plan
+  const DASHBOARD_BUDGET_KEY = 'eventflow_custom_budget'; // read by the dashboard as a fallback
+  const PLAN_PICK_KEY = 'ef_budget_plan';
+  const REQUEST_TIMEOUT_MS = 20000;
+
+  const STATUS_TEXT = { paid: 'Paid', partial: 'Part paid', unpaid: 'Unpaid', none: '' };
+
+  const state = {
+    status: 'loading', // loading | ready | error
+    mode: 'plan', // plan | device
+    plans: [],
+    plan: null,
+    total: 0,
+    items: [],
+    filterCategory: '',
+    filterPayment: '',
+    error: '',
+    legacy: null, // converted legacy data waiting to be imported into the plan
+    importDismissed: false,
+    editingId: null,
+    deletingId: null,
+    saving: false,
+  };
+
+  const $ = id => document.getElementById(id);
+  const money = Calc.formatGBP;
+
+  /* ------------------------------------------------------------------ *
+   * Small helpers
+   * ------------------------------------------------------------------ */
+
+  function esc(value) {
+    return String(value ?? '')
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  }
+
+  function readStorage(key) {
+    try {
+      return window.localStorage.getItem(key);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  function writeStorage(key, value) {
+    try {
+      window.localStorage.setItem(key, value);
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  function readJson(key) {
+    const raw = readStorage(key);
+    if (!raw) {
+      return null;
+    }
+    try {
+      return JSON.parse(raw);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  function newId() {
+    return `b_${Date.now().toString(36)}${Math.random().toString(36).slice(2, 7)}`;
+  }
+
+  function getCsrfToken() {
+    if (window.__CSRF_TOKEN__) {
+      return window.__CSRF_TOKEN__;
+    }
+    const meta = document.querySelector('meta[name="csrf-token"]');
+    if (meta && meta.getAttribute('content')) {
+      return meta.getAttribute('content');
+    }
+    const match = document.cookie.match(/(?:^|;\s*)(?:csrf|csrfToken)=([^;]+)/);
+    if (match) {
+      try {
+        return decodeURIComponent(match[1]);
+      } catch (_) {
+        return match[1];
+      }
+    }
+    return '';
+  }
+
+  async function ensureCsrfToken() {
+    const existing = getCsrfToken();
+    if (existing) {
+      return existing;
+    }
+    try {
+      const res = await fetch('/api/v1/csrf-token', { credentials: 'include' });
+      const json = await res.json();
+      const token = json.csrfToken || json.token || '';
+      if (token) {
+        window.__CSRF_TOKEN__ = token;
+      }
+      return token;
+    } catch (_) {
+      return '';
+    }
+  }
+
+  /** fetch wrapper: cookies, CSRF on writes, JSON body, a timeout, and readable errors. */
+  async function api(path, options = {}) {
+    const method = String(options.method || 'GET').toUpperCase();
+    const headers = { Accept: 'application/json' };
+    if (method !== 'GET') {
+      headers['Content-Type'] = 'application/json';
+      const token = await ensureCsrfToken();
+      if (token) {
+        headers['X-CSRF-Token'] = token;
+      }
+    }
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+    let res;
+    try {
+      res = await fetch(path, {
+        method,
+        headers,
+        credentials: 'include',
+        signal: controller.signal,
+        body: options.body ? JSON.stringify(options.body) : undefined,
+      });
+    } catch (_) {
+      throw new Error('We could not reach EventFlow. Check your connection and try again.');
+    } finally {
+      clearTimeout(timer);
+    }
+    const json = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      const message =
+        res.status === 401
+          ? 'Your session has ended. Please log in again.'
+          : json.error || json.message || 'Something went wrong. Please try again.';
+      const err = new Error(message);
+      err.status = res.status;
+      throw err;
+    }
+    return json;
+  }
+
+  const planUrl = (plan, suffix = '') => `/api/me/plans/${encodeURIComponent(plan.id)}${suffix}`;
+
+  function formatDate(value) {
+    const date = new Date(value);
+    if (!value || Number.isNaN(date.getTime())) {
+      return '';
+    }
+    return date.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+  }
+
+  function categoryList() {
+    const extras = [
+      ...new Set(
+        state.items.map(i => i.category).filter(c => c && !Calc.DEFAULT_CATEGORIES.includes(c))
+      ),
+    ].sort((a, b) => a.localeCompare(b, 'en-GB'));
+    return [...Calc.DEFAULT_CATEGORIES.filter(c => c !== 'Other'), ...extras, 'Other'];
+  }
+
+  /* ------------------------------------------------------------------ *
+   * Loading and saving
+   * ------------------------------------------------------------------ */
+
+  function pickPlan(plans) {
+    const wanted =
+      new URLSearchParams(window.location.search).get('plan') || readStorage(PLAN_PICK_KEY);
+    return (
+      plans.find(p => p.id === wanted) ||
+      plans.find(p => Calc.parsePlanBudget(p.budget) > 0) ||
+      plans[0]
+    );
+  }
+
+  function readLegacy() {
+    if (readStorage(IMPORTED_KEY)) {
+      return null;
+    }
+    const converted = Calc.fromLegacy(readJson(LEGACY_KEY));
+    return converted.items.length || converted.total > 0 ? converted : null;
+  }
+
+  function applyPlan(plan) {
+    state.plan = plan;
+    state.items = (Array.isArray(plan.budgetItems) ? plan.budgetItems : []).map((raw, i) =>
+      Calc.normaliseItem(raw, `item_${i}`)
+    );
+    const fromPlan = Calc.parsePlanBudget(plan.budget);
+    // The dashboard falls back to the figure saved on this device when no plan has a budget.
+    state.total = fromPlan || Calc.parsePlanBudget(readStorage(DASHBOARD_BUDGET_KEY));
+    state.legacy = readLegacy();
+  }
+
+  function applyDevice() {
+    state.plan = null;
+    const stored = readJson(LOCAL_KEY);
+    if (stored && Array.isArray(stored.items)) {
+      state.items = stored.items.map((raw, i) => Calc.normaliseItem(raw, `item_${i}`));
+      state.total = Calc.toAmount(stored.total);
+    } else {
+      const converted = Calc.fromLegacy(readJson(LEGACY_KEY));
+      state.items = converted.items;
+      state.total = converted.total;
+    }
+    state.total = state.total || Calc.parsePlanBudget(readStorage(DASHBOARD_BUDGET_KEY));
+    state.legacy = null;
+  }
+
+  async function load() {
+    state.status = 'loading';
+    state.error = '';
+    render();
+    let plans;
+    try {
+      const data = await api('/api/me/plans');
+      plans = Array.isArray(data.plans) ? data.plans : [];
+    } catch (err) {
+      state.status = 'error';
+      state.error = err.message;
+      render();
+      return;
+    }
+    state.plans = plans;
+    if (plans.length) {
+      state.mode = 'plan';
+      applyPlan(pickPlan(plans));
+    } else {
+      state.mode = 'device';
+      applyDevice();
+    }
+    state.status = 'ready';
+    render();
+  }
+
+  function saveDevice(items, total) {
+    const ok = writeStorage(LOCAL_KEY, JSON.stringify({ total, items }));
+    if (!ok) {
+      throw new Error(
+        'Your browser would not save this on your device. Check your storage settings.'
+      );
+    }
+    writeStorage(DASHBOARD_BUDGET_KEY, String(total || ''));
+  }
+
+  /** Writes the whole list of lines; resolves once the server (or device) has accepted it. */
+  async function persistItems(items) {
+    if (state.mode === 'device') {
+      saveDevice(items, state.total);
+      state.items = items;
+      return;
+    }
+    const body = {
+      budgetItems: items.map(i => ({
+        id: i.id,
+        category: i.category,
+        item: i.item,
+        estimated: i.estimated,
+        actual: i.actual,
+        paid: i.paid,
+        notes: i.notes,
+      })),
+    };
+    const data = await api(planUrl(state.plan, '/budget'), { method: 'POST', body });
+    const saved = Array.isArray(data.budgetItems) ? data.budgetItems : items;
+    state.items = saved.map((raw, i) => Calc.normaliseItem(raw, `item_${i}`));
+    state.plan.budgetItems = state.items;
+  }
+
+  async function persistTotal(total) {
+    if (state.mode === 'device') {
+      saveDevice(state.items, total);
+      state.total = total;
+      return;
+    }
+    await api(planUrl(state.plan), { method: 'PATCH', body: { budget: total } });
+    state.plan.budget = String(total);
+    state.total = total;
+    writeStorage(DASHBOARD_BUDGET_KEY, String(total));
+  }
+
+  /* ------------------------------------------------------------------ *
+   * Rendering
+   * ------------------------------------------------------------------ */
+
+  function applyWidths(root) {
+    root.querySelectorAll('[data-w]').forEach(el => {
+      el.style.width = `${Math.max(0, Math.min(100, Number(el.dataset.w) || 0))}%`;
+    });
+  }
+
+  function renderHeader() {
+    const line = $('bp-plan-line');
+    if (state.mode === 'device') {
+      line.textContent = 'Saved on this device';
+    } else if (state.plan) {
+      const when = formatDate(state.plan.eventDate);
+      line.textContent = [state.plan.name || 'Your event', when].filter(Boolean).join(' · ');
+    } else {
+      line.textContent = 'Your event';
+    }
+    const switcher = $('bp-plan-switch');
+    const select = $('bp-plan-select');
+    const multiple = state.mode === 'plan' && state.plans.length > 1;
+    switcher.hidden = !multiple;
+    if (multiple) {
+      select.innerHTML = state.plans
+        .map(
+          p =>
+            `<option value="${esc(p.id)}"${p.id === state.plan.id ? ' selected' : ''}>${esc(
+              p.name || 'Untitled plan'
+            )}</option>`
+        )
+        .join('');
+    }
+    const ready = state.status === 'ready';
+    $('bp-add-btn').disabled = !ready;
+    $('bp-export-menu').hidden = !(ready && state.items.length);
+  }
+
+  function renderNotices() {
+    const parts = [];
+    if (state.status === 'ready' && state.mode === 'device') {
+      parts.push(
+        `<div class="bp-notice"><p><strong>Saved on this device only.</strong> Create an event plan to keep your budget in your account and see it on your dashboard.</p><a class="bp-btn bp-btn--secondary" href="/start">Create an event plan</a></div>`
+      );
+    }
+    if (
+      state.status === 'ready' &&
+      state.mode === 'plan' &&
+      state.legacy &&
+      !state.importDismissed
+    ) {
+      const n = state.legacy.items.length;
+      const what = n
+        ? `${n} expense${n === 1 ? '' : 's'} from the old budget tool`
+        : 'a budget total from the old budget tool';
+      parts.push(
+        `<div class="bp-notice"><p><strong>Found ${esc(what)} on this device.</strong> Move ${n === 1 ? 'it' : 'them'} into ${esc(
+          state.plan.name || 'this plan'
+        )} to keep ${n === 1 ? 'it' : 'them'} in your account.</p><div class="bp-notice__actions"><button type="button" class="bp-btn bp-btn--primary" data-action="import-legacy">Move to this plan</button><button type="button" class="bp-btn bp-btn--secondary" data-action="dismiss-import">Not now</button></div></div>`
+      );
+    }
+    $('bp-notices').innerHTML = parts.join('');
+  }
+
+  function metersHtml(s) {
+    const seg = Calc.meterSegments(s);
+    const label = `${money(s.committed)} committed of ${money(s.budget)} budget, ${s.percentCommitted}%. ${money(
+      s.paid
+    )} paid.`;
+    const part = (kind, width) =>
+      width > 0
+        ? `<span class="bp-meter__seg bp-meter__seg--${kind}" data-w="${width}"></span>`
+        : '';
+    return `<div class="bp-meter" role="img" aria-label="${esc(label)}">${part('paid', seg.paid)}${part('rest', seg.rest)}${part('over', seg.over)}</div>`;
+  }
+
+  function legendHtml(s) {
+    const last = s.hasBudget
+      ? s.isOver
+        ? `<li><span class="bp-dot bp-dot--over" aria-hidden="true"></span>Over budget <strong>${money(s.overBy)}</strong></li>`
+        : `<li><span class="bp-dot bp-dot--free" aria-hidden="true"></span>Remaining <strong>${money(s.remaining)}</strong></li>`
+      : '';
+    return `<ul class="bp-legend"><li><span class="bp-dot bp-dot--paid" aria-hidden="true"></span>Paid <strong>${money(
+      s.paid
+    )}</strong></li><li><span class="bp-dot bp-dot--rest" aria-hidden="true"></span>Still to pay <strong>${money(
+      s.toPay
+    )}</strong></li>${last}</ul>`;
+  }
+
+  function renderSummary() {
+    const host = $('bp-summary');
+    if (state.status === 'loading') {
+      host.innerHTML =
+        '<h2 class="bp-sr" id="bp-summary-title">Budget summary</h2><div class="bp-skeleton" aria-hidden="true"><span></span><span></span><span></span></div><p class="bp-sr">Loading your budget.</p>';
+      return;
+    }
+    if (state.status === 'error') {
+      host.innerHTML = `<div class="bp-state bp-state--error" role="alert"><h2 class="bp-h2" id="bp-summary-title">We could not load your budget</h2><p>${esc(
+        state.error
+      )}</p><button type="button" class="bp-btn bp-btn--primary" data-action="retry">Try again</button></div>`;
+      return;
+    }
+    if (!state.items.length && !state.total) {
+      host.innerHTML = `<div class="bp-state"><h2 class="bp-h2" id="bp-summary-title">Start your budget</h2><p>Set a total, then add what you expect to pay for, such as the venue, catering and photography. Add the real cost and what you have paid as things are confirmed, and your remaining budget updates as you go.</p><div class="bp-state__actions"><button type="button" class="bp-btn bp-btn--primary" data-action="add">Add your first item</button><button type="button" class="bp-btn bp-btn--secondary" data-action="set-budget">Set total budget</button></div></div>`;
+      return;
+    }
+    const s = Calc.summarise(state.items, state.total);
+    let remainingLabel = 'Remaining';
+    let remainingValue = '—';
+    let remainingSub = 'Set a budget to see what is left';
+    if (s.hasBudget) {
+      remainingValue = money(s.remaining);
+      remainingSub =
+        s.percentCommitted >= 90 && !s.isOver ? 'Nearly all committed' : 'Within budget';
+      if (s.isOver) {
+        remainingLabel = 'Over budget by';
+        remainingValue = money(s.overBy);
+        remainingSub = 'Committed is more than your budget';
+      }
+    }
+    const packages =
+      state.mode === 'plan' && state.plan && Array.isArray(state.plan.packages)
+        ? state.plan.packages.length
+        : 0;
+    host.innerHTML = `<h2 class="bp-sr" id="bp-summary-title">Budget summary</h2>
+      <div class="bp-stats">
+        <div class="bp-stat">
+          <span class="bp-stat__label">Total budget</span>
+          <span class="bp-stat__value">${s.hasBudget ? money(s.budget) : 'Not set'}</span>
+          <button type="button" class="bp-link" data-action="set-budget">${s.hasBudget ? 'Edit budget' : 'Set budget'}</button>
+        </div>
+        <div class="bp-stat">
+          <span class="bp-stat__label">Committed</span>
+          <span class="bp-stat__value">${money(s.committed)}</span>
+          <span class="bp-stat__sub">${
+            s.hasBudget
+              ? `${s.percentCommitted}% of budget`
+              : `${state.items.length} item${state.items.length === 1 ? '' : 's'}`
+          }</span>
+        </div>
+        <div class="bp-stat bp-stat--result${s.isOver ? ' is-over' : ''}">
+          <span class="bp-stat__label">${remainingLabel}</span>
+          <span class="bp-stat__value">${remainingValue}</span>
+          <span class="bp-stat__sub">${esc(remainingSub)}</span>
+        </div>
+      </div>
+      ${s.hasBudget ? metersHtml(s) : ''}
+      ${state.items.length ? legendHtml(s) : ''}
+      ${
+        packages
+          ? `<p class="bp-fineprint">Your dashboard also adds the listed price of the ${packages} supplier package${
+              packages === 1 ? '' : 's'
+            } saved to this plan. They are not included here.</p>`
+          : ''
+      }`;
+    applyWidths(host);
+  }
+
+  function differenceHtml(row) {
+    if (!(row.planned > 0)) {
+      return '<span class="bp-muted">No plan set</span>';
+    }
+    if (row.diff > 0) {
+      return `<span class="bp-diff bp-diff--over">${money(row.diff)} over</span>`;
+    }
+    if (row.diff < 0) {
+      return `<span class="bp-diff">${money(-row.diff)} under</span>`;
+    }
+    return '<span class="bp-diff">On plan</span>';
+  }
+
+  function renderCategories() {
+    const section = $('bp-categories-section');
+    const show = state.status === 'ready' && state.items.length > 0;
+    section.hidden = !show;
+    if (!show) {
+      return;
+    }
+    const rows = Calc.byCategory(state.items, categoryList());
+    $('bp-categories').innerHTML = `<table class="bp-table bp-table--categories" role="table">
+      <thead><tr role="row"><th scope="col" role="columnheader">Category</th><th scope="col" role="columnheader" class="bp-num">Planned</th><th scope="col" role="columnheader" class="bp-num">Committed</th><th scope="col" role="columnheader" class="bp-num">Difference</th></tr></thead>
+      <tbody>${rows
+        .map(
+          row => `<tr role="row" class="${row.isOver ? 'is-over' : ''}">
+        <th scope="row" role="rowheader" class="bp-cell-name"><span class="bp-cat-name">${esc(row.category)}</span><span class="bp-cat-count">${row.count} item${row.count === 1 ? '' : 's'}</span>
+          <span class="bp-bar" aria-hidden="true"><span class="bp-bar__fill${row.isOver ? ' bp-bar__fill--over' : ''}" data-w="${row.share}"></span></span></th>
+        <td role="cell" class="bp-num" data-label="Planned">${money(row.planned)}</td>
+        <td role="cell" class="bp-num" data-label="Committed">${money(row.committed)}</td>
+        <td role="cell" class="bp-num" data-label="Difference">${differenceHtml(row)}</td></tr>`
+        )
+        .join('')}</tbody></table>`;
+    applyWidths($('bp-categories'));
+  }
+
+  function visibleItems() {
+    return state.items.filter(
+      item =>
+        (!state.filterCategory || item.category === state.filterCategory) &&
+        (!state.filterPayment || Calc.lineStatus(item) === state.filterPayment)
+    );
+  }
+
+  function renderFilters() {
+    const select = $('filter-category');
+    const names = [...new Set(state.items.map(i => i.category))];
+    if (state.filterCategory && !names.includes(state.filterCategory)) {
+      state.filterCategory = '';
+    }
+    const ordered = categoryList().filter(c => names.includes(c));
+    const options = ordered.map(
+      c =>
+        `<option value="${esc(c)}"${c === state.filterCategory ? ' selected' : ''}>${esc(c)}</option>`
+    );
+    select.innerHTML = `<option value="">All categories</option>${options.join('')}`;
+    $('filter-status').value = state.filterPayment;
+  }
+
+  function renderItems() {
+    const section = $('bp-items-section');
+    const show = state.status === 'ready';
+    section.hidden = !show || (!state.items.length && !state.total);
+    if (section.hidden) {
+      return;
+    }
+    $('bp-filters').hidden = !state.items.length;
+    renderFilters();
+    const host = $('bp-items');
+    if (!state.items.length) {
+      host.innerHTML = `<div class="bp-state bp-state--inline"><p>No items yet. Add the first thing you expect to pay for.</p><button type="button" class="bp-btn bp-btn--primary" data-action="add">Add item</button></div>`;
+      return;
+    }
+    const rows = visibleItems();
+    if (!rows.length) {
+      host.innerHTML = `<div class="bp-state bp-state--inline"><p>No items match these filters.</p><button type="button" class="bp-btn bp-btn--secondary" data-action="clear-filters">Clear filters</button></div>`;
+      return;
+    }
+    const totals = {
+      planned: Calc.sumMoney(rows.map(r => r.estimated)),
+      actual: Calc.sumMoney(rows.map(r => r.actual)),
+      paid: Calc.sumMoney(rows.map(r => r.paid)),
+    };
+    const filtered = rows.length !== state.items.length;
+    host.innerHTML = `<table class="bp-table bp-table--items" role="table">
+      <thead><tr role="row"><th scope="col" role="columnheader">Item</th><th scope="col" role="columnheader">Category</th><th scope="col" role="columnheader" class="bp-num">Planned</th><th scope="col" role="columnheader" class="bp-num">Actual</th><th scope="col" role="columnheader" class="bp-num">Paid</th><th scope="col" role="columnheader">Payment</th><th scope="col" role="columnheader"><span class="bp-sr">Actions</span></th></tr></thead>
+      <tbody>${rows
+        .map(item => {
+          const status = Calc.lineStatus(item);
+          return `<tr role="row">
+        <td role="cell" class="bp-cell-item"><span class="bp-item-name">${esc(item.item)}</span>${
+          item.notes ? `<span class="bp-item-notes">${esc(item.notes)}</span>` : ''
+        }</td>
+        <td role="cell" class="bp-cell-cat">${esc(item.category)}</td>
+        <td role="cell" class="bp-num" data-label="Planned">${money(item.estimated)}</td>
+        <td role="cell" class="bp-num" data-label="Actual">${item.actual > 0 ? money(item.actual) : '<span class="bp-muted">—</span>'}</td>
+        <td role="cell" class="bp-num" data-label="Paid">${item.paid > 0 ? money(item.paid) : '<span class="bp-muted">—</span>'}</td>
+        <td role="cell" class="bp-cell-status">${
+          status === 'none'
+            ? ''
+            : `<span class="bp-badge bp-badge--${status}">${STATUS_TEXT[status]}</span>`
+        }</td>
+        <td role="cell" class="bp-cell-actions"><button type="button" class="bp-btn bp-btn--quiet" data-action="edit" data-id="${esc(item.id)}" aria-label="Edit ${esc(item.item)}">Edit</button></td></tr>`;
+        })
+        .join('')}</tbody>
+      <tfoot><tr role="row"><th scope="row" role="rowheader" colspan="2" class="bp-foot-label">${filtered ? 'Total of items shown' : 'Total'}</th><td role="cell" class="bp-num" data-label="Planned">${money(totals.planned)}</td><td role="cell" class="bp-num" data-label="Actual">${money(totals.actual)}</td><td role="cell" class="bp-num" data-label="Paid">${money(totals.paid)}</td><td role="cell" class="bp-foot-fill"></td><td role="cell" class="bp-foot-fill"></td></tr></tfoot></table>`;
+  }
+
+  function render() {
+    $('main-content').setAttribute('aria-busy', state.status === 'loading' ? 'true' : 'false');
+    renderHeader();
+    renderNotices();
+    renderSummary();
+    renderCategories();
+    renderItems();
+  }
+
+  /* ------------------------------------------------------------------ *
+   * Toast
+   * ------------------------------------------------------------------ */
+
+  let toastTimer = null;
+  function toast(message) {
+    const el = $('bp-toast');
+    el.textContent = message;
+    el.classList.add('is-visible');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => el.classList.remove('is-visible'), 4000);
+  }
+
+  /* ------------------------------------------------------------------ *
+   * Dialogs
+   * ------------------------------------------------------------------ */
+
+  function openDialog(dialog) {
+    if (typeof dialog.showModal === 'function') {
+      dialog.showModal();
+    } else {
+      dialog.setAttribute('open', '');
+    }
+  }
+
+  function closeDialog(dialog) {
+    if (typeof dialog.close === 'function') {
+      dialog.close();
+    } else {
+      dialog.removeAttribute('open');
+    }
+  }
+
+  function setFieldError(input, message) {
+    const err = input.closest('.bp-field').querySelector('.bp-field__err');
+    err.textContent = message || '';
+    if (message) {
+      input.setAttribute('aria-invalid', 'true');
+    } else {
+      input.removeAttribute('aria-invalid');
+    }
+  }
+
+  function clearErrors(form) {
+    form.querySelectorAll('[aria-invalid]').forEach(el => el.removeAttribute('aria-invalid'));
+    form.querySelectorAll('.bp-field__err, .bp-form__error').forEach(el => {
+      el.textContent = '';
+    });
+  }
+
+  function setSaving(button, saving, idleLabel) {
+    state.saving = saving;
+    button.disabled = saving;
+    button.textContent = saving ? 'Saving…' : idleLabel;
+  }
+
+  function openItemDialog(id) {
+    const item = id ? state.items.find(i => i.id === id) : null;
+    if (id && !item) {
+      return;
+    }
+    state.editingId = item ? item.id : null;
+    const form = $('bp-item-form');
+    clearErrors(form);
+    $('bp-item-title').textContent = item ? 'Edit item' : 'Add item';
+    $('bp-item-delete').hidden = !item;
+    $('bp-f-item').value = item ? item.item : '';
+    $('bp-f-category').innerHTML = categoryList()
+      .map(c => `<option value="${esc(c)}">${esc(c)}</option>`)
+      .join('');
+    $('bp-f-category').value = item ? item.category : state.filterCategory || 'Venue';
+    $('bp-f-estimated').value = item && item.estimated ? String(item.estimated) : '';
+    $('bp-f-actual').value = item && item.actual ? String(item.actual) : '';
+    $('bp-f-paid').value = item && item.paid ? String(item.paid) : '';
+    $('bp-f-notes').value = item ? item.notes : '';
+    setSaving($('bp-item-save'), false, 'Save item');
+    openDialog($('bp-item-dialog'));
+    $('bp-f-item').focus();
+  }
+
+  function readItemForm() {
+    const form = $('bp-item-form');
+    clearErrors(form);
+    const name = $('bp-f-item').value.trim();
+    const estimated = Calc.parseMoneyInput($('bp-f-estimated').value);
+    const actual = Calc.parseMoneyInput($('bp-f-actual').value);
+    const paid = Calc.parseMoneyInput($('bp-f-paid').value);
+    const problems = [];
+    const fail = (input, message) => problems.push({ input, message });
+
+    if (!name) {
+      fail($('bp-f-item'), 'Enter a name for this item.');
+    }
+    if (!estimated.ok) {
+      fail($('bp-f-estimated'), 'Enter an amount such as 1200 or 1,200.50.');
+    } else if (!(estimated.value > 0)) {
+      fail($('bp-f-estimated'), 'Enter what you plan to spend, more than £0.');
+    }
+    if (!actual.ok) {
+      fail($('bp-f-actual'), 'Enter an amount such as 1200 or 1,200.50, or leave it blank.');
+    }
+    if (!paid.ok) {
+      fail($('bp-f-paid'), 'Enter an amount such as 500 or 500.50, or leave it blank.');
+    }
+    if (estimated.ok && actual.ok && paid.ok) {
+      const cost = actual.value > 0 ? actual.value : estimated.value;
+      if (paid.value > cost) {
+        fail($('bp-f-paid'), `That is more than the cost (${money(cost)}).`);
+      }
+    }
+    problems.forEach(p => setFieldError(p.input, p.message));
+    if (problems.length) {
+      problems[0].input.focus();
+      return null;
+    }
+    return {
+      id: state.editingId || newId(),
+      category: $('bp-f-category').value || 'Other',
+      item: name,
+      estimated: estimated.value,
+      actual: actual.value,
+      paid: paid.value,
+      notes: $('bp-f-notes').value.trim(),
+    };
+  }
+
+  async function submitItem(event) {
+    event.preventDefault();
+    if (state.saving) {
+      return;
+    }
+    const next = readItemForm();
+    if (!next) {
+      return;
+    }
+    const items = state.editingId
+      ? state.items.map(i => (i.id === state.editingId ? next : i))
+      : [...state.items, next];
+    setSaving($('bp-item-save'), true, 'Save item');
+    try {
+      await persistItems(items);
+      closeDialog($('bp-item-dialog'));
+      render();
+      toast(state.editingId ? 'Item updated' : 'Item added');
+    } catch (err) {
+      $('bp-form-error').textContent = err.message;
+      setSaving($('bp-item-save'), false, 'Save item');
+    }
+  }
+
+  function openBudgetDialog() {
+    clearErrors($('bp-budget-form'));
+    $('bp-f-total').value = state.total ? String(state.total) : '';
+    setSaving($('bp-budget-save'), false, 'Save budget');
+    openDialog($('bp-budget-dialog'));
+    $('bp-f-total').focus();
+    $('bp-f-total').select();
+  }
+
+  async function submitBudget(event) {
+    event.preventDefault();
+    if (state.saving) {
+      return;
+    }
+    const form = $('bp-budget-form');
+    clearErrors(form);
+    const input = $('bp-f-total');
+    const parsed = Calc.parseMoneyInput(input.value);
+    if (!parsed.ok || !(parsed.value > 0)) {
+      setFieldError(input, 'Enter your total budget as an amount above £0, such as 15000.');
+      input.focus();
+      return;
+    }
+    setSaving($('bp-budget-save'), true, 'Save budget');
+    try {
+      await persistTotal(parsed.value);
+      closeDialog($('bp-budget-dialog'));
+      render();
+      toast(`Budget set to ${money(parsed.value)}`);
+    } catch (err) {
+      $('bp-budget-error').textContent = err.message;
+      setSaving($('bp-budget-save'), false, 'Save budget');
+    }
+  }
+
+  function openDeleteDialog(id) {
+    const item = state.items.find(i => i.id === id);
+    if (!item) {
+      return;
+    }
+    state.deletingId = id;
+    $('bp-confirm-text').textContent = `“${item.item}” will be removed from your budget.`;
+    $('bp-confirm-error').textContent = '';
+    $('bp-confirm-yes').disabled = false;
+    $('bp-confirm-yes').textContent = 'Delete';
+    openDialog($('bp-confirm-dialog'));
+  }
+
+  async function confirmDelete() {
+    if (state.saving || !state.deletingId) {
+      return;
+    }
+    const button = $('bp-confirm-yes');
+    setSaving(button, true, 'Delete');
+    try {
+      await persistItems(state.items.filter(i => i.id !== state.deletingId));
+      closeDialog($('bp-confirm-dialog'));
+      state.deletingId = null;
+      render();
+      toast('Item deleted');
+      $('bp-items-title').focus();
+    } catch (err) {
+      $('bp-confirm-error').textContent = err.message;
+      setSaving(button, false, 'Delete');
+    }
+  }
+
+  /* ------------------------------------------------------------------ *
+   * Import and export
+   * ------------------------------------------------------------------ */
+
+  async function importLegacy() {
+    if (!state.legacy || state.mode !== 'plan' || state.saving) {
+      return;
+    }
+    const legacy = state.legacy;
+    state.saving = true;
+    try {
+      const existing = new Set(state.items.map(i => i.id));
+      const incoming = legacy.items.map(i => (existing.has(i.id) ? { ...i, id: newId() } : i));
+      if (incoming.length) {
+        await persistItems([...state.items, ...incoming]);
+      }
+      if (legacy.total > 0 && !Calc.parsePlanBudget(state.plan.budget)) {
+        await persistTotal(legacy.total);
+      }
+      writeStorage(IMPORTED_KEY, state.plan.id);
+      state.legacy = null;
+      render();
+      toast('Moved to your plan');
+    } catch (err) {
+      toast(err.message);
+    } finally {
+      state.saving = false;
+    }
+  }
+
+  function download(filename, text, type) {
+    const url = URL.createObjectURL(new Blob([text], { type }));
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }
+
+  const today = () => new Date().toISOString().slice(0, 10);
+
+  function exportCsv() {
+    // A leading byte-order mark makes Excel read the file as UTF-8.
+    const bom = String.fromCharCode(0xfeff);
+    download(`eventflow-budget-${today()}.csv`, `${bom}${Calc.toCsv(state.items)}`, 'text/csv');
+    toast('Budget downloaded as CSV');
+  }
+
+  async function exportPdf() {
+    if (typeof exportUtility === 'undefined') {
+      toast('The PDF tool did not load. Try again, or download the CSV.');
+      return;
+    }
+    const s = Calc.summarise(state.items, state.total);
+    try {
+      await exportUtility.exportBudgetToPDF(
+        {
+          totalBudget: s.budget,
+          totalSpent: s.committed,
+          remaining: s.remaining,
+          percentageUsed: s.percentCommitted,
+          expenses: state.items.map(i => ({
+            category: i.category,
+            description: i.item,
+            amount: Calc.lineCost(i),
+            status: STATUS_TEXT[Calc.lineStatus(i)] || 'Planned',
+          })),
+        },
+        `eventflow-budget-${today()}.pdf`
+      );
+      toast('Budget downloaded as PDF');
+    } catch (_) {
+      toast('We could not create the PDF. Try the CSV instead.');
+    }
+  }
+
+  /* ------------------------------------------------------------------ *
+   * Events
+   * ------------------------------------------------------------------ */
+
+  function closeExportMenu() {
+    const menu = $('bp-export-menu');
+    if (menu.open) {
+      menu.open = false;
+    }
+  }
+
+  const ACTIONS = {
+    add: () => openItemDialog(null),
+    edit: el => openItemDialog(el.dataset.id),
+    'set-budget': openBudgetDialog,
+    retry: load,
+    'import-legacy': importLegacy,
+    'dismiss-import': () => {
+      state.importDismissed = true;
+      renderNotices();
+    },
+    'clear-filters': () => {
+      state.filterCategory = '';
+      state.filterPayment = '';
+      renderItems();
+    },
+    'export-csv': () => {
+      closeExportMenu();
+      exportCsv();
+    },
+    'export-pdf': () => {
+      closeExportMenu();
+      exportPdf();
+    },
+  };
+
+  function bind() {
+    document.addEventListener('click', event => {
+      const closer = event.target.closest('[data-close]');
+      if (closer) {
+        closeDialog(closer.closest('dialog'));
+        return;
+      }
+      const el = event.target.closest('[data-action]');
+      if (el && ACTIONS[el.dataset.action] && $('main-content').contains(el)) {
+        ACTIONS[el.dataset.action](el);
+        return;
+      }
+      if (!event.target.closest('#bp-export-menu')) {
+        closeExportMenu();
+      }
+    });
+
+    document.addEventListener('keydown', event => {
+      if (event.key === 'Escape') {
+        closeExportMenu();
+      }
+    });
+
+    $('bp-item-form').addEventListener('submit', submitItem);
+    $('bp-budget-form').addEventListener('submit', submitBudget);
+    $('bp-confirm-yes').addEventListener('click', confirmDelete);
+    $('bp-item-delete').addEventListener('click', () => {
+      const id = state.editingId;
+      closeDialog($('bp-item-dialog'));
+      openDeleteDialog(id);
+    });
+
+    document.querySelectorAll('.bp-field input, .bp-field select').forEach(input => {
+      input.addEventListener('input', () => {
+        if (input.getAttribute('aria-invalid')) {
+          setFieldError(input, '');
+        }
+      });
+    });
+
+    $('filter-category').addEventListener('change', event => {
+      state.filterCategory = event.target.value;
+      renderItems();
+    });
+    $('filter-status').addEventListener('change', event => {
+      state.filterPayment = event.target.value;
+      renderItems();
+    });
+    $('bp-plan-select').addEventListener('change', event => {
+      const plan = state.plans.find(p => p.id === event.target.value);
+      if (plan) {
+        writeStorage(PLAN_PICK_KEY, plan.id);
+        state.filterCategory = '';
+        state.filterPayment = '';
+        applyPlan(plan);
+        render();
+      }
+    });
+  }
+
+  // The header's notification bell is shown once the visitor is known to be signed in.
+  document.addEventListener('DOMContentLoaded', () => {
+    const authState = window.__authState || window.AuthStateManager;
+    if (authState && typeof authState.onchange === 'function') {
+      authState.onchange(user => {
+        const bell =
+          document.getElementById('ef-notification-btn') ||
+          document.getElementById('notification-bell');
+        if (bell) {
+          bell.style.display = user ? 'block' : 'none';
+        }
+      });
+    }
+  });
+
+  function start() {
+    bind();
+    load();
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', start);
+  } else {
+    start();
+  }
+})();
