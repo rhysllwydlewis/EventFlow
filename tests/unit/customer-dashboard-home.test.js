@@ -26,8 +26,26 @@ const initJs = read('public/assets/js/pages/dashboard-customer-init.js');
 /** The <main> element, where the page's own content lives. */
 const main = html.slice(html.indexOf('<main'), html.indexOf('</main>'));
 
-const idsIn = markup =>
-  [...markup.replace(/<!--[\s\S]*?-->/g, '').matchAll(/\sid="([^"]+)"/g)].map(m => m[1]);
+/** The markup with every HTML comment removed, so ids inside comments are not counted. */
+const withoutComments = markup => {
+  let result = '';
+  let position = 0;
+  for (;;) {
+    const start = markup.indexOf('<!--', position);
+    if (start === -1) {
+      return result + markup.slice(position);
+    }
+    result += markup.slice(position, start);
+    const end = markup.indexOf('-->', start + 4);
+    if (end === -1) {
+      return result;
+    }
+    position = end + 3;
+  }
+};
+
+/** Every element id in a piece of markup, ignoring commented-out markup. */
+const idsIn = markup => [...withoutComments(markup).matchAll(/\sid="([^"]+)"/g)].map(m => m[1]);
 
 describe('customer dashboard home: stylesheets', () => {
   const links = [...html.matchAll(/<link[^>]+rel="stylesheet"[^>]*href="([^"]+)"/g)].map(m => m[1]);
@@ -280,7 +298,7 @@ describe('customer dashboard home: structure', () => {
     );
     expect(titles).toEqual([
       'Next steps',
-      'Wedding Website & RSVPs'.replace('&', '&amp;'),
+      'Wedding Website &amp; RSVPs',
       'Calendar',
       'Your plans',
       'Messages',
