@@ -75,7 +75,7 @@
   color: var(--hws-teal);
   background: #fff;
   border: 1px solid var(--hws-line);
-  border-radius: 999px;
+  border-radius: 6px;
 }
 
 .hws .hws__copy {
@@ -124,7 +124,7 @@
   text-align: center;
   text-decoration: none;
   border: 1.5px solid transparent;
-  border-radius: 999px;
+  border-radius: 12px;
   transition:
     transform 0.15s ease,
     box-shadow 0.15s ease,
@@ -231,7 +231,7 @@
   font-weight: 600;
   color: var(--hws-muted);
   background: #f1f5f4;
-  border-radius: 999px;
+  border-radius: 6px;
 }
 
 /* RSVP tracker */
@@ -364,7 +364,7 @@
   font-weight: 700;
   color: var(--hws-teal-deep);
   background: var(--hws-mint);
-  border-radius: 999px;
+  border-radius: 6px;
 }
 
 .hws .hws__avatar {
@@ -447,7 +447,7 @@
   font-weight: 700;
   color: #fff;
   background: var(--hws-plum);
-  border-radius: 999px;
+  border-radius: 6px;
 }
 
 .hws .hws__site-hero {
@@ -611,7 +611,7 @@
   font-weight: 700;
   color: #fff;
   background: var(--hws-plum);
-  border-radius: 999px;
+  border-radius: 8px;
   box-shadow: 0 10px 22px rgba(141, 63, 111, 0.4);
   transform: translateX(-50%) rotate(-4deg);
 }
@@ -643,7 +643,7 @@
   font-size: 11px;
   font-weight: 600;
   background: #f1f5f4;
-  border-radius: 999px;
+  border-radius: 6px;
 }
 
 /* Floating chips */
@@ -679,7 +679,7 @@
   padding: 8px 14px 8px 10px;
   font-size: 12px;
   font-weight: 700;
-  border-radius: 999px;
+  border-radius: 10px;
 }
 
 .hws .hws__chip--lock .hws-icon {

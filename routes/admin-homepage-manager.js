@@ -11,23 +11,24 @@ const logger = require('../utils/logger');
 const { authRequired, roleRequired } = require('../middleware/auth');
 const { csrfProtection } = require('../middleware/csrf');
 const { auditLog } = require('../middleware/audit');
+const { adminHomepageLimiter } = require('../middleware/rateLimits');
 const {
-  buildHomepageGuidance,
   buildHomepageManager,
+  buildHomepageToggle,
   duplicateHomepageVersion,
   publishHomepageVersion,
-  updateHomepageGuidance,
+  updateHomepageToggle,
   updateHomepageVersion,
   assignPexelsMediaToVersion,
   removePexelsMediaFromVersion,
   updateMediaLibraryForVersion,
-  validateHomepageGuidancePayload,
+  validateHomepageTogglePayload,
   validateHomepageVersionPayload,
 } = require('../utils/homepage-manager');
 
 const router = express.Router();
 
-router.get('/', authRequired, roleRequired('admin'), async (req, res) => {
+router.get('/', authRequired, roleRequired('admin'), adminHomepageLimiter, async (req, res) => {
   try {
     const settings = (await dbUnified.read('settings')) || {};
     res.json({ success: true, manager: buildHomepageManager(settings) });
@@ -37,82 +38,137 @@ router.get('/', authRequired, roleRequired('admin'), async (req, res) => {
   }
 });
 
-router.get('/guidance', authRequired, roleRequired('admin'), async (req, res) => {
-  try {
-    const settings = (await dbUnified.read('settings')) || {};
-    res.json({ success: true, guidance: buildHomepageGuidance(settings) });
-  } catch (error) {
-    logger.error('Error reading homepage guidance:', error);
-    res.status(500).json({ error: 'Failed to read homepage guidance setting' });
-  }
-});
+// On/off switches for parts of the public homepage. Each is read and saved the
+// same way, so they share one set of handlers.
+const TOGGLE_ROUTES = [
+  { path: '/guidance', key: 'guidance', action: 'HOMEPAGE_GUIDANCE_UPDATED', label: 'guidance' },
+  {
+    path: '/quick-links',
+    key: 'quickLinks',
+    action: 'HOMEPAGE_QUICK_LINKS_UPDATED',
+    label: 'quick links',
+  },
+];
 
-router.put('/guidance', authRequired, roleRequired('admin'), csrfProtection, async (req, res) => {
-  try {
-    const validationError = validateHomepageGuidancePayload(req.body);
-    if (validationError) {
-      res.status(400).json({ error: validationError });
-      return;
+// A switch is saved by reading every setting and writing them all back, so two
+// saves at the same moment (both switches flipped in quick succession) could each
+// start from the same snapshot and the later one would undo the other. They are
+// run one after another instead.
+let toggleWriteQueue = Promise.resolve();
+const inTurn = task => {
+  const run = toggleWriteQueue.then(task);
+  toggleWriteQueue = run.catch(() => undefined);
+  return run;
+};
+
+TOGGLE_ROUTES.forEach(({ path, key, action, label }) => {
+  router.get(path, authRequired, roleRequired('admin'), adminHomepageLimiter, async (req, res) => {
+    try {
+      const settings = (await dbUnified.read('settings')) || {};
+      res.json({ success: true, toggle: buildHomepageToggle(settings, key) });
+    } catch (error) {
+      logger.error(`Error reading homepage ${label}:`, error);
+      res.status(500).json({ error: `Failed to read homepage ${label} setting` });
     }
+  });
 
-    const settings = (await dbUnified.read('settings')) || {};
-    const nextSettings = updateHomepageGuidance(settings, req.body.enabled, req.user);
-    const result = await dbUnified.writeAndVerify('settings', nextSettings);
-    const guidance = buildHomepageGuidance(result.data);
+  router.put(
+    path,
+    authRequired,
+    roleRequired('admin'),
+    adminHomepageLimiter,
+    csrfProtection,
+    async (req, res) => {
+      try {
+        const validationError = validateHomepageTogglePayload(req.body);
+        if (validationError) {
+          res.status(400).json({ error: validationError });
+          return;
+        }
 
-    auditLog({
-      adminId: req.user.id,
-      adminEmail: req.user.email,
-      action: 'HOMEPAGE_GUIDANCE_UPDATED',
-      targetType: 'homepage',
-      targetId: 'guidance',
-      details: { enabled: guidance.enabled },
-    });
+        const toggle = await inTurn(async () => {
+          const settings = (await dbUnified.read('settings')) || {};
+          const nextSettings = updateHomepageToggle(settings, key, req.body.enabled, req.user);
+          const result = await dbUnified.writeAndVerify('settings', nextSettings);
+          // writeAndVerify reports a failed write by resolving { success: false }
+          if (!result || result.success !== true) {
+            throw new Error(result?.error || 'The settings write did not complete');
+          }
+          return buildHomepageToggle(result.data, key);
+        });
 
-    res.json({ success: true, guidance });
-  } catch (error) {
-    logger.error('Error updating homepage guidance:', error);
-    res.status(500).json({ error: 'Failed to update homepage guidance setting' });
-  }
-});
+        auditLog({
+          adminId: req.user.id,
+          adminEmail: req.user.email,
+          action,
+          targetType: 'homepage',
+          targetId: key,
+          details: { enabled: toggle.enabled },
+        });
 
-router.get('/media-library', authRequired, roleRequired('admin'), async (req, res) => {
-  try {
-    const settings = (await dbUnified.read('settings')) || {};
-    const manager = buildHomepageManager(settings);
-    const versions = Object.fromEntries(
-      Object.entries(manager.versions).map(([key, version]) => [key, version.settings.mediaLibrary])
-    );
-    res.json({ success: true, activeVersion: manager.activeVersion, versions });
-  } catch (error) {
-    logger.error('Error reading homepage media library:', error);
-    res.status(500).json({ error: 'Unable to load homepage media library.' });
-  }
-});
-
-router.get('/media-library/:version', authRequired, roleRequired('admin'), async (req, res) => {
-  try {
-    const settings = (await dbUnified.read('settings')) || {};
-    const manager = buildHomepageManager(settings);
-    const version = manager.versions[req.params.version];
-    if (!version) {
-      return res.status(400).json({ error: 'Choose a valid homepage version.' });
+        res.json({ success: true, toggle });
+      } catch (error) {
+        logger.error(`Error updating homepage ${label}:`, error);
+        res.status(500).json({ error: `Failed to update homepage ${label} setting` });
+      }
     }
-    res.json({
-      success: true,
-      version: req.params.version,
-      mediaLibrary: version.settings.mediaLibrary,
-    });
-  } catch (error) {
-    logger.error('Error reading homepage media library version:', error);
-    res.status(500).json({ error: 'Unable to load homepage media library.' });
-  }
+  );
 });
+
+router.get(
+  '/media-library',
+  authRequired,
+  roleRequired('admin'),
+  adminHomepageLimiter,
+  async (req, res) => {
+    try {
+      const settings = (await dbUnified.read('settings')) || {};
+      const manager = buildHomepageManager(settings);
+      const versions = Object.fromEntries(
+        Object.entries(manager.versions).map(([key, version]) => [
+          key,
+          version.settings.mediaLibrary,
+        ])
+      );
+      res.json({ success: true, activeVersion: manager.activeVersion, versions });
+    } catch (error) {
+      logger.error('Error reading homepage media library:', error);
+      res.status(500).json({ error: 'Unable to load homepage media library.' });
+    }
+  }
+);
+
+router.get(
+  '/media-library/:version',
+  authRequired,
+  roleRequired('admin'),
+  adminHomepageLimiter,
+  async (req, res) => {
+    try {
+      const settings = (await dbUnified.read('settings')) || {};
+      const manager = buildHomepageManager(settings);
+      const version = manager.versions[req.params.version];
+      if (!version) {
+        res.status(400).json({ error: 'Choose a valid homepage version.' });
+        return;
+      }
+      res.json({
+        success: true,
+        version: req.params.version,
+        mediaLibrary: version.settings.mediaLibrary,
+      });
+    } catch (error) {
+      logger.error('Error reading homepage media library version:', error);
+      res.status(500).json({ error: 'Unable to load homepage media library.' });
+    }
+  }
+);
 
 router.post(
   '/media-library/:version/pexels',
   authRequired,
   roleRequired('admin'),
+  adminHomepageLimiter,
   csrfProtection,
   async (req, res) => {
     try {
@@ -177,6 +233,7 @@ router.delete(
   '/media-library/:version/pexels/:mediaId',
   authRequired,
   roleRequired('admin'),
+  adminHomepageLimiter,
   csrfProtection,
   async (req, res) => {
     try {
@@ -205,6 +262,7 @@ router.patch(
   '/media-library/:version',
   authRequired,
   roleRequired('admin'),
+  adminHomepageLimiter,
   csrfProtection,
   async (req, res) => {
     try {
@@ -233,12 +291,14 @@ router.put(
   '/version/:version',
   authRequired,
   roleRequired('admin'),
+  adminHomepageLimiter,
   csrfProtection,
   async (req, res) => {
     try {
       const validationError = validateHomepageVersionPayload(req.body);
       if (validationError) {
-        return res.status(400).json({ error: validationError });
+        res.status(400).json({ error: validationError });
+        return;
       }
 
       const settings = (await dbUnified.read('settings')) || {};
@@ -271,6 +331,7 @@ router.post(
   '/publish/:version',
   authRequired,
   roleRequired('admin'),
+  adminHomepageLimiter,
   csrfProtection,
   async (req, res) => {
     try {
@@ -296,28 +357,40 @@ router.post(
   }
 );
 
-router.post('/duplicate', authRequired, roleRequired('admin'), csrfProtection, async (req, res) => {
-  try {
-    const { sourceVersion, targetVersion } = req.body || {};
-    const settings = (await dbUnified.read('settings')) || {};
-    const nextSettings = duplicateHomepageVersion(settings, sourceVersion, targetVersion, req.user);
-    const result = await dbUnified.writeAndVerify('settings', nextSettings);
-    const manager = buildHomepageManager(result.data);
+router.post(
+  '/duplicate',
+  authRequired,
+  roleRequired('admin'),
+  adminHomepageLimiter,
+  csrfProtection,
+  async (req, res) => {
+    try {
+      const { sourceVersion, targetVersion } = req.body || {};
+      const settings = (await dbUnified.read('settings')) || {};
+      const nextSettings = duplicateHomepageVersion(
+        settings,
+        sourceVersion,
+        targetVersion,
+        req.user
+      );
+      const result = await dbUnified.writeAndVerify('settings', nextSettings);
+      const manager = buildHomepageManager(result.data);
 
-    auditLog({
-      adminId: req.user.id,
-      adminEmail: req.user.email,
-      action: 'HOMEPAGE_VERSION_DUPLICATED',
-      targetType: 'homepage',
-      targetId: targetVersion,
-      details: { sourceVersion, targetVersion },
-    });
+      auditLog({
+        adminId: req.user.id,
+        adminEmail: req.user.email,
+        action: 'HOMEPAGE_VERSION_DUPLICATED',
+        targetType: 'homepage',
+        targetId: targetVersion,
+        details: { sourceVersion, targetVersion },
+      });
 
-    res.json({ success: true, manager });
-  } catch (error) {
-    logger.error('Error duplicating homepage version:', error);
-    res.status(400).json({ error: error.message || 'Failed to duplicate homepage version' });
+      res.json({ success: true, manager });
+    } catch (error) {
+      logger.error('Error duplicating homepage version:', error);
+      res.status(400).json({ error: error.message || 'Failed to duplicate homepage version' });
+    }
   }
-});
+);
 
 module.exports = router;

@@ -11,7 +11,7 @@ const fs = require('fs').promises;
 const { getPlaceholders } = require('../config/content-config');
 const {
   getActiveHomepageVersion,
-  getHomepageGuidanceEnabled,
+  getHomepageToggles,
   normaliseHomepageVersion,
 } = require('./homepage-manager');
 const { renderArticleDates } = require('../services/articleMetadata.service');
@@ -259,11 +259,15 @@ function removeBodyClass(content, className) {
   );
 }
 
-// The homepage carries this class in index.html, so the guidance layer is on for
-// the static server, CI and any visitor whose settings cannot be read. An admin
-// switching it off removes the class here, per request and after the template
+// The homepage carries these classes in index.html, so each feature is on for the
+// static server, CI and any visitor whose settings cannot be read. An admin
+// switching one off removes its class here, per request and after the template
 // cache, so a stale cached page can never ignore the setting.
 const HOMEPAGE_GUIDANCE_CLASS = 'ef-home-guidance';
+const HOMEPAGE_TOGGLE_CLASSES = {
+  guidance: HOMEPAGE_GUIDANCE_CLASS,
+  quickLinks: 'ef-home-quicklinks',
+};
 
 function applyHomepageGuidance(content, enabled) {
   return enabled === false
@@ -271,12 +275,20 @@ function applyHomepageGuidance(content, enabled) {
     : addBodyClass(content, HOMEPAGE_GUIDANCE_CLASS);
 }
 
-async function isHomepageGuidanceEnabled() {
+function applyHomepageToggles(content, toggles) {
+  return Object.entries(HOMEPAGE_TOGGLE_CLASSES).reduce(
+    (html, [key, className]) =>
+      toggles[key] === false ? removeBodyClass(html, className) : addBodyClass(html, className),
+    content
+  );
+}
+
+async function readHomepageToggles() {
   try {
-    return (await getHomepageGuidanceEnabled()) !== false;
+    return (await getHomepageToggles()) || {};
   } catch (error) {
-    logger.warn('Failed to read homepage guidance setting, leaving it on:', error);
-    return true;
+    logger.warn('Failed to read homepage display settings, leaving them on:', error);
+    return {};
   }
 }
 
@@ -730,7 +742,7 @@ function templateMiddleware() {
       }
       responseContent = isHomepagePreview ? addPreviewRobotsMeta(responseContent) : responseContent;
       if (requestPath === '/index.html') {
-        responseContent = applyHomepageGuidance(responseContent, await isHomepageGuidanceEnabled());
+        responseContent = applyHomepageToggles(responseContent, await readHomepageToggles());
       }
 
       setHtmlNoStoreHeaders(res);
@@ -775,5 +787,6 @@ module.exports = {
   buildHomepageV3Preview,
   injectHomepageManagerAdminScript,
   applyHomepageGuidance,
+  applyHomepageToggles,
   removeBodyClass,
 };

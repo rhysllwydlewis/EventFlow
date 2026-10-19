@@ -91,7 +91,168 @@ body.ef-home-flow main .ef-approved-benefits-section {
 }
 
 body.ef-home-flow main .hws {
-  padding-block: calc(var(--flow-pad) + 16px) !important;
+  padding-block: var(--flow-pad) !important;
+}
+
+/* ---------- wedding section, compact ----------
+   It was about a fifth of the page. The illustration is decorative, so it is drawn
+   smaller (the numbers are the old scale steps times about 0.75), and the spacing
+   around the copy, cards and questions is tighter. */
+body.ef-home-flow main .hws .hws__hero {
+  gap: clamp(28px, 4vw, 44px);
+}
+
+body.ef-home-flow main .hws .hws__frame {
+  --hws-s: 0.74;
+}
+
+@media (max-width: 751px) {
+  body.ef-home-flow main .hws .hws__frame {
+    --hws-s: 0.7;
+  }
+}
+
+@media (max-width: 639px) {
+  body.ef-home-flow main .hws .hws__frame {
+    --hws-s: 0.62;
+  }
+}
+
+@media (max-width: 559px) {
+  body.ef-home-flow main .hws .hws__frame {
+    --hws-s: 0.53;
+  }
+}
+
+@media (max-width: 479px) {
+  body.ef-home-flow main .hws .hws__frame {
+    --hws-s: 0.47;
+  }
+}
+
+@media (max-width: 419px) {
+  body.ef-home-flow main .hws .hws__frame {
+    --hws-s: 0.42;
+  }
+}
+
+@media (max-width: 379px) {
+  body.ef-home-flow main .hws .hws__frame {
+    --hws-s: 0.39;
+  }
+}
+
+@media (max-width: 359px) {
+  body.ef-home-flow main .hws .hws__frame {
+    --hws-s: 0.36;
+  }
+}
+
+@media (max-width: 339px) {
+  body.ef-home-flow main .hws .hws__frame {
+    --hws-s: 0.31;
+  }
+}
+
+@media (min-width: 1180px) {
+  body.ef-home-flow main .hws .hws__hero {
+    grid-template-columns: minmax(0, 1fr) calc(640px * 0.74);
+  }
+}
+
+body.ef-home-flow main .hws .hws__copy h2 {
+  margin-top: 12px;
+  font-size: clamp(26px, 3vw, 38px);
+}
+
+body.ef-home-flow main .hws .hws__lead {
+  margin-top: 12px;
+  font-size: 16px;
+  line-height: 1.55;
+}
+
+body.ef-home-flow main .hws .hws__actions {
+  gap: 10px;
+  margin-top: 20px;
+}
+
+body.ef-home-flow main .hws .hws__btn {
+  min-height: 44px;
+  font-size: 14px;
+}
+
+body.ef-home-flow main .hws .hws__note {
+  margin-top: 12px;
+}
+
+body.ef-home-flow main .hws .hws__features {
+  gap: 12px;
+  margin-top: clamp(28px, 3.5vw, 40px);
+}
+
+body.ef-home-flow main .hws .hws__feature {
+  padding: 16px 18px;
+  border-radius: 14px;
+}
+
+body.ef-home-flow main .hws .hws__feature-icon {
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+}
+
+body.ef-home-flow main .hws .hws__feature h3 {
+  margin-top: 10px;
+}
+
+body.ef-home-flow main .hws .hws__feature p {
+  margin-top: 4px;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+@media (max-width: 439px) {
+  body.ef-home-flow main .hws .hws__feature {
+    grid-template-columns: 34px minmax(0, 1fr);
+    column-gap: 12px;
+    padding: 12px 14px;
+  }
+
+  body.ef-home-flow main .hws .hws__feature h3 {
+    margin-top: 0;
+  }
+}
+
+body.ef-home-flow main .hws .hws__faq {
+  margin-top: clamp(28px, 3.5vw, 40px);
+}
+
+body.ef-home-flow main .hws .hws__faq > h3 {
+  font-size: 20px;
+}
+
+body.ef-home-flow main .hws .hws__faq-grid {
+  gap: 10px;
+  margin-top: 16px;
+}
+
+body.ef-home-flow main .hws .hws__faq-item {
+  border-radius: 12px;
+}
+
+body.ef-home-flow main .hws .hws__faq-item summary {
+  padding: 12px 16px;
+  font-size: 14px;
+}
+
+body.ef-home-flow main .hws .hws__faq-item p {
+  padding: 0 16px 14px;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+body.ef-home-flow main .hws .hws__more {
+  margin-top: 12px;
 }
 
 /* The quick links under the hero search are always shown as they are. They used to
@@ -112,9 +273,43 @@ body.ef-home-flow main .ef-quick-tags__tag {
   max-width: none;
   overflow: visible;
   text-overflow: clip;
+  border-radius: 10px !important;
   background: rgba(255, 255, 255, 0.92) !important;
   backdrop-filter: none !important;
   -webkit-backdrop-filter: none !important;
+}
+
+/* Admin > Homepage can switch the whole row off. Homepage 3 draws its shortcuts as
+   .hv2-popular, so the same switch hides those. */
+body.ef-home-flow:not(.ef-home-quicklinks) main :is(.ef-quick-tags, .hv2-popular) {
+  display: none !important;
+}
+
+/* On phones the row used to be hidden for lack of room. It is now one line that
+   swipes sideways, so the shortcuts are there without costing a second row. */
+@media (max-width: 639px) {
+  body.ef-home-flow.ef-home-quicklinks main .ef-quick-tags {
+    display: flex !important;
+    flex-wrap: nowrap;
+    gap: 8px;
+    margin-top: 8px;
+    padding: 2px 2px 4px;
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    scrollbar-width: none;
+    justify-content: flex-start;
+  }
+
+  body.ef-home-flow.ef-home-quicklinks main .ef-quick-tags::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* styles.css makes every .ef-cta button full width on phones. */
+  body.ef-home-flow.ef-home-quicklinks main .ef-quick-tags__tag {
+    width: auto;
+    margin-top: 0;
+    padding-inline: 14px;
+  }
 }
 
 /* Package rows with nothing in them are hidden by home-init.js. */
@@ -258,15 +453,10 @@ body.ef-home-flow main .ef-approved-marketplace-empty p {
   font-size: 14px;
 }
 
-/* Beside the wedding graphic the copy sat vertically centred in a much taller
-   column, leaving a large gap above it. Start it near the top instead. */
+/* Beside the (now smaller) wedding graphic the copy sits in the middle of the row. */
 @media (min-width: 1180px) {
   body.ef-home-flow main .hws__hero {
-    align-items: start;
-  }
-
-  body.ef-home-flow main .hws__copy {
-    padding-top: 40px;
+    align-items: center;
   }
 }
 
@@ -487,8 +677,8 @@ body.ef-home-flow.ef-home-guidance .ef-flow-seam__label {
     --spine-top: 0px;
   }
   body.ef-home-flow.ef-home-guidance main .hws {
-    --spine-top: calc(var(--flow-pad) + 16px);
-    --spine-bottom: calc(var(--flow-pad) + 16px);
+    --spine-top: var(--flow-pad);
+    --spine-bottom: var(--flow-pad);
   }
   body.ef-home-flow.ef-home-guidance main .ef-approved-marketplace-section {
     --spine-top: 0px;

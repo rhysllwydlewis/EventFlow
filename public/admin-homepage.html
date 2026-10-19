@@ -70,15 +70,35 @@
       </div>
       <p>Adds a "Next" arrow between sections, a "Browse" cue on each category card, a dotted path down the margin on wide screens and a Start planning card after the early-access steps. It applies to Homepage 1 and 3 and takes effect as soon as you switch it.</p>
     </div>
-    <div class="homepage-guidance-control">
+    <div class="homepage-guidance-control" data-homepage-toggle="guidance" data-on-label="Guidance is on" data-off-label="Guidance is off" data-on-toast="Homepage guidance switched on" data-off-toast="Homepage guidance switched off">
       <label class="homepage-guidance-switch" for="homepageGuidanceToggle">
-        <input id="homepageGuidanceToggle" type="checkbox" role="switch" disabled aria-describedby="homepageGuidanceMeta">
+        <input id="homepageGuidanceToggle" type="checkbox" role="switch" disabled aria-describedby="homepageGuidanceMeta" data-toggle-input>
         <span class="homepage-guidance-track" aria-hidden="true"></span>
-        <span id="homepageGuidanceLabel" class="homepage-guidance-label">Loading...</span>
+        <span id="homepageGuidanceLabel" class="homepage-guidance-label" data-toggle-label>Loading...</span>
       </label>
-      <p id="homepageGuidanceMeta" class="homepage-guidance-meta" aria-live="polite"></p>
+      <p id="homepageGuidanceMeta" class="homepage-guidance-meta" aria-live="polite" data-toggle-meta></p>
       <a class="ef-cta btn btn-secondary" href="/" target="_blank" rel="noopener">Open homepage</a>
     </div>
+  </section>
+
+  <section id="homepageQuickLinksWorkspace" class="homepage-manager-section homepage-guidance" aria-labelledby="quickLinksHeading">
+    <div class="homepage-section-heading">
+      <div>
+        <p class="homepage-admin-eyebrow">Hero search</p>
+        <h2 id="quickLinksHeading">Quick links under the search bar</h2>
+      </div>
+      <p>The row of shortcuts under the hero search box: London venues, Canapés &amp; drinks, DJ packages and Corporate. On phones (Homepage 1) they sit in one line that swipes sideways. Switching this off hides the whole row on every screen, on Homepage 1 and 3, and takes effect as soon as you switch it.</p>
+    </div>
+    <div class="homepage-guidance-control" data-homepage-toggle="quick-links" data-on-label="Quick links are on" data-off-label="Quick links are off" data-on-toast="Quick links switched on" data-off-toast="Quick links switched off">
+      <label class="homepage-guidance-switch" for="homepageQuickLinksToggle">
+        <input id="homepageQuickLinksToggle" type="checkbox" role="switch" disabled aria-describedby="homepageQuickLinksMeta" data-toggle-input>
+        <span class="homepage-guidance-track" aria-hidden="true"></span>
+        <span id="homepageQuickLinksLabel" class="homepage-guidance-label" data-toggle-label>Loading...</span>
+      </label>
+      <p id="homepageQuickLinksMeta" class="homepage-guidance-meta" aria-live="polite" data-toggle-meta></p>
+      <a class="ef-cta btn btn-secondary" href="/" target="_blank" rel="noopener">Open homepage</a>
+    </div>
+    <p class="homepage-guidance-meta" style="padding: 0 24px 20px; margin: 0;">The sign-up popup has its own timing and on/off control under Admin &rarr; Settings.</p>
   </section>
 
   <section class="homepage-manager-layout" aria-label="Homepage editing workspace">
@@ -290,7 +310,7 @@
 <script src="/assets/js/admin-shared.js?v=18.3.1"></script>
 <script src="/assets/js/pages/admin-homepage-rebuild.js?v=18.4.0" defer></script>
 <script src="/assets/js/pages/admin-homepage-hardening.js?v=1.0.0" defer></script>
-<script src="/assets/js/pages/admin-homepage-guidance.js?v=1.0.0" defer></script>
+<script src="/assets/js/pages/admin-homepage-guidance.js?v=2.0.0" defer></script>
 <script src="/assets/js/cookie-consent.js?v=3.0.0" defer></script>
 </body>
 </html>

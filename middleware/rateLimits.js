@@ -272,6 +272,21 @@ const writeLimiter = rateLimit({
 });
 
 /**
+ * Rate limiter for the admin homepage manager.
+ * One admin session makes a handful of calls per page load and per save, so the
+ * allowance is generous; it is here to bound abuse of an authorised account or a
+ * stolen session, not to get in an editor's way. 300 requests per 15 minutes.
+ */
+const adminHomepageLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 300,
+  message: 'Too many homepage manager requests, please try again shortly.',
+  standardHeaders: true,
+  legacyHeaders: false,
+  skip: isBackendE2ERequest,
+});
+
+/**
  * Rate limiter for email resend operations
  * 3 requests per 15 minutes per email address
  */
@@ -331,6 +346,7 @@ module.exports = {
   publicReadLimiter,
   photoAssetLimiter,
   writeLimiter,
+  adminHomepageLimiter,
   resendEmailLimiter,
   registrationLimiter,
   apiDocsLimiter,

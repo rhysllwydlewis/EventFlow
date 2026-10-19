@@ -430,7 +430,7 @@ body.ef-approved-lower-home .ef-approved-tags {
 }
 
 body.ef-approved-lower-home .ef-approved-tags span {
-  border-radius: 999px;
+  border-radius: 6px;
   background: rgba(11, 128, 115, 0.08);
   color: var(--ef-approved-green);
   font-size: 11px;
@@ -536,7 +536,7 @@ body.ef-approved-lower-home .ef-approved-guide-card > div {
 
 body.ef-approved-lower-home .ef-approved-guide-card div > span {
   display: inline-flex;
-  border-radius: 999px;
+  border-radius: 6px;
   background: #f2f4f7;
   color: #667085;
   font-size: 11px;
