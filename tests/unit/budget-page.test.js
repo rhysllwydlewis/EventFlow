@@ -202,3 +202,14 @@ describe('budget-page.js contracts', () => {
     expect(calc.replace(/\/\*[\s\S]*?\*\//g, '')).not.toMatch(/\bdocument\b|\bwindow\b/);
   });
 });
+
+describe('budget page styling invariants', () => {
+  test('no pill radii, so buttons, badges and bars match the other customer pages', () => {
+    expect(css).not.toMatch(/border-radius:\s*(999|9999)/);
+  });
+
+  test('the tables undo the global nowrap that mobile-optimizations.css gives every table', () => {
+    const rule = css.match(/\.bp \.bp-table \{[\s\S]*?\n\}/)[0];
+    expect(rule).toMatch(/white-space: normal;/);
+  });
+});

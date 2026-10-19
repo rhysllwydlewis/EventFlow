@@ -148,7 +148,7 @@
   min-height: 40px;
   padding: 0 18px;
   border: 1px solid transparent;
-  border-radius: 999px;
+  border-radius: var(--bp-radius-sm);
   font-size: 14px;
   font-weight: 600;
   line-height: 1.2;
@@ -249,7 +249,7 @@
   color: var(--bp-muted);
   background: transparent;
   border: 0;
-  border-radius: 999px;
+  border-radius: var(--bp-radius-sm);
   cursor: pointer;
 }
 
@@ -267,7 +267,7 @@
     url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath d='M2.5 4.5 6 8l3.5-3.5' fill='none' stroke='%23566176' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E")
     no-repeat right 14px center;
   border: 1px solid var(--bp-line);
-  border-radius: 999px;
+  border-radius: var(--bp-radius-sm);
   font-size: 14px;
   -webkit-appearance: none;
   appearance: none;
@@ -490,7 +490,7 @@
   margin-top: 24px;
   overflow: hidden;
   background: var(--bp-line-soft);
-  border-radius: 999px;
+  border-radius: 4px;
 }
 
 .bp .bp-meter__seg {
@@ -594,6 +594,9 @@
   overflow: visible;
   border-collapse: collapse;
   font-variant-numeric: tabular-nums;
+  /* mobile-optimizations.css sets `table { white-space: nowrap }` at 768px and below, which
+     would push long item names and notes out of the stacked cards. */
+  white-space: normal;
 }
 
 .bp .bp-table thead {
@@ -684,14 +687,14 @@
   margin-top: 8px;
   overflow: hidden;
   background: var(--bp-line-soft);
-  border-radius: 999px;
+  border-radius: 3px;
 }
 
 .bp .bp-bar__fill {
   display: block;
   height: 100%;
   background: var(--bp-accent);
-  border-radius: 999px;
+  border-radius: 3px;
 }
 
 .bp .bp-bar__fill--over {
@@ -745,7 +748,7 @@
   display: inline-block;
   padding: 2px 10px;
   border: 1px solid var(--bp-line);
-  border-radius: 999px;
+  border-radius: 6px;
   color: var(--bp-muted);
   font-size: 12px;
   font-weight: 600;
@@ -850,7 +853,7 @@
   font-weight: 400;
 }
 
-.bp .bp-field :where(input, select) {
+.bp .bp-field :where(input, select, textarea) {
   width: 100%;
   min-height: 44px;
   padding: 0 14px;
@@ -870,11 +873,18 @@
   appearance: none;
 }
 
+.bp .bp-field textarea {
+  min-height: 76px;
+  padding-block: 10px;
+  line-height: 1.5;
+  resize: vertical;
+}
+
 .bp .bp-field input::placeholder {
   color: #7a8597;
 }
 
-.bp .bp-field :where(input, select):focus-visible {
+.bp .bp-field :where(input, select, textarea):focus-visible {
   border-color: var(--bp-accent);
   outline: 2px solid var(--bp-ring);
   outline-offset: 0;

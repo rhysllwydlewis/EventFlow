@@ -235,8 +235,12 @@
       Calc.normaliseItem(raw, `item_${index}`)
     );
     const fromPlan = Calc.parsePlanBudget(plan.budget);
-    // The dashboard falls back to the figure saved on this device when no plan has a budget.
-    state.total = fromPlan || Calc.parsePlanBudget(readStorage(DASHBOARD_BUDGET_KEY));
+    // The dashboard falls back to the figure saved on this device only when no plan has a budget.
+    // Every plan save writes that figure, so using it for a plan with no budget of its own while
+    // another plan has one would show the other plan's total.
+    const anyPlanHasBudget = state.plans.some(entry => Calc.parsePlanBudget(entry.budget) > 0);
+    state.total =
+      fromPlan || (anyPlanHasBudget ? 0 : Calc.parsePlanBudget(readStorage(DASHBOARD_BUDGET_KEY)));
     state.legacy = readLegacy();
   }
 
@@ -1018,13 +1022,15 @@
       openDeleteDialog(id);
     });
 
-    document.querySelectorAll('.bp-field input, .bp-field select').forEach(input => {
-      input.addEventListener('input', () => {
-        if (input.getAttribute('aria-invalid')) {
-          setFieldError(input, '');
-        }
+    document
+      .querySelectorAll('.bp-field input, .bp-field select, .bp-field textarea')
+      .forEach(input => {
+        input.addEventListener('input', () => {
+          if (input.getAttribute('aria-invalid')) {
+            setFieldError(input, '');
+          }
+        });
       });
-    });
 
     byId('filter-category').addEventListener('change', event => {
       state.filterCategory = event.target.value;
