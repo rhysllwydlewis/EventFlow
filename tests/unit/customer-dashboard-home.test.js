@@ -352,6 +352,10 @@ describe('customer dashboard home: data handling', () => {
     expect(homeJs).toMatch(/primary\.hidden = false/);
   });
 
+  test('the primary action starts hidden so it never flashes the wrong label while plans load', () => {
+    expect(html).toMatch(/id="cdh-next-action"[^>]*\bhidden\b/);
+  });
+
   test('the budget tile links to the budget page for the focus plan', () => {
     expect(homeJs).toContain('/budget?plan=${encodeURIComponent(plan.id)}');
   });

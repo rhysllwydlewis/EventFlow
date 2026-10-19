@@ -187,7 +187,8 @@
         </div>
 
         <!-- Greeting and the single most useful next action. The lede and the
-             primary button are filled in by customer-dashboard-home.js. -->
+             primary button are filled in by customer-dashboard-home.js; the button
+             stays hidden until then so it never shows the wrong label. -->
         <header class="cdh-hero">
           <div class="cdh-hero__copy">
             <h1 id="welcome-heading" class="cdh-hero__title">Welcome back</h1>
@@ -196,7 +197,7 @@
             </p>
           </div>
           <div class="cdh-hero__actions">
-            <a id="cdh-next-action" class="cdh-btn cdh-btn--primary" href="/start">Create your plan</a>
+            <a id="cdh-next-action" class="cdh-btn cdh-btn--primary" href="/start" hidden>Create your plan</a>
             <a id="cdh-secondary-action" class="cdh-btn cdh-btn--secondary" href="/suppliers">Find suppliers</a>
           </div>
         </header>
