@@ -45,12 +45,11 @@ const sanitize = (v, n = 5000) =>
   v === null || v === undefined ? null : stripHtml(String(v)).trim().slice(0, n);
 const guestListForPlan = plan =>
   Array.isArray(plan.guestList) ? plan.guestList : Array.isArray(plan.guests) ? plan.guests : [];
-const setGuestList = (plan, list) => {
-  if (Array.isArray(plan.guests)) {
-    return { guests: list };
-  }
-  return { guestList: list };
-};
+// Writes to the same field guestListForPlan reads, so a plan carrying both
+// `guestList` and a legacy `guests` array is updated where it is read from.
+const guestListField = plan =>
+  !Array.isArray(plan.guestList) && Array.isArray(plan.guests) ? 'guests' : 'guestList';
+const setGuestList = (plan, list) => ({ [guestListField(plan)]: list });
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const MAX = { name: 200, email: 200, phone: 30, text: 1000, note: 2000 };
 const MAX_IMAGE_CHARS = 1200000;
@@ -828,6 +827,10 @@ router.post(
     const seed =
       req.body.seed || req.plan.weddingWebsite.coupleNames || req.plan.name || 'our-wedding';
     const slug = await generateUniqueSlug(seed, req.plan.id);
+    if (req.body.preview === true) {
+      // A suggestion only: the live link changes when the customer saves it.
+      return res.json({ success: true, slug });
+    }
     const website = { ...req.plan.weddingWebsite, slug, updatedAt: new Date().toISOString() };
     await dbUnified.updateOne(
       'plans',
@@ -988,7 +991,7 @@ router.post(
       {
         $set: {
           tables,
-          [Array.isArray(req.plan.guests) ? 'guests' : 'guestList']: guests,
+          ...setGuestList(req.plan, guests),
           updatedAt: new Date().toISOString(),
         },
       }
@@ -1018,10 +1021,73 @@ router.post(
       {
         $set: {
           tables,
-          [Array.isArray(req.plan.guests) ? 'guests' : 'guestList']: guests,
+          ...setGuestList(req.plan, guests),
           updatedAt: new Date().toISOString(),
         },
       }
+    );
+    res.json({ success: true });
+  }
+);
+const MAX_BULK_SEATS = 500;
+router.post(
+  '/:planId/tables/seat-guests',
+  authRequired,
+  requireVerifiedUser,
+  csrfProtection,
+  writeLimiter,
+  getOwnedPlan,
+  async (req, res) => {
+    const assignments = Array.isArray(req.body.assignments) ? req.body.assignments : [];
+    if (!assignments.length || assignments.length > MAX_BULK_SEATS) {
+      return res
+        .status(400)
+        .json({ error: `Send between 1 and ${MAX_BULK_SEATS} seating assignments` });
+    }
+    const tables = getTables(req.plan);
+    const guests = [...guestListForPlan(req.plan)];
+    const now = new Date().toISOString();
+    let seated = 0;
+    // One write for the whole batch: the per-guest endpoint shares a 80-writes-per-10-minutes
+    // limiter, so seating a large guest list one request at a time would stop part-way.
+    for (const { guestId, tableId } of assignments) {
+      const table = tables.find(x => x.id === tableId);
+      const gi = guests.findIndex(g => g.id === guestId && g.rsvpStatus === 'attending');
+      if (!table || gi < 0) {
+        continue;
+      }
+      tables.forEach(tb => (tb.guestIds = (tb.guestIds || []).filter(id => id !== guestId)));
+      table.guestIds = [...(table.guestIds || []), guestId];
+      guests[gi] = { ...guests[gi], tableId: table.id, tableName: table.name, updatedAt: now };
+      seated += 1;
+    }
+    await dbUnified.updateOne(
+      'plans',
+      { id: req.plan.id },
+      { $set: { tables, ...setGuestList(req.plan, guests), updatedAt: now } }
+    );
+    res.json({ success: true, seated, skipped: assignments.length - seated });
+  }
+);
+router.post(
+  '/:planId/tables/clear-seating',
+  authRequired,
+  requireVerifiedUser,
+  csrfProtection,
+  writeLimiter,
+  getOwnedPlan,
+  async (req, res) => {
+    const now = new Date().toISOString();
+    const tables = getTables(req.plan).map(tb => ({ ...tb, guestIds: [] }));
+    const guests = guestListForPlan(req.plan).map(g =>
+      g.tableId || g.tableName || g.table
+        ? { ...g, tableId: null, tableName: null, table: null, updatedAt: now }
+        : g
+    );
+    await dbUnified.updateOne(
+      'plans',
+      { id: req.plan.id },
+      { $set: { tables, ...setGuestList(req.plan, guests), updatedAt: now } }
     );
     res.json({ success: true });
   }
