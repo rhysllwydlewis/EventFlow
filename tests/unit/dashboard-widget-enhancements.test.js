@@ -244,23 +244,16 @@ describe('Dashboard HTML - Customer', () => {
     'utf8'
   );
 
-  it('includes search input field', () => {
-    expect(dashboardCustomerHtml).toContain('id="widget-search-input"');
-    expect(dashboardCustomerHtml).toContain('placeholder="Search conversations..."');
+  it('mounts MessengerWidgetV4 in the Messages card', () => {
+    expect(dashboardCustomerHtml).toContain('id="messenger-dashboard-widget"');
+    expect(dashboardCustomerHtml).toContain('Open inbox');
   });
 
-  it('includes filter dropdown', () => {
-    expect(dashboardCustomerHtml).toContain('id="widget-filter-select"');
-    expect(dashboardCustomerHtml).toContain('<option value="all">All</option>');
-    expect(dashboardCustomerHtml).toContain('<option value="unread">Unread</option>');
-    expect(dashboardCustomerHtml).toContain('<option value="starred">Starred</option>');
-  });
-
-  it('search and filter exist in conversations card', () => {
-    // Just verify both exist in the file - they're in the right place
-    expect(dashboardCustomerHtml).toContain('widget-search-input');
-    expect(dashboardCustomerHtml).toContain('widget-filter-select');
-    expect(dashboardCustomerHtml).toContain('View Inbox');
+  it('does not ship search/filter controls the widget never read', () => {
+    // MessengerWidgetV4 defaults to the "-supplier" control ids, so the customer
+    // page's #widget-search-input / #widget-filter-select were never wired up.
+    expect(dashboardCustomerHtml).not.toContain('widget-search-input');
+    expect(dashboardCustomerHtml).not.toContain('widget-filter-select');
   });
 });
 

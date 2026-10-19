@@ -6,8 +6,8 @@
  *  2. POST /api/packages/bulk endpoint structure and validation
  *  3. dashboard-customer-init.js: getCsrfToken checks window.__CSRF_TOKEN__ first
  *  4. dashboard-customer-init.js: budget PATCH checks response.ok
- *  5. dashboard-customer-init.js: populateHeroStats unread listener guard
- *  6. dashboard-customer-module.js: bulk fetch replaces N+1 pattern
+ *  5. (removed) the hero unread prompt no longer exists on the customer dashboard
+ *  6. customer-dashboard-home.js: bulk fetch replaces N+1 pattern
  *  7. dashboard-logger.js: console.log is gated behind window.__EF_DEBUG__
  *  8. dashboard-customer.html contains csrf-token meta tag
  */
@@ -29,8 +29,8 @@ const customerInitSrc = fs.readFileSync(
   path.join(__dirname, '../../public/assets/js/pages/dashboard-customer-init.js'),
   'utf8'
 );
-const customerModuleSrc = fs.readFileSync(
-  path.join(__dirname, '../../public/assets/js/pages/dashboard-customer-module.js'),
+const customerHomeSrc = fs.readFileSync(
+  path.join(__dirname, '../../public/assets/js/pages/customer-dashboard-home.js'),
   'utf8'
 );
 const dashboardLoggerSrc = fs.readFileSync(
@@ -189,49 +189,37 @@ describe('dashboard-customer-init.js — budget PATCH response handling', () => 
 });
 
 // ---------------------------------------------------------------------------
-// 5. dashboard-customer-init.js — unread count listener guard
+// 6. customer-dashboard-home.js — bulk fetch replaces N+1 pattern
 // ---------------------------------------------------------------------------
-describe('dashboard-customer-init.js — unread count listener guard', () => {
-  it('uses __heroUnreadListenerAdded guard to prevent duplicate listeners', () => {
-    expect(customerInitSrc).toContain('__heroUnreadListenerAdded');
-  });
-
-  it('sets guard flag before adding listener', () => {
-    const guardIdx = customerInitSrc.indexOf('window.__heroUnreadListenerAdded = true');
-    const listenerIdx = customerInitSrc.indexOf(
-      "window.addEventListener('unreadCountUpdated'",
-      guardIdx
-    );
-    expect(guardIdx).not.toBe(-1);
-    expect(listenerIdx).toBeGreaterThan(guardIdx);
-  });
-});
-
-// ---------------------------------------------------------------------------
-// 6. dashboard-customer-module.js — bulk fetch replaces N+1 pattern
-// ---------------------------------------------------------------------------
-describe('dashboard-customer-module.js — bulk package fetch', () => {
+describe('customer-dashboard-home.js — bulk package fetch', () => {
   it('uses /api/packages/bulk endpoint instead of individual fetches', () => {
-    expect(customerModuleSrc).toContain('/api/packages/bulk');
+    expect(customerHomeSrc).toContain('/api/packages/bulk');
   });
 
   it('deduplicates package IDs with Set before fetching', () => {
-    const calcStart = customerModuleSrc.indexOf('async function calculateRealBudget');
-    const calcEnd = customerModuleSrc.indexOf('\nasync function ', calcStart + 1);
-    const calcBody = customerModuleSrc.substring(
-      calcStart,
-      calcEnd === -1 ? calcStart + 3000 : calcEnd
-    );
+    const calcStart = customerHomeSrc.indexOf('async function calculateSpent');
+    const calcBody = customerHomeSrc.substring(calcStart, calcStart + 2500);
     expect(calcBody).toContain('new Set(');
   });
 
   it('does not use individual per-package fetch loop', () => {
     // The old N+1 pattern used /api/packages/${pkgId} for each package
-    expect(customerModuleSrc).not.toContain('/api/packages/${encodeURIComponent(pkgId)}');
+    expect(customerHomeSrc).not.toContain('/api/packages/${');
   });
 
-  it('handles bulk fetch errors gracefully by defaulting to empty array', () => {
-    expect(customerModuleSrc).toContain('packages: []');
+  it('batches requests in chunks rather than one request per package', () => {
+    expect(customerHomeSrc).toContain('BULK_CHUNK');
+    expect(customerHomeSrc).toContain('chunks.map(');
+  });
+
+  it('never invents a budget: with no figure the total is 0, not a default', () => {
+    expect(customerHomeSrc).not.toMatch(/DEFAULT_TOTAL_BUDGET|DEFAULT_GUEST_COUNT/);
+    expect(customerHomeSrc).toContain('function totalBudgetFor(');
+  });
+
+  it('only falls back to the stored budget when no plan has one', () => {
+    const fn = customerHomeSrc.substring(customerHomeSrc.indexOf('function totalBudgetFor('));
+    expect(fn.substring(0, 700)).toContain('anyPlanBudget');
   });
 });
 
