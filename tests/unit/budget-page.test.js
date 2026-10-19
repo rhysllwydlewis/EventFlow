@@ -208,6 +208,11 @@ describe('budget page styling invariants', () => {
     expect(css).not.toMatch(/border-radius:\s*(999|9999)/);
   });
 
+  test('links back to the dashboard and cancels the phone body gutter so the page is full width', () => {
+    expect(mainHtml).toContain('href="/dashboard/customer"');
+    expect(css).toMatch(/@media \(max-width: 600px\) \{[^}]*\.bp \{[^}]*margin-left: -10px;/);
+  });
+
   test('the export menu opens rightwards on phones, where Export sits at the left edge', () => {
     const phone = css.slice(css.indexOf('@media (max-width: 720px)'));
     expect(phone).toMatch(/\.bp \.bp-menu__panel \{[^}]*right: auto;[^}]*left: 0;/);

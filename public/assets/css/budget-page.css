@@ -109,6 +109,22 @@
   margin-bottom: 28px;
 }
 
+.bp .bp-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-bottom: 4px;
+  padding-block: 6px;
+  color: var(--bp-muted);
+  font-size: 13px;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.bp .bp-back:hover {
+  color: var(--bp-ink);
+}
+
 .bp .bp-eyebrow {
   margin-bottom: 4px;
   color: var(--bp-accent-deep);
@@ -1026,9 +1042,9 @@
     padding: 24px 0 96px;
   }
 
-  /* Signed-in pages already give <body> a 10px side gutter on phones. */
+  /* The 10px body gutter is cancelled on .bp below 600px, so this is the whole side margin. */
   .bp .bp__inner {
-    width: calc(100% - 12px);
+    width: calc(100% - 32px);
   }
 
   .bp .bp-title {
@@ -1283,6 +1299,14 @@
     bottom: 88px;
     left: 16px;
     max-width: none;
+  }
+}
+
+@media (max-width: 600px) {
+  /* styles.css gives body a 10px gutter on phones; cancel it so the page background is full width. */
+  .bp {
+    margin-right: -10px;
+    margin-left: -10px;
   }
 }
 
