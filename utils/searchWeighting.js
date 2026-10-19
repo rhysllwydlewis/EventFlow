@@ -74,8 +74,6 @@ const RANKING_CONFIG = {
     tagMatchBonus: 5,
     // Budget proximity: points awarded when price tier is within 1 level of preference
     budgetProximityBonus: 10,
-    // Points awarded when a supplier's category is one the customer's plan has not covered yet
-    neededCategoryBonus: 25,
     // Most suppliers of one category shown before a feed is topped up with more of the same,
     // so five suggestions are not five caterers
     maxPerCategory: 2,

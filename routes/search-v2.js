@@ -23,6 +23,9 @@ const { VALID_CATEGORIES } = require('../models/Supplier');
 const searchAnalytics = require('../utils/searchAnalytics');
 const validator = require('validator');
 
+/** Supplier categories by lower-case name, for reading the `needed` query parameter. */
+const KNOWN_CATEGORIES = new Map(VALID_CATEGORIES.map(c => [c.toLowerCase(), c]));
+
 // Generate session ID for anonymous users
 function getSessionId(req) {
   return req.sessionID || req.cookies?.sessionId || `anon_${Date.now()}_${crypto.randomUUID()}`;
@@ -766,7 +769,11 @@ router.get('/discovery', searchCacheMiddleware({ fixedTtl: 600 }), async (req, r
  *   eventType  - Event type hint (e.g. "wedding", "corporate")
  *   location   - Location preference hint
  *   budget     - Price-tier preference (1–4)
+ *   needed     - Comma-separated supplier categories the customer's plan has not covered yet
+ *                (e.g. "Photography,Florist"); suppliers in them rank higher. Unknown names are ignored.
  *   limit      - Max suppliers to return (default 12, max 24)
+ *
+ * The response depends on who is signed in, so it is private and never stored in the shared cache.
  */
 router.get('/personalized', async (req, res) => {
   try {
@@ -782,12 +789,14 @@ router.get('/personalized', async (req, res) => {
 
     // `needed` is a comma-separated list of supplier categories the plan has not covered yet.
     // Only real categories are used, whatever else is sent.
-    const knownCategories = new Map(VALID_CATEGORIES.map(c => [c.toLowerCase(), c]));
-    const neededCategories = String(req.query.needed || '')
-      .split(',')
-      .map(c => knownCategories.get(c.trim().toLowerCase()))
-      .filter(Boolean)
-      .slice(0, VALID_CATEGORIES.length);
+    const neededCategories = [
+      ...new Set(
+        String(req.query.needed || '')
+          .split(',')
+          .map(c => KNOWN_CATEGORIES.get(c.trim().toLowerCase()))
+          .filter(Boolean)
+      ),
+    ];
 
     const context = {
       eventType: req.query.eventType ? String(req.query.eventType).trim().slice(0, 100) : undefined,
@@ -801,7 +810,7 @@ router.get('/personalized', async (req, res) => {
     // The feed depends on who is signed in (their search history), so it must not sit in the shared
     // search cache or in a shared HTTP cache: one customer's feed would be served to the next.
     res.set('Cache-Control', 'private, max-age=60');
-    res.set('Vary', 'Cookie');
+    res.vary('Cookie');
     return res.json({
       success: true,
       data: addPublicProfilePaths(feed),

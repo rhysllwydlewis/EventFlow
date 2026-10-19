@@ -1490,7 +1490,6 @@ async function getPersonalizedFeed(userId, context = {}, options = {}) {
     locationMatchBonus,
     tagMatchBonus,
     budgetProximityBonus,
-    neededCategoryBonus,
     maxPerCategory,
   } = RANKING_CONFIG.personalization;
 
@@ -1528,16 +1527,15 @@ async function getPersonalizedFeed(userId, context = {}, options = {}) {
     }
 
     const needed = Boolean(s.category) && neededCategories.has(String(s.category).toLowerCase());
-    if (needed) {
-      personalizationScore += neededCategoryBonus;
-    }
 
     const personalized = matchReasons.length > 0;
     return { supplier: s, score: personalizationScore, personalized, matchReasons, needed };
   });
 
-  // Sort by personalization score descending
-  scored.sort((a, b) => b.score - a.score);
+  // Suppliers in a category the plan still needs come first, whatever their quality score (a
+  // strong venue must not push out the photographer the plan has no one for); within each group,
+  // by personalization score descending.
+  scored.sort((a, b) => Number(b.needed) - Number(a.needed) || b.score - a.score);
 
   // Take the best few of each category first so the feed is not five of the same kind, then top
   // up with more of the strongest categories if there are not enough different ones.

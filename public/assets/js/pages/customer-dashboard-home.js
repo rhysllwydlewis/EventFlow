@@ -649,22 +649,26 @@
    * venues. Attire only counts for a wedding.
    */
   function neededSupplierCategories(plan) {
-    const covered = new Set(
-      (Array.isArray(plan?.budgetItems) ? plan.budgetItems : []).map(item =>
-        String(item?.category || '')
-          .trim()
-          .toLowerCase()
-      )
+    const categories = (Array.isArray(plan?.budgetItems) ? plan.budgetItems : []).map(item =>
+      String(item?.category || '')
+        .trim()
+        .toLowerCase()
     );
-    const isWedding = /wedding/i.test(`${plan?.eventType || ''} ${plan?.type || ''}`);
+    // A line counts when its category contains the name, so "Venue hire" covers Venue and
+    // "Photography & video" covers Photography.
+    const hasLineFor = name => categories.some(category => category && category.includes(name));
+    // The same test the guest list uses for "is this a wedding".
+    const isWedding =
+      Boolean(plan?.weddingWebsite) ||
+      /wedding/i.test(`${plan?.eventType || ''} ${plan?.name || plan?.eventName || ''}`);
     return Object.entries(BUDGET_TO_SUPPLIER_CATEGORIES)
       .filter(([budgetCategory, supplierCategories]) => {
         if (budgetCategory === 'attire' && !isWedding) {
           return false;
         }
         return !(
-          covered.has(budgetCategory) ||
-          supplierCategories.some(name => covered.has(name.toLowerCase()))
+          hasLineFor(budgetCategory) ||
+          supplierCategories.some(name => hasLineFor(name.toLowerCase()))
         );
       })
       .flatMap(([, supplierCategories]) => supplierCategories);

@@ -171,9 +171,10 @@
             const location = escapeHtml(
               typeof supplier.location === 'string' ? supplier.location : ''
             );
+            // The helper only returns a validated /supplier/<name>--<token> path, else the directory.
             const href = window.EventFlowSupplierLink
               ? window.EventFlowSupplierLink.supplierProfileHref(supplier)
-              : supplier.publicProfilePath || '/suppliers';
+              : '/suppliers';
             const ratingText = supplier.averageRating
               ? `${Number(supplier.averageRating).toFixed(1)} rating (${supplier.reviewCount || 0} reviews)`
               : '';

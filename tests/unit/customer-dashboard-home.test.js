@@ -475,6 +475,34 @@ describe('what the suggestions panel is told about the plan', () => {
     expect(needed({ eventType: 'corporate', budgetItems: [] })).not.toContain('Bridalwear');
   });
 
+  test('a wedding is recognised the way the guest list recognises one', () => {
+    expect(needed({ name: 'Our Wedding', budgetItems: [] })).toContain('Bridalwear');
+    expect(needed({ eventName: 'Sam and Alex wedding', budgetItems: [] })).toContain('Bridalwear');
+    expect(needed({ weddingWebsite: { slug: 'sam-alex' }, budgetItems: [] })).toContain(
+      'Bridalwear'
+    );
+    expect(needed({ name: 'Office party', budgetItems: [] })).not.toContain('Bridalwear');
+  });
+
+  test('a budget line you wrote yourself still counts when its category names the thing', () => {
+    const list = needed({
+      eventType: 'party',
+      budgetItems: lines('Venue hire', 'Photography & video', 'Catering and drinks', 'Decoration'),
+    });
+    expect(list).not.toEqual(expect.arrayContaining(['Venues']));
+    expect(list).not.toEqual(expect.arrayContaining(['Photography']));
+    expect(list).not.toContain('Videography');
+    expect(list).not.toContain('Catering');
+    expect(list).not.toContain('Decor');
+    expect(list).not.toContain('Florist');
+    expect(list).toEqual(expect.arrayContaining(['Entertainment', 'Transport']));
+  });
+
+  test('a blank or unrelated category covers nothing', () => {
+    const list = needed({ eventType: 'party', budgetItems: lines('', '   ', 'Other', 'Misc') });
+    expect(list).toEqual(expect.arrayContaining(['Venues', 'Catering', 'Photography']));
+  });
+
   test('a plan that has covered everything needs nothing', () => {
     const all = lines('Venue', 'Catering', 'Photography', 'Entertainment', 'Decor', 'Transport');
     expect(needed({ eventType: 'party', budgetItems: all })).toEqual([]);
@@ -563,6 +591,13 @@ describe('the account-type notice', () => {
     expect(phone).not.toMatch(/grid-template-columns: 1fr 1fr;/);
   });
 
+  test('the other banner on the page keeps its text filling the row', () => {
+    // dashboard-customer-init.js builds a .cdh-banner with a .cdh-banner__text; it shares no rule
+    // with the notice, so the notice's own rules must not stand in for it.
+    expect(rule('.cdh-page .cdh-banner__text')).toMatch(/flex: 1 1 auto;/);
+    expect(rule('.cdh-page .cdh-banner__text')).toMatch(/min-width: 0;/);
+  });
+
   test('the text scales with the notice, between 12px and 14px, on one line', () => {
     const text = rule('.cdh-page .cdh-notice__text');
     expect(text).toMatch(/white-space: nowrap;/);
@@ -578,6 +613,17 @@ describe('the account-type notice', () => {
     expect(phone).toMatch(/\.cdh-notice__inner \{\s*flex-direction: column;/);
     expect(phone).toMatch(
       /\.cdh-notice__actions \{\s*display: grid;\s*grid-template-columns: 1fr auto;/
+    );
+  });
+
+  test('browsers without container queries get the same three steps from the screen width', () => {
+    const fallback = css.slice(css.indexOf('@supports not (container-type: inline-size)'));
+    expect(fallback).toMatch(
+      /@media \(max-width: 760px\) \{\s*\.cdh-page \.cdh-notice__more \{\s*display: none;/
+    );
+    expect(fallback).toMatch(/@media \(max-width: 540px\) \{[^@]*flex-direction: column;/);
+    expect(fallback).toMatch(
+      /@media \(max-width: 345px\) \{\s*\.cdh-page \.cdh-notice__cta-more \{\s*display: none;/
     );
   });
 

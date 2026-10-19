@@ -40,7 +40,9 @@ async function main() {
   window.console.error = () => {};
 
   window.eval(script('utils/supplier-avatar.js'));
-  window.eval(script('utils/supplier-link.js'));
+  if (!scenario.withoutLinkHelper) {
+    window.eval(script('utils/supplier-link.js'));
+  }
   window.eval(script('recommendations-widget.js'));
   await window.RecommendationsWidget.init();
   for (let i = 0; i < 4; i += 1) {

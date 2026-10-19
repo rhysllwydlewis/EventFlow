@@ -75,6 +75,54 @@ describe('the feed follows what the plan still needs', () => {
     expect(feed.results[0].rankingReason).toBe('Still to find: Photography');
   });
 
+  test('a category the plan still needs beats a stronger supplier in one it already has', async () => {
+    dbUnified.read.mockImplementation(async collection =>
+      collection === 'suppliers'
+        ? [
+            supplier('venue-star', 'Star Venue', 'Venues', 'Cardiff', {
+              averageRating: 5,
+              reviewCount: 200,
+              verified: true,
+              featured: true,
+            }),
+            supplier('venue-star-2', 'Second Star Venue', 'Venues', 'Cardiff', {
+              averageRating: 5,
+              reviewCount: 150,
+              verified: true,
+            }),
+            supplier('photo-new', 'Brand New Photography', 'Photography', 'Leeds'),
+          ]
+        : []
+    );
+    const feed = await feedFor({ neededCategories: ['Photography'], location: 'Cardiff' });
+    expect(feed.results[0].id).toBe('photo-new');
+    expect(feed.results[0].rankingReason).toBe('Still to find: Photography');
+    // The strong venues are still there, after it, to fill the feed.
+    expect(feed.results.map(r => r.id)).toEqual(['photo-new', 'venue-star', 'venue-star-2']);
+  });
+
+  test('within the categories still needed, the better supplier comes first', async () => {
+    dbUnified.read.mockImplementation(async collection =>
+      collection === 'suppliers'
+        ? [
+            supplier('photo-ok', 'Okay Photography', 'Photography', 'Leeds', { averageRating: 3 }),
+            supplier('photo-great', 'Great Photography', 'Photography', 'Leeds', {
+              averageRating: 5,
+              reviewCount: 40,
+            }),
+          ]
+        : []
+    );
+    const feed = await feedFor({ neededCategories: ['Photography'] });
+    expect(feed.results.map(r => r.id)).toEqual(['photo-great', 'photo-ok']);
+  });
+
+  test('with nothing needed the order is the plain quality and location order', async () => {
+    const withNeed = await feedFor({ location: 'Cardiff' }, { limit: 6 });
+    const without = await feedFor({ location: 'Cardiff', neededCategories: [] }, { limit: 6 });
+    expect(without.results.map(r => r.id)).toEqual(withNeed.results.map(r => r.id));
+  });
+
   test('category names are matched without regard to case', async () => {
     const feed = await feedFor({ neededCategories: ['photography'] });
     expect(feed.results[0].id).toBe('p1');
@@ -185,6 +233,24 @@ describe('GET /api/v2/search/personalized', () => {
     expect(res.headers['cache-control']).not.toMatch(/public/);
     expect(res.headers.vary).toMatch(/Cookie/i);
     expect(res.headers['x-cache']).toBeUndefined();
+  });
+
+  test('keeps a Vary header set earlier (for example by CORS) and adds Cookie to it', async () => {
+    const withCors = express();
+    withCors.use((_req, res, next) => {
+      res.vary('Origin');
+      next();
+    });
+    withCors.use('/api/v2/search', router);
+    const res = await request(withCors).get('/api/v2/search/personalized').query({ limit: 2 });
+    expect(res.headers.vary).toMatch(/Origin/);
+    expect(res.headers.vary).toMatch(/Cookie/);
+  });
+
+  test('a category repeated in `needed` counts once', async () => {
+    const res = await get({ limit: 6, needed: 'Photography,photography,PHOTOGRAPHY' });
+    expect(res.body.data.results.filter(r => r.id === 'p1')).toHaveLength(1);
+    expect(res.body.data.results[0].id).toBe('p1');
   });
 
   test("one customer's search history does not shape another customer's feed", async () => {

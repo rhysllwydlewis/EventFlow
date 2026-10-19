@@ -64,6 +64,14 @@ describe('where a card goes', () => {
     expect(cards[0].href).toBe('/suppliers');
   });
 
+  test('without the link helper a card still never uses the unvalidated address from the response', () => {
+    const { cards } = run({
+      results: [supplier({ publicProfilePath: '" onmouseover="alert(1)' })],
+      withoutLinkHelper: true,
+    });
+    expect(cards[0].href).toBe('/suppliers');
+  });
+
   test('a link that is not a supplier profile path is not followed', () => {
     const { cards } = run({
       results: [supplier({ publicProfilePath: 'javascript:alert(1)' })],
