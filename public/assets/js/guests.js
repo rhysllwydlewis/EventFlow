@@ -818,6 +818,14 @@
         partyError.hidden = true;
         partyInput.removeAttribute('aria-invalid');
       });
+      // Enter submits with the form's first submit button, which is "Save and add another" when
+      // adding. Send it to the primary button instead.
+      form.addEventListener('keydown', event => {
+        if (event.key === 'Enter' && event.target.tagName === 'INPUT') {
+          event.preventDefault();
+          form.requestSubmit(form.querySelector('[type="submit"][value="done"]'));
+        }
+      });
       form.addEventListener('submit', async event => {
         event.preventDefault();
         const again = event.submitter?.value === 'another';

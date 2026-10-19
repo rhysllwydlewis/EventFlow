@@ -366,6 +366,13 @@ describe('page invariants', () => {
     expect(js).toMatch(/party > MAX_PARTY/);
   });
 
+  test('Enter in a field submits with the primary button, not "Save and add another"', () => {
+    const js = fs.readFileSync(path.join(PUBLIC, 'assets/js/guests.js'), 'utf8');
+    expect(js).toContain(
+      'form.requestSubmit(form.querySelector(\'[type="submit"][value="done"]\'))'
+    );
+  });
+
   test('respects reduced motion', () => {
     expect(css).toMatch(/prefers-reduced-motion:\s*reduce/);
   });
