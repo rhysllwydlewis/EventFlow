@@ -38,8 +38,11 @@ a dialog stays open with its message until the server accepts the change.
 The list is saved whole, so every save also sends `baseVersion` (the plan's `budgetUpdatedAt`).
 If the saved list has changed since the page loaded (a second tab or device), the server answers
 409 and the dialog shows "This budget was changed somewhere else. Reload to see the latest."
-Clients that send no `baseVersion` are not checked. The server also caps a budget at 500 items and
-each amount at £1,000,000,000.
+The version is part of the database update itself, so two saves that both read the same version
+cannot both succeed: the second matches nothing and also gets the 409 (with the latest list).
+Clients that send no `baseVersion` are not checked. The server caps a budget at 500 items (a list
+that was already longer can still be edited or shortened, just not made longer) and each amount at
+£1,000,000,000.
 
 Which plan: `?plan=<id>`, else the last plan picked here, else the first plan with a budget, else
 the first plan. A plan switcher appears only when there is more than one.

@@ -64,6 +64,38 @@ describe('POST /api/me/plans/:id/budget', () => {
     expect(res.status).toBe(400);
   });
 
+  test('a list that was already over the cap can still be edited and shrunk, not grown', async () => {
+    plan.budgetItems = Array.from({ length: 520 }, (_, i) => ({ id: `b${i}`, item: `Item ${i}` }));
+    const same = await save({ budgetItems: plan.budgetItems });
+    expect(same.status).toBe(200);
+    const shrunk = await save({ budgetItems: plan.budgetItems.slice(0, 519) });
+    expect(shrunk.status).toBe(200);
+    expect(plan.budgetItems).toHaveLength(519);
+    const grown = await save({
+      budgetItems: [...plan.budgetItems, { item: 'one more' }, { item: 'and another' }],
+    });
+    expect(grown.status).toBe(400);
+  });
+
+  test('two saves from the same version cannot both win, even when they overlap', async () => {
+    const [first, second] = await Promise.all([
+      save({ budgetItems: [{ item: 'From tab one' }], baseVersion: '' }),
+      save({ budgetItems: [{ item: 'From tab two' }], baseVersion: '' }),
+    ]);
+    expect([first.status, second.status].sort()).toEqual([200, 409]);
+    const winner = first.status === 200 ? first : second;
+    expect(plan.budgetItems[0].item).toBe(winner.body.budgetItems[0].item);
+    const loser = first.status === 409 ? first : second;
+    expect(loser.body.budgetItems[0].item).toBe(plan.budgetItems[0].item);
+  });
+
+  test('a version that is not a string cannot be used to match other plans', async () => {
+    await save({ budgetItems: [{ item: 'Venue' }], baseVersion: '' });
+    const res = await save({ budgetItems: [{ item: 'Hacked' }], baseVersion: { $ne: '' } });
+    expect(res.status).toBe(409);
+    expect(plan.budgetItems[0].item).toBe('Venue');
+  });
+
   test('a save made from the current version succeeds and moves the version on', async () => {
     const first = await save({
       budgetItems: [{ item: 'Venue', estimated: 1000 }],
