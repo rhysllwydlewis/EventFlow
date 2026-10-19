@@ -469,14 +469,23 @@ describe('the app, rendered into guests.html (jsdom)', () => {
     expect(result.writes.map(write => write.body)).toEqual([{ name: 'Jane Jones' }]);
   });
 
-  test('a changed note over 200 characters is refused in the form, with the field flagged', () => {
+  test('a changed note over 1000 characters is refused in the form, with the field flagged', () => {
     const result = run({
       guests: [{ id: 'a', name: 'Jane Smith', rsvpStatus: 'pending', notes: 'n'.repeat(300) }],
-      submitEdit: { notes: 'm'.repeat(250) },
+      submitEdit: { notes: 'm'.repeat(1001) },
     });
     expect(result.writes).toHaveLength(0);
-    expect(result.error).toBe('Notes can be up to 200 characters. These are 250.');
+    expect(result.error).toBe('Notes can be up to 1000 characters. These are 1001.');
     expect(result.invalid).toEqual(['notes']);
+  });
+
+  test('a note between 200 and 1000 characters is sent as typed, not cut off', () => {
+    const result = run({
+      guests: [{ id: 'a', name: 'Jane Smith', rsvpStatus: 'pending', notes: 'short' }],
+      submitEdit: { notes: 'm'.repeat(900) },
+    });
+    expect(result.error).toBe('');
+    expect(result.writes.map(write => write.body)).toEqual([{ notes: 'm'.repeat(900) }]);
   });
 
   test('a reply change that clears a typed table says so', () => {

@@ -28,13 +28,12 @@
     ['status', 'Reply status'],
   ];
   const PAGE_SIZE = 25;
-  // The write limiter allows 80 writes per 10 minutes, and a CSV import is one write per guest.
+  // An import is one bulk request, and the server takes up to 500 guests in it.
   const MAX_IMPORT = 500;
   const MAX_PARTY = 20;
-  // PATCH keeps only the first 200 characters of notes on the server as it stands (POST keeps
-  // 1000), so a longer edit would be cut off silently. This is the one place to raise when the
-  // server's PATCH limit goes up; until then it is the safe limit for old and new servers alike.
-  const MAX_NOTES = 200;
+  // Notes are kept to 1000 characters on create, edit and import alike. This mirrors that limit
+  // (routes/guests.js) so a longer edit is reported in the form instead of being cut off.
+  const MAX_NOTES = 1000;
   const MAX_IMPORT_BYTES = 1048576;
   const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/u;
   // The last plan picked on the guest list or the budget page, shared so they stay on one event.

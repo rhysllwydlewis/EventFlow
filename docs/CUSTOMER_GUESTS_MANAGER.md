@@ -73,12 +73,12 @@ and edit.
   list. Two different people with the same name and no email look identical and count as one. The
   500 limit counts the guests that would be sent, so guests left out as duplicates do not count
   towards it.
-- Editing sends only the fields that changed. `PATCH` keeps only the first 200 characters of notes
-  (500 for dietary, 100 for table), so re-sending an untouched long note would silently cut it.
-  Saving with no changes sends nothing. Notes over 200 characters in an edit are refused with a
-  message; `MAX_NOTES` in `guests.js` is the one value to raise when the server's limit goes up. Only
-  a changed email is checked for a valid address. A reply change away from "Attending" frees the
-  guest's seat (or clears their typed table) on the server, and the toast says so.
+- Editing sends only the fields that changed, so an untouched field is never re-sent and cannot be
+  shortened. `PATCH` keeps notes up to 1000 characters (the same as create and import), dietary
+  needs up to 500 and the table up to 100. Saving with no changes sends nothing. Notes over 1000
+  characters in an edit are refused with a message; `MAX_NOTES` in `guests.js` mirrors the server's
+  limit. Only a changed email is checked for a valid address. A reply change away from "Attending"
+  frees the guest's seat (or clears their typed table) on the server, and the toast says so.
 - All requests use `limit`-free endpoints, so the `/api` pagination cap does not apply.
 - Adding, importing, editing and removing guests are safe to do from two tabs at once. Each of
   these routes reads the whole list, changes it and writes it back, and the write names the plan's
