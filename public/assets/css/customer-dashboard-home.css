@@ -308,7 +308,8 @@
 /* The site-wide touch-target rule gives every <main> button a 44px box. Text links keep that
    hit area but pull it out of the layout with a negative margin so rows keep their rhythm. */
 .cdh-page .cdh-link {
-  display: inline;
+  display: inline-flex;
+  align-items: center;
   margin-block: -12px;
   padding: 0;
   border: 0;
