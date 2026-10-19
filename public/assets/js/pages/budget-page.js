@@ -45,13 +45,16 @@
     saving: false,
   };
 
-  const $ = id => document.getElementById(id);
+  /** Shorthand for document.getElementById. */
+  const byId = id => document.getElementById(id);
+  /** Formats an amount as GBP. */
   const money = Calc.formatGBP;
 
   /* ------------------------------------------------------------------ *
    * Small helpers
    * ------------------------------------------------------------------ */
 
+  /** Escapes text so it can be placed inside HTML markup or an attribute value. */
   function esc(value) {
     return String(value ?? '')
       .replace(/&/g, '&amp;')
@@ -61,6 +64,7 @@
       .replace(/'/g, '&#39;');
   }
 
+  /** Reads a localStorage value, or null when storage is blocked or empty. */
   function readStorage(key) {
     try {
       return window.localStorage.getItem(key);
@@ -69,6 +73,7 @@
     }
   }
 
+  /** Writes a localStorage value; returns false when storage is blocked or full. */
   function writeStorage(key, value) {
     try {
       window.localStorage.setItem(key, value);
@@ -78,6 +83,7 @@
     }
   }
 
+  /** Reads and parses a JSON localStorage value, or null when missing or broken. */
   function readJson(key) {
     const raw = readStorage(key);
     if (!raw) {
@@ -90,16 +96,18 @@
     }
   }
 
+  /** A new unique id for a budget item created on this page. */
   function newId() {
     return `b_${Date.now().toString(36)}${Math.random().toString(36).slice(2, 7)}`;
   }
 
+  /** The CSRF token from the page, its meta tag or the cookie, or an empty string. */
   function getCsrfToken() {
     if (window.__CSRF_TOKEN__) {
       return window.__CSRF_TOKEN__;
     }
     const meta = document.querySelector('meta[name="csrf-token"]');
-    if (meta && meta.getAttribute('content')) {
+    if (meta?.getAttribute('content')) {
       return meta.getAttribute('content');
     }
     const match = document.cookie.match(/(?:^|;\s*)(?:csrf|csrfToken)=([^;]+)/);
@@ -113,6 +121,7 @@
     return '';
   }
 
+  /** Returns the CSRF token, fetching one from the server when the page has none. */
   async function ensureCsrfToken() {
     const existing = getCsrfToken();
     if (existing) {
@@ -171,8 +180,10 @@
     return json;
   }
 
+  /** URL of the plan endpoint for the given plan, with an optional suffix such as "/budget". */
   const planUrl = (plan, suffix = '') => `/api/me/plans/${encodeURIComponent(plan.id)}${suffix}`;
 
+  /** Formats a date as e.g. "19 Jun 2027", or an empty string when it is missing or invalid. */
   function formatDate(value) {
     const date = new Date(value);
     if (!value || Number.isNaN(date.getTime())) {
@@ -181,29 +192,34 @@
     return date.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
   }
 
+  /** Category names for dropdowns: the defaults plus any custom ones in use, "Other" last. */
   function categoryList() {
     const extras = [
       ...new Set(
-        state.items.map(i => i.category).filter(c => c && !Calc.DEFAULT_CATEGORIES.includes(c))
+        state.items
+          .map(item => item.category)
+          .filter(name => name && !Calc.DEFAULT_CATEGORIES.includes(name))
       ),
-    ].sort((a, b) => a.localeCompare(b, 'en-GB'));
-    return [...Calc.DEFAULT_CATEGORIES.filter(c => c !== 'Other'), ...extras, 'Other'];
+    ].sort((first, second) => first.localeCompare(second, 'en-GB'));
+    return [...Calc.DEFAULT_CATEGORIES.filter(name => name !== 'Other'), ...extras, 'Other'];
   }
 
   /* ------------------------------------------------------------------ *
    * Loading and saving
    * ------------------------------------------------------------------ */
 
+  /** Chooses which plan to show: the ?plan= id, the last one picked, the first with a budget, else the first. */
   function pickPlan(plans) {
     const wanted =
       new URLSearchParams(window.location.search).get('plan') || readStorage(PLAN_PICK_KEY);
     return (
-      plans.find(p => p.id === wanted) ||
-      plans.find(p => Calc.parsePlanBudget(p.budget) > 0) ||
+      plans.find(plan => plan.id === wanted) ||
+      plans.find(plan => Calc.parsePlanBudget(plan.budget) > 0) ||
       plans[0]
     );
   }
 
+  /** Reads the old page's device data, converted to budget lines, or null when there is none to import. */
   function readLegacy() {
     if (readStorage(IMPORTED_KEY)) {
       return null;
@@ -212,10 +228,11 @@
     return converted.items.length || converted.total > 0 ? converted : null;
   }
 
+  /** Loads a plan's total and budget items into the page state. */
   function applyPlan(plan) {
     state.plan = plan;
-    state.items = (Array.isArray(plan.budgetItems) ? plan.budgetItems : []).map((raw, i) =>
-      Calc.normaliseItem(raw, `item_${i}`)
+    state.items = (Array.isArray(plan.budgetItems) ? plan.budgetItems : []).map((raw, index) =>
+      Calc.normaliseItem(raw, `item_${index}`)
     );
     const fromPlan = Calc.parsePlanBudget(plan.budget);
     // The dashboard falls back to the figure saved on this device when no plan has a budget.
@@ -223,11 +240,12 @@
     state.legacy = readLegacy();
   }
 
+  /** Loads the device-only budget (or converted old data) into the page state for customers with no plan. */
   function applyDevice() {
     state.plan = null;
     const stored = readJson(LOCAL_KEY);
     if (stored && Array.isArray(stored.items)) {
-      state.items = stored.items.map((raw, i) => Calc.normaliseItem(raw, `item_${i}`));
+      state.items = stored.items.map((raw, index) => Calc.normaliseItem(raw, `item_${index}`));
       state.total = Calc.toAmount(stored.total);
     } else {
       const converted = Calc.fromLegacy(readJson(LEGACY_KEY));
@@ -238,6 +256,7 @@
     state.legacy = null;
   }
 
+  /** Fetches the customer's plans and renders the page, or shows an error with a retry. */
   async function load() {
     state.status = 'loading';
     state.error = '';
@@ -264,6 +283,7 @@
     render();
   }
 
+  /** Saves the budget on this device, and the total where the dashboard also looks for it. */
   function saveDevice(items, total) {
     const ok = writeStorage(LOCAL_KEY, JSON.stringify({ total, items }));
     if (!ok) {
@@ -282,22 +302,23 @@
       return;
     }
     const body = {
-      budgetItems: items.map(i => ({
-        id: i.id,
-        category: i.category,
-        item: i.item,
-        estimated: i.estimated,
-        actual: i.actual,
-        paid: i.paid,
-        notes: i.notes,
+      budgetItems: items.map(line => ({
+        id: line.id,
+        category: line.category,
+        item: line.item,
+        estimated: line.estimated,
+        actual: line.actual,
+        paid: line.paid,
+        notes: line.notes,
       })),
     };
     const data = await api(planUrl(state.plan, '/budget'), { method: 'POST', body });
     const saved = Array.isArray(data.budgetItems) ? data.budgetItems : items;
-    state.items = saved.map((raw, i) => Calc.normaliseItem(raw, `item_${i}`));
+    state.items = saved.map((raw, index) => Calc.normaliseItem(raw, `item_${index}`));
     state.plan.budgetItems = state.items;
   }
 
+  /** Saves the total budget to the plan (or this device) and updates the state. */
   async function persistTotal(total) {
     if (state.mode === 'device') {
       saveDevice(state.items, total);
@@ -314,14 +335,16 @@
    * Rendering
    * ------------------------------------------------------------------ */
 
+  /** Applies each data-w percentage inside root as an element width, so markup needs no inline styles. */
   function applyWidths(root) {
     root.querySelectorAll('[data-w]').forEach(el => {
       el.style.width = `${Math.max(0, Math.min(100, Number(el.dataset.w) || 0))}%`;
     });
   }
 
+  /** Renders the plan line, plan switcher and the enabled state of the header actions. */
   function renderHeader() {
-    const line = $('bp-plan-line');
+    const line = byId('bp-plan-line');
     if (state.mode === 'device') {
       line.textContent = 'Saved on this device';
     } else if (state.plan) {
@@ -330,25 +353,26 @@
     } else {
       line.textContent = 'Your event';
     }
-    const switcher = $('bp-plan-switch');
-    const select = $('bp-plan-select');
+    const switcher = byId('bp-plan-switch');
+    const select = byId('bp-plan-select');
     const multiple = state.mode === 'plan' && state.plans.length > 1;
     switcher.hidden = !multiple;
     if (multiple) {
       select.innerHTML = state.plans
         .map(
-          p =>
-            `<option value="${esc(p.id)}"${p.id === state.plan.id ? ' selected' : ''}>${esc(
-              p.name || 'Untitled plan'
+          plan =>
+            `<option value="${esc(plan.id)}"${plan.id === state.plan.id ? ' selected' : ''}>${esc(
+              plan.name || 'Untitled plan'
             )}</option>`
         )
         .join('');
     }
     const ready = state.status === 'ready';
-    $('bp-add-btn').disabled = !ready;
-    $('bp-export-menu').hidden = !(ready && state.items.length);
+    byId('bp-add-btn').disabled = !ready;
+    byId('bp-export-menu').hidden = !(ready && state.items.length);
   }
 
+  /** Renders the device-only and import notices above the summary. */
   function renderNotices() {
     const parts = [];
     if (state.status === 'ready' && state.mode === 'device') {
@@ -362,24 +386,26 @@
       state.legacy &&
       !state.importDismissed
     ) {
-      const n = state.legacy.items.length;
-      const what = n
-        ? `${n} expense${n === 1 ? '' : 's'} from the old budget tool`
+      const count = state.legacy.items.length;
+      const what = count
+        ? `${count} expense${count === 1 ? '' : 's'} from the old budget tool`
         : 'a budget total from the old budget tool';
       parts.push(
-        `<div class="bp-notice"><p><strong>Found ${esc(what)} on this device.</strong> Move ${n === 1 ? 'it' : 'them'} into ${esc(
+        `<div class="bp-notice"><p><strong>Found ${esc(what)} on this device.</strong> Move ${count === 1 ? 'it' : 'them'} into ${esc(
           state.plan.name || 'this plan'
-        )} to keep ${n === 1 ? 'it' : 'them'} in your account.</p><div class="bp-notice__actions"><button type="button" class="bp-btn bp-btn--primary" data-action="import-legacy">Move to this plan</button><button type="button" class="bp-btn bp-btn--secondary" data-action="dismiss-import">Not now</button></div></div>`
+        )} to keep ${count === 1 ? 'it' : 'them'} in your account.</p><div class="bp-notice__actions"><button type="button" class="bp-btn bp-btn--primary" data-action="import-legacy">Move to this plan</button><button type="button" class="bp-btn bp-btn--secondary" data-action="dismiss-import">Not now</button></div></div>`
       );
     }
-    $('bp-notices').innerHTML = parts.join('');
+    byId('bp-notices').innerHTML = parts.join('');
   }
 
-  function metersHtml(s) {
-    const seg = Calc.meterSegments(s);
-    const label = `${money(s.committed)} committed of ${money(s.budget)} budget, ${s.percentCommitted}%. ${money(
-      s.paid
+  /** Markup for the progress bar: paid, still to pay and over-budget segments with a text label. */
+  function metersHtml(figures) {
+    const seg = Calc.meterSegments(figures);
+    const label = `${money(figures.committed)} committed of ${money(figures.budget)} budget, ${figures.percentCommitted}%. ${money(
+      figures.paid
     )} paid.`;
+    /** Markup for one progress-bar segment; nothing when it has no width. */
     const part = (kind, width) =>
       width > 0
         ? `<span class="bp-meter__seg bp-meter__seg--${kind}" data-w="${width}"></span>`
@@ -387,21 +413,23 @@
     return `<div class="bp-meter" role="img" aria-label="${esc(label)}">${part('paid', seg.paid)}${part('rest', seg.rest)}${part('over', seg.over)}</div>`;
   }
 
-  function legendHtml(s) {
-    const last = s.hasBudget
-      ? s.isOver
-        ? `<li><span class="bp-dot bp-dot--over" aria-hidden="true"></span>Over budget <strong>${money(s.overBy)}</strong></li>`
-        : `<li><span class="bp-dot bp-dot--free" aria-hidden="true"></span>Remaining <strong>${money(s.remaining)}</strong></li>`
+  /** Markup for the legend under the progress bar (paid, still to pay, remaining or over budget). */
+  function legendHtml(figures) {
+    const last = figures.hasBudget
+      ? figures.isOver
+        ? `<li><span class="bp-dot bp-dot--over" aria-hidden="true"></span>Over budget <strong>${money(figures.overBy)}</strong></li>`
+        : `<li><span class="bp-dot bp-dot--free" aria-hidden="true"></span>Remaining <strong>${money(figures.remaining)}</strong></li>`
       : '';
     return `<ul class="bp-legend"><li><span class="bp-dot bp-dot--paid" aria-hidden="true"></span>Paid <strong>${money(
-      s.paid
+      figures.paid
     )}</strong></li><li><span class="bp-dot bp-dot--rest" aria-hidden="true"></span>Still to pay <strong>${money(
-      s.toPay
+      figures.toPay
     )}</strong></li>${last}</ul>`;
   }
 
+  /** Renders the summary card: loading, error, first-time empty state, or the budget figures. */
   function renderSummary() {
-    const host = $('bp-summary');
+    const host = byId('bp-summary');
     if (state.status === 'loading') {
       host.innerHTML =
         '<h2 class="bp-sr" id="bp-summary-title">Budget summary</h2><div class="bp-skeleton" aria-hidden="true"><span></span><span></span><span></span></div><p class="bp-sr">Loading your budget.</p>';
@@ -417,17 +445,19 @@
       host.innerHTML = `<div class="bp-state"><h2 class="bp-h2" id="bp-summary-title">Start your budget</h2><p>Set a total, then add what you expect to pay for, such as the venue, catering and photography. Add the real cost and what you have paid as things are confirmed, and your remaining budget updates as you go.</p><div class="bp-state__actions"><button type="button" class="bp-btn bp-btn--primary" data-action="add">Add your first item</button><button type="button" class="bp-btn bp-btn--secondary" data-action="set-budget">Set total budget</button></div></div>`;
       return;
     }
-    const s = Calc.summarise(state.items, state.total);
+    const figures = Calc.summarise(state.items, state.total);
     let remainingLabel = 'Remaining';
     let remainingValue = '—';
     let remainingSub = 'Set a budget to see what is left';
-    if (s.hasBudget) {
-      remainingValue = money(s.remaining);
+    if (figures.hasBudget) {
+      remainingValue = money(figures.remaining);
       remainingSub =
-        s.percentCommitted >= 90 && !s.isOver ? 'Nearly all committed' : 'Within budget';
-      if (s.isOver) {
+        figures.percentCommitted >= 90 && !figures.isOver
+          ? 'Nearly all committed'
+          : 'Within budget';
+      if (figures.isOver) {
         remainingLabel = 'Over budget by';
-        remainingValue = money(s.overBy);
+        remainingValue = money(figures.overBy);
         remainingSub = 'Committed is more than your budget';
       }
     }
@@ -439,26 +469,26 @@
       <div class="bp-stats">
         <div class="bp-stat">
           <span class="bp-stat__label">Total budget</span>
-          <span class="bp-stat__value">${s.hasBudget ? money(s.budget) : 'Not set'}</span>
-          <button type="button" class="bp-link" data-action="set-budget">${s.hasBudget ? 'Edit budget' : 'Set budget'}</button>
+          <span class="bp-stat__value">${figures.hasBudget ? money(figures.budget) : 'Not set'}</span>
+          <button type="button" class="bp-link" data-action="set-budget">${figures.hasBudget ? 'Edit budget' : 'Set budget'}</button>
         </div>
         <div class="bp-stat">
           <span class="bp-stat__label">Committed</span>
-          <span class="bp-stat__value">${money(s.committed)}</span>
+          <span class="bp-stat__value">${money(figures.committed)}</span>
           <span class="bp-stat__sub">${
-            s.hasBudget
-              ? `${s.percentCommitted}% of budget`
+            figures.hasBudget
+              ? `${figures.percentCommitted}% of budget`
               : `${state.items.length} item${state.items.length === 1 ? '' : 's'}`
           }</span>
         </div>
-        <div class="bp-stat bp-stat--result${s.isOver ? ' is-over' : ''}">
+        <div class="bp-stat bp-stat--result${figures.isOver ? ' is-over' : ''}">
           <span class="bp-stat__label">${remainingLabel}</span>
           <span class="bp-stat__value">${remainingValue}</span>
           <span class="bp-stat__sub">${esc(remainingSub)}</span>
         </div>
       </div>
-      ${s.hasBudget ? metersHtml(s) : ''}
-      ${state.items.length ? legendHtml(s) : ''}
+      ${figures.hasBudget ? metersHtml(figures) : ''}
+      ${state.items.length ? legendHtml(figures) : ''}
       ${
         packages
           ? `<p class="bp-fineprint">Your dashboard also adds the listed price of the ${packages} supplier package${
@@ -469,6 +499,7 @@
     applyWidths(host);
   }
 
+  /** Markup for a category's difference from plan: over, under, on plan or no plan set. */
   function differenceHtml(row) {
     if (!(row.planned > 0)) {
       return '<span class="bp-muted">No plan set</span>';
@@ -482,15 +513,16 @@
     return '<span class="bp-diff">On plan</span>';
   }
 
+  /** Renders the planned-versus-committed table by category. */
   function renderCategories() {
-    const section = $('bp-categories-section');
+    const section = byId('bp-categories-section');
     const show = state.status === 'ready' && state.items.length > 0;
     section.hidden = !show;
     if (!show) {
       return;
     }
     const rows = Calc.byCategory(state.items, categoryList());
-    $('bp-categories').innerHTML = `<table class="bp-table bp-table--categories" role="table">
+    byId('bp-categories').innerHTML = `<table class="bp-table bp-table--categories" role="table">
       <thead><tr role="row"><th scope="col" role="columnheader">Category</th><th scope="col" role="columnheader" class="bp-num">Planned</th><th scope="col" role="columnheader" class="bp-num">Committed</th><th scope="col" role="columnheader" class="bp-num">Difference</th></tr></thead>
       <tbody>${rows
         .map(
@@ -502,9 +534,10 @@
         <td role="cell" class="bp-num" data-label="Difference">${differenceHtml(row)}</td></tr>`
         )
         .join('')}</tbody></table>`;
-    applyWidths($('bp-categories'));
+    applyWidths(byId('bp-categories'));
   }
 
+  /** The items that pass the current category and payment filters. */
   function visibleItems() {
     return state.items.filter(
       item =>
@@ -513,31 +546,33 @@
     );
   }
 
+  /** Rebuilds the category filter options from the items and restores the current selections. */
   function renderFilters() {
-    const select = $('filter-category');
-    const names = [...new Set(state.items.map(i => i.category))];
+    const select = byId('filter-category');
+    const names = [...new Set(state.items.map(item => item.category))];
     if (state.filterCategory && !names.includes(state.filterCategory)) {
       state.filterCategory = '';
     }
-    const ordered = categoryList().filter(c => names.includes(c));
+    const ordered = categoryList().filter(name => names.includes(name));
     const options = ordered.map(
-      c =>
-        `<option value="${esc(c)}"${c === state.filterCategory ? ' selected' : ''}>${esc(c)}</option>`
+      name =>
+        `<option value="${esc(name)}"${name === state.filterCategory ? ' selected' : ''}>${esc(name)}</option>`
     );
     select.innerHTML = `<option value="">All categories</option>${options.join('')}`;
-    $('filter-status').value = state.filterPayment;
+    byId('filter-status').value = state.filterPayment;
   }
 
+  /** Renders the items table (or an empty or no-match message) with totals. */
   function renderItems() {
-    const section = $('bp-items-section');
+    const section = byId('bp-items-section');
     const show = state.status === 'ready';
     section.hidden = !show || (!state.items.length && !state.total);
     if (section.hidden) {
       return;
     }
-    $('bp-filters').hidden = !state.items.length;
+    byId('bp-filters').hidden = !state.items.length;
     renderFilters();
-    const host = $('bp-items');
+    const host = byId('bp-items');
     if (!state.items.length) {
       host.innerHTML = `<div class="bp-state bp-state--inline"><p>No items yet. Add the first thing you expect to pay for.</p><button type="button" class="bp-btn bp-btn--primary" data-action="add">Add item</button></div>`;
       return;
@@ -548,9 +583,9 @@
       return;
     }
     const totals = {
-      planned: Calc.sumMoney(rows.map(r => r.estimated)),
-      actual: Calc.sumMoney(rows.map(r => r.actual)),
-      paid: Calc.sumMoney(rows.map(r => r.paid)),
+      planned: Calc.sumMoney(rows.map(row => row.estimated)),
+      actual: Calc.sumMoney(rows.map(row => row.actual)),
+      paid: Calc.sumMoney(rows.map(row => row.paid)),
     };
     const filtered = rows.length !== state.items.length;
     host.innerHTML = `<table class="bp-table bp-table--items" role="table">
@@ -577,8 +612,9 @@
       <tfoot><tr role="row"><th scope="row" role="rowheader" colspan="2" class="bp-foot-label">${filtered ? 'Total of items shown' : 'Total'}</th><td role="cell" class="bp-num" data-label="Planned">${money(totals.planned)}</td><td role="cell" class="bp-num" data-label="Actual">${money(totals.actual)}</td><td role="cell" class="bp-num" data-label="Paid">${money(totals.paid)}</td><td role="cell" class="bp-foot-fill"></td><td role="cell" class="bp-foot-fill"></td></tr></tfoot></table>`;
   }
 
+  /** Renders every part of the page from the current state. */
   function render() {
-    $('main-content').setAttribute('aria-busy', state.status === 'loading' ? 'true' : 'false');
+    byId('main-content').setAttribute('aria-busy', state.status === 'loading' ? 'true' : 'false');
     renderHeader();
     renderNotices();
     renderSummary();
@@ -591,8 +627,9 @@
    * ------------------------------------------------------------------ */
 
   let toastTimer = null;
+  /** Shows a short status message in the live region for a few seconds. */
   function toast(message) {
-    const el = $('bp-toast');
+    const el = byId('bp-toast');
     el.textContent = message;
     el.classList.add('is-visible');
     clearTimeout(toastTimer);
@@ -603,6 +640,7 @@
    * Dialogs
    * ------------------------------------------------------------------ */
 
+  /** Opens a dialog as a modal (falls back to the open attribute in old browsers). */
   function openDialog(dialog) {
     if (typeof dialog.showModal === 'function') {
       dialog.showModal();
@@ -611,6 +649,7 @@
     }
   }
 
+  /** Closes a dialog. */
   function closeDialog(dialog) {
     if (typeof dialog.close === 'function') {
       dialog.close();
@@ -619,6 +658,7 @@
     }
   }
 
+  /** Shows or clears the error text under a field and sets its aria-invalid state. */
   function setFieldError(input, message) {
     const err = input.closest('.bp-field').querySelector('.bp-field__err');
     err.textContent = message || '';
@@ -629,6 +669,7 @@
     }
   }
 
+  /** Clears every field and form-level error in a form. */
   function clearErrors(form) {
     form.querySelectorAll('[aria-invalid]').forEach(el => el.removeAttribute('aria-invalid'));
     form.querySelectorAll('.bp-field__err, .bp-form__error').forEach(el => {
@@ -636,82 +677,87 @@
     });
   }
 
+  /** Switches a submit button between its idle label and a disabled "Saving…" state. */
   function setSaving(button, saving, idleLabel) {
     state.saving = saving;
     button.disabled = saving;
     button.textContent = saving ? 'Saving…' : idleLabel;
   }
 
+  /** Opens the item dialog for a new item, or for an existing one when an id is given. */
   function openItemDialog(id) {
-    const item = id ? state.items.find(i => i.id === id) : null;
+    const item = id ? state.items.find(item => item.id === id) : null;
     if (id && !item) {
       return;
     }
     state.editingId = item ? item.id : null;
-    const form = $('bp-item-form');
+    const form = byId('bp-item-form');
     clearErrors(form);
-    $('bp-item-title').textContent = item ? 'Edit item' : 'Add item';
-    $('bp-item-delete').hidden = !item;
-    $('bp-f-item').value = item ? item.item : '';
-    $('bp-f-category').innerHTML = categoryList()
-      .map(c => `<option value="${esc(c)}">${esc(c)}</option>`)
+    byId('bp-item-title').textContent = item ? 'Edit item' : 'Add item';
+    byId('bp-item-delete').hidden = !item;
+    byId('bp-f-item').value = item ? item.item : '';
+    byId('bp-f-category').innerHTML = categoryList()
+      .map(name => `<option value="${esc(name)}">${esc(name)}</option>`)
       .join('');
-    $('bp-f-category').value = item ? item.category : state.filterCategory || 'Venue';
-    $('bp-f-estimated').value = item && item.estimated ? String(item.estimated) : '';
-    $('bp-f-actual').value = item && item.actual ? String(item.actual) : '';
-    $('bp-f-paid').value = item && item.paid ? String(item.paid) : '';
-    $('bp-f-notes').value = item ? item.notes : '';
-    setSaving($('bp-item-save'), false, 'Save item');
-    openDialog($('bp-item-dialog'));
-    $('bp-f-item').focus();
+    byId('bp-f-category').value = item ? item.category : state.filterCategory || 'Venue';
+    byId('bp-f-estimated').value = item?.estimated ? String(item.estimated) : '';
+    byId('bp-f-actual').value = item?.actual ? String(item.actual) : '';
+    byId('bp-f-paid').value = item?.paid ? String(item.paid) : '';
+    byId('bp-f-notes').value = item ? item.notes : '';
+    setSaving(byId('bp-item-save'), false, 'Save item');
+    openDialog(byId('bp-item-dialog'));
+    byId('bp-f-item').focus();
   }
 
+  /** Validates the item form; returns the new item, or null after showing errors and focusing the first. */
   function readItemForm() {
-    const form = $('bp-item-form');
+    const form = byId('bp-item-form');
     clearErrors(form);
-    const name = $('bp-f-item').value.trim();
-    const estimated = Calc.parseMoneyInput($('bp-f-estimated').value);
-    const actual = Calc.parseMoneyInput($('bp-f-actual').value);
-    const paid = Calc.parseMoneyInput($('bp-f-paid').value);
+    const name = byId('bp-f-item').value.trim();
+    const estimated = Calc.parseMoneyInput(byId('bp-f-estimated').value);
+    const actual = Calc.parseMoneyInput(byId('bp-f-actual').value);
+    const paid = Calc.parseMoneyInput(byId('bp-f-paid').value);
     const problems = [];
+    /** Records a validation problem for a field. */
     const fail = (input, message) => problems.push({ input, message });
 
     if (!name) {
-      fail($('bp-f-item'), 'Enter a name for this item.');
+      fail(byId('bp-f-item'), 'Enter a name for this item.');
     }
     if (!estimated.ok) {
-      fail($('bp-f-estimated'), 'Enter an amount such as 1200 or 1,200.50.');
+      fail(byId('bp-f-estimated'), 'Enter an amount such as 1200 or 1,200.50.');
     } else if (!(estimated.value > 0)) {
-      fail($('bp-f-estimated'), 'Enter what you plan to spend, more than £0.');
+      fail(byId('bp-f-estimated'), 'Enter what you plan to spend, more than £0.');
     }
     if (!actual.ok) {
-      fail($('bp-f-actual'), 'Enter an amount such as 1200 or 1,200.50, or leave it blank.');
+      fail(byId('bp-f-actual'), 'Enter an amount such as 1200 or 1,200.50, or leave it blank.');
     }
     if (!paid.ok) {
-      fail($('bp-f-paid'), 'Enter an amount such as 500 or 500.50, or leave it blank.');
+      fail(byId('bp-f-paid'), 'Enter an amount such as 500 or 500.50, or leave it blank.');
     }
     if (estimated.ok && actual.ok && paid.ok) {
       const cost = actual.value > 0 ? actual.value : estimated.value;
       if (paid.value > cost) {
-        fail($('bp-f-paid'), `That is more than the cost (${money(cost)}).`);
+        fail(byId('bp-f-paid'), `That is more than the cost (${money(cost)}).`);
       }
     }
-    problems.forEach(p => setFieldError(p.input, p.message));
+    problems.forEach(problem => setFieldError(problem.input, problem.message));
     if (problems.length) {
       problems[0].input.focus();
       return null;
     }
     return {
       id: state.editingId || newId(),
-      category: $('bp-f-category').value || 'Other',
+      category: byId('bp-f-category').value || 'Other',
       item: name,
       estimated: estimated.value,
       actual: actual.value,
       paid: paid.value,
-      notes: $('bp-f-notes').value.trim(),
+      notes: byId('bp-f-notes').value.trim(),
     };
   }
 
+  /** Saves the item form: validates, writes the whole list, then closes or shows the server's message. */
   async function submitItem(event) {
     event.preventDefault();
     if (state.saving) {
@@ -722,83 +768,87 @@
       return;
     }
     const items = state.editingId
-      ? state.items.map(i => (i.id === state.editingId ? next : i))
+      ? state.items.map(item => (item.id === state.editingId ? next : item))
       : [...state.items, next];
-    setSaving($('bp-item-save'), true, 'Save item');
+    setSaving(byId('bp-item-save'), true, 'Save item');
     try {
       await persistItems(items);
-      closeDialog($('bp-item-dialog'));
+      closeDialog(byId('bp-item-dialog'));
       render();
       toast(state.editingId ? 'Item updated' : 'Item added');
     } catch (err) {
-      $('bp-form-error').textContent = err.message;
-      setSaving($('bp-item-save'), false, 'Save item');
+      byId('bp-form-error').textContent = err.message;
+      setSaving(byId('bp-item-save'), false, 'Save item');
     }
   }
 
+  /** Opens the total-budget dialog with the current total filled in. */
   function openBudgetDialog() {
-    clearErrors($('bp-budget-form'));
-    $('bp-f-total').value = state.total ? String(state.total) : '';
-    setSaving($('bp-budget-save'), false, 'Save budget');
-    openDialog($('bp-budget-dialog'));
-    $('bp-f-total').focus();
-    $('bp-f-total').select();
+    clearErrors(byId('bp-budget-form'));
+    byId('bp-f-total').value = state.total ? String(state.total) : '';
+    setSaving(byId('bp-budget-save'), false, 'Save budget');
+    openDialog(byId('bp-budget-dialog'));
+    byId('bp-f-total').focus();
+    byId('bp-f-total').select();
   }
 
+  /** Validates and saves the total budget from its dialog. */
   async function submitBudget(event) {
     event.preventDefault();
     if (state.saving) {
       return;
     }
-    const form = $('bp-budget-form');
+    const form = byId('bp-budget-form');
     clearErrors(form);
-    const input = $('bp-f-total');
+    const input = byId('bp-f-total');
     const parsed = Calc.parseMoneyInput(input.value);
     if (!parsed.ok || !(parsed.value > 0)) {
       setFieldError(input, 'Enter your total budget as an amount above £0, such as 15000.');
       input.focus();
       return;
     }
-    setSaving($('bp-budget-save'), true, 'Save budget');
+    setSaving(byId('bp-budget-save'), true, 'Save budget');
     try {
       await persistTotal(parsed.value);
-      closeDialog($('bp-budget-dialog'));
+      closeDialog(byId('bp-budget-dialog'));
       render();
       toast(`Budget set to ${money(parsed.value)}`);
     } catch (err) {
-      $('bp-budget-error').textContent = err.message;
-      setSaving($('bp-budget-save'), false, 'Save budget');
+      byId('bp-budget-error').textContent = err.message;
+      setSaving(byId('bp-budget-save'), false, 'Save budget');
     }
   }
 
+  /** Opens the delete confirmation for an item. */
   function openDeleteDialog(id) {
-    const item = state.items.find(i => i.id === id);
+    const item = state.items.find(item => item.id === id);
     if (!item) {
       return;
     }
     state.deletingId = id;
-    $('bp-confirm-text').textContent = `“${item.item}” will be removed from your budget.`;
-    $('bp-confirm-error').textContent = '';
-    $('bp-confirm-yes').disabled = false;
-    $('bp-confirm-yes').textContent = 'Delete';
-    openDialog($('bp-confirm-dialog'));
+    byId('bp-confirm-text').textContent = `“${item.item}” will be removed from your budget.`;
+    byId('bp-confirm-error').textContent = '';
+    byId('bp-confirm-yes').disabled = false;
+    byId('bp-confirm-yes').textContent = 'Delete';
+    openDialog(byId('bp-confirm-dialog'));
   }
 
+  /** Deletes the item chosen in the confirmation dialog. */
   async function confirmDelete() {
     if (state.saving || !state.deletingId) {
       return;
     }
-    const button = $('bp-confirm-yes');
+    const button = byId('bp-confirm-yes');
     setSaving(button, true, 'Delete');
     try {
-      await persistItems(state.items.filter(i => i.id !== state.deletingId));
-      closeDialog($('bp-confirm-dialog'));
+      await persistItems(state.items.filter(item => item.id !== state.deletingId));
+      closeDialog(byId('bp-confirm-dialog'));
       state.deletingId = null;
       render();
       toast('Item deleted');
-      $('bp-items-title').focus();
+      byId('bp-items-title').focus();
     } catch (err) {
-      $('bp-confirm-error').textContent = err.message;
+      byId('bp-confirm-error').textContent = err.message;
       setSaving(button, false, 'Delete');
     }
   }
@@ -807,6 +857,7 @@
    * Import and export
    * ------------------------------------------------------------------ */
 
+  /** Moves the old page's device data into the current plan, then marks it as imported. */
   async function importLegacy() {
     if (!state.legacy || state.mode !== 'plan' || state.saving) {
       return;
@@ -814,8 +865,10 @@
     const legacy = state.legacy;
     state.saving = true;
     try {
-      const existing = new Set(state.items.map(i => i.id));
-      const incoming = legacy.items.map(i => (existing.has(i.id) ? { ...i, id: newId() } : i));
+      const existing = new Set(state.items.map(item => item.id));
+      const incoming = legacy.items.map(item =>
+        existing.has(item.id) ? { ...item, id: newId() } : item
+      );
       if (incoming.length) {
         await persistItems([...state.items, ...incoming]);
       }
@@ -833,19 +886,22 @@
     }
   }
 
+  /** Downloads text as a file in the browser. */
   function download(filename, text, type) {
     const url = URL.createObjectURL(new Blob([text], { type }));
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = filename;
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
     setTimeout(() => URL.revokeObjectURL(url), 1000);
   }
 
+  /** Today's date as YYYY-MM-DD, used in export file names. */
   const today = () => new Date().toISOString().slice(0, 10);
 
+  /** Downloads the items as a CSV file. */
   function exportCsv() {
     // A leading byte-order mark makes Excel read the file as UTF-8.
     const bom = String.fromCharCode(0xfeff);
@@ -853,24 +909,25 @@
     toast('Budget downloaded as CSV');
   }
 
+  /** Downloads the budget as a PDF using the shared export utility. */
   async function exportPdf() {
     if (typeof exportUtility === 'undefined') {
       toast('The PDF tool did not load. Try again, or download the CSV.');
       return;
     }
-    const s = Calc.summarise(state.items, state.total);
+    const figures = Calc.summarise(state.items, state.total);
     try {
       await exportUtility.exportBudgetToPDF(
         {
-          totalBudget: s.budget,
-          totalSpent: s.committed,
-          remaining: s.remaining,
-          percentageUsed: s.percentCommitted,
-          expenses: state.items.map(i => ({
-            category: i.category,
-            description: i.item,
-            amount: Calc.lineCost(i),
-            status: STATUS_TEXT[Calc.lineStatus(i)] || 'Planned',
+          totalBudget: figures.budget,
+          totalSpent: figures.committed,
+          remaining: figures.remaining,
+          percentageUsed: figures.percentCommitted,
+          expenses: state.items.map(item => ({
+            category: item.category,
+            description: item.item,
+            amount: Calc.lineCost(item),
+            status: STATUS_TEXT[Calc.lineStatus(item)] || 'Planned',
           })),
         },
         `eventflow-budget-${today()}.pdf`
@@ -885,8 +942,9 @@
    * Events
    * ------------------------------------------------------------------ */
 
+  /** Closes the export menu if it is open. */
   function closeExportMenu() {
-    const menu = $('bp-export-menu');
+    const menu = byId('bp-export-menu');
     if (menu.open) {
       menu.open = false;
     }
@@ -917,6 +975,7 @@
     },
   };
 
+  /** Attaches all click, keyboard, form and filter listeners once. */
   function bind() {
     document.addEventListener('click', event => {
       const closer = event.target.closest('[data-close]');
@@ -925,7 +984,7 @@
         return;
       }
       const el = event.target.closest('[data-action]');
-      if (el && ACTIONS[el.dataset.action] && $('main-content').contains(el)) {
+      if (el && ACTIONS[el.dataset.action] && byId('main-content').contains(el)) {
         ACTIONS[el.dataset.action](el);
         return;
       }
@@ -940,12 +999,12 @@
       }
     });
 
-    $('bp-item-form').addEventListener('submit', submitItem);
-    $('bp-budget-form').addEventListener('submit', submitBudget);
-    $('bp-confirm-yes').addEventListener('click', confirmDelete);
-    $('bp-item-delete').addEventListener('click', () => {
+    byId('bp-item-form').addEventListener('submit', submitItem);
+    byId('bp-budget-form').addEventListener('submit', submitBudget);
+    byId('bp-confirm-yes').addEventListener('click', confirmDelete);
+    byId('bp-item-delete').addEventListener('click', () => {
       const id = state.editingId;
-      closeDialog($('bp-item-dialog'));
+      closeDialog(byId('bp-item-dialog'));
       openDeleteDialog(id);
     });
 
@@ -957,16 +1016,16 @@
       });
     });
 
-    $('filter-category').addEventListener('change', event => {
+    byId('filter-category').addEventListener('change', event => {
       state.filterCategory = event.target.value;
       renderItems();
     });
-    $('filter-status').addEventListener('change', event => {
+    byId('filter-status').addEventListener('change', event => {
       state.filterPayment = event.target.value;
       renderItems();
     });
-    $('bp-plan-select').addEventListener('change', event => {
-      const plan = state.plans.find(p => p.id === event.target.value);
+    byId('bp-plan-select').addEventListener('change', event => {
+      const plan = state.plans.find(candidate => candidate.id === event.target.value);
       if (plan) {
         writeStorage(PLAN_PICK_KEY, plan.id);
         state.filterCategory = '';
@@ -992,6 +1051,7 @@
     }
   });
 
+  /** Binds the page and loads the data. */
   function start() {
     bind();
     load();

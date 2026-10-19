@@ -152,7 +152,9 @@ describe('budget.html markup', () => {
 
 describe('budget-page.js contracts', () => {
   test('every element id the script looks up exists in the page', () => {
-    const wanted = new Set([...js.matchAll(/\$\('([a-z0-9-]+)'\)/gi)].map(m => m[1]));
+    const wanted = new Set(
+      [...js.matchAll(/(?<![A-Za-z])byId\('([a-z0-9-]+)'\)/gi)].map(m => m[1])
+    );
     const missing = [...wanted].filter(id => !new RegExp(`id="${id}"`).test(html));
     expect(missing).toEqual([]);
   });
