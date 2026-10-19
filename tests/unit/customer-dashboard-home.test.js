@@ -269,21 +269,10 @@ describe('customer dashboard home: structure', () => {
     const created = new Set([
       // built by scripts at run time
       'email-verify-banner',
-      '_dash_plan_edit_modal',
-      '_dash_plan_edit_title',
-      '_dash_plan_edit_close',
-      '_dash_plan_delete_modal',
-      '_dash_modal_styles',
-      '_pf_name',
-      '_pf_date',
-      '_pf_location',
-      '_pf_notes',
-      '_pf_status',
-      '_pf_cancel',
-      '_pf_save',
-      '_del_status',
-      '_del_cancel',
-      '_del_confirm',
+      'cdh-plan-edit-dialog',
+      'cdh-pf-name',
+      'cdh-plan-delete-dialog',
+      'cdh-del-confirm',
     ]);
     const present = new Set(idsIn(html));
     // home module keeps its ids in one object
@@ -359,6 +348,13 @@ describe('customer dashboard home: data handling', () => {
 
   test('the budget tile links to the budget page for the focus plan', () => {
     expect(homeJs).toContain('/budget?plan=${encodeURIComponent(plan.id)}');
+  });
+
+  test('the plan editor and delete confirmation are native dialogs, not inline-styled overlays', () => {
+    expect(initJs).toContain("document.createElement('dialog')");
+    expect(initJs).toContain('dialog.showModal()');
+    expect(initJs).not.toMatch(/overlay\.style\.cssText|position:fixed;inset:0/);
+    expect(css).toMatch(/\.cdh-page \.cdh-dialog::backdrop/);
   });
 
   test('the recommendations widget does not start itself', () => {

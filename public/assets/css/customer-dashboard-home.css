@@ -1860,6 +1860,121 @@
   color: #fff;
 }
 
+/* Plan editor and delete confirmation (native <dialog>, appended to <body>) */
+
+.cdh-page .cdh-dialog {
+  width: min(480px, calc(100vw - 32px));
+  max-width: none;
+  max-height: calc(100dvh - 32px);
+  padding: 0;
+  overflow: hidden;
+  border: 0;
+  border-radius: var(--cdh-radius);
+  background: var(--cdh-surface);
+  box-shadow: var(--cdh-pop);
+  color: var(--cdh-ink);
+}
+
+.cdh-page .cdh-dialog[open] {
+  display: flex;
+  flex-direction: column;
+}
+
+.cdh-page .cdh-dialog--narrow {
+  width: min(420px, calc(100vw - 32px));
+}
+
+.cdh-page .cdh-dialog::backdrop {
+  background: rgba(23, 32, 47, 0.5);
+}
+
+.cdh-page .cdh-dialog__form {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.cdh-page .cdh-dialog__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 16px 16px 16px 24px;
+  border-bottom: 1px solid var(--cdh-line);
+}
+
+.cdh-page .cdh-dialog__title {
+  margin: 0;
+  color: var(--cdh-ink);
+  font-size: 18px;
+  font-weight: 600;
+  line-height: 1.3;
+  overflow-wrap: anywhere;
+}
+
+.cdh-page .cdh-dialog__close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--cdh-radius-sm);
+  background: transparent;
+  color: var(--cdh-muted);
+  font-size: 24px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.cdh-page .cdh-dialog__close:hover {
+  background: var(--cdh-line-soft);
+  color: var(--cdh-ink);
+}
+
+.cdh-page .cdh-dialog__body {
+  display: grid;
+  gap: 16px;
+  min-height: 0;
+  padding: 24px;
+  overflow-y: auto;
+}
+
+.cdh-page .cdh-dialog__text {
+  margin: 0;
+  color: var(--cdh-muted);
+  font-size: 14px;
+}
+
+.cdh-page .cdh-dialog .cdh-field {
+  width: 100%;
+}
+
+.cdh-page .cdh-dialog .cdh-form-status {
+  margin-top: 0;
+}
+
+.cdh-page .cdh-input--area {
+  min-height: 88px;
+  padding-block: 10px;
+  resize: vertical;
+}
+
+.cdh-page .cdh-input[aria-invalid='true'] {
+  border-color: var(--cdh-danger);
+}
+
+.cdh-page .cdh-dialog__foot {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 16px 24px;
+  border-top: 1px solid var(--cdh-line);
+  background: #fbfaf8;
+}
+
 /* Add / edit entry dialog */
 
 .cdh-page .cal-entry-modal-overlay {
@@ -2141,6 +2256,19 @@
 }
 
 @media (max-width: 639px) {
+  /* Dialogs become bottom sheets, like the guest list and budget pages. */
+  .cdh-page .cdh-dialog,
+  .cdh-page .cdh-dialog--narrow {
+    width: 100%;
+    max-height: 92dvh;
+    margin: auto 0 0;
+    border-radius: var(--cdh-radius) var(--cdh-radius) 0 0;
+  }
+
+  .cdh-page .cdh-dialog__foot .cdh-btn {
+    flex: 1 1 0;
+  }
+
   .cdh-page .cdh-wrap {
     padding-inline: 16px;
   }

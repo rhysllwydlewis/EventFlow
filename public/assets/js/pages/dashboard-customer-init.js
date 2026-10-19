@@ -130,130 +130,137 @@ async function reloadDashboard() {
 }
 
 /**
+ * Shows a native modal dialog: the browser traps focus inside it and closes it on Escape.
+ * Focus goes back to the button that opened it when that button is still on the page.
+ * @param {HTMLDialogElement} dialog - The dialog to show
+ * @param {Element|null} opener - The element to return focus to
+ */
+function showDialog(dialog, opener) {
+  document.body.appendChild(dialog);
+  dialog.addEventListener('close', () => {
+    dialog.remove();
+    if (opener?.isConnected) {
+      opener.focus();
+    }
+  });
+  dialog.addEventListener('click', event => {
+    if (event.target === dialog || event.target.closest('[data-dialog-close]')) {
+      dialog.close();
+    }
+  });
+  try {
+    dialog.showModal();
+  } catch {
+    dialog.setAttribute('open', '');
+  }
+}
+
+/** Reads a JSON response body, or an empty object when the server sent something else. */
+async function readJson(response) {
+  try {
+    return await response.json();
+  } catch {
+    return {};
+  }
+}
+
+/**
  * Opens the Edit Plan dialog and PATCHes the plan on save.
  * @param {object} plan - The plan being edited
  * @param {Function} onSaved - Called after a successful save
  */
 function showEditPlanModal(plan, onSaved) {
-  // Inject animation keyframes once
-  if (!document.getElementById('_dash_modal_styles')) {
-    const styleEl = document.createElement('style');
-    styleEl.id = '_dash_modal_styles';
-    styleEl.textContent =
-      '@keyframes ef-modal-in{from{opacity:0;transform:translateY(10px) scale(0.98)}to{opacity:1;transform:none}}';
-    document.head.appendChild(styleEl);
-  }
+  document.getElementById('cdh-plan-edit-dialog')?.remove();
+  const opener = document.activeElement;
 
-  const titleId = '_dash_plan_edit_title';
-  const existing = document.getElementById('_dash_plan_edit_modal');
-  if (existing) {
-    existing.remove();
-  }
-
-  const overlay = document.createElement('div');
-  overlay.id = '_dash_plan_edit_modal';
-  overlay.setAttribute('role', 'dialog');
-  overlay.setAttribute('aria-modal', 'true');
-  overlay.setAttribute('aria-labelledby', titleId);
-  overlay.style.cssText =
-    'position:fixed;inset:0;z-index:9000;background:rgba(0,0,0,0.45);display:flex;align-items:center;justify-content:center;padding:1rem;';
-  overlay.innerHTML = `
-    <div style="background:#fff;border-radius:12px;max-width:480px;width:100%;box-shadow:0 20px 50px rgba(0,0,0,0.2);max-height:90vh;overflow-y:auto;animation:ef-modal-in 0.2s ease both;">
-      <div style="padding:1.25rem 1.5rem;border-bottom:1px solid #f3f4f6;display:flex;align-items:center;justify-content:space-between;">
-        <h3 id="${titleId}" style="margin:0;font-size: 1.125rem;font-weight:700;">Edit Plan</h3>
-        <button id="_dash_plan_edit_close" type="button" aria-label="Close" style="background:none;border:none;cursor:pointer;color:#9ca3af;font-size: 1.5rem;line-height:1;padding:0.25rem;">&times;</button>
+  const dialog = document.createElement('dialog');
+  dialog.id = 'cdh-plan-edit-dialog';
+  dialog.className = 'cdh-dialog';
+  dialog.setAttribute('aria-labelledby', 'cdh-plan-edit-title');
+  dialog.innerHTML = `
+    <form class="cdh-dialog__form" novalidate>
+      <div class="cdh-dialog__head">
+        <h2 class="cdh-dialog__title" id="cdh-plan-edit-title">Edit plan</h2>
+        <button type="button" class="cdh-dialog__close" data-dialog-close aria-label="Close">&times;</button>
       </div>
-      <div style="padding:1.5rem;">
-        <div style="margin-bottom:1rem;">
-          <label style="display:block;font-size:0.875rem;font-weight:600;margin-bottom:0.35rem;">Plan Name</label>
-          <input type="text" id="_pf_name" value="${escapeHtml(plan.name || plan.eventType || '')}" style="width:100%;box-sizing:border-box;padding:0.625rem 0.75rem;border:1.5px solid #e5e7eb;border-radius:6px;font-size: 0.875rem;font-family:inherit;" maxlength="200" placeholder="e.g. Our Wedding 2025">
+      <div class="cdh-dialog__body">
+        <div class="cdh-field">
+          <label class="cdh-label" for="cdh-pf-name">Plan name</label>
+          <input class="cdh-input" type="text" id="cdh-pf-name" value="${escapeHtml(plan.name || plan.eventType || '')}" maxlength="200" placeholder="e.g. Our wedding" autocomplete="off" required>
         </div>
-        <div style="margin-bottom:1rem;">
-          <label style="display:block;font-size:0.875rem;font-weight:600;margin-bottom:0.35rem;">Event Date</label>
-          <input type="date" id="_pf_date" value="${escapeHtml((plan.eventDate || plan.date || '').split('T')[0])}" style="width:100%;box-sizing:border-box;padding:0.625rem 0.75rem;border:1.5px solid #e5e7eb;border-radius:6px;font-size: 0.875rem;font-family:inherit;">
+        <div class="cdh-field">
+          <label class="cdh-label" for="cdh-pf-date">Event date</label>
+          <input class="cdh-input" type="date" id="cdh-pf-date" value="${escapeHtml((plan.eventDate || plan.date || '').split('T')[0])}">
         </div>
-        <div style="margin-bottom:1rem;">
-          <label style="display:block;font-size:0.875rem;font-weight:600;margin-bottom:0.35rem;">Location</label>
-          <input type="text" id="_pf_location" value="${escapeHtml(plan.location || '')}" style="width:100%;box-sizing:border-box;padding:0.625rem 0.75rem;border:1.5px solid #e5e7eb;border-radius:6px;font-size: 0.875rem;font-family:inherit;" maxlength="200" placeholder="e.g. London">
+        <div class="cdh-field">
+          <label class="cdh-label" for="cdh-pf-location">Location</label>
+          <input class="cdh-input" type="text" id="cdh-pf-location" value="${escapeHtml(plan.location || '')}" maxlength="200" placeholder="e.g. London" autocomplete="off">
         </div>
-        <div>
-          <label style="display:block;font-size:0.875rem;font-weight:600;margin-bottom:0.35rem;">Notes</label>
-          <textarea id="_pf_notes" rows="3" style="width:100%;box-sizing:border-box;padding:0.625rem 0.75rem;border:1.5px solid #e5e7eb;border-radius:6px;font-size: 0.875rem;font-family:inherit;" maxlength="2000" placeholder="Any additional notes…">${escapeHtml(plan.notes || '')}</textarea>
+        <div class="cdh-field">
+          <label class="cdh-label" for="cdh-pf-notes">Notes</label>
+          <textarea class="cdh-input cdh-input--area" id="cdh-pf-notes" rows="3" maxlength="2000" placeholder="Anything else worth keeping with this plan">${escapeHtml(plan.notes || '')}</textarea>
         </div>
-        <p id="_pf_status" style="font-size:0.875rem;margin:0.75rem 0 0;" role="status" aria-live="polite"></p>
+        <p class="cdh-form-status" id="cdh-pf-status" role="status" aria-live="polite"></p>
       </div>
-      <div style="padding:1rem 1.5rem;border-top:1px solid #f3f4f6;display:flex;justify-content:flex-end;gap:0.75rem;">
-        <button id="_pf_cancel" type="button" class="cdh-btn cdh-btn--secondary">Cancel</button>
-        <button id="_pf_save" type="button" class="cdh-btn cdh-btn--primary">Save Changes</button>
+      <div class="cdh-dialog__foot">
+        <button type="button" class="cdh-btn cdh-btn--quiet" data-dialog-close>Cancel</button>
+        <button type="submit" class="cdh-btn cdh-btn--primary" id="cdh-pf-save">Save changes</button>
       </div>
-    </div>
+    </form>
   `;
 
-  document.body.appendChild(overlay);
-
-  /** Removes the dialog and restores page scrolling and the Escape handler. */
-  const close = () => {
-    overlay.remove();
-    document.body.style.overflow = '';
-    document.removeEventListener('keydown', handleEscEdit);
-  };
-  /** Closes the Edit Plan dialog on Escape. */
-  function handleEscEdit(event) {
-    if (event.key === 'Escape') {
-      close();
-    }
-  }
-  document.body.style.overflow = 'hidden';
-  document.addEventListener('keydown', handleEscEdit);
-  overlay.querySelector('#_dash_plan_edit_close').addEventListener('click', close);
-  overlay.querySelector('#_pf_cancel').addEventListener('click', close);
-  overlay.addEventListener('click', event => {
-    if (event.target === overlay) {
-      close();
-    }
+  const nameInput = dialog.querySelector('#cdh-pf-name');
+  const statusEl = dialog.querySelector('#cdh-pf-status');
+  const saveBtn = dialog.querySelector('#cdh-pf-save');
+  nameInput.addEventListener('input', () => {
+    statusEl.textContent = '';
+    nameInput.removeAttribute('aria-invalid');
   });
 
-  overlay.querySelector('#_pf_save').addEventListener('click', async () => {
-    const saveBtn = overlay.querySelector('#_pf_save');
-    const statusEl = overlay.querySelector('#_pf_status');
-    const name = overlay.querySelector('#_pf_name').value.trim();
+  dialog.querySelector('form').addEventListener('submit', async event => {
+    event.preventDefault();
+    const name = nameInput.value.trim();
     if (!name) {
-      statusEl.textContent = '✗ Plan name is required';
-      statusEl.style.color = '#ef4444';
+      statusEl.dataset.tone = 'error';
+      statusEl.textContent = 'Enter a name for this plan.';
+      nameInput.setAttribute('aria-invalid', 'true');
+      nameInput.focus();
       return;
     }
     saveBtn.disabled = true;
     saveBtn.textContent = 'Saving…';
     statusEl.textContent = '';
     try {
-      const csrf = await getCsrfToken();
+      const csrf = await ensureCsrfToken();
       const response = await fetch(`/api/me/plans/${encodeURIComponent(plan.id)}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrf },
         credentials: 'include',
         body: JSON.stringify({
           name,
-          eventDate: overlay.querySelector('#_pf_date').value || null,
-          location: overlay.querySelector('#_pf_location').value.trim() || null,
-          notes: overlay.querySelector('#_pf_notes').value.trim() || null,
+          eventDate: dialog.querySelector('#cdh-pf-date').value || null,
+          location: dialog.querySelector('#cdh-pf-location').value.trim() || null,
+          notes: dialog.querySelector('#cdh-pf-notes').value.trim() || null,
         }),
       });
-      const payload = await response.json();
+      const payload = await readJson(response);
       if (!response.ok) {
-        throw new Error(payload.error || 'Failed to save');
+        throw new Error(payload.error || 'We could not save your changes. Please try again.');
       }
-      close();
+      dialog.close();
       if (typeof onSaved === 'function') {
         onSaved();
       }
     } catch (err) {
-      statusEl.textContent = `✗ ${err.message}`;
-      statusEl.style.color = '#ef4444';
-    } finally {
+      statusEl.dataset.tone = 'error';
+      statusEl.textContent = err.message;
       saveBtn.disabled = false;
-      saveBtn.textContent = 'Save Changes';
+      saveBtn.textContent = 'Save changes';
     }
   });
+
+  showDialog(dialog, opener);
+  nameInput.focus();
 }
 
 /**
@@ -262,79 +269,57 @@ function showEditPlanModal(plan, onSaved) {
  * @param {Function} onDeleted - Called after a successful delete
  */
 function confirmDeletePlan(plan, onDeleted) {
+  document.getElementById('cdh-plan-delete-dialog')?.remove();
+  const opener = document.activeElement;
   const displayName = escapeHtml(plan.name || plan.eventType || 'this plan');
-  const existing = document.getElementById('_dash_plan_delete_modal');
-  if (existing) {
-    existing.remove();
-  }
 
-  const overlay = document.createElement('div');
-  overlay.id = '_dash_plan_delete_modal';
-  overlay.setAttribute('role', 'dialog');
-  overlay.setAttribute('aria-modal', 'true');
-  overlay.style.cssText =
-    'position:fixed;inset:0;z-index:9000;background:rgba(0,0,0,0.45);display:flex;align-items:center;justify-content:center;padding:1rem;';
-  overlay.innerHTML = `
-    <div style="background:#fff;border-radius:12px;max-width:400px;width:100%;box-shadow:0 20px 50px rgba(0,0,0,0.2);padding:1.5rem;animation:ef-modal-in 0.2s ease both;">
-      <h3 style="margin:0 0 0.75rem;font-size: 1.125rem;font-weight:700;">Delete Plan</h3>
-      <p style="margin:0 0 1.5rem;font-size: 0.875rem;color:#374151;">Are you sure you want to delete <strong>${displayName}</strong>? This cannot be undone.</p>
-      <p id="_del_status" style="font-size:0.875rem;margin:0 0 0.75rem;color:#ef4444;" role="status" aria-live="polite"></p>
-      <div style="display:flex;justify-content:flex-end;gap:0.75rem;">
-        <button id="_del_cancel" type="button" class="cdh-btn cdh-btn--secondary">Cancel</button>
-        <button id="_del_confirm" type="button" class="cdh-btn cdh-btn--danger">Delete</button>
-      </div>
+  const dialog = document.createElement('dialog');
+  dialog.id = 'cdh-plan-delete-dialog';
+  dialog.className = 'cdh-dialog cdh-dialog--narrow';
+  dialog.setAttribute('aria-labelledby', 'cdh-plan-delete-title');
+  dialog.setAttribute('aria-describedby', 'cdh-plan-delete-text');
+  dialog.innerHTML = `
+    <div class="cdh-dialog__body">
+      <h2 class="cdh-dialog__title" id="cdh-plan-delete-title">Delete ${displayName}?</h2>
+      <p class="cdh-dialog__text" id="cdh-plan-delete-text">This removes the plan and everything saved on it, including its budget and guest list. It cannot be undone.</p>
+      <p class="cdh-form-status" id="cdh-del-status" role="status" aria-live="polite"></p>
+    </div>
+    <div class="cdh-dialog__foot">
+      <button type="button" class="cdh-btn cdh-btn--quiet" data-dialog-close autofocus>Cancel</button>
+      <button type="button" class="cdh-btn cdh-btn--danger" id="cdh-del-confirm">Delete plan</button>
     </div>
   `;
 
-  document.body.appendChild(overlay);
-
-  /** Removes the dialog and restores page scrolling and the Escape handler. */
-  const close = () => {
-    overlay.remove();
-    document.body.style.overflow = '';
-    document.removeEventListener('keydown', handleEscDel);
-  };
-  /** Closes the Delete Plan dialog on Escape. */
-  function handleEscDel(event) {
-    if (event.key === 'Escape') {
-      close();
-    }
-  }
-  document.body.style.overflow = 'hidden';
-  document.addEventListener('keydown', handleEscDel);
-  overlay.querySelector('#_del_cancel').addEventListener('click', close);
-  overlay.addEventListener('click', event => {
-    if (event.target === overlay) {
-      close();
-    }
-  });
-
-  overlay.querySelector('#_del_confirm').addEventListener('click', async () => {
-    const delBtn = overlay.querySelector('#_del_confirm');
-    const statusEl = overlay.querySelector('#_del_status');
-    delBtn.disabled = true;
-    delBtn.textContent = 'Deleting…';
+  const confirmBtn = dialog.querySelector('#cdh-del-confirm');
+  const statusEl = dialog.querySelector('#cdh-del-status');
+  confirmBtn.addEventListener('click', async () => {
+    confirmBtn.disabled = true;
+    confirmBtn.textContent = 'Deleting…';
+    statusEl.textContent = '';
     try {
-      const csrf = await getCsrfToken();
+      const csrf = await ensureCsrfToken();
       const response = await fetch(`/api/me/plans/${encodeURIComponent(plan.id)}`, {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrf },
         credentials: 'include',
       });
-      const payload = await response.json();
+      const payload = await readJson(response);
       if (!response.ok) {
-        throw new Error(payload.error || 'Failed to delete');
+        throw new Error(payload.error || 'We could not delete this plan. Please try again.');
       }
-      close();
+      dialog.close();
       if (typeof onDeleted === 'function') {
         onDeleted();
       }
     } catch (err) {
-      statusEl.textContent = `✗ ${err.message}`;
-      delBtn.disabled = false;
-      delBtn.textContent = 'Delete';
+      statusEl.dataset.tone = 'error';
+      statusEl.textContent = err.message;
+      confirmBtn.disabled = false;
+      confirmBtn.textContent = 'Delete plan';
     }
   });
+
+  showDialog(dialog, opener);
 }
 
 /** HTML-escapes a string for safe use in markup (non-strings become an empty string). */
