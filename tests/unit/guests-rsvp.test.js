@@ -167,6 +167,44 @@ describe('guests routes', () => {
       expect(plan().guestList).toHaveLength(1);
     });
 
+    test('only real names count: tag-only and non-string names are skipped', async () => {
+      const res = await request(app)
+        .post('/api/me/plans/p3/guests/bulk')
+        .send({
+          guests: [{ name: '<b></b>' }, { name: { $ne: '' } }, { name: 42 }, null, 'Ann', []],
+        });
+      expect(res.status).toBe(201);
+      expect(res.body.guests).toEqual([]);
+      expect(res.body.skipped.map(s => s.index)).toEqual([0, 1, 2, 3, 4, 5]);
+    });
+
+    test('free-text fields that were stored as given are sanitised on create and import', async () => {
+      const row = { name: 'Ann', source: '<img src=x onerror=1>csv', tableId: { $gt: '' } };
+      const bulk = await request(app)
+        .post('/api/me/plans/p3/guests/bulk')
+        .send({ guests: [row, { name: 'Bob', source: 's'.repeat(300), tableId: '<i>t1</i>' }] });
+      const [ann, bob] = bulk.body.guests;
+      expect(ann.source).toBe('csv');
+      expect(ann.tableId).toBeNull();
+      expect(bob.source).toHaveLength(50);
+      expect(bob.tableId).toBe('t1');
+      const single = await request(app).post('/api/me/plans/p3/guests').send(row);
+      expect(single.body.guest.source).toBe('csv');
+      const blank = await request(app).post('/api/me/plans/p3/guests').send({ name: '<b></b>' });
+      expect(blank.status).toBe(400);
+      const missing = await request(app).post('/api/me/plans/p3/guests').send({ name: 7 });
+      expect(missing.status).toBe(400);
+    });
+
+    test('a failed database write is reported, not answered as added', async () => {
+      require('../../db-unified').updateOne.mockResolvedValueOnce(false);
+      const res = await request(app)
+        .post('/api/me/plans/p3/guests/bulk')
+        .send({ guests: [{ name: 'Ann' }] });
+      expect(res.status).toBe(500);
+      expect(plan().guestList).toHaveLength(1);
+    });
+
     test('a list with only unnamed rows adds nothing', async () => {
       const res = await request(app)
         .post('/api/me/plans/p3/guests/bulk')
