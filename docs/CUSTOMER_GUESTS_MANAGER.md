@@ -44,6 +44,10 @@ Fields used: `name`, `email`, `phone`, `rsvpStatus` (pending, attending, maybe, 
 - Add has "Save and add another" for entering several guests quickly.
 - The server frees the table of any guest who is not attending each time they are saved (including
   a table typed in the same form), so the edit dialog says so when that is about to happen.
+- With no `?plan=` the page opens on the plan last picked here or on the budget page (shared in
+  `localStorage` as `ef_customer_plan`), otherwise on the dashboard's focus plan (the next dated
+  plan), so the three customer pages start on the same event. The dashboard's guest links carry
+  `?plan=`.
 - A party size outside 1 to 20 (the server's limit) is reported next to the field instead of being
   quietly changed.
 - The page uses the same warm neutrals, 1200px frame and rounded-rectangle shapes as the budget page

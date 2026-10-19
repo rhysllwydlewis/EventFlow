@@ -320,6 +320,43 @@ describe('the app, rendered into guests.html (jsdom)', () => {
   });
 });
 
+describe('pickFocusPlan', () => {
+  const day = offset => {
+    const d = new Date();
+    d.setDate(d.getDate() + offset);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  };
+
+  test('picks the next upcoming plan, as the dashboard summary does', () => {
+    const plans = [
+      { id: 'far', eventDate: day(200) },
+      { id: 'past', eventDate: day(-30) },
+      { id: 'soon', eventDate: day(20) },
+      { id: 'undated' },
+    ];
+    expect(lib.pickFocusPlan(plans).id).toBe('soon');
+  });
+
+  test('falls back to the latest dated plan when all have passed, then to the first plan', () => {
+    expect(
+      lib.pickFocusPlan([
+        { id: 'old', eventDate: day(-90) },
+        { id: 'recent', eventDate: day(-5) },
+      ]).id
+    ).toBe('recent');
+    expect(lib.pickFocusPlan([{ id: 'a' }, { id: 'b' }]).id).toBe('a');
+  });
+
+  test('a plan dated today still counts as upcoming', () => {
+    expect(
+      lib.pickFocusPlan([
+        { id: 'later', eventDate: day(10) },
+        { id: 'today', eventDate: day(0) },
+      ]).id
+    ).toBe('today');
+  });
+});
+
 describe('page invariants', () => {
   test('loads one page stylesheet and the single guests script, both versioned', () => {
     expect(html).toMatch(/\/assets\/css\/guests\.css\?v=[\w.]+/);

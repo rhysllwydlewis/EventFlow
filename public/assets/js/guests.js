@@ -31,6 +31,8 @@
   // The write limiter allows 80 writes per 10 minutes, and a CSV import is one write per guest.
   const MAX_IMPORT = 50;
   const MAX_PARTY = 20;
+  // The last plan picked on the guest list or the budget page, shared so they stay on one event.
+  const PLAN_KEY = 'ef_customer_plan';
 
   /* ------------------------------------------------------------------ *
    * Pure helpers
@@ -336,6 +338,28 @@
     return Boolean(plan?.weddingWebsite) || type === 'wedding' || name.includes('wedding');
   }
 
+  /** Local midnight for a plan date string such as 2027-06-19, or null when it has none. */
+  function planDay(plan) {
+    const match = /^(\d{4})-(\d{2})-(\d{2})/u.exec(String(plan?.eventDate || plan?.date || ''));
+    return match ? new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3])) : null;
+  }
+
+  /**
+   * The plan the customer dashboard summarises: the next upcoming date, else the latest dated
+   * plan, else the first. Used when the page is opened without ?plan= and nothing is remembered,
+   * so all three customer pages start on the same event.
+   */
+  function pickFocusPlan(plans) {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const dated = plans
+      .map(plan => ({ plan, day: planDay(plan) }))
+      .filter(item => item.day)
+      .sort((left, right) => left.day - right.day);
+    const upcoming = dated.find(item => item.day >= today);
+    return (upcoming || dated[dated.length - 1] || { plan: plans[0] }).plan;
+  }
+
   /** A UK-style short date such as "19 Jun 2027", or '' for a missing or invalid value. */
   function formatDate(value) {
     const date = new Date(value);
@@ -343,6 +367,24 @@
       return '';
     }
     return date.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+  }
+
+  /** The remembered plan id, or '' when nothing is stored or storage is blocked. */
+  function remembered() {
+    try {
+      return window.localStorage.getItem(PLAN_KEY) || '';
+    } catch {
+      return '';
+    }
+  }
+
+  /** Remembers the picked plan for the next visit (ignored when storage is blocked). */
+  function remember(id) {
+    try {
+      window.localStorage.setItem(PLAN_KEY, id);
+    } catch {
+      /* the choice just is not remembered */
+    }
   }
 
   /** The name to show for a plan. */
@@ -523,8 +565,8 @@
             renderStage();
             return;
           }
-          const wanted = new URLSearchParams(window.location.search).get('plan');
-          state.plan = state.plans.find(p => p.id === wanted) || state.plans[0];
+          const wanted = new URLSearchParams(window.location.search).get('plan') || remembered();
+          state.plan = state.plans.find(p => p.id === wanted) || pickFocusPlan(state.plans);
         }
         const data = await api(guestsPath(''));
         if (thisLoad !== loadId) {
@@ -1137,6 +1179,7 @@
         renderResults();
       } else if (id === 'gm-plan-select') {
         state.plan = state.plans.find(p => p.id === value) || state.plan;
+        remember(state.plan.id);
         state.query = '';
         state.status = '';
         state.page = 1;
@@ -1161,6 +1204,7 @@
     guestsFromCsv,
     toPayload,
     isWeddingPlan,
+    pickFocusPlan,
     createGuestApp,
     MAX_IMPORT,
   };
