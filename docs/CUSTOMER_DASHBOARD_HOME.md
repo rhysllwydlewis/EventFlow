@@ -104,6 +104,7 @@ From this page (the files are deleted only where nothing else loaded them):
 - `skeleton.css` still has placeholder rules for the removed `#customer-*`
   widgets. Harmless; `tests/unit/dashboard-skeleton-compatibility.test.js`
   asserts them, so remove both together.
-- `dashboard-guard.js` is now `?v=17.1.0` on this page only. Its behaviour
-  changed only for customers on this page, so the other pages that load
-  `?v=17.0.2` behave identically with either copy.
+- `dashboard-guard.js` changed (it no longer injects the removed scripts), so its
+  `?v=` is `17.1.0` on every page that loads it, including the generated
+  `admin-community.html` via `scripts/generate-community-pages.mjs`. Behaviour
+  only differed on this page; the bump is for cache hygiene.

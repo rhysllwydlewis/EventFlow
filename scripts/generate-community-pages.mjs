@@ -127,7 +127,7 @@ function shell(page) {
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5, user-scalable=yes" />
     <meta name="theme-color" content="#0B8073" />
     <script src="/assets/js/config/canonical-base.js"></script>
-${page.adminGuard ? '    <script src="/assets/js/dashboard-guard.js?v=17.0.2"></script>\n' : ''}    <!--COMMUNITY_HEAD-->
+${page.adminGuard ? '    <script src="/assets/js/dashboard-guard.js?v=17.1.0"></script>\n' : ''}    <!--COMMUNITY_HEAD-->
     <link rel="preload" href="/assets/css/tokens.css?v=${version('/assets/css/tokens.css')}" as="style" />
     <link rel="preload" href="/assets/css/styles.css?v=${version('/assets/css/styles.css')}" as="style" />
     <link rel="stylesheet" href="/assets/css/tokens.css?v=${version('/assets/css/tokens.css')}" />
