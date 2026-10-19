@@ -53,7 +53,7 @@ describe('homepage flow layer wiring', () => {
   });
 
   test('the homepage body carries the scope class from first paint, not only after the script runs', () => {
-    expect(index).toMatch(/<body class="ef-home-flow ef-home-guidance">/);
+    expect(index).toMatch(/<body class="ef-home-flow ef-home-guidance ef-home-quicklinks">/);
   });
 
   test('every rule is scoped to the production homepage', () => {
@@ -75,6 +75,56 @@ describe('homepage flow layer wiring', () => {
     );
     // a single 999px radius is a pill; the wedding arch uses four values and is allowed
     expect(css).not.toMatch(/border-radius:\s*999px\s*;/);
+  });
+});
+
+describe('quick links under the hero search', () => {
+  test('can be switched off from the admin, and are a swipeable row on phones', () => {
+    expect(css).toMatch(
+      /body\.ef-home-flow:not\(\.ef-home-quicklinks\) main \.ef-quick-tags\s*\{[^}]*display:\s*none\s*!important/
+    );
+    const phone = css.match(
+      /@media \(max-width: 639px\)\s*\{\s*body\.ef-home-flow\.ef-home-quicklinks main \.ef-quick-tags \{([^}]*)\}/
+    )[1];
+    expect(phone).toMatch(/display:\s*flex\s*!important/);
+    expect(phone).toMatch(/flex-wrap:\s*nowrap/);
+    expect(phone).toMatch(/overflow-x:\s*auto/);
+    // styles.css makes every .ef-cta full width on phones; the chips must not be
+    expect(css).toMatch(/\.ef-quick-tags__tag\s*\{[^}]*width:\s*auto/);
+  });
+
+  test('the homepage body starts with the switch on, so a failed settings read leaves them showing', () => {
+    expect(index).toMatch(/<body class="[^"]*\bef-home-quicklinks\b/);
+  });
+});
+
+describe('no pill shapes on the homepage', () => {
+  const wedding = read('public/assets/css/home-wedding-showcase.css');
+
+  test('tags, badges and buttons are rounded rectangles', () => {
+    expect(approvedLowerCss).not.toMatch(/border-radius:\s*999px/);
+    // the only 999px left is the speaker slot drawn on the phone illustration
+    const pills = wedding.match(/[^{}]*\{[^}]*border-radius:\s*999px[^}]*\}/g) || [];
+    expect(pills).toHaveLength(1);
+    expect(pills[0]).toContain('.hws__screen::before');
+    const chips = css.match(/main \.ef-quick-tags__tag\s*\{[^}]*\}/)[0];
+    expect(chips).toMatch(/border-radius:\s*(?:[1-9]|1[0-2])px/);
+  });
+});
+
+describe('wedding section, compact', () => {
+  test('the illustration is drawn smaller, and its column is sized to match', () => {
+    const scale = Number(css.match(/\.hws \.hws__frame \{\s*--hws-s:\s*([\d.]+)/)[1]);
+    expect(scale).toBeLessThan(0.85);
+    const column = css.match(/grid-template-columns:\s*minmax\(0, 1fr\) calc\(640px \* ([\d.]+)\)/);
+    expect(Number(column[1])).toBe(scale);
+  });
+
+  test('the section pads like every other band, and the margin path follows it', () => {
+    expect(css).toMatch(/main \.hws \{\s*padding-block:\s*var\(--flow-pad\) !important/);
+    expect(css).toMatch(
+      /main \.hws \{\s*--spine-top:\s*var\(--flow-pad\);\s*--spine-bottom:\s*var\(--flow-pad\)/
+    );
   });
 });
 

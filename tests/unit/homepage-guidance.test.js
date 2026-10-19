@@ -40,12 +40,14 @@ const { auditLog } = require('../../middleware/audit');
 const {
   buildHomepageGuidance,
   getHomepageGuidanceEnabled,
+  getHomepageToggles,
   normaliseHomepageGuidance,
   updateHomepageGuidance,
   validateHomepageGuidancePayload,
 } = require('../../utils/homepage-manager');
 const {
   applyHomepageGuidance,
+  applyHomepageToggles,
   removeBodyClass,
   templateMiddleware,
   clearCache,
@@ -94,9 +96,26 @@ describe('homepage guidance setting', () => {
     dbUnified.read.mockResolvedValueOnce(null);
     await expect(getHomepageGuidanceEnabled()).resolves.toBe(true);
   });
+
+  test('each switch is read and kept on its own, from a single read', async () => {
+    dbUnified.read.mockClear();
+    dbUnified.read.mockResolvedValueOnce({
+      homepageQuickLinks: { enabled: false },
+      homepageGuidance: { enabled: true },
+    });
+    await expect(getHomepageToggles()).resolves.toEqual({ guidance: true, quickLinks: false });
+    expect(dbUnified.read).toHaveBeenCalledTimes(1);
+
+    dbUnified.read.mockResolvedValueOnce({});
+    await expect(getHomepageToggles()).resolves.toEqual({ guidance: true, quickLinks: true });
+  });
 });
 
-describe('admin guidance API', () => {
+describe.each([
+  ['guidance', 'guidance', 'HOMEPAGE_GUIDANCE_UPDATED', 'homepageGuidance'],
+  ['quick-links', 'quickLinks', 'HOMEPAGE_QUICK_LINKS_UPDATED', 'homepageQuickLinks'],
+])('admin homepage switch API: %s', (path, key, action, setting) => {
+  const url = `/api/v1/admin/homepage/manager/${path}`;
   const app = () => {
     const instance = express();
     instance.use(express.json());
@@ -111,7 +130,6 @@ describe('admin guidance API', () => {
   });
 
   test('requires an admin', async () => {
-    const url = '/api/v1/admin/homepage/manager/guidance';
     await request(app()).get(url).expect(401);
     await request(app()).get(url).set('x-test-role', 'customer').expect(403);
     await request(app())
@@ -122,15 +140,11 @@ describe('admin guidance API', () => {
   });
 
   test('reports on when nothing is stored', async () => {
-    const res = await request(app())
-      .get('/api/v1/admin/homepage/manager/guidance')
-      .set('x-test-role', 'admin')
-      .expect(200);
-    expect(res.body.guidance.enabled).toBe(true);
+    const res = await request(app()).get(url).set('x-test-role', 'admin').expect(200);
+    expect(res.body.toggle.enabled).toBe(true);
   });
 
   test('saving needs the CSRF token and a boolean', async () => {
-    const url = '/api/v1/admin/homepage/manager/guidance';
     await request(app()).put(url).set('x-test-role', 'admin').send({ enabled: false }).expect(403);
     await request(app())
       .put(url)
@@ -142,28 +156,44 @@ describe('admin guidance API', () => {
 
   test('switching off is stored with the rest of the settings and audited', async () => {
     const res = await request(app())
-      .put('/api/v1/admin/homepage/manager/guidance')
+      .put(url)
       .set({ 'x-test-role': 'admin', 'x-csrf-token': 'good' })
       .send({ enabled: false })
       .expect(200);
 
     expect(res.body).toMatchObject({
       success: true,
-      guidance: { enabled: false, updatedBy: 'admin@example.com' },
+      toggle: { enabled: false, updatedBy: 'admin@example.com' },
     });
     const [collection, saved] = dbUnified.writeAndVerify.mock.calls[0];
     expect(collection).toBe('settings');
     expect(saved.siteName).toBe('EventFlow');
-    expect(saved.homepageGuidance.enabled).toBe(false);
+    expect(saved[setting].enabled).toBe(false);
     expect(auditLog).toHaveBeenCalledWith(
-      expect.objectContaining({ action: 'HOMEPAGE_GUIDANCE_UPDATED', details: { enabled: false } })
+      expect.objectContaining({ action, targetId: key, details: { enabled: false } })
     );
+  });
+
+  test('changing one switch leaves the other as it was', async () => {
+    dbUnified.read.mockResolvedValue({
+      homepageGuidance: { enabled: false },
+      homepageQuickLinks: { enabled: false },
+    });
+    await request(app())
+      .put(url)
+      .set({ 'x-test-role': 'admin', 'x-csrf-token': 'good' })
+      .send({ enabled: true })
+      .expect(200);
+    const saved = dbUnified.writeAndVerify.mock.calls[0][1];
+    const other = setting === 'homepageGuidance' ? 'homepageQuickLinks' : 'homepageGuidance';
+    expect(saved[setting].enabled).toBe(true);
+    expect(saved[other].enabled).toBe(false);
   });
 
   test('a failed write is reported rather than pretending it worked', async () => {
     dbUnified.writeAndVerify.mockRejectedValueOnce(new Error('db down'));
     await request(app())
-      .put('/api/v1/admin/homepage/manager/guidance')
+      .put(url)
       .set({ 'x-test-role': 'admin', 'x-csrf-token': 'good' })
       .send({ enabled: true })
       .expect(500);
@@ -185,6 +215,25 @@ describe('homepage body class', () => {
       '<body class="ef-home-flow ef-home-guidance">'
     );
     expect(applyHomepageGuidance(page, undefined)).toBe(page);
+  });
+
+  test('each switch removes only its own class', () => {
+    const both =
+      '<html><body class="ef-home-flow ef-home-guidance ef-home-quicklinks"></body></html>';
+    expect(applyHomepageToggles(both, { guidance: true, quickLinks: false })).toContain(
+      '<body class="ef-home-flow ef-home-guidance">'
+    );
+    expect(applyHomepageToggles(both, { guidance: false, quickLinks: true })).toContain(
+      '<body class="ef-home-flow ef-home-quicklinks">'
+    );
+    expect(applyHomepageToggles(both, { guidance: false, quickLinks: false })).toContain(
+      '<body class="ef-home-flow">'
+    );
+    // nothing known means everything stays on, and a missing class is put back
+    expect(applyHomepageToggles(both, {})).toBe(both);
+    expect(applyHomepageToggles('<body class="ef-home-flow">', {})).toContain(
+      'ef-home-guidance ef-home-quicklinks'
+    );
   });
 
   test('does not touch similarly named classes or pages without a body class', () => {
@@ -224,6 +273,13 @@ describe('homepage served through the template middleware', () => {
     }
   });
 
+  test('the quick-links switch is applied on its own', async () => {
+    dbUnified.read.mockResolvedValue({ homepageQuickLinks: { enabled: false } });
+    const res = await request(app()).get('/').expect(200);
+    expect(bodyTag(res)).toContain('ef-home-guidance');
+    expect(bodyTag(res)).not.toContain('ef-home-quicklinks');
+  });
+
   test('the Homepage 2 file is left alone', async () => {
     dbUnified.read.mockResolvedValue({ homepageGuidance: { enabled: false } });
     const res = await request(app()).get('/home-v2-preview').expect(200);
@@ -245,15 +301,25 @@ describe('homepage served through the template middleware', () => {
   });
 });
 
-describe('admin homepage guidance card', () => {
+describe('admin homepage switches', () => {
   const html = read('public/admin-homepage.html');
   const script = read('public/assets/js/pages/admin-homepage-guidance.js');
 
-  test('the page has a labelled switch and loads its script', () => {
-    expect(html).toMatch(/<input[^>]*id="homepageGuidanceToggle"[^>]*role="switch"/);
-    expect(html).toContain('id="homepageGuidanceLabel"');
-    expect(html).toMatch(/id="homepageGuidanceMeta"[^>]*aria-live="polite"/);
+  test.each([
+    ['guidance', 'homepageGuidanceToggle', 'homepageGuidanceMeta'],
+    ['quick-links', 'homepageQuickLinksToggle', 'homepageQuickLinksMeta'],
+  ])('the %s switch is labelled, announced and wired up', (path, toggleId, metaId) => {
+    expect(html).toContain(`data-homepage-toggle="${path}"`);
+    expect(html).toMatch(new RegExp(`<input[^>]*id="${toggleId}"[^>]*role="switch"`));
+    expect(html).toMatch(new RegExp(`id="${metaId}"[^>]*aria-live="polite"`));
+  });
+
+  test('the page loads the script with a cache-busting version', () => {
     expect(html).toMatch(/admin-homepage-guidance\.js\?v=/);
+  });
+
+  test('the quick-links card points to the sign-up popup controls instead of duplicating them', () => {
+    expect(html).toContain('Admin &rarr; Settings');
   });
 
   test('the switch keeps a visible boundary when off, and survives forced colours', () => {
@@ -270,8 +336,9 @@ describe('admin homepage guidance card', () => {
     expect(adminCss).toMatch(/@media \(forced-colors: active\)[\s\S]*homepage-guidance-track/);
   });
 
-  test('the script uses the admin API with a CSRF token and undoes a failed save', () => {
-    expect(script).toContain('/api/v1/admin/homepage/manager/guidance');
+  test('the script drives every switch from the API, sends a CSRF token and undoes a failed save', () => {
+    expect(script).toContain('/api/v1/admin/homepage/manager/');
+    expect(script).toContain('[data-homepage-toggle]');
     expect(script).toContain('__CSRF_TOKEN__');
     expect(script).toContain("'PUT'");
     expect(script).toContain('toggle.checked = !wanted');

@@ -1,41 +1,16 @@
 'use strict';
 /**
- * Homepage guidance switch on the admin homepage manager.
- * Reads and saves settings.homepageGuidance through the homepage manager API.
- * The public homepage picks the change up on its next request.
+ * On/off switches on the admin homepage manager (page guidance, hero quick links).
+ * Each [data-homepage-toggle] block reads and saves its own setting through the
+ * homepage manager API. The public homepage picks a change up on its next request.
  */
 (() => {
-  const ENDPOINT = '/api/v1/admin/homepage/manager/guidance';
-  const toggle = document.getElementById('homepageGuidanceToggle');
-  const label = document.getElementById('homepageGuidanceLabel');
-  const meta = document.getElementById('homepageGuidanceMeta');
-
-  if (!toggle || !label || !meta) {
-    return;
-  }
+  const API_BASE = '/api/v1/admin/homepage/manager/';
 
   const toast = (message, type) => {
     if (window.AdminShared && typeof window.AdminShared.showToast === 'function') {
       window.AdminShared.showToast(message, type);
     }
-  };
-
-  const describe = guidance => {
-    if (!guidance.updatedAt) {
-      return 'On by default. It has not been changed yet.';
-    }
-    const when = new Date(guidance.updatedAt);
-    const stamp = Number.isNaN(when.getTime())
-      ? ''
-      : when.toLocaleString('en-GB', { dateStyle: 'medium', timeStyle: 'short' });
-    const by = guidance.updatedBy ? ` by ${guidance.updatedBy}` : '';
-    return `Last changed ${stamp}${by}.`.replace('changed .', 'changed.');
-  };
-
-  const render = guidance => {
-    toggle.checked = guidance.enabled === true;
-    label.textContent = guidance.enabled ? 'Guidance is on' : 'Guidance is off';
-    meta.textContent = describe(guidance);
   };
 
   // AdminShared.api() sends the CSRF token it finds on window; make sure it is there.
@@ -56,40 +31,79 @@
 
   const api = (url, method, body) => window.AdminShared.api(url, method, body);
 
-  const load = async () => {
-    try {
-      const data = await api(ENDPOINT, 'GET');
-      render(data.guidance);
-      toggle.disabled = false;
-    } catch (error) {
-      label.textContent = 'Could not load this setting';
-      meta.textContent = error.message;
+  const describe = state => {
+    if (!state.updatedAt) {
+      return 'On by default. It has not been changed yet.';
     }
+    const when = new Date(state.updatedAt);
+    const stamp = Number.isNaN(when.getTime())
+      ? ''
+      : when.toLocaleString('en-GB', { dateStyle: 'medium', timeStyle: 'short' });
+    const by = state.updatedBy ? ` by ${state.updatedBy}` : '';
+    return `Last changed ${stamp}${by}.`.replace('changed .', 'changed.');
   };
 
-  toggle.addEventListener('change', async () => {
-    const wanted = toggle.checked;
-    toggle.disabled = true;
-    meta.textContent = 'Saving...';
-    try {
-      await ensureCsrfToken();
-      const data = await api(ENDPOINT, 'PUT', { enabled: wanted });
-      render(data.guidance);
-      toast(wanted ? 'Homepage guidance switched on' : 'Homepage guidance switched off', 'success');
-    } catch (error) {
-      toggle.checked = !wanted;
-      label.textContent = toggle.checked ? 'Guidance is on' : 'Guidance is off';
-      meta.textContent = error.message;
-      toast(error.message, 'error');
-    } finally {
-      toggle.disabled = false;
+  const setup = root => {
+    const endpoint = API_BASE + root.dataset.homepageToggle;
+    const toggle = root.querySelector('[data-toggle-input]');
+    const label = root.querySelector('[data-toggle-label]');
+    const meta = root.querySelector('[data-toggle-meta]');
+    if (!toggle || !label || !meta) {
+      return;
     }
-  });
 
-  if (window.AdminShared && typeof window.AdminShared.api === 'function') {
+    const labelFor = on => (on ? root.dataset.onLabel : root.dataset.offLabel);
+
+    const render = state => {
+      toggle.checked = state.enabled === true;
+      label.textContent = labelFor(toggle.checked);
+      meta.textContent = describe(state);
+    };
+
+    const load = async () => {
+      try {
+        const data = await api(endpoint, 'GET');
+        render(data.toggle);
+        toggle.disabled = false;
+      } catch (error) {
+        label.textContent = 'Could not load this setting';
+        meta.textContent = error.message;
+      }
+    };
+
+    toggle.addEventListener('change', async () => {
+      const wanted = toggle.checked;
+      toggle.disabled = true;
+      meta.textContent = 'Saving...';
+      try {
+        await ensureCsrfToken();
+        const data = await api(endpoint, 'PUT', { enabled: wanted });
+        render(data.toggle);
+        toast(wanted ? root.dataset.onToast : root.dataset.offToast, 'success');
+      } catch (error) {
+        toggle.checked = !wanted;
+        label.textContent = labelFor(toggle.checked);
+        meta.textContent = error.message;
+        toast(error.message, 'error');
+      } finally {
+        toggle.disabled = false;
+      }
+    });
+
     load();
+  };
+
+  const roots = document.querySelectorAll('[data-homepage-toggle]');
+  if (window.AdminShared && typeof window.AdminShared.api === 'function') {
+    roots.forEach(setup);
   } else {
-    label.textContent = 'Could not load this setting';
-    meta.textContent = 'The admin tools did not load. Refresh the page.';
+    roots.forEach(root => {
+      const label = root.querySelector('[data-toggle-label]');
+      const meta = root.querySelector('[data-toggle-meta]');
+      if (label && meta) {
+        label.textContent = 'Could not load this setting';
+        meta.textContent = 'The admin tools did not load. Refresh the page.';
+      }
+    });
   }
 })();

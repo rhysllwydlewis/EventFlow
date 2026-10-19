@@ -764,12 +764,20 @@ async function getActiveHomepageVersion() {
 }
 
 /**
- * Homepage guidance: the pointers between sections, the "Browse" cues on category
- * cards, the path down the margin and the closing call to action. It is on unless
- * an admin has explicitly switched it off, so a missing or unreadable setting can
- * never remove it by accident.
+ * Homepage display switches. Each one is on unless an admin has explicitly
+ * switched it off, so a missing or unreadable setting can never remove a feature
+ * by accident.
+ *
+ *  - guidance:   the pointers between sections, the "Browse" cues on category
+ *                cards, the path down the margin and the closing call to action
+ *  - quickLinks: the shortcut row under the hero search box
  */
-function normaliseHomepageGuidance(raw) {
+const HOMEPAGE_TOGGLES = {
+  guidance: { setting: 'homepageGuidance' },
+  quickLinks: { setting: 'homepageQuickLinks' },
+};
+
+function normaliseHomepageToggle(raw) {
   const source = raw && typeof raw === 'object' ? raw : {};
   return {
     enabled: source.enabled !== false,
@@ -778,21 +786,21 @@ function normaliseHomepageGuidance(raw) {
   };
 }
 
-function buildHomepageGuidance(settings = {}) {
-  return normaliseHomepageGuidance(settings.homepageGuidance);
+function buildHomepageToggle(settings, key) {
+  return normaliseHomepageToggle((settings || {})[HOMEPAGE_TOGGLES[key].setting]);
 }
 
-function validateHomepageGuidancePayload(payload) {
+function validateHomepageTogglePayload(payload) {
   if (!payload || typeof payload !== 'object' || typeof payload.enabled !== 'boolean') {
-    return 'Choose whether homepage guidance is on or off.';
+    return 'Choose whether this is on or off.';
   }
   return null;
 }
 
-function updateHomepageGuidance(settings, enabled, user) {
+function updateHomepageToggle(settings, key, enabled, user) {
   return {
     ...settings,
-    homepageGuidance: {
+    [HOMEPAGE_TOGGLES[key].setting]: {
       enabled: enabled === true,
       updatedAt: new Date().toISOString(),
       updatedBy: user?.email || user?.id || null,
@@ -800,11 +808,21 @@ function updateHomepageGuidance(settings, enabled, user) {
   };
 }
 
-async function getHomepageGuidanceEnabled() {
+/** Every switch in one read, for the page renderer. */
+async function getHomepageToggles() {
   const dbUnified = require('../db-unified');
   const settings = (await dbUnified.read('settings')) || {};
-  return buildHomepageGuidance(settings).enabled;
+  return Object.fromEntries(
+    Object.keys(HOMEPAGE_TOGGLES).map(key => [key, buildHomepageToggle(settings, key).enabled])
+  );
 }
+
+const normaliseHomepageGuidance = normaliseHomepageToggle;
+const buildHomepageGuidance = settings => buildHomepageToggle(settings, 'guidance');
+const validateHomepageGuidancePayload = validateHomepageTogglePayload;
+const updateHomepageGuidance = (settings, enabled, user) =>
+  updateHomepageToggle(settings, 'guidance', enabled, user);
+const getHomepageGuidanceEnabled = async () => (await getHomepageToggles()).guidance;
 
 function isSafeHomepageMediaUrl(value, { allowUploadPath = true } = {}) {
   if (safeHttpUrl(value)) {
@@ -1052,10 +1070,12 @@ module.exports = {
   assignPexelsMediaToVersion,
   buildHomepageGuidance,
   buildHomepageManager,
+  buildHomepageToggle,
   duplicateHomepageVersion,
   getActiveHomepageVersion,
   getHomepageCollageWidget,
   getHomepageGuidanceEnabled,
+  getHomepageToggles,
   getHomepageVersion,
   normaliseMediaLibrary,
   isHomepageVersion,
@@ -1067,9 +1087,12 @@ module.exports = {
   resolveHomepageMedia,
   publishHomepageVersion,
   updateHomepageGuidance,
+  updateHomepageToggle,
   updateHomepageVersion,
   updateMediaLibraryForVersion,
   validateHomepageGuidancePayload,
+  validateHomepageTogglePayload,
+  HOMEPAGE_TOGGLES,
   validatePexelsAssignmentPayload,
   validateHomepageVersionPayload,
 };

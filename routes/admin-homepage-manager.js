@@ -12,16 +12,16 @@ const { authRequired, roleRequired } = require('../middleware/auth');
 const { csrfProtection } = require('../middleware/csrf');
 const { auditLog } = require('../middleware/audit');
 const {
-  buildHomepageGuidance,
   buildHomepageManager,
+  buildHomepageToggle,
   duplicateHomepageVersion,
   publishHomepageVersion,
-  updateHomepageGuidance,
+  updateHomepageToggle,
   updateHomepageVersion,
   assignPexelsMediaToVersion,
   removePexelsMediaFromVersion,
   updateMediaLibraryForVersion,
-  validateHomepageGuidancePayload,
+  validateHomepageTogglePayload,
   validateHomepageVersionPayload,
 } = require('../utils/homepage-manager');
 
@@ -37,43 +37,57 @@ router.get('/', authRequired, roleRequired('admin'), async (req, res) => {
   }
 });
 
-router.get('/guidance', authRequired, roleRequired('admin'), async (req, res) => {
-  try {
-    const settings = (await dbUnified.read('settings')) || {};
-    res.json({ success: true, guidance: buildHomepageGuidance(settings) });
-  } catch (error) {
-    logger.error('Error reading homepage guidance:', error);
-    res.status(500).json({ error: 'Failed to read homepage guidance setting' });
-  }
-});
+// On/off switches for parts of the public homepage. Each is read and saved the
+// same way, so they share one set of handlers.
+const TOGGLE_ROUTES = [
+  { path: '/guidance', key: 'guidance', action: 'HOMEPAGE_GUIDANCE_UPDATED', label: 'guidance' },
+  {
+    path: '/quick-links',
+    key: 'quickLinks',
+    action: 'HOMEPAGE_QUICK_LINKS_UPDATED',
+    label: 'quick links',
+  },
+];
 
-router.put('/guidance', authRequired, roleRequired('admin'), csrfProtection, async (req, res) => {
-  try {
-    const validationError = validateHomepageGuidancePayload(req.body);
-    if (validationError) {
-      res.status(400).json({ error: validationError });
-      return;
+TOGGLE_ROUTES.forEach(({ path, key, action, label }) => {
+  router.get(path, authRequired, roleRequired('admin'), async (req, res) => {
+    try {
+      const settings = (await dbUnified.read('settings')) || {};
+      res.json({ success: true, toggle: buildHomepageToggle(settings, key) });
+    } catch (error) {
+      logger.error(`Error reading homepage ${label}:`, error);
+      res.status(500).json({ error: `Failed to read homepage ${label} setting` });
     }
+  });
 
-    const settings = (await dbUnified.read('settings')) || {};
-    const nextSettings = updateHomepageGuidance(settings, req.body.enabled, req.user);
-    const result = await dbUnified.writeAndVerify('settings', nextSettings);
-    const guidance = buildHomepageGuidance(result.data);
+  router.put(path, authRequired, roleRequired('admin'), csrfProtection, async (req, res) => {
+    try {
+      const validationError = validateHomepageTogglePayload(req.body);
+      if (validationError) {
+        res.status(400).json({ error: validationError });
+        return;
+      }
 
-    auditLog({
-      adminId: req.user.id,
-      adminEmail: req.user.email,
-      action: 'HOMEPAGE_GUIDANCE_UPDATED',
-      targetType: 'homepage',
-      targetId: 'guidance',
-      details: { enabled: guidance.enabled },
-    });
+      const settings = (await dbUnified.read('settings')) || {};
+      const nextSettings = updateHomepageToggle(settings, key, req.body.enabled, req.user);
+      const result = await dbUnified.writeAndVerify('settings', nextSettings);
+      const toggle = buildHomepageToggle(result.data, key);
 
-    res.json({ success: true, guidance });
-  } catch (error) {
-    logger.error('Error updating homepage guidance:', error);
-    res.status(500).json({ error: 'Failed to update homepage guidance setting' });
-  }
+      auditLog({
+        adminId: req.user.id,
+        adminEmail: req.user.email,
+        action,
+        targetType: 'homepage',
+        targetId: key,
+        details: { enabled: toggle.enabled },
+      });
+
+      res.json({ success: true, toggle });
+    } catch (error) {
+      logger.error(`Error updating homepage ${label}:`, error);
+      res.status(500).json({ error: `Failed to update homepage ${label} setting` });
+    }
+  });
 });
 
 router.get('/media-library', authRequired, roleRequired('admin'), async (req, res) => {
