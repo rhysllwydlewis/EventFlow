@@ -114,7 +114,7 @@
     try {
       const url = new URL(String(value), window.location.origin);
       return ['http:', 'https:'].includes(url.protocol) ? url.href : '';
-    } catch (_err) {
+    } catch {
       return '';
     }
   }
@@ -140,9 +140,9 @@
   }
 
   /** Google Maps search link for an address or venue name. */
-  function mapLink(query) {
-    return query
-      ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}`
+  function mapLink(place) {
+    return place
+      ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(place)}`
       : '';
   }
 
@@ -252,11 +252,11 @@
 
   /** WCAG relative luminance. */
   function luminance(rgb) {
-    const [r, g, b] = rgb.map(n => {
-      const c = n / 255;
-      return c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
+    const [red, green, blue] = rgb.map(channel => {
+      const value = channel / 255;
+      return value <= 0.03928 ? value / 12.92 : ((value + 0.055) / 1.055) ** 2.4;
     });
-    return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+    return 0.2126 * red + 0.7152 * green + 0.0722 * blue;
   }
 
   /** WCAG contrast ratio between two colours. */
@@ -392,7 +392,7 @@
           ? data.error || 'Unable to load this authenticated preview.'
           : data.error,
       };
-    } catch (_err) {
+    } catch {
       return { networkError: true };
     }
   }
@@ -439,7 +439,7 @@
           message.textContent = 'Password accepted. Loading wedding details…';
           message.className = 'wed-msg wed-msg--ok';
           resolve(await requestWebsite());
-        } catch (_err) {
+        } catch {
           message.textContent = 'Unable to check the password right now. Please try again.';
           message.className = 'wed-msg wed-msg--error';
         } finally {
@@ -776,13 +776,13 @@
   function rsvpForm(m, preview) {
     const { site } = m;
     if (preview) {
-      return `<div class="wed-closed"><strong>RSVPs are switched off in preview.</strong><p>Guests will see the reply form here once your website is live.</p></div>`;
+      return '<div class="wed-closed"><strong>RSVPs are switched off in preview.</strong><p>Guests will see the reply form here once your website is live.</p></div>';
     }
     if (site.rsvpEnabled === false) {
-      return `<div class="wed-closed"><strong>RSVPs are not currently open.</strong><p>Please check back later or contact the couple directly.</p></div>`;
+      return '<div class="wed-closed"><strong>RSVPs are not currently open.</strong><p>Please check back later or contact the couple directly.</p></div>';
     }
     if (deadlinePassed(site.rsvpDeadline) || (m.days !== null && m.days < 0)) {
-      return `<div class="wed-closed"><strong>RSVPs are now closed.</strong><p>If your plans have changed, please contact the couple directly.</p></div>`;
+      return '<div class="wed-closed"><strong>RSVPs are now closed.</strong><p>If your plans have changed, please contact the couple directly.</p></div>';
     }
     const meals = list(site.mealOptions);
     return `<form id="rsvp-form" class="wed-form" novalidate>
@@ -1136,7 +1136,7 @@
           return;
         }
         say(text, 'error');
-      } catch (_err) {
+      } catch {
         say('We could not send your RSVP. Please check your connection and try again.', 'error');
       }
       submit.disabled = false;
@@ -1147,17 +1147,17 @@
 
   /** Draws the website and wires its behaviour. */
   function renderWebsite(site, { preview = false } = {}) {
-    const m = buildModel(site);
-    const theme = applyTheme(site, Boolean(m.cover));
+    const model = buildModel(site);
+    const theme = applyTheme(site, Boolean(model.cover));
     document.title = plain(site.coupleNames)
       ? `${plain(site.coupleNames)} — Wedding Website`
       : 'Wedding Website';
     root.classList.remove('wed-loading');
     root.removeAttribute('aria-live');
-    root.innerHTML = pageHtml(m, theme, preview);
+    root.innerHTML = pageHtml(model, theme, preview);
     root.addEventListener('click', event => {
       if (event.target.closest('[data-action="calendar"]')) {
-        downloadCalendar(m);
+        downloadCalendar(model);
       }
     });
     // A photo that fails to load falls back to the initials underneath it.
@@ -1171,8 +1171,8 @@
       true
     );
     bindNavigation();
-    bindGallery(m);
-    bindRsvp(m);
+    bindGallery(model);
+    bindRsvp(model);
   }
 
   /** Works out what to show for a response from the server. */
