@@ -138,7 +138,7 @@ const buildGuest = (plan, user, fields) => {
     rsvpStatus: STATUS.has(fields.rsvpStatus) ? fields.rsvpStatus : 'pending',
     source: fields.source || 'manual',
     partySize: Math.max(1, Math.min(20, Number(fields.partySize) || 1)),
-    plusOneAllowed: !!fields.plusOneAllowed,
+    plusOneAllowed: Boolean(fields.plusOneAllowed),
     plusOneName: sanitize(fields.plusOneName, 200),
     childrenCount: Math.max(0, Math.min(10, Number(fields.childrenCount) || 0)),
     mealChoice: sanitize(fields.mealChoice, 100),
