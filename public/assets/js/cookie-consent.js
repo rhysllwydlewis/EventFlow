@@ -306,7 +306,7 @@
       '<div class="cookie-consent-actions">' +
       '<button id="cookie-consent-accept" class="cookie-consent-btn cookie-consent-accept" aria-label="Accept all cookies">Accept All</button>' +
       '<button id="cookie-consent-reject" class="cookie-consent-btn cookie-consent-reject" aria-label="Reject non-essential cookies">Reject</button>' +
-      '<button id="cookie-consent-manage" class="cookie-consent-btn cookie-consent-manage" aria-label="Manage cookie preferences">Manage Preferences</button>' +
+      '<button id="cookie-consent-manage" class="cookie-consent-btn cookie-consent-manage" aria-label="Manage preferences for cookies">Manage Preferences</button>' +
       '</div>' +
       '</div>';
 
