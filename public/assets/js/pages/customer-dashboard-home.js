@@ -279,7 +279,10 @@
   }
 
   /** Summary tile for budget: spent against the total, or a prompt to set one. */
-  function budgetTile(total, money) {
+  function budgetTile(total, money, plan) {
+    const budgetHref = plan?.id ? `/budget?plan=${encodeURIComponent(plan.id)}` : '/budget';
+    /** Link to the full budget page, where items are added and edited. */
+    const manage = `<a class="cdh-link" href="${budgetHref}">Open budget</a>`;
     const edit = `<button type="button" class="cdh-link" data-edit-budget aria-expanded="false" aria-controls="${ids.panel}">${total > 0 ? 'Edit' : 'Set budget'}</button>`;
     if (total <= 0) {
       const committed =
@@ -288,7 +291,7 @@
           : 'Set a total to see what is left as you book.';
       return tile(
         'Budget',
-        `<p class="cdh-tile__value cdh-tile__value--empty">Not set</p><p class="cdh-tile__sub">${esc(committed)}</p>`,
+        `<p class="cdh-tile__value cdh-tile__value--empty">Not set</p><p class="cdh-tile__sub">${esc(committed)} ${manage}</p>`,
         edit
       );
     }
@@ -302,7 +305,7 @@
       'Budget',
       `<p class="cdh-tile__value">${gbp(money.spent)}<span class="cdh-tile__unit"> of ${gbp(total)}</span></p>
        ${bar(percent, `Budget used: ${Math.round(percent)}%`, over ? 'warn' : '')}
-       <p class="cdh-tile__sub${over ? ' cdh-tile__sub--warn' : ''}">${esc(left + unpriced)}</p>`,
+       <p class="cdh-tile__sub${over ? ' cdh-tile__sub--warn' : ''}">${esc(left + unpriced)} · ${manage}</p>`,
       edit
     );
   }
@@ -367,7 +370,7 @@
     grid.className = 'cdh-summary__grid';
     grid.innerHTML = [
       countdownTile(plan),
-      budgetTile(money.total, money),
+      budgetTile(money.total, money, plan),
       progressTile(steps),
       guestsTile(plan, rsvp),
     ].join('');
@@ -409,6 +412,7 @@
       return;
     }
     const next = steps?.milestones.find(milestone => !milestone.done);
+    primary.hidden = false;
     if (!plan) {
       primary.textContent = 'Create your plan';
       primary.setAttribute('href', '/start');
@@ -631,6 +635,11 @@
     const lede = byId(ids.lede);
     if (lede) {
       lede.textContent = 'We could not load your plans just now.';
+    }
+    // A failed request says nothing about whether a plan exists, so do not nudge towards a new one.
+    const primary = byId(ids.primary);
+    if (primary) {
+      primary.hidden = true;
     }
     const grid = byId(ids.summary);
     if (grid) {

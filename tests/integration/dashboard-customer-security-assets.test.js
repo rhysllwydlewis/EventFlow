@@ -76,7 +76,9 @@ describe('Dashboard customer security-oriented script loading', () => {
   });
 
   it('aria-live regions are present on dynamic content containers', () => {
-    expect(dashboardContent).toContain('id="cdh-summary-grid" class="cdh-summary__grid" aria-live="polite"');
+    expect(dashboardContent).toContain(
+      'id="cdh-summary-grid" class="cdh-summary__grid" aria-live="polite"'
+    );
     expect(dashboardContent).toContain('id="customer-plans-list" aria-live="polite"');
     expect(dashboardContent).toContain('id="tickets-cust"');
     expect(dashboardContent).toMatch(/id="tickets-cust"[^>]*aria-live="polite"/);

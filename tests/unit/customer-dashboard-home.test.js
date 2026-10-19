@@ -177,6 +177,10 @@ describe('customer dashboard home: stylesheet scoping', () => {
     expect(css).not.toMatch(/font-size:\s*[0-9.]+rem/);
   });
 
+  test('no pill radii, so badges and bars match the other customer pages', () => {
+    expect(css).not.toMatch(/border-radius:\s*(999|9999)/);
+  });
+
   test('calms motion for people who ask for it', () => {
     expect(css).toContain('@media (prefers-reduced-motion: reduce)');
   });
@@ -345,6 +349,16 @@ describe('customer dashboard home: data handling', () => {
   test('a failed plans request shows an error state, not an empty dashboard', () => {
     expect(homeJs).toContain('function renderLoadError(');
     expect(homeJs).toMatch(/if \(!Array\.isArray\(plans\)\)/);
+  });
+
+  test('a failed plans request does not offer to create a plan', () => {
+    const body = homeJs.slice(homeJs.indexOf('function renderLoadError('));
+    expect(body.slice(0, body.indexOf('renderSteps(null)'))).toMatch(/primary\.hidden = true/);
+    expect(homeJs).toMatch(/primary\.hidden = false/);
+  });
+
+  test('the budget tile links to the budget page for the focus plan', () => {
+    expect(homeJs).toContain('/budget?plan=${encodeURIComponent(plan.id)}');
   });
 
   test('the recommendations widget does not start itself', () => {
