@@ -103,13 +103,11 @@ From this page (the files are deleted only where nothing else loaded them):
 
 ## Things left alone
 
-- `app.js` still has a `dash_customer` first-visit onboarding box that looks for
-  `main .container`. This page no longer has one, so it silently does nothing.
-  Removing it means editing a script loaded on most pages, which needs a version
-  bump everywhere; do it as its own change.
-- `skeleton.css` still has placeholder rules for the removed `#customer-*`
-  widgets. Harmless; `tests/unit/dashboard-skeleton-compatibility.test.js`
-  asserts them, so remove both together.
+- Done in a later clean-up: the old first-visit onboarding box for customers (`dash_customer` in `app.js`), its
+  `renderThreads` helper and the `#customer-*` placeholder rules in `skeleton.css` were
+  removed afterwards. `app.js` is now `?v=18.5.5` and `skeleton.css` `?v=2.1.0` everywhere.
+  A first-visit welcome for new customers does not exist any more; if wanted, build it
+  into the dashboard home rather than restoring the script.
 - `dashboard-guard.js` changed (it no longer injects the removed scripts), so its
   `?v=` is `17.1.0` on every page that loads it, including the generated
   `admin-community.html` via `scripts/generate-community-pages.mjs`. Behaviour

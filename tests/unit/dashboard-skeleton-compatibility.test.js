@@ -11,8 +11,8 @@ describe('dashboard skeleton compatibility layer', () => {
   const skeletonCss = read('public/assets/css/skeleton.css');
 
   it('loads the repaired canonical stylesheet cache key on both dashboards', () => {
-    expect(read('public/dashboard-customer.html')).toContain('/assets/css/skeleton.css?v=2.0.1');
-    expect(read('public/dashboard-supplier.html')).toContain('/assets/css/skeleton.css?v=2.0.1');
+    expect(read('public/dashboard-customer.html')).toContain('/assets/css/skeleton.css?v=2.1.0');
+    expect(read('public/dashboard-supplier.html')).toContain('/assets/css/skeleton.css?v=2.1.0');
   });
 
   it('keeps the existing dashboard overhaul in its original stylesheet', () => {
@@ -23,10 +23,10 @@ describe('dashboard skeleton compatibility layer', () => {
     expect(dashboardCss).not.toContain('dashboard-overhaul-base.css');
   });
 
-  it('replaces customer dashboard slabs with scoped widget-shaped placeholders', () => {
-    expect(skeletonCss).toContain('#customer-event-countdown > .skeleton:only-child');
-    expect(skeletonCss).toContain('#customer-budget-kpis:has(> .skeleton:only-child)');
-    expect(skeletonCss).toContain('#customer-milestones-widget > .skeleton:only-child');
+  it('has no placeholders left for the customer widgets the redesigned dashboard removed', () => {
+    expect(skeletonCss).not.toContain('#customer-event-countdown');
+    expect(skeletonCss).not.toContain('#customer-budget-kpis');
+    expect(skeletonCss).not.toContain('#customer-milestones-widget');
   });
 
   it('adds internal hierarchy to the supplier availability placeholder', () => {

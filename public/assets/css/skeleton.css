@@ -416,65 +416,6 @@ html:not([data-sp-theme-ready='true']) body.sp-profile-page #sp-section-gallery:
 
 /* Dashboard widget-shaped placeholders. These selectors are intentionally more
    specific than the legacy dashboard .skeleton rule loaded later. */
-.customer-dashboard-page #customer-event-countdown > .skeleton:only-child {
-  min-height: 108px;
-  height: auto !important;
-  border: 1px solid var(--skeleton-border);
-  border-radius: 16px !important;
-  background:
-    linear-gradient(var(--skeleton-base), var(--skeleton-base)) 24px 22px / 28% 14px no-repeat,
-    linear-gradient(var(--skeleton-base), var(--skeleton-base)) 24px 48px / 52% 24px no-repeat,
-    linear-gradient(var(--skeleton-base), var(--skeleton-base)) 24px 86px / calc(100% - 48px) 8px no-repeat,
-    var(--skeleton-surface);
-  animation: none;
-  box-shadow: var(--skeleton-shadow);
-}
-
-.customer-dashboard-page #customer-budget-kpis:has(> .skeleton:only-child) {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 0.875rem;
-}
-
-.customer-dashboard-page #customer-budget-kpis:has(> .skeleton:only-child)::before,
-.customer-dashboard-page #customer-budget-kpis:has(> .skeleton:only-child)::after,
-.customer-dashboard-page #customer-budget-kpis > .skeleton:only-child {
-  content: '';
-  display: block;
-  box-sizing: border-box;
-  min-height: 92px;
-  height: auto !important;
-  margin: 0;
-  border: 1px solid var(--skeleton-border);
-  border-radius: 14px !important;
-  background:
-    linear-gradient(var(--skeleton-base), var(--skeleton-base)) 18px 18px / 38% 12px no-repeat,
-    linear-gradient(var(--skeleton-base), var(--skeleton-base)) 18px 46px / 54% 24px no-repeat,
-    var(--skeleton-surface);
-  animation: none;
-  box-shadow: var(--skeleton-shadow);
-}
-
-.customer-dashboard-page #customer-milestones-widget > .skeleton:only-child {
-  min-height: 218px;
-  height: auto !important;
-  border: 1px solid var(--skeleton-border);
-  border-radius: 16px !important;
-  background:
-    linear-gradient(var(--skeleton-base), var(--skeleton-base)) 24px 22px / 34% 18px no-repeat,
-    radial-gradient(circle at 32px 72px, var(--skeleton-base) 0 8px, transparent 9px),
-    linear-gradient(var(--skeleton-base), var(--skeleton-base)) 54px 66px / 62% 13px no-repeat,
-    radial-gradient(circle at 32px 112px, var(--skeleton-base) 0 8px, transparent 9px),
-    linear-gradient(var(--skeleton-base), var(--skeleton-base)) 54px 106px / 48% 13px no-repeat,
-    radial-gradient(circle at 32px 152px, var(--skeleton-base) 0 8px, transparent 9px),
-    linear-gradient(var(--skeleton-base), var(--skeleton-base)) 54px 146px / 70% 13px no-repeat,
-    radial-gradient(circle at 32px 192px, var(--skeleton-base) 0 8px, transparent 9px),
-    linear-gradient(var(--skeleton-base), var(--skeleton-base)) 54px 186px / 56% 13px no-repeat,
-    var(--skeleton-surface);
-  animation: none;
-  box-shadow: var(--skeleton-shadow);
-}
-
 .supplier-dashboard-page #supplier-availability-widget > .skeleton:only-child {
   min-height: 132px;
   height: auto !important;
@@ -563,12 +504,6 @@ html:not([data-sp-theme-ready='true']) body.sp-profile-page #sp-section-gallery:
 
   html:not([data-sp-theme-ready='true']) body.sp-profile-page #sp-section-gallery:empty::after {
     display: none;
-  }
-}
-
-@media (max-width: 720px) {
-  .customer-dashboard-page #customer-budget-kpis:has(> .skeleton:only-child) {
-    grid-template-columns: 1fr;
   }
 }
 

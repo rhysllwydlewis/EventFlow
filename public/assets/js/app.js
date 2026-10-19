@@ -1469,101 +1469,7 @@ async function initPlan() {
   }
 }
 
-async function renderThreads(targetEl) {
-  const host = document.getElementById(targetEl);
-  if (!host) {
-    return;
-  }
-
-  let user = null;
-  try {
-    user = await me();
-  } catch {
-    /* Ignore user fetch errors */
-  }
-  if (!user) {
-    host.innerHTML = '<p class="small">Sign in to see your conversations.</p>';
-    return;
-  }
-
-  try {
-    const r = await fetch('/api/v4/messenger/conversations', {
-      credentials: 'include',
-    });
-    if (!r.ok) {
-      host.innerHTML = '<p class="small">Could not load conversations.</p>';
-      return;
-    }
-    const d = await r.json();
-    const items = (d.conversations || d.items || [])
-      .slice()
-      .sort((a, b) => (b.updatedAt || '').localeCompare(a.updatedAt || ''));
-
-    if (!items.length) {
-      host.innerHTML =
-        '<p class="small">No conversations yet. Once you contact suppliers, they\'ll appear here.</p>';
-      return;
-    }
-
-    host.innerHTML = `
-      <div class="thread-list">
-        ${items
-          .map(t => {
-            const otherParticipant = (t.participants || []).find(
-              p => p.userId !== (user && user.id)
-            );
-            const otherName =
-              (otherParticipant && (otherParticipant.displayName || otherParticipant.name)) ||
-              t.title ||
-              'Conversation';
-            const trimmedName = String(otherName).trim();
-            const initial = (trimmedName || 'U').charAt(0).toUpperCase();
-            const avatarUrl =
-              otherParticipant &&
-              otherParticipant.avatar &&
-              /^(https?:\/\/|\/[^:])/i.test(otherParticipant.avatar)
-                ? otherParticipant.avatar
-                : '';
-            const last = (
-              (t.lastMessage && t.lastMessage.content) ||
-              t.lastMessageText ||
-              ''
-            ).slice(0, 80);
-            const when = t.updatedAt ? new Date(t.updatedAt).toLocaleString() : '';
-            const convId = t._id || t.id;
-            return `
-            <button class="ef-cta thread-row" type="button" data-open="${convId}">
-              <span class="thread-row-avatar" aria-hidden="true"${
-                avatarUrl
-                  ? ` style="background-image:url('${escapeHtml(avatarUrl)}');background-size:cover;background-position:center;color:transparent;"`
-                  : ''
-              }>${escapeHtml(initial)}</span>
-              <div class="thread-row-main">
-                <span class="thread-row-title">${escapeHtml(otherName)}</span>
-                <span class="thread-row-snippet">${escapeHtml(last || 'No messages yet.')}</span>
-              </div>
-              <div class="thread-row-meta">
-                ${escapeHtml(when)}
-              </div>
-            </button>
-          `;
-          })
-          .join('')}
-      </div>
-    `;
-
-    host.querySelectorAll('[data-open]').forEach(btn => {
-      btn.addEventListener('click', () => {
-        const id = btn.getAttribute('data-open');
-        window.location.href = `/messenger/?conversation=${id}`;
-      });
-    });
-  } catch {
-    host.innerHTML = '<p class="small">Could not load conversations.</p>';
-  }
-}
-
-// Shared CSS for the onboarding overlay used by both supplier and customer dashboards.
+// Shared CSS for the supplier dashboard's onboarding overlay.
 // Uses ID selector + !important to override the global .card { border:none!important;
 // background:#fff!important } rules that would otherwise break the gradient border.
 const EF_OB_SHARED_CSS = `
@@ -1622,9 +1528,6 @@ function efMaybeShowOnboarding(page) {
       return;
     }
     if (page === 'dash_supplier' && localStorage.getItem('ef_supplier_welcome_dismissed') === '1') {
-      return;
-    }
-    if (page === 'dash_customer' && localStorage.getItem('ef_customer_welcome_dismissed') === '1') {
       return;
     }
   } catch {
@@ -1751,149 +1654,6 @@ function efMaybeShowOnboarding(page) {
         btn.style.boxShadow = '0 3px 12px rgba(22, 163, 74, 0.3)';
       });
 
-      btn.addEventListener('click', doOverlayDismiss);
-    }
-    return;
-  }
-
-  if (page === 'dash_customer') {
-    const container = document.querySelector('main .container');
-    if (!container) {
-      return;
-    }
-
-    const box = document.createElement('div');
-    box.id = 'ef-onboarding-box';
-    box.className = 'card no-collapse';
-    box.style.color = '#1f2937';
-    box.style.padding = '1rem 1.5rem 1.125rem';
-    box.style.borderRadius = '16px';
-    box.style.position = 'relative';
-    box.style.overflow = 'hidden';
-    box.style.boxShadow = '0 4px 32px rgba(13, 148, 136, 0.13), 0 1px 4px rgba(0, 0, 0, 0.06)';
-    box.style.border = '2px solid transparent';
-    box.style.backgroundImage =
-      'linear-gradient(#ffffff, #ffffff), linear-gradient(to bottom, #0d9488, #a7f3d0)';
-    box.style.backgroundOrigin = 'padding-box, border-box';
-    box.style.backgroundClip = 'padding-box, border-box';
-    // Entry animation — start invisible/shifted, animate to visible
-    box.style.opacity = '0';
-    box.style.transform = 'translateY(-8px)';
-    box.style.transition =
-      'opacity 0.35s cubic-bezier(0.4,0,0.2,1), transform 0.35s cubic-bezier(0.4,0,0.2,1)';
-
-    box.innerHTML = `
-      <style>
-        ${EF_OB_SHARED_CSS}
-        /* Customer-specific pill styling (links with hover/focus states) */
-        .ef-ob-pill {
-          flex: 0 0 auto; display: flex; align-items: center;
-          gap: 0.375rem; padding: 0.375rem 0.75rem;
-          background: #f0fdfa; border: 1px solid #99f6e4; border-radius: 8px;
-          text-decoration: none;
-          transition: background 0.15s, border-color 0.15s, box-shadow 0.15s;
-        }
-        .ef-ob-pill:hover, .ef-ob-pill:focus-visible {
-          background: #ccfbf1; border-color: #5eead4;
-          box-shadow: 0 2px 8px rgba(13, 148, 136, 0.15); outline: none;
-        }
-        .ef-ob-pill:focus-visible {
-          outline: 2px solid #0d9488; outline-offset: 2px;
-        }
-        .ef-ob-pill span:last-child {
-          color: #134e4a; font-weight: 500;
-          font-size: 0.8125rem; white-space: nowrap;
-        }
-        /* Pulse the CTA button 3× after the card enters to draw attention */
-        @keyframes ef-ob-btn-glow {
-          0%, 100% { box-shadow: 0 3px 12px rgba(22, 163, 74, 0.3); }
-          50% { box-shadow: 0 4px 20px rgba(22, 163, 74, 0.55), 0 0 0 3px rgba(34, 197, 94, 0.15); }
-        }
-        #ef-onboarding-dismiss {
-          animation: ef-ob-btn-glow 1.8s ease-in-out 0.6s 3;
-        }
-        /* At tablet widths the button wraps to its own row — make it span full width */
-        @media (max-width: 768px) {
-          #ef-ob-right { gap: 0.5rem; }
-          #ef-onboarding-dismiss { width: 100% !important; flex-basis: 100%; }
-        }
-        @media (max-width: 540px) {
-          #ef-onboarding-box { padding: 0.875rem 1rem 1rem !important; }
-          #ef-ob-inner { gap: 0.75rem; }
-          #ef-ob-right {
-            display: grid; grid-template-columns: 1fr 1fr;
-            width: 100%; gap: 0.5rem;
-          }
-          #ef-onboarding-dismiss { grid-column: 1 / -1; text-align: center; }
-          .ef-ob-pill { flex: unset; width: auto; overflow: hidden; }
-          .ef-ob-pill span:last-child { overflow: hidden; text-overflow: ellipsis; min-width: 0; }
-        }
-        @media (max-width: 400px) {
-          #ef-ob-right { grid-template-columns: 1fr; }
-        }
-        @media (prefers-reduced-motion: reduce) {
-          #ef-onboarding-dismiss { animation: none !important; }
-        }
-      </style>
-      <div style="position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,#0d9488,#5eead4);border-radius:16px 16px 0 0;"></div>
-      <div id="ef-ob-inner">
-        <div id="ef-ob-title">
-          <h2 style="color:#1e3a5f;font-size:1.25rem;font-weight:800;letter-spacing:-0.02em;line-height:1.2;margin-bottom:0.25rem;">Welcome to EventFlow! 👋</h2>
-          <p style="color:#6b7280;font-size:0.8125rem;line-height:1.5;margin:0;">Plan your perfect event with our curated suppliers — everything you need is below.</p>
-        </div>
-        <div id="ef-ob-right">
-          <a href="/start" class="ef-ob-pill" aria-label="Create an event plan"><span style="font-size:1rem;line-height:1;flex-shrink:0;" aria-hidden="true">📋</span><span>Create an event plan</span></a>
-          <a href="/suppliers" class="ef-ob-pill" aria-label="Browse and save suppliers"><span style="font-size:1rem;line-height:1;flex-shrink:0;" aria-hidden="true">🔍</span><span>Browse &amp; save suppliers</span></a>
-          <a href="/budget" class="ef-ob-pill" aria-label="Track your budget"><span style="font-size:1rem;line-height:1;flex-shrink:0;" aria-hidden="true">💰</span><span>Track your budget</span></a>
-          <button type="button" class="cta" id="ef-onboarding-dismiss" aria-label="Dismiss welcome message">Let's go! →</button>
-        </div>
-      </div>
-    `;
-
-    container.insertBefore(box, container.firstChild);
-
-    // Hide the static #welcome-section to prevent two welcome messages on first visit
-    const welcomeSection = container.querySelector('#welcome-section');
-    if (welcomeSection) {
-      welcomeSection.style.display = 'none';
-    }
-
-    // Trigger entry animation on next frame
-    requestAnimationFrame(() => {
-      requestAnimationFrame(() => {
-        box.style.opacity = '1';
-        box.style.transform = 'translateY(0)';
-      });
-    });
-
-    const doOverlayDismiss = function () {
-      if (typeof window.dismissCustomerWelcome === 'function') {
-        window.dismissCustomerWelcome();
-        return;
-      }
-      try {
-        localStorage.setItem('ef_onboarding_dismissed', '1');
-        localStorage.setItem('ef_customer_welcome_dismissed', '1');
-      } catch {
-        /* Ignore localStorage errors */
-      }
-      const easing = 'cubic-bezier(0.4, 0, 0.2, 1)';
-      box.style.transition = `opacity 0.3s ${easing}, transform 0.3s ${easing}`;
-      box.style.opacity = '0';
-      box.style.transform = 'scale(0.97)';
-      setTimeout(() => box.remove(), 300);
-    };
-
-    const btn = box.querySelector('#ef-onboarding-dismiss');
-    if (btn) {
-      btn.addEventListener('mouseenter', () => {
-        btn.style.transform = 'scale(1.05) translateY(-2px)';
-        btn.style.boxShadow = '0 8px 20px rgba(34, 197, 94, 0.4)';
-      });
-      btn.addEventListener('mouseleave', () => {
-        btn.style.transform = 'scale(1) translateY(0)';
-        btn.style.boxShadow = '0 3px 12px rgba(22, 163, 74, 0.3)';
-      });
       btn.addEventListener('click', doOverlayDismiss);
     }
     return;
@@ -5436,20 +5196,17 @@ document.addEventListener('DOMContentLoaded', () => {
           ? 'auth'
           : location.pathname.endsWith('verify.html') || location.pathname === '/verify'
             ? 'verify'
-            : location.pathname.endsWith('dashboard-customer.html') ||
-                location.pathname === '/dashboard/customer'
-              ? 'dash_customer'
-              : location.pathname.endsWith('dashboard-supplier.html') ||
-                  location.pathname === '/dashboard/supplier'
-                ? 'dash_supplier'
-                : location.pathname.endsWith('suppliers.html') || location.pathname === '/suppliers'
-                  ? 'suppliers'
-                  : location.pathname.endsWith('supplier.html') ||
-                      location.pathname.startsWith('/supplier')
-                    ? 'supplier'
-                    : location.pathname.endsWith('plan.html') || location.pathname === '/plan'
-                      ? 'plan'
-                      : '');
+            : location.pathname.endsWith('dashboard-supplier.html') ||
+                location.pathname === '/dashboard/supplier'
+              ? 'dash_supplier'
+              : location.pathname.endsWith('suppliers.html') || location.pathname === '/suppliers'
+                ? 'suppliers'
+                : location.pathname.endsWith('supplier.html') ||
+                    location.pathname.startsWith('/supplier')
+                  ? 'supplier'
+                  : location.pathname.endsWith('plan.html') || location.pathname === '/plan'
+                    ? 'plan'
+                    : '');
 
   // Version display is handled by admin-shared.js for admin pages.
   // Public pages keep the version wrapper hidden via the HTML hidden attribute.
@@ -5463,10 +5220,6 @@ document.addEventListener('DOMContentLoaded', () => {
   }
   if (page === 'plan') {
     initPlan && initPlan();
-  }
-  if (page === 'dash_customer') {
-    efMaybeShowOnboarding('dash_customer');
-    renderThreads && renderThreads('threads-cust');
   }
   if (page === 'dash_supplier') {
     initDashSupplier && initDashSupplier();
