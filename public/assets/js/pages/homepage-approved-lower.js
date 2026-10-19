@@ -224,6 +224,7 @@
               <span class="ef-approved-category-icon">${category.iconHtml}</span>
               <h3>${escapeHtml(category.title)}</h3>
               <p>${escapeHtml(category.description)}</p>
+              <span class="ef-approved-category-go" aria-hidden="true">Browse <i>&rarr;</i></span>
             </div>
           </a>`
       )
@@ -299,6 +300,16 @@
             <span class="ef-approved-step-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"></rect><path d="m7 12 3 3 7-7"></path></svg></span>
             <div><h3>Keep everything in one place</h3><p>Track your budget, message suppliers and stay on top of your planning checklist.</p></div>
           </article>
+        </div>
+        <div class="ef-approved-step-cta">
+          <div class="ef-approved-step-cta__copy">
+            <h3>Ready to start?</h3>
+            <p>Tell us about your event and we will shape a plan around it.</p>
+          </div>
+          <div class="ef-approved-step-cta__actions">
+            <a class="ef-approved-step-cta__primary" href="/start">Start planning <i aria-hidden="true">&rarr;</i></a>
+            <a class="ef-approved-step-cta__secondary" href="/suppliers">Browse suppliers</a>
+          </div>
         </div>
       </div>`;
   };

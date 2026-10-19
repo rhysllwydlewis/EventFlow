@@ -12,13 +12,16 @@ const { authRequired, roleRequired } = require('../middleware/auth');
 const { csrfProtection } = require('../middleware/csrf');
 const { auditLog } = require('../middleware/audit');
 const {
+  buildHomepageGuidance,
   buildHomepageManager,
   duplicateHomepageVersion,
   publishHomepageVersion,
+  updateHomepageGuidance,
   updateHomepageVersion,
   assignPexelsMediaToVersion,
   removePexelsMediaFromVersion,
   updateMediaLibraryForVersion,
+  validateHomepageGuidancePayload,
   validateHomepageVersionPayload,
 } = require('../utils/homepage-manager');
 
@@ -31,6 +34,44 @@ router.get('/', authRequired, roleRequired('admin'), async (req, res) => {
   } catch (error) {
     logger.error('Error reading homepage manager:', error);
     res.status(500).json({ error: 'Failed to read homepage manager' });
+  }
+});
+
+router.get('/guidance', authRequired, roleRequired('admin'), async (req, res) => {
+  try {
+    const settings = (await dbUnified.read('settings')) || {};
+    res.json({ success: true, guidance: buildHomepageGuidance(settings) });
+  } catch (error) {
+    logger.error('Error reading homepage guidance:', error);
+    res.status(500).json({ error: 'Failed to read homepage guidance setting' });
+  }
+});
+
+router.put('/guidance', authRequired, roleRequired('admin'), csrfProtection, async (req, res) => {
+  try {
+    const validationError = validateHomepageGuidancePayload(req.body);
+    if (validationError) {
+      return res.status(400).json({ error: validationError });
+    }
+
+    const settings = (await dbUnified.read('settings')) || {};
+    const nextSettings = updateHomepageGuidance(settings, req.body.enabled, req.user);
+    const result = await dbUnified.writeAndVerify('settings', nextSettings);
+    const guidance = buildHomepageGuidance(result.data);
+
+    auditLog({
+      adminId: req.user.id,
+      adminEmail: req.user.email,
+      action: 'HOMEPAGE_GUIDANCE_UPDATED',
+      targetType: 'homepage',
+      targetId: 'guidance',
+      details: { enabled: guidance.enabled },
+    });
+
+    res.json({ success: true, guidance });
+  } catch (error) {
+    logger.error('Error updating homepage guidance:', error);
+    res.status(500).json({ error: 'Failed to update homepage guidance setting' });
   }
 });
 

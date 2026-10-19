@@ -9,7 +9,11 @@ const path = require('path');
 const logger = require('./logger');
 const fs = require('fs').promises;
 const { getPlaceholders } = require('../config/content-config');
-const { getActiveHomepageVersion, normaliseHomepageVersion } = require('./homepage-manager');
+const {
+  getActiveHomepageVersion,
+  getHomepageGuidanceEnabled,
+  normaliseHomepageVersion,
+} = require('./homepage-manager');
 const { renderArticleDates } = require('../services/articleMetadata.service');
 
 const templateCache = new Map();
@@ -242,6 +246,38 @@ function addBodyClass(content, className) {
   }
 
   return content.replace(/<body\b/i, `<body class="${className}"`);
+}
+
+function removeBodyClass(content, className) {
+  return content.replace(
+    /(<body\b[^>]*class=["'])([^"']*)(["'][^>]*>)/i,
+    (match, open, classes, close) =>
+      `${open}${classes
+        .split(/\s+/)
+        .filter(name => name && name !== className)
+        .join(' ')}${close}`
+  );
+}
+
+// The homepage carries this class in index.html, so the guidance layer is on for
+// the static server, CI and any visitor whose settings cannot be read. An admin
+// switching it off removes the class here, per request and after the template
+// cache, so a stale cached page can never ignore the setting.
+const HOMEPAGE_GUIDANCE_CLASS = 'ef-home-guidance';
+
+function applyHomepageGuidance(content, enabled) {
+  return enabled === false
+    ? removeBodyClass(content, HOMEPAGE_GUIDANCE_CLASS)
+    : addBodyClass(content, HOMEPAGE_GUIDANCE_CLASS);
+}
+
+async function isHomepageGuidanceEnabled() {
+  try {
+    return (await getHomepageGuidanceEnabled()) !== false;
+  } catch (error) {
+    logger.warn('Failed to read homepage guidance setting, leaving it on:', error);
+    return true;
+  }
 }
 
 function injectHeadSnippet(content, snippet, marker) {
@@ -693,6 +729,9 @@ function templateMiddleware() {
         responseContent = buildHomepageV3Preview(responseContent);
       }
       responseContent = isHomepagePreview ? addPreviewRobotsMeta(responseContent) : responseContent;
+      if (requestPath === '/index.html') {
+        responseContent = applyHomepageGuidance(responseContent, await isHomepageGuidanceEnabled());
+      }
 
       setHtmlNoStoreHeaders(res);
       if (isHomepagePreview) {
@@ -735,4 +774,6 @@ module.exports = {
   buildHomepageV2Preview,
   buildHomepageV3Preview,
   injectHomepageManagerAdminScript,
+  applyHomepageGuidance,
+  removeBodyClass,
 };

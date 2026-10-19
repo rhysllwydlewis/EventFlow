@@ -128,7 +128,10 @@ body.ef-home-flow main .hws {
 }
 
 /* ---------- section labels and headings ---------- */
-body.ef-home-flow main > section:not(.ef-approved-supplier-section) :is(.ef-approved-kicker, .ef-section__kicker, .ef-home-locations__kicker, .hws__kicker) {
+body.ef-home-flow
+  main
+  > section:not(.ef-approved-supplier-section)
+  :is(.ef-approved-kicker, .ef-section__kicker, .ef-home-locations__kicker, .hws__kicker) {
   display: block;
   width: auto;
   height: auto;
@@ -139,12 +142,18 @@ body.ef-home-flow main > section:not(.ef-approved-supplier-section) :is(.ef-appr
   background: none;
   box-shadow: none;
   color: var(--flow-label);
-  font: 700 12px/1.3 Inter, system-ui, sans-serif;
+  font:
+    700 12px/1.3 Inter,
+    system-ui,
+    sans-serif;
   letter-spacing: 0.14em;
   text-transform: uppercase;
 }
 
-body.ef-home-flow main > section:not(.ef-approved-supplier-section) :is(.ef-approved-kicker, .ef-section__kicker, .ef-home-locations__kicker, .hws__kicker)::before {
+body.ef-home-flow
+  main
+  > section:not(.ef-approved-supplier-section)
+  :is(.ef-approved-kicker, .ef-section__kicker, .ef-home-locations__kicker, .hws__kicker)::before {
   content: '';
   display: inline-block;
   width: 28px;
@@ -251,7 +260,9 @@ body.ef-home-flow main > section {
 
 body.ef-home-flow main .ef-home-locations,
 body.ef-home-flow main .ef-approved-steps-section {
-  background: var(--flow-lines) center top / 100% auto no-repeat, var(--flow-mint) !important;
+  background:
+    var(--flow-lines) center top / 100% auto no-repeat,
+    var(--flow-mint) !important;
 }
 
 /* Every coloured band meets its neighbours on the same gentle arc. */
@@ -310,5 +321,324 @@ body.ef-home-flow main :is(.ef-approved-steps-section, .hws)::after {
   body.ef-home-flow main .ef-home-locations,
   body.ef-home-flow main .ef-approved-steps-section {
     background: var(--flow-mint) !important;
+  }
+}
+
+/* ---------- guidance: where to look, what to click, where next ---------- */
+/* Everything here is scoped to .ef-home-guidance, which index.html carries by
+   default and an admin can switch off from the homepage manager. Without the
+   class the pieces below are simply not shown, and the page is as it was. */
+body.ef-home-flow:not(.ef-home-guidance)
+  :is(.ef-flow-seam, .ef-approved-category-go, .ef-approved-step-cta) {
+  display: none !important;
+}
+
+/* A "next" pointer sits on each seam between sections. It is a real link to the
+   next section, so it also works for keyboard and screen reader users. */
+body.ef-home-flow.ef-home-guidance .ef-flow-seam {
+  position: relative;
+  z-index: 6;
+  height: 0;
+}
+
+body.ef-home-flow.ef-home-guidance .ef-flow-seam a {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  border: 2px solid var(--flow-label);
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 10px 24px -8px rgba(6, 79, 70, 0.35);
+  color: var(--flow-label);
+  text-decoration: none;
+  transform: translate(-50%, -50%);
+  transition:
+    background-color 160ms ease,
+    color 160ms ease,
+    box-shadow 160ms ease;
+}
+
+body.ef-home-flow.ef-home-guidance .ef-flow-seam a svg {
+  transition: transform 160ms ease;
+}
+
+body.ef-home-flow.ef-home-guidance .ef-flow-seam a:hover,
+body.ef-home-flow.ef-home-guidance .ef-flow-seam a:focus-visible {
+  background: var(--flow-label);
+  color: #fff;
+  box-shadow: 0 14px 28px -8px rgba(6, 79, 70, 0.45);
+}
+
+body.ef-home-flow.ef-home-guidance .ef-flow-seam a:hover svg,
+body.ef-home-flow.ef-home-guidance .ef-flow-seam a:focus-visible svg {
+  transform: translateY(3px);
+}
+
+body.ef-home-flow.ef-home-guidance .ef-flow-seam a:focus-visible {
+  outline: 3px solid rgba(19, 182, 162, 0.5);
+  outline-offset: 3px;
+}
+
+/* The words only appear where there is room beneath the arrow. */
+body.ef-home-flow.ef-home-guidance .ef-flow-seam__label {
+  display: none;
+}
+
+@media (min-width: 1061px) {
+  body.ef-home-flow.ef-home-guidance .ef-flow-seam__label {
+    position: absolute;
+    top: 56px;
+    left: 50%;
+    display: block;
+    color: var(--flow-label);
+    font:
+      700 12px/1 Inter,
+      system-ui,
+      sans-serif;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    white-space: nowrap;
+    transform: translateX(-50%);
+  }
+}
+
+/* A path down the left margin with a stop at each section, for screens wide
+   enough to have a margin. */
+@media (min-width: 1360px) {
+  body.ef-home-flow.ef-home-guidance main > section > :is(.container, .hws__inner) {
+    position: relative;
+  }
+
+  body.ef-home-flow.ef-home-guidance
+    main
+    :is(
+      .ef-approved-category-section,
+      .ef-home-locations,
+      .ef-approved-benefits-section,
+      .hws,
+      .ef-approved-guides-section,
+      .ef-approved-marketplace-section,
+      .ef-approved-steps-section
+    )
+    > :is(.container, .hws__inner)::before {
+    content: '';
+    position: absolute;
+    top: calc(-1 * var(--spine-top, var(--flow-pad)));
+    bottom: calc(-1 * var(--spine-bottom, var(--flow-pad)));
+    left: -52px;
+    width: 0;
+    border-left: 2px dotted rgba(8, 106, 96, 0.4);
+    pointer-events: none;
+  }
+
+  body.ef-home-flow.ef-home-guidance main .ef-approved-category-section {
+    --spine-top: -6px;
+  }
+  body.ef-home-flow.ef-home-guidance main .ef-home-locations {
+    --spine-bottom: 32px;
+  }
+  body.ef-home-flow.ef-home-guidance main .ef-approved-benefits-section {
+    --spine-top: 0px;
+  }
+  body.ef-home-flow.ef-home-guidance main .hws {
+    --spine-top: calc(var(--flow-pad) + 16px);
+    --spine-bottom: calc(var(--flow-pad) + 16px);
+  }
+  body.ef-home-flow.ef-home-guidance main .ef-approved-marketplace-section {
+    --spine-top: 0px;
+  }
+
+  body.ef-home-flow.ef-home-guidance
+    main
+    :is(
+      .ef-approved-category-section,
+      .ef-home-locations,
+      .hws,
+      .ef-approved-guides-section,
+      .ef-approved-marketplace-section,
+      .ef-approved-steps-section
+    )
+    :is(.ef-approved-kicker, .ef-home-locations__kicker, .hws__kicker) {
+    position: relative;
+  }
+
+  body.ef-home-flow.ef-home-guidance
+    main
+    :is(
+      .ef-approved-category-section,
+      .ef-home-locations,
+      .hws,
+      .ef-approved-guides-section,
+      .ef-approved-marketplace-section,
+      .ef-approved-steps-section
+    )
+    :is(.ef-approved-kicker, .ef-home-locations__kicker, .hws__kicker)::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: -59px;
+    box-sizing: border-box;
+    width: 14px;
+    height: 14px;
+    margin-top: -7px;
+    border: 3px solid var(--flow-label);
+    border-radius: 50%;
+    background: #fff;
+  }
+
+  /* The locations label sits inside a card, so its stop is further out. */
+  body.ef-home-flow.ef-home-guidance main .ef-home-locations .ef-home-locations__kicker::after {
+    left: -98px;
+  }
+}
+
+/* Category cards say they can be clicked, with the cue pinned to the bottom of
+   every card whatever length its description is. */
+body.ef-home-flow.ef-home-guidance main .ef-approved-category-card {
+  display: flex;
+  flex-direction: column;
+}
+
+body.ef-home-flow.ef-home-guidance main .ef-approved-category-copy {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+}
+
+body.ef-home-flow.ef-home-guidance main .ef-approved-category-go {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: auto;
+  padding-top: 12px;
+  color: var(--flow-label);
+  font:
+    700 13px/1 Inter,
+    system-ui,
+    sans-serif;
+}
+
+body.ef-home-flow.ef-home-guidance main .ef-approved-category-go i {
+  font-style: normal;
+  transition: transform 160ms ease;
+}
+
+body.ef-home-flow.ef-home-guidance main .ef-approved-category-card:hover,
+body.ef-home-flow.ef-home-guidance main .ef-approved-category-card:focus-visible {
+  border-color: rgba(11, 128, 115, 0.5);
+}
+
+body.ef-home-flow.ef-home-guidance main .ef-approved-category-card:hover .ef-approved-category-go i,
+body.ef-home-flow.ef-home-guidance
+  main
+  .ef-approved-category-card:focus-visible
+  .ef-approved-category-go
+  i {
+  transform: translateX(5px);
+}
+
+/* The steps used to end with nothing to do. Now they end with the next step. */
+body.ef-home-flow.ef-home-guidance main .ef-approved-step-cta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px 32px;
+  margin-top: 28px;
+  padding: 28px 32px;
+  border: 1px solid rgba(8, 106, 96, 0.14);
+  border-radius: 16px;
+  background: #fff;
+  box-shadow: 0 18px 40px -24px rgba(6, 79, 70, 0.4);
+}
+
+body.ef-home-flow.ef-home-guidance main .ef-approved-step-cta h3 {
+  margin: 0;
+  color: #17202f;
+  font-size: 24px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  line-height: 1.15;
+}
+
+body.ef-home-flow.ef-home-guidance main .ef-approved-step-cta p {
+  margin: 6px 0 0;
+  color: #566074;
+  font-size: 16px;
+}
+
+body.ef-home-flow.ef-home-guidance main .ef-approved-step-cta__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+body.ef-home-flow.ef-home-guidance main .ef-approved-step-cta__primary,
+body.ef-home-flow.ef-home-guidance main .ef-approved-step-cta__secondary {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 48px;
+  padding: 0 24px;
+  border-radius: 10px;
+  font:
+    700 16px/1 Inter,
+    system-ui,
+    sans-serif;
+  text-decoration: none;
+  transition:
+    background-color 160ms ease,
+    border-color 160ms ease;
+}
+
+body.ef-home-flow.ef-home-guidance main .ef-approved-step-cta__primary {
+  background: #0b8073;
+  color: #fff;
+}
+
+body.ef-home-flow.ef-home-guidance main .ef-approved-step-cta__primary:hover,
+body.ef-home-flow.ef-home-guidance main .ef-approved-step-cta__primary:focus-visible {
+  background: #086a60;
+}
+
+body.ef-home-flow.ef-home-guidance main .ef-approved-step-cta__primary i {
+  font-style: normal;
+  transition: transform 160ms ease;
+}
+
+body.ef-home-flow.ef-home-guidance main .ef-approved-step-cta__primary:hover i,
+body.ef-home-flow.ef-home-guidance main .ef-approved-step-cta__primary:focus-visible i {
+  transform: translateX(5px);
+}
+
+body.ef-home-flow.ef-home-guidance main .ef-approved-step-cta__secondary {
+  border: 1.5px solid rgba(11, 128, 115, 0.4);
+  color: var(--flow-label);
+}
+
+body.ef-home-flow.ef-home-guidance main .ef-approved-step-cta__secondary:hover,
+body.ef-home-flow.ef-home-guidance main .ef-approved-step-cta__secondary:focus-visible {
+  border-color: var(--flow-label);
+  background: #f1fbf8;
+}
+
+@media (max-width: 670px) {
+  body.ef-home-flow.ef-home-guidance main .ef-approved-step-cta {
+    padding: 22px 20px;
+  }
+
+  body.ef-home-flow.ef-home-guidance main .ef-approved-step-cta__actions,
+  body.ef-home-flow.ef-home-guidance main .ef-approved-step-cta__primary,
+  body.ef-home-flow.ef-home-guidance main .ef-approved-step-cta__secondary {
+    width: 100%;
+  }
+
+  body.ef-home-flow.ef-home-guidance main .ef-approved-step-cta__primary,
+  body.ef-home-flow.ef-home-guidance main .ef-approved-step-cta__secondary {
+    justify-content: center;
   }
 }

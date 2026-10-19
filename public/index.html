@@ -384,9 +384,9 @@
     <link rel="stylesheet" href="/assets/css/home-wedding-showcase.css?v=1.1.4" />
     <link rel="stylesheet" href="/assets/css/public-mobile-compact.css" />
     <link rel="stylesheet" href="/assets/css/signup-popup.css?v=1" />
-    <link rel="stylesheet" href="/assets/css/homepage-flow.css?v=1" />
+    <link rel="stylesheet" href="/assets/css/homepage-flow.css?v=2" />
 </head>
-  <body class="ef-home-flow">
+  <body class="ef-home-flow ef-home-guidance">
 <!-- TOP NAVBAR - GOLD STANDARD REBUILD -->
     <header class="ef-header" role="banner">
       <div class="ef-container">
@@ -725,6 +725,8 @@
       </section>
 
       <!-- Location discovery stays off the crowded navbar and is promoted here instead. -->
+      <div class="ef-flow-seam"><a href="#home-locations-title" aria-label="Next: Suppliers near you"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 5v14M6 13l6 6 6-6"/></svg><span class="ef-flow-seam__label" aria-hidden="true">Next: Suppliers near you</span></a></div>
+
       <section class="ef-home-locations" aria-labelledby="home-locations-title">
         <div class="container">
           <div class="ef-home-locations__hero">
@@ -847,6 +849,8 @@
         </div>
       </section>
 
+      <div class="ef-flow-seam"><a href="#wedding-website-rsvp" aria-label="Next: Free wedding tools"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 5v14M6 13l6 6 6-6"/></svg><span class="ef-flow-seam__label" aria-hidden="true">Next: Free wedding tools</span></a></div>
+
 <!-- hws:start (keep identical in index.html and home-v2.html; tests/unit/home-wedding-showcase.test.js checks it) -->
       <section class="hws" id="wedding-website-rsvp" aria-labelledby="hws-title">
         <div class="hws__inner">
@@ -937,6 +941,8 @@
         </div>
       </section>
 <!-- hws:end -->
+
+      <div class="ef-flow-seam"><a href="#guides-section" aria-label="Next: Planning guides"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 5v14M6 13l6 6 6-6"/></svg><span class="ef-flow-seam__label" aria-hidden="true">Next: Planning guides</span></a></div>
 
       <!-- Latest Guides Section -->
       <section
@@ -1090,6 +1096,8 @@
       </section>
 
       <!-- Launch status section — honest controlled-launch copy -->
+      <div class="ef-flow-seam"><a href="#launch-section" aria-label="Next: How EventFlow works"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 5v14M6 13l6 6 6-6"/></svg><span class="ef-flow-seam__label" aria-hidden="true">Next: How EventFlow works</span></a></div>
+
       <section class="ef-section ef-section--bordered" aria-label="About EventFlow" id="launch-section">
         <div class="container">
           <div class="ef-section__header">
@@ -1155,7 +1163,9 @@
       </section>
 
       <!-- Supplier CTA Section -->
-      <section class="ef-section ef-section--bordered ef-section--supplier-cta">
+      <div class="ef-flow-seam"><a href="#supplier-cta" aria-label="Next: For suppliers"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 5v14M6 13l6 6 6-6"/></svg><span class="ef-flow-seam__label" aria-hidden="true">Next: For suppliers</span></a></div>
+
+      <section class="ef-section ef-section--bordered ef-section--supplier-cta" id="supplier-cta">
         <div class="container" style="max-width: 900px; text-align: center;">
           <div class="ef-section__header ef-section__header--center">
             <span class="ef-badge ef-badge--primary" style="margin-bottom: var(--ef-space-4, 16px);">FOR SUPPLIERS</span>
@@ -1398,7 +1408,7 @@
          window.EFHeroCollage and reuses its isDebugEnabled/isDevelopmentEnvironment helpers -->
     <script src="/assets/js/collage/hero-collage.js?v=2" defer></script>
     <script src="/assets/js/pages/home-init.js?v=18.3.5" defer></script>
-    <script src="/assets/js/pages/homepage-approved-lower.js?v=11" defer></script>
+    <script src="/assets/js/pages/homepage-approved-lower.js?v=12" defer></script>
     <script src="/assets/js/pages/home-locations-featured.js?v=2" defer></script>
     <script src="/assets/js/home.js" defer></script>
     <script src="/assets/js/pages/index-init.js" defer></script>

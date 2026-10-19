@@ -53,7 +53,7 @@ describe('homepage flow layer wiring', () => {
   });
 
   test('the homepage body carries the scope class from first paint, not only after the script runs', () => {
-    expect(index).toMatch(/<body class="ef-home-flow">/);
+    expect(index).toMatch(/<body class="ef-home-flow ef-home-guidance">/);
   });
 
   test('every rule is scoped to the production homepage', () => {
@@ -92,6 +92,60 @@ describe('homepage flow readability', () => {
 
   test('narrow phones get the locations link at a readable size', () => {
     expect(css).toMatch(/@media \(max-width: 560px\)[\s\S]*--btn-fs:\s*1[2-9]px/);
+  });
+});
+
+describe('homepage guidance', () => {
+  const seams = [
+    ...index.matchAll(/<div class="ef-flow-seam"><a href="#([^"]+)" aria-label="Next: ([^"]+)"/g),
+  ];
+
+  test('every section seam has a pointer that leads to a real section', () => {
+    expect(seams.length).toBeGreaterThanOrEqual(5);
+    seams.forEach(([, target]) => {
+      expect(index).toMatch(new RegExp(`id="${target}"`));
+    });
+  });
+
+  test('pointers carry a readable name and keep their words out of the accessibility tree', () => {
+    expect(index).toMatch(/class="ef-flow-seam__label" aria-hidden="true">Next: /);
+    seams.forEach(([, , label]) => expect(label.length).toBeGreaterThan(3));
+  });
+
+  test('the early-access steps end with something to do', () => {
+    expect(approvedLower).toContain('ef-approved-step-cta__primary" href="/start"');
+    expect(approvedLower).toContain('ef-approved-step-cta__secondary" href="/suppliers"');
+  });
+
+  test('category cards say they can be clicked, without repeating themselves for screen readers', () => {
+    expect(approvedLower).toMatch(/ef-approved-category-go" aria-hidden="true"/);
+  });
+
+  test('every guidance rule sits behind the guidance class, so switching it off leaves the plain page', () => {
+    const rules = css
+      .replace(/\/\*[\s\S]*?\*\//g, '')
+      .split('{')
+      .slice(0, -1)
+      .map(part => part.split('}').pop().trim())
+      .flatMap(part => part.split(/,(?![^(]*\))/).map(sel => sel.trim()))
+      .filter(sel => /ef-flow-seam|ef-approved-category-go|ef-approved-step-cta/.test(sel));
+    expect(rules.length).toBeGreaterThan(10);
+    const ungated = rules.filter(
+      sel => !/ef-home-guidance/.test(sel) && !/:not\(\.ef-home-guidance\)/.test(sel)
+    );
+    expect(ungated).toEqual([]);
+  });
+
+  test('with the class absent, the pointers, card cues and closing call to action are hidden', () => {
+    expect(css).toMatch(
+      /body\.ef-home-flow:not\(\.ef-home-guidance\) :is\([^)]*\.ef-flow-seam[^)]*\.ef-approved-category-go[^)]*\.ef-approved-step-cta[^)]*\)\s*\{[^}]*display:\s*none\s*!important/
+    );
+  });
+
+  test('the pointers keep clear of the wedding section markup the SEO tests pin', () => {
+    const start = index.indexOf('<!-- hws:start');
+    const end = index.indexOf('<!-- hws:end -->');
+    expect(index.slice(start, end)).not.toContain('ef-flow-seam');
   });
 });
 

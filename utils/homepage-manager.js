@@ -763,6 +763,49 @@ async function getActiveHomepageVersion() {
   return buildHomepageManager(settings).activeVersion;
 }
 
+/**
+ * Homepage guidance: the pointers between sections, the "Browse" cues on category
+ * cards, the path down the margin and the closing call to action. It is on unless
+ * an admin has explicitly switched it off, so a missing or unreadable setting can
+ * never remove it by accident.
+ */
+function normaliseHomepageGuidance(raw) {
+  const source = raw && typeof raw === 'object' ? raw : {};
+  return {
+    enabled: source.enabled !== false,
+    updatedAt: typeof source.updatedAt === 'string' ? source.updatedAt : null,
+    updatedBy: typeof source.updatedBy === 'string' ? source.updatedBy : null,
+  };
+}
+
+function buildHomepageGuidance(settings = {}) {
+  return normaliseHomepageGuidance(settings.homepageGuidance);
+}
+
+function validateHomepageGuidancePayload(payload) {
+  if (!payload || typeof payload !== 'object' || typeof payload.enabled !== 'boolean') {
+    return 'Choose whether homepage guidance is on or off.';
+  }
+  return null;
+}
+
+function updateHomepageGuidance(settings = {}, enabled, user = {}) {
+  return {
+    ...settings,
+    homepageGuidance: {
+      enabled: enabled === true,
+      updatedAt: new Date().toISOString(),
+      updatedBy: user.email || user.id || null,
+    },
+  };
+}
+
+async function getHomepageGuidanceEnabled() {
+  const dbUnified = require('../db-unified');
+  const settings = (await dbUnified.read('settings')) || {};
+  return buildHomepageGuidance(settings).enabled;
+}
+
 function isSafeHomepageMediaUrl(value, { allowUploadPath = true } = {}) {
   if (safeHttpUrl(value)) {
     return true;
@@ -1007,21 +1050,26 @@ module.exports = {
   HOMEPAGE_MEDIA_TARGETS,
   DEFAULT_COLLAGE_WIDGET,
   assignPexelsMediaToVersion,
+  buildHomepageGuidance,
   buildHomepageManager,
   duplicateHomepageVersion,
   getActiveHomepageVersion,
   getHomepageCollageWidget,
+  getHomepageGuidanceEnabled,
   getHomepageVersion,
   normaliseMediaLibrary,
   isHomepageVersion,
   hasExplicitCollageDisable,
   mergeCollageWidget,
+  normaliseHomepageGuidance,
   normaliseHomepageVersion,
   removePexelsMediaFromVersion,
   resolveHomepageMedia,
   publishHomepageVersion,
+  updateHomepageGuidance,
   updateHomepageVersion,
   updateMediaLibraryForVersion,
+  validateHomepageGuidancePayload,
   validatePexelsAssignmentPayload,
   validateHomepageVersionPayload,
 };
