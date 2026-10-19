@@ -530,6 +530,9 @@ router.post(
       if (!Array.isArray(budgetItems)) {
         return res.status(400).json({ error: 'budgetItems must be an array' });
       }
+      if (budgetItems.some(item => !item || typeof item !== 'object' || Array.isArray(item))) {
+        return res.status(400).json({ error: 'Every budget item must be an object' });
+      }
 
       const plan = await dbUnified.findOne('plans', { id: planId, userId: userId });
 
@@ -567,7 +570,10 @@ router.post(
 
       // Validate and sanitize budget items
       const sanitizedItems = budgetItems.map(item => ({
-        id: item.id || uid('budget'),
+        id:
+          typeof item.id === 'string' && stripHtml(item.id).trim()
+            ? stripHtml(item.id).trim().slice(0, 100)
+            : uid('budget'),
         category: item.category ? stripHtml(String(item.category).trim()).slice(0, 100) : '',
         item: item.item ? stripHtml(String(item.item).trim()).slice(0, 200) : '',
         estimated: budgetAmount(item.estimated),
@@ -590,8 +596,14 @@ router.post(
           $set: { budgetItems: sanitizedItems, budgetUpdatedAt: now, updatedAt: now },
         }
       );
-      if (checkVersion && !saved) {
-        return sendConflict(await dbUnified.findOne('plans', { id: planId, userId }));
+      if (!saved) {
+        // updateOne also answers false when the database call failed, which is not a conflict:
+        // only report one when the saved list really has moved on.
+        const current = await dbUnified.findOne('plans', { id: planId, userId });
+        if (checkVersion && current && (current.budgetUpdatedAt || '') !== savedVersion) {
+          return sendConflict(current);
+        }
+        throw new Error('Budget was not saved');
       }
 
       res.json({

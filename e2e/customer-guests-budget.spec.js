@@ -251,11 +251,11 @@ test.describe('Customer guest list', () => {
       name: 'guests.csv',
       mimeType: 'text/csv',
       buffer: Buffer.from(
-        'Name,Email\nBob New,bob@example.com\nAnn Again,ANN@example.com\nCy New,cy@example.com\n'
+        'Name,Email\nBob New,bob@example.com\nAnn Existing,ANN@example.com\nCy New,cy@example.com\n'
       ),
     });
     await expect(page.locator('#gm-import-status')).toContainText(
-      '2 guests ready to import, 1 guest already on your list'
+      '2 new guests ready to import, 1 guest already on your list'
     );
     await page.locator('dialog [type="submit"]').click();
     await expect(page.locator('dialog[open]')).toHaveCount(0);
@@ -292,7 +292,7 @@ test.describe('Customer guest list', () => {
     await open(page, context, baseURL, '/guests.html?plan=p1');
     await page.locator('[data-action="import"]').first().click();
     await page.setInputFiles('#gm-csv', csvFile(3));
-    await expect(page.locator('#gm-import-status')).toContainText('3 guests ready to import');
+    await expect(page.locator('#gm-import-status')).toContainText('3 new guests ready to import');
     await page.locator('dialog [type="submit"]').click();
     await expect(page.locator('#gm-import-status')).toContainText(
       'Imported 2 guests. 1 row could not be added:'
@@ -333,9 +333,9 @@ test.describe('Customer guest list', () => {
     await page.setInputFiles('#gm-csv', csvFile(501));
     await expect(page.locator('#gm-import-status')).toContainText('Import up to 500 at a time');
     await expect(page.locator('dialog [type="submit"]')).toBeDisabled();
-    await page.setInputFiles('#gm-csv', csvFile(500, 'Ann Again,ann@example.com\n'));
+    await page.setInputFiles('#gm-csv', csvFile(500, 'Ann Existing,ann@example.com\n'));
     await expect(page.locator('#gm-import-status')).toContainText(
-      '500 guests ready to import, 1 guest already on your list'
+      '500 new guests ready to import, 1 guest already on your list'
     );
     await expect(page.locator('dialog [type="submit"]')).toBeEnabled();
   });

@@ -24,6 +24,11 @@ views of one data set, not duplicates, so there is nothing to consolidate on the
 Fields used: `name`, `email`, `phone`, `rsvpStatus` (pending, attending, maybe, declined),
 `partySize`, `dietaryRequirements`, `tableName`, `notes`.
 
+`POST /api/me/plans/:planId/guests/bulk` with `{ guests: [...] }` adds up to 500 guests in one write.
+It builds each guest exactly as the single add does (`buildGuest`); rows without a text name are
+skipped and returned in `skipped` by position. `notes` keep up to 1,000 characters on both create
+and edit.
+
 ## What changed from the old page
 
 - The old page sent a `plusOne` flag and read `dietary`, `table` and `plusOne` back. The server
@@ -62,9 +67,18 @@ Fields used: `name`, `email`, `phone`, `rsvpStatus` (pending, attending, maybe, 
 - Import matches columns by header name, so the previous `FirstName, LastName, PlusOne` layout still
   works. A file is sent in one `POST /api/me/plans/:id/guests/bulk` request (up to 500 guests; it used
   to be one request per guest, which the write limiter capped at 50). Rows without a name are listed
-  as skipped rather than dropped silently, and rows whose email is already on the list (or repeated
-  in the file) are left out so importing a file twice does not double everyone up. The 500 limit counts the
-  guests that would be sent, so guests left out as already on the list do not count towards it.
+  as skipped rather than dropped silently. Files over 1 MB are refused before they are read. A guest
+  with the same name and email as one already on the list, or as an earlier row in the same file
+  (ignoring case and extra spaces), is skipped, so importing a previous export does not double the
+  list. Two different people with the same name and no email look identical and count as one. The
+  500 limit counts the guests that would be sent, so guests left out as duplicates do not count
+  towards it.
+- Editing sends only the fields that changed. `PATCH` keeps only the first 200 characters of notes
+  (500 for dietary, 100 for table), so re-sending an untouched long note would silently cut it.
+  Saving with no changes sends nothing. Notes over 200 characters in an edit are refused with a
+  message; `MAX_NOTES` in `guests.js` is the one value to raise when the server's limit goes up. Only
+  a changed email is checked for a valid address. A reply change away from "Attending" frees the
+  guest's seat (or clears their typed table) on the server, and the toast says so.
 - All requests use `limit`-free endpoints, so the `/api` pagination cap does not apply.
 
 ## Left alone

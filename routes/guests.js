@@ -124,6 +124,10 @@ router.get('/:planId/guests/export.csv', authRequired, verifyPlanOwnership, (req
 /** Most guests one bulk import may add. */
 const MAX_BULK_GUESTS = 500;
 
+/** True when `fields` has a name that is still something once tags are stripped. */
+const hasName = fields =>
+  Boolean(fields) && typeof fields.name === 'string' && Boolean(sanitize(fields.name, 200));
+
 /** A new guest record from request fields, sanitised the same way wherever guests are created. */
 const buildGuest = (plan, user, fields) => {
   const now = new Date().toISOString();
@@ -136,7 +140,7 @@ const buildGuest = (plan, user, fields) => {
     phone: sanitize(fields.phone, 30),
     invitationStatus: 'invited',
     rsvpStatus: STATUS.has(fields.rsvpStatus) ? fields.rsvpStatus : 'pending',
-    source: fields.source || 'manual',
+    source: (typeof fields.source === 'string' && sanitize(fields.source, 50)) || 'manual',
     partySize: Math.max(1, Math.min(20, Number(fields.partySize) || 1)),
     plusOneAllowed: Boolean(fields.plusOneAllowed),
     plusOneName: sanitize(fields.plusOneName, 200),
@@ -146,7 +150,7 @@ const buildGuest = (plan, user, fields) => {
     accessibilityRequirements: sanitize(fields.accessibilityRequirements, 500),
     songRequest: sanitize(fields.songRequest, 200),
     notes: sanitize(fields.notes, 1000),
-    tableId: fields.tableId || null,
+    tableId: (typeof fields.tableId === 'string' && sanitize(fields.tableId, 200)) || null,
     tableName: sanitize(fields.tableName || fields.table, 100),
     createdAt: now,
     updatedAt: now,
@@ -161,7 +165,7 @@ router.post(
   csrfProtection,
   verifyPlanOwnership,
   async (req, res) => {
-    if (!req.body.name) {
+    if (!hasName(req.body)) {
       return res.status(400).json({ error: 'Guest name is required' });
     }
     const guest = buildGuest(req.plan, req.user, req.body);
@@ -201,7 +205,7 @@ router.post(
     const added = [];
     const skipped = [];
     rows.forEach((row, index) => {
-      if (!row || typeof row !== 'object' || !row.name || !sanitize(row.name, 200)) {
+      if (!hasName(row)) {
         skipped.push({ index, error: 'Guest name is required' });
         return;
       }
@@ -209,7 +213,7 @@ router.post(
     });
     if (added.length) {
       const guests = getGuestList(req.plan).concat(added);
-      await dbUnified.updateOne(
+      const saved = await dbUnified.updateOne(
         'plans',
         { id: req.plan.id },
         {
@@ -219,6 +223,11 @@ router.post(
           },
         }
       );
+      if (!saved) {
+        // Nothing was stored, so none of these guests exist; do not report them as added.
+        logger.error('bulk guest import was not saved', { planId: req.plan.id });
+        return res.status(500).json({ error: 'Failed to save guests' });
+      }
     }
     return res.status(201).json({ success: true, guests: added, skipped });
   }

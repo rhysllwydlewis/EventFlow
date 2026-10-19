@@ -43,6 +43,9 @@ cannot both succeed: the second matches nothing and also gets the 409 (with the 
 Clients that send no `baseVersion` are not checked. The server caps a budget at 500 items (a list
 that was already longer can still be edited or shortened, just not made longer) and each amount at
 £1,000,000,000.
+Every item must be an object (anything else is a 400) and an item `id` must be a string of up to
+100 characters, otherwise the server makes a new one. A write the database did not accept is a 500,
+not a 409.
 
 Which plan: `?plan=<id>`, else the last plan picked here, else the first plan with a budget, else
 the first plan. A plan switcher appears only when there is more than one.

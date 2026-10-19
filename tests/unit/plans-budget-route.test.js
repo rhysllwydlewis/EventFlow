@@ -123,6 +123,45 @@ describe('POST /api/me/plans/:id/budget', () => {
     expect(plan.budgetItems[0].item).toBe('Venue');
   });
 
+  test('items that are not objects are refused before anything is saved', async () => {
+    for (const bad of [null, 'Venue', 5, [1]]) {
+      const res = await save({ budgetItems: [{ item: 'Venue' }, bad] });
+      expect(res.status).toBe(400);
+    }
+    expect(plan.budgetItems).toEqual([]);
+  });
+
+  test('an item id must be a short string, otherwise a new one is made', async () => {
+    const res = await save({
+      budgetItems: [
+        { id: 'keep_me', item: 'A' },
+        { id: { $ne: '' }, item: 'B' },
+        { id: 42, item: 'C' },
+        { id: '<b>tagged</b>', item: 'D' },
+        { id: 'z'.repeat(500), item: 'E' },
+      ],
+    });
+    expect(res.status).toBe(200);
+    expect(res.body.budgetItems.map(i => i.id)).toEqual([
+      'keep_me',
+      'budget_new',
+      'budget_new',
+      'tagged',
+      'z'.repeat(100),
+    ]);
+  });
+
+  test('a failed database write is a 500, not a misleading version conflict', async () => {
+    const db = require('../../db-unified');
+    db.updateOne.mockResolvedValueOnce(false);
+    const versioned = await save({ budgetItems: [{ item: 'Venue' }], baseVersion: '' });
+    expect(versioned.status).toBe(500);
+    db.updateOne.mockResolvedValueOnce(false);
+    const unversioned = await save({ budgetItems: [{ item: 'Venue' }] });
+    expect(unversioned.status).toBe(500);
+    expect(plan.budgetItems).toEqual([]);
+  });
+
   test('clients that send no version still save', async () => {
     await save({ budgetItems: [{ item: 'Venue' }] });
     const res = await save({ budgetItems: [{ item: 'Venue' }, { item: 'Cake' }] });
