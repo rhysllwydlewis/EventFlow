@@ -120,6 +120,77 @@
       }
     </script>
 
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "Service",
+        "@id": "https://event-flow.co.uk/#wedding-website-service",
+        "name": "EventFlow wedding website, RSVP and seating plan tools",
+        "serviceType": "Wedding website builder, online RSVP and wedding seating plan",
+        "description": "Create a free, mobile-friendly wedding website, collect online RSVPs, manage your guest list and plan your wedding seating chart with EventFlow.",
+        "provider": {
+          "@id": "https://event-flow.co.uk/#organization"
+        },
+        "areaServed": {
+          "@type": "Country",
+          "name": "United Kingdom"
+        },
+        "audience": {
+          "@type": "Audience",
+          "audienceType": "Couples planning a wedding"
+        },
+        "url": "https://event-flow.co.uk/#wedding-website-rsvp",
+        "offers": {
+          "@type": "Offer",
+          "price": "0",
+          "priceCurrency": "GBP",
+          "availability": "https://schema.org/InStock"
+        }
+      }
+    </script>
+
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "FAQPage",
+        "@id": "https://event-flow.co.uk/#wedding-website-faq",
+        "mainEntity": [
+          {
+            "@type": "Question",
+            "name": "Is the EventFlow wedding website really free?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "Yes. Building and publishing your wedding website, collecting RSVPs, managing your guest list and planning your seating are free for customers."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "Do guests need an account to RSVP?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "No. Guests open your link on any phone, tablet or computer and reply straight away. Add a password if you want to keep your page private."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "Can I keep my wedding website private?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "Yes. Choose a private link, add a password or make it public. Wedding websites are hidden from search engines by default."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "How does the wedding seating plan work?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "Add your tables, then drag each attending guest to a seat or let EventFlow auto-seat them. You can move guests between tables at any time, and only guests who are attending hold a seat."
+            }
+          }
+        ]
+      }
+    </script>
+
     <!-- DNS Prefetch & Preconnect for external resources -->
     <link rel="dns-prefetch" href="https://cdn.jsdelivr.net" />
     <link rel="dns-prefetch" href="https://fonts.googleapis.com" />
@@ -308,6 +379,7 @@
     <link rel="stylesheet" href="/assets/css/eventflow-footer.css">
     <link rel="stylesheet" href="/assets/css/homepage-approved-lower.css?v=11">
     <link rel="stylesheet" href="/assets/css/homepage-locations-refresh.css?v=3">
+    <link rel="stylesheet" href="/assets/css/home-wedding-showcase.css?v=1.0.0" />
     <link rel="stylesheet" href="/assets/css/public-mobile-compact.css" />
     <link rel="stylesheet" href="/assets/css/signup-popup.css?v=1" />
 </head>
@@ -771,6 +843,117 @@
           </div>
         </div>
       </section>
+
+<!-- hws:start (keep identical in index.html and home-v2.html; tests/unit/home-wedding-showcase.test.js checks it) -->
+      <section class="hws" id="wedding-website-rsvp" aria-labelledby="hws-title">
+        <div class="hws__inner">
+          <div class="hws__hero">
+            <div class="hws__copy">
+              <p class="hws__kicker">Free wedding planning tools</p>
+              <h2 id="hws-title">Your wedding website, RSVPs and seating plan, all in one place</h2>
+              <p class="hws__lead">
+                Create a beautiful, mobile-friendly wedding website in minutes. Collect online RSVPs, manage
+                your guest list and build your wedding seating plan without spreadsheets, group chats or
+                paper reply cards. It is free for couples and sits alongside your supplier shortlist and budget.
+              </p>
+              <ul class="hws__checks">
+                <li><svg class="hws-icon" viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M20 6 9 17l-5-5"/></svg>Your own wedding website with schedule, venues, travel and FAQs</li>
+                <li><svg class="hws-icon" viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M20 6 9 17l-5-5"/></svg>Online RSVPs with meal choices, dietary needs and plus-ones</li>
+                <li><svg class="hws-icon" viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M20 6 9 17l-5-5"/></svg>Live guest list with CSV export</li>
+                <li><svg class="hws-icon" viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M20 6 9 17l-5-5"/></svg>Drag-and-drop table plan with auto-seating</li>
+              </ul>
+              <div class="hws__actions">
+                <a class="hws__btn hws__btn--primary" href="/auth?tab=create&amp;role=customer">Create your free wedding website</a>
+                <a class="hws__btn hws__btn--ghost" href="/articles/wedding-website-on-eventflow-guide">How a wedding website works <svg class="hws-icon" viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
+              </div>
+              <p class="hws__note">Free for couples &middot; Guests do not need an account &middot; No app to download</p>
+            </div>
+
+            <figure class="hws__visual">
+              <div class="hws__stage" role="img" aria-label="Illustration of a wedding website on a phone, an RSVP tracker showing 78 of 96 guests replied, and a seating plan with three round tables and a top table. Sample names and numbers.">
+                <div class="hws__card hws__tracker" aria-hidden="true">
+                  <div class="hws__card-head"><strong>Guest replies</strong><span>96 invited</span></div>
+                  <div class="hws__donut-row">
+                    <div class="hws__donut"><svg class="hws-donut" viewBox="0 0 96 96" focusable="false" aria-hidden="true"><circle class="hws-seg hws-seg--track" cx="48" cy="48" r="38"/><circle class="hws-seg hws-seg--yes" cx="48" cy="48" r="38" stroke-dasharray="159.2 238.8" stroke-dashoffset="0.0"/><circle class="hws-seg hws-seg--no" cx="48" cy="48" r="38" stroke-dasharray="34.8 238.8" stroke-dashoffset="-159.2"/><circle class="hws-seg hws-seg--wait" cx="48" cy="48" r="38" stroke-dasharray="44.8 238.8" stroke-dashoffset="-194.0"/></svg><span class="hws__donut-label"><strong>81%</strong>replied</span></div>
+                    <ul class="hws__legend">
+                      <li><i class="is-yes"></i>Attending<b>64</b></li>
+                      <li><i class="is-no"></i>Declined<b>14</b></li>
+                      <li><i class="is-wait"></i>Awaiting<b>18</b></li>
+                    </ul>
+                  </div>
+                  <ul class="hws__replies">
+                    <li><span class="hws__avatar">PS</span><div><strong>Priya Shah</strong><span>Party of 2</span></div><em>Vegetarian</em></li>
+                    <li><span class="hws__avatar hws__avatar--b">TH</span><div><strong>Tom Hartley</strong><span>Party of 1</span></div><em>Salmon</em></li>
+                    <li><span class="hws__avatar hws__avatar--c">CE</span><div><strong>Charlotte Evans</strong><span>Party of 3</span></div><em>Beef</em></li>
+                  </ul>
+                </div>
+
+                <div class="hws__phone" aria-hidden="true">
+                  <div class="hws__screen">
+                    <div class="hws__site-bar"><span>A &amp; O</span><b>RSVP</b></div>
+                    <div class="hws__site-hero">
+                      <small>We&rsquo;re getting married</small>
+                      <strong>Amelia &amp; Oliver</strong>
+                      <span>Saturday 19 June 2027 &middot; Bath</span>
+                      <b>RSVP now</b>
+                    </div>
+                    <ol class="hws__site-plan">
+                      <li><time>2:00pm</time><span>Ceremony<small>St Mary&rsquo;s Church</small></span></li>
+                      <li><time>4:30pm</time><span>Reception<small>The Orangery</small></span></li>
+                    </ol>
+                    <div class="hws__site-rsvp">
+                      <small>Will you be joining us?</small>
+                      <span class="is-on">Joyfully attending</span>
+                      <span>Regretfully declining</span>
+                      <b>Send RSVP</b>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="hws__card hws__seating" aria-hidden="true">
+                  <div class="hws__card-head"><strong>Seating plan</strong><span>4 tables &middot; 31 seats</span></div>
+                  <div class="hws__seatmap">
+                    <svg class="hws-seatmap" viewBox="0 0 300 210" focusable="false" aria-hidden="true"><circle class="hws-table" cx="58" cy="72" r="22"/><circle class="hws-seat is-taken" cx="58.0" cy="39.0" r="5"/><circle class="hws-seat is-taken" cx="81.3" cy="48.7" r="5"/><circle class="hws-seat is-taken" cx="91.0" cy="72.0" r="5"/><circle class="hws-seat is-taken" cx="81.3" cy="95.3" r="5"/><circle class="hws-seat is-taken" cx="58.0" cy="105.0" r="5"/><circle class="hws-seat is-taken" cx="34.7" cy="95.3" r="5"/><circle class="hws-seat is-taken" cx="25.0" cy="72.0" r="5"/><circle class="hws-seat is-taken" cx="34.7" cy="48.7" r="5"/><text class="hws-table-label" x="58" y="76" text-anchor="middle">1</text><circle class="hws-drop" cx="150" cy="72" r="42"/><circle class="hws-table is-drop" cx="150" cy="72" r="22"/><circle class="hws-seat is-taken" cx="150.0" cy="39.0" r="5"/><circle class="hws-seat is-taken" cx="173.3" cy="48.7" r="5"/><circle class="hws-seat is-taken" cx="183.0" cy="72.0" r="5"/><circle class="hws-seat is-taken" cx="173.3" cy="95.3" r="5"/><circle class="hws-seat is-taken" cx="150.0" cy="105.0" r="5"/><circle class="hws-seat is-taken" cx="126.7" cy="95.3" r="5"/><circle class="hws-seat" cx="117.0" cy="72.0" r="5"/><circle class="hws-seat" cx="126.7" cy="48.7" r="5"/><text class="hws-table-label" x="150" y="76" text-anchor="middle">2</text><circle class="hws-table" cx="242" cy="72" r="22"/><circle class="hws-seat is-taken" cx="242.0" cy="39.0" r="5"/><circle class="hws-seat is-taken" cx="265.3" cy="48.7" r="5"/><circle class="hws-seat is-taken" cx="275.0" cy="72.0" r="5"/><circle class="hws-seat is-taken" cx="265.3" cy="95.3" r="5"/><circle class="hws-seat is-taken" cx="242.0" cy="105.0" r="5"/><circle class="hws-seat is-taken" cx="218.7" cy="95.3" r="5"/><circle class="hws-seat is-taken" cx="209.0" cy="72.0" r="5"/><circle class="hws-seat" cx="218.7" cy="48.7" r="5"/><text class="hws-table-label" x="242" y="76" text-anchor="middle">3</text><rect class="hws-table" x="52" y="146" width="196" height="22" rx="7"/><circle class="hws-seat is-taken" cx="66.0" cy="179" r="5"/><circle class="hws-seat is-taken" cx="94.0" cy="179" r="5"/><circle class="hws-seat is-taken" cx="122.0" cy="179" r="5"/><circle class="hws-seat is-taken" cx="150.0" cy="179" r="5"/><circle class="hws-seat is-taken" cx="178.0" cy="179" r="5"/><circle class="hws-seat is-taken" cx="206.0" cy="179" r="5"/><circle class="hws-seat is-taken" cx="234.0" cy="179" r="5"/><text class="hws-table-label" x="150.0" y="161.0" text-anchor="middle">Top table</text></svg>
+                    <span class="hws__drag"><svg class="hws-icon" viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M9 5h.01M9 12h.01M9 19h.01M15 5h.01M15 12h.01M15 19h.01"/></svg>Charlotte E.</span>
+                  </div>
+                  <div class="hws__unseated"><small>Unseated</small><span>Priya S.</span><span>Tom H.</span><span>+4</span></div>
+                </div>
+
+                <div class="hws__chip hws__chip--qr" aria-hidden="true"><svg class="hws-qr" viewBox="0 0 11 11" focusable="false" aria-hidden="true" shape-rendering="crispEdges"><rect x="0" y="0" width="1" height="1"/><rect x="1" y="0" width="1" height="1"/><rect x="2" y="0" width="1" height="1"/><rect x="3" y="0" width="1" height="1"/><rect x="4" y="0" width="1" height="1"/><rect x="6" y="0" width="1" height="1"/><rect x="7" y="0" width="1" height="1"/><rect x="8" y="0" width="1" height="1"/><rect x="9" y="0" width="1" height="1"/><rect x="10" y="0" width="1" height="1"/><rect x="0" y="1" width="1" height="1"/><rect x="4" y="1" width="1" height="1"/><rect x="6" y="1" width="1" height="1"/><rect x="10" y="1" width="1" height="1"/><rect x="0" y="2" width="1" height="1"/><rect x="2" y="2" width="1" height="1"/><rect x="4" y="2" width="1" height="1"/><rect x="6" y="2" width="1" height="1"/><rect x="8" y="2" width="1" height="1"/><rect x="10" y="2" width="1" height="1"/><rect x="0" y="3" width="1" height="1"/><rect x="4" y="3" width="1" height="1"/><rect x="6" y="3" width="1" height="1"/><rect x="10" y="3" width="1" height="1"/><rect x="0" y="4" width="1" height="1"/><rect x="1" y="4" width="1" height="1"/><rect x="2" y="4" width="1" height="1"/><rect x="3" y="4" width="1" height="1"/><rect x="4" y="4" width="1" height="1"/><rect x="6" y="4" width="1" height="1"/><rect x="7" y="4" width="1" height="1"/><rect x="8" y="4" width="1" height="1"/><rect x="9" y="4" width="1" height="1"/><rect x="10" y="4" width="1" height="1"/><rect x="0" y="5" width="1" height="1"/><rect x="1" y="5" width="1" height="1"/><rect x="4" y="5" width="1" height="1"/><rect x="5" y="5" width="1" height="1"/><rect x="6" y="5" width="1" height="1"/><rect x="9" y="5" width="1" height="1"/><rect x="10" y="5" width="1" height="1"/><rect x="0" y="6" width="1" height="1"/><rect x="1" y="6" width="1" height="1"/><rect x="2" y="6" width="1" height="1"/><rect x="3" y="6" width="1" height="1"/><rect x="4" y="6" width="1" height="1"/><rect x="5" y="6" width="1" height="1"/><rect x="6" y="6" width="1" height="1"/><rect x="8" y="6" width="1" height="1"/><rect x="10" y="6" width="1" height="1"/><rect x="0" y="7" width="1" height="1"/><rect x="4" y="7" width="1" height="1"/><rect x="5" y="7" width="1" height="1"/><rect x="7" y="7" width="1" height="1"/><rect x="8" y="7" width="1" height="1"/><rect x="0" y="8" width="1" height="1"/><rect x="2" y="8" width="1" height="1"/><rect x="4" y="8" width="1" height="1"/><rect x="5" y="8" width="1" height="1"/><rect x="6" y="8" width="1" height="1"/><rect x="7" y="8" width="1" height="1"/><rect x="8" y="8" width="1" height="1"/><rect x="10" y="8" width="1" height="1"/><rect x="0" y="9" width="1" height="1"/><rect x="4" y="9" width="1" height="1"/><rect x="7" y="9" width="1" height="1"/><rect x="8" y="9" width="1" height="1"/><rect x="0" y="10" width="1" height="1"/><rect x="1" y="10" width="1" height="1"/><rect x="2" y="10" width="1" height="1"/><rect x="3" y="10" width="1" height="1"/><rect x="4" y="10" width="1" height="1"/><rect x="8" y="10" width="1" height="1"/><rect x="9" y="10" width="1" height="1"/><rect x="10" y="10" width="1" height="1"/></svg><span>Scan to RSVP</span></div>
+                <div class="hws__chip hws__chip--lock" aria-hidden="true"><svg class="hws-icon" viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg><span>Private link</span></div>
+              </div>
+              <figcaption>Illustrative preview of a wedding website, RSVP tracker and seating plan. Sample couple, guests and numbers.</figcaption>
+            </figure>
+          </div>
+
+          <div class="hws__features">
+            <article class="hws__feature"><span class="hws__feature-icon"><svg class="hws-icon" viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15 15 0 0 1 0 20M12 2a15 15 0 0 0 0 20"/></svg></span><h3>A wedding website guests will love</h3><p>Share your schedule, ceremony and reception venues, travel and accommodation tips, wedding party and story on a mobile-friendly page. Choose your colours, hero style and photos.</p></article><article class="hws__feature"><span class="hws__feature-icon"><svg class="hws-icon" viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-10 6L2 7"/></svg></span><h3>Online wedding RSVP</h3><p>Guests reply in seconds, no account needed. Ask about meal choices, dietary requirements, plus-ones and song requests, add your own questions, and set an RSVP deadline.</p></article><article class="hws__feature"><span class="hws__feature-icon"><svg class="hws-icon" viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.9M16 3.1a4 4 0 0 1 0 7.8"/></svg></span><h3>Guest list manager</h3><p>See who is coming, who has declined and who still needs a nudge. Filter and search your guest list, then export it to CSV for your caterer or venue.</p></article><article class="hws__feature"><span class="hws__feature-icon"><svg class="hws-icon" viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="4"/><circle cx="12" cy="3.5" r="1.6"/><circle cx="12" cy="20.5" r="1.6"/><circle cx="3.5" cy="12" r="1.6"/><circle cx="20.5" cy="12" r="1.6"/></svg></span><h3>Wedding seating plan</h3><p>Add round, long and top tables, then drag guests into seats or auto-seat them table by table. Seat counts update as you go, so you always know what is left.</p></article><article class="hws__feature"><span class="hws__feature-icon"><svg class="hws-icon" viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg></span><h3>Private link, password or public</h3><p>You decide who can see your wedding website. Keep it behind a private link or a password; it stays hidden from search engines by default.</p></article><article class="hws__feature"><span class="hws__feature-icon"><svg class="hws-icon" viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><path d="M14 14h3v3h-3zM20 14v3M14 20h3M20 20v1"/></svg></span><h3>Share by QR code, WhatsApp or email</h3><p>Put a QR code on your invitations or send the link in one tap. Guests can add the date to their calendar straight from your site.</p></article>
+          </div>
+
+          <ol class="hws__steps" aria-label="How the wedding website works">
+            <li><span class="hws__step-num" aria-hidden="true">1</span><div><h3>Create your wedding website</h3><p>Add your names, date and venue. EventFlow pre-fills what it already knows from your plan.</p></div></li><li><span class="hws__step-num" aria-hidden="true">2</span><div><h3>Share the link or QR code</h3><p>Send a private link to your guests, or print the QR code on your invitations.</p></div></li><li><span class="hws__step-num" aria-hidden="true">3</span><div><h3>Track RSVPs and plan seating</h3><p>Replies land in your guest list, ready to drag onto tables.</p></div></li>
+          </ol>
+
+          <div class="hws__faq" aria-labelledby="hws-faq-title">
+            <h3 id="hws-faq-title">Wedding website and RSVP questions</h3>
+            <div class="hws__faq-grid">
+              <details class="hws__faq-item"><summary><span>Is the EventFlow wedding website really free?</span><svg class="hws-icon" viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 5v14M5 12h14"/></svg></summary><p>Yes. Building and publishing your wedding website, collecting RSVPs, managing your guest list and planning your seating are free for customers.</p></details><details class="hws__faq-item"><summary><span>Do guests need an account to RSVP?</span><svg class="hws-icon" viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 5v14M5 12h14"/></svg></summary><p>No. Guests open your link on any phone, tablet or computer and reply straight away. Add a password if you want to keep your page private.</p></details><details class="hws__faq-item"><summary><span>Can I keep my wedding website private?</span><svg class="hws-icon" viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 5v14M5 12h14"/></svg></summary><p>Yes. Choose a private link, add a password or make it public. Wedding websites are hidden from search engines by default.</p></details><details class="hws__faq-item"><summary><span>How does the wedding seating plan work?</span><svg class="hws-icon" viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 5v14M5 12h14"/></svg></summary><p>Add your tables, then drag each attending guest to a seat or let EventFlow auto-seat them. You can move guests between tables at any time, and only guests who are attending hold a seat.</p></details>
+            </div>
+          </div>
+
+          <div class="hws__cta">
+            <div>
+              <h3>Start your wedding website today</h3>
+              <p>Set it up in minutes, share it with your guests and let the RSVPs come to you.</p>
+            </div>
+            <div class="hws__actions">
+              <a class="hws__btn hws__btn--light" href="/auth?tab=create&amp;role=customer">Create your free wedding website</a>
+              <a class="hws__btn hws__btn--outline" href="/faq">Read the FAQ</a>
+            </div>
+          </div>
+        </div>
+      </section>
+<!-- hws:end -->
 
       <!-- Latest Guides Section -->
       <section
