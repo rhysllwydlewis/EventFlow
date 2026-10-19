@@ -3,16 +3,14 @@
 /**
  * Homepage flow layer.
  *
- * homepage-flow.css / homepage-flow.js sit on top of the homepage's separately
- * authored layers and only handle what lies between sections: width, rhythm,
- * eyebrows, colour bands, curved seams and decoration. These tests keep the
- * layer wired in, scoped to the production homepage, and harmless: it never
- * changes what a section says, and it can run twice without doubling up.
+ * homepage-flow.css sits on top of the homepage's separately authored layers and
+ * only handles what lies between sections: width, rhythm, plain section labels and
+ * flat colour bands. These tests keep it wired in, scoped to the production
+ * homepage, readable, and free of decoration.
  */
 
 const fs = require('fs');
 const path = require('path');
-const { execFileSync } = require('child_process');
 
 const ROOT = path.resolve(__dirname, '../..');
 const read = file => fs.readFileSync(path.join(ROOT, file), 'utf8');
@@ -21,138 +19,73 @@ const index = read('public/index.html');
 const css = read('public/assets/css/homepage-flow.css');
 const homeInit = read('public/assets/js/pages/home-init.js');
 const approvedLower = read('public/assets/js/pages/homepage-approved-lower.js');
+const approvedLowerCss = read('public/assets/css/homepage-approved-lower.css');
 
-const SECTIONS = [
-  ['hero', 'hero-modern'],
-  ['categories', 'ef-approved-category-section'],
-  ['locations', 'ef-home-locations'],
-  ['wedding', 'hws'],
-  ['guides', 'ef-approved-guides-section'],
-  ['marketplace', 'ef-approved-marketplace-section'],
-  ['steps', 'ef-approved-steps-section'],
-  ['supplier', 'ef-approved-supplier-section'],
-];
+const variable = name => {
+  const match = css.match(new RegExp(`--${name}:\\s*(#[0-9a-fA-F]{6})`));
+  expect(match).not.toBeNull();
+  return match[1];
+};
 
-// jsdom ships as ESM, which Jest's CommonJS runtime cannot load in-process, so
-// the page is built and measured in a child Node process (as other tests here do).
-const runInDom = ({ homepage = true } = {}) => {
-  const program = `
-    const { JSDOM } = require('jsdom');
-    const fs = require('fs');
-    const sections = ${JSON.stringify(SECTIONS.map(([, cls]) => cls))};
-    const body = sections.map(cls => {
-      const heading = cls === 'ef-approved-category-section'
-        ? '<div class="ef-approved-heading"><h2>Explore trusted suppliers</h2></div>'
-        : cls === 'hws' ? '<h2>Your wedding website, RSVPs and seating plan, all in one place</h2>' : '';
-      return '<section class="' + cls + '">' + heading + '</section>';
-    }).join('');
-    const dom = new JSDOM('<body class="${homepage ? 'ef-approved-lower-home' : ''}"><main>' + body + '</main>' +
-      '<footer><section class="ef-nl-wrap"><div class="ef-nl-card"></div></section></footer></body>', { runScripts: 'outside-only' });
-    const { window } = dom;
-    window.eval(fs.readFileSync(process.argv[1], 'utf8'));
-    // The script initialises on DOMContentLoaded and again on load; snapshot the
-    // page between the two so the second pass can be compared with the first.
-    let afterFirst = null;
-    window.document.addEventListener('DOMContentLoaded', () => {
-      afterFirst = window.document.body.innerHTML;
-    });
-    (async () => {
-    await new Promise(resolve => window.addEventListener('load', () => setTimeout(resolve, 0)));
-    const doc = window.document;
-    const wave = doc.querySelector('.ef-nl-wrap .ef-flow-wave--bottom path');
-    console.log(JSON.stringify({
-      decorPerSection: sections.map(cls => doc.querySelectorAll('.' + cls + ' > .ef-flow-decor').length),
-      footerDecor: doc.querySelectorAll('.ef-nl-wrap > .ef-flow-decor').length,
-      marks: doc.querySelectorAll('.ef-flow-mark').length,
-      anything: doc.querySelectorAll('.ef-flow-decor, .ef-flow-mark').length,
-      weddingText: doc.querySelector('.hws h2').textContent,
-      categoryText: doc.querySelector('.ef-approved-heading h2').textContent,
-      categoryMark: (doc.querySelector('.ef-approved-heading h2 .ef-flow-mark') || {}).textContent || null,
-      footerFill: wave ? wave.getAttribute('fill') : null,
-      gradientDefined: !!doc.getElementById('ef-flow-footer-gradient'),
-      unchangedBySecondPass: afterFirst !== null && doc.body.innerHTML === afterFirst,
-    }));
-    })();
-  `;
-  const out = execFileSync(
-    process.execPath,
-    ['-e', program, path.join(ROOT, 'public/assets/js/pages/homepage-flow.js')],
-    { cwd: ROOT, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] }
-  );
-  return JSON.parse(out.trim().split('\n').pop());
+const luminance = hex => {
+  const channels = [1, 3, 5].map(i => parseInt(hex.slice(i, i + 2), 16) / 255);
+  const [r, g, b] = channels.map(c => (c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4));
+  return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+};
+
+const contrast = (a, b) => {
+  const [hi, lo] = [luminance(a), luminance(b)].sort((x, y) => y - x);
+  return (hi + 0.05) / (lo + 0.05);
 };
 
 describe('homepage flow layer wiring', () => {
-  test('is loaded by the production homepage with cache-busting versions', () => {
+  test('is loaded by the production homepage with a cache-busting version', () => {
     expect(index).toMatch(/\/assets\/css\/homepage-flow\.css\?v=\d+/);
-    expect(index).toMatch(/\/assets\/js\/pages\/homepage-flow\.js\?v=\d+/);
   });
 
-  test('loads after the layers it corrects, so it wins the cascade and sees the rewritten page', () => {
+  test('loads after the layers it corrects, so it wins the cascade', () => {
     const at = needle => index.indexOf(needle);
     [
       'homepage-approved-lower.css',
       'home-wedding-showcase.css',
       'homepage-locations-refresh.css',
     ].forEach(sheet => expect(at('homepage-flow.css')).toBeGreaterThan(at(sheet)));
-    ['homepage-approved-lower.js', 'eventflow-footer.js'].forEach(file =>
-      expect(at('homepage-flow.js')).toBeGreaterThan(at(file))
-    );
   });
 
-  test('every rule is scoped to the production homepage or to its own classes', () => {
+  test('every rule is scoped to the production homepage', () => {
     const selectors = css
       .replace(/\/\*[\s\S]*?\*\//g, '')
-      .replace(/url\("[^"]*"\)/g, 'url()')
       .split('{')
       .slice(0, -1)
       .map(part => part.split('}').pop().trim())
-      .filter(part => part && !part.startsWith('@') && !/^[\d%.,\s]+$|^(from|to)$/.test(part))
+      .filter(part => part && !part.startsWith('@'))
       .flatMap(part => part.split(/,(?![^(]*\))/).map(sel => sel.trim()));
-    const unscoped = selectors.filter(
-      sel => !/ef-approved-lower-home|\.ef-flow-/.test(sel) && !/^\.hws \.ef-flow-/.test(sel)
-    );
-    expect(unscoped).toEqual([]);
+    expect(selectors.filter(sel => !/ef-approved-lower-home/.test(sel))).toEqual([]);
   });
 
-  test('declares a reduced-motion path for the floating decoration', () => {
-    expect(css).toMatch(
-      /@media \(prefers-reduced-motion: no-preference\)\s*{\s*\.ef-flow-bit\s*{[^}]*animation/
-    );
+  test('adds no decoration: no scripts, animation, filters or pill shapes', () => {
+    expect(index).not.toContain('homepage-flow.js');
+    expect(css).not.toMatch(/@keyframes|animation:|filter:|backdrop-filter|border-radius: 999px/);
   });
 });
 
-describe('homepage flow script', () => {
-  test('adds one decoration layer to every section and marks each heading', () => {
-    const result = runInDom();
-    expect(result.decorPerSection).toEqual(SECTIONS.map(() => 1));
-    expect(result.footerDecor).toBe(1);
-    expect(result.marks).toBe(2);
-  });
-
-  test('keeps heading text exactly as written', () => {
-    const result = runInDom();
-    expect(result.weddingText).toBe(
-      'Your wedding website, RSVPs and seating plan, all in one place'
+describe('homepage flow readability', () => {
+  test('section labels meet WCAG AA contrast on every band they sit on', () => {
+    const label = variable('flow-label');
+    [variable('flow-mint'), '#ffffff'].forEach(band =>
+      expect(contrast(label, band)).toBeGreaterThanOrEqual(4.5)
     );
-    expect(result.categoryText).toBe('Explore trusted suppliers');
-    expect(result.categoryMark).toBe('trusted suppliers');
+    expect(contrast(variable('flow-label-wedding'), variable('flow-blush'))).toBeGreaterThanOrEqual(
+      4.5
+    );
   });
 
-  test('is idempotent: the second pass after load adds nothing', () => {
-    const result = runInDom();
-    expect(result.unchangedBySecondPass).toBe(true);
-    expect(result.decorPerSection).toEqual(SECTIONS.map(() => 1));
+  test('leaves the supplier panel label alone, since it sits on a dark panel', () => {
+    expect(css).toContain('section:not(.ef-approved-supplier-section)');
   });
 
-  test('does nothing unless the production homepage has claimed the page', () => {
-    expect(runInDom({ homepage: false }).anything).toBe(0);
-  });
-
-  test('paints the footer seam from a gradient it defines itself', () => {
-    const result = runInDom();
-    expect(result.footerFill).toBe('url(#ef-flow-footer-gradient)');
-    expect(result.gradientDefined).toBe(true);
+  test('narrow phones get the locations link at a readable size', () => {
+    expect(css).toMatch(/@media \(max-width: 560px\)[\s\S]*--btn-fs:\s*1[2-9]px/);
   });
 });
 
@@ -177,13 +110,18 @@ describe('empty package sections', () => {
 });
 
 describe('category cards without a photo', () => {
-  test('render a coloured icon panel instead of the generic placeholder image', () => {
+  test('render a plain tinted icon panel instead of the generic placeholder image', () => {
     expect(approvedLower).toContain('ef-approved-category-art');
-    expect(approvedLower).toContain("tone: 'blue'");
-    const cards = approvedLower.slice(approvedLower.indexOf('const renderApprovedCategories'));
-    expect(cards).toMatch(/category\.tone\s*\?/);
-    expect(read('public/assets/css/homepage-approved-lower.css')).toContain(
-      '.ef-approved-category-art'
+    expect(approvedLower.slice(approvedLower.indexOf('const renderApprovedCategories'))).toMatch(
+      /category\.placeholder\s*\?/
     );
+    expect(approvedLowerCss).toContain('.ef-approved-category-art');
+    expect(approvedLowerCss).not.toMatch(/ef-approved-category-art--/);
+  });
+});
+
+describe('homepage search landmark', () => {
+  test('is labelled so it can be told apart from other landmarks', () => {
+    expect(index).toMatch(/class="ef-search-bar" role="search" aria-label="[^"]+"/);
   });
 });
