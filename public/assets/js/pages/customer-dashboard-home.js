@@ -318,7 +318,7 @@
     }
     const next = steps.milestones.find(milestone => !milestone.done);
     const sub = next
-      ? `Next: <a class="cdh-link" href="${esc(next.href)}">${esc(next.label)}</a>`
+      ? `Next: <a class="cdh-link" href="${esc(next.href)}"${stepAttrs(next)}>${esc(next.label)}</a>`
       : 'Everything on the checklist is done.';
     return tile(
       'Planning progress',
@@ -420,12 +420,18 @@
     }
     const next = steps?.milestones.find(milestone => !milestone.done);
     primary.hidden = false;
+    delete primary.dataset.editPlan;
+    delete primary.dataset.editField;
     if (!plan) {
       primary.textContent = 'Create your plan';
       primary.setAttribute('href', '/start');
     } else if (next) {
       primary.textContent = next.label;
       primary.setAttribute('href', next.href);
+      if (next.editField) {
+        primary.dataset.editPlan = next.planId;
+        primary.dataset.editField = next.editField;
+      }
     } else {
       primary.textContent = 'Browse suppliers';
       primary.setAttribute('href', '/suppliers');
@@ -472,7 +478,7 @@
       ? `<ul class="cdh-steps">${todo
           .map(
             milestone =>
-              `<li><a class="cdh-step" href="${esc(milestone.href)}"><span class="cdh-step__mark" aria-hidden="true"></span><span class="cdh-step__label">${esc(milestone.label)}</span>${CHEVRON}</a></li>`
+              `<li><a class="cdh-step" href="${esc(milestone.href)}"${stepAttrs(milestone)}><span class="cdh-step__mark" aria-hidden="true"></span><span class="cdh-step__label">${esc(milestone.label)}</span>${CHEVRON}</a></li>`
           )
           .join('')}</ul>`
       : '<p class="cdh-note">Nicely done. You can still change any of these from your plan.</p>';
@@ -489,8 +495,25 @@
     body.innerHTML = `${bar((steps.completed / steps.total) * 100, `Planning ${Math.round((steps.completed / steps.total) * 100)}% complete`)}${todoList}${doneList}`;
   }
 
+  /**
+   * Checklist steps that fill in a field of a plan that already exists, and the plan editor field
+   * each one opens on. The server points them at the plan wizard, which starts a new plan.
+   */
+  const PLAN_FIELD_STEPS = {
+    'set-date': 'cdh-pf-date',
+    'set-guests': 'cdh-pf-guests',
+    'set-location': 'cdh-pf-location',
+  };
+
+  /** Attributes that make a step link open the plan editor instead of navigating. */
+  function stepAttrs(milestone) {
+    return milestone.editField
+      ? ` data-edit-plan="${esc(milestone.planId)}" data-edit-field="${esc(milestone.editField)}"`
+      : '';
+  }
+
   /** Validates the milestone payload so a malformed response shows the error state, not a broken list. */
-  function normaliseSteps(data) {
+  function normaliseSteps(data, plan) {
     if (!data || !Array.isArray(data.milestones) || !data.milestones.length) {
       return null;
     }
@@ -500,11 +523,16 @@
         id: milestone.id,
         label: String(milestone.label),
         done: Boolean(milestone.done),
+        planId: plan?.id || '',
+        editField: plan?.id ? PLAN_FIELD_STEPS[milestone.id] || '' : '',
         href:
           typeof milestone.href === 'string' && /^(\/|#)/u.test(milestone.href)
             ? milestone.href
             : '/start',
-      }));
+      }))
+      .map(milestone =>
+        milestone.editField ? { ...milestone, href: '#cdh-plans-title' } : milestone
+      );
     const completed = milestones.filter(milestone => milestone.done).length;
     return { milestones, completed, total: milestones.length };
   }
@@ -554,8 +582,11 @@
       }
       const editPlan = event.target.closest?.('[data-edit-plan]');
       if (editPlan) {
+        event.preventDefault();
         document.dispatchEvent(
-          new CustomEvent('cdh:edit-plan', { detail: { planId: editPlan.dataset.editPlan } })
+          new CustomEvent('cdh:edit-plan', {
+            detail: { planId: editPlan.dataset.editPlan, field: editPlan.dataset.editField || '' },
+          })
         );
         return;
       }
@@ -677,7 +708,7 @@
         : Promise.resolve(null),
     ]);
 
-    const steps = normaliseSteps(stepsData);
+    const steps = normaliseSteps(stepsData, plan);
     const total = totalBudgetFor(plan, list);
     const summary = { ...money, total };
 

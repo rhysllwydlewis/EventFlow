@@ -379,6 +379,19 @@ describe('customer dashboard home: data handling', () => {
     expect(initJs).toMatch(/setupEventHandlers\(\);\s+scrollToHashTarget\(\);/);
   });
 
+  test('checklist steps that fill in an existing plan open the plan editor on their field', () => {
+    expect(homeJs).toContain("'set-date': 'cdh-pf-date'");
+    expect(homeJs).toContain("'set-guests': 'cdh-pf-guests'");
+    expect(homeJs).toContain("'set-location': 'cdh-pf-location'");
+    expect(homeJs).toContain('normaliseSteps(stepsData, plan)');
+    expect(initJs).toContain('showEditPlanModal(plan, reloadDashboard, event.detail?.field)');
+  });
+
+  test('the plan editor never writes a guest count over a plan that keeps its guest list in `guests`', () => {
+    expect(initJs).toContain('const guestCountEditable = !Array.isArray(plan.guests);');
+    expect(initJs).toMatch(/if \(guestsInput\) \{\s+changes\.guests =/);
+  });
+
   test('the primary action starts hidden so it never flashes the wrong label while plans load', () => {
     expect(html).toMatch(/id="cdh-next-action"[^>]*\bhidden\b/);
   });

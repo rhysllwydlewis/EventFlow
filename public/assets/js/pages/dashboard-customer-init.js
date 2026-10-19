@@ -168,10 +168,15 @@ async function readJson(response) {
  * Opens the Edit Plan dialog and PATCHes the plan on save.
  * @param {object} plan - The plan being edited
  * @param {Function} onSaved - Called after a successful save
+ * @param {string} [focusId] - Id of the field to focus first (a checklist step opens it on its field)
  */
-function showEditPlanModal(plan, onSaved) {
+function showEditPlanModal(plan, onSaved, focusId) {
   document.getElementById('cdh-plan-edit-dialog')?.remove();
   const opener = document.activeElement;
+
+  // A few old plans keep the guest list itself in `guests`; a number must never overwrite that.
+  const guestCountEditable = !Array.isArray(plan.guests);
+  const expectedGuests = Number.parseInt(plan.guestCount || plan.guests, 10) || '';
 
   const dialog = document.createElement('dialog');
   dialog.id = 'cdh-plan-edit-dialog';
@@ -196,6 +201,14 @@ function showEditPlanModal(plan, onSaved) {
           <label class="cdh-label" for="cdh-pf-location">Location</label>
           <input class="cdh-input" type="text" id="cdh-pf-location" value="${escapeHtml(plan.location || '')}" maxlength="200" placeholder="e.g. London" autocomplete="off">
         </div>
+        ${
+          guestCountEditable
+            ? `<div class="cdh-field">
+          <label class="cdh-label" for="cdh-pf-guests">Expected guests</label>
+          <input class="cdh-input" type="number" id="cdh-pf-guests" value="${escapeHtml(String(expectedGuests))}" min="0" max="10000" step="1" inputmode="numeric" placeholder="e.g. 80">
+        </div>`
+            : ''
+        }
         <div class="cdh-field">
           <label class="cdh-label" for="cdh-pf-notes">Notes</label>
           <textarea class="cdh-input cdh-input--area" id="cdh-pf-notes" rows="3" maxlength="2000" placeholder="Anything else worth keeping with this plan">${escapeHtml(plan.notes || '')}</textarea>
@@ -212,9 +225,9 @@ function showEditPlanModal(plan, onSaved) {
   const nameInput = dialog.querySelector('#cdh-pf-name');
   const statusEl = dialog.querySelector('#cdh-pf-status');
   const saveBtn = dialog.querySelector('#cdh-pf-save');
-  nameInput.addEventListener('input', () => {
+  dialog.addEventListener('input', event => {
     statusEl.textContent = '';
-    nameInput.removeAttribute('aria-invalid');
+    event.target.removeAttribute('aria-invalid');
   });
 
   dialog.querySelector('form').addEventListener('submit', async event => {
@@ -227,21 +240,34 @@ function showEditPlanModal(plan, onSaved) {
       nameInput.focus();
       return;
     }
+    const guestsInput = dialog.querySelector('#cdh-pf-guests');
+    const guestsText = guestsInput ? guestsInput.value.trim() : '';
+    if (guestsInput && guestsText !== '' && !/^\d{1,5}$/u.test(guestsText)) {
+      statusEl.dataset.tone = 'error';
+      statusEl.textContent = 'Enter the number of guests as a whole number, up to 10,000.';
+      guestsInput.setAttribute('aria-invalid', 'true');
+      guestsInput.focus();
+      return;
+    }
     saveBtn.disabled = true;
     saveBtn.textContent = 'Saving…';
     statusEl.textContent = '';
     try {
       const csrf = await ensureCsrfToken();
+      const changes = {
+        name,
+        eventDate: dialog.querySelector('#cdh-pf-date').value || null,
+        location: dialog.querySelector('#cdh-pf-location').value.trim() || null,
+        notes: dialog.querySelector('#cdh-pf-notes').value.trim() || null,
+      };
+      if (guestsInput) {
+        changes.guests = guestsText === '' ? null : Number(guestsText);
+      }
       const response = await fetch(`/api/me/plans/${encodeURIComponent(plan.id)}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrf },
         credentials: 'include',
-        body: JSON.stringify({
-          name,
-          eventDate: dialog.querySelector('#cdh-pf-date').value || null,
-          location: dialog.querySelector('#cdh-pf-location').value.trim() || null,
-          notes: dialog.querySelector('#cdh-pf-notes').value.trim() || null,
-        }),
+        body: JSON.stringify(changes),
       });
       const payload = await readJson(response);
       if (!response.ok) {
@@ -260,7 +286,10 @@ function showEditPlanModal(plan, onSaved) {
   });
 
   showDialog(dialog, opener);
-  nameInput.focus();
+  const wanted = /^cdh-pf-[a-z]+$/u.test(focusId || '')
+    ? dialog.querySelector(`#${focusId}`)
+    : null;
+  (wanted || nameInput).focus();
 }
 
 /**
@@ -437,7 +466,7 @@ async function initDashboard() {
   document.addEventListener('cdh:edit-plan', event => {
     const plan = dashboardPlans.find(candidate => candidate.id === event.detail?.planId);
     if (plan) {
-      showEditPlanModal(plan, reloadDashboard);
+      showEditPlanModal(plan, reloadDashboard, event.detail?.field);
     }
   });
 
