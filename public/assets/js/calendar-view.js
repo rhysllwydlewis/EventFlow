@@ -644,7 +644,7 @@
         <div class="cal-fallback-month__header">
           <div>
             <div class="cal-fallback-month__eyebrow">Calendar view</div>
-            <h4 class="cal-fallback-month__title">${monthStart.toLocaleDateString('en-GB', { month: 'long', year: 'numeric' })}</h4>
+            <h3 class="cal-fallback-month__title">${monthStart.toLocaleDateString('en-GB', { month: 'long', year: 'numeric' })}</h3>
           </div>
           <p class="cal-fallback-month__hint">Click any day to add an entry.</p>
         </div>

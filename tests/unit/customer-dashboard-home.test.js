@@ -177,6 +177,12 @@ describe('customer dashboard home: stylesheet scoping', () => {
     expect(css).not.toMatch(/font-size:\s*[0-9.]+rem/);
   });
 
+  test('the calendar fallback keeps heading order and readable out-of-month days', () => {
+    const calendar = read('public/assets/js/calendar-view.js');
+    expect(calendar).not.toContain('<h4');
+    expect(css).not.toContain('#8a93a3');
+  });
+
   test('no pill radii, so badges and bars match the other customer pages', () => {
     expect(css).not.toMatch(/border-radius:\s*(999|9999)/);
   });
