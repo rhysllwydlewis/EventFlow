@@ -1,3 +1,4 @@
+import fs from 'node:fs';
 import { test, expect } from '@playwright/test';
 
 /**
@@ -112,6 +113,34 @@ test.describe('Customer budget page', () => {
     await expect(page.locator('#bp-form-error')).toContainText('changed somewhere else');
     await expect(page.locator('dialog[open]')).toHaveCount(1);
     await expect(page.locator('#bp-item-save')).toBeEnabled();
+  });
+
+  test('Download PDF produces a real multi-page PDF (the PDF library is served from our own origin)', async ({
+    page,
+    context,
+    baseURL,
+  }) => {
+    const plan = makePlan();
+    plan.budgetItems = Array.from({ length: 60 }, (_, index) => ({
+      id: `item${index}`,
+      category: index % 2 ? 'Catering' : 'Venue',
+      item: `Budget line number ${index + 1}`,
+      estimated: 100 + index,
+    }));
+    await mockPlans(page, [plan], route => json(route, {}, 500));
+    await open(page, context, baseURL, '/budget.html');
+    await expect(page.locator('.bp-table--items tbody tr')).toHaveCount(60);
+    await page.locator('#bp-export-menu summary').click();
+    const [download] = await Promise.all([
+      page.waitForEvent('download'),
+      page.locator('[data-action="export-pdf"]').click(),
+    ]);
+    expect(download.suggestedFilename()).toMatch(/^eventflow-budget-.*\.pdf$/);
+    const bytes = fs.readFileSync(await download.path());
+    expect(bytes.subarray(0, 5).toString()).toBe('%PDF-');
+    const pages = bytes.toString('latin1').match(/\/Type\s*\/Page[^s]/g) || [];
+    expect(pages.length).toBeGreaterThan(1);
+    await expect(page.locator('#bp-toast')).toContainText('downloaded as PDF');
   });
 
   test('switching plan puts it in the address, so a reload stays on that plan', async ({

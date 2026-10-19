@@ -98,3 +98,12 @@ pills) with the guest list and the dashboard, so moving between them does not sh
 the tone. Notes use a textarea (the server keeps 500 characters); the table clamps a long note to
 two lines on tablets and the card to three on phones, and the full text is in the edit dialog. On
 phones the export menu opens rightwards from the Export button so it stays on screen.
+
+## PDF export
+
+"Download PDF" uses `exportUtility.exportBudgetToPDF` (`public/assets/js/export-utility.js`),
+which loads jsPDF on demand from `/assets/js/vendor/jspdf.umd.min.js` (v4.2.1, MIT). It used to load
+jsPDF from cdnjs.cloudflare.com, which the Content-Security-Policy does not allow, so the button could
+only ever show "We could not create the PDF". `e2e/customer-guests-budget.spec.js` downloads a 60-line
+budget and checks it is a multi-page PDF. The old `loadQRCodeLib` in the same file has the same cdnjs
+problem but nothing calls it.

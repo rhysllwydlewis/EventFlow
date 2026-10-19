@@ -9,16 +9,18 @@ class ExportUtility {
     this.qrCodeLibLoaded = false;
   }
 
-  // Load jsPDF library dynamically
+  // Load jsPDF library dynamically. It is served from our own origin: the site's
+  // Content-Security-Policy does not allow scripts from cdnjs.cloudflare.com, so loading it from
+  // there is blocked and every PDF export failed.
   loadPDFLib() {
-    if (this.pdfLibLoaded || typeof jsPDF !== 'undefined') {
+    if (this.pdfLibLoaded || (window.jspdf && window.jspdf.jsPDF)) {
       this.pdfLibLoaded = true;
       return Promise.resolve();
     }
 
     return new Promise((resolve, reject) => {
       const script = document.createElement('script');
-      script.src = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';
+      script.src = '/assets/js/vendor/jspdf.umd.min.js?v=4.2.1';
       script.addEventListener('load', () => {
         this.pdfLibLoaded = true;
         resolve();
