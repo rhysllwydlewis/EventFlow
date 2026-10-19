@@ -356,7 +356,8 @@ describe('page invariants', () => {
   });
 
   test('the table undoes the global nowrap that mobile-optimizations.css gives every table', () => {
-    expect(css).toMatch(/\.gm \.gm-table \{[^{]*?\n {2}white-space: normal;/);
+    const rule = css.match(/\.gm \.gm-table \{[\s\S]*?\n\}/)[0];
+    expect(rule).toMatch(/white-space: normal;/);
   });
 
   test('respects reduced motion', () => {
