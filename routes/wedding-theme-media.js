@@ -191,3 +191,4 @@ router.get('/public/wedding-websites/:slug/theme-media', async (req, res) => {
 });
 
 module.exports = router;
+module.exports.publicThemeMedia = publicThemeMedia;

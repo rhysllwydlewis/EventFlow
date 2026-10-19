@@ -41,6 +41,11 @@ describe('public wedding website renderer', () => {
               arrivalTime: '12:30',
               ceremonyTime: '13:00',
               coverImageUrl: 'data:image/png;base64,aaaa',
+              accentColor: '#8d3f6f',
+              galleryImages: [
+                { imageUrl: 'data:image/png;base64,bbbb', caption: 'Rosewood' },
+                { imageUrl: 'javascript:alert(3)' },
+              ],
               welcomeMessage: 'We cannot wait to celebrate with you.',
               accommodationRecommendations: [{ name: 'The Minster Hotel', websiteUrl: 'https://example.com/hotel' }],
               localInfo: [{ title: 'Unsafe link', url: 'javascript:alert(1)' }],
@@ -71,8 +76,12 @@ describe('public wedding website renderer', () => {
         });
         const hero = document.querySelector('.wed-hero');
         if (!hero.classList.contains('wed-hero--image')) throw new Error('safe cover image not applied');
-        if (!hero.style.backgroundImage.includes('data:image/png;base64,aaaa')) throw new Error('data image cover missing');
-        if (dom.window.__PUBLIC_WEDDING_THEME_MEDIA__?.coverImageUrl !== 'data:image/png;base64,aaaa') throw new Error('theme payload not shared');
+        if (!hero.getAttribute('style').includes('data:image/png;base64,aaaa')) throw new Error('data image cover missing');
+        const rootStyle = document.documentElement.style;
+        if (rootStyle.getPropertyValue('--wed-accent') !== '#8d3f6f') throw new Error('palette not applied');
+        if (!/^#[0-9a-f]{6}$/.test(rootStyle.getPropertyValue('--wed-accent-ink'))) throw new Error('readable ink not derived');
+        if (!document.querySelector('.wed-gallery img')) throw new Error('gallery missing');
+        if (document.querySelectorAll('.wed-gallery img').length !== 1) throw new Error('unsafe gallery image rendered');
         if (document.title !== 'Jamie & Taylor — Wedding Website') throw new Error('title not updated');
         if (document.getElementById('public-wedding-root').classList.contains('wed-loading')) throw new Error('loading class not removed');
         if (!document.querySelector('.wed-nav a[href="#schedule"]')) throw new Error('navigation missing');
@@ -92,9 +101,10 @@ describe('public wedding website renderer', () => {
         document.querySelector('[name="childrenCount"]').value = '0';
         document.querySelector('#rsvp-form').dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
         await waitFor(() => {
-          if (document.querySelector('#rsvp-msg').textContent !== 'RSVP received.') throw new Error('RSVP not submitted');
+          if (document.querySelector('.wed-done__message')?.textContent !== 'RSVP received.') throw new Error('RSVP not submitted');
         });
         const payload = JSON.parse(calls[1][1].body);
+        if (payload.attending !== 'true') throw new Error('attending choice missing from payload');
         if (payload.guestName !== 'Alex Guest') throw new Error('guest name missing from payload');
         if (payload.customAnswers[0].value !== 'September') throw new Error('custom answer missing from payload');
         console.log('public wedding site smoke passed');
