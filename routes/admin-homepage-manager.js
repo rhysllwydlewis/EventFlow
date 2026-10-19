@@ -11,6 +11,7 @@ const logger = require('../utils/logger');
 const { authRequired, roleRequired } = require('../middleware/auth');
 const { csrfProtection } = require('../middleware/csrf');
 const { auditLog } = require('../middleware/audit');
+const { adminHomepageLimiter } = require('../middleware/rateLimits');
 const {
   buildHomepageManager,
   buildHomepageToggle,
@@ -26,6 +27,9 @@ const {
 } = require('../utils/homepage-manager');
 
 const router = express.Router();
+
+// Every route here is admin only; bound how often one client can call them.
+router.use(adminHomepageLimiter);
 
 router.get('/', authRequired, roleRequired('admin'), async (req, res) => {
   try {

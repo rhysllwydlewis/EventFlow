@@ -28,6 +28,11 @@ jest.mock('../../middleware/csrf', () => ({
 
 jest.mock('../../middleware/audit', () => ({ auditLog: jest.fn() }));
 
+const mockLimiter = jest.fn((req, res, next) => next());
+jest.mock('../../middleware/rateLimits', () => ({
+  adminHomepageLimiter: (req, res, next) => mockLimiter(req, res, next),
+}));
+
 jest.mock('../../db-unified', () => ({
   read: jest.fn(),
   writeAndVerify: jest.fn(),
@@ -127,6 +132,16 @@ describe.each([
     jest.clearAllMocks();
     dbUnified.read.mockResolvedValue({ siteName: 'EventFlow' });
     dbUnified.writeAndVerify.mockImplementation(async (_name, data) => ({ data }));
+  });
+
+  test('is rate limited before anything else runs', async () => {
+    mockLimiter.mockClear();
+    await request(app()).get(url).expect(401);
+    expect(mockLimiter).toHaveBeenCalledTimes(1);
+
+    mockLimiter.mockImplementationOnce((req, res) => res.status(429).json({ error: 'slow down' }));
+    await request(app()).get(url).set('x-test-role', 'admin').expect(429);
+    expect(dbUnified.read).not.toHaveBeenCalled();
   });
 
   test('requires an admin', async () => {
