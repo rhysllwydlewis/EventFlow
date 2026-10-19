@@ -213,4 +213,22 @@ describe('GET /api/v1/customer/milestones', () => {
     const setBudget = res.body.milestones.find(m => m.id === 'set-budget');
     expect(setBudget.done).toBe(true);
   });
+
+  it.each([
+    ['an empty guest list kept in `guests`', { guests: [] }, false],
+    ['an empty `guestList`', { guestList: [] }, false],
+    ['a head count of zero', { guests: 0, guestCount: 0 }, false],
+    ['a head count', { guests: '80' }, true],
+    ['an old-style guest list', { guests: [{ id: 'g1' }] }, true],
+    ['a guest list kept in `guestList`', { guestList: [{ id: 'g1' }] }, true],
+  ])('set-guests milestone with %s is done: %s', async (_label, fields, done) => {
+    mockDb.find.mockImplementation(async col =>
+      col === 'plans' ? [{ id: 'plan-1', userId: 'user-cust-1', ...fields }] : []
+    );
+    const res = await request(buildApp())
+      .get('/api/v1/customer/milestones')
+      .set('x-test-user-role', 'customer');
+    expect(res.status).toBe(200);
+    expect(res.body.milestones.find(m => m.id === 'set-guests').done).toBe(done);
+  });
 });

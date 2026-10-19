@@ -16,6 +16,18 @@ const { stripHtml } = require('../utils/helpers');
 
 const router = express.Router();
 
+const MAX_BUDGET_ITEMS = 500;
+const MAX_BUDGET_AMOUNT = 1000000000;
+
+/** A budget amount in pounds: finite, never negative, capped, rounded to pence. */
+const budgetAmount = value => {
+  const amount = parseFloat(value);
+  if (!Number.isFinite(amount) || amount <= 0) {
+    return 0;
+  }
+  return Math.round(Math.min(amount, MAX_BUDGET_AMOUNT) * 100) / 100;
+};
+
 /**
  * GET /api/me/plans
  * Get all plans for the current user
@@ -513,16 +525,32 @@ router.post(
     try {
       const userId = req.user.id;
       const { planId } = req.params;
-      const { budgetItems } = req.body;
+      const { budgetItems, baseVersion } = req.body;
 
       if (!Array.isArray(budgetItems)) {
         return res.status(400).json({ error: 'budgetItems must be an array' });
+      }
+      if (budgetItems.length > MAX_BUDGET_ITEMS) {
+        return res
+          .status(400)
+          .json({ error: `A budget can have at most ${MAX_BUDGET_ITEMS} items` });
       }
 
       const plan = await dbUnified.findOne('plans', { id: planId, userId: userId });
 
       if (!plan) {
         return res.status(404).json({ error: 'Plan not found' });
+      }
+
+      // The list is saved whole, so a second tab or device working from an older copy would wipe
+      // out the other's changes. A client that says which version it started from is refused when
+      // the saved list has moved on; clients that send no version behave as before.
+      if (baseVersion !== undefined && (plan.budgetUpdatedAt || '') !== String(baseVersion || '')) {
+        return res.status(409).json({
+          error: 'This budget was changed somewhere else. Reload to see the latest.',
+          budgetItems: plan.budgetItems || [],
+          budgetUpdatedAt: plan.budgetUpdatedAt || '',
+        });
       }
 
       const now = new Date().toISOString();
@@ -532,9 +560,9 @@ router.post(
         id: item.id || uid('budget'),
         category: item.category ? stripHtml(String(item.category).trim()).slice(0, 100) : '',
         item: item.item ? stripHtml(String(item.item).trim()).slice(0, 200) : '',
-        estimated: item.estimated ? Math.max(0, parseFloat(item.estimated) || 0) : 0,
-        actual: item.actual ? Math.max(0, parseFloat(item.actual) || 0) : 0,
-        paid: item.paid ? Math.max(0, parseFloat(item.paid) || 0) : 0,
+        estimated: budgetAmount(item.estimated),
+        actual: budgetAmount(item.actual),
+        paid: budgetAmount(item.paid),
         notes: item.notes ? stripHtml(String(item.notes).trim()).slice(0, 500) : '',
         updatedAt: now,
       }));
@@ -543,13 +571,14 @@ router.post(
         'plans',
         { id: planId },
         {
-          $set: { budgetItems: sanitizedItems, updatedAt: now },
+          $set: { budgetItems: sanitizedItems, budgetUpdatedAt: now, updatedAt: now },
         }
       );
 
       res.json({
         success: true,
         budgetItems: sanitizedItems,
+        budgetUpdatedAt: now,
         count: sanitizedItems.length,
       });
     } catch (error) {

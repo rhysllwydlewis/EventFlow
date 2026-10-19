@@ -244,4 +244,9 @@ describe('budget page styling invariants', () => {
     const rule = css.match(/\.bp \.bp-table \{[\s\S]*?\n\}/)[0];
     expect(rule).toMatch(/white-space: normal;/);
   });
+
+  test('saves send the version they started from, so a second tab cannot overwrite silently', () => {
+    expect(js).toMatch(/baseVersion: state\.plan\.budgetUpdatedAt \|\| ''/);
+    expect(js).toMatch(/state\.plan\.budgetUpdatedAt = data\.budgetUpdatedAt/);
+  });
 });

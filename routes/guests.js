@@ -184,20 +184,15 @@ router.patch(
     }
     const guest = { ...guests[i] };
     const now = new Date().toISOString();
-    [
-      'name',
-      'email',
-      'phone',
-      'plusOneName',
-      'mealChoice',
-      'songRequest',
-      'notes',
-      'tableId',
-    ].forEach(k => {
+    ['name', 'email', 'phone', 'plusOneName', 'mealChoice', 'songRequest', 'tableId'].forEach(k => {
       if (req.body[k] !== undefined) {
         guest[k] = sanitize(req.body[k], 200);
       }
     });
+    // Same limit as on create, so saving a guest never shortens notes that were already saved.
+    if (req.body.notes !== undefined) {
+      guest.notes = sanitize(req.body.notes, 1000);
+    }
     if (req.body.table !== undefined || req.body.tableName !== undefined) {
       guest.tableName = sanitize(req.body.tableName || req.body.table, 100);
     }
