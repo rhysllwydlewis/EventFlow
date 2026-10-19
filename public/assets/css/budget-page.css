@@ -276,6 +276,13 @@
 
 .bp .bp-select-wrap {
   display: flex;
+  max-width: 100%;
+}
+
+.bp .bp-select-wrap .bp-select {
+  min-width: 0;
+  max-width: 100%;
+  text-overflow: ellipsis;
 }
 
 /* Export menu */
@@ -586,6 +593,12 @@
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
+}
+
+/* A long custom category name must not stretch the filter across the whole header. */
+.bp .bp-filters .bp-select {
+  max-width: 260px;
+  text-overflow: ellipsis;
 }
 
 .bp .bp-table {
@@ -958,8 +971,13 @@
     width: auto;
   }
 
+  /* A long note is cut after two lines here; the full text is in the edit dialog. */
   .bp .bp-item-notes {
+    display: -webkit-box;
     max-width: none;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
     white-space: normal;
   }
 
@@ -1031,6 +1049,20 @@
 
   .bp .bp-head__actions .bp-btn--primary {
     flex: 1;
+  }
+
+  /* Export sits at the left edge on phones, so open its menu rightwards, not off the screen. */
+  .bp .bp-menu__panel {
+    right: auto;
+    left: 0;
+  }
+
+  .bp .bp-select-wrap {
+    width: 100%;
+  }
+
+  .bp .bp-select-wrap .bp-select {
+    width: 100%;
   }
 
   .bp .bp-btn {
@@ -1202,8 +1234,12 @@
   }
 
   .bp .bp-item-notes {
+    -webkit-line-clamp: 3;
+    line-clamp: 3;
+  }
+
+  .bp .bp-filters .bp-select {
     max-width: none;
-    white-space: normal;
   }
 
   .bp .bp-table tfoot tr {

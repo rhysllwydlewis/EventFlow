@@ -208,6 +208,16 @@ describe('budget page styling invariants', () => {
     expect(css).not.toMatch(/border-radius:\s*(999|9999)/);
   });
 
+  test('the export menu opens rightwards on phones, where Export sits at the left edge', () => {
+    const phone = css.slice(css.indexOf('@media (max-width: 720px)'));
+    expect(phone).toMatch(/\.bp \.bp-menu__panel \{[^}]*right: auto;[^}]*left: 0;/);
+  });
+
+  test('long notes are clamped in the table and the plan select cannot outgrow its row', () => {
+    expect(css).toMatch(/-webkit-line-clamp: 2;/);
+    expect(css).toMatch(/\.bp \.bp-select-wrap \.bp-select \{[^}]*max-width: 100%;/);
+  });
+
   test('the tables undo the global nowrap that mobile-optimizations.css gives every table', () => {
     const rule = css.match(/\.bp \.bp-table \{[\s\S]*?\n\}/)[0];
     expect(rule).toMatch(/white-space: normal;/);

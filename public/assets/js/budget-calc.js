@@ -5,7 +5,7 @@
  * Pure functions with no DOM access, shared by public/assets/js/pages/budget-page.js (browser,
  * exposed as window.EFBudgetCalc) and the unit tests (CommonJS).
  *
- * The rules deliberately match the customer dashboard (dashboard-customer-module.js), so both
+ * The rules deliberately match the customer dashboard home (customer-dashboard-home.js), so both
  * places agree on the numbers:
  *   - the cost of a line is its actual amount when there is one, otherwise its estimate;
  *   - "committed" is the sum of those costs, "remaining" is budget minus committed;
