@@ -37,6 +37,9 @@ const plans = [
 ];
 jest.mock('../../db-unified', () => ({
   read: jest.fn(async c => (c === 'plans' ? plans : [])),
+  findOne: jest.fn(async (c, q) =>
+    c === 'plans' ? plans.find(p => p.id === q.id && p.userId === q.userId) || null : null
+  ),
   updateOne: jest.fn(async (_c, q, u) => {
     Object.assign(
       plans.find(p => p.id === q.id),

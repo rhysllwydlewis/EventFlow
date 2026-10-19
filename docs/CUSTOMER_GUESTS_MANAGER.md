@@ -80,6 +80,15 @@ and edit.
   a changed email is checked for a valid address. A reply change away from "Attending" frees the
   guest's seat (or clears their typed table) on the server, and the toast says so.
 - All requests use `limit`-free endpoints, so the `/api` pagination cap does not apply.
+- Adding, importing, editing and removing guests are safe to do from two tabs at once. Each of
+  these routes reads the whole list, changes it and writes it back, and the write names the plan's
+  `updatedAt` that the change started from (every plan write moves it on). A write from a stale copy
+  matches nothing, so the change is redone against the fresh plan (up to 5 tries) instead of
+  overwriting what someone else just saved. A guest edited or removed elsewhere in the meantime
+  answers 404; a list that keeps changing answers 409 ("changed somewhere else, try again"); a
+  database that refuses the write answers 500. The seating and wedding-website routes write the guest
+  list too and do not yet make this check themselves, so a seating change that starts from an old
+  copy can still undo a guest change that landed in between.
 
 ## Left alone
 
