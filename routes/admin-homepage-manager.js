@@ -53,6 +53,17 @@ const TOGGLE_ROUTES = [
   },
 ];
 
+// A switch is saved by reading every setting and writing them all back, so two
+// saves at the same moment (both switches flipped in quick succession) could each
+// start from the same snapshot and the later one would undo the other. They are
+// run one after another instead.
+let toggleWriteQueue = Promise.resolve();
+const inTurn = task => {
+  const run = toggleWriteQueue.then(task);
+  toggleWriteQueue = run.catch(() => undefined);
+  return run;
+};
+
 TOGGLE_ROUTES.forEach(({ path, key, action, label }) => {
   router.get(path, authRequired, roleRequired('admin'), async (req, res) => {
     try {
@@ -72,10 +83,16 @@ TOGGLE_ROUTES.forEach(({ path, key, action, label }) => {
         return;
       }
 
-      const settings = (await dbUnified.read('settings')) || {};
-      const nextSettings = updateHomepageToggle(settings, key, req.body.enabled, req.user);
-      const result = await dbUnified.writeAndVerify('settings', nextSettings);
-      const toggle = buildHomepageToggle(result.data, key);
+      const toggle = await inTurn(async () => {
+        const settings = (await dbUnified.read('settings')) || {};
+        const nextSettings = updateHomepageToggle(settings, key, req.body.enabled, req.user);
+        const result = await dbUnified.writeAndVerify('settings', nextSettings);
+        // writeAndVerify reports a failed write by resolving { success: false }
+        if (!result || result.success !== true) {
+          throw new Error(result?.error || 'The settings write did not complete');
+        }
+        return buildHomepageToggle(result.data, key);
+      });
 
       auditLog({
         adminId: req.user.id,

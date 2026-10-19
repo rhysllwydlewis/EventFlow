@@ -131,7 +131,7 @@ describe.each([
   beforeEach(() => {
     jest.clearAllMocks();
     dbUnified.read.mockResolvedValue({ siteName: 'EventFlow' });
-    dbUnified.writeAndVerify.mockImplementation(async (_name, data) => ({ data }));
+    dbUnified.writeAndVerify.mockImplementation(async (_name, data) => ({ success: true, data }));
   });
 
   test('is rate limited before anything else runs', async () => {
@@ -203,6 +203,42 @@ describe.each([
     const other = setting === 'homepageGuidance' ? 'homepageQuickLinks' : 'homepageGuidance';
     expect(saved[setting].enabled).toBe(true);
     expect(saved[other].enabled).toBe(false);
+  });
+
+  test('a write that resolves as unsuccessful is a failure, not a success with the default', async () => {
+    dbUnified.writeAndVerify.mockResolvedValueOnce({ success: false, error: 'disk full' });
+    await request(app())
+      .put(url)
+      .set({ 'x-test-role': 'admin', 'x-csrf-token': 'good' })
+      .send({ enabled: false })
+      .expect(500);
+    expect(auditLog).not.toHaveBeenCalled();
+  });
+
+  test('two saves at the same moment both survive', async () => {
+    // a store slow enough that, unserialised, both saves would read the same snapshot
+    let stored = {};
+    const wait = ms => new Promise(resolve => setTimeout(resolve, ms));
+    dbUnified.read.mockImplementation(async () => {
+      await wait(15);
+      return JSON.parse(JSON.stringify(stored));
+    });
+    dbUnified.writeAndVerify.mockImplementation(async (_name, data) => {
+      await wait(15);
+      stored = JSON.parse(JSON.stringify(data));
+      return { success: true, data: stored };
+    });
+
+    const headers = { 'x-test-role': 'admin', 'x-csrf-token': 'good' };
+    const base = '/api/v1/admin/homepage/manager';
+    const [first, second] = await Promise.all([
+      request(app()).put(`${base}/guidance`).set(headers).send({ enabled: false }),
+      request(app()).put(`${base}/quick-links`).set(headers).send({ enabled: false }),
+    ]);
+
+    expect([first.status, second.status]).toEqual([200, 200]);
+    expect(stored.homepageGuidance.enabled).toBe(false);
+    expect(stored.homepageQuickLinks.enabled).toBe(false);
   });
 
   test('a failed write is reported rather than pretending it worked', async () => {

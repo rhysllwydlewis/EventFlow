@@ -279,8 +279,9 @@ body.ef-home-flow main .ef-quick-tags__tag {
   -webkit-backdrop-filter: none !important;
 }
 
-/* Admin > Homepage can switch the whole row off. */
-body.ef-home-flow:not(.ef-home-quicklinks) main .ef-quick-tags {
+/* Admin > Homepage can switch the whole row off. Homepage 3 draws its shortcuts as
+   .hv2-popular, so the same switch hides those. */
+body.ef-home-flow:not(.ef-home-quicklinks) main :is(.ef-quick-tags, .hv2-popular) {
   display: none !important;
 }
 

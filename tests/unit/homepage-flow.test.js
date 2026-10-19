@@ -81,7 +81,7 @@ describe('homepage flow layer wiring', () => {
 describe('quick links under the hero search', () => {
   test('can be switched off from the admin, and are a swipeable row on phones', () => {
     expect(css).toMatch(
-      /body\.ef-home-flow:not\(\.ef-home-quicklinks\) main \.ef-quick-tags\s*\{[^}]*display:\s*none\s*!important/
+      /body\.ef-home-flow:not\(\.ef-home-quicklinks\) main :is\([^)]*\.ef-quick-tags[^)]*\)\s*\{[^}]*display:\s*none\s*!important/
     );
     const phone = css.match(
       /@media \(max-width: 639px\)\s*\{\s*body\.ef-home-flow\.ef-home-quicklinks main \.ef-quick-tags \{([^}]*)\}/
@@ -91,6 +91,13 @@ describe('quick links under the hero search', () => {
     expect(phone).toMatch(/overflow-x:\s*auto/);
     // styles.css makes every .ef-cta full width on phones; the chips must not be
     expect(css).toMatch(/\.ef-quick-tags__tag\s*\{[^}]*width:\s*auto/);
+  });
+
+  test('the off state also hides Homepage 3, which draws its shortcuts as .hv2-popular', () => {
+    expect(css).toMatch(
+      /body\.ef-home-flow:not\(\.ef-home-quicklinks\) main :is\(\.ef-quick-tags, \.hv2-popular\)\s*\{[^}]*display:\s*none\s*!important/
+    );
+    expect(read('utils/template-renderer.js')).toContain('class="hv2-popular"');
   });
 
   test('the homepage body starts with the switch on, so a failed settings read leaves them showing', () => {
