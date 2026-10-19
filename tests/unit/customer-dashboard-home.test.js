@@ -183,6 +183,13 @@ describe('customer dashboard home: stylesheet scoping', () => {
     expect(css).not.toContain('#8a93a3');
   });
 
+  test('the ticket dialogs get the same dark backdrop and square buttons as the other dialogs', () => {
+    expect(css).toMatch(/\.cdh-page \.modal-overlay \{[^}]*rgba\(23, 32, 47, 0\.5\) !important/);
+    expect(css).toMatch(
+      /\.cdh-page \.modal-overlay \.btn \{[^}]*border-radius: var\(--cdh-radius-sm\) !important/
+    );
+  });
+
   test('no pill radii, so badges and bars match the other customer pages', () => {
     expect(css).not.toMatch(/border-radius:\s*(999|9999)/);
   });

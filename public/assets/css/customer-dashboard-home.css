@@ -1141,8 +1141,108 @@
 /* Ticket dialogs (shared .modal markup from customer-tickets.js). The close button also carries
    .ef-cta, whose sitewide padding and 100%-width-on-phones rules would squash the glyph. */
 
+/* The sitewide modal styles give these a pale blurred backdrop, 1.5rem padding and pill
+   buttons. Bring them in line with the page's other dialogs. */
+
+.cdh-page .modal-overlay {
+  background: rgba(23, 32, 47, 0.5) !important;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+.cdh-page .modal-overlay .modal {
+  padding: 0;
+  border: 0;
+  border-radius: var(--cdh-radius);
+  box-shadow: var(--cdh-pop);
+}
+
+.cdh-page .modal-overlay .ticket-create-modal {
+  max-width: 480px;
+}
+
 .cdh-page .modal-overlay .modal-header {
   gap: 12px;
+  padding: 16px 16px 16px 24px;
+  border-bottom: 1px solid var(--cdh-line);
+}
+
+.cdh-page .modal-overlay .modal-body {
+  padding: 24px;
+}
+
+.cdh-page .modal-overlay .form-row {
+  display: grid;
+  gap: 6px;
+  margin-bottom: 16px;
+}
+
+.cdh-page .modal-overlay .form-row label {
+  color: var(--cdh-ink-2);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.cdh-page .modal-overlay .form-row :where(input, textarea, select) {
+  width: 100%;
+  min-height: 44px;
+  padding: 10px 14px;
+  border: 1px solid var(--cdh-line-strong);
+  border-radius: var(--cdh-radius-sm);
+  background: var(--cdh-surface);
+  box-shadow: none;
+  color: var(--cdh-ink);
+  font: inherit;
+  font-size: 16px;
+}
+
+.cdh-page .modal-overlay .form-row textarea {
+  resize: vertical;
+}
+
+.cdh-page .modal-overlay .form-row :where(input, textarea, select):focus-visible {
+  border-color: var(--cdh-accent);
+  outline: 2px solid var(--cdh-ring);
+  outline-offset: 0;
+  box-shadow: none;
+}
+
+.cdh-page .modal-overlay .form-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.cdh-page .modal-overlay .btn {
+  min-height: 40px;
+  padding: 0 18px !important;
+  border-radius: var(--cdh-radius-sm) !important;
+  box-shadow: none;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.cdh-page .modal-overlay .btn-primary {
+  border: 1px solid var(--cdh-accent);
+  background: var(--cdh-accent);
+  color: #fff;
+}
+
+.cdh-page .modal-overlay .btn-primary:hover {
+  background: var(--cdh-accent-hover);
+  transform: none;
+}
+
+.cdh-page .modal-overlay .btn-secondary {
+  border: 1px solid var(--cdh-line-strong);
+  background: var(--cdh-surface);
+  color: var(--cdh-ink);
+}
+
+.cdh-page .modal-overlay .btn-secondary:hover {
+  background: var(--cdh-line-soft);
+  transform: none;
 }
 
 .cdh-page .modal-overlay .modal-header h3 {
