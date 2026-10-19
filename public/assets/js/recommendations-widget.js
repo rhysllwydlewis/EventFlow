@@ -204,19 +204,6 @@
       );
     });
 
-    widget.querySelectorAll('.recommendation-avatar-wrap img').forEach(img => {
-      img.addEventListener(
-        'error',
-        () => {
-          const wrap = img.closest('.recommendation-avatar-wrap');
-          if (wrap) {
-            wrap.innerHTML = `<span class="recommendation-avatar recommendation-avatar--fallback" aria-hidden="true">${wrap.dataset.recInitial || '?'}</span>`;
-          }
-        },
-        { once: true }
-      );
-    });
-
     // Reveal the widget now that it has content
     widget.hidden = false;
     widget.style.display = '';
