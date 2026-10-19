@@ -7,10 +7,8 @@
   <title>Guest List Manager — EventFlow</title>
   <meta name="robots" content="noindex,nofollow">
   <link rel="stylesheet" href="/assets/css/styles.css?v=18.5.0">
-  <link rel="stylesheet" href="/assets/css/eventflow-17.0.0.css?v=18.3.0">
   <link rel="stylesheet" href="/assets/css/utilities.css?v=18.3.0">
   <link rel="stylesheet" href="/assets/css/components.css?v=18.4.3">
-  <link rel="stylesheet" href="/assets/css/animations.css?v=18.3.2">
   <link rel="stylesheet" href="/assets/css/mobile-optimizations.css?v=18.4.5">
   <link rel="stylesheet" href="/assets/css/ui-ux-fixes.css?v=18.4.0">
     <link rel="stylesheet" href="/assets/css/navbar.css?v=18.4.2" /><link rel="stylesheet" href="/assets/css/eventflow-brand.css?v=1.0.1" data-eventflow-brand="true" />
@@ -25,6 +23,7 @@
     <meta name="msapplication-config" content="/browserconfig.xml">
     <link rel="stylesheet" href="/assets/css/signed-in-mobile-fixes.css" />
   <link rel="stylesheet" href="/assets/css/eventflow-footer.css">
+  <link rel="stylesheet" href="/assets/css/guests.css?v=1.0.0">
 </head>
 <body>
 <!-- TOP NAVBAR - GOLD STANDARD REBUILD -->
@@ -140,113 +139,40 @@
 <script src="/assets/js/search.js" defer></script>
 <script src="/assets/js/websocket-client.js" defer></script>
 
-<main id="main-content" class="section">
-  <div class="container">
-    <div class="breadcrumbs mb-4">
-      <a href="/" class="breadcrumb-item">Home</a>
-      <span class="breadcrumb-separator">›</span>
-      <span class="breadcrumb-item active">Guest List</span>
-    </div>
-
-    <div class="flex items-center justify-between mb-6 dash-flex-wrap">
-      <div>
-        <h1 class="mb-2">Guest List Manager</h1>
-        <p class="small">Track RSVPs and manage your guest list</p>
-        <p id="active-plan-label" class="small guests-save-indicator" hidden></p>
+<main id="main-content" class="gm">
+  <div class="gm-wrap" id="gm-root">
+    <header class="gm-head">
+      <div class="gm-head__titles">
+        <a class="gm-back" href="/dashboard/customer"><svg class="gm-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M15 18l-6-6 6-6"/></svg>Dashboard</a>
+        <h1 class="gm-title">Guest list</h1>
+        <p class="gm-sub" id="gm-sub">Track replies and keep everyone in one place.</p>
+        <label class="gm-plan-picker" id="gm-plan-picker" hidden>
+          <span>Plan</span>
+          <select class="gm-input gm-select" id="gm-plan-select" aria-label="Choose a plan"></select>
+        </label>
       </div>
-      <div class="flex gap-2" style="flex-wrap: wrap;">
-        <button class="cta secondary" id="import-guests">
-          📥 Import CSV
+      <div class="gm-head__actions">
+        <button type="button" class="gm-btn gm-btn--secondary" data-action="import" data-needs-plan hidden>
+          <svg class="gm-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 16V4M7 9l5-5 5 5M4 20h16"/></svg>Import CSV
         </button>
-        <button class="cta secondary" id="export-guests">
-          📊 Export List
+        <button type="button" class="gm-btn gm-btn--secondary" data-action="export" data-needs-plan hidden>
+          <svg class="gm-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 4v12M7 11l5 5 5-5M4 20h16"/></svg>Export
         </button>
-        <button class="cta" id="add-guest">
-          ➕ Add Guest
+        <button type="button" class="gm-btn gm-btn--primary" data-action="add" data-needs-plan hidden>
+          <svg class="gm-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 5v14M5 12h14"/></svg>Add guest
         </button>
       </div>
+    </header>
+
+    <div id="gm-stage" aria-busy="true">
+      <div class="gm-skeleton" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
+      <noscript><div class="gm-panel"><p class="gm-noscript">The guest list needs JavaScript. Please turn it on and reload.</p></div></noscript>
     </div>
-
-    <!-- Overview Cards -->
-    <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-      <div class="card card-hover">
-        <div class="small mb-2" style="color: var(--muted);">Total Invited</div>
-        <div class="text-3xl font-bold" id="total-guests">0</div>
-      </div>
-
-      <div class="card card-hover">
-        <div class="small mb-2" style="color: var(--muted);">Attending</div>
-        <div class="text-3xl font-bold" style="color: #10B981;" id="attending-count">0</div>
-      </div>
-
-      <div class="card card-hover">
-        <div class="small mb-2" style="color: var(--muted);">Declined</div>
-        <div class="text-3xl font-bold" style="color: #EF4444;" id="declined-count">0</div>
-      </div>
-
-      <div class="card card-hover">
-        <div class="small mb-2" style="color: var(--muted);">Pending</div>
-        <div class="text-3xl font-bold" style="color: #F59E0B;" id="pending-count">0</div>
-      </div>
-    </div>
-
-    <!-- RSVP Progress and Dietary Requirements -->
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-      <!-- RSVP Progress Chart -->
-      <div class="card">
-        <h3 class="mb-4">RSVP Progress</h3>
-        <div style="position: relative; height: 250px; display: flex; align-items: center; justify-content: center;">
-          <canvas id="rsvp-chart"></canvas>
-          <div id="rsvp-empty" class="dash-empty-state" hidden>
-            <div class="guests-empty-icon">👥</div>
-            <div class="small">No guests yet</div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Dietary Requirements -->
-      <div class="card">
-        <h3 class="mb-4">Dietary Requirements</h3>
-        <div id="dietary-list" class="dash-scroll-250">
-          <div class="dash-empty-msg">
-            <div class="small">Add guests to track dietary requirements</div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Guest List -->
-    <div class="card">
-      <div class="flex items-center justify-between mb-4 dash-flex-wrap">
-        <h3 class="m-0">Guest List</h3>
-        <div class="flex gap-2" style="flex-wrap: wrap;">
-          <input type="search" id="search-guests" placeholder="Search guests..." class="dash-btn-sm dash-btn-sm--w200">
-          <select id="filter-rsvp" class="dash-btn-sm">
-            <option value="">All RSVPs</option>
-            <option value="attending">Attending</option>
-            <option value="declined">Declined</option>
-            <option value="pending">Pending</option>
-          </select>
-        </div>
-      </div>
-      
-      <div id="guests-list">
-        <div class="dash-empty-full">
-          <div class="dash-empty-icon">👥</div>
-          <div class="text-lg font-semibold mb-2">No guests yet</div>
-          <div class="small mb-4">Start building your guest list by adding your first guest</div>
-          <button class="cta" id="add-first-guest-btn">
-            Add First Guest
-          </button>
-        </div>
-      </div>
-    </div>
+    <div class="gm-toasts" id="gm-toasts" role="status" aria-live="polite"></div>
   </div>
 </main>
 
-<!-- Chart.js CDN -->
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-<script src="/assets/js/guests.js" defer></script>
+<script src="/assets/js/guests.js?v=2.0.0" defer></script>
 
 <footer class="footer" role="contentinfo">
   <div class="container ef-footer-content">
@@ -323,8 +249,6 @@
 <script src="/assets/js/cookie-consent.js?v=3.0.0" defer></script>
 <link rel="stylesheet" href="/assets/css/announcement-banner.css?v=1.0.0">
 <script src="/assets/js/announcement-banner.js?v=1.0.0" defer></script>
-<script src="/assets/js/pages/guests-init.js"></script>
-
 <!-- JadeAssist Chat Widget -->
 <script src="/assets/js/vendor/jade-widget.js" defer></script>
 <script src="/assets/js/jadeassist-init.v2.js" defer></script>
