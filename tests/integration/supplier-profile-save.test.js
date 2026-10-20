@@ -19,14 +19,10 @@ describe('Supplier Profile Save Fixes', () => {
     dashboardSupplierHtml = `${fs.readFileSync(
       path.join(__dirname, '../../public/dashboard-supplier.html'),
       'utf8'
-    )}\n${fs.readFileSync(
-      path.join(pagesDir, 'dashboard-supplier-module.js'),
+    )}\n${fs.readFileSync(path.join(pagesDir, 'dashboard-supplier-category.js'), 'utf8')}\n${fs.readFileSync(
+      path.join(pagesDir, 'supplier-dashboard-home.js'),
       'utf8'
-    )}\n${fs.readFileSync(path.join(pagesDir, 'dashboard-supplier-category.js'), 'utf8')}\n${
-      fs.existsSync(path.join(pagesDir, 'dashboard-supplier-inline.js'))
-        ? fs.readFileSync(path.join(pagesDir, 'dashboard-supplier-inline.js'), 'utf8')
-        : ''
-    }\n${fs.readFileSync(path.join(pagesDir, 'dashboard-supplier-threads.js'), 'utf8')}`;
+    )}`;
     appJsContent = fs.readFileSync(path.join(__dirname, '../../public/assets/js/app.js'), 'utf8');
     supplierGalleryContent = fs.readFileSync(
       path.join(__dirname, '../../public/assets/js/supplier-gallery.js'),
@@ -48,7 +44,7 @@ describe('Supplier Profile Save Fixes', () => {
     });
 
     it('should have venue postcode field initially hidden', () => {
-      expect(dashboardSupplierHtml).toContain('id="venue-postcode-row" style="display:none"');
+      expect(dashboardSupplierHtml).toContain('id="venue-postcode-row" hidden');
     });
 
     it('should have venue postcode validation error display', () => {
@@ -281,18 +277,19 @@ describe('Supplier Profile Save Fixes', () => {
       expect(supplierFormMatch).toBeTruthy();
     });
 
-    it('should show success state with green color', () => {
+    it('should show success and error states through data-tone, which the stylesheet colours', () => {
       const supplierFormMatch = appJsContent.match(
-        /getElementById\('supplier-form'\)[\s\S]{0,9000}statusEl\.style\.color\s*=\s*['"]#10b981['"]/
+        /getElementById\('supplier-form'\)[\s\S]{0,9000}statusEl\.setAttribute\('data-tone', 'success'\)/
       );
       expect(supplierFormMatch).toBeTruthy();
-    });
-
-    it('should show error state with red color', () => {
-      const supplierFormMatch = appJsContent.match(
-        /getElementById\('supplier-form'\)[\s\S]{0,9000}statusEl\.style\.color\s*=\s*['"]#ef4444['"]/
+      expect(appJsContent).toContain("statusEl.setAttribute('data-tone', 'error')");
+      const css = fs.readFileSync(
+        path.join(__dirname, '../../public/assets/css/supplier-dashboard-home.css'),
+        'utf8'
       );
-      expect(supplierFormMatch).toBeTruthy();
+      expect(css).toMatch(/\.sdh-form__status\[data-tone='success'\]/);
+      expect(css).toMatch(/\.sdh-form__status\[data-tone='error'\]/);
+      expect(appJsContent).not.toMatch(/statusEl\.style\.color\s*=/);
     });
 
     it('should use in-form status messaging for preview guidance instead of alert()', () => {

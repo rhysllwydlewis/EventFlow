@@ -58,9 +58,27 @@ describe('Supplier Review Stats Endpoint', () => {
         { id: 'supplier-1', ownerUserId: 'test-user-123', name: 'Test Supplier' },
       ];
       const mockReviews = [
-        { id: 'review-1', supplierId: 'supplier-1', rating: 5, comment: 'Great!', moderation: { state: 'approved' } },
-        { id: 'review-2', supplierId: 'supplier-1', rating: 4, comment: 'Good', moderation: { state: 'approved' } },
-        { id: 'review-3', supplierId: 'supplier-1', rating: 5, comment: 'Excellent', moderation: { state: 'approved' } },
+        {
+          id: 'review-1',
+          supplierId: 'supplier-1',
+          rating: 5,
+          comment: 'Great!',
+          moderation: { state: 'approved' },
+        },
+        {
+          id: 'review-2',
+          supplierId: 'supplier-1',
+          rating: 4,
+          comment: 'Good',
+          moderation: { state: 'approved' },
+        },
+        {
+          id: 'review-3',
+          supplierId: 'supplier-1',
+          rating: 5,
+          comment: 'Excellent',
+          moderation: { state: 'approved' },
+        },
         { id: 'review-4', supplierId: 'supplier-2', rating: 3, comment: 'Other supplier' },
       ];
 

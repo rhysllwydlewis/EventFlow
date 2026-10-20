@@ -52,7 +52,11 @@ async function main() {
   window.fetch = async (url, options) => {
     const target = String(url);
     requested.push(`${(options && options.method) || 'GET'} ${target}`);
-    const reply = (status, body) => ({ ok: status >= 200 && status < 300, status, json: async () => body });
+    const reply = (status, body) => ({
+      ok: status >= 200 && status < 300,
+      status,
+      json: async () => body,
+    });
     if (target.includes('/api/supplier/dashboard-summary')) {
       return reply(scenario.summaryStatus || 200, scenario.summary || {});
     }
@@ -60,7 +64,10 @@ async function main() {
       return reply(200, { user: scenario.user || { firstName: 'Hannah', verified: true } });
     }
     if (target.includes('/api/v2/subscriptions/me')) {
-      return reply(200, scenario.plan || { plan: 'free', status: 'free', limits: { maxPackages: 3 } });
+      return reply(
+        200,
+        scenario.plan || { plan: 'free', status: 'free', limits: { maxPackages: 3 } }
+      );
     }
     if (target.includes('/api/v1/supplier/availability')) {
       return scenario.availabilityFails
@@ -138,11 +145,15 @@ async function main() {
       text: text(document.getElementById('sdh-summary-extra')),
     },
     steps: {
-      todo: [...stepsBody.querySelectorAll('ul.sdh-steps:not(.sdh-steps--done) .sdh-step')].map(text),
+      todo: [...stepsBody.querySelectorAll('ul.sdh-steps:not(.sdh-steps--done) .sdh-step')].map(
+        text
+      ),
       next: text(stepsBody.querySelector('.sdh-step--next')),
       done: [...stepsBody.querySelectorAll('.sdh-steps--done .sdh-step')].map(text),
       summary: text(stepsBody.querySelector('details summary')),
-      detailsOpen: stepsBody.querySelector('details') ? stepsBody.querySelector('details').open : null,
+      detailsOpen: stepsBody.querySelector('details')
+        ? stepsBody.querySelector('details').open
+        : null,
       body: text(stepsBody),
     },
     strip: { hidden: strip.hidden, tone: strip.dataset.tone || '', text: text(strip) },

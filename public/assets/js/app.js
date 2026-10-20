@@ -1852,7 +1852,10 @@ async function initDashSupplier() {
       if (!hasSupplierProfile) {
         supWrap.innerHTML = SUPPLIER_EMPTY_HTML;
         const emptyLabel = toggleBtn && toggleBtn.querySelector('.label');
-        if (emptyLabel && !document.getElementById('profile-form-section')?.classList.contains('expanded')) {
+        if (
+          emptyLabel &&
+          !document.getElementById('profile-form-section')?.classList.contains('expanded')
+        ) {
           emptyLabel.textContent = 'Create profile';
         }
         return;
@@ -1923,7 +1926,10 @@ async function initDashSupplier() {
       if (select) {
         select.innerHTML = items
           .filter(s => s && s.id && s.name)
-          .map(s => `<option value="${escapeHtml(String(s.id))}">${escapeHtml(String(s.name))}</option>`)
+          .map(
+            s =>
+              `<option value="${escapeHtml(String(s.id))}">${escapeHtml(String(s.name))}</option>`
+          )
           .join('');
         // Sync hidden supplierId input to the selected supplier
         const hiddenInput = document.getElementById('pkg-supplier-id-hidden');
@@ -1950,10 +1956,15 @@ async function initDashSupplier() {
 
       // One profile per supplier: the toggle says "Edit profile" and the form heading too.
       const labelSpan = toggleBtn && toggleBtn.querySelector('.label');
-      if (labelSpan && !document.getElementById('profile-form-section')?.classList.contains('expanded')) {
+      if (
+        labelSpan &&
+        !document.getElementById('profile-form-section')?.classList.contains('expanded')
+      ) {
         labelSpan.textContent = 'Edit profile';
       }
-      const sectionHeading = document.querySelector('#profile-form-section .supplier-section-header');
+      const sectionHeading = document.querySelector(
+        '#profile-form-section .supplier-section-header'
+      );
       if (sectionHeading) {
         sectionHeading.textContent = 'Edit profile';
       }

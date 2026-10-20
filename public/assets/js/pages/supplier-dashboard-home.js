@@ -359,7 +359,7 @@
     });
     const verification = model?.verification;
     if (verification && verification.approved === false) {
-      const inReview = verification.state === 'pending_review';
+      const inReview = isInReview(verification);
       steps.push({
         key: 'get-approved',
         label: inReview ? 'Verification is in review' : 'Get your profile verified',
@@ -424,7 +424,7 @@
     if (!steps || !verification || verification.approved !== false) {
       return steps;
     }
-    const inReview = verification.state === 'pending_review';
+    const inReview = isInReview(verification);
     return {
       ...steps,
       steps: steps.steps.map(step =>
@@ -543,13 +543,18 @@
     return responses;
   }
 
+  /** True while a verification request is waiting for a decision (the server says pending_review, or pending). */
+  function isInReview(verification) {
+    return Boolean(verification) && /^pending/u.test(verification.state);
+  }
+
   /** What the verification strip should say for the profile's state, or null when there is nothing to say. */
   function stripFor(verification) {
     if (!verification || verification.approved !== false) {
       return null;
     }
     const state = verification.state;
-    if (state === 'pending_review') {
+    if (isInReview(verification)) {
       return {
         tone: 'info',
         title: 'Verification is in review',
@@ -601,7 +606,7 @@
       return 'Create your business profile and we will show you what to do next.';
     }
     const strip = stripFor(model?.verification);
-    if (strip && model.verification.state === 'pending_review') {
+    if (strip && model.isInReview(verification)) {
       return 'Your profile is in review. We will email you when it is decided.';
     }
     if (strip) {
@@ -1630,6 +1635,21 @@
     byId('rreq-email')?.focus();
   }
 
+  /** A plain sentence for a refused review request: unverified email, unapproved profile, or already asked. */
+  function reviewRequestError(result) {
+    const code = result.data?.code;
+    if (code === 'EMAIL_NOT_VERIFIED') {
+      return 'Verify your email address before you ask for reviews.';
+    }
+    if (code === 'SUPPLIER_NOT_APPROVED') {
+      return 'You can ask for reviews once your profile has been approved.';
+    }
+    if (result.status === 409) {
+      return result.data?.error || 'You have already asked this customer.';
+    }
+    return result.data?.error || 'Could not send the request. Please try again.';
+  }
+
   /** Sends one review request and refreshes the list. */
   async function submitReviewRequest(event) {
     event.preventDefault();
@@ -1661,10 +1681,7 @@
         await loadReviewRequests();
       } else {
         status.dataset.tone = 'error';
-        status.textContent =
-          result.status === 409
-            ? result.data?.error || 'You have already asked this customer.'
-            : result.data?.error || 'Could not send the request. Please try again.';
+        status.textContent = reviewRequestError(result);
       }
     } catch {
       status.dataset.tone = 'error';
@@ -1689,9 +1706,7 @@
         customerName: item.customerName || '',
       });
       toast(
-        result.ok
-          ? 'Review request sent again.'
-          : result.data?.error || 'Could not send the request.',
+        result.ok ? 'Review request sent again.' : reviewRequestError(result),
         result.ok ? 'success' : 'error'
       );
       if (result.ok) {
