@@ -90,7 +90,7 @@ describe('GET /api/v1/supplier/dashboard-summary — package counts', () => {
 
     const body = await getSummary();
 
-    expect(body.packages).toEqual({ total: 1, active: 1, draft: 0, paused: 0 });
+    expect(body.packages).toMatchObject({ total: 1, active: 1, draft: 0, paused: 0 });
   });
 
   it('treats a package awaiting approval as a draft, not active', async () => {
@@ -98,7 +98,13 @@ describe('GET /api/v1/supplier/dashboard-summary — package counts', () => {
 
     const body = await getSummary();
 
-    expect(body.packages).toEqual({ total: 1, active: 0, draft: 1, paused: 0 });
+    expect(body.packages).toMatchObject({
+      total: 1,
+      active: 0,
+      draft: 1,
+      awaitingApproval: 1,
+      paused: 0,
+    });
   });
 
   it('treats a paused package as paused, not active', async () => {
@@ -106,7 +112,7 @@ describe('GET /api/v1/supplier/dashboard-summary — package counts', () => {
 
     const body = await getSummary();
 
-    expect(body.packages).toEqual({ total: 1, active: 0, draft: 0, paused: 1 });
+    expect(body.packages).toMatchObject({ total: 1, active: 0, draft: 0, paused: 1 });
   });
 
   it('counts a package that is both paused and unapproved once, as paused', async () => {
@@ -116,7 +122,7 @@ describe('GET /api/v1/supplier/dashboard-summary — package counts', () => {
 
     // The states are mutually exclusive in the response, so total must still be 1 —
     // a package counted under two headings would inflate the dashboard's numbers.
-    expect(body.packages).toEqual({ total: 1, active: 0, draft: 0, paused: 1 });
+    expect(body.packages).toMatchObject({ total: 1, active: 0, draft: 0, paused: 1 });
   });
 
   it('classifies a mixed set so the buckets sum to the total', async () => {
@@ -129,9 +135,9 @@ describe('GET /api/v1/supplier/dashboard-summary — package counts', () => {
 
     const body = await getSummary();
 
-    expect(body.packages).toEqual({ total: 4, active: 2, draft: 1, paused: 1 });
-    const { active, draft, paused, total } = body.packages;
-    expect(active + draft + paused).toBe(total);
+    expect(body.packages).toMatchObject({ total: 4, active: 2, draft: 1, paused: 1 });
+    const { active, awaitingApproval, paused, total } = body.packages;
+    expect(active + awaitingApproval + paused).toBe(total);
   });
 
   it('reports zeroes rather than failing when the supplier has no packages', async () => {
@@ -139,10 +145,10 @@ describe('GET /api/v1/supplier/dashboard-summary — package counts', () => {
 
     const body = await getSummary();
 
-    expect(body.packages).toEqual({ total: 0, active: 0, draft: 0, paused: 0 });
+    expect(body.packages).toMatchObject({ total: 0, active: 0, draft: 0, paused: 0 });
   });
 
-  it('falls back to zeroed counts when the packages lookup throws', async () => {
+  it('reports the counts as unknown (null), not zero, when the packages lookup throws', async () => {
     mockDb.find.mockImplementation(async collection => {
       if (collection === 'packages') {
         throw new Error('database unavailable');
@@ -152,7 +158,9 @@ describe('GET /api/v1/supplier/dashboard-summary — package counts', () => {
 
     const body = await getSummary();
 
-    // A failed sub-query must not take the whole dashboard down with it.
-    expect(body.packages).toEqual({ total: 0, active: 0, draft: 0, paused: 0 });
+    // A failed sub-query must not take the whole dashboard down with it, and it must not
+    // pose as a genuine zero either: the counts are null and the block is named as unavailable.
+    expect(body.packages).toMatchObject({ total: null, active: null, draft: null, paused: null });
+    expect(body.unavailable).toContain('packages');
   });
 });

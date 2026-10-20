@@ -15,6 +15,7 @@ const {
   hydrateSupplierProfilePhoto,
 } = require('../utils/supplierProfilePhoto');
 const { addPublicProfilePath } = require('../utils/publicSupplierProfilePath');
+const { computeProfileCompleteness } = require('../services/supplierProfileCompleteness');
 const { stripPublicSupplierPrivateFields } = require('../utils/supplierPublicProfile');
 
 // Dependencies injected by server.js
@@ -583,8 +584,13 @@ router.get('/me/suppliers', applyAuthRequired, applyRoleRequired('supplier'), as
       : null;
     const list = await Promise.all(
       listRaw.map(async s => {
+        const hydratedSupplier = hydrateSupplierProfilePhoto(s, ownerUser);
         return addPublicProfilePath({
-          ...hydrateSupplierProfilePhoto(s, ownerUser),
+          ...hydratedSupplier,
+          // The profile-health percentage the dashboard's "Profile Health" card shows, computed
+          // server-side by the same rules. `aiScore` (kept for admin use) is a different,
+          // admin-batch number and must not be presented to suppliers as their health score.
+          profileCompleteness: computeProfileCompleteness(hydratedSupplier).score,
           isPro: await supplierIsProActive(s),
           // Fresh subscription tier takes precedence over any stale value stored on the supplier document.
           subscriptionTier: subscriptionTier || s.subscriptionTier || null,
