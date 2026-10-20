@@ -318,7 +318,7 @@ describe('Supplier dashboard/profile UI polish', () => {
   it('upload-photo action targets gallery upload row and opens a single picker path', () => {
     expect(appJs).toContain('data-action="upload-photo"');
     expect(appJs).toContain("const uploader = document.getElementById('sup-photo-drop')");
-    expect(appJs).toContain('await editProfile(profileId, { skipFormScroll: true })');
+    expect(appJs).toContain("await editProfile(profileId, { focusId: 'sup-photo-drop' })");
     expect(appJs).toContain("const galleryRow = uploader.closest('.form-row') || uploader");
     expect(appJs).toContain("galleryRow.scrollIntoView({ behavior: 'smooth', block: 'start' })");
     expect(appJs).toContain('uploader.focus({ preventScroll: true })');

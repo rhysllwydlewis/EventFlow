@@ -228,8 +228,7 @@
                     class="sdh-btn sdh-btn--secondary sdh-btn--sm"
                     id="toggle-profile-form"
                     data-test="toggle-profile-form"
-                    aria-expanded="false"
-                    aria-controls="profile-form-section"
+                    aria-haspopup="dialog"
                   >
                     <span class="label">Edit profile</span>
                   </button>
@@ -241,210 +240,6 @@
                   <div class="sdh-skel sdh-skel--row"></div>
                 </div>
 
-                <div id="profile-form-section" class="form-section-collapsible sdh-form-panel" data-test="profile-form-section">
-                  <h3 class="supplier-section-header sdh-form__title">Edit profile</h3>
-                  <form id="supplier-form" class="sdh-form" action="#" novalidate>
-                    <input type="hidden" id="sup-id" name="id" />
-
-                    <div class="sdh-form__grid">
-                      <div class="sdh-field">
-                        <label class="sdh-label" for="sup-name">Business name</label>
-                        <input id="sup-name" name="name" class="sdh-input" required maxlength="120" aria-describedby="sup-name-help sup-name-error" />
-                        <p class="sdh-help" id="sup-name-help">This is your public listing name. It can be different from your personal account name in Settings.</p>
-                        <p class="sdh-error" id="sup-name-error" role="alert"></p>
-                      </div>
-                      <div class="sdh-field">
-                        <label class="sdh-label" for="sup-category">Category</label>
-                        <select id="sup-category" name="category" class="sdh-input" required aria-describedby="sup-category-error">
-                          <option value="">Choose a category…</option>
-                          <option>Venues</option>
-                          <option>Catering</option>
-                          <option>Photography</option>
-                          <option>Videography</option>
-                          <option>Entertainment</option>
-                          <option>Music/DJ</option>
-                          <option>Florist</option>
-                          <option>Decor</option>
-                          <option>Transport</option>
-                          <option>Cake</option>
-                          <option>Stationery</option>
-                          <option>Hair &amp; Makeup</option>
-                          <option>Beauty</option>
-                          <option>Bridalwear</option>
-                          <option>Jewellery</option>
-                          <option>Celebrant</option>
-                          <option>Event Planner</option>
-                          <option>Wedding Fayre</option>
-                          <option>Planning</option>
-                          <option>Other</option>
-                        </select>
-                        <p class="sdh-error" id="sup-category-error" role="alert"></p>
-                      </div>
-                    </div>
-
-                    <div class="sdh-field">
-                      <label class="sdh-label" for="sup-location">Location</label>
-                      <input id="sup-location" name="location" class="sdh-input" placeholder="City, region" maxlength="200" />
-                    </div>
-
-                    <fieldset class="sdh-fieldset supplier-coverage">
-                      <legend class="sdh-legend">Where you work</legend>
-                      <p class="sdh-help" id="sup-coverage-help">
-                        This decides which city pages you appear on, and how far away couples see that
-                        you are. Your postcode is never shown publicly, only the city it falls in.
-                      </p>
-
-                      <div class="sdh-form__grid">
-                        <div class="sdh-field">
-                          <label class="sdh-label" for="sup-base-postcode">Base postcode</label>
-                          <input
-                            id="sup-base-postcode"
-                            name="basePostcode"
-                            class="sdh-input"
-                            placeholder="e.g. CF10 1AA"
-                            maxlength="10"
-                            autocomplete="postal-code"
-                            aria-describedby="sup-coverage-help sup-base-postcode-error"
-                          />
-                          <p class="sdh-error" id="sup-base-postcode-error" role="alert"></p>
-                        </div>
-                        <div class="sdh-field">
-                          <label class="sdh-label" for="sup-travel-radius">How far you travel (miles)</label>
-                          <input
-                            id="sup-travel-radius"
-                            name="travelRadiusMiles"
-                            class="sdh-input"
-                            type="number"
-                            min="0"
-                            max="200"
-                            step="5"
-                            placeholder="e.g. 30"
-                            aria-describedby="sup-travel-radius-help"
-                          />
-                          <p class="sdh-help" id="sup-travel-radius-help">Leave blank if you only work in your own city.</p>
-                        </div>
-                      </div>
-
-                      <div class="sdh-field">
-                        <label class="sdh-label" for="sup-service-area-search">Other areas you serve (optional)</label>
-                        <p class="sdh-help" id="sup-service-area-help">
-                          Have branches or a base in more than one town or city, or cover the whole UK?
-                          Add each area, up to <span id="sup-service-area-max">2</span> more on your
-                          current plan.
-                        </p>
-                        <button type="button" id="sup-service-area-add-nationwide" class="sdh-btn sdh-btn--secondary sdh-btn--sm supplier-service-area-nationwide-btn">
-                          Add nationwide (all of the UK)
-                        </button>
-                        <input
-                          id="sup-service-area-search"
-                          class="sdh-input"
-                          type="text"
-                          autocomplete="off"
-                          placeholder="Search for a city or town…"
-                          aria-describedby="sup-service-area-help"
-                          aria-expanded="false"
-                          aria-autocomplete="list"
-                          role="combobox"
-                          aria-controls="sup-service-area-results"
-                        />
-                        <ul id="sup-service-area-results" class="supplier-service-area-results" role="listbox" hidden></ul>
-                        <ul id="sup-service-area-tags" class="supplier-service-area-tags" aria-live="polite"></ul>
-                        <p class="sdh-error" id="sup-service-area-error" role="alert"></p>
-                      </div>
-                    </fieldset>
-
-                    <div class="sdh-field">
-                      <label class="sdh-label" for="sup-short">Short description</label>
-                      <input id="sup-short" name="description_short" class="sdh-input" maxlength="300" />
-                    </div>
-
-                    <div class="sdh-field">
-                      <label class="sdh-label" for="sup-long">Long description</label>
-                      <textarea id="sup-long" name="description_long" class="sdh-input" rows="4" maxlength="5000"></textarea>
-                    </div>
-
-                    <div class="sdh-field">
-                      <label class="sdh-label" for="sup-website">Website</label>
-                      <input
-                        id="sup-website"
-                        name="website"
-                        class="sdh-input"
-                        type="text"
-                        placeholder="https://your-website.com"
-                        maxlength="200"
-                        aria-describedby="sup-website-help sup-website-error"
-                      />
-                      <p class="sdh-help" id="sup-website-help">
-                        Enter your full website address. If no protocol is provided, https:// will be added when you save. You can use formats like https://event-flow.co.uk, www.event-flow.co.uk, or event-flow.co.uk.
-                      </p>
-                      <p class="sdh-error" id="sup-website-error" role="alert"></p>
-                    </div>
-
-                    <div class="sdh-form__grid">
-                      <div class="sdh-field">
-                        <label class="sdh-label" for="sup-license">License / Insurance</label>
-                        <input id="sup-license" name="license" class="sdh-input" placeholder="e.g. PLI £5m" maxlength="120" />
-                      </div>
-                      <div class="sdh-field">
-                        <label class="sdh-label" for="sup-max">Max guests</label>
-                        <input id="sup-max" name="maxGuests" class="sdh-input" type="number" min="0" step="1" />
-                      </div>
-                    </div>
-
-                    <div class="sdh-field">
-                      <label class="sdh-label" for="sup-amenities">Amenities (comma-separated)</label>
-                      <input id="sup-amenities" name="amenities" class="sdh-input" placeholder="Parking, Garden, PA system" />
-                    </div>
-
-                    <div class="sdh-field" id="venue-postcode-row" hidden>
-                      <label class="sdh-label" for="sup-venue-postcode">Venue postcode <span class="sdh-required" aria-hidden="true">*</span></label>
-                      <input
-                        id="sup-venue-postcode"
-                        name="venuePostcode"
-                        class="sdh-input"
-                        placeholder="e.g. SW1A 1AA"
-                        aria-describedby="venue-postcode-help venue-postcode-error"
-                        aria-required="false"
-                      />
-                      <p class="sdh-help" id="venue-postcode-help">Required for Venues category. Enter a valid UK postcode.</p>
-                      <p class="sdh-error" id="venue-postcode-error" role="alert"></p>
-                    </div>
-
-                    <div class="sdh-field" hidden>
-                      <label class="sdh-label" for="sup-photos">Photos (one URL per line)</label>
-                      <textarea id="sup-photos" name="photos" class="sdh-input" rows="3"></textarea>
-                    </div>
-
-                    <div class="sdh-field form-row">
-                      <span class="sdh-label" id="sup-photos-label">Photos</span>
-                      <div id="sup-photo-drop" class="photo-drop-zone" aria-labelledby="sup-photos-label">
-                        Drag &amp; drop images here, or click to choose files.
-                      </div>
-                      <div id="sup-photo-preview" class="photo-preview-grid pkg-gallery-sortable"></div>
-                      <div id="sup-gallery-reorder-bar" class="pkg-gallery-reorder-bar" hidden>
-                        <button type="button" id="sup-gallery-save-order" class="sdh-btn sdh-btn--secondary sdh-btn--sm">Save order</button>
-                        <span id="sup-gallery-order-status" class="pkg-gallery-order-status"></span>
-                      </div>
-                      <p class="sdh-help">
-                        You can upload several photos. They show on your public listing. Drag to reorder;
-                        the first photo is the cover image.
-                      </p>
-                      <a href="/gallery" target="_blank" rel="noopener" id="sup-manage-gallery-link" class="sdh-link" hidden>Manage all profile photos</a>
-                    </div>
-
-                    <p class="sdh-form__aside">
-                      Want a banner, tagline, highlights and social links?
-                      <a class="sdh-link" href="/supplier/profile-customization">Customise your profile</a>
-                    </p>
-
-                    <div class="sdh-form__actions">
-                      <button class="sdh-btn sdh-btn--primary" id="sup-create" type="submit">Save profile</button>
-                      <button type="button" id="sup-preview" class="sdh-btn sdh-btn--secondary">Preview profile</button>
-                      <button type="button" class="sdh-btn sdh-btn--quiet" id="cancel-profile-form" hidden>Cancel</button>
-                      <span class="sdh-form__status" id="sup-status" role="status" aria-live="polite"></span>
-                    </div>
-                  </form>
-                </div>
               </div>
             </section>
 
@@ -461,8 +256,7 @@
                     class="sdh-btn sdh-btn--secondary sdh-btn--sm"
                     id="toggle-package-form"
                     data-test="toggle-package-form"
-                    aria-expanded="false"
-                    aria-controls="package-form-section"
+                    aria-haspopup="dialog"
                   >
                     <span class="label">Create package</span>
                   </button>
@@ -474,112 +268,6 @@
                   <div class="sdh-skel sdh-skel--row"></div>
                 </div>
 
-                <div id="package-form-section" class="form-section-collapsible sdh-form-panel" data-test="package-form-section">
-                  <h3 class="supplier-section-header sdh-form__title">Create a package</h3>
-                  <form id="package-form" class="sdh-form" action="#">
-                    <div class="sdh-form__grid">
-                      <div class="sdh-field">
-                        <label class="sdh-label" for="pkg-supplier">For supplier</label>
-                        <select id="pkg-supplier" class="sdh-input"></select>
-                      </div>
-                      <div class="sdh-field">
-                        <label class="sdh-label" for="pkg-title">Title <span class="sdh-required" aria-hidden="true">*</span></label>
-                        <input id="pkg-title" name="title" class="sdh-input" required />
-                      </div>
-                      <div class="sdh-field">
-                        <label class="sdh-label" for="pkg-price">Price <span class="sdh-required" aria-hidden="true">*</span></label>
-                        <input id="pkg-price" name="price" class="sdh-input" placeholder="e.g. £999 or £45 pp" required />
-                      </div>
-                      <div class="sdh-field">
-                        <label class="sdh-label" for="pkg-category">Primary category <span class="sdh-required" aria-hidden="true">*</span></label>
-                        <select id="pkg-category" name="primaryCategoryKey" class="sdh-input" required>
-                          <option value="">Choose a category…</option>
-                          <option value="Venues">Venues</option>
-                          <option value="Catering">Catering</option>
-                          <option value="Photography">Photography</option>
-                          <option value="Videography">Videography</option>
-                          <option value="Entertainment">Entertainment</option>
-                          <option value="Music/DJ">Music/DJ</option>
-                          <option value="Florist">Florist</option>
-                          <option value="Decor">Decor</option>
-                          <option value="Transport">Transport</option>
-                          <option value="Cake">Cake</option>
-                          <option value="Stationery">Stationery</option>
-                          <option value="Hair &amp; Makeup">Hair &amp; Makeup</option>
-                          <option value="Beauty">Beauty</option>
-                          <option value="Bridalwear">Bridalwear</option>
-                          <option value="Jewellery">Jewellery</option>
-                          <option value="Celebrant">Celebrant</option>
-                          <option value="Event Planner">Event Planner</option>
-                          <option value="Wedding Fayre">Wedding Fayre</option>
-                          <option value="Planning">Planning</option>
-                          <option value="Other">Other</option>
-                        </select>
-                      </div>
-                    </div>
-
-                    <fieldset class="sdh-fieldset">
-                      <legend class="sdh-legend">Suitable for <span class="sdh-required" aria-hidden="true">*</span></legend>
-                      <div class="sdh-checks">
-                        <label class="sdh-check"><input type="checkbox" id="pkg-event-wedding" name="eventTypes" value="wedding" /><span>Wedding</span></label>
-                        <label class="sdh-check"><input type="checkbox" id="pkg-event-birthday" name="eventTypes" value="birthday" /><span>Birthday</span></label>
-                        <label class="sdh-check"><input type="checkbox" id="pkg-event-corporate" name="eventTypes" value="corporate" /><span>Corporate</span></label>
-                        <label class="sdh-check"><input type="checkbox" id="pkg-event-anniversary" name="eventTypes" value="anniversary" /><span>Anniversary</span></label>
-                        <label class="sdh-check"><input type="checkbox" id="pkg-event-christening" name="eventTypes" value="christening" /><span>Christening</span></label>
-                        <label class="sdh-check"><input type="checkbox" id="pkg-event-graduation" name="eventTypes" value="graduation" /><span>Graduation</span></label>
-                        <label class="sdh-check"><input type="checkbox" id="pkg-event-engagement" name="eventTypes" value="engagement" /><span>Engagement</span></label>
-                        <label class="sdh-check"><input type="checkbox" id="pkg-event-other" name="eventTypes" value="other" /><span>Other</span></label>
-                      </div>
-                      <p class="sdh-help">Select all event types this package is suitable for.</p>
-                    </fieldset>
-
-                    <div class="sdh-field">
-                      <label class="sdh-label" for="pkg-desc">Description</label>
-                      <textarea id="pkg-desc" name="description" class="sdh-input" rows="4"></textarea>
-                    </div>
-
-                    <div class="sdh-field" hidden>
-                      <label class="sdh-label" for="pkg-image">Image URL (optional)</label>
-                      <input id="pkg-image" name="image" class="sdh-input" placeholder="your-website-url" />
-                    </div>
-
-                    <div class="sdh-field form-row">
-                      <span class="sdh-label" id="pkg-photo-label">Photo</span>
-                      <div id="pkg-photo-drop" class="photo-drop-zone" aria-labelledby="pkg-photo-label">
-                        Drag &amp; drop an image here, or click to choose a file.
-                      </div>
-                      <div id="pkg-photo-preview" class="photo-preview-grid"></div>
-                      <div class="sdh-form__row-actions">
-                        <button type="button" id="pkg-use-profile-photo-btn" class="sdh-btn sdh-btn--secondary sdh-btn--sm">Use a photo from your profile</button>
-                      </div>
-                      <div id="pkg-reuse-photo-panel" class="photo-preview-grid" hidden></div>
-                      <p class="sdh-help">
-                        Packages without a photo show a plain placeholder to customers browsing search results.
-                      </p>
-                      <a href="#" target="_blank" rel="noopener" id="pkg-manage-gallery-link" class="sdh-link" hidden>Manage all photos for this package</a>
-                    </div>
-
-                    <div class="sdh-field" id="pkg-gallery-row" hidden>
-                      <div class="pkg-gallery-row-header">
-                        <span class="sdh-label">Gallery photos</span>
-                        <span class="pkg-gallery-hint">Drag to reorder. The first photo is the card thumbnail.</span>
-                      </div>
-                      <div id="pkg-gallery-existing" class="pkg-gallery-sortable photo-preview-grid" hidden></div>
-                      <div id="pkg-gallery-reorder-bar" class="pkg-gallery-reorder-bar" hidden>
-                        <button type="button" id="pkg-gallery-save-order" class="sdh-btn sdh-btn--secondary sdh-btn--sm">Save order</button>
-                        <span id="pkg-gallery-order-status" class="pkg-gallery-order-status"></span>
-                      </div>
-                    </div>
-
-                    <div class="sdh-form__actions">
-                      <button class="sdh-btn sdh-btn--primary" type="submit">Save package</button>
-                      <button type="button" class="sdh-btn sdh-btn--quiet" id="cancel-package-form" hidden>Cancel</button>
-                      <span class="sdh-form__status" id="pkg-status" role="status" aria-live="polite"></span>
-                    </div>
-                    <input type="hidden" name="supplierId" id="pkg-supplier-id-hidden" />
-                    <input type="hidden" name="id" id="pkg-id-hidden" />
-                  </form>
-                </div>
               </div>
             </section>
 
@@ -749,6 +437,347 @@
 
       <!-- Dialogs. Native <dialog> elements: focus moves in, stays in and returns to the button
            that opened them. -->
+      <dialog id="sdh-profile-dialog" class="sdh-dialog sdh-dialog--editor" aria-labelledby="sdh-profile-title" data-overlay="profile">
+        <div id="profile-form-section" class="sdh-editor" data-test="profile-form-section">
+          <div class="sdh-dialog__head">
+            <h2 id="sdh-profile-title" class="supplier-section-header sdh-dialog__title">Edit profile</h2>
+            <button type="button" class="sdh-dialog__close" data-overlay-close aria-label="Close profile editor">&times;</button>
+          </div>
+          <form id="supplier-form" class="sdh-form sdh-editor__form" action="#" novalidate>
+            <input type="hidden" id="sup-id" name="id" />
+            <div class="sdh-dialog__body">
+              <div class="sdh-field sdh-banner" id="sdh-banner-field" role="group" aria-labelledby="sdh-banner-label" aria-describedby="sdh-banner-help">
+                <span class="sdh-label" id="sdh-banner-label">Banner image</span>
+                <div class="sdh-banner__preview" id="sdh-banner-preview" data-state="empty">
+                  <img id="sdh-banner-img" class="sdh-banner__img" alt="Your banner image" hidden />
+                  <span class="sdh-banner__empty" id="sdh-banner-empty">No banner yet</span>
+                </div>
+                <div class="sdh-banner__actions">
+                  <button type="button" id="sdh-banner-upload" class="sdh-btn sdh-btn--secondary sdh-btn--sm">Add banner</button>
+                  <button type="button" id="sdh-banner-remove" class="sdh-btn sdh-btn--danger-quiet sdh-btn--sm" hidden>Remove banner</button>
+                  <input type="file" id="sdh-banner-input" class="sdh-sr" accept="image/jpeg,image/png,image/webp" tabindex="-1" aria-label="Choose a banner image" />
+                </div>
+                <p class="sdh-help" id="sdh-banner-help">
+                  The wide image at the top of your public profile. JPG, PNG or WebP, up to 5 MB, about 1200 by 400 pixels.
+                  It is saved as soon as it uploads.
+                </p>
+                <p class="sdh-form__status" id="sdh-banner-status" role="status" aria-live="polite"></p>
+              </div>
+              <div class="sdh-form__grid">
+                <div class="sdh-field">
+                  <label class="sdh-label" for="sup-name">Business name</label>
+                  <input id="sup-name" name="name" class="sdh-input" required maxlength="120" aria-describedby="sup-name-help sup-name-error" />
+                  <p class="sdh-help" id="sup-name-help">This is your public listing name. It can be different from your personal account name in Settings.</p>
+                  <p class="sdh-error" id="sup-name-error" role="alert"></p>
+                </div>
+                <div class="sdh-field">
+                  <label class="sdh-label" for="sup-category">Category</label>
+                  <select id="sup-category" name="category" class="sdh-input" required aria-describedby="sup-category-error">
+                    <option value="">Choose a category…</option>
+                    <option>Venues</option>
+                    <option>Catering</option>
+                    <option>Photography</option>
+                    <option>Videography</option>
+                    <option>Entertainment</option>
+                    <option>Music/DJ</option>
+                    <option>Florist</option>
+                    <option>Decor</option>
+                    <option>Transport</option>
+                    <option>Cake</option>
+                    <option>Stationery</option>
+                    <option>Hair &amp; Makeup</option>
+                    <option>Beauty</option>
+                    <option>Bridalwear</option>
+                    <option>Jewellery</option>
+                    <option>Celebrant</option>
+                    <option>Event Planner</option>
+                    <option>Wedding Fayre</option>
+                    <option>Planning</option>
+                    <option>Other</option>
+                  </select>
+                  <p class="sdh-error" id="sup-category-error" role="alert"></p>
+                </div>
+              </div>
+
+              <div class="sdh-field">
+                <label class="sdh-label" for="sup-location">Location</label>
+                <input id="sup-location" name="location" class="sdh-input" placeholder="City, region" maxlength="200" />
+              </div>
+
+              <fieldset class="sdh-fieldset supplier-coverage">
+                <legend class="sdh-legend">Where you work</legend>
+                <p class="sdh-help" id="sup-coverage-help">
+                  This decides which city pages you appear on, and how far away couples see that
+                  you are. Your postcode is never shown publicly, only the city it falls in.
+                </p>
+
+                <div class="sdh-form__grid">
+                  <div class="sdh-field">
+                    <label class="sdh-label" for="sup-base-postcode">Base postcode</label>
+                    <input
+                      id="sup-base-postcode"
+                      name="basePostcode"
+                      class="sdh-input"
+                      placeholder="e.g. CF10 1AA"
+                      maxlength="10"
+                      autocomplete="postal-code"
+                      aria-describedby="sup-coverage-help sup-base-postcode-error"
+                    />
+                    <p class="sdh-error" id="sup-base-postcode-error" role="alert"></p>
+                  </div>
+                  <div class="sdh-field">
+                    <label class="sdh-label" for="sup-travel-radius">How far you travel (miles)</label>
+                    <input
+                      id="sup-travel-radius"
+                      name="travelRadiusMiles"
+                      class="sdh-input"
+                      type="number"
+                      min="0"
+                      max="200"
+                      step="5"
+                      placeholder="e.g. 30"
+                      aria-describedby="sup-travel-radius-help"
+                    />
+                    <p class="sdh-help" id="sup-travel-radius-help">Leave blank if you only work in your own city.</p>
+                  </div>
+                </div>
+
+                <div class="sdh-field">
+                  <label class="sdh-label" for="sup-service-area-search">Other areas you serve (optional)</label>
+                  <p class="sdh-help" id="sup-service-area-help">
+                    Have branches or a base in more than one town or city, or cover the whole UK?
+                    Add each area, up to <span id="sup-service-area-max">2</span> more on your
+                    current plan.
+                  </p>
+                  <button type="button" id="sup-service-area-add-nationwide" class="sdh-btn sdh-btn--secondary sdh-btn--sm supplier-service-area-nationwide-btn">
+                    Add nationwide (all of the UK)
+                  </button>
+                  <input
+                    id="sup-service-area-search"
+                    class="sdh-input"
+                    type="text"
+                    autocomplete="off"
+                    placeholder="Search for a city or town…"
+                    aria-describedby="sup-service-area-help"
+                    aria-expanded="false"
+                    aria-autocomplete="list"
+                    role="combobox"
+                    aria-controls="sup-service-area-results"
+                  />
+                  <ul id="sup-service-area-results" class="supplier-service-area-results" role="listbox" hidden></ul>
+                  <ul id="sup-service-area-tags" class="supplier-service-area-tags" aria-live="polite"></ul>
+                  <p class="sdh-error" id="sup-service-area-error" role="alert"></p>
+                </div>
+              </fieldset>
+
+              <div class="sdh-field">
+                <label class="sdh-label" for="sup-short">Short description</label>
+                <input id="sup-short" name="description_short" class="sdh-input" maxlength="300" />
+              </div>
+
+              <div class="sdh-field">
+                <label class="sdh-label" for="sup-long">Long description</label>
+                <textarea id="sup-long" name="description_long" class="sdh-input" rows="4" maxlength="5000"></textarea>
+              </div>
+
+              <div class="sdh-field">
+                <label class="sdh-label" for="sup-website">Website</label>
+                <input
+                  id="sup-website"
+                  name="website"
+                  class="sdh-input"
+                  type="text"
+                  placeholder="https://your-website.com"
+                  maxlength="200"
+                  aria-describedby="sup-website-help sup-website-error"
+                />
+                <p class="sdh-help" id="sup-website-help">
+                  Enter your full website address. If no protocol is provided, https:// will be added when you save. You can use formats like https://event-flow.co.uk, www.event-flow.co.uk, or event-flow.co.uk.
+                </p>
+                <p class="sdh-error" id="sup-website-error" role="alert"></p>
+              </div>
+
+              <div class="sdh-form__grid">
+                <div class="sdh-field">
+                  <label class="sdh-label" for="sup-license">License / Insurance</label>
+                  <input id="sup-license" name="license" class="sdh-input" placeholder="e.g. PLI £5m" maxlength="120" />
+                </div>
+                <div class="sdh-field">
+                  <label class="sdh-label" for="sup-max">Max guests</label>
+                  <input id="sup-max" name="maxGuests" class="sdh-input" type="number" min="0" step="1" />
+                </div>
+              </div>
+
+              <div class="sdh-field">
+                <label class="sdh-label" for="sup-amenities">Amenities (comma-separated)</label>
+                <input id="sup-amenities" name="amenities" class="sdh-input" placeholder="Parking, Garden, PA system" />
+              </div>
+
+              <div class="sdh-field" id="venue-postcode-row" hidden>
+                <label class="sdh-label" for="sup-venue-postcode">Venue postcode <span class="sdh-required" aria-hidden="true">*</span></label>
+                <input
+                  id="sup-venue-postcode"
+                  name="venuePostcode"
+                  class="sdh-input"
+                  placeholder="e.g. SW1A 1AA"
+                  aria-describedby="venue-postcode-help venue-postcode-error"
+                  aria-required="false"
+                />
+                <p class="sdh-help" id="venue-postcode-help">Required for Venues category. Enter a valid UK postcode.</p>
+                <p class="sdh-error" id="venue-postcode-error" role="alert"></p>
+              </div>
+
+              <div class="sdh-field" hidden>
+                <label class="sdh-label" for="sup-photos">Photos (one URL per line)</label>
+                <textarea id="sup-photos" name="photos" class="sdh-input" rows="3"></textarea>
+              </div>
+
+              <div class="sdh-field form-row">
+                <span class="sdh-label" id="sup-photos-label">Photos</span>
+                <div id="sup-photo-drop" class="photo-drop-zone" aria-labelledby="sup-photos-label">
+                  Drag &amp; drop images here, or click to choose files.
+                </div>
+                <div id="sup-photo-preview" class="photo-preview-grid pkg-gallery-sortable"></div>
+                <div id="sup-gallery-reorder-bar" class="pkg-gallery-reorder-bar" hidden>
+                  <button type="button" id="sup-gallery-save-order" class="sdh-btn sdh-btn--secondary sdh-btn--sm">Save order</button>
+                  <span id="sup-gallery-order-status" class="pkg-gallery-order-status"></span>
+                </div>
+                <p class="sdh-help">
+                  You can upload several photos. They show on your public listing. Drag to reorder;
+                  the first photo is the cover image.
+                </p>
+                <a href="/gallery" target="_blank" rel="noopener" id="sup-manage-gallery-link" class="sdh-link" hidden>Manage all profile photos</a>
+              </div>
+
+              <p class="sdh-form__aside">
+                Want a tagline, highlights and social links?
+                <a class="sdh-link" href="/supplier/profile-customization">Customise your profile</a>
+              </p>
+
+            </div>
+            <div class="sdh-dialog__foot">
+              <span class="sdh-form__status" id="sup-status" role="status" aria-live="polite"></span>
+              <button class="sdh-btn sdh-btn--primary" id="sup-create" type="submit">Save profile</button>
+              <button type="button" id="sup-preview" class="sdh-btn sdh-btn--secondary">Preview profile</button>
+              <button type="button" class="sdh-btn sdh-btn--quiet" id="cancel-profile-form">Cancel</button>
+            </div>
+          </form>
+        </div>
+      </dialog>
+
+      <dialog id="sdh-package-dialog" class="sdh-dialog sdh-dialog--editor" aria-labelledby="sdh-package-title" data-overlay="package">
+        <div id="package-form-section" class="sdh-editor" data-test="package-form-section">
+          <div class="sdh-dialog__head">
+            <h2 id="sdh-package-title" class="supplier-section-header sdh-dialog__title">Create a package</h2>
+            <button type="button" class="sdh-dialog__close" data-overlay-close aria-label="Close package editor">&times;</button>
+          </div>
+          <form id="package-form" class="sdh-form sdh-editor__form" action="#" novalidate>
+            <div class="sdh-dialog__body">
+              <div class="sdh-form__grid">
+                <div class="sdh-field">
+                  <label class="sdh-label" for="pkg-supplier">For supplier</label>
+                  <select id="pkg-supplier" class="sdh-input"></select>
+                </div>
+                <div class="sdh-field">
+                  <label class="sdh-label" for="pkg-title">Title <span class="sdh-required" aria-hidden="true">*</span></label>
+                  <input id="pkg-title" name="title" class="sdh-input" required />
+                </div>
+                <div class="sdh-field">
+                  <label class="sdh-label" for="pkg-price">Price <span class="sdh-required" aria-hidden="true">*</span></label>
+                  <input id="pkg-price" name="price" class="sdh-input" placeholder="e.g. £999 or £45 pp" required />
+                </div>
+                <div class="sdh-field">
+                  <label class="sdh-label" for="pkg-category">Primary category <span class="sdh-required" aria-hidden="true">*</span></label>
+                  <select id="pkg-category" name="primaryCategoryKey" class="sdh-input" required>
+                    <option value="">Choose a category…</option>
+                    <option value="Venues">Venues</option>
+                    <option value="Catering">Catering</option>
+                    <option value="Photography">Photography</option>
+                    <option value="Videography">Videography</option>
+                    <option value="Entertainment">Entertainment</option>
+                    <option value="Music/DJ">Music/DJ</option>
+                    <option value="Florist">Florist</option>
+                    <option value="Decor">Decor</option>
+                    <option value="Transport">Transport</option>
+                    <option value="Cake">Cake</option>
+                    <option value="Stationery">Stationery</option>
+                    <option value="Hair &amp; Makeup">Hair &amp; Makeup</option>
+                    <option value="Beauty">Beauty</option>
+                    <option value="Bridalwear">Bridalwear</option>
+                    <option value="Jewellery">Jewellery</option>
+                    <option value="Celebrant">Celebrant</option>
+                    <option value="Event Planner">Event Planner</option>
+                    <option value="Wedding Fayre">Wedding Fayre</option>
+                    <option value="Planning">Planning</option>
+                    <option value="Other">Other</option>
+                  </select>
+                </div>
+              </div>
+
+              <fieldset class="sdh-fieldset">
+                <legend class="sdh-legend">Suitable for <span class="sdh-required" aria-hidden="true">*</span></legend>
+                <div class="sdh-checks">
+                  <label class="sdh-check"><input type="checkbox" id="pkg-event-wedding" name="eventTypes" value="wedding" /><span>Wedding</span></label>
+                  <label class="sdh-check"><input type="checkbox" id="pkg-event-birthday" name="eventTypes" value="birthday" /><span>Birthday</span></label>
+                  <label class="sdh-check"><input type="checkbox" id="pkg-event-corporate" name="eventTypes" value="corporate" /><span>Corporate</span></label>
+                  <label class="sdh-check"><input type="checkbox" id="pkg-event-anniversary" name="eventTypes" value="anniversary" /><span>Anniversary</span></label>
+                  <label class="sdh-check"><input type="checkbox" id="pkg-event-christening" name="eventTypes" value="christening" /><span>Christening</span></label>
+                  <label class="sdh-check"><input type="checkbox" id="pkg-event-graduation" name="eventTypes" value="graduation" /><span>Graduation</span></label>
+                  <label class="sdh-check"><input type="checkbox" id="pkg-event-engagement" name="eventTypes" value="engagement" /><span>Engagement</span></label>
+                  <label class="sdh-check"><input type="checkbox" id="pkg-event-other" name="eventTypes" value="other" /><span>Other</span></label>
+                </div>
+                <p class="sdh-help">Select all event types this package is suitable for.</p>
+              </fieldset>
+
+              <div class="sdh-field">
+                <label class="sdh-label" for="pkg-desc">Description</label>
+                <textarea id="pkg-desc" name="description" class="sdh-input" rows="4"></textarea>
+              </div>
+
+              <div class="sdh-field" hidden>
+                <label class="sdh-label" for="pkg-image">Image URL (optional)</label>
+                <input id="pkg-image" name="image" class="sdh-input" placeholder="your-website-url" />
+              </div>
+
+              <div class="sdh-field form-row">
+                <span class="sdh-label" id="pkg-photo-label">Photo</span>
+                <div id="pkg-photo-drop" class="photo-drop-zone" aria-labelledby="pkg-photo-label">
+                  Drag &amp; drop an image here, or click to choose a file.
+                </div>
+                <div id="pkg-photo-preview" class="photo-preview-grid"></div>
+                <div class="sdh-form__row-actions">
+                  <button type="button" id="pkg-use-profile-photo-btn" class="sdh-btn sdh-btn--secondary sdh-btn--sm">Use a photo from your profile</button>
+                </div>
+                <div id="pkg-reuse-photo-panel" class="photo-preview-grid" hidden></div>
+                <p class="sdh-help">
+                  Packages without a photo show a plain placeholder to customers browsing search results.
+                </p>
+                <a href="#" target="_blank" rel="noopener" id="pkg-manage-gallery-link" class="sdh-link" hidden>Manage all photos for this package</a>
+              </div>
+
+              <div class="sdh-field" id="pkg-gallery-row" hidden>
+                <div class="pkg-gallery-row-header">
+                  <span class="sdh-label">Gallery photos</span>
+                  <span class="pkg-gallery-hint">Drag to reorder. The first photo is the card thumbnail.</span>
+                </div>
+                <div id="pkg-gallery-existing" class="pkg-gallery-sortable photo-preview-grid" hidden></div>
+                <div id="pkg-gallery-reorder-bar" class="pkg-gallery-reorder-bar" hidden>
+                  <button type="button" id="pkg-gallery-save-order" class="sdh-btn sdh-btn--secondary sdh-btn--sm">Save order</button>
+                  <span id="pkg-gallery-order-status" class="pkg-gallery-order-status"></span>
+                </div>
+              </div>
+              <input type="hidden" name="supplierId" id="pkg-supplier-id-hidden" />
+              <input type="hidden" name="id" id="pkg-id-hidden" />
+            </div>
+            <div class="sdh-dialog__foot">
+              <span class="sdh-form__status" id="pkg-status" role="status" aria-live="polite"></span>
+              <button class="sdh-btn sdh-btn--primary" type="submit">Save package</button>
+              <button type="button" class="sdh-btn sdh-btn--quiet" id="cancel-package-form">Cancel</button>
+            </div>
+          </form>
+        </div>
+      </dialog>
+
       <dialog id="sv-verification-modal" class="sdh-dialog" aria-labelledby="sv-modal-title">
         <form id="sv-verification-form" class="sdh-dialog__form" novalidate>
           <div class="sdh-dialog__head">
@@ -843,6 +872,8 @@
     <script src="/assets/js/config/page-init.js" defer></script>
     <script src="/assets/js/utils/supplier-avatar.js?v=1.0.2"></script>
     <script src="/assets/js/pages/supplier-dashboard-home.js?v=1.0.0" defer></script>
+    <script src="/assets/js/pages/supplier-dashboard-overlays.js?v=1.0.0" defer></script>
+    <script src="/assets/js/pages/supplier-dashboard-banner.js?v=1.0.0" defer></script>
     <script src="/assets/js/app.js?v=18.5.7" defer></script>
     <script src="/assets/js/unread-badge-manager.js?v=18.3.0" defer></script>
     <script src="/assets/js/pages/dashboard-supplier-category.js?v=1.0.0" defer></script>

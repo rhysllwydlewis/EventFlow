@@ -2459,20 +2459,20 @@ async function initDashSupplier() {
     togglePackageFormBtn.addEventListener('click', togglePackageForm);
   }
 
-  const cancelPackageFormBtn = document.getElementById('cancel-package-form');
-  if (cancelPackageFormBtn) {
-    cancelPackageFormBtn.addEventListener('click', togglePackageForm);
-  }
+  // The editors' Cancel buttons are wired by supplier-dashboard-overlays.js (with the unsaved-changes
+  // guard); a closed editor is reset here.
+  document.addEventListener('sdh:overlay-closed', event => {
+    if (event.detail?.name === 'profile') {
+      resetProfileForm();
+    } else if (event.detail?.name === 'package') {
+      resetPackageForm();
+    }
+  });
 
   // Initialize profile form toggle
   const toggleProfileFormBtn = document.getElementById('toggle-profile-form');
   if (toggleProfileFormBtn) {
     toggleProfileFormBtn.addEventListener('click', toggleProfileForm);
-  }
-
-  const cancelProfileFormBtn = document.getElementById('cancel-profile-form');
-  if (cancelProfileFormBtn) {
-    cancelProfileFormBtn.addEventListener('click', toggleProfileForm);
   }
 
   // Add event delegation for Edit/Delete buttons on packages and profiles
@@ -2528,18 +2528,11 @@ async function initDashSupplier() {
           const profileId = actionEl.getAttribute('data-profile-id');
           if (profileId) {
             try {
-              await editProfile(profileId, { skipFormScroll: true });
+              await editProfile(profileId, { focusId: 'sup-photo-drop' });
             } catch (err) {
               console.error('Failed to prepare profile form for photo upload:', err);
               return;
             }
-          }
-          const profileFormSection = document.getElementById('profile-form-section');
-          if (profileFormSection) {
-            if (!profileFormSection.classList.contains('expanded')) {
-              profileFormSection.classList.add('expanded');
-            }
-            profileFormSection.removeAttribute('hidden');
           }
           const uploader = document.getElementById('sup-photo-drop');
           if (uploader) {
@@ -2999,6 +2992,11 @@ async function initDashSupplier() {
           statusEl.textContent = 'Profile saved.';
           scheduleSupplierStatusClear(statusEl, 3000);
         }
+        // Saved: the editor has nothing unsaved, so it closes without asking and the dashboard
+        // behind it already shows the new details.
+        efSay('Profile saved.', 'success');
+        window.SupplierDashboardOverlays?.markClean('profile');
+        window.SupplierDashboardOverlays?.close('profile');
       } catch (err) {
         console.error('Error saving supplier:', err);
         if (statusEl) {
@@ -3448,17 +3446,23 @@ async function initDashSupplier() {
         }
       }
 
-      // Validate required fields
-      if (!payload.primaryCategoryKey) {
-        efSay('Please select a primary category.', 'error');
-        return;
-      }
-      if (!payload.eventTypes || payload.eventTypes.length === 0) {
-        efSay('Please select at least one event type.', 'error');
+      // Validate required fields. The editor is a dialog, so the message goes in the dialog (a
+      // toast would sit behind it) and the first field to fix gets focus.
+      clearPackageErrors();
+      if (!payload.title || !String(payload.title).trim()) {
+        showPackageError('pkg-title', 'Please give the package a title.');
         return;
       }
       if (!payload.price || !String(payload.price).trim()) {
-        efSay('Please enter a price for this package.', 'error');
+        showPackageError('pkg-price', 'Please enter a price for this package.');
+        return;
+      }
+      if (!payload.primaryCategoryKey) {
+        showPackageError('pkg-category', 'Please select a primary category.');
+        return;
+      }
+      if (!payload.eventTypes || payload.eventTypes.length === 0) {
+        showPackageError('pkg-event-wedding', 'Please select at least one event type.');
         return;
       }
 
@@ -3471,11 +3475,16 @@ async function initDashSupplier() {
       // guard also prevents programmatic form submissions from bypassing the limit.
       // Editing an existing package (id is set) always bypasses this check.
       if (window._pkgAtLimit && !id) {
-        efSay(PKG_LIMIT_MESSAGE, 'error');
+        showPackageError('pkg-title', PKG_LIMIT_MESSAGE);
         return;
       }
 
       const saveBtn = pkgForm.querySelector('button[type="submit"]');
+      if (saveBtn && saveBtn.disabled) {
+        // A save is already in flight: a second Enter or click must not send it twice.
+        return;
+      }
+      pkgForm.setAttribute('aria-busy', 'true');
       const origLabel = saveBtn ? saveBtn.textContent : '';
       if (saveBtn) {
         saveBtn.disabled = true;
@@ -3522,19 +3531,22 @@ async function initDashSupplier() {
         if (window._pkgAtLimit) {
           setPkgFormDisabled(true);
         }
-        // Close the form: the package now shows in the list above it.
-        if (document.getElementById('package-form-section')?.classList.contains('expanded')) {
-          togglePackageForm();
-        }
+        // Close the editor: the package now shows in the list behind it.
+        window.SupplierDashboardOverlays?.markClean('package');
+        window.SupplierDashboardOverlays?.close('package');
       } catch (err) {
         if (err.code === 'SUPPLIER_PROFILE_MISSING') {
-          efSay('Create your profile before adding packages.', 'error');
+          showPackageError('pkg-title', 'Create your profile before adding packages.');
         } else if (err.code === 'SUPPLIER_NOT_APPROVED') {
-          efSay('Package creation unlocks once your profile is approved.', 'error');
+          showPackageError('pkg-title', 'Package creation unlocks once your profile is approved.');
         } else {
-          efSay(`Could not save the package: ${err.message || 'please try again'}`, 'error');
+          showPackageError(
+            'pkg-title',
+            `Could not save the package: ${err.message || 'please try again'}`
+          );
         }
       } finally {
+        pkgForm.removeAttribute('aria-busy');
         if (saveBtn) {
           // Restore button label. Only re-enable if NOT at the package limit:
           // pkgForm.reset() already cleared pkg-id-hidden, returning to create mode,
@@ -3547,25 +3559,6 @@ async function initDashSupplier() {
       }
     });
   }
-
-  // Banner image upload
-  efSetupPhotoDropZone(
-    'sup-banner-drop',
-    'sup-banner-preview',
-    dataUrl => {
-      const input = document.getElementById('sup-banner');
-      if (!input) {
-        return;
-      }
-      input.value = dataUrl;
-    },
-    () => {
-      const input = document.getElementById('sup-banner');
-      if (input) {
-        input.value = '';
-      }
-    }
-  );
 
   efSetupPhotoDropZone(
     'pkg-photo-drop',
@@ -3771,127 +3764,128 @@ function setPkgFormDisabled(disable, message) {
   }
 }
 
-function togglePackageForm() {
-  const formSection = document.getElementById('package-form-section');
-  const toggleBtn = document.getElementById('toggle-package-form');
-  const cancelBtn = document.getElementById('cancel-package-form');
+/** Clears the package editor's message and every field marked invalid. */
+function clearPackageErrors() {
+  const statusEl = document.getElementById('pkg-status');
+  if (statusEl) {
+    statusEl.textContent = '';
+    statusEl.removeAttribute('data-tone');
+  }
+  document
+    .querySelectorAll('#package-form [aria-invalid="true"]')
+    .forEach(field => field.removeAttribute('aria-invalid'));
+}
 
-  if (!formSection || !toggleBtn) {
+/**
+ * Shows an error inside the package editor and moves focus to the field to fix.
+ * @param {string} fieldId - The field the message is about.
+ * @param {string} message - What to tell the supplier.
+ */
+function showPackageError(fieldId, message) {
+  const statusEl = document.getElementById('pkg-status');
+  if (statusEl) {
+    statusEl.setAttribute('data-tone', 'error');
+    statusEl.textContent = message;
+  }
+  const field = document.getElementById(fieldId);
+  if (field) {
+    field.setAttribute('aria-invalid', 'true');
+    field.focus();
+  }
+}
+
+/**
+ * Opens the package editor for a new package, or asks to close it when it is already open. The
+ * editor is a dialog owned by supplier-dashboard-overlays.js.
+ */
+function togglePackageForm() {
+  const overlays = window.SupplierDashboardOverlays;
+  if (!overlays) {
     return;
   }
+  if (overlays.isOpen('package')) {
+    overlays.requestClose('package');
+    return;
+  }
+  resetPackageForm();
+  overlays.open('package', { focusId: 'pkg-title' });
+}
 
-  const isExpanded = formSection.classList.contains('expanded');
+/** Puts the package editor back to "create a package"; runs whenever the editor closes. */
+function resetPackageForm() {
+  const toggleBtn = document.getElementById('toggle-package-form');
+  const form = document.getElementById('package-form');
+  if (form) {
+    form.reset();
+  }
+  const idField = document.getElementById('pkg-id-hidden');
+  if (idField) {
+    idField.value = '';
+  }
+  const statusEl = document.getElementById('pkg-status');
+  if (statusEl) {
+    statusEl.textContent = '';
+  }
+  const heading = document.querySelector('#package-form-section .supplier-section-header');
+  if (heading) {
+    heading.textContent = 'Create a package';
+  }
 
-  if (isExpanded) {
-    // Collapse form. Focus inside the form (its Cancel button) would be lost, so hand it back.
-    if (formSection.contains(document.activeElement)) {
-      toggleBtn.focus();
-    }
-    formSection.classList.remove('expanded');
-    toggleBtn.setAttribute('aria-expanded', 'false');
-    toggleBtn.querySelector('.label').textContent = 'Create package';
-    toggleBtn.classList.remove('active');
-    if (cancelBtn) {
-      cancelBtn.hidden = true;
-    }
+  // Clear photo preview and hidden image input so old images don't bleed into new packages
+  const pkgPhotoPreview = document.getElementById('pkg-photo-preview');
+  if (pkgPhotoPreview) {
+    pkgPhotoPreview.innerHTML = '';
+  }
+  const pkgImage = document.getElementById('pkg-image');
+  if (pkgImage) {
+    pkgImage.value = '';
+  }
 
-    // Reset form
-    const form = document.getElementById('package-form');
-    if (form) {
-      form.reset();
-    }
-    document.getElementById('pkg-id-hidden').value = '';
+  // Clear gallery section
+  const galleryExistingReset = document.getElementById('pkg-gallery-existing');
+  if (galleryExistingReset) {
+    galleryExistingReset.innerHTML = '';
+    galleryExistingReset.hidden = true;
+  }
+  const galleryRowReset = document.getElementById('pkg-gallery-row');
+  if (galleryRowReset) {
+    galleryRowReset.hidden = true;
+  }
+  const pkgManageGalleryLinkReset = document.getElementById('pkg-manage-gallery-link');
+  if (pkgManageGalleryLinkReset) {
+    pkgManageGalleryLinkReset.hidden = true;
+  }
 
-    // Clear photo preview and hidden image input so old images don't bleed into new packages
-    const pkgPhotoPreview = document.getElementById('pkg-photo-preview');
-    if (pkgPhotoPreview) {
-      pkgPhotoPreview.innerHTML = '';
-    }
-    const pkgImage = document.getElementById('pkg-image');
-    if (pkgImage) {
-      pkgImage.value = '';
-    }
-
-    // Clear gallery section
-    const galleryExistingReset = document.getElementById('pkg-gallery-existing');
-    if (galleryExistingReset) {
-      galleryExistingReset.innerHTML = '';
-      galleryExistingReset.hidden = true;
-    }
-    const galleryRowReset = document.getElementById('pkg-gallery-row');
-    if (galleryRowReset) {
-      galleryRowReset.hidden = true;
-    }
-    const pkgManageGalleryLinkReset = document.getElementById('pkg-manage-gallery-link');
-    if (pkgManageGalleryLinkReset) {
-      pkgManageGalleryLinkReset.hidden = true;
-    }
-
-    // Form is returning to create mode — re-apply package limit restrictions if needed.
-    if (window._pkgAtLimit) {
-      setPkgFormDisabled(true);
-      // Restore at-limit label and disabled state on the toggle button.
+  // The form is back in create mode: re-apply the package limit if it is reached.
+  if (window._pkgAtLimit) {
+    setPkgFormDisabled(true);
+    if (toggleBtn) {
       toggleBtn.disabled = true;
       toggleBtn.classList.add('form-toggle-btn--at-limit');
-      toggleBtn.setAttribute('aria-label', 'Package limit reached — upgrade to create more');
+      toggleBtn.setAttribute('aria-label', 'Package limit reached: upgrade to create more');
       toggleBtn.title =
         "You've reached your package limit. Pause or delete a package, or upgrade your plan.";
       const labelElRestore = toggleBtn.querySelector('.label');
       if (labelElRestore) {
         labelElRestore.textContent = window._pkgLimitLabel || 'Limit reached';
       }
-      const upgradeCta = document.getElementById('pkg-upgrade-cta');
-      if (upgradeCta) {
-        upgradeCta.hidden = false;
-      }
-    } else {
-      toggleBtn.setAttribute('aria-label', 'Toggle package creation form');
-      toggleBtn.title = '';
     }
-  } else {
-    // Expand form
-    formSection.classList.add('expanded');
-    toggleBtn.setAttribute('aria-expanded', 'true');
-    toggleBtn.querySelector('.label').textContent = 'Cancel';
-    toggleBtn.classList.add('active');
-    if (cancelBtn) {
-      cancelBtn.hidden = false;
+    const upgradeCta = document.getElementById('pkg-upgrade-cta');
+    if (upgradeCta) {
+      upgradeCta.hidden = false;
     }
-
-    // Scroll to form
-    setTimeout(() => {
-      formSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }, 100);
+  } else if (toggleBtn) {
+    toggleBtn.removeAttribute('aria-label');
+    toggleBtn.title = '';
   }
 }
 
+/**
+ * Fills the package editor from a saved package and opens it over the dashboard.
+ * @param {string} packageId - The package to edit.
+ */
 function editPackage(packageId) {
-  // Expand the form section
   const formSection = document.getElementById('package-form-section');
-  const toggleBtn = document.getElementById('toggle-package-form');
-
-  if (formSection && !formSection.classList.contains('expanded')) {
-    formSection.classList.add('expanded');
-    if (toggleBtn) {
-      toggleBtn.setAttribute('aria-expanded', 'true');
-      toggleBtn.querySelector('.label').textContent = 'Cancel';
-      toggleBtn.classList.add('active');
-    }
-  }
-
-  // Always update the toggle button to the Cancel / edit-mode state, regardless
-  // of whether the form was already expanded. This ensures an at-limit supplier
-  // who had a disabled button can still cancel out of an edit they just opened.
-  if (toggleBtn) {
-    toggleBtn.disabled = false;
-    toggleBtn.classList.remove('form-toggle-btn--at-limit');
-    toggleBtn.setAttribute('aria-label', 'Cancel editing package');
-    toggleBtn.title = '';
-    const upgradeCta = document.getElementById('pkg-upgrade-cta');
-    if (upgradeCta) {
-      upgradeCta.hidden = true;
-    }
-  }
 
   // Fetch package data from API
   fetch(`/api/v1/me/packages/${encodeURIComponent(packageId)}`, {
@@ -4011,10 +4005,7 @@ function editPackage(packageId) {
         heading.textContent = 'Edit package';
       }
 
-      // Scroll to form
-      setTimeout(() => {
-        formSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      }, 100);
+      window.SupplierDashboardOverlays?.open('package', { focusId: 'pkg-title' });
     })
     .catch(e => {
       console.error('Error loading package for edit:', e);
@@ -4346,91 +4337,66 @@ async function savePkgGalleryOrder() {
 }
 
 // Profile Form Toggle, Edit, and Delete Functions
+/**
+ * Opens the profile editor over the dashboard, filled in from the saved profile, or asks to close
+ * it when it is already open. The editor is a dialog owned by supplier-dashboard-overlays.js.
+ */
 function toggleProfileForm() {
-  const formSection = document.getElementById('profile-form-section');
-  const toggleBtn = document.getElementById('toggle-profile-form');
-  const cancelBtn = document.getElementById('cancel-profile-form');
-
-  if (!formSection || !toggleBtn) {
+  const overlays = window.SupplierDashboardOverlays;
+  if (!overlays) {
     return;
   }
-
-  const isExpanded = formSection.classList.contains('expanded');
-  // Determine whether the user already has a profile before any DOM mutations
-  const hasProfile =
-    !!document.getElementById('sup-id')?.value ||
-    !!document.querySelector('#my-suppliers .supplier-card');
-
-  if (isExpanded) {
-    // Collapse form. Focus inside the form (its Cancel button) would be lost, so hand it back.
-    if (formSection.contains(document.activeElement)) {
-      toggleBtn.focus();
-    }
-    formSection.classList.remove('expanded');
-    toggleBtn.setAttribute('aria-expanded', 'false');
-    toggleBtn.querySelector('.label').textContent = hasProfile ? 'Edit profile' : 'Create profile';
-    toggleBtn.classList.remove('active');
-    if (cancelBtn) {
-      cancelBtn.hidden = true;
-    }
-
-    // Reset form
-    const form = document.getElementById('supplier-form');
-    if (form) {
-      form.reset();
-    }
-    document.getElementById('sup-id').value = '';
-
-    // Reset form heading
-    const heading = formSection.querySelector('.supplier-section-header');
+  if (overlays.isOpen('profile')) {
+    overlays.requestClose('profile');
+    return;
+  }
+  // Closing the editor clears it (and the hidden profile id). Opening it again must show the
+  // saved profile: a blank form would save as a new profile instead of updating this one.
+  const savedProfile = (window._efCachedSuppliers || [])[0];
+  const heading = document.querySelector('#profile-form-section .supplier-section-header');
+  if (savedProfile && typeof window._efPopulateSupplierForm === 'function') {
+    window._efPopulateSupplierForm(savedProfile);
     if (heading) {
-      heading.textContent = hasProfile ? 'Edit profile' : 'Create your profile';
+      heading.textContent = 'Edit profile';
     }
-  } else {
-    // Expand form
-    formSection.classList.add('expanded');
-    toggleBtn.setAttribute('aria-expanded', 'true');
-    toggleBtn.querySelector('.label').textContent = 'Cancel';
-    toggleBtn.classList.add('active');
-    if (cancelBtn) {
-      cancelBtn.hidden = false;
-    }
+  } else if (heading) {
+    heading.textContent = 'Create your profile';
+  }
+  overlays.open('profile', { focusId: 'sup-name' });
+}
 
-    // Closing the form clears it (and the hidden profile id). Opening it again must show the
-    // saved profile: a blank form would save as a new profile instead of updating this one.
-    const savedProfile = (window._efCachedSuppliers || [])[0];
-    if (savedProfile && typeof window._efPopulateSupplierForm === 'function') {
-      window._efPopulateSupplierForm(savedProfile);
-      const heading = formSection.querySelector('.supplier-section-header');
-      if (heading) {
-        heading.textContent = 'Edit profile';
-      }
-    }
-
-    // Scroll to form
-    setTimeout(() => {
-      formSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }, 100);
+/** Puts the profile editor back to its empty state; runs whenever the editor closes. */
+function resetProfileForm() {
+  const form = document.getElementById('supplier-form');
+  if (form) {
+    form.reset();
+  }
+  const idField = document.getElementById('sup-id');
+  if (idField) {
+    idField.value = '';
+  }
+  const statusEl = document.getElementById('sup-status');
+  if (statusEl) {
+    statusEl.textContent = '';
+  }
+  const hasProfile = (window._efCachedSuppliers || []).length > 0;
+  const heading = document.querySelector('#profile-form-section .supplier-section-header');
+  if (heading) {
+    heading.textContent = hasProfile ? 'Edit profile' : 'Create your profile';
+  }
+  const label = document.querySelector('#toggle-profile-form .label');
+  if (label) {
+    label.textContent = hasProfile ? 'Edit profile' : 'Create profile';
   }
 }
 
+/**
+ * Fills the profile editor from a saved profile and opens it over the dashboard.
+ * @param {string} supplierId - The profile to edit.
+ * @param {{focusId?: string}} [options] - A field to land on.
+ */
 async function editProfile(supplierId, options = {}) {
-  const skipFormScroll = !!options.skipFormScroll;
-  // Expand the form section
   const formSection = document.getElementById('profile-form-section');
-  const toggleBtn = document.getElementById('toggle-profile-form');
-
-  if (formSection && !formSection.classList.contains('expanded')) {
-    formSection.classList.add('expanded');
-    if (toggleBtn) {
-      toggleBtn.setAttribute('aria-expanded', 'true');
-      const labelEl = toggleBtn.querySelector('.label');
-      if (labelEl) {
-        labelEl.textContent = 'Cancel';
-      }
-      toggleBtn.classList.add('active');
-    }
-  }
 
   // Fetch supplier data and populate form
   try {
@@ -4503,17 +4469,10 @@ async function editProfile(supplierId, options = {}) {
     // Store the editing supplier ID for later use
     window.currentEditingSupplierId = supplierId;
 
-    // Scroll to form unless caller wants to control scroll target
-    if (!skipFormScroll) {
-      setTimeout(() => {
-        if (formSection) {
-          formSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        }
-      }, 100);
-    }
+    window.SupplierDashboardOverlays?.open('profile', { focusId: options.focusId || 'sup-name' });
   } catch (e) {
     console.error('Error loading supplier for edit:', e);
-    alert('Failed to load supplier profile. Please try again.');
+    efSay('Could not load your profile. Please try again.', 'error');
   }
 }
 

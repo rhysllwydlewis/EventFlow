@@ -519,8 +519,8 @@
 
 .sdh-page .sdh-toast {
   position: fixed;
-  top: 88px;
-  left: 50%;
+  inset: 88px auto auto 50%;
+  margin: 0;
   z-index: 10050;
   display: flex;
   flex-direction: column;
@@ -866,21 +866,6 @@
   color: var(--sdh-ink);
   font-size: 16px;
   font-weight: 600;
-}
-
-.sdh-page .sdh-form-panel {
-  display: none;
-  margin-top: 20px;
-  padding-top: 20px;
-  border-top: 1px solid var(--sdh-line);
-}
-
-.sdh-page .sdh-form-panel.expanded {
-  display: block;
-}
-
-.sdh-page .sdh-form-panel .sdh-form__title {
-  margin-bottom: 16px;
 }
 
 .sdh-page .sdh-field {
@@ -1567,17 +1552,28 @@
   bottom: -2px;
 }
 
+/* A small red badge on the corner of the photo (a destructive action), not a button over it.
+   The ::after widens the hit area to 44px for touch without making the badge bigger. */
 .sdh-page .sdh-avatar__remove {
-  top: -4px;
-  width: 28px;
-  height: 28px;
-  min-height: 28px;
-  background: var(--sdh-ink-2);
-  font-size: 16px;
+  top: -6px;
+  right: -6px;
+  width: 22px;
+  height: 22px;
+  min-width: 22px;
+  min-height: 22px;
+  border-width: 2px;
+  background: var(--sdh-danger);
+  font-size: 14px;
+}
+
+.sdh-page .sdh-avatar__remove::after {
+  position: absolute;
+  inset: -11px;
+  content: '';
 }
 
 .sdh-page .sdh-avatar__remove:hover {
-  background: var(--sdh-danger);
+  background: #8f1c12;
 }
 
 .sdh-page .sdh-avatar__camera:hover {
@@ -2561,15 +2557,6 @@
  * 8. Calendar
  * ------------------------------------------------------------------ */
 
-.sdh-page .sdh-legend {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px 16px;
-  margin-bottom: 16px;
-  color: var(--sdh-muted);
-  font-size: 12px;
-}
-
 .sdh-page .cal-legend-item {
   display: inline-flex;
   align-items: center;
@@ -3207,6 +3194,114 @@
   background: #fbfaf8;
 }
 
+/* The page behind an open editor does not scroll. */
+.sdh-page.sdh-modal-open {
+  overflow: hidden;
+}
+
+/* Profile and package editors: a native <dialog> over the dashboard. A card-sized modal on
+   desktop, a bottom sheet on phones. The body scrolls; the footer with Save stays in view. */
+
+.sdh-page .sdh-dialog--editor {
+  width: min(760px, calc(100vw - 32px));
+  max-height: calc(100dvh - 32px);
+}
+
+.sdh-page .sdh-editor,
+.sdh-page .sdh-editor__form {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.sdh-page .sdh-editor__form {
+  gap: 0;
+}
+
+.sdh-page .sdh-editor__form .sdh-dialog__body {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 20px;
+  overscroll-behavior: contain;
+}
+
+.sdh-page .sdh-editor__form .sdh-dialog__foot {
+  align-items: center;
+  padding-bottom: max(16px, env(safe-area-inset-bottom));
+}
+
+.sdh-page .sdh-editor__form .sdh-dialog__foot .sdh-form__status {
+  flex: 1 1 100%;
+  margin: 0;
+}
+
+.sdh-page .sdh-editor__form .sdh-dialog__foot .sdh-btn--primary {
+  order: 2;
+}
+
+.sdh-page .sdh-editor__form .sdh-dialog__foot .sdh-btn--quiet {
+  order: 1;
+  margin-right: auto;
+}
+
+.sdh-page .sdh-editor__form .sdh-dialog__foot .sdh-btn--secondary {
+  order: 0;
+}
+
+/* Banner field in the profile editor */
+
+.sdh-page .sdh-banner__preview {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  aspect-ratio: 3 / 1;
+  max-height: 160px;
+  overflow: hidden;
+  border: 1px dashed var(--sdh-line-strong);
+  border-radius: var(--sdh-radius-sm);
+  background: #fbfaf8;
+  color: var(--sdh-muted);
+  font-size: 13px;
+}
+
+.sdh-page .sdh-banner__preview[data-state='filled'] {
+  border-style: solid;
+}
+
+.sdh-page .sdh-banner__img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.sdh-page .sdh-banner__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.sdh-page .sdh-banner[aria-busy='true'] .sdh-banner__preview {
+  opacity: 0.6;
+}
+
+/* A destructive action that does not shout: red text and outline until it is hovered. */
+.sdh-page .sdh-btn--danger-quiet {
+  border-color: #e7b9b4;
+  background: var(--sdh-surface);
+  color: var(--sdh-danger);
+}
+
+.sdh-page .sdh-btn--danger-quiet:hover {
+  border-color: var(--sdh-danger);
+  background: var(--sdh-danger);
+  color: #fff;
+}
+
 /* Add / edit entry dialog */
 
 .sdh-page .cal-entry-modal-overlay {
@@ -3772,6 +3867,23 @@
 
   .sdh-page .sdh-dialog__foot .sdh-btn {
     flex: 1 1 0;
+  }
+
+  .sdh-page .sdh-dialog--editor {
+    height: 94dvh;
+    max-height: 94dvh;
+  }
+
+  .sdh-page .sdh-editor__form .sdh-dialog__body {
+    padding: 16px;
+  }
+
+  .sdh-page .sdh-editor__form .sdh-dialog__foot .sdh-btn--quiet {
+    margin-right: 0;
+  }
+
+  .sdh-page .sdh-editor__form .sdh-form__grid {
+    grid-template-columns: minmax(0, 1fr);
   }
 
   .sdh-page .cal-entry-modal__row {

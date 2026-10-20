@@ -301,6 +301,14 @@
       .map(item => ({ date: String(item.date || item.label || ''), views: count(item.views) }));
   }
 
+  /** Names the banner step the way the editor does: "Add banner" while open, "Banner added" once done. */
+  function stepLabel(key, label, done) {
+    if (/banner|cover/u.test(String(key))) {
+      return done ? 'Banner added' : 'Add banner';
+    }
+    return label;
+  }
+
   /** Server next steps as [{ key, label, done, locked, waiting, href }], or null when there are none. */
   function normaliseSteps(raw) {
     const list = Array.isArray(raw?.steps) ? raw.steps : Array.isArray(raw) ? raw : null;
@@ -311,7 +319,11 @@
       .filter(step => step && typeof step === 'object' && (step.label || step.title))
       .map(step => ({
         key: String(step.id || step.key || ''),
-        label: String(step.label || step.title),
+        label: stepLabel(
+          String(step.id || step.key || ''),
+          String(step.label || step.title),
+          Boolean(step.done || step.completed)
+        ),
         done: Boolean(step.done || step.completed),
         locked: Boolean(step.locked),
         lockedReason: typeof step.lockedReason === 'string' ? step.lockedReason : '',
@@ -351,7 +363,11 @@
     open.forEach(check => {
       steps.push({
         key: `profile-${String(check.id || check.key || '')}`,
-        label: String(check.label || check.id || 'Complete your profile'),
+        label: stepLabel(
+          `profile-${String(check.id || check.key || '')}`,
+          String(check.label || check.id || 'Complete your profile'),
+          false
+        ),
         done: false,
         locked: false,
         waiting: false,
@@ -396,7 +412,11 @@
       .forEach(check => {
         steps.push({
           key: `profile-${String(check.id || check.key || '')}`,
-          label: String(check.label || check.id || ''),
+          label: stepLabel(
+            `profile-${String(check.id || check.key || '')}`,
+            String(check.label || check.id || ''),
+            true
+          ),
           done: true,
           locked: false,
           waiting: false,
@@ -409,11 +429,20 @@
     return { steps, completed: steps.filter(step => step.done).length, total: steps.length };
   }
 
-  /** The first step the supplier can act on now: not done, not locked behind approval, not just waiting. */
+  /** True for the steps that polish a profile (banner, tagline, social links) rather than set it up. */
+  function isPolishStep(step) {
+    return /banner|cover|social|tagline/u.test(String(step?.key || ''));
+  }
+
+  /**
+   * The first step the supplier can act on now: not done, not locked behind approval, not just
+   * waiting, and not a polish step. The banner is an Edit profile field, so it never becomes the
+   * big button at the top of the page; when only polish is left there is no primary action.
+   */
   function pickPrimaryStep(steps) {
     const list = steps?.steps || [];
-    /** True for a step the supplier can act on right now. */
-    const open = step => !step.done && !step.locked && !step.waiting;
+    /** True for a step the supplier can act on right now, and that is worth a headline button. */
+    const open = step => !step.done && !step.locked && !step.waiting && !isPolishStep(step);
     const named = steps?.primaryKey ? list.find(step => step.key === steps.primaryKey) : null;
     return named && open(named) ? named : list.find(open) || null;
   }
@@ -461,7 +490,10 @@
     if (/calendar/u.test(key)) {
       return { action: 'scroll', target: 'availability-calendar' };
     }
-    if (/social|banner|cover/u.test(key)) {
+    if (/banner|cover/u.test(key)) {
+      return { action: 'edit-profile', focus: 'sdh-banner-upload' };
+    }
+    if (/social|tagline/u.test(key)) {
       return { href: '/supplier/profile-customization' };
     }
     if (/logo|avatar|profile-photo/u.test(key)) {
@@ -678,10 +710,42 @@
     node.dataset.tone = type || 'info';
     node.textContent = text;
     node.hidden = false;
+    showOnTop(node);
     window.clearTimeout(toastTimer);
     toastTimer = window.setTimeout(() => {
       node.hidden = true;
+      hideOnTop(node);
     }, 5000);
+  }
+
+  /**
+   * Puts a node in the browser's top layer, above any open dialog, where popovers are supported.
+   * A toast that confirms a save would otherwise be hidden behind the editor it came from.
+   */
+  function showOnTop(node) {
+    if (typeof node.showPopover !== 'function') {
+      return;
+    }
+    try {
+      node.setAttribute('popover', 'manual');
+      if (node.matches(':popover-open')) {
+        node.hidePopover();
+      }
+      node.showPopover();
+    } catch {
+      /* the toast still shows, just not above a dialog */
+    }
+  }
+
+  /** Takes a node out of the top layer again. */
+  function hideOnTop(node) {
+    try {
+      if (typeof node.hidePopover === 'function' && node.matches(':popover-open')) {
+        node.hidePopover();
+      }
+    } catch {
+      /* nothing to undo */
+    }
   }
 
   /** Shims so the feature scripts that call Toast.error() or EFToast.success() use this page's toast. */
@@ -709,6 +773,7 @@
     byId('sdh-confirm-text').textContent = settings.message || '';
     const okButton = byId('sdh-confirm-ok');
     okButton.textContent = settings.confirmLabel || 'Delete';
+    byId('sdh-confirm-cancel').textContent = settings.cancelLabel || 'Cancel';
     const opener = document.activeElement;
     return new Promise(resolve => {
       let confirmed = false;
@@ -1033,8 +1098,12 @@
       );
     }
     const open = profile.checks.filter(check => check && !check.done);
-    const sub = open.length
-      ? `Next: <a class="sdh-link" href="#profile-card"${stepAttrs({ key: `profile-${open[0].id || ''}` })}>${esc(String(open[0].label || 'Complete your profile').toLowerCase())}</a>`
+    // Setup comes before polish: the banner is only offered when nothing else is left.
+    const nextCheck =
+      open.find(check => !isPolishStep({ key: `profile-${check.id || ''}` })) || open[0];
+    const nextKey = `profile-${nextCheck?.id || ''}`;
+    const sub = nextCheck
+      ? `Next: <a class="sdh-link" href="#profile-card"${stepAttrs({ key: nextKey })}>${esc(stepLabel(nextKey, String(nextCheck.label || 'Complete your profile'), false).toLowerCase())}</a>`
       : 'Everything on your profile is filled in.';
     return tile(
       'Profile complete',
@@ -1759,23 +1828,26 @@
     });
   }
 
-  /** Opens a collapsible form section by clicking its toggle (app.js owns the open/close state), then focuses a field. */
+  /**
+   * Opens a profile or package editor dialog by pressing its toggle (app.js fills the form and
+   * supplier-dashboard-overlays.js opens the dialog), then focuses a field in it.
+   */
   function openForm(sectionId, toggleId, focusId) {
     const section = byId(sectionId);
     const toggle = byId(toggleId);
     if (!section || !toggle) {
       return;
     }
-    if (!section.classList.contains('expanded') && !toggle.disabled) {
+    const overlays = window.SupplierDashboardOverlays;
+    const name = sectionId === 'profile-form-section' ? 'profile' : 'package';
+    if (!(overlays && overlays.isOpen(name)) && !toggle.disabled) {
       toggle.click();
     }
     const field = focusId ? byId(focusId) : null;
     window.setTimeout(() => {
       if (field) {
-        scrollToNode(field, 'center');
+        field.scrollIntoView({ block: 'center' });
         field.focus({ preventScroll: true });
-      } else {
-        scrollToNode(section, 'start');
       }
     }, 120);
   }
@@ -2036,6 +2108,7 @@
     getPlanLimits,
     refresh,
     confirm: confirmAction,
+    sendJson,
     toast,
     normaliseSummary,
     deriveSteps,

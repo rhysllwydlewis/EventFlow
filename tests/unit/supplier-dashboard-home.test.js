@@ -788,9 +788,21 @@ describe('supplier dashboard home: pure logic', () => {
     test('the server list is used, the first open step is the primary action, and locked steps are skipped', () => {
       const model = home.normaliseSummary(example);
       expect(model.nextSteps.steps).toHaveLength(3);
-      expect(home.pickPrimaryStep(model.nextSteps).key).toBe('banner');
-      const noPrimary = { ...model.nextSteps, primaryKey: '' };
-      expect(home.pickPrimaryStep(noPrimary).key).toBe('banner');
+      // The banner is a polish step (an Edit profile field), never the headline action, and the
+      // package step is locked: nothing is left to headline.
+      expect(home.pickPrimaryStep(model.nextSteps)).toBeNull();
+      const withSetup = {
+        ...model.nextSteps,
+        steps: [
+          ...model.nextSteps.steps,
+          { key: 'description', label: 'Add a description', done: false, locked: false },
+        ],
+      };
+      expect(home.pickPrimaryStep(withSetup).key).toBe('description');
+      const noPrimary = { ...withSetup, primaryKey: '' };
+      expect(home.pickPrimaryStep(noPrimary).key).toBe('description');
+      // Even when the server names the banner as primary, it is not the headline action.
+      expect(home.pickPrimaryStep({ ...withSetup, primaryKey: 'banner' }).key).toBe('description');
       const allLocked = { steps: [{ key: 'a', done: false, locked: true }], primaryKey: '' };
       expect(home.pickPrimaryStep(allLocked)).toBeNull();
     });
@@ -800,7 +812,7 @@ describe('supplier dashboard home: pure logic', () => {
         nextSteps: {
           steps: [
             { id: 'get-verified', label: 'Get your profile verified', done: false },
-            { id: 'banner', label: 'Add a banner image', done: false },
+            { id: 'description', label: 'Add a description', done: false },
           ],
         },
       }).nextSteps;
@@ -809,7 +821,7 @@ describe('supplier dashboard home: pure logic', () => {
         state: 'pending_review',
       });
       expect(waiting.steps[0]).toMatchObject({ waiting: true, label: 'Verification is in review' });
-      expect(home.pickPrimaryStep(waiting).key).toBe('banner');
+      expect(home.pickPrimaryStep(waiting).key).toBe('description');
       // Not in review: the step stays an action.
       expect(
         home.pickPrimaryStep(
@@ -866,9 +878,17 @@ describe('supplier dashboard home: pure logic', () => {
         focus: 'sup-long',
       });
       expect(home.stepAction({ key: 'website' })).toMatchObject({ focus: 'sup-website' });
+      // The banner is a field in the profile editor; tagline and social links are on their own page.
       expect(
         home.stepAction({ key: 'banner', href: '/supplier/profile-customization#sup-banner-drop' })
-      ).toEqual({ href: '/supplier/profile-customization' });
+      ).toEqual({ action: 'edit-profile', focus: 'sdh-banner-upload' });
+      expect(home.stepAction({ key: 'profile-coverImage' })).toMatchObject({
+        action: 'edit-profile',
+        focus: 'sdh-banner-upload',
+      });
+      expect(home.stepAction({ key: 'social-links' })).toEqual({
+        href: '/supplier/profile-customization',
+      });
       expect(home.stepAction({ key: 'calendar' })).toMatchObject({
         target: 'availability-calendar',
       });
@@ -970,7 +990,8 @@ describe('supplier dashboard home: pure logic', () => {
       expect(home.ledeFor(null, { noProfile: true })).toMatch(/Create your business profile/);
       expect(home.ledeFor(home.normaliseSummary(example), {})).toBe('You have 4 unread messages.');
       const quiet = home.normaliseSummary({ ...example, messages: { unreadMessages: 0 } });
-      expect(home.ledeFor(quiet, {})).toBe('Next: add a banner image.');
+      // Only the banner is left, and that is polish, not something to headline.
+      expect(home.ledeFor(quiet, {})).toBe('Your profile, packages and messages in one place.');
     });
   });
 });
@@ -1070,9 +1091,11 @@ describe('supplier dashboard home: rendered page', () => {
     expect(page.tiles[1].value).toBe('85%');
     expect(page.tiles[2].value).toBe('4.5 out of 5');
     expect(page.tiles[3].body).toContain('2 of 50 active packages');
-    expect(page.primary).toMatchObject({ hidden: false, label: 'Add a banner image' });
-    expect(page.steps.todo).toEqual(['Add a banner image', 'Add a photo to every package']);
-    expect(page.steps.next).toBe('Add a banner image');
+    // The headline action is the first setup step; the banner (an Edit profile field) is listed
+    // as "Add banner" but never headlines the page.
+    expect(page.primary).toMatchObject({ hidden: false, label: 'Add a photo to every package' });
+    expect(page.steps.todo).toEqual(['Add banner', 'Add a photo to every package']);
+    expect(page.steps.next).toBe('Add a photo to every package');
     expect(page.steps.summary).toBe('2 completed');
     expect(page.steps.detailsOpen).toBe(false);
     expect(page.strip.hidden).toBe(true);
