@@ -1952,6 +1952,9 @@ async function initDashSupplier() {
       }
     } catch (err) {
       console.error('Error loading suppliers:', err);
+      document.dispatchEvent(
+        new CustomEvent('sdh:suppliers', { detail: { suppliers: null, failed: true } })
+      );
       if (supWrap) {
         supWrap.innerHTML =
           '<div class="sdh-empty"><p class="sdh-empty__title">Could not load your profile</p><p class="sdh-empty__text">Check your connection and try again.</p><button type="button" class="sdh-btn sdh-btn--secondary sdh-btn--sm" data-sdh-action="reload">Try again</button></div>';

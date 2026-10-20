@@ -3194,6 +3194,35 @@
   background: #fbfaf8;
 }
 
+/* Setup guide: a short dialog with a progress count, one step at a time. */
+
+.sdh-page .sdh-guide__progress {
+  display: grid;
+  flex: 1 1 auto;
+  gap: 8px;
+  min-width: 0;
+}
+
+.sdh-page .sdh-guide__count {
+  margin: 0;
+  color: var(--sdh-muted);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+/* The heading is focused by the script so screen readers start on it; it is not a control. */
+.sdh-page .sdh-dialog--guide .sdh-dialog__title:focus {
+  outline: none;
+}
+
+.sdh-page .sdh-hero__guide {
+  margin: 8px 0 0;
+}
+
+.sdh-page .sdh-hero__guide:has(> [hidden]) {
+  display: none;
+}
+
 /* The page behind an open editor does not scroll. */
 .sdh-page.sdh-modal-open {
   overflow: hidden;

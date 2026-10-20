@@ -177,6 +177,7 @@
             <p id="sdh-lede" class="sdh-hero__lede" aria-live="polite">
               Your profile, packages and messages in one place.
             </p>
+            <p class="sdh-hero__guide"><button type="button" id="sdh-guide-open" class="sdh-link" hidden>Setup guide</button></p>
           </div>
           <div class="sdh-hero__actions">
             <a id="sdh-next-action" class="sdh-btn sdh-btn--primary" href="#profile-card" hidden>Complete your profile</a>
@@ -188,7 +189,7 @@
              and says "not enough data" instead of guessing when the server has none. -->
         <section class="sdh-summary" aria-labelledby="sdh-summary-title">
           <h2 id="sdh-summary-title" class="sdh-sr">Summary of your account</h2>
-          <div id="sdh-summary-grid" class="sdh-summary__grid" aria-live="polite" aria-busy="true">
+          <div id="sdh-summary-grid" class="sdh-summary__grid" aria-busy="true">
             <div class="sdh-tile sdh-tile--loading" aria-hidden="true"><span class="sdh-skel sdh-skel--sm"></span><span class="sdh-skel sdh-skel--lg"></span><span class="sdh-skel sdh-skel--md"></span></div>
             <div class="sdh-tile sdh-tile--loading" aria-hidden="true"><span class="sdh-skel sdh-skel--sm"></span><span class="sdh-skel sdh-skel--lg"></span><span class="sdh-skel sdh-skel--md"></span></div>
             <div class="sdh-tile sdh-tile--loading" aria-hidden="true"><span class="sdh-skel sdh-skel--sm"></span><span class="sdh-skel sdh-skel--lg"></span><span class="sdh-skel sdh-skel--md"></span></div>
@@ -207,7 +208,7 @@
                   <p id="sdh-steps-sub" class="sdh-card__sub">What to do to get more from your listing.</p>
                 </div>
               </div>
-              <div id="sdh-steps-body" class="sdh-card__body" aria-live="polite">
+              <div id="sdh-steps-body" class="sdh-card__body">
                 <div class="sdh-skel sdh-skel--row"></div>
                 <div class="sdh-skel sdh-skel--row"></div>
                 <div class="sdh-skel sdh-skel--row"></div>
@@ -235,7 +236,7 @@
                 </div>
               </div>
               <div class="sdh-card__body">
-                <div id="my-suppliers" data-test="my-suppliers-list" aria-live="polite">
+                <div id="my-suppliers" data-test="my-suppliers-list">
                   <div class="sdh-skel sdh-skel--row"></div>
                   <div class="sdh-skel sdh-skel--row"></div>
                 </div>
@@ -263,7 +264,7 @@
                 </div>
               </div>
               <div class="sdh-card__body">
-                <div id="my-packages" data-test="my-packages-list" aria-live="polite">
+                <div id="my-packages" data-test="my-packages-list">
                   <div class="sdh-skel sdh-skel--row"></div>
                   <div class="sdh-skel sdh-skel--row"></div>
                 </div>
@@ -283,11 +284,11 @@
                 </div>
               </div>
               <div class="sdh-card__body">
-                <div id="supplier-reviews-section" aria-live="polite">
+                <div id="supplier-reviews-section">
                   <div class="sdh-skel sdh-skel--row"></div>
                   <div class="sdh-skel sdh-skel--row"></div>
                 </div>
-                <div id="supplier-review-request-widget" class="sdh-rreq" aria-live="polite"></div>
+                <div id="supplier-review-request-widget" class="sdh-rreq"></div>
               </div>
             </section>
 
@@ -358,7 +359,7 @@
                 </div>
               </div>
               <div class="sdh-card__body">
-                <div id="supplier-availability-widget" aria-live="polite">
+                <div id="supplier-availability-widget">
                   <div class="sdh-skel sdh-skel--row"></div>
                   <div class="sdh-skel sdh-skel--row"></div>
                 </div>
@@ -374,7 +375,7 @@
                 </div>
               </div>
               <div class="sdh-card__body">
-                <div id="supplier-performance-chart" aria-live="polite">
+                <div id="supplier-performance-chart">
                   <div class="sdh-skel sdh-skel--row"></div>
                 </div>
               </div>
@@ -389,7 +390,7 @@
                 </div>
               </div>
               <div class="sdh-card__body">
-                <div id="supplier-perf-tips" aria-live="polite">
+                <div id="supplier-perf-tips">
                   <div class="sdh-skel sdh-skel--row"></div>
                   <div class="sdh-skel sdh-skel--row"></div>
                 </div>
@@ -407,7 +408,7 @@
                 </div>
               </div>
               <div class="sdh-card__body">
-                <div id="supplier-subscription-card" aria-live="polite">
+                <div id="supplier-subscription-card">
                   <div class="sdh-skel sdh-skel--row"></div>
                 </div>
               </div>
@@ -425,7 +426,7 @@
                 </div>
               </div>
               <div class="sdh-card__body">
-                <div id="tickets-sup" aria-live="polite">
+                <div id="tickets-sup">
                   <div class="sdh-skel sdh-skel--row"></div>
                   <div class="sdh-skel sdh-skel--row"></div>
                 </div>
@@ -853,6 +854,31 @@
         </form>
       </dialog>
 
+      <!-- First-visit setup guide. Its steps come from the same next-steps data as the Next steps
+           card (supplier-dashboard-onboarding.js), so the two never disagree. -->
+      <dialog id="sdh-guide-dialog" class="sdh-dialog sdh-dialog--narrow sdh-dialog--guide" aria-labelledby="sdh-guide-title" aria-describedby="sdh-guide-text">
+        <div class="sdh-dialog__form">
+          <div class="sdh-dialog__head">
+            <div class="sdh-guide__progress">
+              <p id="sdh-guide-count" class="sdh-guide__count"></p>
+              <div id="sdh-guide-bar" class="sdh-bar" role="progressbar" aria-label="Setup guide progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><span id="sdh-guide-fill" class="sdh-bar__fill"></span></div>
+            </div>
+            <button type="button" id="sdh-guide-close" class="sdh-dialog__close" aria-label="Close setup guide">&times;</button>
+          </div>
+          <div class="sdh-dialog__body">
+            <h2 id="sdh-guide-title" class="sdh-dialog__title" tabindex="-1"></h2>
+            <p id="sdh-guide-text" class="sdh-dialog__text"></p>
+            <p id="sdh-guide-note" class="sdh-note" hidden></p>
+          </div>
+          <div class="sdh-dialog__foot">
+            <button type="button" id="sdh-guide-skip" class="sdh-btn sdh-btn--quiet">Skip for now</button>
+            <button type="button" id="sdh-guide-back" class="sdh-btn sdh-btn--secondary">Back</button>
+            <button type="button" id="sdh-guide-action" class="sdh-btn sdh-btn--primary" hidden></button>
+            <button type="button" id="sdh-guide-next" class="sdh-btn sdh-btn--primary">Next</button>
+          </div>
+        </div>
+      </dialog>
+
       <dialog id="sdh-confirm-dialog" class="sdh-dialog sdh-dialog--narrow" aria-labelledby="sdh-confirm-title">
         <form method="dialog" class="sdh-dialog__form" id="sdh-confirm-form">
           <div class="sdh-dialog__head">
@@ -874,6 +900,7 @@
     <script src="/assets/js/pages/supplier-dashboard-home.js?v=1.0.0" defer></script>
     <script src="/assets/js/pages/supplier-dashboard-overlays.js?v=1.0.0" defer></script>
     <script src="/assets/js/pages/supplier-dashboard-banner.js?v=1.0.0" defer></script>
+    <script src="/assets/js/pages/supplier-dashboard-onboarding.js?v=1.0.0" defer></script>
     <script src="/assets/js/app.js?v=18.5.7" defer></script>
     <script src="/assets/js/unread-badge-manager.js?v=18.3.0" defer></script>
     <script src="/assets/js/pages/dashboard-supplier-category.js?v=1.0.0" defer></script>

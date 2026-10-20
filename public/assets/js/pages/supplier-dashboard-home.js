@@ -848,6 +848,8 @@
     skippedSummary: false,
     suppliersKnown: null,
     markSuppliersKnown: null,
+    loaded: false,
+    loadersStarted: false,
   };
 
   /** Resolves once app.js has reported the supplier list, or after a few seconds if it never does. */
@@ -1964,9 +1966,16 @@
       });
     });
     document.addEventListener('sdh:suppliers', event => {
+      if (event.detail?.failed) {
+        // The profile list could not be loaded: say nothing about whether there is a profile, and
+        // let the summary (which decides for itself) go ahead.
+        state.markSuppliersKnown();
+        return;
+      }
       state.suppliers = event.detail?.suppliers || [];
       state.markSuppliersKnown();
       applyProfileMode();
+      startProfileLoaders();
       renderAll();
       initReviews();
       // The profile was created after the summary was skipped: ask for it now.
@@ -2048,12 +2057,19 @@
     });
   }
 
-  /** Redraws everything that depends on the summary. */
+  /**
+   * Redraws everything that depends on the summary. Until the first load has finished the cards
+   * keep their loading placeholders: drawing an error before the request has even been sent would
+   * announce a failure that has not happened.
+   */
   function renderAll() {
+    applyProfileMode();
+    if (!state.loaded) {
+      return;
+    }
     state.steps = resolveSteps(state.model, {
       emailVerified: emailVerifiedFlag(state.user, state.model),
     });
-    applyProfileMode();
     renderHero();
     renderSummary();
     renderSteps();
@@ -2062,6 +2078,7 @@
     renderPlan();
     syncTierBadge();
     initReviews();
+    document.dispatchEvent(new CustomEvent('sdh:rendered'));
   }
 
   /** Asks the server for the summary again and redraws. Called after a profile or package change. */
@@ -2078,6 +2095,7 @@
     if (emailVerifiedFlag(user, model) === false) {
       showEmailBanner(user?.email || '');
     }
+    state.loaded = true;
     renderAll();
   }
 
@@ -2095,11 +2113,34 @@
     bindPageEvents();
     handleDeepLink();
     window.addEventListener('hashchange', handleDeepLink);
+    // Availability, tips and review requests are all about a profile: a supplier who has none
+    // would only collect 404s (which the site's fetch wrapper shows as error toasts).
+    state.suppliersKnown.then(startProfileLoaders);
+    initMessenger();
+    initReviews();
+  }
+
+  /** What other page scripts (the setup guide) may read: who is signed in and what the page shows. */
+  function getContext() {
+    return {
+      user: state.user,
+      model: state.model,
+      steps: state.steps,
+      noProfile: isNoProfile(),
+      loaded: state.loaded,
+      failed: state.failed,
+    };
+  }
+
+  /** Starts the requests that need a profile, once, and only when there is one. */
+  function startProfileLoaders() {
+    if (state.loadersStarted || isNoProfile()) {
+      return;
+    }
+    state.loadersStarted = true;
     loadAvailability();
     loadTips();
     loadReviewRequests();
-    initMessenger();
-    initReviews();
   }
 
   window.SupplierDashboardHome = {
@@ -2108,6 +2149,7 @@
     getPlanLimits,
     refresh,
     confirm: confirmAction,
+    getContext,
     sendJson,
     toast,
     normaliseSummary,

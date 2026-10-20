@@ -276,9 +276,65 @@ async function banner(options) {
   process.stdout.write(JSON.stringify(log));
 }
 
+async function guide(options) {
+  const { window } = makeWindow(options);
+  const context = options.context;
+  window.SupplierDashboardHome.getContext = () => context;
+  window.SupplierDashboardHome.stepAction = stepItem =>
+    /package/.test(stepItem.key)
+      ? { action: 'new-package' }
+      : { action: 'edit-profile', focus: 'sup-name' };
+  window.eval(read('public/assets/js/pages/supplier-dashboard-onboarding.js'));
+  await settle();
+  const dialog = field(window, 'sdh-guide-dialog');
+  const text = id => field(window, id).textContent.trim();
+  const click = id =>
+    field(window, id).dispatchEvent(new window.MouseEvent('click', { bubbles: true }));
+  const log = {};
+  const stored = () => {
+    const entry = Object.entries(window.localStorage).find(([key]) =>
+      key.startsWith('ef.supplierGuide.v1.')
+    );
+    return entry ? JSON.parse(entry[1]) : null;
+  };
+
+  log.openedBefore = dialog.hasAttribute('open');
+  window.document.dispatchEvent(new window.Event('sdh:rendered'));
+  await settle();
+  log.autoOpened = dialog.hasAttribute('open');
+  log.count1 = text('sdh-guide-count');
+  log.title1 = text('sdh-guide-title');
+  log.backHidden1 = field(window, 'sdh-guide-back').hidden;
+  log.linkHidden = field(window, 'sdh-guide-open').hidden;
+  click('sdh-guide-next');
+  log.count2 = text('sdh-guide-count');
+  log.cta2 = field(window, 'sdh-guide-action').hidden ? '' : text('sdh-guide-action');
+  log.ctaAction2 = field(window, 'sdh-guide-action').dataset.sdhAction;
+  log.barNow = field(window, 'sdh-guide-bar').getAttribute('aria-valuenow');
+  click('sdh-guide-skip');
+  log.closedAfterSkip = !dialog.hasAttribute('open');
+  log.storedAfterSkip = stored() && { status: stored().status, step: stored().step };
+
+  // A new page view: the same user, the guide stays away.
+  window.document.dispatchEvent(new window.Event('sdh:rendered'));
+  await settle();
+  log.reopenedByItself = dialog.hasAttribute('open');
+
+  // The link resumes where it was left.
+  click('sdh-guide-open');
+  log.resumedCount = text('sdh-guide-count');
+  click('sdh-guide-next');
+  click('sdh-guide-next');
+  log.lastNext = text('sdh-guide-next');
+  click('sdh-guide-next');
+  log.closedAfterFinish = !dialog.hasAttribute('open');
+  log.storedAfterFinish = stored() && stored().status;
+  process.stdout.write(JSON.stringify(log));
+}
+
 const name = process.argv[2];
 const options = JSON.parse(Buffer.from(process.argv[3] || 'e30=', 'base64').toString('utf8'));
-const scenarios = { overlays, banner };
+const scenarios = { overlays, banner, guide };
 scenarios[name](options).catch(error => {
   process.stderr.write(String(error && error.stack ? error.stack : error));
   process.exit(1);
