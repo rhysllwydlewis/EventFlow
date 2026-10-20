@@ -278,7 +278,9 @@
     const { reviews, pagination, analytics } = data;
     const total = pagination?.total || 0;
     const pages = pagination?.pages || 1;
-    const avgRating = analytics?.avgRating || 0;
+    // No average (null, or reviews without a star rating) is not a 0.0 rating: show a dash and no stars.
+    const avgValue = Number(analytics?.avgRating);
+    const hasAverage = analytics?.avgRating !== null && Number.isFinite(avgValue) && avgValue > 0;
     const resRate = normalisePercent(analytics?.responseRate);
 
     if (total === 0) {
@@ -320,8 +322,11 @@
     container.innerHTML = `
       <div class="sr-summary">
         <div class="sr-summary-score">
-          <div class="sr-big-rating" aria-label="${avgRating.toFixed(1)} out of 5">${avgRating.toFixed(1)}</div>
-          ${stars(avgRating)}
+          ${
+            hasAverage
+              ? `<div class="sr-big-rating" aria-label="${avgValue.toFixed(1)} out of 5">${avgValue.toFixed(1)}</div>${stars(avgValue)}`
+              : '<div class="sr-big-rating" aria-label="No star rating yet">\u2013</div>'
+          }
           <div class="sr-total-count">${total} review${total !== 1 ? 's' : ''}</div>
         </div>
         <div class="sr-distribution" aria-label="Star rating breakdown">

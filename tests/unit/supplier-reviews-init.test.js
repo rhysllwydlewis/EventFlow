@@ -57,4 +57,26 @@ describe('supplier review management frontend', () => {
       })().catch(error => { console.error(error); process.exit(1); });
     `);
   });
+
+  it('shows a dash, not a 0.0 rating, when the server has no average', () => {
+    runNodeSmoke(String.raw`
+      const assert = require('assert');
+      const fs = require('fs');
+      const { JSDOM } = require('jsdom');
+      const dom = new JSDOM('<!doctype html><div id="supplier-reviews-section"></div>', {
+        url: 'https://event-flow.co.uk/dashboard-supplier',
+        runScripts: 'outside-only',
+      });
+      const { document } = dom.window;
+      dom.window.fetch = async () => ({ ok: true, json: async () => ({ data: { reviews: [{ _id: 'rev-1', title: 'Unrated', text: 'No stars were left.', authorName: 'A Customer', createdAt: '2026-06-01T12:00:00.000Z', votes: {} }], pagination: { total: 1, page: 1, pages: 1, limit: 10 }, analytics: { avgRating: null, totalReviews: 1, responseRate: null, ratingDistribution: [0, 0, 0, 0, 0] } } }) });
+      dom.window.eval(fs.readFileSync('public/assets/js/pages/supplier-reviews-init.js', 'utf8'));
+      (async () => {
+        await dom.window.SupplierReviews.init('sup-1', 'supplier-reviews-section');
+        const big = document.querySelector('.sr-big-rating');
+        assert(big, 'summary rendered');
+        assert(!big.textContent.includes('0.0'));
+        assert.strictEqual(big.textContent.trim(), '–');
+      })().catch(error => { console.error(error); process.exit(1); });
+    `);
+  });
 });

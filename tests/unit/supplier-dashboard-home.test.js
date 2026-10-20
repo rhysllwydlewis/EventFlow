@@ -1098,6 +1098,33 @@ describe('supplier dashboard home: rendered page', () => {
     expect(page.extra.text).toContain('Profile visits');
   });
 
+  test('reply rate needs 3 old-enough conversations and reply time needs 3 replies, each hidden on its own', () => {
+    const noRate = clone(populated);
+    noRate.responses = { sampleSize: 5, matureSampleSize: 2, repliedPct: null, medianMinutes: 30 };
+    const noRatePage = run({ summary: noRate, suppliers: [{ id: 's1' }] });
+    expect(noRatePage.extra.text).not.toContain('Reply rate');
+    expect(noRatePage.extra.text).toContain('Typical reply time30 min');
+    const noTime = clone(populated);
+    noTime.responses = { sampleSize: 5, matureSampleSize: 4, repliedPct: 50, medianMinutes: null };
+    const noTimePage = run({ summary: noTime, suppliers: [{ id: 's1' }] });
+    expect(noTimePage.extra.text).toContain('Reply rate50%');
+    expect(noTimePage.extra.text).not.toContain('Typical reply time');
+  });
+
+  test('an unknown email state (null) locks nothing and shows no verify-your-email prompt', () => {
+    const unknown = clone(populated);
+    unknown.verification.emailVerified = null;
+    const page = run({
+      summary: unknown,
+      suppliers: [{ id: 's1' }],
+      user: { firstName: 'Sam' },
+    });
+    expect(page.emailBanner).toBeNull();
+    expect(page.primary.action).not.toBe('resend-email');
+    expect(page.steps.todo.join(' ')).not.toMatch(/verify your email/i);
+    expect(page.lede).not.toMatch(/verify your email/i);
+  });
+
   test('a summary with almost nothing in it renders dashes and hides tiles instead of guessing', () => {
     const page = run({
       summary: { messages: { unreadMessages: null }, reviews: { approvedCount: null } },
