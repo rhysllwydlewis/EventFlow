@@ -1171,8 +1171,15 @@
         : 'Everything on the checklist is done.';
     }
     const primary = pickPrimaryStep(steps);
-    const todoList = todo.length
-      ? `<ul class="sdh-steps">${todo
+    // A long run of steps that cannot be started yet is noise: show a few, then say how many are coming.
+    const blocked = todo.filter(step => step.locked && !step.waiting);
+    const shown = blocked.length > 2 ? todo.filter(step => !step.locked || step.waiting) : todo;
+    const later = todo.length - shown.length;
+    const laterNote = later
+      ? `<p class="sdh-note sdh-note--foot">${plural(later, 'more step')} unlock as you work through these.</p>`
+      : '';
+    const todoList = shown.length
+      ? `<ul class="sdh-steps">${shown
           .map(step => {
             const label = esc(step.label);
             if (step.waiting) {
@@ -1183,7 +1190,7 @@
             }
             return `<li><a class="sdh-step${step === primary ? ' sdh-step--next' : ''}" href="${esc(stepHref(step))}"${stepAttrs(step)}><span class="sdh-step__mark" aria-hidden="true"></span><span class="sdh-step__label">${label}</span>${CHEVRON}</a></li>`;
           })
-          .join('')}</ul>`
+          .join('')}</ul>${laterNote}`
       : '<p class="sdh-note">Nicely done. You can still change any of these from your profile.</p>';
     const doneList = done.length
       ? `<details class="sdh-done"><summary>${done.length} completed</summary><ul class="sdh-steps sdh-steps--done">${done
@@ -1207,7 +1214,10 @@
     if (!node) {
       return;
     }
-    const strip = isNoProfile() ? null : stripFor(state.model?.verification);
+    const candidate = isNoProfile() ? null : stripFor(state.model?.verification);
+    // Until the email address is verified that is the step to take: do not stack a second banner on it.
+    const emailPending = emailVerifiedFlag(state.user, state.model) === false;
+    const strip = candidate && candidate.action === 'verify' && emailPending ? null : candidate;
     if (!strip) {
       node.hidden = true;
       node.innerHTML = '';
