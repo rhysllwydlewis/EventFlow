@@ -29,7 +29,6 @@ const stripe = stripeSecretKey
 // Constants
 const TRIAL_DURATION_DAYS = 14;
 const DEFAULT_ANALYTICS_WINDOW_DAYS = 30;
-const MAX_ANALYTICS_WINDOW_DAYS = 90;
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 
 /**
@@ -182,11 +181,14 @@ router.get('/analytics/legacy', authRequired, async (req, res) => {
 
     const supplierId = supplier.id;
 
-    // Get analytics window from query parameter, default to 30 days, max 90 days
-    const days = Math.min(
-      parseInt(req.query.days) || DEFAULT_ANALYTICS_WINDOW_DAYS,
-      MAX_ANALYTICS_WINDOW_DAYS
-    );
+    // Same plan entitlement as the other analytics routes: a Starter supplier gets 7 days.
+    const { days } = resolveAnalyticsWindow({
+      requested: parseDaysParam(req.query.days).value,
+      defaultDays: DEFAULT_ANALYTICS_WINDOW_DAYS,
+      planWindowDays: await require('../services/subscriptionService').getAnalyticsWindowDays(
+        userId
+      ),
+    });
 
     // Count enquiries from message threads
     const enquiries = await dbUnified.find('threads', { supplierId });
@@ -797,7 +799,12 @@ router.get('/dashboard-summary', authRequired, async (req, res) => {
       return res.status(403).json({ error: 'Only suppliers can access the dashboard summary' });
     }
 
-    const supplier = await dbUnified.findOne('suppliers', { ownerUserId: userId });
+    // A failed lookup must be a 500, not a misleading "no profile" 404.
+    const supplier = await dbUnified.findOne(
+      'suppliers',
+      { ownerUserId: userId },
+      { throwOnError: true }
+    );
 
     if (!supplier) {
       return res.status(404).json({ error: 'Supplier profile not found' });

@@ -443,7 +443,18 @@ async function write(collectionName, data) {
   }
 }
 
-async function findOne(collectionName, filter) {
+/**
+ * Find one document.
+ *
+ * Errors are swallowed (null returned) unless `options.throwOnError` is set, so a
+ * caller that must tell "no such document" from "the query failed" can.
+ *
+ * @param {string} collectionName - Collection name
+ * @param {Object|Function} filter - Filter
+ * @param {{throwOnError?: boolean}} [options] - Pass throwOnError to rethrow failures
+ * @returns {Promise<Object|null>} Document or null
+ */
+async function findOne(collectionName, filter, options = {}) {
   await initializeDatabase();
   try {
     if (dbType === 'mongodb') {
@@ -464,11 +475,24 @@ async function findOne(collectionName, filter) {
     }
   } catch (error) {
     logger.error(`Error finding in ${collectionName}:`, error.message);
+    if (options.throwOnError) {
+      throw error;
+    }
     return null;
   }
 }
 
-async function find(collectionName, filter) {
+/**
+ * Find documents.
+ *
+ * Errors are swallowed (empty array returned) unless `options.throwOnError` is set.
+ *
+ * @param {string} collectionName - Collection name
+ * @param {Object|Function} filter - Filter
+ * @param {{throwOnError?: boolean}} [options] - Pass throwOnError to rethrow failures
+ * @returns {Promise<Object[]>} Matching documents
+ */
+async function find(collectionName, filter, options = {}) {
   await initializeDatabase();
   try {
     if (dbType === 'mongodb') {
@@ -488,6 +512,9 @@ async function find(collectionName, filter) {
     }
   } catch (error) {
     logger.error(`Error finding in ${collectionName}:`, error.message);
+    if (options.throwOnError) {
+      throw error;
+    }
     return [];
   }
 }
@@ -723,7 +750,17 @@ async function withPerformanceTracking(operation, fn) {
 // codebase. Validation happens at the route layer via field-level checks. Removed
 // to reduce dead-code surface area.
 
-async function count(collectionName, filter = {}) {
+/**
+ * Count documents.
+ *
+ * Errors are swallowed (0 returned) unless `options.throwOnError` is set.
+ *
+ * @param {string} collectionName - Collection name
+ * @param {Object} [filter] - Filter
+ * @param {{throwOnError?: boolean}} [options] - Pass throwOnError to rethrow failures
+ * @returns {Promise<number>} Count
+ */
+async function count(collectionName, filter = {}, options = {}) {
   await initializeDatabase();
   try {
     if (dbType === 'mongodb') {
@@ -738,6 +775,9 @@ async function count(collectionName, filter = {}) {
     }
   } catch (error) {
     logger.error(`Error counting in ${collectionName}:`, error.message);
+    if (options.throwOnError) {
+      throw error;
+    }
     return 0;
   }
 }
@@ -874,7 +914,17 @@ function matchesFilter(item, filter) {
   });
 }
 
-async function aggregate(collectionName, pipeline) {
+/**
+ * Run an aggregation pipeline.
+ *
+ * Errors are swallowed (empty array returned) unless `options.throwOnError` is set.
+ *
+ * @param {string} collectionName - Collection name
+ * @param {Object[]} pipeline - Aggregation pipeline
+ * @param {{throwOnError?: boolean}} [options] - Pass throwOnError to rethrow failures
+ * @returns {Promise<Object[]>} Result rows
+ */
+async function aggregate(collectionName, pipeline, options = {}) {
   await initializeDatabase();
   try {
     if (dbType === 'mongodb') {
@@ -887,6 +937,9 @@ async function aggregate(collectionName, pipeline) {
     }
   } catch (error) {
     logger.error(`Error aggregating ${collectionName}:`, error.message);
+    if (options.throwOnError) {
+      throw error;
+    }
     return [];
   }
 }
@@ -1006,6 +1059,16 @@ function processLocalAggregation(data, pipeline) {
   return result;
 }
 
+/**
+ * Find documents with limit, skip and sort.
+ *
+ * Errors are swallowed (empty array returned) unless `options.throwOnError` is set.
+ *
+ * @param {string} collectionName - Collection name
+ * @param {Object} [filter] - Filter
+ * @param {{limit?: number, skip?: number, sort?: Object, throwOnError?: boolean}} [options] - Paging and error options
+ * @returns {Promise<Object[]>} Matching documents
+ */
 async function findWithOptions(collectionName, filter = {}, options = {}) {
   await initializeDatabase();
   const { limit = 50, skip = 0, sort = {} } = options;
@@ -1044,6 +1107,9 @@ async function findWithOptions(collectionName, filter = {}, options = {}) {
     }
   } catch (error) {
     logger.error(`Error finding in ${collectionName}:`, error.message);
+    if (options.throwOnError) {
+      throw error;
+    }
     return [];
   }
 }

@@ -8,6 +8,7 @@
 const crypto = require('crypto');
 const logger = require('./logger');
 const dbUnified = require('../db-unified');
+const { getWindowBounds } = require('./analyticsWindow');
 
 /**
  * Event types for supplier analytics
@@ -101,11 +102,18 @@ async function getSupplierAnalytics(supplierId, days = 7, options = {}) {
   try {
     const now = options.now instanceof Date ? options.now : new Date();
     const nowMs = now.getTime();
-    const cutoffStr = new Date(nowMs - windowDays * DAY_MS).toISOString();
+    // Whole UTC days, so these totals equal the sum of the daily buckets built below.
+    const { startMs } = getWindowBounds(nowMs, windowDays);
+    const cutoffStr = new Date(startMs).toISOString();
 
-    // Only this supplier's events inside the window, not the whole collection.
+    // Only this supplier's events inside the window, not the whole collection. A failed
+    // read must surface (caught below as missing data), not look like "no events".
     const supplierEvents =
-      (await dbUnified.find('events', { supplierId, timestamp: { $gte: cutoffStr } })) || [];
+      (await dbUnified.find(
+        'events',
+        { supplierId, timestamp: { $gte: cutoffStr } },
+        { throwOnError: true }
+      )) || [];
 
     // Count events by type
     const profileViews = supplierEvents.filter(e => e.type === EVENT_TYPES.PROFILE_VIEW).length;
@@ -125,12 +133,15 @@ async function getSupplierAnalytics(supplierId, days = 7, options = {}) {
           supplierId,
           ownerUserId: options.ownerUserId,
           days: windowDays,
-          now,
+          now: options.now instanceof Date ? options.now : undefined,
         });
       } catch (engagementError) {
         logger.error('Failed to get supplier engagement metrics:', engagementError);
       }
     }
+
+    // Asked for real enquiry figures but could not get them: report unknown, not zero.
+    const enquiriesUnknown = Boolean(options.ownerUserId) && !engagement;
 
     // Per-day enquiry counts (UTC days, matching the event buckets) from real records.
     const enquiriesByDate = new Map();
@@ -149,11 +160,14 @@ async function getSupplierAnalytics(supplierId, days = 7, options = {}) {
 
       const dayEvents = supplierEvents.filter(e => e.date === dateStr);
       const dayViews = dayEvents.filter(e => e.type === EVENT_TYPES.PROFILE_VIEW).length;
-      const dayEnquiries = engagement
-        ? enquiriesByDate.get(dateStr) || 0
-        : dayEvents.filter(
-            e => e.type === EVENT_TYPES.ENQUIRY_STARTED || e.type === EVENT_TYPES.ENQUIRY_SENT
-          ).length;
+      let dayEnquiries = null;
+      if (engagement) {
+        dayEnquiries = enquiriesByDate.get(dateStr) || 0;
+      } else if (!enquiriesUnknown) {
+        dayEnquiries = dayEvents.filter(
+          e => e.type === EVENT_TYPES.ENQUIRY_STARTED || e.type === EVENT_TYPES.ENQUIRY_SENT
+        ).length;
+      }
 
       dailyData.push({
         date: dateStr,
@@ -170,10 +184,17 @@ async function getSupplierAnalytics(supplierId, days = 7, options = {}) {
     // Reply speed is reported in hours (1dp) for older clients; null when there is no sample.
     const medianMinutes = engagement ? engagement.responses.medianMinutes : null;
 
+    let enquiryTotal = null;
+    if (engagement) {
+      enquiryTotal = engagement.enquiries.newThisPeriod;
+    } else if (!enquiriesUnknown) {
+      enquiryTotal = enquiriesSent;
+    }
+
     return {
       period: windowDays,
       totalViews: profileViews,
-      totalEnquiries: engagement ? engagement.enquiries.newThisPeriod : enquiriesSent,
+      totalEnquiries: enquiryTotal,
       enquiriesStarted,
       messageReplies,
       reviewsReceived,

@@ -39,12 +39,21 @@ const fakeDb = require('../helpers/fake-db-unified');
 const {
   parseDaysParam,
   resolveAnalyticsWindow,
+  getWindowBounds,
   MAX_REQUEST_DAYS,
 } = require('../../utils/analyticsWindow');
 const supplierAnalytics = require('../../utils/supplierAnalytics');
 
 const NOW = new Date('2026-07-16T12:00:00.000Z');
 const USER = { id: 'user-1', role: 'supplier' };
+const PRO_SUBSCRIPTION = {
+  id: 's',
+  userId: 'user-1',
+  plan: 'pro',
+  status: 'active',
+  stripeSubscriptionId: 'sub_x',
+  currentPeriodEnd: '2999-01-01T00:00:00.000Z',
+};
 
 describe('parseDaysParam', () => {
   it.each([
@@ -127,6 +136,22 @@ describe('resolveAnalyticsWindow', () => {
   });
 });
 
+describe('getWindowBounds', () => {
+  const now = Date.parse('2026-07-16T12:00:00.000Z');
+
+  it('starts at 00:00 UTC, days-1 days before today', () => {
+    expect(getWindowBounds(now, 7)).toEqual({
+      startMs: Date.parse('2026-07-10T00:00:00.000Z'),
+      previousStartMs: Date.parse('2026-07-03T00:00:00.000Z'),
+      endMs: now,
+    });
+  });
+
+  it('is a single UTC day for a 1 day window', () => {
+    expect(getWindowBounds(now, 1).startMs).toBe(Date.parse('2026-07-16T00:00:00.000Z'));
+  });
+});
+
 describe('getSupplierAnalytics', () => {
   beforeEach(() => {
     fakeDb.__reset({});
@@ -149,6 +174,55 @@ describe('getSupplierAnalytics', () => {
 
     expect(result.responseRate).toBeNull();
     expect(result.avgResponseTime).toBeNull();
+  });
+
+  it('reports enquiries as unknown (not 0) when the real enquiry figures were asked for and failed', async () => {
+    fakeDb.__reset({ suppliers: [] });
+    fakeDb.__failOn('conversations_v4');
+    require('../../services/supplierEngagementMetrics').clearEngagementCache();
+
+    const result = await supplierAnalytics.getSupplierAnalytics('sup-1', 7, {
+      ownerUserId: 'user-1',
+      now: NOW,
+    });
+
+    expect(result.totalViews).toBe(0);
+    expect(result.totalEnquiries).toBeNull();
+    expect(result.dailyData.every(day => day.enquiries === null)).toBe(true);
+  });
+
+  it('builds daily buckets that add up to the totals', async () => {
+    fakeDb.__reset({
+      events: [
+        {
+          id: 'a',
+          type: 'profile_view',
+          supplierId: 'sup-1',
+          timestamp: '2026-07-10T00:10:00.000Z',
+          date: '2026-07-10',
+        },
+        {
+          id: 'b',
+          type: 'profile_view',
+          supplierId: 'sup-1',
+          timestamp: '2026-07-16T01:00:00.000Z',
+          date: '2026-07-16',
+        },
+        {
+          id: 'c',
+          type: 'profile_view',
+          supplierId: 'sup-1',
+          timestamp: '2026-07-09T23:00:00.000Z',
+          date: '2026-07-09',
+        },
+      ],
+    });
+
+    const result = await supplierAnalytics.getSupplierAnalytics('sup-1', 7, { now: NOW });
+
+    expect(result.totalViews).toBe(2);
+    expect(result.dailyData.reduce((sum, day) => sum + day.views, 0)).toBe(2);
+    expect(result.dailyData[0].date).toBe('2026-07-10');
   });
 
   it('reports a read failure as missing data, not as zeros', async () => {
@@ -358,23 +432,25 @@ describe('GET /api/me/suppliers/:id/analytics', () => {
   });
 
   it('allows 90 days on the Professional plan and never more', async () => {
-    fakeDb.__store().subscriptions = [
-      {
-        id: 's',
-        userId: 'user-1',
-        plan: 'pro',
-        status: 'active',
-        stripeSubscriptionId: 'sub_x',
-        currentPeriodEnd: '2999-01-01T00:00:00.000Z',
-      },
-    ];
+    fakeDb.__store().subscriptions = [PRO_SUBSCRIPTION];
 
     const ninety = await fetchPeriod('?period=90');
     const huge = await fetchPeriod('?period=100000');
 
     expect(ninety.body.window.days).toBe(90);
-    expect(huge.body.window).toEqual({ days: 90, maxDays: 90, requestedDays: 90 });
+    expect(huge.body.window).toEqual({ days: 90, maxDays: 90, requestedDays: 365 });
     expect(huge.body.labels).toHaveLength(90);
+  });
+
+  it('serves the full year Professional Plus is sold on, and no more', async () => {
+    fakeDb.__store().subscriptions = [{ ...PRO_SUBSCRIPTION, plan: 'pro_plus' }];
+
+    const year = await fetchPeriod('?period=365');
+    const huge = await fetchPeriod('?period=100000');
+
+    expect(year.body.window).toEqual({ days: 365, maxDays: 365, requestedDays: 365 });
+    expect(year.body.labels).toHaveLength(365);
+    expect(huge.body.window.days).toBe(365);
   });
 
   it('clamps period=0 up to a single day', async () => {
@@ -394,5 +470,50 @@ describe('GET /api/me/suppliers/:id/analytics', () => {
 
     expect(res.body.responseRate).toBeNull();
     expect(res.body.avgResponseTime).toBeNull();
+  });
+});
+
+describe('GET /api/supplier/analytics/legacy', () => {
+  /**
+   * Request the legacy route as the supplier.
+   *
+   * @param {string} query - Query string including "?"
+   * @returns {Promise<Object>} supertest response
+   */
+  function fetchLegacy(query = '') {
+    const router = require('../../routes/supplier');
+    const app = express();
+    app.use('/api/supplier', router);
+    return request(app)
+      .get(`/api/supplier/analytics/legacy${query}`)
+      .set('x-test-user', JSON.stringify(USER));
+  }
+
+  beforeEach(() => {
+    fakeDb.__reset({
+      suppliers: [{ id: 'sup-1', ownerUserId: 'user-1', name: 'Moor Audio' }],
+    });
+  });
+
+  it('applies the Starter 7 day entitlement like every other analytics route', async () => {
+    const res = await fetchLegacy('?days=90');
+
+    expect(res.status).toBe(200);
+    expect(res.body.analytics.chartData).toHaveLength(7);
+  });
+
+  it('lets a Professional supplier look back 90 days', async () => {
+    fakeDb.__store().subscriptions = [PRO_SUBSCRIPTION];
+
+    const res = await fetchLegacy('?days=90');
+
+    expect(res.body.analytics.chartData).toHaveLength(90);
+  });
+
+  it('survives garbage input', async () => {
+    const res = await fetchLegacy('?days=abc');
+
+    expect(res.status).toBe(200);
+    expect(res.body.analytics.chartData).toHaveLength(7);
   });
 });

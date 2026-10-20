@@ -78,9 +78,10 @@ function passThrough(req, res, next) {
  *
  * @param {Object} user - The authenticated user
  * @param {Function} sendMail - Email sender spy
+ * @param {Function} [csrfProtection] - CSRF middleware
  * @returns {Object} Express app
  */
-function buildApp(user, sendMail) {
+function buildApp(user, sendMail, csrfProtection = passThrough) {
   const app = express();
   app.use(express.json());
   app.use(
@@ -91,7 +92,7 @@ function buildApp(user, sendMail) {
         req.user = user;
         next();
       },
-      csrfProtection: passThrough,
+      csrfProtection,
       writeLimiter: passThrough,
       getBaseUrl: () => 'https://event-flow.co.uk',
       fromAddress: 'hello@event-flow.co.uk',
@@ -199,6 +200,20 @@ describe('request-review requires a verified email and an approved supplier', ()
 
     expect(res.status).toBe(403);
     expect(res.body.code).toBe('EMAIL_NOT_VERIFIED');
+  });
+
+  test('a request that fails CSRF costs no database reads for the gates', async () => {
+    const rejectCsrf = (req, res) => res.status(403).json({ error: 'bad csrf' });
+    const dbUnified = require('../../db-unified');
+    dbUnified.findOne.mockClear();
+
+    const res = await request(buildApp(SUPPLIER_USER, sendMail, rejectCsrf))
+      .post(PATHS[0])
+      .send({ customerEmail: 'customer@example.com' });
+
+    expect(res.status).toBe(403);
+    expect(res.body.error).toBe('bad csrf');
+    expect(dbUnified.findOne).not.toHaveBeenCalled();
   });
 
   test('a signed-in non-supplier is still turned away', async () => {

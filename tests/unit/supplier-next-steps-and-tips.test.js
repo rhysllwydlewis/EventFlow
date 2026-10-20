@@ -160,6 +160,17 @@ describe('evaluateNextSteps', () => {
     expect(step(result, 'get-verified')).toMatchObject({ done: false, locked: false });
   });
 
+  it('does not lock steps when the email status is unknown (lookup failed), only the email step', () => {
+    const result = steps({
+      verification: { emailVerified: null },
+      supplier: { ...COMPLETE_SUPPLIER, bannerUrl: '' },
+    });
+
+    expect(step(result, 'verify-email')).toMatchObject({ done: false, locked: true });
+    expect(result.steps.filter(item => item.locked).map(item => item.id)).toEqual(['verify-email']);
+    expect(result.primaryStepId).toBe('banner');
+  });
+
   it('locks the verification step while in review, suspended or out of attempts', () => {
     const pending = steps({ verification: { approved: false, status: 'pending_review' } });
     const suspended = steps({ verification: { approved: false, status: 'suspended' } });
@@ -216,8 +227,16 @@ describe('hasBusinessDetails', () => {
     });
   });
 
-  it('does not accept the catch-all "Other" category', () => {
-    expect(hasBusinessDetails({ ...COMPLETE_SUPPLIER, category: 'Other' })).toBe(false);
+  it('accepts the catch-all "Other" category, as the verification form does', () => {
+    expect(hasBusinessDetails({ ...COMPLETE_SUPPLIER, category: 'Other' })).toBe(true);
+  });
+
+  it('an approved supplier in category Other is not stuck on business details forever', () => {
+    const supplier = { ...COMPLETE_SUPPLIER, category: 'Other', bannerUrl: '' };
+    const result = steps({ supplier });
+
+    expect(step(result, 'business-details').done).toBe(true);
+    expect(result.primaryStepId).toBe('banner');
   });
 
   it('accepts a Venues postcode', () => {

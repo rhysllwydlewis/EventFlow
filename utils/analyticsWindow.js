@@ -19,6 +19,8 @@ const MAX_REQUEST_DAYS = 90;
 /** Window used when the plan matrix does not define one (the Starter value). */
 const FALLBACK_PLAN_WINDOW_DAYS = 7;
 
+const DAY_MS = 24 * 60 * 60 * 1000;
+
 const WHOLE_NUMBER_PATTERN = /^\d{1,9}$/;
 
 /**
@@ -72,7 +74,27 @@ function resolveAnalyticsWindow({
   return { days: Math.min(requestedDays, maxDays), maxDays, requestedDays };
 }
 
+/**
+ * Bounds of an analytics window made of whole UTC days.
+ *
+ * A window of N days is today plus the N-1 UTC calendar days before it, starting
+ * at 00:00 UTC, so the totals for the window and the sum of its per-day chart
+ * buckets are always the same events. The previous window is the N days before that.
+ *
+ * @param {number} nowMs - Reference time in epoch milliseconds
+ * @param {number} days - Window length in whole days (at least 1)
+ * @returns {{startMs: number, previousStartMs: number, endMs: number}} Window bounds;
+ *   the window is [startMs, endMs] and the previous window is [previousStartMs, startMs).
+ */
+function getWindowBounds(nowMs, days) {
+  const now = new Date(nowMs);
+  const startOfToday = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate());
+  const startMs = startOfToday - (days - 1) * DAY_MS;
+  return { startMs, previousStartMs: startMs - days * DAY_MS, endMs: nowMs };
+}
+
 module.exports = {
+  getWindowBounds,
   MAX_REQUEST_DAYS,
   FALLBACK_PLAN_WINDOW_DAYS,
   parseDaysParam,

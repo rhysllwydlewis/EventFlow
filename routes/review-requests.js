@@ -179,12 +179,13 @@ function createReviewRequestRouter(overrides = {}) {
 
   const postPaths = ['/api/v1/supplier/request-review', '/api/supplier/request-review'];
 
+  // CSRF and rate limiting first, so a forged or flooding request costs no database reads.
   const postGuards = [
     authenticate,
-    requireVerifiedEmail,
-    requireApproval,
     protectCsrf,
     limitWrites,
+    requireVerifiedEmail,
+    requireApproval,
   ];
 
   router.post(postPaths, postGuards, async (req, res) => {
