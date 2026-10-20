@@ -787,6 +787,7 @@ describe('GET /api/supplier/dashboard-summary contract', () => {
         previousPeriod: 0,
         sources: { conversations: 0, quoteRequests: 0, contactForm: 0 },
         truncated: false,
+        requests: { received: 0, new: 0 },
       });
       expect(body.responses).toEqual({
         sampleSize: 0,

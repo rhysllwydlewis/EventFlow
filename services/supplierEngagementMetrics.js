@@ -27,6 +27,8 @@
 const dbUnified = require('../db-unified');
 const { getWindowBounds } = require('../utils/analyticsWindow');
 
+const ENQUIRY_STATES_COLLECTION = 'supplier_enquiry_states';
+
 const STRICT = Object.freeze({ throwOnError: true });
 
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -268,12 +270,13 @@ async function loadQuoteRequestEntries(supplierId, sinceMs) {
             createdAt: { $gte: new Date(sinceMs).toISOString() },
           },
         },
-        { $project: { createdAt: 1, userId: 1, email: 1 } },
+        { $project: { id: 1, createdAt: 1, userId: 1, email: 1 } },
       ],
       STRICT
     )) || [];
   return rows
     .map(row => ({
+      id: row.id,
       ms: toMillis(row.createdAt),
       key: customerKey(row.userId, row.email),
       source: 'quoteRequests',
@@ -297,6 +300,7 @@ async function loadContactFormEntries(supplierId, sinceMs) {
     )) || [];
   return rows
     .map(row => ({
+      id: row.id,
       ms: toMillis(row.createdAt),
       key: customerKey(null, row.senderEmail),
       source: 'contactForm',
@@ -406,11 +410,21 @@ async function computeEngagementMetrics({ supplierId, ownerUserId, days, now }) 
   const nowMs = now.getTime();
   const { startMs: windowStartMs, previousStartMs } = getWindowBounds(nowMs, days);
 
-  const [conversationResult, quoteEntries, contactEntries] = await Promise.all([
+  const [conversationResult, quoteEntries, contactEntries, handledRows] = await Promise.all([
     loadConversationEnquiries(ownerUserId, previousStartMs),
     loadQuoteRequestEntries(supplierId, previousStartMs),
     loadContactFormEntries(supplierId, previousStartMs),
+    dbUnified.find(ENQUIRY_STATES_COLLECTION, { supplierId }, STRICT),
   ]);
+
+  // The supplier's own list of quote requests and contact-form enquiries (GET
+  // /api/supplier/enquiries) for the same window: raw records, not de-duplicated.
+  const handledIds = new Set(
+    (handledRows || []).filter(row => row.status !== 'new').map(row => row.enquiryId)
+  );
+  const requestsInWindow = [...quoteEntries, ...contactEntries].filter(
+    entry => entry.ms >= windowStartMs && entry.ms <= nowMs
+  );
 
   const allEntries = [
     ...conversationResult.enquiries.map(enquiry => ({
@@ -443,6 +457,10 @@ async function computeEngagementMetrics({ supplierId, ownerUserId, days, now }) 
         contactForm: countFrom('contactForm'),
       },
       truncated: conversationResult.truncated,
+      requests: {
+        received: requestsInWindow.length,
+        new: requestsInWindow.filter(entry => !handledIds.has(entry.id)).length,
+      },
     },
     responses: summariseResponses(currentConversations, nowMs),
     enquiryTimestamps: current.map(entry => entry.ms),

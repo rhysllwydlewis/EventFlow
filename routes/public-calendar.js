@@ -204,11 +204,15 @@ async function requirePublisher(req, res, next) {
     }
     if (!canPublishPublicCalendar(supplier)) {
       const denied = supplier.publicCalendarPublisherOverride === false;
+      // This only concerns the shared PUBLIC calendar. A supplier's private calendar
+      // (/api/me/calendar-entries) is a separate feature open to every verified account.
       return res.status(403).json({
         error: 'Forbidden',
+        code: 'PUBLIC_CALENDAR_PUBLISHING_NOT_AVAILABLE',
+        scope: 'public_calendar',
         message: denied
-          ? 'Calendar publishing has been disabled for this supplier account by an administrator.'
-          : 'Your supplier category does not currently include shared calendar publishing. Event Planner and Wedding Fayre suppliers can publish by default.',
+          ? 'Public calendar publishing has been disabled for this supplier account by an administrator.'
+          : "Public calendar publishing isn't available for your supplier type. Your private calendar is not affected.",
       });
     }
     req.supplierDoc = supplier;
@@ -703,6 +707,20 @@ router.put(
       if (errors.length) {
         return res.status(400).json({ error: 'Validation failed', details: errors });
       }
+      // When admin approval is switched on, creating an event queues it for review; editing
+      // must not be a way round that by flipping an unpublished event to "published".
+      if (
+        req.user.role !== 'admin' &&
+        data.status === 'published' &&
+        existing.status !== 'published' &&
+        (await requiresPublicCalendarApproval())
+      ) {
+        return res.status(403).json({
+          error: 'Forbidden',
+          code: 'PUBLIC_CALENDAR_APPROVAL_REQUIRED',
+          message: 'New public events need admin approval before they can be published.',
+        });
+      }
       const updatedEvent = normalizeEvent({
         ...existing,
         ...data,
@@ -856,7 +874,16 @@ router.get('/publisher-request', apiLimiter, authRequired, async (req, res) => {
       .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
     res.json({
       ok: true,
-      supplier,
+      // Only what the publishing screen needs, not the whole supplier document.
+      supplier: {
+        id: supplier.id,
+        name: supplier.name,
+        category: supplier.category,
+        publicCalendarPublisherOverride:
+          typeof supplier.publicCalendarPublisherOverride === 'boolean'
+            ? supplier.publicCalendarPublisherOverride
+            : null,
+      },
       canPublish: canPublishPublicCalendar(supplier),
       requests: supplierRequests,
     });
@@ -871,6 +898,7 @@ router.post(
   writeLimiter,
   authRequired,
   requireVerifiedUser,
+  requireApprovedSupplier,
   csrfProtection,
   async (req, res) => {
     try {

@@ -485,6 +485,7 @@ async function buildDashboardSummary({ userId, supplier, requestedDays = null, n
         previousPeriod: null,
         sources: { conversations: null, quoteRequests: null, contactForm: null },
         truncated: false,
+        requests: { received: null, new: null },
       };
   const responses = engagement
     ? engagement.responses
