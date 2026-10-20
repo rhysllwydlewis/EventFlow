@@ -28,6 +28,7 @@
   const SUMMARY_DAYS = 30;
   const MIN_REPLY_SAMPLE = 3;
   const SUMMARY_URL = `/api/supplier/dashboard-summary?days=${SUMMARY_DAYS}`;
+  const SUPPLIERS_WAIT_MS = 4000;
 
   const ids = {
     heading: 'welcome-heading',
@@ -779,7 +780,19 @@
     plan: null,
     suppliers: null,
     steps: null,
+    skippedSummary: false,
+    suppliersKnown: null,
+    markSuppliersKnown: null,
   };
+
+  /** Resolves once app.js has reported the supplier list, or after a few seconds if it never does. */
+  state.suppliersKnown = new Promise(resolve => {
+    const timer = window.setTimeout(resolve, SUPPLIERS_WAIT_MS);
+    state.markSuppliersKnown = () => {
+      window.clearTimeout(timer);
+      resolve();
+    };
+  });
 
   /** The signed-in user from the shared auth state, or from /api/v1/auth/me when that is not loaded. */
   async function loadUser() {
@@ -799,34 +812,42 @@
     }
   }
 
-  /** Fetches the summary once and normalises it; resolves to the model, or null when the request failed. */
-  function fetchSummary() {
-    return getJson(SUMMARY_URL).then(async result => {
-      state.notFound = result.status === 404;
-      state.failed = !result.data;
-      if (!result.data) {
-        state.model = null;
-        // No summary (for example no profile yet): the plan card can still say which plan it is.
-        const own = await getJson('/api/v2/subscriptions/me');
-        state.plan = own.data ? normaliseSummary({ subscription: own.data }).subscription : null;
-        return null;
+  /**
+   * Fetches the summary once and normalises it; resolves to the model, or null when there is none.
+   * A supplier with no profile gets a 404, which the site's fetch wrapper turns into an error
+   * toast. So unless the caller forces it, the request waits for the supplier list and is not
+   * sent at all when that list is empty.
+   */
+  async function fetchSummary(skipWhenNoProfile) {
+    if (skipWhenNoProfile) {
+      await state.suppliersKnown;
+    }
+    state.skippedSummary = Boolean(skipWhenNoProfile) && isNoProfile();
+    const result = state.skippedSummary ? { status: 404, data: null } : await getJson(SUMMARY_URL);
+    state.notFound = result.status === 404;
+    state.failed = !result.data;
+    if (!result.data) {
+      state.model = null;
+      // No summary (for example no profile yet): the plan card can still say which plan it is.
+      const own = await getJson('/api/v2/subscriptions/me');
+      state.plan = own.data ? normaliseSummary({ subscription: own.data }).subscription : null;
+      return null;
+    }
+    const model = normaliseSummary(result.data);
+    if (!model.subscription) {
+      const sub = await getJson('/api/v2/subscriptions/me');
+      if (sub.data) {
+        model.subscription = normaliseSummary({ subscription: sub.data }).subscription;
       }
-      const model = normaliseSummary(result.data);
-      if (!model.subscription) {
-        const sub = await getJson('/api/v2/subscriptions/me');
-        if (sub.data) {
-          model.subscription = normaliseSummary({ subscription: sub.data }).subscription;
-        }
-      }
-      state.model = model;
-      return model;
-    });
+    }
+    state.model = model;
+    return model;
   }
 
   /** The shared summary request. Pass force to ask the server again (after a profile or package change). */
   function getSummary(force) {
     if (!state.summaryPromise || force) {
-      state.summaryPromise = fetchSummary();
+      state.summaryPromise = fetchSummary(!force);
     }
     return state.summaryPromise;
   }
@@ -1872,9 +1893,14 @@
     });
     document.addEventListener('sdh:suppliers', event => {
       state.suppliers = event.detail?.suppliers || [];
+      state.markSuppliersKnown();
       applyProfileMode();
       renderAll();
       initReviews();
+      // The profile was created after the summary was skipped: ask for it now.
+      if (state.skippedSummary && !isNoProfile()) {
+        refresh();
+      }
     });
     document.addEventListener('sdh:changed', () => {
       refresh();

@@ -638,6 +638,8 @@ describe('supplier dashboard home: pure logic', () => {
     });
     const window = {
       addEventListener() {},
+      setTimeout: () => 0,
+      clearTimeout() {},
       matchMedia: () => ({ matches: false }),
       location: { hash: '', href: '' },
     };
@@ -1228,6 +1230,14 @@ describe('supplier dashboard home: rendered page', () => {
     expect(page.tiles).toEqual([]);
     expect(page.lede).toMatch(/Create your business profile/);
     expect(page.plan).toContain('Starter');
+  });
+
+  test('a supplier with no profile never triggers the summary 404 (the fetch wrapper would toast it)', () => {
+    const page = run({ summaryStatus: 404, suppliers: [] });
+    expect(page.requested.join(' ')).not.toContain('dashboard-summary');
+    expect(page.requested.join(' ')).toContain('/api/v2/subscriptions/me');
+    const withProfile = run({ summary: populated, suppliers: [{ id: 's1' }] });
+    expect(withProfile.requested.join(' ')).toContain('dashboard-summary');
   });
 
   test('if the summary request fails the page says so and offers a retry, not an empty dashboard', () => {

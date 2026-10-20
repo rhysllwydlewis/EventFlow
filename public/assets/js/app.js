@@ -3783,7 +3783,10 @@ function togglePackageForm() {
   const isExpanded = formSection.classList.contains('expanded');
 
   if (isExpanded) {
-    // Collapse form
+    // Collapse form. Focus inside the form (its Cancel button) would be lost, so hand it back.
+    if (formSection.contains(document.activeElement)) {
+      toggleBtn.focus();
+    }
     formSection.classList.remove('expanded');
     toggleBtn.setAttribute('aria-expanded', 'false');
     toggleBtn.querySelector('.label').textContent = 'Create package';
@@ -4359,7 +4362,10 @@ function toggleProfileForm() {
     !!document.querySelector('#my-suppliers .supplier-card');
 
   if (isExpanded) {
-    // Collapse form
+    // Collapse form. Focus inside the form (its Cancel button) would be lost, so hand it back.
+    if (formSection.contains(document.activeElement)) {
+      toggleBtn.focus();
+    }
     formSection.classList.remove('expanded');
     toggleBtn.setAttribute('aria-expanded', 'false');
     toggleBtn.querySelector('.label').textContent = hasProfile ? 'Edit profile' : 'Create profile';
