@@ -17,6 +17,10 @@ const {
 } = require('../services/supplierProfileCompleteness');
 const { parseDaysParam, resolveAnalyticsWindow } = require('../utils/analyticsWindow');
 const { buildDashboardSummary, summariseReviews } = require('../services/supplierDashboardSummary');
+const supplierEnquiries = require('../services/supplierEnquiries');
+const { isApprovedReview } = require('../utils/reviewShape');
+const { clearEngagementCache } = require('../services/supplierEngagementMetrics');
+const { serializeCsv } = require('../utils/csv');
 
 const router = express.Router();
 
@@ -384,80 +388,149 @@ router.get('/invoices/:id/download', authRequired, async (req, res) => {
 });
 
 /**
+ * Resolve the signed-in supplier for the enquiry routes, or answer the request.
+ *
+ * Only a supplier whose profile is approved may read enquiries (the same gate as
+ * packages and messaging). The supplier is always looked up from the session's
+ * user id; nothing in the URL or body chooses which supplier's records are read.
+ *
+ * @param {Object} req - Express request
+ * @param {Object} res - Express response
+ * @returns {Promise<Object|null>} The supplier document, or null after a response was sent
+ */
+async function loadApprovedSupplierForEnquiries(req, res) {
+  if (req.user.role !== 'supplier') {
+    res.status(403).json({ error: 'Only suppliers can access enquiries' });
+    return null;
+  }
+  const supplier = await dbUnified.findOne(
+    'suppliers',
+    { ownerUserId: req.user.id },
+    { throwOnError: true }
+  );
+  if (!supplier) {
+    res.status(404).json({ error: 'Supplier profile not found' });
+    return null;
+  }
+  if (supplier.approved !== true) {
+    res.status(403).json({
+      error: 'Supplier not approved',
+      code: 'SUPPLIER_NOT_APPROVED',
+      message:
+        'Your supplier profile is pending admin approval. You will be notified once your account has been reviewed.',
+    });
+    return null;
+  }
+  return supplier;
+}
+
+/**
  * GET /api/supplier/enquiries/export
- * Export enquiries to CSV for supplier
+ * CSV of this supplier's customer conversations, quote requests and contact-form
+ * enquiries (newest first).
+ *
+ * Always 200 with a header row. When there is nothing to export the body is the
+ * header row only and `X-Export-Row-Count` is 0, so a client can say "nothing to
+ * export" instead of saving an empty file. Cells that a spreadsheet would run as a
+ * formula are neutralised (utils/csv).
  */
 router.get('/enquiries/export', authRequired, async (req, res) => {
   try {
-    const userId = req.user.id;
-
-    if (req.user.role !== 'supplier') {
-      return res.status(403).json({ error: 'Only suppliers can export enquiries' });
-    }
-
-    const supplier = await dbUnified.findOne('suppliers', { ownerUserId: userId });
-
+    const supplier = await loadApprovedSupplierForEnquiries(req, res);
     if (!supplier) {
-      return res.status(404).json({ error: 'Supplier profile not found' });
+      return;
     }
 
-    // Get quote requests for this supplier
-    const supplierEnquiries = await dbUnified.find('quoteRequests', { supplierId: supplier.id });
-
-    // Get user details for enquiries
-    const users = await dbUnified.read('users');
-    const userMap = {};
-    users.forEach(u => {
-      userMap[u.id] = u;
+    const rows = await supplierEnquiries.buildExportRows({
+      supplierId: supplier.id,
+      ownerUserId: req.user.id,
     });
+    const csv = serializeCsv(supplierEnquiries.EXPORT_HEADERS, rows);
 
-    // Build CSV
-    const headers = [
-      'Date',
-      'Customer Name',
-      'Customer Email',
-      'Event Type',
-      'Event Date',
-      'Location',
-      'Budget',
-      'Guest Count',
-      'Status',
-      'Message',
-    ].join(',');
-
-    const rows = supplierEnquiries.map(enq => {
-      const user = userMap[enq.customerId] || {};
-      const date = new Date(enq.createdAt).toLocaleDateString('en-GB');
-      const eventDate = enq.eventDate ? new Date(enq.eventDate).toLocaleDateString('en-GB') : 'N/A';
-
-      return [
-        date,
-        `"${user.name || 'N/A'}"`,
-        `"${user.email || 'N/A'}"`,
-        `"${enq.eventType || 'N/A'}"`,
-        eventDate,
-        `"${enq.location || 'N/A'}"`,
-        `"${enq.budget || 'N/A'}"`,
-        enq.guestCount || 'N/A',
-        `"${enq.status || 'pending'}"`,
-        `"${(enq.message || '').replace(/"/g, '""')}"`,
-      ].join(',');
-    });
-
-    const csv = [headers, ...rows].join('\n');
-
-    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
     res.setHeader(
       'Content-Disposition',
-      `attachment; filename="enquiries-${new Date().toISOString().split('T')[0]}.csv"`
+      `attachment; filename="enquiries-and-conversations-${new Date().toISOString().split('T')[0]}.csv"`
     );
+    res.setHeader('X-Export-Row-Count', String(rows.length));
     res.send(csv);
   } catch (error) {
-    logger.error('Error exporting enquiries:', error);
-    res.status(500).json({
-      error: 'Failed to export enquiries',
-      details: process.env.NODE_ENV !== 'production' ? error.message : undefined,
+    logger.error('Error exporting enquiries:', error.message);
+    res.status(500).json({ error: 'Failed to export enquiries' });
+  }
+});
+
+/**
+ * GET /api/supplier/enquiries
+ * Quote requests and contact-form enquiries addressed to this supplier, newest first.
+ *
+ * Query: days (1-365, default 90), page, limit (1-100, default 20),
+ * status (new|read|handled), source (quote_request|contact_form).
+ */
+router.get('/enquiries', authRequired, async (req, res) => {
+  try {
+    const supplier = await loadApprovedSupplierForEnquiries(req, res);
+    if (!supplier) {
+      return;
+    }
+    const result = await supplierEnquiries.listEnquiries({
+      supplierId: supplier.id,
+      query: req.query,
     });
+    res.json({ success: true, ...result });
+  } catch (error) {
+    logger.error('Error listing enquiries:', error.message);
+    res.status(500).json({ error: 'Failed to load enquiries' });
+  }
+});
+
+/**
+ * GET /api/supplier/enquiries/:id
+ * One enquiry in full (including the contact details the customer submitted).
+ * 404 for an id that does not exist or was addressed to a different supplier.
+ */
+router.get('/enquiries/:id', authRequired, async (req, res) => {
+  try {
+    const supplier = await loadApprovedSupplierForEnquiries(req, res);
+    if (!supplier) {
+      return;
+    }
+    const enquiry = await supplierEnquiries.getEnquiry(supplier.id, req.params.id);
+    if (!enquiry) {
+      return res.status(404).json({ error: 'Enquiry not found' });
+    }
+    res.json({ success: true, enquiry });
+  } catch (error) {
+    logger.error('Error loading enquiry:', error.message);
+    res.status(500).json({ error: 'Failed to load enquiry' });
+  }
+});
+
+/**
+ * PATCH /api/supplier/enquiries/:id
+ * Mark an enquiry new, read or handled. Body: { status }. The state belongs to this
+ * supplier only; it is not shown to the customer or to other suppliers.
+ */
+router.patch('/enquiries/:id', authRequired, csrfProtection, writeLimiter, async (req, res) => {
+  try {
+    const supplier = await loadApprovedSupplierForEnquiries(req, res);
+    if (!supplier) {
+      return;
+    }
+    const status = req.body && req.body.status;
+    if (!supplierEnquiries.STATUSES.includes(status)) {
+      return res.status(400).json({ error: 'status must be one of: new, read, handled' });
+    }
+    const enquiry = await supplierEnquiries.setEnquiryStatus(supplier.id, req.params.id, status);
+    if (!enquiry) {
+      return res.status(404).json({ error: 'Enquiry not found' });
+    }
+    // The dashboard summary's unread-requests figure must reflect this at once.
+    clearEngagementCache();
+    res.json({ success: true, enquiry });
+  } catch (error) {
+    logger.error('Error updating enquiry:', error.message);
+    res.status(500).json({ error: 'Failed to update enquiry' });
   }
 });
 
@@ -563,7 +636,7 @@ router.get('/reviews/stats', authRequired, async (req, res) => {
     // Only approved reviews count, exactly as on the public reviews panel and in the
     // dashboard summary, so the three can never show different numbers.
     const allReviews = (await dbUnified.find('reviews', { supplierId: supplier.id })) || [];
-    const supplierReviews = allReviews.filter(review => review.moderation?.state === 'approved');
+    const supplierReviews = allReviews.filter(isApprovedReview);
 
     const totalReviews = supplierReviews.length;
     const averageRating = summariseReviews(allReviews).averageRating;

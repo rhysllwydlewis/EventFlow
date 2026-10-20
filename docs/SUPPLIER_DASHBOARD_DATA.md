@@ -87,6 +87,39 @@ fixtures; change one without the other and CI fails. `/api/me/suppliers` items a
 - Calendar reminder notifications for suppliers link to `/dashboard/supplier#availability-calendar`.
 - `GET /api/v1/supplier/performance-tips` no longer contains invented statistics.
 
+## Enquiries, export, reviews, visits, calendar, messenger (round 1)
+
+**Enquiries API.** `GET /api/supplier/enquiries` (list, `days`/`page`/`limit<=100`/`status`/`source`),
+`GET /api/supplier/enquiries/:id` (detail with the customer's email/phone), `PATCH /api/supplier/enquiries/:id`
+(`{status: new|read|handled}`) expose the quote requests and contact-form enquiries addressed to the signed-in
+supplier. Approved suppliers only; a record addressed to another supplier answers like a missing one; the read/handled
+state is per supplier (`supplier_enquiry_states`). Text is returned as plain text (stored HTML-escaped): render with
+`textContent`. `enquiries.requests {received, new}` in the summary equals the list's `counts.total` / `counts.new`
+for the same `days`. Nothing notifies suppliers of new enquiries and there is no in-app reply yet.
+
+**CSV export.** `GET /api/supplier/enquiries/export` is the single export route (the shadowed "safe" duplicate was deleted).
+It exports the supplier's customer conversations, quote requests and contact-form enquiries, spreadsheet-safe, as
+`enquiries-and-conversations-YYYY-MM-DD.csv`. With nothing to export it still returns 200 with the header row and
+`X-Export-Row-Count: 0`.
+
+**Reviews.** Two writers share `reviews` (v2 service with `moderation.state`; the live public form with
+`approved`/`flagged`/`comment`/`userName`). `utils/reviewShape.js` is the one adapter used by the dashboard list, the
+summary, `reviews/stats` and replies, so both shapes list, count and accept replies. Only published reviews of either
+shape count; pending/rejected never do. No migration is required.
+
+**Profile visits.** One event per visit, written only by the page beacon `POST /api/analytics/track`. Not recorded for the
+supplier's own session, admins, automated clients, or unknown/unapproved suppliers; the same visitor counts once per hour
+(database rule using a hash, not the raw IP). `views.description` carries the exact sentence the UI may show. Events recorded
+before this change were not rewritten.
+
+**Calendar.** Public calendar publishing is hard-coded by category (`Event Planner`, `Wedding Fayre`) plus a per-supplier
+admin override, enforced on create/update/delete and on publisher requests (verified email, approved supplier, publisher,
+ownership). Editing can no longer publish an event that is awaiting approval. The private calendar
+(`/api/me/calendar-entries`) is separate and open to every verified account. There are no bookings.
+
+**Messenger identity.** Participants are hydrated from the live account; suppliers use their business profile photo and gain
+`businessName`; `lastMessage.senderName` is the sender's current name. See `server-contract.md` for field names.
+
 ## Deliberately not provided
 
 - **Bookings.** No route creates or reads bookings; `maxBookings` in the plan matrix is inert.

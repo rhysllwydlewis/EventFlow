@@ -13,6 +13,7 @@ const store = require('../store');
 const sentimentAnalysis = require('../utils/sentimentAnalysis');
 const ReviewModel = require('../models/Review');
 const ReviewAnalytics = require('../models/ReviewAnalytics');
+const { isApprovedReview, isV2Review, normaliseReview } = require('../utils/reviewShape');
 
 // Configuration constants
 const REVIEW_COOLDOWN_DAYS = 30; // Days before user can review same supplier again
@@ -208,6 +209,139 @@ async function createReview(reviewData, userId) {
 }
 
 /**
+ * First name and last initial ("Alice C.") for a user record, for public display.
+ *
+ * @param {Object} user - users document (projected)
+ * @returns {string|null} Display name
+ */
+function publicReviewerName(user) {
+  const first = String(user.firstName || '').trim();
+  const last = String(user.lastName || '').trim();
+  if (first) {
+    return last ? `${first} ${last.charAt(0).toUpperCase()}.` : first;
+  }
+  const parts = String(user.name || '')
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean);
+  if (parts.length === 0) {
+    return null;
+  }
+  return parts.length > 1
+    ? `${parts[0]} ${parts[parts.length - 1].charAt(0).toUpperCase()}.`
+    : parts[0];
+}
+
+/**
+ * Reviewer display names for v2 reviews, which store only the author's account id.
+ * Looked up in one query, projected to name fields. A failed lookup leaves the
+ * reviews without a name rather than failing the list.
+ *
+ * @param {Object[]} reviews - Stored reviews (any shape)
+ * @returns {Promise<Map<string, string>>} author id -> display name
+ */
+async function resolveAuthorNames(reviews) {
+  const authorIds = [
+    ...new Set(
+      reviews.filter(review => isV2Review(review) && review.authorId).map(review => review.authorId)
+    ),
+  ];
+  if (!authorIds.length) {
+    return new Map();
+  }
+  try {
+    const users = await dbUnified.aggregate('users', [
+      { $match: { id: { $in: authorIds } } },
+      { $project: { id: 1, firstName: 1, lastName: 1, name: 1 } },
+    ]);
+    return new Map(
+      (users || [])
+        .map(user => [user.id, publicReviewerName(user)])
+        .filter(([, name]) => Boolean(name))
+    );
+  } catch (error) {
+    logger.warn('[REVIEW-SVC] reviewer name lookup failed', { error: error.message });
+    return new Map();
+  }
+}
+
+/**
+ * Shape one stored review for a public/dashboard response.
+ *
+ * v2 reviews drop moderation/dispute/vote/sentiment internals and gain the reviewer's
+ * display name. Legacy reviews are rebuilt from an allowlist (they carry a hashed IP,
+ * user agent, flag reasons and the author's account id, none of which may be exposed)
+ * in the same field names the dashboard already reads.
+ *
+ * @param {Object} review - Stored review
+ * @param {Map<string, string>} authorNames - Names from resolveAuthorNames
+ * @returns {Object} Safe review object
+ */
+function toPublicReview(review, authorNames) {
+  if (isV2Review(review)) {
+    const { moderation, dispute, votes, sentiment, ...rest } = review;
+    const authorName = authorNames.get(review.authorId);
+    return {
+      ...rest,
+      id: review.id || review._id,
+      ...(authorName ? { authorName } : {}),
+      moderation: { state: moderation.state },
+      ...(dispute ? { dispute: { filed: dispute.filed } } : {}),
+      ...(votes ? { votes: { helpful: votes.helpful, unhelpful: votes.unhelpful } } : {}),
+      ...(sentiment ? { sentiment: { label: sentiment.label } } : {}),
+    };
+  }
+  const view = normaliseReview(review);
+  return {
+    id: view.id,
+    supplierId: view.supplierId,
+    rating: view.rating,
+    title: view.title,
+    text: view.text,
+    userName: view.authorName,
+    authorName: view.authorName,
+    createdAt: view.createdAt,
+    verified: view.verified,
+    recommend: review.recommend === true,
+    eventType: review.eventType || '',
+    eventDate: review.eventDate || '',
+    photos: Array.isArray(review.photos) ? review.photos : [],
+    votes: {
+      helpful: Number(review.helpfulCount) || 0,
+      unhelpful: Number(review.unhelpfulCount) || 0,
+    },
+    response: view.response,
+    moderation: { state: 'approved' },
+  };
+}
+
+/**
+ * Find a review by either id field: v2 reviews are keyed `_id`, legacy ones `id`.
+ *
+ * @param {string} reviewId - Id from a URL
+ * @returns {Promise<Object|null>} Stored review or null
+ */
+async function findReviewById(reviewId) {
+  return (
+    (await dbUnified.findOne('reviews', { _id: reviewId })) ||
+    dbUnified.findOne('reviews', { id: reviewId })
+  );
+}
+
+/**
+ * Filter that addresses exactly this stored review in an update.
+ *
+ * @param {Object} review - Stored review
+ * @param {string} reviewId - Id it was found by
+ * @returns {Object} Filter
+ */
+function reviewIdentityFilter(review, reviewId) {
+  return review._id !== undefined && String(review._id) === String(reviewId)
+    ? { _id: review._id }
+    : { id: review.id };
+}
+
+/**
  * Get reviews for a supplier with pagination and filtering
  * @param {string} supplierId - Supplier ID
  * @param {Object} options - Query options
@@ -225,16 +359,15 @@ async function getSupplierReviews(supplierId, options = {}) {
   // Find reviews for this supplier — uses supplierId index
   let filtered = await dbUnified.find('reviews', { supplierId: supplierId });
 
-  // Filter by approval status
+  // Filter by approval status. Both writers' reviews are listed, but only published ones
+  // (see utils/reviewShape.js): a pending or rejected review of either kind never appears.
   if (approvedOnly) {
-    filtered = filtered.filter(r => r.moderation?.state === ReviewModel.MODERATION_STATES.APPROVED);
+    filtered = filtered.filter(isApprovedReview);
   }
 
   // Apply additional filters
   if (filter === 'verified') {
-    filtered = filtered.filter(
-      r => r.verification?.status !== ReviewModel.VERIFICATION_TYPES.UNVERIFIED
-    );
+    filtered = filtered.filter(r => normaliseReview(r).verified);
   } else if (filter === 'disputed') {
     filtered = filtered.filter(r => r.dispute && r.dispute.filed);
   }
@@ -286,16 +419,8 @@ async function getSupplierReviews(supplierId, options = {}) {
   // moderation.reason/moderatorId, dispute.filedBy/reason/evidence/resolvedBy,
   // votes.voters, and sentiment.spamScore are internal moderation/analysis
   // data and must never reach a public response.
-  const publicReviews = paginatedReviews.map(review => {
-    const { moderation, dispute, votes, sentiment, ...rest } = review;
-    return {
-      ...rest,
-      ...(moderation ? { moderation: { state: moderation.state } } : {}),
-      ...(dispute ? { dispute: { filed: dispute.filed } } : {}),
-      ...(votes ? { votes: { helpful: votes.helpful, unhelpful: votes.unhelpful } } : {}),
-      ...(sentiment ? { sentiment: { label: sentiment.label } } : {}),
-    };
-  });
+  const authorNames = await resolveAuthorNames(paginatedReviews);
+  const publicReviews = paginatedReviews.map(review => toPublicReview(review, authorNames));
 
   return {
     reviews: publicReviews,
@@ -376,7 +501,7 @@ async function requestChanges(reviewId, moderatorId, reason) {
  * @returns {Promise<Object>} Updated review
  */
 async function addSupplierResponse(reviewId, supplierId, text, _userId) {
-  const review = await dbUnified.findOne('reviews', { _id: reviewId });
+  const review = await findReviewById(reviewId);
 
   if (!review) {
     throw new Error('Review not found');
@@ -397,7 +522,14 @@ async function addSupplierResponse(reviewId, supplierId, text, _userId) {
 
   ReviewModel.addResponse(review, supplierId, text);
 
-  await dbUnified.updateOne('reviews', { _id: reviewId }, { $set: review });
+  if (isV2Review(review)) {
+    await dbUnified.updateOne('reviews', reviewIdentityFilter(review, reviewId), { $set: review });
+  } else {
+    // Legacy documents: write only the reply, never the whole stored record back.
+    await dbUnified.updateOne('reviews', reviewIdentityFilter(review, reviewId), {
+      $set: { response: review.response, updatedAt: review.updatedAt },
+    });
+  }
 
   return review;
 }
@@ -636,6 +768,8 @@ module.exports = {
   moderateReview,
   requestChanges,
   addSupplierResponse,
+  findReviewById,
+  reviewIdentityFilter,
   voteOnReview,
   fileDispute,
   resolveDispute,

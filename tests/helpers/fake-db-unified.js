@@ -110,6 +110,9 @@ function operatorsMatch(candidate, condition) {
  */
 function matches(row, filter) {
   return Object.entries(filter).every(([key, condition]) => {
+    if (key === '$or') {
+      return condition.some(branch => matches(row, branch));
+    }
     const candidates = valuesAt(row, key.split('.'));
     const isOperatorObject =
       condition !== null &&
@@ -218,6 +221,10 @@ function aggregateRows(rows, pipeline) {
         });
         return out;
       });
+    } else if (stage.$sort) {
+      current = sorted(current, stage.$sort);
+    } else if (stage.$limit) {
+      current = current.slice(0, stage.$limit);
     } else if (stage.$group) {
       const idSpec = stage.$group._id;
       const groups = new Map();
@@ -293,6 +300,15 @@ const fake = {
       Object.assign(row, update.$set);
     }
     return { matchedCount: row ? 1 : 0, modifiedCount: row ? 1 : 0 };
+  }),
+  deleteOne: jest.fn(async (name, filter) => {
+    const rows = rowsOf(name);
+    const index = rows.findIndex(row => matches(row, filter));
+    if (index === -1) {
+      return false;
+    }
+    rows.splice(index, 1);
+    return true;
   }),
   aggregate: jest.fn(
     realisticRead([], async (name, pipeline) => aggregateRows(rowsOf(name), pipeline))

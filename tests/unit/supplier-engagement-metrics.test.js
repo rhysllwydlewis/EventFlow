@@ -423,7 +423,7 @@ describe('quote request and contact-form reads', () => {
     const call = fakeDb.aggregate.mock.calls.find(item => item[0] === 'quoteRequests');
     const [, pipeline] = call;
     expect(pipeline[0].$match['suppliers.supplierId']).toBe('sup-1');
-    expect(pipeline[1].$project).toEqual({ createdAt: 1, userId: 1, email: 1 });
+    expect(pipeline[1].$project).toEqual({ id: 1, createdAt: 1, userId: 1, email: 1 });
     // Never a platform-wide read of quote requests.
     expect(fakeDb.find.mock.calls.filter(item => item[0] === 'quoteRequests')).toHaveLength(0);
   });
