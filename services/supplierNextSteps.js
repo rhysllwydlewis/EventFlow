@@ -19,19 +19,6 @@
 const PROFILE_HREF = '/dashboard/supplier#my-suppliers';
 
 /**
- * Whether a supplier has a usable (non-placeholder) category.
- *
- * @param {Object} supplier - Supplier document
- * @returns {boolean} True when a real category is set
- */
-function hasRealCategory(supplier) {
-  const category = String(supplier.category || '')
-    .trim()
-    .toLowerCase();
-  return category !== '' && category !== 'other';
-}
-
-/**
  * Whether the fields the verification form requires (plus a discovery postcode)
  * are all filled in.
  *
@@ -42,7 +29,8 @@ function hasBusinessDetails(supplier) {
   const filled = value => String(value || '').trim() !== '';
   return (
     filled(supplier.name) &&
-    hasRealCategory(supplier) &&
+    // Same required fields as POST /verification/submit, where "Other" is a valid category.
+    filled(supplier.category) &&
     filled(supplier.location) &&
     filled(supplier.basePostcode || supplier.venuePostcode) &&
     filled(supplier.phone) &&
@@ -85,6 +73,8 @@ function verificationLockReason(verification) {
 function evaluateNextSteps(input) {
   const { supplier, verification, completeness, packages } = input;
   const emailOk = verification.emailVerified === true;
+  // null = the account lookup failed: do not lock steps on a guess.
+  const emailUnknown = verification.emailVerified === null;
   const approved = verification.approved === true;
   const checkDone = id => completeness.checks.some(check => check.id === id && check.done);
   const checkHref = id => {
@@ -92,7 +82,7 @@ function evaluateNextSteps(input) {
     return found ? found.href : PROFILE_HREF;
   };
 
-  const needEmail = emailOk ? null : 'Verify your email address first';
+  const needEmail = emailOk || emailUnknown ? null : 'Verify your email address first';
   const needApproval = approved ? null : 'Available once your profile is approved';
 
   const definitions = [
@@ -101,7 +91,7 @@ function evaluateNextSteps(input) {
       label: 'Verify your email address',
       done: emailOk,
       href: '/verify',
-      lockedReason: null,
+      lockedReason: emailUnknown ? 'We could not check your email status just now' : null,
     },
     {
       id: 'business-details',

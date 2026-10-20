@@ -20,7 +20,7 @@
 
 const dbUnified = require('../db-unified');
 const logger = require('../utils/logger');
-const { resolveAnalyticsWindow } = require('../utils/analyticsWindow');
+const { resolveAnalyticsWindow, getWindowBounds } = require('../utils/analyticsWindow');
 const { hydrateSupplierProfilePhoto } = require('../utils/supplierProfilePhoto');
 const { addPublicProfilePath } = require('../utils/publicSupplierProfilePath');
 const { isPlaceholderImage } = require('../utils/packageImageUtils');
@@ -34,8 +34,10 @@ const { getEngagementMetrics, getMessagingSummary } = require('./supplierEngagem
 const { evaluateNextSteps } = require('./supplierNextSteps');
 const supplierAnalytics = require('../utils/supplierAnalytics');
 
+/** db-unified turns failed queries into empty results unless told to throw; a dashboard must not mistake that for "no data". */
+const STRICT = Object.freeze({ throwOnError: true });
+
 const DEFAULT_SUMMARY_DAYS = 30;
-const DAY_MS = 24 * 60 * 60 * 1000;
 const UPCOMING_LIMIT = 3;
 const REVIEW_APPROVED = 'approved';
 const REVIEW_PENDING = 'pending';
@@ -77,16 +79,17 @@ function toContractState(approved, status) {
  * (requireVerifiedUser), not the looser flag /auth/me reports.
  *
  * @param {Object} supplier - Supplier document
- * @param {Object|null} ownerUser - The supplier owner's user document
+ * @param {Object|null|undefined} ownerUser - The owner's user document; null if there is none, undefined if the lookup failed
  * @returns {Object} verification block
  */
 function buildVerification(supplier, ownerUser) {
   const approved = supplier.approved === true;
-  const status = normaliseState(supplier.verificationStatus, supplier.verified === true);
+  const status = normaliseState(supplier.verificationStatus, Boolean(supplier.verified));
   const needsExplanation =
     status === VERIFICATION_STATES.NEEDS_CHANGES || status === VERIFICATION_STATES.REJECTED;
   return {
-    emailVerified: Boolean(ownerUser && ownerUser.verified === true),
+    // undefined = the user lookup failed (unknown); null/absent row = not verified.
+    emailVerified: ownerUser === undefined ? null : Boolean(ownerUser && ownerUser.verified),
     approved,
     state: toContractState(approved, status),
     status,
@@ -106,7 +109,7 @@ function buildVerification(supplier, ownerUser) {
  */
 async function resolveSubscription(userId) {
   const subscriptionService = require('./subscriptionService');
-  const subscription = await subscriptionService.getSubscriptionByUserId(userId);
+  const subscription = await subscriptionService.getSubscriptionByUserId(userId, STRICT);
   const live = subscriptionService.isLiveEntitlement(subscription);
   const plan = subscription
     ? live
@@ -186,6 +189,16 @@ function summariseReviews(reviews) {
 }
 
 /**
+ * Whether a public calendar event has not been soft-deleted.
+ *
+ * @param {Object} event - Public calendar event
+ * @returns {boolean} True for events that still exist
+ */
+function isLiveEvent(event) {
+  return !event.deleted && !event.isDeleted && !event.deletedAt && event.status !== 'deleted';
+}
+
+/**
  * Next three upcoming calendar items for the supplier, plus whether they have
  * any calendar activity at all (past or future).
  *
@@ -200,8 +213,8 @@ function summariseReviews(reviews) {
 async function loadCalendar(userId, now) {
   const today = now.toISOString().slice(0, 10);
   const [entries, events] = await Promise.all([
-    dbUnified.find('customer_calendar_entries', { userId }),
-    dbUnified.find('public_calendar_events', { createdByUserId: userId }),
+    dbUnified.find('customer_calendar_entries', { userId }, STRICT),
+    dbUnified.find('public_calendar_events', { createdByUserId: userId }, STRICT),
   ]);
 
   const personal = (entries || [])
@@ -215,7 +228,7 @@ async function loadCalendar(userId, now) {
     }));
 
   const publicEvents = (events || [])
-    .filter(event => !event.deleted && !event.isDeleted && !event.deletedAt)
+    .filter(isLiveEvent)
     .filter(event => ['draft', 'pending_review', 'published'].includes(event.status || 'published'))
     .map(event => {
       const start = new Date(event.startDate);
@@ -240,7 +253,7 @@ async function loadCalendar(userId, now) {
 
   return {
     upcoming,
-    hasActivity: (entries || []).length > 0 || (events || []).length > 0,
+    hasActivity: (entries || []).length > 0 || (events || []).filter(isLiveEvent).length > 0,
   };
 }
 
@@ -280,10 +293,12 @@ function percentChange(current, previous) {
  * @param {string} params.userId - Authenticated user id (the supplier owner)
  * @param {Object} params.supplier - The owner's supplier document
  * @param {number|null} [params.requestedDays] - Whole number of days asked for
- * @param {Date} [params.now] - Reference time (for tests)
+ * @param {Date} [params.now] - Reference time (for tests; also disables engagement result reuse)
  * @returns {Promise<Object>} Summary payload
  */
-async function buildDashboardSummary({ userId, supplier, requestedDays = null, now = new Date() }) {
+async function buildDashboardSummary({ userId, supplier, requestedDays = null, now: fixedNow }) {
+  // A caller-supplied clock (tests) bypasses the short-lived engagement result reuse.
+  const now = fixedNow || new Date();
   const supplierId = supplier.id;
   const unavailable = [];
 
@@ -316,19 +331,20 @@ async function buildDashboardSummary({ userId, supplier, requestedDays = null, n
     requestCount,
     calendar,
   ] = await Promise.all([
-    attempt('user', () => dbUnified.findOne('users', { id: userId }), null),
+    // undefined (not null) marks a failed lookup, so a missing row and an error stay distinct.
+    attempt('user', () => dbUnified.findOne('users', { id: userId }, STRICT), undefined),
     attempt('subscription', () => resolveSubscription(userId), null),
-    attempt('packages', () => dbUnified.find('packages', { supplierId }), null),
-    attempt('reviews', () => dbUnified.find('reviews', { supplierId }), null),
-    attempt('profile', () => dbUnified.find('suppliers', { ownerUserId: userId }), null),
+    attempt('packages', () => dbUnified.find('packages', { supplierId }, STRICT), null),
+    attempt('reviews', () => dbUnified.find('reviews', { supplierId }, STRICT), null),
+    attempt('profile', () => dbUnified.find('suppliers', { ownerUserId: userId }, STRICT), null),
     attempt(
       'tickets',
-      () => dbUnified.find('tickets', { senderId: userId, senderType: 'supplier' }),
+      () => dbUnified.find('tickets', { senderId: userId, senderType: 'supplier' }, STRICT),
       null
     ),
     attempt(
       'reviewRequests',
-      () => dbUnified.count('reviewRequests', { supplierId, status: { $ne: 'failed' } }),
+      () => dbUnified.count('reviewRequests', { supplierId, status: { $ne: 'failed' } }, STRICT),
       null
     ),
     attempt('calendar', () => loadCalendar(userId, now), null),
@@ -340,8 +356,10 @@ async function buildDashboardSummary({ userId, supplier, requestedDays = null, n
     defaultDays: DEFAULT_SUMMARY_DAYS,
     planWindowDays: subscription ? subscription.limits.analyticsWindowDays : undefined,
   });
-  const windowStart = new Date(now.getTime() - analyticsWindow.days * DAY_MS);
-  const previousStart = new Date(windowStart.getTime() - analyticsWindow.days * DAY_MS);
+  const { startMs: windowStartMs, previousStartMs } = getWindowBounds(
+    now.getTime(),
+    analyticsWindow.days
+  );
 
   // Phase 2: window-bound figures.
   const [engagement, previousViews, messaging] = await Promise.all([
@@ -352,18 +370,25 @@ async function buildDashboardSummary({ userId, supplier, requestedDays = null, n
           supplierId,
           ownerUserId: userId,
           days: analyticsWindow.days,
-          now,
+          now: fixedNow,
         }),
       null
     ),
     attempt(
       'viewsTrend',
       () =>
-        dbUnified.count('events', {
-          supplierId,
-          type: supplierAnalytics.EVENT_TYPES.PROFILE_VIEW,
-          timestamp: { $gte: previousStart.toISOString(), $lt: windowStart.toISOString() },
-        }),
+        dbUnified.count(
+          'events',
+          {
+            supplierId,
+            type: supplierAnalytics.EVENT_TYPES.PROFILE_VIEW,
+            timestamp: {
+              $gte: new Date(previousStartMs).toISOString(),
+              $lt: new Date(windowStartMs).toISOString(),
+            },
+          },
+          STRICT
+        ),
       null
     ),
     attempt('messages', () => getMessagingSummary(userId), null),
@@ -379,7 +404,7 @@ async function buildDashboardSummary({ userId, supplier, requestedDays = null, n
   }
 
   // --- Profile ---
-  const hydrated = hydrateSupplierProfilePhoto(supplier, ownerUser);
+  const hydrated = hydrateSupplierProfilePhoto(supplier, ownerUser || null);
   const completeness = computeProfileCompleteness(hydrated);
   const flagFor = id => completeness.checks.some(check => check.id === id && check.done);
   const publicProfilePath = addPublicProfilePath(supplier).publicProfilePath || null;
@@ -500,7 +525,8 @@ async function buildDashboardSummary({ userId, supplier, requestedDays = null, n
 
   // --- Next steps ---
   const nextSteps = evaluateNextSteps({
-    supplier: hydrated,
+    // The verification form accepts the owner's account email when the profile has none.
+    supplier: { ...hydrated, email: hydrated.email || (ownerUser && ownerUser.email) || '' },
     verification,
     completeness,
     packages: {

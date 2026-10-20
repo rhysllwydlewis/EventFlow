@@ -20,6 +20,7 @@ let store = {};
  * @returns {void}
  */
 function __reset(seed = {}) {
+  failing = new Set();
   store = {};
   Object.entries(seed).forEach(([name, rows]) => {
     store[name] = rows.map(row => ({ ...row }));
@@ -158,23 +159,129 @@ function sorted(rows, sort) {
   });
 }
 
+let failing = new Set();
+
+/**
+ * Make every read on the named collections fail, to simulate a database outage.
+ *
+ * @param {...string} names - Collection names
+ * @returns {void}
+ */
+function __failOn(...names) {
+  failing = new Set(names);
+}
+
+/**
+ * Wrap a read the way the real db-unified does: a failed query is logged and
+ * swallowed (empty result) UNLESS the caller passed `{ throwOnError: true }`.
+ * A test double that always threw would hide code that forgot to ask for errors.
+ *
+ * @param {*} emptyValue - What a swallowed failure returns ([] / 0 / null)
+ * @param {Function} run - The query, called with (name, secondArg)
+ * @returns {Function} Async db-unified style function
+ */
+function realisticRead(emptyValue, run) {
+  return async (name, second, options) => {
+    try {
+      if (failing.has(name)) {
+        throw new Error(`fake db failure on ${name}`);
+      }
+      return await run(name, second, options || {});
+    } catch (error) {
+      if (options && options.throwOnError) {
+        throw error;
+      }
+      return emptyValue;
+    }
+  };
+}
+
+/**
+ * Minimal aggregation: $match, then $group with a compound _id and $min, or $project (inclusion).
+ *
+ * @param {Object[]} rows - Source rows
+ * @param {Object[]} pipeline - Pipeline stages
+ * @returns {Object[]} Result rows
+ */
+function aggregateRows(rows, pipeline) {
+  let current = rows;
+  pipeline.forEach(stage => {
+    if (stage.$match) {
+      current = current.filter(row => matches(row, stage.$match));
+    } else if (stage.$project) {
+      current = current.map(row => {
+        const out = {};
+        Object.entries(stage.$project).forEach(([field, include]) => {
+          if (include) {
+            out[field] = row[field];
+          }
+        });
+        return out;
+      });
+    } else if (stage.$group) {
+      const idSpec = stage.$group._id;
+      const groups = new Map();
+      current.forEach(row => {
+        const id = {};
+        Object.entries(idSpec).forEach(([outKey, ref]) => {
+          id[outKey] = row[ref.slice(1)];
+        });
+        const key = JSON.stringify(
+          Object.values(id).map(value => (value && value.toString ? value.toString() : value))
+        );
+        if (!groups.has(key)) {
+          groups.set(key, { _id: id, rows: [] });
+        }
+        groups.get(key).rows.push(row);
+      });
+      current = [...groups.values()].map(group => {
+        const out = { _id: group._id };
+        Object.entries(stage.$group).forEach(([field, expr]) => {
+          if (field !== '_id') {
+            const operand = Object.values(expr)[0].slice(1);
+            out[field] = new Date(Math.min(...group.rows.map(row => comparable(row[operand]))));
+          }
+        });
+        return out;
+      });
+    } else {
+      throw new Error('fake-db-unified: unsupported aggregation stage');
+    }
+  });
+  return current;
+}
+
 const fake = {
   __reset,
+  __failOn,
   __store: () => store,
+  getDatabaseType: jest.fn(() => 'mongodb'),
   read: jest.fn(async name => rowsOf(name).map(row => ({ ...row }))),
-  find: jest.fn(async (name, filter = {}) => rowsOf(name).filter(row => matches(row, filter))),
-  findOne: jest.fn(
-    async (name, filter = {}) => rowsOf(name).find(row => matches(row, filter)) || null
+  find: jest.fn(
+    realisticRead([], async (name, filter) =>
+      rowsOf(name).filter(row => matches(row, filter || {}))
+    )
   ),
-  findWithOptions: jest.fn(async (name, filter = {}, options = {}) => {
-    const { limit = 50, skip = 0, sort = {} } = options;
-    return sorted(
-      rowsOf(name).filter(row => matches(row, filter)),
-      sort
-    ).slice(skip, skip + limit);
-  }),
+  findOne: jest.fn(
+    realisticRead(
+      null,
+      async (name, filter) => rowsOf(name).find(row => matches(row, filter || {})) || null
+    )
+  ),
+  findWithOptions: jest.fn(
+    realisticRead([], async (name, filter, options) => {
+      const { limit = 50, skip = 0, sort = {} } = options;
+      return sorted(
+        rowsOf(name).filter(row => matches(row, filter || {})),
+        sort
+      ).slice(skip, skip + limit);
+    })
+  ),
   count: jest.fn(
-    async (name, filter = {}) => rowsOf(name).filter(row => matches(row, filter)).length
+    realisticRead(
+      0,
+      async (name, filter) => rowsOf(name).filter(row => matches(row, filter || {})).length
+    )
   ),
   insertOne: jest.fn(async (name, document) => {
     rowsOf(name).push({ ...document });
@@ -187,37 +294,9 @@ const fake = {
     }
     return { matchedCount: row ? 1 : 0, modifiedCount: row ? 1 : 0 };
   }),
-  aggregate: jest.fn(async (name, pipeline) => {
-    const [matchStage, groupStage] = pipeline;
-    const filtered = rowsOf(name).filter(row => matches(row, matchStage.$match));
-    const idSpec = groupStage.$group._id;
-    const groups = new Map();
-    filtered.forEach(row => {
-      const id = {};
-      Object.entries(idSpec).forEach(([outKey, ref]) => {
-        id[outKey] = row[ref.slice(1)];
-      });
-      const key = JSON.stringify(
-        Object.values(id).map(value => (value && value.toString ? value.toString() : value))
-      );
-      if (!groups.has(key)) {
-        groups.set(key, { _id: id, rows: [] });
-      }
-      groups.get(key).rows.push(row);
-    });
-    return [...groups.values()].map(group => {
-      const out = { _id: group._id };
-      Object.entries(groupStage.$group).forEach(([field, expr]) => {
-        if (field === '_id') {
-          return;
-        }
-        const operand = Object.values(expr)[0].slice(1);
-        const values = group.rows.map(row => row[operand]).map(comparable);
-        out[field] = new Date(Math.min(...values));
-      });
-      return out;
-    });
-  }),
+  aggregate: jest.fn(
+    realisticRead([], async (name, pipeline) => aggregateRows(rowsOf(name), pipeline))
+  ),
 };
 
 module.exports = fake;

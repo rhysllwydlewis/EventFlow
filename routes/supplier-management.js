@@ -400,12 +400,13 @@ router.get('/:id/analytics', applyAuthRequired, applyRoleRequired('supplier'), a
       return res.status(404).json({ error: 'Supplier not found' });
     }
 
-    // Bounded to 1-90 days and to what the owner's plan allows (Starter 7), exactly like
-    // the dashboard summary and GET /api/supplier/analytics.
+    // Bounded to what the owner's plan allows (Starter 7, Professional 90, Professional
+    // Plus 365 - the history the pricing page sells), exactly like GET /api/supplier/analytics.
     const analyticsWindow = resolveAnalyticsWindow({
       requested: requestedPeriod.value,
       defaultDays: 7,
       planWindowDays: await subscriptionService.getAnalyticsWindowDays(req.user.id),
+      requestCap: 365,
     });
 
     // Get analytics from the supplier analytics utility

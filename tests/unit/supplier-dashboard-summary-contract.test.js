@@ -41,6 +41,7 @@ const path = require('path');
 const express = require('express');
 const request = require('supertest');
 const fakeDb = require('../helpers/fake-db-unified');
+const { clearEngagementCache } = require('../../services/supplierEngagementMetrics');
 
 const NOW = new Date('2026-07-16T12:00:00.000Z');
 const HOUR = 60 * 60 * 1000;
@@ -431,6 +432,10 @@ function dumpExample(name, body) {
 }
 
 describe('GET /api/supplier/dashboard-summary contract', () => {
+  beforeEach(() => {
+    clearEngagementCache();
+  });
+
   beforeAll(() => {
     jest.useFakeTimers({
       now: NOW,
@@ -595,6 +600,13 @@ describe('GET /api/supplier/dashboard-summary contract', () => {
       expect(enquirySum).toBe(7);
     });
 
+    it('makes the daily series add up exactly to the headline totals', () => {
+      const sum = key => body.analytics.dailyData.reduce((total, day) => total + day[key], 0);
+
+      expect(sum('views')).toBe(body.analytics.totalViews);
+      expect(sum('enquiries')).toBe(body.analytics.totalEnquiries);
+    });
+
     it('counts only approved reviews and leaves unrated ones out of the average', () => {
       expect(body.reviews).toEqual({
         approvedCount: 3,
@@ -706,6 +718,44 @@ describe('GET /api/supplier/dashboard-summary contract', () => {
       expect(res.body.window.requestedDays).toBe(expectedRequested);
       expect(res.body.window.days).toBeGreaterThanOrEqual(1);
       expect(res.body.window.days).toBeLessThanOrEqual(90);
+    });
+
+    it('counts the whole first UTC day of the window, so totals equal the chart', async () => {
+      const seed = populatedSeed();
+      seed.subscriptions = [];
+      // 7 day window ending 2026-07-16 starts 2026-07-10 00:00 UTC. One view just inside
+      // that first day (00:30) and one just outside it (23:30 the day before).
+      seed.events = [
+        {
+          id: 'in',
+          type: 'profile_view',
+          supplierId: 'sup-1',
+          timestamp: '2026-07-10T00:30:00.000Z',
+          date: '2026-07-10',
+        },
+        {
+          id: 'out',
+          type: 'profile_view',
+          supplierId: 'sup-1',
+          timestamp: '2026-07-09T23:30:00.000Z',
+          date: '2026-07-09',
+        },
+        {
+          id: 'late',
+          type: 'profile_view',
+          supplierId: 'sup-1',
+          timestamp: '2026-07-16T11:59:00.000Z',
+          date: '2026-07-16',
+        },
+      ];
+      fakeDb.__reset(seed);
+
+      const res = await getSummary(SUPPLIER_USER);
+      const chartViews = res.body.analytics.dailyData.reduce((total, day) => total + day.views, 0);
+
+      expect(res.body.analytics.dailyData[0].date).toBe('2026-07-10');
+      expect(res.body.views.total).toBe(2);
+      expect(chartViews).toBe(2);
     });
 
     it('does not count conversations from before a shorter window as new enquiries', async () => {
@@ -945,19 +995,18 @@ describe('GET /api/supplier/dashboard-summary contract', () => {
       expect(res.status).toBe(404);
     });
 
-    it('names a failing block as unavailable and returns null instead of zero', async () => {
+    it('names failing blocks as unavailable and returns null instead of zero, as the real db would fail', async () => {
+      // The test double swallows errors unless the caller asks for them, exactly like the real
+      // db-unified, so this only passes if the summary asks for errors on every read.
       fakeDb.__reset(populatedSeed());
-      const original = fakeDb.findWithOptions.getMockImplementation();
-      fakeDb.findWithOptions.mockImplementation(async () => {
-        throw new Error('messenger store down');
-      });
+      fakeDb.__failOn('conversations_v4', 'chat_messages_v4');
 
       const res = await getSummary(SUPPLIER_USER, '?days=30');
-      fakeDb.findWithOptions.mockImplementation(original);
 
       expect(res.status).toBe(200);
       expect(res.body.unavailable).toEqual(expect.arrayContaining(['messages', 'enquiries']));
       expect(res.body.messages.unreadMessages).toBeNull();
+      expect(res.body.messages.conversationsWithUnread).toBeNull();
       expect(res.body.enquiries.newThisPeriod).toBeNull();
       expect(res.body.responses.repliedPct).toBeNull();
       expect(res.body.analytics.totalEnquiries).toBeNull();
@@ -965,6 +1014,72 @@ describe('GET /api/supplier/dashboard-summary contract', () => {
       // Unrelated blocks are unaffected.
       expect(res.body.views.total).toBe(5);
       expect(res.body.reviews.approvedCount).toBe(3);
+    });
+
+    it.each([
+      ['events', 'views', body => expect(body.views.total).toBeNull()],
+      ['packages', 'packages', body => expect(body.packages.total).toBeNull()],
+      ['reviews', 'reviews', body => expect(body.reviews.approvedCount).toBeNull()],
+      ['tickets', 'tickets', body => expect(body.tickets.total).toBeNull()],
+      ['quoteRequests', 'enquiries', body => expect(body.enquiries.newThisPeriod).toBeNull()],
+      ['enquiries', 'enquiries', body => expect(body.enquiries.sources.contactForm).toBeNull()],
+      ['subscriptions', 'subscription', body => expect(body.subscription.plan).toBeNull()],
+      ['customer_calendar_entries', 'calendar', body => expect(body.upcoming).toEqual([])],
+    ])(
+      'a failed %s read is reported as unavailable (%s), never as zeros',
+      async (collection, label, check) => {
+        fakeDb.__reset(populatedSeed());
+        fakeDb.__failOn(collection);
+
+        const res = await getSummary(SUPPLIER_USER, '?days=30');
+
+        expect(res.status).toBe(200);
+        expect(res.body.unavailable).toContain(label);
+        check(res.body);
+      }
+    );
+
+    it('does not lock every next step when the user lookup fails (verification unknown, not false)', async () => {
+      fakeDb.__reset(populatedSeed());
+      fakeDb.__failOn('users');
+
+      const res = await getSummary(SUPPLIER_USER, '?days=30');
+
+      expect(res.body.unavailable).toContain('user');
+      expect(res.body.verification.emailVerified).toBeNull();
+      const locked = res.body.nextSteps.steps.filter(step => step.locked);
+      expect(locked.map(step => step.id)).toEqual(['verify-email']);
+      expect(res.body.nextSteps.primaryStepId).toBe('banner');
+    });
+
+    it('treats a missing user row as unverified, not as unknown', async () => {
+      const seed = populatedSeed();
+      seed.users = [];
+      fakeDb.__reset(seed);
+
+      const res = await getSummary(SUPPLIER_USER);
+
+      expect(res.body.verification.emailVerified).toBe(false);
+      expect(res.body.unavailable).toEqual([]);
+    });
+
+    it('answers a failed supplier lookup with a 500, not a "no profile" 404', async () => {
+      fakeDb.__reset(populatedSeed());
+      fakeDb.__failOn('suppliers');
+
+      const res = await getSummary(SUPPLIER_USER);
+
+      expect(res.status).toBe(500);
+    });
+
+    it('agrees with the email gates on truthiness (verified: 1 counts as verified)', async () => {
+      const seed = populatedSeed();
+      seed.users[0].verified = 1;
+      fakeDb.__reset(seed);
+
+      const res = await getSummary(SUPPLIER_USER);
+
+      expect(res.body.verification.emailVerified).toBe(true);
     });
 
     it('does not call Stripe or any network service on this path', async () => {

@@ -12,15 +12,26 @@
  *
  * A metric that cannot be computed from a meaningful sample is `null`, never a
  * flattering default such as 0 or 100.
+ *
+ * Every read passes `throwOnError`: db-unified normally turns a failed query into
+ * an empty result, which here would look exactly like "no enquiries". Failures
+ * must propagate so callers can report the block as unavailable.
+ *
+ * One supplier profile per owner is enforced by a unique index on
+ * `suppliers.ownerUserId`, so "conversations the owner is in" is the same set as
+ * "conversations of this supplier profile".
  */
 
 'use strict';
 
 const dbUnified = require('../db-unified');
+const { getWindowBounds } = require('../utils/analyticsWindow');
+
+const STRICT = Object.freeze({ throwOnError: true });
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
-/** Fewer conversations than this is not a sample worth quoting a percentage for. */
+/** Fewer judged conversations/replies than this is not a sample worth quoting. */
 const MIN_RESPONSE_SAMPLE = 3;
 
 /** A conversation younger than this is not yet "unanswered": the supplier is still within a day. */
@@ -35,6 +46,14 @@ const MAX_CONVERSATIONS_SCANNED = 1000;
 
 /** Upper bound on unread conversations summed for the unread badge. */
 const MAX_UNREAD_CONVERSATIONS = 1000;
+
+/** When one customer reaches out through several channels, the earliest-listed channel keeps the count. */
+const SOURCE_PRIORITY = ['conversations', 'quoteRequests', 'contactForm'];
+
+/** How long a computed result is reused. Short enough to feel live, long enough to absorb a page load's repeat calls. */
+const CACHE_TTL_MS = 30 * 1000;
+const CACHE_MAX_ENTRIES = 500;
+const engagementCache = new Map();
 
 /**
  * Convert a Date, ISO string or epoch number to epoch milliseconds.
@@ -71,31 +90,30 @@ function median(values) {
  * `repliedPct` is the share of conversations that received any supplier message,
  * counting only conversations at least 24 hours old (a fresh enquiry is not
  * "unanswered"). `medianMinutes` is the median gap between the customer's first
- * message and the supplier's first message. Both are null below three
- * conversations, and `repliedPct` is also null while no conversation is old
- * enough to judge.
+ * message and the supplier's first message. Each is null unless at least three
+ * conversations went into it: three judged (24 h+) conversations for `repliedPct`,
+ * three replies for `medianMinutes`. Quoting a percentage of one thread is noise.
  *
  * @param {Array<{customerFirstMs: number, supplierFirstMs: number|null}>} samples - One per conversation
  * @param {number} nowMs - Reference time in epoch milliseconds
  * @returns {{sampleSize: number, matureSampleSize: number, repliedPct: number|null, medianMinutes: number|null}}
  */
 function summariseResponses(samples, nowMs) {
-  const sampleSize = samples.length;
   const mature = samples.filter(sample => nowMs - sample.customerFirstMs >= REPLY_GRACE_MS);
   const replied = mature.filter(sample => sample.supplierFirstMs !== null);
   const gapsInMinutes = samples
     .filter(sample => sample.supplierFirstMs !== null)
     .map(sample => Math.max(0, sample.supplierFirstMs - sample.customerFirstMs) / 60000);
-
-  const enoughData = sampleSize >= MIN_RESPONSE_SAMPLE;
-  const medianGap = median(gapsInMinutes);
+  const medianGap = gapsInMinutes.length >= MIN_RESPONSE_SAMPLE ? median(gapsInMinutes) : null;
 
   return {
-    sampleSize,
+    sampleSize: samples.length,
     matureSampleSize: mature.length,
     repliedPct:
-      enoughData && mature.length > 0 ? Math.round((replied.length / mature.length) * 100) : null,
-    medianMinutes: enoughData && medianGap !== null ? Math.round(medianGap * 10) / 10 : null,
+      mature.length >= MIN_RESPONSE_SAMPLE
+        ? Math.round((replied.length / mature.length) * 100)
+        : null,
+    medianMinutes: medianGap === null ? null : Math.round(medianGap * 10) / 10,
   };
 }
 
@@ -110,7 +128,7 @@ function summariseResponses(samples, nowMs) {
  * @param {Object[]} conversations - `conversations_v4` documents
  * @param {Object[]} firstMessageRows - Aggregation rows `{_id: {conversationId, senderId}, firstAt}`
  * @param {string} ownerUserId - The supplier owner's user id
- * @returns {Array<{createdMs: number, customerFirstMs: number, supplierFirstMs: number|null}>}
+ * @returns {Array<{createdMs: number, customerId: string, customerFirstMs: number, supplierFirstMs: number|null}>}
  */
 function classifyEnquiryConversations(conversations, firstMessageRows, ownerUserId) {
   const firstBySender = new Map();
@@ -140,19 +158,19 @@ function classifyEnquiryConversations(conversations, firstMessageRows, ownerUser
         )
         .map(participant => participant.userId)
     );
-    const customerTimes = [...senders.entries()]
-      .filter(([senderId]) => customerIds.has(senderId))
-      .map(([, firstAt]) => firstAt);
+    const customerTimes = [...senders.entries()].filter(([senderId]) => customerIds.has(senderId));
     if (!customerTimes.length) {
       return;
     }
-    const customerFirstMs = Math.min(...customerTimes);
+    const [customerId, customerFirstMs] = customerTimes.reduce((earliest, entry) =>
+      entry[1] < earliest[1] ? entry : earliest
+    );
     const supplierFirst = senders.has(ownerUserId) ? senders.get(ownerUserId) : null;
     // The supplier opening the conversation (and the customer answering) is outreach, not an enquiry.
     if (supplierFirst !== null && supplierFirst < customerFirstMs) {
       return;
     }
-    enquiries.push({ createdMs, customerFirstMs, supplierFirstMs: supplierFirst });
+    enquiries.push({ createdMs, customerId, customerFirstMs, supplierFirstMs: supplierFirst });
   });
   return enquiries;
 }
@@ -177,7 +195,7 @@ async function loadConversationEnquiries(ownerUserId, sinceMs) {
         createdAt: { $gte: new Date(sinceMs) },
         messageCount: { $gt: 0 },
       },
-      { limit: MAX_CONVERSATIONS_SCANNED, sort: { createdAt: -1 } }
+      { limit: MAX_CONVERSATIONS_SCANNED, sort: { createdAt: -1 }, throwOnError: true }
     )) || [];
   if (!conversations.length) {
     return { enquiries: [], truncated: false };
@@ -185,20 +203,24 @@ async function loadConversationEnquiries(ownerUserId, sinceMs) {
 
   // One row per (conversation, sender): bounded by participants, not by message volume.
   const firstMessageRows =
-    (await dbUnified.aggregate('chat_messages_v4', [
-      {
-        $match: {
-          conversationId: { $in: conversations.map(conversation => conversation._id) },
-          isDeleted: { $ne: true },
+    (await dbUnified.aggregate(
+      'chat_messages_v4',
+      [
+        {
+          $match: {
+            conversationId: { $in: conversations.map(conversation => conversation._id) },
+            isDeleted: { $ne: true },
+          },
         },
-      },
-      {
-        $group: {
-          _id: { conversationId: '$conversationId', senderId: '$senderId' },
-          firstAt: { $min: '$createdAt' },
+        {
+          $group: {
+            _id: { conversationId: '$conversationId', senderId: '$senderId' },
+            firstAt: { $min: '$createdAt' },
+          },
         },
-      },
-    ])) || [];
+      ],
+      STRICT
+    )) || [];
 
   return {
     enquiries: classifyEnquiryConversations(conversations, firstMessageRows, ownerUserId),
@@ -207,101 +229,205 @@ async function loadConversationEnquiries(ownerUserId, sinceMs) {
 }
 
 /**
- * Timestamps of quote requests that named this supplier.
+ * Identify who an enquiry came from, so one person reaching out twice (or through
+ * two channels) is counted once.
  *
- * Quote requests store their recipients in a `suppliers[]` array. The date range
- * is applied in the query; membership is checked here so it behaves the same on
- * every storage backend.
- *
- * @param {string} supplierId - Supplier id
- * @param {number} sinceMs - Earliest creation time to include
- * @returns {Promise<number[]>} Creation times in epoch milliseconds
+ * @param {string|null|undefined} userId - Account id when the sender was signed in
+ * @param {string|null|undefined} email - Email address when known
+ * @returns {string|null} Stable key, or null when the sender cannot be identified
  */
-async function loadQuoteRequestTimes(supplierId, sinceMs) {
-  const requests =
-    (await dbUnified.find('quoteRequests', {
-      createdAt: { $gte: new Date(sinceMs).toISOString() },
-    })) || [];
-  return requests
-    .filter(
-      request =>
-        Array.isArray(request.suppliers) &&
-        request.suppliers.some(recipient => recipient && recipient.supplierId === supplierId)
-    )
-    .map(request => toMillis(request.createdAt))
-    .filter(millis => millis !== null);
+function customerKey(userId, email) {
+  if (userId) {
+    return `u:${userId}`;
+  }
+  const normalised = typeof email === 'string' ? email.trim().toLowerCase() : '';
+  return normalised ? `e:${normalised}` : null;
 }
 
 /**
- * Timestamps of public contact-form enquiries addressed to this supplier.
+ * Quote requests that named this supplier.
+ *
+ * Only this supplier's requests are selected in the database, and only the
+ * fields needed to count them are returned, so no other customer's quote request
+ * (or any contact detail) is loaded. (The local development store cannot match
+ * inside the `suppliers[]` array, so there the count is simply 0; production
+ * runs on MongoDB.)
  *
  * @param {string} supplierId - Supplier id
  * @param {number} sinceMs - Earliest creation time to include
- * @returns {Promise<number[]>} Creation times in epoch milliseconds
+ * @returns {Promise<Array<{ms: number, key: (string|null), source: string}>>} Enquiry entries
  */
-async function loadContactFormTimes(supplierId, sinceMs) {
+async function loadQuoteRequestEntries(supplierId, sinceMs) {
   const rows =
-    (await dbUnified.find('enquiries', {
-      supplierId,
-      createdAt: { $gte: new Date(sinceMs).toISOString() },
-    })) || [];
-  return rows.map(row => toMillis(row.createdAt)).filter(millis => millis !== null);
+    (await dbUnified.aggregate(
+      'quoteRequests',
+      [
+        {
+          $match: {
+            'suppliers.supplierId': supplierId,
+            createdAt: { $gte: new Date(sinceMs).toISOString() },
+          },
+        },
+        { $project: { createdAt: 1, userId: 1, email: 1 } },
+      ],
+      STRICT
+    )) || [];
+  return rows
+    .map(row => ({
+      ms: toMillis(row.createdAt),
+      key: customerKey(row.userId, row.email),
+      source: 'quoteRequests',
+    }))
+    .filter(entry => entry.ms !== null);
 }
 
 /**
- * Count values that fall in the half-open interval [fromMs, toMs).
+ * Public contact-form enquiries addressed to this supplier.
  *
- * @param {number[]} millisList - Timestamps in epoch milliseconds
- * @param {number} fromMs - Inclusive start
- * @param {number} toMs - Exclusive end
- * @returns {number} How many fall inside
+ * @param {string} supplierId - Supplier id
+ * @param {number} sinceMs - Earliest creation time to include
+ * @returns {Promise<Array<{ms: number, key: (string|null), source: string}>>} Enquiry entries
  */
-function countBetween(millisList, fromMs, toMs) {
-  return millisList.filter(millis => millis >= fromMs && millis < toMs).length;
+async function loadContactFormEntries(supplierId, sinceMs) {
+  const rows =
+    (await dbUnified.find(
+      'enquiries',
+      { supplierId, createdAt: { $gte: new Date(sinceMs).toISOString() } },
+      STRICT
+    )) || [];
+  return rows
+    .map(row => ({
+      ms: toMillis(row.createdAt),
+      key: customerKey(null, row.senderEmail),
+      source: 'contactForm',
+    }))
+    .filter(entry => entry.ms !== null);
+}
+
+/**
+ * Count each customer once per window, across all channels.
+ *
+ * A signed-in customer who sends a quote request and then messages the supplier,
+ * or who sends two quote requests, is one enquiry. The channel listed first in
+ * SOURCE_PRIORITY keeps the count; anonymous entries that cannot be identified
+ * are all kept.
+ *
+ * @param {Array<{ms: number, key: (string|null), source: string}>} entries - Entries in one window
+ * @returns {Array<{ms: number, key: (string|null), source: string}>} De-duplicated entries
+ */
+function dedupeEnquiries(entries) {
+  const ordered = [...entries].sort(
+    (first, second) =>
+      SOURCE_PRIORITY.indexOf(first.source) - SOURCE_PRIORITY.indexOf(second.source) ||
+      first.ms - second.ms
+  );
+  const seen = new Set();
+  return ordered.filter(entry => {
+    if (entry.key === null) {
+      return true;
+    }
+    if (seen.has(entry.key)) {
+      return false;
+    }
+    seen.add(entry.key);
+    return true;
+  });
 }
 
 /**
  * Enquiry counts and reply statistics for one supplier over a window.
  *
- * `enquiries` counts three real flows: customer-initiated messenger
- * conversations, quote requests naming the supplier, and contact-form enquiries.
- * (The last two are stored against the supplier but are not yet shown to them
- * anywhere in the product, which is why they are reported separately in
- * `sources`.) `responses` is computed from the messenger conversations only,
- * because that is the only channel in which a reply is recorded.
+ * The window is whole UTC days ending today (see getWindowBounds), so these
+ * figures line up exactly with the per-day chart series.
+ *
+ * `enquiries` counts customers, once each, across three real flows:
+ * customer-initiated messenger conversations, quote requests naming the
+ * supplier, and contact-form enquiries. (The last two are stored against the
+ * supplier but are not yet shown to them anywhere in the product, which is why
+ * they are reported separately in `sources`.) Quote requests are anonymous
+ * public submissions, so anyone can name any supplier; treat the figure as
+ * "requests received". `responses` is computed from the messenger conversations
+ * only, because that is the only channel in which a reply is recorded.
+ *
+ * Results are reused for 30 seconds per (supplier, window) when `now` is not
+ * supplied, because one dashboard load asks several endpoints for the same figures.
  *
  * @param {Object} params - Inputs
  * @param {string} params.supplierId - Supplier id
  * @param {string} params.ownerUserId - The supplier owner's user id
  * @param {number} params.days - Window length in days
- * @param {Date} [params.now] - Reference time
+ * @param {Date} [params.now] - Reference time (disables result reuse)
  * @returns {Promise<{enquiries: Object, responses: Object, enquiryTimestamps: number[]}>}
  *   `enquiryTimestamps` (current window, all sources) feeds the per-day chart series.
  */
-async function getEngagementMetrics({ supplierId, ownerUserId, days, now = new Date() }) {
-  const nowMs = now.getTime();
-  const windowStartMs = nowMs - days * DAY_MS;
-  const previousStartMs = windowStartMs - days * DAY_MS;
+async function getEngagementMetrics({ supplierId, ownerUserId, days, now }) {
+  const cacheKey = `${supplierId}|${ownerUserId}|${days}`;
+  if (!now) {
+    const cached = engagementCache.get(cacheKey);
+    if (cached && Date.now() - cached.at < CACHE_TTL_MS) {
+      return cached.value;
+    }
+  }
+  const value = await computeEngagementMetrics({
+    supplierId,
+    ownerUserId,
+    days,
+    now: now || new Date(),
+  });
+  if (!now) {
+    if (engagementCache.size >= CACHE_MAX_ENTRIES) {
+      engagementCache.delete(engagementCache.keys().next().value);
+    }
+    engagementCache.set(cacheKey, { at: Date.now(), value });
+  }
+  return value;
+}
 
-  const [conversationResult, quoteTimes, contactTimes] = await Promise.all([
+/**
+ * Forget reused results (used by tests and after writes that must show at once).
+ *
+ * @returns {void}
+ */
+function clearEngagementCache() {
+  engagementCache.clear();
+}
+
+/**
+ * Compute engagement metrics without any result reuse.
+ *
+ * @param {Object} params - Inputs (see getEngagementMetrics)
+ * @param {string} params.supplierId - Supplier id
+ * @param {string} params.ownerUserId - The supplier owner's user id
+ * @param {number} params.days - Window length in days
+ * @param {Date} params.now - Reference time
+ * @returns {Promise<{enquiries: Object, responses: Object, enquiryTimestamps: number[]}>}
+ */
+async function computeEngagementMetrics({ supplierId, ownerUserId, days, now }) {
+  const nowMs = now.getTime();
+  const { startMs: windowStartMs, previousStartMs } = getWindowBounds(nowMs, days);
+
+  const [conversationResult, quoteEntries, contactEntries] = await Promise.all([
     loadConversationEnquiries(ownerUserId, previousStartMs),
-    loadQuoteRequestTimes(supplierId, previousStartMs),
-    loadContactFormTimes(supplierId, previousStartMs),
+    loadQuoteRequestEntries(supplierId, previousStartMs),
+    loadContactFormEntries(supplierId, previousStartMs),
   ]);
 
-  const conversationTimes = conversationResult.enquiries.map(enquiry => enquiry.createdMs);
-  const inWindow = times => countBetween(times, windowStartMs, nowMs + 1);
-  const inPrevious = times => countBetween(times, previousStartMs, windowStartMs);
-
-  const sources = {
-    conversations: inWindow(conversationTimes),
-    quoteRequests: inWindow(quoteTimes),
-    contactForm: inWindow(contactTimes),
-  };
-  const previousSources = [conversationTimes, quoteTimes, contactTimes].reduce(
-    (total, times) => total + inPrevious(times),
-    0
+  const allEntries = [
+    ...conversationResult.enquiries.map(enquiry => ({
+      ms: enquiry.createdMs,
+      key: customerKey(enquiry.customerId, null),
+      source: 'conversations',
+    })),
+    ...quoteEntries,
+    ...contactEntries,
+  ];
+  const current = dedupeEnquiries(
+    allEntries.filter(entry => entry.ms >= windowStartMs && entry.ms <= nowMs)
   );
+  const previous = dedupeEnquiries(
+    allEntries.filter(entry => entry.ms >= previousStartMs && entry.ms < windowStartMs)
+  );
+  const countFrom = source => current.filter(entry => entry.source === source).length;
 
   const currentConversations = conversationResult.enquiries.filter(
     enquiry => enquiry.createdMs >= windowStartMs && enquiry.createdMs <= nowMs
@@ -309,15 +435,17 @@ async function getEngagementMetrics({ supplierId, ownerUserId, days, now = new D
 
   return {
     enquiries: {
-      newThisPeriod: sources.conversations + sources.quoteRequests + sources.contactForm,
-      previousPeriod: previousSources,
-      sources,
+      newThisPeriod: current.length,
+      previousPeriod: previous.length,
+      sources: {
+        conversations: countFrom('conversations'),
+        quoteRequests: countFrom('quoteRequests'),
+        contactForm: countFrom('contactForm'),
+      },
       truncated: conversationResult.truncated,
     },
     responses: summariseResponses(currentConversations, nowMs),
-    enquiryTimestamps: [...conversationTimes, ...quoteTimes, ...contactTimes].filter(
-      millis => millis >= windowStartMs && millis <= nowMs
-    ),
+    enquiryTimestamps: current.map(entry => entry.ms),
   };
 }
 
@@ -348,14 +476,14 @@ async function getMessagingSummary(ownerUserId) {
           },
         },
       },
-      { limit: MAX_UNREAD_CONVERSATIONS }
+      { limit: MAX_UNREAD_CONVERSATIONS, throwOnError: true }
     ),
     dbUnified.findWithOptions(
       'conversations_v4',
       { ...activeFilter, messageCount: { $gt: 0 } },
-      { limit: 1, sort: { updatedAt: -1 } }
+      { limit: 1, sort: { updatedAt: -1 }, throwOnError: true }
     ),
-    dbUnified.count('conversations_v4', { ...activeFilter, messageCount: { $gt: 0 } }),
+    dbUnified.count('conversations_v4', { ...activeFilter, messageCount: { $gt: 0 } }, STRICT),
   ]);
 
   let unreadMessages = 0;
@@ -390,6 +518,9 @@ module.exports = {
   median,
   summariseResponses,
   classifyEnquiryConversations,
+  dedupeEnquiries,
+  customerKey,
   getEngagementMetrics,
+  clearEngagementCache,
   getMessagingSummary,
 };
