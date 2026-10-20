@@ -204,7 +204,12 @@
             approved: typeof verification.approved === 'boolean' ? verification.approved : null,
             emailVerified:
               typeof verification.emailVerified === 'boolean' ? verification.emailVerified : null,
-            state: typeof verification.state === 'string' ? verification.state : '',
+            state:
+              typeof verification.status === 'string' && verification.status
+                ? verification.status
+                : typeof verification.state === 'string'
+                  ? verification.state
+                  : '',
             notes: typeof verification.notes === 'string' ? verification.notes : '',
             rejectionCount: count(verification.rejectionCount) || 0,
           }
@@ -231,6 +236,7 @@
             active: count(packages.active),
             paused: count(packages.paused),
             awaitingApproval: count(packages.awaitingApproval),
+            counted: count(packages.countedTowardsLimit),
             limit: limitOf(packages.limit),
           }
         : null,
@@ -257,7 +263,8 @@
         ? {
             total: count(views.total),
             days: viewDays,
-            daily: normaliseDaily(views.daily || views.series),
+            daily: normaliseDaily(views.daily || views.series || data.analytics?.dailyData),
+            requestedDays: limitOf(windowInfo?.requestedDays) || SUMMARY_DAYS,
           }
         : null,
       reviews: reviews
@@ -306,11 +313,17 @@
         label: String(step.label || step.title),
         done: Boolean(step.done || step.completed),
         locked: Boolean(step.locked),
+        lockedReason: typeof step.lockedReason === 'string' ? step.lockedReason : '',
         waiting: Boolean(step.waiting),
         href: typeof step.href === 'string' && /^(\/(?!\/)|#)/u.test(step.href) ? step.href : '',
       }));
     return steps.length
-      ? { steps, completed: steps.filter(step => step.done).length, total: steps.length }
+      ? {
+          steps,
+          completed: steps.filter(step => step.done).length,
+          total: steps.length,
+          primaryKey: typeof raw?.primaryStepId === 'string' ? raw.primaryStepId : '',
+        }
       : null;
   }
 
@@ -397,7 +410,29 @@
 
   /** The first step the supplier can act on now: not done, not locked behind approval, not just waiting. */
   function pickPrimaryStep(steps) {
-    return (steps?.steps || []).find(step => !step.done && !step.locked && !step.waiting) || null;
+    const list = steps?.steps || [];
+    const open = step => !step.done && !step.locked && !step.waiting;
+    const named = steps?.primaryKey ? list.find(step => step.key === steps.primaryKey) : null;
+    return named && open(named) ? named : list.find(open) || null;
+  }
+
+  /**
+   * The server lists "Get your profile verified" as open until approval. While the request is in
+   * review there is nothing for the supplier to do, so it becomes a waiting step, not the next action.
+   */
+  function applyVerificationState(steps, verification) {
+    if (!steps || !verification || verification.approved !== false) {
+      return steps;
+    }
+    const inReview = verification.state === 'pending_review';
+    return {
+      ...steps,
+      steps: steps.steps.map(step =>
+        inReview && /verif|approv/u.test(step.key) && !/email/u.test(step.key) && !step.done
+          ? { ...step, waiting: true, label: 'Verification is in review' }
+          : step
+      ),
+    };
   }
 
   /**
@@ -420,6 +455,9 @@
     }
     if (/review/u.test(key)) {
       return { action: 'request-review' };
+    }
+    if (/calendar/u.test(key)) {
+      return { action: 'scroll', target: 'availability-calendar' };
     }
     if (/social|banner|cover/u.test(key)) {
       return { href: '/supplier/profile-customization' };
@@ -482,7 +520,8 @@
 
   /** "2 of 3 active packages", "2 active packages" (no limit) or "No active packages", from the counts. */
   function packageUsage(model) {
-    const active = model?.packages?.active;
+    // The server counts every package that is not paused against the limit, awaiting approval included.
+    const active = model?.packages?.counted ?? model?.packages?.active;
     if (active === null || active === undefined) {
       return '';
     }
@@ -731,6 +770,7 @@
     failed: false,
     notFound: false,
     user: null,
+    plan: null,
     suppliers: null,
     steps: null,
   };
@@ -760,6 +800,9 @@
       state.failed = !result.data;
       if (!result.data) {
         state.model = null;
+        // No summary (for example no profile yet): the plan card can still say which plan it is.
+        const own = await getJson('/api/v2/subscriptions/me');
+        state.plan = own.data ? normaliseSummary({ subscription: own.data }).subscription : null;
         return null;
       }
       const model = normaliseSummary(result.data);
@@ -1002,7 +1045,7 @@
     const limit = packageLimit(model);
     const meter =
       limit && model?.packages?.active !== null
-        ? bar((model.packages.active / limit) * 100, usage)
+        ? bar(((model.packages.counted ?? model.packages.active) / limit) * 100, usage)
         : '';
     return tile(
       'Plan',
@@ -1092,7 +1135,8 @@
 
   /** The steps to show: the server's list, else the one derived from the summary, else null. */
   function resolveSteps(model, context) {
-    return model?.nextSteps || (model ? deriveSteps(model, context) : null);
+    const steps = model?.nextSteps || (model ? deriveSteps(model, context) : null);
+    return applyVerificationState(steps, model?.verification);
   }
 
   /** Draws the Next steps checklist: to do first, finished ones folded into a details element. */
@@ -1135,7 +1179,7 @@
               return `<li><span class="sdh-step sdh-step--waiting"><span class="sdh-step__mark" aria-hidden="true"></span><span class="sdh-step__label">${label}</span></span></li>`;
             }
             if (step.locked) {
-              return `<li><span class="sdh-step sdh-step--locked"><span class="sdh-step__mark" aria-hidden="true"></span><span class="sdh-step__label">${label}<span class="sdh-step__note"> After approval</span></span></span></li>`;
+              return `<li><span class="sdh-step sdh-step--locked"><span class="sdh-step__mark" aria-hidden="true"></span><span class="sdh-step__label">${label}<span class="sdh-step__note"> ${esc(step.lockedReason || 'Not available yet')}</span></span></span></li>`;
             }
             return `<li><a class="sdh-step${step === primary ? ' sdh-step--next' : ''}" href="${esc(stepHref(step))}"${stepAttrs(step)}><span class="sdh-step__mark" aria-hidden="true"></span><span class="sdh-step__label">${label}</span>${CHEVRON}</a></li>`;
           })
@@ -1280,7 +1324,11 @@
       views.total === 0
         ? '<p class="sdh-note">No visits yet. Your profile appears in search once it is approved.</p>'
         : '';
-    box.innerHTML = `<p class="sdh-metric"><span class="sdh-metric__value">${views.total.toLocaleString('en-GB')}</span><span class="sdh-metric__unit"> ${views.total === 1 ? 'visit' : 'visits'}</span></p>${body}${empty}<p class="sdh-note sdh-note--foot">Counts page loads, not people. One visitor can be counted once an hour.</p>`;
+    const shorter =
+      views.requestedDays > views.days
+        ? `<p class="sdh-note">Your plan shows the last ${views.days} days. <a class="sdh-link" href="/pricing">See plans</a> for longer history.</p>`
+        : '';
+    box.innerHTML = `<p class="sdh-metric"><span class="sdh-metric__value">${views.total.toLocaleString('en-GB')}</span><span class="sdh-metric__unit"> ${views.total === 1 ? 'visit' : 'visits'}</span></p>${body}${empty}${shorter}<p class="sdh-note sdh-note--foot">Counts page loads, not people. One visitor can be counted once an hour.</p>`;
   }
 
   /* ------------------------------------------------------------------ *
@@ -1315,7 +1363,7 @@
     if (!box) {
       return;
     }
-    const subscription = state.model?.subscription;
+    const subscription = state.model?.subscription || state.plan;
     if (!subscription) {
       box.innerHTML =
         '<p class="sdh-note">We could not load your plan.</p><a class="sdh-btn sdh-btn--secondary sdh-btn--sm" href="/supplier/subscription">View subscription</a>';
@@ -1932,6 +1980,7 @@
     toast,
     normaliseSummary,
     deriveSteps,
+    applyVerificationState,
     normaliseSteps,
     pickPrimaryStep,
     stepAction,

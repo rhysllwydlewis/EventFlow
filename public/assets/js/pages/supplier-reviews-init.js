@@ -294,9 +294,9 @@
     const resRateHtml =
       resRate !== null
         ? `<div class="sr-stat-card">
-           <div class="sr-stat-label">Response rate</div>
+           <div class="sr-stat-label">Reviews replied to</div>
            <div class="sr-stat-value">${resRate}%</div>
-           <div class="sr-stat-sub">${resRate === 100 ? 'Excellent' : resRate >= 80 ? 'Good' : 'Needs improvement'}</div>
+           <div class="sr-stat-sub"></div>
          </div>`
         : '';
 

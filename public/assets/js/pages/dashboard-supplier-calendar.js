@@ -1108,7 +1108,8 @@
     container.classList.add('fc-loaded');
 
     calendarInstance = new FullCalendar.Calendar(container, {
-      initialView: 'dayGridMonth',
+      // A month grid is too narrow to read on a phone: start on the week list there.
+      initialView: window.matchMedia?.('(max-width: 639px)').matches ? 'listWeek' : 'dayGridMonth',
       headerToolbar: {
         left: 'prev,next today',
         center: 'title',

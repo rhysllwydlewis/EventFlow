@@ -651,17 +651,18 @@
 
 .sdh-page .sdh-summary__extra {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 1px;
+  overflow: hidden;
   border-top: 1px solid var(--sdh-line-soft);
+  border-radius: 0 0 var(--sdh-radius) var(--sdh-radius);
+  background: var(--sdh-line-soft);
 }
 
 .sdh-page .sdh-stat {
   min-width: 0;
   padding: 16px 24px;
-}
-
-.sdh-page .sdh-stat + .sdh-stat {
-  border-left: 1px solid var(--sdh-line-soft);
+  background: var(--sdh-surface);
 }
 
 .sdh-page .sdh-stat__label {
@@ -1493,6 +1494,7 @@
 }
 
 .sdh-page .sdh-step__note {
+  display: block;
   color: var(--sdh-muted);
   font-size: 12px;
 }
@@ -1567,6 +1569,14 @@
 
 .sdh-page .sdh-avatar__remove {
   top: -4px;
+  width: 28px;
+  height: 28px;
+  min-height: 28px;
+  background: var(--sdh-ink-2);
+  font-size: 16px;
+}
+
+.sdh-page .sdh-avatar__remove:hover {
   background: var(--sdh-danger);
 }
 
@@ -1858,6 +1868,11 @@
 
 .sdh-page .sdh-empty .sdh-btn {
   margin-top: 8px;
+}
+
+/* With no profile yet, the one button is in the card itself; the header toggle only shows while the form is open. */
+.sdh-page.sdh-no-profile #toggle-profile-form[aria-expanded='false'] {
+  display: none;
 }
 
 /* A supplier with no profile sees the profile, plan and support cards only. */
@@ -2215,6 +2230,22 @@
 
 .sdh-page .sr-spinner {
   display: none;
+}
+
+/* Lead badges come from a score the server does not produce, so they never describe a real lead. */
+.sdh-page .sdh-messenger-widget .mwv4__lead-badge {
+  display: none;
+}
+
+/* Support tickets (the site's ticket rows carry their own tinted box). */
+.sdh-page .supplier-ticket-item.ticket-item {
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.sdh-page .supplier-ticket-item.ticket-item:hover {
+  background: #fbfaf8;
 }
 
 /* Support tickets (customer-tickets.js) */
@@ -3536,6 +3567,14 @@
  * 10. Responsive and motion
  * ------------------------------------------------------------------ */
 
+.sdh-page .sdh-card__head {
+  flex-wrap: wrap;
+}
+
+.sdh-page .sdh-card__titles {
+  flex: 1 1 200px;
+}
+
 @media (max-width: 1099px) {
   .sdh-page {
     --sdh-col-side: 320px;
@@ -3672,15 +3711,6 @@
     padding: 14px 16px;
   }
 
-  .sdh-page .sdh-summary__extra {
-    grid-template-columns: minmax(0, 1fr);
-  }
-
-  .sdh-page .sdh-stat + .sdh-stat {
-    border-top: 1px solid var(--sdh-line-soft);
-    border-left: 0;
-  }
-
   .sdh-page .sdh-card__head {
     padding: 16px 16px 0;
   }
@@ -3704,11 +3734,13 @@
   }
 
   .sdh-page .sdh-profile {
-    flex-wrap: wrap;
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: center;
   }
 
   .sdh-page .sdh-profile__actions {
-    width: 100%;
+    grid-column: 1 / -1;
   }
 
   .sdh-page .sdh-profile__actions .sdh-btn {
