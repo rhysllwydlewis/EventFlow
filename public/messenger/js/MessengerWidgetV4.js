@@ -169,6 +169,8 @@
    * @param {boolean}  [options.showQuickReply=true]     Enable inline quick-reply.
    * @param {string}   [options.currentUserId]           Current user ID (auto-resolved if omitted).
    * @param {Function} [options.conversationUrlBuilder]  Build deep-link URL.
+   * @param {boolean}  [options.broadcastUnread=true]    Broadcast the unread count of the
+   *                                                     fetched conversations to the page.
    */
   class MessengerWidgetV4 {
     constructor(containerId, options = {}) {
@@ -182,6 +184,7 @@
         maxItems: options.maxItems || 5,
         refreshIntervalMs: options.refreshIntervalMs || 60000,
         showQuickReply: options.showQuickReply !== false,
+        broadcastUnread: options.broadcastUnread !== false,
         conversationUrlBuilder:
           options.conversationUrlBuilder ||
           (id => `/messenger/?conversation=${encodeURIComponent(id)}`),
@@ -351,10 +354,14 @@
         }, 0);
 
         // Broadcast so NotificationBridgeV4 (loaded on dashboards) can update
-        // bell badges and tab title without polling.
-        window.dispatchEvent(
-          new CustomEvent('messenger:unread-count', { detail: { count: this.unreadCount } })
-        );
+        // bell badges and tab title without polling. A dashboard that shows more conversations
+        // than the widget fetches turns this off (broadcastUnread: false): the count here only
+        // covers the conversations on screen, and UnreadBadgeManager reads the full total.
+        if (this.options.broadcastUnread !== false) {
+          window.dispatchEvent(
+            new CustomEvent('messenger:unread-count', { detail: { count: this.unreadCount } })
+          );
+        }
 
         this._render();
       } catch (err) {

@@ -1469,65 +1469,11 @@ async function initPlan() {
   }
 }
 
-// Shared CSS for the supplier dashboard's onboarding overlay.
-// Uses ID selector + !important to override the global .card { border:none!important;
-// background:#fff!important } rules that would otherwise break the gradient border.
-const EF_OB_SHARED_CSS = `
-  #ef-onboarding-box {
-    border: 2px solid transparent !important;
-    background-image: linear-gradient(#fff, #fff),
-      linear-gradient(to bottom, #0d9488, #a7f3d0) !important;
-    background-origin: padding-box, border-box !important;
-    background-clip: padding-box, border-box !important;
-    box-shadow: 0 4px 32px rgba(13, 148, 136, 0.13),
-      0 1px 4px rgba(0, 0, 0, 0.06) !important;
-    padding: 1rem 1.5rem 1.125rem !important;
-    border-radius: 16px !important;
-  }
-  #ef-ob-inner {
-    display: flex; align-items: center; gap: 1.25rem;
-    flex-wrap: wrap; padding-top: 0.125rem;
-  }
-  #ef-ob-title { flex: 1; min-width: 200px; text-align: left; }
-  #ef-ob-right {
-    display: flex; align-items: center; gap: 0.5rem;
-    flex-wrap: wrap; justify-content: flex-end;
-  }
-  #ef-onboarding-dismiss {
-    flex-shrink: 0;
-    background: linear-gradient(135deg, #22c55e, #16a34a) !important;
-    color: #fff !important;
-    font-weight: 700;
-    padding: 0.5625rem 1.25rem !important;
-    border-radius: 10px !important;
-    border: none !important;
-    cursor: pointer;
-    font-size: 0.875rem !important;
-    box-shadow: 0 3px 12px rgba(22, 163, 74, 0.3);
-    white-space: nowrap;
-    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-    width: auto !important;
-    margin-top: 0 !important;
-  }
-  .ef-ob-close:focus-visible {
-    outline: none !important;
-    box-shadow: 0 0 0 2px #fff, 0 0 0 4px #0d9488 !important;
-  }
-  @media (prefers-reduced-motion: reduce) {
-    #ef-onboarding-box, .ef-ob-pill, #ef-onboarding-dismiss {
-      transition: none !important;
-    }
-  }
-`;
-
 function efMaybeShowOnboarding(page) {
   // Check if onboarding has been permanently dismissed (either key suffices)
   try {
     const dismissed = localStorage.getItem('ef_onboarding_dismissed');
     if (dismissed === '1') {
-      return;
-    }
-    if (page === 'dash_supplier' && localStorage.getItem('ef_supplier_welcome_dismissed') === '1') {
       return;
     }
   } catch {
@@ -1550,116 +1496,7 @@ function efMaybeShowOnboarding(page) {
     return;
   }
 
-  // For supplier dashboard, create a modern, engaging onboarding card with liquid glass aesthetic
-  if (page === 'dash_supplier') {
-    const container = document.querySelector('main .container');
-    if (!container) {
-      return;
-    }
-
-    const box = document.createElement('div');
-    box.id = 'ef-onboarding-box';
-    box.className = 'card no-collapse';
-    box.style.color = '#1f2937';
-    box.style.padding = '1rem 1.5rem 1.125rem';
-    box.style.borderRadius = '16px';
-    box.style.position = 'relative';
-    box.style.overflow = 'hidden';
-    box.style.boxShadow = '0 4px 32px rgba(13, 148, 136, 0.13), 0 1px 4px rgba(0, 0, 0, 0.06)';
-    box.style.border = '2px solid transparent';
-    box.style.backgroundImage =
-      'linear-gradient(#ffffff, #ffffff), linear-gradient(to bottom, #0d9488, #a7f3d0)';
-    box.style.backgroundOrigin = 'padding-box, border-box';
-    box.style.backgroundClip = 'padding-box, border-box';
-
-    box.innerHTML = `
-      <style>
-        ${EF_OB_SHARED_CSS}
-        /* Supplier-specific pill sizing */
-        .ef-ob-pill {
-          flex: 0 0 148px; display: flex; align-items: center;
-          gap: 0.375rem; padding: 0.375rem 0.75rem;
-          background: #f0fdfa; border: 1px solid #99f6e4; border-radius: 8px;
-        }
-        .ef-ob-pill span:last-child {
-          color: #134e4a; font-weight: 500;
-          font-size: 0.8125rem; white-space: nowrap;
-        }
-        @media (max-width: 540px) {
-          #ef-onboarding-box { padding: 0.875rem 1rem 1rem !important; }
-          #ef-ob-inner { gap: 0.75rem; }
-          #ef-ob-right {
-            display: grid; grid-template-columns: 1fr 1fr;
-            width: 100%; gap: 0.5rem;
-          }
-          #ef-onboarding-dismiss { grid-column: 1 / -1; text-align: center; }
-          .ef-ob-pill { flex: unset; width: auto; }
-        }
-        @media (max-width: 400px) {
-          #ef-ob-right { grid-template-columns: 1fr; }
-        }
-      </style>
-      <div style="position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,#0d9488,#5eead4);border-radius:16px 16px 0 0;"></div>
-      <div id="ef-ob-inner">
-        <div id="ef-ob-title">
-          <h2 style="color:#1e3a5f;font-size:1.25rem;font-weight:800;letter-spacing:-0.02em;line-height:1.2;margin-bottom:0.25rem;">Welcome to your Supplier Dashboard! 👋</h2>
-          <p style="color:#6b7280;font-size:0.8125rem;line-height:1.5;margin:0;">Manage your packages, respond to enquiries, track performance and set your availability — everything in the sections below.</p>
-        </div>
-        <div id="ef-ob-right">
-          <div class="ef-ob-pill"><span style="font-size:1rem;line-height:1;" aria-hidden="true">✨</span><span>Complete profile</span></div>
-          <div class="ef-ob-pill"><span style="font-size:1rem;line-height:1;" aria-hidden="true">📦</span><span>Add a package</span></div>
-          <div class="ef-ob-pill"><span style="font-size:1rem;line-height:1;" aria-hidden="true">💬</span><span>Engage customers</span></div>
-          <div class="ef-ob-pill"><span style="font-size:1rem;line-height:1;" aria-hidden="true">📅</span><span>Set availability</span></div>
-          <button type="button" class="cta" id="ef-onboarding-dismiss" aria-label="Dismiss onboarding and start using dashboard">Got it! 🚀</button>
-        </div>
-      </div>
-    `;
-
-    const cards = container.querySelector('.cards');
-    if (cards && cards.parentNode === container) {
-      container.insertBefore(box, cards);
-    } else {
-      container.insertBefore(box, container.firstChild);
-    }
-
-    // Shared dismiss handler — delegates to module function if already loaded
-    const doOverlayDismiss = function () {
-      if (typeof window.dismissSupplierWelcome === 'function') {
-        window.dismissSupplierWelcome();
-        return;
-      }
-      // Fallback (module not yet loaded): handle inline
-      try {
-        localStorage.setItem('ef_onboarding_dismissed', '1');
-        localStorage.setItem('ef_supplier_welcome_dismissed', '1');
-      } catch {
-        /* Ignore localStorage errors */
-      }
-      const easing = 'cubic-bezier(0.4, 0, 0.2, 1)';
-      box.style.transition = `opacity 0.3s ${easing}, transform 0.3s ${easing}`;
-      box.style.opacity = '0';
-      box.style.transform = 'scale(0.95)';
-      setTimeout(() => box.remove(), 300);
-    };
-
-    const btn = box.querySelector('#ef-onboarding-dismiss');
-    if (btn) {
-      // Add hover effect with green theme glow
-      btn.addEventListener('mouseenter', () => {
-        btn.style.transform = 'scale(1.05) translateY(-2px)';
-        btn.style.boxShadow = '0 8px 20px rgba(34, 197, 94, 0.4)';
-      });
-      btn.addEventListener('mouseleave', () => {
-        btn.style.transform = 'scale(1) translateY(0)';
-        btn.style.boxShadow = '0 3px 12px rgba(22, 163, 74, 0.3)';
-      });
-
-      btn.addEventListener('click', doOverlayDismiss);
-    }
-    return;
-  }
-
-  // For other pages (admin), create the onboarding card as before
+  // Admin: a short welcome card.
   const container = document.querySelector('main .container');
   if (!container) {
     return;
@@ -1700,13 +1537,47 @@ function efMaybeShowOnboarding(page) {
   }
 }
 
+/**
+ * Tells the supplier dashboard home script that something it summarises (the profile or the
+ * packages) changed, so it asks the server for fresh numbers.
+ */
+function notifyDashboardChanged() {
+  document.dispatchEvent(new CustomEvent('sdh:changed'));
+}
+
+/**
+ * Tell the supplier something through the dashboard's single toast, falling back to alert().
+ * @param {string} message - What to say.
+ * @param {string} [type] - success, error or info.
+ */
+function efSay(message, type) {
+  const home = window.SupplierDashboardHome;
+  if (home && typeof home.toast === 'function') {
+    home.toast(message, type || 'info');
+  } else {
+    window.alert(message);
+  }
+}
+
+/**
+ * Ask the supplier to confirm a destructive action in the dashboard's own dialog, falling back
+ * to the browser's confirm() when that dialog is not on the page.
+ * @param {{title: string, message: string, confirmLabel: string}} options - What to ask.
+ * @returns {Promise<boolean>} True when the supplier confirmed.
+ */
+function efConfirm(options) {
+  const home = window.SupplierDashboardHome;
+  if (home && typeof home.confirm === 'function') {
+    return home.confirm(options);
+  }
+  return Promise.resolve(window.confirm(options.message || options.title));
+}
+
 /** Message shown in #pkg-status when the free-tier active package limit is reached. */
 const PKG_LIMIT_MESSAGE =
   'You have reached the active package limit on the Starter plan. Upgrade to Pro to add more.';
 
 async function initDashSupplier() {
-  efMaybeShowOnboarding('dash_supplier');
-
   // Fetch CSRF token if not already available
   async function ensureCsrfToken() {
     if (!window.__CSRF_TOKEN__) {
@@ -1835,8 +1706,6 @@ async function initDashSupplier() {
   const supWrap = document.getElementById('my-suppliers');
   const pkgsWrap = document.getElementById('my-packages');
   const select = document.getElementById('pkg-supplier');
-  const proRibbon = document.getElementById('supplier-pro-ribbon');
-  let currentIsPro = false;
   let currentEditingSupplierId = null; // Track which supplier is being edited
 
   // "Other areas you serve" picker state — named cities, and a single
@@ -1851,6 +1720,75 @@ async function initDashSupplier() {
   let supplierServiceAreaSearchResults = [];
   /** Bumped on every search request so a slower, older response can't overwrite a newer one. */
   let supplierServiceAreaSearchRequestId = 0;
+
+  /**
+   * Plan label for the profile card badge, from the supplier record. The dashboard home script
+   * replaces it with the plan from the dashboard summary once that has loaded, so a stale
+   * supplier record cannot show the wrong plan for long.
+   * @param {Object} supplier - Supplier record.
+   * @returns {string} Pro Plus, Pro or Starter.
+   */
+  function supplierTierLabel(supplier) {
+    const tier =
+      supplier.subscriptionTier ||
+      (supplier.subscription && supplier.subscription.tier) ||
+      (supplier.isPro || supplier.pro ? 'pro' : null);
+    if (tier === 'pro_plus') {
+      return 'Pro Plus';
+    }
+    return tier === 'pro' ? 'Pro' : 'Starter';
+  }
+
+  /**
+   * The profile card: photo, name, plan and approval badges, where and what. The edit form
+   * opens from the card header; this only carries the photo controls.
+   * @param {Object} supplier - Supplier record.
+   * @param {string} photoUrl - Already escaped profile photo URL, or ''.
+   * @param {string} initials - Already escaped initials shown when there is no photo.
+   * @returns {string} Card markup.
+   */
+  function supplierCardHtml(supplier, photoUrl, initials) {
+    const supplierId = escapeHtml(String(supplier.id || ''));
+    const name = escapeHtml(String(supplier.name || 'Unnamed supplier'));
+    const meta = [supplier.location, supplier.category]
+      .filter(part => part && String(part).trim())
+      .map(part => escapeHtml(String(part)))
+      .join(' · ');
+    const approval = supplier.approved
+      ? '<span class="sdh-pill sdh-pill--ok">Approved</span>'
+      : '<span class="sdh-pill sdh-pill--warn">Awaiting review</span>';
+    return `<div class="supplier-card sdh-profile" data-supplier-id="${supplierId}">
+      <div class="sdh-profile__avatar">
+        <div class="supplier-profile-photo-slot sdh-avatar" data-avatar-key="${supplierId}">${
+          photoUrl ? `<img src="${photoUrl}" alt="Your profile photo">` : initials
+        }</div>
+        ${
+          photoUrl
+            ? `<button type="button" class="sdh-avatar__remove" data-action="delete-profile-photo" data-profile-id="${supplierId}" title="Delete profile photo" aria-label="Delete profile photo"><span aria-hidden="true">&times;</span></button>`
+            : ''
+        }
+        <label for="supplier-profile-photo-upload-${supplierId}" class="sdh-avatar__camera" title="Upload profile photo" aria-label="Upload profile photo">
+          <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+        </label>
+        <input type="file" id="supplier-profile-photo-upload-${supplierId}" class="supplier-profile-photo-upload" data-profile-id="${supplierId}" accept="image/*" aria-label="Upload profile photo" hidden>
+      </div>
+      <div class="sdh-profile__main">
+        <div class="sdh-profile__name-row">
+          <h3 class="sdh-profile__name">${name}</h3>
+          <span class="sdh-pill sdh-pill--accent" data-sdh-tier>${supplierTierLabel(supplier)}</span>
+          ${approval}
+        </div>
+        ${meta ? `<p class="sdh-profile__meta">${meta}</p>` : ''}
+      </div>
+      <div class="sdh-profile__actions">
+        <button type="button" class="sdh-btn sdh-btn--secondary sdh-btn--sm" data-action="upload-photo" data-profile-id="${supplierId}">Add photos</button>
+      </div>
+    </div>`;
+  }
+
+  /** The profile card's body for a supplier who has no profile yet: one short explanation, one button. */
+  const SUPPLIER_EMPTY_HTML =
+    '<div class="sdh-empty"><p class="sdh-empty__title">Create your business profile</p><p class="sdh-empty__text">Add your business name, category and location to start. You can fill in the rest later, and customers see your profile once we have approved it.</p><button type="button" class="sdh-btn sdh-btn--primary" data-sdh-action="edit-profile" data-sdh-focus="sup-name">Create profile</button></div>';
 
   async function loadSuppliers() {
     try {
@@ -1903,376 +1841,42 @@ async function initDashSupplier() {
       const hasApprovedSupplierProfile = items.some(s => s && s.approved === true);
       window._supplierProfileMissing = !hasSupplierProfile;
       window._supplierApprovalBlocked = hasSupplierProfile && !hasApprovedSupplierProfile;
-      // If this user has at least one Pro supplier, treat them as Pro.
-      // Check subscriptionTier (new field) first, then subscription.tier, then legacy isPro boolean.
-      currentIsPro = items.some(s => {
-        const supplierTier = normalizeSubscriptionTier(
-          s.subscriptionTier,
-          s.subscription?.tier,
-          s.proPlan
-        );
-        return !!s.isPro || supplierTier === 'pro' || supplierTier === 'pro_plus';
-      });
-
-      // Fallback: if no supplier object indicates Pro, check the user's subscription directly.
-      // Use the shared dedup helper so this call and the concurrent
-      // displaySubscriptionStatus() call in dashboard-supplier-module.js both
-      // share a single network request (and therefore a single Stripe API call).
-      if (!currentIsPro) {
-        try {
-          const subData = await window._efFetchOnceJSON('/api/v2/subscriptions/me', {
-            credentials: 'include',
-          });
-          const userTier = normalizeSubscriptionTier(
-            subData?.plan,
-            subData?.tier,
-            subData?.subscription?.tier,
-            subData?.subscription?.plan
-          );
-          if (userTier === 'pro' || userTier === 'pro_plus') {
-            currentIsPro = true;
-          }
-        } catch {
-          // Ignore — subscription endpoint unavailable; fall through to Starter display.
-        }
-      }
-
-      // Final fallback: auth/me is often the most up-to-date source for account tier.
-      // This catches users with paid plans whose supplier records are stale.
-      if (!currentIsPro) {
-        try {
-          const authMe = await window._efFetchOnceJSON('/api/v1/auth/me', {
-            credentials: 'include',
-          });
-          const authTier = normalizeSubscriptionTier(
-            authMe?.user?.subscriptionTier,
-            authMe?.user?.subscription?.tier,
-            authMe?.user?.proPlan
-          );
-          if (authTier === 'pro' || authTier === 'pro_plus' || authMe?.user?.isPro) {
-            currentIsPro = true;
-          }
-        } catch {
-          // Ignore — keep currentIsPro as computed from supplier/subscription endpoints.
-        }
-      }
-
-      if (proRibbon) {
-        if (currentIsPro) {
-          proRibbon.classList.remove('pro-ribbon--starter');
-          proRibbon.style.display = 'block';
-          proRibbon.innerHTML = `
-            <div class="pro-ribbon__inner">
-              <span class="pro-ribbon__icon" aria-hidden="true">⭐</span>
-              <div class="pro-ribbon__text-group">
-                <strong>You're on EventFlow Pro.</strong>
-                <span class="pro-ribbon__desc"> Your listing appears higher in search and you have access to premium features.</span>
-              </div>
-            </div>`;
-        } else {
-          proRibbon.classList.add('pro-ribbon--starter');
-          proRibbon.style.display = 'block';
-          proRibbon.innerHTML = `
-            <div class="pro-ribbon__inner">
-              <span class="pro-ribbon__icon" aria-hidden="true">🚀</span>
-              <div class="pro-ribbon__text-group">
-                <strong>Level up your plan</strong>
-                <span class="pro-ribbon__desc">Unlock priority visibility, more packages, and dedicated support — <a href="/pricing" class="pro-ribbon__text-link">upgrade today</a>.</span>
-              </div>
-            </div>`;
-        }
-      }
+      // The dashboard home script switches the page to its "no profile yet" layout from this.
+      document.dispatchEvent(new CustomEvent('sdh:suppliers', { detail: { suppliers: items } }));
 
       if (!supWrap) {
         return;
       }
 
-      if (!items || items.length === 0) {
-        supWrap.innerHTML =
-          '<div class="sd-empty-state"><div class="sd-empty-state__icon" aria-hidden="true">👤</div><div class="sd-empty-state__body"><p class="sd-empty-state__title">Supplier profile setup needed</p><p class="sd-empty-state__desc">Your supplier account needs a linked business profile before you can create packages.</p><a class="sd-empty-state__cta" href="#profile-form" data-action="open-profile-form">Complete supplier profile →</a></div></div>';
-        // Update quick-stat-profiles with the real count (0)
-        const quickStatProfiles = document.getElementById('quick-stat-profiles');
-        if (quickStatProfiles) {
-          quickStatProfiles.setAttribute('data-target', '0');
-          quickStatProfiles.textContent = '0';
+      const toggleBtn = document.getElementById('toggle-profile-form');
+      if (!hasSupplierProfile) {
+        supWrap.innerHTML = SUPPLIER_EMPTY_HTML;
+        const emptyLabel = toggleBtn && toggleBtn.querySelector('.label');
+        if (emptyLabel && !document.getElementById('profile-form-section')?.classList.contains('expanded')) {
+          emptyLabel.textContent = 'Create profile';
         }
         return;
       }
 
-      // Update quick-stat-profiles with the real profile count
-      const quickStatProfiles = document.getElementById('quick-stat-profiles');
-      if (quickStatProfiles) {
-        quickStatProfiles.setAttribute('data-target', String(items.length));
-        quickStatProfiles.textContent = String(items.length);
-      }
-      // Fetch packages once so checklist milestones can include "create your first package".
-      let packagesBySupplierId = new Map();
-      try {
-        const pkgRes = await api('/api/me/packages');
-        const pkgItems = Array.isArray(pkgRes?.items) ? pkgRes.items : [];
-        packagesBySupplierId = pkgItems.reduce((map, pkg) => {
-          const supplierId = String(pkg?.supplierId || pkg?.supplier || '');
-          if (!supplierId) {
-            return map;
-          }
-          map.set(supplierId, (map.get(supplierId) || 0) + 1);
-          return map;
-        }, new Map());
-      } catch {
-        // Non-fatal: supplier cards should still render if packages fail to load.
-      }
       supWrap.innerHTML = items
-        .map(s => {
-          // Safe access to supplier properties
-          if (!s) {
-            return '';
-          }
-
-          // Enhanced badge rendering for Pro and Pro+ tiers
-          let tierLabel = '';
-          // Check subscriptionTier field first (new), then fall back to subscription.tier or isPro
-          const tier =
-            s.subscriptionTier ||
-            (s.subscription && s.subscription.tier) ||
-            (s.isPro || s.pro ? 'pro' : null);
-
-          if (tier === 'pro_plus') {
-            tierLabel = 'Pro Plus';
-          } else if (tier === 'pro') {
-            tierLabel = 'Pro';
-          } else {
-            tierLabel = 'Starter';
-          }
-
-          // Profile completeness checklist shown under each listing card. The score itself
-          // reuses ProfileHealthWidget's calculation (the same one shown on the "Profile
-          // Health" card further down this dashboard) so the two never disagree for the
-          // same supplier. This checklist only controls which "improve your profile" items
-          // are surfaced per-card; package creation stays as a dashboard-specific nudge.
-          const hasPhotos =
-            s.photosGallery && Array.isArray(s.photosGallery) && s.photosGallery.length > 0;
-          const hasDescription =
-            s.description_long &&
-            typeof s.description_long === 'string' &&
-            s.description_long.length > 50;
-          const hasCategory = s.category && typeof s.category === 'string' && s.category.length > 0;
-          const hasLocation = s.location && typeof s.location === 'string' && s.location.length > 0;
-          const hasWebsite = s.website && typeof s.website === 'string' && s.website.length > 0;
-
-          const packageCountForSupplier = packagesBySupplierId.get(String(s.id || '')) || 0;
-          const checklistItems = [
-            {
-              label: 'Business Details',
-              complete: Boolean(s.name && hasLocation),
-              targetField: 'sup-name',
-            },
-            { label: 'Categories & Services', complete: hasCategory, targetField: 'sup-category' },
-            { label: 'Photos', complete: hasPhotos, targetField: 'sup-photo-drop' },
-            { label: 'Contact Information', complete: hasWebsite, targetField: 'sup-website' },
-            {
-              label: 'Create your first package',
-              complete: packageCountForSupplier > 0,
-              detail:
-                packageCountForSupplier > 0
-                  ? `${packageCountForSupplier} package${packageCountForSupplier === 1 ? '' : 's'} live`
-                  : 'Add a package with pricing to start getting enquiries',
-              highlight: true,
-              targetField: 'package-form',
-            },
-            { label: 'Business Description', complete: hasDescription, targetField: 'sup-long' },
-          ];
-          const completedCount = checklistItems.filter(item => item.complete).length;
-          // Health score: same formula as the "Profile Health" card (ProfileHealthWidget),
-          // falling back to this checklist's own completion ratio only if that shared
-          // component failed to load.
-          const checklistScore =
-            window.ProfileHealthWidget && typeof window.ProfileHealthWidget.calculate === 'function'
-              ? window.ProfileHealthWidget.calculate(s).percentage
-              : Math.round((completedCount / checklistItems.length) * 100);
-
-          // Safe access to all fields with defaults — escape all user-supplied values to prevent XSS
-          const supplierId = String(s.id || '').replace(/"/g, '&quot;');
-          const name = escapeHtml(String(s.name || 'Unnamed Supplier'));
-          const location = escapeHtml(String(s.location || 'Location not set'));
-          const category = escapeHtml(String(s.category || 'Uncategorized'));
-          const approved = !!s.approved;
-          const profilePhotoUrl = resolveDashboardSupplierProfilePhoto(s);
-
-          return `<div class="supplier-card card glass-card spc-root" data-supplier-id="${supplierId}">
-      <div class="spc-summary">
-        <!-- Avatar column with camera upload overlay -->
-          <div class="spc-avatar-wrap">
-            <div class="supplier-profile-photo-slot spc-avatar-col" aria-hidden="true" style="width:100px;height:100px;flex-shrink:0;border-radius:50%;overflow:hidden;${
-              profilePhotoUrl
-                ? `background:none;`
-                : `background:linear-gradient(135deg,#0b8073 0%,#0a6b5f 100%);display:flex;align-items:center;justify-content:center;color:#fff;font-size:2.4rem;font-weight:700;`
-            }">
-            ${
-              profilePhotoUrl
-                ? `<img src="${profilePhotoUrl}" alt="Your profile photo" style="width:100%;height:100%;object-fit:cover;display:block;">`
-                : profileInitial
-            }
-            </div>
-            ${
-              profilePhotoUrl
-                ? `<button type="button" class="spc-avatar-delete-btn" data-action="delete-profile-photo" data-profile-id="${supplierId}" title="Delete profile photo" aria-label="Delete profile photo"><span aria-hidden="true">✕</span></button>`
-                : ''
-            }
-            <label for="supplier-profile-photo-upload-${supplierId}" class="spc-camera-btn" title="Upload profile photo" aria-label="Upload profile photo">
-              <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
-            </label>
-          <input type="file" id="supplier-profile-photo-upload-${supplierId}" class="supplier-profile-photo-upload" data-profile-id="${supplierId}" accept="image/*" style="display:none;" aria-label="Upload profile photo">
-        </div>
-        <!-- Body column -->
-        <div class="spc-body">
-          <div class="spc-name-row">
-            <h3 class="spc-name">${name}</h3>
-            <div class="spc-badges">
-              <span class="spc-badge spc-badge--tier">
-                <svg class="spc-badge-icon" width="12" height="12" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
-                ${tierLabel}
-              </span>
-              ${
-                approved
-                  ? `<span class="spc-badge spc-badge--approved">
-                      <svg class="spc-badge-icon" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
-                      Approved
-                    </span>`
-                  : '<span class="spc-badge spc-badge--pending">Awaiting review</span>'
-              }
-            </div>
-          </div>
-          <div class="spc-meta">
-            <svg class="spc-meta-icon" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
-            <span>${location}</span>
-            <span class="spc-category-chip">
-              <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>
-              ${category}
-            </span>
-          </div>
-        </div>
-        <!-- Health score ring (right column). This is a weighted richness score (logo,
-             description length, photos, socials, website — see ProfileHealthWidget) and
-             is deliberately a different number from the setup checklist beside it, which
-             just counts finished tasks. The title/aria-label say so, since the two used
-             to read as disagreeing claims about the same thing with nothing to explain why. -->
-        <div
-          class="spc-ring"
-          aria-label="Health score: how complete your profile content is — separate from the setup checklist"
-          title="How complete your profile content is (photos, description, links). Separate from the setup checklist below."
-          aria-live="polite"
-          data-computed-score="${checklistScore}"
-        >
-          <div class="spc-ring-circle">
-            <svg class="spc-ring-svg" viewBox="0 0 80 80" fill="none" aria-hidden="true">
-              <circle class="spc-ring-track" cx="40" cy="40" r="32"/>
-              <circle class="spc-ring-fill" cx="40" cy="40" r="32"/>
-            </svg>
-            <div class="spc-ring-inner">
-              <span class="spc-ring-score" aria-label="Health score">—</span>
-            </div>
-          </div>
-          <span class="spc-ring-label">Health Score</span>
-          <span class="spc-ring-grade"></span>
-        </div>
-      </div>
-      <!-- 3-button action bar -->
-      <div class="spc-actions">
-        <button type="button" class="spc-action-btn spc-upload-btn" data-action="upload-photo" data-profile-id="${supplierId}">
-          <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-          Upload Photo
-        </button>
-        <button type="button" class="spc-action-btn spc-action-btn--edit" data-action="edit-profile" data-profile-id="${supplierId}">
-          <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
-          Edit Profile
-        </button>
-        <button type="button" class="spc-action-btn spc-action-btn--checklist" data-action="view-checklist" data-profile-id="${supplierId}" aria-expanded="true" aria-controls="spc-checklist-${supplierId}">
-          <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="2" width="6" height="4" rx="1"/><path d="M9 2H7a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2h-2"/><line x1="9" y1="12" x2="15" y2="12"/><line x1="9" y1="16" x2="13" y2="16"/></svg>
-          <span class="spc-checklist-btn-label">Hide Checklist</span>
-        </button>
-      </div>
-      <!-- Profile Setup Checklist -->
-      <div class="spc-checklist-card" id="spc-checklist-${supplierId}">
-        <div class="spc-checklist-header">
-          <div class="spc-checklist-big-icon${completedCount === checklistItems.length ? ' spc-checklist-big-icon--complete' : ''}" aria-hidden="true">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
-          </div>
-          <div class="spc-checklist-header-body">
-            <div class="spc-checklist-title-row">
-              <span class="spc-checklist-title">Profile Setup Checklist</span>
-              <span class="spc-checklist-count">${completedCount} / ${checklistItems.length}</span>
-            </div>
-            <p class="spc-checklist-subtitle">Setup tasks to complete — a separate count from the Health Score above, which scores how rich your content is</p>
-          </div>
-        </div>
-        <div class="spc-checklist-steps" role="list">
-          ${checklistItems
-            .map(
-              (item, i) => `
-            <button type="button" class="spc-checklist-step${item.complete ? ' spc-checklist-step--complete' : ''}${item.highlight ? ' spc-checklist-step--milestone' : ''}" role="listitem" data-checklist-target="${item.targetField || ''}" data-profile-id="${supplierId}" aria-label="Go to ${item.label}">
-              <div class="spc-checklist-step-circle" aria-hidden="true">${
-                item.complete
-                  ? `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>`
-                  : `${i + 1}`
-              }</div>
-              <div class="spc-checklist-step-copy">
-                <span class="spc-checklist-step-label">${item.label}</span>
-                ${item.detail ? `<span class="spc-checklist-step-detail">${item.detail}</span>` : ''}
-              </div>
-            </button>
-          `
+        .filter(Boolean)
+        .map(s =>
+          supplierCardHtml(
+            s,
+            resolveDashboardSupplierProfilePhoto(s),
+            escapeHtml(
+              (window.EFSupplierAvatar && window.EFSupplierAvatar.getSupplierInitials(s.name)) ||
+                profileInitial
             )
-            .join('')}
-        </div>
-      </div>
-    </div>`;
-        })
+          )
+        )
         .join('');
-
-      // Populate circular health score ring for each supplier card
-      const rows = supWrap.querySelectorAll('.supplier-card');
-      items.forEach((s, idx) => {
-        if (!s) {
-          return;
-        }
-
-        const row = rows[idx];
-        if (!row) {
-          return;
-        }
-
-        // Health score: prefer aiScore if set, otherwise use checklist-based score embedded in DOM
-        const ringEl = row.querySelector('.spc-ring');
-        const checklistScore = ringEl ? parseInt(ringEl.dataset.computedScore || '0', 10) : 0;
-        const score = typeof s.aiScore === 'number' && s.aiScore > 0 ? s.aiScore : checklistScore;
-
-        // Populate circular health score ring
-        const RING_GOOD_THRESHOLD = 80;
-        const RING_FAIR_THRESHOLD = 50;
-        const ringScore = row.querySelector('.spc-ring-score');
-        const ringFill = row.querySelector('.spc-ring-fill');
-        const ringGrade = row.querySelector('.spc-ring-grade');
-        if (ringScore && ringFill) {
-          const RING_RADIUS = 32; // must match r="32" in the SVG circle + CSS stroke-dasharray comment
-          const circumference = 2 * Math.PI * RING_RADIUS;
-          const displayScore = score;
-          const offset = circumference * (1 - displayScore / 100);
-          ringFill.style.strokeDasharray = `${circumference}`;
-          ringFill.style.strokeDashoffset = `${offset}`;
-          ringScore.textContent = String(displayScore);
-          ringScore.setAttribute('aria-label', `Health score: ${displayScore}`);
-          if (ringGrade && ringEl) {
-            if (displayScore >= RING_GOOD_THRESHOLD) {
-              ringGrade.textContent = 'Good';
-              ringEl.dataset.grade = 'good';
-            } else if (displayScore >= RING_FAIR_THRESHOLD) {
-              ringGrade.textContent = 'Fair';
-              ringEl.dataset.grade = 'fair';
-            } else {
-              ringGrade.textContent = 'Poor';
-              ringEl.dataset.grade = 'poor';
-            }
-          }
+      // Initials sit on the supplier's own colour; the colour is data, so it is set from script.
+      supWrap.querySelectorAll('.sdh-avatar').forEach(slot => {
+        if (!slot.querySelector('img')) {
+          slot.style.background = window.EFSupplierAvatar
+            ? window.EFSupplierAvatar.getSupplierAvatarGradient(slot.dataset.avatarKey)
+            : '';
         }
       });
 
@@ -2304,6 +1908,7 @@ async function initDashSupplier() {
               await window.AuthStateManager.refresh();
             }
             await loadSuppliers();
+            notifyDashboardChanged();
           } catch (err) {
             console.error('Profile photo upload failed:', err);
             if (window.announceToSR) {
@@ -2318,7 +1923,7 @@ async function initDashSupplier() {
       if (select) {
         select.innerHTML = items
           .filter(s => s && s.id && s.name)
-          .map(s => `<option value="${s.id}">${s.name}</option>`)
+          .map(s => `<option value="${escapeHtml(String(s.id))}">${escapeHtml(String(s.name))}</option>`)
           .join('');
         // Sync hidden supplierId input to the selected supplier
         const hiddenInput = document.getElementById('pkg-supplier-id-hidden');
@@ -2332,53 +1937,31 @@ async function initDashSupplier() {
         }
       }
 
-      // Auto-populate form with supplier's data
-      // If we're currently editing a supplier, restore that supplier's data
-      // Otherwise, populate with first supplier's data if exists
-      if (items.length > 0) {
-        let supplierToEdit = items[0];
+      // Fill the edit form with the supplier being edited, else the first one, so opening it
+      // always shows the saved profile.
+      let supplierToEdit = items[0];
+      if (currentEditingSupplierId) {
+        const foundSupplier = items.find(s => s && s.id === currentEditingSupplierId);
+        if (foundSupplier) {
+          supplierToEdit = foundSupplier;
+        }
+      }
+      populateSupplierForm(supplierToEdit);
 
-        // If we have a currently editing supplier ID, find it and use it
-        if (currentEditingSupplierId) {
-          const foundSupplier = items.find(s => s && s.id === currentEditingSupplierId);
-          if (foundSupplier) {
-            supplierToEdit = foundSupplier;
-          }
-        }
-
-        populateSupplierForm(supplierToEdit);
-
-        // Single-profile enforcement: update button label and section heading
-        // A supplier already has a profile — the button should say "Edit Profile"
-        const toggleBtn = document.getElementById('toggle-profile-form');
-        if (toggleBtn) {
-          const labelSpan = toggleBtn.querySelector('.label');
-          const profileFormSection = document.getElementById('profile-form-section');
-          if (labelSpan && !profileFormSection?.classList.contains('expanded')) {
-            labelSpan.textContent = 'Edit Profile';
-          }
-        }
-        const sectionHeading = document.querySelector(
-          '#profile-form-section .supplier-section-header'
-        );
-        if (sectionHeading) {
-          sectionHeading.textContent = 'Edit Profile';
-        }
-        // Update the quick-action chip label to "Edit Profile" since only one profile is allowed
-        const createProfileChip = document.querySelector('[data-action="create-profile"]');
-        if (createProfileChip) {
-          const chipSpan = createProfileChip.querySelector('span');
-          if (chipSpan) {
-            chipSpan.textContent = 'Edit Profile';
-          }
-          createProfileChip.setAttribute('data-action', 'edit-profile-chip');
-        }
+      // One profile per supplier: the toggle says "Edit profile" and the form heading too.
+      const labelSpan = toggleBtn && toggleBtn.querySelector('.label');
+      if (labelSpan && !document.getElementById('profile-form-section')?.classList.contains('expanded')) {
+        labelSpan.textContent = 'Edit profile';
+      }
+      const sectionHeading = document.querySelector('#profile-form-section .supplier-section-header');
+      if (sectionHeading) {
+        sectionHeading.textContent = 'Edit profile';
       }
     } catch (err) {
       console.error('Error loading suppliers:', err);
       if (supWrap) {
         supWrap.innerHTML =
-          '<div class="sd-empty-state"><div class="sd-empty-state__icon" aria-hidden="true">⚠️</div><div class="sd-empty-state__body"><p class="sd-empty-state__title">Could not load profiles</p><p class="sd-empty-state__desc">Please refresh the page to try again.</p></div></div>';
+          '<div class="sdh-empty"><p class="sdh-empty__title">Could not load your profile</p><p class="sdh-empty__text">Check your connection and try again.</p><button type="button" class="sdh-btn sdh-btn--secondary sdh-btn--sm" data-sdh-action="reload">Try again</button></div>';
       }
     }
   }
@@ -2419,9 +2002,9 @@ async function initDashSupplier() {
     if (supManageGalleryLink) {
       if (supplier.id) {
         supManageGalleryLink.href = `/gallery?type=supplier&id=${encodeURIComponent(supplier.id)}`;
-        supManageGalleryLink.style.display = '';
+        supManageGalleryLink.hidden = false;
       } else {
-        supManageGalleryLink.style.display = 'none';
+        supManageGalleryLink.hidden = true;
       }
     }
     if (supName) {
@@ -2598,7 +2181,7 @@ async function initDashSupplier() {
     // Show preview button if supplier has an ID
     const previewBtn = document.getElementById('sup-preview');
     if (previewBtn && supplier.id) {
-      previewBtn.style.display = 'inline-block';
+      previewBtn.hidden = false;
     }
 
     // Reload the supplier gallery photo tiles whenever the form is populated
@@ -2641,52 +2224,142 @@ async function initDashSupplier() {
     return isKnownPlaceholderUrl(p?.image);
   }
 
+  /**
+   * Package allowance for the plan, from the dashboard summary (the server's own limits), so the
+   * number shown here is the number the server enforces. Resolves to limit null when the plan has
+   * no limit or the summary could not be loaded; the server still refuses a package over the limit.
+   * @returns {Promise<{known: boolean, limit: (number|null)}>} The allowance.
+   */
+  async function getPackageAllowance() {
+    try {
+      const home = window.SupplierDashboardHome;
+      if (home && typeof home.getPackageAllowance === 'function') {
+        const allowance = await home.getPackageAllowance();
+        return { known: Boolean(allowance.known), limit: allowance.limit };
+      }
+    } catch {
+      /* Fall through: the limit is unknown, the server decides. */
+    }
+    return { known: false, limit: null };
+  }
+
+  /**
+   * The line under the "Your packages" heading: how much of the plan is used, from real counts.
+   * @param {number} activeCount - Packages that are not paused (the ones the limit counts).
+   * @param {{known: boolean, limit: (number|null)}} allowance - The plan's allowance.
+   * @returns {string} The sentence.
+   */
+  function packageNoteText(activeCount, allowance) {
+    const noun = count => `${count} active package${count === 1 ? '' : 's'}`;
+    if (allowance.limit !== null) {
+      if (activeCount > allowance.limit) {
+        const surplus = activeCount - allowance.limit;
+        return `You have ${noun(activeCount)} but your plan allows ${allowance.limit}. Pause or delete ${surplus} to stay within your limit, or upgrade.`;
+      }
+      return `${activeCount} of ${allowance.limit} active packages on your plan.`;
+    }
+    if (allowance.known) {
+      return activeCount ? `${noun(activeCount)}.` : 'Add a package to show what you offer.';
+    }
+    return 'What you offer, and what it costs.';
+  }
+
+  /**
+   * One package row: photo, title and price, status badges, and one Edit button with text links
+   * for the rest.
+   * @param {Object} p - Package record.
+   * @returns {string} Row markup.
+   */
+  function packageCardHtml(p) {
+    const packageId = escapeHtml(String(p.id || ''));
+    const image = escapeHtml(String(p.image || '/assets/images/package-placeholder.svg'));
+    const title = escapeHtml(String(p.title || 'Untitled package'));
+    const priceDisplay = escapeHtml(String(p.price_display || ''));
+    const description = escapeHtml(String(p.description || ''));
+    const slug = escapeHtml(String(p.slug || ''));
+    const approved = !!p.approved;
+    const paused = !!p.paused;
+    const badges = [
+      p.featured ? '<span class="sdh-pill sdh-pill--accent">Featured</span>' : '',
+      approved
+        ? ''
+        : '<span class="sdh-pill sdh-pill--warn" title="This package is awaiting approval before it appears publicly">Awaiting review</span>',
+      paused
+        ? '<span class="sdh-pill sdh-pill--muted" title="This package is paused and not visible publicly">Paused</span>'
+        : '',
+      isPackagePhotoMissing(p)
+        ? '<span class="sdh-pill" title="This package shows a placeholder image to customers. Add a photo.">No photo</span>'
+        : '',
+    ].join('');
+    const viewUnavailableReason = !approved
+      ? 'This package has no public page yet: it is awaiting approval'
+      : 'This package has no public page yet';
+    const viewControl =
+      approved && slug
+        ? `<a href="/package?slug=${slug}" target="_blank" rel="noopener" class="sdh-link">View</a>`
+        : `<button type="button" class="sdh-link" disabled aria-disabled="true" title="${viewUnavailableReason}">View</button>`;
+    const pauseControl = `<button type="button" class="sdh-link" data-action="${paused ? 'unpause-package' : 'pause-package'}" data-package-id="${packageId}">${paused ? 'Resume' : 'Pause'}</button>`;
+    return `<article class="package-card sdh-pkg${paused ? ' sdh-pkg--paused' : ''}" data-package-id="${packageId}">
+      <div class="sdh-pkg__media"><img src="${image}" alt="" loading="lazy" data-fallback-src="/assets/images/package-placeholder.svg"></div>
+      <div class="sdh-pkg__body">
+        <div class="sdh-pkg__head">
+          <h3 class="sdh-pkg__title">${title}</h3>
+          ${priceDisplay ? `<span class="sdh-pkg__price">${priceDisplay}</span>` : ''}
+        </div>
+        <div class="sdh-pkg__badges">${badges}</div>
+        ${description ? `<p class="sdh-pkg__desc">${description}</p>` : ''}
+        <div class="sdh-pkg__actions">
+          <button type="button" class="sdh-btn sdh-btn--secondary sdh-btn--sm" data-action="edit-package" data-package-id="${packageId}" aria-label="Edit ${title}">Edit</button>
+          ${viewControl}
+          <a href="/gallery?type=package&id=${encodeURIComponent(String(p.id || ''))}" target="_blank" rel="noopener" class="sdh-link">Photos</a>
+          ${pauseControl}
+          <button type="button" class="sdh-link sdh-link--danger" data-action="delete-package" data-package-id="${packageId}" aria-label="Delete ${title}">Delete</button>
+        </div>
+      </div>
+    </article>`;
+  }
+
+  /**
+   * A short message in the packages card: what is wrong or missing, and optionally one button.
+   * @param {string} title - Heading line.
+   * @param {string} text - Explanation.
+   * @param {string} [action] - Button markup.
+   * @returns {string} Markup.
+   */
+  function packageMessageHtml(title, text, action) {
+    return `<div class="sdh-empty"><p class="sdh-empty__title">${title}</p><p class="sdh-empty__text">${text}</p>${action || ''}</div>`;
+  }
+
   async function loadPackages() {
     try {
       if (!pkgsWrap) {
         return;
       }
       const note = document.getElementById('pkg-limit-note');
-      const d = await api('/api/me/packages');
+      const supplierBlocked = window._supplierProfileMissing || window._supplierApprovalBlocked;
+      const supplierBlockMessage = window._supplierProfileMissing
+        ? 'Create your profile before adding packages.'
+        : 'Package creation unlocks once your profile is approved.';
+      const [d, allowance] = await Promise.all([api('/api/me/packages'), getPackageAllowance()]);
       const items = d?.items && Array.isArray(d.items) ? d.items : [];
       // Only count active (non-paused) packages against the plan limit; paused packages
       // are preserved but don't occupy a slot, matching the server-side enforcement.
       const activeCount = items.filter(p => !p.paused).length;
-      const freeLimit = 3; // keep in sync with server FREE_PACKAGE_LIMIT default
+      const atLimit = allowance.limit !== null && activeCount >= allowance.limit;
 
-      // Update note about allowance
       if (note) {
-        if (currentIsPro) {
-          note.textContent = activeCount
-            ? `You have ${activeCount} active package${activeCount === 1 ? '' : 's'}. As a Pro supplier you can create unlimited packages.`
-            : 'As a Pro supplier you can create unlimited packages.';
-        } else if (activeCount > freeLimit) {
-          // Over-limit (e.g. after a downgrade): surface the excess clearly.
-          const surplus = activeCount - freeLimit;
-          note.textContent = `You have ${activeCount} active packages but your Starter plan allows ${freeLimit}. Pause or delete ${surplus} package${surplus === 1 ? '' : 's'} to stay within your limit, or upgrade.`;
-        } else {
-          note.textContent = activeCount
-            ? `You have ${activeCount} of ${freeLimit} active packages on the Starter plan.`
-            : `On the Starter plan you can create up to ${freeLimit} active packages.`;
-        }
+        note.textContent = packageNoteText(activeCount, allowance);
       }
 
-      // Track whether the free tier package limit is reached.
-      // Only block *creating* new packages — editing existing ones must remain allowed.
+      // Only block *creating* new packages; editing existing ones must remain allowed.
       const pkgForm = document.getElementById('package-form');
-      const supplierBlocked = window._supplierProfileMissing || window._supplierApprovalBlocked;
-      const supplierBlockMessage = window._supplierProfileMissing
-        ? 'Complete your supplier profile setup before creating packages.'
-        : 'Your supplier profile is pending approval. Package creation unlocks after approval.';
-      const atLimit = !currentIsPro && activeCount >= freeLimit;
       // Expose globally so togglePackageForm() and editPackage() can reference it.
       window._pkgAtLimit = atLimit;
       // Store limit label text so togglePackageForm() can restore it after edit mode.
       window._pkgLimitLabel = atLimit
-        ? `${activeCount}/${freeLimit} Active — Limit reached`
-        : 'Create Package';
+        ? `${activeCount}/${allowance.limit} active: limit reached`
+        : 'Create package';
 
-      // Update the "Create Package" toggle button to reflect the plan limit.
       const toggleBtn = document.getElementById('toggle-package-form');
       if (toggleBtn) {
         const labelEl = toggleBtn.querySelector('.label');
@@ -2696,54 +2369,40 @@ async function initDashSupplier() {
         if (!formIsOpen) {
           if (atLimit) {
             toggleBtn.disabled = true;
-            toggleBtn.classList.add('form-toggle-btn--at-limit');
-            toggleBtn.setAttribute(
-              'aria-label',
-              `Package limit reached: ${activeCount} of ${freeLimit} active. Upgrade to create more.`
-            );
-            toggleBtn.title = `You've reached your ${freeLimit}-package limit. Pause or delete a package, or upgrade your plan.`;
+            toggleBtn.title = `You have reached your plan's ${allowance.limit}-package limit. Pause or delete a package, or upgrade your plan.`;
             if (labelEl) {
               labelEl.textContent = window._pkgLimitLabel;
             }
           } else if (supplierBlocked) {
             toggleBtn.disabled = true;
-            toggleBtn.classList.add('form-toggle-btn--at-limit');
-            toggleBtn.setAttribute('aria-label', supplierBlockMessage);
             toggleBtn.title = supplierBlockMessage;
             if (labelEl) {
-              // Explicitly say "Profile" here — this button sits inside the
-              // Packages card, and existing approved packages may already be
-              // listed below it, so an unqualified "Pending approval" reads
-              // as if the packages themselves are pending rather than the
-              // profile that gates *creating new ones*.
               labelEl.textContent = window._supplierProfileMissing
                 ? 'Profile setup needed'
                 : 'Profile pending approval';
             }
           } else {
             toggleBtn.disabled = false;
-            toggleBtn.classList.remove('form-toggle-btn--at-limit');
-            toggleBtn.setAttribute('aria-label', 'Toggle package creation form');
             toggleBtn.title = '';
             if (labelEl) {
-              labelEl.textContent = 'Create Package';
+              labelEl.textContent = 'Create package';
             }
           }
         }
-        // Show or hide upgrade CTA alongside the button.
+        // Show or hide the upgrade link alongside the button.
         let upgradeCta = document.getElementById('pkg-upgrade-cta');
         if (atLimit) {
           if (!upgradeCta) {
             upgradeCta = document.createElement('a');
             upgradeCta.id = 'pkg-upgrade-cta';
             upgradeCta.href = '/supplier/subscription';
-            upgradeCta.className = 'pkg-upgrade-link';
+            upgradeCta.className = 'sdh-link';
             upgradeCta.textContent = 'Upgrade plan';
             toggleBtn.insertAdjacentElement('afterend', upgradeCta);
           }
-          upgradeCta.style.display = 'inline-flex';
+          upgradeCta.hidden = false;
         } else if (upgradeCta) {
-          upgradeCta.style.display = 'none';
+          upgradeCta.hidden = true;
         }
       }
 
@@ -2758,84 +2417,38 @@ async function initDashSupplier() {
       }
 
       if (!items || items.length === 0) {
-        pkgsWrap.innerHTML =
-          '<div class="sd-empty-state"><div class="sd-empty-state__icon" aria-hidden="true">📦</div><div class="sd-empty-state__body"><p class="sd-empty-state__title">No packages yet</p><p class="sd-empty-state__desc">Create your first package to showcase your services and pricing.</p></div></div>';
+        pkgsWrap.innerHTML = packageMessageHtml(
+          'No packages yet',
+          supplierBlocked
+            ? supplierBlockMessage
+            : 'Create your first package to show what you offer and what it costs.'
+        );
         return;
       }
-      pkgsWrap.innerHTML = items
-        .map(p => {
-          if (!p) {
-            return '';
-          }
-
-          const packageId = String(p.id || '').replace(/"/g, '&quot;');
-          const image = String(p.image || '/assets/images/package-placeholder.svg');
-          const title = String(p.title || 'Untitled Package');
-          const priceDisplay = String(p.price_display || '');
-          const description = String(p.description || '');
-          const featured = !!p.featured;
-          const approved = !!p.approved;
-          const paused = !!p.paused;
-          const slug = String(p.slug || '').replace(/"/g, '&quot;');
-
-          const approvalBadge = approved
-            ? ''
-            : '<span class="badge badge-pending" title="This package is awaiting admin approval before it appears publicly">Awaiting review</span>';
-          const pausedBadge = paused
-            ? '<span class="badge badge-paused" title="This package is paused and not visible publicly">Paused</span>'
-            : '';
-          const noPhotoBadge = isPackagePhotoMissing(p)
-            ? '<span class="badge badge-no-photo" title="This package shows a placeholder image to customers. Upload a photo below.">No photo</span>'
-            : '';
-          // Package price chip — only rendered when a price exists, so no empty pill appears
-          const priceBadgeHtml = priceDisplay
-            ? `<span class="badge pkg-price-badge">${escapeHtml(priceDisplay)}</span>`
-            : '';
-          // A package with no public page still gets a View control, disabled and
-          // explaining itself. Dropping the button entirely left one card in the
-          // row a button short, with nothing to say why it could not be viewed.
-          const viewUnavailableReason = !approved
-            ? 'This package has no public page yet — it is awaiting admin approval'
-            : 'This package has no public page yet';
-          const viewBtn =
-            approved && slug
-              ? `<a href="/package?slug=${slug}" target="_blank" class="ef-cta card-action-btn view-btn">View</a>`
-              : `<button type="button" class="ef-cta card-action-btn view-btn" disabled aria-disabled="true" title="${viewUnavailableReason}">View</button>`;
-          const pauseBtn = `<button type="button" class="ef-cta card-action-btn ${paused ? 'unpause-btn' : 'pause-btn'}" data-action="${paused ? 'unpause-package' : 'pause-package'}" data-package-id="${packageId}" aria-label="${paused ? 'Unpause package' : 'Pause package'}">${paused ? '<svg width="10" height="11" viewBox="0 0 10 11" fill="currentColor" aria-hidden="true"><polygon points="0,0 10,5.5 0,11"/></svg> Resume' : '<svg width="10" height="11" viewBox="0 0 10 11" fill="currentColor" aria-hidden="true"><rect x="0" y="0" width="3.5" height="11" rx="0.75"/><rect x="6.5" y="0" width="3.5" height="11" rx="0.75"/></svg> Pause'}</button>`;
-          // Links straight to the batch photo manager for this one package —
-          // the package form's own drop zone only ever handles one image at a
-          // time, so this is how a supplier adds a second, third, etc. photo.
-          const photosBtn = `<a href="/gallery?type=package&id=${packageId}" target="_blank" class="ef-cta card-action-btn photos-btn">Photos</a>`;
-
-          return `<div class="card package-card${paused ? ' package-card--paused' : ''}" data-package-id="${packageId}">
-      <img src="${image}" alt="${title} image" data-fallback-src="/assets/images/package-placeholder.svg">
-      <div class="package-card-content">
-        <h3>${title}</h3>
-        <div class="small">${priceBadgeHtml} ${featured ? '<span class="badge badge-featured">Featured</span>' : ''} ${approvalBadge} ${pausedBadge} ${noPhotoBadge}</div>
-        <p class="small">${description}</p>
-        <div class="card-actions">
-          <button type="button" class="ef-cta card-action-btn edit-btn" data-action="edit-package" data-package-id="${packageId}">Edit</button>
-          ${viewBtn}
-          ${photosBtn}
-          ${pauseBtn}
-          <button type="button" class="ef-cta card-action-btn delete-btn" data-action="delete-package" data-package-id="${packageId}">Delete</button>
-        </div>
-      </div>
-    </div>`;
-        })
-        .join('');
+      pkgsWrap.innerHTML = `<div class="sdh-pkgs">${items
+        .filter(Boolean)
+        .map(packageCardHtml)
+        .join('')}</div>`;
     } catch (err) {
       console.error('Error loading packages:', err);
       if (pkgsWrap) {
         if (err.code === 'SUPPLIER_PROFILE_MISSING') {
-          pkgsWrap.innerHTML =
-            '<div class="sd-empty-state"><div class="sd-empty-state__icon" aria-hidden="true">👤</div><div class="sd-empty-state__body"><p class="sd-empty-state__title">Supplier profile setup needed</p><p class="sd-empty-state__desc">Complete your supplier profile setup before creating packages.</p><a class="sd-empty-state__cta" href="#profile-form" data-action="open-profile-form">Complete supplier profile →</a></div></div>';
+          pkgsWrap.innerHTML = packageMessageHtml(
+            'Create your profile first',
+            'Packages belong to your profile. Create it, and you can add packages straight after.',
+            '<button type="button" class="sdh-btn sdh-btn--primary" data-sdh-action="edit-profile" data-sdh-focus="sup-name">Create profile</button>'
+          );
         } else if (err.code === 'SUPPLIER_NOT_APPROVED') {
-          pkgsWrap.innerHTML =
-            '<div class="sd-empty-state"><div class="sd-empty-state__icon" aria-hidden="true">⏳</div><div class="sd-empty-state__body"><p class="sd-empty-state__title">Profile pending approval</p><p class="sd-empty-state__desc">Your supplier profile is awaiting admin approval. Package creation unlocks after approval.</p></div></div>';
+          pkgsWrap.innerHTML = packageMessageHtml(
+            'Packages unlock after approval',
+            'Your profile is waiting to be approved. You can add and manage packages as soon as it is.'
+          );
         } else {
-          pkgsWrap.innerHTML =
-            '<div class="sd-empty-state"><div class="sd-empty-state__icon" aria-hidden="true">⚠️</div><div class="sd-empty-state__body"><p class="sd-empty-state__title">Could not load packages</p><p class="sd-empty-state__desc">Please refresh the page to try again.</p></div></div>';
+          pkgsWrap.innerHTML = packageMessageHtml(
+            'Could not load your packages',
+            'Check your connection and try again.',
+            '<button type="button" class="sdh-btn sdh-btn--secondary sdh-btn--sm" data-sdh-action="reload-packages">Try again</button>'
+          );
         }
       }
     }
@@ -2875,9 +2488,7 @@ async function initDashSupplier() {
     window.__efSupplierDashboardActionsBound = true;
     document.addEventListener('click', async e => {
       const target = e.target;
-      const actionEl = target.closest
-        ? target.closest('[data-action], .spc-checklist-step[data-checklist-target]')
-        : null;
+      const actionEl = target.closest ? target.closest('[data-action]') : null;
       try {
         // Handle package edit buttons
         if (actionEl && actionEl.matches('[data-action="edit-package"]')) {
@@ -2940,7 +2551,6 @@ async function initDashSupplier() {
           const uploader = document.getElementById('sup-photo-drop');
           if (uploader) {
             const galleryRow = uploader.closest('.form-row') || uploader;
-            galleryRow.style.scrollMarginTop = '96px';
             if (!uploader.hasAttribute('tabindex')) {
               uploader.setAttribute('tabindex', '-1');
             }
@@ -2964,76 +2574,18 @@ async function initDashSupplier() {
           }
         }
 
-        // Handle View Checklist button — toggles checklist visibility for this profile
-        if (actionEl && actionEl.matches('[data-action="view-checklist"]')) {
-          const profileId = actionEl.getAttribute('data-profile-id');
-          const checklistCard = profileId
-            ? document.getElementById(`spc-checklist-${profileId}`)
-            : null;
-          if (checklistCard) {
-            const label = actionEl.querySelector('.spc-checklist-btn-label');
-            const isHidden = checklistCard.hasAttribute('hidden');
-            if (isHidden) {
-              checklistCard.removeAttribute('hidden');
-              actionEl.setAttribute('aria-expanded', 'true');
-              if (label) {
-                label.textContent = 'Hide Checklist';
-              }
-              checklistCard.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-            } else {
-              checklistCard.setAttribute('hidden', '');
-              actionEl.setAttribute('aria-expanded', 'false');
-              if (label) {
-                label.textContent = 'View Checklist';
-              }
-            }
-          } else {
-            // Fallback: expand and scroll to profile form section
-            const profileFormSection = document.getElementById('profile-form-section');
-            if (profileFormSection) {
-              if (!profileFormSection.classList.contains('expanded')) {
-                profileFormSection.classList.add('expanded');
-                profileFormSection.removeAttribute('hidden');
-              }
-              profileFormSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
-            }
-          }
-        }
-
-        // Handle checklist step click — jump directly to the relevant profile field/section
-        if (actionEl && actionEl.matches('.spc-checklist-step[data-checklist-target]')) {
-          const profileId = actionEl.getAttribute('data-profile-id');
-          const checklistTargetId = actionEl.getAttribute('data-checklist-target');
-          if (profileId) {
-            await editProfile(profileId, { skipFormScroll: true });
-          }
-          const profileFormSection = document.getElementById('profile-form-section');
-          if (profileFormSection) {
-            profileFormSection.classList.add('expanded');
-            profileFormSection.removeAttribute('hidden');
-          }
-          const targetField = checklistTargetId ? document.getElementById(checklistTargetId) : null;
-          const fallbackTarget = document.getElementById('supplier-form');
-          const scrollTarget = targetField || fallbackTarget;
-          if (scrollTarget) {
-            scrollTarget.style.scrollMarginTop = '96px';
-            scrollTarget.scrollIntoView({ behavior: 'smooth', block: 'start' });
-            if (
-              typeof scrollTarget.focus === 'function' &&
-              checklistTargetId &&
-              checklistTargetId !== 'package-form'
-            ) {
-              scrollTarget.focus({ preventScroll: true });
-            }
-          }
-        }
-
         // Handle profile photo delete button
         if (actionEl && actionEl.matches('[data-action="delete-profile-photo"]')) {
           if (actionEl.dataset.busy === 'true') {
             return;
           }
-          if (!confirm('Remove your profile photo?')) {
+          if (
+            !(await efConfirm({
+              title: 'Remove your profile photo?',
+              message: 'Your profile will show your initials until you add another photo.',
+              confirmLabel: 'Remove photo',
+            }))
+          ) {
             return;
           }
           actionEl.dataset.busy = 'true';
@@ -3104,20 +2656,6 @@ async function initDashSupplier() {
       } catch (err) {
         console.error('Dashboard action handler error:', err);
       }
-    });
-    document.addEventListener('keydown', e => {
-      const target = e.target;
-      const checklistStep = target?.closest
-        ? target.closest('.spc-checklist-step[data-checklist-target]')
-        : null;
-      if (!checklistStep) {
-        return;
-      }
-      if (e.key !== 'Enter' && e.key !== ' ') {
-        return;
-      }
-      e.preventDefault();
-      checklistStep.click();
     });
   }
 
@@ -3224,7 +2762,6 @@ async function initDashSupplier() {
     supplierStatusClearTimer = setTimeout(() => {
       statusEl.textContent = '';
       statusEl.removeAttribute('data-tone');
-      statusEl.style.color = '';
       supplierStatusClearTimer = null;
     }, ms);
   }
@@ -3348,7 +2885,6 @@ async function initDashSupplier() {
           clearSupplierStatusTimer();
           statusEl.setAttribute('data-tone', 'error');
           statusEl.textContent = 'Business name is required.';
-          statusEl.style.color = '#ef4444';
           scheduleSupplierStatusClear(statusEl, 5000);
         }
         if (nameEl) {
@@ -3362,7 +2898,6 @@ async function initDashSupplier() {
           clearSupplierStatusTimer();
           statusEl.setAttribute('data-tone', 'error');
           statusEl.textContent = 'Please select a category.';
-          statusEl.style.color = '#ef4444';
           scheduleSupplierStatusClear(statusEl, 5000);
         }
         if (categoryEl) {
@@ -3377,7 +2912,6 @@ async function initDashSupplier() {
           clearSupplierStatusTimer();
           statusEl.setAttribute('data-tone', 'error');
           statusEl.textContent = 'Please fix the website URL and try again.';
-          statusEl.style.color = '#ef4444';
           scheduleSupplierStatusClear(statusEl, 5000);
         }
         if (websiteEl) {
@@ -3412,7 +2946,6 @@ async function initDashSupplier() {
           clearSupplierStatusTimer();
           statusEl.setAttribute('data-tone', 'info');
           statusEl.textContent = 'Saving...';
-          statusEl.style.color = '#667085';
         }
 
         const response = await api(path, {
@@ -3434,7 +2967,6 @@ async function initDashSupplier() {
             clearSupplierStatusTimer();
             statusEl.setAttribute('data-tone', 'error');
             statusEl.textContent = 'Error: Save did not return a supplier ID. Please try again.';
-            statusEl.style.color = '#ef4444';
             scheduleSupplierStatusClear(statusEl, 8000);
           }
           return;
@@ -3457,21 +2989,21 @@ async function initDashSupplier() {
             if (statusEl) {
               statusEl.setAttribute('data-tone', 'warning');
               statusEl.textContent = 'Warning: Profile saved but some photos failed to upload';
-              statusEl.style.color = '#f59e0b';
               scheduleSupplierStatusClear(statusEl, 5000);
             }
             // Don't rethrow — the profile save succeeded
             await loadSuppliers();
+            notifyDashboardChanged();
             return;
           }
         }
 
         await loadSuppliers();
+        notifyDashboardChanged();
 
         if (statusEl) {
           statusEl.setAttribute('data-tone', 'success');
-          statusEl.textContent = '✓ Saved successfully';
-          statusEl.style.color = '#10b981';
+          statusEl.textContent = 'Profile saved.';
           scheduleSupplierStatusClear(statusEl, 3000);
         }
       } catch (err) {
@@ -3479,7 +3011,6 @@ async function initDashSupplier() {
         if (statusEl) {
           statusEl.setAttribute('data-tone', 'error');
           statusEl.textContent = `Error: ${err.message || 'Please try again'}`;
-          statusEl.style.color = '#ef4444';
           scheduleSupplierStatusClear(statusEl, 8000);
         }
         surfaceServiceAreaLimitError(err);
@@ -3864,7 +3395,6 @@ async function initDashSupplier() {
           clearSupplierStatusTimer();
           statusEl.setAttribute('data-tone', 'warning');
           statusEl.textContent = 'Please wait for the current save to finish before previewing.';
-          statusEl.style.color = '#b45309';
           scheduleSupplierStatusClear(statusEl, 4500);
         }
         return;
@@ -3882,7 +3412,6 @@ async function initDashSupplier() {
           clearSupplierStatusTimer();
           statusEl.setAttribute('data-tone', 'warning');
           statusEl.textContent = 'A public profile link is not available yet.';
-          statusEl.style.color = '#b45309';
           scheduleSupplierStatusClear(statusEl, 4500);
         }
       } else {
@@ -3890,7 +3419,6 @@ async function initDashSupplier() {
           clearSupplierStatusTimer();
           statusEl.setAttribute('data-tone', 'warning');
           statusEl.textContent = 'Please save your profile first before previewing.';
-          statusEl.style.color = '#b45309';
           scheduleSupplierStatusClear(statusEl, 4500);
         }
         if (saveBtn) {
@@ -3934,15 +3462,15 @@ async function initDashSupplier() {
 
       // Validate required fields
       if (!payload.primaryCategoryKey) {
-        alert('Please select a primary category');
+        efSay('Please select a primary category.', 'error');
         return;
       }
       if (!payload.eventTypes || payload.eventTypes.length === 0) {
-        alert('Please select at least one event type.');
+        efSay('Please select at least one event type.', 'error');
         return;
       }
       if (!payload.price || !String(payload.price).trim()) {
-        alert('Please enter a price for this package.');
+        efSay('Please enter a price for this package.', 'error');
         return;
       }
 
@@ -3955,7 +3483,7 @@ async function initDashSupplier() {
       // guard also prevents programmatic form submissions from bypassing the limit.
       // Editing an existing package (id is set) always bypasses this check.
       if (window._pkgAtLimit && !id) {
-        alert(PKG_LIMIT_MESSAGE);
+        efSay(PKG_LIMIT_MESSAGE, 'error');
         return;
       }
 
@@ -3973,11 +3501,8 @@ async function initDashSupplier() {
           body: JSON.stringify(payload),
         });
         await loadPackages();
-        // skipcq: JS-0052 -- Pre-existing: this whole form flow reports
-        // success/validation failures via alert() (see the guards above),
-        // and this line only replaced its fixed string with one that reads
-        // the new imageProcessingError flag — it is not a new pattern.
-        alert(saveResult?.imageProcessingError || 'Saved package.');
+        efSay(saveResult?.imageProcessingError || 'Package saved.', 'success');
+        notifyDashboardChanged();
         pkgForm.reset();
 
         // Clear photo preview and hidden image input so old images don't bleed into new packages
@@ -3993,15 +3518,15 @@ async function initDashSupplier() {
         const galleryExisting = document.getElementById('pkg-gallery-existing');
         if (galleryExisting) {
           galleryExisting.innerHTML = '';
-          galleryExisting.style.display = 'none';
+          galleryExisting.hidden = true;
         }
         const galleryRow = document.getElementById('pkg-gallery-row');
         if (galleryRow) {
-          galleryRow.style.display = 'none';
+          galleryRow.hidden = true;
         }
         const pkgManageGalleryLink = document.getElementById('pkg-manage-gallery-link');
         if (pkgManageGalleryLink) {
-          pkgManageGalleryLink.style.display = 'none';
+          pkgManageGalleryLink.hidden = true;
         }
 
         // Form has been reset to create mode. Re-apply limit restrictions if needed
@@ -4009,15 +3534,17 @@ async function initDashSupplier() {
         if (window._pkgAtLimit) {
           setPkgFormDisabled(true);
         }
+        // Close the form: the package now shows in the list above it.
+        if (document.getElementById('package-form-section')?.classList.contains('expanded')) {
+          togglePackageForm();
+        }
       } catch (err) {
         if (err.code === 'SUPPLIER_PROFILE_MISSING') {
-          alert('Complete your supplier profile setup before creating packages.');
+          efSay('Create your profile before adding packages.', 'error');
         } else if (err.code === 'SUPPLIER_NOT_APPROVED') {
-          alert(
-            'Your supplier profile is pending approval. Package creation unlocks after approval.'
-          );
+          efSay('Package creation unlocks once your profile is approved.', 'error');
         } else {
-          alert(`Error saving package: ${err.message || 'Please try again'}`);
+          efSay(`Could not save the package: ${err.message || 'please try again'}`, 'error');
         }
       } finally {
         if (saveBtn) {
@@ -4109,15 +3636,15 @@ async function initDashSupplier() {
         wrapper.appendChild(removeBtn);
         pkgPreview.appendChild(wrapper);
       }
-      reusePanel.style.display = 'none';
+      reusePanel.hidden = true;
       reusePanel.innerHTML = '';
     }
 
     reuseBtn.addEventListener('click', () => {
-      const isOpen = reusePanel.style.display !== 'none';
+      const isOpen = !reusePanel.hidden;
       reusePanel.innerHTML = '';
       if (isOpen) {
-        reusePanel.style.display = 'none';
+        reusePanel.hidden = true;
         return;
       }
 
@@ -4153,7 +3680,7 @@ async function initDashSupplier() {
           reusePanel.appendChild(option);
         });
       }
-      reusePanel.style.display = '';
+      reusePanel.hidden = false;
     });
   })();
 
@@ -4271,10 +3798,10 @@ function togglePackageForm() {
     // Collapse form
     formSection.classList.remove('expanded');
     toggleBtn.setAttribute('aria-expanded', 'false');
-    toggleBtn.querySelector('.label').textContent = 'Create Package';
+    toggleBtn.querySelector('.label').textContent = 'Create package';
     toggleBtn.classList.remove('active');
     if (cancelBtn) {
-      cancelBtn.style.display = 'none';
+      cancelBtn.hidden = true;
     }
 
     // Reset form
@@ -4298,15 +3825,15 @@ function togglePackageForm() {
     const galleryExistingReset = document.getElementById('pkg-gallery-existing');
     if (galleryExistingReset) {
       galleryExistingReset.innerHTML = '';
-      galleryExistingReset.style.display = 'none';
+      galleryExistingReset.hidden = true;
     }
     const galleryRowReset = document.getElementById('pkg-gallery-row');
     if (galleryRowReset) {
-      galleryRowReset.style.display = 'none';
+      galleryRowReset.hidden = true;
     }
     const pkgManageGalleryLinkReset = document.getElementById('pkg-manage-gallery-link');
     if (pkgManageGalleryLinkReset) {
-      pkgManageGalleryLinkReset.style.display = 'none';
+      pkgManageGalleryLinkReset.hidden = true;
     }
 
     // Form is returning to create mode — re-apply package limit restrictions if needed.
@@ -4324,7 +3851,7 @@ function togglePackageForm() {
       }
       const upgradeCta = document.getElementById('pkg-upgrade-cta');
       if (upgradeCta) {
-        upgradeCta.style.display = 'inline-flex';
+        upgradeCta.hidden = false;
       }
     } else {
       toggleBtn.setAttribute('aria-label', 'Toggle package creation form');
@@ -4337,7 +3864,7 @@ function togglePackageForm() {
     toggleBtn.querySelector('.label').textContent = 'Cancel';
     toggleBtn.classList.add('active');
     if (cancelBtn) {
-      cancelBtn.style.display = 'inline-block';
+      cancelBtn.hidden = false;
     }
 
     // Scroll to form
@@ -4371,7 +3898,7 @@ function editPackage(packageId) {
     toggleBtn.title = '';
     const upgradeCta = document.getElementById('pkg-upgrade-cta');
     if (upgradeCta) {
-      upgradeCta.style.display = 'none';
+      upgradeCta.hidden = true;
     }
   }
 
@@ -4397,9 +3924,9 @@ function editPackage(packageId) {
       if (pkgManageGalleryLink) {
         if (pkg.id) {
           pkgManageGalleryLink.href = `/gallery?type=package&id=${encodeURIComponent(pkg.id)}`;
-          pkgManageGalleryLink.style.display = '';
+          pkgManageGalleryLink.hidden = false;
         } else {
-          pkgManageGalleryLink.style.display = 'none';
+          pkgManageGalleryLink.hidden = true;
         }
       }
       document.getElementById('pkg-title').value = pkg.title || '';
@@ -4465,24 +3992,24 @@ function editPackage(packageId) {
         }
         if (validPhotos.length > 0) {
           renderPkgGallery(galleryExisting, validPhotos, pkg.id);
-          galleryExisting.style.display = '';
+          galleryExisting.hidden = false;
           if (galleryRow) {
-            galleryRow.style.display = '';
+            galleryRow.hidden = false;
           }
           // Show reorder bar only when there are ≥2 photos
           const reorderBar = document.getElementById('pkg-gallery-reorder-bar');
           if (reorderBar) {
-            reorderBar.style.display = validPhotos.length >= 2 ? '' : 'none';
+            reorderBar.hidden = validPhotos.length < 2;
           }
         } else {
           galleryExisting.innerHTML = '';
-          galleryExisting.style.display = 'none';
+          galleryExisting.hidden = true;
           if (galleryRow) {
-            galleryRow.style.display = 'none';
+            galleryRow.hidden = true;
           }
           const reorderBar = document.getElementById('pkg-gallery-reorder-bar');
           if (reorderBar) {
-            reorderBar.style.display = 'none';
+            reorderBar.hidden = true;
           }
         }
       }
@@ -4500,12 +4027,17 @@ function editPackage(packageId) {
     })
     .catch(e => {
       console.error('Error loading package for edit:', e);
-      alert('Failed to load package data. Please try again.');
+      efSay('Could not load the package. Please try again.', 'error');
     });
 }
 
 async function deletePackage(packageId) {
-  if (!confirm('Are you sure you want to delete this package? This action cannot be undone.')) {
+  const confirmed = await efConfirm({
+    title: 'Delete this package?',
+    message: 'This cannot be undone. Customers will no longer see it.',
+    confirmLabel: 'Delete package',
+  });
+  if (!confirmed) {
     return;
   }
 
@@ -4520,21 +4052,19 @@ async function deletePackage(packageId) {
     });
 
     if (!response.ok) {
-      const errorData = await response.json();
-      alert(`Failed to delete package: ${errorData.error || 'Unknown error'}`);
+      const errorData = await response.json().catch(() => ({}));
+      efSay(`Could not delete the package: ${errorData.error || 'unknown error'}`, 'error');
       return;
     }
 
-    // Reload packages list
-    const initFunc = window.initDashSupplier;
-    if (initFunc) {
-      // Reload just packages if possible, otherwise show success message
-      alert('Package deleted successfully!');
-      location.reload();
+    if (typeof window._efLoadPackages === 'function') {
+      await window._efLoadPackages();
     }
+    notifyDashboardChanged();
+    efSay('Package deleted.', 'success');
   } catch (e) {
     console.error('Error deleting package:', e);
-    alert('Failed to delete package. Please try again.');
+    efSay('Could not delete the package. Please try again.', 'error');
   }
 }
 
@@ -4553,12 +4083,7 @@ async function togglePackagePause(packageId, pause) {
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
-      const msg = `Failed to ${action} package: ${errorData.error || 'Unknown error'}`;
-      if (typeof Toast !== 'undefined') {
-        Toast.error(msg);
-      } else {
-        alert(msg);
-      }
+      efSay(`Could not ${action} the package: ${errorData.error || 'unknown error'}`, 'error');
       return;
     }
 
@@ -4567,41 +4092,22 @@ async function togglePackagePause(packageId, pause) {
     if (typeof window._efLoadPackages === 'function') {
       await window._efLoadPackages();
     }
-
-    // Show a success notification
-    const successMsg = pause ? 'Package paused successfully.' : 'Package unpaused successfully.';
-    if (typeof Toast !== 'undefined') {
-      Toast.success(successMsg);
-    }
-
-    // Keep the Active Packages stat card in sync without a full page reload
-    try {
-      const pkgsResp = await fetch('/api/v1/me/packages', { credentials: 'include' });
-      if (pkgsResp.ok) {
-        const pkgsData = await pkgsResp.json();
-        const activeCount = (pkgsData?.items ?? []).filter(p => !p.paused).length;
-        const statEl = document.getElementById('quick-stat-packages');
-        if (statEl) {
-          statEl.setAttribute('data-target', String(activeCount));
-          statEl.textContent = String(activeCount);
-        }
-      }
-    } catch {
-      // Best effort — stat update failure should not block UX
-    }
+    // The summary row counts active packages: ask for fresh numbers.
+    notifyDashboardChanged();
+    efSay(pause ? 'Package paused.' : 'Package resumed.', 'success');
   } catch (e) {
     console.error(`Error ${action}ing package:`, e);
-    const errMsg = `Failed to ${action} package. Please try again.`;
-    if (typeof Toast !== 'undefined') {
-      Toast.error(errMsg);
-    } else {
-      alert(errMsg);
-    }
+    efSay(`Could not ${action} the package. Please try again.`, 'error');
   }
 }
 
 async function deletePackagePhoto(packageId, photoUrl, btnEl) {
-  if (!confirm('Remove this photo from the gallery?')) {
+  const confirmed = await efConfirm({
+    title: 'Remove this photo?',
+    message: 'It will be removed from the package gallery.',
+    confirmLabel: 'Remove photo',
+  });
+  if (!confirmed) {
     return;
   }
   const csrfToken = window.__CSRF_TOKEN__ || '';
@@ -4620,7 +4126,7 @@ async function deletePackagePhoto(packageId, photoUrl, btnEl) {
     });
     if (!response.ok) {
       const err = await response.json().catch(() => ({}));
-      alert(`Failed to delete photo: ${err.error || 'Unknown error'}`);
+      efSay(`Could not delete the photo: ${err.error || 'unknown error'}`, 'error');
       if (btnEl) {
         btnEl.disabled = false;
       }
@@ -4635,15 +4141,15 @@ async function deletePackagePhoto(packageId, photoUrl, btnEl) {
     const galleryExisting = document.getElementById('pkg-gallery-existing');
     if (galleryExisting && !galleryExisting.querySelector('.pkg-gallery-item')) {
       galleryExisting.innerHTML = '';
-      galleryExisting.style.display = 'none';
+      galleryExisting.hidden = true;
       const galleryRow = document.getElementById('pkg-gallery-row');
       if (galleryRow) {
-        galleryRow.style.display = 'none';
+        galleryRow.hidden = true;
       }
     }
   } catch (e) {
     console.error('Error deleting package photo:', e);
-    alert('Failed to delete photo. Please try again.');
+    efSay('Could not delete the photo. Please try again.', 'error');
     if (btnEl) {
       btnEl.disabled = false;
     }
@@ -4775,7 +4281,7 @@ function _refreshFirstBadge(container) {
 function _markGalleryOrderDirty() {
   const bar = document.getElementById('pkg-gallery-reorder-bar');
   if (bar) {
-    bar.style.display = '';
+    bar.hidden = false;
     const status = document.getElementById('pkg-gallery-order-status');
     if (status) {
       status.textContent = '';
@@ -4868,10 +4374,10 @@ function toggleProfileForm() {
     // Collapse form
     formSection.classList.remove('expanded');
     toggleBtn.setAttribute('aria-expanded', 'false');
-    toggleBtn.querySelector('.label').textContent = hasProfile ? 'Edit Profile' : 'Create Profile';
+    toggleBtn.querySelector('.label').textContent = hasProfile ? 'Edit profile' : 'Create profile';
     toggleBtn.classList.remove('active');
     if (cancelBtn) {
-      cancelBtn.style.display = 'none';
+      cancelBtn.hidden = true;
     }
 
     // Reset form
@@ -4884,7 +4390,7 @@ function toggleProfileForm() {
     // Reset form heading
     const heading = formSection.querySelector('.supplier-section-header');
     if (heading) {
-      heading.textContent = hasProfile ? 'Edit Profile' : 'Create / Edit profile';
+      heading.textContent = hasProfile ? 'Edit profile' : 'Create your profile';
     }
   } else {
     // Expand form
@@ -4893,7 +4399,18 @@ function toggleProfileForm() {
     toggleBtn.querySelector('.label').textContent = 'Cancel';
     toggleBtn.classList.add('active');
     if (cancelBtn) {
-      cancelBtn.style.display = 'inline-block';
+      cancelBtn.hidden = false;
+    }
+
+    // Closing the form clears it (and the hidden profile id). Opening it again must show the
+    // saved profile: a blank form would save as a new profile instead of updating this one.
+    const savedProfile = (window._efCachedSuppliers || [])[0];
+    if (savedProfile && typeof window._efPopulateSupplierForm === 'function') {
+      window._efPopulateSupplierForm(savedProfile);
+      const heading = formSection.querySelector('.supplier-section-header');
+      if (heading) {
+        heading.textContent = 'Edit profile';
+      }
     }
 
     // Scroll to form
@@ -6603,89 +6120,9 @@ async function adminCharts() {
   }
 }
 
-// Supplier onboarding checklist visual (client side)
-function renderSupplierChecklist(wrapper, supplierCount, packageCount, supplierApproved) {
-  const steps = [
-    { name: 'Create a supplier profile', done: supplierCount > 0 },
-    { name: 'Get approved by admin', done: supplierApproved },
-    { name: 'Add at least one package', done: packageCount > 0 },
-  ];
-  wrapper.innerHTML = `
-    <div class="supplier-card-header sd-card-header sd-card-header--teal">
-      <div class="sd-card-header__left">
-        <div class="sd-card-header__title-row">
-          <div class="sd-card-header__icon sd-card-header__icon--teal" aria-hidden="true">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M9 11l3 3L22 4"/>
-              <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>
-            </svg>
-          </div>
-          <h3 class="sd-card-header__heading">Onboarding</h3>
-        </div>
-        <p class="sd-card-header__subtitle">Complete these steps to get started</p>
-      </div>
-    </div>
-    <div class="sd-card-body">
-      <ul class="health-checklist">
-        ${steps
-          .map(
-            s => `<li class="health-checklist-item ${s.done ? 'completed' : 'incomplete'}">
-          <span class="health-checklist-icon" aria-label="${s.done ? 'Completed' : 'Incomplete'}">${s.done ? '✓' : '○'}</span>
-          <span class="health-checklist-text">${escapeHtml(s.name)}</span>
-        </li>`
-          )
-          .join('')}
-      </ul>
-    </div>`;
-}
-
 document.addEventListener('DOMContentLoaded', () => {
   if (window.__EF_PAGE__ === 'admin') {
     adminCharts();
-  }
-  if (window.__EF_PAGE__ === 'dash_supplier') {
-    (async () => {
-      try {
-        const meResponse = await fetch('/api/v1/me/suppliers', {
-          credentials: 'include',
-        });
-        const ms = await meResponse.json();
-        const pk = await fetch('/api/v1/me/packages', {
-          credentials: 'include',
-        });
-        const mp = await pk.json();
-        const supplierItems = ms.items || [];
-        const supplierApproved = supplierItems.some(s => s.approved === true);
-        const box = document.createElement('div');
-        box.className = 'card sd-card supplier-dashboard-card';
-        // Starts expanded on mobile/tablet (card-collapse.js collapses .sd-card
-        // by default below 1024px unless told otherwise) — matches the
-        // "Your Supplier Profile" card just below it, and this one is now the
-        // first thing after the hero, so collapsing it by default would undercut
-        // the point of moving it up here.
-        box.dataset.defaultExpanded = 'true';
-        // Placed right after the hero card rather than appended at the end of
-        // the page: this checklist (create profile → get approved → add a
-        // package) is the single most useful thing a new supplier can see,
-        // and previously landed after every other section — roughly 8,000px
-        // down the page — where a first-time visitor would rarely scroll.
-        const welcomeSection = document.getElementById('welcome-section');
-        const container = document.querySelector('main .container');
-        if (welcomeSection && welcomeSection.parentElement === container) {
-          welcomeSection.insertAdjacentElement('afterend', box);
-        } else {
-          container.appendChild(box);
-        }
-        renderSupplierChecklist(
-          box,
-          supplierItems.length,
-          (mp.items || []).length,
-          supplierApproved
-        );
-      } catch {
-        /* Ignore checklist render errors */
-      }
-    })();
   }
 });
 

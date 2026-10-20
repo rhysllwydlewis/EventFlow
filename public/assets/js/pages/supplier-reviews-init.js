@@ -7,7 +7,7 @@
  * to POST /api/v2/reviews/:id/response and PUT /api/v2/reviews/:id/response.
  *
  * Exported as a single async init function called from
- * dashboard-supplier-module.js once the supplierId is known.
+ * supplier-dashboard-home.js once the supplierId is known.
  */
 
 'use strict';
@@ -157,7 +157,7 @@
         <div class="sr-dist-row">
           <span class="sr-dist-label">${n}★</span>
           <div class="sr-dist-track" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${pct}" aria-label="${n} star: ${c} review${c !== 1 ? 's' : ''}">
-            <div class="sr-dist-fill sr-dist-fill--${n}" style="width:${pct}%"></div>
+            <div class="sr-dist-fill sr-dist-fill--${n}" data-width="${pct}"></div>
           </div>
           <span class="sr-dist-count">${c}</span>
         </div>`;
@@ -190,7 +190,7 @@
           <span class="sr-reply-tip" id="sr-reply-tip-${esc(reviewId)}">Use ${MIN_REPLY_CHARS}-${MAX_REPLY_CHARS} characters. Keep replies professional — they are visible to all customers.</span>
         </div>
         <div class="sr-reply-actions">
-          <button type="button" class="ef-cta sr-reply-submit" data-review-id="${esc(reviewId)}" data-is-edit="${isEdit}">${submitLbl}</button>
+          <button type="button" class="sr-reply-submit" data-review-id="${esc(reviewId)}" data-is-edit="${isEdit}">${submitLbl}</button>
           <button type="button" class="sr-reply-cancel" data-review-id="${esc(reviewId)}">Cancel</button>
           <span class="sr-reply-status" id="sr-reply-status-${esc(reviewId)}" role="alert" aria-live="polite"></span>
         </div>
@@ -244,7 +244,7 @@
 
     const replyBtn =
       !hasResponse && canRespond
-        ? `<button type="button" class="sr-reply-btn ef-cta ef-cta--outline" data-review-id="${esc(rawId)}" aria-label="Reply to this review">
+        ? `<button type="button" class="sr-reply-btn" data-review-id="${esc(rawId)}" aria-label="Reply to this review">
            Reply
          </button>`
         : '';
@@ -282,39 +282,11 @@
     const resRate = normalisePercent(analytics?.responseRate);
 
     if (total === 0) {
-      const supplier = (window._efCachedSuppliers || []).find(
-        item => String(item.id) === String(supplierId)
-      );
-      const publicProfilePath = /^\/supplier\/[a-z0-9-]+--[a-f0-9]{16}$/.test(
-        supplier?.publicProfilePath || ''
-      )
-        ? supplier.publicProfilePath
-        : '';
       container.innerHTML = `
         <div class="sr-empty">
-          <div class="sr-empty-icon" aria-hidden="true">⭐⭐⭐⭐⭐</div>
           <p class="sr-empty-title">No reviews yet</p>
-          <p class="sr-empty-desc">Your first customer review will appear here once it is approved. Share your profile with satisfied customers and ask them to leave feedback.</p>
-          ${publicProfilePath ? '<button type="button" class="ef-cta" id="sr-copy-link-btn">Copy your profile link</button>' : ''}
+          <p class="sr-empty-desc">Your first review will appear here once it has been approved. Use Request a review to ask a past customer.</p>
         </div>`;
-
-      const copyBtn = container.querySelector('#sr-copy-link-btn');
-      if (copyBtn) {
-        copyBtn.addEventListener('click', () => {
-          const link = `${window.location.origin}${publicProfilePath}`;
-          navigator.clipboard
-            ?.writeText(link)
-            .then(() => {
-              copyBtn.textContent = '✓ Copied!';
-              setTimeout(() => {
-                copyBtn.textContent = 'Copy your profile link';
-              }, 2000);
-            })
-            .catch(() => {
-              prompt('Copy your profile link:', link);
-            });
-        });
-      }
       return;
     }
 
@@ -374,6 +346,10 @@
         <button type="button" class="sr-page-btn" id="sr-prev" ${prevDisabled} aria-label="Previous page">← Prev</button>
         <button type="button" class="sr-page-btn" id="sr-next" ${nextDisabled} aria-label="Next page">Next →</button>
       </div>`;
+
+    container.querySelectorAll('.sr-dist-fill[data-width]').forEach(fill => {
+      fill.style.width = `${fill.dataset.width}%`;
+    });
 
     /* Bind sort */
     const sortEl = container.querySelector('#sr-sort');
@@ -459,21 +435,21 @@
         if (!text) {
           if (statusEl) {
             statusEl.textContent = 'Please enter a reply.';
-            statusEl.style.color = 'var(--ef-danger, #dc2626)';
+            statusEl.dataset.tone = 'error';
           }
           return;
         }
         if (text.length < MIN_REPLY_CHARS) {
           if (statusEl) {
             statusEl.textContent = `Please write at least ${MIN_REPLY_CHARS} characters.`;
-            statusEl.style.color = 'var(--ef-danger, #dc2626)';
+            statusEl.dataset.tone = 'error';
           }
           return;
         }
         if (text.length > MAX_REPLY_CHARS) {
           if (statusEl) {
             statusEl.textContent = `Replies cannot exceed ${MAX_REPLY_CHARS} characters.`;
-            statusEl.style.color = 'var(--ef-danger, #dc2626)';
+            statusEl.dataset.tone = 'error';
           }
           return;
         }
@@ -481,7 +457,7 @@
         submitBtn.disabled = true;
         if (statusEl) {
           statusEl.textContent = 'Saving…';
-          statusEl.style.color = '';
+          statusEl.dataset.tone = '';
         }
 
         try {
@@ -500,7 +476,7 @@
           if (!res.ok) {
             if (statusEl) {
               statusEl.textContent = body.error || 'Failed to save reply.';
-              statusEl.style.color = 'var(--ef-danger, #dc2626)';
+              statusEl.dataset.tone = 'error';
             }
             submitBtn.disabled = false;
             return;
@@ -511,7 +487,7 @@
         } catch (err) {
           if (statusEl) {
             statusEl.textContent = 'Network error — please try again.';
-            statusEl.style.color = 'var(--ef-danger, #dc2626)';
+            statusEl.dataset.tone = 'error';
           }
           submitBtn.disabled = false;
         }
@@ -537,7 +513,7 @@
       container.innerHTML = `
         <div class="sr-error" role="alert">
           <p>Unable to load reviews right now.</p>
-          <button type="button" class="sr-error__retry ef-cta">Try again</button>
+          <button type="button" class="sr-error__retry">Try again</button>
         </div>`;
       const retryBtn = container.querySelector('.sr-error__retry');
       if (retryBtn) {
@@ -564,6 +540,6 @@
     await reload(container, supplierId, 1, 'recent');
   }
 
-  /* Expose so dashboard-supplier-module.js can call it */
+  /* Expose so supplier-dashboard-home.js can call it */
   window.SupplierReviews = { init: initSupplierReviews };
 })();

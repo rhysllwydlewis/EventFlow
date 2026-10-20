@@ -508,7 +508,16 @@ class SupplierGalleryManager {
    * Delete an already-uploaded photo via the API.
    */
   async deleteExistingPhoto(photoId, wrapperEl) {
-    if (!confirm('Remove this photo from your gallery?')) {
+    const home = window.SupplierDashboardHome;
+    const confirmed =
+      home && typeof home.confirm === 'function'
+        ? await home.confirm({
+            title: 'Remove this photo?',
+            message: 'It will be removed from your gallery.',
+            confirmLabel: 'Remove photo',
+          })
+        : window.confirm('Remove this photo from your gallery?');
+    if (!confirmed) {
       return;
     }
 
@@ -681,7 +690,7 @@ class SupplierGalleryManager {
       return;
     }
     const count = this.uploadedPhotos.length;
-    bar.style.display = count >= 2 ? '' : 'none';
+    bar.hidden = count < 2;
     const status = document.getElementById('sup-gallery-order-status');
     if (status) {
       status.textContent = '';
@@ -694,7 +703,7 @@ class SupplierGalleryManager {
   markOrderDirty() {
     const bar = document.getElementById('sup-gallery-reorder-bar');
     if (bar) {
-      bar.style.display = '';
+      bar.hidden = false;
     }
     const status = document.getElementById('sup-gallery-order-status');
     if (status) {
