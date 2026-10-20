@@ -1584,6 +1584,11 @@
   background: var(--sdh-accent);
 }
 
+.sdh-page .sdh-profile__avatar:focus-within .sdh-avatar__camera {
+  outline: 2px solid var(--sdh-accent);
+  outline-offset: 2px;
+}
+
 .sdh-page .sdh-profile__main {
   flex: 1 1 auto;
   min-width: 0;
@@ -2233,8 +2238,9 @@
 }
 
 /* Lead badges come from a score the server does not produce, so they never describe a real lead. */
-.sdh-page .sdh-messenger-widget .mwv4__lead-badge {
-  display: none;
+.sdh-page .sdh-messenger-widget .mwv4__lead-badge,
+.sdh-page .sdh-messenger-widget .lead-badge {
+  display: none !important;
 }
 
 /* Support tickets (the site's ticket rows carry their own tinted box). */

@@ -1205,6 +1205,14 @@
           html: '<div class="cal-no-events">No events yet. Click any day to add one.</div>',
         };
       },
+      // FullCalendar marks its chevron glyphs role="img" with no name; the buttons carry the
+      // names, so the glyphs are decoration.
+      datesSet: function () {
+        container.querySelectorAll('.fc-icon[role="img"]').forEach(icon => {
+          icon.removeAttribute('role');
+          icon.setAttribute('aria-hidden', 'true');
+        });
+      },
       height: 'auto',
     });
 

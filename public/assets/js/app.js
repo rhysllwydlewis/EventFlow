@@ -645,25 +645,6 @@ function supplierCard(s, user) {
   </div>`;
 }
 
-function normalizeSubscriptionTier(...tierCandidates) {
-  for (const candidate of tierCandidates) {
-    if (!candidate) {
-      continue;
-    }
-    const normalized = String(candidate).toLowerCase().trim();
-    if (normalized === 'pro' || normalized === 'pro_plus' || normalized === 'featured') {
-      return normalized;
-    }
-    if (normalized === 'pro+' || normalized === 'pro plus') {
-      return 'pro_plus';
-    }
-    if (normalized === 'free' || normalized === 'starter') {
-      return 'free';
-    }
-  }
-  return null;
-}
-
 // initHome() removed - now handled by home-init.js to avoid conflicts
 
 async function initResults() {
@@ -1767,10 +1748,11 @@ async function initDashSupplier() {
             ? `<button type="button" class="sdh-avatar__remove" data-action="delete-profile-photo" data-profile-id="${supplierId}" title="Delete profile photo" aria-label="Delete profile photo"><span aria-hidden="true">&times;</span></button>`
             : ''
         }
-        <label for="supplier-profile-photo-upload-${supplierId}" class="sdh-avatar__camera" title="Upload profile photo" aria-label="Upload profile photo">
+        <label for="supplier-profile-photo-upload-${supplierId}" class="sdh-avatar__camera">
+          <span class="sdh-sr">Upload profile photo</span>
           <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
         </label>
-        <input type="file" id="supplier-profile-photo-upload-${supplierId}" class="supplier-profile-photo-upload" data-profile-id="${supplierId}" accept="image/*" aria-label="Upload profile photo" hidden>
+        <input type="file" id="supplier-profile-photo-upload-${supplierId}" class="supplier-profile-photo-upload sdh-sr" data-profile-id="${supplierId}" accept="image/*">
       </div>
       <div class="sdh-profile__main">
         <div class="sdh-profile__name-row">
