@@ -137,7 +137,28 @@ function reminderNotificationForEntry(userId, entry, daysUntil) {
   };
 }
 
-function calendarEntryReminderItem(entry) {
+/**
+ * Where a calendar reminder should send the person who receives it. Suppliers
+ * are redirected away from the customer dashboard, so their reminders must point
+ * at their own calendar.
+ *
+ * @param {string} role - The recipient's role
+ * @returns {string} Dashboard path
+ */
+function calendarActionUrlForRole(role) {
+  return role === 'supplier'
+    ? '/dashboard/supplier#availability-calendar'
+    : '/dashboard/customer#events-calendar';
+}
+
+/**
+ * Shape a personal calendar entry as a reminder candidate.
+ *
+ * @param {Object} entry - Calendar entry
+ * @param {string} role - The recipient's role (decides the link target)
+ * @returns {Object} Reminder item
+ */
+function calendarEntryReminderItem(entry, role) {
   return {
     id: entry.id,
     title: entry.title,
@@ -145,7 +166,7 @@ function calendarEntryReminderItem(entry) {
     date: entry.date,
     time: entry.time,
     source: 'personal',
-    actionUrl: '/dashboard/customer#events-calendar',
+    actionUrl: calendarActionUrlForRole(role),
   };
 }
 
@@ -180,8 +201,16 @@ async function getSavedPublicEventReminderItems(userId) {
     .filter(Boolean);
 }
 
-async function ensureCalendarReminderNotifications(userId, entries) {
-  const reminderItems = entries.map(calendarEntryReminderItem);
+/**
+ * Create the 7-day and 1-day reminder notifications that are due and not yet stored.
+ *
+ * @param {string} userId - Recipient
+ * @param {Object[]} entries - The recipient's personal calendar entries
+ * @param {string} role - The recipient's role (decides the link target)
+ * @returns {Promise<Object[]>} Notifications created by this call
+ */
+async function ensureCalendarReminderNotifications(userId, entries, role) {
+  const reminderItems = entries.map(entry => calendarEntryReminderItem(entry, role));
   try {
     reminderItems.push(...(await getSavedPublicEventReminderItems(userId)));
   } catch (err) {
@@ -224,7 +253,11 @@ router.get('/', authRequired, async (req, res) => {
     const userId = req.user.id;
     const entries = await dbUnified.read('customer_calendar_entries');
     const userEntries = entries.filter(e => e.userId === userId);
-    const reminderNotifications = await ensureCalendarReminderNotifications(userId, userEntries);
+    const reminderNotifications = await ensureCalendarReminderNotifications(
+      userId,
+      userEntries,
+      req.user.role
+    );
     res.json({ ok: true, entries: userEntries, remindersCreated: reminderNotifications.length });
   } catch (error) {
     logger.error('Error fetching calendar entries:', error);
