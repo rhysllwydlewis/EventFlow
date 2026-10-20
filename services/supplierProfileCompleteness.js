@@ -72,8 +72,142 @@ function hasSupplierPostcode(supplier) {
   return Boolean(String(supplier.basePostcode || supplier.venuePostcode || '').trim());
 }
 
+/**
+ * Merge a supplier's canonical socialLinks with the legacy socials object.
+ *
+ * A populated legacy value survives an empty canonical key (migrated records
+ * can carry both schema generations); a non-empty canonical value always wins.
+ * This is the same rule as socialLinks() in profile-health-widget.js.
+ *
+ * @param {Object} supplier - Supplier document
+ * @returns {Object} Merged platform -> url map
+ */
+function mergeSupplierSocialLinks(supplier) {
+  const asPlainObject = value =>
+    value && typeof value === 'object' && !Array.isArray(value) ? value : {};
+  const merged = { ...asPlainObject(supplier?.socials) };
+  Object.entries(asPlainObject(supplier?.socialLinks)).forEach(([platform, url]) => {
+    if (url || !merged[platform]) {
+      merged[platform] = url;
+    }
+  });
+  return merged;
+}
+
+/**
+ * Count of a supplier's populated social platforms across both schema generations.
+ *
+ * @param {Object} supplier - Supplier document
+ * @returns {number} Populated social-platform count
+ */
+function getSupplierSocialLinkCount(supplier) {
+  return Object.values(mergeSupplierSocialLinks(supplier)).filter(Boolean).length;
+}
+
+/**
+ * The seven weighted profile-completeness checks, in display order.
+ *
+ * THIS LIST MUST STAY IN AGREEMENT with HEALTH_CRITERIA in
+ * public/assets/js/components/profile-health-widget.js: same ids, same labels,
+ * same weights, same pass/fail rules. tests/unit/supplier-profile-completeness.test.js
+ * loads that browser file and feeds both implementations the same fixtures, so
+ * a change to one without the other fails CI.
+ *
+ * The browser widget scores the hydrated /api/me/suppliers item (profile photo
+ * falls back to the owner account's avatar), so callers should pass a supplier
+ * that has gone through hydrateSupplierProfilePhoto() to get the same answer.
+ *
+ * `href` is a navigation hint for the page that lets the supplier fix the item.
+ */
+const PROFILE_COMPLETENESS_CHECKS = [
+  {
+    id: 'logo',
+    label: 'Profile photo',
+    weight: 15,
+    href: '/dashboard/supplier#my-suppliers',
+    test: supplier =>
+      Boolean(
+        supplier.logo || supplier.profileImage || supplier.profilePhotoUrl || supplier.avatarUrl
+      ),
+  },
+  {
+    id: 'description',
+    label: 'Description (100+ characters)',
+    weight: 15,
+    href: '/dashboard/supplier#my-suppliers',
+    test: supplier =>
+      String(
+        supplier.description_long ||
+          supplier.description_short ||
+          supplier.description ||
+          supplier.blurb ||
+          ''
+      ).trim().length >= 100,
+  },
+  {
+    id: 'location',
+    label: 'Location & postcode',
+    weight: 15,
+    href: '/dashboard/supplier#my-suppliers',
+    test: supplier =>
+      Boolean(supplier.location) && Boolean(supplier.basePostcode || supplier.venuePostcode),
+  },
+  {
+    id: 'coverImage',
+    label: 'Banner image',
+    weight: 15,
+    href: '/supplier/profile-customization#sup-banner-drop',
+    test: supplier => Boolean(supplier.bannerUrl || supplier.coverImage),
+  },
+  {
+    id: 'gallery',
+    label: 'Gallery (3+ images)',
+    weight: 15,
+    href: '/dashboard/supplier#my-suppliers',
+    test: supplier => getSupplierGalleryCount(supplier) >= 3,
+  },
+  {
+    id: 'socials',
+    label: 'Social media (2+ platforms)',
+    weight: 15,
+    href: '/supplier/profile-customization#sup-social-facebook',
+    test: supplier => getSupplierSocialLinkCount(supplier) >= 2,
+  },
+  {
+    id: 'website',
+    label: 'Website URL',
+    weight: 10,
+    href: '/dashboard/supplier#my-suppliers',
+    test: supplier => Boolean(supplier.website),
+  },
+];
+
+/**
+ * Compute the one server-side profile-completeness score.
+ *
+ * @param {Object} supplier - Supplier document (ideally photo-hydrated)
+ * @returns {{score: number, checks: Array<{id: string, label: string, weight: number, done: boolean, href: string}>}}
+ *   `score` is 0-100 and equals the browser widget's `percentage`.
+ */
+function computeProfileCompleteness(supplier) {
+  const source = supplier && typeof supplier === 'object' ? supplier : {};
+  const checks = PROFILE_COMPLETENESS_CHECKS.map(check => ({
+    id: check.id,
+    label: check.label,
+    weight: check.weight,
+    done: check.test(source),
+    href: check.href,
+  }));
+  const totalWeight = checks.reduce((sum, check) => sum + check.weight, 0);
+  const earnedWeight = checks.reduce((sum, check) => sum + (check.done ? check.weight : 0), 0);
+  return { score: Math.round((earnedWeight / totalWeight) * 100), checks };
+}
+
 module.exports = {
   getSupplierGalleryCount,
+  getSupplierSocialLinkCount,
   hasSupplierGalleryPhotos,
   hasSupplierPostcode,
+  computeProfileCompleteness,
+  PROFILE_COMPLETENESS_CHECKS,
 };

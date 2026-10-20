@@ -71,6 +71,10 @@ function buildApp({ db, sendMail, user, now, createToken }) {
         req.user = typeof user === 'function' ? user(req) : user;
         next();
       },
+      // Delivery behaviour is under test here; the verification/approval gate has its own
+      // tests in supplier-request-review-gating.test.js.
+      requireVerifiedUser: noOpMiddleware,
+      requireApprovedSupplier: noOpMiddleware,
       csrfProtection: noOpMiddleware,
       writeLimiter: noOpMiddleware,
       fromAddress: 'hello@event-flow.co.uk',

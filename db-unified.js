@@ -179,6 +179,10 @@ async function createIndexes() {
     await quoteRequestsCollection.createIndex({ userId: 1 });
     await quoteRequestsCollection.createIndex({ supplierId: 1 });
     await quoteRequestsCollection.createIndex({ status: 1 });
+    await quoteRequestsCollection.createIndex({ createdAt: -1 }); // supplier dashboard enquiry window
+    // Supplier dashboard reads one supplier's events inside a date window
+    const supplierEventsCollection = mongodb.collection('events');
+    await supplierEventsCollection.createIndex({ supplierId: 1, timestamp: -1 });
     const enquiriesCollection = mongodb.collection('enquiries');
     await enquiriesCollection.createIndex({ supplierId: 1 });
     await enquiriesCollection.createIndex({ senderEmail: 1 });

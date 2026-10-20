@@ -11,7 +11,11 @@ const crypto = require('crypto');
 const express = require('express');
 const dbUnified = require('../db-unified');
 const logger = require('../utils/logger');
-const { authRequired } = require('../middleware/auth');
+const {
+  authRequired,
+  requireVerifiedUser,
+  requireApprovedSupplier,
+} = require('../middleware/auth');
 const { csrfProtection } = require('../middleware/csrf');
 const { writeLimiter } = require('../middleware/rateLimits');
 const { sendMail, FROM_HELLO } = require('../utils/postmark');
@@ -133,6 +137,12 @@ function createReviewRequestRouter(overrides = {}) {
   const send = overrides.sendMail || sendMail;
   const fromAddress = overrides.fromAddress || FROM_HELLO;
   const authenticate = overrides.authRequired || authRequired;
+  // Sending a review request emails an arbitrary address on the platform's behalf, so it is
+  // gated exactly like the other supplier write routes (packages, messaging): the account's
+  // email must be verified and the supplier profile approved. Both middlewares reply with a
+  // structured 403 (`EMAIL_NOT_VERIFIED` / `SUPPLIER_NOT_APPROVED`).
+  const requireVerifiedEmail = overrides.requireVerifiedUser || requireVerifiedUser;
+  const requireApproval = overrides.requireApprovedSupplier || requireApprovedSupplier;
   const protectCsrf = overrides.csrfProtection || csrfProtection;
   const limitWrites = overrides.writeLimiter || writeLimiter;
   const now = overrides.now || (() => new Date());
@@ -169,7 +179,15 @@ function createReviewRequestRouter(overrides = {}) {
 
   const postPaths = ['/api/v1/supplier/request-review', '/api/supplier/request-review'];
 
-  router.post(postPaths, authenticate, protectCsrf, limitWrites, async (req, res) => {
+  const postGuards = [
+    authenticate,
+    requireVerifiedEmail,
+    requireApproval,
+    protectCsrf,
+    limitWrites,
+  ];
+
+  router.post(postPaths, postGuards, async (req, res) => {
     const currentTime = now();
     let requestId = null;
     let reservationAcquired = false;
