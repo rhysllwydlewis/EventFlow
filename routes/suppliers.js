@@ -22,7 +22,6 @@ const { stripPublicSupplierPrivateFields } = require('../utils/supplierPublicPro
 let dbUnified;
 let authRequired;
 let roleRequired;
-let supplierAnalytics;
 let getUserFromCookie;
 let supplierIsProActive;
 let logger;
@@ -55,7 +54,6 @@ function initializeDependencies(deps) {
   dbUnified = deps.dbUnified;
   authRequired = deps.authRequired;
   roleRequired = deps.roleRequired;
-  supplierAnalytics = deps.supplierAnalytics;
   getUserFromCookie = deps.getUserFromCookie;
   supplierIsProActive = deps.supplierIsProActive;
   logger = deps.logger;
@@ -439,15 +437,8 @@ router.get('/suppliers/:id', async (req, res) => {
     // Strip sensitive fields from public response (admins/owners get data via authenticated routes)
     const publicSupplier = stripPublicSupplierPrivateFields(s);
 
-    // Track profile view (unless preview mode)
-    const isPreview = req.query.preview === 'true';
-    const userId = req.user ? req.user.id : null;
-    const sessionId = req.session ? req.session.id : null;
-
-    supplierAnalytics
-      .trackProfileView(req.params.id, userId, sessionId, isPreview)
-      .catch(err => logger.error('Failed to track profile view:', err));
-
+    // Profile views are counted once, by the page's POST /api/analytics/track beacon. Counting
+    // here as well would record a second event for the same page load.
     res.json(addPublicProfilePath(publicSupplier));
   } catch (error) {
     logger.error('Error fetching supplier:', error);

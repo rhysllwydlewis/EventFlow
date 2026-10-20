@@ -29,6 +29,7 @@ const {
   normaliseState,
   VERIFICATION_STATES,
 } = require('../utils/supplierVerificationStateMachine');
+const { STATES, reviewState, reviewRating } = require('../utils/reviewShape');
 const { computeProfileCompleteness } = require('./supplierProfileCompleteness');
 const { getEngagementMetrics, getMessagingSummary } = require('./supplierEngagementMetrics');
 const { evaluateNextSteps } = require('./supplierNextSteps');
@@ -38,9 +39,11 @@ const supplierAnalytics = require('../utils/supplierAnalytics');
 const STRICT = Object.freeze({ throwOnError: true });
 
 const DEFAULT_SUMMARY_DAYS = 30;
+
+/** The exact rule behind `views.total`, safe to show to the supplier as it is. */
+const VIEWS_DESCRIPTION =
+  'Times your public profile page was loaded, counted once per visitor per hour. Your own visits, admins and automated crawlers are not counted. Views recorded before this rule was introduced may include some of these.';
 const UPCOMING_LIMIT = 3;
-const REVIEW_APPROVED = 'approved';
-const REVIEW_PENDING = 'pending';
 
 /**
  * Map the detailed verification state to the four-value `state` of the contract.
@@ -170,17 +173,16 @@ function summarisePackages(packages, limit) {
 
 /**
  * Summarise reviews using the same rule as the public reviews panel: only
- * reviews whose moderation state is `approved` are shown or counted.
+ * published reviews are counted, whichever writer created them (see
+ * utils/reviewShape.js for the legacy and v2 shapes).
  *
  * @param {Object[]} reviews - Review documents for one supplier
  * @returns {{approvedCount: number, averageRating: (number|null), pendingCount: number}}
  */
 function summariseReviews(reviews) {
-  const approved = reviews.filter(review => review.moderation?.state === REVIEW_APPROVED);
-  const pendingCount = reviews.filter(review => review.moderation?.state === REVIEW_PENDING).length;
-  const ratings = approved
-    .map(review => Number(review.rating))
-    .filter(rating => Number.isFinite(rating) && rating >= 1 && rating <= 5);
+  const approved = reviews.filter(review => reviewState(review) === STATES.APPROVED);
+  const pendingCount = reviews.filter(review => reviewState(review) === STATES.PENDING).length;
+  const ratings = approved.map(reviewRating).filter(rating => rating !== null);
   const averageRating =
     ratings.length > 0
       ? Number((ratings.reduce((sum, rating) => sum + rating, 0) / ratings.length).toFixed(2))
@@ -494,7 +496,12 @@ async function buildDashboardSummary({ userId, supplier, requestedDays = null, n
   // --- Views & legacy analytics block ---
   const viewsKnown = Boolean(analyticsBase) && analyticsBase.totalViews !== null;
   const totalViews = viewsKnown ? analyticsBase.totalViews : null;
-  const views = { total: totalViews, days: analyticsWindow.days, basis: 'page_loads' };
+  const views = {
+    total: totalViews,
+    days: analyticsWindow.days,
+    basis: 'page_loads',
+    description: VIEWS_DESCRIPTION,
+  };
   let analytics = unavailableAnalytics();
   if (viewsKnown) {
     analytics = {

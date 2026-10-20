@@ -29,6 +29,7 @@ const EVENT_TYPES = {
  * @param {string} [eventData.userId] - User ID (if authenticated)
  * @param {string} [eventData.sessionId] - Session ID for anonymous tracking
  * @param {boolean} [eventData.isPreview] - Whether this is a preview view (won't be counted)
+ * @param {string} [eventData.visitorKey] - Anonymous visitor hash used to count a view once per hour
  * @param {Object} [eventData.metadata] - Additional event-specific metadata
  * @returns {Promise<void>}
  */
@@ -45,6 +46,8 @@ async function trackEvent(eventData) {
       supplierId: eventData.supplierId,
       userId: eventData.userId || null,
       sessionId: eventData.sessionId || null,
+      // Hash that identifies one browser/account for the one-view-per-hour rule (never a raw IP).
+      visitorKey: eventData.visitorKey || null,
       metadata: eventData.metadata || {},
       timestamp: new Date().toISOString(),
       date: new Date().toISOString().split('T')[0], // For daily aggregation
@@ -225,15 +228,23 @@ async function getSupplierAnalytics(supplierId, days = 7, options = {}) {
  * @param {string} [userId] - User ID (if authenticated)
  * @param {string} [sessionId] - Session ID
  * @param {boolean} [isPreview] - Whether this is a preview view
+ * @param {string} [visitorKey] - Anonymous visitor hash (one view per visitor per hour)
  * @returns {Promise<void>}
  */
-function trackProfileView(supplierId, userId = null, sessionId = null, isPreview = false) {
+function trackProfileView(
+  supplierId,
+  userId = null,
+  sessionId = null,
+  isPreview = false,
+  visitorKey = null
+) {
   return trackEvent({
     type: EVENT_TYPES.PROFILE_VIEW,
     supplierId,
     userId,
     sessionId,
     isPreview,
+    visitorKey,
   });
 }
 

@@ -319,13 +319,15 @@ router.put(
       }
 
       const dbUnified = require('../db-unified');
-      const review = await dbUnified.findOne('reviews', { _id: id });
+      const review = await reviewService.findReviewById(id);
 
       if (!review) {
         return res.status(404).json({ error: 'Review not found' });
       }
 
-      if (!review.response) {
+      // Legacy reviews may carry the reply under `supplierResponse`.
+      const existingResponse = review.response || review.supplierResponse;
+      if (!existingResponse) {
         return res.status(404).json({ error: 'No response exists to update' });
       }
 
@@ -341,24 +343,20 @@ router.put(
         return res.status(403).json({ error: 'Permission denied' });
       }
 
-      review.response.text = trimmedText;
-      review.response.updatedAt = new Date().toISOString();
       const responseUpdatedAt = new Date().toISOString();
+      const updatedResponse = {
+        ...existingResponse,
+        text: trimmedText,
+        updatedAt: responseUpdatedAt,
+      };
 
-      await dbUnified.updateOne(
-        'reviews',
-        { _id: id },
-        {
-          $set: {
-            response: { ...review.response, text: trimmedText, updatedAt: responseUpdatedAt },
-            updatedAt: responseUpdatedAt,
-          },
-        }
-      );
+      await dbUnified.updateOne('reviews', reviewService.reviewIdentityFilter(review, id), {
+        $set: { response: updatedResponse, updatedAt: responseUpdatedAt },
+      });
 
       res.json({
         success: true,
-        data: { ...review.response, text: trimmedText, updatedAt: responseUpdatedAt },
+        data: updatedResponse,
         message: 'Response updated successfully',
       });
     } catch (error) {

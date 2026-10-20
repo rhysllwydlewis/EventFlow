@@ -581,7 +581,12 @@ describe('GET /api/supplier/dashboard-summary contract', () => {
     });
 
     it('labels views honestly as page loads over the served window', () => {
-      expect(body.views).toEqual({ total: 5, days: 30, basis: 'page_loads' });
+      expect(body.views).toEqual({
+        total: 5,
+        days: 30,
+        basis: 'page_loads',
+        description: expect.stringMatching(/once per visitor per hour/),
+      });
       expect(body.analytics.totalViews).toBe(5);
       // 5 now vs 3 in the previous window.
       expect(body.analytics.viewsTrend).toBe(67);
@@ -800,7 +805,7 @@ describe('GET /api/supplier/dashboard-summary contract', () => {
         averageRating: null,
         pendingCount: 0,
       });
-      expect(body.views).toEqual({ total: 0, days: 7, basis: 'page_loads' });
+      expect(body.views).toMatchObject({ total: 0, days: 7, basis: 'page_loads' });
       expect(body.messages).toMatchObject({
         unreadMessages: 0,
         conversationsWithUnread: 0,

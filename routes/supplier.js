@@ -18,6 +18,7 @@ const {
 const { parseDaysParam, resolveAnalyticsWindow } = require('../utils/analyticsWindow');
 const { buildDashboardSummary, summariseReviews } = require('../services/supplierDashboardSummary');
 const supplierEnquiries = require('../services/supplierEnquiries');
+const { isApprovedReview } = require('../utils/reviewShape');
 const { clearEngagementCache } = require('../services/supplierEngagementMetrics');
 const { serializeCsv } = require('../utils/csv');
 
@@ -635,7 +636,7 @@ router.get('/reviews/stats', authRequired, async (req, res) => {
     // Only approved reviews count, exactly as on the public reviews panel and in the
     // dashboard summary, so the three can never show different numbers.
     const allReviews = (await dbUnified.find('reviews', { supplierId: supplier.id })) || [];
-    const supplierReviews = allReviews.filter(review => review.moderation?.state === 'approved');
+    const supplierReviews = allReviews.filter(isApprovedReview);
 
     const totalReviews = supplierReviews.length;
     const averageRating = summariseReviews(allReviews).averageRating;

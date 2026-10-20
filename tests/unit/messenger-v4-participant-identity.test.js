@@ -12,6 +12,8 @@ jest.mock('../../services/queue', () => ({
   setQueueContext: jest.fn(),
 }));
 
+const fs = require('fs');
+const path = require('path');
 const MessengerV4Service = require('../../services/messenger-v4.service');
 
 /**
@@ -137,6 +139,15 @@ describe('messenger participant identity', () => {
       ])
     );
 
+    if (process.env.SUPPLIER_CONTRACT_DUMP_DIR) {
+      fs.writeFileSync(
+        path.join(
+          process.env.SUPPLIER_CONTRACT_DUMP_DIR,
+          'messenger-conversation-participants.json'
+        ),
+        `${JSON.stringify(result, null, 2)}\n`
+      );
+    }
     // Business photo wins over the personal account avatar...
     expect(result.participants[0]).toMatchObject({
       displayName: 'Sam Owner',

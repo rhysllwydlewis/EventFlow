@@ -30,11 +30,28 @@ jest.mock('../../middleware/rateLimits', () => ({
   apiLimiter: (req, res, next) => next(),
 }));
 
+const fs = require('fs');
+const path = require('path');
 const express = require('express');
 const request = require('supertest');
 const logger = require('../../utils/logger');
 const fakeDb = require('../helpers/fake-db-unified');
 const { clearEngagementCache } = require('../../services/supplierEngagementMetrics');
+
+/**
+ * Write a real response to the front-end team's example folder when asked to.
+ *
+ * @param {string} name - File name
+ * @param {string|Object} body - Response body
+ * @returns {void}
+ */
+function dumpExample(name, body) {
+  const dir = process.env.SUPPLIER_CONTRACT_DUMP_DIR;
+  if (dir) {
+    const text = typeof body === 'string' ? body : `${JSON.stringify(body, null, 2)}\n`;
+    fs.writeFileSync(path.join(dir, name), text);
+  }
+}
 
 const SUPPLIER_USER = { id: 'user-1', role: 'supplier' };
 const OTHER_USER = { id: 'user-2', role: 'supplier' };
@@ -210,6 +227,7 @@ describe('GET /enquiries', () => {
   it('lists only this supplier records from both sources, newest first', async () => {
     const res = await call('get', '/enquiries');
 
+    dumpExample('enquiries-list.json', res.body);
     expect(res.status).toBe(200);
     expect(res.body.enquiries.map(item => item.id)).toEqual(['enq_1', 'qr_1']);
     expect(res.body.enquiries.map(item => item.source)).toEqual(['contact_form', 'quote_request']);
@@ -321,6 +339,7 @@ describe('GET /enquiries/:id', () => {
   it('returns the full record with the contact details the customer submitted', async () => {
     const res = await call('get', '/enquiries/qr_1');
 
+    dumpExample('enquiry-detail.json', res.body);
     expect(res.status).toBe(200);
     expect(res.body.enquiry).toEqual({
       id: 'qr_1',
@@ -385,6 +404,7 @@ describe('GET /enquiries/:id', () => {
 describe('PATCH /enquiries/:id', () => {
   it('marks an enquiry read and handled, and the list and counts follow', async () => {
     const read = await call('patch', '/enquiries/qr_1', SUPPLIER_USER, { status: 'read' });
+    dumpExample('enquiry-mark-read.json', read.body);
     expect(read.status).toBe(200);
     expect(read.body.enquiry.status).toBe('read');
 
@@ -552,6 +572,7 @@ describe('GET /enquiries/export', () => {
 
     const res = await call('get', '/enquiries/export');
 
+    dumpExample('enquiries-export-empty.csv', res.text);
     expect(res.status).toBe(200);
     expect(res.headers['content-type']).toMatch(/text\/csv/);
     expect(res.headers['x-export-row-count']).toBe('0');
@@ -570,6 +591,7 @@ describe('GET /enquiries/export', () => {
 
     const res = await call('get', '/enquiries/export');
 
+    dumpExample('enquiries-export.csv', res.text);
     // Carol, Alice, Erin's conversation and the 2025 quote request (the export is the full history).
     expect(res.headers['x-export-row-count']).toBe('4');
     const body = res.text;
