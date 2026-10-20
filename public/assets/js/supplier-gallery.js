@@ -37,12 +37,15 @@ class SupplierGalleryManager {
    */
   async loadPhotoLimit() {
     try {
-      const response = await fetch('/api/v2/subscriptions/me', { credentials: 'include' });
-      if (!response.ok) {
-        return;
+      // The dashboard's single summary request carries the plan's limits; fall back to asking for them.
+      const home = window.SupplierDashboardHome;
+      let limits =
+        home && typeof home.getPlanLimits === 'function' ? await home.getPlanLimits() : null;
+      if (!limits) {
+        const response = await fetch('/api/v2/subscriptions/me', { credentials: 'include' });
+        limits = response.ok ? (await response.json())?.limits : null;
       }
-      const data = await response.json();
-      const limit = data?.limits?.maxPhotos;
+      const limit = limits?.maxPhotos;
       if (Number.isFinite(limit)) {
         this.maxPhotos = limit;
       }

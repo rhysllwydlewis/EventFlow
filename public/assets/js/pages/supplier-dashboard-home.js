@@ -411,6 +411,7 @@
   /** The first step the supplier can act on now: not done, not locked behind approval, not just waiting. */
   function pickPrimaryStep(steps) {
     const list = steps?.steps || [];
+    /** True for a step the supplier can act on right now. */
     const open = step => !step.done && !step.locked && !step.waiting;
     const named = steps?.primaryKey ? list.find(step => step.key === steps.primaryKey) : null;
     return named && open(named) ? named : list.find(open) || null;
@@ -606,7 +607,7 @@
       return 'Create your business profile and we will show you what to do next.';
     }
     const strip = stripFor(model?.verification);
-    if (strip && model.isInReview(verification)) {
+    if (strip && isInReview(model.verification)) {
       return 'Your profile is in review. We will email you when it is decided.';
     }
     if (strip) {
@@ -830,6 +831,12 @@
     return state.summaryPromise;
   }
 
+  /** The plan's limits (packages, photos, service areas, analytics days) from the one summary request, or null. */
+  async function getPlanLimits() {
+    const model = await getSummary(false);
+    return model?.subscription?.limits || state.plan?.limits || null;
+  }
+
   /** What app.js needs to know about packages: the active limit (null for none or unknown) and the plan label. */
   async function getPackageAllowance() {
     const model = await getSummary(false);
@@ -1049,7 +1056,7 @@
     const usage = packageUsage(model);
     const limit = packageLimit(model);
     const meter =
-      limit && model?.packages?.active !== null
+      limit && usage
         ? bar(((model.packages.counted ?? model.packages.active) / limit) * 100, usage)
         : '';
     return tile(
@@ -2000,6 +2007,7 @@
   window.SupplierDashboardHome = {
     getSummary,
     getPackageAllowance,
+    getPlanLimits,
     refresh,
     confirm: confirmAction,
     toast,

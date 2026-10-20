@@ -4,7 +4,7 @@
  *
  * The helper is designed to eliminate the paired Stripe 400 errors visible in
  * Stripe Workbench that occur because two concurrent page-load functions
- * (loadSuppliers in app.js and displaySubscriptionStatus in dashboard-supplier-module.js)
+ * (app.js and the supplier dashboard home script)
  * both call GET /api/v2/subscriptions/me independently, each triggering a
  * stripe.customers.retrieve call on the server.
  *
@@ -151,8 +151,8 @@ describe('_efFetchOnceJSON — usage in source files', () => {
   const path = require('path');
 
   const appJsSrc = fs.readFileSync(path.join(__dirname, '../../public/assets/js/app.js'), 'utf8');
-  const dashboardModuleSrc = fs.readFileSync(
-    path.join(__dirname, '../../public/assets/js/pages/dashboard-supplier-module.js'),
+  const homeSrc = fs.readFileSync(
+    path.join(__dirname, '../../public/assets/js/pages/supplier-dashboard-home.js'),
     'utf8'
   );
 
@@ -160,19 +160,20 @@ describe('_efFetchOnceJSON — usage in source files', () => {
     expect(appJsSrc).toContain('window._efFetchOnceJSON');
   });
 
-  it('app.js loadSuppliers fallback uses _efFetchOnceJSON for subscriptions/me', () => {
-    expect(appJsSrc).toContain("_efFetchOnceJSON('/api/v2/subscriptions/me'");
+  it('app.js no longer asks for the subscription itself: the dashboard summary carries the plan', () => {
+    expect(appJsSrc).not.toContain("_efFetchOnceJSON('/api/v2/subscriptions/me'");
   });
 
-  it('dashboard-supplier-module.js displaySubscriptionStatus uses _efFetchOnceJSON for subscriptions/me', () => {
-    expect(dashboardModuleSrc).toContain("_efFetchOnceJSON('/api/v2/subscriptions/me'");
+  it('the dashboard home script shares the auth request and falls back to a direct fetch', () => {
+    expect(homeSrc).toContain("window._efFetchOnceJSON('/api/v1/auth/me'");
+    // Fallback to the direct request must still be present when app.js has not defined the helper.
+    expect(homeSrc).toContain('window._efFetchOnceJSON');
+    expect(homeSrc).toContain("getJson('/api/v1/auth/me')");
   });
 
-  it('dashboard-supplier-module.js has a fallback for when _efFetchOnceJSON is not yet defined', () => {
-    // The module should guard against _efFetchOnceJSON being absent (e.g., loaded without app.js)
-    expect(dashboardModuleSrc).toContain('window._efFetchOnceJSON');
-    // Fallback to direct fetch must still be present
-    expect(dashboardModuleSrc).toContain("fetch('/api/v2/subscriptions/me'");
+  it('the plan is fetched at most once, and only when the summary has none', () => {
+    expect(homeSrc.match(/\/api\/v2\/subscriptions\/me/g)).toHaveLength(2);
+    expect(homeSrc).toContain('if (!model.subscription)');
   });
 });
 
@@ -195,7 +196,7 @@ describe('_efFetchOnceJSON — fallback when helper is absent', () => {
     });
     jest.spyOn(global, 'fetch').mockImplementation(fetchMock);
 
-    // Replicate the fallback branch from dashboard-supplier-module.js
+    // Replicate the fallback branch from the dashboard home script
     const subJson = fakeWindow._efFetchOnceJSON
       ? await fakeWindow._efFetchOnceJSON('/api/v2/subscriptions/me', { credentials: 'include' })
       : await fetch('/api/v2/subscriptions/me', { credentials: 'include' })

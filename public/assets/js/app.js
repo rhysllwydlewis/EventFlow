@@ -2285,7 +2285,7 @@ async function initDashSupplier() {
     const packageId = escapeHtml(String(p.id || ''));
     const image = escapeHtml(String(p.image || '/assets/images/package-placeholder.svg'));
     const title = escapeHtml(String(p.title || 'Untitled package'));
-    const priceDisplay = escapeHtml(String(p.price_display || ''));
+    const priceText = escapeHtml(String(p.price_display || ''));
     const description = escapeHtml(String(p.description || ''));
     const slug = escapeHtml(String(p.slug || ''));
     const approved = !!p.approved;
@@ -2315,7 +2315,7 @@ async function initDashSupplier() {
       <div class="sdh-pkg__body">
         <div class="sdh-pkg__head">
           <h3 class="sdh-pkg__title">${title}</h3>
-          ${priceDisplay ? `<span class="sdh-pkg__price">${priceDisplay}</span>` : ''}
+          ${priceText ? `<span class="sdh-pkg__price">${priceText}</span>` : ''}
         </div>
         <div class="sdh-pkg__badges">${badges}</div>
         ${description ? `<p class="sdh-pkg__desc">${description}</p>` : ''}
@@ -3199,16 +3199,11 @@ async function initDashSupplier() {
    */
   async function loadSupplierServiceAreaAllowance() {
     try {
-      // This function itself is called more than once per page load (once as
-      // the form populates, once as its controls are wired up), and other
-      // dashboard modules request this same endpoint concurrently — so share
-      // one request rather than triggering several live subscription lookups.
-      const data = window._efFetchOnceJSON
-        ? await window._efFetchOnceJSON('/api/v2/subscriptions/me', { credentials: 'include' })
-        : await fetch('/api/v2/subscriptions/me', { credentials: 'include' }).then(r =>
-            r.ok ? r.json() : null
-          );
-      const limit = data?.limits?.maxServiceAreas;
+      // The plan's limits come from the dashboard summary, which is requested once per page load.
+      const home = window.SupplierDashboardHome;
+      const limits =
+        home && typeof home.getPlanLimits === 'function' ? await home.getPlanLimits() : null;
+      const limit = limits?.maxServiceAreas;
       if (Number.isFinite(limit) && limit >= 0) {
         supplierServiceAreaAllowance = limit;
       }

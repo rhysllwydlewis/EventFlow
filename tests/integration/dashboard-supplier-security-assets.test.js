@@ -11,9 +11,8 @@ describe('Dashboard supplier security-oriented script loading', () => {
     );
   });
 
-  it('uses local confetti script instead of jsdelivr CDN', () => {
-    expect(dashboardContent).toContain('/assets/js/vendor/confetti-safe.js');
-    expect(dashboardContent).not.toContain('canvas-confetti@1.9.2/dist/confetti.browser.min.js');
+  it('loads no confetti script at all (neither the local copy nor the jsdelivr CDN)', () => {
+    expect(dashboardContent).not.toContain('confetti');
   });
 
   it('does not include JadeAssist third-party widget script on supplier dashboard', () => {

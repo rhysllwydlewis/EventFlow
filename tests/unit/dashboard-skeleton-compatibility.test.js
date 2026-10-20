@@ -7,20 +7,11 @@ const root = path.join(__dirname, '../..');
 const read = relativePath => fs.readFileSync(path.join(root, relativePath), 'utf8');
 
 describe('dashboard skeleton compatibility layer', () => {
-  const dashboardCss = read('public/assets/css/dashboard-overhaul.css');
   const skeletonCss = read('public/assets/css/skeleton.css');
 
   it('loads the repaired canonical stylesheet cache key on both dashboards', () => {
     expect(read('public/dashboard-customer.html')).toContain('/assets/css/skeleton.css?v=2.1.0');
     expect(read('public/dashboard-supplier.html')).toContain('/assets/css/skeleton.css?v=2.1.0');
-  });
-
-  it('keeps the existing dashboard overhaul in its original stylesheet', () => {
-    expect(dashboardCss).toContain('.supplier-dashboard-page');
-    expect(dashboardCss).toContain('.customer-dashboard-page');
-    expect(dashboardCss).toContain('.kpi-grid');
-    expect(dashboardCss).toContain('@keyframes dash-shimmer');
-    expect(dashboardCss).not.toContain('dashboard-overhaul-base.css');
   });
 
   it('has no placeholders left for the customer widgets the redesigned dashboard removed', () => {
@@ -29,10 +20,9 @@ describe('dashboard skeleton compatibility layer', () => {
     expect(skeletonCss).not.toContain('#customer-milestones-widget');
   });
 
-  it('adds internal hierarchy to the supplier availability placeholder', () => {
-    // #supplier-kpi-grid was removed with the legacy KPI grid it skeletoned for
-    // (dashboard-supplier-overhaul.js's renderKpiGrid duplicated #supplier-stats-grid,
-    // which dashboard-supplier-module.js already renders from the same data).
-    expect(skeletonCss).toContain('#supplier-availability-widget > .skeleton:only-child');
+  it('the supplier dashboard draws its own loading placeholders and no longer needs the old dashboard overhaul sheet', () => {
+    const supplierHtml = read('public/dashboard-supplier.html');
+    expect(supplierHtml).toContain('sdh-skel');
+    expect(supplierHtml).not.toContain('dashboard-overhaul.css');
   });
 });

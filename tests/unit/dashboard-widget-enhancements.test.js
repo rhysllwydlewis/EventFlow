@@ -263,21 +263,10 @@ describe('Dashboard HTML - Supplier', () => {
     'utf8'
   );
 
-  it('includes supplier search input field', () => {
-    expect(dashboardSupplierHtml).toContain('id="widget-search-input-supplier"');
-    expect(dashboardSupplierHtml).toContain('placeholder="Search conversations..."');
-  });
-
-  it('includes supplier filter dropdown', () => {
-    expect(dashboardSupplierHtml).toContain('id="widget-filter-select-supplier"');
-    expect(dashboardSupplierHtml).toContain('<option value="all">All</option>');
-    expect(dashboardSupplierHtml).toContain('<option value="unread">Unread</option>');
-    expect(dashboardSupplierHtml).toContain('<option value="starred">Starred</option>');
-  });
-
-  it('search and filter exist in dashboard', () => {
-    // Just verify both exist in the file - they're in the right place
-    expect(dashboardSupplierHtml).toContain('widget-search-input-supplier');
-    expect(dashboardSupplierHtml).toContain('widget-filter-select-supplier');
+  it('mounts the messenger widget without search and filter boxes that could only see 5 conversations', () => {
+    expect(dashboardSupplierHtml).toContain('id="messenger-dashboard-widget-supplier"');
+    expect(dashboardSupplierHtml).not.toContain('widget-search-input-supplier');
+    expect(dashboardSupplierHtml).not.toContain('widget-filter-select-supplier');
+    expect(dashboardSupplierHtml).not.toContain('widget-sort-select-supplier');
   });
 });
