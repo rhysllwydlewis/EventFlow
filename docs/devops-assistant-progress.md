@@ -174,6 +174,10 @@ the policy above.
 
 ## Session log
 
+### 2026-10-20 — session 28
+
+Branch rebased onto `main` (only the session 27 handoff commit was ahead). No open PRs at all, nothing red, backlog empty. `/api/ready` 200; `/`, `/suppliers`, `/marketplace`, `/pricing`, `/faq`, `/auth`, `/community`, `/contact`, `/terms`, `/privacy`, `/guides` all 200 (`/articles` 301, a redirect). No defect found, no code changed, nothing to merge. Docs-only handoff.
+
 ### 2026-10-19 — session 27
 
 Branch was identical to `main` after rebase (earlier handoff commits already upstream). No open PR of mine; open PRs are only dependabot #1795-1802 and two non-routine feature PRs (#1795, #1796), none on this branch. Backlog empty. `/api/ready` 200 (mongodb connected, Redis queue and worker healthy); `/`, `/suppliers`, `/marketplace`, `/pricing`, `/faq`, `/auth`, `/community`, `/contact` all 200. No defect found, no code changed. Docs-only handoff.
