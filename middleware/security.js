@@ -373,6 +373,16 @@ function configureCORSMiddleware(isProduction = false) {
 }
 
 /**
+ * The full backend browser suite is one isolated CI process sending every spec's requests from one
+ * loopback address, so per-IP buckets would let unrelated specs exhaust each other's allowance
+ * (the CSRF-token endpoint answered 429 mid-suite). Only NODE_ENV=test with E2E_MODE=full skips
+ * them; production, development and ordinary tests keep every limit. Same rule as middleware/rateLimits.js.
+ */
+function skipInBackendE2E() {
+  return process.env.NODE_ENV === 'test' && process.env.E2E_MODE === 'full';
+}
+
+/**
  * Create rate limiters for different types of requests
  * @returns {Object} Rate limiter instances
  */
@@ -384,6 +394,7 @@ function createRateLimiters() {
       max: 100,
       standardHeaders: true,
       legacyHeaders: false,
+      skip: skipInBackendE2E,
     }),
 
     // Strict auth limiter - 10 requests per 15 minutes
@@ -392,6 +403,7 @@ function createRateLimiters() {
       max: 10,
       standardHeaders: true,
       legacyHeaders: false,
+      skip: skipInBackendE2E,
       message: 'Too many requests. Please try again later.',
     }),
 
@@ -401,6 +413,7 @@ function createRateLimiters() {
       max: 5,
       standardHeaders: true,
       legacyHeaders: false,
+      skip: skipInBackendE2E,
       message: 'Too many password reset attempts. Please try again later.',
     }),
 
@@ -410,6 +423,7 @@ function createRateLimiters() {
       max: 80,
       standardHeaders: true,
       legacyHeaders: false,
+      skip: skipInBackendE2E,
     }),
 
     // Health check limiter - 60 requests per minute
@@ -418,6 +432,7 @@ function createRateLimiters() {
       max: 60,
       standardHeaders: true,
       legacyHeaders: false,
+      skip: skipInBackendE2E,
       message: 'Too many health check requests',
     }),
   };
