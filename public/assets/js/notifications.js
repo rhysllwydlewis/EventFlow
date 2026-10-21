@@ -68,6 +68,34 @@
   // WEBSOCKET CONNECTION
   // ==========================================
 
+  // The server serves its Socket.IO client only once its real-time layer is up, which is a little
+  // after it starts answering requests. A page opened during a deployment therefore retries a few
+  // times before it gives up and says so.
+  const SOCKET_CLIENT_RETRY_DELAYS_MS = [1500, 4000, 10000];
+
+  /**
+   * Loads the Socket.IO client this server serves (same version as the server, no third party).
+   *
+   * @param {number} attempt - Zero for the first try
+   */
+  function loadSocketClient(attempt) {
+    const script = document.createElement('script');
+    script.src = '/socket.io/socket.io.min.js';
+    script.onload = () => {
+      connectWebSocket();
+    };
+    script.onerror = () => {
+      script.remove();
+      if (attempt < SOCKET_CLIENT_RETRY_DELAYS_MS.length) {
+        setTimeout(() => loadSocketClient(attempt + 1), SOCKET_CLIENT_RETRY_DELAYS_MS[attempt]);
+        return;
+      }
+      console.error('Failed to load Socket.IO');
+      showWebSocketError('Failed to load real-time notifications. Some features may be unavailable.');
+    };
+    document.head.appendChild(script);
+  }
+
   function initWebSocket() {
     try {
       // If Socket.IO is already loaded (e.g. by websocket-client.js), use it directly
@@ -76,20 +104,7 @@
         return;
       }
 
-      // Load the Socket.IO client the server itself serves (same version as the server, no third party)
-      const script = document.createElement('script');
-      script.src = '/socket.io/socket.io.min.js';
-      script.onload = () => {
-        connectWebSocket();
-      };
-      script.onerror = () => {
-        console.error('Failed to load Socket.IO');
-        // Show user-friendly error message
-        showWebSocketError(
-          'Failed to load real-time notifications. Some features may be unavailable.'
-        );
-      };
-      document.head.appendChild(script);
+      loadSocketClient(0);
     } catch (error) {
       console.error('Error initializing WebSocket:', error);
       showWebSocketError('Failed to initialize real-time notifications.');

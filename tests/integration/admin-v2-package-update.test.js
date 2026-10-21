@@ -92,6 +92,28 @@ describe('PUT /api/v2/admin/packages/:id', () => {
     expect(mockPackages[0].approved).toBe(false);
   });
 
+  it('accepts the canonical category key', async () => {
+    const res = await request(buildApp())
+      .put('/api/v2/admin/packages/pkg-1')
+      .send({ primaryCategoryKey: 'Photography' });
+    expect(res.status).toBe(200);
+    expect(res.body.data.primaryCategoryKey).toBe('Photography');
+  });
+
+  it('records in the audit trail the prices that were stored, not the ones that were sent', async () => {
+    // Two different values sent together: price_display wins, and both fields store it.
+    const app = buildApp();
+    const { createAuditLog } = require('../../utils/auditTrail');
+    const res = await request(app)
+      .put('/api/v2/admin/packages/pkg-1')
+      .send({ price: '£999', price_display: '£250' });
+    expect(res.status).toBe(200);
+    expect(res.body.data).toMatchObject({ price: '£250', price_display: '£250' });
+    const { changes } = createAuditLog.mock.calls[0][0];
+    expect(changes.price_display).toEqual({ before: '£100', after: '£250' });
+    expect(changes.price).toEqual({ before: '£100', after: '£250' });
+  });
+
   it('answers 404 for a package that does not exist', async () => {
     const res = await request(buildApp()).put('/api/v2/admin/packages/nope').send({ title: 'x' });
     expect(res.status).toBe(404);

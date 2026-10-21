@@ -38,7 +38,7 @@ const {
 } = require('../services/adminService');
 const dbUnified = require('../db-unified');
 const logger = require('../utils/logger');
-const { packagePriceText, priceFields } = require('../utils/packagePrice');
+const { priceFields } = require('../utils/packagePrice');
 const {
   VERIFICATION_STATES,
   normaliseState,
@@ -61,6 +61,7 @@ const PACKAGE_EDITABLE_FIELDS = [
   'price_display',
   'image',
   'category',
+  'primaryCategoryKey',
   'location',
   'features',
   'availability',
@@ -1319,27 +1320,25 @@ router.put(
       const pkg = packages[packageIndex];
       const changes = {};
 
-      // Track changes
-      Object.keys(updateData).forEach(key => {
-        if (updateData[key] !== pkg[key]) {
-          changes[key] = { before: pkg[key], after: updateData[key] };
-          pkg[key] = updateData[key];
-        }
-      });
-
-      // Whichever price field was sent, both end up holding it (utils/packagePrice.js).
+      // Whichever price field was sent, both end up holding it (utils/packagePrice.js). That is
+      // settled before the changes are worked out, so the audit entry records what is stored.
+      const stored = { ...updateData };
       if (updateData.price !== undefined || updateData.price_display !== undefined) {
-        const before = packagePriceText(pkg);
         Object.assign(
-          pkg,
+          stored,
           priceFields(
             updateData.price_display !== undefined ? updateData.price_display : updateData.price
           )
         );
-        if (before !== pkg.price_display) {
-          changes.price_display = { before, after: pkg.price_display };
-        }
       }
+
+      // Track changes
+      Object.keys(stored).forEach(key => {
+        if (stored[key] !== pkg[key]) {
+          changes[key] = { before: pkg[key], after: stored[key] };
+          pkg[key] = stored[key];
+        }
+      });
 
       pkg.updatedAt = new Date().toISOString();
       await dbUnified.updateOne('packages', { id: pkg.id }, { $set: pkg });

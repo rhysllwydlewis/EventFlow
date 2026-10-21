@@ -53,7 +53,7 @@ test.describe('Supplier dashboard: every control works @backend', () => {
     const dialog = page.locator('dialog[open]');
     await expect(dialog).toContainText(/Step 1 of/);
     await dialog
-      .getByRole('button', { name: /^Next|Continue/ })
+      .getByRole('button', { name: /^(Next|Continue)/ })
       .first()
       .click();
     await expect(dialog).toContainText(/Step 2 of/);
