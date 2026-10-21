@@ -296,10 +296,18 @@ test.describe('Supplier dashboard: every control works @backend', () => {
     const subject = `Actions spec ${runId.slice(-6)}`;
     await page.fill('#ticketSubject', subject);
     await page.fill('#ticketMessage', 'Created by the dashboard actions spec.');
-    const [response] = await Promise.all([
-      page.waitForResponse(r => r.request().method() === 'POST' && /\/api\/tickets/.test(r.url())),
-      modal.locator('button[type=submit]').click(),
-    ]);
+    const seen = [];
+    page.on('console', m => m.type() === 'error' && seen.push(`console: ${m.text()}`));
+    page.on('requestfailed', r => seen.push(`failed: ${r.method()} ${r.url()}`));
+    page.on('response', r => r.status() >= 400 && seen.push(`${r.status()} ${r.url()}`));
+    const posted = page.waitForResponse(
+      r => r.request().method() === 'POST' && /\/api\/tickets/.test(r.url()),
+      { timeout: 15000 }
+    );
+    await modal.locator('button[type=submit]').click();
+    const response = await posted.catch(error => {
+      throw new Error(`${error.message}\nWhat the page reported: ${seen.join(' | ') || 'nothing'}`);
+    });
     expect(response.status()).toBe(201);
     await expect(modal).toHaveCount(0);
     // No waiting for the minute-long refresh.
