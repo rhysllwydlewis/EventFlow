@@ -1,7 +1,7 @@
 'use strict';
 
 /**
- * Next-steps milestone logic (pure) and the performance-tips endpoint copy.
+ * Next-steps milestone logic (pure). The tips have their own file: supplier-tips.test.js.
  */
 
 jest.mock('../../utils/logger', () => ({
@@ -29,9 +29,6 @@ jest.mock('../../middleware/rateLimits', () => ({
   apiLimiter: (req, res, next) => next(),
 }));
 
-const express = require('express');
-const request = require('supertest');
-const fakeDb = require('../helpers/fake-db-unified');
 const { evaluateNextSteps, hasBusinessDetails } = require('../../services/supplierNextSteps');
 const { computeProfileCompleteness } = require('../../services/supplierProfileCompleteness');
 
@@ -242,52 +239,5 @@ describe('hasBusinessDetails', () => {
   it('accepts a Venues postcode', () => {
     const venue = { ...COMPLETE_SUPPLIER, basePostcode: '', venuePostcode: 'CF10 1AA' };
     expect(hasBusinessDetails(venue)).toBe(true);
-  });
-});
-
-describe('GET /api/v1/supplier/performance-tips', () => {
-  /**
-   * Fetch the tips for a bare supplier profile.
-   *
-   * @returns {Promise<Object>} supertest response
-   */
-  function fetchTips() {
-    const router = require('../../routes/supplier');
-    const app = express();
-    app.use('/api/v1/supplier', router);
-    return request(app).get('/api/v1/supplier/performance-tips');
-  }
-
-  beforeEach(() => {
-    fakeDb.__reset({
-      suppliers: [{ id: 'sup-1', ownerUserId: 'user-1', name: 'Bare Profile' }],
-    });
-  });
-
-  it('returns tips with titles and bodies', async () => {
-    const res = await fetchTips();
-
-    expect(res.status).toBe(200);
-    expect(res.body.tips.length).toBeGreaterThan(0);
-    res.body.tips.forEach(tip => {
-      expect(tip.title).toBeTruthy();
-      expect(tip.body).toBeTruthy();
-    });
-  });
-
-  it('makes no statistical claims we cannot back in any tip (no multipliers, percentages or "triples")', () => {
-    const source = require('fs').readFileSync(
-      require('path').join(__dirname, '../../routes/supplier.js'),
-      'utf8'
-    );
-    const tipsSection = source.slice(source.indexOf("router.get('/performance-tips'"));
-    const bodies = [...tipsSection.matchAll(/body:\s*\n?\s*'([^']+)'/g)].map(match => match[1]);
-
-    expect(bodies.length).toBeGreaterThanOrEqual(6);
-    bodies.forEach(body => {
-      expect(body).not.toMatch(
-        /\d\s*×|\d\s*x\b|\d+\s*%|triples|times more|more enquiries|conversion/i
-      );
-    });
   });
 });

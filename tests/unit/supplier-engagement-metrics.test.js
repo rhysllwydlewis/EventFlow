@@ -70,6 +70,7 @@ describe('summariseResponses', () => {
     expect(result).toEqual({
       sampleSize: 2,
       matureSampleSize: 2,
+      unanswered: 0,
       repliedPct: null,
       medianMinutes: null,
     });
@@ -79,6 +80,7 @@ describe('summariseResponses', () => {
     expect(summariseResponses([], NOW)).toEqual({
       sampleSize: 0,
       matureSampleSize: 0,
+      unanswered: 0,
       repliedPct: null,
       medianMinutes: null,
     });
@@ -147,6 +149,13 @@ describe('summariseResponses', () => {
     expect(young.medianMinutes).toBeNull();
     expect(youngReplied.repliedPct).toBeNull();
     expect(youngReplied.medianMinutes).toBe(30);
+  });
+
+  it('reports how many judged conversations went unanswered even when too few for a percentage', () => {
+    const result = summariseResponses([sample(48, null), sample(72, 5)], NOW);
+
+    expect(result.unanswered).toBe(1);
+    expect(result.repliedPct).toBeNull();
   });
 
   it('reports a genuine 0% when mature conversations all went unanswered', () => {

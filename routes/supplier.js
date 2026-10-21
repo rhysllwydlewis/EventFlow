@@ -11,12 +11,14 @@ const { csrfProtection } = require('../middleware/csrf');
 const { writeLimiter } = require('../middleware/rateLimits');
 const dbUnified = require('../db-unified');
 const logger = require('../utils/logger');
-const {
-  getSupplierGalleryCount,
-  getSupplierSocialLinkCount,
-} = require('../services/supplierProfileCompleteness');
 const { parseDaysParam, resolveAnalyticsWindow } = require('../utils/analyticsWindow');
-const { buildDashboardSummary, summariseReviews } = require('../services/supplierDashboardSummary');
+const {
+  buildDashboardSummary,
+  buildSummaryWithContext,
+  summariseReviews,
+} = require('../services/supplierDashboardSummary');
+const { buildTips } = require('../services/supplierTips');
+const { canPublishPublicCalendar } = require('../utils/calendarPermissions');
 const supplierEnquiries = require('../services/supplierEnquiries');
 const { isApprovedReview } = require('../utils/reviewShape');
 const { clearEngagementCache } = require('../services/supplierEngagementMetrics');
@@ -1026,97 +1028,33 @@ router.post('/request-review', authRequired, csrfProtection, writeLimiter, async
 
 /**
  * GET /api/v1/supplier/performance-tips
- * Returns personalised actionable tips based on the supplier's profile state.
+ * Up to three tips for this supplier, ranked by usefulness, derived from their real
+ * state (category, account status, plan limits, profile gaps, reviews, conversations,
+ * enquiries, packages). See services/supplierTips.js for the tip shape.
  */
 router.get('/performance-tips', authRequired, async (req, res) => {
   try {
     if (req.user.role !== 'supplier') {
       return res.status(403).json({ error: 'Suppliers only' });
     }
-    const supplier = await dbUnified.findOne('suppliers', { ownerUserId: req.user.id });
+    const supplier = await dbUnified.findOne(
+      'suppliers',
+      { ownerUserId: req.user.id },
+      { throwOnError: true }
+    );
     if (!supplier) {
       return res.status(404).json({ error: 'Supplier profile not found' });
     }
 
-    const supplierId = supplier.id;
-    const [packages, reviews] = await Promise.all([
-      dbUnified.find('packages', { supplierId }),
-      dbUnified.find('reviews', { supplierId }),
-    ]);
-
-    const tips = [];
-
-    // Profile completeness tips
-    if (!(supplier.description_short || '').trim()) {
-      tips.push({
-        id: 'add-desc',
-        priority: 1,
-        category: 'profile',
-        icon: '✍️',
-        title: 'Add a business description',
-        body: 'Tell customers what you offer and where you work, so they can decide whether to get in touch.',
-        action: { label: 'Edit Profile', href: '#toggle-profile-form' },
-      });
-    }
-    if (getSupplierGalleryCount(supplier) < 3) {
-      tips.push({
-        id: 'add-photos',
-        priority: 2,
-        category: 'profile',
-        icon: '📸',
-        title: 'Upload at least 3 photos',
-        body: 'Customers like to see your work before they get in touch. Add photos from events you have delivered.',
-        action: { label: 'Add Photos', href: '#my-suppliers' },
-      });
-    }
-    if (packages.length === 0) {
-      tips.push({
-        id: 'add-package',
-        priority: 3,
-        category: 'packages',
-        icon: '📦',
-        title: 'Create your first package',
-        body: 'Packages show customers what you offer and roughly what it costs.',
-        action: { label: 'Create Package', href: '#toggle-package-form' },
-      });
-    }
-    if (reviews.length === 0) {
-      tips.push({
-        id: 'get-review',
-        priority: 4,
-        category: 'reviews',
-        icon: '⭐',
-        title: 'Get your first review',
-        body: 'Ask a past customer for a review to build trust.',
-        action: { label: 'Request Review', data: 'request-review' },
-      });
-    }
-    if (!(supplier.tagline || '').trim()) {
-      tips.push({
-        id: 'add-tagline',
-        priority: 5,
-        category: 'profile',
-        icon: '💬',
-        title: 'Add a tagline',
-        body: 'A short tagline tells customers what you do at a glance.',
-        action: { label: 'Edit Profile', href: '#toggle-profile-form' },
-      });
-    }
-    if (getSupplierSocialLinkCount(supplier) === 0) {
-      tips.push({
-        id: 'social-links',
-        priority: 6,
-        category: 'profile',
-        icon: '🔗',
-        title: 'Add social media links',
-        body: 'Linking your social profiles lets customers see more of your work.',
-        action: { label: 'Edit Profile', href: '#toggle-profile-form' },
-      });
-    }
-
-    // Sort by priority, return top 4
-    tips.sort((a, b) => a.priority - b.priority);
-    res.json({ tips: tips.slice(0, 4), total: tips.length });
+    const { summary, raw } = await buildSummaryWithContext({ userId: req.user.id, supplier });
+    res.json(
+      buildTips({
+        supplier,
+        summary,
+        raw,
+        canPublishPublicCalendar: canPublishPublicCalendar(supplier),
+      })
+    );
   } catch (error) {
     logger.error('GET /supplier/performance-tips error:', error.message);
     res.status(500).json({ error: 'Failed to load performance tips' });

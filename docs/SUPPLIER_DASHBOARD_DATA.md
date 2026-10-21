@@ -117,6 +117,15 @@ admin override, enforced on create/update/delete and on publisher requests (veri
 ownership). Editing can no longer publish an event that is awaiting approval. The private calendar
 (`/api/me/calendar-entries`) is separate and open to every verified account. There are no bookings.
 
+**Tips.** `GET /api/v1/supplier/performance-tips` returns up to three ranked tips (`services/supplierTips.js`) derived from
+the supplier's real state: account status (email, verification, approval, suspension), category (category-specific
+package, description and photo advice), plan limits actually reached (packages, photos), profile gaps, unhandled
+enquiries, unanswered conversations and reviews, packages without a photo or awaiting approval. Each tip is
+`{id, priority, category, icon, title, body, action:{type, label, href, field?, data?}}`; tips contain no statistics or
+promises, and a tip whose data does not exist is not produced. Availability tips are deliberately absent because
+availability is never shown to customers. `responses.unanswered` (summary) counts customer conversations over a day old
+with no reply.
+
 **Messenger identity.** Participants are hydrated from the live account; suppliers use their business profile photo and gain
 `businessName`; `lastMessage.senderName` is the sender's current name. See `server-contract.md` for field names.
 
