@@ -5,6 +5,7 @@
 
 'use strict';
 
+const crypto = require('crypto');
 const express = require('express');
 const logger = require('../utils/logger');
 const router = express.Router();
@@ -30,11 +31,21 @@ setInterval(
   30 * 60 * 1000
 ).unref();
 
-function isTrackRateLimited(ip, supplierId) {
+/**
+ * Cheap per-process guard for enquiry beacons: at most one per IP per supplier per hour.
+ * (Profile views use the database check in the route instead, which works across
+ * instances and restarts.)
+ *
+ * @param {string} ip - Request IP
+ * @param {string} supplierId - Supplier id
+ * @param {string} type - Event type
+ * @returns {boolean} True when the event should be dropped
+ */
+function isTrackRateLimited(ip, supplierId, type) {
   if (!ip) {
     return false; // Skip rate limiting when IP is unavailable
   }
-  const key = `${ip}:${supplierId}`;
+  const key = `${ip}:${supplierId}:${type}`;
   const now = Date.now();
   const last = trackRateLimitCache.get(key);
   if (last && now - last < 60 * 60 * 1000) {
@@ -42,6 +53,45 @@ function isTrackRateLimited(ip, supplierId) {
   }
   trackRateLimitCache.set(key, now);
   return false;
+}
+
+const PROFILE_VIEW_DEDUPE_MS = 60 * 60 * 1000;
+const AUTOMATED_CLIENT_PATTERN =
+  /bot|crawler|spider|crawl|slurp|facebookexternalhit|preview|headless|lighthouse|pingdom|monitor/i;
+
+/**
+ * Whether a profile page load should not count as a visit: the supplier's own
+ * session, an admin, or a client that identifies itself as automated.
+ *
+ * @param {Object} req - Express request
+ * @param {Object|null} user - Signed-in user, if any
+ * @param {Object} supplier - The supplier whose page was loaded
+ * @returns {boolean} True when the view is not a visit
+ */
+function isUncountedViewer(req, user, supplier) {
+  if (
+    user &&
+    (user.role === 'admin' || (supplier.ownerUserId && user.id === supplier.ownerUserId))
+  ) {
+    return true;
+  }
+  return AUTOMATED_CLIENT_PATTERN.test(req.get('user-agent') || '');
+}
+
+/**
+ * Stable anonymous key for "the same visitor": the signed-in account if there is one,
+ * otherwise a hash of IP and browser (the raw IP is never stored).
+ *
+ * @param {Object} req - Express request
+ * @param {Object|null} user - Signed-in user, if any
+ * @returns {string} Visitor key
+ */
+function visitorKeyFor(req, user) {
+  if (user?.id) {
+    return `u:${user.id}`;
+  }
+  const fingerprint = `${req.ip || ''}|${req.get('user-agent') || ''}`;
+  return `a:${crypto.createHash('sha256').update(fingerprint).digest('hex').slice(0, 32)}`;
 }
 
 // Whitelist of allowed event types
@@ -399,7 +449,7 @@ function getLeadRecommendations(score, quality, enquiry) {
 /**
  * POST /api/analytics/track
  * Track profile views and enquiries per supplier
- * Rate-limited to 1 event per IP per supplier per hour
+ * Profile views count once per visitor per hour; enquiry beacons once per IP per hour
  */
 router.post('/track', writeLimiter, async (req, res) => {
   try {
@@ -429,9 +479,11 @@ router.post('/track', writeLimiter, async (req, res) => {
       });
     }
 
-    // Rate-limit: max 1 view per IP per supplier per hour (skip if no IP available)
+    // Enquiry beacons: max 1 per IP per supplier per hour. Profile views are limited per
+    // visitor by the database check below instead, so two browsers behind one address
+    // (an office, a mobile network) are not merged into one.
     const ip = req.ip;
-    if (isTrackRateLimited(ip, cleanSupplierId)) {
+    if (type !== 'profile_view' && isTrackRateLimited(ip, cleanSupplierId, type)) {
       return res.json({ success: true, message: 'Already tracked' });
     }
 
@@ -439,9 +491,28 @@ router.post('/track', writeLimiter, async (req, res) => {
     const user = await getUserFromCookie(req);
     const userId = user ? user.id : null;
 
-    // Track the event using supplierAnalytics
+    // Only real, public profiles have visitors.
+    const supplier = await dbUnified.findOne('suppliers', { id: cleanSupplierId });
+    if (!supplier || supplier.approved !== true) {
+      return res.json({ success: true, message: 'Not tracked' });
+    }
+
     if (type === 'profile_view') {
-      await supplierAnalytics.trackProfileView(cleanSupplierId, userId);
+      // Not visits: the supplier looking at their own page, staff, and automated clients.
+      if (isUncountedViewer(req, user, supplier)) {
+        return res.json({ success: true, message: 'Not counted' });
+      }
+      const visitorKey = visitorKeyFor(req, user);
+      const recent = await dbUnified.count('events', {
+        supplierId: cleanSupplierId,
+        type: 'profile_view',
+        visitorKey,
+        timestamp: { $gte: new Date(Date.now() - PROFILE_VIEW_DEDUPE_MS).toISOString() },
+      });
+      if (recent > 0) {
+        return res.json({ success: true, message: 'Already tracked' });
+      }
+      await supplierAnalytics.trackProfileView(cleanSupplierId, userId, null, false, visitorKey);
     } else if (type === 'enquiry') {
       await supplierAnalytics.trackEnquirySent(cleanSupplierId, userId);
     }

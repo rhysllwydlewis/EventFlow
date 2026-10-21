@@ -135,7 +135,7 @@ describe('Shared messenger context type constants (utils/messengerContextTypes.j
   });
 
   it('route validates context.type against CONVERSATION_CONTEXT_TYPES', () => {
-    expect(routerSrc).toContain('CONVERSATION_CONTEXT_TYPES.includes(context.type)');
+    expect(routerSrc).toContain('CONVERSATION_CONTEXT_TYPES.includes(contextType)');
   });
 });
 

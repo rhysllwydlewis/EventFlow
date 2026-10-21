@@ -9,6 +9,7 @@ const { ObjectId } = require('mongodb');
 const { validateConversation, validateMessage } = require('../models/ConversationV4');
 const { validateBlockedUser, createBlockedUser } = require('../models/BlockedUser');
 const contentSanitizer = require('./contentSanitizer');
+const { resolveSupplierProfilePhoto } = require('../utils/supplierProfilePhoto');
 const spamDetection = require('./spamDetection');
 const { getMessagingLimitsForTier } = require('../config/messagingLimits');
 const { enqueueNotificationJob } = require('./queue');
@@ -136,6 +137,7 @@ class MessengerV4Service {
             email: 1,
             avatarUrl: 1,
             avatar: 1,
+            role: 1,
           },
         }
       )
@@ -143,24 +145,86 @@ class MessengerV4Service {
     return new Map(users.map(user => [String(user.id), user]));
   }
 
+  /**
+   * Supplier business profiles for the supplier-role users in a user map, keyed by
+   * owner user id. A supplier's picture in the inbox should be their business
+   * profile photo (the same one their dashboard and public profile show), not only
+   * the personal account avatar, which many suppliers never set.
+   * A failed lookup falls back to the account data rather than breaking the inbox.
+   *
+   * @param {Map<string, Object>} userMap - Users by id (with `role`)
+   * @returns {Promise<Map<string, Object>>} Supplier documents by ownerUserId
+   */
+  async _getSupplierProfilesByOwner(userMap) {
+    const ownerIds = [...userMap.values()]
+      .filter(user => user.role === 'supplier')
+      .map(user => String(user.id));
+    if (!ownerIds.length) {
+      return new Map();
+    }
+    try {
+      const suppliers = await this.db
+        .collection('suppliers')
+        .find(
+          { ownerUserId: { $in: ownerIds } },
+          {
+            projection: {
+              ownerUserId: 1,
+              name: 1,
+              profilePhotoUrl: 1,
+              displayAvatarUrl: 1,
+              avatarUrl: 1,
+              profileImage: 1,
+              profilePhoto: 1,
+              photoUrl: 1,
+              image: 1,
+              logo: 1,
+            },
+          }
+        )
+        .toArray();
+      return new Map(suppliers.map(supplier => [String(supplier.ownerUserId), supplier]));
+    } catch (error) {
+      this.logger.warn('[messenger-v4] Supplier profile lookup failed; using account avatars', {
+        error: error.message,
+      });
+      return new Map();
+    }
+  }
+
   async _hydrateConversationParticipants(conversation) {
     if (!conversation || !Array.isArray(conversation.participants)) {
       return conversation;
     }
     const userMap = await this._getUserMapByIds(conversation.participants.map(p => p.userId));
+    const supplierByOwner = await this._getSupplierProfilesByOwner(userMap);
+    const participants = conversation.participants.map(participant => {
+      const user = userMap.get(String(participant.userId));
+      if (!user) {
+        return participant;
+      }
+      const supplier = supplierByOwner.get(String(user.id));
+      return {
+        ...participant,
+        displayName: MessengerV4Service._displayNameFromUser(user),
+        avatar:
+          (supplier && resolveSupplierProfilePhoto(supplier, user)) ||
+          MessengerV4Service._avatarFromUser(user),
+        // Only for suppliers: the trading name, so clients can show it beside the person.
+        ...(supplier ? { businessName: supplier.name || null } : {}),
+      };
+    });
+
+    // lastMessage keeps the sender's name as it was when sent; show who that account is now.
+    const lastSender =
+      conversation.lastMessage &&
+      participants.find(p => String(p.userId) === String(conversation.lastMessage.senderId));
     return {
       ...conversation,
-      participants: conversation.participants.map(participant => {
-        const user = userMap.get(String(participant.userId));
-        if (!user) {
-          return participant;
-        }
-        return {
-          ...participant,
-          displayName: MessengerV4Service._displayNameFromUser(user),
-          avatar: MessengerV4Service._avatarFromUser(user),
-        };
-      }),
+      participants,
+      ...(lastSender
+        ? { lastMessage: { ...conversation.lastMessage, senderName: lastSender.displayName } }
+        : {}),
     };
   }
 

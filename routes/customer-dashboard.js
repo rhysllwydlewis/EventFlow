@@ -10,6 +10,7 @@ const express = require('express');
 const { authRequired } = require('../middleware/auth');
 const dbUnified = require('../db-unified');
 const logger = require('../utils/logger');
+const { packagePriceText } = require('../utils/packagePrice');
 
 const router = express.Router();
 
@@ -61,7 +62,7 @@ router.get('/dashboard-summary', authRequired, async (req, res) => {
     // Build a price map for fast lookup
     const priceMap = {};
     packageDocs.forEach(pkg => {
-      const raw = String(pkg.price || pkg.price_display || '0');
+      const raw = packagePriceText(pkg) || '0';
       const num = parseFloat(raw.replace(/[^0-9.]/g, '')) || 0;
       priceMap[pkg.id] = num;
     });

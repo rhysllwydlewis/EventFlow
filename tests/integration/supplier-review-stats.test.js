@@ -58,9 +58,27 @@ describe('Supplier Review Stats Endpoint', () => {
         { id: 'supplier-1', ownerUserId: 'test-user-123', name: 'Test Supplier' },
       ];
       const mockReviews = [
-        { id: 'review-1', supplierId: 'supplier-1', rating: 5, comment: 'Great!' },
-        { id: 'review-2', supplierId: 'supplier-1', rating: 4, comment: 'Good' },
-        { id: 'review-3', supplierId: 'supplier-1', rating: 5, comment: 'Excellent' },
+        {
+          id: 'review-1',
+          supplierId: 'supplier-1',
+          rating: 5,
+          comment: 'Great!',
+          moderation: { state: 'approved' },
+        },
+        {
+          id: 'review-2',
+          supplierId: 'supplier-1',
+          rating: 4,
+          comment: 'Good',
+          moderation: { state: 'approved' },
+        },
+        {
+          id: 'review-3',
+          supplierId: 'supplier-1',
+          rating: 5,
+          comment: 'Excellent',
+          moderation: { state: 'approved' },
+        },
         { id: 'review-4', supplierId: 'supplier-2', rating: 3, comment: 'Other supplier' },
       ];
 
@@ -129,7 +147,8 @@ describe('Supplier Review Stats Endpoint', () => {
 
       expect(response.body.success).toBe(true);
       expect(response.body.stats.totalReviews).toBe(0);
-      expect(response.body.stats.averageRating).toBe(0);
+      // No approved reviews means no average, not an average of 0.
+      expect(response.body.stats.averageRating).toBeNull();
       expect(response.body.stats.distribution).toEqual({
         5: 0,
         4: 0,
@@ -137,6 +156,30 @@ describe('Supplier Review Stats Endpoint', () => {
         2: 0,
         1: 0,
       });
+    });
+
+    it('counts only approved reviews, as the public panel and dashboard summary do', async () => {
+      const mockReviews = [
+        { id: 'r1', supplierId: 'supplier-1', rating: 5, moderation: { state: 'approved' } },
+        { id: 'r2', supplierId: 'supplier-1', rating: 3, moderation: { state: 'approved' } },
+        { id: 'r3', supplierId: 'supplier-1', rating: 1, moderation: { state: 'pending' } },
+        { id: 'r4', supplierId: 'supplier-1', rating: 1, moderation: { state: 'rejected' } },
+        { id: 'r5', supplierId: 'supplier-1', rating: 1 },
+      ];
+      dbUnified.find.mockImplementation(async collection =>
+        collection === 'reviews' ? mockReviews : []
+      );
+      dbUnified.findOne.mockImplementation(async collection =>
+        collection === 'suppliers'
+          ? { id: 'supplier-1', ownerUserId: 'test-user-123', name: 'Test Supplier' }
+          : null
+      );
+
+      const response = await request(app).get('/api/supplier/reviews/stats').expect(200);
+
+      expect(response.body.stats.totalReviews).toBe(2);
+      expect(response.body.stats.averageRating).toBe(4);
+      expect(response.body.stats.distribution).toEqual({ 5: 1, 4: 0, 3: 1, 2: 0, 1: 0 });
     });
 
     it('should return 404 when supplier profile not found', async () => {
@@ -185,6 +228,7 @@ describe('Supplier Review Stats Endpoint', () => {
     });
 
     it('should handle null/undefined reviews collection', async () => {
+      dbUnified.find.mockResolvedValue(null);
       const mockSuppliers = [
         { id: 'supplier-1', ownerUserId: 'test-user-123', name: 'Test Supplier' },
       ];
@@ -213,12 +257,12 @@ describe('Supplier Review Stats Endpoint', () => {
         { id: 'supplier-1', ownerUserId: 'test-user-123', name: 'Test Supplier' },
       ];
       const mockReviews = [
-        { id: 'review-1', supplierId: 'supplier-1', rating: 5 },
-        { id: 'review-2', supplierId: 'supplier-1', rating: 4 },
-        { id: 'review-3', supplierId: 'supplier-1', rating: 3 },
-        { id: 'review-4', supplierId: 'supplier-1', rating: 2 },
-        { id: 'review-5', supplierId: 'supplier-1', rating: 1 },
-        { id: 'review-6', supplierId: 'supplier-1', rating: 5 },
+        { id: 'review-1', supplierId: 'supplier-1', rating: 5, moderation: { state: 'approved' } },
+        { id: 'review-2', supplierId: 'supplier-1', rating: 4, moderation: { state: 'approved' } },
+        { id: 'review-3', supplierId: 'supplier-1', rating: 3, moderation: { state: 'approved' } },
+        { id: 'review-4', supplierId: 'supplier-1', rating: 2, moderation: { state: 'approved' } },
+        { id: 'review-5', supplierId: 'supplier-1', rating: 1, moderation: { state: 'approved' } },
+        { id: 'review-6', supplierId: 'supplier-1', rating: 5, moderation: { state: 'approved' } },
       ];
 
       dbUnified.read.mockImplementation(collection => {

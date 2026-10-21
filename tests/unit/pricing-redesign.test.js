@@ -226,7 +226,8 @@ describe('pricing page rebuild', () => {
 
     const supplierRoute = readAsset('routes/supplier.js');
     expect(supplierRoute).toContain('getAnalyticsWindowDays');
-    expect(supplierRoute).toContain('Math.min(requestedDays, windowDays)');
+    expect(supplierRoute).toContain('resolveAnalyticsWindow');
+    expect(readAsset('utils/analyticsWindow.js')).toContain('Math.min(requestedDays, maxDays)');
 
     expect(pricingPage).toContain('7 days of profile analytics');
     expect(pricingPage).toContain('90 days of profile analytics');

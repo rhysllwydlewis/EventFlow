@@ -1,6 +1,7 @@
 'use strict';
 
 const seoEligibility = require('./seoEligibility.service');
+const { packagePriceText } = require('../utils/packagePrice');
 
 const DEFAULT_BASE_URL = 'https://event-flow.co.uk';
 const SEO_BLOCK_MARKERS = {
@@ -209,19 +210,19 @@ function packageLookupValues(pkg) {
  * Delegates to services/seoEligibility.service.js's canBeViewedPublicly — the
  * shared policy that also backs the directory search and the sitemap — via a
  * synthetic "does this package's supplier count as public" check built from
- * `publicSupplierIds` (already the eligible-supplier-id set the caller
+ * `eligibleSupplierIds` (already the eligible-supplier-id set the caller
  * computed with publicSupplierIds() below, so this does not re-derive
  * eligibility a second, possibly divergent, way).
  * @param {Object} pkg Package record.
- * @param {Set<string>} publicSupplierIds IDs of suppliers that are themselves public.
+ * @param {Set<string>} eligibleSupplierIds IDs of suppliers that are themselves public.
  * @returns {boolean} True when the package should be served.
  */
-function isPublicPackage(pkg, publicSupplierIds) {
+function isPublicPackage(pkg, eligibleSupplierIds) {
   if (!pkg) {
     return false;
   }
   const supplierIsPublic =
-    publicSupplierIds instanceof Set && publicSupplierIds.has(pkg.supplierId);
+    eligibleSupplierIds instanceof Set && eligibleSupplierIds.has(pkg.supplierId);
   // The package's own supplier record is not available here — only the set
   // of ids that already passed supplier eligibility — so a placeholder
   // marked either public or not is enough for seoEligibility's own supplier
@@ -255,12 +256,12 @@ function getPackageIndexEligibility(pkg, supplier, validOwnerIds) {
   return seoEligibility.canBeIndexed(pkg, { type: 'package', supplier, validOwnerIds: owners });
 }
 
-function resolvePublicPackage(packages, value, publicSupplierIds) {
+function resolvePublicPackage(packages, value, eligibleSupplierIds) {
   const raw = safeDecodeURIComponent(value).trim();
   const normalized = slugify(raw);
   return (
     (packages || []).find(pkg => {
-      if (!isPublicPackage(pkg, publicSupplierIds)) {
+      if (!isPublicPackage(pkg, eligibleSupplierIds)) {
         return false;
       }
       return packageLookupValues(pkg).some(
@@ -440,7 +441,7 @@ function buildPackageSeoModel(pkg, supplier, options = {}) {
     160
   );
   const image = packageImage(pkg, baseUrl);
-  const price = numericPrice(pkg?.price ?? pkg?.price_display ?? pkg?.priceFrom);
+  const price = numericPrice(packagePriceText(pkg) || pkg?.priceFrom);
   const title = truncate([name, supplierName, 'EventFlow'].filter(Boolean).join(' | '), 70);
   const structuredData = {
     '@context': 'https://schema.org',

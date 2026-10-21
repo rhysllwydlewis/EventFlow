@@ -8,6 +8,7 @@
 const crypto = require('crypto');
 const logger = require('./logger');
 const dbUnified = require('../db-unified');
+const { getWindowBounds } = require('./analyticsWindow');
 
 /**
  * Event types for supplier analytics
@@ -28,6 +29,7 @@ const EVENT_TYPES = {
  * @param {string} [eventData.userId] - User ID (if authenticated)
  * @param {string} [eventData.sessionId] - Session ID for anonymous tracking
  * @param {boolean} [eventData.isPreview] - Whether this is a preview view (won't be counted)
+ * @param {string} [eventData.visitorKey] - Anonymous visitor hash used to count a view once per hour
  * @param {Object} [eventData.metadata] - Additional event-specific metadata
  * @returns {Promise<void>}
  */
@@ -38,20 +40,18 @@ async function trackEvent(eventData) {
       return;
     }
 
-    const events = (await dbUnified.read('events')) || [];
-
     const event = {
       id: `event_${Date.now()}_${crypto.randomUUID()}`,
       type: eventData.type,
       supplierId: eventData.supplierId,
       userId: eventData.userId || null,
       sessionId: eventData.sessionId || null,
+      // Hash that identifies one browser/account for the one-view-per-hour rule (never a raw IP).
+      visitorKey: eventData.visitorKey || null,
       metadata: eventData.metadata || {},
       timestamp: new Date().toISOString(),
       date: new Date().toISOString().split('T')[0], // For daily aggregation
     };
-
-    events.push(event);
 
     await dbUnified.insertOne('events', event);
   } catch (error) {
@@ -60,25 +60,63 @@ async function trackEvent(eventData) {
   }
 }
 
+/** Longest window `getSupplierAnalytics` will ever build, whatever the caller asks for. */
+const MAX_WINDOW_DAYS = 365;
+
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+/**
+ * Coerce a caller-supplied day count to a safe whole number.
+ *
+ * `getSupplierAnalytics` builds one chart bucket per day, so an unbounded value
+ * (for example `period=1000000000` on an authenticated route) would otherwise be
+ * a CPU and memory sink.
+ *
+ * @param {*} days - Requested number of days
+ * @returns {number} Whole number between 1 and MAX_WINDOW_DAYS
+ */
+function normaliseWindowDays(days) {
+  const parsed = Math.floor(Number(days));
+  if (!Number.isFinite(parsed) || parsed < 1) {
+    return 1;
+  }
+  return Math.min(parsed, MAX_WINDOW_DAYS);
+}
+
 /**
  * Get analytics for a supplier over a time period
+ *
+ * Profile views come from tracked `events`. Enquiry and reply figures come from
+ * the messenger, quote-request and contact-form records when `options.ownerUserId`
+ * (or a precomputed `options.engagement`) is supplied; without it they cannot be
+ * derived, so `responseRate` and `avgResponseTime` are null rather than a
+ * made-up 100% / 0 hours.
+ *
  * @param {string} supplierId - Supplier ID
- * @param {number} [days=7] - Number of days to look back
+ * @param {number} [days=7] - Number of days to look back (clamped to 1-365)
+ * @param {Object} [options] - Optional inputs
+ * @param {string} [options.ownerUserId] - Supplier owner's user id, enables real enquiry/reply figures
+ * @param {Object} [options.engagement] - Result of getEngagementMetrics for the same window
+ * @param {Date} [options.now] - Reference time (for tests)
  * @returns {Promise<Object>} Analytics data
  */
-async function getSupplierAnalytics(supplierId, days = 7) {
+async function getSupplierAnalytics(supplierId, days = 7, options = {}) {
+  const windowDays = normaliseWindowDays(days);
   try {
-    const events = (await dbUnified.read('events')) || [];
+    const now = options.now instanceof Date ? options.now : new Date();
+    const nowMs = now.getTime();
+    // Whole UTC days, so these totals equal the sum of the daily buckets built below.
+    const { startMs } = getWindowBounds(nowMs, windowDays);
+    const cutoffStr = new Date(startMs).toISOString();
 
-    // Calculate cutoff date
-    const cutoffDate = new Date();
-    cutoffDate.setDate(cutoffDate.getDate() - days);
-    const cutoffStr = cutoffDate.toISOString();
-
-    // Filter events for this supplier within the period
-    const supplierEvents = events.filter(
-      e => e.supplierId === supplierId && e.timestamp >= cutoffStr
-    );
+    // Only this supplier's events inside the window, not the whole collection. A failed
+    // read must surface (caught below as missing data), not look like "no events".
+    const supplierEvents =
+      (await dbUnified.find(
+        'events',
+        { supplierId, timestamp: { $gte: cutoffStr } },
+        { throwOnError: true }
+      )) || [];
 
     // Count events by type
     const profileViews = supplierEvents.filter(e => e.type === EVENT_TYPES.PROFILE_VIEW).length;
@@ -91,105 +129,94 @@ async function getSupplierAnalytics(supplierId, days = 7) {
       e => e.type === EVENT_TYPES.REVIEW_RECEIVED
     ).length;
 
-    // Get messages for response rate calculation
-    const messages = await dbUnified.read('messages');
-    const threads = await dbUnified.read('threads');
-
-    // Calculate response rate based on actual message patterns
-    // For each thread, check if supplier replied to customer messages
-    const supplierThreads = threads.filter(t => t.supplierId === supplierId);
-    let totalCustomerMessages = 0;
-    let respondedToCustomerMessages = 0;
-    let totalResponseTime = 0;
-    let responseCount = 0;
-
-    for (const thread of supplierThreads) {
-      const threadMessages = messages
-        .filter(m => m.threadId === thread.id && !m.isDraft)
-        .sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
-
-      // Track customer messages and supplier responses
-      for (let i = 0; i < threadMessages.length; i++) {
-        const msg = threadMessages[i];
-
-        // If this is a customer message
-        if (msg.fromUserId === thread.customerId) {
-          totalCustomerMessages++;
-
-          // Check if supplier responded to this message (look for next non-customer message)
-          const supplierResponse = threadMessages
-            .slice(i + 1)
-            .find(m => m.fromUserId !== thread.customerId);
-
-          if (supplierResponse) {
-            respondedToCustomerMessages++;
-
-            // Calculate response time
-            const responseTime = new Date(supplierResponse.createdAt) - new Date(msg.createdAt);
-            totalResponseTime += responseTime;
-            responseCount++;
-          }
-        }
+    let engagement = options.engagement || null;
+    if (!engagement && options.ownerUserId) {
+      try {
+        engagement = await require('../services/supplierEngagementMetrics').getEngagementMetrics({
+          supplierId,
+          ownerUserId: options.ownerUserId,
+          days: windowDays,
+          now: options.now instanceof Date ? options.now : undefined,
+        });
+      } catch (engagementError) {
+        logger.error('Failed to get supplier engagement metrics:', engagementError);
       }
     }
 
-    // Calculate response rate
-    const responseRate =
-      totalCustomerMessages > 0
-        ? Math.round((respondedToCustomerMessages / totalCustomerMessages) * 100)
-        : 100; // Default to 100% if no messages
+    // Asked for real enquiry figures but could not get them: report unknown, not zero.
+    const enquiriesUnknown = Boolean(options.ownerUserId) && !engagement;
 
-    // Calculate average response time (in hours)
-    let avgResponseTime = 0;
-    if (responseCount > 0) {
-      avgResponseTime =
-        Math.round((totalResponseTime / responseCount / (1000 * 60 * 60)) * 10) / 10;
+    // Per-day enquiry counts (UTC days, matching the event buckets) from real records.
+    const enquiriesByDate = new Map();
+    if (engagement) {
+      engagement.enquiryTimestamps.forEach(millis => {
+        const dateStr = new Date(millis).toISOString().split('T')[0];
+        enquiriesByDate.set(dateStr, (enquiriesByDate.get(dateStr) || 0) + 1);
+      });
     }
 
     // Generate daily breakdown
     const dailyData = [];
-    for (let i = days - 1; i >= 0; i--) {
-      const date = new Date();
-      date.setDate(date.getDate() - i);
+    for (let i = windowDays - 1; i >= 0; i--) {
+      const date = new Date(nowMs - i * DAY_MS);
       const dateStr = date.toISOString().split('T')[0];
 
       const dayEvents = supplierEvents.filter(e => e.date === dateStr);
       const dayViews = dayEvents.filter(e => e.type === EVENT_TYPES.PROFILE_VIEW).length;
-      const dayEnquiries = dayEvents.filter(
-        e => e.type === EVENT_TYPES.ENQUIRY_STARTED || e.type === EVENT_TYPES.ENQUIRY_SENT
-      ).length;
+      let dayEnquiries = null;
+      if (engagement) {
+        dayEnquiries = enquiriesByDate.get(dateStr) || 0;
+      } else if (!enquiriesUnknown) {
+        dayEnquiries = dayEvents.filter(
+          e => e.type === EVENT_TYPES.ENQUIRY_STARTED || e.type === EVENT_TYPES.ENQUIRY_SENT
+        ).length;
+      }
 
       dailyData.push({
         date: dateStr,
-        label: date.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }),
+        label: date.toLocaleDateString('en-GB', {
+          day: 'numeric',
+          month: 'short',
+          timeZone: 'UTC',
+        }),
         views: dayViews,
         enquiries: dayEnquiries,
       });
     }
 
+    // Reply speed is reported in hours (1dp) for older clients; null when there is no sample.
+    const medianMinutes = engagement ? engagement.responses.medianMinutes : null;
+
+    let enquiryTotal = null;
+    if (engagement) {
+      enquiryTotal = engagement.enquiries.newThisPeriod;
+    } else if (!enquiriesUnknown) {
+      enquiryTotal = enquiriesSent;
+    }
+
     return {
-      period: days,
+      period: windowDays,
       totalViews: profileViews,
-      totalEnquiries: enquiriesSent,
+      totalEnquiries: enquiryTotal,
       enquiriesStarted,
       messageReplies,
       reviewsReceived,
-      responseRate,
-      avgResponseTime,
+      responseRate: engagement ? engagement.responses.repliedPct : null,
+      avgResponseTime: medianMinutes === null ? null : Math.round((medianMinutes / 60) * 10) / 10,
       dailyData,
     };
   } catch (error) {
     logger.error('Failed to get supplier analytics:', error);
-    // Return empty analytics on error
+    // Unknown is not zero: report the failure as missing data.
     return {
-      period: days,
-      totalViews: 0,
-      totalEnquiries: 0,
-      enquiriesStarted: 0,
-      messageReplies: 0,
-      reviewsReceived: 0,
-      responseRate: 100,
-      avgResponseTime: 0,
+      period: windowDays,
+      totalViews: null,
+      totalEnquiries: null,
+      enquiriesStarted: null,
+      messageReplies: null,
+      reviewsReceived: null,
+      responseRate: null,
+      avgResponseTime: null,
       dailyData: [],
     };
   }
@@ -201,15 +228,23 @@ async function getSupplierAnalytics(supplierId, days = 7) {
  * @param {string} [userId] - User ID (if authenticated)
  * @param {string} [sessionId] - Session ID
  * @param {boolean} [isPreview] - Whether this is a preview view
+ * @param {string} [visitorKey] - Anonymous visitor hash (one view per visitor per hour)
  * @returns {Promise<void>}
  */
-function trackProfileView(supplierId, userId = null, sessionId = null, isPreview = false) {
+function trackProfileView(
+  supplierId,
+  userId = null,
+  sessionId = null,
+  isPreview = false,
+  visitorKey = null
+) {
   return trackEvent({
     type: EVENT_TYPES.PROFILE_VIEW,
     supplierId,
     userId,
     sessionId,
     isPreview,
+    visitorKey,
   });
 }
 

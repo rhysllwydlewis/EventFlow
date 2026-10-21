@@ -1,0 +1,4383 @@
+/*
+ * Supplier dashboard home (/dashboard/supplier).
+ *
+ * One stylesheet for the whole page. Every selector sits under .sdh-page (the
+ * <body> class) so nothing here can leak into another page, and elements that
+ * scripts append to <body> (calendar dialog, toasts) are covered by the same scope.
+ *
+ * Design: the same calm surface as the customer dashboard. Warm neutral page,
+ * white cards with a hairline border, one teal accent, hierarchy from type size,
+ * weight and spacing rather than tinted cards, coloured icon tiles or gradients.
+ * Type sizes stay on the site scale (10 11 12 13 14 16 18 20 24 28 32).
+ *
+ * Structure, top to bottom:
+ *   1. Tokens, page reset and frame
+ *   2. Hero
+ *   3. Buttons, links, badges, pills, skeletons, notices
+ *   4. Summary row
+ *   5. Fields and forms
+ *   6. Layout and cards
+ *   7. Card content: next steps, profile, packages, messages, availability, visits,
+ *      tips, reviews, plan, support tickets
+ *   8. Calendar (FullCalendar theme, legend, fallback list, entry dialog, popover)
+ *   9. Dialogs
+ *  10. Responsive and motion
+ */
+
+/* ------------------------------------------------------------------ *
+ * 1. Tokens, page reset and frame
+ * ------------------------------------------------------------------ */
+
+.sdh-page {
+  --sdh-bg: #f7f6f3;
+  --sdh-surface: #fff;
+  --sdh-ink: #17202f;
+  --sdh-ink-2: #3d4955;
+  --sdh-muted: #566176;
+  --sdh-line: #e8e5de;
+  --sdh-line-soft: #f0eee9;
+  --sdh-line-strong: #d6d2c8;
+  --sdh-accent: #0b8073;
+  --sdh-accent-hover: #086b60;
+  --sdh-accent-deep: #064f46;
+  --sdh-accent-soft: #e7f3f0;
+  --sdh-accent-line: #c4e1da;
+  --sdh-ring: rgba(11, 128, 115, 0.32);
+  --sdh-warn: #8a5300;
+  --sdh-warn-soft: #fdf4df;
+  --sdh-warn-line: #f3dca6;
+  --sdh-danger: #b42318;
+  --sdh-danger-soft: #fdecea;
+  --sdh-danger-line: #f4c7c1;
+  --sdh-ok: #17784c;
+  --sdh-ok-soft: #e6f4ec;
+  --sdh-info: #1d4ed8;
+  --sdh-info-soft: #eaf0fd;
+  --sdh-radius: 16px;
+  --sdh-radius-sm: 10px;
+  --sdh-shadow: 0 1px 2px rgba(23, 33, 43, 0.04), 0 1px 1px rgba(23, 33, 43, 0.03);
+  --sdh-pop: 0 18px 48px rgba(23, 33, 43, 0.2), 0 4px 12px rgba(23, 33, 43, 0.08);
+  --sdh-col-side: 360px;
+
+  background: var(--sdh-bg);
+  color: var(--sdh-ink);
+}
+
+.sdh-page .sdh,
+.sdh-page .sdh *,
+.sdh-page .sdh *::before,
+.sdh-page .sdh *::after {
+  box-sizing: border-box;
+}
+
+.sdh-page .sdh {
+  padding: 32px 0 72px;
+  color: var(--sdh-ink);
+  font-size: 14px;
+  line-height: 1.5;
+  background: var(--sdh-bg);
+}
+
+.sdh-page .sdh :where(h1, h2, h3, h4, p, ul, ol, dl, figure) {
+  margin: 0;
+  padding: 0;
+  font-family: inherit;
+  letter-spacing: normal;
+}
+
+.sdh-page .sdh :where(ul, ol) {
+  list-style: none;
+}
+
+/* Sections that links and emails jump to keep some air above. */
+.sdh-page .sdh-card,
+.sdh-page .sdh-summary,
+.sdh-page #my-packages,
+.sdh-page #profile-card {
+  scroll-margin-top: 24px;
+}
+
+/* Nothing here relies on a sibling rule to hide [hidden]: the site sheets give classes such as
+   .sd-empty-state a display that beats the browser's default. */
+.sdh-page [hidden] {
+  display: none !important;
+}
+
+.sdh-page .sdh :where(a) {
+  color: var(--sdh-accent-deep);
+}
+
+.sdh-page :where(a, button, input, select, textarea, summary, [tabindex]):focus-visible {
+  outline: 2px solid var(--sdh-accent);
+  outline-offset: 2px;
+}
+
+.sdh-page .sdh-sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.sdh-page [id] {
+  scroll-margin-top: 96px;
+}
+
+.sdh-page .sdh-wrap {
+  width: min(1200px, 100%);
+  margin-inline: auto;
+  padding-inline: 24px;
+}
+
+/* The mobile menu button is the last item of the bottom bar; it is an icon-only .ef-cta, whose
+   site-wide padding would squeeze the glyph. */
+.sdh-page .ef-bottom-nav #ef-bottom-menu {
+  padding: 0 !important;
+}
+
+/* ------------------------------------------------------------------ *
+ * Banners and strips (verification, email)
+ * ------------------------------------------------------------------ */
+
+.sdh-page .sdh-strip:not([hidden]) {
+  margin-bottom: 16px;
+}
+
+.sdh-page .sdh-strip {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px 24px;
+  padding: 14px 20px;
+  border: 1px solid var(--sdh-warn-line);
+  border-radius: var(--sdh-radius);
+  background: var(--sdh-warn-soft);
+  color: var(--sdh-warn);
+}
+
+.sdh-page .sdh-strip[data-tone='info'] {
+  border-color: #c9d8f8;
+  background: var(--sdh-info-soft);
+  color: #1e3a8a;
+}
+
+.sdh-page .sdh-strip[data-tone='danger'] {
+  border-color: var(--sdh-danger-line);
+  background: var(--sdh-danger-soft);
+  color: var(--sdh-danger);
+}
+
+.sdh-page .sdh-strip__copy {
+  min-width: 0;
+}
+
+.sdh-page .sdh-strip__title {
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.sdh-page .sdh-strip__text,
+.sdh-page .sdh-strip__notes {
+  margin-top: 2px;
+  font-size: 13px;
+}
+
+.sdh-page .sdh-strip__notes {
+  margin-top: 8px;
+  padding-left: 10px;
+  border-left: 2px solid currentcolor;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.sdh-page .sdh-strip__actions {
+  display: flex;
+  flex: none;
+  gap: 8px;
+}
+
+/* Callouts inside cards and dialogs */
+
+.sdh-page .sdh-callout {
+  padding: 12px 14px;
+  border: 1px solid var(--sdh-line);
+  border-radius: var(--sdh-radius-sm);
+  background: #fbfaf8;
+  color: var(--sdh-ink-2);
+  font-size: 13px;
+}
+
+.sdh-page .sdh-callout--warn {
+  border-color: var(--sdh-warn-line);
+  background: var(--sdh-warn-soft);
+  color: var(--sdh-warn);
+}
+
+.sdh-page .sdh-callout--danger {
+  border-color: var(--sdh-danger-line);
+  background: var(--sdh-danger-soft);
+  color: var(--sdh-danger);
+}
+
+.sdh-page .sdh-callout--ok {
+  border-color: #bfe3cf;
+  background: var(--sdh-ok-soft);
+  color: var(--sdh-ok);
+}
+
+.sdh-page .sdh-callout__title {
+  font-weight: 700;
+}
+
+.sdh-page .sdh-callout__text {
+  margin-top: 2px;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+/* ------------------------------------------------------------------ *
+ * 2. Hero
+ * ------------------------------------------------------------------ */
+
+.sdh-page .sdh-hero {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px 32px;
+  margin-bottom: 24px;
+}
+
+.sdh-page .sdh-hero__title {
+  color: var(--sdh-ink);
+  font-size: 28px;
+  font-weight: 700;
+  line-height: 1.2;
+  letter-spacing: -0.01em;
+}
+
+.sdh-page .sdh-hero__lede {
+  margin-top: 6px;
+  color: var(--sdh-muted);
+  font-size: 16px;
+  line-height: 1.5;
+}
+
+.sdh-page .sdh-hero__actions {
+  display: flex;
+  flex: none;
+  flex-wrap: wrap;
+  gap: 8px;
+  max-width: 100%;
+}
+
+/* The primary action is the next checklist step, so its label can be long: let it wrap. */
+.sdh-page .sdh-hero__actions .sdh-btn {
+  max-width: 100%;
+  padding-block: 8px;
+  white-space: normal;
+}
+
+/* ------------------------------------------------------------------ *
+ * 3. Buttons, links, badges, pills, skeletons
+ * ------------------------------------------------------------------ */
+
+.sdh-page .sdh-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 0 20px;
+  border: 1px solid transparent;
+  border-radius: var(--sdh-radius-sm);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.2;
+  text-align: center;
+  text-decoration: none;
+  white-space: nowrap;
+  cursor: pointer;
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease,
+    color 0.15s ease;
+}
+
+.sdh-page .sdh-btn--primary {
+  background: var(--sdh-accent);
+  color: #fff;
+  box-shadow: 0 1px 2px rgba(11, 128, 115, 0.3);
+}
+
+.sdh-page .sdh-btn--primary:hover {
+  background: var(--sdh-accent-hover);
+  color: #fff;
+}
+
+.sdh-page .sdh-btn--secondary {
+  border-color: var(--sdh-line-strong);
+  background: var(--sdh-surface);
+  color: var(--sdh-ink);
+}
+
+.sdh-page .sdh-btn--secondary:hover {
+  border-color: var(--sdh-accent);
+  background: var(--sdh-accent-soft);
+  color: var(--sdh-accent-deep);
+}
+
+.sdh-page .sdh-btn--quiet {
+  background: transparent;
+  color: var(--sdh-muted);
+}
+
+.sdh-page .sdh-btn--quiet:hover {
+  background: var(--sdh-line-soft);
+  color: var(--sdh-ink);
+}
+
+.sdh-page .sdh-btn--danger {
+  background: var(--sdh-danger);
+  color: #fff;
+}
+
+.sdh-page .sdh-btn--danger:hover {
+  background: #8f1c12;
+  color: #fff;
+}
+
+.sdh-page .sdh-btn--sm {
+  min-height: 36px;
+  padding: 0 14px;
+  font-size: 13px;
+}
+
+.sdh-page .sdh-btn--block {
+  width: 100%;
+}
+
+.sdh-page .sdh-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+/* The site-wide touch-target rule gives every <main> button a 44px box. Text links keep that
+   hit area but pull it out of the layout with a negative margin so rows keep their rhythm. */
+.sdh-page .sdh-link {
+  display: inline-flex;
+  align-items: center;
+  margin-block: -12px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--sdh-accent-deep);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  text-decoration: underline;
+  text-decoration-color: var(--sdh-accent-line);
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+.sdh-page .sdh-link:hover {
+  color: var(--sdh-accent);
+  text-decoration-color: currentcolor;
+}
+
+.sdh-page .sdh-link--danger {
+  color: var(--sdh-danger);
+  text-decoration-color: rgba(180, 35, 24, 0.3);
+}
+
+.sdh-page .sdh-link--danger:hover {
+  color: #8f1c12;
+}
+
+.sdh-page .sdh-pill {
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
+  padding: 0 10px;
+  border: 1px solid var(--sdh-line);
+  border-radius: 6px;
+  background: var(--sdh-surface);
+  color: var(--sdh-ink-2);
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.sdh-page .sdh-pill--accent {
+  border-color: var(--sdh-accent-line);
+  background: var(--sdh-accent-soft);
+  color: var(--sdh-accent-deep);
+}
+
+.sdh-page .sdh-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 20px;
+  margin-left: 6px;
+  padding: 0 7px;
+  border-radius: 6px;
+  background: var(--sdh-accent);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1;
+  vertical-align: 2px;
+}
+
+.sdh-page .sdh-skel {
+  display: block;
+  border-radius: 8px;
+  background: linear-gradient(90deg, #efede8 0%, #f7f6f3 50%, #efede8 100%);
+  background-size: 200% 100%;
+  animation: sdh-shimmer 1.4s ease-in-out infinite;
+}
+
+.sdh-page .sdh-skel--sm {
+  width: 40%;
+  height: 12px;
+}
+
+.sdh-page .sdh-skel--md {
+  width: 60%;
+  height: 12px;
+}
+
+.sdh-page .sdh-skel--lg {
+  width: 55%;
+  height: 28px;
+}
+
+.sdh-page .sdh-skel--row {
+  height: 44px;
+}
+
+.sdh-page .sdh-skel--row + .sdh-skel--row {
+  margin-top: 10px;
+}
+
+@keyframes sdh-shimmer {
+  from {
+    background-position: 200% 0;
+  }
+
+  to {
+    background-position: -200% 0;
+  }
+}
+
+.sdh-page .sdh-note {
+  color: var(--sdh-muted);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.sdh-page .sdh-note--lead {
+  margin-bottom: 8px;
+  color: var(--sdh-ink-2);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.sdh-page .sdh-note + .sdh-btn,
+.sdh-page .sdh-note + .sdh-note {
+  margin-top: 8px;
+}
+
+.sdh-page .sdh-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+}
+
+.sdh-page .sdh-empty__title {
+  color: var(--sdh-ink);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.sdh-page .sdh-empty__text {
+  max-width: 44ch;
+  margin-bottom: 4px;
+  color: var(--sdh-muted);
+  font-size: 13px;
+}
+
+.sdh-page .sdh-empty__text + .sdh-btn {
+  margin-top: 8px;
+}
+
+.sdh-page .sdh-toast {
+  position: fixed;
+  inset: 88px auto auto 50%;
+  margin: 0;
+  z-index: 10050;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  width: min(420px, calc(100vw - 32px));
+  padding: 12px 16px;
+  border: 1px solid var(--sdh-line-strong);
+  border-radius: var(--sdh-radius-sm);
+  background: var(--sdh-surface);
+  box-shadow: var(--sdh-pop);
+  color: var(--sdh-ink);
+  font-size: 14px;
+  transform: translateX(-50%);
+}
+
+.sdh-page .sdh-toast span {
+  color: var(--sdh-muted);
+  font-size: 13px;
+}
+
+/* ------------------------------------------------------------------ *
+ * 4. Summary row
+ * ------------------------------------------------------------------ */
+
+.sdh-page .sdh-summary {
+  margin-bottom: 24px;
+  border: 1px solid var(--sdh-line);
+  border-radius: var(--sdh-radius);
+  background: var(--sdh-surface);
+  box-shadow: var(--sdh-shadow);
+}
+
+.sdh-page .sdh-summary__grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.sdh-page .sdh-summary__grid > :last-child:nth-child(odd) {
+  grid-column: 1 / -1;
+}
+
+@media (min-width: 900px) {
+  .sdh-page .sdh-summary__grid > :last-child:nth-child(odd) {
+    grid-column: auto;
+  }
+}
+
+.sdh-page .sdh-summary__grid--empty {
+  display: block;
+  padding: 20px 24px;
+}
+
+.sdh-page .sdh-tile {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+  padding: 20px 24px;
+}
+
+.sdh-page .sdh-tile + .sdh-tile {
+  border-left: 1px solid var(--sdh-line-soft);
+}
+
+.sdh-page .sdh-tile--loading {
+  gap: 12px;
+}
+
+.sdh-page .sdh-tile__label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-height: 20px;
+  color: var(--sdh-muted);
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 20px;
+}
+
+.sdh-page .sdh-tile__value {
+  color: var(--sdh-ink);
+  font-size: 28px;
+  font-weight: 700;
+  line-height: 1.15;
+  letter-spacing: -0.01em;
+  font-variant-numeric: tabular-nums;
+}
+
+.sdh-page .sdh-tile__value--empty {
+  color: var(--sdh-muted);
+  font-size: 20px;
+  font-weight: 600;
+}
+
+.sdh-page .sdh-tile__value--muted {
+  color: var(--sdh-muted);
+}
+
+.sdh-page .sdh-tile__unit {
+  color: var(--sdh-muted);
+  font-size: 14px;
+  font-weight: 500;
+  letter-spacing: 0;
+}
+
+.sdh-page .sdh-tile__sub {
+  color: var(--sdh-muted);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.sdh-page .sdh-tile__sub--warn {
+  color: var(--sdh-danger);
+  font-weight: 600;
+}
+
+.sdh-page .sdh-bar {
+  height: 6px;
+  margin: 4px 0 2px;
+  overflow: hidden;
+  border-radius: 3px;
+  background: var(--sdh-line-soft);
+}
+
+.sdh-page .sdh-bar > span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--sdh-accent);
+}
+
+.sdh-page .sdh-bar--warn > span {
+  background: var(--sdh-danger);
+}
+
+/* Summary row: the second line with visits and reply figures */
+
+.sdh-page .sdh-summary__extra {
+  overflow: hidden;
+  border-top: 1px solid var(--sdh-line-soft);
+  border-radius: 0 0 var(--sdh-radius) var(--sdh-radius);
+}
+
+.sdh-page .sdh-summary__extra-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 1px;
+  background: var(--sdh-line-soft);
+}
+
+.sdh-page .sdh-summary__more > summary {
+  padding: 0 24px;
+}
+
+@media (min-width: 768px) {
+  /* Wide screens show the numbers; there is nothing to open. */
+  .sdh-page .sdh-summary__more > summary {
+    display: none;
+  }
+}
+
+/* Cards folded on a phone (supplier-dashboard-fold.js). */
+.sdh-page .sdh-fold__summary {
+  margin: 0 24px;
+}
+
+.sdh-page .sdh-fold[open] > .sdh-fold__summary {
+  margin-bottom: 4px;
+}
+
+.sdh-page .sdh-stat {
+  min-width: 0;
+  padding: 16px 24px;
+  background: var(--sdh-surface);
+}
+
+.sdh-page .sdh-stat__label {
+  color: var(--sdh-muted);
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.sdh-page .sdh-stat__value {
+  margin-top: 2px;
+  color: var(--sdh-ink);
+  font-size: 20px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.sdh-page .sdh-stat__note {
+  margin-top: 2px;
+  color: var(--sdh-muted);
+  font-size: 12px;
+}
+
+.sdh-page .sdh-badge:empty {
+  display: none;
+}
+
+.sdh-page .sdh-pill--ok {
+  border-color: #bfe3cf;
+  background: var(--sdh-ok-soft);
+  color: var(--sdh-ok);
+}
+
+.sdh-page .sdh-pill--warn {
+  border-color: var(--sdh-warn-line);
+  background: var(--sdh-warn-soft);
+  color: var(--sdh-warn);
+}
+
+.sdh-page .sdh-pill--muted {
+  background: #f3f1ec;
+  color: var(--sdh-muted);
+}
+
+.sdh-page .sdh-toast[data-tone='success'] {
+  border-color: #bfe3cf;
+}
+
+.sdh-page .sdh-toast[data-tone='error'] {
+  border-color: var(--sdh-danger-line);
+  color: var(--sdh-danger);
+}
+
+.sdh-page .toast-notification {
+  position: fixed;
+  top: 88px;
+  left: 50%;
+  z-index: 10050;
+  width: min(420px, calc(100vw - 32px));
+  padding: 12px 16px;
+  border: 1px solid var(--sdh-line-strong);
+  border-radius: var(--sdh-radius-sm);
+  background: var(--sdh-surface);
+  box-shadow: var(--sdh-pop);
+  color: var(--sdh-ink);
+  font-size: 14px;
+  transform: translateX(-50%);
+}
+
+.sdh-page .toast-notification--error {
+  border-color: var(--sdh-danger-line);
+  color: var(--sdh-danger);
+}
+
+.sdh-page .sdh-card__foot {
+  margin-top: 12px;
+  padding-top: 8px;
+  border-top: 1px solid var(--sdh-line-soft);
+}
+
+.sdh-page .sdh-subhead {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 12px;
+  margin-bottom: 4px;
+  color: var(--sdh-ink);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.sdh-page .sdh-subhead__note {
+  color: var(--sdh-muted);
+  font-size: 13px;
+  font-weight: 400;
+}
+
+.sdh-page .sdh-list__row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 48px;
+  padding: 8px 0;
+}
+
+.sdh-page .sdh-list__row + .sdh-list__row {
+  border-top: 1px solid var(--sdh-line-soft);
+}
+
+.sdh-page .sdh-list__main {
+  min-width: 0;
+}
+
+.sdh-page .sdh-list__title {
+  color: var(--sdh-ink);
+  font-size: 14px;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.sdh-page .sdh-list__meta {
+  color: var(--sdh-muted);
+  font-size: 13px;
+}
+
+.sdh-page .sdh-rreq:not(:empty) {
+  margin-top: 24px;
+  padding-top: 20px;
+  border-top: 1px solid var(--sdh-line);
+}
+
+.sdh-page .sdh-note--foot {
+  margin-top: 12px;
+  font-size: 12px;
+}
+
+/* Verification and plan facts */
+
+.sdh-page .sdh-facts li {
+  color: var(--sdh-ink-2);
+  font-size: 14px;
+}
+
+.sdh-page .sdh-facts li + li {
+  margin-top: 4px;
+}
+
+.sdh-page .sdh-facts--muted li {
+  color: var(--sdh-muted);
+  font-size: 13px;
+}
+
+.sdh-page .sdh-plan {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.sdh-page .sdh-plan__name {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  color: var(--sdh-ink);
+  font-size: 20px;
+  font-weight: 700;
+}
+
+.sdh-page .sdh-plan__head {
+  margin-bottom: -4px;
+  color: var(--sdh-muted);
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.sdh-page .sdh-plan__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+/* ------------------------------------------------------------------ *
+ * 5. Fields and forms
+ * ------------------------------------------------------------------ */
+
+.sdh-page .sdh-form {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.sdh-page .sdh-form__grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 20px 16px;
+}
+
+.sdh-page .sdh-form__title {
+  color: var(--sdh-ink);
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.sdh-page .sdh-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.sdh-page .sdh-label,
+.sdh-page .sdh-legend {
+  color: var(--sdh-ink-2);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.sdh-page .sdh-required {
+  color: var(--sdh-danger);
+}
+
+.sdh-page .sdh-input {
+  width: 100%;
+  min-height: 44px;
+  padding: 0 14px;
+  border: 1px solid var(--sdh-line-strong);
+  border-radius: var(--sdh-radius-sm);
+  background: var(--sdh-surface);
+  box-shadow: none;
+  color: var(--sdh-ink);
+  font: inherit;
+  font-size: 16px;
+}
+
+.sdh-page textarea.sdh-input,
+.sdh-page .sdh-input--area {
+  min-height: 88px;
+  padding-block: 10px;
+  line-height: 1.45;
+  resize: vertical;
+}
+
+.sdh-page select.sdh-input {
+  padding-right: 32px;
+}
+
+.sdh-page .sdh-input::placeholder {
+  color: #7a8392;
+}
+
+.sdh-page .sdh-input:focus-visible {
+  border-color: var(--sdh-accent);
+  outline: 2px solid var(--sdh-ring);
+  outline-offset: 0;
+}
+
+.sdh-page .sdh-input[aria-invalid='true'] {
+  border-color: var(--sdh-danger);
+}
+
+.sdh-page .sdh-input:disabled {
+  background: #f3f1ec;
+  color: var(--sdh-muted);
+  cursor: not-allowed;
+}
+
+.sdh-page .sdh-help {
+  color: var(--sdh-muted);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.sdh-page .sdh-error {
+  color: var(--sdh-danger);
+  font-size: 13px;
+}
+
+.sdh-page .sdh-error:empty {
+  display: none;
+}
+
+.sdh-page .sdh-fieldset {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 0;
+  margin: 0;
+  padding: 16px;
+  border: 1px solid var(--sdh-line);
+  border-radius: var(--sdh-radius-sm);
+}
+
+.sdh-page .sdh-legend {
+  padding: 0 6px;
+}
+
+.sdh-page .sdh-checks {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 4px 16px;
+}
+
+.sdh-page .sdh-check {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  color: var(--sdh-ink);
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.sdh-page .sdh-check input {
+  width: 18px;
+  height: 18px;
+  margin: 0;
+  accent-color: var(--sdh-accent);
+}
+
+.sdh-page .sdh-form__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+}
+
+.sdh-page .sdh-form__row-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.sdh-page .sdh-form__aside {
+  color: var(--sdh-muted);
+  font-size: 13px;
+}
+
+.sdh-page .sdh-form__status {
+  min-width: 0;
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}
+
+.sdh-page .sdh-form__status:empty {
+  display: none;
+}
+
+.sdh-page .sdh-form__status[data-tone='success'] {
+  color: var(--sdh-ok);
+}
+
+.sdh-page .sdh-form__status[data-tone='error'] {
+  color: var(--sdh-danger);
+}
+
+/* Service area picker (app.js builds the results and tags) */
+
+.sdh-page .supplier-service-area-results {
+  max-height: 220px;
+  margin: 0;
+  overflow-y: auto;
+  border: 1px solid var(--sdh-line-strong);
+  border-radius: var(--sdh-radius-sm);
+  background: var(--sdh-surface);
+}
+
+.sdh-page .supplier-service-area-results li {
+  padding: 0;
+  border-bottom: 1px solid var(--sdh-line-soft);
+}
+
+.sdh-page .supplier-service-area-results li:last-child {
+  border-bottom: 0;
+}
+
+.sdh-page .supplier-service-area-results button {
+  display: block;
+  width: 100%;
+  min-height: 44px;
+  padding: 0 14px;
+  border: 0;
+  background: transparent;
+  color: var(--sdh-ink);
+  font: inherit;
+  font-size: 14px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.sdh-page .supplier-service-area-results button:hover,
+.sdh-page .supplier-service-area-results [aria-selected='true'] button {
+  background: var(--sdh-accent-soft);
+}
+
+.sdh-page .supplier-service-area-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.sdh-page .supplier-service-area-tags:empty {
+  display: none;
+}
+
+.sdh-page .supplier-service-area-tags li {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 32px;
+  padding: 0 4px 0 12px;
+  border: 1px solid var(--sdh-accent-line);
+  border-radius: 6px;
+  background: var(--sdh-accent-soft);
+  color: var(--sdh-accent-deep);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.sdh-page .supplier-service-area-tags button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  min-height: 32px;
+  padding: 0;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: inherit;
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.sdh-page .supplier-service-area-nationwide-btn {
+  align-self: flex-start;
+}
+
+/* Photo upload (drop zone, previews, gallery tiles built by app.js and supplier-gallery.js) */
+
+.sdh-page .photo-drop-zone {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 96px;
+  padding: 20px;
+  border: 1px dashed var(--sdh-line-strong);
+  border-radius: var(--sdh-radius-sm);
+  background: #fbfaf8;
+  color: var(--sdh-muted);
+  font-size: 14px;
+  text-align: center;
+  cursor: pointer;
+}
+
+.sdh-page .photo-drop-zone:hover,
+.sdh-page .photo-drop-zone.dragover {
+  border-color: var(--sdh-accent);
+  background: var(--sdh-accent-soft);
+  color: var(--sdh-accent-deep);
+}
+
+.sdh-page .photo-drop-error {
+  color: var(--sdh-danger);
+  font-size: 13px;
+}
+
+.sdh-page .photo-preview-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.sdh-page .photo-preview-grid:empty {
+  display: none;
+}
+
+.sdh-page .photo-preview-item,
+.sdh-page .pkg-gallery-item {
+  position: relative;
+  width: 96px;
+  height: 96px;
+  overflow: hidden;
+  border: 1px solid var(--sdh-line);
+  border-radius: var(--sdh-radius-sm);
+  background: #f3f1ec;
+}
+
+.sdh-page .photo-preview-item img,
+.sdh-page .pkg-gallery-item img,
+.sdh-page .photo-preview-item__image-wrap {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.sdh-page .photo-preview-item__image-wrap img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.sdh-page .photo-preview-item--existing,
+.sdh-page .pkg-gallery-item {
+  cursor: grab;
+}
+
+.sdh-page .photo-preview-item--cover {
+  border-color: var(--sdh-accent);
+}
+
+.sdh-page .photo-preview-item--pending {
+  opacity: 0.8;
+}
+
+.sdh-page .photo-preview-failed {
+  border-color: var(--sdh-danger-line);
+  background: var(--sdh-danger-soft);
+}
+
+.sdh-page .pkg-gallery-dragging,
+.sdh-page .photo-gallery-dragging {
+  opacity: 0.5;
+}
+
+.sdh-page .pkg-gallery-drag-over,
+.sdh-page .photo-gallery-drag-over {
+  border-color: var(--sdh-accent);
+  outline: 2px solid var(--sdh-ring);
+}
+
+/* Small controls laid over a tile: remove, delete, drag handle, cover badge. */
+.sdh-page .photo-preview-remove,
+.sdh-page .photo-remove-btn,
+.sdh-page .pkg-gallery-delete {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  min-height: 28px;
+  padding: 0 !important;
+  border: 0;
+  border-radius: 6px;
+  background: rgba(23, 32, 47, 0.72);
+  box-shadow: none;
+  color: #fff;
+  font-size: 12px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.sdh-page .photo-preview-remove:hover,
+.sdh-page .photo-remove-btn:hover,
+.sdh-page .pkg-gallery-delete:hover {
+  background: var(--sdh-danger);
+}
+
+.sdh-page .photo-drag-handle,
+.sdh-page .pkg-gallery-drag-handle {
+  position: absolute;
+  bottom: 4px;
+  left: 4px;
+  z-index: 2;
+  padding: 0 4px;
+  border-radius: 4px;
+  background: rgba(23, 32, 47, 0.6);
+  color: #fff;
+  font-size: 12px;
+  line-height: 18px;
+  pointer-events: none;
+}
+
+.sdh-page .photo-first-badge,
+.sdh-page .pkg-gallery-first-badge,
+.sdh-page .photo-pending-badge,
+.sdh-page .photo-preview-error-badge {
+  position: absolute;
+  top: 4px;
+  left: 4px;
+  z-index: 2;
+  padding: 0 6px;
+  border-radius: 4px;
+  background: var(--sdh-accent);
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 18px;
+}
+
+.sdh-page .photo-preview-error-badge {
+  position: static;
+  display: block;
+  margin: 8px;
+  background: transparent;
+  color: var(--sdh-danger);
+  line-height: 1.3;
+}
+
+.sdh-page .photo-preview-empty-hint {
+  color: var(--sdh-muted);
+  font-size: 13px;
+}
+
+.sdh-page .pkg-gallery-reorder-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+}
+
+.sdh-page .pkg-gallery-order-status {
+  color: var(--sdh-muted);
+  font-size: 13px;
+}
+
+.sdh-page .pkg-gallery-row-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 4px 12px;
+}
+
+.sdh-page .pkg-gallery-hint {
+  color: var(--sdh-muted);
+  font-size: 12px;
+}
+
+.sdh-page .pkg-reuse-photo-option {
+  cursor: pointer;
+}
+
+/* ------------------------------------------------------------------ *
+ * 6. Layout and cards
+ * ------------------------------------------------------------------ */
+
+.sdh-page .sdh-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) var(--sdh-col-side);
+  gap: 24px;
+  align-items: start;
+}
+
+.sdh-page .sdh-col {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  min-width: 0;
+}
+
+.sdh-page .sdh-card {
+  min-width: 0;
+  border: 1px solid var(--sdh-line);
+  border-radius: var(--sdh-radius);
+  background: var(--sdh-surface);
+  box-shadow: var(--sdh-shadow);
+}
+
+.sdh-page .sdh-card__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 16px;
+  padding: 20px 24px 0;
+}
+
+.sdh-page .sdh-card__titles {
+  min-width: 0;
+}
+
+.sdh-page .sdh-card__title {
+  color: var(--sdh-ink);
+  font-size: 18px;
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+.sdh-page .sdh-card__sub {
+  margin-top: 2px;
+  color: var(--sdh-muted);
+  font-size: 13px;
+}
+
+.sdh-page .sdh-card__actions {
+  display: flex;
+  flex: none;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px 12px;
+}
+
+.sdh-page .sdh-card__body {
+  padding: 16px 24px 24px;
+}
+
+/* ------------------------------------------------------------------ *
+ * 7. Card content
+ * ------------------------------------------------------------------ */
+
+/* Next steps */
+
+.sdh-page .sdh-steps {
+  margin-top: 12px;
+}
+
+.sdh-page .sdh-steps li + li {
+  border-top: 1px solid var(--sdh-line-soft);
+}
+
+.sdh-page .sdh-step {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 48px;
+  padding: 8px 4px;
+  color: var(--sdh-ink);
+  font-size: 14px;
+  text-decoration: none;
+}
+.sdh-page a.sdh-step:hover .sdh-step__label {
+  color: var(--sdh-accent-deep);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.sdh-page .sdh-step__mark {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border: 1.5px solid var(--sdh-line-strong);
+  border-radius: 50%;
+  color: #fff;
+}
+
+.sdh-page .sdh-step__label {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.sdh-page .sdh-step__go {
+  flex: none;
+  color: var(--sdh-muted);
+}
+
+.sdh-page .sdh-step--done {
+  color: var(--sdh-muted);
+}
+
+.sdh-page .sdh-step--done .sdh-step__mark {
+  border-color: var(--sdh-accent);
+  background: var(--sdh-accent);
+}
+
+.sdh-page .sdh-done {
+  margin-top: 8px;
+  border-top: 1px solid var(--sdh-line-soft);
+}
+
+.sdh-page .sdh-done summary {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  color: var(--sdh-muted);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  list-style: none;
+}
+
+.sdh-page .sdh-done summary::-webkit-details-marker {
+  display: none;
+}
+
+.sdh-page .sdh-done summary::before {
+  content: '';
+  width: 8px;
+  height: 8px;
+  border-right: 2px solid currentcolor;
+  border-bottom: 2px solid currentcolor;
+  transform: rotate(-45deg);
+  transition: transform 0.15s ease;
+}
+
+.sdh-page .sdh-done[open] summary::before {
+  transform: rotate(45deg);
+}
+
+.sdh-page .sdh-steps--done {
+  margin-top: 0;
+}
+
+/* Next steps: the step to do first, and steps that wait on something */
+
+.sdh-page .sdh-step--next .sdh-step__label {
+  font-weight: 600;
+}
+
+.sdh-page .sdh-step--waiting,
+.sdh-page .sdh-step--locked {
+  color: var(--sdh-muted);
+}
+
+.sdh-page .sdh-step__note {
+  display: block;
+  color: var(--sdh-muted);
+  font-size: 12px;
+}
+
+.sdh-page .sdh-card--steps .sdh-bar {
+  margin-top: 16px;
+}
+
+/* ------------------------------------------------------------------ *
+ * Profile card (built by app.js: avatar, name, badges, where and what)
+ * ------------------------------------------------------------------ */
+
+.sdh-page .sdh-profile {
+  display: flex;
+  align-items: center;
+  gap: 16px 20px;
+  min-width: 0;
+}
+
+.sdh-page .sdh-profile__avatar {
+  position: relative;
+  flex: none;
+  width: 80px;
+  height: 80px;
+}
+
+.sdh-page .sdh-avatar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 80px;
+  height: 80px;
+  overflow: hidden;
+  border-radius: 50%;
+  background: var(--sdh-accent);
+  color: #fff;
+  font-size: 24px;
+  font-weight: 700;
+}
+
+.sdh-page .sdh-avatar img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.sdh-page .sdh-avatar__camera,
+.sdh-page .sdh-avatar__remove {
+  position: absolute;
+  right: -2px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  min-height: 32px;
+  padding: 0 !important;
+  border: 2px solid var(--sdh-surface);
+  border-radius: 50%;
+  background: var(--sdh-ink);
+  box-shadow: none;
+  color: #fff;
+  font-size: 12px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.sdh-page .sdh-avatar__camera {
+  bottom: -2px;
+}
+
+/* A small red badge on the corner of the photo (a destructive action), not a button over it.
+   The ::after widens the hit area to 44px for touch without making the badge bigger. */
+.sdh-page .sdh-avatar__remove {
+  top: -6px;
+  right: -6px;
+  width: 22px;
+  height: 22px;
+  min-width: 22px;
+  min-height: 22px;
+  border-width: 2px;
+  background: var(--sdh-danger);
+  font-size: 14px;
+}
+
+.sdh-page .sdh-avatar__remove::after {
+  position: absolute;
+  inset: -11px;
+  content: '';
+}
+
+.sdh-page .sdh-avatar__remove:hover {
+  background: #8f1c12;
+}
+
+.sdh-page .sdh-avatar__camera:hover {
+  background: var(--sdh-accent);
+}
+
+.sdh-page .sdh-profile__avatar:focus-within .sdh-avatar__camera {
+  outline: 2px solid var(--sdh-accent);
+  outline-offset: 2px;
+}
+
+.sdh-page .sdh-profile__main {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.sdh-page .sdh-profile__name-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 8px;
+}
+
+.sdh-page .sdh-profile__name {
+  color: var(--sdh-ink);
+  font-size: 18px;
+  font-weight: 600;
+  line-height: 1.3;
+  overflow-wrap: anywhere;
+}
+
+.sdh-page .sdh-profile__meta {
+  margin-top: 2px;
+  color: var(--sdh-muted);
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}
+
+.sdh-page .sdh-profile__actions {
+  display: flex;
+  flex: none;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+/* ------------------------------------------------------------------ *
+ * Packages (built by app.js): one row each, one button, the rest are links
+ * ------------------------------------------------------------------ */
+
+.sdh-page .sdh-pkgs {
+  display: flex;
+  flex-direction: column;
+}
+
+.sdh-page .sdh-pkg {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  padding: 16px 0;
+  min-width: 0;
+}
+
+.sdh-page .sdh-pkg:first-child {
+  padding-top: 0;
+}
+
+.sdh-page .sdh-pkg + .sdh-pkg {
+  border-top: 1px solid var(--sdh-line-soft);
+}
+
+.sdh-page .sdh-pkg--paused .sdh-pkg__media img {
+  opacity: 0.55;
+}
+
+.sdh-page .sdh-pkg__media {
+  flex: none;
+  width: 96px;
+  height: 96px;
+  overflow: hidden;
+  border: 1px solid var(--sdh-line);
+  border-radius: var(--sdh-radius-sm);
+  background: #f3f1ec;
+}
+
+.sdh-page .sdh-pkg__media img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.sdh-page .sdh-pkg__body {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.sdh-page .sdh-pkg__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 2px 12px;
+}
+
+.sdh-page .sdh-pkg__title {
+  color: var(--sdh-ink);
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+.sdh-page .sdh-pkg__price {
+  max-width: 100%;
+  color: var(--sdh-ink);
+  font-size: 14px;
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+
+.sdh-page .sdh-pkg__badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 6px;
+}
+
+.sdh-page .sdh-pkg__badges:empty {
+  display: none;
+}
+
+.sdh-page .sdh-pkg__desc {
+  display: -webkit-box;
+  margin-top: 6px;
+  overflow: hidden;
+  color: var(--sdh-muted);
+  font-size: 13px;
+  line-height: 1.5;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow-wrap: anywhere;
+}
+
+.sdh-page .sdh-pkg__actions {
+  display: grid;
+  grid-template-columns: repeat(5, max-content);
+  align-items: center;
+  justify-content: start;
+  gap: 8px 20px;
+  margin-top: 12px;
+}
+
+@media (max-width: 559px) {
+  .sdh-page .sdh-pkg__actions {
+    grid-template-columns: repeat(3, max-content);
+  }
+}
+
+.sdh-page .sdh-pkg__actions .sdh-link {
+  margin-block: 0;
+  min-height: 32px;
+}
+
+.sdh-page .sdh-link:disabled,
+.sdh-page .sdh-link[aria-disabled='true'] {
+  color: var(--sdh-muted);
+  text-decoration: none;
+  cursor: not-allowed;
+}
+
+/* "Show the other N": a real <details> that folds long lists. */
+.sdh-page .sdh-more {
+  margin-top: 12px;
+}
+
+.sdh-page .sdh-more__summary {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  color: var(--sdh-accent-deep);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.sdh-page .sdh-more[open] > .sdh-more__summary {
+  margin-bottom: 8px;
+}
+
+.sdh-page .sdh-pkg-upgrade {
+  margin-top: 4px;
+}
+
+/* ------------------------------------------------------------------ *
+ * Availability, visits, tips
+ * ------------------------------------------------------------------ */
+
+.sdh-page .sdh-availability {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.sdh-page .sdh-seg {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  border: 1px solid var(--sdh-line-strong);
+  border-radius: var(--sdh-radius-sm);
+  background: var(--sdh-surface);
+}
+
+.sdh-page .sdh-seg__btn {
+  min-height: 44px;
+  padding: 0 8px;
+  white-space: nowrap;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  color: var(--sdh-ink-2);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.sdh-page .sdh-seg__btn + .sdh-seg__btn {
+  border-left: 1px solid var(--sdh-line-strong);
+}
+
+.sdh-page .sdh-seg__btn:first-child {
+  border-radius: 9px 0 0 9px;
+}
+
+.sdh-page .sdh-seg__btn:last-child {
+  border-radius: 0 9px 9px 0;
+}
+
+.sdh-page .sdh-seg__btn[aria-pressed='true'] {
+  background: var(--sdh-accent);
+  color: #fff;
+}
+
+.sdh-page .sdh-seg__btn:not([aria-pressed='true']):hover {
+  background: var(--sdh-accent-soft);
+  color: var(--sdh-accent-deep);
+}
+
+.sdh-page .sdh-metric {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+  margin-bottom: 12px;
+}
+
+.sdh-page .sdh-metric__value {
+  color: var(--sdh-ink);
+  font-size: 28px;
+  font-weight: 700;
+  line-height: 1.15;
+  font-variant-numeric: tabular-nums;
+}
+
+.sdh-page .sdh-metric__unit {
+  color: var(--sdh-muted);
+  font-size: 14px;
+}
+
+.sdh-page .sdh-chart__svg {
+  display: block;
+  width: 100%;
+  height: 120px;
+}
+
+.sdh-page .sdh-chart__bar {
+  fill: var(--sdh-accent);
+}
+
+.sdh-page .sdh-chart__bar:hover {
+  fill: var(--sdh-accent-deep);
+}
+
+.sdh-page .sdh-chart__axis {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 6px;
+  color: var(--sdh-muted);
+  font-size: 12px;
+}
+
+.sdh-page .sdh-tip {
+  padding: 12px 0;
+}
+
+.sdh-page .sdh-tip:first-child {
+  padding-top: 0;
+}
+
+.sdh-page .sdh-tip:last-child {
+  padding-bottom: 0;
+}
+
+.sdh-page .sdh-tip + .sdh-tip {
+  border-top: 1px solid var(--sdh-line-soft);
+}
+
+.sdh-page .sdh-tip__title {
+  color: var(--sdh-ink);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.sdh-page .sdh-tip__text {
+  margin: 2px 0 6px;
+  color: var(--sdh-muted);
+  font-size: 13px;
+}
+
+/* ------------------------------------------------------------------ *
+ * Profile card empty state (no profile yet) and the profile mode
+ * ------------------------------------------------------------------ */
+
+.sdh-page .sdh-empty .sdh-btn {
+  margin-top: 8px;
+}
+
+/* With no profile yet, the one button is in the card itself; the header toggle only shows while the form is open. */
+.sdh-page.sdh-no-profile #toggle-profile-form[aria-expanded='false'] {
+  display: none;
+}
+
+/* A supplier with no profile sees the profile, plan and support cards only. */
+.sdh-page.sdh-no-profile [data-needs-profile] {
+  display: none !important;
+}
+
+/* ------------------------------------------------------------------ *
+ * Reviews (supplier-reviews-init.js)
+ * ------------------------------------------------------------------ */
+
+.sdh-page .sr-summary {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 16px 32px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid var(--sdh-line);
+}
+
+.sdh-page .sr-summary-score {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+}
+
+.sdh-page .sr-big-rating {
+  color: var(--sdh-ink);
+  font-size: 32px;
+  font-weight: 700;
+  line-height: 1.1;
+}
+
+.sdh-page .sr-stars {
+  color: #b7791f;
+  font-size: 16px;
+  letter-spacing: 1px;
+}
+
+.sdh-page .sr-stars--empty {
+  color: var(--sdh-line-strong);
+}
+
+.sdh-page .sr-total-count {
+  color: var(--sdh-muted);
+  font-size: 13px;
+}
+
+.sdh-page .sr-distribution {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.sdh-page .sr-dist-row {
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr) 28px;
+  align-items: center;
+  gap: 8px;
+  color: var(--sdh-muted);
+  font-size: 12px;
+}
+
+.sdh-page .sr-dist-track {
+  height: 6px;
+  overflow: hidden;
+  border-radius: 3px;
+  background: var(--sdh-line-soft);
+}
+
+.sdh-page .sr-dist-fill {
+  height: 100%;
+  border-radius: inherit;
+  background: var(--sdh-accent);
+}
+
+.sdh-page .sr-dist-count {
+  text-align: right;
+}
+
+.sdh-page .sr-stat-card {
+  padding: 0 0 0 24px;
+  border-left: 1px solid var(--sdh-line-soft);
+}
+
+.sdh-page .sr-stat-label,
+.sdh-page .sr-stat-sub {
+  color: var(--sdh-muted);
+  font-size: 12px;
+}
+
+.sdh-page .sr-stat-value {
+  color: var(--sdh-ink);
+  font-size: 20px;
+  font-weight: 700;
+}
+
+.sdh-page .sr-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  margin: 16px 0 4px;
+}
+
+.sdh-page .sr-sort-label,
+.sdh-page .sr-page-info {
+  color: var(--sdh-muted);
+  font-size: 13px;
+}
+
+.sdh-page .sr-sort-select {
+  min-height: 44px;
+  padding: 0 32px 0 12px;
+  border: 1px solid var(--sdh-line-strong);
+  border-radius: var(--sdh-radius-sm);
+  background-color: var(--sdh-surface);
+  color: var(--sdh-ink);
+  font: inherit;
+  font-size: 14px;
+}
+
+.sdh-page .sr-page-info {
+  margin-left: auto;
+}
+
+.sdh-page .sr-review-card {
+  padding: 16px 0;
+}
+
+.sdh-page .sr-review-card + .sr-review-card {
+  border-top: 1px solid var(--sdh-line-soft);
+}
+
+.sdh-page .sr-review-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px 12px;
+}
+
+.sdh-page .sr-review-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.sdh-page .sr-review-rating-num {
+  color: var(--sdh-ink);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.sdh-page .sr-badge {
+  display: inline-flex;
+  align-items: center;
+  min-height: 22px;
+  padding: 0 8px;
+  border: 1px solid #bfe3cf;
+  border-radius: 6px;
+  background: var(--sdh-ok-soft);
+  color: var(--sdh-ok);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.sdh-page .sr-review-date,
+.sdh-page .sr-review-author,
+.sdh-page .sr-response-date {
+  color: var(--sdh-muted);
+  font-size: 13px;
+}
+
+.sdh-page .sr-review-author {
+  margin-top: 4px;
+}
+
+.sdh-page .sr-review-title {
+  margin-top: 8px;
+  color: var(--sdh-ink);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.sdh-page .sr-review-text {
+  margin-top: 4px;
+  color: var(--sdh-ink-2);
+  font-size: 14px;
+  overflow-wrap: anywhere;
+}
+
+.sdh-page .sr-response {
+  margin-top: 12px;
+  padding: 12px 14px;
+  border-left: 2px solid var(--sdh-accent);
+  background: #fbfaf8;
+  border-radius: 0 var(--sdh-radius-sm) var(--sdh-radius-sm) 0;
+}
+
+.sdh-page .sr-response-header {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 4px 12px;
+}
+
+.sdh-page .sr-response-label {
+  color: var(--sdh-accent-deep);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.sdh-page .sr-response-text {
+  margin-top: 4px;
+  color: var(--sdh-ink-2);
+  font-size: 14px;
+  overflow-wrap: anywhere;
+}
+
+.sdh-page .sr-review-footer:not(:empty) {
+  margin-top: 8px;
+}
+
+.sdh-page .sr-reply-btn,
+.sdh-page .sr-edit-reply-btn,
+.sdh-page .sr-reply-cancel,
+.sdh-page .sr-page-btn,
+.sdh-page .sr-error__retry,
+.sdh-page .sr-reply-submit {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  padding: 0 16px !important;
+  border: 1px solid var(--sdh-line-strong);
+  border-radius: var(--sdh-radius-sm) !important;
+  background: var(--sdh-surface);
+  box-shadow: none;
+  color: var(--sdh-ink);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.sdh-page .sr-edit-reply-btn,
+.sdh-page .sr-reply-cancel {
+  border-color: transparent;
+  background: transparent;
+  color: var(--sdh-accent-deep);
+}
+
+.sdh-page .sr-reply-submit {
+  border-color: var(--sdh-accent);
+  background: var(--sdh-accent);
+  color: #fff;
+}
+
+.sdh-page .sr-reply-btn:hover,
+.sdh-page .sr-page-btn:hover:not(:disabled),
+.sdh-page .sr-error__retry:hover {
+  border-color: var(--sdh-accent);
+  background: var(--sdh-accent-soft);
+  color: var(--sdh-accent-deep);
+}
+
+.sdh-page .sr-page-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.sdh-page .sr-reply-form {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.sdh-page .sr-reply-label {
+  color: var(--sdh-ink-2);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.sdh-page .sr-reply-textarea {
+  width: 100%;
+  min-height: 96px;
+  padding: 10px 14px;
+  border: 1px solid var(--sdh-line-strong);
+  border-radius: var(--sdh-radius-sm);
+  background: var(--sdh-surface);
+  color: var(--sdh-ink);
+  font: inherit;
+  font-size: 16px;
+  resize: vertical;
+}
+
+.sdh-page .sr-reply-meta {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 4px 12px;
+  color: var(--sdh-muted);
+  font-size: 12px;
+}
+
+.sdh-page .sr-reply-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.sdh-page .sr-reply-status {
+  font-size: 13px;
+}
+
+.sdh-page .sr-reply-status[data-tone='error'] {
+  color: var(--sdh-danger);
+}
+
+.sdh-page .sr-pagination {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.sdh-page .sr-empty,
+.sdh-page .sr-error,
+.sdh-page .sr-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+}
+
+.sdh-page .sr-empty-title {
+  color: var(--sdh-ink);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.sdh-page .sr-empty-desc,
+.sdh-page .sr-error,
+.sdh-page .sr-loading {
+  max-width: 52ch;
+  color: var(--sdh-muted);
+  font-size: 13px;
+}
+
+.sdh-page .sr-spinner {
+  display: none;
+}
+
+/* Messenger load error: the page's own retry pattern, no icon. */
+.sdh-page .sdh-messenger-widget .mwv4__empty {
+  padding: 16px 0;
+  text-align: left;
+}
+
+.sdh-page .sdh-messenger-widget .mwv4__retry-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  margin-top: 8px;
+  padding: 0 16px !important;
+  border: 1px solid var(--sdh-line-strong);
+  border-radius: var(--sdh-radius-sm);
+  background: var(--sdh-surface);
+  background-image: none;
+  box-shadow: none;
+  color: var(--sdh-ink);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.sdh-page .sdh-messenger-widget .mwv4__retry-btn:hover {
+  border-color: var(--sdh-accent);
+  background: var(--sdh-accent-soft);
+  color: var(--sdh-accent-deep);
+}
+
+/* Lead badges come from a score the server does not produce, so they never describe a real lead. */
+.sdh-page .sdh-messenger-widget .mwv4__lead-badge,
+.sdh-page .sdh-messenger-widget .lead-badge {
+  display: none !important;
+}
+
+/* Support tickets (the site's ticket rows carry their own tinted box). */
+.sdh-page .supplier-ticket-item.ticket-item {
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.sdh-page .supplier-ticket-item.ticket-item:hover {
+  background: #fbfaf8;
+}
+
+/* Support tickets (customer-tickets.js) */
+
+.sdh-page .ticket-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.sdh-page .supplier-ticket-item {
+  padding: 12px 8px;
+  margin: 0 -8px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.sdh-page .supplier-ticket-item + .supplier-ticket-item {
+  border-top: 1px solid var(--sdh-line-soft);
+  border-top-left-radius: 0;
+  border-top-right-radius: 0;
+}
+
+.sdh-page .supplier-ticket-item:hover {
+  background: #fbfaf8;
+}
+
+.sdh-page .supplier-ticket-item__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  color: var(--sdh-ink);
+  font-size: 14px;
+}
+
+.sdh-page .supplier-ticket-item__badges .badge {
+  display: inline-flex;
+  align-items: center;
+  min-height: 22px;
+  padding: 0 8px;
+  border-radius: 6px;
+  background: var(--sdh-accent-soft);
+  color: var(--sdh-accent-deep);
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: capitalize;
+  white-space: nowrap;
+}
+
+.sdh-page .supplier-ticket-item__preview,
+.sdh-page .supplier-ticket-item__meta {
+  margin-top: 2px;
+  color: var(--sdh-muted);
+  font-size: 13px;
+}
+
+.sdh-page .supplier-tickets-view-all {
+  display: inline-block;
+  margin-top: 12px;
+  color: var(--sdh-accent-deep);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.sdh-page #tickets-sup .empty-state,
+.sdh-page #tickets-sup .error-state {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  width: 100%;
+  max-width: none;
+  margin: 0;
+  padding: 0;
+  text-align: left;
+}
+
+.sdh-page #tickets-sup .empty-state-icon {
+  display: none;
+}
+
+.sdh-page #tickets-sup .empty-state-title {
+  color: var(--sdh-ink);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.sdh-page #tickets-sup .empty-state-description {
+  color: var(--sdh-muted);
+  font-size: 13px;
+}
+
+.sdh-page #tickets-sup .empty-state-action {
+  margin-top: 8px;
+  color: var(--sdh-accent-deep);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+/* Ticket dialogs (shared .modal markup from customer-tickets.js). The close button also carries
+   .ef-cta, whose sitewide padding and 100%-width-on-phones rules would squash the glyph. */
+
+/* The sitewide modal styles give these a pale blurred backdrop, 1.5rem padding and pill
+   buttons. Bring them in line with the page's other dialogs. */
+
+.sdh-page .modal-overlay {
+  background: rgba(23, 32, 47, 0.5) !important;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+.sdh-page .modal-overlay .modal {
+  padding: 0;
+  border: 0;
+  border-radius: var(--sdh-radius);
+  box-shadow: var(--sdh-pop);
+}
+
+.sdh-page .modal-overlay .ticket-create-modal {
+  max-width: 480px;
+}
+
+.sdh-page .modal-overlay .modal-header {
+  gap: 12px;
+  padding: 16px 16px 16px 24px;
+  border-bottom: 1px solid var(--sdh-line);
+}
+
+.sdh-page .modal-overlay .modal-body {
+  padding: 24px;
+}
+
+.sdh-page .modal-overlay .form-row {
+  display: grid;
+  gap: 6px;
+  margin-bottom: 16px;
+}
+
+.sdh-page .modal-overlay .form-row label {
+  color: var(--sdh-ink-2);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.sdh-page .modal-overlay .form-row :where(input, textarea, select) {
+  width: 100%;
+  min-height: 44px;
+  padding: 10px 14px;
+  border: 1px solid var(--sdh-line-strong);
+  border-radius: var(--sdh-radius-sm);
+  background: var(--sdh-surface);
+  box-shadow: none;
+  color: var(--sdh-ink);
+  font: inherit;
+  font-size: 16px;
+}
+
+.sdh-page .modal-overlay .form-row textarea {
+  resize: vertical;
+}
+
+.sdh-page .modal-overlay .form-row :where(input, textarea, select):focus-visible {
+  border-color: var(--sdh-accent);
+  outline: 2px solid var(--sdh-ring);
+  outline-offset: 0;
+  box-shadow: none;
+}
+
+.sdh-page .modal-overlay .form-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.sdh-page .modal-overlay .btn {
+  min-height: 40px;
+  padding: 0 18px !important;
+  border-radius: var(--sdh-radius-sm) !important;
+  box-shadow: none;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.sdh-page .modal-overlay .btn-primary {
+  border: 1px solid var(--sdh-accent);
+  background: var(--sdh-accent);
+  color: #fff;
+}
+
+.sdh-page .modal-overlay .btn-primary:hover {
+  background: var(--sdh-accent-hover);
+  transform: none;
+}
+
+.sdh-page .modal-overlay .btn-secondary {
+  border: 1px solid var(--sdh-line-strong);
+  background: var(--sdh-surface);
+  color: var(--sdh-ink);
+}
+
+.sdh-page .modal-overlay .btn-secondary:hover {
+  background: var(--sdh-line-soft);
+  transform: none;
+}
+
+.sdh-page .modal-overlay .modal-header h3 {
+  margin: 0;
+  color: var(--sdh-ink);
+  font-size: 18px;
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+.sdh-page .modal-overlay .modal-close {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 36px !important;
+  height: 36px !important;
+  padding: 0 !important;
+  border: 0;
+  border-radius: 8px !important;
+  background: transparent;
+  box-shadow: none;
+  color: var(--sdh-muted);
+  font-size: 20px !important;
+  font-weight: 400 !important;
+  line-height: 1;
+}
+
+.sdh-page .modal-overlay .modal-close:hover {
+  background: var(--sdh-line-soft);
+  color: var(--sdh-ink);
+  transform: none;
+}
+
+/* Messages (MessengerWidgetV4 renders the list; this card supplies the heading) */
+
+.sdh-page .sdh-messenger-widget .mwv4 {
+  border: 0;
+  border-radius: 0;
+  background: none;
+  box-shadow: none;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  overflow: visible;
+}
+
+.sdh-page .sdh-messenger-widget .mwv4__header {
+  display: none;
+}
+
+.sdh-page .sdh-messenger-widget .mwv4__item {
+  border-bottom: 1px solid var(--sdh-line-soft);
+}
+
+.sdh-page .sdh-messenger-widget .mwv4__item:last-child {
+  border-bottom: 0;
+}
+
+.sdh-page .sdh-messenger-widget .mwv4__item--unread {
+  background: none;
+}
+
+.sdh-page .sdh-messenger-widget .mwv4__item-btn {
+  padding: 12px 0;
+}
+
+.sdh-page .sdh-messenger-widget .mwv4__item-btn:hover {
+  background: none;
+}
+
+.sdh-page .sdh-messenger-widget .mwv4__item-btn:focus-visible {
+  outline: 2px solid var(--sdh-accent);
+  outline-offset: 2px;
+}
+
+.sdh-page .sdh-messenger-widget .mwv4__name {
+  color: var(--sdh-ink);
+  font-size: 14px;
+}
+
+.sdh-page .sdh-messenger-widget .mwv4__preview,
+.sdh-page .sdh-messenger-widget .mwv4__time {
+  color: var(--sdh-muted);
+  font-size: 13px;
+}
+
+.sdh-page .sdh-messenger-widget .mwv4__empty {
+  align-items: flex-start;
+  padding: 0;
+  color: var(--sdh-muted);
+}
+
+.sdh-page .sdh-messenger-widget .mwv4__empty-icon {
+  display: none;
+}
+
+.sdh-page .sdh-messenger-widget .mwv4__empty-text {
+  text-align: left;
+  font-size: 13px;
+}
+
+/* ------------------------------------------------------------------ *
+ * 8. Calendar
+ * ------------------------------------------------------------------ */
+
+.sdh-page .cal-legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.sdh-page .cal-legend-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--sdh-accent);
+}
+
+.sdh-page .cal-legend-dot--mine {
+  border: 2px solid var(--sdh-accent);
+  background: var(--sdh-accent-soft);
+}
+
+.sdh-page .cal-legend-dot--public {
+  border: 2px dashed var(--sdh-accent);
+  background: var(--sdh-surface);
+}
+
+.sdh-page .cal-legend-dot--saved {
+  border: 2px dotted var(--sdh-ink-2);
+  background: var(--sdh-surface);
+}
+
+/* FullCalendar theme */
+
+.sdh-page .supplier-calendar-viewport {
+  --fc-border-color: var(--sdh-line);
+  --fc-page-bg-color: var(--sdh-surface);
+  --fc-neutral-bg-color: #fbfaf8;
+  --fc-today-bg-color: var(--sdh-accent-soft);
+  --fc-button-bg-color: var(--sdh-surface);
+  --fc-button-border-color: var(--sdh-line-strong);
+  --fc-button-text-color: var(--sdh-ink);
+  --fc-button-hover-bg-color: var(--sdh-accent-soft);
+  --fc-button-hover-border-color: var(--sdh-accent);
+  --fc-button-active-bg-color: var(--sdh-accent-soft);
+  --fc-button-active-border-color: var(--sdh-accent);
+  --fc-event-border-color: transparent;
+
+  font-size: 13px;
+}
+
+.sdh-page .supplier-calendar-viewport.fc-loaded {
+  min-height: 360px;
+}
+
+/* height: 'auto' view — let the grid size itself instead of scrolling inside the card. */
+.sdh-page .supplier-calendar-viewport.fc,
+.sdh-page .supplier-calendar-viewport .fc-view-harness,
+.sdh-page .supplier-calendar-viewport .fc-scroller,
+.sdh-page .supplier-calendar-viewport .fc-scroller-liquid-absolute {
+  position: relative !important;
+  max-width: 100%;
+  height: auto !important;
+  overflow: visible !important;
+}
+
+/* Site-wide mobile table rules (scrolling block tables, min-width, sticky th) must not reach the grid. */
+.sdh-page .supplier-calendar-viewport table {
+  display: table;
+  min-width: 0;
+  overflow: visible;
+  font-size: inherit;
+  white-space: normal;
+}
+
+.sdh-page .supplier-calendar-viewport thead {
+  display: table-header-group;
+}
+
+.sdh-page .supplier-calendar-viewport tbody {
+  display: table-row-group;
+}
+
+.sdh-page .supplier-calendar-viewport tr {
+  display: table-row;
+}
+
+.sdh-page .supplier-calendar-viewport th,
+.sdh-page .supplier-calendar-viewport td {
+  position: static;
+  padding: 0;
+  background: transparent;
+  text-align: inherit;
+}
+
+.sdh-page .supplier-calendar-viewport th.fc-col-header-cell {
+  background: var(--fc-neutral-bg-color);
+}
+
+.sdh-page .supplier-calendar-viewport .fc-toolbar {
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.sdh-page .supplier-calendar-viewport .fc-toolbar-title {
+  color: var(--sdh-ink);
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.sdh-page .supplier-calendar-viewport .fc-button {
+  min-height: 32px;
+  padding: 0 12px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  text-transform: none;
+  box-shadow: none;
+}
+
+.sdh-page .supplier-calendar-viewport .fc-button:focus-visible {
+  outline: 2px solid var(--sdh-accent);
+  outline-offset: 2px;
+  box-shadow: none;
+}
+
+.sdh-page .supplier-calendar-viewport .fc-button-primary:not(:disabled).fc-button-active,
+.sdh-page .supplier-calendar-viewport .fc-button-primary:not(:disabled):active {
+  color: var(--sdh-accent-deep);
+}
+
+.sdh-page .supplier-calendar-viewport .fc-scrollgrid {
+  overflow: hidden;
+  border-radius: var(--sdh-radius-sm);
+}
+
+.sdh-page .supplier-calendar-viewport .fc-col-header-cell-cushion {
+  padding: 8px 4px;
+  color: var(--sdh-muted);
+  font-size: 12px;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.sdh-page .supplier-calendar-viewport .fc-daygrid-day-number {
+  padding: 6px 8px;
+  color: var(--sdh-ink-2);
+  font-size: 12px;
+  text-decoration: none;
+}
+
+/* Days from the neighbouring months: tinted, but still readable. */
+.sdh-page .supplier-calendar-viewport .fc-day-other {
+  background: #fbfaf8;
+}
+
+.sdh-page .supplier-calendar-viewport .fc-day-other .fc-daygrid-day-top {
+  opacity: 1;
+}
+
+.sdh-page .supplier-calendar-viewport .fc-day-other .fc-daygrid-day-number {
+  color: var(--sdh-muted);
+}
+
+.sdh-page .supplier-calendar-viewport .fc-daygrid-day-frame {
+  position: relative;
+  min-height: 64px;
+}
+
+/* One accent. Private entries are filled and solid, public events are outlined and dashed, saved
+   public events are dotted: told apart by shape, not by colour. */
+.sdh-page .supplier-calendar-viewport .fc-event,
+.sdh-page .supplier-calendar-viewport .fc-daygrid-event {
+  border: 1px solid var(--sdh-accent) !important;
+  border-radius: 4px;
+  background: var(--sdh-accent-soft) !important;
+  color: var(--sdh-ink) !important;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.sdh-page .supplier-calendar-viewport .fc-event .fc-event-main,
+.sdh-page .supplier-calendar-viewport .fc-event .fc-event-title,
+.sdh-page .supplier-calendar-viewport .fc-event .fc-event-time {
+  color: var(--sdh-ink) !important;
+}
+
+.sdh-page .supplier-calendar-viewport .sdh-ev--public {
+  border-style: dashed !important;
+  background: var(--sdh-surface) !important;
+}
+
+.sdh-page .supplier-calendar-viewport .sdh-ev--saved {
+  border-style: dotted !important;
+  border-color: var(--sdh-ink-2) !important;
+}
+
+.sdh-page .supplier-calendar-viewport .fc-daygrid-event-dot,
+.sdh-page .supplier-calendar-viewport .fc-list-event-dot {
+  display: none;
+}
+
+.sdh-page .supplier-calendar-viewport .fc-list-event td {
+  padding: 12px 10px;
+}
+
+.sdh-page .supplier-calendar-viewport .fc-list-empty {
+  min-height: 0;
+  padding: 24px 12px;
+}
+
+.sdh-page .supplier-calendar-viewport .fc-list {
+  border-color: var(--sdh-line);
+}
+
+.sdh-page .supplier-calendar-viewport .fc-event-title {
+  text-transform: none;
+}
+
+.sdh-page .cal-day-add-btn {
+  position: absolute;
+  top: 4px;
+  left: 4px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: 1px solid var(--sdh-line-strong);
+  border-radius: 6px;
+  background: var(--sdh-surface);
+  color: var(--sdh-accent-deep);
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.12s ease;
+}
+
+.sdh-page .fc-daygrid-day:hover .cal-day-add-btn,
+.sdh-page .fc-daygrid-day:focus-within .cal-day-add-btn,
+.sdh-page .cal-day-add-btn:focus-visible {
+  opacity: 1;
+}
+
+@media (hover: none) {
+  .sdh-page .cal-day-add-btn {
+    display: none;
+  }
+}
+
+.sdh-page .cal-no-events {
+  padding: 24px 0;
+  color: var(--sdh-muted);
+  font-size: 13px;
+  text-align: center;
+}
+
+/* Fallback month + list when FullCalendar cannot load */
+
+.sdh-page .cal-fallback-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.sdh-page .cal-fallback-month {
+  overflow: hidden;
+  border: 1px solid var(--sdh-line);
+  border-radius: var(--sdh-radius-sm);
+}
+
+.sdh-page .cal-fallback-month__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--sdh-line);
+}
+
+.sdh-page .cal-fallback-month__eyebrow {
+  color: var(--sdh-muted);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.sdh-page .cal-fallback-month__title {
+  color: var(--sdh-ink);
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.sdh-page .cal-fallback-month__hint {
+  color: var(--sdh-muted);
+  font-size: 12px;
+  text-align: right;
+}
+
+.sdh-page .cal-fallback-month__weekdays,
+.sdh-page .cal-fallback-month__grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+}
+
+.sdh-page .cal-fallback-month__weekdays span {
+  padding: 8px 4px;
+  background: #fbfaf8;
+  color: var(--sdh-muted);
+  font-size: 12px;
+  font-weight: 600;
+  text-align: center;
+}
+
+.sdh-page .cal-fallback-day {
+  min-height: 64px;
+  padding: 6px;
+  border: 0;
+  border-right: 1px solid var(--sdh-line-soft);
+  border-bottom: 1px solid var(--sdh-line-soft);
+  background: var(--sdh-surface);
+  color: var(--sdh-ink-2);
+  font: inherit;
+  font-size: 12px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.sdh-page .cal-fallback-day:nth-child(7n) {
+  border-right: 0;
+}
+
+.sdh-page .cal-fallback-day:hover {
+  background: var(--sdh-accent-soft);
+}
+
+.sdh-page .cal-fallback-day:focus-visible {
+  outline-offset: -2px;
+}
+
+.sdh-page .cal-fallback-day--muted {
+  background: #fbfaf8;
+  color: #697384;
+}
+
+.sdh-page .cal-fallback-day--today .cal-fallback-day__num {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--sdh-accent);
+  color: #fff;
+  font-weight: 700;
+}
+
+.sdh-page .cal-fallback-day__events {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-top: 4px;
+}
+
+.sdh-page .cal-fallback-day__event {
+  display: block;
+  padding: 1px 4px;
+  overflow: hidden;
+  border-radius: 4px;
+  color: #fff;
+  font-size: 11px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sdh-page .cal-fallback-day__more {
+  color: var(--sdh-muted);
+  font-size: 11px;
+}
+
+.sdh-page .cal-fallback-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.sdh-page .cal-fallback-item {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 12px;
+  padding: 10px 0;
+  border-top: 1px solid var(--sdh-line-soft);
+  font-size: 14px;
+}
+
+.sdh-page .cal-fallback-item__dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+}
+
+.sdh-page .cal-fallback-item__date {
+  color: var(--sdh-muted);
+  font-size: 13px;
+}
+
+.sdh-page .cal-fallback-item__title {
+  flex: 1 1 140px;
+  min-width: 0;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.sdh-page .cal-fallback-item__edit,
+.sdh-page .cal-fallback-item__delete {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0 !important;
+  border: 1px solid var(--sdh-line);
+  border-radius: 8px;
+  background: var(--sdh-surface);
+  box-shadow: none;
+  color: var(--sdh-muted);
+  cursor: pointer;
+}
+
+.sdh-page .cal-fallback-item__delete:hover {
+  border-color: var(--sdh-danger);
+  color: var(--sdh-danger);
+}
+
+.sdh-page .cal-fallback-item__edit:hover {
+  border-color: var(--sdh-accent);
+  color: var(--sdh-accent-deep);
+}
+
+.sdh-page .cal-fallback-empty {
+  padding: 8px 0;
+  color: var(--sdh-muted);
+  font-size: 13px;
+  list-style: none;
+}
+
+.sdh-page .cal-fallback-empty__icon {
+  display: none;
+}
+
+.sdh-page .cal-fallback-empty__text {
+  margin: 0;
+}
+
+.sdh-page .cal-entry-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 6px;
+  background: var(--sdh-line-soft);
+  color: var(--sdh-ink-2);
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: capitalize;
+}
+
+.sdh-page .cal-entry-badge--meeting {
+  background: #eceefe;
+  color: #3730a3;
+}
+
+.sdh-page .cal-entry-badge--appointment {
+  background: var(--sdh-warn-soft);
+  color: var(--sdh-warn);
+}
+
+.sdh-page .cal-entry-badge--event {
+  background: var(--sdh-accent-soft);
+  color: var(--sdh-accent-deep);
+}
+
+/* Hover details */
+
+.sdh-page .calendar-tooltip {
+  position: fixed;
+  z-index: 10060;
+  max-width: 260px;
+  padding: 10px 12px;
+  border: 1px solid var(--sdh-line-strong);
+  border-radius: var(--sdh-radius-sm);
+  background: var(--sdh-surface);
+  box-shadow: var(--sdh-pop);
+  color: var(--sdh-ink);
+  font-size: 13px;
+  line-height: 1.45;
+  pointer-events: none;
+  opacity: 0;
+}
+
+.sdh-page .calendar-tooltip.is-visible {
+  opacity: 1;
+}
+
+/* Entry actions popover */
+
+.sdh-page .ef-cal-popup {
+  position: fixed;
+  z-index: 10060;
+  padding: 12px;
+  border: 1px solid var(--sdh-line-strong);
+  border-radius: var(--sdh-radius-sm);
+  background: var(--sdh-surface);
+  box-shadow: var(--sdh-pop);
+  color: var(--sdh-ink);
+}
+
+.sdh-page .cal-delete-popover__msg {
+  margin: 0 0 12px;
+  font-size: 14px;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.sdh-page .cal-delete-popover__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.sdh-page .cal-delete-popover__btn {
+  min-height: 32px;
+  padding: 0 12px !important;
+  border: 1px solid var(--sdh-line-strong);
+  border-radius: 8px;
+  background: var(--sdh-surface);
+  box-shadow: none;
+  color: var(--sdh-ink);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.sdh-page .cal-delete-popover__btn--edit {
+  border-color: var(--sdh-accent);
+  background: var(--sdh-accent);
+  color: #fff;
+}
+
+.sdh-page .cal-delete-popover__btn--delete,
+.sdh-page .cal-delete-popover__btn--confirm {
+  border-color: var(--sdh-danger);
+  background: var(--sdh-surface);
+  color: var(--sdh-danger);
+}
+
+.sdh-page .cal-delete-popover__btn--confirm {
+  background: var(--sdh-danger);
+  color: #fff;
+}
+
+/* ------------------------------------------------------------------ *
+ * 9. Dialogs
+ * ------------------------------------------------------------------ */
+
+/* Plan editor and delete confirmation (native <dialog>, appended to <body>) */
+
+.sdh-page .sdh-dialog {
+  width: min(480px, calc(100vw - 32px));
+  max-width: none;
+  max-height: calc(100dvh - 32px);
+  padding: 0;
+  overflow: hidden;
+  border: 0;
+  border-radius: var(--sdh-radius);
+  background: var(--sdh-surface);
+  box-shadow: var(--sdh-pop);
+  color: var(--sdh-ink);
+}
+
+.sdh-page .sdh-dialog[open] {
+  display: flex;
+  flex-direction: column;
+}
+
+.sdh-page .sdh-dialog--narrow {
+  width: min(420px, calc(100vw - 32px));
+}
+
+.sdh-page .sdh-dialog::backdrop {
+  background: rgba(23, 32, 47, 0.5);
+}
+
+.sdh-page .sdh-dialog__form {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.sdh-page .sdh-dialog__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 16px 16px 16px 24px;
+  border-bottom: 1px solid var(--sdh-line);
+}
+
+.sdh-page .sdh-dialog__title {
+  margin: 0;
+  color: var(--sdh-ink);
+  font-size: 18px;
+  font-weight: 600;
+  line-height: 1.3;
+  overflow-wrap: anywhere;
+}
+
+.sdh-page .sdh-dialog__close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--sdh-radius-sm);
+  background: transparent;
+  color: var(--sdh-muted);
+  font-size: 24px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.sdh-page .sdh-dialog__close:hover {
+  background: var(--sdh-line-soft);
+  color: var(--sdh-ink);
+}
+
+.sdh-page .sdh-dialog__body {
+  display: grid;
+  gap: 16px;
+  min-height: 0;
+  padding: 24px;
+  overflow-y: auto;
+}
+
+.sdh-page .sdh-dialog__text {
+  margin: 0;
+  color: var(--sdh-muted);
+  font-size: 14px;
+}
+
+.sdh-page .sdh-dialog .sdh-field {
+  width: 100%;
+}
+
+.sdh-page .sdh-dialog .sdh-form-status {
+  margin-top: 0;
+}
+
+.sdh-page .sdh-input--area {
+  min-height: 88px;
+  padding-block: 10px;
+  resize: vertical;
+}
+
+.sdh-page .sdh-input[aria-invalid='true'] {
+  border-color: var(--sdh-danger);
+}
+
+.sdh-page .sdh-dialog__foot {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 16px 24px;
+  border-top: 1px solid var(--sdh-line);
+  background: #fbfaf8;
+}
+
+/* Reviews: a phone shows the first two until "Show all" is pressed. */
+
+.sdh-page .sr-show-all {
+  display: none;
+}
+
+@media (max-width: 767px) {
+  .sdh-page .sr-list--capped .sr-review-card:nth-child(n + 3) {
+    display: none;
+  }
+
+  .sdh-page .sr-show-all {
+    display: inline-flex;
+    margin-top: 8px;
+  }
+}
+
+/* Review request history and the copy-link row */
+
+.sdh-page .sdh-inline-counts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 16px;
+  margin: 0 0 12px;
+  padding: 0;
+  color: var(--sdh-ink-2);
+  font-size: 13px;
+  list-style: none;
+}
+
+.sdh-page .sdh-rreq-history__filter {
+  max-width: 260px;
+  margin-bottom: 8px;
+}
+
+.sdh-page .sdh-list__meta--bad {
+  color: var(--sdh-danger);
+}
+
+.sdh-page .sdh-copyrow {
+  display: flex;
+  gap: 8px;
+}
+
+.sdh-page .sdh-copyrow .sdh-input {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+/* Messages: search, filter and sort over the latest conversations. */
+
+.sdh-page .sdh-msg-tools {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+@media (max-width: 479px) {
+  .sdh-page .sdh-msg-tools {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .sdh-page .sdh-msg-tools [type='search'] {
+    grid-column: 1 / -1;
+  }
+}
+
+/* Enquiries: the card, and the drawer (a side panel on desktop, a bottom sheet on a phone). */
+
+.sdh-page .sdh-enquiries__counts {
+  margin: 0 0 12px;
+  color: var(--sdh-ink-2);
+  font-size: 14px;
+}
+
+.sdh-page .sdh-enq-list {
+  display: grid;
+  gap: 8px;
+}
+
+.sdh-page .sdh-enq {
+  display: grid;
+  gap: 4px;
+  width: 100%;
+  padding: 12px 14px;
+  border: 1px solid var(--sdh-line);
+  border-radius: var(--sdh-radius-sm);
+  background: var(--sdh-surface);
+  color: var(--sdh-ink);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.sdh-page .sdh-enq:hover,
+.sdh-page .sdh-enq--selected {
+  border-color: var(--sdh-accent);
+  background: var(--sdh-accent-soft);
+}
+
+.sdh-page .sdh-enq__top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.sdh-page .sdh-enq__name {
+  font-size: 14px;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.sdh-page .sdh-enq__preview {
+  color: var(--sdh-ink-2);
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}
+
+.sdh-page .sdh-enq__meta {
+  color: var(--sdh-muted);
+  font-size: 12px;
+}
+
+.sdh-page .sdh-enq__message {
+  margin: 0 0 12px;
+  color: var(--sdh-ink);
+  font-size: 14px;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+
+.sdh-page .sdh-enq__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.sdh-page .sdh-facts-grid {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  gap: 6px 16px;
+  margin: 12px 0;
+  font-size: 14px;
+}
+
+.sdh-page .sdh-facts-grid dt {
+  color: var(--sdh-muted);
+}
+
+.sdh-page .sdh-facts-grid dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.sdh-page .sdh-dialog--drawer {
+  width: min(960px, 100vw);
+  max-width: none;
+  height: 100dvh;
+  max-height: 100dvh;
+  margin: 0 0 0 auto;
+  border-radius: var(--sdh-radius) 0 0 var(--sdh-radius);
+}
+
+.sdh-page .sdh-drawer {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.sdh-page .sdh-drawer__filters {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  padding: 16px 24px 0;
+}
+
+.sdh-page .sdh-drawer__counts {
+  margin: 0;
+  padding: 12px 24px;
+}
+
+.sdh-page .sdh-drawer__panes {
+  display: grid;
+  flex: 1 1 auto;
+  grid-template-columns: minmax(280px, 360px) minmax(0, 1fr);
+  min-height: 0;
+  border-top: 1px solid var(--sdh-line);
+}
+
+.sdh-page .sdh-drawer__listpane,
+.sdh-page .sdh-drawer__detailpane {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-height: 0;
+  padding: 16px 24px;
+  overflow-y: auto;
+}
+
+.sdh-page .sdh-drawer__listpane {
+  border-right: 1px solid var(--sdh-line);
+}
+
+.sdh-page .sdh-drawer__back {
+  display: none;
+  align-self: flex-start;
+}
+
+.sdh-page .sdh-drawer__subtitle {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.sdh-page .sdh-drawer__subtitle:focus {
+  outline: none;
+}
+
+@media (max-width: 899px) {
+  .sdh-page .sdh-dialog--drawer {
+    width: 100%;
+    height: 94dvh;
+    max-height: 94dvh;
+    margin: auto 0 0;
+    border-radius: var(--sdh-radius) var(--sdh-radius) 0 0;
+  }
+
+  .sdh-page .sdh-drawer__filters {
+    padding: 16px 16px 0;
+  }
+
+  .sdh-page .sdh-drawer__counts {
+    padding: 12px 16px;
+  }
+
+  .sdh-page .sdh-drawer__panes {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .sdh-page .sdh-drawer__listpane,
+  .sdh-page .sdh-drawer__detailpane {
+    padding: 16px;
+  }
+
+  .sdh-page .sdh-drawer__listpane {
+    border-right: 0;
+  }
+
+  /* One pane at a time: the list, or the enquiry that was chosen. */
+  .sdh-page .sdh-drawer__detailpane {
+    display: none;
+  }
+
+  .sdh-page .sdh-drawer--detail .sdh-drawer__detailpane {
+    display: flex;
+  }
+
+  .sdh-page .sdh-drawer--detail .sdh-drawer__listpane {
+    display: none;
+  }
+
+  .sdh-page .sdh-drawer--detail .sdh-drawer__back {
+    display: inline-flex;
+  }
+}
+
+/* From visit to reply, and the second chart series */
+
+.sdh-page .sdh-funnel {
+  margin-top: 16px;
+}
+
+.sdh-page .sdh-funnel__list {
+  display: grid;
+  gap: 4px;
+  margin: 8px 0 0;
+  padding-left: 20px;
+  color: var(--sdh-ink-2);
+  font-size: 14px;
+}
+
+.sdh-page .sdh-chart__bar--alt {
+  fill: var(--sdh-ink-2);
+}
+
+/* Setup guide: a short dialog with a progress count, one step at a time. */
+
+.sdh-page .sdh-guide__progress {
+  display: grid;
+  flex: 1 1 auto;
+  gap: 8px;
+  min-width: 0;
+}
+
+.sdh-page .sdh-guide__count {
+  margin: 0;
+  color: var(--sdh-muted);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+/* The heading is focused by the script so screen readers start on it; it is not a control. */
+.sdh-page .sdh-dialog--guide .sdh-dialog__title:focus {
+  outline: none;
+}
+
+.sdh-page .sdh-hero__guide {
+  margin: 8px 0 0;
+}
+
+.sdh-page .sdh-hero__guide:has(> [hidden]) {
+  display: none;
+}
+
+/* The page behind an open editor does not scroll. */
+.sdh-page.sdh-modal-open {
+  overflow: hidden;
+}
+
+/* Profile and package editors: a native <dialog> over the dashboard. A card-sized modal on
+   desktop, a bottom sheet on phones. The body scrolls; the footer with Save stays in view. */
+
+.sdh-page .sdh-dialog--editor {
+  width: min(760px, calc(100vw - 32px));
+  max-height: calc(100dvh - 32px);
+}
+
+.sdh-page .sdh-editor,
+.sdh-page .sdh-editor__form {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.sdh-page .sdh-editor__form {
+  gap: 0;
+}
+
+.sdh-page .sdh-editor__form .sdh-dialog__body {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 20px;
+  overscroll-behavior: contain;
+}
+
+.sdh-page .sdh-editor__form .sdh-dialog__foot {
+  align-items: center;
+  padding-bottom: max(16px, env(safe-area-inset-bottom));
+}
+
+.sdh-page .sdh-editor__form .sdh-dialog__foot .sdh-form__status {
+  flex: 1 1 100%;
+  margin: 0;
+}
+
+.sdh-page .sdh-editor__form .sdh-dialog__foot .sdh-btn--primary {
+  order: 2;
+}
+
+.sdh-page .sdh-editor__form .sdh-dialog__foot .sdh-btn--quiet {
+  order: 1;
+  margin-right: auto;
+}
+
+.sdh-page .sdh-editor__form .sdh-dialog__foot .sdh-btn--secondary {
+  order: 0;
+}
+
+/* Banner field in the profile editor */
+
+.sdh-page .sdh-banner__preview {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  aspect-ratio: 3 / 1;
+  max-height: 160px;
+  overflow: hidden;
+  border: 1px dashed var(--sdh-line-strong);
+  border-radius: var(--sdh-radius-sm);
+  background: #fbfaf8;
+  color: var(--sdh-muted);
+  font-size: 13px;
+}
+
+.sdh-page .sdh-banner__preview[data-state='filled'] {
+  border-style: solid;
+}
+
+.sdh-page .sdh-banner__img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.sdh-page .sdh-banner__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.sdh-page .sdh-banner[aria-busy='true'] .sdh-banner__preview {
+  opacity: 0.6;
+}
+
+/* A destructive action that does not shout: red text and outline until it is hovered. */
+.sdh-page .sdh-btn--danger-quiet {
+  border-color: #e7b9b4;
+  background: var(--sdh-surface);
+  color: var(--sdh-danger);
+}
+
+.sdh-page .sdh-btn--danger-quiet:hover {
+  border-color: var(--sdh-danger);
+  background: var(--sdh-danger);
+  color: #fff;
+}
+
+/* Add / edit entry dialog */
+
+.sdh-page .cal-entry-modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 10040;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  background: rgba(23, 32, 47, 0.5);
+}
+
+.sdh-page .cal-entry-modal {
+  width: min(480px, 100%);
+  max-height: calc(100dvh - 32px);
+  overflow-y: auto;
+  border-radius: var(--sdh-radius);
+  background: var(--sdh-surface);
+  box-shadow: var(--sdh-pop);
+  color: var(--sdh-ink);
+}
+
+.sdh-page .cal-entry-modal__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 20px 24px 0;
+}
+
+.sdh-page .cal-entry-modal__title {
+  margin: 0;
+  color: var(--sdh-ink);
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.sdh-page .cal-entry-modal__close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  padding: 0 !important;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  box-shadow: none;
+  color: var(--sdh-muted);
+  cursor: pointer;
+}
+
+.sdh-page .cal-entry-modal__close:hover {
+  background: var(--sdh-line-soft);
+  color: var(--sdh-ink);
+}
+
+.sdh-page .cal-entry-modal__form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 16px 24px 24px;
+}
+
+.sdh-page .cal-entry-modal__row {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.sdh-page .cal-entry-modal__field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.sdh-page .cal-entry-modal__label {
+  color: var(--sdh-ink-2);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.sdh-page .cal-entry-modal__optional {
+  color: var(--sdh-muted);
+  font-weight: 400;
+}
+
+.sdh-page .cal-entry-modal__input,
+.sdh-page .cal-entry-modal__textarea {
+  width: 100%;
+  min-height: 44px;
+  padding: 10px 14px;
+  border: 1px solid var(--sdh-line-strong);
+  border-radius: var(--sdh-radius-sm);
+  background: var(--sdh-surface);
+  color: var(--sdh-ink);
+  font: inherit;
+  font-size: 16px;
+}
+
+.sdh-page .cal-entry-modal__textarea {
+  resize: vertical;
+}
+
+.sdh-page .cal-entry-modal__input:focus-visible,
+.sdh-page .cal-entry-modal__textarea:focus-visible {
+  border-color: var(--sdh-accent);
+  outline: 2px solid var(--sdh-ring);
+  outline-offset: 0;
+}
+
+.sdh-page .cal-entry-modal__error {
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: var(--sdh-danger-soft);
+  color: var(--sdh-danger);
+  font-size: 13px;
+}
+
+.sdh-page .cal-entry-modal__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.sdh-page .cal-entry-modal__btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 40px;
+  padding: 0 18px !important;
+  border: 1px solid var(--sdh-line-strong);
+  border-radius: var(--sdh-radius-sm);
+  background: var(--sdh-surface);
+  box-shadow: none;
+  color: var(--sdh-ink);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.sdh-page .cal-entry-modal__btn--save {
+  border-color: var(--sdh-accent);
+  background: var(--sdh-accent);
+  color: #fff;
+}
+
+.sdh-page .cal-entry-modal__btn--save:hover {
+  background: var(--sdh-accent-hover);
+}
+
+.sdh-page .cal-toast {
+  position: fixed;
+  right: 24px;
+  bottom: 24px;
+  z-index: 11000;
+  max-width: 320px;
+  padding: 12px 16px;
+  border-radius: var(--sdh-radius-sm);
+  background: var(--sdh-ink);
+  box-shadow: var(--sdh-pop);
+  color: #fff;
+  font-size: 14px;
+  opacity: 0;
+  transform: translateY(8px);
+  transition:
+    opacity 0.2s ease,
+    transform 0.2s ease;
+  pointer-events: none;
+}
+
+.sdh-page .cal-toast--visible {
+  opacity: 1;
+  transform: none;
+}
+
+.sdh-page .cal-toast--error {
+  background: var(--sdh-danger);
+}
+
+/* Supplier calendar: legend, permission notice, "my public events" table */
+
+.sdh-page .sdh-legend-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 16px;
+  margin-bottom: 16px;
+  color: var(--sdh-muted);
+  font-size: 12px;
+}
+
+.sdh-page .sup-cal-permission-notice:empty,
+.sdh-page .sup-my-public-events:empty {
+  display: none;
+}
+
+.sdh-page .sup-cal-permission-notice {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 16px;
+  margin-bottom: 16px;
+  padding: 12px 14px;
+  border: 1px solid var(--sdh-line);
+  border-radius: var(--sdh-radius-sm);
+  background: #fbfaf8;
+  color: var(--sdh-ink-2);
+  font-size: 13px;
+}
+
+.sdh-page .sup-cal-permission-notice button,
+.sdh-page .sup-my-public-events button {
+  min-height: 36px;
+  padding: 0 14px !important;
+  border: 1px solid var(--sdh-line-strong);
+  border-radius: var(--sdh-radius-sm) !important;
+  background: var(--sdh-surface);
+  box-shadow: none;
+  color: var(--sdh-ink);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.sdh-page .sup-my-public-events {
+  margin-bottom: 16px;
+  padding: 12px 14px;
+  border: 1px solid var(--sdh-line);
+  border-radius: var(--sdh-radius-sm);
+  font-size: 13px;
+}
+
+.sdh-page .sup-my-public-events table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.sdh-page .sup-my-public-events th,
+.sdh-page .sup-my-public-events td {
+  padding: 8px 8px 8px 0;
+  border-bottom: 1px solid var(--sdh-line-soft);
+  text-align: left;
+}
+
+.sdh-page .sup-my-public-events th {
+  color: var(--sdh-muted);
+  font-weight: 600;
+}
+
+/* Information, not a warning: neutral, with the accent on its edge. */
+.sdh-page .sup-cal-permission-notice[data-tone='warn'] {
+  border-left: 3px solid var(--sdh-accent);
+}
+
+.sdh-page .sup-cal-permission-notice[data-tone='danger'] {
+  border-color: var(--sdh-danger-line);
+  background: var(--sdh-danger-soft);
+  color: var(--sdh-danger);
+}
+
+.sdh-page .sup-my-public-events__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 16px;
+  margin-bottom: 8px;
+}
+
+.sdh-page .sup-my-public-events__head h3,
+.sdh-page .sup-my-public-events > h3 {
+  color: var(--sdh-ink);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.sdh-page .sup-my-public-events__table {
+  overflow-x: auto;
+}
+
+.sdh-page .sup-my-public-events__empty {
+  color: var(--sdh-muted);
+}
+
+/* Event and entry popovers and the delete-event dialog that calendar.js builds */
+
+.sdh-page .cal-delete-popover {
+  position: fixed;
+  z-index: 10060;
+  padding: 12px;
+  border: 1px solid var(--sdh-line-strong);
+  border-radius: var(--sdh-radius-sm);
+  background: var(--sdh-surface);
+  box-shadow: var(--sdh-pop);
+  color: var(--sdh-ink);
+}
+
+.sdh-page .cal-delete-popover__meta {
+  margin: -8px 0 12px;
+  color: var(--sdh-muted);
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+
+.sdh-page .cal-entry-modal--narrow {
+  width: min(400px, 100%);
+}
+
+.sdh-page .cal-entry-modal__text {
+  color: var(--sdh-ink-2);
+  font-size: 14px;
+}
+
+.sdh-page .cal-entry-modal__btn--danger {
+  border-color: var(--sdh-danger);
+  background: var(--sdh-danger);
+  color: #fff;
+}
+
+.sdh-page .calendar-tooltip__type {
+  color: var(--sdh-muted);
+  font-size: 12px;
+  text-transform: capitalize;
+}
+
+.sdh-page .calendar-tooltip__hint {
+  color: var(--sdh-muted);
+  font-size: 12px;
+}
+
+.sdh-page .sdh-form__status[data-tone='info'] {
+  color: var(--sdh-muted);
+}
+
+.sdh-page .sdh-form__status[data-tone='warning'] {
+  color: var(--sdh-warn);
+}
+
+.sdh-page .supplier-calendar-viewport.fc-loaded {
+  min-height: 360px;
+}
+
+/* ------------------------------------------------------------------ *
+ * 10. Responsive and motion
+ * ------------------------------------------------------------------ */
+
+.sdh-page .sdh-card__head {
+  flex-wrap: wrap;
+}
+
+.sdh-page .sdh-card__titles {
+  flex: 1 1 200px;
+}
+
+@media (max-width: 1099px) {
+  .sdh-page {
+    --sdh-col-side: 340px;
+  }
+}
+
+@media (max-width: 1023px) {
+  .sdh-page .sdh-summary__grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .sdh-page .sdh-tile:nth-child(3) {
+    border-left: 0;
+  }
+
+  .sdh-page .sdh-tile:nth-child(n + 3) {
+    border-top: 1px solid var(--sdh-line-soft);
+  }
+
+  /* One column: the two column wrappers dissolve so cards can be ordered across them.
+     Messages come early because an unanswered enquiry is the most time-sensitive thing here. */
+  .sdh-page .sdh-layout {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 16px;
+  }
+
+  .sdh-page .sdh-col {
+    display: contents;
+  }
+
+  .sdh-page .sdh-card--steps {
+    order: 1;
+  }
+
+  .sdh-page .sdh-card--messages {
+    order: 2;
+  }
+
+  .sdh-page .sdh-card--profile {
+    order: 3;
+  }
+
+  .sdh-page .sdh-card--packages {
+    order: 4;
+  }
+
+  .sdh-page .sdh-card--reviews {
+    order: 5;
+  }
+
+  .sdh-page .sdh-card--availability {
+    order: 6;
+  }
+
+  .sdh-page .sdh-card--performance {
+    order: 7;
+  }
+
+  .sdh-page .sdh-card--calendar {
+    order: 8;
+  }
+
+  .sdh-page .sdh-card--tips {
+    order: 9;
+  }
+
+  .sdh-page .sdh-card--plan {
+    order: 10;
+  }
+
+  .sdh-page .sdh-card--support {
+    order: 11;
+  }
+}
+
+@media (max-width: 767px) {
+  .sdh-page .sdh {
+    padding: 20px 0 56px;
+  }
+
+  .sdh-page .sdh-hero {
+    flex-direction: column;
+    align-items: stretch;
+    margin-bottom: 16px;
+  }
+
+  .sdh-page .sdh-hero__title {
+    font-size: 24px;
+  }
+
+  .sdh-page .sdh-hero__lede {
+    font-size: 14px;
+  }
+
+  .sdh-page .sdh-hero__actions .sdh-btn {
+    flex: 1 1 160px;
+  }
+
+  .sdh-page .sdh-summary {
+    margin-bottom: 16px;
+  }
+
+  .sdh-page .sr-summary {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .sdh-page .sr-stat-card {
+    padding: 12px 0 0;
+    border-top: 1px solid var(--sdh-line-soft);
+    border-left: 0;
+  }
+}
+
+@media (max-width: 639px) {
+  .sdh-page .sdh-wrap {
+    padding-inline: 16px;
+  }
+
+  .sdh-page .sdh-tile {
+    padding: 16px;
+  }
+
+  .sdh-page .sdh-tile__value {
+    font-size: 24px;
+  }
+
+  .sdh-page .sdh-tile__value--empty {
+    font-size: 18px;
+  }
+
+  .sdh-page .sdh-stat {
+    padding: 14px 16px;
+  }
+
+  .sdh-page .sdh-card__head {
+    padding: 16px 16px 0;
+  }
+
+  .sdh-page .sdh-card__body {
+    padding: 12px 16px 20px;
+  }
+
+  .sdh-page .sdh-strip {
+    flex-direction: column;
+    align-items: stretch;
+    padding: 14px 16px;
+  }
+
+  .sdh-page .sdh-strip__actions .sdh-btn {
+    flex: 1 1 auto;
+  }
+
+  .sdh-page .sdh-form__grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .sdh-page .sdh-profile {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: center;
+  }
+
+  .sdh-page .sdh-profile__actions {
+    grid-column: 1 / -1;
+  }
+
+  .sdh-page .sdh-profile__actions .sdh-btn {
+    flex: 1 1 auto;
+  }
+
+  .sdh-page .sdh-pkg {
+    gap: 12px;
+  }
+
+  .sdh-page .sdh-pkg__media {
+    width: 72px;
+    height: 72px;
+  }
+
+  .sdh-page .sdh-dialog,
+  .sdh-page .sdh-dialog--narrow {
+    width: 100%;
+    max-height: 92dvh;
+    margin: auto 0 0;
+    border-radius: var(--sdh-radius) var(--sdh-radius) 0 0;
+  }
+
+  .sdh-page .sdh-dialog__foot .sdh-btn {
+    flex: 1 1 0;
+  }
+
+  .sdh-page .sdh-dialog--editor {
+    height: 94dvh;
+    max-height: 94dvh;
+  }
+
+  .sdh-page .sdh-editor__form .sdh-dialog__body {
+    padding: 16px;
+  }
+
+  .sdh-page .sdh-editor__form .sdh-dialog__foot .sdh-btn--quiet {
+    margin-right: 0;
+  }
+
+  .sdh-page .sdh-editor__form .sdh-form__grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .sdh-page .cal-entry-modal__row {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .sdh-page .supplier-calendar-viewport .fc-daygrid-day-frame {
+    min-height: 48px;
+  }
+
+  .sdh-page .supplier-calendar-viewport .fc-toolbar-title {
+    font-size: 14px;
+  }
+
+  .sdh-page .cal-fallback-day {
+    min-height: 48px;
+    padding: 4px;
+  }
+
+  .sdh-page .cal-fallback-day__event {
+    display: none;
+  }
+
+  .sdh-page .cal-toast {
+    right: 16px;
+    bottom: 80px;
+    left: 16px;
+    max-width: none;
+  }
+}
+
+@media (max-width: 359px) {
+  .sdh-page .sdh-summary__grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .sdh-page .sdh-tile + .sdh-tile {
+    border-top: 1px solid var(--sdh-line-soft);
+    border-left: 0;
+  }
+
+  .sdh-page .sdh-tile:nth-child(n + 3) {
+    border-top: 1px solid var(--sdh-line-soft);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sdh-page .sdh *,
+  .sdh-page .sdh *::before,
+  .sdh-page .sdh *::after,
+  .sdh-page .cal-toast,
+  .sdh-page .cal-day-add-btn {
+    animation: none !important;
+    transition: none !important;
+  }
+}

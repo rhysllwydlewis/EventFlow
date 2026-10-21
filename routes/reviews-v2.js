@@ -319,13 +319,15 @@ router.put(
       }
 
       const dbUnified = require('../db-unified');
-      const review = await dbUnified.findOne('reviews', { _id: id });
+      const review = await reviewService.findReviewById(id);
 
       if (!review) {
         return res.status(404).json({ error: 'Review not found' });
       }
 
-      if (!review.response) {
+      // Legacy reviews may carry the reply under `supplierResponse`.
+      const existingResponse = review.response || review.supplierResponse;
+      if (!existingResponse) {
         return res.status(404).json({ error: 'No response exists to update' });
       }
 
@@ -341,24 +343,20 @@ router.put(
         return res.status(403).json({ error: 'Permission denied' });
       }
 
-      review.response.text = trimmedText;
-      review.response.updatedAt = new Date().toISOString();
       const responseUpdatedAt = new Date().toISOString();
+      const updatedResponse = {
+        ...existingResponse,
+        text: trimmedText,
+        updatedAt: responseUpdatedAt,
+      };
 
-      await dbUnified.updateOne(
-        'reviews',
-        { _id: id },
-        {
-          $set: {
-            response: { ...review.response, text: trimmedText, updatedAt: responseUpdatedAt },
-            updatedAt: responseUpdatedAt,
-          },
-        }
-      );
+      await dbUnified.updateOne('reviews', reviewService.reviewIdentityFilter(review, id), {
+        $set: { response: updatedResponse, updatedAt: responseUpdatedAt },
+      });
 
       res.json({
         success: true,
-        data: { ...review.response, text: trimmedText, updatedAt: responseUpdatedAt },
+        data: updatedResponse,
         message: 'Response updated successfully',
       });
     } catch (error) {
@@ -462,9 +460,10 @@ router.post(
       const { reason } = req.body;
 
       if (!reason || reason.trim().length < MIN_REASON_LENGTH) {
-        return res.status(400).json({
+        res.status(400).json({
           error: `Rejection reason is required (minimum ${MIN_REASON_LENGTH} characters)`,
         });
+        return;
       }
 
       const review = await reviewService.moderateReview(id, 'reject', req.user.id, reason);
@@ -500,9 +499,10 @@ router.post(
       const { reason } = req.body;
 
       if (!reason || reason.trim().length < MIN_REASON_LENGTH) {
-        return res.status(400).json({
+        res.status(400).json({
           error: `Change request reason is required (minimum ${MIN_REASON_LENGTH} characters)`,
         });
+        return;
       }
 
       const review = await reviewService.requestChanges(id, req.user.id, reason);
@@ -569,9 +569,10 @@ router.post(
       const { reason, evidence } = req.body;
 
       if (!reason || reason.trim().length < MIN_DISPUTE_REASON_LENGTH) {
-        return res.status(400).json({
+        res.status(400).json({
           error: `Dispute reason is required (minimum ${MIN_DISPUTE_REASON_LENGTH} characters)`,
         });
+        return;
       }
 
       const result = await reviewService.fileDispute(id, req.user.id, reason, evidence || '');
@@ -637,15 +638,17 @@ router.post(
       const { resolution, reason } = req.body;
 
       if (!reviewModeration.isValidDisputeResolution(resolution)) {
-        return res.status(400).json({
+        res.status(400).json({
           error: 'Invalid resolution. Must be approve, reject, or remove',
         });
+        return;
       }
 
       if (!reason || reason.trim().length < MIN_REASON_LENGTH) {
-        return res.status(400).json({
+        res.status(400).json({
           error: `Resolution reason is required (minimum ${MIN_REASON_LENGTH} characters)`,
         });
+        return;
       }
 
       const review = await reviewService.resolveDispute(id, resolution, req.user.id, reason);
@@ -804,7 +807,8 @@ router.get('/bookings/:bookingId/eligible', authRequired, async (req, res) => {
     const { supplierId } = req.query;
 
     if (!supplierId) {
-      return res.status(400).json({ error: 'supplierId query parameter is required' });
+      res.status(400).json({ error: 'supplierId query parameter is required' });
+      return;
     }
 
     const result = await reviewService.checkReviewEligibility(req.user.id, supplierId, bookingId);

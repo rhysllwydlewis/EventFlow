@@ -57,6 +57,7 @@ function makeToken(payload) {
 }
 
 const USER_A = { id: 'user_a', email: 'a@test.com', role: 'customer', verified: true };
+const SUPPLIER_USER = { id: 'user_s', email: 's@test.com', role: 'supplier', verified: true };
 const USER_B = { id: 'user_b', email: 'b@test.com', role: 'customer', verified: true };
 
 const EXISTING_ENTRY = {
@@ -110,7 +111,7 @@ function setupReadMock(entries = [], notifications = [], savedPublicEvents = [])
   // findOne used by UPDATE (calendar entries) and auth middleware (users)
   dbUnified.findOne.mockImplementation(async (collection, filter) => {
     if (collection === 'users') {
-      return [USER_A, USER_B].find(u => u.id === filter.id) || null;
+      return [USER_A, USER_B, SUPPLIER_USER].find(u => u.id === filter.id) || null;
     }
     if (collection === 'customer_calendar_entries') {
       // Support { id, userId } filter used by UPDATE and DELETE handlers
@@ -185,6 +186,24 @@ describe('GET /api/me/calendar-entries', () => {
         priority: 'normal',
         category: 'calendar',
         actionUrl: '/dashboard/customer#events-calendar',
+      })
+    );
+    jest.useRealTimers();
+  });
+
+  it('points a supplier reminder at the supplier dashboard, not the customer one', async () => {
+    jest.useFakeTimers().setSystemTime(new Date('2027-06-08T12:00:00.000Z'));
+    const supplierUser = SUPPLIER_USER;
+    setupReadMock([{ ...EXISTING_ENTRY, userId: supplierUser.id }], []);
+
+    const res = await withAuth(request(app).get('/api/me/calendar-entries'), supplierUser);
+
+    expect(res.status).toBe(200);
+    expect(dbUnified.insertOne).toHaveBeenCalledWith(
+      'notifications',
+      expect.objectContaining({
+        userId: supplierUser.id,
+        actionUrl: '/dashboard/supplier#availability-calendar',
       })
     );
     jest.useRealTimers();

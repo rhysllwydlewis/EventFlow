@@ -16,6 +16,7 @@ const { MAPPING_SOURCES } = require('../models/LocationContent');
 const { VALID_CATEGORIES } = require('../models/Supplier');
 const { auditLog, AUDIT_ACTIONS } = require('../middleware/audit');
 const subscriptionService = require('../services/subscriptionService');
+const { parseDaysParam, resolveAnalyticsWindow } = require('../utils/analyticsWindow');
 const router = express.Router();
 
 /**
@@ -382,7 +383,13 @@ async function deriveSupplierGeography(supplier) {
 router.get('/:id/analytics', applyAuthRequired, applyRoleRequired('supplier'), async (req, res) => {
   try {
     const supplierId = req.params.id;
-    const period = parseInt(req.query.period) || 7; // Default 7 days
+
+    // A whole number of days, or nothing. Anything else (7.5, 1e9, abc, repeated params)
+    // is a client bug, not a request to be guessed at.
+    const requestedPeriod = parseDaysParam(req.query.period);
+    if (!requestedPeriod.valid) {
+      return res.status(400).json({ error: 'period must be a whole number of days' });
+    }
 
     // Verify ownership
     const supplier = await dbUnified.findOne('suppliers', {
@@ -393,8 +400,21 @@ router.get('/:id/analytics', applyAuthRequired, applyRoleRequired('supplier'), a
       return res.status(404).json({ error: 'Supplier not found' });
     }
 
+    // Bounded to what the owner's plan allows (Starter 7, Professional 90, Professional
+    // Plus 365 - the history the pricing page sells), exactly like GET /api/supplier/analytics.
+    const analyticsWindow = resolveAnalyticsWindow({
+      requested: requestedPeriod.value,
+      defaultDays: 7,
+      planWindowDays: await subscriptionService.getAnalyticsWindowDays(req.user.id),
+      requestCap: 365,
+    });
+
     // Get analytics from the supplier analytics utility
-    const analytics = await supplierAnalytics.getSupplierAnalytics(supplierId, period);
+    const analytics = await supplierAnalytics.getSupplierAnalytics(
+      supplierId,
+      analyticsWindow.days,
+      { ownerUserId: req.user.id }
+    );
 
     // Format response to match expected structure
     const labels = analytics.dailyData.map(d => d.label);
@@ -410,6 +430,7 @@ router.get('/:id/analytics', applyAuthRequired, applyRoleRequired('supplier'), a
       totalEnquiries: analytics.totalEnquiries,
       responseRate: analytics.responseRate,
       avgResponseTime: analytics.avgResponseTime,
+      window: analyticsWindow,
     });
   } catch (error) {
     logger.error('Error fetching supplier analytics:', error);

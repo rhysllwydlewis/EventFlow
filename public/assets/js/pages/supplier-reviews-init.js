@@ -7,7 +7,7 @@
  * to POST /api/v2/reviews/:id/response and PUT /api/v2/reviews/:id/response.
  *
  * Exported as a single async init function called from
- * dashboard-supplier-module.js once the supplierId is known.
+ * supplier-dashboard-home.js once the supplierId is known.
  */
 
 'use strict';
@@ -24,10 +24,11 @@
    * Helpers
    * ──────────────────────────────────────────────────────────────────────── */
 
+  /** Escapes a value for text and for quoted attributes alike (quotes become entities too). */
   function esc(str) {
     const d = document.createElement('div');
     d.textContent = String(str ?? '');
-    return d.innerHTML;
+    return d.innerHTML.split('"').join('&quot;').split("'").join('&#39;');
   }
 
   function normaliseRating(n) {
@@ -157,7 +158,7 @@
         <div class="sr-dist-row">
           <span class="sr-dist-label">${n}★</span>
           <div class="sr-dist-track" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${pct}" aria-label="${n} star: ${c} review${c !== 1 ? 's' : ''}">
-            <div class="sr-dist-fill sr-dist-fill--${n}" style="width:${pct}%"></div>
+            <div class="sr-dist-fill sr-dist-fill--${n}" data-width="${pct}"></div>
           </div>
           <span class="sr-dist-count">${c}</span>
         </div>`;
@@ -190,7 +191,7 @@
           <span class="sr-reply-tip" id="sr-reply-tip-${esc(reviewId)}">Use ${MIN_REPLY_CHARS}-${MAX_REPLY_CHARS} characters. Keep replies professional — they are visible to all customers.</span>
         </div>
         <div class="sr-reply-actions">
-          <button type="button" class="ef-cta sr-reply-submit" data-review-id="${esc(reviewId)}" data-is-edit="${isEdit}">${submitLbl}</button>
+          <button type="button" class="sr-reply-submit" data-review-id="${esc(reviewId)}" data-is-edit="${isEdit}">${submitLbl}</button>
           <button type="button" class="sr-reply-cancel" data-review-id="${esc(reviewId)}">Cancel</button>
           <span class="sr-reply-status" id="sr-reply-status-${esc(reviewId)}" role="alert" aria-live="polite"></span>
         </div>
@@ -207,7 +208,7 @@
     const canRespond = !!rawId;
     const rating = normaliseRating(review.rating);
     const title = review.title || '';
-    const text = review.text || '';
+    const text = review.text || review.comment || '';
     const authorName = review.userName || review.authorName || 'Anonymous';
     const date = review.createdAt || '';
     const hasResponse = !!(review.response || review.supplierResponse);
@@ -244,7 +245,7 @@
 
     const replyBtn =
       !hasResponse && canRespond
-        ? `<button type="button" class="sr-reply-btn ef-cta ef-cta--outline" data-review-id="${esc(rawId)}" aria-label="Reply to this review">
+        ? `<button type="button" class="sr-reply-btn" data-review-id="${esc(rawId)}" aria-label="Reply to this review">
            Reply
          </button>`
         : '';
@@ -274,61 +275,50 @@
    * Full section render
    * ──────────────────────────────────────────────────────────────────────── */
 
-  function renderSection(container, data, page, sortBy, supplierId) {
-    const { reviews, pagination, analytics } = data;
-    const total = pagination?.total || 0;
-    const pages = pagination?.pages || 1;
-    const avgRating = analytics?.avgRating || 0;
-    const resRate = normalisePercent(analytics?.responseRate);
-
-    if (total === 0) {
-      const supplier = (window._efCachedSuppliers || []).find(
-        item => String(item.id) === String(supplierId)
-      );
-      const publicProfilePath = /^\/supplier\/[a-z0-9-]+--[a-f0-9]{16}$/.test(
-        supplier?.publicProfilePath || ''
-      )
-        ? supplier.publicProfilePath
-        : '';
-      container.innerHTML = `
+  /** What the section shows when there are no reviews at all. */
+  function emptyHtml() {
+    return `
         <div class="sr-empty">
-          <div class="sr-empty-icon" aria-hidden="true">⭐⭐⭐⭐⭐</div>
           <p class="sr-empty-title">No reviews yet</p>
-          <p class="sr-empty-desc">Your first customer review will appear here once it is approved. Share your profile with satisfied customers and ask them to leave feedback.</p>
-          ${publicProfilePath ? '<button type="button" class="ef-cta" id="sr-copy-link-btn">Copy your profile link</button>' : ''}
+          <p class="sr-empty-desc">Your first review will appear here once it has been approved. Use Request a review to ask a past customer.</p>
         </div>`;
+  }
 
-      const copyBtn = container.querySelector('#sr-copy-link-btn');
-      if (copyBtn) {
-        copyBtn.addEventListener('click', () => {
-          const link = `${window.location.origin}${publicProfilePath}`;
-          navigator.clipboard
-            ?.writeText(link)
-            .then(() => {
-              copyBtn.textContent = '✓ Copied!';
-              setTimeout(() => {
-                copyBtn.textContent = 'Copy your profile link';
-              }, 2000);
-            })
-            .catch(() => {
-              prompt('Copy your profile link:', link);
-            });
-        });
-      }
-      return;
-    }
-
-    /* Summary bar */
+  /** The score, the star breakdown and the share of reviews replied to. */
+  function summaryHtml(analytics, total) {
+    // No average (null, or reviews without a star rating) is not a 0.0 rating: show a dash and no stars.
+    const avgValue = Number(analytics?.avgRating);
+    const hasAverage = analytics?.avgRating !== null && Number.isFinite(avgValue) && avgValue > 0;
+    const resRate = normalisePercent(analytics?.responseRate);
     const resRateHtml =
       resRate !== null
         ? `<div class="sr-stat-card">
-           <div class="sr-stat-label">Response rate</div>
+           <div class="sr-stat-label">Reviews replied to</div>
            <div class="sr-stat-value">${resRate}%</div>
-           <div class="sr-stat-sub">${resRate === 100 ? 'Excellent' : resRate >= 80 ? 'Good' : 'Needs improvement'}</div>
+           <div class="sr-stat-sub"></div>
          </div>`
         : '';
+    const scoreHtml = hasAverage
+      ? `<div class="sr-big-rating" aria-label="${avgValue.toFixed(1)} out of 5">${avgValue.toFixed(1)}</div>${stars(avgValue)}`
+      : '<div class="sr-big-rating" aria-label="No star rating yet">–</div>';
+    return `
+      <div class="sr-summary">
+        <div class="sr-summary-score">
+          ${scoreHtml}
+          <div class="sr-total-count">${total} review${total !== 1 ? 's' : ''}</div>
+        </div>
+        <div class="sr-distribution" aria-label="Star rating breakdown">
+          ${renderDistribution(analytics?.ratingDistribution || [0, 0, 0, 0, 0], total)}
+        </div>
+        ${resRateHtml}
+      </div>`;
+  }
 
-    /* Sort controls */
+  /** The sort menu and page count, shown once there is something to sort or page through. */
+  function toolbarHtml(reviewCount, page, pages, sortBy) {
+    if (reviewCount <= 3 && pages <= 1) {
+      return '';
+    }
     const sortOptions = [
       { value: 'recent', label: 'Most recent' },
       { value: 'rating', label: 'Highest rated' },
@@ -340,48 +330,58 @@
           `<option value="${o.value}" ${sortBy === o.value ? 'selected' : ''}>${o.label}</option>`
       )
       .join('');
-
-    /* Pagination */
-    const prevDisabled = page <= 1 ? 'disabled' : '';
-    const nextDisabled = page >= pages ? 'disabled' : '';
-
-    container.innerHTML = `
-      <div class="sr-summary">
-        <div class="sr-summary-score">
-          <div class="sr-big-rating" aria-label="${avgRating.toFixed(1)} out of 5">${avgRating.toFixed(1)}</div>
-          ${stars(avgRating)}
-          <div class="sr-total-count">${total} review${total !== 1 ? 's' : ''}</div>
-        </div>
-        <div class="sr-distribution" aria-label="Star rating breakdown">
-          ${renderDistribution(analytics?.ratingDistribution || [0, 0, 0, 0, 0], total)}
-        </div>
-        ${resRateHtml}
-      </div>
-
-      <div class="sr-toolbar">
+    return `<div class="sr-toolbar">
         <label for="sr-sort" class="sr-sort-label">Sort by</label>
         <select id="sr-sort" class="sr-sort-select" aria-label="Sort reviews">
           ${sortHtml}
         </select>
-        <span class="sr-page-info">Page ${page} of ${pages}</span>
-      </div>
-
-      <div class="sr-list" id="sr-list">
-        ${(reviews || []).map((r, index) => reviewCardHtml(r || {}, index)).join('')}
-      </div>
-
-      <div class="sr-pagination">
-        <button type="button" class="sr-page-btn" id="sr-prev" ${prevDisabled} aria-label="Previous page">← Prev</button>
-        <button type="button" class="sr-page-btn" id="sr-next" ${nextDisabled} aria-label="Next page">Next →</button>
+        ${pages > 1 ? `<span class="sr-page-info">Page ${page} of ${pages}</span>` : ''}
       </div>`;
+  }
 
-    /* Bind sort */
+  /** The Prev and Next buttons, when there is more than one page. */
+  function paginationHtml(page, pages) {
+    if (pages <= 1) {
+      return '';
+    }
+    const prevDisabled = page <= 1 ? 'disabled' : '';
+    const nextDisabled = page >= pages ? 'disabled' : '';
+    return `<div class="sr-pagination">
+        <button type="button" class="sr-page-btn" id="sr-prev" ${prevDisabled} aria-label="Previous page">Prev</button>
+        <button type="button" class="sr-page-btn" id="sr-next" ${nextDisabled} aria-label="Next page">Next</button>
+      </div>`;
+  }
+
+  /** The list of review cards, capped on a phone, with the button that shows the rest. */
+  function listHtml(reviews) {
+    const count = reviews.length;
+    return `
+      <div class="sr-list${count > 2 ? ' sr-list--capped' : ''}" id="sr-list">
+        ${reviews.map((r, index) => reviewCardHtml(r || {}, index)).join('')}
+      </div>
+      ${
+        count > 2
+          ? `<button type="button" class="sdh-link sr-show-all" id="sr-show-all">Show all ${count} reviews</button>`
+          : ''
+      }`;
+  }
+
+  /** Wires the show-all button, the sort menu and the page buttons of a drawn section. */
+  function bindControls(container, supplierId, page, sortBy) {
+    /* On a phone only the first two reviews show until the supplier asks for the rest. */
+    const showAll = container.querySelector('#sr-show-all');
+    if (showAll) {
+      showAll.addEventListener('click', () => {
+        container.querySelector('#sr-list')?.classList.remove('sr-list--capped');
+        showAll.hidden = true;
+      });
+    }
+
     const sortEl = container.querySelector('#sr-sort');
     if (sortEl) {
       sortEl.addEventListener('change', () => reload(container, supplierId, 1, sortEl.value));
     }
 
-    /* Bind pagination */
     const prevBtn = container.querySelector('#sr-prev');
     const nextBtn = container.querySelector('#sr-next');
     if (prevBtn) {
@@ -390,8 +390,33 @@
     if (nextBtn) {
       nextBtn.addEventListener('click', () => reload(container, supplierId, page + 1, sortBy));
     }
+  }
 
-    /* Bind reply buttons */
+  function renderSection(container, data, page, sortBy, supplierId) {
+    const { reviews, pagination, analytics } = data;
+    const total = pagination?.total || 0;
+    const pages = pagination?.pages || 1;
+
+    if (total === 0) {
+      container.innerHTML = emptyHtml();
+      return;
+    }
+
+    const list = reviews || [];
+    container.innerHTML = `
+      ${summaryHtml(analytics, total)}
+
+      ${toolbarHtml(list.length, page, pages, sortBy)}
+
+      ${listHtml(list)}
+
+      ${paginationHtml(page, pages)}`;
+
+    container.querySelectorAll('.sr-dist-fill[data-width]').forEach(fill => {
+      fill.style.width = `${fill.dataset.width}%`;
+    });
+
+    bindControls(container, supplierId, page, sortBy);
     bindReplyButtons(container, supplierId, page, sortBy);
   }
 
@@ -459,21 +484,21 @@
         if (!text) {
           if (statusEl) {
             statusEl.textContent = 'Please enter a reply.';
-            statusEl.style.color = 'var(--ef-danger, #dc2626)';
+            statusEl.dataset.tone = 'error';
           }
           return;
         }
         if (text.length < MIN_REPLY_CHARS) {
           if (statusEl) {
             statusEl.textContent = `Please write at least ${MIN_REPLY_CHARS} characters.`;
-            statusEl.style.color = 'var(--ef-danger, #dc2626)';
+            statusEl.dataset.tone = 'error';
           }
           return;
         }
         if (text.length > MAX_REPLY_CHARS) {
           if (statusEl) {
             statusEl.textContent = `Replies cannot exceed ${MAX_REPLY_CHARS} characters.`;
-            statusEl.style.color = 'var(--ef-danger, #dc2626)';
+            statusEl.dataset.tone = 'error';
           }
           return;
         }
@@ -481,7 +506,7 @@
         submitBtn.disabled = true;
         if (statusEl) {
           statusEl.textContent = 'Saving…';
-          statusEl.style.color = '';
+          statusEl.dataset.tone = '';
         }
 
         try {
@@ -500,7 +525,7 @@
           if (!res.ok) {
             if (statusEl) {
               statusEl.textContent = body.error || 'Failed to save reply.';
-              statusEl.style.color = 'var(--ef-danger, #dc2626)';
+              statusEl.dataset.tone = 'error';
             }
             submitBtn.disabled = false;
             return;
@@ -508,10 +533,10 @@
 
           /* Success — reload the current panel so analytics and response rate stay fresh. */
           await reload(container, supplierId, page, sortBy);
-        } catch (err) {
+        } catch {
           if (statusEl) {
             statusEl.textContent = 'Network error — please try again.';
-            statusEl.style.color = 'var(--ef-danger, #dc2626)';
+            statusEl.dataset.tone = 'error';
           }
           submitBtn.disabled = false;
         }
@@ -533,11 +558,11 @@
     try {
       const data = await fetchReviews(supplierId, page, sortBy);
       renderSection(container, data, page, sortBy, supplierId);
-    } catch (err) {
+    } catch {
       container.innerHTML = `
         <div class="sr-error" role="alert">
           <p>Unable to load reviews right now.</p>
-          <button type="button" class="sr-error__retry ef-cta">Try again</button>
+          <button type="button" class="sr-error__retry">Try again</button>
         </div>`;
       const retryBtn = container.querySelector('.sr-error__retry');
       if (retryBtn) {
@@ -564,6 +589,6 @@
     await reload(container, supplierId, 1, 'recent');
   }
 
-  /* Expose so dashboard-supplier-module.js can call it */
+  /* Expose so supplier-dashboard-home.js can call it */
   window.SupplierReviews = { init: initSupplierReviews };
 })();

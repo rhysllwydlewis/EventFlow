@@ -15,13 +15,13 @@ const {
   hydrateSupplierProfilePhoto,
 } = require('../utils/supplierProfilePhoto');
 const { addPublicProfilePath } = require('../utils/publicSupplierProfilePath');
+const { computeProfileCompleteness } = require('../services/supplierProfileCompleteness');
 const { stripPublicSupplierPrivateFields } = require('../utils/supplierPublicProfile');
 
 // Dependencies injected by server.js
 let dbUnified;
 let authRequired;
 let roleRequired;
-let supplierAnalytics;
 let getUserFromCookie;
 let supplierIsProActive;
 let logger;
@@ -54,7 +54,6 @@ function initializeDependencies(deps) {
   dbUnified = deps.dbUnified;
   authRequired = deps.authRequired;
   roleRequired = deps.roleRequired;
-  supplierAnalytics = deps.supplierAnalytics;
   getUserFromCookie = deps.getUserFromCookie;
   supplierIsProActive = deps.supplierIsProActive;
   logger = deps.logger;
@@ -438,15 +437,8 @@ router.get('/suppliers/:id', async (req, res) => {
     // Strip sensitive fields from public response (admins/owners get data via authenticated routes)
     const publicSupplier = stripPublicSupplierPrivateFields(s);
 
-    // Track profile view (unless preview mode)
-    const isPreview = req.query.preview === 'true';
-    const userId = req.user ? req.user.id : null;
-    const sessionId = req.session ? req.session.id : null;
-
-    supplierAnalytics
-      .trackProfileView(req.params.id, userId, sessionId, isPreview)
-      .catch(err => logger.error('Failed to track profile view:', err));
-
+    // Profile views are counted once, by the page's POST /api/analytics/track beacon. Counting
+    // here as well would record a second event for the same page load.
     res.json(addPublicProfilePath(publicSupplier));
   } catch (error) {
     logger.error('Error fetching supplier:', error);
@@ -583,8 +575,13 @@ router.get('/me/suppliers', applyAuthRequired, applyRoleRequired('supplier'), as
       : null;
     const list = await Promise.all(
       listRaw.map(async s => {
+        const hydratedSupplier = hydrateSupplierProfilePhoto(s, ownerUser);
         return addPublicProfilePath({
-          ...hydrateSupplierProfilePhoto(s, ownerUser),
+          ...hydratedSupplier,
+          // The profile-health percentage the dashboard's "Profile Health" card shows, computed
+          // server-side by the same rules. `aiScore` (kept for admin use) is a different,
+          // admin-batch number and must not be presented to suppliers as their health score.
+          profileCompleteness: computeProfileCompleteness(hydratedSupplier).score,
           isPro: await supplierIsProActive(s),
           // Fresh subscription tier takes precedence over any stale value stored on the supplier document.
           subscriptionTier: subscriptionTier || s.subscriptionTier || null,

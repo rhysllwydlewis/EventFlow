@@ -7,7 +7,13 @@ const lcovPath = path.join(root, process.env.LCOV_FILE || 'coverage/lcov.info');
 const minimum = Number(process.env.PATCH_COVERAGE_MIN || 80);
 
 function git(args) {
-  return execFileSync('git', args, { cwd: root, encoding: 'utf8' }).trim();
+  // A large pull request produces a diff well over execFileSync's default 1 MiB output limit, which
+  // fails with ENOBUFS and takes the gate down with it, so the limit is raised far past any real diff.
+  return execFileSync('git', args, {
+    cwd: root,
+    encoding: 'utf8',
+    maxBuffer: 512 * 1024 * 1024,
+  }).trim();
 }
 
 function resolveBase() {
@@ -57,6 +63,12 @@ function changedLines(base) {
     `${base}...HEAD`,
     '--',
     '*.js',
+    // Only application code is measured (see eligible), so leave the rest out of the diff entirely.
+    ':(exclude)tests',
+    ':(exclude)e2e',
+    ':(exclude)public',
+    ':(exclude)scripts',
+    ':(exclude)node_modules',
   ]);
   const result = new Map();
   let currentFile = null;

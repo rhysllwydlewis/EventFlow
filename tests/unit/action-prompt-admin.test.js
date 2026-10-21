@@ -433,23 +433,25 @@ describe('Action Prompt Admin — UI files updated', () => {
     expect(js).toContain('dispatchEvent');
   });
 
-  it('dashboard-supplier.html has Next Steps card', () => {
+  it('dashboard-supplier.html has the Next steps card', () => {
     const html = fs.readFileSync(
       path.join(__dirname, '../../public/dashboard-supplier.html'),
       'utf8'
     );
-    expect(html).toContain('next-steps-card');
-    expect(html).toContain('next-steps-list');
-    expect(html).toContain('Next Steps');
+    expect(html).toContain('id="sdh-next-steps"');
+    expect(html).toContain('id="sdh-steps-body"');
+    expect(html).toContain('>Next steps<');
   });
 
-  it('dashboard-supplier-module.js has loadNextSteps function', () => {
+  it('supplier-dashboard-home.js draws the next steps from the dashboard summary', () => {
     const js = fs.readFileSync(
-      path.join(__dirname, '../../public/assets/js/pages/dashboard-supplier-module.js'),
+      path.join(__dirname, '../../public/assets/js/pages/supplier-dashboard-home.js'),
       'utf8'
     );
-    expect(js).toContain('loadNextSteps');
-    expect(js).toContain('/api/me/action-prompt-checklist');
-    expect(js).toContain('renderNextSteps');
+    expect(js).toContain('function renderSteps(');
+    expect(js).toContain('function normaliseSteps(');
+    expect(js).toContain('data.nextSteps');
+    // The email-preference-coupled checklist endpoint is no longer used by the page.
+    expect(js).not.toContain('/api/me/action-prompt-checklist');
   });
 });

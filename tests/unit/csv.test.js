@@ -10,6 +10,19 @@ describe('CSV serialization', () => {
     }
   );
 
+  test.each(['\t=1+1', '\tplain', '\r=1+1', '\rplain'])(
+    'neutralises a cell that begins with a tab or carriage return: %j',
+    value => {
+      expect(escapeCsvCell(value).startsWith(`"'`)).toBe(true);
+    }
+  );
+
+  test('leaves ordinary text, numbers and inner formula characters alone', () => {
+    expect(escapeCsvCell('Hello = world')).toBe('"Hello = world"');
+    expect(escapeCsvCell(42)).toBe('"42"');
+    expect(escapeCsvCell('a\tb')).toBe('"a\tb"');
+  });
+
   test('escapes quotes, commas and line breaks without changing the cell structure', () => {
     expect(escapeCsvCell('Hello, "Rhys"\r\nSecond line')).toBe('"Hello, ""Rhys""\nSecond line"');
   });

@@ -561,36 +561,37 @@ describe('routes/auth.js — /api/auth/me includes supplierApproved', () => {
 
 // ─── E2) dashboard-supplier-verification.js reads data.user correctly ────────
 
-describe('dashboard-supplier-verification.js — banner reads data.user.*', () => {
-  const BANNER_JS = path.join(
-    __dirname,
-    '../../public/assets/js/pages/dashboard-supplier-verification.js'
-  );
-  let content;
+describe('supplier verification dialog and strip', () => {
+  const read = file =>
+    fs.readFileSync(path.join(__dirname, '../../public/assets/js', file), 'utf8');
+  let dialogJs;
+  let homeJs;
 
   beforeAll(() => {
-    content = fs.readFileSync(BANNER_JS, 'utf8');
-  });
-
-  it('reads role from data.user not data directly', () => {
-    // Bug guard: must use data.user.role, not data.role
-    expect(content).toContain('user.role');
-    expect(content).not.toMatch(/\bdata\.role\b/);
-  });
-
-  it('reads supplierApproved from data.user not data directly', () => {
-    // Bug guard: must use user.supplierApproved, not data.supplierApproved
-    expect(content).toContain('user.supplierApproved');
-    expect(content).not.toMatch(/\bdata\.supplierApproved\b/);
+    dialogJs = read('pages/dashboard-supplier-verification.js');
+    homeJs = read('pages/supplier-dashboard-home.js');
   });
 
   it('uses state-machine submit endpoint, not the removed ticket endpoint', () => {
-    expect(content).toContain('/api/supplier/verification/submit');
-    expect(content).not.toContain('/api/me/suppliers/verification-request');
+    expect(dialogJs).toContain('/api/supplier/verification/submit');
+    expect(dialogJs).not.toContain('/api/me/suppliers/verification-request');
   });
 
-  it('shows pending state message when supplier is already in pending_review', () => {
-    expect(content).toContain('pending_review');
+  it('the strip is drawn from the dashboard summary, not from a second auth/me request', () => {
+    expect(homeJs).toContain('function stripFor(');
+    expect(homeJs).toContain('verification.approved');
+    expect(dialogJs).not.toContain('/api/v1/auth/me');
+    expect(dialogJs).not.toContain('verification/status');
+  });
+
+  it('says so when the request is already in review', () => {
+    expect(homeJs).toMatch(/isInReview\(verification\)/);
+    expect(homeJs).toContain('Verification is in review');
+  });
+
+  it('opens from the strip: the dialog is exposed as SupplierVerification.open', () => {
+    expect(dialogJs).toContain('window.SupplierVerification = { open }');
+    expect(homeJs).toContain('window.SupplierVerification.open(');
   });
 });
 
@@ -758,84 +759,41 @@ describe('routes/supplier.js — status endpoint includes rejection count', () =
 
 // ─── L) Supplier dashboard widget handles rejected/blocked states ─────────────
 
-describe('dashboard-supplier-verification.js — rejection and blocked state handling', () => {
-  const BANNER_JS = path.join(
-    __dirname,
-    '../../public/assets/js/pages/dashboard-supplier-verification.js'
-  );
-  let content;
+describe('supplier verification: rejection and blocked states', () => {
+  const read = file =>
+    fs.readFileSync(path.join(__dirname, '../../public/assets/js', file), 'utf8');
+  let dialogJs;
+  let homeJs;
 
   beforeAll(() => {
-    content = fs.readFileSync(BANNER_JS, 'utf8');
+    dialogJs = read('pages/dashboard-supplier-verification.js');
+    homeJs = read('pages/supplier-dashboard-home.js');
   });
 
-  it('handles rejected verificationStatus state', () => {
-    expect(content).toContain("verificationStatus === 'rejected'");
+  it('handles rejected, needs_changes and suspended states', () => {
+    expect(homeJs).toContain("state === 'rejected' || state === 'needs_changes'");
+    expect(homeJs).toContain("state === 'suspended'");
   });
 
-  it('handles needs_changes verificationStatus state', () => {
-    expect(content).toContain("verificationStatus === 'needs_changes'");
+  it('stops offering to resubmit after 5 rejections and points to support', () => {
+    expect(homeJs).toContain('verification.rejectionCount >= 5');
+    expect(homeJs).toContain("action: 'support'");
   });
 
-  it('shows blocked banner when verificationRejectionCount >= 5', () => {
-    expect(content).toContain('verificationRejectionCount >= 5');
+  it("shows the reviewer's notes as text, never as markup", () => {
+    expect(homeJs).toContain('esc(notes)');
+    expect(dialogJs).toContain("byId('sv-rejection-notes-text').textContent = notes");
+    expect(dialogJs).not.toContain('innerHTML');
   });
 
-  it('displays admin rejection notes in the banner for rejected state', () => {
-    expect(content).toContain('verificationNotes');
+  it('uses data-mode on the submit button to preserve its label during an async retry', () => {
+    expect(dialogJs).toContain('submitButton.dataset.mode');
   });
 
-  it('shows rejection notes in modal when resubmitting', () => {
-    expect(content).toContain('sv-rejection-notes-block');
-    expect(content).toContain('rejectionNotes');
-  });
-
-  it('shows supplier notes textarea in resubmit modal', () => {
-    expect(content).toContain('sv-supplier-note-block');
-    expect(content).toContain('sv-supplier-note');
-  });
-
-  it('handles VERIFICATION_MAX_REJECTIONS error from submit endpoint', () => {
-    expect(content).toContain('VERIFICATION_MAX_REJECTIONS');
-  });
-
-  it('uses distinct CSS class for amber (get-verified) button hover', () => {
-    expect(content).toContain('sv-open-widget-btn--amber');
-  });
-
-  it('uses distinct CSS class for red (resubmit) button hover', () => {
-    expect(content).toContain('sv-open-widget-btn--red');
-  });
-
-  it('uses correct red hover colour for resubmit button (not amber)', () => {
-    // The amber hover must not apply to red resubmit button
-    expect(content).toContain('sv-open-widget-btn--red:hover');
-    // Must NOT use a single #sv-open-widget-btn:hover that applies to both
-    expect(content).not.toContain('#sv-open-widget-btn:hover');
-  });
-
-  it('shows rejection notes in blocked banner', () => {
-    const blockedIdx = content.indexOf('verificationRejectionCount >= 5');
-    const blockedSection = content.slice(blockedIdx, blockedIdx + 1500);
-    expect(blockedSection).toContain('verificationNotes');
-  });
-
-  it('uses data-mode on submit button to preserve label during async retry', () => {
-    expect(content).toContain("dataset.mode = 'resubmit'");
-    expect(content).toContain("dataset.mode === 'resubmit'");
-    // Both branches must be covered so the label is always correct after a failed attempt
-    expect(content).toContain("dataset.mode = 'submit'");
-  });
-
-  it('uses ⚠️ emoji for unverified (not submitted) state instead of ⏳', () => {
-    // The unverified "Get Verified" banner should use ⚠️ (warning) not ⏳ (hourglass)
-    // ⏳ is reserved for the pending_review state
-    expect(content).toContain('⚠️');
-    expect(content).toContain('⏳');
+  it('carries no inline styles: the dialog is static markup styled by the page sheet', () => {
+    expect(dialogJs).not.toMatch(/style\s*=|\.style\./);
   });
 });
-
-// ─── G) Email validation on verification submit ─────────────────────────────
 
 describe('routes/supplier.js — email validation on POST /verification/submit', () => {
   const SUPPLIER_ROUTE = path.join(__dirname, '../../routes/supplier.js');

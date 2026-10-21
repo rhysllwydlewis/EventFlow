@@ -8,6 +8,7 @@
 const express = require('express');
 const { PLACEHOLDER_PACKAGE_IMAGE, isPlaceholderImage } = require('../utils/packageImageUtils');
 const suppliersRouter = require('./suppliers');
+const { priceFields } = require('../utils/packagePrice');
 const router = express.Router();
 
 /**
@@ -390,7 +391,9 @@ router.post(
       supplierId,
       title: String(title).slice(0, 120),
       description: String(description || '').slice(0, 1500),
-      price: String(price).trim().slice(0, 60),
+      // One price, stored in both fields so the supplier dashboard, the admin screens and every
+      // public page show the same text (utils/packagePrice.js).
+      ...priceFields(price),
       image: resolvedImage,
       gallery,
       slug,
@@ -486,6 +489,95 @@ router.get(
 );
 
 /**
+ * The gallery with a package image added at the front, or null when it is already there.
+ *
+ * @param {Object} pkg - The stored package
+ * @param {string} url - The image URL to add
+ * @returns {Array|null} The new gallery, or null when no change is needed
+ */
+function galleryWithImage(pkg, url) {
+  const existingGallery = pkg.gallery || [];
+  const alreadyInGallery = existingGallery.some(item => {
+    const itemUrl = typeof item === 'string' ? item : item.url || '';
+    return itemUrl === url;
+  });
+  if (alreadyInGallery) {
+    return null;
+  }
+  return [{ url, approved: true, uploadedAt: Date.now() }, ...existingGallery];
+}
+
+/**
+ * The text, category and event-type changes in an update request (everything but price and image).
+ *
+ * @param {Object} body - Request body
+ * @returns {Object} Fields to set
+ */
+function collectBasicPackageUpdates(body) {
+  const updates = {};
+  if (body.title !== undefined) {
+    updates.title = String(body.title).slice(0, 120);
+  }
+  if (body.description !== undefined) {
+    updates.description = String(body.description).slice(0, 1500);
+  }
+  if (body.primaryCategoryKey !== undefined) {
+    updates.primaryCategoryKey = String(body.primaryCategoryKey);
+  }
+  if (Array.isArray(body.eventTypes)) {
+    const validEventTypes = body.eventTypes.filter(t => VALID_EVENT_TYPES.has(t));
+    if (validEventTypes.length > 0) {
+      updates.eventTypes = validEventTypes;
+    }
+  }
+  return updates;
+}
+
+/**
+ * Work out the image (and gallery) changes for an update request.
+ *
+ * @param {*} newImage - The `image` value from the request
+ * @param {Object} pkg - The stored package
+ * @returns {Promise<{updates: Object, imageProcessingError: (string|null)}>} Fields to set
+ */
+async function buildImageUpdate(newImage, pkg) {
+  const updates = {};
+  let imageProcessingError = null;
+  if (newImage && typeof newImage === 'string' && newImage.startsWith('data:')) {
+    // Process base64 image through the storage pipeline so we store a file URL,
+    // not raw base64, which keeps the DB lean and consistent with gallery items.
+    try {
+      const storedUrl = await saveImageBase64(newImage, `package_${pkg.id}_${Date.now()}`);
+      updates.image = storedUrl;
+      // Also add to gallery if not already present so detail view stays in sync
+      const gallery = galleryWithImage(pkg, storedUrl);
+      if (gallery) {
+        updates.gallery = gallery;
+      }
+    } catch (e) {
+      logger.warn('Package update: image processing failed, keeping existing image:', e.message);
+      imageProcessingError =
+        'Package saved, but the new photo could not be processed — the previous photo was kept. Please try uploading it again.';
+    }
+  } else if (
+    newImage &&
+    typeof newImage === 'string' &&
+    newImage.trim() &&
+    newImage !== PLACEHOLDER_PACKAGE_IMAGE
+  ) {
+    // Plain URL provided (e.g. admin set it directly)
+    updates.image = newImage.trim();
+    const gallery = galleryWithImage(pkg, updates.image);
+    if (gallery) {
+      updates.gallery = gallery;
+    }
+  } else {
+    updates.image = newImage || '';
+  }
+  return { updates, imageProcessingError };
+}
+
+/**
  * PUT /api/me/packages/:id
  * Update a package belonging to the authenticated supplier
  */
@@ -505,78 +597,24 @@ router.put(
       }
       const { pkg } = result;
 
-      const pkgUpdates = {};
+      const pkgUpdates = collectBasicPackageUpdates(req.body);
+      if (req.body.price !== undefined) {
+        // A price is required to create a package, and it cannot be blanked by editing one.
+        if (!priceFields(req.body.price).price) {
+          res.status(400).json({
+            error: 'A price is required. Please enter a specific price for this package.',
+          });
+          return;
+        }
+        Object.assign(pkgUpdates, priceFields(req.body.price));
+      }
       // Mirrors the create route's flag: set when image processing fails, so the
       // response can tell the supplier their other edits saved but the photo did not.
       let imageProcessingError = null;
-      if (req.body.title !== undefined) {
-        pkgUpdates.title = String(req.body.title).slice(0, 120);
-      }
-      if (req.body.description !== undefined) {
-        pkgUpdates.description = String(req.body.description).slice(0, 1500);
-      }
-      if (req.body.price !== undefined) {
-        pkgUpdates.price = String(req.body.price).slice(0, 60);
-      }
       if (req.body.image !== undefined) {
-        const newImage = req.body.image;
-        if (newImage && typeof newImage === 'string' && newImage.startsWith('data:')) {
-          // Process base64 image through the storage pipeline so we store a file URL,
-          // not raw base64, which keeps the DB lean and consistent with gallery items.
-          try {
-            const storedUrl = await saveImageBase64(newImage, `package_${pkg.id}_${Date.now()}`);
-            pkgUpdates.image = storedUrl;
-            // Also add to gallery if not already present so detail view stays in sync
-            const existingGallery = pkg.gallery || [];
-            const alreadyInGallery = existingGallery.some(item => {
-              const u = typeof item === 'string' ? item : item.url || '';
-              return u === storedUrl;
-            });
-            if (!alreadyInGallery) {
-              pkgUpdates.gallery = [
-                { url: storedUrl, approved: true, uploadedAt: Date.now() },
-                ...existingGallery,
-              ];
-            }
-          } catch (e) {
-            logger.warn(
-              'Package update: image processing failed, keeping existing image:',
-              e.message
-            );
-            imageProcessingError =
-              'Package saved, but the new photo could not be processed — the previous photo was kept. Please try uploading it again.';
-          }
-        } else if (
-          newImage &&
-          typeof newImage === 'string' &&
-          newImage.trim() &&
-          newImage !== PLACEHOLDER_PACKAGE_IMAGE
-        ) {
-          // Plain URL provided (e.g. admin set it directly)
-          pkgUpdates.image = newImage.trim();
-          const existingGallery = pkg.gallery || [];
-          const alreadyInGallery = existingGallery.some(item => {
-            const u = typeof item === 'string' ? item : item.url || '';
-            return u === pkgUpdates.image;
-          });
-          if (!alreadyInGallery) {
-            pkgUpdates.gallery = [
-              { url: pkgUpdates.image, approved: true, uploadedAt: Date.now() },
-              ...existingGallery,
-            ];
-          }
-        } else {
-          pkgUpdates.image = newImage || '';
-        }
-      }
-      if (req.body.primaryCategoryKey !== undefined) {
-        pkgUpdates.primaryCategoryKey = String(req.body.primaryCategoryKey);
-      }
-      if (req.body.eventTypes !== undefined && Array.isArray(req.body.eventTypes)) {
-        const validEventTypes = req.body.eventTypes.filter(t => VALID_EVENT_TYPES.has(t));
-        if (validEventTypes.length > 0) {
-          pkgUpdates.eventTypes = validEventTypes;
-        }
+        const imageUpdate = await buildImageUpdate(req.body.image, pkg);
+        Object.assign(pkgUpdates, imageUpdate.updates);
+        imageProcessingError = imageUpdate.imageProcessingError;
       }
       pkgUpdates.updatedAt = new Date().toISOString();
 
@@ -590,7 +628,7 @@ router.put(
       });
     } catch (error) {
       logger.error('Error updating supplier package:', error);
-      return res.status(500).json({ error: 'Internal server error' });
+      res.status(500).json({ error: 'Internal server error' });
     }
   }
 );
@@ -1022,7 +1060,7 @@ router.put(
       pkgUpdates.description = req.body.description;
     }
     if (req.body.price_display) {
-      pkgUpdates.price_display = req.body.price_display;
+      Object.assign(pkgUpdates, priceFields(req.body.price_display));
     }
     if (req.body.image) {
       const newImage = req.body.image;

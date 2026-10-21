@@ -63,8 +63,9 @@ describe('POST /me/packages — price required (server)', () => {
     );
   });
 
-  it('stores price as trimmed string on the new package object', () => {
-    expect(packagesContent).toContain('price: String(price).trim().slice(0, 60)');
+  it('stores the price, trimmed and length-limited, in both price fields on the new package', () => {
+    // priceFields (utils/packagePrice.js) trims, limits to 60 characters and fills price and price_display.
+    expect(packagesContent).toContain('...priceFields(price),');
   });
 });
 
@@ -200,7 +201,7 @@ describe('dashboard-supplier.html — price input required attribute', () => {
   });
 
   it('price label marks the field as required with an asterisk indicator', () => {
-    expect(dashboardHtml).toContain('form-required');
+    expect(dashboardHtml).toMatch(/for="pkg-price"[^>]*>Price <span class="sdh-required"/);
   });
 
   it('pkg-title input has required attribute', () => {
@@ -210,7 +211,7 @@ describe('dashboard-supplier.html — price input required attribute', () => {
 
   it('title label marks the field as required with an asterisk indicator', () => {
     // The label for pkg-title should include form-required for the *
-    expect(dashboardHtml).toMatch(/pkg-title[\s\S]{0,200}form-required/);
+    expect(dashboardHtml).toMatch(/for="pkg-title"[^>]*>Title <span class="sdh-required"/);
   });
 });
 

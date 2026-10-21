@@ -15,7 +15,8 @@
     }
     const div = document.createElement('div');
     div.textContent = unsafe;
-    return div.innerHTML;
+    // Quotes too, so the result is safe inside a quoted attribute as well as in text.
+    return div.innerHTML.split('"').join('&quot;').split("'").join('&#39;');
   }
 
   function formatRelativeTime(timestamp) {
@@ -169,6 +170,8 @@
    * @param {boolean}  [options.showQuickReply=true]     Enable inline quick-reply.
    * @param {string}   [options.currentUserId]           Current user ID (auto-resolved if omitted).
    * @param {Function} [options.conversationUrlBuilder]  Build deep-link URL.
+   * @param {boolean}  [options.broadcastUnread=true]    Broadcast the unread count of the
+   *                                                     fetched conversations to the page.
    */
   class MessengerWidgetV4 {
     constructor(containerId, options = {}) {
@@ -182,6 +185,7 @@
         maxItems: options.maxItems || 5,
         refreshIntervalMs: options.refreshIntervalMs || 60000,
         showQuickReply: options.showQuickReply !== false,
+        broadcastUnread: options.broadcastUnread !== false,
         conversationUrlBuilder:
           options.conversationUrlBuilder ||
           (id => `/messenger/?conversation=${encodeURIComponent(id)}`),
@@ -304,6 +308,10 @@
         clearInterval(this.refreshTimer);
         this.refreshTimer = null;
       }
+      if (this._socketWait) {
+        clearInterval(this._socketWait);
+        this._socketWait = null;
+      }
       if (this._socket) {
         this._socket.disconnect();
         this._socket = null;
@@ -351,10 +359,23 @@
         }, 0);
 
         // Broadcast so NotificationBridgeV4 (loaded on dashboards) can update
-        // bell badges and tab title without polling.
-        window.dispatchEvent(
-          new CustomEvent('messenger:unread-count', { detail: { count: this.unreadCount } })
-        );
+        // bell badges and tab title without polling. A dashboard that shows more conversations
+        // than the widget fetches turns this off (broadcastUnread: false): the count here only
+        // covers the conversations on screen, and UnreadBadgeManager reads the full total.
+        if (this.options.broadcastUnread !== false) {
+          window.dispatchEvent(
+            new CustomEvent('messenger:unread-count', { detail: { count: this.unreadCount } })
+          );
+        } else if (
+          window.unreadBadgeManager &&
+          typeof window.unreadBadgeManager.refresh === 'function' &&
+          this.unreadCount !== this._prevUnreadCount
+        ) {
+          // This list is only part of the inbox, so its own count is not announced. Ask the
+          // badge manager for the full total instead, so the badges follow a change at once and
+          // not at its next two-minute poll.
+          window.unreadBadgeManager.refresh();
+        }
 
         this._render();
       } catch (err) {
@@ -391,28 +412,58 @@
     // ── WebSocket / polling ───────────────────────────────────────────────────
 
     _setupWebSocket() {
-      if (window.io && typeof window.io === 'function') {
-        try {
-          this._socket = window.io();
-          const refresh = () => this._fetchConversations();
-          // NOTE: the widget does NOT join per-conversation rooms (it has no
-          // active conversation selected), so the server will never deliver
-          // `messenger:v4:message` events here.  These listeners remain as a
-          // best-effort refresh trigger if future work broadcasts widget-scoped
-          // events, but polling is the source of truth — see `_setupPolling`.
-          this._socket.on('messenger:v4:message', refresh);
-          this._socket.on('messenger:v4:conversation-updated', refresh);
-          this._socket.on('messenger:v4:read', refresh);
-          this._socket.on('connect', () => {
-            this.wsConnected = true;
-          });
-          this._socket.on('disconnect', () => {
-            this.wsConnected = false;
-          });
-        } catch (e) {
-          // Socket.IO unavailable – polling below is unaffected
+      // The Socket.IO client is loaded by another script and may not be here yet: wait for it (for
+      // a while) rather than giving up on the first look, because polling alone is slow to notice.
+      if (!(window.io && typeof window.io === 'function')) {
+        let waited = 0;
+        this._socketWait = setInterval(() => {
+          waited += 250;
+          if (window.io && typeof window.io === 'function') {
+            clearInterval(this._socketWait);
+            this._socketWait = null;
+            this._connectSocket();
+          } else if (waited >= 15000) {
+            clearInterval(this._socketWait);
+            this._socketWait = null;
+          }
+        }, 250);
+        return;
+      }
+      this._connectSocket();
+    }
+
+    _connectSocket() {
+      try {
+        this._socket = window.io(`${window.location.protocol}//${window.location.host}`, {
+          path: '/socket.io',
+          transports: ['websocket', 'polling'],
+          reconnection: true,
+        });
+        const refresh = () => this._fetchConversations();
+        // The widget does not join per-conversation rooms (it has no conversation selected), so
+        // room events such as `messenger:v4:message` do not reach it. What reaches it is what the
+        // server sends on the user's own channel: a message arriving in any of their conversations,
+        // and a conversation being created. Those refresh the list at once; polling (see
+        // `_setupPolling`) stays as the fallback for when a socket is not connected.
+        this._socket.on('messenger:v4:new-message', refresh);
+        this._socket.on('messenger:v4:conversation-created', refresh);
+        this._socket.on('messenger:v4:conversation-updated', refresh);
+        this._socket.on('messenger:v4:read', refresh);
+        this._socket.on('connect', () => {
+          this.wsConnected = true;
+          // The server only puts a socket on the user's channel once it has said who it is; the
+          // cookie at the handshake is not enough. Say so again after every reconnect.
+          const userId = this._resolveCurrentUserId();
+          if (userId) {
+            this._socket.emit('auth', { userId });
+          }
+        });
+        this._socket.on('disconnect', () => {
           this.wsConnected = false;
-        }
+        });
+      } catch {
+        // Socket.IO unavailable – polling below is unaffected
+        this.wsConnected = false;
       }
     }
 
@@ -629,14 +680,18 @@
         participants[0] ||
         {};
 
-      const rawName = safeDisplayName(other.displayName, other.businessName, other.name);
+      // A supplier is known by their business name; displayName is the owner's personal name.
+      const rawName =
+        other.role === 'supplier'
+          ? safeDisplayName(other.businessName, other.displayName, other.name)
+          : safeDisplayName(other.displayName, other.businessName, other.name);
       const name = escapeHtml(rawName);
       const initial = rawName.charAt(0).toUpperCase() || '?';
       const avatarColor = getAvatarColor(rawName);
       const avatarUrl = typeof other.avatar === 'string' ? other.avatar.trim() : '';
       const safeAvatarUrl = /^(https?:\/\/|\/[^:])/i.test(avatarUrl) ? avatarUrl : null;
       const avatarImg = safeAvatarUrl
-        ? `<img src="${escapeHtml(safeAvatarUrl)}" alt="${name}" class="mwv4__avatar-img" loading="lazy" data-fallback-hide>`
+        ? `<img src="${escapeHtml(safeAvatarUrl)}" alt="${name}" class="mwv4__avatar-img" loading="lazy" data-fallback-text="${escapeHtml(initial)}">`
         : `<span class="mwv4__avatar-initial">${escapeHtml(initial)}</span>`;
 
       const lastMsg = conv.lastMessage || {};
@@ -705,14 +760,13 @@
       this.container.innerHTML = `
         <div class="mwv4">
           <div class="mwv4__header">
-            <span class="mwv4__title">💬 Messages</span>
-            <a href="/messenger/" class="mwv4__view-all">View All →</a>
+            <span class="mwv4__title">Messages</span>
+            <a href="/messenger/" class="mwv4__view-all">View all</a>
           </div>
-          <div class="mwv4__empty" style="text-align:center;padding:2rem 1rem;">
-            <div style="font-size:2rem;margin-bottom:0.5rem;">⚠️</div>
-            <p class="mwv4__empty-text">Unable to load conversations.</p>
-            <button class="ef-cta mwv4__retry-btn" type="button">Retry</button>
-            <p class="small" style="margin-top:0.75rem;"><a href="/messenger/" style="color:#0B8073">Open full inbox</a></p>
+          <div class="mwv4__empty mwv4__error" role="alert">
+            <p class="mwv4__empty-text">We could not load your conversations.</p>
+            <button class="ef-cta mwv4__retry-btn" type="button">Try again</button>
+            <p class="small"><a href="/messenger/" class="mwv4__error-link">Open the full inbox</a></p>
           </div>
         </div>`;
       this.container

@@ -19,13 +19,6 @@ const pagesDir = path.join(process.cwd(), 'public/assets/js/pages');
 const dashboardHtml = `${fs.readFileSync(
   path.join(process.cwd(), 'public/dashboard-supplier.html'),
   'utf8'
-)}\n${fs.readFileSync(path.join(pagesDir, 'dashboard-supplier-module.js'), 'utf8')}\n${
-  fs.existsSync(path.join(pagesDir, 'dashboard-supplier-inline.js'))
-    ? fs.readFileSync(path.join(pagesDir, 'dashboard-supplier-inline.js'), 'utf8')
-    : ''
-}\n${fs.readFileSync(
-  path.join(pagesDir, 'dashboard-supplier-threads.js'),
-  'utf8'
 )}\n${fs.readFileSync(path.join(pagesDir, 'dashboard-supplier-category.js'), 'utf8')}`;
 
 const errorHandlerJs = fs.readFileSync(
@@ -33,25 +26,9 @@ const errorHandlerJs = fs.readFileSync(
   'utf8'
 );
 
-const supplierAnalyticsJs = fs.readFileSync(
-  path.join(process.cwd(), 'public/assets/js/supplier-analytics-chart.js'),
-  'utf8'
-);
-
 // ─── Error 1: .indexOf() on undefined ────────────────────────────────────────
 
 describe('Supplier Dashboard – .indexOf() null/undefined guards', () => {
-  it('image src guard uses && before .includes() to prevent TypeError', () => {
-    // The image error handler should guard img.src before calling .includes()
-    expect(dashboardHtml).toContain('img.src && img.src.includes');
-  });
-
-  it('label.textContent guard uses && before .includes() to prevent TypeError', () => {
-    // The realtime notification handler guards label.textContent before .includes()
-    expect(dashboardHtml).toContain('label.textContent &&');
-    expect(dashboardHtml).toContain('label.textContent.includes');
-  });
-
   it('app.js guards file.type before calling .indexOf()', () => {
     const appJs = fs.readFileSync(path.join(process.cwd(), 'public/assets/js/app.js'), 'utf8');
     // Accept various guard patterns: !file.type ||, file.type &&, optional chaining,
@@ -64,53 +41,7 @@ describe('Supplier Dashboard – .indexOf() null/undefined guards', () => {
 
 // ─── Error 2: createConversionFunnelWidget export ────────────────────────────
 
-describe('supplier-analytics-chart.js – createConversionFunnelWidget export', () => {
-  it('exports createConversionFunnelWidget as a named export', () => {
-    expect(supplierAnalyticsJs).toContain(
-      'export async function createConversionFunnelWidget(containerId'
-    );
-  });
-
-  it('includes createConversionFunnelWidget in the default export object', () => {
-    // Allow for optional trailing comma or closing brace (resilient to formatting)
-    expect(supplierAnalyticsJs).toMatch(/createConversionFunnelWidget\s*[,}]/);
-  });
-
-  it('dashboard-supplier.html imports createConversionFunnelWidget from the correct module', () => {
-    expect(dashboardHtml).toContain('createConversionFunnelWidget');
-    expect(dashboardHtml).toContain("from '/assets/js/supplier-analytics-chart.js'");
-  });
-});
-
 // ─── Error 3: Image 404 fallback handling ────────────────────────────────────
-
-describe('dashboard-supplier.html – Image 404 fallback handling', () => {
-  it('has a global image error handler attached to DOMContentLoaded', () => {
-    expect(dashboardHtml).toContain("document.addEventListener('DOMContentLoaded'");
-    expect(dashboardHtml).toContain("e.target.tagName === 'IMG'");
-  });
-
-  it('logs a console.warn for upload path 404s', () => {
-    expect(dashboardHtml).toContain("console.warn('Image upload 404 - File not found:'");
-  });
-
-  it('sets a placeholder SVG for supplier upload images that fail to load', () => {
-    expect(dashboardHtml).toContain("img.src.includes('/uploads/suppliers/')");
-    expect(dashboardHtml).toContain('img.src = placeholderSvg');
-  });
-
-  it('sets a placeholder for package images that fail to load', () => {
-    expect(dashboardHtml).toContain("img.src.includes('/uploads/packages/')");
-  });
-
-  it('uses stopPropagation to prevent duplicate error events', () => {
-    expect(dashboardHtml).toContain('e.stopPropagation()');
-  });
-
-  it('uses dataset.errorHandled flag to prevent re-triggering', () => {
-    expect(dashboardHtml).toContain("img.dataset.errorHandled = 'true'");
-  });
-});
 
 // ─── Error 4: global-error-handler default/fallback for config reads ─────────
 
@@ -193,8 +124,8 @@ const supplierMessagesJs = fs.readFileSync(
   'utf8'
 );
 
-const dashboardAnimationsCss = fs.readFileSync(
-  path.join(process.cwd(), 'public/assets/css/dashboard-animations.css'),
+const homeCss = fs.readFileSync(
+  path.join(process.cwd(), 'public/assets/css/supplier-dashboard-home.css'),
   'utf8'
 );
 
@@ -258,13 +189,11 @@ describe('Supplier profile form – website field browser validation disabled', 
 });
 
 describe('Supplier dashboard/profile UI polish', () => {
-  it('dashboard-supplier toggle profile button uses a pencil edit icon (not plus)', () => {
+  it('dashboard-supplier toggle profile button is a text button labelled Edit profile (not a plus)', () => {
     const start = dashboardHtml.indexOf('id="toggle-profile-form"');
     expect(start).toBeGreaterThan(-1);
-    const section = dashboardHtml.slice(start, start + 1000);
-    expect(section).toContain(
-      '<path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/>'
-    );
+    const section = dashboardHtml.slice(start, start + 400);
+    expect(section).toContain('<span class="label">Edit profile</span>');
     expect(section).not.toContain('<path d="M5 12h14"/>');
     expect(section).not.toContain('<path d="M12 5v14"/>');
   });
@@ -360,45 +289,17 @@ describe('Supplier dashboard/profile UI polish', () => {
     expect(tileDeleteBlock).toMatch(/font-size:\s*12px;/);
   });
 
-  it('supplier profile summary card uses structured spc-* layout classes', () => {
-    expect(appJs).toContain('class="supplier-card card glass-card spc-root"');
-    expect(appJs).toContain('class="spc-summary"');
-    expect(appJs).toContain('class="spc-name-row"');
-    // Inline checklist link removed — View Checklist button in action bar is sufficient
-    expect(appJs).not.toContain('class="spc-checklist-link"');
-    // Description and health bar removed from card body (ring + checklist card handle these)
-    expect(appJs).not.toContain('class="spc-desc"');
-    expect(appJs).not.toContain('class="listing-health spc-health"');
-    // Category chip
-    expect(appJs).toContain('class="spc-category-chip"');
-    // 3-button action bar
+  it('supplier profile summary card uses the sdh-profile layout, with no health ring or setup checklist', () => {
+    expect(appJs).toContain('class="sdh-profile"');
+    expect(appJs).toContain('class="sdh-profile__name-row"');
     expect(appJs).toContain('data-action="upload-photo"');
-    expect(appJs).toContain('spc-action-btn--edit');
-    expect(appJs).toContain('spc-action-btn--checklist');
-    expect(appJs).not.toContain('class="card-actions spc-edit-row"');
-    // Checklist card defaults visible and toggle starts in "Hide" state
-    expect(appJs).toContain('class="spc-checklist-card"');
-    expect(appJs).toContain('class="spc-checklist-steps"');
-    expect(appJs).toContain('Profile Setup Checklist');
-    expect(appJs).toContain('class="spc-checklist-btn-label">Hide Checklist</span>');
-    expect(appJs).toContain("actionEl.setAttribute('aria-expanded', 'false')");
-    expect(appJs).toContain("checklistCard.setAttribute('hidden', '')");
-    // Checklist items match reference labels
-    expect(appJs).toContain("'Business Details'");
-    expect(appJs).toContain("'Categories & Services'");
-    expect(appJs).toContain("'Photos'");
-    expect(appJs).toContain("'Contact Information'");
-    expect(appJs).toContain("'Business Description'");
-    expect(supplierDashImprovementsCss).toContain('.spc-root {');
-    expect(supplierDashImprovementsCss).toContain('.spc-summary {');
-    expect(supplierDashImprovementsCss).toContain('.spc-health .listing-health-bar {');
-    // 3-col action bar
-    expect(supplierDashImprovementsCss).toContain('grid-template-columns: repeat(3, 1fr)');
-    // New components
-    expect(supplierDashImprovementsCss).toContain('.spc-category-chip {');
-    expect(supplierDashImprovementsCss).toContain('.spc-checklist-card {');
-    expect(supplierDashImprovementsCss).toContain('.spc-checklist-step {');
-    expect(supplierDashImprovementsCss).toContain('.spc-checklist-step-circle {');
+    // One completeness figure lives in the summary row; the card carries none of the old ones.
+    ['spc-ring', 'spc-checklist', 'Profile Setup Checklist', 'Health Score', 'aiScore'].forEach(
+      text => {
+        expect(appJs).not.toContain(text);
+      }
+    );
+    expect(homeCss).toContain('.sdh-page .sdh-profile {');
   });
 
   it('removes profile-level price display from summary meta row (no POA/profile price badge)', () => {
@@ -406,20 +307,18 @@ describe('Supplier dashboard/profile UI polish', () => {
     expect(appJs).not.toContain('spc-meta-pipe');
   });
 
-  it('adds 12 o’clock profile avatar delete button and delete action wiring', () => {
-    expect(appJs).toContain('class="spc-avatar-delete-btn"');
+  it('has a profile avatar delete button with its action wiring', () => {
+    expect(appJs).toContain('class="sdh-avatar__remove"');
     expect(appJs).toContain('data-action="delete-profile-photo"');
     expect(appJs).toContain("fetch('/api/profile/avatar'");
     expect(appJs).toContain("method: 'DELETE'");
-    expect(supplierDashImprovementsCss).toContain('.spc-avatar-delete-btn {');
-    expect(supplierDashImprovementsCss).toContain('.spc-avatar-delete-btn:active {');
-    expect(supplierDashImprovementsCss).toContain('transform: translateX(-50%);');
+    expect(homeCss).toContain('.sdh-page .sdh-avatar__remove {');
   });
 
   it('upload-photo action targets gallery upload row and opens a single picker path', () => {
     expect(appJs).toContain('data-action="upload-photo"');
     expect(appJs).toContain("const uploader = document.getElementById('sup-photo-drop')");
-    expect(appJs).toContain('await editProfile(profileId, { skipFormScroll: true })');
+    expect(appJs).toContain("await editProfile(profileId, { focusId: 'sup-photo-drop' })");
     expect(appJs).toContain("const galleryRow = uploader.closest('.form-row') || uploader");
     expect(appJs).toContain("galleryRow.scrollIntoView({ behavior: 'smooth', block: 'start' })");
     expect(appJs).toContain('uploader.focus({ preventScroll: true })');
@@ -472,31 +371,6 @@ describe('Gallery photo 404 error handling', () => {
     expect(idx).toBeGreaterThan(-1);
     const bannerBlock = appJs.slice(idx, idx + 1000);
     expect(bannerBlock).toMatch(/addEventListener\s*\(\s*['"]error['"]/);
-  });
-});
-
-describe('Card hover animation – no layout shift on form cards', () => {
-  it('dashboard-animations.css cancels translateY for sd-card on hover', () => {
-    expect(dashboardAnimationsCss).toContain('.sd-card:hover');
-    expect(dashboardAnimationsCss).toContain('transform: none');
-  });
-
-  it('dashboard-animations.css includes prefers-reduced-motion rule', () => {
-    expect(dashboardAnimationsCss).toContain('prefers-reduced-motion');
-    expect(dashboardAnimationsCss).toContain('transform: none');
-  });
-
-  it('supplier-dashboard-improvements.css cancels translateY for sd-card on hover', () => {
-    expect(supplierDashImprovementsCss).toContain('.sd-card:hover');
-    expect(supplierDashImprovementsCss).toContain('transform: none');
-  });
-
-  it('supplier-dashboard-improvements.css includes prefers-reduced-motion rule', () => {
-    expect(supplierDashImprovementsCss).toContain('prefers-reduced-motion');
-  });
-
-  it('supplier-dashboard-improvements.css includes error state CSS for image wrap', () => {
-    expect(supplierDashImprovementsCss).toContain('photo-preview-item__image-wrap--error');
   });
 });
 
@@ -804,14 +678,6 @@ describe('supplier-gallery.js – dead setupFormIntercept call removed', () => {
 });
 
 describe('CSS – :has() selectors wrapped in @supports for older Firefox compatibility', () => {
-  it('dashboard-animations.css wraps :has() hover rules in @supports selector(:has(*))', () => {
-    expect(dashboardAnimationsCss).toContain('@supports selector(:has(*))');
-    // The :has() selectors must appear inside the @supports block
-    const supportsIdx = dashboardAnimationsCss.indexOf('@supports selector(:has(*))');
-    const supportsBlock = dashboardAnimationsCss.slice(supportsIdx, supportsIdx + 500);
-    expect(supportsBlock).toContain(':has(form):hover');
-  });
-
   it('supplier-dashboard-improvements.css wraps :has() hover rules in @supports selector(:has(*))', () => {
     expect(supplierDashImprovementsCss).toContain('@supports selector(:has(*))');
     const supportsIdx = supplierDashImprovementsCss.indexOf('@supports selector(:has(*))');
@@ -821,13 +687,6 @@ describe('CSS – :has() selectors wrapped in @supports for older Firefox compat
 });
 
 describe('CSS – prefers-reduced-motion uses !important to prevent cascade override', () => {
-  it('dashboard-animations.css prefers-reduced-motion transition rule uses !important', () => {
-    const prmIdx = dashboardAnimationsCss.indexOf('@media (prefers-reduced-motion: reduce)');
-    expect(prmIdx).toBeGreaterThan(-1);
-    const prmBlock = dashboardAnimationsCss.slice(prmIdx, prmIdx + 400);
-    expect(prmBlock).toMatch(/transition[^;]+!important/);
-  });
-
   it('supplier-dashboard-improvements.css prefers-reduced-motion transform rule uses !important', () => {
     // Find the card-specific prefers-reduced-motion block (there may be multiple)
     const prmIdx = supplierDashImprovementsCss.indexOf(

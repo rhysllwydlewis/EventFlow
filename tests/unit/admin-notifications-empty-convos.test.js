@@ -117,24 +117,14 @@ describe('routes/messenger-v4.js — conversation-created WS only to creator', (
     const sendStart   = src.indexOf("router.post(\n  '/conversations/:id/messages'");
     const createSlice = src.slice(createStart, sendStart);
     expect(createSlice).toContain(
-      "wsServer.to(currentUserId).emit('messenger:v4:conversation-created'"
+      "emitToUser(currentUserId, 'messenger:v4:conversation-created'"
     );
   });
-});
 
-// ── Issue 2: sendMessage still broadcasts to all participants ─────────────
-
-describe('routes/messenger-v4.js — sendMessage keeps full broadcast', () => {
-  const src = fs.readFileSync(
-    path.join(__dirname, '../../routes/messenger-v4.js'),
-    'utf8'
-  );
-
-  test('sendMessage route still uses emitToConversation (broadcasts to all)', () => {
-    const sendStart = src.indexOf("router.post(\n  '/conversations/:id/messages'");
-    expect(sendStart).toBeGreaterThan(-1);
-    const sendSlice = src.slice(sendStart, sendStart + 5000);
-    expect(sendSlice).toContain('emitToConversation');
+  test('does not call a Socket.IO-only API on the websocket server directly (the v2 server has none)', () => {
+    const createStart = src.indexOf("router.post(\n  '/conversations'");
+    const sendStart   = src.indexOf("router.post(\n  '/conversations/:id/messages'");
+    expect(src.slice(createStart, sendStart)).not.toMatch(/wsServer\.to\(/);
   });
 });
 
@@ -151,5 +141,20 @@ describe('messenger-v4.service.js — message content validation', () => {
     const end   = src.indexOf('  async ', start + 100);
     const fn    = src.slice(start, end);
     expect(fn).toMatch(/sanitize|sanitise|sanitized|trim|content.*empty|empty.*content/i);
+  });
+});
+
+// ── Issue 3: people not in the conversation room still hear about a new message ──
+
+describe('routes/messenger-v4.js — new messages reach recipients on their own channel', () => {
+  const src = fs.readFileSync(path.join(__dirname, '../../routes/messenger-v4.js'), 'utf8');
+  // Who receives the room event and the per-user event, and that a participant who deleted the
+  // conversation is skipped, is verified by running the route in
+  // tests/integration/messenger-v4-realtime-emit.test.js.
+
+  test('the emit helper uses the server\'s own API, and the user channel name a raw server needs', () => {
+    const helper = src.slice(src.indexOf('function emitToUser('), src.indexOf('function emitToConversation('));
+    expect(helper).toContain("typeof ws.emitToUser === 'function'");
+    expect(helper).toContain('ws.to(`user:${userId}`).emit(event, data)');
   });
 });

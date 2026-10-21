@@ -13,8 +13,14 @@ const dbUnified = require('../db-unified');
 const logger = require('../utils/logger');
 const {
   getSupplierGalleryCount,
-  hasSupplierPostcode,
+  getSupplierSocialLinkCount,
 } = require('../services/supplierProfileCompleteness');
+const { parseDaysParam, resolveAnalyticsWindow } = require('../utils/analyticsWindow');
+const { buildDashboardSummary, summariseReviews } = require('../services/supplierDashboardSummary');
+const supplierEnquiries = require('../services/supplierEnquiries');
+const { isApprovedReview } = require('../utils/reviewShape');
+const { clearEngagementCache } = require('../services/supplierEngagementMetrics');
+const { serializeCsv } = require('../utils/csv');
 
 const router = express.Router();
 
@@ -27,25 +33,7 @@ const stripe = stripeSecretKey
 // Constants
 const TRIAL_DURATION_DAYS = 14;
 const DEFAULT_ANALYTICS_WINDOW_DAYS = 30;
-const MAX_ANALYTICS_WINDOW_DAYS = 90;
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
-
-/**
- * Count of a supplier's populated social platforms, merging the canonical
- * socialLinks object with the legacy socials object so a link stored under
- * either schema generation counts once.
- *
- * @param {Object} supplier - Supplier document
- * @returns {number} Populated social-platform count
- */
-function supplierSocialLinkCount(supplier) {
-  return Object.values({
-    ...(supplier.socials && typeof supplier.socials === 'object' ? supplier.socials : {}),
-    ...(supplier.socialLinks && typeof supplier.socialLinks === 'object'
-      ? supplier.socialLinks
-      : {}),
-  }).filter(Boolean).length;
-}
 
 /**
  * POST /api/supplier/trial/activate
@@ -141,20 +129,30 @@ router.get('/analytics', authRequired, async (req, res) => {
     // the pricing page was selling "profile analytics" as a paid feature that
     // free suppliers already had in full.
     const subscriptionService = require('../services/subscriptionService');
-    const windowDays = await subscriptionService.getAnalyticsWindowDays(userId);
-    const requestedDays = parseInt(req.query.days, 10) || 7;
-    const days = Math.min(requestedDays, windowDays);
+    const planWindowDays = await subscriptionService.getAnalyticsWindowDays(userId);
+    // Same bounded, entitlement-capped window as the dashboard summary. This route has
+    // always let the longest plan (365 days) look that far back, so its request cap is 365.
+    const analyticsWindow = resolveAnalyticsWindow({
+      requested: parseDaysParam(req.query.days).value,
+      defaultDays: 7,
+      planWindowDays,
+      requestCap: 365,
+    });
 
     // Use supplierAnalytics utility for real tracked data
     const supplierAnalytics = require('../utils/supplierAnalytics');
-    const analytics = await supplierAnalytics.getSupplierAnalytics(supplierId, days);
+    const analytics = await supplierAnalytics.getSupplierAnalytics(
+      supplierId,
+      analyticsWindow.days,
+      { ownerUserId: userId }
+    );
 
     res.json({
       success: true,
       analytics,
       // Surfaced so the dashboard can say why a longer window came back short
       // rather than silently showing less than was asked for.
-      window: { days, maxDays: windowDays, requestedDays },
+      window: analyticsWindow,
     });
   } catch (error) {
     logger.error('Error fetching analytics:', error);
@@ -187,11 +185,14 @@ router.get('/analytics/legacy', authRequired, async (req, res) => {
 
     const supplierId = supplier.id;
 
-    // Get analytics window from query parameter, default to 30 days, max 90 days
-    const days = Math.min(
-      parseInt(req.query.days) || DEFAULT_ANALYTICS_WINDOW_DAYS,
-      MAX_ANALYTICS_WINDOW_DAYS
-    );
+    // Same plan entitlement as the other analytics routes: a Starter supplier gets 7 days.
+    const { days } = resolveAnalyticsWindow({
+      requested: parseDaysParam(req.query.days).value,
+      defaultDays: DEFAULT_ANALYTICS_WINDOW_DAYS,
+      planWindowDays: await require('../services/subscriptionService').getAnalyticsWindowDays(
+        userId
+      ),
+    });
 
     // Count enquiries from message threads
     const enquiries = await dbUnified.find('threads', { supplierId });
@@ -387,80 +388,152 @@ router.get('/invoices/:id/download', authRequired, async (req, res) => {
 });
 
 /**
+ * Resolve the signed-in supplier for the enquiry routes, or answer the request.
+ *
+ * Only a supplier whose profile is approved may read enquiries (the same gate as
+ * packages and messaging). The supplier is always looked up from the session's
+ * user id; nothing in the URL or body chooses which supplier's records are read.
+ *
+ * @param {Object} req - Express request
+ * @param {Object} res - Express response
+ * @returns {Promise<Object|null>} The supplier document, or null after a response was sent
+ */
+async function loadApprovedSupplierForEnquiries(req, res) {
+  if (req.user.role !== 'supplier') {
+    res.status(403).json({ error: 'Only suppliers can access enquiries' });
+    return null;
+  }
+  const supplier = await dbUnified.findOne(
+    'suppliers',
+    { ownerUserId: req.user.id },
+    { throwOnError: true }
+  );
+  if (!supplier) {
+    res.status(404).json({ error: 'Supplier profile not found' });
+    return null;
+  }
+  if (supplier.approved !== true) {
+    res.status(403).json({
+      error: 'Supplier not approved',
+      code: 'SUPPLIER_NOT_APPROVED',
+      message:
+        'Your supplier profile is pending admin approval. You will be notified once your account has been reviewed.',
+    });
+    return null;
+  }
+  return supplier;
+}
+
+/**
  * GET /api/supplier/enquiries/export
- * Export enquiries to CSV for supplier
+ * CSV of this supplier's customer conversations, quote requests and contact-form
+ * enquiries (newest first).
+ *
+ * Always 200 with a header row. When there is nothing to export the body is the
+ * header row only and `X-Export-Row-Count` is 0, so a client can say "nothing to
+ * export" instead of saving an empty file. Cells that a spreadsheet would run as a
+ * formula are neutralised (utils/csv).
  */
 router.get('/enquiries/export', authRequired, async (req, res) => {
   try {
-    const userId = req.user.id;
-
-    if (req.user.role !== 'supplier') {
-      return res.status(403).json({ error: 'Only suppliers can export enquiries' });
-    }
-
-    const supplier = await dbUnified.findOne('suppliers', { ownerUserId: userId });
-
+    const supplier = await loadApprovedSupplierForEnquiries(req, res);
     if (!supplier) {
-      return res.status(404).json({ error: 'Supplier profile not found' });
+      return;
     }
 
-    // Get quote requests for this supplier
-    const supplierEnquiries = await dbUnified.find('quoteRequests', { supplierId: supplier.id });
-
-    // Get user details for enquiries
-    const users = await dbUnified.read('users');
-    const userMap = {};
-    users.forEach(u => {
-      userMap[u.id] = u;
+    const rows = await supplierEnquiries.buildExportRows({
+      supplierId: supplier.id,
+      ownerUserId: req.user.id,
     });
+    const csv = serializeCsv(supplierEnquiries.EXPORT_HEADERS, rows);
 
-    // Build CSV
-    const headers = [
-      'Date',
-      'Customer Name',
-      'Customer Email',
-      'Event Type',
-      'Event Date',
-      'Location',
-      'Budget',
-      'Guest Count',
-      'Status',
-      'Message',
-    ].join(',');
-
-    const rows = supplierEnquiries.map(enq => {
-      const user = userMap[enq.customerId] || {};
-      const date = new Date(enq.createdAt).toLocaleDateString('en-GB');
-      const eventDate = enq.eventDate ? new Date(enq.eventDate).toLocaleDateString('en-GB') : 'N/A';
-
-      return [
-        date,
-        `"${user.name || 'N/A'}"`,
-        `"${user.email || 'N/A'}"`,
-        `"${enq.eventType || 'N/A'}"`,
-        eventDate,
-        `"${enq.location || 'N/A'}"`,
-        `"${enq.budget || 'N/A'}"`,
-        enq.guestCount || 'N/A',
-        `"${enq.status || 'pending'}"`,
-        `"${(enq.message || '').replace(/"/g, '""')}"`,
-      ].join(',');
-    });
-
-    const csv = [headers, ...rows].join('\n');
-
-    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
     res.setHeader(
       'Content-Disposition',
-      `attachment; filename="enquiries-${new Date().toISOString().split('T')[0]}.csv"`
+      `attachment; filename="enquiries-and-conversations-${new Date().toISOString().split('T')[0]}.csv"`
     );
+    res.setHeader('X-Export-Row-Count', String(rows.length));
     res.send(csv);
   } catch (error) {
-    logger.error('Error exporting enquiries:', error);
-    res.status(500).json({
-      error: 'Failed to export enquiries',
-      details: process.env.NODE_ENV !== 'production' ? error.message : undefined,
+    logger.error('Error exporting enquiries:', error.message);
+    res.status(500).json({ error: 'Failed to export enquiries' });
+  }
+});
+
+/**
+ * GET /api/supplier/enquiries
+ * Quote requests and contact-form enquiries addressed to this supplier, newest first.
+ *
+ * Query: days (1-365, default 90), page, limit (1-100, default 20),
+ * status (new|read|handled), source (quote_request|contact_form).
+ */
+router.get('/enquiries', authRequired, async (req, res) => {
+  try {
+    const supplier = await loadApprovedSupplierForEnquiries(req, res);
+    if (!supplier) {
+      return;
+    }
+    const result = await supplierEnquiries.listEnquiries({
+      supplierId: supplier.id,
+      query: req.query,
     });
+    res.json({ success: true, ...result });
+  } catch (error) {
+    logger.error('Error listing enquiries:', error.message);
+    res.status(500).json({ error: 'Failed to load enquiries' });
+  }
+});
+
+/**
+ * GET /api/supplier/enquiries/:id
+ * One enquiry in full (including the contact details the customer submitted).
+ * 404 for an id that does not exist or was addressed to a different supplier.
+ */
+router.get('/enquiries/:id', authRequired, async (req, res) => {
+  try {
+    const supplier = await loadApprovedSupplierForEnquiries(req, res);
+    if (!supplier) {
+      return;
+    }
+    const enquiry = await supplierEnquiries.getEnquiry(supplier.id, req.params.id);
+    if (!enquiry) {
+      res.status(404).json({ error: 'Enquiry not found' });
+      return;
+    }
+    res.json({ success: true, enquiry });
+  } catch (error) {
+    logger.error('Error loading enquiry:', error.message);
+    res.status(500).json({ error: 'Failed to load enquiry' });
+  }
+});
+
+/**
+ * PATCH /api/supplier/enquiries/:id
+ * Mark an enquiry new, read or handled. Body: { status }. The state belongs to this
+ * supplier only; it is not shown to the customer or to other suppliers.
+ */
+router.patch('/enquiries/:id', authRequired, csrfProtection, writeLimiter, async (req, res) => {
+  try {
+    const supplier = await loadApprovedSupplierForEnquiries(req, res);
+    if (!supplier) {
+      return;
+    }
+    const status = req.body?.status;
+    if (!supplierEnquiries.STATUSES.includes(status)) {
+      res.status(400).json({ error: 'status must be one of: new, read, handled' });
+      return;
+    }
+    const enquiry = await supplierEnquiries.setEnquiryStatus(supplier.id, req.params.id, status);
+    if (!enquiry) {
+      res.status(404).json({ error: 'Enquiry not found' });
+      return;
+    }
+    // The dashboard summary's unread-requests figure must reflect this at once.
+    clearEngagementCache();
+    res.json({ success: true, enquiry });
+  } catch (error) {
+    logger.error('Error updating enquiry:', error.message);
+    res.status(500).json({ error: 'Failed to update enquiry' });
   }
 });
 
@@ -563,17 +636,13 @@ router.get('/reviews/stats', authRequired, async (req, res) => {
       return res.status(404).json({ error: 'Supplier profile not found' });
     }
 
-    // Get reviews using dbUnified
-    const supplierReviews = await dbUnified.find('reviews', { supplierId: supplier.id });
+    // Only approved reviews count, exactly as on the public reviews panel and in the
+    // dashboard summary, so the three can never show different numbers.
+    const allReviews = (await dbUnified.find('reviews', { supplierId: supplier.id })) || [];
+    const supplierReviews = allReviews.filter(isApprovedReview);
 
     const totalReviews = supplierReviews.length;
-    const averageRating =
-      totalReviews > 0
-        ? Math.round(
-            (supplierReviews.reduce((sum, r) => sum + (Number(r.rating) || 0), 0) / totalReviews) *
-              100
-          ) / 100
-        : 0;
+    const averageRating = summariseReviews(allReviews).averageRating;
 
     // Calculate distribution - only count valid integer ratings (1-5)
     const distribution = { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 };
@@ -791,7 +860,12 @@ router.post(
 
 /**
  * GET /api/supplier/dashboard-summary
- * Aggregated dashboard data in a single call
+ * Aggregated dashboard data in a single call.
+ *
+ * Query: `days` - whole number of days (default 30, capped at 90 and at the plan's
+ * analytics entitlement; the window actually served is reported in `window`).
+ * The payload is assembled by services/supplierDashboardSummary.js; its contract
+ * is documented in docs/SUPPLIER_DASHBOARD_DATA.md.
  */
 router.get('/dashboard-summary', authRequired, async (req, res) => {
   try {
@@ -801,286 +875,25 @@ router.get('/dashboard-summary', authRequired, async (req, res) => {
       return res.status(403).json({ error: 'Only suppliers can access the dashboard summary' });
     }
 
-    const supplier = await dbUnified.findOne('suppliers', { ownerUserId: userId });
+    // A failed lookup must be a 500, not a misleading "no profile" 404.
+    const supplier = await dbUnified.findOne(
+      'suppliers',
+      { ownerUserId: userId },
+      { throwOnError: true }
+    );
 
     if (!supplier) {
       return res.status(404).json({ error: 'Supplier profile not found' });
     }
 
-    const supplierId = supplier.id;
-    const days = Math.min(
-      parseInt(req.query.days) || DEFAULT_ANALYTICS_WINDOW_DAYS,
-      MAX_ANALYTICS_WINDOW_DAYS
-    );
-
-    const now = new Date();
-    const periodStart = new Date(now.getTime() - days * 24 * 60 * 60 * 1000);
-    const prevPeriodStart = new Date(periodStart.getTime() - days * 24 * 60 * 60 * 1000);
-
-    // --- Analytics ---
-    let analyticsData = {
-      totalViews: 0,
-      totalEnquiries: 0,
-      responseRate: 100,
-      avgResponseTime: 0,
-      dailyData: [],
-      viewsTrend: 0,
-      enquiriesTrend: 0,
-      responseTrend: 0,
-    };
-    try {
-      const supplierAnalytics = require('../utils/supplierAnalytics');
-      const { EVENT_TYPES } = supplierAnalytics;
-
-      // Fetch current-period analytics and raw events in parallel
-      const [current, allEvents] = await Promise.all([
-        supplierAnalytics.getSupplierAnalytics(supplierId, days),
-        dbUnified
-          .read('events')
-          .then(evts => (evts || []).filter(e => e.supplierId === supplierId)),
-      ]);
-
-      const periodStartStr = periodStart.toISOString();
-      const prevPeriodStartStr = prevPeriodStart.toISOString();
-
-      const prevEvents = allEvents.filter(
-        e => e.timestamp >= prevPeriodStartStr && e.timestamp < periodStartStr
-      );
-      const prevViews = prevEvents.filter(e => e.type === EVENT_TYPES.PROFILE_VIEW).length;
-      const prevEnquiries = prevEvents.filter(e => e.type === EVENT_TYPES.ENQUIRY_SENT).length;
-
-      analyticsData = {
-        totalViews: current.totalViews,
-        totalEnquiries: current.totalEnquiries,
-        responseRate: current.responseRate,
-        avgResponseTime: current.avgResponseTime,
-        dailyData: current.dailyData,
-        // Return null when previous period has no data, to avoid misleading percentages
-        viewsTrend:
-          prevViews > 0 ? Math.round(((current.totalViews - prevViews) / prevViews) * 100) : null,
-        enquiriesTrend:
-          prevEnquiries > 0
-            ? Math.round(((current.totalEnquiries - prevEnquiries) / prevEnquiries) * 100)
-            : null,
-        // Response rate is computed across all threads (not time-windowed), so trend is not available
-        responseTrend: 0,
-      };
-    } catch (err) {
-      logger.error('dashboard-summary: analytics sub-query failed:', err);
-    }
-
-    // --- Profile ---
-    let profileData = {
-      hasProfile: false,
-      profileCount: 0,
-      topProfileId: null,
-      topProfileName: null,
-      healthScore: 0,
-      isApproved: false,
-      completionFlags: {
-        hasLogo: false,
-        hasDescription: false,
-        hasLocation: false,
-        hasCoverImage: false,
-        hasGallery: false,
-        hasSocialLinks: false,
-        hasWebsite: false,
-      },
-    };
-    try {
-      // Get all profiles for this user to count total
-      const supplierProfiles = await dbUnified.find('suppliers', { ownerUserId: userId });
-      const profileCount = supplierProfiles.length;
-      const topProfile = supplier; // primary profile already found above via findOne
-
-      // Mirrors ProfileHealthWidget's client-side calculation (public/assets/js/components/
-      // profile-health-widget.js) so the "profile health is low" alert on this dashboard
-      // fires (or doesn't) in agreement with the percentage the supplier actually sees on
-      // the "Profile Health" card, rather than a separate, disagreeing formula.
-      const galleryCount = getSupplierGalleryCount(topProfile);
-      const socialLinkCount = supplierSocialLinkCount(topProfile);
-
-      const hasLogo = !!(
-        topProfile.logo ||
-        topProfile.profileImage ||
-        topProfile.profilePhotoUrl ||
-        topProfile.avatarUrl
-      );
-      const hasDescription =
-        String(
-          topProfile.description_long ||
-            topProfile.description_short ||
-            topProfile.description ||
-            topProfile.blurb ||
-            ''
-        ).trim().length >= 100;
-      const hasLocation = !!((topProfile.location || '').trim() && hasSupplierPostcode(topProfile));
-      const hasCoverImage = !!(topProfile.bannerUrl || topProfile.coverImage);
-      const hasGallery = galleryCount >= 3;
-      const hasSocialLinks = socialLinkCount >= 2;
-      const hasWebsite = !!topProfile.website;
-
-      const healthScore =
-        (hasLogo ? 15 : 0) +
-        (hasDescription ? 15 : 0) +
-        (hasLocation ? 15 : 0) +
-        (hasCoverImage ? 15 : 0) +
-        (hasGallery ? 15 : 0) +
-        (hasSocialLinks ? 15 : 0) +
-        (hasWebsite ? 10 : 0);
-
-      profileData = {
-        hasProfile: profileCount > 0,
-        profileCount,
-        topProfileId: topProfile.id || null,
-        topProfileName: topProfile.name || null,
-        healthScore,
-        isApproved: !!(topProfile.approved || topProfile.verified),
-        completionFlags: {
-          hasLogo,
-          hasDescription,
-          hasLocation,
-          hasCoverImage,
-          hasGallery,
-          hasSocialLinks,
-          hasWebsite,
-        },
-      };
-    } catch (err) {
-      logger.error('dashboard-summary: profile sub-query failed:', err);
-    }
-
-    // --- Packages ---
-    // "Active" here means live for customers: not paused by the supplier and not
-    // withheld pending admin approval. This is the single source of truth for every
-    // package count the supplier dashboard renders (hero stat card and KPI grid both
-    // read it from this response) so the page can never show two different numbers
-    // for the same metric.
-    let packagesData = { total: 0, active: 0, draft: 0, paused: 0 };
-    try {
-      const supplierPackages = await dbUnified.find('packages', { supplierId });
-      // Classify in a single pass to avoid iterating multiple times
-      const counts = supplierPackages.reduce(
-        (acc, p) => {
-          if (p.paused === true) {
-            acc.paused++;
-          } else if (p.approved === false) {
-            acc.draft++;
-          } else {
-            acc.active++;
-          }
-          return acc;
-        },
-        { active: 0, draft: 0, paused: 0 }
-      );
-      packagesData = {
-        total: supplierPackages.length,
-        active: counts.active,
-        draft: counts.draft,
-        paused: counts.paused,
-      };
-    } catch (err) {
-      logger.error('dashboard-summary: packages sub-query failed:', err);
-    }
-
-    // --- Messages ---
-    let messagesData = { total: 0, unread: 0, latestAt: null };
-    try {
-      const conversations = (await dbUnified.read('conversationsV4')) || [];
-      const supplierConversations = conversations.filter(c => {
-        if (Array.isArray(c.participants)) {
-          return c.participants.some(p => p.userId === userId);
-        }
-        return c.supplierId === supplierId || c.userId === userId;
-      });
-
-      const total = supplierConversations.length;
-      let unread = 0;
-      let latestAt = null;
-
-      supplierConversations.forEach(c => {
-        if (Array.isArray(c.participants)) {
-          const me = c.participants.find(p => p.userId === userId);
-          if (me && (me.unreadCount || 0) > 0) {
-            unread++;
-          }
-        }
-        const ts = c.lastMessageAt || c.updatedAt || c.createdAt;
-        if (ts && (!latestAt || new Date(ts) > new Date(latestAt))) {
-          latestAt = ts;
-        }
-      });
-
-      messagesData = { total, unread, latestAt };
-    } catch (err) {
-      logger.error('dashboard-summary: messages sub-query failed:', err);
-    }
-
-    // --- Reviews ---
-    let reviewsData = { total: 0, averageRating: 0, pending: 0 };
-    try {
-      const supplierReviews = await dbUnified.find('reviews', { supplierId });
-      const total = supplierReviews.length;
-      const averageRating =
-        total > 0
-          ? parseFloat(
-              (
-                supplierReviews.reduce((sum, r) => sum + (Number(r.rating) || 0), 0) / total
-              ).toFixed(2)
-            )
-          : 0;
-      const pending = supplierReviews.filter(
-        r => r.status === 'pending' || r.moderation?.state === 'pending'
-      ).length;
-
-      reviewsData = { total, averageRating, pending };
-    } catch (err) {
-      logger.error('dashboard-summary: reviews sub-query failed:', err);
-    }
-
-    // --- Tickets ---
-    let ticketsData = { total: 0, open: 0, inProgress: 0 };
-    try {
-      const supplierTickets = await dbUnified.find('tickets', {
-        senderId: userId,
-        senderType: 'supplier',
-      });
-      ticketsData = {
-        total: supplierTickets.length,
-        open: supplierTickets.filter(t => t.status === 'open').length,
-        inProgress: supplierTickets.filter(t => t.status === 'in_progress').length,
-      };
-    } catch (err) {
-      logger.error('dashboard-summary: tickets sub-query failed:', err);
-    }
-
-    // --- Subscription ---
-    let subscriptionData = {
-      tier: 'free',
-      status: 'active',
-      renewsAt: null,
-      trialEndsAt: null,
-    };
-    try {
-      subscriptionData = {
-        tier: supplier.subscription?.tier || (supplier.isPro ? 'pro' : 'free'),
-        status: supplier.subscriptionStatus || supplier.subscription?.status || 'active',
-        renewsAt: supplier.subscriptionRenewsAt || supplier.subscription?.renewsAt || null,
-        trialEndsAt: supplier.trialEndsAt || null,
-      };
-    } catch (err) {
-      logger.error('dashboard-summary: subscription sub-query failed:', err);
-    }
-
-    res.json({
-      analytics: analyticsData,
-      profile: profileData,
-      packages: packagesData,
-      messages: messagesData,
-      reviews: reviewsData,
-      tickets: ticketsData,
-      subscription: subscriptionData,
+    // A malformed `days` falls back to the default rather than failing the whole dashboard.
+    const summary = await buildDashboardSummary({
+      userId,
+      supplier,
+      requestedDays: parseDaysParam(req.query.days).value,
     });
+
+    res.json(summary);
   } catch (error) {
     logger.error('Error fetching dashboard summary:', error);
     res.status(500).json({
@@ -1244,7 +1057,7 @@ router.get('/performance-tips', authRequired, async (req, res) => {
         category: 'profile',
         icon: '✍️',
         title: 'Add a business description',
-        body: 'Suppliers with descriptions get 3× more enquiries.',
+        body: 'Tell customers what you offer and where you work, so they can decide whether to get in touch.',
         action: { label: 'Edit Profile', href: '#toggle-profile-form' },
       });
     }
@@ -1255,7 +1068,7 @@ router.get('/performance-tips', authRequired, async (req, res) => {
         category: 'profile',
         icon: '📸',
         title: 'Upload at least 3 photos',
-        body: 'Photo galleries increase conversion by 40%.',
+        body: 'Customers like to see your work before they get in touch. Add photos from events you have delivered.',
         action: { label: 'Add Photos', href: '#my-suppliers' },
       });
     }
@@ -1266,7 +1079,7 @@ router.get('/performance-tips', authRequired, async (req, res) => {
         category: 'packages',
         icon: '📦',
         title: 'Create your first package',
-        body: 'Packages make pricing clear and attract more enquiries.',
+        body: 'Packages show customers what you offer and roughly what it costs.',
         action: { label: 'Create Package', href: '#toggle-package-form' },
       });
     }
@@ -1288,18 +1101,18 @@ router.get('/performance-tips', authRequired, async (req, res) => {
         category: 'profile',
         icon: '💬',
         title: 'Add a tagline',
-        body: 'A catchy tagline helps you stand out on search results.',
+        body: 'A short tagline tells customers what you do at a glance.',
         action: { label: 'Edit Profile', href: '#toggle-profile-form' },
       });
     }
-    if (supplierSocialLinkCount(supplier) === 0) {
+    if (getSupplierSocialLinkCount(supplier) === 0) {
       tips.push({
         id: 'social-links',
         priority: 6,
         category: 'profile',
         icon: '🔗',
         title: 'Add social media links',
-        body: 'Social proof builds trust with potential customers.',
+        body: 'Linking your social profiles lets customers see more of your work.',
         action: { label: 'Edit Profile', href: '#toggle-profile-form' },
       });
     }

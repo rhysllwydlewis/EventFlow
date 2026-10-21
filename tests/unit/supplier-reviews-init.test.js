@@ -12,6 +12,31 @@ function runNodeSmoke(source) {
 }
 
 describe('supplier review management frontend', () => {
+  it('cannot be made to inject an attribute through a review id or date containing quotes', () => {
+    runNodeSmoke(String.raw`
+      const assert = require('assert');
+      const fs = require('fs');
+      const { JSDOM } = require('jsdom');
+      const dom = new JSDOM('<!doctype html><div id="supplier-reviews-section"></div>', {
+        url: 'https://event-flow.co.uk/dashboard-supplier',
+        runScripts: 'outside-only',
+      });
+      const { document } = dom.window;
+      const evilId = 'rev" onfocus="window.__pwned=1" x="';
+      dom.window.fetch = async () => ({
+        ok: true,
+        json: async () => ({ data: { reviews: [{ _id: evilId, rating: 4, text: 'Great.', authorName: 'A', createdAt: '2026" onclick="window.__pwned=2', votes: {} }], pagination: { total: 1, page: 1, pages: 1, limit: 10 }, analytics: { avgRating: 4, totalReviews: 1, ratingDistribution: [0, 0, 0, 1, 0] } } }),
+      });
+      dom.window.eval(fs.readFileSync('public/assets/js/pages/supplier-reviews-init.js', 'utf8'));
+      (async () => {
+        await dom.window.SupplierReviews.init('sup-1', 'supplier-reviews-section');
+        const injected = document.querySelectorAll('[onfocus], [onclick]').length;
+        assert.strictEqual(injected, 0, 'an attribute was injected');
+        assert.strictEqual(document.querySelector('.sr-reply-btn').dataset.reviewId, evilId);
+      })().catch(error => { console.error(error); process.exit(1); });
+    `);
+  });
+
   it('validates reply length, uses /api/csrf-token, and refreshes analytics after posting', () => {
     runNodeSmoke(String.raw`
       const assert = require('assert');
@@ -54,6 +79,53 @@ describe('supplier review management frontend', () => {
         assert(calls.some(call => call[0] === '/api/csrf-token'));
         assert.strictEqual(postCall[1].headers['X-CSRF-Token'], 'csrf-from-system-route');
         assert.strictEqual(document.querySelector('.sr-stat-value').textContent, '50%');
+      })().catch(error => { console.error(error); process.exit(1); });
+    `);
+  });
+
+  it('shows a dash, not a 0.0 rating, when the server has no average', () => {
+    runNodeSmoke(String.raw`
+      const assert = require('assert');
+      const fs = require('fs');
+      const { JSDOM } = require('jsdom');
+      const dom = new JSDOM('<!doctype html><div id="supplier-reviews-section"></div>', {
+        url: 'https://event-flow.co.uk/dashboard-supplier',
+        runScripts: 'outside-only',
+      });
+      const { document } = dom.window;
+      dom.window.fetch = async () => ({ ok: true, json: async () => ({ data: { reviews: [{ _id: 'rev-1', title: 'Unrated', text: 'No stars were left.', authorName: 'A Customer', createdAt: '2026-06-01T12:00:00.000Z', votes: {} }], pagination: { total: 1, page: 1, pages: 1, limit: 10 }, analytics: { avgRating: null, totalReviews: 1, responseRate: null, ratingDistribution: [0, 0, 0, 0, 0] } } }) });
+      dom.window.eval(fs.readFileSync('public/assets/js/pages/supplier-reviews-init.js', 'utf8'));
+      (async () => {
+        await dom.window.SupplierReviews.init('sup-1', 'supplier-reviews-section');
+        const big = document.querySelector('.sr-big-rating');
+        assert(big, 'summary rendered');
+        assert(!big.textContent.includes('0.0'));
+        assert.strictEqual(big.textContent.trim(), '–');
+      })().catch(error => { console.error(error); process.exit(1); });
+    `);
+  });
+
+  it('shows reviews stored in either shape with the right name, text, rating, date and reply', () => {
+    runNodeSmoke(String.raw`
+      const assert = require('assert');
+      const fs = require('fs');
+      const { JSDOM } = require('jsdom');
+      const dom = new JSDOM('<!doctype html><div id="supplier-reviews-section"></div>', {
+        url: 'https://event-flow.co.uk/dashboard-supplier',
+        runScripts: 'outside-only',
+      });
+      const { document } = dom.window;
+      const reviews = [
+        { _id: 'v2-1', rating: 5, title: 'Perfect', text: 'Newer shape text.', authorName: 'Dana V.', createdAt: '2026-06-01T12:00:00.000Z', response: { text: 'Thank you Dana', respondedAt: '2026-06-02T12:00:00.000Z' }, votes: {} },
+        { id: 'legacy-1', rating: 4, comment: 'Older shape comment.', userName: 'Sam T.', createdAt: '2026-05-01T12:00:00.000Z', supplierResponse: { text: 'Cheers Sam', respondedAt: '2026-05-02T12:00:00.000Z' }, votes: {} },
+      ];
+      dom.window.fetch = async () => ({ ok: true, json: async () => ({ data: { reviews, pagination: { total: 2, page: 1, pages: 1, limit: 10 }, analytics: { avgRating: 4.5, totalReviews: 2, responseRate: null, ratingDistribution: [0, 0, 0, 1, 1] } } }) });
+      dom.window.eval(fs.readFileSync('public/assets/js/pages/supplier-reviews-init.js', 'utf8'));
+      (async () => {
+        await dom.window.SupplierReviews.init('sup-1', 'supplier-reviews-section');
+        const text = document.getElementById('supplier-reviews-section').textContent;
+        ['Dana V.', 'Newer shape text.', 'Thank you Dana', 'Sam T.', 'Older shape comment.', 'Cheers Sam'].forEach(part => assert(text.includes(part), part));
+        assert(!text.includes('Anonymous'));
       })().catch(error => { console.error(error); process.exit(1); });
     `);
   });

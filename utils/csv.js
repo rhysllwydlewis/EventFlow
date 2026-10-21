@@ -37,8 +37,10 @@ function startsWithSpreadsheetFormula(value) {
  * are prefixed with an apostrophe so spreadsheet applications treat them as text.
  */
 function escapeCsvCell(value) {
-  let text = csvText(value).replace(/\r\n?/g, '\n');
-  if (startsWithSpreadsheetFormula(text)) {
+  const raw = csvText(value);
+  let text = raw.replace(/\r\n?/g, '\n');
+  // A leading tab or carriage return is also a formula-injection vector (OWASP).
+  if (/^[\t\r]/.test(raw) || startsWithSpreadsheetFormula(text)) {
     text = `'${text}`;
   }
   return `"${text.replace(/"/g, '""')}"`;

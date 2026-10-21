@@ -35,6 +35,14 @@
       }
       return;
     }
+    if (img.dataset.fallbackText !== undefined && img.parentNode) {
+      // A photo that will not load becomes the person's initials (a plain, clearly generic fallback).
+      const initials = document.createElement('span');
+      initials.className = 'ef-img-fallback-initials';
+      initials.textContent = img.dataset.fallbackText;
+      img.replaceWith(initials);
+      return;
+    }
     if (img.dataset.fallbackSrc) {
       img.src = img.dataset.fallbackSrc;
       return;
@@ -287,162 +295,214 @@ function escapeHtml(unsafe) {
   return div.innerHTML;
 }
 
+/**
+ * Escapes text for use inside a double- or single-quoted HTML attribute (aria-label, title, data-*,
+ * src, href). escapeHtml leaves quotes alone, so a package called 6" cake would end its own
+ * attribute; this also turns both kinds of quote into entities.
+ * @param {*} unsafe - The value to escape (non-strings become an empty string).
+ * @returns {string} Text safe to place between attribute quotes.
+ */
+function escapeAttr(unsafe) {
+  return escapeHtml(unsafe).split('"').join('&quot;').split("'").join('&#39;');
+}
+
+/**
+ * The price to show for a package: what the supplier typed (`price`), or the older
+ * `price_display`; nothing when neither is there.
+ * @param {Object} p - Package record.
+ * @returns {string} The price text, or ''.
+ */
+function packagePriceText(p) {
+  const typed = p.price_display || p.price;
+  return typed === undefined || typed === null ? '' : String(typed).trim();
+}
+
 // Supplier avatar initials/color: shared with every other supplier avatar
 // placeholder on the site — see public/assets/js/utils/supplier-avatar.js.
 function generateSupplierGradient(supplierOrName) {
   return window.EFSupplierAvatar.getSupplierAvatarGradient(supplierOrName);
 }
 
-// Validate redirect parameter for role-based access (SECURITY)
-// Only allows same-origin, allowlisted paths appropriate for the user's role
-function validateRedirectForRole(redirectUrl, userRole) {
-  if (!redirectUrl || typeof redirectUrl !== 'string') {
-    return false;
-  }
+/**
+ * The pages each kind of account may be sent to after signing in or registering, by `redirect`
+ * parameter. Anything not listed here is never a redirect target.
+ */
+const REDIRECT_ALLOWED_PATHS = {
+  admin: [
+    '/admin',
+    '/admin.html',
+    '/admin-audit',
+    '/admin-audit.html',
+    '/admin-content',
+    '/admin-content.html',
+    '/admin-homepage',
+    '/admin-homepage.html',
+    '/admin-marketplace',
+    '/admin-marketplace.html',
+    '/admin-packages',
+    '/admin-packages.html',
+    '/admin-payments',
+    '/admin-payments.html',
+    '/admin-media',
+    '/admin-media.html',
+    '/admin-messenger-view',
+    '/admin-messenger-view.html',
+    '/admin-pexels',
+    '/admin-pexels.html',
+    '/admin-photos',
+    '/admin-photos.html',
+    '/admin-reports',
+    '/admin-reports.html',
+    '/admin-settings',
+    '/admin-settings.html',
+    '/admin-supplier-detail',
+    '/admin-supplier-detail.html',
+    '/admin-suppliers',
+    '/admin-suppliers.html',
+    '/admin-tickets',
+    '/admin-tickets.html',
+    '/admin-user-detail',
+    '/admin-user-detail.html',
+    '/admin-users',
+    '/admin-users.html',
+    '/admin-search',
+    '/admin-search.html',
+  ],
+  supplier: [
+    '/dashboard/supplier',
+    '/dashboard-supplier.html',
+    '/dashboard',
+    '/dashboard.html',
+    '/settings',
+    '/settings.html',
+    '/plan',
+    '/plan.html',
+    '/pricing',
+    '/pricing.html',
+    '/checkout',
+    '/checkout.html',
+    '/supplier/subscription',
+    '/supplier/subscription.html',
+    '/my-marketplace-listings',
+    '/my-marketplace-listings.html',
+    '/supplier/marketplace-new-listing',
+    '/supplier/marketplace-new-listing.html',
+    '/marketplace',
+    '/marketplace.html',
+    '/suppliers',
+    '/suppliers.html',
+    '/supplier',
+    '/supplier.html',
+    '/messenger/',
+    '/messages',
+    '/messages.html',
+    '/conversation',
+    '/conversation.html',
+    '/notifications',
+    '/notifications.html',
+    '/timeline',
+    '/timeline.html',
+    '/budget',
+    '/budget.html',
+  ],
+  customer: [
+    '/dashboard/customer',
+    '/dashboard-customer.html',
+    '/dashboard',
+    '/dashboard.html',
+    '/settings',
+    '/settings.html',
+    '/plan',
+    '/plan.html',
+    '/pricing',
+    '/pricing.html',
+    '/checkout',
+    '/checkout.html',
+    '/my-marketplace-listings',
+    '/my-marketplace-listings.html',
+    '/marketplace',
+    '/marketplace.html',
+    '/suppliers',
+    '/suppliers.html',
+    '/supplier',
+    '/supplier.html',
+    '/messenger/',
+    '/messages',
+    '/messages.html',
+    '/conversation',
+    '/conversation.html',
+    '/notifications',
+    '/notifications.html',
+    '/timeline',
+    '/timeline.html',
+    '/budget',
+    '/budget.html',
+    '/guests',
+    '/guests.html',
+    '/start',
+    '/start.html',
+  ],
+};
 
-  // Remove any whitespace
-  const url = redirectUrl.trim();
-
-  // Must start with / (relative path only, no external redirects)
-  if (!url.startsWith('/')) {
-    return false;
-  }
-
-  // Parse URL to get pathname (strip query string and hash)
-  let pathname;
+/**
+ * Reads an address, or null when it cannot be read (it is never trusted as it stands).
+ * @param {string} text - The address.
+ * @param {string} base - What a relative address is relative to.
+ * @returns {URL|null} The parsed address, or null.
+ */
+function parseUrlOrNull(text, base) {
   try {
-    const urlObj = new URL(url, window.location.origin);
-    // Verify it's same-origin - use location.host for more robust check
-    // This ensures protocol + hostname + port all match
-    if (urlObj.host !== window.location.host || urlObj.protocol !== window.location.protocol) {
-      return false;
-    }
-    pathname = urlObj.pathname;
+    return new URL(text, base);
   } catch {
-    // If URL parsing fails, treat as pathname directly
-    pathname = url.split('?')[0].split('#')[0];
+    return null;
   }
+}
 
-  // Define allowlisted pages per role
-  const allowedPaths = {
-    admin: [
-      '/admin',
-      '/admin.html',
-      '/admin-audit',
-      '/admin-audit.html',
-      '/admin-content',
-      '/admin-content.html',
-      '/admin-homepage',
-      '/admin-homepage.html',
-      '/admin-marketplace',
-      '/admin-marketplace.html',
-      '/admin-packages',
-      '/admin-packages.html',
-      '/admin-payments',
-      '/admin-payments.html',
-      '/admin-media',
-      '/admin-media.html',
-      '/admin-messenger-view',
-      '/admin-messenger-view.html',
-      '/admin-pexels',
-      '/admin-pexels.html',
-      '/admin-photos',
-      '/admin-photos.html',
-      '/admin-reports',
-      '/admin-reports.html',
-      '/admin-settings',
-      '/admin-settings.html',
-      '/admin-supplier-detail',
-      '/admin-supplier-detail.html',
-      '/admin-suppliers',
-      '/admin-suppliers.html',
-      '/admin-tickets',
-      '/admin-tickets.html',
-      '/admin-user-detail',
-      '/admin-user-detail.html',
-      '/admin-users',
-      '/admin-users.html',
-      '/admin-search',
-      '/admin-search.html',
-    ],
-    supplier: [
-      '/dashboard/supplier',
-      '/dashboard-supplier.html',
-      '/dashboard',
-      '/dashboard.html',
-      '/settings',
-      '/settings.html',
-      '/plan',
-      '/plan.html',
-      '/pricing',
-      '/pricing.html',
-      '/checkout',
-      '/checkout.html',
-      '/supplier/subscription',
-      '/supplier/subscription.html',
-      '/my-marketplace-listings',
-      '/my-marketplace-listings.html',
-      '/supplier/marketplace-new-listing',
-      '/supplier/marketplace-new-listing.html',
-      '/marketplace',
-      '/marketplace.html',
-      '/suppliers',
-      '/suppliers.html',
-      '/supplier',
-      '/supplier.html',
-      '/messenger/',
-      '/messages',
-      '/messages.html',
-      '/conversation',
-      '/conversation.html',
-      '/notifications',
-      '/notifications.html',
-      '/timeline',
-      '/timeline.html',
-      '/budget',
-      '/budget.html',
-    ],
-    customer: [
-      '/dashboard/customer',
-      '/dashboard-customer.html',
-      '/dashboard',
-      '/dashboard.html',
-      '/settings',
-      '/settings.html',
-      '/plan',
-      '/plan.html',
-      '/pricing',
-      '/pricing.html',
-      '/checkout',
-      '/checkout.html',
-      '/my-marketplace-listings',
-      '/my-marketplace-listings.html',
-      '/marketplace',
-      '/marketplace.html',
-      '/suppliers',
-      '/suppliers.html',
-      '/supplier',
-      '/supplier.html',
-      '/messenger/',
-      '/messages',
-      '/messages.html',
-      '/conversation',
-      '/conversation.html',
-      '/notifications',
-      '/notifications.html',
-      '/timeline',
-      '/timeline.html',
-      '/budget',
-      '/budget.html',
-      '/guests',
-      '/guests.html',
-      '/start',
-      '/start.html',
-    ],
-  };
-
-  const allowed = allowedPaths[userRole] || [];
-  return allowed.includes(pathname);
+/**
+ * Where to send a signed-in person for a `redirect` (or `return`) parameter, or null when it must be
+ * ignored (SECURITY).
+ *
+ * The parameter is only ever used to pick an entry from REDIRECT_ALLOWED_PATHS: the address returned
+ * is built from that entry (a constant), plus the query string and fragment, never from the raw
+ * text. So the visitor-supplied value cannot choose the host, the scheme or the path. Anything that
+ * is not a plain path on this site is refused outright, and a value that cannot be parsed is
+ * refused (it never falls back to being trusted as it stands).
+ *
+ * @param {string} redirectUrl - The raw `redirect` parameter.
+ * @param {string} userRole - The signed-in account's role.
+ * @param {string} [plan] - A plan to carry along as `?plan=`, unless the address already names one.
+ * @returns {string|null} A same-site address, or null.
+ */
+function safeRedirectTarget(redirectUrl, userRole, plan) {
+  if (typeof redirectUrl !== 'string') {
+    return null;
+  }
+  const text = redirectUrl.trim();
+  // A path on this site only. A browser drops tabs and newlines and reads a backslash as a slash, so
+  // "/\t/evil.example" and "/\\evil.example" would otherwise turn into "//evil.example".
+  if (
+    !text.startsWith('/') ||
+    text.startsWith('//') ||
+    Array.from(text).some(
+      char => char === '\\' || char.charCodeAt(0) <= 31 || char.charCodeAt(0) === 127
+    )
+  ) {
+    return null;
+  }
+  const parsed = parseUrlOrNull(text, window.location.origin);
+  if (!parsed || parsed.origin !== window.location.origin) {
+    return null;
+  }
+  const page = (REDIRECT_ALLOWED_PATHS[userRole] || []).find(path => path === parsed.pathname);
+  if (!page) {
+    return null;
+  }
+  const query = new URLSearchParams(parsed.search);
+  if (plan && !query.has('plan')) {
+    query.set('plan', String(plan));
+  }
+  const search = query.toString();
+  return `${page}${search ? `?${search}` : ''}${parsed.hash}`;
 }
 
 // Shared banner used by explicit page actions that need inline network feedback.
@@ -643,25 +703,6 @@ function supplierCard(s, user) {
       <div class="form-actions">${addBtn}<a class="cta secondary" href="${supplierHref}">View details</a></div>
     </div>
   </div>`;
-}
-
-function normalizeSubscriptionTier(...tierCandidates) {
-  for (const candidate of tierCandidates) {
-    if (!candidate) {
-      continue;
-    }
-    const normalized = String(candidate).toLowerCase().trim();
-    if (normalized === 'pro' || normalized === 'pro_plus' || normalized === 'featured') {
-      return normalized;
-    }
-    if (normalized === 'pro+' || normalized === 'pro plus') {
-      return 'pro_plus';
-    }
-    if (normalized === 'free' || normalized === 'starter') {
-      return 'free';
-    }
-  }
-  return null;
 }
 
 // initHome() removed - now handled by home-init.js to avoid conflicts
@@ -1109,12 +1150,12 @@ async function initPlan() {
               ${budgetItems
                 .map(
                   row => `
-                <tr data-id="${row.id}">
+                <tr data-id="${escapeAttr(row.id)}">
                   <td>${escapeHtml(row.label || '')}</td>
                   <td>${escapeHtml(row.estimate || '')}</td>
                   <td>${escapeHtml(row.actual || '')}</td>
                   <td>${escapeHtml(row.notes || '')}</td>
-                  <td><button class="ef-cta link-button" data-remove-budget="${row.id}">Remove</button></td>
+                  <td><button class="ef-cta link-button" data-remove-budget="${escapeAttr(row.id)}">Remove</button></td>
                 </tr>
               `
                 )
@@ -1188,11 +1229,11 @@ async function initPlan() {
             ${guests
               .map(
                 g => `
-              <tr data-id="${g.id}">
+              <tr data-id="${escapeAttr(g.id)}">
                 <td>${escapeHtml(g.name || '')}</td>
                 <td>${escapeHtml(g.role || '')}</td>
                 <td>${escapeHtml(g.notes || '')}</td>
-                <td><button class="ef-cta link-button" data-remove-guest="${g.id}">Remove</button></td>
+                <td><button class="ef-cta link-button" data-remove-guest="${escapeAttr(g.id)}">Remove</button></td>
               </tr>
             `
               )
@@ -1230,11 +1271,11 @@ async function initPlan() {
             ${tasks
               .map(
                 t => `
-              <tr data-id="${t.id}">
-                <td><input type="checkbox" data-toggle-task="${t.id}" ${t.done ? 'checked' : ''}></td>
+              <tr data-id="${escapeAttr(t.id)}">
+                <td><input type="checkbox" data-toggle-task="${escapeAttr(t.id)}" ${t.done ? 'checked' : ''}></td>
                 <td>${escapeHtml(t.label || '')}</td>
                 <td>${escapeHtml(t.due || '')}</td>
-                <td><button class="ef-cta link-button" data-remove-task="${t.id}">Remove</button></td>
+                <td><button class="ef-cta link-button" data-remove-task="${escapeAttr(t.id)}">Remove</button></td>
               </tr>
             `
               )
@@ -1286,11 +1327,11 @@ async function initPlan() {
             ${timeline
               .map(
                 t => `
-              <tr data-id="${t.id}">
+              <tr data-id="${escapeAttr(t.id)}">
                 <td>${escapeHtml(t.time || '')}</td>
                 <td>${escapeHtml(t.item || '')}</td>
                 <td>${escapeHtml(t.owner || '')}</td>
-                <td><button class="ef-cta link-button" data-remove-timeline="${t.id}">Remove</button></td>
+                <td><button class="ef-cta link-button" data-remove-timeline="${escapeAttr(t.id)}">Remove</button></td>
               </tr>
             `
               )
@@ -1469,65 +1510,11 @@ async function initPlan() {
   }
 }
 
-// Shared CSS for the supplier dashboard's onboarding overlay.
-// Uses ID selector + !important to override the global .card { border:none!important;
-// background:#fff!important } rules that would otherwise break the gradient border.
-const EF_OB_SHARED_CSS = `
-  #ef-onboarding-box {
-    border: 2px solid transparent !important;
-    background-image: linear-gradient(#fff, #fff),
-      linear-gradient(to bottom, #0d9488, #a7f3d0) !important;
-    background-origin: padding-box, border-box !important;
-    background-clip: padding-box, border-box !important;
-    box-shadow: 0 4px 32px rgba(13, 148, 136, 0.13),
-      0 1px 4px rgba(0, 0, 0, 0.06) !important;
-    padding: 1rem 1.5rem 1.125rem !important;
-    border-radius: 16px !important;
-  }
-  #ef-ob-inner {
-    display: flex; align-items: center; gap: 1.25rem;
-    flex-wrap: wrap; padding-top: 0.125rem;
-  }
-  #ef-ob-title { flex: 1; min-width: 200px; text-align: left; }
-  #ef-ob-right {
-    display: flex; align-items: center; gap: 0.5rem;
-    flex-wrap: wrap; justify-content: flex-end;
-  }
-  #ef-onboarding-dismiss {
-    flex-shrink: 0;
-    background: linear-gradient(135deg, #22c55e, #16a34a) !important;
-    color: #fff !important;
-    font-weight: 700;
-    padding: 0.5625rem 1.25rem !important;
-    border-radius: 10px !important;
-    border: none !important;
-    cursor: pointer;
-    font-size: 0.875rem !important;
-    box-shadow: 0 3px 12px rgba(22, 163, 74, 0.3);
-    white-space: nowrap;
-    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-    width: auto !important;
-    margin-top: 0 !important;
-  }
-  .ef-ob-close:focus-visible {
-    outline: none !important;
-    box-shadow: 0 0 0 2px #fff, 0 0 0 4px #0d9488 !important;
-  }
-  @media (prefers-reduced-motion: reduce) {
-    #ef-onboarding-box, .ef-ob-pill, #ef-onboarding-dismiss {
-      transition: none !important;
-    }
-  }
-`;
-
 function efMaybeShowOnboarding(page) {
   // Check if onboarding has been permanently dismissed (either key suffices)
   try {
     const dismissed = localStorage.getItem('ef_onboarding_dismissed');
     if (dismissed === '1') {
-      return;
-    }
-    if (page === 'dash_supplier' && localStorage.getItem('ef_supplier_welcome_dismissed') === '1') {
       return;
     }
   } catch {
@@ -1550,116 +1537,7 @@ function efMaybeShowOnboarding(page) {
     return;
   }
 
-  // For supplier dashboard, create a modern, engaging onboarding card with liquid glass aesthetic
-  if (page === 'dash_supplier') {
-    const container = document.querySelector('main .container');
-    if (!container) {
-      return;
-    }
-
-    const box = document.createElement('div');
-    box.id = 'ef-onboarding-box';
-    box.className = 'card no-collapse';
-    box.style.color = '#1f2937';
-    box.style.padding = '1rem 1.5rem 1.125rem';
-    box.style.borderRadius = '16px';
-    box.style.position = 'relative';
-    box.style.overflow = 'hidden';
-    box.style.boxShadow = '0 4px 32px rgba(13, 148, 136, 0.13), 0 1px 4px rgba(0, 0, 0, 0.06)';
-    box.style.border = '2px solid transparent';
-    box.style.backgroundImage =
-      'linear-gradient(#ffffff, #ffffff), linear-gradient(to bottom, #0d9488, #a7f3d0)';
-    box.style.backgroundOrigin = 'padding-box, border-box';
-    box.style.backgroundClip = 'padding-box, border-box';
-
-    box.innerHTML = `
-      <style>
-        ${EF_OB_SHARED_CSS}
-        /* Supplier-specific pill sizing */
-        .ef-ob-pill {
-          flex: 0 0 148px; display: flex; align-items: center;
-          gap: 0.375rem; padding: 0.375rem 0.75rem;
-          background: #f0fdfa; border: 1px solid #99f6e4; border-radius: 8px;
-        }
-        .ef-ob-pill span:last-child {
-          color: #134e4a; font-weight: 500;
-          font-size: 0.8125rem; white-space: nowrap;
-        }
-        @media (max-width: 540px) {
-          #ef-onboarding-box { padding: 0.875rem 1rem 1rem !important; }
-          #ef-ob-inner { gap: 0.75rem; }
-          #ef-ob-right {
-            display: grid; grid-template-columns: 1fr 1fr;
-            width: 100%; gap: 0.5rem;
-          }
-          #ef-onboarding-dismiss { grid-column: 1 / -1; text-align: center; }
-          .ef-ob-pill { flex: unset; width: auto; }
-        }
-        @media (max-width: 400px) {
-          #ef-ob-right { grid-template-columns: 1fr; }
-        }
-      </style>
-      <div style="position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,#0d9488,#5eead4);border-radius:16px 16px 0 0;"></div>
-      <div id="ef-ob-inner">
-        <div id="ef-ob-title">
-          <h2 style="color:#1e3a5f;font-size:1.25rem;font-weight:800;letter-spacing:-0.02em;line-height:1.2;margin-bottom:0.25rem;">Welcome to your Supplier Dashboard! 👋</h2>
-          <p style="color:#6b7280;font-size:0.8125rem;line-height:1.5;margin:0;">Manage your packages, respond to enquiries, track performance and set your availability — everything in the sections below.</p>
-        </div>
-        <div id="ef-ob-right">
-          <div class="ef-ob-pill"><span style="font-size:1rem;line-height:1;" aria-hidden="true">✨</span><span>Complete profile</span></div>
-          <div class="ef-ob-pill"><span style="font-size:1rem;line-height:1;" aria-hidden="true">📦</span><span>Add a package</span></div>
-          <div class="ef-ob-pill"><span style="font-size:1rem;line-height:1;" aria-hidden="true">💬</span><span>Engage customers</span></div>
-          <div class="ef-ob-pill"><span style="font-size:1rem;line-height:1;" aria-hidden="true">📅</span><span>Set availability</span></div>
-          <button type="button" class="cta" id="ef-onboarding-dismiss" aria-label="Dismiss onboarding and start using dashboard">Got it! 🚀</button>
-        </div>
-      </div>
-    `;
-
-    const cards = container.querySelector('.cards');
-    if (cards && cards.parentNode === container) {
-      container.insertBefore(box, cards);
-    } else {
-      container.insertBefore(box, container.firstChild);
-    }
-
-    // Shared dismiss handler — delegates to module function if already loaded
-    const doOverlayDismiss = function () {
-      if (typeof window.dismissSupplierWelcome === 'function') {
-        window.dismissSupplierWelcome();
-        return;
-      }
-      // Fallback (module not yet loaded): handle inline
-      try {
-        localStorage.setItem('ef_onboarding_dismissed', '1');
-        localStorage.setItem('ef_supplier_welcome_dismissed', '1');
-      } catch {
-        /* Ignore localStorage errors */
-      }
-      const easing = 'cubic-bezier(0.4, 0, 0.2, 1)';
-      box.style.transition = `opacity 0.3s ${easing}, transform 0.3s ${easing}`;
-      box.style.opacity = '0';
-      box.style.transform = 'scale(0.95)';
-      setTimeout(() => box.remove(), 300);
-    };
-
-    const btn = box.querySelector('#ef-onboarding-dismiss');
-    if (btn) {
-      // Add hover effect with green theme glow
-      btn.addEventListener('mouseenter', () => {
-        btn.style.transform = 'scale(1.05) translateY(-2px)';
-        btn.style.boxShadow = '0 8px 20px rgba(34, 197, 94, 0.4)';
-      });
-      btn.addEventListener('mouseleave', () => {
-        btn.style.transform = 'scale(1) translateY(0)';
-        btn.style.boxShadow = '0 3px 12px rgba(22, 163, 74, 0.3)';
-      });
-
-      btn.addEventListener('click', doOverlayDismiss);
-    }
-    return;
-  }
-
-  // For other pages (admin), create the onboarding card as before
+  // Admin: a short welcome card.
   const container = document.querySelector('main .container');
   if (!container) {
     return;
@@ -1700,13 +1578,73 @@ function efMaybeShowOnboarding(page) {
   }
 }
 
+/**
+ * Tells the supplier dashboard home script that something it summarises (the profile or the
+ * packages) changed, so it asks the server for fresh numbers.
+ */
+function notifyDashboardChanged() {
+  document.dispatchEvent(new CustomEvent('sdh:changed'));
+}
+
+/**
+ * Shows a message in the same toast element the dashboard uses, for the moment before (or without)
+ * the dashboard script. Never a browser alert: those block the page and cannot be styled or read
+ * by assistive technology the same way.
+ * @param {string} message - What to say.
+ * @param {string} [type] - success, error or info.
+ */
+function showFallbackNotice(message, type) {
+  let node = document.querySelector('.sdh-toast');
+  if (!node) {
+    node = document.createElement('div');
+    node.className = 'sdh-toast';
+    node.setAttribute('role', 'status');
+    document.body.appendChild(node);
+  }
+  node.dataset.tone = type || 'info';
+  node.textContent = message;
+  node.hidden = false;
+  window.setTimeout(() => {
+    node.hidden = true;
+  }, 5000);
+}
+
+/**
+ * Tell the supplier something through the dashboard's single toast, falling back to a plain toast
+ * of our own when the dashboard script is not on the page.
+ * @param {string} message - What to say.
+ * @param {string} [type] - success, error or info.
+ */
+function efSay(message, type) {
+  const home = window.SupplierDashboardHome;
+  if (home && typeof home.toast === 'function') {
+    home.toast(message, type || 'info');
+  } else {
+    showFallbackNotice(message, type);
+  }
+}
+
+/**
+ * Ask the supplier to confirm a destructive action in the dashboard's own dialog. Without that
+ * dialog nothing is confirmed: a destructive action is never done on a guess, so the answer is no
+ * and the supplier is told to reload.
+ * @param {{title: string, message: string, confirmLabel: string}} options - What to ask.
+ * @returns {Promise<boolean>} True when the supplier confirmed.
+ */
+function efConfirm(options) {
+  const home = window.SupplierDashboardHome;
+  if (home && typeof home.confirm === 'function') {
+    return home.confirm(options);
+  }
+  efSay('Could not open the confirmation. Please reload the page and try again.', 'error');
+  return Promise.resolve(false);
+}
+
 /** Message shown in #pkg-status when the free-tier active package limit is reached. */
 const PKG_LIMIT_MESSAGE =
   'You have reached the active package limit on the Starter plan. Upgrade to Pro to add more.';
 
 async function initDashSupplier() {
-  efMaybeShowOnboarding('dash_supplier');
-
   // Fetch CSRF token if not already available
   async function ensureCsrfToken() {
     if (!window.__CSRF_TOKEN__) {
@@ -1835,8 +1773,6 @@ async function initDashSupplier() {
   const supWrap = document.getElementById('my-suppliers');
   const pkgsWrap = document.getElementById('my-packages');
   const select = document.getElementById('pkg-supplier');
-  const proRibbon = document.getElementById('supplier-pro-ribbon');
-  let currentIsPro = false;
   let currentEditingSupplierId = null; // Track which supplier is being edited
 
   // "Other areas you serve" picker state — named cities, and a single
@@ -1852,534 +1788,341 @@ async function initDashSupplier() {
   /** Bumped on every search request so a slower, older response can't overwrite a newer one. */
   let supplierServiceAreaSearchRequestId = 0;
 
+  /**
+   * Plan label for the profile card badge, from the supplier record. The dashboard home script
+   * replaces it with the plan from the dashboard summary once that has loaded, so a stale
+   * supplier record cannot show the wrong plan for long.
+   * @param {Object} supplier - Supplier record.
+   * @returns {string} Pro Plus, Pro or Starter.
+   */
+  function supplierTierLabel(supplier) {
+    const tier =
+      supplier.subscriptionTier ||
+      supplier.subscription?.tier ||
+      (supplier.isPro || supplier.pro ? 'pro' : null);
+    if (tier === 'pro_plus') {
+      return 'Pro Plus';
+    }
+    return tier === 'pro' ? 'Pro' : 'Starter';
+  }
+
+  /**
+   * The profile card: photo, name, plan and approval badges, where and what. The edit form
+   * opens from the card header; this only carries the photo controls.
+   * @param {Object} supplier - Supplier record.
+   * @param {string} photoUrl - Already escaped profile photo URL, or ''.
+   * @param {string} initials - Already escaped initials shown when there is no photo.
+   * @returns {string} Card markup.
+   */
+  function supplierCardHtml(supplier, photoUrl, initials) {
+    const supplierId = escapeAttr(String(supplier.id || ''));
+    const name = escapeHtml(String(supplier.name || 'Unnamed supplier'));
+    const meta = [supplier.location, supplier.category]
+      .filter(part => part && String(part).trim())
+      .map(part => escapeHtml(String(part)))
+      .join(' · ');
+    const approval = supplier.approved
+      ? '<span class="sdh-pill sdh-pill--ok">Approved</span>'
+      : '<span class="sdh-pill sdh-pill--warn">Awaiting review</span>';
+    return `<div class="sdh-profile" data-supplier-id="${supplierId}">
+      <div class="sdh-profile__avatar">
+        <div class="supplier-profile-photo-slot sdh-avatar" data-avatar-key="${supplierId}">${
+          photoUrl
+            ? `<img src="${photoUrl}" alt="Your profile photo" data-fallback-text="${initials.split('"').join('&quot;').split("'").join('&#39;')}">`
+            : initials
+        }</div>
+        ${
+          photoUrl
+            ? `<button type="button" class="sdh-avatar__remove" data-action="delete-profile-photo" data-profile-id="${supplierId}" title="Delete profile photo" aria-label="Delete profile photo"><span aria-hidden="true">&times;</span></button>`
+            : ''
+        }
+        <label for="supplier-profile-photo-upload-${supplierId}" class="sdh-avatar__camera">
+          <span class="sdh-sr">Upload profile photo</span>
+          <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+        </label>
+        <input type="file" id="supplier-profile-photo-upload-${supplierId}" class="supplier-profile-photo-upload sdh-sr" data-profile-id="${supplierId}" accept="image/*">
+      </div>
+      <div class="sdh-profile__main">
+        <div class="sdh-profile__name-row">
+          <h3 class="sdh-profile__name">${name}</h3>
+          <span class="sdh-pill sdh-pill--accent" data-sdh-tier>${supplierTierLabel(supplier)}</span>
+          ${approval}
+        </div>
+        ${meta ? `<p class="sdh-profile__meta">${meta}</p>` : ''}
+      </div>
+      <div class="sdh-profile__actions">
+        <button type="button" class="sdh-btn sdh-btn--secondary sdh-btn--sm" data-action="upload-photo" data-profile-id="${supplierId}">Add photos</button>
+      </div>
+    </div>`;
+  }
+
+  /** The profile card's body for a supplier who has no profile yet: one short explanation, one button. */
+  const SUPPLIER_EMPTY_HTML =
+    '<div class="sdh-empty"><p class="sdh-empty__title">Create your business profile</p><p class="sdh-empty__text">Add your business name, category and location to start. You can fill in the rest later, and customers see your profile once we have approved it.</p><button type="button" class="sdh-btn sdh-btn--primary" data-sdh-action="edit-profile" data-sdh-focus="sup-name">Create profile</button></div>';
+
+  /** A web address or a same-site path: the only kinds of picture address worth showing. */
+  const PHOTO_URL_PATTERN = /^(https?:\/\/[^\s]+|\/[^/\\:][^:]*)$/i;
+
+  /**
+   * The signed-in person's name for the avatar fallback, from their first and last name, else the
+   * first usable of name, first name and email.
+   * @param {Object|null} user - The current user.
+   * @returns {string|undefined} The name, or nothing when there is none.
+   */
+  function profileDisplayNameOf(user) {
+    return (
+      `${user?.firstName || ''} ${user?.lastName || ''}`.trim() ||
+      [user?.name, user?.firstName, user?.email]
+        .find(v => typeof v === 'string' && v.trim())
+        ?.trim()
+    );
+  }
+
+  /**
+   * Up to two capital letters for a name, or "U" when it has none.
+   * @param {string} [name] - A person's name.
+   * @returns {string} The escaped initials.
+   */
+  function initialsOfName(name) {
+    return escapeHtml(
+      (name || '')
+        .split(/\s+/)
+        .filter(Boolean)
+        .slice(0, 2)
+        .map(part => part.charAt(0).toUpperCase())
+        .join('') || 'U'
+    );
+  }
+
+  /**
+   * Gives each supplier's best picture address: its own profile pictures first, then the signed-in
+   * person's, then the logo. Anything that is not a web address or same-site path is skipped.
+   * @param {Object|null} currentUser - The signed-in user, if known.
+   * @returns {function(Object): string} Maps a supplier to an escaped address, or ''.
+   */
+  function profilePhotoResolver(currentUser) {
+    const userPhoto =
+      currentUser?.avatarUrl && PHOTO_URL_PATTERN.test(currentUser.avatarUrl)
+        ? currentUser.avatarUrl.trim()
+        : '';
+    return supplier => {
+      const candidates = [
+        supplier?.profilePhotoUrl,
+        supplier?.displayAvatarUrl,
+        supplier?.avatarUrl,
+        supplier?.profileImage,
+        userPhoto,
+        supplier?.logo,
+      ];
+      const found = candidates.find(
+        value => value && typeof value === 'string' && PHOTO_URL_PATTERN.test(value.trim())
+      );
+      return typeof found === 'string' ? escapeAttr(found.trim()) : '';
+    };
+  }
+
+  /**
+   * The signed-in user, or null when that cannot be read (the profile still renders without it).
+   * @returns {Promise<Object|null>} The user, or null.
+   */
+  async function currentUserForProfile() {
+    try {
+      return await me();
+    } catch {
+      console.warn('Unable to load current user profile for supplier photo controls');
+      return null;
+    }
+  }
+
+  /**
+   * Shows the "create your profile" card and, when the form is closed, labels its toggle to match.
+   * @param {Element|null} toggleBtn - The button that opens the profile form.
+   */
+  function showEmptySupplierState(toggleBtn) {
+    supWrap.innerHTML = SUPPLIER_EMPTY_HTML;
+    const emptyLabel = toggleBtn?.querySelector('.label');
+    if (
+      emptyLabel &&
+      !document.getElementById('profile-form-section')?.classList.contains('expanded')
+    ) {
+      emptyLabel.textContent = 'Create profile';
+    }
+  }
+
+  /** Uploads a chosen profile photo, then reloads the profile card and tells the dashboard. */
+  async function uploadProfilePhoto(e) {
+    const file = e.target.files?.[0];
+    if (!file) {
+      return;
+    }
+    const fd = new FormData();
+    fd.append('avatar', file);
+    try {
+      const resp = await fetch('/api/profile/avatar', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'X-CSRF-Token': window.__CSRF_TOKEN__ || '' },
+        body: fd,
+      });
+      const result = await resp.json().catch(() => ({}));
+      if (!resp.ok) {
+        throw new Error(result.error || 'Failed to upload profile photo');
+      }
+      // Bust the cached auth state so the next me() call fetches the updated avatarUrl
+      if (window.AuthStateManager?.refresh) {
+        await window.AuthStateManager.refresh();
+      }
+      await loadSuppliers();
+      notifyDashboardChanged();
+    } catch (err) {
+      console.error('Profile photo upload failed:', err);
+      if (window.announceToSR) {
+        window.announceToSR(err.message || 'Failed to upload profile photo');
+      }
+    } finally {
+      e.target.value = '';
+    }
+  }
+
+  /** Wires each profile photo picker once, however many times the card is redrawn. */
+  function bindProfilePhotoUploads() {
+    supWrap.querySelectorAll('.supplier-profile-photo-upload').forEach(input => {
+      if (input.dataset.bound === 'true') {
+        return;
+      }
+      input.dataset.bound = 'true';
+      input.addEventListener('change', uploadProfilePhoto);
+    });
+  }
+
+  /**
+   * Fills the package form's supplier dropdown and keeps the hidden supplier id in step with it.
+   * @param {Object[]} items - The supplier records.
+   */
+  function fillSupplierSelect(items) {
+    if (!select) {
+      return;
+    }
+    select.innerHTML = items
+      .filter(s => s?.id && s.name)
+      .map(
+        s => `<option value="${escapeHtml(String(s.id))}">${escapeHtml(String(s.name))}</option>`
+      )
+      .join('');
+    // Sync hidden supplierId input to the selected supplier
+    const hiddenInput = document.getElementById('pkg-supplier-id-hidden');
+    if (hiddenInput) {
+      // Set initial value
+      hiddenInput.value = select.value;
+      // Keep in sync when the user changes the dropdown
+      select.addEventListener('change', () => {
+        hiddenInput.value = select.value;
+      });
+    }
+  }
+
+  /**
+   * The supplier the form should show: the one being edited, else the first.
+   * @param {Object[]} items - The supplier records.
+   * @returns {Object} The supplier to edit.
+   */
+  function supplierForEditing(items) {
+    const editing = currentEditingSupplierId
+      ? items.find(s => s && s.id === currentEditingSupplierId)
+      : null;
+    return editing || items[0];
+  }
+
+  /**
+   * One profile per supplier: the toggle says "Edit profile" and the form heading too.
+   * @param {Element|null} toggleBtn - The button that opens the profile form.
+   */
+  function labelProfileFormAsEdit(toggleBtn) {
+    const labelSpan = toggleBtn?.querySelector('.label');
+    if (
+      labelSpan &&
+      !document.getElementById('profile-form-section')?.classList.contains('expanded')
+    ) {
+      labelSpan.textContent = 'Edit profile';
+    }
+    const sectionHeading = document.querySelector('#profile-form-section .supplier-section-header');
+    if (sectionHeading) {
+      sectionHeading.textContent = 'Edit profile';
+    }
+  }
+
+  /** Tells the dashboard the profile could not be read and offers a retry in place of the card. */
+  function showSupplierLoadError() {
+    document.dispatchEvent(
+      new CustomEvent('sdh:suppliers', { detail: { suppliers: null, failed: true } })
+    );
+    if (supWrap) {
+      supWrap.innerHTML =
+        '<div class="sdh-empty"><p class="sdh-empty__title">Could not load your profile</p><p class="sdh-empty__text">Check your connection and try again.</p><button type="button" class="sdh-btn sdh-btn--secondary sdh-btn--sm" data-sdh-action="reload">Try again</button></div>';
+    }
+  }
+
+  /**
+   * Draws the supplier cards. Initials sit on the supplier's own colour; the colour is data, so it
+   * is set from script.
+   * @param {Object[]} items - The supplier records.
+   * @param {Object|null} currentUser - The signed-in user, if known.
+   */
+  function renderSupplierCards(items, currentUser) {
+    const resolvePhoto = profilePhotoResolver(currentUser);
+    const profileInitial = initialsOfName(profileDisplayNameOf(currentUser));
+    supWrap.innerHTML = items
+      .filter(Boolean)
+      .map(s =>
+        supplierCardHtml(
+          s,
+          resolvePhoto(s),
+          escapeHtml(window.EFSupplierAvatar?.getSupplierInitials(s.name) || profileInitial)
+        )
+      )
+      .join('');
+    supWrap.querySelectorAll('.sdh-avatar').forEach(slot => {
+      if (!slot.querySelector('img')) {
+        slot.style.background = window.EFSupplierAvatar
+          ? window.EFSupplierAvatar.getSupplierAvatarGradient(slot.dataset.avatarKey)
+          : '';
+      }
+    });
+  }
+
   async function loadSuppliers() {
     try {
       const d = await api('/api/me/suppliers');
       const items = d?.items && Array.isArray(d.items) ? d.items : [];
-      let currentUser = null;
-      try {
-        currentUser = await me();
-      } catch {
-        console.warn('Unable to load current user profile for supplier photo controls');
-        currentUser = null;
-      }
-      const profileDisplayName =
-        `${currentUser?.firstName || ''} ${currentUser?.lastName || ''}`.trim() ||
-        [currentUser?.name, currentUser?.firstName, currentUser?.email]
-          .find(v => typeof v === 'string' && v.trim())
-          ?.trim();
-      const currentUserProfilePhotoUrl =
-        currentUser?.avatarUrl &&
-        /^(https?:\/\/[^\s]+|\/[^/\\:][^:]*)$/i.test(currentUser.avatarUrl)
-          ? currentUser.avatarUrl.trim()
-          : '';
-      const resolveDashboardSupplierProfilePhoto = supplier => {
-        const candidates = [
-          supplier?.profilePhotoUrl,
-          supplier?.displayAvatarUrl,
-          supplier?.avatarUrl,
-          supplier?.profileImage,
-          currentUserProfilePhotoUrl,
-          supplier?.logo,
-        ];
-        const found = candidates.find(value => {
-          if (!value || typeof value !== 'string') {
-            return false;
-          }
-          return /^(https?:\/\/[^\s]+|\/[^/\\:][^:]*)$/i.test(value.trim());
-        });
-        return typeof found === 'string' ? escapeHtml(found.trim()) : '';
-      };
-      const profileInitial = escapeHtml(
-        (profileDisplayName || '')
-          .split(/\s+/)
-          .filter(Boolean)
-          .slice(0, 2)
-          .map(part => part.charAt(0).toUpperCase())
-          .join('') || 'U'
-      );
+      const currentUser = await currentUserForProfile();
       window._efCachedSuppliers = items; // Expose globally for editProfile()
       const hasSupplierProfile = items.length > 0;
       const hasApprovedSupplierProfile = items.some(s => s && s.approved === true);
       window._supplierProfileMissing = !hasSupplierProfile;
       window._supplierApprovalBlocked = hasSupplierProfile && !hasApprovedSupplierProfile;
-      // If this user has at least one Pro supplier, treat them as Pro.
-      // Check subscriptionTier (new field) first, then subscription.tier, then legacy isPro boolean.
-      currentIsPro = items.some(s => {
-        const supplierTier = normalizeSubscriptionTier(
-          s.subscriptionTier,
-          s.subscription?.tier,
-          s.proPlan
-        );
-        return !!s.isPro || supplierTier === 'pro' || supplierTier === 'pro_plus';
-      });
-
-      // Fallback: if no supplier object indicates Pro, check the user's subscription directly.
-      // Use the shared dedup helper so this call and the concurrent
-      // displaySubscriptionStatus() call in dashboard-supplier-module.js both
-      // share a single network request (and therefore a single Stripe API call).
-      if (!currentIsPro) {
-        try {
-          const subData = await window._efFetchOnceJSON('/api/v2/subscriptions/me', {
-            credentials: 'include',
-          });
-          const userTier = normalizeSubscriptionTier(
-            subData?.plan,
-            subData?.tier,
-            subData?.subscription?.tier,
-            subData?.subscription?.plan
-          );
-          if (userTier === 'pro' || userTier === 'pro_plus') {
-            currentIsPro = true;
-          }
-        } catch {
-          // Ignore — subscription endpoint unavailable; fall through to Starter display.
-        }
-      }
-
-      // Final fallback: auth/me is often the most up-to-date source for account tier.
-      // This catches users with paid plans whose supplier records are stale.
-      if (!currentIsPro) {
-        try {
-          const authMe = await window._efFetchOnceJSON('/api/v1/auth/me', {
-            credentials: 'include',
-          });
-          const authTier = normalizeSubscriptionTier(
-            authMe?.user?.subscriptionTier,
-            authMe?.user?.subscription?.tier,
-            authMe?.user?.proPlan
-          );
-          if (authTier === 'pro' || authTier === 'pro_plus' || authMe?.user?.isPro) {
-            currentIsPro = true;
-          }
-        } catch {
-          // Ignore — keep currentIsPro as computed from supplier/subscription endpoints.
-        }
-      }
-
-      if (proRibbon) {
-        if (currentIsPro) {
-          proRibbon.classList.remove('pro-ribbon--starter');
-          proRibbon.style.display = 'block';
-          proRibbon.innerHTML = `
-            <div class="pro-ribbon__inner">
-              <span class="pro-ribbon__icon" aria-hidden="true">⭐</span>
-              <div class="pro-ribbon__text-group">
-                <strong>You're on EventFlow Pro.</strong>
-                <span class="pro-ribbon__desc"> Your listing appears higher in search and you have access to premium features.</span>
-              </div>
-            </div>`;
-        } else {
-          proRibbon.classList.add('pro-ribbon--starter');
-          proRibbon.style.display = 'block';
-          proRibbon.innerHTML = `
-            <div class="pro-ribbon__inner">
-              <span class="pro-ribbon__icon" aria-hidden="true">🚀</span>
-              <div class="pro-ribbon__text-group">
-                <strong>Level up your plan</strong>
-                <span class="pro-ribbon__desc">Unlock priority visibility, more packages, and dedicated support — <a href="/pricing" class="pro-ribbon__text-link">upgrade today</a>.</span>
-              </div>
-            </div>`;
-        }
-      }
+      // The dashboard home script switches the page to its "no profile yet" layout from this.
+      document.dispatchEvent(new CustomEvent('sdh:suppliers', { detail: { suppliers: items } }));
 
       if (!supWrap) {
         return;
       }
 
-      if (!items || items.length === 0) {
-        supWrap.innerHTML =
-          '<div class="sd-empty-state"><div class="sd-empty-state__icon" aria-hidden="true">👤</div><div class="sd-empty-state__body"><p class="sd-empty-state__title">Supplier profile setup needed</p><p class="sd-empty-state__desc">Your supplier account needs a linked business profile before you can create packages.</p><a class="sd-empty-state__cta" href="#profile-form" data-action="open-profile-form">Complete supplier profile →</a></div></div>';
-        // Update quick-stat-profiles with the real count (0)
-        const quickStatProfiles = document.getElementById('quick-stat-profiles');
-        if (quickStatProfiles) {
-          quickStatProfiles.setAttribute('data-target', '0');
-          quickStatProfiles.textContent = '0';
-        }
+      const toggleBtn = document.getElementById('toggle-profile-form');
+      if (!hasSupplierProfile) {
+        showEmptySupplierState(toggleBtn);
         return;
       }
 
-      // Update quick-stat-profiles with the real profile count
-      const quickStatProfiles = document.getElementById('quick-stat-profiles');
-      if (quickStatProfiles) {
-        quickStatProfiles.setAttribute('data-target', String(items.length));
-        quickStatProfiles.textContent = String(items.length);
-      }
-      // Fetch packages once so checklist milestones can include "create your first package".
-      let packagesBySupplierId = new Map();
-      try {
-        const pkgRes = await api('/api/me/packages');
-        const pkgItems = Array.isArray(pkgRes?.items) ? pkgRes.items : [];
-        packagesBySupplierId = pkgItems.reduce((map, pkg) => {
-          const supplierId = String(pkg?.supplierId || pkg?.supplier || '');
-          if (!supplierId) {
-            return map;
-          }
-          map.set(supplierId, (map.get(supplierId) || 0) + 1);
-          return map;
-        }, new Map());
-      } catch {
-        // Non-fatal: supplier cards should still render if packages fail to load.
-      }
-      supWrap.innerHTML = items
-        .map(s => {
-          // Safe access to supplier properties
-          if (!s) {
-            return '';
-          }
-
-          // Enhanced badge rendering for Pro and Pro+ tiers
-          let tierLabel = '';
-          // Check subscriptionTier field first (new), then fall back to subscription.tier or isPro
-          const tier =
-            s.subscriptionTier ||
-            (s.subscription && s.subscription.tier) ||
-            (s.isPro || s.pro ? 'pro' : null);
-
-          if (tier === 'pro_plus') {
-            tierLabel = 'Pro Plus';
-          } else if (tier === 'pro') {
-            tierLabel = 'Pro';
-          } else {
-            tierLabel = 'Starter';
-          }
-
-          // Profile completeness checklist shown under each listing card. The score itself
-          // reuses ProfileHealthWidget's calculation (the same one shown on the "Profile
-          // Health" card further down this dashboard) so the two never disagree for the
-          // same supplier. This checklist only controls which "improve your profile" items
-          // are surfaced per-card; package creation stays as a dashboard-specific nudge.
-          const hasPhotos =
-            s.photosGallery && Array.isArray(s.photosGallery) && s.photosGallery.length > 0;
-          const hasDescription =
-            s.description_long &&
-            typeof s.description_long === 'string' &&
-            s.description_long.length > 50;
-          const hasCategory = s.category && typeof s.category === 'string' && s.category.length > 0;
-          const hasLocation = s.location && typeof s.location === 'string' && s.location.length > 0;
-          const hasWebsite = s.website && typeof s.website === 'string' && s.website.length > 0;
-
-          const packageCountForSupplier = packagesBySupplierId.get(String(s.id || '')) || 0;
-          const checklistItems = [
-            {
-              label: 'Business Details',
-              complete: Boolean(s.name && hasLocation),
-              targetField: 'sup-name',
-            },
-            { label: 'Categories & Services', complete: hasCategory, targetField: 'sup-category' },
-            { label: 'Photos', complete: hasPhotos, targetField: 'sup-photo-drop' },
-            { label: 'Contact Information', complete: hasWebsite, targetField: 'sup-website' },
-            {
-              label: 'Create your first package',
-              complete: packageCountForSupplier > 0,
-              detail:
-                packageCountForSupplier > 0
-                  ? `${packageCountForSupplier} package${packageCountForSupplier === 1 ? '' : 's'} live`
-                  : 'Add a package with pricing to start getting enquiries',
-              highlight: true,
-              targetField: 'package-form',
-            },
-            { label: 'Business Description', complete: hasDescription, targetField: 'sup-long' },
-          ];
-          const completedCount = checklistItems.filter(item => item.complete).length;
-          // Health score: same formula as the "Profile Health" card (ProfileHealthWidget),
-          // falling back to this checklist's own completion ratio only if that shared
-          // component failed to load.
-          const checklistScore =
-            window.ProfileHealthWidget && typeof window.ProfileHealthWidget.calculate === 'function'
-              ? window.ProfileHealthWidget.calculate(s).percentage
-              : Math.round((completedCount / checklistItems.length) * 100);
-
-          // Safe access to all fields with defaults — escape all user-supplied values to prevent XSS
-          const supplierId = String(s.id || '').replace(/"/g, '&quot;');
-          const name = escapeHtml(String(s.name || 'Unnamed Supplier'));
-          const location = escapeHtml(String(s.location || 'Location not set'));
-          const category = escapeHtml(String(s.category || 'Uncategorized'));
-          const approved = !!s.approved;
-          const profilePhotoUrl = resolveDashboardSupplierProfilePhoto(s);
-
-          return `<div class="supplier-card card glass-card spc-root" data-supplier-id="${supplierId}">
-      <div class="spc-summary">
-        <!-- Avatar column with camera upload overlay -->
-          <div class="spc-avatar-wrap">
-            <div class="supplier-profile-photo-slot spc-avatar-col" aria-hidden="true" style="width:100px;height:100px;flex-shrink:0;border-radius:50%;overflow:hidden;${
-              profilePhotoUrl
-                ? `background:none;`
-                : `background:linear-gradient(135deg,#0b8073 0%,#0a6b5f 100%);display:flex;align-items:center;justify-content:center;color:#fff;font-size:2.4rem;font-weight:700;`
-            }">
-            ${
-              profilePhotoUrl
-                ? `<img src="${profilePhotoUrl}" alt="Your profile photo" style="width:100%;height:100%;object-fit:cover;display:block;">`
-                : profileInitial
-            }
-            </div>
-            ${
-              profilePhotoUrl
-                ? `<button type="button" class="spc-avatar-delete-btn" data-action="delete-profile-photo" data-profile-id="${supplierId}" title="Delete profile photo" aria-label="Delete profile photo"><span aria-hidden="true">✕</span></button>`
-                : ''
-            }
-            <label for="supplier-profile-photo-upload-${supplierId}" class="spc-camera-btn" title="Upload profile photo" aria-label="Upload profile photo">
-              <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
-            </label>
-          <input type="file" id="supplier-profile-photo-upload-${supplierId}" class="supplier-profile-photo-upload" data-profile-id="${supplierId}" accept="image/*" style="display:none;" aria-label="Upload profile photo">
-        </div>
-        <!-- Body column -->
-        <div class="spc-body">
-          <div class="spc-name-row">
-            <h3 class="spc-name">${name}</h3>
-            <div class="spc-badges">
-              <span class="spc-badge spc-badge--tier">
-                <svg class="spc-badge-icon" width="12" height="12" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
-                ${tierLabel}
-              </span>
-              ${
-                approved
-                  ? `<span class="spc-badge spc-badge--approved">
-                      <svg class="spc-badge-icon" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
-                      Approved
-                    </span>`
-                  : '<span class="spc-badge spc-badge--pending">Awaiting review</span>'
-              }
-            </div>
-          </div>
-          <div class="spc-meta">
-            <svg class="spc-meta-icon" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
-            <span>${location}</span>
-            <span class="spc-category-chip">
-              <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>
-              ${category}
-            </span>
-          </div>
-        </div>
-        <!-- Health score ring (right column). This is a weighted richness score (logo,
-             description length, photos, socials, website — see ProfileHealthWidget) and
-             is deliberately a different number from the setup checklist beside it, which
-             just counts finished tasks. The title/aria-label say so, since the two used
-             to read as disagreeing claims about the same thing with nothing to explain why. -->
-        <div
-          class="spc-ring"
-          aria-label="Health score: how complete your profile content is — separate from the setup checklist"
-          title="How complete your profile content is (photos, description, links). Separate from the setup checklist below."
-          aria-live="polite"
-          data-computed-score="${checklistScore}"
-        >
-          <div class="spc-ring-circle">
-            <svg class="spc-ring-svg" viewBox="0 0 80 80" fill="none" aria-hidden="true">
-              <circle class="spc-ring-track" cx="40" cy="40" r="32"/>
-              <circle class="spc-ring-fill" cx="40" cy="40" r="32"/>
-            </svg>
-            <div class="spc-ring-inner">
-              <span class="spc-ring-score" aria-label="Health score">—</span>
-            </div>
-          </div>
-          <span class="spc-ring-label">Health Score</span>
-          <span class="spc-ring-grade"></span>
-        </div>
-      </div>
-      <!-- 3-button action bar -->
-      <div class="spc-actions">
-        <button type="button" class="spc-action-btn spc-upload-btn" data-action="upload-photo" data-profile-id="${supplierId}">
-          <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-          Upload Photo
-        </button>
-        <button type="button" class="spc-action-btn spc-action-btn--edit" data-action="edit-profile" data-profile-id="${supplierId}">
-          <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
-          Edit Profile
-        </button>
-        <button type="button" class="spc-action-btn spc-action-btn--checklist" data-action="view-checklist" data-profile-id="${supplierId}" aria-expanded="true" aria-controls="spc-checklist-${supplierId}">
-          <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="2" width="6" height="4" rx="1"/><path d="M9 2H7a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2h-2"/><line x1="9" y1="12" x2="15" y2="12"/><line x1="9" y1="16" x2="13" y2="16"/></svg>
-          <span class="spc-checklist-btn-label">Hide Checklist</span>
-        </button>
-      </div>
-      <!-- Profile Setup Checklist -->
-      <div class="spc-checklist-card" id="spc-checklist-${supplierId}">
-        <div class="spc-checklist-header">
-          <div class="spc-checklist-big-icon${completedCount === checklistItems.length ? ' spc-checklist-big-icon--complete' : ''}" aria-hidden="true">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
-          </div>
-          <div class="spc-checklist-header-body">
-            <div class="spc-checklist-title-row">
-              <span class="spc-checklist-title">Profile Setup Checklist</span>
-              <span class="spc-checklist-count">${completedCount} / ${checklistItems.length}</span>
-            </div>
-            <p class="spc-checklist-subtitle">Setup tasks to complete — a separate count from the Health Score above, which scores how rich your content is</p>
-          </div>
-        </div>
-        <div class="spc-checklist-steps" role="list">
-          ${checklistItems
-            .map(
-              (item, i) => `
-            <button type="button" class="spc-checklist-step${item.complete ? ' spc-checklist-step--complete' : ''}${item.highlight ? ' spc-checklist-step--milestone' : ''}" role="listitem" data-checklist-target="${item.targetField || ''}" data-profile-id="${supplierId}" aria-label="Go to ${item.label}">
-              <div class="spc-checklist-step-circle" aria-hidden="true">${
-                item.complete
-                  ? `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>`
-                  : `${i + 1}`
-              }</div>
-              <div class="spc-checklist-step-copy">
-                <span class="spc-checklist-step-label">${item.label}</span>
-                ${item.detail ? `<span class="spc-checklist-step-detail">${item.detail}</span>` : ''}
-              </div>
-            </button>
-          `
-            )
-            .join('')}
-        </div>
-      </div>
-    </div>`;
-        })
-        .join('');
-
-      // Populate circular health score ring for each supplier card
-      const rows = supWrap.querySelectorAll('.supplier-card');
-      items.forEach((s, idx) => {
-        if (!s) {
-          return;
-        }
-
-        const row = rows[idx];
-        if (!row) {
-          return;
-        }
-
-        // Health score: prefer aiScore if set, otherwise use checklist-based score embedded in DOM
-        const ringEl = row.querySelector('.spc-ring');
-        const checklistScore = ringEl ? parseInt(ringEl.dataset.computedScore || '0', 10) : 0;
-        const score = typeof s.aiScore === 'number' && s.aiScore > 0 ? s.aiScore : checklistScore;
-
-        // Populate circular health score ring
-        const RING_GOOD_THRESHOLD = 80;
-        const RING_FAIR_THRESHOLD = 50;
-        const ringScore = row.querySelector('.spc-ring-score');
-        const ringFill = row.querySelector('.spc-ring-fill');
-        const ringGrade = row.querySelector('.spc-ring-grade');
-        if (ringScore && ringFill) {
-          const RING_RADIUS = 32; // must match r="32" in the SVG circle + CSS stroke-dasharray comment
-          const circumference = 2 * Math.PI * RING_RADIUS;
-          const displayScore = score;
-          const offset = circumference * (1 - displayScore / 100);
-          ringFill.style.strokeDasharray = `${circumference}`;
-          ringFill.style.strokeDashoffset = `${offset}`;
-          ringScore.textContent = String(displayScore);
-          ringScore.setAttribute('aria-label', `Health score: ${displayScore}`);
-          if (ringGrade && ringEl) {
-            if (displayScore >= RING_GOOD_THRESHOLD) {
-              ringGrade.textContent = 'Good';
-              ringEl.dataset.grade = 'good';
-            } else if (displayScore >= RING_FAIR_THRESHOLD) {
-              ringGrade.textContent = 'Fair';
-              ringEl.dataset.grade = 'fair';
-            } else {
-              ringGrade.textContent = 'Poor';
-              ringEl.dataset.grade = 'poor';
-            }
-          }
-        }
-      });
-
-      supWrap.querySelectorAll('.supplier-profile-photo-upload').forEach(input => {
-        if (input.dataset.bound === 'true') {
-          return;
-        }
-        input.dataset.bound = 'true';
-        input.addEventListener('change', async e => {
-          const file = e.target.files && e.target.files[0];
-          if (!file) {
-            return;
-          }
-          const fd = new FormData();
-          fd.append('avatar', file);
-          try {
-            const resp = await fetch('/api/profile/avatar', {
-              method: 'POST',
-              credentials: 'include',
-              headers: { 'X-CSRF-Token': window.__CSRF_TOKEN__ || '' },
-              body: fd,
-            });
-            const result = await resp.json().catch(() => ({}));
-            if (!resp.ok) {
-              throw new Error(result.error || 'Failed to upload profile photo');
-            }
-            // Bust the cached auth state so the next me() call fetches the updated avatarUrl
-            if (window.AuthStateManager?.refresh) {
-              await window.AuthStateManager.refresh();
-            }
-            await loadSuppliers();
-          } catch (err) {
-            console.error('Profile photo upload failed:', err);
-            if (window.announceToSR) {
-              window.announceToSR(err.message || 'Failed to upload profile photo');
-            }
-          } finally {
-            e.target.value = '';
-          }
-        });
-      });
-
-      if (select) {
-        select.innerHTML = items
-          .filter(s => s && s.id && s.name)
-          .map(s => `<option value="${s.id}">${s.name}</option>`)
-          .join('');
-        // Sync hidden supplierId input to the selected supplier
-        const hiddenInput = document.getElementById('pkg-supplier-id-hidden');
-        if (hiddenInput) {
-          // Set initial value
-          hiddenInput.value = select.value;
-          // Keep in sync when the user changes the dropdown
-          select.addEventListener('change', () => {
-            hiddenInput.value = select.value;
-          });
-        }
-      }
-
-      // Auto-populate form with supplier's data
-      // If we're currently editing a supplier, restore that supplier's data
-      // Otherwise, populate with first supplier's data if exists
-      if (items.length > 0) {
-        let supplierToEdit = items[0];
-
-        // If we have a currently editing supplier ID, find it and use it
-        if (currentEditingSupplierId) {
-          const foundSupplier = items.find(s => s && s.id === currentEditingSupplierId);
-          if (foundSupplier) {
-            supplierToEdit = foundSupplier;
-          }
-        }
-
-        populateSupplierForm(supplierToEdit);
-
-        // Single-profile enforcement: update button label and section heading
-        // A supplier already has a profile — the button should say "Edit Profile"
-        const toggleBtn = document.getElementById('toggle-profile-form');
-        if (toggleBtn) {
-          const labelSpan = toggleBtn.querySelector('.label');
-          const profileFormSection = document.getElementById('profile-form-section');
-          if (labelSpan && !profileFormSection?.classList.contains('expanded')) {
-            labelSpan.textContent = 'Edit Profile';
-          }
-        }
-        const sectionHeading = document.querySelector(
-          '#profile-form-section .supplier-section-header'
-        );
-        if (sectionHeading) {
-          sectionHeading.textContent = 'Edit Profile';
-        }
-        // Update the quick-action chip label to "Edit Profile" since only one profile is allowed
-        const createProfileChip = document.querySelector('[data-action="create-profile"]');
-        if (createProfileChip) {
-          const chipSpan = createProfileChip.querySelector('span');
-          if (chipSpan) {
-            chipSpan.textContent = 'Edit Profile';
-          }
-          createProfileChip.setAttribute('data-action', 'edit-profile-chip');
-        }
-      }
+      renderSupplierCards(items, currentUser);
+      bindProfilePhotoUploads();
+      fillSupplierSelect(items);
+      // Fill the edit form with the supplier being edited, else the first one, so opening it
+      // always shows the saved profile.
+      populateSupplierForm(supplierForEditing(items));
+      labelProfileFormAsEdit(toggleBtn);
     } catch (err) {
       console.error('Error loading suppliers:', err);
-      if (supWrap) {
-        supWrap.innerHTML =
-          '<div class="sd-empty-state"><div class="sd-empty-state__icon" aria-hidden="true">⚠️</div><div class="sd-empty-state__body"><p class="sd-empty-state__title">Could not load profiles</p><p class="sd-empty-state__desc">Please refresh the page to try again.</p></div></div>';
-      }
+      showSupplierLoadError();
     }
   }
 
@@ -2419,9 +2162,9 @@ async function initDashSupplier() {
     if (supManageGalleryLink) {
       if (supplier.id) {
         supManageGalleryLink.href = `/gallery?type=supplier&id=${encodeURIComponent(supplier.id)}`;
-        supManageGalleryLink.style.display = '';
+        supManageGalleryLink.hidden = false;
       } else {
-        supManageGalleryLink.style.display = 'none';
+        supManageGalleryLink.hidden = true;
       }
     }
     if (supName) {
@@ -2598,7 +2341,7 @@ async function initDashSupplier() {
     // Show preview button if supplier has an ID
     const previewBtn = document.getElementById('sup-preview');
     if (previewBtn && supplier.id) {
-      previewBtn.style.display = 'inline-block';
+      previewBtn.hidden = false;
     }
 
     // Reload the supplier gallery photo tiles whenever the form is populated
@@ -2641,203 +2384,324 @@ async function initDashSupplier() {
     return isKnownPlaceholderUrl(p?.image);
   }
 
+  /**
+   * Package allowance for the plan, from the dashboard summary (the server's own limits), so the
+   * number shown here is the number the server enforces. Resolves to limit null when the plan has
+   * no limit or the summary could not be loaded; the server still refuses a package over the limit.
+   * @returns {Promise<{known: boolean, limit: (number|null)}>} The allowance.
+   */
+  async function getPackageAllowance() {
+    try {
+      const home = window.SupplierDashboardHome;
+      if (home && typeof home.getPackageAllowance === 'function') {
+        const allowance = await home.getPackageAllowance();
+        return { known: Boolean(allowance.known), limit: allowance.limit };
+      }
+    } catch {
+      /* Fall through: the limit is unknown, the server decides. */
+    }
+    return { known: false, limit: null };
+  }
+
+  /**
+   * The line under the "Your packages" heading: how much of the plan is used, from real counts.
+   * @param {number} activeCount - Packages that are not paused (the ones the limit counts).
+   * @param {{known: boolean, limit: (number|null)}} allowance - The plan's allowance.
+   * @returns {string} The sentence.
+   */
+  function packageNoteText(activeCount, allowance) {
+    const noun = count => `${count} active package${count === 1 ? '' : 's'}`;
+    if (allowance.limit !== null) {
+      if (activeCount > allowance.limit) {
+        const surplus = activeCount - allowance.limit;
+        return `You have ${noun(activeCount)} but your plan allows ${allowance.limit}. Pause or delete ${surplus} to stay within your limit, or upgrade.`;
+      }
+      return `${activeCount} of ${allowance.limit} active packages on your plan.`;
+    }
+    if (allowance.known) {
+      return activeCount ? `${noun(activeCount)}.` : 'Add a package to show what you offer.';
+    }
+    return 'What you offer, and what it costs.';
+  }
+
+  /**
+   * One package row: photo, title and price, status badges, and one Edit button with text links
+   * for the rest.
+   * @param {Object} p - Package record.
+   * @returns {string} Row markup.
+   */
+  function packageCardHtml(p) {
+    const packageId = escapeAttr(String(p.id || ''));
+    const image = escapeAttr(String(p.image || '/assets/images/package-placeholder.svg'));
+    const rawTitle = String(p.title || 'Untitled package');
+    const title = escapeHtml(rawTitle);
+    const titleAttr = escapeAttr(rawTitle);
+    // The server stores what the supplier typed as `price`; `price_display` is the older name.
+    const priceText = escapeHtml(packagePriceText(p));
+    const description = escapeHtml(String(p.description || ''));
+    const slug = escapeAttr(String(p.slug || ''));
+    const approved = Boolean(p.approved);
+    const paused = Boolean(p.paused);
+    const badges = [
+      p.featured ? '<span class="sdh-pill sdh-pill--accent">Featured</span>' : '',
+      approved
+        ? ''
+        : '<span class="sdh-pill sdh-pill--warn" title="This package is awaiting approval before it appears publicly">Awaiting review</span>',
+      paused
+        ? '<span class="sdh-pill sdh-pill--muted" title="This package is paused and not visible publicly">Paused</span>'
+        : '',
+      isPackagePhotoMissing(p)
+        ? '<span class="sdh-pill" title="This package shows a placeholder image to customers. Add a photo.">No photo</span>'
+        : '',
+    ].join('');
+    const viewUnavailableReason = !approved
+      ? 'This package has no public page yet: it is awaiting approval'
+      : 'This package has no public page yet';
+    const viewControl =
+      approved && slug
+        ? `<a href="/package?slug=${slug}" target="_blank" rel="noopener" class="sdh-link">View</a>`
+        : `<button type="button" class="sdh-link" disabled aria-disabled="true" title="${viewUnavailableReason}">View</button>`;
+    const pauseControl = `<button type="button" class="sdh-link" data-action="${paused ? 'unpause-package' : 'pause-package'}" data-package-id="${packageId}">${paused ? 'Resume' : 'Pause'}</button>`;
+    return `<article class="package-card sdh-pkg${paused ? ' sdh-pkg--paused' : ''}" data-package-id="${packageId}">
+      <div class="sdh-pkg__media"><img src="${image}" alt="" loading="lazy" data-fallback-src="/assets/images/package-placeholder.svg"></div>
+      <div class="sdh-pkg__body">
+        <div class="sdh-pkg__head">
+          <h3 class="sdh-pkg__title">${title}</h3>
+          ${priceText ? `<span class="sdh-pkg__price">${priceText}</span>` : ''}
+        </div>
+        <div class="sdh-pkg__badges">${badges}</div>
+        ${description ? `<p class="sdh-pkg__desc">${description}</p>` : ''}
+        <div class="sdh-pkg__actions">
+          <button type="button" class="sdh-btn sdh-btn--secondary sdh-btn--sm" data-action="edit-package" data-package-id="${packageId}" aria-label="Edit ${titleAttr}">Edit</button>
+          ${viewControl}
+          <a href="/gallery?type=package&id=${encodeURIComponent(String(p.id || ''))}" target="_blank" rel="noopener" class="sdh-link">Photos</a>
+          ${pauseControl}
+          <button type="button" class="sdh-link sdh-link--danger" data-action="delete-package" data-package-id="${packageId}" aria-label="Delete ${titleAttr}">Delete</button>
+        </div>
+      </div>
+    </article>`;
+  }
+
+  const PACKAGES_SHOWN_FIRST = 5;
+  const PACKAGES_SHOWN_FIRST_PHONE = 3;
+
+  /**
+   * The package list: the first few rows, and any others folded into a real <details> so a
+   * supplier with fifty packages does not push every other card off the page.
+   * @param {Object[]} items - Package records.
+   * @param {boolean} [keepOpen] - Whether the folded rows were open before this redraw.
+   * @returns {string} List markup.
+   */
+  function packageListHtml(items, keepOpen) {
+    const rows = items.filter(Boolean).map(packageCardHtml);
+    // A phone shows fewer rows before the fold: the page there is one very long column.
+    const phone = Boolean(window.matchMedia && window.matchMedia('(max-width: 767px)').matches);
+    const shown = phone ? PACKAGES_SHOWN_FIRST_PHONE : PACKAGES_SHOWN_FIRST;
+    const first = `<div class="sdh-pkgs">${rows.slice(0, shown).join('')}</div>`;
+    if (rows.length <= shown) {
+      return first;
+    }
+    const rest = rows.length - shown;
+    return `${first}<details class="sdh-more"${keepOpen ? ' open' : ''}><summary class="sdh-more__summary">Show the other ${rest} package${rest === 1 ? '' : 's'}</summary><div class="sdh-pkgs">${rows.slice(shown).join('')}</div></details>`;
+  }
+
+  /**
+   * A short message in the packages card: what is wrong or missing, and optionally one button.
+   * @param {string} title - Heading line.
+   * @param {string} text - Explanation.
+   * @param {string} [action] - Button markup.
+   * @returns {string} Markup.
+   */
+  function packageMessageHtml(title, text, action) {
+    return `<div class="sdh-empty"><p class="sdh-empty__title">${title}</p><p class="sdh-empty__text">${text}</p>${action || ''}</div>`;
+  }
+
+  /** The packages card message for a supplier whose packages cannot be read yet, or '' for any other case. */
+  function packageBlockedHtml(code) {
+    if (code === 'SUPPLIER_PROFILE_MISSING') {
+      return packageMessageHtml(
+        'Create your profile first',
+        'Packages belong to your profile. Create it, and you can add packages straight after.',
+        '<button type="button" class="sdh-btn sdh-btn--primary" data-sdh-action="edit-profile" data-sdh-focus="sup-name">Create profile</button>'
+      );
+    }
+    if (code === 'SUPPLIER_NOT_APPROVED') {
+      return packageMessageHtml(
+        'Packages unlock after approval',
+        'Your profile is waiting to be approved. You can add and manage packages as soon as it is.'
+      );
+    }
+    return '';
+  }
+
+  /** Whether the package editor is open (an open editor keeps its own button label). */
+  function isPackageEditorOpen() {
+    return document.getElementById('package-form-section')?.classList.contains('expanded') ?? false;
+  }
+
+  /**
+   * Why packages cannot be created yet, if they cannot: no profile, or a profile not approved.
+   * @returns {{code: string, message: string, label: string}|null} The reason, or null when none.
+   */
+  function packageCreationBlock() {
+    if (window._supplierProfileMissing) {
+      return {
+        code: 'SUPPLIER_PROFILE_MISSING',
+        message: 'Create your profile before adding packages.',
+        label: 'Profile setup needed',
+      };
+    }
+    if (window._supplierApprovalBlocked) {
+      return {
+        code: 'SUPPLIER_NOT_APPROVED',
+        message: 'Package creation unlocks once your profile is approved.',
+        label: 'Profile pending approval',
+      };
+    }
+    return null;
+  }
+
+  /**
+   * Nothing can be created yet: say so on the button instead of letting it open a form that can
+   * only fail. (An open editor keeps its own label.)
+   * @param {{message: string, label: string}} block - Why creation is blocked.
+   */
+  function disableCreateButtonFor(block) {
+    const blockedToggle = document.getElementById('toggle-package-form');
+    if (!blockedToggle || isPackageEditorOpen()) {
+      return;
+    }
+    blockedToggle.disabled = true;
+    blockedToggle.title = block.message;
+    const blockedLabel = blockedToggle.querySelector('.label');
+    if (blockedLabel) {
+      blockedLabel.textContent = block.label;
+    }
+  }
+
+  /**
+   * Shows or hides the "Upgrade plan" link beside the create button.
+   * @param {Element} toggleBtn - The create button.
+   * @param {boolean} atLimit - Whether the plan's package limit is reached.
+   */
+  function syncUpgradeLink(toggleBtn, atLimit) {
+    let upgradeCta = document.getElementById('pkg-upgrade-cta');
+    if (!atLimit) {
+      if (upgradeCta) {
+        upgradeCta.hidden = true;
+      }
+      return;
+    }
+    if (!upgradeCta) {
+      upgradeCta = document.createElement('a');
+      upgradeCta.id = 'pkg-upgrade-cta';
+      upgradeCta.href = '/supplier/subscription';
+      upgradeCta.className = 'sdh-link';
+      upgradeCta.textContent = 'Upgrade plan';
+      toggleBtn.insertAdjacentElement('afterend', upgradeCta);
+    }
+    upgradeCta.hidden = false;
+  }
+
+  /**
+   * Sets the create button for a collapsed editor: off with a reason at the plan limit, otherwise
+   * ready.
+   * @param {Element} toggleBtn - The create button.
+   * @param {boolean} atLimit - Whether the plan's package limit is reached.
+   * @param {*} limit - The plan's package limit.
+   */
+  function setCreateButton(toggleBtn, atLimit, limit) {
+    const labelEl = toggleBtn.querySelector('.label');
+    toggleBtn.disabled = atLimit;
+    toggleBtn.title = atLimit
+      ? `You have reached your plan's ${limit}-package limit. Pause or delete a package, or upgrade your plan.`
+      : '';
+    if (labelEl) {
+      labelEl.textContent = atLimit ? window._pkgLimitLabel : 'Create package';
+    }
+  }
+
+  /**
+   * Blocks the package form's create mode at the plan limit and leaves edit mode alone: editing
+   * existing packages must remain allowed.
+   * @param {boolean} atLimit - Whether the plan's package limit is reached.
+   */
+  function applyPackageFormLimits(atLimit) {
+    if (!document.getElementById('package-form')) {
+      return;
+    }
+    const isEditMode = Boolean(document.getElementById('pkg-id-hidden')?.value);
+    setPkgFormDisabled(atLimit && !isEditMode);
+  }
+
+  /** What the packages card says when the list could not be loaded. */
+  function showPackageLoadError(err) {
+    if (!pkgsWrap) {
+      return;
+    }
+    pkgsWrap.innerHTML =
+      packageBlockedHtml(err.code) ||
+      packageMessageHtml(
+        'Could not load your packages',
+        'Check your connection and try again.',
+        '<button type="button" class="sdh-btn sdh-btn--secondary sdh-btn--sm" data-sdh-action="reload-packages">Try again</button>'
+      );
+  }
+
   async function loadPackages() {
     try {
       if (!pkgsWrap) {
         return;
       }
-      const note = document.getElementById('pkg-limit-note');
-      const d = await api('/api/me/packages');
+      const block = packageCreationBlock();
+      // The profile list already says when packages cannot be read yet, so skip a request the
+      // server would refuse (it would only add a 403 to the console).
+      if (block) {
+        pkgsWrap.innerHTML = packageBlockedHtml(block.code);
+        disableCreateButtonFor(block);
+        return;
+      }
+      const [d, allowance] = await Promise.all([api('/api/me/packages'), getPackageAllowance()]);
       const items = d?.items && Array.isArray(d.items) ? d.items : [];
       // Only count active (non-paused) packages against the plan limit; paused packages
       // are preserved but don't occupy a slot, matching the server-side enforcement.
       const activeCount = items.filter(p => !p.paused).length;
-      const freeLimit = 3; // keep in sync with server FREE_PACKAGE_LIMIT default
+      const atLimit = allowance.limit !== null && activeCount >= allowance.limit;
 
-      // Update note about allowance
+      const note = document.getElementById('pkg-limit-note');
       if (note) {
-        if (currentIsPro) {
-          note.textContent = activeCount
-            ? `You have ${activeCount} active package${activeCount === 1 ? '' : 's'}. As a Pro supplier you can create unlimited packages.`
-            : 'As a Pro supplier you can create unlimited packages.';
-        } else if (activeCount > freeLimit) {
-          // Over-limit (e.g. after a downgrade): surface the excess clearly.
-          const surplus = activeCount - freeLimit;
-          note.textContent = `You have ${activeCount} active packages but your Starter plan allows ${freeLimit}. Pause or delete ${surplus} package${surplus === 1 ? '' : 's'} to stay within your limit, or upgrade.`;
-        } else {
-          note.textContent = activeCount
-            ? `You have ${activeCount} of ${freeLimit} active packages on the Starter plan.`
-            : `On the Starter plan you can create up to ${freeLimit} active packages.`;
-        }
+        note.textContent = packageNoteText(activeCount, allowance);
       }
 
-      // Track whether the free tier package limit is reached.
-      // Only block *creating* new packages — editing existing ones must remain allowed.
-      const pkgForm = document.getElementById('package-form');
-      const supplierBlocked = window._supplierProfileMissing || window._supplierApprovalBlocked;
-      const supplierBlockMessage = window._supplierProfileMissing
-        ? 'Complete your supplier profile setup before creating packages.'
-        : 'Your supplier profile is pending approval. Package creation unlocks after approval.';
-      const atLimit = !currentIsPro && activeCount >= freeLimit;
       // Expose globally so togglePackageForm() and editPackage() can reference it.
       window._pkgAtLimit = atLimit;
       // Store limit label text so togglePackageForm() can restore it after edit mode.
       window._pkgLimitLabel = atLimit
-        ? `${activeCount}/${freeLimit} Active — Limit reached`
-        : 'Create Package';
+        ? `${activeCount}/${allowance.limit} active: limit reached`
+        : 'Create package';
 
-      // Update the "Create Package" toggle button to reflect the plan limit.
       const toggleBtn = document.getElementById('toggle-package-form');
       if (toggleBtn) {
-        const labelEl = toggleBtn.querySelector('.label');
         // Only change the label when the form is collapsed (not in edit/cancel state).
-        const formIsOpen =
-          document.getElementById('package-form-section')?.classList.contains('expanded') ?? false;
-        if (!formIsOpen) {
-          if (atLimit) {
-            toggleBtn.disabled = true;
-            toggleBtn.classList.add('form-toggle-btn--at-limit');
-            toggleBtn.setAttribute(
-              'aria-label',
-              `Package limit reached: ${activeCount} of ${freeLimit} active. Upgrade to create more.`
-            );
-            toggleBtn.title = `You've reached your ${freeLimit}-package limit. Pause or delete a package, or upgrade your plan.`;
-            if (labelEl) {
-              labelEl.textContent = window._pkgLimitLabel;
-            }
-          } else if (supplierBlocked) {
-            toggleBtn.disabled = true;
-            toggleBtn.classList.add('form-toggle-btn--at-limit');
-            toggleBtn.setAttribute('aria-label', supplierBlockMessage);
-            toggleBtn.title = supplierBlockMessage;
-            if (labelEl) {
-              // Explicitly say "Profile" here — this button sits inside the
-              // Packages card, and existing approved packages may already be
-              // listed below it, so an unqualified "Pending approval" reads
-              // as if the packages themselves are pending rather than the
-              // profile that gates *creating new ones*.
-              labelEl.textContent = window._supplierProfileMissing
-                ? 'Profile setup needed'
-                : 'Profile pending approval';
-            }
-          } else {
-            toggleBtn.disabled = false;
-            toggleBtn.classList.remove('form-toggle-btn--at-limit');
-            toggleBtn.setAttribute('aria-label', 'Toggle package creation form');
-            toggleBtn.title = '';
-            if (labelEl) {
-              labelEl.textContent = 'Create Package';
-            }
-          }
+        if (!isPackageEditorOpen()) {
+          setCreateButton(toggleBtn, atLimit, allowance.limit);
         }
-        // Show or hide upgrade CTA alongside the button.
-        let upgradeCta = document.getElementById('pkg-upgrade-cta');
-        if (atLimit) {
-          if (!upgradeCta) {
-            upgradeCta = document.createElement('a');
-            upgradeCta.id = 'pkg-upgrade-cta';
-            upgradeCta.href = '/supplier/subscription';
-            upgradeCta.className = 'pkg-upgrade-link';
-            upgradeCta.textContent = 'Upgrade plan';
-            toggleBtn.insertAdjacentElement('afterend', upgradeCta);
-          }
-          upgradeCta.style.display = 'inline-flex';
-        } else if (upgradeCta) {
-          upgradeCta.style.display = 'none';
-        }
+        syncUpgradeLink(toggleBtn, atLimit);
       }
+      applyPackageFormLimits(atLimit);
 
-      if (pkgForm) {
-        // Determine whether the form is currently in edit mode (has a package ID).
-        const editingId = document.getElementById('pkg-id-hidden')?.value;
-        const isEditMode = !!editingId;
-
-        // Only apply the limit restriction when in create mode.
-        const shouldDisable = (atLimit || supplierBlocked) && !isEditMode;
-        setPkgFormDisabled(shouldDisable, supplierBlocked ? supplierBlockMessage : undefined);
-      }
-
-      if (!items || items.length === 0) {
-        pkgsWrap.innerHTML =
-          '<div class="sd-empty-state"><div class="sd-empty-state__icon" aria-hidden="true">📦</div><div class="sd-empty-state__body"><p class="sd-empty-state__title">No packages yet</p><p class="sd-empty-state__desc">Create your first package to showcase your services and pricing.</p></div></div>';
+      if (items.length === 0) {
+        pkgsWrap.innerHTML = packageMessageHtml(
+          'No packages yet',
+          'Create your first package to show what you offer and what it costs.'
+        );
         return;
       }
-      pkgsWrap.innerHTML = items
-        .map(p => {
-          if (!p) {
-            return '';
-          }
-
-          const packageId = String(p.id || '').replace(/"/g, '&quot;');
-          const image = String(p.image || '/assets/images/package-placeholder.svg');
-          const title = String(p.title || 'Untitled Package');
-          const priceDisplay = String(p.price_display || '');
-          const description = String(p.description || '');
-          const featured = !!p.featured;
-          const approved = !!p.approved;
-          const paused = !!p.paused;
-          const slug = String(p.slug || '').replace(/"/g, '&quot;');
-
-          const approvalBadge = approved
-            ? ''
-            : '<span class="badge badge-pending" title="This package is awaiting admin approval before it appears publicly">Awaiting review</span>';
-          const pausedBadge = paused
-            ? '<span class="badge badge-paused" title="This package is paused and not visible publicly">Paused</span>'
-            : '';
-          const noPhotoBadge = isPackagePhotoMissing(p)
-            ? '<span class="badge badge-no-photo" title="This package shows a placeholder image to customers. Upload a photo below.">No photo</span>'
-            : '';
-          // Package price chip — only rendered when a price exists, so no empty pill appears
-          const priceBadgeHtml = priceDisplay
-            ? `<span class="badge pkg-price-badge">${escapeHtml(priceDisplay)}</span>`
-            : '';
-          // A package with no public page still gets a View control, disabled and
-          // explaining itself. Dropping the button entirely left one card in the
-          // row a button short, with nothing to say why it could not be viewed.
-          const viewUnavailableReason = !approved
-            ? 'This package has no public page yet — it is awaiting admin approval'
-            : 'This package has no public page yet';
-          const viewBtn =
-            approved && slug
-              ? `<a href="/package?slug=${slug}" target="_blank" class="ef-cta card-action-btn view-btn">View</a>`
-              : `<button type="button" class="ef-cta card-action-btn view-btn" disabled aria-disabled="true" title="${viewUnavailableReason}">View</button>`;
-          const pauseBtn = `<button type="button" class="ef-cta card-action-btn ${paused ? 'unpause-btn' : 'pause-btn'}" data-action="${paused ? 'unpause-package' : 'pause-package'}" data-package-id="${packageId}" aria-label="${paused ? 'Unpause package' : 'Pause package'}">${paused ? '<svg width="10" height="11" viewBox="0 0 10 11" fill="currentColor" aria-hidden="true"><polygon points="0,0 10,5.5 0,11"/></svg> Resume' : '<svg width="10" height="11" viewBox="0 0 10 11" fill="currentColor" aria-hidden="true"><rect x="0" y="0" width="3.5" height="11" rx="0.75"/><rect x="6.5" y="0" width="3.5" height="11" rx="0.75"/></svg> Pause'}</button>`;
-          // Links straight to the batch photo manager for this one package —
-          // the package form's own drop zone only ever handles one image at a
-          // time, so this is how a supplier adds a second, third, etc. photo.
-          const photosBtn = `<a href="/gallery?type=package&id=${packageId}" target="_blank" class="ef-cta card-action-btn photos-btn">Photos</a>`;
-
-          return `<div class="card package-card${paused ? ' package-card--paused' : ''}" data-package-id="${packageId}">
-      <img src="${image}" alt="${title} image" data-fallback-src="/assets/images/package-placeholder.svg">
-      <div class="package-card-content">
-        <h3>${title}</h3>
-        <div class="small">${priceBadgeHtml} ${featured ? '<span class="badge badge-featured">Featured</span>' : ''} ${approvalBadge} ${pausedBadge} ${noPhotoBadge}</div>
-        <p class="small">${description}</p>
-        <div class="card-actions">
-          <button type="button" class="ef-cta card-action-btn edit-btn" data-action="edit-package" data-package-id="${packageId}">Edit</button>
-          ${viewBtn}
-          ${photosBtn}
-          ${pauseBtn}
-          <button type="button" class="ef-cta card-action-btn delete-btn" data-action="delete-package" data-package-id="${packageId}">Delete</button>
-        </div>
-      </div>
-    </div>`;
-        })
-        .join('');
+      const wasOpen = Boolean(pkgsWrap.querySelector('details.sdh-more[open]'));
+      pkgsWrap.innerHTML = packageListHtml(items, wasOpen);
     } catch (err) {
       console.error('Error loading packages:', err);
-      if (pkgsWrap) {
-        if (err.code === 'SUPPLIER_PROFILE_MISSING') {
-          pkgsWrap.innerHTML =
-            '<div class="sd-empty-state"><div class="sd-empty-state__icon" aria-hidden="true">👤</div><div class="sd-empty-state__body"><p class="sd-empty-state__title">Supplier profile setup needed</p><p class="sd-empty-state__desc">Complete your supplier profile setup before creating packages.</p><a class="sd-empty-state__cta" href="#profile-form" data-action="open-profile-form">Complete supplier profile →</a></div></div>';
-        } else if (err.code === 'SUPPLIER_NOT_APPROVED') {
-          pkgsWrap.innerHTML =
-            '<div class="sd-empty-state"><div class="sd-empty-state__icon" aria-hidden="true">⏳</div><div class="sd-empty-state__body"><p class="sd-empty-state__title">Profile pending approval</p><p class="sd-empty-state__desc">Your supplier profile is awaiting admin approval. Package creation unlocks after approval.</p></div></div>';
-        } else {
-          pkgsWrap.innerHTML =
-            '<div class="sd-empty-state"><div class="sd-empty-state__icon" aria-hidden="true">⚠️</div><div class="sd-empty-state__body"><p class="sd-empty-state__title">Could not load packages</p><p class="sd-empty-state__desc">Please refresh the page to try again.</p></div></div>';
-        }
-      }
+      showPackageLoadError(err);
     }
   }
   // Expose loadPackages globally so togglePackagePause() (defined outside this
@@ -2853,10 +2717,15 @@ async function initDashSupplier() {
     togglePackageFormBtn.addEventListener('click', togglePackageForm);
   }
 
-  const cancelPackageFormBtn = document.getElementById('cancel-package-form');
-  if (cancelPackageFormBtn) {
-    cancelPackageFormBtn.addEventListener('click', togglePackageForm);
-  }
+  // The editors' Cancel buttons are wired by supplier-dashboard-overlays.js (with the unsaved-changes
+  // guard); a closed editor is reset here.
+  document.addEventListener('sdh:overlay-closed', event => {
+    if (event.detail?.name === 'profile') {
+      resetProfileForm();
+    } else if (event.detail?.name === 'package') {
+      resetPackageForm();
+    }
+  });
 
   // Initialize profile form toggle
   const toggleProfileFormBtn = document.getElementById('toggle-profile-form');
@@ -2864,261 +2733,192 @@ async function initDashSupplier() {
     toggleProfileFormBtn.addEventListener('click', toggleProfileForm);
   }
 
-  const cancelProfileFormBtn = document.getElementById('cancel-profile-form');
-  if (cancelProfileFormBtn) {
-    cancelProfileFormBtn.addEventListener('click', toggleProfileForm);
+  /**
+   * The buttons that just pass a record's id on: data-action, the attribute holding the id, and what
+   * to do with it. Looked up lazily so each target can be defined further down.
+   */
+  const ID_ACTIONS = new Map([
+    ['edit-package', ['data-package-id', id => editPackage(id)]],
+    ['delete-package', ['data-package-id', id => deletePackage(id)]],
+    ['pause-package', ['data-package-id', id => togglePackagePause(id, true)]],
+    ['unpause-package', ['data-package-id', id => togglePackagePause(id, false)]],
+    ['edit-profile', ['data-profile-id', id => editProfile(id)]],
+    ['delete-profile', ['data-profile-id', id => deleteProfile(id)]],
+  ]);
+
+  /** Opens the gallery's file picker once the smooth scroll and focus have finished. */
+  function openGalleryPickerSoon(uploader) {
+    const AUTO_OPEN_PICKER_DELAY_MS = 320; // allow smooth-scroll/focus to complete before opening picker
+    setTimeout(() => {
+      if (typeof window.openSupplierGalleryPicker === 'function') {
+        window.openSupplierGalleryPicker();
+      } else {
+        uploader.click();
+      }
+      delete uploader.dataset.pickerOpening;
+    }, AUTO_OPEN_PICKER_DELAY_MS);
+  }
+
+  /**
+   * "Add photos": expand the form, scroll to the gallery section and open the file picker.
+   * @param {Element} actionEl - The button.
+   * @returns {Promise<boolean>} False when the click should not go on to any other handler.
+   */
+  async function startPhotoUpload(actionEl) {
+    const profileId = actionEl.getAttribute('data-profile-id');
+    if (profileId) {
+      try {
+        await editProfile(profileId, { focusId: 'sup-photo-drop' });
+      } catch (err) {
+        console.error('Failed to prepare profile form for photo upload:', err);
+        return false;
+      }
+    }
+    const uploader = document.getElementById('sup-photo-drop');
+    if (!uploader) {
+      return true;
+    }
+    const galleryRow = uploader.closest('.form-row') || uploader;
+    if (!uploader.hasAttribute('tabindex')) {
+      uploader.setAttribute('tabindex', '-1');
+    }
+    galleryRow.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    if (typeof uploader.focus === 'function') {
+      uploader.focus({ preventScroll: true });
+    }
+    if (uploader.dataset.pickerOpening === 'true') {
+      return false;
+    }
+    uploader.dataset.pickerOpening = 'true';
+    openGalleryPickerSoon(uploader);
+    return true;
+  }
+
+  /** Sends the request that removes the profile photo, then redraws the card. */
+  async function requestProfilePhotoRemoval() {
+    try {
+      const resp = await fetch('/api/profile/avatar', {
+        method: 'DELETE',
+        credentials: 'include',
+        headers: { 'X-CSRF-Token': window.__CSRF_TOKEN__ || '' },
+      });
+      const result = await resp.json().catch(() => ({}));
+      if (!resp.ok) {
+        throw new Error(result.error || 'Failed to delete profile photo');
+      }
+      if (window.AuthStateManager?.refresh) {
+        await window.AuthStateManager.refresh();
+      }
+      await loadSuppliers();
+      if (window.announceToSR) {
+        window.announceToSR('Profile photo removed');
+      }
+    } catch (err) {
+      console.error('Profile photo delete failed:', err);
+      if (window.announceToSR) {
+        window.announceToSR(err.message || 'Failed to delete profile photo');
+      }
+    }
+  }
+
+  /**
+   * The corner badge on the profile photo: confirm, then remove it.
+   * @param {HTMLElement} actionEl - The badge.
+   * @returns {Promise<boolean>} False when the click should not go on to any other handler.
+   */
+  async function removeProfilePhoto(actionEl) {
+    if (actionEl.dataset.busy === 'true') {
+      return false;
+    }
+    const confirmed = await efConfirm({
+      title: 'Remove your profile photo?',
+      message: 'Your profile will show your initials until you add another photo.',
+      confirmLabel: 'Remove photo',
+    });
+    if (!confirmed) {
+      return false;
+    }
+    actionEl.dataset.busy = 'true';
+    actionEl.setAttribute('aria-disabled', 'true');
+    actionEl.disabled = true;
+    actionEl.title = 'Removing profile photo…';
+    try {
+      await requestProfilePhotoRemoval();
+    } finally {
+      delete actionEl.dataset.busy;
+      if (actionEl.isConnected) {
+        actionEl.removeAttribute('aria-disabled');
+        actionEl.disabled = false;
+        actionEl.title = 'Delete profile photo';
+      }
+    }
+    return true;
+  }
+
+  /**
+   * Runs what a [data-action] button asks for.
+   * @param {HTMLElement} actionEl - The button.
+   * @returns {Promise<boolean>} False when the click should not go on to any other handler.
+   */
+  function runDashboardAction(actionEl) {
+    const action = actionEl.getAttribute('data-action');
+    const idAction = ID_ACTIONS.get(action);
+    if (idAction) {
+      const id = actionEl.getAttribute(idAction[0]);
+      if (id) {
+        idAction[1](id);
+      }
+      return true;
+    }
+    if (action === 'upload-photo') {
+      return startPhotoUpload(actionEl);
+    }
+    if (action === 'delete-profile-photo') {
+      return removeProfilePhoto(actionEl);
+    }
+    return true;
+  }
+
+  /** The gallery buttons, which are matched by what was clicked rather than by data-action. */
+  function runGalleryClick(target) {
+    const pkgDeleteBtn = target.closest ? target.closest('.pkg-gallery-delete') : null;
+    if (pkgDeleteBtn) {
+      const photoUrl = pkgDeleteBtn.getAttribute('data-url');
+      const packageId = pkgDeleteBtn.getAttribute('data-package-id');
+      if (photoUrl && packageId) {
+        deletePackagePhoto(packageId, photoUrl, pkgDeleteBtn);
+      }
+    }
+    if (target.matches('#pkg-gallery-save-order')) {
+      savePkgGalleryOrder();
+    }
+    if (
+      target.matches('#sup-gallery-save-order') &&
+      typeof window.saveSupplierGalleryOrder === 'function'
+    ) {
+      window.saveSupplierGalleryOrder();
+    }
+  }
+
+  /** One listener for the Edit/Delete/Pause buttons on packages and profiles and the gallery. */
+  async function handleDashboardClick(e) {
+    const target = e.target;
+    const actionEl = target.closest ? target.closest('[data-action]') : null;
+    try {
+      if (actionEl && !(await runDashboardAction(actionEl))) {
+        return;
+      }
+      runGalleryClick(target);
+    } catch (err) {
+      console.error('Dashboard action handler error:', err);
+    }
   }
 
   // Add event delegation for Edit/Delete buttons on packages and profiles
   // Guard against duplicate bindings if supplier dashboard init runs more than once.
   if (!window.__efSupplierDashboardActionsBound) {
     window.__efSupplierDashboardActionsBound = true;
-    document.addEventListener('click', async e => {
-      const target = e.target;
-      const actionEl = target.closest
-        ? target.closest('[data-action], .spc-checklist-step[data-checklist-target]')
-        : null;
-      try {
-        // Handle package edit buttons
-        if (actionEl && actionEl.matches('[data-action="edit-package"]')) {
-          const packageId = actionEl.getAttribute('data-package-id');
-          if (packageId) {
-            editPackage(packageId);
-          }
-        }
-
-        // Handle package delete buttons
-        if (actionEl && actionEl.matches('[data-action="delete-package"]')) {
-          const packageId = actionEl.getAttribute('data-package-id');
-          if (packageId) {
-            deletePackage(packageId);
-          }
-        }
-
-        // Handle package pause buttons
-        if (actionEl && actionEl.matches('[data-action="pause-package"]')) {
-          const packageId = actionEl.getAttribute('data-package-id');
-          if (packageId) {
-            togglePackagePause(packageId, true);
-          }
-        }
-
-        // Handle package unpause buttons
-        if (actionEl && actionEl.matches('[data-action="unpause-package"]')) {
-          const packageId = actionEl.getAttribute('data-package-id');
-          if (packageId) {
-            togglePackagePause(packageId, false);
-          }
-        }
-
-        // Handle profile edit buttons
-        if (actionEl && actionEl.matches('[data-action="edit-profile"]')) {
-          const profileId = actionEl.getAttribute('data-profile-id');
-          if (profileId) {
-            editProfile(profileId);
-          }
-        }
-
-        // Handle Upload Photo button — expand form, scroll to gallery section, and open file picker
-        if (actionEl && actionEl.matches('[data-action="upload-photo"]')) {
-          const profileId = actionEl.getAttribute('data-profile-id');
-          if (profileId) {
-            try {
-              await editProfile(profileId, { skipFormScroll: true });
-            } catch (err) {
-              console.error('Failed to prepare profile form for photo upload:', err);
-              return;
-            }
-          }
-          const profileFormSection = document.getElementById('profile-form-section');
-          if (profileFormSection) {
-            if (!profileFormSection.classList.contains('expanded')) {
-              profileFormSection.classList.add('expanded');
-            }
-            profileFormSection.removeAttribute('hidden');
-          }
-          const uploader = document.getElementById('sup-photo-drop');
-          if (uploader) {
-            const galleryRow = uploader.closest('.form-row') || uploader;
-            galleryRow.style.scrollMarginTop = '96px';
-            if (!uploader.hasAttribute('tabindex')) {
-              uploader.setAttribute('tabindex', '-1');
-            }
-            galleryRow.scrollIntoView({ behavior: 'smooth', block: 'start' });
-            if (typeof uploader.focus === 'function') {
-              uploader.focus({ preventScroll: true });
-            }
-            if (uploader.dataset.pickerOpening === 'true') {
-              return;
-            }
-            uploader.dataset.pickerOpening = 'true';
-            const AUTO_OPEN_PICKER_DELAY_MS = 320; // allow smooth-scroll/focus to complete before opening picker
-            setTimeout(() => {
-              if (typeof window.openSupplierGalleryPicker === 'function') {
-                window.openSupplierGalleryPicker();
-              } else {
-                uploader.click();
-              }
-              delete uploader.dataset.pickerOpening;
-            }, AUTO_OPEN_PICKER_DELAY_MS);
-          }
-        }
-
-        // Handle View Checklist button — toggles checklist visibility for this profile
-        if (actionEl && actionEl.matches('[data-action="view-checklist"]')) {
-          const profileId = actionEl.getAttribute('data-profile-id');
-          const checklistCard = profileId
-            ? document.getElementById(`spc-checklist-${profileId}`)
-            : null;
-          if (checklistCard) {
-            const label = actionEl.querySelector('.spc-checklist-btn-label');
-            const isHidden = checklistCard.hasAttribute('hidden');
-            if (isHidden) {
-              checklistCard.removeAttribute('hidden');
-              actionEl.setAttribute('aria-expanded', 'true');
-              if (label) {
-                label.textContent = 'Hide Checklist';
-              }
-              checklistCard.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-            } else {
-              checklistCard.setAttribute('hidden', '');
-              actionEl.setAttribute('aria-expanded', 'false');
-              if (label) {
-                label.textContent = 'View Checklist';
-              }
-            }
-          } else {
-            // Fallback: expand and scroll to profile form section
-            const profileFormSection = document.getElementById('profile-form-section');
-            if (profileFormSection) {
-              if (!profileFormSection.classList.contains('expanded')) {
-                profileFormSection.classList.add('expanded');
-                profileFormSection.removeAttribute('hidden');
-              }
-              profileFormSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
-            }
-          }
-        }
-
-        // Handle checklist step click — jump directly to the relevant profile field/section
-        if (actionEl && actionEl.matches('.spc-checklist-step[data-checklist-target]')) {
-          const profileId = actionEl.getAttribute('data-profile-id');
-          const checklistTargetId = actionEl.getAttribute('data-checklist-target');
-          if (profileId) {
-            await editProfile(profileId, { skipFormScroll: true });
-          }
-          const profileFormSection = document.getElementById('profile-form-section');
-          if (profileFormSection) {
-            profileFormSection.classList.add('expanded');
-            profileFormSection.removeAttribute('hidden');
-          }
-          const targetField = checklistTargetId ? document.getElementById(checklistTargetId) : null;
-          const fallbackTarget = document.getElementById('supplier-form');
-          const scrollTarget = targetField || fallbackTarget;
-          if (scrollTarget) {
-            scrollTarget.style.scrollMarginTop = '96px';
-            scrollTarget.scrollIntoView({ behavior: 'smooth', block: 'start' });
-            if (
-              typeof scrollTarget.focus === 'function' &&
-              checklistTargetId &&
-              checklistTargetId !== 'package-form'
-            ) {
-              scrollTarget.focus({ preventScroll: true });
-            }
-          }
-        }
-
-        // Handle profile photo delete button
-        if (actionEl && actionEl.matches('[data-action="delete-profile-photo"]')) {
-          if (actionEl.dataset.busy === 'true') {
-            return;
-          }
-          if (!confirm('Remove your profile photo?')) {
-            return;
-          }
-          actionEl.dataset.busy = 'true';
-          actionEl.setAttribute('aria-disabled', 'true');
-          actionEl.disabled = true;
-          actionEl.title = 'Removing profile photo…';
-          try {
-            const resp = await fetch('/api/profile/avatar', {
-              method: 'DELETE',
-              credentials: 'include',
-              headers: { 'X-CSRF-Token': window.__CSRF_TOKEN__ || '' },
-            });
-            const result = await resp.json().catch(() => ({}));
-            if (!resp.ok) {
-              throw new Error(result.error || 'Failed to delete profile photo');
-            }
-            if (window.AuthStateManager?.refresh) {
-              await window.AuthStateManager.refresh();
-            }
-            await loadSuppliers();
-            if (window.announceToSR) {
-              window.announceToSR('Profile photo removed');
-            }
-          } catch (err) {
-            console.error('Profile photo delete failed:', err);
-            if (window.announceToSR) {
-              window.announceToSR(err.message || 'Failed to delete profile photo');
-            }
-          } finally {
-            delete actionEl.dataset.busy;
-            if (actionEl.isConnected) {
-              actionEl.removeAttribute('aria-disabled');
-              actionEl.disabled = false;
-              actionEl.title = 'Delete profile photo';
-            }
-          }
-        }
-
-        // Handle profile delete buttons
-        if (actionEl && actionEl.matches('[data-action="delete-profile"]')) {
-          const profileId = actionEl.getAttribute('data-profile-id');
-          if (profileId) {
-            deleteProfile(profileId);
-          }
-        }
-
-        // Handle gallery photo delete buttons
-        const pkgDeleteBtn = target.closest ? target.closest('.pkg-gallery-delete') : null;
-        if (pkgDeleteBtn) {
-          const photoUrl = pkgDeleteBtn.getAttribute('data-url');
-          const packageId = pkgDeleteBtn.getAttribute('data-package-id');
-          if (photoUrl && packageId) {
-            deletePackagePhoto(packageId, photoUrl, pkgDeleteBtn);
-          }
-        }
-
-        // Handle gallery save-order button
-        if (target.matches('#pkg-gallery-save-order')) {
-          savePkgGalleryOrder();
-        }
-
-        // Handle supplier gallery save-order button
-        if (target.matches('#sup-gallery-save-order')) {
-          if (typeof window.saveSupplierGalleryOrder === 'function') {
-            window.saveSupplierGalleryOrder();
-          }
-        }
-      } catch (err) {
-        console.error('Dashboard action handler error:', err);
-      }
-    });
-    document.addEventListener('keydown', e => {
-      const target = e.target;
-      const checklistStep = target?.closest
-        ? target.closest('.spc-checklist-step[data-checklist-target]')
-        : null;
-      if (!checklistStep) {
-        return;
-      }
-      if (e.key !== 'Enter' && e.key !== ' ') {
-        return;
-      }
-      e.preventDefault();
-      checklistStep.click();
-    });
+    document.addEventListener('click', handleDashboardClick);
   }
 
   /**
@@ -3224,7 +3024,6 @@ async function initDashSupplier() {
     supplierStatusClearTimer = setTimeout(() => {
       statusEl.textContent = '';
       statusEl.removeAttribute('data-tone');
-      statusEl.style.color = '';
       supplierStatusClearTimer = null;
     }, ms);
   }
@@ -3348,7 +3147,6 @@ async function initDashSupplier() {
           clearSupplierStatusTimer();
           statusEl.setAttribute('data-tone', 'error');
           statusEl.textContent = 'Business name is required.';
-          statusEl.style.color = '#ef4444';
           scheduleSupplierStatusClear(statusEl, 5000);
         }
         if (nameEl) {
@@ -3362,7 +3160,6 @@ async function initDashSupplier() {
           clearSupplierStatusTimer();
           statusEl.setAttribute('data-tone', 'error');
           statusEl.textContent = 'Please select a category.';
-          statusEl.style.color = '#ef4444';
           scheduleSupplierStatusClear(statusEl, 5000);
         }
         if (categoryEl) {
@@ -3377,7 +3174,6 @@ async function initDashSupplier() {
           clearSupplierStatusTimer();
           statusEl.setAttribute('data-tone', 'error');
           statusEl.textContent = 'Please fix the website URL and try again.';
-          statusEl.style.color = '#ef4444';
           scheduleSupplierStatusClear(statusEl, 5000);
         }
         if (websiteEl) {
@@ -3412,7 +3208,6 @@ async function initDashSupplier() {
           clearSupplierStatusTimer();
           statusEl.setAttribute('data-tone', 'info');
           statusEl.textContent = 'Saving...';
-          statusEl.style.color = '#667085';
         }
 
         const response = await api(path, {
@@ -3434,7 +3229,6 @@ async function initDashSupplier() {
             clearSupplierStatusTimer();
             statusEl.setAttribute('data-tone', 'error');
             statusEl.textContent = 'Error: Save did not return a supplier ID. Please try again.';
-            statusEl.style.color = '#ef4444';
             scheduleSupplierStatusClear(statusEl, 8000);
           }
           return;
@@ -3457,29 +3251,33 @@ async function initDashSupplier() {
             if (statusEl) {
               statusEl.setAttribute('data-tone', 'warning');
               statusEl.textContent = 'Warning: Profile saved but some photos failed to upload';
-              statusEl.style.color = '#f59e0b';
               scheduleSupplierStatusClear(statusEl, 5000);
             }
             // Don't rethrow — the profile save succeeded
             await loadSuppliers();
+            notifyDashboardChanged();
             return;
           }
         }
 
         await loadSuppliers();
+        notifyDashboardChanged();
 
         if (statusEl) {
           statusEl.setAttribute('data-tone', 'success');
-          statusEl.textContent = '✓ Saved successfully';
-          statusEl.style.color = '#10b981';
+          statusEl.textContent = 'Profile saved.';
           scheduleSupplierStatusClear(statusEl, 3000);
         }
+        // Saved: the editor has nothing unsaved, so it closes without asking and the dashboard
+        // behind it already shows the new details.
+        efSay('Profile saved.', 'success');
+        window.SupplierDashboardOverlays?.markClean('profile');
+        window.SupplierDashboardOverlays?.close('profile');
       } catch (err) {
         console.error('Error saving supplier:', err);
         if (statusEl) {
           statusEl.setAttribute('data-tone', 'error');
           statusEl.textContent = `Error: ${err.message || 'Please try again'}`;
-          statusEl.style.color = '#ef4444';
           scheduleSupplierStatusClear(statusEl, 8000);
         }
         surfaceServiceAreaLimitError(err);
@@ -3657,16 +3455,11 @@ async function initDashSupplier() {
    */
   async function loadSupplierServiceAreaAllowance() {
     try {
-      // This function itself is called more than once per page load (once as
-      // the form populates, once as its controls are wired up), and other
-      // dashboard modules request this same endpoint concurrently — so share
-      // one request rather than triggering several live subscription lookups.
-      const data = window._efFetchOnceJSON
-        ? await window._efFetchOnceJSON('/api/v2/subscriptions/me', { credentials: 'include' })
-        : await fetch('/api/v2/subscriptions/me', { credentials: 'include' }).then(r =>
-            r.ok ? r.json() : null
-          );
-      const limit = data?.limits?.maxServiceAreas;
+      // The plan's limits come from the dashboard summary, which is requested once per page load.
+      const home = window.SupplierDashboardHome;
+      const limits =
+        home && typeof home.getPlanLimits === 'function' ? await home.getPlanLimits() : null;
+      const limit = limits?.maxServiceAreas;
       if (Number.isFinite(limit) && limit >= 0) {
         supplierServiceAreaAllowance = limit;
       }
@@ -3864,7 +3657,6 @@ async function initDashSupplier() {
           clearSupplierStatusTimer();
           statusEl.setAttribute('data-tone', 'warning');
           statusEl.textContent = 'Please wait for the current save to finish before previewing.';
-          statusEl.style.color = '#b45309';
           scheduleSupplierStatusClear(statusEl, 4500);
         }
         return;
@@ -3882,7 +3674,6 @@ async function initDashSupplier() {
           clearSupplierStatusTimer();
           statusEl.setAttribute('data-tone', 'warning');
           statusEl.textContent = 'A public profile link is not available yet.';
-          statusEl.style.color = '#b45309';
           scheduleSupplierStatusClear(statusEl, 4500);
         }
       } else {
@@ -3890,7 +3681,6 @@ async function initDashSupplier() {
           clearSupplierStatusTimer();
           statusEl.setAttribute('data-tone', 'warning');
           statusEl.textContent = 'Please save your profile first before previewing.';
-          statusEl.style.color = '#b45309';
           scheduleSupplierStatusClear(statusEl, 4500);
         }
         if (saveBtn) {
@@ -3932,17 +3722,23 @@ async function initDashSupplier() {
         }
       }
 
-      // Validate required fields
-      if (!payload.primaryCategoryKey) {
-        alert('Please select a primary category');
-        return;
-      }
-      if (!payload.eventTypes || payload.eventTypes.length === 0) {
-        alert('Please select at least one event type.');
+      // Validate required fields. The editor is a dialog, so the message goes in the dialog (a
+      // toast would sit behind it) and the first field to fix gets focus.
+      clearPackageErrors();
+      if (!payload.title || !String(payload.title).trim()) {
+        showPackageError('pkg-title', 'Please give the package a title.');
         return;
       }
       if (!payload.price || !String(payload.price).trim()) {
-        alert('Please enter a price for this package.');
+        showPackageError('pkg-price', 'Please enter a price for this package.');
+        return;
+      }
+      if (!payload.primaryCategoryKey) {
+        showPackageError('pkg-category', 'Please select a primary category.');
+        return;
+      }
+      if (!payload.eventTypes || payload.eventTypes.length === 0) {
+        showPackageError('pkg-event-wedding', 'Please select at least one event type.');
         return;
       }
 
@@ -3955,11 +3751,16 @@ async function initDashSupplier() {
       // guard also prevents programmatic form submissions from bypassing the limit.
       // Editing an existing package (id is set) always bypasses this check.
       if (window._pkgAtLimit && !id) {
-        alert(PKG_LIMIT_MESSAGE);
+        showPackageError('pkg-title', PKG_LIMIT_MESSAGE);
         return;
       }
 
       const saveBtn = pkgForm.querySelector('button[type="submit"]');
+      if (saveBtn?.disabled) {
+        // A save is already in flight: a second Enter or click must not send it twice.
+        return;
+      }
+      pkgForm.setAttribute('aria-busy', 'true');
       const origLabel = saveBtn ? saveBtn.textContent : '';
       if (saveBtn) {
         saveBtn.disabled = true;
@@ -3973,11 +3774,8 @@ async function initDashSupplier() {
           body: JSON.stringify(payload),
         });
         await loadPackages();
-        // skipcq: JS-0052 -- Pre-existing: this whole form flow reports
-        // success/validation failures via alert() (see the guards above),
-        // and this line only replaced its fixed string with one that reads
-        // the new imageProcessingError flag — it is not a new pattern.
-        alert(saveResult?.imageProcessingError || 'Saved package.');
+        efSay(saveResult?.imageProcessingError || 'Package saved.', 'success');
+        notifyDashboardChanged();
         pkgForm.reset();
 
         // Clear photo preview and hidden image input so old images don't bleed into new packages
@@ -3993,15 +3791,15 @@ async function initDashSupplier() {
         const galleryExisting = document.getElementById('pkg-gallery-existing');
         if (galleryExisting) {
           galleryExisting.innerHTML = '';
-          galleryExisting.style.display = 'none';
+          galleryExisting.hidden = true;
         }
         const galleryRow = document.getElementById('pkg-gallery-row');
         if (galleryRow) {
-          galleryRow.style.display = 'none';
+          galleryRow.hidden = true;
         }
         const pkgManageGalleryLink = document.getElementById('pkg-manage-gallery-link');
         if (pkgManageGalleryLink) {
-          pkgManageGalleryLink.style.display = 'none';
+          pkgManageGalleryLink.hidden = true;
         }
 
         // Form has been reset to create mode. Re-apply limit restrictions if needed
@@ -4009,17 +3807,22 @@ async function initDashSupplier() {
         if (window._pkgAtLimit) {
           setPkgFormDisabled(true);
         }
+        // Close the editor: the package now shows in the list behind it.
+        window.SupplierDashboardOverlays?.markClean('package');
+        window.SupplierDashboardOverlays?.close('package');
       } catch (err) {
         if (err.code === 'SUPPLIER_PROFILE_MISSING') {
-          alert('Complete your supplier profile setup before creating packages.');
+          showPackageError('pkg-title', 'Create your profile before adding packages.');
         } else if (err.code === 'SUPPLIER_NOT_APPROVED') {
-          alert(
-            'Your supplier profile is pending approval. Package creation unlocks after approval.'
-          );
+          showPackageError('pkg-title', 'Package creation unlocks once your profile is approved.');
         } else {
-          alert(`Error saving package: ${err.message || 'Please try again'}`);
+          showPackageError(
+            'pkg-title',
+            `Could not save the package: ${err.message || 'please try again'}`
+          );
         }
       } finally {
+        pkgForm.removeAttribute('aria-busy');
         if (saveBtn) {
           // Restore button label. Only re-enable if NOT at the package limit:
           // pkgForm.reset() already cleared pkg-id-hidden, returning to create mode,
@@ -4032,25 +3835,6 @@ async function initDashSupplier() {
       }
     });
   }
-
-  // Banner image upload
-  efSetupPhotoDropZone(
-    'sup-banner-drop',
-    'sup-banner-preview',
-    dataUrl => {
-      const input = document.getElementById('sup-banner');
-      if (!input) {
-        return;
-      }
-      input.value = dataUrl;
-    },
-    () => {
-      const input = document.getElementById('sup-banner');
-      if (input) {
-        input.value = '';
-      }
-    }
-  );
 
   efSetupPhotoDropZone(
     'pkg-photo-drop',
@@ -4109,15 +3893,15 @@ async function initDashSupplier() {
         wrapper.appendChild(removeBtn);
         pkgPreview.appendChild(wrapper);
       }
-      reusePanel.style.display = 'none';
+      reusePanel.hidden = true;
       reusePanel.innerHTML = '';
     }
 
     reuseBtn.addEventListener('click', () => {
-      const isOpen = reusePanel.style.display !== 'none';
+      const isOpen = !reusePanel.hidden;
       reusePanel.innerHTML = '';
       if (isOpen) {
-        reusePanel.style.display = 'none';
+        reusePanel.hidden = true;
         return;
       }
 
@@ -4153,7 +3937,7 @@ async function initDashSupplier() {
           reusePanel.appendChild(option);
         });
       }
-      reusePanel.style.display = '';
+      reusePanel.hidden = false;
     });
   })();
 
@@ -4214,13 +3998,23 @@ async function initDashSupplier() {
               body: JSON.stringify({}),
             });
             const payload = await resp.json().catch(() => ({}));
-            if (!resp.ok || !payload.url) {
+            // Only an https (or same-site) address is ever navigated to, whatever the response says.
+            let checkoutUrl = '';
+            try {
+              const parsedUrl = new URL(String(payload.url || ''), window.location.href);
+              if (parsedUrl.protocol === 'https:' || parsedUrl.origin === window.location.origin) {
+                checkoutUrl = parsedUrl.href;
+              }
+            } catch {
+              checkoutUrl = '';
+            }
+            if (!resp.ok || !checkoutUrl) {
               if (status) {
                 status.textContent = payload.error || 'Could not start checkout.';
               }
               return;
             }
-            window.location.href = payload.url;
+            window.location.href = checkoutUrl;
           } catch {
             if (status) {
               status.textContent = 'Network error – please try again.';
@@ -4256,124 +4050,128 @@ function setPkgFormDisabled(disable, message) {
   }
 }
 
-function togglePackageForm() {
-  const formSection = document.getElementById('package-form-section');
-  const toggleBtn = document.getElementById('toggle-package-form');
-  const cancelBtn = document.getElementById('cancel-package-form');
+/** Clears the package editor's message and every field marked invalid. */
+function clearPackageErrors() {
+  const statusEl = document.getElementById('pkg-status');
+  if (statusEl) {
+    statusEl.textContent = '';
+    statusEl.removeAttribute('data-tone');
+  }
+  document
+    .querySelectorAll('#package-form [aria-invalid="true"]')
+    .forEach(field => field.removeAttribute('aria-invalid'));
+}
 
-  if (!formSection || !toggleBtn) {
+/**
+ * Shows an error inside the package editor and moves focus to the field to fix.
+ * @param {string} fieldId - The field the message is about.
+ * @param {string} message - What to tell the supplier.
+ */
+function showPackageError(fieldId, message) {
+  const statusEl = document.getElementById('pkg-status');
+  if (statusEl) {
+    statusEl.setAttribute('data-tone', 'error');
+    statusEl.textContent = message;
+  }
+  const field = document.getElementById(fieldId);
+  if (field) {
+    field.setAttribute('aria-invalid', 'true');
+    field.focus();
+  }
+}
+
+/**
+ * Opens the package editor for a new package, or asks to close it when it is already open. The
+ * editor is a dialog owned by supplier-dashboard-overlays.js.
+ */
+function togglePackageForm() {
+  const overlays = window.SupplierDashboardOverlays;
+  if (!overlays) {
     return;
   }
+  if (overlays.isOpen('package')) {
+    overlays.requestClose('package');
+    return;
+  }
+  resetPackageForm();
+  overlays.open('package', { focusId: 'pkg-title' });
+}
 
-  const isExpanded = formSection.classList.contains('expanded');
+/** Puts the package editor back to "create a package"; runs whenever the editor closes. */
+function resetPackageForm() {
+  const toggleBtn = document.getElementById('toggle-package-form');
+  const form = document.getElementById('package-form');
+  if (form) {
+    form.reset();
+  }
+  const idField = document.getElementById('pkg-id-hidden');
+  if (idField) {
+    idField.value = '';
+  }
+  const statusEl = document.getElementById('pkg-status');
+  if (statusEl) {
+    statusEl.textContent = '';
+  }
+  const heading = document.querySelector('#package-form-section .supplier-section-header');
+  if (heading) {
+    heading.textContent = 'Create a package';
+  }
 
-  if (isExpanded) {
-    // Collapse form
-    formSection.classList.remove('expanded');
-    toggleBtn.setAttribute('aria-expanded', 'false');
-    toggleBtn.querySelector('.label').textContent = 'Create Package';
-    toggleBtn.classList.remove('active');
-    if (cancelBtn) {
-      cancelBtn.style.display = 'none';
-    }
+  // Clear photo preview and hidden image input so old images don't bleed into new packages
+  const pkgPhotoPreview = document.getElementById('pkg-photo-preview');
+  if (pkgPhotoPreview) {
+    pkgPhotoPreview.innerHTML = '';
+  }
+  const pkgImage = document.getElementById('pkg-image');
+  if (pkgImage) {
+    pkgImage.value = '';
+  }
 
-    // Reset form
-    const form = document.getElementById('package-form');
-    if (form) {
-      form.reset();
-    }
-    document.getElementById('pkg-id-hidden').value = '';
+  // Clear gallery section
+  const galleryExistingReset = document.getElementById('pkg-gallery-existing');
+  if (galleryExistingReset) {
+    galleryExistingReset.innerHTML = '';
+    galleryExistingReset.hidden = true;
+  }
+  const galleryRowReset = document.getElementById('pkg-gallery-row');
+  if (galleryRowReset) {
+    galleryRowReset.hidden = true;
+  }
+  const pkgManageGalleryLinkReset = document.getElementById('pkg-manage-gallery-link');
+  if (pkgManageGalleryLinkReset) {
+    pkgManageGalleryLinkReset.hidden = true;
+  }
 
-    // Clear photo preview and hidden image input so old images don't bleed into new packages
-    const pkgPhotoPreview = document.getElementById('pkg-photo-preview');
-    if (pkgPhotoPreview) {
-      pkgPhotoPreview.innerHTML = '';
-    }
-    const pkgImage = document.getElementById('pkg-image');
-    if (pkgImage) {
-      pkgImage.value = '';
-    }
-
-    // Clear gallery section
-    const galleryExistingReset = document.getElementById('pkg-gallery-existing');
-    if (galleryExistingReset) {
-      galleryExistingReset.innerHTML = '';
-      galleryExistingReset.style.display = 'none';
-    }
-    const galleryRowReset = document.getElementById('pkg-gallery-row');
-    if (galleryRowReset) {
-      galleryRowReset.style.display = 'none';
-    }
-    const pkgManageGalleryLinkReset = document.getElementById('pkg-manage-gallery-link');
-    if (pkgManageGalleryLinkReset) {
-      pkgManageGalleryLinkReset.style.display = 'none';
-    }
-
-    // Form is returning to create mode — re-apply package limit restrictions if needed.
-    if (window._pkgAtLimit) {
-      setPkgFormDisabled(true);
-      // Restore at-limit label and disabled state on the toggle button.
+  // The form is back in create mode: re-apply the package limit if it is reached.
+  if (window._pkgAtLimit) {
+    setPkgFormDisabled(true);
+    if (toggleBtn) {
       toggleBtn.disabled = true;
       toggleBtn.classList.add('form-toggle-btn--at-limit');
-      toggleBtn.setAttribute('aria-label', 'Package limit reached — upgrade to create more');
+      toggleBtn.setAttribute('aria-label', 'Package limit reached: upgrade to create more');
       toggleBtn.title =
         "You've reached your package limit. Pause or delete a package, or upgrade your plan.";
       const labelElRestore = toggleBtn.querySelector('.label');
       if (labelElRestore) {
         labelElRestore.textContent = window._pkgLimitLabel || 'Limit reached';
       }
-      const upgradeCta = document.getElementById('pkg-upgrade-cta');
-      if (upgradeCta) {
-        upgradeCta.style.display = 'inline-flex';
-      }
-    } else {
-      toggleBtn.setAttribute('aria-label', 'Toggle package creation form');
-      toggleBtn.title = '';
     }
-  } else {
-    // Expand form
-    formSection.classList.add('expanded');
-    toggleBtn.setAttribute('aria-expanded', 'true');
-    toggleBtn.querySelector('.label').textContent = 'Cancel';
-    toggleBtn.classList.add('active');
-    if (cancelBtn) {
-      cancelBtn.style.display = 'inline-block';
+    const upgradeCta = document.getElementById('pkg-upgrade-cta');
+    if (upgradeCta) {
+      upgradeCta.hidden = false;
     }
-
-    // Scroll to form
-    setTimeout(() => {
-      formSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }, 100);
+  } else if (toggleBtn) {
+    toggleBtn.removeAttribute('aria-label');
+    toggleBtn.title = '';
   }
 }
 
+/**
+ * Fills the package editor from a saved package and opens it over the dashboard.
+ * @param {string} packageId - The package to edit.
+ */
 function editPackage(packageId) {
-  // Expand the form section
   const formSection = document.getElementById('package-form-section');
-  const toggleBtn = document.getElementById('toggle-package-form');
-
-  if (formSection && !formSection.classList.contains('expanded')) {
-    formSection.classList.add('expanded');
-    if (toggleBtn) {
-      toggleBtn.setAttribute('aria-expanded', 'true');
-      toggleBtn.querySelector('.label').textContent = 'Cancel';
-      toggleBtn.classList.add('active');
-    }
-  }
-
-  // Always update the toggle button to the Cancel / edit-mode state, regardless
-  // of whether the form was already expanded. This ensures an at-limit supplier
-  // who had a disabled button can still cancel out of an edit they just opened.
-  if (toggleBtn) {
-    toggleBtn.disabled = false;
-    toggleBtn.classList.remove('form-toggle-btn--at-limit');
-    toggleBtn.setAttribute('aria-label', 'Cancel editing package');
-    toggleBtn.title = '';
-    const upgradeCta = document.getElementById('pkg-upgrade-cta');
-    if (upgradeCta) {
-      upgradeCta.style.display = 'none';
-    }
-  }
 
   // Fetch package data from API
   fetch(`/api/v1/me/packages/${encodeURIComponent(packageId)}`, {
@@ -4397,13 +4195,13 @@ function editPackage(packageId) {
       if (pkgManageGalleryLink) {
         if (pkg.id) {
           pkgManageGalleryLink.href = `/gallery?type=package&id=${encodeURIComponent(pkg.id)}`;
-          pkgManageGalleryLink.style.display = '';
+          pkgManageGalleryLink.hidden = false;
         } else {
-          pkgManageGalleryLink.style.display = 'none';
+          pkgManageGalleryLink.hidden = true;
         }
       }
       document.getElementById('pkg-title').value = pkg.title || '';
-      document.getElementById('pkg-price').value = pkg.price_display || '';
+      document.getElementById('pkg-price').value = packagePriceText(pkg);
       document.getElementById('pkg-desc').value = pkg.description || '';
       document.getElementById('pkg-category').value = pkg.primaryCategoryKey || '';
       document.getElementById('pkg-image').value = pkg.image || '';
@@ -4465,24 +4263,24 @@ function editPackage(packageId) {
         }
         if (validPhotos.length > 0) {
           renderPkgGallery(galleryExisting, validPhotos, pkg.id);
-          galleryExisting.style.display = '';
+          galleryExisting.hidden = false;
           if (galleryRow) {
-            galleryRow.style.display = '';
+            galleryRow.hidden = false;
           }
           // Show reorder bar only when there are ≥2 photos
           const reorderBar = document.getElementById('pkg-gallery-reorder-bar');
           if (reorderBar) {
-            reorderBar.style.display = validPhotos.length >= 2 ? '' : 'none';
+            reorderBar.hidden = validPhotos.length < 2;
           }
         } else {
           galleryExisting.innerHTML = '';
-          galleryExisting.style.display = 'none';
+          galleryExisting.hidden = true;
           if (galleryRow) {
-            galleryRow.style.display = 'none';
+            galleryRow.hidden = true;
           }
           const reorderBar = document.getElementById('pkg-gallery-reorder-bar');
           if (reorderBar) {
-            reorderBar.style.display = 'none';
+            reorderBar.hidden = true;
           }
         }
       }
@@ -4493,72 +4291,85 @@ function editPackage(packageId) {
         heading.textContent = 'Edit package';
       }
 
-      // Scroll to form
-      setTimeout(() => {
-        formSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      }, 100);
+      window.SupplierDashboardOverlays?.open('package', { focusId: 'pkg-title' });
     })
     .catch(e => {
       console.error('Error loading package for edit:', e);
-      alert('Failed to load package data. Please try again.');
+      efSay('Could not load the package. Please try again.', 'error');
     });
 }
 
+/**
+ * A package write (delete, pause, resume) with the dashboard's CSRF handling: the token is
+ * fetched when missing and fetched again once if the server refuses it.
+ * @param {string} url - The package route.
+ * @param {string} method - DELETE or PUT.
+ * @returns {Promise<{ok: boolean, status: number, data: Object}>} The response.
+ */
+async function packageRequest(url, method) {
+  const home = window.SupplierDashboardHome;
+  if (home && typeof home.sendJson === 'function') {
+    return home.sendJson(url, method);
+  }
+  const response = await fetch(url, {
+    method,
+    headers: { 'X-CSRF-Token': window.__CSRF_TOKEN__ || '' },
+    credentials: 'include',
+  });
+  const data = await response.json().catch(() => ({}));
+  return { ok: response.ok, status: response.status, data };
+}
+
+/** Puts keyboard focus back on the packages heading after a row has been removed or redrawn. */
+function focusPackagesHeading() {
+  const heading = document.getElementById('packages-heading');
+  if (heading) {
+    heading.setAttribute('tabindex', '-1');
+    heading.focus({ preventScroll: true });
+  }
+}
+
 async function deletePackage(packageId) {
-  if (!confirm('Are you sure you want to delete this package? This action cannot be undone.')) {
+  const confirmed = await efConfirm({
+    title: 'Delete this package?',
+    message: 'This cannot be undone. Customers will no longer see it.',
+    confirmLabel: 'Delete package',
+  });
+  if (!confirmed) {
     return;
   }
 
   try {
-    const csrfToken = window.__CSRF_TOKEN__ || '';
-    const response = await fetch(`/api/v1/me/packages/${encodeURIComponent(packageId)}`, {
-      method: 'DELETE',
-      headers: {
-        'X-CSRF-Token': csrfToken,
-      },
-      credentials: 'include',
-    });
-
-    if (!response.ok) {
-      const errorData = await response.json();
-      alert(`Failed to delete package: ${errorData.error || 'Unknown error'}`);
+    const result = await packageRequest(
+      `/api/v1/me/packages/${encodeURIComponent(packageId)}`,
+      'DELETE'
+    );
+    if (!result.ok) {
+      efSay(`Could not delete the package: ${result.data.error || 'unknown error'}`, 'error');
       return;
     }
 
-    // Reload packages list
-    const initFunc = window.initDashSupplier;
-    if (initFunc) {
-      // Reload just packages if possible, otherwise show success message
-      alert('Package deleted successfully!');
-      location.reload();
+    if (typeof window._efLoadPackages === 'function') {
+      await window._efLoadPackages();
     }
+    notifyDashboardChanged();
+    efSay('Package deleted.', 'success');
+    focusPackagesHeading();
   } catch (e) {
     console.error('Error deleting package:', e);
-    alert('Failed to delete package. Please try again.');
+    efSay('Could not delete the package. Please try again.', 'error');
   }
 }
 
 async function togglePackagePause(packageId, pause) {
   const action = pause ? 'pause' : 'unpause';
   try {
-    const csrfToken = window.__CSRF_TOKEN__ || '';
-    const response = await fetch(`/api/v1/me/packages/${encodeURIComponent(packageId)}/${action}`, {
-      method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-CSRF-Token': csrfToken,
-      },
-      credentials: 'include',
-    });
-
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      const msg = `Failed to ${action} package: ${errorData.error || 'Unknown error'}`;
-      if (typeof Toast !== 'undefined') {
-        Toast.error(msg);
-      } else {
-        alert(msg);
-      }
+    const result = await packageRequest(
+      `/api/v1/me/packages/${encodeURIComponent(packageId)}/${action}`,
+      'PUT'
+    );
+    if (!result.ok) {
+      efSay(`Could not ${action} the package: ${result.data.error || 'unknown error'}`, 'error');
       return;
     }
 
@@ -4567,41 +4378,23 @@ async function togglePackagePause(packageId, pause) {
     if (typeof window._efLoadPackages === 'function') {
       await window._efLoadPackages();
     }
-
-    // Show a success notification
-    const successMsg = pause ? 'Package paused successfully.' : 'Package unpaused successfully.';
-    if (typeof Toast !== 'undefined') {
-      Toast.success(successMsg);
-    }
-
-    // Keep the Active Packages stat card in sync without a full page reload
-    try {
-      const pkgsResp = await fetch('/api/v1/me/packages', { credentials: 'include' });
-      if (pkgsResp.ok) {
-        const pkgsData = await pkgsResp.json();
-        const activeCount = (pkgsData?.items ?? []).filter(p => !p.paused).length;
-        const statEl = document.getElementById('quick-stat-packages');
-        if (statEl) {
-          statEl.setAttribute('data-target', String(activeCount));
-          statEl.textContent = String(activeCount);
-        }
-      }
-    } catch {
-      // Best effort — stat update failure should not block UX
-    }
+    // The summary row counts active packages: ask for fresh numbers.
+    notifyDashboardChanged();
+    efSay(pause ? 'Package paused.' : 'Package resumed.', 'success');
+    focusPackagesHeading();
   } catch (e) {
     console.error(`Error ${action}ing package:`, e);
-    const errMsg = `Failed to ${action} package. Please try again.`;
-    if (typeof Toast !== 'undefined') {
-      Toast.error(errMsg);
-    } else {
-      alert(errMsg);
-    }
+    efSay(`Could not ${action} the package. Please try again.`, 'error');
   }
 }
 
 async function deletePackagePhoto(packageId, photoUrl, btnEl) {
-  if (!confirm('Remove this photo from the gallery?')) {
+  const confirmed = await efConfirm({
+    title: 'Remove this photo?',
+    message: 'It will be removed from the package gallery.',
+    confirmLabel: 'Remove photo',
+  });
+  if (!confirmed) {
     return;
   }
   const csrfToken = window.__CSRF_TOKEN__ || '';
@@ -4620,7 +4413,7 @@ async function deletePackagePhoto(packageId, photoUrl, btnEl) {
     });
     if (!response.ok) {
       const err = await response.json().catch(() => ({}));
-      alert(`Failed to delete photo: ${err.error || 'Unknown error'}`);
+      efSay(`Could not delete the photo: ${err.error || 'unknown error'}`, 'error');
       if (btnEl) {
         btnEl.disabled = false;
       }
@@ -4635,15 +4428,15 @@ async function deletePackagePhoto(packageId, photoUrl, btnEl) {
     const galleryExisting = document.getElementById('pkg-gallery-existing');
     if (galleryExisting && !galleryExisting.querySelector('.pkg-gallery-item')) {
       galleryExisting.innerHTML = '';
-      galleryExisting.style.display = 'none';
+      galleryExisting.hidden = true;
       const galleryRow = document.getElementById('pkg-gallery-row');
       if (galleryRow) {
-        galleryRow.style.display = 'none';
+        galleryRow.hidden = true;
       }
     }
   } catch (e) {
     console.error('Error deleting package photo:', e);
-    alert('Failed to delete photo. Please try again.');
+    efSay('Could not delete the photo. Please try again.', 'error');
     if (btnEl) {
       btnEl.disabled = false;
     }
@@ -4775,7 +4568,7 @@ function _refreshFirstBadge(container) {
 function _markGalleryOrderDirty() {
   const bar = document.getElementById('pkg-gallery-reorder-bar');
   if (bar) {
-    bar.style.display = '';
+    bar.hidden = false;
     const status = document.getElementById('pkg-gallery-order-status');
     if (status) {
       status.textContent = '';
@@ -4849,77 +4642,66 @@ async function savePkgGalleryOrder() {
 }
 
 // Profile Form Toggle, Edit, and Delete Functions
+/**
+ * Opens the profile editor over the dashboard, filled in from the saved profile, or asks to close
+ * it when it is already open. The editor is a dialog owned by supplier-dashboard-overlays.js.
+ */
 function toggleProfileForm() {
-  const formSection = document.getElementById('profile-form-section');
-  const toggleBtn = document.getElementById('toggle-profile-form');
-  const cancelBtn = document.getElementById('cancel-profile-form');
-
-  if (!formSection || !toggleBtn) {
+  const overlays = window.SupplierDashboardOverlays;
+  if (!overlays) {
     return;
   }
-
-  const isExpanded = formSection.classList.contains('expanded');
-  // Determine whether the user already has a profile before any DOM mutations
-  const hasProfile =
-    !!document.getElementById('sup-id')?.value ||
-    !!document.querySelector('#my-suppliers .supplier-card');
-
-  if (isExpanded) {
-    // Collapse form
-    formSection.classList.remove('expanded');
-    toggleBtn.setAttribute('aria-expanded', 'false');
-    toggleBtn.querySelector('.label').textContent = hasProfile ? 'Edit Profile' : 'Create Profile';
-    toggleBtn.classList.remove('active');
-    if (cancelBtn) {
-      cancelBtn.style.display = 'none';
-    }
-
-    // Reset form
-    const form = document.getElementById('supplier-form');
-    if (form) {
-      form.reset();
-    }
-    document.getElementById('sup-id').value = '';
-
-    // Reset form heading
-    const heading = formSection.querySelector('.supplier-section-header');
+  if (overlays.isOpen('profile')) {
+    overlays.requestClose('profile');
+    return;
+  }
+  // Closing the editor clears it (and the hidden profile id). Opening it again must show the
+  // saved profile: a blank form would save as a new profile instead of updating this one.
+  const savedProfile = (window._efCachedSuppliers || [])[0];
+  const heading = document.querySelector('#profile-form-section .supplier-section-header');
+  if (savedProfile && typeof window._efPopulateSupplierForm === 'function') {
+    window._efPopulateSupplierForm(savedProfile);
     if (heading) {
-      heading.textContent = hasProfile ? 'Edit Profile' : 'Create / Edit profile';
+      heading.textContent = 'Edit profile';
     }
-  } else {
-    // Expand form
-    formSection.classList.add('expanded');
-    toggleBtn.setAttribute('aria-expanded', 'true');
-    toggleBtn.querySelector('.label').textContent = 'Cancel';
-    toggleBtn.classList.add('active');
-    if (cancelBtn) {
-      cancelBtn.style.display = 'inline-block';
-    }
+  } else if (heading) {
+    heading.textContent = 'Create your profile';
+  }
+  overlays.open('profile', { focusId: 'sup-name' });
+}
 
-    // Scroll to form
-    setTimeout(() => {
-      formSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }, 100);
+/** Puts the profile editor back to its empty state; runs whenever the editor closes. */
+function resetProfileForm() {
+  const form = document.getElementById('supplier-form');
+  if (form) {
+    form.reset();
+  }
+  const idField = document.getElementById('sup-id');
+  if (idField) {
+    idField.value = '';
+  }
+  const statusEl = document.getElementById('sup-status');
+  if (statusEl) {
+    statusEl.textContent = '';
+  }
+  const hasProfile = (window._efCachedSuppliers || []).length > 0;
+  const heading = document.querySelector('#profile-form-section .supplier-section-header');
+  if (heading) {
+    heading.textContent = hasProfile ? 'Edit profile' : 'Create your profile';
+  }
+  const label = document.querySelector('#toggle-profile-form .label');
+  if (label) {
+    label.textContent = hasProfile ? 'Edit profile' : 'Create profile';
   }
 }
 
+/**
+ * Fills the profile editor from a saved profile and opens it over the dashboard.
+ * @param {string} supplierId - The profile to edit.
+ * @param {{focusId?: string}} [options] - A field to land on.
+ */
 async function editProfile(supplierId, options = {}) {
-  const skipFormScroll = !!options.skipFormScroll;
-  // Expand the form section
   const formSection = document.getElementById('profile-form-section');
-  const toggleBtn = document.getElementById('toggle-profile-form');
-
-  if (formSection && !formSection.classList.contains('expanded')) {
-    formSection.classList.add('expanded');
-    if (toggleBtn) {
-      toggleBtn.setAttribute('aria-expanded', 'true');
-      const labelEl = toggleBtn.querySelector('.label');
-      if (labelEl) {
-        labelEl.textContent = 'Cancel';
-      }
-      toggleBtn.classList.add('active');
-    }
-  }
 
   // Fetch supplier data and populate form
   try {
@@ -4992,17 +4774,10 @@ async function editProfile(supplierId, options = {}) {
     // Store the editing supplier ID for later use
     window.currentEditingSupplierId = supplierId;
 
-    // Scroll to form unless caller wants to control scroll target
-    if (!skipFormScroll) {
-      setTimeout(() => {
-        if (formSection) {
-          formSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        }
-      }, 100);
-    }
+    window.SupplierDashboardOverlays?.open('profile', { focusId: options.focusId || 'sup-name' });
   } catch (e) {
     console.error('Error loading supplier for edit:', e);
-    alert('Failed to load supplier profile. Please try again.');
+    efSay('Could not load your profile. Please try again.', 'error');
   }
 }
 
@@ -5126,7 +4901,7 @@ async function initAdmin() {
         .map(
           x => `<div class="card" style="margin-bottom:10px">
       <div class="small"><strong>${x.name}</strong> — ${x.category} · ${x.location || ''}</div>
-      <div class="form-actions"><button class="cta secondary" data-approve="${x.id}" data-val="${x.approved ? 'false' : 'true'}">${x.approved ? 'Hide' : 'Approve'}</button></div>
+      <div class="form-actions"><button class="cta secondary" data-approve="${escapeAttr(x.id)}" data-val="${x.approved ? 'false' : 'true'}">${x.approved ? 'Hide' : 'Approve'}</button></div>
     </div>`
         )
         .join('') || '<p class="small">No suppliers.</p>';
@@ -5152,8 +4927,8 @@ async function initAdmin() {
         .map(
           x => `<div class="pack card" style="margin-bottom:10px">
       <img src="${x.image}" alt="${escapeHtml(x.title)}"><div><h3>${x.title}</h3><div class="small"><span class="badge">${x.price}</span> — Supplier ${x.supplierId.slice(0, 8)}</div>
-      <div class="form-actions"><button class="cta secondary" data-approve="${x.id}" data-val="${x.approved ? 'false' : 'true'}">${x.approved ? 'Hide' : 'Approve'}</button>
-      <button class="cta secondary" data-feature="${x.id}" data-val="${x.featured ? 'false' : 'true'}">${x.featured ? 'Unfeature' : 'Feature'}</button></div></div></div>`
+      <div class="form-actions"><button class="cta secondary" data-approve="${escapeAttr(x.id)}" data-val="${x.approved ? 'false' : 'true'}">${x.approved ? 'Hide' : 'Approve'}</button>
+      <button class="cta secondary" data-feature="${escapeAttr(x.id)}" data-val="${x.featured ? 'false' : 'true'}">${x.featured ? 'Unfeature' : 'Feature'}</button></div></div></div>`
         )
         .join('') || '<p class="small">No packages.</p>';
     pkgWrap.querySelectorAll('[data-approve]').forEach(btn =>
@@ -5204,37 +4979,74 @@ function efDetectPage(pathname) {
 
 // skipcq: JS-R1005 -- One DOMContentLoaded handler keeps every page's setup in one place; the
 // sign-in/sign-up block is most of it.
-document.addEventListener('DOMContentLoaded', () => {
-  const page = window.__EF_PAGE__ || efDetectPage(location.pathname);
+/**
+ * What to tell someone whose sign-in was refused.
+ * @param {number} status - The HTTP status of the refusal.
+ * @param {string} [serverError] - The message the server sent, if any.
+ * @returns {string} The message to show.
+ */
+function loginFailureMessage(status, serverError) {
+  const generic = 'Could not sign in. Please check your details and try again.';
+  const errorMsg = serverError || generic;
+  if (status === 401) {
+    return 'Invalid email or password. Please check your credentials and try again.';
+  }
+  if (status === 403 && errorMsg.toLowerCase().includes('verify')) {
+    return 'Please verify your email address before signing in. Check your inbox for the verification link.';
+  }
+  if (status === 429) {
+    return 'Too many login attempts. Please wait a moment and try again.';
+  }
+  return errorMsg === generic
+    ? 'Unable to sign in. Please check your email and password.'
+    : errorMsg;
+}
 
-  // Version display is handled by admin-shared.js for admin pages.
-  // Public pages keep the version wrapper hidden via the HTML hidden attribute.
-  // No version fetch needed here.
+/**
+ * Where to send someone who has just signed in: the page for their role, unless the address names
+ * one of the pages that role is allowed (SECURITY: never trust the redirect parameter alone).
+ * @param {string} role - The account's role.
+ * @param {string} search - The page's query string.
+ * @returns {string} A same-site address.
+ */
+function postLoginDestination(role, search) {
+  let destination = '/dashboard/customer';
+  if (role === 'admin') {
+    destination = '/admin';
+  } else if (role === 'supplier') {
+    destination = '/dashboard/supplier';
+  }
+  const urlParams = new URLSearchParams(search);
+  const redirect = urlParams.get('redirect') || urlParams.get('return');
+  if (!redirect) {
+    return destination;
+  }
+  // Only an allowed page for this role, built from the allowlist (see safeRedirectTarget).
+  const target = safeRedirectTarget(redirect, role, urlParams.get('plan'));
+  if (target) {
+    return target;
+  }
+  console.warn(`Ignoring untrusted redirect param: ${redirect} for role: ${role}`);
+  return destination;
+}
 
-  // Per-page setup
-  // Note: homepage initialization is handled by home-init.js
-  // (removed initHome() from app.js to avoid conflicts)
-  if (page === 'results') {
-    initResults && initResults();
+/** Runs the setup for the pages whose scripts live in this file. */
+function runPageInit(page) {
+  const pageInits = {
+    results: initResults,
+    plan: initPlan,
+    dash_supplier: initDashSupplier,
+    admin: initAdmin,
+  };
+  if (Object.hasOwn(pageInits, page)) {
+    pageInits[page]?.();
   }
-  if (page === 'plan') {
-    initPlan && initPlan();
-  }
-  if (page === 'dash_supplier') {
-    initDashSupplier && initDashSupplier();
-  }
-  if (page === 'admin') {
-    initAdmin && initAdmin();
-  }
-  // Note: page === 'admin_users' is handled by admin-users-init.js
-  // Note: page === 'verify' is now handled by verify-init.js
+}
 
-  // Global header behaviour: scroll hide/show
-  // Note: burger menu is handled by auth-nav.js
+/** Hides the header while scrolling down and shows it again on scrolling up. */
+function initHeaderScrollBehaviour() {
   try {
     const header = document.querySelector('.header');
-
-    // Hide header on scroll down, show on scroll up
     let lastY = window.scrollY;
     let ticking = false;
     const threshold = 12;
@@ -5246,9 +5058,9 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
       }
       if (currentY > lastY && currentY > 40) {
-        header && header.classList.add('header--hidden');
+        header?.classList.add('header--hidden');
       } else {
-        header && header.classList.remove('header--hidden');
+        header?.classList.remove('header--hidden');
       }
       lastY = currentY;
       ticking = false;
@@ -5263,6 +5075,25 @@ document.addEventListener('DOMContentLoaded', () => {
   } catch {
     /* Ignore loader errors */
   }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  const page = window.__EF_PAGE__ || efDetectPage(location.pathname);
+
+  // Version display is handled by admin-shared.js for admin pages.
+  // Public pages keep the version wrapper hidden via the HTML hidden attribute.
+  // No version fetch needed here.
+
+  // Per-page setup
+  // Note: homepage initialization is handled by home-init.js
+  // (removed initHome() from app.js to avoid conflicts)
+  // Note: page === 'admin_users' is handled by admin-users-init.js
+  // Note: page === 'verify' is now handled by verify-init.js
+  runPageInit(page);
+
+  // Global header behaviour: scroll hide/show
+  // Note: burger menu is handled by auth-nav.js
+  initHeaderScrollBehaviour();
 
   // Password visibility toggle — shared across all pages
   const SVG_EYE =
@@ -5346,10 +5177,10 @@ document.addEventListener('DOMContentLoaded', () => {
           // Honour a valid redirect param (e.g. coming from the pricing page)
           const urlParams = new URLSearchParams(window.location.search);
           const redirectParam = urlParams.get('redirect');
-          let destination = null;
+          let destination = safeRedirectTarget(redirectParam, existing.role);
 
-          if (redirectParam && validateRedirectForRole(redirectParam, existing.role)) {
-            destination = redirectParam;
+          if (destination) {
+            // An allowed page was asked for: go there.
           } else if (existing.role === 'admin') {
             destination = '/admin';
           } else if (existing.role === 'supplier') {
@@ -5732,6 +5563,62 @@ document.addEventListener('DOMContentLoaded', () => {
         });
       }
 
+      /** Shows a sign-in error under the form and, unless told not to, in the status line. */
+      const showLoginError = (message, alsoInStatus = true) => {
+        if (loginErrorEl) {
+          loginErrorEl.textContent = message;
+          loginErrorEl.style.display = 'block';
+        }
+        if (loginStatus) {
+          loginStatus.textContent = alsoInStatus ? message : '';
+        }
+      };
+
+      /** Asks the server to sign in. */
+      const requestLogin = async (email, password, remember) => {
+        const response = await fetch('/api/v1/auth/login', {
+          method: 'POST',
+          headers: getHeadersWithCsrf({ 'Content-Type': 'application/json' }),
+          credentials: 'include',
+          body: JSON.stringify({ email, password, remember }),
+        });
+        let data = {};
+        try {
+          data = await response.json();
+        } catch {
+          /* Ignore JSON parse errors */
+        }
+        return { response, data };
+      };
+
+      /** Shows why the sign-in was refused, and offers a new verification email when that is why. */
+      const showLoginRefusal = (response, data) => {
+        const errorMsg = loginFailureMessage(response.status, data.error);
+        showLoginError(errorMsg);
+        // Check if login failed due to unverified email (403 status)
+        if (
+          loginStatus &&
+          resendContainer &&
+          response.status === 403 &&
+          errorMsg.toLowerCase().includes('verify')
+        ) {
+          resendContainer.style.display = 'block';
+        }
+      };
+
+      /** Signed in: remember it, then go to the right page. */
+      const completeLogin = user => {
+        if (loginStatus) {
+          loginStatus.textContent = 'Signed in. Redirecting…';
+        }
+        try {
+          localStorage.setItem('eventflow_onboarding_new', '1');
+        } catch {
+          /* Ignore localStorage errors */
+        }
+        location.href = postLoginDestination(user.role, window.location.search);
+      };
+
       loginForm.addEventListener('submit', async e => {
         e.preventDefault();
         if (loginStatus) {
@@ -5745,17 +5632,10 @@ document.addEventListener('DOMContentLoaded', () => {
         // Validate required fields
         const email = loginEmail.value.trim();
         const password = loginPassword.value;
-        const rememberCheckbox = document.getElementById('login-remember');
-        const remember = rememberCheckbox ? rememberCheckbox.checked : false;
+        const remember = Boolean(document.getElementById('login-remember')?.checked);
 
         if (!email || !password) {
-          if (loginErrorEl) {
-            loginErrorEl.textContent = 'Please enter both email and password';
-            loginErrorEl.style.display = 'block';
-          }
-          if (loginStatus) {
-            loginStatus.textContent = '';
-          }
+          showLoginError('Please enter both email and password', false);
           return;
         }
 
@@ -5767,105 +5647,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
         setAuthSubmitButtonState(loginBtn, 'Signing in…', true);
         try {
-          const r = await fetch('/api/v1/auth/login', {
-            method: 'POST',
-            headers: getHeadersWithCsrf({ 'Content-Type': 'application/json' }),
-            credentials: 'include',
-            body: JSON.stringify({ email, password, remember }),
-          });
-          let data = {};
-          try {
-            data = await r.json();
-          } catch {
-            /* Ignore JSON parse errors */
-          }
-          if (!r.ok) {
-            let errorMsg =
-              data.error || 'Could not sign in. Please check your details and try again.';
-
-            // Provide more specific error messages
-            if (r.status === 401) {
-              errorMsg = 'Invalid email or password. Please check your credentials and try again.';
-            } else if (r.status === 403 && errorMsg.toLowerCase().includes('verify')) {
-              errorMsg =
-                'Please verify your email address before signing in. Check your inbox for the verification link.';
-            } else if (r.status === 429) {
-              errorMsg = 'Too many login attempts. Please wait a moment and try again.';
-            } else if (
-              !errorMsg ||
-              errorMsg === 'Could not sign in. Please check your details and try again.'
-            ) {
-              errorMsg = 'Unable to sign in. Please check your email and password.';
-            }
-
-            if (loginErrorEl) {
-              loginErrorEl.textContent = errorMsg;
-              loginErrorEl.style.display = 'block';
-            }
-
-            if (loginStatus) {
-              loginStatus.textContent = errorMsg;
-
-              // Check if login failed due to unverified email (403 status)
-              if (r.status === 403 && errorMsg.toLowerCase().includes('verify')) {
-                if (resendContainer) {
-                  resendContainer.style.display = 'block';
-                }
-              }
-            }
+          const { response, data } = await requestLogin(email, password, remember);
+          if (response.ok) {
+            completeLogin(data.user || {});
           } else {
-            if (loginStatus) {
-              loginStatus.textContent = 'Signed in. Redirecting…';
-            }
-            const user = data.user || {};
-            try {
-              localStorage.setItem('eventflow_onboarding_new', '1');
-            } catch {
-              /* Ignore localStorage errors */
-            }
-
-            // Determine destination based on user role (SECURITY: never trust redirect param alone)
-            let destination;
-            if (user.role === 'admin') {
-              destination = '/admin';
-            } else if (user.role === 'supplier') {
-              destination = '/dashboard/supplier';
-            } else {
-              destination = '/dashboard/customer';
-            }
-
-            // Check for redirect parameter - only allow if it matches user's role-appropriate pages
-            const urlParams = new URLSearchParams(window.location.search);
-            const redirect = urlParams.get('redirect') || urlParams.get('return');
-            const plan = urlParams.get('plan');
-
-            if (redirect) {
-              // Validate redirect is safe: same-origin and allowlisted for user's role
-              const isValidRedirect = validateRedirectForRole(redirect, user.role);
-              if (isValidRedirect) {
-                destination = redirect;
-                // Preserve plan parameter if it exists and not already in redirect
-                if (plan && !destination.includes('plan=')) {
-                  const separator = destination.includes('?') ? '&' : '?';
-                  destination = `${destination}${separator}plan=${encodeURIComponent(plan)}`;
-                }
-              } else {
-                console.warn(
-                  `Ignoring untrusted redirect param: ${redirect} for role: ${user.role}`
-                );
-              }
-            }
-
-            location.href = destination;
+            showLoginRefusal(response, data);
           }
         } catch (err) {
-          if (loginErrorEl) {
-            loginErrorEl.textContent = 'Network error – please try again.';
-            loginErrorEl.style.display = 'block';
-          }
-          if (loginStatus) {
-            loginStatus.textContent = 'Network error – please try again.';
-          }
+          showLoginError('Network error – please try again.');
           console.error('Login error', err);
         } finally {
           setAuthSubmitButtonState(loginBtn, 'Log in');
@@ -6247,16 +6036,10 @@ document.addEventListener('DOMContentLoaded', () => {
             const plan = urlParams.get('plan');
 
             if (redirect) {
-              // Validate redirect is safe: same-origin and allowlisted for user's role
+              // Only an allowed page for this role, built from the allowlist (see safeRedirectTarget).
               const user = data.user || {};
-              const isValidRedirect = validateRedirectForRole(redirect, user.role);
-              if (isValidRedirect) {
-                // Preserve plan parameter if it exists
-                let redirectUrl = redirect;
-                if (plan && !redirect.includes('plan=')) {
-                  const separator = redirect.includes('?') ? '&' : '?';
-                  redirectUrl = `${redirect}${separator}plan=${encodeURIComponent(plan)}`;
-                }
+              const redirectUrl = safeRedirectTarget(redirect, user.role, plan);
+              if (redirectUrl) {
                 if (regStatus) {
                   regStatus.textContent = 'Account created! Redirecting...';
                 }
@@ -6603,89 +6386,9 @@ async function adminCharts() {
   }
 }
 
-// Supplier onboarding checklist visual (client side)
-function renderSupplierChecklist(wrapper, supplierCount, packageCount, supplierApproved) {
-  const steps = [
-    { name: 'Create a supplier profile', done: supplierCount > 0 },
-    { name: 'Get approved by admin', done: supplierApproved },
-    { name: 'Add at least one package', done: packageCount > 0 },
-  ];
-  wrapper.innerHTML = `
-    <div class="supplier-card-header sd-card-header sd-card-header--teal">
-      <div class="sd-card-header__left">
-        <div class="sd-card-header__title-row">
-          <div class="sd-card-header__icon sd-card-header__icon--teal" aria-hidden="true">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M9 11l3 3L22 4"/>
-              <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>
-            </svg>
-          </div>
-          <h3 class="sd-card-header__heading">Onboarding</h3>
-        </div>
-        <p class="sd-card-header__subtitle">Complete these steps to get started</p>
-      </div>
-    </div>
-    <div class="sd-card-body">
-      <ul class="health-checklist">
-        ${steps
-          .map(
-            s => `<li class="health-checklist-item ${s.done ? 'completed' : 'incomplete'}">
-          <span class="health-checklist-icon" aria-label="${s.done ? 'Completed' : 'Incomplete'}">${s.done ? '✓' : '○'}</span>
-          <span class="health-checklist-text">${escapeHtml(s.name)}</span>
-        </li>`
-          )
-          .join('')}
-      </ul>
-    </div>`;
-}
-
 document.addEventListener('DOMContentLoaded', () => {
   if (window.__EF_PAGE__ === 'admin') {
     adminCharts();
-  }
-  if (window.__EF_PAGE__ === 'dash_supplier') {
-    (async () => {
-      try {
-        const meResponse = await fetch('/api/v1/me/suppliers', {
-          credentials: 'include',
-        });
-        const ms = await meResponse.json();
-        const pk = await fetch('/api/v1/me/packages', {
-          credentials: 'include',
-        });
-        const mp = await pk.json();
-        const supplierItems = ms.items || [];
-        const supplierApproved = supplierItems.some(s => s.approved === true);
-        const box = document.createElement('div');
-        box.className = 'card sd-card supplier-dashboard-card';
-        // Starts expanded on mobile/tablet (card-collapse.js collapses .sd-card
-        // by default below 1024px unless told otherwise) — matches the
-        // "Your Supplier Profile" card just below it, and this one is now the
-        // first thing after the hero, so collapsing it by default would undercut
-        // the point of moving it up here.
-        box.dataset.defaultExpanded = 'true';
-        // Placed right after the hero card rather than appended at the end of
-        // the page: this checklist (create profile → get approved → add a
-        // package) is the single most useful thing a new supplier can see,
-        // and previously landed after every other section — roughly 8,000px
-        // down the page — where a first-time visitor would rarely scroll.
-        const welcomeSection = document.getElementById('welcome-section');
-        const container = document.querySelector('main .container');
-        if (welcomeSection && welcomeSection.parentElement === container) {
-          welcomeSection.insertAdjacentElement('afterend', box);
-        } else {
-          container.appendChild(box);
-        }
-        renderSupplierChecklist(
-          box,
-          supplierItems.length,
-          (mp.items || []).length,
-          supplierApproved
-        );
-      } catch {
-        /* Ignore checklist render errors */
-      }
-    })();
   }
 });
 
@@ -6742,8 +6445,14 @@ function efInitVenueMap() {
   const form = document.getElementById('map-postcode-form');
   const input = document.getElementById('map-postcode');
   const status = document.getElementById('map-status');
-  const LAST_QUERY_KEY = 'ef:lastMapQuery';
-  const LAST_QUERY_LABEL_KEY = 'ef:lastMapLabel';
+  // Earlier versions remembered the last search, including a visitor's exact coordinates, in this
+  // browser for good. A visitor's location is not kept any more; erase what is already there.
+  try {
+    localStorage.removeItem('ef:lastMapQuery');
+    localStorage.removeItem('ef:lastMapLabel');
+  } catch {
+    /* Ignore storage errors */
+  }
   const DEFAULT_QUERY = 'wedding venues in the UK';
 
   // Fetch Google Maps API key from server
@@ -6779,25 +6488,9 @@ function efInitVenueMap() {
   }
 
   function showDefaultMap() {
-    let savedQuery = '';
-    let savedLabel = '';
-    try {
-      savedQuery = localStorage.getItem(LAST_QUERY_KEY) || '';
-      savedLabel = localStorage.getItem(LAST_QUERY_LABEL_KEY) || '';
-    } catch {
-      /* Ignore storage errors */
-    }
-
-    const trimmed = savedQuery.trim();
-    const baseQuery = trimmed ? `wedding venues near ${trimmed}` : DEFAULT_QUERY;
-    const label = (savedLabel || trimmed).trim();
-    mapFrame.src = buildMapUrl(baseQuery);
+    mapFrame.src = buildMapUrl(DEFAULT_QUERY);
     mapFrame.style.display = 'block';
-    setStatus(
-      trimmed
-        ? `Showing results near "${label || trimmed}".`
-        : 'Showing venues across the UK. Share your location to refine your results.'
-    );
+    setStatus('Showing venues across the UK. Share your location to refine your results.');
   }
 
   function updateForQuery(q, labelOverride) {
@@ -6811,12 +6504,6 @@ function efInitVenueMap() {
 
     const label = labelOverride || cleaned;
     setStatus(`Showing results near "${label}".`);
-    try {
-      localStorage.setItem(LAST_QUERY_KEY, cleaned);
-      localStorage.setItem(LAST_QUERY_LABEL_KEY, label);
-    } catch {
-      /* Ignore storage errors */
-    }
   }
 
   if (useBtn && navigator.geolocation) {
@@ -6829,8 +6516,12 @@ function efInitVenueMap() {
           updateForQuery(query, 'your location');
         },
         err => {
+          // 1 is "denied" (the visitor said no, or the site is not allowed to ask): say it plainly,
+          // not in the browser's technical words.
           setStatus(
-            `Could not access your location (${err.message}). You can type a postcode instead.`
+            err && err.code === 1
+              ? 'Location sharing is switched off. Type a postcode instead.'
+              : 'Could not find your location. You can type a postcode instead.'
           );
         }
       );

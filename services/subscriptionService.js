@@ -245,13 +245,20 @@ function getSubscription(subscriptionId) {
   return dbUnified.findOne('subscriptions', { id: subscriptionId });
 }
 
-async function getSubscriptionByUserId(userId) {
+/**
+ * Current subscription for a user (prefers a live entitlement, then the most recent).
+ *
+ * @param {string} userId - Owner of the subscription
+ * @param {{throwOnError?: boolean}} [options] - Pass throwOnError to surface a failed query instead of "no subscription"
+ * @returns {Promise<Object|null>} Subscription record or null
+ */
+async function getSubscriptionByUserId(userId, options) {
   // Fetch only non-canceled subscriptions for this user — avoids full collection scan.
   // The $ne operator is supported by matchesFilter on the local store.
-  const candidates = await dbUnified.find('subscriptions', {
-    userId,
-    status: { $ne: 'canceled' },
-  });
+  const filter = { userId, status: { $ne: 'canceled' } };
+  const candidates = options
+    ? await dbUnified.find('subscriptions', filter, options)
+    : await dbUnified.find('subscriptions', filter);
   if (!candidates || candidates.length === 0) {
     return null;
   }

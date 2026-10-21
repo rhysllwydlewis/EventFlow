@@ -3,15 +3,12 @@
  * docs/audits/SUPPLIER_PROFILE_EDITING_CORRECTNESS_HANDOFF.md):
  *
  * The public owner-edit overlay sends suppliers back to
- * /dashboard-supplier#photos and #packages, but neither fragment ever
- * matched a real element id on the dashboard page — the browser landed
- * with no scroll and the supplier had to hunt for the right card
- * themselves. dashboard-supplier-actions.js now routes both fragments to
- * their real sections, expanding a collapsed card first where needed.
+ * /dashboard/supplier#photos and #packages. supplier-dashboard-home.js routes both fragments to
+ * their real sections: #photos opens the profile form on the photo drop zone, #packages scrolls
+ * to the package list.
  *
- * This exercises the real script in jsdom: load it with each hash present
- * at page load, and confirm it expands the right collapsed section and
- * scrolls the right target into view.
+ * This exercises the real script in jsdom: load it with each hash present at page load, and
+ * confirm it opens the right form and scrolls the right target into view.
  */
 
 'use strict';
@@ -35,116 +32,57 @@ const BASE_HTML = `<!doctype html><body>
     </div>
     <input id="sup-name" />
   </div>
-  <div id="packages-section" class="card sd-card" data-default-expanded="true">
-    <button type="button" class="card-collapse-btn" aria-expanded="false"></button>
-    <div id="my-packages" class="section"></div>
+  <div id="packages-section">
+    <div id="my-packages"></div>
   </div>
 </body>`;
 
+/** Runs the home script with the given hash and prints what it clicked and scrolled to. */
+const scenario = hash => String.raw`
+  const { JSDOM } = require('jsdom');
+  const fs = require('fs');
+  const script = fs.readFileSync('public/assets/js/pages/supplier-dashboard-home.js', 'utf8');
+  const dom = new JSDOM(${JSON.stringify(BASE_HTML)}, {
+    url: 'https://event-flow.test/dashboard/supplier${hash}',
+    runScripts: 'dangerously',
+  });
+  const { window } = dom;
+  const { document } = window;
+  window.console.error = () => {};
+  window.matchMedia = () => ({ matches: false });
+
+  const scrolled = [];
+  window.Element.prototype.scrollIntoView = function () { scrolled.push(this.id); };
+  const clicked = [];
+  const originalClick = window.HTMLElement.prototype.click;
+  window.HTMLElement.prototype.click = function () { clicked.push(this.id || this.className); return originalClick.call(this); };
+
+  window.eval(script);
+  document.dispatchEvent(new window.Event('DOMContentLoaded', { bubbles: true, cancelable: true }));
+  setTimeout(() => process.stdout.write(JSON.stringify({ clicked, scrolled })), 400);
+`;
+
+const run = hash => JSON.parse(runNodeSmoke(scenario(hash)));
+
 describe('dashboard-supplier deep links', () => {
-  test('#photos expands the profile form and scrolls to the photo drop zone', () => {
-    const output = runNodeSmoke(String.raw`
-      const { JSDOM } = require('jsdom');
-      const fs = require('fs');
-      const script = fs.readFileSync('public/assets/js/pages/dashboard-supplier-actions.js', 'utf8');
-      const dom = new JSDOM(${JSON.stringify(BASE_HTML)}, {
-        url: 'https://event-flow.test/dashboard-supplier#photos',
-        runScripts: 'dangerously',
-      });
-      const { window } = dom;
-      const { document } = window;
-
-      const scrolled = [];
-      window.Element.prototype.scrollIntoView = function () { scrolled.push(this.id); };
-      const clicked = [];
-      const originalClick = window.HTMLElement.prototype.click;
-      window.HTMLElement.prototype.click = function () { clicked.push(this.id); return originalClick.call(this); };
-
-      dom.window.eval(script);
-      document.dispatchEvent(new window.Event('DOMContentLoaded', { bubbles: true, cancelable: true }));
-
-      if (!clicked.includes('toggle-profile-form')) {
-        throw new Error('#photos did not expand the collapsed profile form: ' + JSON.stringify(clicked));
-      }
-      if (!scrolled.includes('sup-photo-drop')) {
-        throw new Error('#photos did not scroll to the photo drop zone: ' + JSON.stringify(scrolled));
-      }
-      // Must not touch the unrelated packages card.
-      if (clicked.some(id => id.includes('package'))) {
-        throw new Error('#photos unexpectedly touched the packages card');
-      }
-
-      console.log('dashboard photos deep link smoke passed');
-    `);
-
-    expect(output).toContain('dashboard photos deep link smoke passed');
+  test('#photos opens the profile form and scrolls to the photo drop zone', () => {
+    const { clicked, scrolled } = run('#photos');
+    expect(clicked).toContain('toggle-profile-form');
+    expect(scrolled).toContain('sup-photo-drop');
+    // Must not touch the packages section.
+    expect(scrolled).not.toContain('my-packages');
   });
 
-  test('#packages expands the collapsed packages card and scrolls to the package list', () => {
-    const output = runNodeSmoke(String.raw`
-      const { JSDOM } = require('jsdom');
-      const fs = require('fs');
-      const script = fs.readFileSync('public/assets/js/pages/dashboard-supplier-actions.js', 'utf8');
-      const dom = new JSDOM(${JSON.stringify(BASE_HTML)}, {
-        url: 'https://event-flow.test/dashboard-supplier#packages',
-        runScripts: 'dangerously',
-      });
-      const { window } = dom;
-      const { document } = window;
-
-      const scrolled = [];
-      window.Element.prototype.scrollIntoView = function () { scrolled.push(this.id); };
-      const clicked = [];
-      const originalClick = window.HTMLElement.prototype.click;
-      window.HTMLElement.prototype.click = function () { clicked.push(this.className); return originalClick.call(this); };
-
-      dom.window.eval(script);
-      document.dispatchEvent(new window.Event('DOMContentLoaded', { bubbles: true, cancelable: true }));
-
-      if (!clicked.includes('card-collapse-btn')) {
-        throw new Error('#packages did not expand the collapsed packages card: ' + JSON.stringify(clicked));
-      }
-      if (!scrolled.includes('my-packages')) {
-        throw new Error('#packages did not scroll to the package list: ' + JSON.stringify(scrolled));
-      }
-      if (scrolled.includes('sup-photo-drop')) {
-        throw new Error('#packages unexpectedly touched the photo drop zone');
-      }
-
-      console.log('dashboard packages deep link smoke passed');
-    `);
-
-    expect(output).toContain('dashboard packages deep link smoke passed');
+  test('#packages scrolls to the package list without opening a form', () => {
+    const { clicked, scrolled } = run('#packages');
+    expect(scrolled).toContain('my-packages');
+    expect(scrolled).not.toContain('sup-photo-drop');
+    expect(clicked).toEqual([]);
   });
 
   test('an unrelated hash does not touch either section', () => {
-    const output = runNodeSmoke(String.raw`
-      const { JSDOM } = require('jsdom');
-      const fs = require('fs');
-      const script = fs.readFileSync('public/assets/js/pages/dashboard-supplier-actions.js', 'utf8');
-      const dom = new JSDOM(${JSON.stringify(BASE_HTML)}, {
-        url: 'https://event-flow.test/dashboard-supplier#reviews',
-        runScripts: 'dangerously',
-      });
-      const { window } = dom;
-      const { document } = window;
-
-      const scrolled = [];
-      window.Element.prototype.scrollIntoView = function () { scrolled.push(this.id); };
-      const clicked = [];
-      const originalClick = window.HTMLElement.prototype.click;
-      window.HTMLElement.prototype.click = function () { clicked.push(this.id || this.className); return originalClick.call(this); };
-
-      dom.window.eval(script);
-      document.dispatchEvent(new window.Event('DOMContentLoaded', { bubbles: true, cancelable: true }));
-
-      if (clicked.length > 0 || scrolled.length > 0) {
-        throw new Error('an unrelated hash should not click or scroll anything: ' + JSON.stringify({ clicked, scrolled }));
-      }
-
-      console.log('dashboard unrelated hash smoke passed');
-    `);
-
-    expect(output).toContain('dashboard unrelated hash smoke passed');
+    const { clicked, scrolled } = run('#reviews');
+    expect(clicked).toEqual([]);
+    expect(scrolled).toEqual([]);
   });
 });

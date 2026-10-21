@@ -30,35 +30,26 @@ test.describe('Current supplier dashboard contracts @backend', () => {
     const response = await page.goto('/dashboard/supplier');
     expect(response?.status()).toBe(200);
 
-    await expect(page.locator('[data-test="supplier-mobile-nav"]')).toBeAttached();
-    await expect(page.locator('[data-test="mobile-nav-pills"]')).toBeVisible();
-    await expect(page.locator('[data-test="welcome-card"]')).toBeVisible();
-    await expect(page.locator('#welcome-heading')).toContainText(/welcome/i);
+    // One visible h1 (the greeting), the summary row and the verification strip's home.
+    await expect(page.locator('h1:visible')).toHaveCount(1);
+    await expect(page.locator('#welcome-heading')).toBeVisible();
+    await expect(page.locator('#sdh-summary-grid')).toBeAttached();
     await expect(page.locator('#verification-status-banner')).toBeAttached();
   });
 
-  test('exposes the current navigation destinations instead of retired onboarding cards', async ({
+  test('shows the profile, packages, messages and support cards, once each, with no retired layers', async ({
     page,
   }) => {
     await loginAs(page, fixtures.users.supplier);
     await page.goto('/dashboard/supplier');
 
-    const navContracts = [
-      ['nav-overview', 'data-section', 'welcome-section'],
-      ['nav-profiles', 'data-section', 'my-suppliers'],
-      ['nav-packages', 'data-section', 'my-packages'],
-      ['nav-messages', 'data-section', 'threads-sup'],
-      ['nav-stats', 'data-section', 'supplier-stats-grid'],
-      ['nav-tickets', 'data-section', 'tickets-sup'],
-      ['nav-settings', 'data-href', '/settings'],
-    ];
-
-    for (const [testId, attribute, target] of navContracts) {
-      const nav = page.locator(`[data-test="${testId}"]`);
-      await expect(nav).toBeVisible();
-      await expect(nav).toHaveAttribute(attribute, target);
+    for (const id of ['profile-card', 'packages-section', 'sdh-messages', 'sdh-support']) {
+      await expect(page.locator(`#${id}`)).toHaveCount(1);
     }
-
+    // The old section nav, hero chips, accordions and injected onboarding card are gone.
+    await expect(
+      page.locator('.dashboard-mobile-nav, .dashboard-hero, .card-collapse-btn')
+    ).toHaveCount(0);
     await expect(page.locator('.onboarding-card, #onboarding-card')).toHaveCount(0);
   });
 
@@ -66,7 +57,7 @@ test.describe('Current supplier dashboard contracts @backend', () => {
     await page.setViewportSize({ width: 390, height: 844 });
     await loginAs(page, fixtures.users.supplier);
     await page.goto('/dashboard/supplier');
-    await expect(page.locator('[data-test="mobile-nav-pills"]')).toBeVisible();
+    await expect(page.locator('#welcome-heading')).toBeVisible();
 
     const dimensions = await page.evaluate(() => ({
       viewport: document.documentElement.clientWidth,

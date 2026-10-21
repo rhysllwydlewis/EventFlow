@@ -7,6 +7,7 @@
 
 const dbUnified = require('../db-unified');
 const catalogCache = require('./catalogCache');
+const { packagePriceText } = require('../utils/packagePrice');
 const { canonicalCategoryValue } = require('../public/assets/js/utils/category-link.js');
 const {
   findOwnerUserForSupplier,
@@ -286,7 +287,10 @@ function projectPublicPackageFields(pkg) {
     description: pkg.description,
     description_short: pkg.description_short,
     category: pkg.category,
-    price: pkg.price,
+    price:
+      pkg.price === undefined || pkg.price === null || pkg.price === ''
+        ? packagePriceText(pkg) || pkg.price
+        : pkg.price,
     images: pkg.images,
     supplierId: pkg.supplierId,
     supplierName: pkg.supplierName,

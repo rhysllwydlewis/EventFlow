@@ -92,11 +92,12 @@ describe('customer dashboard home: stylesheets', () => {
     ].forEach(file => expect(exists(file)).toBe(false));
   });
 
-  test('shared stylesheets other dashboards still use were not deleted', () => {
-    ['dashboard-overhaul.css', 'dashboard-mobile.css', 'card-collapse.css'].forEach(file =>
+  test('shared files other pages still use were not deleted', () => {
+    // The supplier dashboard redesign deleted card-collapse, dashboard-overhaul and dashboard-mobile's
+    // other users; these two are still linked by mobile-preview.html.
+    ['dashboard-mobile.css', 'dashboard-hero.css'].forEach(file =>
       expect(exists(`public/assets/css/${file}`)).toBe(true)
     );
-    expect(exists('public/assets/js/card-collapse.js')).toBe(true);
     expect(exists('public/assets/js/dashboard-widgets.js')).toBe(true);
   });
 

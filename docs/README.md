@@ -7,6 +7,7 @@
 - **[Production Deployment Checklist](./PRODUCTION_DEPLOYMENT_CHECKLIST.md)** - Pre-go-live checks
 - **[MongoDB Setup (External/Atlas)](../.github/docs/MONGODB_SETUP_SIMPLE.md)** - External MongoDB setup for non-Railway databases
 - **[Deployment Guide](../.github/docs/DEPLOYMENT_GUIDE.md)** - General deployment notes
+- **[Supplier dashboard: open items](./SUPPLIER_DASHBOARD_BACKLOG.md)** - Not done, not verified, and left-alone items from the supplier dashboard redesign (PR #1819)
 
 ## Current Production Shape
 

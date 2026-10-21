@@ -7,6 +7,7 @@
 
 const path = require('path');
 const logger = require('../utils/logger');
+const { priceFields } = require('../utils/packagePrice');
 const fs = require('fs');
 const crypto = require('crypto');
 const express = require('express');
@@ -1436,7 +1437,8 @@ router.post('/packages', authRequired, roleRequired('admin'), csrfProtection, as
       title,
       slug,
       description: description || '',
-      price_display: price_display || '',
+      // The admin screens edit price_display and suppliers edit price: store one price in both.
+      ...priceFields(price_display),
       image: image || PLACEHOLDER_PACKAGE_IMAGE,
       approved: approved === true,
       featured: featured === true,

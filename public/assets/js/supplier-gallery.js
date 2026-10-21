@@ -37,12 +37,15 @@ class SupplierGalleryManager {
    */
   async loadPhotoLimit() {
     try {
-      const response = await fetch('/api/v2/subscriptions/me', { credentials: 'include' });
-      if (!response.ok) {
-        return;
+      // The dashboard's single summary request carries the plan's limits; fall back to asking for them.
+      const home = window.SupplierDashboardHome;
+      let limits =
+        home && typeof home.getPlanLimits === 'function' ? await home.getPlanLimits() : null;
+      if (!limits) {
+        const response = await fetch('/api/v2/subscriptions/me', { credentials: 'include' });
+        limits = response.ok ? (await response.json())?.limits : null;
       }
-      const data = await response.json();
-      const limit = data?.limits?.maxPhotos;
+      const limit = limits?.maxPhotos;
       if (Number.isFinite(limit)) {
         this.maxPhotos = limit;
       }
@@ -508,7 +511,20 @@ class SupplierGalleryManager {
    * Delete an already-uploaded photo via the API.
    */
   async deleteExistingPhoto(photoId, wrapperEl) {
-    if (!confirm('Remove this photo from your gallery?')) {
+    const home = window.SupplierDashboardHome;
+    if (!home || typeof home.confirm !== 'function') {
+      // Deleting is never done without asking, and the dashboard's dialog is the only way to ask.
+      if (typeof Toast !== 'undefined') {
+        Toast.error('Could not open the confirmation. Please reload the page and try again.');
+      }
+      return;
+    }
+    const confirmed = await home.confirm({
+      title: 'Remove this photo?',
+      message: 'It will be removed from your gallery.',
+      confirmLabel: 'Remove photo',
+    });
+    if (!confirmed) {
       return;
     }
 
@@ -681,7 +697,7 @@ class SupplierGalleryManager {
       return;
     }
     const count = this.uploadedPhotos.length;
-    bar.style.display = count >= 2 ? '' : 'none';
+    bar.hidden = count < 2;
     const status = document.getElementById('sup-gallery-order-status');
     if (status) {
       status.textContent = '';
@@ -694,7 +710,7 @@ class SupplierGalleryManager {
   markOrderDirty() {
     const bar = document.getElementById('sup-gallery-reorder-bar');
     if (bar) {
-      bar.style.display = '';
+      bar.hidden = false;
     }
     const status = document.getElementById('sup-gallery-order-status');
     if (status) {

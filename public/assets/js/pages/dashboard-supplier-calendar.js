@@ -102,7 +102,7 @@
 
   function showFieldError(el, msg) {
     el.textContent = msg;
-    el.style.display = '';
+    el.hidden = false;
   }
 
   // ── Colour helpers ─────────────────────────────────────────────────────────
@@ -163,45 +163,107 @@
     const notice = document.getElementById('sup-cal-permission-notice');
     if (isPublisher) {
       if (ctaLink) {
-        ctaLink.textContent = 'Manage Events';
+        ctaLink.textContent = 'Manage public events';
         ctaLink.setAttribute('aria-label', 'Manage public calendar events');
       }
       if (subtitle) {
-        subtitle.textContent = 'Manage shared public events and your personal schedule';
+        subtitle.textContent = 'Your private calendar, and the public events you publish.';
       }
       if (notice) {
-        notice.innerHTML =
+        notice.dataset.tone = '';
+        notice.textContent =
           currentSupplier && currentSupplier.publicCalendarPublisherOverride === true
-            ? '<strong>Calendar publishing has been granted by admin override.</strong>'
-            : '<strong>Shared Events Calendar publishing enabled.</strong><br>You can publish public events to the shared calendar and manage events you created.';
+            ? 'An administrator has allowed you to publish public events. They appear on the EventFlow public calendar. Your private entries stay private.'
+            : 'You can publish public events to the EventFlow public calendar and manage the ones you created. Your private entries stay private.';
       }
-      publisherBtns.forEach(el => el.style.removeProperty('display'));
+      publisherBtns.forEach(el => {
+        el.hidden = false;
+      });
     } else {
+      if (subtitle) {
+        subtitle.textContent = 'Your private calendar: entries only you can see.';
+      }
       if (notice) {
         const forceDenied =
           currentSupplier && currentSupplier.publicCalendarPublisherOverride === false;
-        notice.style.background = forceDenied ? '#fef2f2' : '#fffbeb';
-        notice.style.borderColor = forceDenied ? '#fecaca' : '#fde68a';
-        notice.style.color = forceDenied ? '#991b1b' : '#92400e';
-        notice.innerHTML = forceDenied
-          ? '<strong>Calendar publishing disabled by admin.</strong>'
-          : '<strong>Calendar publishing isn\'t included for your category.</strong><button type="button" class="cta secondary" id="sup-request-publishing-btn">Request access</button>';
-        document
-          .getElementById('sup-request-publishing-btn')
-          ?.addEventListener('click', requestPublishingAccess);
+        notice.dataset.tone = forceDenied ? 'danger' : 'warn';
+        notice.textContent = '';
+        const lead = document.createElement('strong');
+        lead.textContent = forceDenied
+          ? 'Public calendar publishing has been disabled for your account by an administrator.'
+          : "Public calendar publishing isn't available for your supplier type.";
+        notice.appendChild(lead);
+        notice.appendChild(document.createTextNode(' Your private calendar is not affected.'));
+        if (!forceDenied) {
+          const request = document.createElement('button');
+          request.type = 'button';
+          request.id = 'sup-request-publishing-btn';
+          request.className = 'sdh-link';
+          request.textContent = 'Ask to publish public events';
+          request.addEventListener('click', requestPublishingAccess);
+          notice.appendChild(request);
+        }
       }
       publisherBtns.forEach(el => {
-        el.style.display = 'none';
+        el.hidden = true;
       });
     }
   }
 
-  async function requestPublishingAccess() {
-    const reason = window.prompt(
-      'Why do you need shared calendar publishing access? Include event types, an example event title, and expected frequency.'
-    );
-    if (!reason) {
+  /** Wires the request dialog once: its form, and its close and Cancel buttons. */
+  function bindPublisherDialog() {
+    const form = document.getElementById('sdh-publisher-form');
+    const dialog = document.getElementById('sdh-publisher-dialog');
+    if (!form || !dialog || form._wired) {
       return;
+    }
+    form._wired = true;
+    form.addEventListener('submit', submitPublishingRequest);
+    dialog.querySelectorAll('[data-dialog-close]').forEach(button => {
+      button.addEventListener('click', () => dialog.close());
+    });
+  }
+
+  /** Opens the dialog where a supplier asks an administrator for public calendar publishing. */
+  function requestPublishingAccess() {
+    const dialog = document.getElementById('sdh-publisher-dialog');
+    const form = document.getElementById('sdh-publisher-form');
+    if (!dialog || !form || typeof dialog.showModal !== 'function') {
+      return;
+    }
+    form.reset();
+    const status = document.getElementById('sdh-publisher-status');
+    if (status) {
+      status.textContent = '';
+    }
+    dialog.showModal();
+    document.getElementById('sdh-publisher-reason')?.focus();
+  }
+
+  /** Sends the publishing-access request from the dialog and says what happened inside it. */
+  async function submitPublishingRequest(event) {
+    event.preventDefault();
+    const dialog = document.getElementById('sdh-publisher-dialog');
+    const reasonField = document.getElementById('sdh-publisher-reason');
+    const status = document.getElementById('sdh-publisher-status');
+    const send = document.getElementById('sdh-publisher-send');
+    const reason = reasonField ? reasonField.value.trim() : '';
+    /** Writes a message in the dialog. */
+    const say = (message, tone) => {
+      if (status) {
+        status.textContent = message;
+        status.setAttribute('data-tone', tone);
+      }
+    };
+    if (reason.length < 10) {
+      reasonField?.setAttribute('aria-invalid', 'true');
+      say('Tell us a little more: what you would publish and how often.', 'error');
+      reasonField?.focus();
+      return;
+    }
+    reasonField?.removeAttribute('aria-invalid');
+    if (send) {
+      send.disabled = true;
     }
     try {
       const res = await fetch('/api/v1/public-calendar/publisher-request', {
@@ -216,11 +278,23 @@
         }),
       });
       if (!res.ok) {
-        throw new Error('Request failed');
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body.message || body.error || 'Request failed');
       }
-      showToast('Calendar publishing access request submitted.', 'success');
-    } catch (_) {
-      showToast('Unable to submit calendar publishing request.', 'error');
+      dialog?.close();
+      showToast('Request sent. An administrator will review it.', 'success');
+    } catch (error) {
+      // A dropped connection is a TypeError with the browser's own wording ("Failed to fetch").
+      say(
+        error instanceof TypeError || !error.message
+          ? 'The request could not be sent. Check your connection and try again.'
+          : error.message,
+        'error'
+      );
+    } finally {
+      if (send) {
+        send.disabled = false;
+      }
     }
   }
 
@@ -246,16 +320,16 @@
         .slice(0, 8)
         .map(
           ev =>
-            `<tr><td>${escapeHtml(ev.title)}</td><td>${escapeHtml(formatDate(ev.startDate))}</td><td><span style="font-weight:700;">${escapeHtml(ev.status || 'published')}</span></td><td><a href="/events/${encodeURIComponent(ev.slug || ev.id)}">View</a></td></tr>`
+            `<tr><td>${escapeHtml(ev.title)}</td><td>${escapeHtml(formatDate(ev.startDate))}</td><td><strong>${escapeHtml(ev.status || 'published')}</strong></td><td><a href="/events/${encodeURIComponent(ev.slug || ev.id)}">View</a></td></tr>`
         )
         .join('');
-      mount.innerHTML = `<div style="display:flex;align-items:center;justify-content:space-between;gap:1rem;flex-wrap:wrap;margin-bottom:.5rem;"><h3 style="margin:0;">My Public Events</h3><button type="button" class="cta secondary sup-cal-publisher-only" id="sup-my-events-create">Create event</button></div>${own.length ? `<div style="overflow:auto;"><table style="width:100%;border-collapse:collapse;"><thead><tr><th align="left">Title</th><th align="left">Date</th><th align="left">Status</th><th align="left">Public page</th></tr></thead><tbody>${rows}</tbody></table></div>` : '<p style="color:#6b7280;margin:0;">No public events yet. Create your first wedding fayre, open day, workshop or showcase.</p>'}`;
+      mount.innerHTML = `<div class="sup-my-public-events__head"><h3>My public events</h3><button type="button" class="sup-cal-publisher-only" id="sup-my-events-create">Create event</button></div>${own.length ? `<div class="sup-my-public-events__table"><table><thead><tr><th>Title</th><th>Date</th><th>Status</th><th>Public page</th></tr></thead><tbody>${rows}</tbody></table></div>` : '<p class="sup-my-public-events__empty">No public events yet. Create your first wedding fayre, open day, workshop or showcase.</p>'}`;
       document
         .getElementById('sup-my-events-create')
         ?.addEventListener('click', () => openEventModal());
     } catch {
       mount.innerHTML =
-        '<h3 style="margin:0 0 .5rem;">My Public Events</h3><p style="color:#dc2626;margin:0;">Unable to load your public events.</p>';
+        '<h3>My public events</h3><p class="sup-my-public-events__empty">Unable to load your public events.</p>';
     }
   }
 
@@ -311,10 +385,10 @@
             <label for="sup-cal-entry-notes" class="cal-entry-modal__label">Notes <span class="cal-entry-modal__optional">(optional)</span></label>
             <textarea id="sup-cal-entry-notes" name="description" class="cal-entry-modal__input cal-entry-modal__textarea" maxlength="500" placeholder="Add any details…" rows="3"></textarea>
           </div>
-          <p class="cal-entry-modal__error" id="sup-cal-entry-error" role="alert" aria-live="assertive" style="display:none;"></p>
+          <p class="cal-entry-modal__error" id="sup-cal-entry-error" role="alert" aria-live="assertive" hidden></p>
           <div class="cal-entry-modal__actions">
-            <button type="button" class="ef-cta cal-entry-modal__btn cal-entry-modal__btn--cancel" id="sup-cal-entry-cancel">Cancel</button>
-            <button type="submit" class="ef-cta cal-entry-modal__btn cal-entry-modal__btn--save" id="sup-cal-entry-submit">Save Entry</button>
+            <button type="button" class="cal-entry-modal__btn cal-entry-modal__btn--cancel" id="sup-cal-entry-cancel">Cancel</button>
+            <button type="submit" class="cal-entry-modal__btn cal-entry-modal__btn--save" id="sup-cal-entry-submit">Save Entry</button>
           </div>
         </form>
       </div>
@@ -353,7 +427,7 @@
     modal.querySelector('#sup-cal-entry-time').value = '';
     modal.querySelector('#sup-cal-entry-notes').value = '';
     const errorEl = modal.querySelector('#sup-cal-entry-error');
-    errorEl.style.display = 'none';
+    errorEl.hidden = true;
     const submitBtn = modal.querySelector('#sup-cal-entry-submit');
     submitBtn.disabled = false;
     submitBtn.textContent = 'Save Entry';
@@ -399,7 +473,7 @@
 
     submitBtn.disabled = true;
     submitBtn.textContent = 'Saving…';
-    errorEl.style.display = 'none';
+    errorEl.hidden = true;
 
     const token = await ensureCsrfToken();
     const body = { title, type, date };
@@ -436,6 +510,7 @@
           start: entry.time ? `${entry.date}T${entry.time}` : entry.date,
           allDay: !entry.time,
           backgroundColor: getEntryColor(entry.type),
+          classNames: ['sdh-ev--private'],
           borderColor: getEntryColor(entry.type),
           extendedProps: {
             entryType: entry.type,
@@ -465,11 +540,11 @@
     popover.setAttribute('aria-modal', 'true');
     popover.setAttribute('aria-label', `Delete "${entryTitle}"?`);
     popover.innerHTML = `
-      <p style="margin:0 0 0.75rem;font-size:0.875rem;font-weight:500;color:#111827;">Delete this entry?</p>
-      <p style="margin:0 0 0.875rem;font-size: 0.75rem;color:#6b7280;">${escapeHtml(entryTitle)}</p>
-      <div style="display:flex;gap:0.5rem;justify-content:flex-end;">
-        <button type="button" class="ef-cta cal-delete-popover__btn cal-delete-popover__btn--cancel">Cancel</button>
-        <button type="button" class="ef-cta cal-delete-popover__btn cal-delete-popover__btn--confirm">Delete</button>
+      <p class="cal-delete-popover__msg">Delete this entry?</p>
+      <p class="cal-delete-popover__meta">${escapeHtml(entryTitle)}</p>
+      <div class="cal-delete-popover__actions">
+        <button type="button" class="cal-delete-popover__btn cal-delete-popover__btn--cancel">Cancel</button>
+        <button type="button" class="cal-delete-popover__btn cal-delete-popover__btn--confirm">Delete</button>
       </div>
     `;
 
@@ -549,17 +624,17 @@
     let actionsHtml = '';
     if (isOwn && isPublisher) {
       actionsHtml = `
-        <div style="display:flex;gap:0.5rem;justify-content:flex-end;flex-wrap:wrap;">
-          <button type="button" class="ef-cta cal-delete-popover__btn cal-delete-popover__btn--cancel" data-action="close">Close</button>
-          <button type="button" class="ef-cta cal-delete-popover__btn" style="background:#2563eb;color:#fff;border-color:#2563eb;" data-action="edit">Edit</button>
-          <button type="button" class="ef-cta cal-delete-popover__btn cal-delete-popover__btn--confirm" data-action="delete">Delete</button>
+        <div class="cal-delete-popover__actions">
+          <button type="button" class="cal-delete-popover__btn cal-delete-popover__btn--cancel" data-action="close">Close</button>
+          <button type="button" class="cal-delete-popover__btn cal-delete-popover__btn--edit" data-action="edit">Edit</button>
+          <button type="button" class="cal-delete-popover__btn cal-delete-popover__btn--confirm" data-action="delete">Delete</button>
         </div>
       `;
     } else {
       actionsHtml = `
-        <div style="display:flex;gap:0.5rem;justify-content:flex-end;">
-          <button type="button" class="ef-cta cal-delete-popover__btn cal-delete-popover__btn--cancel" data-action="close">Close</button>
-          <button type="button" class="ef-cta cal-delete-popover__btn" style="background:#7c3aed;color:#fff;border-color:#7c3aed;" data-action="${isSaved ? 'unsave' : 'save'}">${isSaved ? 'Remove from calendar' : 'Save to calendar'}</button>
+        <div class="cal-delete-popover__actions">
+          <button type="button" class="cal-delete-popover__btn cal-delete-popover__btn--cancel" data-action="close">Close</button>
+          <button type="button" class="cal-delete-popover__btn cal-delete-popover__btn--edit" data-action="${isSaved ? 'unsave' : 'save'}">${isSaved ? 'Remove from calendar' : 'Save to calendar'}</button>
         </div>
       `;
     }
@@ -573,8 +648,8 @@
       : '';
 
     popover.innerHTML = `
-      <p style="margin:0 0 0.25rem;font-size:0.875rem;font-weight:600;color:#111827;">${escapeHtml(ev.title)}</p>
-      ${startLabel ? `<p style="margin:0 0 0.75rem;font-size: 0.75rem;color:#6b7280;">📅 ${escapeHtml(startLabel)}</p>` : '<p style="margin:0 0 0.75rem;"></p>'}
+      <p class="cal-delete-popover__msg">${escapeHtml(ev.title)}</p>
+      ${startLabel ? `<p class="cal-delete-popover__meta">${escapeHtml(startLabel)}</p>` : ''}
       ${actionsHtml}
     `;
 
@@ -698,10 +773,10 @@
             <label for="sup-cal-pub-description" class="cal-entry-modal__label">Description <span class="cal-entry-modal__optional">(optional)</span></label>
             <textarea id="sup-cal-pub-description" name="description" class="cal-entry-modal__input cal-entry-modal__textarea" maxlength="1000" rows="3" placeholder="Describe your event…"></textarea>
           </div>
-          <p class="cal-entry-modal__error" id="sup-cal-pub-event-error" role="alert" aria-live="assertive" style="display:none;"></p>
+          <p class="cal-entry-modal__error" id="sup-cal-pub-event-error" role="alert" aria-live="assertive" hidden></p>
           <div class="cal-entry-modal__actions">
-            <button type="button" class="ef-cta cal-entry-modal__btn cal-entry-modal__btn--cancel" id="sup-cal-pub-event-cancel">Cancel</button>
-            <button type="submit" class="ef-cta cal-entry-modal__btn cal-entry-modal__btn--save" id="sup-cal-pub-event-submit">Publish Event</button>
+            <button type="button" class="cal-entry-modal__btn cal-entry-modal__btn--cancel" id="sup-cal-pub-event-cancel">Cancel</button>
+            <button type="submit" class="cal-entry-modal__btn cal-entry-modal__btn--save" id="sup-cal-pub-event-submit">Publish Event</button>
           </div>
         </form>
       </div>
@@ -766,7 +841,7 @@
       locationInput.value = '';
       descInput.value = '';
     }
-    errorEl.style.display = 'none';
+    errorEl.hidden = true;
     submitBtn.disabled = false;
 
     modal.style.display = 'flex';
@@ -806,7 +881,7 @@
 
     submitBtn.disabled = true;
     submitBtn.textContent = 'Saving…';
-    errorEl.style.display = 'none';
+    errorEl.hidden = true;
 
     const token = await ensureCsrfToken();
     const body = { title, startDate };
@@ -866,6 +941,7 @@
             start: ev.startDate,
             end: ev.endDate || undefined,
             backgroundColor: colors.bg,
+            classNames: ['sdh-ev--public', 'sdh-ev--own'],
             borderColor: colors.border,
             extendedProps: {
               supplierId: ev.supplierId,
@@ -896,15 +972,15 @@
     dialog.setAttribute('aria-label', 'Confirm delete public event');
     dialog.style.display = 'flex';
     dialog.innerHTML = `
-      <div class="cal-entry-modal" role="document" style="max-width:380px;">
+      <div class="cal-entry-modal cal-entry-modal--narrow" role="document">
         <div class="cal-entry-modal__header">
-          <h2 class="cal-entry-modal__title" style="font-size:1rem;">Delete Public Event?</h2>
+          <h2 class="cal-entry-modal__title">Delete public event?</h2>
         </div>
-        <div style="padding:0 1.25rem 1.25rem;">
-          <p style="font-size:0.875rem;color:#374151;margin:0 0 1rem;">"${escapeHtml(ev.title)}" will be removed from the shared calendar permanently.</p>
-          <div style="display:flex;gap:0.5rem;justify-content:flex-end;">
-            <button type="button" class="ef-cta cal-entry-modal__btn cal-entry-modal__btn--cancel" id="sup-del-pub-cancel">Cancel</button>
-            <button type="button" class="ef-cta cal-entry-modal__btn cal-entry-modal__btn--save" id="sup-del-pub-confirm" style="background:#dc2626;">Delete Event</button>
+        <div class="cal-entry-modal__form">
+          <p class="cal-entry-modal__text">"${escapeHtml(ev.title)}" will be removed from the shared calendar permanently.</p>
+          <div class="cal-entry-modal__actions">
+            <button type="button" class="cal-entry-modal__btn cal-entry-modal__btn--cancel" id="sup-del-pub-cancel">Cancel</button>
+            <button type="button" class="cal-entry-modal__btn cal-entry-modal__btn--danger" id="sup-del-pub-confirm">Delete event</button>
           </div>
         </div>
       </div>
@@ -1008,6 +1084,7 @@
     await ensureCsrfToken();
     await loadSupplierProfile();
     updateCalendarHeader();
+    bindPublisherDialog();
     renderMyPublicEvents();
 
     const entryModal = ensureEntryModal();
@@ -1063,6 +1140,10 @@
             start: ev.startDate,
             end: ev.endDate || undefined,
             backgroundColor: colors.bg,
+            classNames: ['sdh-ev--public'].concat(
+              isOwn ? ['sdh-ev--own'] : [],
+              savedEventIds.has(String(ev.id)) ? ['sdh-ev--saved'] : []
+            ),
             borderColor: colors.border,
             extendedProps: {
               supplierId: ev.supplierId,
@@ -1091,6 +1172,7 @@
           start: entry.time ? `${entry.date}T${entry.time}` : entry.date,
           allDay: !entry.time,
           backgroundColor: getEntryColor(entry.type),
+          classNames: ['sdh-ev--private'],
           borderColor: getEntryColor(entry.type),
           extendedProps: {
             entryType: entry.type,
@@ -1107,7 +1189,8 @@
     container.classList.add('fc-loaded');
 
     calendarInstance = new FullCalendar.Calendar(container, {
-      initialView: 'dayGridMonth',
+      // A month grid is too narrow to read on a phone: start on the week list there.
+      initialView: window.matchMedia?.('(max-width: 639px)').matches ? 'listWeek' : 'dayGridMonth',
       headerToolbar: {
         left: 'prev,next today',
         center: 'title',
@@ -1148,19 +1231,19 @@
           tooltip.className = 'calendar-tooltip';
 
           const typeLabel = entryType
-            ? `<span style="font-size:0.75rem;text-transform:capitalize;color:#6b7280;">${escapeHtml(entryType)}</span><br>`
+            ? `<span class="calendar-tooltip__type">${escapeHtml(entryType)}</span><br>`
             : '';
           const clickHint = info.event.extendedProps.personalEntry
-            ? '<br><small style="color:#9ca3af;font-size:0.75rem;">Click to delete</small>'
+            ? '<br><small class="calendar-tooltip__hint">Click to delete</small>'
             : info.event.extendedProps.publicEvent
-              ? '<br><small style="color:#9ca3af;font-size:0.75rem;">Click for options</small>'
+              ? '<br><small class="calendar-tooltip__hint">Click for options</small>'
               : '';
 
           tooltip.innerHTML = `
             ${typeLabel}
             <strong>${escapeHtml(info.event.title)}</strong>
-            ${loc ? `<br><small>📍 ${escapeHtml(loc)}</small>` : ''}
-            ${desc ? `<br><small style="color:#6b7280;">${escapeHtml(String(desc).substring(0, 120))}${String(desc).length > 120 ? '…' : ''}</small>` : ''}
+            ${loc ? `<br><small>${escapeHtml(loc)}</small>` : ''}
+            ${desc ? `<br><small class="calendar-tooltip__hint">${escapeHtml(String(desc).substring(0, 120))}${String(desc).length > 120 ? '…' : ''}</small>` : ''}
             ${clickHint}
           `;
 
@@ -1202,6 +1285,14 @@
         return {
           html: '<div class="cal-no-events">No events yet. Click any day to add one.</div>',
         };
+      },
+      // FullCalendar marks its chevron glyphs role="img" with no name; the buttons carry the
+      // names, so the glyphs are decoration.
+      datesSet() {
+        container.querySelectorAll('.fc-icon[role="img"]').forEach(icon => {
+          icon.removeAttribute('role');
+          icon.setAttribute('aria-hidden', 'true');
+        });
       },
       height: 'auto',
     });
