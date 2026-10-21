@@ -174,6 +174,10 @@ the policy above.
 
 ## Session log
 
+### 2026-10-21 — session 29
+
+Branch still carried only the session 28 handoff commit ahead of `main`. Only open PR is #1819 (supplier dashboard redesign, not mine); none on this branch. Backlog empty. `/api/ready` and `/`, `/suppliers`, `/marketplace`, `/pricing`, `/faq`, `/auth`, `/community`, `/contact`, `/terms`, `/privacy`, `/guides` all 200. No defect found, no code changed. Docs-only handoff.
+
 ### 2026-10-20 — session 28
 
 Branch rebased onto `main` (only the session 27 handoff commit was ahead). No open PRs at all, nothing red, backlog empty. `/api/ready` 200; `/`, `/suppliers`, `/marketplace`, `/pricing`, `/faq`, `/auth`, `/community`, `/contact`, `/terms`, `/privacy`, `/guides` all 200 (`/articles` 301, a redirect). No defect found, no code changed, nothing to merge. Docs-only handoff.
