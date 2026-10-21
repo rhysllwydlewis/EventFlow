@@ -178,6 +178,8 @@ the policy above.
 
 Branch still carried only the session 28 handoff commit ahead of `main`. Only open PR is #1819 (supplier dashboard redesign, not mine); none on this branch. Backlog empty. `/api/ready` and `/`, `/suppliers`, `/marketplace`, `/pricing`, `/faq`, `/auth`, `/community`, `/contact`, `/terms`, `/privacy`, `/guides` all 200. No defect found, no code changed. Docs-only handoff.
 
+Update: CI "Security Audit" went red on PR #1821 (not caused by it): new advisories GHSA-q3jh-wrc6-jgq8 / GHSA-8r9p-f939-6h3c against the indirect dep `follow-redirects` 1.16.0 (fixed in 1.16.1) would fail every branch. Bumped that single `package-lock.json` entry to 1.16.1 by hand (`npm update --package-lock-only` with the local npm also strips unrelated `libc` fields, so avoid it). `npm run audit` clean, `npm ci` OK, full `npm test` passed (13539).
+
 ### 2026-10-20 — session 28
 
 Branch rebased onto `main` (only the session 27 handoff commit was ahead). No open PRs at all, nothing red, backlog empty. `/api/ready` 200; `/`, `/suppliers`, `/marketplace`, `/pricing`, `/faq`, `/auth`, `/community`, `/contact`, `/terms`, `/privacy`, `/guides` all 200 (`/articles` 301, a redirect). No defect found, no code changed, nothing to merge. Docs-only handoff.
