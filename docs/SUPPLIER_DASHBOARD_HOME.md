@@ -64,7 +64,8 @@ when focus is not inside (handled on the document).
   filters and "Show more", detail with the customer's contact details, Mark read /
   handled / new. Customer text is put on the page with `textContent` only. States:
   loading, empty, error with Try again, and "opens once your profile has been approved".
-  Suppliers are not emailed when an enquiry arrives and cannot reply here; the page says so.
+  Suppliers are notified when an enquiry arrives (a bell notification, and one email at most every 15
+  minutes to the verified owner; `services/supplierEnquiryNotifier.js`) but cannot reply here; the page says so.
 - **Toasts** are shown in the browser's top layer (`popover`) so a dialog cannot hide them.
 
 ## First-visit setup guide

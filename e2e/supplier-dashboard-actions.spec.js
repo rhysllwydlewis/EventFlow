@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect, request as playwrightRequest } from '@playwright/test';
 import {
   cleanupBackendFixtures,
   createRunId,
@@ -317,6 +317,45 @@ test.describe('Supplier dashboard: every control works @backend', () => {
     await page.keyboard.press('Escape');
     await expect(page.locator('.ticket-create-modal')).toHaveCount(0);
     await expect(page.locator('#createSupplierTicketBtn')).toBeFocused();
+  });
+
+  test('an enquiry from a customer reaches the supplier: notification first, then the drawer', async ({
+    page,
+    context,
+    baseURL,
+  }) => {
+    const customer = await playwrightRequest.newContext({
+      baseURL,
+      extraHTTPHeaders: {
+        'x-eventflow-e2e': 'backend-suite',
+        'x-csrf-token': 'backend-e2e-csrf-token',
+      },
+    });
+    const sender = `Dana Quote ${runId.slice(-6)}`;
+    const sent = await customer.post('/api/quote-requests', {
+      data: {
+        name: sender,
+        email: 'dana@example.com',
+        eventType: 'Wedding',
+        notes: 'Photography for 80 guests',
+        suppliers: [{ supplierId: fixtures.supplier.id, supplierName: fixtures.supplier.name }],
+      },
+    });
+    expect(sent.status()).toBe(200);
+    await customer.dispose();
+
+    await openDashboard(page, context, baseURL);
+    // The supplier is told without having to look: a notification names the customer.
+    await expect
+      .poll(async () => {
+        const response = await page.request.get('/api/notifications');
+        const body = await response.json();
+        return JSON.stringify(body.notifications || body.items || []);
+      })
+      .toContain(`New quote request from ${sender}`);
+    // And the enquiry itself is in the drawer.
+    await page.locator('#sdh-enquiries-open').click();
+    await expect(page.locator('#sdh-enquiries-dialog[open]')).toContainText(sender);
   });
 
   test('the notifications bell opens its panel', async ({ page, context, baseURL }) => {

@@ -29,6 +29,7 @@ const PREHEADERS = {
   marketing: 'See the latest EventFlow updates and planning improvements.',
   notification: 'You have a new EventFlow account update.',
   'new-message': 'You have a new message on EventFlow.',
+  'new-enquiry': 'A customer has sent you an enquiry on EventFlow.',
   'action-prompts': 'Review the supplier profile improvements recommended by EventFlow.',
   'newsletter-confirm': 'Confirm your subscription to receive EventFlow updates.',
   'newsletter-welcome': 'You are subscribed to EventFlow updates.',
@@ -92,6 +93,11 @@ const META = {
     category: 'account',
     purpose: 'New messenger message notification',
     variables: ['senderName', 'contextSuffix', 'previewHtml', 'conversationUrl'],
+  },
+  'new-enquiry': {
+    category: 'account',
+    purpose: 'A customer sent a supplier an enquiry or quote request',
+    variables: ['senderName', 'enquiryLabel', 'previewHtml', 'enquiryUrl'],
   },
   'support-ticket-reply': {
     category: 'account',
@@ -361,6 +367,13 @@ function buildSampleData(name) {
         'Hi! Just checking if you have availability for a 120-guest wedding in June — could you send over a quote?',
       conversationUrl: `${APP_BASE_URL}/messenger/?conversation=preview-convo-id`,
     },
+    'new-enquiry': {
+      senderName: 'Jordan Lee',
+      enquiryLabel: 'a quote request',
+      previewHtml:
+        'Hi! Are you free for a 120-guest wedding on 12 June? Could you send over a quote?',
+      enquiryUrl: `${APP_BASE_URL}/dashboard/supplier#sdh-enquiries`,
+    },
     'contact-enquiry-reply': {
       name: 'Jordan Lee',
       enquirySubject: 'Question about listing a venue',
@@ -596,6 +609,15 @@ const PLAIN_TEXT_BODIES = {
     `After the trial your paid subscription begins automatically: £${m.amount}/${m.billingCycle}. You can cancel before ${m.trialEndDate} at no charge.`,
     '',
     `Manage subscription: ${APP_BASE_URL}/supplier/subscription`,
+  ],
+  'new-enquiry': m => [
+    `${m.senderName} sent you ${m.enquiryLabel} through your EventFlow profile:`,
+    '',
+    `"${stripHtml(m.previewHtml)}"`,
+    '',
+    `View the enquiry: ${m.enquiryUrl}`,
+    '',
+    'Reply to them directly using the contact details in the enquiry.',
   ],
   'new-message': m => {
     const contextText = m.contextSuffix ? ` ${stripHtml(m.contextSuffix)}` : '';
