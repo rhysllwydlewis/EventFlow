@@ -1332,9 +1332,10 @@ router.put(
         );
       }
 
-      // Track changes
-      Object.keys(stored).forEach(key => {
-        if (stored[key] !== pkg[key]) {
+      // Track changes. The keys come from the allowlist, never from the request, so a request
+      // cannot choose which property of the package is written.
+      PACKAGE_EDITABLE_FIELDS.forEach(key => {
+        if (Object.prototype.hasOwnProperty.call(stored, key) && stored[key] !== pkg[key]) {
           changes[key] = { before: pkg[key], after: stored[key] };
           pkg[key] = stored[key];
         }
