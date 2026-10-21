@@ -10,6 +10,7 @@ showed the same facts (completeness, plan, packages, unread messages) in two or
 three places, and drew numbers the server never sent.
 
 The data contract is in `SUPPLIER_DASHBOARD_DATA.md`. This file is about the page.
+Everything not done, not verified or left alone is listed in `SUPPLIER_DASHBOARD_BACKLOG.md`.
 
 ## Structure
 
