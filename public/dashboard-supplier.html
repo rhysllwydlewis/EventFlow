@@ -293,21 +293,21 @@
             </section>
 
             <!-- Calendar -->
-            <section id="availability-calendar" class="sdh-card sdh-card--calendar" aria-labelledby="calendar-heading" data-needs-profile>
+            <section id="availability-calendar" class="sdh-card sdh-card--calendar" aria-labelledby="calendar-heading">
               <div class="sdh-card__head">
                 <div class="sdh-card__titles">
                   <h2 id="calendar-heading" class="sdh-card__title">Calendar</h2>
-                  <p class="sdh-card__sub" id="supplier-cal-subtitle">Your events and personal schedule.</p>
+                  <p class="sdh-card__sub" id="supplier-cal-subtitle">Your private calendar.</p>
                 </div>
                 <div class="sdh-card__actions">
-                  <a href="/public-calendar" id="supplier-cal-cta" class="sdh-link">Public calendar</a>
+                  <a href="/public-calendar" id="supplier-cal-cta" class="sdh-link" aria-label="View the EventFlow public calendar">View public calendar</a>
                   <button type="button" id="sup-cal-add-event-btn" class="sdh-btn sdh-btn--secondary sdh-btn--sm sup-cal-publisher-only" aria-label="Add public event" hidden>
                     <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true"><path d="M7 1.5v11M1.5 7h11" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" /></svg>
-                    Add event
+                    Add public event
                   </button>
-                  <button type="button" id="sup-cal-add-entry-btn" class="sdh-btn sdh-btn--secondary sdh-btn--sm" aria-label="Add calendar entry">
+                  <button type="button" id="sup-cal-add-entry-btn" class="sdh-btn sdh-btn--secondary sdh-btn--sm" aria-label="Add private calendar entry">
                     <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true"><path d="M7 1.5v11M1.5 7h11" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" /></svg>
-                    Add entry
+                    Add private entry
                   </button>
                 </div>
               </div>
@@ -315,7 +315,7 @@
                 <div id="sup-cal-permission-notice" class="sup-cal-permission-notice"></div>
                 <div id="sup-my-public-events" class="sup-my-public-events"></div>
                 <ul id="sup-cal-legend" class="sdh-legend-list" aria-label="Calendar colour legend">
-                  <li class="cal-legend-item"><span class="cal-legend-dot cal-legend-dot--mine" aria-hidden="true"></span>My events</li>
+                  <li class="cal-legend-item"><span class="cal-legend-dot cal-legend-dot--mine" aria-hidden="true"></span>Private entries</li>
                   <li class="cal-legend-item"><span class="cal-legend-dot cal-legend-dot--public" aria-hidden="true"></span>Public events</li>
                   <li class="cal-legend-item"><span class="cal-legend-dot cal-legend-dot--saved" aria-hidden="true"></span>Saved</li>
                   <li class="cal-legend-item"><span class="cal-legend-dot cal-legend-dot--meeting" aria-hidden="true"></span>Meeting</li>
@@ -877,6 +877,27 @@
             <button type="button" id="sdh-guide-next" class="sdh-btn sdh-btn--primary">Next</button>
           </div>
         </div>
+      </dialog>
+
+      <dialog id="sdh-publisher-dialog" class="sdh-dialog sdh-dialog--narrow" aria-labelledby="sdh-publisher-title">
+        <form id="sdh-publisher-form" class="sdh-dialog__form" novalidate>
+          <div class="sdh-dialog__head">
+            <h2 id="sdh-publisher-title" class="sdh-dialog__title">Ask to publish public events</h2>
+            <button type="button" class="sdh-dialog__close" data-dialog-close aria-label="Close">&times;</button>
+          </div>
+          <div class="sdh-dialog__body">
+            <p class="sdh-note">Public events appear on the EventFlow public calendar. An administrator reviews every request. Your private calendar is not affected either way.</p>
+            <div class="sdh-field">
+              <label class="sdh-label" for="sdh-publisher-reason">What would you publish, and how often?</label>
+              <textarea id="sdh-publisher-reason" class="sdh-input sdh-input--area" rows="4" maxlength="1000" required></textarea>
+            </div>
+            <p id="sdh-publisher-status" class="sdh-form__status" role="status" aria-live="polite"></p>
+          </div>
+          <div class="sdh-dialog__foot">
+            <button type="button" class="sdh-btn sdh-btn--quiet" data-dialog-close>Cancel</button>
+            <button type="submit" id="sdh-publisher-send" class="sdh-btn sdh-btn--primary">Send request</button>
+          </div>
+        </form>
       </dialog>
 
       <dialog id="sdh-confirm-dialog" class="sdh-dialog sdh-dialog--narrow" aria-labelledby="sdh-confirm-title">

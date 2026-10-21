@@ -163,33 +163,46 @@
     const notice = document.getElementById('sup-cal-permission-notice');
     if (isPublisher) {
       if (ctaLink) {
-        ctaLink.textContent = 'Manage Events';
+        ctaLink.textContent = 'Manage public events';
         ctaLink.setAttribute('aria-label', 'Manage public calendar events');
       }
       if (subtitle) {
-        subtitle.textContent = 'Manage shared public events and your personal schedule';
+        subtitle.textContent = 'Your private calendar, and the public events you publish.';
       }
       if (notice) {
         notice.dataset.tone = '';
-        notice.innerHTML =
+        notice.textContent =
           currentSupplier && currentSupplier.publicCalendarPublisherOverride === true
-            ? '<strong>Calendar publishing has been granted by admin override.</strong>'
-            : '<strong>Shared Events Calendar publishing enabled.</strong><br>You can publish public events to the shared calendar and manage events you created.';
+            ? 'An administrator has allowed you to publish public events. They appear on the EventFlow public calendar. Your private entries stay private.'
+            : 'You can publish public events to the EventFlow public calendar and manage the ones you created. Your private entries stay private.';
       }
       publisherBtns.forEach(el => {
         el.hidden = false;
       });
     } else {
+      if (subtitle) {
+        subtitle.textContent = 'Your private calendar: entries only you can see.';
+      }
       if (notice) {
         const forceDenied =
           currentSupplier && currentSupplier.publicCalendarPublisherOverride === false;
         notice.dataset.tone = forceDenied ? 'danger' : 'warn';
-        notice.innerHTML = forceDenied
-          ? '<strong>Calendar publishing disabled by admin.</strong>'
-          : '<strong>Calendar publishing isn\'t included for your category.</strong><button type="button" id="sup-request-publishing-btn">Request access</button>';
-        document
-          .getElementById('sup-request-publishing-btn')
-          ?.addEventListener('click', requestPublishingAccess);
+        notice.textContent = '';
+        const lead = document.createElement('strong');
+        lead.textContent = forceDenied
+          ? 'Public calendar publishing has been disabled for your account by an administrator.'
+          : "Public calendar publishing isn't available for your supplier type.";
+        notice.appendChild(lead);
+        notice.appendChild(document.createTextNode(' Your private calendar is not affected.'));
+        if (!forceDenied) {
+          const request = document.createElement('button');
+          request.type = 'button';
+          request.id = 'sup-request-publishing-btn';
+          request.className = 'sdh-link';
+          request.textContent = 'Ask to publish public events';
+          request.addEventListener('click', requestPublishingAccess);
+          notice.appendChild(request);
+        }
       }
       publisherBtns.forEach(el => {
         el.hidden = true;
@@ -197,12 +210,60 @@
     }
   }
 
-  async function requestPublishingAccess() {
-    const reason = window.prompt(
-      'Why do you need shared calendar publishing access? Include event types, an example event title, and expected frequency.'
-    );
-    if (!reason) {
+  /** Wires the request dialog once: its form, and its close and Cancel buttons. */
+  function bindPublisherDialog() {
+    const form = document.getElementById('sdh-publisher-form');
+    const dialog = document.getElementById('sdh-publisher-dialog');
+    if (!form || !dialog || form._wired) {
       return;
+    }
+    form._wired = true;
+    form.addEventListener('submit', submitPublishingRequest);
+    dialog.querySelectorAll('[data-dialog-close]').forEach(button => {
+      button.addEventListener('click', () => dialog.close());
+    });
+  }
+
+  /** Opens the dialog where a supplier asks an administrator for public calendar publishing. */
+  function requestPublishingAccess() {
+    const dialog = document.getElementById('sdh-publisher-dialog');
+    const form = document.getElementById('sdh-publisher-form');
+    if (!dialog || !form || typeof dialog.showModal !== 'function') {
+      return;
+    }
+    form.reset();
+    const status = document.getElementById('sdh-publisher-status');
+    if (status) {
+      status.textContent = '';
+    }
+    dialog.showModal();
+    document.getElementById('sdh-publisher-reason')?.focus();
+  }
+
+  /** Sends the publishing-access request from the dialog and says what happened inside it. */
+  async function submitPublishingRequest(event) {
+    event.preventDefault();
+    const dialog = document.getElementById('sdh-publisher-dialog');
+    const reasonField = document.getElementById('sdh-publisher-reason');
+    const status = document.getElementById('sdh-publisher-status');
+    const send = document.getElementById('sdh-publisher-send');
+    const reason = reasonField ? reasonField.value.trim() : '';
+    /** Writes a message in the dialog. */
+    const say = (message, tone) => {
+      if (status) {
+        status.textContent = message;
+        status.setAttribute('data-tone', tone);
+      }
+    };
+    if (reason.length < 10) {
+      reasonField?.setAttribute('aria-invalid', 'true');
+      say('Tell us a little more: what you would publish and how often.', 'error');
+      reasonField?.focus();
+      return;
+    }
+    reasonField?.removeAttribute('aria-invalid');
+    if (send) {
+      send.disabled = true;
     }
     try {
       const res = await fetch('/api/v1/public-calendar/publisher-request', {
@@ -217,11 +278,17 @@
         }),
       });
       if (!res.ok) {
-        throw new Error('Request failed');
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body.message || body.error || 'Request failed');
       }
-      showToast('Calendar publishing access request submitted.', 'success');
-    } catch (_) {
-      showToast('Unable to submit calendar publishing request.', 'error');
+      dialog?.close();
+      showToast('Request sent. An administrator will review it.', 'success');
+    } catch (error) {
+      say(error.message || 'The request could not be sent. Please try again.', 'error');
+    } finally {
+      if (send) {
+        send.disabled = false;
+      }
     }
   }
 
@@ -1009,6 +1076,7 @@
     await ensureCsrfToken();
     await loadSupplierProfile();
     updateCalendarHeader();
+    bindPublisherDialog();
     renderMyPublicEvents();
 
     const entryModal = ensureEntryModal();
