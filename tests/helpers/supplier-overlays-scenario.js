@@ -332,9 +332,120 @@ async function guide(options) {
   process.stdout.write(JSON.stringify(log));
 }
 
+/** The source of one function declaration in app.js, from its marker to the next marker. */
+function sliceBetween(source, start, end) {
+  const from = source.indexOf(start);
+  const to = source.indexOf(end, from);
+  if (from === -1 || to === -1) {
+    throw new Error(`could not slice ${start}`);
+  }
+  return source.slice(from, to);
+}
+
+/** Runs the real package and profile card renderers from app.js on awkward data. */
+async function cards() {
+  const { window } = makeWindow({});
+  const app = read('public/assets/js/app.js');
+  const code = [
+    sliceBetween(app, 'function escapeHtml(', '// Supplier avatar initials/color'),
+    sliceBetween(app, '  const PKG_CARD_PLACEHOLDER_PATHS', '  /**\n   * Package allowance'),
+    sliceBetween(
+      app,
+      '  function supplierTierLabel(',
+      "  /** The profile card's body for a supplier who has no profile yet"
+    ),
+    sliceBetween(
+      app,
+      '  function packagePriceText(',
+      '  /**\n   * A short message in the packages card'
+    ),
+  ].join('\n');
+  window.eval(
+    `${code}\nwindow.__cards = { packageCardHtml, packageListHtml, supplierCardHtml, packagePriceText, escapeAttr };`
+  );
+  const { packageCardHtml, supplierCardHtml, packagePriceText } = window.__cards;
+  const wrap = html => {
+    const holder = window.document.createElement('div');
+    holder.innerHTML = html;
+    return holder;
+  };
+  const log = {};
+  const quoted = wrap(
+    packageCardHtml({
+      id: 'k"1',
+      title: '6" round cake',
+      price: '£120',
+      approved: true,
+      slug: 'six"cake',
+      image: '/img/a.jpg"x',
+    })
+  );
+  const edit = quoted.querySelector('[data-action="edit-package"]');
+  const del = quoted.querySelector('[data-action="delete-package"]');
+  log.quoted = {
+    editLabel: edit.getAttribute('aria-label'),
+    deleteLabel: del.getAttribute('aria-label'),
+    editAttributes: Array.from(edit.attributes).map(attribute => attribute.name),
+    packageId: edit.getAttribute('data-package-id'),
+    price: quoted.querySelector('.sdh-pkg__price').textContent,
+    title: quoted.querySelector('.sdh-pkg__title').textContent,
+    imgSrc: quoted.querySelector('img').getAttribute('src'),
+    viewHref: quoted.querySelector('a[href^="/package"]').getAttribute('href'),
+    imgAttributes: Array.from(quoted.querySelector('img').attributes).map(
+      attribute => attribute.name
+    ),
+  };
+  log.priceNames = {
+    typed: packagePriceText({ price: '£850 pp' }),
+    older: packagePriceText({ price_display: '£1,000' }),
+    both: packagePriceText({ price_display: '£1,000', price: '£5' }),
+    number: packagePriceText({ price: 500 }),
+    none: packagePriceText({}),
+  };
+  const many = items =>
+    Array.from({ length: items }, (_, index) => ({
+      id: `p${index}`,
+      title: `Package ${index}`,
+      approved: true,
+    }));
+  const folded = wrap(window.__cards.packageListHtml(many(12), false));
+  log.list = {
+    shown: folded.querySelectorAll('.sdh-pkgs')[0].querySelectorAll('.sdh-pkg').length,
+    folded: folded.querySelectorAll('details .sdh-pkg').length,
+    summary: folded.querySelector('summary') && folded.querySelector('summary').textContent,
+    open: folded.querySelector('details').hasAttribute('open'),
+    few: wrap(window.__cards.packageListHtml(many(5), false)).querySelectorAll('details').length,
+    keptOpen: wrap(window.__cards.packageListHtml(many(8), true))
+      .querySelector('details')
+      .hasAttribute('open'),
+    one: wrap(window.__cards.packageListHtml(many(6), false)).querySelector('summary').textContent,
+  };
+  log.noPrice = !wrap(packageCardHtml({ id: 'a', title: 'A' })).querySelector('.sdh-pkg__price');
+  const profile = wrap(
+    supplierCardHtml(
+      {
+        id: 's"1',
+        name: 'Barn "Two" & Sons',
+        approved: true,
+        location: 'Bath',
+        category: 'Venues',
+      },
+      '/api/photos/a.jpg',
+      'B'
+    )
+  );
+  log.profile = {
+    cardClasses: profile.firstElementChild.className,
+    name: profile.querySelector('.sdh-profile__name').textContent,
+    supplierId: profile.firstElementChild.getAttribute('data-supplier-id'),
+    fallbackText: profile.querySelector('.sdh-avatar img').getAttribute('data-fallback-text'),
+  };
+  process.stdout.write(JSON.stringify(log));
+}
+
 const name = process.argv[2];
 const options = JSON.parse(Buffer.from(process.argv[3] || 'e30=', 'base64').toString('utf8'));
-const scenarios = { overlays, banner, guide };
+const scenarios = { overlays, banner, guide, cards };
 scenarios[name](options).catch(error => {
   process.stderr.write(String(error && error.stack ? error.stack : error));
   process.exit(1);

@@ -172,7 +172,8 @@ describe('_efFetchOnceJSON — usage in source files', () => {
   });
 
   it('the plan is fetched at most once, and only when the summary has none', () => {
-    expect(homeSrc.match(/\/api\/v2\/subscriptions\/me/g)).toHaveLength(2);
+    expect(homeSrc.match(/\/api\/v2\/subscriptions\/me/g)).toHaveLength(1);
+    expect(homeSrc).toContain('state.ownSubscriptionPromise');
     expect(homeSrc).toContain('if (!model.subscription)');
   });
 });

@@ -57,11 +57,17 @@ async function main() {
       status,
       json: async () => body,
     });
+    if (target.includes('/api/supplier/dashboard-summary') && scenario.summaryNeverResolves) {
+      return new Promise(() => {});
+    }
     if (target.includes('/api/supplier/dashboard-summary')) {
       return reply(scenario.summaryStatus || 200, scenario.summary || {});
     }
     if (target.includes('/api/v1/auth/me')) {
       return reply(200, { user: scenario.user || { firstName: 'Hannah', verified: true } });
+    }
+    if (target.includes('/api/v2/subscriptions/upcoming-invoice')) {
+      return reply(200, { upcomingInvoice: scenario.invoice || null });
     }
     if (target.includes('/api/v2/subscriptions/me')) {
       return reply(
@@ -88,6 +94,11 @@ async function main() {
   window.eval(read('public/assets/js/pages/dashboard-supplier-verification.js'));
   // jsdom fires DOMContentLoaded (which binds the page's listeners) on the next task.
   await new Promise(resolve => setTimeout(resolve, 0));
+  if (scenario.failedList) {
+    document.dispatchEvent(
+      new window.CustomEvent('sdh:suppliers', { detail: { suppliers: null, failed: true } })
+    );
+  }
   if (scenario.suppliers) {
     document.dispatchEvent(
       new window.CustomEvent('sdh:suppliers', { detail: { suppliers: scenario.suppliers } })
@@ -163,6 +174,7 @@ async function main() {
     plan: text(document.getElementById('supplier-subscription-card')),
     availability: text(document.getElementById('supplier-availability-widget')),
     tips: text(document.getElementById('supplier-perf-tips')),
+    tipsHtml: document.getElementById('supplier-perf-tips').innerHTML,
     tipsHidden: document.getElementById('sdh-tips').hidden,
     requested,
     actions,

@@ -45,7 +45,7 @@ describe('supplier calendar card wording', () => {
   test('public publishing is reflected from the server flag, not decided on the page', () => {
     expect(calendarJs).toContain('currentSupplier.canPublishPublicCalendar === true');
     // The hidden buttons are a courtesy; the server enforces. Nothing here lists categories.
-    expect(calendarJs).not.toMatch(/PUBLISHER_CATEGORIES|category\s*===/);
+    expect(calendarJs).not.toMatch(/category\s*===|\.includes\(.*category/);
   });
 
   test('asking for access opens a dialog and posts the reason; there is no native prompt', () => {

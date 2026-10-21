@@ -897,6 +897,55 @@ describe('supplier dashboard home: pure logic', () => {
     });
   });
 
+  describe('billing details', () => {
+    test('a trial shows its end and the days left; a scheduled downgrade says so, and a cancellation says so', () => {
+      const now = new Date('2027-03-01T12:00:00.000Z');
+      const trial = home.billingDetails(
+        { record: { status: 'trialing', trialEnd: '2027-03-11T12:00:00.000Z', plan: 'pro' } },
+        now
+      );
+      expect(trial.rows).toEqual([
+        { label: 'Trial ends', value: '11 March 2027' },
+        { label: 'Trial left', value: '10 days' },
+      ]);
+      const today = home.billingDetails(
+        { record: { status: 'trialing', trialEnd: '2027-03-01T20:00:00.000Z' } },
+        now
+      );
+      expect(today.rows[1]).toEqual({ label: 'Trial left', value: 'Ends today' });
+      const downgrade = home.billingDetails(
+        {
+          record: {
+            cancelAtPeriodEnd: true,
+            pendingPlan: 'pro',
+            plan: 'pro_plus',
+            currentPeriodEnd: '2027-04-01T00:00:00.000Z',
+          },
+          invoice: { amount: 2900, currency: 'gbp' },
+        },
+        now
+      );
+      expect(downgrade.notice.text).toBe('Downgrades to Pro on 1 April 2027');
+      // A downgrade to a paid plan still bills, so the next payment stays.
+      expect(downgrade.rows.map(row => row.label)).toContain('Next payment');
+      const cancel = home.billingDetails(
+        {
+          record: { cancelAtPeriodEnd: true, currentPeriodEnd: '2027-04-01T00:00:00.000Z' },
+          invoice: { amount: 2900, currency: 'gbp' },
+        },
+        now
+      );
+      expect(cancel.notice.text).toBe('Cancels on 1 April 2027');
+      expect(cancel.rows.map(row => row.label)).not.toContain('Next payment');
+      expect(home.billingDetails(null, now)).toEqual({
+        interval: '',
+        rows: [],
+        notice: null,
+        plan: '',
+      });
+    });
+  });
+
   describe('formatting', () => {
     test('typical reply time is never rounded down to "0 h"', () => {
       expect(home.formatMinutes(0.4)).toBe('Under a minute');
@@ -1259,10 +1308,11 @@ describe('supplier dashboard home: rendered page', () => {
       user: { firstName: 'Sam', verified: false },
     });
     expect(page.emailBanner).toContain('Please verify your email address');
-    expect(page.primary).toMatchObject({
-      label: 'Verify your email address',
-      action: 'resend-email',
-    });
+    // The banner carries the Resend email button, so there is not a second filled button for the
+    // same job at the top of the page.
+    expect(page.emailBanner).toContain('Resend email');
+    expect(page.primary.hidden).toBe(true);
+    expect(page.steps.todo.join(' ')).toContain('Verify your email address');
     expect(page.strip.hidden).toBe(true);
   });
 
@@ -1309,11 +1359,71 @@ describe('supplier dashboard home: rendered page', () => {
     expect(page.plan).toContain('Up to 50 active packages');
     expect(page.plan).toContain('90 days of visit history');
     expect(page.plan).not.toMatch(/more enquiries|3x/i);
+  });
+
+  test('a past-due supplier sees the plan they pay for, the failed payment and a billing button (never "Starter")', () => {
+    // What the server really sends: entitlement drops to free while the record keeps the paid plan.
     const past = clone(populated);
-    past.subscription.status = 'past_due';
-    const pastPage = run({ summary: past, suppliers: [{ id: 's1' }] });
-    expect(pastPage.plan).toContain('Payment failed');
-    expect(pastPage.plan).toContain('Update payment method');
+    past.subscription = {
+      plan: 'free',
+      status: 'past_due',
+      activeUntil: null,
+      cancelAtPeriodEnd: false,
+      limits: { maxPackages: 3, maxPhotos: 10, analyticsWindowDays: 7 },
+    };
+    const page = run({
+      summary: past,
+      suppliers: [{ id: 's1' }],
+      plan: {
+        plan: 'free',
+        status: 'past_due',
+        subscription: { plan: 'pro', status: 'past_due', billingInterval: 'month' },
+      },
+    });
+    expect(page.plan).toContain('Pro');
+    expect(page.plan).not.toContain('Starter');
+    expect(page.plan).toContain('Past due');
+    expect(page.plan).toContain('Payment failed');
+    expect(page.plan).toContain('Update payment method');
+    expect(page.plan).toContain('View subscription');
+    expect(page.plan).not.toContain('See plans');
+  });
+
+  test('billing facts come from the subscription record: interval, start, next payment, card, discount, renewal', () => {
+    const record = {
+      plan: 'pro',
+      status: 'active',
+      billingInterval: 'year',
+      createdAt: '2025-01-15T00:00:00.000Z',
+      currentPeriodEnd: '2027-01-15T00:00:00.000Z',
+      cancelAtPeriodEnd: false,
+      discountName: 'LAUNCH',
+      discountPercent: 20,
+      stripeSubscriptionId: 'sub_1',
+    };
+    const withFlags = clone(populated);
+    withFlags.subscription.limits.priorityListing = true;
+    withFlags.subscription.limits.customBranding = false;
+    const page = run({
+      summary: withFlags,
+      suppliers: [{ id: 's1' }],
+      plan: {
+        plan: 'pro',
+        status: 'active',
+        subscription: record,
+        paymentMethodBrand: 'visa',
+        paymentMethodLast4: '4242',
+      },
+      invoice: { amount: 29000, currency: 'gbp' },
+    });
+    expect(page.plan).toContain('Annual');
+    expect(page.plan).toContain('Renews on 15 January 2027');
+    expect(page.plan).toContain('Started: 15 January 2025');
+    expect(page.plan).toContain('Next payment: £290.00');
+    expect(page.plan).toContain('Payment method: Visa ending 4242');
+    expect(page.plan).toContain('Discount: 20% off (LAUNCH)');
+    expect(page.plan).toContain('Priority listing');
+    expect(page.plan).not.toContain('Custom branding');
   });
 
   test('a short plan window is labelled with what was served and says so', () => {
@@ -1359,7 +1469,8 @@ describe('supplier dashboard home: rendered page', () => {
     const count = text => page.requested.filter(url => url.includes(text)).length;
     expect(count('/api/supplier/dashboard-summary')).toBe(1);
     expect(count('/api/v1/auth/me')).toBe(1);
-    expect(count('/api/v2/subscriptions/me')).toBe(0);
+    // Once, for the billing details of a paid plan; never once per widget.
+    expect(count('/api/v2/subscriptions/me')).toBe(1);
     expect(count('/api/me/suppliers')).toBe(0);
     expect(count('/api/me/packages')).toBe(0);
     expect(count('/api/supplier/analytics')).toBe(0);
@@ -1421,7 +1532,8 @@ describe('supplier dashboard home: app.js profile and package behaviour', () => 
       appJs.indexOf('function packageMessageHtml(')
     );
     expect(row.match(/<button type="button" class="sdh-btn/g)).toHaveLength(1);
-    expect(row).toContain('escapeHtml(String(p.title');
+    expect(row).toContain('escapeHtml(rawTitle)');
+    expect(row).toContain('escapeAttr(rawTitle)');
     expect(row).toContain('escapeHtml(String(p.description');
     expect(row).not.toContain('class="ef-cta');
   });

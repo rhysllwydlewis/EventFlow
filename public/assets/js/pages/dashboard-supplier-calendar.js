@@ -504,6 +504,7 @@
           start: entry.time ? `${entry.date}T${entry.time}` : entry.date,
           allDay: !entry.time,
           backgroundColor: getEntryColor(entry.type),
+          classNames: ['sdh-ev--private'],
           borderColor: getEntryColor(entry.type),
           extendedProps: {
             entryType: entry.type,
@@ -934,6 +935,7 @@
             start: ev.startDate,
             end: ev.endDate || undefined,
             backgroundColor: colors.bg,
+            classNames: ['sdh-ev--public', 'sdh-ev--own'],
             borderColor: colors.border,
             extendedProps: {
               supplierId: ev.supplierId,
@@ -1132,6 +1134,10 @@
             start: ev.startDate,
             end: ev.endDate || undefined,
             backgroundColor: colors.bg,
+            classNames: ['sdh-ev--public'].concat(
+              isOwn ? ['sdh-ev--own'] : [],
+              savedEventIds.has(String(ev.id)) ? ['sdh-ev--saved'] : []
+            ),
             borderColor: colors.border,
             extendedProps: {
               supplierId: ev.supplierId,
@@ -1160,6 +1166,7 @@
           start: entry.time ? `${entry.date}T${entry.time}` : entry.date,
           allDay: !entry.time,
           backgroundColor: getEntryColor(entry.type),
+          classNames: ['sdh-ev--private'],
           borderColor: getEntryColor(entry.type),
           extendedProps: {
             entryType: entry.type,

@@ -290,7 +290,7 @@ describe('Supplier dashboard/profile UI polish', () => {
   });
 
   it('supplier profile summary card uses the sdh-profile layout, with no health ring or setup checklist', () => {
-    expect(appJs).toContain('class="supplier-card sdh-profile"');
+    expect(appJs).toContain('class="sdh-profile"');
     expect(appJs).toContain('class="sdh-profile__name-row"');
     expect(appJs).toContain('data-action="upload-photo"');
     // One completeness figure lives in the summary row; the card carries none of the old ones.

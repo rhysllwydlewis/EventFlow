@@ -124,6 +124,10 @@
   border: 0;
 }
 
+.sdh-page [id] {
+  scroll-margin-top: 96px;
+}
+
 .sdh-page .sdh-wrap {
   width: min(1200px, 100%);
   margin-inline: auto;
@@ -556,6 +560,16 @@
 .sdh-page .sdh-summary__grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.sdh-page .sdh-summary__grid > :last-child:nth-child(odd) {
+  grid-column: 1 / -1;
+}
+
+@media (min-width: 900px) {
+  .sdh-page .sdh-summary__grid > :last-child:nth-child(odd) {
+    grid-column: auto;
+  }
 }
 
 .sdh-page .sdh-summary__grid--empty {
@@ -1609,6 +1623,7 @@
   margin-top: 2px;
   color: var(--sdh-muted);
   font-size: 13px;
+  overflow-wrap: anywhere;
 }
 
 .sdh-page .sdh-profile__actions {
@@ -1686,10 +1701,11 @@
 }
 
 .sdh-page .sdh-pkg__price {
+  max-width: 100%;
   color: var(--sdh-ink);
   font-size: 14px;
   font-weight: 700;
-  white-space: nowrap;
+  overflow-wrap: anywhere;
 }
 
 .sdh-page .sdh-pkg__badges {
@@ -1716,11 +1732,18 @@
 }
 
 .sdh-page .sdh-pkg__actions {
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: repeat(5, max-content);
   align-items: center;
+  justify-content: start;
   gap: 8px 20px;
   margin-top: 12px;
+}
+
+@media (max-width: 559px) {
+  .sdh-page .sdh-pkg__actions {
+    grid-template-columns: repeat(3, max-content);
+  }
 }
 
 .sdh-page .sdh-pkg__actions .sdh-link {
@@ -1733,6 +1756,25 @@
   color: var(--sdh-muted);
   text-decoration: none;
   cursor: not-allowed;
+}
+
+/* "Show the other N": a real <details> that folds long lists. */
+.sdh-page .sdh-more {
+  margin-top: 12px;
+}
+
+.sdh-page .sdh-more__summary {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  color: var(--sdh-accent-deep);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.sdh-page .sdh-more[open] > .sdh-more__summary {
+  margin-bottom: 8px;
 }
 
 .sdh-page .sdh-pkg-upgrade {
@@ -1760,6 +1802,7 @@
 .sdh-page .sdh-seg__btn {
   min-height: 44px;
   padding: 0 8px;
+  white-space: nowrap;
   border: 0;
   border-radius: 0;
   background: transparent;
@@ -2233,6 +2276,37 @@
   display: none;
 }
 
+/* Messenger load error: the page's own retry pattern, no icon. */
+.sdh-page .sdh-messenger-widget .mwv4__empty {
+  padding: 16px 0;
+  text-align: left;
+}
+
+.sdh-page .sdh-messenger-widget .mwv4__retry-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  margin-top: 8px;
+  padding: 0 16px !important;
+  border: 1px solid var(--sdh-line-strong);
+  border-radius: var(--sdh-radius-sm);
+  background: var(--sdh-surface);
+  background-image: none;
+  box-shadow: none;
+  color: var(--sdh-ink);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.sdh-page .sdh-messenger-widget .mwv4__retry-btn:hover {
+  border-color: var(--sdh-accent);
+  background: var(--sdh-accent-soft);
+  color: var(--sdh-accent-deep);
+}
+
 /* Lead badges come from a score the server does not produce, so they never describe a real lead. */
 .sdh-page .sdh-messenger-widget .mwv4__lead-badge,
 .sdh-page .sdh-messenger-widget .lead-badge {
@@ -2570,20 +2644,19 @@
   background: var(--sdh-accent);
 }
 
-.sdh-page .cal-legend-dot--event {
-  background: #0b8073;
-}
-
-.sdh-page .cal-legend-dot--meeting {
-  background: #6366f1;
-}
-
-.sdh-page .cal-legend-dot--appointment {
-  background: #f59e0b;
+.sdh-page .cal-legend-dot--mine {
+  border: 2px solid var(--sdh-accent);
+  background: var(--sdh-accent-soft);
 }
 
 .sdh-page .cal-legend-dot--public {
-  background: #7c3aed;
+  border: 2px dashed var(--sdh-accent);
+  background: var(--sdh-surface);
+}
+
+.sdh-page .cal-legend-dot--saved {
+  border: 2px dotted var(--sdh-ink-2);
+  background: var(--sdh-surface);
 }
 
 /* FullCalendar theme */
@@ -2724,10 +2797,50 @@
   min-height: 64px;
 }
 
-.sdh-page .supplier-calendar-viewport .fc-event {
-  border-radius: 6px;
+/* One accent. Private entries are filled and solid, public events are outlined and dashed, saved
+   public events are dotted: told apart by shape, not by colour. */
+.sdh-page .supplier-calendar-viewport .fc-event,
+.sdh-page .supplier-calendar-viewport .fc-daygrid-event {
+  border: 1px solid var(--sdh-accent) !important;
+  border-radius: 4px;
+  background: var(--sdh-accent-soft) !important;
+  color: var(--sdh-ink) !important;
   font-size: 12px;
   cursor: pointer;
+}
+
+.sdh-page .supplier-calendar-viewport .fc-event .fc-event-main,
+.sdh-page .supplier-calendar-viewport .fc-event .fc-event-title,
+.sdh-page .supplier-calendar-viewport .fc-event .fc-event-time {
+  color: var(--sdh-ink) !important;
+}
+
+.sdh-page .supplier-calendar-viewport .sdh-ev--public {
+  border-style: dashed !important;
+  background: var(--sdh-surface) !important;
+}
+
+.sdh-page .supplier-calendar-viewport .sdh-ev--saved {
+  border-style: dotted !important;
+  border-color: var(--sdh-ink-2) !important;
+}
+
+.sdh-page .supplier-calendar-viewport .fc-daygrid-event-dot,
+.sdh-page .supplier-calendar-viewport .fc-list-event-dot {
+  display: none;
+}
+
+.sdh-page .supplier-calendar-viewport .fc-list-event td {
+  padding: 12px 10px;
+}
+
+.sdh-page .supplier-calendar-viewport .fc-list-empty {
+  min-height: 0;
+  padding: 24px 12px;
+}
+
+.sdh-page .supplier-calendar-viewport .fc-list {
+  border-color: var(--sdh-line);
 }
 
 .sdh-page .supplier-calendar-viewport .fc-event-title {
@@ -3526,18 +3639,6 @@
   font-size: 12px;
 }
 
-.sdh-page .cal-legend-dot--mine {
-  background: #0b8073;
-}
-
-.sdh-page .cal-legend-dot--saved {
-  background: #7c3aed;
-}
-
-.sdh-page .cal-legend-dot--public {
-  background: #e11d48;
-}
-
 .sdh-page .sup-cal-permission-notice:empty,
 .sdh-page .sup-my-public-events:empty {
   display: none;
@@ -3707,7 +3808,7 @@
 
 @media (max-width: 1099px) {
   .sdh-page {
-    --sdh-col-side: 320px;
+    --sdh-col-side: 340px;
   }
 }
 

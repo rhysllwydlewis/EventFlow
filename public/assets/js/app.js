@@ -35,6 +35,11 @@
       }
       return;
     }
+    if (img.dataset.fallbackText !== undefined && img.parentNode) {
+      // A photo that will not load becomes the supplier's initials (a labelled fallback).
+      img.parentNode.textContent = img.dataset.fallbackText;
+      return;
+    }
     if (img.dataset.fallbackSrc) {
       img.src = img.dataset.fallbackSrc;
       return;
@@ -285,6 +290,17 @@ function escapeHtml(unsafe) {
   const div = document.createElement('div');
   div.textContent = unsafe;
   return div.innerHTML;
+}
+
+/**
+ * Escapes text for use inside a double- or single-quoted HTML attribute (aria-label, title, data-*,
+ * src, href). escapeHtml leaves quotes alone, so a package called 6" cake would end its own
+ * attribute; this also turns both kinds of quote into entities.
+ * @param {*} unsafe - The value to escape (non-strings become an empty string).
+ * @returns {string} Text safe to place between attribute quotes.
+ */
+function escapeAttr(unsafe) {
+  return escapeHtml(unsafe).split('"').join('&quot;').split("'").join('&#39;');
 }
 
 // Supplier avatar initials/color: shared with every other supplier avatar
@@ -1729,7 +1745,7 @@ async function initDashSupplier() {
    * @returns {string} Card markup.
    */
   function supplierCardHtml(supplier, photoUrl, initials) {
-    const supplierId = escapeHtml(String(supplier.id || ''));
+    const supplierId = escapeAttr(String(supplier.id || ''));
     const name = escapeHtml(String(supplier.name || 'Unnamed supplier'));
     const meta = [supplier.location, supplier.category]
       .filter(part => part && String(part).trim())
@@ -1738,10 +1754,12 @@ async function initDashSupplier() {
     const approval = supplier.approved
       ? '<span class="sdh-pill sdh-pill--ok">Approved</span>'
       : '<span class="sdh-pill sdh-pill--warn">Awaiting review</span>';
-    return `<div class="supplier-card sdh-profile" data-supplier-id="${supplierId}">
+    return `<div class="sdh-profile" data-supplier-id="${supplierId}">
       <div class="sdh-profile__avatar">
         <div class="supplier-profile-photo-slot sdh-avatar" data-avatar-key="${supplierId}">${
-          photoUrl ? `<img src="${photoUrl}" alt="Your profile photo">` : initials
+          photoUrl
+            ? `<img src="${photoUrl}" alt="Your profile photo" data-fallback-text="${initials.split('"').join('&quot;').split("'").join('&#39;')}">`
+            : initials
         }</div>
         ${
           photoUrl
@@ -1808,7 +1826,7 @@ async function initDashSupplier() {
           }
           return /^(https?:\/\/[^\s]+|\/[^/\\:][^:]*)$/i.test(value.trim());
         });
-        return typeof found === 'string' ? escapeHtml(found.trim()) : '';
+        return typeof found === 'string' ? escapeAttr(found.trim()) : '';
       };
       const profileInitial = escapeHtml(
         (profileDisplayName || '')
@@ -2261,18 +2279,32 @@ async function initDashSupplier() {
   }
 
   /**
+   * The price to show for a package: what the supplier typed (`price`), or the older
+   * `price_display`; nothing when neither is there.
+   * @param {Object} p - Package record.
+   * @returns {string} The price text, or ''.
+   */
+  function packagePriceText(p) {
+    const typed = p.price_display || p.price;
+    return typed === undefined || typed === null ? '' : String(typed).trim();
+  }
+
+  /**
    * One package row: photo, title and price, status badges, and one Edit button with text links
    * for the rest.
    * @param {Object} p - Package record.
    * @returns {string} Row markup.
    */
   function packageCardHtml(p) {
-    const packageId = escapeHtml(String(p.id || ''));
-    const image = escapeHtml(String(p.image || '/assets/images/package-placeholder.svg'));
-    const title = escapeHtml(String(p.title || 'Untitled package'));
-    const priceText = escapeHtml(String(p.price_display || ''));
+    const packageId = escapeAttr(String(p.id || ''));
+    const image = escapeAttr(String(p.image || '/assets/images/package-placeholder.svg'));
+    const rawTitle = String(p.title || 'Untitled package');
+    const title = escapeHtml(rawTitle);
+    const titleAttr = escapeAttr(rawTitle);
+    // The server stores what the supplier typed as `price`; `price_display` is the older name.
+    const priceText = escapeHtml(packagePriceText(p));
     const description = escapeHtml(String(p.description || ''));
-    const slug = escapeHtml(String(p.slug || ''));
+    const slug = escapeAttr(String(p.slug || ''));
     const approved = !!p.approved;
     const paused = !!p.paused;
     const badges = [
@@ -2305,14 +2337,33 @@ async function initDashSupplier() {
         <div class="sdh-pkg__badges">${badges}</div>
         ${description ? `<p class="sdh-pkg__desc">${description}</p>` : ''}
         <div class="sdh-pkg__actions">
-          <button type="button" class="sdh-btn sdh-btn--secondary sdh-btn--sm" data-action="edit-package" data-package-id="${packageId}" aria-label="Edit ${title}">Edit</button>
+          <button type="button" class="sdh-btn sdh-btn--secondary sdh-btn--sm" data-action="edit-package" data-package-id="${packageId}" aria-label="Edit ${titleAttr}">Edit</button>
           ${viewControl}
           <a href="/gallery?type=package&id=${encodeURIComponent(String(p.id || ''))}" target="_blank" rel="noopener" class="sdh-link">Photos</a>
           ${pauseControl}
-          <button type="button" class="sdh-link sdh-link--danger" data-action="delete-package" data-package-id="${packageId}" aria-label="Delete ${title}">Delete</button>
+          <button type="button" class="sdh-link sdh-link--danger" data-action="delete-package" data-package-id="${packageId}" aria-label="Delete ${titleAttr}">Delete</button>
         </div>
       </div>
     </article>`;
+  }
+
+  const PACKAGES_SHOWN_FIRST = 5;
+
+  /**
+   * The package list: the first few rows, and any others folded into a real <details> so a
+   * supplier with fifty packages does not push every other card off the page.
+   * @param {Object[]} items - Package records.
+   * @param {boolean} [keepOpen] - Whether the folded rows were open before this redraw.
+   * @returns {string} List markup.
+   */
+  function packageListHtml(items, keepOpen) {
+    const rows = items.filter(Boolean).map(packageCardHtml);
+    const first = `<div class="sdh-pkgs">${rows.slice(0, PACKAGES_SHOWN_FIRST).join('')}</div>`;
+    if (rows.length <= PACKAGES_SHOWN_FIRST) {
+      return first;
+    }
+    const rest = rows.length - PACKAGES_SHOWN_FIRST;
+    return `${first}<details class="sdh-more"${keepOpen ? ' open' : ''}><summary class="sdh-more__summary">Show the other ${rest} package${rest === 1 ? '' : 's'}</summary><div class="sdh-pkgs">${rows.slice(PACKAGES_SHOWN_FIRST).join('')}</div></details>`;
   }
 
   /**
@@ -2421,10 +2472,8 @@ async function initDashSupplier() {
         );
         return;
       }
-      pkgsWrap.innerHTML = `<div class="sdh-pkgs">${items
-        .filter(Boolean)
-        .map(packageCardHtml)
-        .join('')}</div>`;
+      const wasOpen = Boolean(pkgsWrap.querySelector('details.sdh-more[open]'));
+      pkgsWrap.innerHTML = packageListHtml(items, wasOpen);
     } catch (err) {
       console.error('Error loading packages:', err);
       if (pkgsWrap) {
@@ -3918,7 +3967,7 @@ function editPackage(packageId) {
         }
       }
       document.getElementById('pkg-title').value = pkg.title || '';
-      document.getElementById('pkg-price').value = pkg.price_display || '';
+      document.getElementById('pkg-price').value = packagePriceText(pkg);
       document.getElementById('pkg-desc').value = pkg.description || '';
       document.getElementById('pkg-category').value = pkg.primaryCategoryKey || '';
       document.getElementById('pkg-image').value = pkg.image || '';

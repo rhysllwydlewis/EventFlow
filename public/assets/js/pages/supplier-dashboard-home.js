@@ -65,11 +65,45 @@
    * Small helpers
    * ------------------------------------------------------------------ */
 
-  /** HTML-escapes any value (null and undefined become an empty string) for safe use in markup. */
+  /**
+   * HTML-escapes any value (null and undefined become an empty string) for safe use in markup,
+   * in text and inside quoted attributes alike: the quote characters become entities too.
+   */
   function esc(value) {
     const holder = document.createElement('div');
     holder.textContent = String(value === null || value === undefined ? '' : value);
-    return holder.innerHTML;
+    return holder.innerHTML.split('"').join('&quot;').split("'").join('&#39;');
+  }
+
+  const LOCAL_BASE = 'https://local.invalid';
+
+  /**
+   * A link that stays on this site, or ''. Only a same-site path ("/dashboard/supplier?x=1") or a
+   * fragment ("#reviews") passes. The text is parsed the way a browser parses it, so tricks that a
+   * pattern test would miss (a tab or newline after the first slash, which browsers drop, leaving
+   * "//evil.example"; a backslash; a scheme) never get through: anything with whitespace or control
+   * characters is refused outright, and a path must still resolve to this site.
+   */
+  function localHref(value) {
+    if (typeof value !== 'string') {
+      return '';
+    }
+    const text = value.trim();
+    if (!text || Array.from(text).some(char => char.charCodeAt(0) <= 32 || char === '\\')) {
+      return '';
+    }
+    if (text.startsWith('#')) {
+      return text;
+    }
+    if (!text.startsWith('/')) {
+      return '';
+    }
+    try {
+      const parsed = new URL(text, LOCAL_BASE);
+      return parsed.origin === LOCAL_BASE ? `${parsed.pathname}${parsed.search}${parsed.hash}` : '';
+    } catch {
+      return '';
+    }
   }
 
   /** True for a finite number (not NaN, not a numeric string, not null). */
@@ -219,11 +253,9 @@
         ? {
             name: typeof profile.name === 'string' ? profile.name : '',
             id: profile.topProfileId ? String(profile.topProfileId) : '',
-            publicProfilePath:
-              typeof profile.publicProfilePath === 'string' &&
-              /^\/[^/\\]/u.test(profile.publicProfilePath)
-                ? profile.publicProfilePath
-                : '',
+            publicProfilePath: localHref(profile.publicProfilePath).startsWith('/')
+              ? localHref(profile.publicProfilePath)
+              : '',
             score:
               completeness && isNum(completeness.score)
                 ? Math.max(0, Math.min(100, Math.round(completeness.score)))
@@ -280,6 +312,7 @@
             plan: typeof subscription.plan === 'string' ? subscription.plan : '',
             status: typeof subscription.status === 'string' ? subscription.status : '',
             activeUntil: subscription.activeUntil || '',
+            trialEndsAt: subscription.trialEndsAt || '',
             cancelAtPeriodEnd: Boolean(subscription.cancelAtPeriodEnd),
             limits:
               subscription.limits && typeof subscription.limits === 'object'
@@ -328,7 +361,7 @@
         locked: Boolean(step.locked),
         lockedReason: typeof step.lockedReason === 'string' ? step.lockedReason : '',
         waiting: Boolean(step.waiting),
-        href: typeof step.href === 'string' && /^(\/(?!\/)|#)/u.test(step.href) ? step.href : '',
+        href: localHref(step.href),
       }));
     return steps.length
       ? {
@@ -787,6 +820,7 @@
         okButton.removeEventListener('click', onOk);
         byId('sdh-confirm-cancel').removeEventListener('click', onCancel);
         dialog.removeEventListener('close', onClose);
+        dialog.removeEventListener('keydown', onKey);
         if (opener && typeof opener.focus === 'function') {
           opener.focus();
         }
@@ -799,6 +833,14 @@
       };
       /** The cancel button was pressed. */
       const onCancel = () => finish(false);
+      /** Escape answers "no", whatever the browser does with its own close request. */
+      const onKey = event => {
+        if (event.key === 'Escape') {
+          event.preventDefault();
+          finish(false);
+        }
+      };
+      dialog.addEventListener('keydown', onKey);
       okButton.addEventListener('click', onOk);
       byId('sdh-confirm-cancel').addEventListener('click', onCancel);
       dialog.addEventListener('close', onClose);
@@ -850,6 +892,9 @@
     markSuppliersKnown: null,
     loaded: false,
     loadersStarted: false,
+    billing: null,
+    billingRequested: false,
+    ownSubscriptionPromise: null,
   };
 
   /** Resolves once app.js has reported the supplier list, or after a few seconds if it never does. */
@@ -879,6 +924,14 @@
     }
   }
 
+  /** The signed-in supplier's own subscription record, requested once and shared by everything that needs it. */
+  function ownSubscription() {
+    if (!state.ownSubscriptionPromise) {
+      state.ownSubscriptionPromise = getJson('/api/v2/subscriptions/me');
+    }
+    return state.ownSubscriptionPromise;
+  }
+
   /**
    * Fetches the summary once and normalises it; resolves to the model, or null when there is none.
    * A supplier with no profile gets a 404, which the site's fetch wrapper turns into an error
@@ -896,13 +949,13 @@
     if (!result.data) {
       state.model = null;
       // No summary (for example no profile yet): the plan card can still say which plan it is.
-      const own = await getJson('/api/v2/subscriptions/me');
+      const own = await ownSubscription();
       state.plan = own.data ? normaliseSummary({ subscription: own.data }).subscription : null;
       return null;
     }
     const model = normaliseSummary(result.data);
     if (!model.subscription) {
-      const sub = await getJson('/api/v2/subscriptions/me');
+      const sub = await ownSubscription();
       if (sub.data) {
         model.subscription = normaliseSummary({ subscription: sub.data }).subscription;
       }
@@ -978,7 +1031,15 @@
           (strip && strip.action === 'verify'
             ? { key: 'get-approved', label: 'Get verified', href: '' }
             : null);
-      if (next) {
+      // A banner that already carries the button for this task owns it: two filled buttons for
+      // one job is noise, so the headline button steps aside.
+      const task = next ? stepAction(next).action : '';
+      const bannerOwns =
+        (task === 'resend-email' && emailVerifiedFlag(state.user, model) === false) ||
+        (task === 'verify' && Boolean(strip) && strip.action === 'verify');
+      if (next && bannerOwns) {
+        primary.hidden = true;
+      } else if (next) {
         setStepLink(primary, next);
         primary.hidden = false;
       } else if (model?.messages?.unread) {
@@ -1455,6 +1516,7 @@
     const packages = limitOf(limits?.maxPackages);
     const photos = limitOf(limits?.maxPhotos);
     const analytics = limitOf(limits?.analyticsWindowDays);
+    const areas = limitOf(limits?.maxServiceAreas);
     if (packages) {
       lines.push(`Up to ${plural(packages, 'active package')}`);
     } else if (limits && limits.maxPackages !== undefined) {
@@ -1465,13 +1527,132 @@
     } else if (limits && limits.maxPhotos !== undefined) {
       lines.push('No limit on profile photos');
     }
+    if (areas) {
+      lines.push(`Up to ${plural(areas, 'extra area')} you serve`);
+    }
     if (analytics) {
       lines.push(`${analytics} days of visit history`);
     }
+    // Only what the plan really includes is listed: a flag that is false or missing is left out.
+    [
+      ['priorityListing', 'Priority listing'],
+      ['prioritySupport', 'Priority support'],
+      ['customBranding', 'Custom branding'],
+      ['homepageCarousel', 'Homepage carousel'],
+      ['apiAccess', 'API access'],
+    ].forEach(([key, text]) => {
+      if (limits && limits[key] === true) {
+        lines.push(text);
+      }
+    });
     return lines;
   }
 
-  /** Draws the plan card: the plan, its status and renewal date, what it includes, and billing actions. */
+  const CARD_BRANDS = {
+    visa: 'Visa',
+    mastercard: 'Mastercard',
+    amex: 'Amex',
+    discover: 'Discover',
+    diners: 'Diners',
+    jcb: 'JCB',
+    unionpay: 'UnionPay',
+  };
+
+  /** "£29.00" from an amount in pence and a currency code; '' when either is not usable. */
+  function formatMoney(pence, currency) {
+    if (!isNum(pence) || pence <= 0) {
+      return '';
+    }
+    try {
+      return new Intl.NumberFormat('en-GB', {
+        style: 'currency',
+        currency: String(currency || 'gbp').toUpperCase(),
+      }).format(pence / 100);
+    } catch {
+      return '';
+    }
+  }
+
+  /**
+   * The billing facts for the plan card, from the subscription record only: billing interval,
+   * trial end and days left, start date, next payment, card on file, discount, and one sentence
+   * about what happens at the end of the period (renews, downgrades to another plan, or cancels).
+   * `billing` is { record, brand, last4, invoice: { amount, currency } | null }. Nothing is
+   * invented: a fact the record does not have is not listed.
+   */
+  function billingDetails(billing, now) {
+    const record = billing && billing.record;
+    const result = { interval: '', rows: [], notice: null, plan: '' };
+    if (!record) {
+      return result;
+    }
+    const today = now && typeof now.getTime === 'function' ? now : new Date();
+    result.plan = typeof record.plan === 'string' ? record.plan : '';
+    result.interval =
+      record.billingInterval === 'year'
+        ? 'Annual'
+        : record.billingInterval === 'month'
+          ? 'Monthly'
+          : '';
+    const trialing = record.status === 'trialing';
+    const trialEnd = record.trialEnd ? new Date(record.trialEnd) : null;
+    if (trialing && trialEnd && !Number.isNaN(trialEnd.getTime())) {
+      result.rows.push({ label: 'Trial ends', value: formatDate(trialEnd) });
+      // Whole calendar days (UTC), so a trial that ends later today reads "Ends today", not "1 day".
+      const days = Math.round(
+        (Date.UTC(trialEnd.getUTCFullYear(), trialEnd.getUTCMonth(), trialEnd.getUTCDate()) -
+          Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate())) /
+          86400000
+      );
+      if (days > 0) {
+        result.rows.push({ label: 'Trial left', value: plural(days, 'day') });
+      } else if (days === 0) {
+        result.rows.push({ label: 'Trial left', value: 'Ends today' });
+      }
+    }
+    const started = formatDate(record.createdAt);
+    if (started) {
+      result.rows.push({ label: 'Started', value: started });
+    }
+    const pending = typeof record.pendingPlan === 'string' ? record.pendingPlan : '';
+    const billingEnds = Boolean(record.cancelAtPeriodEnd) && (!pending || pending === 'free');
+    const invoice = billing.invoice;
+    const next = invoice ? formatMoney(invoice.amount, invoice.currency) : '';
+    if (next && !billingEnds) {
+      result.rows.push({ label: 'Next payment', value: next });
+    }
+    const brand = typeof billing.brand === 'string' ? billing.brand : '';
+    if (brand && billing.last4) {
+      const name =
+        CARD_BRANDS[brand.toLowerCase()] || `${brand.charAt(0).toUpperCase()}${brand.slice(1)}`;
+      result.rows.push({ label: 'Payment method', value: `${name} ending ${billing.last4}` });
+    }
+    if (record.discountName) {
+      const percent =
+        isNum(record.discountPercent) && record.discountPercent > 0
+          ? `${record.discountPercent}% off`
+          : 'Applied';
+      result.rows.push({ label: 'Discount', value: `${percent} (${record.discountName})` });
+    }
+    const end = formatDate(record.currentPeriodEnd);
+    if (end) {
+      if (record.cancelAtPeriodEnd && pending && pending !== 'free') {
+        result.notice = { tone: 'warn', text: `Downgrades to ${planLabel(pending)} on ${end}` };
+      } else if (record.cancelAtPeriodEnd) {
+        result.notice = { tone: 'warn', text: `Cancels on ${end}` };
+      } else {
+        result.notice = { tone: 'ok', text: `Renews on ${end}` };
+      }
+    }
+    return result;
+  }
+
+  /**
+   * Draws the plan card: the plan, its status, what happens at the end of the period, the billing
+   * facts from the subscription record, what the plan includes, and billing actions. A payment that
+   * failed drops the entitlement to the free plan, so the card shows the plan the supplier pays
+   * for (from the record) with the failed payment, never "Starter".
+   */
   function renderPlan() {
     const box = byId(ids.plan);
     if (!box) {
@@ -1483,25 +1664,38 @@
         '<p class="sdh-note">We could not load your plan.</p><a class="sdh-btn sdh-btn--secondary sdh-btn--sm" href="/supplier/subscription">View subscription</a>';
       return;
     }
-    const label = planLabel(subscription.plan);
-    const paid = String(subscription.plan || 'free').toLowerCase() !== 'free';
     const status = String(subscription.status || '').toLowerCase();
+    const details = billingDetails(state.billing);
+    const pastDue = status === 'past_due';
+    const planKey = pastDue && details.plan ? details.plan : subscription.plan;
+    const label = planLabel(planKey);
+    const paid = pastDue || String(planKey || 'free').toLowerCase() !== 'free';
     const until = formatDate(subscription.activeUntil);
     const rows = [];
     let notice = '';
-    if (status === 'past_due') {
-      notice =
-        '<div class="sdh-callout sdh-callout--danger"><p class="sdh-callout__title">Payment failed</p><p class="sdh-callout__text">Your last payment did not go through, so paid features are paused. Update your payment method to restore them.</p></div>';
+    if (pastDue) {
+      notice = `<div class="sdh-callout sdh-callout--danger"><p class="sdh-callout__title">Payment failed</p><p class="sdh-callout__text">Your last payment for ${esc(label)} did not go through, so paid features are paused. Update your payment method to restore them; we will also try the payment again.</p></div>`;
+    } else if (details.notice) {
+      rows.push(details.notice.text);
     } else if (paid && until) {
       rows.push(subscription.cancelAtPeriodEnd ? `Ends on ${until}` : `Renews on ${until}`);
     }
+    details.rows.forEach(row => rows.push(`${row.label}: ${row.value}`));
     const usage = packageUsage(state.model);
     if (usage) {
       rows.push(usage);
     }
-    const included = limitLines(subscription.limits);
+    const included = pastDue ? [] : limitLines(subscription.limits);
+    const pillText =
+      status === 'trialing'
+        ? 'Trial'
+        : pastDue
+          ? 'Past due'
+          : status === 'active'
+            ? 'Active'
+            : status || 'Active';
     const statusPill = paid
-      ? `<span class="sdh-pill${status === 'active' || status === 'trialing' ? ' sdh-pill--accent' : ''}">${esc(status === 'trialing' ? 'Trial' : status === 'past_due' ? 'Past due' : status === 'active' ? 'Active' : status || 'Active')}</span>`
+      ? `<span class="sdh-pill${status === 'active' || status === 'trialing' ? ' sdh-pill--accent' : pastDue ? ' sdh-pill--warn' : ''}">${esc(pillText)}</span>${details.interval ? `<span class="sdh-pill">${esc(details.interval)}</span>` : ''}`
       : '';
     box.innerHTML = `<div class="sdh-plan"><p class="sdh-plan__name">${esc(label)} ${statusPill}</p>${notice}${rows.length ? `<ul class="sdh-facts">${rows.map(row => `<li>${esc(row)}</li>`).join('')}</ul>` : ''}${
       included.length
@@ -1509,9 +1703,48 @@
         : ''
     }<div class="sdh-plan__actions">${
       paid
-        ? `<button type="button" class="sdh-btn sdh-btn--secondary sdh-btn--sm" data-sdh-action="billing">${status === 'past_due' ? 'Update payment method' : 'Manage billing'}</button>`
-        : '<a class="sdh-btn sdh-btn--primary sdh-btn--sm" href="/pricing">See plans</a>'
+        ? `<button type="button" class="sdh-btn sdh-btn--secondary sdh-btn--sm" data-sdh-action="billing">${pastDue ? 'Update payment method' : 'Manage billing'}</button><a class="sdh-link" href="/supplier/subscription">View subscription</a>`
+        : `<a class="sdh-btn ${isNoProfile() ? 'sdh-btn--secondary' : 'sdh-btn--primary'} sdh-btn--sm" href="/pricing">See plans</a>`
     }</div></div>`;
+  }
+
+  /**
+   * Loads the billing details the plan card shows beyond the summary (interval, start date, next
+   * payment, card on file, discount, scheduled downgrade) once, from the subscription record. A
+   * supplier on the free plan with no failed payment has none, so nothing is requested.
+   */
+  async function loadBilling() {
+    if (state.billingRequested) {
+      return;
+    }
+    const subscription = state.model?.subscription || state.plan;
+    const status = String(subscription?.status || '').toLowerCase();
+    const plan = String(subscription?.plan || 'free').toLowerCase();
+    if (!subscription || (plan === 'free' && status !== 'past_due')) {
+      return;
+    }
+    state.billingRequested = true;
+    const own = await ownSubscription();
+    const record =
+      own.data && own.data.subscription && typeof own.data.subscription === 'object'
+        ? own.data.subscription
+        : null;
+    if (!record) {
+      return;
+    }
+    let invoice = null;
+    if (record.stripeSubscriptionId) {
+      const upcoming = await getJson('/api/v2/subscriptions/upcoming-invoice');
+      invoice =
+        upcoming.data && upcoming.data.upcomingInvoice ? upcoming.data.upcomingInvoice : null;
+    }
+    state.billing = {
+      record,
+      brand: own.data.paymentMethodBrand || '',
+      last4: own.data.paymentMethodLast4 || '',
+      invoice,
+    };
+    renderPlan();
   }
 
   /** Opens the Stripe billing portal so a supplier can update a card, see invoices or cancel. */
@@ -1624,6 +1857,36 @@
    * Tips
    * ------------------------------------------------------------------ */
 
+  /**
+   * The button or link for a tip. The server names the tip (`id`) and gives a link that is only a
+   * fragment of this page, so the tip is mapped to what the page can really do: open the profile
+   * editor on a field, open the package editor, open Request a review, or go to the page that has
+   * the setting. Anything that maps to none of those, and has no same-site link, gets no action.
+   */
+  function tipActionHtml(tip) {
+    const label = tip?.action?.label;
+    if (!label) {
+      return '';
+    }
+    const known = {
+      'add-desc': { action: 'edit-profile', focus: 'sup-long' },
+      'add-photos': { action: 'edit-profile', focus: 'sup-photo-drop' },
+      'add-package': { action: 'new-package' },
+      'get-review': { action: 'request-review' },
+      'add-tagline': { href: '/supplier/profile-customization' },
+      'social-links': { href: '/supplier/profile-customization' },
+    }[String(tip.id || '')];
+    if (known && known.action) {
+      const focus = known.focus ? ` data-sdh-focus="${esc(known.focus)}"` : '';
+      return `<button type="button" class="sdh-link" data-sdh-action="${esc(known.action)}"${focus}>${esc(label)}</button>`;
+    }
+    const href = localHref(known ? known.href : tip.action.href);
+    if (href && !href.startsWith('#toggle-') && href !== '#my-suppliers') {
+      return `<a class="sdh-link" href="${esc(href)}">${esc(label)}</a>`;
+    }
+    return '';
+  }
+
   /** Draws the tips the server chose for this profile; nothing is shown that the server did not send. */
   async function loadTips() {
     const box = byId(ids.tips);
@@ -1651,14 +1914,7 @@
     }
     box.innerHTML = `<ul class="sdh-tips">${tips
       .map(tip => {
-        const action =
-          tip.action && tip.action.label
-            ? tip.action.href && /^(\/(?!\/)|#)/u.test(tip.action.href)
-              ? `<a class="sdh-link" href="${esc(tip.action.href)}">${esc(tip.action.label)}</a>`
-              : tip.action.data === 'request-review'
-                ? `<button type="button" class="sdh-link" data-sdh-action="request-review">${esc(tip.action.label)}</button>`
-                : ''
-            : '';
+        const action = tipActionHtml(tip);
         return `<li class="sdh-tip"><p class="sdh-tip__title">${esc(tip.title)}</p>${tip.body ? `<p class="sdh-tip__text">${esc(tip.body)}</p>` : ''}${action}</li>`;
       })
       .join('')}</ul>`;
@@ -2078,6 +2334,7 @@
     renderPlan();
     syncTierBadge();
     initReviews();
+    loadBilling();
     document.dispatchEvent(new CustomEvent('sdh:rendered'));
   }
 
@@ -2169,6 +2426,8 @@
     limitLines,
     planLabel,
     emailVerifiedFlag,
+    billingDetails,
+    localHref,
   };
 
   // The summary request starts as soon as this script runs; the rest waits for the other scripts.
