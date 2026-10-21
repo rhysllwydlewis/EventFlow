@@ -34,7 +34,8 @@ describe('supplier calendar card wording', () => {
 
   test('public and private are named apart: buttons, legend, subtitle and link', () => {
     expect(html).toContain('Add private entry');
-    expect(html).toContain('aria-label="Add private calendar entry"');
+    // The visible words are the name (an aria-label that differs from them fails WCAG 2.5.3).
+    expect(html).not.toContain('aria-label="Add private calendar entry"');
     expect(html).toContain('Add public event');
     expect(html).toContain('View public calendar');
     expect(html).toContain('Private entries');

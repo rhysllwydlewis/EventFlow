@@ -16,6 +16,15 @@ import {
 let ticketsUnsubscribe = null;
 
 // Render tickets
+/** Reloads the ticket list now, instead of waiting for the next scheduled refresh. */
+async function refreshTickets(userId) {
+  try {
+    renderTickets(await ticketingSystem.getUserTickets(userId, 'customer', 5));
+  } catch (error) {
+    console.warn('Could not refresh tickets:', error?.message);
+  }
+}
+
 function renderTickets(tickets) {
   const container = document.getElementById('tickets-cust');
   if (!container) {
@@ -172,6 +181,8 @@ function showCreateTicketModal() {
         }
 
         await ticketingSystem.createTicket(ticketData);
+        // The list refreshes itself only once a minute; show the new ticket straight away.
+        await refreshTickets(user.id);
 
         showToast('Ticket created successfully', 'success');
         closeModal();

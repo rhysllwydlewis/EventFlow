@@ -556,11 +556,22 @@ describe('supplier dashboard home: structure', () => {
     expect(html).toMatch(/dashboard-supplier-export\.js\?v=\d/);
   });
 
-  test('every page that loads app.js is on the new version', () => {
-    const stale = publicPages.filter(page => /assets\/js\/app\.js\?v=18\.5\.6/.test(page.text));
-    expect(stale.map(page => page.rel)).toEqual([]);
-    const withApp = publicPages.filter(page => /assets\/js\/app\.js/.test(page.text));
-    withApp.forEach(page => expect(page.text).toMatch(/assets\/js\/app\.js\?v=18\.5\.7/));
+  test('every page that loads app.js is on the same, current version', () => {
+    const versions = new Map();
+    publicPages
+      .filter(page => /assets\/js\/app\.js/.test(page.text))
+      .forEach(page => {
+        const match = page.text.match(/assets\/js\/app\.js\?v=(\d+(?:\.\d+)*)/);
+        versions.set(page.rel, match ? match[1] : null);
+      });
+    // No page may load it without a version, and all of them must agree (a page on an older URL
+    // would keep running the copy a browser cached for up to 7 days).
+    expect([...versions].filter(([, version]) => version === null).map(([rel]) => rel)).toEqual([]);
+    expect([...new Set(versions.values())]).toHaveLength(1);
+    // The redesign shipped 18.5.7; later changes only move it forward.
+    const [major, minor, patch] = [...versions.values()][0].split('.').map(Number);
+    expect([major, minor, patch].join('.')).not.toBe('NaN.NaN.NaN');
+    expect(major * 1e6 + minor * 1e3 + patch).toBeGreaterThanOrEqual(18 * 1e6 + 5 * 1e3 + 7);
   });
 
   test('the dashboard guard is on the same version as the customer dashboard', () => {

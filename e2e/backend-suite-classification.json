@@ -14,6 +14,7 @@
     "real-time-messaging.spec.js",
     "security-headers.spec.js",
     "start-wizard-journey.spec.js",
+    "supplier-dashboard-actions.spec.js",
     "supplier-dashboard-improvements.spec.js",
     "supplier-onboarding.spec.js",
     "supplier-reviews.spec.js",
