@@ -4012,10 +4012,9 @@
   font-weight: 600;
 }
 
+/* Information, not a warning: neutral, with the accent on its edge. */
 .sdh-page .sup-cal-permission-notice[data-tone='warn'] {
-  border-color: var(--sdh-warn-line);
-  background: var(--sdh-warn-soft);
-  color: var(--sdh-warn);
+  border-left: 3px solid var(--sdh-accent);
 }
 
 .sdh-page .sup-cal-permission-notice[data-tone='danger'] {
