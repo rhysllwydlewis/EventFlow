@@ -74,8 +74,8 @@ jobs:
       - name: Clean install dependencies
         run: npm ci --prefer-offline --no-audit
 
-      - name: Run replica-set transaction test
-        run: npx jest --runInBand --coverage=false tests/unit/messenger-v4.test.js
+      - name: Run replica-set tests (transactions and real-database review replies)
+        run: npx jest --runInBand --coverage=false tests/unit/messenger-v4.test.js tests/integration/review-reply-real-mongo.test.js
         env:
           NODE_ENV: test
           JWT_SECRET: test-secret-for-jest-min-32-characters-long

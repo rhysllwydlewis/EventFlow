@@ -151,7 +151,7 @@
 
   /** True when a package's price text is per head ("pp", "per person", "per guest"). */
   function isPerPerson(pkg) {
-    return /\bpp\b|per person|per guest/i.test(String(pkg.price || pkg.price_display || ''));
+    return /\bpp\b|per person|per guest/i.test(String(pkg.price_display || pkg.price || ''));
   }
 
   /** The budget saved in this browser, or 0 when none is stored or storage is unavailable. */
@@ -208,7 +208,7 @@
     );
 
     results.flat().forEach(pkg => {
-      const price = parsePrice(pkg.price || pkg.price_display || '');
+      const price = parsePrice(pkg.price_display || pkg.price || '');
       if (price <= 0) {
         unpriced += 1;
       } else if (isPerPerson(pkg)) {

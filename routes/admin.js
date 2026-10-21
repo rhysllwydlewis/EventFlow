@@ -7,7 +7,7 @@
 
 const path = require('path');
 const logger = require('../utils/logger');
-const { priceFields } = require('../utils/packagePrice');
+const { priceFields, packagePriceText } = require('../utils/packagePrice');
 const fs = require('fs');
 const crypto = require('crypto');
 const express = require('express');
@@ -7020,7 +7020,7 @@ router.get('/search', authRequired, roleRequired('admin'), async (req, res) => {
           id: p.id,
           title: p.title,
           supplierName: p.supplierName,
-          price: p.price,
+          price: packagePriceText(p),
           status: p.status,
         }));
     }

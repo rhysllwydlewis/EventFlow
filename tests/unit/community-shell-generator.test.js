@@ -91,7 +91,9 @@ describe('the notification bell every community page renders actually opens some
     (_name, html) => {
       expect(html).toContain('id="ef-notification-btn"');
       expect(html).toContain('id="notification-dropdown"');
-      expect(html).toContain('<script src="/assets/js/notifications.js" defer></script>');
+      expect(html).toMatch(
+        /<script src="\/assets\/js\/notifications\.js\?v=[\d.]+" defer><\/script>/
+      );
     }
   );
 

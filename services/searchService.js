@@ -441,7 +441,7 @@ async function searchSuppliers(query) {
       id: p.id,
       slug: p.slug || '',
       title: p.title || '',
-      price: p.price || '',
+      price: packagePriceText(p),
       image: resolvePackageImage(p),
       description: p.description || '',
     }));
