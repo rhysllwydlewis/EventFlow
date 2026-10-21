@@ -70,6 +70,14 @@
     }
   }
 
+  /** What to tell the supplier about a failed request: a dropped connection reads as one, not as "Failed to fetch". */
+  function problem(error, fallback) {
+    if (error instanceof TypeError) {
+      return `${fallback} Check your connection and try again.`;
+    }
+    return (error && error.message) || fallback;
+  }
+
   /** Marks the field as working (buttons off, preview dimmed) or idle. */
   function setBusy(busy) {
     byId(ids.field)?.setAttribute('aria-busy', String(busy));
@@ -166,7 +174,7 @@
       say('Banner saved.', 'success');
       document.dispatchEvent(new CustomEvent('sdh:changed'));
     } catch (error) {
-      say(error.message || 'The banner could not be uploaded.', 'error');
+      say(problem(error, 'The banner could not be uploaded.'), 'error');
     } finally {
       setBusy(false);
       render();
@@ -204,7 +212,7 @@
       say('Banner removed.', 'success');
       document.dispatchEvent(new CustomEvent('sdh:changed'));
     } catch (error) {
-      say(error.message || 'The banner could not be removed.', 'error');
+      say(problem(error, 'The banner could not be removed.'), 'error');
     } finally {
       setBusy(false);
       render();

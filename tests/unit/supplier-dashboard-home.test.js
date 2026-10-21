@@ -1555,7 +1555,7 @@ describe('supplier dashboard home: app.js profile and package behaviour', () => 
   });
 
   test('no record id is put into a data attribute without escapeAttr', () => {
-    const bare = appJs.match(/data-(?:id|remove-[a-z]+)="\$\{(?!escapeAttr\()[^}]*\}"/g) || [];
+    const bare = appJs.match(/data-[a-z-]+="\$\{(?!escapeAttr\()[^}]*\.id\}"/g) || [];
     expect(bare).toEqual([]);
   });
 

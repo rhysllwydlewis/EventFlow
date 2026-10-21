@@ -284,7 +284,13 @@
       dialog?.close();
       showToast('Request sent. An administrator will review it.', 'success');
     } catch (error) {
-      say(error.message || 'The request could not be sent. Please try again.', 'error');
+      // A dropped connection is a TypeError with the browser's own wording ("Failed to fetch").
+      say(
+        error instanceof TypeError || !error.message
+          ? 'The request could not be sent. Check your connection and try again.'
+          : error.message,
+        'error'
+      );
     } finally {
       if (send) {
         send.disabled = false;

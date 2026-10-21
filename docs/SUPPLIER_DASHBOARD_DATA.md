@@ -15,7 +15,10 @@ Code: `routes/supplier.js` (thin route) -> `services/supplierDashboardSummary.js
 This relies on every read passing `{ throwOnError: true }` to `db-unified`, which otherwise turns a
 failed query into an empty result (tests use a double that swallows errors like the real module, so
 a read that forgets the option fails them). `verification.emailVerified` is `null` if the user lookup
-failed, and no next step is locked on that guess.
+failed, and no email-dependent next step is locked on that guess. The same goes for the other
+sources `nextSteps` reads (packages, reviews, review requests, calendar): a step whose source could
+not be read is not marked undone and not offered; it is `locked` with `lockedReason` "We could not
+check this just now".
 
 ## Contract
 

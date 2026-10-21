@@ -1242,7 +1242,7 @@ async function initPlan() {
               .map(
                 t => `
               <tr data-id="${escapeAttr(t.id)}">
-                <td><input type="checkbox" data-toggle-task="${t.id}" ${t.done ? 'checked' : ''}></td>
+                <td><input type="checkbox" data-toggle-task="${escapeAttr(t.id)}" ${t.done ? 'checked' : ''}></td>
                 <td>${escapeHtml(t.label || '')}</td>
                 <td>${escapeHtml(t.due || '')}</td>
                 <td><button class="ef-cta link-button" data-remove-task="${escapeAttr(t.id)}">Remove</button></td>
@@ -2423,6 +2423,21 @@ async function initDashSupplier() {
       );
       if (blockedHtml) {
         pkgsWrap.innerHTML = blockedHtml;
+        // Nothing can be created yet: say so on the button instead of letting it open a form that
+        // can only fail. (An open editor keeps its own label.)
+        const blockedToggle = document.getElementById('toggle-package-form');
+        const editorOpen =
+          document.getElementById('package-form-section')?.classList.contains('expanded') ?? false;
+        if (blockedToggle && !editorOpen) {
+          blockedToggle.disabled = true;
+          blockedToggle.title = supplierBlockMessage;
+          const blockedLabel = blockedToggle.querySelector('.label');
+          if (blockedLabel) {
+            blockedLabel.textContent = window._supplierProfileMissing
+              ? 'Profile setup needed'
+              : 'Profile pending approval';
+          }
+        }
         return;
       }
       const [d, allowance] = await Promise.all([api('/api/me/packages'), getPackageAllowance()]);
@@ -4694,7 +4709,7 @@ async function initAdmin() {
         .map(
           x => `<div class="card" style="margin-bottom:10px">
       <div class="small"><strong>${x.name}</strong> — ${x.category} · ${x.location || ''}</div>
-      <div class="form-actions"><button class="cta secondary" data-approve="${x.id}" data-val="${x.approved ? 'false' : 'true'}">${x.approved ? 'Hide' : 'Approve'}</button></div>
+      <div class="form-actions"><button class="cta secondary" data-approve="${escapeAttr(x.id)}" data-val="${x.approved ? 'false' : 'true'}">${x.approved ? 'Hide' : 'Approve'}</button></div>
     </div>`
         )
         .join('') || '<p class="small">No suppliers.</p>';
@@ -4720,8 +4735,8 @@ async function initAdmin() {
         .map(
           x => `<div class="pack card" style="margin-bottom:10px">
       <img src="${x.image}" alt="${escapeHtml(x.title)}"><div><h3>${x.title}</h3><div class="small"><span class="badge">${x.price}</span> — Supplier ${x.supplierId.slice(0, 8)}</div>
-      <div class="form-actions"><button class="cta secondary" data-approve="${x.id}" data-val="${x.approved ? 'false' : 'true'}">${x.approved ? 'Hide' : 'Approve'}</button>
-      <button class="cta secondary" data-feature="${x.id}" data-val="${x.featured ? 'false' : 'true'}">${x.featured ? 'Unfeature' : 'Feature'}</button></div></div></div>`
+      <div class="form-actions"><button class="cta secondary" data-approve="${escapeAttr(x.id)}" data-val="${x.approved ? 'false' : 'true'}">${x.approved ? 'Hide' : 'Approve'}</button>
+      <button class="cta secondary" data-feature="${escapeAttr(x.id)}" data-val="${x.featured ? 'false' : 'true'}">${x.featured ? 'Unfeature' : 'Feature'}</button></div></div></div>`
         )
         .join('') || '<p class="small">No packages.</p>';
     pkgWrap.querySelectorAll('[data-approve]').forEach(btn =>

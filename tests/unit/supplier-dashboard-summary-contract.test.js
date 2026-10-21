@@ -1045,6 +1045,31 @@ describe('GET /api/supplier/dashboard-summary contract', () => {
       }
     );
 
+    it.each([
+      ['packages', ['first-package', 'package-photos']],
+      ['customer_calendar_entries', ['calendar']],
+    ])(
+      'a failed %s read holds back the next steps it feeds instead of marking them undone',
+      async (collection, held) => {
+        fakeDb.__reset(populatedSeed());
+        fakeDb.__failOn(collection);
+
+        const res = await getSummary(SUPPLIER_USER, '?days=30');
+
+        const byId = id => res.body.nextSteps.steps.find(step => step.id === id);
+        held.forEach(id => {
+          expect(byId(id)).toMatchObject({
+            done: false,
+            locked: true,
+            lockedReason: 'We could not check this just now',
+          });
+        });
+        expect(res.body.nextSteps.steps.filter(step => step.locked).map(step => step.id)).toEqual(
+          expect.arrayContaining(held)
+        );
+      }
+    );
+
     it('does not lock every next step when the user lookup fails (verification unknown, not false)', async () => {
       fakeDb.__reset(populatedSeed());
       fakeDb.__failOn('users');

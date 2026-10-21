@@ -61,7 +61,9 @@
         say(await failureMessage(response), 'error');
         return;
       }
-      const rows = Number(response.headers.get('x-export-row-count'));
+      // A header that did not arrive (a proxy can strip it) is unknown, not zero: save the file.
+      const countHeader = response.headers.get('x-export-row-count');
+      const rows = countHeader === null || countHeader === '' ? NaN : Number(countHeader);
       if (rows === 0) {
         say(
           'Nothing to export yet: you have no conversations, quote requests or enquiries.',

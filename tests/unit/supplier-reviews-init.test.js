@@ -12,6 +12,31 @@ function runNodeSmoke(source) {
 }
 
 describe('supplier review management frontend', () => {
+  it('cannot be made to inject an attribute through a review id or date containing quotes', () => {
+    runNodeSmoke(String.raw`
+      const assert = require('assert');
+      const fs = require('fs');
+      const { JSDOM } = require('jsdom');
+      const dom = new JSDOM('<!doctype html><div id="supplier-reviews-section"></div>', {
+        url: 'https://event-flow.co.uk/dashboard-supplier',
+        runScripts: 'outside-only',
+      });
+      const { document } = dom.window;
+      const evilId = 'rev" onfocus="window.__pwned=1" x="';
+      dom.window.fetch = async () => ({
+        ok: true,
+        json: async () => ({ data: { reviews: [{ _id: evilId, rating: 4, text: 'Great.', authorName: 'A', createdAt: '2026" onclick="window.__pwned=2', votes: {} }], pagination: { total: 1, page: 1, pages: 1, limit: 10 }, analytics: { avgRating: 4, totalReviews: 1, ratingDistribution: [0, 0, 0, 1, 0] } } }),
+      });
+      dom.window.eval(fs.readFileSync('public/assets/js/pages/supplier-reviews-init.js', 'utf8'));
+      (async () => {
+        await dom.window.SupplierReviews.init('sup-1', 'supplier-reviews-section');
+        const injected = document.querySelectorAll('[onfocus], [onclick]').length;
+        assert.strictEqual(injected, 0, 'an attribute was injected');
+        assert.strictEqual(document.querySelector('.sr-reply-btn').dataset.reviewId, evilId);
+      })().catch(error => { console.error(error); process.exit(1); });
+    `);
+  });
+
   it('validates reply length, uses /api/csrf-token, and refreshes analytics after posting', () => {
     runNodeSmoke(String.raw`
       const assert = require('assert');

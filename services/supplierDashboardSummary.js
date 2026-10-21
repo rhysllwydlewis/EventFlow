@@ -537,15 +537,16 @@ async function buildDashboardSummary({ userId, supplier, requestedDays = null, n
     supplier: { ...hydrated, email: hydrated.email || (ownerUser && ownerUser.email) || '' },
     verification,
     completeness,
-    packages: {
-      total: packageDocs ? packageDocs.length : 0,
-      withoutPhoto: packageDocs
-        ? packageDocs.filter(pkg => isPlaceholderImage(pkg.image)).length
-        : 0,
-    },
-    reviewRequestsSent: Number(requestCount) || 0,
-    approvedReviewCount: reviewSummary.approvedCount || 0,
-    hasCalendarActivity: Boolean(calendar && calendar.hasActivity),
+    // null for any source that could not be read: the steps it feeds are held back, not guessed.
+    packages: packageDocs
+      ? {
+          total: packageDocs.length,
+          withoutPhoto: packageDocs.filter(pkg => isPlaceholderImage(pkg.image)).length,
+        }
+      : null,
+    reviewRequestsSent: requestCount === null ? null : Number(requestCount) || 0,
+    approvedReviewCount: reviewDocs ? reviewSummary.approvedCount : null,
+    hasCalendarActivity: calendar ? Boolean(calendar.hasActivity) : null,
   });
 
   return {

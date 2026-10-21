@@ -34,7 +34,31 @@
     box.hidden = !text;
   }
 
-  /** A fresh CSRF token for the submit request. */
+  /**
+   * Posts the request. The dashboard's own write helper is used when it is there: it fetches the
+   * CSRF token and tries once more with a fresh one if the server refuses a stale token.
+   */
+  async function post(body) {
+    const url = '/api/supplier/verification/submit';
+    const home = window.SupplierDashboardHome;
+    if (home && typeof home.sendJson === 'function') {
+      return home.sendJson(url, 'POST', body);
+    }
+    const token = await csrfToken();
+    const response = await fetch(url, {
+      method: 'POST',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': token },
+      body: JSON.stringify(body),
+    });
+    return {
+      ok: response.ok,
+      status: response.status,
+      data: await response.json().catch(() => ({})),
+    };
+  }
+
+  /** A fresh CSRF token, for the case where the dashboard's write helper is not on the page. */
   async function csrfToken() {
     if (window.__CSRF_TOKEN__) {
       return window.__CSRF_TOKEN__;
@@ -159,13 +183,8 @@
     button.disabled = true;
     button.textContent = 'Submitting…';
     try {
-      const response = await fetch('/api/supplier/verification/submit', {
-        method: 'POST',
-        credentials: 'include',
-        headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': await csrfToken() },
-        body: JSON.stringify(body),
-      });
-      const data = await response.json().catch(() => ({}));
+      const response = await post(body);
+      const data = response.data || {};
       if (response.status === 409) {
         showDone(data.error || 'Your verification is already in review or approved.');
       } else if (response.status === 403 && data.code === 'VERIFICATION_MAX_REJECTIONS') {

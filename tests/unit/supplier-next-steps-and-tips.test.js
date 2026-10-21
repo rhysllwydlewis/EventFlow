@@ -98,6 +98,35 @@ describe('evaluateNextSteps', () => {
     expect(result.steps.every(item => !item.locked)).toBe(true);
   });
 
+  it('holds back a step whose record could not be read instead of guessing a zero', () => {
+    const result = steps({
+      rest: {
+        packages: null,
+        reviewRequestsSent: null,
+        approvedReviewCount: null,
+        hasCalendarActivity: null,
+      },
+    });
+
+    ['first-package', 'package-photos', 'request-review', 'calendar'].forEach(id => {
+      expect(step(result, id)).toMatchObject({
+        done: false,
+        locked: true,
+        lockedReason: 'We could not check this just now',
+      });
+    });
+    expect(result.primaryStepId).not.toBe('first-package');
+  });
+
+  it('still counts a review request as done when only one of the two sources could be read', () => {
+    expect(
+      step(steps({ rest: { reviewRequestsSent: null, approvedReviewCount: 2 } }), 'request-review')
+    ).toMatchObject({ done: true, locked: false });
+    expect(
+      step(steps({ rest: { reviewRequestsSent: 0, approvedReviewCount: null } }), 'request-review')
+    ).toMatchObject({ done: false, locked: true });
+  });
+
   it('numbers priorities from 1 in list order', () => {
     expect(steps().steps.map(item => item.priority)).toEqual(
       steps().steps.map((item, index) => index + 1)

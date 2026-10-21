@@ -263,6 +263,16 @@ async function banner(options) {
     uploadEnabled: !field(window, 'sdh-banner-upload').disabled,
   };
 
+  // A dropped connection reads as one, not as the browser's "Failed to fetch".
+  window.SupplierDashboardHome.sendJson = async () => {
+    // The page's own TypeError, as a browser's fetch would throw (jsdom has its own realm).
+    throw new window.TypeError('Failed to fetch');
+  };
+  Object.defineProperty(input, 'files', { value: [png], configurable: true });
+  input.dispatchEvent(new window.Event('change', { bubbles: true }));
+  await new Promise(resolve => setTimeout(resolve, 30));
+  log.offline = field(window, 'sdh-banner-status').textContent;
+
   // Unsafe addresses are never shown.
   const safe = window.SupplierDashboardBanner.safeImageUrl;
   log.safe = {
@@ -516,6 +526,9 @@ async function enquiries(options) {
   };
   window.SupplierDashboardHome.sendJson = async (url, method, body) => {
     requests.push(`${method} ${url} ${JSON.stringify(body)}`);
+    if (scripted.patchThrows) {
+      throw new TypeError('Failed to fetch');
+    }
     if (scripted.patchFails) {
       return { ok: false, status: 500, data: { error: 'Could not update' } };
     }
@@ -576,6 +589,9 @@ async function enquiries(options) {
         await settle(8);
       }
       log.afterPatch = requests.filter(entry => entry.startsWith('PATCH'));
+      log.buttonsDisabledAfter = Array.from(
+        field(window, 'sdh-enquiries-detail').querySelectorAll('[data-status]')
+      ).filter(button => button.disabled).length;
       log.statusAfter = (text('sdh-enquiries-detail').match(/Status: \w+/) || [''])[0];
       log.toasts = requests.filter(entry => entry.startsWith('toast'));
     }
@@ -714,9 +730,73 @@ async function fold() {
   process.stdout.write(JSON.stringify(log));
 }
 
+/**
+ * The verification dialog. `mode`: "helper" (the dashboard's write helper is there), "fallback"
+ * (it is not, so the dialog posts itself), "offline" (the helper's request throws), "missing"
+ * (a required field is empty).
+ */
+async function verification(options) {
+  const { window } = makeWindow(options);
+  const sent = [];
+  const mode = options.mode || 'helper';
+  if (mode === 'fallback') {
+    delete window.SupplierDashboardHome;
+    window.__CSRF_TOKEN__ = 'token-1';
+    window.fetch = async (url, init) => {
+      sent.push({ via: 'fetch', url, token: init.headers['X-CSRF-Token'] });
+      return { ok: true, status: 200, json: async () => ({ autoApproved: true }) };
+    };
+  } else {
+    window.SupplierDashboardHome.refresh = () => {};
+    window.SupplierDashboardHome.sendJson = async (url, method, body) => {
+      if (mode === 'offline') {
+        throw new window.TypeError('Failed to fetch');
+      }
+      sent.push({ via: 'helper', url, method, body });
+      return { ok: true, status: 200, data: { message: 'Sent for review.' } };
+    };
+    window.fetch = async () => {
+      throw new Error('the dialog must not call fetch itself when the helper is there');
+    };
+  }
+  window.eval(read('public/assets/js/pages/dashboard-supplier-verification.js'));
+  await settle();
+  window.SupplierVerification.open({
+    name: 'Moor Audio',
+    category: 'Entertainment',
+    phone: '01234 567890',
+    location: 'Cardiff',
+    email: 'hello@moor.example',
+  });
+  if (mode === 'missing') {
+    field(window, 'sv-phone').value = '';
+  }
+  field(window, 'sv-verification-form').dispatchEvent(
+    new window.Event('submit', { cancelable: true })
+  );
+  await settle(8);
+  process.stdout.write(
+    JSON.stringify({
+      sent,
+      success: field(window, 'sv-modal-success').textContent,
+      error: field(window, 'sv-modal-error').textContent,
+      submitDisabled: field(window, 'sv-submit-btn').disabled,
+    })
+  );
+}
+
 const name = process.argv[2];
 const options = JSON.parse(Buffer.from(process.argv[3] || 'e30=', 'base64').toString('utf8'));
-const scenarios = { overlays, banner, guide, cards, enquiries, packageActions, fold };
+const scenarios = {
+  overlays,
+  banner,
+  guide,
+  cards,
+  enquiries,
+  packageActions,
+  fold,
+  verification,
+};
 scenarios[name](options).catch(error => {
   process.stderr.write(String(error && error.stack ? error.stack : error));
   process.exit(1);

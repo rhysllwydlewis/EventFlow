@@ -180,6 +180,13 @@ describe('enquiries: states', () => {
     expect(offline.statusButtons).toEqual([]);
   });
 
+  test('a dropped connection during a status change is reported and the buttons come back', () => {
+    const log = run({ script: { patchThrows: true } });
+    expect(log.toasts).toEqual(['toast:error:The status could not be changed. Please try again.']);
+    expect(log.buttonsDisabledAfter).toBe(0);
+    expect(log.statusAfter).toContain('Status: New');
+  });
+
   test('a status change that fails is reported and leaves the buttons usable', () => {
     const log = run({ script: { patchFails: true } });
     expect(log.toasts).toEqual(['toast:error:Could not update']);
@@ -241,6 +248,17 @@ describe('CSV export', () => {
       'info:Nothing to export yet: you have no conversations, quote requests or enquiries.',
     ]);
     expect(saved).toEqual([]);
+  });
+
+  test('a missing row-count header is unknown, not zero: the file is still saved', async () => {
+    const { said, saved } = await exportWith({
+      ok: true,
+      status: 200,
+      headers: headers({}),
+      blob: async () => ({}),
+    });
+    expect(said).toEqual(['success:Export ready.']);
+    expect(saved).toContain('download=enquiries-and-conversations.csv');
   });
 
   test('a file with rows is saved under the name the server gave, and the row count is reported', async () => {

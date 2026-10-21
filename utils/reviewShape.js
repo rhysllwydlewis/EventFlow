@@ -119,7 +119,9 @@ function reviewResponse(doc) {
 function normaliseReview(doc) {
   const v2 = isV2Review(doc);
   return {
-    id: String(doc._id || doc.id || ''),
+    // A legacy review is addressed by its own `id` (what the routes and the reply form use). MongoDB
+    // also gives it an auto `_id`, which no lookup of a legacy review goes by, so it must not win.
+    id: String((v2 ? doc._id || doc.id : doc.id || doc._id) || ''),
     shape: v2 ? 'v2' : 'legacy',
     supplierId: doc.supplierId || null,
     authorId: doc.authorId || doc.userId || null,

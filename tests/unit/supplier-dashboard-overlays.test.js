@@ -238,6 +238,12 @@ describe('supplier dashboard editors: overlays script', () => {
 describe('supplier dashboard editors: banner field', () => {
   const log = run('banner', {});
 
+  test('a dropped connection says so instead of "Failed to fetch"', () => {
+    expect(log.offline).toBe(
+      'The banner could not be uploaded. Check your connection and try again.'
+    );
+  });
+
   test('without a profile there is nothing to attach a banner to, and the field says so', () => {
     expect(log.noProfile.disabled).toBe(true);
     expect(log.noProfile.message).toBe('Save your profile first, then add a banner');

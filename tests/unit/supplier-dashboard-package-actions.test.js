@@ -129,6 +129,9 @@ describe('packages for a supplier who cannot read them yet', () => {
     expect(flags).toBeGreaterThan(-1);
     expect(request).toBeGreaterThan(flags);
     expect(loader.slice(0, request)).toContain('packageBlockedHtml(');
+    // ...and the create button says why it is off, rather than opening a form that can only fail.
+    expect(loader.slice(0, request)).toContain('Profile pending approval');
+    expect(loader.slice(0, request)).toContain('Profile setup needed');
   });
 
   test('the same two messages serve the early answer and a refusal from the server', () => {

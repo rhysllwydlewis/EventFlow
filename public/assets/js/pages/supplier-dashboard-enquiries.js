@@ -490,12 +490,16 @@
     buttons.forEach(button => {
       button.disabled = true;
     });
-    const result = await api.sendJson(
-      `/api/supplier/enquiries/${encodeURIComponent(id)}`,
-      'PATCH',
-      { status }
-    );
-    if (!result.ok || !result.data.enquiry) {
+    let result;
+    try {
+      result = await api.sendJson(`/api/supplier/enquiries/${encodeURIComponent(id)}`, 'PATCH', {
+        status,
+      });
+    } catch {
+      // A dropped connection throws; treat it like a refusal so the buttons come back and it is said.
+      result = { ok: false, status: 0, data: {} };
+    }
+    if (!result.ok || !result.data || !result.data.enquiry) {
       buttons.forEach(button => {
         button.disabled = false;
       });

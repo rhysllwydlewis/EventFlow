@@ -367,6 +367,61 @@ describe('GET /api/v2/reviews/supplier/:id (the dashboard list)', () => {
   });
 });
 
+describe('a legacy review that MongoDB has also given an _id', () => {
+  // MongoDB adds an _id to every inserted document, so in production a legacy review carries
+  // both its own `id` and an auto `_id`. The dashboard must address it by its own `id`.
+  const WITH_BOTH = {
+    ...LEGACY_APPROVED,
+    _id: '6ad8f79d72e7fbe6a5aa26f7',
+    id: 'rev_legacy_both',
+    comment: 'Both ids present.',
+  };
+
+  beforeEach(() => {
+    fakeDb.__reset({ ...seed(), reviews: [WITH_BOTH] });
+  });
+
+  it('is listed under its own id, not the auto _id', async () => {
+    const res = await call('get', '/api/v2/reviews/supplier/sup-1');
+
+    expect(res.body.data.reviews.map(review => review.id)).toEqual(['rev_legacy_both']);
+  });
+
+  it('can be replied to with the id the list gave it', async () => {
+    const list = await call('get', '/api/v2/reviews/supplier/sup-1');
+    const id = list.body.data.reviews[0].id;
+
+    const res = await call('post', `/api/v2/reviews/${id}/response`, SUPPLIER_USER, {
+      text: 'Thank you, we loved having you.',
+    });
+
+    expect(res.status).toBe(200);
+    expect(fakeDb.__store().reviews[0].response.text).toBe('Thank you, we loved having you.');
+  });
+
+  it('is still found by the _id an older dashboard page would send', async () => {
+    const res = await call('post', `/api/v2/reviews/${WITH_BOTH._id}/response`, SUPPLIER_USER, {
+      text: 'Thank you, we loved having you.',
+    });
+
+    expect(res.status).toBe(200);
+  });
+});
+
+describe('a list that includes unpublished reviews labels each one honestly', () => {
+  it('reports a legacy review as pending or rejected, never as approved', async () => {
+    const result = await require('../../services/reviewService').getSupplierReviews('sup-1', {
+      approvedOnly: false,
+      limit: 50,
+    });
+
+    const stateOf = id => result.reviews.find(review => review.id === id).moderation.state;
+    expect(stateOf('rev_legacy_ok')).toBe('approved');
+    expect(stateOf('rev_legacy_pending')).toBe('pending');
+    expect(stateOf('rev_legacy_rejected')).toBe('rejected');
+  });
+});
+
 describe('replying to a review', () => {
   const REPLY = 'Thank you so much for your kind words, it was a pleasure!';
 

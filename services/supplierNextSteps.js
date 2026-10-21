@@ -18,6 +18,9 @@
 
 const PROFILE_HREF = '/dashboard/supplier#my-suppliers';
 
+/** Why a step is neither done nor offered when the record it depends on could not be read. */
+const UNKNOWN_REASON = 'We could not check this just now';
+
 /**
  * Whether the fields the verification form requires (plus a discovery postcode)
  * are all filled in.
@@ -64,10 +67,10 @@ function verificationLockReason(verification) {
  * @param {Object} input.supplier - Supplier document (photo-hydrated)
  * @param {Object} input.verification - The `verification` block of the summary
  * @param {{checks: Array<{id: string, done: boolean, href: string}>}} input.completeness - Profile completeness
- * @param {{total: number, withoutPhoto: number}} input.packages - Package totals
- * @param {number} input.reviewRequestsSent - Review requests this supplier has sent
- * @param {number} input.approvedReviewCount - Approved reviews
- * @param {boolean} input.hasCalendarActivity - Any personal calendar entry or owned public event
+ * @param {{total: number, withoutPhoto: number}|null} input.packages - Package totals; null when they could not be read
+ * @param {number|null} input.reviewRequestsSent - Review requests this supplier has sent; null when unknown
+ * @param {number|null} input.approvedReviewCount - Approved reviews; null when unknown
+ * @param {boolean|null} input.hasCalendarActivity - Any personal calendar entry or owned public event; null when unknown
  * @returns {{steps: Object[], completed: number, total: number, percent: number, primaryStepId: (string|null)}}
  */
 function evaluateNextSteps(input) {
@@ -81,6 +84,14 @@ function evaluateNextSteps(input) {
     const found = completeness.checks.find(check => check.id === id);
     return found ? found.href : PROFILE_HREF;
   };
+
+  // A source that could not be read is unknown, never a zero: the step it feeds is held back
+  // (not done, not offered) instead of telling the supplier to redo something they have done.
+  const packagesUnknown = !packages || !Number.isFinite(packages.total);
+  const requestsUnknown = input.reviewRequestsSent === null;
+  const reviewsUnknown = input.approvedReviewCount === null;
+  const calendarUnknown = input.hasCalendarActivity === null;
+  const reviewRequestDone = input.reviewRequestsSent > 0 || input.approvedReviewCount > 0;
 
   const needEmail = emailOk || emailUnknown ? null : 'Verify your email address first';
   const needApproval = approved ? null : 'Available once your profile is approved';
@@ -152,30 +163,37 @@ function evaluateNextSteps(input) {
     {
       id: 'first-package',
       label: 'Create your first package',
-      done: packages.total > 0,
+      done: !packagesUnknown && packages.total > 0,
       href: '/dashboard/supplier#toggle-package-form',
-      lockedReason: needEmail || needApproval,
+      lockedReason: packagesUnknown ? UNKNOWN_REASON : needEmail || needApproval,
     },
     {
       id: 'package-photos',
       label: 'Add a photo to every package',
-      done: packages.total > 0 && packages.withoutPhoto === 0,
+      done: !packagesUnknown && packages.total > 0 && packages.withoutPhoto === 0,
       href: '/dashboard/supplier#toggle-package-form',
-      lockedReason: packages.total === 0 ? 'Create a package first' : needEmail || needApproval,
+      lockedReason: packagesUnknown
+        ? UNKNOWN_REASON
+        : packages.total === 0
+          ? 'Create a package first'
+          : needEmail || needApproval,
     },
     {
       id: 'request-review',
       label: 'Ask a past customer for a review',
-      done: input.reviewRequestsSent > 0 || input.approvedReviewCount > 0,
+      done: reviewRequestDone,
       href: '/dashboard/supplier#review-requests',
-      lockedReason: needEmail || needApproval,
+      lockedReason:
+        !reviewRequestDone && (requestsUnknown || reviewsUnknown)
+          ? UNKNOWN_REASON
+          : needEmail || needApproval,
     },
     {
       id: 'calendar',
       label: 'Add an event to your calendar',
       done: input.hasCalendarActivity === true,
       href: '/dashboard/supplier#availability-calendar',
-      lockedReason: needEmail,
+      lockedReason: calendarUnknown ? UNKNOWN_REASON : needEmail,
     },
   ];
 

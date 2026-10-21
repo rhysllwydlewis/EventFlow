@@ -8,6 +8,7 @@
 'use strict';
 
 const dbUnified = require('../db-unified');
+const { ObjectId } = require('mongodb');
 const logger = require('../utils/logger');
 const store = require('../store');
 const sentimentAnalysis = require('../utils/sentimentAnalysis');
@@ -311,7 +312,7 @@ function toPublicReview(review, authorNames) {
       unhelpful: Number(review.unhelpfulCount) || 0,
     },
     response: view.response,
-    moderation: { state: 'approved' },
+    moderation: { state: view.state },
   };
 }
 
@@ -322,10 +323,14 @@ function toPublicReview(review, authorNames) {
  * @returns {Promise<Object|null>} Stored review or null
  */
 async function findReviewById(reviewId) {
-  return (
+  const found =
     (await dbUnified.findOne('reviews', { _id: reviewId })) ||
-    dbUnified.findOne('reviews', { id: reviewId })
-  );
+    (await dbUnified.findOne('reviews', { id: reviewId }));
+  if (found || !/^[0-9a-f]{24}$/i.test(String(reviewId))) {
+    return found;
+  }
+  // MongoDB's own `_id` of a legacy review, as an older dashboard page would still send it.
+  return dbUnified.findOne('reviews', { _id: new ObjectId(String(reviewId)) });
 }
 
 /**

@@ -24,10 +24,11 @@
    * Helpers
    * ──────────────────────────────────────────────────────────────────────── */
 
+  /** Escapes a value for text and for quoted attributes alike (quotes become entities too). */
   function esc(str) {
     const d = document.createElement('div');
     d.textContent = String(str ?? '');
-    return d.innerHTML;
+    return d.innerHTML.split('"').join('&quot;').split("'").join('&#39;');
   }
 
   function normaliseRating(n) {

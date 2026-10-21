@@ -96,7 +96,9 @@ keep their loading placeholders: nothing says "could not load" before a request 
 The server only lets an approved supplier read packages and enquiries. The page knows this from
 the profile list, so it does not ask for packages at all until the profile is approved (the
 packages card says "Packages unlock after approval") and says the same for enquiries; nothing
-is requested that the server would refuse, so a pending supplier's console stays clean.
+is requested that the server would refuse, so a pending supplier's console stays clean. The
+"Create package" button says why it is off ("Profile pending approval", or "Profile setup needed"
+with no profile) instead of opening a form that can only fail.
 
 ## Honest numbers
 
