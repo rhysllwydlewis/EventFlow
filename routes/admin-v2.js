@@ -38,6 +38,7 @@ const {
 } = require('../services/adminService');
 const dbUnified = require('../db-unified');
 const logger = require('../utils/logger');
+const { packagePriceText, priceFields } = require('../utils/packagePrice');
 const {
   VERIFICATION_STATES,
   normaliseState,
@@ -1296,6 +1297,20 @@ router.put(
           pkg[key] = updateData[key];
         }
       });
+
+      // Whichever price field was sent, both end up holding it (utils/packagePrice.js).
+      if (updateData.price !== undefined || updateData.price_display !== undefined) {
+        const before = packagePriceText(pkg);
+        Object.assign(
+          pkg,
+          priceFields(
+            updateData.price_display !== undefined ? updateData.price_display : updateData.price
+          )
+        );
+        if (before !== pkg.price_display) {
+          changes.price_display = { before, after: pkg.price_display };
+        }
+      }
 
       pkg.updatedAt = new Date().toISOString();
       await dbUnified.updateOne('packages', { id: pkg.id }, { $set: pkg });

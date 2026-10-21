@@ -18,10 +18,11 @@ const guideSource = read('public/assets/js/pages/supplier-dashboard-onboarding.j
 const homeSource = read('public/assets/js/pages/supplier-dashboard-home.js');
 
 /** Loads the guide script with a fake window whose localStorage can be swapped. */
-function loadGuide(storage) {
+function loadGuide(storage, consent) {
   const window = {
     localStorage: storage,
     SupplierDashboardHome: null,
+    ...(consent ? { CookieConsent: { getConsent: () => consent } } : {}),
   };
   const document = {
     readyState: 'loading',
@@ -39,6 +40,11 @@ const memoryStorage = () => {
   return {
     getItem: key => (store.has(key) ? store.get(key) : null),
     setItem: (key, value) => store.set(key, String(value)),
+    removeItem: key => store.delete(key),
+    key: index => Array.from(store.keys())[index] ?? null,
+    get length() {
+      return store.size;
+    },
     store,
   };
 };
@@ -297,5 +303,50 @@ describe('setup guide: the dialog in jsdom', () => {
     expect(log.lastNext).toBe('Finish');
     expect(log.closedAfterFinish).toBe(true);
     expect(log.storedAfterFinish).toBe('completed');
+  });
+});
+
+describe('setup guide progress follows the cookie choice', () => {
+  test('is kept in the browser when functional storage is allowed', () => {
+    const storage = memoryStorage();
+    const guide = loadGuide(storage, { essential: true, functional: true });
+    guide.writeProgress({ id: 'u1' }, 'dismissed', 'packages');
+    expect(storage.store.has('ef.supplierGuide.v1.u1')).toBe(true);
+    expect(guide.readProgress({ id: 'u1' })).toMatchObject({ status: 'dismissed' });
+  });
+
+  test('is NOT written to the browser when functional storage is not allowed, but lasts the visit', () => {
+    const storage = memoryStorage();
+    const guide = loadGuide(storage, { essential: true, functional: false });
+    guide.writeProgress({ id: 'u1' }, 'dismissed', 'packages');
+    expect(storage.store.size).toBe(0);
+    // Skipped stays skipped for the rest of this page view.
+    expect(guide.readProgress({ id: 'u1' })).toMatchObject({
+      status: 'dismissed',
+      step: 'packages',
+    });
+  });
+
+  test('anything saved earlier is not read back once functional storage is declined', () => {
+    const storage = memoryStorage();
+    loadGuide(storage).writeProgress({ id: 'u1' }, 'completed', '');
+    const declined = loadGuide(storage, { essential: true, functional: false });
+    expect(declined.readProgress({ id: 'u1' })).toEqual({});
+  });
+
+  test('erasing removes every guide record, and nothing else', () => {
+    const storage = memoryStorage();
+    const guide = loadGuide(storage);
+    guide.writeProgress({ id: 'u1' }, 'dismissed', 'a');
+    guide.writeProgress({ id: 'u2' }, 'completed', '');
+    storage.setItem('theme', 'dark');
+    guide.eraseSavedProgress();
+    expect(Array.from(storage.store.keys())).toEqual(['theme']);
+  });
+
+  test('without a consent banner on the page there is no choice to follow, so progress is kept', () => {
+    const storage = memoryStorage();
+    loadGuide(storage).writeProgress({ id: 'u1' }, 'dismissed', 'a');
+    expect(storage.store.has('ef.supplierGuide.v1.u1')).toBe(true);
   });
 });

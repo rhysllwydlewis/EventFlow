@@ -1,6 +1,7 @@
 'use strict';
 
 const { PLACEHOLDER_PACKAGE_IMAGE } = require('../utils/constants');
+const { packagePriceText } = require('../utils/packagePrice');
 
 const ENDPOINT_META = 'supplier-profile-package-cards-v2';
 
@@ -292,7 +293,13 @@ function formatPriceDisplay(pkg) {
   if (pkg && typeof pkg.priceDisplay === 'string' && pkg.priceDisplay.trim()) {
     return pkg.priceDisplay.trim();
   }
-  const raw = pkg && (pkg.priceFrom ?? pkg.price ?? pkg.basePrice ?? pkg.startingPrice);
+  const typedPrice = pkg ? packagePriceText(pkg) : '';
+  const raw =
+    pkg &&
+    (pkg.priceFrom ??
+      (typedPrice !== '' ? typedPrice : undefined) ??
+      pkg.basePrice ??
+      pkg.startingPrice);
   if (raw === null || raw === undefined || raw === '') {
     return '';
   }

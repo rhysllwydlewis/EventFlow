@@ -65,6 +65,7 @@
     "debug:supplier-provisioning-smoke": "node scripts/debug-supplier-provisioning-smoke.js",
     "audit:orphan-supplier-data": "node scripts/audit-orphaned-supplier-data.js",
     "repair:public-avatars": "node scripts/repair-public-supplier-avatars.js",
+    "repair:package-prices": "node scripts/sync-package-prices.js",
     "check:public-render": "node scripts/check-public-render.js",
     "version:jadeassist-assets": "node scripts/version-jadeassist-assets.mjs",
     "test:audit": "node scripts/test-audit.mjs",

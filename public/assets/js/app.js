@@ -323,156 +323,177 @@ function generateSupplierGradient(supplierOrName) {
   return window.EFSupplierAvatar.getSupplierAvatarGradient(supplierOrName);
 }
 
-// Validate redirect parameter for role-based access (SECURITY)
-// Only allows same-origin, allowlisted paths appropriate for the user's role
-function validateRedirectForRole(redirectUrl, userRole) {
-  if (!redirectUrl || typeof redirectUrl !== 'string') {
-    return false;
+/**
+ * The pages each kind of account may be sent to after signing in or registering, by `redirect`
+ * parameter. Anything not listed here is never a redirect target.
+ */
+const REDIRECT_ALLOWED_PATHS = {
+  admin: [
+    '/admin',
+    '/admin.html',
+    '/admin-audit',
+    '/admin-audit.html',
+    '/admin-content',
+    '/admin-content.html',
+    '/admin-homepage',
+    '/admin-homepage.html',
+    '/admin-marketplace',
+    '/admin-marketplace.html',
+    '/admin-packages',
+    '/admin-packages.html',
+    '/admin-payments',
+    '/admin-payments.html',
+    '/admin-media',
+    '/admin-media.html',
+    '/admin-messenger-view',
+    '/admin-messenger-view.html',
+    '/admin-pexels',
+    '/admin-pexels.html',
+    '/admin-photos',
+    '/admin-photos.html',
+    '/admin-reports',
+    '/admin-reports.html',
+    '/admin-settings',
+    '/admin-settings.html',
+    '/admin-supplier-detail',
+    '/admin-supplier-detail.html',
+    '/admin-suppliers',
+    '/admin-suppliers.html',
+    '/admin-tickets',
+    '/admin-tickets.html',
+    '/admin-user-detail',
+    '/admin-user-detail.html',
+    '/admin-users',
+    '/admin-users.html',
+    '/admin-search',
+    '/admin-search.html',
+  ],
+  supplier: [
+    '/dashboard/supplier',
+    '/dashboard-supplier.html',
+    '/dashboard',
+    '/dashboard.html',
+    '/settings',
+    '/settings.html',
+    '/plan',
+    '/plan.html',
+    '/pricing',
+    '/pricing.html',
+    '/checkout',
+    '/checkout.html',
+    '/supplier/subscription',
+    '/supplier/subscription.html',
+    '/my-marketplace-listings',
+    '/my-marketplace-listings.html',
+    '/supplier/marketplace-new-listing',
+    '/supplier/marketplace-new-listing.html',
+    '/marketplace',
+    '/marketplace.html',
+    '/suppliers',
+    '/suppliers.html',
+    '/supplier',
+    '/supplier.html',
+    '/messenger/',
+    '/messages',
+    '/messages.html',
+    '/conversation',
+    '/conversation.html',
+    '/notifications',
+    '/notifications.html',
+    '/timeline',
+    '/timeline.html',
+    '/budget',
+    '/budget.html',
+  ],
+  customer: [
+    '/dashboard/customer',
+    '/dashboard-customer.html',
+    '/dashboard',
+    '/dashboard.html',
+    '/settings',
+    '/settings.html',
+    '/plan',
+    '/plan.html',
+    '/pricing',
+    '/pricing.html',
+    '/checkout',
+    '/checkout.html',
+    '/my-marketplace-listings',
+    '/my-marketplace-listings.html',
+    '/marketplace',
+    '/marketplace.html',
+    '/suppliers',
+    '/suppliers.html',
+    '/supplier',
+    '/supplier.html',
+    '/messenger/',
+    '/messages',
+    '/messages.html',
+    '/conversation',
+    '/conversation.html',
+    '/notifications',
+    '/notifications.html',
+    '/timeline',
+    '/timeline.html',
+    '/budget',
+    '/budget.html',
+    '/guests',
+    '/guests.html',
+    '/start',
+    '/start.html',
+  ],
+};
+
+/**
+ * Where to send a signed-in person for a `redirect` (or `return`) parameter, or null when it must be
+ * ignored (SECURITY).
+ *
+ * The parameter is only ever used to pick an entry from REDIRECT_ALLOWED_PATHS: the address returned
+ * is built from that entry (a constant), plus the query string and fragment, never from the raw
+ * text. So the visitor-supplied value cannot choose the host, the scheme or the path. Anything that
+ * is not a plain path on this site is refused outright, and a value that cannot be parsed is
+ * refused (it never falls back to being trusted as it stands).
+ *
+ * @param {string} redirectUrl - The raw `redirect` parameter.
+ * @param {string} userRole - The signed-in account's role.
+ * @param {string} [plan] - A plan to carry along as `?plan=`, unless the address already names one.
+ * @returns {string|null} A same-site address, or null.
+ */
+function safeRedirectTarget(redirectUrl, userRole, plan) {
+  if (typeof redirectUrl !== 'string') {
+    return null;
   }
-
-  // Remove any whitespace
-  const url = redirectUrl.trim();
-
-  // Must start with / (relative path only, no external redirects)
-  if (!url.startsWith('/')) {
-    return false;
+  const text = redirectUrl.trim();
+  // A path on this site only. A browser drops tabs and newlines and reads a backslash as a slash, so
+  // "/\t/evil.example" and "/\\evil.example" would otherwise turn into "//evil.example".
+  if (
+    !text.startsWith('/') ||
+    text.startsWith('//') ||
+    Array.from(text).some(
+      char => char === '\\' || char.charCodeAt(0) <= 31 || char.charCodeAt(0) === 127
+    )
+  ) {
+    return null;
   }
-
-  // Parse URL to get pathname (strip query string and hash)
-  let pathname;
+  let parsed;
   try {
-    const urlObj = new URL(url, window.location.origin);
-    // Verify it's same-origin - use location.host for more robust check
-    // This ensures protocol + hostname + port all match
-    if (urlObj.host !== window.location.host || urlObj.protocol !== window.location.protocol) {
-      return false;
-    }
-    pathname = urlObj.pathname;
+    parsed = new URL(text, window.location.origin);
   } catch {
-    // If URL parsing fails, treat as pathname directly
-    pathname = url.split('?')[0].split('#')[0];
+    return null;
   }
-
-  // Define allowlisted pages per role
-  const allowedPaths = {
-    admin: [
-      '/admin',
-      '/admin.html',
-      '/admin-audit',
-      '/admin-audit.html',
-      '/admin-content',
-      '/admin-content.html',
-      '/admin-homepage',
-      '/admin-homepage.html',
-      '/admin-marketplace',
-      '/admin-marketplace.html',
-      '/admin-packages',
-      '/admin-packages.html',
-      '/admin-payments',
-      '/admin-payments.html',
-      '/admin-media',
-      '/admin-media.html',
-      '/admin-messenger-view',
-      '/admin-messenger-view.html',
-      '/admin-pexels',
-      '/admin-pexels.html',
-      '/admin-photos',
-      '/admin-photos.html',
-      '/admin-reports',
-      '/admin-reports.html',
-      '/admin-settings',
-      '/admin-settings.html',
-      '/admin-supplier-detail',
-      '/admin-supplier-detail.html',
-      '/admin-suppliers',
-      '/admin-suppliers.html',
-      '/admin-tickets',
-      '/admin-tickets.html',
-      '/admin-user-detail',
-      '/admin-user-detail.html',
-      '/admin-users',
-      '/admin-users.html',
-      '/admin-search',
-      '/admin-search.html',
-    ],
-    supplier: [
-      '/dashboard/supplier',
-      '/dashboard-supplier.html',
-      '/dashboard',
-      '/dashboard.html',
-      '/settings',
-      '/settings.html',
-      '/plan',
-      '/plan.html',
-      '/pricing',
-      '/pricing.html',
-      '/checkout',
-      '/checkout.html',
-      '/supplier/subscription',
-      '/supplier/subscription.html',
-      '/my-marketplace-listings',
-      '/my-marketplace-listings.html',
-      '/supplier/marketplace-new-listing',
-      '/supplier/marketplace-new-listing.html',
-      '/marketplace',
-      '/marketplace.html',
-      '/suppliers',
-      '/suppliers.html',
-      '/supplier',
-      '/supplier.html',
-      '/messenger/',
-      '/messages',
-      '/messages.html',
-      '/conversation',
-      '/conversation.html',
-      '/notifications',
-      '/notifications.html',
-      '/timeline',
-      '/timeline.html',
-      '/budget',
-      '/budget.html',
-    ],
-    customer: [
-      '/dashboard/customer',
-      '/dashboard-customer.html',
-      '/dashboard',
-      '/dashboard.html',
-      '/settings',
-      '/settings.html',
-      '/plan',
-      '/plan.html',
-      '/pricing',
-      '/pricing.html',
-      '/checkout',
-      '/checkout.html',
-      '/my-marketplace-listings',
-      '/my-marketplace-listings.html',
-      '/marketplace',
-      '/marketplace.html',
-      '/suppliers',
-      '/suppliers.html',
-      '/supplier',
-      '/supplier.html',
-      '/messenger/',
-      '/messages',
-      '/messages.html',
-      '/conversation',
-      '/conversation.html',
-      '/notifications',
-      '/notifications.html',
-      '/timeline',
-      '/timeline.html',
-      '/budget',
-      '/budget.html',
-      '/guests',
-      '/guests.html',
-      '/start',
-      '/start.html',
-    ],
-  };
-
-  const allowed = allowedPaths[userRole] || [];
-  return allowed.includes(pathname);
+  if (parsed.origin !== window.location.origin) {
+    return null;
+  }
+  const page = (REDIRECT_ALLOWED_PATHS[userRole] || []).find(path => path === parsed.pathname);
+  if (!page) {
+    return null;
+  }
+  const query = new URLSearchParams(parsed.search);
+  if (plan && !query.has('plan')) {
+    query.set('plan', String(plan));
+  }
+  const search = query.toString();
+  return `${page}${search ? `?${search}` : ''}${parsed.hash}`;
 }
 
 // Shared banner used by explicit page actions that need inline network feedback.
@@ -3816,13 +3837,23 @@ async function initDashSupplier() {
               body: JSON.stringify({}),
             });
             const payload = await resp.json().catch(() => ({}));
-            if (!resp.ok || !payload.url) {
+            // Only an https (or same-site) address is ever navigated to, whatever the response says.
+            let checkoutUrl = '';
+            try {
+              const parsedUrl = new URL(String(payload.url || ''), window.location.href);
+              if (parsedUrl.protocol === 'https:' || parsedUrl.origin === window.location.origin) {
+                checkoutUrl = parsedUrl.href;
+              }
+            } catch {
+              checkoutUrl = '';
+            }
+            if (!resp.ok || !checkoutUrl) {
               if (status) {
                 status.textContent = payload.error || 'Could not start checkout.';
               }
               return;
             }
-            window.location.href = payload.url;
+            window.location.href = checkoutUrl;
           } catch {
             if (status) {
               status.textContent = 'Network error – please try again.';
@@ -4929,10 +4960,10 @@ document.addEventListener('DOMContentLoaded', () => {
           // Honour a valid redirect param (e.g. coming from the pricing page)
           const urlParams = new URLSearchParams(window.location.search);
           const redirectParam = urlParams.get('redirect');
-          let destination = null;
+          let destination = safeRedirectTarget(redirectParam, existing.role);
 
-          if (redirectParam && validateRedirectForRole(redirectParam, existing.role)) {
-            destination = redirectParam;
+          if (destination) {
+            // An allowed page was asked for: go there.
           } else if (existing.role === 'admin') {
             destination = '/admin';
           } else if (existing.role === 'supplier') {
@@ -5423,15 +5454,10 @@ document.addEventListener('DOMContentLoaded', () => {
             const plan = urlParams.get('plan');
 
             if (redirect) {
-              // Validate redirect is safe: same-origin and allowlisted for user's role
-              const isValidRedirect = validateRedirectForRole(redirect, user.role);
-              if (isValidRedirect) {
-                destination = redirect;
-                // Preserve plan parameter if it exists and not already in redirect
-                if (plan && !destination.includes('plan=')) {
-                  const separator = destination.includes('?') ? '&' : '?';
-                  destination = `${destination}${separator}plan=${encodeURIComponent(plan)}`;
-                }
+              // Only an allowed page for this role, built from the allowlist (see safeRedirectTarget).
+              const target = safeRedirectTarget(redirect, user.role, plan);
+              if (target) {
+                destination = target;
               } else {
                 console.warn(
                   `Ignoring untrusted redirect param: ${redirect} for role: ${user.role}`
@@ -5830,16 +5856,10 @@ document.addEventListener('DOMContentLoaded', () => {
             const plan = urlParams.get('plan');
 
             if (redirect) {
-              // Validate redirect is safe: same-origin and allowlisted for user's role
+              // Only an allowed page for this role, built from the allowlist (see safeRedirectTarget).
               const user = data.user || {};
-              const isValidRedirect = validateRedirectForRole(redirect, user.role);
-              if (isValidRedirect) {
-                // Preserve plan parameter if it exists
-                let redirectUrl = redirect;
-                if (plan && !redirect.includes('plan=')) {
-                  const separator = redirect.includes('?') ? '&' : '?';
-                  redirectUrl = `${redirect}${separator}plan=${encodeURIComponent(plan)}`;
-                }
+              const redirectUrl = safeRedirectTarget(redirect, user.role, plan);
+              if (redirectUrl) {
                 if (regStatus) {
                   regStatus.textContent = 'Account created! Redirecting...';
                 }
@@ -6245,8 +6265,14 @@ function efInitVenueMap() {
   const form = document.getElementById('map-postcode-form');
   const input = document.getElementById('map-postcode');
   const status = document.getElementById('map-status');
-  const LAST_QUERY_KEY = 'ef:lastMapQuery';
-  const LAST_QUERY_LABEL_KEY = 'ef:lastMapLabel';
+  // Earlier versions remembered the last search, including a visitor's exact coordinates, in this
+  // browser for good. A visitor's location is not kept any more; erase what is already there.
+  try {
+    localStorage.removeItem('ef:lastMapQuery');
+    localStorage.removeItem('ef:lastMapLabel');
+  } catch {
+    /* Ignore storage errors */
+  }
   const DEFAULT_QUERY = 'wedding venues in the UK';
 
   // Fetch Google Maps API key from server
@@ -6282,25 +6308,9 @@ function efInitVenueMap() {
   }
 
   function showDefaultMap() {
-    let savedQuery = '';
-    let savedLabel = '';
-    try {
-      savedQuery = localStorage.getItem(LAST_QUERY_KEY) || '';
-      savedLabel = localStorage.getItem(LAST_QUERY_LABEL_KEY) || '';
-    } catch {
-      /* Ignore storage errors */
-    }
-
-    const trimmed = savedQuery.trim();
-    const baseQuery = trimmed ? `wedding venues near ${trimmed}` : DEFAULT_QUERY;
-    const label = (savedLabel || trimmed).trim();
-    mapFrame.src = buildMapUrl(baseQuery);
+    mapFrame.src = buildMapUrl(DEFAULT_QUERY);
     mapFrame.style.display = 'block';
-    setStatus(
-      trimmed
-        ? `Showing results near "${label || trimmed}".`
-        : 'Showing venues across the UK. Share your location to refine your results.'
-    );
+    setStatus('Showing venues across the UK. Share your location to refine your results.');
   }
 
   function updateForQuery(q, labelOverride) {
@@ -6314,12 +6324,6 @@ function efInitVenueMap() {
 
     const label = labelOverride || cleaned;
     setStatus(`Showing results near "${label}".`);
-    try {
-      localStorage.setItem(LAST_QUERY_KEY, cleaned);
-      localStorage.setItem(LAST_QUERY_LABEL_KEY, label);
-    } catch {
-      /* Ignore storage errors */
-    }
   }
 
   if (useBtn && navigator.geolocation) {
@@ -6332,8 +6336,12 @@ function efInitVenueMap() {
           updateForQuery(query, 'your location');
         },
         err => {
+          // 1 is "denied" (the visitor said no, or the site is not allowed to ask): say it plainly,
+          // not in the browser's technical words.
           setStatus(
-            `Could not access your location (${err.message}). You can type a postcode instead.`
+            err && err.code === 1
+              ? 'Location sharing is switched off. Type a postcode instead.'
+              : 'Could not find your location. You can type a postcode instead.'
           );
         }
       );

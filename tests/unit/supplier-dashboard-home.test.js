@@ -1403,6 +1403,12 @@ describe('supplier dashboard home: rendered page', () => {
     expect(page.plan).toContain('Update payment method');
     expect(page.plan).toContain('View subscription');
     expect(page.plan).not.toContain('See plans');
+    // The summary tile at the top of the page must say the same thing as the card.
+    const tile = page.tiles[3];
+    expect(tile.value).toBe('Pro');
+    expect(tile.body).toContain('Payment failed');
+    expect(tile.body).not.toContain('Starter');
+    expect(tile.body).not.toContain('active packages');
   });
 
   test('billing facts come from the subscription record: interval, start, next payment, card, discount, renewal', () => {

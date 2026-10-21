@@ -8,6 +8,7 @@
 'use strict';
 
 const { isPlaceholderImage, resolvePackageImage } = require('../utils/packageImageUtils');
+const { packagePriceText } = require('../utils/packagePrice');
 const { supplierPostcode } = require('./supplierLocation.service');
 
 const RANKING_VERSION = 'supplier-ranking-v1';
@@ -153,7 +154,7 @@ function packageHasPrice(pkg) {
   if (typeof pkg.price === 'number') {
     return Number.isFinite(pkg.price) && pkg.price > 0;
   }
-  const value = cleanText(pkg.price || pkg.price_display || pkg.startingPrice);
+  const value = cleanText(packagePriceText(pkg) || pkg.startingPrice);
   return /\d/.test(value) && !/^(?:0|free|contact|quote|poa)$/i.test(value);
 }
 

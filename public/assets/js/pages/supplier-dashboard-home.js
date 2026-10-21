@@ -106,6 +106,24 @@
     }
   }
 
+  /**
+   * An address the server asked the page to navigate to (a billing portal, say): an https address,
+   * or one on this site, resolved by the URL parser. Anything else (a javascript: or data: address,
+   * plain http to another site, text that is not an address) is '' and is never navigated to.
+   */
+  function navigableUrl(value, base) {
+    if (typeof value !== 'string' || !value.trim()) {
+      return '';
+    }
+    try {
+      const here = new URL(base || window.location.href);
+      const parsed = new URL(value.trim(), here);
+      return parsed.protocol === 'https:' || parsed.origin === here.origin ? parsed.href : '';
+    } catch {
+      return '';
+    }
+  }
+
   /** True for a finite number (not NaN, not a numeric string, not null). */
   function isNum(value) {
     return typeof value === 'number' && Number.isFinite(value);
@@ -1218,7 +1236,11 @@
     );
   }
 
-  /** Summary tile: the plan and how much of it is used. */
+  /**
+   * Summary tile: the plan and how much of it is used. A failed payment drops what the supplier may
+   * use to the free plan, but the plan they pay for is still Pro or Pro Plus, so the tile says that
+   * and that the payment failed (the same as the plan card), never "Starter".
+   */
   function planTile(model) {
     const subscription = model?.subscription;
     const link = '<a class="sdh-link" href="/supplier/subscription">Manage plan</a>';
@@ -1226,6 +1248,14 @@
       return tile(
         'Plan',
         `<p class="sdh-tile__value sdh-tile__value--empty">Not available</p><p class="sdh-tile__sub">${link}</p>`
+      );
+    }
+    if (String(subscription.status || '').toLowerCase() === 'past_due') {
+      // The paid plan is in the subscription record, which loads just after the summary.
+      const paid = state.billing?.record?.plan;
+      return tile(
+        'Plan',
+        `<p class="sdh-tile__value">${esc(paid ? planLabel(paid) : 'Past due')}</p><p class="sdh-tile__sub">Payment failed.</p><p class="sdh-tile__sub">${link}</p>`
       );
     }
     const usage = packageUsage(model);
@@ -1514,7 +1544,10 @@
     const width = 560;
     const height = 140;
     const gap = 2;
-    const barWidth = Math.max(2, (width - gap * (daily.length - 1)) / daily.length);
+    // Each day has an even slot of the width and its bar sits in the middle of it, at most
+    // 28 wide, so a week with one busy day still reads as a chart and not as one slab.
+    const slot = width / daily.length;
+    const barWidth = Math.max(2, Math.min(slot - gap, 28));
     const peak = Math.max(1, ...daily.map(item => item[series] || 0));
     const total = daily.reduce((sum, item) => sum + (item[series] || 0), 0);
     const bars = daily
@@ -1522,7 +1555,7 @@
         const value = item[series] || 0;
         const barHeight = Math.max(value > 0 ? 2 : 0, Math.round((value / peak) * (height - 4)));
         const text = `${formatShortDate(item.date) || item.date}: ${plural(value, word, nouns)}`;
-        return `<rect class="sdh-chart__bar${series === 'enquiries' ? ' sdh-chart__bar--alt' : ''}" x="${(index * (barWidth + gap)).toFixed(1)}" y="${height - barHeight}" width="${barWidth.toFixed(1)}" height="${barHeight}" rx="1.5"><title>${esc(text)}</title></rect>`;
+        return `<rect class="sdh-chart__bar${series === 'enquiries' ? ' sdh-chart__bar--alt' : ''}" x="${(index * slot + (slot - barWidth) / 2).toFixed(1)}" y="${height - barHeight}" width="${barWidth.toFixed(1)}" height="${barHeight}" rx="1.5"><title>${esc(text)}</title></rect>`;
       })
       .join('');
     const first = formatShortDate(daily[0].date);
@@ -1852,6 +1885,8 @@
       invoice,
     };
     renderPlan();
+    // The summary tile names the paid plan of a past-due supplier from this same record.
+    renderSummary();
   }
 
   /** Opens the Stripe billing portal so a supplier can update a card, see invoices or cancel. */
@@ -1863,10 +1898,11 @@
       const result = await sendJson('/api/payments/create-portal-session', 'POST', {
         returnUrl: window.location.href,
       });
-      if (!result.ok || !result.data.url) {
+      const target = navigableUrl(result.data.url);
+      if (!result.ok || !target) {
         throw new Error(result.data.error || 'Could not open the billing portal.');
       }
-      window.location.href = result.data.url;
+      window.location.href = target;
     } catch (error) {
       toast(error.message || 'Could not open the billing portal. Please try again.', 'error');
       button.disabled = false;
@@ -2678,6 +2714,7 @@
     emailVerifiedFlag,
     billingDetails,
     localHref,
+    navigableUrl,
   };
 
   // The summary request starts as soon as this script runs; the rest waits for the other scripts.

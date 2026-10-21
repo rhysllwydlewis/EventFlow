@@ -1,6 +1,7 @@
 'use strict';
 
 const seoEligibility = require('./seoEligibility.service');
+const { packagePriceText } = require('../utils/packagePrice');
 
 const DEFAULT_BASE_URL = 'https://event-flow.co.uk';
 const SEO_BLOCK_MARKERS = {
@@ -440,7 +441,7 @@ function buildPackageSeoModel(pkg, supplier, options = {}) {
     160
   );
   const image = packageImage(pkg, baseUrl);
-  const price = numericPrice(pkg?.price ?? pkg?.price_display ?? pkg?.priceFrom);
+  const price = numericPrice(packagePriceText(pkg) || pkg?.priceFrom);
   const title = truncate([name, supplierName, 'EventFlow'].filter(Boolean).join(' | '), 70);
   const structuredData = {
     '@context': 'https://schema.org',

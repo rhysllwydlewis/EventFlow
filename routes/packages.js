@@ -8,6 +8,7 @@
 const express = require('express');
 const { PLACEHOLDER_PACKAGE_IMAGE, isPlaceholderImage } = require('../utils/packageImageUtils');
 const suppliersRouter = require('./suppliers');
+const { priceFields } = require('../utils/packagePrice');
 const router = express.Router();
 
 /**
@@ -390,7 +391,9 @@ router.post(
       supplierId,
       title: String(title).slice(0, 120),
       description: String(description || '').slice(0, 1500),
-      price: String(price).trim().slice(0, 60),
+      // One price, stored in both fields so the supplier dashboard, the admin screens and every
+      // public page show the same text (utils/packagePrice.js).
+      ...priceFields(price),
       image: resolvedImage,
       gallery,
       slug,
@@ -516,7 +519,13 @@ router.put(
         pkgUpdates.description = String(req.body.description).slice(0, 1500);
       }
       if (req.body.price !== undefined) {
-        pkgUpdates.price = String(req.body.price).slice(0, 60);
+        // A price is required to create a package, and it cannot be blanked by editing one.
+        if (!priceFields(req.body.price).price) {
+          return res.status(400).json({
+            error: 'A price is required. Please enter a specific price for this package.',
+          });
+        }
+        Object.assign(pkgUpdates, priceFields(req.body.price));
       }
       if (req.body.image !== undefined) {
         const newImage = req.body.image;
@@ -1022,7 +1031,7 @@ router.put(
       pkgUpdates.description = req.body.description;
     }
     if (req.body.price_display) {
-      pkgUpdates.price_display = req.body.price_display;
+      Object.assign(pkgUpdates, priceFields(req.body.price_display));
     }
     if (req.body.image) {
       const newImage = req.body.image;

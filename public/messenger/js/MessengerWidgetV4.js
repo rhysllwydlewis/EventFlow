@@ -308,6 +308,10 @@
         clearInterval(this.refreshTimer);
         this.refreshTimer = null;
       }
+      if (this._socketWait) {
+        clearInterval(this._socketWait);
+        this._socketWait = null;
+      }
       if (this._socket) {
         this._socket.disconnect();
         this._socket = null;
@@ -362,6 +366,15 @@
           window.dispatchEvent(
             new CustomEvent('messenger:unread-count', { detail: { count: this.unreadCount } })
           );
+        } else if (
+          window.unreadBadgeManager &&
+          typeof window.unreadBadgeManager.refresh === 'function' &&
+          this.unreadCount !== this._prevUnreadCount
+        ) {
+          // This list is only part of the inbox, so its own count is not announced. Ask the
+          // badge manager for the full total instead, so the badges follow a change at once and
+          // not at its next two-minute poll.
+          window.unreadBadgeManager.refresh();
         }
 
         this._render();
@@ -399,28 +412,58 @@
     // ── WebSocket / polling ───────────────────────────────────────────────────
 
     _setupWebSocket() {
-      if (window.io && typeof window.io === 'function') {
-        try {
-          this._socket = window.io();
-          const refresh = () => this._fetchConversations();
-          // NOTE: the widget does NOT join per-conversation rooms (it has no
-          // active conversation selected), so the server will never deliver
-          // `messenger:v4:message` events here.  These listeners remain as a
-          // best-effort refresh trigger if future work broadcasts widget-scoped
-          // events, but polling is the source of truth — see `_setupPolling`.
-          this._socket.on('messenger:v4:message', refresh);
-          this._socket.on('messenger:v4:conversation-updated', refresh);
-          this._socket.on('messenger:v4:read', refresh);
-          this._socket.on('connect', () => {
-            this.wsConnected = true;
-          });
-          this._socket.on('disconnect', () => {
-            this.wsConnected = false;
-          });
-        } catch (e) {
-          // Socket.IO unavailable – polling below is unaffected
+      // The Socket.IO client is loaded by another script and may not be here yet: wait for it (for
+      // a while) rather than giving up on the first look, because polling alone is slow to notice.
+      if (!(window.io && typeof window.io === 'function')) {
+        let waited = 0;
+        this._socketWait = setInterval(() => {
+          waited += 250;
+          if (window.io && typeof window.io === 'function') {
+            clearInterval(this._socketWait);
+            this._socketWait = null;
+            this._connectSocket();
+          } else if (waited >= 15000) {
+            clearInterval(this._socketWait);
+            this._socketWait = null;
+          }
+        }, 250);
+        return;
+      }
+      this._connectSocket();
+    }
+
+    _connectSocket() {
+      try {
+        this._socket = window.io(`${window.location.protocol}//${window.location.host}`, {
+          path: '/socket.io',
+          transports: ['websocket', 'polling'],
+          reconnection: true,
+        });
+        const refresh = () => this._fetchConversations();
+        // The widget does not join per-conversation rooms (it has no conversation selected), so
+        // room events such as `messenger:v4:message` do not reach it. What reaches it is what the
+        // server sends on the user's own channel: a message arriving in any of their conversations,
+        // and a conversation being created. Those refresh the list at once; polling (see
+        // `_setupPolling`) stays as the fallback for when a socket is not connected.
+        this._socket.on('messenger:v4:new-message', refresh);
+        this._socket.on('messenger:v4:conversation-created', refresh);
+        this._socket.on('messenger:v4:conversation-updated', refresh);
+        this._socket.on('messenger:v4:read', refresh);
+        this._socket.on('connect', () => {
+          this.wsConnected = true;
+          // The server only puts a socket on the user's channel once it has said who it is; the
+          // cookie at the handshake is not enough. Say so again after every reconnect.
+          const userId = this._resolveCurrentUserId();
+          if (userId) {
+            this._socket.emit('auth', { userId });
+          }
+        });
+        this._socket.on('disconnect', () => {
           this.wsConnected = false;
-        }
+        });
+      } catch (e) {
+        // Socket.IO unavailable – polling below is unaffected
+        this.wsConnected = false;
       }
     }
 

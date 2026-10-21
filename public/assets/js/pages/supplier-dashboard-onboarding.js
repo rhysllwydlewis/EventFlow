@@ -11,7 +11,9 @@
  * left out; a step that is locked or waiting says why instead of offering a button.
  *
  * Progress is kept in this browser (localStorage), keyed by the signed-in user's id: nothing in
- * the server's user record is meant for it, so there is no server copy. A guide that was skipped
+ * the server's user record is meant for it, so there is no server copy. It is a remembered
+ * preference, so it is saved only when the visitor has allowed functional storage (it is held for
+ * the visit otherwise) and is erased when they decline it. A guide that was skipped
  * or finished does not come back by itself; the "Setup guide" link under the greeting reopens it
  * at the step where it was left.
  */
@@ -53,8 +55,48 @@
     return `${STORAGE_PREFIX}${String((user && (user.id || user._id)) || 'anonymous')}`;
   }
 
+  /**
+   * Whether this browser may keep the guide's progress. It is a remembered preference, so it follows
+   * the visitor's cookie choice: it is kept only when functional storage has been allowed. When the
+   * consent banner is not on the page there is no choice to follow and it is kept.
+   */
+  function mayRemember() {
+    const consent = window.CookieConsent;
+    if (!consent || typeof consent.getConsent !== 'function') {
+      return true;
+    }
+    try {
+      const choice = consent.getConsent();
+      return Boolean(choice && choice.functional === true);
+    } catch {
+      return false;
+    }
+  }
+
+  /** Progress held for this visit only, used while the browser may not keep it. */
+  const visitProgress = {};
+
+  /** Removes every saved guide record from this browser (all users of it). */
+  function eraseSavedProgress() {
+    try {
+      const keys = [];
+      for (let index = 0; index < window.localStorage.length; index += 1) {
+        const key = window.localStorage.key(index);
+        if (key && key.startsWith(STORAGE_PREFIX)) {
+          keys.push(key);
+        }
+      }
+      keys.forEach(key => window.localStorage.removeItem(key));
+    } catch {
+      /* storage blocked: nothing was kept */
+    }
+  }
+
   /** What was saved for this user: { status: 'active' | 'dismissed' | 'completed', step } or {}. */
   function readProgress(user) {
+    if (!mayRemember()) {
+      return visitProgress[storageKey(user)] || {};
+    }
     try {
       const raw = window.localStorage.getItem(storageKey(user));
       const parsed = raw ? JSON.parse(raw) : null;
@@ -64,13 +106,19 @@
     }
   }
 
-  /** Saves the guide's status and the step it is on. Storage can be blocked; the guide still works. */
+  /**
+   * Saves the guide's status and the step it is on. Where the browser may not keep it (functional
+   * storage not allowed) it lasts for this visit only. Storage can also be blocked; the guide
+   * still works.
+   */
   function writeProgress(user, status, stepId) {
+    const record = { status, step: stepId || '', at: new Date().toISOString() };
+    if (!mayRemember()) {
+      visitProgress[storageKey(user)] = record;
+      return;
+    }
     try {
-      window.localStorage.setItem(
-        storageKey(user),
-        JSON.stringify({ status, step: stepId || '', at: new Date().toISOString() })
-      );
+      window.localStorage.setItem(storageKey(user), JSON.stringify(record));
     } catch {
       /* private mode or blocked storage: the guide just will not remember */
     }
@@ -431,6 +479,15 @@
         closeDialog();
       }
     });
+    // Declining functional storage (now, or earlier) erases what was kept.
+    window.addEventListener('cookieConsentChanged', event => {
+      if (event && event.detail && event.detail.functional === false) {
+        eraseSavedProgress();
+      }
+    });
+    if (!mayRemember() && window.CookieConsent) {
+      eraseSavedProgress();
+    }
     document.addEventListener('sdh:rendered', onRendered);
     onRendered();
   }
@@ -441,6 +498,7 @@
     readProgress,
     writeProgress,
     storageKey,
+    eraseSavedProgress,
     open,
   };
 

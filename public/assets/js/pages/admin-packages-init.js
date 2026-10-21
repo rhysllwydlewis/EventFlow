@@ -107,7 +107,7 @@
       )}</strong><br><span class="small">${escapeHtml((pkg.description || '').substring(0, 100))}${
         pkg.description && pkg.description.length > 100 ? '...' : ''
       }</span></td>`;
-      html += `<td>${escapeHtml(pkg.price_display || '')}</td>`;
+      html += `<td>${escapeHtml(pkg.price_display || pkg.price || '')}</td>`;
       html += '<td>';
       html += `<span class="badge ${pkg.approved ? 'badge-yes' : 'badge-no'}">${
         pkg.approved ? 'Approved' : 'Pending'
@@ -306,7 +306,7 @@
 
     document.getElementById('packageTitle').value = pkg.title || '';
     document.getElementById('packageDescription').value = pkg.description || '';
-    document.getElementById('packagePrice').value = pkg.price_display || '';
+    document.getElementById('packagePrice').value = pkg.price_display || pkg.price || '';
     document.getElementById('packageImage').value = pkg.image || '';
     document.getElementById('packageApproved').checked = !!pkg.approved;
     document.getElementById('packageFeatured').checked = !!pkg.featured;

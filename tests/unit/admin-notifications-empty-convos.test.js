@@ -117,8 +117,14 @@ describe('routes/messenger-v4.js — conversation-created WS only to creator', (
     const sendStart   = src.indexOf("router.post(\n  '/conversations/:id/messages'");
     const createSlice = src.slice(createStart, sendStart);
     expect(createSlice).toContain(
-      "wsServer.to(currentUserId).emit('messenger:v4:conversation-created'"
+      "emitToUser(currentUserId, 'messenger:v4:conversation-created'"
     );
+  });
+
+  test('does not call a Socket.IO-only API on the websocket server directly (the v2 server has none)', () => {
+    const createStart = src.indexOf("router.post(\n  '/conversations'");
+    const sendStart   = src.indexOf("router.post(\n  '/conversations/:id/messages'");
+    expect(src.slice(createStart, sendStart)).not.toMatch(/wsServer\.to\(/);
   });
 });
 
@@ -151,5 +157,29 @@ describe('messenger-v4.service.js — message content validation', () => {
     const end   = src.indexOf('  async ', start + 100);
     const fn    = src.slice(start, end);
     expect(fn).toMatch(/sanitize|sanitise|sanitized|trim|content.*empty|empty.*content/i);
+  });
+});
+
+// ── Issue 3: people not in the conversation room still hear about a new message ──
+
+describe('routes/messenger-v4.js — new messages reach recipients on their own channel', () => {
+  const src = fs.readFileSync(path.join(__dirname, '../../routes/messenger-v4.js'), 'utf8');
+  const sendStart = src.indexOf("router.post(\n  '/conversations/:id/messages'");
+  const sendSlice = src.slice(sendStart, src.indexOf('\nrouter.', sendStart + 10));
+
+  test('sending emits messenger:v4:new-message to every other, non-deleted participant', () => {
+    expect(sendSlice).toContain("emitToUser(participant.userId, 'messenger:v4:new-message'");
+    expect(sendSlice).toContain('String(participant.userId) !== String(userId)');
+    expect(sendSlice).toContain('!participant.isDeleted');
+  });
+
+  test('the room broadcast is still sent as well', () => {
+    expect(sendSlice).toContain("emitToConversation(conversation, 'messenger:v4:message'");
+  });
+
+  test('the emit helper uses the server\'s own API, and the user channel name a raw server needs', () => {
+    const helper = src.slice(src.indexOf('function emitToUser('), src.indexOf('function emitToConversation('));
+    expect(helper).toContain("typeof ws.emitToUser === 'function'");
+    expect(helper).toContain('ws.to(`user:${userId}`).emit(event, data)');
   });
 });

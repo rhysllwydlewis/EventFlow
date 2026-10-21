@@ -78,7 +78,10 @@ keyboard and screen reader friendly (focus on the step heading, a native dialog)
   locked or waiting step says why instead of offering a button. It cannot contradict the card.
 - Progress (`active` / `dismissed` / `completed` and the step) is kept in `localStorage`,
   keyed by user id (`ef.supplierGuide.v1.<id>`). No server field exists for it, so there is
-  no server copy; blocked storage is tolerated.
+  no server copy; blocked storage is tolerated. Because it is a convenience rather than
+  something the site needs, it is only written when cookie consent allows functional storage;
+  without consent the guide still works for the visit, and saved progress is erased if
+  consent is withdrawn.
 - It does not come back by itself after being skipped or finished. The "Setup guide" link
   under the greeting reopens it at the step it was left on.
 
@@ -113,14 +116,17 @@ Nothing on the page is computed from guesses.
   page loads, enquiries and the reply rate side by side and says it is not a conversion rate.
 - **Reply rate and reply time** appear only when the server reports enough conversations.
 - **Rating** is the approved average; with none the card says "No reviews yet", not 0.0.
-- **Packages** show `countedTowardsLimit` of `limit`; the price is what the supplier typed
-  (`price`, with the older `price_display` as fallback).
+- **Packages** show `countedTowardsLimit` of `limit`; the price is what the supplier typed.
+  Every writer stores it in both `price` and `price_display` (`utils/packagePrice.js`) and
+  every reader goes through `packagePriceText`; `npm run repair:package-prices` (dry run by
+  default) fixes older packages where the two fields differ.
 - **Plan card**: the plan, status, the end-of-period sentence (renews, downgrades to X, or
   cancels, from the subscription record), billing interval, trial end and days left, start
   date, next payment, card on file, discount, and the entitlements the plan really has. A
   failed payment shows the plan the supplier pays for with the failed payment and a billing
   button, never "Starter".
-- Unread messages follow the messenger's live count; the lead-quality badges are hidden (the
+- Unread messages follow the messenger's live count, which the widget updates over Socket.IO
+  as soon as a customer writes; the lead-quality badges are hidden (the
   server sends no score).
 
 ## How the scripts fit together

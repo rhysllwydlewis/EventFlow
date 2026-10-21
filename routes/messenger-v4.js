@@ -310,8 +310,15 @@ async function getNotificationService() {
  */
 function emitToUser(userId, event, data) {
   const ws = _getWsServer ? _getWsServer() : null;
-  if (ws && ws.emitToUser) {
+  if (!ws) {
+    return;
+  }
+  if (typeof ws.emitToUser === 'function') {
+    // Both of the app's websocket servers (v1 and v2) offer this.
     ws.emitToUser(userId, event, data);
+  } else if (typeof ws.to === 'function') {
+    // A bare Socket.IO server handed in by a custom setup: each user's room is `user:<id>`.
+    ws.to(`user:${userId}`).emit(event, data);
   }
 }
 
@@ -473,10 +480,10 @@ router.post(
       // the conversation once a real message arrives via the existing
       // 'messenger:v4:new-message' WS event, which carries the conversation
       // context and is emitted to all participants on message send.
-      const wsServer = _getWsServer ? _getWsServer() : null;
-      if (wsServer) {
-        wsServer.to(currentUserId).emit('messenger:v4:conversation-created', { conversation });
-      }
+      // Through the shared helper: the default (v2) websocket server has no Socket.IO `to()`, so
+      // calling it directly threw after the conversation was saved and answered the creator with
+      // a 500 for a conversation that had in fact been created.
+      emitToUser(currentUserId, 'messenger:v4:conversation-created', { conversation });
 
       messengerMetrics.increment('messenger_v4_conversations_created_total');
       logger.info('messenger_v4 conversation_created', {
@@ -786,6 +793,15 @@ router.post(
       emitToConversation(conversation, 'messenger:v4:message', {
         conversationId,
         message,
+      });
+
+      // The room above only reaches people who have this conversation open. Everyone else in it
+      // still needs to hear that a message arrived (the unread badge, the dashboard's inbox
+      // preview), so they are told on their own user channel as well.
+      (conversation.participants || []).forEach(participant => {
+        if (String(participant.userId) !== String(userId) && !participant.isDeleted) {
+          emitToUser(participant.userId, 'messenger:v4:new-message', { conversationId, message });
+        }
       });
 
       // Notify auto-unarchived recipients so their client moves the conversation

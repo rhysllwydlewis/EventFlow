@@ -7,6 +7,7 @@
 
 const express = require('express');
 const logger = require('../utils/logger');
+const { priceFields } = require('../utils/packagePrice');
 const { uid } = require('../store');
 const { authRequired, roleRequired } = require('../middleware/auth');
 const { auditLog, auditMiddleware, AUDIT_ACTIONS } = require('../middleware/audit');
@@ -1735,11 +1736,10 @@ router.put(
     if (description !== undefined) {
       setFields.description = description;
     }
-    if (price !== undefined) {
-      setFields.price = price;
-    }
-    if (price_display !== undefined) {
-      setFields.price_display = price_display;
+    if (price !== undefined || price_display !== undefined) {
+      // One price in both fields (utils/packagePrice.js). The admin screens send price_display, so
+      // it wins if both arrive.
+      Object.assign(setFields, priceFields(price_display !== undefined ? price_display : price));
     }
     if (image !== undefined) {
       setFields.image = image;

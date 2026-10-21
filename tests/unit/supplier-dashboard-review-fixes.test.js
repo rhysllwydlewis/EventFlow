@@ -293,3 +293,32 @@ describe('the profile card does not sit in a card inside the card', () => {
     expect(css).toMatch(/\.sdh-page \.sdh-pkg__price \{[^}]*overflow-wrap: anywhere/);
   });
 });
+
+describe('supplier dashboard home: addresses the server asks the page to open', () => {
+  const home = loadHome();
+  const base = 'https://event-flow.co.uk/dashboard/supplier';
+
+  test('an https address or one on this site is opened', () => {
+    expect(home.navigableUrl('https://billing.stripe.com/p/session/abc', base)).toBe(
+      'https://billing.stripe.com/p/session/abc'
+    );
+    expect(home.navigableUrl('/supplier/subscription?x=1', base)).toBe(
+      'https://event-flow.co.uk/supplier/subscription?x=1'
+    );
+  });
+
+  test.each([
+    'javascript:alert(1)',
+    'JaVaScRiPt:alert(1)',
+    'data:text/html,<script>alert(1)</script>',
+    'http://evil.example/portal',
+    'vbscript:msgbox(1)',
+    '',
+    '   ',
+    undefined,
+    null,
+    42,
+  ])('%p is never navigated to', value => {
+    expect(home.navigableUrl(value, base)).toBe('');
+  });
+});

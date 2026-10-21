@@ -13,59 +13,18 @@ function readSrc(...parts) {
   return fs.readFileSync(path.resolve(__dirname, '..', '..', ...parts), 'utf8');
 }
 
-// Replicate the validateRedirectForRole logic (mirrors app.js + test file)
+// The real redirect code from app.js (not a copy), against the site's origin.
+const { loadAppRedirect } = require('../helpers/load-app-redirect');
+const { safeRedirectTarget } = loadAppRedirect('http://localhost:3000');
+
+/**
+ * Whether app.js would send this role to this redirect parameter.
+ * @param {string} redirectUrl - The raw redirect parameter
+ * @param {string} userRole - Account role
+ * @returns {boolean} True when it is an allowed target
+ */
 function validateRedirectForRole(redirectUrl, userRole) {
-  if (!redirectUrl || typeof redirectUrl !== 'string') {
-    return false;
-  }
-  const url = redirectUrl.trim();
-  if (!url.startsWith('/')) {
-    return false;
-  }
-  let pathname;
-  try {
-    const urlObj = new URL(url, 'http://localhost:3000');
-    if (urlObj.origin !== 'http://localhost:3000') {
-      return false;
-    }
-    pathname = urlObj.pathname;
-  } catch (_) {
-    pathname = url.split('?')[0].split('#')[0];
-  }
-
-  const allowedPaths = {
-    supplier: [
-      '/dashboard-supplier.html',
-      '/dashboard.html',
-      '/settings.html',
-      '/plan.html',
-      '/pricing.html',
-      '/checkout.html',
-      '/supplier/subscription.html',
-      '/my-marketplace-listings.html',
-      '/supplier/marketplace-new-listing.html',
-      '/marketplace',
-      '/marketplace.html',
-      '/conversation.html',
-      '/messenger/',
-    ],
-    customer: [
-      '/dashboard-customer.html',
-      '/dashboard.html',
-      '/settings.html',
-      '/plan.html',
-      '/pricing.html',
-      '/checkout.html',
-      '/my-marketplace-listings.html',
-      '/marketplace',
-      '/marketplace.html',
-      '/conversation.html',
-      '/messenger/',
-    ],
-  };
-
-  const allowed = allowedPaths[userRole] || [];
-  return allowed.includes(pathname);
+  return safeRedirectTarget(redirectUrl, userRole) !== null;
 }
 
 // ── Test suites ──────────────────────────────────────────────────────────────
@@ -207,7 +166,7 @@ describe('Pricing and payment system fixes', () => {
       expect(validateRedirectForRole('/supplier/subscription.html', 'supplier')).toBe(true);
     });
 
-    it('allows /checkout.html?plan=pro for suppliers (query string stripped)', () => {
+    it('allows /checkout.html?plan=pro for suppliers (query string kept)', () => {
       expect(validateRedirectForRole('/checkout.html?plan=pro', 'supplier')).toBe(true);
     });
 

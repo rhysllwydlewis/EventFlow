@@ -76,6 +76,19 @@ describe('enquiry figures (R1)', () => {
     expect(page.visitsHtml.match(/<figure class="sdh-chart"/g)).toHaveLength(2);
   });
 
+  test('bars sit in even slots and are never a slab, however few days have anything', () => {
+    const rects = [
+      ...page.visitsHtml.matchAll(/<rect [^>]*x="([\d.]+)"[^>]*width="([\d.]+)"/g),
+    ].map(match => ({ x: Number(match[1]), width: Number(match[2]) }));
+    expect(rects.length).toBeGreaterThan(1);
+    rects.forEach(rect => expect(rect.width).toBeLessThanOrEqual(28));
+    // Consecutive bars are one slot apart: even spacing across the whole width.
+    const first = rects.slice(0, 3).map(rect => rect.x);
+    const step = first[1] - first[0];
+    expect(step).toBeGreaterThan(0);
+    expect(first[2] - first[1]).toBeCloseTo(step, 1);
+  });
+
   test('no enquiry figure is shown when the server sent none', () => {
     const bare = clone(summary);
     delete bare.enquiries;

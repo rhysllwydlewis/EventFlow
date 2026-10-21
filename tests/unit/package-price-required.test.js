@@ -63,8 +63,9 @@ describe('POST /me/packages — price required (server)', () => {
     );
   });
 
-  it('stores price as trimmed string on the new package object', () => {
-    expect(packagesContent).toContain('price: String(price).trim().slice(0, 60)');
+  it('stores the price, trimmed and length-limited, in both price fields on the new package', () => {
+    // priceFields (utils/packagePrice.js) trims, limits to 60 characters and fills price and price_display.
+    expect(packagesContent).toContain('...priceFields(price),');
   });
 });
 
