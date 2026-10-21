@@ -149,7 +149,7 @@ if (require.main === module) {
     .then(async code => {
       process.exitCode = code;
       // Close the connection so the process ends on its own once it is done.
-      await db.close().catch(() => {});
+      await db.close().catch(() => null);
     });
 }
 

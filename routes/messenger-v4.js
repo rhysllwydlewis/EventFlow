@@ -528,7 +528,7 @@ async function storeMessageAttachments(files) {
   if (!files || files.length === 0) {
     return { attachments: [] };
   }
-  let attachments;
+  let attachments = [];
   try {
     attachments = await persistValidatedMessengerAttachments(files);
   } catch (error) {

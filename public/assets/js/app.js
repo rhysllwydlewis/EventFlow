@@ -1951,7 +1951,7 @@ async function initDashSupplier() {
 
   /** Uploads a chosen profile photo, then reloads the profile card and tells the dashboard. */
   async function uploadProfilePhoto(e) {
-    const file = e.target.files && e.target.files[0];
+    const file = e.target.files?.[0];
     if (!file) {
       return;
     }
@@ -2004,7 +2004,7 @@ async function initDashSupplier() {
       return;
     }
     select.innerHTML = items
-      .filter(s => s && s.id && s.name)
+      .filter(s => s?.id && s.name)
       .map(
         s => `<option value="${escapeHtml(String(s.id))}">${escapeHtml(String(s.name))}</option>`
       )
@@ -2860,7 +2860,7 @@ async function initDashSupplier() {
    * @param {HTMLElement} actionEl - The button.
    * @returns {Promise<boolean>} False when the click should not go on to any other handler.
    */
-  async function runDashboardAction(actionEl) {
+  function runDashboardAction(actionEl) {
     const action = actionEl.getAttribute('data-action');
     const idAction = ID_ACTIONS.get(action);
     if (idAction) {
@@ -5030,37 +5030,23 @@ function postLoginDestination(role, search) {
   return destination;
 }
 
-document.addEventListener('DOMContentLoaded', () => {
-  const page = window.__EF_PAGE__ || efDetectPage(location.pathname);
+/** Runs the setup for the pages whose scripts live in this file. */
+function runPageInit(page) {
+  const pageInits = {
+    results: initResults,
+    plan: initPlan,
+    dash_supplier: initDashSupplier,
+    admin: initAdmin,
+  };
+  if (Object.hasOwn(pageInits, page)) {
+    pageInits[page]?.();
+  }
+}
 
-  // Version display is handled by admin-shared.js for admin pages.
-  // Public pages keep the version wrapper hidden via the HTML hidden attribute.
-  // No version fetch needed here.
-
-  // Per-page setup
-  // Note: homepage initialization is handled by home-init.js
-  // (removed initHome() from app.js to avoid conflicts)
-  if (page === 'results') {
-    initResults && initResults();
-  }
-  if (page === 'plan') {
-    initPlan && initPlan();
-  }
-  if (page === 'dash_supplier') {
-    initDashSupplier && initDashSupplier();
-  }
-  if (page === 'admin') {
-    initAdmin && initAdmin();
-  }
-  // Note: page === 'admin_users' is handled by admin-users-init.js
-  // Note: page === 'verify' is now handled by verify-init.js
-
-  // Global header behaviour: scroll hide/show
-  // Note: burger menu is handled by auth-nav.js
+/** Hides the header while scrolling down and shows it again on scrolling up. */
+function initHeaderScrollBehaviour() {
   try {
     const header = document.querySelector('.header');
-
-    // Hide header on scroll down, show on scroll up
     let lastY = window.scrollY;
     let ticking = false;
     const threshold = 12;
@@ -5072,9 +5058,9 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
       }
       if (currentY > lastY && currentY > 40) {
-        header && header.classList.add('header--hidden');
+        header?.classList.add('header--hidden');
       } else {
-        header && header.classList.remove('header--hidden');
+        header?.classList.remove('header--hidden');
       }
       lastY = currentY;
       ticking = false;
@@ -5089,6 +5075,25 @@ document.addEventListener('DOMContentLoaded', () => {
   } catch {
     /* Ignore loader errors */
   }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  const page = window.__EF_PAGE__ || efDetectPage(location.pathname);
+
+  // Version display is handled by admin-shared.js for admin pages.
+  // Public pages keep the version wrapper hidden via the HTML hidden attribute.
+  // No version fetch needed here.
+
+  // Per-page setup
+  // Note: homepage initialization is handled by home-init.js
+  // (removed initHome() from app.js to avoid conflicts)
+  // Note: page === 'admin_users' is handled by admin-users-init.js
+  // Note: page === 'verify' is now handled by verify-init.js
+  runPageInit(page);
+
+  // Global header behaviour: scroll hide/show
+  // Note: burger menu is handled by auth-nav.js
+  initHeaderScrollBehaviour();
 
   // Password visibility toggle — shared across all pages
   const SVG_EYE =
@@ -5571,7 +5576,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
       /** Asks the server to sign in. */
       const requestLogin = async (email, password, remember) => {
-        const r = await fetch('/api/v1/auth/login', {
+        const response = await fetch('/api/v1/auth/login', {
           method: 'POST',
           headers: getHeadersWithCsrf({ 'Content-Type': 'application/json' }),
           credentials: 'include',
@@ -5579,22 +5584,22 @@ document.addEventListener('DOMContentLoaded', () => {
         });
         let data = {};
         try {
-          data = await r.json();
+          data = await response.json();
         } catch {
           /* Ignore JSON parse errors */
         }
-        return { r, data };
+        return { response, data };
       };
 
       /** Shows why the sign-in was refused, and offers a new verification email when that is why. */
-      const showLoginRefusal = (r, data) => {
-        const errorMsg = loginFailureMessage(r.status, data.error);
+      const showLoginRefusal = (response, data) => {
+        const errorMsg = loginFailureMessage(response.status, data.error);
         showLoginError(errorMsg);
         // Check if login failed due to unverified email (403 status)
         if (
           loginStatus &&
           resendContainer &&
-          r.status === 403 &&
+          response.status === 403 &&
           errorMsg.toLowerCase().includes('verify')
         ) {
           resendContainer.style.display = 'block';
@@ -5642,11 +5647,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
         setAuthSubmitButtonState(loginBtn, 'Signing in…', true);
         try {
-          const { r, data } = await requestLogin(email, password, remember);
-          if (r.ok) {
+          const { response, data } = await requestLogin(email, password, remember);
+          if (response.ok) {
             completeLogin(data.user || {});
           } else {
-            showLoginRefusal(r, data);
+            showLoginRefusal(response, data);
           }
         } catch (err) {
           showLoginError('Network error – please try again.');
