@@ -11,6 +11,25 @@ import supplierManager from './supplier-manager.js';
 /** Photo allowance for the free tier, used until the real one has loaded. */
 const DEFAULT_PHOTO_LIMIT = 10;
 
+/**
+ * One entry of a supplier's gallery as the editor keeps it ({ url, id }).
+ *
+ * The public supplier endpoint returns gallery entries as plain URL strings, while the owner's own
+ * routes return objects. A string used to come out as { url: undefined, id: 'photo_0' }: the photo
+ * showed no image and "Delete photo" asked the server for a photo that does not exist. The server
+ * accepts a photo's URL as its id, so a string is both.
+ * @param {string|Object} entry
+ * @param {number} index
+ * @returns {{url: string, id: string}}
+ */
+function galleryEntry(entry, index) {
+  if (typeof entry === 'string') {
+    return { url: entry, id: entry };
+  }
+  const url = entry?.url || entry?.large || entry?.optimized || entry?.original || '';
+  return { url, id: entry?.id || url || `photo_${index}` };
+}
+
 class SupplierGalleryManager {
   constructor() {
     this.currentSupplierId = null;
@@ -191,6 +210,7 @@ class SupplierGalleryManager {
     }
 
     // Add files to pending uploads and show preview
+    const previews = [];
     for (const file of fileArray) {
       if (!file.type || !file.type.startsWith('image/')) {
         console.warn('Skipping non-image file:', file.name);
@@ -201,7 +221,7 @@ class SupplierGalleryManager {
       this.pendingUploads.push(file);
 
       // Show preview
-      this.showPreview(file, previewContainer);
+      previews.push(this.showPreview(file, previewContainer));
     }
 
     if (isDevelopment) {
@@ -209,72 +229,86 @@ class SupplierGalleryManager {
     }
 
     // For existing suppliers, upload immediately so selected photos are added to
-    // the gallery without requiring another profile save.
+    // the gallery without requiring another profile save. The tiles are drawn first: the upload
+    // clears the pending tiles when it finishes, so one drawn afterwards would stay on the page
+    // beside the saved photo.
+    await Promise.all(previews);
     if (this.currentSupplierId) {
       await this.uploadPendingPhotos(this.currentSupplierId);
     }
   }
 
+  /**
+   * Draw the pending tile for a chosen file.
+   * @returns {Promise<void>} Resolves once the tile is on the page (or the file could not be read).
+   */
   showPreview(file, previewContainer) {
     const reader = new FileReader();
 
-    reader.addEventListener('load', e => {
-      const wrapper = document.createElement('div');
-      wrapper.className = 'photo-preview-item photo-preview-item--pending';
-
-      // "Pending" label so the user can distinguish staged files from uploaded ones
-      const pendingBadge = document.createElement('span');
-      pendingBadge.className = 'photo-pending-badge';
-      pendingBadge.textContent = 'Pending';
-      pendingBadge.setAttribute('aria-hidden', 'true');
-      wrapper.appendChild(pendingBadge);
-
-      // Remove button (before upload)
-      const removeBtn = document.createElement('button');
-      removeBtn.type = 'button';
-      removeBtn.textContent = '✕';
-      removeBtn.className = 'photo-remove-btn';
-      removeBtn.setAttribute('aria-label', 'Remove photo');
-      removeBtn.title = 'Remove from upload queue';
-      removeBtn.addEventListener('click', () => {
-        // Remove from pending uploads - ensure pendingUploads is defined
-        if (this.pendingUploads && Array.isArray(this.pendingUploads)) {
-          const index = this.pendingUploads.indexOf(file);
-          if (index > -1) {
-            this.pendingUploads.splice(index, 1);
-          }
-        }
-        // Remove preview
-        wrapper.remove();
+    return new Promise(resolve => {
+      reader.addEventListener('error', () => resolve());
+      reader.addEventListener('load', e => {
+        this.drawPendingTile(file, previewContainer, e.target.result);
+        resolve();
       });
-      wrapper.appendChild(removeBtn);
-
-      // Image container — overflow:hidden keeps the tile at a fixed size
-      const imgWrap = document.createElement('div');
-      imgWrap.className = 'photo-preview-item__image-wrap';
-      const img = document.createElement('img');
-      img.src = e.target.result;
-      img.alt = file.name;
-      img.addEventListener(
-        'error',
-        () => {
-          if (img.dataset.errorHandled) {
-            return;
-          }
-          img.dataset.errorHandled = '1';
-          img.alt = 'Image unavailable';
-          img.title = 'Could not load image';
-          imgWrap.classList.add('photo-preview-item__image-wrap--error');
-        },
-        { once: true }
-      );
-      imgWrap.appendChild(img);
-      wrapper.appendChild(imgWrap);
-
-      previewContainer.appendChild(wrapper);
+      reader.readAsDataURL(file);
     });
+  }
 
-    reader.readAsDataURL(file);
+  drawPendingTile(file, previewContainer, dataUrl) {
+    const wrapper = document.createElement('div');
+    wrapper.className = 'photo-preview-item photo-preview-item--pending';
+
+    // "Pending" label so the user can distinguish staged files from uploaded ones
+    const pendingBadge = document.createElement('span');
+    pendingBadge.className = 'photo-pending-badge';
+    pendingBadge.textContent = 'Pending';
+    pendingBadge.setAttribute('aria-hidden', 'true');
+    wrapper.appendChild(pendingBadge);
+
+    // Remove button (before upload)
+    const removeBtn = document.createElement('button');
+    removeBtn.type = 'button';
+    removeBtn.textContent = '✕';
+    removeBtn.className = 'photo-remove-btn';
+    removeBtn.setAttribute('aria-label', 'Remove photo');
+    removeBtn.title = 'Remove from upload queue';
+    removeBtn.addEventListener('click', () => {
+      // Remove from pending uploads - ensure pendingUploads is defined
+      if (this.pendingUploads && Array.isArray(this.pendingUploads)) {
+        const index = this.pendingUploads.indexOf(file);
+        if (index > -1) {
+          this.pendingUploads.splice(index, 1);
+        }
+      }
+      // Remove preview
+      wrapper.remove();
+    });
+    wrapper.appendChild(removeBtn);
+
+    // Image container — overflow:hidden keeps the tile at a fixed size
+    const imgWrap = document.createElement('div');
+    imgWrap.className = 'photo-preview-item__image-wrap';
+    const img = document.createElement('img');
+    img.src = dataUrl;
+    img.alt = file.name;
+    img.addEventListener(
+      'error',
+      () => {
+        if (img.dataset.errorHandled) {
+          return;
+        }
+        img.dataset.errorHandled = '1';
+        img.alt = 'Image unavailable';
+        img.title = 'Could not load image';
+        imgWrap.classList.add('photo-preview-item__image-wrap--error');
+      },
+      { once: true }
+    );
+    imgWrap.appendChild(img);
+    wrapper.appendChild(imgWrap);
+
+    previewContainer.appendChild(wrapper);
   }
 
   /**
@@ -393,10 +427,7 @@ class SupplierGalleryManager {
     try {
       const supplier = await supplierManager.getSupplier(supplierId);
       if (supplier && supplier.photosGallery && Array.isArray(supplier.photosGallery)) {
-        this.uploadedPhotos = supplier.photosGallery.map((p, i) => ({
-          url: p.url,
-          id: p.id || p.url || `photo_${i}`,
-        }));
+        this.uploadedPhotos = supplier.photosGallery.map(galleryEntry);
       } else {
         this.uploadedPhotos = [];
       }
@@ -764,10 +795,7 @@ class SupplierGalleryManager {
       } else {
         const data = await response.json();
         if (data.photosGallery) {
-          this.uploadedPhotos = data.photosGallery.map((p, i) => ({
-            url: p.url,
-            id: p.id || p.url || `photo_${i}`,
-          }));
+          this.uploadedPhotos = data.photosGallery.map(galleryEntry);
         }
         if (status) {
           status.textContent = '✓ Order saved';

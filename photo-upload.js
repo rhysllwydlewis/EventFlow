@@ -184,8 +184,12 @@ async function saveToMongoDB(buffer, filename, type = 'optimized') {
     const db = await mongoDb.getDb();
     const collection = db.collection('photos');
 
+    // `id` mirrors `_id`: the photos collection has a unique index on `id`, and a missing field
+    // counts as null there, so without it only one image could ever be stored.
+    const photoId = uid('photo');
     const photoDoc = {
-      _id: uid('photo'),
+      _id: photoId,
+      id: photoId,
       filename,
       type,
       data: buffer.toString('base64'),

@@ -6,6 +6,46 @@ import {
   seedBackendFixtures,
 } from './helpers/backend-fixtures.js';
 
+import zlib from 'node:zlib';
+
+// A real, solid-colour PNG of the given size (the server checks image dimensions).
+function solidPng(size, [r, g, b]) {
+  const crcTable = Array.from({ length: 256 }, (_, n) => {
+    let c = n;
+    for (let k = 0; k < 8; k++) {
+      c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1;
+    }
+    return c >>> 0;
+  });
+  const crc = buf => {
+    let c = 0xffffffff;
+    for (const byte of buf) {
+      c = crcTable[(c ^ byte) & 0xff] ^ (c >>> 8);
+    }
+    return (c ^ 0xffffffff) >>> 0;
+  };
+  const chunk = (type, data) => {
+    const body = Buffer.concat([Buffer.from(type), data]);
+    const out = Buffer.alloc(body.length + 8);
+    out.writeUInt32BE(data.length, 0);
+    body.copy(out, 4);
+    out.writeUInt32BE(crc(body), body.length + 4);
+    return out;
+  };
+  const header = Buffer.alloc(13);
+  header.writeUInt32BE(size, 0);
+  header.writeUInt32BE(size, 4);
+  header.set([8, 2, 0, 0, 0], 8);
+  const row = Buffer.concat([Buffer.from([0]), Buffer.from(Array(size).fill([r, g, b]).flat())]);
+  const raw = Buffer.concat(Array(size).fill(row));
+  return Buffer.concat([
+    Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]),
+    chunk('IHDR', header),
+    chunk('IDAT', zlib.deflateSync(raw)),
+    chunk('IEND', Buffer.alloc(0)),
+  ]);
+}
+
 /**
  * Every control on the supplier dashboard does what its label says, against the real server and a
  * real database. Each test presses the control and checks the result (a dialog, a saved value, a
@@ -75,6 +115,96 @@ test.describe('Supplier dashboard: every control works @backend', () => {
 
     await page.locator('#sdh-next-action').click();
     await expect(page.locator('#sdh-profile-dialog[open]')).toBeVisible();
+    await closeTopDialog(page);
+  });
+
+  test('every profile field is saved and is still there after a reload', async ({
+    page,
+    context,
+    baseURL,
+  }) => {
+    await openDashboard(page, context, baseURL);
+    await page.locator('#toggle-profile-form').click();
+    await expect(page.locator('#sdh-profile-dialog[open]')).toBeVisible();
+
+    const values = {
+      '#sup-name': `Actions Spec Events ${runId.slice(-5)}`,
+      '#sup-location': 'Swansea',
+      '#sup-short': 'Short line written by the actions spec.',
+      '#sup-long': 'A longer description written by the actions spec so it can be read back.',
+      '#sup-website': 'https://example.com/actions-spec',
+      '#sup-license': 'PLI 5m',
+      '#sup-max': '120',
+      '#sup-amenities': 'Parking, Garden',
+    };
+    for (const [selector, value] of Object.entries(values)) {
+      await page.fill(selector, value);
+    }
+    const saved = page.waitForResponse(
+      r => ['POST', 'PUT', 'PATCH'].includes(r.request().method()) && /suppliers/.test(r.url())
+    );
+    await page.locator('#sup-create').click();
+    expect((await saved).status()).toBeLessThan(300);
+
+    await page.reload();
+    await expect(page.locator('#welcome-heading')).toBeVisible();
+    await page.locator('#toggle-profile-form').click();
+    await expect(page.locator('#sdh-profile-dialog[open]')).toBeVisible();
+    for (const [selector, value] of Object.entries(values)) {
+      await expect(page.locator(selector), `${selector} was kept`).toHaveValue(value);
+    }
+    await closeTopDialog(page);
+  });
+
+  test('a photo can be added, is kept, and can be removed', async ({ page, context, baseURL }) => {
+    await openDashboard(page, context, baseURL);
+    const png = solidPng(64, [200, 60, 90]);
+    const tiles = page.locator('#sup-photo-preview .photo-preview-item');
+    const kept = page.locator('#sup-photo-preview .photo-preview-item--existing');
+    const openEditor = async () => {
+      await page.locator('#toggle-profile-form').click();
+      await expect(page.locator('#sdh-profile-dialog[open]')).toBeVisible();
+    };
+    await openEditor();
+    const before = await kept.count();
+
+    // A supplier who already has a profile uploads straight away: the photo is saved once and no
+    // "Pending" tile is left beside it.
+    const [chooser] = await Promise.all([
+      page.waitForEvent('filechooser'),
+      page.locator('#sup-photo-drop').click(),
+    ]);
+    await chooser.setFiles({
+      name: `spec-${runId.slice(-5)}.png`,
+      mimeType: 'image/png',
+      buffer: png,
+    });
+    await expect(kept).toHaveCount(before + 1);
+    await expect(tiles).toHaveCount(before + 1);
+
+    // It is still there after a reload.
+    await page.reload();
+    await expect(page.locator('#welcome-heading')).toBeVisible();
+    await openEditor();
+    await expect(kept).toHaveCount(before + 1);
+    // ... and it shows its image (the saved list used to lose the address of each photo).
+    await expect
+      .poll(() =>
+        kept
+          .last()
+          .locator('img')
+          .evaluate(img => img.complete && img.naturalWidth > 0)
+      )
+      .toBe(true);
+
+    // Removing it asks first, then it is gone for good.
+    await kept.last().locator('.photo-delete-btn').click();
+    await page.locator('dialog[open] button', { hasText: /^Remove photo/ }).click();
+    await expect(kept).toHaveCount(before);
+    await page.reload();
+    await expect(page.locator('#welcome-heading')).toBeVisible();
+    await openEditor();
+    await expect(kept).toHaveCount(before);
     await closeTopDialog(page);
   });
 
