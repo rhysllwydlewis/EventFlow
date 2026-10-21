@@ -263,10 +263,10 @@ describe('Dashboard HTML - Supplier', () => {
     'utf8'
   );
 
-  it('mounts the messenger widget without search and filter boxes that could only see 5 conversations', () => {
+  it('mounts the messenger widget with search, filter and sort over its latest 20 conversations', () => {
     expect(dashboardSupplierHtml).toContain('id="messenger-dashboard-widget-supplier"');
-    expect(dashboardSupplierHtml).not.toContain('widget-search-input-supplier');
-    expect(dashboardSupplierHtml).not.toContain('widget-filter-select-supplier');
-    expect(dashboardSupplierHtml).not.toContain('widget-sort-select-supplier');
+    expect(dashboardSupplierHtml).toContain('id="widget-search-input-supplier"');
+    expect(dashboardSupplierHtml).toContain('id="widget-filter-select-supplier"');
+    expect(dashboardSupplierHtml).toContain('id="widget-sort-select-supplier"');
   });
 });

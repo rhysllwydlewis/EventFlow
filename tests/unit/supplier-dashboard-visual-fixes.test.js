@@ -53,9 +53,9 @@ describe('supplier dashboard: visual fixes', () => {
       home.indexOf('function confirmAction('),
       home.indexOf('function openDialog(')
     );
-    expect(confirm).toContain("dialog.addEventListener('keydown', onKey)");
+    expect(confirm).toContain("document.addEventListener('keydown', onKey)");
     expect(confirm).toContain("event.key === 'Escape'");
-    expect(confirm).toContain("dialog.removeEventListener('keydown', onKey)");
+    expect(confirm).toContain("document.removeEventListener('keydown', onKey)");
   });
 
   test('anchor jumps land below the fixed header', () => {
@@ -88,5 +88,13 @@ describe('supplier dashboard: visual fixes', () => {
     expect(error).not.toContain('style=');
     expect(error).toContain('mwv4__retry-btn');
     expect(css).toMatch(/\.mwv4__retry-btn \{[^}]*min-height: 44px/);
+  });
+
+  test('messenger rows name a supplier by their business and fall back to initials, not a hidden photo', () => {
+    expect(widget).toContain("other.role === 'supplier'");
+    expect(widget).toContain('safeDisplayName(other.businessName, other.displayName, other.name)');
+    expect(widget).toContain('data-fallback-text=');
+    expect(widget).not.toContain('class="mwv4__avatar-img" loading="lazy" data-fallback-hide');
+    expect(read('public/assets/js/app.js')).toContain('ef-img-fallback-initials');
   });
 });

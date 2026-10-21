@@ -36,8 +36,11 @@
       return;
     }
     if (img.dataset.fallbackText !== undefined && img.parentNode) {
-      // A photo that will not load becomes the supplier's initials (a labelled fallback).
-      img.parentNode.textContent = img.dataset.fallbackText;
+      // A photo that will not load becomes the person's initials (a plain, clearly generic fallback).
+      const initials = document.createElement('span');
+      initials.className = 'ef-img-fallback-initials';
+      initials.textContent = img.dataset.fallbackText;
+      img.replaceWith(initials);
       return;
     }
     if (img.dataset.fallbackSrc) {
@@ -301,6 +304,17 @@ function escapeHtml(unsafe) {
  */
 function escapeAttr(unsafe) {
   return escapeHtml(unsafe).split('"').join('&quot;').split("'").join('&#39;');
+}
+
+/**
+ * The price to show for a package: what the supplier typed (`price`), or the older
+ * `price_display`; nothing when neither is there.
+ * @param {Object} p - Package record.
+ * @returns {string} The price text, or ''.
+ */
+function packagePriceText(p) {
+  const typed = p.price_display || p.price;
+  return typed === undefined || typed === null ? '' : String(typed).trim();
 }
 
 // Supplier avatar initials/color: shared with every other supplier avatar
@@ -2279,17 +2293,6 @@ async function initDashSupplier() {
   }
 
   /**
-   * The price to show for a package: what the supplier typed (`price`), or the older
-   * `price_display`; nothing when neither is there.
-   * @param {Object} p - Package record.
-   * @returns {string} The price text, or ''.
-   */
-  function packagePriceText(p) {
-    const typed = p.price_display || p.price;
-    return typed === undefined || typed === null ? '' : String(typed).trim();
-  }
-
-  /**
    * One package row: photo, title and price, status badges, and one Edit button with text links
    * for the rest.
    * @param {Object} p - Package record.
@@ -4065,6 +4068,36 @@ function editPackage(packageId) {
     });
 }
 
+/**
+ * A package write (delete, pause, resume) with the dashboard's CSRF handling: the token is
+ * fetched when missing and fetched again once if the server refuses it.
+ * @param {string} url - The package route.
+ * @param {string} method - DELETE or PUT.
+ * @returns {Promise<{ok: boolean, status: number, data: Object}>} The response.
+ */
+async function packageRequest(url, method) {
+  const home = window.SupplierDashboardHome;
+  if (home && typeof home.sendJson === 'function') {
+    return home.sendJson(url, method);
+  }
+  const response = await fetch(url, {
+    method,
+    headers: { 'X-CSRF-Token': window.__CSRF_TOKEN__ || '' },
+    credentials: 'include',
+  });
+  const data = await response.json().catch(() => ({}));
+  return { ok: response.ok, status: response.status, data };
+}
+
+/** Puts keyboard focus back on the packages heading after a row has been removed or redrawn. */
+function focusPackagesHeading() {
+  const heading = document.getElementById('packages-heading');
+  if (heading) {
+    heading.setAttribute('tabindex', '-1');
+    heading.focus({ preventScroll: true });
+  }
+}
+
 async function deletePackage(packageId) {
   const confirmed = await efConfirm({
     title: 'Delete this package?',
@@ -4076,18 +4109,12 @@ async function deletePackage(packageId) {
   }
 
   try {
-    const csrfToken = window.__CSRF_TOKEN__ || '';
-    const response = await fetch(`/api/v1/me/packages/${encodeURIComponent(packageId)}`, {
-      method: 'DELETE',
-      headers: {
-        'X-CSRF-Token': csrfToken,
-      },
-      credentials: 'include',
-    });
-
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      efSay(`Could not delete the package: ${errorData.error || 'unknown error'}`, 'error');
+    const result = await packageRequest(
+      `/api/v1/me/packages/${encodeURIComponent(packageId)}`,
+      'DELETE'
+    );
+    if (!result.ok) {
+      efSay(`Could not delete the package: ${result.data.error || 'unknown error'}`, 'error');
       return;
     }
 
@@ -4096,6 +4123,7 @@ async function deletePackage(packageId) {
     }
     notifyDashboardChanged();
     efSay('Package deleted.', 'success');
+    focusPackagesHeading();
   } catch (e) {
     console.error('Error deleting package:', e);
     efSay('Could not delete the package. Please try again.', 'error');
@@ -4105,19 +4133,12 @@ async function deletePackage(packageId) {
 async function togglePackagePause(packageId, pause) {
   const action = pause ? 'pause' : 'unpause';
   try {
-    const csrfToken = window.__CSRF_TOKEN__ || '';
-    const response = await fetch(`/api/v1/me/packages/${encodeURIComponent(packageId)}/${action}`, {
-      method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-CSRF-Token': csrfToken,
-      },
-      credentials: 'include',
-    });
-
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      efSay(`Could not ${action} the package: ${errorData.error || 'unknown error'}`, 'error');
+    const result = await packageRequest(
+      `/api/v1/me/packages/${encodeURIComponent(packageId)}/${action}`,
+      'PUT'
+    );
+    if (!result.ok) {
+      efSay(`Could not ${action} the package: ${result.data.error || 'unknown error'}`, 'error');
       return;
     }
 
@@ -4129,6 +4150,7 @@ async function togglePackagePause(packageId, pause) {
     // The summary row counts active packages: ask for fresh numbers.
     notifyDashboardChanged();
     efSay(pause ? 'Package paused.' : 'Package resumed.', 'success');
+    focusPackagesHeading();
   } catch (e) {
     console.error(`Error ${action}ing package:`, e);
     efSay(`Could not ${action} the package. Please try again.`, 'error');

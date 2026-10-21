@@ -425,8 +425,8 @@
     });
     dialog.addEventListener('close', afterClose);
     // Escape skips the guide (it can be reopened), whatever the browser does with its own close request.
-    dialog.addEventListener('keydown', event => {
-      if (event.key === 'Escape') {
+    document.addEventListener('keydown', event => {
+      if (event.key === 'Escape' && view.open && !event.defaultPrevented) {
         event.preventDefault();
         closeDialog();
       }

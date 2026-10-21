@@ -310,6 +310,7 @@ describe('supplier dashboard home: structure', () => {
       'Next steps',
       'Your profile',
       'Your packages',
+      'Enquiries',
       'Reviews',
       'Calendar',
       'Messages',
@@ -489,6 +490,7 @@ describe('supplier dashboard home: structure', () => {
       'email-verify-banner',
       'sdh-availability-note',
       'sdh-availability-status',
+      'rreq-filter',
     ]);
     const present = new Set(idsIn(html));
     const idBlock = homeJs.slice(
@@ -516,10 +518,11 @@ describe('supplier dashboard home: structure', () => {
     expect(emoji.test(verificationJs)).toBe(false);
   });
 
-  test('no accordion hides primary content: details only wraps completed steps', () => {
+  test('no accordion hides primary content: details only wraps completed steps and the request history', () => {
     expect(main).not.toMatch(/<details/);
-    expect(homeJs.match(/<details/g)).toHaveLength(1);
+    expect(homeJs.match(/<details class=/g)).toHaveLength(2);
     expect(homeJs).toMatch(/completed<\/summary>/);
+    expect(homeJs).toContain('sdh-rreq-history');
     expect(html).not.toContain('card-collapse');
     expect(html).not.toContain('Expand all');
   });
@@ -1569,18 +1572,27 @@ describe('supplier dashboard home: messenger widget', () => {
     expect(css).toMatch(/\.sdh-messenger-widget \.mwv4__header \{\s*display: none;/);
   });
 
-  test('conversation search, filter and sort boxes (which only saw 5 conversations) are not on the page', () => {
+  test('conversation search, filter and sort are on the Messages card, over the latest 20 conversations', () => {
     [
       'widget-search-input-supplier',
       'widget-filter-select-supplier',
       'widget-sort-select-supplier',
-    ].forEach(id => expect(html).not.toContain(id));
+    ].forEach(id => expect(html).toContain(`id="${id}"`));
+    expect(html).toMatch(
+      /id="widget-search-input-supplier"[^>]*type="search"|type="search"[^>]*id="widget-search-input-supplier"/
+    );
+    expect(html).toMatch(
+      /id="widget-filter-select-supplier"[\s\S]*value="unread"[\s\S]*value="starred"/
+    );
+    // Lead-quality options are not offered: conversations carry no lead score from the server.
+    expect(html).not.toMatch(/score-high|value="high"|value="medium"/);
+    expect(homeJs).toContain('maxItems: 20');
   });
 
-  test('export says how many conversations it exports and asks for the most the server allows', () => {
+  test('export asks the server for the real file, and says what is in it', () => {
     const exportJs = read('public/assets/js/dashboard-supplier-export.js');
-    expect(exportJs).toContain('const EXPORT_LIMIT = 100');
-    expect(exportJs).toContain('messenger/conversations?limit=');
-    expect(html).toContain('Export latest 100 conversations (CSV)');
+    expect(exportJs).toContain('/api/supplier/enquiries/export');
+    expect(exportJs).toContain('x-export-row-count');
+    expect(html).toContain('Export conversations and enquiries (CSV)');
   });
 });

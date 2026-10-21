@@ -356,7 +356,7 @@ async function cards() {
     ),
     sliceBetween(
       app,
-      '  function packagePriceText(',
+      '  function packageCardHtml(',
       '  /**\n   * A short message in the packages card'
     ),
   ].join('\n');
@@ -443,9 +443,187 @@ async function cards() {
   process.stdout.write(JSON.stringify(log));
 }
 
+/** The enquiries card and drawer against a scripted API. */
+async function enquiries(options) {
+  const { window } = makeWindow(options);
+  const requests = [];
+  const evil = '<img src=x onerror="window.__pwned=1"><script>window.__pwned=1</script>';
+  const list = [
+    {
+      id: 'qr_1',
+      source: 'quote_request',
+      createdAt: '2026-07-16T07:00:00.000Z',
+      status: 'new',
+      customerName: "Alice O'Brien",
+      preview: evil,
+      eventType: 'Wedding',
+      eventDate: null,
+    },
+    {
+      id: 'enq_1',
+      source: 'contact_form',
+      createdAt: '2026-07-16T10:00:00.000Z',
+      status: 'read',
+      customerName: 'Carol',
+      preview: 'Do you cover Swansea?',
+      eventType: null,
+      eventDate: null,
+    },
+  ];
+  const detail = {
+    id: 'qr_1',
+    source: 'quote_request',
+    createdAt: '2026-07-16T07:00:00.000Z',
+    customerName: "Alice O'Brien",
+    email: 'alice@example.com',
+    phone: '07123 456789',
+    message: `${evil}\nsecond line`,
+    eventType: 'Wedding',
+    eventDate: '2027-06-12T00:00:00.000Z',
+    location: 'Cardiff',
+    budget: '2000',
+    status: 'new',
+  };
+  const scripted = options.script || {};
+  window.SupplierDashboardHome.getContext = () => ({
+    loaded: true,
+    noProfile: false,
+    model: { verification: { approved: options.approved !== false } },
+  });
+  window.SupplierDashboardHome.toast = (message, tone) => requests.push(`toast:${tone}:${message}`);
+  window.SupplierDashboardHome.getJson = async url => {
+    requests.push(`GET ${url}`);
+    if (scripted.listStatus && /enquiries\?/.test(url)) {
+      return { status: scripted.listStatus, data: scripted.listData || null };
+    }
+    if (/enquiries\?/.test(url)) {
+      const wanted = new URL(url, 'http://x').searchParams;
+      const rows = list.filter(row => !wanted.get('source') || row.source === wanted.get('source'));
+      return {
+        status: 200,
+        data: {
+          success: true,
+          enquiries: rows,
+          counts: { total: 2, new: 1, bySource: { quoteRequests: 1, contactForm: 1 } },
+          pagination: { page: 1, limit: 20, total: rows.length, totalPages: scripted.pages || 1 },
+        },
+      };
+    }
+    return { status: 200, data: { success: true, enquiry: detail } };
+  };
+  window.SupplierDashboardHome.sendJson = async (url, method, body) => {
+    requests.push(`${method} ${url} ${JSON.stringify(body)}`);
+    if (scripted.patchFails) {
+      return { ok: false, status: 500, data: { error: 'Could not update' } };
+    }
+    return {
+      ok: true,
+      status: 200,
+      data: { success: true, enquiry: { ...detail, status: body.status } },
+    };
+  };
+  window.eval(read('public/assets/js/pages/supplier-dashboard-enquiries.js'));
+  await settle();
+  window.document.dispatchEvent(new window.Event('sdh:rendered'));
+  await settle(6);
+  const text = id => field(window, id).textContent.replace(/\s+/g, ' ').trim();
+  const click = node => node.dispatchEvent(new window.MouseEvent('click', { bubbles: true }));
+  const log = { requestsAfterRender: requests.slice() };
+  log.card = text('sdh-enquiries-body');
+  log.cardRows = field(window, 'sdh-enquiries-body').querySelectorAll('.sdh-enq').length;
+  log.openHidden = field(window, 'sdh-enquiries-open').hidden;
+  log.noInjectedNodes = field(window, 'sdh-enquiries-body').querySelectorAll('img, script').length;
+  if (options.openDrawer !== false) {
+    window.document.dispatchEvent(new window.Event('sdh:open-enquiries'));
+    await settle(6);
+    log.drawerOpen = field(window, 'sdh-enquiries-dialog').hasAttribute('open');
+    log.listRows = field(window, 'sdh-enquiries-list').querySelectorAll('.sdh-enq').length;
+    log.list = text('sdh-enquiries-list');
+    log.listInjected = field(window, 'sdh-enquiries-list').querySelectorAll('img, script').length;
+    log.counts = text('sdh-enquiries-counts');
+    log.moreHidden = field(window, 'sdh-enquiries-more').hidden;
+    const first = field(window, 'sdh-enquiries-list').querySelector('.sdh-enq');
+    if (first) {
+      click(first);
+      await settle(6);
+      log.detail = text('sdh-enquiries-detail');
+      log.detailInjected = field(window, 'sdh-enquiries-detail').querySelectorAll(
+        'img, script'
+      ).length;
+      log.pwned = window.__pwned || 0;
+      log.mailto =
+        (field(window, 'sdh-enquiries-detail').querySelector('a[href^="mailto:"]') || {}).href ||
+        '';
+      log.tel =
+        (field(window, 'sdh-enquiries-detail').querySelector('a[href^="tel:"]') || {}).href || '';
+      log.messageText = field(window, 'sdh-enquiries-detail').querySelector(
+        '.sdh-enq__message'
+      ).textContent;
+      log.replyControls = field(window, 'sdh-enquiries-detail').querySelectorAll(
+        'textarea, input, form'
+      ).length;
+      log.statusButtons = Array.from(
+        field(window, 'sdh-enquiries-detail').querySelectorAll('[data-status]')
+      ).map(button => button.textContent);
+      const handled = field(window, 'sdh-enquiries-detail').querySelector(
+        '[data-status="handled"]'
+      );
+      click(handled);
+      await settle(8);
+      log.afterPatch = requests.filter(entry => entry.startsWith('PATCH'));
+      log.statusAfter = text('sdh-enquiries-detail').match(/Status: \w+/)[0];
+      log.toasts = requests.filter(entry => entry.startsWith('toast'));
+    }
+    const source = field(window, 'sdh-enquiries-source');
+    source.value = 'contact_form';
+    source.dispatchEvent(new window.Event('change', { bubbles: true }));
+    await settle(6);
+    log.filteredRequest = requests.filter(entry => /source=contact_form/.test(entry)).length;
+    log.filteredRows = field(window, 'sdh-enquiries-list').querySelectorAll('.sdh-enq').length;
+  }
+  log.allRequests = requests;
+  process.stdout.write(JSON.stringify(log));
+}
+
+/** Delete, pause and resume a package against a scripted API: success, refusal and a thrown error. */
+async function packageActions(options) {
+  const { window } = makeWindow({ confirm: options.confirm });
+  const app = read('public/assets/js/app.js');
+  const code = [
+    sliceBetween(app, 'function efSay(', '/** Message shown in #pkg-status'),
+    `${sliceBetween(app, 'function notifyDashboardChanged(', '\n}\n')}\n}`,
+    sliceBetween(app, 'async function packageRequest(', 'async function deletePackagePhoto('),
+  ].join('\n');
+  const events = [];
+  window.SupplierDashboardHome.toast = (message, tone) => events.push(`toast:${tone}:${message}`);
+  window.SupplierDashboardHome.sendJson = async (url, method) => {
+    events.push(`${method} ${url}`);
+    if (options.throws) {
+      throw new Error('network down');
+    }
+    if (options.status && options.status !== 200) {
+      return { ok: false, status: options.status, data: { error: options.error || 'Refused' } };
+    }
+    return { ok: true, status: 200, data: { ok: true } };
+  };
+  window._efLoadPackages = async () => {
+    events.push('reloaded');
+  };
+  window.document.addEventListener('sdh:changed', () => events.push('changed-event'));
+  window.eval(`${code}\nwindow.__actions = { deletePackage, togglePackagePause };`);
+  const heading = window.document.getElementById('packages-heading');
+  await window.__actions[options.action](options.id || 'k1', options.pause);
+  process.stdout.write(
+    JSON.stringify({
+      events,
+      focused: window.document.activeElement === heading,
+    })
+  );
+}
+
 const name = process.argv[2];
 const options = JSON.parse(Buffer.from(process.argv[3] || 'e30=', 'base64').toString('utf8'));
-const scenarios = { overlays, banner, guide, cards };
+const scenarios = { overlays, banner, guide, cards, enquiries, packageActions };
 scenarios[name](options).catch(error => {
   process.stderr.write(String(error && error.stack ? error.stack : error));
   process.exit(1);

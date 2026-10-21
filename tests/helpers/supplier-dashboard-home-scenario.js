@@ -32,7 +32,7 @@ const text = node => (node ? node.textContent.replace(/\s+/g, ' ').trim() : null
 async function main() {
   const scenario = JSON.parse(Buffer.from(process.argv[2] || 'e30=', 'base64').toString('utf8'));
   const dom = new JSDOM(pageHtml(), {
-    url: 'http://localhost/dashboard/supplier',
+    url: `http://localhost/dashboard/supplier${scenario.hash || ''}`,
     runScripts: 'outside-only',
   });
   const { window } = dom;
@@ -84,7 +84,7 @@ async function main() {
       return reply(200, { tips: scenario.tips || [] });
     }
     if (target.includes('/api/v1/supplier/review-requests')) {
-      return reply(200, { items: [], summary: {} });
+      return reply(200, scenario.reviewRequests || { items: [], summary: {} });
     }
     return reply(200, {});
   };
@@ -115,6 +115,25 @@ async function main() {
     }
   };
   const actions = {};
+  if (scenario.unreadUpdate !== undefined) {
+    window.dispatchEvent(
+      new window.CustomEvent('unreadCountUpdated', { detail: { count: scenario.unreadUpdate } })
+    );
+  }
+  if (scenario.clickPeriod) {
+    click(`[data-sdh-days="${scenario.clickPeriod}"]`);
+    for (let turn = 0; turn < 12; turn += 1) {
+      await new Promise(resolve => setTimeout(resolve, 0));
+    }
+  }
+  if (scenario.clickShowAllRequests) {
+    click('[data-sdh-action="show-all-requests"]');
+  }
+  if (scenario.requestFilter) {
+    const filter = document.getElementById('rreq-filter');
+    filter.value = scenario.requestFilter;
+    filter.dispatchEvent(new window.Event('change', { bubbles: true }));
+  }
   if (scenario.clickStripAction) {
     click('#verification-status-banner [data-sdh-action]');
     const dialog = document.getElementById('sv-verification-modal');
@@ -175,6 +194,11 @@ async function main() {
     availability: text(document.getElementById('supplier-availability-widget')),
     tips: text(document.getElementById('supplier-perf-tips')),
     tipsHtml: document.getElementById('supplier-perf-tips').innerHTML,
+    visitsHtml: document.getElementById('supplier-performance-chart').innerHTML,
+    extraHtml: document.getElementById('sdh-summary-extra').innerHTML,
+    requestsHtml: document.getElementById('supplier-review-request-widget').innerHTML,
+    profileLink: (document.getElementById('rreq-profile-link') || {}).value,
+    profileLinkHidden: document.getElementById('rreq-link-field').hidden,
     tipsHidden: document.getElementById('sdh-tips').hidden,
     requested,
     actions,

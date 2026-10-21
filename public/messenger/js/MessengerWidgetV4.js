@@ -15,7 +15,8 @@
     }
     const div = document.createElement('div');
     div.textContent = unsafe;
-    return div.innerHTML;
+    // Quotes too, so the result is safe inside a quoted attribute as well as in text.
+    return div.innerHTML.split('"').join('&quot;').split("'").join('&#39;');
   }
 
   function formatRelativeTime(timestamp) {
@@ -636,14 +637,18 @@
         participants[0] ||
         {};
 
-      const rawName = safeDisplayName(other.displayName, other.businessName, other.name);
+      // A supplier is known by their business name; displayName is the owner's personal name.
+      const rawName =
+        other.role === 'supplier'
+          ? safeDisplayName(other.businessName, other.displayName, other.name)
+          : safeDisplayName(other.displayName, other.businessName, other.name);
       const name = escapeHtml(rawName);
       const initial = rawName.charAt(0).toUpperCase() || '?';
       const avatarColor = getAvatarColor(rawName);
       const avatarUrl = typeof other.avatar === 'string' ? other.avatar.trim() : '';
       const safeAvatarUrl = /^(https?:\/\/|\/[^:])/i.test(avatarUrl) ? avatarUrl : null;
       const avatarImg = safeAvatarUrl
-        ? `<img src="${escapeHtml(safeAvatarUrl)}" alt="${name}" class="mwv4__avatar-img" loading="lazy" data-fallback-hide>`
+        ? `<img src="${escapeHtml(safeAvatarUrl)}" alt="${name}" class="mwv4__avatar-img" loading="lazy" data-fallback-text="${escapeHtml(initial)}">`
         : `<span class="mwv4__avatar-initial">${escapeHtml(initial)}</span>`;
 
       const lastMsg = conv.lastMessage || {};

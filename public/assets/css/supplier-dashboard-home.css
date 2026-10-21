@@ -3307,6 +3307,278 @@
   background: #fbfaf8;
 }
 
+/* Review request history and the copy-link row */
+
+.sdh-page .sdh-inline-counts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 16px;
+  margin: 0 0 12px;
+  padding: 0;
+  color: var(--sdh-ink-2);
+  font-size: 13px;
+  list-style: none;
+}
+
+.sdh-page .sdh-rreq-history__filter {
+  max-width: 260px;
+  margin-bottom: 8px;
+}
+
+.sdh-page .sdh-list__meta--bad {
+  color: var(--sdh-danger);
+}
+
+.sdh-page .sdh-copyrow {
+  display: flex;
+  gap: 8px;
+}
+
+.sdh-page .sdh-copyrow .sdh-input {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+/* Messages: search, filter and sort over the latest conversations. */
+
+.sdh-page .sdh-msg-tools {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+@media (max-width: 479px) {
+  .sdh-page .sdh-msg-tools {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .sdh-page .sdh-msg-tools [type='search'] {
+    grid-column: 1 / -1;
+  }
+}
+
+/* Enquiries: the card, and the drawer (a side panel on desktop, a bottom sheet on a phone). */
+
+.sdh-page .sdh-enquiries__counts {
+  margin: 0 0 12px;
+  color: var(--sdh-ink-2);
+  font-size: 14px;
+}
+
+.sdh-page .sdh-enq-list {
+  display: grid;
+  gap: 8px;
+}
+
+.sdh-page .sdh-enq {
+  display: grid;
+  gap: 4px;
+  width: 100%;
+  padding: 12px 14px;
+  border: 1px solid var(--sdh-line);
+  border-radius: var(--sdh-radius-sm);
+  background: var(--sdh-surface);
+  color: var(--sdh-ink);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.sdh-page .sdh-enq:hover,
+.sdh-page .sdh-enq--selected {
+  border-color: var(--sdh-accent);
+  background: var(--sdh-accent-soft);
+}
+
+.sdh-page .sdh-enq__top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.sdh-page .sdh-enq__name {
+  font-size: 14px;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.sdh-page .sdh-enq__preview {
+  color: var(--sdh-ink-2);
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}
+
+.sdh-page .sdh-enq__meta {
+  color: var(--sdh-muted);
+  font-size: 12px;
+}
+
+.sdh-page .sdh-enq__message {
+  margin: 0 0 12px;
+  color: var(--sdh-ink);
+  font-size: 14px;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+
+.sdh-page .sdh-enq__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.sdh-page .sdh-facts-grid {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  gap: 6px 16px;
+  margin: 12px 0;
+  font-size: 14px;
+}
+
+.sdh-page .sdh-facts-grid dt {
+  color: var(--sdh-muted);
+}
+
+.sdh-page .sdh-facts-grid dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.sdh-page .sdh-dialog--drawer {
+  width: min(960px, 100vw);
+  max-width: none;
+  height: 100dvh;
+  max-height: 100dvh;
+  margin: 0 0 0 auto;
+  border-radius: var(--sdh-radius) 0 0 var(--sdh-radius);
+}
+
+.sdh-page .sdh-drawer {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.sdh-page .sdh-drawer__filters {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  padding: 16px 24px 0;
+}
+
+.sdh-page .sdh-drawer__counts {
+  margin: 0;
+  padding: 12px 24px;
+}
+
+.sdh-page .sdh-drawer__panes {
+  display: grid;
+  flex: 1 1 auto;
+  grid-template-columns: minmax(280px, 360px) minmax(0, 1fr);
+  min-height: 0;
+  border-top: 1px solid var(--sdh-line);
+}
+
+.sdh-page .sdh-drawer__listpane,
+.sdh-page .sdh-drawer__detailpane {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-height: 0;
+  padding: 16px 24px;
+  overflow-y: auto;
+}
+
+.sdh-page .sdh-drawer__listpane {
+  border-right: 1px solid var(--sdh-line);
+}
+
+.sdh-page .sdh-drawer__back {
+  display: none;
+  align-self: flex-start;
+}
+
+.sdh-page .sdh-drawer__subtitle {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.sdh-page .sdh-drawer__subtitle:focus {
+  outline: none;
+}
+
+@media (max-width: 899px) {
+  .sdh-page .sdh-dialog--drawer {
+    width: 100%;
+    height: 94dvh;
+    max-height: 94dvh;
+    margin: auto 0 0;
+    border-radius: var(--sdh-radius) var(--sdh-radius) 0 0;
+  }
+
+  .sdh-page .sdh-drawer__filters {
+    padding: 16px 16px 0;
+  }
+
+  .sdh-page .sdh-drawer__counts {
+    padding: 12px 16px;
+  }
+
+  .sdh-page .sdh-drawer__panes {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .sdh-page .sdh-drawer__listpane,
+  .sdh-page .sdh-drawer__detailpane {
+    padding: 16px;
+  }
+
+  .sdh-page .sdh-drawer__listpane {
+    border-right: 0;
+  }
+
+  /* One pane at a time: the list, or the enquiry that was chosen. */
+  .sdh-page .sdh-drawer__detailpane {
+    display: none;
+  }
+
+  .sdh-page .sdh-drawer--detail .sdh-drawer__detailpane {
+    display: flex;
+  }
+
+  .sdh-page .sdh-drawer--detail .sdh-drawer__listpane {
+    display: none;
+  }
+
+  .sdh-page .sdh-drawer--detail .sdh-drawer__back {
+    display: inline-flex;
+  }
+}
+
+/* From visit to reply, and the second chart series */
+
+.sdh-page .sdh-funnel {
+  margin-top: 16px;
+}
+
+.sdh-page .sdh-funnel__list {
+  display: grid;
+  gap: 4px;
+  margin: 8px 0 0;
+  padding-left: 20px;
+  color: var(--sdh-ink-2);
+  font-size: 14px;
+}
+
+.sdh-page .sdh-chart__bar--alt {
+  fill: var(--sdh-ink-2);
+}
+
 /* Setup guide: a short dialog with a progress count, one step at a time. */
 
 .sdh-page .sdh-guide__progress {

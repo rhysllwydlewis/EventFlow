@@ -207,7 +207,7 @@
     const canRespond = !!rawId;
     const rating = normaliseRating(review.rating);
     const title = review.title || '';
-    const text = review.text || '';
+    const text = review.text || review.comment || '';
     const authorName = review.userName || review.authorName || 'Anonymous';
     const date = review.createdAt || '';
     const hasResponse = !!(review.response || review.supplierResponse);

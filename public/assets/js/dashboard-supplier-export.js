@@ -1,26 +1,15 @@
 /**
- * Supplier dashboard: export conversations to CSV.
+ * Supplier dashboard: export conversations and enquiries to CSV.
  *
- * Builds the file in the browser from GET /api/v4/messenger/conversations. The server caps a
- * page at 100 conversations (middleware/pagination.js), so the file holds the 100 most recent;
- * the button says so.
+ * The file comes from GET /api/supplier/enquiries/export: this supplier's conversations with
+ * customers (no customer email or phone), quote requests and contact-form enquiries, built on the
+ * server with formula protection. When there is nothing to export the server still answers 200
+ * with just the header row and X-Export-Row-Count: 0; this script reads that header (not the body)
+ * and says so instead of saving an empty file.
  */
 (function () {
-  const EXPORT_LIMIT = 100;
-  const LABEL = 'Export latest 100 conversations (CSV)';
-
-  /** Escapes one CSV cell: doubles quotes and defuses formulas that a spreadsheet would run. */
-  function sanitizeCsvCell(value) {
-    if (!value) {
-      return '';
-    }
-    const text = String(value);
-    // Prevent CSV injection by prefixing dangerous characters
-    if (/^[=+\-@]/.test(text)) {
-      return `'${text.replace(/"/g, '""')}`;
-    }
-    return text.replace(/"/g, '""');
-  }
+  const LABEL = 'Export conversations and enquiries (CSV)';
+  const DEFAULT_NAME = 'enquiries-and-conversations.csv';
 
   /** Tells the supplier something through the page's single toast. */
   function say(message, type) {
@@ -30,54 +19,19 @@
     }
   }
 
-  /** The signed-in user's id, so the other participant and the unread count can be found. */
-  async function currentUserId() {
-    try {
-      const response = await fetch('/api/v1/auth/me', { credentials: 'include' });
-      const data = response.ok ? await response.json() : null;
-      return data?.user?.id || null;
-    } catch {
-      return null;
-    }
+  /** The file name the server chose (Content-Disposition), or a sensible default. */
+  function fileNameFrom(response) {
+    const header = response.headers.get('content-disposition') || '';
+    const match = header.match(/filename="?([^";]+)"?/i);
+    return match ? match[1] : DEFAULT_NAME;
   }
 
-  /** One row of the file per conversation: date, customer, status, last message, unread count. */
-  function toRow(conversation, userId) {
-    let other = null;
-    let mine = null;
-    for (const person of conversation.participants || []) {
-      if (String(person.userId) === String(userId)) {
-        mine = person;
-      } else {
-        other = person;
-      }
-    }
-    const date = conversation.createdAt
-      ? new Date(conversation.createdAt).toISOString().split('T')[0]
-      : 'N/A';
-    const customer = sanitizeCsvCell(other?.displayName || other?.name || 'Unknown');
-    const status = sanitizeCsvCell(conversation.status || 'Open');
-    const lastMessage = sanitizeCsvCell(
-      String(
-        conversation.lastMessagePreview || conversation.lastMessage?.content || 'No messages'
-      ).substring(0, 100)
-    );
-    return [
-      `"${date}"`,
-      `"${customer}"`,
-      `"${status}"`,
-      `"${lastMessage}"`,
-      mine?.unreadCount || 0,
-    ].join(',');
-  }
-
-  /** Downloads the CSV text as a file named for today. */
-  function download(csvContent) {
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+  /** Saves a blob under a name through a temporary link. */
+  function save(blob, name) {
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.setAttribute('href', url);
-    link.setAttribute('download', `conversations-${new Date().toISOString().split('T')[0]}.csv`);
+    link.setAttribute('download', name);
     link.hidden = true;
     document.body.appendChild(link);
     link.click();
@@ -85,38 +39,46 @@
     URL.revokeObjectURL(url);
   }
 
-  /** Fetches the latest conversations and downloads them. */
-  async function exportConversations(button) {
+  /** What to tell the supplier when the server refuses or fails. */
+  async function failureMessage(response) {
+    const body = await response.json().catch(() => ({}));
+    if (response.status === 403 && body.code === 'SUPPLIER_NOT_APPROVED') {
+      return 'You can export once your profile has been approved.';
+    }
+    return 'Could not export your conversations and enquiries. Please try again.';
+  }
+
+  /** Asks the server for the file, then saves it, or says there is nothing to export. */
+  async function exportAll(button) {
     const label = button.querySelector('.sd-export-label');
     button.disabled = true;
     if (label) {
       label.textContent = 'Exporting…';
     }
     try {
-      const response = await fetch(`/api/v4/messenger/conversations?limit=${EXPORT_LIMIT}`, {
-        credentials: 'include',
-      });
+      const response = await fetch('/api/supplier/enquiries/export', { credentials: 'include' });
       if (!response.ok) {
-        throw new Error('Failed to fetch conversations');
-      }
-      const data = await response.json();
-      const conversations = data.conversations || [];
-      if (conversations.length === 0) {
-        say('There are no conversations to export yet.', 'info');
+        say(await failureMessage(response), 'error');
         return;
       }
-      const userId = await currentUserId();
-      const rows = ['Date,Customer,Status,Last Message,Unread'].concat(
-        conversations.map(item => toRow(item, userId))
-      );
-      download(rows.join('\n'));
+      const rows = Number(response.headers.get('x-export-row-count'));
+      if (rows === 0) {
+        say(
+          'Nothing to export yet: you have no conversations, quote requests or enquiries.',
+          'info'
+        );
+        return;
+      }
+      save(await response.blob(), fileNameFrom(response));
       say(
-        `Exported ${conversations.length} conversation${conversations.length === 1 ? '' : 's'}.`,
+        Number.isFinite(rows) && rows > 0
+          ? `Exported ${rows} row${rows === 1 ? '' : 's'}.`
+          : 'Export ready.',
         'success'
       );
     } catch (error) {
-      console.error('Error exporting conversations:', error);
-      say('Could not export your conversations. Please try again.', 'error');
+      console.error('Error exporting enquiries:', error);
+      say('Could not export your conversations and enquiries. Please try again.', 'error');
     } finally {
       button.disabled = false;
       if (label) {
@@ -129,9 +91,11 @@
   function init() {
     const button = document.getElementById('export-enquiries-btn');
     if (button) {
-      button.addEventListener('click', () => exportConversations(button));
+      button.addEventListener('click', () => exportAll(button));
     }
   }
+
+  window.SupplierDashboardExport = { fileNameFrom, failureMessage, exportAll };
 
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', init);

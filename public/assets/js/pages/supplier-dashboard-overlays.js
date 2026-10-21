@@ -226,8 +226,15 @@
       event.preventDefault();
       requestClose(name);
     });
-    dialog.addEventListener('keydown', event => {
-      if (event.key === 'Escape' && !event.defaultPrevented) {
+    // On the document, not the dialog: with focus on the page behind (after a click on the
+    // backdrop, say) the dialog never sees the key. A confirmation open on top answers it first.
+    document.addEventListener('keydown', event => {
+      if (
+        event.key === 'Escape' &&
+        !event.defaultPrevented &&
+        isOpen(name) &&
+        !byId('sdh-confirm-dialog')?.open
+      ) {
         event.preventDefault();
         requestClose(name);
       }

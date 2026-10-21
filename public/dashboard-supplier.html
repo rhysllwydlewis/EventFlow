@@ -272,6 +272,24 @@
               </div>
             </section>
 
+            <!-- Enquiries: quote requests and contact-form messages (supplier-dashboard-enquiries.js) -->
+            <section id="sdh-enquiries" class="sdh-card sdh-card--enquiries" aria-labelledby="enquiries-heading" data-needs-profile>
+              <div class="sdh-card__head">
+                <div class="sdh-card__titles">
+                  <h2 id="enquiries-heading" class="sdh-card__title">Enquiries</h2>
+                  <p class="sdh-card__sub">Quote requests and contact messages from your public profile.</p>
+                </div>
+                <div class="sdh-card__actions">
+                  <button type="button" id="sdh-enquiries-open" class="sdh-btn sdh-btn--secondary sdh-btn--sm" aria-haspopup="dialog" hidden>Open enquiries</button>
+                </div>
+              </div>
+              <div class="sdh-card__body">
+                <div id="sdh-enquiries-body">
+                  <div class="sdh-skel sdh-skel--row"></div>
+                </div>
+              </div>
+            </section>
+
             <!-- Reviews -->
             <section id="sdh-reviews" class="sdh-card sdh-card--reviews" aria-labelledby="reviews-heading" data-needs-profile>
               <div class="sdh-card__head">
@@ -339,10 +357,22 @@
                 </div>
               </div>
               <div class="sdh-card__body">
+                <div class="sdh-msg-tools">
+                  <input type="search" id="widget-search-input-supplier" class="sdh-input" placeholder="Search names and messages" aria-label="Search conversations" autocomplete="off" />
+                  <select id="widget-filter-select-supplier" class="sdh-input" aria-label="Show">
+                    <option value="all">All</option>
+                    <option value="unread">Unread</option>
+                    <option value="starred">Starred</option>
+                  </select>
+                  <select id="widget-sort-select-supplier" class="sdh-input" aria-label="Sort by">
+                    <option value="newest">Newest first</option>
+                    <option value="oldest">Oldest first</option>
+                  </select>
+                </div>
                 <div id="messenger-dashboard-widget-supplier" class="sdh-messenger-widget"></div>
                 <div class="sdh-card__foot">
                   <button type="button" id="export-enquiries-btn" class="sdh-link">
-                    <span class="sd-export-label">Export latest 100 conversations (CSV)</span>
+                    <span class="sd-export-label">Export conversations and enquiries (CSV)</span>
                   </button>
                 </div>
               </div>
@@ -843,6 +873,13 @@
               <label class="sdh-label" for="rreq-name">Customer name (optional)</label>
               <input type="text" id="rreq-name" class="sdh-input" autocomplete="off" />
             </div>
+            <div class="sdh-field" id="rreq-link-field" hidden>
+              <label class="sdh-label" for="rreq-profile-link">Or share your profile link yourself</label>
+              <div class="sdh-copyrow">
+                <input id="rreq-profile-link" class="sdh-input" readonly />
+                <button type="button" class="sdh-btn sdh-btn--secondary sdh-btn--sm" data-sdh-action="copy-profile-link">Copy link</button>
+              </div>
+            </div>
             <p id="rreq-status" class="sdh-form__status" role="status" aria-live="polite"></p>
           </div>
           <div class="sdh-dialog__foot">
@@ -874,6 +911,46 @@
             <button type="button" id="sdh-guide-action" class="sdh-btn sdh-btn--primary" hidden></button>
             <button type="button" id="sdh-guide-next" class="sdh-btn sdh-btn--primary">Next</button>
           </div>
+        </div>
+      </dialog>
+
+      <dialog id="sdh-enquiries-dialog" class="sdh-dialog sdh-dialog--drawer" aria-labelledby="sdh-enquiries-title">
+        <div class="sdh-dialog__form sdh-drawer">
+          <div class="sdh-dialog__head">
+            <h2 id="sdh-enquiries-title" class="sdh-dialog__title">All enquiries</h2>
+            <button type="button" id="sdh-enquiries-close" class="sdh-dialog__close" aria-label="Close enquiries">&times;</button>
+          </div>
+          <div class="sdh-drawer__filters">
+            <div class="sdh-field">
+              <label class="sdh-label" for="sdh-enquiries-status">Status</label>
+              <select id="sdh-enquiries-status" class="sdh-input">
+                <option value="">All</option>
+                <option value="new">New</option>
+                <option value="read">Read</option>
+                <option value="handled">Handled</option>
+              </select>
+            </div>
+            <div class="sdh-field">
+              <label class="sdh-label" for="sdh-enquiries-source">From</label>
+              <select id="sdh-enquiries-source" class="sdh-input">
+                <option value="">Quote requests and contact messages</option>
+                <option value="quote_request">Quote requests</option>
+                <option value="contact_form">Contact messages</option>
+              </select>
+            </div>
+          </div>
+          <p id="sdh-enquiries-counts" class="sdh-note sdh-drawer__counts"></p>
+          <div class="sdh-drawer__panes">
+            <div class="sdh-drawer__listpane">
+              <div id="sdh-enquiries-list" class="sdh-enq-list"></div>
+              <button type="button" id="sdh-enquiries-more" class="sdh-btn sdh-btn--secondary sdh-btn--sm" hidden>Show more</button>
+            </div>
+            <div class="sdh-drawer__detailpane">
+              <button type="button" id="sdh-enquiries-back" class="sdh-btn sdh-btn--quiet sdh-btn--sm sdh-drawer__back">Back to the list</button>
+              <div id="sdh-enquiries-detail"></div>
+            </div>
+          </div>
+          <p id="sdh-enquiries-live" class="sdh-sr" role="status" aria-live="polite"></p>
         </div>
       </dialog>
 
@@ -920,6 +997,7 @@
     <script src="/assets/js/pages/supplier-dashboard-overlays.js?v=1.0.0" defer></script>
     <script src="/assets/js/pages/supplier-dashboard-banner.js?v=1.0.0" defer></script>
     <script src="/assets/js/pages/supplier-dashboard-onboarding.js?v=1.0.0" defer></script>
+    <script src="/assets/js/pages/supplier-dashboard-enquiries.js?v=1.0.0" defer></script>
     <script src="/assets/js/app.js?v=18.5.7" defer></script>
     <script src="/assets/js/unread-badge-manager.js?v=18.3.0" defer></script>
     <script src="/assets/js/pages/dashboard-supplier-category.js?v=1.0.0" defer></script>

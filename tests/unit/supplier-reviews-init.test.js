@@ -79,4 +79,29 @@ describe('supplier review management frontend', () => {
       })().catch(error => { console.error(error); process.exit(1); });
     `);
   });
+
+  it('shows reviews stored in either shape with the right name, text, rating, date and reply', () => {
+    runNodeSmoke(String.raw`
+      const assert = require('assert');
+      const fs = require('fs');
+      const { JSDOM } = require('jsdom');
+      const dom = new JSDOM('<!doctype html><div id="supplier-reviews-section"></div>', {
+        url: 'https://event-flow.co.uk/dashboard-supplier',
+        runScripts: 'outside-only',
+      });
+      const { document } = dom.window;
+      const reviews = [
+        { _id: 'v2-1', rating: 5, title: 'Perfect', text: 'Newer shape text.', authorName: 'Dana V.', createdAt: '2026-06-01T12:00:00.000Z', response: { text: 'Thank you Dana', respondedAt: '2026-06-02T12:00:00.000Z' }, votes: {} },
+        { id: 'legacy-1', rating: 4, comment: 'Older shape comment.', userName: 'Sam T.', createdAt: '2026-05-01T12:00:00.000Z', supplierResponse: { text: 'Cheers Sam', respondedAt: '2026-05-02T12:00:00.000Z' }, votes: {} },
+      ];
+      dom.window.fetch = async () => ({ ok: true, json: async () => ({ data: { reviews, pagination: { total: 2, page: 1, pages: 1, limit: 10 }, analytics: { avgRating: 4.5, totalReviews: 2, responseRate: null, ratingDistribution: [0, 0, 0, 1, 1] } } }) });
+      dom.window.eval(fs.readFileSync('public/assets/js/pages/supplier-reviews-init.js', 'utf8'));
+      (async () => {
+        await dom.window.SupplierReviews.init('sup-1', 'supplier-reviews-section');
+        const text = document.getElementById('supplier-reviews-section').textContent;
+        ['Dana V.', 'Newer shape text.', 'Thank you Dana', 'Sam T.', 'Older shape comment.', 'Cheers Sam'].forEach(part => assert(text.includes(part), part));
+        assert(!text.includes('Anonymous'));
+      })().catch(error => { console.error(error); process.exit(1); });
+    `);
+  });
 });

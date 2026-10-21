@@ -27,7 +27,7 @@
 (function () {
   const SUMMARY_DAYS = 30;
   const MIN_REPLY_SAMPLE = 3;
-  const SUMMARY_URL = `/api/supplier/dashboard-summary?days=${SUMMARY_DAYS}`;
+  const PERIODS = [7, 30, 90];
   const SUPPLIERS_WAIT_MS = 4000;
 
   const ids = {
@@ -220,6 +220,7 @@
     const messages = data.messages && typeof data.messages === 'object' ? data.messages : null;
     const responses = data.responses && typeof data.responses === 'object' ? data.responses : null;
     const views = data.views && typeof data.views === 'object' ? data.views : null;
+    const enquiries = data.enquiries && typeof data.enquiries === 'object' ? data.enquiries : null;
     const reviews = data.reviews && typeof data.reviews === 'object' ? data.reviews : null;
     const subscription =
       data.subscription && typeof data.subscription === 'object' ? data.subscription : null;
@@ -292,8 +293,22 @@
                 : null,
           }
         : null,
+      enquiries: enquiries
+        ? {
+            fresh: count(enquiries.newThisPeriod),
+            previous: count(enquiries.previousPeriod),
+            requestsReceived: count(enquiries.requests?.received),
+            requestsNew: count(enquiries.requests?.new),
+            quoteRequests: count(enquiries.sources?.quoteRequests),
+            contactForm: count(enquiries.sources?.contactForm),
+            conversations: count(enquiries.sources?.conversations),
+            truncated: enquiries.truncated === true,
+          }
+        : null,
       views: views
         ? {
+            description: typeof views.description === 'string' ? views.description : '',
+            maxDays: limitOf(windowInfo?.maxDays) || null,
             total: count(views.total),
             days: viewDays,
             daily: normaliseDaily(views.daily || views.series || data.analytics?.dailyData),
@@ -331,7 +346,11 @@
     }
     return list
       .filter(item => item && typeof item === 'object' && count(item.views) !== null)
-      .map(item => ({ date: String(item.date || item.label || ''), views: count(item.views) }));
+      .map(item => ({
+        date: String(item.date || item.label || ''),
+        views: count(item.views),
+        enquiries: count(item.enquiries),
+      }));
   }
 
   /** Names the banner step the way the editor does: "Add banner" while open, "Banner added" once done. */
@@ -820,7 +839,7 @@
         okButton.removeEventListener('click', onOk);
         byId('sdh-confirm-cancel').removeEventListener('click', onCancel);
         dialog.removeEventListener('close', onClose);
-        dialog.removeEventListener('keydown', onKey);
+        document.removeEventListener('keydown', onKey);
         if (opener && typeof opener.focus === 'function') {
           opener.focus();
         }
@@ -840,7 +859,7 @@
           finish(false);
         }
       };
-      dialog.addEventListener('keydown', onKey);
+      document.addEventListener('keydown', onKey);
       okButton.addEventListener('click', onOk);
       byId('sdh-confirm-cancel').addEventListener('click', onCancel);
       dialog.addEventListener('close', onClose);
@@ -895,6 +914,7 @@
     billing: null,
     billingRequested: false,
     ownSubscriptionPromise: null,
+    days: SUMMARY_DAYS,
   };
 
   /** Resolves once app.js has reported the supplier list, or after a few seconds if it never does. */
@@ -943,7 +963,9 @@
       await state.suppliersKnown;
     }
     state.skippedSummary = Boolean(skipWhenNoProfile) && isNoProfile();
-    const result = state.skippedSummary ? { status: 404, data: null } : await getJson(SUMMARY_URL);
+    const result = state.skippedSummary
+      ? { status: 404, data: null }
+      : await getJson(`/api/supplier/dashboard-summary?days=${state.days}`);
     state.notFound = result.status === 404;
     state.failed = !result.data;
     if (!result.data) {
@@ -1218,6 +1240,28 @@
     );
   }
 
+  /**
+   * How this period's enquiries compare with the one before, in words: "Up 250% on the 30 days
+   * before.", "None in the 30 days before." or "Same as the 30 days before."; '' when the server did
+   * not say what the earlier period held.
+   */
+  function enquiryTrend(asked, days) {
+    if (!asked || asked.fresh === null || asked.previous === null) {
+      return '';
+    }
+    const span = days || SUMMARY_DAYS;
+    if (asked.previous === 0) {
+      return asked.fresh === 0
+        ? `None in this or the ${span} days before.`
+        : `None in the ${span} days before.`;
+    }
+    const change = Math.round(((asked.fresh - asked.previous) / asked.previous) * 100);
+    if (change === 0) {
+      return `Same as the ${span} days before.`;
+    }
+    return `${change > 0 ? 'Up' : 'Down'} ${Math.abs(change)}% on the ${span} days before.`;
+  }
+
   /** The second row: visits and reply figures, each only when the server has a real value. */
   function extraRow(model) {
     const items = [];
@@ -1225,6 +1269,12 @@
     if (views && views.total !== null) {
       items.push(
         `<div class="sdh-stat"><p class="sdh-stat__label">Profile visits, last ${views.days} days</p><p class="sdh-stat__value">${views.total.toLocaleString('en-GB')}</p><p class="sdh-stat__note">Counts page loads, not people.</p></div>`
+      );
+    }
+    const asked = model?.enquiries;
+    if (asked && asked.fresh !== null) {
+      items.push(
+        `<div class="sdh-stat"><p class="sdh-stat__label">Enquiries, last ${model.views?.days || model.windowDays || SUMMARY_DAYS} days</p><p class="sdh-stat__value">${asked.fresh.toLocaleString('en-GB')}</p><p class="sdh-stat__note">${esc(enquiryTrend(asked, model.views?.days || model.windowDays))}${asked.requestsReceived ? ` <button type="button" class="sdh-link" data-sdh-action="open-enquiries">View ${esc(plural(asked.requestsNew || 0, 'new request'))}</button>` : ''}</p></div>`
       );
     }
     const reply = replyMetric(model?.responses);
@@ -1452,27 +1502,72 @@
    * Profile visits
    * ------------------------------------------------------------------ */
 
-  /** An accessible bar chart of visits per day as inline SVG. Only drawn when the server sent a daily series. */
-  function chartSvg(daily, days) {
+  /**
+   * An accessible bar chart as inline SVG. `key` picks the series (views or enquiries) and `noun`
+   * names one unit for the labels. Only drawn when the server sent a daily series.
+   */
+  function chartSvg(daily, days, key, noun, label, nouns) {
+    const series = key || 'views';
+    const word = noun || 'visit';
     const width = 560;
     const height = 140;
     const gap = 2;
     const barWidth = Math.max(2, (width - gap * (daily.length - 1)) / daily.length);
-    const peak = Math.max(1, ...daily.map(item => item.views));
-    const total = daily.reduce((sum, item) => sum + item.views, 0);
+    const peak = Math.max(1, ...daily.map(item => item[series] || 0));
+    const total = daily.reduce((sum, item) => sum + (item[series] || 0), 0);
     const bars = daily
       .map((item, index) => {
-        const barHeight = Math.max(
-          item.views > 0 ? 2 : 0,
-          Math.round((item.views / peak) * (height - 4))
-        );
-        const label = `${formatShortDate(item.date) || item.date}: ${plural(item.views, 'visit')}`;
-        return `<rect class="sdh-chart__bar" x="${(index * (barWidth + gap)).toFixed(1)}" y="${height - barHeight}" width="${barWidth.toFixed(1)}" height="${barHeight}" rx="1.5"><title>${esc(label)}</title></rect>`;
+        const value = item[series] || 0;
+        const barHeight = Math.max(value > 0 ? 2 : 0, Math.round((value / peak) * (height - 4)));
+        const text = `${formatShortDate(item.date) || item.date}: ${plural(value, word, nouns)}`;
+        return `<rect class="sdh-chart__bar${series === 'enquiries' ? ' sdh-chart__bar--alt' : ''}" x="${(index * (barWidth + gap)).toFixed(1)}" y="${height - barHeight}" width="${barWidth.toFixed(1)}" height="${barHeight}" rx="1.5"><title>${esc(text)}</title></rect>`;
       })
       .join('');
     const first = formatShortDate(daily[0].date);
     const last = formatShortDate(daily[daily.length - 1].date);
-    return `<figure class="sdh-chart"><svg class="sdh-chart__svg" viewBox="0 0 ${width} ${height}" preserveAspectRatio="none" role="img" aria-label="${esc(`Profile visits per day over the last ${days} days: ${plural(total, 'visit')} in total, busiest day ${plural(peak, 'visit')}.`)}">${bars}</svg><figcaption class="sdh-chart__axis"><span>${esc(first)}</span><span>${esc(last)}</span></figcaption></figure>`;
+    return `<figure class="sdh-chart"><svg class="sdh-chart__svg" viewBox="0 0 ${width} ${height}" preserveAspectRatio="none" role="img" aria-label="${esc(`${label || 'Profile visits'} per day over the last ${days} days: ${plural(total, word, nouns)} in total, busiest day ${plural(peak, word, nouns)}.`)}">${bars}</svg><figcaption class="sdh-chart__axis"><span>${esc(first)}</span><span>${esc(last)}</span></figcaption></figure>`;
+  }
+
+  /** The period buttons (7, 30, 90 days): the longer ones are off, with the reason, beyond what the plan shows. */
+  function periodButtons(views) {
+    const max = views.maxDays || Math.max(...PERIODS);
+    const buttons = PERIODS.map(days => {
+      const locked = days > max;
+      const pressed = days === views.days;
+      return `<button type="button" class="sdh-seg__btn" data-sdh-days="${days}" aria-pressed="${pressed}"${locked ? ` disabled title="${esc(`Your plan shows up to ${max} days`)}"` : ''}>${days} days</button>`;
+    }).join('');
+    return `<div class="sdh-seg" role="group" aria-label="Period shown">${buttons}</div>`;
+  }
+
+  /**
+   * "From visit to reply": page loads, enquiries and the reply rate side by side, each only when
+   * the server has a real value. They are separate measures (people counted once an hour, requests
+   * and conversations), so the card says it is not a conversion rate.
+   */
+  function funnelHtml(model) {
+    const steps = [];
+    const views = model?.views;
+    if (views && views.total !== null) {
+      steps.push(
+        `<li><strong>${views.total.toLocaleString('en-GB')}</strong> profile page loads</li>`
+      );
+    }
+    const asked = model?.enquiries;
+    if (asked && asked.fresh !== null) {
+      steps.push(
+        `<li><strong>${asked.fresh.toLocaleString('en-GB')}</strong> enquiries (${esc(plural(asked.conversations || 0, 'conversation'))}, ${esc(plural(asked.quoteRequests || 0, 'quote request'))}, ${esc(plural(asked.contactForm || 0, 'contact message'))})</li>`
+      );
+    }
+    const reply = replyMetric(model?.responses);
+    if (reply && reply.repliedPct !== null) {
+      steps.push(
+        `<li><strong>${reply.repliedPct}%</strong> of ${esc(plural(reply.sampleSize, 'recent conversation'))} replied to</li>`
+      );
+    }
+    if (steps.length < 2) {
+      return '';
+    }
+    return `<div class="sdh-funnel"><p class="sdh-plan__head">From visit to reply</p><ol class="sdh-funnel__list">${steps.join('')}</ol><p class="sdh-note sdh-note--foot">These are counted separately, so this is not a conversion rate.</p></div>`;
   }
 
   /** Draws the profile visits card from the summary: total, chart when there is a daily series, and the footnote. */
@@ -1495,6 +1590,12 @@
       sub.textContent = `Last ${views.days} days.`;
     }
     const body = views.daily.length >= 2 ? chartSvg(views.daily, views.days) : '';
+    const hasEnquirySeries =
+      views.daily.length >= 2 &&
+      views.daily.some(item => item.enquiries !== null && item.enquiries > 0);
+    const enquiryChart = hasEnquirySeries
+      ? `<p class="sdh-plan__head">Enquiries per day</p>${chartSvg(views.daily, views.days, 'enquiries', 'enquiry', 'Enquiries', 'enquiries')}`
+      : '';
     const empty =
       views.total === 0
         ? '<p class="sdh-note">No visits yet. Your profile appears in search once it is approved.</p>'
@@ -1503,7 +1604,9 @@
       views.requestedDays > views.days
         ? `<p class="sdh-note">Your plan shows the last ${views.days} days. <a class="sdh-link" href="/pricing">See plans</a> for longer history.</p>`
         : '';
-    box.innerHTML = `<p class="sdh-metric"><span class="sdh-metric__value">${views.total.toLocaleString('en-GB')}</span><span class="sdh-metric__unit"> ${views.total === 1 ? 'visit' : 'visits'}</span></p>${body}${empty}${shorter}<p class="sdh-note sdh-note--foot">Counts page loads, not people. One visitor can be counted once an hour.</p>`;
+    const foot =
+      views.description || 'Counts page loads, not people. Your own visits are not counted.';
+    box.innerHTML = `${periodButtons(views)}<p class="sdh-metric"><span class="sdh-metric__value">${views.total.toLocaleString('en-GB')}</span><span class="sdh-metric__unit"> ${views.total === 1 ? 'visit' : 'visits'}</span></p>${body}${enquiryChart}${funnelHtml(state.model)}${empty}${shorter}<p class="sdh-note sdh-note--foot">${esc(foot)}</p>`;
   }
 
   /* ------------------------------------------------------------------ *
@@ -1934,26 +2037,49 @@
   };
 
   let reviewRequests = { items: [], summary: {} };
+  const requestView = { filter: '', showAll: false, open: false };
+  const REQUESTS_SHOWN = 5;
 
-  /** Draws the short list of review requests under the reviews: who was asked and what happened. */
+  /** The rows of the request history that match the status filter, newest first as the server sent them. */
+  function filterRequests(items, filter) {
+    return filter ? items.filter(item => item.status === filter) : items;
+  }
+
+  /**
+   * The history of review requests as a real <details>: the counts (total, still open, completed,
+   * needing attention), a status filter, and the rows with who was asked, what happened, why a
+   * failed one failed and when a retry is possible. The first few rows show; "Show all" the rest.
+   */
   function renderReviewRequests() {
     const box = byId(ids.reviewRequests);
     if (!box) {
       return;
     }
-    const items = Array.isArray(reviewRequests.items) ? reviewRequests.items.slice(0, 5) : [];
-    if (!items.length) {
+    const all = Array.isArray(reviewRequests.items) ? reviewRequests.items : [];
+    if (!all.length) {
       box.innerHTML = '';
       return;
     }
     const summary = reviewRequests.summary || {};
-    const total = count(summary.total);
-    const completed = count(summary.completed);
-    const head =
-      total !== null && completed !== null
-        ? `${completed} of ${plural(total, 'request')} answered`
-        : 'Recent requests';
-    box.innerHTML = `<h3 class="sdh-subhead">Review requests <span class="sdh-subhead__note">${esc(head)}</span></h3><ul class="sdh-list">${items
+    const counts = [
+      ['Requests', count(summary.total)],
+      ['Waiting', count(summary.active)],
+      ['Completed', count(summary.completed)],
+      ['Needs attention', count(summary.deliveryIssues)],
+    ]
+      .filter(([, value]) => value !== null)
+      .map(([label, value]) => `<li><strong>${value}</strong> ${esc(label.toLowerCase())}</li>`)
+      .join('');
+    const rows = filterRequests(all, requestView.filter);
+    const shown = requestView.showAll ? rows : rows.slice(0, REQUESTS_SHOWN);
+    const options = [['', 'All requests']]
+      .concat(Object.entries(REQUEST_STATUS))
+      .map(
+        ([value, label]) =>
+          `<option value="${esc(value)}"${value === requestView.filter ? ' selected' : ''}>${esc(label)}</option>`
+      )
+      .join('');
+    const list = shown
       .map(item => {
         const when = formatDate(
           item.completedAt || item.openedAt || item.sentAt || item.failedAt || item.createdAt
@@ -1961,9 +2087,28 @@
         const retry = item.retryable
           ? `<button type="button" class="sdh-link" data-sdh-action="retry-request" data-request="${esc(item.id)}">${item.status === 'completed' ? 'Request again' : 'Retry'}</button>`
           : '';
-        return `<li class="sdh-list__row"><div class="sdh-list__main"><p class="sdh-list__title">${esc(item.customerName || item.customerEmail)}</p><p class="sdh-list__meta">${esc(REQUEST_STATUS[item.status] || 'Unknown')}${when ? ` · ${esc(when)}` : ''}</p></div>${retry}</li>`;
+        const wait =
+          !item.retryable && item.retryAt && formatDate(item.retryAt)
+            ? `<p class="sdh-list__meta">You can ask again on ${esc(formatDate(item.retryAt))}.</p>`
+            : '';
+        const reason =
+          item.status === 'failed' && item.lastError
+            ? `<p class="sdh-list__meta sdh-list__meta--bad">${esc(item.lastError)}</p>`
+            : '';
+        const who = item.customerName || item.customerEmail || '';
+        const email =
+          item.customerName && item.customerEmail
+            ? `<p class="sdh-list__meta">${esc(item.customerEmail)}</p>`
+            : '';
+        return `<li class="sdh-list__row"><div class="sdh-list__main"><p class="sdh-list__title">${esc(who)}</p>${email}<p class="sdh-list__meta">${esc(REQUEST_STATUS[item.status] || 'Unknown')}${when ? ` · ${esc(when)}` : ''}</p>${reason}${wait}</div>${retry}</li>`;
       })
-      .join('')}</ul>`;
+      .join('');
+    const more =
+      !requestView.showAll && rows.length > REQUESTS_SHOWN
+        ? `<button type="button" class="sdh-link" data-sdh-action="show-all-requests">Show all ${rows.length}</button>`
+        : '';
+    const empty = rows.length ? '' : '<p class="sdh-note">No requests with that status.</p>';
+    box.innerHTML = `<details class="sdh-more sdh-rreq-history"${requestView.open ? ' open' : ''}><summary class="sdh-more__summary">Review requests${count(summary.deliveryIssues) ? ` (${count(summary.deliveryIssues)} need attention)` : ''}</summary><ul class="sdh-inline-counts">${counts}</ul><div class="sdh-field sdh-rreq-history__filter"><label class="sdh-label" for="rreq-filter">Show</label><select id="rreq-filter" class="sdh-input">${options}</select></div>${empty}<ul class="sdh-list">${list}</ul>${more}</details>`;
   }
 
   /** Loads the review request history; a failure leaves the list out rather than showing an error for a side note. */
@@ -1986,8 +2131,31 @@
       status.textContent = '';
       status.dataset.tone = '';
     }
+    const path = state.model?.profile?.publicProfilePath || '';
+    const linkField = byId('rreq-link-field');
+    const linkInput = byId('rreq-profile-link');
+    if (linkField && linkInput) {
+      linkField.hidden = !path;
+      linkInput.value = path ? new URL(path, window.location.origin).href : '';
+    }
     openDialog(dialog);
     byId('rreq-email')?.focus();
+  }
+
+  /** Copies the public profile link, or selects it so the supplier can copy it by hand. */
+  async function copyProfileLink() {
+    const input = byId('rreq-profile-link');
+    if (!input || !input.value) {
+      return;
+    }
+    try {
+      await navigator.clipboard.writeText(input.value);
+      toast('Profile link copied.', 'success');
+    } catch {
+      input.focus();
+      input.select();
+      toast('Press Ctrl+C (Cmd+C on a Mac) to copy the selected link.', 'info');
+    }
   }
 
   /** A plain sentence for a refused review request: unverified email, unapproved profile, or already asked. */
@@ -2156,6 +2324,13 @@
       if (target) {
         scrollToNode(target, 'start');
       }
+    } else if (action === 'copy-profile-link') {
+      copyProfileLink();
+    } else if (action === 'show-all-requests') {
+      requestView.showAll = true;
+      renderReviewRequests();
+    } else if (action === 'open-enquiries') {
+      document.dispatchEvent(new CustomEvent('sdh:open-enquiries'));
     } else if (action === 'verify') {
       event.preventDefault();
       openVerification();
@@ -2202,6 +2377,13 @@
         });
         return;
       }
+      const periodButton = target.closest?.('[data-sdh-days]');
+      if (periodButton) {
+        if (!periodButton.disabled) {
+          setPeriod(Number(periodButton.dataset.sdhDays));
+        }
+        return;
+      }
       const action = target.closest?.('[data-sdh-action]');
       if (action) {
         runAction(action, event);
@@ -2212,11 +2394,37 @@
         closeDialog(close.closest('dialog'));
       }
     });
+    document.addEventListener('change', event => {
+      if (event.target && event.target.id === 'rreq-filter') {
+        requestView.filter = event.target.value;
+        requestView.showAll = false;
+        renderReviewRequests();
+        byId('rreq-filter')?.focus();
+      }
+    });
+    document.addEventListener(
+      'toggle',
+      event => {
+        if (
+          event.target &&
+          event.target.matches &&
+          event.target.matches('details.sdh-rreq-history')
+        ) {
+          requestView.open = event.target.open;
+        }
+      },
+      true
+    );
     byId(ids.reviewForm)?.addEventListener('submit', submitReviewRequest);
     document.querySelectorAll('dialog.sdh-dialog').forEach(dialog => {
       dialog.addEventListener('click', event => {
         // A click on the backdrop lands on the dialog element itself.
-        if (event.target === dialog && dialog.id !== 'sdh-confirm-dialog') {
+        // The editors (data-overlay) ask before throwing away edits, so a stray click outside them does not close them.
+        if (
+          event.target === dialog &&
+          dialog.id !== 'sdh-confirm-dialog' &&
+          !dialog.hasAttribute('data-overlay')
+        ) {
           closeDialog(dialog);
         }
       });
@@ -2243,15 +2451,23 @@
       refresh();
     });
     window.addEventListener('unreadCountUpdated', event => {
-      // The summary's number is the one shown; this only fills it in when the summary had none.
+      // The unread count the messenger reports is live: keep the tile and the greeting in step with it.
       const unread = count(event.detail?.count);
-      if (
-        state.model &&
-        unread !== null &&
-        (!state.model.messages || state.model.messages.unread === null)
-      ) {
-        state.model.messages = { unread, conversations: null, latestAt: '' };
-        renderSummary();
+      if (state.model && unread !== null) {
+        const messages = state.model.messages || {
+          unread: null,
+          conversations: null,
+          latestAt: '',
+        };
+        if (messages.unread !== unread) {
+          state.model.messages = {
+            ...messages,
+            unread,
+            conversations: unread === 0 ? 0 : messages.conversations,
+          };
+          renderSummary();
+          renderHero();
+        }
       }
     });
   }
@@ -2261,6 +2477,15 @@
     const hash = window.location.hash.slice(1);
     if (hash === 'photos') {
       openForm('profile-form-section', 'toggle-profile-form', 'sup-photo-drop');
+    } else if (hash === 'reviews' || hash === 'review-requests') {
+      const card = byId('sdh-reviews');
+      if (card) {
+        scrollToNode(card, 'start');
+      }
+    } else if (hash === 'verification') {
+      openVerification();
+    } else if (hash === 'enquiries') {
+      document.dispatchEvent(new CustomEvent('sdh:open-enquiries'));
     } else if (hash === 'packages') {
       const section = byId('my-packages') || byId('packages-section');
       if (section) {
@@ -2295,7 +2520,7 @@
       return;
     }
     // eslint-disable-next-line no-new -- the widget attaches itself to its container
-    new MessengerWidgetV4(ids.messenger, { maxItems: 5, broadcastUnread: false });
+    new MessengerWidgetV4(ids.messenger, { maxItems: 20, broadcastUnread: false });
   }
 
   /* ------------------------------------------------------------------ *
@@ -2336,6 +2561,20 @@
     initReviews();
     loadBilling();
     document.dispatchEvent(new CustomEvent('sdh:rendered'));
+  }
+
+  /** Shows the page for another period (7, 30 or 90 days): asks the server for that window and redraws. */
+  async function setPeriod(days) {
+    if (!PERIODS.includes(days) || days === state.days) {
+      return;
+    }
+    state.days = days;
+    const box = byId(ids.chart);
+    box?.setAttribute('aria-busy', 'true');
+    await refresh();
+    box?.removeAttribute('aria-busy');
+    // Redrawing replaced the buttons: put keyboard focus back on the one that was chosen.
+    byId(ids.chart)?.querySelector(`[data-sdh-days="${days}"]`)?.focus();
   }
 
   /** Asks the server for the summary again and redraws. Called after a profile or package change. */
@@ -2407,6 +2646,8 @@
     refresh,
     confirm: confirmAction,
     getContext,
+    getJson,
+    enquiryTrend,
     sendJson,
     toast,
     normaliseSummary,
