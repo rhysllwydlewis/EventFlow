@@ -298,7 +298,7 @@
       try {
         const csrfResponse = await fetch('/api/v1/csrf-token', { credentials: 'include' });
         const csrfData = await csrfResponse.json();
-        if (csrfData && csrfData.csrfToken) {
+        if (csrfData?.csrfToken) {
           window.__CSRF_TOKEN__ = csrfData.csrfToken;
         }
       } catch (err) {
