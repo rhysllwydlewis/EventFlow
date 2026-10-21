@@ -116,3 +116,24 @@ describe('Edit, View, Photos', () => {
     expect(appJs).toContain("window.SupplierDashboardOverlays?.open('package'");
   });
 });
+
+describe('packages for a supplier who cannot read them yet', () => {
+  const loader = appJs.slice(
+    appJs.indexOf('async function loadPackages()'),
+    appJs.indexOf('window._efLoadPackages = loadPackages')
+  );
+
+  test('a missing or unapproved profile is answered from the profile list, before any request', () => {
+    const flags = loader.indexOf('window._supplierApprovalBlocked');
+    const request = loader.indexOf("api('/api/me/packages')");
+    expect(flags).toBeGreaterThan(-1);
+    expect(request).toBeGreaterThan(flags);
+    expect(loader.slice(0, request)).toContain('packageBlockedHtml(');
+  });
+
+  test('the same two messages serve the early answer and a refusal from the server', () => {
+    expect(appJs.match(/Packages unlock after approval/g)).toHaveLength(1);
+    expect(appJs.match(/Create your profile first/g)).toHaveLength(1);
+    expect(loader).toContain('packageBlockedHtml(err.code)');
+  });
+});

@@ -91,6 +91,13 @@ the list is empty. Only the profile, calendar (the private calendar needs no pro
 and support cards show (`body.sdh-no-profile`). Until the first load finishes the cards
 keep their loading placeholders: nothing says "could not load" before a request has failed.
 
+## Supplier waiting for approval
+
+The server only lets an approved supplier read packages and enquiries. The page knows this from
+the profile list, so it does not ask for packages at all until the profile is approved (the
+packages card says "Packages unlock after approval") and says the same for enquiries; nothing
+is requested that the server would refuse, so a pending supplier's console stays clean.
+
 ## Honest numbers
 
 Nothing on the page is computed from guesses.

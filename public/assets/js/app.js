@@ -1120,12 +1120,12 @@ async function initPlan() {
               ${budgetItems
                 .map(
                   row => `
-                <tr data-id="${row.id}">
+                <tr data-id="${escapeAttr(row.id)}">
                   <td>${escapeHtml(row.label || '')}</td>
                   <td>${escapeHtml(row.estimate || '')}</td>
                   <td>${escapeHtml(row.actual || '')}</td>
                   <td>${escapeHtml(row.notes || '')}</td>
-                  <td><button class="ef-cta link-button" data-remove-budget="${row.id}">Remove</button></td>
+                  <td><button class="ef-cta link-button" data-remove-budget="${escapeAttr(row.id)}">Remove</button></td>
                 </tr>
               `
                 )
@@ -1199,11 +1199,11 @@ async function initPlan() {
             ${guests
               .map(
                 g => `
-              <tr data-id="${g.id}">
+              <tr data-id="${escapeAttr(g.id)}">
                 <td>${escapeHtml(g.name || '')}</td>
                 <td>${escapeHtml(g.role || '')}</td>
                 <td>${escapeHtml(g.notes || '')}</td>
-                <td><button class="ef-cta link-button" data-remove-guest="${g.id}">Remove</button></td>
+                <td><button class="ef-cta link-button" data-remove-guest="${escapeAttr(g.id)}">Remove</button></td>
               </tr>
             `
               )
@@ -1241,11 +1241,11 @@ async function initPlan() {
             ${tasks
               .map(
                 t => `
-              <tr data-id="${t.id}">
+              <tr data-id="${escapeAttr(t.id)}">
                 <td><input type="checkbox" data-toggle-task="${t.id}" ${t.done ? 'checked' : ''}></td>
                 <td>${escapeHtml(t.label || '')}</td>
                 <td>${escapeHtml(t.due || '')}</td>
-                <td><button class="ef-cta link-button" data-remove-task="${t.id}">Remove</button></td>
+                <td><button class="ef-cta link-button" data-remove-task="${escapeAttr(t.id)}">Remove</button></td>
               </tr>
             `
               )
@@ -1297,11 +1297,11 @@ async function initPlan() {
             ${timeline
               .map(
                 t => `
-              <tr data-id="${t.id}">
+              <tr data-id="${escapeAttr(t.id)}">
                 <td>${escapeHtml(t.time || '')}</td>
                 <td>${escapeHtml(t.item || '')}</td>
                 <td>${escapeHtml(t.owner || '')}</td>
-                <td><button class="ef-cta link-button" data-remove-timeline="${t.id}">Remove</button></td>
+                <td><button class="ef-cta link-button" data-remove-timeline="${escapeAttr(t.id)}">Remove</button></td>
               </tr>
             `
               )
@@ -2384,6 +2384,24 @@ async function initDashSupplier() {
     return `<div class="sdh-empty"><p class="sdh-empty__title">${title}</p><p class="sdh-empty__text">${text}</p>${action || ''}</div>`;
   }
 
+  /** The packages card message for a supplier whose packages cannot be read yet, or '' for any other case. */
+  function packageBlockedHtml(code) {
+    if (code === 'SUPPLIER_PROFILE_MISSING') {
+      return packageMessageHtml(
+        'Create your profile first',
+        'Packages belong to your profile. Create it, and you can add packages straight after.',
+        '<button type="button" class="sdh-btn sdh-btn--primary" data-sdh-action="edit-profile" data-sdh-focus="sup-name">Create profile</button>'
+      );
+    }
+    if (code === 'SUPPLIER_NOT_APPROVED') {
+      return packageMessageHtml(
+        'Packages unlock after approval',
+        'Your profile is waiting to be approved. You can add and manage packages as soon as it is.'
+      );
+    }
+    return '';
+  }
+
   async function loadPackages() {
     try {
       if (!pkgsWrap) {
@@ -2394,6 +2412,19 @@ async function initDashSupplier() {
       const supplierBlockMessage = window._supplierProfileMissing
         ? 'Create your profile before adding packages.'
         : 'Package creation unlocks once your profile is approved.';
+      // The profile list already says when packages cannot be read yet, so skip a request the
+      // server would refuse (it would only add a 403 to the console).
+      const blockedHtml = packageBlockedHtml(
+        window._supplierProfileMissing
+          ? 'SUPPLIER_PROFILE_MISSING'
+          : window._supplierApprovalBlocked
+            ? 'SUPPLIER_NOT_APPROVED'
+            : ''
+      );
+      if (blockedHtml) {
+        pkgsWrap.innerHTML = blockedHtml;
+        return;
+      }
       const [d, allowance] = await Promise.all([api('/api/me/packages'), getPackageAllowance()]);
       const items = d?.items && Array.isArray(d.items) ? d.items : [];
       // Only count active (non-paused) packages against the plan limit; paused packages
@@ -2484,24 +2515,13 @@ async function initDashSupplier() {
     } catch (err) {
       console.error('Error loading packages:', err);
       if (pkgsWrap) {
-        if (err.code === 'SUPPLIER_PROFILE_MISSING') {
-          pkgsWrap.innerHTML = packageMessageHtml(
-            'Create your profile first',
-            'Packages belong to your profile. Create it, and you can add packages straight after.',
-            '<button type="button" class="sdh-btn sdh-btn--primary" data-sdh-action="edit-profile" data-sdh-focus="sup-name">Create profile</button>'
-          );
-        } else if (err.code === 'SUPPLIER_NOT_APPROVED') {
-          pkgsWrap.innerHTML = packageMessageHtml(
-            'Packages unlock after approval',
-            'Your profile is waiting to be approved. You can add and manage packages as soon as it is.'
-          );
-        } else {
-          pkgsWrap.innerHTML = packageMessageHtml(
+        pkgsWrap.innerHTML =
+          packageBlockedHtml(err.code) ||
+          packageMessageHtml(
             'Could not load your packages',
             'Check your connection and try again.',
             '<button type="button" class="sdh-btn sdh-btn--secondary sdh-btn--sm" data-sdh-action="reload-packages">Try again</button>'
           );
-        }
       }
     }
   }

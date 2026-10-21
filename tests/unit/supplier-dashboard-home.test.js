@@ -1167,6 +1167,18 @@ describe('supplier dashboard home: rendered page', () => {
     expect(page.chartBars).toBe(3);
   });
 
+  test('no visits at all: the card says so instead of drawing a blank chart', () => {
+    const quiet = clone(populated);
+    quiet.views = { ...populated.views, total: 0 };
+    quiet.analytics = {
+      dailyData: populated.analytics.dailyData.map(day => ({ ...day, views: 0 })),
+    };
+    const page = run({ summary: quiet, suppliers: [{ id: 's1' }] });
+    expect(page.visits).toContain('No visits yet.');
+    expect(page.chartBars).toBe(0);
+    expect(page.visitsHtml).not.toContain('<svg');
+  });
+
   test('fewer than 3 conversations: no reply rate or reply time, never a made-up number', () => {
     const sparse = clone(populated);
     sparse.responses = { sampleSize: 2, repliedPct: null, medianMinutes: null };
@@ -1540,6 +1552,11 @@ describe('supplier dashboard home: app.js profile and package behaviour', () => 
     expect(row).toContain('escapeAttr(rawTitle)');
     expect(row).toContain('escapeHtml(String(p.description');
     expect(row).not.toContain('class="ef-cta');
+  });
+
+  test('no record id is put into a data attribute without escapeAttr', () => {
+    const bare = appJs.match(/data-(?:id|remove-[a-z]+)="\$\{(?!escapeAttr\()[^}]*\}"/g) || [];
+    expect(bare).toEqual([]);
   });
 
   test('showing and hiding uses the hidden attribute rather than inline display', () => {

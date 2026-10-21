@@ -167,6 +167,19 @@ describe('enquiries: states', () => {
     expect(log.list).toContain('Try again');
   });
 
+  test('an enquiry that cannot be opened says why and offers no status buttons', () => {
+    const missing = run({ script: { detailStatus: 404 } });
+    expect(missing.detail).toContain('This enquiry could not be opened');
+    expect(missing.messageText).toBe('It is no longer available.');
+    expect(missing.statusButtons).toEqual([]);
+    expect(missing.statusAfter).toBe('');
+    expect(missing.afterPatch).toEqual([]);
+
+    const offline = run({ script: { detailStatus: 500 } });
+    expect(offline.messageText).toBe('Check your connection and try again.');
+    expect(offline.statusButtons).toEqual([]);
+  });
+
   test('a status change that fails is reported and leaves the buttons usable', () => {
     const log = run({ script: { patchFails: true } });
     expect(log.toasts).toEqual(['toast:error:Could not update']);

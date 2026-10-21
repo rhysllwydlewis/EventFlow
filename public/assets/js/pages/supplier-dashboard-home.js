@@ -1591,7 +1591,9 @@
     if (sub) {
       sub.textContent = `Last ${views.days} days.`;
     }
-    const body = views.daily.length >= 2 ? chartSvg(views.daily, views.days) : '';
+    // A chart of all-zero bars is a blank block with two dates; the "No visits yet" note says it better.
+    const body =
+      views.total > 0 && views.daily.length >= 2 ? chartSvg(views.daily, views.days) : '';
     const hasEnquirySeries =
       views.daily.length >= 2 &&
       views.daily.some(item => item.enquiries !== null && item.enquiries > 0);

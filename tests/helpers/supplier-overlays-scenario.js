@@ -509,6 +509,9 @@ async function enquiries(options) {
         },
       };
     }
+    if (scripted.detailStatus) {
+      return { status: scripted.detailStatus, data: null };
+    }
     return { status: 200, data: { success: true, enquiry: detail } };
   };
   window.SupplierDashboardHome.sendJson = async (url, method, body) => {
@@ -556,8 +559,8 @@ async function enquiries(options) {
         '';
       log.tel =
         (field(window, 'sdh-enquiries-detail').querySelector('a[href^="tel:"]') || {}).href || '';
-      log.messageText = field(window, 'sdh-enquiries-detail').querySelector(
-        '.sdh-enq__message'
+      log.messageText = (
+        field(window, 'sdh-enquiries-detail').querySelector('.sdh-enq__message') || {}
       ).textContent;
       log.replyControls = field(window, 'sdh-enquiries-detail').querySelectorAll(
         'textarea, input, form'
@@ -568,10 +571,12 @@ async function enquiries(options) {
       const handled = field(window, 'sdh-enquiries-detail').querySelector(
         '[data-status="handled"]'
       );
-      click(handled);
-      await settle(8);
+      if (handled) {
+        click(handled);
+        await settle(8);
+      }
       log.afterPatch = requests.filter(entry => entry.startsWith('PATCH'));
-      log.statusAfter = text('sdh-enquiries-detail').match(/Status: \w+/)[0];
+      log.statusAfter = (text('sdh-enquiries-detail').match(/Status: \w+/) || [''])[0];
       log.toasts = requests.filter(entry => entry.startsWith('toast'));
     }
     const source = field(window, 'sdh-enquiries-source');
@@ -585,7 +590,10 @@ async function enquiries(options) {
     if (filteredRow) {
       click(filteredRow);
       await settle(6);
-      click(field(window, 'sdh-enquiries-detail').querySelector('[data-status]'));
+      const filteredStatus = field(window, 'sdh-enquiries-detail').querySelector('[data-status]');
+      if (filteredStatus) {
+        click(filteredStatus);
+      }
       await settle(10);
       log.rowsAfterStatusWithFilter = field(window, 'sdh-enquiries-list').querySelectorAll(
         '.sdh-enq'

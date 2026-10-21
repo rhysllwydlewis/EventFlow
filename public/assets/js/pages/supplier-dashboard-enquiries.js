@@ -403,6 +403,11 @@
     title.id = 'sdh-enquiry-title';
     title.tabIndex = -1;
     pane.appendChild(title);
+    if (item.unavailable) {
+      // Nothing was loaded, so there is nothing to mark: say why and stop.
+      pane.appendChild(el('p', 'sdh-enq__message', item.message));
+      return;
+    }
     pane.appendChild(
       el(
         'p',
@@ -446,6 +451,9 @@
   /** Opens one enquiry in the detail pane. Opening it does not change its status; the buttons do. */
   async function select(id) {
     const api = home();
+    if (!api) {
+      return;
+    }
     view.selectedId = id;
     view.detail = null;
     renderList();
@@ -456,12 +464,12 @@
     }
     if (!result.data || !result.data.enquiry) {
       view.detail = {
+        unavailable: true,
         customerName: 'This enquiry could not be opened',
         message:
           result.status === 404
             ? 'It is no longer available.'
             : 'Check your connection and try again.',
-        status: 'read',
       };
       renderDetail();
       return;
