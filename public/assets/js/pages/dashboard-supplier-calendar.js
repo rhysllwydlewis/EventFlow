@@ -428,8 +428,7 @@
   function openEntryModal(modal, dateStr) {
     modal.querySelector('#sup-cal-entry-title').value = '';
     modal.querySelector('#sup-cal-entry-type').value = '';
-    modal.querySelector('#sup-cal-entry-date').value =
-      dateStr || localIsoDate(new Date());
+    modal.querySelector('#sup-cal-entry-date').value = dateStr || localIsoDate(new Date());
     modal.querySelector('#sup-cal-entry-time').value = '';
     modal.querySelector('#sup-cal-entry-notes').value = '';
     const errorEl = modal.querySelector('#sup-cal-entry-error');
