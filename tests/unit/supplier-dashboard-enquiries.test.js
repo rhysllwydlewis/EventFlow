@@ -121,6 +121,17 @@ describe('enquiries: the card and the drawer', () => {
     expect(log.statusAfter).toContain('Status: Handled');
   });
 
+  test('changing a status keeps the filtered list and puts focus on the detail heading, not the page', () => {
+    expect(log.rowsAfterStatusWithFilter).toBe(1);
+    expect(log.focusAfterStatus).toBe('sdh-enquiry-title');
+  });
+
+  test('the card and the drawer keep separate rows, and only the newest list request may draw', () => {
+    expect(enquiriesSource).toContain('cardItems');
+    expect(enquiriesSource).toContain('view.listTicket');
+    expect(enquiriesSource).toContain('if (ticket !== view.listTicket)');
+  });
+
   test('a filter goes to the server and the list follows it', () => {
     expect(log.filteredRequest).toBeGreaterThanOrEqual(1);
     expect(log.filteredRows).toBe(1);

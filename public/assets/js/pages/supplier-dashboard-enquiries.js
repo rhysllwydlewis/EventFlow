@@ -49,6 +49,10 @@
 
   const view = {
     cardLoaded: false,
+    cardItems: [],
+    cardCounts: null,
+    cardProblem: '',
+    listTicket: 0,
     cardRequested: false,
     loading: false,
     items: [],
@@ -179,7 +183,7 @@
       body.appendChild(el('div', 'sdh-skel sdh-skel--row'));
       return;
     }
-    if (view.problem === 'unapproved') {
+    if (view.cardProblem === 'unapproved') {
       body.appendChild(
         el(
           'p',
@@ -189,7 +193,7 @@
       );
       return;
     }
-    if (view.problem) {
+    if (view.cardProblem) {
       const wrap = el('div', 'sdh-empty');
       wrap.appendChild(el('p', 'sdh-empty__title', 'Your enquiries could not be loaded'));
       wrap.appendChild(el('p', 'sdh-empty__text', 'Check your connection and try again.'));
@@ -200,7 +204,7 @@
       body.appendChild(wrap);
       return;
     }
-    if (!view.counts || view.counts.total === 0) {
+    if (!view.cardCounts || view.cardCounts.total === 0) {
       body.appendChild(
         el(
           'p',
@@ -214,9 +218,9 @@
     if (open) {
       open.hidden = false;
     }
-    body.appendChild(el('p', 'sdh-enquiries__counts', countsText(view.counts)));
+    body.appendChild(el('p', 'sdh-enquiries__counts', countsText(view.cardCounts)));
     const list = el('div', 'sdh-enq-list');
-    view.items.slice(0, CARD_ROWS).forEach(item => list.appendChild(rowButton(item, false)));
+    view.cardItems.slice(0, CARD_ROWS).forEach(item => list.appendChild(rowButton(item, false)));
     body.appendChild(list);
     body.appendChild(el('p', 'sdh-note sdh-note--foot', NOTE));
   }
@@ -234,7 +238,7 @@
       context.model.verification &&
       context.model.verification.approved === false
     ) {
-      view.problem = 'unapproved';
+      view.cardProblem = 'unapproved';
       view.cardLoaded = true;
       renderCard();
       return;
@@ -244,11 +248,11 @@
     );
     view.cardLoaded = true;
     if (!result.data || result.status >= 400 || result.status === 0) {
-      view.problem = problemFor(result);
+      view.cardProblem = problemFor(result);
     } else {
-      view.problem = '';
-      view.items = Array.isArray(result.data.enquiries) ? result.data.enquiries : [];
-      view.counts = result.data.counts || null;
+      view.cardProblem = '';
+      view.cardItems = Array.isArray(result.data.enquiries) ? result.data.enquiries : [];
+      view.cardCounts = result.data.counts || null;
     }
     renderCard();
   }
@@ -316,11 +320,17 @@
       return;
     }
     view.loading = true;
+    // Only the newest request may draw: a slower, older answer is dropped.
+    view.listTicket += 1;
+    const ticket = view.listTicket;
     if (page === 1) {
       view.items = [];
     }
     renderList();
     const result = await api.getJson(listUrl(page, PAGE_SIZE));
+    if (ticket !== view.listTicket) {
+      return;
+    }
     view.loading = false;
     if (!result.data || result.status >= 400 || result.status === 0) {
       view.problem = problemFor(result);
@@ -496,6 +506,8 @@
     }
     announce(`Marked as ${status}.`);
     renderDetail();
+    // The buttons were rebuilt: put keyboard focus on the heading so it is not lost to the page.
+    byId('sdh-enquiry-title')?.focus({ preventScroll: true });
     renderList();
     // The counts on the card and the page's summary changed: ask again.
     loadCard();

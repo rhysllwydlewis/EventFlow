@@ -580,6 +580,22 @@ async function enquiries(options) {
     await settle(6);
     log.filteredRequest = requests.filter(entry => /source=contact_form/.test(entry)).length;
     log.filteredRows = field(window, 'sdh-enquiries-list').querySelectorAll('.sdh-enq').length;
+    // Changing a status while a filter is on must keep the filtered rows, and keep focus in the drawer.
+    const filteredRow = field(window, 'sdh-enquiries-list').querySelector('.sdh-enq');
+    if (filteredRow) {
+      click(filteredRow);
+      await settle(6);
+      click(field(window, 'sdh-enquiries-detail').querySelector('[data-status]'));
+      await settle(10);
+      log.rowsAfterStatusWithFilter = field(window, 'sdh-enquiries-list').querySelectorAll(
+        '.sdh-enq'
+      ).length;
+      log.focusAfterStatus = window.document.activeElement && window.document.activeElement.id;
+      click(
+        field(window, 'sdh-enquiries-detail').querySelector('[data-status]') ||
+          field(window, 'sdh-enquiries-close')
+      );
+    }
   }
   log.allRequests = requests;
   process.stdout.write(JSON.stringify(log));
