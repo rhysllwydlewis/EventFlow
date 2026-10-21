@@ -8,9 +8,9 @@
  * does not exist yet has nothing to attach a banner to, so the field asks for the profile to be
  * saved first.
  */
-(function () {
-  'use strict';
+'use strict';
 
+(function () {
   const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
   const MAX_BYTES = 5 * 1024 * 1024;
 
@@ -75,7 +75,7 @@
     if (error instanceof TypeError) {
       return `${fallback} Check your connection and try again.`;
     }
-    return (error && error.message) || fallback;
+    return error?.message || fallback;
   }
 
   /** Marks the field as working (buttons off, preview dimmed) or idle. */
@@ -96,9 +96,9 @@
     const image = byId(ids.image);
     const empty = byId(ids.empty);
     const preview = byId(ids.preview);
-    const upload = byId(ids.upload);
+    const uploadButton = byId(ids.upload);
     const remove = byId(ids.remove);
-    if (!image || !empty || !preview || !upload || !remove) {
+    if (!image || !empty || !preview || !uploadButton || !remove) {
       return;
     }
     if (url) {
@@ -113,8 +113,8 @@
       empty.textContent = supplier ? 'No banner yet' : 'Save your profile first, then add a banner';
       preview.dataset.state = 'empty';
     }
-    upload.textContent = url ? 'Change banner' : 'Add banner';
-    upload.disabled = !supplier;
+    uploadButton.textContent = url ? 'Change banner' : 'Add banner';
+    uploadButton.disabled = !supplier;
     remove.hidden = !url;
   }
 
@@ -229,7 +229,7 @@
     }
     uploadButton.addEventListener('click', () => input.click());
     input.addEventListener('change', () => {
-      const file = input.files && input.files[0];
+      const file = input.files?.[0];
       input.value = '';
       if (file) {
         upload(file);

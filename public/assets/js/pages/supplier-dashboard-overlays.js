@@ -15,9 +15,9 @@
  * saved. It listens for `sdh:overlay-closed` to reset the form, so a form that was cancelled never
  * comes back half-filled (and never saves as a new profile).
  */
-(function () {
-  'use strict';
+'use strict';
 
+(function () {
   const EDITORS = {
     profile: {
       dialogId: 'sdh-profile-dialog',
@@ -69,7 +69,7 @@
   function isOpen(name) {
     const editor = EDITORS[name];
     const dialog = editor ? byId(editor.dialogId) : null;
-    return Boolean(dialog && dialog.open);
+    return Boolean(dialog?.open);
   }
 
   /** True when the form has been edited since it opened or was last marked clean. */
@@ -163,14 +163,17 @@
     if (isDirty(name)) {
       state[name].closing = true;
       const home = window.SupplierDashboardHome;
-      const discard = home?.confirm
-        ? await home.confirm({
-            title: editor.discardTitle,
-            message: editor.discardMessage,
-            confirmLabel: 'Discard changes',
-            cancelLabel: 'Keep editing',
-          })
-        : window.confirm(editor.discardMessage);
+      // The page's own confirmation dialog (SupplierDashboardHome loads first). Without it nothing
+      // asks, so the editor stays open rather than throwing the supplier's changes away unasked.
+      const discard =
+        typeof home?.confirm === 'function'
+          ? await home.confirm({
+              title: editor.discardTitle,
+              message: editor.discardMessage,
+              confirmLabel: 'Discard changes',
+              cancelLabel: 'Keep editing',
+            })
+          : false;
       state[name].closing = false;
       if (!discard) {
         return false;
@@ -207,7 +210,7 @@
     // re-rendered since (a package row's Edit button, for example).
     const opener = state[name].opener;
     const fallback = byId(editor.toggleId);
-    const target = opener && opener.isConnected ? opener : fallback;
+    const target = opener?.isConnected ? opener : fallback;
     if (target && (!document.activeElement || document.activeElement === document.body)) {
       target.focus();
     }
@@ -243,7 +246,7 @@
     // Editing a field that was flagged clears the flag and the message about it.
     const clearFlag = event => {
       const field = event.target;
-      if (field && field.getAttribute && field.getAttribute('aria-invalid') === 'true') {
+      if (field?.getAttribute?.('aria-invalid') === 'true') {
         field.removeAttribute('aria-invalid');
         const status = dialog.querySelector('.sdh-form__status[data-tone="error"]');
         if (status) {

@@ -87,7 +87,7 @@ function isUncountedViewer(req, user, supplier) {
  * @returns {string} Visitor key
  */
 function visitorKeyFor(req, user) {
-  if (user && user.id) {
+  if (user?.id) {
     return `u:${user.id}`;
   }
   const fingerprint = `${req.ip || ''}|${req.get('user-agent') || ''}`;

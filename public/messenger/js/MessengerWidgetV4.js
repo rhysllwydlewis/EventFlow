@@ -461,7 +461,7 @@
         this._socket.on('disconnect', () => {
           this.wsConnected = false;
         });
-      } catch (e) {
+      } catch {
         // Socket.IO unavailable – polling below is unaffected
         this.wsConnected = false;
       }

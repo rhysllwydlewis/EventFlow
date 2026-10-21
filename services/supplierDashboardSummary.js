@@ -92,7 +92,7 @@ function buildVerification(supplier, ownerUser) {
     status === VERIFICATION_STATES.NEEDS_CHANGES || status === VERIFICATION_STATES.REJECTED;
   return {
     // undefined = the user lookup failed (unknown); null/absent row = not verified.
-    emailVerified: ownerUser === undefined ? null : Boolean(ownerUser && ownerUser.verified),
+    emailVerified: ownerUser === undefined ? null : Boolean(ownerUser?.verified),
     approved,
     state: toContractState(approved, status),
     status,
@@ -123,7 +123,7 @@ async function resolveSubscription(userId) {
   const trialing = Boolean(subscription && subscription.status === 'trialing');
   return {
     plan,
-    status: (subscription && subscription.status) || 'free',
+    status: subscription?.status || 'free',
     activeUntil,
     cancelAtPeriodEnd: subscription ? subscription.cancelAtPeriodEnd === true : false,
     limits: getPlanFeatures(plan).features,
@@ -289,30 +289,14 @@ function percentChange(current, previous) {
 }
 
 /**
- * Build the complete dashboard summary for one supplier.
+ * Build the `attempt` helper for one summary: it runs a source query, and on failure records the
+ * block in `unavailable` and returns the fallback instead of failing the whole summary.
  *
- * @param {Object} params - Inputs
- * @param {string} params.userId - Authenticated user id (the supplier owner)
- * @param {Object} params.supplier - The owner's supplier document
- * @param {number|null} [params.requestedDays] - Whole number of days asked for
- * @param {Date} [params.now] - Reference time (for tests; also disables engagement result reuse)
- * @returns {Promise<Object>} Summary payload
+ * @param {string[]} unavailable - Collects the labels of blocks that could not be read
+ * @returns {Function} attempt(label, task, fallback) => Promise<*>
  */
-async function buildDashboardSummary({ userId, supplier, requestedDays = null, now: fixedNow }) {
-  // A caller-supplied clock (tests) bypasses the short-lived engagement result reuse.
-  const now = fixedNow || new Date();
-  const supplierId = supplier.id;
-  const unavailable = [];
-
-  /**
-   * Run one source query; on failure record it and return the fallback.
-   *
-   * @param {string} label - Block name reported in `unavailable`
-   * @param {Function} task - Async query
-   * @param {*} fallback - Value to use if the query throws
-   * @returns {Promise<*>} Query result or fallback
-   */
-  const attempt = async (label, task, fallback) => {
+function createAttempt(unavailable) {
+  return async (label, task, fallback) => {
     try {
       return await task();
     } catch (error) {
@@ -321,8 +305,16 @@ async function buildDashboardSummary({ userId, supplier, requestedDays = null, n
       return fallback;
     }
   };
+}
 
-  // Phase 1: everything that does not depend on the analytics window.
+/**
+ * Phase 1: everything that does not depend on the analytics window.
+ *
+ * @param {Function} attempt - Failure-tolerant query runner
+ * @param {Object} ids - { userId, supplierId, now }
+ * @returns {Promise<Object>} The raw source records (null where a read failed)
+ */
+async function loadSources(attempt, { userId, supplierId, now }) {
   const [
     ownerUser,
     subscription,
@@ -334,7 +326,7 @@ async function buildDashboardSummary({ userId, supplier, requestedDays = null, n
     calendar,
   ] = await Promise.all([
     // undefined (not null) marks a failed lookup, so a missing row and an error stay distinct.
-    attempt('user', () => dbUnified.findOne('users', { id: userId }, STRICT), undefined),
+    attempt('user', () => dbUnified.findOne('users', { id: userId }, STRICT)),
     attempt('subscription', () => resolveSubscription(userId), null),
     attempt('packages', () => dbUnified.find('packages', { supplierId }, STRICT), null),
     attempt('reviews', () => dbUnified.find('reviews', { supplierId }, STRICT), null),
@@ -351,19 +343,31 @@ async function buildDashboardSummary({ userId, supplier, requestedDays = null, n
     ),
     attempt('calendar', () => loadCalendar(userId, now), null),
   ]);
+  return {
+    ownerUser,
+    subscription,
+    packageDocs,
+    reviewDocs,
+    profiles,
+    tickets,
+    requestCount,
+    calendar,
+  };
+}
 
-  // Window: the plan decides how far back this supplier may look.
-  const analyticsWindow = resolveAnalyticsWindow({
-    requested: requestedDays,
-    defaultDays: DEFAULT_SUMMARY_DAYS,
-    planWindowDays: subscription ? subscription.limits.analyticsWindowDays : undefined,
-  });
+/**
+ * Phase 2: the window-bound figures (enquiries, the previous period's views, messages) and the
+ * analytics block built on them.
+ *
+ * @param {Function} attempt - Failure-tolerant query runner
+ * @param {Object} params - { userId, supplierId, now, fixedNow, analyticsWindow }
+ * @returns {Promise<Object>} { engagement, previousViews, messaging, analyticsBase }
+ */
+async function loadWindowFigures(attempt, { userId, supplierId, now, fixedNow, analyticsWindow }) {
   const { startMs: windowStartMs, previousStartMs } = getWindowBounds(
     now.getTime(),
     analyticsWindow.days
   );
-
-  // Phase 2: window-bound figures.
   const [engagement, previousViews, messaging] = await Promise.all([
     attempt(
       'enquiries',
@@ -401,24 +405,27 @@ async function buildDashboardSummary({ userId, supplier, requestedDays = null, n
       supplierAnalytics.getSupplierAnalytics(supplierId, analyticsWindow.days, { now, engagement }),
     null
   );
-  if (analyticsBase && analyticsBase.totalViews === null) {
-    unavailable.push('views');
-  }
+  return { engagement, previousViews, messaging, analyticsBase };
+}
 
-  // --- Profile ---
-  const hydrated = hydrateSupplierProfilePhoto(supplier, ownerUser || null);
-  const completeness = computeProfileCompleteness(hydrated);
+/**
+ * The profile block of the summary.
+ *
+ * @param {Object} supplier - The supplier document
+ * @param {Object} completeness - Completeness result
+ * @param {Object} verification - Verification block
+ * @param {Array|null} profiles - The owner's profiles (null when unreadable)
+ * @returns {Object} Profile block
+ */
+function buildProfileBlock(supplier, completeness, verification, profiles) {
   const flagFor = id => completeness.checks.some(check => check.id === id && check.done);
-  const publicProfilePath = addPublicProfilePath(supplier).publicProfilePath || null;
-  const verification = buildVerification(supplier, ownerUser);
-
-  const profile = {
+  return {
     hasProfile: true,
     profileCount: profiles ? profiles.length : null,
     topProfileId: supplier.id || null,
     topProfileName: supplier.name || null,
     name: supplier.name || null,
-    publicProfilePath,
+    publicProfilePath: addPublicProfilePath(supplier).publicProfilePath || null,
     healthScore: completeness.score,
     isApproved: verification.approved,
     completionFlags: {
@@ -432,109 +439,146 @@ async function buildDashboardSummary({ userId, supplier, requestedDays = null, n
     },
     completeness,
   };
+}
 
-  // --- Packages ---
+/**
+ * The packages block of the summary.
+ *
+ * @param {Array|null} packageDocs - Package records (null when unreadable)
+ * @param {Object|null} subscription - Resolved subscription
+ * @returns {Object} Packages block
+ */
+function buildPackagesBlock(packageDocs, subscription) {
   const planPackageLimit =
     subscription && Number.isFinite(subscription.limits.maxPackages)
       ? subscription.limits.maxPackages
       : null;
-  const packages = packageDocs
-    ? summarisePackages(packageDocs, planPackageLimit)
-    : {
-        total: null,
-        active: null,
-        paused: null,
-        awaitingApproval: null,
-        limit: planPackageLimit,
-        countedTowardsLimit: null,
-        draft: null,
-      };
-
-  // --- Reviews ---
-  const reviewSummary = reviewDocs
-    ? summariseReviews(reviewDocs)
-    : { approvedCount: null, averageRating: null, pendingCount: null };
-  const reviews = {
-    ...reviewSummary,
-    // Legacy keys kept for the previous dashboard.
-    total: reviewSummary.approvedCount,
-    pending: reviewSummary.pendingCount,
+  if (packageDocs) {
+    return summarisePackages(packageDocs, planPackageLimit);
+  }
+  return {
+    total: null,
+    active: null,
+    paused: null,
+    awaitingApproval: null,
+    limit: planPackageLimit,
+    countedTowardsLimit: null,
+    draft: null,
   };
+}
 
-  // --- Messages ---
-  const messages = messaging
-    ? {
-        unreadMessages: messaging.unreadMessages,
-        conversationsWithUnread: messaging.conversationsWithUnread,
-        latestAt: messaging.latestAt,
-        // Legacy keys kept for the previous dashboard.
-        total: messaging.total,
-        unread: messaging.conversationsWithUnread,
-      }
-    : {
-        unreadMessages: null,
-        conversationsWithUnread: null,
-        latestAt: null,
-        total: null,
-        unread: null,
-      };
-
-  // --- Enquiries & responses ---
-  const enquiries = engagement
-    ? engagement.enquiries
-    : {
-        newThisPeriod: null,
-        previousPeriod: null,
-        sources: { conversations: null, quoteRequests: null, contactForm: null },
-        truncated: false,
-        requests: { received: null, new: null },
-      };
-  const responses = engagement
-    ? engagement.responses
-    : { sampleSize: null, matureSampleSize: null, repliedPct: null, medianMinutes: null };
-
-  // --- Views & legacy analytics block ---
-  const viewsKnown = Boolean(analyticsBase) && analyticsBase.totalViews !== null;
-  const totalViews = viewsKnown ? analyticsBase.totalViews : null;
-  const views = {
-    total: totalViews,
-    days: analyticsWindow.days,
-    basis: 'page_loads',
-    description: VIEWS_DESCRIPTION,
-  };
-  let analytics = unavailableAnalytics();
-  if (viewsKnown) {
-    analytics = {
-      totalViews,
-      totalEnquiries: enquiries.newThisPeriod,
-      responseRate: responses.repliedPct,
-      avgResponseTime: engagement ? analyticsBase.avgResponseTime : null,
-      dailyData: analyticsBase.dailyData.map(day => ({
-        ...day,
-        enquiries: engagement ? day.enquiries : null,
-      })),
-      viewsTrend: previousViews === null ? null : percentChange(totalViews, previousViews),
-      enquiriesTrend: engagement
-        ? percentChange(enquiries.newThisPeriod, enquiries.previousPeriod)
-        : null,
-      // Reply speed is not tracked per period, so there is no trend to show.
-      responseTrend: null,
+/**
+ * The messages block of the summary.
+ *
+ * @param {Object|null} messaging - Messaging summary (null when unreadable)
+ * @returns {Object} Messages block
+ */
+function buildMessagesBlock(messaging) {
+  if (!messaging) {
+    return {
+      unreadMessages: null,
+      conversationsWithUnread: null,
+      latestAt: null,
+      total: null,
+      unread: null,
     };
   }
+  return {
+    unreadMessages: messaging.unreadMessages,
+    conversationsWithUnread: messaging.conversationsWithUnread,
+    latestAt: messaging.latestAt,
+    // Legacy keys kept for the previous dashboard.
+    total: messaging.total,
+    unread: messaging.conversationsWithUnread,
+  };
+}
 
-  // --- Tickets ---
-  const ticketsBlock = tickets
-    ? {
-        total: tickets.length,
-        open: tickets.filter(ticket => ticket.status === 'open').length,
-        inProgress: tickets.filter(ticket => ticket.status === 'in_progress').length,
-      }
-    : { total: null, open: null, inProgress: null };
+/**
+ * The enquiries and responses blocks of the summary.
+ *
+ * @param {Object|null} engagement - Engagement metrics (null when unreadable)
+ * @returns {{enquiries: Object, responses: Object}} Both blocks
+ */
+function buildEnquiryBlocks(engagement) {
+  if (engagement) {
+    return { enquiries: engagement.enquiries, responses: engagement.responses };
+  }
+  return {
+    enquiries: {
+      newThisPeriod: null,
+      previousPeriod: null,
+      sources: { conversations: null, quoteRequests: null, contactForm: null },
+      truncated: false,
+      requests: { received: null, new: null },
+    },
+    responses: { sampleSize: null, matureSampleSize: null, repliedPct: null, medianMinutes: null },
+  };
+}
 
-  // --- Next steps ---
-  const nextSteps = evaluateNextSteps({
+/**
+ * The legacy analytics block, or the "unavailable" placeholder when views could not be counted.
+ *
+ * @param {Object} figures - { analyticsBase, previousViews, engagement, enquiries, responses }
+ * @returns {Object} Analytics block
+ */
+function buildAnalyticsBlock({ analyticsBase, previousViews, engagement, enquiries, responses }) {
+  if (!analyticsBase || analyticsBase.totalViews === null) {
+    return unavailableAnalytics();
+  }
+  const totalViews = analyticsBase.totalViews;
+  return {
+    totalViews,
+    totalEnquiries: enquiries.newThisPeriod,
+    responseRate: responses.repliedPct,
+    avgResponseTime: engagement ? analyticsBase.avgResponseTime : null,
+    dailyData: analyticsBase.dailyData.map(day => ({
+      ...day,
+      enquiries: engagement ? day.enquiries : null,
+    })),
+    viewsTrend: previousViews === null ? null : percentChange(totalViews, previousViews),
+    enquiriesTrend: engagement
+      ? percentChange(enquiries.newThisPeriod, enquiries.previousPeriod)
+      : null,
+    // Reply speed is not tracked per period, so there is no trend to show.
+    responseTrend: null,
+  };
+}
+
+/**
+ * The tickets block of the summary.
+ *
+ * @param {Array|null} tickets - Ticket records (null when unreadable)
+ * @returns {Object} Tickets block
+ */
+function buildTicketsBlock(tickets) {
+  if (!tickets) {
+    return { total: null, open: null, inProgress: null };
+  }
+  return {
+    total: tickets.length,
+    open: tickets.filter(ticket => ticket.status === 'open').length,
+    inProgress: tickets.filter(ticket => ticket.status === 'in_progress').length,
+  };
+}
+
+/**
+ * Evaluate the next steps from the sources, holding back any step whose source could not be read.
+ *
+ * @param {Object} inputs - { hydrated, ownerUser, verification, completeness, sources, approvedCount }
+ * @returns {Array} Next steps
+ */
+function buildNextSteps({
+  hydrated,
+  ownerUser,
+  verification,
+  completeness,
+  sources,
+  approvedCount,
+}) {
+  const { packageDocs, reviewDocs, requestCount, calendar } = sources;
+  return evaluateNextSteps({
     // The verification form accepts the owner's account email when the profile has none.
-    supplier: { ...hydrated, email: hydrated.email || (ownerUser && ownerUser.email) || '' },
+    supplier: { ...hydrated, email: hydrated.email || ownerUser?.email || '' },
     verification,
     completeness,
     // null for any source that could not be read: the steps it feeds are held back, not guessed.
@@ -545,34 +589,107 @@ async function buildDashboardSummary({ userId, supplier, requestedDays = null, n
         }
       : null,
     reviewRequestsSent: requestCount === null ? null : Number(requestCount) || 0,
-    approvedReviewCount: reviewDocs ? reviewSummary.approvedCount : null,
+    approvedReviewCount: reviewDocs ? approvedCount : null,
     hasCalendarActivity: calendar ? Boolean(calendar.hasActivity) : null,
   });
+}
+
+/** Subscription block used when the plan could not be resolved. */
+const UNRESOLVED_SUBSCRIPTION = Object.freeze({
+  plan: null,
+  status: null,
+  activeUntil: null,
+  cancelAtPeriodEnd: null,
+  limits: null,
+  tier: null,
+  renewsAt: null,
+  trialEndsAt: null,
+});
+
+/**
+ * Build the complete dashboard summary for one supplier.
+ *
+ * @param {Object} params - Inputs
+ * @param {string} params.userId - Authenticated user id (the supplier owner)
+ * @param {Object} params.supplier - The owner's supplier document
+ * @param {number|null} [params.requestedDays] - Whole number of days asked for
+ * @param {Date} [params.now] - Reference time (for tests; also disables engagement result reuse)
+ * @returns {Promise<Object>} Summary payload
+ */
+async function buildDashboardSummary({ userId, supplier, requestedDays = null, now: fixedNow }) {
+  // A caller-supplied clock (tests) bypasses the short-lived engagement result reuse.
+  const now = fixedNow || new Date();
+  const supplierId = supplier.id;
+  const unavailable = [];
+  const attempt = createAttempt(unavailable);
+
+  const sources = await loadSources(attempt, { userId, supplierId, now });
+  const { ownerUser, subscription, packageDocs, reviewDocs, profiles, tickets, calendar } = sources;
+
+  // Window: the plan decides how far back this supplier may look.
+  const analyticsWindow = resolveAnalyticsWindow({
+    requested: requestedDays,
+    defaultDays: DEFAULT_SUMMARY_DAYS,
+    planWindowDays: subscription ? subscription.limits.analyticsWindowDays : undefined,
+  });
+  const { engagement, previousViews, messaging, analyticsBase } = await loadWindowFigures(attempt, {
+    userId,
+    supplierId,
+    now,
+    fixedNow,
+    analyticsWindow,
+  });
+  if (analyticsBase && analyticsBase.totalViews === null) {
+    unavailable.push('views');
+  }
+
+  const hydrated = hydrateSupplierProfilePhoto(supplier, ownerUser || null);
+  const completeness = computeProfileCompleteness(hydrated);
+  const verification = buildVerification(supplier, ownerUser);
+  const reviewSummary = reviewDocs
+    ? summariseReviews(reviewDocs)
+    : { approvedCount: null, averageRating: null, pendingCount: null };
+  const { enquiries, responses } = buildEnquiryBlocks(engagement);
+  const totalViews = analyticsBase ? analyticsBase.totalViews : null;
 
   return {
     window: analyticsWindow,
     verification,
-    profile,
-    packages,
-    messages,
+    profile: buildProfileBlock(supplier, completeness, verification, profiles),
+    packages: buildPackagesBlock(packageDocs, subscription),
+    messages: buildMessagesBlock(messaging),
     enquiries,
     responses,
-    views,
-    reviews,
-    subscription: subscription || {
-      plan: null,
-      status: null,
-      activeUntil: null,
-      cancelAtPeriodEnd: null,
-      limits: null,
-      tier: null,
-      renewsAt: null,
-      trialEndsAt: null,
+    views: {
+      total: totalViews,
+      days: analyticsWindow.days,
+      basis: 'page_loads',
+      description: VIEWS_DESCRIPTION,
     },
+    reviews: {
+      ...reviewSummary,
+      // Legacy keys kept for the previous dashboard.
+      total: reviewSummary.approvedCount,
+      pending: reviewSummary.pendingCount,
+    },
+    subscription: subscription || { ...UNRESOLVED_SUBSCRIPTION },
     upcoming: calendar ? calendar.upcoming : [],
-    nextSteps,
-    analytics,
-    tickets: ticketsBlock,
+    nextSteps: buildNextSteps({
+      hydrated,
+      ownerUser,
+      verification,
+      completeness,
+      sources,
+      approvedCount: reviewSummary.approvedCount,
+    }),
+    analytics: buildAnalyticsBlock({
+      analyticsBase,
+      previousViews,
+      engagement,
+      enquiries,
+      responses,
+    }),
+    tickets: buildTicketsBlock(tickets),
     unavailable,
   };
 }

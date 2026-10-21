@@ -81,7 +81,7 @@ describe('phone page length', () => {
   test('reviews: two on a phone until "Show all", no sort or page controls when they are pointless', () => {
     expect(reviewsJs).toContain("' sr-list--capped'");
     expect(reviewsJs).toContain('id="sr-show-all"');
-    expect(reviewsJs).toContain('(reviews || []).length > 3 || pages > 1');
+    expect(reviewsJs).toContain('reviewCount <= 3 && pages <= 1');
     expect(css).toMatch(
       /\.sr-list--capped \.sr-review-card:nth-child\(n \+ 3\) \{\s*display: none/
     );

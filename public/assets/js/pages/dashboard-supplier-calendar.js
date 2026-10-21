@@ -1288,7 +1288,7 @@
       },
       // FullCalendar marks its chevron glyphs role="img" with no name; the buttons carry the
       // names, so the glyphs are decoration.
-      datesSet: function () {
+      datesSet() {
         container.querySelectorAll('.fc-icon[role="img"]').forEach(icon => {
           icon.removeAttribute('role');
           icon.setAttribute('aria-hidden', 'true');

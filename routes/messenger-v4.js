@@ -342,6 +342,258 @@ function emitToConversation(conversation, event, data) {
   }
 }
 
+/**
+ * Check a create-conversation request before any database work.
+ *
+ * @param {Object} body - Request body
+ * @param {string} currentUserId - The caller's id
+ * @returns {{error: string}|{normalisedParticipantIds: string[]}} The first problem, or the cleaned ids
+ */
+function validateCreateConversationBody(body, currentUserId) {
+  const { type, participantIds, context } = body;
+  if (!type || !Array.isArray(participantIds) || participantIds.length === 0) {
+    return { error: 'type and participantIds are required' };
+  }
+  // Normalise participant IDs before validation and lookup.
+  if (participantIds.length > 50) {
+    return { error: 'Too many participants (max 50)' };
+  }
+  if (participantIds.some(id => typeof id !== 'string')) {
+    return { error: 'Each participant ID must be a non-empty string' };
+  }
+  const normalisedParticipantIds = participantIds.map(id => id.trim()).filter(Boolean);
+  if (normalisedParticipantIds.length === 0) {
+    return { error: 'Each participant ID must be a non-empty string' };
+  }
+  if (new Set(normalisedParticipantIds).size !== normalisedParticipantIds.length) {
+    return { error: 'Duplicate participant IDs are not allowed' };
+  }
+  if (normalisedParticipantIds.every(id => id === currentUserId)) {
+    return { error: 'A conversation must include at least one other participant' };
+  }
+  // Validate type against allowed values (must match ConversationV4 model schema)
+  if (!CONVERSATION_V4_TYPES.includes(type)) {
+    return { error: 'Invalid conversation type' };
+  }
+  // Validate context.type when a context object is provided
+  const contextType = context?.type;
+  if (
+    contextType !== undefined &&
+    contextType !== null &&
+    !CONVERSATION_CONTEXT_TYPES.includes(contextType)
+  ) {
+    return { error: 'Invalid conversation context type' };
+  }
+  return { normalisedParticipantIds };
+}
+
+/**
+ * Load the people in a new conversation as participant records.
+ *
+ * Users are keyed by their string 'id' field (from JWT auth), NOT ObjectId '_id', and that same
+ * string id is used for the participant so every later participant check (getConversations,
+ * sendMessage, etc.) works with the ids the auth middleware provides.
+ *
+ * @param {Object} dbInstance - Database handle
+ * @param {string[]} uniqueUserIds - Every id that must exist
+ * @returns {Promise<Object[]|null>} Participants, or null when any id is unknown
+ */
+async function loadConversationParticipants(dbInstance, uniqueUserIds) {
+  const participantUsers = await dbInstance
+    .collection('users')
+    .find({
+      id: { $in: uniqueUserIds },
+    })
+    .toArray();
+  if (participantUsers.length !== uniqueUserIds.length) {
+    return null;
+  }
+  return participantUsers.map(user => ({
+    userId: user.id,
+    displayName: preferredUserDisplayName(user),
+    avatar: user.avatarUrl || user.avatar || null,
+    role: user.role || 'customer',
+  }));
+}
+
+/**
+ * Whether a supplier is trying to start a cold conversation with a customer from the generic
+ * "new message" form (no context, no existing conversation), which is not allowed.
+ *
+ * @param {Object} dbInstance - Database handle
+ * @param {Object} request - { type, context, metadata, participants, currentUserId }
+ * @returns {Promise<boolean>} True when the request must be refused
+ */
+async function isColdCustomerMessage(
+  dbInstance,
+  { type, context, metadata, participants, currentUserId }
+) {
+  const isGenericNewMessage = metadata?.source === 'generic_new_message';
+  if (!isGenericNewMessage || type !== 'direct' || context || participants.length !== 2) {
+    return false;
+  }
+  const currentParticipant = participants.find(p => p.userId === currentUserId);
+  const otherParticipant = participants.find(p => p.userId !== currentUserId);
+  if (
+    currentParticipant?.role !== 'supplier' ||
+    !otherParticipant ||
+    otherParticipant.role === 'supplier'
+  ) {
+    return false;
+  }
+  const existingDirectConversation = await dbInstance.collection('conversations_v4').findOne({
+    type: 'direct',
+    'participants.userId': { $all: [currentParticipant.userId, otherParticipant.userId] },
+    status: 'active',
+    $expr: { $eq: [{ $size: '$participants' }, 2] },
+  });
+  return !existingDirectConversation;
+}
+
+const ALLOWED_MESSAGE_TYPES = ['text', 'image', 'file', 'system'];
+const CLIENT_MESSAGE_ID_PATTERN = /^[A-Za-z0-9._:-]+$/;
+
+/**
+ * Parse the optional `replyTo` field, which may arrive as a JSON string.
+ *
+ * @param {*} replyTo - The raw field
+ * @returns {{value: *}|{error: string}} The parsed value, or the problem
+ */
+function parseReplyTo(replyTo) {
+  if (!replyTo) {
+    return { value: null };
+  }
+  if (typeof replyTo !== 'string') {
+    return { value: replyTo };
+  }
+  try {
+    return { value: JSON.parse(replyTo) };
+  } catch {
+    return { error: 'Invalid replyTo format' };
+  }
+}
+
+/**
+ * Check a send-message request before any attachment is written to disk, so a bad request returns
+ * 400 without orphaning uploads.
+ *
+ * clientMessageId is optional: a string of at most 64 characters from a constrained alphabet
+ * (UUIDs/ulids/nanoids). Anything else is rejected up-front so the service layer only ever sees
+ * sanitised values.
+ *
+ * @param {Object} body - Request body
+ * @param {Array} [files] - Uploaded files
+ * @returns {Object} `{ error }`, or the cleaned fields
+ */
+function validateSendMessageBody(body, files) {
+  const { content, type = 'text', replyTo, replyToMessageId, clientMessageId } = body;
+  if (!ALLOWED_MESSAGE_TYPES.includes(type)) {
+    return { error: 'Invalid message type' };
+  }
+  const hasClientMessageId =
+    clientMessageId !== undefined && clientMessageId !== null && clientMessageId !== '';
+  if (
+    hasClientMessageId &&
+    (typeof clientMessageId !== 'string' ||
+      clientMessageId.length > 64 ||
+      !CLIENT_MESSAGE_ID_PATTERN.test(clientMessageId))
+  ) {
+    return { error: 'Invalid clientMessageId' };
+  }
+  const hasAttachments = Boolean(files && files.length > 0);
+  if ((!content || content.trim().length === 0) && !hasAttachments) {
+    return { error: 'Message content or at least one attachment is required' };
+  }
+  const reply = parseReplyTo(replyTo);
+  if (reply.error) {
+    return { error: reply.error };
+  }
+  return {
+    content,
+    type,
+    replyToMessageId,
+    parsedReplyTo: reply.value,
+    clientMessageId: hasClientMessageId ? clientMessageId : null,
+  };
+}
+
+/**
+ * Store the validated uploads for a message. Validation verifies the MIME signature and size
+ * before any file is written to disk.
+ *
+ * @param {Array} [files] - Uploaded files
+ * @returns {Promise<{attachments: Array}|{error: string}>} The stored attachments, or a 400 message
+ */
+async function storeMessageAttachments(files) {
+  if (!files || files.length === 0) {
+    return { attachments: [] };
+  }
+  let attachments;
+  try {
+    attachments = await persistValidatedMessengerAttachments(files);
+  } catch (error) {
+    if (error.statusCode === 400 && error.expose) {
+      return { error: error.message };
+    }
+    throw error;
+  }
+  if (attachments.length > 0) {
+    messengerMetrics.increment('messenger_v4_attachments_uploaded_total', attachments.length);
+  }
+  return { attachments };
+}
+
+/**
+ * Tell everyone concerned about a new message.
+ *
+ * @param {Object} params - { conversation, conversationId, message, senderId, autoUnarchivedUserIds }
+ * @returns {Promise<void>}
+ */
+async function emitMessageEvents({
+  conversation,
+  conversationId,
+  message,
+  senderId,
+  autoUnarchivedUserIds,
+}) {
+  // Emit message to all participants
+  emitToConversation(conversation, 'messenger:v4:message', {
+    conversationId,
+    message,
+  });
+
+  // The room above only reaches people who have this conversation open. Everyone else in it
+  // still needs to hear that a message arrived (the unread badge, the dashboard's inbox
+  // preview), so they are told on their own user channel as well.
+  (conversation.participants || []).forEach(participant => {
+    if (String(participant.userId) !== String(senderId) && !participant.isDeleted) {
+      emitToUser(participant.userId, 'messenger:v4:new-message', { conversationId, message });
+    }
+  });
+
+  // Notify auto-unarchived recipients so their client moves the conversation
+  // back to the main inbox without requiring a manual page reload.
+  for (const uid of autoUnarchivedUserIds) {
+    try {
+      const recipientConv = await (
+        await getMessengerService()
+      ).getConversation(conversationId, uid);
+      emitToUser(uid, 'messenger:v4:conversation-updated', {
+        conversationId,
+        conversation: recipientConv,
+      });
+    } catch (err) {
+      // Best-effort — the recipient will still see the message on next load.
+      // Log with context so production issues are diagnosable.
+      logger.warn('messenger_v4 auto-unarchive notification failed', {
+        uid,
+        conversationId,
+        error: err.message,
+      });
+    }
+  }
+}
+
 // ============================================================================
 // CONVERSATION ENDPOINTS
 // ============================================================================
@@ -360,107 +612,39 @@ router.post(
   async (req, res) => {
     const startMs = Date.now();
     try {
-      const { type, participantIds, context, metadata } = req.body;
+      const { type, context, metadata } = req.body;
       const currentUserId = req.user.id;
 
-      if (!type || !Array.isArray(participantIds) || participantIds.length === 0) {
-        return res.status(400).json({
-          error: 'type and participantIds are required',
-        });
+      const validation = validateCreateConversationBody(req.body, currentUserId);
+      if (validation.error) {
+        return res.status(400).json({ error: validation.error });
       }
-
-      // Normalise participant IDs before validation and lookup.
-      if (participantIds.length > 50) {
-        return res.status(400).json({ error: 'Too many participants (max 50)' });
-      }
-      if (participantIds.some(id => typeof id !== 'string')) {
-        return res.status(400).json({ error: 'Each participant ID must be a non-empty string' });
-      }
-      const normalisedParticipantIds = participantIds.map(id => id.trim()).filter(Boolean);
-      if (normalisedParticipantIds.length === 0) {
-        return res.status(400).json({ error: 'Each participant ID must be a non-empty string' });
-      }
-      if (new Set(normalisedParticipantIds).size !== normalisedParticipantIds.length) {
-        return res.status(400).json({ error: 'Duplicate participant IDs are not allowed' });
-      }
-      const otherIds = normalisedParticipantIds.filter(id => id !== currentUserId);
-      if (otherIds.length === 0) {
-        return res
-          .status(400)
-          .json({ error: 'A conversation must include at least one other participant' });
-      }
-
-      // Validate type against allowed values (must match ConversationV4 model schema)
-      if (!CONVERSATION_V4_TYPES.includes(type)) {
-        return res.status(400).json({ error: 'Invalid conversation type' });
-      }
-
-      // Validate context.type when a context object is provided
-      if (
-        context &&
-        context.type !== undefined &&
-        context.type !== null &&
-        !CONVERSATION_CONTEXT_TYPES.includes(context.type)
-      ) {
-        return res.status(400).json({ error: 'Invalid conversation context type' });
-      }
+      const { normalisedParticipantIds } = validation;
 
       // Get database instance
       const dbInstance = await getDbInstance();
 
       // Fetch user information for all participants
-      // Users are keyed by their string 'id' field (from JWT auth), NOT ObjectId '_id'
-      const usersCollection = dbInstance.collection('users');
       const uniqueUserIds = [...new Set([currentUserId, ...normalisedParticipantIds])];
-      const participantUsers = await usersCollection
-        .find({
-          id: { $in: uniqueUserIds },
-        })
-        .toArray();
-
-      if (participantUsers.length !== uniqueUserIds.length) {
+      const participants = await loadConversationParticipants(dbInstance, uniqueUserIds);
+      if (!participants) {
         return res.status(400).json({
           error: 'One or more participant IDs are invalid',
         });
       }
 
-      // Build participants array.
-      // Use the string 'id' field (consistent with JWT auth) so that all
-      // participant checks (getConversations, sendMessage, etc.) work with
-      // the string user IDs that auth middleware provides.
-      const participants = participantUsers.map(user => ({
-        userId: user.id,
-        displayName: preferredUserDisplayName(user),
-        avatar: user.avatarUrl || user.avatar || null,
-        role: user.role || 'customer',
-      }));
-
-      const isGenericNewMessage = metadata?.source === 'generic_new_message';
-      if (isGenericNewMessage && type === 'direct' && !context && participants.length === 2) {
-        const currentParticipant = participants.find(p => p.userId === currentUserId);
-        const otherParticipant = participants.find(p => p.userId !== currentUserId);
-        if (
-          currentParticipant?.role === 'supplier' &&
-          otherParticipant &&
-          otherParticipant.role !== 'supplier'
-        ) {
-          const existingDirectConversation = await dbInstance
-            .collection('conversations_v4')
-            .findOne({
-              type: 'direct',
-              'participants.userId': { $all: [currentParticipant.userId, otherParticipant.userId] },
-              status: 'active',
-              $expr: { $eq: [{ $size: '$participants' }, 2] },
-            });
-
-          if (!existingDirectConversation) {
-            return res.status(403).json({
-              error:
-                'Customers can only be messaged from an existing conversation or valid context.',
-              code: 'GENERIC_CUSTOMER_COLD_MESSAGE_BLOCKED',
-            });
-          }
-        }
+      const coldMessage = await isColdCustomerMessage(dbInstance, {
+        type,
+        context,
+        metadata,
+        participants,
+        currentUserId,
+      });
+      if (coldMessage) {
+        return res.status(403).json({
+          error: 'Customers can only be messaged from an existing conversation or valid context.',
+          code: 'GENERIC_CUSTOMER_COLD_MESSAGE_BLOCKED',
+        });
       }
 
       const service = await getMessengerService();
@@ -699,81 +883,30 @@ router.post(
       if (!isValidObjectId(conversationId)) {
         return res.status(400).json({ error: 'Invalid conversation ID' });
       }
-      const { content, type = 'text', replyTo, replyToMessageId, clientMessageId } = req.body;
 
-      // Validate message type against allowed values
-      const ALLOWED_MESSAGE_TYPES = ['text', 'image', 'file', 'system'];
-      if (!ALLOWED_MESSAGE_TYPES.includes(type)) {
-        return res.status(400).json({ error: 'Invalid message type' });
+      const input = validateSendMessageBody(req.body, req.files);
+      if (input.error) {
+        return res.status(400).json({ error: input.error });
       }
-
-      // clientMessageId: optional; string, max 64 chars, constrained alphabet
-      // (UUIDs/ulids/nanoids).  Reject anything else up-front so the service
-      // layer only ever sees sanitised values.
-      let normalisedClientMessageId = null;
-      if (clientMessageId !== undefined && clientMessageId !== null && clientMessageId !== '') {
-        if (
-          typeof clientMessageId !== 'string' ||
-          clientMessageId.length > 64 ||
-          !/^[A-Za-z0-9._:-]+$/.test(clientMessageId)
-        ) {
-          return res.status(400).json({ error: 'Invalid clientMessageId' });
-        }
-        normalisedClientMessageId = clientMessageId;
-      }
+      const { content, type } = input;
 
       const userId = req.user.id;
-      const userName = preferredUserDisplayName(req.user);
-      const hasAttachments = req.files && req.files.length > 0;
-      if ((!content || content.trim().length === 0) && !hasAttachments) {
-        return res.status(400).json({
-          error: 'Message content or at least one attachment is required',
-        });
+      const stored = await storeMessageAttachments(req.files);
+      if (stored.error) {
+        return res.status(400).json({ error: stored.error });
       }
-
-      // Validate and parse replyTo before writing any attachment files,
-      // so a malformed replyTo returns 400 without orphaning uploads.
-      let parsedReplyTo = null;
-      if (replyTo) {
-        if (typeof replyTo === 'string') {
-          try {
-            parsedReplyTo = JSON.parse(replyTo);
-          } catch {
-            return res.status(400).json({ error: 'Invalid replyTo format' });
-          }
-        } else {
-          parsedReplyTo = replyTo;
-        }
-      }
-
-      // Process attachments if any. Validation verifies MIME signature and
-      // size before any file is written to disk.
-      let attachments = [];
-      if (req.files && req.files.length > 0) {
-        try {
-          attachments = await persistValidatedMessengerAttachments(req.files);
-        } catch (error) {
-          if (error.statusCode === 400 && error.expose) {
-            return res.status(400).json({ error: error.message });
-          }
-          throw error;
-        }
-
-        if (attachments.length > 0) {
-          messengerMetrics.increment('messenger_v4_attachments_uploaded_total', attachments.length);
-        }
-      }
+      const { attachments } = stored;
 
       const messageData = {
         senderId: userId,
-        senderName: userName,
+        senderName: preferredUserDisplayName(req.user),
         senderAvatar: req.user.avatarUrl || req.user.avatar || null,
         content,
         type,
         attachments,
-        replyTo: parsedReplyTo,
-        replyToMessageId: replyToMessageId || parsedReplyTo?._id || null,
-        clientMessageId: normalisedClientMessageId,
+        replyTo: input.parsedReplyTo,
+        replyToMessageId: input.replyToMessageId || input.parsedReplyTo?._id || null,
+        clientMessageId: input.clientMessageId,
       };
 
       const message = await (await getMessengerService()).sendMessage(conversationId, messageData);
@@ -789,42 +922,13 @@ router.post(
         await getMessengerService()
       ).getConversation(conversationId, userId);
 
-      // Emit message to all participants
-      emitToConversation(conversation, 'messenger:v4:message', {
+      await emitMessageEvents({
+        conversation,
         conversationId,
         message,
+        senderId: userId,
+        autoUnarchivedUserIds,
       });
-
-      // The room above only reaches people who have this conversation open. Everyone else in it
-      // still needs to hear that a message arrived (the unread badge, the dashboard's inbox
-      // preview), so they are told on their own user channel as well.
-      (conversation.participants || []).forEach(participant => {
-        if (String(participant.userId) !== String(userId) && !participant.isDeleted) {
-          emitToUser(participant.userId, 'messenger:v4:new-message', { conversationId, message });
-        }
-      });
-
-      // Notify auto-unarchived recipients so their client moves the conversation
-      // back to the main inbox without requiring a manual page reload.
-      for (const uid of autoUnarchivedUserIds) {
-        try {
-          const recipientConv = await (
-            await getMessengerService()
-          ).getConversation(conversationId, uid);
-          emitToUser(uid, 'messenger:v4:conversation-updated', {
-            conversationId,
-            conversation: recipientConv,
-          });
-        } catch (err) {
-          // Best-effort — the recipient will still see the message on next load.
-          // Log with context so production issues are diagnosable.
-          logger.warn('messenger_v4 auto-unarchive notification failed', {
-            uid,
-            conversationId,
-            error: err.message,
-          });
-        }
-      }
 
       messengerMetrics.increment('messenger_v4_messages_sent_total');
       logger.info('messenger_v4 message_sent', {

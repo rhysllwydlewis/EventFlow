@@ -497,7 +497,8 @@ router.get('/enquiries/:id', authRequired, async (req, res) => {
     }
     const enquiry = await supplierEnquiries.getEnquiry(supplier.id, req.params.id);
     if (!enquiry) {
-      return res.status(404).json({ error: 'Enquiry not found' });
+      res.status(404).json({ error: 'Enquiry not found' });
+      return;
     }
     res.json({ success: true, enquiry });
   } catch (error) {
@@ -517,13 +518,15 @@ router.patch('/enquiries/:id', authRequired, csrfProtection, writeLimiter, async
     if (!supplier) {
       return;
     }
-    const status = req.body && req.body.status;
+    const status = req.body?.status;
     if (!supplierEnquiries.STATUSES.includes(status)) {
-      return res.status(400).json({ error: 'status must be one of: new, read, handled' });
+      res.status(400).json({ error: 'status must be one of: new, read, handled' });
+      return;
     }
     const enquiry = await supplierEnquiries.setEnquiryStatus(supplier.id, req.params.id, status);
     if (!enquiry) {
-      return res.status(404).json({ error: 'Enquiry not found' });
+      res.status(404).json({ error: 'Enquiry not found' });
+      return;
     }
     // The dashboard summary's unread-requests figure must reflect this at once.
     clearEngagementCache();

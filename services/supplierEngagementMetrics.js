@@ -517,10 +517,8 @@ async function getMessagingSummary(ownerUserId) {
     }
   });
 
-  const latest = newest && newest[0];
-  const latestMs = latest
-    ? toMillis((latest.lastMessage && latest.lastMessage.sentAt) || latest.updatedAt)
-    : null;
+  const latest = newest?.[0];
+  const latestMs = latest ? toMillis(latest.lastMessage?.sentAt || latest.updatedAt) : null;
 
   return {
     unreadMessages,

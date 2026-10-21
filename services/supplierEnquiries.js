@@ -468,7 +468,7 @@ async function buildExportRows({ supplierId, ownerUserId }) {
       participant => participant.role === 'customer' && participant.userId !== ownerUserId
     );
     const mine = conversation.participants.find(participant => participant.userId === ownerUserId);
-    const last = conversation.lastMessage && conversation.lastMessage.content;
+    const last = conversation.lastMessage?.content;
     return {
       at: conversation.createdAt,
       row: [

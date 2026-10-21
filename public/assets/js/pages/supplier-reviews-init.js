@@ -275,25 +275,21 @@
    * Full section render
    * ──────────────────────────────────────────────────────────────────────── */
 
-  function renderSection(container, data, page, sortBy, supplierId) {
-    const { reviews, pagination, analytics } = data;
-    const total = pagination?.total || 0;
-    const pages = pagination?.pages || 1;
-    // No average (null, or reviews without a star rating) is not a 0.0 rating: show a dash and no stars.
-    const avgValue = Number(analytics?.avgRating);
-    const hasAverage = analytics?.avgRating !== null && Number.isFinite(avgValue) && avgValue > 0;
-    const resRate = normalisePercent(analytics?.responseRate);
-
-    if (total === 0) {
-      container.innerHTML = `
+  /** What the section shows when there are no reviews at all. */
+  function emptyHtml() {
+    return `
         <div class="sr-empty">
           <p class="sr-empty-title">No reviews yet</p>
           <p class="sr-empty-desc">Your first review will appear here once it has been approved. Use Request a review to ask a past customer.</p>
         </div>`;
-      return;
-    }
+  }
 
-    /* Summary bar */
+  /** The score, the star breakdown and the share of reviews replied to. */
+  function summaryHtml(analytics, total) {
+    // No average (null, or reviews without a star rating) is not a 0.0 rating: show a dash and no stars.
+    const avgValue = Number(analytics?.avgRating);
+    const hasAverage = analytics?.avgRating !== null && Number.isFinite(avgValue) && avgValue > 0;
+    const resRate = normalisePercent(analytics?.responseRate);
     const resRateHtml =
       resRate !== null
         ? `<div class="sr-stat-card">
@@ -302,8 +298,27 @@
            <div class="sr-stat-sub"></div>
          </div>`
         : '';
+    const scoreHtml = hasAverage
+      ? `<div class="sr-big-rating" aria-label="${avgValue.toFixed(1)} out of 5">${avgValue.toFixed(1)}</div>${stars(avgValue)}`
+      : '<div class="sr-big-rating" aria-label="No star rating yet">–</div>';
+    return `
+      <div class="sr-summary">
+        <div class="sr-summary-score">
+          ${scoreHtml}
+          <div class="sr-total-count">${total} review${total !== 1 ? 's' : ''}</div>
+        </div>
+        <div class="sr-distribution" aria-label="Star rating breakdown">
+          ${renderDistribution(analytics?.ratingDistribution || [0, 0, 0, 0, 0], total)}
+        </div>
+        ${resRateHtml}
+      </div>`;
+  }
 
-    /* Sort controls */
+  /** The sort menu and page count, shown once there is something to sort or page through. */
+  function toolbarHtml(reviewCount, page, pages, sortBy) {
+    if (reviewCount <= 3 && pages <= 1) {
+      return '';
+    }
     const sortOptions = [
       { value: 'recent', label: 'Most recent' },
       { value: 'rating', label: 'Highest rated' },
@@ -315,61 +330,44 @@
           `<option value="${o.value}" ${sortBy === o.value ? 'selected' : ''}>${o.label}</option>`
       )
       .join('');
-
-    /* Pagination */
-    const prevDisabled = page <= 1 ? 'disabled' : '';
-    const nextDisabled = page >= pages ? 'disabled' : '';
-
-    container.innerHTML = `
-      <div class="sr-summary">
-        <div class="sr-summary-score">
-          ${
-            hasAverage
-              ? `<div class="sr-big-rating" aria-label="${avgValue.toFixed(1)} out of 5">${avgValue.toFixed(1)}</div>${stars(avgValue)}`
-              : '<div class="sr-big-rating" aria-label="No star rating yet">\u2013</div>'
-          }
-          <div class="sr-total-count">${total} review${total !== 1 ? 's' : ''}</div>
-        </div>
-        <div class="sr-distribution" aria-label="Star rating breakdown">
-          ${renderDistribution(analytics?.ratingDistribution || [0, 0, 0, 0, 0], total)}
-        </div>
-        ${resRateHtml}
-      </div>
-
-      ${
-        (reviews || []).length > 3 || pages > 1
-          ? `<div class="sr-toolbar">
+    return `<div class="sr-toolbar">
         <label for="sr-sort" class="sr-sort-label">Sort by</label>
         <select id="sr-sort" class="sr-sort-select" aria-label="Sort reviews">
           ${sortHtml}
         </select>
         ${pages > 1 ? `<span class="sr-page-info">Page ${page} of ${pages}</span>` : ''}
-      </div>`
-          : ''
-      }
+      </div>`;
+  }
 
-      <div class="sr-list${(reviews || []).length > 2 ? ' sr-list--capped' : ''}" id="sr-list">
-        ${(reviews || []).map((r, index) => reviewCardHtml(r || {}, index)).join('')}
-      </div>
-      ${
-        (reviews || []).length > 2
-          ? `<button type="button" class="sdh-link sr-show-all" id="sr-show-all">Show all ${(reviews || []).length} reviews</button>`
-          : ''
-      }
-
-      ${
-        pages > 1
-          ? `<div class="sr-pagination">
+  /** The Prev and Next buttons, when there is more than one page. */
+  function paginationHtml(page, pages) {
+    if (pages <= 1) {
+      return '';
+    }
+    const prevDisabled = page <= 1 ? 'disabled' : '';
+    const nextDisabled = page >= pages ? 'disabled' : '';
+    return `<div class="sr-pagination">
         <button type="button" class="sr-page-btn" id="sr-prev" ${prevDisabled} aria-label="Previous page">Prev</button>
         <button type="button" class="sr-page-btn" id="sr-next" ${nextDisabled} aria-label="Next page">Next</button>
-      </div>`
+      </div>`;
+  }
+
+  /** The list of review cards, capped on a phone, with the button that shows the rest. */
+  function listHtml(reviews) {
+    const count = reviews.length;
+    return `
+      <div class="sr-list${count > 2 ? ' sr-list--capped' : ''}" id="sr-list">
+        ${reviews.map((r, index) => reviewCardHtml(r || {}, index)).join('')}
+      </div>
+      ${
+        count > 2
+          ? `<button type="button" class="sdh-link sr-show-all" id="sr-show-all">Show all ${count} reviews</button>`
           : ''
       }`;
+  }
 
-    container.querySelectorAll('.sr-dist-fill[data-width]').forEach(fill => {
-      fill.style.width = `${fill.dataset.width}%`;
-    });
-
+  /** Wires the show-all button, the sort menu and the page buttons of a drawn section. */
+  function bindControls(container, supplierId, page, sortBy) {
     /* On a phone only the first two reviews show until the supplier asks for the rest. */
     const showAll = container.querySelector('#sr-show-all');
     if (showAll) {
@@ -379,13 +377,11 @@
       });
     }
 
-    /* Bind sort */
     const sortEl = container.querySelector('#sr-sort');
     if (sortEl) {
       sortEl.addEventListener('change', () => reload(container, supplierId, 1, sortEl.value));
     }
 
-    /* Bind pagination */
     const prevBtn = container.querySelector('#sr-prev');
     const nextBtn = container.querySelector('#sr-next');
     if (prevBtn) {
@@ -394,8 +390,33 @@
     if (nextBtn) {
       nextBtn.addEventListener('click', () => reload(container, supplierId, page + 1, sortBy));
     }
+  }
 
-    /* Bind reply buttons */
+  function renderSection(container, data, page, sortBy, supplierId) {
+    const { reviews, pagination, analytics } = data;
+    const total = pagination?.total || 0;
+    const pages = pagination?.pages || 1;
+
+    if (total === 0) {
+      container.innerHTML = emptyHtml();
+      return;
+    }
+
+    const list = reviews || [];
+    container.innerHTML = `
+      ${summaryHtml(analytics, total)}
+
+      ${toolbarHtml(list.length, page, pages, sortBy)}
+
+      ${listHtml(list)}
+
+      ${paginationHtml(page, pages)}`;
+
+    container.querySelectorAll('.sr-dist-fill[data-width]').forEach(fill => {
+      fill.style.width = `${fill.dataset.width}%`;
+    });
+
+    bindControls(container, supplierId, page, sortBy);
     bindReplyButtons(container, supplierId, page, sortBy);
   }
 
@@ -512,7 +533,7 @@
 
           /* Success — reload the current panel so analytics and response rate stay fresh. */
           await reload(container, supplierId, page, sortBy);
-        } catch (err) {
+        } catch {
           if (statusEl) {
             statusEl.textContent = 'Network error — please try again.';
             statusEl.dataset.tone = 'error';
@@ -537,7 +558,7 @@
     try {
       const data = await fetchReviews(supplierId, page, sortBy);
       renderSection(container, data, page, sortBy, supplierId);
-    } catch (err) {
+    } catch {
       container.innerHTML = `
         <div class="sr-error" role="alert">
           <p>Unable to load reviews right now.</p>

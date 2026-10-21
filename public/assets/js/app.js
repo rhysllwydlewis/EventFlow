@@ -445,6 +445,20 @@ const REDIRECT_ALLOWED_PATHS = {
 };
 
 /**
+ * Reads an address, or null when it cannot be read (it is never trusted as it stands).
+ * @param {string} text - The address.
+ * @param {string} base - What a relative address is relative to.
+ * @returns {URL|null} The parsed address, or null.
+ */
+function parseUrlOrNull(text, base) {
+  try {
+    return new URL(text, base);
+  } catch {
+    return null;
+  }
+}
+
+/**
  * Where to send a signed-in person for a `redirect` (or `return`) parameter, or null when it must be
  * ignored (SECURITY).
  *
@@ -475,13 +489,8 @@ function safeRedirectTarget(redirectUrl, userRole, plan) {
   ) {
     return null;
   }
-  let parsed;
-  try {
-    parsed = new URL(text, window.location.origin);
-  } catch {
-    return null;
-  }
-  if (parsed.origin !== window.location.origin) {
+  const parsed = parseUrlOrNull(text, window.location.origin);
+  if (!parsed || parsed.origin !== window.location.origin) {
     return null;
   }
   const page = (REDIRECT_ALLOWED_PATHS[userRole] || []).find(path => path === parsed.pathname);
@@ -1578,7 +1587,31 @@ function notifyDashboardChanged() {
 }
 
 /**
- * Tell the supplier something through the dashboard's single toast, falling back to alert().
+ * Shows a message in the same toast element the dashboard uses, for the moment before (or without)
+ * the dashboard script. Never a browser alert: those block the page and cannot be styled or read
+ * by assistive technology the same way.
+ * @param {string} message - What to say.
+ * @param {string} [type] - success, error or info.
+ */
+function showFallbackNotice(message, type) {
+  let node = document.querySelector('.sdh-toast');
+  if (!node) {
+    node = document.createElement('div');
+    node.className = 'sdh-toast';
+    node.setAttribute('role', 'status');
+    document.body.appendChild(node);
+  }
+  node.dataset.tone = type || 'info';
+  node.textContent = message;
+  node.hidden = false;
+  window.setTimeout(() => {
+    node.hidden = true;
+  }, 5000);
+}
+
+/**
+ * Tell the supplier something through the dashboard's single toast, falling back to a plain toast
+ * of our own when the dashboard script is not on the page.
  * @param {string} message - What to say.
  * @param {string} [type] - success, error or info.
  */
@@ -1587,13 +1620,14 @@ function efSay(message, type) {
   if (home && typeof home.toast === 'function') {
     home.toast(message, type || 'info');
   } else {
-    window.alert(message);
+    showFallbackNotice(message, type);
   }
 }
 
 /**
- * Ask the supplier to confirm a destructive action in the dashboard's own dialog, falling back
- * to the browser's confirm() when that dialog is not on the page.
+ * Ask the supplier to confirm a destructive action in the dashboard's own dialog. Without that
+ * dialog nothing is confirmed: a destructive action is never done on a guess, so the answer is no
+ * and the supplier is told to reload.
  * @param {{title: string, message: string, confirmLabel: string}} options - What to ask.
  * @returns {Promise<boolean>} True when the supplier confirmed.
  */
@@ -1602,7 +1636,8 @@ function efConfirm(options) {
   if (home && typeof home.confirm === 'function') {
     return home.confirm(options);
   }
-  return Promise.resolve(window.confirm(options.message || options.title));
+  efSay('Could not open the confirmation. Please reload the page and try again.', 'error');
+  return Promise.resolve(false);
 }
 
 /** Message shown in #pkg-status when the free-tier active package limit is reached. */
@@ -1763,7 +1798,7 @@ async function initDashSupplier() {
   function supplierTierLabel(supplier) {
     const tier =
       supplier.subscriptionTier ||
-      (supplier.subscription && supplier.subscription.tier) ||
+      supplier.subscription?.tier ||
       (supplier.isPro || supplier.pro ? 'pro' : null);
     if (tier === 'pro_plus') {
       return 'Pro Plus';
@@ -1825,52 +1860,241 @@ async function initDashSupplier() {
   const SUPPLIER_EMPTY_HTML =
     '<div class="sdh-empty"><p class="sdh-empty__title">Create your business profile</p><p class="sdh-empty__text">Add your business name, category and location to start. You can fill in the rest later, and customers see your profile once we have approved it.</p><button type="button" class="sdh-btn sdh-btn--primary" data-sdh-action="edit-profile" data-sdh-focus="sup-name">Create profile</button></div>';
 
+  /** A web address or a same-site path: the only kinds of picture address worth showing. */
+  const PHOTO_URL_PATTERN = /^(https?:\/\/[^\s]+|\/[^/\\:][^:]*)$/i;
+
+  /**
+   * The signed-in person's name for the avatar fallback, from their first and last name, else the
+   * first usable of name, first name and email.
+   * @param {Object|null} user - The current user.
+   * @returns {string|undefined} The name, or nothing when there is none.
+   */
+  function profileDisplayNameOf(user) {
+    return (
+      `${user?.firstName || ''} ${user?.lastName || ''}`.trim() ||
+      [user?.name, user?.firstName, user?.email]
+        .find(v => typeof v === 'string' && v.trim())
+        ?.trim()
+    );
+  }
+
+  /**
+   * Up to two capital letters for a name, or "U" when it has none.
+   * @param {string} [name] - A person's name.
+   * @returns {string} The escaped initials.
+   */
+  function initialsOfName(name) {
+    return escapeHtml(
+      (name || '')
+        .split(/\s+/)
+        .filter(Boolean)
+        .slice(0, 2)
+        .map(part => part.charAt(0).toUpperCase())
+        .join('') || 'U'
+    );
+  }
+
+  /**
+   * Gives each supplier's best picture address: its own profile pictures first, then the signed-in
+   * person's, then the logo. Anything that is not a web address or same-site path is skipped.
+   * @param {Object|null} currentUser - The signed-in user, if known.
+   * @returns {function(Object): string} Maps a supplier to an escaped address, or ''.
+   */
+  function profilePhotoResolver(currentUser) {
+    const userPhoto =
+      currentUser?.avatarUrl && PHOTO_URL_PATTERN.test(currentUser.avatarUrl)
+        ? currentUser.avatarUrl.trim()
+        : '';
+    return supplier => {
+      const candidates = [
+        supplier?.profilePhotoUrl,
+        supplier?.displayAvatarUrl,
+        supplier?.avatarUrl,
+        supplier?.profileImage,
+        userPhoto,
+        supplier?.logo,
+      ];
+      const found = candidates.find(
+        value => value && typeof value === 'string' && PHOTO_URL_PATTERN.test(value.trim())
+      );
+      return typeof found === 'string' ? escapeAttr(found.trim()) : '';
+    };
+  }
+
+  /**
+   * The signed-in user, or null when that cannot be read (the profile still renders without it).
+   * @returns {Promise<Object|null>} The user, or null.
+   */
+  async function currentUserForProfile() {
+    try {
+      return await me();
+    } catch {
+      console.warn('Unable to load current user profile for supplier photo controls');
+      return null;
+    }
+  }
+
+  /**
+   * Shows the "create your profile" card and, when the form is closed, labels its toggle to match.
+   * @param {Element|null} toggleBtn - The button that opens the profile form.
+   */
+  function showEmptySupplierState(toggleBtn) {
+    supWrap.innerHTML = SUPPLIER_EMPTY_HTML;
+    const emptyLabel = toggleBtn?.querySelector('.label');
+    if (
+      emptyLabel &&
+      !document.getElementById('profile-form-section')?.classList.contains('expanded')
+    ) {
+      emptyLabel.textContent = 'Create profile';
+    }
+  }
+
+  /** Uploads a chosen profile photo, then reloads the profile card and tells the dashboard. */
+  async function uploadProfilePhoto(e) {
+    const file = e.target.files && e.target.files[0];
+    if (!file) {
+      return;
+    }
+    const fd = new FormData();
+    fd.append('avatar', file);
+    try {
+      const resp = await fetch('/api/profile/avatar', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'X-CSRF-Token': window.__CSRF_TOKEN__ || '' },
+        body: fd,
+      });
+      const result = await resp.json().catch(() => ({}));
+      if (!resp.ok) {
+        throw new Error(result.error || 'Failed to upload profile photo');
+      }
+      // Bust the cached auth state so the next me() call fetches the updated avatarUrl
+      if (window.AuthStateManager?.refresh) {
+        await window.AuthStateManager.refresh();
+      }
+      await loadSuppliers();
+      notifyDashboardChanged();
+    } catch (err) {
+      console.error('Profile photo upload failed:', err);
+      if (window.announceToSR) {
+        window.announceToSR(err.message || 'Failed to upload profile photo');
+      }
+    } finally {
+      e.target.value = '';
+    }
+  }
+
+  /** Wires each profile photo picker once, however many times the card is redrawn. */
+  function bindProfilePhotoUploads() {
+    supWrap.querySelectorAll('.supplier-profile-photo-upload').forEach(input => {
+      if (input.dataset.bound === 'true') {
+        return;
+      }
+      input.dataset.bound = 'true';
+      input.addEventListener('change', uploadProfilePhoto);
+    });
+  }
+
+  /**
+   * Fills the package form's supplier dropdown and keeps the hidden supplier id in step with it.
+   * @param {Object[]} items - The supplier records.
+   */
+  function fillSupplierSelect(items) {
+    if (!select) {
+      return;
+    }
+    select.innerHTML = items
+      .filter(s => s && s.id && s.name)
+      .map(
+        s => `<option value="${escapeHtml(String(s.id))}">${escapeHtml(String(s.name))}</option>`
+      )
+      .join('');
+    // Sync hidden supplierId input to the selected supplier
+    const hiddenInput = document.getElementById('pkg-supplier-id-hidden');
+    if (hiddenInput) {
+      // Set initial value
+      hiddenInput.value = select.value;
+      // Keep in sync when the user changes the dropdown
+      select.addEventListener('change', () => {
+        hiddenInput.value = select.value;
+      });
+    }
+  }
+
+  /**
+   * The supplier the form should show: the one being edited, else the first.
+   * @param {Object[]} items - The supplier records.
+   * @returns {Object} The supplier to edit.
+   */
+  function supplierForEditing(items) {
+    const editing = currentEditingSupplierId
+      ? items.find(s => s && s.id === currentEditingSupplierId)
+      : null;
+    return editing || items[0];
+  }
+
+  /**
+   * One profile per supplier: the toggle says "Edit profile" and the form heading too.
+   * @param {Element|null} toggleBtn - The button that opens the profile form.
+   */
+  function labelProfileFormAsEdit(toggleBtn) {
+    const labelSpan = toggleBtn?.querySelector('.label');
+    if (
+      labelSpan &&
+      !document.getElementById('profile-form-section')?.classList.contains('expanded')
+    ) {
+      labelSpan.textContent = 'Edit profile';
+    }
+    const sectionHeading = document.querySelector('#profile-form-section .supplier-section-header');
+    if (sectionHeading) {
+      sectionHeading.textContent = 'Edit profile';
+    }
+  }
+
+  /** Tells the dashboard the profile could not be read and offers a retry in place of the card. */
+  function showSupplierLoadError() {
+    document.dispatchEvent(
+      new CustomEvent('sdh:suppliers', { detail: { suppliers: null, failed: true } })
+    );
+    if (supWrap) {
+      supWrap.innerHTML =
+        '<div class="sdh-empty"><p class="sdh-empty__title">Could not load your profile</p><p class="sdh-empty__text">Check your connection and try again.</p><button type="button" class="sdh-btn sdh-btn--secondary sdh-btn--sm" data-sdh-action="reload">Try again</button></div>';
+    }
+  }
+
+  /**
+   * Draws the supplier cards. Initials sit on the supplier's own colour; the colour is data, so it
+   * is set from script.
+   * @param {Object[]} items - The supplier records.
+   * @param {Object|null} currentUser - The signed-in user, if known.
+   */
+  function renderSupplierCards(items, currentUser) {
+    const resolvePhoto = profilePhotoResolver(currentUser);
+    const profileInitial = initialsOfName(profileDisplayNameOf(currentUser));
+    supWrap.innerHTML = items
+      .filter(Boolean)
+      .map(s =>
+        supplierCardHtml(
+          s,
+          resolvePhoto(s),
+          escapeHtml(window.EFSupplierAvatar?.getSupplierInitials(s.name) || profileInitial)
+        )
+      )
+      .join('');
+    supWrap.querySelectorAll('.sdh-avatar').forEach(slot => {
+      if (!slot.querySelector('img')) {
+        slot.style.background = window.EFSupplierAvatar
+          ? window.EFSupplierAvatar.getSupplierAvatarGradient(slot.dataset.avatarKey)
+          : '';
+      }
+    });
+  }
+
   async function loadSuppliers() {
     try {
       const d = await api('/api/me/suppliers');
       const items = d?.items && Array.isArray(d.items) ? d.items : [];
-      let currentUser = null;
-      try {
-        currentUser = await me();
-      } catch {
-        console.warn('Unable to load current user profile for supplier photo controls');
-        currentUser = null;
-      }
-      const profileDisplayName =
-        `${currentUser?.firstName || ''} ${currentUser?.lastName || ''}`.trim() ||
-        [currentUser?.name, currentUser?.firstName, currentUser?.email]
-          .find(v => typeof v === 'string' && v.trim())
-          ?.trim();
-      const currentUserProfilePhotoUrl =
-        currentUser?.avatarUrl &&
-        /^(https?:\/\/[^\s]+|\/[^/\\:][^:]*)$/i.test(currentUser.avatarUrl)
-          ? currentUser.avatarUrl.trim()
-          : '';
-      const resolveDashboardSupplierProfilePhoto = supplier => {
-        const candidates = [
-          supplier?.profilePhotoUrl,
-          supplier?.displayAvatarUrl,
-          supplier?.avatarUrl,
-          supplier?.profileImage,
-          currentUserProfilePhotoUrl,
-          supplier?.logo,
-        ];
-        const found = candidates.find(value => {
-          if (!value || typeof value !== 'string') {
-            return false;
-          }
-          return /^(https?:\/\/[^\s]+|\/[^/\\:][^:]*)$/i.test(value.trim());
-        });
-        return typeof found === 'string' ? escapeAttr(found.trim()) : '';
-      };
-      const profileInitial = escapeHtml(
-        (profileDisplayName || '')
-          .split(/\s+/)
-          .filter(Boolean)
-          .slice(0, 2)
-          .map(part => part.charAt(0).toUpperCase())
-          .join('') || 'U'
-      );
+      const currentUser = await currentUserForProfile();
       window._efCachedSuppliers = items; // Expose globally for editProfile()
       const hasSupplierProfile = items.length > 0;
       const hasApprovedSupplierProfile = items.some(s => s && s.approved === true);
@@ -1885,133 +2109,20 @@ async function initDashSupplier() {
 
       const toggleBtn = document.getElementById('toggle-profile-form');
       if (!hasSupplierProfile) {
-        supWrap.innerHTML = SUPPLIER_EMPTY_HTML;
-        const emptyLabel = toggleBtn && toggleBtn.querySelector('.label');
-        if (
-          emptyLabel &&
-          !document.getElementById('profile-form-section')?.classList.contains('expanded')
-        ) {
-          emptyLabel.textContent = 'Create profile';
-        }
+        showEmptySupplierState(toggleBtn);
         return;
       }
 
-      supWrap.innerHTML = items
-        .filter(Boolean)
-        .map(s =>
-          supplierCardHtml(
-            s,
-            resolveDashboardSupplierProfilePhoto(s),
-            escapeHtml(
-              (window.EFSupplierAvatar && window.EFSupplierAvatar.getSupplierInitials(s.name)) ||
-                profileInitial
-            )
-          )
-        )
-        .join('');
-      // Initials sit on the supplier's own colour; the colour is data, so it is set from script.
-      supWrap.querySelectorAll('.sdh-avatar').forEach(slot => {
-        if (!slot.querySelector('img')) {
-          slot.style.background = window.EFSupplierAvatar
-            ? window.EFSupplierAvatar.getSupplierAvatarGradient(slot.dataset.avatarKey)
-            : '';
-        }
-      });
-
-      supWrap.querySelectorAll('.supplier-profile-photo-upload').forEach(input => {
-        if (input.dataset.bound === 'true') {
-          return;
-        }
-        input.dataset.bound = 'true';
-        input.addEventListener('change', async e => {
-          const file = e.target.files && e.target.files[0];
-          if (!file) {
-            return;
-          }
-          const fd = new FormData();
-          fd.append('avatar', file);
-          try {
-            const resp = await fetch('/api/profile/avatar', {
-              method: 'POST',
-              credentials: 'include',
-              headers: { 'X-CSRF-Token': window.__CSRF_TOKEN__ || '' },
-              body: fd,
-            });
-            const result = await resp.json().catch(() => ({}));
-            if (!resp.ok) {
-              throw new Error(result.error || 'Failed to upload profile photo');
-            }
-            // Bust the cached auth state so the next me() call fetches the updated avatarUrl
-            if (window.AuthStateManager?.refresh) {
-              await window.AuthStateManager.refresh();
-            }
-            await loadSuppliers();
-            notifyDashboardChanged();
-          } catch (err) {
-            console.error('Profile photo upload failed:', err);
-            if (window.announceToSR) {
-              window.announceToSR(err.message || 'Failed to upload profile photo');
-            }
-          } finally {
-            e.target.value = '';
-          }
-        });
-      });
-
-      if (select) {
-        select.innerHTML = items
-          .filter(s => s && s.id && s.name)
-          .map(
-            s =>
-              `<option value="${escapeHtml(String(s.id))}">${escapeHtml(String(s.name))}</option>`
-          )
-          .join('');
-        // Sync hidden supplierId input to the selected supplier
-        const hiddenInput = document.getElementById('pkg-supplier-id-hidden');
-        if (hiddenInput) {
-          // Set initial value
-          hiddenInput.value = select.value;
-          // Keep in sync when the user changes the dropdown
-          select.addEventListener('change', () => {
-            hiddenInput.value = select.value;
-          });
-        }
-      }
-
+      renderSupplierCards(items, currentUser);
+      bindProfilePhotoUploads();
+      fillSupplierSelect(items);
       // Fill the edit form with the supplier being edited, else the first one, so opening it
       // always shows the saved profile.
-      let supplierToEdit = items[0];
-      if (currentEditingSupplierId) {
-        const foundSupplier = items.find(s => s && s.id === currentEditingSupplierId);
-        if (foundSupplier) {
-          supplierToEdit = foundSupplier;
-        }
-      }
-      populateSupplierForm(supplierToEdit);
-
-      // One profile per supplier: the toggle says "Edit profile" and the form heading too.
-      const labelSpan = toggleBtn && toggleBtn.querySelector('.label');
-      if (
-        labelSpan &&
-        !document.getElementById('profile-form-section')?.classList.contains('expanded')
-      ) {
-        labelSpan.textContent = 'Edit profile';
-      }
-      const sectionHeading = document.querySelector(
-        '#profile-form-section .supplier-section-header'
-      );
-      if (sectionHeading) {
-        sectionHeading.textContent = 'Edit profile';
-      }
+      populateSupplierForm(supplierForEditing(items));
+      labelProfileFormAsEdit(toggleBtn);
     } catch (err) {
       console.error('Error loading suppliers:', err);
-      document.dispatchEvent(
-        new CustomEvent('sdh:suppliers', { detail: { suppliers: null, failed: true } })
-      );
-      if (supWrap) {
-        supWrap.innerHTML =
-          '<div class="sdh-empty"><p class="sdh-empty__title">Could not load your profile</p><p class="sdh-empty__text">Check your connection and try again.</p><button type="button" class="sdh-btn sdh-btn--secondary sdh-btn--sm" data-sdh-action="reload">Try again</button></div>';
-      }
+      showSupplierLoadError();
     }
   }
 
@@ -2329,8 +2440,8 @@ async function initDashSupplier() {
     const priceText = escapeHtml(packagePriceText(p));
     const description = escapeHtml(String(p.description || ''));
     const slug = escapeAttr(String(p.slug || ''));
-    const approved = !!p.approved;
-    const paused = !!p.paused;
+    const approved = Boolean(p.approved);
+    const paused = Boolean(p.paused);
     const badges = [
       p.featured ? '<span class="sdh-pill sdh-pill--accent">Featured</span>' : '',
       approved
@@ -2423,42 +2534,131 @@ async function initDashSupplier() {
     return '';
   }
 
+  /** Whether the package editor is open (an open editor keeps its own button label). */
+  function isPackageEditorOpen() {
+    return document.getElementById('package-form-section')?.classList.contains('expanded') ?? false;
+  }
+
+  /**
+   * Why packages cannot be created yet, if they cannot: no profile, or a profile not approved.
+   * @returns {{code: string, message: string, label: string}|null} The reason, or null when none.
+   */
+  function packageCreationBlock() {
+    if (window._supplierProfileMissing) {
+      return {
+        code: 'SUPPLIER_PROFILE_MISSING',
+        message: 'Create your profile before adding packages.',
+        label: 'Profile setup needed',
+      };
+    }
+    if (window._supplierApprovalBlocked) {
+      return {
+        code: 'SUPPLIER_NOT_APPROVED',
+        message: 'Package creation unlocks once your profile is approved.',
+        label: 'Profile pending approval',
+      };
+    }
+    return null;
+  }
+
+  /**
+   * Nothing can be created yet: say so on the button instead of letting it open a form that can
+   * only fail. (An open editor keeps its own label.)
+   * @param {{message: string, label: string}} block - Why creation is blocked.
+   */
+  function disableCreateButtonFor(block) {
+    const blockedToggle = document.getElementById('toggle-package-form');
+    if (!blockedToggle || isPackageEditorOpen()) {
+      return;
+    }
+    blockedToggle.disabled = true;
+    blockedToggle.title = block.message;
+    const blockedLabel = blockedToggle.querySelector('.label');
+    if (blockedLabel) {
+      blockedLabel.textContent = block.label;
+    }
+  }
+
+  /**
+   * Shows or hides the "Upgrade plan" link beside the create button.
+   * @param {Element} toggleBtn - The create button.
+   * @param {boolean} atLimit - Whether the plan's package limit is reached.
+   */
+  function syncUpgradeLink(toggleBtn, atLimit) {
+    let upgradeCta = document.getElementById('pkg-upgrade-cta');
+    if (!atLimit) {
+      if (upgradeCta) {
+        upgradeCta.hidden = true;
+      }
+      return;
+    }
+    if (!upgradeCta) {
+      upgradeCta = document.createElement('a');
+      upgradeCta.id = 'pkg-upgrade-cta';
+      upgradeCta.href = '/supplier/subscription';
+      upgradeCta.className = 'sdh-link';
+      upgradeCta.textContent = 'Upgrade plan';
+      toggleBtn.insertAdjacentElement('afterend', upgradeCta);
+    }
+    upgradeCta.hidden = false;
+  }
+
+  /**
+   * Sets the create button for a collapsed editor: off with a reason at the plan limit, otherwise
+   * ready.
+   * @param {Element} toggleBtn - The create button.
+   * @param {boolean} atLimit - Whether the plan's package limit is reached.
+   * @param {*} limit - The plan's package limit.
+   */
+  function setCreateButton(toggleBtn, atLimit, limit) {
+    const labelEl = toggleBtn.querySelector('.label');
+    toggleBtn.disabled = atLimit;
+    toggleBtn.title = atLimit
+      ? `You have reached your plan's ${limit}-package limit. Pause or delete a package, or upgrade your plan.`
+      : '';
+    if (labelEl) {
+      labelEl.textContent = atLimit ? window._pkgLimitLabel : 'Create package';
+    }
+  }
+
+  /**
+   * Blocks the package form's create mode at the plan limit and leaves edit mode alone: editing
+   * existing packages must remain allowed.
+   * @param {boolean} atLimit - Whether the plan's package limit is reached.
+   */
+  function applyPackageFormLimits(atLimit) {
+    if (!document.getElementById('package-form')) {
+      return;
+    }
+    const isEditMode = Boolean(document.getElementById('pkg-id-hidden')?.value);
+    setPkgFormDisabled(atLimit && !isEditMode);
+  }
+
+  /** What the packages card says when the list could not be loaded. */
+  function showPackageLoadError(err) {
+    if (!pkgsWrap) {
+      return;
+    }
+    pkgsWrap.innerHTML =
+      packageBlockedHtml(err.code) ||
+      packageMessageHtml(
+        'Could not load your packages',
+        'Check your connection and try again.',
+        '<button type="button" class="sdh-btn sdh-btn--secondary sdh-btn--sm" data-sdh-action="reload-packages">Try again</button>'
+      );
+  }
+
   async function loadPackages() {
     try {
       if (!pkgsWrap) {
         return;
       }
-      const note = document.getElementById('pkg-limit-note');
-      const supplierBlocked = window._supplierProfileMissing || window._supplierApprovalBlocked;
-      const supplierBlockMessage = window._supplierProfileMissing
-        ? 'Create your profile before adding packages.'
-        : 'Package creation unlocks once your profile is approved.';
+      const block = packageCreationBlock();
       // The profile list already says when packages cannot be read yet, so skip a request the
       // server would refuse (it would only add a 403 to the console).
-      const blockedHtml = packageBlockedHtml(
-        window._supplierProfileMissing
-          ? 'SUPPLIER_PROFILE_MISSING'
-          : window._supplierApprovalBlocked
-            ? 'SUPPLIER_NOT_APPROVED'
-            : ''
-      );
-      if (blockedHtml) {
-        pkgsWrap.innerHTML = blockedHtml;
-        // Nothing can be created yet: say so on the button instead of letting it open a form that
-        // can only fail. (An open editor keeps its own label.)
-        const blockedToggle = document.getElementById('toggle-package-form');
-        const editorOpen =
-          document.getElementById('package-form-section')?.classList.contains('expanded') ?? false;
-        if (blockedToggle && !editorOpen) {
-          blockedToggle.disabled = true;
-          blockedToggle.title = supplierBlockMessage;
-          const blockedLabel = blockedToggle.querySelector('.label');
-          if (blockedLabel) {
-            blockedLabel.textContent = window._supplierProfileMissing
-              ? 'Profile setup needed'
-              : 'Profile pending approval';
-          }
-        }
+      if (block) {
+        pkgsWrap.innerHTML = packageBlockedHtml(block.code);
+        disableCreateButtonFor(block);
         return;
       }
       const [d, allowance] = await Promise.all([api('/api/me/packages'), getPackageAllowance()]);
@@ -2468,12 +2668,11 @@ async function initDashSupplier() {
       const activeCount = items.filter(p => !p.paused).length;
       const atLimit = allowance.limit !== null && activeCount >= allowance.limit;
 
+      const note = document.getElementById('pkg-limit-note');
       if (note) {
         note.textContent = packageNoteText(activeCount, allowance);
       }
 
-      // Only block *creating* new packages; editing existing ones must remain allowed.
-      const pkgForm = document.getElementById('package-form');
       // Expose globally so togglePackageForm() and editPackage() can reference it.
       window._pkgAtLimit = atLimit;
       // Store limit label text so togglePackageForm() can restore it after edit mode.
@@ -2483,66 +2682,18 @@ async function initDashSupplier() {
 
       const toggleBtn = document.getElementById('toggle-package-form');
       if (toggleBtn) {
-        const labelEl = toggleBtn.querySelector('.label');
         // Only change the label when the form is collapsed (not in edit/cancel state).
-        const formIsOpen =
-          document.getElementById('package-form-section')?.classList.contains('expanded') ?? false;
-        if (!formIsOpen) {
-          if (atLimit) {
-            toggleBtn.disabled = true;
-            toggleBtn.title = `You have reached your plan's ${allowance.limit}-package limit. Pause or delete a package, or upgrade your plan.`;
-            if (labelEl) {
-              labelEl.textContent = window._pkgLimitLabel;
-            }
-          } else if (supplierBlocked) {
-            toggleBtn.disabled = true;
-            toggleBtn.title = supplierBlockMessage;
-            if (labelEl) {
-              labelEl.textContent = window._supplierProfileMissing
-                ? 'Profile setup needed'
-                : 'Profile pending approval';
-            }
-          } else {
-            toggleBtn.disabled = false;
-            toggleBtn.title = '';
-            if (labelEl) {
-              labelEl.textContent = 'Create package';
-            }
-          }
+        if (!isPackageEditorOpen()) {
+          setCreateButton(toggleBtn, atLimit, allowance.limit);
         }
-        // Show or hide the upgrade link alongside the button.
-        let upgradeCta = document.getElementById('pkg-upgrade-cta');
-        if (atLimit) {
-          if (!upgradeCta) {
-            upgradeCta = document.createElement('a');
-            upgradeCta.id = 'pkg-upgrade-cta';
-            upgradeCta.href = '/supplier/subscription';
-            upgradeCta.className = 'sdh-link';
-            upgradeCta.textContent = 'Upgrade plan';
-            toggleBtn.insertAdjacentElement('afterend', upgradeCta);
-          }
-          upgradeCta.hidden = false;
-        } else if (upgradeCta) {
-          upgradeCta.hidden = true;
-        }
+        syncUpgradeLink(toggleBtn, atLimit);
       }
+      applyPackageFormLimits(atLimit);
 
-      if (pkgForm) {
-        // Determine whether the form is currently in edit mode (has a package ID).
-        const editingId = document.getElementById('pkg-id-hidden')?.value;
-        const isEditMode = !!editingId;
-
-        // Only apply the limit restriction when in create mode.
-        const shouldDisable = (atLimit || supplierBlocked) && !isEditMode;
-        setPkgFormDisabled(shouldDisable, supplierBlocked ? supplierBlockMessage : undefined);
-      }
-
-      if (!items || items.length === 0) {
+      if (items.length === 0) {
         pkgsWrap.innerHTML = packageMessageHtml(
           'No packages yet',
-          supplierBlocked
-            ? supplierBlockMessage
-            : 'Create your first package to show what you offer and what it costs.'
+          'Create your first package to show what you offer and what it costs.'
         );
         return;
       }
@@ -2550,15 +2701,7 @@ async function initDashSupplier() {
       pkgsWrap.innerHTML = packageListHtml(items, wasOpen);
     } catch (err) {
       console.error('Error loading packages:', err);
-      if (pkgsWrap) {
-        pkgsWrap.innerHTML =
-          packageBlockedHtml(err.code) ||
-          packageMessageHtml(
-            'Could not load your packages',
-            'Check your connection and try again.',
-            '<button type="button" class="sdh-btn sdh-btn--secondary sdh-btn--sm" data-sdh-action="reload-packages">Try again</button>'
-          );
-      }
+      showPackageLoadError(err);
     }
   }
   // Expose loadPackages globally so togglePackagePause() (defined outside this
@@ -2590,174 +2733,192 @@ async function initDashSupplier() {
     toggleProfileFormBtn.addEventListener('click', toggleProfileForm);
   }
 
+  /**
+   * The buttons that just pass a record's id on: data-action, the attribute holding the id, and what
+   * to do with it. Looked up lazily so each target can be defined further down.
+   */
+  const ID_ACTIONS = new Map([
+    ['edit-package', ['data-package-id', id => editPackage(id)]],
+    ['delete-package', ['data-package-id', id => deletePackage(id)]],
+    ['pause-package', ['data-package-id', id => togglePackagePause(id, true)]],
+    ['unpause-package', ['data-package-id', id => togglePackagePause(id, false)]],
+    ['edit-profile', ['data-profile-id', id => editProfile(id)]],
+    ['delete-profile', ['data-profile-id', id => deleteProfile(id)]],
+  ]);
+
+  /** Opens the gallery's file picker once the smooth scroll and focus have finished. */
+  function openGalleryPickerSoon(uploader) {
+    const AUTO_OPEN_PICKER_DELAY_MS = 320; // allow smooth-scroll/focus to complete before opening picker
+    setTimeout(() => {
+      if (typeof window.openSupplierGalleryPicker === 'function') {
+        window.openSupplierGalleryPicker();
+      } else {
+        uploader.click();
+      }
+      delete uploader.dataset.pickerOpening;
+    }, AUTO_OPEN_PICKER_DELAY_MS);
+  }
+
+  /**
+   * "Add photos": expand the form, scroll to the gallery section and open the file picker.
+   * @param {Element} actionEl - The button.
+   * @returns {Promise<boolean>} False when the click should not go on to any other handler.
+   */
+  async function startPhotoUpload(actionEl) {
+    const profileId = actionEl.getAttribute('data-profile-id');
+    if (profileId) {
+      try {
+        await editProfile(profileId, { focusId: 'sup-photo-drop' });
+      } catch (err) {
+        console.error('Failed to prepare profile form for photo upload:', err);
+        return false;
+      }
+    }
+    const uploader = document.getElementById('sup-photo-drop');
+    if (!uploader) {
+      return true;
+    }
+    const galleryRow = uploader.closest('.form-row') || uploader;
+    if (!uploader.hasAttribute('tabindex')) {
+      uploader.setAttribute('tabindex', '-1');
+    }
+    galleryRow.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    if (typeof uploader.focus === 'function') {
+      uploader.focus({ preventScroll: true });
+    }
+    if (uploader.dataset.pickerOpening === 'true') {
+      return false;
+    }
+    uploader.dataset.pickerOpening = 'true';
+    openGalleryPickerSoon(uploader);
+    return true;
+  }
+
+  /** Sends the request that removes the profile photo, then redraws the card. */
+  async function requestProfilePhotoRemoval() {
+    try {
+      const resp = await fetch('/api/profile/avatar', {
+        method: 'DELETE',
+        credentials: 'include',
+        headers: { 'X-CSRF-Token': window.__CSRF_TOKEN__ || '' },
+      });
+      const result = await resp.json().catch(() => ({}));
+      if (!resp.ok) {
+        throw new Error(result.error || 'Failed to delete profile photo');
+      }
+      if (window.AuthStateManager?.refresh) {
+        await window.AuthStateManager.refresh();
+      }
+      await loadSuppliers();
+      if (window.announceToSR) {
+        window.announceToSR('Profile photo removed');
+      }
+    } catch (err) {
+      console.error('Profile photo delete failed:', err);
+      if (window.announceToSR) {
+        window.announceToSR(err.message || 'Failed to delete profile photo');
+      }
+    }
+  }
+
+  /**
+   * The corner badge on the profile photo: confirm, then remove it.
+   * @param {HTMLElement} actionEl - The badge.
+   * @returns {Promise<boolean>} False when the click should not go on to any other handler.
+   */
+  async function removeProfilePhoto(actionEl) {
+    if (actionEl.dataset.busy === 'true') {
+      return false;
+    }
+    const confirmed = await efConfirm({
+      title: 'Remove your profile photo?',
+      message: 'Your profile will show your initials until you add another photo.',
+      confirmLabel: 'Remove photo',
+    });
+    if (!confirmed) {
+      return false;
+    }
+    actionEl.dataset.busy = 'true';
+    actionEl.setAttribute('aria-disabled', 'true');
+    actionEl.disabled = true;
+    actionEl.title = 'Removing profile photo…';
+    try {
+      await requestProfilePhotoRemoval();
+    } finally {
+      delete actionEl.dataset.busy;
+      if (actionEl.isConnected) {
+        actionEl.removeAttribute('aria-disabled');
+        actionEl.disabled = false;
+        actionEl.title = 'Delete profile photo';
+      }
+    }
+    return true;
+  }
+
+  /**
+   * Runs what a [data-action] button asks for.
+   * @param {HTMLElement} actionEl - The button.
+   * @returns {Promise<boolean>} False when the click should not go on to any other handler.
+   */
+  async function runDashboardAction(actionEl) {
+    const action = actionEl.getAttribute('data-action');
+    const idAction = ID_ACTIONS.get(action);
+    if (idAction) {
+      const id = actionEl.getAttribute(idAction[0]);
+      if (id) {
+        idAction[1](id);
+      }
+      return true;
+    }
+    if (action === 'upload-photo') {
+      return startPhotoUpload(actionEl);
+    }
+    if (action === 'delete-profile-photo') {
+      return removeProfilePhoto(actionEl);
+    }
+    return true;
+  }
+
+  /** The gallery buttons, which are matched by what was clicked rather than by data-action. */
+  function runGalleryClick(target) {
+    const pkgDeleteBtn = target.closest ? target.closest('.pkg-gallery-delete') : null;
+    if (pkgDeleteBtn) {
+      const photoUrl = pkgDeleteBtn.getAttribute('data-url');
+      const packageId = pkgDeleteBtn.getAttribute('data-package-id');
+      if (photoUrl && packageId) {
+        deletePackagePhoto(packageId, photoUrl, pkgDeleteBtn);
+      }
+    }
+    if (target.matches('#pkg-gallery-save-order')) {
+      savePkgGalleryOrder();
+    }
+    if (
+      target.matches('#sup-gallery-save-order') &&
+      typeof window.saveSupplierGalleryOrder === 'function'
+    ) {
+      window.saveSupplierGalleryOrder();
+    }
+  }
+
+  /** One listener for the Edit/Delete/Pause buttons on packages and profiles and the gallery. */
+  async function handleDashboardClick(e) {
+    const target = e.target;
+    const actionEl = target.closest ? target.closest('[data-action]') : null;
+    try {
+      if (actionEl && !(await runDashboardAction(actionEl))) {
+        return;
+      }
+      runGalleryClick(target);
+    } catch (err) {
+      console.error('Dashboard action handler error:', err);
+    }
+  }
+
   // Add event delegation for Edit/Delete buttons on packages and profiles
   // Guard against duplicate bindings if supplier dashboard init runs more than once.
   if (!window.__efSupplierDashboardActionsBound) {
     window.__efSupplierDashboardActionsBound = true;
-    document.addEventListener('click', async e => {
-      const target = e.target;
-      const actionEl = target.closest ? target.closest('[data-action]') : null;
-      try {
-        // Handle package edit buttons
-        if (actionEl && actionEl.matches('[data-action="edit-package"]')) {
-          const packageId = actionEl.getAttribute('data-package-id');
-          if (packageId) {
-            editPackage(packageId);
-          }
-        }
-
-        // Handle package delete buttons
-        if (actionEl && actionEl.matches('[data-action="delete-package"]')) {
-          const packageId = actionEl.getAttribute('data-package-id');
-          if (packageId) {
-            deletePackage(packageId);
-          }
-        }
-
-        // Handle package pause buttons
-        if (actionEl && actionEl.matches('[data-action="pause-package"]')) {
-          const packageId = actionEl.getAttribute('data-package-id');
-          if (packageId) {
-            togglePackagePause(packageId, true);
-          }
-        }
-
-        // Handle package unpause buttons
-        if (actionEl && actionEl.matches('[data-action="unpause-package"]')) {
-          const packageId = actionEl.getAttribute('data-package-id');
-          if (packageId) {
-            togglePackagePause(packageId, false);
-          }
-        }
-
-        // Handle profile edit buttons
-        if (actionEl && actionEl.matches('[data-action="edit-profile"]')) {
-          const profileId = actionEl.getAttribute('data-profile-id');
-          if (profileId) {
-            editProfile(profileId);
-          }
-        }
-
-        // Handle Upload Photo button — expand form, scroll to gallery section, and open file picker
-        if (actionEl && actionEl.matches('[data-action="upload-photo"]')) {
-          const profileId = actionEl.getAttribute('data-profile-id');
-          if (profileId) {
-            try {
-              await editProfile(profileId, { focusId: 'sup-photo-drop' });
-            } catch (err) {
-              console.error('Failed to prepare profile form for photo upload:', err);
-              return;
-            }
-          }
-          const uploader = document.getElementById('sup-photo-drop');
-          if (uploader) {
-            const galleryRow = uploader.closest('.form-row') || uploader;
-            if (!uploader.hasAttribute('tabindex')) {
-              uploader.setAttribute('tabindex', '-1');
-            }
-            galleryRow.scrollIntoView({ behavior: 'smooth', block: 'start' });
-            if (typeof uploader.focus === 'function') {
-              uploader.focus({ preventScroll: true });
-            }
-            if (uploader.dataset.pickerOpening === 'true') {
-              return;
-            }
-            uploader.dataset.pickerOpening = 'true';
-            const AUTO_OPEN_PICKER_DELAY_MS = 320; // allow smooth-scroll/focus to complete before opening picker
-            setTimeout(() => {
-              if (typeof window.openSupplierGalleryPicker === 'function') {
-                window.openSupplierGalleryPicker();
-              } else {
-                uploader.click();
-              }
-              delete uploader.dataset.pickerOpening;
-            }, AUTO_OPEN_PICKER_DELAY_MS);
-          }
-        }
-
-        // Handle profile photo delete button
-        if (actionEl && actionEl.matches('[data-action="delete-profile-photo"]')) {
-          if (actionEl.dataset.busy === 'true') {
-            return;
-          }
-          if (
-            !(await efConfirm({
-              title: 'Remove your profile photo?',
-              message: 'Your profile will show your initials until you add another photo.',
-              confirmLabel: 'Remove photo',
-            }))
-          ) {
-            return;
-          }
-          actionEl.dataset.busy = 'true';
-          actionEl.setAttribute('aria-disabled', 'true');
-          actionEl.disabled = true;
-          actionEl.title = 'Removing profile photo…';
-          try {
-            const resp = await fetch('/api/profile/avatar', {
-              method: 'DELETE',
-              credentials: 'include',
-              headers: { 'X-CSRF-Token': window.__CSRF_TOKEN__ || '' },
-            });
-            const result = await resp.json().catch(() => ({}));
-            if (!resp.ok) {
-              throw new Error(result.error || 'Failed to delete profile photo');
-            }
-            if (window.AuthStateManager?.refresh) {
-              await window.AuthStateManager.refresh();
-            }
-            await loadSuppliers();
-            if (window.announceToSR) {
-              window.announceToSR('Profile photo removed');
-            }
-          } catch (err) {
-            console.error('Profile photo delete failed:', err);
-            if (window.announceToSR) {
-              window.announceToSR(err.message || 'Failed to delete profile photo');
-            }
-          } finally {
-            delete actionEl.dataset.busy;
-            if (actionEl.isConnected) {
-              actionEl.removeAttribute('aria-disabled');
-              actionEl.disabled = false;
-              actionEl.title = 'Delete profile photo';
-            }
-          }
-        }
-
-        // Handle profile delete buttons
-        if (actionEl && actionEl.matches('[data-action="delete-profile"]')) {
-          const profileId = actionEl.getAttribute('data-profile-id');
-          if (profileId) {
-            deleteProfile(profileId);
-          }
-        }
-
-        // Handle gallery photo delete buttons
-        const pkgDeleteBtn = target.closest ? target.closest('.pkg-gallery-delete') : null;
-        if (pkgDeleteBtn) {
-          const photoUrl = pkgDeleteBtn.getAttribute('data-url');
-          const packageId = pkgDeleteBtn.getAttribute('data-package-id');
-          if (photoUrl && packageId) {
-            deletePackagePhoto(packageId, photoUrl, pkgDeleteBtn);
-          }
-        }
-
-        // Handle gallery save-order button
-        if (target.matches('#pkg-gallery-save-order')) {
-          savePkgGalleryOrder();
-        }
-
-        // Handle supplier gallery save-order button
-        if (target.matches('#sup-gallery-save-order')) {
-          if (typeof window.saveSupplierGalleryOrder === 'function') {
-            window.saveSupplierGalleryOrder();
-          }
-        }
-      } catch (err) {
-        console.error('Dashboard action handler error:', err);
-      }
-    });
+    document.addEventListener('click', handleDashboardClick);
   }
 
   /**
@@ -3595,7 +3756,7 @@ async function initDashSupplier() {
       }
 
       const saveBtn = pkgForm.querySelector('button[type="submit"]');
-      if (saveBtn && saveBtn.disabled) {
+      if (saveBtn?.disabled) {
         // A save is already in flight: a second Enter or click must not send it twice.
         return;
       }
@@ -4818,6 +4979,57 @@ function efDetectPage(pathname) {
 
 // skipcq: JS-R1005 -- One DOMContentLoaded handler keeps every page's setup in one place; the
 // sign-in/sign-up block is most of it.
+/**
+ * What to tell someone whose sign-in was refused.
+ * @param {number} status - The HTTP status of the refusal.
+ * @param {string} [serverError] - The message the server sent, if any.
+ * @returns {string} The message to show.
+ */
+function loginFailureMessage(status, serverError) {
+  const generic = 'Could not sign in. Please check your details and try again.';
+  const errorMsg = serverError || generic;
+  if (status === 401) {
+    return 'Invalid email or password. Please check your credentials and try again.';
+  }
+  if (status === 403 && errorMsg.toLowerCase().includes('verify')) {
+    return 'Please verify your email address before signing in. Check your inbox for the verification link.';
+  }
+  if (status === 429) {
+    return 'Too many login attempts. Please wait a moment and try again.';
+  }
+  return errorMsg === generic
+    ? 'Unable to sign in. Please check your email and password.'
+    : errorMsg;
+}
+
+/**
+ * Where to send someone who has just signed in: the page for their role, unless the address names
+ * one of the pages that role is allowed (SECURITY: never trust the redirect parameter alone).
+ * @param {string} role - The account's role.
+ * @param {string} search - The page's query string.
+ * @returns {string} A same-site address.
+ */
+function postLoginDestination(role, search) {
+  let destination = '/dashboard/customer';
+  if (role === 'admin') {
+    destination = '/admin';
+  } else if (role === 'supplier') {
+    destination = '/dashboard/supplier';
+  }
+  const urlParams = new URLSearchParams(search);
+  const redirect = urlParams.get('redirect') || urlParams.get('return');
+  if (!redirect) {
+    return destination;
+  }
+  // Only an allowed page for this role, built from the allowlist (see safeRedirectTarget).
+  const target = safeRedirectTarget(redirect, role, urlParams.get('plan'));
+  if (target) {
+    return target;
+  }
+  console.warn(`Ignoring untrusted redirect param: ${redirect} for role: ${role}`);
+  return destination;
+}
+
 document.addEventListener('DOMContentLoaded', () => {
   const page = window.__EF_PAGE__ || efDetectPage(location.pathname);
 
@@ -5346,6 +5558,62 @@ document.addEventListener('DOMContentLoaded', () => {
         });
       }
 
+      /** Shows a sign-in error under the form and, unless told not to, in the status line. */
+      const showLoginError = (message, alsoInStatus = true) => {
+        if (loginErrorEl) {
+          loginErrorEl.textContent = message;
+          loginErrorEl.style.display = 'block';
+        }
+        if (loginStatus) {
+          loginStatus.textContent = alsoInStatus ? message : '';
+        }
+      };
+
+      /** Asks the server to sign in. */
+      const requestLogin = async (email, password, remember) => {
+        const r = await fetch('/api/v1/auth/login', {
+          method: 'POST',
+          headers: getHeadersWithCsrf({ 'Content-Type': 'application/json' }),
+          credentials: 'include',
+          body: JSON.stringify({ email, password, remember }),
+        });
+        let data = {};
+        try {
+          data = await r.json();
+        } catch {
+          /* Ignore JSON parse errors */
+        }
+        return { r, data };
+      };
+
+      /** Shows why the sign-in was refused, and offers a new verification email when that is why. */
+      const showLoginRefusal = (r, data) => {
+        const errorMsg = loginFailureMessage(r.status, data.error);
+        showLoginError(errorMsg);
+        // Check if login failed due to unverified email (403 status)
+        if (
+          loginStatus &&
+          resendContainer &&
+          r.status === 403 &&
+          errorMsg.toLowerCase().includes('verify')
+        ) {
+          resendContainer.style.display = 'block';
+        }
+      };
+
+      /** Signed in: remember it, then go to the right page. */
+      const completeLogin = user => {
+        if (loginStatus) {
+          loginStatus.textContent = 'Signed in. Redirecting…';
+        }
+        try {
+          localStorage.setItem('eventflow_onboarding_new', '1');
+        } catch {
+          /* Ignore localStorage errors */
+        }
+        location.href = postLoginDestination(user.role, window.location.search);
+      };
+
       loginForm.addEventListener('submit', async e => {
         e.preventDefault();
         if (loginStatus) {
@@ -5359,17 +5627,10 @@ document.addEventListener('DOMContentLoaded', () => {
         // Validate required fields
         const email = loginEmail.value.trim();
         const password = loginPassword.value;
-        const rememberCheckbox = document.getElementById('login-remember');
-        const remember = rememberCheckbox ? rememberCheckbox.checked : false;
+        const remember = Boolean(document.getElementById('login-remember')?.checked);
 
         if (!email || !password) {
-          if (loginErrorEl) {
-            loginErrorEl.textContent = 'Please enter both email and password';
-            loginErrorEl.style.display = 'block';
-          }
-          if (loginStatus) {
-            loginStatus.textContent = '';
-          }
+          showLoginError('Please enter both email and password', false);
           return;
         }
 
@@ -5381,100 +5642,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
         setAuthSubmitButtonState(loginBtn, 'Signing in…', true);
         try {
-          const r = await fetch('/api/v1/auth/login', {
-            method: 'POST',
-            headers: getHeadersWithCsrf({ 'Content-Type': 'application/json' }),
-            credentials: 'include',
-            body: JSON.stringify({ email, password, remember }),
-          });
-          let data = {};
-          try {
-            data = await r.json();
-          } catch {
-            /* Ignore JSON parse errors */
-          }
-          if (!r.ok) {
-            let errorMsg =
-              data.error || 'Could not sign in. Please check your details and try again.';
-
-            // Provide more specific error messages
-            if (r.status === 401) {
-              errorMsg = 'Invalid email or password. Please check your credentials and try again.';
-            } else if (r.status === 403 && errorMsg.toLowerCase().includes('verify')) {
-              errorMsg =
-                'Please verify your email address before signing in. Check your inbox for the verification link.';
-            } else if (r.status === 429) {
-              errorMsg = 'Too many login attempts. Please wait a moment and try again.';
-            } else if (
-              !errorMsg ||
-              errorMsg === 'Could not sign in. Please check your details and try again.'
-            ) {
-              errorMsg = 'Unable to sign in. Please check your email and password.';
-            }
-
-            if (loginErrorEl) {
-              loginErrorEl.textContent = errorMsg;
-              loginErrorEl.style.display = 'block';
-            }
-
-            if (loginStatus) {
-              loginStatus.textContent = errorMsg;
-
-              // Check if login failed due to unverified email (403 status)
-              if (r.status === 403 && errorMsg.toLowerCase().includes('verify')) {
-                if (resendContainer) {
-                  resendContainer.style.display = 'block';
-                }
-              }
-            }
+          const { r, data } = await requestLogin(email, password, remember);
+          if (r.ok) {
+            completeLogin(data.user || {});
           } else {
-            if (loginStatus) {
-              loginStatus.textContent = 'Signed in. Redirecting…';
-            }
-            const user = data.user || {};
-            try {
-              localStorage.setItem('eventflow_onboarding_new', '1');
-            } catch {
-              /* Ignore localStorage errors */
-            }
-
-            // Determine destination based on user role (SECURITY: never trust redirect param alone)
-            let destination;
-            if (user.role === 'admin') {
-              destination = '/admin';
-            } else if (user.role === 'supplier') {
-              destination = '/dashboard/supplier';
-            } else {
-              destination = '/dashboard/customer';
-            }
-
-            // Check for redirect parameter - only allow if it matches user's role-appropriate pages
-            const urlParams = new URLSearchParams(window.location.search);
-            const redirect = urlParams.get('redirect') || urlParams.get('return');
-            const plan = urlParams.get('plan');
-
-            if (redirect) {
-              // Only an allowed page for this role, built from the allowlist (see safeRedirectTarget).
-              const target = safeRedirectTarget(redirect, user.role, plan);
-              if (target) {
-                destination = target;
-              } else {
-                console.warn(
-                  `Ignoring untrusted redirect param: ${redirect} for role: ${user.role}`
-                );
-              }
-            }
-
-            location.href = destination;
+            showLoginRefusal(r, data);
           }
         } catch (err) {
-          if (loginErrorEl) {
-            loginErrorEl.textContent = 'Network error – please try again.';
-            loginErrorEl.style.display = 'block';
-          }
-          if (loginStatus) {
-            loginStatus.textContent = 'Network error – please try again.';
-          }
+          showLoginError('Network error – please try again.');
           console.error('Login error', err);
         } finally {
           setAuthSubmitButtonState(loginBtn, 'Log in');

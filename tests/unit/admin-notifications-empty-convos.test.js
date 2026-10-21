@@ -128,22 +128,6 @@ describe('routes/messenger-v4.js — conversation-created WS only to creator', (
   });
 });
 
-// ── Issue 2: sendMessage still broadcasts to all participants ─────────────
-
-describe('routes/messenger-v4.js — sendMessage keeps full broadcast', () => {
-  const src = fs.readFileSync(
-    path.join(__dirname, '../../routes/messenger-v4.js'),
-    'utf8'
-  );
-
-  test('sendMessage route still uses emitToConversation (broadcasts to all)', () => {
-    const sendStart = src.indexOf("router.post(\n  '/conversations/:id/messages'");
-    expect(sendStart).toBeGreaterThan(-1);
-    const sendSlice = src.slice(sendStart, sendStart + 5000);
-    expect(sendSlice).toContain('emitToConversation');
-  });
-});
-
 // ── Issue 2: validation — whitespace-only messages ────────────────────────
 
 describe('messenger-v4.service.js — message content validation', () => {
@@ -164,18 +148,9 @@ describe('messenger-v4.service.js — message content validation', () => {
 
 describe('routes/messenger-v4.js — new messages reach recipients on their own channel', () => {
   const src = fs.readFileSync(path.join(__dirname, '../../routes/messenger-v4.js'), 'utf8');
-  const sendStart = src.indexOf("router.post(\n  '/conversations/:id/messages'");
-  const sendSlice = src.slice(sendStart, src.indexOf('\nrouter.', sendStart + 10));
-
-  test('sending emits messenger:v4:new-message to every other, non-deleted participant', () => {
-    expect(sendSlice).toContain("emitToUser(participant.userId, 'messenger:v4:new-message'");
-    expect(sendSlice).toContain('String(participant.userId) !== String(userId)');
-    expect(sendSlice).toContain('!participant.isDeleted');
-  });
-
-  test('the room broadcast is still sent as well', () => {
-    expect(sendSlice).toContain("emitToConversation(conversation, 'messenger:v4:message'");
-  });
+  // Who receives the room event and the per-user event, and that a participant who deleted the
+  // conversation is skipped, is verified by running the route in
+  // tests/integration/messenger-v4-realtime-emit.test.js.
 
   test('the emit helper uses the server\'s own API, and the user channel name a raw server needs', () => {
     const helper = src.slice(src.indexOf('function emitToUser('), src.indexOf('function emitToConversation('));

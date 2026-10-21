@@ -787,7 +787,7 @@ describe('supplier verification: rejection and blocked states', () => {
   });
 
   it('uses data-mode on the submit button to preserve its label during an async retry', () => {
-    expect(dialogJs).toContain('submit.dataset.mode');
+    expect(dialogJs).toContain('submitButton.dataset.mode');
   });
 
   it('carries no inline styles: the dialog is static markup styled by the page sheet', () => {

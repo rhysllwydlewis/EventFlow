@@ -106,11 +106,11 @@
     byId('sv-modal-subtitle').textContent = resubmit
       ? 'Read our notes, update your details if you need to, and send your profile for review again.'
       : 'Confirm your details and send your profile to our team for review.';
-    const submit = byId('sv-submit-btn');
-    submit.dataset.mode = resubmit ? 'resubmit' : 'submit';
-    submit.textContent = resubmit ? 'Resubmit for verification' : 'Submit for verification';
-    submit.hidden = false;
-    submit.disabled = false;
+    const submitButton = byId('sv-submit-btn');
+    submitButton.dataset.mode = resubmit ? 'resubmit' : 'submit';
+    submitButton.textContent = resubmit ? 'Resubmit for verification' : 'Submit for verification';
+    submitButton.hidden = false;
+    submitButton.disabled = false;
     byId('sv-cancel-btn').textContent = 'Cancel';
   }
 

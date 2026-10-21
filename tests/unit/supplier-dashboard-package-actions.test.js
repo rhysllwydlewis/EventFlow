@@ -118,8 +118,9 @@ describe('Edit, View, Photos', () => {
 });
 
 describe('packages for a supplier who cannot read them yet', () => {
+  // The loader and the helpers it is built from (why creation is blocked, the create button, errors).
   const loader = appJs.slice(
-    appJs.indexOf('async function loadPackages()'),
+    appJs.indexOf('function isPackageEditorOpen()'),
     appJs.indexOf('window._efLoadPackages = loadPackages')
   );
 

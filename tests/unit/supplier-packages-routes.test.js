@@ -149,11 +149,11 @@ describe('Supplier Packages — DELETE response', () => {
 
 describe('Supplier Packages — PUT field handling', () => {
   it('PUT /me/packages/:id updates title with length cap', () => {
-    expect(routesContent).toContain('String(req.body.title).slice(0, 120)');
+    expect(routesContent).toContain('String(body.title).slice(0, 120)');
   });
 
   it('PUT /me/packages/:id updates description with length cap', () => {
-    expect(routesContent).toContain('String(req.body.description).slice(0, 1500)');
+    expect(routesContent).toContain('String(body.description).slice(0, 1500)');
   });
 
   it('PUT /me/packages/:id validates eventTypes against VALID_EVENT_TYPES set', () => {

@@ -33,7 +33,7 @@ const STATES = Object.freeze({
  * @returns {boolean} True for v2 documents
  */
 function isV2Review(doc) {
-  return Boolean(doc && doc.moderation && typeof doc.moderation === 'object');
+  return Boolean(doc?.moderation && typeof doc.moderation === 'object');
 }
 
 /**
@@ -87,7 +87,7 @@ function isApprovedReview(doc) {
  * @returns {number|null} Rating
  */
 function reviewRating(doc) {
-  const rating = Number(doc && doc.rating);
+  const rating = Number(doc?.rating);
   return Number.isFinite(rating) && rating >= 1 && rating <= 5 ? rating : null;
 }
 

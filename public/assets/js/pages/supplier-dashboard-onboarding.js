@@ -17,9 +17,9 @@
  * or finished does not come back by itself; the "Setup guide" link under the greeting reopens it
  * at the step where it was left.
  */
-(function () {
-  'use strict';
+'use strict';
 
+(function () {
   const STORAGE_PREFIX = 'ef.supplierGuide.v1.';
 
   const ids = {
@@ -82,7 +82,7 @@
       const keys = [];
       for (let index = 0; index < window.localStorage.length; index += 1) {
         const key = window.localStorage.key(index);
-        if (key && key.startsWith(STORAGE_PREFIX)) {
+        if (key?.startsWith(STORAGE_PREFIX)) {
           keys.push(key);
         }
       }
@@ -174,11 +174,11 @@
   }
 
   /**
-   * The guide's steps for what the page knows right now. `context` is the home script's
+   * The guide's steps for what the page knows right now. `homeContext` is the home script's
    * getContext(); `how` turns a next step into the action its button runs (stepAction).
    * Returns [{ id, title, text, note, cta: { label, action, focus, target, href } | null }].
    */
-  function buildSteps(context, how) {
+  function buildSteps(homeContext, how) {
     const steps = [
       {
         id: 'welcome',
@@ -188,10 +188,10 @@
         cta: null,
       },
     ];
-    if (!context || context.loaded === false) {
+    if (!homeContext || homeContext.loaded === false) {
       return steps;
     }
-    if (context.noProfile) {
+    if (homeContext.noProfile) {
       steps.push(
         {
           id: 'profile',
@@ -214,7 +214,7 @@
       );
       return steps;
     }
-    const list = context.steps?.steps || [];
+    const list = homeContext.steps?.steps || [];
     KINDS.forEach(kind => {
       const step = pendingStep(kind, list);
       if (!step) {
@@ -240,22 +240,19 @@
    * True for a supplier who has not set anything up yet: no profile, or a profile with no
    * packages, not approved and no reviews. Only these see the guide without asking for it.
    */
-  function isBrandNew(context) {
-    if (!context || !context.loaded) {
+  function isBrandNew(homeContext) {
+    if (!homeContext || !homeContext.loaded) {
       return false;
     }
-    if (context.noProfile) {
+    if (homeContext.noProfile) {
       return true;
     }
-    const model = context.model;
+    const model = homeContext.model;
     return Boolean(
-      model &&
-      model.packages &&
-      model.packages.total === 0 &&
+      model?.packages?.total === 0 &&
       model.verification &&
       model.verification.approved !== true &&
-      model.reviews &&
-      model.reviews.count === 0
+      model.reviews?.count === 0
     );
   }
 
@@ -277,7 +274,7 @@
   /** The current steps, recomputed from the page's data. */
   function currentSteps() {
     const api = home();
-    return buildSteps(context(), step => (api && api.stepAction ? api.stepAction(step) : {}));
+    return buildSteps(context(), step => (api?.stepAction ? api.stepAction(step) : {}));
   }
 
   /** Draws the step the guide is on: count, progress bar, words, note and buttons. */
@@ -316,11 +313,11 @@
       action.dataset.guideHref = step.cta.href || '';
     }
     byId(ids.back).hidden = view.index === 0;
-    const next = byId(ids.next);
+    const nextButton = byId(ids.next);
     const last = view.index === total - 1;
-    next.textContent = last ? 'Finish' : 'Next';
-    next.classList.toggle('sdh-btn--primary', !step.cta);
-    next.classList.toggle('sdh-btn--secondary', Boolean(step.cta));
+    nextButton.textContent = last ? 'Finish' : 'Next';
+    nextButton.classList.toggle('sdh-btn--primary', !step.cta);
+    nextButton.classList.toggle('sdh-btn--secondary', Boolean(step.cta));
   }
 
   /** Saves where the guide is, so it can be resumed. */
@@ -357,7 +354,7 @@
   /** Closes the dialog; the close event records what happened. */
   function closeDialog() {
     const dialog = byId(ids.dialog);
-    if (dialog && dialog.open && typeof dialog.close === 'function') {
+    if (dialog?.open && typeof dialog.close === 'function') {
       dialog.close();
     } else if (dialog) {
       dialog.removeAttribute('open');
@@ -481,7 +478,7 @@
     });
     // Declining functional storage (now, or earlier) erases what was kept.
     window.addEventListener('cookieConsentChanged', event => {
-      if (event && event.detail && event.detail.functional === false) {
+      if (event?.detail?.functional === false) {
         eraseSavedProgress();
       }
     });

@@ -44,7 +44,7 @@
 
     // Apply search filter if present
     const searchInput = document.getElementById('searchInput');
-    if (searchInput && searchInput.value.trim()) {
+    if (searchInput?.value.trim()) {
       const query = searchInput.value.toLowerCase();
       filtered = filtered.filter(
         pkg =>
@@ -198,7 +198,7 @@
       uploadZone.style.background = '#fafafa';
 
       const file = e.dataTransfer.files[0];
-      if (file && file.type.startsWith('image/')) {
+      if (file?.type.startsWith('image/')) {
         handleImageFile(file);
       } else {
         if (typeof Toast !== 'undefined') {
@@ -308,8 +308,8 @@
     document.getElementById('packageDescription').value = pkg.description || '';
     document.getElementById('packagePrice').value = pkg.price_display || pkg.price || '';
     document.getElementById('packageImage').value = pkg.image || '';
-    document.getElementById('packageApproved').checked = !!pkg.approved;
-    document.getElementById('packageFeatured').checked = !!pkg.featured;
+    document.getElementById('packageApproved').checked = Boolean(pkg.approved);
+    document.getElementById('packageFeatured').checked = Boolean(pkg.featured);
 
     // Show image preview if exists
     if (pkg.image) {
@@ -329,7 +329,7 @@
 
   window.toggleApproval = async function (id, approved) {
     try {
-      await api(`/api/admin/packages/${id}/approve`, 'POST', { approved: approved });
+      await api(`/api/admin/packages/${id}/approve`, 'POST', { approved });
       if (typeof Toast !== 'undefined') {
         Toast.success(approved ? 'Package approved' : 'Package unapproved');
       }
@@ -343,7 +343,7 @@
 
   window.toggleFeatured = async function (id, featured) {
     try {
-      await api(`/api/admin/packages/${id}/feature`, 'POST', { featured: featured });
+      await api(`/api/admin/packages/${id}/feature`, 'POST', { featured });
       if (typeof Toast !== 'undefined') {
         Toast.success(featured ? 'Package featured' : 'Package unfeatured');
       }
@@ -363,7 +363,7 @@
           '<p>Are you sure you want to delete this package? This action cannot be undone.</p>',
         confirmText: 'Delete',
         cancelText: 'Cancel',
-        onConfirm: async function () {
+        async onConfirm() {
           try {
             await api(`/api/admin/packages/${id}`, 'DELETE');
             if (typeof Toast !== 'undefined') {
@@ -379,7 +379,7 @@
       });
       modal.show();
     } else {
-      const confirmed = await (window.AdminShared && window.AdminShared.showConfirmModal
+      const confirmed = await (window.AdminShared?.showConfirmModal
         ? window.AdminShared.showConfirmModal({
             title: 'Delete Package',
             message: 'Are you sure you want to delete this package? This action cannot be undone.',
@@ -391,13 +391,13 @@
       }
       api(`/api/admin/packages/${id}`, 'DELETE')
         .then(() => {
-          if (window.AdminShared && window.AdminShared.showToast) {
+          if (window.AdminShared?.showToast) {
             window.AdminShared.showToast('Package deleted successfully', 'success');
           }
           return loadPackages();
         })
         .catch(err => {
-          if (window.AdminShared && window.AdminShared.showToast) {
+          if (window.AdminShared?.showToast) {
             window.AdminShared.showToast(`Failed to delete package: ${err.message}`, 'error');
           }
         });
@@ -457,20 +457,118 @@
    * 3. Existing images are preserved when editing without changing image
    */
   // Package Form Submit
+  /** The supplier a package belongs to: the hidden input when editing, the dropdown when creating. */
+  function readSupplierId(isEditing) {
+    return document.getElementById(isEditing ? 'supplierReadOnlyId' : 'packageSupplierId').value;
+  }
+
+  /** The fields of the package form, as the admin API takes them. */
+  function readPackageData(supplierId) {
+    return {
+      supplierId,
+      title: document.getElementById('packageTitle').value,
+      description: document.getElementById('packageDescription').value,
+      price_display: document.getElementById('packagePrice').value,
+      approved: document.getElementById('packageApproved').checked,
+      featured: document.getElementById('packageFeatured').checked,
+    };
+  }
+
+  /** Shows an error toast with whichever notifier the page has. */
+  function notifyError(message) {
+    if (typeof Toast !== 'undefined') {
+      Toast.error(message);
+    } else if (window.AdminShared?.showToast) {
+      window.AdminShared.showToast(message, 'error');
+    }
+  }
+
+  /**
+   * The message for a refused image upload. When the server says what file type it saw, the message
+   * says what was detected and what is allowed.
+   */
+  function uploadErrorMessage(errorData) {
+    const fallback = errorData.error || 'Failed to upload image';
+    const details = errorData.details;
+    if (!details?.detectedType || !Array.isArray(details.allowedFormats)) {
+      return fallback;
+    }
+    const allowed = details.allowedFormats.join(', ');
+    if (details.detectedType === 'unknown') {
+      return `Could not detect file type. The file may be corrupted. Allowed formats: ${allowed}`;
+    }
+    if (details.detectedType === 'error') {
+      return `File type detection failed. The file may be corrupted or in an unsupported format. Allowed formats: ${allowed}`;
+    }
+    if (details.detectedType !== 'invalid') {
+      return `Invalid file type. Detected: ${details.detectedType}. Allowed: ${allowed}`;
+    }
+    return fallback;
+  }
+
+  /** Makes sure a CSRF token is on the page for the multipart upload. */
+  async function ensureCsrfToken() {
+    if (window.__CSRF_TOKEN__) {
+      return;
+    }
+    const csrfResponse = await fetch('/api/v1/csrf-token', { credentials: 'include' });
+    const csrfData = await csrfResponse.json();
+    window.__CSRF_TOKEN__ = csrfData.csrfToken;
+  }
+
+  /** Uploads the chosen file for a package and returns its stored URL. Throws what the server said. */
+  async function uploadPackageImage(packageId) {
+    const formData = new FormData();
+    formData.append('image', currentImageFile);
+    const uploadResponse = await fetch(`/api/v1/admin/packages/${packageId}/image`, {
+      method: 'POST',
+      headers: { 'X-CSRF-Token': window.__CSRF_TOKEN__ },
+      credentials: 'include',
+      body: formData,
+    });
+    if (!uploadResponse.ok) {
+      throw new Error(uploadErrorMessage(await uploadResponse.json()));
+    }
+    const uploadData = await uploadResponse.json();
+    return uploadData.imageUrl;
+  }
+
+  /** Saves a package whose image is a file the admin chose, which can only be uploaded once it exists. */
+  async function saveWithUploadedFile(id, isEditing, packageData) {
+    await ensureCsrfToken();
+    let packageId = id;
+    // A new package is created first, with the placeholder, so the upload has somewhere to go.
+    if (!isEditing) {
+      packageData.image = PLACEHOLDER_IMAGE;
+      const createResponse = await api('/api/admin/packages', 'POST', packageData);
+      packageId = createResponse.package.id;
+    }
+    const imageUrl = await uploadPackageImage(packageId);
+    // An edited package is updated with the new image URL; a new one already has it from the upload.
+    if (isEditing) {
+      packageData.image = imageUrl;
+      await api(`/api/admin/packages/${id}`, 'PUT', packageData);
+    }
+  }
+
+  /** Saves a package whose image is a URL, the one already on it, or the placeholder. */
+  async function saveWithImageUrl(id, isEditing, packageData) {
+    const typedUrl = document.getElementById('packageImage').value;
+    packageData.image = currentImageUrl || typedUrl || PLACEHOLDER_IMAGE;
+    if (isEditing) {
+      await api(`/api/admin/packages/${id}`, 'PUT', packageData);
+    } else {
+      await api('/api/admin/packages', 'POST', packageData);
+    }
+  }
+
   document.getElementById('packageForm').addEventListener('submit', async e => {
     e.preventDefault();
 
     const id = document.getElementById('packageId').value;
-    const isEditing = !!id;
+    const isEditing = Boolean(id);
 
-    // Get supplierId - from dropdown when creating, from hidden input when editing
-    let supplierId;
-    if (isEditing) {
-      supplierId = document.getElementById('supplierReadOnlyId').value;
-    } else {
-      supplierId = document.getElementById('packageSupplierId').value;
-    }
-
+    const supplierId = readSupplierId(isEditing);
     if (!supplierId) {
       if (typeof Toast !== 'undefined') {
         Toast.error('Please select a supplier');
@@ -478,111 +576,17 @@
       return;
     }
 
-    const packageData = {
-      supplierId: supplierId,
-      title: document.getElementById('packageTitle').value,
-      description: document.getElementById('packageDescription').value,
-      price_display: document.getElementById('packagePrice').value,
-      approved: document.getElementById('packageApproved').checked,
-      featured: document.getElementById('packageFeatured').checked,
-    };
+    const packageData = readPackageData(supplierId);
 
     try {
       const saveBtn = document.getElementById('savePackageBtn');
       saveBtn.disabled = true;
       saveBtn.textContent = 'Saving...';
 
-      // Handle image upload
-      let imageUrl = document.getElementById('packageImage').value;
-      const isEditing = !!id; // skipcq: JS-0123 - local to this save handler only
-
-      // If user uploaded a file, upload it after creating/updating the package
       if (currentImageFile) {
-        // Ensure CSRF token is available for the multipart upload
-        if (!window.__CSRF_TOKEN__) {
-          const csrfResponse = await fetch('/api/v1/csrf-token', {
-            credentials: 'include',
-          });
-          const csrfData = await csrfResponse.json();
-          window.__CSRF_TOKEN__ = csrfData.csrfToken;
-        }
-
-        let packageId = id;
-
-        // If creating new package, create it first with placeholder
-        if (!isEditing) {
-          packageData.image = PLACEHOLDER_IMAGE;
-          const createResponse = await api('/api/admin/packages', 'POST', packageData);
-          packageId = createResponse.package.id;
-        }
-
-        // Upload the image
-        const formData = new FormData();
-        formData.append('image', currentImageFile);
-
-        const uploadResponse = await fetch(`/api/v1/admin/packages/${packageId}/image`, {
-          method: 'POST',
-          headers: {
-            'X-CSRF-Token': window.__CSRF_TOKEN__,
-          },
-          credentials: 'include',
-          body: formData,
-        });
-
-        if (!uploadResponse.ok) {
-          const errorData = await uploadResponse.json();
-
-          // Enhanced error message with details if available
-          let errorMessage = errorData.error || 'Failed to upload image';
-
-          // If we have validation details, show more specific information
-          if (errorData.details) {
-            const details = errorData.details;
-            // Check if detectedType and allowedFormats exist before using them
-            if (
-              details.detectedType &&
-              details.allowedFormats &&
-              Array.isArray(details.allowedFormats)
-            ) {
-              // Format a clear message
-              if (details.detectedType === 'unknown') {
-                errorMessage = `Could not detect file type. The file may be corrupted. Allowed formats: ${details.allowedFormats.join(', ')}`;
-              } else if (details.detectedType === 'error') {
-                errorMessage = `File type detection failed. The file may be corrupted or in an unsupported format. Allowed formats: ${details.allowedFormats.join(', ')}`;
-              } else if (details.detectedType !== 'invalid') {
-                errorMessage = `Invalid file type. Detected: ${details.detectedType}. Allowed: ${details.allowedFormats.join(', ')}`;
-              }
-            }
-          }
-
-          throw new Error(errorMessage);
-        }
-
-        const uploadData = await uploadResponse.json();
-        imageUrl = uploadData.imageUrl;
-
-        // If editing, update with the new image URL
-        if (isEditing) {
-          packageData.image = imageUrl;
-          await api(`/api/admin/packages/${id}`, 'PUT', packageData);
-        }
-        // If creating, the image is already set via the upload endpoint
+        await saveWithUploadedFile(id, isEditing, packageData);
       } else {
-        // No file upload - use URL or placeholder
-        if (currentImageUrl) {
-          imageUrl = currentImageUrl;
-        } else if (!imageUrl) {
-          imageUrl = PLACEHOLDER_IMAGE;
-        }
-
-        packageData.image = imageUrl;
-
-        // Save package
-        if (isEditing) {
-          await api(`/api/admin/packages/${id}`, 'PUT', packageData);
-        } else {
-          await api('/api/admin/packages', 'POST', packageData);
-        }
+        await saveWithImageUrl(id, isEditing, packageData);
       }
 
       if (typeof Toast !== 'undefined') {
@@ -595,13 +599,7 @@
       currentImageUrl = null;
       await loadPackages();
     } catch (err) {
-      if (typeof Toast !== 'undefined') {
-        Toast.error(`Failed to save package: ${err.message}`);
-      } else {
-        if (window.AdminShared && window.AdminShared.showToast) {
-          window.AdminShared.showToast(`Failed to save package: ${err.message}`, 'error');
-        }
-      }
+      notifyError(`Failed to save package: ${err.message}`);
     } finally {
       const saveBtn = document.getElementById('savePackageBtn');
       saveBtn.disabled = false;
@@ -669,6 +667,8 @@
           if (id) {
             deletePackage(id);
           }
+          break;
+        default:
           break;
       }
     });

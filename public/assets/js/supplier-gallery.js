@@ -512,14 +512,18 @@ class SupplierGalleryManager {
    */
   async deleteExistingPhoto(photoId, wrapperEl) {
     const home = window.SupplierDashboardHome;
-    const confirmed =
-      home && typeof home.confirm === 'function'
-        ? await home.confirm({
-            title: 'Remove this photo?',
-            message: 'It will be removed from your gallery.',
-            confirmLabel: 'Remove photo',
-          })
-        : window.confirm('Remove this photo from your gallery?');
+    if (!home || typeof home.confirm !== 'function') {
+      // Deleting is never done without asking, and the dashboard's dialog is the only way to ask.
+      if (typeof Toast !== 'undefined') {
+        Toast.error('Could not open the confirmation. Please reload the page and try again.');
+      }
+      return;
+    }
+    const confirmed = await home.confirm({
+      title: 'Remove this photo?',
+      message: 'It will be removed from your gallery.',
+      confirmLabel: 'Remove photo',
+    });
     if (!confirmed) {
       return;
     }

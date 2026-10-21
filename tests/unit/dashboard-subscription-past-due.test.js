@@ -19,8 +19,9 @@ const css = fs.readFileSync(
   path.join(process.cwd(), 'public/assets/css/supplier-dashboard-home.css'),
   'utf8'
 );
+// The plan card is drawn by renderPlan and the small helpers just above it (fact lines, actions).
 const renderPlan = src.slice(
-  src.indexOf('function renderPlan('),
+  src.indexOf('function periodLine('),
   src.indexOf('async function openBilling(')
 );
 
@@ -41,11 +42,9 @@ describe('dashboard plan card: past_due state', () => {
   });
 
   it('does not show a renewal date for a past-due subscription', () => {
-    const pastDue = renderPlan.indexOf("status === 'past_due'");
-    const renewal = renderPlan.indexOf('Renews on');
-    expect(pastDue).toBeGreaterThan(-1);
-    expect(renewal).toBeGreaterThan(pastDue);
-    expect(renderPlan.slice(pastDue, renewal)).toContain('else if (paid && until)');
+    expect(renderPlan).toContain('Renews on');
+    // The end-of-period line is skipped outright when the payment failed.
+    expect(renderPlan).toContain("const period = pastDue ? '' : periodLine(");
   });
 
   it('is styled as a danger callout in the page sheet', () => {

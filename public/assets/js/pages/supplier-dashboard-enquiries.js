@@ -15,9 +15,9 @@
  * cannot reply here; the drawer says so and shows the customer's own contact details so the
  * supplier can answer directly.
  */
-(function () {
-  'use strict';
+'use strict';
 
+(function () {
   const DAYS = 90;
   const PAGE_SIZE = 20;
   const CARD_ROWS = 3;
@@ -118,10 +118,10 @@
     });
     const status = byId(ids.status);
     const source = byId(ids.source);
-    if (status && status.value) {
+    if (status?.value) {
       params.set('status', status.value);
     }
-    if (source && source.value) {
+    if (source?.value) {
       params.set('source', source.value);
     }
     return `/api/supplier/enquiries?${params.toString()}`;
@@ -232,12 +232,7 @@
       return;
     }
     const context = api.getContext ? api.getContext() : null;
-    if (
-      context &&
-      context.model &&
-      context.model.verification &&
-      context.model.verification.approved === false
-    ) {
+    if (context?.model?.verification?.approved === false) {
       view.cardProblem = 'unapproved';
       view.cardLoaded = true;
       renderCard();
@@ -341,9 +336,9 @@
     const rows = Array.isArray(result.data.enquiries) ? result.data.enquiries : [];
     view.items = page === 1 ? rows : view.items.concat(rows);
     view.counts = result.data.counts || view.counts;
-    view.page = (result.data.pagination && result.data.pagination.page) || page;
-    view.totalPages = (result.data.pagination && result.data.pagination.totalPages) || 1;
-    view.total = (result.data.pagination && result.data.pagination.total) || rows.length;
+    view.page = result.data.pagination?.page || page;
+    view.totalPages = result.data.pagination?.totalPages || 1;
+    view.total = result.data.pagination?.total || rows.length;
     renderList();
   }
 
@@ -479,6 +474,20 @@
     byId('sdh-enquiry-title')?.focus({ preventScroll: true });
   }
 
+  /**
+   * Asks the server to change an enquiry's status. A dropped connection throws; it is treated like a
+   * refusal so the buttons come back and it is said.
+   */
+  async function patchStatus(api, id, status) {
+    try {
+      return await api.sendJson(`/api/supplier/enquiries/${encodeURIComponent(id)}`, 'PATCH', {
+        status,
+      });
+    } catch {
+      return { ok: false, status: 0, data: {} };
+    }
+  }
+
   /** Sets an enquiry's status through the server, then refreshes the row, the counts and the page. */
   async function setStatus(status) {
     const api = home();
@@ -490,21 +499,13 @@
     buttons.forEach(button => {
       button.disabled = true;
     });
-    let result;
-    try {
-      result = await api.sendJson(`/api/supplier/enquiries/${encodeURIComponent(id)}`, 'PATCH', {
-        status,
-      });
-    } catch {
-      // A dropped connection throws; treat it like a refusal so the buttons come back and it is said.
-      result = { ok: false, status: 0, data: {} };
-    }
+    const result = await patchStatus(api, id, status);
     if (!result.ok || !result.data || !result.data.enquiry) {
       buttons.forEach(button => {
         button.disabled = false;
       });
       api.toast(
-        result.data && result.data.error
+        result.data?.error
           ? result.data.error
           : 'The status could not be changed. Please try again.',
         'error'
@@ -553,7 +554,7 @@
   /** Closes the drawer. */
   function closeDrawer() {
     const dialog = byId(ids.dialog);
-    if (dialog && dialog.open && typeof dialog.close === 'function') {
+    if (dialog?.open && typeof dialog.close === 'function') {
       dialog.close();
     }
   }

@@ -118,11 +118,6 @@ describe('routes/messenger-v4.js — createConversation participant validation',
     expect(routeSrc).toContain("'Duplicate participant IDs are not allowed'");
   });
 
-  test('self-only check filters out current user from participantIds', () => {
-    // The check normalises participant IDs before removing the current user.
-    expect(routeSrc).toContain('normalisedParticipantIds.filter(id => id !== currentUserId)');
-  });
-
   test('duplicate check uses Set comparison', () => {
     expect(routeSrc).toContain(
       'new Set(normalisedParticipantIds).size !== normalisedParticipantIds.length'

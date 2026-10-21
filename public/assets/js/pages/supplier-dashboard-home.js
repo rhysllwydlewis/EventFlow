@@ -130,8 +130,8 @@
   }
 
   /** "1 day" / "2 days": the count followed by the singular or plural noun. */
-  function plural(count, one, many) {
-    return `${count.toLocaleString('en-GB')} ${count === 1 ? one : many || `${one}s`}`;
+  function plural(amount, one, many) {
+    return `${amount.toLocaleString('en-GB')} ${amount === 1 ? one : many || `${one}s`}`;
   }
 
   /** True when the visitor has asked their system for reduced motion. */
@@ -192,7 +192,7 @@
   /** A write request with the CSRF token, retried once with a fresh token when the server refuses it. */
   async function sendJson(url, method, body) {
     /** One attempt with the given token. */
-    const attempt = async token =>
+    const attempt = token =>
       fetch(url, {
         method,
         credentials: 'include',
@@ -224,135 +224,176 @@
     return isNum(value) && value > 0 && value < 100000 ? Math.round(value) : null;
   }
 
+  /** The value when it is an object, else null. */
+  function objectOrNull(value) {
+    return value && typeof value === 'object' ? value : null;
+  }
+
+  /** A percentage clamped to 0-100 and rounded, or null when the value is not a number. */
+  function percentOrNull(value) {
+    return isNum(value) ? Math.max(0, Math.min(100, Math.round(value))) : null;
+  }
+
+  /** The verification block: the flags as booleans (or null), the state text and the rejection count. */
+  function normaliseVerification(verification) {
+    if (!verification) {
+      return null;
+    }
+    let stateText = '';
+    if (typeof verification.status === 'string' && verification.status) {
+      stateText = verification.status;
+    } else if (typeof verification.state === 'string') {
+      stateText = verification.state;
+    }
+    return {
+      approved: typeof verification.approved === 'boolean' ? verification.approved : null,
+      emailVerified:
+        typeof verification.emailVerified === 'boolean' ? verification.emailVerified : null,
+      state: stateText,
+      notes: typeof verification.notes === 'string' ? verification.notes : '',
+      rejectionCount: count(verification.rejectionCount) || 0,
+    };
+  }
+
+  /** The profile block: name, id, a same-site public path, the completeness score and its checks. */
+  function normaliseProfile(profile) {
+    if (!profile) {
+      return null;
+    }
+    const completeness = objectOrNull(profile.completeness);
+    const publicPath = localHref(profile.publicProfilePath);
+    return {
+      name: typeof profile.name === 'string' ? profile.name : '',
+      id: profile.topProfileId ? String(profile.topProfileId) : '',
+      publicProfilePath: publicPath.startsWith('/') ? publicPath : '',
+      score: percentOrNull(completeness?.score),
+      checks: Array.isArray(completeness?.checks) ? completeness.checks : [],
+    };
+  }
+
+  /** The packages block: the counts and the plan limit. */
+  function normalisePackages(packages) {
+    if (!packages) {
+      return null;
+    }
+    return {
+      total: count(packages.total),
+      active: count(packages.active),
+      paused: count(packages.paused),
+      awaitingApproval: count(packages.awaitingApproval),
+      counted: count(packages.countedTowardsLimit),
+      limit: limitOf(packages.limit),
+    };
+  }
+
+  /** The messages block: unread messages, conversations with unread, and when the latest arrived. */
+  function normaliseMessages(messages) {
+    if (!messages) {
+      return null;
+    }
+    return {
+      unread: count(messages.unreadMessages),
+      conversations: count(messages.conversationsWithUnread),
+      latestAt: messages.latestAt || '',
+    };
+  }
+
+  /** The responses block: sample size, reply rate and median reply time. */
+  function normaliseResponses(responses) {
+    if (!responses) {
+      return null;
+    }
+    return {
+      sampleSize: count(responses.sampleSize) || 0,
+      repliedPct: percentOrNull(responses.repliedPct),
+      medianMinutes:
+        isNum(responses.medianMinutes) && responses.medianMinutes >= 0
+          ? responses.medianMinutes
+          : null,
+    };
+  }
+
+  /** The enquiries block: this period and the last, requests received, and where they came from. */
+  function normaliseEnquiries(enquiries) {
+    if (!enquiries) {
+      return null;
+    }
+    return {
+      fresh: count(enquiries.newThisPeriod),
+      previous: count(enquiries.previousPeriod),
+      requestsReceived: count(enquiries.requests?.received),
+      requestsNew: count(enquiries.requests?.new),
+      quoteRequests: count(enquiries.sources?.quoteRequests),
+      contactForm: count(enquiries.sources?.contactForm),
+      conversations: count(enquiries.sources?.conversations),
+      truncated: enquiries.truncated === true,
+    };
+  }
+
+  /** The views block: the total, the window it covers and the daily series. */
+  function normaliseViews(data, views, windowInfo, viewDays) {
+    if (!views) {
+      return null;
+    }
+    return {
+      description: typeof views.description === 'string' ? views.description : '',
+      maxDays: limitOf(windowInfo?.maxDays) || null,
+      total: count(views.total),
+      days: viewDays,
+      daily: normaliseDaily(views.daily || views.series || data.analytics?.dailyData),
+      requestedDays: limitOf(windowInfo?.requestedDays) || SUMMARY_DAYS,
+    };
+  }
+
+  /** The reviews block: approved count, approved average and pending count. */
+  function normaliseReviews(reviews) {
+    if (!reviews) {
+      return null;
+    }
+    return {
+      count: count(reviews.approvedCount),
+      average: isNum(reviews.averageRating) ? reviews.averageRating : null,
+      pending: count(reviews.pendingCount),
+    };
+  }
+
+  /** The subscription block: plan, status, dates, the cancel flag and the plan's limits. */
+  function normaliseSubscription(subscription) {
+    if (!subscription) {
+      return null;
+    }
+    return {
+      plan: typeof subscription.plan === 'string' ? subscription.plan : '',
+      status: typeof subscription.status === 'string' ? subscription.status : '',
+      activeUntil: subscription.activeUntil || '',
+      trialEndsAt: subscription.trialEndsAt || '',
+      cancelAtPeriodEnd: Boolean(subscription.cancelAtPeriodEnd),
+      limits: objectOrNull(subscription.limits),
+    };
+  }
+
   /**
    * Turns whatever the server sent into the one shape the page draws from. Every field is
    * optional: a block that is missing, or whose values are not numbers, comes out as null and
    * the page shows a dash or leaves it out. Nothing is defaulted to 0 or 100.
    */
   function normaliseSummary(raw) {
-    const data = raw && typeof raw === 'object' ? raw : {};
-    const verification =
-      data.verification && typeof data.verification === 'object' ? data.verification : null;
-    const profile = data.profile && typeof data.profile === 'object' ? data.profile : null;
-    const packages = data.packages && typeof data.packages === 'object' ? data.packages : null;
-    const messages = data.messages && typeof data.messages === 'object' ? data.messages : null;
-    const responses = data.responses && typeof data.responses === 'object' ? data.responses : null;
-    const views = data.views && typeof data.views === 'object' ? data.views : null;
-    const enquiries = data.enquiries && typeof data.enquiries === 'object' ? data.enquiries : null;
-    const reviews = data.reviews && typeof data.reviews === 'object' ? data.reviews : null;
-    const subscription =
-      data.subscription && typeof data.subscription === 'object' ? data.subscription : null;
-    const completeness =
-      profile?.completeness && typeof profile.completeness === 'object'
-        ? profile.completeness
-        : null;
-    const windowInfo = data.window && typeof data.window === 'object' ? data.window : null;
-    const unreadMessages = count(messages?.unreadMessages);
-    const averageRating = isNum(reviews?.averageRating) ? reviews.averageRating : null;
+    const data = objectOrNull(raw) || {};
+    const views = objectOrNull(data.views);
+    const windowInfo = objectOrNull(data.window);
     const viewDays = limitOf(views?.days) || limitOf(windowInfo?.days) || SUMMARY_DAYS;
 
     return {
       windowDays: limitOf(windowInfo?.days) || viewDays,
-      verification: verification
-        ? {
-            approved: typeof verification.approved === 'boolean' ? verification.approved : null,
-            emailVerified:
-              typeof verification.emailVerified === 'boolean' ? verification.emailVerified : null,
-            state:
-              typeof verification.status === 'string' && verification.status
-                ? verification.status
-                : typeof verification.state === 'string'
-                  ? verification.state
-                  : '',
-            notes: typeof verification.notes === 'string' ? verification.notes : '',
-            rejectionCount: count(verification.rejectionCount) || 0,
-          }
-        : null,
-      profile: profile
-        ? {
-            name: typeof profile.name === 'string' ? profile.name : '',
-            id: profile.topProfileId ? String(profile.topProfileId) : '',
-            publicProfilePath: localHref(profile.publicProfilePath).startsWith('/')
-              ? localHref(profile.publicProfilePath)
-              : '',
-            score:
-              completeness && isNum(completeness.score)
-                ? Math.max(0, Math.min(100, Math.round(completeness.score)))
-                : null,
-            checks: Array.isArray(completeness?.checks) ? completeness.checks : [],
-          }
-        : null,
-      packages: packages
-        ? {
-            total: count(packages.total),
-            active: count(packages.active),
-            paused: count(packages.paused),
-            awaitingApproval: count(packages.awaitingApproval),
-            counted: count(packages.countedTowardsLimit),
-            limit: limitOf(packages.limit),
-          }
-        : null,
-      messages: messages
-        ? {
-            unread: unreadMessages,
-            conversations: count(messages.conversationsWithUnread),
-            latestAt: messages.latestAt || '',
-          }
-        : null,
-      responses: responses
-        ? {
-            sampleSize: count(responses.sampleSize) || 0,
-            repliedPct: isNum(responses.repliedPct)
-              ? Math.max(0, Math.min(100, Math.round(responses.repliedPct)))
-              : null,
-            medianMinutes:
-              isNum(responses.medianMinutes) && responses.medianMinutes >= 0
-                ? responses.medianMinutes
-                : null,
-          }
-        : null,
-      enquiries: enquiries
-        ? {
-            fresh: count(enquiries.newThisPeriod),
-            previous: count(enquiries.previousPeriod),
-            requestsReceived: count(enquiries.requests?.received),
-            requestsNew: count(enquiries.requests?.new),
-            quoteRequests: count(enquiries.sources?.quoteRequests),
-            contactForm: count(enquiries.sources?.contactForm),
-            conversations: count(enquiries.sources?.conversations),
-            truncated: enquiries.truncated === true,
-          }
-        : null,
-      views: views
-        ? {
-            description: typeof views.description === 'string' ? views.description : '',
-            maxDays: limitOf(windowInfo?.maxDays) || null,
-            total: count(views.total),
-            days: viewDays,
-            daily: normaliseDaily(views.daily || views.series || data.analytics?.dailyData),
-            requestedDays: limitOf(windowInfo?.requestedDays) || SUMMARY_DAYS,
-          }
-        : null,
-      reviews: reviews
-        ? {
-            count: count(reviews.approvedCount),
-            average: averageRating,
-            pending: count(reviews.pendingCount),
-          }
-        : null,
-      subscription: subscription
-        ? {
-            plan: typeof subscription.plan === 'string' ? subscription.plan : '',
-            status: typeof subscription.status === 'string' ? subscription.status : '',
-            activeUntil: subscription.activeUntil || '',
-            trialEndsAt: subscription.trialEndsAt || '',
-            cancelAtPeriodEnd: Boolean(subscription.cancelAtPeriodEnd),
-            limits:
-              subscription.limits && typeof subscription.limits === 'object'
-                ? subscription.limits
-                : null,
-          }
-        : null,
+      verification: normaliseVerification(objectOrNull(data.verification)),
+      profile: normaliseProfile(objectOrNull(data.profile)),
+      packages: normalisePackages(objectOrNull(data.packages)),
+      messages: normaliseMessages(objectOrNull(data.messages)),
+      responses: normaliseResponses(objectOrNull(data.responses)),
+      enquiries: normaliseEnquiries(objectOrNull(data.enquiries)),
+      views: normaliseViews(data, views, windowInfo, viewDays),
+      reviews: normaliseReviews(objectOrNull(data.reviews)),
+      subscription: normaliseSubscription(objectOrNull(data.subscription)),
       nextSteps: normaliseSteps(data.nextSteps),
     };
   }
@@ -478,7 +519,7 @@
       });
     }
     checks
-      .filter(check => check && check.done)
+      .filter(check => check?.done)
       .forEach(check => {
         steps.push({
           key: `profile-${String(check.id || check.key || '')}`,
@@ -830,38 +871,33 @@
   }
 
   /**
-   * Opens the page's confirmation dialog and resolves to true when the supplier confirms. Falls
-   * back to the browser's confirm() where <dialog> is not supported.
+   * Opens the page's confirmation dialog and resolves to true when the supplier confirms. Where
+   * <dialog> is not supported the same dialog is shown plainly; with no dialog on the page the
+   * answer is "no", so nothing destructive ever happens without an explicit yes.
    */
   function confirmAction(options) {
     const settings = options || {};
     const dialog = byId(ids.confirmDialog);
-    if (!dialog || typeof dialog.showModal !== 'function') {
-      return Promise.resolve(window.confirm(settings.message || 'Are you sure?'));
+    if (!dialog) {
+      return Promise.resolve(false);
     }
     byId('sdh-confirm-title').textContent = settings.title || 'Are you sure?';
     byId('sdh-confirm-text').textContent = settings.message || '';
     const okButton = byId('sdh-confirm-ok');
+    const cancelButton = byId('sdh-confirm-cancel');
     okButton.textContent = settings.confirmLabel || 'Delete';
-    byId('sdh-confirm-cancel').textContent = settings.cancelLabel || 'Cancel';
+    cancelButton.textContent = settings.cancelLabel || 'Cancel';
     const opener = document.activeElement;
     return new Promise(resolve => {
       let confirmed = false;
       /** Records the answer and closes the dialog. */
       const finish = answer => {
         confirmed = answer;
-        dialog.close();
-      };
-      /** Resolves once the dialog has closed, however it was closed. */
-      const onClose = () => {
-        okButton.removeEventListener('click', onOk);
-        byId('sdh-confirm-cancel').removeEventListener('click', onCancel);
-        dialog.removeEventListener('close', onClose);
-        document.removeEventListener('keydown', onKey);
-        if (opener && typeof opener.focus === 'function') {
-          opener.focus();
+        closeDialog(dialog);
+        if (typeof dialog.close !== 'function') {
+          // Without <dialog> there is no native close event, so raise the one the cleanup waits for.
+          dialog.dispatchEvent(new Event('close'));
         }
-        resolve(confirmed);
       };
       /** The confirm button was pressed. */
       const onOk = event => {
@@ -877,11 +913,22 @@
           finish(false);
         }
       };
+      /** Resolves once the dialog has closed, however it was closed. */
+      const onClose = () => {
+        okButton.removeEventListener('click', onOk);
+        cancelButton.removeEventListener('click', onCancel);
+        dialog.removeEventListener('close', onClose);
+        document.removeEventListener('keydown', onKey);
+        if (opener && typeof opener.focus === 'function') {
+          opener.focus();
+        }
+        resolve(confirmed);
+      };
       document.addEventListener('keydown', onKey);
       okButton.addEventListener('click', onOk);
-      byId('sdh-confirm-cancel').addEventListener('click', onCancel);
+      cancelButton.addEventListener('click', onCancel);
       dialog.addEventListener('close', onClose);
-      dialog.showModal();
+      openDialog(dialog);
     });
   }
 
@@ -931,6 +978,7 @@
     loadersStarted: false,
     billing: null,
     billingRequested: false,
+    messenger: null,
     ownSubscriptionPromise: null,
     days: SUMMARY_DAYS,
   };
@@ -1047,6 +1095,64 @@
    * Hero
    * ------------------------------------------------------------------ */
 
+  /** The step the headline button points at, or null when there is nothing to push. */
+  function heroNextStep(model, noProfile) {
+    if (noProfile) {
+      return { key: 'business-details', label: 'Create your profile', href: '' };
+    }
+    const step = pickPrimaryStep(state.steps);
+    if (step) {
+      return step;
+    }
+    const strip = stripFor(model?.verification);
+    return strip?.action === 'verify'
+      ? { key: 'get-approved', label: 'Get verified', href: '' }
+      : null;
+  }
+
+  /** The headline button when no next step claims it: inbox, first package, or nothing. */
+  function heroFallbackStep(model) {
+    if (model?.messages?.unread) {
+      return { key: 'inbox', label: 'Open your inbox', href: '/messenger/' };
+    }
+    if (model?.packages?.total === 0 && model?.verification?.approved !== false) {
+      return { key: 'first-package', label: 'Create a package', href: '' };
+    }
+    return null;
+  }
+
+  /** True when a banner already carries the button for this step, so the headline button steps aside. */
+  function bannerOwnsStep(next, model) {
+    const strip = stripFor(model?.verification);
+    const task = stepAction(next).action;
+    return (
+      (task === 'resend-email' && emailVerifiedFlag(state.user, model) === false) ||
+      (task === 'verify' && Boolean(strip) && strip.action === 'verify')
+    );
+  }
+
+  /** Points the headline button at the most useful next thing, or hides it. */
+  function renderPrimaryButton(primary, model, noProfile) {
+    const next = heroNextStep(model, noProfile);
+    // Two filled buttons for one job is noise, so a banner that owns the task wins.
+    const target = next && bannerOwnsStep(next, model) ? null : next || heroFallbackStep(model);
+    primary.hidden = !target;
+    if (target) {
+      setStepLink(primary, target);
+    }
+  }
+
+  /** Shows or hides a "view public profile" link and points it at the public path. */
+  function setPublicLink(node, show, publicPath) {
+    if (!node) {
+      return;
+    }
+    node.hidden = !show;
+    if (show) {
+      node.setAttribute('href', publicPath);
+    }
+  }
+
   /** Sets the heading, the lede and the primary and secondary buttons for the current state. */
   function renderHero() {
     const model = state.model;
@@ -1061,53 +1167,14 @@
     if (lede) {
       lede.textContent = ledeFor(model, { error: !model && !noProfile, noProfile });
     }
-
     const primary = byId(ids.primary);
     if (primary) {
-      const strip = stripFor(model?.verification);
-      const next = noProfile
-        ? { key: 'business-details', label: 'Create your profile', href: '' }
-        : pickPrimaryStep(state.steps) ||
-          (strip && strip.action === 'verify'
-            ? { key: 'get-approved', label: 'Get verified', href: '' }
-            : null);
-      // A banner that already carries the button for this task owns it: two filled buttons for
-      // one job is noise, so the headline button steps aside.
-      const task = next ? stepAction(next).action : '';
-      const bannerOwns =
-        (task === 'resend-email' && emailVerifiedFlag(state.user, model) === false) ||
-        (task === 'verify' && Boolean(strip) && strip.action === 'verify');
-      if (next && bannerOwns) {
-        primary.hidden = true;
-      } else if (next) {
-        setStepLink(primary, next);
-        primary.hidden = false;
-      } else if (model?.messages?.unread) {
-        setStepLink(primary, { key: 'inbox', label: 'Open your inbox', href: '/messenger/' });
-        primary.hidden = false;
-      } else if (model?.packages?.total === 0 && model?.verification?.approved !== false) {
-        setStepLink(primary, { key: 'first-package', label: 'Create a package', href: '' });
-        primary.hidden = false;
-      } else {
-        primary.hidden = true;
-      }
+      renderPrimaryButton(primary, model, noProfile);
     }
     const publicPath = model?.profile?.publicProfilePath || '';
     const showPublic = Boolean(publicPath) && model?.verification?.approved !== false && !noProfile;
-    const secondary = byId(ids.secondary);
-    if (secondary) {
-      secondary.hidden = !showPublic;
-      if (showPublic) {
-        secondary.setAttribute('href', publicPath);
-      }
-    }
-    const viewPublic = byId(ids.viewPublic);
-    if (viewPublic) {
-      viewPublic.hidden = !showPublic;
-      if (showPublic) {
-        viewPublic.setAttribute('href', publicPath);
-      }
-    }
+    setPublicLink(byId(ids.secondary), showPublic, publicPath);
+    setPublicLink(byId(ids.viewPublic), showPublic, publicPath);
   }
 
   /** The href for a step link: its own page, or the card its action works in. */
@@ -1713,6 +1780,80 @@
     }
   }
 
+  /** "Annual" / "Monthly" for the record's billing interval, or "" when it is not known. */
+  function intervalLabel(record) {
+    if (record.billingInterval === 'year') {
+      return 'Annual';
+    }
+    return record.billingInterval === 'month' ? 'Monthly' : '';
+  }
+
+  /** The "Trial ends" and "Trial left" rows for a trialing record (none when it is not trialing). */
+  function trialRows(record, today) {
+    const trialEnd = record.trialEnd ? new Date(record.trialEnd) : null;
+    if (record.status !== 'trialing' || !trialEnd || Number.isNaN(trialEnd.getTime())) {
+      return [];
+    }
+    const rows = [{ label: 'Trial ends', value: formatDate(trialEnd) }];
+    // Whole calendar days (UTC), so a trial that ends later today reads "Ends today", not "1 day".
+    const days = Math.round(
+      (Date.UTC(trialEnd.getUTCFullYear(), trialEnd.getUTCMonth(), trialEnd.getUTCDate()) -
+        Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate())) /
+        86400000
+    );
+    if (days > 0) {
+      rows.push({ label: 'Trial left', value: plural(days, 'day') });
+    } else if (days === 0) {
+      rows.push({ label: 'Trial left', value: 'Ends today' });
+    }
+    return rows;
+  }
+
+  /** The "Payment method" row ("Visa ending 4242"), or null when the card is not known. */
+  function paymentMethodRow(billing) {
+    const brand = typeof billing.brand === 'string' ? billing.brand : '';
+    if (!brand || !billing.last4) {
+      return null;
+    }
+    const name =
+      CARD_BRANDS[brand.toLowerCase()] || `${brand.charAt(0).toUpperCase()}${brand.slice(1)}`;
+    return { label: 'Payment method', value: `${name} ending ${billing.last4}` };
+  }
+
+  /** The "Discount" row ("20% off (Launch)"), or null when the record has no discount. */
+  function discountRow(record) {
+    if (!record.discountName) {
+      return null;
+    }
+    const percent =
+      isNum(record.discountPercent) && record.discountPercent > 0
+        ? `${record.discountPercent}% off`
+        : 'Applied';
+    return { label: 'Discount', value: `${percent} (${record.discountName})` };
+  }
+
+  /** The one sentence about the end of the period: renews, downgrades to another plan, or cancels. */
+  function periodNotice(record, pending) {
+    const end = formatDate(record.currentPeriodEnd);
+    if (!end) {
+      return null;
+    }
+    if (record.cancelAtPeriodEnd && pending && pending !== 'free') {
+      return { tone: 'warn', text: `Downgrades to ${planLabel(pending)} on ${end}` };
+    }
+    if (record.cancelAtPeriodEnd) {
+      return { tone: 'warn', text: `Cancels on ${end}` };
+    }
+    return { tone: 'ok', text: `Renews on ${end}` };
+  }
+
+  /** The "Next payment" row, unless billing ends with this period or no invoice is known. */
+  function nextPaymentRow(billing, billingEnds) {
+    const invoice = billing.invoice;
+    const next = invoice ? formatMoney(invoice.amount, invoice.currency) : '';
+    return next && !billingEnds ? { label: 'Next payment', value: next } : null;
+  }
+
   /**
    * The billing facts for the plan card, from the subscription record only: billing interval,
    * trial end and days left, start date, next payment, card on file, discount, and one sentence
@@ -1721,70 +1862,102 @@
    * invented: a fact the record does not have is not listed.
    */
   function billingDetails(billing, now) {
-    const record = billing && billing.record;
+    const record = billing?.record;
     const result = { interval: '', rows: [], notice: null, plan: '' };
     if (!record) {
       return result;
     }
     const today = now && typeof now.getTime === 'function' ? now : new Date();
-    result.plan = typeof record.plan === 'string' ? record.plan : '';
-    result.interval =
-      record.billingInterval === 'year'
-        ? 'Annual'
-        : record.billingInterval === 'month'
-          ? 'Monthly'
-          : '';
-    const trialing = record.status === 'trialing';
-    const trialEnd = record.trialEnd ? new Date(record.trialEnd) : null;
-    if (trialing && trialEnd && !Number.isNaN(trialEnd.getTime())) {
-      result.rows.push({ label: 'Trial ends', value: formatDate(trialEnd) });
-      // Whole calendar days (UTC), so a trial that ends later today reads "Ends today", not "1 day".
-      const days = Math.round(
-        (Date.UTC(trialEnd.getUTCFullYear(), trialEnd.getUTCMonth(), trialEnd.getUTCDate()) -
-          Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate())) /
-          86400000
-      );
-      if (days > 0) {
-        result.rows.push({ label: 'Trial left', value: plural(days, 'day') });
-      } else if (days === 0) {
-        result.rows.push({ label: 'Trial left', value: 'Ends today' });
-      }
-    }
-    const started = formatDate(record.createdAt);
-    if (started) {
-      result.rows.push({ label: 'Started', value: started });
-    }
     const pending = typeof record.pendingPlan === 'string' ? record.pendingPlan : '';
     const billingEnds = Boolean(record.cancelAtPeriodEnd) && (!pending || pending === 'free');
-    const invoice = billing.invoice;
-    const next = invoice ? formatMoney(invoice.amount, invoice.currency) : '';
-    if (next && !billingEnds) {
-      result.rows.push({ label: 'Next payment', value: next });
-    }
-    const brand = typeof billing.brand === 'string' ? billing.brand : '';
-    if (brand && billing.last4) {
-      const name =
-        CARD_BRANDS[brand.toLowerCase()] || `${brand.charAt(0).toUpperCase()}${brand.slice(1)}`;
-      result.rows.push({ label: 'Payment method', value: `${name} ending ${billing.last4}` });
-    }
-    if (record.discountName) {
-      const percent =
-        isNum(record.discountPercent) && record.discountPercent > 0
-          ? `${record.discountPercent}% off`
-          : 'Applied';
-      result.rows.push({ label: 'Discount', value: `${percent} (${record.discountName})` });
-    }
-    const end = formatDate(record.currentPeriodEnd);
-    if (end) {
-      if (record.cancelAtPeriodEnd && pending && pending !== 'free') {
-        result.notice = { tone: 'warn', text: `Downgrades to ${planLabel(pending)} on ${end}` };
-      } else if (record.cancelAtPeriodEnd) {
-        result.notice = { tone: 'warn', text: `Cancels on ${end}` };
-      } else {
-        result.notice = { tone: 'ok', text: `Renews on ${end}` };
-      }
-    }
+    const started = formatDate(record.createdAt);
+    result.plan = typeof record.plan === 'string' ? record.plan : '';
+    result.interval = intervalLabel(record);
+    result.rows = [
+      ...trialRows(record, today),
+      started ? { label: 'Started', value: started } : null,
+      nextPaymentRow(billing, billingEnds),
+      paymentMethodRow(billing),
+      discountRow(record),
+    ].filter(Boolean);
+    result.notice = periodNotice(record, pending);
     return result;
+  }
+
+  /** The pill text for a paid plan's status. */
+  function planPillText(status, pastDue) {
+    if (status === 'trialing') {
+      return 'Trial';
+    }
+    if (pastDue) {
+      return 'Past due';
+    }
+    return status && status !== 'active' ? status : 'Active';
+  }
+
+  /** The pill modifier class for a paid plan's status. */
+  function planPillClass(status, pastDue) {
+    if (status === 'active' || status === 'trialing') {
+      return ' sdh-pill--accent';
+    }
+    return pastDue ? ' sdh-pill--warn' : '';
+  }
+
+  /** The status and interval pills after the plan name (none for the free plan). */
+  function planStatusPill(status, pastDue, details) {
+    const interval = details.interval
+      ? `<span class="sdh-pill">${esc(details.interval)}</span>`
+      : '';
+    return `<span class="sdh-pill${planPillClass(status, pastDue)}">${esc(planPillText(status, pastDue))}</span>${interval}`;
+  }
+
+  /** The end-of-period line: the record's own sentence, else one from the summary's end date. */
+  function periodLine(subscription, details, paid) {
+    if (details.notice) {
+      return details.notice.text;
+    }
+    const until = formatDate(subscription.activeUntil);
+    if (!paid || !until) {
+      return '';
+    }
+    return subscription.cancelAtPeriodEnd ? `Ends on ${until}` : `Renews on ${until}`;
+  }
+
+  /** The plan card's fact lines: end of period (not for a failed payment), billing facts, package usage. */
+  function planFactRows(subscription, details, paid, pastDue) {
+    const rows = [];
+    const period = pastDue ? '' : periodLine(subscription, details, paid);
+    if (period) {
+      rows.push(period);
+    }
+    details.rows.forEach(row => rows.push(`${row.label}: ${row.value}`));
+    const usage = packageUsage(state.model);
+    if (usage) {
+      rows.push(usage);
+    }
+    return rows;
+  }
+
+  /** A bulleted list of plain-text lines, or "" for none. */
+  function factList(lines, extraClass) {
+    return lines.length
+      ? `<ul class="sdh-facts${extraClass}">${lines.map(row => `<li>${esc(row)}</li>`).join('')}</ul>`
+      : '';
+  }
+
+  /** The "Included" heading and list for what the plan includes, or "" for none. */
+  function includedList(lines) {
+    return lines.length
+      ? `<p class="sdh-plan__head">Included</p>${factList(lines, ' sdh-facts--muted')}`
+      : '';
+  }
+
+  /** The plan card's action row: manage billing for a paid plan, see plans otherwise. */
+  function planActions(paid, pastDue) {
+    if (paid) {
+      return `<button type="button" class="sdh-btn sdh-btn--secondary sdh-btn--sm" data-sdh-action="billing">${pastDue ? 'Update payment method' : 'Manage billing'}</button><a class="sdh-link" href="/supplier/subscription">View subscription</a>`;
+    }
+    return `<a class="sdh-btn ${isNoProfile() ? 'sdh-btn--secondary' : 'sdh-btn--primary'} sdh-btn--sm" href="/pricing">See plans</a>`;
   }
 
   /**
@@ -1810,42 +1983,13 @@
     const planKey = pastDue && details.plan ? details.plan : subscription.plan;
     const label = planLabel(planKey);
     const paid = pastDue || String(planKey || 'free').toLowerCase() !== 'free';
-    const until = formatDate(subscription.activeUntil);
-    const rows = [];
-    let notice = '';
-    if (pastDue) {
-      notice = `<div class="sdh-callout sdh-callout--danger"><p class="sdh-callout__title">Payment failed</p><p class="sdh-callout__text">Your last payment for ${esc(label)} did not go through, so paid features are paused. Update your payment method to restore them; we will also try the payment again.</p></div>`;
-    } else if (details.notice) {
-      rows.push(details.notice.text);
-    } else if (paid && until) {
-      rows.push(subscription.cancelAtPeriodEnd ? `Ends on ${until}` : `Renews on ${until}`);
-    }
-    details.rows.forEach(row => rows.push(`${row.label}: ${row.value}`));
-    const usage = packageUsage(state.model);
-    if (usage) {
-      rows.push(usage);
-    }
-    const included = pastDue ? [] : limitLines(subscription.limits);
-    const pillText =
-      status === 'trialing'
-        ? 'Trial'
-        : pastDue
-          ? 'Past due'
-          : status === 'active'
-            ? 'Active'
-            : status || 'Active';
-    const statusPill = paid
-      ? `<span class="sdh-pill${status === 'active' || status === 'trialing' ? ' sdh-pill--accent' : pastDue ? ' sdh-pill--warn' : ''}">${esc(pillText)}</span>${details.interval ? `<span class="sdh-pill">${esc(details.interval)}</span>` : ''}`
+    const notice = pastDue
+      ? `<div class="sdh-callout sdh-callout--danger"><p class="sdh-callout__title">Payment failed</p><p class="sdh-callout__text">Your last payment for ${esc(label)} did not go through, so paid features are paused. Update your payment method to restore them; we will also try the payment again.</p></div>`
       : '';
-    box.innerHTML = `<div class="sdh-plan"><p class="sdh-plan__name">${esc(label)} ${statusPill}</p>${notice}${rows.length ? `<ul class="sdh-facts">${rows.map(row => `<li>${esc(row)}</li>`).join('')}</ul>` : ''}${
-      included.length
-        ? `<p class="sdh-plan__head">Included</p><ul class="sdh-facts sdh-facts--muted">${included.map(row => `<li>${esc(row)}</li>`).join('')}</ul>`
-        : ''
-    }<div class="sdh-plan__actions">${
-      paid
-        ? `<button type="button" class="sdh-btn sdh-btn--secondary sdh-btn--sm" data-sdh-action="billing">${pastDue ? 'Update payment method' : 'Manage billing'}</button><a class="sdh-link" href="/supplier/subscription">View subscription</a>`
-        : `<a class="sdh-btn ${isNoProfile() ? 'sdh-btn--secondary' : 'sdh-btn--primary'} sdh-btn--sm" href="/pricing">See plans</a>`
-    }</div></div>`;
+    const rows = planFactRows(subscription, details, paid, pastDue);
+    const included = pastDue ? [] : limitLines(subscription.limits);
+    const statusPill = paid ? planStatusPill(status, pastDue, details) : '';
+    box.innerHTML = `<div class="sdh-plan"><p class="sdh-plan__name">${esc(label)} ${statusPill}</p>${notice}${factList(rows, '')}${includedList(included)}<div class="sdh-plan__actions">${planActions(paid, pastDue)}</div></div>`;
   }
 
   /**
@@ -1865,18 +2009,14 @@
     }
     state.billingRequested = true;
     const own = await ownSubscription();
-    const record =
-      own.data && own.data.subscription && typeof own.data.subscription === 'object'
-        ? own.data.subscription
-        : null;
+    const record = objectOrNull(own.data?.subscription);
     if (!record) {
       return;
     }
     let invoice = null;
     if (record.stripeSubscriptionId) {
       const upcoming = await getJson('/api/v2/subscriptions/upcoming-invoice');
-      invoice =
-        upcoming.data && upcoming.data.upcomingInvoice ? upcoming.data.upcomingInvoice : null;
+      invoice = upcoming.data?.upcomingInvoice || null;
     }
     state.billing = {
       record,
@@ -2019,7 +2159,7 @@
       'add-tagline': { href: '/supplier/profile-customization' },
       'social-links': { href: '/supplier/profile-customization' },
     }[String(tip.id || '')];
-    if (known && known.action) {
+    if (known?.action) {
       const focus = known.focus ? ` data-sdh-focus="${esc(known.focus)}"` : '';
       return `<button type="button" class="sdh-link" data-sdh-action="${esc(known.action)}"${focus}>${esc(label)}</button>`;
     }
@@ -2043,9 +2183,7 @@
         '<p class="sdh-note">We could not load your tips.</p><button type="button" class="sdh-btn sdh-btn--secondary sdh-btn--sm" data-sdh-action="retry-tips">Try again</button>';
       return;
     }
-    const tips = Array.isArray(result.data.tips)
-      ? result.data.tips.filter(tip => tip && tip.title)
-      : [];
+    const tips = Array.isArray(result.data.tips) ? result.data.tips.filter(tip => tip?.title) : [];
     if (!tips.length) {
       if (section) {
         section.hidden = true;
@@ -2311,7 +2449,7 @@
     }
     const overlays = window.SupplierDashboardOverlays;
     const name = sectionId === 'profile-form-section' ? 'profile' : 'package';
-    if (!(overlays && overlays.isOpen(name)) && !toggle.disabled) {
+    if (!overlays?.isOpen(name) && !toggle.disabled) {
       toggle.click();
     }
     const field = focusId ? byId(focusId) : null;
@@ -2344,70 +2482,77 @@
     }
   }
 
+  /** Scrolls to the profile card and puts focus on its photo button. */
+  function focusAvatarUpload() {
+    const card = byId('my-suppliers');
+    const button =
+      card?.querySelector('[data-action="upload-photo"]') ||
+      card?.querySelector('label[for^="supplier-profile-photo-upload"]');
+    if (card) {
+      scrollToNode(card, 'center');
+    }
+    button?.focus({ preventScroll: true });
+  }
+
+  /** Scrolls to the node a button names with data-sdh-target. */
+  function scrollToTarget(node) {
+    const target = byId(node.dataset.sdhTarget || '');
+    if (target) {
+      scrollToNode(target, 'start');
+    }
+  }
+
+  /** Scrolls to the support ticket button and opens it. */
+  function openSupportTicket() {
+    const ticket = byId('createSupplierTicketBtn');
+    if (ticket) {
+      scrollToNode(ticket, 'center');
+      ticket.click();
+    }
+  }
+
+  /** Wraps a handler so the link's own navigation is cancelled before it runs. */
+  function handled(handler) {
+    return (node, event) => {
+      event.preventDefault();
+      handler(node);
+    };
+  }
+
+  /** What each data-sdh-action does. A handler gets the clicked node, and the click event if it needs it. */
+  const ACTION_HANDLERS = {
+    'edit-profile': handled(node =>
+      openForm('profile-form-section', 'toggle-profile-form', node.dataset.sdhFocus || 'sup-name')
+    ),
+    'new-package': handled(() =>
+      openForm('package-form-section', 'toggle-package-form', 'pkg-title')
+    ),
+    'upload-avatar': handled(focusAvatarUpload),
+    scroll: handled(scrollToTarget),
+    'copy-profile-link': () => copyProfileLink(),
+    'show-all-requests': () => {
+      requestView.showAll = true;
+      renderReviewRequests();
+    },
+    'open-enquiries': () => document.dispatchEvent(new CustomEvent('sdh:open-enquiries')),
+    verify: handled(() => openVerification()),
+    'resend-email': handled(node => resendVerification(node)),
+    'request-review': handled(() => openReviewDialog()),
+    support: handled(openSupportTicket),
+    billing: node => openBilling(node),
+    'save-availability': node => saveAvailability(node),
+    'retry-availability': () => loadAvailability(),
+    'retry-tips': () => loadTips(),
+    'reload-packages': () => window._efLoadPackages?.(),
+    'retry-request': node => retryReviewRequest(node),
+    reload: () => refresh(),
+  };
+
   /** Runs one of the page's data-sdh-action buttons. */
   function runAction(node, event) {
     const action = node.dataset.sdhAction;
-    if (action === 'edit-profile') {
-      event.preventDefault();
-      openForm('profile-form-section', 'toggle-profile-form', node.dataset.sdhFocus || 'sup-name');
-    } else if (action === 'new-package') {
-      event.preventDefault();
-      openForm('package-form-section', 'toggle-package-form', 'pkg-title');
-    } else if (action === 'upload-avatar') {
-      event.preventDefault();
-      const card = byId('my-suppliers');
-      const button =
-        card?.querySelector('[data-action="upload-photo"]') ||
-        card?.querySelector('label[for^="supplier-profile-photo-upload"]');
-      if (card) {
-        scrollToNode(card, 'center');
-      }
-      button?.focus({ preventScroll: true });
-    } else if (action === 'scroll') {
-      event.preventDefault();
-      const target = byId(node.dataset.sdhTarget || '');
-      if (target) {
-        scrollToNode(target, 'start');
-      }
-    } else if (action === 'copy-profile-link') {
-      copyProfileLink();
-    } else if (action === 'show-all-requests') {
-      requestView.showAll = true;
-      renderReviewRequests();
-    } else if (action === 'open-enquiries') {
-      document.dispatchEvent(new CustomEvent('sdh:open-enquiries'));
-    } else if (action === 'verify') {
-      event.preventDefault();
-      openVerification();
-    } else if (action === 'resend-email') {
-      event.preventDefault();
-      resendVerification(node);
-    } else if (action === 'request-review') {
-      event.preventDefault();
-      openReviewDialog();
-    } else if (action === 'support') {
-      event.preventDefault();
-      const ticket = byId('createSupplierTicketBtn');
-      if (ticket) {
-        scrollToNode(ticket, 'center');
-        ticket.click();
-      }
-    } else if (action === 'billing') {
-      openBilling(node);
-    } else if (action === 'save-availability') {
-      saveAvailability(node);
-    } else if (action === 'retry-availability') {
-      loadAvailability();
-    } else if (action === 'retry-tips') {
-      loadTips();
-    } else if (action === 'reload-packages') {
-      if (typeof window._efLoadPackages === 'function') {
-        window._efLoadPackages();
-      }
-    } else if (action === 'retry-request') {
-      retryReviewRequest(node);
-    } else if (action === 'reload') {
-      refresh();
+    if (Object.hasOwn(ACTION_HANDLERS, action)) {
+      ACTION_HANDLERS[action](node, event);
     }
   }
 
@@ -2440,7 +2585,7 @@
       }
     });
     document.addEventListener('change', event => {
-      if (event.target && event.target.id === 'rreq-filter') {
+      if (event.target?.id === 'rreq-filter') {
         requestView.filter = event.target.value;
         requestView.showAll = false;
         renderReviewRequests();
@@ -2450,11 +2595,7 @@
     document.addEventListener(
       'toggle',
       event => {
-        if (
-          event.target &&
-          event.target.matches &&
-          event.target.matches('details.sdh-rreq-history')
-        ) {
+        if (event.target?.matches?.('details.sdh-rreq-history')) {
           requestView.open = event.target.open;
         }
       },
@@ -2564,8 +2705,10 @@
     if (typeof MessengerWidgetV4 === 'undefined' || !byId(ids.messenger)) {
       return;
     }
-    // eslint-disable-next-line no-new -- the widget attaches itself to its container
-    new MessengerWidgetV4(ids.messenger, { maxItems: 20, broadcastUnread: false });
+    state.messenger = new MessengerWidgetV4(ids.messenger, {
+      maxItems: 20,
+      broadcastUnread: false,
+    });
   }
 
   /* ------------------------------------------------------------------ *

@@ -7,9 +7,9 @@
  * back where it was and nothing is folded. Only the markup around a card's body changes: every id
  * inside it, and every script that fills it, is untouched.
  */
-(function () {
-  'use strict';
+'use strict';
 
+(function () {
   const CARDS = [
     'sdh-performance',
     'sdh-availability',
@@ -36,7 +36,7 @@
   /** The calendar was drawn while hidden: tell it the room it has now. */
   function resizeCalendar() {
     const container = document.getElementById('supplier-events-calendar');
-    if (container && container._calendarInstance && container._calendarInstance.updateSize) {
+    if (container?._calendarInstance?.updateSize) {
       container._calendarInstance.updateSize();
     }
   }

@@ -1,4 +1,3 @@
-#!/usr/bin/env node
 /**
  * Make every package hold one price in both price fields (and report what it would change).
  *
@@ -19,6 +18,7 @@
 'use strict';
 
 const dbUnified = require('../db-unified');
+const db = require('../db');
 const { packagePriceText, priceFields } = require('../utils/packagePrice');
 
 /** The only backend an --apply run may modify. */
@@ -142,14 +142,14 @@ async function main() {
 
 if (require.main === module) {
   main()
-    .then(code => {
-      process.exitCode = code;
-      // The database connection would otherwise keep the process open.
-      setTimeout(() => process.exit(code), 100);
-    })
     .catch(error => {
-      process.stderr.write(`${error && error.stack ? error.stack : error}\n`);
-      process.exit(1);
+      process.stderr.write(`${error?.stack || error}\n`);
+      return 1;
+    })
+    .then(async code => {
+      process.exitCode = code;
+      // Close the connection so the process ends on its own once it is done.
+      await db.close().catch(() => {});
     });
 }
 
