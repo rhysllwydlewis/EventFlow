@@ -380,7 +380,11 @@
       }
 
       if (data.url) {
-        window.location.href = data.url;
+        const safeUrl = window.EFCheckoutUrl?.resolve(data.url);
+        if (!safeUrl) {
+          throw new Error('The payment page address was not recognised. Please try again.');
+        }
+        window.location.href = safeUrl;
       } else if (data.sessionId) {
         const result = await stripe.redirectToCheckout({ sessionId: data.sessionId });
         if (result.error) {

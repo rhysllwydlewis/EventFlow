@@ -53,6 +53,21 @@ const { MAPPING_SOURCES, CONFIDENCE } = require('../models/LocationContent');
 
 const router = express.Router();
 
+/** The fields PUT /packages/:id may change. */
+const PACKAGE_EDITABLE_FIELDS = [
+  'title',
+  'description',
+  'price',
+  'price_display',
+  'image',
+  'category',
+  'location',
+  'features',
+  'availability',
+  'tags',
+  'eventTypes',
+];
+
 // ========================================
 // Permission Management Endpoints
 // ========================================
@@ -1273,7 +1288,21 @@ router.put(
   async (req, res) => {
     try {
       const { id } = req.params;
-      const updateData = req.body;
+      const updateData = req.body || {};
+
+      // Only content fields may be edited here. Ownership, approval, featuring, ids, slugs and
+      // timestamps are changed by their own endpoints, so a caller cannot mass-assign them.
+      const disallowed = Object.keys(updateData).filter(
+        key => !PACKAGE_EDITABLE_FIELDS.includes(key)
+      );
+      if (disallowed.length > 0) {
+        return res.status(400).json({
+          success: false,
+          error: `These fields cannot be set here: ${disallowed.join(', ')}.`,
+          code: 'FIELD_NOT_ALLOWED',
+          timestamp: new Date().toISOString(),
+        });
+      }
 
       const packages = await dbUnified.read('packages');
       const packageIndex = packages.findIndex(p => p.id === id);

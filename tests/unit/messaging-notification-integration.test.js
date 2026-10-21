@@ -193,7 +193,8 @@ describe('Messaging-Notification Integration', () => {
 
     it('uses guarded Socket.IO loading and aligned client config', () => {
       expect(notificationsJs).toContain('if (window.io)');
-      expect(notificationsJs).toContain('https://cdn.socket.io/4.8.1/socket.io.min.js');
+      expect(notificationsJs).toContain("script.src = '/socket.io/socket.io.min.js'");
+      expect(notificationsJs).not.toContain('cdn.socket.io');
       expect(notificationsJs).toContain('const socketUrl = `${protocol}//${window.location.host}`');
       expect(notificationsJs).toContain("path: '/socket.io'");
     });

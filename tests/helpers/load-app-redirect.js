@@ -14,7 +14,7 @@ const appJs = fs.readFileSync(path.join(__dirname, '../../public/assets/js/app.j
 
 /**
  * @param {string} [origin] - The page's origin
- * @returns {{safeRedirectTarget: Function, allowedPaths: Object}} The real helper and allowlist
+ * @returns {{safeRedirectTarget: Function, allowedPaths: Object, resolveCheckoutUrl: Function}} The real helpers and allowlist
  */
 function loadAppRedirect(origin = 'https://event-flow.co.uk') {
   const start = appJs.indexOf('const REDIRECT_ALLOWED_PATHS');
@@ -23,15 +23,19 @@ function loadAppRedirect(origin = 'https://event-flow.co.uk') {
     throw new Error('The redirect code was not found in app.js');
   }
   const context = vm.createContext({
-    window: { location: { origin } },
+    window: { location: { origin, href: `${origin}/` } },
     URL,
     URLSearchParams,
   });
   vm.runInContext(
-    `${appJs.slice(start, end)}\nthis.safeRedirectTarget = safeRedirectTarget;\nthis.allowedPaths = REDIRECT_ALLOWED_PATHS;`,
+    `${appJs.slice(start, end)}\nthis.safeRedirectTarget = safeRedirectTarget;\nthis.allowedPaths = REDIRECT_ALLOWED_PATHS;\nthis.resolveCheckoutUrl = resolveCheckoutUrl;`,
     context
   );
-  return { safeRedirectTarget: context.safeRedirectTarget, allowedPaths: context.allowedPaths };
+  return {
+    safeRedirectTarget: context.safeRedirectTarget,
+    allowedPaths: context.allowedPaths,
+    resolveCheckoutUrl: context.resolveCheckoutUrl,
+  };
 }
 
 module.exports = { loadAppRedirect, appJs };

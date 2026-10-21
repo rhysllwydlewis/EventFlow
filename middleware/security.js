@@ -77,7 +77,6 @@ function configureHelmet(isProduction = false) {
           "'self'",
           ...LEGACY_PROFILE_CUSTOMIZATION_INLINE_SCRIPT_HASHES,
           'https://cdn.jsdelivr.net',
-          'https://cdn.socket.io',
           'https://cdn.tidycal.net',
           'https://estatic.com',
           'https://*.estatic.com',
@@ -207,17 +206,27 @@ function configureHelmet(isProduction = false) {
   });
 }
 
+/** The pages with a "Use my location" button. */
+const GEOLOCATION_PAGES = new Set([
+  '/marketplace',
+  '/marketplace.html',
+  '/suppliers',
+  '/suppliers.html',
+]);
+
 /**
  * Configure Permissions-Policy header middleware
  * Restricts browser features (geolocation, camera, microphone) by default.
- * Geolocation is permitted for the Marketplace page (used by "Use My Location").
+ * Geolocation is permitted for the pages with a "Use my location" button (GEOLOCATION_PAGES).
  * @returns {Function} Express middleware
  */
 function configurePermissionsPolicy() {
   return (req, res, next) => {
-    // Allow geolocation only on the marketplace page (required for "Use My Location" feature)
-    const isMarketplacePage = req.path === '/marketplace' || req.path === '/marketplace.html';
-    const geolocationPolicy = isMarketplacePage ? 'geolocation=(self)' : 'geolocation=()';
+    // Allow geolocation only on the pages with a "Use my location" button (the browser still asks
+    // the visitor, and only when they press it): the marketplace and the supplier directory map.
+    const geolocationPolicy = GEOLOCATION_PAGES.has(req.path.replace(/(.)\/+$/, '$1'))
+      ? 'geolocation=(self)'
+      : 'geolocation=()';
     res.setHeader('Permissions-Policy', `${geolocationPolicy}, camera=(), microphone=()`);
     next();
   };

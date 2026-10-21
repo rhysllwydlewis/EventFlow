@@ -712,7 +712,11 @@ async function handleSubscribe(planId, button) {
     }
 
     if (data.url) {
-      window.location.href = data.url;
+      const safeUrl = window.EFCheckoutUrl?.resolve(data.url);
+      if (!safeUrl) {
+        throw new Error('The payment page address was not recognised. Please try again.');
+      }
+      window.location.href = safeUrl;
     } else {
       throw new Error('No checkout URL returned');
     }
@@ -772,7 +776,11 @@ async function openBillingPortal(event) {
     }
 
     if (data.url) {
-      window.location.href = data.url;
+      const safeUrl = window.EFCheckoutUrl?.resolve(data.url);
+      if (!safeUrl) {
+        throw new Error('The payment page address was not recognised. Please try again.');
+      }
+      window.location.href = safeUrl;
     } else {
       throw new Error('No portal URL returned');
     }

@@ -63,7 +63,7 @@
     loadSocketIO() {
       return new Promise((resolve, reject) => {
         const script = document.createElement('script');
-        script.src = 'https://cdn.socket.io/4.8.1/socket.io.min.js';
+        script.src = '/socket.io/socket.io.min.js';
         script.addEventListener('load', resolve);
         script.addEventListener('error', reject);
         document.head.appendChild(script);
