@@ -2351,6 +2351,7 @@ async function initDashSupplier() {
   }
 
   const PACKAGES_SHOWN_FIRST = 5;
+  const PACKAGES_SHOWN_FIRST_PHONE = 3;
 
   /**
    * The package list: the first few rows, and any others folded into a real <details> so a
@@ -2361,12 +2362,15 @@ async function initDashSupplier() {
    */
   function packageListHtml(items, keepOpen) {
     const rows = items.filter(Boolean).map(packageCardHtml);
-    const first = `<div class="sdh-pkgs">${rows.slice(0, PACKAGES_SHOWN_FIRST).join('')}</div>`;
-    if (rows.length <= PACKAGES_SHOWN_FIRST) {
+    // A phone shows fewer rows before the fold: the page there is one very long column.
+    const phone = Boolean(window.matchMedia && window.matchMedia('(max-width: 767px)').matches);
+    const shown = phone ? PACKAGES_SHOWN_FIRST_PHONE : PACKAGES_SHOWN_FIRST;
+    const first = `<div class="sdh-pkgs">${rows.slice(0, shown).join('')}</div>`;
+    if (rows.length <= shown) {
       return first;
     }
-    const rest = rows.length - PACKAGES_SHOWN_FIRST;
-    return `${first}<details class="sdh-more"${keepOpen ? ' open' : ''}><summary class="sdh-more__summary">Show the other ${rest} package${rest === 1 ? '' : 's'}</summary><div class="sdh-pkgs">${rows.slice(PACKAGES_SHOWN_FIRST).join('')}</div></details>`;
+    const rest = rows.length - shown;
+    return `${first}<details class="sdh-more"${keepOpen ? ' open' : ''}><summary class="sdh-more__summary">Show the other ${rest} package${rest === 1 ? '' : 's'}</summary><div class="sdh-pkgs">${rows.slice(shown).join('')}</div></details>`;
   }
 
   /**

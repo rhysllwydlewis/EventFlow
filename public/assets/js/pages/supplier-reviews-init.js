@@ -335,26 +335,48 @@
         ${resRateHtml}
       </div>
 
-      <div class="sr-toolbar">
+      ${
+        (reviews || []).length > 3 || pages > 1
+          ? `<div class="sr-toolbar">
         <label for="sr-sort" class="sr-sort-label">Sort by</label>
         <select id="sr-sort" class="sr-sort-select" aria-label="Sort reviews">
           ${sortHtml}
         </select>
-        <span class="sr-page-info">Page ${page} of ${pages}</span>
-      </div>
+        ${pages > 1 ? `<span class="sr-page-info">Page ${page} of ${pages}</span>` : ''}
+      </div>`
+          : ''
+      }
 
-      <div class="sr-list" id="sr-list">
+      <div class="sr-list${(reviews || []).length > 2 ? ' sr-list--capped' : ''}" id="sr-list">
         ${(reviews || []).map((r, index) => reviewCardHtml(r || {}, index)).join('')}
       </div>
+      ${
+        (reviews || []).length > 2
+          ? `<button type="button" class="sdh-link sr-show-all" id="sr-show-all">Show all ${(reviews || []).length} reviews</button>`
+          : ''
+      }
 
-      <div class="sr-pagination">
-        <button type="button" class="sr-page-btn" id="sr-prev" ${prevDisabled} aria-label="Previous page">← Prev</button>
-        <button type="button" class="sr-page-btn" id="sr-next" ${nextDisabled} aria-label="Next page">Next →</button>
-      </div>`;
+      ${
+        pages > 1
+          ? `<div class="sr-pagination">
+        <button type="button" class="sr-page-btn" id="sr-prev" ${prevDisabled} aria-label="Previous page">Prev</button>
+        <button type="button" class="sr-page-btn" id="sr-next" ${nextDisabled} aria-label="Next page">Next</button>
+      </div>`
+          : ''
+      }`;
 
     container.querySelectorAll('.sr-dist-fill[data-width]').forEach(fill => {
       fill.style.width = `${fill.dataset.width}%`;
     });
+
+    /* On a phone only the first two reviews show until the supplier asks for the rest. */
+    const showAll = container.querySelector('#sr-show-all');
+    if (showAll) {
+      showAll.addEventListener('click', () => {
+        container.querySelector('#sr-list')?.classList.remove('sr-list--capped');
+        showAll.hidden = true;
+      });
+    }
 
     /* Bind sort */
     const sortEl = container.querySelector('#sr-sort');

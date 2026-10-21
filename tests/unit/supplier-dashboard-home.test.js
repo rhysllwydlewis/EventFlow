@@ -520,7 +520,8 @@ describe('supplier dashboard home: structure', () => {
 
   test('no accordion hides primary content: details only wraps completed steps and the request history', () => {
     expect(main).not.toMatch(/<details/);
-    expect(homeJs.match(/<details class=/g)).toHaveLength(2);
+    // Completed steps, the request history, and the phone-only "More numbers".
+    expect(homeJs.match(/<details class=/g)).toHaveLength(3);
     expect(homeJs).toMatch(/completed<\/summary>/);
     expect(homeJs).toContain('sdh-rreq-history');
     expect(html).not.toContain('card-collapse');

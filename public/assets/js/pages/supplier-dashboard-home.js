@@ -1334,7 +1334,9 @@
     sizeBars(grid);
     const rows = extraRow(state.model);
     if (extra && rows) {
-      extra.innerHTML = rows;
+      // On a phone the second row of numbers folds into "More numbers"; on a wide screen it is just there.
+      const phone = Boolean(window.matchMedia && window.matchMedia('(max-width: 767px)').matches);
+      extra.innerHTML = `<details class="sdh-summary__more"${phone ? '' : ' open'}><summary class="sdh-more__summary">More numbers</summary><div class="sdh-summary__extra-grid">${rows}</div></details>`;
       extra.hidden = false;
     }
   }
@@ -2248,6 +2250,11 @@
 
   /** Scrolls an element into view, without animation for people who ask for reduced motion. */
   function scrollToNode(node, block) {
+    // A card folded up on a phone opens when something sends the supplier to it.
+    const fold = node.closest('details.sdh-fold') || node.querySelector('details.sdh-fold');
+    if (fold) {
+      fold.open = true;
+    }
     node.scrollIntoView({
       behavior: prefersReducedMotion() ? 'auto' : 'smooth',
       block: block || 'start',

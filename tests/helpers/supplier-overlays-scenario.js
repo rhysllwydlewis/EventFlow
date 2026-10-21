@@ -621,9 +621,78 @@ async function packageActions(options) {
   );
 }
 
+/** The phone folding of the secondary cards. */
+async function fold() {
+  const { window } = makeWindow({});
+  let narrow = true;
+  const listeners = [];
+  window.matchMedia = () => ({
+    get matches() {
+      return narrow;
+    },
+    addEventListener: (_type, handler) => listeners.push(handler),
+  });
+  window.eval(read('public/assets/js/pages/supplier-dashboard-fold.js'));
+  await settle();
+  const ids = [
+    'sdh-performance',
+    'sdh-availability',
+    'availability-calendar',
+    'sdh-tips',
+    'sdh-plan',
+    'sdh-support',
+  ];
+  const log = {};
+  log.folded = ids.map(id => {
+    const details = window.document.querySelector(`#${id} > details.sdh-fold`);
+    return (
+      details && {
+        id,
+        open: details.open,
+        summary: details.querySelector('summary').textContent,
+        bodyInside: Boolean(details.querySelector(':scope > .sdh-card__body')),
+      }
+    );
+  });
+  log.otherCardsUntouched = [
+    'sdh-next-steps',
+    'profile-card',
+    'packages-section',
+    'sdh-enquiries',
+    'sdh-reviews',
+    'sdh-messages',
+  ].every(id => !window.document.querySelector(`#${id} details.sdh-fold`));
+  log.idsStillThere = [
+    'supplier-performance-chart',
+    'supplier-availability-widget',
+    'supplier-events-calendar',
+    'supplier-perf-tips',
+    'supplier-subscription-card',
+    'tickets-sup',
+  ].every(id => Boolean(window.document.getElementById(id)));
+  let calls = 0;
+  window.document.getElementById('supplier-events-calendar')._calendarInstance = {
+    updateSize: () => {
+      calls += 1;
+    },
+  };
+  const details = window.document.querySelector('#availability-calendar > details.sdh-fold');
+  details.open = true;
+  details.dispatchEvent(new window.Event('toggle'));
+  log.afterOpen = details.querySelector('summary').textContent;
+  log.calendarResized = calls;
+  narrow = false;
+  listeners.forEach(handler => handler({ matches: false }));
+  log.unfolded = ids.every(id => !window.document.querySelector(`#${id} details.sdh-fold`));
+  log.bodiesBack = ids.every(id =>
+    Boolean(window.document.querySelector(`#${id} > .sdh-card__body`))
+  );
+  process.stdout.write(JSON.stringify(log));
+}
+
 const name = process.argv[2];
 const options = JSON.parse(Buffer.from(process.argv[3] || 'e30=', 'base64').toString('utf8'));
-const scenarios = { overlays, banner, guide, cards, enquiries, packageActions };
+const scenarios = { overlays, banner, guide, cards, enquiries, packageActions, fold };
 scenarios[name](options).catch(error => {
   process.stderr.write(String(error && error.stack ? error.stack : error));
   process.exit(1);

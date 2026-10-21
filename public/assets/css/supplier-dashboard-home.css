@@ -664,13 +664,36 @@
 /* Summary row: the second line with visits and reply figures */
 
 .sdh-page .sdh-summary__extra {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-  gap: 1px;
   overflow: hidden;
   border-top: 1px solid var(--sdh-line-soft);
   border-radius: 0 0 var(--sdh-radius) var(--sdh-radius);
+}
+
+.sdh-page .sdh-summary__extra-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 1px;
   background: var(--sdh-line-soft);
+}
+
+.sdh-page .sdh-summary__more > summary {
+  padding: 0 24px;
+}
+
+@media (min-width: 768px) {
+  /* Wide screens show the numbers; there is nothing to open. */
+  .sdh-page .sdh-summary__more > summary {
+    display: none;
+  }
+}
+
+/* Cards folded on a phone (supplier-dashboard-fold.js). */
+.sdh-page .sdh-fold__summary {
+  margin: 0 24px;
+}
+
+.sdh-page .sdh-fold[open] > .sdh-fold__summary {
+  margin-bottom: 4px;
 }
 
 .sdh-page .sdh-stat {
@@ -3305,6 +3328,23 @@
   padding: 16px 24px;
   border-top: 1px solid var(--sdh-line);
   background: #fbfaf8;
+}
+
+/* Reviews: a phone shows the first two until "Show all" is pressed. */
+
+.sdh-page .sr-show-all {
+  display: none;
+}
+
+@media (max-width: 767px) {
+  .sdh-page .sr-list--capped .sr-review-card:nth-child(n + 3) {
+    display: none;
+  }
+
+  .sdh-page .sr-show-all {
+    display: inline-flex;
+    margin-top: 8px;
+  }
 }
 
 /* Review request history and the copy-link row */
