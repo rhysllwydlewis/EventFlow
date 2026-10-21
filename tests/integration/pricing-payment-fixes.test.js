@@ -115,7 +115,7 @@ describe('Pricing and payment system fixes', () => {
         /if\s*\(data\.url\)\s*\{[\s\S]*?EFCheckoutUrl\?\.resolve\(data\.url\)[\s\S]*?window\.location\.href\s*=\s*safeUrl/
       );
       const urlBranchIdx = src.search(/if\s*\(data\.url\)/);
-      const sessionIdBranchIdx = src.search(/else if\s*\(data\.sessionId\)/);
+      const sessionIdBranchIdx = src.search(/if\s*\(data\.sessionId\)/);
       expect(urlBranchIdx).toBeGreaterThan(-1);
       expect(sessionIdBranchIdx).toBeGreaterThan(urlBranchIdx);
     });

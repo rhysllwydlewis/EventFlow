@@ -572,6 +572,104 @@ document.addEventListener('click', event => {
 });
 
 /**
+ * Headers for a state-changing request, fetching a CSRF token first if the page has none yet.
+ */
+async function buildJsonHeaders() {
+  let csrfToken = window.__CSRF_TOKEN__ || '';
+  if (!csrfToken) {
+    try {
+      const csrfResp = await fetch('/api/v1/csrf-token', { credentials: 'include' });
+      if (csrfResp.ok) {
+        const csrfData = await csrfResp.json();
+        csrfToken = csrfData.csrfToken || csrfData.token || '';
+        window.__CSRF_TOKEN__ = csrfToken;
+      }
+    } catch (csrfErr) {
+      console.warn('[Subscription] Could not fetch CSRF token:', csrfErr);
+    }
+  }
+  const headers = { 'Content-Type': 'application/json' };
+  if (csrfToken) {
+    headers['X-CSRF-Token'] = csrfToken;
+  }
+  return headers;
+}
+
+/**
+ * POST an upgrade or downgrade for the current subscription and return nothing on success.
+ */
+async function changeCurrentSubscription(action, newPlan, headers, billingInterval) {
+  const response = await fetch(`/api/v2/subscriptions/${currentSubscription.id}/${action}`, {
+    method: 'POST',
+    headers,
+    credentials: 'include',
+    body: JSON.stringify({ newPlan, billingInterval }),
+  });
+  const data = await response.json();
+  if (!response.ok) {
+    const fallback =
+      action === 'upgrade' ? 'Failed to upgrade subscription' : 'Failed to schedule downgrade';
+    throw new Error(data.message || data.error || fallback);
+  }
+}
+
+async function refreshSubscriptionView() {
+  await loadSubscriptionStatus();
+  renderDowngradeBanner();
+  renderSubscriptionPlans();
+}
+
+/**
+ * Downgrade, or upgrade between two paid plans, while already subscribed.
+ */
+async function changePaidPlan(plan, currentTier, headers, billingInterval) {
+  const isUpgrade = PLAN_HIERARCHY.indexOf(plan.tier) > PLAN_HIERARCHY.indexOf(currentTier);
+  if (isUpgrade) {
+    await changeCurrentSubscription('upgrade', plan.tier, headers, billingInterval);
+    showSuccess(`Successfully upgraded to ${plan.name}!`);
+    const refreshed = await checkAuth();
+    if (refreshed) {
+      currentUser = refreshed;
+    }
+  } else {
+    await changeCurrentSubscription('downgrade', plan.tier, headers, billingInterval);
+    showSuccess(
+      `Downgrade to ${plan.name} scheduled. Your current plan remains active until the end of your billing period.`
+    );
+  }
+  await refreshSubscriptionView();
+}
+
+/**
+ * New subscription (from Starter/free, or no subscription record yet): go to Stripe's page.
+ */
+async function startNewSubscription(plan, headers, billingInterval) {
+  const response = await fetch('/api/v2/subscriptions/create-checkout-session', {
+    method: 'POST',
+    headers,
+    credentials: 'include',
+    body: JSON.stringify({
+      planId: plan.id,
+      billingInterval,
+      successUrl: `${window.location.origin}/supplier/subscription?billing=success`,
+      cancelUrl: `${window.location.origin}/supplier/subscription?billing=cancelled`,
+    }),
+  });
+  const data = await response.json();
+  if (!response.ok) {
+    throw new Error(data.message || data.error || 'Failed to create checkout session');
+  }
+  if (!data.url) {
+    throw new Error('No checkout URL returned');
+  }
+  const safeUrl = window.EFCheckoutUrl?.resolve(data.url);
+  if (!safeUrl) {
+    throw new Error('The payment page address was not recognised. Please try again.');
+  }
+  window.location.href = safeUrl;
+}
+
+/**
  * Handle subscription button click (new subscription, upgrade, or downgrade)
  * @param {string} planId
  * @param {HTMLElement} button
@@ -602,123 +700,23 @@ async function handleSubscribe(planId, button) {
   }
 
   try {
-    let csrfToken = window.__CSRF_TOKEN__ || '';
-    if (!csrfToken) {
-      try {
-        const csrfResp = await fetch('/api/v1/csrf-token', { credentials: 'include' });
-        if (csrfResp.ok) {
-          const csrfData = await csrfResp.json();
-          csrfToken = csrfData.csrfToken || csrfData.token || '';
-          window.__CSRF_TOKEN__ = csrfToken;
-        }
-      } catch (csrfErr) {
-        console.warn('[Subscription] Could not fetch CSRF token:', csrfErr);
-      }
-    }
+    const headers = await buildJsonHeaders();
 
-    const headers = { 'Content-Type': 'application/json' };
-    if (csrfToken) {
-      headers['X-CSRF-Token'] = csrfToken;
-    }
-
-    // ── Downgrade to Starter (free) ───────────────────────────────────────────
     if (plan.tier === 'free') {
+      // Downgrade to Starter (free)
       if (!currentSubscription?.id) {
         window.location.href = '/dashboard/supplier';
         return;
       }
-      const response = await fetch(`/api/v2/subscriptions/${currentSubscription.id}/downgrade`, {
-        method: 'POST',
-        headers,
-        credentials: 'include',
-        body: JSON.stringify({ newPlan: 'free', billingInterval }),
-      });
-      const data = await response.json();
-      if (!response.ok) {
-        throw new Error(data.message || data.error || 'Failed to schedule downgrade');
-      }
+      await changeCurrentSubscription('downgrade', 'free', headers, billingInterval);
       showSuccess(
         'Downgrade to Starter scheduled. Your current plan remains active until the end of your billing period.'
       );
-      await loadSubscriptionStatus();
-      renderDowngradeBanner();
-      renderSubscriptionPlans();
-      return;
-    }
-
-    // ── Change between two paid plans while already subscribed ───────────────
-    if (currentTier !== 'free' && currentSubscription?.id) {
-      const currentIdx = PLAN_HIERARCHY.indexOf(currentTier);
-      const newIdx = PLAN_HIERARCHY.indexOf(plan.tier);
-
-      if (newIdx > currentIdx) {
-        const response = await fetch(`/api/v2/subscriptions/${currentSubscription.id}/upgrade`, {
-          method: 'POST',
-          headers,
-          credentials: 'include',
-          body: JSON.stringify({ newPlan: plan.tier, billingInterval }),
-        });
-        const data = await response.json();
-        if (!response.ok) {
-          throw new Error(data.message || data.error || 'Failed to upgrade subscription');
-        }
-        showSuccess(`Successfully upgraded to ${plan.name}!`);
-        const refreshed = await checkAuth();
-        if (refreshed) {
-          currentUser = refreshed;
-        }
-        await loadSubscriptionStatus();
-        renderDowngradeBanner();
-        renderSubscriptionPlans();
-        return;
-      }
-      const response = await fetch(`/api/v2/subscriptions/${currentSubscription.id}/downgrade`, {
-        method: 'POST',
-        headers,
-        credentials: 'include',
-        body: JSON.stringify({ newPlan: plan.tier, billingInterval }),
-      });
-      const data = await response.json();
-      if (!response.ok) {
-        throw new Error(data.message || data.error || 'Failed to schedule downgrade');
-      }
-      showSuccess(
-        `Downgrade to ${plan.name} scheduled. Your current plan remains active until the end of your billing period.`
-      );
-      await loadSubscriptionStatus();
-      renderDowngradeBanner();
-      renderSubscriptionPlans();
-      return;
-    }
-
-    // ── New subscription (from Starter/free, or no subscription record yet) ──
-    const successUrl = `${window.location.origin}/supplier/subscription?billing=success`;
-    const response = await fetch('/api/v2/subscriptions/create-checkout-session', {
-      method: 'POST',
-      headers,
-      credentials: 'include',
-      body: JSON.stringify({
-        planId: plan.id,
-        billingInterval,
-        successUrl,
-        cancelUrl: `${window.location.origin}/supplier/subscription?billing=cancelled`,
-      }),
-    });
-
-    const data = await response.json();
-
-    if (!response.ok) {
-      throw new Error(data.message || data.error || 'Failed to create checkout session');
-    }
-
-    if (data.url) {
-      const safeUrl = window.EFCheckoutUrl?.resolve(data.url);
-      if (!safeUrl) {
-        throw new Error('The payment page address was not recognised. Please try again.');
-      }
-      window.location.href = safeUrl;
+      await refreshSubscriptionView();
+    } else if (currentTier !== 'free' && currentSubscription?.id) {
+      await changePaidPlan(plan, currentTier, headers, billingInterval);
     } else {
-      throw new Error('No checkout URL returned');
+      await startNewSubscription(plan, headers, billingInterval);
     }
   } catch (error) {
     console.error('[Subscription] Subscription error:', error);

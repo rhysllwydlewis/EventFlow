@@ -8,16 +8,16 @@
  *
  * window.EFCheckoutUrl.resolve(value) returns the address to navigate to, or null.
  */
-(function (root) {
-  'use strict';
+'use strict';
 
+(function (root) {
   const STRIPE_HOSTS = ['checkout.stripe.com', 'billing.stripe.com'];
 
   function resolve(value, origin) {
     if (typeof value !== 'string' || value.trim() === '') {
       return null;
     }
-    const base = origin || (root.location && root.location.origin) || 'https://localhost';
+    const base = origin || root.location?.origin || 'https://localhost';
     let parsed = null;
     try {
       parsed = new URL(value.trim(), base);

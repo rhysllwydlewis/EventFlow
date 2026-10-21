@@ -1268,7 +1268,7 @@
         }
       },
       // "+" hint on day cells for quick entry creation
-      dayCellDidMount: function (info) {
+      dayCellDidMount(info) {
         // Day cells carry a Date (not a dateStr, which only click and select callbacks have).
         const cellDate = localIsoDate(info.date);
         const addBtn = document.createElement('button');

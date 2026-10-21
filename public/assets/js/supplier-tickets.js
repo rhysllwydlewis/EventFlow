@@ -322,8 +322,8 @@ function viewTicket(ticketId) {
       replyForm.addEventListener('submit', async event => {
         event.preventDefault();
         const field = document.getElementById('ticketReplyMessage');
-        const message = field.value.trim();
-        if (!message) {
+        const replyText = field.value.trim();
+        if (!replyText) {
           return;
         }
 
@@ -332,7 +332,7 @@ function viewTicket(ticketId) {
         button.textContent = 'Sending...';
 
         try {
-          await ticketingSystem.addResponse(ticket.id, message);
+          await ticketingSystem.addResponse(ticket.id, replyText);
           field.value = '';
           if (typeof Toast !== 'undefined') {
             showToast('Reply sent', 'success');
