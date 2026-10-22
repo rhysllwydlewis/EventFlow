@@ -396,6 +396,10 @@
       reviews: normaliseReviews(objectOrNull(data.reviews)),
       subscription: normaliseSubscription(objectOrNull(data.subscription)),
       nextSteps: normaliseSteps(data.nextSteps),
+      // Names of the parts the server could not read this time (a step that depends on one is held back).
+      unavailable: Array.isArray(data.unavailable)
+        ? data.unavailable.filter(name => typeof name === 'string')
+        : [],
     };
   }
 

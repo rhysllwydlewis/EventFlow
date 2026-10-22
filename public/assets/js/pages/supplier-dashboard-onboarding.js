@@ -249,6 +249,12 @@
     if (!homeContext || homeContext.loaded === false) {
       return steps;
     }
+    // A step whose information could not be read is held back, not guessed at: say so, so a short
+    // guide is not mistaken for a finished one.
+    if (homeContext.model?.unavailable?.length) {
+      steps[0].note =
+        'Some of your information could not be loaded just now, so a step may be missing. Reopen this guide from the Setup guide link once the page has loaded fully.';
+    }
     if (homeContext.noProfile) {
       steps.push(
         {

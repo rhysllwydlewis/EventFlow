@@ -206,6 +206,31 @@ describe('setup guide: steps', () => {
   });
 });
 
+describe('setup guide: when part of the page could not be loaded', () => {
+  const guide = loadGuide(memoryStorage());
+
+  test('the welcome step says a step may be missing', () => {
+    const steps = guide.buildSteps(
+      {
+        loaded: true,
+        noProfile: false,
+        steps: { steps: [] },
+        model: { unavailable: ['packages'] },
+      },
+      how
+    );
+    expect(steps[0].note).toMatch(/step may be missing/);
+  });
+
+  test('and says nothing when everything loaded', () => {
+    const steps = guide.buildSteps(
+      { loaded: true, noProfile: false, steps: { steps: [] }, model: { unavailable: [] } },
+      how
+    );
+    expect(steps[0].note).toBe('');
+  });
+});
+
 describe('setup guide: who sees it by themselves', () => {
   const guide = loadGuide(memoryStorage());
   const model = (packages, approved, reviews) => ({
