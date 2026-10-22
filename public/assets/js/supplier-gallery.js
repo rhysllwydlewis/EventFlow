@@ -30,6 +30,27 @@ function galleryEntry(entry, index) {
   return { url, id: entry?.id || url || `photo_${index}` };
 }
 
+/**
+ * Show that a file could not be uploaded, on its own tile (the ✕ still removes it).
+ * @param {HTMLElement} tile
+ * @param {string} [reason]
+ */
+function markTileFailed(tile, reason) {
+  tile.classList.remove('photo-preview-item--pending');
+  tile.classList.add('photo-preview-item--failed', 'photo-preview-failed');
+  const badge = tile.querySelector('.photo-pending-badge');
+  if (badge) {
+    badge.textContent = 'Failed';
+    // The "Pending" badge is decorative; "Failed" is information a screen reader must get.
+    badge.removeAttribute('aria-hidden');
+  }
+  tile.title = reason ? `Could not upload: ${reason}` : 'Could not upload this photo';
+  const remove = tile.querySelector('.photo-remove-btn');
+  if (remove) {
+    remove.title = 'Remove this photo';
+  }
+}
+
 class SupplierGalleryManager {
   constructor() {
     this.currentSupplierId = null;
@@ -403,7 +424,7 @@ class SupplierGalleryManager {
         if (results[index]?.success) {
           tile.remove();
         } else {
-          this.markTileFailed(tile, results[index]?.error);
+          markTileFailed(tile, results[index]?.error);
         }
       });
 
@@ -426,27 +447,6 @@ class SupplierGalleryManager {
       throw error;
     } finally {
       this.uploadingCount -= batch.length;
-    }
-  }
-
-  /**
-   * Show that a file could not be uploaded, on its own tile (the ✕ still removes it).
-   * @param {HTMLElement} tile
-   * @param {string} [reason]
-   */
-  markTileFailed(tile, reason) {
-    tile.classList.remove('photo-preview-item--pending');
-    tile.classList.add('photo-preview-item--failed', 'photo-preview-failed');
-    const badge = tile.querySelector('.photo-pending-badge');
-    if (badge) {
-      badge.textContent = 'Failed';
-      // The "Pending" badge is decorative; "Failed" is information a screen reader must get.
-      badge.removeAttribute('aria-hidden');
-    }
-    tile.title = reason ? `Could not upload: ${reason}` : 'Could not upload this photo';
-    const remove = tile.querySelector('.photo-remove-btn');
-    if (remove) {
-      remove.title = 'Remove this photo';
     }
   }
 
