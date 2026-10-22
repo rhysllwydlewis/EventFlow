@@ -37,66 +37,80 @@ test.describe('webkit probe @backend', () => {
         })
     );
 
-  async function measure(page, label, url, blocked = []) {
-    const handler = route => route.abort();
-    for (const pattern of blocked) {
-      await page.route(pattern, handler);
-    }
+  async function measure(browser, baseURL, fixtures, label, url, shape) {
+    const context = await browser.newContext({ baseURL });
+    await context.addCookies([
+      { name: 'eventflow_cookie_consent', value: 'rejected', url: baseURL },
+    ]);
+    const page = await context.newPage();
     let result;
     try {
+      await loginAs(page, fixtures.users.admin);
+      if (shape) {
+        await page.route(`**${url}`, async route => {
+          const response = await route.fetch();
+          const body = await response.text();
+          await route.fulfill(shape(response, body));
+        });
+      }
       await page.goto(url, { waitUntil: 'load', timeout: 15000 });
       await page.waitForTimeout(500);
       result = await frames(page);
     } catch (error) {
       result = `error ${String(error.message).split('\n')[0]}`;
     }
-    for (const pattern of blocked) {
-      await page.unroute(pattern, handler);
-    }
+    await context.close();
     console.log(`PROBE ${label}: ${result}`);
   }
 
-  test('probe', async ({ page, context, baseURL, browserName }) => {
+  test('probe', async ({ browser, baseURL, browserName }) => {
     test.skip(browserName !== 'webkit', 'diagnostic for WebKit only');
     test.setTimeout(240000);
-    await context.addCookies([
-      { name: 'eventflow_cookie_consent', value: 'rejected', url: baseURL },
-    ]);
-    await loginAs(page, fixtures.users.admin);
-
     const admin = '/admin-packages';
-    await measure(page, 'about', '/about');
-    await measure(page, 'admin baseline', admin);
-    await measure(page, 'admin users page', '/admin-users');
-    await measure(page, 'admin, no navbar script', admin, ['**/admin-navbar.js*']);
-    await measure(page, 'admin, no page script', admin, ['**/admin-packages-init.js*']);
-    await measure(page, 'admin, no shared script', admin, ['**/admin-shared.js*']);
-    await measure(page, 'admin, no components script', admin, ['**/components.js*']);
-    await measure(page, 'admin, no cookie script', admin, ['**/cookie-consent.js*']);
-    await measure(page, 'admin, no guard', admin, ['**/dashboard-guard.js*']);
-    await measure(page, 'admin, no navbar css', admin, ['**/admin-navbar.css*']);
-    await measure(page, 'admin, no admin css', admin, [
-      '**/admin.css*',
-      '**/admin-enhanced.css*',
-      '**/admin-cards.css*',
-      '**/admin-packages-enhanced.css*',
-      '**/admin-ui-improvements.css*',
-      '**/admin-workspace.css*',
-    ]);
-    await measure(page, 'admin, no animations css', admin, ['**/animations.css*']);
-    await measure(page, 'admin, no styles css', admin, [
-      '**/styles.css*',
-      '**/eventflow-17.0.0.css*',
-      '**/components.css*',
-      '**/utilities.css*',
-      '**/mobile-optimizations.css*',
-      '**/ui-ux-fixes.css*',
-    ]);
-    await measure(page, 'admin, no scripts at all', admin, ['**/*.js*']);
-    await measure(page, 'admin, no stylesheets at all', admin, ['**/*.css*']);
-
-    await loginAs(page, fixtures.users.supplier);
-    await measure(page, 'supplier dashboard', '/dashboard/supplier');
-    await expect(page).toHaveURL(/dashboard/);
+    const contentType = response => ({ 'content-type': response.headers()['content-type'] });
+    const stripScripts = body => body.replace(/<script[\s\S]*?<\/script>/gi, '');
+    const stripAll = body =>
+      stripScripts(body).replace(/<link[^>]*rel=['"]stylesheet['"][^>]*>/gi, '');
+    const cases = [
+      ['about', '/about'],
+      ['faq', '/faq'],
+      ['admin baseline', admin],
+      ['admin users', '/admin-users'],
+      [
+        'admin, headers reduced to content-type',
+        admin,
+        (response, body) => ({ status: 200, headers: contentType(response), body }),
+      ],
+      [
+        'admin, tiny body, all headers',
+        admin,
+        (response, body) => ({
+          response,
+          body: '<!DOCTYPE html><html><body><p>hi</p></body></html>',
+        }),
+      ],
+      [
+        'admin, tiny body, content-type only',
+        admin,
+        (response, body) => ({
+          status: 200,
+          headers: contentType(response),
+          body: '<!DOCTYPE html><html><body><p>hi</p></body></html>',
+        }),
+      ],
+      [
+        'admin, no inline or external scripts',
+        admin,
+        (response, body) => ({ response, body: stripScripts(body) }),
+      ],
+      [
+        'admin, no scripts and no stylesheets',
+        admin,
+        (response, body) => ({ response, body: stripAll(body) }),
+      ],
+    ];
+    for (const [label, url, shape] of cases) {
+      await measure(browser, baseURL, fixtures, label, url, shape);
+    }
   });
 });
