@@ -637,11 +637,6 @@
   line-height: 1.45;
 }
 
-.sdh-page .sdh-tile__sub--warn {
-  color: var(--sdh-danger);
-  font-weight: 600;
-}
-
 .sdh-page .sdh-bar {
   height: 6px;
   margin: 4px 0 2px;
@@ -655,10 +650,6 @@
   height: 100%;
   border-radius: inherit;
   background: var(--sdh-accent);
-}
-
-.sdh-page .sdh-bar--warn > span {
-  background: var(--sdh-danger);
 }
 
 /* Summary row: the second line with visits and reply figures */
@@ -779,23 +770,6 @@
   border-top: 1px solid var(--sdh-line-soft);
 }
 
-.sdh-page .sdh-subhead {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  gap: 4px 12px;
-  margin-bottom: 4px;
-  color: var(--sdh-ink);
-  font-size: 14px;
-  font-weight: 600;
-}
-
-.sdh-page .sdh-subhead__note {
-  color: var(--sdh-muted);
-  font-size: 13px;
-  font-weight: 400;
-}
-
 .sdh-page .sdh-list__row {
   display: flex;
   align-items: center;
@@ -897,12 +871,6 @@
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 20px 16px;
-}
-
-.sdh-page .sdh-form__title {
-  color: var(--sdh-ink);
-  font-size: 16px;
-  font-weight: 600;
 }
 
 .sdh-page .sdh-field {
@@ -1810,10 +1778,6 @@
   margin-bottom: 8px;
 }
 
-.sdh-page .sdh-pkg-upgrade {
-  margin-top: 4px;
-}
-
 /* ------------------------------------------------------------------ *
  * Availability, visits, tips
  * ------------------------------------------------------------------ */
@@ -2409,14 +2373,6 @@
   margin-top: 2px;
   color: var(--sdh-muted);
   font-size: 13px;
-}
-
-.sdh-page .supplier-tickets-view-all {
-  display: inline-block;
-  margin-top: 12px;
-  color: var(--sdh-accent-deep);
-  font-size: 13px;
-  font-weight: 600;
 }
 
 .sdh-page #tickets-sup .empty-state,
@@ -3314,10 +3270,6 @@
 
 .sdh-page .sdh-dialog .sdh-field {
   width: 100%;
-}
-
-.sdh-page .sdh-dialog .sdh-form-status {
-  margin-top: 0;
 }
 
 .sdh-page .sdh-input--area {
