@@ -562,6 +562,30 @@
   grid-template-columns: repeat(4, minmax(0, 1fr));
 }
 
+/* While the figures load, keep the room they will fill, so the cards below do not jump down when
+   they arrive. The heights are what the finished row measures at each width. */
+.sdh-page .sdh-summary:has(#sdh-summary-grid[aria-busy='true']) {
+  min-height: 272px;
+}
+
+@media (max-width: 1023px) {
+  .sdh-page .sdh-summary:has(#sdh-summary-grid[aria-busy='true']) {
+    min-height: 420px;
+  }
+}
+
+@media (max-width: 767px) {
+  .sdh-page .sdh-summary:has(#sdh-summary-grid[aria-busy='true']) {
+    min-height: 340px;
+  }
+}
+
+@media (max-width: 359px) {
+  .sdh-page .sdh-summary:has(#sdh-summary-grid[aria-busy='true']) {
+    min-height: 560px;
+  }
+}
+
 .sdh-page .sdh-summary__grid > :last-child:nth-child(odd) {
   grid-column: 1 / -1;
 }
@@ -3646,11 +3670,10 @@
 }
 
 .sdh-page .sdh-hero__guide {
+  /* The line is kept whether or not the Setup guide link is shown, so the figures below do not jump
+     down when it appears after the page has loaded. */
+  min-height: 24px;
   margin: 8px 0 0;
-}
-
-.sdh-page .sdh-hero__guide:has(> [hidden]) {
-  display: none;
 }
 
 /* The page behind an open editor does not scroll. */

@@ -394,6 +394,52 @@ test.describe('Supplier dashboard: layout, accessibility and unusual conditions 
     expect(await page.evaluate(() => window.__cspViolations)).toEqual([]);
   });
 
+  for (const [name, viewport] of [
+    ['desktop', { width: 1440, height: 900 }],
+    ['phone', { width: 390, height: 844 }],
+  ]) {
+    test(`the page does not jump while it loads, and stays within its weight budget (${name})`, async ({
+      page,
+      context,
+      baseURL,
+      browserName,
+    }) => {
+      test.skip(browserName !== 'chromium', 'layout-shift and size measurements are Chromium APIs');
+      await page.setViewportSize(viewport);
+      const bytes = { script: 0, stylesheet: 0, requests: 0 };
+      page.on('response', async response => {
+        try {
+          const type = response.request().resourceType();
+          bytes.requests += 1;
+          if (type === 'script' || type === 'stylesheet') {
+            bytes[type] += (await response.body()).length;
+          }
+        } catch {
+          /* a response that was cancelled with the page */
+        }
+      });
+      await page.addInitScript(() => {
+        window.__layoutShift = 0;
+        new PerformanceObserver(list => {
+          for (const entry of list.getEntries()) {
+            if (!entry.hadRecentInput) {
+              window.__layoutShift += entry.value;
+            }
+          }
+        }).observe({ type: 'layout-shift', buffered: true });
+      });
+      await open(page, context, baseURL);
+      await page.waitForTimeout(2500);
+      const shift = await page.evaluate(() => window.__layoutShift);
+      // Google's "good" Cumulative Layout Shift is 0.1 or less.
+      expect(shift).toBeLessThanOrEqual(0.1);
+      // A budget, not a target: today about 1.1 MB of script and 0.4 MB of style in 85 requests.
+      expect(bytes.script).toBeLessThan(1.5 * 1024 * 1024);
+      expect(bytes.stylesheet).toBeLessThan(0.6 * 1024 * 1024);
+      expect(bytes.requests).toBeLessThan(120);
+    });
+  }
+
   for (const timezoneId of ['Pacific/Auckland', 'America/Los_Angeles', 'Asia/Kolkata']) {
     test.describe(`in ${timezoneId}`, () => {
       test.use({ timezoneId });
