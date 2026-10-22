@@ -84,7 +84,7 @@ jobs:
         run: npm ci --prefer-offline --no-audit
 
       - name: Run replica-set and real-service tests (transactions, review replies, photo storage, two-instance sockets)
-        run: npx jest --runInBand --coverage=false tests/unit/messenger-v4.test.js tests/integration/review-reply-real-mongo.test.js tests/integration/photo-storage-real-mongo.test.js tests/integration/websocket-multi-instance.test.js tests/integration/supplier-enquiries-real-mongo.test.js
+        run: npx jest --runInBand --coverage=false tests/unit/messenger-v4.test.js tests/integration/review-reply-real-mongo.test.js tests/integration/photo-storage-real-mongo.test.js tests/integration/websocket-multi-instance.test.js tests/integration/supplier-enquiries-real-mongo.test.js tests/integration/stripe-subscription-lifecycle-real-mongo.test.js
         env:
           MULTI_INSTANCE_REDIS_URL: redis://127.0.0.1:6379
           NODE_ENV: test

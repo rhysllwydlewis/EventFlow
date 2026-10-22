@@ -588,10 +588,11 @@ router.post(
         });
       }
 
-      if (!subscription.stripeSubscriptionId) {
-        // Nothing is being billed (a record that fell back to free keeps status 'active' but has no
-        // Stripe subscription). Upgrading it here would change the plan with no payment at all, so
-        // the only way onto a paid plan from there is a Stripe checkout.
+      if (!subscription.stripeSubscriptionId || subscription.status === 'canceled') {
+        // Nothing is being billed: a record that fell back to a lower plan keeps status 'active' but
+        // has no Stripe subscription, and a cancelled one still names a subscription Stripe has
+        // ended. Upgrading either here would change the plan with no payment at all, so the only
+        // way onto a paid plan from there is a Stripe checkout.
         return res.status(400).json({
           error: 'Start a paid plan through checkout',
           code: 'CHECKOUT_REQUIRED',
