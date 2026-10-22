@@ -828,6 +828,40 @@ test.describe('Supplier dashboard: every control works @backend', () => {
     await expect(create).toHaveAttribute('title', /approved/i);
   });
 
+  test('a supplier who is not approved still sees the packages they have, without anything to change them', async ({
+    page,
+    context,
+    baseURL,
+  }) => {
+    await context.addCookies([
+      { name: 'eventflow_cookie_consent', value: 'rejected', url: baseURL },
+    ]);
+    await loginAs(page, fixtures.users.pendingSupplier);
+    // The server's answer is what an approved-then-suspended supplier gets: their packages and
+    // canEdit false. (Whether the real route returns it is covered by its own test.)
+    await page.route('**/api/me/packages', route =>
+      route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          canEdit: false,
+          items: [
+            { id: 'pkg_read_only', title: 'Garden Party Hire', price: '£450', approved: true },
+          ],
+        }),
+      })
+    );
+    await page.goto('/dashboard/supplier');
+    const card = page.locator('.sdh-pkg', { hasText: 'Garden Party Hire' });
+    await expect(card).toBeVisible();
+    await expect(card).toContainText('£450');
+    await expect(card.getByRole('button', { name: /^Edit/ })).toHaveCount(0);
+    await expect(card.getByRole('button', { name: /^Delete/ })).toHaveCount(0);
+    await expect(card.getByRole('button', { name: 'Pause' })).toHaveCount(0);
+    await expect(page.locator('#toggle-package-form')).toBeDisabled();
+    await expect(page.locator('#pkg-limit-note')).toContainText('can be seen here but not changed');
+  });
+
   test('a supplier waiting for approval can send their profile for verification', async ({
     page,
     context,

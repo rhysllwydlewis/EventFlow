@@ -227,28 +227,23 @@ router.get('/me/packages/event-types', (req, res) => {
  * GET /api/me/packages
  * List supplier's packages
  */
-router.get(
-  '/me/packages',
-  applyAuthRequired,
-  applyRoleRequired('supplier'),
-  applyRequireApprovedSupplier,
-  async (req, res) => {
-    try {
-      // Use the approved supplier profile resolved by requireApprovedSupplier where available.
-      const supplierIds = req.supplierProfile?.id
-        ? [req.supplierProfile.id]
-        : (await dbUnified.find('suppliers', { ownerUserId: req.user.id })).map(s => s.id);
-      const items =
-        supplierIds.length > 0
-          ? await dbUnified.find('packages', { supplierId: { $in: supplierIds } })
-          : [];
-      res.json({ items });
-    } catch (error) {
-      logger.error('Error reading supplier packages:', error);
-      return res.status(500).json({ error: 'Internal server error' });
-    }
+router.get('/me/packages', applyAuthRequired, applyRoleRequired('supplier'), async (req, res) => {
+  try {
+    // A supplier can always read their own packages, approved or not: a supplier who was approved,
+    // listed packages and was then suspended would otherwise see an empty list. Reading exposes
+    // nothing private. Every route that changes a package still requires an approved supplier.
+    const suppliers = await dbUnified.find('suppliers', { ownerUserId: req.user.id });
+    const supplierIds = suppliers.map(s => s.id);
+    const items =
+      supplierIds.length > 0
+        ? await dbUnified.find('packages', { supplierId: { $in: supplierIds } })
+        : [];
+    res.json({ items, canEdit: suppliers.some(s => s.approved === true) });
+  } catch (error) {
+    logger.error('Error reading supplier packages:', error);
+    return res.status(500).json({ error: 'Internal server error' });
   }
-);
+});
 
 /**
  * POST /api/me/packages

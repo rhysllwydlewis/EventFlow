@@ -307,8 +307,9 @@ function escapeAttr(unsafe) {
 }
 
 /**
- * The price to show for a package: what the supplier typed (`price`), or the older
- * `price_display`; nothing when neither is there.
+ * The price to show for a package: `price_display` (what the site has always shown), else
+ * `price`; nothing when neither is there. The same rule as public/assets/js/utils/package-price.js
+ * and utils/packagePrice.js.
  * @param {Object} p - Package record.
  * @returns {string} The price text, or ''.
  */
@@ -2456,17 +2457,18 @@ async function initDashSupplier() {
 
   /**
    * One package row: photo, title and price, status badges, and one Edit button with text links
-   * for the rest.
+   * for the rest. A read-only row (a supplier who is not approved) has no way to change anything.
    * @param {Object} p - Package record.
+   * @param {boolean} [readOnly] - Show the package without the buttons that change it.
    * @returns {string} Row markup.
    */
-  function packageCardHtml(p) {
+  function packageCardHtml(p, readOnly) {
     const packageId = escapeAttr(String(p.id || ''));
     const image = escapeAttr(String(p.image || '/assets/images/package-placeholder.svg'));
     const rawTitle = String(p.title || 'Untitled package');
     const title = escapeHtml(rawTitle);
     const titleAttr = escapeAttr(rawTitle);
-    // The server stores what the supplier typed as `price`; `price_display` is the older name.
+    // One price, read the way the whole site reads it: `price_display` first, then `price`.
     const priceText = escapeHtml(packagePriceText(p));
     const description = escapeHtml(String(p.description || ''));
     const slug = escapeAttr(String(p.slug || ''));
@@ -2501,13 +2503,17 @@ async function initDashSupplier() {
         </div>
         <div class="sdh-pkg__badges">${badges}</div>
         ${description ? `<p class="sdh-pkg__desc">${description}</p>` : ''}
-        <div class="sdh-pkg__actions">
+        <div class="sdh-pkg__actions">${
+          readOnly
+            ? viewControl
+            : `
           <button type="button" class="sdh-btn sdh-btn--secondary sdh-btn--sm" data-action="edit-package" data-package-id="${packageId}" aria-label="Edit ${titleAttr}">Edit</button>
           ${viewControl}
           <a href="/gallery?type=package&id=${encodeURIComponent(String(p.id || ''))}" target="_blank" rel="noopener" class="sdh-link">Photos</a>
           ${pauseControl}
           <button type="button" class="sdh-link sdh-link--danger" data-action="delete-package" data-package-id="${packageId}" aria-label="Delete ${titleAttr}">Delete</button>
-        </div>
+        `
+        }</div>
       </div>
     </article>`;
   }
@@ -2520,10 +2526,11 @@ async function initDashSupplier() {
    * supplier with fifty packages does not push every other card off the page.
    * @param {Object[]} items - Package records.
    * @param {boolean} [keepOpen] - Whether the folded rows were open before this redraw.
+   * @param {boolean} [readOnly] - Show the rows without the buttons that change them.
    * @returns {string} List markup.
    */
-  function packageListHtml(items, keepOpen) {
-    const rows = items.filter(Boolean).map(packageCardHtml);
+  function packageListHtml(items, keepOpen, readOnly) {
+    const rows = items.filter(Boolean).map(p => packageCardHtml(p, readOnly));
     // A phone shows fewer rows before the fold: the page there is one very long column.
     const phone = Boolean(window.matchMedia && window.matchMedia('(max-width: 767px)').matches);
     const shown = phone ? PACKAGES_SHOWN_FIRST_PHONE : PACKAGES_SHOWN_FIRST;
@@ -2678,17 +2685,42 @@ async function initDashSupplier() {
       );
   }
 
+  /**
+   * The packages card for a supplier who is not approved: the packages they have, with nothing to
+   * change them (every route that changes a package refuses an unapproved supplier).
+   * @param {{code: string, message: string, label: string}} block - Why changes are blocked.
+   */
+  async function showReadOnlyPackages(block) {
+    const listed = await api('/api/me/packages');
+    const own = listed?.items && Array.isArray(listed.items) ? listed.items : [];
+    disableCreateButtonFor(block);
+    const note = document.getElementById('pkg-limit-note');
+    if (note) {
+      note.textContent = own.length
+        ? 'Your profile is not approved at the moment, so your packages can be seen here but not changed.'
+        : 'What you offer, and what it costs.';
+    }
+    pkgsWrap.innerHTML = own.length
+      ? packageListHtml(own, false, true)
+      : packageBlockedHtml(block.code);
+  }
+
   async function loadPackages() {
     try {
       if (!pkgsWrap) {
         return;
       }
       const block = packageCreationBlock();
-      // The profile list already says when packages cannot be read yet, so skip a request the
-      // server would refuse (it would only add a 403 to the console).
-      if (block) {
+      // A supplier who is not approved can still see the packages they have (read-only); one with
+      // no profile has none to read.
+      const readOnly = Boolean(block) && block.code === 'SUPPLIER_NOT_APPROVED';
+      if (block && !readOnly) {
         pkgsWrap.innerHTML = packageBlockedHtml(block.code);
         disableCreateButtonFor(block);
+        return;
+      }
+      if (readOnly) {
+        await showReadOnlyPackages(block);
         return;
       }
       const [d, allowance] = await Promise.all([api('/api/me/packages'), getPackageAllowance()]);
@@ -4949,7 +4981,7 @@ async function initAdmin() {
       (p.items || [])
         .map(
           x => `<div class="pack card" style="margin-bottom:10px">
-      <img src="${x.image}" alt="${escapeHtml(x.title)}"><div><h3>${x.title}</h3><div class="small"><span class="badge">${x.price}</span> — Supplier ${x.supplierId.slice(0, 8)}</div>
+      <img src="${x.image}" alt="${escapeHtml(x.title)}"><div><h3>${x.title}</h3><div class="small"><span class="badge">${escapeHtml(x.price_display || x.price || '')}</span> — Supplier ${x.supplierId.slice(0, 8)}</div>
       <div class="form-actions"><button class="cta secondary" data-approve="${escapeAttr(x.id)}" data-val="${x.approved ? 'false' : 'true'}">${x.approved ? 'Hide' : 'Approve'}</button>
       <button class="cta secondary" data-feature="${escapeAttr(x.id)}" data-val="${x.featured ? 'false' : 'true'}">${x.featured ? 'Unfeature' : 'Feature'}</button></div></div></div>`
         )
