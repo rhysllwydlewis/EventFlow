@@ -8,9 +8,9 @@ describe('Messenger selection and supplier profile hardening', () => {
 
   it('loads selection hardening after MessengerAppV4 and before bootstrap', () => {
     const html = read('public/messenger/index.html');
-    expect(html).toContain('/messenger/js/MessengerAppV4.js?v=1.0.1');
+    expect(html).toContain('/messenger/js/MessengerAppV4.js?v=1.0.2');
     expect(html).toContain('/messenger/js/MessengerSelectionProfileHardening.js?v=1.0.0');
-    expect(html.indexOf('MessengerAppV4.js?v=1.0.1')).toBeLessThan(
+    expect(html.indexOf('MessengerAppV4.js?v=1.0.2')).toBeLessThan(
       html.indexOf('MessengerSelectionProfileHardening.js?v=1.0.0')
     );
     expect(html.indexOf('MessengerSelectionProfileHardening.js?v=1.0.0')).toBeLessThan(

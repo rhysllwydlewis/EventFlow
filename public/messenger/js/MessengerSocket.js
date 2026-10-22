@@ -77,6 +77,13 @@ class MessengerSocket {
       window.dispatchEvent(new CustomEvent('messenger:new-message', { detail: data }));
     });
 
+    // Sent to each participant's own channel, so a message in a conversation that is not open (or
+    // the first message of a new one) still reaches the list, the unread count and notifications.
+    // The app drops a message it has already seen, so the open conversation getting both is safe.
+    this.socket.on('messenger:v4:new-message', data => {
+      window.dispatchEvent(new CustomEvent('messenger:new-message', { detail: data }));
+    });
+
     this.socket.on('messenger:v4:typing', data => {
       this.state.setTyping(data.conversationId, data.userId, data.isTyping);
       window.dispatchEvent(new CustomEvent('messenger:typing', { detail: data }));

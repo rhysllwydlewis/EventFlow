@@ -136,6 +136,19 @@ function createInMemoryDb() {
         }
       }
     }
+    if (update.$push) {
+      for (const [path, val] of Object.entries(update.$push)) {
+        if (!Array.isArray(doc[path])) {
+          doc[path] = [];
+        }
+        doc[path].push(val);
+      }
+    }
+    if (update.$inc) {
+      for (const [path, val] of Object.entries(update.$inc)) {
+        doc[path] = (Number(doc[path]) || 0) + val;
+      }
+    }
     return doc;
   }
 
@@ -173,6 +186,11 @@ function createInMemoryDb() {
         }
         applyUpdate(getCol(name)[idx], update);
         return { matchedCount: 1, modifiedCount: 1 };
+      },
+      async updateMany(filter, update) {
+        const hits = getCol(name).filter(doc => matches(doc, filter));
+        hits.forEach(doc => applyUpdate(doc, update));
+        return { matchedCount: hits.length, modifiedCount: hits.length };
       },
       async countDocuments(query) {
         return getCol(name).filter(doc => matches(doc, query || {})).length;

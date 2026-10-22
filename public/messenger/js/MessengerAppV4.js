@@ -661,16 +661,20 @@ class MessengerAppV4 {
 
     // Real-time message edit from another user's session
     window.addEventListener('messenger:message-edited', e => {
-      const { messageId, content, editedAt } = e.detail || {};
+      const { conversationId, messageId, content, editedAt } = e.detail || {};
+      const targetId = conversationId || this._activeConversationId;
       // Only update if we have a messageId and valid content from the server
-      if (!messageId || !content || !this._activeConversationId) {
+      if (!messageId || !content || !targetId) {
         return;
       }
-      this.state.updateMessage(this._activeConversationId, messageId, {
+      this.state.updateMessage(targetId, messageId, {
         content,
         isEdited: true,
         editedAt,
       });
+      if (targetId !== this._activeConversationId) {
+        return;
+      }
       // Patch the DOM bubble text if it's visible — use textContent (never innerHTML) to prevent XSS
       const el = this.chatView?.messagesEl?.querySelector(`[data-id="${CSS.escape(messageId)}"]`);
       if (el) {
@@ -694,10 +698,14 @@ class MessengerAppV4 {
 
     // Real-time message delete from another user's session
     window.addEventListener('messenger:message-deleted', e => {
-      const { messageId } = e.detail || {};
-      if (messageId && this._activeConversationId) {
-        this.state.deleteMessage(this._activeConversationId, messageId);
-        const el = this.chatView?.messagesEl?.querySelector(`[data-id="${CSS.escape(messageId)}"]`);
+      const { conversationId, messageId } = e.detail || {};
+      const targetId = conversationId || this._activeConversationId;
+      if (messageId && targetId) {
+        this.state.deleteMessage(targetId, messageId);
+        const el =
+          targetId === this._activeConversationId
+            ? this.chatView?.messagesEl?.querySelector(`[data-id="${CSS.escape(messageId)}"]`)
+            : null;
         if (el) {
           el.remove();
         }
@@ -708,11 +716,15 @@ class MessengerAppV4 {
 
     // Real-time reaction update from another user's session
     window.addEventListener('messenger:reaction-updated', e => {
-      const { messageId, reactions } = e.detail || {};
-      if (messageId && this._activeConversationId) {
-        this.state.updateMessage(this._activeConversationId, messageId, {
+      const { conversationId, messageId, reactions } = e.detail || {};
+      const targetId = conversationId || this._activeConversationId;
+      if (messageId && targetId) {
+        this.state.updateMessage(targetId, messageId, {
           reactions: reactions || [],
         });
+        if (targetId !== this._activeConversationId) {
+          return;
+        }
         // Re-render the reactions bar in the DOM.
         // MessageBubbleV4.renderReactions() escapes all dynamic values (emoji, messageId, counts)
         // via MessageBubbleV4.escape() before building the HTML string, so innerHTML is safe here.

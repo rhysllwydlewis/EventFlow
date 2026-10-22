@@ -197,6 +197,81 @@ describe('messenger-v4 real-time events (route level)', () => {
     });
   });
 
+  describe('other events: payloads and who hears them', () => {
+    async function twoWay(ws) {
+      const conversation = await seedConversation(db, [{ userId: 'u1' }, { userId: 'u2' }]);
+      const send = await request(buildApp(db, { id: 'u1' }, ws))
+        .post(`${BASE}/conversations/${conversation._id.toString()}/messages`)
+        .send({ content: 'first' });
+      expect(send.status).toBe(201);
+      ws.emitToUser.mockClear();
+      ws.emitToConversation.mockClear();
+      return { conversation, message: send.body.message };
+    }
+
+    it('edit, delete and reaction carry the conversation id', async () => {
+      const ws = createAppWsServer();
+      const { conversation, message } = await twoWay(ws);
+      const convId = conversation._id.toString();
+      const as = request(buildApp(db, { id: 'u1' }, ws));
+
+      await as.patch(`${BASE}/messages/${message._id}`).send({ content: 'edited' }).expect(200);
+      await as.post(`${BASE}/messages/${message._id}/reactions`).send({ emoji: '👍' }).expect(200);
+      await as.delete(`${BASE}/messages/${message._id}`).expect(200);
+
+      const byEvent = Object.fromEntries(
+        ws.emitToConversation.mock.calls.map(([, event, data]) => [event, data])
+      );
+      expect(byEvent['messenger:v4:message-edited'].conversationId).toBe(convId);
+      expect(byEvent['messenger:v4:reaction'].conversationId).toBe(convId);
+      expect(byEvent['messenger:v4:message-deleted'].conversationId).toBe(convId);
+    });
+
+    it("a read receipt reaches the other participant, and the reader's own other sessions", async () => {
+      const ws = createAppWsServer();
+      const { conversation } = await twoWay(ws);
+      const res = await request(buildApp(db, { id: 'u2' }, ws))
+        .post(`${BASE}/conversations/${conversation._id.toString()}/read`)
+        .send({});
+      expect(res.status).toBe(200);
+
+      const calls = ws.emitToUser.mock.calls.map(([userId, event]) => `${userId}:${event}`);
+      expect(calls).toContain('u1:messenger:v4:read');
+      expect(calls).toContain('u2:messenger:v4:conversation-updated');
+      expect(calls).not.toContain('u2:messenger:v4:read');
+    });
+
+    it('typing and read are not sent to a participant who deleted the conversation', async () => {
+      const conversation = await seedConversation(db, [
+        { userId: 'u1' },
+        { userId: 'u2' },
+        { userId: 'u3' },
+      ]);
+      const idx = conversation.participants.findIndex(p => p.userId === 'u3');
+      await db
+        .collection('conversations_v4')
+        .updateOne(
+          { _id: conversation._id },
+          { $set: { [`participants.${idx}.isDeleted`]: true } }
+        );
+      const ws = createAppWsServer();
+      const id = conversation._id.toString();
+      await request(buildApp(db, { id: 'u1' }, ws))
+        .post(`${BASE}/conversations/${id}/typing`)
+        .send({ isTyping: true })
+        .expect(200);
+      await request(buildApp(db, { id: 'u1' }, ws))
+        .post(`${BASE}/conversations/${id}/read`)
+        .send({});
+
+      const targets = ws.emitToUser.mock.calls
+        .filter(([, event]) => event === 'messenger:v4:typing' || event === 'messenger:v4:read')
+        .map(([userId]) => userId);
+      expect(targets).not.toContain('u3');
+      expect(targets).toContain('u2');
+    });
+  });
+
   describe('request validation', () => {
     const create = (body, user = { id: 'u1' }) =>
       request(buildApp(db, user, null))

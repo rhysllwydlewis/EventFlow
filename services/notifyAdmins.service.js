@@ -28,7 +28,7 @@ const NotificationService = require('./notification.service');
  * @param {string} [payload.actionText] - Button label
  * @param {string} [payload.priority]  - 'normal'|'high'
  * @param {Object} [payload.metadata]  - Extra data stored on notification
- * @param {Object} [websocketServer]   - Optional; pass req.app.get('websocketServer') for realtime push
+ * @param {Object} [websocketServer]   - Optional; pass getAppWebSocketServer(req) (utils/appWebSocket) for realtime push
  * @returns {Promise<void>}
  */
 async function notifyAdmins(payload, websocketServer = null) {
