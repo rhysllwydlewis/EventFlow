@@ -7,7 +7,9 @@
  * the price and the site keeps showing the admin's old text).
  *
  * So there is one value and both fields hold it:
- *   - reading: `packagePriceText(pkg)` is the price, wherever it is shown or parsed;
+ *   - reading: `packagePriceText(pkg)` is the price, wherever it is shown or parsed. The rule lives
+ *     in public/assets/js/utils/package-price.js, which the browser loads too, so a page and the
+ *     server cannot disagree;
  *   - writing: every path that sets a price stores `priceFields(value)`, which writes the same
  *     text to `price` and to `price_display`. Whoever saves last wins, for everyone.
  *
@@ -17,8 +19,10 @@
 
 'use strict';
 
+const shared = require('../public/assets/js/utils/package-price');
+
 /** Longest price text stored; the same limit the supplier form has always had. */
-const MAX_PRICE_LENGTH = 60;
+const MAX_PRICE_LENGTH = shared.MAX_PRICE_LENGTH;
 
 /**
  * A price value as trimmed text of at most MAX_PRICE_LENGTH characters.
@@ -26,12 +30,7 @@ const MAX_PRICE_LENGTH = 60;
  * @param {*} value - A stored or submitted price (text or number)
  * @returns {string} Price text, or '' when there is none
  */
-function cleanPrice(value) {
-  if (value === undefined || value === null) {
-    return '';
-  }
-  return String(value).trim().slice(0, MAX_PRICE_LENGTH);
-}
+const cleanPrice = shared.clean;
 
 /**
  * The price to show (or parse) for a package.
@@ -39,12 +38,26 @@ function cleanPrice(value) {
  * @param {Object} pkg - Package record
  * @returns {string} Price text, or '' when the package has none
  */
-function packagePriceText(pkg) {
-  if (!pkg || typeof pkg !== 'object') {
-    return '';
-  }
-  return cleanPrice(pkg.price_display) || cleanPrice(pkg.price);
-}
+const packagePriceText = shared.text;
+
+/**
+ * The number in a price text, for filtering and sorting: the first amount written.
+ *
+ * "£3,500" is 3500, "from £450" is 450, "£25 pp" is 25, "£1,200 - £1,800" is 1200 (the lower end),
+ * "£2k" is 2000. A price with no amount ("POA", "Contact for pricing", "Free") has no number: null.
+ *
+ * @param {*} text - A price text (or number)
+ * @returns {number|null} The amount, or null when there is none
+ */
+const parsePriceAmount = shared.parse;
+
+/**
+ * The amount of a package's price, whichever field holds it.
+ *
+ * @param {Object} pkg - Package record
+ * @returns {number|null} The amount, or null when the package has no priced amount
+ */
+const packagePriceAmount = shared.amount;
 
 /**
  * The fields to store for a price: the same text in both.
@@ -57,4 +70,11 @@ function priceFields(value) {
   return { price: text, price_display: text };
 }
 
-module.exports = { MAX_PRICE_LENGTH, cleanPrice, packagePriceText, priceFields };
+module.exports = {
+  MAX_PRICE_LENGTH,
+  cleanPrice,
+  packagePriceText,
+  priceFields,
+  parsePriceAmount,
+  packagePriceAmount,
+};

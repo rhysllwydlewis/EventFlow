@@ -109,7 +109,13 @@ const options = {
             supplierId: { type: 'string', example: 'sup_xyz789' },
             title: { type: 'string', example: 'Wedding Package' },
             description: { type: 'string', example: 'Complete wedding photography package' },
-            price: { type: 'string', example: '$2,500' },
+            price: { type: 'string', example: '£2,500' },
+            price_display: {
+              type: 'string',
+              example: '£2,500',
+              description:
+                'The price as shown (free text, up to 60 characters). Holds the same text as price once saved; readers use price_display first, then price.',
+            },
             image: { type: 'string', format: 'uri' },
             approved: { type: 'boolean', example: true },
             featured: { type: 'boolean', example: false },

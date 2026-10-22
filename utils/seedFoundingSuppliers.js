@@ -10,6 +10,7 @@
 const dbUnified = require('../db-unified');
 const logger = require('./logger');
 const { uid } = require('../store');
+const { priceFields } = require('./packagePrice');
 const { getPexelsService } = require('./pexels-service');
 
 // Founding supplier data template
@@ -409,8 +410,7 @@ function generatePackages(supplierId, supplierName, category, location) {
     title: template.title,
     slug: `${supplierName.toLowerCase().replace(/[^a-z0-9]+/g, '-')}-${template.title.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`,
     description: template.description,
-    price: template.price,
-    price_display: template.price, // Ensure price_display is set
+    ...priceFields(template.price),
     image: defaultImage,
     location,
     categories: [category.toLowerCase().replace(/[^a-z0-9]+/g, '-')],

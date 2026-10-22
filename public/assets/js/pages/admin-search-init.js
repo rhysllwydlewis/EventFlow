@@ -133,7 +133,7 @@
             <div class="search-result-item">
               <div>
                 <div class="search-result-primary">${AdminShared.escapeHtml(p.title || 'Unknown')}</div>
-                <div class="search-result-secondary">${AdminShared.escapeHtml(p.supplierName || '')} ${Number.isFinite(Number(p.price)) && p.price !== '' && p.price !== null ? `· £${AdminShared.escapeHtml(Number(p.price).toFixed(2))}` : ''}</div>
+                <div class="search-result-secondary">${AdminShared.escapeHtml(p.supplierName || '')} ${window.EFPackagePrice && EFPackagePrice.label(p) ? `· ${AdminShared.escapeHtml(EFPackagePrice.label(p))}` : ''}</div>
               </div>
               <div class="search-result-meta">
                 <span class="badge">${AdminShared.escapeHtml(p.status || 'active')}</span>

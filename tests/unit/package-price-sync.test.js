@@ -186,3 +186,36 @@ describe('every reader of a package price applies the same rule', () => {
     expect(source.match(/pkg\.price_display \|\| pkg\.price \|\| ''/g)).toHaveLength(2);
   });
 });
+
+describe('parsePriceAmount / packagePriceAmount', () => {
+  const { parsePriceAmount, packagePriceAmount } = require('../../utils/packagePrice');
+
+  test.each([
+    ['£3,500', 3500],
+    ['from £450', 450],
+    ['From £450 per day', 450],
+    ['£25 pp', 25],
+    ['£1,200 - £1,800', 1200],
+    ['£12.50', 12.5],
+    ['£2k', 2000],
+    ['£1.5k', 1500],
+    ['1200', 1200],
+    [1200, 1200],
+    ['£1,234,567', 1234567],
+    ['POA', null],
+    ['Contact for pricing', null],
+    ['Free', null],
+    ['£0', null],
+    ['', null],
+    [null, null],
+    [undefined, null],
+  ])('%j is %j', (text, expected) => {
+    expect(parsePriceAmount(text)).toBe(expected);
+  });
+
+  test('a package is read through the same rule as its displayed price', () => {
+    expect(packagePriceAmount({ price_display: 'From £900', price: '£500' })).toBe(900);
+    expect(packagePriceAmount({ price: '£500' })).toBe(500);
+    expect(packagePriceAmount({})).toBe(null);
+  });
+});

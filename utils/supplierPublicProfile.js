@@ -2,6 +2,7 @@
 
 const { stripHtml } = require('./helpers');
 const { normaliseStoredSupplierTheme } = require('./supplierTheme');
+const { packagePriceText } = require('./packagePrice');
 
 const DEFAULT_MAX_IMAGE_CHARS = 1200000;
 const DATA_IMAGE_RE = /^data:image\/(png|jpe?g|webp|gif);base64,[a-z0-9+/]+={0,2}$/i;
@@ -248,9 +249,10 @@ function safePublicPackage(pkg = {}, resolveImage) {
     name: maybeText(source.name || source.title, 160),
     description: maybeText(source.description, 800),
     description_short: maybeText(source.description_short || source.descriptionShort, 240),
-    price: maybeText(source.price || source.price_display || source.priceDisplay, 80),
-    price_display: maybeText(source.price_display || source.priceDisplay || source.price, 80),
-    priceDisplay: maybeText(source.priceDisplay || source.price_display || source.price, 80),
+    // One price, however the record stored it (utils/packagePrice): price_display first, then price.
+    price: maybeText(packagePriceText(source) || source.priceDisplay, 80),
+    price_display: maybeText(packagePriceText(source) || source.priceDisplay, 80),
+    priceDisplay: maybeText(packagePriceText(source) || source.priceDisplay, 80),
     image: safeImageUrl(image),
     imageUrl: safeImageUrl(source.imageUrl || image),
   };

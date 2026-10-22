@@ -307,8 +307,9 @@ function escapeAttr(unsafe) {
 }
 
 /**
- * The price to show for a package: what the supplier typed (`price`), or the older
- * `price_display`; nothing when neither is there.
+ * The price to show for a package: `price_display` (what the site has always shown), else
+ * `price`; nothing when neither is there. The same rule as public/assets/js/utils/package-price.js
+ * and utils/packagePrice.js.
  * @param {Object} p - Package record.
  * @returns {string} The price text, or ''.
  */
@@ -4949,7 +4950,7 @@ async function initAdmin() {
       (p.items || [])
         .map(
           x => `<div class="pack card" style="margin-bottom:10px">
-      <img src="${x.image}" alt="${escapeHtml(x.title)}"><div><h3>${x.title}</h3><div class="small"><span class="badge">${x.price}</span> — Supplier ${x.supplierId.slice(0, 8)}</div>
+      <img src="${x.image}" alt="${escapeHtml(x.title)}"><div><h3>${x.title}</h3><div class="small"><span class="badge">${escapeHtml(x.price_display || x.price || '')}</span> — Supplier ${x.supplierId.slice(0, 8)}</div>
       <div class="form-actions"><button class="cta secondary" data-approve="${escapeAttr(x.id)}" data-val="${x.approved ? 'false' : 'true'}">${x.approved ? 'Hide' : 'Approve'}</button>
       <button class="cta secondary" data-feature="${escapeAttr(x.id)}" data-val="${x.featured ? 'false' : 'true'}">${x.featured ? 'Unfeature' : 'Feature'}</button></div></div></div>`
         )

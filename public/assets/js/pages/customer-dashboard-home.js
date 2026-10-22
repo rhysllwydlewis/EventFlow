@@ -139,19 +139,9 @@
    * Budget
    * ------------------------------------------------------------------ */
 
-  /** "£3,500", "£45 pp", "From £500", "Contact for pricing" → number (0 when there is no price). */
-  function parsePrice(priceStr) {
-    if (!priceStr || typeof priceStr !== 'string') {
-      return 0;
-    }
-    const cleaned = priceStr.replace(/from/gi, '').replace(/£/gu, '').replace(/,/gu, '').trim();
-    const match = cleaned.match(/(\d+(?:\.\d+)?)/u);
-    return match ? parseFloat(match[1]) || 0 : 0;
-  }
-
   /** True when a package's price text is per head ("pp", "per person", "per guest"). */
   function isPerPerson(pkg) {
-    return /\bpp\b|per person|per guest/i.test(String(pkg.price_display || pkg.price || ''));
+    return /\bpp\b|per person|per guest/i.test(window.EFPackagePrice.text(pkg));
   }
 
   /** The budget saved in this browser, or 0 when none is stored or storage is unavailable. */
@@ -208,7 +198,8 @@
     );
 
     results.flat().forEach(pkg => {
-      const price = parsePrice(pkg.price_display || pkg.price || '');
+      // "£3,500", "£45 pp", "From £500" give their amount; "Contact for pricing" gives none (0).
+      const price = window.EFPackagePrice.amount(pkg) || 0;
       if (price <= 0) {
         unpriced += 1;
       } else if (isPerPerson(pkg)) {

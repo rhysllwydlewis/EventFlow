@@ -1059,8 +1059,10 @@ router.put(
     if (req.body.description) {
       pkgUpdates.description = req.body.description;
     }
-    if (req.body.price_display) {
-      Object.assign(pkgUpdates, priceFields(req.body.price_display));
+    // The admin screens send price_display and the supplier form sends price: either sets the price.
+    const submittedPrice = req.body.price_display || req.body.price;
+    if (submittedPrice) {
+      Object.assign(pkgUpdates, priceFields(submittedPrice));
     }
     if (req.body.image) {
       const newImage = req.body.image;

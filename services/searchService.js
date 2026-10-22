@@ -7,7 +7,7 @@
 
 const dbUnified = require('../db-unified');
 const catalogCache = require('./catalogCache');
-const { packagePriceText } = require('../utils/packagePrice');
+const { cleanPrice, packagePriceAmount, packagePriceText } = require('../utils/packagePrice');
 const { canonicalCategoryValue } = require('../public/assets/js/utils/category-link.js');
 const {
   findOwnerUserForSupplier,
@@ -287,10 +287,8 @@ function projectPublicPackageFields(pkg) {
     description: pkg.description,
     description_short: pkg.description_short,
     category: pkg.category,
-    price:
-      pkg.price === undefined || pkg.price === null || pkg.price === ''
-        ? packagePriceText(pkg) || pkg.price
-        : pkg.price,
+    // The displayed price wins; a package with only a typed price keeps that value as stored.
+    price: cleanPrice(pkg.price_display) ? packagePriceText(pkg) : pkg.price,
     images: pkg.images,
     supplierId: pkg.supplierId,
     supplierName: pkg.supplierName,
@@ -815,7 +813,11 @@ function applyPackageFilters(packages, query, supplierMap) {
   // Price range filter
   if (query.minPrice !== undefined || query.maxPrice !== undefined) {
     results = results.filter(p => {
-      const price = p.price || 0;
+      const price = packagePriceAmount(p);
+      // A package with no amount ("POA", no price at all) cannot be said to fit a price range.
+      if (price === null) {
+        return false;
+      }
 
       if (query.minPrice !== undefined && price < Number(query.minPrice)) {
         return false;
@@ -985,6 +987,30 @@ function sortResults(results, sortBy, userCoords) {
 }
 
 /**
+ * Order two packages by price. A package with no amount ("POA", no price) goes last in either
+ * direction, so sorting never puts the unpriced ones first or compares text with text.
+ *
+ * @param {Object} a - Package
+ * @param {Object} b - Package
+ * @param {number} direction - 1 for cheapest first, -1 for dearest first
+ * @returns {number} Comparator result
+ */
+function comparePackagePrice(a, b, direction) {
+  const left = packagePriceAmount(a);
+  const right = packagePriceAmount(b);
+  if (left === null && right === null) {
+    return 0;
+  }
+  if (left === null) {
+    return 1;
+  }
+  if (right === null) {
+    return -1;
+  }
+  return direction * (left - right);
+}
+
+/**
  * Sort package results
  * @param {Array} results - Results to sort
  * @param {string} sortBy - Sort criteria
@@ -1005,13 +1031,13 @@ function sortPackageResults(results, sortBy) {
         if (ratingDiff !== 0) {
           return ratingDiff;
         }
-        return (a.price || 0) - (b.price || 0);
+        return comparePackagePrice(a, b, 1);
       });
       break;
 
     case 'priceAsc':
       sorted.sort((a, b) => {
-        const priceDiff = (a.price || 0) - (b.price || 0);
+        const priceDiff = comparePackagePrice(a, b, 1);
         if (priceDiff !== 0) {
           return priceDiff;
         }
@@ -1026,7 +1052,7 @@ function sortPackageResults(results, sortBy) {
 
     case 'priceDesc':
       sorted.sort((a, b) => {
-        const priceDiff = (b.price || 0) - (a.price || 0);
+        const priceDiff = comparePackagePrice(a, b, -1);
         if (priceDiff !== 0) {
           return priceDiff;
         }
