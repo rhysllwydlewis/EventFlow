@@ -26,6 +26,9 @@ describe('utils/helpers stripHtml', () => {
     const started = Date.now();
     expect(stripHtml(`${'<'.repeat(200000)}text`)).toBe('text');
     expect(stripHtml('<a '.repeat(100000))).toBe('a '.repeat(100000));
-    expect(Date.now() - started).toBeLessThan(500);
+    // A quadratic implementation needs tens of seconds for this input, so a few seconds of
+    // headroom still catches it. The limit is generous because a busy CI runner running the whole
+    // suite in parallel took 549 ms for what takes a fraction of that when the machine is idle.
+    expect(Date.now() - started).toBeLessThan(3000);
   });
 });
