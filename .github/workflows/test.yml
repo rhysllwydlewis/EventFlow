@@ -52,6 +52,15 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
 
+    # A real Redis for the two-instance Socket.IO test.
+    services:
+      redis:
+        image: redis:7
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping" --health-interval 5s --health-timeout 3s --health-retries 10
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v7
@@ -74,9 +83,10 @@ jobs:
       - name: Clean install dependencies
         run: npm ci --prefer-offline --no-audit
 
-      - name: Run replica-set tests (transactions and real-database review replies)
-        run: npx jest --runInBand --coverage=false tests/unit/messenger-v4.test.js tests/integration/review-reply-real-mongo.test.js tests/integration/photo-storage-real-mongo.test.js
+      - name: Run replica-set and real-service tests (transactions, review replies, photo storage, two-instance sockets)
+        run: npx jest --runInBand --coverage=false tests/unit/messenger-v4.test.js tests/integration/review-reply-real-mongo.test.js tests/integration/photo-storage-real-mongo.test.js tests/integration/websocket-multi-instance.test.js
         env:
+          MULTI_INSTANCE_REDIS_URL: redis://127.0.0.1:6379
           NODE_ENV: test
           JWT_SECRET: test-secret-for-jest-min-32-characters-long
           MONGO_REPLICA_SET: 'true'
