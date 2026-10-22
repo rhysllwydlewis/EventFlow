@@ -67,9 +67,10 @@ describe('enquiries: page structure', () => {
     expect(enquiriesSource).toContain("document.addEventListener('sdh:open-enquiries'");
   });
 
-  test('the page says what happens: you are notified, but you cannot reply from here', () => {
+  test('the page says what happens: you are notified, and can reply by email from the drawer', () => {
     expect(enquiriesSource).toContain('You are notified when an enquiry arrives');
-    expect(enquiriesSource).toContain('but you cannot reply here.');
+    expect(enquiriesSource).toContain('Open one to reply to the customer by email.');
+    expect(enquiriesSource).toContain('/reply`');
     expect(enquiriesSource).not.toContain('not emailed');
   });
 });
@@ -84,7 +85,7 @@ describe('enquiries: the card and the drawer', () => {
     );
     expect(log.cardRows).toBe(2);
     expect(log.openHidden).toBe(false);
-    expect(log.card).toContain('cannot reply here');
+    expect(log.card).toContain('reply to the customer by email');
   });
 
   test('the drawer lists the enquiries and the counts', () => {
@@ -106,13 +107,16 @@ describe('enquiries: the card and the drawer', () => {
     expect(log.messageText).toContain('\nsecond line');
   });
 
-  test("the detail shows the customer's contact details with working mail and phone links, and no reply box", () => {
+  test("the detail shows the customer's contact details with working mail and phone links, and one reply form", () => {
     expect(log.detail).toContain('Email');
     expect(log.mailto).toBe('mailto:alice@example.com');
     expect(log.tel).toBe('tel:07123456789');
     expect(log.detail).toContain('Event date12 June 2027');
     expect(log.detail).toContain('Budget2000');
-    expect(log.replyControls).toBe(0);
+    expect(log.replyForms).toBe(1);
+    expect(log.replyTextareas).toBe(1);
+    expect(log.otherInputs).toBe(0);
+    expect(log.replyLabel).toMatch(/^Reply to /);
   });
 
   test('the status buttons offer the other states and send a PATCH with the new one', () => {

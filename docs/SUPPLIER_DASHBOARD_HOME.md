@@ -65,7 +65,10 @@ when focus is not inside (handled on the document).
   handled / new. Customer text is put on the page with `textContent` only. States:
   loading, empty, error with Try again, and "opens once your profile has been approved".
   Suppliers are notified when an enquiry arrives (a bell notification, and one email at most every 15
-  minutes to the verified owner; `services/supplierEnquiryNotifier.js`) but cannot reply here; the page says so.
+  minutes to the verified owner; `services/supplierEnquiryNotifier.js`). The drawer has a reply form
+  (`POST /api/supplier/enquiries/:id/reply`): the email goes from EventFlow to the address the customer
+  left, with the owner's verified account address as Reply-To; at most 3 replies per enquiry, 10 an hour and 30 a
+  day per supplier, and only for enquiries under 30 days old; a reply marks the enquiry handled.
 - **Toasts** are shown in the browser's top layer (`popover`) so a dialog cannot hide them.
 
 ## First-visit setup guide

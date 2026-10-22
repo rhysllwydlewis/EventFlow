@@ -354,6 +354,7 @@ describe('GET /enquiries/:id', () => {
       location: 'Cardiff',
       budget: '2000',
       status: 'new',
+      replies: [],
     });
   });
 

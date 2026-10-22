@@ -3473,6 +3473,42 @@
   white-space: pre-wrap;
 }
 
+.sdh-page .sdh-enq__replies {
+  display: grid;
+  gap: 10px;
+  margin: 0 0 14px;
+  padding: 0;
+  list-style: none;
+}
+
+.sdh-page .sdh-enq__reply {
+  display: grid;
+  gap: 4px;
+  padding: 10px 12px;
+  border: 1px solid var(--sdh-line);
+  border-radius: 10px;
+  background: var(--sdh-surface-2, #f6f9fa);
+}
+
+.sdh-page .sdh-enq__reply-when {
+  color: var(--sdh-muted);
+  font-size: 12px;
+}
+
+.sdh-page .sdh-enq__reply .sdh-enq__message {
+  margin: 0;
+}
+
+.sdh-page .sdh-enq__reply-form {
+  display: grid;
+  gap: 8px;
+  margin: 0 0 14px;
+}
+
+.sdh-page .sdh-enq__reply-form .sdh-btn {
+  justify-self: start;
+}
+
 .sdh-page .sdh-enq__actions {
   display: flex;
   flex-wrap: wrap;

@@ -30,13 +30,16 @@
 
 'use strict';
 
+const crypto = require('crypto');
 const validator = require('validator');
 const dbUnified = require('../db-unified');
+const postmark = require('../utils/postmark');
 const { getWindowBounds } = require('../utils/analyticsWindow');
 
 const STRICT = Object.freeze({ throwOnError: true });
 
 const STATES_COLLECTION = 'supplier_enquiry_states';
+const REPLIES_COLLECTION = 'supplier_enquiry_replies';
 const STATUSES = Object.freeze(['new', 'read', 'handled']);
 const SOURCES = Object.freeze({ quote_request: 'quote_request', contact_form: 'contact_form' });
 
@@ -50,6 +53,16 @@ const PREVIEW_LENGTH = 140;
 const EXPORT_MESSAGE_LENGTH = 300;
 
 const DAY_MS = 24 * 60 * 60 * 1000;
+const HOUR_MS = 60 * 60 * 1000;
+
+const MAX_REPLY_LENGTH = 2000;
+// A reply is an email from EventFlow to an address the customer typed into a form, so it is capped
+// per enquiry, per supplier and by the enquiry's age, to stop it being used to mail strangers.
+const MAX_REPLIES_PER_ENQUIRY = 3;
+const MAX_REPLIES_PER_HOUR = 10;
+const MAX_REPLIES_PER_DAY = 30;
+const MAX_ENQUIRY_AGE_DAYS = 30;
+const REPLIES_SHOWN = 10;
 
 /**
  * Turn stored (HTML-escaped) customer text back into plain text.
@@ -352,7 +365,159 @@ async function getEnquiry(supplierId, id) {
   const enquiry =
     source === SOURCES.quote_request ? normaliseQuoteRequest(doc) : normaliseContactEnquiry(doc);
   const states = await loadStates(supplierId);
-  return { ...enquiry, status: states.get(id) || 'new' };
+  const replies = await loadReplies(supplierId, id);
+  return { ...enquiry, status: states.get(id) || 'new', replies };
+}
+
+/**
+ * The replies this supplier has sent to one enquiry, oldest first.
+ *
+ * @param {string} supplierId - Supplier id (from the session)
+ * @param {string} enquiryId - Enquiry id
+ * @returns {Promise<Array<{id: string, message: string, sentAt: string}>>} Replies
+ */
+async function loadReplies(supplierId, enquiryId) {
+  const rows = (await dbUnified.find(REPLIES_COLLECTION, { supplierId, enquiryId }, STRICT)) || [];
+  return rows
+    .map(row => ({ id: row.id, message: row.message, sentAt: row.sentAt }))
+    .sort((a, b) => String(a.sentAt).localeCompare(String(b.sentAt)))
+    .slice(-REPLIES_SHOWN);
+}
+
+/**
+ * Plain text to HTML for the email: escaped, blank lines start a paragraph, single newlines
+ * become line breaks.
+ *
+ * @param {string} text - Reply text
+ * @returns {string} HTML
+ */
+function replyToHtml(text) {
+  return text
+    .split(/\n{2,}/)
+    .map(paragraph => `<p>${validator.escape(paragraph).replace(/\n/g, '<br>')}</p>`)
+    .join('');
+}
+
+/**
+ * Clean reply text: line endings normalised, control characters removed, outer space trimmed.
+ *
+ * @param {*} value - Submitted text
+ * @returns {string} Clean text (empty when nothing usable)
+ */
+function cleanReply(value) {
+  if (typeof value !== 'string') {
+    return '';
+  }
+  return (
+    value
+      .replace(/\r\n?/g, '\n')
+      // eslint-disable-next-line no-control-regex -- removing control characters is the purpose
+      .replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/g, '')
+      .trim()
+  );
+}
+
+/**
+ * Send a supplier's reply to a customer's enquiry.
+ *
+ * The email is sent from EventFlow with the supplier's account address as Reply-To, so the
+ * customer's answer reaches the supplier without the supplier's address being shown on the
+ * page. Only a verified account address is used, only to the address the customer submitted
+ * with that enquiry, and only for an enquiry addressed to this supplier. A reply is stored
+ * only after the email was accepted, and marks the enquiry handled.
+ *
+ * @param {Object} params - Inputs
+ * @param {Object} params.supplier - The supplier record (from the session)
+ * @param {Object} params.owner - The signed-in owner's user record (id, email, verified)
+ * @param {string} params.id - Enquiry id
+ * @param {*} params.message - Reply text
+ * @param {Object} [deps] - Test seams: sendMail, now
+ * @returns {Promise<{ok: true, enquiry: Object}|{ok: false, code: string, message: string}>}
+ *   code is one of NOT_FOUND, EMPTY, TOO_LONG, NO_EMAIL, EMAIL_NOT_VERIFIED, ENQUIRY_LIMIT,
+ *   ENQUIRY_TOO_OLD, HOURLY_LIMIT, DAILY_LIMIT, SEND_FAILED
+ */
+async function replyToEnquiry({ supplier, owner, id, message }, deps = {}) {
+  const fail = (code, text) => ({ ok: false, code, message: text });
+  const text = cleanReply(message);
+  if (!text) {
+    return fail('EMPTY', 'Write a reply first.');
+  }
+  if (text.length > MAX_REPLY_LENGTH) {
+    return fail('TOO_LONG', `Replies can be up to ${MAX_REPLY_LENGTH} characters.`);
+  }
+  const enquiry = await getEnquiry(supplier.id, id);
+  if (!enquiry) {
+    return fail('NOT_FOUND', 'Enquiry not found.');
+  }
+  if (!enquiry.email || !validator.isEmail(enquiry.email)) {
+    return fail('NO_EMAIL', 'This customer did not leave an email address to reply to.');
+  }
+  if (!owner || !owner.email || owner.verified !== true) {
+    return fail(
+      'EMAIL_NOT_VERIFIED',
+      'Verify your account email first, so the customer’s answer can reach you.'
+    );
+  }
+  if (enquiry.replies.length >= MAX_REPLIES_PER_ENQUIRY) {
+    return fail(
+      'ENQUIRY_LIMIT',
+      `You have sent ${MAX_REPLIES_PER_ENQUIRY} replies to this enquiry. Carry on by email.`
+    );
+  }
+  const nowMs = (deps.now ? deps.now() : new Date()).getTime();
+  const created = Date.parse(enquiry.createdAt || '');
+  if (Number.isNaN(created) || nowMs - created > MAX_ENQUIRY_AGE_DAYS * DAY_MS) {
+    return fail(
+      'ENQUIRY_TOO_OLD',
+      `This enquiry is more than ${MAX_ENQUIRY_AGE_DAYS} days old. Contact the customer directly.`
+    );
+  }
+  const sentSince = since =>
+    dbUnified.count(REPLIES_COLLECTION, {
+      supplierId: supplier.id,
+      sentAt: { $gte: new Date(nowMs - since).toISOString() },
+    });
+  if (((await sentSince(HOUR_MS)) || 0) >= MAX_REPLIES_PER_HOUR) {
+    return fail('HOURLY_LIMIT', 'You have sent a lot of replies this hour. Try again later.');
+  }
+  if (((await sentSince(DAY_MS)) || 0) >= MAX_REPLIES_PER_DAY) {
+    return fail('DAILY_LIMIT', 'You have reached today’s limit for replies. Try again tomorrow.');
+  }
+
+  const supplierName = String(supplier.name || 'Your supplier')
+    .replace(/\s+/g, ' ')
+    .trim();
+  const send = deps.sendMail || postmark.sendMail;
+  try {
+    await send({
+      to: enquiry.email,
+      replyTo: owner.email,
+      subject: `${supplierName} replied to your enquiry`,
+      template: 'supplier-enquiry-reply',
+      templateData: {
+        customerName: validator.escape(enquiry.customerName || 'there'),
+        supplierName: validator.escape(supplierName),
+        replyMessageHtml: replyToHtml(text),
+      },
+      text: `${supplierName} replied to your enquiry on EventFlow:\n\n${text}\n\nReply to this email to answer them directly.`,
+      from: postmark.FROM_NOREPLY,
+      tags: ['supplier-enquiry-reply', 'transactional'],
+      messageStream: 'outbound',
+    });
+  } catch {
+    return fail('SEND_FAILED', 'The reply could not be sent. Please try again.');
+  }
+
+  const sentAt = new Date(nowMs).toISOString();
+  await dbUnified.insertOne(REPLIES_COLLECTION, {
+    id: `rep_${crypto.randomUUID()}`,
+    supplierId: supplier.id,
+    enquiryId: id,
+    message: text,
+    sentAt,
+  });
+  const updated = await setEnquiryStatus(supplier.id, id, 'handled');
+  return { ok: true, enquiry: updated || enquiry };
 }
 
 /**
@@ -551,5 +716,7 @@ module.exports = {
   listEnquiries,
   getEnquiry,
   setEnquiryStatus,
+  replyToEnquiry,
+  MAX_REPLY_LENGTH,
   buildExportRows,
 };

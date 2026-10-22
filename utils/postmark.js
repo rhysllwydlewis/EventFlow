@@ -355,6 +355,7 @@ async function createEmailAttemptLogSafe(options) {
  * @param {string|string[]} [options.tags] - Postmark tags for tracking (max 10)
  * @param {boolean} [options.trackOpens] - Track email opens (default: true)
  * @param {string} [options.trackLinks] - Track link clicks (default: 'HtmlAndText')
+ * @param {string} [options.replyTo] - Address replies are sent to (default: the From address)
  * @param {string} [options.messageStream] - Postmark message stream (default: 'outbound', use 'password-reset' for resets)
  * @returns {Promise<Object>} Postmark response object
  * @throws {Error} If email sending fails or required fields are missing
@@ -391,6 +392,9 @@ async function sendMail(options) {
     // POST /api/auth/unsubscribe (the one-click target) is the same
     // token-verified action the link itself performs.
     unsubscribeUrl,
+    // Where the recipient's reply goes, when it should not be the From address (a supplier's reply
+    // to a customer is sent from EventFlow, but the customer's answer should reach the supplier).
+    replyTo,
   } = options;
 
   const logOptions = {
@@ -497,6 +501,9 @@ async function sendMail(options) {
       TrackLinks: trackLinks,
       MessageStream: options.messageStream || 'outbound',
     };
+    if (replyTo) {
+      emailData.ReplyTo = replyTo;
+    }
 
     // Add body content
     if (emailHtml) {

@@ -538,6 +538,57 @@ router.patch('/enquiries/:id', authRequired, csrfProtection, writeLimiter, async
 });
 
 /**
+ * POST /api/supplier/enquiries/:id/reply
+ * Reply to a customer's enquiry by email. Body: { message }. The email goes from EventFlow to the
+ * address the customer left, with the supplier's verified account address as Reply-To.
+ */
+const REPLY_STATUS = Object.freeze({
+  EMPTY: 400,
+  TOO_LONG: 400,
+  NO_EMAIL: 422,
+  EMAIL_NOT_VERIFIED: 403,
+  NOT_FOUND: 404,
+  ENQUIRY_LIMIT: 429,
+  ENQUIRY_TOO_OLD: 422,
+  HOURLY_LIMIT: 429,
+  DAILY_LIMIT: 429,
+  SEND_FAILED: 502,
+});
+
+router.post(
+  '/enquiries/:id/reply',
+  authRequired,
+  csrfProtection,
+  writeLimiter,
+  async (req, res) => {
+    try {
+      const supplier = await loadApprovedSupplierForEnquiries(req, res);
+      if (!supplier) {
+        return;
+      }
+      const owner = await dbUnified.findOne('users', { id: req.user.id }, { throwOnError: true });
+      const result = await supplierEnquiries.replyToEnquiry({
+        supplier,
+        owner,
+        id: req.params.id,
+        message: req.body?.message,
+      });
+      if (!result.ok) {
+        res
+          .status(REPLY_STATUS[result.code] || 400)
+          .json({ error: result.message, code: result.code });
+        return;
+      }
+      clearEngagementCache();
+      res.json({ success: true, enquiry: result.enquiry });
+    } catch (error) {
+      logger.error('Error replying to enquiry:', error.message);
+      res.status(500).json({ error: 'Failed to send the reply' });
+    }
+  }
+);
+
+/**
  * GET /api/supplier/lead-quality
  * Get lead quality breakdown for supplier
  */

@@ -575,9 +575,11 @@ async function enquiries(options) {
       log.messageText = (
         field(window, 'sdh-enquiries-detail').querySelector('.sdh-enq__message') || {}
       ).textContent;
-      log.replyControls = field(window, 'sdh-enquiries-detail').querySelectorAll(
-        'textarea, input, form'
-      ).length;
+      const detailPane = field(window, 'sdh-enquiries-detail');
+      log.replyForms = detailPane.querySelectorAll('form').length;
+      log.replyTextareas = detailPane.querySelectorAll('textarea').length;
+      log.otherInputs = detailPane.querySelectorAll('input').length;
+      log.replyLabel = (detailPane.querySelector('label') || {}).textContent;
       log.statusButtons = Array.from(
         field(window, 'sdh-enquiries-detail').querySelectorAll('[data-status]')
       ).map(button => button.textContent);

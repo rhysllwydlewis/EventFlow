@@ -762,6 +762,51 @@ test.describe('Supplier dashboard: every control works @backend', () => {
     await expect(page.locator('#sdh-enquiries-dialog[open]')).toContainText(sender);
   });
 
+  test('a supplier can reply to an enquiry from the drawer, and it is kept and marked handled', async ({
+    page,
+    context,
+    baseURL,
+  }) => {
+    const customer = await playwrightRequest.newContext({
+      baseURL,
+      extraHTTPHeaders: {
+        'x-eventflow-e2e': 'backend-suite',
+        'x-csrf-token': 'backend-e2e-csrf-token',
+      },
+    });
+    const sender = `Eli Reply ${runId.slice(-6)}`;
+    const sent = await customer.post('/api/quote-requests', {
+      data: {
+        name: sender,
+        email: 'eli@example.com',
+        eventType: 'Party',
+        notes: 'Do you have a free date in June?',
+        suppliers: [{ supplierId: fixtures.supplier.id, supplierName: fixtures.supplier.name }],
+      },
+    });
+    expect(sent.status()).toBe(200);
+    await customer.dispose();
+
+    await openDashboard(page, context, baseURL);
+    await page.locator('#sdh-enquiries-open').click();
+    const drawer = page.locator('#sdh-enquiries-dialog[open]');
+    await drawer.getByRole('button', { name: new RegExp(sender) }).click();
+
+    const replyBox = drawer.getByLabel(`Reply to ${sender}`);
+    await expect(replyBox).toBeVisible();
+    // Nothing typed: it says so and sends nothing.
+    await drawer.getByRole('button', { name: 'Send reply' }).click();
+    await expect(page.locator('.sdh-toast')).toContainText('Write a reply first.');
+
+    await replyBox.fill('Yes, 14 June is free. I will send a quote today.');
+    await drawer.getByRole('button', { name: 'Send reply' }).click();
+    await expect(page.locator('.sdh-toast')).toContainText('Reply sent.');
+    await expect(drawer.locator('.sdh-enq__reply')).toContainText(
+      'Yes, 14 June is free. I will send a quote today.'
+    );
+    await expect(drawer).toContainText('Status: Handled');
+  });
+
   test('the notifications bell opens its panel', async ({ page, context, baseURL }) => {
     await openDashboard(page, context, baseURL);
     await page.locator('#ef-notification-btn').click();

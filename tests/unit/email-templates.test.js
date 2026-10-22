@@ -38,6 +38,7 @@ const REFERENCED_TEMPLATES = [
   'review-request',
   'new-message',
   'new-enquiry',
+  'supplier-enquiry-reply',
   'partner-welcome',
   'password-reset',
   'password-reset-confirmation',
@@ -552,6 +553,7 @@ describe('Email preview registry, preheaders and plain text', () => {
     'review-request',
     'new-message',
     'new-enquiry',
+    'supplier-enquiry-reply',
   ])('%s has clean plain-text output', name => {
     const detail = registry.getTemplateDetails(name);
     const text = registry.renderPlainTextTemplate(name, detail.sampleData);
