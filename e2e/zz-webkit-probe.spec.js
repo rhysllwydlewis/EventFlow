@@ -36,7 +36,8 @@ test.describe('webkit probe @backend', () => {
         })
     );
 
-  test('probe', async ({ page, context, baseURL }) => {
+  test('probe', async ({ page, context, baseURL, browserName }) => {
+    test.skip(browserName !== 'webkit', 'diagnostic for WebKit only');
     const out = {};
     await context.addCookies([
       { name: 'eventflow_cookie_consent', value: 'rejected', url: baseURL },
@@ -63,9 +64,7 @@ test.describe('webkit probe @backend', () => {
     const t0 = Date.now();
     let click = 'ok';
     try {
-      await page
-        .getByRole('button', { name: 'Real Only', exact: true })
-        .click({ timeout: 5000 });
+      await page.getByRole('button', { name: 'Real Only', exact: true }).click({ timeout: 5000 });
     } catch (error) {
       click = 'failed';
     }
@@ -79,6 +78,6 @@ test.describe('webkit probe @backend', () => {
 
     await page.goto('/about');
     out.publicPage = await rafCount(page);
-    throw new Error(`PROBE ${JSON.stringify(out)}`);
+    console.log(`PROBE ${JSON.stringify(out)}`);
   });
 });
