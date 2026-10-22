@@ -442,7 +442,12 @@ function createReviewRequestRouter(overrides = {}) {
           supplierId: supplier.id,
           createdAt: { $gte: new Date(currentTime.getTime() - 24 * 60 * 60 * 1000).toISOString() },
         })) || [];
-      if (sentToday.length >= MAX_REVIEW_REQUESTS_PER_DAY) {
+      // A request whose email could not be delivered sent nothing, so it does not use up the cap
+      // (a mail outage must not lock a supplier out for the day).
+      if (
+        sentToday.filter(request => request.status !== 'failed').length >=
+        MAX_REVIEW_REQUESTS_PER_DAY
+      ) {
         return res.status(429).json({
           error: `You can send up to ${MAX_REVIEW_REQUESTS_PER_DAY} review requests a day. Try again tomorrow.`,
         });

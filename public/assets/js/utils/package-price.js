@@ -53,8 +53,8 @@
     if (!match) {
       return null;
     }
-    const amount = parseFloat(match[1]) * (match[2] ? 1000 : 1);
-    return Number.isFinite(amount) && amount > 0 ? amount : null;
+    const parsed = parseFloat(match[1]) * (match[2] ? 1000 : 1);
+    return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
   }
 
   /** The amount of a package's price, whichever field holds it (null when it has none). */

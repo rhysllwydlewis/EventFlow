@@ -23,7 +23,27 @@ function createApp({ suppliers, packages, user }) {
       return list.find(item => item.id === query.id) || null;
     }),
     updateOne: jest.fn(async () => true),
-    find: jest.fn(async () => []),
+    find: jest.fn(async (collection, query) => {
+      if (collection === 'suppliers') {
+        return suppliers.filter(item =>
+          (item.photosGallery || []).some(p => p.url === query['photosGallery.url'])
+        );
+      }
+      const asUrl = p => (typeof p === 'string' ? p : p.url);
+      return packages.filter(item => {
+        if (query['gallery.url']) {
+          return (item.gallery || []).some(
+            p => typeof p !== 'string' && p.url === query['gallery.url']
+          );
+        }
+        if (query.gallery) {
+          return (item.gallery || []).some(
+            p => typeof p === 'string' && asUrl(p) === query.gallery
+          );
+        }
+        return item.image === query.image;
+      });
+    }),
     insertOne: jest.fn(async doc => doc),
   };
   const pass = (_req, _res, next) => next();
@@ -47,12 +67,18 @@ function createApp({ suppliers, packages, user }) {
 
 const mine = '/api/photos/mine_photo';
 const theirs = '/api/photos/their_photo';
+const pkgPhoto = '/api/photos/pkg_photo';
 const suppliers = [
   { id: 'sup_me', ownerUserId: 'user_me', photosGallery: [{ url: mine }] },
   { id: 'sup_other', ownerUserId: 'user_other', photosGallery: [{ url: theirs }] },
 ];
 const packages = [
-  { id: 'pkg_me', supplierId: 'sup_me', gallery: [{ url: mine }, mine + '_2'], image: mine },
+  {
+    id: 'pkg_me',
+    supplierId: 'sup_me',
+    gallery: [{ url: pkgPhoto }, pkgPhoto + '_2'],
+    image: pkgPhoto,
+  },
 ];
 const user = { id: 'user_me', role: 'supplier' };
 
@@ -88,13 +114,34 @@ describe('DELETE /api/photos/delete', () => {
 
   test('removes a photo from the caller’s own package and keeps the cover in step', async () => {
     const { app, dbUnified, deleteImage } = createApp({ suppliers, packages, user });
-    await del(app, { type: 'package', id: 'pkg_me', photoUrl: mine }).expect(200);
+    await del(app, { type: 'package', id: 'pkg_me', photoUrl: pkgPhoto }).expect(200);
     expect(dbUnified.updateOne).toHaveBeenCalledWith(
       'packages',
       { id: 'pkg_me' },
-      { $set: { gallery: [mine + '_2'], image: mine + '_2' } }
+      { $set: { gallery: [pkgPhoto + '_2'], image: pkgPhoto + '_2' } }
     );
-    expect(deleteImage).toHaveBeenCalledWith(mine);
+    expect(deleteImage).toHaveBeenCalledWith(pkgPhoto);
+  });
+
+  test('keeps the stored file when the caller’s own package still shows it', async () => {
+    const shared = [
+      { id: 'sup_me', ownerUserId: 'user_me', photosGallery: [{ url: pkgPhoto }] },
+      suppliers[1],
+    ];
+    const { app, deleteImage } = createApp({ suppliers: shared, packages, user });
+    await del(app, { type: 'supplier', id: 'sup_me', photoUrl: pkgPhoto }).expect(200);
+    expect(deleteImage).not.toHaveBeenCalled();
+  });
+
+  test('keeps the stored file when another supplier’s gallery still shows it', async () => {
+    // A package gallery accepts any address, so the caller can list another supplier's photo in it.
+    const copied = [
+      ...packages,
+      { id: 'pkg_copy', supplierId: 'sup_me', gallery: [{ url: theirs }], image: theirs },
+    ];
+    const { app, deleteImage } = createApp({ suppliers, packages: copied, user });
+    await del(app, { type: 'package', id: 'pkg_copy', photoUrl: theirs }).expect(200);
+    expect(deleteImage).not.toHaveBeenCalled();
   });
 
   test('refuses to touch a supplier the caller does not own', async () => {

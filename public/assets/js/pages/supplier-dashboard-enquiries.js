@@ -540,7 +540,7 @@
     }
     send.disabled = true;
     area.disabled = true;
-    let result;
+    let result = null;
     try {
       result = await api.sendJson(
         `/api/supplier/enquiries/${encodeURIComponent(id)}/reply`,

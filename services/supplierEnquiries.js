@@ -41,6 +41,8 @@ const STRICT = Object.freeze({ throwOnError: true });
 
 const STATES_COLLECTION = 'supplier_enquiry_states';
 const REPLIES_COLLECTION = 'supplier_enquiry_replies';
+// A reply counts towards the limits from the moment it is reserved until it fails.
+const RESERVING_STATUSES = new Set(['sending', 'sent']);
 const STATUSES = Object.freeze(['new', 'read', 'handled']);
 const SOURCES = Object.freeze({ quote_request: 'quote_request', contact_form: 'contact_form' });
 const QUALITIES = Object.freeze(['High', 'Medium', 'Low']);
@@ -426,6 +428,7 @@ async function getEnquiry(supplierId, id) {
 async function loadReplies(supplierId, enquiryId) {
   const rows = (await dbUnified.find(REPLIES_COLLECTION, { supplierId, enquiryId }, STRICT)) || [];
   return rows
+    .filter(row => row.status === 'sent')
     .map(row => ({ id: row.id, message: row.message, sentAt: row.sentAt }))
     .sort((a, b) => String(a.sentAt).localeCompare(String(b.sentAt)))
     .slice(-REPLIES_SHOWN);
@@ -457,9 +460,9 @@ function cleanReply(value) {
   }
   return (
     value
-      .replace(/\r\n?/g, '\n')
+      .replace(/\r\n?/gu, '\n')
       // eslint-disable-next-line no-control-regex -- removing control characters is the purpose
-      .replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/g, '')
+      .replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/gu, '')
       .trim()
   );
 }
@@ -505,12 +508,6 @@ async function replyToEnquiry({ supplier, owner, id, message }, deps = {}) {
       'Verify your account email first, so the customer’s answer can reach you.'
     );
   }
-  if (enquiry.replies.length >= MAX_REPLIES_PER_ENQUIRY) {
-    return fail(
-      'ENQUIRY_LIMIT',
-      `You have sent ${MAX_REPLIES_PER_ENQUIRY} replies to this enquiry. Carry on by email.`
-    );
-  }
   const nowMs = (deps.now ? deps.now() : new Date()).getTime();
   const created = Date.parse(enquiry.createdAt || '');
   if (Number.isNaN(created) || nowMs - created > MAX_ENQUIRY_AGE_DAYS * DAY_MS) {
@@ -519,16 +516,69 @@ async function replyToEnquiry({ supplier, owner, id, message }, deps = {}) {
       `This enquiry is more than ${MAX_ENQUIRY_AGE_DAYS} days old. Contact the customer directly.`
     );
   }
-  const sentSince = since =>
-    dbUnified.count(REPLIES_COLLECTION, {
-      supplierId: supplier.id,
-      sentAt: { $gte: new Date(nowMs - since).toISOString() },
-    });
-  if (((await sentSince(HOUR_MS)) || 0) >= MAX_REPLIES_PER_HOUR) {
-    return fail('HOURLY_LIMIT', 'You have sent a lot of replies this hour. Try again later.');
+
+  // The limits are checked before sending and again once this reply has reserved its place: two
+  // requests that run at the same time both see the other's reservation on the second check, so
+  // together they can never send more than the limit allows (at worst both back off).
+  const overLimit = async () => {
+    const counted = rows => (rows || []).filter(row => RESERVING_STATUSES.has(row.status)).length;
+    const forEnquiry = counted(
+      await dbUnified.find(REPLIES_COLLECTION, { supplierId: supplier.id, enquiryId: id }, STRICT)
+    );
+    if (forEnquiry > MAX_REPLIES_PER_ENQUIRY) {
+      return fail(
+        'ENQUIRY_LIMIT',
+        `You have sent ${MAX_REPLIES_PER_ENQUIRY} replies to this enquiry. Carry on by email.`
+      );
+    }
+    const sentSince = async since =>
+      counted(
+        await dbUnified.find(
+          REPLIES_COLLECTION,
+          {
+            supplierId: supplier.id,
+            sentAt: { $gte: new Date(nowMs - since).toISOString() },
+          },
+          STRICT
+        )
+      );
+    if ((await sentSince(HOUR_MS)) > MAX_REPLIES_PER_HOUR) {
+      return fail('HOURLY_LIMIT', 'You have sent a lot of replies this hour. Try again later.');
+    }
+    if ((await sentSince(DAY_MS)) > MAX_REPLIES_PER_DAY) {
+      return fail('DAILY_LIMIT', 'You have reached today’s limit for replies. Try again tomorrow.');
+    }
+    return null;
+  };
+
+  const replyId = `rep_${crypto.randomUUID()}`;
+  const reservation = await dbUnified.insertOne(REPLIES_COLLECTION, {
+    id: replyId,
+    supplierId: supplier.id,
+    enquiryId: id,
+    message: text,
+    status: 'sending',
+    sentAt: new Date(nowMs).toISOString(),
+  });
+  if (!reservation) {
+    return fail('SEND_FAILED', 'The reply could not be saved. Please try again.');
   }
-  if (((await sentSince(DAY_MS)) || 0) >= MAX_REPLIES_PER_DAY) {
-    return fail('DAILY_LIMIT', 'You have reached today’s limit for replies. Try again tomorrow.');
+  const release = async () => {
+    const removed = await dbUnified.deleteOne(REPLIES_COLLECTION, { id: replyId });
+    if (!removed) {
+      // Could not remove it: mark it so it no longer counts or shows.
+      await dbUnified.updateOne(
+        REPLIES_COLLECTION,
+        { id: replyId },
+        { $set: { status: 'failed' } }
+      );
+    }
+  };
+
+  const limited = await overLimit();
+  if (limited) {
+    await release();
+    return limited;
   }
 
   const supplierName = String(supplier.name || 'Your supplier')
@@ -541,28 +591,26 @@ async function replyToEnquiry({ supplier, owner, id, message }, deps = {}) {
       replyTo: owner.email,
       subject: `${supplierName} replied to your enquiry`,
       template: 'supplier-enquiry-reply',
+      // loadEmailTemplate escapes these itself; only the reply, built below, is already HTML.
       templateData: {
-        customerName: validator.escape(enquiry.customerName || 'there'),
-        supplierName: validator.escape(supplierName),
+        customerName: enquiry.customerName || 'there',
+        supplierName,
         replyMessageHtml: replyToHtml(text),
       },
       text: `${supplierName} replied to your enquiry on EventFlow:\n\n${text}\n\nReply to this email to answer them directly.`,
       from: postmark.FROM_NOREPLY,
       tags: ['supplier-enquiry-reply', 'transactional'],
       messageStream: 'outbound',
+      // With no mail provider configured in production the message would only be written to a
+      // local folder: report that as a failure rather than tell the supplier it was sent.
+      criticalDelivery: true,
     });
   } catch {
+    await release();
     return fail('SEND_FAILED', 'The reply could not be sent. Please try again.');
   }
 
-  const sentAt = new Date(nowMs).toISOString();
-  await dbUnified.insertOne(REPLIES_COLLECTION, {
-    id: `rep_${crypto.randomUUID()}`,
-    supplierId: supplier.id,
-    enquiryId: id,
-    message: text,
-    sentAt,
-  });
+  await dbUnified.updateOne(REPLIES_COLLECTION, { id: replyId }, { $set: { status: 'sent' } });
   const updated = await setEnquiryStatus(supplier.id, id, 'handled');
   return { ok: true, enquiry: updated || enquiry };
 }

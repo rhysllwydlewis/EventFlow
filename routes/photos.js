@@ -938,6 +938,31 @@ router.post(
 // ---------- Photo Management Routes ----------
 
 /**
+ * Whether another supplier or package still shows this photo. A gallery can hold any address a
+ * user types, so being in your own gallery does not mean the stored file is yours: the file is only
+ * deleted when nothing else points at it.
+ *
+ * @param {string} url - Photo address
+ * @param {{supplierId?: string, packageId?: string}} own - The records the photo was just removed from
+ * @returns {Promise<boolean>} True when something else still uses it
+ */
+async function isPhotoUsedElsewhere(url, own) {
+  const [suppliers, objectPackages, plainPackages, coverPackages] = await Promise.all([
+    dbUnified.find('suppliers', { 'photosGallery.url': url }),
+    dbUnified.find('packages', { 'gallery.url': url }),
+    dbUnified.find('packages', { gallery: url }),
+    dbUnified.find('packages', { image: url }),
+  ]);
+  const others = (rows, ownId) => (rows || []).some(row => row && row.id !== ownId);
+  return (
+    others(suppliers, own.supplierId) ||
+    others(objectPackages, own.packageId) ||
+    others(plainPackages, own.packageId) ||
+    others(coverPackages, own.packageId)
+  );
+}
+
+/**
  * Delete photo
  * DELETE /api/photos/delete
  * Query: ?type=supplier|package&id=<supplierId|packageId>&photoUrl=<url>
@@ -976,8 +1001,10 @@ router.delete('/photos/delete', applyAuthRequired, applyCsrfProtection, async (r
         { $set: { photosGallery: remaining } }
       );
 
-      // Delete physical files
-      await photoUpload.deleteImage(decodedUrl);
+      // Delete the stored file, unless another record still shows it
+      if (!(await isPhotoUsedElsewhere(decodedUrl, { supplierId: supplier.id }))) {
+        await photoUpload.deleteImage(decodedUrl);
+      }
     } else if (type === 'package') {
       const pkg = await dbUnified.findOne('packages', { id });
 
@@ -1015,8 +1042,10 @@ router.delete('/photos/delete', applyAuthRequired, applyCsrfProtection, async (r
       await dbUnified.updateOne('packages', { id: pkg.id }, { $set: updateFields });
       suppliersRouter.invalidatePackageCaches();
 
-      // Delete physical files
-      await photoUpload.deleteImage(decodedUrl);
+      // Delete the stored file, unless another record still shows it
+      if (!(await isPhotoUsedElsewhere(decodedUrl, { packageId: pkg.id }))) {
+        await photoUpload.deleteImage(decodedUrl);
+      }
     }
 
     res.json({ success: true, message: 'Photo deleted successfully' });

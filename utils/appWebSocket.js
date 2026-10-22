@@ -13,7 +13,7 @@
  * @returns {Object|null} The WebSocket server, or null when none is running
  */
 function getAppWebSocketServer(req) {
-  const app = req && req.app;
+  const app = req?.app;
   if (!app || typeof app.get !== 'function') {
     return null;
   }

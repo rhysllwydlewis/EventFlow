@@ -203,16 +203,8 @@ function getSupplierProfileImage(supplier) {
   return typeof imageUrl === 'string' ? imageUrl.trim() : '';
 }
 
-/**
- * Populate and wire the supplier sidebar widget.
- * Mirrors the Save / View Profile / Message pattern from the suppliers page.
- */
-function buildSupplierSidebar(supplier, pkg, currentUser) {
-  const sidebar = document.getElementById('pkg-supplier-sidebar');
-  if (!sidebar || !supplier) {
-    return;
-  }
-
+/** Fill the sidebar avatar: the supplier's profile photo, or their initial on a colour. */
+function renderSupplierAvatar(supplier) {
   // Avatar — shared initials/color logic, see
   // public/assets/js/utils/supplier-avatar.js.
   const avatarEl = document.getElementById('pkg-sup-avatar');
@@ -236,6 +228,43 @@ function buildSupplierSidebar(supplier, pkg, currentUser) {
   } else {
     showAvatarInitial();
   }
+}
+
+/** Fill the category and location lines of the sidebar. */
+function renderSupplierMeta(supplier) {
+  // Meta (category + location)
+  const metaEl = document.getElementById('pkg-sup-meta');
+  // Built from text nodes: category and location are typed by the supplier, so they are never markup.
+  const metaItems = [
+    ['📂', supplier.category],
+    ['📍', supplier.location],
+  ].filter(([, value]) => value);
+  metaEl.textContent = '';
+  metaItems.forEach(([icon, value]) => {
+    const item = document.createElement('div');
+    item.className = 'pkg-sup-meta-item';
+    const iconEl = document.createElement('span');
+    iconEl.textContent = icon;
+    item.append(iconEl, ` ${value}`);
+    metaEl.appendChild(item);
+  });
+  if (!metaItems.length) {
+    metaEl.style.display = 'none';
+  }
+}
+
+/**
+ * Populate and wire the supplier sidebar widget.
+ * Mirrors the Save / View Profile / Message pattern from the suppliers page.
+ */
+function buildSupplierSidebar(supplier, pkg, currentUser) {
+  const sidebar = document.getElementById('pkg-supplier-sidebar');
+  if (!sidebar || !supplier) {
+    return;
+  }
+
+  renderSupplierAvatar(supplier);
+  const supplierProfileImage = getSupplierProfileImage(supplier);
 
   // Name
   document.getElementById('pkg-sup-name').textContent = supplier.name || 'Supplier';
@@ -266,25 +295,7 @@ function buildSupplierSidebar(supplier, pkg, currentUser) {
          </span>`;
   }
 
-  // Meta (category + location)
-  const metaEl = document.getElementById('pkg-sup-meta');
-  // Built from text nodes: category and location are typed by the supplier, so they are never markup.
-  const metaItems = [
-    ['📂', supplier.category],
-    ['📍', supplier.location],
-  ].filter(([, value]) => value);
-  metaEl.textContent = '';
-  metaItems.forEach(([icon, value]) => {
-    const item = document.createElement('div');
-    item.className = 'pkg-sup-meta-item';
-    const iconEl = document.createElement('span');
-    iconEl.textContent = icon;
-    item.append(iconEl, ` ${value}`);
-    metaEl.appendChild(item);
-  });
-  if (!metaItems.length) {
-    metaEl.style.display = 'none';
-  }
+  renderSupplierMeta(supplier);
 
   // View Profile link
   const viewBtn = document.getElementById('pkg-view-profile-btn');

@@ -256,6 +256,9 @@ class MessengerAppV4 {
       // loaded, or it is brand-new), fetch it from the server so the message
       // appears in the correct inbox rather than being silently dropped.
       let conv = this.state.conversations.find(c => c._id === conversationId);
+      // A conversation fetched just now already counts this message: the server raised the unread
+      // count before it announced the message, so it must not be raised again here.
+      let fetchedFresh = false;
       if (!conv) {
         try {
           const data = await this.api.getConversation(conversationId);
@@ -263,6 +266,7 @@ class MessengerAppV4 {
           if (fetched && fetched._id) {
             this.state.updateConversation(fetched);
             conv = this.state.conversations.find(c => c._id === conversationId);
+            fetchedFresh = Boolean(conv);
           }
         } catch (err) {
           // Best-effort — proceed with whatever state we have. Log so archived-to-active
@@ -284,7 +288,7 @@ class MessengerAppV4 {
       if (conversationId !== this._activeConversationId) {
         const uid = this._getCurrentUserId();
         // Optimistically increment local unread count for the receiving participant
-        if (uid && conv) {
+        if (uid && conv && !fetchedFresh) {
           const me = conv.participants?.find(p => p.userId === uid);
           if (me && me.userId !== message.senderId) {
             me.unreadCount = (me.unreadCount || 0) + 1;
@@ -971,12 +975,12 @@ class MessengerAppV4 {
       .then(() => {
         // Update local participant unreadCount so the badge clears immediately
         if (uid) {
-          const conv = this.state.conversations.find(c => c._id === id);
-          if (conv) {
-            const participant = conv.participants?.find(p => p.userId === uid);
+          const readConv = this.state.conversations.find(c => c._id === id);
+          if (readConv) {
+            const participant = readConv.participants?.find(p => p.userId === uid);
             if (participant && participant.unreadCount > 0) {
               participant.unreadCount = 0;
-              this.state.updateConversation(conv);
+              this.state.updateConversation(readConv);
               // Recalculate global unread count
               const totalUnread = this.state.conversations.reduce((sum, c) => {
                 const me = c.participants?.find(p => p.userId === uid);

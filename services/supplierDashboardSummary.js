@@ -422,7 +422,7 @@ async function loadWindowFigures(attempt, { userId, supplierId, now, fixedNow, a
             ],
             STRICT
           )) || [];
-        return groups.filter(group => group._id && group._id.visitor).length;
+        return groups.filter(group => group._id?.visitor).length;
       },
       null
     ),

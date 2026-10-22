@@ -116,7 +116,9 @@ describe('POST /enquiries/:id/reply', () => {
       template: 'supplier-enquiry-reply',
       subject: 'Moor Audio replied to your enquiry',
     });
-    expect(mail.templateData.customerName).toBe('Alice O&#x27;Brien');
+    // The template renderer escapes names itself; escaping here too would show "O&amp;#x27;Brien".
+    expect(mail.templateData.customerName).toBe("Alice O'Brien");
+    expect(mail.criticalDelivery).toBe(true);
     expect(mail.templateData.replyMessageHtml).toBe(
       '<p>Hi Alice,</p><p>We are free on 12 June.<br>Best, Moor</p>'
     );
@@ -124,6 +126,44 @@ describe('POST /enquiries/:id/reply', () => {
     expect(res.body.enquiry.replies).toHaveLength(1);
     expect(res.body.enquiry.replies[0].message).toContain('We are free on 12 June.');
     expect(fakeDb.__store().supplier_enquiry_replies).toHaveLength(1);
+    expect(fakeDb.__store().supplier_enquiry_replies[0].status).toBe('sent');
+  });
+
+  it('shows the customer’s name once-escaped in the real email', () => {
+    const { loadEmailTemplate } = jest.requireActual('../../utils/postmark');
+    const html = loadEmailTemplate('supplier-enquiry-reply', {
+      customerName: "Alice O'Brien",
+      supplierName: 'Moor & Sons',
+      replyMessageHtml: '<p>Hello</p>',
+    });
+    expect(html).toContain('Alice O&#039;Brien');
+    expect(html).not.toContain('&amp;#');
+    expect(html).toContain('Moor &amp; Sons');
+  });
+
+  it('does not send when the reply cannot be saved first', async () => {
+    fakeDb.insertOne.mockResolvedValueOnce(null);
+    const res = await reply('qr_1', 'Hello');
+    expect(res.status).toBe(502);
+    expect(res.body.code).toBe('SEND_FAILED');
+    expect(mockSendMail).not.toHaveBeenCalled();
+    expect(fakeDb.__store().supplier_enquiry_replies).toHaveLength(0);
+  });
+
+  it('gives the place back when the email fails, so the failed attempt does not count', async () => {
+    mockSendMail.mockRejectedValueOnce(new Error('Postmark down'));
+    expect((await reply('qr_1', 'Hello')).body.code).toBe('SEND_FAILED');
+    expect(fakeDb.__store().supplier_enquiry_replies).toHaveLength(0);
+  });
+
+  it('never sends more than three replies to one enquiry when requests overlap', async () => {
+    const results = await Promise.all(
+      Array.from({ length: 6 }, (_, i) => reply('qr_1', `Reply ${i}`))
+    );
+    expect(results.filter(res => res.status === 200).length).toBeLessThanOrEqual(3);
+    expect(mockSendMail.mock.calls.length).toBeLessThanOrEqual(3);
+    const stored = fakeDb.__store().supplier_enquiry_replies;
+    expect(stored.filter(row => row.status === 'sent').length).toBe(mockSendMail.mock.calls.length);
   });
 
   it('escapes HTML typed into the reply', async () => {
@@ -228,6 +268,7 @@ describe('POST /enquiries/:id/reply', () => {
       supplierId: 'sup-1',
       enquiryId: `qr_x${i}`,
       message: 'earlier',
+      status: 'sent',
       sentAt: yesterdayish,
     }));
     fakeDb.__reset(seed({ supplier_enquiry_replies: past }));

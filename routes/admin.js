@@ -1388,7 +1388,9 @@ function generateSlug(title) {
     .toLowerCase()
     .trim()
     .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-+|-+$/g, '');
+    .split('-')
+    .filter(Boolean)
+    .join('-');
 }
 
 /**

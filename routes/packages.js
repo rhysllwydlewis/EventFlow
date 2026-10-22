@@ -238,7 +238,7 @@ router.get('/me/packages', applyAuthRequired, applyRoleRequired('supplier'), asy
       supplierIds.length > 0
         ? await dbUnified.find('packages', { supplierId: { $in: supplierIds } })
         : [];
-    res.json({ items, canEdit: suppliers.some(s => s.approved === true) });
+    return res.json({ items, canEdit: suppliers.some(s => s.approved === true) });
   } catch (error) {
     logger.error('Error reading supplier packages:', error);
     return res.status(500).json({ error: 'Internal server error' });

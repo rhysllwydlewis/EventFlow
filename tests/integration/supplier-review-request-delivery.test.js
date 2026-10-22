@@ -199,6 +199,36 @@ describe('supplier review-request delivery', () => {
     expect(sendMail).not.toHaveBeenCalled();
   });
 
+  test('does not count requests whose email failed to send towards the daily cap', async () => {
+    const earlierToday = new Date(fixedNow.getTime() - 3 * 3600000).toISOString();
+    const db = createMemoryDb({
+      suppliers: [{ id: 'supplier-1', ownerUserId: 'supplier-user', name: 'Moor Audio' }],
+      reviewRequests: Array.from({ length: 30 }, (_, i) => ({
+        id: `failed-${i}`,
+        supplierId: 'supplier-1',
+        customerEmail: `c${i}@example.com`,
+        status: 'failed',
+        createdAt: earlierToday,
+        expiresAt: '2026-07-20T09:00:00.000Z',
+      })),
+    });
+    const sendMail = jest.fn().mockResolvedValue({ MessageID: 'm1' });
+    const app = buildApp({
+      db,
+      sendMail,
+      user: { id: 'supplier-user', role: 'supplier' },
+      now: () => fixedNow,
+      createToken: () => rawToken,
+    });
+
+    const response = await request(app)
+      .post('/api/v1/supplier/request-review')
+      .send({ customerEmail: 'new-customer@example.com' });
+
+    expect(response.status).not.toBe(429);
+    expect(sendMail).toHaveBeenCalledTimes(1);
+  });
+
   test('blocks a duplicate active request', async () => {
     const db = createMemoryDb({
       suppliers: [{ id: 'supplier-1', ownerUserId: 'supplier-user', name: 'Moor Audio' }],

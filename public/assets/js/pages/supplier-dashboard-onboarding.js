@@ -83,8 +83,8 @@
 
   /** The newer of two progress records (an empty record is older than any). */
   function newerProgress(first, second) {
-    const firstAt = Date.parse((first && first.at) || '') || 0;
-    const secondAt = Date.parse((second && second.at) || '') || 0;
+    const firstAt = Date.parse(first?.at || '') || 0;
+    const secondAt = Date.parse(second?.at || '') || 0;
     return secondAt > firstAt ? second : first;
   }
 
@@ -104,7 +104,7 @@
       }
       try {
         const result = await api.getJson('/api/supplier/guide-progress');
-        const saved = result && result.data && result.data.progress;
+        const saved = result?.data?.progress;
         accountProgress[storageKey(user)] = saved && typeof saved === 'object' ? saved : {};
       } catch {
         /* offline or refused: the browser's copy is used */
@@ -125,7 +125,7 @@
         status: record.status,
         step: record.step,
       })
-    ).catch(() => {});
+    ).catch(() => undefined);
   }
 
   /** Removes every saved guide record from this browser (all users of it). */

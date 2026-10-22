@@ -25,10 +25,23 @@
  * @returns {string} Plain text.
  */
 function cleanText(value) {
-  return String(value === null || value === undefined ? '' : value)
-    .replace(/<[^>]*>/g, ' ')
-    .replace(/\s+/g, ' ')
-    .trim();
+  const text = String(value === null || value === undefined ? '' : value);
+  // Walk the text once rather than use /<[^>]*>/, which takes quadratic time on "<<<<<<".
+  const lastClose = text.lastIndexOf('>');
+  let out = '';
+  let inTag = false;
+  for (let i = 0; i < text.length; i += 1) {
+    const ch = text[i];
+    if (!inTag && ch === '<') {
+      inTag = i < lastClose;
+      out += inTag ? ' ' : ch;
+    } else if (inTag && ch === '>') {
+      inTag = false;
+    } else if (!inTag) {
+      out += ch;
+    }
+  }
+  return out.replace(/\s+/g, ' ').trim();
 }
 
 // Matches "test" as a standalone word (case-insensitive) so "Romeo Test" and
