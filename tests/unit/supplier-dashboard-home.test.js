@@ -575,7 +575,7 @@ describe('supplier dashboard home: structure', () => {
   });
 
   test('the dashboard guard is on the same version as the customer dashboard', () => {
-    expect(html).toMatch(/dashboard-guard\.js\?v=17\.1\.0/);
+    expect(html).toMatch(/dashboard-guard\.js\?v=18\.4\.0/);
   });
 });
 

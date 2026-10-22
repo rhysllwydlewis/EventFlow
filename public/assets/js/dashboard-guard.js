@@ -157,11 +157,24 @@
   const MAX_REDIRECTS = 3;
   const styleId = 'dashboard-guard-style';
 
+  /**
+   * Reveal the page. The hiding rule makes every element `visibility: hidden`; taking it away would
+   * make each element that has `transition: all` (buttons, inputs, table cells...) animate from
+   * hidden to visible. That is pointless, and where the browser's animation clock is slow or held
+   * (a throttled or headless browser) the elements stay hidden until it catches up. So transitions
+   * are switched off in the same step as the reveal, and back on a moment later.
+   */
   function showPage() {
     const style = document.getElementById(styleId);
-    if (style) {
-      style.remove();
+    if (!style) {
+      return;
     }
+    const calm = document.createElement('style');
+    calm.id = `${styleId}-calm`;
+    calm.textContent = '*, *::before, *::after { transition: none !important; }';
+    document.head.appendChild(calm);
+    style.remove();
+    window.setTimeout(() => calm.remove(), 150);
   }
 
   function showAccessError() {

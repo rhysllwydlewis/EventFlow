@@ -104,7 +104,7 @@ describe('customer dashboard home: stylesheets', () => {
   test('dashboard-guard no longer injects the removed mop-up and polish scripts', () => {
     const guard = read('public/assets/js/dashboard-guard.js');
     expect(guard).not.toMatch(/mop-up|customer-dashboard-polish/);
-    expect(html).toMatch(/dashboard-guard\.js\?v=17\.1\.0/);
+    expect(html).toMatch(/dashboard-guard\.js\?v=18\.4\.0/);
   });
 });
 
