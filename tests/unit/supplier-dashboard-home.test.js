@@ -643,16 +643,29 @@ describe('supplier dashboard home: honest metrics', () => {
 describe('supplier dashboard home: pure logic', () => {
   const home = (() => {
     const classList = { toggle() {} };
-    const node = () => ({
-      classList,
-      dataset: {},
-      style: {},
-      setAttribute() {},
-      removeAttribute() {},
-      querySelector: () => null,
-      querySelectorAll: () => [],
-      addEventListener() {},
-    });
+    const node = () => {
+      const element = {
+        classList,
+        dataset: {},
+        style: {},
+        setAttribute() {},
+        removeAttribute() {},
+        querySelector: () => null,
+        querySelectorAll: () => [],
+        addEventListener() {},
+        innerHTML: '',
+      };
+      // Setting the text of an element makes its escaped markup readable, as a browser does.
+      Object.defineProperty(element, 'textContent', {
+        set(value) {
+          element.innerHTML = String(value)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;');
+        },
+      });
+      return element;
+    };
     const window = {
       addEventListener() {},
       setTimeout: () => 0,
@@ -679,6 +692,42 @@ describe('supplier dashboard home: pure logic', () => {
     });
     return window.SupplierDashboardHome;
   })();
+
+  describe('the visits chart', () => {
+    const days = count =>
+      Array.from({ length: count }, (_, i) => ({
+        date: new Date(Date.UTC(2026, 6, 1 + i)).toISOString().slice(0, 10),
+        views: i % 7,
+        enquiries: i % 3 === 0 ? 1 : 0,
+      }));
+
+    test.each([7, 30, 90])('draws one bar per day for %i days, all inside the chart', count => {
+      const svg = home.chartSvg(days(count), count);
+      const bars = [...svg.matchAll(/<rect [^>]*x="([\d.]+)"[^>]*width="([\d.]+)"[^>]*>/g)];
+      expect(bars).toHaveLength(count);
+      bars.forEach(([, x, width]) => {
+        expect(Number(x)).toBeGreaterThanOrEqual(0);
+        expect(Number(x) + Number(width)).toBeLessThanOrEqual(560);
+        expect(Number(width)).toBeGreaterThanOrEqual(2);
+      });
+    });
+
+    test('the text alternative states the same total as the bars, for any length', () => {
+      const data = days(90);
+      const total = data.reduce((sum, item) => sum + item.views, 0);
+      const svg = home.chartSvg(data, 90);
+      expect(svg).toContain(`${total.toLocaleString('en-GB')} visits in total`);
+      expect(svg).toContain('over the last 90 days');
+    });
+
+    test('a quiet week is not drawn as one slab', () => {
+      const quiet = days(7).map(item => ({ ...item, views: 0 }));
+      quiet[3].views = 40;
+      const svg = home.chartSvg(quiet, 7);
+      const widths = [...svg.matchAll(/width="([\d.]+)" height/g)].map(m => Number(m[1]));
+      expect(Math.max(...widths)).toBeLessThanOrEqual(28);
+    });
+  });
 
   const example = JSON.parse(
     JSON.stringify({

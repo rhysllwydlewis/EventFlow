@@ -2867,6 +2867,7 @@
     getContext,
     getJson,
     enquiryTrend,
+    chartSvg,
     sendJson,
     toast,
     normaliseSummary,
