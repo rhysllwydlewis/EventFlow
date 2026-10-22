@@ -193,7 +193,14 @@ describe('Messaging-Notification Integration', () => {
 
     it('uses guarded Socket.IO loading and aligned client config', () => {
       expect(notificationsJs).toContain('if (window.io)');
-      expect(notificationsJs).toContain('https://cdn.socket.io/4.8.1/socket.io.min.js');
+      expect(notificationsJs).toContain("script.src = '/socket.io/socket.io.min.js'");
+      expect(notificationsJs).not.toContain('cdn.socket.io');
+    });
+
+    it('retries loading the self-hosted client, because the server serves it a little after it starts', () => {
+      // A page opened during a deployment must not be left without live notifications.
+      expect(notificationsJs).toContain('SOCKET_CLIENT_RETRY_DELAYS_MS');
+      expect(notificationsJs).toContain('loadSocketClient(attempt + 1)');
       expect(notificationsJs).toContain('const socketUrl = `${protocol}//${window.location.host}`');
       expect(notificationsJs).toContain("path: '/socket.io'");
     });

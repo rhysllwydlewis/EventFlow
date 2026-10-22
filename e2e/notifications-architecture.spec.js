@@ -176,8 +176,8 @@ test.describe('Notification System Architecture', () => {
       );
     });
 
-    // Block Socket.IO CDN to simulate loading failure
-    await page.route('https://cdn.socket.io/**', route => route.abort());
+    // Block the Socket.IO client to simulate loading failure
+    await page.route('**/socket.io/socket.io.min.js', route => route.abort());
 
     // Reload to trigger initialization with blocked Socket.IO
     await page.reload();

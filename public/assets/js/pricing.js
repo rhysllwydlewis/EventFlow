@@ -942,7 +942,11 @@
           if (!target) {
             throw new Error('No checkout URL returned');
           }
-          window.location.href = target;
+          const safeTarget = window.EFCheckoutUrl?.resolve(target);
+          if (!safeTarget) {
+            throw new Error('The payment page address was not recognised. Please try again.');
+          }
+          window.location.href = safeTarget;
         } catch (error) {
           console.error('Checkout error:', error);
           const message = error.message || 'Failed to start checkout. Please try again.';

@@ -419,11 +419,16 @@
     return overlay;
   }
 
+  /** A date as YYYY-MM-DD in the visitor's own time zone (toISOString would use UTC). */
+  function localIsoDate(date) {
+    const pad = number => String(number).padStart(2, '0');
+    return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+  }
+
   function openEntryModal(modal, dateStr) {
     modal.querySelector('#sup-cal-entry-title').value = '';
     modal.querySelector('#sup-cal-entry-type').value = '';
-    modal.querySelector('#sup-cal-entry-date').value =
-      dateStr || new Date().toISOString().slice(0, 10);
+    modal.querySelector('#sup-cal-entry-date').value = dateStr || localIsoDate(new Date());
     modal.querySelector('#sup-cal-entry-time').value = '';
     modal.querySelector('#sup-cal-entry-notes').value = '';
     const errorEl = modal.querySelector('#sup-cal-entry-error');
@@ -1263,18 +1268,20 @@
         }
       },
       // "+" hint on day cells for quick entry creation
-      dayCellDidMount: function (info) {
+      dayCellDidMount(info) {
+        // Day cells carry a Date (not a dateStr, which only click and select callbacks have).
+        const cellDate = localIsoDate(info.date);
         const addBtn = document.createElement('button');
         addBtn.type = 'button';
         addBtn.className = 'cal-day-add-btn';
-        addBtn.setAttribute('aria-label', `Add entry for ${info.dateStr}`);
+        addBtn.setAttribute('aria-label', `Add entry for ${cellDate}`);
         addBtn.innerHTML =
           '<svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true">' +
           '<path d="M6 1v10M1 6h10" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>' +
           '</svg>';
         addBtn.addEventListener('click', e => {
           e.stopPropagation();
-          openEntryModal(entryModal, info.dateStr);
+          openEntryModal(entryModal, cellDate);
         });
         const frame = info.el.querySelector('.fc-daygrid-day-frame');
         if (frame) {

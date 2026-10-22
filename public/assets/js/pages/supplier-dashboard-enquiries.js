@@ -11,9 +11,9 @@
  *
  * Only an approved supplier can read them (the server answers 403 SUPPLIER_NOT_APPROVED and 404 for
  * another supplier's record). Customer text arrives as plain text, so every piece of it is put on
- * the page with textContent, never as markup. Suppliers are not told when an enquiry arrives and
- * cannot reply here; the drawer says so and shows the customer's own contact details so the
- * supplier can answer directly.
+ * the page with textContent, never as markup. Suppliers are notified when an enquiry arrives
+ * (services/supplierEnquiryNotifier.js) but cannot reply here; the drawer says so and shows the
+ * customer's own contact details so the supplier can answer directly.
  */
 'use strict';
 
@@ -164,9 +164,9 @@
     return button;
   }
 
-  /** Puts the honest note on the card and in the drawer: no reply here, no alert when one arrives. */
+  /** Puts the honest note on the card and in the drawer: you are told when one arrives, no reply here. */
   const NOTE =
-    'You are not emailed when an enquiry arrives and you cannot reply here. Open one to see how to reach the customer, then answer them directly.';
+    'You are notified when an enquiry arrives (and emailed, once your email address is verified), but you cannot reply here. Open one to see how to reach the customer, then answer them directly.';
 
   /** Draws the card body for the current state: loading, unapproved, error, empty or the latest rows. */
   function renderCard() {

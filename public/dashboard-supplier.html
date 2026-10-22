@@ -16,7 +16,7 @@
     <link rel="stylesheet" href="/assets/css/ui-ux-fixes.css?v=18.4.0" />
     <link rel="stylesheet" href="/assets/css/navbar.css?v=18.4.2" /><link rel="stylesheet" href="/assets/css/eventflow-brand.css?v=1.0.1" data-eventflow-brand="true" />
     <link rel="stylesheet" href="/assets/css/skeleton.css?v=2.1.0" />
-    <link rel="stylesheet" href="/assets/css/supplier-dashboard-home.css?v=1.0.0" />
+    <link rel="stylesheet" href="/assets/css/supplier-dashboard-home.css?v=1.0.1" />
     <script src="/assets/js/dashboard-guard.js?v=17.1.0"></script>
     <link rel="stylesheet" href="/messenger/css/messenger-widget-v4.css" />
     <link rel="icon" href="/favicon.ico" sizes="any">
@@ -155,10 +155,10 @@
     <script src="/assets/js/utils/sentry-browser-init.js" defer></script>
     <!-- Burger menu - simple standalone implementation -->
     <script src="/assets/js/burger-menu.js" defer></script>
-    <script src="/assets/js/navbar.js" defer></script>
-    <script src="/assets/js/notifications.js" defer></script>
+    <script src="/assets/js/navbar.js?v=1.0.1" defer></script>
+    <script src="/assets/js/notifications.js?v=2.0.3" defer></script>
 
-    <script src="/assets/js/websocket-client.js" defer></script>
+    <script src="/assets/js/websocket-client.js?v=2.0.1" defer></script>
     <main id="main-content" class="sdh">
       <div class="sdh-wrap">
         <!-- Verification strip. Shown by supplier-dashboard-home.js when the profile is not
@@ -318,12 +318,12 @@
                   <p class="sdh-card__sub" id="supplier-cal-subtitle">Your private calendar.</p>
                 </div>
                 <div class="sdh-card__actions">
-                  <a href="/public-calendar" id="supplier-cal-cta" class="sdh-link" aria-label="View the EventFlow public calendar">View public calendar</a>
+                  <a href="/public-calendar" id="supplier-cal-cta" class="sdh-link">View public calendar</a>
                   <button type="button" id="sup-cal-add-event-btn" class="sdh-btn sdh-btn--secondary sdh-btn--sm sup-cal-publisher-only" aria-label="Add public event" hidden>
                     <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true"><path d="M7 1.5v11M1.5 7h11" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" /></svg>
                     Add public event
                   </button>
-                  <button type="button" id="sup-cal-add-entry-btn" class="sdh-btn sdh-btn--secondary sdh-btn--sm" aria-label="Add private calendar entry">
+                  <button type="button" id="sup-cal-add-entry-btn" class="sdh-btn sdh-btn--secondary sdh-btn--sm">
                     <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true"><path d="M7 1.5v11M1.5 7h11" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" /></svg>
                     Add private entry
                   </button>
@@ -997,21 +997,22 @@
 
     <script src="/assets/js/config/page-init.js" defer></script>
     <script src="/assets/js/utils/supplier-avatar.js?v=1.0.2"></script>
-    <script src="/assets/js/pages/supplier-dashboard-home.js?v=1.0.0" defer></script>
+    <script src="/assets/js/utils/checkout-url.js?v=1.0.0" defer></script>
+    <script src="/assets/js/pages/supplier-dashboard-home.js?v=1.0.1" defer></script>
     <script src="/assets/js/pages/supplier-dashboard-overlays.js?v=1.0.0" defer></script>
     <script src="/assets/js/pages/supplier-dashboard-banner.js?v=1.0.0" defer></script>
     <script src="/assets/js/pages/supplier-dashboard-onboarding.js?v=1.0.0" defer></script>
-    <script src="/assets/js/pages/supplier-dashboard-enquiries.js?v=1.0.0" defer></script>
+    <script src="/assets/js/pages/supplier-dashboard-enquiries.js?v=1.0.1" defer></script>
     <script src="/assets/js/pages/supplier-dashboard-fold.js?v=1.0.0" defer></script>
-    <script src="/assets/js/app.js?v=18.5.7" defer></script>
+    <script src="/assets/js/app.js?v=18.5.8" defer></script>
     <script src="/assets/js/unread-badge-manager.js?v=18.3.0" defer></script>
     <script src="/assets/js/pages/dashboard-supplier-category.js?v=1.0.0" defer></script>
     <script src="/assets/js/pages/dashboard-supplier-coverage.js?v=1.0.0" defer></script>
     <script src="/assets/js/pages/supplier-reviews-init.js?v=1.0.1" defer></script>
-    <script type="module" src="/assets/js/supplier-tickets.js?v=18.3.0"></script>
-    <script type="module" src="/assets/js/supplier-gallery.js?v=18.3.1"></script>
+    <script type="module" src="/assets/js/supplier-tickets.js?v=18.3.1"></script>
+    <script type="module" src="/assets/js/supplier-gallery.js?v=18.3.2"></script>
     <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.js" defer></script>
-    <script src="/assets/js/pages/dashboard-supplier-calendar.js?v=1.0.0" defer></script>
+    <script src="/assets/js/pages/dashboard-supplier-calendar.js?v=1.0.1" defer></script>
     <script src="/assets/js/dashboard-supplier-export.js?v=18.3.1" defer></script>
     <script src="/assets/js/pages/dashboard-supplier-verification.js?v=1.0.0" defer></script>
     <script src="/assets/js/keyboard-shortcuts.js" defer></script>

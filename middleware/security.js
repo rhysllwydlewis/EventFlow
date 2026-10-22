@@ -77,7 +77,6 @@ function configureHelmet(isProduction = false) {
           "'self'",
           ...LEGACY_PROFILE_CUSTOMIZATION_INLINE_SCRIPT_HASHES,
           'https://cdn.jsdelivr.net',
-          'https://cdn.socket.io',
           'https://cdn.tidycal.net',
           'https://estatic.com',
           'https://*.estatic.com',
@@ -207,17 +206,27 @@ function configureHelmet(isProduction = false) {
   });
 }
 
+/** The pages with a "Use my location" button. */
+const GEOLOCATION_PAGES = new Set([
+  '/marketplace',
+  '/marketplace.html',
+  '/suppliers',
+  '/suppliers.html',
+]);
+
 /**
  * Configure Permissions-Policy header middleware
  * Restricts browser features (geolocation, camera, microphone) by default.
- * Geolocation is permitted for the Marketplace page (used by "Use My Location").
+ * Geolocation is permitted for the pages with a "Use my location" button (GEOLOCATION_PAGES).
  * @returns {Function} Express middleware
  */
 function configurePermissionsPolicy() {
   return (req, res, next) => {
-    // Allow geolocation only on the marketplace page (required for "Use My Location" feature)
-    const isMarketplacePage = req.path === '/marketplace' || req.path === '/marketplace.html';
-    const geolocationPolicy = isMarketplacePage ? 'geolocation=(self)' : 'geolocation=()';
+    // Allow geolocation only on the pages with a "Use my location" button (the browser still asks
+    // the visitor, and only when they press it): the marketplace and the supplier directory map.
+    const geolocationPolicy = GEOLOCATION_PAGES.has(req.path.replace(/(.)\/+$/, '$1'))
+      ? 'geolocation=(self)'
+      : 'geolocation=()';
     res.setHeader('Permissions-Policy', `${geolocationPolicy}, camera=(), microphone=()`);
     next();
   };
@@ -364,6 +373,16 @@ function configureCORSMiddleware(isProduction = false) {
 }
 
 /**
+ * The full backend browser suite is one isolated CI process sending every spec's requests from one
+ * loopback address, so per-IP buckets would let unrelated specs exhaust each other's allowance
+ * (the CSRF-token endpoint answered 429 mid-suite). Only NODE_ENV=test with E2E_MODE=full skips
+ * them; production, development and ordinary tests keep every limit. Same rule as middleware/rateLimits.js.
+ */
+function skipInBackendE2E() {
+  return process.env.NODE_ENV === 'test' && process.env.E2E_MODE === 'full';
+}
+
+/**
  * Create rate limiters for different types of requests
  * @returns {Object} Rate limiter instances
  */
@@ -375,6 +394,7 @@ function createRateLimiters() {
       max: 100,
       standardHeaders: true,
       legacyHeaders: false,
+      skip: skipInBackendE2E,
     }),
 
     // Strict auth limiter - 10 requests per 15 minutes
@@ -383,6 +403,7 @@ function createRateLimiters() {
       max: 10,
       standardHeaders: true,
       legacyHeaders: false,
+      skip: skipInBackendE2E,
       message: 'Too many requests. Please try again later.',
     }),
 
@@ -392,6 +413,7 @@ function createRateLimiters() {
       max: 5,
       standardHeaders: true,
       legacyHeaders: false,
+      skip: skipInBackendE2E,
       message: 'Too many password reset attempts. Please try again later.',
     }),
 
@@ -401,6 +423,7 @@ function createRateLimiters() {
       max: 80,
       standardHeaders: true,
       legacyHeaders: false,
+      skip: skipInBackendE2E,
     }),
 
     // Health check limiter - 60 requests per minute
@@ -409,6 +432,7 @@ function createRateLimiters() {
       max: 60,
       standardHeaders: true,
       legacyHeaders: false,
+      skip: skipInBackendE2E,
       message: 'Too many health check requests',
     }),
   };

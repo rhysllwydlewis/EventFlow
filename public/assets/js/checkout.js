@@ -293,6 +293,55 @@
     });
   }
 
+  async function buildJsonHeaders() {
+    if (!window.__CSRF_TOKEN__) {
+      try {
+        const csrfResponse = await fetch('/api/v1/csrf-token', { credentials: 'include' });
+        const csrfData = await csrfResponse.json();
+        if (csrfData?.csrfToken) {
+          window.__CSRF_TOKEN__ = csrfData.csrfToken;
+        }
+      } catch (err) {
+        console.warn('Could not fetch CSRF token:', err);
+      }
+    }
+    const headers = { 'Content-Type': 'application/json' };
+    if (window.__CSRF_TOKEN__) {
+      headers['X-CSRF-Token'] = window.__CSRF_TOKEN__;
+    }
+    return headers;
+  }
+
+  function checkoutErrorMessage(status, data) {
+    if (status === 500) {
+      return data.message || 'Payment system temporarily unavailable. Please try again.';
+    }
+    if (status === 503) {
+      return 'Payment processing is not currently available. Please contact support.';
+    }
+    return data.message || data.error || 'Failed to create checkout session';
+  }
+
+  // Only ever follows a payment page the address allowlist recognises.
+  async function continueToPayment(data) {
+    if (data.url) {
+      const safeUrl = window.EFCheckoutUrl?.resolve(data.url);
+      if (!safeUrl) {
+        throw new Error('The payment page address was not recognised. Please try again.');
+      }
+      window.location.href = safeUrl;
+      return;
+    }
+    if (data.sessionId) {
+      const result = await stripe.redirectToCheckout({ sessionId: data.sessionId });
+      if (result.error) {
+        throw new Error(result.error.message);
+      }
+      return;
+    }
+    throw new Error('No checkout session returned');
+  }
+
   async function handleCheckout(planKey, requestedInterval) {
     const normalizedPlanKey = normalizePlanKey(planKey);
     const plan = PLANS[normalizedPlanKey];
@@ -323,24 +372,7 @@
         }
       }
 
-      if (!window.__CSRF_TOKEN__) {
-        try {
-          const csrfResponse = await fetch('/api/v1/csrf-token', { credentials: 'include' });
-          const csrfData = await csrfResponse.json();
-          if (csrfData && csrfData.csrfToken) {
-            window.__CSRF_TOKEN__ = csrfData.csrfToken;
-          }
-        } catch (err) {
-          console.warn('Could not fetch CSRF token:', err);
-        }
-      }
-
-      const headers = {
-        'Content-Type': 'application/json',
-      };
-      if (window.__CSRF_TOKEN__) {
-        headers['X-CSRF-Token'] = window.__CSRF_TOKEN__;
-      }
+      const headers = await buildJsonHeaders();
 
       const configuredPlan = stripeConfig?.plans?.find(({ id }) => id === normalizedPlanKey);
       const configuredInterval = configuredPlan?.billingInterval;
@@ -370,25 +402,10 @@
       const data = await response.json();
 
       if (!response.ok) {
-        let errorMsg = data.message || data.error || 'Failed to create checkout session';
-        if (response.status === 500) {
-          errorMsg = data.message || 'Payment system temporarily unavailable. Please try again.';
-        } else if (response.status === 503) {
-          errorMsg = 'Payment processing is not currently available. Please contact support.';
-        }
-        throw new Error(errorMsg);
+        throw new Error(checkoutErrorMessage(response.status, data));
       }
 
-      if (data.url) {
-        window.location.href = data.url;
-      } else if (data.sessionId) {
-        const result = await stripe.redirectToCheckout({ sessionId: data.sessionId });
-        if (result.error) {
-          throw new Error(result.error.message);
-        }
-      } else {
-        throw new Error('No checkout session returned');
-      }
+      await continueToPayment(data);
     } catch (error) {
       console.error('Checkout error:', error);
       showError(error.message);

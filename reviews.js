@@ -19,6 +19,7 @@ const crypto = require('crypto');
 const dbUnified = require('./db-unified');
 const { uid } = require('./store');
 const { addPublicProfilePath } = require('./utils/publicSupplierProfilePath');
+const { isApprovedReview, isV2Review, normaliseReview } = require('./utils/reviewShape');
 
 // Anti-spam configuration
 const RATE_LIMIT_WINDOW = 60 * 60 * 1000; // 1 hour in milliseconds
@@ -276,6 +277,41 @@ async function createReview(reviewData, metadata = {}) {
 }
 
 /**
+ * The fields a public page reads from a review, for either storage scheme.
+ *
+ * A review written by the older form already has them. A review written under the newer
+ * moderation scheme stores the same facts under other names (`text`, `authorName`, `response`,
+ * a `verification` object) and carries moderation internals, so it is mapped to the public names
+ * here and its internals are left behind.
+ *
+ * @param {Object} review - Stored review
+ * @returns {Object} Review with the public field names
+ */
+function toPublicFields(review) {
+  if (!isV2Review(review)) {
+    return { ...review };
+  }
+  const normal = normaliseReview(review);
+  return {
+    id: normal.id,
+    supplierId: normal.supplierId,
+    userId: normal.authorId,
+    userName: normal.authorName || 'Anonymous',
+    rating: normal.rating,
+    title: normal.title,
+    comment: normal.text,
+    createdAt: normal.createdAt,
+    verified: normal.verified,
+    approved: isApprovedReview(review),
+    helpfulCount: Number(review.helpfulCount) || 0,
+    photos: Array.isArray(review.photos) ? review.photos : [],
+    supplierResponse: normal.response
+      ? { text: normal.response.text, respondedAt: normal.response.respondedAt }
+      : null,
+  };
+}
+
+/**
  * Get reviews for a supplier with pagination and filtering
  * @param {string} supplierId - Supplier ID
  * @param {Object} options - Query options
@@ -297,13 +333,15 @@ async function getSupplierReviews(supplierId, options = {}) {
   let filtered = reviews.filter(r => r.supplierId === supplierId);
 
   // Filter by approval status
+  // A review is published when its own moderation says so, whichever scheme wrote it (the older
+  // `approved` flag, or the newer `moderation.state`): see utils/reviewShape.js.
   if (approvedOnly) {
-    filtered = filtered.filter(r => r.approved);
+    filtered = filtered.filter(isApprovedReview);
   }
 
   // Filter by verification status
   if (verifiedOnly) {
-    filtered = filtered.filter(r => r.verified);
+    filtered = filtered.filter(r => toPublicFields(r).verified);
   }
 
   // Filter by minimum rating
@@ -318,7 +356,7 @@ async function getSupplierReviews(supplierId, options = {}) {
   if (sortBy === 'rating') {
     filtered.sort((a, b) => b.rating - a.rating);
   } else if (sortBy === 'helpful') {
-    filtered.sort((a, b) => b.helpfulCount - a.helpfulCount);
+    filtered.sort((a, b) => (b.helpfulCount || 0) - (a.helpfulCount || 0));
   } else {
     // Default: sort by date (newest first)
     filtered.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
@@ -344,7 +382,7 @@ async function getSupplierReviews(supplierId, options = {}) {
     // approvedBy/flagReason/ipAddress/userAgent are internal moderation
     // metadata and must never reach a public response. `flagged` stays —
     // public/assets/js/reviews.js reads it to style flagged review cards.
-    const publicReview = { ...review };
+    const publicReview = toPublicFields(review);
     delete publicReview.approvedBy;
     delete publicReview.flagReason;
     delete publicReview.ipAddress;
@@ -492,7 +530,7 @@ async function addSupplierResponse(reviewId, supplierId, responseText, responder
  */
 async function updateSupplierAnalytics(supplierId) {
   const reviews = await dbUnified.read('reviews');
-  const supplierReviews = reviews.filter(r => r.supplierId === supplierId && r.approved);
+  const supplierReviews = reviews.filter(r => r.supplierId === supplierId && isApprovedReview(r));
 
   if (supplierReviews.length === 0) {
     const analytics = {
@@ -776,7 +814,7 @@ async function getRatingDistribution(supplierId) {
 
   // If no analytics exist, calculate on the fly
   const reviews = await dbUnified.read('reviews');
-  const supplierReviews = reviews.filter(r => r.supplierId === supplierId && r.approved);
+  const supplierReviews = reviews.filter(r => r.supplierId === supplierId && isApprovedReview(r));
 
   const distribution = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
   supplierReviews.forEach(r => {

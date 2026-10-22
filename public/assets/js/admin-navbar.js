@@ -1083,7 +1083,14 @@
         e.preventDefault();
         if (confirm('Are you sure you want to sign out?')) {
           try {
-            // Call POST logout endpoint with CSRF token if available
+            // Call POST logout endpoint. If the page's token has not loaded yet,
+            // fetch one so the session cookie is really cleared.
+            if (!window.__CSRF_TOKEN__) {
+              const tokenRes = await fetch('/api/v1/csrf-token', { credentials: 'include' });
+              if (tokenRes.ok) {
+                window.__CSRF_TOKEN__ = (await tokenRes.json()).csrfToken;
+              }
+            }
             await fetch('/api/v1/auth/logout', {
               method: 'POST',
               headers: { 'X-CSRF-Token': window.__CSRF_TOKEN__ || '' },

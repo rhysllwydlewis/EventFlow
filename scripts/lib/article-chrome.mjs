@@ -130,8 +130,8 @@ export const NOTIFICATION_DROPDOWN_MARKUP = `<!-- Notification dropdown: pre-ren
 export const HEADER_SCRIPTS = [
   '/assets/js/utils/auth-state.js',
   '/assets/js/burger-menu.js',
-  '/assets/js/navbar.js',
-  '/assets/js/notifications.js',
+  '/assets/js/navbar.js?v=1.0.1',
+  '/assets/js/notifications.js?v=2.0.3',
 ];
 
 export const HEADER_SCRIPTS_MARKUP = HEADER_SCRIPTS.map(
@@ -141,7 +141,7 @@ export const HEADER_SCRIPTS_MARKUP = HEADER_SCRIPTS.map(
 // Matches the contiguous run of those tags, plus websocket-client.js so the run
 // is consumed whole rather than leaving an orphan behind the replacement.
 const HEADER_SCRIPTS_PATTERN =
-  /(?:<script[^>]*src="\/assets\/js\/(?:utils\/auth-state|burger-menu|navbar|websocket-client|notifications)\.js"[^>]*><\/script>\s*)+/;
+  /(?:<script[^>]*src="\/assets\/js\/(?:utils\/auth-state|burger-menu|navbar|websocket-client|notifications)\.js(?:\?v=[\w.]+)?"[^>]*><\/script>\s*)+/;
 
 /**
  * Refuse to touch a block whose match is not a single, balanced element.

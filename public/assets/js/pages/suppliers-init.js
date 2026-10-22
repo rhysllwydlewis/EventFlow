@@ -281,7 +281,8 @@ function createSupplierCard(supplier, position) {
         const descHtml = pkg.description
           ? `<p class="sp-pkg-mini-desc">${escapeHtml(pkg.description)}</p>`
           : '';
-        const displayPrice = formatPackagePrice(pkg.price);
+        // Same rule as every other page: the admin-set price_display first, then the supplier's price.
+        const displayPrice = formatPackagePrice(pkg.price_display || pkg.price);
         // data-pkg-href lets the whole mini-card act as a click/tap
         // "Detailed View" hotspot (see attachCardHotspots()'s click
         // delegation) while the button/link inside it keep their own click

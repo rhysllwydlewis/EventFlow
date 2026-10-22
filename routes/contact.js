@@ -13,6 +13,7 @@ const crypto = require('crypto');
 const logger = require('../utils/logger');
 const { uid } = require('../store');
 const { notifyAdmins } = require('../services/notifyAdmins.service');
+const { notifySupplierOfEnquiry } = require('../services/supplierEnquiryNotifier');
 const router = express.Router();
 
 // Input length limits for contact form fields
@@ -194,6 +195,17 @@ router.post('/contact-supplier', applyWriteLimiter, async (req, res) => {
       senderEmail: enquiry.senderEmail,
       enquiryId: enquiry.id,
     });
+
+    // Tell the supplier (bell and one email). Never blocks or fails the customer's submission.
+    notifySupplierOfEnquiry(
+      {
+        supplierId,
+        kind: 'contact',
+        senderName: enquiry.senderName,
+        message: enquiry.message,
+      },
+      { websocketServer: req.app?.get?.('websocketServer') || null }
+    );
 
     return res.json({
       success: true,

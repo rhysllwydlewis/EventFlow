@@ -15,6 +15,15 @@ import {
 
 let ticketsUnsubscribe = null;
 
+/** Reloads the ticket list now, instead of waiting for the next scheduled refresh. */
+async function refreshTickets(userId) {
+  try {
+    renderTickets(await ticketingSystem.getUserTickets(userId, 'supplier'));
+  } catch (error) {
+    console.warn('Could not refresh tickets:', error?.message);
+  }
+}
+
 // Render tickets
 function renderTickets(tickets) {
   const container = document.getElementById('tickets-sup');
@@ -52,7 +61,7 @@ function renderTickets(tickets) {
     const responseCount = Array.isArray(ticket?.responses) ? ticket.responses.length : 0;
 
     html += `
-      <div class="supplier-ticket-item ticket-item" role="button" tabindex="0" data-ticket-id="${ticket.id}" aria-label="Ticket: ${escapeHtml(ticket.subject || 'No Subject')}">
+      <div class="supplier-ticket-item ticket-item" role="button" tabindex="0" data-ticket-id="${ticket.id}">
         <div class="supplier-ticket-item__header">
           <strong>${escapeHtml(ticket.subject || 'No Subject')}</strong>
           <div class="supplier-ticket-item__badges">
@@ -90,10 +99,13 @@ function renderTickets(tickets) {
 function showCreateTicketModal() {
   const modal = document.createElement('div');
   modal.className = 'modal-overlay active';
+  modal.setAttribute('role', 'dialog');
+  modal.setAttribute('aria-modal', 'true');
+  modal.setAttribute('aria-labelledby', 'ticketCreateTitle');
   modal.innerHTML = `
     <div class="modal ticket-create-modal">
       <div class="modal-header">
-        <h3>Create Support Ticket</h3>
+        <h3 id="ticketCreateTitle">Create Support Ticket</h3>
         <button class="ef-cta modal-close" type="button" aria-label="Close">&times;</button>
       </div>
       <div class="modal-body">
@@ -166,6 +178,8 @@ function showCreateTicketModal() {
 
         showToast('Ticket created successfully', 'success');
         closeModal();
+        // The list refreshes itself only once a minute; show the new ticket straight away.
+        await refreshTickets(user.id);
       } catch (error) {
         console.error('Error creating ticket:', error);
         showToast(`Failed to create ticket: ${error.message}`, 'error');
@@ -191,10 +205,13 @@ function showCreateTicketModal() {
 function viewTicket(ticketId) {
   const modal = document.createElement('div');
   modal.className = 'modal-overlay active';
+  modal.setAttribute('role', 'dialog');
+  modal.setAttribute('aria-modal', 'true');
+  modal.setAttribute('aria-labelledby', 'ticketViewTitle');
   modal.innerHTML = `
     <div class="modal ticket-view-modal">
       <div class="modal-header">
-        <h3>Support Ticket</h3>
+        <h3 id="ticketViewTitle">Support Ticket</h3>
         <button class="ef-cta modal-close" type="button" aria-label="Close">&times;</button>
       </div>
       <div class="modal-body">
@@ -305,8 +322,8 @@ function viewTicket(ticketId) {
       replyForm.addEventListener('submit', async event => {
         event.preventDefault();
         const field = document.getElementById('ticketReplyMessage');
-        const message = field.value.trim();
-        if (!message) {
+        const replyText = field.value.trim();
+        if (!replyText) {
           return;
         }
 
@@ -315,7 +332,7 @@ function viewTicket(ticketId) {
         button.textContent = 'Sending...';
 
         try {
-          await ticketingSystem.addResponse(ticket.id, message);
+          await ticketingSystem.addResponse(ticket.id, replyText);
           field.value = '';
           if (typeof Toast !== 'undefined') {
             showToast('Reply sent', 'success');

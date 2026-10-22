@@ -11,11 +11,55 @@ import supplierManager from './supplier-manager.js';
 /** Photo allowance for the free tier, used until the real one has loaded. */
 const DEFAULT_PHOTO_LIMIT = 10;
 
+/**
+ * One entry of a supplier's gallery as the editor keeps it ({ url, id }).
+ *
+ * The public supplier endpoint returns gallery entries as plain URL strings, while the owner's own
+ * routes return objects. A string used to come out as { url: undefined, id: 'photo_0' }: the photo
+ * showed no image and "Delete photo" asked the server for a photo that does not exist. The server
+ * accepts a photo's URL as its id, so a string is both.
+ * @param {string|Object} entry
+ * @param {number} index
+ * @returns {{url: string, id: string}}
+ */
+function galleryEntry(entry, index) {
+  if (typeof entry === 'string') {
+    return { url: entry, id: entry };
+  }
+  const url = entry?.url || entry?.large || entry?.optimized || entry?.original || '';
+  return { url, id: entry?.id || url || `photo_${index}` };
+}
+
+/**
+ * Show that a file could not be uploaded, on its own tile (the ✕ still removes it).
+ * @param {HTMLElement} tile
+ * @param {string} [reason]
+ */
+function markTileFailed(tile, reason) {
+  tile.classList.remove('photo-preview-item--pending');
+  tile.classList.add('photo-preview-item--failed', 'photo-preview-failed');
+  const badge = tile.querySelector('.photo-pending-badge');
+  if (badge) {
+    badge.textContent = 'Failed';
+    // The "Pending" badge is decorative; "Failed" is information a screen reader must get.
+    badge.removeAttribute('aria-hidden');
+  }
+  tile.title = reason ? `Could not upload: ${reason}` : 'Could not upload this photo';
+  const remove = tile.querySelector('.photo-remove-btn');
+  if (remove) {
+    remove.title = 'Remove this photo';
+  }
+}
+
 class SupplierGalleryManager {
   constructor() {
     this.currentSupplierId = null;
     this.uploadedPhotos = [];
     this.pendingUploads = [];
+    /** The tile drawn for each chosen file, so only the tiles of files that were uploaded go. */
+    this.pendingTiles = new Map();
+    /** How many files are being uploaded right now (they still count against the allowance). */
+    this.uploadingCount = 0;
     this._dragSrc = null;
     this._filePickerInput = null;
     // Every plan used to be capped here at the free tier's ten photos, which
@@ -173,7 +217,8 @@ class SupplierGalleryManager {
     const fileArray = Array.from(files);
 
     // Validate number of photos against the viewer's plan allowance.
-    const currentPhotoCount = this.uploadedPhotos.length + this.pendingUploads.length;
+    const currentPhotoCount =
+      this.uploadedPhotos.length + this.pendingUploads.length + this.uploadingCount;
     const maxPhotos = this.maxPhotos;
 
     if (maxPhotos !== -1 && currentPhotoCount + fileArray.length > maxPhotos) {
@@ -191,6 +236,7 @@ class SupplierGalleryManager {
     }
 
     // Add files to pending uploads and show preview
+    const previews = [];
     for (const file of fileArray) {
       if (!file.type || !file.type.startsWith('image/')) {
         console.warn('Skipping non-image file:', file.name);
@@ -201,7 +247,7 @@ class SupplierGalleryManager {
       this.pendingUploads.push(file);
 
       // Show preview
-      this.showPreview(file, previewContainer);
+      previews.push(this.showPreview(file, previewContainer));
     }
 
     if (isDevelopment) {
@@ -209,72 +255,91 @@ class SupplierGalleryManager {
     }
 
     // For existing suppliers, upload immediately so selected photos are added to
-    // the gallery without requiring another profile save.
+    // the gallery without requiring another profile save. The tiles are drawn first: the upload
+    // clears the pending tiles when it finishes, so one drawn afterwards would stay on the page
+    // beside the saved photo.
+    await Promise.all(previews);
     if (this.currentSupplierId) {
       await this.uploadPendingPhotos(this.currentSupplierId);
     }
   }
 
+  /**
+   * Draw the pending tile for a chosen file.
+   * @returns {Promise<void>} Resolves once the tile is on the page (or the file could not be read).
+   */
   showPreview(file, previewContainer) {
     const reader = new FileReader();
 
-    reader.addEventListener('load', e => {
-      const wrapper = document.createElement('div');
-      wrapper.className = 'photo-preview-item photo-preview-item--pending';
-
-      // "Pending" label so the user can distinguish staged files from uploaded ones
-      const pendingBadge = document.createElement('span');
-      pendingBadge.className = 'photo-pending-badge';
-      pendingBadge.textContent = 'Pending';
-      pendingBadge.setAttribute('aria-hidden', 'true');
-      wrapper.appendChild(pendingBadge);
-
-      // Remove button (before upload)
-      const removeBtn = document.createElement('button');
-      removeBtn.type = 'button';
-      removeBtn.textContent = '✕';
-      removeBtn.className = 'photo-remove-btn';
-      removeBtn.setAttribute('aria-label', 'Remove photo');
-      removeBtn.title = 'Remove from upload queue';
-      removeBtn.addEventListener('click', () => {
-        // Remove from pending uploads - ensure pendingUploads is defined
-        if (this.pendingUploads && Array.isArray(this.pendingUploads)) {
-          const index = this.pendingUploads.indexOf(file);
-          if (index > -1) {
-            this.pendingUploads.splice(index, 1);
-          }
-        }
-        // Remove preview
-        wrapper.remove();
+    return new Promise(resolve => {
+      reader.addEventListener('error', () => resolve());
+      reader.addEventListener('load', e => {
+        this.drawPendingTile(file, previewContainer, e.target.result);
+        resolve();
       });
-      wrapper.appendChild(removeBtn);
-
-      // Image container — overflow:hidden keeps the tile at a fixed size
-      const imgWrap = document.createElement('div');
-      imgWrap.className = 'photo-preview-item__image-wrap';
-      const img = document.createElement('img');
-      img.src = e.target.result;
-      img.alt = file.name;
-      img.addEventListener(
-        'error',
-        () => {
-          if (img.dataset.errorHandled) {
-            return;
-          }
-          img.dataset.errorHandled = '1';
-          img.alt = 'Image unavailable';
-          img.title = 'Could not load image';
-          imgWrap.classList.add('photo-preview-item__image-wrap--error');
-        },
-        { once: true }
-      );
-      imgWrap.appendChild(img);
-      wrapper.appendChild(imgWrap);
-
-      previewContainer.appendChild(wrapper);
+      reader.readAsDataURL(file);
     });
+  }
 
-    reader.readAsDataURL(file);
+  /**
+   * @param {File} file - The chosen file
+   * @param {HTMLElement} previewContainer - Where the tile goes
+   * @param {string} dataUrl - The file read as a data URL, for the thumbnail
+   */
+  drawPendingTile(file, previewContainer, dataUrl) {
+    const wrapper = document.createElement('div');
+    wrapper.className = 'photo-preview-item photo-preview-item--pending';
+
+    // "Pending" label so the user can distinguish staged files from uploaded ones
+    const pendingBadge = document.createElement('span');
+    pendingBadge.className = 'photo-pending-badge';
+    pendingBadge.textContent = 'Pending';
+    pendingBadge.setAttribute('aria-hidden', 'true');
+    wrapper.appendChild(pendingBadge);
+
+    // Remove button (before upload)
+    const removeBtn = document.createElement('button');
+    removeBtn.type = 'button';
+    removeBtn.textContent = '✕';
+    removeBtn.className = 'photo-remove-btn';
+    removeBtn.setAttribute('aria-label', 'Remove photo');
+    removeBtn.title = 'Remove from upload queue';
+    removeBtn.addEventListener('click', () => {
+      // Take it out of the queue (a file already being uploaded is no longer in it)
+      const index = this.pendingUploads.indexOf(file);
+      if (index > -1) {
+        this.pendingUploads.splice(index, 1);
+      }
+      this.pendingTiles.delete(file);
+      // Remove preview
+      wrapper.remove();
+    });
+    wrapper.appendChild(removeBtn);
+
+    // Image container — overflow:hidden keeps the tile at a fixed size
+    const imgWrap = document.createElement('div');
+    imgWrap.className = 'photo-preview-item__image-wrap';
+    const img = document.createElement('img');
+    img.src = dataUrl;
+    img.alt = file.name;
+    img.addEventListener(
+      'error',
+      () => {
+        if (img.dataset.errorHandled) {
+          return;
+        }
+        img.dataset.errorHandled = '1';
+        img.alt = 'Image unavailable';
+        img.title = 'Could not load image';
+        imgWrap.classList.add('photo-preview-item__image-wrap--error');
+      },
+      { once: true }
+    );
+    imgWrap.appendChild(img);
+    wrapper.appendChild(imgWrap);
+
+    this.pendingTiles.set(file, wrapper);
+    previewContainer.appendChild(wrapper);
   }
 
   /**
@@ -303,19 +368,29 @@ class SupplierGalleryManager {
     }
   }
 
+  /**
+   * Upload the files in the queue. The queue is taken first, so files chosen while this batch is
+   * uploading start a batch of their own and are neither uploaded twice nor lost. A tile goes away
+   * when its file was uploaded; a file that could not be uploaded keeps its tile, marked as failed,
+   * so it does not vanish unnoticed.
+   * @param {string} supplierId
+   * @returns {Promise<void>}
+   */
   async uploadPendingPhotos(supplierId) {
-    if (this.pendingUploads.length === 0) {
+    const batch = this.pendingUploads.splice(0);
+    if (batch.length === 0) {
       return;
     }
+    this.uploadingCount += batch.length;
 
     const statusEl = document.getElementById('sup-status');
     if (statusEl) {
-      statusEl.textContent = `Uploading ${this.pendingUploads.length} photo(s)...`;
+      statusEl.textContent = `Uploading ${batch.length} photo(s)...`;
     }
 
     try {
       const results = await supplierPhotoUpload.uploadMultiplePhotos(
-        this.pendingUploads,
+        batch,
         supplierId,
         (current, total, photoData, _error) => {
           if (statusEl) {
@@ -323,50 +398,55 @@ class SupplierGalleryManager {
           }
 
           if (photoData) {
-            const newPhoto = {
-              url: photoData.url,
-              id: photoData.id || photoData.url,
-            };
-            this.uploadedPhotos.push(newPhoto);
+            this.uploadedPhotos.push({ url: photoData.url, id: photoData.id || photoData.url });
           }
         }
       );
 
-      // Check for errors
-      const errors = results.filter(r => !r.success);
-      if (errors.length > 0) {
-        console.warn('Some photos failed to upload:', errors);
-        if (statusEl) {
-          statusEl.textContent = `${results.length - errors.length} of ${results.length} photos uploaded successfully`;
-        }
-      } else {
-        if (statusEl) {
-          statusEl.textContent = `All ${results.length} photos uploaded successfully!`;
-        }
+      const failed = results.filter(r => !r.success);
+      if (failed.length > 0) {
+        console.warn('Some photos failed to upload:', failed);
+      }
+      if (statusEl) {
+        statusEl.textContent =
+          failed.length > 0
+            ? `${results.length - failed.length} of ${results.length} photos uploaded successfully`
+            : `All ${results.length} photos uploaded successfully!`;
       }
 
-      // Remove pending-upload preview tiles (they're now in the existing photos list)
+      // A tile for each file that is now saved goes; a failed one stays, marked.
+      batch.forEach((file, index) => {
+        const tile = this.pendingTiles.get(file);
+        this.pendingTiles.delete(file);
+        if (!tile) {
+          return;
+        }
+        if (results[index]?.success) {
+          tile.remove();
+        } else {
+          markTileFailed(tile, results[index]?.error);
+        }
+      });
+
+      // Re-render the existing photos list to include the newly uploaded ones
       const previewContainer = document.getElementById('sup-photo-preview');
       if (previewContainer) {
-        previewContainer
-          .querySelectorAll('.photo-preview-item:not(.photo-preview-item--existing)')
-          .forEach(el => el.remove());
-        // Re-render the existing photos list to include the newly uploaded ones
         this.renderExistingPhotos(previewContainer);
       }
-
-      // Clear pending uploads
-      this.pendingUploads = [];
 
       if (isDevelopment) {
         console.log('Photos uploaded:', this.uploadedPhotos);
       }
     } catch (error) {
       console.error('Error uploading photos:', error);
+      // Nothing was uploaded: put the files back so the next save tries them again.
+      this.pendingUploads.unshift(...batch);
       if (statusEl) {
         statusEl.textContent = `Error uploading photos: ${error.message}`;
       }
       throw error;
+    } finally {
+      this.uploadingCount -= batch.length;
     }
   }
 
@@ -393,10 +473,7 @@ class SupplierGalleryManager {
     try {
       const supplier = await supplierManager.getSupplier(supplierId);
       if (supplier && supplier.photosGallery && Array.isArray(supplier.photosGallery)) {
-        this.uploadedPhotos = supplier.photosGallery.map((p, i) => ({
-          url: p.url,
-          id: p.id || p.url || `photo_${i}`,
-        }));
+        this.uploadedPhotos = supplier.photosGallery.map(galleryEntry);
       } else {
         this.uploadedPhotos = [];
       }
@@ -764,10 +841,7 @@ class SupplierGalleryManager {
       } else {
         const data = await response.json();
         if (data.photosGallery) {
-          this.uploadedPhotos = data.photosGallery.map((p, i) => ({
-            url: p.url,
-            id: p.id || p.url || `photo_${i}`,
-          }));
+          this.uploadedPhotos = data.photosGallery.map(galleryEntry);
         }
         if (status) {
           status.textContent = '✓ Order saved';

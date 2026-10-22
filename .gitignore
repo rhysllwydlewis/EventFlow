@@ -195,3 +195,7 @@ reports/
 
 # Generated runtime deployment identity
 public/deployment.json
+
+# Local Redis snapshots
+dump.rdb
+*.rdb

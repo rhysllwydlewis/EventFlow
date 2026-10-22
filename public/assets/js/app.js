@@ -459,6 +459,36 @@ function parseUrlOrNull(text, base) {
 }
 
 /**
+ * The address a checkout response may send the visitor to: Stripe's hosted pages over https, or a
+ * page on this site. Anything else is refused (null). Keep the host list in step with
+ * utils/checkout-url.js, which the pricing, checkout and subscription pages use.
+ *
+ * @param {*} value - The `url` the server returned
+ * @returns {string|null} The address to navigate to, or null
+ */
+function resolveCheckoutUrl(value) {
+  if (typeof value !== 'string' || value.trim() === '') {
+    return null;
+  }
+  let parsed = null;
+  try {
+    parsed = new URL(value.trim(), window.location.href);
+  } catch {
+    return null;
+  }
+  if (parsed.origin === window.location.origin) {
+    return parsed.href;
+  }
+  const stripeHosts = ['checkout.stripe.com', 'billing.stripe.com'];
+  const isStripe =
+    parsed.protocol === 'https:' &&
+    !parsed.username &&
+    !parsed.password &&
+    stripeHosts.includes(parsed.hostname);
+  return isStripe ? parsed.href : null;
+}
+
+/**
  * Where to send a signed-in person for a `redirect` (or `return`) parameter, or null when it must be
  * ignored (SECURITY).
  *
@@ -3998,16 +4028,9 @@ async function initDashSupplier() {
               body: JSON.stringify({}),
             });
             const payload = await resp.json().catch(() => ({}));
-            // Only an https (or same-site) address is ever navigated to, whatever the response says.
-            let checkoutUrl = '';
-            try {
-              const parsedUrl = new URL(String(payload.url || ''), window.location.href);
-              if (parsedUrl.protocol === 'https:' || parsedUrl.origin === window.location.origin) {
-                checkoutUrl = parsedUrl.href;
-              }
-            } catch {
-              checkoutUrl = '';
-            }
+            // Only Stripe's hosted pages (https) or a page on this site are ever navigated to,
+            // whatever the response says. Same list as utils/checkout-url.js.
+            const checkoutUrl = resolveCheckoutUrl(payload.url) || '';
             if (!resp.ok || !checkoutUrl) {
               if (status) {
                 status.textContent = payload.error || 'Could not start checkout.';

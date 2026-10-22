@@ -38,7 +38,7 @@ const {
 } = require('../services/adminService');
 const dbUnified = require('../db-unified');
 const logger = require('../utils/logger');
-const { packagePriceText, priceFields } = require('../utils/packagePrice');
+const { priceFields } = require('../utils/packagePrice');
 const {
   VERIFICATION_STATES,
   normaliseState,
@@ -52,6 +52,77 @@ const supplierLocation = require('../services/supplierLocation.service');
 const { MAPPING_SOURCES, CONFIDENCE } = require('../models/LocationContent');
 
 const router = express.Router();
+
+/** A text field: a string of at most `max` characters. */
+const textRule = (max, what) => ({
+  what: `${what} of at most ${max} characters`,
+  ok: value => typeof value === 'string' && value.length <= max,
+});
+
+/** A list field: an array of at most `maxItems` strings of at most `max` characters each. */
+const listRule = (maxItems, max, what) => ({
+  what: `${what} (at most ${maxItems}, each at most ${max} characters)`,
+  ok: value =>
+    Array.isArray(value) &&
+    value.length <= maxItems &&
+    value.every(item => typeof item === 'string' && item.length <= max),
+});
+
+/**
+ * The fields PUT /packages/:id may change, and what each may hold. The text limits are the ones the
+ * supplier's own package routes apply (routes/packages.js).
+ */
+const PACKAGE_FIELD_RULES = {
+  title: textRule(120, 'text'),
+  description: textRule(1500, 'text'),
+  price: { what: 'text or a number', ok: v => typeof v === 'string' || typeof v === 'number' },
+  price_display: {
+    what: 'text or a number',
+    ok: v => typeof v === 'string' || typeof v === 'number',
+  },
+  image: textRule(2048, 'a web address'),
+  category: textRule(80, 'text'),
+  primaryCategoryKey: textRule(80, 'text'),
+  location: textRule(200, 'text'),
+  features: listRule(50, 200, 'a list of text'),
+  availability: {
+    what: 'text of at most 200 characters, or true/false',
+    ok: v => typeof v === 'boolean' || (typeof v === 'string' && v.length <= 200),
+  },
+  tags: listRule(50, 200, 'a list of text'),
+  eventTypes: listRule(50, 200, 'a list of text'),
+};
+
+const PACKAGE_EDITABLE_FIELDS = Object.keys(PACKAGE_FIELD_RULES);
+
+/**
+ * Why a package edit cannot be applied, or null when every field is allowed and well formed.
+ *
+ * @param {Object} body - Request body
+ * @returns {{code: string, error: string}|null} The refusal
+ */
+function packageEditProblem(body) {
+  const notAllowed = Object.keys(body).filter(key => !PACKAGE_EDITABLE_FIELDS.includes(key));
+  if (notAllowed.length > 0) {
+    return {
+      code: 'FIELD_NOT_ALLOWED',
+      error: `These fields cannot be set here: ${notAllowed.join(', ')}.`,
+    };
+  }
+  const malformed = Object.keys(body).find(key => !PACKAGE_FIELD_RULES[key].ok(body[key]));
+  if (malformed) {
+    return {
+      code: 'FIELD_INVALID',
+      error: `${malformed} must be ${PACKAGE_FIELD_RULES[malformed].what}.`,
+    };
+  }
+  return null;
+}
+
+/** Whether two stored values are the same, comparing lists by content. */
+function sameValue(a, b) {
+  return Array.isArray(a) && Array.isArray(b) ? JSON.stringify(a) === JSON.stringify(b) : a === b;
+}
 
 // ========================================
 // Permission Management Endpoints
@@ -1273,7 +1344,26 @@ router.put(
   async (req, res) => {
     try {
       const { id } = req.params;
-      const updateData = req.body;
+      const updateData = req.body || {};
+
+      // Only content fields may be edited here. Ownership, approval, featuring, ids, slugs and
+      // timestamps are changed by their own endpoints, so a caller cannot mass-assign them.
+      if (typeof updateData !== 'object' || Array.isArray(updateData)) {
+        return res.status(400).json({
+          success: false,
+          error: 'Send the fields to change as an object.',
+          code: 'FIELD_INVALID',
+          timestamp: new Date().toISOString(),
+        });
+      }
+      const problem = packageEditProblem(updateData);
+      if (problem) {
+        return res.status(400).json({
+          success: false,
+          ...problem,
+          timestamp: new Date().toISOString(),
+        });
+      }
 
       const packages = await dbUnified.read('packages');
       const packageIndex = packages.findIndex(p => p.id === id);
@@ -1290,27 +1380,29 @@ router.put(
       const pkg = packages[packageIndex];
       const changes = {};
 
-      // Track changes
-      Object.keys(updateData).forEach(key => {
-        if (updateData[key] !== pkg[key]) {
-          changes[key] = { before: pkg[key], after: updateData[key] };
-          pkg[key] = updateData[key];
-        }
-      });
-
-      // Whichever price field was sent, both end up holding it (utils/packagePrice.js).
+      // Whichever price field was sent, both end up holding it (utils/packagePrice.js). That is
+      // settled before the changes are worked out, so the audit entry records what is stored.
+      const stored = { ...updateData };
       if (updateData.price !== undefined || updateData.price_display !== undefined) {
-        const before = packagePriceText(pkg);
         Object.assign(
-          pkg,
+          stored,
           priceFields(
             updateData.price_display !== undefined ? updateData.price_display : updateData.price
           )
         );
-        if (before !== pkg.price_display) {
-          changes.price_display = { before, after: pkg.price_display };
-        }
       }
+
+      // Track changes. The keys come from the allowlist, never from the request, so a request
+      // cannot choose which property of the package is written.
+      PACKAGE_EDITABLE_FIELDS.forEach(key => {
+        if (
+          Object.prototype.hasOwnProperty.call(stored, key) &&
+          !sameValue(stored[key], pkg[key])
+        ) {
+          changes[key] = { before: pkg[key], after: stored[key] };
+          pkg[key] = stored[key];
+        }
+      });
 
       pkg.updatedAt = new Date().toISOString();
       await dbUnified.updateOne('packages', { id: pkg.id }, { $set: pkg });

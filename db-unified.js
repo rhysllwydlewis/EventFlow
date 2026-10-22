@@ -897,6 +897,8 @@ function matchesFilter(item, filter) {
             return itemValue < operatorValue;
           case '$ne':
             return itemValue !== operatorValue;
+          case '$exists':
+            return (itemValue !== undefined) === Boolean(operatorValue);
           case '$in':
             return Array.isArray(operatorValue) && operatorValue.includes(itemValue);
           case '$regex': {

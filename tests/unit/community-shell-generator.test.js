@@ -91,7 +91,9 @@ describe('the notification bell every community page renders actually opens some
     (_name, html) => {
       expect(html).toContain('id="ef-notification-btn"');
       expect(html).toContain('id="notification-dropdown"');
-      expect(html).toContain('<script src="/assets/js/notifications.js" defer></script>');
+      expect(html).toMatch(
+        /<script src="\/assets\/js\/notifications\.js\?v=[\d.]+" defer><\/script>/
+      );
     }
   );
 
@@ -105,7 +107,7 @@ describe('the notification bell every community page renders actually opens some
   it('admin-community.html mounts the shared admin navbar and its own notification bell', () => {
     expect(adminPage.html).toContain('id="adminNavbarMount"');
     expect(adminPage.html).toContain(
-      '<script src="/assets/js/admin-navbar.js?v=18.3.2" defer></script>'
+      '<script src="/assets/js/admin-navbar.js?v=18.3.3" defer></script>'
     );
     // The public bell/dropdown must not also be present — that would be a
     // second, dead notification button alongside the real one.

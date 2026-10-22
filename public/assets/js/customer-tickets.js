@@ -15,6 +15,15 @@ import {
 
 let ticketsUnsubscribe = null;
 
+/** Reloads the ticket list now, instead of waiting for the next scheduled refresh. */
+async function refreshTickets(userId) {
+  try {
+    renderTickets(await ticketingSystem.getUserTickets(userId, 'customer', 5));
+  } catch (error) {
+    console.warn('Could not refresh tickets:', error?.message);
+  }
+}
+
 // Render tickets
 function renderTickets(tickets) {
   const container = document.getElementById('tickets-cust');
@@ -175,6 +184,8 @@ function showCreateTicketModal() {
 
         showToast('Ticket created successfully', 'success');
         closeModal();
+        // The list refreshes itself only once a minute; show the new ticket straight away.
+        await refreshTickets(user.id);
       } catch (error) {
         console.error('Error creating ticket:', error);
         showToast(`Failed to create ticket: ${error.message}`, 'error');
@@ -319,8 +330,8 @@ function viewTicket(ticketId) {
       replyForm.addEventListener('submit', async event => {
         event.preventDefault();
         const field = document.getElementById('ticketReplyMessage');
-        const message = field.value.trim();
-        if (!message) {
+        const replyText = field.value.trim();
+        if (!replyText) {
           return;
         }
 
@@ -329,7 +340,7 @@ function viewTicket(ticketId) {
         button.textContent = 'Sending...';
 
         try {
-          await ticketingSystem.addResponse(ticket.id, message);
+          await ticketingSystem.addResponse(ticket.id, replyText);
           field.value = '';
           showToast('Reply sent', 'success');
         } catch (error) {

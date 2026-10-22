@@ -131,7 +131,7 @@ describe('Admin Package Image Upload Error Handling', () => {
 
       // Find saveToMongoDB function
       const saveToMongoDBStart = photoUploadContent.indexOf('async function saveToMongoDB(');
-      const saveToMongoDBEnd = photoUploadContent.indexOf('}', saveToMongoDBStart + 800);
+      const saveToMongoDBEnd = photoUploadContent.indexOf('}', saveToMongoDBStart + 1200);
       const saveToMongoDBFunc = photoUploadContent.substring(saveToMongoDBStart, saveToMongoDBEnd);
 
       // Verify error wrapping

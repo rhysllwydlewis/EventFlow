@@ -278,13 +278,18 @@ describe('notification dropdown', () => {
   });
 });
 
+// The version the generator puts on notifications.js (scripts/lib/article-chrome.mjs).
+const NOTIFICATIONS_VERSION = '2.0.3';
+
 describe('header scripts', () => {
   test.each(articles().map(article => [article.name, article.html]))(
     '%s loads notifications.js, so the header bell actually opens something',
     (_name, html) => {
       // Every article renders the bell. None of the 34 loaded the script behind
       // it, so on an article it was a control that did nothing at all.
-      expect(html).toContain('<script defer="" src="/assets/js/notifications.js"></script>');
+      expect(html).toMatch(
+        /<script defer="" src="\/assets\/js\/notifications\.js\?v=[\d.]+"><\/script>/
+      );
     }
   );
 
@@ -303,8 +308,8 @@ describe('header scripts', () => {
       const run = [
         '<script defer="" src="/assets/js/utils/auth-state.js"></script>',
         '<script defer="" src="/assets/js/burger-menu.js"></script>',
-        '<script defer="" src="/assets/js/navbar.js"></script>',
-        '<script defer="" src="/assets/js/notifications.js"></script>',
+        '<script defer="" src="/assets/js/navbar.js?v=1.0.1"></script>',
+        `<script defer="" src="/assets/js/notifications.js?v=${NOTIFICATIONS_VERSION}"></script>`,
       ].join('\n');
       expect(html).toContain(run);
     }

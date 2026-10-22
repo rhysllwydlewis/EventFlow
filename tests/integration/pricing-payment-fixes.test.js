@@ -110,9 +110,12 @@ describe('Pricing and payment system fixes', () => {
 
     it('prefers data.url over sessionId for redirect', () => {
       const src = readSrc('public', 'assets', 'js', 'checkout.js');
-      expect(src).toMatch(/if\s*\(data\.url\)\s*\{[^}]*window\.location\.href\s*=\s*data\.url/s);
+      // It follows data.url, but only once the shared helper has checked it (Stripe or this site).
+      expect(src).toMatch(
+        /if\s*\(data\.url\)\s*\{[\s\S]*?EFCheckoutUrl\?\.resolve\(data\.url\)[\s\S]*?window\.location\.href\s*=\s*safeUrl/
+      );
       const urlBranchIdx = src.search(/if\s*\(data\.url\)/);
-      const sessionIdBranchIdx = src.search(/else if\s*\(data\.sessionId\)/);
+      const sessionIdBranchIdx = src.search(/if\s*\(data\.sessionId\)/);
       expect(urlBranchIdx).toBeGreaterThan(-1);
       expect(sessionIdBranchIdx).toBeGreaterThan(urlBranchIdx);
     });

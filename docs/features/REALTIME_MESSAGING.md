@@ -325,7 +325,7 @@ await fetch(`/api/v2/messages/${messageId}/reactions`, {
 
 ```html
 <!-- Load Socket.IO client -->
-<script src="https://cdn.socket.io/4.8.1/socket.io.min.js"></script>
+<script src="/socket.io/socket.io.min.js"></script>
 
 <script>
   // Initialize connection

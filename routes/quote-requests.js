@@ -14,6 +14,10 @@ const { getUserFromCookie } = require('../middleware/auth');
 const { csrfProtection } = require('../middleware/csrf');
 const { writeLimiter } = require('../middleware/rateLimits');
 const validator = require('validator');
+const { notifySupplierOfEnquiry } = require('../services/supplierEnquiryNotifier');
+
+/** A quote request names suppliers; only this many are told, so one request cannot fan out widely. */
+const MAX_SUPPLIERS_NOTIFIED = 10;
 
 /**
  * POST /api/quote-requests
@@ -108,6 +112,24 @@ router.post('/', writeLimiter, csrfProtection, async (req, res) => {
       logger.error('[QUOTE] insertOne failed', { quoteId: quoteRequest.id });
       return res.status(500).json({ error: 'Failed to submit quote request. Please try again.' });
     }
+
+    // Tell each supplier asked (bell and one email). Never blocks or fails the submission. A
+    // supplier named twice is told once.
+    const websocketServer = req.app?.get?.('websocketServer') || null;
+    const supplierIds = new Set(
+      quoteRequest.suppliers.map(target => validator.unescape(target.supplierId)).filter(Boolean)
+    );
+    [...supplierIds].slice(0, MAX_SUPPLIERS_NOTIFIED).forEach(supplierId => {
+      notifySupplierOfEnquiry(
+        {
+          supplierId,
+          kind: 'quote',
+          senderName: quoteRequest.name,
+          message: [quoteRequest.eventType, quoteRequest.notes].filter(Boolean).join(': '),
+        },
+        { websocketServer }
+      );
+    });
 
     res.json({
       success: true,

@@ -155,6 +155,7 @@ function loadHome() {
     addEventListener() {},
   });
   const window = {
+    EFCheckoutUrl: require('../../public/assets/js/utils/checkout-url'),
     addEventListener() {},
     setTimeout: () => 0,
     clearTimeout() {},
@@ -298,7 +299,7 @@ describe('supplier dashboard home: addresses the server asks the page to open', 
   const home = loadHome();
   const base = 'https://event-flow.co.uk/dashboard/supplier';
 
-  test('an https address or one on this site is opened', () => {
+  test("one of Stripe's hosted pages or a page on this site is opened", () => {
     expect(home.navigableUrl('https://billing.stripe.com/p/session/abc', base)).toBe(
       'https://billing.stripe.com/p/session/abc'
     );
@@ -312,6 +313,11 @@ describe('supplier dashboard home: addresses the server asks the page to open', 
     'JaVaScRiPt:alert(1)',
     'data:text/html,<script>alert(1)</script>',
     'http://evil.example/portal',
+    'https://evil.example/portal',
+    'https://billing.stripe.com.evil.example/p/session/abc',
+    'https://user:pass@billing.stripe.com/p/session/abc',
+    'http://billing.stripe.com/p/session/abc',
+    '//evil.example/portal',
     'vbscript:msgbox(1)',
     '',
     '   ',

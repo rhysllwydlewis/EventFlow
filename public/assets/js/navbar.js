@@ -166,7 +166,12 @@
       }
     }
 
-    // Call logout API
+    // Call logout API. A click that lands before the page's own token fetch has
+    // finished must not skip the request and redirect as if signed out: the
+    // session cookie would survive and the next page would still be signed in.
+    if (!state.csrfToken) {
+      await initCsrfToken();
+    }
     if (state.csrfToken) {
       try {
         await fetch('/api/v1/auth/logout', {

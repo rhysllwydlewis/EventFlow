@@ -68,6 +68,60 @@
   // WEBSOCKET CONNECTION
   // ==========================================
 
+  // A notification's address is followed when it is clicked. The server only stores pages on this
+  // site (utils/safeActionUrl.js); this refuses anything else as well, so a javascript: or
+  // other-site address can never be opened from a notification.
+  const SITE_PATH = /^\/(?![/\\])[^\s\\]*$/;
+
+  /**
+   * Goes to the page a notification points at, if it is a page on this site.
+   *
+   * @param {*} actionUrl - The notification's address
+   */
+  function openNotificationTarget(actionUrl) {
+    const target = typeof actionUrl === 'string' ? actionUrl.trim() : '';
+    const hasControlCharacter = Array.from(target).some(char => {
+      const code = char.codePointAt(0);
+      return code < 32 || code === 127;
+    });
+    if (SITE_PATH.test(target) && !hasControlCharacter) {
+      window.location.href = target;
+    }
+  }
+
+  // The server serves its Socket.IO client only once its real-time layer is up, which is a little
+  // after it starts answering requests. A page opened during a deployment therefore retries a few
+  // times before it gives up and says so.
+  const SOCKET_CLIENT_RETRY_DELAYS_MS = [1500, 4000, 10000];
+
+  /**
+   * Loads the Socket.IO client this server serves (same version as the server, no third party).
+   *
+   * @param {number} attempt - Zero for the first try
+   */
+  function loadSocketClient(attempt) {
+    // Something else (websocket-client.js) may have loaded it while a retry was waiting.
+    if (typeof io !== 'undefined') {
+      connectWebSocket();
+      return;
+    }
+    const script = document.createElement('script');
+    script.src = '/socket.io/socket.io.min.js';
+    script.onload = () => {
+      connectWebSocket();
+    };
+    script.onerror = () => {
+      script.remove();
+      if (attempt < SOCKET_CLIENT_RETRY_DELAYS_MS.length) {
+        setTimeout(() => loadSocketClient(attempt + 1), SOCKET_CLIENT_RETRY_DELAYS_MS[attempt]);
+        return;
+      }
+      console.error('Failed to load Socket.IO');
+      showWebSocketError('Failed to load real-time notifications. Some features may be unavailable.');
+    };
+    document.head.appendChild(script);
+  }
+
   function initWebSocket() {
     try {
       // If Socket.IO is already loaded (e.g. by websocket-client.js), use it directly
@@ -76,20 +130,7 @@
         return;
       }
 
-      // Load Socket.IO from CDN
-      const script = document.createElement('script');
-      script.src = 'https://cdn.socket.io/4.8.1/socket.io.min.js';
-      script.onload = () => {
-        connectWebSocket();
-      };
-      script.onerror = () => {
-        console.error('Failed to load Socket.IO');
-        // Show user-friendly error message
-        showWebSocketError(
-          'Failed to load real-time notifications. Some features may be unavailable.'
-        );
-      };
-      document.head.appendChild(script);
+      loadSocketClient(0);
     } catch (error) {
       console.error('Error initializing WebSocket:', error);
       showWebSocketError('Failed to initialize real-time notifications.');
@@ -608,7 +649,7 @@
       desktopNotif.onclick = () => {
         window.focus();
         if (notification.actionUrl) {
-          window.location.href = notification.actionUrl;
+          openNotificationTarget(notification.actionUrl);
         }
         desktopNotif.close();
       };
@@ -690,7 +731,7 @@
       markAsRead(notification.id);
 
       if (notification.actionUrl) {
-        window.location.href = notification.actionUrl;
+        openNotificationTarget(notification.actionUrl);
       }
 
       toast.classList.add('notification-toast--hiding');
@@ -797,7 +838,7 @@
         if (notification) {
           markAsRead(id);
           if (notification.actionUrl) {
-            window.location.href = notification.actionUrl;
+            openNotificationTarget(notification.actionUrl);
           }
         }
       });

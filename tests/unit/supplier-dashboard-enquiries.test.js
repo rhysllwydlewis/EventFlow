@@ -67,10 +67,10 @@ describe('enquiries: page structure', () => {
     expect(enquiriesSource).toContain("document.addEventListener('sdh:open-enquiries'");
   });
 
-  test('the page says what it cannot do: no alert on arrival, no reply from here', () => {
-    expect(enquiriesSource).toContain(
-      'You are not emailed when an enquiry arrives and you cannot reply here.'
-    );
+  test('the page says what happens: you are notified, but you cannot reply from here', () => {
+    expect(enquiriesSource).toContain('You are notified when an enquiry arrives');
+    expect(enquiriesSource).toContain('but you cannot reply here.');
+    expect(enquiriesSource).not.toContain('not emailed');
   });
 });
 
