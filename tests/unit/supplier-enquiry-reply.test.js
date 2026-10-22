@@ -268,3 +268,29 @@ describe('POST /enquiries/:id/reply', () => {
     expect(mockSendMail).not.toHaveBeenCalled();
   });
 });
+
+describe('POST /verification/submit category', () => {
+  function submit(body) {
+    const router = require('../../routes/supplier');
+    const app = express();
+    app.use(express.json());
+    app.use('/api/supplier', router);
+    return request(app)
+      .post('/api/supplier/verification/submit')
+      .set('x-test-user', JSON.stringify(OWNER))
+      .send(body);
+  }
+
+  it('refuses a category the site does not know (it is shown on public pages)', async () => {
+    const res = await submit({
+      name: 'Moor Audio',
+      email: 'owner@moor.example',
+      phone: '07123456789',
+      location: 'Cardiff',
+      category: '<img src=x onerror=alert(1)>',
+    });
+    expect(res.status).toBe(400);
+    expect(res.body.error).toBe('Invalid category');
+    expect(res.body.validCategories).toContain('Catering');
+  });
+});

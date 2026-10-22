@@ -268,16 +268,21 @@ function buildSupplierSidebar(supplier, pkg, currentUser) {
 
   // Meta (category + location)
   const metaEl = document.getElementById('pkg-sup-meta');
-  const metas = [];
-  if (supplier.category) {
-    metas.push(`<div class="pkg-sup-meta-item"><span>📂</span> ${supplier.category}</div>`);
-  }
-  if (supplier.location) {
-    metas.push(`<div class="pkg-sup-meta-item"><span>📍</span> ${supplier.location}</div>`);
-  }
-  if (metas.length) {
-    metaEl.innerHTML = metas.join('');
-  } else {
+  // Built from text nodes: category and location are typed by the supplier, so they are never markup.
+  const metaItems = [
+    ['📂', supplier.category],
+    ['📍', supplier.location],
+  ].filter(([, value]) => value);
+  metaEl.textContent = '';
+  metaItems.forEach(([icon, value]) => {
+    const item = document.createElement('div');
+    item.className = 'pkg-sup-meta-item';
+    const iconEl = document.createElement('span');
+    iconEl.textContent = icon;
+    item.append(iconEl, ` ${value}`);
+    metaEl.appendChild(item);
+  });
+  if (!metaItems.length) {
     metaEl.style.display = 'none';
   }
 

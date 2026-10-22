@@ -588,35 +588,44 @@ router.post(
         });
       }
 
-      if (subscription.stripeSubscriptionId) {
-        // A pending downgrade schedule takes over management of the Stripe
-        // subscription, so it must be released before we can update the
-        // subscription's price directly again.
-        await releaseExistingScheduleIfAny(subscription);
-
-        const remote = await stripe.subscriptions.retrieve(subscription.stripeSubscriptionId);
-        const itemId = remote.items?.data?.[0]?.id;
-        if (!itemId) {
-          return res.status(400).json({ error: 'Stripe subscription has no price item' });
-        }
-        await stripe.subscriptions.update(
-          subscription.stripeSubscriptionId,
-          {
-            items: [{ id: itemId, price: resolved.priceId }],
-            cancel_at_period_end: false,
-            proration_behavior: 'create_prorations',
-            metadata: {
-              ...remote.metadata,
-              planId: resolved.planId,
-              billingInterval: resolved.billingInterval,
-              downgrade_to: '',
-            },
-          },
-          {
-            idempotencyKey: `sub-upgrade:${subscription.id}:${resolved.planId}:${resolved.billingInterval}`,
-          }
-        );
+      if (!subscription.stripeSubscriptionId) {
+        // Nothing is being billed (a record that fell back to free keeps status 'active' but has no
+        // Stripe subscription). Upgrading it here would change the plan with no payment at all, so
+        // the only way onto a paid plan from there is a Stripe checkout.
+        return res.status(400).json({
+          error: 'Start a paid plan through checkout',
+          code: 'CHECKOUT_REQUIRED',
+          message: 'This account has no active paid subscription. Choose a plan to pay for it.',
+        });
       }
+
+      // A pending downgrade schedule takes over management of the Stripe
+      // subscription, so it must be released before we can update the
+      // subscription's price directly again.
+      await releaseExistingScheduleIfAny(subscription);
+
+      const remote = await stripe.subscriptions.retrieve(subscription.stripeSubscriptionId);
+      const itemId = remote.items?.data?.[0]?.id;
+      if (!itemId) {
+        return res.status(400).json({ error: 'Stripe subscription has no price item' });
+      }
+      await stripe.subscriptions.update(
+        subscription.stripeSubscriptionId,
+        {
+          items: [{ id: itemId, price: resolved.priceId }],
+          cancel_at_period_end: false,
+          proration_behavior: 'create_prorations',
+          metadata: {
+            ...remote.metadata,
+            planId: resolved.planId,
+            billingInterval: resolved.billingInterval,
+            downgrade_to: '',
+          },
+        },
+        {
+          idempotencyKey: `sub-upgrade:${subscription.id}:${resolved.planId}:${resolved.billingInterval}`,
+        }
+      );
 
       const updated = await subscriptionService.upgradeSubscription(
         subscription.id,

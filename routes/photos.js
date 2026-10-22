@@ -963,17 +963,21 @@ router.delete('/photos/delete', applyAuthRequired, applyCsrfProtection, async (r
         return res.status(403).json({ error: 'Not authorized' });
       }
 
-      if (supplier.photosGallery) {
-        supplier.photosGallery = supplier.photosGallery.filter(p => p.url !== decodedUrl);
-        await dbUnified.updateOne(
-          'suppliers',
-          { id: supplier.id },
-          { $set: { photosGallery: supplier.photosGallery } }
-        );
-
-        // Delete physical files
-        await photoUpload.deleteImage(decodedUrl);
+      const gallery = Array.isArray(supplier.photosGallery) ? supplier.photosGallery : [];
+      const remaining = gallery.filter(p => p.url !== decodedUrl);
+      // Only a photo that is in this supplier's own gallery may be removed. Without this check the
+      // file would be deleted by address alone, so any supplier could delete another's photos.
+      if (remaining.length === gallery.length) {
+        return res.status(404).json({ error: 'Photo not found' });
       }
+      await dbUnified.updateOne(
+        'suppliers',
+        { id: supplier.id },
+        { $set: { photosGallery: remaining } }
+      );
+
+      // Delete physical files
+      await photoUpload.deleteImage(decodedUrl);
     } else if (type === 'package') {
       const pkg = await dbUnified.findOne('packages', { id });
 
@@ -987,30 +991,32 @@ router.delete('/photos/delete', applyAuthRequired, applyCsrfProtection, async (r
         return res.status(403).json({ error: 'Not authorized' });
       }
 
-      if (pkg.gallery) {
-        // Handle gallery items stored as strings or objects
-        pkg.gallery = pkg.gallery.filter(p => {
-          const itemUrl = typeof p === 'string' ? p : p.url || '';
-          return itemUrl !== decodedUrl;
-        });
-
-        const updateFields = { gallery: pkg.gallery };
-        // Sync pkg.image with first remaining gallery photo (or placeholder)
-        if (!pkg.image || pkg.image === PLACEHOLDER_PACKAGE_IMAGE || pkg.image === decodedUrl) {
-          const firstGalleryItem = pkg.gallery[0];
-          updateFields.image = firstGalleryItem
-            ? typeof firstGalleryItem === 'string'
-              ? firstGalleryItem
-              : firstGalleryItem.url || PLACEHOLDER_PACKAGE_IMAGE
-            : PLACEHOLDER_PACKAGE_IMAGE;
-        }
-
-        await dbUnified.updateOne('packages', { id: pkg.id }, { $set: updateFields });
-        suppliersRouter.invalidatePackageCaches();
-
-        // Delete physical files
-        await photoUpload.deleteImage(decodedUrl);
+      const originalGallery = Array.isArray(pkg.gallery) ? pkg.gallery : [];
+      // Handle gallery items stored as strings or objects
+      pkg.gallery = originalGallery.filter(p => {
+        const itemUrl = typeof p === 'string' ? p : p.url || '';
+        return itemUrl !== decodedUrl;
+      });
+      // Only a photo in this package's own gallery may be removed (see the supplier branch above).
+      if (pkg.gallery.length === originalGallery.length) {
+        return res.status(404).json({ error: 'Photo not found' });
       }
+      const updateFields = { gallery: pkg.gallery };
+      // Sync pkg.image with first remaining gallery photo (or placeholder)
+      if (!pkg.image || pkg.image === PLACEHOLDER_PACKAGE_IMAGE || pkg.image === decodedUrl) {
+        const firstGalleryItem = pkg.gallery[0];
+        updateFields.image = firstGalleryItem
+          ? typeof firstGalleryItem === 'string'
+            ? firstGalleryItem
+            : firstGalleryItem.url || PLACEHOLDER_PACKAGE_IMAGE
+          : PLACEHOLDER_PACKAGE_IMAGE;
+      }
+
+      await dbUnified.updateOne('packages', { id: pkg.id }, { $set: updateFields });
+      suppliersRouter.invalidatePackageCaches();
+
+      // Delete physical files
+      await photoUpload.deleteImage(decodedUrl);
     }
 
     res.json({ success: true, message: 'Photo deleted successfully' });

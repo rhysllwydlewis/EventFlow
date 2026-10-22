@@ -33,6 +33,9 @@ if (removedLegacySupplierRoutes > 0) {
 }
 
 const REVIEW_REQUEST_TTL_DAYS = 14;
+// A review request is an email from EventFlow to an address the supplier typed, so a supplier can
+// only send so many a day (the per-IP write limiter does not stop one account sending to many).
+const MAX_REVIEW_REQUESTS_PER_DAY = 30;
 const REVIEW_REQUEST_COOLDOWN_DAYS = 30;
 const TOKEN_BYTES = 32;
 const TOKEN_PATTERN = /^[a-f0-9]{64}$/i;
@@ -432,6 +435,17 @@ function createReviewRequestRouter(overrides = {}) {
       });
       if (!supplier) {
         return res.status(404).json({ error: 'Supplier profile not found' });
+      }
+
+      const sentToday =
+        (await db.find('reviewRequests', {
+          supplierId: supplier.id,
+          createdAt: { $gte: new Date(currentTime.getTime() - 24 * 60 * 60 * 1000).toISOString() },
+        })) || [];
+      if (sentToday.length >= MAX_REVIEW_REQUESTS_PER_DAY) {
+        return res.status(429).json({
+          error: `You can send up to ${MAX_REVIEW_REQUESTS_PER_DAY} review requests a day. Try again tomorrow.`,
+        });
       }
 
       const existing = await findRequestConflict(db, supplier.id, input.customerEmail, currentTime);

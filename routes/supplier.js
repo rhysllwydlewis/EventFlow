@@ -18,6 +18,7 @@ const {
 const { parseDaysParam, resolveAnalyticsWindow } = require('../utils/analyticsWindow');
 const { buildDashboardSummary, summariseReviews } = require('../services/supplierDashboardSummary');
 const supplierEnquiries = require('../services/supplierEnquiries');
+const { VALID_CATEGORIES } = require('../models/Supplier');
 const { isApprovedReview } = require('../utils/reviewShape');
 const { clearEngagementCache } = require('../services/supplierEngagementMetrics');
 const { serializeCsv } = require('../utils/csv');
@@ -822,6 +823,14 @@ router.post(
         return res.status(400).json({
           error: 'Required fields are missing',
           missingFields,
+        });
+      }
+
+      // A category supplied here must be one the site knows; it is shown on public pages.
+      if (req.body.category !== undefined && !VALID_CATEGORIES.includes(req.body.category)) {
+        return res.status(400).json({
+          error: 'Invalid category',
+          validCategories: VALID_CATEGORIES,
         });
       }
 
