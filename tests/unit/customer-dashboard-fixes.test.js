@@ -116,6 +116,32 @@ describe('which plan the summary describes', () => {
   });
 });
 
+describe('the greeting for a plan that has passed', () => {
+  test('offers a new plan while the customer can still have one', () => {
+    expect(results.summary.lede.underLimit).toBe(
+      'Hen weekend has passed. Start a new plan whenever you are ready.'
+    );
+    expect(results.summary.lede.noLimitGiven).toBe(results.summary.lede.underLimit);
+  });
+
+  test('does not, at the most plans allowed: the wizard would refuse it at the last step', () => {
+    expect(results.summary.lede.atLimit).toMatch(/has passed\.$/);
+    expect(results.summary.lede.atLimit).not.toMatch(/Start a new plan/);
+  });
+});
+
+describe('the plans card at the plan limit', () => {
+  const init = read('public/assets/js/pages/dashboard-customer-init.js');
+  const html = read('public/dashboard-customer.html');
+
+  test('hides "New plan" and says why, using the limit the server reports', () => {
+    expect(html).toContain('id="cdh-new-plan"');
+    expect(init).toMatch(/newPlanLink\.hidden = atLimit/);
+    expect(init).toMatch(/Delete one to start another/);
+    expect(init).toMatch(/rememberPlanLimit\(data\)/);
+  });
+});
+
 describe('the summary when it is drawn twice', () => {
   test('a slow first draw does not overwrite the newer one', () => {
     expect(results.summary.race.budget).toContain('of £2,000');

@@ -9,6 +9,15 @@ function dbg(...args) {
 
 /** Plans the page last loaded; the budget form and the plan editor both work from this. */
 let dashboardPlans = [];
+/** How many plans a customer may have. The server says (GET /api/me/plans); 3 until it does. */
+let planLimit = 3;
+
+/** Remembers the limit the server reported. */
+function rememberPlanLimit(data) {
+  if (Number.isInteger(data?.limit) && data.limit > 0) {
+    planLimit = data.limit;
+  }
+}
 
 /**
  * Draws the "Your plans" list (the page's own plans, or a fresh fetch when none are passed).
@@ -32,9 +41,17 @@ async function loadCustomerPlans(preloadedPlans) {
         return;
       }
       const data = await response.json();
+      rememberPlanLimit(data);
       plans = data.plans || [];
     }
     dashboardPlans = plans;
+
+    // At the limit a new plan cannot be saved, and the wizard only says so at its last step.
+    const atLimit = plans.length >= planLimit;
+    const newPlanLink = document.getElementById('cdh-new-plan');
+    if (newPlanLink) {
+      newPlanLink.hidden = atLimit;
+    }
 
     if (plans.length === 0) {
       container.innerHTML =
@@ -80,6 +97,12 @@ async function loadCustomerPlans(preloadedPlans) {
       `;
       })
       .join('');
+    if (atLimit) {
+      container.insertAdjacentHTML(
+        'beforeend',
+        `<p class="cdh-note">You have ${planLimit} of ${planLimit} plans. Delete one to start another.</p>`
+      );
+    }
 
     // Attach event listeners for edit/delete
     container.querySelectorAll('.plan-edit-btn').forEach(btn => {
@@ -114,7 +137,9 @@ async function reloadDashboard() {
   try {
     const response = await fetch('/api/me/plans', { credentials: 'include' });
     if (response.ok) {
-      plans = (await response.json()).plans || [];
+      const data = await response.json();
+      rememberPlanLimit(data);
+      plans = data.plans || [];
     }
   } catch (err) {
     console.warn('Could not refresh plans:', err);
@@ -122,7 +147,9 @@ async function reloadDashboard() {
   dashboardPlans = plans;
   await Promise.allSettled([
     loadCustomerPlans(plans),
-    window.CustomerDashboardHome ? window.CustomerDashboardHome.render(plans) : Promise.resolve(),
+    window.CustomerDashboardHome
+      ? window.CustomerDashboardHome.render(plans, { limit: planLimit })
+      : Promise.resolve(),
     window.initWeddingWebsiteDashboard
       ? window.initWeddingWebsiteDashboard(plans)
       : Promise.resolve(),
@@ -472,6 +499,7 @@ async function initDashboard() {
     const plansResponse = await fetch('/api/me/plans', { credentials: 'include' });
     if (plansResponse.ok) {
       const plansData = await plansResponse.json();
+      rememberPlanLimit(plansData);
       sharedPlans = plansData.plans || [];
     }
   } catch (err) {
@@ -497,7 +525,7 @@ async function initDashboard() {
   const settledResults = await Promise.allSettled([
     loadCustomerPlans(sharedPlans),
     window.CustomerDashboardHome
-      ? window.CustomerDashboardHome.render(sharedPlans)
+      ? window.CustomerDashboardHome.render(sharedPlans, { limit: planLimit })
       : Promise.resolve(),
     initCalendar(),
     window.initWeddingWebsiteDashboard
@@ -829,7 +857,7 @@ function setupEventHandlers() {
     // Redraw the summary with the new budget
     try {
       if (window.CustomerDashboardHome) {
-        await window.CustomerDashboardHome.render(dashboardPlans);
+        await window.CustomerDashboardHome.render(dashboardPlans, { limit: planLimit });
       }
     } catch (err) {
       console.error('Failed to refresh the summary after budget update:', err);

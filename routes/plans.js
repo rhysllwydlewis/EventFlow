@@ -41,6 +41,8 @@ router.get('/', authRequired, async (req, res) => {
       ok: true,
       plans: userPlans,
       count: userPlans.length,
+      // So a page can say so before someone fills in the plan wizard and is refused at the end.
+      limit: MAX_PLANS_PER_USER,
     });
   } catch (error) {
     logger.error('Error fetching plans:', error);

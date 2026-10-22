@@ -29,6 +29,7 @@ const mockUpdateOne = jest.fn(async (_collection, filter, update) => {
   return true;
 });
 jest.mock('../../db-unified', () => ({
+  find: jest.fn(async (_c, query) => plans.filter(p => p.userId === query.userId)),
   findOne: jest.fn(
     async (_c, query) => plans.find(p => p.id === query.id && p.userId === query.userId) || null
   ),
@@ -105,5 +106,20 @@ describe('PATCH /api/me/plans/:id event date', () => {
     const res = await patch({ eventDate: null });
     expect(res.status).toBe(404);
     expect(plans[0].eventDate).toBe('2027-06-19');
+  });
+});
+
+describe('GET /api/me/plans', () => {
+  const app = express();
+  app.use(express.json());
+  app.use('/api/me/plans', router);
+
+  test('reports how many plans a customer may have, so a page can say so before the wizard does', async () => {
+    plans.length = 0;
+    plans.push({ id: 'p1', userId: 'u1', name: 'Our wedding' });
+    const res = await request(app).get('/api/me/plans');
+    expect(res.status).toBe(200);
+    expect(res.body.count).toBe(1);
+    expect(res.body.limit).toBe(3);
   });
 });

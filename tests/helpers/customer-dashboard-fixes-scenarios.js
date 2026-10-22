@@ -214,6 +214,22 @@ async function summaryScenarios() {
     firstWhenNoneDated: pick([{ id: 'a' }, { id: 'b' }]),
   };
 
+  // A passed plan suggests starting another only while the customer may still have another.
+  const ledeAfter = async (plans, options) => {
+    const w = summaryWindow(summaryFetch());
+    await w.CustomerDashboardHome.render(plans, options);
+    return w.document.getElementById('cdh-lede').textContent;
+  };
+  const passed = [{ id: 'p1', name: 'Hen weekend', eventDate: day(-30) }];
+  out.lede = {
+    underLimit: await ledeAfter(passed, { limit: 3 }),
+    atLimit: await ledeAfter(
+      [{ ...passed[0] }, { id: 'p2', eventDate: day(-60) }, { id: 'p3', eventDate: day(-90) }],
+      { limit: 3 }
+    ),
+    noLimitGiven: await ledeAfter(passed),
+  };
+
   // A slow first draw must not paint over a newer one that finished first.
   let calls = 0;
   const raceFetch = async url => {

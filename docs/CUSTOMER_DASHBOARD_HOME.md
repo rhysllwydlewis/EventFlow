@@ -34,8 +34,11 @@ suggestions, calendar, support.
 ### One focus plan
 
 Everything in the summary row describes one plan, chosen by
-`CustomerDashboardHome.pickFocusPlan`: the plan whose date is next, else the
-latest dated plan, else the first. When someone has more than one plan the
+`CustomerDashboardHome.pickFocusPlan`: the plan whose date is next, else a plan
+with no date yet (still being planned), else the latest dated plan. A plan whose
+date has passed is over, so it never outranks one that is still open; the guest
+list and budget pages use the same rule so all three start on the same event.
+When someone has more than one plan the
 Plans card marks the one in the summary. The budget form saves to that same plan.
 
 - **Countdown** and **Guests** come from the plan; guest replies come from
@@ -43,8 +46,22 @@ Plans card marks the one in the summary. The budget form saves to that same plan
 - **Budget** is the plan's own `budget` against the priced packages it holds.
   Per-person prices need a guest count; they and packages with no price are
   reported as "not priced", never guessed. The figure stored in the browser is
-  only used when no plan has a budget yet.
-- **Planning progress** and **Next steps** are the server's milestone list.
+  only used when no plan has a budget yet, and only for the account that stored
+  it (`auth-state.js` forgets it when a different account signs in).
+  The plan wizard saves `budget` as a range of text ("£3,000–£5,000", "Up to
+  £1,000"). That is not a total to plan against, so the card says "Not set" but
+  shows "You picked £3,000–£5,000 when you made this plan" and the checklist's
+  budget step stays open until a figure is entered, so the two agree.
+- **Dates**: a plan keeps its date in `eventDate` and, on every plan made here, also in the
+  older `date`; readers take `eventDate || date`, so the plan route changes both together.
+  Clearing a date used to leave the old one behind.
+- **Plan limit**: `GET /api/me/plans` reports `limit` (3). At the limit the plans card hides "New
+  plan", says "You have 3 of 3 plans" and the greeting stops offering a new one, because the plan
+  wizard only refuses at its last step.
+- **Planning progress** and **Next steps** are the server's milestone list
+  (`GET /api/v1/customer/milestones`, the only customer-dashboard endpoint the page calls). "Save
+  your first supplier" reads the shortlist (`shortlists`, what the Saved suppliers card shows);
+  "Shortlist or enquire about a venue" is done by a shortlisted venue or a quote request to one.
   The first unfinished step is also the primary button in the header. Finished
   steps sit in a real `<details>` ("6 completed").
 - If the plans request fails the page says so and offers a retry; it does not

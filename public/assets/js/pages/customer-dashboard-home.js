@@ -390,7 +390,7 @@
    * ------------------------------------------------------------------ */
 
   /** The one-line greeting under the page heading for the focus plan. */
-  function ledeFor(plan) {
+  function ledeFor(plan, atLimit) {
     if (!plan) {
       return 'Start with a plan and EventFlow will keep your budget, guests and suppliers together.';
     }
@@ -406,14 +406,18 @@
     if (days === 0) {
       return `${name} is today.`;
     }
-    return `${name} has passed. Start a new plan whenever you are ready.`;
+    // Offering a new plan to someone who has the most plans allowed would send them to the wizard
+    // to be refused at its last step.
+    return atLimit
+      ? `${name} has passed.`
+      : `${name} has passed. Start a new plan whenever you are ready.`;
   }
 
   /** Sets the greeting line and points the primary action at the most useful next step. */
-  function renderHero(plan, steps) {
+  function renderHero(plan, steps, atLimit) {
     const lede = byId(ids.lede);
     if (lede) {
-      lede.textContent = ledeFor(plan);
+      lede.textContent = ledeFor(plan, atLimit);
     }
     const primary = byId(ids.primary);
     const secondary = byId(ids.secondary);
@@ -740,7 +744,7 @@
   let latestRender = 0;
 
   /** Draws the greeting, summary row and next steps for the given plans. */
-  async function render(plans) {
+  async function render(plans, options) {
     const thisRender = ++latestRender;
     if (!Array.isArray(plans)) {
       renderLoadError();
@@ -764,7 +768,7 @@
     const total = totalBudgetFor(plan, list);
     const summary = { ...money, total };
 
-    renderHero(plan, steps);
+    renderHero(plan, steps, Number(options?.limit) > 0 && list.length >= options.limit);
     renderSummary(plan, summary, steps, rsvpData?.summary);
     renderSteps(steps);
 
