@@ -962,6 +962,96 @@ async function isPhotoUsedElsewhere(url, own) {
   );
 }
 
+/** What a delete helper returns when it refuses: the HTTP status and message to answer with. */
+const refusal = (status, error) => ({ status, error });
+
+/**
+ * Remove a photo from a supplier's own gallery and delete the stored file.
+ *
+ * @param {Object} user - The signed-in user
+ * @param {string} id - Supplier id
+ * @param {string} url - Photo address
+ * @returns {Promise<{status: number, error: string}|null>} A refusal, or null when it was removed
+ */
+async function deleteSupplierPhoto(user, id, url) {
+  const supplier = await dbUnified.findOne('suppliers', { id });
+  if (!supplier) {
+    return refusal(404, 'Supplier not found');
+  }
+  if (supplier.ownerUserId !== user.id && user.role !== 'admin') {
+    return refusal(403, 'Not authorized');
+  }
+
+  const gallery = Array.isArray(supplier.photosGallery) ? supplier.photosGallery : [];
+  const remaining = gallery.filter(p => p.url !== url);
+  // Only a photo that is in this supplier's own gallery may be removed. Without this check the
+  // file would be deleted by address alone, so any supplier could delete another's photos.
+  if (remaining.length === gallery.length) {
+    return refusal(404, 'Photo not found');
+  }
+  await dbUnified.updateOne(
+    'suppliers',
+    { id: supplier.id },
+    { $set: { photosGallery: remaining } }
+  );
+
+  // Delete the stored file, unless another record still shows it
+  if (!(await isPhotoUsedElsewhere(url, { supplierId: supplier.id }))) {
+    await photoUpload.deleteImage(url);
+  }
+  return null;
+}
+
+/**
+ * The address of a package gallery item, which is stored as a string or as an object with a url.
+ *
+ * @param {string|{url?: string}} item - Gallery item
+ * @returns {string} Address ('' when it has none)
+ */
+const galleryItemUrl = item => (typeof item === 'string' ? item : item.url || '');
+
+/**
+ * Remove a photo from a package's own gallery, keep its cover photo in step, and delete the stored
+ * file.
+ *
+ * @param {Object} user - The signed-in user
+ * @param {string} id - Package id
+ * @param {string} url - Photo address
+ * @returns {Promise<{status: number, error: string}|null>} A refusal, or null when it was removed
+ */
+async function deletePackagePhoto(user, id, url) {
+  const pkg = await dbUnified.findOne('packages', { id });
+  if (!pkg) {
+    return refusal(404, 'Package not found');
+  }
+  const supplier = await dbUnified.findOne('suppliers', { id: pkg.supplierId });
+  if (!supplier || (supplier.ownerUserId !== user.id && user.role !== 'admin')) {
+    return refusal(403, 'Not authorized');
+  }
+
+  const originalGallery = Array.isArray(pkg.gallery) ? pkg.gallery : [];
+  const gallery = originalGallery.filter(item => galleryItemUrl(item) !== url);
+  // Only a photo in this package's own gallery may be removed (see deleteSupplierPhoto).
+  if (gallery.length === originalGallery.length) {
+    return refusal(404, 'Photo not found');
+  }
+  const updateFields = { gallery };
+  // Sync pkg.image with first remaining gallery photo (or placeholder)
+  if (!pkg.image || pkg.image === PLACEHOLDER_PACKAGE_IMAGE || pkg.image === url) {
+    updateFields.image = gallery.length
+      ? galleryItemUrl(gallery[0]) || PLACEHOLDER_PACKAGE_IMAGE
+      : PLACEHOLDER_PACKAGE_IMAGE;
+  }
+  await dbUnified.updateOne('packages', { id: pkg.id }, { $set: updateFields });
+  suppliersRouter.invalidatePackageCaches();
+
+  // Delete the stored file, unless another record still shows it
+  if (!(await isPhotoUsedElsewhere(url, { packageId: pkg.id }))) {
+    await photoUpload.deleteImage(url);
+  }
+  return null;
+}
+
 /**
  * Delete photo
  * DELETE /api/photos/delete
@@ -975,83 +1065,21 @@ router.delete('/photos/delete', applyAuthRequired, applyCsrfProtection, async (r
       return res.status(400).json({ error: 'Missing required parameters' });
     }
 
-    const decodedUrl = decodeURIComponent(photoUrl);
-
+    const url = decodeURIComponent(photoUrl);
+    let refused = null;
     if (type === 'supplier') {
-      const supplier = await dbUnified.findOne('suppliers', { id });
-
-      if (!supplier) {
-        return res.status(404).json({ error: 'Supplier not found' });
-      }
-
-      if (supplier.ownerUserId !== req.user.id && req.user.role !== 'admin') {
-        return res.status(403).json({ error: 'Not authorized' });
-      }
-
-      const gallery = Array.isArray(supplier.photosGallery) ? supplier.photosGallery : [];
-      const remaining = gallery.filter(p => p.url !== decodedUrl);
-      // Only a photo that is in this supplier's own gallery may be removed. Without this check the
-      // file would be deleted by address alone, so any supplier could delete another's photos.
-      if (remaining.length === gallery.length) {
-        return res.status(404).json({ error: 'Photo not found' });
-      }
-      await dbUnified.updateOne(
-        'suppliers',
-        { id: supplier.id },
-        { $set: { photosGallery: remaining } }
-      );
-
-      // Delete the stored file, unless another record still shows it
-      if (!(await isPhotoUsedElsewhere(decodedUrl, { supplierId: supplier.id }))) {
-        await photoUpload.deleteImage(decodedUrl);
-      }
+      refused = await deleteSupplierPhoto(req.user, id, url);
     } else if (type === 'package') {
-      const pkg = await dbUnified.findOne('packages', { id });
-
-      if (!pkg) {
-        return res.status(404).json({ error: 'Package not found' });
-      }
-
-      const supplier = await dbUnified.findOne('suppliers', { id: pkg.supplierId });
-
-      if (!supplier || (supplier.ownerUserId !== req.user.id && req.user.role !== 'admin')) {
-        return res.status(403).json({ error: 'Not authorized' });
-      }
-
-      const originalGallery = Array.isArray(pkg.gallery) ? pkg.gallery : [];
-      // Handle gallery items stored as strings or objects
-      pkg.gallery = originalGallery.filter(p => {
-        const itemUrl = typeof p === 'string' ? p : p.url || '';
-        return itemUrl !== decodedUrl;
-      });
-      // Only a photo in this package's own gallery may be removed (see the supplier branch above).
-      if (pkg.gallery.length === originalGallery.length) {
-        return res.status(404).json({ error: 'Photo not found' });
-      }
-      const updateFields = { gallery: pkg.gallery };
-      // Sync pkg.image with first remaining gallery photo (or placeholder)
-      if (!pkg.image || pkg.image === PLACEHOLDER_PACKAGE_IMAGE || pkg.image === decodedUrl) {
-        const firstGalleryItem = pkg.gallery[0];
-        updateFields.image = firstGalleryItem
-          ? typeof firstGalleryItem === 'string'
-            ? firstGalleryItem
-            : firstGalleryItem.url || PLACEHOLDER_PACKAGE_IMAGE
-          : PLACEHOLDER_PACKAGE_IMAGE;
-      }
-
-      await dbUnified.updateOne('packages', { id: pkg.id }, { $set: updateFields });
-      suppliersRouter.invalidatePackageCaches();
-
-      // Delete the stored file, unless another record still shows it
-      if (!(await isPhotoUsedElsewhere(decodedUrl, { packageId: pkg.id }))) {
-        await photoUpload.deleteImage(decodedUrl);
-      }
+      refused = await deletePackagePhoto(req.user, id, url);
+    }
+    if (refused) {
+      return res.status(refused.status).json({ error: refused.error });
     }
 
-    res.json({ success: true, message: 'Photo deleted successfully' });
+    return res.json({ success: true, message: 'Photo deleted successfully' });
   } catch (error) {
     logger.error('Delete photo error:', error);
-    res.status(500).json({
+    return res.status(500).json({
       error: 'Failed to delete photo',
       details: process.env.NODE_ENV !== 'production' ? error.message : undefined,
     });

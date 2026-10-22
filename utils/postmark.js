@@ -190,7 +190,7 @@ function maskEmail(email) {
 }
 
 // eslint-disable-next-line no-control-regex -- matching control characters is the purpose
-const CONTROL_CHARS = /[\u0000-\u001f\u007f\u2028\u2029]+/g;
+const CONTROL_CHARS = /[\u0000-\u001f\u007f\u2028\u2029]+/gu;
 
 /**
  * One line of text safe to log or to put in a mail header: control characters (including CR and LF)

@@ -253,6 +253,103 @@ function renderSupplierMeta(supplier) {
   }
 }
 
+/** Show the supplier's subscription tier as a badge, when they have one. */
+function renderSupplierTier(supplier) {
+  // Tier badge
+  const tierEl = document.getElementById('pkg-sup-tier');
+  const tier = supplier.subscriptionTier || supplier.subscription?.tier;
+  if (tier) {
+    const tierMap = {
+      pro_plus: { label: 'Professional Plus', bg: '#7c3aed', icon: '💎' },
+      pro: { label: 'Professional', bg: '#d97706', icon: '⭐' },
+      featured: { label: 'Featured', bg: '#0b8073', icon: '✨' },
+    };
+    const t = tierMap[tier] || { label: tier, bg: '#6b7280', icon: '' };
+    tierEl.innerHTML = `<span style="display:inline-flex;align-items:center;gap:4px;
+                      background:${t.bg};color:#fff;padding:2px 10px;
+                      border-radius:20px;font-size:0.75rem;font-weight:700;">
+           ${t.icon} ${t.label}
+         </span>`;
+  }
+}
+
+/** Save / unsave the supplier on the shortlist when the button is clicked. */
+function wireSaveClick(saveBtn, supplier, supplierProfileImage, supplierProfileHref) {
+  saveBtn.addEventListener('click', async () => {
+    const mgr = window.shortlistManager;
+    // Auth gate — redirect unauthenticated users
+    if (!mgr || !mgr.isAuthenticated) {
+      const returnTo = window.location.pathname + window.location.search;
+      window.location.href = `/auth?redirect=${encodeURIComponent(returnTo)}&intent=save`;
+      return;
+    }
+    const isActive = saveBtn.classList.contains('sp-btn--shortlist-active');
+    if (isActive) {
+      await mgr.removeItem('supplier', supplier.id);
+      saveBtn.classList.replace('sp-btn--shortlist-active', 'sp-btn--shortlist');
+      saveBtn.innerHTML = '♡ Save Supplier';
+      saveBtn.setAttribute('aria-label', 'Save supplier to shortlist');
+    } else {
+      await mgr.addItem({
+        type: 'supplier',
+        id: supplier.id,
+        name: supplier.name,
+        category: supplier.category || '',
+        location: supplier.location || '',
+        imageUrl: supplierProfileImage,
+        href: supplierProfileHref,
+      });
+      saveBtn.classList.replace('sp-btn--shortlist', 'sp-btn--shortlist-active');
+      saveBtn.innerHTML = '❤️ Saved';
+      saveBtn.setAttribute('aria-label', 'Remove from shortlist');
+    }
+  });
+}
+
+/** Set up the message button: unavailable, own listing, or a quick-compose to the supplier. */
+function wireMessageButton(supplier, pkg, currentUser, isSupplierFallback, supplierProfileImage) {
+  // Message button — wire up QuickComposeV4
+  const msgBtn = document.getElementById('pkg-message-btn');
+  const isOwnSupplier =
+    currentUser && supplier.ownerUserId && currentUser.id === supplier.ownerUserId;
+
+  if (isSupplierFallback) {
+    msgBtn.disabled = true;
+    msgBtn.setAttribute('aria-label', 'Supplier contact is currently unavailable');
+    msgBtn.style.opacity = '0.45';
+    msgBtn.style.cursor = 'not-allowed';
+    msgBtn.textContent = 'Contact unavailable';
+  } else if (isOwnSupplier) {
+    // Supplier viewing their own package — disable message button
+    msgBtn.disabled = true;
+    msgBtn.setAttribute('aria-label', 'This is your own listing');
+    msgBtn.style.opacity = '0.45';
+    msgBtn.style.cursor = 'not-allowed';
+    msgBtn.textContent = '✉️ Your listing';
+  } else {
+    if (supplier.ownerUserId) {
+      msgBtn.dataset.recipientId = supplier.ownerUserId;
+    }
+    msgBtn.dataset.contextType = 'package';
+    msgBtn.dataset.contextId = pkg.id || '';
+    msgBtn.dataset.contextTitle = pkg.title || '';
+    if (supplierProfileImage) {
+      msgBtn.dataset.contextImage = supplierProfileImage;
+    }
+
+    // Auth gate for message button (before QuickComposeV4 fires)
+    msgBtn.addEventListener('click', e => {
+      const mgr = window.shortlistManager;
+      if (!mgr || !mgr.isAuthenticated) {
+        e.preventDefault();
+        e.stopImmediatePropagation();
+        const returnTo = window.location.pathname + window.location.search;
+        window.location.href = `/auth?redirect=${encodeURIComponent(returnTo)}&intent=message`;
+      }
+    });
+  }
+}
+
 /**
  * Populate and wire the supplier sidebar widget.
  * Mirrors the Save / View Profile / Message pattern from the suppliers page.
@@ -278,22 +375,7 @@ function buildSupplierSidebar(supplier, pkg, currentUser) {
     blurbEl.style.display = 'none';
   }
 
-  // Tier badge
-  const tierEl = document.getElementById('pkg-sup-tier');
-  const tier = supplier.subscriptionTier || supplier.subscription?.tier;
-  if (tier) {
-    const tierMap = {
-      pro_plus: { label: 'Professional Plus', bg: '#7c3aed', icon: '💎' },
-      pro: { label: 'Professional', bg: '#d97706', icon: '⭐' },
-      featured: { label: 'Featured', bg: '#0b8073', icon: '✨' },
-    };
-    const t = tierMap[tier] || { label: tier, bg: '#6b7280', icon: '' };
-    tierEl.innerHTML = `<span style="display:inline-flex;align-items:center;gap:4px;
-                      background:${t.bg};color:#fff;padding:2px 10px;
-                      border-radius:20px;font-size:0.75rem;font-weight:700;">
-           ${t.icon} ${t.label}
-         </span>`;
-  }
+  renderSupplierTier(supplier);
 
   renderSupplierMeta(supplier);
 
@@ -341,76 +423,9 @@ function buildSupplierSidebar(supplier, pkg, currentUser) {
     saveBtn.setAttribute('aria-label', 'Remove from shortlist');
   }
 
-  saveBtn.addEventListener('click', async () => {
-    const mgr = window.shortlistManager;
-    // Auth gate — redirect unauthenticated users
-    if (!mgr || !mgr.isAuthenticated) {
-      const returnTo = window.location.pathname + window.location.search;
-      window.location.href = `/auth?redirect=${encodeURIComponent(returnTo)}&intent=save`;
-      return;
-    }
-    const isActive = saveBtn.classList.contains('sp-btn--shortlist-active');
-    if (isActive) {
-      await mgr.removeItem('supplier', supplier.id);
-      saveBtn.classList.replace('sp-btn--shortlist-active', 'sp-btn--shortlist');
-      saveBtn.innerHTML = '♡ Save Supplier';
-      saveBtn.setAttribute('aria-label', 'Save supplier to shortlist');
-    } else {
-      await mgr.addItem({
-        type: 'supplier',
-        id: supplier.id,
-        name: supplier.name,
-        category: supplier.category || '',
-        location: supplier.location || '',
-        imageUrl: supplierProfileImage,
-        href: supplierProfileHref,
-      });
-      saveBtn.classList.replace('sp-btn--shortlist', 'sp-btn--shortlist-active');
-      saveBtn.innerHTML = '❤️ Saved';
-      saveBtn.setAttribute('aria-label', 'Remove from shortlist');
-    }
-  });
+  wireSaveClick(saveBtn, supplier, supplierProfileImage, supplierProfileHref);
 
-  // Message button — wire up QuickComposeV4
-  const msgBtn = document.getElementById('pkg-message-btn');
-  const isOwnSupplier =
-    currentUser && supplier.ownerUserId && currentUser.id === supplier.ownerUserId;
-
-  if (isSupplierFallback) {
-    msgBtn.disabled = true;
-    msgBtn.setAttribute('aria-label', 'Supplier contact is currently unavailable');
-    msgBtn.style.opacity = '0.45';
-    msgBtn.style.cursor = 'not-allowed';
-    msgBtn.textContent = 'Contact unavailable';
-  } else if (isOwnSupplier) {
-    // Supplier viewing their own package — disable message button
-    msgBtn.disabled = true;
-    msgBtn.setAttribute('aria-label', 'This is your own listing');
-    msgBtn.style.opacity = '0.45';
-    msgBtn.style.cursor = 'not-allowed';
-    msgBtn.textContent = '✉️ Your listing';
-  } else {
-    if (supplier.ownerUserId) {
-      msgBtn.dataset.recipientId = supplier.ownerUserId;
-    }
-    msgBtn.dataset.contextType = 'package';
-    msgBtn.dataset.contextId = pkg.id || '';
-    msgBtn.dataset.contextTitle = pkg.title || '';
-    if (supplierProfileImage) {
-      msgBtn.dataset.contextImage = supplierProfileImage;
-    }
-
-    // Auth gate for message button (before QuickComposeV4 fires)
-    msgBtn.addEventListener('click', e => {
-      const mgr = window.shortlistManager;
-      if (!mgr || !mgr.isAuthenticated) {
-        e.preventDefault();
-        e.stopImmediatePropagation();
-        const returnTo = window.location.pathname + window.location.search;
-        window.location.href = `/auth?redirect=${encodeURIComponent(returnTo)}&intent=message`;
-      }
-    });
-  }
+  wireMessageButton(supplier, pkg, currentUser, isSupplierFallback, supplierProfileImage);
 
   // Show the sidebar
   sidebar.style.display = '';
