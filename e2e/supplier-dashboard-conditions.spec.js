@@ -332,6 +332,31 @@ test.describe('Supplier dashboard: layout, accessibility and unusual conditions 
     await removeAll();
   });
 
+  test('a supplier waiting for approval cannot read enquiries, and the card says why', async ({
+    page,
+    context,
+    baseURL,
+  }) => {
+    await open(page, context, baseURL, fixtures.users.pendingSupplier);
+    const refused = await page.request.get('/api/supplier/enquiries');
+    expect(refused.status()).toBe(403);
+    expect((await refused.json()).code).toBe('SUPPLIER_NOT_APPROVED');
+    await expect(page.locator('#sdh-enquiries')).toContainText(/approved/i);
+    await expect(page.locator('#sdh-enquiries-open')).toBeHidden();
+  });
+
+  test('an approved supplier reads only their own enquiries', async ({
+    page,
+    context,
+    baseURL,
+  }) => {
+    await open(page, context, baseURL);
+    const mine = await page.request.get('/api/supplier/enquiries');
+    expect(mine.status()).toBe(200);
+    const other = await page.request.get('/api/supplier/enquiries/qr_not_mine');
+    expect(other.status()).toBe(404);
+  });
+
   for (const timezoneId of ['Pacific/Auckland', 'America/Los_Angeles', 'Asia/Kolkata']) {
     test.describe(`in ${timezoneId}`, () => {
       test.use({ timezoneId });
