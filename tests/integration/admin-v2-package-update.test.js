@@ -114,6 +114,41 @@ describe('PUT /api/v2/admin/packages/:id', () => {
     expect(changes.price).toEqual({ before: '£100', after: '£250' });
   });
 
+  it.each([
+    [{ title: { $gt: '' } }, 'title'],
+    [{ title: 'x'.repeat(121) }, 'title'],
+    [{ description: 'x'.repeat(1501) }, 'description'],
+    [{ features: 'one, two' }, 'features'],
+    [{ features: ['ok', { a: 1 }] }, 'features'],
+    [{ tags: Array(51).fill('t') }, 'tags'],
+    [{ price: { amount: 5 } }, 'price'],
+    [{ availability: ['mon'] }, 'availability'],
+  ])('refuses the malformed %j and writes nothing', async (body, field) => {
+    const res = await request(buildApp()).put('/api/v2/admin/packages/pkg-1').send(body);
+    expect(res.status).toBe(400);
+    expect(res.body.code).toBe('FIELD_INVALID');
+    expect(res.body.error).toContain(field);
+    expect(mockUpdateOne).not.toHaveBeenCalled();
+  });
+
+  it('refuses a body that is not an object', async () => {
+    const res = await request(buildApp()).put('/api/v2/admin/packages/pkg-1').send(['title']);
+    expect(res.status).toBe(400);
+    expect(res.body.code).toBe('FIELD_INVALID');
+  });
+
+  it('does not record a list that was sent back unchanged as a change', async () => {
+    mockPackages[0].features = ['Parking', 'Garden'];
+    const app = buildApp();
+    const { createAuditLog } = require('../../utils/auditTrail');
+    const res = await request(app)
+      .put('/api/v2/admin/packages/pkg-1')
+      .send({ features: ['Parking', 'Garden'], title: 'Changed' });
+    expect(res.status).toBe(200);
+    const { changes } = createAuditLog.mock.calls[0][0];
+    expect(Object.keys(changes)).toEqual(['title']);
+  });
+
   it('answers 404 for a package that does not exist', async () => {
     const res = await request(buildApp()).put('/api/v2/admin/packages/nope').send({ title: 'x' });
     expect(res.status).toBe(404);

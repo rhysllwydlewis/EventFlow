@@ -208,6 +208,122 @@ test.describe('Supplier dashboard: every control works @backend', () => {
     await closeTopDialog(page);
   });
 
+  /** The profile editor's photo area, with a way to add files and to take every saved one away. */
+  async function openPhotoEditor(page, context, baseURL) {
+    await openDashboard(page, context, baseURL);
+    await page.locator('#toggle-profile-form').click();
+    await expect(page.locator('#sdh-profile-dialog[open]')).toBeVisible();
+    const kept = page.locator('#sup-photo-preview .photo-preview-item--existing');
+    const file = (name, colour) => ({
+      name: `${name}-${runId.slice(-5)}.png`,
+      mimeType: 'image/png',
+      buffer: solidPng(64, colour),
+    });
+    const removeKept = async () => {
+      while ((await kept.count()) > 0) {
+        const left = await kept.count();
+        await kept.first().locator('.photo-delete-btn').click();
+        await page.locator('dialog[open] button', { hasText: /^Remove photo/ }).click();
+        await expect(kept).toHaveCount(left - 1);
+      }
+    };
+    return { kept, file, removeKept };
+  }
+
+  test('several photos chosen together are each saved once', async ({ page, context, baseURL }) => {
+    const { kept, file, removeKept } = await openPhotoEditor(page, context, baseURL);
+    await removeKept();
+    const uploads = [];
+    page.on('request', r => {
+      if (r.method() === 'POST' && /\/photos$/.test(r.url())) {
+        uploads.push(r.url());
+      }
+    });
+    const [chooser] = await Promise.all([
+      page.waitForEvent('filechooser'),
+      page.locator('#sup-photo-drop').click(),
+    ]);
+    await chooser.setFiles([
+      file('a', [200, 60, 90]),
+      file('b', [60, 200, 90]),
+      file('c', [60, 90, 200]),
+    ]);
+    await expect(kept).toHaveCount(3);
+    await expect(page.locator('#sup-photo-preview .photo-preview-item')).toHaveCount(3);
+    expect(uploads).toHaveLength(3);
+    await removeKept();
+  });
+
+  test('photos chosen while others are uploading are neither uploaded twice nor lost', async ({
+    page,
+    context,
+    baseURL,
+  }) => {
+    const { kept, file, removeKept } = await openPhotoEditor(page, context, baseURL);
+    await removeKept();
+    const uploads = [];
+    page.on('request', r => {
+      if (r.method() === 'POST' && /\/photos$/.test(r.url())) {
+        uploads.push(r.url());
+      }
+    });
+    // Hold the first upload back so the second choice arrives while it is still going.
+    let held = false;
+    await page.route('**/photos', async route => {
+      if (route.request().method() === 'POST' && !held) {
+        held = true;
+        await new Promise(resolve => setTimeout(resolve, 1500));
+      }
+      await route.continue();
+    });
+    const [chooser] = await Promise.all([
+      page.waitForEvent('filechooser'),
+      page.locator('#sup-photo-drop').click(),
+    ]);
+    await chooser.setFiles(file('first', [200, 60, 90]));
+    await expect(page.locator('#sup-photo-preview .photo-preview-item--pending')).toHaveCount(1);
+    // The picker's own input, used directly so the choice lands mid-upload.
+    await page.locator('body > input[type=file]').setInputFiles(file('second', [60, 200, 90]));
+    await expect(kept).toHaveCount(2, { timeout: 15000 });
+    await expect(page.locator('#sup-photo-preview .photo-preview-item')).toHaveCount(2);
+    expect(uploads).toHaveLength(2);
+    await page.reload();
+    await expect(page.locator('#welcome-heading')).toBeVisible();
+    await page.locator('#toggle-profile-form').click();
+    await expect(kept).toHaveCount(2);
+    await removeKept();
+  });
+
+  test('a photo that cannot be uploaded stays on screen, marked as failed', async ({
+    page,
+    context,
+    baseURL,
+  }) => {
+    const { kept, file, removeKept } = await openPhotoEditor(page, context, baseURL);
+    await removeKept();
+    await page.route('**/photos', route =>
+      route.request().method() === 'POST'
+        ? route.fulfill({
+            status: 503,
+            contentType: 'application/json',
+            body: JSON.stringify({ error: 'Photo storage unavailable' }),
+          })
+        : route.continue()
+    );
+    const [chooser] = await Promise.all([
+      page.waitForEvent('filechooser'),
+      page.locator('#sup-photo-drop').click(),
+    ]);
+    await chooser.setFiles(file('broken', [200, 60, 90]));
+    const failed = page.locator('#sup-photo-preview .photo-preview-item--failed');
+    await expect(failed).toHaveCount(1);
+    await expect(failed).toContainText('Failed');
+    await expect(kept).toHaveCount(0);
+    // It can be dismissed.
+    await failed.getByRole('button', { name: /remove/i }).click();
+    await expect(page.locator('#sup-photo-preview .photo-preview-item')).toHaveCount(0);
+  });
+
   test('"Add photos" opens the file chooser and accepts several images', async ({
     page,
     context,

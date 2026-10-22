@@ -1223,6 +1223,16 @@
   background: var(--sdh-danger-soft);
 }
 
+/* A photo that could not be uploaded keeps its tile; the badge says so. */
+.sdh-page .photo-preview-item--failed {
+  opacity: 1;
+  border-style: solid;
+}
+
+.sdh-page .photo-preview-item--failed .photo-pending-badge {
+  background: var(--sdh-danger);
+}
+
 .sdh-page .pkg-gallery-dragging,
 .sdh-page .photo-gallery-dragging {
   opacity: 0.5;

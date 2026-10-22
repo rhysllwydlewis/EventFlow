@@ -302,7 +302,7 @@ function toPublicFields(review) {
     comment: normal.text,
     createdAt: normal.createdAt,
     verified: normal.verified,
-    approved: true,
+    approved: isApprovedReview(review),
     helpfulCount: Number(review.helpfulCount) || 0,
     photos: Array.isArray(review.photos) ? review.photos : [],
     supplierResponse: normal.response

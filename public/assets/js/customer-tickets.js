@@ -15,7 +15,6 @@ import {
 
 let ticketsUnsubscribe = null;
 
-// Render tickets
 /** Reloads the ticket list now, instead of waiting for the next scheduled refresh. */
 async function refreshTickets(userId) {
   try {
@@ -25,6 +24,7 @@ async function refreshTickets(userId) {
   }
 }
 
+// Render tickets
 function renderTickets(tickets) {
   const container = document.getElementById('tickets-cust');
   if (!container) {
@@ -181,11 +181,11 @@ function showCreateTicketModal() {
         }
 
         await ticketingSystem.createTicket(ticketData);
-        // The list refreshes itself only once a minute; show the new ticket straight away.
-        await refreshTickets(user.id);
 
         showToast('Ticket created successfully', 'success');
         closeModal();
+        // The list refreshes itself only once a minute; show the new ticket straight away.
+        await refreshTickets(user.id);
       } catch (error) {
         console.error('Error creating ticket:', error);
         showToast(`Failed to create ticket: ${error.message}`, 'error');

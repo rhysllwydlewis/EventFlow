@@ -85,12 +85,25 @@ async function sendOwnerEmail(enquiry, supplier, owner, deps) {
   if (!emailIsDue(supplier, nowMs)) {
     return 'throttled';
   }
-  // Reserve the slot first, so two enquiries arriving together send one email, not two.
-  await db.updateOne(
+  // Claim the slot with one conditional update: only the request that actually changes the record
+  // sends. Two enquiries arriving together both read the supplier before either writes, so a
+  // read-then-write check would let both through.
+  const cutoff = new Date(nowMs - EMAIL_INTERVAL_MS).toISOString();
+  const claimed = await db.updateOne(
     'suppliers',
-    { id: supplier.id },
+    {
+      id: supplier.id,
+      $or: [
+        { enquiryEmailLastSentAt: { $exists: false } },
+        { enquiryEmailLastSentAt: null },
+        { enquiryEmailLastSentAt: { $lt: cutoff } },
+      ],
+    },
     { $set: { enquiryEmailLastSentAt: new Date(nowMs).toISOString() } }
   );
+  if (!claimed) {
+    return 'throttled';
+  }
 
   const baseUrl = String(process.env.BASE_URL || 'https://event-flow.co.uk').replace(/\/+$/, '');
   const label = enquiry.kind === 'quote' ? 'a quote request' : 'an enquiry';

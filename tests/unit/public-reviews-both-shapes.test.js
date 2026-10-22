@@ -106,6 +106,14 @@ describe('getSupplierReviews', () => {
     expect(ids).not.toContain('v2-rejected');
   });
 
+  it('does not mark a pending newer-scheme review as approved when unapproved ones are asked for', async () => {
+    const { reviews: listed } = await reviews.getSupplierReviews('sup-1', { approvedOnly: false });
+    const byId = Object.fromEntries(listed.map(r => [r.id, r.approved]));
+    expect(byId['v2-ok']).toBe(true);
+    expect(byId['v2-pending']).toBe(false);
+    expect(byId['v2-rejected']).toBe(false);
+  });
+
   it('filters by rating and by verified across both schemes', async () => {
     const high = await reviews.getSupplierReviews('sup-1', { minRating: 5 });
     expect(high.reviews.map(r => r.id)).toEqual(['v2-ok']);

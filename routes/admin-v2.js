@@ -53,21 +53,76 @@ const { MAPPING_SOURCES, CONFIDENCE } = require('../models/LocationContent');
 
 const router = express.Router();
 
-/** The fields PUT /packages/:id may change. */
-const PACKAGE_EDITABLE_FIELDS = [
-  'title',
-  'description',
-  'price',
-  'price_display',
-  'image',
-  'category',
-  'primaryCategoryKey',
-  'location',
-  'features',
-  'availability',
-  'tags',
-  'eventTypes',
-];
+/** A text field: a string of at most `max` characters. */
+const textRule = (max, what) => ({
+  what: `${what} of at most ${max} characters`,
+  ok: value => typeof value === 'string' && value.length <= max,
+});
+
+/** A list field: an array of at most `maxItems` strings of at most `max` characters each. */
+const listRule = (maxItems, max, what) => ({
+  what: `${what} (at most ${maxItems}, each at most ${max} characters)`,
+  ok: value =>
+    Array.isArray(value) &&
+    value.length <= maxItems &&
+    value.every(item => typeof item === 'string' && item.length <= max),
+});
+
+/**
+ * The fields PUT /packages/:id may change, and what each may hold. The text limits are the ones the
+ * supplier's own package routes apply (routes/packages.js).
+ */
+const PACKAGE_FIELD_RULES = {
+  title: textRule(120, 'text'),
+  description: textRule(1500, 'text'),
+  price: { what: 'text or a number', ok: v => typeof v === 'string' || typeof v === 'number' },
+  price_display: {
+    what: 'text or a number',
+    ok: v => typeof v === 'string' || typeof v === 'number',
+  },
+  image: textRule(2048, 'a web address'),
+  category: textRule(80, 'text'),
+  primaryCategoryKey: textRule(80, 'text'),
+  location: textRule(200, 'text'),
+  features: listRule(50, 200, 'a list of text'),
+  availability: {
+    what: 'text of at most 200 characters, or true/false',
+    ok: v => typeof v === 'boolean' || (typeof v === 'string' && v.length <= 200),
+  },
+  tags: listRule(50, 200, 'a list of text'),
+  eventTypes: listRule(50, 200, 'a list of text'),
+};
+
+const PACKAGE_EDITABLE_FIELDS = Object.keys(PACKAGE_FIELD_RULES);
+
+/**
+ * Why a package edit cannot be applied, or null when every field is allowed and well formed.
+ *
+ * @param {Object} body - Request body
+ * @returns {{code: string, error: string}|null} The refusal
+ */
+function packageEditProblem(body) {
+  const notAllowed = Object.keys(body).filter(key => !PACKAGE_EDITABLE_FIELDS.includes(key));
+  if (notAllowed.length > 0) {
+    return {
+      code: 'FIELD_NOT_ALLOWED',
+      error: `These fields cannot be set here: ${notAllowed.join(', ')}.`,
+    };
+  }
+  const malformed = Object.keys(body).find(key => !PACKAGE_FIELD_RULES[key].ok(body[key]));
+  if (malformed) {
+    return {
+      code: 'FIELD_INVALID',
+      error: `${malformed} must be ${PACKAGE_FIELD_RULES[malformed].what}.`,
+    };
+  }
+  return null;
+}
+
+/** Whether two stored values are the same, comparing lists by content. */
+function sameValue(a, b) {
+  return Array.isArray(a) && Array.isArray(b) ? JSON.stringify(a) === JSON.stringify(b) : a === b;
+}
 
 // ========================================
 // Permission Management Endpoints
@@ -1293,14 +1348,19 @@ router.put(
 
       // Only content fields may be edited here. Ownership, approval, featuring, ids, slugs and
       // timestamps are changed by their own endpoints, so a caller cannot mass-assign them.
-      const disallowed = Object.keys(updateData).filter(
-        key => !PACKAGE_EDITABLE_FIELDS.includes(key)
-      );
-      if (disallowed.length > 0) {
+      if (typeof updateData !== 'object' || Array.isArray(updateData)) {
         return res.status(400).json({
           success: false,
-          error: `These fields cannot be set here: ${disallowed.join(', ')}.`,
-          code: 'FIELD_NOT_ALLOWED',
+          error: 'Send the fields to change as an object.',
+          code: 'FIELD_INVALID',
+          timestamp: new Date().toISOString(),
+        });
+      }
+      const problem = packageEditProblem(updateData);
+      if (problem) {
+        return res.status(400).json({
+          success: false,
+          ...problem,
           timestamp: new Date().toISOString(),
         });
       }
@@ -1335,7 +1395,10 @@ router.put(
       // Track changes. The keys come from the allowlist, never from the request, so a request
       // cannot choose which property of the package is written.
       PACKAGE_EDITABLE_FIELDS.forEach(key => {
-        if (Object.prototype.hasOwnProperty.call(stored, key) && stored[key] !== pkg[key]) {
+        if (
+          Object.prototype.hasOwnProperty.call(stored, key) &&
+          !sameValue(stored[key], pkg[key])
+        ) {
           changes[key] = { before: pkg[key], after: stored[key] };
           pkg[key] = stored[key];
         }

@@ -113,14 +113,22 @@ router.post('/', writeLimiter, csrfProtection, async (req, res) => {
       return res.status(500).json({ error: 'Failed to submit quote request. Please try again.' });
     }
 
-    // Tell each supplier asked (bell and one email). Never blocks or fails the submission.
-    quoteRequest.suppliers.slice(0, MAX_SUPPLIERS_NOTIFIED).forEach(target => {
-      notifySupplierOfEnquiry({
-        supplierId: validator.unescape(target.supplierId),
-        kind: 'quote',
-        senderName: quoteRequest.name,
-        message: [quoteRequest.eventType, quoteRequest.notes].filter(Boolean).join(': '),
-      });
+    // Tell each supplier asked (bell and one email). Never blocks or fails the submission. A
+    // supplier named twice is told once.
+    const websocketServer = req.app?.get?.('websocketServer') || null;
+    const supplierIds = new Set(
+      quoteRequest.suppliers.map(target => validator.unescape(target.supplierId)).filter(Boolean)
+    );
+    [...supplierIds].slice(0, MAX_SUPPLIERS_NOTIFIED).forEach(supplierId => {
+      notifySupplierOfEnquiry(
+        {
+          supplierId,
+          kind: 'quote',
+          senderName: quoteRequest.name,
+          message: [quoteRequest.eventType, quoteRequest.notes].filter(Boolean).join(': '),
+        },
+        { websocketServer }
+      );
     });
 
     res.json({

@@ -38,12 +38,31 @@ function makeDb({ supplier, owner } = {}) {
       owner === undefined ? { id: 'user-1', email: 'owner@example.com', verified: true } : owner,
   };
   return {
-    findOne: jest.fn(
-      async (collection, query) =>
-        (collection === 'suppliers' ? suppliers : users)[query.id] || null
-    ),
+    // A copy, as a real database returns: callers never share the stored object.
+    findOne: jest.fn(async (collection, query) => {
+      const found = (collection === 'suppliers' ? suppliers : users)[query.id];
+      return found ? { ...found } : null;
+    }),
+    // Like MongoDB: the update happens only when the filter still matches, and says whether it did.
     updateOne: jest.fn(async (collection, query, update) => {
-      Object.assign(suppliers[query.id], update.$set);
+      const record = suppliers[query.id];
+      const stamp = record.enquiryEmailLastSentAt;
+      const open = (query.$or || []).some(
+        clause =>
+          (clause.enquiryEmailLastSentAt &&
+            clause.enquiryEmailLastSentAt.$exists === false &&
+            stamp === undefined) ||
+          (clause.enquiryEmailLastSentAt === null && stamp === null) ||
+          (clause.enquiryEmailLastSentAt &&
+            clause.enquiryEmailLastSentAt.$lt !== undefined &&
+            stamp !== undefined &&
+            stamp !== null &&
+            stamp < clause.enquiryEmailLastSentAt.$lt)
+      );
+      if (query.$or && !open) {
+        return false;
+      }
+      Object.assign(record, update.$set);
       return true;
     }),
     suppliers,
@@ -82,6 +101,20 @@ describe('notifySupplierOfEnquiry', () => {
     // What the customer typed is escaped for the email, never injected as markup.
     expect(mail.templateData.previewHtml).not.toContain('<script>');
     expect(mail.templateData.previewHtml).toContain('&lt;script&gt;');
+  });
+
+  it('two enquiries arriving together send one email, not two', async () => {
+    const db = makeDb();
+    const sendMail = jest.fn(async () => ({}));
+    const results = await Promise.all([
+      notifySupplierOfEnquiry(enquiry, { db, sendMail, now: () => NOW }),
+      notifySupplierOfEnquiry(enquiry, { db, sendMail, now: () => NOW }),
+      notifySupplierOfEnquiry(enquiry, { db, sendMail, now: () => NOW }),
+    ]);
+    expect(results.map(r => r.email).sort()).toEqual(['sent', 'throttled', 'throttled']);
+    expect(sendMail).toHaveBeenCalledTimes(1);
+    // Every one of them still reached the bell.
+    expect(mockNotificationCreate).toHaveBeenCalledTimes(3);
   });
 
   it('calls a quote request a quote request', async () => {

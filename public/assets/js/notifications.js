@@ -79,6 +79,11 @@
    * @param {number} attempt - Zero for the first try
    */
   function loadSocketClient(attempt) {
+    // Something else (websocket-client.js) may have loaded it while a retry was waiting.
+    if (typeof io !== 'undefined') {
+      connectWebSocket();
+      return;
+    }
     const script = document.createElement('script');
     script.src = '/socket.io/socket.io.min.js';
     script.onload = () => {
