@@ -963,7 +963,11 @@
    * Data: one summary request, shared by everything on the page
    * ------------------------------------------------------------------ */
 
+  /** A page left open this long is out of date when the supplier comes back to it. */
+  const STALE_AFTER_MS = 2 * 60 * 1000;
+
   const state = {
+    loadedAt: Date.now(),
     summaryPromise: null,
     model: null,
     failed: false,
@@ -2637,6 +2641,13 @@
     document.addEventListener('sdh:changed', () => {
       refresh();
     });
+    document.addEventListener('visibilitychange', refreshIfStale);
+    window.addEventListener('pageshow', event => {
+      if (event.persisted) {
+        state.loadedAt = 0;
+        refreshIfStale();
+      }
+    });
     window.addEventListener('unreadCountUpdated', event => {
       // The unread count the messenger reports is live: keep the tile and the greeting in step with it.
       const unread = count(event.detail?.count);
@@ -2770,7 +2781,26 @@
   async function refresh() {
     state.summaryPromise = null;
     await getSummary(true);
+    state.loadedAt = Date.now();
     renderAll();
+  }
+
+  /**
+   * Coming back to a tab that has been left open (or to a page restored from the back button): the
+   * plan, enquiries and messages may have changed meanwhile (an upgrade in another tab, a payment
+   * webhook, a customer's enquiry), so ask again, unless it was loaded a moment ago or something is
+   * open that a redraw would disturb.
+   */
+  function refreshIfStale() {
+    if (
+      document.visibilityState !== 'visible' ||
+      !state.loaded ||
+      Date.now() - state.loadedAt < STALE_AFTER_MS ||
+      document.querySelector('dialog[open]')
+    ) {
+      return;
+    }
+    refresh();
   }
 
   /** Loads the data, then draws the page. The summary and the user load together. */

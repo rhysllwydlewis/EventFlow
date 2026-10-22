@@ -812,6 +812,32 @@ test.describe('Supplier dashboard: every control works @backend', () => {
     await expect(drawer).toContainText('Status: Handled');
   });
 
+  test('coming back to a dashboard left open for a while asks for fresh figures', async ({
+    page,
+    context,
+    baseURL,
+  }) => {
+    let summaryRequests = 0;
+    await page.route('**/api/supplier/dashboard-summary*', async route => {
+      summaryRequests += 1;
+      await route.continue();
+    });
+    await page.clock.install();
+    await openDashboard(page, context, baseURL);
+    await expect.poll(() => summaryRequests).toBeGreaterThan(0);
+    const afterLoad = summaryRequests;
+
+    // Returning to the tab straight away changes nothing.
+    await page.evaluate(() => document.dispatchEvent(new Event('visibilitychange')));
+    await page.waitForTimeout(300);
+    expect(summaryRequests).toBe(afterLoad);
+
+    // Three minutes later (an upgrade or an enquiry may have happened meanwhile) it asks again.
+    await page.clock.fastForward('03:00');
+    await page.evaluate(() => document.dispatchEvent(new Event('visibilitychange')));
+    await expect.poll(() => summaryRequests).toBeGreaterThan(afterLoad);
+  });
+
   test('the notifications bell opens its panel', async ({ page, context, baseURL }) => {
     await openDashboard(page, context, baseURL);
     await page.locator('#ef-notification-btn').click();
