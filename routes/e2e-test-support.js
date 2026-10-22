@@ -222,15 +222,15 @@ router.post('/seed', async (req, res, next) => {
     };
 
     // Exercise legacy supplier-only photos without inventing an account avatar.
-    const photoSource = req.body && req.body.supplierPhotoSource;
+    const photoSource = req.body?.supplierPhotoSource;
     if (['profilePhotoUrl', 'profileImage', 'logo'].includes(photoSource)) {
       approvedSupplier[photoSource] = '/favicon-144x144.png';
     }
-    if (req.body && req.body.supplierPublisher === true) {
+    if (req.body?.supplierPublisher === true) {
       approvedSupplier.category = 'Event Planner';
       approvedSupplier.categories = ['Event Planner'];
     }
-    if (req.body && typeof req.body.supplierPublisherOverride === 'boolean') {
+    if (typeof req.body?.supplierPublisherOverride === 'boolean') {
       approvedSupplier.publicCalendarPublisherOverride = req.body.supplierPublisherOverride;
     }
 
