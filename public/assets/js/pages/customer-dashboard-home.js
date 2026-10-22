@@ -276,10 +276,16 @@
     const manage = `<a class="cdh-link" href="${budgetHref}">Open budget</a>`;
     const edit = `<button type="button" class="cdh-link" data-edit-budget aria-expanded="false" aria-controls="${ids.panel}">${total > 0 ? 'Edit' : 'Set budget'}</button>`;
     if (total <= 0) {
-      const committed =
-        money.spent > 0
-          ? `${gbp(money.spent)} chosen so far, with no budget to compare it to.`
-          : 'Set a total to see what is left as you book.';
+      // The plan wizard saves a range as text ("£3,000–£5,000"). It is not a total to plan
+      // against, but it is what the person chose, so it is shown rather than called "Not set".
+      const range = typeof plan?.budget === 'string' ? plan.budget.trim() : '';
+      const picked = range ? `You picked ${range} when you made this plan. ` : '';
+      let committed = '';
+      if (money.spent > 0) {
+        committed = `${picked}${gbp(money.spent)} chosen so far${range ? '.' : ', with no budget to compare it to.'}`;
+      } else {
+        committed = `${picked}Set a total to see what is left as you book.`;
+      }
       return tile(
         'Budget',
         `<p class="cdh-tile__value cdh-tile__value--empty">Not set</p><p class="cdh-tile__sub">${esc(committed)}</p><p class="cdh-tile__sub">${manage}</p>`,
@@ -724,9 +730,13 @@
   }
 
   let suggestionsRequested = false;
+  // Each call to render() takes a number. A slow call that finishes after a newer one (the page
+  // draws on load, then again when a budget or plan is saved) must not draw over the newer result.
+  let latestRender = 0;
 
   /** Draws the greeting, summary row and next steps for the given plans. */
   async function render(plans) {
+    const thisRender = ++latestRender;
     if (!Array.isArray(plans)) {
       renderLoadError();
       return;
@@ -742,6 +752,9 @@
         : Promise.resolve(null),
     ]);
 
+    if (thisRender !== latestRender) {
+      return;
+    }
     const steps = normaliseSteps(stepsData, plan);
     const total = totalBudgetFor(plan, list);
     const summary = { ...money, total };

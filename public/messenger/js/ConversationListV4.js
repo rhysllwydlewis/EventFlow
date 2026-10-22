@@ -131,6 +131,10 @@ class ConversationListV4 {
           </div>
         </div>`;
     }
+    // The placeholders are hidden from assistive technology, so the list has no items to announce
+    // yet; saying it is still loading is what keeps it from being an empty list.
+    this.listEl.setAttribute('role', 'list');
+    this.listEl.setAttribute('aria-busy', 'true');
     this.listEl.innerHTML = html;
   }
 
@@ -186,6 +190,10 @@ class ConversationListV4 {
       wrapper.appendChild(cta);
     }
 
+    // A list must contain list items; the empty-state message is not one, so for now it is a
+    // plain region instead of a list.
+    this.listEl.removeAttribute('role');
+    this.listEl.removeAttribute('aria-busy');
     this.listEl.innerHTML = '';
     this.listEl.appendChild(wrapper);
   }
@@ -244,6 +252,8 @@ class ConversationListV4 {
       return;
     }
 
+    this.listEl.setAttribute('role', 'list');
+    this.listEl.removeAttribute('aria-busy');
     this.listEl.innerHTML = filtered
       .map(conv => this._buildConversationHTML(conv, currentUser))
       .join('');

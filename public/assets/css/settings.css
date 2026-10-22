@@ -170,6 +170,11 @@
 .settings-delete-cancel-btn { padding: 0.625rem 1.25rem; border-radius: 6px; border: 1px solid #e5e7eb; cursor: pointer; font-size: 0.875rem; background: white; color: #374151; font-family: inherit; }
 .settings-delete-cancel-btn:focus-visible { outline: 2px solid #0B8073; outline-offset: 2px; }
 
+/* Hint text under a setting. The shared rule is #9ca3af, about 2.5:1 on white; this page needs 4.5:1. */
+.settings-hint {
+  color: #6b7280;
+}
+
 /* Settings section label */
 .settings-section-label {
   font-size: 0.875rem;

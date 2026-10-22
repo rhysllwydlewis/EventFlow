@@ -84,6 +84,11 @@
 
         // For other shortcuts, don't trigger when in inputs
         if (!isInput) {
+          // Escape belongs to whatever is open. A native <dialog> closes itself on Escape, and
+          // cancelling the key here left it open; with nothing of ours open, the key is not ours.
+          if (shortcut.action === closeModals && (hasNativeDialogOpen() || !openModals().length)) {
+            return;
+          }
           e.preventDefault();
           shortcut.action();
         }
@@ -121,18 +126,35 @@
     }
   }
 
+  /** True while a native modal <dialog> is showing; it handles Escape itself. */
+  function hasNativeDialogOpen() {
+    return Boolean(document.querySelector('dialog[open]'));
+  }
+
+  /**
+   * The modals this script can close: visible `.modal` and role="dialog" elements. The mobile
+   * navigation is also marked role="dialog" but is closed by its own Escape handling, and hiding it
+   * here left its inline style behind.
+   */
+  function openModals() {
+    return Array.from(
+      document.querySelectorAll('.modal, [role="dialog"], #keyboard-shortcuts-modal')
+    ).filter(
+      modal =>
+        modal.id !== 'ef-mobile-menu' &&
+        !modal.classList.contains('ef-mobile-menu') &&
+        modal.getAttribute('aria-hidden') !== 'true' &&
+        window.getComputedStyle(modal).display !== 'none'
+    );
+  }
+
   /**
    * Close all open modals
    */
   function closeModals() {
-    // Close any modal with class 'modal' or specific IDs
-    const modals = document.querySelectorAll('.modal, [role="dialog"], #keyboard-shortcuts-modal');
-
-    modals.forEach(modal => {
-      if (modal.style.display !== 'none') {
-        modal.style.display = 'none';
-        modal.setAttribute('aria-hidden', 'true');
-      }
+    openModals().forEach(modal => {
+      modal.style.display = 'none';
+      modal.setAttribute('aria-hidden', 'true');
     });
 
     document.body.style.overflow = '';

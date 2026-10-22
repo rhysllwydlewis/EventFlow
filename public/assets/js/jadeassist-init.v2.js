@@ -285,8 +285,26 @@
         transition: all .2s ease;
       }
 
+      /* The part of the bubble that opens the chat: a button that looks like the bubble's text. */
+      .jade-teaser-open {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        flex: 1;
+        min-width: 0;
+        margin: 0;
+        padding: 0;
+        border: 0;
+        background: none;
+        font: inherit;
+        color: inherit;
+        text-align: left;
+        cursor: pointer;
+        border-radius: 8px;
+      }
+
       /* Visible focus ring for keyboard navigation */
-      .jade-teaser:focus-visible {
+      .jade-teaser-open:focus-visible {
         outline: 2px solid #00B2A9;
         outline-offset: 3px;
       }
@@ -395,6 +413,11 @@
           align-items: flex-start;
         }
 
+        .jade-teaser-open {
+          gap: 6px;
+          align-items: flex-start;
+        }
+
         .jade-teaser-avatar,
         .jade-teaser-avatar-fallback {
           width: 22px;    /* 32px × 0.7 */
@@ -500,9 +523,11 @@
 
     teaserElement = document.createElement('div');
     teaserElement.className = 'jade-teaser';
-    teaserElement.setAttribute('role', 'button');
-    teaserElement.setAttribute('tabindex', '0');
-    teaserElement.setAttribute('aria-label', 'Open chat with Jade');
+    // A group holding two real buttons (open the chat, dismiss). The bubble itself used to be
+    // role="button" with the dismiss button inside it, which screen readers cannot present: one
+    // control nested in another.
+    teaserElement.setAttribute('role', 'group');
+    teaserElement.setAttribute('aria-label', 'Chat with Jade');
 
     const avatarHtml = widgetAvatarUrl
       ? `<img class="jade-teaser-avatar" src="${widgetAvatarUrl}" alt="" aria-hidden="true" />`
@@ -510,8 +535,10 @@
 
     teaserElement.innerHTML = `
       <div class="jade-teaser-content">
-        ${avatarHtml}
-        <span class="jade-teaser-text">${message}</span>
+        <button type="button" class="jade-teaser-open">
+          ${avatarHtml}
+          <span class="jade-teaser-text">${message}</span>
+        </button>
         <button class="ef-cta jade-teaser-close" aria-label="Dismiss message">&#10005;</button>
       </div>
     `;

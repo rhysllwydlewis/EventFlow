@@ -398,7 +398,20 @@
   // ── Next-up summary ──────────────────────────────────────────────────────
 
   function normalizeCalendarItem(event) {
-    const start = event.start instanceof Date ? event.start : new Date(event.start);
+    // A date with no time of day ("2027-06-19", or FullCalendar's all-day flag) is a whole day. It
+    // is read as that local day, not as midnight UTC, which London shows as 01:00 in summer.
+    const allDay =
+      event.allDay === true ||
+      (typeof event.start === 'string' && /^\d{4}-\d{2}-\d{2}$/u.test(event.start));
+    let start;
+    if (event.start instanceof Date) {
+      start = event.start;
+    } else if (allDay && typeof event.start === 'string') {
+      const [year, month, day] = event.start.split('-').map(Number);
+      start = new Date(year, month - 1, day);
+    } else {
+      start = new Date(event.start);
+    }
     if (Number.isNaN(start.getTime())) {
       return null;
     }
@@ -406,6 +419,7 @@
       id: event.id,
       title: event.title || 'Untitled entry',
       start,
+      allDay,
       type:
         event.extendedProps?.entryType ||
         (event.extendedProps?.publicEvent ? 'public event' : event.type || 'event'),
@@ -415,7 +429,15 @@
     };
   }
 
-  function formatDateTime(date) {
+  function formatDateTime(date, allDay) {
+    if (allDay) {
+      return date.toLocaleDateString('en-GB', {
+        weekday: 'short',
+        day: 'numeric',
+        month: 'short',
+        year: 'numeric',
+      });
+    }
     return date.toLocaleString('en-GB', {
       weekday: 'short',
       day: 'numeric',
@@ -427,6 +449,19 @@
     });
   }
 
+  /** True while the item has not finished: a whole-day item counts until the day is over. */
+  function isUpcoming(item, now) {
+    if (!item) {
+      return false;
+    }
+    if (item.allDay) {
+      return (
+        new Date(item.start.getFullYear(), item.start.getMonth(), item.start.getDate() + 1) > now
+      );
+    }
+    return item.start >= now;
+  }
+
   function renderNextUpSummary(rawEvents) {
     const panel = document.getElementById('calendar-next-up');
     if (!panel) {
@@ -436,7 +471,7 @@
     const now = new Date();
     const next = (rawEvents || [])
       .map(normalizeCalendarItem)
-      .filter(item => item && item.start >= now)
+      .filter(item => isUpcoming(item, now))
       .sort((a, b) => a.start - b.start)[0];
 
     const body = panel.querySelector('.customer-calendar-next-up__body');
@@ -455,7 +490,7 @@
       : '';
     body.innerHTML = `
       <div><span class="customer-calendar-next-up__badge" style="--cal-color:${escapeHtml(next.color)};">${escapeHtml(next.type)}</span><span class="customer-calendar-next-up__title">${escapeHtml(next.title)}</span></div>
-      <div class="customer-calendar-next-up__meta">${escapeHtml(formatDateTime(next.start))}</div>
+      <div class="customer-calendar-next-up__meta">${escapeHtml(formatDateTime(next.start, next.allDay))}</div>
       ${location}
     `;
   }
@@ -670,7 +705,7 @@
           }
           calendarItems.push({
             id: plan.id,
-            title: displayTitle(plan.eventName || plan.title || 'Untitled Event'),
+            title: displayTitle(plan.name || plan.eventName || plan.title || 'Untitled Event'),
             date,
             time: '',
             type: 'event plan',
@@ -918,21 +953,26 @@
       }
 
       const data = await response.json();
-      events = (data.plans || []).map(plan => ({
-        id: plan.id,
-        title: displayTitle(plan.eventName || plan.title || 'Untitled Event'),
-        start: plan.eventDate || plan.date,
-        description: plan.description || '',
-        type: plan.eventType || plan.type || 'event',
-        location: plan.location || '',
-        url: `/plan?id=${plan.id}`,
-        backgroundColor: getEventColor(plan.eventType || plan.type),
-        borderColor: getEventColor(plan.eventType || plan.type),
-        extendedProps: {
+      // A plan with no date has no place on a calendar.
+      events = (data.plans || [])
+        .filter(plan => plan.eventDate || plan.date)
+        .map(plan => ({
+          id: plan.id,
+          title: displayTitle(plan.name || plan.eventName || plan.title || 'Untitled Event'),
+          start: plan.eventDate || plan.date,
           description: plan.description || '',
+          type: plan.eventType || plan.type || 'event',
           location: plan.location || '',
-        },
-      }));
+          // Opened by eventClick: the dashboard edits the plan in place; other pages go to /plan.
+          url: `/plan?id=${plan.id}`,
+          backgroundColor: getEventColor(plan.eventType || plan.type),
+          borderColor: getEventColor(plan.eventType || plan.type),
+          extendedProps: {
+            planId: plan.id,
+            description: plan.description || '',
+            location: plan.location || '',
+          },
+        }));
     } catch (error) {
       console.error('Error fetching events:', error);
       container.classList.add('fc-fallback');
@@ -1051,6 +1091,16 @@
             title: displayTitle(info.event.title),
           };
           showEntryActions(info.el, rawEntry, calendar, modal);
+          return;
+        }
+        // On the dashboard a plan opens its editor. /plan is the older planner and does not take
+        // the plan id, so it is only the way to a plan from pages that have no editor.
+        if (info.event.extendedProps.planId && document.getElementById('customer-plans-list')) {
+          document.dispatchEvent(
+            new CustomEvent('cdh:edit-plan', {
+              detail: { planId: info.event.extendedProps.planId },
+            })
+          );
           return;
         }
         if (info.event.url) {

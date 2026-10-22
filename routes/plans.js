@@ -232,12 +232,12 @@ router.patch(
           : null;
       }
       if (eventDate !== undefined) {
-        if (eventDate) {
-          const dateObj = new Date(eventDate);
-          planUpdates.eventDate = isNaN(dateObj.getTime()) ? null : eventDate;
-        } else {
-          planUpdates.eventDate = null;
-        }
+        const dateObj = eventDate ? new Date(eventDate) : null;
+        planUpdates.eventDate = dateObj && !isNaN(dateObj.getTime()) ? eventDate : null;
+        // Plans made before `eventDate` existed (and every plan created here) also carry the date in
+        // `date`, and readers take `eventDate || date`. Left behind, an old `date` brings a cleared
+        // or changed date back, so the two always move together.
+        planUpdates.date = planUpdates.eventDate;
       }
       if (location !== undefined) {
         planUpdates.location = location ? stripHtml(String(location).trim()).slice(0, 200) : null;
@@ -261,7 +261,7 @@ router.patch(
       }
 
       planUpdates.updatedAt = new Date().toISOString();
-      await dbUnified.updateOne('plans', { id }, { $set: planUpdates });
+      await dbUnified.updateOne('plans', { id, userId }, { $set: planUpdates });
 
       res.json({
         success: true,

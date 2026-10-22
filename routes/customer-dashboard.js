@@ -1,7 +1,6 @@
 /**
  * Customer Dashboard API
- * Aggregated endpoints for the customer dashboard — replaces scattered
- * per-feature fetches with focused, permission-checked calls.
+ * Read-only endpoints for the customer dashboard.
  */
 
 'use strict';
@@ -10,146 +9,14 @@ const express = require('express');
 const { authRequired } = require('../middleware/auth');
 const dbUnified = require('../db-unified');
 const logger = require('../utils/logger');
-const { packagePriceText } = require('../utils/packagePrice');
 
 const router = express.Router();
 
-/**
- * GET /api/v1/customer/dashboard-summary
- * Returns plans, budget, saved-supplier count, upcoming events, and ticket stats
- * in a single authenticated call for the customer dashboard.
- */
-router.get('/dashboard-summary', authRequired, async (req, res) => {
-  try {
-    if (req.user.role !== 'customer') {
-      return res.status(403).json({ error: 'Only customers can access this endpoint' });
-    }
-    const userId = req.user.id;
+/** True when a supplier's category names a venue ("Venues", "Wedding venue"). */
+const isVenueCategory = category => /venue/iu.test(String(category || ''));
 
-    const [plans, savedItems, tickets, calendarEntries] = await Promise.all([
-      dbUnified.find('plans', { userId }).catch(() => []),
-      dbUnified.find('savedItems', { userId }).catch(() => []),
-      dbUnified.find('tickets', { senderId: userId, senderType: 'customer' }).catch(() => []),
-      dbUnified.find('customer_calendar_entries', { userId }).catch(() => []),
-    ]);
-
-    // Plans summary
-    const plansSummary = {
-      total: plans.length,
-      recentPlan:
-        [...plans].sort(
-          (a, b) =>
-            new Date(b.updatedAt || b.createdAt || 0) - new Date(a.updatedAt || a.createdAt || 0)
-        )[0] || null,
-    };
-
-    // Resolve package IDs across all plans to calculate spent budget
-    // plan.packages stores string IDs — must look up full package docs for prices
-    const allPackageIds = [
-      ...new Set(
-        plans.flatMap(p => (p.packages || []).filter(id => typeof id === 'string' && id.trim()))
-      ),
-    ];
-    const packageDocs =
-      allPackageIds.length > 0
-        ? (
-            await Promise.all(
-              allPackageIds.map(id => dbUnified.findOne('packages', { id }).catch(() => null))
-            )
-          ).filter(Boolean)
-        : [];
-
-    // Build a price map for fast lookup
-    const priceMap = {};
-    packageDocs.forEach(pkg => {
-      const raw = packagePriceText(pkg) || '0';
-      const num = parseFloat(raw.replace(/[^0-9.]/g, '')) || 0;
-      priceMap[pkg.id] = num;
-    });
-
-    // Budget summary from most recent plan
-    const activePlan = plansSummary.recentPlan;
-    let budgetSummary = { total: 0, spent: 0, remaining: 0, percentUsed: 0 };
-    if (activePlan) {
-      const rawTotal = activePlan.budget || activePlan.totalBudget || 0;
-      const total =
-        typeof rawTotal === 'number'
-          ? rawTotal
-          : parseFloat(String(rawTotal).replace(/[^0-9.]/g, '')) || 0;
-      const spent = (activePlan.packages || []).reduce((sum, pkgId) => {
-        return sum + (priceMap[pkgId] || 0);
-      }, 0);
-      const remaining = Math.max(0, total - spent);
-      budgetSummary = {
-        total,
-        spent,
-        remaining,
-        percentUsed: total > 0 ? Math.round((spent / total) * 100) : 0,
-      };
-    }
-
-    // Upcoming events (next 90 days)
-    const now = new Date();
-    const soon = new Date(now.getTime() + 90 * 24 * 60 * 60 * 1000);
-    const upcomingEvents = calendarEntries
-      .filter(e => {
-        const d = new Date(e.start || e.date || e.createdAt);
-        return d >= now && d <= soon;
-      })
-      .sort((a, b) => new Date(a.start || a.date) - new Date(b.start || b.date))
-      .slice(0, 5);
-
-    // Tickets summary
-    const ticketsSummary = {
-      total: tickets.length,
-      open: tickets.filter(t => t.status === 'open').length,
-      inProgress: tickets.filter(t => t.status === 'in_progress').length,
-    };
-
-    res.json({
-      plans: plansSummary,
-      budget: budgetSummary,
-      savedSuppliers: { total: savedItems.length },
-      upcomingEvents,
-      tickets: ticketsSummary,
-    });
-  } catch (error) {
-    logger.error('customer dashboard-summary error:', error.message);
-    res.status(500).json({ error: 'Failed to load dashboard summary' });
-  }
-});
-
-/**
- * GET /api/v1/customer/event-countdown
- * Returns days until the nearest upcoming event date across all plans.
- */
-router.get('/event-countdown', authRequired, async (req, res) => {
-  try {
-    if (req.user.role !== 'customer') {
-      return res.status(403).json({ error: 'Forbidden' });
-    }
-    const plans = await dbUnified.find('plans', { userId: req.user.id }).catch(() => []);
-    const now = new Date();
-
-    const upcoming = plans
-      .map(p => ({
-        id: p.id,
-        name: p.name || p.eventName || p.eventType || 'My Event',
-        date: p.eventDate || p.date || null,
-        daysUntil:
-          p.eventDate || p.date
-            ? Math.ceil((new Date(p.eventDate || p.date) - now) / (1000 * 60 * 60 * 24))
-            : null,
-      }))
-      .filter(p => p.daysUntil !== null && p.daysUntil >= 0)
-      .sort((a, b) => a.daysUntil - b.daysUntil);
-
-    res.json({ events: upcoming, nearest: upcoming[0] || null });
-  } catch (error) {
-    logger.error('event-countdown error:', error.message);
-    res.status(500).json({ error: 'Failed to load event countdown' });
-  }
-});
+/** A saved or requested supplier's category, whichever name the record uses. */
+const categoryOf = item => item?.category || item?.itemType || '';
 
 /**
  * GET /api/v1/customer/milestones
@@ -161,9 +28,11 @@ router.get('/milestones', authRequired, async (req, res) => {
       return res.status(403).json({ error: 'Forbidden' });
     }
     const userId = req.user.id;
-    const [plans, savedItems] = await Promise.all([
+    // "Saved suppliers" on the dashboard is the shortlist, so the checklist reads the same record.
+    const [plans, shortlist, quoteRequests] = await Promise.all([
       dbUnified.find('plans', { userId }).catch(() => []),
-      dbUnified.find('savedItems', { userId }).catch(() => []),
+      dbUnified.findOne('shortlists', { userId }).catch(() => null),
+      dbUnified.find('quoteRequests', { userId }).catch(() => []),
     ]);
 
     const hasPlan = plans.length > 0;
@@ -179,13 +48,23 @@ router.get('/milestones', authRequired, async (req, res) => {
         listLength(p.guestList) > 0 ||
         (!Array.isArray(p.guests) && Number(p.guests) > 0)
     );
-    const hasBudget = plans.some(p => p.budget || p.totalBudget);
-    const hasSavedSuppliers = savedItems.length > 0;
-    // hasVenue: check savedItems category only (plan.packages stores IDs — resolving
-    // them here would add extra DB queries; savedItems is the reliable signal)
-    const hasVenue = savedItems.some(s =>
-      (s.category || s.itemType || '').toLowerCase().includes('venue')
+    // The budget form saves a number. The plan wizard saves a range as text ("£3,000–£5,000"),
+    // which is a starting point, not a total to plan against, so only a figure counts here: the
+    // budget card on the dashboard shows "Not set" for the same plan.
+    const hasBudget = plans.some(p => parseFloat(p.budget) > 0 || parseFloat(p.totalBudget) > 0);
+
+    const savedSuppliers = (Array.isArray(shortlist?.items) ? shortlist.items : []).filter(
+      item => (item.type || item.itemType || 'supplier') === 'supplier'
     );
+    const hasSavedSuppliers = savedSuppliers.length > 0;
+    // A venue counts once it is shortlisted or has been sent a quote request.
+    const hasVenue =
+      savedSuppliers.some(item => isVenueCategory(categoryOf(item))) ||
+      quoteRequests.some(request =>
+        (Array.isArray(request.suppliers) ? request.suppliers : []).some(supplier =>
+          isVenueCategory(categoryOf(supplier))
+        )
+      );
 
     const milestones = [
       {
@@ -226,7 +105,7 @@ router.get('/milestones', authRequired, async (req, res) => {
       },
       {
         id: 'book-venue',
-        label: 'Enquire about a venue',
+        label: 'Shortlist or enquire about a venue',
         done: hasVenue,
         href: '/suppliers?category=Venues',
         priority: 7,

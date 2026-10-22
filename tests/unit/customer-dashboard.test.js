@@ -1,5 +1,8 @@
 /**
  * Unit tests for the customer dashboard API (routes/customer-dashboard.js)
+ *
+ * The summary and countdown endpoints that used to sit beside the milestones were never called by
+ * the page (it works from /api/me/plans), so they were removed; only the checklist is left.
  */
 
 jest.mock('../../utils/logger', () => ({
@@ -52,120 +55,6 @@ function buildApp() {
   app.use('/api/v1/customer', router);
   return app;
 }
-
-describe('GET /api/v1/customer/dashboard-summary', () => {
-  beforeEach(() => {
-    jest.resetAllMocks();
-    mockDb.find.mockResolvedValue([]);
-    mockDb.findOne.mockResolvedValue(null);
-  });
-
-  it('returns 403 for non-customer roles', async () => {
-    const app = buildApp();
-    const res = await request(app)
-      .get('/api/v1/customer/dashboard-summary')
-      .set('x-test-user-role', 'supplier');
-    expect(res.status).toBe(403);
-  });
-
-  it('returns 200 with empty state for new customer', async () => {
-    mockDb.find.mockResolvedValue([]);
-    mockDb.findOne.mockResolvedValue(null);
-    const app = buildApp();
-    const res = await request(app)
-      .get('/api/v1/customer/dashboard-summary')
-      .set('x-test-user-role', 'customer');
-    expect(res.status).toBe(200);
-    expect(res.body).toHaveProperty('plans');
-    expect(res.body).toHaveProperty('budget');
-    expect(res.body).toHaveProperty('savedSuppliers');
-    expect(res.body).toHaveProperty('upcomingEvents');
-    expect(res.body).toHaveProperty('tickets');
-    expect(res.body.plans.total).toBe(0);
-    expect(res.body.budget.spent).toBe(0);
-    expect(Array.isArray(res.body.upcomingEvents)).toBe(true);
-  });
-
-  it('calculates budget by resolving package IDs from plans', async () => {
-    const plan = {
-      id: 'plan-1',
-      userId: 'user-cust-1',
-      budget: 5000,
-      updatedAt: new Date().toISOString(),
-      packages: ['pkg-1', 'pkg-2'], // plan.packages stores IDs, not objects
-    };
-    mockDb.find.mockImplementation(async col => {
-      if (col === 'plans') {
-        return [plan];
-      }
-      return [];
-    });
-    mockDb.findOne.mockImplementation(async (col, filter) => {
-      if (col === 'packages' && filter.id === 'pkg-1') {
-        return { id: 'pkg-1', price: '£1000', primaryCategoryKey: 'Photography' };
-      }
-      if (col === 'packages' && filter.id === 'pkg-2') {
-        return { id: 'pkg-2', price: '£500', primaryCategoryKey: 'Catering' };
-      }
-      return null;
-    });
-    const app = buildApp();
-    const res = await request(app)
-      .get('/api/v1/customer/dashboard-summary')
-      .set('x-test-user-role', 'customer');
-    expect(res.status).toBe(200);
-    expect(res.body.budget.total).toBe(5000);
-    expect(res.body.budget.spent).toBe(1500);
-    expect(res.body.budget.remaining).toBe(3500);
-    expect(res.body.budget.percentUsed).toBe(30);
-  });
-});
-
-describe('GET /api/v1/customer/event-countdown', () => {
-  beforeEach(() => {
-    jest.resetAllMocks();
-    mockDb.find.mockResolvedValue([]);
-    mockDb.findOne.mockResolvedValue(null);
-  });
-
-  it('returns 403 for supplier', async () => {
-    const app = buildApp();
-    const res = await request(app)
-      .get('/api/v1/customer/event-countdown')
-      .set('x-test-user-role', 'supplier');
-    expect(res.status).toBe(403);
-  });
-
-  it('returns null nearest when no plans have dates', async () => {
-    mockDb.find.mockResolvedValue([{ id: 'plan-1', userId: 'user-cust-1' }]);
-    const app = buildApp();
-    const res = await request(app)
-      .get('/api/v1/customer/event-countdown')
-      .set('x-test-user-role', 'customer');
-    expect(res.status).toBe(200);
-    expect(res.body.nearest).toBeNull();
-  });
-
-  it('returns nearest upcoming event when plan has a future date', async () => {
-    const futureDate = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
-    mockDb.find.mockResolvedValue([
-      {
-        id: 'plan-1',
-        userId: 'user-cust-1',
-        name: 'My Wedding',
-        eventDate: futureDate,
-      },
-    ]);
-    const app = buildApp();
-    const res = await request(app)
-      .get('/api/v1/customer/event-countdown')
-      .set('x-test-user-role', 'customer');
-    expect(res.status).toBe(200);
-    expect(res.body.nearest).not.toBeNull();
-    expect(res.body.nearest.name).toBe('My Wedding');
-    expect(res.body.nearest.daysUntil).toBeGreaterThan(0);
-  });
-});
 
 describe('GET /api/v1/customer/milestones', () => {
   beforeEach(() => {
@@ -230,5 +119,87 @@ describe('GET /api/v1/customer/milestones', () => {
       .set('x-test-user-role', 'customer');
     expect(res.status).toBe(200);
     expect(res.body.milestones.find(m => m.id === 'set-guests').done).toBe(done);
+  });
+
+  /** Answers each collection the route reads from a small fixture. */
+  function useData({ plans = [], shortlist = null, quoteRequests = [] }) {
+    mockDb.find.mockImplementation(async col => {
+      if (col === 'plans') {
+        return plans;
+      }
+      return col === 'quoteRequests' ? quoteRequests : [];
+    });
+    mockDb.findOne.mockImplementation(async col => (col === 'shortlists' ? shortlist : null));
+  }
+
+  async function milestonesFor(data) {
+    useData(data);
+    const res = await request(buildApp())
+      .get('/api/v1/customer/milestones')
+      .set('x-test-user-role', 'customer');
+    expect(res.status).toBe(200);
+    return Object.fromEntries(res.body.milestones.map(m => [m.id, m.done]));
+  }
+
+  it('counts a supplier saved from the dashboard (the shortlist) as a saved supplier', async () => {
+    const done = await milestonesFor({
+      shortlist: { items: [{ type: 'supplier', id: 's1', name: 'Tom', category: 'Photography' }] },
+    });
+    expect(done['save-supplier']).toBe(true);
+    expect(done['book-venue']).toBe(false);
+  });
+
+  it('does not count a saved listing (not a supplier) as a saved supplier', async () => {
+    const done = await milestonesFor({
+      shortlist: { items: [{ type: 'listing', id: 'l1', name: 'Table', category: 'Venues' }] },
+    });
+    expect(done['save-supplier']).toBe(false);
+  });
+
+  it('counts a shortlisted venue, or a quote request to one, for the venue step', async () => {
+    expect(
+      (
+        await milestonesFor({
+          shortlist: { items: [{ type: 'supplier', id: 's2', name: 'Barn', category: 'Venues' }] },
+        })
+      )['book-venue']
+    ).toBe(true);
+    expect(
+      (
+        await milestonesFor({
+          quoteRequests: [
+            { id: 'qr1', suppliers: [{ supplierId: 's3', category: 'Wedding venue' }] },
+          ],
+        })
+      )['book-venue']
+    ).toBe(true);
+    expect(
+      (
+        await milestonesFor({
+          quoteRequests: [{ id: 'qr2', suppliers: [{ supplierId: 's4', category: 'Catering' }] }],
+        })
+      )['book-venue']
+    ).toBe(false);
+  });
+
+  it.each([
+    ['a figure saved by the budget form', 7500, true],
+    ['a figure saved as text', '7500', true],
+    ['a range from the plan wizard', '£5,000–£10,000', false],
+    ['"Up to" from the plan wizard', 'Up to £1,000', false],
+    ['nothing', null, false],
+    ['zero', 0, false],
+  ])('the budget step with %s is done: %s', async (_label, budget, done) => {
+    const result = await milestonesFor({
+      plans: [{ id: 'plan-1', userId: 'user-cust-1', budget }],
+    });
+    expect(result['set-budget']).toBe(done);
+  });
+
+  it('no longer serves the unused summary and countdown endpoints', async () => {
+    for (const path of ['dashboard-summary', 'event-countdown']) {
+      const res = await request(buildApp()).get(`/api/v1/customer/${path}`);
+      expect(res.status).toBe(404);
+    }
   });
 });

@@ -165,6 +165,20 @@ async function readJson(response) {
 }
 
 /**
+ * What to tell the person when a plan change is refused. Customers who have not verified their
+ * email get a 403 with a code; "Email not verified" on its own does not say what to do.
+ * @param {object} payload - The response body
+ * @param {string} fallback - Text for any other refusal
+ * @returns {string} A sentence for the dialog
+ */
+function refusalText(payload, fallback) {
+  if (payload?.code === 'EMAIL_NOT_VERIFIED') {
+    return 'Verify your email address to change your plans. We sent you a link when you signed up, and the banner at the top of this page can send another.';
+  }
+  return payload?.error || fallback;
+}
+
+/**
  * Opens the Edit Plan dialog and PATCHes the plan on save.
  * @param {object} plan - The plan being edited
  * @param {Function} onSaved - Called after a successful save
@@ -271,7 +285,7 @@ function showEditPlanModal(plan, onSaved, focusId) {
       });
       const payload = await readJson(response);
       if (!response.ok) {
-        throw new Error(payload.error || 'We could not save your changes. Please try again.');
+        throw new Error(refusalText(payload, 'We could not save your changes. Please try again.'));
       }
       dialog.close();
       if (typeof onSaved === 'function') {
@@ -334,7 +348,7 @@ function confirmDeletePlan(plan, onDeleted) {
       });
       const payload = await readJson(response);
       if (!response.ok) {
-        throw new Error(payload.error || 'We could not delete this plan. Please try again.');
+        throw new Error(refusalText(payload, 'We could not delete this plan. Please try again.'));
       }
       dialog.close();
       if (typeof onDeleted === 'function') {
@@ -432,6 +446,9 @@ async function initDashboard() {
     window.location.href = '/';
     return;
   }
+
+  // A different person signing in on this browser must not inherit the last one's stored budget.
+  window.__authState?.scopeDeviceData?.(user);
 
   // Personalise the greeting
   const welcomeHeading = document.getElementById('welcome-heading');
@@ -553,8 +570,10 @@ async function populateSavedSupplierStatus() {
   let savedItems = [];
   let savedSupplierIds = [];
   let loaded = false;
+  let refused = false;
   try {
     const response = await fetch('/api/v1/shortlist', { credentials: 'include' });
+    refused = !response.ok;
     if (response.ok) {
       const payload = await response.json();
       const items = payload.data?.items || [];
@@ -587,6 +606,19 @@ async function populateSavedSupplierStatus() {
   const savedStatusEl = document.getElementById('saved-suppliers-status');
   const openPlanBtn = document.getElementById('openPlanBtn');
   if (!savedStatusEl) {
+    return;
+  }
+
+  if (refused) {
+    // A server error says nothing about whether anyone is saved, so do not call the list empty.
+    savedStatusEl.innerHTML =
+      '<div class="cdh-empty"><p class="cdh-empty__title">Your saved suppliers could not be loaded</p><p class="cdh-empty__text">Check your connection and try again.</p><button type="button" class="cdh-btn cdh-btn--secondary cdh-btn--sm" data-retry-saved>Try again</button></div>';
+    savedStatusEl.querySelector('[data-retry-saved]')?.addEventListener('click', () => {
+      populateSavedSupplierStatus();
+    });
+    if (openPlanBtn) {
+      openPlanBtn.hidden = true;
+    }
     return;
   }
 
@@ -750,6 +782,7 @@ function setupEventHandlers() {
     // Also persist to server on the focus plan (the one the summary row describes).
     // Always check response.ok — a CSRF/auth failure must not be silently swallowed.
     let serverSyncFailed = false;
+    let notVerified = false;
     const primaryPlan = focusPlan();
     if (primaryPlan) {
       try {
@@ -765,6 +798,8 @@ function setupEventHandlers() {
         if (!patchResp.ok) {
           console.warn('Budget PATCH failed with status:', patchResp.status);
           serverSyncFailed = true;
+          const refusal = await readJson(patchResp);
+          notVerified = refusal?.code === 'EMAIL_NOT_VERIFIED';
         } else {
           // Keep the in-memory plan current so the summary shows the new figure straight away
           primaryPlan.budget = budget;
@@ -778,7 +813,9 @@ function setupEventHandlers() {
     // Show result — distinguish between full success and local-only save
     if (serverSyncFailed) {
       showBudgetStatus(
-        `Budget saved locally (£${budget.toLocaleString()}) but couldn't sync to server. It will be retried on next visit.`,
+        notVerified
+          ? `Budget kept on this device (£${budget.toLocaleString()}). Verify your email address to save it to your plan.`
+          : `Budget saved locally (£${budget.toLocaleString()}) but couldn't sync to server. It will be retried on next visit.`,
         'warn'
       );
       // Show the figure the person just entered, not the stale server value
