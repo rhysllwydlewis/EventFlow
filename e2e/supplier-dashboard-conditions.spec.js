@@ -357,6 +357,43 @@ test.describe('Supplier dashboard: layout, accessibility and unusual conditions 
     expect(other.status()).toBe(404);
   });
 
+  test('the dashboard, its editors and its drawer load without a single Content-Security-Policy violation', async ({
+    page,
+    context,
+    baseURL,
+  }) => {
+    // The server sends the production policy; any inline handler, blocked image host or script from
+    // somewhere not allowed would show up here as a violation (and would be blocked in production).
+    await page.addInitScript(() => {
+      window.__cspViolations = [];
+      document.addEventListener('securitypolicyviolation', event => {
+        window.__cspViolations.push(
+          `${event.violatedDirective} blocked ${event.blockedURI || 'inline'} (${event.sourceFile || ''}:${event.lineNumber || ''})`
+        );
+      });
+    });
+    await open(page, context, baseURL);
+    await putAway(page);
+    await page.locator('#toggle-profile-form').click();
+    await expect(page.locator('#sdh-profile-dialog[open]')).toBeVisible();
+    await page.keyboard.press('Escape');
+    const discard = page.locator('dialog[open] button', { hasText: /^Discard/ });
+    if (await discard.count()) {
+      await discard.first().click();
+    }
+    await expect(page.locator('dialog[open]')).toHaveCount(0);
+    // The button only shows once there is an enquiry; the page's own event opens the same drawer.
+    await page.evaluate(() => document.dispatchEvent(new CustomEvent('sdh:open-enquiries')));
+    await expect(page.locator('#sdh-enquiries-dialog[open]')).toBeVisible();
+    await page.keyboard.press('Escape');
+    await expect(page.locator('dialog[open]')).toHaveCount(0);
+    await page.locator('#sdh-guide-open').click();
+    await expect(page.locator('#sdh-guide-dialog[open]')).toBeVisible();
+    await page.keyboard.press('Escape');
+    await page.waitForTimeout(1000);
+    expect(await page.evaluate(() => window.__cspViolations)).toEqual([]);
+  });
+
   for (const timezoneId of ['Pacific/Auckland', 'America/Los_Angeles', 'Asia/Kolkata']) {
     test.describe(`in ${timezoneId}`, () => {
       test.use({ timezoneId });
