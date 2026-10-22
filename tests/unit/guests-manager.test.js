@@ -597,6 +597,20 @@ describe('pickFocusPlan', () => {
     expect(lib.pickFocusPlan([{ id: 'a' }, { id: 'b' }]).id).toBe('a');
   });
 
+  test('a plan with no date yet comes before a plan whose date has passed', () => {
+    // Clearing a wedding date must not hand the page to last year's party.
+    expect(lib.pickFocusPlan([{ id: 'party', eventDate: day(-30) }, { id: 'wedding' }]).id).toBe(
+      'wedding'
+    );
+    expect(
+      lib.pickFocusPlan([
+        { id: 'party', eventDate: day(-30) },
+        { id: 'wedding' },
+        { id: 'soon', eventDate: day(5) },
+      ]).id
+    ).toBe('soon');
+  });
+
   test('a plan dated today still counts as upcoming', () => {
     expect(
       lib.pickFocusPlan([

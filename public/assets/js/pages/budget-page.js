@@ -237,8 +237,8 @@
   }
 
   /**
-   * The plan the customer dashboard summarises: the next upcoming date, else the latest dated
-   * plan, else the first, so all three customer pages start on the same event.
+   * The plan the customer dashboard summarises: the next upcoming date, else a plan with no date
+   * yet, else the latest dated plan, so all three customer pages start on the same event.
    */
   function pickFocusPlan(plans) {
     const today = new Date();
@@ -248,7 +248,12 @@
       .filter(item => item.day)
       .sort((left, right) => left.day - right.day);
     const upcoming = dated.find(item => item.day >= today);
-    return (upcoming || dated[dated.length - 1] || { plan: plans[0] }).plan;
+    if (upcoming) {
+      return upcoming.plan;
+    }
+    // A plan with no date yet is still being planned; one whose date has passed is over.
+    const undated = plans.find(plan => !planDay(plan));
+    return undated || (dated[dated.length - 1] || { plan: plans[0] }).plan;
   }
 
   /** Chooses which plan to show: the ?plan= id, the last one picked, else the dashboard's focus plan. */

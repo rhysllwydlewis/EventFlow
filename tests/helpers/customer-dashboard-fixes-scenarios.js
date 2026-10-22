@@ -195,6 +195,25 @@ async function summaryScenarios() {
   await window.CustomerDashboardHome.render([{ ...base }]);
   out.noBudget = tilesText(window).find(text => text.startsWith('Budget'));
 
+  // Which plan the summary describes when no plan has an upcoming date.
+  window = summaryWindow(summaryFetch());
+  const day = offset => {
+    const date = new Date();
+    date.setDate(date.getDate() + offset);
+    const pad = value => String(value).padStart(2, '0');
+    return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+  };
+  const pick = plans => window.CustomerDashboardHome.pickFocusPlan(plans)?.id;
+  out.focus = {
+    undatedBeatsPassed: pick([{ id: 'party', eventDate: day(-30) }, { id: 'wedding' }]),
+    upcomingBeatsUndated: pick([{ id: 'wedding' }, { id: 'soon', eventDate: day(9) }]),
+    latestPassedWhenAllDated: pick([
+      { id: 'old', eventDate: day(-90) },
+      { id: 'recent', eventDate: day(-5) },
+    ]),
+    firstWhenNoneDated: pick([{ id: 'a' }, { id: 'b' }]),
+  };
+
   // A slow first draw must not paint over a newer one that finished first.
   let calls = 0;
   const raceFetch = async url => {

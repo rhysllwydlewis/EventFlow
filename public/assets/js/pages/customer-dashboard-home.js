@@ -115,7 +115,7 @@
     return parsePlanDate(plan.eventDate || plan.date);
   }
 
-  /** The plan the summary talks about: next upcoming date, else latest dated, else the first plan. */
+  /** The plan the summary talks about: next upcoming date, else one with no date yet, else the latest dated plan. */
   function pickFocusPlan(plans) {
     const list = Array.isArray(plans) ? plans : [];
     if (!list.length) {
@@ -128,6 +128,11 @@
     const upcoming = dated.find(item => daysUntil(item.date) >= 0);
     if (upcoming) {
       return upcoming.plan;
+    }
+    // A plan with no date yet is still being planned; one whose date has passed is over.
+    const undated = list.find(plan => !planDate(plan));
+    if (undated) {
+      return undated;
     }
     if (dated.length) {
       return dated[dated.length - 1].plan;

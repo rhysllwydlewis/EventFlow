@@ -98,6 +98,24 @@ describe('the budget tile', () => {
   });
 });
 
+describe('which plan the summary describes', () => {
+  test('a plan with no date yet comes before one whose date has passed', () => {
+    expect(results.summary.focus.undatedBeatsPassed).toBe('wedding');
+  });
+
+  test('the rest of the order is unchanged', () => {
+    expect(results.summary.focus.upcomingBeatsUndated).toBe('soon');
+    expect(results.summary.focus.latestPassedWhenAllDated).toBe('recent');
+    expect(results.summary.focus.firstWhenNoneDated).toBe('a');
+  });
+
+  test('the guest list and budget pages use the same rule', () => {
+    for (const file of ['public/assets/js/guests.js', 'public/assets/js/pages/budget-page.js']) {
+      expect(read(file)).toMatch(/const undated = plans\.find\(plan => !planDay\(plan\)\);/);
+    }
+  });
+});
+
 describe('the summary when it is drawn twice', () => {
   test('a slow first draw does not overwrite the newer one', () => {
     expect(results.summary.race.budget).toContain('of £2,000');
