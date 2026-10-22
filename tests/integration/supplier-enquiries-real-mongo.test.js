@@ -141,6 +141,25 @@ describeRealMongo('supplier enquiries and dashboard (real MongoDB)', () => {
     expect(states && states.unique).toBe(true);
   });
 
+  it('removes old duplicate status documents before it puts the unique index on', async () => {
+    const states = raw.collection('supplier_enquiry_states');
+    await states.dropIndexes();
+    await states.insertMany([
+      { id: 'dup:1', status: 'read', updatedAt: '2026-01-01T00:00:00.000Z' },
+      { id: 'dup:1', status: 'handled', updatedAt: '2026-03-01T00:00:00.000Z' },
+      { id: 'dup:1', status: 'new', updatedAt: '2026-02-01T00:00:00.000Z' },
+      { id: 'single:1', status: 'read', updatedAt: '2026-01-01T00:00:00.000Z' },
+    ]);
+    await dbUnified.createSupplierEnquiryIndexes();
+    const kept = await states.find({ id: 'dup:1' }).toArray();
+    expect(kept).toHaveLength(1);
+    expect(kept[0].status).toBe('handled');
+    expect(await states.countDocuments({ id: 'single:1' })).toBe(1);
+    const index = (await states.indexes()).find(entry => entry.key.id === 1);
+    expect(index && index.unique).toBe(true);
+    await states.deleteMany({ id: { $in: ['dup:1', 'single:1'] } });
+  });
+
   it('reads one supplier’s quote requests, contact messages and visits through an index', async () => {
     const since = new Date(Date.now() - 90 * 86400000).toISOString();
     const quotePlan = await planFor(

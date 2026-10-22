@@ -190,14 +190,6 @@ async function createIndexes() {
     await enquiriesCollection.createIndex({ supplierId: 1, createdAt: -1 }); // enquiry list window
     await enquiriesCollection.createIndex({ senderEmail: 1 });
     await enquiriesCollection.createIndex({ createdAt: -1 });
-    // A supplier's read/handled state per enquiry (one document each) and the replies they sent
-    const enquiryStatesCollection = mongodb.collection('supplier_enquiry_states');
-    await enquiryStatesCollection.createIndex({ id: 1 }, { unique: true });
-    await enquiryStatesCollection.createIndex({ supplierId: 1 });
-    const enquiryRepliesCollection = mongodb.collection('supplier_enquiry_replies');
-    await enquiryRepliesCollection.createIndex({ id: 1 }, { unique: true });
-    await enquiryRepliesCollection.createIndex({ supplierId: 1, sentAt: -1 });
-    await enquiryRepliesCollection.createIndex({ supplierId: 1, enquiryId: 1 });
     const contactEnquiriesCollection = mongodb.collection('contact_enquiries');
     await contactEnquiriesCollection.createIndex({ senderEmail: 1 });
     await contactEnquiriesCollection.createIndex({ status: 1 });
@@ -378,6 +370,68 @@ async function createIndexes() {
     logger.info('✅ Database indexes created successfully');
   } catch (error) {
     logger.info('ℹ️  Database indexes:', error.message);
+  }
+  await createSupplierEnquiryIndexes();
+}
+
+/**
+ * Keep one document per `id` in a collection: the most recently updated. Used before a unique index
+ * is added to a collection that was written without one, where two writers at once could have
+ * created the same document twice.
+ *
+ * @param {Object} collection - MongoDB collection
+ * @returns {Promise<number>} How many extra documents were removed
+ */
+async function removeDuplicateIds(collection) {
+  const groups = await collection
+    .aggregate([
+      { $match: { id: { $type: 'string' } } },
+      { $group: { _id: '$id', n: { $sum: 1 } } },
+      { $match: { n: { $gt: 1 } } },
+    ])
+    .toArray();
+  let removed = 0;
+  for (const group of groups) {
+    const documents = await collection
+      .find({ id: group._id })
+      .sort({ updatedAt: -1, _id: -1 })
+      .toArray();
+    const extra = documents.slice(1).map(document => document._id);
+    if (extra.length) {
+      await collection.deleteMany({ _id: { $in: extra } });
+      removed += extra.length;
+    }
+  }
+  return removed;
+}
+
+/**
+ * Indexes for a supplier's read/handled state per enquiry (one document each) and the replies they
+ * sent. Apart from the main block so that a problem here (such as an old duplicate that cannot be
+ * indexed) never stops the other indexes being created, and the other way round.
+ *
+ * @returns {Promise<void>}
+ */
+async function createSupplierEnquiryIndexes() {
+  if (dbType !== 'mongodb' || !mongodb) {
+    return;
+  }
+  try {
+    const states = mongodb.collection('supplier_enquiry_states');
+    const removed = await removeDuplicateIds(states);
+    if (removed > 0) {
+      logger.warn(
+        `Removed ${removed} duplicate supplier enquiry state document(s) before indexing`
+      );
+    }
+    await states.createIndex({ id: 1 }, { unique: true });
+    await states.createIndex({ supplierId: 1 });
+    const replies = mongodb.collection('supplier_enquiry_replies');
+    await replies.createIndex({ id: 1 }, { unique: true });
+    await replies.createIndex({ supplierId: 1, sentAt: -1 });
+    await replies.createIndex({ supplierId: 1, enquiryId: 1 });
+  } catch (error) {
+    logger.warn('Supplier enquiry indexes could not be created:', error.message);
   }
 }
 
@@ -1232,6 +1286,7 @@ async function getStatus() {
 
 module.exports = {
   initializeDatabase,
+  createSupplierEnquiryIndexes,
   read,
   write,
   writeAndVerify,
