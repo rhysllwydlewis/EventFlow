@@ -199,7 +199,9 @@ const CONTROL_CHARS = /[\u0000-\u001f\u007f\u2028\u2029]+/gu;
  * @returns {string} Single-line text
  */
 function singleLine(value) {
-  return String(value === null || value === undefined ? '' : value).replace(CONTROL_CHARS, ' ');
+  return String(value === null || value === undefined ? '' : value)
+    .replace(/[\r\n]+/gu, ' ')
+    .replace(CONTROL_CHARS, ' ');
 }
 
 /**
