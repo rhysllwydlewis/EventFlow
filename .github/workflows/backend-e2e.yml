@@ -120,6 +120,9 @@ jobs:
     timeout-minutes: 75
     env:
       PLAYWRIGHT_ALL_BROWSERS: 'true'
+      # Keep a trace of a failing test (page state, console, network): the other engines fail in
+      # ways a screenshot alone does not explain.
+      PLAYWRIGHT_TRACE: 'retain-on-failure'
 
     steps:
       - name: Checkout repository
@@ -176,5 +179,6 @@ jobs:
           path: |
             playwright-report
             test-results/**/*.png
+            test-results/**/trace.zip
           if-no-files-found: warn
           retention-days: 14
