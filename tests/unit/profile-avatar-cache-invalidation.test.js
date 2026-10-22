@@ -123,11 +123,122 @@ describe('profile avatar cache invalidation', () => {
           avatarUrl: '',
           displayAvatarUrl: '',
           publicProfileAvatarUrl: '',
+          profileImage: '',
+          profilePhoto: '',
+          photoUrl: '',
+          image: '',
         },
       })
     );
     expect(JSON.stringify(updateOne.mock.calls)).not.toContain('logo');
     expect(clearSearchCache).toHaveBeenCalled();
     expect(invalidate).toHaveBeenCalled();
+  });
+
+  test.each([
+    'profilePhotoUrl',
+    'displayAvatarUrl',
+    'avatarUrl',
+    'publicProfileAvatarUrl',
+    'profileImage',
+    'profilePhoto',
+    'photoUrl',
+    'image',
+  ])('removes a supplier-only %s when the user has no avatar', async field => {
+    const { app, updateOne, deleteImage, invalidate } = buildApp({
+      user: { id: 'user_1', email: 'owner@example.com', role: 'supplier' },
+      suppliers: [{ id: 'sup_1', ownerUserId: 'user_1', [field]: '/uploads/legacy.webp' }],
+    });
+
+    await request(app).delete('/api/profile/avatar').expect(200, { ok: true });
+
+    expect(updateOne).toHaveBeenCalledWith(
+      'suppliers',
+      { id: 'sup_1' },
+      expect.objectContaining({ $unset: expect.objectContaining({ [field]: '' }) })
+    );
+    // The supplier URL may also be a gallery image; removing its avatar reference
+    // must not delete shared image storage.
+    expect(deleteImage).not.toHaveBeenCalled();
+    expect(invalidate).toHaveBeenCalled();
+  });
+
+  test('removes a legacy email-owned photo without touching another explicit owner', async () => {
+    const { app, updateOne } = buildApp({
+      user: { id: 'user_1', email: 'owner@example.com', role: 'supplier' },
+      suppliers: [
+        { id: 'legacy', contactEmail: 'OWNER@example.com', profileImage: '/uploads/old.webp' },
+        {
+          id: 'other',
+          ownerUserId: 'user_2',
+          email: 'owner@example.com',
+          avatarUrl: '/api/photos/other',
+        },
+      ],
+    });
+
+    await request(app).delete('/api/profile/avatar').expect(200);
+
+    expect(updateOne).toHaveBeenCalledWith(
+      'suppliers',
+      { id: 'legacy' },
+      expect.objectContaining({ $set: expect.objectContaining({ ownerUserId: 'user_1' }) })
+    );
+    expect(updateOne.mock.calls.filter(([collection]) => collection === 'suppliers')).toHaveLength(
+      1
+    );
+  });
+
+  test('rejects removal when the only photo belongs to another explicit owner', async () => {
+    const { app, updateOne, deleteImage } = buildApp({
+      user: { id: 'user_1', email: 'owner@example.com', role: 'supplier' },
+      suppliers: [
+        {
+          id: 'other',
+          ownerUserId: 'user_2',
+          email: 'owner@example.com',
+          profilePhotoUrl: '/api/photos/other',
+        },
+      ],
+    });
+
+    await request(app).delete('/api/profile/avatar').expect(404, { error: 'No avatar to delete' });
+
+    expect(updateOne).not.toHaveBeenCalled();
+    expect(deleteImage).not.toHaveBeenCalled();
+  });
+
+  test('keeps a business logo and its file when it is also the account avatar', async () => {
+    const { app, updateOne, deleteImage } = buildApp({
+      user: {
+        id: 'user_1',
+        email: 'owner@example.com',
+        role: 'supplier',
+        avatarUrl: '/api/photos/brand',
+      },
+      suppliers: [
+        {
+          id: 'sup_1',
+          ownerUserId: 'user_1',
+          logo: '/api/photos/brand',
+          avatarUrl: '/api/photos/brand',
+        },
+      ],
+    });
+
+    await request(app).delete('/api/profile/avatar').expect(200);
+
+    expect(deleteImage).not.toHaveBeenCalled();
+    expect(JSON.stringify(updateOne.mock.calls)).not.toContain('logo');
+  });
+
+  test('returns no-avatar for a logo-only record without changing its branding', async () => {
+    const { app, updateOne } = buildApp({
+      user: { id: 'user_1', email: 'owner@example.com', role: 'supplier' },
+      suppliers: [{ id: 'sup_1', ownerUserId: 'user_1', logo: '/uploads/brand.webp' }],
+    });
+
+    await request(app).delete('/api/profile/avatar').expect(404);
+    expect(updateOne).not.toHaveBeenCalled();
   });
 });

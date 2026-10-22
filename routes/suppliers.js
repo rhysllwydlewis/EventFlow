@@ -13,6 +13,7 @@ const { canPublishPublicCalendar } = require('../utils/calendarPermissions');
 const {
   findOwnerUserForSupplier,
   hydrateSupplierProfilePhoto,
+  hasRemovableSupplierProfilePhoto,
 } = require('../utils/supplierProfilePhoto');
 const { addPublicProfilePath } = require('../utils/publicSupplierProfilePath');
 const { computeProfileCompleteness } = require('../services/supplierProfileCompleteness');
@@ -578,6 +579,9 @@ router.get('/me/suppliers', applyAuthRequired, applyRoleRequired('supplier'), as
         const hydratedSupplier = hydrateSupplierProfilePhoto(s, ownerUser);
         return addPublicProfilePath({
           ...hydratedSupplier,
+          // Hydration can turn a logo into profilePhotoUrl. Keep its origin so
+          // the dashboard does not offer an avatar deletion for business branding.
+          profilePhotoRemovable: hasRemovableSupplierProfilePhoto(s, ownerUser),
           // The profile-health percentage the dashboard's "Profile Health" card shows, computed
           // server-side by the same rules. `aiScore` (kept for admin use) is a different,
           // admin-batch number and must not be presented to suppliers as their health score.

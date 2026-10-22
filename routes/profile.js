@@ -19,6 +19,7 @@ const catalogCache = require('../services/catalogCache');
 const { clearSearchCache } = require('../middleware/searchCache');
 const { isSafePublicImageUrl } = require('../services/publicSupplierAvatar.service');
 const { deleteUserAndOwnedData } = require('../services/adminUserDeletion.service');
+const { SUPPLIER_AVATAR_FIELDS } = require('../utils/supplierProfilePhoto');
 
 const router = express.Router();
 
@@ -68,12 +69,13 @@ function supplierBelongsToUser(supplier, user) {
   );
 }
 
-async function syncSupplierAvatarFieldsForUser(user, avatarUrl) {
+async function syncSupplierAvatarFieldsForUser(user, avatarUrl, ownedSuppliers) {
   if (!user || !user.id) {
     return;
   }
-  const suppliers = await dbUnified.read('suppliers');
-  const updates = suppliers.filter(supplier => supplierBelongsToUser(supplier, user));
+  const updates =
+    ownedSuppliers ||
+    (await dbUnified.read('suppliers')).filter(supplier => supplierBelongsToUser(supplier, user));
   for (const supplier of updates) {
     const $set = { updatedAt: new Date().toISOString() };
     if (!supplier.ownerUserId) {
@@ -88,12 +90,7 @@ async function syncSupplierAvatarFieldsForUser(user, avatarUrl) {
         $set.publicProfileAvatarUrl = avatarUrl;
       }
     } else {
-      update.$unset = {
-        profilePhotoUrl: '',
-        avatarUrl: '',
-        displayAvatarUrl: '',
-        publicProfileAvatarUrl: '',
-      };
+      update.$unset = Object.fromEntries(SUPPLIER_AVATAR_FIELDS.map(field => [field, '']));
     }
     await dbUnified.updateOne('suppliers', { id: supplier.id }, update);
   }
@@ -449,16 +446,25 @@ router.delete('/avatar', writeLimiter, authRequired, csrfProtection, async (req,
       return res.status(404).json({ error: 'User not found' });
     }
 
-    if (!user.avatarUrl) {
+    const suppliers = (await dbUnified.read('suppliers')).filter(supplier =>
+      supplierBelongsToUser(supplier, user)
+    );
+    const hasSupplierPhoto = suppliers.some(supplier =>
+      SUPPLIER_AVATAR_FIELDS.some(field => supplier[field])
+    );
+    if (!user.avatarUrl && !hasSupplierPhoto) {
       return res.status(404).json({ error: 'No avatar to delete' });
     }
 
-    // Delete avatar using centralized photo deletion
-    try {
-      await photoUpload.deleteImage(user.avatarUrl);
-    } catch (deleteErr) {
-      logger.error('Failed to delete avatar file:', deleteErr);
-      // Continue anyway to clean up database record
+    // Only delete the account's avatar file. Supplier legacy URLs may also be gallery
+    // images or logos; detach those references without deleting shared image assets.
+    if (user.avatarUrl && !suppliers.some(supplier => supplier.logo === user.avatarUrl)) {
+      try {
+        await photoUpload.deleteImage(user.avatarUrl);
+      } catch (deleteErr) {
+        logger.error('Failed to delete avatar file:', deleteErr);
+        // Continue anyway to clean up database record
+      }
     }
 
     // Remove avatar URL from user
@@ -471,7 +477,7 @@ router.delete('/avatar', writeLimiter, authRequired, csrfProtection, async (req,
       }
     );
 
-    await syncSupplierAvatarFieldsForUser(user, null);
+    await syncSupplierAvatarFieldsForUser(user, null, suppliers);
     await invalidateAvatarDependentCaches(req.app);
 
     res.json({ ok: true });

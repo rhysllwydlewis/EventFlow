@@ -3,6 +3,25 @@
 const BOT_LOGO_HINT_RE = /\b(logo|brand|branding|wordmark)\b/i;
 const MIN_BOT_LOGO_SCORE = 72;
 
+// Logos are separate branding, not removable profile-photo aliases.
+const SUPPLIER_AVATAR_FIELDS = [
+  'profilePhotoUrl',
+  'avatarUrl',
+  'displayAvatarUrl',
+  'publicProfileAvatarUrl',
+  'profileImage',
+  'profilePhoto',
+  'photoUrl',
+  'image',
+];
+
+function hasRemovableSupplierProfilePhoto(supplier, ownerUser) {
+  return (
+    isUsableImageUrl(ownerUser?.avatarUrl) ||
+    SUPPLIER_AVATAR_FIELDS.some(field => isUsableImageUrl(supplier?.[field]))
+  );
+}
+
 function isUsableImageUrl(value) {
   if (!value || typeof value !== 'string') {
     return false;
@@ -188,6 +207,7 @@ function resolveSupplierProfilePhoto(supplier, ownerUser) {
     supplier?.profilePhoto,
     supplier?.photoUrl,
     supplier?.image,
+    supplier?.publicProfileAvatarUrl,
     // If older supplier records were not backfilled, keep the public profile in
     // sync with the owning account avatar before falling back to bot provenance
     // or legacy logos.
@@ -225,6 +245,8 @@ function hydrateSupplierProfilePhoto(supplier, ownerUser) {
 }
 
 module.exports = {
+  SUPPLIER_AVATAR_FIELDS,
+  hasRemovableSupplierProfilePhoto,
   isUsableImageUrl,
   findOwnerUserForSupplier,
   findOwnerUserForSupplierFromDb,
