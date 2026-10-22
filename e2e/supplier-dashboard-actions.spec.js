@@ -804,6 +804,10 @@ test.describe('Supplier dashboard: every control works @backend', () => {
     await expect(page.locator('.sdh-toast')).toContainText('Write a reply first.');
 
     await replyBox.fill('Yes, 14 June is free. I will send a quote today.');
+    // Changing the status redraws the pane: what was typed stays.
+    await drawer.getByRole('button', { name: 'Mark as read' }).click();
+    await expect(drawer).toContainText('Status: Read');
+    await expect(replyBox).toHaveValue('Yes, 14 June is free. I will send a quote today.');
     await drawer.getByRole('button', { name: 'Send reply' }).click();
     await expect(page.locator('.sdh-toast')).toContainText('Reply sent.');
     await expect(drawer.locator('.sdh-enq__reply')).toContainText(

@@ -37,6 +37,8 @@ function buildDb(seed = {}) {
     photos: [],
     supplierAnalytics: [],
     reviewRequests: [],
+    supplier_enquiry_replies: [],
+    supplier_enquiry_states: [],
     public_calendar_events: [],
     marketplace_listings: [],
     savedItems: [],
@@ -130,6 +132,11 @@ describe('admin supplier maintenance hardening', () => {
       public_calendar_events: [{ id: 'cal_1', supplierId: 'sup_1' }],
       marketplace_listings: [{ id: 'listing_1', supplierId: 'sup_1' }],
       bookings: [{ id: 'book_1', supplierId: 'sup_1' }],
+      supplier_enquiry_replies: [
+        { id: 'rep_1', supplierId: 'sup_1' },
+        { id: 'rep_other', supplierId: 'sup_other' },
+      ],
+      supplier_enquiry_states: [{ id: 'sup_1:qr_1', supplierId: 'sup_1' }],
     });
     jest.doMock('../../db-unified', () => db);
     jest.doMock('../../routes/suppliers', () => ({ invalidatePackageCaches: jest.fn() }));
@@ -139,6 +146,8 @@ describe('admin supplier maintenance hardening', () => {
 
     expect(summary).toMatchObject({
       deletedUser: true,
+      deletedEnquiryReplies: 1,
+      deletedEnquiryStates: 1,
       deletedSuppliers: 1,
       deletedPackages: 1,
       deletedPhotos: 1,
@@ -149,6 +158,9 @@ describe('admin supplier maintenance hardening', () => {
     expect(db.data.users).toHaveLength(0);
     expect(db.data.suppliers).toHaveLength(0);
     expect(db.data.packages).toHaveLength(0);
+    // Their replies and enquiry marks go with them; another supplier's stay.
+    expect(db.data.supplier_enquiry_replies.map(r => r.id)).toEqual(['rep_other']);
+    expect(db.data.supplier_enquiry_states).toHaveLength(0);
     expect(db.data.bookings[0]).toMatchObject({ supplierDeleted: true, supplierId: null });
     const userDeleteOrder =
       db.deleteOne.mock.invocationCallOrder[

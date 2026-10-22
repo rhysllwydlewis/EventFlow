@@ -20,7 +20,7 @@
   if (root) {
     root.EFPackagePrice = api;
   }
-})(typeof window !== 'undefined' ? window : globalThis, () => {
+})(typeof window !== 'undefined' ? window : null, () => {
   /** Longest price text kept; the limit the supplier form has always had. */
   const MAX_PRICE_LENGTH = 60;
   /** A price typed as a bare amount ("1200", "1,200.50"). */

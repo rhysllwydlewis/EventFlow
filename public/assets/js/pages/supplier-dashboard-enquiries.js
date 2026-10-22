@@ -63,6 +63,9 @@
     totalPages: 1,
     total: 0,
     selectedId: '',
+    // Reply text typed but not sent, per enquiry, so changing a status or moving between enquiries
+    // does not lose it.
+    drafts: {},
     detail: null,
     problem: '',
   };
@@ -511,6 +514,10 @@
     area.rows = 5;
     area.maxLength = MAX_REPLY;
     area.setAttribute('aria-describedby', 'sdh-enquiry-reply-help');
+    area.value = view.drafts[item.id] || '';
+    area.addEventListener('input', () => {
+      view.drafts[item.id] = area.value;
+    });
     const help = el(
       'p',
       'sdh-note',
@@ -565,6 +572,7 @@
       area.focus();
       return;
     }
+    delete view.drafts[id];
     view.detail = result.data.enquiry;
     const row = view.items.find(item => item.id === id);
     if (row) {

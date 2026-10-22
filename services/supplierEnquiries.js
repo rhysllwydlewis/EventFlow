@@ -41,8 +41,9 @@ const STRICT = Object.freeze({ throwOnError: true });
 
 const STATES_COLLECTION = 'supplier_enquiry_states';
 const REPLIES_COLLECTION = 'supplier_enquiry_replies';
-// A reply counts towards the limits from the moment it is reserved until it fails.
-const RESERVING_STATUSES = new Set(['sending', 'sent']);
+// A reply counts towards the limits from the moment it is reserved until it fails. A reservation
+// still 'sending' after this long was lost (the server stopped mid-send) and stops counting.
+const RESERVATION_TTL_MS = 5 * 60 * 1000;
 const STATUSES = Object.freeze(['new', 'read', 'handled']);
 const SOURCES = Object.freeze({ quote_request: 'quote_request', contact_form: 'contact_form' });
 const QUALITIES = Object.freeze(['High', 'Medium', 'Low']);
@@ -502,7 +503,7 @@ async function replyToEnquiry({ supplier, owner, id, message }, deps = {}) {
   if (!enquiry.email || !validator.isEmail(enquiry.email)) {
     return fail('NO_EMAIL', 'This customer did not leave an email address to reply to.');
   }
-  if (!owner || !owner.email || owner.verified !== true) {
+  if (!owner || !owner.email || !owner.verified) {
     return fail(
       'EMAIL_NOT_VERIFIED',
       'Verify your account email first, so the customer’s answer can reach you.'
@@ -521,7 +522,12 @@ async function replyToEnquiry({ supplier, owner, id, message }, deps = {}) {
   // requests that run at the same time both see the other's reservation on the second check, so
   // together they can never send more than the limit allows (at worst both back off).
   const overLimit = async () => {
-    const counted = rows => (rows || []).filter(row => RESERVING_STATUSES.has(row.status)).length;
+    const counted = rows =>
+      (rows || []).filter(
+        row =>
+          row.status === 'sent' ||
+          (row.status === 'sending' && nowMs - Date.parse(row.sentAt || '') < RESERVATION_TTL_MS)
+      ).length;
     const forEnquiry = counted(
       await dbUnified.find(REPLIES_COLLECTION, { supplierId: supplier.id, enquiryId: id }, STRICT)
     );

@@ -153,6 +153,7 @@ jobs:
           e2e/customer-supplier-live-messages.spec.js
           e2e/admin-packages-page.spec.js
           --project=firefox --project=webkit
+          --grep @backend
         env:
           PLAYWRIGHT_JSON_OUTPUT_NAME: test-results/other-browsers-results.json
           PLAYWRIGHT_JUNIT_OUTPUT_NAME: test-results/other-browsers-junit.xml

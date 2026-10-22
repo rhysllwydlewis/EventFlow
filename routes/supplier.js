@@ -635,10 +635,16 @@ router.put('/guide-progress', authRequired, csrfProtection, writeLimiter, async 
       return res.status(404).json({ error: 'User not found' });
     }
     const progress = { status, step: stepId, at: new Date().toISOString() };
+    // Set just this field so another onboarding value written at the same time is not overwritten.
+    const hasOnboarding = user.onboarding && typeof user.onboarding === 'object';
     await dbUnified.updateOne(
       'users',
       { id: req.user.id },
-      { $set: { onboarding: { ...(user.onboarding || {}), supplierGuide: progress } } }
+      {
+        $set: hasOnboarding
+          ? { 'onboarding.supplierGuide': progress }
+          : { onboarding: { supplierGuide: progress } },
+      }
     );
     return res.json({ progress });
   } catch (error) {

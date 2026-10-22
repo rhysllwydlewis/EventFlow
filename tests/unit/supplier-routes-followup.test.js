@@ -278,6 +278,57 @@ describe('POST /enquiries/:id/reply', () => {
     expect(mockSendMail).not.toHaveBeenCalled();
   });
 
+  it('stops counting a reply that was reserved but never finished', async () => {
+    const stale = new Date(Date.now() - 10 * 60 * 1000).toISOString();
+    const fresh = new Date().toISOString();
+    fakeDb.__reset(
+      seed({
+        supplier_enquiry_replies: [
+          {
+            id: 'rep_a',
+            supplierId: 'sup-1',
+            enquiryId: 'qr_1',
+            message: 'x',
+            status: 'sending',
+            sentAt: stale,
+          },
+          {
+            id: 'rep_b',
+            supplierId: 'sup-1',
+            enquiryId: 'qr_1',
+            message: 'x',
+            status: 'sending',
+            sentAt: stale,
+          },
+          {
+            id: 'rep_c',
+            supplierId: 'sup-1',
+            enquiryId: 'qr_1',
+            message: 'x',
+            status: 'sending',
+            sentAt: stale,
+          },
+        ],
+      })
+    );
+    expect((await reply('qr_1', 'Hello')).status).toBe(200);
+
+    // A reservation still being sent does count.
+    fakeDb.__reset(
+      seed({
+        supplier_enquiry_replies: ['a', 'b', 'c'].map(n => ({
+          id: `rep_${n}`,
+          supplierId: 'sup-1',
+          enquiryId: 'qr_1',
+          message: 'x',
+          status: 'sending',
+          sentAt: fresh,
+        })),
+      })
+    );
+    expect((await reply('qr_1', 'Hello')).body.code).toBe('ENQUIRY_LIMIT');
+  });
+
   it('will not reply to an enquiry more than thirty days old', async () => {
     const old = new Date(Date.now() - 31 * 86400000).toISOString();
     fakeDb.__reset(
@@ -366,6 +417,12 @@ describe('/guide-progress (the setup guide, kept on the account)', () => {
     expect(
       fakeDb.__store().users.find(u => u.id === 'user-1').onboarding.supplierGuide.status
     ).toBe('dismissed');
+  });
+
+  it('saves for an account that has no onboarding record yet', async () => {
+    await call('put', { status: 'active', step: 'profile' });
+    const user = fakeDb.__store().users.find(u => u.id === 'user-1');
+    expect(user.onboarding.supplierGuide).toMatchObject({ status: 'active', step: 'profile' });
   });
 
   it('keeps other onboarding fields it does not own', async () => {
