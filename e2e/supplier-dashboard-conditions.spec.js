@@ -395,7 +395,9 @@ test.describe('Supplier dashboard: layout, accessibility and unusual conditions 
     page,
     context,
     baseURL,
+    browserName,
   }) => {
+    test.skip(browserName !== 'chromium', 'network throttling uses the Chrome DevTools protocol');
     await open(page, context, baseURL);
     await putAway(page);
 

@@ -184,7 +184,10 @@ function configureHelmet(isProduction = false) {
         frameAncestors: ["'none'"],
         workerSrc: ["'self'", 'blob:'],
         objectSrc: ["'none'"],
-        upgradeInsecureRequests: [],
+        // Not in the isolated browser suite: it serves plain http on loopback, and WebKit (like
+        // Safari) would upgrade every subresource to https and fail to load the page.
+        // (helmet adds it by default, so null is what turns it off.)
+        upgradeInsecureRequests: skipInBackendE2E() ? null : [],
         reportUri: '/api/csp-report',
       },
     },
