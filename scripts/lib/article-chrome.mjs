@@ -131,7 +131,7 @@ export const HEADER_SCRIPTS = [
   '/assets/js/utils/auth-state.js',
   '/assets/js/burger-menu.js',
   '/assets/js/navbar.js?v=1.0.1',
-  '/assets/js/notifications.js?v=2.0.2',
+  '/assets/js/notifications.js?v=2.0.3',
 ];
 
 export const HEADER_SCRIPTS_MARKUP = HEADER_SCRIPTS.map(

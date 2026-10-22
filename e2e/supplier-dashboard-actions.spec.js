@@ -74,6 +74,12 @@ test.describe('Supplier dashboard: every control works @backend', () => {
     await expect(page.locator('#my-packages')).toContainText(fixtures.package.title);
   }
 
+  /** Reloads the dashboard and waits until it is ready to be used again. */
+  async function reloadDashboard(page) {
+    await page.reload();
+    await expect(page.locator('#my-packages')).toContainText(fixtures.package.title);
+  }
+
   async function closeTopDialog(page) {
     await page.keyboard.press('Escape');
     const discard = page.locator('dialog[open] button', { hasText: /^Discard/ });
@@ -146,8 +152,7 @@ test.describe('Supplier dashboard: every control works @backend', () => {
     await page.locator('#sup-create').click();
     expect((await saved).status()).toBeLessThan(300);
 
-    await page.reload();
-    await expect(page.locator('#welcome-heading')).toBeVisible();
+    await reloadDashboard(page);
     await page.locator('#toggle-profile-form').click();
     await expect(page.locator('#sdh-profile-dialog[open]')).toBeVisible();
     for (const [selector, value] of Object.entries(values)) {
@@ -183,8 +188,7 @@ test.describe('Supplier dashboard: every control works @backend', () => {
     await expect(tiles).toHaveCount(before + 1);
 
     // It is still there after a reload.
-    await page.reload();
-    await expect(page.locator('#welcome-heading')).toBeVisible();
+    await reloadDashboard(page);
     await openEditor();
     await expect(kept).toHaveCount(before + 1);
     // ... and it shows its image (the saved list used to lose the address of each photo).
@@ -201,8 +205,7 @@ test.describe('Supplier dashboard: every control works @backend', () => {
     await kept.last().locator('.photo-delete-btn').click();
     await page.locator('dialog[open] button', { hasText: /^Remove photo/ }).click();
     await expect(kept).toHaveCount(before);
-    await page.reload();
-    await expect(page.locator('#welcome-heading')).toBeVisible();
+    await reloadDashboard(page);
     await openEditor();
     await expect(kept).toHaveCount(before);
     await closeTopDialog(page);
@@ -287,8 +290,7 @@ test.describe('Supplier dashboard: every control works @backend', () => {
     await expect(kept).toHaveCount(2, { timeout: 15000 });
     await expect(page.locator('#sup-photo-preview .photo-preview-item')).toHaveCount(2);
     expect(uploads).toHaveLength(2);
-    await page.reload();
-    await expect(page.locator('#welcome-heading')).toBeVisible();
+    await reloadDashboard(page);
     await page.locator('#toggle-profile-form').click();
     await expect(kept).toHaveCount(2);
     await removeKept();
@@ -322,6 +324,64 @@ test.describe('Supplier dashboard: every control works @backend', () => {
     // It can be dismissed.
     await failed.getByRole('button', { name: /remove/i }).click();
     await expect(page.locator('#sup-photo-preview .photo-preview-item')).toHaveCount(0);
+  });
+
+  test('the banner can be added, is kept after a reload, and can be removed', async ({
+    page,
+    context,
+    baseURL,
+  }) => {
+    await openDashboard(page, context, baseURL);
+    const openEditor = async () => {
+      await page.locator('#toggle-profile-form').click();
+      await expect(page.locator('#sdh-profile-dialog[open]')).toBeVisible();
+    };
+    await openEditor();
+    const status = page.locator('#sdh-banner-status');
+    const image = page.locator('#sdh-banner-img');
+    await expect(page.locator('#sdh-banner-empty')).toBeVisible();
+    await expect(page.locator('#sdh-banner-remove')).toBeHidden();
+
+    // Something that is not an image is refused, with a reason.
+    await page.locator('#sdh-banner-input').setInputFiles({
+      name: 'notes.txt',
+      mimeType: 'text/plain',
+      buffer: Buffer.from('not an image'),
+    });
+    await expect(status).toHaveText('Use a JPG, PNG or WebP image.');
+    await expect(page.locator('#sdh-banner-empty')).toBeVisible();
+
+    // An image is saved straight away and shown.
+    await page.locator('#sdh-banner-input').setInputFiles({
+      name: 'banner.png',
+      mimeType: 'image/png',
+      buffer: solidPng(64, [40, 90, 200]),
+    });
+    await expect(status).toHaveText('Banner saved.');
+    await expect(image).toBeVisible();
+    await expect(page.locator('#sdh-banner-upload')).toHaveText('Change banner');
+    await expect.poll(() => image.evaluate(img => img.complete && img.naturalWidth > 0)).toBe(true);
+
+    // It is still there after a reload.
+    await reloadDashboard(page);
+    await openEditor();
+    await expect(image).toBeVisible();
+    await expect.poll(() => image.evaluate(img => img.complete && img.naturalWidth > 0)).toBe(true);
+
+    // Removing it asks first; then the profile has none, and that is kept too.
+    await page.locator('#sdh-banner-remove').click();
+    // The confirmation is the topmost dialog; the profile editor (with its own button) is beneath it.
+    await page
+      .locator('dialog[open]')
+      .last()
+      .getByRole('button', { name: 'Remove banner' })
+      .click();
+    await expect(status).toHaveText('Banner removed.');
+    await expect(page.locator('#sdh-banner-empty')).toBeVisible();
+    await reloadDashboard(page);
+    await openEditor();
+    await expect(page.locator('#sdh-banner-empty')).toBeVisible();
+    await expect(page.locator('#sdh-banner-remove')).toBeHidden();
   });
 
   test('"Add photos" opens the file chooser and accepts several images', async ({
@@ -432,6 +492,96 @@ test.describe('Supplier dashboard: every control works @backend', () => {
     await page.locator('#sdh-request-review-btn').click();
     await expect(page.locator('dialog[open]')).toContainText(/review/i);
     await closeTopDialog(page);
+  });
+
+  test('a review request is checked, sent once, and not sent twice to the same customer', async ({
+    page,
+    context,
+    baseURL,
+  }) => {
+    await openDashboard(page, context, baseURL);
+    const status = page.locator('#rreq-status');
+    const email = `spec-${runId.slice(-8)}@example.test`;
+    await page.locator('#sdh-request-review-btn').click();
+    await expect(page.locator('#sdh-review-dialog[open]')).toBeVisible();
+
+    // Nothing, or something that is not an address, is refused with a reason.
+    await page.locator('#rreq-send-btn').click();
+    await expect(status).toHaveText('Enter a valid customer email address.');
+    await page.fill('#rreq-email', 'not-an-address');
+    await page.locator('#rreq-send-btn').click();
+    await expect(status).toHaveText('Enter a valid customer email address.');
+
+    // A real address is sent to: the dialog closes and the request is listed.
+    const asked = () =>
+      page.waitForResponse(
+        r => r.request().method() === 'POST' && /supplier\/request-review/.test(r.url())
+      );
+    await page.fill('#rreq-email', email);
+    await page.fill('#rreq-name', 'Spec Customer');
+    const [sent] = await Promise.all([asked(), page.locator('#rreq-send-btn').click()]);
+    expect(sent.status()).toBeLessThan(300);
+    await expect(page.locator('#sdh-review-dialog[open]')).toHaveCount(0);
+    await expect(page.locator('#supplier-review-request-widget')).toContainText(
+      /Spec Customer|spec-/
+    );
+
+    // Asking the same customer again is refused, with a reason, and the dialog stays open.
+    await page.locator('#sdh-request-review-btn').click();
+    await page.fill('#rreq-email', email);
+    const [again] = await Promise.all([asked(), page.locator('#rreq-send-btn').click()]);
+    expect(again.status()).toBeGreaterThanOrEqual(400);
+    await expect(page.locator('#sdh-review-dialog[open]')).toBeVisible();
+    await expect(status).not.toHaveText('');
+    await expect(status).not.toHaveText('Sending…');
+  });
+
+  test('a review can be replied to, the reply is kept, and it can be edited', async ({
+    page,
+    context,
+    baseURL,
+  }) => {
+    await openDashboard(page, context, baseURL);
+    await expect(page.locator('.sr-review-card').first()).toBeVisible();
+    const reviewId = await page
+      .locator('.sr-review-card', { has: page.locator('.sr-reply-btn') })
+      .first()
+      .getAttribute('data-review-id');
+    const card = page
+      .locator(`[data-review-id="${reviewId}"]`)
+      .locator('xpath=ancestor-or-self::article');
+    await card.locator('.sr-reply-btn').click();
+    const form = card.locator('.sr-reply-form');
+    await expect(form).toBeVisible();
+
+    // Too short is refused with a reason, and nothing is posted.
+    await form.locator('textarea').fill('Thanks');
+    await form.locator('.sr-reply-submit').click();
+    await expect(form.locator('.sr-reply-status')).not.toHaveText('');
+    await expect(card.locator('.sr-response')).toHaveCount(0);
+
+    // Cancel closes the form.
+    await form.locator('.sr-reply-cancel').click();
+    await expect(form).toHaveCount(0);
+
+    // A proper reply is posted and shown as "Your reply".
+    await card.locator('.sr-reply-btn').click();
+    const text = `Thank you, we enjoyed working with you. (${runId.slice(-5)})`;
+    await card.locator('.sr-reply-form textarea').fill(text);
+    await card.locator('.sr-reply-submit').click();
+    await expect(card.locator('.sr-response-text')).toHaveText(text);
+
+    // It is still there after a reload, and can be edited.
+    await reloadDashboard(page);
+    const same = page
+      .locator('.sr-review-card', { has: page.locator('.sr-response-text') })
+      .first();
+    await expect(same.locator('.sr-response-text')).toHaveText(text);
+    await same.locator('.sr-edit-reply-btn').click();
+    const edited = `${text} Edited.`;
+    await same.locator('.sr-reply-form textarea').fill(edited);
+    await same.locator('.sr-reply-submit').click();
+    await expect(same.locator('.sr-response-text')).toHaveText(edited);
   });
 
   test('a private calendar entry can be added from the button and from a day, with the right date', async ({
@@ -631,6 +781,144 @@ test.describe('Supplier dashboard: every control works @backend', () => {
     const create = page.locator('#toggle-package-form');
     await expect(create).toBeDisabled();
     await expect(create).toHaveAttribute('title', /approved/i);
+  });
+
+  test('a supplier waiting for approval can send their profile for verification', async ({
+    page,
+    context,
+    baseURL,
+  }) => {
+    await context.addCookies([
+      { name: 'eventflow_cookie_consent', value: 'rejected', url: baseURL },
+    ]);
+    await loginAs(page, fixtures.users.pendingSupplier);
+    await page.goto('/dashboard/supplier');
+    await expect(page.locator('#welcome-heading')).toBeVisible();
+    // A first visit opens the setup guide on top of the page; put it away first.
+    await expect(page.locator('#sdh-guide-dialog[open]')).toBeVisible();
+    await closeTopDialog(page);
+    const dialog = page.locator('#sv-verification-modal');
+    await page.locator('button[data-sdh-action="verify"]').first().click();
+    await expect(dialog).toBeVisible();
+
+    // It is filled in from the profile; blanking a required field is refused with the field named.
+    await expect(page.locator('#sv-name')).not.toHaveValue('');
+    await page.fill('#sv-phone', '');
+    await page.locator('#sv-submit-btn').click();
+    await expect(page.locator('#sv-modal-error')).toContainText('Phone');
+
+    // Cancel closes it without sending anything.
+    let posted = false;
+    page.on('request', r => {
+      posted ||= r.method() === 'POST' && /verification\/submit/.test(r.url());
+    });
+    await page.locator('#sv-cancel-btn').click();
+    await expect(dialog).toBeHidden();
+    expect(posted).toBe(false);
+
+    // Complete, it is sent and the answer is shown.
+    await page.locator('button[data-sdh-action="verify"]').first().click();
+    await page.fill('#sv-phone', '+44 7700 900123');
+    const [response] = await Promise.all([
+      page.waitForResponse(
+        r => r.request().method() === 'POST' && /verification\/submit/.test(r.url())
+      ),
+      page.locator('#sv-submit-btn').click(),
+    ]);
+    expect(response.status()).toBe(200);
+    expect((await response.json()).verificationStatus).toBe('pending_review');
+    await expect(page.locator('#sv-modal-success')).toContainText('Verification submitted');
+    await expect(page.locator('#sv-fields')).toBeHidden();
+    await expect(page.locator('#sv-submit-btn')).toBeHidden();
+    await expect(page.locator('#sv-cancel-btn')).toHaveText('Close');
+    await page.locator('#sv-cancel-btn').click();
+    await expect(dialog).toBeHidden();
+  });
+
+  test.describe('the plan card of a supplier on a paid plan', () => {
+    /** Opens the dashboard as if the supplier's plan were a paid one (only the plan card changes). */
+    async function openOnPaidPlan(page, context, baseURL, portalReply) {
+      await page.route('**/api/supplier/dashboard-summary*', async route => {
+        const response = await route.fetch();
+        const body = await response.json();
+        body.subscription = {
+          plan: 'pro',
+          status: 'active',
+          activeUntil: '2027-01-01T00:00:00.000Z',
+        };
+        await route.fulfill({ response, json: body });
+      });
+      await page.route('**/api/payments/create-portal-session', route =>
+        portalReply ? route.fulfill(portalReply) : route.continue()
+      );
+      // Stripe is not reached from the test: a page on its hosted domain is answered here.
+      await page.route('https://billing.stripe.com/**', route =>
+        route.fulfill({ contentType: 'text/html', body: '<title>Stripe billing portal</title>' })
+      );
+      await openDashboard(page, context, baseURL);
+      return page.locator('[data-sdh-action="billing"]');
+    }
+
+    const portal = (status, body) => ({
+      status,
+      contentType: 'application/json',
+      body: JSON.stringify(body),
+    });
+
+    test('shows its billing and subscription links, and "Manage billing" opens Stripe', async ({
+      page,
+      context,
+      baseURL,
+    }) => {
+      const billing = await openOnPaidPlan(
+        page,
+        context,
+        baseURL,
+        portal(200, { url: 'https://billing.stripe.com/p/session/test_123' })
+      );
+      await expect(billing).toHaveText('Manage billing');
+      await expect(page.getByRole('link', { name: 'View subscription' })).toHaveAttribute(
+        'href',
+        '/supplier/subscription'
+      );
+      await billing.click();
+      await page.waitForURL('https://billing.stripe.com/p/session/test_123');
+    });
+
+    for (const [name, reply] of [
+      ['another website', { url: 'https://evil.example/billing' }],
+      ['a look-alike of the Stripe address', { url: 'https://billing.stripe.com.evil.example/p' }],
+      ['a script', { url: 'javascript:alert(1)' }],
+      ['no address at all', {}],
+    ]) {
+      test(`refuses to open ${name}, and says so`, async ({ page, context, baseURL }) => {
+        const billing = await openOnPaidPlan(page, context, baseURL, portal(200, reply));
+        const here = page.url();
+        await billing.click();
+        await expect(page.getByText('Could not open the billing portal.').first()).toBeVisible();
+        await expect(billing).toBeEnabled();
+        expect(page.url()).toBe(here);
+      });
+    }
+
+    test('says so, and keeps the button usable, when the billing portal cannot be reached', async ({
+      page,
+      context,
+      baseURL,
+    }) => {
+      const billing = await openOnPaidPlan(
+        page,
+        context,
+        baseURL,
+        portal(500, { error: 'The billing portal is unavailable.' })
+      );
+      const here = page.url();
+      await billing.click();
+      await expect(page.getByText('The billing portal is unavailable.').first()).toBeVisible();
+      await expect(billing).toBeEnabled();
+      await expect(billing).toHaveText('Manage billing');
+      expect(page.url()).toBe(here);
+    });
   });
 
   test('Log out ends the session', async ({ page, context, baseURL }) => {

@@ -137,6 +137,9 @@ async function syncPackagePrices(options = {}) {
       updated += 1;
     }
   }
+  // Public pages are served from a shared catalog cache for a few minutes; clear it so the
+  // repaired prices show at once rather than after it expires.
+  const cacheCleared = updated > 0 ? await clearCatalogCache(options.invalidateCache) : false;
   return {
     backend: backend.type,
     mode: apply ? 'apply' : 'dry-run',
@@ -144,6 +147,7 @@ async function syncPackagePrices(options = {}) {
     consistent: plan.consistent,
     needingFix: plan.needsFix.length,
     updated,
+    cacheCleared,
     withoutAnyPrice: plan.noPrice.length,
     // Ids only: no supplier or customer text goes in a report.
     fixIds: plan.needsFix.map(item => item.id),
@@ -159,6 +163,23 @@ async function syncPackagePrices(options = {}) {
       wouldKeep: item.to,
     })),
   };
+}
+
+/**
+ * Clears the shared catalog cache, best effort: a failure here must not hide that the prices were
+ * repaired. (With Redis configured this reaches the running site; without it the script's own
+ * in-memory cache is all there is, and the cache expires on its own within CATALOG_CACHE_TTL_SECONDS.)
+ *
+ * @param {Function} [invalidate] - Cache clearer (tests pass their own)
+ * @returns {Promise<boolean>} Whether the clearing ran without error
+ */
+async function clearCatalogCache(invalidate) {
+  try {
+    await (invalidate || require('../services/catalogCache').invalidate)();
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 /**

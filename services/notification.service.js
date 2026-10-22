@@ -8,6 +8,7 @@
 
 const crypto = require('crypto');
 const { NOTIFICATION_TYPES, NOTIFICATION_PRIORITIES } = require('../models/index');
+const { safeActionUrl } = require('../utils/safeActionUrl');
 
 // Use crypto.randomUUID() instead of uuid package
 const uuidv4 = () => crypto.randomUUID();
@@ -79,7 +80,7 @@ class NotificationService {
       type: data.type || NotificationType.SYSTEM,
       title: data.title,
       message: data.message,
-      actionUrl: data.actionUrl || null,
+      actionUrl: safeActionUrl(data.actionUrl),
       actionText: data.actionText || null,
       icon: data.icon || this._getDefaultIcon(data.type),
       priority: data.priority || NotificationPriority.NORMAL,
@@ -130,7 +131,7 @@ class NotificationService {
       type: data.type || NotificationType.SYSTEM,
       title: data.title,
       message: data.message,
-      actionUrl: data.actionUrl || null,
+      actionUrl: safeActionUrl(data.actionUrl),
       actionText: data.actionText || null,
       icon: data.icon || this._getDefaultIcon(data.type),
       priority: data.priority || NotificationPriority.NORMAL,

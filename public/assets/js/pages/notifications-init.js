@@ -40,6 +40,21 @@
   // UTILITY FUNCTIONS
   // ==========================================
 
+  // Only a page on this site is opened from a notification (utils/safeActionUrl.js stores only those).
+  const SITE_PATH = /^\/(?![/\\])[^\s\\]*$/;
+
+  /** Goes to the page a notification points at, if it is a page on this site. */
+  function openNotificationTarget(actionUrl) {
+    const target = typeof actionUrl === 'string' ? actionUrl.trim() : '';
+    const hasControlCharacter = Array.from(target).some(char => {
+      const code = char.codePointAt(0);
+      return code < 32 || code === 127;
+    });
+    if (SITE_PATH.test(target) && !hasControlCharacter) {
+      window.location.href = target;
+    }
+  }
+
   function getCsrfToken() {
     if (window.EventFlowCsrf && typeof window.EventFlowCsrf.get === 'function') {
       return window.EventFlowCsrf.get();
@@ -534,7 +549,7 @@
         if (!notification.isRead) {
           markAsRead(notification._id || notification.id);
         }
-        window.location.href = notification.actionUrl;
+        openNotificationTarget(notification.actionUrl);
       });
     }
 

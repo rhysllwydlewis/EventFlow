@@ -279,7 +279,7 @@ describe('notification dropdown', () => {
 });
 
 // The version the generator puts on notifications.js (scripts/lib/article-chrome.mjs).
-const NOTIFICATIONS_VERSION = '2.0.2';
+const NOTIFICATIONS_VERSION = '2.0.3';
 
 describe('header scripts', () => {
   test.each(articles().map(article => [article.name, article.html]))(

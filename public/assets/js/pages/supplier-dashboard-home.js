@@ -107,18 +107,18 @@
   }
 
   /**
-   * An address the server asked the page to navigate to (a billing portal, say): an https address,
-   * or one on this site, resolved by the URL parser. Anything else (a javascript: or data: address,
-   * plain http to another site, text that is not an address) is '' and is never navigated to.
+   * An address the server asked the page to navigate to (the billing portal): one of Stripe's own
+   * hosted pages over https, or a page on this site, as utils/checkout-url.js decides. Anything else
+   * (another https site, a javascript: or data: address, plain http, text that is not an address)
+   * is '' and is never navigated to, whatever the response says.
    */
   function navigableUrl(value, base) {
-    if (typeof value !== 'string' || !value.trim()) {
+    const resolver = window.EFCheckoutUrl;
+    if (!resolver || typeof resolver.resolve !== 'function') {
       return '';
     }
     try {
-      const here = new URL(base || window.location.href);
-      const parsed = new URL(value.trim(), here);
-      return parsed.protocol === 'https:' || parsed.origin === here.origin ? parsed.href : '';
+      return resolver.resolve(value, new URL(base || window.location.href).origin) || '';
     } catch {
       return '';
     }

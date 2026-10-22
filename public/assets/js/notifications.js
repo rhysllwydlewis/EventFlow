@@ -68,6 +68,27 @@
   // WEBSOCKET CONNECTION
   // ==========================================
 
+  // A notification's address is followed when it is clicked. The server only stores pages on this
+  // site (utils/safeActionUrl.js); this refuses anything else as well, so a javascript: or
+  // other-site address can never be opened from a notification.
+  const SITE_PATH = /^\/(?![/\\])[^\s\\]*$/;
+
+  /**
+   * Goes to the page a notification points at, if it is a page on this site.
+   *
+   * @param {*} actionUrl - The notification's address
+   */
+  function openNotificationTarget(actionUrl) {
+    const target = typeof actionUrl === 'string' ? actionUrl.trim() : '';
+    const hasControlCharacter = Array.from(target).some(char => {
+      const code = char.codePointAt(0);
+      return code < 32 || code === 127;
+    });
+    if (SITE_PATH.test(target) && !hasControlCharacter) {
+      window.location.href = target;
+    }
+  }
+
   // The server serves its Socket.IO client only once its real-time layer is up, which is a little
   // after it starts answering requests. A page opened during a deployment therefore retries a few
   // times before it gives up and says so.
@@ -628,7 +649,7 @@
       desktopNotif.onclick = () => {
         window.focus();
         if (notification.actionUrl) {
-          window.location.href = notification.actionUrl;
+          openNotificationTarget(notification.actionUrl);
         }
         desktopNotif.close();
       };
@@ -710,7 +731,7 @@
       markAsRead(notification.id);
 
       if (notification.actionUrl) {
-        window.location.href = notification.actionUrl;
+        openNotificationTarget(notification.actionUrl);
       }
 
       toast.classList.add('notification-toast--hiding');
@@ -817,7 +838,7 @@
         if (notification) {
           markAsRead(id);
           if (notification.actionUrl) {
-            window.location.href = notification.actionUrl;
+            openNotificationTarget(notification.actionUrl);
           }
         }
       });

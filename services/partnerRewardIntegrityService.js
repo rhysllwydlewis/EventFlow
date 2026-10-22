@@ -1,6 +1,7 @@
 'use strict';
 
 const nodeCrypto = require('crypto');
+const { packagePriceText } = require('../utils/packagePrice');
 const dbUnified = require('../db-unified');
 const logger = require('../utils/logger');
 
@@ -218,7 +219,7 @@ const packageQuality = (pkg, config = getConfig()) => {
   if (!Array.isArray(pkg.eventTypes) || pkg.eventTypes.filter(Boolean).length === 0) {
     return { eligible: false, reason: 'PACKAGE_EVENT_TYPES_MISSING' };
   }
-  if (parsePositivePrice(pkg.price) === null) {
+  if (parsePositivePrice(packagePriceText(pkg)) === null) {
     return { eligible: false, reason: 'PACKAGE_PRICE_NOT_MEANINGFUL' };
   }
   const liveHours = hoursBetween(pkg.approvedAt || pkg.createdAt);

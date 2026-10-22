@@ -1,6 +1,7 @@
 'use strict';
 
 const crypto = require('crypto');
+const { packagePriceText } = require('../utils/packagePrice');
 const dbUnified = require('../db-unified');
 const logger = require('../utils/logger');
 
@@ -186,7 +187,7 @@ function isMeaningfulPackage(pkg) {
     pkg.approved === true &&
     pkg.paused !== true &&
     String(pkg.title || '').trim().length >= 3 &&
-    String(pkg.price || '').trim() &&
+    packagePriceText(pkg) &&
     String(pkg.primaryCategoryKey || '').trim() &&
     Array.isArray(pkg.eventTypes) &&
     pkg.eventTypes.length > 0

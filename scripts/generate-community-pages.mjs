@@ -308,7 +308,7 @@ ${
       : `    <script src="/assets/js/utils/auth-state.js" defer></script>
     <script src="/assets/js/burger-menu.js" defer></script>
     <script src="/assets/js/navbar.js?v=1.0.1" defer></script>
-    <script src="/assets/js/notifications.js?v=2.0.2" defer></script>
+    <script src="/assets/js/notifications.js?v=2.0.3" defer></script>
 `
   }    <script src="/assets/js/cookie-consent.js?v=3.0.0" defer></script>
 ${

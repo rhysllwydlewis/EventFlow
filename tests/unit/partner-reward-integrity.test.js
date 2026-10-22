@@ -103,6 +103,28 @@ test('requires a meaningful approved package that has remained live for the conf
   expect(valid).toMatchObject({ eligible: true, packageId: 'pkg_3' });
 });
 
+test('counts a package priced through the admin price field as priced', () => {
+  const base = {
+    id: 'pkg_admin_priced',
+    approved: true,
+    paused: false,
+    title: 'Wedding photography',
+    description: 'A complete wedding photography package with planning and edited digital images.',
+    primaryCategoryKey: 'photography',
+    eventTypes: ['wedding'],
+    createdAt: isoHoursAgo(48),
+  };
+  // Only price_display is set (the admin screens write it); the public site shows it.
+  expect(service.packageQuality({ ...base, price_display: 'From £750' })).toMatchObject({
+    eligible: true,
+  });
+  // Neither field: still not meaningful.
+  expect(service.packageQuality({ ...base })).toMatchObject({
+    eligible: false,
+    reason: 'PACKAGE_PRICE_NOT_MEANINGFUL',
+  });
+});
+
 test('detects a duplicate supplier business using strong registered identity evidence', async () => {
   collections.users.push(
     { id: 'supplier_a', role: 'supplier' },

@@ -37,6 +37,45 @@ describe('planPriceSync', () => {
   });
 });
 
+describe('the catalog cache after a repair', () => {
+  test('is cleared when prices were repaired, and not when nothing was', async () => {
+    const invalidateCache = jest.fn(async () => undefined);
+    const dry = await syncPackagePrices({ backend: MONGO, invalidateCache });
+    expect(dry.cacheCleared).toBe(false);
+    const applied = await syncPackagePrices({
+      apply: true,
+      prefer: 'shown',
+      backend: MONGO,
+      invalidateCache,
+    });
+    expect(applied.updated).toBeGreaterThan(0);
+    expect(applied.cacheCleared).toBe(true);
+    expect(invalidateCache).toHaveBeenCalledTimes(1);
+    // Nothing left to repair: the second run does not clear it again.
+    const again = await syncPackagePrices({
+      apply: true,
+      prefer: 'shown',
+      backend: MONGO,
+      invalidateCache,
+    });
+    expect(again.cacheCleared).toBe(false);
+    expect(invalidateCache).toHaveBeenCalledTimes(1);
+  });
+
+  test('a cache that cannot be cleared does not hide that the prices were repaired', async () => {
+    const report = await syncPackagePrices({
+      apply: true,
+      prefer: 'shown',
+      backend: MONGO,
+      invalidateCache: async () => {
+        throw new Error('redis down');
+      },
+    });
+    expect(report.updated).toBeGreaterThan(0);
+    expect(report.cacheCleared).toBe(false);
+  });
+});
+
 describe('syncPackagePrices', () => {
   test('a dry run reports and changes nothing', async () => {
     const report = await syncPackagePrices({ backend: MONGO });
