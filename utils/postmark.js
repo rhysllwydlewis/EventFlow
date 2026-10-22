@@ -189,6 +189,49 @@ function maskEmail(email) {
   return `${maskedLocal}@${domain}`;
 }
 
+// eslint-disable-next-line no-control-regex -- matching control characters is the purpose
+const CONTROL_CHARS = /[\u0000-\u001f\u007f\u2028\u2029]+/gu;
+
+/**
+ * One line of text safe to log or to put in a mail header: control characters (including CR and LF)
+ * become spaces, so a value that came from a user cannot add log lines or extra headers.
+ * @param {*} value - Any value
+ * @returns {string} Single-line text
+ */
+function singleLine(value) {
+  return String(value === null || value === undefined ? '' : value)
+    .replace(/[\r\n]+/gu, ' ')
+    .replace(CONTROL_CHARS, ' ');
+}
+
+/**
+ * Remove tags from HTML in one pass. A regular expression such as /<[^>]*>/ takes quadratic time on
+ * input like "<<<<<<", and this runs on text a user wrote.
+ * @param {*} html - HTML text
+ * @returns {string} Text with every <...> removed
+ */
+function removeTags(html) {
+  const text = String(html === null || html === undefined ? '' : html);
+  const lastClose = text.lastIndexOf('>');
+  let out = '';
+  let depth = false;
+  for (let i = 0; i < text.length; i += 1) {
+    const ch = text[i];
+    if (!depth && ch === '<') {
+      // Only a '<' that is closed later starts a tag; a lone '<' stays as text.
+      depth = i < lastClose;
+      if (!depth) {
+        out += ch;
+      }
+    } else if (depth && ch === '>') {
+      depth = false;
+    } else if (!depth) {
+      out += ch;
+    }
+  }
+  return out;
+}
+
 /**
  * Human-readable UK timestamp for email bodies, e.g. "18 October 2026 at 19:25 BST".
  * `toLocaleString()` with no arguments uses the server's locale and timezone
@@ -355,10 +398,13 @@ async function createEmailAttemptLogSafe(options) {
  * @param {string|string[]} [options.tags] - Postmark tags for tracking (max 10)
  * @param {boolean} [options.trackOpens] - Track email opens (default: true)
  * @param {string} [options.trackLinks] - Track link clicks (default: 'HtmlAndText')
+ * @param {string} [options.replyTo] - Address replies are sent to (default: the From address)
  * @param {string} [options.messageStream] - Postmark message stream (default: 'outbound', use 'password-reset' for resets)
  * @returns {Promise<Object>} Postmark response object
  * @throws {Error} If email sending fails or required fields are missing
  */
+// skipcq: JS-R1005 -- Pre-existing: template rendering, rate limiting, logging, retries and the
+// outbox fallback all live in this one function; this change only adds the optional Reply-To.
 async function sendMail(options) {
   if (!options || !options.to) {
     const error = new Error('Missing required email field: to');
@@ -391,6 +437,9 @@ async function sendMail(options) {
     // POST /api/auth/unsubscribe (the one-click target) is the same
     // token-verified action the link itself performs.
     unsubscribeUrl,
+    // Where the recipient's reply goes, when it should not be the From address (a supplier's reply
+    // to a customer is sent from EventFlow, but the customer's answer should reach the supplier).
+    replyTo,
   } = options;
 
   const logOptions = {
@@ -410,8 +459,8 @@ async function sendMail(options) {
       ? to.join(',')
       : to;
 
-  logger.info(`📧 Attempting to send email to ${recipientDisplay}`);
-  logger.info(`   Subject: ${subject || '(from template)'}`);
+  logger.info(`📧 Attempting to send email to ${singleLine(recipientDisplay)}`);
+  logger.info(`   Subject: ${singleLine(subject) || '(from template)'}`);
   logger.info(`   Template: ${template || 'none'}`);
   logger.info(`   Message Stream: ${options.messageStream || 'outbound'}`);
 
@@ -497,6 +546,9 @@ async function sendMail(options) {
       TrackLinks: trackLinks,
       MessageStream: options.messageStream || 'outbound',
     };
+    if (replyTo) {
+      emailData.ReplyTo = replyTo;
+    }
 
     // Add body content
     if (emailHtml) {
@@ -506,10 +558,7 @@ async function sendMail(options) {
         emailData.TextBody = renderPlainTextTemplate(template, templateData);
       } else if (!text) {
         // Simple HTML to text conversion fallback for ad-hoc HTML emails
-        emailData.TextBody = emailHtml
-          .replace(/<[^>]*>/g, '')
-          .replace(/\s+/g, ' ')
-          .trim();
+        emailData.TextBody = removeTags(emailHtml).replace(/\s+/g, ' ').trim();
       } else {
         emailData.TextBody = text;
       }
@@ -544,8 +593,8 @@ async function sendMail(options) {
         ? await sendEmailWithRetry(emailData)
         : await postmarkClient.sendEmail(emailData);
       logger.info(`✅ Email sent successfully via Postmark`);
-      logger.info(`   To: ${emailData.To}`);
-      logger.info(`   Subject: ${emailData.Subject}`);
+      logger.info(`   To: ${singleLine(emailData.To)}`);
+      logger.info(`   Subject: ${singleLine(emailData.Subject)}`);
       logger.info(`   MessageID: ${response.MessageID}`);
       logger.info(`   Stream: ${emailData.MessageStream}`);
       const sentAt = new Date().toISOString();
@@ -565,8 +614,8 @@ async function sendMail(options) {
       };
     } catch (err) {
       logger.error('❌ Postmark send error:', err.message);
-      logger.error('   To:', emailData.To);
-      logger.error('   Subject:', emailData.Subject);
+      logger.error('   To:', singleLine(emailData.To));
+      logger.error('   Subject:', singleLine(emailData.Subject));
 
       // Save to outbox as fallback for debugging outside production critical auth flows
       if (!(criticalDelivery && process.env.NODE_ENV === 'production')) {
@@ -598,9 +647,9 @@ function saveEmailToOutbox(emailData) {
 
     const timestamp = Date.now();
     const filename = `email-${timestamp}.eml`;
-    const content = `To: ${emailData.To}
-From: ${emailData.From}
-Subject: ${emailData.Subject}
+    const content = `To: ${singleLine(emailData.To)}
+From: ${singleLine(emailData.From)}
+Subject: ${singleLine(emailData.Subject)}
 
 ${emailData.HtmlBody || emailData.TextBody}
 `;

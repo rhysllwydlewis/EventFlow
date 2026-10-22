@@ -24,7 +24,11 @@ function createMemoryDb(seed = {}) {
   }
 
   function matches(row, query) {
-    return Object.entries(query).every(([key, value]) => row[key] === value);
+    return Object.entries(query).every(([key, value]) =>
+      value && typeof value === 'object' && '$gte' in value
+        ? String(row[key] ?? '') >= value.$gte
+        : row[key] === value
+    );
   }
 
   return {
@@ -162,6 +166,67 @@ describe('supplier review-request delivery', () => {
     expect(db.collections.reviewRequests[0].status).toBe('failed');
     expect(db.collections.reviewRequests[0].id).not.toMatch(/^rreq_active_/);
     expect(db.collections.reviewRequests[0].lastError).toContain('Postmark unavailable');
+  });
+
+  test('stops a supplier at 30 review requests in a day, before any email is sent', async () => {
+    const earlierToday = new Date(fixedNow.getTime() - 3 * 3600000).toISOString();
+    const db = createMemoryDb({
+      suppliers: [{ id: 'supplier-1', ownerUserId: 'supplier-user', name: 'Moor Audio' }],
+      reviewRequests: Array.from({ length: 30 }, (_, i) => ({
+        id: `earlier-${i}`,
+        supplierId: 'supplier-1',
+        customerEmail: `c${i}@example.com`,
+        status: 'sent',
+        createdAt: earlierToday,
+        expiresAt: '2026-07-20T09:00:00.000Z',
+      })),
+    });
+    const sendMail = jest.fn();
+    const app = buildApp({
+      db,
+      sendMail,
+      user: { id: 'supplier-user', role: 'supplier' },
+      now: () => fixedNow,
+      createToken: () => rawToken,
+    });
+
+    const response = await request(app)
+      .post('/api/v1/supplier/request-review')
+      .send({ customerEmail: 'new-customer@example.com' });
+
+    expect(response.status).toBe(429);
+    expect(response.body.error).toMatch(/30 review requests a day/);
+    expect(sendMail).not.toHaveBeenCalled();
+  });
+
+  test('does not count requests whose email failed to send towards the daily cap', async () => {
+    const earlierToday = new Date(fixedNow.getTime() - 3 * 3600000).toISOString();
+    const db = createMemoryDb({
+      suppliers: [{ id: 'supplier-1', ownerUserId: 'supplier-user', name: 'Moor Audio' }],
+      reviewRequests: Array.from({ length: 30 }, (_, i) => ({
+        id: `failed-${i}`,
+        supplierId: 'supplier-1',
+        customerEmail: `c${i}@example.com`,
+        status: 'failed',
+        createdAt: earlierToday,
+        expiresAt: '2026-07-20T09:00:00.000Z',
+      })),
+    });
+    const sendMail = jest.fn().mockResolvedValue({ MessageID: 'm1' });
+    const app = buildApp({
+      db,
+      sendMail,
+      user: { id: 'supplier-user', role: 'supplier' },
+      now: () => fixedNow,
+      createToken: () => rawToken,
+    });
+
+    const response = await request(app)
+      .post('/api/v1/supplier/request-review')
+      .send({ customerEmail: 'new-customer@example.com' });
+
+    expect(response.status).not.toBe(429);
+    expect(sendMail).toHaveBeenCalledTimes(1);
   });
 
   test('blocks a duplicate active request', async () => {

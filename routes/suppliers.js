@@ -244,7 +244,7 @@ router.get('/suppliers', async (req, res) => {
       items = items.filter(s => s.category === category);
     }
     if (price) {
-      items = items.filter(s => (s.price_display || '').includes(price));
+      items = items.filter(s => String(s.price_display || '').includes(price));
     }
     if (q) {
       const qq = String(q).toLowerCase();

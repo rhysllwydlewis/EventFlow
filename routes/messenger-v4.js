@@ -337,7 +337,9 @@ function emitToConversation(conversation, event, data) {
     ws.emitToConversation(convId, event, data);
   } else if (ws.emitToUser) {
     conversation.participants.forEach(participant => {
-      ws.emitToUser(participant.userId, event, data);
+      if (!participant.isDeleted) {
+        ws.emitToUser(participant.userId, event, data);
+      }
     });
   }
 }
@@ -1055,6 +1057,7 @@ router.patch(
         await getMessengerService()
       ).getConversation(message.conversationId.toString(), userId);
       emitToConversation(conversation, 'messenger:v4:message-edited', {
+        conversationId: message.conversationId.toString(),
         messageId: id,
         content: message.content,
         editedAt: message.editedAt,
@@ -1108,6 +1111,7 @@ router.delete(
       // Emit delete event
       const conversation = await svc.getConversation(message.conversationId.toString(), userId);
       emitToConversation(conversation, 'messenger:v4:message-deleted', {
+        conversationId: message.conversationId.toString(),
         messageId: id,
       });
 
@@ -1168,6 +1172,7 @@ router.post(
         await getMessengerService()
       ).getConversation(message.conversationId.toString(), userId);
       emitToConversation(conversation, 'messenger:v4:reaction', {
+        conversationId: message.conversationId.toString(),
         messageId: id,
         reactions: message.reactions,
       });
@@ -1398,7 +1403,7 @@ router.post(
         await getMessengerService()
       ).getConversation(conversationId, userId);
       conversation.participants.forEach(participant => {
-        if (participant.userId !== userId) {
+        if (participant.userId !== userId && !participant.isDeleted) {
           emitToUser(participant.userId, 'messenger:v4:typing', {
             conversationId,
             userId,
@@ -1458,7 +1463,7 @@ router.post(
         await getMessengerService()
       ).getConversation(conversationId, userId);
       conversation.participants.forEach(participant => {
-        if (participant.userId !== userId) {
+        if (participant.userId !== userId && !participant.isDeleted) {
           emitToUser(participant.userId, 'messenger:v4:read', {
             conversationId,
             userId,
@@ -1467,6 +1472,9 @@ router.post(
           });
         }
       });
+      // The reader's own other tabs and devices still show the old unread count: send them the
+      // conversation as this user now sees it.
+      emitToUser(userId, 'messenger:v4:conversation-updated', { conversationId, conversation });
 
       res.json({
         success: true,

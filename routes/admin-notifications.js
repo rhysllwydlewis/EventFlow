@@ -22,6 +22,7 @@ const mongoDb = require('../db');
 const logger = require('../utils/logger');
 const NotificationService = require('../services/notification.service');
 const { getAdminQueueNotifications } = require('./admin-notification-work-queue');
+const { getAppWebSocketServer } = require('../utils/appWebSocket');
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -40,7 +41,7 @@ async function getNotifSvc(req) {
     throw new Error('Database not connected');
   }
 
-  const ws = req.app && req.app.get ? req.app.get('websocketServer') : null;
+  const ws = getAppWebSocketServer(req);
   return new NotificationService(db, ws);
 }
 

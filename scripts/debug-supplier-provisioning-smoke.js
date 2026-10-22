@@ -16,6 +16,7 @@
  */
 
 const dbUnified = require('../db-unified');
+const { priceFields } = require('../utils/packagePrice');
 const { ensureSupplierProfileForUser } = require('../services/supplierProfileProvisioning.service');
 
 function uniqueId(prefix, runId) {
@@ -168,7 +169,7 @@ async function runSmoke(options = parseArgs()) {
       id: ids.packageId,
       supplierId: supplierProfile.id,
       title: 'Debug Package',
-      price: '£1',
+      ...priceFields('£1'),
       primaryCategoryKey: 'debug',
       eventTypes: ['other'],
       approved: true,

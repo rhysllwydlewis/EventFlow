@@ -256,6 +256,9 @@ class MessengerAppV4 {
       // loaded, or it is brand-new), fetch it from the server so the message
       // appears in the correct inbox rather than being silently dropped.
       let conv = this.state.conversations.find(c => c._id === conversationId);
+      // A conversation fetched just now already counts this message: the server raised the unread
+      // count before it announced the message, so it must not be raised again here.
+      let fetchedFresh = false;
       if (!conv) {
         try {
           const data = await this.api.getConversation(conversationId);
@@ -263,6 +266,7 @@ class MessengerAppV4 {
           if (fetched && fetched._id) {
             this.state.updateConversation(fetched);
             conv = this.state.conversations.find(c => c._id === conversationId);
+            fetchedFresh = Boolean(conv);
           }
         } catch (err) {
           // Best-effort — proceed with whatever state we have. Log so archived-to-active
@@ -284,7 +288,7 @@ class MessengerAppV4 {
       if (conversationId !== this._activeConversationId) {
         const uid = this._getCurrentUserId();
         // Optimistically increment local unread count for the receiving participant
-        if (uid && conv) {
+        if (uid && conv && !fetchedFresh) {
           const me = conv.participants?.find(p => p.userId === uid);
           if (me && me.userId !== message.senderId) {
             me.unreadCount = (me.unreadCount || 0) + 1;
@@ -661,16 +665,20 @@ class MessengerAppV4 {
 
     // Real-time message edit from another user's session
     window.addEventListener('messenger:message-edited', e => {
-      const { messageId, content, editedAt } = e.detail || {};
+      const { conversationId, messageId, content, editedAt } = e.detail || {};
+      const targetId = conversationId || this._activeConversationId;
       // Only update if we have a messageId and valid content from the server
-      if (!messageId || !content || !this._activeConversationId) {
+      if (!messageId || !content || !targetId) {
         return;
       }
-      this.state.updateMessage(this._activeConversationId, messageId, {
+      this.state.updateMessage(targetId, messageId, {
         content,
         isEdited: true,
         editedAt,
       });
+      if (targetId !== this._activeConversationId) {
+        return;
+      }
       // Patch the DOM bubble text if it's visible — use textContent (never innerHTML) to prevent XSS
       const el = this.chatView?.messagesEl?.querySelector(`[data-id="${CSS.escape(messageId)}"]`);
       if (el) {
@@ -694,10 +702,14 @@ class MessengerAppV4 {
 
     // Real-time message delete from another user's session
     window.addEventListener('messenger:message-deleted', e => {
-      const { messageId } = e.detail || {};
-      if (messageId && this._activeConversationId) {
-        this.state.deleteMessage(this._activeConversationId, messageId);
-        const el = this.chatView?.messagesEl?.querySelector(`[data-id="${CSS.escape(messageId)}"]`);
+      const { conversationId, messageId } = e.detail || {};
+      const targetId = conversationId || this._activeConversationId;
+      if (messageId && targetId) {
+        this.state.deleteMessage(targetId, messageId);
+        const el =
+          targetId === this._activeConversationId
+            ? this.chatView?.messagesEl?.querySelector(`[data-id="${CSS.escape(messageId)}"]`)
+            : null;
         if (el) {
           el.remove();
         }
@@ -708,11 +720,15 @@ class MessengerAppV4 {
 
     // Real-time reaction update from another user's session
     window.addEventListener('messenger:reaction-updated', e => {
-      const { messageId, reactions } = e.detail || {};
-      if (messageId && this._activeConversationId) {
-        this.state.updateMessage(this._activeConversationId, messageId, {
+      const { conversationId, messageId, reactions } = e.detail || {};
+      const targetId = conversationId || this._activeConversationId;
+      if (messageId && targetId) {
+        this.state.updateMessage(targetId, messageId, {
           reactions: reactions || [],
         });
+        if (targetId !== this._activeConversationId) {
+          return;
+        }
         // Re-render the reactions bar in the DOM.
         // MessageBubbleV4.renderReactions() escapes all dynamic values (emoji, messageId, counts)
         // via MessageBubbleV4.escape() before building the HTML string, so innerHTML is safe here.
@@ -959,12 +975,12 @@ class MessengerAppV4 {
       .then(() => {
         // Update local participant unreadCount so the badge clears immediately
         if (uid) {
-          const conv = this.state.conversations.find(c => c._id === id);
-          if (conv) {
-            const participant = conv.participants?.find(p => p.userId === uid);
+          const readConv = this.state.conversations.find(c => c._id === id);
+          if (readConv) {
+            const participant = readConv.participants?.find(p => p.userId === uid);
             if (participant && participant.unreadCount > 0) {
               participant.unreadCount = 0;
-              this.state.updateConversation(conv);
+              this.state.updateConversation(readConv);
               // Recalculate global unread count
               const totalUnread = this.state.conversations.reduce((sum, c) => {
                 const me = c.participants?.find(p => p.userId === uid);

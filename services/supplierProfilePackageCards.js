@@ -289,11 +289,18 @@ function buildDuplicateIndex(packages) {
   return index;
 }
 
+/** A price typed as a bare amount ("1200", "1,200.50"), which gets a currency sign and grouping. */
+const PLAIN_AMOUNT = /^\d[\d,]*(\.\d+)?$/;
+
 function formatPriceDisplay(pkg) {
-  if (pkg && typeof pkg.priceDisplay === 'string' && pkg.priceDisplay.trim()) {
+  const typedPrice = pkg ? packagePriceText(pkg) : '';
+  // Text the supplier or an admin wrote ("£1,200", "From £800", "£45 pp") is shown as written.
+  if (typedPrice && !PLAIN_AMOUNT.test(typedPrice)) {
+    return typedPrice;
+  }
+  if (!typedPrice && pkg && typeof pkg.priceDisplay === 'string' && pkg.priceDisplay.trim()) {
     return pkg.priceDisplay.trim();
   }
-  const typedPrice = pkg ? packagePriceText(pkg) : '';
   const raw =
     pkg &&
     (pkg.priceFrom ??

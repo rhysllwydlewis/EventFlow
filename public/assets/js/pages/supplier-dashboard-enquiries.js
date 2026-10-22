@@ -8,12 +8,13 @@
  *   GET   /api/supplier/enquiries?days&page&limit&status&source
  *   GET   /api/supplier/enquiries/:id
  *   PATCH /api/supplier/enquiries/:id   { status: 'new' | 'read' | 'handled' }
+ *   POST  /api/supplier/enquiries/:id/reply   { message }  (emails the customer; marks it handled)
  *
  * Only an approved supplier can read them (the server answers 403 SUPPLIER_NOT_APPROVED and 404 for
  * another supplier's record). Customer text arrives as plain text, so every piece of it is put on
  * the page with textContent, never as markup. Suppliers are notified when an enquiry arrives
- * (services/supplierEnquiryNotifier.js) but cannot reply here; the drawer says so and shows the
- * customer's own contact details so the supplier can answer directly.
+ * (services/supplierEnquiryNotifier.js). The drawer shows the customer's contact details and a form
+ * to reply by email; the reply is sent from EventFlow with the supplier's address as Reply-To.
  */
 'use strict';
 
@@ -30,6 +31,7 @@
     close: 'sdh-enquiries-close',
     status: 'sdh-enquiries-status',
     source: 'sdh-enquiries-source',
+    quality: 'sdh-enquiries-quality',
     list: 'sdh-enquiries-list',
     more: 'sdh-enquiries-more',
     note: 'sdh-enquiries-note',
@@ -61,6 +63,9 @@
     totalPages: 1,
     total: 0,
     selectedId: '',
+    // Reply text typed but not sent, per enquiry, so changing a status or moving between enquiries
+    // does not lose it.
+    drafts: {},
     detail: null,
     problem: '',
   };
@@ -109,7 +114,7 @@
     return 'error';
   }
 
-  /** The query string for the list: window, page, size and the two filters. */
+  /** The query string for the list: window, page, size and the filters. */
   function listUrl(page, limit) {
     const params = new URLSearchParams({
       days: String(DAYS),
@@ -123,6 +128,10 @@
     }
     if (source?.value) {
       params.set('source', source.value);
+    }
+    const quality = byId(ids.quality);
+    if (quality?.value) {
+      params.set('quality', quality.value);
     }
     return `/api/supplier/enquiries?${params.toString()}`;
   }
@@ -161,12 +170,16 @@
       .filter(Boolean)
       .join(' · ');
     button.appendChild(el('span', 'sdh-enq__meta', meta));
+    if (item.quality) {
+      button.appendChild(el('span', 'sdh-enq__meta', `${item.quality} quality`));
+    }
     return button;
   }
 
-  /** Puts the honest note on the card and in the drawer: you are told when one arrives, no reply here. */
+  /** The note on the card: how a supplier hears about an enquiry and where to answer it. */
   const NOTE =
-    'You are notified when an enquiry arrives (and emailed, once your email address is verified), but you cannot reply here. Open one to see how to reach the customer, then answer them directly.';
+    'You are notified when an enquiry arrives (and emailed, once your email address is verified). Open one to reply to the customer by email.';
+  const MAX_REPLY = 2000;
 
   /** Draws the card body for the current state: loading, unapproved, error, empty or the latest rows. */
   function renderCard() {
@@ -290,7 +303,9 @@
       wrap.appendChild(retry);
       list.appendChild(wrap);
     } else if (!view.items.length) {
-      const filtered = Boolean((byId(ids.status) || {}).value || (byId(ids.source) || {}).value);
+      const filtered = [ids.status, ids.source, ids.quality].some(id =>
+        Boolean((byId(id) || {}).value)
+      );
       list.appendChild(
         el(
           'p',
@@ -420,8 +435,10 @@
     fact(facts, 'Location', item.location);
     fact(facts, 'Budget', item.budget);
     pane.appendChild(facts);
+    renderQuality(pane, item.quality);
     pane.appendChild(el('p', 'sdh-plan__head', 'Message'));
     pane.appendChild(el('p', 'sdh-enq__message', item.message || 'No message was left.'));
+    renderReplies(pane, item);
     pane.appendChild(el('p', 'sdh-note sdh-note--foot', NOTE));
     const actions = el('div', 'sdh-enq__actions');
     ['read', 'handled', 'new'].forEach(status => {
@@ -441,6 +458,134 @@
     });
     pane.appendChild(el('p', 'sdh-note', `Status: ${STATUS_LABEL[item.status] || item.status}`));
     pane.appendChild(actions);
+  }
+
+  /** How likely the enquiry is to be a real one, and why: an estimate, said as one. */
+  function renderQuality(pane, quality) {
+    if (!quality || !quality.rating) {
+      return;
+    }
+    pane.appendChild(
+      el(
+        'p',
+        'sdh-note',
+        `Enquiry quality: ${quality.rating} (an estimate from what was filled in).`
+      )
+    );
+    if (Array.isArray(quality.reasons) && quality.reasons.length) {
+      const reasons = el('ul', 'sdh-enq__reasons');
+      quality.reasons.forEach(reason => reasons.appendChild(el('li', '', reason)));
+      pane.appendChild(reasons);
+    }
+  }
+
+  /** The replies already sent, and the form for another (when the customer left an address). */
+  function renderReplies(pane, item) {
+    const replies = Array.isArray(item.replies) ? item.replies : [];
+    if (replies.length) {
+      pane.appendChild(el('p', 'sdh-plan__head', 'Your replies'));
+      const list = el('ul', 'sdh-enq__replies');
+      replies.forEach(reply => {
+        const row = el('li', 'sdh-enq__reply');
+        row.appendChild(el('span', 'sdh-enq__reply-when', `Sent ${formatWhen(reply.sentAt)}`));
+        row.appendChild(el('span', 'sdh-enq__message', reply.message));
+        list.appendChild(row);
+      });
+      pane.appendChild(list);
+    }
+    if (!item.email) {
+      pane.appendChild(
+        el(
+          'p',
+          'sdh-note',
+          'This customer did not leave an email address, so there is nobody to reply to here.'
+        )
+      );
+      return;
+    }
+    const form = el('form', 'sdh-enq__reply-form');
+    form.id = 'sdh-enquiry-reply-form';
+    form.noValidate = true;
+    const label = el('label', 'sdh-label', `Reply to ${item.customerName || 'the customer'}`);
+    label.htmlFor = 'sdh-enquiry-reply';
+    const area = el('textarea', 'sdh-input sdh-input--area');
+    area.id = 'sdh-enquiry-reply';
+    area.name = 'message';
+    area.rows = 5;
+    area.maxLength = MAX_REPLY;
+    area.setAttribute('aria-describedby', 'sdh-enquiry-reply-help');
+    area.value = view.drafts[item.id] || '';
+    area.addEventListener('input', () => {
+      view.drafts[item.id] = area.value;
+    });
+    const help = el(
+      'p',
+      'sdh-note',
+      'Sent by email from EventFlow. Their answer comes to your account email address.'
+    );
+    help.id = 'sdh-enquiry-reply-help';
+    const send = el('button', 'sdh-btn sdh-btn--primary sdh-btn--sm', 'Send reply');
+    send.type = 'submit';
+    form.append(label, area, help, send);
+    pane.appendChild(form);
+  }
+
+  /** Sends the reply typed in the form, then shows it in the detail and marks the row handled. */
+  async function sendReply(form) {
+    const api = home();
+    const id = view.selectedId;
+    const area = form.elements.message;
+    const send = form.querySelector('button[type="submit"]');
+    const message = area.value.trim();
+    if (!api || !id) {
+      return;
+    }
+    if (!message) {
+      api.toast('Write a reply first.', 'error');
+      area.focus();
+      return;
+    }
+    send.disabled = true;
+    area.disabled = true;
+    let result = null;
+    try {
+      result = await api.sendJson(
+        `/api/supplier/enquiries/${encodeURIComponent(id)}/reply`,
+        'POST',
+        {
+          message,
+        }
+      );
+    } catch {
+      result = { ok: false, status: 0, data: {} };
+    }
+    if (view.selectedId !== id) {
+      return;
+    }
+    if (!result.ok || !result.data || !result.data.enquiry) {
+      send.disabled = false;
+      area.disabled = false;
+      api.toast(
+        result.data?.error || 'The reply could not be sent. Check your connection and try again.',
+        'error'
+      );
+      area.focus();
+      return;
+    }
+    delete view.drafts[id];
+    view.detail = result.data.enquiry;
+    const row = view.items.find(item => item.id === id);
+    if (row) {
+      row.status = result.data.enquiry.status;
+    }
+    api.toast('Reply sent.', 'success');
+    announce('Reply sent. The enquiry is marked as handled.');
+    renderDetail();
+    byId('sdh-enquiry-title')?.focus({ preventScroll: true });
+    renderList();
+    loadCard();
+    document.dispatchEvent(new CustomEvent('sdh:changed'));
+    loadList(1);
   }
 
   /** Opens one enquiry in the detail pane. Opening it does not change its status; the buttons do. */
@@ -582,12 +727,20 @@
       renderDetail();
       renderList();
     });
-    [ids.status, ids.source].forEach(id => byId(id)?.addEventListener('change', () => loadList(1)));
+    [ids.status, ids.source, ids.quality].forEach(id =>
+      byId(id)?.addEventListener('change', () => loadList(1))
+    );
     dialog.addEventListener('close', afterClose);
     document.addEventListener('keydown', event => {
       if (event.key === 'Escape' && dialog.open && !event.defaultPrevented) {
         event.preventDefault();
         closeDrawer();
+      }
+    });
+    dialog.addEventListener('submit', event => {
+      if (event.target && event.target.id === 'sdh-enquiry-reply-form') {
+        event.preventDefault();
+        sendReply(event.target);
       }
     });
     dialog.addEventListener('click', event => {

@@ -339,6 +339,7 @@
       description: typeof views.description === 'string' ? views.description : '',
       maxDays: limitOf(windowInfo?.maxDays) || null,
       total: count(views.total),
+      uniqueVisitors: Number.isFinite(views.uniqueVisitors) ? count(views.uniqueVisitors) : null,
       days: viewDays,
       daily: normaliseDaily(views.daily || views.series || data.analytics?.dailyData),
       requestedDays: limitOf(windowInfo?.requestedDays) || SUMMARY_DAYS,
@@ -395,6 +396,10 @@
       reviews: normaliseReviews(objectOrNull(data.reviews)),
       subscription: normaliseSubscription(objectOrNull(data.subscription)),
       nextSteps: normaliseSteps(data.nextSteps),
+      // Names of the parts the server could not read this time (a step that depends on one is held back).
+      unavailable: Array.isArray(data.unavailable)
+        ? data.unavailable.filter(name => typeof name === 'string')
+        : [],
     };
   }
 
@@ -962,7 +967,11 @@
    * Data: one summary request, shared by everything on the page
    * ------------------------------------------------------------------ */
 
+  /** A page left open this long is out of date when the supplier comes back to it. */
+  const STALE_AFTER_MS = 2 * 60 * 1000;
+
   const state = {
+    loadedAt: Date.now(),
     summaryPromise: null,
     model: null,
     failed: false,
@@ -1710,7 +1719,7 @@
         : '';
     const foot =
       views.description || 'Counts page loads, not people. Your own visits are not counted.';
-    box.innerHTML = `${periodButtons(views)}<p class="sdh-metric"><span class="sdh-metric__value">${views.total.toLocaleString('en-GB')}</span><span class="sdh-metric__unit"> ${views.total === 1 ? 'visit' : 'visits'}</span></p>${body}${enquiryChart}${funnelHtml(state.model)}${empty}${shorter}<p class="sdh-note sdh-note--foot">${esc(foot)}</p>`;
+    box.innerHTML = `${periodButtons(views)}<p class="sdh-metric"><span class="sdh-metric__value">${views.total.toLocaleString('en-GB')}</span><span class="sdh-metric__unit"> ${views.total === 1 ? 'visit' : 'visits'}</span>${views.uniqueVisitors !== null && views.total > 0 ? `<span class="sdh-metric__unit"> from about ${plural(views.uniqueVisitors, 'different visitor')}</span>` : ''}</p>${body}${enquiryChart}${funnelHtml(state.model)}${empty}${shorter}<p class="sdh-note sdh-note--foot">${esc(foot)}</p>`;
   }
 
   /* ------------------------------------------------------------------ *
@@ -2636,6 +2645,13 @@
     document.addEventListener('sdh:changed', () => {
       refresh();
     });
+    document.addEventListener('visibilitychange', refreshIfStale);
+    window.addEventListener('pageshow', event => {
+      if (event.persisted) {
+        state.loadedAt = 0;
+        refreshIfStale();
+      }
+    });
     window.addEventListener('unreadCountUpdated', event => {
       // The unread count the messenger reports is live: keep the tile and the greeting in step with it.
       const unread = count(event.detail?.count);
@@ -2769,7 +2785,26 @@
   async function refresh() {
     state.summaryPromise = null;
     await getSummary(true);
+    state.loadedAt = Date.now();
     renderAll();
+  }
+
+  /**
+   * Coming back to a tab that has been left open (or to a page restored from the back button): the
+   * plan, enquiries and messages may have changed meanwhile (an upgrade in another tab, a payment
+   * webhook, a customer's enquiry), so ask again, unless it was loaded a moment ago or something is
+   * open that a redraw would disturb.
+   */
+  function refreshIfStale() {
+    if (
+      document.visibilityState !== 'visible' ||
+      !state.loaded ||
+      Date.now() - state.loadedAt < STALE_AFTER_MS ||
+      document.querySelector('dialog[open]')
+    ) {
+      return;
+    }
+    refresh();
   }
 
   /** Loads the data, then draws the page. The summary and the user load together. */
@@ -2836,6 +2871,7 @@
     getContext,
     getJson,
     enquiryTrend,
+    chartSvg,
     sendJson,
     toast,
     normaliseSummary,

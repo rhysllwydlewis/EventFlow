@@ -18,6 +18,7 @@ const {
 const { parseDaysParam, resolveAnalyticsWindow } = require('../utils/analyticsWindow');
 const { buildDashboardSummary, summariseReviews } = require('../services/supplierDashboardSummary');
 const supplierEnquiries = require('../services/supplierEnquiries');
+const { VALID_CATEGORIES } = require('../models/Supplier');
 const { isApprovedReview } = require('../utils/reviewShape');
 const { clearEngagementCache } = require('../services/supplierEngagementMetrics');
 const { serializeCsv } = require('../utils/csv');
@@ -538,6 +539,121 @@ router.patch('/enquiries/:id', authRequired, csrfProtection, writeLimiter, async
 });
 
 /**
+ * POST /api/supplier/enquiries/:id/reply
+ * Reply to a customer's enquiry by email. Body: { message }. The email goes from EventFlow to the
+ * address the customer left, with the supplier's verified account address as Reply-To.
+ */
+const REPLY_STATUS = Object.freeze({
+  EMPTY: 400,
+  TOO_LONG: 400,
+  NO_EMAIL: 422,
+  EMAIL_NOT_VERIFIED: 403,
+  NOT_FOUND: 404,
+  ENQUIRY_LIMIT: 429,
+  ENQUIRY_TOO_OLD: 422,
+  HOURLY_LIMIT: 429,
+  DAILY_LIMIT: 429,
+  SEND_FAILED: 502,
+});
+
+router.post(
+  '/enquiries/:id/reply',
+  authRequired,
+  csrfProtection,
+  writeLimiter,
+  async (req, res) => {
+    try {
+      const supplier = await loadApprovedSupplierForEnquiries(req, res);
+      if (!supplier) {
+        return;
+      }
+      const owner = await dbUnified.findOne('users', { id: req.user.id }, { throwOnError: true });
+      const result = await supplierEnquiries.replyToEnquiry({
+        supplier,
+        owner,
+        id: req.params.id,
+        message: req.body?.message,
+      });
+      if (!result.ok) {
+        res
+          .status(REPLY_STATUS[result.code] || 400)
+          .json({ error: result.message, code: result.code });
+        return;
+      }
+      clearEngagementCache();
+      res.json({ success: true, enquiry: result.enquiry });
+    } catch (error) {
+      logger.error('Error replying to enquiry:', error.message);
+      res.status(500).json({ error: 'Failed to send the reply' });
+    }
+  }
+);
+
+/**
+ * GET /api/supplier/guide-progress
+ * Where the signed-in supplier got to in the dashboard's first-visit setup guide:
+ * { progress: { status: 'active' | 'dismissed' | 'completed', step, at } } (empty before they start).
+ * Kept on the account, not in the browser, so it follows them to another device.
+ */
+const GUIDE_STATUSES = Object.freeze(['active', 'dismissed', 'completed']);
+const GUIDE_STEP = /^[A-Za-z0-9_-]{0,40}$/;
+
+router.get('/guide-progress', authRequired, async (req, res) => {
+  try {
+    if (req.user.role !== 'supplier') {
+      return res.status(403).json({ error: 'Only suppliers have a setup guide' });
+    }
+    const user = await dbUnified.findOne('users', { id: req.user.id }, { throwOnError: true });
+    const saved = user?.onboarding?.supplierGuide;
+    return res.json({ progress: saved && typeof saved === 'object' ? saved : {} });
+  } catch (error) {
+    logger.error('Error reading setup guide progress:', error.message);
+    return res.status(500).json({ error: 'Failed to load setup guide progress' });
+  }
+});
+
+/**
+ * PUT /api/supplier/guide-progress
+ * Body: { status, step }. Saves where the supplier is in the setup guide.
+ */
+router.put('/guide-progress', authRequired, csrfProtection, writeLimiter, async (req, res) => {
+  try {
+    if (req.user.role !== 'supplier') {
+      return res.status(403).json({ error: 'Only suppliers have a setup guide' });
+    }
+    const { status, step } = req.body || {};
+    const stepId = step === undefined || step === null ? '' : step;
+    if (
+      !GUIDE_STATUSES.includes(status) ||
+      typeof stepId !== 'string' ||
+      !GUIDE_STEP.test(stepId)
+    ) {
+      return res.status(400).json({ error: 'status must be active, dismissed or completed' });
+    }
+    const user = await dbUnified.findOne('users', { id: req.user.id }, { throwOnError: true });
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+    const progress = { status, step: stepId, at: new Date().toISOString() };
+    // Set just this field so another onboarding value written at the same time is not overwritten.
+    const hasOnboarding = user.onboarding && typeof user.onboarding === 'object';
+    await dbUnified.updateOne(
+      'users',
+      { id: req.user.id },
+      {
+        $set: hasOnboarding
+          ? { 'onboarding.supplierGuide': progress }
+          : { onboarding: { supplierGuide: progress } },
+      }
+    );
+    return res.json({ progress });
+  } catch (error) {
+    logger.error('Error saving setup guide progress:', error.message);
+    return res.status(500).json({ error: 'Failed to save setup guide progress' });
+  }
+});
+
+/**
  * GET /api/supplier/lead-quality
  * Get lead quality breakdown for supplier
  */
@@ -771,6 +887,14 @@ router.post(
         return res.status(400).json({
           error: 'Required fields are missing',
           missingFields,
+        });
+      }
+
+      // A category supplied here must be one the site knows; it is shown on public pages.
+      if (req.body.category !== undefined && !VALID_CATEGORIES.includes(req.body.category)) {
+        return res.status(400).json({
+          error: 'Invalid category',
+          validCategories: VALID_CATEGORIES,
         });
       }
 

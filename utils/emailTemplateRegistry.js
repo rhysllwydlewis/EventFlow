@@ -30,6 +30,7 @@ const PREHEADERS = {
   notification: 'You have a new EventFlow account update.',
   'new-message': 'You have a new message on EventFlow.',
   'new-enquiry': 'A customer has sent you an enquiry on EventFlow.',
+  'supplier-enquiry-reply': 'A supplier has replied to your enquiry on EventFlow.',
   'action-prompts': 'Review the supplier profile improvements recommended by EventFlow.',
   'newsletter-confirm': 'Confirm your subscription to receive EventFlow updates.',
   'newsletter-welcome': 'You are subscribed to EventFlow updates.',
@@ -98,6 +99,11 @@ const META = {
     category: 'account',
     purpose: 'A customer sent a supplier an enquiry or quote request',
     variables: ['senderName', 'enquiryLabel', 'previewHtml', 'enquiryUrl'],
+  },
+  'supplier-enquiry-reply': {
+    category: 'supplier',
+    purpose: "A supplier's reply to a customer enquiry, sent from the supplier dashboard",
+    variables: ['customerName', 'supplierName', 'replyMessageHtml'],
   },
   'support-ticket-reply': {
     category: 'account',
@@ -374,6 +380,12 @@ function buildSampleData(name) {
         'Hi! Are you free for a 120-guest wedding on 12 June? Could you send over a quote?',
       enquiryUrl: `${APP_BASE_URL}/dashboard/supplier#sdh-enquiries`,
     },
+    'supplier-enquiry-reply': {
+      customerName: 'Jordan Lee',
+      supplierName: 'Bloom & Co Florists',
+      replyMessageHtml:
+        '<p>Thanks for getting in touch. We are free on 12 June and would love to quote.</p><p>Could you tell us the venue and how many tables you have?</p>',
+    },
     'contact-enquiry-reply': {
       name: 'Jordan Lee',
       enquirySubject: 'Question about listing a venue',
@@ -609,6 +621,13 @@ const PLAIN_TEXT_BODIES = {
     `After the trial your paid subscription begins automatically: £${m.amount}/${m.billingCycle}. You can cancel before ${m.trialEndDate} at no charge.`,
     '',
     `Manage subscription: ${APP_BASE_URL}/supplier/subscription`,
+  ],
+  'supplier-enquiry-reply': m => [
+    `Hi ${m.customerName}, ${m.supplierName} has replied to your enquiry on EventFlow:`,
+    '',
+    stripHtml(m.replyMessageHtml),
+    '',
+    `Reply to this email to answer ${m.supplierName} directly.`,
   ],
   'new-enquiry': m => [
     `${m.senderName} sent you ${m.enquiryLabel} through your EventFlow profile:`,

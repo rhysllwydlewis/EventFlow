@@ -40,6 +40,9 @@ const STRICT = Object.freeze({ throwOnError: true });
 
 const DEFAULT_SUMMARY_DAYS = 30;
 
+/** Most distinct visitors counted in one window (a bound on the query, far above any real profile). */
+const MAX_VISITOR_GROUPS = 50000;
+
 /** The exact rule behind `views.total`, safe to show to the supplier as it is. */
 const VIEWS_DESCRIPTION =
   'Times your public profile page was loaded, counted once per visitor per hour. Your own visits, admins and automated crawlers are not counted. Views recorded before this rule was introduced may include some of these.';
@@ -361,14 +364,14 @@ async function loadSources(attempt, { userId, supplierId, now }) {
  *
  * @param {Function} attempt - Failure-tolerant query runner
  * @param {Object} params - { userId, supplierId, now, fixedNow, analyticsWindow }
- * @returns {Promise<Object>} { engagement, previousViews, messaging, analyticsBase }
+ * @returns {Promise<Object>} { engagement, previousViews, messaging, analyticsBase, uniqueVisitors }
  */
 async function loadWindowFigures(attempt, { userId, supplierId, now, fixedNow, analyticsWindow }) {
   const { startMs: windowStartMs, previousStartMs } = getWindowBounds(
     now.getTime(),
     analyticsWindow.days
   );
-  const [engagement, previousViews, messaging] = await Promise.all([
+  const [engagement, previousViews, messaging, uniqueVisitors] = await Promise.all([
     attempt(
       'enquiries',
       () =>
@@ -398,6 +401,31 @@ async function loadWindowFigures(attempt, { userId, supplierId, now, fixedNow, a
       null
     ),
     attempt('messages', () => getMessagingSummary(userId), null),
+    attempt(
+      'uniqueVisitors',
+      async () => {
+        // One group per anonymous visitor key (a hash, never an address): about how many different
+        // browsers or signed-in people loaded the page, not how many times.
+        const groups =
+          (await dbUnified.aggregate(
+            'events',
+            [
+              {
+                $match: {
+                  supplierId,
+                  type: supplierAnalytics.EVENT_TYPES.PROFILE_VIEW,
+                  timestamp: { $gte: new Date(windowStartMs).toISOString() },
+                },
+              },
+              { $group: { _id: { visitor: '$visitorKey' } } },
+              { $limit: MAX_VISITOR_GROUPS },
+            ],
+            STRICT
+          )) || [];
+        return groups.filter(group => group._id?.visitor).length;
+      },
+      null
+    ),
   ]);
   const analyticsBase = await attempt(
     'analytics',
@@ -405,7 +433,7 @@ async function loadWindowFigures(attempt, { userId, supplierId, now, fixedNow, a
       supplierAnalytics.getSupplierAnalytics(supplierId, analyticsWindow.days, { now, engagement }),
     null
   );
-  return { engagement, previousViews, messaging, analyticsBase };
+  return { engagement, previousViews, messaging, analyticsBase, uniqueVisitors };
 }
 
 /**
@@ -632,13 +660,14 @@ async function buildDashboardSummary({ userId, supplier, requestedDays = null, n
     defaultDays: DEFAULT_SUMMARY_DAYS,
     planWindowDays: subscription ? subscription.limits.analyticsWindowDays : undefined,
   });
-  const { engagement, previousViews, messaging, analyticsBase } = await loadWindowFigures(attempt, {
-    userId,
-    supplierId,
-    now,
-    fixedNow,
-    analyticsWindow,
-  });
+  const { engagement, previousViews, messaging, analyticsBase, uniqueVisitors } =
+    await loadWindowFigures(attempt, {
+      userId,
+      supplierId,
+      now,
+      fixedNow,
+      analyticsWindow,
+    });
   if (analyticsBase && analyticsBase.totalViews === null) {
     unavailable.push('views');
   }
@@ -664,6 +693,7 @@ async function buildDashboardSummary({ userId, supplier, requestedDays = null, n
       total: totalViews,
       days: analyticsWindow.days,
       basis: 'page_loads',
+      uniqueVisitors,
       description: VIEWS_DESCRIPTION,
     },
     reviews: {

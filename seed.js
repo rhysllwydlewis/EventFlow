@@ -2,6 +2,7 @@ const bcrypt = require('bcryptjs');
 const logger = require('./utils/logger');
 const dbUnified = require('./db-unified');
 const { uid } = require('./store');
+const { priceFields } = require('./utils/packagePrice');
 const { getPexelsService } = require('./utils/pexels-service');
 
 /**
@@ -512,7 +513,7 @@ async function seed(options = {}) {
           supplierId: 'sup_xmkgxc6kd04f',
           slug: 'barn-exclusive',
           title: 'Barn Exclusive',
-          price: '£3,500',
+          ...priceFields('£3,500'),
           location: 'Monmouthshire, South Wales',
           description:
             'Full-day venue hire, ceremony & reception areas. Includes indoor and outdoor spaces, tables and chairs, parking for 50 cars.',
@@ -543,7 +544,7 @@ async function seed(options = {}) {
           supplierId: 'sup_suj0sb6kd04f',
           slug: 'seasonal-feast',
           title: 'Seasonal Feast',
-          price: '£45 pp',
+          ...priceFields('£45 pp'),
           location: 'Cardiff & South Wales',
           description:
             'Three-course seasonal menu with staff & setup. Includes locally sourced ingredients, vegan options available.',
@@ -569,7 +570,7 @@ async function seed(options = {}) {
           supplierId: 'sup_5n2run6kd04f',
           slug: 'full-day-capture',
           title: 'Full Day Capture',
-          price: '£1,200',
+          ...priceFields('£1,200'),
           location: 'Bristol & South West',
           description:
             'Prep through first dance, private gallery. Includes all edited photos, online gallery access, and print rights.',

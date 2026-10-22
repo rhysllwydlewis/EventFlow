@@ -297,9 +297,30 @@ const fake = {
   updateOne: jest.fn(async (name, filter, update) => {
     const row = rowsOf(name).find(item => matches(item, filter));
     if (row && update.$set) {
-      Object.assign(row, update.$set);
+      for (const [key, value] of Object.entries(update.$set)) {
+        // 'a.b' sets b inside a, as MongoDB and db-unified's local store do.
+        const path = key.split('.');
+        const last = path.pop();
+        let cursor = row;
+        for (const segment of path) {
+          if (!cursor[segment] || typeof cursor[segment] !== 'object') {
+            cursor[segment] = {};
+          }
+          cursor = cursor[segment];
+        }
+        cursor[last] = value;
+      }
     }
     return { matchedCount: row ? 1 : 0, modifiedCount: row ? 1 : 0 };
+  }),
+  upsertOne: jest.fn(async (name, filter, fields, onInsert = {}) => {
+    const row = rowsOf(name).find(item => matches(item, filter));
+    if (row) {
+      Object.assign(row, fields);
+    } else {
+      rowsOf(name).push({ ...filter, ...onInsert, ...fields });
+    }
+    return true;
   }),
   deleteOne: jest.fn(async (name, filter) => {
     const rows = rowsOf(name);

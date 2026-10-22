@@ -213,6 +213,12 @@ describe('Messenger client-side fixes', () => {
     expect(messengerAppSrc).toContain('me.unreadCount = (me.unreadCount || 0) + 1');
   });
 
+  it('MessengerAppV4 does not raise the unread count of a conversation it fetched for this message', () => {
+    // The server raises the count before it announces the message, so the fetched copy has it already.
+    expect(messengerAppSrc).toContain('fetchedFresh = Boolean(conv)');
+    expect(messengerAppSrc).toContain('if (uid && conv && !fetchedFresh)');
+  });
+
   // ── MessengerAPI query param alignment ─────────────────────────────────────
 
   it("MessengerAPI.getConversations sends 'unread=true' (matching server param, not 'unreadOnly')", () => {

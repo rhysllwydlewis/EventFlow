@@ -16,6 +16,8 @@ function emptySummary() {
     deletedPhotos: 0,
     deletedSupplierAnalytics: 0,
     deletedReviewRequests: 0,
+    deletedEnquiryReplies: 0,
+    deletedEnquiryStates: 0,
     deletedPublicCalendarEvents: 0,
     deletedMarketplaceListings: 0,
     cleanedReferences: 0,
@@ -243,6 +245,13 @@ async function cleanupSupplierOwnedDataForUser(user, options = {}) {
     supplierId: supplierIdFilter,
   });
   summary.deletedReviewRequests = await deleteManyCount('reviewRequests', {
+    supplierId: supplierIdFilter,
+  });
+  // The replies the supplier sent to customers and their read/handled marks on enquiries.
+  summary.deletedEnquiryReplies = await deleteManyCount('supplier_enquiry_replies', {
+    supplierId: supplierIdFilter,
+  });
+  summary.deletedEnquiryStates = await deleteManyCount('supplier_enquiry_states', {
     supplierId: supplierIdFilter,
   });
   summary.deletedPublicCalendarEvents = await deleteManyCount('public_calendar_events', {

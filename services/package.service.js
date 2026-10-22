@@ -8,6 +8,7 @@
 const { NotFoundError, AuthorizationError, ValidationError } = require('../errors');
 const logger = require('../utils/logger');
 const { paginationHelper } = require('../utils/database');
+const { priceFields } = require('../utils/packagePrice');
 
 class PackageService {
   constructor(dbUnified, uid) {
@@ -53,7 +54,7 @@ class PackageService {
       id: this.uid('pkg'),
       name: String(data.name).trim(),
       description: data.description ? String(data.description).trim() : '',
-      price: parseFloat(data.price) || 0,
+      ...priceFields(data.price),
       category: data.category || 'other',
       supplierId,
       images: data.images || [],
@@ -143,7 +144,13 @@ class PackageService {
     ];
     const setFields = { updatedAt: new Date().toISOString() };
     allowedFields.forEach(field => {
-      if (updates[field] !== undefined) {
+      if (updates[field] === undefined) {
+        return;
+      }
+      if (field === 'price') {
+        // Both price fields hold the one price (utils/packagePrice).
+        Object.assign(setFields, priceFields(updates.price));
+      } else {
         setFields[field] = updates[field];
       }
     });

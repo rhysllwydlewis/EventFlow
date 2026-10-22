@@ -10,12 +10,13 @@
  * does, so the guide can never say something the card does not. A step that is already done is
  * left out; a step that is locked or waiting says why instead of offering a button.
  *
- * Progress is kept in this browser (localStorage), keyed by the signed-in user's id: nothing in
- * the server's user record is meant for it, so there is no server copy. It is a remembered
- * preference, so it is saved only when the visitor has allowed functional storage (it is held for
- * the visit otherwise) and is erased when they decline it. A guide that was skipped
- * or finished does not come back by itself; the "Setup guide" link under the greeting reopens it
- * at the step where it was left.
+ * Progress is kept on the supplier's account (GET/PUT /api/supplier/guide-progress), so a guide that
+ * was skipped or finished stays that way on every device and whatever the cookie choice. The
+ * browser also keeps a copy (localStorage, keyed by the signed-in user's id) so the guide knows
+ * where it was before the server answers; that copy is a remembered preference, saved only when
+ * the visitor has allowed functional storage (held for the visit otherwise) and erased when they
+ * decline it. A guide that was skipped or finished does not come back by itself; the "Setup guide"
+ * link under the greeting reopens it at the step where it was left.
  */
 'use strict';
 
@@ -76,6 +77,57 @@
   /** Progress held for this visit only, used while the browser may not keep it. */
   const visitProgress = {};
 
+  /** What the account says (the server's copy) per user, once it has been fetched. */
+  const accountProgress = {};
+  let accountProgressRequest = null;
+
+  /** The newer of two progress records (an empty record is older than any). */
+  function newerProgress(first, second) {
+    const firstAt = Date.parse(first?.at || '') || 0;
+    const secondAt = Date.parse(second?.at || '') || 0;
+    return secondAt > firstAt ? second : first;
+  }
+
+  /**
+   * Fetches the account's copy of the progress once. A failed request leaves the browser's copy in
+   * charge; it never stops the guide.
+   * @returns {Promise<void>} Resolves when the copy is known (or could not be fetched).
+   */
+  function loadAccountProgress(user) {
+    if (accountProgressRequest) {
+      return accountProgressRequest;
+    }
+    const api = home();
+    accountProgressRequest = (async () => {
+      if (!api || typeof api.getJson !== 'function') {
+        return;
+      }
+      try {
+        const result = await api.getJson('/api/supplier/guide-progress');
+        const saved = result?.data?.progress;
+        accountProgress[storageKey(user)] = saved && typeof saved === 'object' ? saved : {};
+      } catch {
+        /* offline or refused: the browser's copy is used */
+      }
+    })();
+    return accountProgressRequest;
+  }
+
+  /** Sends the record to the account, best effort: a failure only means another device is not told. */
+  function saveAccountProgress(user, record) {
+    accountProgress[storageKey(user)] = record;
+    const api = home();
+    if (!api || typeof api.sendJson !== 'function') {
+      return;
+    }
+    Promise.resolve(
+      api.sendJson('/api/supplier/guide-progress', 'PUT', {
+        status: record.status,
+        step: record.step,
+      })
+    ).catch(() => undefined);
+  }
+
   /** Removes every saved guide record from this browser (all users of it). */
   function eraseSavedProgress() {
     try {
@@ -94,6 +146,11 @@
 
   /** What was saved for this user: { status: 'active' | 'dismissed' | 'completed', step } or {}. */
   function readProgress(user) {
+    return newerProgress(readBrowserProgress(user), accountProgress[storageKey(user)]) || {};
+  }
+
+  /** The browser's own copy for this user. */
+  function readBrowserProgress(user) {
     if (!mayRemember()) {
       return visitProgress[storageKey(user)] || {};
     }
@@ -113,6 +170,7 @@
    */
   function writeProgress(user, status, stepId) {
     const record = { status, step: stepId || '', at: new Date().toISOString() };
+    saveAccountProgress(user, record);
     if (!mayRemember()) {
       visitProgress[storageKey(user)] = record;
       return;
@@ -190,6 +248,12 @@
     ];
     if (!homeContext || homeContext.loaded === false) {
       return steps;
+    }
+    // A step whose information could not be read is held back, not guessed at: say so, so a short
+    // guide is not mistaken for a finished one.
+    if (homeContext.model?.unavailable?.length) {
+      steps[0].note =
+        'Some of your information could not be loaded just now, so a step may be missing. Reopen this guide from the Setup guide link once the page has loaded fully.';
     }
     if (homeContext.noProfile) {
       steps.push(
@@ -442,9 +506,15 @@
       return;
     }
     view.autoChecked = true;
+    // Ask the account before deciding: a guide skipped on another device should not open here.
+    loadAccountProgress(current.user).then(() => openIfNew(current));
+  }
+
+  /** Opens the guide for a brand-new supplier who has not skipped or finished it. */
+  function openIfNew(current) {
     const progress = readProgress(current.user);
     const resumable = !progress.status || progress.status === 'active';
-    if (!resumable || !isBrandNew(current) || document.querySelector('dialog[open]')) {
+    if (!resumable || !isBrandNew(current) || view.open || document.querySelector('dialog[open]')) {
       return;
     }
     if (currentSteps().length < 2) {
@@ -495,6 +565,7 @@
     readProgress,
     writeProgress,
     storageKey,
+    loadAccountProgress,
     eraseSavedProgress,
     open,
   };

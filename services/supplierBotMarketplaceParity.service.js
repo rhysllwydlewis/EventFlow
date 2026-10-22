@@ -2,6 +2,7 @@
 
 const crypto = require('crypto');
 const catalogCache = require('./catalogCache');
+const { priceFields } = require('../utils/packagePrice');
 const { isPublishedUnclaimedSupplierBotProfile } = require('./supplierBotPilotVisibility.util');
 
 // Matches the Starter/free plan's real 3-active-package cap (routes/packages.js,
@@ -201,7 +202,7 @@ function sourcePackageRecords(supplier, now = new Date().toISOString(), options 
         supplierName: supplier.name || supplier.businessName || '',
         title: item.title,
         description: item.description,
-        price: item.priceDisplay,
+        ...priceFields(item.priceDisplay),
         priceDisplay: item.priceDisplay,
         priceDetails: item.priceDetails,
         features: item.features,
@@ -277,6 +278,7 @@ async function syncBotPackages({ dbUnified, supplier, now }) {
       title: record.title,
       description: record.description,
       price: record.price,
+      price_display: record.price_display,
       priceDisplay: record.priceDisplay,
       priceDetails: record.priceDetails,
       features: record.features,

@@ -115,6 +115,27 @@ describe('Tickets Routes Integration', () => {
     expect(dbUnified.insertOne).toHaveBeenCalledTimes(1);
   });
 
+  it('takes who the ticket is from the signed-in account, not from the request body', async () => {
+    dbUnified.read.mockResolvedValue([]);
+    dbUnified.write.mockResolvedValue(true);
+
+    const response = await request(app)
+      .post('/api/tickets')
+      .set('x-test-user-role', 'customer')
+      .send({
+        senderType: 'customer',
+        senderName: 'Someone Else',
+        senderEmail: 'victim@example.com',
+        subject: 'Help',
+        message: 'Please help me.',
+      });
+
+    expect(response.status).toBe(201);
+    const saved = dbUnified.insertOne.mock.calls[0][1];
+    expect(saved.senderEmail).toBe('user@example.com');
+    expect(saved.senderName).not.toBe('Someone Else');
+  });
+
   it('rejects oversized subject/message payloads', async () => {
     dbUnified.read.mockResolvedValue([]);
 

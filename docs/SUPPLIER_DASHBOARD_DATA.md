@@ -31,7 +31,7 @@ check this just now".
 | `messages`             | `{unreadMessages, conversationsWithUnread, latestAt, total, unread}`                              | From `conversations_v4`, same rule as `/api/v4/messenger/unread-count` (active conversations, minus archived/muted). `total`/`unread` are legacy (inbox conversations / conversations with unread).                                                                                                                                                                                                                                                                                                            |
 | `enquiries`            | `{newThisPeriod, previousPeriod, sources:{conversations, quoteRequests, contactForm}, truncated}` | See below.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
 | `responses`            | `{sampleSize, matureSampleSize, repliedPct, medianMinutes}`                                       | See below.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
-| `views`                | `{total, days, basis:'page_loads'}`                                                               | `profile_view` events in the window. Honest label: page loads, not people.                                                                                                                                                                                                                                                                                                                                                                                                                                     |
+| `views`                | `{total, uniqueVisitors, days, basis:'page_loads'}`                                               | `profile_view` events in the window. Honest label: page loads, not people. `uniqueVisitors` is how many different anonymous visitor keys (a hash, not an address) those loads came from: about how many browsers or signed-in people, `null` when it could not be read.                                                                                                                                                                                                                                        |
 | `reviews`              | `{approvedCount, averageRating, pendingCount, total, pending}`                                    | Only `moderation.state === 'approved'` reviews are counted (same rule as the public reviews panel). `averageRating` is `null` with no rated approved review. `total`/`pending` are legacy aliases.                                                                                                                                                                                                                                                                                                             |
 | `subscription`         | `{plan, status, activeUntil, cancelAtPeriodEnd, limits, tier, renewsAt, trialEndsAt}`             | From the subscription record and plan matrix. No Stripe call on this path.                                                                                                                                                                                                                                                                                                                                                                                                                                     |
 | `upcoming`             | `[{id, title, date, time, source}]`                                                               | Next 3 of the supplier's personal calendar entries and public events they created (`source` `personal`/`public`). Calendar entries, not bookings.                                                                                                                                                                                                                                                                                                                                                              |
@@ -98,7 +98,21 @@ fixtures; change one without the other and CI fails. `/api/me/suppliers` items a
 supplier. Approved suppliers only; a record addressed to another supplier answers like a missing one; the read/handled
 state is per supplier (`supplier_enquiry_states`). Text is returned as plain text (stored HTML-escaped): render with
 `textContent`. `enquiries.requests {received, new}` in the summary equals the list's `counts.total` / `counts.new`
-for the same `days`. Nothing notifies suppliers of new enquiries and there is no in-app reply yet.
+for the same `days`. Suppliers are notified when an enquiry arrives (`services/supplierEnquiryNotifier.js`).
+
+**Reply.** `POST /api/supplier/enquiries/:id/reply` with `{message}` (up to 2000 characters) emails the customer from
+EventFlow, with the owner's verified account address as Reply-To, and marks the enquiry handled. Refused with
+`code` `EMPTY`/`TOO_LONG` (400), `NO_EMAIL` (422, the customer left no address), `EMAIL_NOT_VERIFIED` (403),
+`ENQUIRY_TOO_OLD` (422, older than 30 days), `ENQUIRY_LIMIT`/`HOURLY_LIMIT`/`DAILY_LIMIT` (429: 3 per enquiry, 10 an
+hour and 30 a day per supplier) or `SEND_FAILED` (502). A place is reserved in `supplier_enquiry_replies` before
+sending and the limits are checked again, so overlapping requests cannot pass them; a failed send gives the place back.
+`GET /api/supplier/enquiries/:id` includes the sent `replies` and an estimated `quality` (`rating`, `score`, `reasons`,
+from `utils/leadScoring.js`, worked out when read, never stored); the list takes `quality=High|Medium|Low` and
+returns `counts.byQuality`.
+
+**Setup guide progress.** `GET`/`PUT /api/supplier/guide-progress` (`{status: active|dismissed|completed, step}`) keep
+where the supplier is in the first-visit guide on their account (`users.onboarding.supplierGuide`), so it follows them
+to another device.
 
 **CSV export.** `GET /api/supplier/enquiries/export` is the single export route (the shadowed "safe" duplicate was deleted).
 It exports the supplier's customer conversations, quote requests and contact-form enquiries, spreadsheet-safe, as
@@ -127,10 +141,12 @@ ownership). Editing can no longer publish an event that is awaiting approval. Th
 
 - **Bookings.** No route creates or reads bookings; `maxBookings` in the plan matrix is inert.
   `upcoming` is calendar entries only.
-- **Lead quality, earnings, enquiry-to-booking conversion.** No data source.
+- **Earnings and enquiry-to-booking conversion.** No data source. (Per-enquiry quality exists, as an estimate.)
 - **Per-source reply rates** for quote requests and contact-form enquiries: replies to those happen
   outside the platform, so only messenger conversations have a measurable reply.
-- **Unique visitors.** Views are page loads (one beacon per IP per supplier per hour, in memory).
+- **An exact count of people.** `views.total` is page loads (one beacon per visitor key per supplier per hour).
+  `views.uniqueVisitors` counts the distinct anonymous visitor keys in the window (about how many different browsers or
+  signed-in people), `null` when it could not be read.
 
 ## Cost
 

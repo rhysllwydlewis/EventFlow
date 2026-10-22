@@ -203,16 +203,8 @@ function getSupplierProfileImage(supplier) {
   return typeof imageUrl === 'string' ? imageUrl.trim() : '';
 }
 
-/**
- * Populate and wire the supplier sidebar widget.
- * Mirrors the Save / View Profile / Message pattern from the suppliers page.
- */
-function buildSupplierSidebar(supplier, pkg, currentUser) {
-  const sidebar = document.getElementById('pkg-supplier-sidebar');
-  if (!sidebar || !supplier) {
-    return;
-  }
-
+/** Fill the sidebar avatar: the supplier's profile photo, or their initial on a colour. */
+function renderSupplierAvatar(supplier) {
   // Avatar — shared initials/color logic, see
   // public/assets/js/utils/supplier-avatar.js.
   const avatarEl = document.getElementById('pkg-sup-avatar');
@@ -236,19 +228,33 @@ function buildSupplierSidebar(supplier, pkg, currentUser) {
   } else {
     showAvatarInitial();
   }
+}
 
-  // Name
-  document.getElementById('pkg-sup-name').textContent = supplier.name || 'Supplier';
-
-  // Blurb
-  const blurbEl = document.getElementById('pkg-sup-blurb');
-  const blurb = supplier.blurb || supplier.description_short || '';
-  if (blurb) {
-    blurbEl.textContent = blurb;
-  } else {
-    blurbEl.style.display = 'none';
+/** Fill the category and location lines of the sidebar. */
+function renderSupplierMeta(supplier) {
+  // Meta (category + location)
+  const metaEl = document.getElementById('pkg-sup-meta');
+  // Built from text nodes: category and location are typed by the supplier, so they are never markup.
+  const metaItems = [
+    ['📂', supplier.category],
+    ['📍', supplier.location],
+  ].filter(([, value]) => value);
+  metaEl.textContent = '';
+  metaItems.forEach(([icon, value]) => {
+    const item = document.createElement('div');
+    item.className = 'pkg-sup-meta-item';
+    const iconEl = document.createElement('span');
+    iconEl.textContent = icon;
+    item.append(iconEl, ` ${value}`);
+    metaEl.appendChild(item);
+  });
+  if (!metaItems.length) {
+    metaEl.style.display = 'none';
   }
+}
 
+/** Show the supplier's subscription tier as a badge, when they have one. */
+function renderSupplierTier(supplier) {
   // Tier badge
   const tierEl = document.getElementById('pkg-sup-tier');
   const tier = supplier.subscriptionTier || supplier.subscription?.tier;
@@ -265,66 +271,10 @@ function buildSupplierSidebar(supplier, pkg, currentUser) {
            ${t.icon} ${t.label}
          </span>`;
   }
+}
 
-  // Meta (category + location)
-  const metaEl = document.getElementById('pkg-sup-meta');
-  const metas = [];
-  if (supplier.category) {
-    metas.push(`<div class="pkg-sup-meta-item"><span>📂</span> ${supplier.category}</div>`);
-  }
-  if (supplier.location) {
-    metas.push(`<div class="pkg-sup-meta-item"><span>📍</span> ${supplier.location}</div>`);
-  }
-  if (metas.length) {
-    metaEl.innerHTML = metas.join('');
-  } else {
-    metaEl.style.display = 'none';
-  }
-
-  // View Profile link
-  const viewBtn = document.getElementById('pkg-view-profile-btn');
-  const isSupplierFallback = supplier.isPackageSupplierFallback === true;
-  let supplierProfileHref = '/suppliers';
-  if (isSupplierFallback) {
-    viewBtn.href = '/suppliers';
-    viewBtn.textContent = 'Browse Suppliers';
-    viewBtn.setAttribute('aria-label', 'Browse available suppliers');
-    if (!blurb) {
-      blurbEl.textContent =
-        'Supplier profile details are currently unavailable, but this package information is still available.';
-      blurbEl.style.display = '';
-    }
-  } else if (supplier.id) {
-    supplierProfileHref = window.EventFlowSupplierLink
-      ? window.EventFlowSupplierLink.supplierProfileHref(supplier)
-      : supplier.publicProfilePath || '/suppliers';
-    viewBtn.href = supplierProfileHref;
-  }
-
-  // Save / shortlist button
-  const saveBtn = document.getElementById('pkg-save-btn');
-  saveBtn.dataset.supplierId = supplier.id || '';
-  saveBtn.dataset.supplierName = supplier.name || '';
-  saveBtn.dataset.supplierCategory = supplier.category || '';
-  saveBtn.dataset.supplierLocation = supplier.location || '';
-  saveBtn.dataset.supplierImage = supplierProfileImage;
-
-  if (isSupplierFallback) {
-    saveBtn.disabled = true;
-    saveBtn.style.opacity = '0.45';
-    saveBtn.style.cursor = 'not-allowed';
-    saveBtn.textContent = 'Supplier unavailable';
-    saveBtn.setAttribute('aria-label', 'Supplier profile is currently unavailable');
-  }
-
-  // Reflect current shortlist state
-  const sm = window.shortlistManager;
-  if (sm && sm.isAuthenticated && sm.hasItem('supplier', supplier.id)) {
-    saveBtn.classList.replace('sp-btn--shortlist', 'sp-btn--shortlist-active');
-    saveBtn.innerHTML = '❤️ Saved';
-    saveBtn.setAttribute('aria-label', 'Remove from shortlist');
-  }
-
+/** Save / unsave the supplier on the shortlist when the button is clicked. */
+function wireSaveClick(saveBtn, supplier, supplierProfileImage, supplierProfileHref) {
   saveBtn.addEventListener('click', async () => {
     const mgr = window.shortlistManager;
     // Auth gate — redirect unauthenticated users
@@ -354,7 +304,10 @@ function buildSupplierSidebar(supplier, pkg, currentUser) {
       saveBtn.setAttribute('aria-label', 'Remove from shortlist');
     }
   });
+}
 
+/** Set up the message button: unavailable, own listing, or a quick-compose to the supplier. */
+function wireMessageButton(supplier, pkg, currentUser, isSupplierFallback, supplierProfileImage) {
   // Message button — wire up QuickComposeV4
   const msgBtn = document.getElementById('pkg-message-btn');
   const isOwnSupplier =
@@ -395,6 +348,84 @@ function buildSupplierSidebar(supplier, pkg, currentUser) {
       }
     });
   }
+}
+
+/**
+ * Populate and wire the supplier sidebar widget.
+ * Mirrors the Save / View Profile / Message pattern from the suppliers page.
+ */
+function buildSupplierSidebar(supplier, pkg, currentUser) {
+  const sidebar = document.getElementById('pkg-supplier-sidebar');
+  if (!sidebar || !supplier) {
+    return;
+  }
+
+  renderSupplierAvatar(supplier);
+  const supplierProfileImage = getSupplierProfileImage(supplier);
+
+  // Name
+  document.getElementById('pkg-sup-name').textContent = supplier.name || 'Supplier';
+
+  // Blurb
+  const blurbEl = document.getElementById('pkg-sup-blurb');
+  const blurb = supplier.blurb || supplier.description_short || '';
+  if (blurb) {
+    blurbEl.textContent = blurb;
+  } else {
+    blurbEl.style.display = 'none';
+  }
+
+  renderSupplierTier(supplier);
+
+  renderSupplierMeta(supplier);
+
+  // View Profile link
+  const viewBtn = document.getElementById('pkg-view-profile-btn');
+  const isSupplierFallback = supplier.isPackageSupplierFallback === true;
+  let supplierProfileHref = '/suppliers';
+  if (isSupplierFallback) {
+    viewBtn.href = '/suppliers';
+    viewBtn.textContent = 'Browse Suppliers';
+    viewBtn.setAttribute('aria-label', 'Browse available suppliers');
+    if (!blurb) {
+      blurbEl.textContent =
+        'Supplier profile details are currently unavailable, but this package information is still available.';
+      blurbEl.style.display = '';
+    }
+  } else if (supplier.id) {
+    supplierProfileHref = window.EventFlowSupplierLink
+      ? window.EventFlowSupplierLink.supplierProfileHref(supplier)
+      : supplier.publicProfilePath || '/suppliers';
+    viewBtn.href = supplierProfileHref;
+  }
+
+  // Save / shortlist button
+  const saveBtn = document.getElementById('pkg-save-btn');
+  saveBtn.dataset.supplierId = supplier.id || '';
+  saveBtn.dataset.supplierName = supplier.name || '';
+  saveBtn.dataset.supplierCategory = supplier.category || '';
+  saveBtn.dataset.supplierLocation = supplier.location || '';
+  saveBtn.dataset.supplierImage = supplierProfileImage;
+
+  if (isSupplierFallback) {
+    saveBtn.disabled = true;
+    saveBtn.style.opacity = '0.45';
+    saveBtn.style.cursor = 'not-allowed';
+    saveBtn.textContent = 'Supplier unavailable';
+    saveBtn.setAttribute('aria-label', 'Supplier profile is currently unavailable');
+  }
+
+  // Reflect current shortlist state
+  const sm = window.shortlistManager;
+  if (sm?.isAuthenticated && sm.hasItem('supplier', supplier.id)) {
+    saveBtn.classList.replace('sp-btn--shortlist', 'sp-btn--shortlist-active');
+    saveBtn.innerHTML = '❤️ Saved';
+    saveBtn.setAttribute('aria-label', 'Remove from shortlist');
+  }
+
+  wireSaveClick(saveBtn, supplier, supplierProfileImage, supplierProfileHref);
+
+  wireMessageButton(supplier, pkg, currentUser, isSupplierFallback, supplierProfileImage);
 
   // Show the sidebar
   sidebar.style.display = '';

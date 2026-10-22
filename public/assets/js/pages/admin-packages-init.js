@@ -615,12 +615,16 @@
   // Test data filter functionality
   document.querySelectorAll('.filter-btn').forEach(btn => {
     btn.addEventListener('click', e => {
-      const filterValue = e.target.getAttribute('data-filter');
-      currentFilter = filterValue;
+      const chosen = e.currentTarget;
+      currentFilter = chosen.getAttribute('data-filter');
 
-      // Update button styles
-      document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
-      e.target.classList.add('active');
+      // Update button styles, and tell assistive technology which one is chosen
+      document.querySelectorAll('.filter-btn').forEach(b => {
+        b.classList.remove('active');
+        b.setAttribute('aria-pressed', 'false');
+      });
+      chosen.classList.add('active');
+      chosen.setAttribute('aria-pressed', 'true');
 
       applyFiltersAndRender();
     });

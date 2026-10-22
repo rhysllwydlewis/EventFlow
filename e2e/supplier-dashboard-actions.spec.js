@@ -762,6 +762,86 @@ test.describe('Supplier dashboard: every control works @backend', () => {
     await expect(page.locator('#sdh-enquiries-dialog[open]')).toContainText(sender);
   });
 
+  test('a supplier can reply to an enquiry from the drawer, and it is kept and marked handled', async ({
+    page,
+    context,
+    baseURL,
+  }) => {
+    const customer = await playwrightRequest.newContext({
+      baseURL,
+      extraHTTPHeaders: {
+        'x-eventflow-e2e': 'backend-suite',
+        'x-csrf-token': 'backend-e2e-csrf-token',
+      },
+    });
+    const sender = `Eli Reply ${runId.slice(-6)}`;
+    const sent = await customer.post('/api/quote-requests', {
+      data: {
+        name: sender,
+        email: 'eli@example.com',
+        eventType: 'Party',
+        notes: 'Do you have a free date in June?',
+        suppliers: [{ supplierId: fixtures.supplier.id, supplierName: fixtures.supplier.name }],
+      },
+    });
+    expect(sent.status()).toBe(200);
+    await customer.dispose();
+
+    await openDashboard(page, context, baseURL);
+    await page.locator('#sdh-enquiries-open').click();
+    const drawer = page.locator('#sdh-enquiries-dialog[open]');
+    await drawer.getByRole('button', { name: new RegExp(sender) }).click();
+
+    // The detail says how likely the enquiry is to be a real one, and the list can be filtered by it.
+    await expect(drawer).toContainText('Enquiry quality:');
+    await drawer.getByLabel('Quality').selectOption('Low');
+    await drawer.getByLabel('Quality').selectOption('');
+
+    const replyBox = drawer.getByLabel(`Reply to ${sender}`);
+    await expect(replyBox).toBeVisible();
+    // Nothing typed: it says so and sends nothing.
+    await drawer.getByRole('button', { name: 'Send reply' }).click();
+    await expect(page.locator('.sdh-toast')).toContainText('Write a reply first.');
+
+    await replyBox.fill('Yes, 14 June is free. I will send a quote today.');
+    // Changing the status redraws the pane: what was typed stays.
+    await drawer.getByRole('button', { name: 'Mark as read' }).click();
+    await expect(drawer).toContainText('Status: Read');
+    await expect(replyBox).toHaveValue('Yes, 14 June is free. I will send a quote today.');
+    await drawer.getByRole('button', { name: 'Send reply' }).click();
+    await expect(page.locator('.sdh-toast')).toContainText('Reply sent.');
+    await expect(drawer.locator('.sdh-enq__reply')).toContainText(
+      'Yes, 14 June is free. I will send a quote today.'
+    );
+    await expect(drawer).toContainText('Status: Handled');
+  });
+
+  test('coming back to a dashboard left open for a while asks for fresh figures', async ({
+    page,
+    context,
+    baseURL,
+  }) => {
+    let summaryRequests = 0;
+    await page.route('**/api/supplier/dashboard-summary*', async route => {
+      summaryRequests += 1;
+      await route.continue();
+    });
+    await page.clock.install();
+    await openDashboard(page, context, baseURL);
+    await expect.poll(() => summaryRequests).toBeGreaterThan(0);
+    const afterLoad = summaryRequests;
+
+    // Returning to the tab straight away changes nothing.
+    await page.evaluate(() => document.dispatchEvent(new Event('visibilitychange')));
+    await page.waitForTimeout(300);
+    expect(summaryRequests).toBe(afterLoad);
+
+    // Three minutes later (an upgrade or an enquiry may have happened meanwhile) it asks again.
+    await page.clock.fastForward('03:00');
+    await page.evaluate(() => document.dispatchEvent(new Event('visibilitychange')));
+    await expect.poll(() => summaryRequests).toBeGreaterThan(afterLoad);
+  });
+
   test('the notifications bell opens its panel', async ({ page, context, baseURL }) => {
     await openDashboard(page, context, baseURL);
     await page.locator('#ef-notification-btn').click();
@@ -781,6 +861,77 @@ test.describe('Supplier dashboard: every control works @backend', () => {
     const create = page.locator('#toggle-package-form');
     await expect(create).toBeDisabled();
     await expect(create).toHaveAttribute('title', /approved/i);
+  });
+
+  test('a supplier who is not approved still sees the packages they have, without anything to change them', async ({
+    page,
+    context,
+    baseURL,
+  }) => {
+    await context.addCookies([
+      { name: 'eventflow_cookie_consent', value: 'rejected', url: baseURL },
+    ]);
+    await loginAs(page, fixtures.users.pendingSupplier);
+    // The server's answer is what an approved-then-suspended supplier gets: their packages and
+    // canEdit false. (Whether the real route returns it is covered by its own test.)
+    await page.route('**/api/me/packages', route =>
+      route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          canEdit: false,
+          items: [
+            { id: 'pkg_read_only', title: 'Garden Party Hire', price: '£450', approved: true },
+          ],
+        }),
+      })
+    );
+    await page.goto('/dashboard/supplier');
+    const card = page.locator('.sdh-pkg', { hasText: 'Garden Party Hire' });
+    await expect(card).toBeVisible();
+    await expect(card).toContainText('£450');
+    await expect(card.getByRole('button', { name: /^Edit/ })).toHaveCount(0);
+    await expect(card.getByRole('button', { name: /^Delete/ })).toHaveCount(0);
+    await expect(card.getByRole('button', { name: 'Pause' })).toHaveCount(0);
+    await expect(page.locator('#toggle-package-form')).toBeDisabled();
+    await expect(page.locator('#pkg-limit-note')).toContainText('can be seen here but not changed');
+  });
+
+  test('a setup guide that was skipped stays skipped on another device', async ({
+    page,
+    browser,
+    context,
+    baseURL,
+  }) => {
+    await context.addCookies([
+      { name: 'eventflow_cookie_consent', value: 'rejected', url: baseURL },
+    ]);
+    await loginAs(page, fixtures.users.pendingSupplier);
+    const headers = { 'x-csrf-token': 'backend-e2e-csrf-token' };
+    const put = status =>
+      page.request.put('/api/supplier/guide-progress', { headers, data: { status, step: '' } });
+    try {
+      // Skipped on this device: the account remembers it.
+      expect((await put('dismissed')).ok()).toBe(true);
+
+      // Another device is a browser with nothing stored: the guide does not open there.
+      const other = await browser.newContext({ baseURL });
+      const otherPage = await other.newPage();
+      await other.addCookies([
+        { name: 'eventflow_cookie_consent', value: 'rejected', url: baseURL },
+      ]);
+      await loginAs(otherPage, fixtures.users.pendingSupplier);
+      await otherPage.goto('/dashboard/supplier');
+      await expect(otherPage.locator('#welcome-heading')).toBeVisible();
+      await expect(otherPage.locator('#sdh-guide-dialog[open]')).toHaveCount(0);
+      // The link under the greeting still reopens it.
+      await otherPage.locator('#sdh-guide-open').click();
+      await expect(otherPage.locator('#sdh-guide-dialog[open]')).toBeVisible();
+      await other.close();
+    } finally {
+      // Leave it as a new supplier would find it, for the tests that open the guide.
+      await put('active');
+    }
   });
 
   test('a supplier waiting for approval can send their profile for verification', async ({

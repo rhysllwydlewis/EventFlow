@@ -1388,7 +1388,9 @@ function generateSlug(title) {
     .toLowerCase()
     .trim()
     .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-+|-+$/g, '');
+    .split('-')
+    .filter(Boolean)
+    .join('-');
 }
 
 /**
@@ -1397,7 +1399,8 @@ function generateSlug(title) {
  */
 router.post('/packages', authRequired, roleRequired('admin'), csrfProtection, async (req, res) => {
   try {
-    const { supplierId, title, description, price_display, image, approved, featured } = req.body;
+    const { supplierId, title, description, price_display, price, image, approved, featured } =
+      req.body;
 
     // Validate required fields
     if (!supplierId || !title) {
@@ -1438,7 +1441,7 @@ router.post('/packages', authRequired, roleRequired('admin'), csrfProtection, as
       slug,
       description: description || '',
       // The admin screens edit price_display and suppliers edit price: store one price in both.
-      ...priceFields(price_display),
+      ...priceFields(price_display || price),
       image: image || PLACEHOLDER_PACKAGE_IMAGE,
       approved: approved === true,
       featured: featured === true,

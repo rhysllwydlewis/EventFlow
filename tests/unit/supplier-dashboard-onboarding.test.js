@@ -104,11 +104,13 @@ describe('setup guide: structure', () => {
     expect(homeSource).toContain("document.dispatchEvent(new CustomEvent('sdh:rendered'))");
   });
 
-  test('progress is kept per user in the browser, with storage failures tolerated, and no server copy', () => {
+  test('progress is kept per user in the browser and on the account, with failures tolerated', () => {
     expect(guideSource).toContain("'ef.supplierGuide.v1.'");
     expect(guideSource).toMatch(/try \{\s*const raw = window\.localStorage/);
     expect(guideSource).toMatch(/try \{\s*window\.localStorage\.setItem/);
-    expect(guideSource).not.toMatch(/fetch\(|sendJson/);
+    // The account copy goes through the dashboard's own helpers (CSRF handled), never a bare fetch.
+    expect(guideSource).not.toMatch(/\bfetch\(/);
+    expect(guideSource).toContain('/api/supplier/guide-progress');
   });
 });
 
@@ -201,6 +203,31 @@ describe('setup guide: steps', () => {
   test('before the page has loaded there is only the welcome (nothing is guessed)', () => {
     expect(guide.buildSteps({ loaded: false }, how).map(item => item.id)).toEqual(['welcome']);
     expect(guide.buildSteps(null, how).map(item => item.id)).toEqual(['welcome']);
+  });
+});
+
+describe('setup guide: when part of the page could not be loaded', () => {
+  const guide = loadGuide(memoryStorage());
+
+  test('the welcome step says a step may be missing', () => {
+    const steps = guide.buildSteps(
+      {
+        loaded: true,
+        noProfile: false,
+        steps: { steps: [] },
+        model: { unavailable: ['packages'] },
+      },
+      how
+    );
+    expect(steps[0].note).toMatch(/step may be missing/);
+  });
+
+  test('and says nothing when everything loaded', () => {
+    const steps = guide.buildSteps(
+      { loaded: true, noProfile: false, steps: { steps: [] }, model: { unavailable: [] } },
+      how
+    );
+    expect(steps[0].note).toBe('');
   });
 });
 
@@ -348,5 +375,83 @@ describe('setup guide progress follows the cookie choice', () => {
     const storage = memoryStorage();
     loadGuide(storage).writeProgress({ id: 'u1' }, 'dismissed', 'a');
     expect(storage.store.has('ef.supplierGuide.v1.u1')).toBe(true);
+  });
+});
+
+describe('setup guide progress is kept on the account', () => {
+  /** The guide with a dashboard-helpers stand-in whose requests are recorded. */
+  function loadWithAccount(accountRecord, consent) {
+    const calls = [];
+    const window = {
+      localStorage: memoryStorage(),
+      ...(consent ? { CookieConsent: { getConsent: () => consent } } : {}),
+      SupplierDashboardHome: {
+        getJson: async url => {
+          calls.push(['GET', url]);
+          return { ok: true, data: { progress: accountRecord } };
+        },
+        sendJson: async (url, method, body) => {
+          calls.push([method, url, body]);
+          return { ok: true, data: {} };
+        },
+      },
+    };
+    const document = {
+      readyState: 'loading',
+      addEventListener() {},
+      getElementById: () => null,
+      querySelector: () => null,
+    };
+    vm.runInNewContext(guideSource, { window, document, console });
+    return { guide: window.SupplierDashboardOnboarding, calls, window };
+  }
+
+  test('saving sends the status and step to the account', () => {
+    const { guide, calls } = loadWithAccount({});
+    guide.writeProgress({ id: 'u1' }, 'dismissed', 'packages');
+    expect(calls).toEqual([
+      ['PUT', '/api/supplier/guide-progress', { status: 'dismissed', step: 'packages' }],
+    ]);
+  });
+
+  test('what another device saved is read back, even with no browser copy', async () => {
+    const { guide } = loadWithAccount({
+      status: 'dismissed',
+      step: 'verify',
+      at: '2026-10-01T10:00:00.000Z',
+    });
+    await guide.loadAccountProgress({ id: 'u1' });
+    expect(guide.readProgress({ id: 'u1' })).toMatchObject({ status: 'dismissed', step: 'verify' });
+  });
+
+  test('the newer of the browser copy and the account copy wins', async () => {
+    const { guide, window } = loadWithAccount({
+      status: 'dismissed',
+      step: 'verify',
+      at: '2026-10-01T10:00:00.000Z',
+    });
+    window.localStorage.setItem(
+      guide.storageKey({ id: 'u1' }),
+      JSON.stringify({ status: 'completed', step: '', at: '2026-10-02T10:00:00.000Z' })
+    );
+    await guide.loadAccountProgress({ id: 'u1' });
+    expect(guide.readProgress({ id: 'u1' }).status).toBe('completed');
+  });
+
+  test('it does not depend on the cookie choice: declining storage still keeps it on the account', async () => {
+    const { guide, calls } = loadWithAccount({}, { functional: false });
+    guide.writeProgress({ id: 'u1' }, 'completed', '');
+    expect(calls[0][0]).toBe('PUT');
+    expect(guide.readProgress({ id: 'u1' }).status).toBe('completed');
+  });
+
+  test('a failed request leaves the browser copy in charge', async () => {
+    const { guide, window } = loadWithAccount({});
+    window.SupplierDashboardHome.getJson = async () => {
+      throw new Error('offline');
+    };
+    await guide.loadAccountProgress({ id: 'u1' });
+    guide.writeProgress({ id: 'u1' }, 'dismissed', 'a');
+    expect(guide.readProgress({ id: 'u1' }).status).toBe('dismissed');
   });
 });

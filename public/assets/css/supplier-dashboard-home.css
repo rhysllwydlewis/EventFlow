@@ -562,6 +562,30 @@
   grid-template-columns: repeat(4, minmax(0, 1fr));
 }
 
+/* While the figures load, keep the room they will fill, so the cards below do not jump down when
+   they arrive. The heights are what the finished row measures at each width. */
+.sdh-page .sdh-summary:has(#sdh-summary-grid[aria-busy='true']) {
+  min-height: 272px;
+}
+
+@media (max-width: 1023px) {
+  .sdh-page .sdh-summary:has(#sdh-summary-grid[aria-busy='true']) {
+    min-height: 420px;
+  }
+}
+
+@media (max-width: 767px) {
+  .sdh-page .sdh-summary:has(#sdh-summary-grid[aria-busy='true']) {
+    min-height: 340px;
+  }
+}
+
+@media (max-width: 359px) {
+  .sdh-page .sdh-summary:has(#sdh-summary-grid[aria-busy='true']) {
+    min-height: 560px;
+  }
+}
+
 .sdh-page .sdh-summary__grid > :last-child:nth-child(odd) {
   grid-column: 1 / -1;
 }
@@ -637,11 +661,6 @@
   line-height: 1.45;
 }
 
-.sdh-page .sdh-tile__sub--warn {
-  color: var(--sdh-danger);
-  font-weight: 600;
-}
-
 .sdh-page .sdh-bar {
   height: 6px;
   margin: 4px 0 2px;
@@ -655,10 +674,6 @@
   height: 100%;
   border-radius: inherit;
   background: var(--sdh-accent);
-}
-
-.sdh-page .sdh-bar--warn > span {
-  background: var(--sdh-danger);
 }
 
 /* Summary row: the second line with visits and reply figures */
@@ -779,23 +794,6 @@
   border-top: 1px solid var(--sdh-line-soft);
 }
 
-.sdh-page .sdh-subhead {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  gap: 4px 12px;
-  margin-bottom: 4px;
-  color: var(--sdh-ink);
-  font-size: 14px;
-  font-weight: 600;
-}
-
-.sdh-page .sdh-subhead__note {
-  color: var(--sdh-muted);
-  font-size: 13px;
-  font-weight: 400;
-}
-
 .sdh-page .sdh-list__row {
   display: flex;
   align-items: center;
@@ -897,12 +895,6 @@
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 20px 16px;
-}
-
-.sdh-page .sdh-form__title {
-  color: var(--sdh-ink);
-  font-size: 16px;
-  font-weight: 600;
 }
 
 .sdh-page .sdh-field {
@@ -1810,10 +1802,6 @@
   margin-bottom: 8px;
 }
 
-.sdh-page .sdh-pkg-upgrade {
-  margin-top: 4px;
-}
-
 /* ------------------------------------------------------------------ *
  * Availability, visits, tips
  * ------------------------------------------------------------------ */
@@ -2409,14 +2397,6 @@
   margin-top: 2px;
   color: var(--sdh-muted);
   font-size: 13px;
-}
-
-.sdh-page .supplier-tickets-view-all {
-  display: inline-block;
-  margin-top: 12px;
-  color: var(--sdh-accent-deep);
-  font-size: 13px;
-  font-weight: 600;
 }
 
 .sdh-page #tickets-sup .empty-state,
@@ -3316,10 +3296,6 @@
   width: 100%;
 }
 
-.sdh-page .sdh-dialog .sdh-form-status {
-  margin-top: 0;
-}
-
 .sdh-page .sdh-input--area {
   min-height: 88px;
   padding-block: 10px;
@@ -3471,6 +3447,49 @@
   font-size: 14px;
   overflow-wrap: anywhere;
   white-space: pre-wrap;
+}
+
+.sdh-page .sdh-enq__reasons {
+  margin: 0 0 12px;
+  padding-left: 20px;
+  color: var(--sdh-muted);
+  font-size: 13px;
+}
+
+.sdh-page .sdh-enq__replies {
+  display: grid;
+  gap: 10px;
+  margin: 0 0 14px;
+  padding: 0;
+  list-style: none;
+}
+
+.sdh-page .sdh-enq__reply {
+  display: grid;
+  gap: 4px;
+  padding: 10px 12px;
+  border: 1px solid var(--sdh-line);
+  border-radius: 10px;
+  background: var(--sdh-surface-2, #f6f9fa);
+}
+
+.sdh-page .sdh-enq__reply-when {
+  color: var(--sdh-muted);
+  font-size: 12px;
+}
+
+.sdh-page .sdh-enq__reply .sdh-enq__message {
+  margin: 0;
+}
+
+.sdh-page .sdh-enq__reply-form {
+  display: grid;
+  gap: 8px;
+  margin: 0 0 14px;
+}
+
+.sdh-page .sdh-enq__reply-form .sdh-btn {
+  justify-self: start;
 }
 
 .sdh-page .sdh-enq__actions {
@@ -3651,11 +3670,10 @@
 }
 
 .sdh-page .sdh-hero__guide {
+  /* The line is kept whether or not the Setup guide link is shown, so the figures below do not jump
+     down when it appears after the page has loaded. */
+  min-height: 24px;
   margin: 8px 0 0;
-}
-
-.sdh-page .sdh-hero__guide:has(> [hidden]) {
-  display: none;
 }
 
 /* The page behind an open editor does not scroll. */

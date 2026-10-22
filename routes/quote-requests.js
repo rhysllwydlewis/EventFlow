@@ -15,6 +15,7 @@ const { csrfProtection } = require('../middleware/csrf');
 const { writeLimiter } = require('../middleware/rateLimits');
 const validator = require('validator');
 const { notifySupplierOfEnquiry } = require('../services/supplierEnquiryNotifier');
+const { getAppWebSocketServer } = require('../utils/appWebSocket');
 
 /** A quote request names suppliers; only this many are told, so one request cannot fan out widely. */
 const MAX_SUPPLIERS_NOTIFIED = 10;
@@ -115,7 +116,7 @@ router.post('/', writeLimiter, csrfProtection, async (req, res) => {
 
     // Tell each supplier asked (bell and one email). Never blocks or fails the submission. A
     // supplier named twice is told once.
-    const websocketServer = req.app?.get?.('websocketServer') || null;
+    const websocketServer = getAppWebSocketServer(req);
     const supplierIds = new Set(
       quoteRequest.suppliers.map(target => validator.unescape(target.supplierId)).filter(Boolean)
     );

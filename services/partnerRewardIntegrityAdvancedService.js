@@ -2,6 +2,7 @@
 
 const dbUnified = require('../db-unified');
 const baseIntegrity = require('./partnerRewardIntegrityService');
+const { packagePriceText } = require('../utils/packagePrice');
 
 const MILESTONE_TYPES = new Set([
   'PACKAGE_BONUS',
@@ -161,7 +162,8 @@ const packageCopyEvidence = async (supplierUserId, packageId) => {
     if (!otherOwner || otherOwner === currentOwner) continue;
     const similarity = jaccardSimilarity(currentText, packageText(candidate));
     const sameTitle = normaliseText(current.title) === normaliseText(candidate.title);
-    const samePrice = normaliseText(current.price) === normaliseText(candidate.price);
+    const samePrice =
+      normaliseText(packagePriceText(current)) === normaliseText(packagePriceText(candidate));
     const strongMetadataCopy = sameTitle && samePrice && similarity >= 0.8;
     if (strongMetadataCopy || (similarity >= threshold && (sameTitle || samePrice))) {
       return {

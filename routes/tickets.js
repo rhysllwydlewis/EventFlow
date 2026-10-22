@@ -132,7 +132,7 @@ router.post(
   async (req, res) => {
     try {
       const userId = req.user.id;
-      const { senderType, senderName, senderEmail, subject, message } = req.body;
+      const { senderType, subject, message } = req.body;
 
       // Validation
       if (!subject || !message) {
@@ -181,8 +181,10 @@ router.post(
         id: uid(),
         senderId: userId,
         senderType: senderType,
-        senderName: senderName || getUserDisplayName(req.user, 'User'),
-        senderEmail: senderEmail || req.user.email,
+        // Who the ticket is from comes from the signed-in account, never from the request: an admin's
+        // reply is emailed to this address.
+        senderName: getUserDisplayName(req.user, 'User'),
+        senderEmail: req.user.email,
         subject: subject.trim(),
         message: message.trim(),
         status: 'open',

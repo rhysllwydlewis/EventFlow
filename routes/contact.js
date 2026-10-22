@@ -14,6 +14,7 @@ const logger = require('../utils/logger');
 const { uid } = require('../store');
 const { notifyAdmins } = require('../services/notifyAdmins.service');
 const { notifySupplierOfEnquiry } = require('../services/supplierEnquiryNotifier');
+const { getAppWebSocketServer } = require('../utils/appWebSocket');
 const router = express.Router();
 
 // Input length limits for contact form fields
@@ -102,7 +103,7 @@ router.post('/contact', applyWriteLimiter, async (req, res) => {
       return res.status(500).json({ error: 'Failed to submit enquiry. Please try again.' });
     }
 
-    const wsServer = req.app && req.app.get ? req.app.get('websocketServer') : null;
+    const wsServer = getAppWebSocketServer(req);
     notifyAdmins(
       {
         type: 'ticket',
@@ -204,7 +205,7 @@ router.post('/contact-supplier', applyWriteLimiter, async (req, res) => {
         senderName: enquiry.senderName,
         message: enquiry.message,
       },
-      { websocketServer: req.app?.get?.('websocketServer') || null }
+      { websocketServer: getAppWebSocketServer(req) }
     );
 
     return res.json({

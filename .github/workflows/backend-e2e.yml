@@ -10,6 +10,12 @@ on:
       - 'config/**'
       - 'models/**'
       - 'e2e/**'
+      # The pages and scripts the journeys drive: a change to them must run the journeys too.
+      - 'public/dashboard-*.html'
+      - 'public/admin-*.html'
+      - 'public/assets/js/**'
+      - 'public/assets/css/supplier-dashboard-*.css'
+      - 'public/messenger/**'
       - 'server.js'
       - 'store.js'
       - 'db*.js'
@@ -102,5 +108,78 @@ jobs:
           path: |
             playwright-report
             test-results/**/*.png
+          if-no-files-found: warn
+          retention-days: 14
+
+  # The supplier dashboard in the other two engines customers use (Safari's, and Firefox). The main
+  # job runs every journey in Chromium; this one runs the dashboard, layout/accessibility and
+  # messaging journeys in Firefox and WebKit as well.
+  dashboard-other-browsers:
+    name: Dashboard journeys (Firefox and WebKit)
+    runs-on: ubuntu-latest
+    timeout-minutes: 75
+    env:
+      PLAYWRIGHT_ALL_BROWSERS: 'true'
+      # Keep a trace of a failing test (page state, console, network): the other engines fail in
+      # ways a screenshot alone does not explain.
+      PLAYWRIGHT_TRACE: 'retain-on-failure'
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version-file: '.node-version'
+          cache: npm
+
+      - name: Start MongoDB replica set
+        # supercharge/mongodb-github-action v1.12.0
+        uses: supercharge/mongodb-github-action@315db7fe45ac2880b7758f1933e6e5d59afd5e94
+        with:
+          mongodb-version: '7.0'
+          mongodb-replica-set: rs0
+
+      - name: Install dependencies
+        run: npm ci --prefer-offline --no-audit
+
+      - name: Install Firefox and WebKit
+        # WebKit's system packages are a large download; a slow package mirror once held this step
+        # for 45 minutes. Give each attempt a limit and try again (what was fetched is kept).
+        timeout-minutes: 35
+        run: |
+          for attempt in 1 2; do
+            if timeout 15m npx playwright install --with-deps firefox webkit; then
+              exit 0
+            fi
+            echo "Browser install attempt $attempt did not finish; trying again."
+          done
+          exit 1
+
+      - name: Run the dashboard journeys in Firefox and WebKit
+        timeout-minutes: 35
+        run: >-
+          npx playwright test
+          e2e/supplier-dashboard-actions.spec.js
+          e2e/supplier-dashboard-conditions.spec.js
+          e2e/customer-supplier-live-messages.spec.js
+          e2e/admin-packages-page.spec.js
+          e2e/zz-webkit-probe.spec.js
+          --project=firefox --project=webkit
+          --grep @backend
+        env:
+          PLAYWRIGHT_JSON_OUTPUT_NAME: test-results/other-browsers-results.json
+          PLAYWRIGHT_JUNIT_OUTPUT_NAME: test-results/other-browsers-junit.xml
+
+      - name: Upload diagnostics
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: dashboard-other-browsers-diagnostics
+          path: |
+            playwright-report
+            test-results/**/*.png
+            test-results/**/trace.zip
           if-no-files-found: warn
           retention-days: 14

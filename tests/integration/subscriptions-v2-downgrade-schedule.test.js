@@ -312,4 +312,49 @@ describe('POST /:id/upgrade — releases a pending downgrade schedule first', ()
 
     expect(mockStripe.subscriptionSchedules.release).not.toHaveBeenCalled();
   });
+
+  test('refuses to upgrade a cancelled subscription, which still names the ended Stripe one', async () => {
+    mockSubscriptionService.getSubscription.mockResolvedValue({
+      id: 'sub_1',
+      userId: 'user_1',
+      plan: 'free',
+      status: 'canceled',
+      stripeSubscriptionId: 'sub_stripe_ended',
+      billingInterval: 'month',
+      metadata: {},
+    });
+
+    const app = buildApp({ id: 'user_1', email: 'a@b.com' });
+    const response = await request(app)
+      .post('/api/v2/subscriptions/sub_1/upgrade')
+      .send({ planId: 'pro_plus' })
+      .expect(400);
+
+    expect(response.body.code).toBe('CHECKOUT_REQUIRED');
+    expect(mockStripe.subscriptions.update).not.toHaveBeenCalled();
+    expect(mockSubscriptionService.upgradeSubscription).not.toHaveBeenCalled();
+  });
+
+  test('refuses to upgrade a record with no Stripe subscription (it would be a free plan change)', async () => {
+    // What a user is left with after a paid-to-free downgrade completes: active, free, nothing billed.
+    mockSubscriptionService.getSubscription.mockResolvedValue({
+      id: 'sub_1',
+      userId: 'user_1',
+      plan: 'free',
+      status: 'active',
+      stripeSubscriptionId: null,
+      billingInterval: 'month',
+      metadata: {},
+    });
+
+    const app = buildApp({ id: 'user_1', email: 'a@b.com' });
+    const response = await request(app)
+      .post('/api/v2/subscriptions/sub_1/upgrade')
+      .send({ planId: 'pro_plus' })
+      .expect(400);
+
+    expect(response.body.code).toBe('CHECKOUT_REQUIRED');
+    expect(mockSubscriptionService.upgradeSubscription).not.toHaveBeenCalled();
+    expect(mockStripe.subscriptions.update).not.toHaveBeenCalled();
+  });
 });
