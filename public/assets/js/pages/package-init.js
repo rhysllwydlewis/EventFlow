@@ -417,7 +417,7 @@ function buildSupplierSidebar(supplier, pkg, currentUser) {
 
   // Reflect current shortlist state
   const sm = window.shortlistManager;
-  if (sm && sm.isAuthenticated && sm.hasItem('supplier', supplier.id)) {
+  if (sm?.isAuthenticated && sm.hasItem('supplier', supplier.id)) {
     saveBtn.classList.replace('sp-btn--shortlist', 'sp-btn--shortlist-active');
     saveBtn.innerHTML = '❤️ Saved';
     saveBtn.setAttribute('aria-label', 'Remove from shortlist');
