@@ -117,7 +117,7 @@ jobs:
   dashboard-other-browsers:
     name: Dashboard journeys (Firefox and WebKit)
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    timeout-minutes: 75
     env:
       PLAYWRIGHT_ALL_BROWSERS: 'true'
 
@@ -142,7 +142,17 @@ jobs:
         run: npm ci --prefer-offline --no-audit
 
       - name: Install Firefox and WebKit
-        run: npx playwright install --with-deps firefox webkit
+        # WebKit's system packages are a large download; a slow package mirror once held this step
+        # for 45 minutes. Give each attempt a limit and try again (what was fetched is kept).
+        timeout-minutes: 35
+        run: |
+          for attempt in 1 2; do
+            if timeout 15m npx playwright install --with-deps firefox webkit; then
+              exit 0
+            fi
+            echo "Browser install attempt $attempt did not finish; trying again."
+          done
+          exit 1
 
       - name: Run the dashboard journeys in Firefox and WebKit
         timeout-minutes: 35
