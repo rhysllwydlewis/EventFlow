@@ -580,25 +580,17 @@ async function setEnquiryStatus(supplierId, id, status) {
   if (!enquiry) {
     return null;
   }
-  const stateId = `${supplierId}:${id}`;
   const now = new Date().toISOString();
-  const existing = await dbUnified.findOne(STATES_COLLECTION, { id: stateId }, STRICT);
-  if (existing) {
-    await dbUnified.updateOne(
-      STATES_COLLECTION,
-      { id: stateId },
-      { $set: { status, updatedAt: now } }
-    );
-  } else {
-    await dbUnified.insertOne(STATES_COLLECTION, {
-      id: stateId,
-      supplierId,
-      enquiryId: id,
-      source: enquiry.source,
-      status,
-      createdAt: now,
-      updatedAt: now,
-    });
+  // One document per supplier and enquiry, written in one step: two people (or a double click)
+  // marking the same new enquiry at once must not create two documents.
+  const saved = await dbUnified.upsertOne(
+    STATES_COLLECTION,
+    { id: `${supplierId}:${id}` },
+    { supplierId, enquiryId: id, source: enquiry.source, status, updatedAt: now },
+    { createdAt: now }
+  );
+  if (!saved) {
+    throw new Error('Could not save the enquiry status');
   }
   return { ...enquiry, status };
 }

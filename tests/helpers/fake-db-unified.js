@@ -301,6 +301,15 @@ const fake = {
     }
     return { matchedCount: row ? 1 : 0, modifiedCount: row ? 1 : 0 };
   }),
+  upsertOne: jest.fn(async (name, filter, fields, onInsert = {}) => {
+    const row = rowsOf(name).find(item => matches(item, filter));
+    if (row) {
+      Object.assign(row, fields);
+    } else {
+      rowsOf(name).push({ ...filter, ...onInsert, ...fields });
+    }
+    return true;
+  }),
   deleteOne: jest.fn(async (name, filter) => {
     const rows = rowsOf(name);
     const index = rows.findIndex(row => matches(row, filter));

@@ -176,6 +176,8 @@ async function createIndexes() {
     await marketplaceCollection.createIndex({ status: 1 });
     await marketplaceCollection.createIndex({ createdAt: -1 });
     const quoteRequestsCollection = mongodb.collection('quoteRequests');
+    // The supplier's enquiry list and counts select quote requests by the suppliers array
+    await quoteRequestsCollection.createIndex({ 'suppliers.supplierId': 1, createdAt: -1 });
     await quoteRequestsCollection.createIndex({ userId: 1 });
     await quoteRequestsCollection.createIndex({ supplierId: 1 });
     await quoteRequestsCollection.createIndex({ status: 1 });
@@ -185,8 +187,17 @@ async function createIndexes() {
     await supplierEventsCollection.createIndex({ supplierId: 1, timestamp: -1 });
     const enquiriesCollection = mongodb.collection('enquiries');
     await enquiriesCollection.createIndex({ supplierId: 1 });
+    await enquiriesCollection.createIndex({ supplierId: 1, createdAt: -1 }); // enquiry list window
     await enquiriesCollection.createIndex({ senderEmail: 1 });
     await enquiriesCollection.createIndex({ createdAt: -1 });
+    // A supplier's read/handled state per enquiry (one document each) and the replies they sent
+    const enquiryStatesCollection = mongodb.collection('supplier_enquiry_states');
+    await enquiryStatesCollection.createIndex({ id: 1 }, { unique: true });
+    await enquiryStatesCollection.createIndex({ supplierId: 1 });
+    const enquiryRepliesCollection = mongodb.collection('supplier_enquiry_replies');
+    await enquiryRepliesCollection.createIndex({ id: 1 }, { unique: true });
+    await enquiryRepliesCollection.createIndex({ supplierId: 1, sentAt: -1 });
+    await enquiryRepliesCollection.createIndex({ supplierId: 1, enquiryId: 1 });
     const contactEnquiriesCollection = mongodb.collection('contact_enquiries');
     await contactEnquiriesCollection.createIndex({ senderEmail: 1 });
     await contactEnquiriesCollection.createIndex({ status: 1 });
@@ -348,6 +359,7 @@ async function createIndexes() {
     const reviewRequestsCollection = mongodb.collection('reviewRequests');
     await reviewRequestsCollection.createIndex({ id: 1 }, { unique: true });
     await reviewRequestsCollection.createIndex({ supplierId: 1, customerEmail: 1 }); // dedup check
+    await reviewRequestsCollection.createIndex({ supplierId: 1, createdAt: -1 }); // daily send cap
 
     // customer_calendar_entries: add compound index for upcoming events query
     // (collection + userId index already declared above; adding userId+start compound)
@@ -559,6 +571,53 @@ async function updateOne(collectionName, id, updates) {
     }
   } catch (error) {
     logger.error(`Error updating in ${collectionName}:`, error.message);
+    return false;
+  }
+}
+
+/**
+ * Set fields on the one document matching `filter`, creating it when there is none.
+ *
+ * Safe against two callers doing this at once: on MongoDB it is a single upsert, and when the two
+ * race to create the document the loser's duplicate-key error is turned into a plain update (so the
+ * collection needs a unique index on the filter's field). A read-then-insert would let both insert.
+ *
+ * @param {string} collectionName - Collection
+ * @param {Object} filter - Equality filter naming the document (its fields are on the new document)
+ * @param {Object} fields - Fields to set whether the document is new or not
+ * @param {Object} [onInsert] - Fields to set only when the document is created
+ * @returns {Promise<boolean>} True when the document now has the fields
+ */
+async function upsertOne(collectionName, filter, fields, onInsert = {}) {
+  await initializeDatabase();
+  try {
+    if (dbType === 'mongodb') {
+      const collection = mongodb.collection(collectionName);
+      const update = { $set: fields };
+      if (Object.keys(onInsert).length > 0) {
+        update.$setOnInsert = onInsert;
+      }
+      try {
+        await collection.updateOne(filter, update, { upsert: true });
+      } catch (error) {
+        if (!error || error.code !== 11000) {
+          throw error;
+        }
+        await collection.updateOne(filter, { $set: fields });
+      }
+      return true;
+    }
+    const all = store.read(collectionName);
+    const index = all.findIndex(item => matchesFilter(item, filter));
+    if (index >= 0) {
+      all[index] = applyDotPathSet(all[index], fields);
+    } else {
+      all.push({ ...filter, ...onInsert, ...fields });
+    }
+    store.write(collectionName, all);
+    return true;
+  } catch (error) {
+    logger.error(`Error upserting in ${collectionName}:`, error.message);
     return false;
   }
 }
@@ -1179,6 +1238,7 @@ module.exports = {
   find,
   findOne,
   updateOne,
+  upsertOne,
   updateMany,
   insertOne,
   deleteOne,
