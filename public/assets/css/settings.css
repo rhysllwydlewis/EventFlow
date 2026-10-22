@@ -7,7 +7,7 @@
 .settings-section-divider,
 .settings-section-sep { margin-top: 1.5rem; padding-top: 1.25rem; border-top: 1px solid #f3f4f6; }
 .settings-section-heading { margin: 0 0 1.25rem 0; font-size: 1.25rem; font-weight: 600; }
-.settings-sub-label { font-weight: 400; color: #9ca3af; font-size: 11px; }
+.settings-sub-label { font-weight: 400; color: #6b7280; font-size: 11px; }
 .settings-inline-row,
 .settings-flex-row,
 .settings-flex-gap { display: flex; align-items: center; gap: 0.75rem; }
@@ -26,16 +26,16 @@
 .settings-input-actions { display: flex; gap: 0.5rem; margin-top: 0.5rem; }
 
 /* ── Typography ─────────────────────────────────────────────────── */
-.settings-sub-label { font-weight: 400; color: #9ca3af; font-size: 11px; }
+.settings-sub-label { font-weight: 400; color: #6b7280; font-size: 11px; }
 .settings-toggle-label { font-size: 0.8125rem; color: #374151; font-weight: 500; }
-.settings-toggle-hint { font-size: 0.8125rem; color: #9ca3af; margin-top: 0.25rem; }
-.settings-field-hint { font-size: 0.8125rem; color: #9ca3af; }
+.settings-toggle-hint { font-size: 0.8125rem; color: #6b7280; margin-top: 0.25rem; }
+.settings-field-hint { font-size: 0.8125rem; color: #6b7280; }
 .settings-field-label { font-weight: 600; margin-bottom: 0.25rem; }
 .settings-success-text { font-size: 0.8125rem; color: #0B8073; font-weight: 600; }
 .settings-teal-text { color: #0B8073; font-size: 0.8125rem; font-weight: 600; }
 .settings-muted-text { color: #6b7280; font-size: 0.8125rem; }
 .settings-body-text { font-size: 0.8125rem; color: #374151; }
-.settings-micro-hint { font-size: 0.75rem; color: #9ca3af; margin-top: 0.5rem; }
+.settings-micro-hint { font-size: 0.75rem; color: #6b7280; margin-top: 0.5rem; }
 .settings-status-text { font-size: 0.8125rem; min-height: 1.2rem; }
 .settings-card-title { margin: 0; font-size: 1rem; font-weight: 700; color: #0B1220; }
 .settings-heading-lg { margin: 0; font-size: 1.125rem; font-weight: 700; }
@@ -49,7 +49,7 @@
 .settings-action-title { margin: 0; font-weight: 600; font-size: 0.875rem; }
 .settings-action-desc { margin: 0.25rem 0 0; font-size: 0.8125rem; color: #6b7280; }
 .settings-field-title { font-size: 0.875rem; font-weight: 600; margin: 0 0 0.25rem; }
-.settings-field-desc { font-size: 0.8125rem; color: #9ca3af; margin: 0 0 0.5rem; }
+.settings-field-desc { font-size: 0.8125rem; color: #6b7280; margin: 0 0 0.5rem; }
 .settings-label-bold { font-size: 0.8125rem; font-weight: 600; color: #374151; }
 .settings-zone-text { font-size: 0.875rem; color: #6b7280; margin: 0 0 1rem; }
 .settings-input-hint { font-size: 0.8125rem; color: #6b7280; margin-top: 0.375rem; }

@@ -523,10 +523,10 @@
 
     teaserElement = document.createElement('div');
     teaserElement.className = 'jade-teaser';
-    // A group holding two real buttons (open the chat, dismiss). The bubble itself used to be
+    // A named region holding two real buttons (open the chat, dismiss). The bubble itself used to be
     // role="button" with the dismiss button inside it, which screen readers cannot present: one
     // control nested in another.
-    teaserElement.setAttribute('role', 'group');
+    teaserElement.setAttribute('role', 'region');
     teaserElement.setAttribute('aria-label', 'Chat with Jade');
 
     const avatarHtml = widgetAvatarUrl
