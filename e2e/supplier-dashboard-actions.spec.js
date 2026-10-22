@@ -862,6 +862,43 @@ test.describe('Supplier dashboard: every control works @backend', () => {
     await expect(page.locator('#pkg-limit-note')).toContainText('can be seen here but not changed');
   });
 
+  test('a setup guide that was skipped stays skipped on another device', async ({
+    page,
+    browser,
+    context,
+    baseURL,
+  }) => {
+    await context.addCookies([
+      { name: 'eventflow_cookie_consent', value: 'rejected', url: baseURL },
+    ]);
+    await loginAs(page, fixtures.users.pendingSupplier);
+    const headers = { 'x-csrf-token': 'backend-e2e-csrf-token' };
+    const put = status =>
+      page.request.put('/api/supplier/guide-progress', { headers, data: { status, step: '' } });
+    try {
+      // Skipped on this device: the account remembers it.
+      expect((await put('dismissed')).ok()).toBe(true);
+
+      // Another device is a browser with nothing stored: the guide does not open there.
+      const other = await browser.newContext({ baseURL });
+      const otherPage = await other.newPage();
+      await other.addCookies([
+        { name: 'eventflow_cookie_consent', value: 'rejected', url: baseURL },
+      ]);
+      await loginAs(otherPage, fixtures.users.pendingSupplier);
+      await otherPage.goto('/dashboard/supplier');
+      await expect(otherPage.locator('#welcome-heading')).toBeVisible();
+      await expect(otherPage.locator('#sdh-guide-dialog[open]')).toHaveCount(0);
+      // The link under the greeting still reopens it.
+      await otherPage.locator('#sdh-guide-open').click();
+      await expect(otherPage.locator('#sdh-guide-dialog[open]')).toBeVisible();
+      await other.close();
+    } finally {
+      // Leave it as a new supplier would find it, for the tests that open the guide.
+      await put('active');
+    }
+  });
+
   test('a supplier waiting for approval can send their profile for verification', async ({
     page,
     context,

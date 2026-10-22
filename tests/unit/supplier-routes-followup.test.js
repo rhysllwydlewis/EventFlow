@@ -1,8 +1,10 @@
 'use strict';
 
 /**
- * Replying to a customer's enquiry from the supplier dashboard (POST /enquiries/:id/reply).
- * Runs the real route and service over the in-memory database double with a stand-in mailer.
+ * Supplier routes added in the dashboard follow-up: replying to a customer's enquiry
+ * (POST /enquiries/:id/reply), the setup guide's saved progress (/guide-progress) and the category
+ * check on verification submit. Runs the real routes and services over the in-memory database
+ * double with a stand-in mailer.
  */
 
 jest.mock('../../utils/logger', () => ({
@@ -292,5 +294,69 @@ describe('POST /verification/submit category', () => {
     expect(res.status).toBe(400);
     expect(res.body.error).toBe('Invalid category');
     expect(res.body.validCategories).toContain('Catering');
+  });
+});
+
+describe('/guide-progress (the setup guide, kept on the account)', () => {
+  function call(method, body, user = OWNER) {
+    const router = require('../../routes/supplier');
+    const app = express();
+    app.use(express.json());
+    app.use('/api/supplier', router);
+    const req = request(app)
+      [method]('/api/supplier/guide-progress')
+      .set('x-test-user', JSON.stringify(user));
+    return body === undefined ? req : req.send(body);
+  }
+
+  it('is empty before the supplier starts', async () => {
+    const res = await call('get');
+    expect(res.status).toBe(200);
+    expect(res.body.progress).toEqual({});
+  });
+
+  it('saves where they got to and returns it, to any device', async () => {
+    const put = await call('put', { status: 'dismissed', step: 'package' });
+    expect(put.status).toBe(200);
+    expect(put.body.progress).toMatchObject({ status: 'dismissed', step: 'package' });
+
+    const got = await call('get');
+    expect(got.body.progress).toMatchObject({ status: 'dismissed', step: 'package' });
+    expect(
+      fakeDb.__store().users.find(u => u.id === 'user-1').onboarding.supplierGuide.status
+    ).toBe('dismissed');
+  });
+
+  it('keeps other onboarding fields it does not own', async () => {
+    fakeDb.__reset(
+      seed({
+        users: [
+          { id: 'user-1', email: 'owner@moor.example', verified: true, onboarding: { other: 1 } },
+        ],
+      })
+    );
+    await call('put', { status: 'completed' });
+    const user = fakeDb.__store().users.find(u => u.id === 'user-1');
+    expect(user.onboarding.other).toBe(1);
+    expect(user.onboarding.supplierGuide.status).toBe('completed');
+  });
+
+  it.each([
+    [{ status: 'finished' }],
+    [{ status: 'active', step: 'a b' }],
+    [{ status: 'active', step: 'x'.repeat(41) }],
+    [{ status: 'active', step: { $ne: 1 } }],
+    [{}],
+    [undefined],
+  ])('refuses %j', async body => {
+    const res = await call('put', body === undefined ? {} : body);
+    expect(res.status).toBe(400);
+  });
+
+  it('is for suppliers only', async () => {
+    expect((await call('get', undefined, { id: 'user-9', role: 'customer' })).status).toBe(403);
+    expect(
+      (await call('put', { status: 'active' }, { id: 'user-9', role: 'customer' })).status
+    ).toBe(403);
   });
 });
