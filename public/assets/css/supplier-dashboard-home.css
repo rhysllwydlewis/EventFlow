@@ -3473,6 +3473,13 @@
   white-space: pre-wrap;
 }
 
+.sdh-page .sdh-enq__reasons {
+  margin: 0 0 12px;
+  padding-left: 20px;
+  color: var(--sdh-muted);
+  font-size: 13px;
+}
+
 .sdh-page .sdh-enq__replies {
   display: grid;
   gap: 10px;

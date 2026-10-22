@@ -34,6 +34,7 @@ const crypto = require('crypto');
 const validator = require('validator');
 const dbUnified = require('../db-unified');
 const postmark = require('../utils/postmark');
+const { calculateLeadScore } = require('../utils/leadScoring');
 const { getWindowBounds } = require('../utils/analyticsWindow');
 
 const STRICT = Object.freeze({ throwOnError: true });
@@ -42,6 +43,21 @@ const STATES_COLLECTION = 'supplier_enquiry_states';
 const REPLIES_COLLECTION = 'supplier_enquiry_replies';
 const STATUSES = Object.freeze(['new', 'read', 'handled']);
 const SOURCES = Object.freeze({ quote_request: 'quote_request', contact_form: 'contact_form' });
+const QUALITIES = Object.freeze(['High', 'Medium', 'Low']);
+
+/** What each lead-scoring flag means, in words a supplier can use. */
+const QUALITY_REASONS = Object.freeze({
+  'last-minute': 'The event is less than a month away',
+  'too-far-future': 'The event is more than two years away',
+  'no-event-date': 'No event date was given',
+  'invalid-date': 'The event date could not be read',
+  'invalid-phone': 'The phone number does not look right',
+  'invalid-email': 'The email address does not look right',
+  'short-message': 'The message is very short',
+  'no-message': 'There is no message',
+  'spam-keywords': 'The message contains phrases that spam often uses',
+  'disposable-email': 'The email address is a throwaway one',
+});
 
 const DEFAULT_WINDOW_DAYS = 90;
 const MAX_WINDOW_DAYS = 365;
@@ -157,6 +173,28 @@ function normaliseContactEnquiry(doc) {
 }
 
 /**
+ * How likely an enquiry is to be a genuine, bookable one: an estimate from what the customer filled
+ * in (utils/leadScoring.js, docs/LEAD-SCORING.md), worked out when it is read, never stored.
+ *
+ * @param {Object} enquiry - Full normalised enquiry
+ * @returns {{rating: string, score: number, reasons: string[]}} High, Medium or Low, with why
+ */
+function qualityOf(enquiry) {
+  const result = calculateLeadScore({
+    email: enquiry.email || undefined,
+    phone: enquiry.phone || undefined,
+    eventDate: enquiry.eventDate || undefined,
+    budget: enquiry.budget || undefined,
+    message: enquiry.message || undefined,
+  });
+  return {
+    rating: result.rating,
+    score: result.score,
+    reasons: result.flags.map(flag => QUALITY_REASONS[flag]).filter(Boolean),
+  };
+}
+
+/**
  * The fields a list card gets: no email, phone or full message.
  *
  * @param {Object} enquiry - Full normalised enquiry
@@ -173,6 +211,7 @@ function toListItem(enquiry, status) {
     preview: preview(enquiry.message),
     eventType: enquiry.eventType,
     eventDate: enquiry.eventDate,
+    quality: qualityOf(enquiry).rating,
   };
 }
 
@@ -251,7 +290,7 @@ async function loadContactEnquiries(supplierId, sinceMs) {
  * Clamp the list query parameters to safe values.
  *
  * @param {Object} query - Raw query parameters
- * @returns {{days: number, page: number, limit: number, status: (string|null), source: (string|null)}}
+ * @returns {{days: number, page: number, limit: number, status: (string|null), source: (string|null), quality: (string|null)}}
  */
 function parseListQuery(query) {
   /**
@@ -273,6 +312,7 @@ function parseListQuery(query) {
     limit: whole(query.limit, DEFAULT_PAGE_SIZE, 1, MAX_PAGE_SIZE),
     status: STATUSES.includes(query.status) ? query.status : null,
     source: Object.values(SOURCES).includes(query.source) ? query.source : null,
+    quality: QUALITIES.includes(query.quality) ? query.quality : null,
   };
 }
 
@@ -312,12 +352,19 @@ async function listEnquiries({ supplierId, query, now = new Date() }) {
       quoteRequests: quotes.length,
       contactForm: contacts.length,
     },
+    byQuality: Object.fromEntries(
+      QUALITIES.map(rating => [
+        rating,
+        all.filter(item => qualityOf(item.enquiry).rating === rating).length,
+      ])
+    ),
   };
 
   const filtered = all.filter(
     item =>
       (!options.status || item.status === options.status) &&
-      (!options.source || item.enquiry.source === options.source)
+      (!options.source || item.enquiry.source === options.source) &&
+      (!options.quality || qualityOf(item.enquiry).rating === options.quality)
   );
   const offset = (options.page - 1) * options.limit;
   const totalPages = Math.max(1, Math.ceil(filtered.length / options.limit));
@@ -366,7 +413,7 @@ async function getEnquiry(supplierId, id) {
     source === SOURCES.quote_request ? normaliseQuoteRequest(doc) : normaliseContactEnquiry(doc);
   const states = await loadStates(supplierId);
   const replies = await loadReplies(supplierId, id);
-  return { ...enquiry, status: states.get(id) || 'new', replies };
+  return { ...enquiry, status: states.get(id) || 'new', replies, quality: qualityOf(enquiry) };
 }
 
 /**
@@ -713,6 +760,7 @@ module.exports = {
   EXPORT_HEADERS,
   sourceOfId,
   parseListQuery,
+  qualityOf,
   listEnquiries,
   getEnquiry,
   setEnquiryStatus,

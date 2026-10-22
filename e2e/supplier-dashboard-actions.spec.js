@@ -792,6 +792,11 @@ test.describe('Supplier dashboard: every control works @backend', () => {
     const drawer = page.locator('#sdh-enquiries-dialog[open]');
     await drawer.getByRole('button', { name: new RegExp(sender) }).click();
 
+    // The detail says how likely the enquiry is to be a real one, and the list can be filtered by it.
+    await expect(drawer).toContainText('Enquiry quality:');
+    await drawer.getByLabel('Quality').selectOption('Low');
+    await drawer.getByLabel('Quality').selectOption('');
+
     const replyBox = drawer.getByLabel(`Reply to ${sender}`);
     await expect(replyBox).toBeVisible();
     // Nothing typed: it says so and sends nothing.

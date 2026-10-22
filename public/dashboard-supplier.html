@@ -16,7 +16,7 @@
     <link rel="stylesheet" href="/assets/css/ui-ux-fixes.css?v=18.4.0" />
     <link rel="stylesheet" href="/assets/css/navbar.css?v=18.4.2" /><link rel="stylesheet" href="/assets/css/eventflow-brand.css?v=1.0.1" data-eventflow-brand="true" />
     <link rel="stylesheet" href="/assets/css/skeleton.css?v=2.1.0" />
-    <link rel="stylesheet" href="/assets/css/supplier-dashboard-home.css?v=1.0.2" />
+    <link rel="stylesheet" href="/assets/css/supplier-dashboard-home.css?v=1.0.3" />
     <script src="/assets/js/dashboard-guard.js?v=17.1.0"></script>
     <link rel="stylesheet" href="/messenger/css/messenger-widget-v4.css" />
     <link rel="icon" href="/favicon.ico" sizes="any">
@@ -942,6 +942,15 @@
                 <option value="contact_form">Contact messages</option>
               </select>
             </div>
+            <div class="sdh-field">
+              <label class="sdh-label" for="sdh-enquiries-quality">Quality</label>
+              <select id="sdh-enquiries-quality" class="sdh-input">
+                <option value="">Any quality</option>
+                <option value="High">High</option>
+                <option value="Medium">Medium</option>
+                <option value="Low">Low</option>
+              </select>
+            </div>
           </div>
           <p id="sdh-enquiries-counts" class="sdh-note sdh-drawer__counts"></p>
           <div class="sdh-drawer__panes">
@@ -1002,7 +1011,7 @@
     <script src="/assets/js/pages/supplier-dashboard-overlays.js?v=1.0.0" defer></script>
     <script src="/assets/js/pages/supplier-dashboard-banner.js?v=1.0.0" defer></script>
     <script src="/assets/js/pages/supplier-dashboard-onboarding.js?v=1.1.0" defer></script>
-    <script src="/assets/js/pages/supplier-dashboard-enquiries.js?v=1.1.0" defer></script>
+    <script src="/assets/js/pages/supplier-dashboard-enquiries.js?v=1.2.0" defer></script>
     <script src="/assets/js/pages/supplier-dashboard-fold.js?v=1.0.0" defer></script>
     <script src="/assets/js/app.js?v=18.5.9" defer></script>
     <script src="/assets/js/unread-badge-manager.js?v=18.3.0" defer></script>

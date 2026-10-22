@@ -245,6 +245,7 @@ describe('GET /enquiries', () => {
         'eventType',
         'id',
         'preview',
+        'quality',
         'source',
         'status',
       ].sort()
@@ -279,7 +280,20 @@ describe('GET /enquiries', () => {
       total: 2,
       new: 2,
       bySource: { quoteRequests: 1, contactForm: 1 },
+      byQuality: { High: 1, Medium: 0, Low: 1 },
     });
+  });
+
+  it('filters by quality, and the detail says why an enquiry was rated as it was', async () => {
+    const low = await call('get', '/enquiries?quality=Low');
+    expect(low.body.enquiries.map(item => item.id)).toEqual(['enq_1']);
+    const detail = await call('get', '/enquiries/enq_1');
+    expect(detail.body.enquiry.quality.rating).toBe('Low');
+    expect(detail.body.enquiry.quality.reasons).toEqual(
+      expect.arrayContaining(['No event date was given'])
+    );
+    const ignored = await call('get', '/enquiries?quality=Excellent');
+    expect(ignored.body.enquiries).toHaveLength(2);
   });
 
   it('filters by source and status and paginates, capping the page size at 100', async () => {
@@ -355,6 +369,7 @@ describe('GET /enquiries/:id', () => {
       budget: '2000',
       status: 'new',
       replies: [],
+      quality: { rating: 'High', score: 79, reasons: [] },
     });
   });
 

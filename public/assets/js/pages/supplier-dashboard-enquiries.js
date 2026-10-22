@@ -31,6 +31,7 @@
     close: 'sdh-enquiries-close',
     status: 'sdh-enquiries-status',
     source: 'sdh-enquiries-source',
+    quality: 'sdh-enquiries-quality',
     list: 'sdh-enquiries-list',
     more: 'sdh-enquiries-more',
     note: 'sdh-enquiries-note',
@@ -110,7 +111,7 @@
     return 'error';
   }
 
-  /** The query string for the list: window, page, size and the two filters. */
+  /** The query string for the list: window, page, size and the filters. */
   function listUrl(page, limit) {
     const params = new URLSearchParams({
       days: String(DAYS),
@@ -124,6 +125,10 @@
     }
     if (source?.value) {
       params.set('source', source.value);
+    }
+    const quality = byId(ids.quality);
+    if (quality?.value) {
+      params.set('quality', quality.value);
     }
     return `/api/supplier/enquiries?${params.toString()}`;
   }
@@ -162,6 +167,9 @@
       .filter(Boolean)
       .join(' · ');
     button.appendChild(el('span', 'sdh-enq__meta', meta));
+    if (item.quality) {
+      button.appendChild(el('span', 'sdh-enq__meta', `${item.quality} quality`));
+    }
     return button;
   }
 
@@ -292,7 +300,9 @@
       wrap.appendChild(retry);
       list.appendChild(wrap);
     } else if (!view.items.length) {
-      const filtered = Boolean((byId(ids.status) || {}).value || (byId(ids.source) || {}).value);
+      const filtered = [ids.status, ids.source, ids.quality].some(id =>
+        Boolean((byId(id) || {}).value)
+      );
       list.appendChild(
         el(
           'p',
@@ -422,6 +432,7 @@
     fact(facts, 'Location', item.location);
     fact(facts, 'Budget', item.budget);
     pane.appendChild(facts);
+    renderQuality(pane, item.quality);
     pane.appendChild(el('p', 'sdh-plan__head', 'Message'));
     pane.appendChild(el('p', 'sdh-enq__message', item.message || 'No message was left.'));
     renderReplies(pane, item);
@@ -444,6 +455,25 @@
     });
     pane.appendChild(el('p', 'sdh-note', `Status: ${STATUS_LABEL[item.status] || item.status}`));
     pane.appendChild(actions);
+  }
+
+  /** How likely the enquiry is to be a real one, and why: an estimate, said as one. */
+  function renderQuality(pane, quality) {
+    if (!quality || !quality.rating) {
+      return;
+    }
+    pane.appendChild(
+      el(
+        'p',
+        'sdh-note',
+        `Enquiry quality: ${quality.rating} (an estimate from what was filled in).`
+      )
+    );
+    if (Array.isArray(quality.reasons) && quality.reasons.length) {
+      const reasons = el('ul', 'sdh-enq__reasons');
+      quality.reasons.forEach(reason => reasons.appendChild(el('li', '', reason)));
+      pane.appendChild(reasons);
+    }
   }
 
   /** The replies already sent, and the form for another (when the customer left an address). */
@@ -689,7 +719,9 @@
       renderDetail();
       renderList();
     });
-    [ids.status, ids.source].forEach(id => byId(id)?.addEventListener('change', () => loadList(1)));
+    [ids.status, ids.source, ids.quality].forEach(id =>
+      byId(id)?.addEventListener('change', () => loadList(1))
+    );
     dialog.addEventListener('close', afterClose);
     document.addEventListener('keydown', event => {
       if (event.key === 'Escape' && dialog.open && !event.defaultPrevented) {
