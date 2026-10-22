@@ -1541,7 +1541,37 @@ async function initPlan() {
   }
 }
 
+/**
+ * Whether this browser may remember interface choices (a dismissed welcome card). That is a
+ * remembered preference, so it follows the visitor's cookie choice: allowed only when functional
+ * storage has been accepted. With no consent banner on the page there is no choice to follow.
+ * @returns {boolean} True when it may be kept.
+ */
+function efMayRememberChoices() {
+  const consent = window.CookieConsent;
+  if (!consent || typeof consent.getConsent !== 'function') {
+    return true;
+  }
+  try {
+    const choice = consent.getConsent();
+    return Boolean(choice && choice.functional === true);
+  } catch {
+    return false;
+  }
+}
+
 function efMaybeShowOnboarding(page) {
+  // Declined (or not yet accepted): forget what an earlier visit stored, and keep nothing now.
+  if (!efMayRememberChoices()) {
+    try {
+      localStorage.removeItem('ef_onboarding_dismissed');
+      localStorage.removeItem('eventflow_onboarding_new');
+    } catch {
+      /* Ignore localStorage errors */
+    }
+    return;
+  }
+
   // Check if onboarding has been permanently dismissed (either key suffices)
   try {
     const dismissed = localStorage.getItem('ef_onboarding_dismissed');
@@ -1600,7 +1630,9 @@ function efMaybeShowOnboarding(page) {
   if (btn) {
     btn.addEventListener('click', () => {
       try {
-        localStorage.setItem('ef_onboarding_dismissed', '1');
+        if (efMayRememberChoices()) {
+          localStorage.setItem('ef_onboarding_dismissed', '1');
+        }
       } catch {
         /* Ignore localStorage errors */
       }
@@ -5667,7 +5699,9 @@ document.addEventListener('DOMContentLoaded', () => {
           loginStatus.textContent = 'Signed in. Redirecting…';
         }
         try {
-          localStorage.setItem('eventflow_onboarding_new', '1');
+          if (efMayRememberChoices()) {
+            localStorage.setItem('eventflow_onboarding_new', '1');
+          }
         } catch {
           /* Ignore localStorage errors */
         }
