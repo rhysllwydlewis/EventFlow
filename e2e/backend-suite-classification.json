@@ -19,6 +19,7 @@
     "security-headers.spec.js",
     "start-wizard-journey.spec.js",
     "supplier-dashboard-actions.spec.js",
+    "supplier-dashboard-audit.spec.js",
     "supplier-dashboard-conditions.spec.js",
     "supplier-dashboard-improvements.spec.js",
     "supplier-onboarding.spec.js",

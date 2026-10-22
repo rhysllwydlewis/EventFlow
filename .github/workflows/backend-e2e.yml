@@ -162,6 +162,7 @@ jobs:
         run: >-
           npx playwright test
           e2e/supplier-dashboard-actions.spec.js
+          e2e/supplier-dashboard-audit.spec.js
           e2e/supplier-dashboard-conditions.spec.js
           e2e/customer-supplier-live-messages.spec.js
           e2e/admin-packages-page.spec.js

@@ -19,6 +19,7 @@ const catalogCache = require('../services/catalogCache');
 const { clearSearchCache } = require('../middleware/searchCache');
 const { isSafePublicImageUrl } = require('../services/publicSupplierAvatar.service');
 const { deleteUserAndOwnedData } = require('../services/adminUserDeletion.service');
+const { SUPPLIER_AVATAR_FIELDS } = require('../utils/supplierProfilePhoto');
 
 const router = express.Router();
 
@@ -68,12 +69,13 @@ function supplierBelongsToUser(supplier, user) {
   );
 }
 
-async function syncSupplierAvatarFieldsForUser(user, avatarUrl) {
+async function syncSupplierAvatarFieldsForUser(user, avatarUrl, ownedSuppliers) {
   if (!user || !user.id) {
     return;
   }
-  const suppliers = await dbUnified.read('suppliers');
-  const updates = suppliers.filter(supplier => supplierBelongsToUser(supplier, user));
+  const updates =
+    ownedSuppliers ||
+    (await dbUnified.read('suppliers')).filter(supplier => supplierBelongsToUser(supplier, user));
   for (const supplier of updates) {
     const $set = { updatedAt: new Date().toISOString() };
     if (!supplier.ownerUserId) {
@@ -88,14 +90,12 @@ async function syncSupplierAvatarFieldsForUser(user, avatarUrl) {
         $set.publicProfileAvatarUrl = avatarUrl;
       }
     } else {
-      update.$unset = {
-        profilePhotoUrl: '',
-        avatarUrl: '',
-        displayAvatarUrl: '',
-        publicProfileAvatarUrl: '',
-      };
+      update.$unset = Object.fromEntries(SUPPLIER_AVATAR_FIELDS.map(field => [field, '']));
     }
-    await dbUnified.updateOne('suppliers', { id: supplier.id }, update);
+    const saved = await dbUnified.updateOne('suppliers', { id: supplier.id }, update);
+    if (saved === false) {
+      throw new Error('Failed to save supplier profile photo');
+    }
   }
 }
 
@@ -399,7 +399,7 @@ router.post('/avatar', uploadLimiter, authRequired, csrfProtection, (req, res) =
       const user = await dbUnified.findOne('users', { id: req.user.id });
 
       // Update user avatar URL (use optimized version which is square 400x400)
-      await dbUnified.updateOne(
+      const saved = await dbUnified.updateOne(
         'users',
         { id: req.user.id },
         {
@@ -409,6 +409,9 @@ router.post('/avatar', uploadLimiter, authRequired, csrfProtection, (req, res) =
           },
         }
       );
+      if (saved === false) {
+        throw new Error('Failed to save account avatar');
+      }
 
       await syncSupplierAvatarFieldsForUser(user || req.user, images.optimized);
       await invalidateAvatarDependentCaches(req.app);
@@ -418,7 +421,7 @@ router.post('/avatar', uploadLimiter, authRequired, csrfProtection, (req, res) =
         avatarUrl: images.optimized,
       });
     } catch (processError) {
-      logger.error('Avatar processing error:', processError);
+      logger.error('Avatar upload failed:', processError);
 
       // Handle validation errors with appropriate status codes
       if (processError.name === 'ValidationError') {
@@ -428,7 +431,7 @@ router.post('/avatar', uploadLimiter, authRequired, csrfProtection, (req, res) =
         });
       }
 
-      res.status(500).json({ error: 'Failed to process avatar image' });
+      res.status(500).json({ error: 'Failed to save avatar image' });
     }
   });
 });
@@ -449,20 +452,18 @@ router.delete('/avatar', writeLimiter, authRequired, csrfProtection, async (req,
       return res.status(404).json({ error: 'User not found' });
     }
 
-    if (!user.avatarUrl) {
+    const suppliers = (await dbUnified.read('suppliers')).filter(supplier =>
+      supplierBelongsToUser(supplier, user)
+    );
+    const hasSupplierPhoto = suppliers.some(supplier =>
+      SUPPLIER_AVATAR_FIELDS.some(field => supplier[field])
+    );
+    if (!user.avatarUrl && !hasSupplierPhoto) {
       return res.status(404).json({ error: 'No avatar to delete' });
     }
 
-    // Delete avatar using centralized photo deletion
-    try {
-      await photoUpload.deleteImage(user.avatarUrl);
-    } catch (deleteErr) {
-      logger.error('Failed to delete avatar file:', deleteErr);
-      // Continue anyway to clean up database record
-    }
-
     // Remove avatar URL from user
-    await dbUnified.updateOne(
+    const saved = await dbUnified.updateOne(
       'users',
       { id: req.user.id },
       {
@@ -470,8 +471,22 @@ router.delete('/avatar', writeLimiter, authRequired, csrfProtection, async (req,
         $unset: { avatarUrl: '' },
       }
     );
+    if (saved === false) {
+      throw new Error('Failed to remove account avatar');
+    }
 
-    await syncSupplierAvatarFieldsForUser(user, null);
+    await syncSupplierAvatarFieldsForUser(user, null, suppliers);
+
+    // Persist removal before deleting the file, so a failed database write leaves
+    // the existing image available for retry. Legacy URLs may be shared gallery
+    // images or logos, so only clean up the account avatar's unshared file.
+    if (user.avatarUrl && !suppliers.some(supplier => supplier.logo === user.avatarUrl)) {
+      try {
+        await photoUpload.deleteImage(user.avatarUrl);
+      } catch (deleteErr) {
+        logger.error('Failed to delete avatar file:', deleteErr);
+      }
+    }
     await invalidateAvatarDependentCaches(req.app);
 
     res.json({ ok: true });

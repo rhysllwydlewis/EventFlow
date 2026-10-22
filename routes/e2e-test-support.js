@@ -58,6 +58,8 @@ async function removeRun(runId) {
 
   await Promise.all([
     ...COLLECTIONS.map(name => dbUnified.deleteMany(name, { e2eRunId: runId })),
+    dbUnified.deleteMany('messages_v4', { senderId: { $in: userIds } }),
+    dbUnified.deleteMany('conversations_v4', { 'participants.userId': { $in: userIds } }),
     dbUnified.deleteMany('audit_logs', { targetId: { $in: fixtureIds } }),
     dbUnified.deleteMany('supplierAnalytics', { supplierId: { $in: supplierIds } }),
     dbUnified.deleteMany('events', {
@@ -218,6 +220,19 @@ router.post('/seed', async (req, res, next) => {
       updatedAt: now,
       e2eRunId: runId,
     };
+
+    // Exercise legacy supplier-only photos without inventing an account avatar.
+    const photoSource = req.body?.supplierPhotoSource;
+    if (['profilePhotoUrl', 'profileImage', 'logo'].includes(photoSource)) {
+      approvedSupplier[photoSource] = '/favicon-144x144.png';
+    }
+    if (req.body?.supplierPublisher === true) {
+      approvedSupplier.category = 'Event Planner';
+      approvedSupplier.categories = ['Event Planner'];
+    }
+    if (typeof req.body?.supplierPublisherOverride === 'boolean') {
+      approvedSupplier.publicCalendarPublisherOverride = req.body.supplierPublisherOverride;
+    }
 
     await insert('suppliers', approvedSupplier);
     await insert('suppliers', pendingSupplier);

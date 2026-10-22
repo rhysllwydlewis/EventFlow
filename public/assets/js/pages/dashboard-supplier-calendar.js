@@ -188,17 +188,22 @@
           currentSupplier && currentSupplier.publicCalendarPublisherOverride === false;
         notice.dataset.tone = forceDenied ? 'danger' : 'warn';
         notice.textContent = '';
+        const copy = document.createElement('div');
+        copy.className = 'sup-cal-permission-notice__copy';
         const lead = document.createElement('strong');
         lead.textContent = forceDenied
           ? 'Public calendar publishing has been disabled for your account by an administrator.'
           : "Public calendar publishing isn't available for your supplier type.";
-        notice.appendChild(lead);
-        notice.appendChild(document.createTextNode(' Your private calendar is not affected.'));
+        copy.appendChild(lead);
+        const reassurance = document.createElement('p');
+        reassurance.textContent = 'Your private calendar is not affected.';
+        copy.appendChild(reassurance);
+        notice.appendChild(copy);
         if (!forceDenied) {
           const request = document.createElement('button');
           request.type = 'button';
           request.id = 'sup-request-publishing-btn';
-          request.className = 'sdh-link';
+          request.className = 'sdh-btn sdh-btn--secondary sdh-btn--sm';
           request.textContent = 'Ask to publish public events';
           request.addEventListener('click', requestPublishingAccess);
           notice.appendChild(request);
@@ -1290,7 +1295,7 @@
       },
       noEventsContent: function () {
         return {
-          html: '<div class="cal-no-events">No events yet. Click any day to add one.</div>',
+          html: '<div class="cal-no-events">No events yet. Use Add private entry to add one.</div>',
         };
       },
       // FullCalendar marks its chevron glyphs role="img" with no name; the buttons carry the

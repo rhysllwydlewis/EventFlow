@@ -2,7 +2,7 @@
 
 /**
  * Fixes from the visual review of the supplier dashboard: long package lists fold, package actions
- * keep their columns, anchor jumps clear the fixed header, the calendar keeps to one accent, and the
+ * remain usable, anchor jumps clear the fixed header, the calendar keeps to one accent, and the
  * messenger's load error matches the rest of the page.
  */
 
@@ -38,14 +38,8 @@ describe('supplier dashboard: visual fixes', () => {
     });
   });
 
-  test('package actions sit in fixed columns (five wide, three on a phone), not a ragged wrap', () => {
-    expect(css).toMatch(
-      /\.sdh-page \.sdh-pkg__actions \{[^}]*grid-template-columns: repeat\(5, max-content\)/
-    );
-    expect(css).toMatch(
-      /@media \(max-width: 559px\) \{\s*\.sdh-page \.sdh-pkg__actions \{\s*grid-template-columns: repeat\(3, max-content\)/
-    );
-  });
+  // Package action visibility and wrapping are checked at actual viewport sizes in
+  // e2e/supplier-dashboard-audit.spec.js; fixed column counts previously hid overflow at 320px.
 
   test('Escape answers "no" in the confirmation dialog itself (a browser may ignore its own close request)', () => {
     const home = read('public/assets/js/pages/supplier-dashboard-home.js');

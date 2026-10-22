@@ -19,10 +19,14 @@ async function requireOk(response, action) {
   throw new Error(`${action} failed with HTTP ${response.status()}: ${body.slice(0, 500)}`);
 }
 
-export async function seedBackendFixtures(request, runId) {
+export async function seedBackendFixtures(
+  request,
+  runId,
+  { supplierPhotoSource, supplierPublisher, supplierPublisherOverride } = {}
+) {
   const response = await request.post('/__e2e/seed', {
     headers: E2E_HEADERS,
-    data: { runId },
+    data: { runId, supplierPhotoSource, supplierPublisher, supplierPublisherOverride },
   });
   await requireOk(response, 'Backend E2E fixture seed');
   return response.json();

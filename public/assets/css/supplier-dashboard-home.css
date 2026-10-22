@@ -1591,23 +1591,23 @@
   bottom: -2px;
 }
 
-/* A small red badge on the corner of the photo (a destructive action), not a button over it.
-   The ::after widens the hit area to 44px for touch without making the badge bigger. */
+/* Match the camera's visible size; the separate hit areas stay 44px and do not overlap.
+   The minimums must beat the highly specific site-wide button touch-target rules. */
 .sdh-page .sdh-avatar__remove {
-  top: -6px;
-  right: -6px;
-  width: 22px;
-  height: 22px;
-  min-width: 22px;
-  min-height: 22px;
+  top: -2px;
+  width: 32px;
+  height: 32px;
+  min-width: 32px !important;
+  min-height: 32px !important;
   border-width: 2px;
   background: var(--sdh-danger);
   font-size: 14px;
 }
 
-.sdh-page .sdh-avatar__remove::after {
+.sdh-page .sdh-avatar__remove::after,
+.sdh-page .sdh-avatar__camera::after {
   position: absolute;
-  inset: -11px;
+  inset: -8px;
   content: '';
 }
 
@@ -1757,18 +1757,12 @@
 }
 
 .sdh-page .sdh-pkg__actions {
-  display: grid;
-  grid-template-columns: repeat(5, max-content);
+  display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: start;
   gap: 8px 20px;
   margin-top: 12px;
-}
-
-@media (max-width: 559px) {
-  .sdh-page .sdh-pkg__actions {
-    grid-template-columns: repeat(3, max-content);
-  }
 }
 
 .sdh-page .sdh-pkg__actions .sdh-link {
@@ -3368,20 +3362,28 @@
 /* Messages: search, filter and sort over the latest conversations. */
 
 .sdh-page .sdh-msg-tools {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto auto;
+  display: flex;
+  flex-wrap: wrap;
   gap: 8px;
   margin-bottom: 12px;
 }
 
-@media (max-width: 479px) {
-  .sdh-page .sdh-msg-tools {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
+.sdh-page .sdh-msg-tools .sdh-input {
+  min-width: 0;
+  max-width: 100%;
+}
 
-  .sdh-page .sdh-msg-tools [type='search'] {
-    grid-column: 1 / -1;
-  }
+.sdh-page .sdh-msg-tools [type='search'] {
+  flex: 1 1 100%;
+}
+
+.sdh-page .sdh-msg-tools select {
+  flex: 1 1 124px;
+  width: auto;
+}
+
+.sdh-page #widget-sort-select-supplier {
+  flex: 1.25 1 158px;
 }
 
 /* Enquiries: the card, and the drawer (a side panel on desktop, a bottom sheet on a phone). */
@@ -3987,8 +3989,7 @@
 .sdh-page .sup-cal-permission-notice {
   display: flex;
   flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
+  align-items: flex-start;
   gap: 8px 16px;
   margin-bottom: 16px;
   padding: 12px 14px;
@@ -3997,6 +3998,31 @@
   background: #fbfaf8;
   color: var(--sdh-ink-2);
   font-size: 13px;
+}
+
+.sdh-page .sup-cal-permission-notice__copy {
+  flex: 1 1 280px;
+  min-width: 0;
+}
+
+.sdh-page .sup-cal-permission-notice__copy p {
+  margin-top: 4px;
+}
+
+.sdh-page .sdh-card--calendar .sdh-card__head {
+  flex-wrap: wrap;
+  align-items: flex-start;
+}
+
+.sdh-page .sdh-card--calendar .sdh-card__titles {
+  flex: 1 1 220px;
+}
+
+.sdh-page .sdh-card--calendar .sdh-card__actions {
+  flex: 0 1 auto;
+  min-width: 0;
+  max-width: 100%;
+  justify-content: flex-start;
 }
 
 .sdh-page .sup-cal-permission-notice button,

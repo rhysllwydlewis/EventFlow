@@ -157,11 +157,9 @@ describe('supplier dashboard editors: app.js wiring', () => {
     expect(appJs).toContain('data-action="delete-profile-photo"');
     expect(appJs).toContain('aria-label="Delete profile photo"');
     expect(appJs).toContain("title: 'Remove your profile photo?'");
-    const rule = css.slice(css.indexOf('.sdh-page .sdh-avatar__remove {\n  top'));
-    expect(rule).toMatch(/width: 22px;/);
-    expect(rule).toMatch(/background: var\(--sdh-danger\)/);
-    // The 44px touch area comes from a pseudo-element, not from a bigger badge.
-    expect(css).toMatch(/\.sdh-avatar__remove::after \{\s*position: absolute;\s*inset: -11px/);
+    // Actual visual/hit-area dimensions are checked in the browser regression suite;
+    // declarations alone missed the generic touch-target override in this bug.
+    expect(appJs).toMatch(/class="sdh-avatar__remove"[^>]*>[\s\S]*?<svg/);
   });
 
   test('the old banner drop zone code (an element that no longer exists) is gone', () => {

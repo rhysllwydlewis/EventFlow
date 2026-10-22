@@ -1875,9 +1875,10 @@ async function initDashSupplier() {
    * @param {Object} supplier - Supplier record.
    * @param {string} photoUrl - Already escaped profile photo URL, or ''.
    * @param {string} initials - Already escaped initials shown when there is no photo.
+   * @param {boolean} removable - False for a business-logo fallback, which is kept separately.
    * @returns {string} Card markup.
    */
-  function supplierCardHtml(supplier, photoUrl, initials) {
+  function supplierCardHtml(supplier, photoUrl, initials, removable = true) {
     const supplierId = escapeAttr(String(supplier.id || ''));
     const name = escapeHtml(String(supplier.name || 'Unnamed supplier'));
     const meta = [supplier.location, supplier.category]
@@ -1895,8 +1896,8 @@ async function initDashSupplier() {
             : initials
         }</div>
         ${
-          photoUrl
-            ? `<button type="button" class="sdh-avatar__remove" data-action="delete-profile-photo" data-profile-id="${supplierId}" title="Delete profile photo" aria-label="Delete profile photo"><span aria-hidden="true">&times;</span></button>`
+          photoUrl && removable
+            ? `<button type="button" class="sdh-avatar__remove" data-action="delete-profile-photo" data-profile-id="${supplierId}" title="Delete profile photo" aria-label="Delete profile photo"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18M9 6V4h6v2M5 6l1 14h12l1-14M10 10v6M14 10v6"/></svg></button>`
             : ''
         }
         <label for="supplier-profile-photo-upload-${supplierId}" class="sdh-avatar__camera">
@@ -1961,7 +1962,7 @@ async function initDashSupplier() {
    * Gives each supplier's best picture address: its own profile pictures first, then the signed-in
    * person's, then the logo. Anything that is not a web address or same-site path is skipped.
    * @param {Object|null} currentUser - The signed-in user, if known.
-   * @returns {function(Object): string} Maps a supplier to an escaped address, or ''.
+   * @returns {function(Object): Object} The escaped address and whether it is a removable photo.
    */
   function profilePhotoResolver(currentUser) {
     const userPhoto =
@@ -1975,12 +1976,24 @@ async function initDashSupplier() {
         supplier?.avatarUrl,
         supplier?.profileImage,
         userPhoto,
-        supplier?.logo,
       ];
       const found = candidates.find(
         value => value && typeof value === 'string' && PHOTO_URL_PATTERN.test(value.trim())
       );
-      return typeof found === 'string' ? escapeAttr(found.trim()) : '';
+      if (typeof found === 'string') {
+        return {
+          url: escapeAttr(found.trim()),
+          removable: supplier.profilePhotoRemovable !== false,
+        };
+      }
+      const logo = supplier?.logo;
+      return {
+        url:
+          typeof logo === 'string' && PHOTO_URL_PATTERN.test(logo.trim())
+            ? escapeAttr(logo.trim())
+            : '',
+        removable: false,
+      };
     };
   }
 
@@ -2136,13 +2149,15 @@ async function initDashSupplier() {
     const profileInitial = initialsOfName(profileDisplayNameOf(currentUser));
     supWrap.innerHTML = items
       .filter(Boolean)
-      .map(s =>
-        supplierCardHtml(
+      .map(s => {
+        const photo = resolvePhoto(s);
+        return supplierCardHtml(
           s,
-          resolvePhoto(s),
-          escapeHtml(window.EFSupplierAvatar?.getSupplierInitials(s.name) || profileInitial)
-        )
-      )
+          photo.url,
+          escapeHtml(window.EFSupplierAvatar?.getSupplierInitials(s.name) || profileInitial),
+          photo.removable
+        );
+      })
       .join('');
     supWrap.querySelectorAll('.sdh-avatar').forEach(slot => {
       if (!slot.querySelector('img')) {
@@ -2904,14 +2919,10 @@ async function initDashSupplier() {
         await window.AuthStateManager.refresh();
       }
       await loadSuppliers();
-      if (window.announceToSR) {
-        window.announceToSR('Profile photo removed');
-      }
+      efSay('Profile photo removed', 'success');
     } catch (err) {
       console.error('Profile photo delete failed:', err);
-      if (window.announceToSR) {
-        window.announceToSR(err.message || 'Failed to delete profile photo');
-      }
+      efSay(err.message || 'Failed to delete profile photo', 'error');
     }
   }
 
@@ -2926,7 +2937,8 @@ async function initDashSupplier() {
     }
     const confirmed = await efConfirm({
       title: 'Remove your profile photo?',
-      message: 'Your profile will show your initials until you add another photo.',
+      message:
+        'Your profile photo will be removed. If you have a business logo, it will still be shown.',
       confirmLabel: 'Remove photo',
     });
     if (!confirmed) {
