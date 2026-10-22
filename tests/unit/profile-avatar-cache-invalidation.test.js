@@ -9,7 +9,7 @@ function buildApp({ user, suppliers, hasUpload = true }) {
   const invalidate = jest.fn().mockResolvedValue(undefined);
   const processAndSaveImage = jest.fn().mockResolvedValue({ optimized: '/api/photos/photo_new' });
   const deleteImage = jest.fn().mockResolvedValue(undefined);
-  const updateOne = jest.fn().mockResolvedValue(undefined);
+  const updateOne = jest.fn().mockResolvedValue(true);
 
   jest.doMock('../../middleware/auth', () => ({
     authRequired: (req, _res, next) => {
@@ -241,4 +241,36 @@ describe('profile avatar cache invalidation', () => {
     await request(app).delete('/api/profile/avatar').expect(404);
     expect(updateOne).not.toHaveBeenCalled();
   });
+
+  test.each(['users', 'suppliers'])(
+    'a failed %s write cannot report successful removal or destroy the stored image',
+    async failingCollection => {
+      const { app, updateOne, deleteImage } = buildApp({
+        user: {
+          id: 'user_1',
+          email: 'owner@example.com',
+          role: 'supplier',
+          avatarUrl: '/api/photos/old',
+        },
+        suppliers: [{ id: 'sup_1', ownerUserId: 'user_1', profilePhotoUrl: '/api/photos/old' }],
+      });
+      updateOne.mockImplementation(async collection => collection !== failingCollection);
+
+      await request(app).delete('/api/profile/avatar').expect(500);
+      expect(deleteImage).not.toHaveBeenCalled();
+    }
+  );
+
+  test.each(['users', 'suppliers'])(
+    'a failed %s write cannot report a successful avatar upload',
+    async failingCollection => {
+      const { app, updateOne } = buildApp({
+        user: { id: 'user_1', email: 'owner@example.com', role: 'supplier' },
+        suppliers: [{ id: 'sup_1', ownerUserId: 'user_1' }],
+      });
+      updateOne.mockImplementation(async collection => collection !== failingCollection);
+
+      await request(app).post('/api/profile/avatar').expect(500);
+    }
+  );
 });

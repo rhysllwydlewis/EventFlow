@@ -248,6 +248,11 @@ test.describe('Supplier dashboard visual-audit regressions @backend', () => {
     request,
   }) => {
     const data = await fixture(request, { supplierPhotoSource: 'logo' });
+    // A public-profile visit caches this logo as publicProfileAvatarUrl. That
+    // cached branding must not turn into a removable profile photo afterwards.
+    const publicAvatar = await request.get(`/api/public/suppliers/${data.supplier.id}/avatar`);
+    expect(publicAvatar.ok()).toBe(true);
+    expect((await publicAvatar.json()).avatarUrl).toBe('/favicon-144x144.png');
     await open(page, context, baseURL, data);
     await expect(page.locator('.sdh-avatar img')).toHaveAttribute('src', '/favicon-144x144.png');
     await expect(

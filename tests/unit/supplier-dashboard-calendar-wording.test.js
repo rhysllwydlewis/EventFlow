@@ -25,11 +25,12 @@ describe('supplier calendar card wording', () => {
     expect(calendarJs).not.toContain('included for your category');
   });
 
-  test('the notice is built with text nodes, never from markup strings', () => {
+  test('the notice uses textContent, never markup strings', () => {
     const start = calendarJs.indexOf('function updateCalendarHeader');
     const body = calendarJs.slice(start, calendarJs.indexOf('/** Wires the request dialog'));
-    expect(body).not.toContain('notice.innerHTML');
-    expect(body).toContain('createTextNode');
+    expect(body).not.toContain('.innerHTML');
+    expect(body).toContain('lead.textContent =');
+    expect(body).toContain('reassurance.textContent =');
   });
 
   test('public and private are named apart: buttons, legend, subtitle and link', () => {

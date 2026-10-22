@@ -43,6 +43,21 @@ a logo's stored image if it shares the account avatar's URL. Legacy supplier
 image references are detached without deleting potentially shared gallery files.
 An explicitly different supplier owner still takes precedence over an email match.
 
+The follow-up PR review found and corrected three photo-handling gaps:
+
+- A cached public-avatar URL could override a newer account photo. The current
+  account photo now takes precedence over that cached fallback.
+- Avatar writes can return `false` on database failure. Upload/removal now reports
+  failure, and removal keeps the stored image until all reference updates succeed.
+- A public-profile visit can cache a logo in `publicProfileAvatarUrl`. That cached
+  logo now remains branding, without acquiring a profile-photo delete action.
+
+Regression tests reproduced each gap before its fix. The browser logo-fallback
+journey now visits the public-avatar endpoint before opening the owner dashboard,
+so it exercises the real cache write. The two CI assertions tied to the previous
+fixed-column layout and `createTextNode` implementation have also been updated;
+painted layout checks and safe `textContent` construction remain covered.
+
 Validation completed locally:
 
 - **84 Chromium browser journeys passed**, including all 17 new audit regressions,
@@ -50,6 +65,9 @@ Validation completed locally:
   messaging. No tests were skipped or retried in this run.
 - **567 smoke tests passed** and **340 targeted tests passed**. These are separate
   selections and include overlapping suites; their counts are not a combined total.
+- The follow-up PR review passed **56 tests in four affected unit suites**,
+  repeated all **84 browser journeys**, and reran the **17 audit journeys** after
+  restarting the server with the final cached-logo fix. These runs also overlap.
 - Browser checks cover search/filter/sort with real conversations, removal
   confirmation, deletion persistence, visible failure and retry, logo-only
   fallback, pending approval, publisher/admin-denied states, calendar entry

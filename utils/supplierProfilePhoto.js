@@ -16,9 +16,18 @@ const SUPPLIER_AVATAR_FIELDS = [
 ];
 
 function hasRemovableSupplierProfilePhoto(supplier, ownerUser) {
+  const logoUrl = isUsableImageUrl(supplier?.logo) ? supplier.logo.trim() : null;
   return (
     isUsableImageUrl(ownerUser?.avatarUrl) ||
-    SUPPLIER_AVATAR_FIELDS.some(field => isUsableImageUrl(supplier?.[field]))
+    SUPPLIER_AVATAR_FIELDS.some(field => {
+      const image = supplier?.[field];
+      if (!isUsableImageUrl(image)) {
+        return false;
+      }
+      // Public-profile reads also cache logo fallbacks in this field. An
+      // explicit photo alias is removable even when it shares a logo's URL.
+      return field !== 'publicProfileAvatarUrl' || image.trim() !== logoUrl;
+    })
   );
 }
 
@@ -207,11 +216,12 @@ function resolveSupplierProfilePhoto(supplier, ownerUser) {
     supplier?.profilePhoto,
     supplier?.photoUrl,
     supplier?.image,
-    supplier?.publicProfileAvatarUrl,
     // If older supplier records were not backfilled, keep the public profile in
     // sync with the owning account avatar before falling back to bot provenance
     // or legacy logos.
     ...getUserImageCandidates(ownerUser),
+    // This can be an older public-cache copy; a current account photo wins.
+    supplier?.publicProfileAvatarUrl,
     // Published-unclaimed Supplier Bot records deliberately keep crawler media
     // under acquisition.sourceMedia rather than pretending it was owner-uploaded.
     // Prefer strongly-classified logo evidence, then fall back to the existing

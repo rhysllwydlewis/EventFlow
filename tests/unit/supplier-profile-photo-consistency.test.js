@@ -187,6 +187,15 @@ describe('utils/supplierProfilePhoto', () => {
     expect(isUsableImageUrl('/bad:scheme')).toBe(false);
   });
 
+  test('a cached public avatar does not override the current account photo', () => {
+    const supplier = { publicProfileAvatarUrl: '/cached-avatar.webp', logo: '/brand.webp' };
+    expect(resolveSupplierProfilePhoto(supplier, { avatarUrl: '/current-avatar.webp' })).toBe(
+      '/current-avatar.webp'
+    );
+    // The canonical field still serves records that have no account photo.
+    expect(resolveSupplierProfilePhoto(supplier, {})).toBe('/cached-avatar.webp');
+  });
+
   test('findOwnerUserForSupplier supports legacy owner id and email fields without exposing data', () => {
     const users = [
       { id: 'user_created', email: 'created@example.com' },
@@ -517,6 +526,21 @@ test('/api/me/suppliers returns dashboard profile photo fields from supplier rec
     { id: 'sup_1' },
     { $set: { ownerUserId: 'user_1' } }
   );
+});
+
+test.each([
+  [{ publicProfileAvatarUrl: '/logo.webp', logo: '/logo.webp' }, false],
+  [{ publicProfileAvatarUrl: '/photo.webp', logo: '/logo.webp' }, true],
+  [{ profilePhotoUrl: '/logo.webp', logo: '/logo.webp' }, true],
+])('owned supplier photo-removal metadata respects the source: %j', async (images, removable) => {
+  const user = { id: 'user_1', role: 'supplier' };
+  const { app } = buildApp({
+    currentUser: user,
+    users: [user],
+    suppliers: [{ id: 'sup_1', ownerUserId: user.id, approved: true, ...images }],
+  });
+  const res = await request(app).get('/api/me/suppliers').expect(200);
+  expect(res.body.items[0].profilePhotoRemovable).toBe(removable);
 });
 
 describe('public supplier profile-photo rendering contracts', () => {
