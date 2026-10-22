@@ -339,6 +339,7 @@
       description: typeof views.description === 'string' ? views.description : '',
       maxDays: limitOf(windowInfo?.maxDays) || null,
       total: count(views.total),
+      uniqueVisitors: Number.isFinite(views.uniqueVisitors) ? count(views.uniqueVisitors) : null,
       days: viewDays,
       daily: normaliseDaily(views.daily || views.series || data.analytics?.dailyData),
       requestedDays: limitOf(windowInfo?.requestedDays) || SUMMARY_DAYS,
@@ -1710,7 +1711,7 @@
         : '';
     const foot =
       views.description || 'Counts page loads, not people. Your own visits are not counted.';
-    box.innerHTML = `${periodButtons(views)}<p class="sdh-metric"><span class="sdh-metric__value">${views.total.toLocaleString('en-GB')}</span><span class="sdh-metric__unit"> ${views.total === 1 ? 'visit' : 'visits'}</span></p>${body}${enquiryChart}${funnelHtml(state.model)}${empty}${shorter}<p class="sdh-note sdh-note--foot">${esc(foot)}</p>`;
+    box.innerHTML = `${periodButtons(views)}<p class="sdh-metric"><span class="sdh-metric__value">${views.total.toLocaleString('en-GB')}</span><span class="sdh-metric__unit"> ${views.total === 1 ? 'visit' : 'visits'}</span>${views.uniqueVisitors !== null && views.total > 0 ? `<span class="sdh-metric__unit"> from about ${plural(views.uniqueVisitors, 'different visitor')}</span>` : ''}</p>${body}${enquiryChart}${funnelHtml(state.model)}${empty}${shorter}<p class="sdh-note sdh-note--foot">${esc(foot)}</p>`;
   }
 
   /* ------------------------------------------------------------------ *

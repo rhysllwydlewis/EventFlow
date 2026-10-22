@@ -321,12 +321,14 @@ function populatedSeed() {
     ],
     events: [
       // 5 page loads in the window, 3 in the previous window, 2 before that.
+      // Four different visitors among the five loads (the first two are the same browser).
       ...['2026-07-15', '2026-07-14', '2026-07-10', '2026-07-01', '2026-06-20'].map((date, i) => ({
         id: `v${i}`,
         type: 'profile_view',
         supplierId: 'sup-1',
         timestamp: `${date}T10:00:00.000Z`,
         date,
+        visitorKey: ['a:one', 'a:one', 'a:two', 'u:nine', 'a:three'][i],
       })),
       ...['2026-06-10', '2026-06-01', '2026-05-20'].map((date, i) => ({
         id: `pv${i}`,
@@ -585,6 +587,7 @@ describe('GET /api/supplier/dashboard-summary contract', () => {
         total: 5,
         days: 30,
         basis: 'page_loads',
+        uniqueVisitors: 4,
         description: expect.stringMatching(/once per visitor per hour/),
       });
       expect(body.analytics.totalViews).toBe(5);
