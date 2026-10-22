@@ -457,7 +457,7 @@ async function sendMail(options) {
       ? to.join(',')
       : to;
 
-  logger.info(`📧 Attempting to send email to ${recipientDisplay}`);
+  logger.info(`📧 Attempting to send email to ${singleLine(recipientDisplay)}`);
   logger.info(`   Subject: ${singleLine(subject) || '(from template)'}`);
   logger.info(`   Template: ${template || 'none'}`);
   logger.info(`   Message Stream: ${options.messageStream || 'outbound'}`);
@@ -591,7 +591,7 @@ async function sendMail(options) {
         ? await sendEmailWithRetry(emailData)
         : await postmarkClient.sendEmail(emailData);
       logger.info(`✅ Email sent successfully via Postmark`);
-      logger.info(`   To: ${emailData.To}`);
+      logger.info(`   To: ${singleLine(emailData.To)}`);
       logger.info(`   Subject: ${singleLine(emailData.Subject)}`);
       logger.info(`   MessageID: ${response.MessageID}`);
       logger.info(`   Stream: ${emailData.MessageStream}`);
@@ -612,7 +612,7 @@ async function sendMail(options) {
       };
     } catch (err) {
       logger.error('❌ Postmark send error:', err.message);
-      logger.error('   To:', emailData.To);
+      logger.error('   To:', singleLine(emailData.To));
       logger.error('   Subject:', singleLine(emailData.Subject));
 
       // Save to outbox as fallback for debugging outside production critical auth flows
