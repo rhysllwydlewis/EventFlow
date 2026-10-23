@@ -11,6 +11,7 @@ const dbUnified = require('../db-unified');
 const logger = require('./logger');
 const { uid } = require('../store');
 const { priceFields } = require('./packagePrice');
+const { PLACEHOLDER_PACKAGE_IMAGE } = require('./packageImageUtils');
 const { getPexelsService } = require('./pexels-service');
 
 // Founding supplier data template
@@ -392,17 +393,9 @@ function generatePackages(supplierId, supplierName, category, location) {
 
   const templates = packageTemplates[category] || [];
 
-  // Package image placeholders based on category
-  const packageImages = {
-    Venues: '/assets/images/placeholders/venue-package.svg',
-    Photography: '/assets/images/placeholders/photography-package.svg',
-    Catering: '/assets/images/placeholders/catering-package.svg',
-    Entertainment: '/assets/images/placeholders/entertainment-package.svg',
-    'Decor & Styling': '/assets/images/placeholders/decor-package.svg',
-    'Event Planning': '/assets/images/placeholders/planning-package.svg',
-  };
-
-  const defaultImage = packageImages[category] || '/assets/images/placeholders/package-event.svg';
+  // Seeded packages have no real photo yet. Use the approved package fallback;
+  // the former per-category SVGs (venue-package.svg etc.) no longer exist.
+  const defaultImage = PLACEHOLDER_PACKAGE_IMAGE;
 
   return templates.map((template, index) => ({
     id: uid('pkg'),

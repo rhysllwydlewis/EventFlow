@@ -1,8 +1,12 @@
 # Use the exact supported Node 22 release used by local development and CI.
 FROM node:22.23.1-alpine
 
-# Install curl for healthcheck
-RUN apk add --no-cache curl
+# Install curl for healthcheck. Also pull in the current Alpine OpenSSL: the
+# pinned node image lags the Alpine repo, and the Supply Chain Evidence Trivy
+# gate fails on fixable HIGH/CRITICAL findings (libcrypto3/libssl3 3.5.7-r0,
+# CVE-2026-14456, fixed in 3.5.8-r0). Upgrading in place keeps the node pin.
+RUN apk add --no-cache curl \
+  && apk upgrade --no-cache libcrypto3 libssl3
 
 # Create app directory
 WORKDIR /app
