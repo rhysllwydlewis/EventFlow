@@ -62,6 +62,17 @@
     return `${text.substring(0, maxLength)}…`;
   }
 
+  // Last-message snippet (HTML-safe). An attachment-only message has no text, so say so rather than
+  // claim the conversation is empty.
+  function buildPreview(lastMsg) {
+    const text = String(lastMsg.content || lastMsg.text || '').trim();
+    if (text) {
+      return escapeHtml(truncate(text, 60));
+    }
+    const isMessage = lastMsg.sentAt || lastMsg.createdAt || lastMsg.senderId;
+    return isMessage ? '📎 Attachment' : '';
+  }
+
   // Returns true if the string looks like an email address (should not be shown as a name)
   function looksLikeEmail(str) {
     return typeof str === 'string' && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(str);
@@ -695,7 +706,7 @@
         : `<span class="mwv4__avatar-initial">${escapeHtml(initial)}</span>`;
 
       const lastMsg = conv.lastMessage || {};
-      const preview = escapeHtml(truncate(lastMsg.content || lastMsg.text || '', 60));
+      const preview = buildPreview(lastMsg);
       const time = escapeHtml(
         formatRelativeTime(lastMsg.sentAt || lastMsg.createdAt || conv.updatedAt)
       );

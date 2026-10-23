@@ -115,6 +115,21 @@ describe('Tickets Routes Integration', () => {
     expect(dbUnified.insertOne).toHaveBeenCalledTimes(1);
   });
 
+  it('keeps a known category and falls back to general for anything else', async () => {
+    dbUnified.read.mockResolvedValue([]);
+    dbUnified.write.mockResolvedValue(true);
+    const send = category =>
+      request(app).post('/api/tickets').set('x-test-user-role', 'customer').send({
+        senderType: 'customer',
+        subject: 'Invoice question',
+        message: 'I cannot download my invoice.',
+        category,
+      });
+
+    expect((await send('billing')).body.ticket.category).toBe('billing');
+    expect((await send('<script>')).body.ticket.category).toBe('general');
+  });
+
   it('takes who the ticket is from the signed-in account, not from the request body', async () => {
     dbUnified.read.mockResolvedValue([]);
     dbUnified.write.mockResolvedValue(true);

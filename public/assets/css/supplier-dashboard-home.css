@@ -3666,6 +3666,33 @@
   font-weight: 600;
 }
 
+/* The guide's footer. The step's own button carries the Next steps wording ("Add at least 3 gallery
+   photos"), which is too long to share a row with Skip, Back and Next, so it gets a full-width row
+   above them and wraps rather than spilling out of the button. Skip stays on the left; Back and Next
+   stay on the right, and on a phone they share what is left of the row. */
+.sdh-page .sdh-dialog--guide .sdh-dialog__foot .sdh-btn {
+  flex: 0 1 auto;
+  height: auto;
+  padding-block: 8px;
+  white-space: normal;
+}
+
+.sdh-page .sdh-dialog--guide .sdh-dialog__foot #sdh-guide-action {
+  order: -1;
+  flex: 1 0 100%;
+}
+
+.sdh-page .sdh-dialog--guide .sdh-dialog__foot #sdh-guide-skip {
+  margin-right: auto;
+}
+
+@media (max-width: 767px) {
+  .sdh-page .sdh-dialog--guide .sdh-dialog__foot #sdh-guide-back,
+  .sdh-page .sdh-dialog--guide .sdh-dialog__foot #sdh-guide-next {
+    flex: 1 1 0;
+  }
+}
+
 /* The heading is focused by the script so screen readers start on it; it is not a control. */
 .sdh-page .sdh-dialog--guide .sdh-dialog__title:focus {
   outline: none;

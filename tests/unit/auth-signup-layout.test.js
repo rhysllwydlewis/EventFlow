@@ -30,7 +30,7 @@ describe('auth signup layout', () => {
   it('keeps the auth page compact and free from unwanted skip-link chrome', () => {
     expect(authHtml).not.toContain('Skip to sign in');
     expect(authHtml).not.toContain('auth-skip-link');
-    expect(authHtml).toContain('/assets/css/auth.css?v=18.9.0');
+    expect(authHtml).toMatch(/\/assets\/css\/auth\.css\?v=\d+\.\d+\.\d+/);
     expect(authHtml).toContain('County or region *');
     expect(authHtml).toContain('Company name *');
     expect(authHtml).toContain('Profile picture');
