@@ -45,13 +45,11 @@
   /** A request to our own API with the session cookie and CSRF token; never throws on HTTP errors. */
   async function api(url, { method = 'GET', body } = {}) {
     const headers = { 'X-CSRF-Token': window.__CSRF_TOKEN__ || '' };
-    let payload;
-    if (body instanceof FormData) {
-      payload = body;
-    } else if (body !== undefined) {
+    const isJson = body !== undefined && !(body instanceof FormData);
+    if (isJson) {
       headers['Content-Type'] = 'application/json';
-      payload = JSON.stringify(body);
     }
+    const payload = isJson ? JSON.stringify(body) : body;
     const response = await fetch(url, { method, headers, credentials: 'include', body: payload });
     const data = await response.json().catch(() => ({}));
     return { ok: response.ok, status: response.status, data };
@@ -119,7 +117,7 @@
     const spinner = byId('avatar-loading');
     const removeDialog = byId('remove-photo-dialog');
 
-    const setLoading = on => spinner && spinner.classList.toggle('visible', on);
+    const setLoading = on => spinner?.classList.toggle('visible', on);
 
     uploadBtn?.addEventListener('click', () => uploadInput?.click());
 
