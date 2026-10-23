@@ -70,8 +70,8 @@ describe('the markup', () => {
 describe('the script', () => {
   test('status colours come from the stylesheet, never inline', () => {
     expect(js).not.toMatch(/\.style\.color\s*=/);
-    expect(css).toMatch(/\[data-state=["']success["']\]\s*\{\s*color:\s*#047857/);
-    expect(css).toMatch(/\[data-state=["']error["']\]\s*\{\s*color:\s*#b91c1c/);
+    expect(css).toMatch(/\[data-state=["']success["']\][^{]*\{\s*color:\s*var\(--st-ok\)/);
+    expect(css).toMatch(/\[data-state=["']error["']\][^{]*\{\s*color:\s*var\(--st-danger\)/);
   });
 
   test('the newsletter request uses the saved address', () => {
@@ -94,6 +94,63 @@ describe('the script', () => {
 
   test('one /api/me/settings request feeds every preference', () => {
     expect(js.match(/fetch\('\/api\/me\/settings'/g)).toHaveLength(1);
+  });
+});
+
+describe('the page looks like the dashboards', () => {
+  const customerCss = read('public/assets/css/customer-dashboard-home.css');
+  const supplierCss = read('public/assets/css/supplier-dashboard-home.css');
+  const token = (source, name) => source.match(new RegExp(`--${name}:\\s*([^;]+);`))?.[1].trim();
+
+  // The settings tokens are copies of the dashboards' own, so a change to the dashboards' palette
+  // shows up here as a failing test instead of a page that quietly drifts.
+  test.each([
+    ['bg', 'bg'],
+    ['surface', 'surface'],
+    ['ink', 'ink'],
+    ['ink-2', 'ink-2'],
+    ['muted', 'muted'],
+    ['line', 'line'],
+    ['line-soft', 'line-soft'],
+    ['line-strong', 'line-strong'],
+    ['accent', 'accent'],
+    ['accent-hover', 'accent-hover'],
+    ['accent-deep', 'accent-deep'],
+    ['accent-soft', 'accent-soft'],
+    ['accent-line', 'accent-line'],
+    ['danger', 'danger'],
+    ['warn', 'warn'],
+    ['radius', 'radius'],
+    ['radius-sm', 'radius-sm'],
+  ])('--st-%s matches the dashboards', name => {
+    const value = token(css, `st-${name}`);
+    expect(value).toBeTruthy();
+    expect(value).toBe(token(customerCss, `cdh-${name}`));
+    expect(value).toBe(token(supplierCss, `sdh-${name}`));
+  });
+
+  test('the body carries the page class that sets the warm background', () => {
+    expect(html).toMatch(/<body class="settings-body">/);
+    expect(css).toMatch(/\.settings-body\s*\{[^}]*background:\s*var\(--st-bg\)/);
+  });
+
+  test("cards, buttons and fields use the dashboards' shapes, not the old site classes", () => {
+    expect(html).not.toMatch(/class="card[\s"]/);
+    expect(html).not.toMatch(/class="(?:[^"]*\s)?cta[\s"]/);
+    expect(html).toContain('class="settings-card"');
+    expect(html).toContain('settings-btn--primary');
+    expect(css).toMatch(/\.settings-card\s*\{[^}]*border-radius:\s*var\(--st-radius\)/);
+  });
+
+  test('the hero links back to the dashboard that matches the account', () => {
+    expect(html).toContain('id="settings-dashboard-link"');
+    expect(js).toContain("customer: '/dashboard/customer'");
+    expect(js).toContain("supplier: '/dashboard/supplier'");
+  });
+
+  test('no emoji or gradient decoration is left in the page', () => {
+    expect(html).not.toMatch(/[\u{1F300}-\u{1FAFF}]/u);
+    expect(css).not.toMatch(/linear-gradient\((?!90deg, #efede8)/);
   });
 });
 

@@ -480,6 +480,26 @@ test.describe('Settings: password', () => {
     expect(calls.some(c => c.pathname === '/api/auth/change-password')).toBe(false);
   });
 
+  test('each password box has a show/hide button that sits inside the box', async ({
+    page,
+    context,
+    baseURL,
+  }) => {
+    await openSettings(page, context, baseURL, customer);
+    for (const id of ['cp-current', 'cp-new', 'cp-confirm']) {
+      const input = page.locator(`#${id}`);
+      const eye = page.locator(`#${id} + .password-toggle`);
+      await expect(eye).toBeVisible();
+      const [box, eyeBox] = await Promise.all([input.boundingBox(), eye.boundingBox()]);
+      expect(eyeBox.y).toBeGreaterThanOrEqual(box.y);
+      expect(eyeBox.y + eyeBox.height).toBeLessThanOrEqual(box.y + box.height);
+      await eye.click();
+      await expect(input).toHaveAttribute('type', 'text');
+      await eye.click();
+      await expect(input).toHaveAttribute('type', 'password');
+    }
+  });
+
   test('the strength meter reports a level, and the colour comes from the stylesheet', async ({
     page,
     context,
@@ -644,11 +664,74 @@ test.describe('Settings: account type', () => {
   });
 });
 
+test.describe('Settings: layout', () => {
+  for (const [label, user, target] of [
+    ['customer', customer, '/dashboard/customer'],
+    ['supplier', supplier, '/dashboard/supplier'],
+  ]) {
+    test(`a ${label} gets a link back to their own dashboard`, async ({
+      page,
+      context,
+      baseURL,
+    }) => {
+      await openSettings(page, context, baseURL, user);
+      const link = page.locator('#settings-dashboard-link');
+      await expect(link).toBeVisible();
+      await expect(link).toHaveAttribute('href', target);
+    });
+  }
+
+  test('an admin gets no dashboard link, because there is no matching dashboard', async ({
+    page,
+    context,
+    baseURL,
+  }) => {
+    await openSettings(page, context, baseURL, { ...customer, role: 'admin' });
+    await expect(page.locator('#settings-dashboard-link')).toBeHidden();
+  });
+
+  test('the section links jump to their cards', async ({ page, context, baseURL }) => {
+    await openSettings(page, context, baseURL, customer);
+    await page.click('.settings-nav a[href="#security-card"]');
+    await expect(page).toHaveURL(/#security-card$/);
+    await expect(page.locator('#security-card')).toBeInViewport();
+  });
+
+  test('on a phone nothing scrolls sideways and the section links become a row', async ({
+    page,
+    context,
+    baseURL,
+  }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await openSettings(page, context, baseURL, supplier);
+    const overflow = await page.evaluate(
+      () => document.documentElement.scrollWidth > document.documentElement.clientWidth
+    );
+    expect(overflow).toBe(false);
+    const direction = await page
+      .locator('.settings-nav')
+      .evaluate(nav => getComputedStyle(nav).flexDirection);
+    expect(direction).toBe('row');
+  });
+});
+
 test.describe('Settings: accessibility', () => {
   for (const [label, user] of [
     ['customer', customer],
     ['supplier', supplier],
   ]) {
+    test(`no axe violations for a ${label} on a phone`, async ({ page, context, baseURL }) => {
+      await page.setViewportSize({ width: 390, height: 844 });
+      await openSettings(page, context, baseURL, user);
+      const result = await new AxeBuilder({ page })
+        .include('main')
+        .withTags(['wcag2a', 'wcag2aa', 'wcag21aa', 'best-practice'])
+        .analyze();
+      expect(
+        result.violations.map(v => `${v.id}: ${v.nodes.map(n => n.target.join(' ')).join(' | ')}`)
+      ).toEqual([]);
+    });
+
     test(`no axe violations for a ${label}`, async ({ page, context, baseURL }) => {
       await openSettings(page, context, baseURL, user);
       // The page's own content; the site header and footer are shared and audited elsewhere.

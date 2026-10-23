@@ -10,7 +10,7 @@
 <meta name="robots" content="noindex,nofollow">
   <link rel="stylesheet" href="/assets/css/styles.css?v=18.5.1">
   <link rel="stylesheet" href="/assets/css/ui-ux-fixes.css?v=18.4.0">
-    <link rel="stylesheet" href="/assets/css/settings.css?v=19.0.1" />
+    <link rel="stylesheet" href="/assets/css/settings.css?v=20.0.0" />
     <link rel="stylesheet" href="/assets/css/navbar.css?v=18.4.2" /><link rel="stylesheet" href="/assets/css/eventflow-brand.css?v=1.0.1" data-eventflow-brand="true" />
   <link rel='stylesheet' href='/assets/css/eventflow-17.0.0.css?v=18.3.0'>
   <link rel='stylesheet' href='/assets/css/utilities.css?v=18.3.0'>
@@ -30,7 +30,7 @@
     <link rel="stylesheet" href="/assets/css/signed-in-mobile-fixes.css" />
   <link rel="stylesheet" href="/assets/css/eventflow-footer.css">
 </head>
-<body>
+<body class="settings-body">
 <!-- TOP NAVBAR - GOLD STANDARD REBUILD -->
 <header class="ef-header" role="banner">
   <div class="ef-container">
@@ -145,13 +145,20 @@
 <script src="/assets/js/search.js" defer></script>
 <script src="/assets/js/websocket-client.js?v=2.0.1" defer></script>
 
-<main id="main-content" class="section settings-page">
-<div class="container settings-container">
+<main id="main-content" class="settings-page">
+<div class="settings-wrap">
 
-<header class="settings-header">
-  <h1>Settings</h1>
-  <p class="settings-lede">Your account details, how we contact you, and your security.</p>
+<header class="settings-hero">
+  <div class="settings-hero__copy">
+    <h1 class="settings-hero__title">Settings</h1>
+    <p class="settings-hero__lede">Your account details, how we contact you, and your security.</p>
+  </div>
+  <div class="settings-hero__actions">
+    <a href="/dashboard" id="settings-dashboard-link" class="settings-btn settings-btn--secondary" hidden>Back to dashboard</a>
+  </div>
 </header>
+
+<div class="settings-layout">
 
 <nav class="settings-nav" aria-label="Settings sections">
   <a href="#account-card">Account</a>
@@ -164,8 +171,14 @@
 <div class="settings-stack">
 
 <!-- Account -->
-<section class="card" id="account-card" aria-labelledby="account-card-title">
-  <h2 class="settings-card-heading" id="account-card-title">Account information</h2>
+<section class="settings-card" id="account-card" aria-labelledby="account-card-title">
+  <div class="settings-card__head">
+    <div>
+      <h2 class="settings-card__title" id="account-card-title">Account information</h2>
+      <p class="settings-card__sub">Your photo, name and contact details.</p>
+    </div>
+  </div>
+  <div class="settings-card__body">
 
   <div class="settings-photo">
     <div class="avatar-ring" id="avatar-wrapper">
@@ -174,50 +187,47 @@
         <div class="settings-spinner"></div>
       </div>
     </div>
-    <div class="settings-field-flex">
+    <div class="settings-photo__copy">
       <p class="settings-label">Profile photo</p>
       <div class="settings-btn-group">
-        <button type="button" id="avatar-upload-btn" class="cta secondary settings-btn-sm">
+        <button type="button" id="avatar-upload-btn" class="settings-btn settings-btn--secondary settings-btn-sm">
           <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
           Upload photo
         </button>
         <input type="file" id="avatar-upload-input" class="settings-file-input" accept="image/jpeg,image/png,image/webp" tabindex="-1" aria-hidden="true">
-        <button type="button" id="avatar-delete-btn" class="settings-btn-sm settings-btn-danger-outline" aria-label="Remove profile photo">
-          <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
-          Remove
-        </button>
+        <button type="button" id="avatar-delete-btn" class="settings-btn settings-btn--quiet settings-btn-sm" aria-label="Remove profile photo">Remove</button>
       </div>
-      <p class="settings-hint">JPG, PNG or WebP · Max 5 MB</p>
+      <p class="settings-hint">JPG, PNG or WebP. Up to 5 MB.</p>
       <span id="avatar-status" class="settings-field-status" role="status" aria-live="polite"></span>
     </div>
   </div>
 
-  <div id="profile-loading" class="profile-loading-state" role="status">
-    <div class="profile-loading-spinner" aria-hidden="true"></div>
-    Loading your account…
+  <div id="profile-loading" class="settings-loading" role="status">
+    <span class="settings-sr">Loading your account…</span>
+    <span class="settings-skel settings-skel--row" aria-hidden="true"></span>
+    <span class="settings-skel settings-skel--row" aria-hidden="true"></span>
+    <span class="settings-skel settings-skel--row" aria-hidden="true"></span>
   </div>
 
   <div id="profile-load-error" class="settings-notice settings-notice--error" role="alert" hidden>
     <p><strong>We could not load your account details.</strong> Check your connection and try again.</p>
-    <button type="button" class="cta secondary settings-btn-sm" id="profile-retry-btn">Try again</button>
+    <button type="button" class="settings-btn settings-btn--secondary settings-btn-sm" id="profile-retry-btn">Try again</button>
   </div>
 
   <form id="profile-form" hidden>
 
-    <p class="settings-section-label">Account holder name</p>
-    <div class="form-row settings-grid">
-      <div>
+    <div class="settings-grid">
+      <div class="settings-field">
         <label for="profile-firstName">First name</label>
         <input type="text" id="profile-firstName" name="firstName" placeholder="John" maxlength="40" autocomplete="given-name">
       </div>
-      <div>
+      <div class="settings-field">
         <label for="profile-lastName">Last name</label>
         <input type="text" id="profile-lastName" name="lastName" placeholder="Smith" maxlength="40" autocomplete="family-name">
       </div>
     </div>
 
-    <p class="settings-section-label">Account details</p>
-    <div class="form-row">
+    <div class="settings-field">
       <label for="profile-email">Email address</label>
       <input type="email" id="profile-email" name="email" autocomplete="email" readonly aria-describedby="profile-email-help">
       <p id="profile-email-help" class="settings-hint">This is the address you sign in with. To change it, <a href="/contact">contact us</a>.</p>
@@ -226,347 +236,367 @@
     <div id="email-unverified-notice" class="settings-notice settings-notice--warn" hidden>
       <p><strong>Your email address is not verified yet.</strong> Verify it so we can reach you about your account.</p>
       <div class="settings-btn-group">
-        <button type="button" class="cta secondary settings-btn-sm" id="resend-verification-btn">Send verification email</button>
+        <button type="button" class="settings-btn settings-btn--secondary settings-btn-sm" id="resend-verification-btn">Send verification email</button>
         <span id="resend-verification-status" class="settings-field-status" role="status" aria-live="polite"></span>
       </div>
     </div>
 
-    <div class="form-row">
+    <div class="settings-field">
       <label for="profile-phone">Phone number <span class="settings-sub-label">(optional)</span></label>
       <input type="tel" id="profile-phone" name="phone" placeholder="07700 900123" maxlength="20" autocomplete="tel">
     </div>
 
-    <div class="form-row settings-grid">
-      <div>
+    <div class="settings-grid">
+      <div class="settings-field">
         <label for="profile-location">City / town <span class="settings-sub-label">(optional)</span></label>
         <input type="text" id="profile-location" name="location" placeholder="London, UK" maxlength="100" autocomplete="address-level2">
       </div>
-      <div>
+      <div class="settings-field">
         <label for="profile-postcode">Postcode <span class="settings-sub-label">(optional)</span></label>
         <input type="text" id="profile-postcode" name="postcode" placeholder="SW1A 1AA" maxlength="10" autocomplete="postal-code">
       </div>
     </div>
 
     <div id="supplier-profile-callout" class="settings-notice settings-notice--info" hidden>
-      <p><strong>Supplier?</strong> This page controls your personal account details. Manage your business listing name, social links and supplier profile from your <a href="/dashboard/supplier">Supplier Dashboard →</a></p>
+      <p><strong>Supplier?</strong> This page controls your personal account details. Manage your business listing name, social links and supplier profile from your <a href="/dashboard/supplier">Supplier Dashboard</a>.</p>
     </div>
 
-    <div class="form-actions settings-actions">
-      <button class="cta" type="submit" id="profile-save-btn">Save changes</button>
+    <div class="settings-actions">
+      <button class="settings-btn settings-btn--primary" type="submit" id="profile-save-btn">Save changes</button>
       <span id="profile-status" class="settings-status" role="status" aria-live="polite"></span>
     </div>
   </form>
+  </div>
 </section>
 
 <!-- Account type -->
-<section class="card" id="account-type-card" aria-labelledby="account-type-title" hidden>
-  <h2 class="settings-card-heading" id="account-type-title">Account type</h2>
-  <p class="settings-card-text">Your account type controls what you can do on EventFlow: browse and book as a customer, or list your business as a supplier.</p>
-
-  <div class="settings-row-sm">
-    <span id="account-type-badge" class="settings-account-type-badge">Currently: Customer</span>
+<section class="settings-card" id="account-type-card" aria-labelledby="account-type-title" hidden>
+  <div class="settings-card__head">
+    <div>
+      <h2 class="settings-card__title" id="account-type-title">Account type</h2>
+      <p class="settings-card__sub">Browse and book as a customer, or list your business as a supplier.</p>
+    </div>
+    <span id="account-type-badge" class="settings-pill settings-pill--accent">Currently: Customer</span>
   </div>
+  <div class="settings-card__body">
 
   <!-- Customer → Supplier -->
   <div id="account-type-become-supplier" hidden>
-    <div class="settings-role-glow">
-      <div class="settings-role-picker" role="group" aria-label="Switch account type">
-        <button type="button" class="role-pill is-active" id="account-type-pill-customer" aria-pressed="true">🎉 Stay a customer</button>
-        <button type="button" class="role-pill" id="account-type-pill-supplier" aria-pressed="false">🏪 Become a supplier</button>
-      </div>
+    <div class="settings-segment" role="group" aria-label="Switch account type">
+      <button type="button" class="settings-segment__btn is-active" id="account-type-pill-customer" aria-pressed="true">Stay a customer</button>
+      <button type="button" class="settings-segment__btn" id="account-type-pill-supplier" aria-pressed="false">Become a supplier</button>
+    </div>
 
-      <div id="account-type-supplier-fields" class="settings-account-type-fields" hidden>
-        <div class="form-row">
-          <label for="at-company">Business / company name</label>
-          <input type="text" id="at-company" maxlength="100" placeholder="Your business name" autocomplete="organization">
+    <div id="account-type-supplier-fields" class="settings-account-type-fields" hidden>
+      <div class="settings-field">
+        <label for="at-company">Business / company name</label>
+        <input type="text" id="at-company" maxlength="100" placeholder="Your business name" autocomplete="organization">
+      </div>
+      <div class="settings-grid">
+        <div class="settings-field">
+          <label for="at-category">Category</label>
+          <select id="at-category" name="category">
+            <option value="">Choose a category…</option>
+            <option>Venues</option>
+            <option>Catering</option>
+            <option>Photography</option>
+            <option>Videography</option>
+            <option>Entertainment</option>
+            <option>Music/DJ</option>
+            <option>Florist</option>
+            <option>Decor</option>
+            <option>Transport</option>
+            <option>Cake</option>
+            <option>Stationery</option>
+            <option>Hair &amp; Makeup</option>
+            <option>Beauty</option>
+            <option>Bridalwear</option>
+            <option>Jewellery</option>
+            <option>Celebrant</option>
+            <option>Event Planner</option>
+            <option>Wedding Fayre</option>
+            <option>Planning</option>
+            <option>Other</option>
+          </select>
         </div>
-        <div class="form-row settings-grid">
-          <div>
-            <label for="at-category">Category</label>
-            <select id="at-category" name="category">
-              <option value="">Choose a category…</option>
-              <option>Venues</option>
-              <option>Catering</option>
-              <option>Photography</option>
-              <option>Videography</option>
-              <option>Entertainment</option>
-              <option>Music/DJ</option>
-              <option>Florist</option>
-              <option>Decor</option>
-              <option>Transport</option>
-              <option>Cake</option>
-              <option>Stationery</option>
-              <option>Hair &amp; Makeup</option>
-              <option>Beauty</option>
-              <option>Bridalwear</option>
-              <option>Jewellery</option>
-              <option>Celebrant</option>
-              <option>Event Planner</option>
-              <option>Wedding Fayre</option>
-              <option>Planning</option>
-              <option>Other</option>
-            </select>
-          </div>
-          <div>
-            <label for="at-location">Location <span class="settings-sub-label">(optional)</span></label>
-            <input type="text" id="at-location" maxlength="200" placeholder="London, UK" autocomplete="address-level2">
-          </div>
+        <div class="settings-field">
+          <label for="at-location">Location <span class="settings-sub-label">(optional)</span></label>
+          <input type="text" id="at-location" maxlength="200" placeholder="London, UK" autocomplete="address-level2">
         </div>
-        <p class="settings-info-box">You'll be moved to your new Supplier Dashboard to finish setting up your listing and submit it for review. Your customer account stays exactly as it is otherwise.</p>
-        <div class="form-actions">
-          <button class="cta" type="button" id="account-type-supplier-submit">Switch to a supplier account</button>
-          <span id="account-type-supplier-status" class="settings-status" role="status" aria-live="polite"></span>
-        </div>
+      </div>
+      <p class="settings-note">You'll be moved to your new Supplier Dashboard to finish setting up your listing and submit it for review. Your customer account stays exactly as it is otherwise.</p>
+      <div class="settings-actions">
+        <button class="settings-btn settings-btn--primary" type="button" id="account-type-supplier-submit">Switch to a supplier account</button>
+        <span id="account-type-supplier-status" class="settings-status" role="status" aria-live="polite"></span>
       </div>
     </div>
   </div>
 
   <!-- Supplier → Customer -->
-  <div id="account-type-become-customer" class="settings-switch-row" hidden>
-    <div class="settings-space-between">
-      <div>
-        <p class="settings-item-title">Switch to a customer account</p>
-        <p class="settings-item-desc">Your supplier listing will be paused (not deleted) while you're a customer. You can switch back later to reactivate it.</p>
+  <div id="account-type-become-customer" hidden>
+    <div class="settings-row settings-row--split">
+      <div class="settings-row__text">
+        <p class="settings-row__title">Switch to a customer account</p>
+        <p class="settings-row__desc">Your supplier listing will be paused (not deleted) while you're a customer. You can switch back later to reactivate it.</p>
       </div>
-      <button type="button" id="account-type-customer-trigger" class="settings-btn-sm settings-btn-danger-outline">
-        Switch to a customer account
-      </button>
+      <button type="button" id="account-type-customer-trigger" class="settings-btn settings-btn--secondary settings-btn-sm">Switch to a customer account</button>
     </div>
     <span id="account-type-customer-status" class="settings-status" role="status" aria-live="polite"></span>
+  </div>
   </div>
 </section>
 
 <!-- Notifications -->
-<section class="card" id="notifications-card" aria-labelledby="notifications-title">
-  <h2 class="settings-card-heading" id="notifications-title">Notification preferences</h2>
+<section class="settings-card" id="notifications-card" aria-labelledby="notifications-title">
+  <div class="settings-card__head">
+    <div>
+      <h2 class="settings-card__title" id="notifications-title">Notification preferences</h2>
+      <p class="settings-card__sub">Choose which emails and sounds you get.</p>
+    </div>
+  </div>
+  <div class="settings-card__body">
 
-  <div class="toggle-row">
-    <label class="toggle-label" for="notify">
-      <span>Email notifications</span>
-      <small>Email me about activity on my account, such as new messages</small>
-    </label>
-    <label class="toggle-switch">
-      <input id="notify" type="checkbox" role="switch">
-      <span class="toggle-track"></span>
-    </label>
+  <div class="settings-rows">
+    <div class="settings-row">
+      <label class="settings-row__text" for="notify">
+        <span class="settings-row__title">Email notifications</span>
+        <span class="settings-row__desc">Email me about activity on my account, such as new messages</span>
+      </label>
+      <label class="settings-switch">
+        <input id="notify" type="checkbox" role="switch">
+        <span class="settings-switch__track"></span>
+      </label>
+    </div>
+
+    <div class="settings-row">
+      <label class="settings-row__text" for="notification-sound-enabled">
+        <span class="settings-row__title">Notification sounds</span>
+        <span class="settings-row__desc">Play a tone for new enquiries and messages. Saved on this device only.</span>
+      </label>
+      <label class="settings-switch">
+        <input id="notification-sound-enabled" type="checkbox" role="switch" checked>
+        <span class="settings-switch__track"></span>
+      </label>
+    </div>
   </div>
 
-  <div class="toggle-row">
-    <label class="toggle-label" for="notification-sound-enabled">
-      <span>Notification sounds</span>
-      <small>Play a tone for new enquiries and messages. Saved on this device only.</small>
-    </label>
-    <label class="toggle-switch">
-      <input id="notification-sound-enabled" type="checkbox" role="switch" checked>
-      <span class="toggle-track"></span>
-    </label>
-  </div>
-
-  <div id="volume-control" class="settings-volume-panel">
-    <div class="settings-toggle-row">
-      <label for="notification-volume" class="settings-toggle-label">Sound volume</label>
-      <span class="settings-success-text"><span id="volume-value">30</span>%</span>
+  <div id="volume-control" class="settings-volume">
+    <div class="settings-volume__head">
+      <label for="notification-volume" class="settings-label">Sound volume</label>
+      <span class="settings-volume__value"><span id="volume-value">30</span>%</span>
     </div>
-    <div class="settings-flex-row">
-      <svg width="16" height="16" fill="none" stroke="#6b7280" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/></svg>
-      <input type="range" id="notification-volume" min="0" max="100" value="30" aria-valuetext="30 percent" class="settings-range-input">
-      <svg width="16" height="16" fill="none" stroke="#6b7280" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/></svg>
+    <div class="settings-volume__slider">
+      <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/></svg>
+      <input type="range" id="notification-volume" min="0" max="100" value="30" aria-valuetext="30 percent" class="settings-range">
+      <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/></svg>
     </div>
-    <div class="settings-vol-row">
-      <button type="button" id="test-notification-sound" class="settings-action-btn settings-action-btn--secondary">
+    <div class="settings-volume__test">
+      <button type="button" id="test-notification-sound" class="settings-btn settings-btn--secondary settings-btn-sm">
         <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
         Test sound
       </button>
-      <span id="test-sound-feedback" class="settings-status-text" role="status" aria-live="polite"></span>
+      <span id="test-sound-feedback" class="settings-status" role="status" aria-live="polite"></span>
     </div>
   </div>
 
   <!-- Supplier reminder emails (supplier accounts only) -->
-  <div id="supplier-reminder-prefs" class="settings-subsection" hidden>
-    <div class="settings-row-sm">
-      <div class="settings-icon-box" aria-hidden="true">
-        <svg width="16" height="16" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
-      </div>
-      <h3 class="settings-card-title">Supplier reminder emails</h3>
-    </div>
-    <p class="settings-card-text">
+  <div id="supplier-reminder-prefs" class="settings-group" hidden>
+    <h3 class="settings-group__title">Supplier reminder emails</h3>
+    <p class="settings-group__text">
       Occasionally we'll email you reminders about outstanding items on your supplier account.
       You can control which reminders you receive below.
     </p>
 
-    <div class="toggle-row settings-info-box">
-      <label class="toggle-label" for="ap-enabled">
-        <span class="settings-strong">Send me reminder emails about incomplete tasks</span>
-        <small>Master switch for all reminders</small>
+    <div class="settings-row settings-row--master">
+      <label class="settings-row__text" for="ap-enabled">
+        <span class="settings-row__title">Send me reminder emails about incomplete tasks</span>
+        <span class="settings-row__desc">Master switch for all reminders</span>
       </label>
-      <label class="toggle-switch">
+      <label class="settings-switch">
         <input id="ap-enabled" type="checkbox" role="switch" checked>
-        <span class="toggle-track"></span>
+        <span class="settings-switch__track"></span>
       </label>
     </div>
 
-    <div id="ap-sub-prefs" class="settings-indent">
-      <div class="toggle-row">
-        <label class="toggle-label" for="ap-missing-packages">
-          <span>Remind me to create packages</span>
-          <small>Email me if I haven't created any service packages yet</small>
+    <div id="ap-sub-prefs" class="settings-rows settings-rows--indent">
+      <div class="settings-row">
+        <label class="settings-row__text" for="ap-missing-packages">
+          <span class="settings-row__title">Remind me to create packages</span>
+          <span class="settings-row__desc">Email me if I haven't created any service packages yet</span>
         </label>
-        <label class="toggle-switch">
+        <label class="settings-switch">
           <input id="ap-missing-packages" type="checkbox" role="switch" checked>
-          <span class="toggle-track"></span>
+          <span class="settings-switch__track"></span>
         </label>
       </div>
 
-      <div class="toggle-row">
-        <label class="toggle-label" for="ap-incomplete-profile">
-          <span>Remind me to complete my profile</span>
-          <small>Email me if my supplier profile is missing required information</small>
+      <div class="settings-row">
+        <label class="settings-row__text" for="ap-incomplete-profile">
+          <span class="settings-row__title">Remind me to complete my profile</span>
+          <span class="settings-row__desc">Email me if my supplier profile is missing required information</span>
         </label>
-        <label class="toggle-switch">
+        <label class="settings-switch">
           <input id="ap-incomplete-profile" type="checkbox" role="switch" checked>
-          <span class="toggle-track"></span>
+          <span class="settings-switch__track"></span>
         </label>
       </div>
 
-      <div class="toggle-row">
-        <label class="toggle-label" for="ap-missing-photos">
-          <span>Remind me to upload photos</span>
-          <small>Email me if I haven't added any photos to my supplier listing</small>
+      <div class="settings-row">
+        <label class="settings-row__text" for="ap-missing-photos">
+          <span class="settings-row__title">Remind me to upload photos</span>
+          <span class="settings-row__desc">Email me if I haven't added any photos to my supplier listing</span>
         </label>
-        <label class="toggle-switch">
+        <label class="settings-switch">
           <input id="ap-missing-photos" type="checkbox" role="switch" checked>
-          <span class="toggle-track"></span>
+          <span class="settings-switch__track"></span>
         </label>
       </div>
 
-      <div class="toggle-row">
-        <label class="toggle-label" for="ap-uncategorized">
-          <span>Remind me to pick a category</span>
-          <small>Email me if my listing has no category, or is still set to "Other"</small>
+      <div class="settings-row">
+        <label class="settings-row__text" for="ap-uncategorized">
+          <span class="settings-row__title">Remind me to pick a category</span>
+          <span class="settings-row__desc">Email me if my listing has no category, or is still set to "Other"</span>
         </label>
-        <label class="toggle-switch">
+        <label class="settings-switch">
           <input id="ap-uncategorized" type="checkbox" role="switch" checked>
-          <span class="toggle-track"></span>
+          <span class="settings-switch__track"></span>
         </label>
       </div>
 
-      <div class="toggle-row">
-        <label class="toggle-label" for="ap-packages-missing-photos">
-          <span>Remind me about package photos</span>
-          <small>Email me if one of my packages has no photo of its own. Photos on my profile don't count towards a package.</small>
+      <div class="settings-row">
+        <label class="settings-row__text" for="ap-packages-missing-photos">
+          <span class="settings-row__title">Remind me about package photos</span>
+          <span class="settings-row__desc">Email me if one of my packages has no photo of its own. Photos on my profile don't count towards a package.</span>
         </label>
-        <label class="toggle-switch">
+        <label class="settings-switch">
           <input id="ap-packages-missing-photos" type="checkbox" role="switch" checked>
-          <span class="toggle-track"></span>
+          <span class="settings-switch__track"></span>
         </label>
       </div>
     </div>
   </div>
 
   <!-- Email & notification preferences (all account types) -->
-  <div id="email-notification-prefs" class="settings-subsection">
-    <h3 class="settings-card-title">Email &amp; marketing preferences</h3>
+  <div id="email-notification-prefs" class="settings-group">
+    <h3 class="settings-group__title">Email &amp; marketing preferences</h3>
 
-    <div class="toggle-row settings-info-box">
-      <div class="toggle-label">
-        <span class="settings-strong">Newsletter</span>
-        <small id="newsletter-status-text">Loading…</small>
+    <div class="settings-rows">
+      <div class="settings-row">
+        <div class="settings-row__text">
+          <span class="settings-row__title">Newsletter</span>
+          <span class="settings-row__desc" id="newsletter-status-text">Loading…</span>
+        </div>
+        <button type="button" class="settings-btn settings-btn--secondary settings-btn-sm" id="newsletter-toggle-btn" disabled></button>
       </div>
-      <button type="button" class="settings-action-btn settings-action-btn--secondary" id="newsletter-toggle-btn" disabled></button>
-    </div>
 
-    <div class="toggle-row">
-      <label class="toggle-label" for="community-digest-cadence">
-        <span>Community digest emails</span>
-        <small>How often we email you about new community discussions</small>
-      </label>
-      <select id="community-digest-cadence" class="settings-select">
-        <option value="immediate">Immediately</option>
-        <option value="daily">Daily digest</option>
-        <!-- "weekly" matches the server default in routes/settings.js's GET handler so the
-             dropdown does not flash another value before settings-init.js loads the real one. -->
-        <option value="weekly" selected>Weekly digest</option>
-        <option value="none">Never</option>
-      </select>
-    </div>
+      <div class="settings-row">
+        <label class="settings-row__text" for="community-digest-cadence">
+          <span class="settings-row__title">Community digest emails</span>
+          <span class="settings-row__desc">How often we email you about new community discussions</span>
+        </label>
+        <select id="community-digest-cadence" class="settings-select">
+          <option value="immediate">Immediately</option>
+          <option value="daily">Daily digest</option>
+          <!-- "weekly" matches the server default in routes/settings.js's GET handler so the
+               dropdown does not flash another value before settings-init.js loads the real one. -->
+          <option value="weekly" selected>Weekly digest</option>
+          <option value="none">Never</option>
+        </select>
+      </div>
 
-    <div class="toggle-row" id="browse-nudge-row" hidden>
-      <label class="toggle-label" for="browse-nudge-enabled">
-        <span>Saved-supplier reminders</span>
-        <small>Occasional emails about suppliers you saved but haven't contacted yet</small>
-      </label>
-      <label class="toggle-switch">
-        <input id="browse-nudge-enabled" type="checkbox" role="switch" checked>
-        <span class="toggle-track"></span>
-      </label>
-    </div>
+      <div class="settings-row" id="browse-nudge-row" hidden>
+        <label class="settings-row__text" for="browse-nudge-enabled">
+          <span class="settings-row__title">Saved-supplier reminders</span>
+          <span class="settings-row__desc">Occasional emails about suppliers you saved but haven't contacted yet</span>
+        </label>
+        <label class="settings-switch">
+          <input id="browse-nudge-enabled" type="checkbox" role="switch" checked>
+          <span class="settings-switch__track"></span>
+        </label>
+      </div>
 
-    <div class="toggle-row" id="verification-reminder-row" hidden>
-      <label class="toggle-label" for="verification-reminder-enabled">
-        <span>Email verification reminders</span>
-        <small>Reminders to verify your email address (sent at most twice)</small>
-      </label>
-      <label class="toggle-switch">
-        <input id="verification-reminder-enabled" type="checkbox" role="switch" checked>
-        <span class="toggle-track"></span>
-      </label>
+      <div class="settings-row" id="verification-reminder-row" hidden>
+        <label class="settings-row__text" for="verification-reminder-enabled">
+          <span class="settings-row__title">Email verification reminders</span>
+          <span class="settings-row__desc">Reminders to verify your email address (sent at most twice)</span>
+        </label>
+        <label class="settings-switch">
+          <input id="verification-reminder-enabled" type="checkbox" role="switch" checked>
+          <span class="settings-switch__track"></span>
+        </label>
+      </div>
     </div>
   </div>
 
-  <div class="form-actions settings-actions">
-    <button type="button" class="cta" id="save-settings">Save preferences</button>
+  <div class="settings-actions">
+    <button type="button" class="settings-btn settings-btn--primary" id="save-settings">Save preferences</button>
     <span id="settings-status" class="settings-status" role="status" aria-live="polite"></span>
+  </div>
   </div>
 </section>
 
 <!-- Password -->
-<section class="card" id="security-card" aria-labelledby="security-title">
-  <div class="settings-row-lg">
-    <svg width="18" height="18" fill="none" stroke="#0B8073" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-    <h2 class="settings-heading-lg" id="security-title">Change password</h2>
-  </div>
-  <form id="change-password-form" novalidate>
-    <div class="form-row">
-      <label for="cp-current">Current password</label>
-      <input type="password" id="cp-current" name="currentPassword" autocomplete="current-password" placeholder="Enter your current password">
+<section class="settings-card" id="security-card" aria-labelledby="security-title">
+  <div class="settings-card__head">
+    <div>
+      <h2 class="settings-card__title" id="security-title">Change password</h2>
+      <p class="settings-card__sub">Use a password you don't use anywhere else.</p>
     </div>
-    <div class="form-row">
+  </div>
+  <div class="settings-card__body">
+  <form id="change-password-form" novalidate>
+    <div class="settings-field">
+      <label for="cp-current">Current password</label>
+      <div class="form-row settings-pw">
+        <input type="password" id="cp-current" name="currentPassword" autocomplete="current-password" placeholder="Enter your current password">
+      </div>
+    </div>
+    <div class="settings-field">
       <label for="cp-new">New password</label>
-      <input type="password" id="cp-new" name="newPassword" autocomplete="new-password" placeholder="At least 8 characters" aria-describedby="cp-help">
+      <div class="form-row settings-pw">
+        <input type="password" id="cp-new" name="newPassword" autocomplete="new-password" placeholder="At least 8 characters" aria-describedby="cp-help">
+      </div>
       <p id="cp-help" class="settings-hint">At least 8 characters, with a letter and a number.</p>
       <div id="cp-strength-bar" class="settings-strength" hidden><div id="cp-strength-fill" class="settings-strength__fill"></div></div>
       <p id="cp-strength-label" class="settings-strength__label" hidden></p>
     </div>
-    <div class="form-row">
+    <div class="settings-field">
       <label for="cp-confirm">Confirm new password</label>
-      <input type="password" id="cp-confirm" name="confirmPassword" autocomplete="new-password" placeholder="Repeat your new password">
+      <div class="form-row settings-pw">
+        <input type="password" id="cp-confirm" name="confirmPassword" autocomplete="new-password" placeholder="Repeat your new password">
+      </div>
     </div>
-    <div class="form-actions settings-actions">
-      <button class="cta" type="submit" id="cp-save-btn">Update password</button>
+    <div class="settings-actions">
+      <button class="settings-btn settings-btn--primary" type="submit" id="cp-save-btn">Update password</button>
       <span id="cp-status" class="settings-status" role="status" aria-live="polite"></span>
     </div>
   </form>
+  </div>
 </section>
 
 <!-- Danger zone -->
-<section class="card settings-danger-zone-box" id="danger-zone-card" aria-labelledby="danger-title">
-  <div class="settings-row-sm">
-    <svg width="18" height="18" fill="none" stroke="#b91c1c" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-    <h2 class="settings-heading-danger" id="danger-title">Danger zone</h2>
-  </div>
-  <div class="settings-space-between">
+<section class="settings-card settings-card--danger" id="danger-zone-card" aria-labelledby="danger-title">
+  <div class="settings-card__head">
     <div>
-      <p class="settings-item-title">Delete account</p>
-      <p class="settings-item-desc">Permanently delete your account and all associated data. This cannot be undone.</p>
+      <h2 class="settings-card__title" id="danger-title">Danger zone</h2>
+      <p class="settings-card__sub">Actions here cannot be undone.</p>
     </div>
-    <button type="button" id="delete-account-btn" class="settings-btn-sm settings-btn-danger-outline">
-      Delete account
-    </button>
+  </div>
+  <div class="settings-card__body">
+    <div class="settings-row settings-row--split">
+      <div class="settings-row__text">
+        <p class="settings-row__title">Delete account</p>
+        <p class="settings-row__desc">Permanently delete your account and all associated data. This cannot be undone.</p>
+      </div>
+      <button type="button" id="delete-account-btn" class="settings-btn settings-btn--danger-outline settings-btn-sm">Delete account</button>
+    </div>
   </div>
 </section>
 
 </div><!-- /.settings-stack -->
-</div></main>
+</div><!-- /.settings-layout -->
+</div><!-- /.settings-wrap -->
+</main>
 
 <!-- Remove photo -->
 <dialog id="remove-photo-dialog" class="settings-dialog" aria-labelledby="remove-photo-title">
@@ -574,10 +604,10 @@
     <h2 class="settings-dialog__title" id="remove-photo-title">Remove your profile photo?</h2>
   </div>
   <div class="settings-dialog__body">
-    <p class="settings-body-text">Your initials will be shown instead. You can upload a new photo at any time.</p>
-    <div class="settings-footer-actions">
-      <button type="button" class="cta ghost settings-btn-sm" id="remove-photo-cancel">Keep photo</button>
-      <button type="button" class="settings-btn-danger" id="remove-photo-confirm">Remove photo</button>
+    <p class="settings-dialog__text">Your initials will be shown instead. You can upload a new photo at any time.</p>
+    <div class="settings-dialog__actions">
+      <button type="button" class="settings-btn settings-btn--secondary" id="remove-photo-cancel">Keep photo</button>
+      <button type="button" class="settings-btn settings-btn--danger" id="remove-photo-confirm">Remove photo</button>
     </div>
   </div>
 </dialog>
@@ -588,17 +618,19 @@
     <h2 class="settings-dialog__title" id="downgrade-title">Switch to a customer account</h2>
   </div>
   <div class="settings-dialog__body">
-    <p class="settings-body-text">Switching to a customer account will:</p>
-    <ul class="settings-danger-list">
+    <p class="settings-dialog__text">Switching to a customer account will:</p>
+    <ul class="settings-dialog__list">
       <li>Pause your supplier listing, so it stops appearing in search and the marketplace</li>
       <li>Cancel any active Pro subscription</li>
       <li>Keep your business data. Switching back to supplier later reactivates it, pending a quick re-review</li>
     </ul>
-    <label for="account-type-convert-confirm" class="settings-body-text settings-strong">Type <strong>CONVERT</strong> to confirm</label>
-    <input type="text" id="account-type-convert-confirm" class="settings-convert-confirm-input" autocomplete="off" placeholder="CONVERT">
-    <div class="settings-footer-actions">
-      <button type="button" class="cta ghost settings-btn-sm" id="downgrade-cancel">Keep supplier account</button>
-      <button type="button" class="settings-btn-danger" id="downgrade-confirm" disabled>Switch to customer</button>
+    <div class="settings-field">
+      <label for="account-type-convert-confirm">Type <strong>CONVERT</strong> to confirm</label>
+      <input type="text" id="account-type-convert-confirm" autocomplete="off" placeholder="CONVERT">
+    </div>
+    <div class="settings-dialog__actions">
+      <button type="button" class="settings-btn settings-btn--secondary" id="downgrade-cancel">Keep supplier account</button>
+      <button type="button" class="settings-btn settings-btn--danger" id="downgrade-confirm" disabled>Switch to customer</button>
     </div>
   </div>
 </dialog>
@@ -614,11 +646,11 @@
       </button>
     </div>
     <div class="settings-dialog__body">
-      <div class="settings-danger-alert">
+      <div class="settings-notice settings-notice--error">
         <div>
-          <p class="settings-danger-title">This action is permanent and cannot be reversed.</p>
-          <p class="settings-danger-text">Deleting your account will:</p>
-          <ul class="settings-danger-list">
+          <p><strong>This action is permanent and cannot be reversed.</strong></p>
+          <p>Deleting your account will:</p>
+          <ul class="settings-dialog__list">
             <li>Remove your personal data from EventFlow</li>
             <li>Delete any supplier profiles you've created</li>
             <li>Cancel all active subscriptions</li>
@@ -626,10 +658,10 @@
           </ul>
         </div>
       </div>
-      <p class="settings-body-text">Are you sure you want to continue?</p>
-      <div class="settings-footer-actions">
-        <button type="button" id="delete-step1-cancel" class="cta ghost settings-btn-sm">Keep my account</button>
-        <button type="button" id="delete-step1-next" class="settings-btn-danger">Continue</button>
+      <p class="settings-dialog__text">Are you sure you want to continue?</p>
+      <div class="settings-dialog__actions">
+        <button type="button" id="delete-step1-cancel" class="settings-btn settings-btn--secondary">Keep my account</button>
+        <button type="button" id="delete-step1-next" class="settings-btn settings-btn--danger">Continue</button>
       </div>
     </div>
   </div>
@@ -640,16 +672,16 @@
       <h2 class="settings-dialog__title" id="delete-modal-title-2">Confirm your identity</h2>
     </div>
     <div class="settings-dialog__body">
-      <p class="settings-body-text">To confirm deletion, type your email address below.</p>
-      <div class="settings-dialog__field">
-        <label for="delete-email-input" class="settings-body-text">Your email address</label>
-        <input type="email" id="delete-email-input" placeholder="Enter your email…" autocomplete="off" class="settings-input settings-input--full" aria-describedby="delete-email-hint delete-email-error">
-        <p id="delete-email-hint" class="settings-micro-hint">Must match the email address on your account.</p>
+      <p class="settings-dialog__text">To confirm deletion, type your email address below.</p>
+      <div class="settings-field">
+        <label for="delete-email-input">Your email address</label>
+        <input type="email" id="delete-email-input" placeholder="Enter your email…" autocomplete="off" aria-describedby="delete-email-hint delete-email-error">
+        <p id="delete-email-hint" class="settings-hint">Must match the email address on your account.</p>
         <p id="delete-email-error" class="settings-dialog__error" role="alert" hidden></p>
       </div>
-      <div class="settings-footer-actions">
-        <button type="button" id="delete-step2-back" class="cta ghost settings-btn-sm">Back</button>
-        <button type="button" id="delete-step2-next" class="settings-btn-danger">Verify &amp; continue</button>
+      <div class="settings-dialog__actions">
+        <button type="button" id="delete-step2-back" class="settings-btn settings-btn--secondary">Back</button>
+        <button type="button" id="delete-step2-next" class="settings-btn settings-btn--danger">Verify &amp; continue</button>
       </div>
     </div>
   </div>
@@ -660,15 +692,12 @@
       <h2 class="settings-dialog__title settings-dialog__title--danger" id="delete-modal-title-3">Final confirmation</h2>
     </div>
     <div class="settings-dialog__body">
-      <p class="settings-body-text">You are about to permanently delete your account. <strong>This cannot be undone.</strong></p>
-      <p class="settings-body-text">Select the button below to permanently delete your account.</p>
+      <p class="settings-dialog__text">You are about to permanently delete your account. <strong>This cannot be undone.</strong></p>
+      <p class="settings-dialog__text">Select the button below to permanently delete your account.</p>
       <div id="delete-step3-error" class="settings-dialog__error settings-dialog__error--box" role="alert" hidden></div>
-      <div class="settings-footer-actions">
-        <button type="button" id="delete-step3-back" class="cta ghost settings-btn-sm">Back</button>
-        <button type="button" id="delete-step3-confirm" class="settings-btn-danger settings-btn-danger--icon">
-          <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>
-          Yes, permanently delete
-        </button>
+      <div class="settings-dialog__actions">
+        <button type="button" id="delete-step3-back" class="settings-btn settings-btn--secondary">Back</button>
+        <button type="button" id="delete-step3-confirm" class="settings-btn settings-btn--danger">Yes, permanently delete</button>
       </div>
     </div>
   </div>
@@ -676,7 +705,7 @@
     <script src="/assets/js/config/page-init.js" defer></script>
 <script src="/assets/js/utils/supplier-avatar.js?v=1.0.1"></script>
 <script src="/assets/js/app.js?v=18.5.11" defer></script>
-<script src="/assets/js/pages/settings-init.js?v=2.0.1" defer></script>
+<script src="/assets/js/pages/settings-init.js?v=2.0.2" defer></script>
 <footer class="footer" role="contentinfo">
   <div class="container ef-footer-content">
     <div><strong>EventFlow</strong><br><span class="small">Event planning made simple.</span></div>

@@ -330,6 +330,19 @@
     }
   }
 
+  // The hero's "Back to dashboard" goes to the dashboard that matches the account.
+  function renderDashboardLink(user) {
+    const link = byId('settings-dashboard-link');
+    if (!link) {
+      return;
+    }
+    const target = { customer: '/dashboard/customer', supplier: '/dashboard/supplier' }[user.role];
+    link.hidden = !target;
+    if (target) {
+      link.href = target;
+    }
+  }
+
   function showLoadError(show) {
     setHidden('profile-load-error', !show);
   }
@@ -377,6 +390,7 @@
       byId('profile-postcode').value = user.postcode || '';
 
       renderAccountType(user);
+      renderDashboardLink(user);
 
       const isSupplier = user.role === 'supplier';
       setHidden('supplier-profile-callout', !isSupplier);
