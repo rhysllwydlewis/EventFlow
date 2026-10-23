@@ -466,6 +466,18 @@ describe('uploading', () => {
     expect(page.$$('#gallery-staged .gallery-staged__item')).toHaveLength(2);
   });
 
+  test('a stalled upload times out with a message instead of leaving the page busy', async () => {
+    const page = await openGalleryPage({
+      api: supplierApi(),
+      upload: () => ({ timedOut: true }),
+    });
+    await chosen(page);
+    await page.click('#gallery-upload');
+    expect(page.text('gallery-upload-status')).toContain('The connection failed');
+    expect(page.$('#gallery-upload').disabled).toBe(false);
+    expect(page.$$('#gallery-staged .gallery-staged__item')).toHaveLength(2);
+  });
+
   test('a plain-text refusal (a rate limiter’s) is shown, not swallowed', async () => {
     const page = await openGalleryPage({
       api: supplierApi(),

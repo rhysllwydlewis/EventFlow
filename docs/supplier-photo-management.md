@@ -106,7 +106,7 @@ PATCH /api/v1/me/suppliers/:id/photos/order
 }
 ```
 
-Photos are ordered as they appear in `photosGallery`. The **first entry is the cover image** shown on listing cards.
+Photos are ordered as they appear in `photosGallery`. No photo in the gallery is treated as a cover: the large image at the top of a profile is the profile banner (`bannerUrl`, also stored as `coverImage`), which is set separately from this gallery.
 
 ## Notes
 

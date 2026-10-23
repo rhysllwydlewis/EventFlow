@@ -22,6 +22,7 @@
   const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
   const MAX_FILE_BYTES = 10 * 1024 * 1024;
   const MAX_FILES_PER_UPLOAD = 10;
+  const UPLOAD_TIMEOUT_MS = 10 * 60 * 1000;
   const DASHBOARDS = { customer: '/dashboard/customer', supplier: '/dashboard/supplier' };
 
   const state = {
@@ -160,13 +161,16 @@
             data,
           });
         });
-        request.addEventListener('error', () =>
+        // A dropped connection, an aborted request and a stalled one all end the same way, so the
+        // page never stays stuck on "Uploading…".
+        const failed = () =>
           resolve({
             ok: false,
             status: 0,
             data: { error: 'The connection failed. Check it and try again.' },
-          })
-        );
+          });
+        request.timeout = UPLOAD_TIMEOUT_MS;
+        ['error', 'abort', 'timeout'].forEach(name => request.addEventListener(name, failed));
         request.send(formData);
       });
 

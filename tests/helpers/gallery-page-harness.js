@@ -89,8 +89,8 @@ async function openGalleryPage(options) {
         const reply = options.upload
           ? await options.upload(record.url, record.headers, record.body)
           : { status: 200, body: { success: true, uploaded: 1 } };
-        if (reply.networkError) {
-          this.listeners.error();
+        if (reply.networkError || reply.timedOut) {
+          this.listeners[reply.timedOut ? 'timeout' : 'error']();
           return;
         }
         this.status = reply.status;
