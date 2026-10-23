@@ -17,6 +17,12 @@ const { stripHtml } = require('../utils/helpers');
 const router = express.Router();
 
 const MAX_BUDGET_ITEMS = 500;
+// Maximum plans allowed per user (free tier)
+const MAX_PLANS_PER_USER = 3;
+// Maximum packages per plan
+const MAX_PACKAGES_PER_PLAN = 20;
+// Maximum guests per event (sanity cap)
+const MAX_GUESTS_PER_PLAN = 10000;
 const MAX_BUDGET_AMOUNT = 1000000000;
 
 /** A budget amount in pounds: finite, never negative, capped, rounded to pence. */
@@ -82,13 +88,6 @@ router.get('/:id', authRequired, async (req, res) => {
  * Create a new plan
  * Body: { name, eventType, eventDate, location, guests, budget, notes, packages, timeline, checklist }
  */
-
-// Maximum plans allowed per user (free tier)
-const MAX_PLANS_PER_USER = 3;
-// Maximum packages per plan
-const MAX_PACKAGES_PER_PLAN = 20;
-// Maximum guests per event (sanity cap)
-const MAX_GUESTS_PER_PLAN = 10000;
 
 router.post(
   '/',

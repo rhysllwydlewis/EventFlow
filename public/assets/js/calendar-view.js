@@ -397,21 +397,25 @@
 
   // ── Next-up summary ──────────────────────────────────────────────────────
 
+  /** The start of a calendar item as a Date: a Date as given, a whole day as that local day, else parsed. */
+  function parseItemStart(event, allDay) {
+    if (event.start instanceof Date) {
+      return event.start;
+    }
+    if (allDay && typeof event.start === 'string') {
+      const [year, month, day] = event.start.split('-').map(Number);
+      return new Date(year, month - 1, day);
+    }
+    return new Date(event.start);
+  }
+
   function normalizeCalendarItem(event) {
     // A date with no time of day ("2027-06-19", or FullCalendar's all-day flag) is a whole day. It
     // is read as that local day, not as midnight UTC, which London shows as 01:00 in summer.
     const allDay =
       event.allDay === true ||
       (typeof event.start === 'string' && /^\d{4}-\d{2}-\d{2}$/u.test(event.start));
-    let start;
-    if (event.start instanceof Date) {
-      start = event.start;
-    } else if (allDay && typeof event.start === 'string') {
-      const [year, month, day] = event.start.split('-').map(Number);
-      start = new Date(year, month - 1, day);
-    } else {
-      start = new Date(event.start);
-    }
+    const start = parseItemStart(event, allDay);
     if (Number.isNaN(start.getTime())) {
       return null;
     }
