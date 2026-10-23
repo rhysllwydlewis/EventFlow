@@ -21,6 +21,33 @@
 
   const SESSION_COOKIE_NAME = 'connect.sid'; // Express session cookie name
 
+  // Figures this browser keeps for whoever is signed in (a budget typed on the dashboard, the ids
+  // of saved suppliers). They are not stored per account, so when a different person signs in on the
+  // same browser they would otherwise see, and even save to their own plan, the previous person's.
+  const DEVICE_DATA_KEYS = ['eventflow_custom_budget', 'eventflow_saved_suppliers'];
+  const DEVICE_DATA_OWNER_KEY = 'eventflow_device_data_owner';
+
+  /**
+   * Forgets the device-only figures left by a different account, then records the current one as
+   * their owner. Safe to call more than once.
+   * @param {{id?: string}|null} user - The signed-in user
+   */
+  function scopeDeviceData(user) {
+    const id = user?.id ? String(user.id) : '';
+    if (!id) {
+      return;
+    }
+    try {
+      const owner = localStorage.getItem(DEVICE_DATA_OWNER_KEY);
+      if (owner && owner !== id) {
+        DEVICE_DATA_KEYS.forEach(key => localStorage.removeItem(key));
+      }
+      localStorage.setItem(DEVICE_DATA_OWNER_KEY, id);
+    } catch {
+      // Ignore storage errors in private browsing / restricted storage modes.
+    }
+  }
+
   class AuthStateManager {
     constructor() {
       this.state = AUTH_STATES.LOADING;
@@ -56,6 +83,7 @@
         if (response.ok) {
           const data = await response.json();
           const user = data.user || null;
+          scopeDeviceData(user);
           this._setState(AUTH_STATES.AUTHENTICATED, user);
           return { state: this.state, user };
         }
@@ -185,6 +213,7 @@
     window.AuthStateManager = authManager;
     window.AUTH_STATES = AUTH_STATES;
     window.__authState = authManager;
+    authManager.scopeDeviceData = scopeDeviceData;
     if (document.readyState === 'loading') {
       document.addEventListener('DOMContentLoaded', () => authManager.init());
     } else {

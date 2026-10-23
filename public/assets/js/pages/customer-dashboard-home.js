@@ -115,7 +115,7 @@
     return parsePlanDate(plan.eventDate || plan.date);
   }
 
-  /** The plan the summary talks about: next upcoming date, else latest dated, else the first plan. */
+  /** The plan the summary talks about: next upcoming date, else one with no date yet, else the latest dated plan. */
   function pickFocusPlan(plans) {
     const list = Array.isArray(plans) ? plans : [];
     if (!list.length) {
@@ -128,6 +128,11 @@
     const upcoming = dated.find(item => daysUntil(item.date) >= 0);
     if (upcoming) {
       return upcoming.plan;
+    }
+    // A plan with no date yet is still being planned; one whose date has passed is over.
+    const undated = list.find(plan => !planDate(plan));
+    if (undated) {
+      return undated;
     }
     if (dated.length) {
       return dated[dated.length - 1].plan;
@@ -276,10 +281,16 @@
     const manage = `<a class="cdh-link" href="${budgetHref}">Open budget</a>`;
     const edit = `<button type="button" class="cdh-link" data-edit-budget aria-expanded="false" aria-controls="${ids.panel}">${total > 0 ? 'Edit' : 'Set budget'}</button>`;
     if (total <= 0) {
-      const committed =
-        money.spent > 0
-          ? `${gbp(money.spent)} chosen so far, with no budget to compare it to.`
-          : 'Set a total to see what is left as you book.';
+      // The plan wizard saves a range as text ("£3,000–£5,000"). It is not a total to plan
+      // against, but it is what the person chose, so it is shown rather than called "Not set".
+      const range = typeof plan?.budget === 'string' ? plan.budget.trim() : '';
+      const picked = range ? `You picked ${range} when you made this plan. ` : '';
+      let committed = '';
+      if (money.spent > 0) {
+        committed = `${picked}${gbp(money.spent)} chosen so far${range ? '.' : ', with no budget to compare it to.'}`;
+      } else {
+        committed = `${picked}Set a total to see what is left as you book.`;
+      }
       return tile(
         'Budget',
         `<p class="cdh-tile__value cdh-tile__value--empty">Not set</p><p class="cdh-tile__sub">${esc(committed)}</p><p class="cdh-tile__sub">${manage}</p>`,
@@ -379,7 +390,7 @@
    * ------------------------------------------------------------------ */
 
   /** The one-line greeting under the page heading for the focus plan. */
-  function ledeFor(plan) {
+  function ledeFor(plan, atLimit) {
     if (!plan) {
       return 'Start with a plan and EventFlow will keep your budget, guests and suppliers together.';
     }
@@ -395,14 +406,18 @@
     if (days === 0) {
       return `${name} is today.`;
     }
-    return `${name} has passed. Start a new plan whenever you are ready.`;
+    // Offering a new plan to someone who has the most plans allowed would send them to the wizard
+    // to be refused at its last step.
+    return atLimit
+      ? `${name} has passed.`
+      : `${name} has passed. Start a new plan whenever you are ready.`;
   }
 
   /** Sets the greeting line and points the primary action at the most useful next step. */
-  function renderHero(plan, steps) {
+  function renderHero(plan, steps, atLimit) {
     const lede = byId(ids.lede);
     if (lede) {
-      lede.textContent = ledeFor(plan);
+      lede.textContent = ledeFor(plan, atLimit);
     }
     const primary = byId(ids.primary);
     const secondary = byId(ids.secondary);
@@ -724,9 +739,13 @@
   }
 
   let suggestionsRequested = false;
+  // Each call to render() takes a number. A slow call that finishes after a newer one (the page
+  // draws on load, then again when a budget or plan is saved) must not draw over the newer result.
+  let latestRender = 0;
 
   /** Draws the greeting, summary row and next steps for the given plans. */
-  async function render(plans) {
+  async function render(plans, options) {
+    const thisRender = ++latestRender;
     if (!Array.isArray(plans)) {
       renderLoadError();
       return;
@@ -742,11 +761,14 @@
         : Promise.resolve(null),
     ]);
 
+    if (thisRender !== latestRender) {
+      return;
+    }
     const steps = normaliseSteps(stepsData, plan);
     const total = totalBudgetFor(plan, list);
     const summary = { ...money, total };
 
-    renderHero(plan, steps);
+    renderHero(plan, steps, Number(options?.limit) > 0 && list.length >= options.limit);
     renderSummary(plan, summary, steps, rsvpData?.summary);
     renderSteps(steps);
 

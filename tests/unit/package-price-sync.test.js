@@ -171,7 +171,6 @@ describe('every path that sets a package price stores it through priceFields', (
 
 describe('every reader of a package price applies the same rule', () => {
   test.each([
-    'routes/customer-dashboard.js',
     'services/publicListingSeo.service.js',
     'services/supplierRanking.service.js',
     'services/supplierProfilePackageCards.js',

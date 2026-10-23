@@ -6,7 +6,8 @@ import {
   seedBackendFixtures,
 } from './helpers/backend-fixtures.js';
 
-// TEMPORARY diagnostic: which page, script or stylesheet stops requestAnimationFrame in WebKit?
+// TEMPORARY diagnostic (removed before merge): which rule of admin-navbar.css stops
+// requestAnimationFrame in WebKit once admin-navbar.js has drawn the bar?
 test.describe('webkit probe @backend', () => {
   const runId = createRunId('wk-probe');
   let fixtures;
@@ -17,7 +18,7 @@ test.describe('webkit probe @backend', () => {
     await cleanupBackendFixtures(request, runId);
   });
 
-  // Frames in one second, or "none" when the first frame has not come after 2 seconds.
+  // Frames in one second, or "none" when no frame has come after 2 seconds.
   const frames = page =>
     page.evaluate(
       () =>
@@ -37,7 +38,7 @@ test.describe('webkit probe @backend', () => {
         })
     );
 
-  async function measure(browser, baseURL, fixtures, label, url, shape) {
+  async function measure(browser, baseURL, label, css) {
     const context = await browser.newContext({ baseURL });
     await context.addCookies([
       { name: 'eventflow_cookie_consent', value: 'rejected', url: baseURL },
@@ -46,14 +47,12 @@ test.describe('webkit probe @backend', () => {
     let result;
     try {
       await loginAs(page, fixtures.users.admin);
-      if (shape) {
-        await page.route(`**${url}`, async route => {
-          const response = await route.fetch();
-          const body = await response.text();
-          await route.fulfill(shape(response, body));
-        });
-      }
-      await page.goto(url, { waitUntil: 'load', timeout: 15000 });
+      await page.route('**/admin-packages', async route => {
+        const response = await route.fetch();
+        const body = (await response.text()).replace('</head>', `<style>${css}</style></head>`);
+        await route.fulfill({ response, body });
+      });
+      await page.goto('/admin-packages', { waitUntil: 'load', timeout: 15000 });
       await page.waitForTimeout(500);
       result = await frames(page);
     } catch (error) {
@@ -63,54 +62,26 @@ test.describe('webkit probe @backend', () => {
     console.log(`PROBE ${label}: ${result}`);
   }
 
-  test('probe', async ({ browser, baseURL, browserName }) => {
+  test('probe', async ({ browser, baseURL, browserName, request }) => {
     test.skip(browserName !== 'webkit', 'diagnostic for WebKit only');
-    test.setTimeout(240000);
-    const admin = '/admin-packages';
-    const contentType = response => ({ 'content-type': response.headers()['content-type'] });
-    const stripScripts = body => body.replace(/<script[\s\S]*?<\/script>/gi, '');
-    const stripAll = body =>
-      stripScripts(body).replace(/<link[^>]*rel=['"]stylesheet['"][^>]*>/gi, '');
-    const cases = [
-      ['about', '/about'],
-      ['faq', '/faq'],
-      ['admin baseline', admin],
-      ['admin users', '/admin-users'],
-      [
-        'admin, headers reduced to content-type',
-        admin,
-        (response, body) => ({ status: 200, headers: contentType(response), body }),
-      ],
-      [
-        'admin, tiny body, all headers',
-        admin,
-        (response, body) => ({
-          response,
-          body: '<!DOCTYPE html><html><body><p>hi</p></body></html>',
-        }),
-      ],
-      [
-        'admin, tiny body, content-type only',
-        admin,
-        (response, body) => ({
-          status: 200,
-          headers: contentType(response),
-          body: '<!DOCTYPE html><html><body><p>hi</p></body></html>',
-        }),
-      ],
-      [
-        'admin, no inline or external scripts',
-        admin,
-        (response, body) => ({ response, body: stripScripts(body) }),
-      ],
-      [
-        'admin, no scripts and no stylesheets',
-        admin,
-        (response, body) => ({ response, body: stripAll(body) }),
-      ],
-    ];
-    for (const [label, url, shape] of cases) {
-      await measure(browser, baseURL, fixtures, label, url, shape);
-    }
+    test.setTimeout(300000);
+    const noAnimation =
+      '*,*::before,*::after{animation:none !important;transition:none !important}';
+    const noBlur =
+      '*,*::before,*::after{backdrop-filter:none !important;-webkit-backdrop-filter:none !important}';
+    const noDot = '.db-status-dot,.admin-qnav-spark,.pulse{animation:none !important}';
+    await measure(browser, baseURL, 'unchanged', '');
+    await measure(browser, baseURL, 'no animations', noAnimation);
+    await measure(browser, baseURL, 'no backdrop blur', noBlur);
+    await measure(browser, baseURL, 'no animations and no blur', noAnimation + noBlur);
+    await measure(browser, baseURL, 'no status dot or spark pulse', noDot);
+    await measure(browser, baseURL, 'navbar hidden', '#adminNavbarMount{display:none !important}');
+    await measure(
+      browser,
+      baseURL,
+      'navbar invisible but laid out',
+      '#adminNavbarMount{visibility:hidden !important}'
+    );
+    expect(request).toBeTruthy();
   });
 });

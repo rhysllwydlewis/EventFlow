@@ -17,6 +17,12 @@ const { stripHtml } = require('../utils/helpers');
 const router = express.Router();
 
 const MAX_BUDGET_ITEMS = 500;
+// Maximum plans allowed per user (free tier)
+const MAX_PLANS_PER_USER = 3;
+// Maximum packages per plan
+const MAX_PACKAGES_PER_PLAN = 20;
+// Maximum guests per event (sanity cap)
+const MAX_GUESTS_PER_PLAN = 10000;
 const MAX_BUDGET_AMOUNT = 1000000000;
 
 /** A budget amount in pounds: finite, never negative, capped, rounded to pence. */
@@ -41,6 +47,8 @@ router.get('/', authRequired, async (req, res) => {
       ok: true,
       plans: userPlans,
       count: userPlans.length,
+      // So a page can say so before someone fills in the plan wizard and is refused at the end.
+      limit: MAX_PLANS_PER_USER,
     });
   } catch (error) {
     logger.error('Error fetching plans:', error);
@@ -80,13 +88,6 @@ router.get('/:id', authRequired, async (req, res) => {
  * Create a new plan
  * Body: { name, eventType, eventDate, location, guests, budget, notes, packages, timeline, checklist }
  */
-
-// Maximum plans allowed per user (free tier)
-const MAX_PLANS_PER_USER = 3;
-// Maximum packages per plan
-const MAX_PACKAGES_PER_PLAN = 20;
-// Maximum guests per event (sanity cap)
-const MAX_GUESTS_PER_PLAN = 10000;
 
 router.post(
   '/',
@@ -232,12 +233,12 @@ router.patch(
           : null;
       }
       if (eventDate !== undefined) {
-        if (eventDate) {
-          const dateObj = new Date(eventDate);
-          planUpdates.eventDate = isNaN(dateObj.getTime()) ? null : eventDate;
-        } else {
-          planUpdates.eventDate = null;
-        }
+        const dateObj = eventDate ? new Date(eventDate) : null;
+        planUpdates.eventDate = dateObj && !isNaN(dateObj.getTime()) ? eventDate : null;
+        // Plans made before `eventDate` existed (and every plan created here) also carry the date in
+        // `date`, and readers take `eventDate || date`. Left behind, an old `date` brings a cleared
+        // or changed date back, so the two always move together.
+        planUpdates.date = planUpdates.eventDate;
       }
       if (location !== undefined) {
         planUpdates.location = location ? stripHtml(String(location).trim()).slice(0, 200) : null;
@@ -261,7 +262,7 @@ router.patch(
       }
 
       planUpdates.updatedAt = new Date().toISOString();
-      await dbUnified.updateOne('plans', { id }, { $set: planUpdates });
+      await dbUnified.updateOne('plans', { id, userId }, { $set: planUpdates });
 
       res.json({
         success: true,

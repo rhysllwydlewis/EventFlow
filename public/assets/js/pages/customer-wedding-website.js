@@ -660,7 +660,8 @@
       return { key: 'not-started', label: 'Not started' };
     }
     if (!site) {
-      return { key: 'in-progress', label: 'Draft started' };
+      // A plan with no website yet: nothing has been drafted, so it has not started.
+      return { key: 'not-started', label: 'Not started' };
     }
     if (site.status === 'published') {
       return { key: 'published', label: 'Published' };
@@ -1263,11 +1264,14 @@
 
   /** Names, date and venue at the top of the Overview. */
   function overviewHero(site) {
-    const days = daysUntil(site?.eventDate);
+    // Before the website exists the date and place come from the plan, which already has them;
+    // asking for them again would be asking for something the customer has told us.
+    const eventDate = site ? site.eventDate : app.plan.eventDate || app.plan.date;
+    const days = daysUntil(eventDate);
     const names = site?.coupleNames || app.plan.name || 'Your wedding';
     const meta = [
-      site?.eventDate ? formatDate(site.eventDate) : '',
-      site?.ceremonyVenueName || site?.venueName,
+      eventDate ? formatDate(eventDate) : '',
+      site ? site.ceremonyVenueName || site.venueName : app.plan.location,
     ]
       .filter(Boolean)
       .join(' · ');
