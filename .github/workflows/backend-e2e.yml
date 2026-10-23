@@ -166,7 +166,6 @@ jobs:
           e2e/supplier-dashboard-conditions.spec.js
           e2e/customer-supplier-live-messages.spec.js
           e2e/admin-packages-page.spec.js
-          e2e/zz-webkit-probe.spec.js
           --project=firefox --project=webkit
           --grep @backend
         env:

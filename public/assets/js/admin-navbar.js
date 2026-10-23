@@ -441,7 +441,7 @@
     return [
       '<div class="admin-qnav-panel" id="adminQuickNav"',
       '     role="dialog" aria-modal="true"',
-      '     aria-label="Quick Navigation" aria-hidden="true">',
+      '     aria-label="Quick Navigation" aria-hidden="true" inert>',
       '  <div class="admin-qnav-inner">',
       '    <!-- Header -->',
       '    <div class="admin-qnav-header">',
@@ -575,6 +575,7 @@
 
     function openPanel() {
       panel.removeAttribute('aria-hidden');
+      panel.inert = false;
       panel.classList.add('qnav-open');
       if (backdrop) {
         backdrop.classList.add('qnav-open');
@@ -591,6 +592,9 @@
 
     function closePanel() {
       panel.setAttribute('aria-hidden', 'true');
+      // A closed drawer is off-screen but its links are still in the DOM: inert keeps them out of
+      // the tab order (aria-hidden alone leaves focusable controls inside a hidden region).
+      panel.inert = true;
       panel.classList.remove('qnav-open');
       if (backdrop) {
         backdrop.classList.remove('qnav-open');

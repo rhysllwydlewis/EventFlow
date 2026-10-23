@@ -143,7 +143,7 @@ ${
   page.adminGuard
     ? `    <link rel="stylesheet" href="/assets/css/admin.css?v=18.3.0" />
     <link rel="stylesheet" href="/assets/css/admin-enhanced.css?v=18.3.1" />
-    <link rel="stylesheet" href="/assets/css/admin-navbar.css?v=18.3.1" />
+    <link rel="stylesheet" href="/assets/css/admin-navbar.css?v=18.4.0" />
     <link rel="stylesheet" href="/assets/css/admin-cards.css?v=18.3.0" />
 `
     : '    <link rel="stylesheet" href="/assets/css/eventflow-footer.css" />\n'
@@ -303,7 +303,7 @@ ${
     page.adminGuard
       ? `    <script src="/assets/js/admin-shared.js?v=18.3.1"></script>
     <script src="/assets/js/components.js?v=18.3.0" defer></script>
-    <script src="/assets/js/admin-navbar.js?v=18.3.3" defer></script>
+    <script src="/assets/js/admin-navbar.js?v=18.4.0" defer></script>
 `
       : `    <script src="/assets/js/utils/auth-state.js?v=1.0.2" defer></script>
     <script src="/assets/js/burger-menu.js" defer></script>
