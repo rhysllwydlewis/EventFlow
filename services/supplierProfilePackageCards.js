@@ -5,10 +5,15 @@ const { packagePriceText } = require('../utils/packagePrice');
 
 const ENDPOINT_META = 'supplier-profile-package-cards-v2';
 
+// Paths that mean "no photo". Only PLACEHOLDER_PACKAGE_IMAGE is ever shown. The others are values
+// that packages saved earlier may still hold, matched so they are not mistaken for a real photo.
+// package-placeholder.svg/.png are files that exist; placeholders/package.svg and
+// placeholder-package.jpg are names from older versions and no longer exist on disk.
 const KNOWN_PLACEHOLDERS = new Set([
   PLACEHOLDER_PACKAGE_IMAGE,
-  '/assets/images/placeholders/package.svg',
   '/assets/images/package-placeholder.svg',
+  '/assets/images/package-placeholder.png',
+  '/assets/images/placeholders/package.svg',
   '/assets/images/placeholder-package.jpg',
   'placeholder',
   'null',
