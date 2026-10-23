@@ -430,10 +430,7 @@ class PackageList {
 
     // Sanitize supplier avatar URL
     const rawSupplierAvatar =
-      supplier.avatar ||
-      supplier.logo ||
-      pkg.supplierAvatar ||
-      '/assets/images/placeholders/avatar.svg';
+      supplier.avatar || supplier.logo || pkg.supplierAvatar || '/assets/images/default-avatar.svg';
     const supplierAvatar = escapeHtml(this.sanitizeImageUrl(rawSupplierAvatar));
     const supplierBadgesHtml = PackageList.buildSupplierBadgesHtml(supplier);
 
