@@ -14,6 +14,7 @@ const dbUnified = require('../db-unified');
 const { csrfProtection } = require('../middleware/csrf');
 const { writeLimiter, apiLimiter } = require('../middleware/rateLimits');
 const { enforceCoreFeatureFlags } = require('../middleware/features');
+const seasonalTheme = require('../services/seasonalTheme.service');
 const { stripPublicSupplierPrivateFields } = require('../utils/supplierPublicProfile');
 const {
   buildHomepageManager,
@@ -414,6 +415,30 @@ router.get('/features', async (req, res) => {
     logger.error('[ERROR] Failed to read feature flags:', error.message);
     // Default to enabled so a DB hiccup doesn't silently block sign-ups
     res.status(500).json({ registration: true, supplierApplications: true });
+  }
+});
+
+/**
+ * GET /api/public/seasonal-theme
+ * Which seasonal navbar theme, if any, the public header should wear right now.
+ * Worked out from the saved admin settings and today's UK date on every request
+ * (see services/seasonalTheme.service.js), so no timed job has to fire. The
+ * cache never outlives the next UK midnight, so a changeover reaches visitors
+ * within about five minutes at most. Any failure answers "no theme": the
+ * header is simply left plain.
+ */
+router.get('/seasonal-theme', async (req, res) => {
+  try {
+    const settings = (await dbUnified.read('settings')) || {};
+    const now = new Date();
+    const { theme } = seasonalTheme.resolveTheme(settings.seasonalTheme, now);
+    const maxAge = Math.min(300, seasonalTheme.secondsUntilUkMidnight(now));
+    res.set('Cache-Control', `public, max-age=${maxAge}`);
+    res.json({ theme });
+  } catch (error) {
+    logger.error('[ERROR] Failed to resolve seasonal theme:', error.message);
+    res.set('Cache-Control', 'no-store');
+    res.json({ theme: null });
   }
 });
 

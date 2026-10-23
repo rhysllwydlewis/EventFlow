@@ -598,6 +598,60 @@
       <button class="ef-cta btn btn-primary" id="saveSignupPopup">Save Sign-up Popup Settings</button>
     </div>
 
+    <!-- Seasonal Navbar Theme -->
+    <div class="card" id="seasonalThemeCard">
+      <h2 style="margin:0 0 0.25rem;">Seasonal Navbar Theme</h2>
+      <p class="small" style="margin-bottom:1rem;">A small themed decoration on the public navbar for UK occasions such as Halloween and Christmas. Everything runs on UK time.</p>
+
+      <div class="feature-item">
+        <div>
+          <strong>Auto schedule</strong>
+          <div class="small" id="seasonalAutoHelp">On: each theme switches on at 00:00 UK time on the first day of its occasion and off after its last day, and the site is plain in between. Off: you choose the theme yourself below.</div>
+        </div>
+        <label class="toggle-switch">
+          <input type="checkbox" id="seasonalAuto" aria-label="Auto schedule" aria-describedby="seasonalAutoHelp">
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
+
+      <div class="seasonal-status" id="seasonalStatus" role="status" aria-live="polite">Loading…</div>
+
+      <div id="seasonalManual" hidden>
+        <div class="form-row" style="margin-top:1rem;">
+          <label for="seasonalManualTheme">Theme</label>
+          <select id="seasonalManualTheme"></select>
+        </div>
+        <div class="form-row" style="margin-top:1rem;">
+          <label for="seasonalReturn">Return to the auto schedule on (optional)</label>
+          <input type="date" id="seasonalReturn" min="2025-01-01" max="2035-12-31">
+          <div class="small" style="margin-top:0.5rem;color:#667;">
+            Leave blank to keep this theme until you change it. Set a date so it can't be left on by mistake.
+          </div>
+        </div>
+      </div>
+
+      <fieldset class="seasonal-occasions" id="seasonalOccasions">
+        <legend>Occasions in the auto schedule</legend>
+        <div id="seasonalOccasionList"></div>
+        <div class="small" id="seasonalTableNote" style="margin-top:0.5rem;color:#667;" hidden></div>
+      </fieldset>
+
+      <style>
+        .seasonal-status { margin-top:1rem; padding:0.75rem 1rem; border-radius:8px; background:#f0f7f6; color:#344054; font-size:0.9rem; line-height:1.5; }
+        .seasonal-status strong { color:#101828; }
+        .seasonal-status .seasonal-warning { display:block; margin-top:0.35rem; color:#b54708; font-weight:600; }
+        .seasonal-occasions { margin:1rem 0; padding:0.75rem 1rem; border:1px solid #e4e7ec; border-radius:8px; }
+        .seasonal-occasions legend { padding:0 0.4rem; font-size:0.85rem; font-weight:600; color:#344054; }
+        .seasonal-occasions .checkbox-label-right { margin:0; padding:0.35rem 0; font-weight:500; font-size:0.9rem; }
+        .seasonal-occasions .checkbox-label-right input[type="checkbox"] { min-height:0; }
+        .seasonal-occasions .seasonal-dates { margin-left:auto; color:#667085; font-size:0.8rem; white-space:nowrap; }
+        .seasonal-save-note { margin:0 0 0.75rem; color:#667; }
+      </style>
+
+      <p class="small seasonal-save-note">Saved changes reach visitors within about five minutes.</p>
+      <button class="ef-cta btn btn-primary" id="saveSeasonalTheme">Save Seasonal Theme</button>
+    </div>
+
     <!-- Content Management -->
     <div class="card">
       <div style="display:flex;align-items:center;gap:0.5rem;margin-bottom:0.25rem;flex-wrap:wrap;">
@@ -713,6 +767,7 @@
 <script src="/assets/js/admin-shared.js?v=18.3.1"></script>
 <script src="/assets/js/pages/admin-settings-init.js?v=18.3.2" defer></script>
 <script src="/assets/js/pages/admin-signup-popup-init.js?v=1.0.0" defer></script>
+<script src="/assets/js/pages/admin-seasonal-theme-init.js?v=1.0.0" defer></script>
 <script src="/assets/js/pages/admin-ops-assistant-init.js?v=1.0.0" defer></script>
 
 <script src="/assets/js/cookie-consent.js?v=3.0.0" defer></script>
