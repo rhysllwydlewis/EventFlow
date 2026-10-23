@@ -174,6 +174,10 @@ the policy above.
 
 ## Session log
 
+### 2026-10-23 — session 30
+
+Branch restarted onto `main` (`17e4c0f3`, #1827). No open PRs at all, nothing red. `/api/ready` 200. Session 29's candidate (the wall-clock assertion in `tests/unit/helpers-strip-html.test.js`) is already handled upstream: the bound is now 3000 ms (#1822), so no change needed. Noted that `npm install` rewrites `package-lock.json` (strips `libc` fields); reverted, don't commit it. No defect found, no code changed. Docs-only handoff.
+
 ### 2026-10-21 — session 29
 
 Branch still carried only the session 28 handoff commit ahead of `main`. Only open PR is #1819 (supplier dashboard redesign, not mine); none on this branch. Backlog empty. `/api/ready` and `/`, `/suppliers`, `/marketplace`, `/pricing`, `/faq`, `/auth`, `/community`, `/contact`, `/terms`, `/privacy`, `/guides` all 200. No defect found, no code changed. Docs-only handoff.
