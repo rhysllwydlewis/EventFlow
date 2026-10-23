@@ -4,6 +4,31 @@ One page for customers and suppliers (admins see it without the Account type car
 `public/settings.html`, `public/assets/css/settings.css` (only this page loads it),
 `public/assets/js/pages/settings-init.js`, and the API in `routes/settings.js`.
 
+## How it looks
+
+The page uses the dashboards' visual language (`customer-dashboard-home.css`,
+`supplier-dashboard-home.css`): the warm page background, white cards with a hairline border and
+16px radius, one teal accent, 44px buttons with the same primary / secondary / danger treatment,
+hairline-separated rows, and no tinted cards, gradients or emoji. The tokens at the top of
+`settings.css` (`--st-*`) are copies of the dashboards' own, and `tests/unit/settings-page.test.js`
+fails if they drift apart.
+
+Layout: a hero (title, one-line intro, "Back to dashboard" for customers and suppliers), then a
+sticky section list on the left (a sideways-scrolling row on phones) beside a stack of cards:
+Account information, Account type (not for admins), Notification preferences, Change password,
+Danger zone. Confirmations are dialogs styled to match.
+
+The section list marks the card being read with `aria-current="true"` (the last one at the end of
+the page). Links from other pages that point into this page (`/settings#account-type-card` from the
+customer dashboard, `/settings#verify-email` from the supplier dashboard's "Verify Now") target
+parts that are only drawn after the account loads, so the script scrolls to them itself once it has
+rendered (`scrollToLinkedSection`; `verify-email` is mapped to the unverified notice). A unit test
+fails if a `/settings#...` link anywhere on the site names something this page does not have.
+
+Two things in the markup are there for shared scripts, not for looks: each password input sits in
+its own `.form-row` wrapper, because `app.js` attaches the show/hide button to
+`.form-row input[type="password"]`; and the `ef-page` tag stays `account_settings` (below).
+
 ## Where the data comes from
 
 | What                                                                        | Request                                                                                                    |
