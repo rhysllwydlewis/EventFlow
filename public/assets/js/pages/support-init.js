@@ -42,12 +42,12 @@ window.__EF_PAGE__ = 'support';
   // The API takes who the ticket is from from the signed-in account, but still requires the
   // account type to be sent and to match.
   async function getSenderType() {
-    const r = await fetch('/api/v1/auth/me', { credentials: 'include' });
-    if (!r.ok) {
+    const response = await fetch('/api/v1/auth/me', { credentials: 'include' });
+    if (!response.ok) {
       throw new Error('Please sign in again to create a ticket');
     }
-    const d = await r.json();
-    const role = d.user && d.user.role;
+    const data = await response.json();
+    const role = data.user?.role;
     if (role !== 'customer' && role !== 'supplier') {
       throw new Error('Support tickets are available to customer and supplier accounts');
     }
