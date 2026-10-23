@@ -269,11 +269,10 @@ async function calendarScenarios() {
   };
 
   /** Draws the calendar for the given plans and returns the text of the Next up panel. */
-  async function nextUpFor(plans) {
+  async function nextUpFor(plans, entries = []) {
     const fetchImpl = async url => ({
       ok: true,
-      json: async () =>
-        String(url).includes('/me/plans') ? { plans } : { entries: [], events: [] },
+      json: async () => (String(url).includes('/me/plans') ? { plans } : { entries, events: [] }),
     });
     const window = await loaded(
       windowWith(
@@ -295,6 +294,14 @@ async function calendarScenarios() {
   out.named = await nextUpFor([
     { id: 'p1', name: 'Our wedding', eventDate: day(120), location: 'Bristol' },
   ]);
+  out.entryWithoutTime = await nextUpFor(
+    [],
+    [{ id: 'e1', title: 'Venue visit', type: 'meeting', date: day(3), time: '' }]
+  );
+  out.entryWithTime = await nextUpFor(
+    [],
+    [{ id: 'e2', title: 'Tasting', type: 'appointment', date: day(3), time: '14:30' }]
+  );
   out.today = await nextUpFor([{ id: 'p2', name: 'Launch party', eventDate: day(0) }]);
   out.undated = await nextUpFor([{ id: 'p3', name: 'Someday' }]);
   out.passed = await nextUpFor([{ id: 'p4', name: 'Last year', eventDate: day(-30) }]);

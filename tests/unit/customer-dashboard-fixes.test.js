@@ -227,6 +227,12 @@ describe('the dashboard calendar "Next up"', () => {
     expect(calendar.named).not.toMatch(/\d{2}:\d{2}/);
   });
 
+  test('a personal entry with no time is a date; one with a time shows the time', () => {
+    expect(calendar.entryWithoutTime).toContain('Venue visit');
+    expect(calendar.entryWithoutTime).not.toMatch(/\d{2}:\d{2}/);
+    expect(calendar.entryWithTime).toContain('14:30');
+  });
+
   test('still shows an entry for today until the day is over', () => {
     expect(calendar.today).toContain('Launch party');
   });

@@ -187,4 +187,65 @@ describe('check-asset-versions', () => {
     expect(result.status).toBe(2);
     expect(result.stderr).toContain('fetch-depth: 0');
   });
+
+  describe('JadeAssist scripts (versioned when the production image is built)', () => {
+    const versionFile = version => `export const JADEASSIST_ASSET_VERSION = '${version}';\n`;
+    const jade = '/assets/js/jadeassist-init.v2.js';
+    const pageWithJade = page([script(jade)]);
+
+    it('fails when a JadeAssist script changes but the build version does not', () => {
+      const dir = makeRepo({
+        base: {
+          'public/assets/js/jadeassist-init.v2.js': 'a',
+          'public/about.html': pageWithJade,
+          'scripts/version-jadeassist-assets.mjs': versionFile('20260101-1'),
+        },
+        change: { 'public/assets/js/jadeassist-init.v2.js': 'b' },
+      });
+
+      const result = run(dir);
+      expect(result.status).toBe(1);
+      expect(result.stderr).toContain('JADEASSIST_ASSET_VERSION did not');
+      expect(result.stderr).toContain('20260101-1');
+    });
+
+    it('passes without per-page versions once the build version has moved', () => {
+      const dir = makeRepo({
+        base: {
+          'public/assets/js/jadeassist-init.v2.js': 'a',
+          'public/about.html': pageWithJade,
+          'scripts/version-jadeassist-assets.mjs': versionFile('20260101-1'),
+        },
+        change: {
+          'public/assets/js/jadeassist-init.v2.js': 'b',
+          'scripts/version-jadeassist-assets.mjs': versionFile('20260102-1'),
+        },
+      });
+
+      const result = run(dir);
+      expect(result.status).toBe(0);
+      expect(result.stdout).toContain('20260101-1 -> 20260102-1');
+    });
+
+    it('still checks every other asset on the same pages', () => {
+      const dir = makeRepo({
+        base: {
+          'public/assets/js/app.js': 'a',
+          'public/assets/js/jadeassist-init.v2.js': 'a',
+          'public/about.html': page([script(jade), script('/assets/js/app.js?v=1')]),
+          'scripts/version-jadeassist-assets.mjs': versionFile('20260101-1'),
+        },
+        change: {
+          'public/assets/js/app.js': 'b',
+          'public/assets/js/jadeassist-init.v2.js': 'b',
+          'scripts/version-jadeassist-assets.mjs': versionFile('20260102-1'),
+        },
+      });
+
+      const result = run(dir);
+      expect(result.status).toBe(1);
+      expect(result.stderr).toContain('/assets/js/app.js');
+      expect(result.stderr).not.toContain('jadeassist-init.v2.js: ');
+    });
+  });
 });

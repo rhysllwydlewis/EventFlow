@@ -777,7 +777,8 @@
             time: entry.time || '',
             type: entry.type,
             color: getEntryColor(entry.type),
-            start: entry.time ? `${entry.date}T${entry.time}` : `${entry.date}T00:00:00`,
+            // No time of day means a whole day, which is shown as a date.
+            start: entry.time ? `${entry.date}T${entry.time}` : entry.date,
             backgroundColor: getEntryColor(entry.type),
             extendedProps: {
               entryType: entry.type,
@@ -811,7 +812,8 @@
       calendarItems.map(item => ({
         id: item.id,
         title: item.title,
-        start: item.start || (item.time ? `${item.date}T${item.time}` : `${item.date}T00:00:00`),
+        // No time of day means a whole day, which is shown as a date.
+        start: item.start || (item.time ? `${item.date}T${item.time}` : item.date),
         backgroundColor: item.backgroundColor || item.color || getEntryColor(item.type),
         extendedProps: item.extendedProps || {
           entryType: item.type,
@@ -967,8 +969,6 @@
           description: plan.description || '',
           type: plan.eventType || plan.type || 'event',
           location: plan.location || '',
-          // Opened by eventClick: the dashboard edits the plan in place; other pages go to /plan.
-          url: `/plan?id=${plan.id}`,
           backgroundColor: getEventColor(plan.eventType || plan.type),
           borderColor: getEventColor(plan.eventType || plan.type),
           extendedProps: {
@@ -1097,9 +1097,8 @@
           showEntryActions(info.el, rawEntry, calendar, modal);
           return;
         }
-        // On the dashboard a plan opens its editor. /plan is the older planner and does not take
-        // the plan id, so it is only the way to a plan from pages that have no editor.
-        if (info.event.extendedProps.planId && document.getElementById('customer-plans-list')) {
+        // A plan opens its editor on the dashboard (the older /plan page does not take a plan id).
+        if (info.event.extendedProps.planId) {
           document.dispatchEvent(
             new CustomEvent('cdh:edit-plan', {
               detail: { planId: info.event.extendedProps.planId },

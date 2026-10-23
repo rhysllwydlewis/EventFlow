@@ -27,6 +27,7 @@ import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { JADEASSIST_ASSET_VERSION, JADEASSIST_SCRIPT_PATHS } from './version-jadeassist-assets.mjs';
 
 const ASSET_PATTERN = /^public\/assets\/.+\.(?:js|mjs|css)$/;
 const REF_PATTERN =
@@ -148,6 +149,44 @@ export function run(argv = process.argv.slice(2), env = process.env) {
     .split(',')
     .map(item => item.trim())
     .filter(Boolean);
+
+  // The JadeAssist scripts are not versioned in the pages: the production image build stamps
+  // every page with JADEASSIST_ASSET_VERSION (scripts/version-jadeassist-assets.mjs). So a change
+  // to one is only safe when that constant changed too.
+  const jadeChanged = changedAssets.filter(url => JADEASSIST_SCRIPT_PATHS.includes(url));
+  if (jadeChanged.length > 0) {
+    const versionOf = source =>
+      /JADEASSIST_ASSET_VERSION = '([^']+)'/.exec(source || '')?.[1] || null;
+    const versionFile = path.join(root, 'scripts/version-jadeassist-assets.mjs');
+    const baseVersion = versionOf(
+      tryGit(root, ['show', `${base}:scripts/version-jadeassist-assets.mjs`])
+    );
+    const headVersion = fs.existsSync(versionFile)
+      ? versionOf(fs.readFileSync(versionFile, 'utf8'))
+      : JADEASSIST_ASSET_VERSION;
+    if (baseVersion && baseVersion === headVersion) {
+      const log = options.warnOnly ? console.warn : console.error;
+      log(
+        [
+          'check-asset-versions: a JadeAssist script changed but JADEASSIST_ASSET_VERSION did not:',
+          ...jadeChanged.map(url => `  ${url}`),
+          `Pages get ?v=${headVersion} when the production image is built, so returning visitors would`,
+          'keep the old script. Change JADEASSIST_ASSET_VERSION in scripts/version-jadeassist-assets.mjs',
+          '(and the version in tests/unit/jadeassist-cache-bust-build.test.js).',
+        ].join('\n')
+      );
+      if (env.GITHUB_ACTIONS === 'true') {
+        console.log(
+          `::${options.warnOnly ? 'warning' : 'error'} file=scripts/version-jadeassist-assets.mjs::JADEASSIST_ASSET_VERSION must change when a JadeAssist script changes.`
+        );
+      }
+      return options.warnOnly ? 0 : 1;
+    }
+    console.log(
+      `check-asset-versions: ${jadeChanged.length} JadeAssist script(s) changed; JADEASSIST_ASSET_VERSION moved ${baseVersion || '(new)'} -> ${headVersion}, the build stamps the pages.`
+    );
+    allow.push(...jadeChanged);
+  }
 
   const pageFiles = fs
     .readdirSync(path.join(root, 'public'))

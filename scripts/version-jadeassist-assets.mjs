@@ -5,7 +5,7 @@ import { fileURLToPath } from 'node:url';
 export const JADEASSIST_ASSET_VERSION = '20261022-1';
 export const JADEASSIST_POLISH_SCRIPT_PATH = '/assets/js/jadeassist-launcher-polish.js';
 
-const JADEASSIST_SCRIPT_PATHS = [
+export const JADEASSIST_SCRIPT_PATHS = [
   '/assets/js/vendor/jade-widget.js',
   JADEASSIST_POLISH_SCRIPT_PATH,
   '/assets/js/jadeassist-init.v2.js',
