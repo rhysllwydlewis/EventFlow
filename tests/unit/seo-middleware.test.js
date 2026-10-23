@@ -61,6 +61,13 @@ describe('SEO noindex middleware — authenticated pages', () => {
     '/my-marketplace-listings',
     '/budget',
     '/gallery',
+    // Developer demo/diagnostic pages
+    '/mobile-preview',
+    '/demo-loading-spinner.html',
+    '/test-notifications',
+    '/messaging-demo',
+    '/google-auth-diagnostics',
+    '/supplier-card-showcase.html',
     // Canonical messenger SPA
     '/messenger',
     '/messenger/',
