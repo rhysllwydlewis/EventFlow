@@ -21,6 +21,23 @@
 
   ensureBrandStyles();
 
+  // Seasonal navbar theme (Halloween, Christmas, ...). The loader asks the server
+  // whether a theme is on and downloads artwork only if so, so it is inert for
+  // most of the year. Loaded here so every page with this navbar gets it.
+  function ensureSeasonalTheme() {
+    if (window.__efSeasonalTheme || document.querySelector('script[data-eventflow-seasonal]')) {
+      return;
+    }
+
+    const loader = document.createElement('script');
+    loader.src = '/assets/js/seasonal-theme.js?v=1.0.0';
+    loader.async = true;
+    loader.dataset.eventflowSeasonal = 'true';
+    document.head.appendChild(loader);
+  }
+
+  ensureSeasonalTheme();
+
   // Debug flag - set to false to disable console logs
   const DEBUG = false;
 

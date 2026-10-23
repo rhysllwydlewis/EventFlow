@@ -1,0 +1,98 @@
+/**
+ * EventFlow seasonal navbar — layout for the decorative layers.
+ *
+ * Loaded by seasonal-theme.js only while a theme is on. Everything here is
+ * decorative: it sits behind the header content, ignores the pointer, and is
+ * clipped to the header, so it cannot move the page or intercept a click.
+ */
+
+/* Own stacking context, so the layers can sit above the header's background
+   but below its links without depending on how a page positions the header. */
+.ef-header.ef-season-on {
+  isolation: isolate;
+}
+
+.ef-season-deco {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: -1;
+}
+
+.ef-season-layer {
+  position: absolute;
+  pointer-events: none;
+  background-repeat: no-repeat;
+}
+
+/* Edge clusters hug the far left and right of the bar and fade out well before the links. */
+.ef-season-edge {
+  width: min(300px, 43%);
+  height: 17px;
+  background-size: 300px 17px;
+}
+
+.ef-season-edge[data-pos='top'] {
+  top: 0;
+}
+
+.ef-season-edge[data-pos='bottom'] {
+  bottom: 0;
+}
+
+.ef-season-edge--l {
+  left: 0;
+  background-position: left top;
+  -webkit-mask-image: linear-gradient(90deg, #000 30%, transparent 92%);
+  mask-image: linear-gradient(90deg, #000 30%, transparent 92%);
+}
+
+.ef-season-edge--r {
+  right: 0;
+  background-position: right top;
+  -webkit-mask-image: linear-gradient(270deg, #000 30%, transparent 92%);
+  mask-image: linear-gradient(270deg, #000 30%, transparent 92%);
+}
+
+.ef-season-corner {
+  top: 0;
+  right: 0;
+  width: 80px;
+  height: 64px;
+  background-position: right top;
+  opacity: 0.7;
+}
+
+/* One small mark just past the end of the wordmark, like a superscript. Its size
+   and position are set from the wordmark's measured width (seasonal-theme-art.js). */
+.ef-season-on .ef-brand {
+  position: relative;
+}
+
+.ef-season-mark {
+  position: absolute;
+  z-index: 2;
+  pointer-events: none;
+}
+
+.ef-season-mark svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+/* The web needs room; on small screens the mark and edge art are enough. */
+@media (max-width: 700px) {
+  .ef-season-corner {
+    display: none;
+  }
+}
+
+@media print, (forced-colors: active) {
+  .ef-season-deco,
+  .ef-season-mark {
+    display: none;
+  }
+}

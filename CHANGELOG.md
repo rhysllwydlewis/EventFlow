@@ -29,6 +29,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Seasonal Navbar Themes**: a small themed decoration on the public navbar for ten UK occasions (Halloween, Bonfire Night, Remembrance, Christmas, New Year, Valentine's Day, Chinese New Year, Mother's Day, Easter and Father's Day), switched on and off automatically at 00:00 UK time or chosen by hand from **Admin > System Settings**
+  - The theme is worked out on demand from the saved settings and the UK date (`services/seasonalTheme.service.js`, served by `GET /api/public/seasonal-theme`), so no timed job can be missed by a restart or deploy
+  - Off until an admin enables it. Manual choices can carry a return-to-auto date, and individual occasions can be skipped
+  - Custom SVG artwork loaded only while a theme is on, behind the header content and click-through, with motion switched off for `prefers-reduced-motion`. See `docs/SEASONAL_NAVBAR_THEME.md`
+  - `navbar.js` is now `?v=1.2.0` on every page that loads it
 - **Messaging API v2 Complete Feature Parity**: Added 8 missing endpoints to `/api/v2/messages` for full backward compatibility
   - `GET /unread` - Get total unread message count
   - `GET /drafts` - Get all draft messages
