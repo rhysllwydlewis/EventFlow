@@ -31,8 +31,10 @@ const pages = htmlFiles(PUBLIC)
   .map(file => ({ file: path.relative(ROOT, file), html: fs.readFileSync(file, 'utf8') }))
   .filter(page => /\/assets\/js\/navbar\.js/.test(page.html));
 
+const escapeRegExp = text => text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
 const versionOf = (html, asset) => {
-  const match = html.match(new RegExp(`${asset.replace(/\./g, '\\.')}\\?v=([\\w.]+)`));
+  const match = html.match(new RegExp(`${escapeRegExp(asset)}\\?v=([\\w.]+)`));
   return match ? match[1] : null;
 };
 
@@ -109,6 +111,17 @@ describe('the pieces agree with each other', () => {
     expect(navbar).toContain('localStorage.removeItem(AUTH_HINT_WIDTH_KEY)');
   });
 
+  test('the remembered header is given up after the same 6 seconds, keeping the hint', () => {
+    expect(navbar).toContain('const HINT_PATIENCE_MS = 6000;');
+    expect(navbar).toContain('window.setTimeout(giveUpHint, HINT_PATIENCE_MS)');
+    // Giving up draws the signed-out header but must not forget the hint: the server's answer does.
+    expect(navbar).toMatch(
+      /function giveUpHint\(\) \{\s*keepHint = true;[\s\S]*?updateAuthUI\(null\);/
+    );
+    expect(navbar).toMatch(/if \(!keepHint\) \{\s*saveAuthHint\(user\);/);
+    expect(navbar).toContain('window.clearTimeout(hintTimer);');
+  });
+
   test('a hinted header is never saved as if the server had said so', () => {
     // The stand-in user is tracked privately, so nothing the server sends can pose as one, and it
     // skips the save and keeps the early state.
@@ -159,6 +172,15 @@ describe('the version 2 homepage, which has its own header', () => {
     expect(parityCss).toContain('html.ef-hint-in .home-v2-page .hv2-bottom-dashboard');
     expect(navbarParityCss).toContain('html.ef-hint-in .home-v2-page .hv2-header .hv2-auth-link');
   });
+
+  test.each(scripts.map((source, index) => [index, source]))(
+    'script %i sends an unknown user to the role-resolving /dashboard, not the customer route',
+    (_index, source) => {
+      expect(source).toMatch(
+        /function getDashboardUrl\(user\) \{[\s\S]*?if \(!user\) \{\s*return '\/dashboard';/
+      );
+    }
+  );
 
   test.each(scripts.map((source, index) => [index, source]))(
     'script %i drops the early state and saves or forgets the hint once the server answers',

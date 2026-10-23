@@ -390,6 +390,43 @@ test.describe('Reserved width follows the device', () => {
   });
 });
 
+test.describe('Auth request that stalls', () => {
+  test.use({ viewport: { width: 1440, height: 900 } });
+
+  test('an ended session with a stalled auth request gets "Log in" back after 6s, then the answer settles it', async ({
+    page,
+  }) => {
+    await stage(page, { status: 401, delay: 8500 });
+    await seedHint(page, 'customer');
+    await page.goto(PAGE, { waitUntil: 'domcontentloaded' });
+    // The remembered header is drawn at first...
+    await expect(page.locator('#ef-account-toggle')).toBeVisible();
+    await expect(page.locator('#ef-auth-link')).toBeHidden();
+    // ...but is given up after 6s, so the visitor can sign in without waiting for the request.
+    await expect(page.locator('#ef-auth-link')).toBeVisible({ timeout: 9000 });
+    await expect(page.locator('#ef-auth-link')).toHaveText('Log in');
+    await expect(page.locator('#ef-account-toggle')).toBeHidden();
+    // Giving up is not a verdict: the hint is kept until the server answers.
+    expect(await page.evaluate(() => localStorage.getItem('ef_auth_hint'))).toBe('customer');
+    await expect
+      .poll(() => page.evaluate(() => localStorage.getItem('ef_auth_hint')), { timeout: 8000 })
+      .toBeNull();
+    await expect(page.locator('#ef-auth-link')).toBeVisible();
+  });
+
+  test('a slow answer that does confirm the session puts the signed-in header back and keeps the hint', async ({
+    page,
+  }) => {
+    await stage(page, { delay: 8500 });
+    await seedHint(page, 'customer');
+    await page.goto(PAGE, { waitUntil: 'domcontentloaded' });
+    await expect(page.locator('#ef-auth-link')).toBeVisible({ timeout: 9000 });
+    await expect(page.locator('#ef-account-toggle')).toBeVisible({ timeout: 8000 });
+    await expect(page.locator('#ef-auth-link')).toBeHidden();
+    expect(await page.evaluate(() => localStorage.getItem('ef_auth_hint'))).toBe('customer');
+  });
+});
+
 test.describe('Failsafe', () => {
   test.use({ viewport: { width: 1440, height: 900 } });
 
@@ -493,6 +530,29 @@ test.describe('Version 2 homepage, which has its own header', () => {
       await expect(page.locator('html')).not.toHaveClass(/ef-hint-in/);
       expect(await page.evaluate(() => localStorage.getItem('ef_auth_hint'))).toBeNull();
     });
+  });
+
+  test('a remembered supplier is not sent to the customer route by the early Dashboard link', async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await stageV2(page, { role: 'supplier' });
+    await page.route('**/api/v1/auth/me', async route => {
+      await new Promise(resolve => setTimeout(resolve, 2500));
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ user: { id: 'u1', role: 'supplier' } }),
+      });
+    });
+    await seedHint(page, 'supplier');
+    await page.goto(V2, { waitUntil: 'domcontentloaded' });
+    const link = page.locator('.hv2-header .hv2-dashboard-link');
+    await expect(link).toBeVisible();
+    // Visible and clickable before the server has answered: it must go to the route that sends each
+    // account to its own dashboard, never /dashboard/customer (which turns a supplier away).
+    await expect(link).toHaveAttribute('href', '/dashboard');
+    await expect(link).toHaveAttribute('href', '/dashboard/supplier', { timeout: 6000 });
   });
 
   test.describe('phone', () => {

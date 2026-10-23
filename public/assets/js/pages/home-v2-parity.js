@@ -106,6 +106,12 @@
   }
 
   function getDashboardUrl(user) {
+    // Until the user is known (the header can be drawn early from a remembered account type) use the
+    // route that sends each account to its own dashboard, not the customer's.
+    if (!user) {
+      return '/dashboard';
+    }
+
     const role = String(user?.role || user?.accountType || '').toLowerCase();
 
     if (role.includes('supplier')) {

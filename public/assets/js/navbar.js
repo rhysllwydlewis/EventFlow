@@ -70,6 +70,14 @@
   // nothing the server sends can be mistaken for one.
   const hintedUsers = new WeakSet();
 
+  // How long the header may show the remembered account type while the server has not answered.
+  // Past it the header goes back to "Log in" (without forgetting the hint, which the server's answer
+  // still settles), so a visitor whose session has ended, with an auth request that stalls, can sign
+  // in rather than wait. auth-hint.js uses the same figure for the early styles.
+  const HINT_PATIENCE_MS = 6000;
+  let hintTimer = 0;
+  let keepHint = false;
+
   function readAuthHint() {
     try {
       const role = window.localStorage.getItem(AUTH_HINT_KEY);
@@ -372,6 +380,16 @@
     window.location.href = `/?t=${Date.now()}`;
   }
 
+  /** Stops showing the remembered account type, keeping the hint for the server's answer to settle. */
+  function giveUpHint() {
+    keepHint = true;
+    try {
+      updateAuthUI(null);
+    } finally {
+      keepHint = false;
+    }
+  }
+
   /**
    * Draws the header for `user`. A user in `hintedUsers` is the remembered account type, drawn while
    * the server is still being asked; the server's answer (or null) replaces it.
@@ -381,8 +399,11 @@
     if (!hintedUsers.has(user)) {
       // Settled: the server's answer is now what the header shows, so the early state from
       // auth-hint.js is no longer needed, and the next page remembers this answer.
+      window.clearTimeout(hintTimer);
       document.documentElement.classList.remove('ef-hint-in');
-      saveAuthHint(user);
+      if (!keepHint) {
+        saveAuthHint(user);
+      }
     }
     updateAccountMenu(user);
 
@@ -734,6 +755,7 @@
         const hintedUser = { role: hintedRole };
         hintedUsers.add(hintedUser);
         updateAuthUI(hintedUser);
+        hintTimer = window.setTimeout(giveUpHint, HINT_PATIENCE_MS);
       }
 
       // Fetch the CSRF token alongside the auth check rather than before it: nothing here needs it,
