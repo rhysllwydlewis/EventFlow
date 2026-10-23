@@ -146,6 +146,27 @@ describe('POST /api/me/settings — preference fields', () => {
     expect(setArg.$set).not.toHaveProperty('notify_account');
   });
 
+  it('loads the one signed-in user, not the whole users collection', async () => {
+    const db = buildDb({
+      users: [
+        { id: 'someone_else', email: 'other@example.com' },
+        { id: 'user_1', email: 'u@example.com' },
+      ],
+    });
+    const app = buildApp(db);
+
+    const res = await request(app).get('/api/me/settings').expect(200);
+
+    expect(res.body.verified).toBe(false);
+    expect(db.findOne).toHaveBeenCalledWith('users', { id: 'user_1' });
+    expect(db.read).not.toHaveBeenCalledWith('users');
+  });
+
+  it('answers 404 for an account that no longer exists', async () => {
+    const app = buildApp(buildDb({ users: [] }));
+    await request(app).get('/api/me/settings').expect(404);
+  });
+
   it('reads notify from notify_account, matching what PUT /api/auth/preferences writes', async () => {
     const db = buildDb({
       users: [{ id: 'user_1', email: 'u@example.com', notify: true, notify_account: false }],

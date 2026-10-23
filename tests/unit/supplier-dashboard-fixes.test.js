@@ -209,17 +209,14 @@ describe('Supplier dashboard/profile UI polish', () => {
     expect(appJs).not.toContain("querySelectorAll('.supplier-profile-photo-remove')");
   });
 
-  it('settings Remove photo button matches outlined upload-button chrome', () => {
-    expect(settingsHtml).toContain('id="avatar-delete-btn"');
-    expect(settingsHtml).toContain('border:1px solid #CFEDEA;background:#F6FAF9;color:#dc2626');
-    expect(settingsHtml).toContain('box-sizing:border-box;line-height:inherit;');
-    const uploadLabel = settingsHtml.match(/<label[^>]*for="avatar-upload-input"[^>]*>/)?.[0];
-    expect(uploadLabel).toBeDefined();
-    expect(uploadLabel).toContain('class="cta secondary"');
-    expect(uploadLabel).toMatch(/font-size:\s*0\.8125rem/);
-    expect(uploadLabel).toContain('box-sizing:border-box;line-height:inherit;');
-    expect(settingsHtml).not.toContain('border:1px solid #fca5a5;background:#fff5f5;color:#dc2626');
-    expect(settingsHtml).not.toContain('border:1px solid #d1d5db;background:#fff;color:#dc2626');
+  it('settings Upload and Remove photo buttons share one size and shape, from the stylesheet', () => {
+    const upload = settingsHtml.match(/<button[^>]*id="avatar-upload-btn"[^>]*>/)?.[0];
+    const remove = settingsHtml.match(/<button[^>]*id="avatar-delete-btn"[^>]*>/)?.[0];
+    expect(upload).toContain('settings-btn-sm');
+    expect(remove).toContain('settings-btn-sm');
+    // No inline colours: the red is the stylesheet's (AA on white), not a hard-coded #dc2626.
+    expect(upload).not.toMatch(/style=/);
+    expect(remove).not.toMatch(/style=/);
   });
 
   it('dashboard and messenger avatar URLs allow safe https CDN and rooted relative forms', () => {

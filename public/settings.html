@@ -2,14 +2,15 @@
 <html lang='en-GB'>
 <head>
   <meta charset='utf-8'>
-  <meta name="ef-page" content="settings">
+  <!-- Not "settings": that tag makes app.js run its old initSettings(), which adds a second Save handler and replaces this whole page with "Unable to load settings." if its own request fails. -->
+  <meta name="ef-page" content="account_settings">
   <meta name='viewport' content='width=device-width, initial-scale=1, maximum-scale=5, user-scalable=yes'>
   <meta name='theme-color' content='#0B8073'>
   <title>Settings — EventFlow</title>
 <meta name="robots" content="noindex,nofollow">
   <link rel="stylesheet" href="/assets/css/styles.css?v=18.5.1">
   <link rel="stylesheet" href="/assets/css/ui-ux-fixes.css?v=18.4.0">
-    <link rel="stylesheet" href="/assets/css/settings.css?v=18.3.4" />
+    <link rel="stylesheet" href="/assets/css/settings.css?v=19.0.0" />
     <link rel="stylesheet" href="/assets/css/navbar.css?v=18.4.2" /><link rel="stylesheet" href="/assets/css/eventflow-brand.css?v=1.0.1" data-eventflow-brand="true" />
   <link rel='stylesheet' href='/assets/css/eventflow-17.0.0.css?v=18.3.0'>
   <link rel='stylesheet' href='/assets/css/utilities.css?v=18.3.0'>
@@ -144,175 +145,29 @@
 <script src="/assets/js/search.js" defer></script>
 <script src="/assets/js/websocket-client.js?v=2.0.1" defer></script>
 
-<style>
-/* Settings page specific styles */
-.settings-section-label {
-  font-size: 0.6875rem;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: #6b7280;
-  margin: 1.5rem 0 0.75rem;
-  padding-bottom: 0.5rem;
-  border-bottom: 1px solid #f3f4f6;
-}
-.settings-section-label:first-child { margin-top: 0; }
+<main id="main-content" class="section settings-page">
+<div class="container settings-container">
 
-/* Avatar ring */
-.avatar-ring {
-  width: 88px;
-  height: 88px;
-  border-radius: 50%;
-  background: linear-gradient(135deg, #0B8073, #13B6A2);
-  padding: 3px;
-  flex-shrink: 0;
-  position: relative;
-}
-.avatar-ring img {
-  width: 100%;
-  height: 100%;
-  border-radius: 50%;
-  object-fit: cover;
-  background: #f3f4f6;
-  border: 2px solid #fff;
-  display: block;
-}
-.avatar-ring .avatar-initials {
-  width: 100%;
-  height: 100%;
-  border-radius: 50%;
-  background: #f3f4f6;
-  border: 2px solid #fff;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 1.75rem;
-  font-weight: 700;
-  color: #0B8073;
-}
-.avatar-spinner-overlay {
-  display: none;
-  position: absolute;
-  inset: 0;
-  border-radius: 50%;
-  background: rgba(0,0,0,0.45);
-  align-items: center;
-  justify-content: center;
-}
-.avatar-spinner-overlay.visible { display: flex; }
-.settings-spinner {
-  width: 22px;
-  height: 22px;
-  border: 3px solid rgba(255,255,255,0.4);
-  border-top-color: #fff;
-  border-radius: 50%;
-  animation: spin 0.7s linear infinite;
-}
+<header class="settings-header">
+  <h1>Settings</h1>
+  <p class="settings-lede">Your account details, how we contact you, and your security.</p>
+</header>
 
-/* Profile loading state */
-.profile-loading-state {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  padding: 2rem 0;
-  color: #6b7280;
-  font-size: 0.875rem;
-}
-.profile-loading-spinner {
-  width: 20px;
-  height: 20px;
-  border: 2px solid #e5e7eb;
-  border-top-color: #0B8073;
-  border-radius: 50%;
-  animation: spin 0.7s linear infinite;
-  flex-shrink: 0;
-}
-@keyframes spin { to { transform: rotate(360deg); } }
+<nav class="settings-nav" aria-label="Settings sections">
+  <a href="#account-card">Account</a>
+  <a href="#account-type-card" id="settings-nav-account-type" hidden>Account type</a>
+  <a href="#notifications-card">Notifications</a>
+  <a href="#security-card">Password</a>
+  <a href="#danger-zone-card">Delete account</a>
+</nav>
 
-/* Read-only field */
-.field-readonly input {
-  background: #f9fafb;
-  color: #6b7280;
-  cursor: default;
-}
+<div class="settings-stack">
 
-/* Toggle switch */
-.toggle-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0.75rem 0;
-  gap: 1rem;
-}
-.toggle-row + .toggle-row {
-  border-top: 1px solid #f3f4f6;
-}
-.toggle-label {
-  display: flex;
-  flex-direction: column;
-  gap: 0.2rem;
-}
-.toggle-label span { font-size: 0.875rem; font-weight: 500; color: #111827; }
-.toggle-label small { font-size: 0.75rem; color: #6b7280; }
-.toggle-switch {
-  position: relative;
-  display: inline-flex;
-  align-items: center;
-  flex-shrink: 0;
-}
-.toggle-switch input[type="checkbox"] {
-  opacity: 0;
-  width: 0;
-  height: 0;
-  position: absolute;
-}
-.toggle-track {
-  width: 44px;
-  height: 24px;
-  background: #d1d5db;
-  border-radius: 999px;
-  cursor: pointer;
-  transition: background 0.2s;
-  position: relative;
-}
-.toggle-switch input:checked ~ .toggle-track { background: #0B8073; }
-.toggle-track::after {
-  content: '';
-  position: absolute;
-  top: 3px;
-  left: 3px;
-  width: 18px;
-  height: 18px;
-  background: #fff;
-  border-radius: 50%;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.2);
-  transition: transform 0.2s;
-}
-.toggle-switch input:checked ~ .toggle-track::after { transform: translateX(20px); }
-.toggle-switch:focus-within .toggle-track {
-  outline: 2px solid #0B8073;
-  outline-offset: 2px;
-}
+<!-- Account -->
+<section class="card" id="account-card" aria-labelledby="account-card-title">
+  <h2 class="settings-card-heading" id="account-card-title">Account information</h2>
 
-/* Tour card polish */
-.tour-card-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 1rem;
-  flex-wrap: wrap;
-}
-</style>
-
-<main id="main-content" class='section'><div class='container' style="max-width:760px;">
-<h1 style="margin-bottom:1.5rem;">Settings</h1>
-
-<!-- Profile Information Card -->
-<div class="card">
-  <h2 class="settings-section-title">Account Information</h2>
-
-  <!-- Avatar Upload Section -->
-  <div class="settings-section-row">
+  <div class="settings-photo">
     <div class="avatar-ring" id="avatar-wrapper">
       <img id="avatar-preview" src="/assets/images/default-avatar.svg" alt="Your profile photo">
       <div class="avatar-spinner-overlay" id="avatar-loading" aria-hidden="true">
@@ -320,14 +175,14 @@
       </div>
     </div>
     <div class="settings-field-flex">
-      <p class="settings-label">Profile Photo</p>
+      <p class="settings-label">Profile photo</p>
       <div class="settings-btn-group">
-        <label for="avatar-upload-input" class="cta secondary" style="cursor:pointer;font-size: 0.8125rem;padding:0.375rem 0.875rem;display:inline-flex;align-items:center;gap:0.35rem;border-radius:6px;box-sizing:border-box;line-height:inherit;">
+        <button type="button" id="avatar-upload-btn" class="cta secondary settings-btn-sm">
           <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-          Upload Photo
-        </label>
-        <input type="file" id="avatar-upload-input" accept="image/*" style="display:none;" aria-label="Upload profile photo">
-        <button type="button" id="avatar-delete-btn" style="border:1px solid #CFEDEA;background:#F6FAF9;color:#dc2626;cursor:pointer;font-size: 0.8125rem;padding:0.375rem 0.875rem;display:inline-flex;align-items:center;gap:0.35rem;border-radius:6px;box-sizing:border-box;line-height:inherit;" aria-label="Remove profile photo">
+          Upload photo
+        </button>
+        <input type="file" id="avatar-upload-input" class="settings-file-input" accept="image/jpeg,image/png,image/webp" tabindex="-1" aria-hidden="true">
+        <button type="button" id="avatar-delete-btn" class="settings-btn-sm settings-btn-danger-outline" aria-label="Remove profile photo">
           <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
           Remove
         </button>
@@ -337,43 +192,53 @@
     </div>
   </div>
 
-  <!-- Loading indicator -->
-  <div id="profile-loading" class="profile-loading-state">
-    <div class="profile-loading-spinner"></div>
+  <div id="profile-loading" class="profile-loading-state" role="status">
+    <div class="profile-loading-spinner" aria-hidden="true"></div>
     Loading your account…
   </div>
 
-  <form id="profile-form" style="display:none;">
+  <div id="profile-load-error" class="settings-notice settings-notice--error" role="alert" hidden>
+    <p><strong>We could not load your account details.</strong> Check your connection and try again.</p>
+    <button type="button" class="cta secondary settings-btn-sm" id="profile-retry-btn">Try again</button>
+  </div>
 
-    <!-- Name -->
-    <p class="settings-section-label">Account Holder Name</p>
+  <form id="profile-form" hidden>
+
+    <p class="settings-section-label">Account holder name</p>
     <div class="form-row settings-grid">
       <div>
-        <label for="profile-firstName">First Name</label>
+        <label for="profile-firstName">First name</label>
         <input type="text" id="profile-firstName" name="firstName" placeholder="John" maxlength="40" autocomplete="given-name">
       </div>
       <div>
-        <label for="profile-lastName">Last Name</label>
+        <label for="profile-lastName">Last name</label>
         <input type="text" id="profile-lastName" name="lastName" placeholder="Smith" maxlength="40" autocomplete="family-name">
       </div>
     </div>
 
-    <!-- Account Details -->
-    <p class="settings-section-label">Account Details</p>
+    <p class="settings-section-label">Account details</p>
     <div class="form-row">
-      <label for="profile-email">Email Address</label>
-      <input type="email" id="profile-email" name="email" placeholder="john@example.com" autocomplete="email">
-      <p class="small settings-success-badge" id="email-change-hint" role="status" aria-live="polite">📧 A verification email will be sent to your new address after saving.</p>
+      <label for="profile-email">Email address</label>
+      <input type="email" id="profile-email" name="email" placeholder="john@example.com" autocomplete="email" aria-describedby="email-change-hint">
+      <p class="settings-success-badge" id="email-change-hint" role="status" aria-live="polite" hidden>A verification email will be sent to your new address after saving.</p>
+    </div>
+
+    <div id="email-unverified-notice" class="settings-notice settings-notice--warn" hidden>
+      <p><strong>Your email address is not verified yet.</strong> Verify it so we can reach you about your account.</p>
+      <div class="settings-btn-group">
+        <button type="button" class="cta secondary settings-btn-sm" id="resend-verification-btn">Send verification email</button>
+        <span id="resend-verification-status" class="settings-field-status" role="status" aria-live="polite"></span>
+      </div>
     </div>
 
     <div class="form-row">
-      <label for="profile-phone">Phone Number <span class="settings-sub-label">(optional)</span></label>
+      <label for="profile-phone">Phone number <span class="settings-sub-label">(optional)</span></label>
       <input type="tel" id="profile-phone" name="phone" placeholder="+44 7700 900000" maxlength="20" autocomplete="tel">
     </div>
 
     <div class="form-row settings-grid">
       <div>
-        <label for="profile-location">City / Town <span class="settings-sub-label">(optional)</span></label>
+        <label for="profile-location">City / town <span class="settings-sub-label">(optional)</span></label>
         <input type="text" id="profile-location" name="location" placeholder="London, UK" maxlength="100" autocomplete="address-level2">
       </div>
       <div>
@@ -382,39 +247,37 @@
       </div>
     </div>
 
-    <!-- Supplier callout (shown only for supplier accounts) -->
-    <div id="supplier-profile-callout" style="display:none;margin-top:1rem;padding:0.875rem 1rem;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;font-size:0.875rem;color:#166534;">
-      <strong>Supplier?</strong> This page controls your personal account details. Manage your business listing name, social links, and supplier profile details from your
-      <a href="/dashboard/supplier" style="color:#0B8073;font-weight:600;">Supplier Dashboard →</a>
+    <div id="supplier-profile-callout" class="settings-notice settings-notice--info" hidden>
+      <p><strong>Supplier?</strong> This page controls your personal account details. Manage your business listing name, social links and supplier profile from your <a href="/dashboard/supplier">Supplier Dashboard →</a></p>
     </div>
-    
-    <div class="form-actions settings-section-divider">
-      <button class="cta" type="submit" id="profile-save-btn">Save Changes</button>
-      <span id="profile-status" style="font-size:0.875rem;" role="status" aria-live="polite"></span>
+
+    <div class="form-actions settings-actions">
+      <button class="cta" type="submit" id="profile-save-btn">Save changes</button>
+      <span id="profile-status" class="settings-status" role="status" aria-live="polite"></span>
     </div>
   </form>
-</div>
+</section>
 
-<!-- Account Type Card -->
-<div class="card" style="margin-top:1.5rem;display:none;" id="account-type-card">
-  <h2 class="settings-section-title">Account Type</h2>
-  <p class="settings-card-text">Your account type controls what you can do on EventFlow — browse and book as a customer, or list your business as a supplier.</p>
+<!-- Account type -->
+<section class="card" id="account-type-card" aria-labelledby="account-type-title" hidden>
+  <h2 class="settings-card-heading" id="account-type-title">Account type</h2>
+  <p class="settings-card-text">Your account type controls what you can do on EventFlow: browse and book as a customer, or list your business as a supplier.</p>
 
   <div class="settings-row-sm">
     <span id="account-type-badge" class="settings-account-type-badge">Currently: Customer</span>
   </div>
 
   <!-- Customer → Supplier -->
-  <div id="account-type-become-supplier" style="display:none;">
+  <div id="account-type-become-supplier" hidden>
     <div class="settings-role-glow">
       <div class="settings-role-picker" role="group" aria-label="Switch account type">
-        <button type="button" class="role-pill is-active" id="account-type-pill-customer" aria-pressed="true">🎉 Stay a Customer</button>
-        <button type="button" class="role-pill" id="account-type-pill-supplier" aria-pressed="false">🏪 Become a Supplier</button>
+        <button type="button" class="role-pill is-active" id="account-type-pill-customer" aria-pressed="true">🎉 Stay a customer</button>
+        <button type="button" class="role-pill" id="account-type-pill-supplier" aria-pressed="false">🏪 Become a supplier</button>
       </div>
 
-      <div id="account-type-supplier-fields" class="settings-account-type-fields" style="display:none;">
+      <div id="account-type-supplier-fields" class="settings-account-type-fields" hidden>
         <div class="form-row">
-          <label for="at-company">Business / Company Name</label>
+          <label for="at-company">Business / company name</label>
           <input type="text" id="at-company" maxlength="100" placeholder="Your business name" autocomplete="organization">
         </div>
         <div class="form-row settings-grid">
@@ -449,106 +312,82 @@
             <input type="text" id="at-location" maxlength="200" placeholder="London, UK" autocomplete="address-level2">
           </div>
         </div>
-        <p class="settings-info-box">You'll be moved to your new Supplier Dashboard to finish setting up your listing and submit it for review — your customer account stays exactly as it is otherwise.</p>
+        <p class="settings-info-box">You'll be moved to your new Supplier Dashboard to finish setting up your listing and submit it for review. Your customer account stays exactly as it is otherwise.</p>
         <div class="form-actions">
           <button class="cta" type="button" id="account-type-supplier-submit">Switch to a supplier account</button>
-          <span id="account-type-supplier-status" style="font-size:0.875rem;" role="status" aria-live="polite"></span>
+          <span id="account-type-supplier-status" class="settings-status" role="status" aria-live="polite"></span>
         </div>
       </div>
     </div>
   </div>
 
   <!-- Supplier → Customer -->
-  <div id="account-type-become-customer" style="display:none;margin-top:0.875rem;">
+  <div id="account-type-become-customer" class="settings-switch-row" hidden>
     <div class="settings-space-between">
       <div>
         <p class="settings-item-title">Switch to a customer account</p>
         <p class="settings-item-desc">Your supplier listing will be paused (not deleted) while you're a customer. You can switch back later to reactivate it.</p>
       </div>
-      <button type="button" id="account-type-customer-trigger"
-        class="settings-sm-btn settings-sm-btn--danger"
-        aria-label="Switch to a customer account">
+      <button type="button" id="account-type-customer-trigger" class="settings-btn-sm settings-btn-danger-outline">
         Switch to a customer account
       </button>
     </div>
-    <span id="account-type-customer-status" style="font-size:0.875rem;" role="status" aria-live="polite"></span>
+    <span id="account-type-customer-status" class="settings-status" role="status" aria-live="polite"></span>
   </div>
-</div>
+</section>
 
-<!-- Downgrade confirmation modal is built with the Modal class (components.js) at runtime -->
+<!-- Notifications -->
+<section class="card" id="notifications-card" aria-labelledby="notifications-title">
+  <h2 class="settings-card-heading" id="notifications-title">Notification preferences</h2>
 
-<!-- Notification Preferences Card -->
-<div class="card" style="margin-top:1.5rem;">
-  <h2 class="settings-section-heading">Notification Preferences</h2>
-
-  <!-- Email Notifications -->
   <div class="toggle-row">
     <label class="toggle-label" for="notify">
       <span>Email notifications</span>
-      <small>Email me when I receive a new message</small>
+      <small>Email me about activity on my account, such as new messages</small>
     </label>
     <label class="toggle-switch">
       <input id="notify" type="checkbox" role="switch">
       <span class="toggle-track"></span>
     </label>
   </div>
-  
-  <!-- Sound Notifications -->
+
   <div class="toggle-row">
     <label class="toggle-label" for="notification-sound-enabled">
       <span>Notification sounds</span>
-      <small>Play a tone for new enquiries, messages, etc.</small>
+      <small>Play a tone for new enquiries and messages. Saved on this device only.</small>
     </label>
     <label class="toggle-switch">
       <input id="notification-sound-enabled" type="checkbox" role="switch" checked>
       <span class="toggle-track"></span>
     </label>
   </div>
-    
-  <!-- Volume Control -->
-  <div id="volume-control" class="settings-volume-panel" style="transition:opacity 0.2s;">
+
+  <div id="volume-control" class="settings-volume-panel">
     <div class="settings-toggle-row">
-      <label for="notification-volume" class="settings-toggle-label">Sound Volume</label>
+      <label for="notification-volume" class="settings-toggle-label">Sound volume</label>
       <span class="settings-success-text"><span id="volume-value">30</span>%</span>
     </div>
     <div class="settings-flex-row">
-      <svg width="16" height="16" fill="none" stroke="#9ca3af" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/></svg>
-      <input 
-        type="range" 
-        id="notification-volume" 
-        min="0" 
-        max="100" 
-        value="30" 
-        aria-label="Notification volume"
-        aria-valuemin="0"
-        aria-valuemax="100"
-        aria-valuenow="30"
-        aria-valuetext="30 percent"
-        class="settings-range-input"
-      >
-      <svg width="16" height="16" fill="none" stroke="#9ca3af" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/></svg>
+      <svg width="16" height="16" fill="none" stroke="#6b7280" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/></svg>
+      <input type="range" id="notification-volume" min="0" max="100" value="30" aria-valuetext="30 percent" class="settings-range-input">
+      <svg width="16" height="16" fill="none" stroke="#6b7280" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/></svg>
     </div>
     <div class="settings-vol-row">
-      <button 
-        type="button" 
-        id="test-notification-sound" 
-        class="settings-action-btn settings-action-btn--secondary"
-        aria-label="Test notification sound"
-      >
+      <button type="button" id="test-notification-sound" class="settings-action-btn settings-action-btn--secondary">
         <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
-        Test Sound
+        Test sound
       </button>
       <span id="test-sound-feedback" class="settings-status-text" role="status" aria-live="polite"></span>
     </div>
   </div>
 
-  <!-- Supplier Reminder Emails (shown for supplier accounts only) -->
-  <div id="supplier-reminder-prefs" style="display:none;margin-top:1.25rem;padding-top:1.25rem;border-top:1px solid #f3f4f6;">
+  <!-- Supplier reminder emails (supplier accounts only) -->
+  <div id="supplier-reminder-prefs" class="settings-subsection" hidden>
     <div class="settings-row-sm">
       <div class="settings-icon-box" aria-hidden="true">
         <svg width="16" height="16" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
       </div>
-      <h3 class="settings-card-title">Supplier Reminder Emails</h3>
+      <h3 class="settings-card-title">Supplier reminder emails</h3>
     </div>
     <p class="settings-card-text">
       Occasionally we'll email you reminders about outstanding items on your supplier account.
@@ -557,8 +396,8 @@
 
     <div class="toggle-row settings-info-box">
       <label class="toggle-label" for="ap-enabled">
-        <span style="font-weight:600;">Send me reminder emails about incomplete tasks</span>
-        <small>Master switch for all action-prompt reminders</small>
+        <span class="settings-strong">Send me reminder emails about incomplete tasks</span>
+        <small>Master switch for all reminders</small>
       </label>
       <label class="toggle-switch">
         <input id="ap-enabled" type="checkbox" role="switch" checked>
@@ -614,7 +453,7 @@
       <div class="toggle-row">
         <label class="toggle-label" for="ap-packages-missing-photos">
           <span>Remind me about package photos</span>
-          <small>Email me if one of my packages has no photo of its own — uploading photos to my profile doesn't add them to a package</small>
+          <small>Email me if one of my packages has no photo of its own. Photos on my profile don't count towards a package.</small>
         </label>
         <label class="toggle-switch">
           <input id="ap-packages-missing-photos" type="checkbox" role="switch" checked>
@@ -623,16 +462,16 @@
       </div>
     </div>
   </div>
-  
-  <!-- Email & Notification Preferences (all account types) -->
-  <div id="email-notification-prefs" style="margin-top:1.25rem;padding-top:1.25rem;border-top:1px solid #f3f4f6;">
-    <h3 class="settings-card-title">Email &amp; Notification Preferences</h3>
+
+  <!-- Email & notification preferences (all account types) -->
+  <div id="email-notification-prefs" class="settings-subsection">
+    <h3 class="settings-card-title">Email &amp; marketing preferences</h3>
 
     <div class="toggle-row settings-info-box">
-      <label class="toggle-label">
-        <span style="font-weight:600;">Newsletter</span>
+      <div class="toggle-label">
+        <span class="settings-strong">Newsletter</span>
         <small id="newsletter-status-text">Loading…</small>
-      </label>
+      </div>
       <button type="button" class="settings-action-btn settings-action-btn--secondary" id="newsletter-toggle-btn" disabled></button>
     </div>
 
@@ -644,16 +483,14 @@
       <select id="community-digest-cadence" class="settings-select">
         <option value="immediate">Immediately</option>
         <option value="daily">Daily digest</option>
-        <!-- Matches the server default in routes/settings.js's GET handler
-             (`user.communityNotificationPreferences?.email || 'weekly'`) so
-             the dropdown doesn't flash "Immediately" before the async prefs
-             fetch in settings-init.js overwrites it with the real value. -->
+        <!-- "weekly" matches the server default in routes/settings.js's GET handler so the
+             dropdown does not flash another value before settings-init.js loads the real one. -->
         <option value="weekly" selected>Weekly digest</option>
         <option value="none">Never</option>
       </select>
     </div>
 
-    <div class="toggle-row" id="browse-nudge-row" style="display:none;">
+    <div class="toggle-row" id="browse-nudge-row" hidden>
       <label class="toggle-label" for="browse-nudge-enabled">
         <span>Saved-supplier reminders</span>
         <small>Occasional emails about suppliers you saved but haven't contacted yet</small>
@@ -664,7 +501,7 @@
       </label>
     </div>
 
-    <div class="toggle-row" id="verification-reminder-row" style="display:none;">
+    <div class="toggle-row" id="verification-reminder-row" hidden>
       <label class="toggle-label" for="verification-reminder-enabled">
         <span>Email verification reminders</span>
         <small>Reminders to verify your email address (sent at most twice)</small>
@@ -676,85 +513,110 @@
     </div>
   </div>
 
-  <div class="form-actions settings-section-sep">
-    <button class="cta" id="save-settings">Save Preferences</button>
-    <span id="settings-status" style="font-size:0.875rem;" role="status" aria-live="polite"></span>
+  <div class="form-actions settings-actions">
+    <button type="button" class="cta" id="save-settings">Save preferences</button>
+    <span id="settings-status" class="settings-status" role="status" aria-live="polite"></span>
   </div>
-</div>
+</section>
 
-<!-- Onboarding Tour Card -->
-<div class="card" style="margin-top:1.5rem;">
-  <div class="tour-card-row">
-    <div>
-      <h3 class="settings-item-title">Onboarding Tour</h3>
-      <p class="small" style="margin:0;color:#6b7280;">Restart the interactive tour to re-learn EventFlow's features.</p>
-    </div>
-    <button class="cta secondary" id="restart-tour" style="flex-shrink:0;">Restart Tour</button>
-  </div>
-</div>
-
-<!-- Change Password Card -->
-<div class="card" style="margin-top:1.5rem;">
+<!-- Password -->
+<section class="card" id="security-card" aria-labelledby="security-title">
   <div class="settings-row-lg">
     <svg width="18" height="18" fill="none" stroke="#0B8073" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-    <h2 class="settings-heading-lg">Change Password</h2>
+    <h2 class="settings-heading-lg" id="security-title">Change password</h2>
   </div>
   <form id="change-password-form" novalidate>
     <div class="form-row">
-      <label for="cp-current">Current Password</label>
+      <label for="cp-current">Current password</label>
       <input type="password" id="cp-current" name="currentPassword" autocomplete="current-password" placeholder="Enter your current password">
     </div>
     <div class="form-row">
-      <label for="cp-new">New Password</label>
-      <input type="password" id="cp-new" name="newPassword" autocomplete="new-password" placeholder="At least 8 characters">
-      <div id="cp-strength-bar" style="height:4px;border-radius:2px;background:#e5e7eb;margin-top:6px;overflow:hidden;display:none;"><div id="cp-strength-fill" style="height:100%;width:0;border-radius:2px;transition:width 0.3s,background 0.3s;"></div></div>
-      <p id="cp-strength-label" class="settings-body-text"></p>
+      <label for="cp-new">New password</label>
+      <input type="password" id="cp-new" name="newPassword" autocomplete="new-password" placeholder="At least 8 characters" aria-describedby="cp-help">
+      <p id="cp-help" class="settings-hint">At least 8 characters, with a letter and a number.</p>
+      <div id="cp-strength-bar" class="settings-strength" hidden><div id="cp-strength-fill" class="settings-strength__fill"></div></div>
+      <p id="cp-strength-label" class="settings-strength__label" hidden></p>
     </div>
     <div class="form-row">
-      <label for="cp-confirm">Confirm New Password</label>
+      <label for="cp-confirm">Confirm new password</label>
       <input type="password" id="cp-confirm" name="confirmPassword" autocomplete="new-password" placeholder="Repeat your new password">
     </div>
-    <div class="form-actions settings-section-sep">
-      <button class="cta" type="submit" id="cp-save-btn">Update Password</button>
-      <span id="cp-status" style="font-size:0.875rem;" role="status" aria-live="polite"></span>
+    <div class="form-actions settings-actions">
+      <button class="cta" type="submit" id="cp-save-btn">Update password</button>
+      <span id="cp-status" class="settings-status" role="status" aria-live="polite"></span>
     </div>
   </form>
-</div>
+</section>
 
-<!-- Danger Zone Card -->
-<div class="card settings-danger-zone-box" id="danger-zone-card">
+<!-- Danger zone -->
+<section class="card settings-danger-zone-box" id="danger-zone-card" aria-labelledby="danger-title">
   <div class="settings-row-sm">
-    <svg width="18" height="18" fill="none" stroke="#dc2626" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-    <h2 class="settings-heading-danger">Danger Zone</h2>
+    <svg width="18" height="18" fill="none" stroke="#b91c1c" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+    <h2 class="settings-heading-danger" id="danger-title">Danger zone</h2>
   </div>
   <div class="settings-space-between">
     <div>
-      <p class="settings-item-title">Delete Account</p>
-      <p class="settings-item-desc">Permanently delete your account and all associated data. This action cannot be undone.</p>
+      <p class="settings-item-title">Delete account</p>
+      <p class="settings-item-desc">Permanently delete your account and all associated data. This cannot be undone.</p>
     </div>
-    <button type="button" id="delete-account-btn"
-      class="settings-sm-btn settings-sm-btn--danger"
-      aria-label="Delete your account permanently">
-      Delete Account
+    <button type="button" id="delete-account-btn" class="settings-btn-sm settings-btn-danger-outline">
+      Delete account
     </button>
   </div>
-</div>
+</section>
 
-<!-- Account Deletion Modal -->
-<div id="delete-account-modal" role="dialog" aria-modal="true" aria-labelledby="delete-modal-title" class="settings-delete-overlay">
-  <div class="settings-delete-card">
-    <!-- Step 1: Warning -->
-    <div id="delete-step-1">
-      <div class="settings-delete-header">
-        <h3 id="delete-modal-title" class="settings-delete-title">Delete Account</h3>
-        <button type="button" id="delete-modal-close" aria-label="Close"
-          class="settings-icon-btn">
-          <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-        </button>
-      </div>
-      <div class="settings-delete-body">
-        <div class="settings-danger-alert">
-          <p class="settings-danger-title">⚠ This action is permanent and cannot be reversed.</p>
+</div><!-- /.settings-stack -->
+</div></main>
+
+<!-- Remove photo -->
+<dialog id="remove-photo-dialog" class="settings-dialog" aria-labelledby="remove-photo-title">
+  <div class="settings-dialog__header">
+    <h2 class="settings-dialog__title" id="remove-photo-title">Remove your profile photo?</h2>
+  </div>
+  <div class="settings-dialog__body">
+    <p class="settings-body-text">Your initials will be shown instead. You can upload a new photo at any time.</p>
+    <div class="settings-footer-actions">
+      <button type="button" class="cta ghost settings-btn-sm" id="remove-photo-cancel">Keep photo</button>
+      <button type="button" class="settings-btn-danger" id="remove-photo-confirm">Remove photo</button>
+    </div>
+  </div>
+</dialog>
+
+<!-- Switch supplier → customer -->
+<dialog id="downgrade-dialog" class="settings-dialog" aria-labelledby="downgrade-title">
+  <div class="settings-dialog__header">
+    <h2 class="settings-dialog__title" id="downgrade-title">Switch to a customer account</h2>
+  </div>
+  <div class="settings-dialog__body">
+    <p class="settings-body-text">Switching to a customer account will:</p>
+    <ul class="settings-danger-list">
+      <li>Pause your supplier listing, so it stops appearing in search and the marketplace</li>
+      <li>Cancel any active Pro subscription</li>
+      <li>Keep your business data. Switching back to supplier later reactivates it, pending a quick re-review</li>
+    </ul>
+    <label for="account-type-convert-confirm" class="settings-body-text settings-strong">Type <strong>CONVERT</strong> to confirm</label>
+    <input type="text" id="account-type-convert-confirm" class="settings-convert-confirm-input" autocomplete="off" placeholder="CONVERT">
+    <div class="settings-footer-actions">
+      <button type="button" class="cta ghost settings-btn-sm" id="downgrade-cancel">Keep supplier account</button>
+      <button type="button" class="settings-btn-danger" id="downgrade-confirm" disabled>Switch to customer</button>
+    </div>
+  </div>
+</dialog>
+
+<!-- Delete account (three steps) -->
+<dialog id="delete-account-modal" class="settings-dialog" aria-labelledby="delete-modal-title">
+  <!-- Step 1: warning -->
+  <div id="delete-step-1">
+    <div class="settings-dialog__header">
+      <h2 class="settings-dialog__title" id="delete-modal-title">Delete account</h2>
+      <button type="button" id="delete-modal-close" aria-label="Close" class="settings-icon-btn">
+        <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div class="settings-dialog__body">
+      <div class="settings-danger-alert">
+        <div>
+          <p class="settings-danger-title">This action is permanent and cannot be reversed.</p>
           <p class="settings-danger-text">Deleting your account will:</p>
           <ul class="settings-danger-list">
             <li>Remove your personal data from EventFlow</li>
@@ -763,90 +625,58 @@
             <li>Permanently remove your messages and reviews</li>
           </ul>
         </div>
-        <p class="settings-body-text">Are you sure you want to continue?</p>
-        <div class="settings-footer-actions">
-          <button type="button" id="delete-step1-cancel"
-            class="settings-body-text">
-            Keep My Account
-          </button>
-          <button type="button" id="delete-step1-next"
-            class="settings-delete-confirm-btn">
-            Continue
-          </button>
-        </div>
       </div>
-    </div>
-
-    <!-- Step 2: Email Confirmation -->
-    <div id="delete-step-2" hidden>
-      <div class="settings-delete-header">
-        <h3 class="settings-delete-title">Confirm Your Identity</h3>
-      </div>
-      <div class="settings-delete-body">
-        <p class="settings-body-text">
-          To confirm deletion, please type your email address below:
-        </p>
-        <div style="margin-bottom:1.25rem;">
-          <label for="delete-email-input" class="settings-body-text">
-            Your email address
-          </label>
-          <input type="email" id="delete-email-input"
-            placeholder="Enter your email…"
-            autocomplete="off"
-            class="settings-input settings-input--full"
-            aria-describedby="delete-email-hint">
-          <p id="delete-email-hint" class="settings-micro-hint">Must match the email address on your account.</p>
-          <p id="delete-email-error" style="display:none;margin:0.35rem 0 0;font-size: 0.8125rem;color:#dc2626;" role="alert"></p>
-        </div>
-        <div class="settings-footer-actions">
-          <button type="button" id="delete-step2-back"
-            class="settings-body-text">
-            Back
-          </button>
-          <button type="button" id="delete-step2-next"
-            class="settings-delete-confirm-btn">
-            Verify &amp; Continue
-          </button>
-        </div>
-      </div>
-    </div>
-
-    <!-- Step 3: Final Confirmation -->
-    <div id="delete-step-3" hidden>
-      <div class="settings-delete-header">
-        <h3 class="settings-heading-danger">Final Confirmation</h3>
-      </div>
-      <div class="settings-delete-body">
-        <p class="settings-body-text">
-          You are about to permanently delete your account. <strong>This cannot be undone.</strong>
-        </p>
-        <p class="settings-body-text">
-          Click the button below to permanently delete your account.
-        </p>
-        <div id="delete-step3-error" style="display:none;margin-bottom:1rem;padding:0.75rem;background:#fef2f2;border-radius:6px;font-size: 0.8125rem;color:#dc2626;" role="alert"></div>
-        <div class="settings-footer-actions">
-          <button type="button" id="delete-step3-back"
-            class="settings-body-text">
-            Back
-          </button>
-          <button type="button" id="delete-step3-confirm"
-            class="settings-delete-confirm-btn settings-delete-confirm-btn--flex">
-            <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>
-            Yes, Permanently Delete
-          </button>
-        </div>
+      <p class="settings-body-text">Are you sure you want to continue?</p>
+      <div class="settings-footer-actions">
+        <button type="button" id="delete-step1-cancel" class="cta ghost settings-btn-sm">Keep my account</button>
+        <button type="button" id="delete-step1-next" class="settings-btn-danger">Continue</button>
       </div>
     </div>
   </div>
-</div>
 
-  
+  <!-- Step 2: email confirmation -->
+  <div id="delete-step-2" hidden>
+    <div class="settings-dialog__header">
+      <h2 class="settings-dialog__title" id="delete-modal-title-2">Confirm your identity</h2>
+    </div>
+    <div class="settings-dialog__body">
+      <p class="settings-body-text">To confirm deletion, type your email address below.</p>
+      <div class="settings-dialog__field">
+        <label for="delete-email-input" class="settings-body-text">Your email address</label>
+        <input type="email" id="delete-email-input" placeholder="Enter your email…" autocomplete="off" class="settings-input settings-input--full" aria-describedby="delete-email-hint delete-email-error">
+        <p id="delete-email-hint" class="settings-micro-hint">Must match the email address on your account.</p>
+        <p id="delete-email-error" class="settings-dialog__error" role="alert" hidden></p>
+      </div>
+      <div class="settings-footer-actions">
+        <button type="button" id="delete-step2-back" class="cta ghost settings-btn-sm">Back</button>
+        <button type="button" id="delete-step2-next" class="settings-btn-danger">Verify &amp; continue</button>
+      </div>
+    </div>
+  </div>
 
-</div></main>
+  <!-- Step 3: final confirmation -->
+  <div id="delete-step-3" hidden>
+    <div class="settings-dialog__header">
+      <h2 class="settings-dialog__title settings-dialog__title--danger" id="delete-modal-title-3">Final confirmation</h2>
+    </div>
+    <div class="settings-dialog__body">
+      <p class="settings-body-text">You are about to permanently delete your account. <strong>This cannot be undone.</strong></p>
+      <p class="settings-body-text">Select the button below to permanently delete your account.</p>
+      <div id="delete-step3-error" class="settings-dialog__error settings-dialog__error--box" role="alert" hidden></div>
+      <div class="settings-footer-actions">
+        <button type="button" id="delete-step3-back" class="cta ghost settings-btn-sm">Back</button>
+        <button type="button" id="delete-step3-confirm" class="settings-btn-danger settings-btn-danger--icon">
+          <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>
+          Yes, permanently delete
+        </button>
+      </div>
+    </div>
+  </div>
+</dialog>
     <script src="/assets/js/config/page-init.js" defer></script>
 <script src="/assets/js/utils/supplier-avatar.js?v=1.0.1"></script>
 <script src="/assets/js/app.js?v=18.5.10" defer></script>
-<script src="/assets/js/pages/settings-init.js?v=1.1.0" defer></script>
+<script src="/assets/js/pages/settings-init.js?v=2.0.0" defer></script>
 <footer class="footer" role="contentinfo">
   <div class="container ef-footer-content">
     <div><strong>EventFlow</strong><br><span class="small">Event planning made simple.</span></div>
