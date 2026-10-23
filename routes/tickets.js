@@ -29,6 +29,7 @@ const router = express.Router();
 
 const ALLOWED_STATUSES = ['open', 'in_progress', 'resolved', 'closed'];
 const TICKET_ROLES = ['customer', 'supplier'];
+const TICKET_CATEGORIES = ['general', 'billing', 'technical', 'account', 'supplier', 'other'];
 const TICKET_SORTS = ['newest', 'oldest', 'updated'];
 const MAX_SUBJECT_LENGTH = 180;
 const MAX_MESSAGE_LENGTH = 5000;
@@ -132,7 +133,7 @@ router.post(
   async (req, res) => {
     try {
       const userId = req.user.id;
-      const { senderType, subject, message } = req.body;
+      const { senderType, subject, message, category } = req.body;
 
       // Validation
       if (!subject || !message) {
@@ -187,6 +188,7 @@ router.post(
         senderEmail: req.user.email,
         subject: subject.trim(),
         message: message.trim(),
+        category: TICKET_CATEGORIES.includes(category) ? category : 'general',
         status: 'open',
         priority,
         accountTier,

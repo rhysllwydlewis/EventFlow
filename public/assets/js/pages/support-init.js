@@ -39,6 +39,21 @@ window.__EF_PAGE__ = 'support';
     return map[status] || 'badge-open';
   }
 
+  // The API takes who the ticket is from from the signed-in account, but still requires the
+  // account type to be sent and to match.
+  async function getSenderType() {
+    const r = await fetch('/api/v1/auth/me', { credentials: 'include' });
+    if (!r.ok) {
+      throw new Error('Please sign in again to create a ticket');
+    }
+    const d = await r.json();
+    const role = d.user && d.user.role;
+    if (role !== 'customer' && role !== 'supplier') {
+      throw new Error('Support tickets are available to customer and supplier accounts');
+    }
+    return role;
+  }
+
   async function getCsrf() {
     if (window.__CSRF_TOKEN__) {
       return window.__CSRF_TOKEN__;
@@ -292,7 +307,6 @@ window.__EF_PAGE__ = 'support';
     const subject = document.getElementById('ticket-subject').value.trim();
     const message = document.getElementById('ticket-message').value.trim();
     const category = document.getElementById('ticket-category').value;
-    const priority = document.getElementById('ticket-priority').value;
     const subjectErr = document.getElementById('ticket-subject-error');
     const messageErr = document.getElementById('ticket-message-error');
     let valid = true;
@@ -316,12 +330,13 @@ window.__EF_PAGE__ = 'support';
     btn.textContent = 'Submitting…';
 
     try {
+      const senderType = await getSenderType();
       const csrf = await getCsrf();
       const r = await fetch('/api/v1/tickets', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrf },
         credentials: 'include',
-        body: JSON.stringify({ subject, message, category, priority }),
+        body: JSON.stringify({ senderType, subject, message, category }),
       });
       if (!r.ok) {
         const d = await r.json().catch(() => ({}));
