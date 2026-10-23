@@ -5,7 +5,7 @@
  * what it did as JSON. Run in a child process like the other jsdom scenarios here.
  *
  * usage: node messenger-widget-scenario.js <base64 json options>
- * options: { ioLate: bool, broadcastUnread: bool }
+ * options: { ioLate: bool, broadcastUnread: bool, lastMessage: object|null }
  */
 
 const fs = require('fs');
@@ -45,7 +45,10 @@ const wait = ms => new Promise(resolve => setTimeout(resolve, ms));
                 { userId: 'u1', unreadCount: unread, role: 'supplier' },
                 { userId: 'u2', displayName: 'Cara', role: 'customer' },
               ],
-              lastMessage: { content: 'Hello', senderId: 'u2', sentAt: new Date().toISOString() },
+              lastMessage:
+                'lastMessage' in options
+                  ? options.lastMessage
+                  : { content: 'Hello', senderId: 'u2', sentAt: new Date().toISOString() },
               updatedAt: new Date().toISOString(),
             },
           ],
@@ -91,6 +94,9 @@ const wait = ms => new Promise(resolve => setTimeout(resolve, ms));
   });
   await wait(150);
   log.fetchesAtStart = log.fetches;
+  log.previews = Array.from(window.document.querySelectorAll('.mwv4__preview')).map(el =>
+    el.textContent.replace(/\s+/g, ' ').trim()
+  );
   log.ioBeforeLate = log.ioCalls.length;
 
   if (options.ioLate) {

@@ -113,6 +113,30 @@ test.describe('Settings: account details', () => {
     const email = page.locator('#profile-email');
     await expect(email).toHaveValue(customer.email);
     await expect(email).toHaveJSProperty('readOnly', true);
+    await expect(page.locator('#profile-email-help a')).toHaveAttribute(
+      'href',
+      '/dashboard/customer?ticket=email-change'
+    );
+  });
+
+  test('a supplier asks for an email change through a support ticket on their own dashboard', async ({
+    page,
+    context,
+    baseURL,
+  }) => {
+    await openSettings(page, context, baseURL, supplier);
+    await expect(page.locator('#profile-email-help a')).toHaveAttribute(
+      'href',
+      '/dashboard/supplier?ticket=email-change'
+    );
+  });
+
+  test('an admin, who has no ticket form, keeps the contact page', async ({
+    page,
+    context,
+    baseURL,
+  }) => {
+    await openSettings(page, context, baseURL, { ...customer, role: 'admin' });
     await expect(page.locator('#profile-email-help a')).toHaveAttribute('href', '/contact');
   });
 

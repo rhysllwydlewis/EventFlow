@@ -2854,8 +2854,7 @@ body.auth-page .auth-card .auth-input.auth-input--icon {
 
 /* Browsers drop a field's background image when they autofill it, which hides the icon but would
    leave its gutter behind as an empty gap before the text. */
-body.auth-page .auth-card .auth-input.auth-input--icon:-webkit-autofill,
-body.auth-page .auth-card .auth-input.auth-input--icon:autofill {
+body.auth-page .auth-card .auth-input.auth-input--icon:is(:-webkit-autofill, :autofill) {
   padding-left: 14px !important;
 }
 
