@@ -95,12 +95,13 @@ const makeFormatter = timeZone =>
  * must not stop it booting over a decorative feature. UTC is at worst an hour out
  * during summer time, which only moves a changeover by an hour.
  */
-let ukPartsFormatter;
-try {
-  ukPartsFormatter = makeFormatter(TIME_ZONE);
-} catch {
-  ukPartsFormatter = makeFormatter('UTC');
-}
+const ukPartsFormatter = (() => {
+  try {
+    return makeFormatter(TIME_ZONE);
+  } catch {
+    return makeFormatter('UTC');
+  }
+})();
 
 function ukParts(now) {
   const parts = {};
