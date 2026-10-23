@@ -16,9 +16,9 @@
  *   GET    /api/v2/subscriptions/me                 the plan's photo limit (profiles only)
  * Every write carries the CSRF token (X-CSRF-Token) and is retried once with a fresh token.
  */
-(function () {
-  'use strict';
+'use strict';
 
+(function () {
   const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
   const MAX_FILE_BYTES = 10 * 1024 * 1024;
   const MAX_FILES_PER_UPLOAD = 10;
@@ -148,7 +148,7 @@
           }
         });
         request.addEventListener('load', () => {
-          let data;
+          let data = {};
           try {
             data = request.responseText ? JSON.parse(request.responseText) : {};
           } catch {
