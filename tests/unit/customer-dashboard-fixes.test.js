@@ -74,10 +74,8 @@ describe('device data after a different account signs in', () => {
     expect(results.deviceData.noUser.eventflow_device_data_owner).toBe('u1');
   });
 
-  test('the dashboard asks for the check itself, not only the auth module', () => {
-    expect(read('public/assets/js/pages/dashboard-customer-init.js')).toMatch(
-      /scopeDeviceData\?\.\(user\)/
-    );
+  test('the dashboard asks for the check itself for the signed-in user, not only the auth module', () => {
+    expect(results.cards.atLimit.scoped).toEqual(['u1']);
   });
 });
 
@@ -95,6 +93,73 @@ describe('the budget tile', () => {
   test('no budget at all says so without inventing a range', () => {
     expect(results.summary.noBudget).toContain('Not set');
     expect(results.summary.noBudget).not.toContain('You picked');
+  });
+});
+
+describe('which plan the summary describes', () => {
+  test('a plan with no date yet comes before one whose date has passed', () => {
+    expect(results.summary.focus.undatedBeatsPassed).toBe('wedding');
+  });
+
+  test('the rest of the order is unchanged', () => {
+    expect(results.summary.focus.upcomingBeatsUndated).toBe('soon');
+    expect(results.summary.focus.latestPassedWhenAllDated).toBe('recent');
+    expect(results.summary.focus.firstWhenNoneDated).toBe('a');
+  });
+
+  test('the guest list and budget pages use the same rule', () => {
+    for (const file of ['public/assets/js/guests.js', 'public/assets/js/pages/budget-page.js']) {
+      expect(read(file)).toMatch(/const undated = plans\.find\(plan => !planDay\(plan\)\);/);
+    }
+  });
+});
+
+describe('the greeting for a plan that has passed', () => {
+  test('offers a new plan while the customer can still have one', () => {
+    expect(results.summary.lede.underLimit).toBe(
+      'Hen weekend has passed. Start a new plan whenever you are ready.'
+    );
+    expect(results.summary.lede.noLimitGiven).toBe(results.summary.lede.underLimit);
+  });
+
+  test('does not, at the most plans allowed: the wizard would refuse it at the last step', () => {
+    expect(results.summary.lede.atLimit).toMatch(/has passed\.$/);
+    expect(results.summary.lede.atLimit).not.toMatch(/Start a new plan/);
+  });
+});
+
+describe('the plans card at the plan limit', () => {
+  const { cards } = results;
+
+  test('hides "New plan" and says why when the customer has the most plans allowed', () => {
+    expect(cards.atLimit.newPlanHidden).toBe(true);
+    expect(cards.atLimit.plans).toContain('You have 3 of 3 plans. Delete one to start another.');
+  });
+
+  test('leaves "New plan" alone under the limit', () => {
+    expect(cards.underLimit.newPlanHidden).toBe(false);
+    expect(cards.underLimit.plans).not.toContain('Delete one to start another');
+  });
+
+  test('uses the limit the server reports, and 3 until it does', () => {
+    expect(cards.serverLimit.newPlanHidden).toBe(true);
+    expect(cards.serverLimit.plans).toContain('You have 2 of 2 plans');
+    expect(cards.noLimitReported.newPlanHidden).toBe(true);
+  });
+});
+
+describe('the saved suppliers card', () => {
+  test('says it could not load, with a retry, when the request fails, not that nothing is saved', () => {
+    const { shortlistFails } = results.cards;
+    expect(shortlistFails.saved).toContain('could not be loaded');
+    expect(shortlistFails.saved).not.toContain('No saved suppliers yet');
+    expect(shortlistFails.retryButton).toBe(true);
+    expect(shortlistFails.viewSavedHidden).toBe(true);
+  });
+
+  test('still says nothing is saved when the request works and the list is empty', () => {
+    expect(results.cards.underLimit.saved).toContain('No saved suppliers yet');
+    expect(results.cards.underLimit.retryButton).toBe(false);
   });
 });
 
@@ -149,20 +214,29 @@ describe('the summary when it is drawn twice', () => {
   });
 });
 
-describe('the dashboard calendar', () => {
-  const calendar = read('public/assets/js/calendar-view.js');
+describe('the dashboard calendar "Next up"', () => {
+  const { calendar } = results;
 
   test('names a plan by its name, which is where plans keep it', () => {
-    expect(calendar).not.toMatch(/displayTitle\(plan\.eventName/);
-    expect(calendar.match(/plan\.name \|\| plan\.eventName \|\| plan\.title/g)).toHaveLength(2);
+    expect(calendar.named).toContain('Our wedding');
+    expect(calendar.named).not.toContain('Untitled');
   });
 
   test('shows a whole-day entry as a date, not as a time of day', () => {
-    expect(calendar).toMatch(/function formatDateTime\(date, allDay\)/);
-    expect(calendar).toMatch(/formatDateTime\(next\.start, next\.allDay\)/);
+    expect(calendar.named).toContain(calendar.expectedDate);
+    expect(calendar.named).not.toMatch(/\d{2}:\d{2}/);
+  });
+
+  test('still shows an entry for today until the day is over', () => {
+    expect(calendar.today).toContain('Launch party');
+  });
+
+  test('has nothing to show for a plan with no date or one that has passed', () => {
+    expect(calendar.undated).toMatch(/^No upcoming/);
+    expect(calendar.passed).toMatch(/^No upcoming/);
   });
 
   test('a plan opens its editor on the dashboard instead of the older planner page', () => {
-    expect(calendar).toMatch(/cdh:edit-plan/);
+    expect(read('public/assets/js/calendar-view.js')).toMatch(/cdh:edit-plan/);
   });
 });

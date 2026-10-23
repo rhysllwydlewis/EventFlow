@@ -192,20 +192,6 @@ async function readJson(response) {
 }
 
 /**
- * What to tell the person when a plan change is refused. Customers who have not verified their
- * email get a 403 with a code; "Email not verified" on its own does not say what to do.
- * @param {object} payload - The response body
- * @param {string} fallback - Text for any other refusal
- * @returns {string} A sentence for the dialog
- */
-function refusalText(payload, fallback) {
-  if (payload?.code === 'EMAIL_NOT_VERIFIED') {
-    return 'Verify your email address to change your plans. We sent you a link when you signed up, and the banner at the top of this page can send another.';
-  }
-  return payload?.error || fallback;
-}
-
-/**
  * Opens the Edit Plan dialog and PATCHes the plan on save.
  * @param {object} plan - The plan being edited
  * @param {Function} onSaved - Called after a successful save
@@ -312,7 +298,7 @@ function showEditPlanModal(plan, onSaved, focusId) {
       });
       const payload = await readJson(response);
       if (!response.ok) {
-        throw new Error(refusalText(payload, 'We could not save your changes. Please try again.'));
+        throw new Error(payload.error || 'We could not save your changes. Please try again.');
       }
       dialog.close();
       if (typeof onSaved === 'function') {
@@ -375,7 +361,7 @@ function confirmDeletePlan(plan, onDeleted) {
       });
       const payload = await readJson(response);
       if (!response.ok) {
-        throw new Error(refusalText(payload, 'We could not delete this plan. Please try again.'));
+        throw new Error(payload.error || 'We could not delete this plan. Please try again.');
       }
       dialog.close();
       if (typeof onDeleted === 'function') {
@@ -810,7 +796,6 @@ function setupEventHandlers() {
     // Also persist to server on the focus plan (the one the summary row describes).
     // Always check response.ok — a CSRF/auth failure must not be silently swallowed.
     let serverSyncFailed = false;
-    let notVerified = false;
     const primaryPlan = focusPlan();
     if (primaryPlan) {
       try {
@@ -826,8 +811,6 @@ function setupEventHandlers() {
         if (!patchResp.ok) {
           console.warn('Budget PATCH failed with status:', patchResp.status);
           serverSyncFailed = true;
-          const refusal = await readJson(patchResp);
-          notVerified = refusal?.code === 'EMAIL_NOT_VERIFIED';
         } else {
           // Keep the in-memory plan current so the summary shows the new figure straight away
           primaryPlan.budget = budget;
@@ -841,9 +824,7 @@ function setupEventHandlers() {
     // Show result — distinguish between full success and local-only save
     if (serverSyncFailed) {
       showBudgetStatus(
-        notVerified
-          ? `Budget kept on this device (£${budget.toLocaleString()}). Verify your email address to save it to your plan.`
-          : `Budget saved locally (£${budget.toLocaleString()}) but couldn't sync to server. It will be retried on next visit.`,
+        `Budget saved locally (£${budget.toLocaleString()}) but couldn't sync to server. It will be retried on next visit.`,
         'warn'
       );
       // Show the figure the person just entered, not the stale server value

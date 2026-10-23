@@ -259,11 +259,126 @@ async function summaryScenarios() {
   return out;
 }
 
+/** The dashboard calendar's "Next up" line, drawn by the fallback calendar from the customer's plans. */
+async function calendarScenarios() {
+  const pad = value => String(value).padStart(2, '0');
+  const day = offset => {
+    const date = new Date();
+    date.setDate(date.getDate() + offset);
+    return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+  };
+
+  /** Draws the calendar for the given plans and returns the text of the Next up panel. */
+  async function nextUpFor(plans) {
+    const fetchImpl = async url => ({
+      ok: true,
+      json: async () =>
+        String(url).includes('/me/plans') ? { plans } : { entries: [], events: [] },
+    });
+    const window = await loaded(
+      windowWith(
+        `<button id="cal-add-entry-btn"></button><div id="events-calendar"></div>
+         <div id="calendar-next-up"><div class="customer-calendar-next-up__eyebrow">Next up</div>
+         <div class="customer-calendar-next-up__body">Nothing yet</div></div>`,
+        fetchImpl
+      )
+    );
+    window.eval(source('public/assets/js/calendar-view.js'));
+    await window.CalendarView.init('events-calendar');
+    return window.document
+      .querySelector('.customer-calendar-next-up__body')
+      .textContent.replace(/\s+/g, ' ')
+      .trim();
+  }
+
+  const out = {};
+  out.named = await nextUpFor([
+    { id: 'p1', name: 'Our wedding', eventDate: day(120), location: 'Bristol' },
+  ]);
+  out.today = await nextUpFor([{ id: 'p2', name: 'Launch party', eventDate: day(0) }]);
+  out.undated = await nextUpFor([{ id: 'p3', name: 'Someday' }]);
+  out.passed = await nextUpFor([{ id: 'p4', name: 'Last year', eventDate: day(-30) }]);
+  out.expectedDate = (() => {
+    const [year, month, date] = day(120).split('-').map(Number);
+    return new Date(year, month - 1, date).toLocaleDateString('en-GB', {
+      weekday: 'short',
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric',
+    });
+  })();
+  return out;
+}
+
+/** The plans and saved-suppliers cards, drawn by the dashboard's own start-up script. */
+async function dashboardCardScenarios() {
+  const markup = `
+    <h1 id="welcome-heading"></h1>
+    <a id="cdh-new-plan" href="/start">New plan</a>
+    <div id="customer-plans-list"></div>
+    <div id="saved-suppliers-status"></div><button id="openPlanBtn">View saved suppliers</button>`;
+
+  /** Starts the page script with the given plans and shortlist answers; returns the card texts. */
+  async function open({ plans, limit, shortlistStatus }) {
+    const answer = (status, body) => ({ ok: status < 400, status, json: async () => body });
+    const fetchImpl = async url => {
+      const target = String(url);
+      if (target.includes('/api/v1/auth/me')) {
+        return answer(200, { user: { id: 'u1', firstName: 'Ann', verified: true } });
+      }
+      if (target.includes('/api/me/plans')) {
+        return answer(200, { plans, limit });
+      }
+      if (target.includes('/api/v1/shortlist')) {
+        return shortlistStatus === 200
+          ? answer(200, { data: { items: [] } })
+          : answer(shortlistStatus, { error: 'boom' });
+      }
+      return answer(200, { csrfToken: 'token' });
+    };
+    const window = await loaded(windowWith(markup, fetchImpl));
+    const scoped = [];
+    window.__authState = { scopeDeviceData: user => scoped.push(user.id) };
+    window.eval(source('public/assets/js/pages/dashboard-customer-init.js'));
+    // The script starts itself; wait for the cards to leave their loading state.
+    for (let tries = 0; tries < 60; tries += 1) {
+      await new Promise(resolve => setTimeout(resolve, 20));
+      if (window.document.getElementById('saved-suppliers-status').children.length) {
+        break;
+      }
+    }
+    const text = id => window.document.getElementById(id).textContent.replace(/\s+/g, ' ').trim();
+    return {
+      plans: text('customer-plans-list'),
+      newPlanHidden: window.document.getElementById('cdh-new-plan').hidden,
+      saved: text('saved-suppliers-status'),
+      retryButton: Boolean(window.document.querySelector('[data-retry-saved]')),
+      viewSavedHidden: window.document.getElementById('openPlanBtn').hidden,
+      scoped,
+    };
+  }
+
+  const plan = id => ({ id, name: `Plan ${id}`, eventType: 'party', eventDate: '2027-05-01' });
+  return {
+    atLimit: await open({
+      plans: [plan('a'), plan('b'), plan('c')],
+      limit: 3,
+      shortlistStatus: 200,
+    }),
+    underLimit: await open({ plans: [plan('a')], limit: 3, shortlistStatus: 200 }),
+    serverLimit: await open({ plans: [plan('a'), plan('b')], limit: 2, shortlistStatus: 200 }),
+    noLimitReported: await open({ plans: [plan('a'), plan('b'), plan('c')], shortlistStatus: 200 }),
+    shortlistFails: await open({ plans: [plan('a')], limit: 3, shortlistStatus: 500 }),
+  };
+}
+
 (async () => {
   const results = {
     escape: await escapeScenarios(),
     deviceData: await deviceDataScenarios(),
     summary: await summaryScenarios(),
+    calendar: await calendarScenarios(),
+    cards: await dashboardCardScenarios(),
   };
   process.stdout.write(JSON.stringify(results));
   process.exit(0);
