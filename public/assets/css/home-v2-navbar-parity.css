@@ -156,6 +156,7 @@ body.home-v2-page {
 }
 
 .home-v2-page.hv2-user-authenticated .hv2-header .hv2-auth-link,
+html.ef-hint-in .home-v2-page .hv2-header .hv2-auth-link,
 .home-v2-page .hv2-header .hv2-dashboard-link {
   border: 1px solid rgba(11, 128, 115, 0.34);
   background: #ffffff;

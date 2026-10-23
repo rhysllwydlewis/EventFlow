@@ -65,6 +65,10 @@
   const AUTH_HINT_KEY = 'ef_auth_hint';
   const HINT_ROLES = ['customer', 'supplier'];
 
+  // The stand-in users drawn from the hint. Tracked here rather than by a property on the user, so
+  // nothing the server sends can be mistaken for one.
+  const hintedUsers = new WeakSet();
+
   function readAuthHint() {
     try {
       const role = window.localStorage.getItem(AUTH_HINT_KEY);
@@ -341,12 +345,12 @@
   }
 
   /**
-   * Draws the header for `user`. A user with `hint: true` is the remembered account type, drawn
-   * while the server is still being asked; the server's answer (or null) replaces it.
+   * Draws the header for `user`. A user in `hintedUsers` is the remembered account type, drawn while
+   * the server is still being asked; the server's answer (or null) replaces it.
    */
   function updateAuthUI(user) {
     state.user = user;
-    if (!user?.hint) {
+    if (!hintedUsers.has(user)) {
       // Settled: the server's answer is now what the header shows, so the early state from
       // auth-hint.js is no longer needed, and the next page remembers this answer.
       document.documentElement.classList.remove('ef-hint-in');
@@ -694,7 +698,9 @@
       // below, and by "Log in" if the session has ended.
       const hintedRole = readAuthHint();
       if (hintedRole) {
-        updateAuthUI({ role: hintedRole, hint: true });
+        const hintedUser = { role: hintedRole };
+        hintedUsers.add(hintedUser);
+        updateAuthUI(hintedUser);
       }
 
       // Fetch the CSRF token alongside the auth check rather than before it: nothing here needs it,

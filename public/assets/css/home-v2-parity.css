@@ -44,23 +44,33 @@
   display: none;
 }
 
+/* html.ef-hint-in is the same signed-in state, drawn from the first frame while the server is still
+   being asked who is signed in (utils/auth-hint.js); the scripts remove it once it has answered. */
 .home-v2-page.hv2-user-authenticated .hv2-auth-link,
 .home-v2-page.hv2-user-authenticated .hv2-mobile-login,
-.home-v2-page.hv2-user-authenticated #hv2-bottom-alerts {
+.home-v2-page.hv2-user-authenticated #hv2-bottom-alerts,
+html.ef-hint-in .home-v2-page .hv2-auth-link,
+html.ef-hint-in .home-v2-page .hv2-mobile-login,
+html.ef-hint-in .home-v2-page #hv2-bottom-alerts {
   display: none;
 }
 
 .home-v2-page.hv2-user-authenticated .hv2-icon-button,
-.home-v2-page.hv2-user-authenticated .hv2-dashboard-link {
+.home-v2-page.hv2-user-authenticated .hv2-dashboard-link,
+html.ef-hint-in .home-v2-page .hv2-icon-button,
+html.ef-hint-in .home-v2-page .hv2-dashboard-link {
   display: inline-flex;
 }
 
 .home-v2-page.hv2-user-authenticated .hv2-mobile-auth-only,
-.home-v2-page.hv2-user-authenticated .hv2-mobile-logout {
+.home-v2-page.hv2-user-authenticated .hv2-mobile-logout,
+html.ef-hint-in .home-v2-page .hv2-mobile-auth-only,
+html.ef-hint-in .home-v2-page .hv2-mobile-logout {
   display: block;
 }
 
-.home-v2-page.hv2-user-authenticated .hv2-bottom-dashboard {
+.home-v2-page.hv2-user-authenticated .hv2-bottom-dashboard,
+html.ef-hint-in .home-v2-page .hv2-bottom-dashboard {
   display: grid;
 }
 

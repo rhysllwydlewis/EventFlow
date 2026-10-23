@@ -295,3 +295,125 @@ test.describe('Bottom tab bar on a phone', () => {
     expect(new Set(layouts).size).toBeGreaterThan(1);
   });
 });
+
+test.describe('Failsafe', () => {
+  test.use({ viewport: { width: 1440, height: 900 } });
+
+  test('if the header script never loads, "Log in" comes back instead of staying hidden', async ({
+    page,
+  }) => {
+    await stage(page, { status: 401 });
+    await page.route('**/assets/js/navbar.js*', route => route.abort());
+    await seedHint(page, 'customer');
+    await page.goto(PAGE, { waitUntil: 'domcontentloaded' });
+    // While the hint holds, "Log in" is hidden; if nothing settles it, it is given up after 6s.
+    await expect(page.locator('html')).toHaveClass(/ef-hint-in/);
+    await expect(page.locator('#ef-auth-link')).toBeHidden();
+    await expect(page.locator('html')).not.toHaveClass(/ef-hint-in/, { timeout: 9000 });
+    await expect(page.locator('#ef-auth-link')).toBeVisible();
+  });
+});
+
+test.describe('Version 2 homepage, which has its own header', () => {
+  const V2 = '/home-v2.html';
+
+  async function stageV2(page, { status = 200, role = 'customer' } = {}) {
+    await page.route('**/api/**', async route => {
+      if (/\/api\/v1\/auth\/me/.test(route.request().url())) {
+        await new Promise(resolve => setTimeout(resolve, AUTH_DELAY_MS));
+        return route.fulfill({
+          status,
+          contentType: 'application/json',
+          body: status === 200 ? JSON.stringify({ user: { id: 'u1', role } }) : '{}',
+        });
+      }
+      return route.fulfill({ status: 200, contentType: 'application/json', body: '{}' });
+    });
+  }
+
+  const sampleV2 = page =>
+    page.addInitScript(() => {
+      window.__v2 = [];
+      const visible = el => {
+        if (!el) {
+          return false;
+        }
+        const style = getComputedStyle(el);
+        return style.display !== 'none' && style.visibility !== 'hidden';
+      };
+      const frame = () => {
+        const auth = document.getElementById('hv2-auth-link');
+        const link = document.querySelector('.hv2-nav a');
+        window.__v2.push({
+          loginShown: visible(auth) && /log in|sign in/i.test(auth.textContent || ''),
+          navLeft: link && visible(link) ? link.getBoundingClientRect().left : null,
+          bottom: Array.from(document.querySelectorAll('.hv2-bottom-link'))
+            .filter(visible)
+            .map(el => Math.round(el.getBoundingClientRect().left))
+            .join(','),
+        });
+        requestAnimationFrame(frame);
+      };
+      requestAnimationFrame(frame);
+    });
+
+  test.describe('desktop', () => {
+    test.use({ viewport: { width: 1440, height: 900 } });
+
+    test('a signed-in browser never sees "Log in" and the nav does not move', async ({ page }) => {
+      await stageV2(page);
+      await seedHint(page, 'customer');
+      await sampleV2(page);
+      await page.goto(V2, { waitUntil: 'commit' });
+      await expect(page.locator('html')).not.toHaveClass(/ef-hint-in/, { timeout: 8000 });
+      const frames = await page.evaluate(() => window.__v2);
+      expect(frames.length).toBeGreaterThan(20);
+      expect(frames.filter(frame => frame.loginShown)).toHaveLength(0);
+      const lefts = frames.map(frame => frame.navLeft).filter(left => left !== null);
+      expect(Math.max(...lefts) - Math.min(...lefts)).toBeLessThan(2);
+      expect(await page.evaluate(() => localStorage.getItem('ef_auth_hint'))).toBe('customer');
+    });
+
+    test('the control: without the hint the v2 header shows "Log in" first and moves', async ({
+      page,
+    }) => {
+      await stageV2(page);
+      await sampleV2(page);
+      await page.goto(V2, { waitUntil: 'commit' });
+      await expect(page.locator('.hv2-header .hv2-dashboard-link')).toBeVisible({ timeout: 8000 });
+      const frames = await page.evaluate(() => window.__v2);
+      expect(frames.some(frame => frame.loginShown)).toBe(true);
+      const lefts = frames.map(frame => frame.navLeft).filter(left => left !== null);
+      expect(Math.max(...lefts) - Math.min(...lefts)).toBeGreaterThan(20);
+    });
+
+    test('an ended session corrects the hint: "Log in" returns and the hint is forgotten', async ({
+      page,
+    }) => {
+      await stageV2(page, { status: 401 });
+      await seedHint(page, 'customer');
+      await page.goto(V2, { waitUntil: 'domcontentloaded' });
+      await expect(page.locator('#hv2-auth-link')).toBeVisible({ timeout: 8000 });
+      await expect(page.locator('html')).not.toHaveClass(/ef-hint-in/);
+      expect(await page.evaluate(() => localStorage.getItem('ef_auth_hint'))).toBeNull();
+    });
+  });
+
+  test.describe('phone', () => {
+    test.use({ viewport: { width: 390, height: 800 }, hasTouch: true, isMobile: true });
+
+    test('the bottom bar has its final tabs from the first frame', async ({ page }) => {
+      await stageV2(page);
+      await seedHint(page, 'customer');
+      await sampleV2(page);
+      await page.goto(V2, { waitUntil: 'commit' });
+      await expect(page.locator('html')).not.toHaveClass(/ef-hint-in/, { timeout: 8000 });
+      await page.waitForTimeout(150);
+      const layouts = (await page.evaluate(() => window.__v2))
+        .map(frame => frame.bottom)
+        .filter(Boolean);
+      expect(layouts.length).toBeGreaterThan(10);
+      expect(new Set(layouts).size).toBe(1);
+    });
+  });
+});

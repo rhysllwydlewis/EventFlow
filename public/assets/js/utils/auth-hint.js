@@ -13,6 +13,10 @@
  * decides what anyone may do, and a wrong one (an expired session) is replaced by "Log in" as
  * soon as the server says so.
  *
+ * The early state hides "Log in", so it must not outlive a header script that never settles it
+ * (blocked, failed to load, or an auth request that never returns). After a few seconds it is
+ * dropped regardless, which puts "Log in" back.
+ *
  * It must stay tiny and synchronous, and load from <head> ahead of navbar.css.
  */
 'use strict';
@@ -21,7 +25,9 @@
   try {
     const role = window.localStorage.getItem('ef_auth_hint');
     if (role === 'customer' || role === 'supplier') {
-      document.documentElement.classList.add('ef-hint-in');
+      const root = document.documentElement;
+      root.classList.add('ef-hint-in');
+      window.setTimeout(() => root.classList.remove('ef-hint-in'), 6000);
     }
   } catch {
     // Storage can be blocked (private windows, strict settings); the header then waits as before.

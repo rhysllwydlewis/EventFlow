@@ -77,22 +77,32 @@ describe('the pieces agree with each other', () => {
 
   test('the early script is small, synchronous and makes no requests', () => {
     const code = hintScript.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/.*$/gm, '');
-    expect(Buffer.byteLength(code)).toBeLessThan(700);
-    expect(code).not.toMatch(/\b(fetch|XMLHttpRequest|import|await|setTimeout)\b/);
+    expect(Buffer.byteLength(code)).toBeLessThan(900);
+    expect(code).not.toMatch(/\b(fetch|XMLHttpRequest|import|await)\b/);
     // It only ever marks <html>; it never decides what anyone may do.
     expect(code).toContain("classList.add('ef-hint-in')");
+  });
+
+  test('the early state is dropped after a few seconds if nothing settles it', () => {
+    // It hides "Log in", so a header script that never runs must not leave the page without one.
+    expect(hintScript).toMatch(
+      /setTimeout\(\(\) => root\.classList\.remove\('ef-hint-in'\), 6000\)/
+    );
   });
 
   test('navbar.js settles the header: it drops the early state, saves or forgets the hint', () => {
     expect(navbar).toContain("classList.remove('ef-hint-in')");
     expect(navbar).toContain('saveAuthHint(user)');
     expect(navbar).toContain('localStorage.removeItem(AUTH_HINT_KEY)');
-    expect(navbar).toContain('updateAuthUI({ role: hintedRole, hint: true })');
+    expect(navbar).toContain('updateAuthUI(hintedUser)');
   });
 
   test('a hinted header is never saved as if the server had said so', () => {
-    // The stand-in user carries hint: true, which must skip the save and keep the early state.
-    expect(navbar).toMatch(/if \(!user\?\.hint\) \{[\s\S]*?saveAuthHint\(user\);/);
+    // The stand-in user is tracked privately, so nothing the server sends can pose as one, and it
+    // skips the save and keeps the early state.
+    expect(navbar).toContain('const hintedUsers = new WeakSet();');
+    expect(navbar).toContain('hintedUsers.add(hintedUser);');
+    expect(navbar).toMatch(/if \(!hintedUsers\.has\(user\)\) \{[\s\S]*?saveAuthHint\(user\);/);
   });
 
   test('navbar.css hides "Log in", reserves the signed-in actions and mirrors the nav rules', () => {
@@ -113,4 +123,39 @@ describe('the pieces agree with each other', () => {
     );
     expect(navbar).toMatch(/\n\s+initCsrfToken\(\);\n/);
   });
+});
+
+describe('the version 2 homepage, which has its own header', () => {
+  const html = read('public/home-v2.html');
+  const parityCss = read('public/assets/css/home-v2-parity.css');
+  const navbarParityCss = read('public/assets/css/home-v2-navbar-parity.css');
+  const scripts = [
+    read('public/assets/js/pages/home-v2-parity.js'),
+    read('public/assets/js/pages/home-v2-navbar-parity.js'),
+  ];
+
+  test('loads auth-hint.js from <head>, synchronously', () => {
+    const head = html.slice(0, html.search(/<\/head>/i));
+    const tag = head.match(/<script\b[^>]*\/assets\/js\/utils\/auth-hint\.js[^>]*>/);
+    expect(tag).not.toBeNull();
+    expect(tag[0]).not.toMatch(/\b(defer|async)\b/);
+  });
+
+  test('draws the signed-in header from the early state, mirroring the authenticated rules', () => {
+    expect(parityCss).toContain('html.ef-hint-in .home-v2-page .hv2-auth-link');
+    expect(parityCss).toContain('html.ef-hint-in .home-v2-page .hv2-dashboard-link');
+    expect(parityCss).toContain('html.ef-hint-in .home-v2-page .hv2-bottom-dashboard');
+    expect(navbarParityCss).toContain('html.ef-hint-in .home-v2-page .hv2-header .hv2-auth-link');
+  });
+
+  test.each(scripts.map((source, index) => [index, source]))(
+    'script %i drops the early state and saves or forgets the hint once the server answers',
+    (_index, source) => {
+      expect(source).toContain("document.documentElement.classList.remove('ef-hint-in')");
+      expect(source).toContain("window.localStorage.setItem('ef_auth_hint', user.role)");
+      expect(source).toContain("window.localStorage.removeItem('ef_auth_hint')");
+      expect(source).toMatch(/settleAuthHint\(result\?\.user \|\| null\)/);
+      expect(source).toMatch(/settleAuthHint\(null\)/);
+    }
+  );
 });
