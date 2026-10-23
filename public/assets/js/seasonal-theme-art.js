@@ -16,7 +16,7 @@
 'use strict';
 (function () {
   const SVG_NS = 'http://www.w3.org/2000/svg';
-  const f = n => String(Math.round(n * 10) / 10);
+  const round1 = n => String(Math.round(n * 10) / 10);
   const uri = svg => `url("data:image/svg+xml,${encodeURIComponent(svg)}")`;
   const svg = (viewBox, defs, body) =>
     `<svg xmlns="${SVG_NS}" viewBox="${viewBox}"><defs>${defs}</defs>${body}</svg>`;
@@ -48,8 +48,10 @@
 
   /** A concave four-point sparkle drawn around the origin. */
   const sparkle = (r, fill) => {
-    const k = r * 0.09;
-    return `<path d="M0 ${-r}Q${f(k)} ${f(-k)} ${r} 0Q${f(k)} ${f(k)} 0 ${r}Q${f(-k)} ${f(k)} ${-r} 0Q${f(-k)} ${f(-k)} 0 ${-r}Z" fill="${fill}"/>`;
+    const bend = r * 0.09;
+    const near = round1(bend);
+    const nearNeg = round1(-bend);
+    return `<path d="M0 ${-r}Q${near} ${nearNeg} ${r} 0Q${near} ${near} 0 ${r}Q${nearNeg} ${near} ${-r} 0Q${nearNeg} ${nearNeg} 0 ${-r}Z" fill="${fill}"/>`;
   };
 
   const twinkle = (x, y, r, fill, dur, begin, motion) => {
@@ -57,13 +59,13 @@
     if (motion) {
       inner = `<g>${animateTransform('scale', '1;.78;1', dur, begin, SMOOTH)}${animate('opacity', '1;.5;1', dur, begin, SMOOTH)}${inner}</g>`;
     }
-    return `<g transform="translate(${f(x)} ${f(y)})">${inner}</g>`;
+    return `<g transform="translate(${round1(x)} ${round1(y)})">${inner}</g>`;
   };
 
   const HEART =
     'M12 21C5 15.5 2 11.5 2 7.8C2 4.8 4.3 2.8 7 2.8C9 2.8 10.7 3.8 12 5.8C13.3 3.8 15 2.8 17 2.8C19.7 2.8 22 4.8 22 7.8C22 11.5 19 15.5 12 21Z';
   const heartAt = (x, y, k, fill) =>
-    `<path transform="translate(${f(x)} ${f(y)}) scale(${f(k)})" d="${HEART}" fill="${fill}"/>`;
+    `<path transform="translate(${round1(x)} ${round1(y)}) scale(${round1(k)})" d="${HEART}" fill="${fill}"/>`;
 
   /* ---------------- Marks (viewBox 0 0 40 40) ---------------- */
 
@@ -84,16 +86,15 @@
         '#fcd34d',
         { a1: 0.35, a2: 0 }
       )}`,
-      `<circle cx="17" cy="22" r="19" fill="url(#hg)"/>` +
-        `<circle cx="17" cy="22" r="13.2" fill="url(#hm)" mask="url(#hk)"/>${bat}${twinkle(
-          8.5,
-          8,
-          3.6,
-          '#fcd34d',
-          3.6,
-          1,
-          motion
-        )}${twinkle(33.5, 29.5, 2.4, '#fde68a', 4.4, 2.4, motion)}`
+      `<circle cx="17" cy="22" r="19" fill="url(#hg)"/><circle cx="17" cy="22" r="13.2" fill="url(#hm)" mask="url(#hk)"/>${bat}${twinkle(
+        8.5,
+        8,
+        3.6,
+        '#fcd34d',
+        3.6,
+        1,
+        motion
+      )}${twinkle(33.5, 29.5, 2.4, '#fde68a', 4.4, 2.4, motion)}`
     );
   }
 
@@ -106,9 +107,9 @@
       const inner = 4.6;
       const outer = long ? 12.5 : 8.4;
       const colour = colours[i % 4];
-      rays += `<line x1="${f(Math.cos(angle) * inner)}" y1="${f(Math.sin(angle) * inner)}" x2="${f(Math.cos(angle) * outer)}" y2="${f(Math.sin(angle) * outer)}" stroke="${colour}" stroke-width="${long ? 1.3 : 1}" stroke-linecap="round"/>`;
+      rays += `<line x1="${round1(Math.cos(angle) * inner)}" y1="${round1(Math.sin(angle) * inner)}" x2="${round1(Math.cos(angle) * outer)}" y2="${round1(Math.sin(angle) * outer)}" stroke="${colour}" stroke-width="${long ? 1.3 : 1}" stroke-linecap="round"/>`;
       if (long) {
-        rays += `<circle cx="${f(Math.cos(angle) * (outer + 2))}" cy="${f(Math.sin(angle) * (outer + 2))}" r=".8" fill="${colour}"/>`;
+        rays += `<circle cx="${round1(Math.cos(angle) * (outer + 2))}" cy="${round1(Math.sin(angle) * (outer + 2))}" r=".8" fill="${colour}"/>`;
       }
     }
     const spinning = motion ? `<g>${animateTransform('rotate', '0;360', 16, 0)}${rays}</g>` : rays;
@@ -116,16 +117,15 @@
       '0 0 40 40',
       radialGradient('bg1', '#fde68a', '#f97316', { a1: 0.65, a2: 0 }) +
         radialGradient('bg2', '#fffbea', '#fde68a'),
-      `<path d="M22 18L6.5 36" stroke="#475569" stroke-width="1.5" stroke-linecap="round"/><path d="M22 18L13 28.4" stroke="#94a3b8" stroke-width=".7" stroke-linecap="round"/>` +
-        `<g transform="translate(23 16)"><circle r="11" fill="url(#bg1)"/>${spinning}<circle r="2.7" fill="url(#bg2)">${motion ? animate('r', '2.7;3.3;2.7', 2.2, 0, SMOOTH) : ''}</circle></g>${twinkle(
-          10,
-          11,
-          2.2,
-          '#fde68a',
-          2.8,
-          0.6,
-          motion
-        )}${twinkle(34, 33, 1.8, '#fb923c', 3.4, 1.9, motion)}`
+      `<path d="M22 18L6.5 36" stroke="#475569" stroke-width="1.5" stroke-linecap="round"/><path d="M22 18L13 28.4" stroke="#94a3b8" stroke-width=".7" stroke-linecap="round"/><g transform="translate(23 16)"><circle r="11" fill="url(#bg1)"/>${spinning}<circle r="2.7" fill="url(#bg2)">${motion ? animate('r', '2.7;3.3;2.7', 2.2, 0, SMOOTH) : ''}</circle></g>${twinkle(
+        10,
+        11,
+        2.2,
+        '#fde68a',
+        2.8,
+        0.6,
+        motion
+      )}${twinkle(34, 33, 1.8, '#fb923c', 3.4, 1.9, motion)}`
     );
   }
 
@@ -138,7 +138,7 @@
       '<circle r="3.5" fill="#1f2937"/>';
     for (let i = 0; i < 9; i += 1) {
       const angle = (i / 9) * Math.PI * 2;
-      flower += `<circle cx="${f(Math.cos(angle) * 5)}" cy="${f(Math.sin(angle) * 5)}" r=".75" fill="#374151"/>`;
+      flower += `<circle cx="${round1(Math.cos(angle) * 5)}" cy="${round1(Math.sin(angle) * 5)}" r=".75" fill="#374151"/>`;
     }
     flower += '</g>';
     return svg(
@@ -236,7 +236,7 @@
     for (let i = 0; i < 5; i += 1) {
       petals += `<path transform="rotate(${i * 72}) scale(${scale})" d="${PETAL}" fill="url(#${id})" stroke="#ec4899" stroke-opacity=".35" stroke-width=".5"/>`;
     }
-    return `${petals}<circle r="${f(2.4 * scale)}" fill="#fbbf24"/><circle cx="${f(0.9 * scale)}" cy="${f(-0.6 * scale)}" r="${f(0.55 * scale)}" fill="#f59e0b"/>`;
+    return `${petals}<circle r="${round1(2.4 * scale)}" fill="#fbbf24"/><circle cx="${round1(0.9 * scale)}" cy="${round1(-0.6 * scale)}" r="${round1(0.55 * scale)}" fill="#f59e0b"/>`;
   };
 
   function markMothersDay(motion) {
@@ -270,7 +270,7 @@
     let scallops = '';
     for (let i = 0; i < 12; i += 1) {
       const angle = (i / 12) * Math.PI * 2;
-      scallops += `<circle cx="${f(Math.cos(angle) * 10.6)}" cy="${f(Math.sin(angle) * 10.6)}" r="3.1" fill="#1b3a8f"/>`;
+      scallops += `<circle cx="${round1(Math.cos(angle) * 10.6)}" cy="${round1(Math.sin(angle) * 10.6)}" r="3.1" fill="#1b3a8f"/>`;
     }
     const star = `<g>${motion ? animateTransform('scale', '1;1.12;1', 3.2, 0, SMOOTH) : ''}${sparkle(5.2, 'url(#fg)')}</g>`;
     return svg(
@@ -309,10 +309,10 @@
     `<rect x="0" y="${position === 'top' ? 0 : EDGE_H - 1.2}" width="${EDGE_W}" height="1.2" fill="${colour}" opacity=".55"/>`;
 
   const pumpkin = (x, base, k) =>
-    `<g transform="translate(${f(x)} ${f(base)}) scale(${k})"><ellipse cx="-3.6" cy="-5" rx="3.6" ry="5" fill="url(#pk)"/><ellipse cx="3.6" cy="-5" rx="3.6" ry="5" fill="url(#pk)"/><ellipse cx="0" cy="-5.2" rx="3.7" ry="5.5" fill="url(#pk2)"/><path d="M0 -10.3C.2 -12 1 -12.8 2.3 -13.2" stroke="#4d7c0f" stroke-width="1.3" fill="none" stroke-linecap="round"/></g>`;
+    `<g transform="translate(${round1(x)} ${round1(base)}) scale(${k})"><ellipse cx="-3.6" cy="-5" rx="3.6" ry="5" fill="url(#pk)"/><ellipse cx="3.6" cy="-5" rx="3.6" ry="5" fill="url(#pk)"/><ellipse cx="0" cy="-5.2" rx="3.7" ry="5.5" fill="url(#pk2)"/><path d="M0 -10.3C.2 -12 1 -12.8 2.3 -13.2" stroke="#4d7c0f" stroke-width="1.3" fill="none" stroke-linecap="round"/></g>`;
 
   const bat = (x, y, k, motion, dur, begin) => {
-    const shape = `<path transform="translate(${f(x)} ${f(y)}) scale(${k})" d="M0 5C3 1 5 2 7 5C9 2 11 1 14 5C12 4.6 11 5.6 10.5 7.5C9.5 6.2 8 6.4 7 8C6 6.4 4.5 6.2 3.5 7.5C3 5.6 2 4.6 0 5Z" fill="#3b2a5a" opacity=".88"/>`;
+    const shape = `<path transform="translate(${round1(x)} ${round1(y)}) scale(${k})" d="M0 5C3 1 5 2 7 5C9 2 11 1 14 5C12 4.6 11 5.6 10.5 7.5C9.5 6.2 8 6.4 7 8C6 6.4 4.5 6.2 3.5 7.5C3 5.6 2 4.6 0 5Z" fill="#3b2a5a" opacity=".88"/>`;
     return motion
       ? `<g>${animateTransform('translate', '0 0;5 -1.2;0 0', dur, begin, SMOOTH)}${shape}</g>`
       : shape;
@@ -329,9 +329,9 @@
       bat(left ? 104 : 96, 5, 0.62, motion, 7, 3.5) +
       bat(left ? 170 : 160, 2, 0.5, motion, 8, 2);
     body += scatter(random, 7, 8, 240, (x, rand, i) => {
-      const y = 3 + rand() * 9;
-      const r = 0.7 + rand() * 0.6;
-      return `<circle cx="${f(x)}" cy="${f(y)}" r="${f(r)}" fill="#fcd34d">${motion ? animate('opacity', '.9;.25;.9', 2.6 + i * 0.4, i * 0.7) : ''}</circle>`;
+      const cy = 3 + rand() * 9;
+      const radius = 0.7 + rand() * 0.6;
+      return `<circle cx="${round1(x)}" cy="${round1(cy)}" r="${round1(radius)}" fill="#fcd34d">${motion ? animate('opacity', '.9;.25;.9', 2.6 + i * 0.4, i * 0.7) : ''}</circle>`;
     });
     return cluster(
       side,
@@ -344,22 +344,22 @@
     const random = seeded(side === 'l' ? 7 : 19);
     let body = `<ellipse cx="30" cy="${EDGE_H}" rx="90" ry="15" fill="url(#gl)"/>${hairline('bottom', '#f97316')}`;
     body += scatter(random, 14, 6, 240, (x, rand, i) => {
-      const r = 0.8 + rand() * 0.9;
+      const radius = 0.8 + rand() * 0.9;
       const colour = ['#fbbf24', '#fb923c', '#fde68a'][i % 3];
       const dur = 3 + rand() * 2.6;
       const begin = rand() * 5;
       const rise = 9 + rand() * 5;
       if (!motion) {
-        return `<circle cx="${f(x)}" cy="${f(EDGE_H - 4 - rand() * 8)}" r="${f(r)}" fill="${colour}" opacity=".6"/>`;
+        return `<circle cx="${round1(x)}" cy="${round1(EDGE_H - 4 - rand() * 8)}" r="${round1(radius)}" fill="${colour}" opacity=".6"/>`;
       }
-      return `<circle cx="${f(x)}" cy="${EDGE_H - 2}" r="${f(r)}" fill="${colour}" opacity="0">${animate(
+      return `<circle cx="${round1(x)}" cy="${EDGE_H - 2}" r="${round1(radius)}" fill="${colour}" opacity="0">${animate(
         'cy',
-        `${EDGE_H - 2};${f(EDGE_H - 2 - rise)}`,
+        `${EDGE_H - 2};${round1(EDGE_H - 2 - rise)}`,
         dur,
         begin
       )}${animate('opacity', '0;.9;0', dur, begin, ' keyTimes="0;.25;1"')}${animate(
         'cx',
-        `${f(x)};${f(x + (rand() - 0.5) * 8)}`,
+        `${round1(x)};${round1(x + (rand() - 0.5) * 8)}`,
         dur,
         begin
       )}</circle>`;
@@ -385,8 +385,8 @@
         const colour = colours[n % 4];
         const by = y + 3.6;
         body +=
-          `<circle cx="${f(x)}" cy="${f(by + 0.6)}" r="6.2" fill="url(#lg${n % 4})">${motion ? animate('opacity', '.4;1;.4', 3.2, n * 0.55, SMOOTH) : ''}</circle>` +
-          `<path d="M${f(x - 1.3)} ${f(y + 0.3)}L${f(x + 1.3)} ${f(y + 0.3)}L${f(x + 1.9)} ${f(by + 0.4)}Q${f(x)} ${f(by + 4.6)} ${f(x - 1.9)} ${f(by + 0.4)}Z" fill="${colour}"/>`;
+          `<circle cx="${round1(x)}" cy="${round1(by + 0.6)}" r="6.2" fill="url(#lg${n % 4})">${motion ? animate('opacity', '.4;1;.4', 3.2, n * 0.55, SMOOTH) : ''}</circle>` +
+          `<path d="M${round1(x - 1.3)} ${round1(y + 0.3)}L${round1(x + 1.3)} ${round1(y + 0.3)}L${round1(x + 1.9)} ${round1(by + 0.4)}Q${round1(x)} ${round1(by + 4.6)} ${round1(x - 1.9)} ${round1(by + 0.4)}Z" fill="${colour}"/>`;
         n += 1;
       }
     }
@@ -415,7 +415,7 @@
       12,
       240,
       (x, rand, i) =>
-        `<circle cx="${f(x)}" cy="${f(3 + rand() * 11)}" r="${f(0.6 + rand() * 0.5)}" fill="#f59e0b" opacity=".7">${motion ? animate('opacity', '.8;.2;.8', 2.4 + i * 0.3, i * 0.5) : ''}</circle>`
+        `<circle cx="${round1(x)}" cy="${round1(3 + rand() * 11)}" r="${round1(0.6 + rand() * 0.5)}" fill="#f59e0b" opacity=".7">${motion ? animate('opacity', '.8;.2;.8', 2.4 + i * 0.3, i * 0.5) : ''}</circle>`
     );
     return cluster(
       side,
@@ -448,9 +448,9 @@
   function edgeChineseNewYear(side, motion) {
     const random = seeded(side === 'l' ? 3 : 17);
     const lantern = (x, k, begin) => {
-      const shape = `<g transform="translate(${f(x)} 0) scale(${k}) translate(-20 0)">${lanternShape('c')}</g>`;
+      const shape = `<g transform="translate(${round1(x)} 0) scale(${k}) translate(-20 0)">${lanternShape('c')}</g>`;
       return motion
-        ? `<g transform="translate(${f(x)} 0)"><g>${animateTransform('rotate', '-3.5 0 0;3.5 0 0;-3.5 0 0', 5 + begin * 0.4, begin, SMOOTH)}<g transform="translate(${f(-x)} 0)">${shape}</g></g></g>`
+        ? `<g transform="translate(${round1(x)} 0)"><g>${animateTransform('rotate', '-3.5 0 0;3.5 0 0;-3.5 0 0', 5 + begin * 0.4, begin, SMOOTH)}<g transform="translate(${round1(-x)} 0)">${shape}</g></g></g>`
         : shape;
     };
     const left = side === 'l';
@@ -480,13 +480,13 @@
       const k = 0.2 + rand() * 0.1;
       const y = 5.5 + rand() * 3;
       const flower =
-        `<path d="M${f(x)} ${f(y + 2)}C${f(x + 0.8)} ${f(y + 7)} ${f(x - 0.6)} 13 ${f(x - 1.4)} ${EDGE_H}" stroke="#4d7c0f" stroke-width=".9" fill="none" stroke-linecap="round"/>` +
-        `<path d="M${f(x - 0.2)} 12C${f(x - 3.6)} 11.4 ${f(x - 4.6)} 9.4 ${f(x - 4.2)} 8.2C${f(x - 1.6)} 8.4 ${f(x - 0.6)} 9.8 ${f(x - 0.2)} 12Z" fill="#65a30d"/>` +
-        `<g transform="translate(${f(x)} ${f(y)})">${bloom('mp', k * 1.5)}</g>`;
+        `<path d="M${round1(x)} ${round1(y + 2)}C${round1(x + 0.8)} ${round1(y + 7)} ${round1(x - 0.6)} 13 ${round1(x - 1.4)} ${EDGE_H}" stroke="#4d7c0f" stroke-width=".9" fill="none" stroke-linecap="round"/>` +
+        `<path d="M${round1(x - 0.2)} 12C${round1(x - 3.6)} 11.4 ${round1(x - 4.6)} 9.4 ${round1(x - 4.2)} 8.2C${round1(x - 1.6)} 8.4 ${round1(x - 0.6)} 9.8 ${round1(x - 0.2)} 12Z" fill="#65a30d"/>` +
+        `<g transform="translate(${round1(x)} ${round1(y)})">${bloom('mp', k * 1.5)}</g>`;
       if (!motion) {
         return flower;
       }
-      const pivot = `${f(x)} ${EDGE_H}`;
+      const pivot = `${round1(x)} ${EDGE_H}`;
       return `<g>${animateTransform('rotate', `-3 ${pivot};3 ${pivot};-3 ${pivot}`, 5.5 + i * 0.7, i * 1.3, SMOOTH)}${flower}</g>`;
     });
     return cluster(side, linearGradient('mp', '#fff1f7', '#f472b6'), body);
@@ -508,7 +508,7 @@
       8,
       220,
       (x, rand, i) =>
-        `<circle cx="${f(x)}" cy="${f(4 + rand() * 9)}" r="${f(0.8 + rand() * 0.6)}" fill="${['#c4b5fd', '#f9a8d4', '#86efac'][i % 3]}" opacity=".8">${motion ? animate('opacity', '.8;.3;.8', 3 + i * 0.4, i * 0.8) : ''}</circle>`
+        `<circle cx="${round1(x)}" cy="${round1(4 + rand() * 9)}" r="${round1(0.8 + rand() * 0.6)}" fill="${['#c4b5fd', '#f9a8d4', '#86efac'][i % 3]}" opacity=".8">${motion ? animate('opacity', '.8;.3;.8', 3 + i * 0.4, i * 0.8) : ''}</circle>`
     );
     return cluster(
       side,
@@ -557,18 +557,18 @@
     let dew = '';
     angles.forEach(angle => {
       const end = point(reach, angle);
-      web += `<line x1="80" y1="0" x2="${f(end[0])}" y2="${f(end[1])}" ${stroke}/>`;
+      web += `<line x1="80" y1="0" x2="${round1(end[0])}" y2="${round1(end[1])}" ${stroke}/>`;
     });
     [14, 28, 43, 59, 76].forEach((radius, ring) => {
       for (let i = 0; i < angles.length - 1; i += 1) {
-        const a = point(radius, angles[i]);
-        const b = point(radius, angles[i + 1]);
+        const start = point(radius, angles[i]);
+        const end = point(radius, angles[i + 1]);
         const mid = point(radius * 0.88, (angles[i] + angles[i + 1]) / 2);
-        web += `<path d="M${f(a[0])} ${f(a[1])}Q${f(mid[0])} ${f(mid[1])} ${f(b[0])} ${f(b[1])}" ${stroke}/>`;
+        web += `<path d="M${round1(start[0])} ${round1(start[1])}Q${round1(mid[0])} ${round1(mid[1])} ${round1(end[0])} ${round1(end[1])}" ${stroke}/>`;
       }
       if (ring % 2 === 0) {
-        const p = point(radius, angles[1 + (ring % 3)]);
-        dew += `<circle cx="${f(p[0])}" cy="${f(p[1])}" r="1" fill="#fff" stroke="#a5b4fc" stroke-width=".4">${motion ? animate('opacity', '1;.3;1', 3 + ring * 0.6, ring * 0.9) : ''}</circle>`;
+        const dewPoint = point(radius, angles[1 + (ring % 3)]);
+        dew += `<circle cx="${round1(dewPoint[0])}" cy="${round1(dewPoint[1])}" r="1" fill="#fff" stroke="#a5b4fc" stroke-width=".4">${motion ? animate('opacity', '1;.3;1', 3 + ring * 0.6, ring * 0.9) : ''}</circle>`;
       }
     });
     return svg('0 0 80 64', '', web + dew);
@@ -727,7 +727,7 @@
     let observer = null;
     let place = null;
     const brand = header.querySelector('.ef-brand');
-    const wordmark = brand && brand.querySelector('.ef-brand-text');
+    const wordmark = brand?.querySelector('.ef-brand-text');
     if (brand && wordmark) {
       if (window.getComputedStyle(brand).position === 'static') {
         setStyles(brand, { position: 'relative' });
@@ -745,10 +745,10 @@
           return;
         }
         const origin = brand.getBoundingClientRect();
-        mark.style.width = `${f(box.width * 0.2)}px`;
-        mark.style.height = `${f(box.width * 0.2)}px`;
-        mark.style.left = `${f(box.left - origin.left - brand.clientLeft + box.width * 1.012)}px`;
-        mark.style.top = `${f(box.top - origin.top - brand.clientTop - box.width * 0.05)}px`;
+        mark.style.width = `${round1(box.width * 0.2)}px`;
+        mark.style.height = `${round1(box.width * 0.2)}px`;
+        mark.style.left = `${round1(box.left - origin.left - brand.clientLeft + box.width * 1.012)}px`;
+        mark.style.top = `${round1(box.top - origin.top - brand.clientTop - box.width * 0.05)}px`;
       };
       place();
       if (typeof window.ResizeObserver === 'function') {

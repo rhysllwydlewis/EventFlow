@@ -28,7 +28,7 @@
     return new Promise(resolve => {
       const find = () => {
         const header = document.querySelector('.ef-header');
-        return header && header.querySelector('.ef-brand-text') ? header : null;
+        return header?.querySelector('.ef-brand-text') ? header : null;
       };
       const found = find();
       if (found) {
@@ -58,7 +58,7 @@
   function loadStylesheet() {
     return new Promise((resolve, reject) => {
       let link = document.querySelector('link[data-eventflow-seasonal]');
-      if (link && link.sheet) {
+      if (link?.sheet) {
         resolve();
         return;
       }
@@ -111,7 +111,7 @@
       const reduceMotion =
         window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
       window.EFSeasonalArt.apply(header, theme, { animate: !reduceMotion });
-    } catch (error) {
+    } catch {
       // Decorative only: stay plain.
     }
   }

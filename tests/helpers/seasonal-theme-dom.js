@@ -20,7 +20,8 @@ const read = file => fs.readFileSync(path.join(root, file), 'utf8');
 const ART = read('public/assets/js/seasonal-theme-art.js');
 const LOADER = read('public/assets/js/seasonal-theme.js');
 const ADMIN_INIT = read('public/assets/js/pages/admin-seasonal-theme-init.js');
-const ADMIN_PAGE = read('public/admin-settings.html').replace(/<script[\s\S]*?<\/script>/g, '');
+// The page's own scripts are never run: JSDOM is created with runScripts: 'outside-only'.
+const ADMIN_PAGE = read('public/admin-settings.html');
 
 const HEADER_HTML = `
   <header class="ef-header">

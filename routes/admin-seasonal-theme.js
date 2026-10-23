@@ -79,7 +79,7 @@ router.put(
         // so check it: nothing may be audited or reported as saved unless it was.
         const result = await dbUnified.writeAndVerify('settings', settings);
         if (!result || result.success !== true || !result.data || !result.data.seasonalTheme) {
-          throw new Error((result && result.error) || 'The settings write did not complete');
+          throw new Error(result?.error || 'The settings write did not complete');
         }
         return { before: previous, saved: result.data.seasonalTheme };
       });
@@ -94,10 +94,10 @@ router.put(
       });
 
       res.set('Cache-Control', 'no-store, private');
-      res.json({ success: true, ...describe(saved) });
+      return res.json({ success: true, ...describe(saved) });
     } catch (error) {
       logger.error('Error updating seasonal theme settings:', error);
-      res.status(500).json({ error: 'Failed to update settings' });
+      return res.status(500).json({ error: 'Failed to update settings' });
     }
   }
 );

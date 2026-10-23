@@ -73,9 +73,9 @@ function parseIsoDate(value) {
   const year = Number(match[1]);
   const month = Number(match[2]);
   const day = Number(match[3]);
-  const n = dayNumber(year, month, day);
-  const back = fromDayNumber(n);
-  return back.year === year && back.month === month && back.day === day ? n : null;
+  const parsed = dayNumber(year, month, day);
+  const back = fromDayNumber(parsed);
+  return back.year === year && back.month === month && back.day === day ? parsed : null;
 }
 
 const makeFormatter = timeZone =>
@@ -98,7 +98,7 @@ const makeFormatter = timeZone =>
 let ukPartsFormatter;
 try {
   ukPartsFormatter = makeFormatter(TIME_ZONE);
-} catch (error) {
+} catch {
   ukPartsFormatter = makeFormatter('UTC');
 }
 
@@ -135,19 +135,21 @@ function secondsUntilUkMidnight(now = new Date()) {
 
 /** Western Easter Sunday (anonymous Gregorian algorithm). */
 function easterSunday(year) {
-  const a = year % 19;
-  const b = Math.floor(year / 100);
-  const c = year % 100;
-  const d = Math.floor(b / 4);
-  const e = b % 4;
-  const g = Math.floor((8 * b + 13) / 25);
-  const h = (19 * a + b - d - g + 15) % 30;
-  const i = Math.floor(c / 4);
-  const k = c % 4;
-  const l = (32 + 2 * e + 2 * i - h - k) % 7;
-  const m = Math.floor((a + 11 * h + 22 * l) / 451);
-  const month = Math.floor((h + l - 7 * m + 114) / 31);
-  const day = ((h + l - 7 * m + 114) % 31) + 1;
+  // Variable names follow the published algorithm (Meeus/Jones/Butcher).
+  const cycle = year % 19;
+  const century = Math.floor(year / 100);
+  const yearInCentury = year % 100;
+  const centuryLeaps = Math.floor(century / 4);
+  const centuryRemainder = century % 4;
+  const correction = Math.floor((8 * century + 13) / 25);
+  const epact = (19 * cycle + century - centuryLeaps - correction + 15) % 30;
+  const leapsInCentury = Math.floor(yearInCentury / 4);
+  const leapRemainder = yearInCentury % 4;
+  const weekdayOffset =
+    (32 + 2 * centuryRemainder + 2 * leapsInCentury - epact - leapRemainder) % 7;
+  const adjustment = Math.floor((cycle + 11 * epact + 22 * weekdayOffset) / 451);
+  const month = Math.floor((epact + weekdayOffset - 7 * adjustment + 114) / 31);
+  const day = ((epact + weekdayOffset - 7 * adjustment + 114) % 31) + 1;
   return dayNumber(year, month, day);
 }
 
@@ -329,8 +331,8 @@ function activeOccasion(day, excluded = []) {
       continue;
     }
     // A window can start in the previous year (New Year) or, rarely, reach into the next.
-    for (let y = year - 1; y <= year + 1; y += 1) {
-      const window = occasion.window(y);
+    for (let candidate = year - 1; candidate <= year + 1; candidate += 1) {
+      const window = occasion.window(candidate);
       if (window && day >= window[0] && day <= window[1]) {
         return occasion.key;
       }
@@ -397,9 +399,9 @@ function upcomingWindows(now = new Date()) {
   const { year } = fromDayNumber(today);
   return OCCASIONS.map(occasion => {
     let found = null;
-    for (let y = year - 1; y <= year + 2 && !found; y += 1) {
-      const window = occasion.window(y);
-      if (window && window[1] >= today) {
+    for (let candidate = year - 1; candidate <= year + 2 && !found; candidate += 1) {
+      const window = occasion.window(candidate);
+      if (window?.[1] >= today) {
         found = window;
       }
     }

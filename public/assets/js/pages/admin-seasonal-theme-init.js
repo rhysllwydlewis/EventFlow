@@ -43,7 +43,7 @@
     parseDate(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
 
   const nameOf = key => {
-    const occasion = state && state.occasions.find(item => item.key === key);
+    const occasion = state?.occasions.find(item => item.key === key);
     return occasion ? occasion.name : null;
   };
 
@@ -74,8 +74,7 @@
 
     if (resolved.source === 'manual' && resolved.theme) {
       const occasion = state.occasions.find(item => item.key === resolved.theme);
-      const inWindow =
-        occasion && occasion.start && ukDate >= occasion.start && ukDate <= occasion.end;
+      const inWindow = occasion?.start && ukDate >= occasion.start && ukDate <= occasion.end;
       if (!inWindow) {
         const warning = document.createElement('span');
         warning.className = 'seasonal-warning';
@@ -148,7 +147,7 @@
   autoInput.addEventListener('change', () => {
     manualBox.hidden = autoInput.checked;
     // Turning auto off keeps whatever is live now, so nothing jumps.
-    if (!autoInput.checked && !themeSelect.value && state && state.resolved.theme) {
+    if (!autoInput.checked && !themeSelect.value && state?.resolved.theme) {
       themeSelect.value = state.resolved.theme;
     }
   });
@@ -185,7 +184,7 @@
           errorMessage: 'Failed to update seasonal theme settings',
         }
       );
-    } catch (error) {
+    } catch {
       // safeAction has already shown the error; keep the form as the admin left it.
     }
   });
