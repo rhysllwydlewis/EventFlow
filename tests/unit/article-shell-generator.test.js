@@ -307,8 +307,8 @@ describe('header scripts', () => {
     (_name, html) => {
       const run = [
         '<script defer="" src="/assets/js/utils/auth-state.js"></script>',
-        '<script defer="" src="/assets/js/burger-menu.js"></script>',
-        '<script defer="" src="/assets/js/navbar.js?v=1.1.0"></script>',
+        '<script defer="" src="/assets/js/burger-menu.js?v=1.1.0"></script>',
+        '<script defer="" src="/assets/js/navbar.js?v=1.1.1"></script>',
         `<script defer="" src="/assets/js/notifications.js?v=${NOTIFICATIONS_VERSION}"></script>`,
       ].join('\n');
       expect(html).toContain(run);

@@ -186,7 +186,7 @@
     });
 
     // A disclosure must not remain open when its desktop trigger disappears.
-    window.matchMedia('(min-width: 1100px)').addEventListener('change', event => {
+    window.matchMedia('(min-width: 1280px)').addEventListener('change', event => {
       const hadFocus = menu.contains(document.activeElement);
       setAccountMenuOpen(false);
       if (!event.matches && hadFocus) {

@@ -24,7 +24,7 @@ test.describe('Desktop customer and supplier account navigation @backend', () =>
     ]);
     await page.setViewportSize({ width: 1440, height: 900 });
     await loginAs(page, fixtures.users[role]);
-    await page.goto(path);
+    await page.goto(path, { waitUntil: 'domcontentloaded' });
     if (await page.locator('#sdh-guide-dialog[open]').count()) {
       await page.keyboard.press('Escape');
     }
@@ -87,7 +87,7 @@ test.describe('Desktop customer and supplier account navigation @backend', () =>
       await expect(page.locator('#ef-account-panel')).toBeHidden();
     });
 
-    test(`${role}: outside clicks close the dropdown and the bell still opens`, async ({
+    test(`${role}: the toggle and outside clicks close the dropdown`, async ({
       page,
       context,
       baseURL,
@@ -98,9 +98,19 @@ test.describe('Desktop customer and supplier account navigation @backend', () =>
       await toggle.click();
       await expect(page.locator('#ef-account-panel')).toBeHidden();
       await toggle.click();
-      await page.locator('main').click({ position: { x: 10, y: 10 } });
+      // Click the empty page gutter; the guides hero animates continuously in
+      // WebKit, so using it as a locator target waits for unrelated motion.
+      await page.mouse.click(20, 90);
       await expect(toggle).toHaveAttribute('aria-expanded', 'false');
-      await toggle.click();
+    });
+
+    test(`${role}: the notification bell closes the Account dropdown and still opens`, async ({
+      page,
+      context,
+      baseURL,
+    }) => {
+      await open(page, context, baseURL, role, '/guides');
+      await page.locator('#ef-account-toggle').click();
       await page.locator('#ef-notification-btn').click();
       await expect(page.locator('#ef-account-panel')).toBeHidden();
       await expect(page.locator('#notification-dropdown')).toBeVisible();
@@ -112,7 +122,7 @@ test.describe('Desktop customer and supplier account navigation @backend', () =>
       baseURL,
     }, testInfo) => {
       await open(page, context, baseURL, role);
-      for (const width of [1100, 1152, 1199, 1200, 1280, 1440, 1920]) {
+      for (const width of [1100, 1152, 1199, 1200, 1240, 1279, 1280, 1440, 1920]) {
         await page.setViewportSize({ width, height: 900 });
         const controls = page.locator(
           '.ef-header-content a:visible, .ef-header-content button:visible'
@@ -163,22 +173,52 @@ test.describe('Desktop customer and supplier account navigation @backend', () =>
       await expect(page.locator('#ef-account-toggle')).toBeHidden();
     });
 
-    test(`${role}: the hamburger retains Settings and Log out on phones and small laptops`, async ({
+    test(`${role}: the hamburger remains usable while resizing inside the laptop range`, async ({
       page,
       context,
       baseURL,
     }) => {
       await open(page, context, baseURL, role, '/guides');
-      for (const width of [1024, 768, 390, 320]) {
+      await page.setViewportSize({ width: 1152, height: 900 });
+      await page.locator('#ef-mobile-toggle').click();
+      await expect(page.locator('#ef-mobile-settings')).toBeVisible();
+      await page.setViewportSize({ width: 1240, height: 900 });
+      await expect(page.locator('#ef-mobile-toggle')).toHaveAttribute('aria-expanded', 'true');
+      await expect(page.locator('#ef-mobile-settings')).toBeVisible();
+      await page.setViewportSize({ width: 1280, height: 900 });
+      await expect(page.locator('#ef-mobile-toggle')).toHaveAttribute('aria-expanded', 'false');
+      await expect(page.locator('#ef-account-toggle')).toBeVisible();
+      await expect(page.locator('main')).not.toHaveAttribute('inert', '');
+    });
+
+    test(`${role}: hamburger links stay visible on phones and small laptops`, async ({
+      page,
+      context,
+      baseURL,
+    }) => {
+      await open(page, context, baseURL, role, '/guides');
+      for (const width of [1279, 1240, 1152, 1100, 1024, 768, 390, 320]) {
         await page.setViewportSize({ width, height: 900 });
         await expect(page.locator('#ef-account-toggle')).toBeHidden();
         await page.locator('#ef-mobile-toggle').click();
         await expect(page.locator('#ef-mobile-settings')).toBeVisible();
         await expect(page.locator('#ef-mobile-logout')).toBeVisible();
-        await page.locator('#ef-mobile-settings').click();
-        await expect(page).toHaveURL(/\/settings$/);
-        await page.goto('/guides');
+        await page.keyboard.press('Escape');
       }
+    });
+
+    test(`${role}: mobile Settings and Log out remain functional`, async ({
+      page,
+      context,
+      baseURL,
+    }) => {
+      await open(page, context, baseURL, role, '/guides');
+      await page.setViewportSize({ width: 390, height: 900 });
+      await page.locator('#ef-mobile-toggle').click();
+      await page.locator('#ef-mobile-settings').click();
+      await expect(page).toHaveURL(/\/settings$/);
+      await expect(page.getByRole('heading', { name: 'Settings', exact: true })).toBeVisible();
+      await page.goto('/guides', { waitUntil: 'domcontentloaded' });
       await page.locator('#ef-mobile-toggle').click();
       await page.locator('#ef-mobile-logout').click();
       await expect(page).toHaveURL(/\/?t=/);
