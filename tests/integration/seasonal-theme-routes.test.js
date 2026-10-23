@@ -60,9 +60,9 @@ describe('seasonal navbar theme (real server)', () => {
     expect(csp).toMatch(/connect-src[^;]*'self'/);
   });
 
-  it('still serves pages that load the version of navbar.js that brings in the loader', async () => {
+  it('still serves pages that load the versioned navbar.js that brings in the loader', async () => {
     const res = await request(app).get('/about').expect(200);
 
-    expect(res.text).toContain('/assets/js/navbar.js?v=1.2.0');
+    expect(res.text).toMatch(/\/assets\/js\/navbar\.js\?v=\d+\.\d+\.\d+/);
   });
 });

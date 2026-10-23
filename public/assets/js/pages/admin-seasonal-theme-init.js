@@ -109,6 +109,7 @@
     occasionList.textContent = '';
     occasions.forEach(occasion => {
       const label = document.createElement('label');
+      label.className = 'checkbox-label-right';
       const box = document.createElement('input');
       box.type = 'checkbox';
       box.dataset.occasion = occasion.key;
@@ -160,29 +161,33 @@
       .filter(box => !box.checked)
       .map(box => box.dataset.occasion);
 
-    await AdminShared.safeAction(
-      saveButton,
-      async () => {
-        await AdminShared.fetchCSRFToken();
-        const result = await AdminShared.adminFetch(ENDPOINT, {
-          method: 'PUT',
-          body: {
-            auto: autoInput.checked,
-            manualTheme: themeSelect.value || null,
-            returnToAutoOn: returnInput.value || null,
-            excluded,
-          },
-        });
-        state = result;
-        render();
-        return result;
-      },
-      {
-        loadingText: 'Saving...',
-        successMessage: 'Seasonal theme settings updated',
-        errorMessage: 'Failed to update seasonal theme settings',
-      }
-    );
+    try {
+      await AdminShared.safeAction(
+        saveButton,
+        async () => {
+          await AdminShared.fetchCSRFToken();
+          const result = await AdminShared.adminFetch(ENDPOINT, {
+            method: 'PUT',
+            body: {
+              auto: autoInput.checked,
+              manualTheme: themeSelect.value || null,
+              returnToAutoOn: returnInput.value || null,
+              excluded,
+            },
+          });
+          state = result;
+          render();
+          return result;
+        },
+        {
+          loadingText: 'Saving...',
+          successMessage: 'Seasonal theme settings updated',
+          errorMessage: 'Failed to update seasonal theme settings',
+        }
+      );
+    } catch (error) {
+      // safeAction has already shown the error; keep the form as the admin left it.
+    }
   });
 
   load();

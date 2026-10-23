@@ -23,7 +23,9 @@ or run twice across instances; a rule evaluated on demand cannot.
 - `public/assets/js/navbar.js` loads `seasonal-theme.js` on every public page. That
   loader asks the endpoint once and does nothing unless a theme is named. Only then
   does it download `seasonal-theme-art.js` and `seasonal-theme.css`, so the rest of
-  the year costs one tiny request.
+  the year costs one tiny request. It waits for both to arrive before
+  it touches the header, and if either fails the header is left plain, so a slow
+  connection can never show a half-styled header or shift the layout.
 
 ## Settings
 
@@ -40,6 +42,12 @@ Navbar Theme** (`GET`/`PUT /api/admin/settings/seasonal-theme`, audit action
 
 **Nothing saved means no theme.** Shipping this changes nothing until an admin turns
 it on.
+
+Saved changes reach visitors within about five minutes: the public endpoint is cached
+for at most that long, and the service worker always asks the network first (it only
+falls back to its last copy when the visitor is offline). Saves take turns, so two
+admins saving at once cannot overwrite each other, and a save is only audited or
+reported as successful once the database confirms it was stored.
 
 ## Dates
 
@@ -74,7 +82,9 @@ is one line per year.
    `navbar.js` uses to load it. Assets are cached for seven days.
 4. `tests/unit/seasonal-theme-*.test.js` check the rule against the real calendar,
    that every theme is well-formed SVG, and that the browser and server theme lists
-   match.
+   match. `e2e/seasonal-theme.spec.js` checks every theme in a real browser: clear of
+   the logo and every control, no change to the header's height, clicks passing
+   through, nothing added before the stylesheet arrives, and plain on any failure.
 
 ## Rolling it back
 

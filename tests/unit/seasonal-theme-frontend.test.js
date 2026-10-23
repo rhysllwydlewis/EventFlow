@@ -180,6 +180,20 @@ describe('applying a theme to the header', () => {
     expect(report.apply.staticHeaderRestored).toBe('static');
   });
 
+  it('sets the rules that matter inline, so decoration cannot shift the header or catch a click before the stylesheet arrives', () => {
+    expect(report.apply.decoCriticalInline).toEqual({
+      position: 'absolute',
+      pointerEvents: 'none',
+      zIndex: '-1',
+    });
+    expect(report.apply.markIsAbsoluteInline).toBe('absolute');
+  });
+
+  it('positions the brand link itself when the page has not, and puts it back on clear', () => {
+    expect(report.apply.brandStaticBecomesRelative).toBe('relative');
+    expect(report.apply.brandStaticRestored).toBe('static');
+  });
+
   it('hides the mark when the wordmark has no width', () => {
     expect(report.apply.zeroWidth.mark.hidden).toBe(true);
   });
@@ -209,6 +223,16 @@ describe('loader', () => {
     expect(report.loader.reduced.applyCalls).toEqual([
       { isHeader: true, theme: 'bonfire', options: { animate: false } },
     ]);
+  });
+
+  it('does not touch the header until the stylesheet has loaded', () => {
+    expect(report.loader.named.applyCallsBeforeStylesheet).toBe(0);
+    expect(report.loader.named.applyCalls).toHaveLength(1);
+    expect(report.loader.stylesheetNeverArrives.applyCalls).toEqual([]);
+  });
+
+  it('leaves the header alone if the stylesheet fails to load', () => {
+    expect(report.loader.stylesheetFails.applyCalls).toEqual([]);
   });
 
   it('does nothing, and downloads nothing, when there is no theme', () => {
@@ -272,7 +296,9 @@ describe('navbar hook', () => {
     };
     walk(path.join(root, 'public'));
 
-    expect([...versions]).toEqual(['?v=1.2.0']);
+    // One shared version, so a returning visitor can never get a mix of old and new pages.
+    expect(versions.size).toBe(1);
+    expect([...versions][0]).toMatch(/^\?v=\d+\.\d+\.\d+$/);
   });
 });
 

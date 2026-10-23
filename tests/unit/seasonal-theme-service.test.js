@@ -370,3 +370,30 @@ describe('date helpers', () => {
     expect(parseIsoDate(20261023)).toBeNull();
   });
 });
+
+describe('a runtime without timezone data', () => {
+  it('still loads, and falls back to UTC rather than stopping the server booting', () => {
+    const RealFormat = Intl.DateTimeFormat;
+    const spy = jest.spyOn(Intl, 'DateTimeFormat').mockImplementation((locale, options) => {
+      if (options && options.timeZone === 'Europe/London') {
+        throw new RangeError('Invalid time zone specified: Europe/London');
+      }
+      return new RealFormat(locale, options);
+    });
+    try {
+      let fallback;
+      jest.isolateModules(() => {
+        fallback = require('../../services/seasonalTheme.service');
+      });
+
+      // UTC reads 23:30 on 14 July as the 14th, where the UK (BST) would already say the 15th.
+      const instant = new Date('2026-07-14T23:30:00Z');
+      expect(fallback.formatDayNumber(fallback.ukDayNumber(instant))).toBe('2026-07-14');
+      expect(fallback.resolveTheme({ auto: true }, new Date('2026-10-23T12:00:00Z')).theme).toBe(
+        'halloween'
+      );
+    } finally {
+      spy.mockRestore();
+    }
+  });
+});

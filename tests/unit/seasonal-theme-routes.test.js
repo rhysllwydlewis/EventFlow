@@ -293,6 +293,56 @@ describe('PUT /api/admin/settings/seasonal-theme', () => {
     expect(mockAuditLog).not.toHaveBeenCalled();
   });
 
+  it.each([
+    ['a write that reports failure', { success: false, verified: false, error: 'mongo exploded' }],
+    ['a missing result', undefined],
+    ['a read-back without the saved setting', { success: true, verified: true, data: {} }],
+  ])('does not audit or report success after %s', async (_label, outcome) => {
+    dbUnified.writeAndVerify.mockResolvedValueOnce(outcome);
+
+    const res = await request(adminApp()).put(ADMIN_URL).send({ auto: true });
+
+    expect(res.status).toBe(500);
+    expect(res.body).toEqual({ error: 'Failed to update settings' });
+    expect(mockAuditLog).not.toHaveBeenCalled();
+    expect(JSON.stringify(res.body)).not.toContain('mongo exploded');
+  });
+
+  it('takes simultaneous saves in turn, so the second sees the first rather than overwriting it', async () => {
+    const order = [];
+    const slowWrite = async (collection, data) => {
+      order.push(`write:${data.seasonalTheme.manualTheme || 'auto'}`);
+      await new Promise(resolve => setTimeout(resolve, 20));
+      mockStoredSettings = data;
+      return { success: true, verified: true, data };
+    };
+    dbUnified.writeAndVerify.mockImplementationOnce(slowWrite).mockImplementationOnce(slowWrite);
+
+    const app = adminApp();
+    const [first, second] = await Promise.all([
+      request(app).put(ADMIN_URL).send({ auto: false, manualTheme: 'easter' }),
+      request(app).put(ADMIN_URL).send({ auto: false, manualTheme: 'halloween' }),
+    ]);
+
+    expect([first.status, second.status]).toEqual([200, 200]);
+    expect(order).toEqual(['write:easter', 'write:halloween']);
+    // The second save's "before" is the first save's result.
+    const audits = mockAuditLog.mock.calls.map(call => call[0].details);
+    expect(audits[1].before.manualTheme).toBe('easter');
+    expect(mockStoredSettings.seasonalTheme.manualTheme).toBe('halloween');
+  });
+
+  it('keeps taking turns after a save fails', async () => {
+    dbUnified.writeAndVerify.mockRejectedValueOnce(new Error('first one fails'));
+
+    const app = adminApp();
+    const failed = await request(app).put(ADMIN_URL).send({ auto: true });
+    const next = await request(app).put(ADMIN_URL).send({ auto: true });
+
+    expect(failed.status).toBe(500);
+    expect(next.status).toBe(200);
+  });
+
   it('a saved setting is what the public endpoint then serves', async () => {
     setClock('2026-12-10T12:00:00Z');
     await request(adminApp()).put(ADMIN_URL).send({ auto: true });

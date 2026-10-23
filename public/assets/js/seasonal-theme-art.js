@@ -657,7 +657,38 @@
     }
 
     const added = [];
+    const undo = [];
+
+    /** Set inline styles and remember how to put them back exactly. */
+    const setStyles = (node, styles) => {
+      const before = {};
+      Object.keys(styles).forEach(name => {
+        before[name] = node.style[name];
+        node.style[name] = styles[name];
+      });
+      undo.push(() => {
+        Object.keys(before).forEach(name => (node.style[name] = before[name]));
+        if (!node.getAttribute('style')) {
+          node.removeAttribute('style');
+        }
+      });
+    };
+
+    // The few rules that must never wait for the stylesheet are set inline too,
+    // so decoration can neither shift the header nor catch a click even if the
+    // stylesheet is late or blocked. The stylesheet only adds the finer layout.
+    const decoStyles = {
+      position: 'absolute',
+      top: '0',
+      right: '0',
+      bottom: '0',
+      left: '0',
+      overflow: 'hidden',
+      pointerEvents: 'none',
+      zIndex: '-1',
+    };
     const deco = element('div', 'ef-season-deco');
+    setStyles(deco, decoStyles);
     if (art.left) {
       for (const [side, markup] of [
         ['l', art.left],
@@ -665,21 +696,28 @@
       ]) {
         const layer = element('div', `ef-season-layer ef-season-edge ef-season-edge--${side}`);
         layer.dataset.pos = art.pos;
-        layer.style.backgroundImage = uri(markup);
+        setStyles(layer, {
+          position: 'absolute',
+          pointerEvents: 'none',
+          backgroundImage: uri(markup),
+        });
         deco.appendChild(layer);
       }
     }
     if (art.corner) {
       const corner = element('div', 'ef-season-layer ef-season-corner');
-      corner.style.backgroundImage = uri(art.corner);
+      setStyles(corner, {
+        position: 'absolute',
+        pointerEvents: 'none',
+        backgroundImage: uri(art.corner),
+      });
       deco.appendChild(corner);
     }
     header.insertBefore(deco, header.firstChild);
     added.push(deco);
 
-    const previousPosition = header.style.position;
     if (window.getComputedStyle(header).position === 'static') {
-      header.style.position = 'relative';
+      setStyles(header, { position: 'relative' });
     }
     header.classList.add('ef-season-on', `ef-season-${key}`);
 
@@ -687,45 +725,50 @@
     // wordmark clips its own overflow. It is placed from the wordmark's measured
     // size so it follows the logo at every breakpoint.
     let observer = null;
-    let onResize = null;
+    let place = null;
     const brand = header.querySelector('.ef-brand');
     const wordmark = brand && brand.querySelector('.ef-brand-text');
     if (brand && wordmark) {
+      if (window.getComputedStyle(brand).position === 'static') {
+        setStyles(brand, { position: 'relative' });
+      }
       const mark = element('span', 'ef-season-mark');
+      setStyles(mark, { position: 'absolute', pointerEvents: 'none', zIndex: '2' });
       mark.innerHTML = art.mark;
       brand.appendChild(mark);
       added.push(mark);
-      const place = () => {
-        const width = wordmark.offsetWidth;
-        mark.hidden = !width;
-        if (!width) {
+
+      place = () => {
+        const box = wordmark.getBoundingClientRect();
+        mark.hidden = !box.width;
+        if (!box.width) {
           return;
         }
-        mark.style.width = `${f(width * 0.2)}px`;
-        mark.style.height = `${f(width * 0.2)}px`;
-        mark.style.left = `${f(wordmark.offsetLeft + width * 1.012)}px`;
-        mark.style.top = `${f(wordmark.offsetTop - width * 0.05)}px`;
+        const origin = brand.getBoundingClientRect();
+        mark.style.width = `${f(box.width * 0.2)}px`;
+        mark.style.height = `${f(box.width * 0.2)}px`;
+        mark.style.left = `${f(box.left - origin.left - brand.clientLeft + box.width * 1.012)}px`;
+        mark.style.top = `${f(box.top - origin.top - brand.clientTop - box.width * 0.05)}px`;
       };
       place();
       if (typeof window.ResizeObserver === 'function') {
         observer = new window.ResizeObserver(place);
         observer.observe(wordmark);
-      } else {
-        onResize = place;
-        window.addEventListener('resize', onResize);
       }
+      // A breakpoint can move the wordmark without resizing it, which the observer misses.
+      window.addEventListener('resize', place);
     }
 
     cleanups.set(header, () => {
       if (observer) {
         observer.disconnect();
       }
-      if (onResize) {
-        window.removeEventListener('resize', onResize);
+      if (place) {
+        window.removeEventListener('resize', place);
       }
       added.forEach(node => node.remove());
+      undo.reverse().forEach(restore => restore());
       header.classList.remove('ef-season-on', `ef-season-${key}`);
-      header.style.position = previousPosition;
     });
     return true;
   }

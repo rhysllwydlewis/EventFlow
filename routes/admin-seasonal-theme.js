@@ -44,6 +44,14 @@ router.get('/', authRequired, roleRequired('admin'), async (req, res) => {
   }
 });
 
+// Saves are read-modify-write on the shared settings document, so they take turns.
+let writeQueue = Promise.resolve();
+const inTurn = task => {
+  const run = writeQueue.then(task);
+  writeQueue = run.catch(() => undefined);
+  return run;
+};
+
 router.put(
   '/',
   authRequired,
@@ -57,17 +65,24 @@ router.put(
         return res.status(400).json({ error: parsed.error });
       }
 
-      const settings = (await dbUnified.read('settings')) || {};
-      const before = seasonalTheme.normalizeSettings(settings.seasonalTheme);
+      const { before, saved } = await inTurn(async () => {
+        const settings = (await dbUnified.read('settings')) || {};
+        const previous = seasonalTheme.normalizeSettings(settings.seasonalTheme);
 
-      settings.seasonalTheme = {
-        ...parsed.value,
-        updatedAt: new Date().toISOString(),
-        updatedBy: req.user.email,
-      };
+        settings.seasonalTheme = {
+          ...parsed.value,
+          updatedAt: new Date().toISOString(),
+          updatedBy: req.user.email,
+        };
 
-      // Write and verify so the response reflects what is actually stored.
-      const result = await dbUnified.writeAndVerify('settings', settings);
+        // writeAndVerify reports a failed write by resolving { success: false },
+        // so check it: nothing may be audited or reported as saved unless it was.
+        const result = await dbUnified.writeAndVerify('settings', settings);
+        if (!result || result.success !== true || !result.data || !result.data.seasonalTheme) {
+          throw new Error((result && result.error) || 'The settings write did not complete');
+        }
+        return { before: previous, saved: result.data.seasonalTheme };
+      });
 
       auditLog({
         adminId: req.user.id,
@@ -79,7 +94,7 @@ router.put(
       });
 
       res.set('Cache-Control', 'no-store, private');
-      res.json({ success: true, ...describe(result.data.seasonalTheme) });
+      res.json({ success: true, ...describe(saved) });
     } catch (error) {
       logger.error('Error updating seasonal theme settings:', error);
       res.status(500).json({ error: 'Failed to update settings' });

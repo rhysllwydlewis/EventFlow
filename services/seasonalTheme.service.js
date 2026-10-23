@@ -78,16 +78,29 @@ function parseIsoDate(value) {
   return back.year === year && back.month === month && back.day === day ? n : null;
 }
 
-const ukPartsFormatter = new Intl.DateTimeFormat('en-GB', {
-  timeZone: TIME_ZONE,
-  year: 'numeric',
-  month: '2-digit',
-  day: '2-digit',
-  hour: '2-digit',
-  minute: '2-digit',
-  second: '2-digit',
-  hourCycle: 'h23',
-});
+const makeFormatter = timeZone =>
+  new Intl.DateTimeFormat('en-GB', {
+    timeZone,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hourCycle: 'h23',
+  });
+
+/**
+ * This module is loaded when the server starts, so a runtime without timezone data
+ * must not stop it booting over a decorative feature. UTC is at worst an hour out
+ * during summer time, which only moves a changeover by an hour.
+ */
+let ukPartsFormatter;
+try {
+  ukPartsFormatter = makeFormatter(TIME_ZONE);
+} catch (error) {
+  ukPartsFormatter = makeFormatter('UTC');
+}
 
 function ukParts(now) {
   const parts = {};

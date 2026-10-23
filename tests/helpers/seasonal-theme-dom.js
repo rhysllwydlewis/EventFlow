@@ -38,13 +38,18 @@ function windowWith(html = HEADER_HTML, { readyState, wordmarkWidth = 168 } = {}
     url: 'https://eventflow.test/',
   });
   const { window } = dom;
+  const brand = window.document.querySelector('.ef-brand');
   const wordmark = window.document.querySelector('.ef-brand-text');
-  if (wordmark) {
-    // JSDOM has no layout, so give the wordmark the size the live CSS gives it.
-    Object.defineProperty(wordmark, 'offsetWidth', { value: wordmarkWidth, configurable: true });
-    Object.defineProperty(wordmark, 'offsetLeft', { value: 8, configurable: true });
-    Object.defineProperty(wordmark, 'offsetTop', { value: 12, configurable: true });
+  let width = wordmarkWidth;
+  if (brand && wordmark) {
+    // JSDOM has no layout, so give the brand and wordmark the boxes the live CSS gives them
+    // (8px of padding either side of the wordmark, 12px from the top of the brand).
+    brand.getBoundingClientRect = () => ({ left: 0, top: 0, width: width + 16, height: 64 });
+    wordmark.getBoundingClientRect = () => ({ left: 8, top: 12, width, height: 40 });
   }
+  window.setWordmarkWidth = value => {
+    width = value;
+  };
   if (readyState) {
     Object.defineProperty(window.document, 'readyState', { value: readyState, configurable: true });
   }
@@ -175,16 +180,28 @@ function applyReport() {
   s.art.clear(s.header);
   out.staticHeaderRestored = s.header.style.position;
 
+  s = fresh();
+  const brandEl = s.header.querySelector('.ef-brand');
+  brandEl.style.position = 'static';
+  s.art.apply(s.header, 'halloween', { animate: false });
+  out.brandStaticBecomesRelative = brandEl.style.position;
+  out.markIsAbsoluteInline = s.header.querySelector('.ef-season-mark').style.position;
+  const decoStyle = s.header.querySelector('.ef-season-deco').style;
+  out.decoCriticalInline = {
+    position: decoStyle.position,
+    pointerEvents: decoStyle.pointerEvents,
+    zIndex: decoStyle.zIndex,
+  };
+  s.art.clear(s.header);
+  out.brandStaticRestored = brandEl.style.position;
+
   s = fresh({ wordmarkWidth: 0 });
   s.art.apply(s.header, 'halloween', { animate: false });
   out.zeroWidth = layerFacts(s.header);
 
   s = fresh();
   s.art.apply(s.header, 'bonfire', { animate: false });
-  Object.defineProperty(s.header.querySelector('.ef-brand-text'), 'offsetWidth', {
-    value: 116,
-    configurable: true,
-  });
+  s.window.setWordmarkWidth(116);
   s.window.dispatchEvent(new s.window.Event('resize'));
   out.afterResize = layerFacts(s.header);
 
@@ -204,6 +221,7 @@ async function loaderScenario({
   fetchImpl,
   reduceMotion = false,
   readyState = 'complete',
+  stylesheet = 'load',
   after,
 } = {}) {
   const window = windowWith(html, { readyState });
@@ -235,7 +253,15 @@ async function loaderScenario({
   await flush();
   await flush();
   const link = window.document.querySelector('link[data-eventflow-seasonal]');
+  // JSDOM loads nothing itself, so play the part of the network for the stylesheet.
+  const applyCallsBeforeStylesheet = applyCalls.length;
+  if (link && stylesheet !== 'never') {
+    link.dispatchEvent(new window.Event(stylesheet));
+    await flush();
+    await flush();
+  }
   return {
+    applyCallsBeforeStylesheet,
     fetchCalls,
     fetched,
     applyCalls,
@@ -276,6 +302,15 @@ async function loaderReport() {
     response: { theme: 'easter' },
     readyState: 'loading',
     after: window => window.document.body.insertAdjacentHTML('beforeend', HEADER_HTML),
+  });
+
+  out.stylesheetNeverArrives = await loaderScenario({
+    response: { theme: 'halloween' },
+    stylesheet: 'never',
+  });
+  out.stylesheetFails = await loaderScenario({
+    response: { theme: 'halloween' },
+    stylesheet: 'error',
   });
 
   const twice = await loaderScenario({

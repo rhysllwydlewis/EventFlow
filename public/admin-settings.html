@@ -603,14 +603,15 @@
       <h2 style="margin:0 0 0.25rem;">Seasonal Navbar Theme</h2>
       <p class="small" style="margin-bottom:1rem;">A small themed decoration on the public navbar for UK occasions such as Halloween and Christmas. Everything runs on UK time.</p>
 
-      <div class="form-row">
-        <label class="seasonal-switch" for="seasonalAuto">
-          <input type="checkbox" id="seasonalAuto" role="switch" aria-describedby="seasonalAutoHelp">
-          <span>Auto schedule</span>
-        </label>
-        <div class="small" id="seasonalAutoHelp" style="margin-top:0.5rem;color:#667;">
-          On: each theme switches on at 00:00 UK time on the first day of its occasion and off after its last day, and the site is plain in between. Off: you choose the theme yourself below.
+      <div class="feature-item">
+        <div>
+          <strong>Auto schedule</strong>
+          <div class="small" id="seasonalAutoHelp">On: each theme switches on at 00:00 UK time on the first day of its occasion and off after its last day, and the site is plain in between. Off: you choose the theme yourself below.</div>
         </div>
+        <label class="toggle-switch">
+          <input type="checkbox" id="seasonalAuto" aria-label="Auto schedule" aria-describedby="seasonalAutoHelp">
+          <span class="toggle-slider"></span>
+        </label>
       </div>
 
       <div class="seasonal-status" id="seasonalStatus" role="status" aria-live="polite">Loading…</div>
@@ -636,18 +637,18 @@
       </fieldset>
 
       <style>
-        .seasonal-switch { display:inline-flex; align-items:center; gap:0.6rem; font-weight:600; cursor:pointer; }
-        .seasonal-switch input { width:2.4rem; height:1.35rem; accent-color:#0b8073; cursor:pointer; }
         .seasonal-status { margin-top:1rem; padding:0.75rem 1rem; border-radius:8px; background:#f0f7f6; color:#344054; font-size:0.9rem; line-height:1.5; }
         .seasonal-status strong { color:#101828; }
         .seasonal-status .seasonal-warning { display:block; margin-top:0.35rem; color:#b54708; font-weight:600; }
         .seasonal-occasions { margin:1rem 0; padding:0.75rem 1rem; border:1px solid #e4e7ec; border-radius:8px; }
         .seasonal-occasions legend { padding:0 0.4rem; font-size:0.85rem; font-weight:600; color:#344054; }
-        .seasonal-occasions label { display:flex; align-items:center; gap:0.6rem; padding:0.3rem 0; font-size:0.9rem; cursor:pointer; }
-        .seasonal-occasions label span.seasonal-dates { margin-left:auto; color:#667085; font-size:0.8rem; white-space:nowrap; }
-        .seasonal-occasions input { accent-color:#0b8073; }
+        .seasonal-occasions .checkbox-label-right { margin:0; padding:0.35rem 0; font-weight:500; font-size:0.9rem; }
+        .seasonal-occasions .checkbox-label-right input[type="checkbox"] { min-height:0; }
+        .seasonal-occasions .seasonal-dates { margin-left:auto; color:#667085; font-size:0.8rem; white-space:nowrap; }
+        .seasonal-save-note { margin:0 0 0.75rem; color:#667; }
       </style>
 
+      <p class="small seasonal-save-note">Saved changes reach visitors within about five minutes.</p>
       <button class="ef-cta btn btn-primary" id="saveSeasonalTheme">Save Seasonal Theme</button>
     </div>
 

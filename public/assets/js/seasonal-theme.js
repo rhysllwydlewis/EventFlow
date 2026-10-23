@@ -54,15 +54,24 @@
     });
   }
 
+  /** Resolves once the stylesheet has loaded, so the header is never dressed before it is styled. */
   function loadStylesheet() {
-    if (document.querySelector('link[data-eventflow-seasonal]')) {
-      return;
-    }
-    const link = document.createElement('link');
-    link.rel = 'stylesheet';
-    link.href = `/assets/css/seasonal-theme.css?v=${ASSET_VERSION}`;
-    link.dataset.eventflowSeasonal = 'true';
-    document.head.appendChild(link);
+    return new Promise((resolve, reject) => {
+      let link = document.querySelector('link[data-eventflow-seasonal]');
+      if (link && link.sheet) {
+        resolve();
+        return;
+      }
+      if (!link) {
+        link = document.createElement('link');
+        link.rel = 'stylesheet';
+        link.href = `/assets/css/seasonal-theme.css?v=${ASSET_VERSION}`;
+        link.dataset.eventflowSeasonal = 'true';
+        document.head.appendChild(link);
+      }
+      link.addEventListener('load', resolve, { once: true });
+      link.addEventListener('error', reject, { once: true });
+    });
   }
 
   function loadArt() {
@@ -96,8 +105,9 @@
       if (typeof theme !== 'string' || !THEME_KEY.test(theme)) {
         return;
       }
-      loadStylesheet();
-      await loadArt();
+      // Both must arrive before anything is added to the header; if either fails
+      // the header is left exactly as it was.
+      await Promise.all([loadStylesheet(), loadArt()]);
       const reduceMotion =
         window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
       window.EFSeasonalArt.apply(header, theme, { animate: !reduceMotion });
