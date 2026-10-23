@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Photo Gallery - EventFlow</title>
+  <title>Photos — EventFlow</title>
   <meta name="robots" content="noindex,nofollow">
     <link rel="icon" href="/favicon.ico" sizes="any">
     <link rel="icon" type="image/svg+xml" href="/favicon.svg">
@@ -15,29 +15,22 @@
     <link rel="manifest" href="/site.webmanifest">
     <meta name="msapplication-config" content="/browserconfig.xml">
   <link rel="stylesheet" href="/assets/css/styles.css?v=18.5.1">
+  <link rel="stylesheet" href="/assets/css/ui-ux-fixes.css?v=18.4.0">
+  <link rel="stylesheet" href="/assets/css/gallery.css?v=19.0.0">
+  <link rel="stylesheet" href="/assets/css/navbar.css?v=18.4.4"><link rel="stylesheet" href="/assets/css/eventflow-brand.css?v=1.0.1" data-eventflow-brand="true" />
   <link rel="stylesheet" href="/assets/css/eventflow-17.0.0.css?v=18.3.0">
   <link rel="stylesheet" href="/assets/css/utilities.css?v=18.3.0">
   <link rel="stylesheet" href="/assets/css/components.css?v=18.4.3">
   <link rel="stylesheet" href="/assets/css/animations.css?v=18.3.2">
   <link rel="stylesheet" href="/assets/css/mobile-optimizations.css?v=18.4.5">
-  <link rel="stylesheet" href="/assets/css/ui-ux-fixes.css?v=18.4.0">
-  <link rel="stylesheet" href="/assets/css/navbar.css?v=18.4.4"><link rel="stylesheet" href="/assets/css/eventflow-brand.css?v=1.0.1" data-eventflow-brand="true" />
-  <link rel="stylesheet" href="/assets/css/liquid-glass.css?v=18.3.0">
-  <link rel="stylesheet" href="/assets/css/supplier-dashboard-improvements.css?v=18.3.1">
-  <link rel="stylesheet" href="/assets/css/gallery.css?v=18.3.0">
   <!-- PHASE 2: Error boundary (must load before other components) -->
   <script src="/assets/js/utils/global-error-handler.js" defer></script>
   <script src="/assets/js/utils/sentry-browser-init.js" defer></script>
   
-  <!-- PHASE 3: Core components -->
-  <script src="/assets/js/components/LoadingSpinner.js" defer></script>
-  
-  <!-- Toast Notifications (legacy, needed for gallery) -->
-  <script src="/assets/js/toast-notifications.js?v=18.3.0" defer></script>
     <link rel="stylesheet" href="/assets/css/signed-in-mobile-fixes.css" />
   <link rel="stylesheet" href="/assets/css/eventflow-footer.css">
 </head>
-<body>
+<body class="gallery-body">
 <!-- TOP NAVBAR - GOLD STANDARD REBUILD -->
 <header class="ef-header" role="banner">
   <div class="ef-container">
@@ -146,129 +139,151 @@
 <script src="/assets/js/navbar.js?v=1.2.0" defer></script>
 <script src="/assets/js/notifications.js?v=2.0.3" defer></script>
 
-<main id="main-content">
-  <div class="header">
-    <div class="container">
-      <h1>📸 Photo Gallery Manager</h1>
-      <p>Upload and manage photos for your suppliers and packages</p>
+<main id="main-content" class="gallery-page">
+<div class="gallery-wrap">
+
+<header class="gallery-hero">
+  <div class="gallery-hero__copy">
+    <h1 class="gallery-hero__title">Photos</h1>
+    <p class="gallery-hero__lede">Add, review and remove the photos shown on your profile and on each of your packages.</p>
+  </div>
+  <div class="gallery-hero__actions">
+    <a href="/dashboard/supplier" id="gallery-dashboard-link" class="gallery-btn gallery-btn--secondary" hidden>Back to dashboard</a>
+  </div>
+</header>
+
+<!-- Shown instead of the cards when there is nothing to manage, or the page cannot be used. -->
+<section class="gallery-card gallery-state" id="gallery-state" aria-labelledby="gallery-state-title" hidden>
+  <div class="gallery-card__body">
+    <h2 class="gallery-card__title" id="gallery-state-title"></h2>
+    <p class="gallery-state__text" id="gallery-state-text"></p>
+    <a href="/dashboard" id="gallery-state-link" class="gallery-btn gallery-btn--primary" hidden></a>
+  </div>
+</section>
+
+<div class="gallery-stack" id="gallery-stack" hidden>
+
+<!-- Which gallery -->
+<section class="gallery-card gallery-target" aria-label="Choose a gallery">
+  <div class="gallery-target__field">
+    <label class="gallery-label" for="gallery-target">Gallery</label>
+    <select id="gallery-target" class="gallery-select" disabled>
+      <option>Loading…</option>
+    </select>
+  </div>
+  <p class="gallery-target__meta" id="gallery-target-meta"></p>
+</section>
+
+<!-- Add photos -->
+<section class="gallery-card" id="gallery-upload-card" aria-labelledby="gallery-upload-title">
+  <div class="gallery-card__head">
+    <div>
+      <h2 class="gallery-card__title" id="gallery-upload-title">Add photos</h2>
+      <p class="gallery-card__sub" id="gallery-upload-hint">JPEG, PNG, WebP or GIF, up to 10 MB each, up to 10 at a time.</p>
     </div>
   </div>
-
-  <div class="container">
-    <!-- Upload Area -->
-    <div class="upload-area">
-      <div class="upload-dropzone" id="dropzone">
-        <div class="upload-icon">📤</div>
-        <div class="upload-text">Drag & Drop Images Here</div>
-        <div class="upload-hint">or click to browse (JPEG, PNG, WebP, GIF • Max 10MB • Up to 10 files)</div>
-      </div>
-      
-      <input type="file" id="fileInput" class="file-input" accept="image/*" multiple>
-      
-      <div class="upload-controls">
-        <button class="ef-cta btn btn-primary" id="browseFilesBtn">
-          📁 Browse Files
-        </button>
-        <button class="ef-cta btn btn-secondary" id="uploadBtn" disabled>
-          ⬆️ Upload Selected (<span id="fileCount">0</span>)
-        </button>
-      </div>
-
-      <div class="progress-container" id="progressContainer">
-        <div class="progress-bar">
-          <div class="progress-fill" id="progressFill">0%</div>
-        </div>
-      </div>
+  <div class="gallery-card__body">
+    <div class="gallery-drop" id="gallery-drop">
+      <svg class="gallery-drop__icon" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="9" cy="9" r="1.75"/><path d="m21 15-4.5-4.5L6 21"/></svg>
+      <p class="gallery-drop__title">Drag photos here</p>
+      <p class="gallery-drop__or">or</p>
+      <button type="button" class="gallery-btn gallery-btn--secondary" id="gallery-browse" aria-describedby="gallery-upload-hint" disabled>Choose photos</button>
+      <input type="file" id="gallery-file-input" class="gallery-sr" accept="image/jpeg,image/png,image/webp,image/gif" multiple tabindex="-1" aria-label="Choose photos to upload">
     </div>
 
-    <!-- Gallery -->
-    <div class="gallery-header">
-      <h2>Your Photos (<span id="photoCount">0</span>)</h2>
-      <div class="gallery-filters">
-        <select class="filter-select" id="filterType">
-          <option value="all">All Types</option>
-          <option value="supplier">Suppliers Only</option>
-          <option value="package">Packages Only</option>
-        </select>
-        <select class="filter-select" id="filterStatus">
-          <option value="all">All Status</option>
-          <option value="pending">Pending Approval</option>
-          <option value="approved">Approved</option>
-        </select>
-      </div>
+    <ul class="gallery-staged" id="gallery-staged" aria-label="Photos ready to upload" hidden></ul>
+
+    <div class="gallery-progress" id="gallery-progress" role="progressbar" aria-label="Upload progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" hidden>
+      <span class="gallery-progress__fill" id="gallery-progress-fill"></span>
     </div>
 
-    <div class="loading" id="loading">
-      <div class="spinner"></div>
-      <p class="loading-text">Loading photos...</p>
-    </div>
+    <p class="gallery-status" id="gallery-upload-status" role="status" aria-live="polite" data-state=""></p>
 
-    <div class="gallery-grid" id="galleryGrid"></div>
-
-    <div class="empty-state" id="emptyState" style="display: none;">
-      <div class="empty-state__illustration">🖼️</div>
-      <h3 class="empty-state__title">No Photos Yet</h3>
-      <p class="empty-state__text">Upload your first photo to get started!</p>
+    <div class="gallery-actions" id="gallery-actions" hidden>
+      <button type="button" class="gallery-btn gallery-btn--primary" id="gallery-upload" disabled>Upload photos</button>
+      <button type="button" class="gallery-btn gallery-btn--quiet" id="gallery-clear">Clear</button>
     </div>
   </div>
+</section>
 
-  <!-- Upload Modal -->
-  <div class="modal-overlay" id="uploadModal">
-    <div class="modal">
-      <div class="modal-header">
-        <h3 class="modal-title" id="uploadModalTitle">Upload Photos</h3>
-        <button type="button" class="ef-cta modal-close" id="modalClose" aria-label="Close modal">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <line x1="18" y1="6" x2="6" y2="18"></line>
-            <line x1="6" y1="6" x2="18" y2="18"></line>
-          </svg>
-        </button>
-      </div>
-      <div class="modal-body">
-        <div class="form-group">
-          <label class="form-label">Upload for:</label>
-          <div class="radio-cards">
-            <label class="radio-card">
-              <input type="radio" name="uploadType" value="supplier" checked>
-              <div class="radio-card-content">
-                <span class="radio-card-icon">👤</span>
-                <span class="radio-card-label">Supplier</span>
-                <span class="radio-card-desc">Profile photos</span>
-              </div>
-            </label>
-            <label class="radio-card">
-              <input type="radio" name="uploadType" value="package">
-              <div class="radio-card-content">
-                <span class="radio-card-icon">📦</span>
-                <span class="radio-card-label">Package</span>
-                <span class="radio-card-desc">Package images</span>
-              </div>
-            </label>
-          </div>
-        </div>
-        <div class="form-group">
-          <label class="form-label" for="uploadTarget">Select item:</label>
-          <select class="form-select" id="uploadTarget">
-            <option value="">Loading...</option>
-          </select>
-        </div>
-      </div>
-      <div class="modal-footer">
-        <button type="button" class="cta secondary" id="modalCancel">Cancel</button>
-        <button type="button" class="cta" id="modalConfirm">Upload</button>
-      </div>
+<!-- Photos -->
+<section class="gallery-card" id="gallery-photos-card" aria-labelledby="gallery-photos-title">
+  <div class="gallery-card__head">
+    <div>
+      <h2 class="gallery-card__title" id="gallery-photos-title" tabindex="-1">Your photos</h2>
+      <p class="gallery-card__sub" id="gallery-count" aria-live="polite"></p>
+    </div>
+    <div class="gallery-filter" id="gallery-filter-wrap" hidden>
+      <label class="gallery-label" for="gallery-filter">Show</label>
+      <select id="gallery-filter" class="gallery-select gallery-select--sm">
+        <option value="all">All photos</option>
+        <option value="approved">Approved</option>
+        <option value="pending">Awaiting approval</option>
+      </select>
     </div>
   </div>
+  <div class="gallery-card__body">
+    <p class="gallery-status" id="gallery-photos-status" role="status" aria-live="polite" data-state=""></p>
 
-  <!-- Lightbox -->
-  <div class="lightbox" id="lightbox">
-    <div class="lightbox-content">
-      <span class="lightbox-close" id="lightboxClose">×</span>
-      <span class="lightbox-nav lightbox-prev" id="lightboxPrev">‹</span>
-      <img class="lightbox-image" id="lightboxImage" src="" alt="Photo">
-      <span class="lightbox-nav lightbox-next" id="lightboxNext">›</span>
+    <div class="gallery-skeletons" id="gallery-loading" aria-hidden="true">
+      <span class="gallery-skel"></span><span class="gallery-skel"></span><span class="gallery-skel"></span>
+      <span class="gallery-skel"></span><span class="gallery-skel"></span><span class="gallery-skel"></span>
+    </div>
+
+    <ul class="gallery-grid" id="gallery-grid" aria-labelledby="gallery-photos-title" hidden></ul>
+
+    <div class="gallery-empty" id="gallery-empty" hidden>
+      <h3 class="gallery-empty__title" id="gallery-empty-title">No photos yet</h3>
+      <p class="gallery-empty__text" id="gallery-empty-text">Photos you add above will show here.</p>
+    </div>
+
+    <div class="gallery-notice gallery-notice--error" id="gallery-error" role="alert" hidden>
+      <p id="gallery-error-text">The photos could not be loaded.</p>
+      <button type="button" class="gallery-btn gallery-btn--secondary gallery-btn-sm" id="gallery-retry">Try again</button>
     </div>
   </div>
+</section>
+
+</div>
+</div>
+
+<!-- Delete a photo -->
+<dialog class="gallery-dialog" id="gallery-delete-dialog" aria-labelledby="gallery-delete-title" aria-describedby="gallery-delete-text">
+  <div class="gallery-dialog__header">
+    <h2 class="gallery-dialog__title" id="gallery-delete-title">Delete this photo?</h2>
+  </div>
+  <div class="gallery-dialog__body">
+    <img class="gallery-dialog__thumb" id="gallery-delete-thumb" src="data:," alt="">
+    <p class="gallery-dialog__text" id="gallery-delete-text"></p>
+    <p class="gallery-dialog__error" id="gallery-delete-error" role="alert" hidden></p>
+  </div>
+  <div class="gallery-dialog__actions">
+    <button type="button" class="gallery-btn gallery-btn--secondary" id="gallery-delete-cancel">Keep photo</button>
+    <button type="button" class="gallery-btn gallery-btn--danger" id="gallery-delete-confirm">Delete photo</button>
+  </div>
+</dialog>
+
+<!-- Photo viewer -->
+<dialog class="gallery-lightbox" id="gallery-lightbox" aria-label="Photo viewer">
+  <div class="gallery-lightbox__bar">
+    <p class="gallery-lightbox__count" id="gallery-lightbox-count" aria-live="polite"></p>
+    <a class="gallery-lightbox__link" id="gallery-lightbox-full" href="#" target="_blank" rel="noopener noreferrer">Open full size</a>
+    <button type="button" class="gallery-lightbox__close" id="gallery-lightbox-close" aria-label="Close photo viewer">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg>
+    </button>
+  </div>
+  <div class="gallery-lightbox__stage">
+    <button type="button" class="gallery-lightbox__nav" id="gallery-lightbox-prev" aria-label="Previous photo">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg>
+    </button>
+    <img class="gallery-lightbox__image" id="gallery-lightbox-image" src="data:," alt="">
+    <button type="button" class="gallery-lightbox__nav" id="gallery-lightbox-next" aria-label="Next photo">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg>
+    </button>
+  </div>
+</dialog>
+
+</main>
 
 <footer class="footer" role="contentinfo">
   <div class="container supplier-footer-content">
@@ -285,8 +300,7 @@
   </div>
   </footer>
 <script src="/assets/js/components/eventflow-footer.js?v=4" defer></script>
-</main>
-    <script src="/assets/js/pages/gallery-init.js" defer></script>
+    <script src="/assets/js/pages/gallery-init.js?v=19.0.0" defer></script>
 
 <!-- BOTTOM NAVBAR - GOLD STANDARD REBUILD (Mobile Only) -->
 <nav class="ef-bottom-nav" role="navigation" aria-label="Mobile bottom navigation">

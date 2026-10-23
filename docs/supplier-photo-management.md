@@ -1,5 +1,9 @@
 # Supplier Dashboard Photo Management
 
+> The fuller photo manager (`/gallery`, for a profile or a package) is described in
+> [GALLERY_PAGE.md](GALLERY_PAGE.md). This document covers the Photos field in the supplier
+> dashboard's Edit profile screen.
+
 ## Overview
 
 Suppliers can manage their gallery photos from the dashboard. Supported actions:

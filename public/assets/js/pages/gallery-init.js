@@ -1,573 +1,926 @@
-'use strict';
+/**
+ * Photos page (/gallery): add, review and remove the photos on a supplier profile or a package.
+ *
+ * The page manages one gallery at a time, chosen with the picker at the top. A link such as
+ * /gallery?type=package&id=<packageId> (the dashboard's "Photos" links) opens that gallery; with no
+ * id the supplier's own profile is opened. Everything is reported on the page itself (status lines
+ * and native dialogs), never with alert() or confirm().
+ *
+ * Requests:
+ *   GET    /api/me/suppliers, /api/me/packages      the galleries this account can manage
+ *   GET    /api/me/suppliers/:id/photos             a profile's photos
+ *   GET    /api/me/packages/:id/photos              a package's photos
+ *   POST   /api/photos/upload/batch?type=&id=       upload (multipart, field "photos")
+ *   DELETE /api/me/suppliers/:id/photos/:photoId    delete a profile photo
+ *   DELETE /api/me/packages/:id/photos              delete a package photo (body: { url })
+ *   GET    /api/v2/subscriptions/me                 the plan's photo limit (profiles only)
+ * Every write carries the CSRF token (X-CSRF-Token) and is retried once with a fresh token.
+ */
+(function () {
+  'use strict';
 
-let selectedFiles = [];
-let currentImages = [];
-let currentLightboxIndex = 0;
-const API_BASE = '/api';
+  const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+  const MAX_FILE_BYTES = 10 * 1024 * 1024;
+  const MAX_FILES_PER_UPLOAD = 10;
+  const DASHBOARDS = { customer: '/dashboard/customer', supplier: '/dashboard/supplier' };
 
-// Drag and drop
-const dropzone = document.getElementById('dropzone');
-const fileInput = document.getElementById('fileInput');
+  const state = {
+    user: null,
+    suppliers: [],
+    packages: [],
+    target: null, // { type: 'supplier' | 'package', id, name }
+    photos: [],
+    view: [], // the photos on screen (after the filter), in order
+    filter: 'all',
+    staged: [], // { file, url, key }
+    limit: null, // the plan's photo limit for a profile, when known
+    busy: false,
+    loadSeq: 0, // a slow response for a gallery that is no longer shown is dropped
+    pendingDelete: null,
+    lightboxIndex: 0,
+  };
 
-dropzone.addEventListener('click', () => fileInput.click());
+  const byId = id => document.getElementById(id);
+  const el = {};
 
-dropzone.addEventListener('dragover', e => {
-  e.preventDefault();
-  dropzone.classList.add('dragover');
-});
+  /* ---------------------------------------------------------------- *
+   * Small helpers
+   * ---------------------------------------------------------------- */
 
-dropzone.addEventListener('dragleave', () => {
-  dropzone.classList.remove('dragover');
-});
+  function plural(count, word) {
+    return `${count} ${word}${count === 1 ? '' : 's'}`;
+  }
 
-dropzone.addEventListener('drop', e => {
-  e.preventDefault();
-  dropzone.classList.remove('dragover');
-  handleFiles(e.dataTransfer.files);
-});
-
-fileInput.addEventListener('change', e => {
-  handleFiles(e.target.files);
-});
-
-function handleFiles(files) {
-  selectedFiles = Array.from(files).filter(file => {
-    // Validate file type
-    if (!file.type.startsWith('image/')) {
-      alert(`${file.name} is not an image file`);
-      return false;
+  function formatSize(bytes) {
+    if (bytes >= 1024 * 1024) {
+      return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
     }
-    // Validate file size (10MB)
-    if (file.size > 10 * 1024 * 1024) {
-      alert(`${file.name} is too large (max 10MB)`);
-      return false;
+    return `${Math.max(1, Math.round(bytes / 1024))} KB`;
+  }
+
+  /** Only web addresses and site paths are used as image sources. */
+  function safeImageUrl(value) {
+    const url = typeof value === 'string' ? value.trim() : '';
+    return /^(https?:\/\/|\/(?![/\\]))/i.test(url) ? url : '';
+  }
+
+  /** Writes a message into a status line; the stylesheet colours it from data-state. */
+  function setStatus(node, text, kind) {
+    node.textContent = text || '';
+    node.dataset.state = text ? kind || 'info' : '';
+  }
+
+  function show(node, visible) {
+    node.hidden = !visible;
+  }
+
+  /** A response body as JSON, or as { error } when it is plain text (a rate limiter's, say). */
+  async function readBody(response) {
+    const text = await response.text().catch(() => '');
+    try {
+      return text ? JSON.parse(text) : {};
+    } catch {
+      return { error: text.trim().slice(0, 200) };
     }
-    return true;
-  });
-
-  document.getElementById('fileCount').textContent = selectedFiles.length;
-  document.getElementById('uploadBtn').disabled = selectedFiles.length === 0;
-
-  // Show preview
-  if (selectedFiles.length > 0) {
-    dropzone.classList.add('uploading');
-    dropzone.querySelector('.upload-text').textContent =
-      `${selectedFiles.length} file(s) ready to upload`;
   }
-}
 
-// Modal management
-const uploadModal = document.getElementById('uploadModal');
-const modalClose = document.getElementById('modalClose');
-const modalCancel = document.getElementById('modalCancel');
-const modalConfirm = document.getElementById('modalConfirm');
-const uploadTarget = document.getElementById('uploadTarget');
-
-function showModal() {
-  uploadModal.classList.add('visible');
-  // Default the upload target to whatever gallery this page is already showing,
-  // so uploading from here adds to the same package/profile you're looking at
-  // instead of defaulting back to "Supplier" every time.
-  const { type, id } = getGalleryTarget();
-  const matchingRadio = document.querySelector(`input[name="uploadType"][value="${type}"]`);
-  if (matchingRadio) {
-    matchingRadio.checked = true;
+  async function api(path, options) {
+    try {
+      const response = await fetch(path, {
+        credentials: 'include',
+        headers: { Accept: 'application/json' },
+        ...options,
+      });
+      return { ok: response.ok, status: response.status, data: await readBody(response) };
+    } catch {
+      return {
+        ok: false,
+        status: 0,
+        data: { error: 'The connection failed. Check it and try again.' },
+      };
+    }
   }
-  loadSelectOptions(id);
-}
 
-function hideModal() {
-  uploadModal.classList.remove('visible');
-}
+  /* ---------------------------------------------------------------- *
+   * CSRF
+   * ---------------------------------------------------------------- */
 
-// Dialog accessibility: uploadModal is a persistent element toggled with the
-// 'visible' class rather than appended/removed from the DOM, so it needs its
-// own focus trap and focus restore rather than the DOM-removal-based
-// assets/js/utils/modal-a11y.js utility used by compare/budget/timeline.
-// Mirrors the same class/attribute-mutation-observer pattern already used
-// for admin-homepage.html's #categoryModal.
-function focusableElements(container) {
-  return Array.from(
-    container.querySelectorAll(
-      'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
-    )
-  ).filter(element => !element.hidden && element.getClientRects().length > 0);
-}
-
-let lastFocusedElement = null;
-// Tracks whether we've already reacted to the modal being open, so a
-// MutationObserver firing on some *other* class mutation (attributeFilter
-// only narrows to the 'class' attribute as a whole, not the 'visible' token)
-// is a no-op instead of re-capturing focus and re-arming the open timeout.
-let modalOpen = false;
-
-function syncModalAccessibility() {
-  uploadModal.setAttribute('role', 'dialog');
-  uploadModal.setAttribute('aria-modal', 'true');
-  uploadModal.setAttribute('aria-labelledby', 'uploadModalTitle');
-
-  const isVisible = uploadModal.classList.contains('visible');
-  if (isVisible === modalOpen) {
-    return;
-  }
-  modalOpen = isVisible;
-
-  if (isVisible) {
-    lastFocusedElement = document.activeElement;
-    // Guard against the modal closing again before this macrotask runs —
-    // without this check, a fast open-then-close would still yank focus
-    // back into the now-hidden modal, clobbering the restore-to-trigger
-    // that just happened on close.
-    window.setTimeout(() => {
-      if (uploadModal.classList.contains('visible')) {
-        focusableElements(uploadModal)[0]?.focus();
-      }
-    }, 0);
-  } else if (lastFocusedElement instanceof HTMLElement) {
-    lastFocusedElement.focus();
-    lastFocusedElement = null;
-  }
-}
-
-uploadModal.addEventListener('keydown', e => {
-  if (e.key !== 'Tab') {
-    return;
-  }
-  const focusable = focusableElements(uploadModal);
-  if (!focusable.length) {
-    return;
-  }
-  const first = focusable[0];
-  const last = focusable[focusable.length - 1];
-  if (e.shiftKey && document.activeElement === first) {
-    e.preventDefault();
-    last.focus();
-  } else if (!e.shiftKey && document.activeElement === last) {
-    e.preventDefault();
-    first.focus();
-  }
-});
-
-new MutationObserver(syncModalAccessibility).observe(uploadModal, {
-  attributes: true,
-  attributeFilter: ['class'],
-});
-syncModalAccessibility();
-
-async function loadSelectOptions(preselectId) {
-  const checkedRadio = document.querySelector('input[name="uploadType"]:checked');
-  const uploadType = checkedRadio ? checkedRadio.value : 'supplier';
-  uploadTarget.innerHTML = '<option value="">Loading...</option>';
-
-  try {
-    const endpoint = uploadType === 'supplier' ? '/api/me/suppliers' : '/api/me/packages';
-    const response = await fetch(endpoint, { credentials: 'include' });
-    if (response.ok) {
-      const data = await response.json();
-      const items = data.items || [];
-
-      if (items.length === 0) {
-        uploadTarget.innerHTML = `<option value="">No ${uploadType}s found</option>`;
-      } else {
-        uploadTarget.innerHTML = items
-          .map(
-            item =>
-              `<option value="${item.id || item._id}">${item.name || item.title || 'Unnamed'}</option>`
-          )
-          .join('');
-        if (
-          preselectId &&
-          items.some(item => String(item.id || item._id) === String(preselectId))
-        ) {
-          uploadTarget.value = preselectId;
-        }
+  async function csrfToken(forceFresh) {
+    if (forceFresh) {
+      window.__CSRF_TOKEN__ = null;
+    }
+    if (!window.__CSRF_TOKEN__) {
+      const result = await api('/api/csrf-token');
+      if (result.ok && result.data.csrfToken) {
+        window.__CSRF_TOKEN__ = result.data.csrfToken;
       }
     }
-  } catch (error) {
-    uploadTarget.innerHTML = '<option value="">Error loading items</option>';
-  }
-}
-
-// Radio button change handler
-document.querySelectorAll('input[name="uploadType"]').forEach(radio => {
-  radio.addEventListener('change', () => loadSelectOptions());
-});
-
-modalClose.addEventListener('click', hideModal);
-modalCancel.addEventListener('click', hideModal);
-
-// Close on overlay click
-uploadModal.addEventListener('click', e => {
-  if (e.target === uploadModal) {
-    hideModal();
-  }
-});
-
-// Escape key to close
-document.addEventListener('keydown', e => {
-  if (e.key === 'Escape' && uploadModal.classList.contains('visible')) {
-    hideModal();
-  }
-});
-
-function uploadFiles() {
-  if (selectedFiles.length === 0) {
-    return;
-  }
-  showModal();
-}
-
-modalConfirm.addEventListener('click', async () => {
-  const checkedRadio = document.querySelector('input[name="uploadType"]:checked');
-  const uploadType = checkedRadio ? checkedRadio.value : 'supplier';
-  const id = uploadTarget.value;
-
-  if (!id) {
-    alert('Please select an item');
-    return;
+    return window.__CSRF_TOKEN__ || '';
   }
 
-  hideModal();
+  const isCsrfRefusal = result => result.status === 403 && /csrf/i.test(result.data?.error || '');
 
-  const formData = new FormData();
-  selectedFiles.forEach(file => {
-    formData.append('photos', file);
-  });
-
-  const progressContainer = document.getElementById('progressContainer');
-  const progressFill = document.getElementById('progressFill');
-  progressContainer.style.display = 'block';
-
-  try {
-    // Simulate progress (since we can't track real upload progress easily)
-    let progress = 0;
-    const progressInterval = setInterval(() => {
-      progress += 10;
-      if (progress >= 90) {
-        clearInterval(progressInterval);
+  /** A write request with the CSRF token, retried once with a fresh token if it is refused. */
+  async function write(path, method, json) {
+    const send = async fresh => {
+      const headers = { Accept: 'application/json', 'X-CSRF-Token': await csrfToken(fresh) };
+      if (json) {
+        headers['Content-Type'] = 'application/json';
       }
-      progressFill.style.width = `${progress}%`;
-      progressFill.textContent = `${progress}%`;
-    }, 200);
-
-    const response = await fetch(`${API_BASE}/photos/upload/batch?type=${uploadType}&id=${id}`, {
-      method: 'POST',
-      body: formData,
-      credentials: 'include',
-    });
-
-    clearInterval(progressInterval);
-    progressFill.style.width = '100%';
-    progressFill.textContent = '100%';
-
-    const result = await response.json();
-
-    if (response.ok) {
-      if (typeof window.EFToast !== 'undefined') {
-        window.EFshowToast(result.message || 'Upload successful!', 'success');
-      } else {
-        alert(result.message || 'Upload successful!');
-      }
-
-      // Reset
-      selectedFiles = [];
-      fileInput.value = '';
-      document.getElementById('fileCount').textContent = '0';
-      document.getElementById('uploadBtn').disabled = true;
-      dropzone.classList.remove('uploading');
-      dropzone.querySelector('.upload-text').textContent = 'Drag & Drop Images Here';
-
-      setTimeout(() => {
-        progressContainer.style.display = 'none';
-        progressFill.style.width = '0%';
-      }, 1000);
-
-      loadGallery();
-    } else {
-      if (typeof window.EFToast !== 'undefined') {
-        window.EFshowToast(`Upload failed: ${result.error || 'Unknown error'}`, 'error');
-      } else {
-        alert(`Upload failed: ${result.error || 'Unknown error'}`);
-      }
-      progressContainer.style.display = 'none';
-    }
-  } catch (error) {
-    console.error('Upload error:', error);
-    alert(`Upload failed: ${error.message}`);
-    progressContainer.style.display = 'none';
-  }
-});
-
-async function fetchCsrfToken() {
-  try {
-    const response = await fetch('/api/auth/csrf', {
-      credentials: 'include',
-    });
-    const data = await response.json();
-    return data.csrfToken;
-  } catch (error) {
-    console.error('Failed to fetch CSRF token:', error);
-    return null;
-  }
-}
-
-/** Which gallery this page is managing: a supplier's profile, or one package's. */
-function getGalleryTarget() {
-  const urlParams = new URLSearchParams(window.location.search);
-  const type = urlParams.get('type') === 'package' ? 'package' : 'supplier';
-  const id = urlParams.get('id') || urlParams.get('supplierId');
-  return { type, id };
-}
-
-async function deletePhoto(photoId) {
-  if (!confirm('Are you sure you want to delete this photo?')) {
-    return;
+      return api(path, { method, headers, body: json ? JSON.stringify(json) : undefined });
+    };
+    const first = await send(false);
+    return isCsrfRefusal(first) ? send(true) : first;
   }
 
-  try {
-    const { type, id } = getGalleryTarget();
-    if (!id) {
-      // skipcq: JS-0052 -- Pre-existing: this whole page reports every
-      // outcome via alert() (see uploadFiles, modalConfirm below). This
-      // line only generalised the existing "Supplier ID not found" string
-      // to also cover packages — not a new notification pattern.
-      alert(`${type === 'package' ? 'Package' : 'Supplier'} ID not found`);
-      return;
-    }
-
-    // Get CSRF token - check window first, only fetch if not available
-    let csrfToken = window.__CSRF_TOKEN__;
-    if (!csrfToken) {
-      csrfToken = await fetchCsrfToken();
-    }
-
-    // Package photos are deleted by URL (routes/packages.js), not by id — the
-    // photo object carries both, so look the URL up from what's on screen.
-    const response =
-      type === 'package'
-        ? await fetch(`${API_BASE}/me/packages/${id}/photos`, {
-            method: 'DELETE',
-            credentials: 'include',
-            headers: {
-              'Content-Type': 'application/json',
-              'X-CSRF-Token': csrfToken,
-            },
-            body: JSON.stringify({
-              url: (currentImages.find(img => img.id === photoId) || {}).url,
-            }),
-          })
-        : await fetch(`${API_BASE}/me/suppliers/${id}/photos/${photoId}`, {
-            method: 'DELETE',
-            credentials: 'include',
-            headers: {
-              'X-CSRF-Token': csrfToken,
-            },
+  /** The upload, with the real progress of the request (fetch cannot report it). */
+  function sendUpload(url, formData, onProgress) {
+    const attempt = token =>
+      new Promise(resolve => {
+        const request = new XMLHttpRequest();
+        request.open('POST', url);
+        request.withCredentials = true;
+        request.setRequestHeader('Accept', 'application/json');
+        request.setRequestHeader('X-CSRF-Token', token);
+        request.upload.addEventListener('progress', event => {
+          if (event.lengthComputable) {
+            onProgress(Math.round((event.loaded / event.total) * 100));
+          }
+        });
+        request.addEventListener('load', () => {
+          let data;
+          try {
+            data = request.responseText ? JSON.parse(request.responseText) : {};
+          } catch {
+            data = { error: (request.responseText || '').trim().slice(0, 200) };
+          }
+          resolve({
+            ok: request.status >= 200 && request.status < 300,
+            status: request.status,
+            data,
           });
+        });
+        request.addEventListener('error', () =>
+          resolve({
+            ok: false,
+            status: 0,
+            data: { error: 'The connection failed. Check it and try again.' },
+          })
+        );
+        request.send(formData);
+      });
 
-    if (!response.ok) {
-      throw new Error('Failed to delete photo');
-    }
-
-    alert('Photo deleted successfully');
-    loadGallery(); // Reload gallery
-  } catch (error) {
-    console.error('Delete photo error:', error);
-    alert(`Failed to delete photo: ${error.message}`);
+    return csrfToken(false)
+      .then(attempt)
+      .then(async first => (isCsrfRefusal(first) ? attempt(await csrfToken(true)) : first));
   }
-}
 
-async function loadGallery() {
-  const loading = document.getElementById('loading');
-  const galleryGrid = document.getElementById('galleryGrid');
-  const emptyState = document.getElementById('emptyState');
+  /* ---------------------------------------------------------------- *
+   * Which gallery
+   * ---------------------------------------------------------------- */
 
-  loading.style.display = 'block';
-  galleryGrid.innerHTML = '';
-  emptyState.style.display = 'none';
+  function requestedTarget() {
+    const params = new URLSearchParams(window.location.search);
+    return {
+      type: params.get('type') === 'package' ? 'package' : 'supplier',
+      id: params.get('id') || params.get('supplierId') || '',
+    };
+  }
 
-  try {
-    const { type, id } = getGalleryTarget();
+  const optionValue = target => `${target.type}:${target.id}`;
 
-    if (!id) {
-      // No target provided, show empty state
-      loading.style.display = 'none';
-      emptyState.style.display = 'block';
-      document.getElementById('photoCount').textContent = '0';
+  function targetFromValue(value) {
+    const [type, ...rest] = String(value).split(':');
+    const id = rest.join(':');
+    const list = type === 'package' ? state.packages : state.suppliers;
+    const found = list.find(item => String(item.id || item._id) === id);
+    return found
+      ? { type, id, name: found.name || found.title || 'Unnamed' }
+      : { type, id, name: type === 'package' ? 'Package' : 'Profile' };
+  }
+
+  function renderTargetPicker() {
+    const select = el.target;
+    select.replaceChildren();
+    const group = (label, items, type) => {
+      if (!items.length) {
+        return;
+      }
+      const optgroup = document.createElement('optgroup');
+      optgroup.label = label;
+      items.forEach(item => {
+        const option = document.createElement('option');
+        option.value = optionValue({ type, id: item.id || item._id });
+        option.textContent = item.name || item.title || 'Unnamed';
+        optgroup.appendChild(option);
+      });
+      select.appendChild(optgroup);
+    };
+    group(state.suppliers.length > 1 ? 'Profiles' : 'Profile', state.suppliers, 'supplier');
+    group('Packages', state.packages, 'package');
+
+    // A gallery opened by link that is not in the lists (an admin's, say) still gets an entry.
+    const current = optionValue(state.target);
+    if (!Array.from(select.options).some(option => option.value === current)) {
+      const option = document.createElement('option');
+      option.value = current;
+      option.textContent = state.target.name;
+      select.appendChild(option);
+    }
+    select.value = current;
+    select.disabled = false;
+  }
+
+  function chooseDefaultTarget() {
+    const requested = requestedTarget();
+    if (requested.id) {
+      const list = requested.type === 'package' ? state.packages : state.suppliers;
+      const found = list.find(item => String(item.id || item._id) === requested.id);
+      if (found) {
+        return {
+          type: requested.type,
+          id: requested.id,
+          name: found.name || found.title || 'Unnamed',
+        };
+      }
+      // Not one of this account's galleries by the lists: the server still decides (an admin).
+      if (state.user?.role === 'admin') {
+        return {
+          type: requested.type,
+          id: requested.id,
+          name: requested.type === 'package' ? 'Package' : 'Profile',
+        };
+      }
+    }
+    const first = state.suppliers[0];
+    return first
+      ? { type: 'supplier', id: first.id || first._id, name: first.name || 'Your profile' }
+      : null;
+  }
+
+  function syncUrl() {
+    const url = new URL(window.location.href);
+    url.searchParams.set('type', state.target.type);
+    url.searchParams.set('id', state.target.id);
+    url.searchParams.delete('supplierId');
+    window.history.replaceState(null, '', `${url.pathname}${url.search}${url.hash}`);
+  }
+
+  /* ---------------------------------------------------------------- *
+   * Page states
+   * ---------------------------------------------------------------- */
+
+  function showState(title, text, link) {
+    el.stateTitle.textContent = title;
+    el.stateText.textContent = text;
+    if (link) {
+      el.stateLink.textContent = link.label;
+      el.stateLink.href = link.href;
+    }
+    show(el.stateLink, Boolean(link));
+    show(el.state, true);
+    show(el.stack, false);
+  }
+
+  function describeTarget() {
+    const count = state.photos.length;
+    if (state.target.type === 'supplier' && Number.isFinite(state.limit)) {
+      el.targetMeta.textContent = `${count} of ${state.limit} photos used on your plan`;
+    } else {
+      el.targetMeta.textContent = count ? plural(count, 'photo') : '';
+    }
+  }
+
+  /** How many more photos this gallery can take, or Infinity when nothing limits it. */
+  function remainingSlots() {
+    if (state.target?.type === 'supplier' && Number.isFinite(state.limit)) {
+      return Math.max(0, state.limit - state.photos.length);
+    }
+    return Infinity;
+  }
+
+  /* ---------------------------------------------------------------- *
+   * Loading and showing the photos
+   * ---------------------------------------------------------------- */
+
+  async function loadLimit() {
+    state.limit = null;
+    // The limit belongs to the account that owns the profile; an admin looking at someone else's
+    // would be shown their own plan's.
+    if (state.target.type !== 'supplier' || state.user?.role === 'admin') {
+      return;
+    }
+    const result = await api('/api/v2/subscriptions/me');
+    const limit = result.ok ? result.data?.limits?.maxPhotos : null;
+    state.limit = Number.isFinite(limit) ? limit : null;
+  }
+
+  /**
+   * Loads the gallery on screen. After the person's own upload or delete the photos already shown
+   * stay in place until the new list arrives (`quiet`), so the page does not collapse to a loading
+   * skeleton and lose its scroll position; a first load or a different gallery shows the skeleton.
+   */
+  async function loadPhotos({ quiet = false } = {}) {
+    const seq = ++state.loadSeq;
+    const { type, id } = state.target;
+    const keepShowing = quiet && state.photos.length > 0;
+    show(el.error, false);
+    if (!keepShowing) {
+      show(el.loading, true);
+      show(el.grid, false);
+      show(el.empty, false);
+      show(el.filterWrap, false);
+    }
+    el.photosCard.setAttribute('aria-busy', 'true');
+
+    const path =
+      type === 'package'
+        ? `/api/me/packages/${encodeURIComponent(id)}/photos`
+        : `/api/me/suppliers/${encodeURIComponent(id)}/photos`;
+    const result = await api(path);
+    if (seq !== state.loadSeq) {
+      return;
+    }
+    el.photosCard.removeAttribute('aria-busy');
+    show(el.loading, false);
+
+    if (!result.ok) {
+      state.photos = [];
+      el.grid.replaceChildren();
+      show(el.grid, false);
+      show(el.empty, false);
+      show(el.filterWrap, false);
+      el.errorText.textContent =
+        result.status === 404 || result.status === 403
+          ? 'This gallery could not be found, or it is not yours to manage.'
+          : result.data?.error || 'The photos could not be loaded.';
+      show(el.error, true);
+      el.count.textContent = '';
+      describeTarget();
+      renderStaged();
       return;
     }
 
-    // Fetch photos from API — packages and supplier profiles keep their gallery
-    // under different endpoints (routes/packages.js vs routes/suppliers-v2.js).
-    const endpoint =
-      type === 'package'
-        ? `${API_BASE}/me/packages/${id}/photos`
-        : `${API_BASE}/me/suppliers/${id}/photos`;
-    const response = await fetch(endpoint, {
-      credentials: 'include',
-      headers: {
-        Accept: 'application/json',
-      },
-    });
+    state.photos = Array.isArray(result.data.photos) ? result.data.photos : [];
+    describeTarget();
+    renderPhotos();
+    renderStaged();
+  }
 
-    if (!response.ok) {
-      throw new Error('Failed to fetch photos');
+  function visiblePhotos() {
+    if (state.filter === 'pending') {
+      return state.photos.filter(photo => photo.approved === false);
+    }
+    if (state.filter === 'approved') {
+      return state.photos.filter(photo => photo.approved !== false);
+    }
+    return state.photos;
+  }
+
+  function renderPhotos() {
+    const total = state.photos.length;
+    const hasPending = state.photos.some(photo => photo.approved === false);
+    if (!hasPending) {
+      state.filter = 'all';
+      el.filter.value = 'all';
+    }
+    show(el.filterWrap, hasPending);
+
+    state.view = visiblePhotos();
+    el.grid.replaceChildren();
+
+    if (total === 0) {
+      el.count.textContent = '';
+      el.emptyTitle.textContent = 'No photos yet';
+      el.emptyText.textContent = 'Photos you add above will show here.';
+      show(el.grid, false);
+      show(el.empty, true);
+      return;
     }
 
-    const data = await response.json();
-    currentImages = data.photos || [];
+    el.count.textContent =
+      state.view.length === total
+        ? plural(total, 'photo')
+        : `${state.view.length} of ${plural(total, 'photo')}`;
 
-    loading.style.display = 'none';
+    if (state.view.length === 0) {
+      el.emptyTitle.textContent = 'No photos match';
+      el.emptyText.textContent = 'Choose a different filter to see the rest.';
+      show(el.grid, false);
+      show(el.empty, true);
+      return;
+    }
 
-    if (currentImages.length === 0) {
-      emptyState.style.display = 'block';
-      document.getElementById('photoCount').textContent = '0';
+    show(el.empty, false);
+    state.view.forEach((photo, index) => {
+      const number = state.photos.indexOf(photo) + 1;
+      const item = document.createElement('li');
+      item.className = 'gallery-tile';
+
+      const open = document.createElement('button');
+      open.type = 'button';
+      open.className = 'gallery-tile__open';
+      open.setAttribute('aria-label', `View photo ${number} of ${total}`);
+      open.addEventListener('click', () => openLightbox(index));
+
+      const img = document.createElement('img');
+      img.className = 'gallery-tile__img';
+      img.alt = '';
+      img.loading = 'lazy';
+      img.decoding = 'async';
+      img.src = safeImageUrl(photo.thumbnail) || safeImageUrl(photo.url) || 'data:,';
+      open.appendChild(img);
+
+      if (photo.approved === false) {
+        const pill = document.createElement('span');
+        pill.className = 'gallery-pill';
+        pill.textContent = 'Awaiting approval';
+        open.appendChild(pill);
+      }
+
+      const foot = document.createElement('div');
+      foot.className = 'gallery-tile__foot';
+      const label = document.createElement('span');
+      label.className = 'gallery-tile__label';
+      label.textContent = `Photo ${number}`;
+      const remove = document.createElement('button');
+      remove.type = 'button';
+      remove.className = 'gallery-btn gallery-btn--danger-outline gallery-btn-sm';
+      remove.textContent = 'Delete';
+      remove.setAttribute('aria-label', `Delete photo ${number}`);
+      remove.addEventListener('click', () => openDelete(photo, number));
+      foot.append(label, remove);
+
+      item.append(open, foot);
+      el.grid.appendChild(item);
+    });
+    show(el.grid, true);
+  }
+
+  /* ---------------------------------------------------------------- *
+   * Adding photos
+   * ---------------------------------------------------------------- */
+
+  const fileKey = file => `${file.name}:${file.size}:${file.lastModified}`;
+
+  function addFiles(fileList) {
+    if (state.busy || !state.target) {
+      return;
+    }
+    const problems = [];
+    let added = 0;
+    const slots = remainingSlots();
+
+    Array.from(fileList).forEach(file => {
+      if (state.staged.some(entry => entry.key === fileKey(file))) {
+        return;
+      }
+      if (!ALLOWED_TYPES.includes(file.type)) {
+        problems.push(`${file.name} is not a JPEG, PNG, WebP or GIF image.`);
+      } else if (file.size > MAX_FILE_BYTES) {
+        problems.push(`${file.name} is larger than 10 MB.`);
+      } else if (state.staged.length >= MAX_FILES_PER_UPLOAD) {
+        problems.push(
+          `Up to ${MAX_FILES_PER_UPLOAD} photos can be added at a time, so ${file.name} was left out.`
+        );
+      } else if (state.staged.length >= slots) {
+        problems.push(
+          `Your plan has room for ${plural(slots, 'more photo')}, so ${file.name} was left out.`
+        );
+      } else {
+        state.staged.push({ file, url: URL.createObjectURL(file), key: fileKey(file) });
+        added += 1;
+      }
+    });
+
+    renderStaged();
+    if (problems.length) {
+      setStatus(el.uploadStatus, problems.join(' '), added ? 'warn' : 'error');
     } else {
-      renderGallery(currentImages);
-      document.getElementById('photoCount').textContent = currentImages.length;
+      setStatus(el.uploadStatus, '');
     }
-  } catch (error) {
-    console.error('Load gallery error:', error);
-    loading.style.display = 'none';
-    // Show empty state on error with message
-    emptyState.style.display = 'block';
-    document.getElementById('photoCount').textContent = '0';
-
-    // Show error message to user
-    const errorMsg =
-      error.message === 'Failed to fetch photos'
-        ? 'Unable to load photos. Please check your connection and try again.'
-        : `Error loading gallery: ${error.message}`;
-
-    const errorDiv = document.createElement('div');
-    errorDiv.className = 'error-message';
-    errorDiv.textContent = errorMsg;
-    emptyState.parentNode.insertBefore(errorDiv, emptyState.nextSibling);
   }
-}
 
-function renderGallery(images) {
-  const galleryGrid = document.getElementById('galleryGrid');
-  galleryGrid.innerHTML = '';
+  function clearStaged() {
+    state.staged.forEach(entry => URL.revokeObjectURL(entry.url));
+    state.staged = [];
+  }
 
-  images.forEach((image, index) => {
-    const item = document.createElement('div');
-    item.className = `gallery-item ${image.approved ? 'approved' : 'pending'}`;
+  function renderStaged() {
+    el.staged.replaceChildren();
+    state.staged.forEach(entry => {
+      const item = document.createElement('li');
+      item.className = 'gallery-staged__item';
 
-    const imageWrapper = document.createElement('div');
-    imageWrapper.className = 'image-wrapper';
-    imageWrapper.addEventListener('click', () => openLightbox(index));
+      const thumb = document.createElement('img');
+      thumb.className = 'gallery-staged__thumb';
+      thumb.alt = '';
+      thumb.src = entry.url;
 
-    const img = document.createElement('img');
-    img.className = 'gallery-image';
-    img.src = image.thumbnail || image.url;
-    img.alt = 'Photo';
-    img.loading = 'lazy';
+      const text = document.createElement('span');
+      text.className = 'gallery-staged__text';
+      const name = document.createElement('span');
+      name.className = 'gallery-staged__name';
+      name.textContent = entry.file.name;
+      const size = document.createElement('span');
+      size.className = 'gallery-staged__size';
+      size.textContent = formatSize(entry.file.size);
+      text.append(name, size);
 
-    const status = document.createElement('span');
-    status.className = `image-status status-${image.approved ? 'approved' : 'pending'}`;
-    status.textContent = image.approved ? '✓ Approved' : '⏳ Pending';
+      const remove = document.createElement('button');
+      remove.type = 'button';
+      remove.className = 'gallery-staged__remove';
+      remove.setAttribute('aria-label', `Remove ${entry.file.name}`);
+      remove.disabled = state.busy;
+      remove.innerHTML =
+        '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg>';
+      remove.addEventListener('click', () => {
+        URL.revokeObjectURL(entry.url);
+        state.staged = state.staged.filter(other => other !== entry);
+        renderStaged();
+        setStatus(el.uploadStatus, '');
+      });
 
-    imageWrapper.appendChild(img);
-    imageWrapper.appendChild(status);
-
-    const actions = document.createElement('div');
-    actions.className = 'image-actions';
-
-    const viewBtn = document.createElement('button');
-    viewBtn.className = 'btn btn-small btn-warning';
-    viewBtn.textContent = '👁️ View';
-    viewBtn.addEventListener('click', () => viewImage(image.large || image.url));
-
-    const deleteBtn = document.createElement('button');
-    deleteBtn.className = 'btn btn-small btn-danger';
-    deleteBtn.textContent = '🗑️ Delete';
-    deleteBtn.addEventListener('click', e => {
-      e.stopPropagation();
-      deletePhoto(image.id);
+      item.append(thumb, text, remove);
+      el.staged.appendChild(item);
     });
 
-    actions.appendChild(viewBtn);
-    actions.appendChild(deleteBtn);
-
-    item.appendChild(imageWrapper);
-    item.appendChild(actions);
-    galleryGrid.appendChild(item);
-  });
-}
-
-function openLightbox(index) {
-  currentLightboxIndex = index;
-  const image = currentImages[index];
-  document.getElementById('lightboxImage').src = image.large || image.url;
-  document.getElementById('lightbox').classList.add('active');
-}
-
-function closeLightbox() {
-  document.getElementById('lightbox').classList.remove('active');
-}
-
-function navigateLightbox(direction) {
-  currentLightboxIndex += direction;
-  if (currentLightboxIndex < 0) {
-    currentLightboxIndex = currentImages.length - 1;
-  }
-  if (currentLightboxIndex >= currentImages.length) {
-    currentLightboxIndex = 0;
+    const count = state.staged.length;
+    show(el.staged, count > 0);
+    show(el.actions, count > 0);
+    el.clear.disabled = state.busy;
+    el.upload.disabled = count === 0 || state.busy || !state.target;
+    el.upload.textContent = count ? `Upload ${plural(count, 'photo')}` : 'Upload photos';
+    el.browse.disabled = state.busy || !state.target;
+    el.target.disabled = state.busy;
+    el.drop.setAttribute('aria-busy', state.busy ? 'true' : 'false');
   }
 
-  const image = currentImages[currentLightboxIndex];
-  document.getElementById('lightboxImage').src = image.large || image.url;
-}
+  function setProgress(percent) {
+    el.progress.setAttribute('aria-valuenow', String(percent));
+    el.progressFill.style.setProperty('--gl-progress', `${percent}%`);
+  }
 
-function viewImage(url) {
-  window.open(url, '_blank');
-}
-
-// Keyboard navigation for lightbox
-document.addEventListener('keydown', e => {
-  const lightbox = document.getElementById('lightbox');
-  if (lightbox.classList.contains('active')) {
-    if (e.key === 'ArrowLeft') {
-      navigateLightbox(-1);
+  async function upload() {
+    if (!state.staged.length || state.busy || !state.target) {
+      return;
     }
-    if (e.key === 'ArrowRight') {
-      navigateLightbox(1);
+    state.busy = true;
+    setProgress(0);
+    show(el.progress, true);
+    setStatus(el.uploadStatus, `Uploading ${plural(state.staged.length, 'photo')}…`, 'info');
+    renderStaged();
+
+    const form = new FormData();
+    state.staged.forEach(entry => form.append('photos', entry.file));
+    const { type, id } = state.target;
+    const result = await sendUpload(
+      `/api/photos/upload/batch?type=${encodeURIComponent(type)}&id=${encodeURIComponent(id)}`,
+      form,
+      setProgress
+    );
+
+    state.busy = false;
+    show(el.progress, false);
+    const data = result.data || {};
+
+    if (!result.ok) {
+      if (Number.isFinite(data.limit)) {
+        state.limit = data.limit;
+        describeTarget();
+      }
+      setStatus(
+        el.uploadStatus,
+        data.error || `The upload failed (error ${result.status}).`,
+        'error'
+      );
+      renderStaged();
+      return;
     }
-    if (e.key === 'Escape') {
-      lightbox.classList.remove('active');
+
+    const failed = Array.isArray(data.errors) ? data.errors : [];
+    const uploaded = Number.isFinite(data.uploaded)
+      ? data.uploaded
+      : state.staged.length - failed.length;
+    if (uploaded > 0) {
+      clearStaged();
     }
+    if (failed.length) {
+      const reasons = failed.map(item => `${item.filename || 'A photo'}: ${item.error}`).join(' ');
+      setStatus(
+        el.uploadStatus,
+        `${plural(uploaded, 'photo')} added. Some could not be uploaded. ${reasons}`,
+        uploaded ? 'warn' : 'error'
+      );
+    } else if (data.pending) {
+      setStatus(
+        el.uploadStatus,
+        `${plural(uploaded, 'photo')} uploaded. They will show here once they have been approved.`,
+        'success'
+      );
+    } else {
+      setStatus(el.uploadStatus, `${plural(uploaded, 'photo')} added.`, 'success');
+    }
+    renderStaged();
+    await loadPhotos({ quiet: true });
   }
-});
 
-// Setup event listeners for UI controls
-document.getElementById('browseFilesBtn').addEventListener('click', () => {
-  document.getElementById('fileInput').click();
-});
+  /* ---------------------------------------------------------------- *
+   * Deleting a photo
+   * ---------------------------------------------------------------- */
 
-document.getElementById('uploadBtn').addEventListener('click', uploadFiles);
-
-document.getElementById('filterType').addEventListener('change', loadGallery);
-document.getElementById('filterStatus').addEventListener('change', loadGallery);
-
-// Lightbox controls
-const lightbox = document.getElementById('lightbox');
-lightbox.addEventListener('click', e => {
-  if (e.target.id === 'lightbox') {
-    closeLightbox();
+  function openDelete(photo, number) {
+    state.pendingDelete = photo;
+    el.deleteText.textContent = `Photo ${number} will be removed from ${state.target.name}. This cannot be undone.`;
+    el.deleteThumb.src = safeImageUrl(photo.thumbnail) || safeImageUrl(photo.url) || 'data:,';
+    show(el.deleteError, false);
+    el.deleteConfirm.disabled = false;
+    el.deleteCancel.disabled = false;
+    el.deleteDialog.showModal();
   }
-});
 
-document.getElementById('lightboxClose').addEventListener('click', closeLightbox);
+  async function confirmDelete() {
+    const photo = state.pendingDelete;
+    if (!photo || !state.target) {
+      return;
+    }
+    el.deleteConfirm.disabled = true;
+    el.deleteCancel.disabled = true;
+    show(el.deleteError, false);
 
-document.getElementById('lightboxPrev').addEventListener('click', e => {
-  e.stopPropagation();
-  navigateLightbox(-1);
-});
+    const { type, id } = state.target;
+    const result =
+      type === 'package'
+        ? await write(`/api/me/packages/${encodeURIComponent(id)}/photos`, 'DELETE', {
+            url: photo.url,
+          })
+        : await write(
+            `/api/me/suppliers/${encodeURIComponent(id)}/photos/${encodeURIComponent(photo.id)}`,
+            'DELETE'
+          );
 
-document.getElementById('lightboxNext').addEventListener('click', e => {
-  e.stopPropagation();
-  navigateLightbox(1);
-});
+    el.deleteCancel.disabled = false;
+    if (!result.ok) {
+      el.deleteConfirm.disabled = false;
+      el.deleteError.textContent = result.data?.error || 'The photo could not be deleted.';
+      show(el.deleteError, true);
+      return;
+    }
 
-// Load gallery on page load
-loadGallery();
+    state.pendingDelete = null;
+    el.deleteDialog.close();
+    await loadPhotos({ quiet: true });
+    setStatus(el.photosStatus, 'Photo deleted.', 'success');
+    // The photo that had focus is gone, so keyboard users start again at the section heading.
+    el.photosTitle.focus({ preventScroll: true });
+  }
+
+  /* ---------------------------------------------------------------- *
+   * Viewer
+   * ---------------------------------------------------------------- */
+
+  function showLightboxPhoto(index) {
+    const total = state.view.length;
+    if (!total) {
+      return;
+    }
+    state.lightboxIndex = (index + total) % total;
+    const photo = state.view[state.lightboxIndex];
+    const large = safeImageUrl(photo.large) || safeImageUrl(photo.url);
+    el.lightboxImage.src = large || 'data:,';
+    el.lightboxImage.alt = `Photo ${state.photos.indexOf(photo) + 1} of ${state.photos.length}`;
+    el.lightboxCount.textContent = `Photo ${state.lightboxIndex + 1} of ${total}`;
+    el.lightboxFull.href = large || '#';
+    show(el.lightboxPrev, total > 1);
+    show(el.lightboxNext, total > 1);
+  }
+
+  function openLightbox(index) {
+    showLightboxPhoto(index);
+    el.lightbox.showModal();
+  }
+
+  /* ---------------------------------------------------------------- *
+   * Start-up and wiring
+   * ---------------------------------------------------------------- */
+
+  async function selectTarget(target) {
+    clearStaged();
+    state.target = target;
+    state.filter = 'all';
+    el.filter.value = 'all';
+    state.photos = [];
+    setStatus(el.uploadStatus, '');
+    setStatus(el.photosStatus, '');
+    el.targetMeta.textContent = '';
+    renderTargetPicker();
+    renderStaged();
+    syncUrl();
+    await Promise.all([loadLimit(), loadPhotos()]);
+    // The photo count and the plan's limit arrive separately; describe the gallery once both are in.
+    describeTarget();
+    renderStaged();
+  }
+
+  function wire() {
+    el.browse.addEventListener('click', () => el.fileInput.click());
+    el.fileInput.addEventListener('change', () => {
+      addFiles(el.fileInput.files);
+      el.fileInput.value = '';
+    });
+
+    ['dragenter', 'dragover'].forEach(name =>
+      el.drop.addEventListener(name, event => {
+        event.preventDefault();
+        if (!state.busy && state.target) {
+          el.drop.classList.add('is-dragover');
+        }
+      })
+    );
+    ['dragleave', 'drop'].forEach(name =>
+      el.drop.addEventListener(name, () => el.drop.classList.remove('is-dragover'))
+    );
+    el.drop.addEventListener('drop', event => {
+      event.preventDefault();
+      addFiles(event.dataTransfer ? event.dataTransfer.files : []);
+    });
+    // A photo dropped just outside the zone must not make the browser open it.
+    ['dragover', 'drop'].forEach(name =>
+      document.addEventListener(name, event => {
+        if (!el.drop.contains(event.target)) {
+          event.preventDefault();
+        }
+      })
+    );
+
+    el.upload.addEventListener('click', upload);
+    el.clear.addEventListener('click', () => {
+      clearStaged();
+      renderStaged();
+      setStatus(el.uploadStatus, '');
+    });
+
+    el.target.addEventListener('change', () => selectTarget(targetFromValue(el.target.value)));
+    el.filter.addEventListener('change', () => {
+      state.filter = el.filter.value;
+      renderPhotos();
+    });
+    el.retry.addEventListener('click', () => {
+      setStatus(el.photosStatus, '');
+      loadPhotos();
+    });
+
+    el.deleteConfirm.addEventListener('click', confirmDelete);
+    el.deleteCancel.addEventListener('click', () => el.deleteDialog.close());
+    el.deleteDialog.addEventListener('close', () => {
+      state.pendingDelete = null;
+    });
+
+    el.lightboxClose.addEventListener('click', () => el.lightbox.close());
+    el.lightboxPrev.addEventListener('click', () => showLightboxPhoto(state.lightboxIndex - 1));
+    el.lightboxNext.addEventListener('click', () => showLightboxPhoto(state.lightboxIndex + 1));
+    el.lightbox.addEventListener('keydown', event => {
+      if (event.key === 'ArrowLeft') {
+        showLightboxPhoto(state.lightboxIndex - 1);
+      } else if (event.key === 'ArrowRight') {
+        showLightboxPhoto(state.lightboxIndex + 1);
+      }
+    });
+    // A click on the dark area around the photo closes the viewer.
+    el.lightbox.addEventListener('click', event => {
+      if (
+        event.target === el.lightbox ||
+        event.target.classList.contains('gallery-lightbox__stage')
+      ) {
+        el.lightbox.close();
+      }
+    });
+
+    window.addEventListener('beforeunload', clearStaged);
+  }
+
+  async function init() {
+    [
+      'dashboard-link',
+      'state',
+      'state-title',
+      'state-text',
+      'state-link',
+      'stack',
+      'target',
+      'target-meta',
+      'drop',
+      'browse',
+      'file-input',
+      'staged',
+      'progress',
+      'progress-fill',
+      'upload-status',
+      'actions',
+      'upload',
+      'clear',
+      'photos-card',
+      'photos-title',
+      'count',
+      'filter-wrap',
+      'filter',
+      'photos-status',
+      'loading',
+      'grid',
+      'empty',
+      'empty-title',
+      'empty-text',
+      'error',
+      'error-text',
+      'retry',
+      'delete-dialog',
+      'delete-thumb',
+      'delete-text',
+      'delete-error',
+      'delete-cancel',
+      'delete-confirm',
+      'lightbox',
+      'lightbox-count',
+      'lightbox-full',
+      'lightbox-close',
+      'lightbox-prev',
+      'lightbox-next',
+      'lightbox-image',
+    ].forEach(name => {
+      // gallery-photos-card is looked up as el.photosCard, and so on.
+      const key = name.replace(/-([a-z])/g, (_, letter) => letter.toUpperCase());
+      el[key] = byId(`gallery-${name}`);
+    });
+
+    wire();
+
+    const [me, suppliers, packages] = await Promise.all([
+      api('/api/v1/auth/me'),
+      api('/api/me/suppliers'),
+      api('/api/me/packages'),
+    ]);
+
+    if (me.status === 401) {
+      showState(
+        'Log in to manage your photos',
+        'Your session has ended or you are not logged in.',
+        {
+          label: 'Log in',
+          href: `/auth?redirect=${encodeURIComponent('/gallery')}`,
+        }
+      );
+      return;
+    }
+
+    state.user = me.ok ? me.data?.user || me.data : null;
+    const dashboard =
+      DASHBOARDS[state.user?.role] || (state.user?.role === 'admin' ? '/admin' : '');
+    if (dashboard) {
+      el.dashboardLink.href = dashboard;
+      show(el.dashboardLink, true);
+    }
+
+    state.suppliers =
+      suppliers.ok && Array.isArray(suppliers.data.items) ? suppliers.data.items : [];
+    state.packages = packages.ok && Array.isArray(packages.data.items) ? packages.data.items : [];
+
+    // Both lists failing for a reason other than "this is not a supplier account" (403) means the
+    // page could not find out, which is not the same as having nothing to manage.
+    const refused = result => result.status === 403;
+    if (!suppliers.ok && !packages.ok && !refused(suppliers) && !refused(packages)) {
+      showState(
+        'Your photos could not be loaded',
+        'The connection failed or the server did not answer. Check it and try again.',
+        { label: 'Try again', href: window.location.href }
+      );
+      return;
+    }
+
+    const target = chooseDefaultTarget();
+    if (!target) {
+      if (state.user?.role === 'supplier') {
+        showState(
+          'Create your profile first',
+          'Photos are added to your supplier profile or to a package, so you need a profile before you can add any.',
+          { label: 'Go to your dashboard', href: '/dashboard/supplier' }
+        );
+      } else {
+        showState(
+          'Photo galleries are for supplier accounts',
+          'Suppliers add photos to their profile and packages here. Your account does not have a gallery to manage.',
+          dashboard ? { label: 'Back to dashboard', href: dashboard } : null
+        );
+      }
+      return;
+    }
+
+    show(el.stack, true);
+    await selectTarget(target);
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
+  }
+})();
