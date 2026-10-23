@@ -33,7 +33,6 @@ const stripe = stripeSecretKey
 
 // Constants
 const TRIAL_DURATION_DAYS = 14;
-const DEFAULT_ANALYTICS_WINDOW_DAYS = 30;
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 
 /**
@@ -154,127 +153,6 @@ router.get('/analytics', authRequired, async (req, res) => {
       // Surfaced so the dashboard can say why a longer window came back short
       // rather than silently showing less than was asked for.
       window: analyticsWindow,
-    });
-  } catch (error) {
-    logger.error('Error fetching analytics:', error);
-    res.status(500).json({
-      error: 'Failed to fetch analytics',
-      details: process.env.NODE_ENV !== 'production' ? error.message : undefined,
-    });
-  }
-});
-
-/**
- * GET /api/supplier/analytics/legacy
- * Get legacy analytics for supplier (count-based, for backwards compatibility)
- */
-router.get('/analytics/legacy', authRequired, async (req, res) => {
-  try {
-    const userId = req.user.id;
-
-    // Check if user is a supplier
-    if (req.user.role !== 'supplier') {
-      return res.status(403).json({ error: 'Only suppliers can access analytics' });
-    }
-
-    // Get supplier record
-    const supplier = await dbUnified.findOne('suppliers', { ownerUserId: userId });
-
-    if (!supplier) {
-      return res.status(404).json({ error: 'Supplier profile not found' });
-    }
-
-    const supplierId = supplier.id;
-
-    // Same plan entitlement as the other analytics routes: a Starter supplier gets 7 days.
-    const { days } = resolveAnalyticsWindow({
-      requested: parseDaysParam(req.query.days).value,
-      defaultDays: DEFAULT_ANALYTICS_WINDOW_DAYS,
-      planWindowDays: await require('../services/subscriptionService').getAnalyticsWindowDays(
-        userId
-      ),
-    });
-
-    // Count enquiries from message threads
-    const enquiries = await dbUnified.find('threads', { supplierId });
-    const enquiryCount = enquiries.length;
-
-    // Count views from analytics events
-    const analyticsEvents = await dbUnified.read('analyticsEvents');
-    const viewEvents = analyticsEvents.filter(
-      e => e.event === 'supplier_view' && e.supplierId === supplierId
-    );
-    const viewCount = viewEvents.length;
-
-    // Count bookings (from bookings or orders)
-    let bookingCount = 0;
-    try {
-      const bookings = await dbUnified.find('bookings', { supplierId });
-      bookingCount = bookings.length;
-    } catch (e) {
-      // bookings collection may not exist
-      logger.debug('Bookings collection not available:', e.message);
-    }
-
-    // Generate chart data for last N days
-    const now = new Date();
-    const windowStart = new Date(now.getTime() - days * 24 * 60 * 60 * 1000);
-
-    const last30DaysViews = viewEvents.filter(e => {
-      const eventDate = new Date(e.timestamp || e.createdAt);
-      return eventDate >= windowStart;
-    });
-
-    const last30DaysEnquiries = enquiries.filter(e => {
-      const eventDate = new Date(e.createdAt);
-      return eventDate >= windowStart;
-    });
-
-    // Group by date
-    const viewsByDate = {};
-    const enquiriesByDate = {};
-
-    for (let i = 0; i < days; i++) {
-      const date = new Date(now.getTime() - i * 24 * 60 * 60 * 1000);
-      const dateKey = date.toISOString().split('T')[0];
-      viewsByDate[dateKey] = 0;
-      enquiriesByDate[dateKey] = 0;
-    }
-
-    last30DaysViews.forEach(e => {
-      const dateKey = new Date(e.timestamp || e.createdAt).toISOString().split('T')[0];
-      if (viewsByDate[dateKey] !== undefined) {
-        viewsByDate[dateKey]++;
-      }
-    });
-
-    last30DaysEnquiries.forEach(e => {
-      const dateKey = new Date(e.createdAt).toISOString().split('T')[0];
-      if (enquiriesByDate[dateKey] !== undefined) {
-        enquiriesByDate[dateKey]++;
-      }
-    });
-
-    // Convert to chart data format
-    const dates = Object.keys(viewsByDate).sort();
-    const chartData = dates.map(date => ({
-      date,
-      views: viewsByDate[date],
-      enquiries: enquiriesByDate[date],
-    }));
-
-    // Calculate conversion rate
-    const conversionRate = viewCount > 0 ? ((enquiryCount / viewCount) * 100).toFixed(2) : 0;
-
-    res.json({
-      success: true,
-      analytics: {
-        enquiries: enquiryCount,
-        views: viewCount,
-        bookings: bookingCount,
-        conversionRate: parseFloat(conversionRate),
-        chartData: chartData.reverse(), // Most recent first
-      },
     });
   } catch (error) {
     logger.error('Error fetching analytics:', error);

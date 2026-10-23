@@ -79,8 +79,8 @@ fixtures; change one without the other and CI fails. `/api/me/suppliers` items a
 
 ## Other endpoints
 
-- `GET /api/supplier/analytics`, `GET /api/me/suppliers/:id/analytics?period=` and the legacy
-  `GET /api/supplier/analytics/legacy` apply the same plan rule (Starter 7). `period` must be a whole number
+- `GET /api/supplier/analytics` and `GET /api/me/suppliers/:id/analytics?period=` apply the same plan rule
+  (Starter 7). The old `GET /api/supplier/analytics/legacy` was removed: nothing called it. `period` must be a whole number
   (else 400); the two chart endpoints serve up to the plan window (Professional Plus: 365, as sold), while
   the summary caps at 90. The responses include `window`. `analytics.responseRate`/`avgResponseTime` are
   `null` without a sample.
