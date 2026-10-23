@@ -76,12 +76,10 @@ const ACCOUNT_TYPE_CONVERSION_STATUS_BY_CODE = {
  */
 router.get('/', authRequired, async (req, res) => {
   try {
-    const users = await dbUnified.read('users');
-    const i = users.findIndex(u => u.id === req.user.id);
-    if (i < 0) {
+    const user = await dbUnified.findOne('users', { id: req.user.id });
+    if (!user) {
       return res.status(404).json({ error: 'Not found' });
     }
-    const user = users[i];
     // Default ON when field is absent (backward compatible)
     const actionPrompts = user.emailPrefs?.actionPrompts || {};
 

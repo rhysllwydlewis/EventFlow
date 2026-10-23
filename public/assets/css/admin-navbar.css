@@ -623,8 +623,6 @@ body.admin {
   gap: 8px;
   padding: 8px 18px 8px 12px;
   background: rgba(255, 255, 255, 0.75);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
   border: 1.5px solid rgba(11, 128, 115, 0.28);
   border-radius: 40px;
   color: #0B8073;
@@ -724,17 +722,26 @@ body.admin {
   position: fixed;
   inset: 0;
   background: rgba(15, 23, 42, 0.42);
-  backdrop-filter: blur(4px);
-  -webkit-backdrop-filter: blur(4px);
   z-index: 1090;
   opacity: 0;
   pointer-events: none;
-  transition: opacity 0.3s ease;
+  /* Closed means not rendered at all: a full-screen element that is only transparent still costs
+     a layer on every page, and a blur behind it costs a repaint of the page on every frame. */
+  visibility: hidden;
+  transition:
+    opacity 0.3s ease,
+    visibility 0s linear 0.3s;
 }
 
 .admin-qnav-backdrop.qnav-open {
   opacity: 1;
   pointer-events: auto;
+  visibility: visible;
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  transition:
+    opacity 0.3s ease,
+    visibility 0s linear 0s;
 }
 
 /* ─── Quick Nav Panel — liquid glass drawer ─────────────────────────────── */
@@ -751,14 +758,13 @@ body.admin {
   flex-direction: column;
   overflow: hidden;
 
-  /* Slide off-screen by default */
+  /* Slide off-screen by default. admin-navbar.js also makes the closed drawer inert, so its links
+     cannot be tabbed to while it is aria-hidden. */
   transform: translateX(calc(-1 * min(420px, 90vw)));
   transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
 
-  /* Richer liquid glass */
+  /* Richer liquid glass (the blur is added while the drawer is open) */
   background: rgba(248, 250, 252, 0.94);
-  backdrop-filter: blur(40px) saturate(220%) brightness(1.03);
-  -webkit-backdrop-filter: blur(40px) saturate(220%) brightness(1.03);
   /* Gradient inner border glow (right edge) */
   border-right: 1px solid rgba(255, 255, 255, 0.72);
   box-shadow:
@@ -770,6 +776,8 @@ body.admin {
 
 .admin-qnav-panel.qnav-open {
   transform: translateX(0);
+  backdrop-filter: blur(40px) saturate(220%) brightness(1.03);
+  -webkit-backdrop-filter: blur(40px) saturate(220%) brightness(1.03);
 }
 
 /* Prevent body scroll while the panel is open */
@@ -901,8 +909,6 @@ body.admin {
   width: 100%;
   padding: 11px 14px 11px 40px;
   background: rgba(255, 255, 255, 0.85);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
   border: 1.5px solid rgba(229, 231, 235, 0.8);
   border-radius: 12px;
   font-size: 14px;
@@ -1046,8 +1052,6 @@ body.admin {
     box-shadow 0.22s;
   cursor: pointer;
   overflow: hidden;
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
 }
 
 /* Top-left glass shimmer */
@@ -1212,6 +1216,7 @@ body.admin {
 @media (prefers-reduced-motion: reduce) {
   .admin-qnav-panel,
   .admin-qnav-backdrop,
+  .admin-qnav-backdrop.qnav-open,
   .admin-qnav-tile,
   .admin-qnav-btn,
   .admin-qnav-close {

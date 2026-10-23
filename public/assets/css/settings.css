@@ -1,213 +1,813 @@
 /* ===========================================
-   SETTINGS PAGE STYLES
-   Extracted from inline styles in settings.html.
+   SETTINGS PAGE (customer and supplier accounts)
+   Only /settings loads this file.
+   Colours: text on white is #374151 or darker; muted text is #6b7280 (4.8:1); status and danger
+   colours are the dark shades (#047857, #b91c1c) so they pass 4.5:1 on white as well.
    =========================================== */
 
-/* ── Layout ──────────────────────────────────────────────────────── */
-.settings-section-divider,
-.settings-section-sep { margin-top: 1.5rem; padding-top: 1.25rem; border-top: 1px solid #f3f4f6; }
-.settings-section-heading { margin: 0 0 1.25rem 0; font-size: 1.25rem; font-weight: 600; }
-.settings-sub-label { font-weight: 400; color: #6b7280; font-size: 11px; }
-.settings-inline-row,
-.settings-flex-row,
-.settings-flex-gap { display: flex; align-items: center; gap: 0.75rem; }
-.settings-row-sm { display: flex; align-items: center; gap: 0.625rem; margin-bottom: 0.5rem; }
-.settings-row-lg { display: flex; align-items: center; gap: 0.625rem; margin-bottom: 1.25rem; }
-.settings-row-wrap { display: flex; gap: 0.5rem; flex-wrap: wrap; }
-.settings-space-between { display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap; }
-.settings-col-stack { display: flex; flex-direction: column; gap: 0.5rem; }
-.settings-footer-actions { display: flex; gap: 0.75rem; justify-content: flex-end; }
-.settings-field-flex { flex: 1; min-width: 0; }
-.settings-mt-1 { margin-top: 1rem; }
-.settings-plan-btns { display: flex; gap: 1rem; flex-wrap: wrap; margin-bottom: 1.5rem; }
-.settings-tag-row { display: flex; gap: 0.5rem; margin-top: 0.75rem; }
-.settings-action-btns { display: flex; gap: 0.5rem; margin-top: 0.5rem; }
-.settings-btn-row { display: flex; gap: 0.5rem; }
-.settings-input-actions { display: flex; gap: 0.5rem; margin-top: 0.5rem; }
+/* An author `display` on a row must not stop the `hidden` attribute from hiding it. */
+.settings-page [hidden],
+.settings-dialog [hidden] {
+  display: none !important;
+}
+
+/* ── Page ───────────────────────────────────────────────────────── */
+.settings-container {
+  max-width: 760px;
+}
+.settings-header {
+  margin-bottom: 0.75rem;
+}
+.settings-header h1 {
+  margin: 0 0 0.25rem;
+}
+.settings-lede {
+  margin: 0;
+  color: #4b5563;
+  font-size: 1rem;
+}
+
+.settings-nav {
+  display: flex;
+  gap: 0.5rem;
+  overflow-x: auto;
+  padding: 0.25rem 0 1rem;
+  scrollbar-width: thin;
+}
+.settings-nav a {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  min-height: 36px;
+  padding: 0 0.95rem;
+  border: 1px solid #cfe7e3;
+  border-radius: 999px;
+  background: #f3faf8;
+  color: #0b6f64;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  text-decoration: none;
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease;
+}
+.settings-nav a:hover {
+  background: #e4f4f0;
+  border-color: #9fd3ca;
+}
+.settings-nav a:focus-visible {
+  outline: 2px solid #0b8073;
+  outline-offset: 2px;
+}
+
+.settings-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+.settings-page .card {
+  scroll-margin-top: 96px;
+}
+.settings-card-heading {
+  margin: 0 0 1rem;
+  font-size: 1.25rem;
+  font-weight: 600;
+}
+.settings-card-title {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 700;
+  color: #0b1220;
+}
+.settings-heading-lg {
+  margin: 0;
+  font-size: 1.125rem;
+  font-weight: 700;
+}
+.settings-heading-danger {
+  margin: 0;
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: #b91c1c;
+}
+.settings-card-text {
+  margin: 0 0 1rem;
+  font-size: 0.875rem;
+  color: #4b5563;
+  line-height: 1.6;
+}
+
+/* Two columns where there is room (the shared .form-row rule makes every row one column). */
+.settings-page .form-row.settings-grid {
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+.settings-card-heading + .settings-photo {
+  margin-top: 0;
+}
+
+.settings-page .settings-action-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* A field that is shown but cannot be edited here (the sign-in email). */
+.settings-page input[readonly] {
+  background: #f9fafb;
+  color: #4b5563;
+  cursor: default;
+}
+
+/* ── Layout helpers ─────────────────────────────────────────────── */
+.settings-row-sm {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  margin-bottom: 0.5rem;
+}
+.settings-row-lg {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  margin-bottom: 1.25rem;
+}
+.settings-flex-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+.settings-space-between {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+.settings-field-flex {
+  flex: 1;
+  min-width: 0;
+}
+.settings-btn-group {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  align-items: center;
+}
+.settings-actions {
+  margin-top: 1.5rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid #f3f4f6;
+}
+.settings-subsection {
+  margin-top: 1.25rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid #f3f4f6;
+}
+.settings-switch-row {
+  margin-top: 0.875rem;
+}
+.settings-strong {
+  font-weight: 600;
+}
 
 /* ── Typography ─────────────────────────────────────────────────── */
-.settings-sub-label { font-weight: 400; color: #6b7280; font-size: 11px; }
-.settings-toggle-label { font-size: 0.8125rem; color: #374151; font-weight: 500; }
-.settings-toggle-hint { font-size: 0.8125rem; color: #6b7280; margin-top: 0.25rem; }
-.settings-field-hint { font-size: 0.8125rem; color: #6b7280; }
-.settings-field-label { font-weight: 600; margin-bottom: 0.25rem; }
-.settings-success-text { font-size: 0.8125rem; color: #0B8073; font-weight: 600; }
-.settings-teal-text { color: #0B8073; font-size: 0.8125rem; font-weight: 600; }
-.settings-muted-text { color: #6b7280; font-size: 0.8125rem; }
-.settings-body-text { font-size: 0.8125rem; color: #374151; }
-.settings-micro-hint { font-size: 0.75rem; color: #6b7280; margin-top: 0.5rem; }
-.settings-status-text { font-size: 0.8125rem; min-height: 1.2rem; }
-.settings-card-title { margin: 0; font-size: 1rem; font-weight: 700; color: #0B1220; }
-.settings-heading-lg { margin: 0; font-size: 1.125rem; font-weight: 700; }
-.settings-heading-danger { margin: 0; font-size: 1.125rem; font-weight: 700; color: #dc2626; }
-.settings-card-text { margin: 0 0 1rem; font-size: 0.875rem; color: #6b7280; line-height: 1.6; }
-.settings-data-label { font-size: 0.8125rem; color: #374151; font-weight: 500; }
-.settings-data-value { font-size: 0.875rem; color: #0B1220; font-weight: 600; }
-.settings-data-muted { font-size: 0.875rem; color: #6b7280; }
-.settings-item-title { margin: 0 0 0.25rem; font-weight: 600; font-size: 0.875rem; color: #111827; }
-.settings-item-desc { margin: 0; font-size: 0.8125rem; color: #6b7280; }
-.settings-action-title { margin: 0; font-weight: 600; font-size: 0.875rem; }
-.settings-action-desc { margin: 0.25rem 0 0; font-size: 0.8125rem; color: #6b7280; }
-.settings-field-title { font-size: 0.875rem; font-weight: 600; margin: 0 0 0.25rem; }
-.settings-field-desc { font-size: 0.8125rem; color: #6b7280; margin: 0 0 0.5rem; }
-.settings-label-bold { font-size: 0.8125rem; font-weight: 600; color: #374151; }
-.settings-zone-text { font-size: 0.875rem; color: #6b7280; margin: 0 0 1rem; }
-.settings-input-hint { font-size: 0.8125rem; color: #6b7280; margin-top: 0.375rem; }
-
-/* ── Components ──────────────────────────────────────────────────── */
-.settings-toggle-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.5rem; }
-.settings-volume-panel { margin-top: 1rem; padding: 1rem; background: #f9fafb; border-radius: 8px; }
-.settings-range-input { flex: 1; height: 6px; cursor: pointer; accent-color: #0B8073; }
-.settings-vol-row { margin-top: 0.75rem; display: flex; align-items: center; gap: 0.75rem; }
-.settings-info-box { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 0.75rem 1rem; margin-bottom: 0.5rem; }
-.settings-data-box { padding: 0.75rem 1rem; background: #f9fafb; border-radius: 8px; border: 1px solid #e5e7eb; }
-.settings-indent { margin-left: 0.75rem; border-left: 3px solid #e2e8f0; padding-left: 0.875rem; margin-bottom: 0.75rem; }
-.settings-select { padding: 0.375rem 0.625rem; border: 1px solid #e5e7eb; border-radius: 6px; font-size: 0.8125rem; color: #374151; background: #fff; cursor: pointer; }
-.settings-select:focus-visible { outline: 2px solid #0B8073; outline-offset: 2px; }
-.settings-icon-box { width: 32px; height: 32px; background: linear-gradient(135deg, #0B8073, #13B6A2); border-radius: 8px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
-.settings-action-row { background: #fff; border: 1px solid #e5e7eb; border-radius: 8px; padding: 1rem 1.25rem; display: flex; align-items: center; justify-content: space-between; }
-.settings-beta-badge { display: inline-block; padding: 0.125rem 0.5rem; border-radius: 4px; font-size: 0.6875rem; font-weight: 700; background: #fef3c7; color: #92400e; }
-.settings-tag { font-size: 0.75rem; padding: 0.2rem 0.5rem; background: #e5e7eb; border-radius: 4px; color: #374151; }
-.settings-tag-btn { font-size: 0.8125rem; padding: 0.25rem 0.75rem; border: 1px solid #e5e7eb; border-radius: 999px; background: #fff; cursor: pointer; font-family: inherit; }
-.settings-tag-btn--active { border-color: #0B8073; background: #f0fdf4; color: #0B8073; font-weight: 600; }
-.settings-progress-bar { height: 100%; background: #0B8073; border-radius: 2px; }
-.settings-divider-thin { width: 100%; height: 2px; background: #f3f4f6; border-radius: 2px; margin: 0.5rem 0; }
-
-/* ── Toggle track ────────────────────────────────────────────────── */
-.settings-toggle-track { width: 48px; height: 24px; border-radius: 12px; position: relative; cursor: pointer; transition: background 0.2s; }
-.settings-toggle-track--on { background: #10b981; }
-.settings-toggle-track--off { background: #e5e7eb; }
-.settings-toggle-thumb { width: 20px; height: 20px; background: #fff; border-radius: 50%; position: absolute; top: 2px; transition: left 0.2s; }
-@media (prefers-reduced-motion: reduce) { .settings-toggle-track, .settings-toggle-thumb { transition: none; } }
-
-/* ── Buttons ─────────────────────────────────────────────────────── */
-.settings-primary-btn {
-  font-size: 0.875rem; padding: 0.5rem 1.25rem;
-  border-radius: 6px; border: none;
-  background: #0B8073; color: #fff;
-  cursor: pointer; font-family: inherit; font-weight: 600;
-  transition: transform 0.15s ease, box-shadow 0.15s ease;
+.settings-sub-label {
+  font-weight: 400;
+  color: #6b7280;
+  font-size: 0.75rem;
 }
-.settings-primary-btn:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(11,128,115,0.3); }
-.settings-primary-btn:focus-visible { outline: 2px solid #0B8073; outline-offset: 2px; }
-
-.settings-cancel-btn {
-  font-size: 0.875rem; padding: 0.5rem 1.25rem;
-  border-radius: 6px; border: 1px solid #e5e7eb;
-  background: #fff; cursor: pointer; font-family: inherit;
-  transition: border-color 0.15s ease;
+.settings-toggle-label {
+  font-size: 0.8125rem;
+  color: #374151;
+  font-weight: 500;
 }
-.settings-cancel-btn:hover { border-color: #d1d5db; }
-.settings-cancel-btn:focus-visible { outline: 2px solid #0B8073; outline-offset: 2px; }
-
-.settings-save-btn {
-  padding: 0.5rem 1rem; background: #0B8073; color: #fff;
-  border: none; border-radius: 6px; cursor: pointer; font-size: 0.8125rem; font-family: inherit;
+.settings-success-text {
+  font-size: 0.8125rem;
+  color: #047857;
+  font-weight: 600;
 }
-.settings-save-btn:focus-visible { outline: 2px solid #0B8073; outline-offset: 2px; }
-
-.settings-sm-btn {
-  font-size: 0.8125rem; padding: 0.5rem 1.125rem;
-  border-radius: 6px; border: 1px solid #e5e7eb;
-  background: #fff; cursor: pointer; font-family: inherit; flex-shrink: 0;
+.settings-body-text {
+  font-size: 0.8125rem;
+  color: #374151;
 }
-.settings-sm-btn--primary { border-color: transparent; background: #0B8073; color: #fff; font-weight: 600; }
-.settings-sm-btn--danger { border-color: #ef4444; color: #ef4444; }
-.settings-sm-btn--danger-filled { border-color: transparent; background: #ef4444; color: #fff; font-weight: 600; }
-.settings-sm-btn:focus-visible,
-.settings-sm-btn--primary:focus-visible,
-.settings-sm-btn--danger:focus-visible { outline: 2px solid #0B8073; outline-offset: 2px; }
-
-.settings-icon-btn { background: none; border: none; cursor: pointer; color: #9ca3af; padding: 0.25rem; }
-.settings-icon-btn:hover { color: #374151; }
-.settings-icon-btn:focus-visible { outline: 2px solid #0B8073; outline-offset: 2px; }
-
-/* ── Inputs ──────────────────────────────────────────────────────── */
-.settings-input {
-  padding: 0.625rem 0.875rem;
-  border: 1px solid #e5e7eb; border-radius: 6px;
-  font-size: 0.875rem; font-family: inherit;
+.settings-micro-hint {
+  font-size: 0.75rem;
+  color: #6b7280;
+  margin: 0.5rem 0 0;
 }
-.settings-input--full { width: 100%; box-sizing: border-box; border-width: 1.5px; }
-.settings-input:focus { outline: none; border-color: #0B8073; box-shadow: 0 0 0 3px rgba(11,128,115,0.12); }
-
-/* ── Danger zone ─────────────────────────────────────────────────── */
-.settings-danger-zone { margin-top: 2rem; padding-top: 1.5rem; border-top: 1px solid #f3f4f6; }
-.card.settings-danger-zone-box,
-.settings-danger-zone-box { margin-top: 2rem; border: 1px solid #fecaca; background: #fff5f5; border-radius: 8px; padding: 1.25rem; }
-/* styles.css "Modern cards" forces `border: none !important` and
-   `background: #fff !important` on every .card, which erases the danger
-   zone's red border and tint — matched here, scoped to this box only. */
-.card.settings-danger-zone-box {
-  border: 1px solid #fecaca !important;
-  background: #fff5f5 !important;
+.settings-status-text {
+  font-size: 0.8125rem;
+  min-height: 1.2rem;
 }
-.settings-danger-alert { display: flex; align-items: flex-start; gap: 0.75rem; padding: 0.75rem; background: #fff8f8; border: 1px solid #fecaca; border-radius: 8px; margin-bottom: 0.75rem; }
-.settings-danger-badge { border-radius: 8px; background: #fee2e2; }
-.settings-alert-icon { font-size: 1.25rem; flex-shrink: 0; }
-.settings-danger-title { font-size: 0.8125rem; color: #dc2626; font-weight: 600; margin: 0 0 0.25rem; }
-.settings-danger-text { font-size: 0.8125rem; color: #dc2626; margin: 0; }
-.settings-danger-list { margin: 0.5rem 0 0; padding-left: 1.25rem; font-size: 0.8125rem; color: #7f1d1d; line-height: 1.5; }
-
-/* ── Delete account modal ───────────────────────────────────────── */
-.settings-delete-overlay {
-  display: none; position: fixed; inset: 0; z-index: 9999;
-  background: rgba(0, 0, 0, 0.55);
-  align-items: center; justify-content: center; padding: 1rem;
+.settings-status {
+  font-size: 0.875rem;
 }
-.settings-delete-overlay.is-open { display: flex; }
-.settings-delete-card { background: #fff; border-radius: 12px; max-width: 480px; width: 100%; box-shadow: 0 20px 60px rgba(0,0,0,0.25); overflow: hidden; }
-.settings-delete-header { padding: 1.5rem; border-bottom: 1px solid #f3f4f6; display: flex; align-items: center; justify-content: space-between; }
-.settings-delete-title { margin: 0; font-size: 1.125rem; font-weight: 700; color: #111827; }
-.settings-delete-close { background: none; border: none; cursor: pointer; color: #9ca3af; font-size: 1.25rem; line-height: 1; padding: 0.25rem; }
-.settings-delete-close:focus-visible { outline: 2px solid #0B8073; outline-offset: 2px; }
-.settings-delete-body { padding: 1.5rem; }
-.settings-delete-warning { padding: 1rem 1.5rem; background: #fee2e2; border-radius: 8px; margin-bottom: 1rem; }
-.settings-delete-warning-text { margin: 0; font-size: 0.875rem; color: #991b1b; line-height: 1.5; }
-.settings-delete-actions { display: flex; gap: 0.5rem; justify-content: flex-end; }
-.settings-delete-confirm-btn { padding: 0.625rem 1.25rem; border-radius: 6px; border: none; cursor: pointer; font-size: 0.875rem; font-weight: 600; background: #ef4444; color: #fff; font-family: inherit; }
-.settings-delete-confirm-btn:focus-visible { outline: 2px solid #ef4444; outline-offset: 2px; }
-.settings-delete-cancel-btn { padding: 0.625rem 1.25rem; border-radius: 6px; border: 1px solid #e5e7eb; cursor: pointer; font-size: 0.875rem; background: white; color: #374151; font-family: inherit; }
-.settings-delete-cancel-btn:focus-visible { outline: 2px solid #0B8073; outline-offset: 2px; }
-
-/* Hint text under a setting. The shared rule is #9ca3af, about 2.5:1 on white; this page needs 4.5:1. */
+.settings-item-title {
+  margin: 0 0 0.25rem;
+  font-weight: 600;
+  font-size: 0.875rem;
+  color: #111827;
+}
+.settings-item-desc {
+  margin: 0;
+  font-size: 0.8125rem;
+  color: #4b5563;
+}
+.settings-section-label {
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #6b7280;
+  margin: 1.5rem 0 0.75rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid #f3f4f6;
+}
+.settings-section-label:first-child {
+  margin-top: 0;
+}
+/* The shared hint rule is #9ca3af, about 2.5:1 on white; this page needs 4.5:1. */
 .settings-hint {
   color: #6b7280;
 }
 
-/* Settings section label */
-.settings-section-label {
-  font-size: 0.875rem;
-  font-weight: 600;
-  color: #374151;
-  margin: 0 0 0.375rem;
+/* State colours for every status line (set with data-state from settings-init.js). */
+.settings-page [data-state='success'] {
+  color: #047857;
+}
+.settings-page [data-state='error'] {
+  color: #b91c1c;
+}
+.settings-page [data-state='warn'] {
+  color: #92400e;
+}
+.settings-page [data-state='info'] {
+  color: #4b5563;
 }
 
-/* Settings spinner (loading indicator) */
+/* ── Notices ────────────────────────────────────────────────────── */
+.settings-notice {
+  margin: 1rem 0;
+  padding: 0.875rem 1rem;
+  border-radius: 8px;
+  border: 1px solid;
+  font-size: 0.875rem;
+}
+.settings-notice p {
+  margin: 0 0 0.5rem;
+}
+.settings-notice p:last-child {
+  margin-bottom: 0;
+}
+.settings-notice a {
+  color: #0b6f64;
+  font-weight: 600;
+}
+.settings-notice--info {
+  background: #f0fdf4;
+  border-color: #bbf7d0;
+  color: #166534;
+}
+.settings-notice--warn {
+  background: #fffbeb;
+  border-color: #fde68a;
+  color: #92400e;
+}
+.settings-notice--error {
+  background: #fef2f2;
+  border-color: #fecaca;
+  color: #991b1b;
+}
+.settings-success-badge {
+  margin-top: 0.35rem;
+  color: #0b6f64;
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  padding: 0.25rem 0.625rem;
+  border-radius: 6px;
+  font-size: 0.8125rem;
+  font-weight: 500;
+}
+
+/* ── Photo ──────────────────────────────────────────────────────── */
+.settings-photo {
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+  margin-bottom: 0.25rem;
+}
+.settings-file-input {
+  display: none;
+}
+.avatar-ring {
+  width: 88px;
+  height: 88px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #0b8073, #13b6a2);
+  padding: 3px;
+  flex-shrink: 0;
+  position: relative;
+}
+.avatar-ring img {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
+  background: #f3f4f6;
+  border: 2px solid #fff;
+  display: block;
+}
+.avatar-ring .avatar-initials {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  background: #f3f4f6;
+  border: 2px solid #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: #0b8073;
+}
+.avatar-spinner-overlay {
+  display: none;
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.45);
+  align-items: center;
+  justify-content: center;
+}
+.avatar-spinner-overlay.visible {
+  display: flex;
+}
+.avatar-spinner-overlay .settings-spinner {
+  border-color: rgba(255, 255, 255, 0.4);
+  border-top-color: #fff;
+  width: 22px;
+  height: 22px;
+  border-width: 3px;
+}
+
 .settings-spinner {
   display: inline-block;
   width: 16px;
   height: 16px;
   border: 2px solid #e5e7eb;
-  border-top-color: #0B8073;
+  border-top-color: #0b8073;
   border-radius: 50%;
   animation: settings-spin 0.7s linear infinite;
   vertical-align: middle;
-  margin-right: 0.375rem;
 }
-
+.profile-loading-state {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 2rem 0;
+  color: #4b5563;
+  font-size: 0.875rem;
+}
+.profile-loading-spinner {
+  width: 20px;
+  height: 20px;
+  border: 2px solid #e5e7eb;
+  border-top-color: #0b8073;
+  border-radius: 50%;
+  animation: settings-spin 0.7s linear infinite;
+  flex-shrink: 0;
+}
 @keyframes settings-spin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .settings-spinner,
+  .profile-loading-spinner {
+    animation: none;
+    opacity: 0.6;
+  }
 }
 
+/* ── Buttons ────────────────────────────────────────────────────── */
+.settings-btn-sm {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.8125rem;
+  padding: 0.375rem 0.875rem;
+  min-height: 36px;
+  border-radius: 6px;
+  box-sizing: border-box;
+  line-height: inherit;
+  font-family: inherit;
+  cursor: pointer;
+}
+.settings-btn-danger-outline {
+  border: 1px solid #fca5a5;
+  background: #fff;
+  color: #b91c1c;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+.settings-btn-danger-outline:hover {
+  background: #fef2f2;
+  border-color: #f87171;
+}
+.settings-btn-danger-outline:focus-visible {
+  outline: 2px solid #b91c1c;
+  outline-offset: 2px;
+}
+.settings-btn-danger {
+  padding: 0.625rem 1.25rem;
+  border-radius: 6px;
+  border: none;
+  cursor: pointer;
+  font-size: 0.875rem;
+  font-weight: 600;
+  background: #b91c1c;
+  color: #fff;
+  font-family: inherit;
+}
+.settings-btn-danger:hover:not(:disabled) {
+  background: #991b1b;
+}
+.settings-btn-danger:focus-visible {
+  outline: 2px solid #b91c1c;
+  outline-offset: 2px;
+}
+.settings-btn-danger:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.settings-btn-danger--icon {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+.settings-icon-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #4b5563;
+  padding: 0.25rem;
+}
+.settings-icon-btn:hover {
+  color: #111827;
+}
+.settings-icon-btn:focus-visible {
+  outline: 2px solid #0b8073;
+  outline-offset: 2px;
+}
+
+/* ── Inputs ─────────────────────────────────────────────────────── */
+.settings-input {
+  padding: 0.625rem 0.875rem;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 0.875rem;
+  font-family: inherit;
+}
+.settings-input--full {
+  width: 100%;
+  box-sizing: border-box;
+  border-width: 1.5px;
+}
+.settings-input:focus {
+  outline: none;
+  border-color: #0b8073;
+  box-shadow: 0 0 0 3px rgba(11, 128, 115, 0.12);
+}
+.settings-select {
+  padding: 0.375rem 0.625rem;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 0.8125rem;
+  color: #374151;
+  background: #fff;
+  cursor: pointer;
+  width: auto;
+}
+.settings-select:focus-visible {
+  outline: 2px solid #0b8073;
+  outline-offset: 2px;
+}
+.settings-range-input {
+  flex: 1;
+  height: 6px;
+  cursor: pointer;
+  accent-color: #0b8073;
+}
+.settings-convert-confirm-input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 0.625rem 0.875rem;
+  border: 1.5px solid #d1d5db;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  font-family: inherit;
+  margin: 0.5rem 0 1.25rem;
+}
+.settings-convert-confirm-input:focus {
+  outline: none;
+  border-color: #b91c1c;
+  box-shadow: 0 0 0 3px rgba(185, 28, 28, 0.14);
+}
+
+/* ── Toggles ────────────────────────────────────────────────────── */
+.toggle-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem 0;
+  gap: 1rem;
+}
+.toggle-row + .toggle-row {
+  border-top: 1px solid #f3f4f6;
+}
+.toggle-label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  margin: 0;
+}
+.toggle-label span {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #111827;
+}
+.toggle-label small {
+  font-size: 0.75rem;
+  color: #6b7280;
+}
+.toggle-switch {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+  margin: 0;
+}
+.toggle-switch input[type='checkbox'] {
+  opacity: 0;
+  width: 0;
+  height: 0;
+  position: absolute;
+}
+.toggle-track {
+  width: 44px;
+  height: 24px;
+  background: #9ca3af;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: background 0.2s;
+  position: relative;
+}
+.toggle-switch input:checked ~ .toggle-track {
+  background: #0b8073;
+}
+.toggle-switch input:disabled ~ .toggle-track {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.toggle-track::after {
+  content: '';
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 18px;
+  height: 18px;
+  background: #fff;
+  border-radius: 50%;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+  transition: transform 0.2s;
+}
+.toggle-switch input:checked ~ .toggle-track::after {
+  transform: translateX(20px);
+}
+.toggle-switch:focus-within .toggle-track {
+  outline: 2px solid #0b8073;
+  outline-offset: 2px;
+}
 @media (prefers-reduced-motion: reduce) {
-  .settings-spinner { animation: none; opacity: 0.6; }
+  .toggle-track,
+  .toggle-track::after {
+    transition: none;
+  }
+}
+
+.settings-volume-panel {
+  margin-top: 1rem;
+  padding: 1rem;
+  background: #f9fafb;
+  border-radius: 8px;
+  transition: opacity 0.2s;
+}
+.settings-toggle-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.5rem;
+}
+.settings-vol-row {
+  margin-top: 0.75rem;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+.settings-info-box {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 0.75rem 1rem;
+  margin-bottom: 0.5rem;
+}
+.settings-indent {
+  margin-left: 0.75rem;
+  border-left: 3px solid #e2e8f0;
+  padding-left: 0.875rem;
+  margin-bottom: 0.75rem;
+}
+.settings-icon-box {
+  width: 32px;
+  height: 32px;
+  background: linear-gradient(135deg, #0b8073, #13b6a2);
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+/* ── Password strength ──────────────────────────────────────────── */
+.settings-strength {
+  height: 4px;
+  border-radius: 2px;
+  background: #e5e7eb;
+  margin-top: 6px;
+  overflow: hidden;
+}
+.settings-strength__fill {
+  height: 100%;
+  width: 0;
+  border-radius: 2px;
+  background: #b91c1c;
+  transition:
+    width 0.3s,
+    background 0.3s;
+}
+.settings-strength__label {
+  margin: 0.25rem 0 0;
+  font-size: 0.8125rem;
+  font-weight: 600;
+}
+.settings-strength[data-strength='1'] .settings-strength__fill {
+  width: 20%;
+  background: #b91c1c;
+}
+.settings-strength[data-strength='2'] .settings-strength__fill {
+  width: 40%;
+  background: #c2410c;
+}
+.settings-strength[data-strength='3'] .settings-strength__fill {
+  width: 60%;
+  background: #a16207;
+}
+.settings-strength[data-strength='4'] .settings-strength__fill {
+  width: 80%;
+  background: #15803d;
+}
+.settings-strength[data-strength='5'] .settings-strength__fill {
+  width: 100%;
+  background: #047857;
+}
+.settings-strength__label[data-strength='1'] {
+  color: #b91c1c;
+}
+.settings-strength__label[data-strength='2'] {
+  color: #c2410c;
+}
+.settings-strength__label[data-strength='3'] {
+  color: #a16207;
+}
+.settings-strength__label[data-strength='4'] {
+  color: #15803d;
+}
+.settings-strength__label[data-strength='5'] {
+  color: #047857;
+}
+@media (prefers-reduced-motion: reduce) {
+  .settings-strength__fill {
+    transition: none;
+  }
+}
+
+/* ── Danger zone ────────────────────────────────────────────────── */
+/* styles.css "Modern cards" forces `border: none !important` and `background: #fff !important`
+   on every .card, which erases the danger zone's red border and tint; matched here. */
+.card.settings-danger-zone-box {
+  border: 1px solid #fecaca !important;
+  background: #fff5f5 !important;
+}
+.settings-danger-alert {
+  padding: 0.75rem;
+  background: #fff8f8;
+  border: 1px solid #fecaca;
+  border-radius: 8px;
+  margin-bottom: 0.75rem;
+}
+.settings-danger-title {
+  font-size: 0.8125rem;
+  color: #b91c1c;
+  font-weight: 600;
+  margin: 0 0 0.25rem;
+}
+.settings-danger-text {
+  font-size: 0.8125rem;
+  color: #b91c1c;
+  margin: 0;
+}
+.settings-danger-list {
+  margin: 0.5rem 0 0.75rem;
+  padding-left: 1.25rem;
+  font-size: 0.8125rem;
+  color: #7f1d1d;
+  line-height: 1.5;
+}
+
+/* ── Dialogs (native <dialog>: focus stays inside, Escape closes, focus returns) ─ */
+.settings-dialog {
+  padding: 0;
+  border: 0;
+  border-radius: 14px;
+  width: min(480px, calc(100vw - 2rem));
+  max-height: calc(100vh - 2rem);
+  max-height: calc(100dvh - 2rem);
+  overflow: auto;
+  color: #111827;
+  background: #fff;
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.28);
+}
+.settings-dialog::backdrop {
+  background: rgba(15, 23, 42, 0.55);
+}
+.settings-dialog__header {
+  padding: 1.25rem 1.5rem;
+  border-bottom: 1px solid #f3f4f6;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+.settings-dialog__title {
+  margin: 0;
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: #111827;
+}
+.settings-dialog__title--danger {
+  color: #b91c1c;
+}
+.settings-dialog__body {
+  padding: 1.25rem 1.5rem 1.5rem;
+}
+.settings-dialog__field {
+  margin-bottom: 1.25rem;
+}
+.settings-dialog__error {
+  margin: 0.35rem 0 0;
+  font-size: 0.8125rem;
+  color: #b91c1c;
+}
+.settings-dialog__error--box {
+  margin: 0 0 1rem;
+  padding: 0.75rem;
+  background: #fef2f2;
+  border-radius: 6px;
+}
+.settings-footer-actions {
+  display: flex;
+  gap: 0.75rem;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+}
+@media (max-width: 520px) {
+  .settings-dialog__header,
+  .settings-dialog__body {
+    padding-left: 1.125rem;
+    padding-right: 1.125rem;
+  }
+  .settings-footer-actions {
+    flex-direction: column-reverse;
+  }
+  .settings-footer-actions > button {
+    width: 100%;
+    justify-content: center;
+  }
 }
 
 /* ===========================================
    ACCOUNT TYPE SECTION
    =========================================== */
-
 .settings-account-type-badge {
   display: inline-flex;
   align-items: center;
@@ -222,10 +822,9 @@
   box-shadow: 0 1px 3px rgba(20, 184, 166, 0.2);
 }
 
-/* Scaled-down version of auth.css's .auth-signup-choice glass treatment, so
-   the customer->supplier picker reads as a continuation of the same premium
-   choice the user already saw at signup, not a flat card. auth.css itself
-   isn't loaded on /settings, so this is copied rather than referenced. */
+/* Scaled-down version of auth.css's .auth-signup-choice glass treatment, so the
+   customer->supplier picker reads as a continuation of the choice made at signup.
+   auth.css itself isn't loaded on /settings, so this is copied rather than referenced. */
 .settings-role-glow {
   position: relative;
   isolation: isolate;
@@ -236,19 +835,17 @@
     linear-gradient(145deg, rgba(255, 255, 255, 0.78), rgba(240, 253, 250, 0.56));
   border: 1px solid rgba(11, 128, 115, 0.18);
   border-radius: 18px;
-  box-shadow: 0 14px 34px rgba(11, 128, 115, 0.09), inset 0 1px 0 rgba(255, 255, 255, 0.88);
+  box-shadow:
+    0 14px 34px rgba(11, 128, 115, 0.09),
+    inset 0 1px 0 rgba(255, 255, 255, 0.88);
   padding: 1.125rem;
   margin-top: 0.875rem;
 }
-
 .settings-role-picker {
   display: flex;
   gap: 0.625rem;
 }
-
-/* auth.css:1401-1443 — copied verbatim, since auth.css isn't loaded here. */
-.role-pill,
-.auth-role-option {
+.role-pill {
   flex: 1;
   display: flex;
   align-items: center;
@@ -267,61 +864,49 @@
   margin-top: 0 !important;
   text-align: center;
 }
-.role-pill:hover,
-.auth-role-option:hover {
+.role-pill:hover {
   border-color: rgba(11, 128, 115, 0.5);
   background: rgba(11, 128, 115, 0.06);
-  color: #0b8073;
+  color: #0b6f64;
 }
-.role-pill.is-active,
-.auth-role-option.auth-role-option--active {
+.role-pill.is-active {
   border-color: #0b8073;
   background: rgba(11, 128, 115, 0.1);
-  color: #0b8073;
+  color: #0b6f64;
   font-weight: 600;
 }
-.role-pill:focus-visible,
-.auth-role-option:focus-visible {
+.role-pill:focus-visible {
   outline: 2px solid #0b8073;
   outline-offset: 2px;
 }
-
 @media (max-width: 640px) {
-  .settings-role-picker { flex-direction: column; gap: 0.5rem; }
-  .role-pill, .auth-role-option { width: 100% !important; text-align: center; }
+  .settings-role-picker {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+  .role-pill {
+    width: 100% !important;
+  }
+  .settings-photo {
+    align-items: flex-start;
+  }
 }
-
 .settings-account-type-fields {
   margin-top: 1rem;
   animation: settingsSupplierFieldsReveal 0.24s ease both;
 }
-
 @keyframes settingsSupplierFieldsReveal {
-  from { opacity: 0; transform: translateY(-4px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
-
 @media (prefers-reduced-motion: reduce) {
-  .settings-account-type-fields { animation: none; }
+  .settings-account-type-fields {
+    animation: none;
+  }
 }
-
-/* Downgrade confirmation modal reuses components.css's .modal/.modal-overlay
-   (Modal class in components.js) for the premium blur+spring-scale entrance
-   the flat #delete-account-modal doesn't have — just adding the type-CONVERT
-   input styling this feature-specific modal body needs. */
-.settings-convert-confirm-input {
-  width: 100%;
-  box-sizing: border-box;
-  padding: 0.625rem 0.875rem;
-  border: 1.5px solid #e5e7eb;
-  border-radius: 8px;
-  font-size: 0.875rem;
-  font-family: inherit;
-  margin-top: 0.5rem;
-}
-.settings-convert-confirm-input:focus {
-  outline: none;
-  border-color: #ef4444;
-  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.12);
-}
-
