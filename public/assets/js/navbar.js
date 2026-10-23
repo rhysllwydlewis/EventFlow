@@ -55,6 +55,38 @@
   };
 
   // ==========================================
+  // AUTH HINT
+  // ==========================================
+
+  // The kind of account this browser last saw signed in. utils/auth-hint.js reads it from <head>
+  // so the first paint already has the signed-in layout; this file keeps it up to date. It only
+  // shapes the header while the server is asked who is signed in, and is never trusted for
+  // anything else.
+  const AUTH_HINT_KEY = 'ef_auth_hint';
+  const HINT_ROLES = ['customer', 'supplier'];
+
+  function readAuthHint() {
+    try {
+      const role = window.localStorage.getItem(AUTH_HINT_KEY);
+      return HINT_ROLES.includes(role) ? role : '';
+    } catch {
+      return '';
+    }
+  }
+
+  function saveAuthHint(user) {
+    try {
+      if (HINT_ROLES.includes(user?.role)) {
+        window.localStorage.setItem(AUTH_HINT_KEY, user.role);
+      } else {
+        window.localStorage.removeItem(AUTH_HINT_KEY);
+      }
+    } catch {
+      // Storage can be blocked; the header then waits for the server as before.
+    }
+  }
+
+  // ==========================================
   // DOM REFERENCES
   // ==========================================
 
@@ -267,6 +299,7 @@
     // Clear local storage
     try {
       localStorage.removeItem('user');
+      localStorage.removeItem(AUTH_HINT_KEY);
       localStorage.removeItem('eventflow_onboarding_new');
       sessionStorage.clear();
     } catch (error) {
@@ -307,8 +340,18 @@
     window.location.href = `/?t=${Date.now()}`;
   }
 
+  /**
+   * Draws the header for `user`. A user with `hint: true` is the remembered account type, drawn
+   * while the server is still being asked; the server's answer (or null) replaces it.
+   */
   function updateAuthUI(user) {
     state.user = user;
+    if (!user?.hint) {
+      // Settled: the server's answer is now what the header shows, so the early state from
+      // auth-hint.js is no longer needed, and the next page remembers this answer.
+      document.documentElement.classList.remove('ef-hint-in');
+      saveAuthHint(user);
+    }
     updateAccountMenu(user);
 
     // The signed-in header carries a notifications button, "Log out" and
@@ -646,8 +689,17 @@
       initNotificationSync();
       setCurrentPage();
 
-      // Fetch CSRF token
-      await initCsrfToken();
+      // Draw the signed-in header straight away when this browser was signed in on the last page,
+      // rather than showing "Log in" until the server answers. It is replaced by the real answer
+      // below, and by "Log in" if the session has ended.
+      const hintedRole = readAuthHint();
+      if (hintedRole) {
+        updateAuthUI({ role: hintedRole, hint: true });
+      }
+
+      // Fetch the CSRF token alongside the auth check rather than before it: nothing here needs it,
+      // and logout() fetches it itself if a click arrives first. Waiting for it delayed the header.
+      initCsrfToken();
 
       // Setup auth state listener
       const authState = getAuthState();

@@ -168,7 +168,8 @@ function document_(opts) {
 <link href="/assets/css/components.css?v=18.4.3" rel="stylesheet"/>
 <link href="/assets/css/animations.css?v=18.3.2" rel="stylesheet"/>
 <link href="/assets/css/mobile-optimizations.css?v=18.4.5" rel="stylesheet"/>
-<link href="/assets/css/navbar.css?v=18.4.4" rel="stylesheet"/>
+<script src="/assets/js/utils/auth-hint.js?v=1.0.0"></script>
+<link href="/assets/css/navbar.css?v=18.5.0" rel="stylesheet"/>
 <link data-eventflow-brand="true" href="/assets/css/eventflow-brand.css?v=1.0.1" rel="stylesheet"/>
 <link href="/favicon.svg" rel="icon"/>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400..700;1,9..144,400..700&amp;display=swap" rel="stylesheet"/>
