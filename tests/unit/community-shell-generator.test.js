@@ -106,8 +106,9 @@ describe('the notification bell every community page renders actually opens some
 
   it('admin-community.html mounts the shared admin navbar and its own notification bell', () => {
     expect(adminPage.html).toContain('id="adminNavbarMount"');
-    expect(adminPage.html).toContain(
-      '<script src="/assets/js/admin-navbar.js?v=18.3.3" defer></script>'
+    // Any version: the number moves whenever the navbar script changes.
+    expect(adminPage.html).toMatch(
+      /<script src="\/assets\/js\/admin-navbar\.js\?v=\d+\.\d+\.\d+" defer><\/script>/
     );
     // The public bell/dropdown must not also be present — that would be a
     // second, dead notification button alongside the real one.
