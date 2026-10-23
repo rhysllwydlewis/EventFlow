@@ -14,10 +14,17 @@ describe('homepage version template routing', () => {
     expect(resolvePublicTemplatePath('/', 'v2')).toBe('/home-v2.html');
   });
 
-  test('serves the index template for V1 root and V3 preview/live transforms', () => {
+  test('keeps V1 at index and resolves V3 to its dedicated template', () => {
     expect(resolvePublicTemplatePath('/', 'v1')).toBe('/index.html');
-    expect(resolvePublicTemplatePath('/', 'v3')).toBe('/index.html');
-    expect(resolvePublicTemplatePath('/home-v3-preview', null)).toBe('/index.html');
+    expect(resolvePublicTemplatePath('/', 'v3')).toBe('/home-v3.html');
+    for (const route of [
+      '/home-v3',
+      '/home-v3.html',
+      '/home-v3-preview',
+      '/home-v3-preview.html',
+    ]) {
+      expect(resolvePublicTemplatePath(route, null)).toBe('/home-v3.html');
+    }
   });
 
   test('rebuilt admin homepage does not receive the legacy injected manager', () => {
@@ -48,24 +55,17 @@ describe('homepage version template routing', () => {
     expect(rendered).not.toContain('data-hv3-pexels-video');
   });
 
-  test('V3 preview injects video assets and replaces the current hero', () => {
-    const source = `
-      <html>
-        <head></head>
-        <body>
-          <section class="hero hero-modern" aria-labelledby="hero-title">
-            <h1 id="hero-title">Original hero</h1>
-          </section>
-          <!-- Noscript fallback for hero CTAs -->
-        </body>
-      </html>
-    `;
-
+  test('V3 keeps its own template without injecting legacy hero styles or scripts', () => {
+    const source = require('fs').readFileSync(
+      require('path').join(__dirname, '../../public/home-v3.html'),
+      'utf8'
+    );
     const rendered = buildHomepageV3Preview(source);
-
-    expect(rendered).toContain('/assets/css/home-v3-video.css');
-    expect(rendered).toContain('/assets/js/pages/home-v3-video.js?v=5');
-    expect(rendered).toContain('data-hv3-pexels-video');
-    expect(rendered).not.toContain('images.pexels.com/videos/4586391/free-video-4586391.jpg');
+    expect(rendered).toContain('Everything you need.');
+    expect(rendered).toContain('/assets/css/home-v3-concept.css?v=1');
+    expect(rendered).toContain('/assets/js/pages/home-v3-concept.js?v=1');
+    expect(rendered).not.toContain('data-hv3-pexels-video');
+    expect(rendered).not.toContain('/assets/css/home-v2.css');
+    expect(buildHomepageV3Preview(rendered)).toBe(rendered);
   });
 });

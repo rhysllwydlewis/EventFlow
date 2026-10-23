@@ -318,11 +318,19 @@ describe('homepage served through the template middleware', () => {
 
   test('switching it off drops the class on every route that serves the homepage template', async () => {
     dbUnified.read.mockResolvedValue({ homepageGuidance: { enabled: false } });
-    for (const route of ['/', '/index.html', '/home-v3-preview']) {
+    for (const route of ['/', '/index.html']) {
       const res = await request(app()).get(route).expect(200);
       expect(bodyTag(res)).toContain('ef-home-flow');
       expect(bodyTag(res)).not.toContain('ef-home-guidance');
     }
+  });
+
+  test('V3 uses its own guidance without inheriting V1 display classes', async () => {
+    dbUnified.read.mockResolvedValue({ homepageGuidance: { enabled: false } });
+    const res = await request(app()).get('/home-v3-preview').expect(200);
+    expect(bodyTag(res)).toContain('home-v3-page');
+    expect(res.text).toContain('page-wayfinder');
+    expect(bodyTag(res)).not.toContain('ef-home-flow');
   });
 
   test('the quick-links switch is applied on its own', async () => {
