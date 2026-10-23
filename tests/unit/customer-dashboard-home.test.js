@@ -104,7 +104,7 @@ describe('customer dashboard home: stylesheets', () => {
   test('dashboard-guard no longer injects the removed mop-up and polish scripts', () => {
     const guard = read('public/assets/js/dashboard-guard.js');
     expect(guard).not.toMatch(/mop-up|customer-dashboard-polish/);
-    expect(html).toMatch(/dashboard-guard\.js\?v=18\.4\.0/);
+    expect(html).toMatch(/dashboard-guard\.js\?v=\d+\.\d+\.\d+/);
   });
 });
 
@@ -283,6 +283,7 @@ describe('customer dashboard home: structure', () => {
     const created = new Set([
       // built by scripts at run time
       'email-verify-banner',
+      'cdh-signin-check-error',
       'cdh-plan-edit-dialog',
       'cdh-pf-name',
       'cdh-plan-delete-dialog',

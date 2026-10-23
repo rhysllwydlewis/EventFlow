@@ -550,9 +550,9 @@
       ${state.items.length ? legendHtml(figures) : ''}
       ${
         packages
-          ? `<p class="bp-fineprint">Your dashboard also adds the listed price of the ${packages} supplier package${
+          ? `<p class="bp-fineprint">Committed here counts budget items only. Your dashboard's Budget card also adds the listed price of the ${packages} supplier package${
               packages === 1 ? '' : 's'
-            } saved to this plan. They are not included here.</p>`
+            } saved to this plan, so its figure can be higher.</p>`
           : ''
       }`;
     applyWidths(host);

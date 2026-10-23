@@ -196,6 +196,74 @@ describe('GET /api/v1/customer/milestones', () => {
     expect(result['set-budget']).toBe(done);
   });
 
+  describe('with ?planId= (the dashboard asks about its focus plan)', () => {
+    const plans = [
+      {
+        id: 'plan-a',
+        userId: 'user-cust-1',
+        eventDate: '2027-06-19',
+        location: 'Bristol',
+        guestCount: 80,
+        budget: 5000,
+      },
+      { id: 'plan-b', userId: 'user-cust-1', name: 'Hen weekend' },
+    ];
+
+    /** The milestones the route reports for the query, plus the scope it says it used. */
+    async function ask(query) {
+      useData({ plans });
+      const res = await request(buildApp())
+        .get(`/api/v1/customer/milestones${query}`)
+        .set('x-test-user-role', 'customer');
+      expect(res.status).toBe(200);
+      return {
+        scope: res.body.scope,
+        done: Object.fromEntries(res.body.milestones.map(m => [m.id, m.done])),
+      };
+    }
+
+    it('counts the plan-level steps across the account without a planId', async () => {
+      const { scope, done } = await ask('');
+      expect(scope).toBe('account');
+      expect(done).toMatchObject({
+        'create-plan': true,
+        'set-date': true,
+        'set-location': true,
+        'set-guests': true,
+        'set-budget': true,
+      });
+    });
+
+    it("describes only the asked-for plan, so a bare plan does not inherit another plan's date", async () => {
+      const { scope, done } = await ask('?planId=plan-b');
+      expect(scope).toBe('plan');
+      expect(done).toMatchObject({
+        'create-plan': true,
+        'set-date': false,
+        'set-location': false,
+        'set-guests': false,
+        'set-budget': false,
+      });
+    });
+
+    it('describes a complete plan as complete', async () => {
+      const { scope, done } = await ask('?planId=plan-a');
+      expect(scope).toBe('plan');
+      expect(done).toMatchObject({
+        'set-date': true,
+        'set-location': true,
+        'set-guests': true,
+        'set-budget': true,
+      });
+    });
+
+    it("ignores a planId that is not the caller's and answers for the account", async () => {
+      const { scope, done } = await ask('?planId=someone-elses-plan');
+      expect(scope).toBe('account');
+      expect(done['set-date']).toBe(true);
+    });
+  });
+
   it('no longer serves the unused summary and countdown endpoints', async () => {
     for (const path of ['dashboard-summary', 'event-countdown']) {
       const res = await request(buildApp()).get(`/api/v1/customer/${path}`);
