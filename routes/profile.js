@@ -250,11 +250,16 @@ router.put('/', writeLimiter, authRequired, csrfProtection, async (req, res) => 
     // Optional phone field
     if (phone !== undefined) {
       if (phone && String(phone).trim()) {
-        const trimmedPhone = String(phone).trim().slice(0, 20);
-        if (!validator.isMobilePhone(trimmedPhone, 'any', { strictMode: false })) {
+        // People write numbers with spaces, brackets and dashes ("07700 900123"); the validator
+        // accepts only the bare digits, so check, and keep, the number without them.
+        const compactPhone = String(phone)
+          .trim()
+          .replace(/[\s().-]/g, '')
+          .slice(0, 20);
+        if (!validator.isMobilePhone(compactPhone, 'any', { strictMode: false })) {
           return res.status(400).json({ error: 'Invalid phone number format' });
         }
-        profileUpdates.phone = trimmedPhone;
+        profileUpdates.phone = compactPhone;
       } else {
         profileUpdates.phone = null;
       }

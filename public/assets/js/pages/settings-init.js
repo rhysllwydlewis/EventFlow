@@ -1,7 +1,7 @@
 /* Settings page (customer and supplier accounts).
  *
  * One /api/me/settings request feeds every preference on the page; the account itself comes from
- * /api/v1/auth/me. Confirmations (remove photo, switch to customer, delete account) are native
+ * /api/profile. Confirmations (remove photo, switch to customer, delete account) are native
  * <dialog> elements, so focus stays inside, Escape closes and focus returns to the button. */
 
 'use strict';
@@ -51,7 +51,18 @@
     }
     const payload = isJson ? JSON.stringify(body) : body;
     const response = await fetch(url, { method, headers, credentials: 'include', body: payload });
-    const data = await response.json().catch(() => ({}));
+    const type = response.headers.get('content-type') || '';
+    let data = {};
+    if (type.includes('application/json')) {
+      data = await response.json().catch(() => ({}));
+    } else if (type.includes('text/')) {
+      // Rate limiters answer with a bare sentence ("Too many attempts. Please try again later.").
+      // Anything long or containing markup (a gateway's error page) is not shown.
+      const text = (await response.text().catch(() => '')).trim();
+      if (text && text.length <= 200 && !text.includes('<')) {
+        data = { error: text };
+      }
+    }
     return { ok: response.ok, status: response.status, data };
   }
 
@@ -268,10 +279,15 @@
       setChecked('browse-nudge-enabled', settings.browseNudgeOptOut !== true);
     }
     if (settings.verified === false) {
-      setHidden('verification-reminder-row', false);
       setChecked('verification-reminder-enabled', settings.verificationReminderOptOut !== true);
     }
     _emailPrefsLoaded = true;
+  }
+
+  /** Shows the verification notice and its reminder toggle for an account that is not verified. */
+  function renderVerification(unverified) {
+    setHidden('email-unverified-notice', !unverified);
+    setHidden('verification-reminder-row', !unverified);
   }
 
   function renderAccountType(user) {
@@ -329,17 +345,22 @@
       showLoadError(false);
     }
     try {
-      const [meResponse, settingsResponse] = await Promise.all([
-        fetch('/api/v1/auth/me', { credentials: 'include' }),
+      // The account comes from /api/profile: /api/v1/auth/me does not return the phone number, so
+      // the field would always load empty and every save would erase the saved number.
+      const [accountResponse, settingsResponse] = await Promise.all([
+        fetch('/api/profile', { credentials: 'include' }),
         fetch('/api/me/settings', { credentials: 'include' }).catch(() => null),
       ]);
-      if (!meResponse.ok) {
-        throw new Error('Failed to load profile');
-      }
-      const { user } = await meResponse.json();
-      if (!user) {
+      if (accountResponse.status === 401) {
         window.location.href = `/auth?redirect=${encodeURIComponent(window.location.pathname + window.location.search)}`;
         return;
+      }
+      if (!accountResponse.ok) {
+        throw new Error('Failed to load profile');
+      }
+      const user = await accountResponse.json();
+      if (!user || !user.id) {
+        throw new Error('Failed to load profile');
       }
       const settings = settingsResponse?.ok
         ? await settingsResponse.json().catch(() => null)
@@ -354,7 +375,6 @@
       byId('profile-phone').value = user.phone || '';
       byId('profile-location').value = user.location || '';
       byId('profile-postcode').value = user.postcode || '';
-      setHidden('email-change-hint', true);
 
       renderAccountType(user);
 
@@ -363,20 +383,27 @@
       setHidden('supplier-reminder-prefs', !isSupplier);
 
       if (settings) {
-        applySettings(settings, user);
+        // A refresh after saving the profile must not put the saved preferences back over edits
+        // made in the notification card that have not been saved yet.
+        if (!quiet || !_emailPrefsLoaded) {
+          applySettings(settings, user);
+        }
       } else {
-        // Preferences could not be read: the form still works, but saving must not overwrite them
-        // with the page's defaults, so the guarded fields stay out of the save request.
-        setChecked('notify', user.notify !== false);
+        // Preferences could not be read: the account form still works, but saving preferences is
+        // refused until they have loaded, so the page's defaults never overwrite the real ones.
         setHidden('browse-nudge-row', user.role !== 'customer');
         const text = byId('newsletter-status-text');
         if (text) {
           text.textContent = 'Could not load your newsletter status';
         }
+        setStatus(
+          byId('settings-status'),
+          'Your saved preferences could not be loaded. Reload the page to try again.',
+          'error'
+        );
       }
 
-      const unverified = settings ? settings.verified === false : user.verified === false;
-      setHidden('email-unverified-notice', !unverified);
+      renderVerification(Boolean(settings) && settings.verified === false);
 
       if (user.avatarUrl) {
         showAvatarPhoto(user.avatarUrl);
@@ -399,12 +426,6 @@
 
   byId('profile-retry-btn')?.addEventListener('click', () => loadProfile());
 
-  // Email-change hint: only once the address differs from the saved one.
-  byId('profile-email')?.addEventListener('input', event => {
-    const changed = event.target.value.trim().toLowerCase() !== _userEmail;
-    setHidden('email-change-hint', !changed);
-  });
-
   byId('resend-verification-btn')?.addEventListener('click', async function () {
     const status = byId('resend-verification-status');
     this.disabled = true;
@@ -418,6 +439,10 @@
         throw new Error('failed');
       }
       setStatus(status, 'Verification email sent. Please check your inbox.', 'success');
+      // Not sent again straight away; available again after a pause (the server also limits it).
+      setTimeout(() => {
+        this.disabled = false;
+      }, 30000);
     } catch {
       setStatus(status, 'Could not send the email. Please try again.', 'error');
       this.disabled = false;
@@ -441,21 +466,14 @@
         location: byId('profile-location').value.trim(),
         postcode: byId('profile-postcode').value.trim(),
       };
-      const newEmail = byId('profile-email').value.trim();
-      if (newEmail && newEmail.toLowerCase() !== _userEmail) {
-        formData.email = newEmail;
-      }
 
       const { ok, data } = await api('/api/profile', { method: 'PUT', body: formData });
       if (!ok) {
         throw new Error(data.error || 'Failed to update account');
       }
 
-      const message = formData.email
-        ? 'Changes saved. Please check your new email to verify it.'
-        : 'Changes saved';
-      setStatus(status, message, 'success');
-      clearStatusLater(status, message, 6000);
+      setStatus(status, 'Changes saved', 'success');
+      clearStatusLater(status, 'Changes saved', 6000);
       await loadProfile({ quiet: true });
     } catch (error) {
       setStatus(status, error.message || 'Failed to update account', 'error');
@@ -470,24 +488,29 @@
     const btn = this;
     const text = byId('newsletter-status-text');
     btn.disabled = true;
+    let failure = '';
     try {
       const subscribed = _newsletterStatus === 'active';
-      // Always the account's saved address, never whatever is currently typed in the email box.
+      // Always the account's saved address, never anything typed on the page.
       const { ok, data } = await api(
         subscribed ? '/api/newsletter/unsubscribe' : '/api/newsletter/subscribe',
         { method: 'POST', body: { email: _userEmail } }
       );
-      if (!ok) {
-        throw new Error(data.error || 'Request failed');
+      if (ok) {
+        _newsletterStatus = subscribed ? 'unsubscribed' : 'pending-confirmation';
+        renderNewsletterStatus();
+        return;
       }
-      _newsletterStatus = subscribed ? 'unsubscribed' : 'pending-confirmation';
-      renderNewsletterStatus();
+      // The server's own words, e.g. "Too many subscription attempts. Please try again later."
+      failure = data.error || '';
     } catch {
-      if (text) {
-        text.textContent = 'Could not update your newsletter subscription. Please try again.';
-      }
-      btn.disabled = false;
+      failure = '';
     }
+    if (text) {
+      text.textContent =
+        failure || 'Could not update your newsletter subscription. Please try again.';
+    }
+    btn.disabled = false;
   });
 
   // ===== Notification sound (kept on this device) =====
@@ -495,8 +518,9 @@
     const enabled = byId('notification-sound-enabled').checked;
     const control = byId('volume-control');
     control.style.opacity = enabled ? '1' : '0.5';
-    control.style.pointerEvents = enabled ? 'auto' : 'none';
+    // Really disabled, not just unclickable, so the keyboard and the mouse agree.
     byId('notification-volume').disabled = !enabled;
+    byId('test-notification-sound').disabled = !enabled;
   }
 
   function loadNotificationSettings() {
@@ -521,10 +545,6 @@
     const feedback = byId('test-sound-feedback');
     const btn = this;
     setStatus(feedback, '');
-    if (!byId('notification-sound-enabled').checked) {
-      setStatus(feedback, 'Sounds are switched off', 'warn');
-      return;
-    }
     if (volume === 0) {
       setStatus(feedback, 'Volume is 0%', 'warn');
       return;
@@ -545,7 +565,7 @@
       btn.disabled = true;
       setStatus(feedback, 'Sound played', 'success');
       setTimeout(() => {
-        btn.disabled = false;
+        btn.disabled = !byId('notification-sound-enabled').checked;
         setStatus(feedback, '');
       }, 2000);
     } catch (error) {
@@ -560,29 +580,35 @@
     const soundEnabled = byId('notification-sound-enabled').checked;
     const volume = byId('notification-volume').value;
 
+    // Nothing is sent until the saved values have been read, so a failed read can never be saved
+    // over with the page's defaults.
+    if (!_emailPrefsLoaded) {
+      setStatus(
+        status,
+        'Your saved preferences could not be loaded. Reload the page to try again.',
+        'error'
+      );
+      return;
+    }
     const payload = { notify: byId('notify').checked };
-    // Everything below is only sent once the saved values have been read, so a failed read can
-    // never be saved over with the page's defaults.
-    if (_emailPrefsLoaded) {
-      if (!byId('supplier-reminder-prefs').hidden) {
-        payload.emailPrefs = {
-          actionPrompts: {
-            enabled: byId('ap-enabled').checked,
-            missingPackages: byId('ap-missing-packages').checked,
-            incompleteProfile: byId('ap-incomplete-profile').checked,
-            missingPhotos: byId('ap-missing-photos').checked,
-            uncategorized: byId('ap-uncategorized').checked,
-            packagesMissingPhotos: byId('ap-packages-missing-photos').checked,
-          },
-        };
-      }
-      payload.communityDigestCadence = byId('community-digest-cadence').value;
-      if (!byId('browse-nudge-row').hidden) {
-        payload.browseNudgeOptOut = !byId('browse-nudge-enabled').checked;
-      }
-      if (!byId('verification-reminder-row').hidden) {
-        payload.verificationReminderOptOut = !byId('verification-reminder-enabled').checked;
-      }
+    if (!byId('supplier-reminder-prefs').hidden) {
+      payload.emailPrefs = {
+        actionPrompts: {
+          enabled: byId('ap-enabled').checked,
+          missingPackages: byId('ap-missing-packages').checked,
+          incompleteProfile: byId('ap-incomplete-profile').checked,
+          missingPhotos: byId('ap-missing-photos').checked,
+          uncategorized: byId('ap-uncategorized').checked,
+          packagesMissingPhotos: byId('ap-packages-missing-photos').checked,
+        },
+      };
+    }
+    payload.communityDigestCadence = byId('community-digest-cadence').value;
+    if (!byId('browse-nudge-row').hidden) {
+      payload.browseNudgeOptOut = !byId('browse-nudge-enabled').checked;
+    }
+    if (!byId('verification-reminder-row').hidden) {
+      payload.verificationReminderOptOut = !byId('verification-reminder-enabled').checked;
     }
 
     btn.disabled = true;

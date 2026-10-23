@@ -51,9 +51,14 @@ describe('the markup', () => {
     expect(html).not.toMatch(/<label[^>]*for="avatar-upload-input"/);
   });
 
-  test('the email-change note and the unverified notice start hidden', () => {
-    expect(html).toMatch(/id="email-change-hint"[^>]*\shidden/);
+  test('the unverified notice starts hidden', () => {
     expect(html).toMatch(/id="email-unverified-notice"[^>]*\shidden/);
+  });
+
+  test('the email address is read-only, because nothing on the server changes it', () => {
+    expect(html).toMatch(/<input[^>]*id="profile-email"[^>]*\sreadonly/);
+    expect(html).toContain('id="profile-email-help"');
+    expect(js).not.toMatch(/formData\s*=\s*\{[^}]*email/);
   });
 
   test('the Restart Tour card is gone: there is no tour for it to restart', () => {
@@ -76,6 +81,15 @@ describe('the script', () => {
 
   test('the password rule is the server rule: a letter and a number', () => {
     expect(js).toMatch(/\/\[A-Za-z\]\/\.test\(pw\) && \/\[0-9\]\/\.test\(pw\)/);
+  });
+
+  test('the account is read from /api/profile, which includes the phone number', () => {
+    expect(js).toContain("fetch('/api/profile'");
+    expect(js).not.toContain("fetch('/api/v1/auth/me'");
+  });
+
+  test('a plain-text error body (e.g. the rate limiter) is shown, not swallowed', () => {
+    expect(js).toContain("type.includes('text/')");
   });
 
   test('one /api/me/settings request feeds every preference', () => {

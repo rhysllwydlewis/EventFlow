@@ -10,7 +10,7 @@
 <meta name="robots" content="noindex,nofollow">
   <link rel="stylesheet" href="/assets/css/styles.css?v=18.5.1">
   <link rel="stylesheet" href="/assets/css/ui-ux-fixes.css?v=18.4.0">
-    <link rel="stylesheet" href="/assets/css/settings.css?v=19.0.0" />
+    <link rel="stylesheet" href="/assets/css/settings.css?v=19.0.1" />
     <link rel="stylesheet" href="/assets/css/navbar.css?v=18.4.2" /><link rel="stylesheet" href="/assets/css/eventflow-brand.css?v=1.0.1" data-eventflow-brand="true" />
   <link rel='stylesheet' href='/assets/css/eventflow-17.0.0.css?v=18.3.0'>
   <link rel='stylesheet' href='/assets/css/utilities.css?v=18.3.0'>
@@ -219,8 +219,8 @@
     <p class="settings-section-label">Account details</p>
     <div class="form-row">
       <label for="profile-email">Email address</label>
-      <input type="email" id="profile-email" name="email" placeholder="john@example.com" autocomplete="email" aria-describedby="email-change-hint">
-      <p class="settings-success-badge" id="email-change-hint" role="status" aria-live="polite" hidden>A verification email will be sent to your new address after saving.</p>
+      <input type="email" id="profile-email" name="email" autocomplete="email" readonly aria-describedby="profile-email-help">
+      <p id="profile-email-help" class="settings-hint">This is the address you sign in with. To change it, <a href="/contact">contact us</a>.</p>
     </div>
 
     <div id="email-unverified-notice" class="settings-notice settings-notice--warn" hidden>
@@ -233,7 +233,7 @@
 
     <div class="form-row">
       <label for="profile-phone">Phone number <span class="settings-sub-label">(optional)</span></label>
-      <input type="tel" id="profile-phone" name="phone" placeholder="+44 7700 900000" maxlength="20" autocomplete="tel">
+      <input type="tel" id="profile-phone" name="phone" placeholder="07700 900123" maxlength="20" autocomplete="tel">
     </div>
 
     <div class="form-row settings-grid">
@@ -676,7 +676,7 @@
     <script src="/assets/js/config/page-init.js" defer></script>
 <script src="/assets/js/utils/supplier-avatar.js?v=1.0.1"></script>
 <script src="/assets/js/app.js?v=18.5.11" defer></script>
-<script src="/assets/js/pages/settings-init.js?v=2.0.0" defer></script>
+<script src="/assets/js/pages/settings-init.js?v=2.0.1" defer></script>
 <footer class="footer" role="contentinfo">
   <div class="container ef-footer-content">
     <div><strong>EventFlow</strong><br><span class="small">Event planning made simple.</span></div>

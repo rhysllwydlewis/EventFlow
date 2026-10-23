@@ -74,6 +74,13 @@ async function openSettings(page, context, baseURL, user, { settings, handlers =
     if (pathname === '/api/v1/auth/me') {
       return json(route, { user });
     }
+    // The account form reads /api/profile (unlike /api/v1/auth/me it includes the phone number).
+    if (pathname === '/api/profile' && method === 'GET') {
+      return json(route, user);
+    }
+    if (pathname === '/api/profile' && method === 'PUT') {
+      return json(route, { ok: true });
+    }
     if (pathname === '/api/me/settings' && method === 'GET') {
       return settings === null ? json(route, {}, 500) : json(route, settings || settingsFor());
     }
@@ -91,18 +98,16 @@ const settingsPosts = calls =>
   calls.filter(c => c.pathname === '/api/me/settings' && c.method === 'POST');
 
 test.describe('Settings: account details', () => {
-  test('the "verification email will be sent" note shows only once the address changes', async ({
+  test('the email address is shown read-only, with a way to ask for a change', async ({
     page,
     context,
     baseURL,
   }) => {
     await openSettings(page, context, baseURL, customer);
-    const hint = page.locator('#email-change-hint');
-    await expect(hint).toBeHidden();
-    await page.fill('#profile-email', 'new@example.test');
-    await expect(hint).toBeVisible();
-    await page.fill('#profile-email', customer.email);
-    await expect(hint).toBeHidden();
+    const email = page.locator('#profile-email');
+    await expect(email).toHaveValue(customer.email);
+    await expect(email).toHaveJSProperty('readOnly', true);
+    await expect(page.locator('#profile-email-help a')).toHaveAttribute('href', '/contact');
   });
 
   test('a failed load offers a retry and never shows an empty, savable form', async ({
@@ -114,8 +119,8 @@ test.describe('Settings: account details', () => {
     let failing = true;
     await openSettings(page, context, baseURL, customer, {
       handlers: [
-        (route, { pathname }) => {
-          if (pathname === '/api/v1/auth/me' && failing) {
+        (route, { pathname, method }) => {
+          if (pathname === '/api/profile' && method === 'GET' && failing) {
             json(route, {}, 500);
             return true;
           }
@@ -163,12 +168,22 @@ test.describe('Settings: account details', () => {
     await expect(page.locator('#email-unverified-notice')).toBeHidden();
   });
 
-  test('saving keeps the form on screen and reports it', async ({ page, context, baseURL }) => {
+  test('saving keeps the form on screen, sends no email, and the saved phone number comes back', async ({
+    page,
+    context,
+    baseURL,
+  }) => {
+    let savedPhone = '';
     const calls = await openSettings(page, context, baseURL, customer, {
       handlers: [
-        (route, { pathname, method }) => {
+        (route, { pathname, method, body }) => {
           if (pathname === '/api/profile' && method === 'PUT') {
+            savedPhone = body.phone.replace(/\s/g, '');
             json(route, { ok: true });
+            return true;
+          }
+          if (pathname === '/api/profile' && method === 'GET') {
+            json(route, { ...customer, phone: savedPhone });
             return true;
           }
           return false;
@@ -182,6 +197,44 @@ test.describe('Settings: account details', () => {
     const put = calls.find(c => c.pathname === '/api/profile' && c.method === 'PUT');
     expect(put.body.phone).toBe('+44 7700 900123');
     expect(put.body.email).toBeUndefined();
+    // Read back from the server after the save, as it will be on the next visit.
+    await expect(page.locator('#profile-phone')).toHaveValue('+447700900123');
+  });
+
+  test('a saved phone number is shown when the page loads, so saving never erases it', async ({
+    page,
+    context,
+    baseURL,
+  }) => {
+    const calls = await openSettings(page, context, baseURL, { ...customer, phone: '07700900123' });
+    await expect(page.locator('#profile-phone')).toHaveValue('07700900123');
+    await page.click('#profile-save-btn');
+    await expect(page.locator('#profile-status')).toContainText('Changes saved');
+    const put = calls.find(c => c.pathname === '/api/profile' && c.method === 'PUT');
+    expect(put.body.phone).toBe('07700900123');
+  });
+
+  test('a refused save shows the server message and keeps what was typed', async ({
+    page,
+    context,
+    baseURL,
+  }) => {
+    await openSettings(page, context, baseURL, customer, {
+      handlers: [
+        (route, { pathname, method }) => {
+          if (pathname === '/api/profile' && method === 'PUT') {
+            json(route, { error: 'Invalid phone number format' }, 400);
+            return true;
+          }
+          return false;
+        },
+      ],
+    });
+    await page.fill('#profile-phone', 'abc');
+    await page.click('#profile-save-btn');
+    await expect(page.locator('#profile-status')).toContainText('Invalid phone number format');
+    await expect(page.locator('#profile-phone')).toHaveValue('abc');
+    await expect(page.locator('#profile-save-btn')).toBeEnabled();
   });
 });
 
@@ -292,16 +345,49 @@ test.describe('Settings: notification preferences', () => {
     expect(post.body.browseNudgeOptOut).toBeUndefined();
   });
 
-  test('when the saved preferences could not be read, saving never overwrites them with defaults', async ({
+  test('when the saved preferences could not be read, nothing is saved over them', async ({
     page,
     context,
     baseURL,
   }) => {
     const calls = await openSettings(page, context, baseURL, supplier, { settings: null });
+    await expect(page.locator('#settings-status')).toContainText('could not be loaded');
     await page.click('#save-settings');
-    await expect(page.locator('#settings-status')).toContainText('Preferences saved');
-    const [post] = settingsPosts(calls);
-    expect(Object.keys(post.body)).toEqual(['notify']);
+    await expect(page.locator('#settings-status')).toContainText('could not be loaded');
+    expect(settingsPosts(calls)).toHaveLength(0);
+  });
+
+  test('saving the account details does not discard preference edits that are not saved yet', async ({
+    page,
+    context,
+    baseURL,
+  }) => {
+    await openSettings(page, context, baseURL, customer);
+    await page.selectOption('#community-digest-cadence', 'daily');
+    await page.click('#profile-save-btn');
+    await expect(page.locator('#profile-status')).toContainText('Changes saved');
+    await expect(page.locator('#community-digest-cadence')).toHaveValue('daily');
+  });
+
+  test('the sound test and volume are switched off with the sound, and back on with it', async ({
+    page,
+    context,
+    baseURL,
+  }) => {
+    await openSettings(page, context, baseURL, customer);
+    await expect(page.locator('#test-notification-sound')).toBeEnabled();
+    await expect(page.locator('#notification-volume')).toBeEnabled();
+    await page.locator('#notification-sound-enabled').evaluate(el => {
+      el.checked = false;
+      el.dispatchEvent(new Event('change', { bubbles: true }));
+    });
+    await expect(page.locator('#test-notification-sound')).toBeDisabled();
+    await expect(page.locator('#notification-volume')).toBeDisabled();
+    await page.locator('#notification-sound-enabled').evaluate(el => {
+      el.checked = true;
+      el.dispatchEvent(new Event('change', { bubbles: true }));
+    });
+    await expect(page.locator('#test-notification-sound')).toBeEnabled();
   });
 
   test('a failed save says so and does not change the sound settings kept on this device', async ({
@@ -327,7 +413,32 @@ test.describe('Settings: notification preferences', () => {
     expect(await page.evaluate(() => localStorage.getItem('ef_notification_volume'))).toBeNull();
   });
 
-  test('the newsletter button uses the saved address, not what is typed in the email box', async ({
+  test('a refused newsletter request shows the server message, even a plain-text one', async ({
+    page,
+    context,
+    baseURL,
+  }) => {
+    await openSettings(page, context, baseURL, customer, {
+      handlers: [
+        (route, { pathname }) => {
+          if (pathname === '/api/newsletter/subscribe') {
+            route.fulfill({
+              status: 429,
+              contentType: 'text/html; charset=utf-8',
+              body: 'Too many subscription attempts. Please try again later.',
+            });
+            return true;
+          }
+          return false;
+        },
+      ],
+    });
+    await page.click('#newsletter-toggle-btn');
+    await expect(page.locator('#newsletter-status-text')).toContainText('Too many subscription');
+    await expect(page.locator('#newsletter-toggle-btn')).toBeEnabled();
+  });
+
+  test("the newsletter button subscribes the account's own address", async ({
     page,
     context,
     baseURL,
@@ -343,7 +454,6 @@ test.describe('Settings: notification preferences', () => {
         },
       ],
     });
-    await page.fill('#profile-email', 'someone-else@example.test');
     await page.click('#newsletter-toggle-btn');
     await expect(page.locator('#newsletter-status-text')).toContainText('Check your inbox');
     const sent = calls.find(c => c.pathname === '/api/newsletter/subscribe');

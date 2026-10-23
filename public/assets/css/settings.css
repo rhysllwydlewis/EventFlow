@@ -24,7 +24,7 @@
 .settings-lede {
   margin: 0;
   color: #4b5563;
-  font-size: 0.9375rem;
+  font-size: 1rem;
 }
 
 .settings-nav {
@@ -103,6 +103,18 @@
 }
 .settings-card-heading + .settings-photo {
   margin-top: 0;
+}
+
+.settings-page .settings-action-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* A field that is shown but cannot be edited here (the sign-in email). */
+.settings-page input[readonly] {
+  background: #f9fafb;
+  color: #4b5563;
+  cursor: default;
 }
 
 /* ── Layout helpers ─────────────────────────────────────────────── */
