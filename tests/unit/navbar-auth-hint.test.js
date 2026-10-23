@@ -77,7 +77,7 @@ describe('the pieces agree with each other', () => {
 
   test('the early script is small, synchronous and makes no requests', () => {
     const code = hintScript.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/.*$/gm, '');
-    expect(Buffer.byteLength(code)).toBeLessThan(900);
+    expect(Buffer.byteLength(code)).toBeLessThan(1100);
     expect(code).not.toMatch(/\b(fetch|XMLHttpRequest|import|await)\b/);
     // It only ever marks <html>; it never decides what anyone may do.
     expect(code).toContain("classList.add('ef-hint-in')");
@@ -97,6 +97,18 @@ describe('the pieces agree with each other', () => {
     expect(navbar).toContain('updateAuthUI(hintedUser)');
   });
 
+  test('the reserved width is the one measured on this device, with the reference as the default', () => {
+    expect(hintScript).toContain("'ef_auth_hint_w'");
+    expect(hintScript).toContain('--ef-hint-actions-w');
+    expect(navbar).toContain("const AUTH_HINT_WIDTH_KEY = 'ef_auth_hint_w'");
+    // Measured only once the real header is drawn (never from the hinted one, whose width is the
+    // reservation itself), and forgotten on logout.
+    expect(navbar).toMatch(
+      /if \(user && !hintedUsers\.has\(user\)\) \{\s*rememberActionsWidth\(\);/
+    );
+    expect(navbar).toContain('localStorage.removeItem(AUTH_HINT_WIDTH_KEY)');
+  });
+
   test('a hinted header is never saved as if the server had said so', () => {
     // The stand-in user is tracked privately, so nothing the server sends can pose as one, and it
     // skips the save and keeps the early state.
@@ -108,7 +120,7 @@ describe('the pieces agree with each other', () => {
   test('navbar.css hides "Log in", reserves the signed-in actions and mirrors the nav rules', () => {
     expect(css).toMatch(/html\.ef-hint-in #ef-auth-link \{\s*display: none !important;/);
     expect(css).toMatch(
-      /@media \(min-width: 1280px\) \{\s*[^}]*html\.ef-hint-in \.ef-header-actions \{\s*justify-content: flex-end;\s*min-width: 302\.28px;/
+      /@media \(min-width: 1280px\) \{\s*[^}]*html\.ef-hint-in \.ef-header-actions \{\s*justify-content: flex-end;\s*min-width: var\(--ef-hint-actions-w, 302\.28px\);/
     );
     expect(css).toMatch(
       /@media \(max-width: 1279px\) \{\s*html\.ef-hint-in \.ef-nav-desktop \{\s*display: none;/

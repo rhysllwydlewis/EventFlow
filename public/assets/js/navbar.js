@@ -63,6 +63,7 @@
   // shapes the header while the server is asked who is signed in, and is never trusted for
   // anything else.
   const AUTH_HINT_KEY = 'ef_auth_hint';
+  const AUTH_HINT_WIDTH_KEY = 'ef_auth_hint_w';
   const HINT_ROLES = ['customer', 'supplier'];
 
   // The stand-in users drawn from the hint. Tracked here rather than by a property on the user, so
@@ -95,6 +96,32 @@
   // ==========================================
 
   let elements = {};
+
+  /**
+   * Remembers how wide the signed-in header actions really are on this device, so the next page can
+   * reserve exactly that much before they are drawn (the width depends on the device's fonts).
+   * Only the desktop layout with the Account control reserves space, so only that is measured.
+   */
+  function rememberActionsWidth() {
+    try {
+      const actions = document.querySelector('.ef-header-actions');
+      const account = elements.accountMenu;
+      if (
+        !actions ||
+        !account ||
+        account.hidden ||
+        !window.matchMedia('(min-width: 1280px)').matches
+      ) {
+        return;
+      }
+      const width = actions.getBoundingClientRect().width;
+      if (width >= 150 && width <= 500) {
+        window.localStorage.setItem(AUTH_HINT_WIDTH_KEY, width.toFixed(2));
+      }
+    } catch {
+      // Storage can be blocked; the stylesheet's default width is used then.
+    }
+  }
 
   function initElements() {
     elements = {
@@ -304,6 +331,7 @@
     try {
       localStorage.removeItem('user');
       localStorage.removeItem(AUTH_HINT_KEY);
+      localStorage.removeItem(AUTH_HINT_WIDTH_KEY);
       localStorage.removeItem('eventflow_onboarding_new');
       sessionStorage.clear();
     } catch (error) {
@@ -511,6 +539,11 @@
       if (btn) {
         btn.style.display = 'none';
       }
+    }
+
+    // The real header is drawn, so note how wide its actions are on this device for the next page.
+    if (user && !hintedUsers.has(user)) {
+      rememberActionsWidth();
     }
   }
 

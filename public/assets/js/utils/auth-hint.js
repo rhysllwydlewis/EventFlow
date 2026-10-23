@@ -13,6 +13,10 @@
  * decides what anyone may do, and a wrong one (an expired session) is replaced by "Log in" as
  * soon as the server says so.
  *
+ * The signed-in buttons take a width that depends on the fonts this device uses, so navbar.js also
+ * remembers the width it measured (ef_auth_hint_w) and this script hands it to the stylesheet as
+ * --ef-hint-actions-w; a first visit uses the stylesheet's own measured default.
+ *
  * The early state hides "Log in", so it must not outlive a header script that never settles it
  * (blocked, failed to load, or an auth request that never returns). After a few seconds it is
  * dropped regardless, which puts "Log in" back.
@@ -27,6 +31,10 @@
     if (role === 'customer' || role === 'supplier') {
       const root = document.documentElement;
       root.classList.add('ef-hint-in');
+      const width = Number(window.localStorage.getItem('ef_auth_hint_w'));
+      if (width >= 150 && width <= 500) {
+        root.style.setProperty('--ef-hint-actions-w', `${width}px`);
+      }
       window.setTimeout(() => root.classList.remove('ef-hint-in'), 6000);
     }
   } catch {

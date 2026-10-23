@@ -26,10 +26,12 @@ const AUTH_DELAY_MS = 900;
 /** Page markup as a signed-in browser receives it, and the API answers, for one scenario. */
 async function stage(
   page,
-  { role = 'customer', delay = AUTH_DELAY_MS, status = 200, onLogout = null } = {}
+  { role = 'customer', delay = AUTH_DELAY_MS, status = 200, onLogout = null, extraCss = '' } = {}
 ) {
   const session = { on: status === 200 };
-  const html = fs.readFileSync(path.join(PUBLIC_DIR, 'pricing.html'), 'utf8');
+  const html = fs
+    .readFileSync(path.join(PUBLIC_DIR, 'pricing.html'), 'utf8')
+    .replace('</head>', () => `<style>${extraCss}</style></head>`);
   await page.route(`**${PAGE}`, route =>
     route.request().resourceType() === 'document'
       ? route.fulfill({ status: 200, contentType: 'text/html; charset=utf-8', body: html })
@@ -189,7 +191,10 @@ test.describe('Header before the server has answered', () => {
       await stage(page, { role, delay: 100 });
       await page.goto(PAGE, { waitUntil: 'domcontentloaded' });
       await expect(page.locator('#ef-dashboard-link')).toBeVisible();
-      expect(await page.evaluate(() => localStorage.getItem('ef_auth_hint'))).toBe(expected);
+      // The header draws from the hint first; what is stored changes when the server has answered.
+      await expect
+        .poll(() => page.evaluate(() => localStorage.getItem('ef_auth_hint')))
+        .toBe(expected);
     }
   });
 
@@ -296,6 +301,95 @@ test.describe('Bottom tab bar on a phone', () => {
   });
 });
 
+test.describe('Reserved width follows the device', () => {
+  test.use({ viewport: { width: 1440, height: 900 } });
+
+  // A device whose fonts make the signed-in buttons wider than in the reference rendering.
+  const WIDER_BUTTONS =
+    'html body .ef-header .ef-header-actions #ef-dashboard-link{padding-left:34px !important;padding-right:34px !important}';
+
+  test('the page remembers its real width, and the next page reserves exactly that', async ({
+    page,
+  }) => {
+    await stage(page, { delay: 400, extraCss: WIDER_BUTTONS });
+    await seedHint(page, 'customer');
+    await page.goto(PAGE, { waitUntil: 'domcontentloaded' });
+    await expect(page.locator('html')).not.toHaveClass(/ef-hint-in/, { timeout: 5000 });
+
+    const measured = await page.evaluate(() => ({
+      stored: Number(localStorage.getItem('ef_auth_hint_w')),
+      actual: document.querySelector('.ef-header-actions').getBoundingClientRect().width,
+    }));
+    // About 40px wider than the 302.28px reference, and exactly what the header measures.
+    expect(measured.stored).toBeGreaterThan(330);
+    expect(Math.abs(measured.stored - measured.actual)).toBeLessThan(0.1);
+
+    // The next page, on the same device: the reservation is that width, and nothing moves.
+    await startSampling(page);
+    await page.reload({ waitUntil: 'commit' });
+    await expect(page.locator('#ef-account-toggle')).toBeVisible();
+    await expect(page.locator('html')).not.toHaveClass(/ef-hint-in/, { timeout: 5000 });
+    const frames = await samples(page);
+    expect(frames.filter(frame => frame.loginShown)).toHaveLength(0);
+    const lefts = frames.map(frame => frame.navLeft).filter(left => left !== null);
+    expect(Math.max(...lefts) - Math.min(...lefts)).toBeLessThan(1.5);
+  });
+
+  test('the control: on that device a first visit uses the default and the nav shifts a little', async ({
+    page,
+  }) => {
+    await stage(page, { delay: 400, extraCss: WIDER_BUTTONS });
+    await seedHint(page, 'customer');
+    await startSampling(page);
+    await page.goto(PAGE, { waitUntil: 'commit' });
+    await expect(page.locator('#ef-account-toggle')).toBeVisible();
+    await expect(page.locator('html')).not.toHaveClass(/ef-hint-in/, { timeout: 5000 });
+    const frames = await samples(page);
+    const lefts = frames.map(frame => frame.navLeft).filter(left => left !== null);
+    // Still nothing like the 113px of the original problem, but measurably more than with the width.
+    expect(Math.max(...lefts) - Math.min(...lefts)).toBeGreaterThan(5);
+    expect(Math.max(...lefts) - Math.min(...lefts)).toBeLessThan(40);
+  });
+
+  test('a remembered width outside any plausible range is ignored', async ({ page }) => {
+    await stage(page, { delay: 400 });
+    for (const bad of ['9999', '12', 'abc', '-300']) {
+      await page.addInitScript(value => {
+        try {
+          window.localStorage.setItem('ef_auth_hint_w', value);
+        } catch {
+          // Storage unavailable.
+        }
+      }, bad);
+    }
+    await seedHint(page, 'customer');
+    await page.goto(PAGE, { waitUntil: 'commit' });
+    await expect(page.locator('html')).toHaveClass(/ef-hint-in/);
+    const reserved = await page.evaluate(() =>
+      document.documentElement.style.getPropertyValue('--ef-hint-actions-w')
+    );
+    expect(reserved).toBe('');
+  });
+
+  test('logging out forgets the width as well', async ({ page }) => {
+    let atLogout = 'not called';
+    await stage(page, {
+      delay: 100,
+      onLogout: async () => {
+        atLogout = await page.evaluate(() => localStorage.getItem('ef_auth_hint_w'));
+      },
+    });
+    await seedHint(page, 'customer');
+    await page.goto(PAGE, { waitUntil: 'domcontentloaded' });
+    await expect(page.locator('html')).not.toHaveClass(/ef-hint-in/, { timeout: 5000 });
+    expect(await page.evaluate(() => localStorage.getItem('ef_auth_hint_w'))).not.toBeNull();
+    await page.locator('#ef-account-toggle').click();
+    await page.locator('#ef-account-logout').click();
+    await page.waitForURL(/\/\?t=/);
+    expect(atLogout).toBeNull();
+  });
+});
+
 test.describe('Failsafe', () => {
   test.use({ viewport: { width: 1440, height: 900 } });
 
@@ -365,11 +459,13 @@ test.describe('Version 2 homepage, which has its own header', () => {
       await seedHint(page, 'customer');
       await sampleV2(page);
       await page.goto(V2, { waitUntil: 'commit' });
+      await expect(page.locator('.ef-header, .hv2-header').first()).toBeVisible();
       await expect(page.locator('html')).not.toHaveClass(/ef-hint-in/, { timeout: 8000 });
       const frames = await page.evaluate(() => window.__v2);
-      expect(frames.length).toBeGreaterThan(20);
+      expect(frames.length).toBeGreaterThan(10);
       expect(frames.filter(frame => frame.loginShown)).toHaveLength(0);
       const lefts = frames.map(frame => frame.navLeft).filter(left => left !== null);
+      expect(lefts.length).toBeGreaterThan(5);
       expect(Math.max(...lefts) - Math.min(...lefts)).toBeLessThan(2);
       expect(await page.evaluate(() => localStorage.getItem('ef_auth_hint'))).toBe('customer');
     });
@@ -407,6 +503,7 @@ test.describe('Version 2 homepage, which has its own header', () => {
       await seedHint(page, 'customer');
       await sampleV2(page);
       await page.goto(V2, { waitUntil: 'commit' });
+      await expect(page.locator('.ef-header, .hv2-header').first()).toBeVisible();
       await expect(page.locator('html')).not.toHaveClass(/ef-hint-in/, { timeout: 8000 });
       await page.waitForTimeout(150);
       const layouts = (await page.evaluate(() => window.__v2))

@@ -466,12 +466,15 @@ html.ef-hint-in #ef-auth-link {
 }
 
 @media (min-width: 1280px) {
-  /* Room for the bell, Account and Dashboard that replace "Log in": 44 + 130 + 104.28 + two 12px
-     gaps = 302.28px. Pushed to the right edge so the buttons that are already drawn do not move
-     when the others arrive. */
+  /* Room for the bell, Account and Dashboard that replace "Log in". The width is that of this
+     device's own header when it was last settled (--ef-hint-actions-w, set by utils/auth-hint.js
+     from what navbar.js measured, since the fonts differ from device to device); 302.28px, which
+     is 44 + 130 + 104.28 + two 12px gaps in the reference rendering, is the first-visit default.
+     Pushed to the right edge so the buttons that are already drawn do not move when the others
+     arrive. */
   html.ef-hint-in .ef-header-actions {
     justify-content: flex-end;
-    min-width: 302.28px;
+    min-width: var(--ef-hint-actions-w, 302.28px);
   }
 }
 
