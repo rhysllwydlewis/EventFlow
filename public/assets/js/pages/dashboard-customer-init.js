@@ -7,8 +7,42 @@ function dbg(...args) {
   }
 }
 
+/**
+ * Browser storage can be blocked (private modes, strict settings) or full. Every read and write on
+ * this page goes through these three, so a storage failure never stops the page from drawing or
+ * stops a change from reaching the server.
+ */
+function readStored(key) {
+  try {
+    return window.localStorage.getItem(key);
+  } catch {
+    return null;
+  }
+}
+
+/** Writes a storage value; false when storage is blocked or full. */
+function writeStored(key, value) {
+  try {
+    window.localStorage.setItem(key, value);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/** Removes a storage value; a blocked store has nothing to remove. */
+function removeStored(key) {
+  try {
+    window.localStorage.removeItem(key);
+  } catch {
+    /* nothing stored, nothing to forget */
+  }
+}
+
 /** Plans the page last loaded; the budget form and the plan editor both work from this. */
 let dashboardPlans = [];
+/** True once the server has really answered with the customer's plans (an empty list included). */
+let plansLoaded = false;
 /** How many plans a customer may have. The server says (GET /api/me/plans); 3 until it does. */
 let planLimit = 3;
 
@@ -19,9 +53,19 @@ function rememberPlanLimit(data) {
   }
 }
 
+/** Says the plans could not be loaded (which is not the same as having none) and offers a retry. */
+function showPlansLoadError(container) {
+  container.innerHTML =
+    '<div class="cdh-empty"><p class="cdh-empty__title">Your plans could not be loaded</p><p class="cdh-empty__text">Check your connection and try again.</p><button type="button" class="cdh-btn cdh-btn--secondary cdh-btn--sm" data-retry-plans>Try again</button></div>';
+  container.querySelector('[data-retry-plans]')?.addEventListener('click', () => {
+    reloadDashboard();
+  });
+}
+
 /**
- * Draws the "Your plans" list (the page's own plans, or a fresh fetch when none are passed).
- * @param {Array} [preloadedPlans] - Plans already fetched by the caller
+ * Draws the "Your plans" list.
+ * @param {Array|null} [preloadedPlans] - Plans already fetched by the caller; null when that fetch
+ *   failed (the list then says so, rather than asking again), undefined to fetch them here
  */
 async function loadCustomerPlans(preloadedPlans) {
   const container = document.getElementById('customer-plans-list');
@@ -31,18 +75,22 @@ async function loadCustomerPlans(preloadedPlans) {
 
   try {
     let plans = [];
+    if (preloadedPlans === null) {
+      showPlansLoadError(container);
+      return;
+    }
     if (preloadedPlans) {
       plans = preloadedPlans;
     } else {
       const response = await fetch('/api/me/plans', { credentials: 'include' });
       if (!response.ok) {
-        container.innerHTML =
-          '<p class="cdh-note">We could not load your plans. Please refresh to try again.</p>';
+        showPlansLoadError(container);
         return;
       }
       const data = await response.json();
       rememberPlanLimit(data);
       plans = data.plans || [];
+      plansLoaded = true;
     }
     dashboardPlans = plans;
 
@@ -126,14 +174,17 @@ async function loadCustomerPlans(preloadedPlans) {
     });
   } catch (err) {
     console.error('Error loading plans:', err);
-    container.innerHTML =
-      '<p class="cdh-note">We could not load your plans. Please refresh to try again.</p>';
+    showPlansLoadError(container);
   }
 }
 
-/** Reloads the plans and redraws everything that depends on them. */
+/**
+ * Reloads the plans and redraws everything that depends on them. When the plans cannot be fetched
+ * the page keeps what it last really loaded (and says it could not refresh), or, if it never
+ * loaded them, says they could not be loaded: it never turns a failed request into "no plans".
+ */
 async function reloadDashboard() {
-  let plans = dashboardPlans;
+  let plans = null;
   try {
     const response = await fetch('/api/me/plans', { credentials: 'include' });
     if (response.ok) {
@@ -144,14 +195,25 @@ async function reloadDashboard() {
   } catch (err) {
     console.warn('Could not refresh plans:', err);
   }
-  dashboardPlans = plans;
+  if (plans === null && plansLoaded) {
+    plans = dashboardPlans;
+    const notice = showPageNotice(
+      'Could not refresh your plans',
+      'Showing what we loaded earlier. Check your connection and try again.'
+    );
+    window.setTimeout(() => notice.remove(), 5000);
+  }
+  if (plans !== null) {
+    plansLoaded = true;
+    dashboardPlans = plans;
+  }
   await Promise.allSettled([
     loadCustomerPlans(plans),
     window.CustomerDashboardHome
       ? window.CustomerDashboardHome.render(plans, { limit: planLimit })
       : Promise.resolve(),
     window.initWeddingWebsiteDashboard
-      ? window.initWeddingWebsiteDashboard(plans)
+      ? window.initWeddingWebsiteDashboard(plans || [])
       : Promise.resolve(),
   ]);
 }
@@ -252,9 +314,45 @@ function showEditPlanModal(plan, onSaved, focusId) {
   const nameInput = dialog.querySelector('#cdh-pf-name');
   const statusEl = dialog.querySelector('#cdh-pf-status');
   const saveBtn = dialog.querySelector('#cdh-pf-save');
+  const cancelBtn = dialog.querySelector('.cdh-dialog__foot [data-dialog-close]');
+
+  // Closing with edits in the form (Cancel, the cross, the backdrop or Escape) asks first: the
+  // first attempt says there are unsaved changes and turns Cancel into "Discard changes", and the
+  // next attempt closes. Typing again disarms it.
+  let dirty = false;
+  let discardArmed = false;
+  const disarmDiscard = () => {
+    discardArmed = false;
+    cancelBtn.textContent = 'Cancel';
+  };
+  const armDiscard = () => {
+    discardArmed = true;
+    cancelBtn.textContent = 'Discard changes';
+    statusEl.dataset.tone = 'warn';
+    statusEl.textContent = 'You have unsaved changes. Save them, or choose Discard changes.';
+  };
   dialog.addEventListener('input', event => {
+    dirty = true;
+    disarmDiscard();
     statusEl.textContent = '';
     event.target.removeAttribute('aria-invalid');
+  });
+  dialog.addEventListener(
+    'click',
+    event => {
+      const closing = event.target === dialog || event.target.closest('[data-dialog-close]');
+      if (closing && dirty && !discardArmed) {
+        event.stopImmediatePropagation();
+        armDiscard();
+      }
+    },
+    true
+  );
+  dialog.addEventListener('cancel', event => {
+    if (dirty && !discardArmed) {
+      event.preventDefault();
+      armDiscard();
+    }
   });
 
   dialog.querySelector('form').addEventListener('submit', async event => {
@@ -409,18 +507,62 @@ function formatPlanDate(dateString) {
   }
 }
 
-/** Resolves to the signed-in user from /api/v1/auth/me, or null when signed out or on error. */
+const AUTH_CHECK_RETRIES = 2;
+const AUTH_CHECK_RETRY_DELAY_MS = 600;
+
+/**
+ * Asks /api/v1/auth/me who is signed in. A lost connection or a server error proves nothing about
+ * the session, so those are retried a couple of times; only a 401 or 403 says the person is
+ * signed out.
+ * @returns {Promise<{user: object|null, denied: boolean}>} The user; or no user and whether the
+ *   server refused (`denied`) as opposed to the check merely failing
+ */
 async function checkAuth() {
-  try {
-    const response = await fetch('/api/v1/auth/me', { credentials: 'include' });
-    if (!response.ok) {
-      return null;
+  for (let attempt = 0; attempt <= AUTH_CHECK_RETRIES; attempt += 1) {
+    try {
+      const response = await fetch('/api/v1/auth/me', { credentials: 'include' });
+      if (response.ok) {
+        const data = await response.json();
+        return { user: data.user || null, denied: !data.user };
+      }
+      if (response.status === 401 || response.status === 403) {
+        return { user: null, denied: true };
+      }
+    } catch (error) {
+      console.warn('Auth check failed:', error);
     }
-    const data = await response.json();
-    return data.user || null;
-  } catch (error) {
-    console.error('Auth check failed:', error);
-    return null;
+    if (attempt < AUTH_CHECK_RETRIES) {
+      await new Promise(resolve => window.setTimeout(resolve, AUTH_CHECK_RETRY_DELAY_MS));
+    }
+  }
+  return { user: null, denied: false };
+}
+
+/** Tells the person the sign-in check failed (not that they are signed out) and offers a retry. */
+function showSignInCheckError() {
+  document.getElementById('cdh-signin-check-error')?.remove();
+  const banner = document.createElement('div');
+  banner.id = 'cdh-signin-check-error';
+  banner.className = 'cdh-banner';
+  banner.setAttribute('role', 'alert');
+  const text = document.createElement('span');
+  text.className = 'cdh-banner__text';
+  text.textContent =
+    'We could not check that you are signed in. This is usually a dropped connection.';
+  const retry = document.createElement('button');
+  retry.type = 'button';
+  retry.className = 'cdh-btn cdh-btn--secondary cdh-btn--sm';
+  retry.textContent = 'Try again';
+  retry.addEventListener('click', () => {
+    banner.remove();
+    initDashboard();
+  });
+  banner.append(text, retry);
+  const hero = document.querySelector('.cdh-hero');
+  if (hero?.parentNode) {
+    hero.parentNode.insertBefore(banner, hero);
+  } else {
+    document.body.insertBefore(banner, document.body.firstChild);
   }
 }
 
@@ -452,11 +594,17 @@ async function initDashboard() {
   // Ensure a CSRF token is available before any state-changing requests
   await ensureCsrfToken();
 
-  const user = await checkAuth();
+  const auth = await checkAuth();
+  // The sign-in guard has already confirmed this person before showing the page, so a check that
+  // merely failed (dropped connection, server hiccup) carries on with the user it confirmed.
+  const user = auth.user || (auth.denied ? null : window.__EF_DASHBOARD_USER__ || null);
 
   if (!user) {
-    // Redirect to homepage if not authenticated
-    window.location.href = '/';
+    if (auth.denied) {
+      window.location.replace(`/auth?redirect=${encodeURIComponent(window.location.pathname)}`);
+    } else {
+      showSignInCheckError();
+    }
     return;
   }
 
@@ -470,8 +618,12 @@ async function initDashboard() {
     welcomeHeading.textContent = firstName ? `Welcome back, ${firstName}` : 'Welcome back';
   }
 
-  // Check for guest plan token and claim it
-  await claimGuestPlanIfExists();
+  // Check for guest plan token and claim it (a failure here must never stop the page drawing)
+  try {
+    await claimGuestPlanIfExists();
+  } catch (err) {
+    console.warn('Could not check for a guest plan:', err);
+  }
 
   // Show email verification banner if user is not yet verified
   if (!user.verified && !user.emailVerified) {
@@ -487,6 +639,7 @@ async function initDashboard() {
       const plansData = await plansResponse.json();
       rememberPlanLimit(plansData);
       sharedPlans = plansData.plans || [];
+      plansLoaded = true;
     }
   } catch (err) {
     console.error('Error pre-fetching plans:', err);
@@ -601,16 +754,12 @@ async function populateSavedSupplierStatus() {
         .filter(Boolean);
       loaded = true;
       // Keep legacy localStorage key in sync so redirect logic still works
-      try {
-        localStorage.setItem('eventflow_saved_suppliers', JSON.stringify(savedSupplierIds));
-      } catch {
-        /* ignore */
-      }
+      writeStored('eventflow_saved_suppliers', JSON.stringify(savedSupplierIds));
     }
   } catch {
     // Fallback to localStorage on network error
     try {
-      savedSupplierIds = JSON.parse(localStorage.getItem('eventflow_saved_suppliers') || '[]');
+      savedSupplierIds = JSON.parse(readStored('eventflow_saved_suppliers') || '[]');
     } catch {
       /* ignore */
     }
@@ -747,7 +896,7 @@ function setupEventHandlers() {
     // Fallback: localStorage saved suppliers
     if (savedSupplierIdSet.size === 0) {
       try {
-        const lsSaved = JSON.parse(localStorage.getItem('eventflow_saved_suppliers') || '[]');
+        const lsSaved = JSON.parse(readStored('eventflow_saved_suppliers') || '[]');
         lsSaved.forEach(id => savedSupplierIdSet.add(id));
       } catch (err) {
         console.error('Error reading saved suppliers from localStorage:', err);
@@ -784,19 +933,21 @@ function setupEventHandlers() {
       return;
     }
 
-    // Save to localStorage with error handling (fast client-side access)
-    try {
-      localStorage.setItem('eventflow_custom_budget', budget.toString());
-    } catch (err) {
-      console.error('Failed to save budget to localStorage:', err);
-      showBudgetStatus('Failed to save budget. Storage may be full.', 'error');
-      return;
-    }
+    // Keep a copy in this browser for fast access. It is only a copy: blocked or full storage must
+    // never stop the budget reaching the server, which is where it really lives.
+    const storedLocally = writeStored('eventflow_custom_budget', budget.toString());
 
     // Also persist to server on the focus plan (the one the summary row describes).
     // Always check response.ok — a CSRF/auth failure must not be silently swallowed.
     let serverSyncFailed = false;
     const primaryPlan = focusPlan();
+    if (!primaryPlan && !storedLocally) {
+      showBudgetStatus(
+        'We could not save your budget: your browser would not keep it and there is no plan to save it to yet.',
+        'error'
+      );
+      return;
+    }
     if (primaryPlan) {
       try {
         const patchResp = await fetch(`/api/me/plans/${encodeURIComponent(primaryPlan.id)}`, {
@@ -822,6 +973,14 @@ function setupEventHandlers() {
     }
 
     // Show result — distinguish between full success and local-only save
+    if (serverSyncFailed && !storedLocally) {
+      // Neither the server nor this browser has the new figure, so do not show it as saved.
+      showBudgetStatus(
+        'We could not save your budget. Check your connection and try again.',
+        'error'
+      );
+      return;
+    }
     if (serverSyncFailed) {
       showBudgetStatus(
         `Budget saved locally (£${budget.toLocaleString()}) but couldn't sync to server. It will be retried on next visit.`,
@@ -869,11 +1028,7 @@ function setupEventHandlers() {
     }
     if (budgetFromPlan) {
       // Sync server value to localStorage for fast client-side access
-      try {
-        localStorage.setItem('eventflow_custom_budget', String(parseFloat(budgetFromPlan.budget)));
-      } catch (storageErr) {
-        console.warn('Could not sync server budget to localStorage:', storageErr);
-      }
+      writeStored('eventflow_custom_budget', String(parseFloat(budgetFromPlan.budget)));
     }
   } catch (err) {
     console.error('Error loading saved budget:', err);
@@ -883,12 +1038,7 @@ function setupEventHandlers() {
   // previous PATCH failed), silently attempt to sync it now.  This fulfils the
   // "will be retried on next visit" message shown when the initial save fails.
   if (!budgetFromPlan && dashboardPlans.length > 0) {
-    let lsBudgetForRetry = null;
-    try {
-      lsBudgetForRetry = localStorage.getItem('eventflow_custom_budget');
-    } catch {
-      /* ignore */
-    }
+    const lsBudgetForRetry = readStored('eventflow_custom_budget');
     const pendingBudget = lsBudgetForRetry ? parseFloat(lsBudgetForRetry) : NaN;
     if (!isNaN(pendingBudget) && pendingBudget > 0) {
       const primaryPlan = focusPlan();
@@ -922,10 +1072,10 @@ function setupEventHandlers() {
  * Claim guest plan if token exists in localStorage
  */
 async function claimGuestPlanIfExists() {
-  const guestToken = localStorage.getItem('eventflow_guest_plan_token');
+  const guestToken = readStored('eventflow_guest_plan_token');
 
   if (!guestToken) {
-    return; // No guest plan to claim
+    return; // No guest plan to claim (or storage is blocked, so there is nothing to read)
   }
 
   try {
@@ -944,13 +1094,13 @@ async function claimGuestPlanIfExists() {
 
     if (response.ok) {
       // Successfully claimed
-      localStorage.removeItem('eventflow_guest_plan_token');
+      removeStored('eventflow_guest_plan_token');
       dbg('Guest plan claimed successfully');
     } else {
-      const error = await response.json();
+      const error = await readJson(response);
       console.warn('Failed to claim guest plan:', error.error);
       // Remove token even if claim failed (might be expired or already claimed)
-      localStorage.removeItem('eventflow_guest_plan_token');
+      removeStored('eventflow_guest_plan_token');
     }
   } catch (error) {
     console.error('Error claiming guest plan:', error);
