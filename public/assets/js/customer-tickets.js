@@ -3,7 +3,7 @@
  * Handles ticket creation and viewing for customers
  */
 
-import ticketingSystem from './ticketing.js?v=18.3.0';
+import ticketingSystem from './ticketing.js?v=18.3.1';
 import { getListItemSkeletons, showEmptyState, showErrorState } from './utils/skeleton-loader.js';
 import {
   getCurrentUser,
@@ -14,6 +14,29 @@ import {
 } from './utils/common-helpers.js';
 
 let ticketsUnsubscribe = null;
+/** True once the server has really answered with the customer's tickets (none included). */
+let ticketsLoaded = false;
+let ticketsUserId = null;
+
+/**
+ * Says the tickets could not be loaded, with a retry. Once a list has loaded it is left alone
+ * (a later hiccup should not wipe tickets the customer is looking at).
+ */
+function showTicketsError() {
+  const container = document.getElementById('tickets-cust');
+  if (!container || ticketsLoaded) {
+    return;
+  }
+  showErrorState(container, {
+    title: 'Your support tickets could not be loaded',
+    description: 'Check your connection and try again.',
+    actionText: 'Try again',
+    onAction: () => {
+      container.innerHTML = getListItemSkeletons(2);
+      refreshTickets(ticketsUserId);
+    },
+  });
+}
 
 /** Reloads the ticket list now, instead of waiting for the next scheduled refresh. */
 async function refreshTickets(userId) {
@@ -21,6 +44,7 @@ async function refreshTickets(userId) {
     renderTickets(await ticketingSystem.getUserTickets(userId, 'customer', 5));
   } catch (error) {
     console.warn('Could not refresh tickets:', error?.message);
+    showTicketsError();
   }
 }
 
@@ -30,6 +54,7 @@ function renderTickets(tickets) {
   if (!container) {
     return;
   }
+  ticketsLoaded = true;
 
   if (!tickets || tickets.length === 0) {
     showEmptyState(container, {
@@ -411,7 +436,14 @@ async function init() {
     if (ticketsUnsubscribe) {
       ticketsUnsubscribe();
     }
-    ticketsUnsubscribe = ticketingSystem.listenToUserTickets(user.id, 'customer', renderTickets, 5);
+    ticketsUserId = user.id;
+    ticketsUnsubscribe = ticketingSystem.listenToUserTickets(
+      user.id,
+      'customer',
+      renderTickets,
+      5,
+      { onError: showTicketsError }
+    );
   } catch (error) {
     console.error('Error loading tickets:', error);
     showErrorState(container, {
