@@ -560,18 +560,9 @@
       openChat();
     });
 
-    // Keyboard: Enter/Space opens chat, Escape dismisses
+    // Keyboard: Enter/Space on either button is the button's own click. Escape dismisses.
     teaserElement.addEventListener('keydown', e => {
-      if (e.key === 'Enter' || e.key === ' ') {
-        e.preventDefault();
-        window.dispatchEvent(
-          new CustomEvent('jadeassist:teaser-clicked', {
-            detail: { timestamp: Date.now(), source: 'teaser-bubble' },
-          })
-        );
-        dismissTeaser();
-        openChat();
-      } else if (e.key === 'Escape') {
+      if (e.key === 'Escape') {
         e.preventDefault();
         window.dispatchEvent(
           new CustomEvent('jadeassist:teaser-dismissed', {
