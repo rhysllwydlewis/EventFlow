@@ -1,7 +1,6 @@
 /**
  * Unit tests for new supplier endpoints:
  *   GET/PATCH /availability
- *   POST /request-review
  *   GET /performance-tips
  */
 
@@ -151,61 +150,6 @@ describe('PATCH /api/v1/supplier/availability', () => {
       .send({ status: 'unavailable' });
     expect(res.status).toBe(200);
     expect(res.body.availability.status).toBe('unavailable');
-  });
-});
-
-describe('POST /api/v1/supplier/request-review', () => {
-  beforeEach(() => {
-    jest.resetAllMocks();
-    mockDb.find.mockResolvedValue([]);
-    mockDb.insertOne.mockResolvedValue({});
-    // Default: supplier found, no existing review request
-    mockDb.findOne.mockResolvedValueOnce(SUPPLIER_DOC).mockResolvedValueOnce(null);
-  });
-
-  it('returns 400 for missing email', async () => {
-    const app = buildApp();
-    const res = await request(app)
-      .post('/api/v1/supplier/request-review')
-      .set('x-test-user-role', 'supplier')
-      .send({ customerName: 'Alice' });
-    expect(res.status).toBe(400);
-  });
-
-  it('returns 400 for invalid email format', async () => {
-    // Reset and provide fresh supplier mock
-    mockDb.findOne.mockResolvedValueOnce(SUPPLIER_DOC);
-    const app = buildApp();
-    const res = await request(app)
-      .post('/api/v1/supplier/request-review')
-      .set('x-test-user-role', 'supplier')
-      .send({ customerEmail: 'not-an-email' });
-    expect(res.status).toBe(400);
-  });
-
-  it('creates review request successfully', async () => {
-    const app = buildApp();
-    const res = await request(app)
-      .post('/api/v1/supplier/request-review')
-      .set('x-test-user-role', 'supplier')
-      .send({ customerEmail: 'alice@example.com', customerName: 'Alice' });
-    expect(res.status).toBe(200);
-    expect(res.body.ok).toBe(true);
-    expect(mockDb.insertOne).toHaveBeenCalledTimes(1);
-  });
-
-  it('returns 409 when request already sent', async () => {
-    // Override: findOne returns supplier then existing request
-    mockDb.findOne.mockReset();
-    mockDb.findOne
-      .mockResolvedValueOnce(SUPPLIER_DOC)
-      .mockResolvedValueOnce({ id: 'rreq-existing', customerEmail: 'alice@example.com' });
-    const app = buildApp();
-    const res = await request(app)
-      .post('/api/v1/supplier/request-review')
-      .set('x-test-user-role', 'supplier')
-      .send({ customerEmail: 'alice@example.com' });
-    expect(res.status).toBe(409);
   });
 });
 

@@ -1093,65 +1093,6 @@ router.patch('/availability', authRequired, csrfProtection, writeLimiter, async 
 });
 
 /**
- * POST /api/v1/supplier/request-review
- * Sends a review-request email to a past customer enquiry.
- * Rate-limited: one request per customer per supplierId.
- */
-router.post('/request-review', authRequired, csrfProtection, writeLimiter, async (req, res) => {
-  try {
-    if (req.user.role !== 'supplier') {
-      return res.status(403).json({ error: 'Suppliers only' });
-    }
-    const supplier = await dbUnified.findOne('suppliers', { ownerUserId: req.user.id });
-    if (!supplier) {
-      return res.status(404).json({ error: 'Supplier profile not found' });
-    }
-
-    const { customerEmail, customerName, threadId } = req.body;
-    if (!customerEmail || typeof customerEmail !== 'string') {
-      return res.status(400).json({ error: 'customerEmail is required' });
-    }
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(customerEmail.trim())) {
-      return res.status(400).json({ error: 'Invalid email address' });
-    }
-
-    // Idempotency: don't send twice for same supplier+customer combo
-    const existing = await dbUnified.findOne('reviewRequests', {
-      supplierId: supplier.id,
-      customerEmail: customerEmail.trim().toLowerCase(),
-    });
-    if (existing) {
-      return res
-        .status(409)
-        .json({ error: 'A review request has already been sent to this customer' });
-    }
-
-    const requestDoc = {
-      id: `rreq_${Date.now()}`,
-      supplierId: supplier.id,
-      supplierName: supplier.name || 'Your supplier',
-      customerEmail: customerEmail.trim().toLowerCase(),
-      customerName: typeof customerName === 'string' ? customerName.slice(0, 100) : '',
-      threadId: threadId || null,
-      sentAt: new Date().toISOString(),
-      status: 'sent',
-    };
-
-    await dbUnified.insertOne('reviewRequests', requestDoc);
-
-    // TODO: integrate postmark to send actual email — placeholder log for now
-    logger.info(
-      `Review request sent: supplier=${supplier.id} → customer=${requestDoc.customerEmail}`
-    );
-
-    res.json({ ok: true, message: 'Review request sent successfully' });
-  } catch (error) {
-    logger.error('POST /supplier/request-review error:', error.message);
-    res.status(500).json({ error: 'Failed to send review request' });
-  }
-});
-
-/**
  * GET /api/v1/supplier/performance-tips
  * Returns personalised actionable tips based on the supplier's profile state.
  */
