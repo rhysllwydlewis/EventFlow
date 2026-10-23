@@ -336,6 +336,18 @@
     }
   }
 
+  // Changing the sign-in email is done by support, so customers and suppliers are sent to a new
+  // support ticket on their dashboard; admins (no ticket form) keep the contact page.
+  function renderEmailChangeLink(user) {
+    const link = byId('profile-email-change-link');
+    const target = { customer: '/dashboard/customer', supplier: '/dashboard/supplier' }[user.role];
+    if (!link || !target) {
+      return;
+    }
+    link.href = `${target}?ticket=email-change`;
+    link.textContent = 'open a support ticket';
+  }
+
   // Parts of this page are only drawn once the account has loaded, so the browser has already given
   // up on a fragment like #account-type-card by the time its target exists. Links that send people
   // here (the dashboards' "switch account type" and "Verify Now") rely on this scroll.
@@ -445,6 +457,7 @@
 
       renderAccountType(user);
       renderDashboardLink(user);
+      renderEmailChangeLink(user);
 
       const isSupplier = user.role === 'supplier';
       setHidden('supplier-profile-callout', !isSupplier);

@@ -102,7 +102,7 @@ function renderTickets(tickets) {
 }
 
 // Create ticket modal
-function showCreateTicketModal() {
+function showCreateTicketModal(prefill = {}) {
   const titleId = 'ticket-create-modal-title';
   const modal = document.createElement('div');
   modal.className = 'modal-overlay active';
@@ -123,7 +123,7 @@ function showCreateTicketModal() {
           </div>
           <div class="form-row">
             <label for="ticketMessage">Message *</label>
-            <textarea id="ticketMessage" rows="6" required placeholder="Describe your issue in detail"></textarea>
+            <textarea id="ticketMessage" rows="6" required placeholder="Describe your issue in detail">${escapeHtml(prefill.message || '')}</textarea>
           </div>
           <div class="form-actions">
             <button type="submit" class="ef-cta btn btn-primary">Submit Ticket</button>
@@ -135,6 +135,10 @@ function showCreateTicketModal() {
   `;
 
   document.body.appendChild(modal);
+
+  if (prefill.subject) {
+    modal.querySelector('#ticketSubject').value = prefill.subject;
+  }
 
   // Store the element that opened the modal for focus restoration
   const previouslyFocusedElement = document.activeElement;
@@ -383,7 +387,23 @@ async function init() {
   // Create ticket button handler
   const createBtn = document.getElementById('createTicketBtn');
   if (createBtn) {
-    createBtn.addEventListener('click', showCreateTicketModal);
+    createBtn.addEventListener('click', () => showCreateTicketModal());
+  }
+
+  // Settings sends people here to ask for an email change, which support has to do by hand.
+  const params = new URLSearchParams(window.location.search);
+  if (params.get('ticket') === 'email-change') {
+    params.delete('ticket');
+    const query = params.toString();
+    window.history.replaceState(
+      null,
+      '',
+      `${window.location.pathname}${query ? `?${query}` : ''}${window.location.hash}`
+    );
+    showCreateTicketModal({
+      subject: 'Change my account email address',
+      message: "I'd like to change the email address I sign in with.\n\nNew email address: ",
+    });
   }
 
   // Listen to user's tickets with real-time updates (limit to 5 recent tickets on dashboard)

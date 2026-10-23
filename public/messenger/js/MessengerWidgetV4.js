@@ -695,7 +695,14 @@
         : `<span class="mwv4__avatar-initial">${escapeHtml(initial)}</span>`;
 
       const lastMsg = conv.lastMessage || {};
-      const preview = escapeHtml(truncate(lastMsg.content || lastMsg.text || '', 60));
+      const lastText = String(lastMsg.content || lastMsg.text || '').trim();
+      // An attachment-only message has no text; say so rather than claim the conversation is empty.
+      const hasLastMessage = Boolean(lastMsg.sentAt || lastMsg.createdAt || lastMsg.senderId);
+      const preview = lastText
+        ? escapeHtml(truncate(lastText, 60))
+        : hasLastMessage
+          ? '📎 Attachment'
+          : '';
       const time = escapeHtml(
         formatRelativeTime(lastMsg.sentAt || lastMsg.createdAt || conv.updatedAt)
       );
