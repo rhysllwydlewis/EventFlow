@@ -585,7 +585,21 @@ async function find(collectionName, filter, options = {}) {
   }
 }
 
-async function updateOne(collectionName, id, updates) {
+/**
+ * Update the first document matching `id` (a string id or a filter object).
+ *
+ * Errors are swallowed (false returned) unless `options.throwOnError` is set. `false` therefore
+ * means "no document changed" (no match, or the new values were already stored) as well as "the
+ * write failed"; a caller that must tell a failed write from an unchanged one passes
+ * `throwOnError` and treats a thrown error as the failure.
+ *
+ * @param {string} collectionName - Collection
+ * @param {string|Object} id - Document id or filter
+ * @param {Object} updates - Fields to set, or an update document with $set / $unset
+ * @param {{throwOnError?: boolean}} [options] - Pass throwOnError to rethrow failures
+ * @returns {Promise<boolean>} True when a document was modified
+ */
+async function updateOne(collectionName, id, updates, options = {}) {
   await initializeDatabase();
   try {
     // Normalise the filter: accept either a string id or a plain filter object
@@ -625,6 +639,9 @@ async function updateOne(collectionName, id, updates) {
     }
   } catch (error) {
     logger.error(`Error updating in ${collectionName}:`, error.message);
+    if (options.throwOnError) {
+      throw error;
+    }
     return false;
   }
 }
@@ -735,7 +752,18 @@ async function insertOne(collectionName, document) {
   }
 }
 
-async function deleteOne(collectionName, id) {
+/**
+ * Delete the first document matching `id` (a string id or a filter object).
+ *
+ * Errors are swallowed (false returned) unless `options.throwOnError` is set; `false` is also
+ * returned when nothing matched.
+ *
+ * @param {string} collectionName - Collection
+ * @param {string|Object} id - Document id or filter
+ * @param {{throwOnError?: boolean}} [options] - Pass throwOnError to rethrow failures
+ * @returns {Promise<boolean>} True when a document was deleted
+ */
+async function deleteOne(collectionName, id, options = {}) {
   await initializeDatabase();
   try {
     // Normalise the filter: accept either a string id or a plain filter object
@@ -757,6 +785,9 @@ async function deleteOne(collectionName, id) {
     }
   } catch (error) {
     logger.error(`Error deleting from ${collectionName}:`, error.message);
+    if (options.throwOnError) {
+      throw error;
+    }
     return false;
   }
 }

@@ -80,7 +80,8 @@ router.post('/trial/activate', authRequired, csrfProtection, async (req, res) =>
           trialUsed: true,
           updatedAt: now.toISOString(),
         },
-      }
+      },
+      { throwOnError: true }
     );
 
     res.json({
@@ -515,6 +516,7 @@ router.put('/guide-progress', authRequired, csrfProtection, writeLimiter, async 
     const progress = { status, step: stepId, at: new Date().toISOString() };
     // Set just this field so another onboarding value written at the same time is not overwritten.
     const hasOnboarding = user.onboarding && typeof user.onboarding === 'object';
+    // throwOnError: if the write fails the dashboard must hear about it (500), not be told it saved.
     await dbUnified.updateOne(
       'users',
       { id: req.user.id },
@@ -522,7 +524,8 @@ router.put('/guide-progress', authRequired, csrfProtection, writeLimiter, async 
         $set: hasOnboarding
           ? { 'onboarding.supplierGuide': progress }
           : { onboarding: { supplierGuide: progress } },
-      }
+      },
+      { throwOnError: true }
     );
     return res.json({ progress });
   } catch (error) {
@@ -811,7 +814,12 @@ router.post(
         }
       }
 
-      await dbUnified.updateOne('suppliers', { id: supplier.id }, { $set: updates });
+      await dbUnified.updateOne(
+        'suppliers',
+        { id: supplier.id },
+        { $set: updates },
+        { throwOnError: true }
+      );
 
       // Check if admin has enabled auto-approve for supplier verification
       const settings = (await dbUnified.read('settings')) || {};
@@ -837,7 +845,8 @@ router.post(
                 verifiedBy: 'system',
                 updatedAt: approvedAt,
               },
-            }
+            },
+            { throwOnError: true }
           );
           return res.json({
             message: 'Verification submitted and automatically approved.',
