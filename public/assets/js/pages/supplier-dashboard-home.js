@@ -7,10 +7,10 @@
  *   - the verification strip and the email verification banner
  *   - the summary row (unread messages, profile completeness, rating, plan, visits, replies)
  *   - the Next steps checklist
- *   - the profile visits chart, availability, tips, plan and review requests
+ *   - the profile visits chart, tips, plan and review requests
  *
  * It replaces dashboard-supplier-module.js (hero tiles, stats grid, chart, funnel, lead quality,
- * next steps, subscription card), dashboard-supplier-overhaul.js (availability, tips, review
+ * next steps, subscription card), dashboard-supplier-overhaul.js (tips, review
  * requests), supplier-dashboard-enhancements.js, dashboard-supplier-threads.js,
  * dashboard-supplier-actions.js, dashboard-supplier-auth.js and dashboard-supplier-inline.js.
  * Those drew the same facts several times from different calculations.
@@ -45,7 +45,6 @@
     chart: 'supplier-performance-chart',
     chartSub: 'sdh-performance-sub',
     tips: 'supplier-perf-tips',
-    availability: 'supplier-availability-widget',
     plan: 'supplier-subscription-card',
     reviews: 'supplier-reviews-section',
     reviewRequests: 'supplier-review-request-widget',
@@ -2060,92 +2059,6 @@
   }
 
   /* ------------------------------------------------------------------ *
-   * Availability
-   * ------------------------------------------------------------------ */
-
-  const AVAILABILITY = [
-    { value: 'available', label: 'Available' },
-    { value: 'limited', label: 'Limited' },
-    { value: 'unavailable', label: 'Unavailable' },
-  ];
-
-  /** Draws the availability picker (three options and a note) with a Save button. */
-  function renderAvailability(availability) {
-    const box = byId(ids.availability);
-    if (!box) {
-      return;
-    }
-    const current = AVAILABILITY.some(option => option.value === availability?.status)
-      ? availability.status
-      : 'available';
-    box.innerHTML = `<div class="sdh-availability" data-status="${esc(current)}">
-      <div class="sdh-seg" role="group" aria-label="Your availability">${AVAILABILITY.map(
-        option =>
-          `<button type="button" class="sdh-seg__btn" data-availability="${option.value}" aria-pressed="${option.value === current}">${option.label}</button>`
-      ).join('')}</div>
-      <div class="sdh-field">
-        <label class="sdh-label" for="sdh-availability-note">Note for customers (optional)</label>
-        <textarea id="sdh-availability-note" class="sdh-input sdh-input--area" rows="2" maxlength="300">${esc(availability?.notes || '')}</textarea>
-      </div>
-      <div class="sdh-form__actions">
-        <button type="button" class="sdh-btn sdh-btn--secondary sdh-btn--sm" data-sdh-action="save-availability">Save</button>
-        <span class="sdh-form__status" id="sdh-availability-status" role="status" aria-live="polite"></span>
-      </div>
-    </div>`;
-  }
-
-  /** Loads the saved availability, or shows an error with a retry button. */
-  async function loadAvailability() {
-    const box = byId(ids.availability);
-    if (!box) {
-      return;
-    }
-    const result = await getJson('/api/v1/supplier/availability');
-    if (!result.data) {
-      box.innerHTML =
-        '<p class="sdh-note">We could not load your availability.</p><button type="button" class="sdh-btn sdh-btn--secondary sdh-btn--sm" data-sdh-action="retry-availability">Try again</button>';
-      return;
-    }
-    renderAvailability(result.data.availability || {});
-  }
-
-  /** Saves the chosen availability and note. */
-  async function saveAvailability(button) {
-    const box = byId(ids.availability);
-    const root = box?.querySelector('.sdh-availability');
-    const status = byId('sdh-availability-status');
-    if (!root) {
-      return;
-    }
-    const pressed = root.querySelector('[aria-pressed="true"]');
-    const note = byId('sdh-availability-note');
-    button.disabled = true;
-    if (status) {
-      status.dataset.tone = '';
-      status.textContent = 'Saving…';
-    }
-    try {
-      const result = await sendJson('/api/v1/supplier/availability', 'PATCH', {
-        status: pressed ? pressed.dataset.availability : 'available',
-        notes: note ? note.value : '',
-      });
-      if (status) {
-        status.dataset.tone = result.ok ? 'success' : 'error';
-        status.textContent = result.ok
-          ? 'Saved'
-          : result.data?.error || 'Could not save. Please try again.';
-      }
-    } catch {
-      if (status) {
-        status.dataset.tone = 'error';
-        status.textContent = 'Could not save. Please try again.';
-      }
-    } finally {
-      button.disabled = false;
-    }
-  }
-
-  /* ------------------------------------------------------------------ *
    * Tips
    * ------------------------------------------------------------------ */
 
@@ -2549,8 +2462,6 @@
     'request-review': handled(() => openReviewDialog()),
     support: handled(openSupportTicket),
     billing: node => openBilling(node),
-    'save-availability': node => saveAvailability(node),
-    'retry-availability': () => loadAvailability(),
     'retry-tips': () => loadTips(),
     'reload-packages': () => window._efLoadPackages?.(),
     'retry-request': node => retryReviewRequest(node),
@@ -2565,17 +2476,10 @@
     }
   }
 
-  /** Wires the clicks for every data-sdh-action, the availability picker and the dialogs' close buttons. */
+  /** Wires the clicks for every data-sdh-action, the period buttons and the dialogs' close buttons. */
   function bindPageEvents() {
     document.addEventListener('click', event => {
       const target = event.target;
-      const seg = target.closest?.('[data-availability]');
-      if (seg) {
-        seg.parentElement.querySelectorAll('[data-availability]').forEach(button => {
-          button.setAttribute('aria-pressed', String(button === seg));
-        });
-        return;
-      }
       const periodButton = target.closest?.('[data-sdh-days]');
       if (periodButton) {
         if (!periodButton.disabled) {
@@ -2832,7 +2736,7 @@
     bindPageEvents();
     handleDeepLink();
     window.addEventListener('hashchange', handleDeepLink);
-    // Availability, tips and review requests are all about a profile: a supplier who has none
+    // Tips and review requests are all about a profile: a supplier who has none
     // would only collect 404s (which the site's fetch wrapper shows as error toasts).
     state.suppliersKnown.then(startProfileLoaders);
     initMessenger();
@@ -2857,7 +2761,6 @@
       return;
     }
     state.loadersStarted = true;
-    loadAvailability();
     loadTips();
     loadReviewRequests();
   }

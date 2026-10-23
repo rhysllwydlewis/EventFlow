@@ -1,6 +1,5 @@
 /**
  * Unit tests for new supplier endpoints:
- *   GET/PATCH /availability
  *   GET /performance-tips
  */
 
@@ -80,76 +79,16 @@ function buildApp() {
   return app;
 }
 
-describe('GET /api/v1/supplier/availability', () => {
-  beforeEach(() => {
-    jest.resetAllMocks();
-    mockDb.findOne.mockResolvedValue(SUPPLIER_DOC);
-  });
-
-  it('returns 403 for non-supplier roles', async () => {
+describe('availability endpoints (removed)', () => {
+  // suppliers.availability was never shown to customers, so the dashboard card and these routes
+  // were a control that did nothing.
+  it.each(['get', 'patch'])('%s /api/v1/supplier/availability is not served', async method => {
     const app = buildApp();
     const res = await request(app)
-      .get('/api/v1/supplier/availability')
-      .set('x-test-user-role', 'customer');
-    expect(res.status).toBe(403);
-  });
-
-  it('returns 404 when no supplier profile found', async () => {
-    mockDb.findOne.mockResolvedValue(null);
-    const app = buildApp();
-    const res = await request(app)
-      .get('/api/v1/supplier/availability')
-      .set('x-test-user-role', 'supplier');
+      [method]('/api/v1/supplier/availability')
+      .set('x-test-user-role', 'supplier')
+      .send({ status: 'limited' });
     expect(res.status).toBe(404);
-  });
-
-  it('returns availability for valid supplier', async () => {
-    const app = buildApp();
-    const res = await request(app)
-      .get('/api/v1/supplier/availability')
-      .set('x-test-user-role', 'supplier');
-    expect(res.status).toBe(200);
-    expect(res.body).toHaveProperty('availability');
-    expect(res.body.availability.status).toBe('available');
-  });
-});
-
-describe('PATCH /api/v1/supplier/availability', () => {
-  beforeEach(() => {
-    jest.resetAllMocks();
-    mockDb.findOne.mockResolvedValue(SUPPLIER_DOC);
-    mockDb.updateOne.mockResolvedValue({ modified: 1 });
-  });
-
-  it('rejects invalid status values', async () => {
-    const app = buildApp();
-    const res = await request(app)
-      .patch('/api/v1/supplier/availability')
-      .set('x-test-user-role', 'supplier')
-      .send({ status: 'invalid-status' });
-    expect(res.status).toBe(400);
-  });
-
-  it('updates availability status', async () => {
-    const app = buildApp();
-    const res = await request(app)
-      .patch('/api/v1/supplier/availability')
-      .set('x-test-user-role', 'supplier')
-      .send({ status: 'limited', notes: 'Limited in December' });
-    expect(res.status).toBe(200);
-    expect(res.body.ok).toBe(true);
-    expect(res.body.availability.status).toBe('limited');
-    expect(mockDb.updateOne).toHaveBeenCalledTimes(1);
-  });
-
-  it('accepts "unavailable" status', async () => {
-    const app = buildApp();
-    const res = await request(app)
-      .patch('/api/v1/supplier/availability')
-      .set('x-test-user-role', 'supplier')
-      .send({ status: 'unavailable' });
-    expect(res.status).toBe(200);
-    expect(res.body.availability.status).toBe('unavailable');
   });
 });
 

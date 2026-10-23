@@ -48,7 +48,6 @@ describe('first load: no error flash, no 404 toasts', () => {
     const page = runHome({ summaryStatus: 404, suppliers: [] });
     const asked = page.requested.join(' ');
     expect(asked).not.toContain('dashboard-summary');
-    expect(asked).not.toContain('/api/v1/supplier/availability');
     expect(asked).not.toContain('/api/v1/supplier/performance-tips');
     expect(asked).not.toContain('/api/v1/supplier/review-requests');
   });
@@ -56,7 +55,7 @@ describe('first load: no error flash, no 404 toasts', () => {
   test('a supplier with a profile does make them', () => {
     const page = runHome({ summaryStatus: 200, summary: {}, suppliers: [{ id: 's1' }] });
     const asked = page.requested.join(' ');
-    expect(asked).toContain('/api/v1/supplier/availability');
+    expect(asked).not.toContain('/api/v1/supplier/availability');
     expect(asked).toContain('/api/v1/supplier/performance-tips');
     expect(asked).toContain('/api/v1/supplier/review-requests');
   });
@@ -80,7 +79,6 @@ describe('first load: no error flash, no 404 toasts', () => {
       'tickets-sup',
       'sdh-steps-body',
       'supplier-subscription-card',
-      'supplier-availability-widget',
       'supplier-performance-chart',
       'supplier-perf-tips',
       'sdh-summary-grid',

@@ -314,7 +314,6 @@ describe('supplier dashboard home: structure', () => {
       'Reviews',
       'Calendar',
       'Messages',
-      'Availability',
       'Profile visits',
       'Tips',
       'Plan',
@@ -364,7 +363,6 @@ describe('supplier dashboard home: structure', () => {
       'sdh-performance-sub',
       'supplier-perf-tips',
       'sdh-tips',
-      'supplier-availability-widget',
       'supplier-subscription-card',
       'supplier-reviews-section',
       'supplier-review-request-widget',
@@ -486,12 +484,7 @@ describe('supplier dashboard home: structure', () => {
   });
 
   test('every id in the home script resolves to the page or is built by a script', () => {
-    const created = new Set([
-      'email-verify-banner',
-      'sdh-availability-note',
-      'sdh-availability-status',
-      'rreq-filter',
-    ]);
+    const created = new Set(['email-verify-banner', 'rreq-filter']);
     const present = new Set(idsIn(html));
     const idBlock = homeJs.slice(
       homeJs.indexOf('const ids = {'),
@@ -1515,12 +1508,6 @@ describe('supplier dashboard home: rendered page', () => {
     const page = run({ summary: starter, suppliers: [{ id: 's1' }] });
     expect(page.extra.text).toContain('Profile visits, last 7 days');
     expect(page.visits).toContain('Your plan shows the last 7 days.');
-  });
-
-  test('availability that cannot load shows an error with a retry, not a skeleton forever', () => {
-    const page = run({ summary: populated, suppliers: [{ id: 's1' }], availabilityFails: true });
-    expect(page.availability).toContain('We could not load your availability.');
-    expect(page.availability).toContain('Try again');
   });
 
   test('tips the server did not send are not made up: the card hides when there are none', () => {

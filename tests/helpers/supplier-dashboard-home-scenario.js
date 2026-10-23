@@ -75,11 +75,6 @@ async function main() {
         scenario.plan || { plan: 'free', status: 'free', limits: { maxPackages: 3 } }
       );
     }
-    if (target.includes('/api/v1/supplier/availability')) {
-      return scenario.availabilityFails
-        ? reply(500, {})
-        : reply(200, { availability: { status: 'limited', notes: 'Few dates left' } });
-    }
     if (target.includes('/api/v1/supplier/performance-tips')) {
       return reply(200, { tips: scenario.tips || [] });
     }
@@ -191,7 +186,6 @@ async function main() {
     visits: text(document.getElementById('supplier-performance-chart')),
     chartBars: document.querySelectorAll('#supplier-performance-chart .sdh-chart__bar').length,
     plan: text(document.getElementById('supplier-subscription-card')),
-    availability: text(document.getElementById('supplier-availability-widget')),
     tips: text(document.getElementById('supplier-perf-tips')),
     tipsHtml: document.getElementById('supplier-perf-tips').innerHTML,
     visitsHtml: document.getElementById('supplier-performance-chart').innerHTML,
