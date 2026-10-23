@@ -302,7 +302,7 @@ ${
 }${
     page.adminGuard
       ? `    <script src="/assets/js/admin-shared.js?v=18.3.1"></script>
-    <script src="/assets/js/components.js?v=18.3.0" defer></script>
+    <script src="/assets/js/components.js?v=18.4.0" defer></script>
     <script src="/assets/js/admin-navbar.js?v=18.4.0" defer></script>
 `
       : `    <script src="/assets/js/utils/auth-state.js?v=1.0.2" defer></script>

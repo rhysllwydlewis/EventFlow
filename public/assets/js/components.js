@@ -17,6 +17,12 @@ function escapeHtml(unsafe) {
 }
 
 // Modal Component
+//
+// onConfirm may return `false` to keep the dialog open (for example after showing a validation
+// error); any other return value closes it, as it always did. Escape, the close button and a click
+// on the overlay close it without calling onCancel, as before. While it is open Escape is handled
+// by one listener that is removed again on close, the dialog is named by its title, and focus goes
+// back to whatever had it before the dialog opened.
 class Modal {
   constructor(options = {}) {
     this.title = options.title || '';
@@ -28,9 +34,14 @@ class Modal {
     this.showCancel = options.showCancel !== false;
     this.overlay = null;
     this.modal = null;
+    this.opener = null;
+    this.onKeydown = null;
+    Modal.count = (Modal.count || 0) + 1;
+    this.titleId = `modal-title-${Modal.count}`;
   }
 
   show() {
+    this.opener = document.activeElement;
     this.render();
     document.body.appendChild(this.overlay);
     // Trigger reflow for animation
@@ -46,15 +57,38 @@ class Modal {
         this.hide();
       }
     });
+
+    // One Escape listener per open dialog, removed in hide().
+    this.onKeydown = e => {
+      if (e.key === 'Escape') {
+        this.hide();
+      }
+    };
+    document.addEventListener('keydown', this.onKeydown);
   }
 
   hide() {
-    this.overlay.classList.remove('active');
+    if (!this.overlay) {
+      return;
+    }
+    const overlay = this.overlay;
+    this.overlay = null;
+    if (this.onKeydown) {
+      document.removeEventListener('keydown', this.onKeydown);
+      this.onKeydown = null;
+    }
+    overlay.classList.remove('active');
     setTimeout(() => {
-      if (this.overlay && this.overlay.parentNode) {
-        this.overlay.parentNode.removeChild(this.overlay);
+      if (overlay.parentNode) {
+        overlay.parentNode.removeChild(overlay);
       }
     }, 300);
+    // Hand focus back to the control that opened the dialog, if it is still on the page.
+    const opener = this.opener;
+    this.opener = null;
+    if (opener && typeof opener.focus === 'function' && document.contains(opener)) {
+      opener.focus();
+    }
   }
 
   render() {
@@ -62,6 +96,7 @@ class Modal {
     overlayDiv.className = 'modal-overlay active';
     overlayDiv.setAttribute('role', 'dialog');
     overlayDiv.setAttribute('aria-modal', 'true');
+    overlayDiv.setAttribute('aria-labelledby', this.titleId);
 
     const modalDiv = document.createElement('div');
     modalDiv.className = 'modal';
@@ -69,7 +104,7 @@ class Modal {
     const header = document.createElement('div');
     header.className = 'modal-header';
     header.innerHTML = `
-      <h2 class="modal-title">${escapeHtml(this.title)}</h2>
+      <h2 class="modal-title" id="${this.titleId}">${escapeHtml(this.title)}</h2>
       <button class="ef-cta modal-close" aria-label="Close">&times;</button>
     `;
 
@@ -101,8 +136,9 @@ class Modal {
     confirmBtn.className = 'cta';
     confirmBtn.textContent = this.confirmText;
     confirmBtn.addEventListener('click', () => {
-      if (this.onConfirm) {
-        this.onConfirm();
+      // `false` from the handler keeps the dialog open.
+      if (this.onConfirm && this.onConfirm() === false) {
+        return;
       }
       this.hide();
     });
@@ -111,13 +147,6 @@ class Modal {
     // Close button handler
     header.querySelector('.modal-close').addEventListener('click', () => {
       this.hide();
-    });
-
-    // Escape key handler
-    document.addEventListener('keydown', e => {
-      if (e.key === 'Escape') {
-        this.hide();
-      }
     });
 
     modalDiv.appendChild(header);

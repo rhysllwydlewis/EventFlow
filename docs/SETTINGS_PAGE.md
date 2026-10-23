@@ -36,11 +36,10 @@ signed-in user with `findOne`, not the whole `users` collection.
 - **Confirmations are native `<dialog>` elements** (remove photo, switch to customer, the
   three-step delete): focus stays inside, Escape closes, focus returns to the button, and the page
   behind is inert. The switch-to-customer button stays off until `CONVERT` is typed.
-- **The page's `ef-page` tag is `account_settings`, not `settings`.** `app.js` still contains an
-  old `initSettings()` that runs for the `settings` tag: it adds a second Save handler and
-  replaces the whole page with "Unable to load settings." if its request fails. The function is
-  dead for every page now; deleting it needs an `app.js` version bump on all 90 pages that load
-  it, so it is left for a change that bumps them.
+- **The page's `ef-page` tag is `account_settings`, not `settings`.** `app.js` used to run an old
+  `initSettings()` for the `settings` tag (a second Save handler, and the whole page replaced by
+  "Unable to load settings." if its request failed). It is deleted, but visitors can hold a cached
+  `app.js` older than 18.5.11 for a week, so the tag stays different.
 - **Status colours** are `data-state` on the status element (`success`, `error`, `warn`, `info`)
   coloured from the stylesheet with AA shades; nothing sets a colour inline.
 

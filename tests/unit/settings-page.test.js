@@ -13,10 +13,14 @@ const html = read('public/settings.html');
 const js = read('public/assets/js/pages/settings-init.js');
 const css = read('public/assets/css/settings.css');
 
-describe('the page does not hand itself to the old app.js settings code', () => {
-  test('its ef-page tag is not "settings"', () => {
-    // app.js still runs initSettings() for that tag: it adds a second handler to Save preferences
-    // and replaces the whole page with "Unable to load settings." if its own request fails.
+describe('the old app.js settings code is gone, and cached copies of it cannot reach this page', () => {
+  test('app.js no longer contains initSettings', () => {
+    const appJs = read('public/assets/js/app.js');
+    expect(appJs).not.toContain('initSettings');
+    expect(appJs).not.toContain('Unable to load settings.');
+  });
+
+  test('the page keeps a tag other than "settings", which a cached older app.js would act on', () => {
     expect(html).toMatch(/<meta name="ef-page" content="account_settings">/);
     expect(html).not.toMatch(/<meta name="ef-page" content="settings">/);
   });
@@ -61,8 +65,8 @@ describe('the markup', () => {
 describe('the script', () => {
   test('status colours come from the stylesheet, never inline', () => {
     expect(js).not.toMatch(/\.style\.color\s*=/);
-    expect(css).toMatch(/\[data-state="success"\]\s*\{\s*color:\s*#047857/);
-    expect(css).toMatch(/\[data-state="error"\]\s*\{\s*color:\s*#b91c1c/);
+    expect(css).toMatch(/\[data-state=["']success["']\]\s*\{\s*color:\s*#047857/);
+    expect(css).toMatch(/\[data-state=["']error["']\]\s*\{\s*color:\s*#b91c1c/);
   });
 
   test('the newsletter request uses the saved address', () => {
