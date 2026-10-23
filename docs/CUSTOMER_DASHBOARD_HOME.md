@@ -82,6 +82,10 @@ Plans card marks the one in the summary. The budget form saves to that same plan
   or, with none, the shared placeholder from `utils/supplier-avatar.js`: white initials on that
   supplier's own colour. The response is `private` and never stored in the shared search cache,
   because it depends on who is signed in.
+  The plan's budget and event type are deliberately not sent. The endpoint's `budget` is a 1-4
+  price tier (a plan holds pounds, or a wizard range, and nothing maps one to the other), and its
+  `eventType` is matched against supplier categories, so "wedding" would replace the customer's
+  own preferred category as the one to favour.
 - **Account-type notice** ("Want to list a business? Switch to a supplier account."): shown to
   customers until dismissed (per browser). Its layout follows its own width (container query
   units): one line with the whole sentence on desktop and tablet (the text scaling down to 12px
