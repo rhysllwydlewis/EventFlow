@@ -196,6 +196,10 @@ test.describe('Desktop customer and supplier account navigation @backend', () =>
       context,
       baseURL,
     }) => {
+      // Eight resizes, each followed by a click that waits for the button to settle. WebKit takes
+      // about 2.5s per width (about 20s in all, before sign-in and page load), which is too close
+      // to the 30s limit on a busy CI runner. This gives the one test three times the limit.
+      test.slow();
       await open(page, context, baseURL, role, '/guides');
       for (const width of [1279, 1240, 1152, 1100, 1024, 768, 390, 320]) {
         await page.setViewportSize({ width, height: 900 });
