@@ -106,8 +106,9 @@ describe('the pieces agree with each other', () => {
     // Measured only once the real header is drawn (never from the hinted one, whose width is the
     // reservation itself), and forgotten on logout.
     expect(navbar).toMatch(
-      /if \(user && !hintedUsers\.has\(user\)\) \{\s*rememberActionsWidth\(\);/
+      /function rememberActionsWidth\(user\) \{\s*if \(!user \|\| hintedUsers\.has\(user\)\) \{\s*return;/
     );
+    expect(navbar).toContain('rememberActionsWidth(user);');
     expect(navbar).toContain('localStorage.removeItem(AUTH_HINT_WIDTH_KEY)');
   });
 
@@ -127,7 +128,9 @@ describe('the pieces agree with each other', () => {
     // skips the save and keeps the early state.
     expect(navbar).toContain('const hintedUsers = new WeakSet();');
     expect(navbar).toContain('hintedUsers.add(hintedUser);');
-    expect(navbar).toMatch(/if \(!hintedUsers\.has\(user\)\) \{[\s\S]*?saveAuthHint\(user\);/);
+    expect(navbar).toMatch(
+      /function settleAuthHint\(user\) \{\s*if \(hintedUsers\.has\(user\)\) \{\s*return;[\s\S]*?saveAuthHint\(user\);/
+    );
   });
 
   test('navbar.css hides "Log in", reserves the signed-in actions and mirrors the nav rules', () => {

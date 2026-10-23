@@ -108,9 +108,13 @@
   /**
    * Remembers how wide the signed-in header actions really are on this device, so the next page can
    * reserve exactly that much before they are drawn (the width depends on the device's fonts).
-   * Only the desktop layout with the Account control reserves space, so only that is measured.
+   * Only the desktop layout with the Account control reserves space, so only that is measured, and
+   * only for a real signed-in user: the remembered one is drawn at the reservation itself.
    */
-  function rememberActionsWidth() {
+  function rememberActionsWidth(user) {
+    if (!user || hintedUsers.has(user)) {
+      return;
+    }
     try {
       const actions = document.querySelector('.ef-header-actions');
       const account = elements.accountMenu;
@@ -391,20 +395,29 @@
   }
 
   /**
+   * Called as the header is drawn for `user`. The remembered account type (a user in `hintedUsers`)
+   * is drawn while the server is still being asked and changes nothing here; the server's answer
+   * (or null) settles the header: the early state from auth-hint.js is no longer needed, the next
+   * page remembers this answer, and how wide the real actions are is noted for the next page.
+   */
+  function settleAuthHint(user) {
+    if (hintedUsers.has(user)) {
+      return;
+    }
+    window.clearTimeout(hintTimer);
+    document.documentElement.classList.remove('ef-hint-in');
+    if (!keepHint) {
+      saveAuthHint(user);
+    }
+  }
+
+  /**
    * Draws the header for `user`. A user in `hintedUsers` is the remembered account type, drawn while
    * the server is still being asked; the server's answer (or null) replaces it.
    */
   function updateAuthUI(user) {
     state.user = user;
-    if (!hintedUsers.has(user)) {
-      // Settled: the server's answer is now what the header shows, so the early state from
-      // auth-hint.js is no longer needed, and the next page remembers this answer.
-      window.clearTimeout(hintTimer);
-      document.documentElement.classList.remove('ef-hint-in');
-      if (!keepHint) {
-        saveAuthHint(user);
-      }
-    }
+    settleAuthHint(user);
     updateAccountMenu(user);
 
     // The signed-in header carries a notifications button, "Log out" and
@@ -562,10 +575,7 @@
       }
     }
 
-    // The real header is drawn, so note how wide its actions are on this device for the next page.
-    if (user && !hintedUsers.has(user)) {
-      rememberActionsWidth();
-    }
+    rememberActionsWidth(user);
   }
 
   // ==========================================
