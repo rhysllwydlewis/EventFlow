@@ -70,7 +70,7 @@ const ASSET_VERSIONS = {
   // 18.4.2: added the shared --ef-bottom-nav-height custom property (read by
   // components.css's cookie banner, see above) and pointed the body's own
   // bottom-nav padding at it instead of a separate hardcoded 76px.
-  '/assets/css/navbar.css': '18.4.2',
+  '/assets/css/navbar.css': '18.4.3',
   '/assets/js/community/core.js': '18.6.0',
   '/assets/js/community/home.js': '18.6.0',
   '/assets/js/community/thread.js': '18.6.0',
@@ -307,7 +307,7 @@ ${
 `
       : `    <script src="/assets/js/utils/auth-state.js?v=1.0.2" defer></script>
     <script src="/assets/js/burger-menu.js" defer></script>
-    <script src="/assets/js/navbar.js?v=1.0.1" defer></script>
+    <script src="/assets/js/navbar.js?v=1.1.0" defer></script>
     <script src="/assets/js/notifications.js?v=2.0.3" defer></script>
 `
   }    <script src="/assets/js/cookie-consent.js?v=3.0.0" defer></script>

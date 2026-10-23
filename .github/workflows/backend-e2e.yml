@@ -161,6 +161,7 @@ jobs:
         timeout-minutes: 35
         run: >-
           npx playwright test
+          e2e/account-menu.spec.js
           e2e/supplier-dashboard-actions.spec.js
           e2e/supplier-dashboard-audit.spec.js
           e2e/supplier-dashboard-conditions.spec.js

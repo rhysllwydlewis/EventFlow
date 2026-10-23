@@ -447,6 +447,111 @@
   min-height: 44px;
 }
 
+/* Desktop account navigation, shared by customers and suppliers. */
+.ef-account-menu {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.ef-account-menu[hidden],
+.ef-account-panel[hidden],
+body.ef-account-menu-enabled #ef-auth-link {
+  display: none !important;
+}
+
+.ef-header-actions .ef-account-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 9px 12px;
+  white-space: nowrap;
+}
+
+.ef-account-menu svg {
+  display: block;
+  flex-shrink: 0;
+  width: 18px;
+  height: 18px;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.ef-account-menu .ef-account-chevron {
+  width: 14px;
+  height: 14px;
+}
+
+.ef-account-panel {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  z-index: var(--ef-z-menu);
+  width: 208px;
+  padding: 6px;
+  border: 1px solid var(--ef-border);
+  border-radius: 10px;
+  background: #fff;
+  box-shadow: var(--ef-shadow-lg);
+}
+
+.ef-account-panel .ef-account-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 44px;
+  margin: 0;
+  padding: 10px 12px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--ef-text-dark);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1.4;
+  text-align: left;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.ef-account-panel .ef-account-item:hover,
+.ef-account-panel .ef-account-item[aria-current='page'] {
+  background: rgba(11, 128, 115, 0.08);
+  color: var(--ef-primary-dark);
+}
+
+.ef-account-menu :is(button, a):focus-visible {
+  outline: 2px solid var(--ef-primary);
+  outline-offset: 2px;
+}
+
+.ef-account-panel .ef-account-logout {
+  margin-top: 4px;
+  border-top: 1px solid var(--ef-border);
+  border-top-left-radius: 0;
+  border-top-right-radius: 0;
+}
+
+@media (max-width: 1099px) {
+  .ef-account-menu {
+    display: none;
+  }
+}
+
+/* The wider Account control needs more room than the previous Log out link.
+   Keep all destinations in the hamburger until the full row fits. */
+@media (max-width: 1199px) {
+  body.ef-account-menu-enabled .ef-nav-desktop {
+    display: none;
+  }
+
+  body.ef-account-menu-enabled .ef-mobile-toggle {
+    display: flex;
+  }
+}
+
 /* Icon Button - Enhanced styling */
 .ef-icon-btn {
   position: relative;
