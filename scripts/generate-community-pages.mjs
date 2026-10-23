@@ -70,7 +70,7 @@ const ASSET_VERSIONS = {
   // 18.4.2: added the shared --ef-bottom-nav-height custom property (read by
   // components.css's cookie banner, see above) and pointed the body's own
   // bottom-nav padding at it instead of a separate hardcoded 76px.
-  '/assets/css/navbar.css': '18.4.4',
+  '/assets/css/navbar.css': '18.5.0',
   '/assets/js/community/core.js': '18.6.0',
   '/assets/js/community/home.js': '18.6.0',
   '/assets/js/community/thread.js': '18.6.0',
@@ -136,6 +136,7 @@ ${page.adminGuard ? '    <script src="/assets/js/dashboard-guard.js?v=18.4.0"></
     <link rel="stylesheet" href="/assets/css/utilities.css?v=${version('/assets/css/utilities.css')}" />
     <link rel="stylesheet" href="/assets/css/components.css?v=${version('/assets/css/components.css')}" />
     <link rel="stylesheet" href="/assets/css/mobile-optimizations.css?v=${version('/assets/css/mobile-optimizations.css')}" />
+    <script src="/assets/js/utils/auth-hint.js?v=1.0.0"></script>
     <link rel="stylesheet" href="/assets/css/navbar.css?v=${version('/assets/css/navbar.css')}" />
     <link rel="stylesheet" href="/assets/css/eventflow-brand.css?v=1.0.1" data-eventflow-brand="true" />
     <link rel="stylesheet" href="/assets/css/community.css?v=${version('/assets/css/community.css')}" />
@@ -307,7 +308,7 @@ ${
 `
       : `    <script src="/assets/js/utils/auth-state.js?v=1.0.2" defer></script>
     <script src="/assets/js/burger-menu.js?v=1.1.0" defer></script>
-    <script src="/assets/js/navbar.js?v=1.2.0" defer></script>
+    <script src="/assets/js/navbar.js?v=1.3.0" defer></script>
     <script src="/assets/js/notifications.js?v=2.0.3" defer></script>
 `
   }    <script src="/assets/js/cookie-consent.js?v=3.0.0" defer></script>

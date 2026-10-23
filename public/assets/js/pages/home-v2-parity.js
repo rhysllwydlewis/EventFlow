@@ -106,6 +106,12 @@
   }
 
   function getDashboardUrl(user) {
+    // Until the user is known (the header can be drawn early from a remembered account type) use the
+    // route that sends each account to its own dashboard, not the customer's.
+    if (!user) {
+      return '/dashboard';
+    }
+
     const role = String(user?.role || user?.accountType || '').toLowerCase();
 
     if (role.includes('supplier')) {
@@ -170,6 +176,21 @@
     }
   }
 
+  // The remembered account type (utils/auth-hint.js) draws the signed-in header from the first frame;
+  // once the server has answered, drop that early state and remember the answer for the next page.
+  function settleAuthHint(user) {
+    document.documentElement.classList.remove('ef-hint-in');
+    try {
+      if (user && ['customer', 'supplier'].includes(user.role)) {
+        window.localStorage.setItem('ef_auth_hint', user.role);
+      } else {
+        window.localStorage.removeItem('ef_auth_hint');
+      }
+    } catch {
+      // Storage can be blocked; the header then waits for the server as before.
+    }
+  }
+
   async function initialiseAuthAwareNav() {
     setAuthenticatedState(null);
 
@@ -179,9 +200,14 @@
 
     try {
       const result = await window.AuthStateManager.init();
+      settleAuthHint(result?.user || null);
       setAuthenticatedState(result?.user || null);
-      window.AuthStateManager.subscribe(({ user }) => setAuthenticatedState(user));
+      window.AuthStateManager.subscribe(({ user }) => {
+        settleAuthHint(user);
+        setAuthenticatedState(user);
+      });
     } catch {
+      settleAuthHint(null);
       setAuthenticatedState(null);
     }
   }

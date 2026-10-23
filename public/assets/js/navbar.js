@@ -55,10 +55,85 @@
   };
 
   // ==========================================
+  // AUTH HINT
+  // ==========================================
+
+  // The kind of account this browser last saw signed in. utils/auth-hint.js reads it from <head>
+  // so the first paint already has the signed-in layout; this file keeps it up to date. It only
+  // shapes the header while the server is asked who is signed in, and is never trusted for
+  // anything else.
+  const AUTH_HINT_KEY = 'ef_auth_hint';
+  const AUTH_HINT_WIDTH_KEY = 'ef_auth_hint_w';
+  const HINT_ROLES = ['customer', 'supplier'];
+
+  // The stand-in users drawn from the hint. Tracked here rather than by a property on the user, so
+  // nothing the server sends can be mistaken for one.
+  const hintedUsers = new WeakSet();
+
+  // How long the header may show the remembered account type while the server has not answered.
+  // Past it the header goes back to "Log in" (without forgetting the hint, which the server's answer
+  // still settles), so a visitor whose session has ended, with an auth request that stalls, can sign
+  // in rather than wait. auth-hint.js uses the same figure for the early styles.
+  const HINT_PATIENCE_MS = 6000;
+  let hintTimer = 0;
+  let keepHint = false;
+
+  function readAuthHint() {
+    try {
+      const role = window.localStorage.getItem(AUTH_HINT_KEY);
+      return HINT_ROLES.includes(role) ? role : '';
+    } catch {
+      return '';
+    }
+  }
+
+  function saveAuthHint(user) {
+    try {
+      if (HINT_ROLES.includes(user?.role)) {
+        window.localStorage.setItem(AUTH_HINT_KEY, user.role);
+      } else {
+        window.localStorage.removeItem(AUTH_HINT_KEY);
+      }
+    } catch {
+      // Storage can be blocked; the header then waits for the server as before.
+    }
+  }
+
+  // ==========================================
   // DOM REFERENCES
   // ==========================================
 
   let elements = {};
+
+  /**
+   * Remembers how wide the signed-in header actions really are on this device, so the next page can
+   * reserve exactly that much before they are drawn (the width depends on the device's fonts).
+   * Only the desktop layout with the Account control reserves space, so only that is measured, and
+   * only for a real signed-in user: the remembered one is drawn at the reservation itself.
+   */
+  function rememberActionsWidth(user) {
+    if (!user || hintedUsers.has(user)) {
+      return;
+    }
+    try {
+      const actions = document.querySelector('.ef-header-actions');
+      const account = elements.accountMenu;
+      if (
+        !actions ||
+        !account ||
+        account.hidden ||
+        !window.matchMedia('(min-width: 1280px)').matches
+      ) {
+        return;
+      }
+      const width = actions.getBoundingClientRect().width;
+      if (width >= 150 && width <= 500) {
+        window.localStorage.setItem(AUTH_HINT_WIDTH_KEY, width.toFixed(2));
+      }
+    } catch {
+      // Storage can be blocked; the stylesheet's default width is used then.
+    }
+  }
 
   function initElements() {
     elements = {
@@ -267,6 +342,8 @@
     // Clear local storage
     try {
       localStorage.removeItem('user');
+      localStorage.removeItem(AUTH_HINT_KEY);
+      localStorage.removeItem(AUTH_HINT_WIDTH_KEY);
       localStorage.removeItem('eventflow_onboarding_new');
       sessionStorage.clear();
     } catch (error) {
@@ -307,8 +384,40 @@
     window.location.href = `/?t=${Date.now()}`;
   }
 
+  /** Stops showing the remembered account type, keeping the hint for the server's answer to settle. */
+  function giveUpHint() {
+    keepHint = true;
+    try {
+      updateAuthUI(null);
+    } finally {
+      keepHint = false;
+    }
+  }
+
+  /**
+   * Called as the header is drawn for `user`. The remembered account type (a user in `hintedUsers`)
+   * is drawn while the server is still being asked and changes nothing here; the server's answer
+   * (or null) settles the header: the early state from auth-hint.js is no longer needed, the next
+   * page remembers this answer, and how wide the real actions are is noted for the next page.
+   */
+  function settleAuthHint(user) {
+    if (hintedUsers.has(user)) {
+      return;
+    }
+    window.clearTimeout(hintTimer);
+    document.documentElement.classList.remove('ef-hint-in');
+    if (!keepHint) {
+      saveAuthHint(user);
+    }
+  }
+
+  /**
+   * Draws the header for `user`. A user in `hintedUsers` is the remembered account type, drawn while
+   * the server is still being asked; the server's answer (or null) replaces it.
+   */
   function updateAuthUI(user) {
     state.user = user;
+    settleAuthHint(user);
     updateAccountMenu(user);
 
     // The signed-in header carries a notifications button, "Log out" and
@@ -465,6 +574,8 @@
         btn.style.display = 'none';
       }
     }
+
+    rememberActionsWidth(user);
   }
 
   // ==========================================
@@ -646,8 +757,20 @@
       initNotificationSync();
       setCurrentPage();
 
-      // Fetch CSRF token
-      await initCsrfToken();
+      // Draw the signed-in header straight away when this browser was signed in on the last page,
+      // rather than showing "Log in" until the server answers. It is replaced by the real answer
+      // below, and by "Log in" if the session has ended.
+      const hintedRole = readAuthHint();
+      if (hintedRole) {
+        const hintedUser = { role: hintedRole };
+        hintedUsers.add(hintedUser);
+        updateAuthUI(hintedUser);
+        hintTimer = window.setTimeout(giveUpHint, HINT_PATIENCE_MS);
+      }
+
+      // Fetch the CSRF token alongside the auth check rather than before it: nothing here needs it,
+      // and logout() fetches it itself if a click arrives first. Waiting for it delayed the header.
+      initCsrfToken();
 
       // Setup auth state listener
       const authState = getAuthState();

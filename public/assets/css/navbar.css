@@ -449,6 +449,45 @@
   min-height: 44px;
 }
 
+/* ========================================
+   SIGNED-IN HEADER BEFORE THE SERVER HAS ANSWERED
+   ======================================== */
+
+/* utils/auth-hint.js marks <html> with .ef-hint-in, from <head> and before the first paint, when
+   this browser was signed in as a customer or supplier on the last page. Until navbar.js hears
+   from the server, the header then looks the way it is about to: no "Log in" flashing up for
+   someone who is signed in, and the nav links already where they will end up, instead of
+   jumping sideways when the signed-in buttons appear (the cause of mis-clicks on the nav).
+   navbar.js removes the class once the server has answered, whichever way it went.
+
+   These mirror the body.ef-signed-in / body.ef-account-menu-enabled rules that take over then. */
+html.ef-hint-in #ef-auth-link {
+  display: none !important;
+}
+
+@media (min-width: 1280px) {
+  /* Room for the bell, Account and Dashboard that replace "Log in". The width is that of this
+     device's own header when it was last settled (--ef-hint-actions-w, set by utils/auth-hint.js
+     from what navbar.js measured, since the fonts differ from device to device); 302.28px, which
+     is 44 + 130 + 104.28 + two 12px gaps in the reference rendering, is the first-visit default.
+     Pushed to the right edge so the buttons that are already drawn do not move when the others
+     arrive. */
+  html.ef-hint-in .ef-header-actions {
+    justify-content: flex-end;
+    min-width: var(--ef-hint-actions-w, 302.28px);
+  }
+}
+
+@media (max-width: 1279px) {
+  html.ef-hint-in .ef-nav-desktop {
+    display: none;
+  }
+
+  html.ef-hint-in .ef-mobile-toggle {
+    display: flex;
+  }
+}
+
 /* Desktop account navigation, shared by customers and suppliers. */
 .ef-account-menu {
   position: relative;
@@ -1181,32 +1220,45 @@ body.ef-menu-open {
   flex-shrink: 1;
 }
 
-/* Logged-in state adjustments for bottom nav */
-.ef-bottom-nav.logged-in {
+/* Logged-in state adjustments for bottom nav. html.ef-hint-in is the same state drawn before the
+   server has answered (see utils/auth-hint.js), so the bar does not resize and animate on every
+   page load for someone who is signed in. */
+.ef-bottom-nav.logged-in,
+html.ef-hint-in .ef-bottom-nav {
   padding: 8px 4px 10px;
   transition: padding 0.3s ease;
 }
 
-.ef-bottom-nav.logged-in .ef-bottom-link {
+.ef-bottom-nav.logged-in .ef-bottom-link,
+html.ef-hint-in .ef-bottom-nav .ef-bottom-link {
   min-width: 48px;
   padding: 6px 8px;
   gap: 3px;
   transition: all 0.3s ease;
 }
 
-.ef-bottom-nav.logged-in #ef-bottom-menu {
+.ef-bottom-nav.logged-in #ef-bottom-menu,
+html.ef-hint-in .ef-bottom-nav #ef-bottom-menu {
   min-width: 44px;
   max-width: 52px;
   padding: 6px 6px;
 }
 
-.ef-bottom-nav.logged-in .ef-bottom-icon {
+.ef-bottom-nav.logged-in .ef-bottom-icon,
+html.ef-hint-in .ef-bottom-nav .ef-bottom-icon {
   width: 22px;
   height: 22px;
 }
 
-.ef-bottom-nav.logged-in .ef-bottom-label {
+.ef-bottom-nav.logged-in .ef-bottom-label,
+html.ef-hint-in .ef-bottom-nav .ef-bottom-label {
   font-size: 11px;
+}
+
+/* The Dashboard (and, where a page has it, Settings) tab that a signed-in person gets. */
+html.ef-hint-in #ef-bottom-dashboard,
+html.ef-hint-in #ef-bottom-settings {
+  display: flex !important;
 }
 
 /* Body padding for bottom nav */
@@ -1514,7 +1566,8 @@ body {
   }
 
   /* Ensure labels stay visible but compact */
-  .ef-bottom-nav.logged-in .ef-bottom-link {
+  .ef-bottom-nav.logged-in .ef-bottom-link,
+  html.ef-hint-in .ef-bottom-nav .ef-bottom-link {
     padding: 6px 1px;
     min-width: 36px;
   }
