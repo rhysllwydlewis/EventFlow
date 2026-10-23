@@ -98,7 +98,7 @@ function median(values) {
  *
  * @param {Array<{customerFirstMs: number, supplierFirstMs: number|null}>} samples - One per conversation
  * @param {number} nowMs - Reference time in epoch milliseconds
- * @returns {{sampleSize: number, matureSampleSize: number, repliedPct: number|null, medianMinutes: number|null}}
+ * @returns {{sampleSize: number, matureSampleSize: number, unanswered: number, repliedPct: number|null, medianMinutes: number|null}}
  */
 function summariseResponses(samples, nowMs) {
   const mature = samples.filter(sample => nowMs - sample.customerFirstMs >= REPLY_GRACE_MS);
@@ -111,6 +111,9 @@ function summariseResponses(samples, nowMs) {
   return {
     sampleSize: samples.length,
     matureSampleSize: mature.length,
+    // Customer-started conversations at least a day old that the supplier has not answered.
+    // A plain count, so it is reported even when the sample is too small for a percentage.
+    unanswered: mature.length - replied.length,
     repliedPct:
       mature.length >= MIN_RESPONSE_SAMPLE
         ? Math.round((replied.length / mature.length) * 100)

@@ -222,42 +222,23 @@ describe('links stay on this site', () => {
 });
 
 describe('tips do something', () => {
+  const tip = (id, type, label, extra = {}) => ({
+    id,
+    title: `Title ${id}`,
+    body: 'b',
+    action: { type, label, href: '#toggle-profile-form', ...extra },
+  });
   const tips = [
-    {
-      id: 'add-desc',
-      title: 'Add a description',
-      body: 'b',
-      action: { href: '#toggle-profile-form', label: 'Add description' },
-    },
-    {
-      id: 'add-photos',
-      title: 'Add photos',
-      body: 'b',
-      action: { href: '#my-suppliers', label: 'Add photos' },
-    },
-    {
-      id: 'add-package',
-      title: 'Add a package',
-      body: 'b',
-      action: { href: '#toggle-package-form', label: 'Create a package' },
-    },
-    {
-      id: 'get-review',
-      title: 'Get a review',
-      body: 'b',
-      action: { href: '#reviews', label: 'Ask for a review' },
-    },
-    {
-      id: 'add-tagline',
-      title: 'Add a tagline',
-      body: 'b',
-      action: { href: '/supplier/profile-customization', label: 'Add tagline' },
-    },
+    tip('write-description', 'open-profile-editor', 'Edit description', { field: 'description' }),
+    tip('add-photos', 'open-profile-editor', 'Add gallery photos', { field: 'photos' }),
+    tip('first-package', 'open-package-form', 'Create package'),
+    tip('first-review', 'open-review-request', 'Request a review'),
+    tip('add-social-links', 'open-profile-editor', 'Link socials', { field: 'social-links' }),
     {
       id: 'mystery',
       title: 'Something else',
       body: 'b',
-      action: { href: '#toggle-profile-form', label: 'Open' },
+      action: { type: 'not-a-known-type', href: '#toggle-profile-form', label: 'Open' },
     },
   ];
   const page = runHome({ summary: {}, suppliers: [{ id: 's1' }], tips });
@@ -271,7 +252,7 @@ describe('tips do something', () => {
     expect(page.tipsHtml).toContain('data-sdh-action="request-review"');
   });
 
-  test('tagline and social tips go to the page that has the setting', () => {
+  test('the social tip goes to the page that has the setting', () => {
     expect(page.tipsHtml).toContain('href="/supplier/profile-customization"');
   });
 
@@ -282,6 +263,41 @@ describe('tips do something', () => {
     // An unknown tip with a dead link is shown without an action rather than with a broken one.
     expect(page.tipsHtml).toContain('Something else');
     expect(page.tipsHtml).not.toContain('>Open<');
+  });
+
+  test('every action type the server can send is mapped to something the page does', () => {
+    const { ACTION_TYPES } = require('../../services/supplierTips');
+    ACTION_TYPES.forEach(type => {
+      expect(homeSource).toContain(`'${type}'`);
+    });
+  });
+
+  test('account, enquiry, message, review, calendar and plan tips act on the page', () => {
+    const more = runHome({
+      summary: {},
+      suppliers: [{ id: 's1' }],
+      tips: [
+        tip('verify-email', 'verify-email', 'Verify email'),
+        tip('verification-changes', 'open-verification', 'Resubmit'),
+        tip('profile-suspended', 'open-support', 'Contact support'),
+        tip('new-enquiries', 'open-enquiries', 'Open enquiries'),
+        tip('unanswered-conversations', 'open-messages', 'Open messages'),
+        tip('unanswered-reviews', 'open-reviews', 'View reviews'),
+        tip('publish-event', 'open-calendar', 'Open calendar'),
+        tip('package-limit', 'open-plan', 'See plans'),
+        tip('add-profile-photo', 'open-profile-editor', 'Add photo', { field: 'profile-photo' }),
+      ],
+    });
+    const html = more.tipsHtml;
+    expect(html).toContain('data-sdh-action="resend-email"');
+    expect(html).toContain('data-sdh-action="verify"');
+    expect(html).toContain('data-sdh-action="support"');
+    expect(html).toContain('data-sdh-action="open-enquiries"');
+    expect(html).toContain('data-sdh-action="scroll" data-sdh-target="sdh-messages"');
+    expect(html).toContain('data-sdh-action="scroll" data-sdh-target="sdh-reviews"');
+    expect(html).toContain('data-sdh-action="scroll" data-sdh-target="availability-calendar"');
+    expect(html).toContain('href="/supplier/subscription"');
+    expect(html).toContain('data-sdh-action="upload-avatar"');
   });
 });
 

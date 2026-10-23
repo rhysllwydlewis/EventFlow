@@ -2062,28 +2062,69 @@
    * Tips
    * ------------------------------------------------------------------ */
 
+  /** The profile-form field each tip `field` focuses when the profile editor opens. */
+  const TIP_FIELD_FOCUS = {
+    description: 'sup-long',
+    photos: 'sup-photo-drop',
+    category: 'sup-category',
+    location: 'sup-location',
+    banner: 'sdh-banner-upload',
+    website: 'sup-website',
+  };
+
+  /** What each server tip `action.type` does on this page. `null` = decided by the tip's field. */
+  const TIP_ACTIONS = {
+    'verify-email': { action: 'resend-email' },
+    'open-verification': { action: 'verify' },
+    'open-support': { action: 'support' },
+    'open-profile-editor': null,
+    'open-packages': { action: 'scroll', target: 'my-packages' },
+    'open-package-form': { action: 'new-package' },
+    'open-enquiries': { action: 'open-enquiries' },
+    'open-messages': { action: 'scroll', target: 'sdh-messages' },
+    'open-reviews': { action: 'scroll', target: 'sdh-reviews' },
+    'open-review-request': { action: 'request-review' },
+    'open-calendar': { action: 'scroll', target: 'availability-calendar' },
+    'open-plan': { href: '/supplier/subscription' },
+  };
+
+  /** How a tip is acted on: { action, focus, target } for a page action, { href } for a link, or null. */
+  function tipAction(tip) {
+    const type = String(tip?.action?.type || '');
+    if (!Object.hasOwn(TIP_ACTIONS, type)) {
+      return null;
+    }
+    if (type === 'open-profile-editor') {
+      const field = String(tip.action.field || '');
+      if (field === 'profile-photo') {
+        return { action: 'upload-avatar' };
+      }
+      if (field === 'social-links') {
+        return { href: '/supplier/profile-customization' };
+      }
+      return { action: 'edit-profile', focus: TIP_FIELD_FOCUS[field] || 'sup-name' };
+    }
+    return TIP_ACTIONS[type];
+  }
+
   /**
-   * The button or link for a tip. The server names the tip (`id`) and gives a link that is only a
-   * fragment of this page, so the tip is mapped to what the page can really do: open the profile
-   * editor on a field, open the package editor, open Request a review, or go to the page that has
-   * the setting. Anything that maps to none of those, and has no same-site link, gets no action.
+   * The button or link for a tip. The server names what the tip does (`action.type`, and for the
+   * profile editor which `field`), so each tip is mapped to what the page can really do: open the
+   * profile editor on a field, open the package editor, open Request a review, scroll to a card, or
+   * follow the link to the page that has the setting. A tip of a type this page does not know gets a
+   * link only if the server sent a same-site address that is not a button on this page, and
+   * otherwise no action.
    */
   function tipActionHtml(tip) {
     const label = tip?.action?.label;
     if (!label) {
       return '';
     }
-    const known = {
-      'add-desc': { action: 'edit-profile', focus: 'sup-long' },
-      'add-photos': { action: 'edit-profile', focus: 'sup-photo-drop' },
-      'add-package': { action: 'new-package' },
-      'get-review': { action: 'request-review' },
-      'add-tagline': { href: '/supplier/profile-customization' },
-      'social-links': { href: '/supplier/profile-customization' },
-    }[String(tip.id || '')];
+    const known = tipAction(tip);
     if (known?.action) {
       const focus = known.focus ? ` data-sdh-focus="${esc(known.focus)}"` : '';
-      return `<button type="button" class="sdh-link" data-sdh-action="${esc(known.action)}"${focus}>${esc(label)}</button>`;
+      const target = known.target ? ` data-sdh-target="${esc(known.target)}"` : '';
+      return `<button type="button" class="sdh-link" data-sdh-action="${esc(known.action)}"${focus}${target}>${esc(label)}</button>`;
     }
     const href = localHref(known ? known.href : tip.action.href);
     if (href && !href.startsWith('#toggle-') && href !== '#my-suppliers') {

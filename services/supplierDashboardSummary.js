@@ -539,7 +539,13 @@ function buildEnquiryBlocks(engagement) {
       truncated: false,
       requests: { received: null, new: null },
     },
-    responses: { sampleSize: null, matureSampleSize: null, repliedPct: null, medianMinutes: null },
+    responses: {
+      sampleSize: null,
+      matureSampleSize: null,
+      unanswered: null,
+      repliedPct: null,
+      medianMinutes: null,
+    },
   };
 }
 
@@ -644,7 +650,19 @@ const UNRESOLVED_SUBSCRIPTION = Object.freeze({
  * @param {Date} [params.now] - Reference time (for tests; also disables engagement result reuse)
  * @returns {Promise<Object>} Summary payload
  */
-async function buildDashboardSummary({ userId, supplier, requestedDays = null, now: fixedNow }) {
+async function buildDashboardSummary(params) {
+  return (await buildSummaryWithContext(params)).summary;
+}
+
+/**
+ * Build the summary and also hand back the raw records it was computed from, for
+ * callers (the tips endpoint) that need a little more than the summary exposes.
+ * The raw records are for server-side use only and must never be sent to a client.
+ *
+ * @param {Object} params - Same as buildDashboardSummary
+ * @returns {Promise<{summary: Object, raw: {packageDocs: (Object[]|null), reviewDocs: (Object[]|null)}}>}
+ */
+async function buildSummaryWithContext({ userId, supplier, requestedDays = null, now: fixedNow }) {
   // A caller-supplied clock (tests) bypasses the short-lived engagement result reuse.
   const now = fixedNow || new Date();
   const supplierId = supplier.id;
@@ -681,7 +699,7 @@ async function buildDashboardSummary({ userId, supplier, requestedDays = null, n
   const { enquiries, responses } = buildEnquiryBlocks(engagement);
   const totalViews = analyticsBase ? analyticsBase.totalViews : null;
 
-  return {
+  const summary = {
     window: analyticsWindow,
     verification,
     profile: buildProfileBlock(supplier, completeness, verification, profiles),
@@ -722,11 +740,13 @@ async function buildDashboardSummary({ userId, supplier, requestedDays = null, n
     tickets: buildTicketsBlock(tickets),
     unavailable,
   };
+  return { summary, raw: { packageDocs, reviewDocs } };
 }
 
 module.exports = {
   DEFAULT_SUMMARY_DAYS,
   buildDashboardSummary,
+  buildSummaryWithContext,
   buildVerification,
   summarisePackages,
   summariseReviews,

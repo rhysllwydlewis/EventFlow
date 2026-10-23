@@ -574,6 +574,8 @@ describe('GET /api/supplier/dashboard-summary contract', () => {
       expect(body.responses).toEqual({
         sampleSize: 5,
         matureSampleSize: 4,
+        // C: more than a day old, never answered.
+        unanswered: 1,
         repliedPct: 75,
         medianMinutes: 30,
       });
@@ -800,6 +802,7 @@ describe('GET /api/supplier/dashboard-summary contract', () => {
       expect(body.responses).toEqual({
         sampleSize: 0,
         matureSampleSize: 0,
+        unanswered: 0,
         repliedPct: null,
         medianMinutes: null,
       });
