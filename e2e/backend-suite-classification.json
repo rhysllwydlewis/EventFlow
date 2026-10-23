@@ -4,6 +4,7 @@
     "admin-feature-flags.spec.js",
     "admin-moderation.spec.js",
     "admin-packages-page.spec.js",
+    "zz-webkit-probe.spec.js",
     "admin-photos.spec.js",
     "auth-navbar-logout.spec.js",
     "auth.spec.js",
