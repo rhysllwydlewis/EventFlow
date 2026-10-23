@@ -321,13 +321,6 @@
         location.value = user.location;
       }
     }
-
-    // The card is hidden until this point, so the browser has already given up on a
-    // #account-type-card fragment by the time it exists. Links that send people here to fix a wrong
-    // account type rely on this scroll.
-    if (_firstRender && window.location.hash === '#account-type-card') {
-      card.scrollIntoView({ block: 'start', behavior: 'smooth' });
-    }
   }
 
   // The hero's "Back to dashboard" goes to the dashboard that matches the account.
@@ -342,6 +335,67 @@
       link.href = target;
     }
   }
+
+  // Parts of this page are only drawn once the account has loaded, so the browser has already given
+  // up on a fragment like #account-type-card by the time its target exists. Links that send people
+  // here (the dashboards' "switch account type" and "Verify Now") rely on this scroll.
+  const FRAGMENT_TARGETS = { 'verify-email': 'email-unverified-notice' };
+
+  function scrollToLinkedSection() {
+    let fragment = window.location.hash.slice(1);
+    try {
+      fragment = decodeURIComponent(fragment);
+    } catch {
+      // A malformed fragment (a stray %) just has no target; it must not look like a failed load.
+      return;
+    }
+    const target = fragment ? byId(FRAGMENT_TARGETS[fragment] || fragment) : null;
+    if (!target || target.hidden) {
+      return;
+    }
+    const calm = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    target.scrollIntoView({
+      block: target.classList.contains('settings-card') ? 'start' : 'center',
+      behavior: calm ? 'auto' : 'smooth',
+    });
+  }
+
+  // The section list marks the card being read (aria-current), the last one once the page is at its
+  // end, and nothing while no card has reached the upper part of the screen yet.
+  function updateCurrentSection() {
+    const sections = [...document.querySelectorAll('.settings-nav a[href^="#"]')]
+      .map(link => ({ link, card: byId(link.getAttribute('href').slice(1)) }))
+      .filter(section => section.card && !section.card.hidden);
+    let current = null;
+    for (const section of sections) {
+      if (section.card.getBoundingClientRect().top <= window.innerHeight * 0.35) {
+        current = section;
+      }
+    }
+    const atEnd = window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 4;
+    if (atEnd && sections.length) {
+      current = sections[sections.length - 1];
+    }
+    document.querySelectorAll('.settings-nav a').forEach(link => {
+      if (current && link === current.link) {
+        link.setAttribute('aria-current', 'true');
+      } else {
+        link.removeAttribute('aria-current');
+      }
+    });
+  }
+
+  let _sectionFrame = 0;
+  const queueCurrentSection = () => {
+    if (!_sectionFrame) {
+      _sectionFrame = requestAnimationFrame(() => {
+        _sectionFrame = 0;
+        updateCurrentSection();
+      });
+    }
+  };
+  window.addEventListener('scroll', queueCurrentSection, { passive: true });
+  window.addEventListener('resize', queueCurrentSection);
 
   function showLoadError(show) {
     setHidden('profile-load-error', !show);
@@ -427,6 +481,10 @@
 
       setHidden('profile-loading', true);
       setHidden('profile-form', false);
+      if (_firstRender) {
+        scrollToLinkedSection();
+      }
+      updateCurrentSection();
       _firstRender = false;
     } catch (error) {
       console.error('Error loading profile:', error);

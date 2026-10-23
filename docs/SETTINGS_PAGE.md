@@ -18,6 +18,13 @@ sticky section list on the left (a sideways-scrolling row on phones) beside a st
 Account information, Account type (not for admins), Notification preferences, Change password,
 Danger zone. Confirmations are dialogs styled to match.
 
+The section list marks the card being read with `aria-current="true"` (the last one at the end of
+the page). Links from other pages that point into this page (`/settings#account-type-card` from the
+customer dashboard, `/settings#verify-email` from the supplier dashboard's "Verify Now") target
+parts that are only drawn after the account loads, so the script scrolls to them itself once it has
+rendered (`scrollToLinkedSection`; `verify-email` is mapped to the unverified notice). A unit test
+fails if a `/settings#...` link anywhere on the site names something this page does not have.
+
 Two things in the markup are there for shared scripts, not for looks: each password input sits in
 its own `.form-row` wrapper, because `app.js` attaches the show/hide button to
 `.form-row input[type="password"]`; and the `ef-page` tag stays `account_settings` (below).

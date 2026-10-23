@@ -154,6 +154,43 @@ describe('the page looks like the dashboards', () => {
   });
 });
 
+describe('links from other pages land on something', () => {
+  const fs = require('fs');
+  const walk = dir =>
+    fs.readdirSync(path.join(__dirname, '../..', dir), { withFileTypes: true }).flatMap(entry => {
+      const rel = `${dir}/${entry.name}`;
+      if (entry.isDirectory()) {
+        return rel.includes('node_modules') ? [] : walk(rel);
+      }
+      return /\.(html|js)$/.test(entry.name) ? [rel] : [];
+    });
+
+  test('every /settings#fragment on the site names an id on this page, or one the script maps', () => {
+    const fragments = new Set();
+    for (const file of [
+      ...walk('public/assets/js'),
+      ...fs
+        .readdirSync(path.join(__dirname, '../../public'))
+        .filter(f => f.endsWith('.html'))
+        .map(f => `public/${f}`),
+    ]) {
+      for (const match of read(file).matchAll(/\/settings(?:\.html)?#([a-z][\w-]*)/g)) {
+        fragments.add(match[1]);
+      }
+    }
+    expect(fragments.size).toBeGreaterThan(0);
+    for (const fragment of fragments) {
+      const mapped = js.match(new RegExp(`'${fragment}':\\s*'([^']+)'`))?.[1];
+      expect(html).toContain(`id="${mapped || fragment}"`);
+    }
+  });
+
+  test('the script scrolls to a fragment once its target has been drawn', () => {
+    expect(js).toContain('function scrollToLinkedSection');
+    expect(js).toContain("'verify-email': 'email-unverified-notice'");
+  });
+});
+
 describe('the stylesheet', () => {
   test('is only for this page and carries no dead rules from removed features', () => {
     for (const dead of ['settings-beta-badge', 'settings-tag-btn', 'settings-progress-bar']) {

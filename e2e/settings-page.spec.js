@@ -47,7 +47,13 @@ const settingsFor = (overrides = {}) => ({
  * Opens /settings signed in as `user`. `handlers` can answer any request first (return true when
  * handled); everything else gets a sensible default. Every request is recorded in `calls`.
  */
-async function openSettings(page, context, baseURL, user, { settings, handlers = [] } = {}) {
+async function openSettings(
+  page,
+  context,
+  baseURL,
+  user,
+  { settings, handlers = [], hash = '' } = {}
+) {
   const calls = [];
   await context.addCookies([
     { name: 'eventflow_cookie_consent', value: 'rejected', url: baseURL },
@@ -89,7 +95,7 @@ async function openSettings(page, context, baseURL, user, { settings, handlers =
     }
     return json(route, {}, 404);
   });
-  await page.goto('/settings.html', { waitUntil: 'domcontentloaded' });
+  await page.goto(`/settings.html${hash}`, { waitUntil: 'domcontentloaded' });
   await page.locator('#profile-form:not([hidden]), #profile-load-error:not([hidden])').waitFor();
   return calls;
 }
@@ -712,6 +718,78 @@ test.describe('Settings: layout', () => {
       .locator('.settings-nav')
       .evaluate(nav => getComputedStyle(nav).flexDirection);
     expect(direction).toBe('row');
+  });
+});
+
+test.describe('Settings: links into the page', () => {
+  test('/settings#verify-email, the supplier dashboard\'s "Verify Now", lands on the unverified notice', async ({
+    page,
+    context,
+    baseURL,
+  }) => {
+    await page.setViewportSize({ width: 1280, height: 360 });
+    await openSettings(page, context, baseURL, supplier, {
+      settings: settingsFor({ verified: false }),
+      hash: '#verify-email',
+    });
+    await expect(page.locator('#email-unverified-notice')).toBeVisible();
+    await expect(page.locator('#email-unverified-notice')).toBeInViewport();
+  });
+
+  test('/settings#account-type-card scrolls to the account type card once it has loaded', async ({
+    page,
+    context,
+    baseURL,
+  }) => {
+    await page.setViewportSize({ width: 1280, height: 360 });
+    await openSettings(page, context, baseURL, customer, { hash: '#account-type-card' });
+    await expect(page.locator('#account-type-card')).toBeInViewport();
+  });
+
+  test('a link to a part that is not shown for this account is ignored', async ({
+    page,
+    context,
+    baseURL,
+  }) => {
+    await openSettings(page, context, baseURL, customer, { hash: '#verify-email' });
+    await expect(page.locator('#profile-form')).toBeVisible();
+    expect(await page.evaluate(() => window.scrollY)).toBe(0);
+  });
+
+  test('a malformed fragment is ignored and the page still loads', async ({
+    page,
+    context,
+    baseURL,
+  }) => {
+    await openSettings(page, context, baseURL, customer, { hash: '#%E0%A4%A' });
+    await expect(page.locator('#profile-form')).toBeVisible();
+    await expect(page.locator('#profile-load-error')).toBeHidden();
+  });
+
+  test('the section list marks the card being read', async ({ page, context, baseURL }) => {
+    await page.setViewportSize({ width: 1280, height: 700 });
+    await openSettings(page, context, baseURL, customer);
+    await expect(page.locator('.settings-nav a[aria-current="true"]')).toHaveText('Account');
+    await page.click('.settings-nav a[href="#security-card"]');
+    await expect(page.locator('.settings-nav a[aria-current="true"]')).toHaveText('Password');
+    await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
+    await expect(page.locator('.settings-nav a[aria-current="true"]')).toHaveText('Delete account');
+    await expect(page.locator('.settings-nav a[aria-current="true"]')).toHaveCount(1);
+  });
+});
+
+test.describe('Settings: spacing', () => {
+  test('labels carry no margin of their own: spacing comes from the layout', async ({
+    page,
+    context,
+    baseURL,
+  }) => {
+    await openSettings(page, context, baseURL, supplier);
+    const margins = await page.evaluate(() =>
+      [...document.querySelectorAll('main label')].map(l => getComputedStyle(l).margin)
+    );
+    expect(margins.length).toBeGreaterThan(10);
+    expect(new Set(margins)).toEqual(new Set(['0px']));
   });
 });
 
