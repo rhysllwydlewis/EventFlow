@@ -6,8 +6,8 @@ import {
   seedBackendFixtures,
 } from './helpers/backend-fixtures.js';
 
-// TEMPORARY diagnostic (removed before merge): which script on the admin packages page stops
-// requestAnimationFrame in WebKit?
+// TEMPORARY diagnostic (removed before merge): which rule of admin-navbar.css stops
+// requestAnimationFrame in WebKit once admin-navbar.js has drawn the bar?
 test.describe('webkit probe @backend', () => {
   const runId = createRunId('wk-probe');
   let fixtures;
@@ -38,27 +38,7 @@ test.describe('webkit probe @backend', () => {
         })
     );
 
-  /** Every <script ...></script> element in the markup, found without a regular expression. */
-  function scriptTags(html) {
-    const tags = [];
-    let from = 0;
-    for (;;) {
-      const start = html.indexOf('<script', from);
-      if (start === -1) {
-        return tags;
-      }
-      const end = html.indexOf('</script>', start) + '</script>'.length;
-      tags.push(html.slice(start, end));
-      from = end;
-    }
-  }
-
-  const nameOf = tag => {
-    const at = tag.indexOf('src="') + 5;
-    return tag.slice(at, tag.indexOf('"', at)).split('?')[0].split('/').pop();
-  };
-
-  async function measure(browser, baseURL, label, keep) {
+  async function measure(browser, baseURL, label, css) {
     const context = await browser.newContext({ baseURL });
     await context.addCookies([
       { name: 'eventflow_cookie_consent', value: 'rejected', url: baseURL },
@@ -69,12 +49,7 @@ test.describe('webkit probe @backend', () => {
       await loginAs(page, fixtures.users.admin);
       await page.route('**/admin-packages', async route => {
         const response = await route.fetch();
-        let body = await response.text();
-        for (const tag of scriptTags(body)) {
-          if (!keep(nameOf(tag))) {
-            body = body.replace(tag, '');
-          }
-        }
+        const body = (await response.text()).replace('</head>', `<style>${css}</style></head>`);
         await route.fulfill({ response, body });
       });
       await page.goto('/admin-packages', { waitUntil: 'load', timeout: 15000 });
@@ -90,23 +65,23 @@ test.describe('webkit probe @backend', () => {
   test('probe', async ({ browser, baseURL, browserName, request }) => {
     test.skip(browserName !== 'webkit', 'diagnostic for WebKit only');
     test.setTimeout(300000);
-    const names = [
-      'dashboard-guard.js',
-      'admin-shared.js',
-      'components.js',
-      'admin-navbar.js',
-      'image-fallback.js',
-      'admin-packages-init.js',
-      'cookie-consent.js',
-    ];
-    await measure(browser, baseURL, 'all scripts kept', () => true);
-    await measure(browser, baseURL, 'no scripts', () => false);
-    for (const name of names) {
-      await measure(browser, baseURL, `without ${name}`, other => other !== name);
-    }
-    for (const name of names) {
-      await measure(browser, baseURL, `only ${name}`, other => other === name);
-    }
+    const noAnimation =
+      '*,*::before,*::after{animation:none !important;transition:none !important}';
+    const noBlur =
+      '*,*::before,*::after{backdrop-filter:none !important;-webkit-backdrop-filter:none !important}';
+    const noDot = '.db-status-dot,.admin-qnav-spark,.pulse{animation:none !important}';
+    await measure(browser, baseURL, 'unchanged', '');
+    await measure(browser, baseURL, 'no animations', noAnimation);
+    await measure(browser, baseURL, 'no backdrop blur', noBlur);
+    await measure(browser, baseURL, 'no animations and no blur', noAnimation + noBlur);
+    await measure(browser, baseURL, 'no status dot or spark pulse', noDot);
+    await measure(browser, baseURL, 'navbar hidden', '#adminNavbarMount{display:none !important}');
+    await measure(
+      browser,
+      baseURL,
+      'navbar invisible but laid out',
+      '#adminNavbarMount{visibility:hidden !important}'
+    );
     expect(request).toBeTruthy();
   });
 });
