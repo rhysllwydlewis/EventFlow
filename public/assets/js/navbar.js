@@ -118,6 +118,17 @@
     }
   }
 
+  function updateAccountMenu(user) {
+    const hasAccountMenu = Boolean(
+      elements.accountMenu && ['customer', 'supplier'].includes(user?.role)
+    );
+    document.body.classList.toggle('ef-account-menu-enabled', hasAccountMenu);
+    if (elements.accountMenu) {
+      setAccountMenuOpen(false);
+      elements.accountMenu.hidden = !hasAccountMenu;
+    }
+  }
+
   function initAccountMenu() {
     if (!elements.authLink || !elements.header) {
       return;
@@ -281,14 +292,7 @@
 
   function updateAuthUI(user) {
     state.user = user;
-    const hasAccountMenu = Boolean(
-      elements.accountMenu && ['customer', 'supplier'].includes(user?.role)
-    );
-    document.body.classList.toggle('ef-account-menu-enabled', hasAccountMenu);
-    if (elements.accountMenu) {
-      setAccountMenuOpen(false);
-      elements.accountMenu.hidden = !hasAccountMenu;
-    }
+    updateAccountMenu(user);
 
     // The signed-in header carries a notifications button, "Log out" and
     // "Dashboard" — roughly 190px more than the signed-out header — so the
