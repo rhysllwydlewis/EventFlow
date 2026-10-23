@@ -104,6 +104,98 @@
   // Legacy mobile menu code removed - now handled by standalone burger-menu.js component
 
   // ==========================================
+  // DESKTOP ACCOUNT DISCLOSURE
+  // ==========================================
+
+  function setAccountMenuOpen(open, restoreFocus = false) {
+    if (!elements.accountPanel) {
+      return;
+    }
+    elements.accountPanel.hidden = !open;
+    elements.accountToggle.setAttribute('aria-expanded', String(open));
+    if (restoreFocus) {
+      elements.accountToggle.focus();
+    }
+  }
+
+  function updateAccountMenu(user) {
+    const hasAccountMenu = Boolean(
+      elements.accountMenu && ['customer', 'supplier'].includes(user?.role)
+    );
+    document.body.classList.toggle('ef-account-menu-enabled', hasAccountMenu);
+    if (elements.accountMenu) {
+      setAccountMenuOpen(false);
+      elements.accountMenu.hidden = !hasAccountMenu;
+    }
+  }
+
+  function initAccountMenu() {
+    if (!elements.authLink || !elements.header) {
+      return;
+    }
+
+    // Build the shared control once, rather than copying account markup into
+    // every page. Only customer/supplier auth states reveal it.
+    const menu = document.createElement('div');
+    menu.className = 'ef-account-menu';
+    menu.hidden = true;
+    menu.innerHTML = `
+      <button type="button" id="ef-account-toggle" class="ef-btn ef-btn-secondary ef-account-toggle" aria-expanded="false" aria-controls="ef-account-panel">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21v-2a8 8 0 0 1 16 0v2"/></svg>
+        <span>Account</span>
+        <svg class="ef-account-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
+      </button>
+      <div id="ef-account-panel" class="ef-account-panel" hidden>
+        <a href="/settings" rel="nofollow" class="ef-account-item" id="ef-account-settings">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+          <span>Settings</span>
+        </a>
+        <button type="button" class="ef-account-item ef-account-logout" id="ef-account-logout">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><path d="M9 4H4v16h5M14 8l4 4-4 4M8 12h10"/></svg>
+          <span>Log out</span>
+        </button>
+      </div>`;
+    elements.authLink.before(menu);
+    elements.accountMenu = menu;
+    elements.accountToggle = menu.querySelector('#ef-account-toggle');
+    elements.accountPanel = menu.querySelector('#ef-account-panel');
+
+    elements.accountToggle.addEventListener('click', () => {
+      setAccountMenuOpen(elements.accountPanel.hidden);
+    });
+    menu.querySelector('#ef-account-logout').addEventListener('click', () => {
+      setAccountMenuOpen(false);
+      logout();
+    });
+    menu.addEventListener('keydown', event => {
+      if (event.key === 'Escape' && !elements.accountPanel.hidden) {
+        event.preventDefault();
+        event.stopPropagation();
+        setAccountMenuOpen(false, true);
+      }
+    });
+    menu.addEventListener('focusout', event => {
+      if (!menu.contains(event.relatedTarget)) {
+        setAccountMenuOpen(false);
+      }
+    });
+    document.addEventListener('pointerdown', event => {
+      if (!menu.contains(event.target)) {
+        setAccountMenuOpen(false);
+      }
+    });
+
+    // A disclosure must not remain open when its desktop trigger disappears.
+    window.matchMedia('(min-width: 1280px)').addEventListener('change', event => {
+      const hadFocus = menu.contains(document.activeElement);
+      setAccountMenuOpen(false);
+      if (!event.matches && hadFocus) {
+        elements.mobileToggle?.focus();
+      }
+    });
+  }
+
+  // ==========================================
   // SCROLL BEHAVIOR
   // ==========================================
 
@@ -200,6 +292,7 @@
 
   function updateAuthUI(user) {
     state.user = user;
+    updateAccountMenu(user);
 
     // The signed-in header carries a notifications button, "Log out" and
     // "Dashboard" — roughly 190px more than the signed-out header — so the
@@ -415,6 +508,7 @@
     applyCurrentPage('.ef-nav-link');
     applyCurrentPage('.ef-mobile-link');
     applyCurrentPage('.ef-bottom-link');
+    applyCurrentPage('.ef-account-item');
 
     // Notification icon button uses button semantics, so set current state manually
     if (elements.notificationBtn) {
@@ -525,6 +619,7 @@
     try {
       // Initialize DOM references
       initElements();
+      initAccountMenu();
 
       // Initialize features
       // NOTE: Mobile menu is now handled by burger-menu.js

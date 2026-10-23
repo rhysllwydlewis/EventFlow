@@ -74,7 +74,9 @@
   -webkit-backdrop-filter: blur(10px);
   border-bottom: 1px solid var(--ef-border);
   box-shadow: var(--ef-shadow-sm);
-  transition: var(--ef-transition);
+  transition:
+    background-color 0.2s ease,
+    box-shadow 0.2s ease;
 }
 
 .ef-header.scrolled {
@@ -447,6 +449,117 @@
   min-height: 44px;
 }
 
+/* Desktop account navigation, shared by customers and suppliers. */
+.ef-account-menu {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.ef-account-menu[hidden],
+.ef-account-panel[hidden],
+body.ef-account-menu-enabled #ef-auth-link {
+  display: none !important;
+}
+
+.ef-header-actions .ef-account-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 9px 12px;
+  white-space: nowrap;
+}
+
+/* Keep the disclosure's click target fixed as hover/pressed styles change. */
+#ef-account-toggle {
+  transform: none;
+  transition-property: color, background-color, border-color, box-shadow;
+}
+
+.ef-account-menu svg {
+  display: block;
+  flex-shrink: 0;
+  width: 18px;
+  height: 18px;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.ef-account-menu .ef-account-chevron {
+  width: 14px;
+  height: 14px;
+}
+
+.ef-account-panel {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  z-index: var(--ef-z-menu);
+  width: 208px;
+  padding: 6px;
+  border: 1px solid var(--ef-border);
+  border-radius: 10px;
+  background: #fff;
+  box-shadow: var(--ef-shadow-lg);
+}
+
+.ef-account-panel .ef-account-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 44px;
+  margin: 0;
+  padding: 10px 12px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--ef-text-dark);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1.4;
+  text-align: left;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.ef-account-panel .ef-account-item:hover,
+.ef-account-panel .ef-account-item[aria-current='page'] {
+  background: rgba(11, 128, 115, 0.08);
+  color: var(--ef-primary-dark);
+}
+
+.ef-account-menu :is(button, a):focus-visible {
+  outline: 2px solid var(--ef-primary);
+  outline-offset: 2px;
+}
+
+.ef-account-panel .ef-account-logout {
+  margin-top: 4px;
+  border-top: 1px solid var(--ef-border);
+  border-top-left-radius: 0;
+  border-top-right-radius: 0;
+}
+
+@media (max-width: 1279px) {
+  .ef-account-menu {
+    display: none;
+  }
+}
+
+/* The wider Account control needs more room than the previous Log out link.
+   Keep all destinations in the hamburger until the full row fits. */
+@media (max-width: 1279px) {
+  body.ef-account-menu-enabled .ef-nav-desktop {
+    display: none;
+  }
+
+  body.ef-account-menu-enabled .ef-mobile-toggle {
+    display: flex;
+  }
+}
+
 /* Icon Button - Enhanced styling */
 .ef-icon-btn {
   position: relative;
@@ -807,6 +920,9 @@
   visibility: visible;
   pointer-events: auto;
   transform: translateY(0);
+  /* Apply the interactive state immediately. WebKit can leave visibility
+     transitions pending as focus enters the menu and the background is inert. */
+  transition: none;
 }
 
 .ef-mobile-nav {
@@ -816,18 +932,6 @@
   gap: 2px;
   max-width: 600px;
   margin: 0 auto;
-  animation: menu-items-fade-in 0.4s ease-out 0.1s both;
-}
-
-@keyframes menu-items-fade-in {
-  from {
-    opacity: 0;
-    transform: translateY(10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
 }
 
 .ef-mobile-link {
@@ -840,7 +944,11 @@
   text-decoration: none;
   font-size: 0.8125rem;
   font-weight: 500;
-  transition: var(--ef-transition);
+  /* Inherited visibility must not become a transition on each link. */
+  transition:
+    color 0.2s ease,
+    background-color 0.2s ease,
+    box-shadow 0.2s ease;
   -webkit-tap-highlight-color: transparent;
   position: relative;
   overflow: hidden;
@@ -867,7 +975,6 @@
 .ef-mobile-link:active {
   background: rgba(11, 128, 115, 0.08);
   color: var(--ef-primary);
-  transform: translateX(4px);
 }
 
 .ef-mobile-link:focus-visible {
@@ -1509,14 +1616,15 @@ body {
 
 /* This block is what actually makes the menu a full-height sheet, and it has
    to cover every width where the hamburger can be opened — up to 1023px
-   signed-out and 1099px signed-in — not just phones.
+   signed-out, 1099px for other signed-in roles, and 1279px with an Account
+   control — not just phones.
 
    `.ef-header` carries `backdrop-filter`, which makes it the containing block
    for its `position: fixed` descendants. So the menu's `bottom: 0` resolves
    against the *header*, not the viewport: without the explicit height below it
    computed to 8px, and the menu opened as a sliver with its links spilling out
    over a dimmed page. Phones never showed it because this rule caught them. */
-@media (max-width: 1099px) {
+@media (max-width: 1279px) {
   /* Force menu to be visible when open - highest specificity */
   #ef-mobile-menu.open {
     /* Distance from the top of the header to the top of the menu. Same reason
@@ -1562,7 +1670,7 @@ body {
    to start 8px lower or it tucks under the header's bottom edge. Only the menu
    offset moves; `--ef-header-height` itself is left alone because other pages
    size their own top padding from it. */
-@media (min-width: 768px) and (max-width: 1099px) {
+@media (min-width: 768px) and (max-width: 1279px) {
   #ef-mobile-menu.open {
     --ef-menu-offset: 72px;
   }

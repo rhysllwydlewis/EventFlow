@@ -1074,9 +1074,8 @@ test.describe('Supplier dashboard: every control works @backend', () => {
 
   test('Log out ends the session', async ({ page, context, baseURL }) => {
     await openDashboard(page, context, baseURL);
-    // The header says "Log in" until the page has learned who is signed in; only then is it Log out.
-    await expect(page.locator('#ef-auth-link')).toHaveText('Log out');
-    await page.locator('#ef-auth-link').click();
+    await page.getByRole('button', { name: 'Account', exact: true }).click();
+    await page.locator('#ef-account-logout').click();
     await page.waitForURL(url => !/dashboard\/supplier/.test(url.pathname), { timeout: 10000 });
     // The session is gone: the account call reports nobody, and the dashboard is protected again.
     const me = await page.request.get('/api/v1/auth/me');

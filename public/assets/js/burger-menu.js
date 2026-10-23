@@ -246,7 +246,7 @@
 
     // Ensure menu is closed when switching to desktop layout
     window.addEventListener('resize', () => {
-      if (window.innerWidth >= 1024 && isOpen) {
+      if (isOpen && window.getComputedStyle(mobileToggle).display === 'none') {
         toggleMenu();
       }
     });

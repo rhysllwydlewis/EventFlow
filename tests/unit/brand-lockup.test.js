@@ -115,7 +115,7 @@ describe('brand lockup', () => {
         // used to stop at 768px, which is why only phones looked right.
         const openRule = navbarStyles.indexOf('#ef-mobile-menu.open {');
         const guard = navbarStyles.lastIndexOf('@media (', openRule);
-        expect(navbarStyles.slice(guard, openRule)).toContain('@media (max-width: 1099px)');
+        expect(navbarStyles.slice(guard, openRule)).toContain('@media (max-width: 1279px)');
         expect(menuBlock()).toMatch(/height: calc\(100vh - var\(--ef-menu-offset\)\) !important/);
       });
 
@@ -130,7 +130,7 @@ describe('brand lockup', () => {
 
       it('starts the menu below the taller header from 768px', () => {
         expect(navbarStyles).toMatch(
-          /@media \(min-width: 768px\) and \(max-width: 1099px\) \{\s*#ef-mobile-menu\.open \{\s*--ef-menu-offset: 72px;/
+          /@media \(min-width: 768px\) and \(max-width: 1279px\) \{\s*#ef-mobile-menu\.open \{\s*--ef-menu-offset: 72px;/
         );
       });
     });

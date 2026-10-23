@@ -1,5 +1,6 @@
 {
   "blocking": [
+    "account-menu.spec.js",
     "admin-consolidation.spec.js",
     "admin-feature-flags.spec.js",
     "admin-moderation.spec.js",
