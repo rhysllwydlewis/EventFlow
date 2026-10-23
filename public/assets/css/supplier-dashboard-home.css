@@ -1202,10 +1202,6 @@
   cursor: grab;
 }
 
-.sdh-page .photo-preview-item--cover {
-  border-color: var(--sdh-accent);
-}
-
 .sdh-page .photo-preview-item--pending {
   opacity: 0.8;
 }
@@ -1282,7 +1278,6 @@
   pointer-events: none;
 }
 
-.sdh-page .photo-first-badge,
 .sdh-page .pkg-gallery-first-badge,
 .sdh-page .photo-pending-badge,
 .sdh-page .photo-preview-error-badge {

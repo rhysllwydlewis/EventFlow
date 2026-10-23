@@ -7903,7 +7903,6 @@ label .required {
 /*
  * Tile structure:
  *   .photo-preview-item.photo-preview-item--existing  (position:relative, fixed 90×90)
- *     ├── .photo-first-badge   (absolute, bottom-left overlay)
  *     ├── .photo-drag-handle   (absolute, top-left overlay)
  *     ├── .photo-delete-btn    (absolute, top-right overlay)
  *     └── .photo-preview-item__image-wrap  (absolute fill, overflow:hidden → clips image)
@@ -8005,36 +8004,6 @@ label .required {
 
 .photo-preview-item--existing:hover .photo-drag-handle {
   background: rgba(0, 0, 0, 0.72);
-}
-
-/* "Cover" badge — bottom-left overlay */
-.photo-first-badge {
-  position: absolute;
-  bottom: 4px;
-  left: 4px;
-  padding: 2px 6px;
-  font-size: 0.6875rem;
-  font-weight: 700;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
-  background: linear-gradient(135deg, #d4a017, #b8860b);
-  color: #fff;
-  border-radius: 3px;
-  z-index: 3;
-  pointer-events: none;
-  white-space: nowrap;
-}
-
-/* Cover slot wrapper — gold border and subtle glow */
-.photo-preview-item.photo-preview-item--cover {
-  border: 2px solid #d4a017;
-  box-shadow: 0 0 8px rgba(212, 160, 23, 0.3);
-}
-
-/* Keep gold styling on hover (overrides the default purple hover) */
-.photo-preview-item.photo-preview-item--cover:hover {
-  border-color: #d4a017;
-  box-shadow: 0 0 12px rgba(212, 160, 23, 0.5);
 }
 
 /* Delete / remove button — top-right overlay */

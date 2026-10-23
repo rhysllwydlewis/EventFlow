@@ -506,20 +506,11 @@ class SupplierGalleryManager {
       previewContainer.querySelectorAll('.photo-preview-item:not(.photo-preview-item--existing)')
     );
 
-    this.uploadedPhotos.forEach((photo, index) => {
+    this.uploadedPhotos.forEach(photo => {
       const wrapper = document.createElement('div');
       wrapper.className = 'photo-preview-item photo-preview-item--existing';
       wrapper.draggable = true;
       wrapper.dataset.photoId = photo.id;
-
-      // "Cover" badge on first photo (absolutely positioned, inside wrapper)
-      if (index === 0) {
-        wrapper.classList.add('photo-preview-item--cover');
-        const badge = document.createElement('span');
-        badge.className = 'photo-first-badge';
-        badge.textContent = 'Cover';
-        wrapper.appendChild(badge);
-      }
 
       // Drag handle (absolutely positioned, inside wrapper)
       const dragHandle = document.createElement('span');
@@ -646,12 +637,6 @@ class SupplierGalleryManager {
       // Remove from DOM
       wrapperEl.remove();
 
-      // Refresh "Cover" badge position
-      const previewContainer = document.getElementById('sup-photo-preview');
-      if (previewContainer) {
-        this._refreshFirstBadge(previewContainer);
-      }
-
       this.updateReorderBar();
     } catch (e) {
       console.error('Error deleting photo:', e);
@@ -696,7 +681,6 @@ class SupplierGalleryManager {
         el.classList.remove('photo-gallery-drag-over');
       });
       this._dragSrc = null;
-      this._refreshFirstBadge(container);
       this.markOrderDirty();
     });
 
@@ -734,33 +718,6 @@ class SupplierGalleryManager {
         container.insertBefore(this._dragSrc, target);
       } else {
         container.insertBefore(this._dragSrc, target.nextSibling);
-      }
-    });
-  }
-
-  /**
-   * Show "Cover" badge only on the first existing-photo tile.
-   * The badge is inserted before the image-wrap div so it sits above the image.
-   */
-  _refreshFirstBadge(container) {
-    const items = container.querySelectorAll('.photo-preview-item--existing');
-    items.forEach((item, idx) => {
-      let badge = item.querySelector('.photo-first-badge');
-      if (idx === 0) {
-        item.classList.add('photo-preview-item--cover');
-        if (!badge) {
-          badge = document.createElement('span');
-          badge.className = 'photo-first-badge';
-          badge.textContent = 'Cover';
-          // Insert before the image-wrap so it appears inside the tile overlay stack
-          const imgWrap = item.querySelector('.photo-preview-item__image-wrap');
-          item.insertBefore(badge, imgWrap || item.firstChild);
-        }
-      } else {
-        item.classList.remove('photo-preview-item--cover');
-        if (badge) {
-          badge.remove();
-        }
       }
     });
   }
@@ -849,7 +806,6 @@ class SupplierGalleryManager {
             status.textContent = '';
           }, 3000);
         }
-        this._refreshFirstBadge(container);
       }
     } catch (e) {
       console.error('Error saving photo order:', e);
