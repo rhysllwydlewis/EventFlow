@@ -185,6 +185,19 @@ async function createIndexes() {
     // Supplier dashboard reads one supplier's events inside a date window
     const supplierEventsCollection = mongodb.collection('events');
     await supplierEventsCollection.createIndex({ supplierId: 1, timestamp: -1 });
+    // One counted profile view per visitor per hour is enforced here, not by a read-then-insert:
+    // two beacons at once both pass the read, and only one can insert the same dedupeKey.
+    await supplierEventsCollection.createIndex(
+      { dedupeKey: 1 },
+      {
+        unique: true,
+        partialFilterExpression: { dedupeKey: { $type: 'string' } },
+        name: 'uniq_events_dedupeKey_string',
+      }
+    );
+    // The per-address cap and the per-visitor check look at one supplier's last hour by key
+    await supplierEventsCollection.createIndex({ supplierId: 1, ipKey: 1, timestamp: -1 });
+    await supplierEventsCollection.createIndex({ supplierId: 1, visitorKey: 1, timestamp: -1 });
     const enquiriesCollection = mongodb.collection('enquiries');
     await enquiriesCollection.createIndex({ supplierId: 1 });
     await enquiriesCollection.createIndex({ supplierId: 1, createdAt: -1 }); // enquiry list window
@@ -435,7 +448,18 @@ async function createSupplierEnquiryIndexes() {
   }
 }
 
-async function read(collectionName) {
+/**
+ * Read a whole collection (or the single document of a singleton collection such as `settings`).
+ *
+ * A failed read is logged and answered from the local store (or empty) unless `options.throwOnError`
+ * is set, which rethrows instead. A caller whose safe default differs from "empty" (for example a
+ * setting that switches a safeguard on) passes it, so a database outage is not read as "off".
+ *
+ * @param {string} collectionName - Collection
+ * @param {{throwOnError?: boolean}} [options] - Pass throwOnError to rethrow failures
+ * @returns {Promise<Array|Object>} Documents, or the singleton's record
+ */
+async function read(collectionName, options = {}) {
   await initializeDatabase();
   try {
     if (dbType === 'mongodb') {
@@ -456,6 +480,9 @@ async function read(collectionName) {
     }
   } catch (error) {
     logger.error(`Error reading from ${collectionName}:`, error.message);
+    if (options.throwOnError) {
+      throw error;
+    }
     if (dbType !== 'local') {
       logger.info(`Falling back to local storage for ${collectionName}`);
       readFallbackCount++;
@@ -585,7 +612,21 @@ async function find(collectionName, filter, options = {}) {
   }
 }
 
-async function updateOne(collectionName, id, updates) {
+/**
+ * Update the first document matching `id` (a string id or a filter object).
+ *
+ * Errors are swallowed (false returned) unless `options.throwOnError` is set. `false` therefore
+ * means "no document changed" (no match, or the new values were already stored) as well as "the
+ * write failed"; a caller that must tell a failed write from an unchanged one passes
+ * `throwOnError` and treats a thrown error as the failure.
+ *
+ * @param {string} collectionName - Collection
+ * @param {string|Object} id - Document id or filter
+ * @param {Object} updates - Fields to set, or an update document with $set / $unset
+ * @param {{throwOnError?: boolean}} [options] - Pass throwOnError to rethrow failures
+ * @returns {Promise<boolean>} True when a document was modified
+ */
+async function updateOne(collectionName, id, updates, options = {}) {
   await initializeDatabase();
   try {
     // Normalise the filter: accept either a string id or a plain filter object
@@ -625,6 +666,9 @@ async function updateOne(collectionName, id, updates) {
     }
   } catch (error) {
     logger.error(`Error updating in ${collectionName}:`, error.message);
+    if (options.throwOnError) {
+      throw error;
+    }
     return false;
   }
 }
@@ -716,7 +760,19 @@ async function updateMany(collectionName, filter, updates) {
   }
 }
 
-async function insertOne(collectionName, document) {
+/**
+ * Insert one document.
+ *
+ * Errors are swallowed (null returned) unless `options.throwOnError` is set; a caller that relies on
+ * a unique index (for example the profile-view dedupe key) passes it and reads the duplicate-key
+ * error's `code` (11000) to tell "already there" from a real failure.
+ *
+ * @param {string} collectionName - Collection
+ * @param {Object} document - Document to insert
+ * @param {{throwOnError?: boolean}} [options] - Pass throwOnError to rethrow failures
+ * @returns {Promise<Object|null>} The document, or null when the insert failed
+ */
+async function insertOne(collectionName, document, options = {}) {
   await initializeDatabase();
   try {
     if (dbType === 'mongodb') {
@@ -730,12 +786,26 @@ async function insertOne(collectionName, document) {
       return document;
     }
   } catch (error) {
+    if (options.throwOnError) {
+      throw error;
+    }
     logger.error(`Error inserting into ${collectionName}:`, error.message);
     return null;
   }
 }
 
-async function deleteOne(collectionName, id) {
+/**
+ * Delete the first document matching `id` (a string id or a filter object).
+ *
+ * Errors are swallowed (false returned) unless `options.throwOnError` is set; `false` is also
+ * returned when nothing matched.
+ *
+ * @param {string} collectionName - Collection
+ * @param {string|Object} id - Document id or filter
+ * @param {{throwOnError?: boolean}} [options] - Pass throwOnError to rethrow failures
+ * @returns {Promise<boolean>} True when a document was deleted
+ */
+async function deleteOne(collectionName, id, options = {}) {
   await initializeDatabase();
   try {
     // Normalise the filter: accept either a string id or a plain filter object
@@ -757,6 +827,9 @@ async function deleteOne(collectionName, id) {
     }
   } catch (error) {
     logger.error(`Error deleting from ${collectionName}:`, error.message);
+    if (options.throwOnError) {
+      throw error;
+    }
     return false;
   }
 }

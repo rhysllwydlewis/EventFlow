@@ -560,7 +560,7 @@ export function loadSkeletonCSS() {
   const link = document.createElement('link');
   link.id = 'skeleton-css';
   link.rel = 'stylesheet';
-  link.href = '/assets/css/skeleton.css?v=2.1.0';
+  link.href = '/assets/css/skeleton.css?v=2.1.1';
   document.head.appendChild(link);
 }
 

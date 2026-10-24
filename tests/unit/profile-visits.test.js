@@ -39,6 +39,7 @@ const request = require('supertest');
 const fakeDb = require('../helpers/fake-db-unified');
 
 const BROWSER = 'Mozilla/5.0 (Windows NT 10.0) Chrome/120 Safari/537.36';
+const FIREFOX = 'Mozilla/5.0 (Windows NT 10.0; rv:121.0) Gecko/20100101 Firefox/121.0';
 
 const crypto = require('crypto');
 
@@ -63,14 +64,15 @@ function freshIp() {
 }
 
 /**
- * The visitor key the route derives for an anonymous visitor.
+ * The visitor key the route derives for an anonymous visitor on the test browser (Chrome on Windows:
+ * the key uses the browser family, not the full user-agent string).
  *
  * @param {string} ip - Address
- * @param {string} agent - User agent
+ * @param {string} family - Browser family the route derives from the user agent
  * @returns {string} Key
  */
-function anonymousKey(ip, agent = BROWSER) {
-  return `a:${crypto.createHash('sha256').update(`${ip}|${agent}`).digest('hex').slice(0, 32)}`;
+function anonymousKey(ip, family = 'chrome/windows') {
+  return `a:${crypto.createHash('sha256').update(`${ip}|${family}`).digest('hex').slice(0, 32)}`;
 }
 
 /**
@@ -162,9 +164,99 @@ describe('POST /api/analytics/track profile_view', () => {
     const ip = freshIp();
     await beacon({ ip });
     await beacon({ ip: freshIp() });
-    await beacon({ ip, agent: `${BROWSER} Other` });
+    await beacon({ ip, agent: FIREFOX });
 
     expect(events()).toHaveLength(3);
+  });
+
+  it('does not count one visitor twice when two beacons arrive at the same moment', async () => {
+    const ip = freshIp();
+    const results = await Promise.all(Array.from({ length: 8 }, () => beacon({ ip })));
+
+    // The read-then-insert check alone lets all of these through; the unique dedupeKey does not.
+    expect(events()).toHaveLength(1);
+    expect(events()[0].dedupeKey).toMatch(/^sup-1:a:[0-9a-f]{32}:\d+$/);
+    expect(results.filter(res => res.body.message === 'Event tracked')).toHaveLength(1);
+    expect(results.filter(res => res.body.message === 'Already tracked')).toHaveLength(7);
+  });
+
+  it('treats a second insert with the same dedupeKey as already tracked, not an error', async () => {
+    const ip = freshIp();
+    // Simulates the race: the earlier request wrote its event after this one's read.
+    fakeDb.count.mockImplementationOnce(async () => 0);
+    const bucket = Math.floor(Date.now() / (60 * 60 * 1000));
+    fakeDb.__store().events.push({
+      id: 'winner',
+      type: 'profile_view',
+      supplierId: 'sup-1',
+      visitorKey: anonymousKey(ip),
+      dedupeKey: `sup-1:${anonymousKey(ip)}:${bucket}`,
+      timestamp: new Date().toISOString(),
+    });
+
+    const res = await beacon({ ip });
+
+    expect(res.status).toBe(200);
+    expect(res.body.message).toBe('Already tracked');
+    expect(events()).toHaveLength(1);
+  });
+
+  it('changing the user-agent version or text does not make a new visitor', async () => {
+    const ip = freshIp();
+    for (let version = 100; version < 130; version += 1) {
+      await beacon({
+        ip,
+        agent: `Mozilla/5.0 (Windows NT 10.0) Chrome/${version} Safari/537.36 x${version}`,
+      });
+    }
+
+    expect(events()).toHaveLength(1);
+  });
+
+  it('rotating user-agents from one address adds a bounded number of views', async () => {
+    const ip = freshIp();
+    const agents = [
+      BROWSER,
+      FIREFOX,
+      'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 Version/17 Safari/605.1.15',
+      'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 Version/17 Mobile Safari/604.1',
+      'Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 Chrome/120 Mobile Safari/537.36',
+      'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Chrome/120 Safari/537.36',
+      'Mozilla/5.0 (Windows NT 10.0) AppleWebKit/537.36 Chrome/120 Safari/537.36 Edg/120',
+      'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7; rv:121.0) Gecko/20100101 Firefox/121.0',
+    ];
+    for (let round = 0; round < 40; round += 1) {
+      await beacon({ ip, agent: `${agents[round % agents.length]} ${round}` });
+    }
+
+    expect(events().length).toBeLessThanOrEqual(5);
+    expect(events().length).toBeGreaterThan(0);
+    events().forEach(event => {
+      expect(event.ipKey).toMatch(/^ip:[0-9a-f]{32}$/);
+      expect(JSON.stringify(event)).not.toContain(ip);
+    });
+  });
+
+  it('the cap is per address and supplier: other addresses and other suppliers still count', async () => {
+    fakeDb.__store().suppliers.push({ id: 'sup-2', ownerUserId: 'owner-3', approved: true });
+    const ip = freshIp();
+    const agents = [
+      BROWSER,
+      FIREFOX,
+      'Safari/605 (Macintosh; Mac OS X)',
+      'Mozilla/5.0 (iPhone) Safari/604',
+      'Mozilla/5.0 (Android 14) Chrome/120',
+      'Mozilla/5.0 (X11; Linux) Chrome/120',
+    ];
+    for (const agent of agents) {
+      await beacon({ ip, agent });
+    }
+    expect(events()).toHaveLength(5);
+
+    await beacon({ ip, agent: 'Mozilla/5.0 (Windows) Edg/120', supplierId: 'sup-2' });
+    await beacon({ ip: freshIp() });
+
+    expect(events()).toHaveLength(7);
   });
 
   it('counts a signed-in visitor once per hour whatever device they use', async () => {

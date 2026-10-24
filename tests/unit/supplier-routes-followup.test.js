@@ -150,6 +150,37 @@ describe('POST /enquiries/:id/reply', () => {
     expect(fakeDb.__store().supplier_enquiry_replies).toHaveLength(0);
   });
 
+  it('once the email has gone, a failure to mark it handled is a warning, not "Failed to send"', async () => {
+    fakeDb.upsertOne.mockResolvedValueOnce(false);
+
+    const res = await reply('qr_1', 'Hello Alice');
+
+    expect(res.status).toBe(200);
+    expect(res.body.success).toBe(true);
+    expect(mockSendMail).toHaveBeenCalledTimes(1);
+    expect(res.body.warning).toMatch(/reply was sent.*could not be marked as handled/i);
+    // The enquiry keeps the state it had; "handled" was never stored.
+    expect(res.body.enquiry.status).not.toBe('handled');
+    expect(fakeDb.__store().supplier_enquiry_states).toHaveLength(0);
+    expect(fakeDb.__store().supplier_enquiry_replies[0].status).toBe('sent');
+  });
+
+  it('a state write that throws after sending is also a warning, and the reply is not sent twice', async () => {
+    fakeDb.upsertOne.mockRejectedValueOnce(new Error('mongo down'));
+
+    const res = await reply('qr_1', 'Hello Alice');
+
+    expect(res.status).toBe(200);
+    expect(res.body.warning).toBeTruthy();
+    expect(mockSendMail).toHaveBeenCalledTimes(1);
+  });
+
+  it('a normal reply carries no warning', async () => {
+    const res = await reply('qr_1', 'Hello Alice');
+
+    expect(res.body.warning).toBeUndefined();
+  });
+
   it('gives the place back when the email fails, so the failed attempt does not count', async () => {
     mockSendMail.mockRejectedValueOnce(new Error('Postmark down'));
     expect((await reply('qr_1', 'Hello')).body.code).toBe('SEND_FAILED');

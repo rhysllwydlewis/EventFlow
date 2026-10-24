@@ -52,14 +52,12 @@ where the feature is not present.
 | `tests/unit/messaging-dashboard-fixes.test.js`                      | 18   | `messagingJsExists ? ...`                        | messaging.js existence guard                                        | G     |
 | `tests/unit/messaging-dashboard-fixes.test.js`                      | 82   | `fs.existsSync(messagingV2Path) ? ...`           | messaging-v2 deployment guard                                       | G     |
 | `tests/unit/messaging-dashboard-fixes.test.js`                      | 124  | `customerMsgJsExists ? ...`                      | customer-messages.js existence guard                                | G     |
-| `tests/unit/messaging-dashboard-fixes.test.js`                      | 327  | `supplierMsgJsExists ? ...`                      | supplier-messages.js existence guard                                | G     |
 | `tests/unit/marketplace-peer-to-peer-messaging.test.js`             | 5    | `fs.existsSync(threadsRoutePath) ? ...`          | threads route existence guard                                       | G     |
 | `tests/unit/thread-metadata-updates.test.js`                        | 10   | `fs.existsSync(threadsRoutePath) ? ...`          | threads route existence guard                                       | G     |
 | `tests/unit/marketplace-messaging-flow-fixes.test.js`               | 41   | `fs.existsSync(threadsRoutePath) ? ...`          | threads route existence guard                                       | G     |
 | `tests/unit/marketplace-v2-dual-write.test.js`                      | 5    | `fs.existsSync(threadsRoutePath) ? ...`          | threads route existence guard                                       | G     |
 | `tests/unit/marketplace-v2-dual-write.test.js`                      | 8    | `fs.existsSync(threadsRoutePath) ? ...`          | Nested existence guard                                              | G     |
 | `tests/unit/dashboard-widget-enhancements.test.js`                  | 18   | `customerMsgJsExists ? ...`                      | customer-messages.js existence guard                                | G     |
-| `tests/unit/dashboard-widget-enhancements.test.js`                  | 160  | `supplierMsgJsExists ? ...`                      | supplier-messages.js existence guard                                | G     |
 | `tests/unit/threads-marketplace-supplier-resolution.test.js`        | 5    | `fs.existsSync(threadsRoutePath) ? ...`          | threads route existence guard                                       | G     |
 
 ### Tallies

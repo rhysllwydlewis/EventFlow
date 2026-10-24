@@ -11,15 +11,17 @@ const { csrfProtection } = require('../middleware/csrf');
 const { writeLimiter } = require('../middleware/rateLimits');
 const dbUnified = require('../db-unified');
 const logger = require('../utils/logger');
-const {
-  getSupplierGalleryCount,
-  getSupplierSocialLinkCount,
-} = require('../services/supplierProfileCompleteness');
 const { parseDaysParam, resolveAnalyticsWindow } = require('../utils/analyticsWindow');
-const { buildDashboardSummary, summariseReviews } = require('../services/supplierDashboardSummary');
+const {
+  buildDashboardSummary,
+  buildSummaryWithContext,
+  summariseReviews,
+} = require('../services/supplierDashboardSummary');
+const { buildTips } = require('../services/supplierTips');
+const { canPublishPublicCalendar } = require('../utils/calendarPermissions');
 const supplierEnquiries = require('../services/supplierEnquiries');
 const { VALID_CATEGORIES } = require('../models/Supplier');
-const { isApprovedReview } = require('../utils/reviewShape');
+const { isApprovedReview, reviewRating } = require('../utils/reviewShape');
 const { clearEngagementCache } = require('../services/supplierEngagementMetrics');
 const { serializeCsv } = require('../utils/csv');
 
@@ -33,7 +35,6 @@ const stripe = stripeSecretKey
 
 // Constants
 const TRIAL_DURATION_DAYS = 14;
-const DEFAULT_ANALYTICS_WINDOW_DAYS = 30;
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 
 /**
@@ -81,7 +82,8 @@ router.post('/trial/activate', authRequired, csrfProtection, async (req, res) =>
           trialUsed: true,
           updatedAt: now.toISOString(),
         },
-      }
+      },
+      { throwOnError: true }
     );
 
     res.json({
@@ -154,127 +156,6 @@ router.get('/analytics', authRequired, async (req, res) => {
       // Surfaced so the dashboard can say why a longer window came back short
       // rather than silently showing less than was asked for.
       window: analyticsWindow,
-    });
-  } catch (error) {
-    logger.error('Error fetching analytics:', error);
-    res.status(500).json({
-      error: 'Failed to fetch analytics',
-      details: process.env.NODE_ENV !== 'production' ? error.message : undefined,
-    });
-  }
-});
-
-/**
- * GET /api/supplier/analytics/legacy
- * Get legacy analytics for supplier (count-based, for backwards compatibility)
- */
-router.get('/analytics/legacy', authRequired, async (req, res) => {
-  try {
-    const userId = req.user.id;
-
-    // Check if user is a supplier
-    if (req.user.role !== 'supplier') {
-      return res.status(403).json({ error: 'Only suppliers can access analytics' });
-    }
-
-    // Get supplier record
-    const supplier = await dbUnified.findOne('suppliers', { ownerUserId: userId });
-
-    if (!supplier) {
-      return res.status(404).json({ error: 'Supplier profile not found' });
-    }
-
-    const supplierId = supplier.id;
-
-    // Same plan entitlement as the other analytics routes: a Starter supplier gets 7 days.
-    const { days } = resolveAnalyticsWindow({
-      requested: parseDaysParam(req.query.days).value,
-      defaultDays: DEFAULT_ANALYTICS_WINDOW_DAYS,
-      planWindowDays: await require('../services/subscriptionService').getAnalyticsWindowDays(
-        userId
-      ),
-    });
-
-    // Count enquiries from message threads
-    const enquiries = await dbUnified.find('threads', { supplierId });
-    const enquiryCount = enquiries.length;
-
-    // Count views from analytics events
-    const analyticsEvents = await dbUnified.read('analyticsEvents');
-    const viewEvents = analyticsEvents.filter(
-      e => e.event === 'supplier_view' && e.supplierId === supplierId
-    );
-    const viewCount = viewEvents.length;
-
-    // Count bookings (from bookings or orders)
-    let bookingCount = 0;
-    try {
-      const bookings = await dbUnified.find('bookings', { supplierId });
-      bookingCount = bookings.length;
-    } catch (e) {
-      // bookings collection may not exist
-      logger.debug('Bookings collection not available:', e.message);
-    }
-
-    // Generate chart data for last N days
-    const now = new Date();
-    const windowStart = new Date(now.getTime() - days * 24 * 60 * 60 * 1000);
-
-    const last30DaysViews = viewEvents.filter(e => {
-      const eventDate = new Date(e.timestamp || e.createdAt);
-      return eventDate >= windowStart;
-    });
-
-    const last30DaysEnquiries = enquiries.filter(e => {
-      const eventDate = new Date(e.createdAt);
-      return eventDate >= windowStart;
-    });
-
-    // Group by date
-    const viewsByDate = {};
-    const enquiriesByDate = {};
-
-    for (let i = 0; i < days; i++) {
-      const date = new Date(now.getTime() - i * 24 * 60 * 60 * 1000);
-      const dateKey = date.toISOString().split('T')[0];
-      viewsByDate[dateKey] = 0;
-      enquiriesByDate[dateKey] = 0;
-    }
-
-    last30DaysViews.forEach(e => {
-      const dateKey = new Date(e.timestamp || e.createdAt).toISOString().split('T')[0];
-      if (viewsByDate[dateKey] !== undefined) {
-        viewsByDate[dateKey]++;
-      }
-    });
-
-    last30DaysEnquiries.forEach(e => {
-      const dateKey = new Date(e.createdAt).toISOString().split('T')[0];
-      if (enquiriesByDate[dateKey] !== undefined) {
-        enquiriesByDate[dateKey]++;
-      }
-    });
-
-    // Convert to chart data format
-    const dates = Object.keys(viewsByDate).sort();
-    const chartData = dates.map(date => ({
-      date,
-      views: viewsByDate[date],
-      enquiries: enquiriesByDate[date],
-    }));
-
-    // Calculate conversion rate
-    const conversionRate = viewCount > 0 ? ((enquiryCount / viewCount) * 100).toFixed(2) : 0;
-
-    res.json({
-      success: true,
-      analytics: {
-        enquiries: enquiryCount,
-        views: viewCount,
-        bookings: bookingCount,
-        conversionRate: parseFloat(conversionRate),
-        chartData: chartData.reverse(), // Most recent first
-      },
     });
   } catch (error) {
     logger.error('Error fetching analytics:', error);
@@ -433,7 +314,9 @@ async function loadApprovedSupplierForEnquiries(req, res) {
  * Always 200 with a header row. When there is nothing to export the body is the
  * header row only and `X-Export-Row-Count` is 0, so a client can say "nothing to
  * export" instead of saving an empty file. Cells that a spreadsheet would run as a
- * formula are neutralised (utils/csv).
+ * formula are neutralised (utils/csv). Conversations the supplier deleted from their inbox are not
+ * exported. Each source keeps its newest 1000 rows; when more existed `X-Export-Truncated` is
+ * "true" and the file ends with a "Notice" row saying so.
  */
 router.get('/enquiries/export', authRequired, async (req, res) => {
   try {
@@ -442,11 +325,16 @@ router.get('/enquiries/export', authRequired, async (req, res) => {
       return;
     }
 
-    const rows = await supplierEnquiries.buildExportRows({
+    const { rows, truncated } = await supplierEnquiries.buildExport({
       supplierId: supplier.id,
       ownerUserId: req.user.id,
     });
-    const csv = serializeCsv(supplierEnquiries.EXPORT_HEADERS, rows);
+    // A cut-off export says so in the file (a last "Notice" row) and in X-Export-Truncated, so the
+    // newest-first file is never mistaken for the whole history. Row-Count counts data rows only.
+    const csv = serializeCsv(
+      supplierEnquiries.EXPORT_HEADERS,
+      truncated ? [...rows, supplierEnquiries.truncationNoticeRow()] : rows
+    );
 
     res.setHeader('Content-Type', 'text/csv; charset=utf-8');
     res.setHeader(
@@ -454,6 +342,7 @@ router.get('/enquiries/export', authRequired, async (req, res) => {
       `attachment; filename="enquiries-and-conversations-${new Date().toISOString().split('T')[0]}.csv"`
     );
     res.setHeader('X-Export-Row-Count', String(rows.length));
+    res.setHeader('X-Export-Truncated', truncated ? 'true' : 'false');
     res.send(csv);
   } catch (error) {
     logger.error('Error exporting enquiries:', error.message);
@@ -581,7 +470,12 @@ router.post(
         return;
       }
       clearEngagementCache();
-      res.json({ success: true, enquiry: result.enquiry });
+      // `warning`: the email went but a follow-up step (marking it handled) did not save.
+      res.json({
+        success: true,
+        enquiry: result.enquiry,
+        ...(result.warning ? { warning: result.warning } : {}),
+      });
     } catch (error) {
       logger.error('Error replying to enquiry:', error.message);
       res.status(500).json({ error: 'Failed to send the reply' });
@@ -637,6 +531,7 @@ router.put('/guide-progress', authRequired, csrfProtection, writeLimiter, async 
     const progress = { status, step: stepId, at: new Date().toISOString() };
     // Set just this field so another onboarding value written at the same time is not overwritten.
     const hasOnboarding = user.onboarding && typeof user.onboarding === 'object';
+    // throwOnError: if the write fails the dashboard must hear about it (500), not be told it saved.
     await dbUnified.updateOne(
       'users',
       { id: req.user.id },
@@ -644,7 +539,8 @@ router.put('/guide-progress', authRequired, csrfProtection, writeLimiter, async 
         $set: hasOnboarding
           ? { 'onboarding.supplierGuide': progress }
           : { onboarding: { supplierGuide: progress } },
-      }
+      },
+      { throwOnError: true }
     );
     return res.json({ progress });
   } catch (error) {
@@ -760,14 +656,13 @@ router.get('/reviews/stats', authRequired, async (req, res) => {
     const totalReviews = supplierReviews.length;
     const averageRating = summariseReviews(allReviews).averageRating;
 
-    // Calculate distribution - only count valid integer ratings (1-5)
+    // Distribution: only ratings the average also uses (reviewRating: 1-5), so a rating of 0.5 or 6
+    // is in neither. Half ratings are bucketed to the nearest whole star.
     const distribution = { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 };
     supplierReviews.forEach(r => {
-      const rating = Number(r.rating) || 0;
-      // Round to nearest integer for distribution bucketing
-      const roundedRating = Math.round(rating);
-      if (roundedRating >= 1 && roundedRating <= 5) {
-        distribution[roundedRating]++;
+      const rating = reviewRating(r);
+      if (rating !== null) {
+        distribution[Math.round(rating)]++;
       }
     });
 
@@ -933,7 +828,12 @@ router.post(
         }
       }
 
-      await dbUnified.updateOne('suppliers', { id: supplier.id }, { $set: updates });
+      await dbUnified.updateOne(
+        'suppliers',
+        { id: supplier.id },
+        { $set: updates },
+        { throwOnError: true }
+      );
 
       // Check if admin has enabled auto-approve for supplier verification
       const settings = (await dbUnified.read('settings')) || {};
@@ -959,7 +859,8 @@ router.post(
                 verifiedBy: 'system',
                 updatedAt: approvedAt,
               },
-            }
+            },
+            { throwOnError: true }
           );
           return res.json({
             message: 'Verification submitted and automatically approved.',
@@ -1028,222 +929,34 @@ router.get('/dashboard-summary', authRequired, async (req, res) => {
 });
 
 /**
- * GET /api/v1/supplier/availability
- * Returns the supplier's availability settings (open dates, block dates).
- */
-router.get('/availability', authRequired, async (req, res) => {
-  try {
-    if (req.user.role !== 'supplier') {
-      return res.status(403).json({ error: 'Suppliers only' });
-    }
-    const supplier = await dbUnified.findOne('suppliers', { ownerUserId: req.user.id });
-    if (!supplier) {
-      return res.status(404).json({ error: 'Supplier profile not found' });
-    }
-    res.json({
-      supplierId: supplier.id,
-      availability: supplier.availability || { status: 'available', blockedDates: [], notes: '' },
-    });
-  } catch (error) {
-    logger.error('GET /supplier/availability error:', error.message);
-    res.status(500).json({ error: 'Failed to load availability' });
-  }
-});
-
-/**
- * PATCH /api/v1/supplier/availability
- * Updates the supplier's availability status and/or blocked dates.
- */
-router.patch('/availability', authRequired, csrfProtection, writeLimiter, async (req, res) => {
-  try {
-    if (req.user.role !== 'supplier') {
-      return res.status(403).json({ error: 'Suppliers only' });
-    }
-    const supplier = await dbUnified.findOne('suppliers', { ownerUserId: req.user.id });
-    if (!supplier) {
-      return res.status(404).json({ error: 'Supplier profile not found' });
-    }
-
-    const { status, blockedDates, notes } = req.body;
-    const allowed = ['available', 'limited', 'unavailable'];
-    if (status && !allowed.includes(status)) {
-      return res.status(400).json({ error: 'Invalid availability status' });
-    }
-
-    const current = supplier.availability || {};
-    const updated = {
-      status: status || current.status || 'available',
-      blockedDates: Array.isArray(blockedDates)
-        ? blockedDates.slice(0, 365)
-        : current.blockedDates || [],
-      notes: typeof notes === 'string' ? notes.slice(0, 500) : current.notes || '',
-      updatedAt: new Date().toISOString(),
-    };
-
-    await dbUnified.updateOne(
-      'suppliers',
-      { id: supplier.id },
-      { $set: { availability: updated } }
-    );
-    res.json({ ok: true, availability: updated });
-  } catch (error) {
-    logger.error('PATCH /supplier/availability error:', error.message);
-    res.status(500).json({ error: 'Failed to update availability' });
-  }
-});
-
-/**
- * POST /api/v1/supplier/request-review
- * Sends a review-request email to a past customer enquiry.
- * Rate-limited: one request per customer per supplierId.
- */
-router.post('/request-review', authRequired, csrfProtection, writeLimiter, async (req, res) => {
-  try {
-    if (req.user.role !== 'supplier') {
-      return res.status(403).json({ error: 'Suppliers only' });
-    }
-    const supplier = await dbUnified.findOne('suppliers', { ownerUserId: req.user.id });
-    if (!supplier) {
-      return res.status(404).json({ error: 'Supplier profile not found' });
-    }
-
-    const { customerEmail, customerName, threadId } = req.body;
-    if (!customerEmail || typeof customerEmail !== 'string') {
-      return res.status(400).json({ error: 'customerEmail is required' });
-    }
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(customerEmail.trim())) {
-      return res.status(400).json({ error: 'Invalid email address' });
-    }
-
-    // Idempotency: don't send twice for same supplier+customer combo
-    const existing = await dbUnified.findOne('reviewRequests', {
-      supplierId: supplier.id,
-      customerEmail: customerEmail.trim().toLowerCase(),
-    });
-    if (existing) {
-      return res
-        .status(409)
-        .json({ error: 'A review request has already been sent to this customer' });
-    }
-
-    const requestDoc = {
-      id: `rreq_${Date.now()}`,
-      supplierId: supplier.id,
-      supplierName: supplier.name || 'Your supplier',
-      customerEmail: customerEmail.trim().toLowerCase(),
-      customerName: typeof customerName === 'string' ? customerName.slice(0, 100) : '',
-      threadId: threadId || null,
-      sentAt: new Date().toISOString(),
-      status: 'sent',
-    };
-
-    await dbUnified.insertOne('reviewRequests', requestDoc);
-
-    // TODO: integrate postmark to send actual email — placeholder log for now
-    logger.info(
-      `Review request sent: supplier=${supplier.id} → customer=${requestDoc.customerEmail}`
-    );
-
-    res.json({ ok: true, message: 'Review request sent successfully' });
-  } catch (error) {
-    logger.error('POST /supplier/request-review error:', error.message);
-    res.status(500).json({ error: 'Failed to send review request' });
-  }
-});
-
-/**
  * GET /api/v1/supplier/performance-tips
- * Returns personalised actionable tips based on the supplier's profile state.
+ * Up to three tips for this supplier, ranked by usefulness, derived from their real
+ * state (category, account status, plan limits, profile gaps, reviews, conversations,
+ * enquiries, packages). See services/supplierTips.js for the tip shape.
  */
 router.get('/performance-tips', authRequired, async (req, res) => {
   try {
     if (req.user.role !== 'supplier') {
       return res.status(403).json({ error: 'Suppliers only' });
     }
-    const supplier = await dbUnified.findOne('suppliers', { ownerUserId: req.user.id });
+    const supplier = await dbUnified.findOne(
+      'suppliers',
+      { ownerUserId: req.user.id },
+      { throwOnError: true }
+    );
     if (!supplier) {
       return res.status(404).json({ error: 'Supplier profile not found' });
     }
 
-    const supplierId = supplier.id;
-    const [packages, reviews] = await Promise.all([
-      dbUnified.find('packages', { supplierId }),
-      dbUnified.find('reviews', { supplierId }),
-    ]);
-
-    const tips = [];
-
-    // Profile completeness tips
-    if (!(supplier.description_short || '').trim()) {
-      tips.push({
-        id: 'add-desc',
-        priority: 1,
-        category: 'profile',
-        icon: '✍️',
-        title: 'Add a business description',
-        body: 'Tell customers what you offer and where you work, so they can decide whether to get in touch.',
-        action: { label: 'Edit Profile', href: '#toggle-profile-form' },
-      });
-    }
-    if (getSupplierGalleryCount(supplier) < 3) {
-      tips.push({
-        id: 'add-photos',
-        priority: 2,
-        category: 'profile',
-        icon: '📸',
-        title: 'Upload at least 3 photos',
-        body: 'Customers like to see your work before they get in touch. Add photos from events you have delivered.',
-        action: { label: 'Add Photos', href: '#my-suppliers' },
-      });
-    }
-    if (packages.length === 0) {
-      tips.push({
-        id: 'add-package',
-        priority: 3,
-        category: 'packages',
-        icon: '📦',
-        title: 'Create your first package',
-        body: 'Packages show customers what you offer and roughly what it costs.',
-        action: { label: 'Create Package', href: '#toggle-package-form' },
-      });
-    }
-    if (reviews.length === 0) {
-      tips.push({
-        id: 'get-review',
-        priority: 4,
-        category: 'reviews',
-        icon: '⭐',
-        title: 'Get your first review',
-        body: 'Ask a past customer for a review to build trust.',
-        action: { label: 'Request Review', data: 'request-review' },
-      });
-    }
-    if (!(supplier.tagline || '').trim()) {
-      tips.push({
-        id: 'add-tagline',
-        priority: 5,
-        category: 'profile',
-        icon: '💬',
-        title: 'Add a tagline',
-        body: 'A short tagline tells customers what you do at a glance.',
-        action: { label: 'Edit Profile', href: '#toggle-profile-form' },
-      });
-    }
-    if (getSupplierSocialLinkCount(supplier) === 0) {
-      tips.push({
-        id: 'social-links',
-        priority: 6,
-        category: 'profile',
-        icon: '🔗',
-        title: 'Add social media links',
-        body: 'Linking your social profiles lets customers see more of your work.',
-        action: { label: 'Edit Profile', href: '#toggle-profile-form' },
-      });
-    }
-
-    // Sort by priority, return top 4
-    tips.sort((a, b) => a.priority - b.priority);
-    res.json({ tips: tips.slice(0, 4), total: tips.length });
+    const { summary, raw } = await buildSummaryWithContext({ userId: req.user.id, supplier });
+    res.json(
+      buildTips({
+        supplier,
+        summary,
+        raw,
+        canPublishPublicCalendar: canPublishPublicCalendar(supplier),
+      })
+    );
   } catch (error) {
     logger.error('GET /supplier/performance-tips error:', error.message);
     res.status(500).json({ error: 'Failed to load performance tips' });

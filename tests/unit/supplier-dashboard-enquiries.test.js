@@ -279,6 +279,32 @@ describe('CSV export', () => {
     expect(said).toEqual(['success:Exported 3 rows.']);
   });
 
+  test('a truncated export is saved and the supplier is told it is not the whole history', async () => {
+    const { said, saved } = await exportWith({
+      ok: true,
+      status: 200,
+      headers: headers({
+        'x-export-row-count': '2002',
+        'x-export-truncated': 'true',
+        'content-disposition': 'attachment; filename="enquiries-and-conversations-2026-07-16.csv"',
+      }),
+      blob: async () => ({}),
+    });
+    expect(saved).toContain('download=enquiries-and-conversations-2026-07-16.csv');
+    expect(said).toHaveLength(1);
+    expect(said[0]).toMatch(/^info:Exported the newest 2002 rows\. .*older .* not in the file/);
+  });
+
+  test('an export the server did not cut short still reports success', async () => {
+    const { said } = await exportWith({
+      ok: true,
+      status: 200,
+      headers: headers({ 'x-export-row-count': '2', 'x-export-truncated': 'false' }),
+      blob: async () => ({}),
+    });
+    expect(said).toEqual(['success:Exported 2 rows.']);
+  });
+
   test('an unapproved supplier is told why, and any other failure says it failed', async () => {
     const unapproved = await exportWith({
       ok: false,
@@ -296,5 +322,18 @@ describe('CSV export', () => {
     expect(failed.said).toEqual([
       'error:Could not export your conversations and enquiries. Please try again.',
     ]);
+  });
+});
+
+describe('reply sent but not marked handled', () => {
+  test('the page shows the server warning instead of claiming the enquiry was marked handled', () => {
+    expect(enquiriesSource).toContain('result.data.warning');
+    const start = enquiriesSource.indexOf('if (result.data.warning)');
+    const block = enquiriesSource.slice(start, start + 520);
+    expect(block).toContain("`Reply sent. ${result.data.warning}`, 'info'");
+    // The "marked as handled" announcement is only in the branch with no warning.
+    expect(block.indexOf('The enquiry is marked as handled')).toBeGreaterThan(
+      block.indexOf('} else {')
+    );
   });
 });

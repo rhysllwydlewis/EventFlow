@@ -464,3 +464,32 @@ describe('the private calendar is separate and always available', () => {
     expect(res.status).toBe(403);
   });
 });
+
+describe('database failures are not read as "allowed" or "no profile"', () => {
+  it('queues a new event for review when the approval setting cannot be read (fails closed)', async () => {
+    const original = fakeDb.read.getMockImplementation();
+    fakeDb.read.mockImplementation(async (name, options) => {
+      if (name === 'settings') {
+        expect(options).toEqual({ throwOnError: true });
+        throw new Error('settings unreadable');
+      }
+      return original(name);
+    });
+
+    const res = await send('post', '/api/public-calendar/events', USERS.planner, NEW_EVENT);
+
+    expect(res.status).toBe(201);
+    expect(res.body.event.status).toBe('pending_review');
+    fakeDb.read.mockImplementation(original);
+  });
+
+  it('answers 500, not "No supplier profile found", when the supplier lookup fails', async () => {
+    fakeDb.__failOn('suppliers');
+
+    const res = await send('get', '/api/public-calendar/publisher-request', USERS.planner);
+    fakeDb.__failOn();
+
+    expect(res.status).toBe(500);
+    expect(JSON.stringify(res.body)).not.toContain('No supplier profile');
+  });
+});

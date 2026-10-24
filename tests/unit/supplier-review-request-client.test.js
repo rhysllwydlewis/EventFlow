@@ -20,8 +20,9 @@ describe('supplier review-request dashboard client', () => {
     expect(source).toContain('const retry = await csrfToken(true)');
   });
 
-  test('also protects the availability write', () => {
-    expect(source).toContain("sendJson('/api/v1/supplier/availability', 'PATCH'");
+  test('has no availability card or write any more (it was never shown to customers)', () => {
+    expect(source).not.toContain('/api/v1/supplier/availability');
+    expect(source).not.toMatch(/save-availability|retry-availability|data-availability/);
   });
 
   test('loads review request history and keeps retries on the canonical secure send route', () => {

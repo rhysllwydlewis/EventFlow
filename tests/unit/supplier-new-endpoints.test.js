@@ -1,7 +1,5 @@
 /**
  * Unit tests for new supplier endpoints:
- *   GET/PATCH /availability
- *   POST /request-review
  *   GET /performance-tips
  */
 
@@ -81,131 +79,16 @@ function buildApp() {
   return app;
 }
 
-describe('GET /api/v1/supplier/availability', () => {
-  beforeEach(() => {
-    jest.resetAllMocks();
-    mockDb.findOne.mockResolvedValue(SUPPLIER_DOC);
-  });
-
-  it('returns 403 for non-supplier roles', async () => {
+describe('availability endpoints (removed)', () => {
+  // suppliers.availability was never shown to customers, so the dashboard card and these routes
+  // were a control that did nothing.
+  it.each(['get', 'patch'])('%s /api/v1/supplier/availability is not served', async method => {
     const app = buildApp();
     const res = await request(app)
-      .get('/api/v1/supplier/availability')
-      .set('x-test-user-role', 'customer');
-    expect(res.status).toBe(403);
-  });
-
-  it('returns 404 when no supplier profile found', async () => {
-    mockDb.findOne.mockResolvedValue(null);
-    const app = buildApp();
-    const res = await request(app)
-      .get('/api/v1/supplier/availability')
-      .set('x-test-user-role', 'supplier');
+      [method]('/api/v1/supplier/availability')
+      .set('x-test-user-role', 'supplier')
+      .send({ status: 'limited' });
     expect(res.status).toBe(404);
-  });
-
-  it('returns availability for valid supplier', async () => {
-    const app = buildApp();
-    const res = await request(app)
-      .get('/api/v1/supplier/availability')
-      .set('x-test-user-role', 'supplier');
-    expect(res.status).toBe(200);
-    expect(res.body).toHaveProperty('availability');
-    expect(res.body.availability.status).toBe('available');
-  });
-});
-
-describe('PATCH /api/v1/supplier/availability', () => {
-  beforeEach(() => {
-    jest.resetAllMocks();
-    mockDb.findOne.mockResolvedValue(SUPPLIER_DOC);
-    mockDb.updateOne.mockResolvedValue({ modified: 1 });
-  });
-
-  it('rejects invalid status values', async () => {
-    const app = buildApp();
-    const res = await request(app)
-      .patch('/api/v1/supplier/availability')
-      .set('x-test-user-role', 'supplier')
-      .send({ status: 'invalid-status' });
-    expect(res.status).toBe(400);
-  });
-
-  it('updates availability status', async () => {
-    const app = buildApp();
-    const res = await request(app)
-      .patch('/api/v1/supplier/availability')
-      .set('x-test-user-role', 'supplier')
-      .send({ status: 'limited', notes: 'Limited in December' });
-    expect(res.status).toBe(200);
-    expect(res.body.ok).toBe(true);
-    expect(res.body.availability.status).toBe('limited');
-    expect(mockDb.updateOne).toHaveBeenCalledTimes(1);
-  });
-
-  it('accepts "unavailable" status', async () => {
-    const app = buildApp();
-    const res = await request(app)
-      .patch('/api/v1/supplier/availability')
-      .set('x-test-user-role', 'supplier')
-      .send({ status: 'unavailable' });
-    expect(res.status).toBe(200);
-    expect(res.body.availability.status).toBe('unavailable');
-  });
-});
-
-describe('POST /api/v1/supplier/request-review', () => {
-  beforeEach(() => {
-    jest.resetAllMocks();
-    mockDb.find.mockResolvedValue([]);
-    mockDb.insertOne.mockResolvedValue({});
-    // Default: supplier found, no existing review request
-    mockDb.findOne.mockResolvedValueOnce(SUPPLIER_DOC).mockResolvedValueOnce(null);
-  });
-
-  it('returns 400 for missing email', async () => {
-    const app = buildApp();
-    const res = await request(app)
-      .post('/api/v1/supplier/request-review')
-      .set('x-test-user-role', 'supplier')
-      .send({ customerName: 'Alice' });
-    expect(res.status).toBe(400);
-  });
-
-  it('returns 400 for invalid email format', async () => {
-    // Reset and provide fresh supplier mock
-    mockDb.findOne.mockResolvedValueOnce(SUPPLIER_DOC);
-    const app = buildApp();
-    const res = await request(app)
-      .post('/api/v1/supplier/request-review')
-      .set('x-test-user-role', 'supplier')
-      .send({ customerEmail: 'not-an-email' });
-    expect(res.status).toBe(400);
-  });
-
-  it('creates review request successfully', async () => {
-    const app = buildApp();
-    const res = await request(app)
-      .post('/api/v1/supplier/request-review')
-      .set('x-test-user-role', 'supplier')
-      .send({ customerEmail: 'alice@example.com', customerName: 'Alice' });
-    expect(res.status).toBe(200);
-    expect(res.body.ok).toBe(true);
-    expect(mockDb.insertOne).toHaveBeenCalledTimes(1);
-  });
-
-  it('returns 409 when request already sent', async () => {
-    // Override: findOne returns supplier then existing request
-    mockDb.findOne.mockReset();
-    mockDb.findOne
-      .mockResolvedValueOnce(SUPPLIER_DOC)
-      .mockResolvedValueOnce({ id: 'rreq-existing', customerEmail: 'alice@example.com' });
-    const app = buildApp();
-    const res = await request(app)
-      .post('/api/v1/supplier/request-review')
-      .set('x-test-user-role', 'supplier')
-      .send({ customerEmail: 'alice@example.com' });
-    expect(res.status).toBe(409);
   });
 });
 
@@ -273,8 +156,13 @@ describe('GET /api/v1/supplier/performance-tips', () => {
       .get('/api/v1/supplier/performance-tips')
       .set('x-test-user-role', 'supplier');
     expect(res.status).toBe(200);
-    // All major tips resolved — expect very few or none
-    expect(res.body.tips.length).toBeLessThanOrEqual(1);
+    // The things this profile already has are not asked for again. (The checklist still
+    // wants a 100+ character description, a profile photo, etc., so some tips remain.)
+    const shown = res.body.tips.map(tip => tip.id);
+    expect(shown).not.toContain('add-photos');
+    expect(shown).not.toContain('first-package');
+    expect(shown).not.toContain('add-banner');
+    expect(shown).not.toContain('add-social-links');
   });
 
   // Regression: this endpoint used to check only the canonical photosGallery
@@ -318,6 +206,6 @@ describe('GET /api/v1/supplier/performance-tips', () => {
       .set('x-test-user-role', 'supplier');
 
     expect(res.status).toBe(200);
-    expect(res.body.tips.some(tip => tip.id === 'social-links')).toBe(false);
+    expect(res.body.tips.some(tip => tip.id === 'add-social-links')).toBe(false);
   });
 });

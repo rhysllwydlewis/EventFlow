@@ -1792,14 +1792,8 @@
 }
 
 /* ------------------------------------------------------------------ *
- * Availability, visits, tips
+ * Visits, tips
  * ------------------------------------------------------------------ */
-
-.sdh-page .sdh-availability {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
 
 .sdh-page .sdh-seg {
   display: grid;
@@ -4243,10 +4237,6 @@
 
   .sdh-page .sdh-card--reviews {
     order: 5;
-  }
-
-  .sdh-page .sdh-card--availability {
-    order: 6;
   }
 
   .sdh-page .sdh-card--performance {

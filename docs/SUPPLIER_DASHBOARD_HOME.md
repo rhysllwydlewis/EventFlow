@@ -29,13 +29,12 @@ Top to bottom. Each section appears once.
 | Reviews and Request a review          | `supplier-reviews-init.js`; the dialog, copy-link and request history are in `supplier-dashboard-home.js`      |
 | Calendar                              | `dashboard-supplier-calendar.js` (FullCalendar), week list under 640px                                         |
 | Messages (side column)                | `MessengerWidgetV4` with search, filter and sort over the latest 20 conversations                              |
-| Availability                          | `/api/v1/supplier/availability`                                                                                |
 | Profile visits                        | the summary: 7 / 30 / 90-day buttons, visits and enquiries per day, "From visit to reply"                      |
 | Tips (hidden if there are none)       | `/api/v1/supplier/performance-tips`, each tip's action wired to the real editor or page                        |
 | Plan                                  | the summary's `subscription` plus the subscription record for billing facts                                    |
 | Support                               | `supplier-tickets.js`                                                                                          |
 
-Under 1024px the two columns become one. Under 768px the visits, availability,
+Under 1024px the two columns become one. Under 768px the visits,
 calendar, tips, plan and support cards fold their content into a closed `<details>`
 ("Show plan") so the page stays short; wider screens never fold. On a phone the only
 navigation is the site header and the existing bottom nav.
@@ -94,7 +93,7 @@ keyboard and screen reader friendly (focus on the step heading, a native dialog)
 
 The summary answers 404 and the page does not ask for it (the site's fetch wrapper would
 show a 404 as an error toast): it waits for `app.js` to report the supplier list
-(`sdh:suppliers`) and skips the summary, availability, tips and review-request requests if
+(`sdh:suppliers`) and skips the summary, tips and review-request requests if
 the list is empty. Only the profile, calendar (the private calendar needs no profile), plan
 and support cards show (`body.sdh-no-profile`). Until the first load finishes the cards
 keep their loading placeholders: nothing says "could not load" before a request has failed.

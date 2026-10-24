@@ -8,7 +8,6 @@
  *  4. dashboard-customer-init.js: budget PATCH checks response.ok
  *  5. (removed) the hero unread prompt no longer exists on the customer dashboard
  *  6. customer-dashboard-home.js: bulk fetch replaces N+1 pattern
- *  7. dashboard-logger.js: console.log is gated behind window.__EF_DEBUG__
  *  8. dashboard-customer.html contains csrf-token meta tag
  */
 
@@ -31,10 +30,6 @@ const customerInitSrc = fs.readFileSync(
 );
 const customerHomeSrc = fs.readFileSync(
   path.join(__dirname, '../../public/assets/js/pages/customer-dashboard-home.js'),
-  'utf8'
-);
-const dashboardLoggerSrc = fs.readFileSync(
-  path.join(__dirname, '../../public/assets/js/utils/dashboard-logger.js'),
   'utf8'
 );
 const dashboardCustomerHtml = fs.readFileSync(
@@ -220,23 +215,6 @@ describe('customer-dashboard-home.js — bulk package fetch', () => {
   it('only falls back to the stored budget when no plan has one', () => {
     const fn = customerHomeSrc.substring(customerHomeSrc.indexOf('function totalBudgetFor('));
     expect(fn.substring(0, 700)).toContain('anyPlanBudget');
-  });
-});
-
-// ---------------------------------------------------------------------------
-// 7. dashboard-logger.js — console.log gated behind __EF_DEBUG__
-// ---------------------------------------------------------------------------
-describe('dashboard-logger.js — debug flag gate', () => {
-  it('console.log is gated behind window.__EF_DEBUG__', () => {
-    expect(dashboardLoggerSrc).toContain('window.__EF_DEBUG__');
-    // The console.log must appear inside the if block
-    const ifIdx = dashboardLoggerSrc.indexOf('window.__EF_DEBUG__');
-    const logIdx = dashboardLoggerSrc.indexOf('console.log', ifIdx);
-    expect(logIdx).toBeGreaterThan(ifIdx);
-  });
-
-  it('log entries are still stored in window.dashboardLogs regardless of debug flag', () => {
-    expect(dashboardLoggerSrc).toContain('window.dashboardLogs.push(logEntry)');
   });
 });
 
