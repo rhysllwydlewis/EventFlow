@@ -26,6 +26,7 @@
 
 const dbUnified = require('../db-unified');
 const { getWindowBounds } = require('../utils/analyticsWindow');
+const { sourceOfId, MAX_RECORDS_PER_SOURCE } = require('./supplierEnquiries');
 
 const ENQUIRY_STATES_COLLECTION = 'supplier_enquiry_states';
 
@@ -273,11 +274,16 @@ async function loadQuoteRequestEntries(supplierId, sinceMs) {
             createdAt: { $gte: new Date(sinceMs).toISOString() },
           },
         },
+        // The same newest-first cap and id filter as the supplier's enquiry list, so the dashboard's
+        // "new requests" figure and the list can never disagree about which rows exist.
+        { $sort: { createdAt: -1 } },
+        { $limit: MAX_RECORDS_PER_SOURCE },
         { $project: { id: 1, createdAt: 1, userId: 1, email: 1 } },
       ],
       STRICT
     )) || [];
   return rows
+    .filter(row => sourceOfId(row.id))
     .map(row => ({
       id: row.id,
       ms: toMillis(row.createdAt),
@@ -296,12 +302,13 @@ async function loadQuoteRequestEntries(supplierId, sinceMs) {
  */
 async function loadContactFormEntries(supplierId, sinceMs) {
   const rows =
-    (await dbUnified.find(
+    (await dbUnified.findWithOptions(
       'enquiries',
       { supplierId, createdAt: { $gte: new Date(sinceMs).toISOString() } },
-      STRICT
+      { limit: MAX_RECORDS_PER_SOURCE, sort: { createdAt: -1 }, throwOnError: true }
     )) || [];
   return rows
+    .filter(row => sourceOfId(row.id))
     .map(row => ({
       id: row.id,
       ms: toMillis(row.createdAt),

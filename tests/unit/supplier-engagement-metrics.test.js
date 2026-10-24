@@ -357,20 +357,20 @@ describe('getEngagementMetrics', () => {
     fakeDb.__reset({
       quoteRequests: [
         {
-          id: 'q1',
+          id: 'qr_1',
           createdAt: new Date(NOW - HOUR).toISOString(),
           suppliers: [{ supplierId: 'sup-1' }],
         },
         {
-          id: 'q2',
+          id: 'qr_2',
           createdAt: new Date(NOW - HOUR).toISOString(),
           suppliers: [{ supplierId: 'sup-2' }],
         },
-        { id: 'q3', createdAt: new Date(NOW - HOUR).toISOString() },
+        { id: 'qr_3', createdAt: new Date(NOW - HOUR).toISOString() },
       ],
       enquiries: [
-        { id: 'e1', supplierId: 'sup-1', createdAt: new Date(NOW - HOUR).toISOString() },
-        { id: 'e2', supplierId: 'sup-2', createdAt: new Date(NOW - HOUR).toISOString() },
+        { id: 'enq_1', supplierId: 'sup-1', createdAt: new Date(NOW - HOUR).toISOString() },
+        { id: 'enq_2', supplierId: 'sup-2', createdAt: new Date(NOW - HOUR).toISOString() },
       ],
     });
 
@@ -401,7 +401,7 @@ describe('quote request and contact-form reads', () => {
     fakeDb.__reset({
       quoteRequests: [
         {
-          id: 'q1',
+          id: 'qr_1',
           createdAt: iso(5),
           name: 'Alice Customer',
           email: 'alice@example.com',
@@ -410,7 +410,7 @@ describe('quote request and contact-form reads', () => {
           suppliers: [{ supplierId: 'sup-1' }],
         },
         {
-          id: 'q2',
+          id: 'qr_2',
           createdAt: iso(5),
           name: 'Bob Other',
           email: 'bob@example.com',
@@ -432,9 +432,47 @@ describe('quote request and contact-form reads', () => {
     const call = fakeDb.aggregate.mock.calls.find(item => item[0] === 'quoteRequests');
     const [, pipeline] = call;
     expect(pipeline[0].$match['suppliers.supplierId']).toBe('sup-1');
-    expect(pipeline[1].$project).toEqual({ id: 1, createdAt: 1, userId: 1, email: 1 });
+    // Newest first and capped like the supplier's enquiry list, so the two cannot disagree.
+    expect(pipeline[1]).toEqual({ $sort: { createdAt: -1 } });
+    expect(pipeline[2]).toEqual({ $limit: 1000 });
+    expect(pipeline[3].$project).toEqual({ id: 1, createdAt: 1, userId: 1, email: 1 });
     // Never a platform-wide read of quote requests.
     expect(fakeDb.find.mock.calls.filter(item => item[0] === 'quoteRequests')).toHaveLength(0);
+  });
+
+  it('ignores rows whose id is not a quote request or contact enquiry id, like the list does', async () => {
+    fakeDb.__reset({
+      quoteRequests: [
+        {
+          id: 'qr_ok',
+          createdAt: new Date(NOW - HOUR).toISOString(),
+          suppliers: [{ supplierId: 'sup-1' }],
+        },
+        {
+          id: 'odd-id',
+          createdAt: new Date(NOW - HOUR).toISOString(),
+          suppliers: [{ supplierId: 'sup-1' }],
+        },
+        {
+          createdAt: new Date(NOW - HOUR).toISOString(),
+          suppliers: [{ supplierId: 'sup-1' }],
+        },
+      ],
+      enquiries: [
+        { id: 'enq_ok', supplierId: 'sup-1', createdAt: new Date(NOW - HOUR).toISOString() },
+        { id: 'weird', supplierId: 'sup-1', createdAt: new Date(NOW - HOUR).toISOString() },
+      ],
+    });
+
+    const result = await getEngagementMetrics({
+      supplierId: 'sup-1',
+      ownerUserId: 'user-1',
+      days: 7,
+      now: new Date(NOW),
+    });
+
+    expect(result.enquiries.requests.received).toBe(2);
+    expect(result.enquiries.sources).toMatchObject({ quoteRequests: 1, contactForm: 1 });
   });
 
   it('asks for errors on every read so a failure is not mistaken for "no enquiries"', async () => {
@@ -567,13 +605,13 @@ describe('de-duplicating enquiries across channels', () => {
       ],
       quoteRequests: [
         {
-          id: 'q1',
+          id: 'qr_1',
           userId: 'cust-1',
           createdAt: new Date(NOW - 6 * HOUR).toISOString(),
           suppliers: [{ supplierId: 'sup-1' }],
         },
         {
-          id: 'q2',
+          id: 'qr_2',
           userId: 'cust-2',
           createdAt: new Date(NOW - 7 * HOUR).toISOString(),
           suppliers: [{ supplierId: 'sup-1' }],
@@ -581,7 +619,7 @@ describe('de-duplicating enquiries across channels', () => {
       ],
       enquiries: [
         {
-          id: 'e1',
+          id: 'enq_1',
           supplierId: 'sup-1',
           senderEmail: 'walkin@example.com',
           createdAt: new Date(NOW - 8 * HOUR).toISOString(),
@@ -617,11 +655,12 @@ describe('result reuse', () => {
 
     await getEngagementMetrics({ supplierId: 'sup-1', ownerUserId: 'user-1', days: 7 });
     await getEngagementMetrics({ supplierId: 'sup-1', ownerUserId: 'user-1', days: 7 });
-    expect(fakeDb.findWithOptions).toHaveBeenCalledTimes(1);
+    // One computation reads conversations and contact enquiries once each.
+    expect(fakeDb.findWithOptions).toHaveBeenCalledTimes(2);
 
     await getEngagementMetrics({ supplierId: 'sup-2', ownerUserId: 'user-2', days: 7 });
     await getEngagementMetrics({ supplierId: 'sup-1', ownerUserId: 'user-1', days: 30 });
-    expect(fakeDb.findWithOptions).toHaveBeenCalledTimes(3);
+    expect(fakeDb.findWithOptions).toHaveBeenCalledTimes(6);
   });
 
   it('does not reuse a failure', async () => {
@@ -647,7 +686,7 @@ describe('result reuse', () => {
     await getEngagementMetrics(params);
     await getEngagementMetrics(params);
 
-    expect(fakeDb.findWithOptions).toHaveBeenCalledTimes(2);
+    expect(fakeDb.findWithOptions).toHaveBeenCalledTimes(4);
   });
 });
 

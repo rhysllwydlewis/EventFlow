@@ -507,6 +507,56 @@ describe('dashboard summary stays consistent with the list', () => {
     expect(listAfter.body.counts.new).toBe(1);
   });
 
+  it('agree even for rows with an odd id or a future date (neither is listed or counted)', async () => {
+    fakeDb.__store().subscriptions = [
+      {
+        id: 's',
+        userId: 'user-1',
+        plan: 'pro',
+        status: 'active',
+        stripeSubscriptionId: 'x',
+        currentPeriodEnd: '2999-01-01T00:00:00.000Z',
+      },
+    ];
+    const store = fakeDb.__store();
+    store.quoteRequests.push(
+      {
+        id: 'legacy-no-prefix',
+        name: 'Odd',
+        email: 'odd@example.com',
+        notes: 'x',
+        suppliers: [{ supplierId: 'sup-1' }],
+        createdAt: hoursAgo(4),
+      },
+      {
+        id: 'qr_future',
+        name: 'Future',
+        email: 'future@example.com',
+        notes: 'x',
+        suppliers: [{ supplierId: 'sup-1' }],
+        createdAt: new Date(NOW.getTime() + 48 * 3600000).toISOString(),
+      }
+    );
+    store.enquiries.push({
+      id: 'no-prefix',
+      supplierId: 'sup-1',
+      senderName: 'Odd',
+      senderEmail: 'odd2@example.com',
+      message: 'x',
+      createdAt: hoursAgo(4),
+    });
+
+    const list = await call('get', '/enquiries?days=90');
+    const dashboard = await summary();
+
+    expect(list.body.counts.total).toBe(2);
+    expect(list.body.counts.bySource).toEqual({ quoteRequests: 1, contactForm: 1 });
+    expect(dashboard.body.enquiries.requests).toEqual({
+      received: list.body.counts.total,
+      new: list.body.counts.new,
+    });
+  });
+
   it('is null (unknown) when the requests cannot be read', async () => {
     fakeDb.__failOn('supplier_enquiry_states');
 

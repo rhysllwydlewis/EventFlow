@@ -372,7 +372,14 @@ async function listEnquiries({ supplierId, query, now = new Date() }) {
     loadStates(supplierId),
   ]);
 
+  // Rows dated in the future (or with no usable date) are not counted by the dashboard summary
+  // either, so the list and the summary agree.
+  const nowMs = now.getTime();
   const all = [...quotes, ...contacts]
+    .filter(enquiry => {
+      const created = Date.parse(enquiry.createdAt || '');
+      return Number.isFinite(created) && created <= nowMs;
+    })
     .map(enquiry => ({ enquiry, status: states.get(enquiry.id) || 'new' }))
     .sort((first, second) =>
       String(second.enquiry.createdAt).localeCompare(first.enquiry.createdAt)
@@ -382,8 +389,8 @@ async function listEnquiries({ supplierId, query, now = new Date() }) {
     total: all.length,
     new: all.filter(item => item.status === 'new').length,
     bySource: {
-      quoteRequests: quotes.length,
-      contactForm: contacts.length,
+      quoteRequests: all.filter(item => item.enquiry.source === SOURCES.quote_request).length,
+      contactForm: all.filter(item => item.enquiry.source === SOURCES.contact_form).length,
     },
     byQuality: Object.fromEntries(
       QUALITIES.map(rating => [
