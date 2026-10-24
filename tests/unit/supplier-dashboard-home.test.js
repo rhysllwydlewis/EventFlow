@@ -1227,9 +1227,28 @@ describe('supplier dashboard home: rendered page', () => {
       dailyData: populated.analytics.dailyData.map(day => ({ ...day, views: 0 })),
     };
     const page = run({ summary: quiet, suppliers: [{ id: 's1' }] });
-    expect(page.visits).toContain('No visits yet.');
+    expect(page.visits).toMatch(/No visits (yet|in the last \d+ days)\./);
     expect(page.chartBars).toBe(0);
     expect(page.visitsHtml).not.toContain('<svg');
+  });
+
+  test('no visits: an approved supplier is not told their profile is waiting for approval', () => {
+    const quiet = clone(populated);
+    quiet.views = { ...populated.views, total: 0 };
+    quiet.verification = { ...populated.verification, approved: true };
+    const page = run({ summary: quiet, suppliers: [{ id: 's1' }] });
+    expect(page.visits).toContain(`No visits in the last ${quiet.views.days} days.`);
+    expect(page.visits).not.toContain('once it is approved');
+  });
+
+  test('no visits: a supplier who is not approved yet is told why', () => {
+    const quiet = clone(populated);
+    quiet.views = { ...populated.views, total: 0 };
+    quiet.verification = { ...populated.verification, approved: false };
+    const page = run({ summary: quiet, suppliers: [{ id: 's1' }] });
+    expect(page.visits).toContain(
+      'No visits yet. Your profile appears in search once it is approved.'
+    );
   });
 
   test('fewer than 3 conversations: no reply rate or reply time, never a made-up number', () => {

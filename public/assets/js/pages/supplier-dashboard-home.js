@@ -1708,10 +1708,16 @@
     const enquiryChart = hasEnquirySeries
       ? `<p class="sdh-plan__head">Enquiries per day</p>${chartSvg(views.daily, views.days, 'enquiries', 'enquiry', 'Enquiries', 'enquiries')}`
       : '';
-    const empty =
-      views.total === 0
-        ? '<p class="sdh-note">No visits yet. Your profile appears in search once it is approved.</p>'
-        : '';
+    // Only a profile that is not approved yet is waiting to appear in search; an approved one has
+    // simply had no visits, and an unknown state says neither.
+    const approved = state.model?.verification?.approved;
+    let emptyText = 'No visits yet.';
+    if (approved === false) {
+      emptyText = 'No visits yet. Your profile appears in search once it is approved.';
+    } else if (approved === true) {
+      emptyText = `No visits in the last ${views.days} days.`;
+    }
+    const empty = views.total === 0 ? `<p class="sdh-note">${esc(emptyText)}</p>` : '';
     const shorter =
       views.requestedDays > views.days
         ? `<p class="sdh-note">Your plan shows the last ${views.days} days. <a class="sdh-link" href="/pricing">See plans</a> for longer history.</p>`
