@@ -630,6 +630,116 @@ async function pageScenarios() {
 }
 
 /* -------------------------------------------------------------------------- *
+ * JadeAssist launcher badge and consent-gated storage
+ * -------------------------------------------------------------------------- */
+
+/** Runs the launcher polish script on a page at `url` that already has a mounted launcher. */
+async function launcherBadgeStyle(url) {
+  const window = await loaded(windowWith('', undefined, { url }));
+  const host = window.document.createElement('div');
+  host.className = 'jade-widget-root';
+  host.attachShadow({ mode: 'open' }).innerHTML =
+    '<div class="jade-widget-container"><button class="jade-avatar-button">' +
+    '<span class="jade-avatar-badge" aria-label="1 new notification">1</span></button></div>';
+  window.document.body.appendChild(host);
+  window.eval(source('public/assets/js/jadeassist-launcher-polish.js'));
+  await sleep(30);
+  const style = host.shadowRoot.getElementById('eventflow-jadeassist-launcher-polish');
+  return /\.jade-avatar-badge\s*\{\s*display:\s*none\s*!important/.test(style?.textContent || '');
+}
+
+/** Pages' remembered choices when functional storage is declined / accepted / no banner. */
+async function consentScenarios() {
+  const out = {};
+  const consent = functional => ({ getConsent: () => ({ essential: true, functional }) });
+
+  /** Loads the account-type notice, clicks dismiss, and says whether the dismissal was stored. */
+  async function noticeDismissed(cookieConsent) {
+    const window = await loaded(
+      windowWith(
+        '<div id="account-type-notice" hidden><button id="account-type-notice-dismiss">x</button></div>'
+      )
+    );
+    if (cookieConsent) {
+      window.CookieConsent = cookieConsent;
+    }
+    window.eval(source('public/assets/js/pages/dashboard-account-type-notice.js'));
+    window.document.getElementById('account-type-notice-dismiss').click();
+    return window.localStorage.getItem('ef_account_type_notice_dismissed') === '1';
+  }
+  out.noticeDeclined = await noticeDismissed(consent(false));
+  out.noticeAccepted = await noticeDismissed(consent(true));
+  out.noticeNoBanner = await noticeDismissed(null);
+
+  /** Saves a budget on the dashboard and says whether the browser copy was stored. */
+  async function budgetCopyStored(cookieConsent) {
+    const page = await openPage(
+      { me: okMe, plans: plansReply([wedding]) },
+      {
+        beforeScripts: window => {
+          if (cookieConsent) {
+            window.CookieConsent = cookieConsent;
+          }
+        },
+      }
+    );
+    await waitFor(
+      () => page.window.document.getElementById('saved-suppliers-status').children.length
+    );
+    page.window.document.getElementById('custom-budget-input').value = '4000';
+    page.window.document
+      .getElementById('budget-settings-form')
+      .dispatchEvent(new page.window.Event('submit', { cancelable: true, bubbles: true }));
+    await waitFor(() => page.text('budget-status'));
+    return {
+      stored: page.window.localStorage.getItem('eventflow_custom_budget'),
+      patches: page.calls.patches,
+      status: page.text('budget-status'),
+    };
+  }
+  out.budgetDeclined = await budgetCopyStored(consent(false));
+  out.budgetAccepted = await budgetCopyStored(consent(true));
+
+  // Another account signing in on the same browser does not inherit the device-only figures.
+  const window = await loaded(windowWith(''));
+  const keys = [
+    'eventflow_custom_budget',
+    'eventflow_saved_suppliers',
+    'ef_budget_v2',
+    'ef_budget',
+    'ef_budget_imported',
+    'ef_customer_plan',
+    'ef_account_type_notice_dismissed',
+    'eventflow_guest_plan_token',
+  ];
+  keys.forEach(key => window.localStorage.setItem(key, 'x'));
+  window.localStorage.setItem('eventflow_device_data_owner', 'u1');
+  window.eval(source('public/assets/js/utils/auth-state.js'));
+  window.__authState.scopeDeviceData({ id: 'u2' });
+  out.accountSwitch = Object.fromEntries(keys.map(key => [key, window.localStorage.getItem(key)]));
+
+  out.consentSource = {
+    functionalKeys: [
+      ...source('public/assets/js/cookie-consent.js').matchAll(/^\s+'([\w-]+)',$/gm),
+    ].map(match => match[1]),
+  };
+  return out;
+}
+
+async function badgeScenarios() {
+  const out = { consent: await consentScenarios() };
+  out.quietOn = {};
+  for (const route of ['/dashboard/customer', '/dashboard-customer.html', '/budget', '/guests']) {
+    out.quietOn[route] = await launcherBadgeStyle(`http://localhost${route}`);
+  }
+  out.shownOn = {};
+  for (const route of ['/', '/suppliers', '/dashboard/supplier']) {
+    out.shownOn[route] = await launcherBadgeStyle(`http://localhost${route}`);
+  }
+  return out;
+}
+
+/* -------------------------------------------------------------------------- *
  * Runner
  * -------------------------------------------------------------------------- */
 
@@ -639,6 +749,7 @@ async function pageScenarios() {
     tickets: await ticketsScenarios(),
     summary: await summaryScenarios(),
     page: await pageScenarios(),
+    badge: await badgeScenarios(),
   };
   process.stdout.write(JSON.stringify(results));
   process.exit(0);

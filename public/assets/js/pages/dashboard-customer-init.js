@@ -20,8 +20,32 @@ function readStored(key) {
   }
 }
 
-/** Writes a storage value; false when storage is blocked or full. */
+/**
+ * Whether this browser may keep a remembered choice or a cached copy of server data. Those follow
+ * the visitor's cookie choice (functional storage must have been accepted); with no consent banner
+ * on the page there is no choice to follow. Mirrors efMayRememberChoices() in app.js.
+ * @returns {boolean} True when it may be kept.
+ */
+function mayKeepFunctionalStorage() {
+  try {
+    const consent = window.CookieConsent;
+    if (!consent || typeof consent.getConsent !== 'function') {
+      return true;
+    }
+    return consent.getConsent()?.functional === true;
+  } catch {
+    return false;
+  }
+}
+
+/** Browser copies of server data; kept only with functional consent (see cookie-consent.js). */
+const FUNCTIONAL_KEYS = ['eventflow_custom_budget', 'eventflow_saved_suppliers'];
+
+/** Writes a storage value; false when storage is blocked, full, or not allowed for this key. */
 function writeStored(key, value) {
+  if (FUNCTIONAL_KEYS.includes(key) && !mayKeepFunctionalStorage()) {
+    return false;
+  }
   try {
     window.localStorage.setItem(key, value);
     return true;

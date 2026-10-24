@@ -194,3 +194,67 @@ describe('storage access in the dashboard script', () => {
     expect(bare).toHaveLength(3);
   });
 });
+
+describe('the JadeAssist launcher badge on customer pages', () => {
+  test('the "1" nudge is hidden on the dashboard, budget and guest pages', () => {
+    for (const hidden of Object.values(results.badge.quietOn)) {
+      expect(hidden).toBe(true);
+    }
+  });
+
+  test('it is left alone everywhere else', () => {
+    for (const hidden of Object.values(results.badge.shownOn)) {
+      expect(hidden).toBe(false);
+    }
+  });
+});
+
+describe('browser storage and cookie consent', () => {
+  const { consent } = results.badge;
+
+  test('remembered choices and browser copies are classed as functional storage', () => {
+    for (const key of [
+      'ef_account_type_notice_dismissed',
+      'ef_customer_plan',
+      'eventflow_saved_suppliers',
+      'eventflow_custom_budget',
+    ]) {
+      expect(consent.consentSource.functionalKeys).toContain(key);
+    }
+  });
+
+  test("a customer's own device-only budget and the guest-plan token are not wiped by declining", () => {
+    for (const key of [
+      'ef_budget_v2',
+      'ef_budget',
+      'ef_budget_imported',
+      'eventflow_guest_plan_token',
+    ]) {
+      expect(consent.consentSource.functionalKeys).not.toContain(key);
+    }
+  });
+
+  test('declining functional storage means a dismissed notice is not remembered', () => {
+    expect(consent.noticeDeclined).toBe(false);
+    expect(consent.noticeAccepted).toBe(true);
+    expect(consent.noticeNoBanner).toBe(true);
+  });
+
+  test('declining functional storage keeps the browser copy of the budget off but still saves it', () => {
+    expect(consent.budgetDeclined.stored).toBeNull();
+    expect(consent.budgetDeclined.patches).toEqual([{ budget: 4000 }]);
+    expect(consent.budgetDeclined.status).toBe('Budget set to £4,000');
+    expect(consent.budgetAccepted.stored).toBe('4000');
+  });
+
+  test('a different account signing in forgets every device-only budget and plan choice', () => {
+    for (const [key, value] of Object.entries(consent.accountSwitch)) {
+      if (key === 'eventflow_guest_plan_token') {
+        // Not account data: it is the way a guest's plan is claimed after sign-up.
+        expect(value).toBe('x');
+      } else {
+        expect(value).toBeNull();
+      }
+    }
+  });
+});

@@ -84,6 +84,25 @@
     }
   }
 
+  /**
+   * Writes a remembered choice or a cached copy of server data. These follow the visitor's cookie
+   * choice (functional storage must be accepted; no banner on the page means no choice to follow).
+   * Budget lines themselves are the visitor's own data and go through writeStorage().
+   */
+  function writeFunctional(key, value) {
+    try {
+      const consent = window.CookieConsent;
+      if (consent && typeof consent.getConsent === 'function') {
+        if (consent.getConsent()?.functional !== true) {
+          return false;
+        }
+      }
+    } catch {
+      return false;
+    }
+    return writeStorage(key, value);
+  }
+
   /** Reads and parses a JSON localStorage value, or null when missing or broken. */
   function readJson(key) {
     const raw = readStorage(key);
@@ -341,7 +360,7 @@
         'Your browser would not save this on your device. Check your storage settings.'
       );
     }
-    writeStorage(DASHBOARD_BUDGET_KEY, String(total || ''));
+    writeFunctional(DASHBOARD_BUDGET_KEY, String(total || ''));
   }
 
   /** Writes the whole list of lines; resolves once the server (or device) has accepted it. */
@@ -381,7 +400,7 @@
     await api(planUrl(state.plan), { method: 'PATCH', body: { budget: total } });
     state.plan.budget = String(total);
     state.total = total;
-    writeStorage(DASHBOARD_BUDGET_KEY, String(total));
+    writeFunctional(DASHBOARD_BUDGET_KEY, String(total));
   }
 
   /* ------------------------------------------------------------------ *
@@ -1097,7 +1116,7 @@
     byId('bp-plan-select').addEventListener('change', event => {
       const plan = state.plans.find(candidate => candidate.id === event.target.value);
       if (plan) {
-        writeStorage(PLAN_PICK_KEY, plan.id);
+        writeFunctional(PLAN_PICK_KEY, plan.id);
         showPlanInUrl(plan.id);
         state.filterCategory = '';
         state.filterPayment = '';
