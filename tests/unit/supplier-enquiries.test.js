@@ -694,6 +694,103 @@ describe('GET /enquiries/export', () => {
     expect(res.text).not.toContain('Type');
   });
 
+  it('leaves out a conversation the supplier deleted from their inbox, but not the customer-deleted one', async () => {
+    addConversations();
+    const store = fakeDb.__store();
+    store.users.push({ id: 'cust-8', firstName: 'Frank', lastName: 'Deleted', verified: true });
+    store.users.push({ id: 'cust-7', firstName: 'Gina', lastName: 'Kept', verified: true });
+    store.conversations_v4.push(
+      {
+        _id: 'c4',
+        status: 'active',
+        messageCount: 2,
+        createdAt: new Date(hoursAgo(20)),
+        updatedAt: new Date(hoursAgo(19)),
+        participants: [
+          { userId: 'user-1', role: 'supplier', unreadCount: 0, isDeleted: true },
+          { userId: 'cust-8', role: 'customer' },
+        ],
+        lastMessage: { content: 'I deleted this one' },
+      },
+      {
+        _id: 'c5',
+        status: 'active',
+        messageCount: 2,
+        createdAt: new Date(hoursAgo(21)),
+        updatedAt: new Date(hoursAgo(20)),
+        participants: [
+          { userId: 'user-1', role: 'supplier', unreadCount: 1, isDeleted: false },
+          { userId: 'cust-7', role: 'customer', isDeleted: true },
+        ],
+        lastMessage: { content: 'still in my inbox' },
+      }
+    );
+
+    const res = await call('get', '/enquiries/export');
+
+    expect(res.text).not.toContain('Frank Deleted');
+    expect(res.text).not.toContain('I deleted this one');
+    expect(res.text).toContain('Gina Kept');
+    expect(res.headers['x-export-row-count']).toBe('5');
+  });
+
+  describe('truncation', () => {
+    /**
+     * Add many contact-form enquiries for the signed-in supplier.
+     *
+     * @param {number} count - How many
+     * @returns {void}
+     */
+    function addContactEnquiries(count) {
+      const store = fakeDb.__store();
+      for (let index = 0; index < count; index += 1) {
+        store.enquiries.push({
+          id: `enq_bulk_${index}`,
+          supplierId: 'sup-1',
+          senderName: `Bulk ${index}`,
+          senderEmail: `bulk${index}@example.com`,
+          message: 'hello',
+          createdAt: hoursAgo(10 + (index % 400) / 10),
+        });
+      }
+    }
+
+    it('says it is not truncated when everything fits', async () => {
+      const res = await call('get', '/enquiries/export');
+
+      expect(res.headers['x-export-truncated']).toBe('false');
+      expect(res.text).not.toContain('"Notice"');
+    });
+
+    it('exactly at the cap is not truncated', async () => {
+      // seed() already has one contact enquiry for sup-1 (enq_1)
+      addContactEnquiries(999);
+
+      const res = await call('get', '/enquiries/export');
+
+      expect(res.headers['x-export-truncated']).toBe('false');
+      expect(res.text).not.toContain('"Notice"');
+    });
+
+    it('over the cap is flagged in the header and by a visible last row', async () => {
+      addContactEnquiries(1005);
+
+      const res = await call('get', '/enquiries/export');
+
+      expect(res.status).toBe(200);
+      expect(res.headers['x-export-truncated']).toBe('true');
+      // 1000 contact rows + the two quote requests; the notice row is not counted.
+      expect(res.headers['x-export-row-count']).toBe('1002');
+      const lines = res.text
+        .replace(/^\uFEFF/, '')
+        .trim()
+        .split('\r\n');
+      const last = lines[lines.length - 1];
+      expect(last).toContain('"Notice"');
+      expect(last).toContain('limited to the newest 1000');
+    });
+  });
+
   it('is not shadowed by the :id route', async () => {
     const res = await call('get', '/enquiries/export');
 

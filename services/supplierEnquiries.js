@@ -240,7 +240,21 @@ async function loadStates(supplierId) {
  * @returns {Promise<Object[]>} Normalised enquiries
  */
 async function loadQuoteRequests(supplierId, sinceMs) {
-  const rows =
+  return (await fetchQuoteRequestRows(supplierId, sinceMs, MAX_RECORDS_PER_SOURCE))
+    .filter(row => sourceOfId(row.id))
+    .map(normaliseQuoteRequest);
+}
+
+/**
+ * The raw quote-request rows behind loadQuoteRequests, newest first, at most `limit` of them.
+ *
+ * @param {string} supplierId - Supplier id
+ * @param {number} sinceMs - Earliest creation time
+ * @param {number} limit - Most rows to read
+ * @returns {Promise<Object[]>} Projected rows
+ */
+async function fetchQuoteRequestRows(supplierId, sinceMs, limit) {
+  return (
     (await dbUnified.aggregate(
       'quoteRequests',
       [
@@ -251,7 +265,7 @@ async function loadQuoteRequests(supplierId, sinceMs) {
           },
         },
         { $sort: { createdAt: -1 } },
-        { $limit: MAX_RECORDS_PER_SOURCE },
+        { $limit: limit },
         {
           $project: {
             id: 1,
@@ -268,8 +282,8 @@ async function loadQuoteRequests(supplierId, sinceMs) {
         },
       ],
       STRICT
-    )) || [];
-  return rows.filter(row => sourceOfId(row.id)).map(normaliseQuoteRequest);
+    )) || []
+  );
 }
 
 /**
@@ -280,13 +294,27 @@ async function loadQuoteRequests(supplierId, sinceMs) {
  * @returns {Promise<Object[]>} Normalised enquiries
  */
 async function loadContactEnquiries(supplierId, sinceMs) {
-  const rows =
+  return (await fetchContactEnquiryRows(supplierId, sinceMs, MAX_RECORDS_PER_SOURCE))
+    .filter(row => sourceOfId(row.id))
+    .map(normaliseContactEnquiry);
+}
+
+/**
+ * The raw contact-form rows behind loadContactEnquiries, newest first, at most `limit` of them.
+ *
+ * @param {string} supplierId - Supplier id
+ * @param {number} sinceMs - Earliest creation time
+ * @param {number} limit - Most rows to read
+ * @returns {Promise<Object[]>} Rows
+ */
+async function fetchContactEnquiryRows(supplierId, sinceMs, limit) {
+  return (
     (await dbUnified.findWithOptions(
       'enquiries',
       { supplierId, createdAt: { $gte: new Date(sinceMs).toISOString() } },
-      { limit: MAX_RECORDS_PER_SOURCE, sort: { createdAt: -1 }, throwOnError: true }
-    )) || [];
-  return rows.filter(row => sourceOfId(row.id)).map(normaliseContactEnquiry);
+      { limit, sort: { createdAt: -1 }, throwOnError: true }
+    )) || []
+  );
 }
 
 /**
@@ -671,26 +699,68 @@ function userDisplayName(user) {
  * @param {Object} params - Inputs
  * @param {string} params.supplierId - Supplier id (from the session)
  * @param {string} params.ownerUserId - The supplier owner's user id
- * @returns {Promise<Array<Array<*>>>} Rows matching EXPORT_HEADERS
+ * @returns {Promise<Array<Array<*>>>} Rows matching EXPORT_HEADERS (see buildExport for the truncation flag)
  */
-async function buildExportRows({ supplierId, ownerUserId }) {
+async function buildExportRows(params) {
+  return (await buildExport(params)).rows;
+}
+
+/**
+ * The export rows and whether any source was cut off at its cap.
+ *
+ * Each source (conversations, quote requests, contact enquiries) keeps its newest MAX rows. One
+ * extra row is read from each so "exactly the cap" is not mistaken for "more than the cap".
+ * Conversations the supplier deleted from their inbox are left out, as the messenger leaves them out.
+ *
+ * @param {Object} params - Inputs
+ * @param {string} params.supplierId - Supplier id (from the session)
+ * @param {string} params.ownerUserId - The supplier owner's user id
+ * @returns {Promise<{rows: Array<Array<*>>, truncated: boolean}>} Data rows and the truncation flag
+ */
+async function buildExport({ supplierId, ownerUserId }) {
   const sinceMs = Date.now() - MAX_WINDOW_DAYS * 5 * DAY_MS;
-  const [quotes, contacts, states, conversations] = await Promise.all([
-    loadQuoteRequests(supplierId, sinceMs),
-    loadContactEnquiries(supplierId, sinceMs),
+  const [quoteRows, contactRows, states, conversationRows] = await Promise.all([
+    fetchQuoteRequestRows(supplierId, sinceMs, MAX_RECORDS_PER_SOURCE + 1),
+    fetchContactEnquiryRows(supplierId, sinceMs, MAX_RECORDS_PER_SOURCE + 1),
     loadStates(supplierId),
     dbUnified.findWithOptions(
       'conversations_v4',
-      { 'participants.userId': ownerUserId, messageCount: { $gt: 0 } },
-      { limit: MAX_EXPORT_CONVERSATIONS, sort: { updatedAt: -1 }, throwOnError: true }
+      {
+        participants: { $elemMatch: { userId: ownerUserId, isDeleted: { $ne: true } } },
+        messageCount: { $gt: 0 },
+      },
+      { limit: MAX_EXPORT_CONVERSATIONS + 1, sort: { updatedAt: -1 }, throwOnError: true }
     ),
   ]);
+  const conversations = conversationRows || [];
+  const truncated =
+    quoteRows.length > MAX_RECORDS_PER_SOURCE ||
+    contactRows.length > MAX_RECORDS_PER_SOURCE ||
+    conversations.length > MAX_EXPORT_CONVERSATIONS;
+  const quotes = quoteRows
+    .slice(0, MAX_RECORDS_PER_SOURCE)
+    .filter(row => sourceOfId(row.id))
+    .map(normaliseQuoteRequest);
+  const contacts = contactRows
+    .slice(0, MAX_RECORDS_PER_SOURCE)
+    .filter(row => sourceOfId(row.id))
+    .map(normaliseContactEnquiry);
 
-  const customerConversations = (conversations || []).filter(conversation =>
-    (conversation.participants || []).some(
-      participant => participant.role === 'customer' && participant.userId !== ownerUserId
-    )
-  );
+  const customerConversations = conversations
+    .slice(0, MAX_EXPORT_CONVERSATIONS)
+    .filter(conversation => {
+      const participants = conversation.participants || [];
+      // The query already leaves out conversations the supplier deleted; checking again here keeps
+      // the rule in one place a reader can see, whatever the store did with the filter.
+      const mine = participants.find(participant => participant.userId === ownerUserId);
+      return (
+        Boolean(mine) &&
+        mine.isDeleted !== true &&
+        participants.some(
+          participant => participant.role === 'customer' && participant.userId !== ownerUserId
+        )
+      );
+    });
   const customerIds = [
     ...new Set(
       customerConversations.flatMap(conversation =>
@@ -721,7 +791,7 @@ async function buildExportRows({ supplierId, ownerUserId }) {
     : [];
   const userNames = new Map(users.map(user => [user.id, userDisplayName(user)]));
 
-  const conversationRows = customerConversations.map(conversation => {
+  const conversationExportRows = customerConversations.map(conversation => {
     const customer = conversation.participants.find(
       participant => participant.role === 'customer' && participant.userId !== ownerUserId
     );
@@ -767,11 +837,24 @@ async function buildExportRows({ supplierId, ownerUserId }) {
     };
   });
 
-  return [...conversationRows, ...enquiryRows]
+  const rows = [...conversationExportRows, ...enquiryRows]
     .sort((first, second) => new Date(second.at) - new Date(first.at))
     .map(item =>
       item.row.map((cell, index) => (index === 0 || index === 6 ? isoDate(cell) : cell))
     );
+  return { rows, truncated };
+}
+
+/**
+ * The last row of a truncated export, so the limit is visible in the spreadsheet itself.
+ *
+ * @returns {Array<*>} A row matching EXPORT_HEADERS
+ */
+function truncationNoticeRow() {
+  const row = EXPORT_HEADERS.map(() => '');
+  row[1] = 'Notice';
+  row[10] = `This export is limited to the newest ${MAX_EXPORT_CONVERSATIONS} conversations, ${MAX_RECORDS_PER_SOURCE} quote requests and ${MAX_RECORDS_PER_SOURCE} contact enquiries. Older entries are not included.`;
+  return row;
 }
 
 /**
@@ -813,4 +896,8 @@ module.exports = {
   replyToEnquiry,
   MAX_REPLY_LENGTH,
   buildExportRows,
+  buildExport,
+  truncationNoticeRow,
+  MAX_EXPORT_CONVERSATIONS,
+  MAX_RECORDS_PER_SOURCE,
 };

@@ -314,7 +314,9 @@ async function loadApprovedSupplierForEnquiries(req, res) {
  * Always 200 with a header row. When there is nothing to export the body is the
  * header row only and `X-Export-Row-Count` is 0, so a client can say "nothing to
  * export" instead of saving an empty file. Cells that a spreadsheet would run as a
- * formula are neutralised (utils/csv).
+ * formula are neutralised (utils/csv). Conversations the supplier deleted from their inbox are not
+ * exported. Each source keeps its newest 1000 rows; when more existed `X-Export-Truncated` is
+ * "true" and the file ends with a "Notice" row saying so.
  */
 router.get('/enquiries/export', authRequired, async (req, res) => {
   try {
@@ -323,11 +325,16 @@ router.get('/enquiries/export', authRequired, async (req, res) => {
       return;
     }
 
-    const rows = await supplierEnquiries.buildExportRows({
+    const { rows, truncated } = await supplierEnquiries.buildExport({
       supplierId: supplier.id,
       ownerUserId: req.user.id,
     });
-    const csv = serializeCsv(supplierEnquiries.EXPORT_HEADERS, rows);
+    // A cut-off export says so in the file (a last "Notice" row) and in X-Export-Truncated, so the
+    // newest-first file is never mistaken for the whole history. Row-Count counts data rows only.
+    const csv = serializeCsv(
+      supplierEnquiries.EXPORT_HEADERS,
+      truncated ? [...rows, supplierEnquiries.truncationNoticeRow()] : rows
+    );
 
     res.setHeader('Content-Type', 'text/csv; charset=utf-8');
     res.setHeader(
@@ -335,6 +342,7 @@ router.get('/enquiries/export', authRequired, async (req, res) => {
       `attachment; filename="enquiries-and-conversations-${new Date().toISOString().split('T')[0]}.csv"`
     );
     res.setHeader('X-Export-Row-Count', String(rows.length));
+    res.setHeader('X-Export-Truncated', truncated ? 'true' : 'false');
     res.send(csv);
   } catch (error) {
     logger.error('Error exporting enquiries:', error.message);
