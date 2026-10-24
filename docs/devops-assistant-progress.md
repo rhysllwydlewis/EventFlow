@@ -176,7 +176,7 @@ the policy above.
 
 ### 2026-10-24 — session 31
 
-Branch merged with `main` (`34c297a9`, #1838); only the session 30 handoff commit was unique (its PR #1828 was closed unmerged). No open PR on this branch; open PRs are #1839 and #1840 (not mine). Backlog empty. `/api/ready` 200 (mongodb connected, queue/worker healthy); `/`, `/suppliers`, `/marketplace`, `/pricing`, `/faq`, `/auth`, `/community`, `/contact`, `/terms`, `/privacy`, `/guides` all 200. No defect found, no code changed. Docs-only handoff.
+Branch merged with `main` (`34c297a9`, #1838); only the session 30 handoff commit was unique (its PR #1828 was closed unmerged). No open PR on this branch; open PRs are #1839 and #1840 (not mine). Backlog empty. `/api/ready` 200 (mongodb connected, queue/worker healthy); `/`, `/suppliers`, `/marketplace`, `/pricing`, `/faq`, `/auth`, `/community`, `/contact`, `/terms`, `/privacy`, `/guides` all 200. No defect found, no code changed. Update: CI "Security Audit" went red on PR #1841 (not caused by it): new advisories against `body-parser` 1.20.6 (<1.20.9), `multer` 2.4.0 (<2.5.0, direct dep), `undici` 7.30.0 (<7.30.1), plus moderate `fast-uri` and low `serialize-javascript`. Bumped those lockfile entries by hand to 1.20.9 / 2.5.0 / 7.30.1 / 3.1.9 / 7.1.4 (integrity from the registry; body-parser 1.20.9 wants `qs ~6.16.0`, already locked at 6.16.0). `npm run audit` clean, `npm ci` OK, `npx jest tests/unit` passed (13024).
 
 ### 2026-10-23 — session 30
 
