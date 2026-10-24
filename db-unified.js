@@ -448,7 +448,18 @@ async function createSupplierEnquiryIndexes() {
   }
 }
 
-async function read(collectionName) {
+/**
+ * Read a whole collection (or the single document of a singleton collection such as `settings`).
+ *
+ * A failed read is logged and answered from the local store (or empty) unless `options.throwOnError`
+ * is set, which rethrows instead. A caller whose safe default differs from "empty" (for example a
+ * setting that switches a safeguard on) passes it, so a database outage is not read as "off".
+ *
+ * @param {string} collectionName - Collection
+ * @param {{throwOnError?: boolean}} [options] - Pass throwOnError to rethrow failures
+ * @returns {Promise<Array|Object>} Documents, or the singleton's record
+ */
+async function read(collectionName, options = {}) {
   await initializeDatabase();
   try {
     if (dbType === 'mongodb') {
@@ -469,6 +480,9 @@ async function read(collectionName) {
     }
   } catch (error) {
     logger.error(`Error reading from ${collectionName}:`, error.message);
+    if (options.throwOnError) {
+      throw error;
+    }
     if (dbType !== 'local') {
       logger.info(`Falling back to local storage for ${collectionName}`);
       readFallbackCount++;

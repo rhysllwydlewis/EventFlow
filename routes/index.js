@@ -384,8 +384,6 @@ const mountRoutes = (app, deps) => {
   app.use('/api/me/plans', guestsRoutes);
   app.use('/api/v1/me/saved', savedRoutes);
   app.use('/api/me/saved', savedRoutes);
-  // The hardened CSV export must run before the legacy supplier router,
-  // which retains the historical endpoint for backwards compatibility.
   app.use('/api/v1/supplier', supplierRoutes);
   app.use('/api/supplier', supplierRoutes);
 
