@@ -168,8 +168,6 @@
         transform: scale(0.96);
       }
 
-      ${badgeIsQuiet() ? '.jade-avatar-badge { display: none !important; }' : ''}
-
       .jade-avatar-badge--asset-fallback {
         background: #ef4444 !important;
         border: 2px solid #fff !important;
@@ -196,6 +194,9 @@
         }
       }
     `;
+    if (badgeIsQuiet()) {
+      style.textContent += '\n.jade-avatar-badge { display: none !important; }\n';
+    }
     shadowRoot.appendChild(style);
   }
 
