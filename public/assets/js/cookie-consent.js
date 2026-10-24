@@ -32,7 +32,15 @@
  *   jadeassist-teaser-dismissed, ef_onboarding_dismissed,
  *   ef_supplier_welcome_dismissed, eventflow_onboarding_new,
  *   ef_notification_sound_enabled, ef_notification_volume,
- *   ef_tour_completed, ef_signup_popup_dismissed
+ *   ef_tour_completed, ef_signup_popup_dismissed,
+ *   ef_account_type_notice_dismissed, ef_customer_plan,
+ *   eventflow_saved_suppliers, eventflow_custom_budget
+ *
+ * Deliberately NOT in that list (storage the visitor asked for, not a preference): the device-only
+ * budget a customer with no plan saves (ef_budget_v2, the older ef_budget, ef_budget_imported) and
+ * eventflow_guest_plan_token, which a guest plan needs to be claimed after sign-up. Declining
+ * functional storage must not delete a budget someone typed in. They are forgotten when a
+ * different account signs in (utils/auth-state.js DEVICE_DATA_KEYS).
  */
 
 'use strict';
@@ -59,6 +67,12 @@
     'ef_notification_volume',
     'ef_tour_completed',
     'ef_signup_popup_dismissed',
+    // Customer dashboard / budget / guests: a dismissed notice, the plan last picked, and browser
+    // copies of the saved-supplier list and budget figure (the server holds the real ones).
+    'ef_account_type_notice_dismissed',
+    'ef_customer_plan',
+    'eventflow_saved_suppliers',
+    'eventflow_custom_budget',
   ];
 
   // ─── Cookie helpers ────────────────────────────────────────────────────────

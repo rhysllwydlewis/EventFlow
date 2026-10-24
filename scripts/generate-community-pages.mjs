@@ -129,7 +129,7 @@ function shell(page) {
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5, user-scalable=yes" />
     <meta name="theme-color" content="#0B8073" />
     <script src="/assets/js/config/canonical-base.js"></script>
-${page.adminGuard ? '    <script src="/assets/js/dashboard-guard.js?v=18.4.0"></script>\n' : ''}    <!--COMMUNITY_HEAD-->
+${page.adminGuard ? '    <script src="/assets/js/dashboard-guard.js?v=18.4.1"></script>\n' : ''}    <!--COMMUNITY_HEAD-->
     <link rel="preload" href="/assets/css/tokens.css?v=${version('/assets/css/tokens.css')}" as="style" />
     <link rel="preload" href="/assets/css/styles.css?v=${version('/assets/css/styles.css')}" as="style" />
     <link rel="stylesheet" href="/assets/css/tokens.css?v=${version('/assets/css/tokens.css')}" />
@@ -308,12 +308,12 @@ ${
     <script src="/assets/js/components.js?v=18.4.0" defer></script>
     <script src="/assets/js/admin-navbar.js?v=18.4.0" defer></script>
 `
-      : `    <script src="/assets/js/utils/auth-state.js?v=1.0.2" defer></script>
+      : `    <script src="/assets/js/utils/auth-state.js?v=1.0.3" defer></script>
     <script src="/assets/js/burger-menu.js?v=1.1.0" defer></script>
     <script src="/assets/js/navbar.js?v=1.3.0" defer></script>
     <script src="/assets/js/notifications.js?v=2.0.3" defer></script>
 `
-  }    <script src="/assets/js/cookie-consent.js?v=3.0.1" defer></script>
+  }    <script src="/assets/js/cookie-consent.js?v=3.0.2" defer></script>
 ${
   page.adminGuard
     ? ''

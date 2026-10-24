@@ -24,7 +24,17 @@
   // Figures this browser keeps for whoever is signed in (a budget typed on the dashboard, the ids
   // of saved suppliers). They are not stored per account, so when a different person signs in on the
   // same browser they would otherwise see, and even save to their own plan, the previous person's.
-  const DEVICE_DATA_KEYS = ['eventflow_custom_budget', 'eventflow_saved_suppliers'];
+  const DEVICE_DATA_KEYS = [
+    'eventflow_custom_budget',
+    'eventflow_saved_suppliers',
+    // The budget page's device-only budget (and the older page's), and what was imported from it.
+    'ef_budget_v2',
+    'ef_budget',
+    'ef_budget_imported',
+    // The plan last picked on the budget and guest pages, and a dismissed account-type notice.
+    'ef_customer_plan',
+    'ef_account_type_notice_dismissed',
+  ];
   const DEVICE_DATA_OWNER_KEY = 'eventflow_device_data_owner';
 
   /**

@@ -181,7 +181,7 @@ describe('independent analytics privacy hardening', () => {
 
     // A cached copy of the pre-advertising consent module would keep writing
     // records with no marketing decision, so its URL moves too.
-    expect(html).toContain('/assets/js/cookie-consent.js?v=3.0.1');
+    expect(html).toContain('/assets/js/cookie-consent.js?v=3.0.2');
     expect(html).not.toContain('/assets/js/cookie-consent.js?v=2.1.1');
   });
 });

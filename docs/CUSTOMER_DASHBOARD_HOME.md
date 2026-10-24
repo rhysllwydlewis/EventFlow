@@ -42,8 +42,14 @@ When someone has more than one plan the
 Plans card marks the one in the summary. The budget form saves to that same plan.
 
 - **Countdown** and **Guests** come from the plan; guest replies come from
-  `/api/me/plans/:id/rsvp-summary`. With no guest list it says so and links to `/guests`.
-- **Budget** is the plan's own `budget` against the priced packages it holds.
+  `/api/me/plans/:id/rsvp-summary`. With no guest list it says so and links to `/guests`. If that
+  request fails the tile says "Not available" with a retry; a failed request says nothing about
+  whether a guest list exists, so it never falls back to "No guest list yet".
+- **Budget** is the plan's own `budget` against what is committed: its budget lines plus the
+  listed price of the packages it holds. **This is not the /budget page's "Committed"**, which
+  counts budget lines only (it does not load package prices). When packages add to the figure the
+  tile says how it splits ("£1,000 in budget items + £400 in listed package prices"), and the
+  budget page's footnote says the dashboard adds package prices, so the two can be reconciled.
   Per-person prices need a guest count; they and packages with no price are
   reported as "not priced", never guessed. The figure stored in the browser is
   only used when no plan has a budget yet, and only for the account that stored
@@ -59,13 +65,26 @@ Plans card marks the one in the summary. The budget form saves to that same plan
   plan", says "You have 3 of 3 plans" and the greeting stops offering a new one, because the plan
   wizard only refuses at its last step.
 - **Planning progress** and **Next steps** are the server's milestone list
-  (`GET /api/v1/customer/milestones`, the only customer-dashboard endpoint the page calls). "Save
+  (`GET /api/v1/customer/milestones?planId=<focus plan>`, the only customer-dashboard endpoint the
+  page calls). With `planId` the plan-level steps (date, budget, guests, location) describe that one
+  plan, like the countdown, budget and guests tiles beside it; without one, or with an id that is
+  not the caller's, they are done when any plan has them (`scope: "account"` in the reply). Saved
+  suppliers and the venue step belong to the customer, not a plan, so they are the same either way. "Save
   your first supplier" reads the shortlist (`shortlists`, what the Saved suppliers card shows);
   "Shortlist or enquire about a venue" is done by a shortlisted venue or a quote request to one.
   The first unfinished step is also the primary button in the header. Finished
   steps sit in a real `<details>` ("6 completed").
 - If the plans request fails the page says so and offers a retry; it does not
-  show an empty dashboard.
+  show an empty dashboard. A refresh that fails after plans were loaded keeps them and says it
+  could not refresh. The sign-in guard (`dashboard-guard.js`) never answers a slow request with
+  made-up empty data: past 3.5-5 s it shows "Taking longer than usual" while the real request
+  carries on, and cancels it after 30 s so the page's own could-not-load state appears.
+- Start-up copes with the things that go wrong: blocked or full browser storage (every storage
+  access is guarded and never stops the server save), a dropped connection during the sign-in
+  check (retried, then the user the guard confirmed is used, or a retry banner is shown; only a
+  401/403 redirects, to `/auth?redirect=`), and a failing Support card (error with a retry).
+- The Edit plan dialog asks before discarding unsaved edits: the first Cancel / cross / backdrop /
+  Escape says so and turns Cancel into "Discard changes".
 - **Suggested for you** is `GET /api/v2/search/personalized`, asked with the focus plan's
   location and the supplier categories the plan has not covered yet (`needed`). A budget category
   counts as covered once the plan has a budget line whose category contains its name, so "Venue

@@ -55,7 +55,11 @@
       }
     }
 
-    function timeoutFor(path) {
+    // A request that is merely slow is never answered with made-up data. Once it has taken longer
+    // than slowAfterMs() the page says it is still working and the real request carries on; at
+    // GIVE_UP_AFTER_MS it is cancelled, so the caller sees a genuine failure (and shows its own
+    // "could not load" state with a retry) rather than an empty list that reads as "you have none".
+    function slowAfterMs(path) {
       if (path === '/api/v1/auth/me') {
         return 7000;
       }
@@ -67,41 +71,43 @@
       }
       return 3500;
     }
+    const GIVE_UP_AFTER_MS = 30000;
+    const SLOW_NOTICE_ID = 'ef-dashboard-slow-notice';
+    let slowRequests = 0;
 
-    function responseFor(path) {
+    function showSlowNotice() {
+      slowRequests += 1;
+      if (slowRequests !== 1 || document.getElementById(SLOW_NOTICE_ID) || !document.body) {
+        return;
+      }
+      const notice = document.createElement('div');
+      notice.id = SLOW_NOTICE_ID;
+      notice.className = 'cdh-toast';
+      notice.setAttribute('role', 'status');
+      const title = document.createElement('strong');
+      title.textContent = 'Taking longer than usual';
+      const text = document.createElement('span');
+      text.textContent = 'Your dashboard is still loading. Nothing has been lost.';
+      notice.append(title, text);
+      document.body.appendChild(notice);
+    }
+
+    function hideSlowNotice() {
+      slowRequests = Math.max(0, slowRequests - 1);
+      if (slowRequests === 0) {
+        document.getElementById(SLOW_NOTICE_ID)?.remove();
+      }
+    }
+
+    // Only the signed-in user the guard itself already confirmed, or a CSRF token the page already
+    // holds, can stand in for a slow reply: both are real values, not guesses about the user's data.
+    // Everything else (plans, notifications, conversations, tickets) has no stand-in.
+    function standInFor(path) {
       const headers = { 'Content-Type': 'application/json', 'X-EF-Dashboard-Fallback': 'timeout' };
       const storedUser = window.__EF_DASHBOARD_USER__;
 
-      if (path === '/api/v1/auth/me') {
-        if (storedUser?.id) {
-          return new Response(JSON.stringify({ user: storedUser }), { status: 200, headers });
-        }
-        return new Response(JSON.stringify({ error: 'Auth request timed out' }), {
-          status: 504,
-          headers,
-        });
-      }
-
-      if (path === '/api/me/plans') {
-        return new Response(JSON.stringify({ plans: [] }), { status: 200, headers });
-      }
-      if (path === '/api/notifications') {
-        return new Response(JSON.stringify({ notifications: [], unreadCount: 0, total: 0 }), {
-          status: 200,
-          headers,
-        });
-      }
-      if (path === '/api/conversations') {
-        return new Response(JSON.stringify({ conversations: [], data: [], total: 0 }), {
-          status: 200,
-          headers,
-        });
-      }
-      if (path === '/api/tickets') {
-        return new Response(JSON.stringify({ tickets: [], data: [], total: 0 }), {
-          status: 200,
-          headers,
-        });
+      if (path === '/api/v1/auth/me' && storedUser?.id) {
+        return new Response(JSON.stringify({ user: storedUser }), { status: 200, headers });
       }
       if (path === '/api/csrf-token' || path === '/api/v1/csrf-token') {
         const csrf =
@@ -109,13 +115,15 @@
           document.querySelector('meta[name="csrf-token"]')?.content ||
           (document.cookie.match(/(?:^|; )csrf=([^;]+)/) || [])[1] ||
           '';
-        const decoded = decodeURIComponent(csrf || '');
-        return new Response(JSON.stringify({ csrfToken: decoded, token: decoded }), {
-          status: 200,
-          headers,
-        });
+        if (csrf) {
+          const decoded = decodeURIComponent(csrf);
+          return new Response(JSON.stringify({ csrfToken: decoded, token: decoded }), {
+            status: 200,
+            headers,
+          });
+        }
       }
-      return new Response(JSON.stringify({}), { status: 200, headers });
+      return null;
     }
 
     window.fetch = function customerDashboardFetch(input, options = {}) {
@@ -126,23 +134,43 @@
         return originalFetch(input, options);
       }
 
-      const timeoutMs = timeoutFor(path);
       const controller =
         !options.signal && typeof AbortController !== 'undefined' ? new AbortController() : null;
       const opts = controller ? { ...options, signal: controller.signal } : options;
-      let timeoutId;
-      const timeoutPromise = new Promise(resolve => {
-        timeoutId = window.setTimeout(() => {
+      const slowMs = slowAfterMs(path);
+      let giveUpTimer;
+      let noticeShown = false;
+      let useStandIn;
+      const standIn = new Promise(resolve => {
+        useStandIn = resolve;
+      });
+
+      const slowTimer = window.setTimeout(() => {
+        console.warn(`Customer dashboard request is slow: ${path}`);
+        const fallback = standInFor(path);
+        if (fallback) {
           if (controller) {
             controller.abort();
           }
-          console.warn(`Customer dashboard request timed out; using safe fallback for ${path}`);
-          resolve(responseFor(path));
-        }, timeoutMs);
-      });
+          useStandIn(fallback);
+          return;
+        }
+        noticeShown = true;
+        showSlowNotice();
+        giveUpTimer = window.setTimeout(() => {
+          console.warn(`Customer dashboard request gave up waiting: ${path}`);
+          if (controller) {
+            controller.abort();
+          }
+        }, GIVE_UP_AFTER_MS - slowMs);
+      }, slowMs);
 
-      return Promise.race([originalFetch(input, opts), timeoutPromise]).finally(() => {
-        window.clearTimeout(timeoutId);
+      return Promise.race([originalFetch(input, opts), standIn]).finally(() => {
+        window.clearTimeout(slowTimer);
+        window.clearTimeout(giveUpTimer);
+        if (noticeShown) {
+          hideSlowNotice();
+        }
       });
     };
   }

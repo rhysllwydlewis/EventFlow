@@ -470,6 +470,13 @@
   /** Remembers the picked plan for the next visit (ignored when storage is blocked). */
   function remember(id) {
     try {
+      // A remembered choice follows the cookie choice: functional storage must be accepted.
+      const consent = window.CookieConsent;
+      if (consent && typeof consent.getConsent === 'function') {
+        if (consent.getConsent()?.functional !== true) {
+          return;
+        }
+      }
       window.localStorage.setItem(PLAN_KEY, id);
     } catch {
       /* the choice just is not remembered */
