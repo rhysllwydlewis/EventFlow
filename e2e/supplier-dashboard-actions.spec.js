@@ -623,23 +623,14 @@ test.describe('Supplier dashboard: every control works @backend', () => {
     await closeTopDialog(page);
   });
 
-  test('availability is saved and still there after a reload', async ({
+  test('no availability control is offered, because nothing on the public site reads it', async ({
     page,
     context,
     baseURL,
   }) => {
     await openDashboard(page, context, baseURL);
-    await page.getByRole('button', { name: 'Limited', exact: true }).first().click();
-    const [response] = await Promise.all([
-      page.waitForResponse(r => r.request().method() === 'PATCH' && /availability/.test(r.url())),
-      page.getByRole('button', { name: 'Save', exact: true }).first().click(),
-    ]);
-    expect(response.status()).toBe(200);
-    await page.reload();
     await expect(page.locator('#my-packages')).toContainText(fixtures.package.title);
-    await expect(
-      page.getByRole('button', { name: 'Limited', exact: true }).first()
-    ).toHaveAttribute('aria-pressed', 'true');
+    await expect(page.getByRole('button', { name: 'Limited', exact: true })).toHaveCount(0);
   });
 
   test('message filter and sort change without errors, and the export says what it did', async ({

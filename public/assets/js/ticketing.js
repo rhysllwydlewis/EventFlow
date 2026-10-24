@@ -197,6 +197,7 @@ class TicketingSystem {
     {
       silentOnAuthError = true,
       onAuthError = null,
+      onError = null,
       intervalMs: preferredIntervalMs = this.defaultPollIntervalMs,
       hiddenIntervalMs = this.hiddenPollIntervalMs,
       pauseWhenHidden = true,
@@ -255,6 +256,9 @@ class TicketingSystem {
         }
 
         console.error('Ticket polling failed:', error);
+        if (typeof onError === 'function') {
+          onError(error);
+        }
         intervalMs = Math.min(intervalMs * 2, this.maxPollIntervalMs);
       } finally {
         inFlight = false;
@@ -377,7 +381,13 @@ class TicketingSystem {
       callback,
       {
         silentOnAuthError: true,
-        onAuthError: () => callback([]),
+        // A refused request says nothing about the tickets, so a caller that handles failures
+        // (options.onError) is told; the others keep getting an empty list as before.
+        onAuthError: () =>
+          typeof options.onError === 'function'
+            ? options.onError(new TicketingError('Not signed in', 401))
+            : callback([]),
+        onError: options.onError,
         intervalMs: 60000,
         hiddenIntervalMs: 600000,
         pauseWhenHidden: true,

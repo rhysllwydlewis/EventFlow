@@ -10,8 +10,8 @@ describe('dashboard skeleton compatibility layer', () => {
   const skeletonCss = read('public/assets/css/skeleton.css');
 
   it('loads the repaired canonical stylesheet cache key on both dashboards', () => {
-    expect(read('public/dashboard-customer.html')).toContain('/assets/css/skeleton.css?v=2.1.0');
-    expect(read('public/dashboard-supplier.html')).toContain('/assets/css/skeleton.css?v=2.1.0');
+    expect(read('public/dashboard-customer.html')).toContain('/assets/css/skeleton.css?v=2.1.1');
+    expect(read('public/dashboard-supplier.html')).toContain('/assets/css/skeleton.css?v=2.1.1');
   });
 
   it('has no placeholders left for the customer widgets the redesigned dashboard removed', () => {

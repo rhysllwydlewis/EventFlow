@@ -12,7 +12,7 @@ const polishScriptPath = path.join(
   'js',
   'jadeassist-launcher-polish.js'
 );
-const expectedVersion = '20261022-1';
+const expectedVersion = '20261024-1';
 
 function expectOrderedScripts(html) {
   const vendorIndex = html.indexOf('/assets/js/vendor/jade-widget.js');

@@ -179,7 +179,8 @@ function getSupplierForUser(user) {
   if (!user || user.role !== 'supplier') {
     return null;
   }
-  return dbUnified.findOne('suppliers', { ownerUserId: user.id });
+  // A failed lookup must surface (callers answer 500), not read as "no supplier profile".
+  return dbUnified.findOne('suppliers', { ownerUserId: user.id }, { throwOnError: true });
 }
 
 async function requirePublisher(req, res, next) {
@@ -225,11 +226,13 @@ async function requirePublisher(req, res, next) {
 
 async function requiresPublicCalendarApproval() {
   try {
-    const settings = (await dbUnified.read('settings')) || {};
+    const settings = (await dbUnified.read('settings', { throwOnError: true })) || {};
     return settings.features?.requirePublicCalendarApproval === true;
   } catch (err) {
-    logger.warn('Failed to read public calendar approval setting; defaulting to auto-publish', err);
-    return false;
+    // Fail closed: if the setting cannot be read, an event waits for approval rather than being
+    // published on the strength of a switch nobody could see.
+    logger.warn('Failed to read public calendar approval setting; requiring approval', err);
+    return true;
   }
 }
 

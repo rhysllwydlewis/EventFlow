@@ -83,8 +83,16 @@
     }
 
     // Get user preferences from data attributes or localStorage
-    const category = widget.dataset.category || localStorage.getItem('preferredCategory');
-    const location = widget.dataset.location || localStorage.getItem('preferredLocation');
+    // Storage can be blocked (private modes, strict settings); a missing preference is just none.
+    const stored = key => {
+      try {
+        return localStorage.getItem(key);
+      } catch {
+        return null;
+      }
+    };
+    const category = widget.dataset.category || stored('preferredCategory');
+    const location = widget.dataset.location || stored('preferredLocation');
     const budget = widget.dataset.budget;
     const eventType = widget.dataset.eventType;
     const needed = widget.dataset.needed;
@@ -142,7 +150,7 @@
 
     const data = await response.json();
     // Phase 3 response shape: { success, data: { results, context } }
-    return ((data.data && data.data.results) || []).slice(0, RECOMMENDATION_LIMIT);
+    return (data.data?.results || []).slice(0, RECOMMENDATION_LIMIT);
   }
 
   /**
@@ -217,7 +225,7 @@
   function createRecommendationsWidget(containerId, options = {}) {
     const container = document.getElementById(containerId);
     if (!container) {
-      return;
+      return undefined;
     }
 
     const widget = document.createElement('div');

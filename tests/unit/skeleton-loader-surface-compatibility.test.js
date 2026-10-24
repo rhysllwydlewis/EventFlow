@@ -10,7 +10,7 @@ describe('skeleton surface compatibility layers', () => {
   it('routes Marketplace placeholders through the canonical skeleton stylesheet', () => {
     const css = read('public/assets/css/marketplace-skeleton.css');
     const page = read('public/marketplace.html');
-    expect(page).toContain('/assets/css/skeleton.css?v=2.1.0');
+    expect(page).toContain('/assets/css/skeleton.css?v=2.1.1');
     expect(page).toContain('/assets/css/marketplace-skeleton.css?v=2.1.0');
     expect(page.indexOf('/assets/css/skeleton.css')).toBeLessThan(
       page.indexOf('/assets/css/marketplace-skeleton.css')
@@ -57,13 +57,13 @@ describe('skeleton surface compatibility layers', () => {
     const legacyConsumers = ['public/guides.html', 'public/home-v2.html', 'public/index.html'];
 
     canonicalConsumers.forEach(file =>
-      expect(read(file)).toContain('/assets/css/skeleton.css?v=2.1.0')
+      expect(read(file)).toContain('/assets/css/skeleton.css?v=2.1.1')
     );
     legacyConsumers.forEach(file =>
       expect(read(file)).toContain('/assets/css/loading-skeleton.css?v=2.1.0')
     );
     expect(read('public/assets/js/utils/skeleton-loader.js')).toContain(
-      "link.href = '/assets/css/skeleton.css?v=2.1.0'"
+      "link.href = '/assets/css/skeleton.css?v=2.1.1'"
     );
   });
 

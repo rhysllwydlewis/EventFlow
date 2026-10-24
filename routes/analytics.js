@@ -56,6 +56,15 @@ function isTrackRateLimited(ip, supplierId, type) {
 }
 
 const PROFILE_VIEW_DEDUPE_MS = 60 * 60 * 1000;
+// Most counted views one network address can add to one supplier in an hour. A visitor key alone
+// cannot stop someone minting new keys, so this caps the address as well. It is a trade-off: a
+// busy shared address (an office, a mobile carrier) can undercount, which is safer than letting
+// one client inflate a supplier's numbers. 20 leaves room for a real office or venue while
+// keeping one client's reach bounded; set PROFILE_VIEW_IP_CAP to tune it without a deploy.
+const PROFILE_VIEW_IP_CAP =
+  parseInt(process.env.PROFILE_VIEW_IP_CAP, 10) > 0
+    ? parseInt(process.env.PROFILE_VIEW_IP_CAP, 10)
+    : 20;
 const AUTOMATED_CLIENT_PATTERN =
   /bot|crawler|spider|crawl|slurp|facebookexternalhit|preview|headless|lighthouse|pingdom|monitor/i;
 
@@ -79,8 +88,61 @@ function isUncountedViewer(req, user, supplier) {
 }
 
 /**
+ * The coarse kind of browser a user-agent string describes, e.g. "chrome/windows".
+ *
+ * Only the family counts towards "the same visitor", never the full string, so changing the
+ * version number or appending text to the user-agent does not make a new visitor.
+ *
+ * @param {string} userAgent - Raw user-agent header
+ * @returns {string} "<browser>/<os>", each "other" when not recognised
+ */
+function userAgentFamily(userAgent) {
+  const ua = String(userAgent || '').toLowerCase();
+  let browser = 'other';
+  if (/edg(e|a|ios)?\//.test(ua)) {
+    browser = 'edge';
+  } else if (/opr\/|opera/.test(ua)) {
+    browser = 'opera';
+  } else if (/firefox|fxios/.test(ua)) {
+    browser = 'firefox';
+  } else if (/chrome|chromium|crios/.test(ua)) {
+    browser = 'chrome';
+  } else if (/safari/.test(ua)) {
+    browser = 'safari';
+  }
+  let os = 'other';
+  if (/iphone|ipad|ipod/.test(ua)) {
+    os = 'ios';
+  } else if (/android/.test(ua)) {
+    os = 'android';
+  } else if (/windows/.test(ua)) {
+    os = 'windows';
+  } else if (/mac os|macintosh/.test(ua)) {
+    os = 'mac';
+  } else if (/cros/.test(ua)) {
+    os = 'chromeos';
+  } else if (/linux|x11/.test(ua)) {
+    os = 'linux';
+  }
+  return `${browser}/${os}`;
+}
+
+/**
+ * Hash of a network address (the raw address is never stored).
+ *
+ * @param {Object} req - Express request
+ * @returns {string} Address key, or '' when the address is unknown
+ */
+function ipKeyFor(req) {
+  if (!req.ip) {
+    return '';
+  }
+  return `ip:${crypto.createHash('sha256').update(req.ip).digest('hex').slice(0, 32)}`;
+}
+
+/**
  * Stable anonymous key for "the same visitor": the signed-in account if there is one,
- * otherwise a hash of IP and browser (the raw IP is never stored).
+ * otherwise a hash of the address and the browser family (the raw IP is never stored).
  *
  * @param {Object} req - Express request
  * @param {Object|null} user - Signed-in user, if any
@@ -90,7 +152,7 @@ function visitorKeyFor(req, user) {
   if (user?.id) {
     return `u:${user.id}`;
   }
-  const fingerprint = `${req.ip || ''}|${req.get('user-agent') || ''}`;
+  const fingerprint = `${req.ip || ''}|${userAgentFamily(req.get('user-agent'))}`;
   return `a:${crypto.createHash('sha256').update(fingerprint).digest('hex').slice(0, 32)}`;
 }
 
@@ -503,16 +565,43 @@ router.post('/track', writeLimiter, async (req, res) => {
         return res.json({ success: true, message: 'Not counted' });
       }
       const visitorKey = visitorKeyFor(req, user);
+      const ipKey = ipKeyFor(req);
+      const since = new Date(Date.now() - PROFILE_VIEW_DEDUPE_MS).toISOString();
       const recent = await dbUnified.count('events', {
         supplierId: cleanSupplierId,
         type: 'profile_view',
         visitorKey,
-        timestamp: { $gte: new Date(Date.now() - PROFILE_VIEW_DEDUPE_MS).toISOString() },
+        timestamp: { $gte: since },
       });
       if (recent > 0) {
         return res.json({ success: true, message: 'Already tracked' });
       }
-      await supplierAnalytics.trackProfileView(cleanSupplierId, userId, null, false, visitorKey);
+      // However many browsers an address pretends to be, it adds a bounded number of views.
+      if (ipKey) {
+        const fromAddress = await dbUnified.count('events', {
+          supplierId: cleanSupplierId,
+          type: 'profile_view',
+          ipKey,
+          timestamp: { $gte: since },
+        });
+        if (fromAddress >= PROFILE_VIEW_IP_CAP) {
+          return res.json({ success: true, message: 'Already tracked' });
+        }
+      }
+      // The read above is only a fast path. The unique dedupeKey makes the insert itself the
+      // decision: of two beacons from one visitor at once, the database accepts one.
+      const hourBucket = Math.floor(Date.now() / PROFILE_VIEW_DEDUPE_MS);
+      const outcome = await supplierAnalytics.trackProfileView(
+        cleanSupplierId,
+        userId,
+        null,
+        false,
+        visitorKey,
+        { ipKey: ipKey || undefined, dedupeKey: `${cleanSupplierId}:${visitorKey}:${hourBucket}` }
+      );
+      if (outcome?.duplicate) {
+        return res.json({ success: true, message: 'Already tracked' });
+      }
     } else if (type === 'enquiry') {
       await supplierAnalytics.trackEnquirySent(cleanSupplierId, userId);
     }

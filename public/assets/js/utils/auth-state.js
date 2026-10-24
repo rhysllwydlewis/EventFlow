@@ -19,12 +19,20 @@
     ONBOARDING: 'eventflow_onboarding_new',
   };
 
-  const SESSION_COOKIE_NAME = 'connect.sid'; // Express session cookie name
-
   // Figures this browser keeps for whoever is signed in (a budget typed on the dashboard, the ids
   // of saved suppliers). They are not stored per account, so when a different person signs in on the
   // same browser they would otherwise see, and even save to their own plan, the previous person's.
-  const DEVICE_DATA_KEYS = ['eventflow_custom_budget', 'eventflow_saved_suppliers'];
+  const DEVICE_DATA_KEYS = [
+    'eventflow_custom_budget',
+    'eventflow_saved_suppliers',
+    // The budget page's device-only budget (and the older page's), and what was imported from it.
+    'ef_budget_v2',
+    'ef_budget',
+    'ef_budget_imported',
+    // The plan last picked on the budget and guest pages, and a dismissed account-type notice.
+    'ef_customer_plan',
+    'ef_account_type_notice_dismissed',
+  ];
   const DEVICE_DATA_OWNER_KEY = 'eventflow_device_data_owner';
 
   /**
@@ -43,6 +51,17 @@
         DEVICE_DATA_KEYS.forEach(key => localStorage.removeItem(key));
       }
       localStorage.setItem(DEVICE_DATA_OWNER_KEY, id);
+    } catch {
+      // Ignore storage errors in private browsing / restricted storage modes.
+    }
+  }
+
+  /** Forget the signed-in user on this device (storage may be blocked or unavailable). */
+  function clearAuthState() {
+    try {
+      localStorage.removeItem(STORAGE_KEYS.USER);
+      localStorage.removeItem(STORAGE_KEYS.ONBOARDING);
+      sessionStorage.clear();
     } catch {
       // Ignore storage errors in private browsing / restricted storage modes.
     }
@@ -88,7 +107,7 @@
           return { state: this.state, user };
         }
         if (response.status === 401 || response.status === 403) {
-          this._clearAuthState();
+          clearAuthState();
           this._setState(AUTH_STATES.UNAUTHENTICATED, null);
           return { state: this.state, user: null };
         }
@@ -103,28 +122,6 @@
         }
         this._setState(AUTH_STATES.UNAUTHENTICATED, null);
         return { state: this.state, user: null };
-      }
-    }
-
-    _hasSessionCookie() {
-      const cookies = document.cookie.split(';');
-      return cookies.some(cookie => {
-        const trimmed = cookie.trim();
-        return (
-          trimmed.startsWith(`${SESSION_COOKIE_NAME}=`) ||
-          trimmed.startsWith('token=') ||
-          trimmed.startsWith('auth=')
-        );
-      });
-    }
-
-    _clearAuthState() {
-      try {
-        localStorage.removeItem(STORAGE_KEYS.USER);
-        localStorage.removeItem(STORAGE_KEYS.ONBOARDING);
-        sessionStorage.clear();
-      } catch (e) {
-        // Ignore storage errors in private browsing / restricted storage modes.
       }
     }
 
@@ -195,7 +192,7 @@
     }
 
     logout() {
-      this._clearAuthState();
+      clearAuthState();
       this._setState(AUTH_STATES.UNAUTHENTICATED, null);
     }
 

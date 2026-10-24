@@ -5,7 +5,8 @@
  * customers (no customer email or phone), quote requests and contact-form enquiries, built on the
  * server with formula protection. When there is nothing to export the server still answers 200
  * with just the header row and X-Export-Row-Count: 0; this script reads that header (not the body)
- * and says so instead of saving an empty file.
+ * and says so instead of saving an empty file. When the server had to cut the export short it sends
+ * X-Export-Truncated: true (and ends the file with a "Notice" row), and the supplier is told.
  */
 (function () {
   const LABEL = 'Export conversations and enquiries (CSV)';
@@ -72,6 +73,15 @@
         return;
       }
       save(await response.blob(), fileNameFrom(response));
+      // The server cuts each list at its newest 1,000 entries and says so (header, and a last
+      // "Notice" row in the file); the supplier is told too, not just left with a short file.
+      if (response.headers.get('x-export-truncated') === 'true') {
+        say(
+          `Exported the newest ${Number.isFinite(rows) && rows > 0 ? `${rows} rows` : 'entries'}. The export is limited, so older conversations and enquiries are not in the file.`,
+          'info'
+        );
+        return;
+      }
       say(
         Number.isFinite(rows) && rows > 0
           ? `Exported ${rows} row${rows === 1 ? '' : 's'}.`

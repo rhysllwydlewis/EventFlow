@@ -78,6 +78,16 @@
     }
   }
 
+  /**
+   * The checklist is asked about the same plan the summary describes (the focus plan), so
+   * "Planning progress" and the countdown, budget and guest tiles beside it agree.
+   */
+  function milestonesUrl(plan) {
+    return plan?.id
+      ? `/api/v1/customer/milestones?planId=${encodeURIComponent(plan.id)}`
+      : '/api/v1/customer/milestones';
+  }
+
   /** Local midnight for a plan date string such as 2027-06-19 or 2027-06-19T00:00:00Z. */
   function parsePlanDate(value) {
     const match = /^(\d{4})-(\d{2})-(\d{2})/u.exec(String(value || ''));
@@ -163,20 +173,31 @@
    * What the focus plan has committed so far, from its chosen packages and any
    * budget line items. Per-person prices need a guest count; without one they
    * (and packages with no price) are reported as unpriced, never guessed.
+   *
+   * `fromItems` is the part the /budget page also counts as "committed" (its budget lines);
+   * `fromPackages` is the listed price of saved supplier packages, which only this page adds. The
+   * Budget tile shows both, so the two pages' figures can be reconciled.
    */
   async function calculateSpent(plan) {
-    let spent = 0;
+    let fromItems = 0;
+    let fromPackages = 0;
     let unpriced = 0;
+    const totals = () => ({
+      spent: fromItems + fromPackages,
+      fromItems,
+      fromPackages,
+      unpriced,
+    });
 
     (Array.isArray(plan.budgetItems) ? plan.budgetItems : []).forEach(item => {
-      spent += parseFloat(item.actual || item.estimated || 0) || 0;
+      fromItems += parseFloat(item.actual || item.estimated || 0) || 0;
     });
 
     const packageIds = [
       ...new Set((plan.packages || []).filter(id => typeof id === 'string' && id.trim())),
     ];
     if (!packageIds.length) {
-      return { spent, unpriced };
+      return totals();
     }
 
     const guests = parseInt(plan.guestCount || plan.guests || 0, 10) || 0;
@@ -209,15 +230,15 @@
         unpriced += 1;
       } else if (isPerPerson(pkg)) {
         if (guests > 0) {
-          spent += price * guests;
+          fromPackages += price * guests;
         } else {
           unpriced += 1;
         }
       } else {
-        spent += price;
+        fromPackages += price;
       }
     });
-    return { spent, unpriced };
+    return totals();
   }
 
   /**
@@ -287,7 +308,11 @@
       const picked = range ? `You picked ${range} when you made this plan. ` : '';
       let committed = '';
       if (money.spent > 0) {
-        committed = `${picked}${gbp(money.spent)} chosen so far${range ? '.' : ', with no budget to compare it to.'}`;
+        const parts =
+          money.fromPackages > 0
+            ? ` (${gbp(money.fromItems)} in budget items + ${gbp(money.fromPackages)} in listed package prices)`
+            : '';
+        committed = `${picked}${gbp(money.spent)} chosen so far${parts}${range ? '.' : ', with no budget to compare it to.'}`;
       } else {
         committed = `${picked}Set a total to see what is left as you book.`;
       }
@@ -303,11 +328,18 @@
       ? `${gbp(money.spent - total)} over budget`
       : `${gbp(total - money.spent)} left`;
     const unpriced = money.unpriced ? ` · ${plural(money.unpriced, 'item')} not priced` : '';
+    // The budget page counts budget lines only. When saved packages add to this figure, say how
+    // much of it they are, so the two pages' "committed" numbers can be told apart.
+    const breakdown =
+      money.fromPackages > 0
+        ? `<p class="cdh-tile__sub">${esc(`${gbp(money.fromItems)} in budget items + ${gbp(money.fromPackages)} in listed package prices`)}</p>`
+        : '';
     return tile(
       'Budget',
       `<p class="cdh-tile__value">${gbp(money.spent)}<span class="cdh-tile__unit"> of ${gbp(total)}</span></p>
        ${bar(percent, `Budget used: ${Math.round(percent)}%`, over ? 'warn' : '')}
        <p class="cdh-tile__sub${over ? ' cdh-tile__sub--warn' : ''}">${esc(left + unpriced)}</p>
+       ${breakdown}
        <p class="cdh-tile__sub">${manage}</p>`,
       edit
     );
@@ -330,12 +362,24 @@
     );
   }
 
-  /** Summary tile for guest replies, falling back to the expected guest count or an empty prompt. */
-  function guestsTile(plan, rsvp) {
+  /**
+   * Summary tile for guest replies, falling back to the expected guest count or an empty prompt.
+   * `failed` means the replies could not be fetched: the tile then says so instead of reporting
+   * "No guest list yet", which a failed request cannot tell us.
+   */
+  function guestsTile(plan, rsvp, failed) {
     // The summary describes this plan, so the guest list must open on it, not on the first plan.
     const guestsHref = plan?.id ? `/guests?plan=${encodeURIComponent(plan.id)}` : '/guests';
     /** An inline link to the guest list page with the given label markup. */
     const link = text => `<a class="cdh-link" href="${guestsHref}">${text}</a>`;
+    if (failed) {
+      return tile(
+        'Guests',
+        `<p class="cdh-tile__value cdh-tile__value--empty">Not available</p>
+         <p class="cdh-tile__sub">We could not load guest replies just now.</p>
+         <p class="cdh-tile__sub"><button type="button" class="cdh-link" data-retry-steps>Try again</button> · ${link('Open guest list')}</p>`
+      );
+    }
     if (rsvp?.totalGuests > 0) {
       const replied = rsvp.responsesReceived || 0;
       // People, not guest records: a reply can cover a whole party, and the guest list page
@@ -364,7 +408,7 @@
   }
 
   /** Fills the summary grid with the four tiles, or an empty-state note when there is no plan. */
-  function renderSummary(plan, money, steps, rsvp) {
+  function renderSummary(plan, money, steps, rsvp, rsvpFailed) {
     const grid = byId(ids.summary);
     if (!grid) {
       return;
@@ -381,7 +425,7 @@
       countdownTile(plan),
       budgetTile(money.total, money, plan),
       progressTile(steps),
-      guestsTile(plan, rsvp),
+      guestsTile(plan, rsvp, rsvpFailed),
     ].join('');
   }
 
@@ -754,8 +798,10 @@
     const plan = pickFocusPlan(list);
 
     const [stepsData, money, rsvpData] = await Promise.all([
-      getJson('/api/v1/customer/milestones'),
-      plan ? calculateSpent(plan) : Promise.resolve({ spent: 0, unpriced: 0 }),
+      getJson(milestonesUrl(plan)),
+      plan
+        ? calculateSpent(plan)
+        : Promise.resolve({ spent: 0, fromItems: 0, fromPackages: 0, unpriced: 0 }),
       plan?.id
         ? getJson(`/api/me/plans/${encodeURIComponent(plan.id)}/rsvp-summary`)
         : Promise.resolve(null),
@@ -769,7 +815,8 @@
     const summary = { ...money, total };
 
     renderHero(plan, steps, Number(options?.limit) > 0 && list.length >= options.limit);
-    renderSummary(plan, summary, steps, rsvpData?.summary);
+    // No plan id means there was nothing to ask; a plan with no answer means the request failed.
+    renderSummary(plan, summary, steps, rsvpData?.summary, Boolean(plan?.id) && rsvpData === null);
     renderSteps(steps);
 
     if (!suggestionsRequested) {

@@ -34,6 +34,13 @@
     dismissBtn.addEventListener('click', () => {
       notice.hidden = true;
       try {
+        // Remembering the dismissal follows the cookie choice (functional storage accepted).
+        const consent = window.CookieConsent;
+        if (consent && typeof consent.getConsent === 'function') {
+          if (consent.getConsent()?.functional !== true) {
+            return;
+          }
+        }
         window.localStorage.setItem(STORAGE_KEY, '1');
       } catch {
         // Nothing to persist to — the notice returns on the next visit.
