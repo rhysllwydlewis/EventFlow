@@ -386,6 +386,14 @@
 (() => {
   const pageWindow = window;
   const placeholder = '/assets/images/placeholders/package-event.svg';
+  // Existing CMS defaults have optimised equivalents; the catering default is a tiny legacy thumbnail.
+  const builtInPhotos = new Map([
+    ['/assets/images/collage-venue.jpg', '/assets/images/collage-venue.webp'],
+    ['/assets/images/collage-entertainment.jpg', '/assets/images/collage-entertainment.webp'],
+    ['/assets/images/collage-photography.jpg', '/assets/images/collage-photography.webp'],
+    ['/assets/images/collage-catering.jpg', '/assets/images/home-v3/categories-1.webp'],
+    ['/assets/images/collage-catering.webp', '/assets/images/home-v3/categories-1.webp'],
+  ]);
   const arrow = document.querySelector('.text-link .arrow-icon');
   const currency = new Intl.NumberFormat('en-GB', {
     style: 'currency',
@@ -407,6 +415,9 @@
     }
     try {
       const url = new URL(value, location.origin);
+      if (url.origin === location.origin && builtInPhotos.has(url.pathname)) {
+        url.pathname = builtInPhotos.get(url.pathname);
+      }
       return (url.origin === location.origin && /^https?:$/.test(url.protocol)) ||
         url.protocol === 'https:'
         ? url.href

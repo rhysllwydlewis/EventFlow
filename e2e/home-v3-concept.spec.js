@@ -238,6 +238,7 @@ test.describe('V3 approved homepage concept', () => {
               visible: true,
             },
             { name: 'Transport', visible: false },
+            { name: 'Catering', heroImage: '/assets/images/collage-catering.jpg', visible: true },
             { name: 'Videography', heroImage: photo, visible: true },
           ],
         },
@@ -245,9 +246,13 @@ test.describe('V3 approved homepage concept', () => {
     );
     await page.goto('/home-v3-preview');
     await dismissConsent(page);
-    await expect(page.locator('[data-v3-categories] .category')).toHaveCount(2);
+    await expect(page.locator('[data-v3-categories] .category')).toHaveCount(3);
     await expect(page.locator('[data-v3-categories]')).toContainText('Videography');
     await expect(page.locator('[data-v3-categories]')).not.toContainText('Transport');
+    await expect(page.locator('.photo-bubble--catering img')).toHaveAttribute(
+      'src',
+      /home-v3\/categories-1\.webp$/
+    );
     await expect(page.locator('.photo-bubble--venue img')).toHaveAttribute(
       'src',
       /categories-0\.webp$/
