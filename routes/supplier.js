@@ -21,7 +21,7 @@ const { buildTips } = require('../services/supplierTips');
 const { canPublishPublicCalendar } = require('../utils/calendarPermissions');
 const supplierEnquiries = require('../services/supplierEnquiries');
 const { VALID_CATEGORIES } = require('../models/Supplier');
-const { isApprovedReview } = require('../utils/reviewShape');
+const { isApprovedReview, reviewRating } = require('../utils/reviewShape');
 const { clearEngagementCache } = require('../services/supplierEngagementMetrics');
 const { serializeCsv } = require('../utils/csv');
 
@@ -656,14 +656,13 @@ router.get('/reviews/stats', authRequired, async (req, res) => {
     const totalReviews = supplierReviews.length;
     const averageRating = summariseReviews(allReviews).averageRating;
 
-    // Calculate distribution - only count valid integer ratings (1-5)
+    // Distribution: only ratings the average also uses (reviewRating: 1-5), so a rating of 0.5 or 6
+    // is in neither. Half ratings are bucketed to the nearest whole star.
     const distribution = { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 };
     supplierReviews.forEach(r => {
-      const rating = Number(r.rating) || 0;
-      // Round to nearest integer for distribution bucketing
-      const roundedRating = Math.round(rating);
-      if (roundedRating >= 1 && roundedRating <= 5) {
-        distribution[roundedRating]++;
+      const rating = reviewRating(r);
+      if (rating !== null) {
+        distribution[Math.round(rating)]++;
       }
     });
 
