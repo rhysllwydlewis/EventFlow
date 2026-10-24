@@ -94,7 +94,7 @@ describe('priority public route migration', () => {
   const eventDetail = read('public/event-detail.html');
 
   it('renders a page-shaped event detail skeleton without raw loading copy', () => {
-    expect(eventDetail).toContain('/assets/css/skeleton.css?v=2.1.0');
+    expect(eventDetail).toContain('/assets/css/skeleton.css?v=2.1.1');
     expect(eventDetail).toContain('class="skeleton-event-detail"');
     expect(eventDetail).toContain('skeleton-event-detail__media');
     expect(eventDetail).not.toContain('Loading event…');

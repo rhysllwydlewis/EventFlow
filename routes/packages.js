@@ -442,16 +442,21 @@ router.post(
  * @returns {Promise<{pkg: Object, own: Object}|null>}
  */
 async function resolveOwnedPackage(id, req, res) {
-  const pkg = await dbUnified.findOne('packages', { id });
+  // A failed lookup must surface as a 500 (the callers' catch), not as "not found" / "forbidden".
+  const pkg = await dbUnified.findOne('packages', { id }, { throwOnError: true });
   if (!pkg) {
     res.status(404).json({ error: 'Package not found' });
     return null;
   }
 
-  const own = await dbUnified.findOne('suppliers', {
-    id: pkg.supplierId,
-    ownerUserId: req.user.id,
-  });
+  const own = await dbUnified.findOne(
+    'suppliers',
+    {
+      id: pkg.supplierId,
+      ownerUserId: req.user.id,
+    },
+    { throwOnError: true }
+  );
   if (!own) {
     res.status(403).json({ error: 'Forbidden' });
     return null;
@@ -613,7 +618,13 @@ router.put(
       }
       pkgUpdates.updatedAt = new Date().toISOString();
 
-      await dbUnified.updateOne('packages', { id: pkg.id }, { $set: pkgUpdates });
+      // throwOnError: a failed write is a 500 the supplier sees, not an "ok" that saved nothing.
+      await dbUnified.updateOne(
+        'packages',
+        { id: pkg.id },
+        { $set: pkgUpdates },
+        { throwOnError: true }
+      );
       suppliersRouter.invalidatePackageCaches();
 
       res.json({
@@ -647,10 +658,15 @@ router.delete(
         return;
       }
 
-      await dbUnified.deleteOne('packages', {
-        id: req.params.id,
-        supplierId: result.pkg.supplierId,
-      });
+      await dbUnified.deleteOne(
+        'packages',
+        {
+          id: req.params.id,
+          supplierId: result.pkg.supplierId,
+        },
+        { throwOnError: true }
+      );
+      suppliersRouter.invalidatePackageCaches();
       res.json({ ok: true, message: 'Package deleted successfully' });
     } catch (error) {
       logger.error('Error deleting supplier package:', error);
@@ -679,7 +695,12 @@ router.put(
       }
       const { pkg } = result;
       const updatedAt = Date.now();
-      await dbUnified.updateOne('packages', { id: pkg.id }, { $set: { paused: true, updatedAt } });
+      await dbUnified.updateOne(
+        'packages',
+        { id: pkg.id },
+        { $set: { paused: true, updatedAt } },
+        { throwOnError: true }
+      );
       suppliersRouter.invalidatePackageCaches();
       res.json({ ok: true, package: { ...pkg, paused: true, updatedAt } });
     } catch (error) {
@@ -731,7 +752,12 @@ router.put(
       }
 
       const updatedAt = Date.now();
-      await dbUnified.updateOne('packages', { id: pkg.id }, { $set: { paused: false, updatedAt } });
+      await dbUnified.updateOne(
+        'packages',
+        { id: pkg.id },
+        { $set: { paused: false, updatedAt } },
+        { throwOnError: true }
+      );
       suppliersRouter.invalidatePackageCaches();
       res.json({ ok: true, package: { ...pkg, paused: false, updatedAt } });
     } catch (error) {

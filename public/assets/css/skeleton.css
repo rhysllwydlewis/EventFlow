@@ -414,21 +414,6 @@ html:not([data-sp-theme-ready='true']) body.sp-profile-page #sp-section-gallery:
   animation: ef-skeleton-shimmer 1.35s linear infinite;
 }
 
-/* Dashboard widget-shaped placeholders. These selectors are intentionally more
-   specific than the legacy dashboard .skeleton rule loaded later. */
-.supplier-dashboard-page #supplier-availability-widget > .skeleton:only-child {
-  min-height: 132px;
-  height: auto !important;
-  border: 1px solid var(--skeleton-border);
-  border-radius: 12px !important;
-  background:
-    linear-gradient(var(--skeleton-base), var(--skeleton-base)) 18px 18px / 32% 14px no-repeat,
-    repeating-linear-gradient(90deg, var(--skeleton-base) 0 22px, transparent 22px 30px) 18px 52px / calc(100% - 36px) 30px no-repeat,
-    linear-gradient(var(--skeleton-base), var(--skeleton-base)) 18px 102px / 58% 12px no-repeat,
-    var(--skeleton-surface);
-  animation: none;
-}
-
 .loading-container {
   padding: 2rem;
   text-align: center;

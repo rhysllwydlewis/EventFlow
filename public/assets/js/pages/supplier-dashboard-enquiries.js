@@ -578,8 +578,14 @@
     if (row) {
       row.status = result.data.enquiry.status;
     }
-    api.toast('Reply sent.', 'success');
-    announce('Reply sent. The enquiry is marked as handled.');
+    if (result.data.warning) {
+      // The email went, but the enquiry could not be marked handled: say so, do not claim it was.
+      api.toast(`Reply sent. ${result.data.warning}`, 'info');
+      announce(`Reply sent. ${result.data.warning}`);
+    } else {
+      api.toast('Reply sent.', 'success');
+      announce('Reply sent. The enquiry is marked as handled.');
+    }
     renderDetail();
     byId('sdh-enquiry-title')?.focus({ preventScroll: true });
     renderList();

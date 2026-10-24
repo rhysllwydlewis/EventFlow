@@ -290,7 +290,18 @@ const fake = {
       async (name, filter) => rowsOf(name).filter(row => matches(row, filter || {})).length
     )
   ),
-  insertOne: jest.fn(async (name, document) => {
+  insertOne: jest.fn(async (name, document, options = {}) => {
+    // Mirrors the unique partial index on events.dedupeKey (MongoDB duplicate-key error 11000).
+    if (
+      name === 'events' &&
+      typeof document.dedupeKey === 'string' &&
+      rowsOf(name).some(row => row.dedupeKey === document.dedupeKey)
+    ) {
+      if (options.throwOnError) {
+        throw Object.assign(new Error('E11000 duplicate key error'), { code: 11000 });
+      }
+      return null;
+    }
     rowsOf(name).push({ ...document });
     return document;
   }),

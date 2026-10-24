@@ -110,9 +110,9 @@ describe('Supplier Packages — Ownership Verification', () => {
 
   it('resolveOwnedPackage uses findOne for package and supplier lookups (no full scans)', () => {
     const helperStart = routesContent.indexOf('async function resolveOwnedPackage(');
-    const helperBlock = routesContent.substring(helperStart, helperStart + 600);
+    const helperBlock = routesContent.substring(helperStart, helperStart + 900);
     expect(helperBlock).toContain("dbUnified.findOne('packages'");
-    expect(helperBlock).toContain("dbUnified.findOne('suppliers'");
+    expect(helperBlock).toMatch(/dbUnified\.findOne\(\s*'suppliers'/);
     // No longer reads full collections
     expect(helperBlock).not.toContain("dbUnified.read('packages')");
     expect(helperBlock).not.toContain("dbUnified.read('suppliers')");
@@ -232,7 +232,7 @@ describe('Supplier Packages — Pause/Unpause Routes', () => {
   it('PUT /me/packages/:id/pause sets paused to true via dbUnified.updateOne', () => {
     const block = extractRouteBlock('put', '/me/packages/:id/pause');
     expect(block).toContain('paused: true');
-    expect(block).toContain("dbUnified.updateOne('packages'");
+    expect(block).toMatch(/dbUnified\.updateOne\(\s*'packages'/);
   });
 
   it('PUT /me/packages/:id/pause returns { ok: true, package }', () => {
@@ -270,7 +270,7 @@ describe('Supplier Packages — Pause/Unpause Routes', () => {
   it('PUT /me/packages/:id/unpause sets paused to false via dbUnified.updateOne', () => {
     const block = extractRouteBlock('put', '/me/packages/:id/unpause');
     expect(block).toContain('paused: false');
-    expect(block).toContain("dbUnified.updateOne('packages'");
+    expect(block).toMatch(/dbUnified\.updateOne\(\s*'packages'/);
   });
 
   it('PUT /me/packages/:id/unpause returns { ok: true, package }', () => {

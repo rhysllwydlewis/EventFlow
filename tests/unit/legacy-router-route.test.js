@@ -57,19 +57,31 @@ describe('legacy router route removal', () => {
     expect(require.cache[missingModulePath]).toBeUndefined();
   });
 
-  test('canonical review and Postmark modules disable their obsolete predecessors', () => {
-    const reviewSource = fs.readFileSync(
-      path.join(__dirname, '../../routes/review-requests.js'),
-      'utf8'
-    );
+  test('the Postmark module still disables its obsolete predecessor', () => {
     const postmarkSource = fs.readFileSync(
       path.join(__dirname, '../../routes/postmark-webhook.js'),
       'utf8'
     );
 
-    expect(reviewSource).toContain("require.resolve('./supplier')");
-    expect(reviewSource).toContain("'/request-review'");
     expect(postmarkSource).toContain("require.resolve('./webhooks')");
     expect(postmarkSource).toContain("'/postmark'");
+  });
+
+  test('routes/supplier.js has no /request-review handler and review-requests.js needs no removal hack', () => {
+    const supplierRouter = require('../../routes/supplier');
+    const supplierPaths = supplierRouter.stack
+      .filter(layer => layer.route)
+      .map(layer => layer.route.path);
+    expect(supplierPaths).not.toContain('/request-review');
+
+    const reviewSource = fs.readFileSync(
+      path.join(__dirname, '../../routes/review-requests.js'),
+      'utf8'
+    );
+    expect(reviewSource).not.toContain('removeLoadedRouterRoute');
+    expect(reviewSource).not.toContain("require.resolve('./supplier')");
+    // The one real handler answers both mounts.
+    expect(reviewSource).toContain("'/api/v1/supplier/request-review'");
+    expect(reviewSource).toContain("'/api/supplier/request-review'");
   });
 });
