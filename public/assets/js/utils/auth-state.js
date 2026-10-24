@@ -19,8 +19,6 @@
     ONBOARDING: 'eventflow_onboarding_new',
   };
 
-  const SESSION_COOKIE_NAME = 'connect.sid'; // Express session cookie name
-
   // Figures this browser keeps for whoever is signed in (a budget typed on the dashboard, the ids
   // of saved suppliers). They are not stored per account, so when a different person signs in on the
   // same browser they would otherwise see, and even save to their own plan, the previous person's.
