@@ -59,8 +59,12 @@ const PROFILE_VIEW_DEDUPE_MS = 60 * 60 * 1000;
 // Most counted views one network address can add to one supplier in an hour. A visitor key alone
 // cannot stop someone minting new keys, so this caps the address as well. It is a trade-off: a
 // busy shared address (an office, a mobile carrier) can undercount, which is safer than letting
-// one client inflate a supplier's numbers.
-const PROFILE_VIEW_IP_CAP = 5;
+// one client inflate a supplier's numbers. 20 leaves room for a real office or venue while
+// keeping one client's reach bounded; set PROFILE_VIEW_IP_CAP to tune it without a deploy.
+const PROFILE_VIEW_IP_CAP =
+  parseInt(process.env.PROFILE_VIEW_IP_CAP, 10) > 0
+    ? parseInt(process.env.PROFILE_VIEW_IP_CAP, 10)
+    : 20;
 const AUTOMATED_CLIENT_PATTERN =
   /bot|crawler|spider|crawl|slurp|facebookexternalhit|preview|headless|lighthouse|pingdom|monitor/i;
 

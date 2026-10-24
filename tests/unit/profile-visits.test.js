@@ -13,6 +13,9 @@ jest.mock('../../utils/logger', () => ({
   debug: jest.fn(),
 }));
 
+// Pin the per-address cap low so the tests can reach it with a handful of browsers.
+process.env.PROFILE_VIEW_IP_CAP = '5';
+
 jest.mock('../../db-unified', () => require('../helpers/fake-db-unified'));
 
 jest.mock('../../middleware/auth', () => ({
