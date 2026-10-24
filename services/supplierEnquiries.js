@@ -871,6 +871,22 @@ async function buildExport({ supplierId, ownerUserId }) {
   return { rows, truncated };
 }
 
+/** Column labels of the CSV export, in order. */
+const EXPORT_HEADERS = [
+  'Date',
+  'Type',
+  'Customer',
+  'Email',
+  'Phone',
+  'Event type',
+  'Event date',
+  'Location',
+  'Budget',
+  'Status',
+  'Message (preview)',
+  'Unread messages',
+];
+
 /**
  * The last row of a truncated export, so the limit is visible in the spreadsheet itself.
  *
@@ -893,22 +909,6 @@ function isoDate(value) {
   const date = new Date(value);
   return Number.isNaN(date.getTime()) ? '' : date.toISOString().slice(0, 10);
 }
-
-/** Column labels of the CSV export, in order. */
-const EXPORT_HEADERS = [
-  'Date',
-  'Type',
-  'Customer',
-  'Email',
-  'Phone',
-  'Event type',
-  'Event date',
-  'Location',
-  'Budget',
-  'Status',
-  'Message (preview)',
-  'Unread messages',
-];
 
 module.exports = {
   STATUSES,

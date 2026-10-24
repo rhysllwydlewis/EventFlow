@@ -595,7 +595,7 @@ router.post('/track', writeLimiter, async (req, res) => {
         visitorKey,
         { ipKey: ipKey || undefined, dedupeKey: `${cleanSupplierId}:${visitorKey}:${hourBucket}` }
       );
-      if (outcome && outcome.duplicate) {
+      if (outcome?.duplicate) {
         return res.json({ success: true, message: 'Already tracked' });
       }
     } else if (type === 'enquiry') {

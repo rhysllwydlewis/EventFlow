@@ -5,8 +5,7 @@ FROM node:22.23.1-alpine
 # pinned node image lags the Alpine repo, and the Supply Chain Evidence Trivy
 # gate fails on fixable HIGH/CRITICAL findings (libcrypto3/libssl3 3.5.7-r0,
 # CVE-2026-14456, fixed in 3.5.8-r0). Upgrading in place keeps the node pin.
-RUN apk add --no-cache curl \
-  && apk upgrade --no-cache libcrypto3 libssl3
+RUN apk add --no-cache --upgrade curl libcrypto3 libssl3
 
 # Create app directory
 WORKDIR /app

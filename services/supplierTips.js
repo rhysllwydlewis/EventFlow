@@ -305,8 +305,7 @@ function accountTips(verification) {
  */
 function customerTips(summary, reviewDocs) {
   const tips = [];
-  const newRequests =
-    summary.enquiries && summary.enquiries.requests && summary.enquiries.requests.new;
+  const newRequests = summary.enquiries?.requests?.new;
   if (newRequests > 0) {
     tips.push(
       tip({
@@ -322,7 +321,7 @@ function customerTips(summary, reviewDocs) {
     );
   }
 
-  const unanswered = summary.responses && summary.responses.unanswered;
+  const unanswered = summary.responses?.unanswered;
   if (unanswered > 0) {
     tips.push(
       tip({
@@ -447,7 +446,7 @@ function packageTips(supplier, summary, packageDocs) {
     );
   }
 
-  const limit = packages && packages.limit;
+  const limit = packages?.limit;
   if (Number.isFinite(limit) && limit >= 0 && packages.countedTowardsLimit >= limit) {
     tips.push(
       tip({

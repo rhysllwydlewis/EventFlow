@@ -150,7 +150,7 @@
 
     const data = await response.json();
     // Phase 3 response shape: { success, data: { results, context } }
-    return ((data.data && data.data.results) || []).slice(0, RECOMMENDATION_LIMIT);
+    return (data.data?.results || []).slice(0, RECOMMENDATION_LIMIT);
   }
 
   /**

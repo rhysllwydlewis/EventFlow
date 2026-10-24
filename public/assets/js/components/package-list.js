@@ -487,7 +487,7 @@ class PackageList {
       if (blockedDomains.some(domain => urlObj.hostname.includes(domain))) {
         return '/assets/images/placeholders/package-event.svg';
       }
-    } catch (e) {
+    } catch {
       // Invalid URL or relative path - if it starts with /, keep it
       if (url.startsWith('/')) {
         return url;

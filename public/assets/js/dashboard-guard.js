@@ -138,9 +138,9 @@
         !options.signal && typeof AbortController !== 'undefined' ? new AbortController() : null;
       const opts = controller ? { ...options, signal: controller.signal } : options;
       const slowMs = slowAfterMs(path);
-      let giveUpTimer;
+      let giveUpTimer = null;
       let noticeShown = false;
-      let useStandIn;
+      let useStandIn = null;
       const standIn = new Promise(resolve => {
         useStandIn = resolve;
       });
