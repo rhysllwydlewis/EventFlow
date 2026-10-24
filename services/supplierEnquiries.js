@@ -74,6 +74,8 @@ const EXPORT_MESSAGE_LENGTH = 300;
 const DAY_MS = 24 * 60 * 60 * 1000;
 const HOUR_MS = 60 * 60 * 1000;
 
+const STATUS_WARNING =
+  'Your reply was sent, but the enquiry could not be marked as handled. Please mark it yourself.';
 const MAX_REPLY_LENGTH = 2000;
 // A reply is an email from EventFlow to an address the customer typed into a form, so it is capped
 // per enquiry, per supplier and by the enquiry's age, to stop it being used to mail strangers.
@@ -644,9 +646,26 @@ async function replyToEnquiry({ supplier, owner, id, message }, deps = {}) {
     return fail('SEND_FAILED', 'The reply could not be sent. Please try again.');
   }
 
-  await dbUnified.updateOne(REPLIES_COLLECTION, { id: replyId }, { $set: { status: 'sent' } });
-  const updated = await setEnquiryStatus(supplier.id, id, 'handled');
-  return { ok: true, enquiry: updated || enquiry };
+  // From here the email has gone. Nothing below may turn that into a "failed to send": a step that
+  // throws is reported as a warning on a successful reply, so the supplier does not send it again.
+  try {
+    await dbUnified.updateOne(
+      REPLIES_COLLECTION,
+      { id: replyId },
+      { $set: { status: 'sent' } },
+      { throwOnError: true }
+    );
+  } catch {
+    // The reservation stays 'sending': it still counts towards the limits until it expires.
+  }
+  let updated = null;
+  try {
+    updated = await setEnquiryStatus(supplier.id, id, 'handled');
+  } catch {
+    updated = null;
+  }
+  // Without a saved status the enquiry keeps the state it had, not a "handled" nobody stored.
+  return updated ? { ok: true, enquiry: updated } : { ok: true, enquiry, warning: STATUS_WARNING };
 }
 
 /**

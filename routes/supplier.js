@@ -470,7 +470,12 @@ router.post(
         return;
       }
       clearEngagementCache();
-      res.json({ success: true, enquiry: result.enquiry });
+      // `warning`: the email went but a follow-up step (marking it handled) did not save.
+      res.json({
+        success: true,
+        enquiry: result.enquiry,
+        ...(result.warning ? { warning: result.warning } : {}),
+      });
     } catch (error) {
       logger.error('Error replying to enquiry:', error.message);
       res.status(500).json({ error: 'Failed to send the reply' });
