@@ -174,6 +174,10 @@ the policy above.
 
 ## Session log
 
+### 2026-10-24 — session 31
+
+Branch merged with `main` (`34c297a9`, #1838); only the session 30 handoff commit was unique (its PR #1828 was closed unmerged). No open PR on this branch; open PRs are #1839 and #1840 (not mine). Backlog empty. `/api/ready` 200 (mongodb connected, queue/worker healthy); `/`, `/suppliers`, `/marketplace`, `/pricing`, `/faq`, `/auth`, `/community`, `/contact`, `/terms`, `/privacy`, `/guides` all 200. No defect found, no code changed. Docs-only handoff.
+
 ### 2026-10-23 — session 30
 
 Branch restarted onto `main` (`17e4c0f3`, #1827). No open PRs at all, nothing red. `/api/ready` 200. Session 29's candidate (the wall-clock assertion in `tests/unit/helpers-strip-html.test.js`) is already handled upstream: the bound is now 3000 ms (#1822), so no change needed. Noted that `npm install` rewrites `package-lock.json` (strips `libc` fields); reverted, don't commit it. No defect found, no code changed. Docs-only handoff.
