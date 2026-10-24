@@ -1,6 +1,7 @@
+'use strict';
+
 /** V3 homepage: approved concept interactions; all wedding data is an in-memory sample. */
 (() => {
-  'use strict';
   document.querySelectorAll<HTMLButtonElement>('[data-scroll]').forEach(b =>
     b.addEventListener('click', () => {
       const track = document.getElementById(b.dataset.scroll);
@@ -12,6 +13,7 @@
   );
   const menu = document.querySelector<HTMLElement>('.menu-toggle'),
     mobile = document.querySelector<HTMLElement>('.mobile-menu');
+  /** Keep menu visibility and accessible state in sync. */
   function setMenu(open) {
     mobile.hidden = !open;
     menu.setAttribute('aria-expanded', String(open));
@@ -42,6 +44,7 @@
     const section = document.querySelector<HTMLElement>('.hws'),
       stage = section.querySelector<HTMLElement>('.hws__stage');
     const views = [...section.querySelectorAll<HTMLButtonElement>('[data-preview]')];
+    /** Select a readable wedding preview on narrow screens. */
     function show(view) {
       stage.dataset.view = view;
       views.forEach(b => b.setAttribute('aria-pressed', String(b.dataset.preview === view)));
@@ -64,6 +67,7 @@
     const capacities = { 2: 2, 3: 1 };
     let spaces = { ...capacities };
     const circle = 2 * Math.PI * 38;
+    /** Recalculate the in-memory RSVP sample without accumulating repeat replies. */
     function updateChart() {
       const yes = 64 + (reply === 'yes' ? 1 : 0),
         no = 14 + (reply === 'no' ? 1 : 0),
@@ -101,6 +105,7 @@
       section.querySelector<HTMLElement>('.hws-send-rsvp').textContent = 'Update RSVP';
     });
     const guestButtons = [...section.querySelectorAll<HTMLButtonElement>('[data-seat-guest]')];
+    /** Select a sample guest and prevent seating them twice. */
     function chooseGuest(name) {
       currentGuest = name;
       section.querySelector<HTMLElement>('#seat-guest-label').textContent = name;
@@ -134,7 +139,8 @@
         }
       });
     });
-    section.querySelector<HTMLButtonElement>('#sample-seat').addEventListener('click', () => {
+    /** Place a sample guest once, enforcing the selected table’s remaining space. */
+    function seatGuest() {
       const number = section.querySelector<HTMLSelectElement>('#sample-table').value;
       const status = section.querySelector<HTMLElement>('.hws-seat-status');
       if (seated.has(currentGuest)) {
@@ -166,6 +172,38 @@
         }
       });
       section.querySelector<HTMLButtonElement>('#sample-seat').disabled = true;
+    }
+    section.querySelector<HTMLButtonElement>('#sample-seat').addEventListener('click', seatGuest);
+    const draggable = section.querySelector<HTMLElement>('#sample-drag');
+    const guestType = 'application/x-eventflow-sample-guest';
+    draggable.draggable = true;
+    draggable.addEventListener('dragstart', event => {
+      if (seated.has(currentGuest)) {
+        event.preventDefault();
+        return;
+      }
+      event.dataTransfer.setData(guestType, currentGuest);
+      event.dataTransfer.effectAllowed = 'move';
+    });
+    tables.slice(1).forEach((table, index) => {
+      table.addEventListener('dragover', event => {
+        if (event.dataTransfer.types.includes(guestType)) {
+          event.preventDefault();
+          event.dataTransfer.dropEffect = 'move';
+        }
+      });
+      table.addEventListener('drop', event => {
+        const name = event.dataTransfer.getData(guestType);
+        if (!guestButtons.some(button => button.dataset.seatGuest === name)) {
+          return;
+        }
+        event.preventDefault();
+        chooseGuest(name);
+        const select = section.querySelector<HTMLSelectElement>('#sample-table');
+        select.value = String(index + 2);
+        select.dispatchEvent(new Event('change'));
+        seatGuest();
+      });
     });
     section.querySelector<HTMLButtonElement>('#sample-reset').addEventListener('click', () => {
       reply = null;
@@ -190,6 +228,7 @@
       toggle = orbit.querySelector<HTMLButtonElement>('.orbit-toggle'),
       motion = matchMedia('(prefers-reduced-motion: reduce)');
     let paused = motion.matches;
+    /** Respect reduced motion and the visitor’s explicit pause setting. */
     function renderMotion() {
       if (motion.matches) {
         paused = true;
@@ -221,16 +260,19 @@
     });
     renderMotion();
     let onScreen = true;
+    /** Stop decorative motion while the hero is outside the viewport. */
     function rest() {
       orbit.classList.toggle('is-resting', !onScreen || document.hidden);
     }
-    new IntersectionObserver(
-      entries => {
-        onScreen = entries[0].isIntersecting;
-        rest();
-      },
-      { threshold: 0 }
-    ).observe(orbit);
+    if ('IntersectionObserver' in window) {
+      new IntersectionObserver(
+        entries => {
+          onScreen = entries[0].isIntersecting;
+          rest();
+        },
+        { threshold: 0 }
+      ).observe(orbit);
+    }
     document.addEventListener('visibilitychange', rest);
     // Explain unavailable directions by disabling carousel arrows at either end.
     document.querySelectorAll<HTMLElement>('.package-track').forEach(track => {
@@ -256,7 +298,11 @@
         },
         { passive: true }
       );
-      new ResizeObserver(update).observe(track);
+      if ('ResizeObserver' in window) {
+        new ResizeObserver(update).observe(track);
+      } else {
+        addEventListener('resize', update);
+      }
       new MutationObserver(update).observe(track, { childList: true });
       update();
     });
@@ -310,7 +356,9 @@
     }
     addEventListener('scroll', schedule, { passive: true });
     addEventListener('resize', schedule);
-    new ResizeObserver(schedule).observe(document.body);
+    if ('ResizeObserver' in window) {
+      new ResizeObserver(schedule).observe(document.body);
+    }
     update();
   })();
 
@@ -318,6 +366,7 @@
     const select = document.querySelector<HTMLSelectElement>('#sample-table'),
       tables = [...document.querySelectorAll<SVGCircleElement>('circle.hws-table')],
       ring = document.querySelector<SVGCircleElement>('.hws-drop');
+    /** Keep the seating graphic and dropdown selection consistent. */
     function syncTable() {
       const selected = Number(select.value) - 1;
       tables.forEach((table, i) => {
@@ -341,6 +390,14 @@
     document.querySelector<HTMLButtonElement>('#sample-reset').addEventListener('click', syncTable);
     syncTable();
   })();
+  document
+    .querySelectorAll<HTMLButtonElement | HTMLInputElement | HTMLSelectElement>(
+      '.hws button, .hws input, .hws select'
+    )
+    .forEach(control => {
+      control.disabled = false;
+    });
+  document.body.classList.add('v3-interactive');
 })();
 
 /** Live homepage content. DOM construction keeps API text out of HTML parsing. */
@@ -371,8 +428,12 @@
     supplierCount?: number;
     imageUrl?: string;
   };
-  type Category = { name?: string; slug?: string; heroImage?: string };
+  type Category = { name?: string; slug?: string; heroImage?: string; visible?: boolean };
   type PageWindow = Window & {
+    EventFlowCategoryLink?: {
+      canonicalCategoryValue: (value: string | Category) => string;
+      categoryHref: (value: string | Category) => string;
+    };
     resolvePackageImage?: (item: PackageItem) => string;
     __authState?: {
       onchange: (callback: (user: { role?: string } | null) => void) => void;
@@ -389,6 +450,7 @@
     maximumFractionDigits: 2,
   });
 
+  /** Create DOM nodes with API text treated as text, never HTML. */
   function element<K extends keyof HTMLElementTagNameMap>(
     tag: K,
     className = '',
@@ -400,6 +462,7 @@
     return node;
   }
 
+  /** Allow same-origin images or HTTPS sources and reject executable URLs. */
   function imageUrl(value: unknown, fallback = placeholder): string {
     if (typeof value !== 'string' || !value.trim()) {
       return fallback;
@@ -415,6 +478,7 @@
     }
   }
 
+  /** Create a lazy image with a single safe fallback after a load error. */
   function image(src: unknown, alt: string, fallback = placeholder): HTMLImageElement {
     const img = element('img');
     img.src = imageUrl(src, fallback);
@@ -431,6 +495,7 @@
     return img;
   }
 
+  /** Reuse the decorative arrow without duplicating SVG strings. */
   function withArrow(node: HTMLElement): HTMLElement {
     if (arrow) {
       node.append(arrow.cloneNode(true));
@@ -438,6 +503,7 @@
     return node;
   }
 
+  /** Format numeric prices while preserving supplier-provided price descriptions. */
   function price(value: unknown): string {
     if (value === null || value === undefined || value === '') {
       return 'Enquire for quote';
@@ -446,27 +512,51 @@
     return /^\d+(\.\d+)?$/.test(text) ? currency.format(Number(text)) : text;
   }
 
+  /** Bound public-feed requests and release their timers on every outcome. */
   async function readJson<T>(url: string): Promise<T> {
-    const response = await fetch(url, {
-      credentials: 'same-origin',
-      headers: { Accept: 'application/json' },
-      signal: AbortSignal.timeout(10000),
-    });
-    if (!response.ok) {
-      throw new Error('Homepage content unavailable');
+    const controller = new AbortController();
+    const timer = window.setTimeout(() => controller.abort(), 10000);
+    try {
+      const response = await fetch(url, {
+        credentials: 'same-origin',
+        headers: { Accept: 'application/json' },
+        signal: controller.signal,
+      });
+      if (!response.ok) {
+        throw new Error('Homepage content unavailable');
+      }
+      return await response.json();
+    } finally {
+      window.clearTimeout(timer);
     }
-    return response.json();
   }
 
-  function message(container: HTMLElement, text: string, href: string, label: string) {
+  /** Replace a failed or empty feed with a useful browse link. */
+  function message(
+    container: HTMLElement,
+    text: string,
+    href: string,
+    label: string,
+    retry?: () => Promise<void>
+  ) {
     const note = element('p', 'v3-feed-message', `${text} `);
     note.setAttribute('role', 'status');
     const link = element('a', '', label);
     link.href = href;
     note.append(link);
+    if (retry) {
+      const button = element('button', 'v3-feed-retry', 'Try again');
+      button.type = 'button';
+      button.addEventListener('click', () => {
+        button.disabled = true;
+        retry();
+      });
+      note.append(button);
+    }
     container.replaceChildren(note);
   }
 
+  /** Build a safe package card from the public package contract. */
   function renderPackage(item: PackageItem): HTMLAnchorElement {
     const card = element('a', 'package');
     card.href = `/package/${encodeURIComponent(item.slug || item.id)}`;
@@ -491,13 +581,18 @@
     return card;
   }
 
+  /** Load the current featured or hourly spotlight selection. */
   async function loadPackages(container: HTMLElement, kind: 'featured' | 'spotlight') {
+    container.setAttribute('aria-busy', 'true');
+    const status = element('p', 'v3-feed-message', 'Loading current items…');
+    status.setAttribute('role', 'status');
+    container.replaceChildren(status);
     try {
       const data = await readJson<{ items?: PackageItem[] }>(`/api/packages/${kind}`);
       if (!Array.isArray(data.items)) {
         throw new Error('Invalid package response');
       }
-      const items = data.items.filter(item => item && (item.slug || item.id)).slice(0, 6);
+      const items = data.items.filter(item => item?.slug || item?.id).slice(0, 6);
       if (items.length) {
         container.replaceChildren(...items.map(renderPackage));
       } else {
@@ -508,21 +603,27 @@
         container,
         'Packages could not load just now.',
         '/suppliers',
-        'Browse suppliers and packages'
+        'Browse suppliers and packages',
+        () => loadPackages(container, kind)
       );
     } finally {
       container.setAttribute('aria-busy', 'false');
     }
   }
 
+  /** Load current marketplace listings with a distinct empty/error state. */
   async function loadMarketplace(container: HTMLElement) {
+    container.setAttribute('aria-busy', 'true');
+    const status = element('p', 'v3-feed-message', 'Loading current items…');
+    status.setAttribute('role', 'status');
+    container.replaceChildren(status);
     try {
       const data = await readJson<{ listings?: Listing[] }>('/api/v1/marketplace/listings?limit=3');
       if (!Array.isArray(data.listings)) {
         throw new Error('Invalid marketplace response');
       }
       const cards = data.listings
-        .filter(item => item && item.id)
+        .filter(item => item?.id)
         .slice(0, 3)
         .map(item => {
           const card = element('a', 'market-card');
@@ -560,13 +661,15 @@
         container,
         'Marketplace items could not load just now.',
         '/marketplace',
-        'Explore the marketplace'
+        'Explore the marketplace',
+        () => loadMarketplace(container)
       );
     } finally {
       container.setAttribute('aria-busy', 'false');
     }
   }
 
+  /** Use only published city URLs and retain static searches if loading fails. */
   async function loadLocations() {
     const grid = document.querySelector<HTMLElement>('[data-v3-locations]');
     try {
@@ -605,33 +708,70 @@
     }
   }
 
-  async function loadCategoryImages() {
+  /** Apply current category images and visibility to matching cards and hero bubbles. */
+  async function loadCategories() {
     try {
       const data = await readJson<{ items?: Category[] }>('/api/v1/categories');
       if (!Array.isArray(data.items)) {
         return;
       }
-      const aliases = [
-        'venues',
-        'catering',
-        'entertainment',
-        'photography',
-        'decor',
-        'av & lighting',
-        'transport',
-        'cake',
-      ];
-      const normalise = (value: string) =>
-        String(value || '')
-          .toLowerCase()
-          .replace('decorations', 'decor');
+      const normalise = (value: string | Category) => {
+        const canonical = pageWindow.EventFlowCategoryLink?.canonicalCategoryValue(value);
+        const raw = typeof value === 'string' ? value : value?.name || value?.slug;
+        return String(canonical || raw || '')
+          .trim()
+          .toLowerCase();
+      };
+      const grid = document.querySelector<HTMLElement>('[data-v3-categories]');
+      const fallbacks = new Map(
+        [...grid.querySelectorAll<HTMLAnchorElement>('[data-v3-category]')].map(card => [
+          normalise(card.dataset.v3Category),
+          card.querySelector('img').src,
+        ])
+      );
+      const categories = data.items.filter(
+        category => category?.name && category.visible !== false
+      );
+      const cards = categories.map(category => {
+        const card = element('a', 'category');
+        const canonicalHref = pageWindow.EventFlowCategoryLink?.categoryHref(category);
+        card.href =
+          canonicalHref && canonicalHref !== '/suppliers'
+            ? canonicalHref
+            : `/suppliers?q=${encodeURIComponent(category.name)}`;
+        const label = element('span', '', category.name);
+        label.append(withArrow(element('b')));
+        card.append(
+          image(
+            category.heroImage,
+            '',
+            fallbacks.get(normalise(category)) || '/assets/images/collage-photography.webp'
+          ),
+          label
+        );
+        return card;
+      });
+      if (cards.length) {
+        grid.replaceChildren(...cards);
+      } else {
+        message(
+          grid,
+          'Explore suppliers for your next occasion.',
+          '/suppliers',
+          'Browse all suppliers'
+        );
+      }
       document
-        .querySelectorAll<HTMLAnchorElement>('[data-v3-categories] .category')
-        .forEach((card, index) => {
+        .querySelectorAll<HTMLAnchorElement>('.photo-bubble[data-v3-category]')
+        .forEach(card => {
           const category = data.items.find(
-            item => normalise(item.name || item.slug) === aliases[index]
+            item => item && normalise(item) === normalise(card.dataset.v3Category)
           );
-          if (category?.heroImage) {
+          if (!category) {
+            return;
+          }
+          card.hidden = category.visible === false;
+          if (category.heroImage) {
             const img = card.querySelector('img');
             const fallback = img.src;
             img.addEventListener(
@@ -644,11 +784,21 @@
             img.src = imageUrl(category.heroImage, fallback);
           }
         });
+      const orbit = document.querySelector<HTMLElement>('.photo-orbit');
+      orbit.hidden = ![...orbit.querySelectorAll<HTMLAnchorElement>('.photo-bubble')].some(
+        card => !card.hidden
+      );
+      document.querySelector('.hero').classList.toggle('hero--without-photos', orbit.hidden);
     } catch {
       // Optimised local category photos remain available if the feed is offline.
     }
   }
 
+  if (!pageWindow.__authState) {
+    document
+      .querySelectorAll<HTMLElement>('[data-v3-account]')
+      .forEach(link => link.classList.remove('v3-auth-pending'));
+  }
   pageWindow.__authState?.onchange(user => {
     if (pageWindow.__authState.isLoading()) {
       return;
@@ -660,16 +810,13 @@
     });
   });
 
-  void loadCategoryImages();
-  void loadLocations();
+  loadCategories();
+  loadLocations();
   const loadFeed = (container: HTMLElement) => {
     if (container.dataset.v3Feed === 'marketplace') {
-      void loadMarketplace(container);
+      loadMarketplace(container);
     } else {
-      void loadPackages(
-        container,
-        container.dataset.v3Feed === 'featured' ? 'featured' : 'spotlight'
-      );
+      loadPackages(container, container.dataset.v3Feed === 'featured' ? 'featured' : 'spotlight');
     }
   };
   const feeds = document.querySelectorAll<HTMLElement>('[data-v3-feed]');

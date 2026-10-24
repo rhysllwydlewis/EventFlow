@@ -5993,3 +5993,58 @@ main .hws #sample-seat:disabled {
 .page-wayfinder a[data-chapter][aria-current='location'] > span:first-child {
   color: var(--ef-primary-dark);
 }
+
+/* Respect the same admin display switches as the regular homepage. */
+body.home-v3-page:not(.ef-home-quicklinks) .quick-links,
+body.home-v3-page:not(.ef-home-guidance)
+  :is(.page-wayfinder, .section-guide, .carousel-discovery-hint) {
+  display: none;
+}
+/* If JavaScript is unavailable, keep the sample static and the real account links usable. */
+body:not(.v3-interactive) .photo-bubble {
+  animation: none;
+}
+body:not(.v3-interactive) .phone-scroll-cue {
+  display: none;
+}
+
+.hws button:disabled {
+  cursor: default;
+}
+
+body:not(.v3-interactive) [data-v3-feed] {
+  display: none;
+}
+body.v3-interactive .v3-feed-fallback {
+  display: none;
+}
+.v3-feed-fallback a {
+  color: var(--ef-primary-dark);
+  text-decoration: underline;
+}
+
+[data-v3-categories] > .v3-feed-message,
+.market-grid > .v3-feed-message {
+  grid-column: 1/-1;
+}
+.v3-feed-retry {
+  min-height: 44px;
+  margin-left: 16px;
+  padding: 8px 14px;
+  border: 1px solid var(--ef-border);
+  border-radius: 8px;
+  background: var(--ef-accent-light);
+  color: var(--ef-primary-dark);
+}
+main .hero.hero--without-photos {
+  grid-template-columns: minmax(0, 1fr);
+}
+@media (max-width: 560px) {
+  .v3-feed-retry {
+    display: block;
+    margin: 12px 0 0;
+  }
+}
+.hws .unseated-guest[aria-pressed='true'] {
+  color: var(--ef-primary-dark);
+}

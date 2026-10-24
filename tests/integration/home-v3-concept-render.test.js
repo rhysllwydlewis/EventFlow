@@ -10,13 +10,14 @@ jest.mock('../../utils/homepage-manager', () => ({
 }));
 
 const { templateMiddleware, clearCache } = require('../../utils/template-renderer');
-const { getActiveHomepageVersion } = require('../../utils/homepage-manager');
+const { getActiveHomepageVersion, getHomepageToggles } = require('../../utils/homepage-manager');
 const app = express();
 app.use(templateMiddleware());
 
 beforeEach(() => {
   clearCache();
   getActiveHomepageVersion.mockResolvedValue('v1');
+  getHomepageToggles.mockResolvedValue({});
 });
 
 describe('V3 concept routing', () => {
@@ -66,4 +67,17 @@ describe('V3 concept routing', () => {
     expect(res.headers['x-robots-tag']).toBeUndefined();
     expect(res.text).not.toMatch(/name="robots"[^>]*noindex/);
   });
+  test.each(['/home-v3', '/home-v3-preview', '/home-v3.html', '/home-v3-preview.html'])(
+    'V3 display switches remain live on %s',
+    async route => {
+      getHomepageToggles.mockResolvedValue({ guidance: false, quickLinks: false });
+      const off = await request(app).get(route).expect(200);
+      const body = off.text.match(/<body[^>]*>/)[0];
+      expect(body).not.toContain('ef-home-guidance');
+      expect(body).not.toContain('ef-home-quicklinks');
+      getHomepageToggles.mockResolvedValue({ guidance: true, quickLinks: true });
+      const on = await request(app).get(route).expect(200);
+      expect(on.text.match(/<body[^>]*>/)[0]).toContain('ef-home-guidance ef-home-quicklinks');
+    }
+  );
 });

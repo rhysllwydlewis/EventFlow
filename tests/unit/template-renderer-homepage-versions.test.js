@@ -62,8 +62,8 @@ describe('homepage version template routing', () => {
     );
     const rendered = buildHomepageV3Preview(source);
     expect(rendered).toContain('Everything you need.');
-    expect(rendered).toContain('/assets/css/home-v3-concept.css?v=1');
-    expect(rendered).toContain('/assets/js/pages/home-v3-concept.js?v=1');
+    expect(rendered).toContain('/assets/css/home-v3-concept.css?v=2');
+    expect(rendered).toContain('/assets/js/pages/home-v3-concept.js?v=2');
     expect(rendered).not.toContain('data-hv3-pexels-video');
     expect(rendered).not.toContain('/assets/css/home-v2.css');
     expect(buildHomepageV3Preview(rendered)).toBe(rendered);

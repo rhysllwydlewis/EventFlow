@@ -581,7 +581,7 @@ function templateMiddleware() {
         responseContent = buildHomepageV3Preview(responseContent);
       }
       responseContent = isHomepagePreview ? addPreviewRobotsMeta(responseContent) : responseContent;
-      if (requestPath === '/index.html') {
+      if (requestPath === HOMEPAGE_INDEX_FILE || requestPath === HOMEPAGE_V3_FILE) {
         responseContent = applyHomepageToggles(responseContent, await readHomepageToggles());
       }
 

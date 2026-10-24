@@ -12,11 +12,28 @@
     <link rel="stylesheet" href="/assets/css/eventflow-footer.css" />
     <link rel="stylesheet" href="/assets/css/tokens.css?v=18.3.0" />
     <link rel="stylesheet" href="/assets/css/eventflow-brand.css?v=1.0.1" />
-    <link rel="stylesheet" href="/assets/css/home-v3-concept.css?v=1" />
+    <link rel="stylesheet" href="/assets/css/home-v3-concept.css?v=2" />
     <link rel="canonical" href="https://event-flow.co.uk/" />
-    <link rel="icon" href="/favicon.ico" />
+    <link rel="icon" href="/favicon.ico" sizes="any" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" sizes="180x180" />
+    <link rel="manifest" href="/site.webmanifest" />
+    <meta name="theme-color" content="#0B8073" />
+    <noscript
+      ><style>
+        .v3-auth-pending {
+          visibility: visible;
+        }
+        #mobile-navigation[hidden] {
+          display: block !important;
+        }
+        .menu-toggle {
+          display: none !important;
+        }
+      </style></noscript
+    >
   </head>
-  <body class="home-v3-page">
+  <body class="home-v3-page ef-home-guidance ef-home-quicklinks">
     <a class="skip" href="#main">Skip to content</a>
     <header>
       <div class="wrap nav">
@@ -101,6 +118,7 @@
           <div class="orbit-decoration" aria-hidden="true"></div>
           <a
             class="photo-bubble photo-bubble--venue"
+            data-v3-category="Venues"
             href="/suppliers?category=Venues"
             aria-label="Browse venues suppliers"
             ><img
@@ -121,6 +139,7 @@
                 <path d="M5 15 15 5M5 5h10v10" /></svg></span></a
           ><a
             class="photo-bubble photo-bubble--catering"
+            data-v3-category="Catering"
             href="/suppliers?category=Catering"
             aria-label="Browse catering suppliers"
             ><img
@@ -140,6 +159,7 @@
                 <path d="M5 15 15 5M5 5h10v10" /></svg></span></a
           ><a
             class="photo-bubble photo-bubble--entertainment"
+            data-v3-category="Entertainment"
             href="/suppliers?category=Entertainment"
             aria-label="Browse entertainment suppliers"
             ><img
@@ -159,6 +179,7 @@
                 <path d="M5 15 15 5M5 5h10v10" /></svg></span></a
           ><a
             class="photo-bubble photo-bubble--photography"
+            data-v3-category="Photography"
             href="/suppliers?category=Photography"
             aria-label="Browse photography suppliers"
             ><img
@@ -177,6 +198,7 @@
               >
                 <path d="M5 15 15 5M5 5h10v10" /></svg></span></a
           ><button
+            disabled
             class="orbit-toggle"
             type="button"
             aria-label="Pause photo animation"
@@ -397,7 +419,7 @@
           ></a>
         </div>
         <div class="categories" data-v3-categories>
-          <a class="category" href="/suppliers?category=Venues"
+          <a class="category" data-v3-category="Venues" href="/suppliers?category=Venues"
             ><img src="/assets/images/home-v3/categories-0.webp" alt="" loading="lazy" /><span
               >Venues
               <b
@@ -410,7 +432,7 @@
                   aria-hidden="true"
                 >
                   <path d="M5 15 15 5M5 5h10v10" /></svg></b></span></a
-          ><a class="category" href="/suppliers?category=Catering"
+          ><a class="category" data-v3-category="Catering" href="/suppliers?category=Catering"
             ><img src="/assets/images/home-v3/categories-1.webp" alt="" loading="lazy" /><span
               >Catering
               <b
@@ -423,7 +445,10 @@
                   aria-hidden="true"
                 >
                   <path d="M5 15 15 5M5 5h10v10" /></svg></b></span></a
-          ><a class="category" href="/suppliers?category=Entertainment"
+          ><a
+            class="category"
+            data-v3-category="Entertainment"
+            href="/suppliers?category=Entertainment"
             ><img src="/assets/images/home-v3/categories-2.webp" alt="" loading="lazy" /><span
               >Entertainment
               <b
@@ -436,7 +461,7 @@
                   aria-hidden="true"
                 >
                   <path d="M5 15 15 5M5 5h10v10" /></svg></b></span></a
-          ><a class="category" href="/suppliers?category=Photography"
+          ><a class="category" data-v3-category="Photography" href="/suppliers?category=Photography"
             ><img src="/assets/images/home-v3/categories-3.webp" alt="" loading="lazy" /><span
               >Photography
               <b
@@ -449,7 +474,7 @@
                   aria-hidden="true"
                 >
                   <path d="M5 15 15 5M5 5h10v10" /></svg></b></span></a
-          ><a class="category" href="/suppliers?category=Decor"
+          ><a class="category" data-v3-category="Decor" href="/suppliers?category=Decor"
             ><img src="/assets/images/home-v3/categories-4.webp" alt="" loading="lazy" /><span
               >Decor &amp; Styling
               <b
@@ -462,7 +487,7 @@
                   aria-hidden="true"
                 >
                   <path d="M5 15 15 5M5 5h10v10" /></svg></b></span></a
-          ><a class="category" href="/suppliers?q=AV%20%26%20Lighting"
+          ><a class="category" data-v3-category="Lighting" href="/suppliers?q=AV%20%26%20Lighting"
             ><img src="/assets/images/home-v3/categories-5.webp" alt="" loading="lazy" /><span
               >AV &amp; Lighting
               <b
@@ -475,7 +500,7 @@
                   aria-hidden="true"
                 >
                   <path d="M5 15 15 5M5 5h10v10" /></svg></b></span></a
-          ><a class="category" href="/suppliers?category=Transport"
+          ><a class="category" data-v3-category="Transport" href="/suppliers?category=Transport"
             ><img src="/assets/images/home-v3/categories-6.webp" alt="" loading="lazy" /><span
               >Transport
               <b
@@ -488,7 +513,7 @@
                   aria-hidden="true"
                 >
                   <path d="M5 15 15 5M5 5h10v10" /></svg></b></span></a
-          ><a class="category" href="/suppliers?category=Cake"
+          ><a class="category" data-v3-category="Cake" href="/suppliers?category=Cake"
             ><img src="/assets/images/home-v3/categories-8.webp" alt="" loading="lazy" /><span
               >Cakes &amp; Florals
               <b
@@ -728,6 +753,7 @@
           >
             <p class="v3-feed-message" role="status">Loading featured packages…</p>
           </div>
+          <p class="v3-feed-fallback"><a href="/suppliers">Browse current packages</a></p>
           <p class="carousel-discovery-hint" id="featured-hint">
             <svg
               viewBox="0 0 24 24"
@@ -797,6 +823,7 @@
         >
           <p class="v3-feed-message" role="status">Loading spotlight packages…</p>
         </div>
+        <p class="v3-feed-fallback"><a href="/suppliers">Explore suppliers and packages</a></p>
         <p class="carousel-discovery-hint" id="spotlight-track-hint">
           <svg
             viewBox="0 0 24 24"
@@ -915,12 +942,18 @@
                 ><span>Send a sample RSVP.<br /><strong>See your guest list update.</strong></span>
               </div>
               <div class="hws-playbar" role="group" aria-label="Explore the wedding preview">
-                <button type="button" data-preview="website" aria-pressed="true">Website</button
-                ><button type="button" data-preview="replies" aria-pressed="false">
+                <button disabled type="button" data-preview="website" aria-pressed="true">
+                  Website</button
+                ><button disabled type="button" data-preview="replies" aria-pressed="false">
                   Guest replies</button
-                ><button type="button" data-preview="seating" aria-pressed="false">
+                ><button disabled type="button" data-preview="seating" aria-pressed="false">
                   Seating plan</button
-                ><button type="button" id="sample-reset" aria-label="Reset wedding preview">
+                ><button
+                  disabled
+                  type="button"
+                  id="sample-reset"
+                  aria-label="Reset wedding preview"
+                >
                   Reset
                 </button>
               </div>
@@ -1006,7 +1039,7 @@
                       >
                         <div class="hws__site-bar">
                           <span>A &amp; O</span
-                          ><button type="button" class="hws-phone-link" data-rsvp-focus>
+                          ><button disabled type="button" class="hws-phone-link" data-rsvp-focus>
                             RSVP
                           </button>
                         </div>
@@ -1014,7 +1047,7 @@
                           <small>We&rsquo;re getting married</small>
                           <strong>Amelia &amp; Oliver</strong>
                           <span>Saturday 19 June 2027 &middot; Bath</span>
-                          <button type="button" class="hws-phone-link" data-rsvp-focus>
+                          <button disabled type="button" class="hws-phone-link" data-rsvp-focus>
                             RSVP now
                           </button>
                         </div>
@@ -1035,16 +1068,20 @@
                         >
                           <small id="sample-response-question">Will you be joining us?</small>
                           <label class="reply-option"
-                            ><input type="radio" name="sample-response" value="yes" checked /><span
-                              >Joyfully attending</span
-                            ></label
+                            ><input
+                              type="radio"
+                              disabled
+                              name="sample-response"
+                              value="yes"
+                              checked
+                            /><span>Joyfully attending</span></label
                           >
                           <label class="reply-option"
-                            ><input type="radio" name="sample-response" value="no" /><span
+                            ><input type="radio" disabled name="sample-response" value="no" /><span
                               >Regretfully declining</span
                             ></label
                           >
-                          <button type="submit" class="hws-send-rsvp">Send RSVP</button>
+                          <button disabled type="submit" class="hws-send-rsvp">Send RSVP</button>
                           <p class="hws-rsvp-confirm" aria-live="polite"></p>
                         </form>
                       </div>
@@ -1172,17 +1209,26 @@
                     <div class="hws-seat-controls">
                       <label for="sample-table"
                         >Seat <strong id="seat-guest-label">Charlotte E.</strong> at</label
-                      ><select id="sample-table" aria-label="Choose a table">
+                      ><select disabled id="sample-table" aria-label="Choose a table">
                         <option value="2">Table 2</option>
                         <option value="3">Table 3</option></select
-                      ><button type="button" id="sample-seat">Seat guest</button>
+                      ><button disabled type="button" id="sample-seat">Seat guest</button>
                     </div>
                     <p class="hws-seat-status" aria-live="polite">
                       Choose a table to try the seating plan.
                     </p>
                     <div class="hws__unseated">
-                      <small>Unseated</small
+                      <small>Sample guests</small
                       ><button
+                        disabled
+                        type="button"
+                        class="unseated-guest"
+                        data-seat-guest="Charlotte E."
+                        aria-pressed="true"
+                      >
+                        Charlotte E.</button
+                      ><button
+                        disabled
                         type="button"
                         class="unseated-guest"
                         data-seat-guest="Priya S."
@@ -1190,13 +1236,14 @@
                       >
                         Priya S.</button
                       ><button
+                        disabled
                         type="button"
                         class="unseated-guest"
                         data-seat-guest="Tom H."
                         aria-pressed="false"
                       >
-                        Tom H.</button
-                      ><span>+4</span>
+                        Tom H.
+                      </button>
                     </div>
                   </div>
                 </div>
@@ -1615,6 +1662,7 @@
           <div class="market-grid" data-v3-feed="marketplace" aria-busy="true">
             <p class="v3-feed-message" role="status">Loading marketplace items…</p>
           </div>
+          <p class="v3-feed-fallback"><a href="/marketplace">Browse marketplace items</a></p>
         </div>
       </section>
       <section id="for-suppliers" class="section wrap">
@@ -1658,7 +1706,234 @@
         </div>
       </section>
     </main>
-    <footer class="ef-footer-premium" role="contentinfo"></footer>
+    <footer class="ef-footer-premium" role="contentinfo">
+      <svg
+        class="ef-footer-waves"
+        viewBox="0 0 440 260"
+        fill="none"
+        xmlns="http://www.w3.org/2000/svg"
+        aria-hidden="true"
+      >
+        <path
+          d="M440 180 Q340 130 230 175 T30 160 T-40 180"
+          stroke="rgba(255,255,255,0.07)"
+          stroke-width="1.5"
+          fill="none"
+        ></path>
+        <path
+          d="M440 210 Q320 165 210 210 T10 195 T-40 210"
+          stroke="rgba(255,255,255,0.05)"
+          stroke-width="1.5"
+          fill="none"
+        ></path>
+        <path
+          d="M440 238 Q300 200 195 238 T-5 228 T-40 240"
+          stroke="rgba(255,255,255,0.04)"
+          stroke-width="1.5"
+          fill="none"
+        ></path>
+      </svg>
+      <section class="ef-nl-wrap" aria-label="Stay Updated newsletter signup">
+        <div class="ef-nl-card">
+          <div class="ef-nl-left">
+            <div class="ef-nl-icon">
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                aria-hidden="true"
+                width="28"
+                height="28"
+              >
+                <rect x="2" y="4" width="20" height="16" rx="3"></rect>
+                <path d="M2 8l10 6 10-6"></path>
+              </svg>
+            </div>
+            <div class="ef-nl-copy">
+              <h2>Stay Updated</h2>
+              <p>
+                Get the latest event planning tips, supplier spotlights, and special offers
+                delivered to your inbox.
+              </p>
+            </div>
+          </div>
+          <div class="ef-nl-divider" aria-hidden="true"></div>
+          <div class="ef-nl-right">
+            <form aria-label="Newsletter signup" class="ef-nl-row" novalidate="">
+              <label class="ef-nl-input-wrap" for="ef-footer-email">
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  aria-hidden="true"
+                  width="18"
+                  height="18"
+                >
+                  <rect x="2" y="4" width="20" height="16" rx="3"></rect>
+                  <path d="M2 8l10 6 10-6"></path></svg
+                ><span class="ef-footer-sr-only">Email address</span
+                ><input
+                  disabled
+                  id="ef-footer-email"
+                  name="email"
+                  type="email"
+                  placeholder="Enter your email address"
+                  autocomplete="email"
+                  required=""
+              /></label>
+              <button disabled class="ef-nl-btn" type="submit">Subscribe</button>
+            </form>
+            <noscript
+              ><p class="ef-nl-note">Enable JavaScript to subscribe to the newsletter.</p></noscript
+            >
+            <p class="ef-nl-note">We respect your privacy. Unsubscribe at any time.</p>
+            <p class="ef-nl-feedback" aria-live="polite"></p>
+          </div>
+        </div>
+      </section>
+      <div class="ef-footer-inner">
+        <div class="ef-footer-brand">
+          <a href="/" class="ef-brand-logo" aria-label="EventFlow home"
+            ><span class="ef-brand-logo-name">EventFlow</span></a
+          >
+          <p class="ef-brand-tagline">Event planning made simple.</p>
+          <p class="ef-brand-operated">
+            Operated by
+            <a href="https://vexi.co.uk" target="_blank" rel="noopener noreferrer">VEXI</a>
+          </p>
+          <div class="ef-socials">
+            <a
+              href="https://www.instagram.com/eventflowuk"
+              class="ef-social-link"
+              aria-label="EventFlow on Instagram"
+              target="_blank"
+              rel="noopener noreferrer"
+              ><svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.8"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                aria-hidden="true"
+              >
+                <rect x="2" y="2" width="20" height="20" rx="5"></rect>
+                <circle cx="12" cy="12" r="4"></circle>
+                <circle cx="17.5" cy="6.5" r=".5" fill="currentColor"></circle></svg
+            ></a>
+            <a
+              href="https://www.facebook.com/eventflowuk"
+              class="ef-social-link"
+              aria-label="EventFlow on Facebook"
+              target="_blank"
+              rel="noopener noreferrer"
+              ><svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.8"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                aria-hidden="true"
+              >
+                <path
+                  d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"
+                ></path></svg
+            ></a>
+          </div>
+        </div>
+        <nav class="ef-footer-nav" aria-label="Platform links">
+          <div class="ef-nav-head">
+            <div class="ef-nav-head-icon">
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                aria-hidden="true"
+              >
+                <rect x="3" y="3" width="7" height="7" rx="1.5"></rect>
+                <rect x="14" y="3" width="7" height="7" rx="1.5"></rect>
+                <rect x="3" y="14" width="7" height="7" rx="1.5"></rect>
+                <rect x="14" y="14" width="7" height="7" rx="1.5"></rect>
+              </svg>
+            </div>
+            <span class="ef-nav-head-label">Platform</span>
+          </div>
+          <ul class="ef-nav-list">
+            <li><a href="/start">Plan an Event</a></li>
+            <li><a href="/suppliers">Browse Suppliers</a></li>
+            <li><a href="/community">Community</a></li>
+            <li><a href="/marketplace">Marketplace</a></li>
+            <li><a href="/pricing">Pricing</a></li>
+          </ul>
+        </nav>
+        <nav class="ef-footer-nav" aria-label="Resources links">
+          <div class="ef-nav-head">
+            <div class="ef-nav-head-icon">
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                aria-hidden="true"
+              >
+                <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
+                <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
+              </svg>
+            </div>
+            <span class="ef-nav-head-label">Resources</span>
+          </div>
+          <ul class="ef-nav-list">
+            <li><a href="/guides">Guides</a></li>
+            <li><a href="/faq">Help &amp; FAQ</a></li>
+            <li><a href="/for-suppliers">For Suppliers</a></li>
+            <li><a href="/contact">Contact</a></li>
+          </ul>
+        </nav>
+        <nav class="ef-footer-nav" aria-label="Legal links">
+          <div class="ef-nav-head">
+            <div class="ef-nav-head-icon">
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                aria-hidden="true"
+              >
+                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+              </svg>
+            </div>
+            <span class="ef-nav-head-label">Legal</span>
+          </div>
+          <ul class="ef-nav-list">
+            <li><a href="/legal">Legal Hub</a></li>
+            <li><a href="/privacy">Privacy Policy</a></li>
+            <li><a href="/terms">Terms of Service</a></li>
+            <li>
+              <a href="/legal#cookies" class="ef-cookie-link">Cookie preferences</a>
+            </li>
+          </ul>
+        </nav>
+      </div>
+      <div class="ef-footer-bar">
+        <div class="ef-footer-bar-inner">
+          <p>© 2025–{{CURRENT_YEAR}} EventFlow. All rights reserved.</p>
+        </div>
+      </div>
+    </footer>
     <noscript
       ><p class="wrap v3-feed-message">
         Explore <a href="/suppliers">suppliers and packages</a> or
@@ -1667,8 +1942,9 @@
       </p></noscript
     >
     <script src="/assets/js/utils/auth-state.js" defer></script>
+    <script src="/assets/js/utils/category-link.js" defer></script>
     <script src="/assets/js/utils/package-image-resolver.js" defer></script>
-    <script src="/assets/js/pages/home-v3-concept.js?v=1" defer></script>
+    <script src="/assets/js/pages/home-v3-concept.js?v=2" defer></script>
     <script src="/assets/js/components/eventflow-footer.js?v=4" defer></script>
   </body>
 </html>

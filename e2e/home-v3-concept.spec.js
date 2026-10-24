@@ -15,7 +15,20 @@ async function mockFeeds(page, { unavailable = false, signedIn = false } = {}) {
   await page.route('**/api/v1/auth/me', route =>
     route.fulfill({ json: { user: signedIn ? { id: 'sample-account', role: 'customer' } : null } })
   );
-  await page.route('**/api/v1/categories', route => route.fulfill({ json: { items: [] } }));
+  await page.route('**/api/v1/categories', route =>
+    route.fulfill({
+      json: {
+        items: [
+          'Venues',
+          'Catering',
+          'Entertainment',
+          'Photography',
+          'Videography',
+          'Decorations',
+        ].map(name => ({ name, heroImage: photo, visible: true })),
+      },
+    })
+  );
   await page.route('**/api/v1/locations/featured?*', route =>
     route.fulfill({
       json: {
@@ -114,6 +127,11 @@ test.describe('V3 approved homepage concept', () => {
     await expect(page.locator('#featured')).toHaveAttribute('aria-busy', 'false');
     await expect(page.locator('#featured a')).toHaveAttribute('href', '/suppliers');
     await expect(page.locator('#featured')).toContainText('could not load');
+    await page.route('**/api/packages/featured', route =>
+      route.fulfill({ json: { items: packages } })
+    );
+    await page.locator('#featured').getByRole('button', { name: 'Try again', exact: true }).click();
+    await expect(page.locator('#featured .package')).toHaveCount(5);
     await page.locator('#marketplace').scrollIntoViewIfNeeded();
     await expect(page.locator('[data-v3-feed=marketplace]')).toContainText('New pre-loved finds');
     await expect(page.locator('[data-v3-feed=marketplace] a')).toHaveAttribute(
@@ -207,5 +225,92 @@ test.describe('V3 approved homepage concept', () => {
       expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(width);
     }
     expect(errors).toEqual([]);
+  });
+  test('categories follow current CMS visibility and update hero photos', async ({ page }) => {
+    await mockFeeds(page);
+    await page.route('**/api/v1/categories', route =>
+      route.fulfill({
+        json: {
+          items: [
+            {
+              name: 'Venues',
+              heroImage: '/assets/images/home-v3/categories-0.webp',
+              visible: true,
+            },
+            { name: 'Transport', visible: false },
+            { name: 'Videography', heroImage: photo, visible: true },
+          ],
+        },
+      })
+    );
+    await page.goto('/home-v3-preview');
+    await dismissConsent(page);
+    await expect(page.locator('[data-v3-categories] .category')).toHaveCount(2);
+    await expect(page.locator('[data-v3-categories]')).toContainText('Videography');
+    await expect(page.locator('[data-v3-categories]')).not.toContainText('Transport');
+    await expect(page.locator('.photo-bubble--venue img')).toHaveAttribute(
+      'src',
+      /categories-0\.webp$/
+    );
+    await expect(page.locator('[data-v3-categories] a').last()).toHaveAttribute(
+      'href',
+      '/suppliers?category=Videography'
+    );
+  });
+
+  test('missing optional browser APIs do not prevent feed loading or wedding samples', async ({
+    page,
+  }) => {
+    await page.addInitScript(() => {
+      delete window.IntersectionObserver;
+      delete window.ResizeObserver;
+      AbortSignal.timeout = undefined;
+    });
+    await mockFeeds(page);
+    await page.goto('/home-v3-preview');
+    await dismissConsent(page);
+    await expect(page.locator('#featured .package')).toHaveCount(5);
+    await page.getByRole('button', { name: 'RSVP now', exact: true }).click();
+    await page.getByRole('button', { name: 'Send RSVP', exact: true }).click();
+    await page.getByRole('button', { name: 'Guest replies', exact: true }).click();
+    await expect(page.locator('#sample-yes')).toHaveText('65');
+  });
+
+  test('without JavaScript, legal navigation works and sample controls cannot submit', async ({
+    browser,
+    baseURL,
+  }) => {
+    const context = await browser.newContext({
+      javaScriptEnabled: false,
+      viewport: { width: 390, height: 900 },
+    });
+    const page = await context.newPage();
+    await page.goto(baseURL + '/home-v3-preview');
+    await expect(page.locator('.ef-footer-premium a[href="/privacy"]')).toBeVisible();
+    await expect(page.locator('.ef-footer-premium a[href="/legal#cookies"]')).toBeVisible();
+    await expect(page.locator('#mobile-navigation')).toBeVisible();
+    await expect(page.locator('.hws-send-rsvp')).toBeDisabled();
+    await expect(page.locator('#ef-footer-email')).toBeDisabled();
+    await expect(page.locator('.orbit-toggle')).toBeDisabled();
+    await expect(page.locator('.photo-bubble').first()).toHaveCSS('animation-name', 'none');
+    await context.close();
+  });
+  test('the sample guest can be dragged onto a table without bypassing capacity', async ({
+    page,
+  }) => {
+    await mockFeeds(page);
+    await page.goto('/home-v3-preview');
+    await dismissConsent(page);
+    await page.getByRole('button', { name: 'Seating plan', exact: true }).click();
+    await page
+      .locator('#sample-drag')
+      .dragTo(page.getByRole('button', { name: 'Choose table 3', exact: true }));
+    await expect(page.locator('.hws-seat-status')).toContainText('Charlotte E. is now at Table 3');
+    await expect(page.getByRole('button', { name: 'Charlotte E.', exact: true })).toBeDisabled();
+    await page.getByRole('button', { name: 'Priya S.', exact: true }).click();
+    await page
+      .locator('#sample-drag')
+      .dragTo(page.getByRole('button', { name: 'Choose table 3', exact: true }));
+    await expect(page.locator('.hws-seat-status')).toContainText('Table 3 is full');
   });
 });
