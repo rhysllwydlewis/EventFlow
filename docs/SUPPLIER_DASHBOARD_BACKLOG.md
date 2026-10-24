@@ -36,6 +36,18 @@ These were questions rather than defects. Each has an answer; say if you want a 
 | T-4, T-9 | Browser files that are not modules are tested by cutting the function out of the source (`app.js`'s redirect code, the cookie-choice helper). Moving the redirect allowlist out of `app.js` would mean a new script tag on every page that loads `app.js`; the helper throws a clear error if the markers move, so it was left. |
 | R-1, R-3 | Review of the whole repository and of every older test was not part of this work. What was reviewed: every file the dashboard uses, the security review of the routes it calls, the price and messenger code paths, and the dashboard stylesheet.                                                                               |
 
+## 2b. Decided in the supplier-dashboard audit
+
+| Id    | Decision                                                                                                                                                                                                                                                                                        |
+| ----- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| AUD-1 | **The Availability card was removed, not wired up.** `suppliers.availability` was read by no customer-facing page or API, so the control was a placebo. Showing it publicly would need the profile, search and structured data to agree on one meaning: a product decision. Stored values stay. |
+| AUD-2 | **`blurb` still counts for the completeness 'description' check** although the About section does not show it (only an admin can set it; the browser widget counts it, and a parity test keeps the two in step). Dropping it from both is the way to make the check match the page exactly.     |
+| AUD-3 | **Counted profile views are capped at 5 per network address per supplier per hour.** It stops one client minting visitors by changing its User-Agent, and means a very busy shared address can undercount. Change `PROFILE_VIEW_IP_CAP` in `routes/analytics.js` if the trade-off is wrong.     |
+| AUD-4 | **The visitor key is an unsalted truncated hash** of address and browser family. Salting it with a server secret would make a stored key harder to test against a known address; not done because it would reset every in-flight "once per hour" check on deploy.                               |
+| AUD-5 | **The CSV export has no limiter of its own** beyond the site's general limits. It is read-only and capped at 1000 rows per source, so it was left.                                                                                                                                              |
+| AUD-6 | **A supplier can still reply to a review of their own that is pending or rejected** (the reply is invisible until it is published) and the reply route does not check `approved`. Harmless; left.                                                                                               |
+| AUD-7 | **The public-calendar edit of an already published event needs no new approval** (design limitation; an approved event's content can change).                                                                                                                                                   |
+
 ## 3. Done
 
 Fixed or built in rhysllwydlewis/EventFlow#1822 (merged): L-1, L-2, L-3, K-4, T-2, T-3, C-3, C-4, enquiry
@@ -76,5 +88,13 @@ Done in the follow-up that cleared this file (rhysllwydlewis/EventFlow#1825):
   and 90 days; the guide says when a step may be missing; how to run everything locally is in
   `docs/RUNNING_THE_BROWSER_TESTS_LOCALLY.md`; 196 tests that could never run (they described deleted code) were
   removed; eight unused style rules were removed.
+- **Supplier-dashboard audit (this change):** failed writes are errors, not successes (packages, setup guide, trial,
+  verification); the old false-success `request-review` handler and its runtime removal hack are deleted; the unused
+  `/analytics/legacy` route and three unreferenced assets are deleted; tips come from `services/supplierTips.js`
+  (real state, at most three, each with an action the dashboard wires); profile views are counted atomically with a
+  per-address cap; the CSV export skips conversations the supplier deleted and says when it was cut at 1000; a reply
+  that was sent is never reported as failed; the summary and the enquiry list read the same rows; review stats use
+  one rating rule; the public calendar fails closed when its approval setting cannot be read; the empty-visits text
+  follows the approval state; the 'Known caveat' in `SUPPLIER_DASHBOARD_DATA.md` now matches the shipped enquiries drawer.
 - **B-1, B-3, B-4, B-5, B-6, B-7, B-8:** B-4 no public page was deleted by #1819 (only its stylesheets and
   scripts), so nothing outside the repository can point at a missing page; the others are the checks above.

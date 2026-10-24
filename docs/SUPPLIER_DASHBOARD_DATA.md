@@ -106,6 +106,9 @@ EventFlow, with the owner's verified account address as Reply-To, and marks the 
 `ENQUIRY_TOO_OLD` (422, older than 30 days), `ENQUIRY_LIMIT`/`HOURLY_LIMIT`/`DAILY_LIMIT` (429: 3 per enquiry, 10 an
 hour and 30 a day per supplier) or `SEND_FAILED` (502). A place is reserved in `supplier_enquiry_replies` before
 sending and the limits are checked again, so overlapping requests cannot pass them; a failed send gives the place back.
+Once the email has gone nothing can turn the reply into a failure: if marking the enquiry handled does not save, the
+route still answers `{success: true, enquiry, warning}` (the enquiry keeps its old status) and the dashboard shows the
+warning, so the supplier does not send it twice.
 `GET /api/supplier/enquiries/:id` includes the sent `replies` and an estimated `quality` (`rating`, `score`, `reasons`,
 from `utils/leadScoring.js`, worked out when read, never stored); the list takes `quality=High|Medium|Low` and
 returns `counts.byQuality`.
@@ -117,7 +120,10 @@ to another device.
 **CSV export.** `GET /api/supplier/enquiries/export` is the single export route (the shadowed "safe" duplicate was deleted).
 It exports the supplier's customer conversations, quote requests and contact-form enquiries, spreadsheet-safe, as
 `enquiries-and-conversations-YYYY-MM-DD.csv`. With nothing to export it still returns 200 with the header row and
-`X-Export-Row-Count: 0`.
+`X-Export-Row-Count: 0`. Conversations the supplier deleted from their inbox (`participants.isDeleted` for their
+own participant) are not exported. Each source keeps its newest 1000 rows; when more existed the response has
+`X-Export-Truncated: true`, the file ends with a `Notice` row saying so (not counted in `X-Export-Row-Count`) and the
+dashboard tells the supplier. Otherwise `X-Export-Truncated: false`.
 
 **Reviews.** Two writers share `reviews` (v2 service with `moderation.state`; the live public form with
 `approved`/`flagged`/`comment`/`userName`). `utils/reviewShape.js` is the one adapter used by the dashboard list, the
@@ -125,8 +131,12 @@ summary, `reviews/stats` and replies, so both shapes list, count and accept repl
 shape count; pending/rejected never do. No migration is required.
 
 **Profile visits.** One event per visit, written only by the page beacon `POST /api/analytics/track`. Not recorded for the
-supplier's own session, admins, automated clients, or unknown/unapproved suppliers; the same visitor counts once per hour
-(database rule using a hash, not the raw IP). `views.description` carries the exact sentence the UI may show. Events recorded
+supplier's own session, admins, automated clients, or unknown/unapproved suppliers; the same visitor counts once per hour.
+"The same visitor" is the signed-in account, or a hash of the address and the browser family (browser/OS, not the full
+User-Agent string, so changing the version or rotating strings does not make a new visitor); the raw IP is never stored.
+The rule is enforced by the database: each view carries a `dedupeKey` (supplier, visitor, clock hour) with a unique index,
+so two beacons at once count once. A second cap bounds one network address (hashed, `ipKey`) to 5 counted views per
+supplier per hour, which means a very busy shared address (an office, a mobile carrier) can undercount. `views.description` carries the exact sentence the UI may show. Events recorded
 before this change were not rewritten.
 
 **Calendar.** Public calendar publishing is hard-coded by category (`Event Planner`, `Wedding Fayre`) plus a per-supplier
@@ -168,8 +178,35 @@ The summary issues about ten indexed, supplier-scoped queries plus one aggregate
 `createdAt, userId, email` in the database; no other customer's request is read. Engagement results are reused
 for 30 seconds per (supplier, window) so the several widgets of one page load do not recompute them.
 
+## Writes that fail
+
+`db-unified`'s `updateOne`/`deleteOne`/`insertOne`/`read` swallow errors by default (`false`/`null`/empty), and `false`
+from `updateOne` also means "matched but nothing changed". A route that must not report a failed write as a success
+passes `{ throwOnError: true }`, so a thrown error becomes a 500 while "no change" stays a 200. Package edit, delete,
+pause and resume, setup-guide progress, trial activation and verification submit do this; so do the package ownership
+lookups and the public-calendar publisher/approval reads (which fail closed: an unreadable approval setting means an event
+waits for review). The dashboard already shows the server's reason for a refused package action. The setup guide's
+progress save is best effort by design (the browser keeps a copy), so a failed account save is not shown as an error.
+
+## Availability
+
+The dashboard no longer has an Availability card and `/api/v1/supplier/availability` was removed: nothing a customer sees
+(public profile, search, SEO, quote flow) reads `suppliers.availability`, so the control changed nothing. Stored values
+are left in place. Wiring it honestly would need the public profile, the supplier API, search and the structured data
+to agree, which is a product decision, so it was deleted instead. The Calendar card (`#availability-calendar`) is a
+different, working feature.
+
+## Completeness 'description'
+
+The checklist measures the first non-empty of `description_long`, `description_short`, `description`, then the legacy
+`blurb` (`getSupplierDescriptionText`), and wants 100 characters. The public About section shows the first non-empty of
+the first three, so the check measures what the page shows except for `blurb`: only an admin can set it, it counts
+because the browser widget (`profile-health-widget.js`, kept in step by a parity test) counts it, and the About section
+does not display it. Removing `blurb` from both would make the two agree exactly.
+
 ## Known caveat
 
-Quote requests and contact-form enquiries are stored against the supplier but the product does not show
-them to the supplier or notify them. They are counted because they are real customer requests, but the
-supplier cannot yet act on them in-app.
+Customers' enquiries reach the supplier in the dashboard: the Enquiries card and drawer list them (status, quality,
+detail with the contact details the customer left), the supplier is notified when one arrives, can reply by email from
+the drawer, and can export them. What is still missing is any channel other than email for replying to a quote request or
+contact-form enquiry, so the reply rate and reply time cover messenger conversations only.
