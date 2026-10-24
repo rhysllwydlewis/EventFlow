@@ -225,7 +225,7 @@
   function createRecommendationsWidget(containerId, options = {}) {
     const container = document.getElementById(containerId);
     if (!container) {
-      return;
+      return undefined;
     }
 
     const widget = document.createElement('div');

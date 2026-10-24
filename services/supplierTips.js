@@ -603,10 +603,7 @@ function profileTips(supplier, summary) {
  * @returns {Object[]} Tips
  */
 function photoLimitTips(supplier, summary) {
-  const allowed =
-    summary.subscription && summary.subscription.limits
-      ? summary.subscription.limits.maxPhotos
-      : null;
+  const allowed = summary.subscription?.limits ? summary.subscription.limits.maxPhotos : null;
   const used = getSupplierGalleryCount(supplier);
   if (Number.isFinite(allowed) && allowed >= 0 && used >= allowed) {
     return [
@@ -673,7 +670,7 @@ function buildTips({ supplier, summary, raw, canPublishPublicCalendar }) {
     if (approved && raw.packageDocs) {
       all.push(...packageTips(supplier, summary, raw.packageDocs));
     }
-    if (summary.profile && summary.profile.completeness) {
+    if (summary.profile?.completeness) {
       all.push(...profileTips(supplier, summary));
     }
     all.push(...photoLimitTips(supplier, summary));

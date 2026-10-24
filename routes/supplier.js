@@ -949,7 +949,7 @@ router.get('/performance-tips', authRequired, async (req, res) => {
     }
 
     const { summary, raw } = await buildSummaryWithContext({ userId: req.user.id, supplier });
-    res.json(
+    return res.json(
       buildTips({
         supplier,
         summary,
@@ -959,7 +959,7 @@ router.get('/performance-tips', authRequired, async (req, res) => {
     );
   } catch (error) {
     logger.error('GET /supplier/performance-tips error:', error.message);
-    res.status(500).json({ error: 'Failed to load performance tips' });
+    return res.status(500).json({ error: 'Failed to load performance tips' });
   }
 });
 

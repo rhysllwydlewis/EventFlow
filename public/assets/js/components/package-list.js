@@ -3,6 +3,32 @@
  * Displays a list of packages with featured-first sorting
  */
 
+/**
+ * Sanitize image URL to replace blocked sources with placeholder
+ */
+function sanitizeImageUrl(url) {
+  if (!url || typeof url !== 'string') {
+    return '/assets/images/placeholders/package-event.svg';
+  }
+
+  // Check if URL is from a blocked or problematic source
+  const blockedDomains = ['source.unsplash.com', 'unsplash.com'];
+  try {
+    const urlObj = new URL(url);
+    if (blockedDomains.some(domain => urlObj.hostname.includes(domain))) {
+      return '/assets/images/placeholders/package-event.svg';
+    }
+  } catch {
+    // Invalid URL or relative path - if it starts with /, keep it
+    if (url.startsWith('/')) {
+      return url;
+    }
+    return '/assets/images/placeholders/package-event.svg';
+  }
+
+  return url;
+}
+
 class PackageList {
   constructor(containerId, options = {}) {
     this.container = document.getElementById(containerId);
@@ -431,7 +457,7 @@ class PackageList {
     // Sanitize supplier avatar URL
     const rawSupplierAvatar =
       supplier.avatar || supplier.logo || pkg.supplierAvatar || '/assets/images/default-avatar.svg';
-    const supplierAvatar = escapeHtml(this.sanitizeImageUrl(rawSupplierAvatar));
+    const supplierAvatar = escapeHtml(sanitizeImageUrl(rawSupplierAvatar));
     const supplierBadgesHtml = PackageList.buildSupplierBadgesHtml(supplier);
 
     // Inline tier icon — use shared EFTierIcon helper if available (tier-icon.js)
@@ -470,32 +496,6 @@ class PackageList {
         </div>
       </div>
     `;
-  }
-
-  /**
-   * Sanitize image URL to replace blocked sources with placeholder
-   */
-  sanitizeImageUrl(url) {
-    if (!url || typeof url !== 'string') {
-      return '/assets/images/placeholders/package-event.svg';
-    }
-
-    // Check if URL is from a blocked or problematic source
-    const blockedDomains = ['source.unsplash.com', 'unsplash.com'];
-    try {
-      const urlObj = new URL(url);
-      if (blockedDomains.some(domain => urlObj.hostname.includes(domain))) {
-        return '/assets/images/placeholders/package-event.svg';
-      }
-    } catch {
-      // Invalid URL or relative path - if it starts with /, keep it
-      if (url.startsWith('/')) {
-        return url;
-      }
-      return '/assets/images/placeholders/package-event.svg';
-    }
-
-    return url;
   }
 
   createPackageCard(pkg) {
@@ -565,7 +565,7 @@ class PackageList {
             }
             return placeholder;
           })();
-    const sanitizedImageUrl = this.sanitizeImageUrl(rawImageUrl);
+    const sanitizedImageUrl = sanitizeImageUrl(rawImageUrl);
     // Emit debug info when debug mode is active (?debugImages=1 or localStorage)
     if (typeof debugPackageImage === 'function') {
       debugPackageImage(pkg, sanitizedImageUrl);

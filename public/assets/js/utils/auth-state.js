@@ -58,6 +58,17 @@
     }
   }
 
+  /** Forget the signed-in user on this device (storage may be blocked or unavailable). */
+  function clearAuthState() {
+    try {
+      localStorage.removeItem(STORAGE_KEYS.USER);
+      localStorage.removeItem(STORAGE_KEYS.ONBOARDING);
+      sessionStorage.clear();
+    } catch {
+      // Ignore storage errors in private browsing / restricted storage modes.
+    }
+  }
+
   class AuthStateManager {
     constructor() {
       this.state = AUTH_STATES.LOADING;
@@ -98,7 +109,7 @@
           return { state: this.state, user };
         }
         if (response.status === 401 || response.status === 403) {
-          this._clearAuthState();
+          clearAuthState();
           this._setState(AUTH_STATES.UNAUTHENTICATED, null);
           return { state: this.state, user: null };
         }
@@ -113,28 +124,6 @@
         }
         this._setState(AUTH_STATES.UNAUTHENTICATED, null);
         return { state: this.state, user: null };
-      }
-    }
-
-    _hasSessionCookie() {
-      const cookies = document.cookie.split(';');
-      return cookies.some(cookie => {
-        const trimmed = cookie.trim();
-        return (
-          trimmed.startsWith(`${SESSION_COOKIE_NAME}=`) ||
-          trimmed.startsWith('token=') ||
-          trimmed.startsWith('auth=')
-        );
-      });
-    }
-
-    _clearAuthState() {
-      try {
-        localStorage.removeItem(STORAGE_KEYS.USER);
-        localStorage.removeItem(STORAGE_KEYS.ONBOARDING);
-        sessionStorage.clear();
-      } catch {
-        // Ignore storage errors in private browsing / restricted storage modes.
       }
     }
 
@@ -205,7 +194,7 @@
     }
 
     logout() {
-      this._clearAuthState();
+      clearAuthState();
       this._setState(AUTH_STATES.UNAUTHENTICATED, null);
     }
 
