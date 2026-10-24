@@ -43,6 +43,28 @@ describe('db-unified: throwOnError on updateOne / deleteOne', () => {
     ).rejects.toThrow('disk full');
   });
 
+  it('insertOne rethrows only when asked, so a unique-index duplicate can be told from a failure', async () => {
+    jest.resetModules();
+    jest.doMock('../../store', () => ({
+      read: jest.fn(() => []),
+      write: jest.fn(() => {
+        throw Object.assign(new Error('duplicate'), { code: 11000 });
+      }),
+    }));
+    jest.doMock('../../utils/logger', () => ({
+      info: jest.fn(),
+      warn: jest.fn(),
+      error: jest.fn(),
+      debug: jest.fn(),
+    }));
+    const dbUnified = require('../../db-unified');
+
+    expect(await dbUnified.insertOne('events', { id: 'e1' })).toBeNull();
+    await expect(
+      dbUnified.insertOne('events', { id: 'e1' }, { throwOnError: true })
+    ).rejects.toMatchObject({ code: 11000 });
+  });
+
   it('an unmatched or unchanged update is false but never throws', async () => {
     jest.resetModules();
     jest.doMock('../../store', () => ({

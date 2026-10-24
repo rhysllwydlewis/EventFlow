@@ -185,6 +185,19 @@ async function createIndexes() {
     // Supplier dashboard reads one supplier's events inside a date window
     const supplierEventsCollection = mongodb.collection('events');
     await supplierEventsCollection.createIndex({ supplierId: 1, timestamp: -1 });
+    // One counted profile view per visitor per hour is enforced here, not by a read-then-insert:
+    // two beacons at once both pass the read, and only one can insert the same dedupeKey.
+    await supplierEventsCollection.createIndex(
+      { dedupeKey: 1 },
+      {
+        unique: true,
+        partialFilterExpression: { dedupeKey: { $type: 'string' } },
+        name: 'uniq_events_dedupeKey_string',
+      }
+    );
+    // The per-address cap and the per-visitor check look at one supplier's last hour by key
+    await supplierEventsCollection.createIndex({ supplierId: 1, ipKey: 1, timestamp: -1 });
+    await supplierEventsCollection.createIndex({ supplierId: 1, visitorKey: 1, timestamp: -1 });
     const enquiriesCollection = mongodb.collection('enquiries');
     await enquiriesCollection.createIndex({ supplierId: 1 });
     await enquiriesCollection.createIndex({ supplierId: 1, createdAt: -1 }); // enquiry list window
@@ -733,7 +746,19 @@ async function updateMany(collectionName, filter, updates) {
   }
 }
 
-async function insertOne(collectionName, document) {
+/**
+ * Insert one document.
+ *
+ * Errors are swallowed (null returned) unless `options.throwOnError` is set; a caller that relies on
+ * a unique index (for example the profile-view dedupe key) passes it and reads the duplicate-key
+ * error's `code` (11000) to tell "already there" from a real failure.
+ *
+ * @param {string} collectionName - Collection
+ * @param {Object} document - Document to insert
+ * @param {{throwOnError?: boolean}} [options] - Pass throwOnError to rethrow failures
+ * @returns {Promise<Object|null>} The document, or null when the insert failed
+ */
+async function insertOne(collectionName, document, options = {}) {
   await initializeDatabase();
   try {
     if (dbType === 'mongodb') {
@@ -747,6 +772,9 @@ async function insertOne(collectionName, document) {
       return document;
     }
   } catch (error) {
+    if (options.throwOnError) {
+      throw error;
+    }
     logger.error(`Error inserting into ${collectionName}:`, error.message);
     return null;
   }

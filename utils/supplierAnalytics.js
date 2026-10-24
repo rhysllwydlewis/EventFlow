@@ -30,14 +30,18 @@ const EVENT_TYPES = {
  * @param {string} [eventData.sessionId] - Session ID for anonymous tracking
  * @param {boolean} [eventData.isPreview] - Whether this is a preview view (won't be counted)
  * @param {string} [eventData.visitorKey] - Anonymous visitor hash used to count a view once per hour
+ * @param {string} [eventData.ipKey] - Hash of the address, for the per-address cap on views
+ * @param {string} [eventData.dedupeKey] - Unique key: a second event with the same key is refused by
+ *   the database (unique index), so two requests at once cannot both be counted
  * @param {Object} [eventData.metadata] - Additional event-specific metadata
- * @returns {Promise<void>}
+ * @returns {Promise<{recorded: boolean, duplicate: boolean}>} Whether an event was stored, and
+ *   whether it was refused because its dedupeKey already exists
  */
 async function trackEvent(eventData) {
   try {
     // Don't track preview views
     if (eventData.isPreview) {
-      return;
+      return { recorded: false, duplicate: false };
     }
 
     const event = {
@@ -53,10 +57,22 @@ async function trackEvent(eventData) {
       date: new Date().toISOString().split('T')[0], // For daily aggregation
     };
 
-    await dbUnified.insertOne('events', event);
+    if (eventData.ipKey) {
+      event.ipKey = eventData.ipKey;
+    }
+    if (eventData.dedupeKey) {
+      event.dedupeKey = eventData.dedupeKey;
+    }
+
+    await dbUnified.insertOne('events', event, { throwOnError: true });
+    return { recorded: true, duplicate: false };
   } catch (error) {
+    if (error && error.code === 11000) {
+      return { recorded: false, duplicate: true };
+    }
     logger.error('Failed to track supplier event:', error);
     // Don't throw - tracking should not break the main flow
+    return { recorded: false, duplicate: false };
   }
 }
 
@@ -229,14 +245,16 @@ async function getSupplierAnalytics(supplierId, days = 7, options = {}) {
  * @param {string} [sessionId] - Session ID
  * @param {boolean} [isPreview] - Whether this is a preview view
  * @param {string} [visitorKey] - Anonymous visitor hash (one view per visitor per hour)
- * @returns {Promise<void>}
+ * @param {{ipKey?: string, dedupeKey?: string}} [keys] - Address hash and unique key (see trackEvent)
+ * @returns {Promise<{recorded: boolean, duplicate: boolean}>} Outcome
  */
 function trackProfileView(
   supplierId,
   userId = null,
   sessionId = null,
   isPreview = false,
-  visitorKey = null
+  visitorKey = null,
+  keys = {}
 ) {
   return trackEvent({
     type: EVENT_TYPES.PROFILE_VIEW,
@@ -245,6 +263,8 @@ function trackProfileView(
     sessionId,
     isPreview,
     visitorKey,
+    ipKey: keys.ipKey,
+    dedupeKey: keys.dedupeKey,
   });
 }
 
