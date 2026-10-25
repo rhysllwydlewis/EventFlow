@@ -1,9 +1,9 @@
 'use strict';
 
 /**
- * app.js remembers a dismissed welcome card only when the visitor has allowed functional storage
- * (it is a remembered preference). app.js is not a module, so the function is cut out of the source
- * and run with a stand-in window.
+ * app.js remembers a dismissed welcome card only when the shared check
+ * (utils/auth-state.js, efMayKeepFunctionalStorage) allows it. app.js is not a module, so the
+ * function is cut out of the source and run with a stand-in window.
  */
 
 const fs = require('fs');
@@ -27,25 +27,20 @@ describe('efMayRememberChoices', () => {
     expect(end).toBeGreaterThan(start);
   });
 
-  it('allows it when functional storage was accepted', () => {
-    expect(mayRemember({ CookieConsent: { getConsent: () => ({ functional: true }) } })).toBe(true);
+  // The rule itself (consent accepted / declined / not asked yet / no banner) lives in
+  // utils/auth-state.js and is tested against the real script in the customer-dashboard-resilience
+  // suite; app.js only asks it.
+  it('asks the shared check and returns its answer', () => {
+    expect(mayRemember({ efMayKeepFunctionalStorage: () => true })).toBe(true);
+    expect(mayRemember({ efMayKeepFunctionalStorage: () => false })).toBe(false);
   });
 
-  it.each([{ functional: false }, {}, null])('refuses it for the choice %j', choice => {
-    expect(mayRemember({ CookieConsent: { getConsent: () => choice } })).toBe(false);
+  it('remembers nothing on a page that does not load the shared check', () => {
+    expect(mayRemember({})).toBe(false);
   });
 
-  it('refuses it when the consent check throws', () => {
-    const consent = {
-      getConsent() {
-        throw new Error('boom');
-      },
-    };
-    expect(mayRemember({ CookieConsent: consent })).toBe(false);
-  });
-
-  it('keeps it when there is no consent banner on the page (no choice to follow)', () => {
-    expect(mayRemember({})).toBe(true);
+  it('has no copy of the consent rule of its own', () => {
+    expect(fnSource).not.toMatch(/CookieConsent|getConsent/);
   });
 
   it('is what gates both writes', () => {

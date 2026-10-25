@@ -1543,21 +1543,15 @@ async function initPlan() {
 
 /**
  * Whether this browser may remember interface choices (a dismissed welcome card). That is a
- * remembered preference, so it follows the visitor's cookie choice: allowed only when functional
- * storage has been accepted. With no consent banner on the page there is no choice to follow.
+ * remembered preference, so it follows the visitor's cookie choice. The decision is made in one
+ * place, utils/auth-state.js (efMayKeepFunctionalStorage); on a page without that script nothing
+ * is remembered.
  * @returns {boolean} True when it may be kept.
  */
 function efMayRememberChoices() {
-  const consent = window.CookieConsent;
-  if (!consent || typeof consent.getConsent !== 'function') {
-    return true;
-  }
-  try {
-    const choice = consent.getConsent();
-    return Boolean(choice && choice.functional === true);
-  } catch {
-    return false;
-  }
+  return (
+    typeof window.efMayKeepFunctionalStorage === 'function' && window.efMayKeepFunctionalStorage()
+  );
 }
 
 function efMaybeShowOnboarding(page) {
