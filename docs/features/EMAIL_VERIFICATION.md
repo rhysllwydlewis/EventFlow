@@ -315,7 +315,7 @@ See `/routes/webhooks.js` for webhook implementation details.
      }'
    ```
 
-3. **Check Outbox**
+3. **Check Outbox** (set `EVENTFLOW_OUTBOX_FULL=1` first, otherwise only metadata is written and there is no link to read)
 
    ```bash
    ls -la outbox/

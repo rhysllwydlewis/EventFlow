@@ -7,6 +7,7 @@
 
 const path = require('path');
 const logger = require('../utils/logger');
+const { getSafeStripeSecretKey } = require('../utils/previewSafety');
 const { priceFields, packagePriceText } = require('../utils/packagePrice');
 const fs = require('fs');
 const crypto = require('crypto');
@@ -57,7 +58,7 @@ let stripe = null;
 let STRIPE_ENABLED = false;
 
 try {
-  const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
+  const stripeSecretKey = getSafeStripeSecretKey();
   if (stripeSecretKey) {
     // Try to load Stripe module - it might not be installed
     try {

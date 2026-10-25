@@ -11,6 +11,7 @@ const { csrfProtection } = require('../middleware/csrf');
 const { writeLimiter } = require('../middleware/rateLimits');
 const dbUnified = require('../db-unified');
 const logger = require('../utils/logger');
+const { getSafeStripeSecretKey, billingUnavailableBody } = require('../utils/previewSafety');
 const { parseDaysParam, resolveAnalyticsWindow } = require('../utils/analyticsWindow');
 const {
   buildDashboardSummary,
@@ -28,7 +29,7 @@ const { serializeCsv } = require('../utils/csv');
 const router = express.Router();
 
 // Initialize Stripe at module level to avoid creating a new instance per request
-const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
+const stripeSecretKey = getSafeStripeSecretKey();
 const stripe = stripeSecretKey
   ? require('stripe')(stripeSecretKey, { apiVersion: '2025-12-15.clover' })
   : null;
@@ -195,7 +196,7 @@ router.get('/invoices', authRequired, async (req, res) => {
 
     // Check Stripe is configured
     if (!stripe) {
-      return res.status(503).json({ error: 'Stripe not configured' });
+      return res.status(503).json(billingUnavailableBody({ error: 'Stripe not configured' }));
     }
 
     // Fetch invoices from Stripe
@@ -248,7 +249,7 @@ router.get('/invoices/:id/download', authRequired, async (req, res) => {
     }
 
     if (!stripe) {
-      return res.status(503).json({ error: 'Stripe not configured' });
+      return res.status(503).json(billingUnavailableBody({ error: 'Stripe not configured' }));
     }
 
     // Fetch invoice
