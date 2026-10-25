@@ -182,22 +182,6 @@ async function createIndexes() {
     await quoteRequestsCollection.createIndex({ supplierId: 1 });
     await quoteRequestsCollection.createIndex({ status: 1 });
     await quoteRequestsCollection.createIndex({ createdAt: -1 }); // supplier dashboard enquiry window
-    // Supplier dashboard reads one supplier's events inside a date window
-    const supplierEventsCollection = mongodb.collection('events');
-    await supplierEventsCollection.createIndex({ supplierId: 1, timestamp: -1 });
-    // One counted profile view per visitor per hour is enforced here, not by a read-then-insert:
-    // two beacons at once both pass the read, and only one can insert the same dedupeKey.
-    await supplierEventsCollection.createIndex(
-      { dedupeKey: 1 },
-      {
-        unique: true,
-        partialFilterExpression: { dedupeKey: { $type: 'string' } },
-        name: 'uniq_events_dedupeKey_string',
-      }
-    );
-    // The per-address cap and the per-visitor check look at one supplier's last hour by key
-    await supplierEventsCollection.createIndex({ supplierId: 1, ipKey: 1, timestamp: -1 });
-    await supplierEventsCollection.createIndex({ supplierId: 1, visitorKey: 1, timestamp: -1 });
     const enquiriesCollection = mongodb.collection('enquiries');
     await enquiriesCollection.createIndex({ supplierId: 1 });
     await enquiriesCollection.createIndex({ supplierId: 1, createdAt: -1 }); // enquiry list window
@@ -385,6 +369,7 @@ async function createIndexes() {
     logger.info('ℹ️  Database indexes:', error.message);
   }
   await createSupplierEnquiryIndexes();
+  await createSupplierEventIndexes();
 }
 
 /**
@@ -445,6 +430,48 @@ async function createSupplierEnquiryIndexes() {
     await replies.createIndex({ supplierId: 1, enquiryId: 1 });
   } catch (error) {
     logger.warn('Supplier enquiry indexes could not be created:', error.message);
+  }
+}
+
+/**
+ * Indexes for the supplier dashboard's `events` reads, the once-per-hour profile view rule and the
+ * short-lived counters behind the per-address cap. Apart from the main block so that a problem
+ * here (for example an index with the same keys created by hand under another name) never stops
+ * the ~30 indexes built after it, and the other way round.
+ *
+ * In local-store mode there are no indexes, so the dedupe key is not enforced there: the route's
+ * read-then-insert check is the only guard.
+ *
+ * @returns {Promise<void>}
+ */
+async function createSupplierEventIndexes() {
+  if (dbType !== 'mongodb' || !mongodb) {
+    return;
+  }
+  try {
+    // Supplier dashboard reads one supplier's events inside a date window
+    const events = mongodb.collection('events');
+    await events.createIndex({ supplierId: 1, timestamp: -1 });
+    // One counted profile view per visitor per hour is enforced here, not by a read-then-insert:
+    // two beacons at once both pass the read, and only one can insert the same dedupeKey.
+    await events.createIndex(
+      { dedupeKey: 1 },
+      {
+        unique: true,
+        partialFilterExpression: { dedupeKey: { $type: 'string' } },
+        name: 'uniq_events_dedupeKey_string',
+      }
+    );
+    // The per-visitor check looks at one supplier's last hour by key
+    await events.createIndex({ supplierId: 1, visitorKey: 1, timestamp: -1 });
+    // Per-address cap counters: one row per supplier, address key and hour. The rows hold no
+    // address and vanish on their own (the TTL monitor deletes rows whose expiresAt, a BSON date,
+    // has passed).
+    const caps = mongodb.collection('profile_view_caps');
+    await caps.createIndex({ key: 1 }, { unique: true });
+    await caps.createIndex({ expiresAt: 1 }, { expireAfterSeconds: 0 });
+  } catch (error) {
+    logger.warn('Supplier event indexes could not be created:', error.message);
   }
 }
 
@@ -717,6 +744,73 @@ async function upsertOne(collectionName, filter, fields, onInsert = {}) {
   } catch (error) {
     logger.error(`Error upserting in ${collectionName}:`, error.message);
     return false;
+  }
+}
+
+/**
+ * Add to a counter row, creating it when there is none, and return the new total. One atomic
+ * operation on MongoDB (`$inc` with upsert), so any number of requests at once each get a distinct
+ * total: a read-then-write could let them all see the same number. Two requests racing to create
+ * the row can lose to the unique index on `key`; the loser repeats once and increments the row the
+ * winner made.
+ *
+ * Counter rows are separate from events and hold only the key, the total and `expiresAt` (set when
+ * the row is created, as a BSON date, for the collection's TTL index). The local store has no TTL,
+ * so rows there are only dropped once their `expiresAt` has passed and the key is used again.
+ *
+ * Errors are swallowed (null returned) unless `options.throwOnError` is set.
+ *
+ * @param {string} collectionName - Collection holding counter rows
+ * @param {string} key - Unique key of the row
+ * @param {{by?: number, expiresAt?: Date, throwOnError?: boolean}} [options] - Step (default 1,
+ *   negative to give a slot back), expiry for a new row, and error handling
+ * @returns {Promise<number|null>} The total after this change, or null when it failed
+ */
+async function incrementCounter(collectionName, key, options = {}) {
+  await initializeDatabase();
+  const by = Number.isFinite(options.by) ? options.by : 1;
+  try {
+    if (dbType === 'mongodb') {
+      const collection = mongodb.collection(collectionName);
+      const update = { $inc: { count: by } };
+      if (options.expiresAt) {
+        update.$setOnInsert = { expiresAt: options.expiresAt };
+      }
+      for (let attempt = 0; ; attempt += 1) {
+        try {
+          const res = await collection.findOneAndUpdate({ key }, update, {
+            upsert: true,
+            returnDocument: 'after',
+          });
+          // Drivers vary: the result may be the document or { value: document }.
+          const doc = res && res.value !== undefined ? res.value : res;
+          return doc && typeof doc.count === 'number' ? doc.count : null;
+        } catch (error) {
+          if (!error || error.code !== 11000 || attempt > 0) {
+            throw error;
+          }
+        }
+      }
+    }
+    const all = store.read(collectionName);
+    const now = Date.now();
+    const index = all.findIndex(
+      item => item.key === key && !(item.expiresAt && new Date(item.expiresAt).getTime() < now)
+    );
+    if (index >= 0) {
+      all[index] = { ...all[index], count: (all[index].count || 0) + by };
+      store.write(collectionName, all);
+      return all[index].count;
+    }
+    const row = { key, count: by, ...(options.expiresAt ? { expiresAt: options.expiresAt } : {}) };
+    store.write(collectionName, [...all.filter(item => item.key !== key), row]);
+    return row.count;
+  } catch (error) {
+    logger.error(`Error incrementing counter in ${collectionName}:`, error.message);
+    if (options.throwOnError) {
+      throw error;
+    }
+    return null;
   }
 }
 
@@ -1360,6 +1454,7 @@ async function getStatus() {
 module.exports = {
   initializeDatabase,
   createSupplierEnquiryIndexes,
+  createSupplierEventIndexes,
   read,
   write,
   writeAndVerify,
@@ -1367,6 +1462,7 @@ module.exports = {
   findOne,
   updateOne,
   upsertOne,
+  incrementCounter,
   updateMany,
   insertOne,
   deleteOne,

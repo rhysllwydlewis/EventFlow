@@ -333,6 +333,21 @@ const fake = {
     }
     return true;
   }),
+  // Mirrors db-unified.incrementCounter: one step, returns the new total (the real one is atomic).
+  incrementCounter: jest.fn(async (name, key, options = {}) => {
+    const row = rowsOf(name).find(item => item.key === key);
+    const by = Number.isFinite(options.by) ? options.by : 1;
+    if (row) {
+      row.count += by;
+      return row.count;
+    }
+    rowsOf(name).push({
+      key,
+      count: by,
+      ...(options.expiresAt ? { expiresAt: options.expiresAt } : {}),
+    });
+    return by;
+  }),
   deleteOne: jest.fn(async (name, filter) => {
     const rows = rowsOf(name);
     const index = rows.findIndex(row => matches(row, filter));
