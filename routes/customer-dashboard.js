@@ -36,10 +36,12 @@ router.get('/milestones', authRequired, async (req, res) => {
     }
     const userId = req.user.id;
     // "Saved suppliers" on the dashboard is the shortlist, so the checklist reads the same record.
+    // A failed read must not be turned into "nothing done yet": that would tell a customer with
+    // plans to "Create your plan". Let it reach the 500 below, which the page shows with a retry.
     const [plans, shortlist, quoteRequests] = await Promise.all([
-      dbUnified.find('plans', { userId }).catch(() => []),
-      dbUnified.findOne('shortlists', { userId }).catch(() => null),
-      dbUnified.find('quoteRequests', { userId }).catch(() => []),
+      dbUnified.find('plans', { userId }),
+      dbUnified.findOne('shortlists', { userId }),
+      dbUnified.find('quoteRequests', { userId }),
     ]);
 
     const hasPlan = plans.length > 0;
