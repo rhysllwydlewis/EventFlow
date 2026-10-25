@@ -453,12 +453,15 @@ test.describe('Supplier dashboard: layout, accessibility and unusual conditions 
         await putAway(page);
         // The "+" on a day names that day; the form opens on that day whatever the time zone.
         const plus = page.locator('.cal-day-add-btn').nth(20);
+        // The label is spoken ("Add entry for Saturday, 17 October 2026"); the cell carries the ISO day.
         const label = await plus.getAttribute('aria-label');
-        expect(label).toMatch(/^Add entry for \d{4}-\d{2}-\d{2}$/);
-        await plus.evaluate(element => element.click());
-        await expect(page.locator('#sup-cal-entry-date')).toHaveValue(
-          label.replace('Add entry for ', '')
+        expect(label).toMatch(/^Add entry for \S+, \d{1,2} \S+ \d{4}$/);
+        const isoDay = await plus.evaluate(element =>
+          element.closest('.fc-daygrid-day').getAttribute('data-date')
         );
+        expect(isoDay).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+        await plus.evaluate(element => element.click());
+        await expect(page.locator('#sup-cal-entry-date')).toHaveValue(isoDay);
       });
 
       test('the dates on the page are valid dates, not "Invalid Date" or NaN', async ({
