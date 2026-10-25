@@ -411,3 +411,26 @@ describe('runProfileViewExpiryBackfill', () => {
     expect(logger.warn).toHaveBeenCalledWith(expect.stringContaining('stopped early'));
   });
 });
+
+describe('startProfileViewExpiryBackfill', () => {
+  test('does nothing under the test suite, so no test ever starts a background scan', () => {
+    const retention = require('../../utils/profileViewRetention');
+    const spy = jest.spyOn(global, 'setImmediate');
+    try {
+      expect(process.env.NODE_ENV).toBe('test');
+      expect(retention.startProfileViewExpiryBackfill()).toBeUndefined();
+      expect(spy).not.toHaveBeenCalled();
+    } finally {
+      spy.mockRestore();
+    }
+  });
+
+  test('server.js starts it with one plain call and no condition of its own', () => {
+    const fs = require('fs');
+    const path = require('path');
+    const source = fs.readFileSync(path.join(__dirname, '../../server.js'), 'utf8');
+    expect(source).toContain(
+      "require('./utils/profileViewRetention').startProfileViewExpiryBackfill();"
+    );
+  });
+});

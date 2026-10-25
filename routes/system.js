@@ -115,7 +115,7 @@ function getIntegrationStatus() {
   }
 
   const sentryEnabled = !!process.env.SENTRY_DSN;
-  const stripeEnabled = !!getSafeStripeSecretKey();
+  const stripeEnabled = Boolean(getSafeStripeSecretKey());
   const stripeMode = getStripeKeyMode();
   const openAIEnabled = !!process.env.OPENAI_API_KEY;
   const redisConfigured = !!process.env.REDIS_URL;

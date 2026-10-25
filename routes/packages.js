@@ -839,19 +839,19 @@ router.post(
       return res.status(400).json({ error: 'Missing image' });
     }
     try {
-      const p = await dbUnified.findOne('packages', { id: req.params.id }, { throwOnError: true });
-      if (!p) {
+      const pkg = await dbUnified.findOne('packages', { id: req.params.id }, { throwOnError: true });
+      if (!pkg) {
         return res.status(404).json({ error: 'Not found' });
       }
       const own = await dbUnified.findOne(
         'suppliers',
-        { id: p.supplierId, ownerUserId: req.userId },
+        { id: pkg.supplierId, ownerUserId: req.userId },
         { throwOnError: true }
       );
       if (!own) {
         return res.status(403).json({ error: 'Not owner' });
       }
-      let url;
+      let url = null;
       try {
         url = await saveImageBase64(image, `package_${req.params.id}_${Date.now()}`);
       } catch (e) {
@@ -861,12 +861,12 @@ router.post(
         }
         return res.status(503).json({ error: 'Photo storage unavailable', details: e.message });
       }
-      if (!p.gallery) {
-        p.gallery = [];
+      if (!pkg.gallery) {
+        pkg.gallery = [];
       }
-      p.gallery.push({ url, approved: true, uploadedAt: Date.now() });
-      const updateFields = { gallery: p.gallery };
-      if (!p.image || p.image === PLACEHOLDER_PACKAGE_IMAGE || p.image === '') {
+      pkg.gallery.push({ url, approved: true, uploadedAt: Date.now() });
+      const updateFields = { gallery: pkg.gallery };
+      if (!pkg.image || pkg.image === PLACEHOLDER_PACKAGE_IMAGE || pkg.image === '') {
         updateFields.image = url;
       }
       // throwOnError: a failed write is a 500 the supplier sees, not an "ok" that saved nothing.
@@ -903,28 +903,28 @@ router.delete(
       return res.status(400).json({ error: 'Missing url' });
     }
     try {
-      const p = await dbUnified.findOne('packages', { id: req.params.id }, { throwOnError: true });
-      if (!p) {
+      const pkg = await dbUnified.findOne('packages', { id: req.params.id }, { throwOnError: true });
+      if (!pkg) {
         return res.status(404).json({ error: 'Not found' });
       }
       const own = await dbUnified.findOne(
         'suppliers',
-        { id: p.supplierId, ownerUserId: req.userId },
+        { id: pkg.supplierId, ownerUserId: req.userId },
         { throwOnError: true }
       );
       if (!own) {
         return res.status(403).json({ error: 'Not owner' });
       }
-      const gallery = p.gallery || [];
+      const gallery = pkg.gallery || [];
       const newGallery = gallery.filter(item => {
         const itemUrl = typeof item === 'string' ? item : item.url || '';
         return itemUrl !== url;
       });
       const updateFields = { gallery: newGallery };
-      if (p.image === url) {
+      if (pkg.image === url) {
         const nextPhoto = newGallery.find(item => {
           const itemUrl = typeof item === 'string' ? item : item.url || '';
-          return !!itemUrl;
+          return Boolean(itemUrl);
         });
         updateFields.image = nextPhoto
           ? typeof nextPhoto === 'string'
@@ -943,7 +943,7 @@ router.delete(
       res.json({
         ok: true,
         gallery: newGallery,
-        image: updateFields.image !== undefined ? updateFields.image : p.image,
+        image: updateFields.image !== undefined ? updateFields.image : pkg.image,
       });
     } catch (error) {
       logger.error('Package photo delete failed:', error);
@@ -973,14 +973,14 @@ router.put(
     }
 
     try {
-      const p = await dbUnified.findOne('packages', { id: req.params.id }, { throwOnError: true });
-      if (!p) {
+      const pkg = await dbUnified.findOne('packages', { id: req.params.id }, { throwOnError: true });
+      if (!pkg) {
         return res.status(404).json({ error: 'Not found' });
       }
 
       const own = await dbUnified.findOne(
         'suppliers',
-        { id: p.supplierId, ownerUserId: req.userId },
+        { id: pkg.supplierId, ownerUserId: req.userId },
         { throwOnError: true }
       );
       if (!own) {
@@ -990,7 +990,7 @@ router.put(
       // Build an ordered gallery by matching incoming URL order against existing gallery objects
       // so that metadata (thumbnail, uploadedAt, etc.) is preserved.
       const existingByUrl = new Map();
-      (p.gallery || []).forEach(item => {
+      (pkg.gallery || []).forEach(item => {
         const itemUrl = typeof item === 'string' ? item : item.url || '';
         if (itemUrl) {
           existingByUrl.set(itemUrl, item);

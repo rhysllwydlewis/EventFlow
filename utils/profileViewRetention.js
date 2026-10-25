@@ -56,7 +56,7 @@ function profileViewExpiry(fromMs = Date.now()) {
  * @returns {Date} Expiry time
  */
 function expiryForStoredEvent(event, nowMs) {
-  const writtenMs = Date.parse(event && event.timestamp);
+  const writtenMs = Date.parse(event?.timestamp);
   const baseMs = Number.isFinite(writtenMs) ? writtenMs : nowMs;
   const endOfDayMs = Math.floor(baseMs / DAY_MS) * DAY_MS + DAY_MS;
   return profileViewExpiry(endOfDayMs);
@@ -88,11 +88,11 @@ async function stampMissingExpiry(options = {}) {
   const nowMs = Number.isFinite(options.nowMs) ? options.nowMs : Date.now();
 
   const totals = { scanned: 0, stamped: 0, batches: 0, stalled: false };
-  let lastId;
+  let lastId = null;
 
   while (totals.batches < maxBatches) {
     const filter = { type: EVENT_TYPE, expiresAt: { $exists: false } };
-    if (lastId !== undefined) {
+    if (lastId !== null) {
       filter._id = { $gt: lastId };
     }
     const batch = await dbUnified.findWithOptions('events', filter, {
@@ -199,7 +199,25 @@ async function runProfileViewExpiryBackfill(options = {}) {
   }
 }
 
+/**
+ * Start the backfill in the background once the server is up. Never runs under the test suite, and
+ * a failure is logged, never thrown.
+ *
+ * @returns {void}
+ */
+function startProfileViewExpiryBackfill() {
+  if (process.env.NODE_ENV === 'test') {
+    return;
+  }
+  setImmediate(() => {
+    runProfileViewExpiryBackfill().catch(error => {
+      logger.warn('Profile-view retention backfill failed (non-fatal):', error);
+    });
+  });
+}
+
 module.exports = {
+  startProfileViewExpiryBackfill,
   PROFILE_VIEW_RETENTION_DAYS,
   RECHECK_AFTER_MS,
   MARKER_COLLECTION,

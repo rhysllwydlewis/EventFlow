@@ -507,6 +507,147 @@ function cleanReply(value) {
   );
 }
 
+/** The result of a reply that was refused. */
+function replyFailure(code, text) {
+  return { ok: false, code, message: text };
+}
+
+/**
+ * The checks on who is replying and to whom, before anything is reserved or sent.
+ *
+ * @param {Object} owner - The supplier's account (email and whether it is verified)
+ * @param {Object} enquiry - The enquiry being answered
+ * @param {number} nowMs - Now, in milliseconds
+ * @returns {Object|null} A refusal, or null when the reply may go ahead
+ */
+function replyRefusal(owner, enquiry, nowMs) {
+  if (!enquiry.email || !validator.isEmail(enquiry.email)) {
+    return replyFailure('NO_EMAIL', 'This customer did not leave an email address to reply to.');
+  }
+  if (!owner || !owner.email || !owner.verified) {
+    return replyFailure(
+      'EMAIL_NOT_VERIFIED',
+      'Verify your account email first, so the customer’s answer can reach you.'
+    );
+  }
+  const created = Date.parse(enquiry.createdAt || '');
+  if (Number.isNaN(created) || nowMs - created > MAX_ENQUIRY_AGE_DAYS * DAY_MS) {
+    return replyFailure(
+      'ENQUIRY_TOO_OLD',
+      `This enquiry is more than ${MAX_ENQUIRY_AGE_DAYS} days old. Contact the customer directly.`
+    );
+  }
+  return null;
+}
+
+/**
+ * Whether sending one more reply would pass a limit. Checked before sending and again once this
+ * reply has reserved its place: two requests that run at the same time both see the other's
+ * reservation on the second check, so together they can never send more than the limit allows
+ * (at worst both back off).
+ *
+ * @param {string} supplierId - Supplier id
+ * @param {string} enquiryId - Enquiry id
+ * @param {number} nowMs - Now, in milliseconds
+ * @returns {Promise<Object|null>} A refusal, or null when under every limit
+ */
+async function replyLimitRefusal(supplierId, enquiryId, nowMs) {
+  const counted = rows =>
+    (rows || []).filter(
+      row =>
+        row.status === 'sent' ||
+        (row.status === 'sending' && nowMs - Date.parse(row.sentAt || '') < RESERVATION_TTL_MS)
+    ).length;
+  const forEnquiry = counted(
+    await dbUnified.find(REPLIES_COLLECTION, { supplierId, enquiryId }, STRICT)
+  );
+  if (forEnquiry > MAX_REPLIES_PER_ENQUIRY) {
+    return replyFailure(
+      'ENQUIRY_LIMIT',
+      `You have sent ${MAX_REPLIES_PER_ENQUIRY} replies to this enquiry. Carry on by email.`
+    );
+  }
+  const sentSince = async since =>
+    counted(
+      await dbUnified.find(
+        REPLIES_COLLECTION,
+        { supplierId, sentAt: { $gte: new Date(nowMs - since).toISOString() } },
+        STRICT
+      )
+    );
+  if ((await sentSince(HOUR_MS)) > MAX_REPLIES_PER_HOUR) {
+    return replyFailure(
+      'HOURLY_LIMIT',
+      'You have sent a lot of replies this hour. Try again later.'
+    );
+  }
+  if ((await sentSince(DAY_MS)) > MAX_REPLIES_PER_DAY) {
+    return replyFailure(
+      'DAILY_LIMIT',
+      'You have reached today’s limit for replies. Try again tomorrow.'
+    );
+  }
+  return null;
+}
+
+/**
+ * Everything after the email has gone. Nothing here may turn that into a "failed to send": a step
+ * that throws is reported as a warning on a successful reply, so the supplier does not send it
+ * again.
+ *
+ * @param {Object} sent - What was sent
+ * @param {string} sent.supplierId - Supplier id
+ * @param {string} sent.id - Enquiry id
+ * @param {string} sent.replyId - The reply's id
+ * @param {string} sent.text - The reply text
+ * @param {number} sent.nowMs - When it was sent, in milliseconds
+ * @param {Object} sent.enquiry - The enquiry as loaded before sending
+ * @returns {Promise<Object>} The successful result, with a warning if a step did not save
+ */
+async function finishSentReply({ supplierId, id, replyId, text, nowMs, enquiry }) {
+  const warnings = [];
+  let recorded = false;
+  for (let attempt = 0; attempt < 2 && !recorded; attempt += 1) {
+    try {
+      await dbUnified.updateOne(
+        REPLIES_COLLECTION,
+        { id: replyId },
+        { $set: { status: 'sent' } },
+        { throwOnError: true }
+      );
+      recorded = true;
+    } catch {
+      // Tried once more; if it still fails the reservation stays 'sending' (it counts towards the
+      // limits until it expires) and the supplier is told.
+    }
+  }
+  if (!recorded) {
+    warnings.push(REPLY_RECORD_WARNING);
+  }
+  let updated = null;
+  try {
+    updated = await setEnquiryStatus(supplierId, id, 'handled');
+  } catch {
+    updated = null;
+  }
+  if (!updated) {
+    warnings.push(STATUS_WARNING);
+  }
+  // Without a saved status the enquiry keeps the state it had, not a "handled" nobody stored. Either
+  // way the enquiry that comes back includes the reply just sent (it was loaded before sending, or
+  // its 'sent' mark did not save), so it does not vanish from the thread and get typed again.
+  const sentReply = { id: replyId, message: text, sentAt: new Date(nowMs).toISOString() };
+  const base = updated || enquiry;
+  const replies = [...(base.replies || []).filter(item => item.id !== replyId), sentReply].slice(
+    -REPLIES_SHOWN
+  );
+  const result = { ok: true, enquiry: { ...base, replies } };
+  if (warnings.length) {
+    result.warning = warnings.join(' ');
+  }
+  return result;
+}
+
 /**
  * Send a supplier's reply to a customer's enquiry.
  *
@@ -527,74 +668,22 @@ function cleanReply(value) {
  *   ENQUIRY_TOO_OLD, HOURLY_LIMIT, DAILY_LIMIT, SEND_FAILED
  */
 async function replyToEnquiry({ supplier, owner, id, message }, deps = {}) {
-  const fail = (code, text) => ({ ok: false, code, message: text });
   const text = cleanReply(message);
   if (!text) {
-    return fail('EMPTY', 'Write a reply first.');
+    return replyFailure('EMPTY', 'Write a reply first.');
   }
   if (text.length > MAX_REPLY_LENGTH) {
-    return fail('TOO_LONG', `Replies can be up to ${MAX_REPLY_LENGTH} characters.`);
+    return replyFailure('TOO_LONG', `Replies can be up to ${MAX_REPLY_LENGTH} characters.`);
   }
   const enquiry = await getEnquiry(supplier.id, id);
   if (!enquiry) {
-    return fail('NOT_FOUND', 'Enquiry not found.');
-  }
-  if (!enquiry.email || !validator.isEmail(enquiry.email)) {
-    return fail('NO_EMAIL', 'This customer did not leave an email address to reply to.');
-  }
-  if (!owner || !owner.email || !owner.verified) {
-    return fail(
-      'EMAIL_NOT_VERIFIED',
-      'Verify your account email first, so the customer’s answer can reach you.'
-    );
+    return replyFailure('NOT_FOUND', 'Enquiry not found.');
   }
   const nowMs = (deps.now ? deps.now() : new Date()).getTime();
-  const created = Date.parse(enquiry.createdAt || '');
-  if (Number.isNaN(created) || nowMs - created > MAX_ENQUIRY_AGE_DAYS * DAY_MS) {
-    return fail(
-      'ENQUIRY_TOO_OLD',
-      `This enquiry is more than ${MAX_ENQUIRY_AGE_DAYS} days old. Contact the customer directly.`
-    );
+  const refused = replyRefusal(owner, enquiry, nowMs);
+  if (refused) {
+    return refused;
   }
-
-  // The limits are checked before sending and again once this reply has reserved its place: two
-  // requests that run at the same time both see the other's reservation on the second check, so
-  // together they can never send more than the limit allows (at worst both back off).
-  const overLimit = async () => {
-    const counted = rows =>
-      (rows || []).filter(
-        row =>
-          row.status === 'sent' ||
-          (row.status === 'sending' && nowMs - Date.parse(row.sentAt || '') < RESERVATION_TTL_MS)
-      ).length;
-    const forEnquiry = counted(
-      await dbUnified.find(REPLIES_COLLECTION, { supplierId: supplier.id, enquiryId: id }, STRICT)
-    );
-    if (forEnquiry > MAX_REPLIES_PER_ENQUIRY) {
-      return fail(
-        'ENQUIRY_LIMIT',
-        `You have sent ${MAX_REPLIES_PER_ENQUIRY} replies to this enquiry. Carry on by email.`
-      );
-    }
-    const sentSince = async since =>
-      counted(
-        await dbUnified.find(
-          REPLIES_COLLECTION,
-          {
-            supplierId: supplier.id,
-            sentAt: { $gte: new Date(nowMs - since).toISOString() },
-          },
-          STRICT
-        )
-      );
-    if ((await sentSince(HOUR_MS)) > MAX_REPLIES_PER_HOUR) {
-      return fail('HOURLY_LIMIT', 'You have sent a lot of replies this hour. Try again later.');
-    }
-    if ((await sentSince(DAY_MS)) > MAX_REPLIES_PER_DAY) {
-      return fail('DAILY_LIMIT', 'You have reached today’s limit for replies. Try again tomorrow.');
-    }
-    return null;
-  };
 
   const replyId = `rep_${crypto.randomUUID()}`;
   const reservation = await dbUnified.insertOne(REPLIES_COLLECTION, {
@@ -606,7 +695,7 @@ async function replyToEnquiry({ supplier, owner, id, message }, deps = {}) {
     sentAt: new Date(nowMs).toISOString(),
   });
   if (!reservation) {
-    return fail('SEND_FAILED', 'The reply could not be saved. Please try again.');
+    return replyFailure('SEND_FAILED', 'The reply could not be saved. Please try again.');
   }
   const release = async () => {
     const removed = await dbUnified.deleteOne(REPLIES_COLLECTION, { id: replyId });
@@ -620,7 +709,7 @@ async function replyToEnquiry({ supplier, owner, id, message }, deps = {}) {
     }
   };
 
-  const limited = await overLimit();
+  const limited = await replyLimitRefusal(supplier.id, id, nowMs);
   if (limited) {
     await release();
     return limited;
@@ -652,52 +741,10 @@ async function replyToEnquiry({ supplier, owner, id, message }, deps = {}) {
     });
   } catch {
     await release();
-    return fail('SEND_FAILED', 'The reply could not be sent. Please try again.');
+    return replyFailure('SEND_FAILED', 'The reply could not be sent. Please try again.');
   }
 
-  // From here the email has gone. Nothing below may turn that into a "failed to send": a step that
-  // throws is reported as a warning on a successful reply, so the supplier does not send it again.
-  const warnings = [];
-  let recorded = false;
-  for (let attempt = 0; attempt < 2 && !recorded; attempt += 1) {
-    try {
-      await dbUnified.updateOne(
-        REPLIES_COLLECTION,
-        { id: replyId },
-        { $set: { status: 'sent' } },
-        { throwOnError: true }
-      );
-      recorded = true;
-    } catch {
-      // Tried once more; if it still fails the reservation stays 'sending' (it counts towards the
-      // limits until it expires) and the supplier is told.
-    }
-  }
-  if (!recorded) {
-    warnings.push(REPLY_RECORD_WARNING);
-  }
-  let updated = null;
-  try {
-    updated = await setEnquiryStatus(supplier.id, id, 'handled');
-  } catch {
-    updated = null;
-  }
-  if (!updated) {
-    warnings.push(STATUS_WARNING);
-  }
-  // Without a saved status the enquiry keeps the state it had, not a "handled" nobody stored. Either
-  // way the enquiry that comes back includes the reply just sent (it was loaded before sending, or
-  // its 'sent' mark did not save), so it does not vanish from the thread and get typed again.
-  const sentReply = { id: replyId, message: text, sentAt: new Date(nowMs).toISOString() };
-  const base = updated || enquiry;
-  const replies = [...(base.replies || []).filter(item => item.id !== replyId), sentReply].slice(
-    -REPLIES_SHOWN
-  );
-  const result = { ok: true, enquiry: { ...base, replies } };
-  if (warnings.length) {
-    result.warning = warnings.join(' ');
-  }
-  return result;
+  return finishSentReply({ supplierId: supplier.id, id, replyId, text, nowMs, enquiry });
 }
 
 /**
