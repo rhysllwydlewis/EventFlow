@@ -132,11 +132,19 @@ shape count; pending/rejected never do. No migration is required.
 
 **Profile visits.** One event per visit, written only by the page beacon `POST /api/analytics/track`. Not recorded for the
 supplier's own session, admins, automated clients, or unknown/unapproved suppliers; the same visitor counts once per hour.
-"The same visitor" is the signed-in account, or a hash of the address and the browser family (browser/OS, not the full
-User-Agent string, so changing the version or rotating strings does not make a new visitor); the raw IP is never stored.
-The rule is enforced by the database: each view carries a `dedupeKey` (supplier, visitor, clock hour) with a unique index,
-so two beacons at once count once. A second cap bounds one network address (hashed, `ipKey`) to 5 counted views per
-supplier per hour, which means a very busy shared address (an office, a mobile carrier) can undercount. `views.description` carries the exact sentence the UI may show. Events recorded
+"The same visitor" is the signed-in account, or an HMAC-SHA256 (under a server secret, `PROFILE_VIEW_SALT` or else
+`JWT_SECRET`) of the address and the browser family (browser/OS, not the full User-Agent string, so changing the version
+or rotating strings does not make a new visitor); an IPv6 address counts as its /64 prefix. The raw IP is never stored,
+and the stored visitor key cannot be reversed by trying every address. If no secret is configured, anonymous views are not
+counted. The rule is enforced by the database: each view carries a `dedupeKey` (supplier, visitor, clock hour) with a
+unique index, so two beacons at once count once. A second cap bounds one network address to 20 counted views per
+supplier per hour (`PROFILE_VIEW_IP_CAP`; changing it is an environment change and needs a restart), which means a very
+busy shared address (an office, a mobile carrier) can undercount. The cap applies to anonymous visitors only. It is kept
+in a separate collection, `profile_view_caps`: one row per supplier, keyed address hash and hour, incremented atomically,
+with no address in it and a TTL index that removes it within about two hours. Nothing derived from the address is stored
+on the event itself. Both depend on `req.ip` being the real client address, which depends on the deployment's trust-proxy
+setting (behind a CDN that does not forward the client address, many visitors would share one key). A signed-in
+visitor's events carry their `userId` and are deleted with the account. `views.description` carries the exact sentence the UI may show. Events recorded
 before this change were not rewritten.
 
 **Calendar.** Public calendar publishing is hard-coded by category (`Event Planner`, `Wedding Fayre`) plus a per-supplier
