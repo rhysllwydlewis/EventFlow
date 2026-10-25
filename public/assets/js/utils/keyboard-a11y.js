@@ -20,9 +20,9 @@
  *    from the top of the page. After a keyboard "Try again", if focus has been lost, it goes to the
  *    card instead.
  */
-(function () {
-  'use strict';
+'use strict';
 
+(function () {
   const PAIRS = [
     { badge: 'ef-notification-badge', control: 'ef-notification-btn', label: 'View notifications' },
     {
@@ -115,7 +115,7 @@
 
   function watchRetryButtons() {
     document.addEventListener('click', event => {
-      const button = event.target && event.target.closest ? event.target.closest('button') : null;
+      const button = event.target?.closest?.('button') || null;
       // detail 0 is a keyboard press: a mouse user is not left without a place by this.
       if (!button || event.detail !== 0 || !isRetryButton(button)) {
         return;

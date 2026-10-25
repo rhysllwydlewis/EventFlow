@@ -1364,7 +1364,7 @@
           frame.appendChild(addBtn);
         }
       },
-      noEventsContent: function () {
+      noEventsContent() {
         return {
           html: '<div class="cal-no-events">No events yet. Use Add private entry to add one.</div>',
         };

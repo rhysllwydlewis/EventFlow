@@ -169,6 +169,28 @@
     return '';
   }
 
+  /** The hidden quick-reply box under one conversation. */
+  function renderQuickReplyPanel(convId) {
+    return `
+      <div class="mwv4__reply-panel" data-reply-for="${convId}" hidden>
+        <textarea class="mwv4__reply-textarea"
+                  placeholder="Type a quick reply…"
+                  rows="1"
+                  aria-label="Quick reply message"
+                  maxlength="2000"></textarea>
+        <div class="mwv4__reply-actions">
+          <button class="ef-cta mwv4__reply-send" data-action="send" data-conversation-id="${convId}"
+                  aria-label="Send reply" disabled>
+            Send
+          </button>
+          <button class="ef-cta mwv4__reply-cancel" data-action="cancel" data-conversation-id="${convId}"
+                  aria-label="Cancel reply">
+            Cancel
+          </button>
+        </div>
+      </div>`;
+  }
+
   // ─── MessengerWidgetV4 ───────────────────────────────────────────────────────
 
   /**
@@ -741,29 +763,8 @@
               ${unreadCount}
             </div>
           </button>
-          ${this.options.showQuickReply ? this._renderQuickReplyPanel(convId) : ''}
+          ${this.options.showQuickReply ? renderQuickReplyPanel(convId) : ''}
         </li>`;
-    }
-
-    _renderQuickReplyPanel(convId) {
-      return `
-        <div class="mwv4__reply-panel" data-reply-for="${convId}" hidden>
-          <textarea class="mwv4__reply-textarea"
-                    placeholder="Type a quick reply…"
-                    rows="1"
-                    aria-label="Quick reply message"
-                    maxlength="2000"></textarea>
-          <div class="mwv4__reply-actions">
-            <button class="ef-cta mwv4__reply-send" data-action="send" data-conversation-id="${convId}"
-                    aria-label="Send reply" disabled>
-              Send
-            </button>
-            <button class="ef-cta mwv4__reply-cancel" data-action="cancel" data-conversation-id="${convId}"
-                    aria-label="Cancel reply">
-              Cancel
-            </button>
-          </div>
-        </div>`;
     }
 
     _renderError() {
@@ -803,7 +804,7 @@
       // Textarea expand-to-multiline & enable/disable send
       this.container.querySelectorAll('.mwv4__reply-textarea').forEach(ta => {
         ta.addEventListener('input', () => {
-          ta.style.height = 'auto';
+          ta.style.setProperty('height', 'auto');
           ta.style.height = `${ta.scrollHeight}px`;
           const sendBtn = ta.closest('.mwv4__reply-panel').querySelector('[data-action="send"]');
           sendBtn.disabled = ta.value.trim().length === 0;

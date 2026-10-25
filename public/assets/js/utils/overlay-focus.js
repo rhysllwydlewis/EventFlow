@@ -13,9 +13,9 @@
  * Only controls that are on screen count as "first" and "last", so a collapsed section or a
  * hidden button never becomes the end of the loop.
  */
-(function (global) {
-  'use strict';
+'use strict';
 
+(function (global) {
   const FOCUSABLE =
     'a[href], button:not([disabled]), input:not([disabled]):not([type="hidden"]), select:not([disabled]), textarea:not([disabled]), summary, [tabindex]:not([tabindex="-1"])';
 
@@ -89,9 +89,9 @@
     if (!wasInside) {
       return;
     }
-    if (target && target.isConnected && typeof target.focus === 'function') {
+    if (target?.isConnected && typeof target.focus === 'function') {
       target.focus();
-    } else if (fallback && fallback.isConnected && typeof fallback.focus === 'function') {
+    } else if (fallback?.isConnected && typeof fallback.focus === 'function') {
       fallback.focus();
     }
   }
