@@ -76,6 +76,8 @@ const HOUR_MS = 60 * 60 * 1000;
 
 const STATUS_WARNING =
   'Your reply was sent, but the enquiry could not be marked as handled. Please mark it yourself.';
+const REPLY_RECORD_WARNING =
+  'Your reply was sent, but it could not be saved in this enquiry’s thread, so it may not show here. Please do not send it again.';
 const MAX_REPLY_LENGTH = 2000;
 // A reply is an email from EventFlow to an address the customer typed into a form, so it is capped
 // per enquiry, per supplier and by the enquiry's age, to stop it being used to mail strangers.
@@ -655,15 +657,24 @@ async function replyToEnquiry({ supplier, owner, id, message }, deps = {}) {
 
   // From here the email has gone. Nothing below may turn that into a "failed to send": a step that
   // throws is reported as a warning on a successful reply, so the supplier does not send it again.
-  try {
-    await dbUnified.updateOne(
-      REPLIES_COLLECTION,
-      { id: replyId },
-      { $set: { status: 'sent' } },
-      { throwOnError: true }
-    );
-  } catch {
-    // The reservation stays 'sending': it still counts towards the limits until it expires.
+  const warnings = [];
+  let recorded = false;
+  for (let attempt = 0; attempt < 2 && !recorded; attempt += 1) {
+    try {
+      await dbUnified.updateOne(
+        REPLIES_COLLECTION,
+        { id: replyId },
+        { $set: { status: 'sent' } },
+        { throwOnError: true }
+      );
+      recorded = true;
+    } catch {
+      // Tried once more; if it still fails the reservation stays 'sending' (it counts towards the
+      // limits until it expires) and the supplier is told.
+    }
+  }
+  if (!recorded) {
+    warnings.push(REPLY_RECORD_WARNING);
   }
   let updated = null;
   try {
@@ -671,8 +682,22 @@ async function replyToEnquiry({ supplier, owner, id, message }, deps = {}) {
   } catch {
     updated = null;
   }
-  // Without a saved status the enquiry keeps the state it had, not a "handled" nobody stored.
-  return updated ? { ok: true, enquiry: updated } : { ok: true, enquiry, warning: STATUS_WARNING };
+  if (!updated) {
+    warnings.push(STATUS_WARNING);
+  }
+  // Without a saved status the enquiry keeps the state it had, not a "handled" nobody stored. Either
+  // way the enquiry that comes back includes the reply just sent (it was loaded before sending, or
+  // its 'sent' mark did not save), so it does not vanish from the thread and get typed again.
+  const sentReply = { id: replyId, message: text, sentAt: new Date(nowMs).toISOString() };
+  const base = updated || enquiry;
+  const replies = [...(base.replies || []).filter(item => item.id !== replyId), sentReply].slice(
+    -REPLIES_SHOWN
+  );
+  const result = { ok: true, enquiry: { ...base, replies } };
+  if (warnings.length) {
+    result.warning = warnings.join(' ');
+  }
+  return result;
 }
 
 /**
@@ -753,16 +778,34 @@ async function buildExport({ supplierId, ownerUserId }) {
       'conversations_v4',
       {
         participants: { $elemMatch: { userId: ownerUserId, isDeleted: { $ne: true } } },
+        // Only conversations with a customer are exported, so only they use up the cap.
+        'participants.role': 'customer',
         messageCount: { $gt: 0 },
       },
       { limit: MAX_EXPORT_CONVERSATIONS + 1, sort: { updatedAt: -1 }, throwOnError: true }
     ),
   ]);
   const conversations = conversationRows || [];
+  const isCustomerConversation = conversation => {
+    const participants = conversation.participants || [];
+    // The query already leaves out conversations the supplier deleted; checking again here keeps
+    // the rule in one place a reader can see, whatever the store did with the filter.
+    const mine = participants.find(participant => participant.userId === ownerUserId);
+    return (
+      Boolean(mine) &&
+      mine.isDeleted !== true &&
+      participants.some(
+        participant => participant.role === 'customer' && participant.userId !== ownerUserId
+      )
+    );
+  };
+  // Only conversations that would be exported count towards the cap, so rows that are dropped
+  // anyway (supplier-to-supplier, admin threads) can never make an export look cut off.
+  const exportable = conversations.filter(isCustomerConversation);
   const truncated =
     quoteRows.length > MAX_RECORDS_PER_SOURCE ||
     contactRows.length > MAX_RECORDS_PER_SOURCE ||
-    conversations.length > MAX_EXPORT_CONVERSATIONS;
+    exportable.length > MAX_EXPORT_CONVERSATIONS;
   const quotes = quoteRows
     .slice(0, MAX_RECORDS_PER_SOURCE)
     .filter(row => sourceOfId(row.id))
@@ -772,21 +815,7 @@ async function buildExport({ supplierId, ownerUserId }) {
     .filter(row => sourceOfId(row.id))
     .map(normaliseContactEnquiry);
 
-  const customerConversations = conversations
-    .slice(0, MAX_EXPORT_CONVERSATIONS)
-    .filter(conversation => {
-      const participants = conversation.participants || [];
-      // The query already leaves out conversations the supplier deleted; checking again here keeps
-      // the rule in one place a reader can see, whatever the store did with the filter.
-      const mine = participants.find(participant => participant.userId === ownerUserId);
-      return (
-        Boolean(mine) &&
-        mine.isDeleted !== true &&
-        participants.some(
-          participant => participant.role === 'customer' && participant.userId !== ownerUserId
-        )
-      );
-    });
+  const customerConversations = exportable.slice(0, MAX_EXPORT_CONVERSATIONS);
   const customerIds = [
     ...new Set(
       customerConversations.flatMap(conversation =>

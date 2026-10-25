@@ -138,6 +138,29 @@ describe('check-asset-versions', () => {
     expect(run(dir).status).toBe(0);
   });
 
+  it('also checks pages in subdirectories (articles/, partner/, ...)', () => {
+    const dir = makeRepo({
+      base: {
+        'public/assets/js/utils/auth-state.js': 'a',
+        'public/auth.html': page([script('/assets/js/utils/auth-state.js?v=1.0.0')]),
+        'public/articles/guide.html': page([script('/assets/js/utils/auth-state.js')]),
+        'public/partner/index.html': page([script('/assets/js/utils/auth-state.js?v=1.0.0')]),
+        'public/assets/ignored.html': page([script('/assets/js/utils/auth-state.js')]),
+      },
+      change: {
+        'public/assets/js/utils/auth-state.js': 'b',
+        'public/auth.html': page([script('/assets/js/utils/auth-state.js?v=1.0.1')]),
+      },
+    });
+
+    const result = run(dir);
+    expect(result.status).toBe(1);
+    expect(result.stderr).toContain('public/articles/guide.html (no ?v= query)');
+    expect(result.stderr).toContain('public/partner/index.html (still ?v=1.0.0)');
+    expect(result.stderr).not.toContain('public/auth.html');
+    expect(result.stderr).not.toContain('ignored.html');
+  });
+
   it('does nothing when no asset was modified', () => {
     const dir = makeRepo({
       base: { 'public/auth.html': page([]) },

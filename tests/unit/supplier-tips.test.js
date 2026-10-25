@@ -232,6 +232,39 @@ describe('access and shape', () => {
   });
 });
 
+describe('tip copy', () => {
+  it('no tip a supplier can be shown contains an invented statistic or promise', async () => {
+    const worlds = [
+      { supplier: completeSupplier({ description_long: '', photosGallery: [], logo: '' }) },
+      {
+        supplier: completeSupplier({ approved: false, verificationStatus: 'needs_changes' }),
+        subscription: PRO,
+      },
+      {
+        supplier: completeSupplier({ publicCalendarPublisherOverride: true }),
+        extra: {
+          enquiries: [{ id: 'enq_1', supplierId: 'sup-1', createdAt: hoursAgo(3) }],
+          reviews: [],
+          packages: [],
+        },
+      },
+      { user: { verified: false } },
+    ];
+    const copy = [];
+    for (const world of worlds) {
+      const res = await tipsFor(world);
+      res.body.tips.forEach(item => copy.push(`${item.title} ${item.body}`));
+    }
+
+    expect(copy.length).toBeGreaterThan(6);
+    copy.forEach(text => {
+      expect(text).not.toMatch(
+        /\d\s*×|\d+\s*%|triples|times more|more bookings|conversion|guarantee|boost your|increase your/i
+      );
+    });
+  });
+});
+
 describe('account status comes first', () => {
   it('unverified email: only the email tip, and nothing the supplier cannot do yet', async () => {
     const res = await tipsFor({
@@ -746,5 +779,281 @@ describe('packages and the real plan limits', () => {
 
     expect(ids(res)).toContain('first-package');
     expect(ids(res)).not.toContain('package-photos');
+  });
+});
+
+describe('photo limit counts only the photos the plan lets the supplier use', () => {
+  const hidden = name => ({ url: name, hiddenByPlanLimit: true });
+  const shown = name => ({ url: name });
+  const PACKAGES = {
+    packages: [{ id: 'p1', supplierId: 'sup-1', approved: true, image: '/p.jpg' }],
+  };
+
+  it('12 photos of which 2 are hidden on the free plan reads "10 of 10", never "12 of 10"', async () => {
+    const photos = [
+      ...Array.from({ length: 10 }, (_, index) => shown(`v${index}.jpg`)),
+      hidden('h1.jpg'),
+      hidden('h2.jpg'),
+    ];
+    const res = await tipsFor({
+      supplier: completeSupplier({ photosGallery: photos }),
+      extra: PACKAGES,
+    });
+
+    expect(find(res, 'photo-limit').title).toBe('Your gallery is full (10 of 10 photos)');
+  });
+
+  it('a downgraded supplier with room left is not told the gallery is full', async () => {
+    const photos = [
+      ...Array.from({ length: 6 }, (_, index) => shown(`v${index}.jpg`)),
+      ...Array.from({ length: 6 }, (_, index) => hidden(`h${index}.jpg`)),
+    ];
+    const res = await tipsFor({
+      supplier: completeSupplier({ photosGallery: photos }),
+      extra: PACKAGES,
+    });
+
+    expect(ids(res)).not.toContain('photo-limit');
+  });
+
+  it('"Add more photos (n of 3)" does not count a hidden photo either', async () => {
+    const res = await tipsFor({
+      supplier: completeSupplier({ photosGallery: [shown('a.jpg'), hidden('b.jpg')] }),
+      extra: PACKAGES,
+    });
+
+    expect(find(res, 'add-photos').title).toBe('Add more photos (1 of 3)');
+  });
+
+  it('the tip and the upload check share one helper, so they cannot disagree', () => {
+    const { countAllowanceGalleryPhotos } = require('../../utils/photoGalleryAllowance');
+    const supplier = { photosGallery: [shown('a'), hidden('b'), 'c.jpg'], images: ['legacy.jpg'] };
+
+    expect(countAllowanceGalleryPhotos(supplier)).toBe(2);
+    expect(countAllowanceGalleryPhotos({})).toBe(0);
+    expect(countAllowanceGalleryPhotos(null)).toBe(0);
+    const source = fs.readFileSync(path.join(__dirname, '../../services/supplierTips.js'), 'utf8');
+    expect(source).toContain("require('../utils/photoGalleryAllowance')");
+    expect(source).not.toContain('getSupplierGalleryCount');
+  });
+});
+
+describe('tips never state something the data does not show', () => {
+  it('no "nothing coming up" tip when the calendar could not be read', async () => {
+    const publisher = completeSupplier({ publicCalendarPublisherOverride: true });
+    const readable = await tipsFor({ supplier: publisher });
+    const unreadable = await tipsFor({
+      supplier: publisher,
+      failOn: ['customer_calendar_entries'],
+    });
+
+    expect(ids(readable)).toContain('publish-event');
+    expect(unreadable.status).toBe(200);
+    expect(ids(unreadable)).not.toContain('publish-event');
+  });
+
+  it('an approved record whose listing is not approved is not asked to submit again', async () => {
+    const res = await tipsFor({
+      supplier: completeSupplier({
+        approved: false,
+        verified: true,
+        verificationStatus: 'approved',
+      }),
+    });
+
+    expect(ids(res)).not.toContain('submit-verification');
+    const item = find(res, 'listing-awaiting-approval');
+    expect(item.title).toMatch(/waiting for listing approval/);
+    expect(item.action.type).toBe('open-support');
+  });
+
+  it('a pending profile with no submission date says nothing about a date (not 1 Jan 1970)', async () => {
+    const res = await tipsFor({
+      supplier: completeSupplier({ approved: false, verificationStatus: 'pending_review' }),
+    });
+
+    const item = find(res, 'verification-pending');
+    expect(item.body).not.toMatch(/1970|You submitted it on/);
+    expect(item.body).toMatch(/^An admin is reviewing it/);
+  });
+
+  it('an approved supplier with an unverified email is not offered what the server would refuse', async () => {
+    const publisher = completeSupplier({ publicCalendarPublisherOverride: true });
+    const quiet = await tipsFor({ user: { verified: false }, supplier: publisher });
+    const waiting = await tipsFor({
+      user: { verified: false },
+      supplier: publisher,
+      extra: { enquiries: [{ id: 'enq_1', supplierId: 'sup-1', createdAt: hoursAgo(3) }] },
+    });
+
+    expect(ids(quiet)).toEqual(['verify-email']);
+    // A customer waiting is still worth knowing about; publishing and review requests are not.
+    expect(ids(waiting)).toEqual(['verify-email', 'new-enquiries']);
+  });
+});
+
+describe('tip wording', () => {
+  const conversations = count => {
+    const items = Array.from({ length: count }, (_, index) => {
+      const created = hoursAgo(50 + index);
+      return {
+        conversation: {
+          _id: `c${index}`,
+          status: 'active',
+          messageCount: 1,
+          createdAt: new Date(created),
+          updatedAt: new Date(created),
+          participants: [
+            { userId: 'user-1', role: 'supplier', unreadCount: 0 },
+            { userId: `cust-${index}`, role: 'customer' },
+          ],
+        },
+        message: {
+          conversationId: `c${index}`,
+          senderId: `cust-${index}`,
+          createdAt: new Date(created),
+        },
+      };
+    });
+    return {
+      conversations_v4: items.map(item => item.conversation),
+      chat_messages_v4: items.map(item => item.message),
+    };
+  };
+
+  it('unanswered conversations: grammatical for one and for several', async () => {
+    const one = await tipsFor({ subscription: PRO, extra: conversations(1) });
+    const three = await tipsFor({ subscription: PRO, extra: conversations(3) });
+
+    expect(find(one, 'unanswered-conversations').body).toBe(
+      '1 conversation started by customers in the last 30 days is more than a day old and has no reply from you.'
+    );
+    expect(find(three, 'unanswered-conversations').body).toBe(
+      '3 conversations started by customers in the last 30 days are more than a day old and have no reply from you.'
+    );
+  });
+
+  it('a one-character description is "1 character"', async () => {
+    const res = await tipsFor({
+      supplier: completeSupplier({ description_long: 'x' }),
+      extra: { packages: [{ id: 'p', supplierId: 'sup-1', approved: true, image: '/p.jpg' }] },
+    });
+
+    expect(find(res, 'write-description').body).toContain('Your description is 1 character;');
+  });
+
+  it.each([
+    ['needs_changes', 'An admin asked for changes before approving it.'],
+    ['rejected', 'Your profile was not approved.'],
+  ])('%s: the admin note ends in a full stop before the next sentence', async (status, lead) => {
+    for (const note of ['add a logo', 'add a logo!  ']) {
+      const res = await tipsFor({
+        supplier: completeSupplier({
+          approved: false,
+          verificationStatus: status,
+          verificationNotes: note,
+        }),
+      });
+      const item = res.body.tips.find(entry => entry.category === 'account');
+      expect(item.body).toContain(`${lead} Admin note: add a logo. `);
+      expect(item.body).not.toContain('logo Update');
+      expect(item.body).not.toContain('..');
+    }
+  });
+
+  it('the final-rejection tip also punctuates the admin note', async () => {
+    const res = await tipsFor({
+      supplier: completeSupplier({
+        approved: false,
+        verificationStatus: 'rejected',
+        verificationRejectionCount: 5,
+        verificationNotes: 'not suitable',
+      }),
+    });
+
+    expect(find(res, 'verification-rejected-final').body).toContain(
+      'Admin note: not suitable. Contact support'
+    );
+  });
+
+  it('a supplier with no category is told that, not that they are listed under "Other"', async () => {
+    const none = await tipsFor({ supplier: completeSupplier({ category: '' }) });
+    const other = await tipsFor({ supplier: completeSupplier({ category: 'Other' }) });
+
+    expect(find(none, 'choose-category').body).toMatch(/^Your profile has no category/);
+    expect(find(other, 'choose-category').body).toMatch(/^Your profile is listed under "Other"/);
+  });
+
+  it.each([
+    [{ location: '', basePostcode: '' }, 'Add your location and postcode', /without one/],
+    [{ location: 'Cardiff', basePostcode: '' }, 'Add your postcode', /postcode, so a profile/],
+    [
+      { location: '', basePostcode: 'CF10 1AA' },
+      'Add your location',
+      /has a postcode but no location/,
+    ],
+  ])('add-location names what is missing: %j', async (fields, title, pattern) => {
+    const res = await tipsFor({
+      supplier: completeSupplier(fields),
+      extra: { packages: [{ id: 'p', supplierId: 'sup-1', approved: true, image: '/p.jpg' }] },
+    });
+
+    const item = find(res, 'add-location');
+    expect(item.title).toBe(title);
+    expect(item.body).toMatch(pattern);
+  });
+
+  it('the banner, social and website tips have different icons', async () => {
+    const { buildTips } = require('../../services/supplierTips');
+    const { buildSummaryWithContext } = require('../../services/supplierDashboardSummary');
+    clearEngagementCache();
+    const supplier = completeSupplier({ bannerUrl: '', socialLinks: {}, website: '' });
+    fakeDb.__reset({
+      users: [{ id: 'user-1', verified: true, email: 'owner@example.com' }],
+      suppliers: [supplier],
+      packages: [{ id: 'p', supplierId: 'sup-1', approved: true, image: '/p.jpg' }],
+      reviews: [
+        {
+          id: 'r1',
+          supplierId: 'sup-1',
+          rating: 5,
+          approved: true,
+          approvedBy: 'system',
+          response: { text: 'Thanks!' },
+        },
+      ],
+    });
+    const { summary, raw } = await buildSummaryWithContext({
+      userId: 'user-1',
+      supplier,
+      lean: true,
+    });
+
+    const built = buildTips({ supplier, summary, raw, canPublishPublicCalendar: false });
+
+    expect(built.tips.map(item => item.id).sort()).toEqual(
+      ['add-banner', 'add-social-links', 'add-website'].sort()
+    );
+    const icons = built.tips.map(item => item.icon);
+    expect(new Set(icons).size).toBe(icons.length);
+  });
+});
+
+describe('the tips request is cheap', () => {
+  it('does not read events, tickets, review requests or the owner profile list', async () => {
+    const reads = ['find', 'findOne', 'count', 'aggregate', 'findWithOptions'];
+    reads.forEach(name => fakeDb[name].mockClear());
+
+    const res = await tipsFor({ subscription: PRO });
+
+    expect(res.status).toBe(200);
+    const collections = reads.flatMap(name => fakeDb[name].mock.calls.map(call => call[0]));
+    expect(collections).not.toContain('events');
+    expect(collections).not.toContain('tickets');
+    expect(collections).not.toContain('reviewRequests');
+    // What the tips do need is still read.
+    expect(collections).toEqual(expect.arrayContaining(['users', 'packages', 'reviews']));
+    // The owner's profile list is only for the dashboard's profile count.
+    expect(fakeDb.find.mock.calls.filter(call => call[0] === 'suppliers')).toHaveLength(0);
   });
 });

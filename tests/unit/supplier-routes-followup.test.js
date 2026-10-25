@@ -175,6 +175,43 @@ describe('POST /enquiries/:id/reply', () => {
     expect(mockSendMail).toHaveBeenCalledTimes(1);
   });
 
+  it('when the status is not saved, the enquiry that comes back still shows the reply just sent', async () => {
+    fakeDb.upsertOne.mockResolvedValueOnce(false);
+
+    const res = await reply('qr_1', 'Hello Alice');
+
+    expect(res.body.warning).toMatch(/could not be marked as handled/i);
+    expect(res.body.enquiry.replies).toHaveLength(1);
+    expect(res.body.enquiry.replies[0]).toMatchObject({ message: 'Hello Alice' });
+    expect(res.body.enquiry.replies[0].id).toBe(fakeDb.__store().supplier_enquiry_replies[0].id);
+  });
+
+  it('when only the "sent" mark fails to save, the supplier is warned and the reply is still in the thread', async () => {
+    // Both attempts at marking the reply as sent fail; the status change itself works.
+    fakeDb.updateOne.mockRejectedValueOnce(new Error('mongo blip'));
+    fakeDb.updateOne.mockRejectedValueOnce(new Error('mongo blip'));
+
+    const res = await reply('qr_1', 'Hello Alice');
+
+    expect(res.status).toBe(200);
+    expect(mockSendMail).toHaveBeenCalledTimes(1);
+    expect(res.body.warning).toMatch(/could not be saved in this enquiry.s thread/i);
+    expect(res.body.warning).not.toMatch(/marked as handled/i);
+    expect(res.body.enquiry.status).toBe('handled');
+    expect(res.body.enquiry.replies.map(item => item.message)).toEqual(['Hello Alice']);
+    expect(fakeDb.__store().supplier_enquiry_replies[0].status).toBe('sending');
+  });
+
+  it('retries the "sent" mark once, so one failed write is no warning at all', async () => {
+    fakeDb.updateOne.mockRejectedValueOnce(new Error('mongo blip'));
+
+    const res = await reply('qr_1', 'Hello Alice');
+
+    expect(res.body.warning).toBeUndefined();
+    expect(res.body.enquiry.replies).toHaveLength(1);
+    expect(fakeDb.__store().supplier_enquiry_replies[0].status).toBe('sent');
+  });
+
   it('a normal reply carries no warning', async () => {
     const res = await reply('qr_1', 'Hello Alice');
 

@@ -567,7 +567,7 @@ describe('supplier dashboard home: structure', () => {
     expect(major * 1e6 + minor * 1e3 + patch).toBeGreaterThanOrEqual(18 * 1e6 + 5 * 1e3 + 7);
   });
 
-  test('the dashboard guard is on the same version as the customer dashboard', () => {
+  test('the dashboard guard script is loaded with a version number', () => {
     expect(html).toMatch(/dashboard-guard\.js\?v=\d+\.\d+\.\d+/);
   });
 });
@@ -1545,6 +1545,43 @@ describe('supplier dashboard home: rendered page', () => {
     });
     expect(some.tipsHidden).toBe(false);
     expect(some.tips).toContain('Add 2 more photos');
+  });
+
+  test('the tips are asked for again when something changes, and the new ones replace the old', () => {
+    const tip = title => ({ title, body: 'b', action: { label: 'Go', type: 'open-enquiries' } });
+    const page = run({
+      summary: populated,
+      suppliers: [{ id: 's1' }],
+      tips: [tip('2 new enquiries to look at')],
+      tipsAfterChange: [tip('Reply to 1 review')],
+      dispatchChanged: true,
+    });
+    const asked = page.requested.filter(url => url.includes('/performance-tips'));
+    expect(asked).toHaveLength(2);
+    // The second request came after the change, and the card shows what it answered.
+    expect(page.requested.indexOf('--- sdh:changed ---')).toBeLessThan(
+      page.requested.lastIndexOf(asked[1])
+    );
+    expect(page.tips).toContain('Reply to 1 review');
+    expect(page.tips).not.toContain('2 new enquiries');
+  });
+
+  test('a failed reload of the tips keeps the ones already shown', () => {
+    const page = run({
+      summary: populated,
+      suppliers: [{ id: 's1' }],
+      tips: [{ title: 'Add 2 more photos', body: 'b', action: { label: 'Go', type: 'open-plan' } }],
+      tipsFailAfterChange: true,
+      dispatchChanged: true,
+    });
+    expect(page.tips).toContain('Add 2 more photos');
+    expect(page.tips).not.toContain('could not load');
+  });
+
+  test('changing the chart period does not ask for the tips again', () => {
+    const page = run({ summary: populated, suppliers: [{ id: 's1' }], clickPeriod: 7 });
+    expect(page.requested.filter(url => url.includes('/performance-tips'))).toHaveLength(1);
+    expect(page.requested.filter(url => url.includes('/dashboard-summary'))).toHaveLength(2);
   });
 
   test('the Request a review button opens the dialog', () => {

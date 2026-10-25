@@ -15,8 +15,9 @@
  * dashboard-supplier-actions.js, dashboard-supplier-auth.js and dashboard-supplier-inline.js.
  * Those drew the same facts several times from different calculations.
  *
- * Every number comes from one request, GET /api/supplier/dashboard-summary. Anything the server
- * does not send (or sends as null: "not enough data") is shown as a dash or left out. Nothing is
+ * Every number comes from one request, GET /api/supplier/dashboard-summary (the tips are the one
+ * other request, GET /api/v1/supplier/performance-tips, asked for again whenever the summary is).
+ * Anything the server does not send (or sends as null: "not enough data") is shown as a dash or left out. Nothing is
  * estimated or invented on this page.
  *
  * Public surface: window.SupplierDashboardHome (getSummary, refresh, confirm, toast and the
@@ -2139,15 +2140,31 @@
     return '';
   }
 
-  /** Draws the tips the server chose for this profile; nothing is shown that the server did not send. */
-  async function loadTips() {
+  let tipsRequest = 0;
+
+  /**
+   * Draws the tips the server chose for this profile; nothing is shown that the server did not send.
+   * Called again after the summary is, because tips carry counts and state (new enquiries, whether
+   * the profile was submitted) that go stale. A failed reload then keeps the tips on screen
+   * (`keepOnFailure`) rather than replacing them with an error, and an older answer that arrives
+   * after a newer one is ignored.
+   */
+  async function loadTips({ keepOnFailure = false } = {}) {
     const box = byId(ids.tips);
     if (!box) {
       return;
     }
+    tipsRequest += 1;
+    const mine = tipsRequest;
     const result = await getJson('/api/v1/supplier/performance-tips');
+    if (mine !== tipsRequest) {
+      return;
+    }
     const section = byId('sdh-tips');
     if (!result.data) {
+      if (keepOnFailure) {
+        return;
+      }
       box.innerHTML =
         '<p class="sdh-note">We could not load your tips.</p><button type="button" class="sdh-btn sdh-btn--secondary sdh-btn--sm" data-sdh-action="retry-tips">Try again</button>';
       return;
@@ -2726,18 +2743,25 @@
     state.days = days;
     const box = byId(ids.chart);
     box?.setAttribute('aria-busy', 'true');
-    await refresh();
+    await refresh({ tips: false });
     box?.removeAttribute('aria-busy');
     // Redrawing replaced the buttons: put keyboard focus back on the one that was chosen.
     byId(ids.chart)?.querySelector(`[data-sdh-days="${days}"]`)?.focus();
   }
 
-  /** Asks the server for the summary again and redraws. Called after a profile or package change. */
-  async function refresh() {
+  /**
+   * Asks the server for the summary again and redraws. Called after a profile or package change.
+   * The tips are asked for again too (they say things like "2 new enquiries" or "Submit your
+   * profile"), except when only the chart period changed (`tips: false`).
+   */
+  async function refresh({ tips = true } = {}) {
     state.summaryPromise = null;
     await getSummary(true);
     state.loadedAt = Date.now();
     renderAll();
+    if (tips && state.loadersStarted) {
+      loadTips({ keepOnFailure: true });
+    }
   }
 
   /**

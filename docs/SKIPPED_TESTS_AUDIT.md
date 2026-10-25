@@ -49,9 +49,9 @@ where the feature is not present.
 | `tests/unit/chat-v5.test.js`                                        | 445  | `_chatV5Exists ? ...`                            | ChatMessage model existence guard                                   | G     |
 | `tests/unit/messaging-connection-retry.test.js`                     | 15   | `messagesHtmlHasRetryLogic ? ...`                | HTML retry logic existence guard                                    | G     |
 | `tests/unit/messaging-connection-retry.test.js`                     | 208  | `messagingCssExists ? ...`                       | Messaging CSS existence guard                                       | G     |
-| `tests/unit/messaging-dashboard-fixes.test.js`                      | 18   | `messagingJsExists ? ...`                        | messaging.js existence guard                                        | G     |
-| `tests/unit/messaging-dashboard-fixes.test.js`                      | 82   | `fs.existsSync(messagingV2Path) ? ...`           | messaging-v2 deployment guard                                       | G     |
-| `tests/unit/messaging-dashboard-fixes.test.js`                      | 124  | `customerMsgJsExists ? ...`                      | customer-messages.js existence guard                                | G     |
+| _(removed in #1839)_ `tests/unit/messaging-dashboard-fixes.test.js` | 18   | `messagingJsExists ? ...`                        | messaging.js existence guard                                        | G     |
+| _(removed in #1839)_ `tests/unit/messaging-dashboard-fixes.test.js` | 82   | `fs.existsSync(messagingV2Path) ? ...`           | messaging-v2 deployment guard                                       | G     |
+| _(removed in #1839)_ `tests/unit/messaging-dashboard-fixes.test.js` | 124  | `customerMsgJsExists ? ...`                      | customer-messages.js existence guard                                | G     |
 | `tests/unit/marketplace-peer-to-peer-messaging.test.js`             | 5    | `fs.existsSync(threadsRoutePath) ? ...`          | threads route existence guard                                       | G     |
 | `tests/unit/thread-metadata-updates.test.js`                        | 10   | `fs.existsSync(threadsRoutePath) ? ...`          | threads route existence guard                                       | G     |
 | `tests/unit/marketplace-messaging-flow-fixes.test.js`               | 41   | `fs.existsSync(threadsRoutePath) ? ...`          | threads route existence guard                                       | G     |

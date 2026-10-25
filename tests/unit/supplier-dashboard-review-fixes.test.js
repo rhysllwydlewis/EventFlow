@@ -267,9 +267,65 @@ describe('tips do something', () => {
 
   test('every action type the server can send is mapped to something the page does', () => {
     const { ACTION_TYPES } = require('../../services/supplierTips');
-    ACTION_TYPES.forEach(type => {
-      expect(homeSource).toContain(`'${type}'`);
+    // What each type must become on the page. A new server type has no entry here, which fails
+    // the first assertion until it is added, so the page cannot silently ignore it.
+    const expected = {
+      'verify-email': 'data-sdh-action="resend-email"',
+      'open-verification': 'data-sdh-action="verify"',
+      'open-support': 'data-sdh-action="support"',
+      'open-profile-editor': 'data-sdh-action="edit-profile" data-sdh-focus="sup-name"',
+      'open-packages': 'data-sdh-action="scroll" data-sdh-target="my-packages"',
+      'open-package-form': 'data-sdh-action="new-package"',
+      'open-enquiries': 'data-sdh-action="open-enquiries"',
+      'open-messages': 'data-sdh-action="scroll" data-sdh-target="sdh-messages"',
+      'open-reviews': 'data-sdh-action="scroll" data-sdh-target="sdh-reviews"',
+      'open-review-request': 'data-sdh-action="request-review"',
+      'open-calendar': 'data-sdh-action="scroll" data-sdh-target="availability-calendar"',
+      'open-plan': 'href="/supplier/subscription"',
+    };
+    expect(Object.keys(expected).sort()).toEqual([...ACTION_TYPES].sort());
+
+    const rendered = runHome({
+      summary: {},
+      suppliers: [{ id: 's1' }],
+      tips: ACTION_TYPES.map(type => tip(`t-${type}`, type, `Label ${type}`)),
     });
+    const items = rendered.tipsHtml.split('<li').slice(1);
+    ACTION_TYPES.forEach(type => {
+      const item = items.find(html => html.includes(`Title t-${type}<`));
+      expect(item).toBeDefined();
+      expect(item).toContain(expected[type]);
+      expect(item).toContain(`Label ${type}`);
+    });
+  });
+
+  test('every profile-editor field the server can send focuses the field it names', () => {
+    const focusFor = {
+      description: 'sup-long',
+      photos: 'sup-photo-drop',
+      category: 'sup-category',
+      location: 'sup-location',
+      banner: 'sdh-banner-upload',
+      website: 'sup-website',
+    };
+    const rendered = runHome({
+      summary: {},
+      suppliers: [{ id: 's1' }],
+      tips: [
+        ...Object.keys(focusFor).map(field =>
+          tip(`f-${field}`, 'open-profile-editor', `Fix ${field}`, { field })
+        ),
+        tip('f-profile-photo', 'open-profile-editor', 'Fix avatar', { field: 'profile-photo' }),
+      ],
+    });
+    Object.entries(focusFor).forEach(([field, focus]) => {
+      expect(rendered.tipsHtml).toContain(
+        `data-sdh-action="edit-profile" data-sdh-focus="${focus}">Fix ${field}<`
+      );
+      // Every focus target is a real element on the page.
+      expect(html).toContain(`id="${focus}"`);
+    });
+    expect(rendered.tipsHtml).toContain('data-sdh-action="upload-avatar"');
   });
 
   test('account, enquiry, message, review, calendar and plan tips act on the page', () => {

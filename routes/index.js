@@ -335,9 +335,9 @@ const mountRoutes = (app, deps) => {
     }
   });
 
-  // Secure supplier review-request delivery must run before the legacy supplier
-  // endpoint and review submission route so it can replace false-success responses
-  // and attribute completed reviews to the invited recipient.
+  // Secure supplier review-request delivery (the only handler for POST .../request-review; the
+  // old supplier-router endpoint it used to replace is gone). It stays ahead of the review
+  // submission routes so completed reviews are attributed to the invited recipient.
   app.use(reviewRequestRoutes);
 
   app.use('/api/v1/pexels', pexelsRoutes);

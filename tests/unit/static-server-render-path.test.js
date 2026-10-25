@@ -30,4 +30,14 @@ describe('scripts/serve-static public HTML render path', () => {
     expect(suppliersRoute[0]).toContain("sendRenderedHtml(req, res, 'suppliers.html')");
     expect(suppliersRoute[0]).not.toContain('res.sendFile');
   });
+
+  test('noindex headers come from the production middleware, not a hand-copied page list', () => {
+    expect(script).toContain("require('../middleware/seo')");
+    expect(script).toContain('app.use(noindexMiddleware());');
+    expect(script).not.toContain('noindexPatterns');
+    // The middleware must run before express.static serves the HTML files.
+    expect(script.indexOf('app.use(noindexMiddleware());')).toBeLessThan(
+      script.indexOf('app.use(express.static(PUBLIC_DIR))')
+    );
+  });
 });
