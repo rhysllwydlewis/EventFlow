@@ -78,10 +78,9 @@
     }
     // Same time limit and readable network error as the other admin pages (admin-shared.js), so a
     // request that never answers ends in an error the panel can show instead of waiting forever.
-    const request =
-      window.AdminShared && window.AdminShared.fetchWithTimeout
-        ? window.AdminShared.fetchWithTimeout(url, opts, API_TIMEOUT_MS)
-        : fetch(url, opts);
+    const request = window.AdminShared?.fetchWithTimeout
+      ? window.AdminShared.fetchWithTimeout(url, opts, API_TIMEOUT_MS)
+      : fetch(url, opts);
     return request
       .then(r => {
         // Check content type before parsing

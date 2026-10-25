@@ -143,7 +143,7 @@
       }
       return `The server could not load conversations (error ${err}).`;
     }
-    const text = err && err.message ? String(err.message) : '';
+    const text = err?.message ? String(err.message) : '';
     if (/timed out/i.test(text)) {
       return 'Loading conversations took too long.';
     }
@@ -163,7 +163,7 @@
     const seq = loadSeq;
     showMessageState('Loading conversations…', 'loading');
     const url = `/api/v4/messenger/admin/conversations?${params.toString()}`;
-    const request = window.AdminShared && window.AdminShared.fetchWithTimeout
+    const request = window.AdminShared?.fetchWithTimeout
       ? window.AdminShared.fetchWithTimeout(url, { credentials: 'include' }, LOAD_TIMEOUT_MS)
       : fetch(url, { credentials: 'include' });
     request
