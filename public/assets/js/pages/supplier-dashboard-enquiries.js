@@ -579,9 +579,10 @@
       row.status = result.data.enquiry.status;
     }
     if (result.data.warning) {
-      // The email went, but the enquiry could not be marked handled: say so, do not claim it was.
-      api.toast(`Reply sent. ${result.data.warning}`, 'info');
-      announce(`Reply sent. ${result.data.warning}`);
+      // The email went, but a step after it did not save (the server's warning says which, and
+      // already says the reply was sent): show that once, do not claim the enquiry was handled.
+      api.toast(result.data.warning, 'info');
+      announce(result.data.warning);
     } else {
       api.toast('Reply sent.', 'success');
       announce('Reply sent. The enquiry is marked as handled.');
