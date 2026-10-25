@@ -718,7 +718,7 @@
         unread > 0 ? '<span class="mwv4__unread-dot" aria-hidden="true"></span>' : '';
       const unreadCount =
         unread > 0
-          ? `<span class="mwv4__item-badge" aria-label="${unread} unread">${unread > 99 ? '99+' : unread}</span>`
+          ? `<span class="mwv4__item-badge">${unread > 99 ? '99+' : unread}<span style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap"> unread</span></span>`
           : '';
 
       const leadBadge = renderLeadQualityBadge(conv);
@@ -727,8 +727,7 @@
         <li class="mwv4__item${unread > 0 ? ' mwv4__item--unread' : ''}"
             data-conversation-id="${convId}"
             role="listitem">
-          <button class="ef-cta mwv4__item-btn" data-action="open" data-conversation-id="${convId}"
-                  aria-label="Open conversation with ${name}">
+          <button class="ef-cta mwv4__item-btn" data-action="open" data-conversation-id="${convId}">
             <div class="mwv4__avatar" style="background:${avatarColor}" aria-hidden="true">
               ${avatarImg}
               ${unreadDot}

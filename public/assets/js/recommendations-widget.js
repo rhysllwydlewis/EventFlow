@@ -166,7 +166,7 @@
     widget.innerHTML = `
       <div class="recommendations-header recommendations-widget__header">
         <h2 class="recommendations-title">Suggested for you</h2>
-        <a href="/suppliers" class="recommendations-view-all">See all</a>
+        <a href="/suppliers" class="recommendations-view-all" aria-label="See all suggested suppliers">See all</a>
       </div>
       <div class="recommendations-grid">
         ${recommendations

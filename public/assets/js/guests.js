@@ -733,9 +733,18 @@
     }
 
     /** Draws the main area for the current phase: loading, error, sign-in, no plans or ready. */
+    let loadedAnnounced = false;
     function renderStage() {
       stage.removeAttribute('aria-busy');
       if (state.phase === 'ready') {
+        // The page starts as "Loading your guest list". Say when that is over, once.
+        if (!loadedAnnounced) {
+          loadedAnnounced = true;
+          const live = find('#gm-loaded');
+          if (live) {
+            live.textContent = 'Your guest list has loaded.';
+          }
+        }
         if (!find('#gm-results')) {
           stage.innerHTML = readyShell();
         }
@@ -770,7 +779,8 @@
           actions: '<a class="gm-btn gm-btn--primary" href="/start">Create a plan</a>',
         }),
       };
-      stage.innerHTML = `<div class="gm-panel">${views[state.phase] || ''}</div>`;
+      // A failure is an alert: it replaces the loading message, and nothing else would announce it.
+      stage.innerHTML = `<div class="gm-panel"${state.phase === 'error' ? ' role="alert"' : ''}>${views[state.phase] || ''}</div>`;
     }
 
     /** The static frame of the ready view: summary, pointer note, toolbar and results host. */

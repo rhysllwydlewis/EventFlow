@@ -25,11 +25,12 @@
     <link rel="mask-icon" href="/safari-pinned-tab.svg" color="#0B8073">
     <link rel="manifest" href="/site.webmanifest">
     <meta name="msapplication-config" content="/browserconfig.xml">
-      <link rel="stylesheet" href="/assets/css/signed-in-mobile-fixes.css" />
+      <link rel="stylesheet" href="/assets/css/signed-in-mobile-fixes.css?v=1.1.0" />
   <link rel="stylesheet" href="/assets/css/eventflow-footer.css">
     <link rel="stylesheet" href="/assets/css/budget-page.css?v=1.1.0" />
 </head>
   <body>
+    <a class="ef-skip-link" href="#main-content">Skip to main content</a>
 <!-- TOP NAVBAR - GOLD STANDARD REBUILD -->
     <header class="ef-header" role="banner">
       <div class="ef-container">
@@ -148,13 +149,14 @@
     <script src="/assets/js/utils/auth-state.js?v=1.0.4" defer></script>
     <script src="/assets/js/burger-menu.js?v=1.1.0" defer></script>
     <script src="/assets/js/navbar.js?v=1.3.0" defer></script>
+    <script src="/assets/js/utils/keyboard-a11y.js?v=1.0.0" defer></script>
     <script src="/assets/js/components.js?v=18.4.0" defer></script>
     <script src="/assets/js/animations.js" defer></script>
     <script src="/assets/js/notifications.js?v=2.0.3" defer></script>
     <script src="/assets/js/search.js" defer></script>
     <script src="/assets/js/websocket-client.js?v=2.0.1" defer></script>
 
-    <main id="main-content" class="bp" aria-busy="true">
+    <main id="main-content" class="bp" aria-busy="true" tabindex="-1">
       <div class="bp__inner">
         <header class="bp-head">
           <div class="bp-head__text">
@@ -312,11 +314,12 @@
       </dialog>
 
       <div class="bp-toast" id="bp-toast" role="status" aria-live="polite"></div>
+      <p class="bp-sr" id="bp-loaded" role="status" aria-live="polite"></p>
     </main>
 
     <script src="/assets/js/export-utility.js?v=1.1.0"></script>
     <script src="/assets/js/budget-calc.js?v=1.0.0"></script>
-    <script src="/assets/js/pages/budget-page.js?v=1.2.3" defer></script>
+    <script src="/assets/js/pages/budget-page.js?v=1.2.4" defer></script>
 
     <footer class="footer" role="contentinfo">
       <div class="container ef-footer-content">

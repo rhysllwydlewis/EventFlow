@@ -74,8 +74,12 @@
     toast.className = `cal-toast cal-toast--${type || 'success'}`;
     toast.setAttribute('role', 'status');
     toast.setAttribute('aria-live', 'polite');
-    toast.textContent = message;
     document.body.appendChild(toast);
+    // A live region is announced when its text changes, not when it is inserted already holding
+    // text, so the message goes in a moment after the (empty) region is on the page.
+    setTimeout(() => {
+      toast.textContent = message;
+    }, 50);
     requestAnimationFrame(() => toast.classList.add('cal-toast--visible'));
     setTimeout(() => {
       toast.classList.remove('cal-toast--visible');
@@ -103,6 +107,25 @@
   function showFieldError(el, msg) {
     el.textContent = msg;
     el.hidden = false;
+  }
+
+  // ── Keyboard focus for the overlays built here (see utils/overlay-focus.js) ──────────
+
+  /** Keeps Tab inside `overlay` and remembers what to give focus back to when it closes. */
+  function holdFocus(overlay, opener) {
+    if (window.EFOverlayFocus) {
+      window.EFOverlayFocus.trap(overlay, opener);
+    }
+  }
+
+  /** Gives focus back (to the opener, else `fallbackId`'s button) as `overlay` closes. */
+  function returnFocus(overlay, fallbackId) {
+    if (window.EFOverlayFocus) {
+      window.EFOverlayFocus.release(
+        overlay,
+        fallbackId ? document.getElementById(fallbackId) : null
+      );
+    }
   }
 
   // ── Colour helpers ─────────────────────────────────────────────────────────
@@ -442,12 +465,14 @@
     submitBtn.disabled = false;
     submitBtn.textContent = 'Save Entry';
 
+    holdFocus(modal);
     modal.style.display = 'flex';
     requestAnimationFrame(() => modal.classList.add('cal-entry-modal-overlay--visible'));
     modal.querySelector('#sup-cal-entry-title').focus();
   }
 
   function closeEntryModal(modal) {
+    returnFocus(modal, 'sup-cal-add-entry-btn');
     modal.classList.remove('cal-entry-modal-overlay--visible');
     setTimeout(() => {
       modal.style.display = 'none';
@@ -570,22 +595,39 @@
     popover.style.top = `${Math.min(rect.bottom + 6, window.innerHeight - 140)}px`;
     popover.style.width = `${popW}px`;
 
+    // role="dialog" aria-modal: hold Tab inside, close on Escape, hand focus back to the entry.
+    holdFocus(popover, anchorEl);
+    const close = (refocus = true) => {
+      document.removeEventListener('click', closeOutside, true);
+      if (refocus) {
+        returnFocus(popover, 'sup-cal-add-entry-btn');
+      }
+      popover.remove();
+    };
     popover
       .querySelector('.cal-delete-popover__btn--cancel')
-      .addEventListener('click', () => popover.remove());
+      .addEventListener('click', () => close());
     popover
       .querySelector('.cal-delete-popover__btn--confirm')
       .addEventListener('click', async () => {
-        popover.remove();
+        close();
         await deletePersonalEntry(entryId, calInst);
+        // The entry that held focus is gone; keep keyboard users in the calendar card.
+        if (!document.activeElement || document.activeElement === document.body) {
+          document.getElementById('sup-cal-add-entry-btn')?.focus();
+        }
       });
-
-    const closeOutside = e => {
-      if (!popover.contains(e.target) && e.target !== anchorEl) {
-        popover.remove();
-        document.removeEventListener('click', closeOutside, true);
+    popover.addEventListener('keydown', e => {
+      if (e.key === 'Escape') {
+        close();
       }
-    };
+    });
+
+    function closeOutside(e) {
+      if (!popover.contains(e.target) && e.target !== anchorEl) {
+        close(false);
+      }
+    }
     setTimeout(() => document.addEventListener('click', closeOutside, true), 10);
 
     popover.querySelector('.cal-delete-popover__btn--cancel').focus();
@@ -675,10 +717,24 @@
     popover.style.top = `${Math.min(rect.bottom + 6, window.innerHeight - 160)}px`;
     popover.style.width = `${popW}px`;
 
+    holdFocus(popover, anchorEl);
+    const close = (refocus = true) => {
+      document.removeEventListener('click', closeOutside, true);
+      if (refocus) {
+        returnFocus(popover);
+      }
+      popover.remove();
+    };
+    popover.addEventListener('keydown', e => {
+      if (e.key === 'Escape') {
+        close();
+      }
+    });
+
     popover.querySelectorAll('[data-action]').forEach(btn => {
       btn.addEventListener('click', async () => {
         const action = btn.dataset.action;
-        popover.remove();
+        close(action === 'close' || action === 'save' || action === 'unsave');
         if (action === 'save') {
           await toggleSavePublicEvent(rawId, false);
         } else if (action === 'unsave') {
@@ -692,13 +748,18 @@
       });
     });
 
-    const closeOutside = e => {
+    function closeOutside(e) {
       if (!popover.contains(e.target)) {
-        popover.remove();
-        document.removeEventListener('click', closeOutside, true);
+        close(false);
       }
-    };
+    }
     setTimeout(() => document.addEventListener('click', closeOutside, true), 10);
+
+    // The popover is a dialog: move focus into it, as the delete popover does.
+    const firstButton = popover.querySelector('[data-action]');
+    if (firstButton) {
+      firstButton.focus();
+    }
   }
 
   async function toggleSavePublicEvent(eventId, isSaved) {
@@ -854,12 +915,14 @@
     errorEl.hidden = true;
     submitBtn.disabled = false;
 
+    holdFocus(modal);
     modal.style.display = 'flex';
     requestAnimationFrame(() => modal.classList.add('cal-entry-modal-overlay--visible'));
     titleInput.focus();
   }
 
   function closePublicEventModal(modal) {
+    returnFocus(modal, 'sup-cal-add-event-btn');
     modal.classList.remove('cal-entry-modal-overlay--visible');
     setTimeout(() => {
       modal.style.display = 'none';
@@ -996,23 +1059,24 @@
       </div>
     `;
     document.body.appendChild(dialog);
+    holdFocus(dialog);
     requestAnimationFrame(() => dialog.classList.add('cal-entry-modal-overlay--visible'));
 
     const rawId = ev.extendedProps ? ev.extendedProps.rawId : null;
 
-    dialog.querySelector('#sup-del-pub-cancel').addEventListener('click', () => {
+    const closeConfirm = () => {
+      returnFocus(dialog, 'sup-cal-add-event-btn');
       dialog.classList.remove('cal-entry-modal-overlay--visible');
       setTimeout(() => dialog.remove(), 200);
-    });
+    };
+    dialog.querySelector('#sup-del-pub-cancel').addEventListener('click', closeConfirm);
     dialog.querySelector('#sup-del-pub-confirm').addEventListener('click', async () => {
-      dialog.classList.remove('cal-entry-modal-overlay--visible');
-      setTimeout(() => dialog.remove(), 200);
+      closeConfirm();
       await deletePublicEvent(rawId || ev.id);
     });
     dialog.addEventListener('keydown', e => {
       if (e.key === 'Escape') {
-        dialog.classList.remove('cal-entry-modal-overlay--visible');
-        setTimeout(() => dialog.remove(), 200);
+        closeConfirm();
       }
     });
     dialog.querySelector('#sup-del-pub-cancel').focus();
@@ -1279,7 +1343,14 @@
         const addBtn = document.createElement('button');
         addBtn.type = 'button';
         addBtn.className = 'cal-day-add-btn';
-        addBtn.setAttribute('aria-label', `Add entry for ${cellDate}`);
+        addBtn.setAttribute(
+          'aria-label',
+          `Add entry for ${info.date.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}`
+        );
+        // The "Add private entry" button is the keyboard route; one tab stop per day (42 a month)
+        // would bury everything below the calendar. These stay for pointer and touch use, and for
+        // a screen reader's own navigation.
+        addBtn.tabIndex = -1;
         addBtn.innerHTML =
           '<svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true">' +
           '<path d="M6 1v10M1 6h10" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>' +

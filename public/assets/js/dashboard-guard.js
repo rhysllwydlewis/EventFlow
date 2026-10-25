@@ -95,12 +95,16 @@
       // your plans") use the top, and the two must not sit on top of each other.
       notice.className = 'cdh-toast cdh-toast--slow';
       notice.setAttribute('role', 'status');
-      const title = document.createElement('strong');
-      title.textContent = 'Taking longer than usual';
-      const text = document.createElement('span');
-      text.textContent = 'Your dashboard is still loading. Nothing has been lost.';
-      notice.append(title, text);
       document.body.appendChild(notice);
+      // A screen reader announces a live region when its text changes, not when it is inserted
+      // already holding text. So the region goes on the page empty and the words follow.
+      window.setTimeout(() => {
+        const title = document.createElement('strong');
+        title.textContent = 'Taking longer than usual';
+        const text = document.createElement('span');
+        text.textContent = 'Your dashboard is still loading. Nothing has been lost.';
+        notice.append(title, text);
+      }, 50);
     }
 
     function hideSlowNotice() {
@@ -342,8 +346,11 @@
     notice.setAttribute('role', 'status');
     notice.style.cssText =
       'position: fixed; top: 24px; left: 50%; transform: translateX(-50%); z-index: 2147483647; max-width: calc(100vw - 32px); padding: 12px 16px; border-radius: 8px; background: #111827; color: #fff; font: 14px/1.4 system-ui, -apple-system, sans-serif; box-shadow: 0 4px 16px rgba(0,0,0,0.25);';
-    notice.textContent = 'Still checking that you are signed in…';
     document.documentElement.appendChild(notice);
+    // Added empty, then filled, so that it is announced (see showSlowNotice).
+    window.setTimeout(() => {
+      notice.textContent = 'Still checking that you are signed in…';
+    }, 50);
   }
 
   function hideAuthNotice() {

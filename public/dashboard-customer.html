@@ -22,7 +22,7 @@
          runtime — there is no separate CSS file in the package. The <link>
          that previously pointed to index.global.min.css returned a 404 on
          every page load and has been removed. -->
-    <script src="/assets/js/dashboard-guard.js?v=18.4.2"></script>
+    <script src="/assets/js/dashboard-guard.js?v=18.4.3"></script>
     <link rel="stylesheet" href="/messenger/css/messenger-widget-v4.css" />
     <link rel="icon" href="/favicon.ico" sizes="any">
     <link rel="icon" type="image/svg+xml" href="/favicon.svg">
@@ -33,10 +33,11 @@
     <link rel="mask-icon" href="/safari-pinned-tab.svg" color="#0B8073">
     <link rel="manifest" href="/site.webmanifest">
     <meta name="msapplication-config" content="/browserconfig.xml">
-    <link rel="stylesheet" href="/assets/css/signed-in-mobile-fixes.css" />
+    <link rel="stylesheet" href="/assets/css/signed-in-mobile-fixes.css?v=1.1.0" />
   <link rel="stylesheet" href="/assets/css/eventflow-footer.css">
 </head>
   <body class="customer-dashboard-page cdh-page">
+    <a class="ef-skip-link" href="#main-content">Skip to main content</a>
     <!-- TOP NAVBAR - GOLD STANDARD REBUILD -->
     <header class="ef-header" role="banner">
       <div class="ef-container">
@@ -160,10 +161,11 @@
     <!-- Burger menu - simple standalone implementation -->
     <script src="/assets/js/burger-menu.js?v=1.1.0" defer></script>
     <script src="/assets/js/navbar.js?v=1.3.0" defer></script>
+    <script src="/assets/js/utils/keyboard-a11y.js?v=1.0.0" defer></script>
     <script src="/assets/js/notifications.js?v=2.0.3" defer></script>
 
     <script src="/assets/js/websocket-client.js?v=2.0.1" defer></script>
-    <main id="main-content" class="cdh">
+    <main id="main-content" class="cdh" tabindex="-1">
       <div class="cdh-wrap">
         <!-- Wrong-account-type recovery. Switching customer → supplier has
              always been possible in Settings, but that is not where someone
@@ -272,7 +274,7 @@
                 </div>
                 <div class="cdh-card__actions">
                   <span id="wedding-website-status-pill" class="customer-wedding-status-pill cdh-pill">Not started</span>
-                  <button type="button" class="cdh-btn cdh-btn--primary ww-card-open-app-btn" aria-label="Open Wedding Website and RSVPs app">
+                  <button type="button" class="cdh-btn cdh-btn--primary ww-card-open-app-btn" aria-label="Open app, Wedding Website and RSVPs">
                     Open app
                   </button>
                 </div>
@@ -288,7 +290,7 @@
                   <p class="cdh-card__sub">Meetings, appointments and events you have saved.</p>
                 </div>
                 <div class="cdh-card__actions">
-                  <button type="button" id="cal-add-entry-btn" class="cdh-btn cdh-btn--secondary cdh-btn--sm" aria-label="Add calendar entry">
+                  <button type="button" id="cal-add-entry-btn" class="cdh-btn cdh-btn--secondary cdh-btn--sm" aria-label="Add entry to calendar">
                     <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
                       <path d="M7 1.5v11M1.5 7h11" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" />
                     </svg>
@@ -360,7 +362,7 @@
                   <h2 id="cdh-saved-title" class="cdh-card__title">Saved suppliers</h2>
                 </div>
                 <div class="cdh-card__actions">
-                  <a href="/suppliers" class="cdh-link">Browse</a>
+                  <a href="/suppliers" class="cdh-link" aria-label="Browse suppliers">Browse</a>
                 </div>
               </div>
               <div class="cdh-card__body">
@@ -403,11 +405,12 @@
     <script src="/assets/js/unread-badge-manager.js?v=18.3.0" defer></script>
     <script type="module" src="/assets/js/customer-tickets.js?v=18.3.4"></script>
     <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.js" defer></script>
-    <script src="/assets/js/calendar-view.js?v=2.0.1" defer></script>
-    <script src="/assets/js/pages/customer-wedding-website.js?v=2.0.7" defer></script>
+    <script src="/assets/js/utils/overlay-focus.js?v=1.0.0" defer></script>
+    <script src="/assets/js/calendar-view.js?v=2.0.2" defer></script>
+    <script src="/assets/js/pages/customer-wedding-website.js?v=2.0.8" defer></script>
     <script src="/assets/js/utils/package-price.js?v=1.0.0" defer></script>
-    <script src="/assets/js/pages/customer-dashboard-home.js?v=1.0.6" defer></script>
-    <script src="/assets/js/pages/dashboard-customer-init.js?v=2.0.3" defer></script>
+    <script src="/assets/js/pages/customer-dashboard-home.js?v=1.0.7" defer></script>
+    <script src="/assets/js/pages/dashboard-customer-init.js?v=2.0.4" defer></script>
     <!-- BOTTOM NAVBAR - GOLD STANDARD REBUILD (Mobile Only) -->
     <nav class="ef-bottom-nav" role="navigation" aria-label="Mobile bottom navigation">
       <a href="/start" class="ef-bottom-link" aria-label="Plan your event">
@@ -564,7 +567,7 @@
     <script src="/assets/js/announcement-banner.js?v=1.0.0" defer></script>
 
     <script src="/assets/js/utils/supplier-link.js" defer></script>
-    <script src="/assets/js/recommendations-widget.js?v=2.1.1" defer></script>
+    <script src="/assets/js/recommendations-widget.js?v=2.1.2" defer></script>
     <script src="/assets/js/keyboard-shortcuts.js?v=1.0.1" defer></script>
     <script src="/assets/js/vendor/confetti-safe.js?v=18.3.0" defer></script>
     <script src="/assets/js/utils/p3-features.js" defer></script>
@@ -575,7 +578,7 @@
     <script src="/assets/js/jadeassist-init.v2.js" defer></script>
 
     <!-- Messenger Components -->
-    <script src="/messenger/js/MessengerWidgetV4.js?v=1.0.3" defer></script>
+    <script src="/messenger/js/MessengerWidgetV4.js?v=1.0.4" defer></script>
     <script src="/messenger/js/MessengerTrigger.js" defer></script>
     <script src="/messenger/js/NotificationBridgeV4.js" defer></script>
     <script src="/assets/js/pages/dashboard-customer-messenger.js"></script>
