@@ -11,7 +11,7 @@
  * - Real-time: WebSocket support for notifications and messaging
  * - Payments: Stripe integration for subscriptions
  * - AI: OpenAI integration for event planning assistance (optional)
- * - Email: Postmark for transactional emails, dev mode writes to /outbox
+ * - Email: Postmark for transactional emails, dev mode writes metadata (not bodies) to /outbox
  *
  * STRUCTURE:
  * 1. Dependencies & Configuration
@@ -110,6 +110,9 @@ const { calculateLeadScore } = require('./utils/leadScoring');
 
 // Geocoding utilities
 const geocoding = require('./utils/geocoding');
+
+// Railway PR previews: never use live Stripe keys or send real email (no-op everywhere else)
+require('./utils/previewSafety').logPreviewSafetyOnce();
 
 // Initialize Stripe
 const STRIPE_ENABLED = stripeConfig.initializeStripe();

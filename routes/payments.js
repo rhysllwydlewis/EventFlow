@@ -7,6 +7,7 @@
 
 const express = require('express');
 const logger = require('../utils/logger');
+const { getSafeStripeSecretKey, billingUnavailableBody } = require('../utils/previewSafety');
 const { authRequired } = require('../middleware/auth');
 const { writeLimiter } = require('../middleware/rateLimits');
 const { csrfProtection } = require('../middleware/csrf');
@@ -26,7 +27,7 @@ let stripe = null;
 let STRIPE_ENABLED = false;
 
 try {
-  const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
+  const stripeSecretKey = getSafeStripeSecretKey();
   if (stripeSecretKey) {
     // eslint-disable-next-line global-require
     const stripeLib = require('stripe');
@@ -52,10 +53,12 @@ const INTRO_PRICING_ENABLED = Boolean(
 
 function ensureStripeEnabled(req, res, next) {
   if (!STRIPE_ENABLED || !stripe) {
-    return res.status(503).json({
-      error: 'Payment processing is not available',
-      message: 'Stripe is not configured. Please contact support.',
-    });
+    return res.status(503).json(
+      billingUnavailableBody({
+        error: 'Payment processing is not available',
+        message: 'Stripe is not configured. Please contact support.',
+      })
+    );
   }
   next();
 }
@@ -295,7 +298,7 @@ router.post('/webhook', express.raw({ type: 'application/json' }), async (req, r
   );
 
   if (!STRIPE_ENABLED || !stripe) {
-    return res.status(503).json({ error: 'Stripe not configured' });
+    return res.status(503).json(billingUnavailableBody({ error: 'Stripe not configured' }));
   }
 
   let event;

@@ -2,6 +2,7 @@
 
 const express = require('express');
 const logger = require('../utils/logger');
+const { getSafeStripeSecretKey, billingUnavailableBody } = require('../utils/previewSafety');
 const { authRequired, roleRequired } = require('../middleware/auth');
 const { writeLimiter } = require('../middleware/rateLimits');
 const { csrfProtection } = require('../middleware/csrf');
@@ -23,8 +24,9 @@ let stripe = null;
 let STRIPE_ENABLED = false;
 
 try {
-  if (process.env.STRIPE_SECRET_KEY) {
-    stripe = require('stripe')(process.env.STRIPE_SECRET_KEY, { apiVersion: '2025-12-15.clover' });
+  const stripeSecretKey = getSafeStripeSecretKey();
+  if (stripeSecretKey) {
+    stripe = require('stripe')(stripeSecretKey, { apiVersion: '2025-12-15.clover' });
     STRIPE_ENABLED = true;
   }
 } catch (err) {
@@ -46,7 +48,9 @@ const LEGACY_CHECKOUT_PRICE_ALIASES = {
 
 function ensureStripeEnabled(req, res, next) {
   if (!STRIPE_ENABLED || !stripe) {
-    return res.status(503).json({ error: 'Payment processing is not available' });
+    return res
+      .status(503)
+      .json(billingUnavailableBody({ error: 'Payment processing is not available' }));
   }
   return next();
 }
