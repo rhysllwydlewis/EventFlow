@@ -14,8 +14,9 @@
  * Outside a PR preview (production, staging, local development, tests, anything that does not match
  * the pattern below) every function here is a pass-through, so behaviour is unchanged.
  *
- * Also owns the rule for when the local outbox fallback may keep a full email body
- * (EVENTFLOW_OUTBOX_FULL=1 in development, or NODE_ENV=test), see isFullOutboxAllowed().
+ * Also owns the rule for when a full copy of an email may be kept IN MEMORY (utils/devMailbox.js;
+ * never in the outbox files): EVENTFLOW_OUTBOX_FULL=1 in development, or NODE_ENV=test, see
+ * isFullOutboxAllowed().
  *
  * See docs/PREVIEW_ENVIRONMENTS.md.
  */
@@ -241,10 +242,11 @@ function evaluateMailPolicy(to, env = process.env) {
 }
 
 /**
- * May the local outbox fallback keep the full email (body, links, the text a user typed)?
+ * May a full copy of an email (body, links, the text a user typed) be kept in memory
+ * (utils/devMailbox.js, never in the outbox files)?
  * Only in development with EVENTFLOW_OUTBOX_FULL=1 (or true), or when NODE_ENV is "test" (the
- * browser tests read the verification link from the outbox). Never in production and never in a PR
- * preview, whatever the switch says.
+ * browser tests read the verification link through GET /__e2e/mail). Never in production and never
+ * in a PR preview, whatever the switch says.
  * @param {Object} [env] - Environment variables (defaults to process.env)
  * @returns {boolean}
  */

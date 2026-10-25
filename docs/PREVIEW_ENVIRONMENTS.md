@@ -81,14 +81,15 @@ Leave it empty to send nothing at all.
 ## The outbox (where held-back email goes)
 
 When no mail provider is set up, or an email is held back in a preview, the server writes a small
-file into `outbox/` and does not send anything. By default the file only says: when, a masked
-recipient (`j****@example.com`), the sender, which template, and a message id. It never contains the
+file into `outbox/` and does not send anything. The file only says: when, how many
+recipients, which template, and a message id. It never contains the
 subject, the body, any link, or text a user typed. (The Email Centre in the admin still lists the
 send as `outbox`.)
 
-To keep full emails for local debugging, set `EVENTFLOW_OUTBOX_FULL=1` in your local `.env`. This is
-ignored in production and in previews. The automated browser tests (`NODE_ENV=test`) always keep the
-full email because they follow the verification link in it.
+The file never holds an address, subject or body, in any environment. The automated browser tests
+(`NODE_ENV=test`, or `EVENTFLOW_OUTBOX_FULL=1` in local development) keep the full email in the
+server's memory instead, and read it from the test-only `GET /__e2e/mail` route to follow the
+verification link. That is ignored in production and in previews.
 
 Because previews never keep the link, a reviewer who signs up on a preview will not get a
 verification email unless their address is allowlisted. Use the seeded reviewer account below, or an

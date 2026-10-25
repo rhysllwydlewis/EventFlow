@@ -1,10 +1,10 @@
 /**
  * utils/postmark.js outbox fallback and preview suppression.
  *
- * The outbox is a development fallback (never served). By default it must hold metadata only: no
- * subject, no body, no links, nothing a user typed. The full email is kept only with
- * EVENTFLOW_OUTBOX_FULL=1 in development or when NODE_ENV=test, and never in production or a PR
- * preview. In a PR preview no real email goes out unless every recipient is allowlisted.
+ * The outbox is a development fallback (never served). The files in it hold metadata only: no
+ * address, subject, body, link or anything a user typed. The full email is kept (in memory, in
+ * utils/devMailbox.js, never on disk) only with EVENTFLOW_OUTBOX_FULL=1 in development or when
+ * NODE_ENV=test, and never in production or a PR preview. In a PR preview no real email goes out unless every recipient is allowlisted.
  *
  * @jest-environment node
  */
@@ -83,7 +83,7 @@ afterEach(() => {
 });
 
 describe('outbox fallback (no mail provider configured)', () => {
-  test('writes metadata only by default: no body, no subject, no link, no full address', async () => {
+  test('writes metadata only: no body, no subject, no link, no address', async () => {
     const postmark = load();
     const result = await postmark.sendMail(mail({ template: undefined }));
 
@@ -92,10 +92,10 @@ describe('outbox fallback (no mail provider configured)', () => {
     expect(writes).toHaveLength(1);
     const { content } = writes[0];
     expect(content).toContain('X-EventFlow-Outbox: metadata-only');
-    expect(content).toMatch(/^To: j\*+@example\.com$/m);
+    expect(content).toMatch(/^Recipients: 1$/m);
+    expect(content).not.toMatch(/^To:/m);
     expect(content).toMatch(/^Message-Id: outbox-\d+$/m);
     expect(content).toMatch(/^Date: \d{4}-\d\d-\d\dT/m);
-    expect(content).toMatch(/^From: /m);
     expect(content).toMatch(/^Template: none/m);
     expect(content).not.toContain('SECRET-ENQUIRY-REPLY-TEXT');
     expect(content).not.toContain('token=abc123');
@@ -120,50 +120,58 @@ describe('outbox fallback (no mail provider configured)', () => {
     expect(writes[0].content).not.toContain('Jane Smith');
   });
 
-  test('masks every recipient of a multi-recipient send', async () => {
+  test('counts the recipients of a multi-recipient send without naming them', async () => {
     const postmark = load();
     await postmark.sendMail(mail({ to: ['alice@a.test', 'Bob <bob@b.test>'] }));
-    expect(writes[0].content).toMatch(/^To: a\*+@a\.test, b\*+@b\.test$/m);
+    expect(writes[0].content).toMatch(/^Recipients: 2$/m);
+    expect(writes[0].content).not.toContain('alice');
+    expect(writes[0].content).not.toContain('bob');
   });
 
   test('a header-injection attempt in the template name cannot add lines', async () => {
     const postmark = load();
     await postmark.sendMail(mail({ template: 'x\nBcc: evil@example.com' }));
     expect(writes[0].content).not.toMatch(/^Bcc:/m);
+    expect(writes[0].content).not.toContain('evil@example.com');
+    expect(writes[0].content).toMatch(/^Template: none/m);
   });
 
-  test('EVENTFLOW_OUTBOX_FULL=1 in development keeps the full email', async () => {
+  test('EVENTFLOW_OUTBOX_FULL=1 in development keeps the full email in memory, not on disk', async () => {
     const postmark = load({ EVENTFLOW_OUTBOX_FULL: '1' });
     await postmark.sendMail(mail());
-    const { content } = writes[0];
-    expect(content).toContain('To: jane.smith@example.com');
-    expect(content).toContain(`Subject: ${SUBJECT}`);
-    expect(content).toContain(SECRET_BODY);
-  });
-
-  test('NODE_ENV=test keeps the full email (the browser tests read the link from it)', async () => {
-    const postmark = load({ NODE_ENV: 'test' });
-    await postmark.sendMail(mail());
-    expect(writes[0].file).toMatch(/email-\d+\.eml$/);
-    expect(writes[0].content).toMatch(/^To: jane\.smith@example\.com$/m);
-    expect(writes[0].content).toMatch(/^Subject: Re: your enquiry/m);
-    expect(writes[0].content).toContain('token=abc123');
-  });
-
-  test('EVENTFLOW_OUTBOX_FULL=1 is ignored in production', async () => {
-    const postmark = load({ NODE_ENV: 'production', EVENTFLOW_OUTBOX_FULL: '1' });
-    await postmark.sendMail(mail());
+    const kept = require('../../utils/devMailbox').findNewestTo('jane.smith@example.com');
+    expect(kept.subject).toBe(SUBJECT);
+    expect(kept.text).toContain(SECRET_BODY);
+    expect(writes).toHaveLength(1);
     expect(writes[0].content).toContain('metadata-only');
     expect(writes[0].content).not.toContain('SECRET-ENQUIRY-REPLY-TEXT');
+    expect(writes[0].content).not.toContain('jane.smith');
   });
 
-  test('EVENTFLOW_OUTBOX_FULL=1 and NODE_ENV=test are ignored in a PR preview', async () => {
+  test('NODE_ENV=test keeps the full email in memory (the browser tests read the link from it)', async () => {
+    const postmark = load({ NODE_ENV: 'test' });
+    await postmark.sendMail(mail());
+    const kept = require('../../utils/devMailbox').findNewestTo('Jane.Smith@example.com');
+    expect(kept.subject).toMatch(/^Re: your enquiry/);
+    expect(kept.html).toContain('token=abc123');
+    expect(writes[0].file).toMatch(/email-\d+\.eml$/);
+    expect(writes[0].content).not.toContain('token=abc123');
+  });
+
+  test('nothing is kept in memory by default, in production or in a PR preview', async () => {
     for (const env of [
-      { NODE_ENV: 'development', EVENTFLOW_OUTBOX_FULL: '1' },
-      { NODE_ENV: 'test', EVENTFLOW_OUTBOX_FULL: '1' },
+      {},
+      { NODE_ENV: 'production', EVENTFLOW_OUTBOX_FULL: '1' },
+      {
+        NODE_ENV: 'development',
+        EVENTFLOW_OUTBOX_FULL: '1',
+        RAILWAY_ENVIRONMENT_NAME: 'EventFlow-pr-77',
+      },
+      { NODE_ENV: 'test', EVENTFLOW_OUTBOX_FULL: '1', RAILWAY_ENVIRONMENT_NAME: 'EventFlow-pr-77' },
     ]) {
-      const postmark = load({ ...env, RAILWAY_ENVIRONMENT_NAME: 'EventFlow-pr-77' });
+      const postmark = load(env);
       await postmark.sendMail(mail());
+      expect(require('../../utils/devMailbox').findNewestTo('jane.smith@example.com')).toBeNull();
       expect(writes[0].content).toContain('metadata-only');
       expect(writes[0].content).not.toContain('SECRET-ENQUIRY-REPLY-TEXT');
     }

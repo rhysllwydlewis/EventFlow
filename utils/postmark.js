@@ -59,6 +59,7 @@ const fs = require('fs');
 const crypto = require('crypto');
 const emailLogService = require('../services/emailLog.service');
 const { buildEmailButton } = require('./emailComponents');
+const devMailbox = require('./devMailbox');
 const { evaluateMailPolicy, isFullOutboxAllowed, extractAddresses } = require('./previewSafety');
 
 // Lazy-load Postmark to avoid errors if not configured
@@ -209,7 +210,7 @@ const CONTROL_CHARS = /[\u0000-\u001f\u007f\u2028\u2029]+/gu;
  */
 function singleLine(value) {
   return String(value === null || value === undefined ? '' : value)
-    .replace(/[\r\n]+/gu, ' ')
+    .replace(/[\r\n]/g, ' ')
     .replace(CONTROL_CHARS, ' ');
 }
 
@@ -662,11 +663,13 @@ async function sendMail(options) {
 /**
  * Save a record of an email to the outbox folder (development fallback, never served).
  *
- * By default only metadata is written: masked recipient(s), sender, template name, timestamp and
- * message id. The subject and body are NOT stored, because they carry verification and reset links
- * and text that users typed (for example a supplier's enquiry reply). The full email is written only
- * when isFullOutboxAllowed() says so: EVENTFLOW_OUTBOX_FULL=1 in development, or NODE_ENV=test (the
- * browser tests read the verification link from here); never in production or a PR preview.
+ * Only metadata reaches the disk: timestamp, message id, how many recipients, the sender and the
+ * template name. Never an address, the subject or the body, because those carry verification and
+ * reset links and text that users typed (for example a supplier's enquiry reply), and request data
+ * must not be written to files. Where a full copy is wanted, isFullOutboxAllowed() decides
+ * (EVENTFLOW_OUTBOX_FULL=1 in development, or NODE_ENV=test; never in production or a PR preview)
+ * and the copy is kept in this process's memory (utils/devMailbox.js). The browser tests read it
+ * through the test-only GET /__e2e/mail route.
  *
  * @param {Object} emailData - Email data (To, From, Subject, HtmlBody/TextBody)
  * @param {Object} [meta] - Non-sensitive details
@@ -682,49 +685,49 @@ function saveEmailToOutbox(emailData, meta = {}) {
 
     const timestamp = Date.now();
     const filename = `email-${timestamp}.eml`;
-    const content = isFullOutboxAllowed()
-      ? buildFullOutboxContent(emailData)
-      : buildMetadataOutboxContent(emailData, meta, timestamp);
+    const recipientCount = extractAddresses(emailData.To).length;
+    const content = buildMetadataOutboxContent(recipientCount, meta, timestamp);
 
     fs.writeFileSync(path.join(outboxDir, filename), content, 'utf8');
     logger.info(`Email saved to outbox: ${filename}`);
+
+    if (isFullOutboxAllowed()) {
+      devMailbox.remember({
+        to: emailData.To,
+        from: emailData.From,
+        subject: emailData.Subject,
+        html: emailData.HtmlBody,
+        text: emailData.TextBody,
+      });
+    }
   } catch (err) {
     logger.error('Failed to save email to outbox:', err.message);
   }
 }
 
 /**
- * Metadata-only outbox record: nothing from the subject or body.
- * @param {Object} emailData - Email data (only To and From are read)
+ * Metadata-only outbox record: no address, no subject, nothing from the body.
+ * @param {number} recipientCount - How many recipients the email had
  * @param {Object} meta - { template, messageId }
  * @param {number} timestamp - Epoch milliseconds
  * @returns {string} File content
  */
-function buildMetadataOutboxContent(emailData, meta, timestamp) {
-  const recipients = extractAddresses(emailData.To).map(maskEmail).join(', ') || '***';
-  const template = typeof meta.template === 'string' ? singleLine(meta.template) : '';
+function buildMetadataOutboxContent(recipientCount, meta, timestamp) {
+  const template =
+    typeof meta.template === 'string' && /^[\w.-]{1,64}$/.test(meta.template) ? meta.template : '';
+  const messageId =
+    typeof meta.messageId === 'string' && /^outbox-\d+$/.test(meta.messageId)
+      ? meta.messageId
+      : `outbox-${timestamp}`;
   return `X-EventFlow-Outbox: metadata-only
 Date: ${new Date(timestamp).toISOString()}
-Message-Id: ${singleLine(meta.messageId || `outbox-${timestamp}`)}
-To: ${singleLine(recipients)}
-From: ${singleLine(emailData.From)}
+Message-Id: ${messageId}
+Recipients: ${Number(recipientCount) || 0}
 Template: ${template || 'none (custom message)'}
 
-(Body not stored. Set EVENTFLOW_OUTBOX_FULL=1 in local development to keep full emails here.)
-`;
-}
-
-/**
- * Full outbox record, only used where isFullOutboxAllowed() is true.
- * @param {Object} emailData - Email data
- * @returns {string} File content
- */
-function buildFullOutboxContent(emailData) {
-  return `To: ${singleLine(emailData.To)}
-From: ${singleLine(emailData.From)}
-Subject: ${singleLine(emailData.Subject)}
-
-${emailData.HtmlBody || emailData.TextBody}
+(Addresses, subject and body are not stored on disk. Set EVENTFLOW_OUTBOX_FULL=1 in local
+development, or run with NODE_ENV=test, to keep the full email in memory for the test-only
+GET /__e2e/mail route.)
 `;
 }
 

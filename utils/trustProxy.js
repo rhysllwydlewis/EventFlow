@@ -124,6 +124,9 @@ function compileRange(cidr, v6) {
   return { v6, network, mask };
 }
 
+/** Longest text accepted as an address (45 for IPv6 with an IPv4 tail, plus room for a zone id). */
+const MAX_ADDRESS_LENGTH = 64;
+
 const RANGES = [
   ...CLOUDFLARE_IPV4.map(cidr => compileRange(cidr, false)),
   ...CLOUDFLARE_IPV6.map(cidr => compileRange(cidr, true)),
@@ -136,7 +139,10 @@ const RANGES = [
  * @returns {boolean} True for a Cloudflare address
  */
 function isCloudflareAddress(address) {
-  if (typeof address !== 'string' || !address) {
+  // The longest textual IP address is 45 characters (IPv6 with an embedded IPv4 tail); a zone id
+  // adds a few more. Anything longer is not an address, and `X-Forwarded-For` is attacker-controlled
+  // text, so it is rejected before any pattern is applied to it.
+  if (typeof address !== 'string' || !address || address.length > MAX_ADDRESS_LENGTH) {
     return false;
   }
   // Drop an IPv6 zone ("fe80::1%eth0") and unwrap an IPv4 address carried inside IPv6.
