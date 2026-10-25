@@ -56,6 +56,7 @@
   }
 
   const API_TIMEOUT_MS = 20000;
+  const RECENT_USERS_LIMIT = 20;
 
   function api(url, method, body) {
     const opts = {
@@ -130,6 +131,7 @@
       });
   }
   let allUsers = [];
+  let recentUsersFailed = false;
   let allSuppliers = [];
   let allPackages = [];
   let summary = null; // populated by /users/summary; shared with renderAnalytics
@@ -293,8 +295,11 @@
     if (isOwner) {
       return '<span class="badge badge-owner" title="Protected owner account: cannot be deleted or demoted">Owner</span>';
     }
-    const [cls, label] = ROLE_BADGES[u.role] || ROLE_BADGES.customer;
-    return `<span class="badge ${cls}">${label}</span>`;
+    const known = ROLE_BADGES[u.role];
+    if (!known) {
+      return `<span class="badge">${escapeHtml(humanize(u.role))}</span>`;
+    }
+    return `<span class="badge ${known[0]}">${known[1]}</span>`;
   }
 
   function userRowHtml(u) {
@@ -325,7 +330,11 @@
       '<thead><tr><th scope="col">User</th><th scope="col">Role</th><th scope="col">Verification</th><th scope="col">Joined</th><th scope="col">Actions</th></tr></thead>';
     const body = users.length
       ? users.map(userRowHtml).join('')
-      : '<tr><td colspan="5" class="admin-messenger-state">No users match.</td></tr>';
+      : `<tr><td colspan="5" class="admin-messenger-state">${
+          recentUsersFailed
+            ? 'Recent users could not be loaded. Use Refresh to try again.'
+            : 'No users match.'
+        }</td></tr>`;
     el.innerHTML = `${head}<tbody>${body}</tbody>`;
   }
 
@@ -370,6 +379,7 @@
     }
 
     const counts = (metrics && metrics.counts) || {};
+    const metricsFailed = !!(metrics && metrics.__error);
     const byRole = counts.usersByRole || {};
     const roleParts =
       Object.keys(byRole)
@@ -394,8 +404,20 @@
       }).length;
     }
 
-    const last7 = countSince(7);
-    const last30 = countSince(30);
+    // allUsers holds only the 20 most recent accounts, so a count taken from it stops at 20. The 7-day
+    // figure comes from the summary service; the 30-day one is shown as "20+" when the list is full
+    // and its oldest account is still inside the window (the true figure is in Users Centre).
+    function signupsSince(days) {
+      const count = countSince(days);
+      const oldest = usersList.length ? Date.parse(usersList[usersList.length - 1].createdAt) : NaN;
+      const cutoff = Date.now() - days * 24 * 60 * 60 * 1000;
+      return usersList.length >= RECENT_USERS_LIMIT && oldest >= cutoff ? `${count}+` : count;
+    }
+    const last7 =
+      summary && Number.isFinite(Number(summary.newLast7))
+        ? Number(summary.newLast7)
+        : signupsSince(7);
+    const last30 = signupsSince(30);
 
     // Update stat cards with animated counters
     const totalUsersEl = document.getElementById('totalUsersCount');
@@ -678,7 +700,9 @@
       const suppliersChangeEl = document.getElementById('totalSuppliersChange');
       if (suppliersChangeEl) {
         const pending = counts.pendingSuppliers || 0;
-        if (pending > 0) {
+        if (metricsFailed) {
+          suppliersChangeEl.textContent = '—';
+        } else if (pending > 0) {
           suppliersChangeEl.textContent = `${pending} pending`;
         } else {
           suppliersChangeEl.textContent = 'All approved';
@@ -691,7 +715,9 @@
       const packagesChangeEl = document.getElementById('totalPackagesChange');
       if (packagesChangeEl) {
         const pending = counts.pendingPackages || 0;
-        if (pending > 0) {
+        if (metricsFailed) {
+          packagesChangeEl.textContent = '—';
+        } else if (pending > 0) {
           packagesChangeEl.textContent = `${pending} pending`;
         } else {
           packagesChangeEl.textContent = 'All approved';
@@ -699,6 +725,11 @@
       }
     })();
 
+    if (metricsFailed) {
+      el.innerHTML =
+        '<div class="card"><p>Platform totals could not be loaded. Use Refresh to try again.</p></div>';
+      return;
+    }
     el.innerHTML =
       `<div class="card">` +
       `<p><strong>Total Users:</strong> ${counts.usersTotal || 0}</p>` +
@@ -713,9 +744,10 @@
       `</div>`;
   }
 
-  // What is waiting for the admin, in the order it should be dealt with. A count of null means the
-  // request failed, which is different from "nothing waiting" and is shown as such.
-  const queueCounts = { suppliers: null, photos: null, reviews: null, reports: null };
+  // What is waiting for the admin, in the order it should be dealt with. undefined means the request
+  // has not answered yet; null means it failed, which is different from "nothing waiting" and is
+  // shown as such.
+  const queueCounts = {};
   const QUEUES = [
     {
       key: 'suppliers',
@@ -754,6 +786,7 @@
       return;
     }
     const waiting = QUEUES.filter(q => queueCounts[q.key] > 0);
+    const loading = QUEUES.some(q => queueCounts[q.key] === undefined);
     const unknown = QUEUES.some(q => queueCounts[q.key] === null);
     if (waiting.length) {
       const first = waiting[0];
@@ -766,6 +799,8 @@
         primary.textContent = first.action;
         primary.setAttribute('href', first.href);
       }
+    } else if (loading) {
+      nextEl.textContent = 'Checking what needs you…';
     } else if (unknown) {
       nextEl.textContent = 'Some queue counts could not be loaded. Use Refresh to try again.';
     } else {
@@ -809,6 +844,10 @@
       statusEl.textContent = 'Checking admin…';
       statusEl.classList.add('is-loading');
     }
+    QUEUES.forEach(q => {
+      queueCounts[q.key] = undefined;
+    });
+    updateNext();
 
     api('/api/v1/auth/me')
       .then(me => {
@@ -824,6 +863,10 @@
             statusEl.textContent = 'Access denied.';
             statusEl.style.background = 'rgba(254,242,242,0.95)';
             statusEl.style.color = '#991b1b';
+          }
+          const nextEl = document.getElementById('adhNext');
+          if (nextEl) {
+            nextEl.textContent = 'This page is for administrators.';
           }
           // Hide all dashboard content sections so unauthorised users
           // don't see the empty admin UI chrome
@@ -848,7 +891,7 @@
           }),
           api('/api/admin/metrics').catch(err => {
             console.warn('Failed to load metrics:', err.message);
-            return { counts: {} };
+            return { counts: {}, __error: true };
           }),
           api('/api/admin/photos/pending').catch(err => {
             console.warn('Failed to load pending photos:', err.message);
@@ -875,10 +918,14 @@
           // Load a small set of recent users for the dashboard table (most-recent 20).
           // The full paginated list lives in the Users Centre.
           try {
-            const recentData = await api('/api/admin/users/list?limit=20&page=1');
+            const recentData = await api(
+              `/api/admin/users/list?limit=${RECENT_USERS_LIMIT}&page=1`
+            );
             allUsers = (recentData && recentData.items) || [];
+            recentUsersFailed = false;
           } catch (_) {
             allUsers = [];
+            recentUsersFailed = true;
           }
 
           // Reset supplier/package caches so edits refetch fresh data after a reload
@@ -916,11 +963,13 @@
             });
 
           if (statusEl) {
-            statusEl.textContent = summary
-              ? `${summary.total || 0} users · ${summary.suppliers ? summary.suppliers.total : 0} suppliers`
-              : summaryLoadFailed
-                ? 'Dashboard loaded with warnings.'
-                : 'Dashboard loaded.';
+            statusEl.textContent = metricsResp.__error
+              ? 'Dashboard loaded with warnings.'
+              : summary
+                ? `${summary.total || 0} users · ${summary.suppliers ? summary.suppliers.total : 0} suppliers`
+                : summaryLoadFailed
+                  ? 'Dashboard loaded with warnings.'
+                  : 'Dashboard loaded.';
             statusEl.classList.remove('is-loading');
           }
         });
@@ -937,6 +986,10 @@
         ) {
           statusEl.textContent = 'Error loading data. Some features may be unavailable.';
           statusEl.classList.remove('is-loading');
+          const nextEl = document.getElementById('adhNext');
+          if (nextEl) {
+            nextEl.textContent = 'The dashboard could not be loaded. Use Refresh to try again.';
+          }
         }
       });
   }

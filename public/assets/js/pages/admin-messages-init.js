@@ -52,7 +52,7 @@
   // Build a single conversation row. The page's own stylesheet turns it into a small card on
   // narrow screens, so one markup serves both.
   function buildRow(conv) {
-    const id = escapeHtml(conv._id || '');
+    const id = encodeURIComponent(conv._id || '');
     const unread = unreadTotal(conv);
     const dateStr = formatDate(conv.updatedAt || (conv.lastMessage && conv.lastMessage.sentAt));
     const openLink = `<a href="/admin-messenger-view?conversation=${id}" class="adh-btn adh-btn--sm" target="_blank" rel="noopener">Open</a>`;

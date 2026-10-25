@@ -71,6 +71,12 @@ body.adh-page {
   line-height: 1.5;
 }
 
+/* The hero actions, summary and grid set their own display, which would otherwise beat the
+   [hidden] attribute that admin-init.js uses to hide the page from a non-admin. */
+.adh-page .adh [hidden] {
+  display: none !important;
+}
+
 .adh-page .adh p,
 .adh-page .adh h1,
 .adh-page .adh h2,
@@ -610,6 +616,7 @@ body.adh-page {
 
 .adh-page .adh-linkrow::after {
   content: '›';
+  content: '›' / '';
   color: var(--adh-muted);
   font-size: 18px;
 }

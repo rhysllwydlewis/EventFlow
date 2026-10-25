@@ -26,19 +26,29 @@ const users = [
   { id: 'u1', name: 'Ada Lovelace', email: 'ada@example.test', role: 'customer', verified: true, createdAt: '2026-10-20T10:00:00Z', signupMethod: 'google', authProvider: 'google' },
   { id: 'u2', name: 'Bob <b>Bold</b>', email: 'bob@example.test', role: 'supplier', verified: false, createdAt: '2026-10-21T10:00:00Z' },
 ];
+const day = 24 * 60 * 60 * 1000;
+const manyUsers = Array.from({ length: 20 }, (_, i) => ({ id: 'm' + i, name: 'User ' + i, email: 'u' + i + '@example.test', role: i === 0 ? 'moderator' : 'customer', verified: true, createdAt: new Date(Date.now() - (i + 1) * 3600 * 1000).toISOString() }));
+const later = (ms, body) => new Promise(resolve => setTimeout(resolve, ms)).then(() => body);
+let mid = null;
 window.fetch = url => {
   const u = String(url);
-  if (u.includes('/auth/me')) return json({ user: { id: 'a1', role: 'admin', name: 'Rhys Lewis', email: 'a@example.test' } });
-  if (u.includes('/users/summary')) return json({ total: 2, suppliers: { total: 1 }, bySignup: {}, byVerification: {}, issueCount: 0 });
-  if (u.includes('/admin/metrics')) return json({ counts: { usersTotal: 2, suppliersTotal: 1, packagesTotal: 0 } });
+  if (u.includes('/auth/me')) return json({ user: { id: 'a1', role: scenario === 'non-admin' ? 'customer' : 'admin', name: 'Rhys Lewis', email: 'a@example.test' } });
+  if (u.includes('/users/summary')) return json({ total: scenario === 'many-users' ? 40 : 2, newLast7: scenario === 'many-users' ? 25 : 1, suppliers: { total: 1 }, bySignup: {}, byVerification: {}, issueCount: 0 });
+  if (u.includes('/admin/metrics')) return scenario === 'metrics-fail' ? fail() : json({ counts: { usersTotal: 2, suppliersTotal: 1, packagesTotal: 0 } });
   if (u.includes('/photos/pending')) {
     if (scenario === 'photos-fail') return fail();
-    return json({ photos: scenario === 'quiet' ? [] : [{ approved: false }, { approved: false }, { approved: true }] });
+    return json({ photos: scenario === 'quiet' || scenario === 'slow-reports' ? [] : [{ approved: false }, { approved: false }, { approved: true }] });
   }
   if (u.includes('/reviews/pending')) return json({ reviews: [] });
-  if (u.includes('/reports/pending')) return scenario === 'reports-fail' ? fail() : json({ count: scenario === 'quiet' ? 0 : 3 });
-  if (u.includes('/pending-verification')) return json({ count: scenario === 'quiet' ? 0 : 1 });
-  if (u.includes('/users/list')) return json({ items: users });
+  if (u.includes('/reports/pending')) {
+    if (scenario === 'slow-reports') return later(150, { ok: true, status: 200, headers: { get: () => 'application/json' }, json: () => Promise.resolve({ count: 0 }) });
+    return scenario === 'reports-fail' ? fail() : json({ count: scenario === 'quiet' ? 0 : 3 });
+  }
+  if (u.includes('/pending-verification')) return json({ count: scenario === 'quiet' || scenario === 'slow-reports' ? 0 : 1 });
+  if (u.includes('/users/list')) {
+    if (scenario === 'users-fail') return fail();
+    return json({ items: scenario === 'many-users' ? manyUsers : users });
+  }
   return json({});
 };
 window.AdminShared = {
@@ -49,10 +59,15 @@ window.AdminShared = {
   api: url => window.fetch(url),
 };
 window.eval(fs.readFileSync('public/assets/js/pages/admin-init.js', 'utf8'));
+setTimeout(() => { mid = window.document.getElementById('adhNext').textContent; }, 100);
 setTimeout(() => {
   const d = window.document;
   const t = id => { const e = d.getElementById(id); return e && e.textContent; };
   console.log(JSON.stringify({
+    mid, status: t('status'), analytics: t('analytics'),
+    summaryHidden: d.querySelector('.adh-summary').hidden,
+    heroActionsHidden: d.querySelector('.adh-hero__actions').hidden,
+    changeNotes: [t('totalSuppliersChange'), t('totalPackagesChange')],
     greeting: t('adhGreeting'), next: t('adhNext'),
     primary: [t('adhPrimary'), d.getElementById('adhPrimary').getAttribute('href')],
     photos: t('adhPendingPhotosCount'), reviews: t('pendingReviewsCount'),
@@ -61,7 +76,7 @@ setTimeout(() => {
     head: [...d.querySelectorAll('#users thead th')].map(x => x.textContent),
     usersHtml: d.getElementById('users').innerHTML,
   }));
-}, 300);
+}, 400);
 `;
 
 function runDashboard(scenario) {
@@ -226,6 +241,47 @@ describe('the dashboard script, run against a faked server', () => {
     // Names are escaped, not injected.
     expect(out.usersHtml).not.toContain('<b>Bold</b>');
     expect(out.usersHtml).toContain('&lt;b&gt;Bold&lt;/b&gt;');
+  });
+});
+
+describe('the dashboard script, failure and edge cases', () => {
+  test('does not claim a count failed while the other counts are still loading', () => {
+    const out = runDashboard('slow-reports');
+    expect(out.mid).toBe('Checking what needs you…');
+    expect(out.next).toBe('Nothing is waiting for you.');
+  });
+
+  test('a non-admin sees nothing of the dashboard and is told why', () => {
+    const out = runDashboard('non-admin');
+    expect(out.status).toBe('Access denied.');
+    expect(out.next).toBe('This page is for administrators.');
+    expect(out.summaryHidden).toBe(true);
+    expect(out.heroActionsHidden).toBe(true);
+  });
+
+  test('a failed recent-users request says so instead of "No users match."', () => {
+    const out = runDashboard('users-fail');
+    expect(out.usersHtml).toContain('Recent users could not be loaded');
+    expect(out.usersHtml).not.toContain('No users match');
+  });
+
+  test('failed platform totals are not shown as zeros or as "All approved"', () => {
+    const out = runDashboard('metrics-fail');
+    expect(out.status).toBe('Dashboard loaded with warnings.');
+    expect(out.analytics).toContain('Platform totals could not be loaded');
+    expect(out.changeNotes).toEqual(['—', '—']);
+  });
+
+  test('signup counts are not capped at the 20 users the table loads', () => {
+    const out = runDashboard('many-users');
+    // 7 days comes from the summary service; 30 days is shown as "20+" because the list is full.
+    expect(out.analytics).toContain('Signups last 7 days: 25');
+    expect(out.analytics).toContain('Signups last 30 days: 20+');
+  });
+
+  test('an unfamiliar role is shown as written, not relabelled Customer', () => {
+    const out = runDashboard('many-users');
+    expect(out.usersHtml).toContain('<span class="badge">Moderator</span>');
   });
 });
 

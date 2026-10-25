@@ -62,6 +62,14 @@ hairline borders, one teal accent, hierarchy from type instead of gradients and 
   specs). The dashboard's photo count is `adhPendingPhotosCount` because the shared badge updaters
   also write to `pendingPhotosCount`.
 
+Found in a line-by-line review of the redesign and fixed: the non-admin "hide the page" step did not
+work on the grid sections (their own `display` beat the `hidden` attribute); "Some queue counts could
+not be loaded" flashed while counts were still loading; System analytics counted signups from only
+the 20 users the table loads, so "last 30 days" could never pass 20 (7 days now comes from the summary
+service, 30 days shows "20+" when the list is full); a failed recent-users or platform-totals request
+showed "No users match" and zeros instead of saying it failed; an unfamiliar role was labelled
+Customer.
+
 Left alone: `admin-enhanced.css` still carries the old dashboard health and stat-card rules, which
 other admin pages load; they are dead on `/admin` but not removed here.
 
