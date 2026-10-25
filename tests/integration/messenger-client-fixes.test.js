@@ -250,7 +250,7 @@ describe('Messenger client-side fixes', () => {
     expect(adminSrc).toContain("escapeHtml(u.name || '')");
     expect(adminSrc).toContain("escapeHtml(u.email || '')");
     // Should also escape role names in analytics
-    expect(adminSrc).toContain('escapeHtml(r)');
+    expect(adminSrc).toContain('escapeHtml(role)');
   });
 
   // ── CSRF token base64 safety ────────────────────────────────────────────────
