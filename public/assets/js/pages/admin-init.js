@@ -532,7 +532,7 @@
       if (pendingRequestsEl && requestsData.status === 'fulfilled') {
         pendingRequestsEl.textContent = requestsData.value.total || 0;
       }
-    } catch (_) {
+    } catch {
       // Non-blocking — card shows — if API fails stats stay at —
     }
   }
@@ -556,7 +556,7 @@
       if (openPayoutsEl) {
         openPayoutsEl.textContent = (payoutData.items || []).length;
       }
-    } catch (_) {
+    } catch {
       // Non-blocking — card shows — if API fails stats stay at —
     }
   }
@@ -567,7 +567,7 @@
     const totalRevenueChangeEl = document.getElementById('totalRevenueChange');
     try {
       const stripeData = await AdminShared.api('/api/admin/stripe-analytics');
-      if (stripeData && stripeData.available === true) {
+      if (stripeData?.available === true) {
         if (totalRevenueEl) {
           totalRevenueEl.textContent = `£${Number(stripeData.totalRevenue || 0).toFixed(2)}`;
         }
@@ -577,12 +577,12 @@
         }
         return;
       }
-    } catch (_) {
+    } catch {
       // Stripe not available — try fallback
     }
     try {
       const v2Data = await AdminShared.api('/api/v2/admin/revenue');
-      if (v2Data && v2Data.revenue) {
+      if (v2Data?.revenue) {
         const mrr = Number(v2Data.revenue.mrr || 0).toFixed(2);
         if (totalRevenueEl) {
           totalRevenueEl.textContent = `£${mrr} MRR`;
@@ -592,7 +592,7 @@
         }
         return;
       }
-    } catch (_) {
+    } catch {
       // Both failed — show N/A
     }
     if (totalRevenueEl) {
@@ -860,7 +860,7 @@
             );
             allUsers = (recentData && recentData.items) || [];
             recentUsersFailed = false;
-          } catch (_) {
+          } catch {
             allUsers = [];
             recentUsersFailed = true;
           }
