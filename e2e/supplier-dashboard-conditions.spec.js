@@ -453,9 +453,9 @@ test.describe('Supplier dashboard: layout, accessibility and unusual conditions 
         await putAway(page);
         // The "+" on a day names that day; the form opens on that day whatever the time zone.
         const plus = page.locator('.cal-day-add-btn').nth(20);
-        // The label is spoken ("Add entry for Saturday, 17 October 2026"); the cell carries the ISO day.
+        // The label is spoken ("Add entry for Saturday, 17 October 2026", with or without the comma); the cell carries the ISO day.
         const label = await plus.getAttribute('aria-label');
-        expect(label).toMatch(/^Add entry for \S+, \d{1,2} \S+ \d{4}$/);
+        expect(label).toMatch(/^Add entry for [A-Za-z]+,? \d{1,2} [A-Za-z]+ \d{4}$/);
         const isoDay = await plus.evaluate(element =>
           element.closest('.fc-daygrid-day').getAttribute('data-date')
         );
