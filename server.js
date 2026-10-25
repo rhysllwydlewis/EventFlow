@@ -1901,6 +1901,19 @@ function startServer() {
           }
         });
 
+        // Profile-view events written before they had an expiry get one, in the background and in
+        // small batches (utils/profileViewRetention.js). Idempotent; repeats at most weekly.
+        // PROFILE_VIEW_RETENTION_BACKFILL=off disables it, =force ignores the completion record.
+        if (process.env.NODE_ENV !== 'test') {
+          setImmediate(() => {
+            require('./utils/profileViewRetention')
+              .runProfileViewExpiryBackfill()
+              .catch(backfillError => {
+                logger.warn('Profile-view retention backfill failed (non-fatal):', backfillError);
+              });
+          });
+        }
+
         // 4a. Seed database with initial data
         logger.info('');
         logger.info('📊 Seeding database...');

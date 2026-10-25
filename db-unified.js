@@ -464,6 +464,22 @@ async function createSupplierEventIndexes() {
     );
     // The per-visitor check looks at one supplier's last hour by key
     await events.createIndex({ supplierId: 1, visitorKey: 1, timestamp: -1 });
+    // Profile-view events carry an `expiresAt` date (utils/profileViewRetention.js) and are removed
+    // when it passes. Partial, so only documents that have a date there are ever considered: every
+    // other event type, and any row not yet stamped, is left alone. Its own try block, so a failure
+    // here (an existing index of the same name with other options, say) cannot skip the cap index.
+    try {
+      await events.createIndex(
+        { expiresAt: 1 },
+        {
+          expireAfterSeconds: 0,
+          partialFilterExpression: { expiresAt: { $type: 'date' } },
+          name: 'ttl_events_expiresAt',
+        }
+      );
+    } catch (ttlError) {
+      logger.warn('Profile-view expiry index could not be created:', ttlError.message);
+    }
     // Per-address cap counters: one row per supplier, address key and hour. The rows hold no
     // address and vanish on their own (the TTL monitor deletes rows whose expiresAt, a BSON date,
     // has passed).

@@ -18,6 +18,9 @@ function makeCollection(name, state) {
   const overrides = {
     createIndex: jest.fn(async (keys, options) => {
       calls.push(['createIndex', keys, options]);
+      if (state.failTtlIndex && name === 'events' && options && options.expireAfterSeconds === 0) {
+        throw new Error('IndexOptionsConflict');
+      }
       if (state.failIndexOn === name) {
         throw new Error('IndexOptionsConflict');
       }
@@ -93,6 +96,36 @@ describe('supplier event indexes', () => {
       ['createIndex', { key: 1 }, { unique: true }],
       ['createIndex', { expiresAt: 1 }, { expireAfterSeconds: 0 }],
     ]);
+  });
+
+  it('creates a partial TTL index on events.expiresAt that only ever considers documents with a date there', async () => {
+    const { dbUnified, collections } = load(state);
+    await dbUnified.initializeDatabase();
+
+    const ttl = collections
+      .get('events')
+      .calls.filter(c => c[0] === 'createIndex' && c[2] && c[2].expireAfterSeconds !== undefined);
+    expect(ttl).toHaveLength(1);
+    expect(ttl[0][1]).toEqual({ expiresAt: 1 });
+    expect(ttl[0][2]).toEqual({
+      expireAfterSeconds: 0,
+      partialFilterExpression: { expiresAt: { $type: 'date' } },
+      name: 'ttl_events_expiresAt',
+    });
+  });
+
+  it('a TTL index that cannot be built is a warning only: the cap indexes are still created', async () => {
+    state.failTtlIndex = true;
+    const { dbUnified, collections } = load(state);
+    await dbUnified.initializeDatabase();
+
+    expect(require('../../utils/logger').warn).toHaveBeenCalledWith(
+      expect.stringContaining('Profile-view expiry index'),
+      expect.any(String)
+    );
+    expect(
+      collections.get('profile_view_caps').calls.filter(c => c[0] === 'createIndex')
+    ).toHaveLength(2);
   });
 
   it('a failing events index is logged as a warning and does not skip the later indexes', async () => {
