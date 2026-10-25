@@ -55,6 +55,8 @@
     return false;
   }
 
+  const API_TIMEOUT_MS = 20000;
+
   function api(url, method, body) {
     const opts = {
       method: method || 'GET',
@@ -74,7 +76,13 @@
     if (body) {
       opts.body = JSON.stringify(body);
     }
-    return fetch(url, opts)
+    // Same time limit and readable network error as the other admin pages (admin-shared.js), so a
+    // request that never answers ends in an error the panel can show instead of waiting forever.
+    const request =
+      window.AdminShared && window.AdminShared.fetchWithTimeout
+        ? window.AdminShared.fetchWithTimeout(url, opts, API_TIMEOUT_MS)
+        : fetch(url, opts);
+    return request
       .then(r => {
         // Check content type before parsing
         const contentType = r.headers.get('content-type');
@@ -325,18 +333,6 @@
 
     const last7 = countSince(7);
     const last30 = countSince(30);
-
-    function bar(n) {
-      let c = n;
-      if (c > 20) {
-        c = 20;
-      }
-      let out = '';
-      for (let i = 0; i < c; i++) {
-        out += '<span aria-hidden="true">▮</span>';
-      }
-      return out;
-    }
 
     // Update stat cards with animated counters
     const totalUsersEl = document.getElementById('totalUsersCount');
@@ -657,8 +653,8 @@
       `<p><strong>Users by role:</strong> ${roleParts}</p>` +
       `<p><strong>Total Suppliers:</strong> ${counts.suppliersTotal || 0}</p>` +
       `<p><strong>Total Packages:</strong> ${counts.packagesTotal || 0}</p>` +
-      `<p><strong>Signups last 7 days:</strong> ${last7} <span class="small">${bar(last7)}</span></p>` +
-      `<p><strong>Signups last 30 days:</strong> ${last30} <span class="small">${bar(last30)}</span></p>` +
+      `<p><strong>Signups last 7 days:</strong> ${last7}</p>` +
+      `<p><strong>Signups last 30 days:</strong> ${last30}</p>` +
       `<p class="small">Plans: ${counts.plansTotal || 0} · Threads: ${
         counts.threadsTotal || 0
       } · Messages: ${counts.messagesTotal || 0}</p>` +

@@ -30,7 +30,11 @@
 .admin-dashboard-page .management-title { color: #19343b; font-size: 16px; margin: 8px 0 5px; }
 .admin-dashboard-page .management-description { color: #697e84; font-size: 11px; line-height: 1.45; margin: 0 0 11px; min-height: 47px; }
 .admin-dashboard-page .management-stats { gap: 5px; border: 0; border-radius: 7px; padding: 7px; background: #f6f9f8; margin-bottom: 10px; }
-.admin-dashboard-page .stat-item { padding: 4px; background: none; }
+.admin-dashboard-page .stat-item { padding: 4px; background: none; opacity: 1; transform: none; }
+/* styles.css hides .stat-item until a script adds .is-visible; nothing on this page does, so the
+   counts inside the management cards stayed invisible. */
+/* Give the Actions column room so the buttons wrap into two rows, not a column of four. */
+.admin-dashboard-page #users td:last-child { min-width: 230px; }
 .admin-dashboard-page .stat-item .stat-value { color: #0b7369; font-size: 18px; }
 .admin-dashboard-page .stat-label-sm { color: #6c7e83; font-size: 9px; letter-spacing: .02em; }
 .admin-dashboard-page .btn-manage { background: #0b8073; box-shadow: none; border-radius: 7px; font-size: 11px; padding: 9px 12px; }

@@ -125,6 +125,31 @@
     next.disabled = currentSkip + PAGE_SIZE >= currentTotal;
   }
 
+  const LOAD_TIMEOUT_MS = 15000;
+  let loadSeq = 0;
+
+  function showMessageState(html, modifier) {
+    const tbody = document.getElementById('msgModerationBody');
+    if (tbody) {
+      const cls = `admin-messenger-state${modifier ? ` admin-messenger-state--${modifier}` : ''}`;
+      tbody.innerHTML = `<tr><td colspan="5" class="${cls}">${html}</td></tr>`;
+    }
+  }
+
+  function describeLoadError(err) {
+    if (typeof err === 'number') {
+      if (err === 401 || err === 403) {
+        return 'You do not have access to message moderation. Sign in again as an admin.';
+      }
+      return `The server could not load conversations (error ${err}).`;
+    }
+    const text = err && err.message ? String(err.message) : '';
+    if (/timed out/i.test(text)) {
+      return 'Loading conversations took too long.';
+    }
+    return text || 'Conversations could not be loaded.';
+  }
+
   function loadConversations() {
     const params = new URLSearchParams({ limit: PAGE_SIZE, skip: currentSkip });
     if (currentSearch) {
@@ -133,19 +158,38 @@
     if (currentStatus) {
       params.set('status', currentStatus);
     }
-    fetch(`/api/v4/messenger/admin/conversations?${params.toString()}`, { credentials: 'include' })
+    // Only the newest request may draw: a slow answer to an earlier search must not replace it.
+    loadSeq += 1;
+    const seq = loadSeq;
+    showMessageState('Loading conversations…', 'loading');
+    const url = `/api/v4/messenger/admin/conversations?${params.toString()}`;
+    const request = window.AdminShared && window.AdminShared.fetchWithTimeout
+      ? window.AdminShared.fetchWithTimeout(url, { credentials: 'include' }, LOAD_TIMEOUT_MS)
+      : fetch(url, { credentials: 'include' });
+    request
       .then(r => {
         return r.ok ? r.json() : Promise.reject(r.status);
       })
       .then(data => {
+        if (seq !== loadSeq) {
+          return;
+        }
         currentTotal = data.total || 0;
         renderTable(data.conversations || []);
         updatePager();
       })
       .catch(err => {
-        const tbody = document.getElementById('msgModerationBody');
-        if (tbody) {
-          tbody.innerHTML = `<tr><td colspan="5" style="padding:1rem;text-align:center;color:#dc2626">Failed to load conversations (error: ${escapeHtml(String(err))})</td></tr>`;
+        if (seq !== loadSeq) {
+          return;
+        }
+        showMessageState(
+          `${escapeHtml(describeLoadError(err))} ` +
+            '<button type="button" class="ef-cta btn-sm" id="msgModerationRetry">Try again</button>',
+          'error'
+        );
+        const retry = document.getElementById('msgModerationRetry');
+        if (retry) {
+          retry.addEventListener('click', loadConversations);
         }
       });
   }
