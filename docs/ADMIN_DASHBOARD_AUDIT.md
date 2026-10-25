@@ -28,7 +28,28 @@ timeout, retry, access error, out-of-order answers).
 - Dashboard counts agree with `GET /api/admin/metrics` and `/users/summary`.
 - Account Health, Moderation Queue, Quick Actions and the user table render the seeded data.
 
-## Not done
+## Users Centre and Supplier Management (second pass)
+
+Same method: real browser as a seeded admin, 1440px and 390px, console and network watched.
+
+| Finding                                                                               | Cause                                                                                                                                       | Fix                                                                                                                                   |
+| ------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
+| Users Centre summary cards (Total, Unverified, Google, …) stacked in one tall column. | The container used `uc-summary-grid`; the stylesheet defines `users-centre-summary-grid`. A class with no rule fails silently.              | Container uses the defined class: seven cards in a row.                                                                               |
+| Choosing "200" users per page failed.                                                 | The dropdown offered 200, but the `/api` pagination middleware rejects `limit` over 100 with a 400. A saved `?limit=200` link did the same. | 200 removed from the dropdown and from the accepted values (a stale link falls back to 50).                                           |
+| "Subscription" and "Marketing" column headings broke mid-word ("SUBSCRIPTI ON").      | Columns 110px and 80px.                                                                                                                     | 130px and 100px.                                                                                                                      |
+| Supplier Management filter dropdowns each filled a whole line.                        | `styles.css` and `ui-ux-fixes.css` give every `select` `width: 100%`; inside the wrapping `.filter-row` each took its own row.              | `.filter-row .filter-select { width: auto; flex: 0 1 200px }`. `admin-ui-improvements.css` re-versioned on the 27 pages that load it. |
+
+Tried and dropped: pinning the Actions column to the right edge. On Suppliers the Actions cell is
+about 440px wide (two dropdowns and four buttons), so a pinned column covered four other columns.
+
+## Not done (updated)
+
+- **Actions column off-screen.** On a 1440px screen the Users table is about 1,500px wide and the
+  Suppliers table about 1,500px wide, inside a card about 1,180px wide, so the Actions column is
+  reached by scrolling the table sideways. The real fix is smaller row actions (a menu for the
+  secondary actions) rather than pinning.
+
+## Not done (first pass)
 
 - **The other admin pages.** 36 pages, about 20,000 lines of page scripts and 20,000 lines of admin
   routes. Settings was audited and redesigned in #1830; the rest have not had a pass like this one.

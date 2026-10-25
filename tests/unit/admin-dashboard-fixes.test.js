@@ -205,3 +205,57 @@ describe('admin notification bell icons', () => {
     }
   });
 });
+
+describe('Users Centre', () => {
+  const html = read('public/admin-users.html');
+  const css = read('public/assets/css/admin-enhanced.css');
+  const init = read('public/assets/js/pages/admin-users-init.js');
+
+  test('the summary cards container uses a class that has a grid rule', () => {
+    const match = html.match(/id="ucSummaryGrid"\s+class="([^"]+)"/);
+    expect(match).not.toBeNull();
+    for (const name of match[1].split(/\s+/)) {
+      expect(css).toMatch(new RegExp(`\\.${name}\\s*\\{[^}]*display:\\s*grid`));
+    }
+  });
+
+  test('no page size above the 100 the API accepts is offered or accepted', () => {
+    const select = html.match(/<select id="ucPageSize"[\s\S]*?<\/select>/)[0];
+    const sizes = [...select.matchAll(/<option value="(\d+)"/g)].map(m => Number(m[1]));
+    expect(sizes.length).toBeGreaterThan(1);
+    expect(Math.max(...sizes)).toBeLessThanOrEqual(100);
+    const accepted = init.match(/\[([\d, ]+)\]\.includes\(limit\)/);
+    expect(accepted).not.toBeNull();
+    expect(Math.max(...accepted[1].split(',').map(Number))).toBeLessThanOrEqual(100);
+  });
+
+  test('"Subscription" and "Marketing" columns are wide enough not to break mid-word', () => {
+    const cols = [
+      ...html.match(/<colgroup>[\s\S]*?<\/colgroup>/)[0].matchAll(/width:(\d+)px/g),
+    ].map(m => Number(m[1]));
+    // Order: checkbox, name, email, role, subscription, verified, signup, email status, marketing...
+    expect(cols[4]).toBeGreaterThanOrEqual(130);
+    expect(cols[8]).toBeGreaterThanOrEqual(100);
+  });
+});
+
+describe('Suppliers filter row', () => {
+  test('selects in a wrapping .filter-row are not forced to full width', () => {
+    const css = read('public/assets/css/admin-ui-improvements.css');
+    const rule = css.match(/\.filter-row \.filter-select\s*\{([^}]*)\}/);
+    expect(rule).not.toBeNull();
+    expect(rule[1]).toMatch(/width:\s*auto/);
+  });
+
+  test('every page loading admin-ui-improvements.css loads the new version', () => {
+    const pages = fs
+      .readdirSync(path.join(ROOT, 'public'))
+      .filter(name => /^admin.*\.html$/.test(name))
+      .map(name => read(`public/${name}`))
+      .filter(page => page.includes('admin-ui-improvements.css'));
+    expect(pages.length).toBeGreaterThan(20);
+    for (const page of pages) {
+      expect(page).toContain('admin-ui-improvements.css?v=18.3.3');
+    }
+  });
+});

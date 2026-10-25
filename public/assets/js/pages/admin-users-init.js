@@ -387,7 +387,7 @@
     const page = Number(params.get('page'));
     currentPage = Number.isFinite(page) && page > 0 ? page : 1;
     const limit = Number(params.get('limit'));
-    if ([25, 50, 100, 200].includes(limit)) {
+    if ([25, 50, 100].includes(limit)) {
       currentLimit = limit;
     }
   }
