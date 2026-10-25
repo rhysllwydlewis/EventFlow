@@ -56,6 +56,7 @@ require('dotenv').config();
 
 // Configuration modules
 const logger = require('./utils/logger');
+const { createTrustProxy } = require('./utils/trustProxy');
 const databaseConfig = require('./config/database');
 const emailConfig = require('./config/email');
 const stripeConfig = require('./config/stripe');
@@ -323,7 +324,9 @@ const isRailway = process.env.RAILWAY_ENVIRONMENT !== undefined;
 const shouldTrustProxy = trustProxyEnv === 'true' || (isRailway && trustProxyEnv !== 'false');
 
 if (shouldTrustProxy) {
-  app.set('trust proxy', 1);
+  // The first hop (Railway's edge) plus Cloudflare's published addresses, so req.ip is the visitor
+  // and not a Cloudflare address. See utils/trustProxy.js.
+  app.set('trust proxy', createTrustProxy());
   logger.info('🔧 Trust proxy: enabled (running behind proxy/load balancer)');
 } else {
   logger.info('🔧 Trust proxy: disabled (local development mode)');

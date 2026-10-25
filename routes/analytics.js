@@ -63,7 +63,7 @@ const PROFILE_VIEW_DEDUPE_MS = 60 * 60 * 1000;
 // keeping one client's reach bounded. Set PROFILE_VIEW_IP_CAP to tune it (an environment change,
 // so it takes a restart). The cap applies to anonymous visitors only; a signed-in visitor is
 // already one account and has no address-derived value stored. How well it separates clients
-// depends on `req.ip` being the real client address (see the trust proxy setting in server.js).
+// depends on `req.ip` being the real client address (utils/trustProxy.js, used by server.js, looks past Cloudflare).
 // The counters live in their own collection and expire after two hours (PROFILE_VIEW_CAP_TTL_MS).
 const PROFILE_VIEW_CAP_COLLECTION = 'profile_view_caps';
 const PROFILE_VIEW_CAP_TTL_MS = 2 * 60 * 60 * 1000;

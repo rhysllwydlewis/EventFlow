@@ -144,8 +144,10 @@ supplier per hour (`PROFILE_VIEW_IP_CAP`; changing it is an environment change a
 busy shared address (an office, a mobile carrier) can undercount. The cap applies to anonymous visitors only. It is kept
 in a separate collection, `profile_view_caps`: one row per supplier, keyed address hash and hour, incremented atomically,
 with no address in it and a TTL index that removes it within about two hours. Nothing derived from the address is stored
-on the event itself. Both depend on `req.ip` being the real client address, which depends on the deployment's trust-proxy
-setting (behind a CDN that does not forward the client address, many visitors would share one key). A signed-in
+on the event itself. Both depend on `req.ip` being the real client address. Production is served through Cloudflare and then Railway's edge, so
+the server trusts the first hop plus Cloudflare's published addresses (`utils/trustProxy.js`): `req.ip` is the visitor, and a
+forged forwarded-for value is never reached. If another proxy or CDN is ever put in front, add its address ranges there, or
+many visitors would share one key. A signed-in
 visitor's events carry their `userId` and are deleted with the account. `views.description` carries the exact sentence the UI may show. Events recorded
 before this change were not rewritten.
 
