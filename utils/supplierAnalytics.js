@@ -9,6 +9,7 @@ const crypto = require('crypto');
 const logger = require('./logger');
 const dbUnified = require('../db-unified');
 const { getWindowBounds } = require('./analyticsWindow');
+const { profileViewExpiry } = require('./profileViewRetention');
 
 /**
  * Event types for supplier analytics
@@ -30,33 +31,54 @@ const EVENT_TYPES = {
  * @param {string} [eventData.sessionId] - Session ID for anonymous tracking
  * @param {boolean} [eventData.isPreview] - Whether this is a preview view (won't be counted)
  * @param {string} [eventData.visitorKey] - Anonymous visitor hash used to count a view once per hour
+ * @param {string} [eventData.dedupeKey] - Unique key: a second event with the same key is refused by
+ *   the database (unique index), so two requests at once cannot both be counted
  * @param {Object} [eventData.metadata] - Additional event-specific metadata
- * @returns {Promise<void>}
+ * @returns {Promise<{recorded: boolean, duplicate: boolean}>} Whether an event was stored, and
+ *   whether it was refused because its dedupeKey already exists
  */
 async function trackEvent(eventData) {
   try {
     // Don't track preview views
     if (eventData.isPreview) {
-      return;
+      return { recorded: false, duplicate: false };
     }
 
+    const nowMs = Date.now();
     const event = {
-      id: `event_${Date.now()}_${crypto.randomUUID()}`,
+      id: `event_${nowMs}_${crypto.randomUUID()}`,
       type: eventData.type,
       supplierId: eventData.supplierId,
       userId: eventData.userId || null,
       sessionId: eventData.sessionId || null,
-      // Hash that identifies one browser/account for the one-view-per-hour rule (never a raw IP).
+      // Keyed hash that identifies one browser/account for the one-view-per-hour rule (never a raw
+      // IP, and no address-derived value is stored on the event at all).
       visitorKey: eventData.visitorKey || null,
       metadata: eventData.metadata || {},
-      timestamp: new Date().toISOString(),
-      date: new Date().toISOString().split('T')[0], // For daily aggregation
+      timestamp: new Date(nowMs).toISOString(),
+      date: new Date(nowMs).toISOString().split('T')[0], // For daily aggregation
     };
 
-    await dbUnified.insertOne('events', event);
+    // Profile views hold a visitor key (or a signed-in visitor's id), so they are not kept for
+    // ever: a TTL index on events.expiresAt (db-unified.js) removes them after the retention period
+    // stated in public/privacy.html. Other event types have no expiry.
+    if (eventData.type === EVENT_TYPES.PROFILE_VIEW) {
+      event.expiresAt = profileViewExpiry(nowMs);
+    }
+
+    if (eventData.dedupeKey) {
+      event.dedupeKey = eventData.dedupeKey;
+    }
+
+    await dbUnified.insertOne('events', event, { throwOnError: true });
+    return { recorded: true, duplicate: false };
   } catch (error) {
+    if (error && error.code === 11000) {
+      return { recorded: false, duplicate: true };
+    }
     logger.error('Failed to track supplier event:', error);
     // Don't throw - tracking should not break the main flow
+    return { recorded: false, duplicate: false };
   }
 }
 
@@ -229,14 +251,16 @@ async function getSupplierAnalytics(supplierId, days = 7, options = {}) {
  * @param {string} [sessionId] - Session ID
  * @param {boolean} [isPreview] - Whether this is a preview view
  * @param {string} [visitorKey] - Anonymous visitor hash (one view per visitor per hour)
- * @returns {Promise<void>}
+ * @param {{dedupeKey?: string}} [keys] - Unique key (see trackEvent)
+ * @returns {Promise<{recorded: boolean, duplicate: boolean}>} Outcome
  */
 function trackProfileView(
   supplierId,
   userId = null,
   sessionId = null,
   isPreview = false,
-  visitorKey = null
+  visitorKey = null,
+  keys = {}
 ) {
   return trackEvent({
     type: EVENT_TYPES.PROFILE_VIEW,
@@ -245,6 +269,7 @@ function trackProfileView(
     sessionId,
     isPreview,
     visitorKey,
+    dedupeKey: keys.dedupeKey,
   });
 }
 

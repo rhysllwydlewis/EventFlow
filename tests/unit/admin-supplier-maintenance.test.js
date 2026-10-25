@@ -174,6 +174,26 @@ describe('admin supplier maintenance hardening', () => {
     expect(userDeleteOrder).toBeGreaterThan(supplierDeleteOrder);
   });
 
+  test('deleting a user also deletes the analytics events recorded under their user id', async () => {
+    const db = buildDb({
+      users: [{ id: 'usr_customer', role: 'customer', email: 'c@example.com' }],
+      events: [
+        { id: 'e1', type: 'profile_view', supplierId: 'sup_1', userId: 'usr_customer' },
+        { id: 'e2', type: 'profile_view', supplierId: 'sup_2', userId: 'usr_customer' },
+        { id: 'e3', type: 'profile_view', supplierId: 'sup_1', userId: 'someone_else' },
+        { id: 'e4', type: 'profile_view', supplierId: 'sup_1', userId: null },
+      ],
+    });
+    jest.doMock('../../db-unified', () => db);
+    jest.doMock('../../routes/suppliers', () => ({ invalidatePackageCaches: jest.fn() }));
+    const { deleteUserAndOwnedData } = require('../../services/adminUserDeletion.service');
+
+    const summary = await deleteUserAndOwnedData('usr_customer', { id: 'admin_1', role: 'admin' });
+
+    expect(summary.deletedEvents).toBe(2);
+    expect(db.data.events.map(e => e.id)).toEqual(['e3', 'e4']);
+  });
+
   test('admin-driven deletion cancels the user Stripe subscription before deleting the user', async () => {
     const db = buildDb({
       users: [{ id: 'usr_supplier', role: 'supplier', email: 'supplier@example.com' }],

@@ -255,7 +255,7 @@
         <div class="sr-review-header">
           <div class="sr-review-meta">
             ${stars(rating)}
-            <span class="sr-review-rating-num" aria-label="${rating.toFixed(1)} out of 5">${rating.toFixed(1)}</span>
+            <span class="sr-review-rating-num" aria-hidden="true">${rating.toFixed(1)}</span>
             ${verifiedBadge}
           </div>
           <time class="sr-review-date" datetime="${esc(date)}">${fmtDate(date)}</time>
@@ -299,15 +299,15 @@
          </div>`
         : '';
     const scoreHtml = hasAverage
-      ? `<div class="sr-big-rating" aria-label="${avgValue.toFixed(1)} out of 5">${avgValue.toFixed(1)}</div>${stars(avgValue)}`
-      : '<div class="sr-big-rating" aria-label="No star rating yet">–</div>';
+      ? `<div class="sr-big-rating" aria-hidden="true">${avgValue.toFixed(1)}</div>${stars(avgValue)}`
+      : '<div class="sr-big-rating" role="img" aria-label="No star rating yet">–</div>';
     return `
       <div class="sr-summary">
         <div class="sr-summary-score">
           ${scoreHtml}
           <div class="sr-total-count">${total} review${total !== 1 ? 's' : ''}</div>
         </div>
-        <div class="sr-distribution" aria-label="Star rating breakdown">
+        <div class="sr-distribution" role="group" aria-label="Star rating breakdown">
           ${renderDistribution(analytics?.ratingDistribution || [0, 0, 0, 0, 0], total)}
         </div>
         ${resRateHtml}

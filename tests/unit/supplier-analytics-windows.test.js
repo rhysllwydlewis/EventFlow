@@ -473,47 +473,19 @@ describe('GET /api/me/suppliers/:id/analytics', () => {
   });
 });
 
-describe('GET /api/supplier/analytics/legacy', () => {
-  /**
-   * Request the legacy route as the supplier.
-   *
-   * @param {string} query - Query string including "?"
-   * @returns {Promise<Object>} supertest response
-   */
-  function fetchLegacy(query = '') {
-    const router = require('../../routes/supplier');
-    const app = express();
-    app.use('/api/supplier', router);
-    return request(app)
-      .get(`/api/supplier/analytics/legacy${query}`)
-      .set('x-test-user', JSON.stringify(USER));
-  }
-
-  beforeEach(() => {
+describe('GET /api/supplier/analytics/legacy (removed)', () => {
+  it('is no longer served: nothing called it and it counted all-time figures', async () => {
     fakeDb.__reset({
       suppliers: [{ id: 'sup-1', ownerUserId: 'user-1', name: 'Moor Audio' }],
     });
-  });
+    const router = require('../../routes/supplier');
+    const app = express();
+    app.use('/api/supplier', router);
 
-  it('applies the Starter 7 day entitlement like every other analytics route', async () => {
-    const res = await fetchLegacy('?days=90');
+    const res = await request(app)
+      .get('/api/supplier/analytics/legacy')
+      .set('x-test-user', JSON.stringify(USER));
 
-    expect(res.status).toBe(200);
-    expect(res.body.analytics.chartData).toHaveLength(7);
-  });
-
-  it('lets a Professional supplier look back 90 days', async () => {
-    fakeDb.__store().subscriptions = [PRO_SUBSCRIPTION];
-
-    const res = await fetchLegacy('?days=90');
-
-    expect(res.body.analytics.chartData).toHaveLength(90);
-  });
-
-  it('survives garbage input', async () => {
-    const res = await fetchLegacy('?days=abc');
-
-    expect(res.status).toBe(200);
-    expect(res.body.analytics.chartData).toHaveLength(7);
+    expect(res.status).toBe(404);
   });
 });

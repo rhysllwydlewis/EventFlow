@@ -2,7 +2,7 @@
  * Supplier dashboard: on a phone, the secondary cards fold up.
  *
  * Under 768px the page is one long column. The cards a supplier looks at least often (the visits
- * chart, availability, the calendar, tips, the plan and support) keep their heading and put their
+ * chart, the calendar, tips, the plan and support) keep their heading and put their
  * content in a real <details> ("Show plan"), closed to begin with. From 768px up the content goes
  * back where it was and nothing is folded. Only the markup around a card's body changes: every id
  * inside it, and every script that fills it, is untouched.
@@ -10,14 +10,7 @@
 'use strict';
 
 (function () {
-  const CARDS = [
-    'sdh-performance',
-    'sdh-availability',
-    'availability-calendar',
-    'sdh-tips',
-    'sdh-plan',
-    'sdh-support',
-  ];
+  const CARDS = ['sdh-performance', 'availability-calendar', 'sdh-tips', 'sdh-plan', 'sdh-support'];
 
   /** The card's heading as a lower-case phrase for the button: "plan", "calendar". */
   function nameOf(card) {

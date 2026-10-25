@@ -19,6 +19,7 @@
 
 const crypto = require('crypto');
 const { getStripeKeyMode } = require('../utils/config');
+const { getSafeStripeSecretKey } = require('../utils/previewSafety');
 
 // ---------------------------------------------------------------------------
 // Shared helpers
@@ -75,7 +76,7 @@ function stripeIsConfigured() {
   if (!process.env.STRIPE_WEBHOOK_SECRET) {
     missing.push('STRIPE_WEBHOOK_SECRET');
   }
-  if (!process.env.STRIPE_SECRET_KEY) {
+  if (!getSafeStripeSecretKey()) {
     missing.push('STRIPE_SECRET_KEY');
   }
   return { configured: missing.length === 0, missing };

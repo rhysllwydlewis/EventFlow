@@ -53,7 +53,7 @@ Community homepage/list/member pages, support detail modals and several admin ta
 
 ### Dormant components
 
-`LoadingSkeleton.js` and other apparently orphaned loading helpers are not deleted here. Removal should follow a separate usage verification pass so externally referenced scripts or less common routes are not broken by assumption.
+`LoadingSkeleton.js` and other apparently orphaned loading helpers are not deleted here. _(Update: `LoadingSkeleton.js` was later removed in #1839 after a usage check found no references.)_ Removal should follow a separate usage verification pass so externally referenced scripts or less common routes are not broken by assumption.
 
 ## Follow-up priority
 

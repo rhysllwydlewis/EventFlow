@@ -12,6 +12,9 @@ This document describes the frontend JavaScript components available for buildin
 
 ## Photo Uploader Component
 
+> **Removed.** No page loaded this component, so `photo-uploader.js` was deleted. The dashboards upload
+> photos through their own drop zones (`app.js`, `supplier-gallery.js`). The notes below are kept for history only.
+
 The `PhotoUploader` component provides a drag-and-drop photo upload interface with preview, progress tracking, and error handling.
 
 ### Location
@@ -130,6 +133,10 @@ uploader.clear();
 ---
 
 ## Photo Gallery Component
+
+> **Removed in #1839.** No page loaded this component, so `public/assets/js/components/photo-gallery.js`
+> was deleted. Nothing below (including the dashboard example further down) can be used as written; the
+> notes are kept for history only.
 
 The `PhotoGallery` component displays photos in a responsive grid with lightbox viewer, lazy loading, and optional editing features.
 
@@ -352,6 +359,8 @@ gallery.destroy();
 ## Usage Examples
 
 ### Complete Supplier Dashboard Example
+
+> **Outdated (#1839).** This example loads `photo-uploader.js` and `photo-gallery.js`, both deleted. Kept for history only.
 
 ```html
 <!DOCTYPE html>

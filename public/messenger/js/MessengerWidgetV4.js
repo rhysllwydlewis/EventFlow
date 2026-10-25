@@ -169,6 +169,28 @@
     return '';
   }
 
+  /** The hidden quick-reply box under one conversation. */
+  function renderQuickReplyPanel(convId) {
+    return `
+      <div class="mwv4__reply-panel" data-reply-for="${convId}" hidden>
+        <textarea class="mwv4__reply-textarea"
+                  placeholder="Type a quick reply…"
+                  rows="1"
+                  aria-label="Quick reply message"
+                  maxlength="2000"></textarea>
+        <div class="mwv4__reply-actions">
+          <button class="ef-cta mwv4__reply-send" data-action="send" data-conversation-id="${convId}"
+                  aria-label="Send reply" disabled>
+            Send
+          </button>
+          <button class="ef-cta mwv4__reply-cancel" data-action="cancel" data-conversation-id="${convId}"
+                  aria-label="Cancel reply">
+            Cancel
+          </button>
+        </div>
+      </div>`;
+  }
+
   // ─── MessengerWidgetV4 ───────────────────────────────────────────────────────
 
   /**
@@ -718,7 +740,7 @@
         unread > 0 ? '<span class="mwv4__unread-dot" aria-hidden="true"></span>' : '';
       const unreadCount =
         unread > 0
-          ? `<span class="mwv4__item-badge" aria-label="${unread} unread">${unread > 99 ? '99+' : unread}</span>`
+          ? `<span class="mwv4__item-badge">${unread > 99 ? '99+' : unread}<span style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap"> unread</span></span>`
           : '';
 
       const leadBadge = renderLeadQualityBadge(conv);
@@ -727,8 +749,7 @@
         <li class="mwv4__item${unread > 0 ? ' mwv4__item--unread' : ''}"
             data-conversation-id="${convId}"
             role="listitem">
-          <button class="ef-cta mwv4__item-btn" data-action="open" data-conversation-id="${convId}"
-                  aria-label="Open conversation with ${name}">
+          <button class="ef-cta mwv4__item-btn" data-action="open" data-conversation-id="${convId}">
             <div class="mwv4__avatar" style="background:${avatarColor}" aria-hidden="true">
               ${avatarImg}
               ${unreadDot}
@@ -742,29 +763,8 @@
               ${unreadCount}
             </div>
           </button>
-          ${this.options.showQuickReply ? this._renderQuickReplyPanel(convId) : ''}
+          ${this.options.showQuickReply ? renderQuickReplyPanel(convId) : ''}
         </li>`;
-    }
-
-    _renderQuickReplyPanel(convId) {
-      return `
-        <div class="mwv4__reply-panel" data-reply-for="${convId}" hidden>
-          <textarea class="mwv4__reply-textarea"
-                    placeholder="Type a quick reply…"
-                    rows="1"
-                    aria-label="Quick reply message"
-                    maxlength="2000"></textarea>
-          <div class="mwv4__reply-actions">
-            <button class="ef-cta mwv4__reply-send" data-action="send" data-conversation-id="${convId}"
-                    aria-label="Send reply" disabled>
-              Send
-            </button>
-            <button class="ef-cta mwv4__reply-cancel" data-action="cancel" data-conversation-id="${convId}"
-                    aria-label="Cancel reply">
-              Cancel
-            </button>
-          </div>
-        </div>`;
     }
 
     _renderError() {
@@ -804,7 +804,7 @@
       // Textarea expand-to-multiline & enable/disable send
       this.container.querySelectorAll('.mwv4__reply-textarea').forEach(ta => {
         ta.addEventListener('input', () => {
-          ta.style.height = 'auto';
+          ta.style.setProperty('height', 'auto');
           ta.style.height = `${ta.scrollHeight}px`;
           const sendBtn = ta.closest('.mwv4__reply-panel').querySelector('[data-action="send"]');
           sendBtn.disabled = ta.value.trim().length === 0;

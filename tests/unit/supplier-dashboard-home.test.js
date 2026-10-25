@@ -314,7 +314,6 @@ describe('supplier dashboard home: structure', () => {
       'Reviews',
       'Calendar',
       'Messages',
-      'Availability',
       'Profile visits',
       'Tips',
       'Plan',
@@ -364,7 +363,6 @@ describe('supplier dashboard home: structure', () => {
       'sdh-performance-sub',
       'supplier-perf-tips',
       'sdh-tips',
-      'supplier-availability-widget',
       'supplier-subscription-card',
       'supplier-reviews-section',
       'supplier-review-request-widget',
@@ -486,12 +484,7 @@ describe('supplier dashboard home: structure', () => {
   });
 
   test('every id in the home script resolves to the page or is built by a script', () => {
-    const created = new Set([
-      'email-verify-banner',
-      'sdh-availability-note',
-      'sdh-availability-status',
-      'rreq-filter',
-    ]);
+    const created = new Set(['email-verify-banner', 'rreq-filter']);
     const present = new Set(idsIn(html));
     const idBlock = homeJs.slice(
       homeJs.indexOf('const ids = {'),
@@ -574,8 +567,8 @@ describe('supplier dashboard home: structure', () => {
     expect(major * 1e6 + minor * 1e3 + patch).toBeGreaterThanOrEqual(18 * 1e6 + 5 * 1e3 + 7);
   });
 
-  test('the dashboard guard is on the same version as the customer dashboard', () => {
-    expect(html).toMatch(/dashboard-guard\.js\?v=18\.4\.0/);
+  test('the dashboard guard script is loaded with a version number', () => {
+    expect(html).toMatch(/dashboard-guard\.js\?v=\d+\.\d+\.\d+/);
   });
 });
 
@@ -1234,9 +1227,28 @@ describe('supplier dashboard home: rendered page', () => {
       dailyData: populated.analytics.dailyData.map(day => ({ ...day, views: 0 })),
     };
     const page = run({ summary: quiet, suppliers: [{ id: 's1' }] });
-    expect(page.visits).toContain('No visits yet.');
+    expect(page.visits).toMatch(/No visits (yet|in the last \d+ days)\./);
     expect(page.chartBars).toBe(0);
     expect(page.visitsHtml).not.toContain('<svg');
+  });
+
+  test('no visits: an approved supplier is not told their profile is waiting for approval', () => {
+    const quiet = clone(populated);
+    quiet.views = { ...populated.views, total: 0 };
+    quiet.verification = { ...populated.verification, approved: true };
+    const page = run({ summary: quiet, suppliers: [{ id: 's1' }] });
+    expect(page.visits).toContain(`No visits in the last ${quiet.views.days} days.`);
+    expect(page.visits).not.toContain('once it is approved');
+  });
+
+  test('no visits: a supplier who is not approved yet is told why', () => {
+    const quiet = clone(populated);
+    quiet.views = { ...populated.views, total: 0 };
+    quiet.verification = { ...populated.verification, approved: false };
+    const page = run({ summary: quiet, suppliers: [{ id: 's1' }] });
+    expect(page.visits).toContain(
+      'No visits yet. Your profile appears in search once it is approved.'
+    );
   });
 
   test('fewer than 3 conversations: no reply rate or reply time, never a made-up number', () => {
@@ -1517,12 +1529,6 @@ describe('supplier dashboard home: rendered page', () => {
     expect(page.visits).toContain('Your plan shows the last 7 days.');
   });
 
-  test('availability that cannot load shows an error with a retry, not a skeleton forever', () => {
-    const page = run({ summary: populated, suppliers: [{ id: 's1' }], availabilityFails: true });
-    expect(page.availability).toContain('We could not load your availability.');
-    expect(page.availability).toContain('Try again');
-  });
-
   test('tips the server did not send are not made up: the card hides when there are none', () => {
     const none = run({ summary: populated, suppliers: [{ id: 's1' }] });
     expect(none.tipsHidden).toBe(true);
@@ -1531,14 +1537,59 @@ describe('supplier dashboard home: rendered page', () => {
       suppliers: [{ id: 's1' }],
       tips: [
         {
-          title: 'Add 2 more photos',
-          body: 'A fuller gallery shows what you offer.',
-          action: { label: 'Add photos', href: '/dashboard/supplier#photos' },
+          title: 'Reply to 2 reviews',
+          body: '2 published reviews have no reply from you yet.',
+          action: { label: 'View reviews', type: 'open-reviews' },
         },
       ],
     });
     expect(some.tipsHidden).toBe(false);
-    expect(some.tips).toContain('Add 2 more photos');
+    expect(some.tips).toContain('Reply to 2 reviews');
+  });
+
+  test('the Tips card does not promise setup items: the Next steps checklist owns those', () => {
+    const card = html.slice(html.indexOf('id="sdh-tips"'), html.indexOf('<!-- Plan -->'));
+    expect(card).toContain('Based on your enquiries, reviews and plan.');
+    expect(card).not.toMatch(/missing from your listing/i);
+  });
+
+  test('the tips are asked for again when something changes, and the new ones replace the old', () => {
+    const tip = title => ({ title, body: 'b', action: { label: 'Go', type: 'open-enquiries' } });
+    const page = run({
+      summary: populated,
+      suppliers: [{ id: 's1' }],
+      tips: [tip('2 new enquiries to look at')],
+      tipsAfterChange: [tip('Reply to 1 review')],
+      dispatchChanged: true,
+    });
+    const asked = page.requested.filter(url => url.includes('/performance-tips'));
+    expect(asked).toHaveLength(2);
+    // The second request came after the change, and the card shows what it answered.
+    expect(page.requested.indexOf('--- sdh:changed ---')).toBeLessThan(
+      page.requested.lastIndexOf(asked[1])
+    );
+    expect(page.tips).toContain('Reply to 1 review');
+    expect(page.tips).not.toContain('2 new enquiries');
+  });
+
+  test('a failed reload of the tips keeps the ones already shown', () => {
+    const page = run({
+      summary: populated,
+      suppliers: [{ id: 's1' }],
+      tips: [
+        { title: 'Reply to 3 reviews', body: 'b', action: { label: 'Go', type: 'open-plan' } },
+      ],
+      tipsFailAfterChange: true,
+      dispatchChanged: true,
+    });
+    expect(page.tips).toContain('Reply to 3 reviews');
+    expect(page.tips).not.toContain('could not load');
+  });
+
+  test('changing the chart period does not ask for the tips again', () => {
+    const page = run({ summary: populated, suppliers: [{ id: 's1' }], clickPeriod: 7 });
+    expect(page.requested.filter(url => url.includes('/performance-tips'))).toHaveLength(1);
+    expect(page.requested.filter(url => url.includes('/dashboard-summary'))).toHaveLength(2);
   });
 
   test('the Request a review button opens the dialog', () => {

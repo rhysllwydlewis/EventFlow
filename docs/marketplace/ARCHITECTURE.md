@@ -42,6 +42,8 @@
 
 ### Secondary: `public/assets/js/pages/marketplace-init.js` (ES Module)
 
+> **Removed in #1839.** No page loaded this file, so it was deleted. The description below is kept for history only; `marketplace.js` and `marketplace-dom-init.js` are the live scripts.
+
 - **Loaded by:** _Not loaded by `marketplace.html`_ — this is a standalone ES-module entrypoint
 - **API endpoint:** `/api/v1/marketplace/listings` (aligned with canonical namespace)
 - **Purpose:** Alternative/experimental initializer used in contexts where ES modules are bundled

@@ -3,6 +3,7 @@
 const express = require('express');
 const bcrypt = require('bcryptjs');
 const dbUnified = require('../db-unified');
+const devMailbox = require('../utils/devMailbox');
 const catalogCache = require('../services/catalogCache');
 const { clearSearchCache } = require('../middleware/searchCache');
 const { buildPublicSupplierSlug } = require('../services/publicSupplierSeo.service');
@@ -434,6 +435,26 @@ router.get('/inspect', async (req, res, next) => {
   } catch (error) {
     return next(error);
   }
+});
+
+// The newest email "sent" to an address since a moment, kept in memory by utils/postmark.js while no
+// mail provider is configured (the outbox files hold metadata only). Lets the browser tests follow
+// the link in a verification email without any email body being written to disk.
+router.get('/mail', (req, res) => {
+  const to = typeof req.query.to === 'string' ? req.query.to.slice(0, 254) : '';
+  const since = Number(req.query.since) || 0;
+  const message = devMailbox.findNewestTo(to, since);
+  if (!message) {
+    return res.status(404).json({ error: 'No email for that address yet' });
+  }
+  return res.json({
+    id: message.id,
+    receivedAt: message.receivedAt,
+    to: message.to,
+    subject: message.subject,
+    html: message.html,
+    text: message.text,
+  });
 });
 
 module.exports = router;

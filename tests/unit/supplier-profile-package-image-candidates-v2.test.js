@@ -21,6 +21,32 @@ describe('supplier profile package image candidates v2', () => {
     ).toBe('/api/photos/real');
   });
 
+  it.each([
+    '/assets/images/package-placeholder.webp',
+    '/assets/images/package-placeholder.svg',
+    '/assets/images/package-placeholder.png',
+    '/assets/images/placeholders/package.svg',
+    '/assets/images/placeholder-package.jpg',
+  ])(
+    'never treats the placeholder %s as a real photo, and falls back to the file that exists',
+    path => {
+      expect(
+        resolveSupplierProfilePackageImage({
+          image: path,
+          gallery: [{ optimized: '/api/photos/real' }],
+        }).imageUrl
+      ).toBe('/api/photos/real');
+      expect(resolveSupplierProfilePackageImage({ image: path }).imageUrl).toBe(
+        PLACEHOLDER_PACKAGE_IMAGE
+      );
+      const fs = require('fs');
+      const nodePath = require('path');
+      expect(
+        fs.existsSync(nodePath.join(__dirname, '../../public', PLACEHOLDER_PACKAGE_IMAGE))
+      ).toBe(true);
+    }
+  );
+
   it('treats category package placeholders as placeholders when a real gallery image exists', () => {
     expect(
       resolveSupplierProfilePackageImage({

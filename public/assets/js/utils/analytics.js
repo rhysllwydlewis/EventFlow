@@ -26,6 +26,12 @@ export function trackSearch(query, filters, resultCount) {
 }
 
 /**
+ * Filters the visitor types into. Their text can be personal (a postcode, a name), so the analytics
+ * tag is told only whether the filter is in use, never what was typed.
+ */
+const FREE_TEXT_FILTERS = new Set(['query', 'postcode', 'location']);
+
+/**
  * Track filter change
  * @param {string} filterType - Type of filter changed
  * @param {string} value - New filter value
@@ -34,7 +40,7 @@ export function trackFilterChange(filterType, value) {
   if (typeof window.gtag === 'function') {
     window.gtag('event', 'filter_change', {
       filter_type: filterType,
-      filter_value: value,
+      filter_value: FREE_TEXT_FILTERS.has(filterType) ? (value ? 'set' : 'cleared') : value,
     });
   }
   if (isDevelopment) {

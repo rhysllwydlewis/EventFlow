@@ -30,7 +30,7 @@ const ASSET_VERSION = '18.3.0';
 // is per file, so pinning them here keeps a regeneration from silently reverting
 // a bumped query string back to the shared version and serving a stale asset.
 const ASSET_VERSIONS = {
-  '/assets/css/styles.css': '18.5.1',
+  '/assets/css/styles.css': '18.5.2',
   // 18.4.5: the touch-target exception list (`p a, .small a, li a`) now also
   // covers #package-breadcrumb/#category-breadcrumb, whose "Home" links
   // aren't wrapped in a <li> and so were the only crumb inflated to 44px —
@@ -44,7 +44,9 @@ const ASSET_VERSIONS = {
   // a ~5px gap where the banner painted over the nav's top edge.
   // 18.4.3: the back-to-top and shortlist floating buttons became matching
   // rounded squares (40px on mobile) stacked with a 10px gap.
-  '/assets/css/components.css': '18.4.3',
+  // 18.4.5: re-stamped with every other page that loads it, after later edits
+  // to the file shipped under an unchanged URL.
+  '/assets/css/components.css': '18.4.5',
   // 18.6.0: the glass surface tokens, the sidebar and rail layout fixes, the
   // hero tint that repairs its contrast, the category strip's scroll buttons,
   // the four-way reactions and the metadata separator rules all ship together.
@@ -127,7 +129,7 @@ function shell(page) {
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5, user-scalable=yes" />
     <meta name="theme-color" content="#0B8073" />
     <script src="/assets/js/config/canonical-base.js"></script>
-${page.adminGuard ? '    <script src="/assets/js/dashboard-guard.js?v=18.4.0"></script>\n' : ''}    <!--COMMUNITY_HEAD-->
+${page.adminGuard ? '    <script src="/assets/js/dashboard-guard.js?v=18.4.3"></script>\n' : ''}    <!--COMMUNITY_HEAD-->
     <link rel="preload" href="/assets/css/tokens.css?v=${version('/assets/css/tokens.css')}" as="style" />
     <link rel="preload" href="/assets/css/styles.css?v=${version('/assets/css/styles.css')}" as="style" />
     <link rel="stylesheet" href="/assets/css/tokens.css?v=${version('/assets/css/tokens.css')}" />
@@ -306,12 +308,12 @@ ${
     <script src="/assets/js/components.js?v=18.4.0" defer></script>
     <script src="/assets/js/admin-navbar.js?v=18.4.0" defer></script>
 `
-      : `    <script src="/assets/js/utils/auth-state.js?v=1.0.2" defer></script>
+      : `    <script src="/assets/js/utils/auth-state.js?v=1.0.4" defer></script>
     <script src="/assets/js/burger-menu.js?v=1.1.0" defer></script>
     <script src="/assets/js/navbar.js?v=1.3.0" defer></script>
     <script src="/assets/js/notifications.js?v=2.0.3" defer></script>
 `
-  }    <script src="/assets/js/cookie-consent.js?v=3.0.0" defer></script>
+  }    <script src="/assets/js/cookie-consent.js?v=3.0.2" defer></script>
 ${
   page.adminGuard
     ? ''

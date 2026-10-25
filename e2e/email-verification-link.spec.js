@@ -1,6 +1,4 @@
 import { test, expect } from '@playwright/test';
-import fs from 'node:fs';
-import path from 'node:path';
 import {
   cleanupBackendFixtures,
   createRunId,
@@ -10,31 +8,26 @@ import {
 
 /**
  * The verification email, end to end: a supplier whose address is not verified asks for the email,
- * the email that is actually produced (written to the outbox because no mail provider is configured
+ * the email that is actually produced (kept by the app because no mail provider is configured
  * here) contains a link, and opening that link in a browser verifies the account. Nothing is mocked
  * between the button and the link.
  */
 
-const OUTBOX = path.resolve(process.cwd(), 'outbox');
-
-/** The newest outbox message addressed to `email`, as text, or '' when none has been written yet. */
-function newestMailTo(email, since) {
-  if (!fs.existsSync(OUTBOX)) {
+/**
+ * The newest email sent to `email` since `since`, as one text, or '' when none has been sent yet.
+ * The app keeps the full email in memory while no mail provider is configured (the outbox files hold
+ * metadata only), and the test-only /__e2e/mail route hands it back.
+ */
+async function newestMailTo(request, email, since) {
+  const response = await request.get(`/__e2e/mail?to=${encodeURIComponent(email)}&since=${since}`, {
+    headers: E2E_HEADERS,
+  });
+  if (response.status() === 404) {
     return '';
   }
-  const files = fs
-    .readdirSync(OUTBOX)
-    .filter(name => name.endsWith('.eml'))
-    .map(name => ({ name, time: fs.statSync(path.join(OUTBOX, name)).mtimeMs }))
-    .filter(file => file.time >= since)
-    .sort((a, b) => b.time - a.time);
-  for (const file of files) {
-    const text = fs.readFileSync(path.join(OUTBOX, file.name), 'utf8');
-    if (text.includes(`To: ${email}`)) {
-      return text;
-    }
-  }
-  return '';
+  expect(response.ok(), await response.text()).toBe(true);
+  const message = await response.json();
+  return `To: ${message.to}\nSubject: ${message.subject}\n\n${message.html || message.text}`;
 }
 
 test.describe('Verification email link @backend', () => {
@@ -61,11 +54,11 @@ test.describe('Verification email link @backend', () => {
     let mail = '';
     await expect
       .poll(
-        () => {
-          mail = newestMailTo(user.email, since);
+        async () => {
+          mail = await newestMailTo(request, user.email, since);
           return mail.length;
         },
-        { message: 'the verification email was written to the outbox' }
+        { message: 'the verification email was produced' }
       )
       .toBeGreaterThan(0);
     expect(mail).toMatch(/^Subject: Confirm your EventFlow account/im);

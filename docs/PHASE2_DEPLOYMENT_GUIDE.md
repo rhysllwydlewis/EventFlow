@@ -234,6 +234,8 @@ curl -H "Authorization: Bearer $TOKEN" \
 
 ### Step 2: Deploy CSS Files
 
+> **Outdated (#1839).** `folders.css`, `labels.css`, `search.css` and `grouping.css` are not in the repository any more. Steps 2 and 3 are kept for history only; do not follow them.
+
 The following CSS files should be deployed:
 
 - `public/assets/css/folders.css`

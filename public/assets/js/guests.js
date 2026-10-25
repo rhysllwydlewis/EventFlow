@@ -470,6 +470,13 @@
   /** Remembers the picked plan for the next visit (ignored when storage is blocked). */
   function remember(id) {
     try {
+      // A remembered choice follows the cookie choice, which utils/auth-state.js decides in one place.
+      if (
+        typeof window.efMayKeepFunctionalStorage !== 'function' ||
+        !window.efMayKeepFunctionalStorage()
+      ) {
+        return;
+      }
       window.localStorage.setItem(PLAN_KEY, id);
     } catch {
       /* the choice just is not remembered */
@@ -661,6 +668,12 @@
       try {
         if (!state.plans.length) {
           const data = await api('/api/me/plans');
+          // The remembered plan is read below; first let the sign-in check clear whatever a
+          // different account left on this device.
+          const auth = window.__authState;
+          if (auth && typeof auth.whenReady === 'function') {
+            await auth.whenReady();
+          }
           state.plans = data.plans || [];
           if (!state.plans.length) {
             state.phase = 'noplans';
@@ -720,9 +733,18 @@
     }
 
     /** Draws the main area for the current phase: loading, error, sign-in, no plans or ready. */
+    let loadedAnnounced = false;
     function renderStage() {
       stage.removeAttribute('aria-busy');
       if (state.phase === 'ready') {
+        // The page starts as "Loading your guest list". Say when that is over, once.
+        if (!loadedAnnounced) {
+          loadedAnnounced = true;
+          const live = find('#gm-loaded');
+          if (live) {
+            live.textContent = 'Your guest list has loaded.';
+          }
+        }
         if (!find('#gm-results')) {
           stage.innerHTML = readyShell();
         }
@@ -757,7 +779,8 @@
           actions: '<a class="gm-btn gm-btn--primary" href="/start">Create a plan</a>',
         }),
       };
-      stage.innerHTML = `<div class="gm-panel">${views[state.phase] || ''}</div>`;
+      // A failure is an alert: it replaces the loading message, and nothing else would announce it.
+      stage.innerHTML = `<div class="gm-panel"${state.phase === 'error' ? ' role="alert"' : ''}>${views[state.phase] || ''}</div>`;
     }
 
     /** The static frame of the ready view: summary, pointer note, toolbar and results host. */

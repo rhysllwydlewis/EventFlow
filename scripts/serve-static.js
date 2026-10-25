@@ -22,9 +22,11 @@ const {
   setHtmlNoStoreHeaders,
   appendVaryHeader,
   buildHomepageV2Preview,
+  buildHomepageV3Preview,
   addPreviewRobotsMeta,
 } = require('../utils/template-renderer');
 const { resolveCategoryName } = require('../services/categoryLookup.service');
+const { noindexMiddleware } = require('../middleware/seo');
 
 // This server has no database, so the legacy /category redirect below uses
 // this fixed list instead of the real `categories` collection — it's the
@@ -52,15 +54,17 @@ async function sendRenderedHtml(req, res, fileName) {
 }
 
 /**
- * Homepage V2 preview, mirroring templateMiddleware: the navbar parity layer
+ * Homepage previews, mirroring templateMiddleware: the V2 navbar parity layer
  * is injected at serve time rather than living in the file, so serving
  * home-v2.html straight off disk produces a page the real server never sends.
  * Without this the preview paths fell through to the `*` handler and quietly
  * returned the V1 homepage, which would have made any V2 suite a no-op.
  */
-async function sendHomepageV2Preview(req, res) {
-  const filePath = path.join(PUBLIC_DIR, 'home-v2.html');
-  const { content } = await getFile(filePath, '/home-v2.html', req);
+async function sendHomepagePreview(req, res, version) {
+  const fileName = version === 'v3' ? 'home-v3.html' : 'home-v2.html';
+  const builder = version === 'v3' ? buildHomepageV3Preview : buildHomepageV2Preview;
+  const filePath = path.join(PUBLIC_DIR, fileName);
+  const { content } = await getFile(filePath, `/${fileName}`, req);
   setHtmlNoStoreHeaders(res);
   res.setHeader('X-EventFlow-Template-Renderer', 'active-static');
   res.setHeader('X-Robots-Tag', 'noindex, nofollow');
@@ -69,7 +73,7 @@ async function sendHomepageV2Preview(req, res) {
     req.user ? 'skipped-authenticated' : 'anonymous-v2'
   );
   appendVaryHeader(res, 'Cookie');
-  res.type('html').send(addPreviewRobotsMeta(buildHomepageV2Preview(content)));
+  res.type('html').send(addPreviewRobotsMeta(builder(content)));
 }
 
 // Basic rate limiter — limits abusive hammering of the test server
@@ -93,20 +97,10 @@ app.use((req, res, next) => {
   next();
 });
 
-// Add X-Robots-Tag: noindex, nofollow for private/authenticated pages
-// This mirrors the behavior of middleware/seo.js in the main server
-const noindexPatterns = [
-  /^\/(auth|reset-password|dashboard|dashboard-customer|dashboard-supplier|messages|guests|checkout|my-marketplace-listings|budget|gallery)(\.html)?($|\?)/,
-  /^\/(admin)([-/].+)?(\.html)?($|\?)/,
-  /^\/(messenger|chat)(\/.*)?($|\?)/,
-];
-app.use((req, res, next) => {
-  const isNoindex = noindexPatterns.some(pattern => pattern.test(req.path));
-  if (isNoindex) {
-    res.setHeader('X-Robots-Tag', 'noindex, nofollow');
-  }
-  next();
-});
+// Add X-Robots-Tag: noindex, nofollow for private/authenticated pages and the
+// developer demo pages. Uses the production middleware itself rather than a copy
+// of its page list, so the two cannot drift apart.
+app.use(noindexMiddleware());
 
 // ---------- Protected page guard (static/E2E server) ----------
 // Prevents sensitive pages from being served to unauthenticated requests.
@@ -627,7 +621,13 @@ app.get('/index.html', (req, res) => {
 
 ['/home-v2', '/home-v2.html', '/home-v2-preview', '/home-v2-preview.html'].forEach(previewPath => {
   app.get(previewPath, (req, res, next) => {
-    sendHomepageV2Preview(req, res).catch(next);
+    sendHomepagePreview(req, res, 'v2').catch(next);
+  });
+});
+
+['/home-v3', '/home-v3.html', '/home-v3-preview', '/home-v3-preview.html'].forEach(previewPath => {
+  app.get(previewPath, (req, res, next) => {
+    sendHomepagePreview(req, res, 'v3').catch(next);
   });
 });
 

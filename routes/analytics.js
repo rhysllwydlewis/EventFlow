@@ -5,7 +5,6 @@
 
 'use strict';
 
-const crypto = require('crypto');
 const express = require('express');
 const logger = require('../utils/logger');
 const router = express.Router();
@@ -15,6 +14,7 @@ const { csrfProtection } = require('../middleware/csrf');
 const { writeLimiter } = require('../middleware/rateLimits');
 const validator = require('validator');
 const supplierAnalytics = require('../utils/supplierAnalytics');
+const profileViewKeys = require('../utils/profileViewKeys');
 
 // In-memory rate limit store for POST /track (IP+supplierId, 1 view per hour)
 const trackRateLimitCache = new Map();
@@ -56,6 +56,21 @@ function isTrackRateLimited(ip, supplierId, type) {
 }
 
 const PROFILE_VIEW_DEDUPE_MS = 60 * 60 * 1000;
+// Most counted views one network address can add to one supplier in an hour. A visitor key alone
+// cannot stop someone minting new keys, so this caps the address as well. It is a trade-off: a
+// busy shared address (an office, a mobile carrier) can undercount, which is safer than letting
+// one client inflate a supplier's numbers. 20 leaves room for a real office or venue while
+// keeping one client's reach bounded. Set PROFILE_VIEW_IP_CAP to tune it (an environment change,
+// so it takes a restart). The cap applies to anonymous visitors only; a signed-in visitor is
+// already one account and has no address-derived value stored. How well it separates clients
+// depends on `req.ip` being the real client address (utils/trustProxy.js, used by server.js, looks past Cloudflare).
+// The counters live in their own collection and expire after two hours (PROFILE_VIEW_CAP_TTL_MS).
+const PROFILE_VIEW_CAP_COLLECTION = 'profile_view_caps';
+const PROFILE_VIEW_CAP_TTL_MS = 2 * 60 * 60 * 1000;
+const PROFILE_VIEW_IP_CAP =
+  parseInt(process.env.PROFILE_VIEW_IP_CAP, 10) > 0
+    ? parseInt(process.env.PROFILE_VIEW_IP_CAP, 10)
+    : 20;
 const AUTOMATED_CLIENT_PATTERN =
   /bot|crawler|spider|crawl|slurp|facebookexternalhit|preview|headless|lighthouse|pingdom|monitor/i;
 
@@ -79,19 +94,74 @@ function isUncountedViewer(req, user, supplier) {
 }
 
 /**
- * Stable anonymous key for "the same visitor": the signed-in account if there is one,
- * otherwise a hash of IP and browser (the raw IP is never stored).
+ * The coarse kind of browser a user-agent string describes, e.g. "chrome/windows".
+ *
+ * Only the family counts towards "the same visitor", never the full string, so changing the
+ * version number or appending text to the user-agent does not make a new visitor.
+ *
+ * @param {string} userAgent - Raw user-agent header
+ * @returns {string} "<browser>/<os>", each "other" when not recognised
+ */
+function userAgentFamily(userAgent) {
+  const ua = String(userAgent || '').toLowerCase();
+  let browser = 'other';
+  if (/edg(e|a|ios)?\//.test(ua)) {
+    browser = 'edge';
+  } else if (/opr\/|opera/.test(ua)) {
+    browser = 'opera';
+  } else if (/firefox|fxios/.test(ua)) {
+    browser = 'firefox';
+  } else if (/chrome|chromium|crios/.test(ua)) {
+    browser = 'chrome';
+  } else if (/safari/.test(ua)) {
+    browser = 'safari';
+  }
+  let os = 'other';
+  if (/iphone|ipad|ipod/.test(ua)) {
+    os = 'ios';
+  } else if (/android/.test(ua)) {
+    os = 'android';
+  } else if (/windows/.test(ua)) {
+    os = 'windows';
+  } else if (/mac os|macintosh/.test(ua)) {
+    os = 'mac';
+  } else if (/cros/.test(ua)) {
+    os = 'chromeos';
+  } else if (/linux|x11/.test(ua)) {
+    os = 'linux';
+  }
+  return `${browser}/${os}`;
+}
+
+/**
+ * Give back a cap slot that was taken but not used, so the counter stays equal to the views
+ * counted (a burst of repeats or rejected requests must not eat the room of real visitors).
+ *
+ * @param {string} capKey - Counter row key
+ * @returns {Promise<void>}
+ */
+async function releaseCapSlot(capKey) {
+  try {
+    await dbUnified.incrementCounter(PROFILE_VIEW_CAP_COLLECTION, capKey, { by: -1 });
+  } catch (error) {
+    logger.debug('Could not release a profile view cap slot:', error);
+  }
+}
+
+/**
+ * Stable anonymous key for "the same visitor": the signed-in account if there is one, otherwise an
+ * HMAC (under a server secret) of the address and the browser family. The raw address is never
+ * stored and the key cannot be reversed by trying every address; an IPv6 address counts as its /64.
  *
  * @param {Object} req - Express request
  * @param {Object|null} user - Signed-in user, if any
- * @returns {string} Visitor key
+ * @returns {string} Visitor key, or '' when an anonymous visitor cannot be keyed (no secret set)
  */
 function visitorKeyFor(req, user) {
   if (user?.id) {
     return `u:${user.id}`;
   }
-  const fingerprint = `${req.ip || ''}|${req.get('user-agent') || ''}`;
-  return `a:${crypto.createHash('sha256').update(fingerprint).digest('hex').slice(0, 32)}`;
+  return profileViewKeys.anonymousVisitorKey(req.ip, userAgentFamily(req.get('user-agent')));
 }
 
 // Whitelist of allowed event types
@@ -447,49 +517,114 @@ function getLeadRecommendations(score, quality, enquiry) {
 }
 
 /**
+ * Check a beacon body. Returns the cleaned values, or the error to answer with.
+ *
+ * @param {Object} body - Request body
+ * @returns {{type: string, supplierId: string}|{error: string}} Cleaned values or an error message
+ */
+function readTrackBody(body) {
+  const { type, supplierId } = body || {};
+  if (!type || !['profile_view', 'enquiry'].includes(type)) {
+    return { error: 'Invalid type. Must be profile_view or enquiry' };
+  }
+  if (!supplierId || typeof supplierId !== 'string' || supplierId.length > 100) {
+    return { error: 'supplierId is required' };
+  }
+  // Only safe characters (alphanumeric, hyphens, underscores)
+  const cleanSupplierId = supplierId.trim();
+  if (!/^[a-zA-Z0-9_-]+$/.test(cleanSupplierId)) {
+    return { error: 'Invalid supplierId format' };
+  }
+  return { type, supplierId: cleanSupplierId };
+}
+
+/**
+ * Decide and record one profile view.
+ *
+ * @param {Object} req - Request
+ * @param {Object|null} user - Signed-in visitor, if any
+ * @param {Object} supplier - The supplier being viewed
+ * @returns {Promise<string>} The message to answer with
+ */
+async function recordProfileView(req, user, supplier) {
+  const cleanSupplierId = supplier.id;
+  const userId = user ? user.id : null;
+  // Not visits: the supplier looking at their own page, staff, and automated clients.
+  if (isUncountedViewer(req, user, supplier)) {
+    return 'Not counted';
+  }
+  const visitorKey = visitorKeyFor(req, user);
+  if (!visitorKey) {
+    // No secret to key an anonymous visitor with: count nothing rather than store a weak key.
+    logger.warn('Profile view not counted: no JWT_SECRET or PROFILE_VIEW_SALT is configured');
+    return 'Not counted';
+  }
+  const since = new Date(Date.now() - PROFILE_VIEW_DEDUPE_MS).toISOString();
+  const recent = await dbUnified.count('events', {
+    supplierId: cleanSupplierId,
+    type: 'profile_view',
+    visitorKey,
+    timestamp: { $gte: since },
+  });
+  if (recent > 0) {
+    return 'Already tracked';
+  }
+  // However many browsers an address pretends to be, it adds a bounded number of views. The
+  // slot is taken with one atomic increment (so concurrent requests cannot all pass a read)
+  // and given back if the visitor turns out to be counted already. Only anonymous visitors
+  // are capped, and nothing derived from the address is kept on the event.
+  const hourBucket = Math.floor(Date.now() / PROFILE_VIEW_DEDUPE_MS);
+  const addressKey = userId ? '' : profileViewKeys.addressKey(req.ip);
+  const capKey = addressKey ? `${cleanSupplierId}:${addressKey}:${hourBucket}` : '';
+  if (capKey) {
+    const used = await dbUnified.incrementCounter(PROFILE_VIEW_CAP_COLLECTION, capKey, {
+      expiresAt: new Date(Date.now() + PROFILE_VIEW_CAP_TTL_MS),
+      throwOnError: true,
+    });
+    if (used > PROFILE_VIEW_IP_CAP) {
+      await releaseCapSlot(capKey);
+      return 'Already tracked';
+    }
+  }
+  // The read above is only a fast path. The unique dedupeKey makes the insert itself the
+  // decision: of two beacons from one visitor at once, the database accepts one.
+  const outcome = await supplierAnalytics.trackProfileView(
+    cleanSupplierId,
+    userId,
+    null,
+    false,
+    visitorKey,
+    { dedupeKey: `${cleanSupplierId}:${visitorKey}:${hourBucket}` }
+  );
+  if (!outcome?.recorded && capKey) {
+    // Nothing was added (a duplicate, or the write failed): give the slot back.
+    await releaseCapSlot(capKey);
+  }
+  return outcome?.duplicate ? 'Already tracked' : 'Event tracked';
+}
+
+/**
  * POST /api/analytics/track
  * Track profile views and enquiries per supplier
  * Profile views count once per visitor per hour; enquiry beacons once per IP per hour
  */
 router.post('/track', writeLimiter, async (req, res) => {
   try {
-    const { type, supplierId } = req.body || {};
-
-    const allowedTypes = ['profile_view', 'enquiry'];
-    if (!type || !allowedTypes.includes(type)) {
-      return res.status(400).json({
-        success: false,
-        error: 'Invalid type. Must be profile_view or enquiry',
-      });
+    const body = readTrackBody(req.body);
+    if (body.error) {
+      return res.status(400).json({ success: false, error: body.error });
     }
-
-    if (!supplierId || typeof supplierId !== 'string' || supplierId.length > 100) {
-      return res.status(400).json({
-        success: false,
-        error: 'supplierId is required',
-      });
-    }
-
-    // Validate supplierId contains only safe characters (alphanumeric, hyphens, underscores)
-    const cleanSupplierId = supplierId.trim();
-    if (!/^[a-zA-Z0-9_-]+$/.test(cleanSupplierId)) {
-      return res.status(400).json({
-        success: false,
-        error: 'Invalid supplierId format',
-      });
-    }
+    const { type, supplierId: cleanSupplierId } = body;
 
     // Enquiry beacons: max 1 per IP per supplier per hour. Profile views are limited per
-    // visitor by the database check below instead, so two browsers behind one address
+    // visitor by the database check instead, so two browsers behind one address
     // (an office, a mobile network) are not merged into one.
-    const ip = req.ip;
-    if (type !== 'profile_view' && isTrackRateLimited(ip, cleanSupplierId, type)) {
+    if (type !== 'profile_view' && isTrackRateLimited(req.ip, cleanSupplierId, type)) {
       return res.json({ success: true, message: 'Already tracked' });
     }
 
     // Get authenticated user if available
     const user = await getUserFromCookie(req);
-    const userId = user ? user.id : null;
 
     // Only real, public profiles have visitors.
     const supplier = await dbUnified.findOne('suppliers', { id: cleanSupplierId });
@@ -498,25 +633,9 @@ router.post('/track', writeLimiter, async (req, res) => {
     }
 
     if (type === 'profile_view') {
-      // Not visits: the supplier looking at their own page, staff, and automated clients.
-      if (isUncountedViewer(req, user, supplier)) {
-        return res.json({ success: true, message: 'Not counted' });
-      }
-      const visitorKey = visitorKeyFor(req, user);
-      const recent = await dbUnified.count('events', {
-        supplierId: cleanSupplierId,
-        type: 'profile_view',
-        visitorKey,
-        timestamp: { $gte: new Date(Date.now() - PROFILE_VIEW_DEDUPE_MS).toISOString() },
-      });
-      if (recent > 0) {
-        return res.json({ success: true, message: 'Already tracked' });
-      }
-      await supplierAnalytics.trackProfileView(cleanSupplierId, userId, null, false, visitorKey);
-    } else if (type === 'enquiry') {
-      await supplierAnalytics.trackEnquirySent(cleanSupplierId, userId);
+      return res.json({ success: true, message: await recordProfileView(req, user, supplier) });
     }
-
+    await supplierAnalytics.trackEnquirySent(cleanSupplierId, user ? user.id : null);
     res.json({ success: true, message: 'Event tracked' });
   } catch (error) {
     // Fail silently — analytics should never break UX

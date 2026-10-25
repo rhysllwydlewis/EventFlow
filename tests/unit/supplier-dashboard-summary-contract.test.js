@@ -307,17 +307,17 @@ function populatedSeed() {
     chat_messages_v4: convs.flatMap(item => item.messages),
     quoteRequests: [
       {
-        id: 'q1',
+        id: 'qr_1',
         createdAt: '2026-07-01T09:00:00.000Z',
         suppliers: [{ supplierId: 'sup-1' }, { supplierId: 'sup-2' }],
       },
-      { id: 'q2', createdAt: '2026-06-01T09:00:00.000Z', suppliers: [{ supplierId: 'sup-1' }] },
-      { id: 'q3', createdAt: '2026-07-02T09:00:00.000Z', suppliers: [{ supplierId: 'sup-2' }] },
-      { id: 'q4', createdAt: '2026-03-01T09:00:00.000Z', suppliers: [{ supplierId: 'sup-1' }] },
+      { id: 'qr_2', createdAt: '2026-06-01T09:00:00.000Z', suppliers: [{ supplierId: 'sup-1' }] },
+      { id: 'qr_3', createdAt: '2026-07-02T09:00:00.000Z', suppliers: [{ supplierId: 'sup-2' }] },
+      { id: 'qr_4', createdAt: '2026-03-01T09:00:00.000Z', suppliers: [{ supplierId: 'sup-1' }] },
     ],
     enquiries: [
-      { id: 'e1', supplierId: 'sup-1', createdAt: '2026-07-14T09:00:00.000Z' },
-      { id: 'e2', supplierId: 'sup-2', createdAt: '2026-07-14T09:00:00.000Z' },
+      { id: 'enq_1', supplierId: 'sup-1', createdAt: '2026-07-14T09:00:00.000Z' },
+      { id: 'enq_2', supplierId: 'sup-2', createdAt: '2026-07-14T09:00:00.000Z' },
     ],
     events: [
       // 5 page loads in the window, 3 in the previous window, 2 before that.
@@ -574,6 +574,8 @@ describe('GET /api/supplier/dashboard-summary contract', () => {
       expect(body.responses).toEqual({
         sampleSize: 5,
         matureSampleSize: 4,
+        // C: more than a day old, never answered.
+        unanswered: 1,
         repliedPct: 75,
         medianMinutes: 30,
       });
@@ -800,6 +802,7 @@ describe('GET /api/supplier/dashboard-summary contract', () => {
       expect(body.responses).toEqual({
         sampleSize: 0,
         matureSampleSize: 0,
+        unanswered: 0,
         repliedPct: null,
         medianMinutes: null,
       });

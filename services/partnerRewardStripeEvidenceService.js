@@ -3,6 +3,7 @@
 const nodeCrypto = require('crypto');
 const dbUnified = require('../db-unified');
 const logger = require('../utils/logger');
+const { getSafeStripeSecretKey } = require('../utils/previewSafety');
 const paymentService = require('./paymentService');
 const baseIntegrity = require('./partnerRewardIntegrityService');
 
@@ -86,7 +87,7 @@ const paymentInstrumentEvidence = paymentIntent => {
 
 const getEvidenceStripeClient = () => {
   if (evidenceStripeClient) return evidenceStripeClient;
-  const secret = process.env.STRIPE_SECRET_KEY;
+  const secret = getSafeStripeSecretKey();
   if (!secret) return null;
   try {
     const stripeLib = require('stripe');
