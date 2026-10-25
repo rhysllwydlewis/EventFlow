@@ -948,7 +948,13 @@ router.get('/performance-tips', authRequired, async (req, res) => {
       return res.status(404).json({ error: 'Supplier profile not found' });
     }
 
-    const { summary, raw } = await buildSummaryWithContext({ userId: req.user.id, supplier });
+    // Lean: the tips read none of the views, analytics, tickets or next-steps figures, so they are
+    // not computed (the page asks for the full summary separately).
+    const { summary, raw } = await buildSummaryWithContext({
+      userId: req.user.id,
+      supplier,
+      lean: true,
+    });
     return res.json(
       buildTips({
         supplier,

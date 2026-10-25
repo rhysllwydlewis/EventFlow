@@ -314,10 +314,14 @@ function createAttempt(unavailable) {
  * Phase 1: everything that does not depend on the analytics window.
  *
  * @param {Function} attempt - Failure-tolerant query runner
- * @param {Object} ids - { userId, supplierId, now }
- * @returns {Promise<Object>} The raw source records (null where a read failed)
+ * @param {Object} ids - { userId, supplierId, now, lean }
+ * @returns {Promise<Object>} The raw source records (null where a read failed, or was skipped in lean mode)
  */
-async function loadSources(attempt, { userId, supplierId, now }) {
+async function loadSources(attempt, { userId, supplierId, now, lean = false }) {
+  // Lean mode (the tips) leaves out what the tips never read: the profile count, tickets and the
+  // review-request count that feeds the next steps. A skipped source is null and is not named in `unavailable`.
+  const optional = (label, task, fallback) =>
+    lean ? Promise.resolve(fallback) : attempt(label, task, fallback);
   const [
     ownerUser,
     subscription,
@@ -333,13 +337,13 @@ async function loadSources(attempt, { userId, supplierId, now }) {
     attempt('subscription', () => resolveSubscription(userId), null),
     attempt('packages', () => dbUnified.find('packages', { supplierId }, STRICT), null),
     attempt('reviews', () => dbUnified.find('reviews', { supplierId }, STRICT), null),
-    attempt('profile', () => dbUnified.find('suppliers', { ownerUserId: userId }, STRICT), null),
-    attempt(
+    optional('profile', () => dbUnified.find('suppliers', { ownerUserId: userId }, STRICT), null),
+    optional(
       'tickets',
       () => dbUnified.find('tickets', { senderId: userId, senderType: 'supplier' }, STRICT),
       null
     ),
-    attempt(
+    optional(
       'reviewRequests',
       () => dbUnified.count('reviewRequests', { supplierId, status: { $ne: 'failed' } }, STRICT),
       null
@@ -363,10 +367,16 @@ async function loadSources(attempt, { userId, supplierId, now }) {
  * analytics block built on them.
  *
  * @param {Function} attempt - Failure-tolerant query runner
- * @param {Object} params - { userId, supplierId, now, fixedNow, analyticsWindow }
+ * @param {Object} params - { userId, supplierId, now, fixedNow, analyticsWindow, lean }
  * @returns {Promise<Object>} { engagement, previousViews, messaging, analyticsBase, uniqueVisitors }
  */
-async function loadWindowFigures(attempt, { userId, supplierId, now, fixedNow, analyticsWindow }) {
+async function loadWindowFigures(
+  attempt,
+  { userId, supplierId, now, fixedNow, analyticsWindow, lean = false }
+) {
+  // Lean mode skips every views query (the events aggregate in particular): the tips use none.
+  const optional = (label, task, fallback) =>
+    lean ? Promise.resolve(fallback) : attempt(label, task, fallback);
   const { startMs: windowStartMs, previousStartMs } = getWindowBounds(
     now.getTime(),
     analyticsWindow.days
@@ -383,7 +393,7 @@ async function loadWindowFigures(attempt, { userId, supplierId, now, fixedNow, a
         }),
       null
     ),
-    attempt(
+    optional(
       'viewsTrend',
       () =>
         dbUnified.count(
@@ -401,7 +411,7 @@ async function loadWindowFigures(attempt, { userId, supplierId, now, fixedNow, a
       null
     ),
     attempt('messages', () => getMessagingSummary(userId), null),
-    attempt(
+    optional(
       'uniqueVisitors',
       async () => {
         // One group per anonymous visitor key (a hash, never an address): about how many different
@@ -427,7 +437,7 @@ async function loadWindowFigures(attempt, { userId, supplierId, now, fixedNow, a
       null
     ),
   ]);
-  const analyticsBase = await attempt(
+  const analyticsBase = await optional(
     'analytics',
     () =>
       supplierAnalytics.getSupplierAnalytics(supplierId, analyticsWindow.days, { now, engagement }),
@@ -659,17 +669,25 @@ async function buildDashboardSummary(params) {
  * callers (the tips endpoint) that need a little more than the summary exposes.
  * The raw records are for server-side use only and must never be sent to a client.
  *
- * @param {Object} params - Same as buildDashboardSummary
+ * @param {Object} params - Same as buildDashboardSummary, plus `lean`: true skips everything the
+ *   tips do not read (views, analytics, tickets, next steps), so the tips request costs far less
+ *   than the full dashboard summary. A lean summary must not be sent to the dashboard.
  * @returns {Promise<{summary: Object, raw: {packageDocs: (Object[]|null), reviewDocs: (Object[]|null)}}>}
  */
-async function buildSummaryWithContext({ userId, supplier, requestedDays = null, now: fixedNow }) {
+async function buildSummaryWithContext({
+  userId,
+  supplier,
+  requestedDays = null,
+  now: fixedNow,
+  lean = false,
+}) {
   // A caller-supplied clock (tests) bypasses the short-lived engagement result reuse.
   const now = fixedNow || new Date();
   const supplierId = supplier.id;
   const unavailable = [];
   const attempt = createAttempt(unavailable);
 
-  const sources = await loadSources(attempt, { userId, supplierId, now });
+  const sources = await loadSources(attempt, { userId, supplierId, now, lean });
   const { ownerUser, subscription, packageDocs, reviewDocs, profiles, tickets, calendar } = sources;
 
   // Window: the plan decides how far back this supplier may look.
@@ -685,6 +703,7 @@ async function buildSummaryWithContext({ userId, supplier, requestedDays = null,
       now,
       fixedNow,
       analyticsWindow,
+      lean,
     });
   if (analyticsBase && analyticsBase.totalViews === null) {
     unavailable.push('views');
@@ -722,14 +741,16 @@ async function buildSummaryWithContext({ userId, supplier, requestedDays = null,
     },
     subscription: subscription || { ...UNRESOLVED_SUBSCRIPTION },
     upcoming: calendar ? calendar.upcoming : [],
-    nextSteps: buildNextSteps({
-      hydrated,
-      ownerUser,
-      verification,
-      completeness,
-      sources,
-      approvedCount: reviewSummary.approvedCount,
-    }),
+    nextSteps: lean
+      ? []
+      : buildNextSteps({
+          hydrated,
+          ownerUser,
+          verification,
+          completeness,
+          sources,
+          approvedCount: reviewSummary.approvedCount,
+        }),
     analytics: buildAnalyticsBlock({
       analyticsBase,
       previousViews,

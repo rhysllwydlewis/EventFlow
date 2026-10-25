@@ -32,8 +32,9 @@
 const { reviewState, reviewResponse, STATES } = require('../utils/reviewShape');
 const {
   getSupplierDescriptionText,
-  getSupplierGalleryCount,
+  hasSupplierPostcode,
 } = require('./supplierProfileCompleteness');
+const { countAllowanceGalleryPhotos } = require('../utils/photoGalleryAllowance');
 const { isPlaceholderImage } = require('../utils/packageImageUtils');
 
 const MAX_TIPS = 3;
@@ -176,6 +177,10 @@ function counted(count, singular, plural) {
  * @returns {string|null} Text, or null when unparseable
  */
 function shortDate(iso) {
+  if (!iso) {
+    // new Date(null) is 1 January 1970, a valid date: a missing timestamp must not become one.
+    return null;
+  }
   const date = new Date(iso);
   if (Number.isNaN(date.getTime())) {
     return null;
@@ -186,6 +191,20 @@ function shortDate(iso) {
     year: 'numeric',
     timeZone: 'UTC',
   });
+}
+
+/**
+ * An admin's note as a sentence of its own, e.g. " Admin note: add a logo." (the note may or may
+ * not end in punctuation).
+ *
+ * @param {string|null} notes - Note the admin left
+ * @returns {string} Text starting with a space, or '' when there is no note
+ */
+function adminNote(notes) {
+  const text = String(notes || '')
+    .trim()
+    .replace(/[\s.!?,;:]+$/, '');
+  return text ? ` Admin note: ${text}.` : '';
 }
 
 /**
@@ -213,7 +232,7 @@ function accountTips(verification) {
   if (verification.approved) {
     return [];
   }
-  const note = verification.notes ? ` Admin note: ${verification.notes}` : '';
+  const note = adminNote(verification.notes);
   switch (verification.status) {
     case 'pending_review': {
       const when = shortDate(verification.submittedAt);
@@ -267,6 +286,21 @@ function accountTips(verification) {
               label: 'Review and resubmit',
             }),
       ];
+    case 'approved':
+      // Verified, but the listing itself has not been approved: there is nothing to submit, and
+      // the submit button would be refused (an approved record cannot be submitted again).
+      return [
+        tip({
+          id: 'listing-awaiting-approval',
+          priority: 1,
+          category: 'account',
+          icon: '⏳',
+          title: 'Your profile is waiting for listing approval',
+          body: 'Your verification is complete, but your listing has not been approved yet, so customers cannot see your profile. If this is taking a while, contact support.',
+          type: 'open-support',
+          label: 'Contact support',
+        }),
+      ];
     case 'suspended':
       return [
         tip({
@@ -301,9 +335,10 @@ function accountTips(verification) {
  *
  * @param {Object} summary - Dashboard summary
  * @param {Object[]} reviewDocs - Stored reviews for this supplier
+ * @param {boolean} canEdit - Whether the supplier's email is verified (review requests need it)
  * @returns {Object[]} Tips
  */
-function customerTips(summary, reviewDocs) {
+function customerTips(summary, reviewDocs, canEdit) {
   const tips = [];
   const newRequests = summary.enquiries?.requests?.new;
   if (newRequests > 0) {
@@ -330,7 +365,7 @@ function customerTips(summary, reviewDocs) {
         category: 'messages',
         icon: '💬',
         title: `${counted(unanswered, 'conversation', 'conversations')} still need a reply`,
-        body: `${counted(unanswered, 'customer started a conversation', 'customers started conversations')} in the last ${summary.window.days} days that is more than a day old and has no reply from you.`,
+        body: `${counted(unanswered, 'conversation', 'conversations')} started by customers in the last ${summary.window.days} days ${unanswered === 1 ? 'is' : 'are'} more than a day old and ${unanswered === 1 ? 'has' : 'have'} no reply from you.`,
         type: 'open-messages',
         label: 'Open messages',
       })
@@ -366,7 +401,8 @@ function customerTips(summary, reviewDocs) {
         label: 'View reviews',
       })
     );
-  } else if (summary.reviews && summary.reviews.approvedCount === 0) {
+  } else if (canEdit && summary.reviews && summary.reviews.approvedCount === 0) {
+    // Requesting a review needs a verified email (the server refuses it otherwise).
     tips.push(
       tip({
         id: 'first-review',
@@ -490,7 +526,7 @@ function profileTips(supplier, summary) {
         category: 'profile',
         icon: '🏷️',
         title: 'Choose a specific category',
-        body: 'Your profile is listed under "Other", so customers browsing a category will not find you there.',
+        body: `${category === '' ? 'Your profile has no category' : 'Your profile is listed under "Other"'}, so customers browsing a category will not find you there.`,
         type: 'open-profile-editor',
         label: 'Edit profile',
         field: 'category',
@@ -507,7 +543,7 @@ function profileTips(supplier, summary) {
         category: 'profile',
         icon: '✍️',
         title: length === 0 ? 'Write a description' : 'Make your description fuller',
-        body: `${length === 0 ? 'Your profile has no description.' : `Your description is ${length} characters; the profile checklist asks for at least 100.`} ${DESCRIPTION_ADVICE[group]}`,
+        body: `${length === 0 ? 'Your profile has no description.' : `Your description is ${counted(length, 'character', 'characters')}; the profile checklist asks for at least 100.`} ${DESCRIPTION_ADVICE[group]}`,
         type: 'open-profile-editor',
         label: 'Edit profile',
         field: 'description',
@@ -516,7 +552,8 @@ function profileTips(supplier, summary) {
   }
 
   if (open.has('gallery')) {
-    const photos = getSupplierGalleryCount(supplier);
+    // The same count the upload limit uses, so a photo the plan has hidden is not counted.
+    const photos = countAllowanceGalleryPhotos(supplier);
     tips.push(
       tip({
         id: 'add-photos',
@@ -549,14 +586,27 @@ function profileTips(supplier, summary) {
   }
 
   if (open.has('location')) {
+    // The checklist needs both; say which one is actually missing.
+    const missingLocation = !supplier.location;
+    const missingPostcode = !hasSupplierPostcode(supplier);
+    let title = 'Add your location and postcode';
+    let body =
+      'Location searches match on your postcode, so a profile without one cannot be found by area.';
+    if (!missingPostcode) {
+      title = 'Add your location';
+      body =
+        'Your profile has a postcode but no location (the town or area you are based in). Add it so customers can see where you work.';
+    } else if (!missingLocation) {
+      title = 'Add your postcode';
+    }
     tips.push(
       tip({
         id: 'add-location',
         priority: 5.8,
         category: 'profile',
         icon: '📍',
-        title: 'Add your location and postcode',
-        body: 'Location searches match on your postcode, so a profile without one cannot be found by area.',
+        title,
+        body,
         type: 'open-profile-editor',
         label: 'Edit profile',
         field: 'location',
@@ -565,24 +615,39 @@ function profileTips(supplier, summary) {
   }
 
   const remaining = [
-    ['coverImage', 'banner', 'Add a banner image', 'Your profile has no banner image.', 'banner'],
+    [
+      'coverImage',
+      'banner',
+      '🖼️',
+      'Add a banner image',
+      'Your profile has no banner image.',
+      'banner',
+    ],
     [
       'socials',
       'social-links',
+      '🔗',
       'Link your social profiles',
       'Your checklist asks for at least 2 social profiles.',
       'social-links',
     ],
-    ['website', 'website', 'Add your website', 'Your profile has no website link.', 'website'],
+    [
+      'website',
+      'website',
+      '🌐',
+      'Add your website',
+      'Your profile has no website link.',
+      'website',
+    ],
   ];
-  remaining.forEach(([check, id, title, body, field], index) => {
+  remaining.forEach(([check, id, icon, title, body, field], index) => {
     if (open.has(check)) {
       tips.push(
         tip({
           id: `add-${id}`,
           priority: 9 + index,
           category: 'profile',
-          icon: '🔗',
+          icon,
           title,
           body,
           type: 'open-profile-editor',
@@ -604,7 +669,8 @@ function profileTips(supplier, summary) {
  */
 function photoLimitTips(supplier, summary) {
   const allowed = summary.subscription?.limits ? summary.subscription.limits.maxPhotos : null;
-  const used = getSupplierGalleryCount(supplier);
+  // Only photos the plan lets them use: the count the upload limit checks.
+  const used = countAllowanceGalleryPhotos(supplier);
   if (Number.isFinite(allowed) && allowed >= 0 && used >= allowed) {
     return [
       tip({
@@ -630,6 +696,10 @@ function photoLimitTips(supplier, summary) {
  * @returns {Object[]} Tips
  */
 function calendarTips(summary, canPublish) {
+  // An unreadable calendar reports no events, which is not the same as having none.
+  if (Array.isArray(summary.unavailable) && summary.unavailable.includes('calendar')) {
+    return [];
+  }
   if (canPublish && Array.isArray(summary.upcoming) && summary.upcoming.length === 0) {
     return [
       tip({
@@ -664,7 +734,7 @@ function buildTips({ supplier, summary, raw, canPublishPublicCalendar }) {
 
   const all = [...accountTips(verification)];
   if (approved) {
-    all.push(...customerTips(summary, raw.reviewDocs || []));
+    all.push(...customerTips(summary, raw.reviewDocs || [], canEdit));
   }
   if (canEdit) {
     if (approved && raw.packageDocs) {
@@ -675,7 +745,8 @@ function buildTips({ supplier, summary, raw, canPublishPublicCalendar }) {
     }
     all.push(...photoLimitTips(supplier, summary));
   }
-  if (approved) {
+  // Publishing to the public calendar needs a verified email, so it is not offered before then.
+  if (approved && canEdit) {
     all.push(...calendarTips(summary, canPublishPublicCalendar));
   }
 
