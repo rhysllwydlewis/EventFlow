@@ -54,11 +54,18 @@ the first plan. A plan switcher appears only when there is more than one.
 
 Customers without a plan keep the budget on this device (`ef_budget_v2`, same shape as the plan
 fields) and see a notice linking to `/start`. The total is also written to
-`eventflow_custom_budget`, the key the dashboard falls back to.
+`eventflow_custom_budget`, the key the dashboard falls back to (kept only when the visitor has
+allowed functional storage; `ef_budget_v2` itself is the customer's own data and is not).
 
 ### Data from the old page
 
-`ef_budget` (`{ total, expenses[] }`) is still read, never deleted. With a plan, a notice offers to
+`ef_budget` (`{ total, expenses[] }`) is still read, never deleted (except when a different
+account signs in on the browser: `auth-state.js` forgets `ef_budget`, `ef_budget_v2`,
+`ef_budget_imported`, `ef_customer_plan` and the other device-only figures so the second account
+does not inherit the first one's budget). The page asks `auth-state.js` to finish its sign-in check
+(`whenReady()`, at most 8 s) before it reads any of them, so the clearing has always happened
+first; if the check cannot identify anyone nothing can be attributed and nothing is cleared. The
+guest list page waits the same way before reading the plan last picked. With a plan, a notice offers to
 move it into the plan (`Move to this plan` writes the items, and the total if the plan has none,
 then sets `ef_budget_imported`). Without a plan it is converted on the fly.
 
@@ -68,7 +75,8 @@ pending/overdue distinction, and the supplier name (kept as `Supplier: name` in 
 
 ## The numbers
 
-Same rules as the dashboard (`dashboard-customer-module.js`), implemented in `budget-calc.js`:
+Same rules as the dashboard (`customer-dashboard-home.js`, which replaced
+`dashboard-customer-module.js`), implemented in `budget-calc.js`:
 
 - A line costs its **actual** amount when there is one, otherwise its **planned** (`estimated`) amount.
 - **Committed** is the sum of those costs. **Remaining** is budget minus committed and can go
@@ -78,8 +86,12 @@ Same rules as the dashboard (`dashboard-customer-module.js`), implemented in `bu
   unpaid otherwise.
 - Money is added in whole pence and shown as GBP (`£1,234` or `£1,234.50`).
 
-Not included: the dashboard also adds the listed price of supplier packages saved to the plan. The
-page does not load package prices and says so when the plan has packages.
+Not included: the dashboard also adds the listed price of supplier packages saved to the plan, so
+its Budget card can show a larger "committed" figure than this page. This page counts budget lines
+only, does not load package prices and says so when the plan has packages; the dashboard card
+splits its figure into "budget items" and "listed package prices", and the budget-items part is
+the number shown here. If the package prices cannot be fetched, the dashboard says how many
+packages could not be priced instead of presenting the smaller figure as complete.
 
 ## Design notes
 

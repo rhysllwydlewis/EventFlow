@@ -79,12 +79,14 @@ fixtures; change one without the other and CI fails. `/api/me/suppliers` items a
 
 ## Other endpoints
 
-- `GET /api/supplier/analytics`, `GET /api/me/suppliers/:id/analytics?period=` and the legacy
-  `GET /api/supplier/analytics/legacy` apply the same plan rule (Starter 7). `period` must be a whole number
+- `GET /api/supplier/analytics` and `GET /api/me/suppliers/:id/analytics?period=` apply the same plan rule
+  (Starter 7). The old `GET /api/supplier/analytics/legacy` was removed: nothing called it. `period` must be a whole number
   (else 400); the two chart endpoints serve up to the plan window (Professional Plus: 365, as sold), while
   the summary caps at 90. The responses include `window`. `analytics.responseRate`/`avgResponseTime` are
   `null` without a sample.
-- `GET /api/supplier/reviews/stats` counts approved reviews only (`averageRating` `null` when none).
+- `GET /api/supplier/reviews/stats` counts approved reviews only (`averageRating` `null` when none). `totalReviews` is
+  every published review; `distribution` only counts reviews with a usable 1-5 rating and sums to `ratedReviews`, the
+  base to use for percentages. A failed read is a 500, never "0 reviews".
 - `POST /api/v1/supplier/request-review` requires a verified email and an approved supplier:
   403 `{code:'EMAIL_NOT_VERIFIED'|'SUPPLIER_NOT_APPROVED'}`.
 - Calendar reminder notifications for suppliers link to `/dashboard/supplier#availability-calendar`.
@@ -106,6 +108,9 @@ EventFlow, with the owner's verified account address as Reply-To, and marks the 
 `ENQUIRY_TOO_OLD` (422, older than 30 days), `ENQUIRY_LIMIT`/`HOURLY_LIMIT`/`DAILY_LIMIT` (429: 3 per enquiry, 10 an
 hour and 30 a day per supplier) or `SEND_FAILED` (502). A place is reserved in `supplier_enquiry_replies` before
 sending and the limits are checked again, so overlapping requests cannot pass them; a failed send gives the place back.
+Once the email has gone nothing can turn the reply into a failure: if marking the enquiry handled does not save, the
+route still answers `{success: true, enquiry, warning}` (the enquiry keeps its old status) and the dashboard shows the
+warning, so the supplier does not send it twice.
 `GET /api/supplier/enquiries/:id` includes the sent `replies` and an estimated `quality` (`rating`, `score`, `reasons`,
 from `utils/leadScoring.js`, worked out when read, never stored); the list takes `quality=High|Medium|Low` and
 returns `counts.byQuality`.
@@ -117,7 +122,10 @@ to another device.
 **CSV export.** `GET /api/supplier/enquiries/export` is the single export route (the shadowed "safe" duplicate was deleted).
 It exports the supplier's customer conversations, quote requests and contact-form enquiries, spreadsheet-safe, as
 `enquiries-and-conversations-YYYY-MM-DD.csv`. With nothing to export it still returns 200 with the header row and
-`X-Export-Row-Count: 0`.
+`X-Export-Row-Count: 0`. Conversations the supplier deleted from their inbox (`participants.isDeleted` for their
+own participant) are not exported. Each source keeps its newest 1000 rows; when more existed the response has
+`X-Export-Truncated: true`, the file ends with a `Notice` row saying so (not counted in `X-Export-Row-Count`) and the
+dashboard tells the supplier. Otherwise `X-Export-Truncated: false`.
 
 **Reviews.** Two writers share `reviews` (v2 service with `moderation.state`; the live public form with
 `approved`/`flagged`/`comment`/`userName`). `utils/reviewShape.js` is the one adapter used by the dashboard list, the
@@ -125,14 +133,49 @@ summary, `reviews/stats` and replies, so both shapes list, count and accept repl
 shape count; pending/rejected never do. No migration is required.
 
 **Profile visits.** One event per visit, written only by the page beacon `POST /api/analytics/track`. Not recorded for the
-supplier's own session, admins, automated clients, or unknown/unapproved suppliers; the same visitor counts once per hour
-(database rule using a hash, not the raw IP). `views.description` carries the exact sentence the UI may show. Events recorded
+supplier's own session, admins, automated clients, or unknown/unapproved suppliers; the same visitor counts once per hour.
+"The same visitor" is the signed-in account, or an HMAC-SHA256 (under a server secret, `PROFILE_VIEW_SALT` or else
+`JWT_SECRET`) of the address and the browser family (browser/OS, not the full User-Agent string, so changing the version
+or rotating strings does not make a new visitor); an IPv6 address counts as its /64 prefix. The raw IP is never stored,
+and the stored visitor key cannot be reversed by trying every address. If no secret is configured, anonymous views are not
+counted. The rule is enforced by the database: each view carries a `dedupeKey` (supplier, visitor, clock hour) with a
+unique index, so two beacons at once count once. A second cap bounds one network address to 20 counted views per
+supplier per hour (`PROFILE_VIEW_IP_CAP`; changing it is an environment change and needs a restart), which means a very
+busy shared address (an office, a mobile carrier) can undercount. The cap applies to anonymous visitors only. It is kept
+in a separate collection, `profile_view_caps`: one row per supplier, keyed address hash and hour, incremented atomically,
+with no address in it and a TTL index that removes it within about two hours. Nothing derived from the address is stored
+on the event itself. Both depend on `req.ip` being the real client address. Production is served through Cloudflare and then Railway's edge, so
+the server trusts the first hop plus Cloudflare's published addresses (`utils/trustProxy.js`): `req.ip` is the visitor, and a
+forged forwarded-for value is never reached. If another proxy or CDN is ever put in front, add its address ranges there, or
+many visitors would share one key. A signed-in
+visitor's events carry their `userId` and are deleted with the account. `views.description` carries the exact sentence the UI may show. Events recorded
 before this change were not rewritten.
 
 **Calendar.** Public calendar publishing is hard-coded by category (`Event Planner`, `Wedding Fayre`) plus a per-supplier
 admin override, enforced on create/update/delete and on publisher requests (verified email, approved supplier, publisher,
 ownership). Editing can no longer publish an event that is awaiting approval. The private calendar
 (`/api/me/calendar-entries`) is separate and open to every verified account. There are no bookings.
+
+**Tips.** `GET /api/v1/supplier/performance-tips` returns up to three ranked tips (`services/supplierTips.js`). The Next
+steps checklist (`services/supplierNextSteps.js`) is the one place for "complete your profile / get set up" items, so a
+tip never restates an open checklist step; tips only add what a checklist line cannot: unhandled enquiries,
+unanswered conversations (and unread messages), published reviews with no reply, plan limits actually reached
+(packages, photos), packages awaiting approval, a calendar with nothing coming up (only once the supplier has used it
+before), a profile left in the "Other" category, and account problems that carry an admin's note or need support
+(changes requested, rejected, verified but listing not approved, suspended). The tips that used to repeat a checklist
+step were removed, by checklist step: `verify-email` (verify-email), `submit-verification` and `verification-pending`
+(get-verified), `write-description` (description), `add-photos` (gallery), `add-profile-photo` (profile-photo),
+`add-location` and `choose-category` for an empty category (business-details), `add-banner` (banner),
+`add-social-links` (social-links), `add-website` (website), `first-package` (first-package), `package-photos`
+(package-photos), `first-review` (request-review). `publish-event` is kept only when the calendar step is done, and
+`choose-category` only for "Other" (the checklist counts "Other" as a category filled in, so it says nothing about it). A supplier with nothing to
+act on gets `{tips: [], total: 0}` and the dashboard hides the Tips card. Each tip is
+`{id, priority, category, icon, title, body, action:{type, label, href, field?, data?}}`; tips contain no statistics or
+promises, and a tip whose data does not exist is not produced. The dashboard maps each `action.type` to a page action
+(open the profile editor on `field`, the package form, Request a review, scroll to a card) or a link; it supports a few
+more action types than tips currently use. There is no availability tip or card: `suppliers.availability` was never
+shown to customers, so the Availability card and its `/availability` endpoints were removed. `responses.unanswered`
+(summary) counts customer conversations over a day old with no reply.
 
 **Messenger identity.** Participants are hydrated from the live account; suppliers use their business profile photo and gain
 `businessName`; `lastMessage.senderName` is the sender's current name. See `server-contract.md` for field names.
@@ -155,8 +198,35 @@ The summary issues about ten indexed, supplier-scoped queries plus one aggregate
 `createdAt, userId, email` in the database; no other customer's request is read. Engagement results are reused
 for 30 seconds per (supplier, window) so the several widgets of one page load do not recompute them.
 
+## Writes that fail
+
+`db-unified`'s `updateOne`/`deleteOne`/`insertOne`/`read` swallow errors by default (`false`/`null`/empty), and `false`
+from `updateOne` also means "matched but nothing changed". A route that must not report a failed write as a success
+passes `{ throwOnError: true }`, so a thrown error becomes a 500 while "no change" stays a 200. Package edit, delete,
+pause and resume, setup-guide progress, trial activation and verification submit do this; so do the package ownership
+lookups and the public-calendar publisher/approval reads (which fail closed: an unreadable approval setting means an event
+waits for review). The dashboard already shows the server's reason for a refused package action. The setup guide's
+progress save is best effort by design (the browser keeps a copy), so a failed account save is not shown as an error.
+
+## Availability
+
+The dashboard no longer has an Availability card and `/api/v1/supplier/availability` was removed: nothing a customer sees
+(public profile, search, SEO, quote flow) reads `suppliers.availability`, so the control changed nothing. Stored values
+are left in place. Wiring it honestly would need the public profile, the supplier API, search and the structured data
+to agree, which is a product decision, so it was deleted instead. The Calendar card (`#availability-calendar`) is a
+different, working feature.
+
+## Completeness 'description'
+
+The checklist measures the first non-empty of `description_long`, `description_short`, `description`, then the legacy
+`blurb` (`getSupplierDescriptionText`), and wants 100 characters. The public About section shows the first non-empty of
+the first three, so the check measures what the page shows except for `blurb`: only an admin can set it, it counts
+because the browser widget (`profile-health-widget.js`, kept in step by a parity test) counts it, and the About section
+does not display it. Removing `blurb` from both would make the two agree exactly.
+
 ## Known caveat
 
-Quote requests and contact-form enquiries are stored against the supplier but the product does not show
-them to the supplier or notify them. They are counted because they are real customer requests, but the
-supplier cannot yet act on them in-app.
+Customers' enquiries reach the supplier in the dashboard: the Enquiries card and drawer list them (status, quality,
+detail with the contact details the customer left), the supplier is notified when one arrives, can reply by email from
+the drawer, and can export them. What is still missing is any channel other than email for replying to a quote request or
+contact-form enquiry, so the reply rate and reply time cover messenger conversations only.

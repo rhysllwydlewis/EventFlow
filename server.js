@@ -11,7 +11,7 @@
  * - Real-time: WebSocket support for notifications and messaging
  * - Payments: Stripe integration for subscriptions
  * - AI: OpenAI integration for event planning assistance (optional)
- * - Email: Postmark for transactional emails, dev mode writes to /outbox
+ * - Email: Postmark for transactional emails, dev mode writes metadata (not bodies) to /outbox
  *
  * STRUCTURE:
  * 1. Dependencies & Configuration
@@ -56,6 +56,7 @@ require('dotenv').config();
 
 // Configuration modules
 const logger = require('./utils/logger');
+const { createTrustProxy } = require('./utils/trustProxy');
 const databaseConfig = require('./config/database');
 const emailConfig = require('./config/email');
 const stripeConfig = require('./config/stripe');
@@ -110,6 +111,9 @@ const { calculateLeadScore } = require('./utils/leadScoring');
 
 // Geocoding utilities
 const geocoding = require('./utils/geocoding');
+
+// Railway PR previews: never use live Stripe keys or send real email (no-op everywhere else)
+require('./utils/previewSafety').logPreviewSafetyOnce();
 
 // Initialize Stripe
 const STRIPE_ENABLED = stripeConfig.initializeStripe();
@@ -323,7 +327,9 @@ const isRailway = process.env.RAILWAY_ENVIRONMENT !== undefined;
 const shouldTrustProxy = trustProxyEnv === 'true' || (isRailway && trustProxyEnv !== 'false');
 
 if (shouldTrustProxy) {
-  app.set('trust proxy', 1);
+  // The first hop (Railway's edge) plus Cloudflare's published addresses, so req.ip is the visitor
+  // and not a Cloudflare address. See utils/trustProxy.js.
+  app.set('trust proxy', createTrustProxy());
   logger.info('🔧 Trust proxy: enabled (running behind proxy/load balancer)');
 } else {
   logger.info('🔧 Trust proxy: disabled (local development mode)');
@@ -1897,6 +1903,11 @@ function startServer() {
             logger.error('   ⚠️  Auto-migration failed (non-fatal):', error.message);
           }
         });
+
+        // Profile-view events written before they had an expiry get one, in the background and in
+        // small batches (utils/profileViewRetention.js). Idempotent; repeats at most weekly.
+        // PROFILE_VIEW_RETENTION_BACKFILL=off disables it, =force ignores the completion record.
+        require('./utils/profileViewRetention').startProfileViewExpiryBackfill();
 
         // 4a. Seed database with initial data
         logger.info('');

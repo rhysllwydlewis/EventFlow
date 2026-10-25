@@ -19,7 +19,9 @@ function git(args) {
 function resolveBase() {
   const explicit = process.env.COVERAGE_BASE_REF;
   const baseBranch = process.env.GITHUB_BASE_REF;
-  const candidates = [explicit, baseBranch ? `origin/${baseBranch}` : null, 'HEAD^'].filter(Boolean);
+  const candidates = [explicit, baseBranch ? `origin/${baseBranch}` : null, 'HEAD^'].filter(
+    Boolean
+  );
 
   for (const candidate of candidates) {
     try {
@@ -147,15 +149,18 @@ for (const [file, lines] of changes) {
   }
 
   if (fileMeasured > 0) {
-    rows.push(`| \`${file}\` | ${fileCovered}/${fileMeasured} | ${(
-      (fileCovered / fileMeasured) *
-      100
-    ).toFixed(1)}% |`);
+    rows.push(
+      `| \`${file}\` | ${fileCovered}/${fileMeasured} | ${(
+        (fileCovered / fileMeasured) *
+        100
+      ).toFixed(1)}% |`
+    );
   }
 }
 
 if (measured === 0) {
-  const message = 'No instrumented application JavaScript lines changed; patch coverage gate passed.';
+  const message =
+    'No instrumented application JavaScript lines changed; patch coverage gate passed.';
   console.log(message);
   writeSummary(`## Changed-code coverage\n\n${message}`);
   process.exit(0);

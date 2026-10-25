@@ -182,9 +182,6 @@ async function createIndexes() {
     await quoteRequestsCollection.createIndex({ supplierId: 1 });
     await quoteRequestsCollection.createIndex({ status: 1 });
     await quoteRequestsCollection.createIndex({ createdAt: -1 }); // supplier dashboard enquiry window
-    // Supplier dashboard reads one supplier's events inside a date window
-    const supplierEventsCollection = mongodb.collection('events');
-    await supplierEventsCollection.createIndex({ supplierId: 1, timestamp: -1 });
     const enquiriesCollection = mongodb.collection('enquiries');
     await enquiriesCollection.createIndex({ supplierId: 1 });
     await enquiriesCollection.createIndex({ supplierId: 1, createdAt: -1 }); // enquiry list window
@@ -372,6 +369,7 @@ async function createIndexes() {
     logger.info('ℹ️  Database indexes:', error.message);
   }
   await createSupplierEnquiryIndexes();
+  await createSupplierEventIndexes();
 }
 
 /**
@@ -435,7 +433,76 @@ async function createSupplierEnquiryIndexes() {
   }
 }
 
-async function read(collectionName) {
+/**
+ * Indexes for the supplier dashboard's `events` reads, the once-per-hour profile view rule and the
+ * short-lived counters behind the per-address cap. Apart from the main block so that a problem
+ * here (for example an index with the same keys created by hand under another name) never stops
+ * the ~30 indexes built after it, and the other way round.
+ *
+ * In local-store mode there are no indexes, so the dedupe key is not enforced there: the route's
+ * read-then-insert check is the only guard.
+ *
+ * @returns {Promise<void>}
+ */
+async function createSupplierEventIndexes() {
+  if (dbType !== 'mongodb' || !mongodb) {
+    return;
+  }
+  try {
+    // Supplier dashboard reads one supplier's events inside a date window
+    const events = mongodb.collection('events');
+    await events.createIndex({ supplierId: 1, timestamp: -1 });
+    // One counted profile view per visitor per hour is enforced here, not by a read-then-insert:
+    // two beacons at once both pass the read, and only one can insert the same dedupeKey.
+    await events.createIndex(
+      { dedupeKey: 1 },
+      {
+        unique: true,
+        partialFilterExpression: { dedupeKey: { $type: 'string' } },
+        name: 'uniq_events_dedupeKey_string',
+      }
+    );
+    // The per-visitor check looks at one supplier's last hour by key
+    await events.createIndex({ supplierId: 1, visitorKey: 1, timestamp: -1 });
+    // Profile-view events carry an `expiresAt` date (utils/profileViewRetention.js) and are removed
+    // when it passes. Partial, so only documents that have a date there are ever considered: every
+    // other event type, and any row not yet stamped, is left alone. Its own try block, so a failure
+    // here (an existing index of the same name with other options, say) cannot skip the cap index.
+    try {
+      await events.createIndex(
+        { expiresAt: 1 },
+        {
+          expireAfterSeconds: 0,
+          partialFilterExpression: { expiresAt: { $type: 'date' } },
+          name: 'ttl_events_expiresAt',
+        }
+      );
+    } catch (ttlError) {
+      logger.warn('Profile-view expiry index could not be created:', ttlError.message);
+    }
+    // Per-address cap counters: one row per supplier, address key and hour. The rows hold no
+    // address and vanish on their own (the TTL monitor deletes rows whose expiresAt, a BSON date,
+    // has passed).
+    const caps = mongodb.collection('profile_view_caps');
+    await caps.createIndex({ key: 1 }, { unique: true });
+    await caps.createIndex({ expiresAt: 1 }, { expireAfterSeconds: 0 });
+  } catch (error) {
+    logger.warn('Supplier event indexes could not be created:', error.message);
+  }
+}
+
+/**
+ * Read a whole collection (or the single document of a singleton collection such as `settings`).
+ *
+ * A failed read is logged and answered from the local store (or empty) unless `options.throwOnError`
+ * is set, which rethrows instead. A caller whose safe default differs from "empty" (for example a
+ * setting that switches a safeguard on) passes it, so a database outage is not read as "off".
+ *
+ * @param {string} collectionName - Collection
+ * @param {{throwOnError?: boolean}} [options] - Pass throwOnError to rethrow failures
+ * @returns {Promise<Array|Object>} Documents, or the singleton's record
+ */
+async function read(collectionName, options = {}) {
   await initializeDatabase();
   try {
     if (dbType === 'mongodb') {
@@ -456,6 +523,9 @@ async function read(collectionName) {
     }
   } catch (error) {
     logger.error(`Error reading from ${collectionName}:`, error.message);
+    if (options.throwOnError) {
+      throw error;
+    }
     if (dbType !== 'local') {
       logger.info(`Falling back to local storage for ${collectionName}`);
       readFallbackCount++;
@@ -585,7 +655,21 @@ async function find(collectionName, filter, options = {}) {
   }
 }
 
-async function updateOne(collectionName, id, updates) {
+/**
+ * Update the first document matching `id` (a string id or a filter object).
+ *
+ * Errors are swallowed (false returned) unless `options.throwOnError` is set. `false` therefore
+ * means "no document changed" (no match, or the new values were already stored) as well as "the
+ * write failed"; a caller that must tell a failed write from an unchanged one passes
+ * `throwOnError` and treats a thrown error as the failure.
+ *
+ * @param {string} collectionName - Collection
+ * @param {string|Object} id - Document id or filter
+ * @param {Object} updates - Fields to set, or an update document with $set / $unset
+ * @param {{throwOnError?: boolean}} [options] - Pass throwOnError to rethrow failures
+ * @returns {Promise<boolean>} True when a document was modified
+ */
+async function updateOne(collectionName, id, updates, options = {}) {
   await initializeDatabase();
   try {
     // Normalise the filter: accept either a string id or a plain filter object
@@ -625,6 +709,9 @@ async function updateOne(collectionName, id, updates) {
     }
   } catch (error) {
     logger.error(`Error updating in ${collectionName}:`, error.message);
+    if (options.throwOnError) {
+      throw error;
+    }
     return false;
   }
 }
@@ -676,6 +763,73 @@ async function upsertOne(collectionName, filter, fields, onInsert = {}) {
   }
 }
 
+/**
+ * Add to a counter row, creating it when there is none, and return the new total. One atomic
+ * operation on MongoDB (`$inc` with upsert), so any number of requests at once each get a distinct
+ * total: a read-then-write could let them all see the same number. Two requests racing to create
+ * the row can lose to the unique index on `key`; the loser repeats once and increments the row the
+ * winner made.
+ *
+ * Counter rows are separate from events and hold only the key, the total and `expiresAt` (set when
+ * the row is created, as a BSON date, for the collection's TTL index). The local store has no TTL,
+ * so rows there are only dropped once their `expiresAt` has passed and the key is used again.
+ *
+ * Errors are swallowed (null returned) unless `options.throwOnError` is set.
+ *
+ * @param {string} collectionName - Collection holding counter rows
+ * @param {string} key - Unique key of the row
+ * @param {{by?: number, expiresAt?: Date, throwOnError?: boolean}} [options] - Step (default 1,
+ *   negative to give a slot back), expiry for a new row, and error handling
+ * @returns {Promise<number|null>} The total after this change, or null when it failed
+ */
+async function incrementCounter(collectionName, key, options = {}) {
+  await initializeDatabase();
+  const by = Number.isFinite(options.by) ? options.by : 1;
+  try {
+    if (dbType === 'mongodb') {
+      const collection = mongodb.collection(collectionName);
+      const update = { $inc: { count: by } };
+      if (options.expiresAt) {
+        update.$setOnInsert = { expiresAt: options.expiresAt };
+      }
+      for (let attempt = 0; ; attempt += 1) {
+        try {
+          const res = await collection.findOneAndUpdate({ key }, update, {
+            upsert: true,
+            returnDocument: 'after',
+          });
+          // Drivers vary: the result may be the document or { value: document }.
+          const doc = res && res.value !== undefined ? res.value : res;
+          return doc && typeof doc.count === 'number' ? doc.count : null;
+        } catch (error) {
+          if (!error || error.code !== 11000 || attempt > 0) {
+            throw error;
+          }
+        }
+      }
+    }
+    const all = store.read(collectionName);
+    const now = Date.now();
+    const index = all.findIndex(
+      item => item.key === key && !(item.expiresAt && new Date(item.expiresAt).getTime() < now)
+    );
+    if (index >= 0) {
+      all[index] = { ...all[index], count: (all[index].count || 0) + by };
+      store.write(collectionName, all);
+      return all[index].count;
+    }
+    const row = { key, count: by, ...(options.expiresAt ? { expiresAt: options.expiresAt } : {}) };
+    store.write(collectionName, [...all.filter(item => item.key !== key), row]);
+    return row.count;
+  } catch (error) {
+    logger.error(`Error incrementing counter in ${collectionName}:`, error.message);
+    if (options.throwOnError) {
+      throw error;
+    }
+    return null;
+  }
+}
+
 async function updateMany(collectionName, filter, updates) {
   await initializeDatabase();
   try {
@@ -716,7 +870,19 @@ async function updateMany(collectionName, filter, updates) {
   }
 }
 
-async function insertOne(collectionName, document) {
+/**
+ * Insert one document.
+ *
+ * Errors are swallowed (null returned) unless `options.throwOnError` is set; a caller that relies on
+ * a unique index (for example the profile-view dedupe key) passes it and reads the duplicate-key
+ * error's `code` (11000) to tell "already there" from a real failure.
+ *
+ * @param {string} collectionName - Collection
+ * @param {Object} document - Document to insert
+ * @param {{throwOnError?: boolean}} [options] - Pass throwOnError to rethrow failures
+ * @returns {Promise<Object|null>} The document, or null when the insert failed
+ */
+async function insertOne(collectionName, document, options = {}) {
   await initializeDatabase();
   try {
     if (dbType === 'mongodb') {
@@ -730,12 +896,26 @@ async function insertOne(collectionName, document) {
       return document;
     }
   } catch (error) {
+    if (options.throwOnError) {
+      throw error;
+    }
     logger.error(`Error inserting into ${collectionName}:`, error.message);
     return null;
   }
 }
 
-async function deleteOne(collectionName, id) {
+/**
+ * Delete the first document matching `id` (a string id or a filter object).
+ *
+ * Errors are swallowed (false returned) unless `options.throwOnError` is set; `false` is also
+ * returned when nothing matched.
+ *
+ * @param {string} collectionName - Collection
+ * @param {string|Object} id - Document id or filter
+ * @param {{throwOnError?: boolean}} [options] - Pass throwOnError to rethrow failures
+ * @returns {Promise<boolean>} True when a document was deleted
+ */
+async function deleteOne(collectionName, id, options = {}) {
   await initializeDatabase();
   try {
     // Normalise the filter: accept either a string id or a plain filter object
@@ -757,6 +937,9 @@ async function deleteOne(collectionName, id) {
     }
   } catch (error) {
     logger.error(`Error deleting from ${collectionName}:`, error.message);
+    if (options.throwOnError) {
+      throw error;
+    }
     return false;
   }
 }
@@ -953,6 +1136,27 @@ function toNullProtoTree(value) {
 }
 
 /**
+ * Create or replace an own, ordinary data property on a null-prototype node and return the stored
+ * value. Done with defineProperty rather than `node[name] = value` because the name is a segment of
+ * a dotted key: defining the property never runs a setter, so even `__proto__` becomes a plain data field
+ * (as in MongoDB) and can never reach Object.prototype.
+ * @param {Object} node - Null-prototype object
+ * @param {string} name - Property name
+ * @param {*} value - Value to store
+ * @returns {*} value
+ */
+function setOwnProperty(node, name, value) {
+  // Reflect.defineProperty (not assignment) so no setter can run; node has no prototype chain at all.
+  Reflect.defineProperty(node, name, {
+    value,
+    writable: true,
+    enumerable: true,
+    configurable: true,
+  });
+  return value;
+}
+
+/**
  * Apply a MongoDB-style $set object to a local-store document, resolving
  * dotted keys like 'emailPrefs.actionPrompts.enabled' into nested object
  * writes instead of a literal top-level key named with the dots — MongoDB
@@ -980,10 +1184,9 @@ function applyDotPathSet(target, setFields) {
       const segment = segments[i];
       const existing = cursor[segment];
       const isPlainObject = existing && typeof existing === 'object' && !Array.isArray(existing);
-      cursor[segment] = isPlainObject ? existing : Object.create(null);
-      cursor = cursor[segment];
+      cursor = setOwnProperty(cursor, segment, isPlainObject ? existing : Object.create(null));
     }
-    cursor[segments[segments.length - 1]] = toNullProtoTree(value);
+    setOwnProperty(cursor, segments[segments.length - 1], toNullProtoTree(value));
   }
   return toPlainObject(result);
 }
@@ -1287,6 +1490,7 @@ async function getStatus() {
 module.exports = {
   initializeDatabase,
   createSupplierEnquiryIndexes,
+  createSupplierEventIndexes,
   read,
   write,
   writeAndVerify,
@@ -1294,6 +1498,7 @@ module.exports = {
   findOne,
   updateOne,
   upsertOne,
+  incrementCounter,
   updateMany,
   insertOne,
   deleteOne,

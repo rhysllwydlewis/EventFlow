@@ -35,7 +35,15 @@
  *
  * FALLBACK BEHAVIOR:
  * ==================
- * If Postmark is not configured (missing POSTMARK_API_KEY), emails are saved to /outbox folder.
+ * If Postmark is not configured (missing POSTMARK_API_KEY), a record of the email is saved to the
+ * /outbox folder. By default that record holds METADATA ONLY (masked recipient, template name,
+ * timestamp, message id), never the body: bodies carry verification links, reset links and text that
+ * users typed. The full email is kept only when utils/previewSafety.js isFullOutboxAllowed() says so
+ * (EVENTFLOW_OUTBOX_FULL=1 in development, or NODE_ENV=test; never in production or a PR preview).
+ *
+ * In a Railway PR preview no real email is sent unless every recipient is on MAIL_PREVIEW_ALLOWLIST
+ * (see utils/previewSafety.js and docs/PREVIEW_ENVIRONMENTS.md); everything else takes the same
+ * outbox fallback.
  */
 
 'use strict';
@@ -51,6 +59,8 @@ const fs = require('fs');
 const crypto = require('crypto');
 const emailLogService = require('../services/emailLog.service');
 const { buildEmailButton } = require('./emailComponents');
+const devMailbox = require('./devMailbox');
+const { evaluateMailPolicy, isFullOutboxAllowed, extractAddresses } = require('./previewSafety');
 
 // Lazy-load Postmark to avoid errors if not configured
 let postmarkClient = null;
@@ -200,7 +210,7 @@ const CONTROL_CHARS = /[\u0000-\u001f\u007f\u2028\u2029]+/gu;
  */
 function singleLine(value) {
   return String(value === null || value === undefined ? '' : value)
-    .replace(/[\r\n]+/gu, ' ')
+    .replace(/[\r\n]/g, ' ')
     .replace(CONTROL_CHARS, ' ');
 }
 
@@ -465,10 +475,21 @@ async function sendMail(options) {
   logger.info(`   Message Stream: ${options.messageStream || 'outbound'}`);
 
   try {
+    // In a Railway PR preview, real email only goes to allowlisted recipients (no-op elsewhere)
+    const previewMailPolicy = evaluateMailPolicy(to);
+
     // Check if Postmark is enabled
-    if (!POSTMARK_ENABLED || !postmarkClient) {
-      logger.warn('⚠️  Postmark not configured - saving email to /outbox instead');
-      if (criticalDelivery && process.env.NODE_ENV === 'production') {
+    if (previewMailPolicy.suppress || !POSTMARK_ENABLED || !postmarkClient) {
+      if (previewMailPolicy.suppress) {
+        logger.warn(`⚠️  Email not sent (${previewMailPolicy.reason}) - saving to /outbox instead`);
+      } else {
+        logger.warn('⚠️  Postmark not configured - saving email to /outbox instead');
+      }
+      if (
+        !previewMailPolicy.suppress &&
+        criticalDelivery &&
+        process.env.NODE_ENV === 'production'
+      ) {
         const criticalError = new Error(
           'Critical email delivery failed: Postmark is not configured in production'
         );
@@ -486,18 +507,20 @@ async function sendMail(options) {
         outboxHtml = loadEmailTemplate(template, templateData);
       }
 
-      // Save to outbox for development/testing
-      const outboxData = {
-        To: Array.isArray(to) ? to.join(',') : to,
-        From: from,
-        Subject: subject || '(from template)',
-        HtmlBody: outboxHtml,
-        TextBody: text || (template ? renderPlainTextTemplate(template, templateData) : undefined),
-        Template: template,
-      };
-      saveEmailToOutbox(outboxData);
-
+      // Save to outbox for development/testing (metadata only unless the full-body rule allows it)
       const outboxMessageId = `outbox-${Date.now()}`;
+      saveEmailToOutbox(
+        {
+          To: Array.isArray(to) ? to.join(',') : to,
+          From: from,
+          Subject: subject || '(from template)',
+          HtmlBody: outboxHtml,
+          TextBody:
+            text || (template ? renderPlainTextTemplate(template, templateData) : undefined),
+        },
+        { template, messageId: outboxMessageId }
+      );
+
       const sentAt = new Date().toISOString();
       await updateEmailLogSafe(emailLog, {
         provider: 'outbox',
@@ -508,7 +531,10 @@ async function sendMail(options) {
 
       return {
         status: 'disabled',
-        message: 'Postmark not configured. Email saved to outbox.',
+        message: previewMailPolicy.suppress
+          ? 'Email not sent from a preview environment. Metadata saved to outbox.'
+          : 'Postmark not configured. Email saved to outbox.',
+        ...(previewMailPolicy.suppress ? { previewSuppressed: true } : {}),
         MessageID: outboxMessageId,
         PostmarkMessageID: null,
         emailLogId: logId,
@@ -619,7 +645,7 @@ async function sendMail(options) {
 
       // Save to outbox as fallback for debugging outside production critical auth flows
       if (!(criticalDelivery && process.env.NODE_ENV === 'production')) {
-        saveEmailToOutbox(emailData);
+        saveEmailToOutbox(emailData, { template });
       }
 
       // Re-throw error so calling code can handle it (e.g., rollback)
@@ -635,10 +661,22 @@ async function sendMail(options) {
 }
 
 /**
- * Save email to outbox folder for development/testing
- * @param {Object} emailData - Email data to save
+ * Save a record of an email to the outbox folder (development fallback, never served).
+ *
+ * Only metadata reaches the disk: timestamp, message id, how many recipients, the sender and the
+ * template name. Never an address, the subject or the body, because those carry verification and
+ * reset links and text that users typed (for example a supplier's enquiry reply), and request data
+ * must not be written to files. Where a full copy is wanted, isFullOutboxAllowed() decides
+ * (EVENTFLOW_OUTBOX_FULL=1 in development, or NODE_ENV=test; never in production or a PR preview)
+ * and the copy is kept in this process's memory (utils/devMailbox.js). The browser tests read it
+ * through the test-only GET /__e2e/mail route.
+ *
+ * @param {Object} emailData - Email data (To, From, Subject, HtmlBody/TextBody)
+ * @param {Object} [meta] - Non-sensitive details
+ * @param {string} [meta.template] - Template name
+ * @param {string} [meta.messageId] - Outbox message id
  */
-function saveEmailToOutbox(emailData) {
+function saveEmailToOutbox(emailData, meta = {}) {
   try {
     const outboxDir = path.join(__dirname, '..', 'outbox');
     if (!fs.existsSync(outboxDir)) {
@@ -647,18 +685,50 @@ function saveEmailToOutbox(emailData) {
 
     const timestamp = Date.now();
     const filename = `email-${timestamp}.eml`;
-    const content = `To: ${singleLine(emailData.To)}
-From: ${singleLine(emailData.From)}
-Subject: ${singleLine(emailData.Subject)}
-
-${emailData.HtmlBody || emailData.TextBody}
-`;
+    const recipientCount = extractAddresses(emailData.To).length;
+    const content = buildMetadataOutboxContent(recipientCount, meta, timestamp);
 
     fs.writeFileSync(path.join(outboxDir, filename), content, 'utf8');
     logger.info(`Email saved to outbox: ${filename}`);
+
+    if (isFullOutboxAllowed()) {
+      devMailbox.remember({
+        to: emailData.To,
+        from: emailData.From,
+        subject: emailData.Subject,
+        html: emailData.HtmlBody,
+        text: emailData.TextBody,
+      });
+    }
   } catch (err) {
     logger.error('Failed to save email to outbox:', err.message);
   }
+}
+
+/**
+ * Metadata-only outbox record: no address, no subject, nothing from the body.
+ * @param {number} recipientCount - How many recipients the email had
+ * @param {Object} meta - { template, messageId }
+ * @param {number} timestamp - Epoch milliseconds
+ * @returns {string} File content
+ */
+function buildMetadataOutboxContent(recipientCount, meta, timestamp) {
+  const template =
+    typeof meta.template === 'string' && /^[\w.-]{1,64}$/.test(meta.template) ? meta.template : '';
+  const messageId =
+    typeof meta.messageId === 'string' && /^outbox-\d+$/.test(meta.messageId)
+      ? meta.messageId
+      : `outbox-${timestamp}`;
+  return `X-EventFlow-Outbox: metadata-only
+Date: ${new Date(timestamp).toISOString()}
+Message-Id: ${messageId}
+Recipients: ${Number(recipientCount) || 0}
+Template: ${template || 'none (custom message)'}
+
+(Addresses, subject and body are not stored on disk. Set EVENTFLOW_OUTBOX_FULL=1 in local
+development, or run with NODE_ENV=test, to keep the full email in memory for the test-only
+GET /__e2e/mail route.)
+`;
 }
 
 /**

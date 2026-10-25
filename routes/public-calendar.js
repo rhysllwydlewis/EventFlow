@@ -179,7 +179,8 @@ function getSupplierForUser(user) {
   if (!user || user.role !== 'supplier') {
     return null;
   }
-  return dbUnified.findOne('suppliers', { ownerUserId: user.id });
+  // A failed lookup must surface (callers answer 500), not read as "no supplier profile".
+  return dbUnified.findOne('suppliers', { ownerUserId: user.id }, { throwOnError: true });
 }
 
 async function requirePublisher(req, res, next) {
@@ -223,13 +224,20 @@ async function requirePublisher(req, res, next) {
   }
 }
 
+/**
+ * Whether new public events need admin approval.
+ *
+ * @returns {Promise<boolean|null>} true/false from the setting, or null when it could not be read
+ *   (callers fail closed: an event waits for approval rather than being published on the strength
+ *   of a switch nobody could see, and say that the setting was unreadable)
+ */
 async function requiresPublicCalendarApproval() {
   try {
-    const settings = (await dbUnified.read('settings')) || {};
+    const settings = (await dbUnified.read('settings', { throwOnError: true })) || {};
     return settings.features?.requirePublicCalendarApproval === true;
   } catch (err) {
-    logger.warn('Failed to read public calendar approval setting; defaulting to auto-publish', err);
-    return false;
+    logger.warn('Failed to read public calendar approval setting; requiring approval', err);
+    return null;
   }
 }
 
@@ -643,8 +651,10 @@ router.post(
       }
       const now = new Date().toISOString();
       const eventId = uid('pce');
-      const manualApprovalRequired =
-        req.user.role !== 'admin' && (await requiresPublicCalendarApproval());
+      const approvalSetting =
+        req.user.role === 'admin' ? false : await requiresPublicCalendarApproval();
+      const settingUnreadable = approvalSetting === null;
+      const manualApprovalRequired = approvalSetting !== false;
       const status = manualApprovalRequired ? 'pending_review' : data.status || 'published';
       if (manualApprovalRequired) {
         delete data.publishedAt;
@@ -667,7 +677,16 @@ router.post(
         return res.status(500).json({ error: 'Failed to create event. Please try again.' });
       }
       logger.info(`Public calendar event created: ${event.id} by user ${req.user.id}`);
-      res.status(201).json({ ok: true, event });
+      res.status(201).json({
+        ok: true,
+        event,
+        ...(settingUnreadable
+          ? {
+              notice:
+                'Your event is waiting for admin approval because the approval setting could not be read just now.',
+            }
+          : {}),
+      });
     } catch (err) {
       logger.error('POST /public-calendar/events error:', err);
       res.status(500).json({ error: 'Failed to create event' });
@@ -712,14 +731,24 @@ router.put(
       if (
         req.user.role !== 'admin' &&
         data.status === 'published' &&
-        existing.status !== 'published' &&
-        (await requiresPublicCalendarApproval())
+        existing.status !== 'published'
       ) {
-        return res.status(403).json({
-          error: 'Forbidden',
-          code: 'PUBLIC_CALENDAR_APPROVAL_REQUIRED',
-          message: 'New public events need admin approval before they can be published.',
-        });
+        const approvalSetting = await requiresPublicCalendarApproval();
+        if (approvalSetting === null) {
+          // Not "approval is required" (it may well not be): the setting could not be read.
+          return res.status(503).json({
+            error: 'Service unavailable',
+            code: 'PUBLIC_CALENDAR_SETTING_UNAVAILABLE',
+            message: 'Could not check whether events need approval. Please try again in a moment.',
+          });
+        }
+        if (approvalSetting) {
+          return res.status(403).json({
+            error: 'Forbidden',
+            code: 'PUBLIC_CALENDAR_APPROVAL_REQUIRED',
+            message: 'New public events need admin approval before they can be published.',
+          });
+        }
       }
       const updatedEvent = normalizeEvent({
         ...existing,

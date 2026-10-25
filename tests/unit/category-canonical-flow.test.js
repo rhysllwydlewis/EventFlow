@@ -56,3 +56,27 @@ describe('supplier category canonical flow', () => {
     expect(page).toContain("trackFilterChange('category', e.target.value)");
   });
 });
+
+describe('the analytics tag never receives what a visitor typed', () => {
+  const fs = require('fs');
+  const path = require('path');
+  const source = fs.readFileSync(
+    path.join(__dirname, '../../public/assets/js/utils/analytics.js'),
+    'utf8'
+  );
+
+  test('free-text filters (search words, postcode, location) are reported only as set or cleared', () => {
+    expect(source).toMatch(/FREE_TEXT_FILTERS = new Set\(\['query', 'postcode', 'location'\]\)/);
+    expect(source).toContain(
+      "FREE_TEXT_FILTERS.has(filterType) ? (value ? 'set' : 'cleared') : value"
+    );
+  });
+
+  test('the supplier search page, the only caller of the filter tracking, imports the module at a versioned address so a cached copy cannot keep sending text', () => {
+    const text = fs.readFileSync(
+      path.join(__dirname, '../../public/assets/js/pages/suppliers-init.js'),
+      'utf8'
+    );
+    expect(text).toContain("'../utils/analytics.js?v=1.0.1'");
+  });
+});

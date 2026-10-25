@@ -12,6 +12,25 @@
 'use strict';
 
 /**
+ * How many gallery photos count towards a supplier's plan allowance.
+ *
+ * Photos hidden by a downgrade (subscriptionService.enforcePhotoGalleryLimit) don't count toward
+ * the allowance, the same way a paused package doesn't count toward the active package limit;
+ * otherwise a supplier who downgraded could never upload again until manually deleting old photos.
+ * Only `photosGallery` is counted, the field the upload routes and the downgrade enforcement use.
+ * Anything that tells a supplier how full their gallery is must use this, so it agrees with the
+ * check that refuses an upload.
+ *
+ * @param {Object} supplier Supplier record.
+ * @returns {number} Photos that count towards the allowance.
+ */
+function countAllowanceGalleryPhotos(supplier) {
+  return Array.isArray(supplier?.photosGallery)
+    ? supplier.photosGallery.filter(p => !p?.hiddenByPlanLimit).length
+    : 0;
+}
+
+/**
  * Reject a gallery upload that would take a supplier past their plan's photo
  * allowance.
  *
@@ -29,13 +48,7 @@
 async function checkPhotoAllowance(supplier, incoming) {
   const subscriptionService = require('../services/subscriptionService');
   const limit = await subscriptionService.getPhotoAllowance(supplier.ownerUserId);
-  // Photos hidden by a downgrade (subscriptionService.enforcePhotoGalleryLimit)
-  // don't count toward the allowance, the same way a paused package doesn't
-  // count toward the active package limit — otherwise a supplier who
-  // downgraded could never upload again until manually deleting old photos.
-  const current = Array.isArray(supplier.photosGallery)
-    ? supplier.photosGallery.filter(p => !p?.hiddenByPlanLimit).length
-    : 0;
+  const current = countAllowanceGalleryPhotos(supplier);
   if (limit === -1) {
     return { allowed: true, limit, current };
   }
@@ -57,4 +70,4 @@ function photoLimitError(limit, current) {
   };
 }
 
-module.exports = { checkPhotoAllowance, photoLimitError };
+module.exports = { checkPhotoAllowance, countAllowanceGalleryPhotos, photoLimitError };

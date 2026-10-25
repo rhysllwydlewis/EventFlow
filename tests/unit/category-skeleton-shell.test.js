@@ -7,7 +7,7 @@ const categoryHtml = fs.readFileSync(path.join(__dirname, '../../public/category
 
 describe('category page initial skeleton shell', () => {
   it('loads the canonical skeleton stylesheet before the initial page paint', () => {
-    expect(categoryHtml).toContain('/assets/css/skeleton.css?v=2.1.0');
+    expect(categoryHtml).toContain('/assets/css/skeleton.css?v=2.1.1');
   });
 
   it('reserves hero, title, description and package-card layout in HTML', () => {

@@ -1,8 +1,8 @@
 /**
  * Supplier review-request delivery and attribution routes.
  *
- * This module replaces the legacy false-success endpoint with real Postmark
- * delivery, secure expiring links, recipient binding, and completion tracking.
+ * Real Postmark delivery, secure expiring links, recipient binding and completion tracking.
+ * This module owns POST /request-review; routes/supplier.js has no handler for it.
  */
 
 'use strict';
@@ -19,18 +19,8 @@ const {
 const { csrfProtection } = require('../middleware/csrf');
 const { writeLimiter } = require('../middleware/rateLimits');
 const { sendMail, FROM_HELLO } = require('../utils/postmark');
-const { removeLoadedRouterRoute } = require('../utils/legacyRouterRoute');
 const reviewRequestOperations = require('../utils/reviewRequestOperations');
 const { addPublicProfilePath } = require('../utils/publicSupplierProfilePath');
-
-const removedLegacySupplierRoutes = removeLoadedRouterRoute(
-  require.resolve('./supplier'),
-  '/request-review',
-  'post'
-);
-if (removedLegacySupplierRoutes > 0) {
-  logger.info('[review-requests] Disabled obsolete false-success /request-review handler');
-}
 
 const REVIEW_REQUEST_TTL_DAYS = 14;
 // A review request is an email from EventFlow to an address the supplier typed, so a supplier can

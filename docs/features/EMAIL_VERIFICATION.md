@@ -315,7 +315,7 @@ See `/routes/webhooks.js` for webhook implementation details.
      }'
    ```
 
-3. **Check Outbox**
+3. **Check Outbox** (only metadata is written to disk, so there is no link to read there; in local development the link is in the API response, and the browser tests read the full email from the test-only `GET /__e2e/mail` route)
 
    ```bash
    ls -la outbox/

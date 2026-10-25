@@ -34,6 +34,14 @@
     dismissBtn.addEventListener('click', () => {
       notice.hidden = true;
       try {
+        // Remembering the dismissal follows the cookie choice, which utils/auth-state.js decides in
+        // one place.
+        if (
+          typeof window.efMayKeepFunctionalStorage !== 'function' ||
+          !window.efMayKeepFunctionalStorage()
+        ) {
+          return;
+        }
         window.localStorage.setItem(STORAGE_KEY, '1');
       } catch {
         // Nothing to persist to — the notice returns on the next visit.

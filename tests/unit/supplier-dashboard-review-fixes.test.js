@@ -48,7 +48,6 @@ describe('first load: no error flash, no 404 toasts', () => {
     const page = runHome({ summaryStatus: 404, suppliers: [] });
     const asked = page.requested.join(' ');
     expect(asked).not.toContain('dashboard-summary');
-    expect(asked).not.toContain('/api/v1/supplier/availability');
     expect(asked).not.toContain('/api/v1/supplier/performance-tips');
     expect(asked).not.toContain('/api/v1/supplier/review-requests');
   });
@@ -56,7 +55,7 @@ describe('first load: no error flash, no 404 toasts', () => {
   test('a supplier with a profile does make them', () => {
     const page = runHome({ summaryStatus: 200, summary: {}, suppliers: [{ id: 's1' }] });
     const asked = page.requested.join(' ');
-    expect(asked).toContain('/api/v1/supplier/availability');
+    expect(asked).not.toContain('/api/v1/supplier/availability');
     expect(asked).toContain('/api/v1/supplier/performance-tips');
     expect(asked).toContain('/api/v1/supplier/review-requests');
   });
@@ -80,7 +79,6 @@ describe('first load: no error flash, no 404 toasts', () => {
       'tickets-sup',
       'sdh-steps-body',
       'supplier-subscription-card',
-      'supplier-availability-widget',
       'supplier-performance-chart',
       'supplier-perf-tips',
       'sdh-summary-grid',
@@ -224,42 +222,23 @@ describe('links stay on this site', () => {
 });
 
 describe('tips do something', () => {
+  const tip = (id, type, label, extra = {}) => ({
+    id,
+    title: `Title ${id}`,
+    body: 'b',
+    action: { type, label, href: '#toggle-profile-form', ...extra },
+  });
   const tips = [
-    {
-      id: 'add-desc',
-      title: 'Add a description',
-      body: 'b',
-      action: { href: '#toggle-profile-form', label: 'Add description' },
-    },
-    {
-      id: 'add-photos',
-      title: 'Add photos',
-      body: 'b',
-      action: { href: '#my-suppliers', label: 'Add photos' },
-    },
-    {
-      id: 'add-package',
-      title: 'Add a package',
-      body: 'b',
-      action: { href: '#toggle-package-form', label: 'Create a package' },
-    },
-    {
-      id: 'get-review',
-      title: 'Get a review',
-      body: 'b',
-      action: { href: '#reviews', label: 'Ask for a review' },
-    },
-    {
-      id: 'add-tagline',
-      title: 'Add a tagline',
-      body: 'b',
-      action: { href: '/supplier/profile-customization', label: 'Add tagline' },
-    },
+    tip('write-description', 'open-profile-editor', 'Edit description', { field: 'description' }),
+    tip('add-photos', 'open-profile-editor', 'Add gallery photos', { field: 'photos' }),
+    tip('first-package', 'open-package-form', 'Create package'),
+    tip('first-review', 'open-review-request', 'Request a review'),
+    tip('add-social-links', 'open-profile-editor', 'Link socials', { field: 'social-links' }),
     {
       id: 'mystery',
       title: 'Something else',
       body: 'b',
-      action: { href: '#toggle-profile-form', label: 'Open' },
+      action: { type: 'not-a-known-type', href: '#toggle-profile-form', label: 'Open' },
     },
   ];
   const page = runHome({ summary: {}, suppliers: [{ id: 's1' }], tips });
@@ -273,7 +252,7 @@ describe('tips do something', () => {
     expect(page.tipsHtml).toContain('data-sdh-action="request-review"');
   });
 
-  test('tagline and social tips go to the page that has the setting', () => {
+  test('the social tip goes to the page that has the setting', () => {
     expect(page.tipsHtml).toContain('href="/supplier/profile-customization"');
   });
 
@@ -284,6 +263,97 @@ describe('tips do something', () => {
     // An unknown tip with a dead link is shown without an action rather than with a broken one.
     expect(page.tipsHtml).toContain('Something else');
     expect(page.tipsHtml).not.toContain('>Open<');
+  });
+
+  test('every action type the server can send is mapped to something the page does', () => {
+    const { ACTION_TYPES } = require('../../services/supplierTips');
+    // What each type must become on the page. A new server type has no entry here, which fails
+    // the first assertion until it is added, so the page cannot silently ignore it.
+    const expected = {
+      'verify-email': 'data-sdh-action="resend-email"',
+      'open-verification': 'data-sdh-action="verify"',
+      'open-support': 'data-sdh-action="support"',
+      'open-profile-editor': 'data-sdh-action="edit-profile" data-sdh-focus="sup-name"',
+      'open-packages': 'data-sdh-action="scroll" data-sdh-target="my-packages"',
+      'open-package-form': 'data-sdh-action="new-package"',
+      'open-enquiries': 'data-sdh-action="open-enquiries"',
+      'open-messages': 'data-sdh-action="scroll" data-sdh-target="sdh-messages"',
+      'open-reviews': 'data-sdh-action="scroll" data-sdh-target="sdh-reviews"',
+      'open-review-request': 'data-sdh-action="request-review"',
+      'open-calendar': 'data-sdh-action="scroll" data-sdh-target="availability-calendar"',
+      'open-plan': 'href="/supplier/subscription"',
+    };
+    expect(Object.keys(expected).sort()).toEqual([...ACTION_TYPES].sort());
+
+    const rendered = runHome({
+      summary: {},
+      suppliers: [{ id: 's1' }],
+      tips: ACTION_TYPES.map(type => tip(`t-${type}`, type, `Label ${type}`)),
+    });
+    const items = rendered.tipsHtml.split('<li').slice(1);
+    ACTION_TYPES.forEach(type => {
+      const item = items.find(html => html.includes(`Title t-${type}<`));
+      expect(item).toBeDefined();
+      expect(item).toContain(expected[type]);
+      expect(item).toContain(`Label ${type}`);
+    });
+  });
+
+  test('every profile-editor field the server can send focuses the field it names', () => {
+    const focusFor = {
+      description: 'sup-long',
+      photos: 'sup-photo-drop',
+      category: 'sup-category',
+      location: 'sup-location',
+      banner: 'sdh-banner-upload',
+      website: 'sup-website',
+    };
+    const rendered = runHome({
+      summary: {},
+      suppliers: [{ id: 's1' }],
+      tips: [
+        ...Object.keys(focusFor).map(field =>
+          tip(`f-${field}`, 'open-profile-editor', `Fix ${field}`, { field })
+        ),
+        tip('f-profile-photo', 'open-profile-editor', 'Fix avatar', { field: 'profile-photo' }),
+      ],
+    });
+    Object.entries(focusFor).forEach(([field, focus]) => {
+      expect(rendered.tipsHtml).toContain(
+        `data-sdh-action="edit-profile" data-sdh-focus="${focus}">Fix ${field}<`
+      );
+      // Every focus target is a real element on the page.
+      expect(html).toContain(`id="${focus}"`);
+    });
+    expect(rendered.tipsHtml).toContain('data-sdh-action="upload-avatar"');
+  });
+
+  test('account, enquiry, message, review, calendar and plan tips act on the page', () => {
+    const more = runHome({
+      summary: {},
+      suppliers: [{ id: 's1' }],
+      tips: [
+        tip('verify-email', 'verify-email', 'Verify email'),
+        tip('verification-changes', 'open-verification', 'Resubmit'),
+        tip('profile-suspended', 'open-support', 'Contact support'),
+        tip('new-enquiries', 'open-enquiries', 'Open enquiries'),
+        tip('unanswered-conversations', 'open-messages', 'Open messages'),
+        tip('unanswered-reviews', 'open-reviews', 'View reviews'),
+        tip('publish-event', 'open-calendar', 'Open calendar'),
+        tip('package-limit', 'open-plan', 'See plans'),
+        tip('add-profile-photo', 'open-profile-editor', 'Add photo', { field: 'profile-photo' }),
+      ],
+    });
+    const html = more.tipsHtml;
+    expect(html).toContain('data-sdh-action="resend-email"');
+    expect(html).toContain('data-sdh-action="verify"');
+    expect(html).toContain('data-sdh-action="support"');
+    expect(html).toContain('data-sdh-action="open-enquiries"');
+    expect(html).toContain('data-sdh-action="scroll" data-sdh-target="sdh-messages"');
+    expect(html).toContain('data-sdh-action="scroll" data-sdh-target="sdh-reviews"');
+    expect(html).toContain('data-sdh-action="scroll" data-sdh-target="availability-calendar"');
+    expect(html).toContain('href="/supplier/subscription"');
+    expect(html).toContain('data-sdh-action="upload-avatar"');
   });
 });
 

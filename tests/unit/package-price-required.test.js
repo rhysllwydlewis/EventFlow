@@ -134,7 +134,7 @@ describe('PUT /me/packages/:id — base64 image pipeline', () => {
 describe('POST /me/packages/:id/photos — auto-sync pkg.image', () => {
   it('sets pkg.image to the uploaded URL when pkg.image was a placeholder', () => {
     expect(packagesContent).toContain(
-      "if (!p.image || p.image === PLACEHOLDER_PACKAGE_IMAGE || p.image === '')"
+      "if (!pkg.image || pkg.image === PLACEHOLDER_PACKAGE_IMAGE || pkg.image === '')"
     );
     expect(packagesContent).toContain('updateFields.image = url');
   });
@@ -143,7 +143,7 @@ describe('POST /me/packages/:id/photos — auto-sync pkg.image', () => {
     // The guard fires only when image is absent/placeholder — a surrounding conditional ensures
     // a real image is never replaced.  Just verify the guard and update are present.
     expect(packagesContent).toContain(
-      "if (!p.image || p.image === PLACEHOLDER_PACKAGE_IMAGE || p.image === '')"
+      "if (!pkg.image || pkg.image === PLACEHOLDER_PACKAGE_IMAGE || pkg.image === '')"
     );
     expect(packagesContent).toContain('updateFields.image = url');
   });
@@ -151,8 +151,8 @@ describe('POST /me/packages/:id/photos — auto-sync pkg.image', () => {
   it('invalidates package caches after gallery upload', () => {
     // The photo upload route (POST /me/packages/:id/photos) calls invalidatePackageCaches
     // after committing the updated gallery + auto-synced image to the DB.
-    // We verify via line proximity: the photo route adds to p.gallery and then invalidates.
-    expect(packagesContent).toContain('p.gallery.push({ url, approved: true');
+    // We verify via line proximity: the photo route adds to pkg.gallery and then invalidates.
+    expect(packagesContent).toContain('pkg.gallery.push({ url, approved: true');
     expect(packagesContent).toContain('suppliersRouter.invalidatePackageCaches()');
   });
 });

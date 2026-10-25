@@ -8,6 +8,7 @@
 const express = require('express');
 const { apiLimiter } = require('../middleware/rateLimits');
 const { getStripeKeyMode } = require('../utils/config');
+const { getSafeStripeSecretKey } = require('../utils/previewSafety');
 const { getQueueHealth } = require('../services/queue');
 const router = express.Router();
 
@@ -114,7 +115,7 @@ function getIntegrationStatus() {
   }
 
   const sentryEnabled = !!process.env.SENTRY_DSN;
-  const stripeEnabled = !!process.env.STRIPE_SECRET_KEY;
+  const stripeEnabled = Boolean(getSafeStripeSecretKey());
   const stripeMode = getStripeKeyMode();
   const openAIEnabled = !!process.env.OPENAI_API_KEY;
   const redisConfigured = !!process.env.REDIS_URL;

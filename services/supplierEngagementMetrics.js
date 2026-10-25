@@ -26,6 +26,7 @@
 
 const dbUnified = require('../db-unified');
 const { getWindowBounds } = require('../utils/analyticsWindow');
+const { sourceOfId, MAX_RECORDS_PER_SOURCE } = require('./supplierEnquiries');
 
 const ENQUIRY_STATES_COLLECTION = 'supplier_enquiry_states';
 
@@ -98,7 +99,7 @@ function median(values) {
  *
  * @param {Array<{customerFirstMs: number, supplierFirstMs: number|null}>} samples - One per conversation
  * @param {number} nowMs - Reference time in epoch milliseconds
- * @returns {{sampleSize: number, matureSampleSize: number, repliedPct: number|null, medianMinutes: number|null}}
+ * @returns {{sampleSize: number, matureSampleSize: number, unanswered: number, repliedPct: number|null, medianMinutes: number|null}}
  */
 function summariseResponses(samples, nowMs) {
   const mature = samples.filter(sample => nowMs - sample.customerFirstMs >= REPLY_GRACE_MS);
@@ -111,6 +112,9 @@ function summariseResponses(samples, nowMs) {
   return {
     sampleSize: samples.length,
     matureSampleSize: mature.length,
+    // Customer-started conversations at least a day old that the supplier has not answered.
+    // A plain count, so it is reported even when the sample is too small for a percentage.
+    unanswered: mature.length - replied.length,
     repliedPct:
       mature.length >= MIN_RESPONSE_SAMPLE
         ? Math.round((replied.length / mature.length) * 100)
@@ -193,7 +197,9 @@ async function loadConversationEnquiries(ownerUserId, sinceMs) {
     (await dbUnified.findWithOptions(
       'conversations_v4',
       {
-        'participants.userId': ownerUserId,
+        // Not a conversation the supplier deleted from their inbox (same rule as the export): it
+        // cannot be cleared from the dashboard, so it must not keep counting as "needs a reply".
+        participants: { $elemMatch: { userId: ownerUserId, isDeleted: { $ne: true } } },
         createdAt: { $gte: new Date(sinceMs) },
         messageCount: { $gt: 0 },
       },
@@ -270,11 +276,16 @@ async function loadQuoteRequestEntries(supplierId, sinceMs) {
             createdAt: { $gte: new Date(sinceMs).toISOString() },
           },
         },
+        // The same newest-first cap and id filter as the supplier's enquiry list, so the dashboard's
+        // "new requests" figure and the list can never disagree about which rows exist.
+        { $sort: { createdAt: -1 } },
+        { $limit: MAX_RECORDS_PER_SOURCE },
         { $project: { id: 1, createdAt: 1, userId: 1, email: 1 } },
       ],
       STRICT
     )) || [];
   return rows
+    .filter(row => sourceOfId(row.id))
     .map(row => ({
       id: row.id,
       ms: toMillis(row.createdAt),
@@ -293,12 +304,13 @@ async function loadQuoteRequestEntries(supplierId, sinceMs) {
  */
 async function loadContactFormEntries(supplierId, sinceMs) {
   const rows =
-    (await dbUnified.find(
+    (await dbUnified.findWithOptions(
       'enquiries',
       { supplierId, createdAt: { $gte: new Date(sinceMs).toISOString() } },
-      STRICT
+      { limit: MAX_RECORDS_PER_SOURCE, sort: { createdAt: -1 }, throwOnError: true }
     )) || [];
   return rows
+    .filter(row => sourceOfId(row.id))
     .map(row => ({
       id: row.id,
       ms: toMillis(row.createdAt),

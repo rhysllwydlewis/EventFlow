@@ -3,8 +3,12 @@
  * Handles ticket creation and viewing for customers
  */
 
-import ticketingSystem from './ticketing.js?v=18.3.0';
-import { getListItemSkeletons, showEmptyState, showErrorState } from './utils/skeleton-loader.js';
+import ticketingSystem from './ticketing.js?v=18.3.2';
+import {
+  getListItemSkeletons,
+  showEmptyState,
+  showErrorState,
+} from './utils/skeleton-loader.js?v=2.1.1';
 import {
   getCurrentUser,
   escapeHtml,
@@ -14,6 +18,60 @@ import {
 } from './utils/common-helpers.js';
 
 let ticketsUnsubscribe = null;
+/** True once the server has really answered with the customer's tickets (none included). */
+let ticketsLoaded = false;
+let ticketsUserId = null;
+
+/**
+ * Who is signed in, for a ticket: the sign-in check's answer, else the person the dashboard guard
+ * already confirmed (the check can fail on a dropped connection without them being signed out).
+ */
+async function currentCustomer() {
+  return (await getCurrentUser()) || window.__EF_DASHBOARD_USER__ || null;
+}
+
+/**
+ * Says the tickets could not be loaded, with a retry. Once a list has loaded it stays on screen
+ * (a later hiccup should not wipe tickets the customer is looking at); a note above it says it may
+ * be out of date instead.
+ * @param {Error & {status?: number}} [error] - What went wrong; a 401/403 means the session ended
+ */
+function showTicketsError(error) {
+  const container = document.getElementById('tickets-cust');
+  if (!container) {
+    return;
+  }
+  const signedOut = error?.status === 401 || error?.status === 403;
+  if (ticketsLoaded) {
+    let note = container.querySelector('[data-tickets-stale]');
+    if (!note) {
+      note = document.createElement('p');
+      note.className = 'small';
+      note.dataset.ticketsStale = '';
+      note.setAttribute('role', 'status');
+      container.prepend(note);
+    }
+    note.textContent = signedOut
+      ? 'You may have been signed out, so these tickets may be out of date. Refresh the page to sign in again.'
+      : 'These tickets may be out of date. We will keep trying.';
+    return;
+  }
+  showErrorState(container, {
+    title: 'Your support tickets could not be loaded',
+    description: signedOut
+      ? 'You may have been signed out. Refresh the page to sign in again, then try again.'
+      : 'Check your connection and try again.',
+    actionText: 'Try again',
+    onAction: () => {
+      container.innerHTML = getListItemSkeletons(2);
+      if (ticketsUserId) {
+        refreshTickets(ticketsUserId);
+      } else {
+        loadTickets();
+      }
+    },
+  });
+}
 
 /** Reloads the ticket list now, instead of waiting for the next scheduled refresh. */
 async function refreshTickets(userId) {
@@ -21,6 +79,7 @@ async function refreshTickets(userId) {
     renderTickets(await ticketingSystem.getUserTickets(userId, 'customer', 5));
   } catch (error) {
     console.warn('Could not refresh tickets:', error?.message);
+    showTicketsError(error);
   }
 }
 
@@ -30,6 +89,7 @@ function renderTickets(tickets) {
   if (!container) {
     return;
   }
+  ticketsLoaded = true;
 
   if (!tickets || tickets.length === 0) {
     showEmptyState(container, {
@@ -162,9 +222,9 @@ function showCreateTicketModal(prefill = {}) {
     form.addEventListener('submit', async e => {
       e.preventDefault();
 
-      const user = await getCurrentUser();
+      const user = await currentCustomer();
       if (!user) {
-        showToast('Please sign in to create a ticket', 'error');
+        showToast('We could not confirm that you are signed in. Please try again.', 'error');
         return;
       }
 
@@ -362,8 +422,8 @@ function viewTicket(ticketId) {
   ticketUnsubscribe = ticketingSystem.listenToTicket(ticketId, renderTicketDetails);
 }
 
-// Initialize
-async function init() {
+/** Finds the signed-in customer and starts listening to their tickets (also the retry path). */
+async function loadTickets() {
   const container = document.getElementById('tickets-cust');
   if (!container) {
     return;
@@ -372,19 +432,47 @@ async function init() {
   // Show skeleton loader
   container.innerHTML = getListItemSkeletons(2);
 
-  const user = await getCurrentUser();
+  const user = await currentCustomer();
   if (!user) {
-    showEmptyState(container, {
-      icon: '🔒',
-      title: 'Sign in to view tickets',
-      description: 'Log in to see your support tickets.',
-      actionText: 'Sign In',
-      actionHref: '/auth',
-    });
+    // The dashboard guard has confirmed this person, so a failed check is not "signed out": say the
+    // tickets could not be loaded and offer a retry, rather than telling them to sign in.
+    showTicketsError();
     return;
   }
 
-  // Create ticket button handler
+  // Listen to user's tickets with real-time updates (limit to 5 recent tickets on dashboard)
+  try {
+    if (ticketsUnsubscribe) {
+      ticketsUnsubscribe();
+    }
+    ticketsUserId = user.id;
+    ticketsUnsubscribe = ticketingSystem.listenToUserTickets(
+      user.id,
+      'customer',
+      renderTickets,
+      5,
+      { onError: showTicketsError }
+    );
+  } catch (error) {
+    console.error('Error loading tickets:', error);
+    showErrorState(container, {
+      title: 'Unable to load tickets',
+      description: 'Please try refreshing the page.',
+      actionText: 'Refresh',
+      onAction: () => window.location.reload(),
+    });
+  }
+}
+
+// Initialize
+function init() {
+  const container = document.getElementById('tickets-cust');
+  if (!container) {
+    return;
+  }
+
+  // Create ticket button handler. It works whatever happens to the list: opening the form needs
+  // nobody confirmed yet (submitting it looks the person up again).
   const createBtn = document.getElementById('createTicketBtn');
   if (createBtn) {
     createBtn.addEventListener('click', () => showCreateTicketModal());
@@ -406,21 +494,7 @@ async function init() {
     });
   }
 
-  // Listen to user's tickets with real-time updates (limit to 5 recent tickets on dashboard)
-  try {
-    if (ticketsUnsubscribe) {
-      ticketsUnsubscribe();
-    }
-    ticketsUnsubscribe = ticketingSystem.listenToUserTickets(user.id, 'customer', renderTickets, 5);
-  } catch (error) {
-    console.error('Error loading tickets:', error);
-    showErrorState(container, {
-      title: 'Unable to load tickets',
-      description: 'Please try refreshing the page.',
-      actionText: 'Refresh',
-      onAction: () => window.location.reload(),
-    });
-  }
+  loadTickets();
 }
 
 // Run on load
