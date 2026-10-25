@@ -318,4 +318,129 @@ test.describe('V3 approved homepage concept', () => {
       .dragTo(page.getByRole('button', { name: 'Choose table 3', exact: true }));
     await expect(page.locator('.hws-seat-status')).toContainText('Table 3 is full');
   });
+  test('missing city photos never use another city’s photo because of feed order', async ({
+    page,
+  }) => {
+    await mockFeeds(page);
+    await page.route('**/api/v1/locations/featured?*', route =>
+      route.fulfill({
+        json: {
+          success: true,
+          data: {
+            cities: [
+              { slug: 'bristol', name: 'Bristol' },
+              { slug: 'london', name: 'London' },
+            ],
+          },
+        },
+      })
+    );
+    await page.goto('/home-v3-preview');
+    await dismissConsent(page);
+    const cities = page.locator('[data-v3-locations] .city');
+    await expect(cities).toHaveCount(2);
+    await expect(cities.filter({ hasText: 'Bristol' }).locator('img')).toHaveAttribute(
+      'src',
+      /placeholders\/rustic-venue\.svg$/
+    );
+    await expect(cities.filter({ hasText: 'London' }).locator('img')).toHaveAttribute(
+      'src',
+      /home-v3\/locations-2\.webp$/
+    );
+  });
+
+  test('the visitor’s pause choice survives system motion preference changes', async ({ page }) => {
+    await mockFeeds(page);
+    await page.emulateMedia({ reducedMotion: 'no-preference' });
+    await page.goto('/home-v3-preview');
+    await dismissConsent(page);
+    await page.getByRole('button', { name: 'Pause photo animation', exact: true }).click();
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    await expect(page.locator('.orbit-toggle')).toBeDisabled();
+    await page.emulateMedia({ reducedMotion: 'no-preference' });
+    await expect(
+      page.getByRole('button', { name: 'Play photo animation', exact: true })
+    ).toBeEnabled();
+    await expect(page.locator('.orbit-toggle')).toHaveAttribute('aria-pressed', 'true');
+  });
+
+  test('keyboard retry puts focus on the newly loaded card', async ({ page }) => {
+    await mockFeeds(page, { unavailable: true });
+    await page.goto('/home-v3-preview');
+    await dismissConsent(page);
+    await page.locator('#featured').scrollIntoViewIfNeeded();
+    const retry = page.locator('#featured').getByRole('button', { name: 'Try again', exact: true });
+    await expect(retry).toBeVisible();
+    await page.route('**/api/packages/featured', route =>
+      route.fulfill({ json: { items: packages } })
+    );
+    await retry.focus();
+    await page.keyboard.press('Enter');
+    await expect(page.locator('#featured .package').first()).toBeFocused();
+  });
+  test('long live names remain readable within mobile cards', async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 900 });
+    await mockFeeds(page);
+    await page.route('**/api/v1/locations/featured?*', route =>
+      route.fulfill({
+        json: {
+          success: true,
+          data: {
+            cities: [
+              {
+                slug: 'llanfair',
+                name: 'Llanfairpwllgwyngyllgogerychwyrndrobwllllantysiliogogogoch',
+              },
+            ],
+          },
+        },
+      })
+    );
+    await page.route('**/api/v1/categories', route =>
+      route.fulfill({
+        json: { items: [{ name: 'LiveMusicAndWeddingEntertainment', visible: true }] },
+      })
+    );
+    await page.route('**/api/packages/featured', route =>
+      route.fulfill({
+        json: {
+          items: [{ ...packages[0], title: 'WeddingEntertainmentAndProductionSpecialists' }],
+        },
+      })
+    );
+    await page.goto('/home-v3-preview');
+    await dismissConsent(page);
+    await page.locator('#featured').scrollIntoViewIfNeeded();
+    await expect(page.locator('#featured .package')).toHaveCount(1);
+    const cards = await page
+      .locator('[data-v3-locations] .city,[data-v3-categories] .category,#featured .package-body')
+      .evaluateAll(elements =>
+        elements.map(e => ({ width: e.clientWidth, content: e.scrollWidth }))
+      );
+    expect(cards.length).toBe(3);
+    for (const card of cards) expect(card.content).toBeLessThanOrEqual(card.width);
+  });
+
+  test('a delayed retry does not take focus back after the visitor moves elsewhere', async ({
+    page,
+  }) => {
+    await mockFeeds(page, { unavailable: true });
+    await page.goto('/home-v3-preview');
+    await dismissConsent(page);
+    await page.locator('#featured').scrollIntoViewIfNeeded();
+    const retry = page.locator('#featured').getByRole('button', { name: 'Try again', exact: true });
+    await expect(retry).toBeVisible();
+    let resolveRequest;
+    const requested = new Promise(resolve => {
+      resolveRequest = resolve;
+    });
+    await page.route('**/api/packages/featured', route => resolveRequest(route));
+    await retry.focus();
+    await page.keyboard.press('Enter');
+    const pending = await requested;
+    await page.locator('#search-location').focus();
+    await pending.fulfill({ json: { items: packages } });
+    await expect(page.locator('#featured .package')).toHaveCount(5);
+    await expect(page.locator('#search-location')).toBeFocused();
+  });
 });

@@ -9,7 +9,7 @@ describe('homepage V3 concept', () => {
     );
     expect(html).toContain('photo-orbit');
     expect(html).toContain('Everything you need.');
-    expect(html).toContain('/assets/js/pages/home-v3-concept.js?v=3');
+    expect(html).toContain('/assets/js/pages/home-v3-concept.js?v=4');
     expect(html).not.toContain('/assets/js/pages/home-v3-video.js');
     expect(html).not.toContain('/assets/js/pages/home-v2.js');
     expect(html).not.toContain('/assets/js/utils/pexels-client.js');

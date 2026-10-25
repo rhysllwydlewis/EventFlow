@@ -428,6 +428,9 @@ test.describe('Supplier dashboard: every control works @backend', () => {
     context,
     baseURL,
   }) => {
+    // The WebKit trace reaches the final delete after several successful mutations;
+    // allow the whole journey more time than its 30-second individual action budget.
+    test.setTimeout(60000);
     await openDashboard(page, context, baseURL);
     const title = `Action Pkg ${runId.slice(-6)}`;
 

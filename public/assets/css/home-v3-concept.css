@@ -6048,3 +6048,21 @@ main .hero.hero--without-photos {
 .hws .unseated-guest[aria-pressed='true'] {
   color: var(--ef-primary-dark);
 }
+/* Keep live CMS names readable, including long Welsh place names and unbroken brands. */
+.city > div > span,
+.market-card > div {
+  min-width: 0;
+}
+.city :is(strong, small),
+.package-body :is(h3, .meta, .place, strong),
+.market-card :is(h3, .meta, strong) {
+  overflow-wrap: anywhere;
+}
+.category > span {
+  overflow-wrap: anywhere;
+  gap: 8px;
+  align-items: center;
+}
+.category b {
+  flex: none;
+}

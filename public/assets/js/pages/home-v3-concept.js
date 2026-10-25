@@ -216,15 +216,13 @@
     const orbit = document.querySelector('.photo-orbit'),
       toggle = orbit.querySelector('.orbit-toggle'),
       motion = matchMedia('(prefers-reduced-motion: reduce)');
-    let paused = motion.matches;
+    let paused = false;
     /** Respect reduced motion and the visitor’s explicit pause setting. */
     function renderMotion() {
-      if (motion.matches) {
-        paused = true;
-      }
+      const effectivePause = paused || motion.matches;
       toggle.disabled = motion.matches;
-      orbit.classList.toggle('is-paused', paused);
-      toggle.setAttribute('aria-pressed', String(paused));
+      orbit.classList.toggle('is-paused', effectivePause);
+      toggle.setAttribute('aria-pressed', String(effectivePause));
       toggle.setAttribute(
         'aria-label',
         motion.matches
@@ -243,10 +241,7 @@
       paused = !paused;
       renderMotion();
     });
-    motion.addEventListener('change', () => {
-      paused = motion.matches;
-      renderMotion();
-    });
+    motion.addEventListener('change', renderMotion);
     renderMotion();
     let onScreen = true;
     /** Stop decorative motion while the hero is outside the viewport. */
@@ -485,9 +480,29 @@
     if (retry) {
       const button = element('button', 'v3-feed-retry', 'Try again');
       button.type = 'button';
-      button.addEventListener('click', () => {
+      button.addEventListener('click', async () => {
+        const restoreFocus = document.activeElement === button;
+        const previousTabIndex = container.getAttribute('tabindex');
         button.disabled = true;
-        retry();
+        const request = retry();
+        if (restoreFocus) {
+          container.setAttribute('tabindex', '-1');
+          container.focus({ preventScroll: true });
+        }
+        await request;
+        if (restoreFocus && document.activeElement === container) {
+          const target =
+            container.querySelector('.v3-feed-retry') ||
+            container.querySelector('.package, .market-card, a');
+          target?.focus({ preventScroll: true });
+        }
+        if (restoreFocus) {
+          if (previousTabIndex === null) {
+            container.removeAttribute('tabindex');
+          } else {
+            container.setAttribute('tabindex', previousTabIndex);
+          }
+        }
       });
       note.append(button);
     }
@@ -606,6 +621,12 @@
   /** Use only published city URLs and retain static searches if loading fails. */
   async function loadLocations() {
     const grid = document.querySelector('[data-v3-locations]');
+    const cityPhotos = new Map(
+      [...grid.querySelectorAll('.city')].map(card => [
+        card.querySelector('strong').textContent.trim().toLowerCase(),
+        card.querySelector('img').src,
+      ])
+    );
     try {
       const data = await readJson('/api/v1/locations/featured?limit=6');
       if (!data.success || !Array.isArray(data.data?.cities)) {
@@ -614,7 +635,7 @@
       const cards = data.data.cities
         .filter(city => city?.slug && city.name)
         .slice(0, 6)
-        .map((city, index) => {
+        .map(city => {
           const card = element('a', 'city');
           card.href = `/locations/${encodeURIComponent(city.slug)}`;
           const caption = element('div');
@@ -627,7 +648,13 @@
           copy.append(element('strong', '', city.name), element('small', '', meta));
           caption.append(copy, withArrow(element('b')));
           card.append(
-            image(city.imageUrl, city.name, `/assets/images/home-v3/locations-${index}.webp`),
+            image(
+              city.imageUrl,
+              city.name,
+              cityPhotos.get(city.slug.toLowerCase()) ||
+                cityPhotos.get(city.name.trim().toLowerCase()) ||
+                '/assets/images/placeholders/rustic-venue.svg'
+            ),
             caption
           );
           return card;
