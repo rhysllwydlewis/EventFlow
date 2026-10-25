@@ -86,21 +86,29 @@
 
   /**
    * Writes a remembered choice or a cached copy of server data. These follow the visitor's cookie
-   * choice (functional storage must be accepted; no banner on the page means no choice to follow).
-   * Budget lines themselves are the visitor's own data and go through writeStorage().
+   * choice, which utils/auth-state.js decides in one place (efMayKeepFunctionalStorage); without
+   * that script nothing is kept. Budget lines themselves are the visitor's own data and go through
+   * writeStorage().
    */
   function writeFunctional(key, value) {
-    try {
-      const consent = window.CookieConsent;
-      if (consent && typeof consent.getConsent === 'function') {
-        if (consent.getConsent()?.functional !== true) {
-          return false;
-        }
-      }
-    } catch {
+    if (
+      typeof window.efMayKeepFunctionalStorage !== 'function' ||
+      !window.efMayKeepFunctionalStorage()
+    ) {
       return false;
     }
     return writeStorage(key, value);
+  }
+
+  /**
+   * Resolves once the sign-in check has finished, which is when utils/auth-state.js forgets the
+   * device-only figures a different account left behind. They are read only after this, so a second
+   * account never sees the first one's budget. Without that script (or if it hangs) it resolves
+   * straight away or after a few seconds: nobody is identified, so nothing could be cleared anyway.
+   */
+  function deviceDataReady() {
+    const auth = window.__authState;
+    return auth && typeof auth.whenReady === 'function' ? auth.whenReady() : Promise.resolve(true);
   }
 
   /** Reads and parses a JSON localStorage value, or null when missing or broken. */
@@ -330,6 +338,8 @@
     state.signedOut = false;
     render();
     let plans = [];
+    // Asked alongside the plans, not after them: the two answers are independent.
+    const scoped = deviceDataReady();
     try {
       const data = await api('/api/me/plans');
       plans = Array.isArray(data.plans) ? data.plans : [];
@@ -340,6 +350,9 @@
       render();
       return;
     }
+    // Everything below reads what this browser kept (the picked plan, a device budget), so the
+    // previous account's copies must have been cleared first.
+    await scoped;
     state.plans = plans;
     if (plans.length) {
       state.mode = 'plan';

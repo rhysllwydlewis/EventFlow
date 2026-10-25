@@ -470,12 +470,12 @@
   /** Remembers the picked plan for the next visit (ignored when storage is blocked). */
   function remember(id) {
     try {
-      // A remembered choice follows the cookie choice: functional storage must be accepted.
-      const consent = window.CookieConsent;
-      if (consent && typeof consent.getConsent === 'function') {
-        if (consent.getConsent()?.functional !== true) {
-          return;
-        }
+      // A remembered choice follows the cookie choice, which utils/auth-state.js decides in one place.
+      if (
+        typeof window.efMayKeepFunctionalStorage !== 'function' ||
+        !window.efMayKeepFunctionalStorage()
+      ) {
+        return;
       }
       window.localStorage.setItem(PLAN_KEY, id);
     } catch {
@@ -668,6 +668,12 @@
       try {
         if (!state.plans.length) {
           const data = await api('/api/me/plans');
+          // The remembered plan is read below; first let the sign-in check clear whatever a
+          // different account left on this device.
+          const auth = window.__authState;
+          if (auth && typeof auth.whenReady === 'function') {
+            await auth.whenReady();
+          }
           state.plans = data.plans || [];
           if (!state.plans.length) {
             state.phase = 'noplans';

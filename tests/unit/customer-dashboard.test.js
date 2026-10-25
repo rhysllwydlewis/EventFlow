@@ -262,6 +262,63 @@ describe('GET /api/v1/customer/milestones', () => {
       expect(scope).toBe('account');
       expect(done['set-date']).toBe(true);
     });
+
+    it("never reads another customer's plan, even when its id is asked for", async () => {
+      // A database that honours the filter: another customer owns a complete plan called 'theirs'.
+      const everyPlan = [
+        ...plans,
+        {
+          id: 'theirs',
+          userId: 'someone-else',
+          eventDate: '2028-01-01',
+          location: 'Leeds',
+          guestCount: 200,
+          budget: 9000,
+        },
+      ];
+      mockDb.find.mockImplementation(async (col, query = {}) =>
+        col === 'plans' ? everyPlan.filter(plan => plan.userId === query.userId) : []
+      );
+      mockDb.findOne.mockResolvedValue(null);
+      const res = await request(buildApp())
+        .get('/api/v1/customer/milestones?planId=theirs')
+        .set('x-test-user-role', 'customer');
+      expect(res.status).toBe(200);
+      expect(res.body.scope).toBe('account');
+      expect(mockDb.find).toHaveBeenCalledWith('plans', { userId: 'user-cust-1' });
+      for (const call of mockDb.find.mock.calls) {
+        expect(call[1]).toEqual({ userId: 'user-cust-1' });
+      }
+    });
+  });
+
+  describe('when the database cannot be read', () => {
+    it.each([
+      ['plans', 'find'],
+      ['the shortlist', 'findOne'],
+      ['quote requests', 'find'],
+    ])('answers 500, not an all-undone checklist, when %s cannot be read', async (name, method) => {
+      const failing =
+        name === 'the shortlist' ? 'shortlists' : name === 'plans' ? 'plans' : 'quoteRequests';
+      mockDb.find.mockImplementation(async col => {
+        if (method === 'find' && col === failing) {
+          throw new Error('db down');
+        }
+        return [{ id: 'p1', userId: 'user-cust-1', eventDate: '2027-06-19' }];
+      });
+      mockDb.findOne.mockImplementation(async col => {
+        if (method === 'findOne' && col === failing) {
+          throw new Error('db down');
+        }
+        return null;
+      });
+      const res = await request(buildApp())
+        .get('/api/v1/customer/milestones')
+        .set('x-test-user-role', 'customer');
+      expect(res.status).toBe(500);
+      expect(res.body.milestones).toBeUndefined();
+      expect(res.body.error).toBeTruthy();
+    });
   });
 
   it('no longer serves the unused summary and countdown endpoints', async () => {

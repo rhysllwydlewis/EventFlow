@@ -596,6 +596,12 @@
   font-size: 13px;
 }
 
+/* The "taking longer than usual" notice sits at the bottom so it never covers a page notice. */
+.cdh-page .cdh-toast--slow {
+  top: auto;
+  bottom: 24px;
+}
+
 /* ------------------------------------------------------------------ *
  * 4. Summary row and budget form
  * ------------------------------------------------------------------ */

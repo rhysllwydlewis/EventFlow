@@ -1,7 +1,9 @@
 /**
  * Centralized Auth State Manager
- * Manages authentication state and prevents unnecessary API calls
- * Only calls /api/auth/me when a token/session is present
+ * Manages authentication state and shares one /api/v1/auth/me check between the scripts on a page.
+ * Also owns the two rules about what this browser keeps for a signed-in person: the device-only
+ * figures are forgotten when a different account signs in (scopeDeviceData), and remembered
+ * choices follow the cookie choice (mayKeepFunctionalStorage, the one place that decides it).
  */
 
 'use strict';
@@ -53,6 +55,32 @@
       localStorage.setItem(DEVICE_DATA_OWNER_KEY, id);
     } catch {
       // Ignore storage errors in private browsing / restricted storage modes.
+    }
+  }
+
+  /**
+   * Whether this browser may keep a remembered choice (a dismissed notice, the plan last picked) or a
+   * cached copy of server data. It follows the visitor's cookie choice: functional storage must have
+   * been accepted. This is the one place that decides it; every page script asks here.
+   *
+   * - The consent library has loaded: its answer is used. Before a choice is made it says no.
+   * - The page has no cookie banner at all: there is no choice to follow, so yes.
+   * - The page includes the banner script but it has not run yet (it is loaded last, with `defer`,
+   *   and start-up code can get here first): the visitor has not been asked, so no. Nothing is lost
+   *   by that: the choice simply is not remembered until they accept, which is what a first-time
+   *   visitor gets from the library itself.
+   * Anything unexpected also says no.
+   * @returns {boolean} True when it may be kept.
+   */
+  function mayKeepFunctionalStorage() {
+    try {
+      const consent = window.CookieConsent;
+      if (consent && typeof consent.getConsent === 'function') {
+        return consent.getConsent()?.functional === true;
+      }
+      return !document.querySelector('script[src*="cookie-consent"]');
+    } catch {
+      return false;
     }
   }
 
@@ -185,6 +213,25 @@
       };
     }
 
+    /**
+     * Resolves once the sign-in check has finished, which is also when scopeDeviceData has run for
+     * a signed-in user, or after maxWaitMs if the check hangs. Scripts that read device-only data
+     * (a budget kept on this device, the plan last picked) wait for this first: otherwise the
+     * previous account's figures can be read before they are cleared. It never rejects.
+     * @param {number} [maxWaitMs] - The longest to wait
+     * @returns {Promise<boolean>} True when the check finished, false when it timed out
+     */
+    whenReady(maxWaitMs = 8000) {
+      const finished = this.init().then(
+        () => true,
+        () => false
+      );
+      const timedOut = new Promise(resolve => {
+        window.setTimeout(() => resolve(false), maxWaitMs);
+      });
+      return Promise.race([finished, timedOut]);
+    }
+
     refresh() {
       this.initialized = false;
       this.initPromise = null;
@@ -211,6 +258,8 @@
     window.AUTH_STATES = AUTH_STATES;
     window.__authState = authManager;
     authManager.scopeDeviceData = scopeDeviceData;
+    authManager.mayKeepFunctionalStorage = mayKeepFunctionalStorage;
+    window.efMayKeepFunctionalStorage = mayKeepFunctionalStorage;
     if (document.readyState === 'loading') {
       document.addEventListener('DOMContentLoaded', () => authManager.init());
     } else {

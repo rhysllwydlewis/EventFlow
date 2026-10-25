@@ -135,11 +135,11 @@ describe('dashboard-customer-init.js — getCsrfToken reliability', () => {
   });
 
   it('ensureCsrfToken function exists to pre-fetch and cache the token', () => {
-    expect(customerInitSrc).toContain('async function ensureCsrfToken()');
+    expect(customerInitSrc).toContain('function ensureCsrfToken()');
   });
 
   it('ensureCsrfToken fetches /api/csrf-token as fallback', () => {
-    const fnStart = customerInitSrc.indexOf('async function ensureCsrfToken()');
+    const fnStart = customerInitSrc.indexOf('async function fetchCsrfToken()');
     const fnEnd = customerInitSrc.indexOf('\nfunction ', fnStart + 1);
     const fnBody = customerInitSrc.substring(fnStart, fnEnd === -1 ? fnStart + 600 : fnEnd);
     expect(fnBody).toContain('/api/csrf-token');
@@ -153,7 +153,11 @@ describe('dashboard-customer-init.js — getCsrfToken reliability', () => {
       initStart,
       initEnd === -1 ? initStart + 1000 : initEnd
     );
-    expect(initBody).toContain('await ensureCsrfToken()');
+    // Requested alongside the sign-in check (one shared request), not before it.
+    expect(initBody).toMatch(/\n {2}ensureCsrfToken\(\);/);
+    expect(initBody.indexOf('ensureCsrfToken()')).toBeLessThan(
+      initBody.indexOf('await checkAuth()')
+    );
   });
 });
 

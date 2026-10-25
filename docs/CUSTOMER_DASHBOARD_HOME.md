@@ -76,13 +76,54 @@ Plans card marks the one in the summary. The budget form saves to that same plan
   steps sit in a real `<details>` ("6 completed").
 - If the plans request fails the page says so and offers a retry; it does not
   show an empty dashboard. A refresh that fails after plans were loaded keeps them and says it
-  could not refresh. The sign-in guard (`dashboard-guard.js`) never answers a slow request with
-  made-up empty data: past 3.5-5 s it shows "Taking longer than usual" while the real request
-  carries on, and cancels it after 30 s so the page's own could-not-load state appears.
+  could not refresh and that they may be out of date; a plan that was just deleted is not among
+  the ones kept. Saving a budget while the plans are not loaded tries to load them, and if that
+  fails says so with a retry: it never reports a save, and never redraws the error as "no plans".
+- **Slow requests** (`dashboard-guard.js`, customer dashboard only). The fetch wrapper is
+  installed before the sign-in check, so the page's own start-up calls are covered. It never
+  answers a slow request with made-up data. Past 3.5 s (4 s for the CSRF token, 5 s for plans,
+  7 s for `/api/v1/auth/me`) the page shows "Taking longer than usual" at the bottom of the screen
+  while the real request carries on (not for the minute-by-minute Support refresh), and the
+  request is cancelled after 30 s so the page's own could-not-load state appears (a signal the
+  caller passed is still honoured as well). Only two stand-ins exist, both real values rather than
+  guesses: at 7 s `/api/v1/auth/me` answers with the user the guard already confirmed, and at 4 s
+  the CSRF endpoints answer with the token the page already holds; both carry an
+  `X-EF-Dashboard-Fallback: timeout` header, and the stand-in is handed over before the request is
+  cancelled (a browser rejects a cancelled request at once, which would otherwise win). Guarded
+  paths are exactly the ones the page requests: `/api/v1/auth/me`, `/api/me/plans`,
+  `/api/csrf-token`, `/api/v1/csrf-token` and `/api/tickets`.
+- **The sign-in check** (`dashboard-guard.js` first, then `dashboard-customer-init.js`). Both treat
+  only a 401/403 as "signed out" and redirect to `/auth?redirect=`. The guard's own call has a 10 s
+  timeout per attempt (three attempts) and shows "Still checking that you are signed in" after
+  4 s, so a hung request cannot leave a blank hidden page. If the check cannot be completed
+  (5xx, network error, timeout) the customer dashboard is **shown, not redirected**; the start-up
+  script repeats the check, uses the user the guard had confirmed if there is one, and otherwise
+  says "We could not check that you are signed in" with a retry (one click, one check, focus
+  kept). The admin and supplier dashboards keep the old behaviour and redirect on any failed
+  check. If the start-up check is what identifies the person, an admin or supplier is sent to
+  their own dashboard, as the guard would.
 - Start-up copes with the things that go wrong: blocked or full browser storage (every storage
-  access is guarded and never stops the server save), a dropped connection during the sign-in
-  check (retried, then the user the guard confirmed is used, or a retry banner is shown; only a
-  401/403 redirects, to `/auth?redirect=`), and a failing Support card (error with a retry).
+  access is guarded and never stops the server save), and a failing Support card (error with a
+  retry, or a note above the tickets already shown; a refusal is said to be a sign-out and the
+  refresh carries on slowly, and failing refreshes wait longer each time, never less than a
+  healthy one). The CSRF token is requested alongside the sign-in check, sharing one request.
+  Requests that do not depend on each other are not otherwise started together: the plans load
+  waits for the sign-in check and for a guest-plan claim if there is one, because a claim creates
+  the plan the load must see. A guest plan's token is dropped only on a final answer (claimed,
+  already have a plan, not found); a 5xx, a proxy error page, a rejected CSRF token or a dropped
+  connection keep it for the next visit.
+- The Saved suppliers card says "could not be loaded" with a retry when the request fails, unless
+  a copy kept in the browser exists, which is shown labelled as the last saved list. When the
+  package prices cannot be fetched the Budget tile says how many packages could not be priced
+  rather than showing a smaller figure with confidence.
+- What this browser may remember (a dismissed notice, the plan last picked, copies of the budget
+  and saved suppliers) is decided in one place, `efMayKeepFunctionalStorage()` in
+  `utils/auth-state.js`: accepted functional cookies say yes; declined or not yet chosen say no;
+  a page with no cookie banner at all has no choice to follow and says yes; a page that includes
+  the banner script before it has run says no (the visitor has not been asked). A customer with
+  no plan who declines functional storage has nowhere to keep a dashboard budget (the `/budget`
+  page's device budget is separate and is not affected), and the message names the cookie choice
+  as a possible reason.
 - The Edit plan dialog asks before discarding unsaved edits: the first Cancel / cross / backdrop /
   Escape says so and turns Cancel into "Discard changes".
 - **Suggested for you** is `GET /api/v2/search/personalized`, asked with the focus plan's
@@ -169,10 +210,13 @@ From this page (the files are deleted only where nothing else loaded them):
 - Done in a later clean-up: the old first-visit onboarding box for customers (`dash_customer` in `app.js`), its
   `renderThreads` helper and the `#customer-*` placeholder rules in `skeleton.css` were
   removed afterwards, along with the `.thread-list`/`.thread-row*` rules in `styles.css` that only
-  `renderThreads` used. `app.js` is now `?v=18.5.6` and `skeleton.css` `?v=2.1.0` everywhere.
+  `renderThreads` used. `app.js` is now `?v=18.5.12` (the page and every other page that loads it) and `skeleton.css` `?v=2.1.1`.
   A first-visit welcome for new customers does not exist any more; if wanted, build it
   into the dashboard home rather than restoring the script.
-- `dashboard-guard.js` changed (it no longer injects the removed scripts), so its
-  `?v=` is `17.1.0` on every page that loads it, including the generated
-  `admin-community.html` via `scripts/generate-community-pages.mjs`. Behaviour
-  only differed on this page; the bump is for cache hygiene.
+- `dashboard-guard.js` changed (it no longer injects the removed scripts, and its
+  customer-dashboard slow-request and sign-in handling was reworked), so its `?v=` is `18.4.2` on
+  every page that loads it, including the generated `admin-community.html` via
+  `scripts/generate-community-pages.mjs`. All of that is inside the customer-dashboard branch except
+  one thing: the guard's first sign-in call now has a 10 s timeout and a notice on every page it
+  runs on, and the shared code path still redirects on a failed check for admin and supplier pages.
+  The version bump is what makes browsers pick the new script up.

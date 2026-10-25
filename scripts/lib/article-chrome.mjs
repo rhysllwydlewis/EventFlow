@@ -128,7 +128,7 @@ export const NOTIFICATION_DROPDOWN_MARKUP = `<!-- Notification dropdown: pre-ren
  * with no reader.
  */
 export const HEADER_SCRIPTS = [
-  '/assets/js/utils/auth-state.js?v=1.0.3',
+  '/assets/js/utils/auth-state.js?v=1.0.4',
   '/assets/js/burger-menu.js?v=1.1.0',
   '/assets/js/navbar.js?v=1.3.0',
   '/assets/js/notifications.js?v=2.0.3',
