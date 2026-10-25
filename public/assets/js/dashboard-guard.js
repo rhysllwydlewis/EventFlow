@@ -320,8 +320,8 @@
   const AUTH_CHECK_MAX_RETRIES = 2;
   const AUTH_CHECK_RETRY_DELAY_MS = 600;
   // The page is hidden until this check ends, so a request that hangs must not hold it forever: a
-  // notice appears after AUTH_CHECK_NOTICE_MS and the attempt is cancelled (and retried) after
-  // AUTH_CHECK_TIMEOUT_MS.
+  // notice appears after AUTH_CHECK_NOTICE_MS and, on the customer dashboard only, the attempt is
+  // cancelled (and retried) after AUTH_CHECK_TIMEOUT_MS.
   const AUTH_CHECK_NOTICE_MS = 4000;
   const AUTH_CHECK_TIMEOUT_MS = 10000;
   const AUTH_NOTICE_ID = 'ef-guard-auth-notice';
@@ -358,7 +358,11 @@
     let response = null;
     const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
     const noticeTimer = window.setTimeout(showAuthNotice, AUTH_CHECK_NOTICE_MS);
-    const cancelTimer = window.setTimeout(() => controller?.abort(), AUTH_CHECK_TIMEOUT_MS);
+    // Only the customer dashboard gives up on a slow check: the admin and supplier pages wait as
+    // they always did, because cancelling there would end in a redirect for a working session.
+    const cancelTimer = isCustomerPage
+      ? window.setTimeout(() => controller?.abort(), AUTH_CHECK_TIMEOUT_MS)
+      : null;
     try {
       const cacheBuster = `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
       response = await realFetch(`/api/v1/auth/me?t=${cacheBuster}`, {

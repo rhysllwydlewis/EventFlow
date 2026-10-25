@@ -120,11 +120,21 @@ describe('the sign-in guard and slow requests', () => {
       expect(check.recovers).toMatchObject({ revealed: true, navigations: 0, unconfirmed: false });
     });
 
-    test('supplier and admin pages still redirect when the check cannot be completed', () => {
-      for (const other of [check.supplierServerDown, check.adminOffline, check.adminHung]) {
+    test('supplier and admin pages still redirect when the check fails outright', () => {
+      for (const other of [check.supplierServerDown, check.adminOffline]) {
         expect(other).toMatchObject({ navigations: 1, revealed: false, unconfirmed: false });
       }
-      expect(check.adminHung.noticeShown).toBe(true);
+    });
+
+    test('a slow admin check is not cancelled: it keeps waiting as it always did, with a notice', () => {
+      // Cancelling would turn a working but slow session into a redirect.
+      expect(check.adminHung).toMatchObject({
+        meRequests: 1,
+        navigations: 0,
+        revealed: false,
+        unconfirmed: false,
+        noticeShown: true,
+      });
     });
 
     test('only the customer dashboard gets the fetch wrapper', () => {

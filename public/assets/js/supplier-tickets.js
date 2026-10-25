@@ -3,7 +3,7 @@
  * Handles ticket creation and viewing for suppliers
  */
 
-import ticketingSystem from './ticketing.js?v=18.3.1';
+import ticketingSystem from './ticketing.js?v=18.3.2';
 import { showEmptyState } from './utils/skeleton-loader.js?v=2.1.1';
 import {
   getCurrentUser,
