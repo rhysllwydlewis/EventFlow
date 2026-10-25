@@ -23,14 +23,23 @@ const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
 
 /** A fresh window at the customer dashboard address, with the given markup. */
 function windowWith(markup, fetchImpl, { url = 'http://localhost/dashboard/customer' } = {}) {
+  const virtualConsole = new VirtualConsole();
+  // jsdom cannot navigate; a script that tries to leave the page is reported here instead.
+  const navigations = [];
+  virtualConsole.on('jsdomError', error => {
+    if (/navigation/iu.test(error.message)) {
+      navigations.push(error.message);
+    }
+  });
   const dom = new JSDOM(`<!doctype html><html><head></head><body>${markup}</body></html>`, {
     url,
     runScripts: 'outside-only',
     pretendToBeVisual: true,
     // The scripts log on purpose (timeouts, failed requests); only the JSON may reach stdout.
-    virtualConsole: new VirtualConsole(),
+    virtualConsole,
   });
   const { window } = dom;
+  window.__navigations = navigations;
   window.fetch = fetchImpl || (async () => ({ ok: false, status: 503, json: async () => ({}) }));
   window.matchMedia = () => ({ matches: false });
   window.Response = Response;
@@ -52,23 +61,6 @@ const answer = (status, body) => ({
   json: async () => body,
 });
 
-/** Rejects like a browser's fetch does once its signal is aborted. */
-function abortable(signal, work) {
-  return new Promise((resolve, reject) => {
-    const abort = () => {
-      const error = new Error('The operation was aborted.');
-      error.name = 'AbortError';
-      reject(error);
-    };
-    if (signal?.aborted) {
-      abort();
-      return;
-    }
-    signal?.addEventListener('abort', abort);
-    work().then(resolve, reject);
-  });
-}
-
 /* -------------------------------------------------------------------------- *
  * S1: the sign-in guard must not answer a slow request with made-up data
  * -------------------------------------------------------------------------- */
@@ -76,26 +68,93 @@ function abortable(signal, work) {
 const TIME_SCALE = 100; // the guard's 5 s / 30 s waits run as 50 ms / 300 ms
 
 /**
- * Starts the sign-in guard on the customer dashboard with its waits shortened, and resolves to
- * the window once the guard has wrapped fetch. `serve(path, options)` answers the page's calls.
+ * A fetch that behaves like a browser's: the promise it returns belongs to the page's own realm
+ * (so Promise.race adopts it without an extra step) and is rejected synchronously inside
+ * `controller.abort()`, before abort() returns. A mock that is an `async` function, or one built
+ * from another realm's promises, rejects a few ticks late, which lets a stand-in that was settled
+ * AFTER the abort still win the race and hides the ordering bug the guard once had.
  */
-async function guardedWindow(serve, control = {}) {
-  const fetchImpl = async (input, options = {}) => {
+function browserLikeFetch(window, handler) {
+  return (input, options = {}) => {
     const target = new URL(String(input), 'http://localhost').pathname;
-    if (target === '/api/v1/auth/me' && !control.meSlow) {
-      return answer(200, { user: { id: 'u1', role: 'customer', firstName: 'Ann' } });
-    }
-    return abortable(options.signal, () => serve(target, options));
+    return new window.Promise((resolve, reject) => {
+      const signal = options.signal;
+      const abort = () => {
+        const error = new window.Error('The operation was aborted.');
+        error.name = 'AbortError';
+        reject(error);
+      };
+      if (signal?.aborted) {
+        abort();
+        return;
+      }
+      signal?.addEventListener('abort', abort);
+      Promise.resolve(handler(target, options)).then(resolve, reject);
+    });
   };
-  const window = await loaded(windowWith('<main></main>', fetchImpl));
+}
+
+/** Makes the page's timers run TIME_SCALE times faster. */
+function speedUp(window) {
   const realSetTimeout = window.setTimeout.bind(window);
   window.setTimeout = (callback, ms, ...rest) =>
     realSetTimeout(callback, Math.max(1, Math.round((ms || 0) / TIME_SCALE)), ...rest);
+}
+
+/**
+ * Starts the sign-in guard on the customer dashboard with its waits shortened, and resolves to
+ * the window once the guard has confirmed the signed-in user.
+ * `serve(path, options)` answers the page's calls; `control.meSlow` makes /api/v1/auth/me hang.
+ */
+async function guardedWindow(serve, control = {}) {
+  const window = await loaded(windowWith('<main></main>'));
+  window.fetch = browserLikeFetch(window, (target, options) => {
+    if (target === '/api/v1/auth/me' && !control.meSlow) {
+      return answer(200, { user: { id: 'u1', role: 'customer', firstName: 'Ann' } });
+    }
+    return serve(target, options);
+  });
+  speedUp(window);
   window.eval(source('public/assets/js/dashboard-guard.js'));
-  for (let tries = 0; tries < 100 && !window.__EF_CUSTOMER_DASHBOARD_FETCH_GUARD__; tries += 1) {
+  for (let tries = 0; tries < 100 && !window.__EF_DASHBOARD_USER__; tries += 1) {
     await sleep(10);
   }
   return window;
+}
+
+/**
+ * Runs the sign-in guard at `url` against a /api/v1/auth/me that answers as `me(attempt)` says
+ * (a reply, a promise that never settles, or a throw), and reports what it did.
+ */
+async function guardCheck(url, me, { settleMs = 600 } = {}) {
+  const calls = { me: 0 };
+  const window = await loaded(windowWith('<main></main>', undefined, { url }));
+  window.fetch = browserLikeFetch(window, (target, options) => {
+    if (target === '/api/v1/auth/me') {
+      calls.me += 1;
+      return me(calls.me, options);
+    }
+    return answer(200, {});
+  });
+  speedUp(window);
+  window.eval(source('public/assets/js/dashboard-guard.js'));
+  let noticeShown = false;
+  const watcher = setInterval(() => {
+    if (window.document.getElementById('ef-guard-auth-notice')) {
+      noticeShown = true;
+    }
+  }, 5);
+  await sleep(settleMs);
+  clearInterval(watcher);
+  return {
+    meRequests: calls.me,
+    navigations: window.__navigations.length,
+    revealed: !window.document.getElementById('dashboard-guard-style'),
+    unconfirmed: window.__EF_SIGNIN_UNCONFIRMED__ === true,
+    noticeShown,
+    noticeLeft: Boolean(window.document.getElementById('ef-guard-auth-notice')),
+    wrapped: window.__EF_CUSTOMER_DASHBOARD_FETCH_GUARD__ === true,
+  };
 }
 
 /** What a page call ends in: the body it received, or the error it was rejected with. */
@@ -139,17 +198,14 @@ async function guardScenarios() {
     return answer(200, { plans: [{ id: 'too-late' }] });
   });
   const hung = {};
-  for (const target of [
-    '/api/me/plans',
-    '/api/notifications',
-    '/api/conversations',
-    '/api/tickets',
-  ]) {
+  for (const target of ['/api/me/plans', '/api/tickets']) {
     hung[target] = await outcomeOf(window.fetch(target));
   }
   out.neverAnswers = { ...hung, noticeAfter: Boolean(noticeOf(window)) };
 
-  // The confirmed user and an existing CSRF token are real values, so they may stand in.
+  // The confirmed user and an existing CSRF token are real values, so they may stand in. The mock
+  // rejects the instant the request is aborted, like a browser does: the stand-in must be handed
+  // over before the abort or the caller gets the AbortError instead.
   const control = { meSlow: false };
   window = await guardedWindow(async target => {
     await sleep(5000);
@@ -160,6 +216,97 @@ async function guardScenarios() {
   out.standIns = {
     me: await outcomeOf(window.fetch('/api/v1/auth/me')),
     csrf: await outcomeOf(window.fetch('/api/csrf-token')),
+    csrfV1: await outcomeOf(window.fetch('/api/v1/csrf-token')),
+  };
+
+  // A CSRF cookie that is not valid percent-encoding must not break the stand-in (or the timers).
+  window = await guardedWindow(async () => {
+    await sleep(5000);
+    return answer(200, {});
+  });
+  window.document.cookie = 'csrf=%E0%A4%A';
+  out.malformedCsrfCookie = await outcomeOf(window.fetch('/api/csrf-token'));
+
+  // A request that carries the caller's own AbortSignal is still cancelled at the cut-off, and the
+  // caller can still cancel it themselves.
+  window = await guardedWindow(async () => {
+    await sleep(5000);
+    return answer(200, { plans: [{ id: 'too-late' }] });
+  });
+  const patient = new window.AbortController();
+  out.callerSignal = {
+    cancelledAtCutOff: await outcomeOf(window.fetch('/api/me/plans', { signal: patient.signal })),
+    noticeAfter: Boolean(noticeOf(window)),
+  };
+  const impatient = new window.AbortController();
+  const callerCancels = outcomeOf(window.fetch('/api/me/plans', { signal: impatient.signal }));
+  impatient.abort();
+  out.callerSignal.cancelledByCaller = await callerCancels;
+  const alreadyAborted = new window.AbortController();
+  alreadyAborted.abort();
+  out.callerSignal.alreadyAborted = await outcomeOf(
+    window.fetch('/api/me/plans', { signal: alreadyAborted.signal })
+  );
+
+  // The background ticket refresh never shows "your dashboard is still loading"; it is still cut off.
+  window = await guardedWindow(async () => {
+    await sleep(5000);
+    return answer(200, {});
+  });
+  const poll = outcomeOf(window.fetch('/api/tickets?limit=5'));
+  await sleep(90); // well past the 3.5 s "slow" mark, before the cut-off
+  out.ticketPoll = { noticeWhileSlow: Boolean(noticeOf(window)) };
+  Object.assign(out.ticketPoll, await poll);
+  // ...while a slow plans request on the same page does.
+  const plansPoll = outcomeOf(window.fetch('/api/me/plans'));
+  await sleep(90);
+  out.ticketPoll.plansNoticeWhileSlow = Boolean(noticeOf(window));
+  out.ticketPoll.plansNoticeIsLow = noticeOf(window)?.classList.contains('cdh-toast--slow');
+  await plansPoll;
+
+  // Paths nothing on the page asks for are not intercepted at all.
+  window = await guardedWindow(async () => {
+    await sleep(150);
+    return answer(200, { passedThrough: true });
+  });
+  out.unguarded = await outcomeOf(window.fetch('/api/notifications'));
+
+  // The start-up calls the dashboard makes before the guard has finished checking are covered too.
+  const early = await loaded(windowWith('<main></main>'));
+  early.fetch = browserLikeFetch(early, () => new Promise(() => {}));
+  speedUp(early);
+  early.eval(source('public/assets/js/dashboard-guard.js'));
+  out.earlyInstall = {
+    wrappedBeforeCheckEnds: early.__EF_CUSTOMER_DASHBOARD_FETCH_GUARD__ === true,
+    // /api/v1/auth/me is hanging (the guard's own check); the page's own call is cut off too.
+    pageCall: await outcomeOf(early.fetch('/api/me/plans')),
+  };
+
+  // The sign-in check itself: only a refusal redirects the customer dashboard.
+  const customer = 'http://localhost/dashboard/customer';
+  const customerUser = { user: { id: 'u1', role: 'customer' } };
+  out.check = {
+    signedIn: await guardCheck(customer, () => answer(200, customerUser)),
+    refused: await guardCheck(customer, () => answer(401, {})),
+    forbidden: await guardCheck(customer, () => answer(403, {})),
+    serverDown: await guardCheck(customer, () => answer(503, {})),
+    offline: await guardCheck(customer, () => {
+      throw new Error('offline');
+    }),
+    hung: await guardCheck(customer, () => new Promise(() => {}), { settleMs: 900 }),
+    recovers: await guardCheck(customer, attempt =>
+      attempt < 3 ? answer(502, {}) : answer(200, customerUser)
+    ),
+    // Everything else keeps redirecting when the check cannot be completed.
+    supplierServerDown: await guardCheck('http://localhost/dashboard/supplier', () =>
+      answer(503, {})
+    ),
+    adminOffline: await guardCheck('http://localhost/admin', () => {
+      throw new Error('offline');
+    }),
+    adminHung: await guardCheck('http://localhost/admin-users.html', () => new Promise(() => {}), {
+      settleMs: 900,
+    }),
   };
   return out;
 }

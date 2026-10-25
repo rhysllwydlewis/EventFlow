@@ -35,29 +35,104 @@ describe('the sign-in guard and slow requests', () => {
 
   test('a request that never answers is cancelled, not answered with an empty list', () => {
     const { neverAnswers } = results.guard;
-    for (const target of [
-      '/api/me/plans',
-      '/api/notifications',
-      '/api/conversations',
-      '/api/tickets',
-    ]) {
+    for (const target of ['/api/me/plans', '/api/tickets']) {
       expect(neverAnswers[target]).toEqual({ rejected: 'AbortError' });
     }
     expect(neverAnswers.noticeAfter).toBe(false);
   });
 
-  test('only the confirmed user and an existing CSRF token may stand in for a slow reply', () => {
+  test('the confirmed user and an existing CSRF token stand in for a slow reply, and arrive', () => {
+    // The scenario's fetch rejects the moment the request is aborted, like a browser's. The
+    // stand-in only reaches the caller when it is handed over before the abort.
     const { standIns } = results.guard;
+    expect(standIns.me.status).toBe(200);
     expect(standIns.me.body.user.id).toBe('u1');
-    expect(standIns.csrf.body.csrfToken).toBe('token-from-page');
+    expect(standIns.me.fallbackHeader).toBe('timeout');
+    for (const key of ['csrf', 'csrfV1']) {
+      expect(standIns[key].status).toBe(200);
+      expect(standIns[key].body.csrfToken).toBe('token-from-page');
+      expect(standIns[key].fallbackHeader).toBe('timeout');
+    }
   });
 
-  test('the guard source no longer builds empty plans, notifications, conversations or tickets', () => {
-    const guard = read('public/assets/js/dashboard-guard.js');
-    expect(guard).not.toMatch(/plans:\s*\[\]/);
-    expect(guard).not.toMatch(/notifications:\s*\[\]/);
-    expect(guard).not.toMatch(/conversations:\s*\[\]/);
-    expect(guard).not.toMatch(/tickets:\s*\[\]/);
+  test('a CSRF cookie that is not valid percent-encoding still gets a stand-in', () => {
+    const { malformedCsrfCookie } = results.guard;
+    expect(malformedCsrfCookie.status).toBe(200);
+    expect(malformedCsrfCookie.body.csrfToken).toBe('%E0%A4%A');
+  });
+
+  test('a request carrying its own AbortSignal is still cut off, and the caller can still cancel', () => {
+    const { callerSignal } = results.guard;
+    expect(callerSignal.cancelledAtCutOff).toEqual({ rejected: 'AbortError' });
+    expect(callerSignal.cancelledByCaller).toEqual({ rejected: 'AbortError' });
+    expect(callerSignal.alreadyAborted).toEqual({ rejected: 'AbortError' });
+    expect(callerSignal.noticeAfter).toBe(false);
+  });
+
+  test('the background ticket refresh gets no "still loading" notice; a slow plans request does, at the bottom', () => {
+    const { ticketPoll } = results.guard;
+    expect(ticketPoll.noticeWhileSlow).toBe(false);
+    expect(ticketPoll.rejected).toBe('AbortError');
+    expect(ticketPoll.plansNoticeWhileSlow).toBe(true);
+    expect(ticketPoll.plansNoticeIsLow).toBe(true);
+  });
+
+  test('paths the page never asks for are not intercepted', () => {
+    expect(results.guard.unguarded).toMatchObject({ status: 200, fallbackHeader: null });
+  });
+
+  test('the timeout handling is in place before the sign-in check has finished', () => {
+    expect(results.guard.earlyInstall.wrappedBeforeCheckEnds).toBe(true);
+    expect(results.guard.earlyInstall.pageCall).toEqual({ rejected: 'AbortError' });
+  });
+
+  describe('the sign-in check', () => {
+    const { check } = results.guard;
+
+    test('a signed-in customer is let in', () => {
+      expect(check.signedIn).toMatchObject({ revealed: true, navigations: 0, unconfirmed: false });
+    });
+
+    test('a real refusal (401 or 403) is the only thing that sends a customer to sign in', () => {
+      for (const refused of [check.refused, check.forbidden]) {
+        expect(refused).toMatchObject({ meRequests: 1, navigations: 1, revealed: false });
+      }
+    });
+
+    test('a server error, a dropped connection or a hung request shows the page, not the sign-in page', () => {
+      for (const failed of [check.serverDown, check.offline, check.hung]) {
+        expect(failed).toMatchObject({
+          meRequests: 3,
+          navigations: 0,
+          revealed: true,
+          unconfirmed: true,
+        });
+      }
+    });
+
+    test('a request that hangs shows a notice meanwhile, and the notice goes away', () => {
+      expect(check.hung.noticeShown).toBe(true);
+      expect(check.hung.noticeLeft).toBe(false);
+      expect(check.serverDown.noticeShown).toBe(false);
+    });
+
+    test('a check that recovers on a retry lets the customer in as normal', () => {
+      expect(check.recovers).toMatchObject({ revealed: true, navigations: 0, unconfirmed: false });
+    });
+
+    test('supplier and admin pages still redirect when the check cannot be completed', () => {
+      for (const other of [check.supplierServerDown, check.adminOffline, check.adminHung]) {
+        expect(other).toMatchObject({ navigations: 1, revealed: false, unconfirmed: false });
+      }
+      expect(check.adminHung.noticeShown).toBe(true);
+    });
+
+    test('only the customer dashboard gets the fetch wrapper', () => {
+      expect(check.signedIn.wrapped).toBe(true);
+      for (const other of [check.supplierServerDown, check.adminOffline, check.adminHung]) {
+        expect(other.wrapped).toBe(false);
+      }
+    });
   });
 });
 
