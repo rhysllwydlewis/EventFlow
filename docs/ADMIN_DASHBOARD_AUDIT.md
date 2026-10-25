@@ -42,6 +42,29 @@ Same method: real browser as a seeded admin, 1440px and 390px, console and netwo
 Tried and dropped: pinning the Actions column to the right edge. On Suppliers the Actions cell is
 about 440px wide (two dropdowns and four buttons), so a pinned column covered four other columns.
 
+## Dashboard redesign (`/admin` only)
+
+The dashboard now follows the customer and supplier dashboards: a warm neutral page, white cards with
+hairline borders, one teal accent, hierarchy from type instead of gradients and emoji tiles.
+
+- **Greeting and "Next:" line.** A hero greets the admin by name and names the biggest waiting
+  queue ("Next: 4 suppliers to verify and 1 more queue."), with two buttons.
+- **One summary card** with hairline-divided cells (users, suppliers, packages, queues) in place of
+  the old row of coloured stat tiles.
+- **Queue list.** Photos, reports, supplier verification and reviews are rows with a count and one
+  action each. A count that failed to load shows "—", not 0.
+- **Account health, Manage and quick links** are plain hairline row lists; analytics, message
+  moderation (with the earlier timeout and retry) and Recent Users sit below.
+- **One stylesheet**, `admin-dashboard-home.css`, scoped under `.adh-page`. The old
+  `admin-dashboard-refresh.css` and `admin-verification-source-init.js` patch layers were deleted;
+  the page script now draws their rows itself.
+- **Every element id the scripts and tests use was kept** (`getElementById` wiring and the browser
+  specs). The dashboard's photo count is `adhPendingPhotosCount` because the shared badge updaters
+  also write to `pendingPhotosCount`.
+
+Left alone: `admin-enhanced.css` still carries the old dashboard health and stat-card rules, which
+other admin pages load; they are dead on `/admin` but not removed here.
+
 ## Not done (updated)
 
 - **Actions column off-screen.** On a 1440px screen the Users table is about 1,500px wide and the

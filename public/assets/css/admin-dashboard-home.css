@@ -1,0 +1,1005 @@
+/*
+ * Admin dashboard home (/admin).
+ *
+ * One stylesheet for the whole page. Every selector sits under .adh-page (the <body> class) so
+ * nothing here can leak into another admin page.
+ *
+ * Design: the same calm surface as the customer and supplier dashboards. Warm neutral page, white
+ * cards with a hairline border, one teal accent, hierarchy from type size, weight and spacing
+ * rather than tinted cards, coloured icon tiles or gradients. Type sizes stay on the site scale
+ * (11 12 13 14 16 18 20 24 28 32).
+ *
+ * Structure, top to bottom:
+ *   1. Tokens, page frame
+ *   2. Hero
+ *   3. Buttons, links, inputs, badges
+ *   4. Summary row
+ *   5. Layout and cards
+ *   6. Card content: queue, account health, manage rows, quick links, analytics
+ *   7. Tables: users and message moderation
+ *   8. Responsive and motion
+ */
+
+/* ------------------------------------------------------------------ *
+ * 1. Tokens, page frame
+ * ------------------------------------------------------------------ */
+
+body.adh-page {
+  --adh-bg: #f7f6f3;
+  --adh-surface: #fff;
+  --adh-ink: #17202f;
+  --adh-ink-2: #3d4955;
+  --adh-muted: #566176;
+  --adh-line: #e8e5de;
+  --adh-line-soft: #f0eee9;
+  --adh-line-strong: #d6d2c8;
+  --adh-accent: #0b8073;
+  --adh-accent-hover: #086b60;
+  --adh-accent-soft: #e7f3f0;
+  --adh-accent-line: #c4e1da;
+  --adh-ring: rgba(11, 128, 115, 0.32);
+  --adh-warn: #8a5300;
+  --adh-warn-soft: #fdf4df;
+  --adh-warn-line: #f3dca6;
+  --adh-danger: #b42318;
+  --adh-danger-soft: #fdecea;
+  --adh-ok: #17784c;
+  --adh-ok-soft: #e6f4ec;
+  --adh-info: #1d4ed8;
+  --adh-info-soft: #eaf0fd;
+  --adh-radius: 16px;
+  --adh-radius-sm: 10px;
+  --adh-shadow: 0 1px 2px rgba(23, 33, 43, 0.04), 0 1px 1px rgba(23, 33, 43, 0.03);
+
+  background: var(--adh-bg);
+  color: var(--adh-ink);
+}
+
+.adh-page .adh,
+.adh-page .adh *,
+.adh-page .adh *::before,
+.adh-page .adh *::after {
+  box-sizing: border-box;
+}
+
+.adh-page .adh {
+  max-width: 1152px;
+  margin: 0 auto;
+  padding: 32px 24px 72px;
+  color: var(--adh-ink);
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.adh-page .adh p,
+.adh-page .adh h1,
+.adh-page .adh h2,
+.adh-page .adh h3,
+.adh-page .adh ul,
+.adh-page .adh dl,
+.adh-page .adh dd {
+  margin: 0;
+  padding: 0;
+}
+
+.adh-page .adh ul {
+  list-style: none;
+}
+
+/* ------------------------------------------------------------------ *
+ * 2. Hero
+ * ------------------------------------------------------------------ */
+
+.adh-page .adh-hero {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 24px;
+  margin-bottom: 24px;
+}
+
+.adh-page .adh-hero__title {
+  font-size: 28px;
+  line-height: 1.2;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--adh-ink);
+}
+
+.adh-page .adh-hero__next {
+  margin-top: 8px;
+  font-size: 16px;
+  color: var(--adh-ink-2);
+}
+
+.adh-page .adh-hero__meta {
+  margin-top: 8px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 12px;
+  font-size: 12px;
+  color: var(--adh-muted);
+}
+
+.adh-page .adh-hero__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+/* ------------------------------------------------------------------ *
+ * 3. Buttons, links, inputs, badges
+ * ------------------------------------------------------------------ */
+
+.adh-page .adh-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  padding: 0 18px;
+  border: 1px solid var(--adh-line-strong);
+  border-radius: var(--adh-radius-sm);
+  background: var(--adh-surface);
+  color: var(--adh-ink);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.2;
+  text-decoration: none;
+  white-space: nowrap;
+  cursor: pointer;
+  box-shadow: none;
+  transform: none;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+
+.adh-page .adh-btn:hover {
+  background: var(--adh-bg);
+  border-color: var(--adh-ink-2);
+  transform: none;
+  box-shadow: none;
+}
+
+.adh-page .adh-btn--primary {
+  background: var(--adh-accent);
+  border-color: var(--adh-accent);
+  color: #fff;
+}
+
+.adh-page .adh-btn--primary:hover {
+  background: var(--adh-accent-hover);
+  border-color: var(--adh-accent-hover);
+}
+
+.adh-page .adh-btn--sm {
+  min-height: 36px;
+  padding: 0 14px;
+  font-size: 13px;
+}
+
+.adh-page .adh-btn--danger {
+  color: var(--adh-danger);
+  border-color: #f4c7c1;
+}
+
+.adh-page .adh-btn--danger:hover {
+  background: var(--adh-danger-soft);
+  border-color: var(--adh-danger);
+}
+
+.adh-page .adh-btn[disabled] {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.adh-page .adh-link,
+.adh-page .adh-summary__link,
+.adh-page .adh a:not(.adh-btn):not(.adh-summary__link) {
+  color: var(--adh-accent-hover);
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.adh-page .adh-link-btn {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--adh-accent-hover);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
+  min-height: 24px;
+}
+
+.adh-page .adh a:focus-visible,
+.adh-page .adh button:focus-visible,
+.adh-page .adh input:focus-visible,
+.adh-page .adh select:focus-visible {
+  outline: 3px solid var(--adh-ring);
+  outline-offset: 2px;
+}
+
+.adh-page .adh-input {
+  width: auto;
+  min-width: 0;
+  min-height: 44px;
+  padding: 0 14px;
+  border: 1px solid var(--adh-line-strong);
+  border-radius: var(--adh-radius-sm);
+  background: var(--adh-surface);
+  color: var(--adh-ink);
+  font: inherit;
+  font-size: 14px;
+}
+
+.adh-page .adh-input::placeholder {
+  color: var(--adh-muted);
+}
+
+.adh-page .adh-input--select {
+  min-width: 150px;
+}
+
+.adh-page .adh-pill {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: var(--adh-accent-soft);
+  color: var(--adh-accent-hover);
+  font-size: 12px;
+  font-weight: 700;
+  vertical-align: 1px;
+}
+
+.adh-page .adh-count {
+  min-width: 36px;
+  padding: 2px 10px;
+  border-radius: 999px;
+  background: var(--adh-line-soft);
+  color: var(--adh-ink);
+  font-size: 14px;
+  font-weight: 700;
+  text-align: center;
+}
+
+.adh-page .adh-count--attention {
+  background: var(--adh-warn-soft);
+  color: var(--adh-warn);
+}
+
+.adh-page .adh .badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: 1px solid var(--adh-line);
+  background: var(--adh-line-soft);
+  color: var(--adh-ink-2);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: none;
+}
+
+.adh-page .adh .badge-admin,
+.adh-page .adh .badge-owner {
+  background: var(--adh-danger-soft);
+  border-color: #f4c7c1;
+  color: var(--adh-danger);
+}
+
+.adh-page .adh .badge-supplier-account,
+.adh-page .adh .badge-yes {
+  background: var(--adh-ok-soft);
+  border-color: #bfe3cf;
+  color: var(--adh-ok);
+}
+
+.adh-page .adh .badge-customer,
+.adh-page .adh .badge-partner {
+  background: var(--adh-info-soft);
+  border-color: #c5d5f7;
+  color: var(--adh-info);
+}
+
+.adh-page .adh .badge-no {
+  background: var(--adh-warn-soft);
+  border-color: var(--adh-warn-line);
+  color: var(--adh-warn);
+}
+
+/* ------------------------------------------------------------------ *
+ * 4. Summary row
+ * ------------------------------------------------------------------ */
+
+.adh-page .adh-summary {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  margin-bottom: 24px;
+  background: var(--adh-surface);
+  border: 1px solid var(--adh-line);
+  border-radius: var(--adh-radius);
+  box-shadow: var(--adh-shadow);
+  overflow: hidden;
+}
+
+.adh-page .adh-summary__cell {
+  padding: 20px 24px;
+  border-left: 1px solid var(--adh-line-soft);
+}
+
+.adh-page .adh-summary__cell:first-child {
+  border-left: 0;
+}
+
+.adh-page .adh-summary__label {
+  font-size: 13px;
+  color: var(--adh-muted);
+}
+
+.adh-page .adh-summary__value {
+  margin-top: 4px;
+  font-size: 32px;
+  line-height: 1.15;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--adh-ink);
+}
+
+.adh-page .adh-summary__note {
+  min-height: 20px;
+  margin-top: 4px;
+  font-size: 13px;
+  color: var(--adh-muted);
+}
+
+.adh-page .adh-summary__link {
+  display: inline-block;
+  margin-top: 8px;
+  font-size: 13px;
+}
+
+/* ------------------------------------------------------------------ *
+ * 5. Layout and cards
+ * ------------------------------------------------------------------ */
+
+.adh-page .adh-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 340px;
+  gap: 24px;
+  align-items: start;
+  margin-bottom: 24px;
+}
+
+.adh-page .adh-col {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  min-width: 0;
+}
+
+.adh-page .adh-card {
+  padding: 24px;
+  margin: 0 0 0;
+  background: var(--adh-surface);
+  border: 1px solid var(--adh-line);
+  border-radius: var(--adh-radius);
+  box-shadow: var(--adh-shadow);
+}
+
+.adh-page .adh > .adh-card {
+  margin-bottom: 24px;
+}
+
+.adh-page .adh-card__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.adh-page .adh-card__title {
+  font-size: 18px;
+  line-height: 1.3;
+  font-weight: 700;
+  color: var(--adh-ink);
+}
+
+.adh-page .adh-card__sub {
+  margin-top: 2px;
+  font-size: 13px;
+  color: var(--adh-muted);
+}
+
+.adh-page .adh-card__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.adh-page .adh-list {
+  border-top: 1px solid var(--adh-line-soft);
+}
+
+.adh-page .adh-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.adh-page .adh-toolbar .adh-input:first-child {
+  flex: 1 1 260px;
+}
+
+/* ------------------------------------------------------------------ *
+ * 6. Card content
+ * ------------------------------------------------------------------ */
+
+/* Needs your attention */
+.adh-page .adh-queue {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 14px 0;
+  border-bottom: 1px solid var(--adh-line-soft);
+}
+
+.adh-page .adh-queue__text {
+  flex: 1;
+  min-width: 0;
+}
+
+.adh-page .adh-queue__title {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.adh-page .adh-queue__desc {
+  font-size: 13px;
+  color: var(--adh-muted);
+}
+
+/* Account health */
+.adh-page .adh-health {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 24px;
+}
+
+.adh-page .adh-health__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--adh-line);
+}
+
+.adh-page .adh-health__title {
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.adh-page .adh-health__head .adh-link {
+  font-size: 12px;
+}
+
+.adh-page .adh-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 36px;
+  padding: 6px 0;
+  border-bottom: 1px solid var(--adh-line-soft);
+  font-size: 13px;
+}
+
+.adh-page .adh-row--skeleton {
+  height: 36px;
+  border-radius: 6px;
+  margin-bottom: 4px;
+}
+
+.adh-page .adh-row--error {
+  color: var(--adh-danger);
+}
+
+.adh-page .adh-row__label {
+  color: var(--adh-ink-2);
+}
+
+.adh-page .adh-row__value {
+  font-weight: 700;
+  color: var(--adh-ink);
+  text-decoration: none;
+}
+
+.adh-page .adh a.adh-row__value {
+  display: inline-flex;
+  align-items: center;
+  min-height: 0;
+  text-decoration: none;
+  color: var(--adh-ink);
+}
+
+.adh-page .adh-row__value--warn,
+.adh-page .adh a.adh-row__value--warn {
+  color: var(--adh-danger);
+}
+
+/* Manage and export */
+.adh-page .adh-manage {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  padding: 16px 0;
+  border-bottom: 1px solid var(--adh-line-soft);
+}
+
+.adh-page .adh-manage__text {
+  flex: 1 1 220px;
+  min-width: 0;
+}
+
+.adh-page .adh-manage__title {
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.adh-page .adh-manage__desc {
+  font-size: 13px;
+  color: var(--adh-muted);
+}
+
+.adh-page .adh-manage__stats {
+  display: flex;
+  gap: 24px;
+}
+
+.adh-page .adh-manage__stats > div {
+  min-width: 96px;
+}
+
+.adh-page .adh-manage__stats dt {
+  font-size: 12px;
+  color: var(--adh-muted);
+}
+
+.adh-page .adh-manage__stats dd {
+  font-size: 20px;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+/* Quick links */
+.adh-page .adh-links {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0 16px;
+  border-top: 1px solid var(--adh-line-soft);
+}
+
+.adh-page .adh-linkrow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 44px;
+  padding: 0;
+  border: 0;
+  border-bottom: 1px solid var(--adh-line-soft);
+  border-radius: 0;
+  background: none;
+  color: var(--adh-ink);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+  box-shadow: none;
+  transform: none;
+}
+
+.adh-page .adh-linkrow::after {
+  content: '›';
+  color: var(--adh-muted);
+  font-size: 18px;
+}
+
+.adh-page .adh-linkrow:hover {
+  color: var(--adh-accent-hover);
+  background: none;
+  transform: none;
+  box-shadow: none;
+}
+
+/* System analytics (rendered by admin-init.js as .card > p) */
+.adh-page .analytics-grid {
+  display: block;
+  padding: 0;
+  margin: 0;
+  background: none;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+.adh-page .analytics-grid .card {
+  padding: 0;
+  border: 0;
+  border-left: 0;
+  background: none;
+  box-shadow: none;
+}
+
+.adh-page .analytics-grid .card p {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 0;
+  margin: 0;
+  border-bottom: 1px solid var(--adh-line-soft);
+  font-size: 13px;
+  color: var(--adh-ink);
+}
+
+.adh-page .analytics-grid .card strong {
+  color: var(--adh-ink-2);
+  font-weight: 600;
+}
+
+.adh-page .analytics-grid .card p.small {
+  display: block;
+  border-bottom: 0;
+  color: var(--adh-muted);
+  font-size: 12px;
+}
+
+/* ------------------------------------------------------------------ *
+ * 7. Tables
+ * ------------------------------------------------------------------ */
+
+.adh-page .adh-table-wrap {
+  overflow-x: auto;
+  border: 1px solid var(--adh-line);
+  border-radius: var(--adh-radius-sm);
+}
+
+.adh-page .adh-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.adh-page .adh-table th,
+.adh-page .adh-table .admin-messenger-th {
+  padding: 10px 14px;
+  background: var(--adh-bg);
+  border-bottom: 1px solid var(--adh-line);
+  color: var(--adh-muted);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-align: left;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.adh-page .adh-table th.is-center,
+.adh-page .adh-table .admin-messenger-th--center {
+  text-align: center;
+}
+
+.adh-page .adh-table td {
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--adh-line-soft);
+  vertical-align: middle;
+  background: var(--adh-surface);
+  color: var(--adh-ink);
+}
+
+.adh-page .adh-table tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.adh-page .adh-table tbody tr:hover td {
+  background: #fcfbf9;
+}
+
+.adh-page .adh-table .is-owner td {
+  background: var(--adh-danger-soft);
+}
+
+.adh-page .adh-user__name {
+  font-weight: 600;
+}
+
+.adh-page .adh-user__email {
+  font-size: 12px;
+  color: var(--adh-muted);
+  overflow-wrap: anywhere;
+}
+
+.adh-page .adh-user__meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 4px;
+}
+
+.adh-page .adh-user__note {
+  margin-top: 4px;
+  font-size: 12px;
+  color: var(--adh-muted);
+  overflow-wrap: anywhere;
+}
+
+.adh-page .adh-user__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.adh-page .adh-user__actions .ef-cta {
+  width: auto;
+  flex: 0 0 auto;
+  min-height: 32px;
+  padding: 0 12px !important;
+  border: 1px solid var(--adh-line-strong);
+  border-radius: 8px;
+  background: var(--adh-surface);
+  color: var(--adh-ink);
+  font-size: 12px;
+  font-weight: 600;
+  box-shadow: none;
+  transform: none;
+}
+
+.adh-page .adh-user__actions .ef-cta:hover {
+  background: var(--adh-bg);
+  border-color: var(--adh-ink-2);
+  transform: none;
+  box-shadow: none;
+}
+
+.adh-page .adh-user__actions .ef-cta[data-action='deleteUser'] {
+  color: var(--adh-danger);
+  border-color: #f4c7c1;
+}
+
+.adh-page .adh-user__actions .ef-cta[disabled] {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Message moderation rows (built by admin-messages-init.js) */
+.adh-page .admin-messenger-state {
+  padding: 28px 16px;
+  text-align: center;
+  color: var(--adh-muted);
+}
+
+.adh-page .admin-messenger-state--error {
+  color: var(--adh-danger);
+}
+
+.adh-page .adh-msg__names {
+  max-width: 260px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 600;
+}
+
+.adh-page .adh-msg__date {
+  font-size: 12px;
+  color: var(--adh-muted);
+  white-space: nowrap;
+}
+
+.adh-page .adh-msg__center {
+  text-align: center;
+}
+
+.adh-page .adh-chip {
+  display: inline-block;
+  margin-right: 4px;
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: var(--adh-line-soft);
+  color: var(--adh-ink-2);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.adh-page .adh-unread {
+  display: inline-block;
+  min-width: 24px;
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: var(--adh-danger-soft);
+  color: var(--adh-danger);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.adh-page .adh-pager {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.adh-page .adh-pager__info {
+  font-size: 13px;
+  color: var(--adh-muted);
+}
+
+/* ------------------------------------------------------------------ *
+ * 8. Responsive and motion
+ * ------------------------------------------------------------------ */
+
+@media (max-width: 1024px) {
+  .adh-page .adh-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .adh-page .adh-summary {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .adh-page .adh-summary__cell:nth-child(3) {
+    border-left: 0;
+  }
+
+  .adh-page .adh-summary__cell:nth-child(n + 3) {
+    border-top: 1px solid var(--adh-line-soft);
+  }
+}
+
+@media (max-width: 720px) {
+  .adh-page .adh {
+    padding: 20px 16px 56px;
+  }
+
+  .adh-page .adh-hero {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 16px;
+  }
+
+  .adh-page .adh-hero__title {
+    font-size: 24px;
+  }
+
+  .adh-page .adh-hero__actions .adh-btn {
+    flex: 1 1 100%;
+  }
+
+  .adh-page .adh-card {
+    padding: 18px 16px;
+  }
+
+  .adh-page .adh-card__head {
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .adh-page .adh-health {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .adh-page .adh-manage {
+    flex-wrap: wrap;
+    gap: 12px 16px;
+  }
+
+  .adh-page .adh-manage .adh-btn {
+    width: 100%;
+  }
+
+  .adh-page .adh-toolbar .adh-input,
+  .adh-page .adh-toolbar .adh-btn {
+    flex: 1 1 100%;
+  }
+
+  /* Rows become small cards so nothing needs a sideways scroll. */
+  .adh-page .adh-table--users thead,
+  .adh-page #msgModerationTable thead {
+    display: none;
+  }
+
+  .adh-page .adh-table--users,
+  .adh-page .adh-table--users tbody,
+  .adh-page .adh-table--users tr,
+  .adh-page .adh-table--users td,
+  .adh-page #msgModerationTable,
+  .adh-page #msgModerationTable tbody,
+  .adh-page #msgModerationTable tr,
+  .adh-page #msgModerationTable td {
+    display: block;
+    width: 100%;
+  }
+
+  .adh-page .adh-table--users tr,
+  .adh-page #msgModerationTable tr {
+    padding: 12px 14px;
+    border-bottom: 1px solid var(--adh-line-soft);
+  }
+
+  .adh-page .adh-table--users td,
+  .adh-page #msgModerationTable td {
+    padding: 4px 0;
+    border: 0;
+    text-align: left;
+  }
+
+  .adh-page .adh-table--users td[data-label]::before,
+  .adh-page #msgModerationTable td[data-label]::before {
+    content: attr(data-label);
+    display: block;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--adh-muted);
+  }
+
+  .adh-page .adh-msg__names {
+    max-width: none;
+    white-space: normal;
+  }
+
+  .adh-page .adh-table--users td[data-label='User']::before,
+  .adh-page .adh-table--users td[data-label='Role']::before,
+  .adh-page .adh-table--users td[data-label='Verification']::before,
+  .adh-page .adh-table--users td[data-label='Actions']::before {
+    display: none;
+  }
+
+  .adh-page .adh-table--users td[data-label='Actions'] {
+    padding-top: 8px;
+  }
+}
+
+@media (max-width: 480px) {
+  .adh-page .adh-summary {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .adh-page .adh-summary__cell {
+    border-left: 0;
+    border-top: 1px solid var(--adh-line-soft);
+  }
+
+  .adh-page .adh-summary__cell:first-child {
+    border-top: 0;
+  }
+
+  .adh-page .adh-queue {
+    flex-wrap: wrap;
+  }
+
+  .adh-page .adh-links {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .adh-page .adh *,
+  .adh-page .adh *::before,
+  .adh-page .adh *::after {
+    transition: none !important;
+    animation: none !important;
+  }
+}

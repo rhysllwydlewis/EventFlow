@@ -140,30 +140,30 @@
     const userRowsEl = document.getElementById('dashUserHealthRows');
     const supplierRowsEl = document.getElementById('dashSupplierHealthRows');
     const fallbackHtml = `
-      <div class="dash-health-row dash-health-row--error">
-        <span class="dash-health-row__label">Could not load account health.</span>
-        <button type="button" class="ef-cta" data-action="retryAccountHealth">Retry</button>
+      <div class="adh-row adh-row--error">
+        <span class="adh-row__label">Could not load account health.</span>
+        <button type="button" class="adh-btn adh-btn--sm" data-action="retryAccountHealth">Retry</button>
       </div>
-      <div class="dash-health-row">
-        <span class="dash-health-row__label"><a href="/admin-users">Open Users Centre</a></span>
-        <span class="dash-health-row__value">↗</span>
+      <div class="adh-row">
+        <span class="adh-row__label"><a href="/admin-users">Open Users Centre</a></span>
+        <span class="adh-row__value">↗</span>
       </div>
-      <div class="dash-health-row">
-        <span class="dash-health-row__label"><a href="/admin-emails">Open Email Centre</a></span>
-        <span class="dash-health-row__value">↗</span>
+      <div class="adh-row">
+        <span class="adh-row__label"><a href="/admin-emails">Open Email Centre</a></span>
+        <span class="adh-row__value">↗</span>
       </div>`;
     const supplierFallbackHtml = `
-      <div class="dash-health-row dash-health-row--error">
-        <span class="dash-health-row__label">Supplier account health is temporarily unavailable.</span>
-        <button type="button" class="ef-cta" data-action="retryAccountHealth">Retry</button>
+      <div class="adh-row adh-row--error">
+        <span class="adh-row__label">Supplier account health is temporarily unavailable.</span>
+        <button type="button" class="adh-btn adh-btn--sm" data-action="retryAccountHealth">Retry</button>
       </div>
-      <div class="dash-health-row">
-        <span class="dash-health-row__label"><a href="/admin-suppliers">Supplier Management</a></span>
-        <span class="dash-health-row__value">↗</span>
+      <div class="adh-row">
+        <span class="adh-row__label"><a href="/admin-suppliers">Supplier Management</a></span>
+        <span class="adh-row__value">↗</span>
       </div>
-      <div class="dash-health-row">
-        <span class="dash-health-row__label"><a href="/admin-users">Open Users Centre</a></span>
-        <span class="dash-health-row__value">↗</span>
+      <div class="adh-row">
+        <span class="adh-row__label"><a href="/admin-users">Open Users Centre</a></span>
+        <span class="adh-row__value">↗</span>
       </div>`;
     if (userRowsEl) {
       userRowsEl.innerHTML = fallbackHtml;
@@ -186,83 +186,147 @@
     }
   });
 
+  // Verification, sign-up and e-mail delivery detail for one user. This used to be added to the
+  // table afterwards by a second script that fetched the same list again.
+  const METHOD_LABELS = {
+    google: 'Google',
+    google_verified_email: 'Google',
+    facebook: 'Facebook',
+    facebook_verified_email: 'Facebook',
+    email_link: 'Email link',
+    eventflow_email: 'Email link',
+    admin: 'Admin',
+    admin_created: 'Admin',
+    manual_admin: 'Admin',
+    owner_account: 'Owner',
+    legacy: 'Legacy',
+    pending: 'Pending',
+    email_password: 'Email / password',
+    unknown: 'Unknown',
+  };
+
+  const DELIVERY_LABELS = {
+    not_required: 'No Postmark needed',
+    sent: 'Postmark sent',
+    delivered: 'Delivered',
+    pending: 'Pending',
+    failed: 'Failed',
+    bounced: 'Bounced',
+    outbox: 'Outbox',
+    unknown: 'Unknown',
+  };
+
+  function humanize(value) {
+    return String(value || 'unknown')
+      .replace(/_/g, ' ')
+      .replace(/\b\w/g, char => char.toUpperCase());
+  }
+
+  function providerOf(user) {
+    if (user.authProvider === 'google' || user.googleSub || user.hasGoogleLink) {
+      return 'google';
+    }
+    if (user.authProvider === 'facebook' || user.facebookSub || user.hasFacebookLink) {
+      return 'facebook';
+    }
+    return null;
+  }
+
+  function verificationMethodOf(user) {
+    return user.verificationMethod || providerOf(user) || (user.verified ? 'unknown' : 'pending');
+  }
+
+  function signupMethodOf(user) {
+    return user.signupMethod || providerOf(user) || 'unknown';
+  }
+
+  function emailStatusOf(user) {
+    if (user.emailDeliveryStatus) {
+      return user.emailDeliveryStatus;
+    }
+    return ['google', 'facebook'].includes(signupMethodOf(user)) ? 'not_required' : 'unknown';
+  }
+
+  function methodLabel(method) {
+    return METHOD_LABELS[method] || humanize(method);
+  }
+
+  function userVerificationHtml(u) {
+    const method = verificationMethodOf(u);
+    const verified = u.verified
+      ? '<span class="badge badge-yes">Verified</span>'
+      : '<span class="badge badge-no">Not verified</span>';
+    const via = `<span class="badge" title="${escapeHtml(humanize(method))}">${escapeHtml(methodLabel(method))}</span>`;
+    const status = emailStatusOf(u);
+    const note = `Signed up: ${escapeHtml(methodLabel(signupMethodOf(u)))} · Email: ${escapeHtml(DELIVERY_LABELS[status] || humanize(status))}`;
+    return `<div class="adh-user__meta">${verified}${via}</div><div class="adh-user__note">${note}</div>`;
+  }
+
+  function userActionsHtml(u, isOwner) {
+    const id = escapeHtml(String(u.id));
+    let actions = '<div class="adh-user__actions">';
+    if (isOwner) {
+      actions += `<button class="ef-cta" disabled title="Owner account is protected">Edit</button>`;
+      actions += `<span class="adh-user__note">Protected account</span>`;
+    } else {
+      actions += `<button class="ef-cta" data-action="editUser" data-id="${id}">Edit</button>`;
+      if (!u.verified) {
+        actions += `<button class="ef-cta" data-action="verifyUser" data-id="${id}">Verify email</button>`;
+      }
+      actions +=
+        u.role === 'admin'
+          ? `<button class="ef-cta" data-action="revokeAdmin" data-id="${id}">Revoke admin</button>`
+          : `<button class="ef-cta" data-action="grantAdmin" data-id="${id}">Grant admin</button>`;
+      actions += `<button class="ef-cta" data-action="deleteUser" data-id="${id}">Delete</button>`;
+    }
+    return `${actions}</div>`;
+  }
+
+  const ROLE_BADGES = {
+    admin: ['badge-admin', 'Admin'],
+    supplier: ['badge-supplier-account', 'Supplier'],
+    partner: ['badge-partner', 'Partner'],
+    customer: ['badge-customer', 'Customer'],
+  };
+
+  function userRoleHtml(u, isOwner) {
+    if (isOwner) {
+      return '<span class="badge badge-owner" title="Protected owner account: cannot be deleted or demoted">Owner</span>';
+    }
+    const [cls, label] = ROLE_BADGES[u.role] || ROLE_BADGES.customer;
+    return `<span class="badge ${cls}">${label}</span>`;
+  }
+
+  function userRowHtml(u) {
+    const isOwner = isOwnerEmail(u.email) || u.isOwner;
+    const joined = u.createdAt ? new Date(u.createdAt).toLocaleDateString() : '—';
+    const last = u.lastLoginAt
+      ? `Last login ${new Date(u.lastLoginAt).toLocaleDateString()}`
+      : 'Never signed in';
+    return (
+      `<tr${isOwner ? ' class="is-owner"' : ''}>` +
+      `<td data-label="User"><div class="adh-user__name">${escapeHtml(u.name || '')}</div>` +
+      `<div class="adh-user__email">${escapeHtml(u.email || '')}</div></td>` +
+      `<td data-label="Role">${userRoleHtml(u, isOwner)}</td>` +
+      `<td data-label="Verification">${userVerificationHtml(u)}</td>` +
+      `<td data-label="Joined">${joined}<div class="adh-user__note">${last}</div></td>` +
+      `<td data-label="Actions">${userActionsHtml(u, isOwner)}</td>` +
+      `</tr>`
+    );
+  }
+
   function renderUsersTable(list) {
     const el = document.getElementById('users');
     if (!el) {
       return;
     }
-
-    let rows =
-      '<tr><th>Name</th><th>Email</th><th>Role</th><th>Verified</th><th>Joined</th><th>Last login</th><th>Actions</th></tr>';
-
-    (list || []).forEach(u => {
-      const joined = u.createdAt ? new Date(u.createdAt).toLocaleString() : '—';
-      const last = u.lastLoginAt ? new Date(u.lastLoginAt).toLocaleString() : '—';
-      const verifiedBadge = u.verified
-        ? '<span class="badge badge-yes">Yes</span>'
-        : '<span class="badge badge-no">No</span>';
-
-      const isOwner = isOwnerEmail(u.email) || u.isOwner;
-      const isAdmin = u.role === 'admin';
-
-      let actions = '<div style="display:flex;gap:4px;flex-wrap:wrap;">';
-
-      // Owner accounts have special protection
-      if (isOwner) {
-        actions += `<button class="ef-cta" disabled style="opacity:0.5;cursor:not-allowed;" title="Owner account is protected">Edit</button>`;
-        actions += `<span style="color:#888;font-size:0.9em;padding:4px;">Protected Account</span>`;
-      } else {
-        actions += `<button class="ef-cta" data-action="editUser" data-id="${u.id}">Edit</button>`;
-
-        // Manual verification button for unverified users
-        if (!u.verified) {
-          actions += `<button class="ef-cta" data-action="verifyUser" data-id="${u.id}">Verify Email</button>`;
-        }
-
-        // Admin privilege toggle (only for non-owner accounts)
-        if (isAdmin) {
-          actions += `<button class="ef-cta" data-action="revokeAdmin" data-id="${u.id}">Revoke Admin</button>`;
-        } else {
-          actions += `<button class="ef-cta" data-action="grantAdmin" data-id="${u.id}">Grant Admin</button>`;
-        }
-
-        // Delete button
-        actions += `<button class="ef-cta" data-action="deleteUser" data-id="${u.id}">Delete</button>`;
-      }
-
-      actions += '</div>';
-
-      // Enhanced role display — show a styled badge for every account type
-      let roleDisplay;
-      if (isOwner) {
-        roleDisplay =
-          '<span class="badge badge-admin" title="Protected owner account — cannot be deleted or demoted">🛡️ Admin</span>' +
-          ' <span class="badge" style="background:#9f1239;color:#fff;font-weight:600;font-size:0.7rem;">OWNER</span>';
-      } else if (window.AdminShared && window.AdminShared.getRoleBadge) {
-        roleDisplay = window.AdminShared.getRoleBadge(u.role);
-      } else if (isAdmin) {
-        roleDisplay = '<span class="badge badge-admin">🛡️ Admin</span>';
-      } else if (u.role === 'supplier') {
-        roleDisplay = '<span class="badge badge-supplier-account">🏪 Supplier</span>';
-      } else if (u.role === 'partner') {
-        roleDisplay = '<span class="badge badge-partner">🤝 Partner</span>';
-      } else {
-        roleDisplay = '<span class="badge badge-customer">🎉 Customer</span>';
-      }
-
-      rows +=
-        `<tr ${isOwner ? 'style="background-color:#fef2f2;"' : ''}>` +
-        `<td>${escapeHtml(u.name || '')}</td>` +
-        `<td>${escapeHtml(u.email || '')}</td>` +
-        `<td>${roleDisplay}</td>` +
-        `<td>${verifiedBadge}</td>` +
-        `<td>${joined}</td>` +
-        `<td>${last}</td>` +
-        `<td>${actions}</td>` +
-        `</tr>`;
-    });
-
-    el.innerHTML = rows;
+    const users = list || [];
+    const head =
+      '<thead><tr><th scope="col">User</th><th scope="col">Role</th><th scope="col">Verification</th><th scope="col">Joined</th><th scope="col">Actions</th></tr></thead>';
+    const body = users.length
+      ? users.map(userRowHtml).join('')
+      : '<tr><td colspan="5" class="admin-messenger-state">No users match.</td></tr>';
+    el.innerHTML = `${head}<tbody>${body}</tbody>`;
   }
 
   function applyUserFilters() {
@@ -394,9 +458,9 @@
             },
           ]
             .map(
-              r => `<div class="dash-health-row">
-              <span class="dash-health-row__label">${r.label}</span>
-              <a href="${r.href}" class="dash-health-row__value ${r.warn && r.value > 0 ? 'dash-health-row__value--warn' : ''}">${r.value.toLocaleString()}</a>
+              r => `<div class="adh-row">
+              <span class="adh-row__label">${r.label}</span>
+              <a href="${r.href}" class="adh-row__value ${r.warn && r.value > 0 ? 'adh-row__value--warn' : ''}">${r.value.toLocaleString()}</a>
             </div>`
             )
             .join('');
@@ -437,9 +501,9 @@
             },
           ]
             .map(
-              r => `<div class="dash-health-row">
-              <span class="dash-health-row__label">${r.label}</span>
-              <a href="${r.href}" class="dash-health-row__value ${r.warn && r.value > 0 ? 'dash-health-row__value--warn' : ''}">${r.value.toLocaleString()}</a>
+              r => `<div class="adh-row">
+              <span class="adh-row__label">${r.label}</span>
+              <a href="${r.href}" class="adh-row__value ${r.warn && r.value > 0 ? 'adh-row__value--warn' : ''}">${r.value.toLocaleString()}</a>
             </div>`
             )
             .join('');
@@ -606,13 +670,6 @@
         } else {
           usersChangeEl.textContent = `${recentUsers} vs ${previousUsers} · prior 7 days`;
         }
-        if (recentUsers > previousUsers) {
-          usersChangeEl.style.color = 'var(--color-success, #16a34a)';
-        } else if (recentUsers < previousUsers) {
-          usersChangeEl.style.color = 'var(--color-danger, #dc2626)';
-        } else {
-          usersChangeEl.style.color = '';
-        }
       }
     })();
 
@@ -623,10 +680,8 @@
         const pending = counts.pendingSuppliers || 0;
         if (pending > 0) {
           suppliersChangeEl.textContent = `${pending} pending`;
-          suppliersChangeEl.style.color = 'var(--color-warning, #d97706)';
         } else {
           suppliersChangeEl.textContent = 'All approved';
-          suppliersChangeEl.style.color = 'var(--color-success, #16a34a)';
         }
       }
     })();
@@ -638,10 +693,8 @@
         const pending = counts.pendingPackages || 0;
         if (pending > 0) {
           packagesChangeEl.textContent = `${pending} pending`;
-          packagesChangeEl.style.color = 'var(--color-warning, #d97706)';
         } else {
           packagesChangeEl.textContent = 'All approved';
-          packagesChangeEl.style.color = 'var(--color-success, #16a34a)';
         }
       }
     })();
@@ -658,6 +711,96 @@
         counts.threadsTotal || 0
       } · Messages: ${counts.messagesTotal || 0}</p>` +
       `</div>`;
+  }
+
+  // What is waiting for the admin, in the order it should be dealt with. A count of null means the
+  // request failed, which is different from "nothing waiting" and is shown as such.
+  const queueCounts = { suppliers: null, photos: null, reviews: null, reports: null };
+  const QUEUES = [
+    {
+      key: 'suppliers',
+      id: 'pendingSupplierVerificationCount',
+      href: '/admin-suppliers',
+      action: 'Verify suppliers',
+      noun: ['supplier to verify', 'suppliers to verify'],
+    },
+    {
+      key: 'photos',
+      id: 'adhPendingPhotosCount',
+      href: '/admin-photos',
+      action: 'Review photos',
+      noun: ['photo to approve', 'photos to approve'],
+    },
+    {
+      key: 'reviews',
+      id: 'pendingReviewsCount',
+      href: '/admin-reviews',
+      action: 'Review reviews',
+      noun: ['review to moderate', 'reviews to moderate'],
+    },
+    {
+      key: 'reports',
+      id: 'pendingReportsCount',
+      href: '/admin-reports',
+      action: 'Review reports',
+      noun: ['content report to action', 'content reports to action'],
+    },
+  ];
+
+  function updateNext() {
+    const nextEl = document.getElementById('adhNext');
+    const primary = document.getElementById('adhPrimary');
+    if (!nextEl) {
+      return;
+    }
+    const waiting = QUEUES.filter(q => queueCounts[q.key] > 0);
+    const unknown = QUEUES.some(q => queueCounts[q.key] === null);
+    if (waiting.length) {
+      const first = waiting[0];
+      const n = queueCounts[first.key];
+      const more = waiting.length - 1;
+      nextEl.textContent = `Next: ${n} ${first.noun[n === 1 ? 0 : 1]}${
+        more ? ` and ${more} more queue${more === 1 ? '' : 's'}` : ''
+      }.`;
+      if (primary) {
+        primary.textContent = first.action;
+        primary.setAttribute('href', first.href);
+      }
+    } else if (unknown) {
+      nextEl.textContent = 'Some queue counts could not be loaded. Use Refresh to try again.';
+    } else {
+      nextEl.textContent = 'Nothing is waiting for you.';
+    }
+  }
+
+  function setQueueCount(key, value) {
+    queueCounts[key] = value;
+    const queue = QUEUES.find(q => q.key === key);
+    const el = queue && document.getElementById(queue.id);
+    if (el) {
+      el.textContent = value === null ? '—' : String(value);
+      el.title = value === null ? 'This count could not be loaded.' : '';
+      el.classList.toggle('adh-count--attention', value > 0);
+    }
+    updateNext();
+  }
+
+  function setGreeting(user) {
+    const el = document.getElementById('adhGreeting');
+    if (!el) {
+      return;
+    }
+    const hour = new Date().getHours();
+    let part = 'evening';
+    if (hour < 12) {
+      part = 'morning';
+    } else if (hour < 18) {
+      part = 'afternoon';
+    }
+    const first = String(user.firstName || user.name || '')
+      .trim()
+      .split(/\s+/)[0];
+    el.textContent = first ? `Good ${part}, ${first}` : `Good ${part}`;
   }
 
   function loadAll() {
@@ -685,9 +828,7 @@
           // Hide all dashboard content sections so unauthorised users
           // don't see the empty admin UI chrome
           document
-            .querySelectorAll(
-              '.stats-grid, .moderation-grid, .quick-actions, .management-grid, .data-section, .section-header'
-            )
+            .querySelectorAll('.adh-hero__actions, .adh-summary, .adh-grid, .adh-card')
             .forEach(el => {
               el.hidden = true;
             });
@@ -697,6 +838,7 @@
         if (statusEl) {
           statusEl.textContent = 'Loading data…';
         }
+        setGreeting(user);
 
         return Promise.all([
           // Use the shared summary service — same source as Users Centre
@@ -710,11 +852,11 @@
           }),
           api('/api/admin/photos/pending').catch(err => {
             console.warn('Failed to load pending photos:', err.message);
-            return { photos: [] };
+            return { photos: [], __error: true };
           }),
           api('/api/admin/reviews/pending').catch(err => {
             console.warn('Failed to load pending reviews:', err.message);
-            return { reviews: [] };
+            return { reviews: [], __error: true };
           }),
         ]).then(async results => {
           const usersResp = results[0] || {};
@@ -754,46 +896,23 @@
             r => !r.approved && !r.rejected
           );
 
-          const photosEl = document.getElementById('pendingPhotosCount');
-          const reviewsEl = document.getElementById('pendingReviewsCount');
-          const reportsEl = document.getElementById('pendingReportsCount');
-          const suppliersVerificationEl = document.getElementById(
-            'pendingSupplierVerificationCount'
-          );
+          setQueueCount('photos', photosResp.__error ? null : pendingPhotos.length);
+          setQueueCount('reviews', reviewsResp.__error ? null : pendingReviews.length);
 
-          if (photosEl) {
-            photosEl.textContent = pendingPhotos.length;
-          }
-          if (reviewsEl) {
-            reviewsEl.textContent = pendingReviews.length;
-          }
-
-          // Fetch pending reports count
+          // The reports and supplier counts come from their own requests. A failed request leaves
+          // the count as "—" (unknown) instead of a reassuring 0.
           api('/api/admin/reports/pending', 'GET')
-            .then(reportsResp => {
-              if (reportsEl) {
-                reportsEl.textContent = reportsResp.count || 0;
-              }
-            })
+            .then(reportsResp => setQueueCount('reports', reportsResp.count || 0))
             .catch(err => {
               console.warn('Failed to load pending reports:', err.message);
-              if (reportsEl) {
-                reportsEl.textContent = '0';
-              }
+              setQueueCount('reports', null);
             });
 
-          // Fetch pending supplier verifications
           api('/api/admin/suppliers/pending-verification', 'GET')
-            .then(suppliersResp => {
-              if (suppliersVerificationEl) {
-                suppliersVerificationEl.textContent = suppliersResp.count || 0;
-              }
-            })
+            .then(suppliersResp => setQueueCount('suppliers', suppliersResp.count || 0))
             .catch(err => {
               console.warn('Failed to load pending supplier verifications:', err.message);
-              if (suppliersVerificationEl) {
-                suppliersVerificationEl.textContent = '0';
-              }
+              setQueueCount('suppliers', null);
             });
 
           if (statusEl) {

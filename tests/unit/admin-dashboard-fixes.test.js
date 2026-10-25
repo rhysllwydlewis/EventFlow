@@ -13,37 +13,219 @@ const { execFileSync } = require('child_process');
 const ROOT = path.join(__dirname, '../..');
 const read = file => fs.readFileSync(path.join(ROOT, file), 'utf8');
 
-describe('management-card counts are visible', () => {
-  const refresh = read('public/assets/css/admin-dashboard-refresh.css');
+const HARNESS = `
+const fs = require('fs');
+const { JSDOM } = require('jsdom');
+const html = fs.readFileSync('public/admin.html', 'utf8').replace(/<script[\\s\\S]*?<\\/script>/g, '');
+const scenario = process.argv[1];
+const dom = new JSDOM(html, { runScripts: 'outside-only', url: 'http://localhost/admin' });
+const { window } = dom;
+const json = body => Promise.resolve({ ok: true, status: 200, headers: { get: () => 'application/json' }, json: () => Promise.resolve(body), text: () => Promise.resolve(JSON.stringify(body)) });
+const fail = () => Promise.resolve({ ok: false, status: 500, headers: { get: () => 'application/json' }, json: () => Promise.resolve({ error: 'x' }), text: () => Promise.resolve('x') });
+const users = [
+  { id: 'u1', name: 'Ada Lovelace', email: 'ada@example.test', role: 'customer', verified: true, createdAt: '2026-10-20T10:00:00Z', signupMethod: 'google', authProvider: 'google' },
+  { id: 'u2', name: 'Bob <b>Bold</b>', email: 'bob@example.test', role: 'supplier', verified: false, createdAt: '2026-10-21T10:00:00Z' },
+];
+window.fetch = url => {
+  const u = String(url);
+  if (u.includes('/auth/me')) return json({ user: { id: 'a1', role: 'admin', name: 'Rhys Lewis', email: 'a@example.test' } });
+  if (u.includes('/users/summary')) return json({ total: 2, suppliers: { total: 1 }, bySignup: {}, byVerification: {}, issueCount: 0 });
+  if (u.includes('/admin/metrics')) return json({ counts: { usersTotal: 2, suppliersTotal: 1, packagesTotal: 0 } });
+  if (u.includes('/photos/pending')) {
+    if (scenario === 'photos-fail') return fail();
+    return json({ photos: scenario === 'quiet' ? [] : [{ approved: false }, { approved: false }, { approved: true }] });
+  }
+  if (u.includes('/reviews/pending')) return json({ reviews: [] });
+  if (u.includes('/reports/pending')) return scenario === 'reports-fail' ? fail() : json({ count: scenario === 'quiet' ? 0 : 3 });
+  if (u.includes('/pending-verification')) return json({ count: scenario === 'quiet' ? 0 : 1 });
+  if (u.includes('/users/list')) return json({ items: users });
+  return json({});
+};
+window.AdminShared = {
+  fetchWithTimeout: (url, opts) => window.fetch(url, opts),
+  escapeHtml: v => String(v),
+  showToast() {},
+  animateCounter: (el, n) => { el.textContent = String(n); },
+  api: url => window.fetch(url),
+};
+window.eval(fs.readFileSync('public/assets/js/pages/admin-init.js', 'utf8'));
+setTimeout(() => {
+  const d = window.document;
+  const t = id => { const e = d.getElementById(id); return e && e.textContent; };
+  console.log(JSON.stringify({
+    greeting: t('adhGreeting'), next: t('adhNext'),
+    primary: [t('adhPrimary'), d.getElementById('adhPrimary').getAttribute('href')],
+    photos: t('adhPendingPhotosCount'), reviews: t('pendingReviewsCount'),
+    reports: t('pendingReportsCount'), suppliers: t('pendingSupplierVerificationCount'),
+    rows: d.querySelectorAll('#users tbody tr').length,
+    head: [...d.querySelectorAll('#users thead th')].map(x => x.textContent),
+    usersHtml: d.getElementById('users').innerHTML,
+  }));
+}, 300);
+`;
 
-  test('styles.css hides .stat-item until a script adds .is-visible', () => {
-    // The reason the override below exists. If this stops being true the override can go.
-    expect(read('public/assets/css/styles.css')).toMatch(/\.stat-item\s*\{[^}]*opacity:\s*0/);
-  });
+function runDashboard(scenario) {
+  return JSON.parse(
+    execFileSync('node', ['-e', HARNESS, scenario], { cwd: ROOT, encoding: 'utf8' })
+  );
+}
 
-  test('the admin dashboard shows .stat-item without waiting for .is-visible', () => {
-    const rule = refresh.match(/\.admin-dashboard-page \.stat-item\s*\{([^}]*)\}/);
-    expect(rule).not.toBeNull();
-    expect(rule[1]).toMatch(/opacity:\s*1/);
-    expect(rule[1]).toMatch(/transform:\s*none/);
-  });
+describe('the redesigned page', () => {
+  const html = read('public/admin.html');
+  const css = read('public/assets/css/admin-dashboard-home.css');
 
-  test('nothing on the dashboard adds .is-visible to .stat-item', () => {
-    const scripts = [
-      'public/assets/js/pages/admin-init.js',
-      'public/assets/js/admin-features.js',
-      'public/assets/js/admin-shared.js',
-    ].map(read);
-    for (const source of scripts) {
-      expect(source).not.toMatch(/stat-item[^\n]*is-visible|is-visible[^\n]*stat-item/);
+  test('is scoped: the body class, one stylesheet, every selector under .adh-page', () => {
+    expect(html).toMatch(/<body class="[^"]*\badh-page\b/);
+    expect(html).toContain('admin-dashboard-home.css?v=1');
+    const selectors = css
+      .replace(/\/\*[\s\S]*?\*\//g, '')
+      .split('}')
+      .map(block => block.split('{')[0].trim())
+      .filter(sel => sel && !sel.startsWith('@') && !/^\d+%$|^from$|^to$/.test(sel));
+    expect(selectors.length).toBeGreaterThan(50);
+    for (const group of selectors) {
+      for (const sel of group.split(',').map(x => x.trim())) {
+        expect(sel).toMatch(/^(body)?\.adh-page\b/);
+      }
     }
   });
 
-  test('admin.html loads the changed assets under new versions', () => {
-    const html = read('public/admin.html');
-    expect(html).toContain('admin-dashboard-refresh.css?v=2');
-    expect(html).toContain('pages/admin-init.js?v=18.5.3');
-    expect(html).toContain('admin-messages-init.js?v=18.3.1');
+  test('the dashboard-only patch layers are gone', () => {
+    expect(fs.existsSync(path.join(ROOT, 'public/assets/css/admin-dashboard-refresh.css'))).toBe(
+      false
+    );
+    expect(
+      fs.existsSync(path.join(ROOT, 'public/assets/js/pages/admin-verification-source-init.js'))
+    ).toBe(false);
+    expect(html).not.toContain('admin-dashboard-refresh');
+    expect(html).not.toContain('admin-verification-source-init');
+  });
+
+  test('has no inline styles and no emoji icons', () => {
+    const body = html.slice(html.indexOf('<body'), html.indexOf('<footer'));
+    expect(body).not.toMatch(/\sstyle="/);
+    expect(body).not.toMatch(/\p{Extended_Pictographic}/u);
+  });
+
+  test('keeps every id the scripts and browser tests use, once each', () => {
+    const ids = [
+      'adminNavbarMount',
+      'refreshBtn',
+      'status',
+      'adhGreeting',
+      'adhNext',
+      'adhPrimary',
+      'totalUsersCount',
+      'totalUsersChange',
+      'totalPackagesCount',
+      'totalPackagesChange',
+      'totalSuppliersCount',
+      'totalSuppliersChange',
+      'totalRevenueCount',
+      'totalRevenueChange',
+      'adhPendingPhotosCount',
+      'pendingReviewsCount',
+      'pendingReportsCount',
+      'pendingSupplierVerificationCount',
+      'reviewPhotosBtn',
+      'reviewReviewsBtn',
+      'reviewReportsBtn',
+      'verifySuppliersBtn',
+      'dashUserHealthRows',
+      'dashSupplierHealthRows',
+      'dashHealthGrid',
+      'downloadMarketingCsv',
+      'downloadAllJson',
+      'downloadUsersCsv',
+      'totalSuppliersCountCard',
+      'pendingSuppliersCount',
+      'proSuppliersCount',
+      'totalPackagesCountCard',
+      'pendingPackagesCount',
+      'featuredPackagesCount',
+      'totalCalendarEventsCountCard',
+      'pendingCalendarRequestsCount',
+      'publishedCalendarEventsCount',
+      'totalPartnersCountCard',
+      'activePartnersCount',
+      'openPayoutRequestsCount',
+      'userManagementBtn',
+      'packageManagementBtn',
+      'homepageChangesBtn',
+      'supportTicketsBtn',
+      'paymentsAnalyticsBtn',
+      'reportsQueueBtn',
+      'eventsCalendarBtn',
+      'auditLogBtn',
+      'adminSettingsBtn',
+      'contentManagementBtn',
+      'mediaCenterBtn',
+      'globalSearchBtn',
+      'analyticsBtn',
+      'emailCentreBtn',
+      'analytics',
+      'msgModerationSearch',
+      'msgModerationStatus',
+      'msgModerationSearchBtn',
+      'msgModerationBody',
+      'msgModerationPrev',
+      'msgModerationNext',
+      'msgModerationPageInfo',
+      'createUserBtn',
+      'userSearch',
+      'userDateFilter',
+      'users',
+    ];
+    for (const id of ids) {
+      expect(html.match(new RegExp(`id="${id}"`, 'g')) || []).toHaveLength(1);
+    }
+  });
+
+  test('the photo count has its own id: the shared badge updaters write "pendingPhotosCount"', () => {
+    expect(html).not.toContain('id="pendingPhotosCount"');
+    expect(read('public/assets/js/admin-shared.js')).toContain('pendingPhotosCount');
+    expect(read('public/assets/js/admin-features.js')).toContain('pendingPhotosCount');
+  });
+
+  test('admin.html loads the changed scripts under new versions', () => {
+    expect(html).toContain('pages/admin-init.js?v=18.5.4');
+    expect(html).toContain('admin-messages-init.js?v=18.3.2');
+  });
+});
+
+describe('the dashboard script, run against a faked server', () => {
+  test('greets by first name, says what is next and fills the counts', () => {
+    const out = runDashboard('ok');
+    expect(out.greeting).toMatch(/^Good (morning|afternoon|evening), Rhys$/);
+    expect(out.next).toBe('Next: 1 supplier to verify and 2 more queues.');
+    expect(out.primary).toEqual(['Verify suppliers', '/admin-suppliers']);
+    expect([out.photos, out.reviews, out.reports, out.suppliers]).toEqual(['2', '0', '3', '1']);
+  });
+
+  test('says so when nothing is waiting', () => {
+    const out = runDashboard('quiet');
+    expect(out.next).toBe('Nothing is waiting for you.');
+    expect(out.primary).toEqual(['Open Users Centre', '/admin-users']);
+  });
+
+  test('a failed count is shown as unknown, not as a reassuring 0', () => {
+    const reports = runDashboard('reports-fail');
+    expect(reports.reports).toBe('—');
+    const photos = runDashboard('photos-fail');
+    expect(photos.photos).toBe('—');
+    const quietButBroken = runDashboard('reports-fail');
+    expect(quietButBroken.next).not.toBe('Nothing is waiting for you.');
+  });
+
+  test('recent users are drawn once, in five columns, with the sign-up detail built in', () => {
+    const out = runDashboard('ok');
+    expect(out.head).toEqual(['User', 'Role', 'Verification', 'Joined', 'Actions']);
+    expect(out.rows).toBe(2);
+    expect(out.usersHtml).toContain('Signed up: Google');
+    expect(out.usersHtml).toContain('Not verified');
+    // Names are escaped, not injected.
+    expect(out.usersHtml).not.toContain('<b>Bold</b>');
+    expect(out.usersHtml).toContain('&lt;b&gt;Bold&lt;/b&gt;');
   });
 });
 

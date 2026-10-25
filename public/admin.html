@@ -33,379 +33,269 @@
   <link rel="stylesheet" href="/assets/css/ui-ux-fixes.css?v=18.4.1">
   <link rel="stylesheet" href="/assets/css/admin-ui-improvements.css?v=18.3.3">
   <link rel="stylesheet" href="/assets/css/admin-workspace.css?v=1">
-  <link rel="stylesheet" href="/assets/css/admin-dashboard-refresh.css?v=2">
+  <link rel="stylesheet" href="/assets/css/admin-dashboard-home.css?v=1">
 </head>
-<body class="has-admin-navbar admin admin-dashboard-page">
+<body class="has-admin-navbar admin adh-page">
 <div id="adminNavbarMount"></div>
 
 <!-- Main Content -->
-<main id="main-content" class="admin-main-content">
+<main id="main-content" class="admin-main-content adh">
 
-  <!-- Modern Dashboard Header -->
-  <div class="dashboard-header">
-    <div class="header-content">
+  <!-- Hero: greeting, what to do next, two shortcuts -->
+  <header class="adh-hero">
+    <div class="adh-hero__text">
+      <h1 class="adh-hero__title" id="adhGreeting">Admin overview</h1>
+      <p class="adh-hero__next" id="adhNext" aria-live="polite">Checking what needs you…</p>
+      <p class="adh-hero__meta">
+        <span id="status" class="adh-status" aria-live="polite">Loading…</span>
+        <button id="refreshBtn" type="button" class="adh-link-btn" title="Reload the dashboard data">Refresh</button>
+      </p>
+    </div>
+    <div class="adh-hero__actions">
+      <a id="adhPrimary" class="adh-btn adh-btn--primary" href="/admin-users">Open Users Centre</a>
+      <a class="adh-btn" href="/admin-suppliers">Supplier Management</a>
+    </div>
+  </header>
+
+  <!-- Summary row -->
+  <section class="adh-summary" aria-label="Platform summary">
+    <div class="adh-summary__cell">
+      <p class="adh-summary__label">Total users</p>
+      <p class="adh-summary__value" id="totalUsersCount">—</p>
+      <p class="adh-summary__note" id="totalUsersChange">—</p>
+      <a class="adh-summary__link" href="/admin-users">Open Users Centre</a>
+    </div>
+    <div class="adh-summary__cell">
+      <p class="adh-summary__label">Active packages</p>
+      <p class="adh-summary__value" id="totalPackagesCount">—</p>
+      <p class="adh-summary__note" id="totalPackagesChange">—</p>
+      <a class="adh-summary__link" href="/admin-packages">Manage packages</a>
+    </div>
+    <div class="adh-summary__cell">
+      <p class="adh-summary__label">Suppliers</p>
+      <p class="adh-summary__value" id="totalSuppliersCount">—</p>
+      <p class="adh-summary__note" id="totalSuppliersChange">—</p>
+      <a class="adh-summary__link" href="/admin-suppliers">Supplier Management</a>
+    </div>
+    <div class="adh-summary__cell">
+      <p class="adh-summary__label">Revenue</p>
+      <p class="adh-summary__value" id="totalRevenueCount">—</p>
+      <p class="adh-summary__note" id="totalRevenueChange">—</p>
+      <a class="adh-summary__link" href="/admin-payments">Payments</a>
+    </div>
+  </section>
+
+  <div class="adh-grid">
+    <div class="adh-col">
+
+      <!-- Needs your attention -->
+      <section class="adh-card" aria-labelledby="adhQueueTitle">
+        <header class="adh-card__head">
+          <div>
+            <h2 class="adh-card__title" id="adhQueueTitle">Needs your attention</h2>
+            <p class="adh-card__sub">Queues waiting for a decision.</p>
+          </div>
+        </header>
+        <ul class="adh-list">
+          <li class="adh-queue">
+            <div class="adh-queue__text">
+              <p class="adh-queue__title">Pending photos</p>
+              <p class="adh-queue__desc">Photos awaiting approval</p>
+            </div>
+            <span class="adh-count" id="adhPendingPhotosCount" aria-label="Pending photos">—</span>
+            <button id="reviewPhotosBtn" type="button" class="adh-btn adh-btn--sm">Review</button>
+          </li>
+          <li class="adh-queue">
+            <div class="adh-queue__text">
+              <p class="adh-queue__title">Pending reviews</p>
+              <p class="adh-queue__desc">Customer reviews to moderate</p>
+            </div>
+            <span class="adh-count" id="pendingReviewsCount" aria-label="Pending reviews">—</span>
+            <button id="reviewReviewsBtn" type="button" class="adh-btn adh-btn--sm">Review</button>
+          </li>
+          <li class="adh-queue">
+            <div class="adh-queue__text">
+              <p class="adh-queue__title">Content reports</p>
+              <p class="adh-queue__desc">Reports requiring action</p>
+            </div>
+            <span class="adh-count" id="pendingReportsCount" aria-label="Content reports">—</span>
+            <button id="reviewReportsBtn" type="button" class="adh-btn adh-btn--sm">Review</button>
+          </li>
+          <li class="adh-queue">
+            <div class="adh-queue__text">
+              <p class="adh-queue__title">Supplier verification</p>
+              <p class="adh-queue__desc">New suppliers to verify</p>
+            </div>
+            <span class="adh-count" id="pendingSupplierVerificationCount" aria-label="Suppliers to verify">—</span>
+            <button id="verifySuppliersBtn" type="button" class="adh-btn adh-btn--sm">Verify</button>
+          </li>
+        </ul>
+      </section>
+
+      <!-- Account health -->
+      <section class="adh-card" aria-labelledby="adhHealthTitle">
+        <header class="adh-card__head">
+          <div>
+            <h2 class="adh-card__title" id="adhHealthTitle">Account health</h2>
+            <p class="adh-card__sub">User verification, provenance and supplier status.</p>
+          </div>
+        </header>
+        <div class="adh-health" id="dashHealthGrid" aria-live="polite">
+          <div class="adh-health__panel">
+            <div class="adh-health__head">
+              <h3 class="adh-health__title">User accounts</h3>
+              <a href="/admin-users" class="adh-link">Open Users Centre</a>
+            </div>
+            <div class="adh-rows" id="dashUserHealthRows">
+              <div class="adh-row adh-row--skeleton skeleton"></div>
+              <div class="adh-row adh-row--skeleton skeleton"></div>
+              <div class="adh-row adh-row--skeleton skeleton"></div>
+            </div>
+          </div>
+          <div class="adh-health__panel">
+            <div class="adh-health__head">
+              <h3 class="adh-health__title">Supplier accounts</h3>
+              <a href="/admin-suppliers" class="adh-link">Supplier Management</a>
+            </div>
+            <div class="adh-rows" id="dashSupplierHealthRows">
+              <div class="adh-row adh-row--skeleton skeleton"></div>
+              <div class="adh-row adh-row--skeleton skeleton"></div>
+              <div class="adh-row adh-row--skeleton skeleton"></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Manage and export -->
+      <section class="adh-card" aria-labelledby="adhManageTitle">
+        <header class="adh-card__head">
+          <div>
+            <h2 class="adh-card__title" id="adhManageTitle">Manage and export</h2>
+            <p class="adh-card__sub">The main areas, with what is waiting in each.</p>
+          </div>
+          <div class="adh-card__actions">
+            <button id="downloadMarketingCsv" type="button" class="adh-btn adh-btn--sm">Export marketing list</button>
+            <button id="downloadAllJson" type="button" class="adh-btn adh-btn--sm">Export all data</button>
+          </div>
+        </header>
+        <ul class="adh-list">
+          <li class="adh-manage">
+            <div class="adh-manage__text">
+              <p class="adh-manage__title">Suppliers <span class="adh-pill" id="totalSuppliersCountCard" aria-label="Total suppliers">—</span></p>
+              <p class="adh-manage__desc">Supplier profiles, approvals and subscriptions</p>
+            </div>
+            <dl class="adh-manage__stats">
+              <div><dt>Pending approval</dt><dd id="pendingSuppliersCount">—</dd></div>
+              <div><dt>Pro+ subscribers</dt><dd id="proSuppliersCount">—</dd></div>
+            </dl>
+            <a href="/admin-suppliers" class="adh-btn adh-btn--sm">Manage suppliers</a>
+          </li>
+          <li class="adh-manage">
+            <div class="adh-manage__text">
+              <p class="adh-manage__title">Packages <span class="adh-pill" id="totalPackagesCountCard" aria-label="Total packages">—</span></p>
+              <p class="adh-manage__desc">Package listings, featured items and approvals</p>
+            </div>
+            <dl class="adh-manage__stats">
+              <div><dt>Pending approval</dt><dd id="pendingPackagesCount">—</dd></div>
+              <div><dt>Featured</dt><dd id="featuredPackagesCount">—</dd></div>
+            </dl>
+            <a href="/admin-packages" class="adh-btn adh-btn--sm">Manage packages</a>
+          </li>
+          <li class="adh-manage">
+            <div class="adh-manage__text">
+              <p class="adh-manage__title">Shared events calendar <span class="adh-pill" id="totalCalendarEventsCountCard" aria-label="Total events">—</span></p>
+              <p class="adh-manage__desc">Public events and supplier publishing access</p>
+            </div>
+            <dl class="adh-manage__stats">
+              <div><dt>Access requests</dt><dd id="pendingCalendarRequestsCount">—</dd></div>
+              <div><dt>Published</dt><dd id="publishedCalendarEventsCount">—</dd></div>
+            </dl>
+            <a href="/admin-public-calendar" class="adh-btn adh-btn--sm">Manage events</a>
+          </li>
+          <li class="adh-manage">
+            <div class="adh-manage__text">
+              <p class="adh-manage__title">Partners <span class="adh-pill" id="totalPartnersCountCard" aria-label="Total partners">—</span></p>
+              <p class="adh-manage__desc">Affiliate partners, referral credits and payout requests</p>
+            </div>
+            <dl class="adh-manage__stats">
+              <div><dt>Active</dt><dd id="activePartnersCount">—</dd></div>
+              <div><dt>Open payouts</dt><dd id="openPayoutRequestsCount">—</dd></div>
+            </dl>
+            <a href="/admin-partners" class="adh-btn adh-btn--sm">Manage partners</a>
+          </li>
+        </ul>
+      </section>
+    </div>
+
+    <aside class="adh-col adh-col--side">
+
+      <!-- Quick links -->
+      <section class="adh-card" aria-labelledby="quick-actions-heading">
+        <header class="adh-card__head">
+          <div>
+            <h2 class="adh-card__title" id="quick-actions-heading">Quick links</h2>
+            <p class="adh-card__sub">Frequently used admin tools.</p>
+          </div>
+        </header>
+        <div class="adh-links" role="group" aria-labelledby="quick-actions-heading">
+          <button id="userManagementBtn" type="button" class="adh-linkrow">Users</button>
+          <button id="packageManagementBtn" type="button" class="adh-linkrow">Packages</button>
+          <button id="homepageChangesBtn" type="button" class="adh-linkrow">Homepage</button>
+          <button id="supportTicketsBtn" type="button" class="adh-linkrow">Tickets</button>
+          <button id="paymentsAnalyticsBtn" type="button" class="adh-linkrow">Payments</button>
+          <button id="reportsQueueBtn" type="button" class="adh-linkrow">Reports</button>
+          <button id="eventsCalendarBtn" type="button" class="adh-linkrow">Events</button>
+          <button id="auditLogBtn" type="button" class="adh-linkrow">Audit log</button>
+          <button id="adminSettingsBtn" type="button" class="adh-linkrow">Settings</button>
+          <button id="contentManagementBtn" type="button" class="adh-linkrow">Content</button>
+          <button id="mediaCenterBtn" type="button" class="adh-linkrow">Media Center</button>
+          <button id="globalSearchBtn" type="button" class="adh-linkrow">Global search</button>
+          <button id="analyticsBtn" type="button" class="adh-linkrow">Analytics</button>
+          <button id="emailCentreBtn" type="button" class="adh-linkrow" title="Campaigns, templates, sent email logs and delivery status">Email Centre<span class="sr-only">: campaigns, templates, sent email logs and delivery status</span></button>
+          <button id="downloadUsersCsv" type="button" class="adh-linkrow">Export users (CSV)</button>
+        </div>
+      </section>
+
+      <!-- System analytics -->
+      <section class="adh-card" aria-labelledby="adhAnalyticsTitle">
+        <header class="adh-card__head">
+          <div>
+            <h2 class="adh-card__title" id="adhAnalyticsTitle">System analytics</h2>
+            <p class="adh-card__sub">Totals across the platform.</p>
+          </div>
+        </header>
+        <div id="analytics" class="analytics-grid"></div>
+      </section>
+    </aside>
+  </div>
+
+  <!-- Message moderation -->
+  <section class="adh-card" id="messageModerationSection" aria-labelledby="adhMessagesTitle">
+    <header class="adh-card__head">
       <div>
-        <h1 class="dashboard-title">Overview</h1>
-        <p class="dashboard-subtitle">Platform activity, moderation queues and management tools.</p>
+        <h2 class="adh-card__title" id="adhMessagesTitle">Message moderation</h2>
+        <p class="adh-card__sub">Search and review platform conversations.</p>
       </div>
-      <div class="header-actions">
-        <div id="status" class="status-badge" aria-live="polite">Loading…</div>
-        <button id="refreshBtn" class="ef-cta btn-icon" title="Refresh data" aria-label="Refresh data">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M23 4v6h-6"></path>
-            <path d="M1 20v-6h6"></path>
-            <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
-          </svg>
-        </button>
-      </div>
+    </header>
+    <div class="adh-toolbar">
+      <label for="msgModerationSearch" class="sr-only">Search conversations</label>
+      <input id="msgModerationSearch" type="text" placeholder="Search by name, email or conversation ID…" class="adh-input admin-messenger-search">
+      <label for="msgModerationStatus" class="sr-only">Conversation status</label>
+      <select id="msgModerationStatus" class="adh-input adh-input--select">
+        <option value="">All statuses</option>
+        <option value="active">Active</option>
+        <option value="archived">Archived</option>
+        <option value="blocked">Blocked</option>
+      </select>
+      <button id="msgModerationSearchBtn" type="button" class="adh-btn adh-btn--sm">Search</button>
     </div>
-  </div>
-
-  <!-- Quick Stats Overview -->
-  <div class="stats-grid" aria-live="polite" aria-label="Dashboard statistics">
-    <div class="stat-card stat-primary">
-      <div class="stat-icon stat-icon-purple">
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
-          <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
-          <circle cx="9" cy="7" r="4"></circle>
-          <path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"></path>
-        </svg>
-      </div>
-      <div class="stat-content">
-        <div class="stat-label">Total Users</div>
-        <div class="stat-value" id="totalUsersCount">—</div>
-        <div class="stat-change" id="totalUsersChange">—</div>
-      </div>
-    </div>
-
-    <div class="stat-card stat-success">
-      <div class="stat-icon stat-icon-pink">
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
-          <rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect>
-          <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path>
-        </svg>
-      </div>
-      <div class="stat-content">
-        <div class="stat-label">Active Packages</div>
-        <div class="stat-value" id="totalPackagesCount">—</div>
-        <div class="stat-change" id="totalPackagesChange">—</div>
-      </div>
-    </div>
-
-    <div class="stat-card stat-warning">
-      <div class="stat-icon stat-icon-blue">
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
-          <path d="M12 2L2 7l10 5 10-5-10-5z"></path>
-          <path d="M2 17l10 5 10-5M2 12l10 5 10-5"></path>
-        </svg>
-      </div>
-      <div class="stat-content">
-        <div class="stat-label">Suppliers</div>
-        <div class="stat-value" id="totalSuppliersCount">—</div>
-        <div class="stat-change" id="totalSuppliersChange">—</div>
-      </div>
-    </div>
-
-    <div class="stat-card stat-info">
-      <div class="stat-icon stat-icon-orange">
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
-          <path d="M22 12h-4l-3 9L9 3l-3 9H2"></path>
-        </svg>
-      </div>
-      <div class="stat-content">
-        <div class="stat-label">Revenue</div>
-        <div class="stat-value" id="totalRevenueCount">—</div>
-        <div class="stat-change" id="totalRevenueChange">—</div>
-      </div>
-    </div>
-  </div>
-
-  <!-- User & Account Health ─────────────────────────────────────────── -->
-  <div class="section-header">
-    <h2 class="section-title">Account Health</h2>
-    <p class="section-description">User verification, provenance and supplier status overview</p>
-  </div>
-  <div class="dash-health-grid" id="dashHealthGrid" aria-live="polite">
-    <!-- User health panel -->
-    <div class="dash-health-panel">
-      <div class="dash-health-panel__header">
-        <span class="dash-health-panel__icon dash-health-panel__icon--blue">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
-        </span>
-        <span class="dash-health-panel__title">User accounts</span>
-        <a href="/admin-users" class="dash-health-panel__link">Open Users Centre →</a>
-      </div>
-      <div class="dash-health-rows" id="dashUserHealthRows">
-        <div class="dash-health-row skeleton" style="height:32px;border-radius:6px;margin-bottom:6px;"></div>
-        <div class="dash-health-row skeleton" style="height:32px;border-radius:6px;margin-bottom:6px;"></div>
-        <div class="dash-health-row skeleton" style="height:32px;border-radius:6px;"></div>
-      </div>
-    </div>
-    <!-- Supplier health panel -->
-    <div class="dash-health-panel">
-      <div class="dash-health-panel__header">
-        <span class="dash-health-panel__icon dash-health-panel__icon--teal">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
-        </span>
-        <span class="dash-health-panel__title">Supplier accounts</span>
-        <a href="/admin-suppliers" class="dash-health-panel__link">Supplier Management →</a>
-      </div>
-      <div class="dash-health-rows" id="dashSupplierHealthRows">
-        <div class="dash-health-row skeleton" style="height:32px;border-radius:6px;margin-bottom:6px;"></div>
-        <div class="dash-health-row skeleton" style="height:32px;border-radius:6px;margin-bottom:6px;"></div>
-        <div class="dash-health-row skeleton" style="height:32px;border-radius:6px;"></div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Moderation Queue -->
-  <div class="section-header">
-    <h2 class="section-title">Moderation Queue</h2>
-    <p class="section-description">Items requiring your attention</p>
-  </div>
-
-  <div class="moderation-grid">
-    <div class="mod-card mod-warning">
-      <div class="mod-header">
-        <div class="mod-icon">📷</div>
-        <div class="mod-badge" id="pendingPhotosCount">—</div>
-      </div>
-      <h3 class="mod-title">Pending Photos</h3>
-      <p class="mod-description">Photos awaiting approval</p>
-      <button id="reviewPhotosBtn" class="ef-cta btn-mod">Review Now →</button>
-    </div>
-
-    <div class="mod-card mod-info">
-      <div class="mod-header">
-        <div class="mod-icon">⭐</div>
-        <div class="mod-badge" id="pendingReviewsCount">—</div>
-      </div>
-      <h3 class="mod-title">Pending Reviews</h3>
-      <p class="mod-description">Customer reviews to moderate</p>
-      <button id="reviewReviewsBtn" class="ef-cta btn-mod">Review Now →</button>
-    </div>
-
-    <div class="mod-card mod-danger">
-      <div class="mod-header">
-        <div class="mod-icon">⚠️</div>
-        <div class="mod-badge" id="pendingReportsCount">—</div>
-      </div>
-      <h3 class="mod-title">Content Reports</h3>
-      <p class="mod-description">Reports requiring action</p>
-      <button id="reviewReportsBtn" class="ef-cta btn-mod">Review Now →</button>
-    </div>
-
-    <div class="mod-card mod-primary">
-      <div class="mod-header">
-        <div class="mod-icon">🏢</div>
-        <div class="mod-badge" id="pendingSupplierVerificationCount">—</div>
-      </div>
-      <h3 class="mod-title">Supplier Verification</h3>
-      <p class="mod-description">New suppliers to verify</p>
-      <button id="verifySuppliersBtn" class="ef-cta btn-mod">Verify Now →</button>
-    </div>
-  </div>
-
-  <!-- Quick Actions -->
-  <div class="section-header section-spacer">
-    <h2 class="section-title" id="quick-actions-heading">Quick Actions</h2>
-    <p class="section-description">Frequently used admin tools</p>
-  </div>
-
-  <div class="quick-actions" role="group" aria-labelledby="quick-actions-heading">
-    <button id="userManagementBtn" class="ef-cta action-btn" aria-label="User Management">
-      <div class="action-icon">👥</div>
-      <div class="action-label">User Management</div>
-    </button>
-    <button id="packageManagementBtn" class="ef-cta action-btn" aria-label="Package Management">
-      <div class="action-icon">📦</div>
-      <div class="action-label">Packages</div>
-    </button>
-    <button id="homepageChangesBtn" class="ef-cta action-btn" aria-label="Homepage Changes">
-      <div class="action-icon">🏠</div>
-      <div class="action-label">Homepage</div>
-    </button>
-    <button id="supportTicketsBtn" class="ef-cta action-btn" aria-label="Support Tickets">
-      <div class="action-icon">🎫</div>
-      <div class="action-label">Tickets</div>
-    </button>
-    <button id="paymentsAnalyticsBtn" class="ef-cta action-btn" aria-label="Payments & Analytics">
-      <div class="action-icon">💳</div>
-      <div class="action-label">Payments</div>
-    </button>
-    <button id="reportsQueueBtn" class="ef-cta action-btn" aria-label="Reports Queue">
-      <div class="action-icon">📊</div>
-      <div class="action-label">Reports</div>
-    </button>
-    <button id="eventsCalendarBtn" class="ef-cta action-btn" aria-label="Events Calendar">
-      <div class="action-icon">📅</div>
-      <div class="action-label">Events</div>
-    </button>
-    <button id="auditLogBtn" class="ef-cta action-btn" aria-label="Audit Log">
-      <div class="action-icon">📋</div>
-      <div class="action-label">Audit Log</div>
-    </button>
-    <button id="downloadUsersCsv" class="ef-cta action-btn" aria-label="Download Users CSV">
-      <div class="action-icon">📥</div>
-      <div class="action-label">Export Users</div>
-    </button>
-    <button id="adminSettingsBtn" class="ef-cta action-btn" aria-label="Admin Settings">
-      <div class="action-icon">⚙️</div>
-      <div class="action-label">Settings</div>
-    </button>
-    <button id="contentManagementBtn" class="ef-cta action-btn" aria-label="Content Management">
-      <div class="action-icon">✏️</div>
-      <div class="action-label">Content</div>
-    </button>
-    <button id="mediaCenterBtn" class="ef-cta action-btn" aria-label="Media Center">
-      <div class="action-icon">🎨</div>
-      <div class="action-label">Media Center</div>
-    </button>
-    <button id="globalSearchBtn" class="ef-cta action-btn" aria-label="Global Search">
-      <div class="action-icon">🔍</div>
-      <div class="action-label">Global Search</div>
-    </button>
-    <button id="analyticsBtn" class="ef-cta action-btn" aria-label="Analytics">
-      <div class="action-icon">📈</div>
-      <div class="action-label">Analytics</div>
-    </button>
-    <button id="emailCentreBtn" class="ef-cta action-btn" aria-label="Email Centre: Campaigns, templates, sent email logs and delivery status" title="Campaigns, templates, sent email logs and delivery status">
-      <div class="action-icon">📨</div>
-      <div class="action-label">Email Centre</div>
-      <span class="sr-only">Campaigns, templates, sent email logs and delivery status</span>
-    </button>
-  </div>
-
-  <!-- Data Tables Section -->
-  <div class="section-header section-spacer">
-    <h2 class="section-title">Manage and export</h2>
-    <div class="button-group">
-      <button id="downloadMarketingCsv" class="ef-cta btn-sm">Export Marketing</button>
-      <button id="downloadAllJson" class="ef-cta btn-sm">Export All Data</button>
-    </div>
-  </div>
-
-  <!-- Management Cards Grid -->
-  <div class="management-grid">
-    <!-- Suppliers Management Card -->
-    <div class="management-card">
-      <div class="management-header">
-        <div class="management-icon">🏢</div>
-        <div class="management-badge" id="totalSuppliersCountCard">—</div>
-      </div>
-      <h3 class="management-title">Suppliers</h3>
-      <p class="management-description">Manage supplier profiles, approvals, and subscriptions</p>
-      <div class="management-stats">
-        <div class="stat-item">
-          <span class="stat-value" id="pendingSuppliersCount">—</span>
-          <span class="stat-label-sm">Pending Approval</span>
-        </div>
-        <div class="stat-item">
-          <span class="stat-value" id="proSuppliersCount">—</span>
-          <span class="stat-label-sm">Pro+ Subscribers</span>
-        </div>
-      </div>
-      <a href="/admin-suppliers" class="btn-manage">
-        Manage Suppliers →
-      </a>
-    </div>
-
-    <!-- Packages Management Card -->
-    <div class="management-card">
-      <div class="management-header">
-        <div class="management-icon">📦</div>
-        <div class="management-badge" id="totalPackagesCountCard">—</div>
-      </div>
-      <h3 class="management-title">Packages</h3>
-      <p class="management-description">Manage package listings, featured items, and approvals</p>
-      <div class="management-stats">
-        <div class="stat-item">
-          <span class="stat-value" id="pendingPackagesCount">—</span>
-          <span class="stat-label-sm">Pending Approval</span>
-        </div>
-        <div class="stat-item">
-          <span class="stat-value" id="featuredPackagesCount">—</span>
-          <span class="stat-label-sm">Featured</span>
-        </div>
-      </div>
-      <a href="/admin-packages" class="btn-manage">
-        Manage Packages →
-      </a>
-    </div>
-
-    <!-- Public Events Calendar Management Card -->
-    <div class="management-card">
-      <div class="management-header">
-        <div class="management-icon">📅</div>
-        <div class="management-badge" id="totalCalendarEventsCountCard">—</div>
-      </div>
-      <h3 class="management-title">Shared Events Calendar</h3>
-      <p class="management-description">Manage public events and supplier publishing access</p>
-      <div class="management-stats">
-        <div class="stat-item">
-          <span class="stat-value" id="pendingCalendarRequestsCount">—</span>
-          <span class="stat-label-sm">Access Requests</span>
-        </div>
-        <div class="stat-item">
-          <span class="stat-value" id="publishedCalendarEventsCount">—</span>
-          <span class="stat-label-sm">Published</span>
-        </div>
-      </div>
-      <a href="/admin-public-calendar" class="btn-manage">
-        Manage Events →
-      </a>
-    </div>
-
-    <!-- Partners Management Card -->
-    <div class="management-card">
-      <div class="management-header">
-        <div class="management-icon">🤝</div>
-        <div class="management-badge" id="totalPartnersCountCard">—</div>
-      </div>
-      <h3 class="management-title">Partners</h3>
-      <p class="management-description">Manage affiliate partners, referral credits, and payout requests</p>
-      <div class="management-stats">
-        <div class="stat-item">
-          <span class="stat-value" id="activePartnersCount">—</span>
-          <span class="stat-label-sm">Active</span>
-        </div>
-        <div class="stat-item">
-          <span class="stat-value" id="openPayoutRequestsCount">—</span>
-          <span class="stat-label-sm">Open Payouts</span>
-        </div>
-      </div>
-      <a href="/admin-partners" class="btn-manage">
-        Manage Partners →
-      </a>
-    </div>
-  </div>
-
-  <!-- Message Moderation -->
-  <div class="section-header section-spacer">
-    <h2 class="section-title">Message Moderation</h2>
-    <p class="section-description">Search and review platform conversations</p>
-  </div>
-
-  <div class="data-section" id="messageModerationSection">
-    <div class="data-header">
-      <div class="data-controls">
-        <input id="msgModerationSearch" type="text" placeholder="Search by name, email or conversation ID…" class="search-input admin-messenger-search">
-        <select id="msgModerationStatus" class="filter-select">
-          <option value="">All statuses</option>
-          <option value="active">Active</option>
-          <option value="archived">Archived</option>
-          <option value="blocked">Blocked</option>
-        </select>
-        <button id="msgModerationSearchBtn" class="ef-cta btn-sm">Search</button>
-      </div>
-    </div>
-    <div class="table-wrapper">
-      <table id="msgModerationTable" class="admin-messenger-table" aria-label="Message Moderation">
+    <div class="adh-table-wrap">
+      <table id="msgModerationTable" class="adh-table admin-messenger-table" aria-label="Message Moderation">
         <thead>
           <tr>
             <th class="admin-messenger-th" scope="col">Participants</th>
             <th class="admin-messenger-th" scope="col">Context</th>
-            <th class="admin-messenger-th" scope="col">Last Message</th>
+            <th class="admin-messenger-th" scope="col">Last message</th>
             <th class="admin-messenger-th admin-messenger-th--center" scope="col">Unread</th>
             <th class="admin-messenger-th admin-messenger-th--center" scope="col">Action</th>
           </tr>
@@ -415,51 +305,47 @@
         </tbody>
       </table>
     </div>
-    <div id="msgModerationPager" class="admin-messenger-pagination">
-      <button id="msgModerationPrev" class="ef-cta btn-sm" disabled>← Prev</button>
-      <span id="msgModerationPageInfo" class="admin-messenger-page-info"></span>
-      <button id="msgModerationNext" class="ef-cta btn-sm" disabled>Next →</button>
+    <div id="msgModerationPager" class="adh-pager admin-messenger-pagination">
+      <button id="msgModerationPrev" type="button" class="adh-btn adh-btn--sm" disabled>Previous</button>
+      <span id="msgModerationPageInfo" class="adh-pager__info admin-messenger-page-info"></span>
+      <button id="msgModerationNext" type="button" class="adh-btn adh-btn--sm" disabled>Next</button>
     </div>
-  </div>
+  </section>
 
-  <!-- Users Section -->
-  <div class="data-section">
-    <div class="data-header">
-      <h3 class="subsection-title">Recent Users <span style="font-size:0.75rem;font-weight:400;color:#6b7280;">(20 most recent — <a href="/admin-users">view all in Users Centre</a>)</span></h3>
-      <div class="data-controls">
-        <button id="createUserBtn" class="ef-cta btn-sm btn-success">+ Create User</button>
-        <input id="userSearch" type="text" placeholder="Search recent users..." class="search-input">
-        <select id="userDateFilter" class="filter-select">
-          <option value="all" selected>All time</option>
-          <option value="7">Last 7 days</option>
-          <option value="30">Last 30 days</option>
-        </select>
+  <!-- Recent users -->
+  <section class="adh-card" aria-labelledby="adhUsersTitle">
+    <header class="adh-card__head">
+      <div>
+        <h2 class="adh-card__title" id="adhUsersTitle">Recent users</h2>
+        <p class="adh-card__sub">The 20 most recent. <a href="/admin-users" class="adh-link">View all in Users Centre</a></p>
       </div>
+      <div class="adh-card__actions">
+        <button id="createUserBtn" type="button" class="adh-btn adh-btn--sm adh-btn--primary">Create user</button>
+      </div>
+    </header>
+    <div class="adh-toolbar">
+      <label for="userSearch" class="sr-only">Search recent users</label>
+      <input id="userSearch" type="text" placeholder="Search recent users…" class="adh-input">
+      <label for="userDateFilter" class="sr-only">Joined</label>
+      <select id="userDateFilter" class="adh-input adh-input--select">
+        <option value="all" selected>All time</option>
+        <option value="7">Last 7 days</option>
+        <option value="30">Last 30 days</option>
+      </select>
     </div>
-    <div class="table-wrapper" style="overflow-x:auto;">
-      <table id="users" aria-label="Recent users" style="min-width:980px;"></table>
+    <div class="adh-table-wrap">
+      <table id="users" class="adh-table adh-table--users" aria-label="Recent users"></table>
     </div>
-  </div>
-
-  <!-- System Analytics -->
-  <div class="data-section">
-    <div class="data-header">
-      <h3 class="subsection-title">System Analytics</h3>
-    </div>
-    <div id="analytics" class="analytics-grid"></div>
-  </div>
-
-  
+  </section>
 
 </main>
 <script src="/assets/js/notification-system.js?v=18.3.0" defer></script>
 <script src="/assets/js/notification-dispatcher.js?v=18.3.0" defer></script>
 <script src="/assets/js/utils/global-error-handler.js?v=18.3.0" defer></script>
 <script src="/assets/js/utils/sentry-browser-init.js" defer></script>
-<script src="/assets/js/pages/admin-verification-source-init.js?v=18.5.1" defer></script>
-<script src="/assets/js/pages/admin-init.js?v=18.5.3" defer></script>
+<script src="/assets/js/pages/admin-init.js?v=18.5.4" defer></script>
 <script src="/assets/js/admin-features.js?v=18.3.0" defer></script>
-<script src="/assets/js/pages/admin-messages-init.js?v=18.3.1" defer></script>
+<script src="/assets/js/pages/admin-messages-init.js?v=18.3.2" defer></script>
 
 <footer class="footer" role="contentinfo">
   <div class="container flex-between">
