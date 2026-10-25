@@ -46,11 +46,17 @@
    * Small helpers
    * ------------------------------------------------------------------ */
 
-  /** HTML-escapes any value (null and undefined become an empty string) for safe use in markup. */
+  /**
+   * HTML-escapes any value (null and undefined become an empty string) for safe use in markup, in
+   * text and inside quoted attribute values: quotes are escaped as well as & < >.
+   */
   function esc(value) {
-    const div = document.createElement('div');
-    div.textContent = String(value === null || value === undefined ? '' : value);
-    return div.innerHTML;
+    return String(value === null || value === undefined ? '' : value)
+      .replace(/&/gu, '&amp;')
+      .replace(/</gu, '&lt;')
+      .replace(/>/gu, '&gt;')
+      .replace(/"/gu, '&quot;')
+      .replace(/'/gu, '&#39;');
   }
 
   /** Formats a number as whole pounds, e.g. £3,500 (non-numbers become £0). */
@@ -177,16 +183,22 @@
    * `fromItems` is the part the /budget page also counts as "committed" (its budget lines);
    * `fromPackages` is the listed price of saved supplier packages, which only this page adds. The
    * Budget tile shows both, so the two pages' figures can be reconciled.
+   *
+   * `unavailable` counts packages whose prices could not be fetched (the request failed). Their
+   * price is unknown, not zero, so the tile says so rather than showing a smaller figure with
+   * confidence.
    */
   async function calculateSpent(plan) {
     let fromItems = 0;
     let fromPackages = 0;
     let unpriced = 0;
+    let unavailable = 0;
     const totals = () => ({
       spent: fromItems + fromPackages,
       fromItems,
       fromPackages,
       unpriced,
+      unavailable,
     });
 
     (Array.isArray(plan.budgetItems) ? plan.budgetItems : []).forEach(item => {
@@ -216,10 +228,14 @@
             headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
             body: JSON.stringify({ ids: chunk }),
           });
-          return response.ok ? (await response.json()).packages || [] : [];
+          if (response.ok) {
+            return (await response.json()).packages || [];
+          }
         } catch {
-          return [];
+          /* counted below */
         }
+        unavailable += chunk.length;
+        return [];
       })
     );
 
@@ -316,6 +332,9 @@
       } else {
         committed = `${picked}Set a total to see what is left as you book.`;
       }
+      if (money.unavailable > 0) {
+        committed += ` ${plural(money.unavailable, 'saved package')} could not be priced just now.`;
+      }
       return tile(
         'Budget',
         `<p class="cdh-tile__value cdh-tile__value--empty">Not set</p><p class="cdh-tile__sub">${esc(committed)}</p><p class="cdh-tile__sub">${manage}</p>`,
@@ -328,6 +347,10 @@
       ? `${gbp(money.spent - total)} over budget`
       : `${gbp(total - money.spent)} left`;
     const unpriced = money.unpriced ? ` · ${plural(money.unpriced, 'item')} not priced` : '';
+    // A failed price lookup is an unknown amount, so the figure above is only what is known.
+    const unavailable = money.unavailable
+      ? ` · ${plural(money.unavailable, 'package')} could not be priced just now`
+      : '';
     // The budget page counts budget lines only. When saved packages add to this figure, say how
     // much of it they are, so the two pages' "committed" numbers can be told apart.
     const breakdown =
@@ -338,7 +361,7 @@
       'Budget',
       `<p class="cdh-tile__value">${gbp(money.spent)}<span class="cdh-tile__unit"> of ${gbp(total)}</span></p>
        ${bar(percent, `Budget used: ${Math.round(percent)}%`, over ? 'warn' : '')}
-       <p class="cdh-tile__sub${over ? ' cdh-tile__sub--warn' : ''}">${esc(left + unpriced)}</p>
+       <p class="cdh-tile__sub${over ? ' cdh-tile__sub--warn' : ''}">${esc(left + unpriced + unavailable)}</p>
        ${breakdown}
        <p class="cdh-tile__sub">${manage}</p>`,
       edit
@@ -640,7 +663,10 @@
         );
         return;
       }
-      if (event.target.closest?.('[data-retry-steps]')) {
+      const retry = event.target.closest?.('[data-retry-steps]');
+      if (retry && !retry.disabled) {
+        // One click, one reload: the button is replaced when the page redraws.
+        retry.disabled = true;
         document.dispatchEvent(new CustomEvent('cdh:reload'));
       }
     });
@@ -801,7 +827,7 @@
       getJson(milestonesUrl(plan)),
       plan
         ? calculateSpent(plan)
-        : Promise.resolve({ spent: 0, fromItems: 0, fromPackages: 0, unpriced: 0 }),
+        : Promise.resolve({ spent: 0, fromItems: 0, fromPackages: 0, unpriced: 0, unavailable: 0 }),
       plan?.id
         ? getJson(`/api/me/plans/${encodeURIComponent(plan.id)}/rsvp-summary`)
         : Promise.resolve(null),

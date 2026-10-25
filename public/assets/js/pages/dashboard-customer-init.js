@@ -21,21 +21,15 @@ function readStored(key) {
 }
 
 /**
- * Whether this browser may keep a remembered choice or a cached copy of server data. Those follow
- * the visitor's cookie choice (functional storage must have been accepted); with no consent banner
- * on the page there is no choice to follow. Mirrors efMayRememberChoices() in app.js.
+ * Whether this browser may keep a remembered choice or a cached copy of server data. The decision
+ * is made in one place, utils/auth-state.js (efMayKeepFunctionalStorage). If that script is not
+ * there, nothing is kept: the server holds the real data, so this only costs a faster first paint.
  * @returns {boolean} True when it may be kept.
  */
 function mayKeepFunctionalStorage() {
-  try {
-    const consent = window.CookieConsent;
-    if (!consent || typeof consent.getConsent !== 'function') {
-      return true;
-    }
-    return consent.getConsent()?.functional === true;
-  } catch {
-    return false;
-  }
+  return typeof window.efMayKeepFunctionalStorage === 'function'
+    ? window.efMayKeepFunctionalStorage()
+    : false;
 }
 
 /** Browser copies of server data; kept only with functional consent (see cookie-consent.js). */
@@ -81,40 +75,29 @@ function rememberPlanLimit(data) {
 function showPlansLoadError(container) {
   container.innerHTML =
     '<div class="cdh-empty"><p class="cdh-empty__title">Your plans could not be loaded</p><p class="cdh-empty__text">Check your connection and try again.</p><button type="button" class="cdh-btn cdh-btn--secondary cdh-btn--sm" data-retry-plans>Try again</button></div>';
-  container.querySelector('[data-retry-plans]')?.addEventListener('click', () => {
+  const retry = container.querySelector('[data-retry-plans]');
+  retry?.addEventListener('click', () => {
+    retry.disabled = true;
+    retry.textContent = 'Trying again…';
     reloadDashboard();
   });
 }
 
 /**
  * Draws the "Your plans" list.
- * @param {Array|null} [preloadedPlans] - Plans already fetched by the caller; null when that fetch
- *   failed (the list then says so, rather than asking again), undefined to fetch them here
+ * @param {Array|null} plans - The plans the caller fetched; null when that fetch failed (the list
+ *   then says so, rather than asking again, and never shows "No plans yet" for a failure)
  */
-async function loadCustomerPlans(preloadedPlans) {
+async function loadCustomerPlans(plans) {
   const container = document.getElementById('customer-plans-list');
   if (!container) {
     return;
   }
 
   try {
-    let plans = [];
-    if (preloadedPlans === null) {
+    if (!Array.isArray(plans)) {
       showPlansLoadError(container);
       return;
-    }
-    if (preloadedPlans) {
-      plans = preloadedPlans;
-    } else {
-      const response = await fetch('/api/me/plans', { credentials: 'include' });
-      if (!response.ok) {
-        showPlansLoadError(container);
-        return;
-      }
-      const data = await response.json();
-      rememberPlanLimit(data);
-      plans = data.plans || [];
-      plansLoaded = true;
     }
     dashboardPlans = plans;
 
@@ -207,7 +190,21 @@ async function loadCustomerPlans(preloadedPlans) {
  * the page keeps what it last really loaded (and says it could not refresh), or, if it never
  * loaded them, says they could not be loaded: it never turns a failed request into "no plans".
  */
-async function reloadDashboard() {
+function reloadDashboard() {
+  // A second click while a reload is under way joins it instead of starting another.
+  if (!reloadInFlight) {
+    reloadInFlight = refreshDashboard().finally(() => {
+      reloadInFlight = null;
+    });
+  }
+  return reloadInFlight;
+}
+
+/** The reload that is under way, if any. */
+let reloadInFlight = null;
+
+/** Does the work of reloadDashboard(). */
+async function refreshDashboard() {
   let plans = null;
   try {
     const response = await fetch('/api/me/plans', { credentials: 'include' });
@@ -223,7 +220,7 @@ async function reloadDashboard() {
     plans = dashboardPlans;
     const notice = showPageNotice(
       'Could not refresh your plans',
-      'Showing what we loaded earlier. Check your connection and try again.'
+      'Showing what we loaded earlier, which may be out of date. Check your connection and try again.'
     );
     window.setTimeout(() => notice.remove(), 5000);
   }
@@ -486,6 +483,9 @@ function confirmDeletePlan(plan, onDeleted) {
         throw new Error(payload.error || 'We could not delete this plan. Please try again.');
       }
       dialog.close();
+      // It is gone on the server. If the refresh that follows fails, the plans kept on screen must
+      // not include it (clicking Delete on it again would only answer "not found").
+      dashboardPlans = dashboardPlans.filter(candidate => candidate.id !== plan.id);
       if (typeof onDeleted === 'function') {
         onDeleted();
       }
@@ -500,14 +500,21 @@ function confirmDeletePlan(plan, onDeleted) {
   showDialog(dialog, opener);
 }
 
-/** HTML-escapes a string for safe use in markup (non-strings become an empty string). */
+/**
+ * HTML-escapes a string for safe use in markup, in text and inside quoted attribute values
+ * (non-strings become an empty string). Quotes are escaped too: a plan name is placed in
+ * value="...", aria-label="..." and data-plan-id="...".
+ */
 function escapeHtml(unsafe) {
   if (typeof unsafe !== 'string') {
     return '';
   }
-  const div = document.createElement('div');
-  div.textContent = unsafe;
-  return div.innerHTML;
+  return unsafe
+    .replace(/&/gu, '&amp;')
+    .replace(/</gu, '&lt;')
+    .replace(/>/gu, '&gt;')
+    .replace(/"/gu, '&quot;')
+    .replace(/'/gu, '&#39;');
 }
 
 /** Long British date in London time, or an empty string when the input is missing or invalid. */
@@ -564,7 +571,9 @@ async function checkAuth() {
 
 /** Tells the person the sign-in check failed (not that they are signed out) and offers a retry. */
 function showSignInCheckError() {
-  document.getElementById('cdh-signin-check-error')?.remove();
+  const previous = document.getElementById('cdh-signin-check-error');
+  const hadFocus = Boolean(previous?.contains(document.activeElement));
+  previous?.remove();
   const banner = document.createElement('div');
   banner.id = 'cdh-signin-check-error';
   banner.className = 'cdh-banner';
@@ -577,9 +586,12 @@ function showSignInCheckError() {
   retry.type = 'button';
   retry.className = 'cdh-btn cdh-btn--secondary cdh-btn--sm';
   retry.textContent = 'Try again';
-  retry.addEventListener('click', () => {
-    banner.remove();
-    initDashboard();
+  retry.addEventListener('click', async () => {
+    // The banner stays until the check has an answer, so a second click cannot start a second
+    // start-up and focus is not lost; a new banner (if it fails again) takes the focus back.
+    retry.disabled = true;
+    retry.textContent = 'Checking…';
+    await initDashboard();
   });
   banner.append(text, retry);
   const hero = document.querySelector('.cdh-hero');
@@ -587,6 +599,9 @@ function showSignInCheckError() {
     hero.parentNode.insertBefore(banner, hero);
   } else {
     document.body.insertBefore(banner, document.body.firstChild);
+  }
+  if (hadFocus) {
+    retry.focus();
   }
 }
 
@@ -615,8 +630,10 @@ function scrollToHashTarget() {
 
 /** Page start-up: checks sign-in, then loads every dashboard section in parallel. */
 async function initDashboard() {
-  // Ensure a CSRF token is available before any state-changing requests
-  await ensureCsrfToken();
+  // The CSRF token is only needed by the writes further down (claiming a guest plan, saving), and
+  // it does not depend on who is signed in, so it is requested alongside the sign-in check instead
+  // of before it. Whoever needs it later asks ensureCsrfToken() again and shares this request.
+  ensureCsrfToken();
 
   const auth = await checkAuth();
   // The sign-in guard has already confirmed this person before showing the page, so a check that
@@ -630,6 +647,18 @@ async function initDashboard() {
       showSignInCheckError();
     }
     return;
+  }
+  document.getElementById('cdh-signin-check-error')?.remove();
+
+  // When the guard could not confirm the person (its own check failed), this repeat of the check is
+  // what identified them, so apply the guard's rule here too: this is the customer dashboard.
+  if (!window.__EF_DASHBOARD_USER__) {
+    window.__EF_DASHBOARD_USER__ = user;
+    const elsewhere = { admin: '/admin', supplier: '/dashboard/supplier' }[user.role];
+    if (elsewhere) {
+      window.location.replace(elsewhere);
+      return;
+    }
   }
 
   // A different person signing in on this browser must not inherit the last one's stored budget.
@@ -781,12 +810,16 @@ async function populateSavedSupplierStatus() {
       writeStored('eventflow_saved_suppliers', JSON.stringify(savedSupplierIds));
     }
   } catch {
-    // Fallback to localStorage on network error
+    // The request itself failed. The copy kept in this browser (when the visitor allows one) may
+    // stand in, clearly labelled; with nothing there, a failed request says nothing about whether
+    // anyone is saved, so it is an error with a retry, never "No saved suppliers yet".
     try {
-      savedSupplierIds = JSON.parse(readStored('eventflow_saved_suppliers') || '[]');
+      const copy = JSON.parse(readStored('eventflow_saved_suppliers') || '[]');
+      savedSupplierIds = Array.isArray(copy) ? copy : [];
     } catch {
       /* ignore */
     }
+    refused = savedSupplierIds.length === 0;
   }
   const savedCount = savedSupplierIds.length;
 
@@ -800,9 +833,7 @@ async function populateSavedSupplierStatus() {
     // A server error says nothing about whether anyone is saved, so do not call the list empty.
     savedStatusEl.innerHTML =
       '<div class="cdh-empty"><p class="cdh-empty__title">Your saved suppliers could not be loaded</p><p class="cdh-empty__text">Check your connection and try again.</p><button type="button" class="cdh-btn cdh-btn--secondary cdh-btn--sm" data-retry-saved>Try again</button></div>';
-    savedStatusEl.querySelector('[data-retry-saved]')?.addEventListener('click', () => {
-      populateSavedSupplierStatus();
-    });
+    wireSavedRetry(savedStatusEl);
     if (openPlanBtn) {
       openPlanBtn.hidden = true;
     }
@@ -838,9 +869,20 @@ async function populateSavedSupplierStatus() {
   if (!loaded) {
     savedStatusEl.insertAdjacentHTML(
       'beforeend',
-      '<p class="cdh-note">Showing your last saved list while we reconnect.</p>'
+      '<p class="cdh-note">Showing your last saved list while we reconnect. <button type="button" class="cdh-link" data-retry-saved>Try again</button></p>'
     );
+    wireSavedRetry(savedStatusEl);
   }
+}
+
+/** Makes the "Try again" button in the saved-suppliers card reload it once per click. */
+function wireSavedRetry(container) {
+  const retry = container.querySelector('[data-retry-saved]');
+  retry?.addEventListener('click', () => {
+    retry.disabled = true;
+    retry.textContent = 'Trying again…';
+    populateSavedSupplierStatus();
+  });
 }
 
 /** Starts the events calendar, resolving once it has been set up (or its fallback message shown). */
@@ -869,20 +911,45 @@ function initCalendar() {
   });
 }
 
-/** Shows a short message under the budget form. tone: success | warn | error */
-function showBudgetStatus(message, tone) {
+/**
+ * Shows a short message under the budget form. tone: success | warn | error | info
+ * @param {string} message - The text
+ * @param {string} tone - How it is styled
+ * @param {Function} [onRetry] - When given, a "Try again" button is added that calls it once
+ */
+function showBudgetStatus(message, tone, onRetry) {
   const budgetStatus = document.getElementById('budget-status');
   if (!budgetStatus) {
     return;
   }
   budgetStatus.dataset.tone = tone;
   budgetStatus.textContent = message;
+  if (onRetry) {
+    const retry = document.createElement('button');
+    retry.type = 'button';
+    retry.className = 'cdh-btn cdh-btn--secondary cdh-btn--sm';
+    retry.textContent = 'Try again';
+    retry.addEventListener('click', async () => {
+      retry.disabled = true;
+      retry.textContent = 'Trying again…';
+      await onRetry();
+      showBudgetStatus(
+        plansLoaded ? 'Your plans have loaded. Enter your budget and save.' : message,
+        plansLoaded ? 'info' : tone,
+        plansLoaded ? undefined : onRetry
+      );
+    });
+    budgetStatus.append(' ', retry);
+  }
 }
 
 /** A brief non-blocking notice at the top of the page. */
 function showPageNotice(title, message) {
+  // One slot: a new notice replaces the one on screen instead of stacking on top of it.
+  document.querySelectorAll('.cdh-toast[data-page-notice]').forEach(old => old.remove());
   const notice = document.createElement('div');
   notice.className = 'cdh-toast';
+  notice.dataset.pageNotice = '';
   notice.setAttribute('role', 'status');
   const strong = document.createElement('strong');
   strong.textContent = title;
@@ -944,8 +1011,12 @@ function setupEventHandlers() {
   });
 
   // Budget settings handler
+  let savingBudget = false;
   document.getElementById('budget-settings-form')?.addEventListener('submit', async event => {
     event.preventDefault();
+    if (savingBudget) {
+      return;
+    }
 
     const input = document.getElementById('custom-budget-input');
     const budget = parseFloat(input.value);
@@ -957,6 +1028,36 @@ function setupEventHandlers() {
       return;
     }
 
+    savingBudget = true;
+    try {
+      await saveBudget(budget);
+    } finally {
+      savingBudget = false;
+    }
+  });
+
+  /**
+   * Saves the budget on the focus plan (and a browser copy), then redraws the summary.
+   * @param {number} budget - The validated amount
+   */
+  async function saveBudget(budget) {
+    // The plans never loaded (the form can be opened from a #budget-settings-form link even then),
+    // so there is no way to know which plan this belongs to or whether there is one. Try to load
+    // them; if that fails too, say so. Nothing is sent, nothing is called saved, and the page's
+    // "could not load your plans" state is left as it is rather than redrawn as "no plans".
+    if (!plansLoaded) {
+      showBudgetStatus('Loading your plans…', 'info');
+      await reloadDashboard();
+      if (!plansLoaded) {
+        showBudgetStatus(
+          'We could not load your plans, so your budget has not been saved. Check your connection and try again.',
+          'error',
+          () => reloadDashboard()
+        );
+        return;
+      }
+    }
+
     // Keep a copy in this browser for fast access. It is only a copy: blocked or full storage must
     // never stop the budget reaching the server, which is where it really lives.
     const storedLocally = writeStored('eventflow_custom_budget', budget.toString());
@@ -966,8 +1067,9 @@ function setupEventHandlers() {
     let serverSyncFailed = false;
     const primaryPlan = focusPlan();
     if (!primaryPlan && !storedLocally) {
+      // The plans did load and there are none, so this is the one place "no plan" is true.
       showBudgetStatus(
-        'We could not save your budget: your browser would not keep it and there is no plan to save it to yet.',
+        'We could not save your budget: your browser would not keep it (cookie choices can stop that) and there is no plan to save it to yet.',
         'error'
       );
       return;
@@ -978,7 +1080,7 @@ function setupEventHandlers() {
           method: 'PATCH',
           headers: {
             'Content-Type': 'application/json',
-            'X-CSRF-Token': getCsrfToken(),
+            'X-CSRF-Token': await ensureCsrfToken(),
           },
           credentials: 'include',
           body: JSON.stringify({ budget }),
@@ -1033,7 +1135,7 @@ function setupEventHandlers() {
       document.getElementById('budget-settings-cancel')?.click();
       showBudgetStatus('', 'success');
     }, 2500);
-  });
+  }
 
   // Load saved budget on page load — prefer server plan budget, fall back to localStorage
   const budgetFromPlan = dashboardPlans.length
@@ -1093,6 +1195,28 @@ function setupEventHandlers() {
 }
 
 /**
+ * The server's final answers to a claim: no token sent, no such plan or already claimed (404), the
+ * customer already has a plan (400), or a conflict (409). Retrying cannot change any of them, so the
+ * stored token is dropped. Anything else (a 5xx or 502/503/504 page from a proxy, 429, 408, a
+ * rejected CSRF token, a dropped connection) says nothing about the plan, so the token is kept and
+ * the claim is tried again on the next visit; deleting it there would orphan the guest's plan.
+ */
+const CLAIM_FINAL_STATUSES = [400, 404, 409];
+
+/** POSTs the guest token to claim its plan; resolves to the response. */
+async function postClaim(guestToken) {
+  return fetch('/api/me/plans/claim', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-CSRF-Token': await ensureCsrfToken(),
+    },
+    credentials: 'include',
+    body: JSON.stringify({ token: guestToken }),
+  });
+}
+
+/**
  * Claim guest plan if token exists in localStorage
  */
 async function claimGuestPlanIfExists() {
@@ -1103,28 +1227,24 @@ async function claimGuestPlanIfExists() {
   }
 
   try {
-    // Get CSRF token
-    const csrfToken = getCsrfToken();
-
-    const response = await fetch('/api/me/plans/claim', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-CSRF-Token': csrfToken,
-      },
-      credentials: 'include',
-      body: JSON.stringify({ token: guestToken }),
-    });
+    let response = await postClaim(guestToken);
+    if (response.status === 403) {
+      // The CSRF token may have expired; ask for a fresh one and try once more.
+      window.__CSRF_TOKEN__ = null;
+      response = await postClaim(guestToken);
+    }
 
     if (response.ok) {
       // Successfully claimed
       removeStored('eventflow_guest_plan_token');
       dbg('Guest plan claimed successfully');
-    } else {
+    } else if (CLAIM_FINAL_STATUSES.includes(response.status)) {
       const error = await readJson(response);
-      console.warn('Failed to claim guest plan:', error.error);
-      // Remove token even if claim failed (might be expired or already claimed)
+      console.warn('Guest plan cannot be claimed:', error.error);
+      // Expired, already claimed, or this customer already has a plan: it will never work.
       removeStored('eventflow_guest_plan_token');
+    } else {
+      console.warn(`Could not claim the guest plan (status ${response.status}); will try again.`);
     }
   } catch (error) {
     console.error('Error claiming guest plan:', error);
@@ -1160,10 +1280,25 @@ function getCsrfToken() {
  * Fetch and cache a CSRF token from the server.
  * Also updates the meta tag and window.__CSRF_TOKEN__ for other callers.
  */
-async function ensureCsrfToken() {
+function ensureCsrfToken() {
   if (window.__CSRF_TOKEN__) {
-    return window.__CSRF_TOKEN__;
+    return Promise.resolve(window.__CSRF_TOKEN__);
   }
+  // Start-up asks while the sign-in check is still running, and the first write asks again: they
+  // share one request.
+  if (!csrfInFlight) {
+    csrfInFlight = fetchCsrfToken().finally(() => {
+      csrfInFlight = null;
+    });
+  }
+  return csrfInFlight;
+}
+
+/** The CSRF request that is under way, if any. */
+let csrfInFlight = null;
+
+/** Does the work of ensureCsrfToken(). */
+async function fetchCsrfToken() {
   try {
     const resp = await fetch('/api/csrf-token', { credentials: 'include' });
     if (resp.ok) {
