@@ -822,6 +822,50 @@ describe('GET /enquiries/export', () => {
       expect(res.text).not.toContain('"Notice"');
     });
 
+    /**
+     * Add many conversations for the signed-in supplier.
+     *
+     * @param {number} count - How many
+     * @param {string} otherRole - Role of the other participant ('customer' is exported)
+     * @returns {void}
+     */
+    function addConversations(count, otherRole) {
+      const store = fakeDb.__store();
+      store.conversations_v4 = store.conversations_v4 || [];
+      for (let index = 0; index < count; index += 1) {
+        store.conversations_v4.push({
+          _id: `bulk-${otherRole}-${index}`,
+          status: 'active',
+          messageCount: 1,
+          createdAt: new Date(hoursAgo(30)),
+          updatedAt: new Date(hoursAgo(20)),
+          participants: [
+            { userId: 'user-1', role: 'supplier', unreadCount: 0 },
+            { userId: `other-${otherRole}-${index}`, role: otherRole },
+          ],
+        });
+      }
+    }
+
+    it('conversations that are not exported (supplier-to-supplier) never make an export look cut off', async () => {
+      addConversations(1100, 'supplier');
+
+      const res = await call('get', '/enquiries/export');
+
+      expect(res.headers['x-export-truncated']).toBe('false');
+      expect(res.text).not.toContain('"Notice"');
+    });
+
+    it('more than the cap of customer conversations is flagged, exactly the cap is not', async () => {
+      addConversations(1000, 'customer');
+      const exact = await call('get', '/enquiries/export');
+      expect(exact.headers['x-export-truncated']).toBe('false');
+
+      addConversations(1, 'customer');
+      const over = await call('get', '/enquiries/export');
+      expect(over.headers['x-export-truncated']).toBe('true');
+    });
+
     it('over the cap is flagged in the header and by a visible last row', async () => {
       addContactEnquiries(1005);
 

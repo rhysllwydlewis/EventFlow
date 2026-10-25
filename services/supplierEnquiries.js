@@ -778,16 +778,34 @@ async function buildExport({ supplierId, ownerUserId }) {
       'conversations_v4',
       {
         participants: { $elemMatch: { userId: ownerUserId, isDeleted: { $ne: true } } },
+        // Only conversations with a customer are exported, so only they use up the cap.
+        'participants.role': 'customer',
         messageCount: { $gt: 0 },
       },
       { limit: MAX_EXPORT_CONVERSATIONS + 1, sort: { updatedAt: -1 }, throwOnError: true }
     ),
   ]);
   const conversations = conversationRows || [];
+  const isCustomerConversation = conversation => {
+    const participants = conversation.participants || [];
+    // The query already leaves out conversations the supplier deleted; checking again here keeps
+    // the rule in one place a reader can see, whatever the store did with the filter.
+    const mine = participants.find(participant => participant.userId === ownerUserId);
+    return (
+      Boolean(mine) &&
+      mine.isDeleted !== true &&
+      participants.some(
+        participant => participant.role === 'customer' && participant.userId !== ownerUserId
+      )
+    );
+  };
+  // Only conversations that would be exported count towards the cap, so rows that are dropped
+  // anyway (supplier-to-supplier, admin threads) can never make an export look cut off.
+  const exportable = conversations.filter(isCustomerConversation);
   const truncated =
     quoteRows.length > MAX_RECORDS_PER_SOURCE ||
     contactRows.length > MAX_RECORDS_PER_SOURCE ||
-    conversations.length > MAX_EXPORT_CONVERSATIONS;
+    exportable.length > MAX_EXPORT_CONVERSATIONS;
   const quotes = quoteRows
     .slice(0, MAX_RECORDS_PER_SOURCE)
     .filter(row => sourceOfId(row.id))
@@ -797,21 +815,7 @@ async function buildExport({ supplierId, ownerUserId }) {
     .filter(row => sourceOfId(row.id))
     .map(normaliseContactEnquiry);
 
-  const customerConversations = conversations
-    .slice(0, MAX_EXPORT_CONVERSATIONS)
-    .filter(conversation => {
-      const participants = conversation.participants || [];
-      // The query already leaves out conversations the supplier deleted; checking again here keeps
-      // the rule in one place a reader can see, whatever the store did with the filter.
-      const mine = participants.find(participant => participant.userId === ownerUserId);
-      return (
-        Boolean(mine) &&
-        mine.isDeleted !== true &&
-        participants.some(
-          participant => participant.role === 'customer' && participant.userId !== ownerUserId
-        )
-      );
-    });
+  const customerConversations = exportable.slice(0, MAX_EXPORT_CONVERSATIONS);
   const customerIds = [
     ...new Set(
       customerConversations.flatMap(conversation =>
