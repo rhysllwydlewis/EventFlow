@@ -81,6 +81,34 @@ export function findViolations({ changedAssets, pages, allow = [] }) {
   return violations;
 }
 
+/**
+ * Every .html page under a directory, as '/'-separated paths relative to it.
+ *
+ * This walks subdirectories on purpose: articles/, partner/, supplier/ and
+ * messenger/ load the same shared assets as the top-level pages, and an
+ * unversioned or unbumped reference there keeps returning visitors on the
+ * cached copy just the same. (Only public/*.html used to be scanned, so
+ * auth-state.js loaded bare by 62 subdirectory pages passed unnoticed.) The
+ * assets folder holds no pages and is skipped.
+ * @param {string} dir Absolute directory to walk.
+ * @param {string} [prefix] Relative path of dir, used by the recursion.
+ * @returns {string[]} Sorted relative page paths.
+ */
+export function listHtmlPages(dir, prefix = '') {
+  const found = [];
+  for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+    const relative = prefix ? `${prefix}/${entry.name}` : entry.name;
+    if (entry.isDirectory()) {
+      if (relative !== 'assets' && entry.name !== 'node_modules') {
+        found.push(...listHtmlPages(path.join(dir, entry.name), relative));
+      }
+    } else if (entry.name.endsWith('.html')) {
+      found.push(relative);
+    }
+  }
+  return found.sort();
+}
+
 function git(root, args) {
   return execFileSync('git', args, { cwd: root, encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 });
 }
@@ -188,12 +216,7 @@ export function run(argv = process.argv.slice(2), env = process.env) {
     allow.push(...jadeChanged);
   }
 
-  const pageFiles = fs
-    .readdirSync(path.join(root, 'public'))
-    .filter(name => name.endsWith('.html'))
-    .sort();
-
-  const pages = pageFiles.map(name => ({
+  const pages = listHtmlPages(path.join(root, 'public')).map(name => ({
     page: `public/${name}`,
     base: tryGit(root, ['show', `${base}:public/${name}`]),
     head: fs.readFileSync(path.join(root, 'public', name), 'utf8'),

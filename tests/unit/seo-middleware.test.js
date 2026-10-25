@@ -116,3 +116,24 @@ describe('SEO noindex middleware — next() is always called', () => {
     expect(nextCalled).toBe(true);
   });
 });
+
+describe('robots.txt does not hide the noindex demo pages from crawlers', () => {
+  // A Disallowed URL is never fetched, so the X-Robots-Tag: noindex header is never seen and
+  // the URL can still be indexed from links alone. Production's generated robots.txt (sitemap.js)
+  // already leaves HTML pages crawlable for this reason; the static copy must not undo it.
+  const fs = require('fs');
+  const pathModule = require('path');
+  const robots = fs.readFileSync(pathModule.join(__dirname, '../../public/robots.txt'), 'utf8');
+
+  test.each([
+    'mobile-preview',
+    'demo-loading-spinner',
+    'test-notifications',
+    'messaging-demo',
+    'google-auth-diagnostics',
+    'supplier-card-showcase',
+  ])('/%s is noindexed and not Disallowed', page => {
+    expect(isNoindex(`/${page}`)).toBe(true);
+    expect(robots).not.toMatch(new RegExp(`^\\s*Disallow:\\s*/${page}\\b`, 'm'));
+  });
+});
