@@ -1138,7 +1138,7 @@ function toNullProtoTree(value) {
 /**
  * Create or replace an own, ordinary data property on a null-prototype node and return the stored
  * value. Done with defineProperty rather than `node[name] = value` because the name is a segment of
- * a dotted key: defineProperty never runs a setter, so even `__proto__` becomes a plain data field
+ * a dotted key: defining the property never runs a setter, so even `__proto__` becomes a plain data field
  * (as in MongoDB) and can never reach Object.prototype.
  * @param {Object} node - Null-prototype object
  * @param {string} name - Property name
@@ -1146,7 +1146,8 @@ function toNullProtoTree(value) {
  * @returns {*} value
  */
 function setOwnProperty(node, name, value) {
-  Object.defineProperty(node, name, {
+  // Reflect.defineProperty (not assignment) so no setter can run; node has no prototype chain at all.
+  Reflect.defineProperty(node, name, {
     value,
     writable: true,
     enumerable: true,
