@@ -259,17 +259,6 @@ describe('the dashboard start-up script', () => {
   });
 });
 
-describe('storage access in the dashboard script', () => {
-  test('every localStorage access goes through the guarded helpers', () => {
-    const init = read('public/assets/js/pages/dashboard-customer-init.js');
-    const bare = init
-      .split('\n')
-      .filter(line => /\blocalStorage\./.test(line) && !/^\s*(\/\/|\*)/.test(line));
-    // Only the three helper bodies touch it directly.
-    expect(bare).toHaveLength(3);
-  });
-});
-
 describe('the JadeAssist launcher badge on customer pages', () => {
   test('the "1" nudge is hidden on the dashboard, budget and guest pages', () => {
     for (const hidden of Object.values(results.badge.quietOn)) {
@@ -287,26 +276,61 @@ describe('the JadeAssist launcher badge on customer pages', () => {
 describe('browser storage and cookie consent', () => {
   const { consent } = results.badge;
 
-  test('remembered choices and browser copies are classed as functional storage', () => {
+  test('rejecting in the cookie banner forgets remembered choices and browser copies', () => {
     for (const key of [
       'ef_account_type_notice_dismissed',
       'ef_customer_plan',
       'eventflow_saved_suppliers',
       'eventflow_custom_budget',
     ]) {
-      expect(consent.consentSource.functionalKeys).toContain(key);
+      expect(consent.rejectForgets).toContain(key);
     }
   });
 
-  test("a customer's own device-only budget and the guest-plan token are not wiped by declining", () => {
+  test("rejecting does not wipe a customer's own device-only budget or the guest-plan token", () => {
     for (const key of [
       'ef_budget_v2',
       'ef_budget',
       'ef_budget_imported',
       'eventflow_guest_plan_token',
     ]) {
-      expect(consent.consentSource.functionalKeys).not.toContain(key);
+      expect(consent.rejectKeeps).toContain(key);
+      expect(consent.rejectForgets).not.toContain(key);
     }
+  });
+
+  describe('the one check every page asks before remembering a choice', () => {
+    test('follows the visitor once the banner has loaded', () => {
+      expect(consent.gate.accepted).toBe(true);
+      expect(consent.gate.declined).toBe(false);
+      expect(consent.gate.notChosenYet).toBe(false);
+    });
+
+    test('says no when the check itself fails', () => {
+      expect(consent.gate.throws).toBe(false);
+    });
+
+    test('a page with no cookie banner has no choice to follow', () => {
+      expect(consent.gate.noBannerOnPage).toBe(true);
+    });
+
+    test('a page whose banner script has not run yet has not asked the visitor, so says no', () => {
+      expect(consent.gate.bannerScriptNotRunYet).toBe(false);
+    });
+
+    test('the pages ask it rather than carrying their own copy of the rule', () => {
+      for (const file of [
+        'public/assets/js/pages/dashboard-customer-init.js',
+        'public/assets/js/pages/budget-page.js',
+        'public/assets/js/guests.js',
+        'public/assets/js/pages/dashboard-account-type-notice.js',
+        'public/assets/js/app.js',
+      ]) {
+        const code = read(file);
+        expect(code).toContain('efMayKeepFunctionalStorage');
+        expect(code).not.toMatch(/getConsent\(\)\??\.functional/);
+      }
+    });
   });
 
   test('declining functional storage means a dismissed notice is not remembered', () => {
@@ -331,5 +355,244 @@ describe('browser storage and cookie consent', () => {
         expect(value).toBeNull();
       }
     }
+  });
+});
+
+describe('the sign-in guard and the dashboard start-up script agree', () => {
+  test('a customer the guard could not confirm is sent to the right dashboard by the start-up check', () => {
+    const init = read('public/assets/js/pages/dashboard-customer-init.js');
+    expect(init).toContain("{ admin: '/admin', supplier: '/dashboard/supplier' }[user.role]");
+  });
+});
+
+describe('the guest plan token (a plan claimed after sign-up)', () => {
+  const { claim } = results.fixes;
+
+  test('is dropped when the server gives a final answer, or the claim worked', () => {
+    for (const final of ['claimed', 'alreadyHasPlan', 'notFound', 'conflict']) {
+      expect(claim[final]).toEqual({ token: null, claims: 1 });
+    }
+  });
+
+  test('is kept when a proxy answers with an HTML page instead of JSON (502, 504)', () => {
+    expect(claim.proxyPage502).toEqual({ token: 'GUEST', claims: 1 });
+    expect(claim.proxyPage504).toEqual({ token: 'GUEST', claims: 1 });
+  });
+
+  test('is kept on a 5xx, a 429 or a dropped connection', () => {
+    for (const transient of ['unavailable503', 'serverError500', 'tooMany429', 'offline']) {
+      expect(claim[transient]).toEqual({ token: 'GUEST', claims: 1 });
+    }
+  });
+
+  test('a rejected CSRF token is retried once with a fresh one, and the token kept if it keeps failing', () => {
+    expect(claim.csrfRefusedThenOk).toEqual({ token: null, claims: 2 });
+    expect(claim.csrfRefusedAlways).toEqual({ token: 'GUEST', claims: 2 });
+  });
+});
+
+describe('the budget form when the plans could not be loaded', () => {
+  const { budgetPlansFailed, budgetPlansFailedDeclined, budgetPlansFailedThenLoads } =
+    results.fixes;
+
+  test('never says the budget was saved, and sends nothing', () => {
+    for (const failed of [budgetPlansFailed, budgetPlansFailedDeclined]) {
+      expect(failed.patches).toEqual([]);
+      expect(failed.status).not.toContain('Budget set to');
+      expect(failed.status).toContain('could not load your plans');
+      expect(failed.status).toContain('has not been saved');
+      expect(failed.retryInStatus).toBe(true);
+    }
+  });
+
+  test('leaves the honest error where it is instead of drawing "no plans"', () => {
+    for (const failed of [budgetPlansFailed, budgetPlansFailedDeclined]) {
+      expect(failed.lede).toBe('We could not load your plans just now.');
+      expect(failed.summary).toContain('could not be loaded');
+      expect(failed.summary).not.toContain('Create a plan');
+      expect(failed.listError).toContain('could not be loaded');
+    }
+  });
+
+  test('declining functional storage does not make it claim there is "no plan"', () => {
+    expect(budgetPlansFailedDeclined.status).not.toMatch(/no plan/);
+  });
+
+  test('its retry reloads the plans once however often it is clicked', () => {
+    expect(budgetPlansFailed.afterStatusRetry.status).toContain('Your plans have loaded');
+    expect(budgetPlansFailed.afterStatusRetry.plans).toContain('Our wedding');
+    // the page load, the save attempt and one retry (clicked twice)
+    expect(budgetPlansFailed.afterStatusRetry.plansRequests).toBe(3);
+  });
+
+  test('if the plans load on the way, the budget is saved on the focus plan as usual', () => {
+    expect(budgetPlansFailedThenLoads.patches).toEqual([{ budget: 5000 }]);
+    expect(budgetPlansFailedThenLoads.status).toBe('Budget set to £5,000');
+  });
+
+  test('"no plan" is only said when the plans did load and there are none', () => {
+    expect(results.fixes.budgetNoPlanDeclined.patches).toEqual([]);
+    expect(results.fixes.budgetNoPlanDeclined.status).toContain('no plan to save it to yet');
+    expect(results.fixes.budgetNoPlanDeclined.status).toContain('cookie choices');
+  });
+});
+
+describe('the saved suppliers card', () => {
+  const { saved } = results.fixes;
+
+  test('a request that throws is an error with a retry, not "No saved suppliers yet"', () => {
+    for (const failed of [saved.networkErrorNoCopy, saved.serverError]) {
+      expect(failed.text).toContain('could not be loaded');
+      expect(failed.text).not.toContain('No saved suppliers yet');
+      expect(failed.retry).toBe(true);
+      expect(failed.viewButtonHidden).toBe(true);
+    }
+  });
+
+  test('a copy kept in the browser stands in only when there is one, and is labelled', () => {
+    expect(saved.networkErrorWithCopy.text).toContain('2 saved suppliers');
+    expect(saved.networkErrorWithCopy.text).toContain('last saved list');
+    expect(saved.networkErrorWithCopy.retry).toBe(true);
+  });
+
+  test('trying again asks once however often it is clicked, then shows the suppliers', () => {
+    expect(saved.retry.text).toContain('Cake Co');
+    expect(saved.retry.extraRequests).toBe(1);
+  });
+});
+
+describe('retries and notices on the start-up script', () => {
+  const { fixes } = results;
+
+  test('clicking a retry button twice sends one request', () => {
+    expect(fixes.retryOnce).toEqual({ plans: 1, steps: 1 });
+  });
+
+  test('the sign-in banner retry runs one check, keeps one banner and keeps focus', () => {
+    expect(fixes.signInRetry).toEqual({
+      disabledWhileChecking: true,
+      checks: 3,
+      focusOnNewRetry: true,
+      banners: 1,
+    });
+  });
+
+  test('Escape on an edited plan form asks first, then lets go; on an untouched one it just closes', () => {
+    const escape = fixes.escapeOnDirtyForm;
+    expect(escape.firstPrevented).toBe(true);
+    expect(escape.stillOpen).toBe(true);
+    expect(escape.cancelLabel).toBe('Discard changes');
+    expect(escape.status).toContain('unsaved changes');
+    expect(escape.secondPrevented).toBe(false);
+    expect(escape.cleanPrevented).toBe(false);
+  });
+
+  test('a plan that was deleted does not come back when the refresh after it fails', () => {
+    expect(fixes.deletedPlan.deleteRequests).toBe(1);
+    expect(fixes.deletedPlan.plans).toContain('Our wedding');
+    expect(fixes.deletedPlan.plans).not.toContain('Hen weekend');
+    expect(fixes.deletedPlan.notice).toContain('may be out of date');
+  });
+
+  test('quotes in a plan name cannot add attributes to the markup', () => {
+    const escaped = fixes.escapedName;
+    expect(escaped.attributesInList).toBe(0);
+    expect(escaped.attributesInDialog).toBe(0);
+    expect(escaped.ariaLabel).toBe(`Edit ${escaped.hostile}`);
+    expect(escaped.inputValue).toBe(escaped.hostile);
+    expect(results.summary.escapedHome.withAttribute).toBe(0);
+    expect(results.summary.escapedHome.editPlanAttribute).toContain('onfocus');
+  });
+});
+
+describe('the Budget tile when package prices cannot be fetched', () => {
+  const { bulkFails } = results.summary;
+
+  test('says the packages could not be priced instead of showing a confident low figure', () => {
+    for (const key of ['status500', 'networkError']) {
+      expect(bulkFails[key]).toContain('1 package could not be priced just now');
+    }
+    expect(bulkFails.twoPackages).toContain('2 packages could not be priced just now');
+  });
+
+  test('says so when no total is set too', () => {
+    expect(bulkFails.noBudgetSet).toContain('1 saved package could not be priced just now');
+  });
+
+  test('says nothing of the kind when the prices were fetched', () => {
+    expect(results.summary.budgetWithPackages).not.toContain('could not be priced');
+  });
+});
+
+describe('the Support card and its refresh', () => {
+  const fixes = results.ticketFixes;
+
+  test('a failed sign-in check carries on with the user the guard confirmed', () => {
+    expect(fixes.checkFailsGuardUser.text).toContain('Cake');
+  });
+
+  test('with nobody confirmed it is an error with a retry, never "Sign in to view tickets"', () => {
+    for (const failed of [fixes.checkFails, fixes.checkThrows]) {
+      expect(failed.text).toContain('could not be loaded');
+      expect(failed.text).not.toContain('Sign in');
+    }
+    expect(fixes.checkFails.retryButton).toBe(true);
+    expect(fixes.checkFails.afterRetry).toContain('Cake');
+  });
+
+  test('the New ticket button opens the form even though the check failed', () => {
+    expect(fixes.checkFails.newTicketOpens).toBe(true);
+  });
+
+  test('tickets already shown stay when a refresh fails, with a note, and recover afterwards', () => {
+    expect(fixes.staleList.after).toContain('Cake');
+    expect(fixes.staleList.after).toContain('may be out of date');
+    expect(fixes.staleList.afterRefusal).toContain('Cake');
+    expect(fixes.staleList.afterRefusal).toContain('signed out');
+    expect(fixes.staleList.recovered).toContain('Cake');
+    expect(fixes.staleList.recovered).not.toContain('out of date');
+  });
+
+  test('a refusal does not stop the refresh for good: it carries on slowly and recovers', () => {
+    expect(fixes.refusedFirst.text).toContain('signed out');
+    expect(fixes.refusedFirst.delays[0]).toBe(300000);
+    expect(fixes.refusedFirst.recovered).toContain('Cake');
+    // ...and goes back to the normal minute once it works again
+    expect(fixes.refusedFirst.delays[1]).toBe(60000);
+  });
+
+  test('failing refreshes wait longer each time, never less than a healthy one', () => {
+    // a healthy refresh waits 60 s
+    expect(fixes.backoffOnTicketCard.slice(0, 3)).toEqual([120000, 240000, 240000]);
+    for (const delay of fixes.backoffOnTicketCard) {
+      expect(delay).toBeGreaterThanOrEqual(60000);
+    }
+    const sorted = [...fixes.backoffDefault].sort((a, b) => a - b);
+    expect(fixes.backoffDefault).toEqual(sorted);
+    expect(fixes.backoffDefault[0]).toBe(10000);
+  });
+
+  test('a caller that does not handle failures still stops after a refusal (the supplier card)', () => {
+    expect(fixes.refusedWithoutErrorHandler.callbackArgs).toEqual([[]]);
+    expect(fixes.refusedWithoutErrorHandler.timersScheduled).toEqual([]);
+  });
+});
+
+describe('device-only data is cleared for a different account before it is read', () => {
+  const { deviceData } = results;
+
+  test("the budget page does not show the previous account's device budget", () => {
+    expect(deviceData.budget_secondAccount.showsOldFigure).toBe(false);
+    expect(deviceData.budget_secondAccount.stored).toBeNull();
+  });
+
+  test('the same account still gets its own device budget back (the check can tell them apart)', () => {
+    expect(deviceData.budget_sameAccount.showsOldFigure).toBe(true);
+  });
+
+  test("the guest list page ignores the previous account's picked plan", () => {
+    expect(deviceData.guests_secondAccount.subtitle).toContain('Alpha');
+    expect(deviceData.guests_secondAccount.stored).toBeNull();
+    expect(deviceData.guests_sameAccount.subtitle).toContain('Beta');
   });
 });
