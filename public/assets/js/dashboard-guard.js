@@ -392,6 +392,16 @@
     return response;
   }
 
+  /** Forget the redirect-loop counters: the visitor reached a page, so nothing is looping. */
+  function clearRedirectLoopMarkers() {
+    try {
+      sessionStorage.removeItem(REDIRECT_LOOP_KEY);
+      sessionStorage.removeItem(REDIRECT_LOOP_PATH_KEY);
+    } catch {
+      // Ignore sessionStorage errors
+    }
+  }
+
   /**
    * The check could not be completed (network error, timeout, 5xx), as opposed to being refused.
    * On the customer dashboard the page is shown anyway: its start-up script repeats the check,
@@ -405,14 +415,23 @@
     }
     console.warn('Dashboard guard: could not confirm the sign-in, showing the page:', reason);
     window.__EF_SIGNIN_UNCONFIRMED__ = true;
-    try {
-      sessionStorage.removeItem(REDIRECT_LOOP_KEY);
-      sessionStorage.removeItem(REDIRECT_LOOP_PATH_KEY);
-    } catch (e) {
-      // Ignore sessionStorage errors
-    }
+    clearRedirectLoopMarkers();
     showPage();
     return true;
+  }
+
+  // Where each role's own dashboard lives, for sending someone who opened the wrong one.
+  const DASHBOARD_FOR_ROLE = {
+    admin: '/admin',
+    supplier: '/dashboard/supplier',
+    customer: '/dashboard/customer',
+  };
+
+  /** Console output for developers only. */
+  function devLog(method, ...args) {
+    if (isDevelopment) {
+      console[method](...args);
+    }
   }
 
   try {
@@ -422,12 +441,11 @@
     hideAuthNotice();
 
     if (!response.ok) {
-      if (isDevelopment) {
-        console.error(
-          `Dashboard guard: Auth check failed with status ${response.status}`,
-          `for page ${currentPath} (required role: ${requiredRole})`
-        );
-      }
+      devLog(
+        'error',
+        `Dashboard guard: Auth check failed with status ${response.status}`,
+        `for page ${currentPath} (required role: ${requiredRole})`
+      );
       if (
         response.status !== 401 &&
         response.status !== 403 &&
@@ -443,40 +461,28 @@
     const user = data.user || data;
     window.__EF_DASHBOARD_USER__ = user;
 
-    if (isDevelopment) {
-      console.log('Dashboard guard check:', {
-        currentPath,
-        requiredRole,
-        userId: user?.id,
-        userRole: user?.role,
-        roleMatch: user?.role === requiredRole,
-      });
-    }
+    devLog('log', 'Dashboard guard check:', {
+      currentPath,
+      requiredRole,
+      userId: user?.id,
+      userRole: user?.role,
+      roleMatch: user?.role === requiredRole,
+    });
 
     if (!user || !user.id) {
-      if (isDevelopment) {
-        console.warn('Dashboard guard: User not authenticated, redirecting');
-      }
+      devLog('warn', 'Dashboard guard: User not authenticated, redirecting');
       window.location.replace(`/auth?redirect=${encodeURIComponent(currentPath)}`);
       return;
     }
 
     if (user.role !== requiredRole) {
-      let correctDashboard = '/';
-      if (user.role === 'admin') {
-        correctDashboard = '/admin';
-      } else if (user.role === 'supplier') {
-        correctDashboard = '/dashboard/supplier';
-      } else if (user.role === 'customer') {
-        correctDashboard = '/dashboard/customer';
-      }
+      const correctDashboard = DASHBOARD_FOR_ROLE[user.role] || '/';
 
       if (currentPath !== correctDashboard) {
-        if (isDevelopment) {
-          console.warn(
-            `Role mismatch: user has role '${user.role}' but page requires '${requiredRole}'. Redirecting to ${correctDashboard}`
-          );
-        }
+        devLog(
+          'warn',
+          `Role mismatch: user has role '${user.role}' but page requires '${requiredRole}'. Redirecting to ${correctDashboard}`
+        );
         window.location.replace(correctDashboard);
         return;
       }
@@ -484,12 +490,7 @@
 
     publishVerifiedUser(user);
 
-    try {
-      sessionStorage.removeItem(REDIRECT_LOOP_KEY);
-      sessionStorage.removeItem(REDIRECT_LOOP_PATH_KEY);
-    } catch (e) {
-      // Ignore sessionStorage errors
-    }
+    clearRedirectLoopMarkers();
 
     showPage();
   } catch (error) {

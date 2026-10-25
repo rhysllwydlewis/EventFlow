@@ -72,11 +72,11 @@ describe('the analytics tag never receives what a visitor typed', () => {
     );
   });
 
-  test('both pages import the module at one versioned address, so a cached copy cannot keep sending text', () => {
-    const importers = ['pages/suppliers-init.js', 'components/quote-request-modal.js'];
-    for (const file of importers) {
-      const text = fs.readFileSync(path.join(__dirname, '../../public/assets/js', file), 'utf8');
-      expect(text).toContain("'../utils/analytics.js?v=1.0.1'");
-    }
+  test('the supplier search page, the only caller of the filter tracking, imports the module at a versioned address so a cached copy cannot keep sending text', () => {
+    const text = fs.readFileSync(
+      path.join(__dirname, '../../public/assets/js/pages/suppliers-init.js'),
+      'utf8'
+    );
+    expect(text).toContain("'../utils/analytics.js?v=1.0.1'");
   });
 });

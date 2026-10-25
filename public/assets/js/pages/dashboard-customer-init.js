@@ -88,7 +88,18 @@ function showPlansLoadError(container) {
  * @param {Array|null} plans - The plans the caller fetched; null when that fetch failed (the list
  *   then says so, rather than asking again, and never shows "No plans yet" for a failure)
  */
-async function loadCustomerPlans(plans) {
+function loadCustomerPlans(plans) {
+  // The drawing is synchronous; callers wait on a promise, and a failure is a rejection.
+  try {
+    drawCustomerPlans(plans);
+    return Promise.resolve();
+  } catch (error) {
+    return Promise.reject(error);
+  }
+}
+
+/** Does the work of loadCustomerPlans(). */
+function drawCustomerPlans(plans) {
   const container = document.getElementById('customer-plans-list');
   if (!container) {
     return;
@@ -185,6 +196,9 @@ async function loadCustomerPlans(plans) {
   }
 }
 
+/** The reload that is under way, if any. */
+let reloadInFlight = null;
+
 /**
  * Reloads the plans and redraws everything that depends on them. When the plans cannot be fetched
  * the page keeps what it last really loaded (and says it could not refresh), or, if it never
@@ -199,9 +213,6 @@ function reloadDashboard() {
   }
   return reloadInFlight;
 }
-
-/** The reload that is under way, if any. */
-let reloadInFlight = null;
 
 /** Does the work of reloadDashboard(). */
 async function refreshDashboard() {
@@ -1276,6 +1287,9 @@ function getCsrfToken() {
   return '';
 }
 
+/** The CSRF request that is under way, if any. */
+let csrfInFlight = null;
+
 /**
  * Fetch and cache a CSRF token from the server.
  * Also updates the meta tag and window.__CSRF_TOKEN__ for other callers.
@@ -1293,9 +1307,6 @@ function ensureCsrfToken() {
   }
   return csrfInFlight;
 }
-
-/** The CSRF request that is under way, if any. */
-let csrfInFlight = null;
 
 /** Does the work of ensureCsrfToken(). */
 async function fetchCsrfToken() {
