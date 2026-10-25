@@ -197,7 +197,9 @@ async function loadConversationEnquiries(ownerUserId, sinceMs) {
     (await dbUnified.findWithOptions(
       'conversations_v4',
       {
-        'participants.userId': ownerUserId,
+        // Not a conversation the supplier deleted from their inbox (same rule as the export): it
+        // cannot be cleared from the dashboard, so it must not keep counting as "needs a reply".
+        participants: { $elemMatch: { userId: ownerUserId, isDeleted: { $ne: true } } },
         createdAt: { $gte: new Date(sinceMs) },
         messageCount: { $gt: 0 },
       },
