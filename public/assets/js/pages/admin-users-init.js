@@ -6,7 +6,7 @@
  */
 'use strict';
 (function () {
-  const $ = id => document.getElementById(id);
+  const byId = id => document.getElementById(id);
   const selectedUserIds = new Set();
 
   let currentUsers = [];
@@ -17,9 +17,9 @@
   let debounceTimer = null;
 
   function esc(value) {
-    const d = document.createElement('div');
-    d.textContent = String(value ?? '');
-    return d.innerHTML;
+    const holder = document.createElement('div');
+    holder.textContent = String(value ?? '');
+    return holder.innerHTML;
   }
 
   // Blocks javascript:/data:/vbscript: hrefs — esc() only HTML-entity-encodes,
@@ -138,7 +138,7 @@
     if (role === 'admin' || role === 'owner') {
       return '—';
     }
-    const tier = (subscription && subscription.tier) || 'free';
+    const tier = subscription?.tier || 'free';
     if (tier === 'pro_plus') {
       return badge('Pro Plus', 'pro-plus');
     }
@@ -173,7 +173,7 @@
   }
 
   function renderSummaryCards(data) {
-    const grid = $('ucSummaryGrid');
+    const grid = byId('ucSummaryGrid');
     if (!grid) {
       return;
     }
@@ -208,13 +208,13 @@
         'amber'
       ),
       card(
-        supplierHealth.totalSupplierUsers ?? (data.byRole && data.byRole.supplier),
+        supplierHealth.totalSupplierUsers ?? data.byRole?.supplier,
         'Supplier users',
         '/admin-users?role=supplier',
         'teal'
       ),
       card(
-        supplierHealth.linkIssues ?? (data.suppliers && data.suppliers.linkIssues),
+        supplierHealth.linkIssues ?? data.suppliers?.linkIssues,
         'Supplier link issues',
         '/admin-users?issue=supplier_profile_missing',
         'red'
@@ -223,7 +223,7 @@
   }
 
   function renderTable(users) {
-    const tbody = $('ucTableBody');
+    const tbody = byId('ucTableBody');
     if (!tbody) {
       return;
     }
@@ -235,7 +235,7 @@
           <button type="button" class="btn btn-ghost btn-sm" id="ucEmptyClear">Clear filters</button>
         </div>
       </td></tr>`;
-      const emptyClear = $('ucEmptyClear');
+      const emptyClear = byId('ucEmptyClear');
       if (emptyClear) {
         emptyClear.addEventListener('click', clearFilters);
       }
@@ -279,11 +279,11 @@
 
   function getFilters() {
     return {
-      search: ($('ucSearch') || {}).value || '',
-      role: ($('ucRoleFilter') || {}).value || '',
-      signupMethod: ($('ucSignupFilter') || {}).value || '',
-      verificationMethod: ($('ucVerifFilter') || {}).value || '',
-      issue: ($('ucIssueFilter') || {}).value || '',
+      search: (byId('ucSearch') || {}).value || '',
+      role: (byId('ucRoleFilter') || {}).value || '',
+      signupMethod: (byId('ucSignupFilter') || {}).value || '',
+      verificationMethod: (byId('ucVerifFilter') || {}).value || '',
+      issue: (byId('ucIssueFilter') || {}).value || '',
     };
   }
 
@@ -323,26 +323,26 @@
   }
 
   function updateSummaryText(total, pages) {
-    const el = $('ucUserSummary') || $('user-summary');
+    const el = byId('ucUserSummary') || byId('user-summary');
     const start = total ? (currentPage - 1) * currentLimit + 1 : 0;
     const end = Math.min(currentPage * currentLimit, total);
     if (el) {
       el.textContent = `${total.toLocaleString()} users · showing ${start.toLocaleString()}–${end.toLocaleString()} · page ${currentPage} of ${pages}`;
     }
-    const pageEl = $('ucCurrentPage');
+    const pageEl = byId('ucCurrentPage');
     if (pageEl) {
       pageEl.textContent = String(currentPage);
     }
-    const pagesEl = $('ucTotalPages');
+    const pagesEl = byId('ucTotalPages');
     if (pagesEl) {
       pagesEl.textContent = String(pages);
     }
-    const totalEl = $('ucTotalCount');
+    const totalEl = byId('ucTotalCount');
     if (totalEl) {
       totalEl.textContent = total.toLocaleString();
     }
-    const prev = $('ucPrevPage');
-    const next = $('ucNextPage');
+    const prev = byId('ucPrevPage');
+    const next = byId('ucNextPage');
     if (prev) {
       prev.disabled = currentPage <= 1;
       prev.setAttribute('aria-disabled', String(prev.disabled));
@@ -355,7 +355,7 @@
 
   function clearFilters() {
     ['ucSearch', 'ucRoleFilter', 'ucSignupFilter', 'ucVerifFilter', 'ucIssueFilter'].forEach(id => {
-      const el = $(id);
+      const el = byId(id);
       if (el) {
         el.value = '';
       }
@@ -375,19 +375,19 @@
     };
     Object.entries(mapping).forEach(([param, id]) => {
       const value = params.get(param);
-      const el = $(id);
+      const el = byId(id);
       if (value && el) {
         el.value = value;
       }
     });
     const search = params.get('search');
-    if (search && $('ucSearch')) {
-      $('ucSearch').value = search;
+    if (search && byId('ucSearch')) {
+      byId('ucSearch').value = search;
     }
     const page = Number(params.get('page'));
     currentPage = Number.isFinite(page) && page > 0 ? page : 1;
     const limit = Number(params.get('limit'));
-    if ([25, 50, 100, 200].includes(limit)) {
+    if ([25, 50, 100].includes(limit)) {
       currentLimit = limit;
     }
   }
@@ -397,7 +397,7 @@
   }
 
   function updateSelectAllState() {
-    const selectAll = $('ucSelectAll');
+    const selectAll = byId('ucSelectAll');
     if (!selectAll) {
       return;
     }
@@ -574,8 +574,8 @@
   }
 
   function updateBulkBar() {
-    const bar = $('ucBulkActionsBar');
-    const count = $('ucBulkCount');
+    const bar = byId('ucBulkActionsBar');
+    const count = byId('ucBulkCount');
     const selectedCount = selectedUserIds.size;
     if (bar) {
       bar.style.display = selectedCount ? 'flex' : 'none';
@@ -597,7 +597,7 @@
   }
 
   function renderSubscriptionHistory(history) {
-    const target = $('subscriptionHistory');
+    const target = byId('subscriptionHistory');
     if (!target) {
       return;
     }
@@ -621,7 +621,7 @@
       );
       renderSubscriptionHistory(data.history || []);
     } catch {
-      const target = $('subscriptionHistory');
+      const target = byId('subscriptionHistory');
       if (target) {
         target.innerHTML = '<div class="text-muted">Could not load subscription history.</div>';
       }
@@ -642,10 +642,10 @@
   }
 
   function _showSubscriptionModal(userId, user) {
-    const modal = $('subscriptionModal');
-    const userIdInput = $('subscriptionUserId');
-    const subtitle = $('subscriptionModalSubtitle');
-    const status = $('currentSubscriptionStatus');
+    const modal = byId('subscriptionModal');
+    const userIdInput = byId('subscriptionUserId');
+    const subtitle = byId('subscriptionModalSubtitle');
+    const status = byId('currentSubscriptionStatus');
     if (userIdInput) {
       userIdInput.value = userId;
     }
@@ -653,7 +653,7 @@
       subtitle.textContent = `${user.name || '(no name)'} · ${user.email || 'No email'}`;
     }
     if (status) {
-      status.innerHTML = `<p>${subscriptionBadge(user.subscription, user.role)} ${esc((user.subscription && user.subscription.status) || 'active')}</p>`;
+      status.innerHTML = `<p>${subscriptionBadge(user.subscription, user.role)} ${esc(user.subscription?.status || 'active')}</p>`;
     }
     if (modal) {
       modal.style.display = 'flex';
@@ -662,7 +662,7 @@
   }
 
   function closeSubscriptionModal() {
-    const modal = $('subscriptionModal');
+    const modal = byId('subscriptionModal');
     if (modal) {
       modal.style.display = 'none';
     }
@@ -670,10 +670,10 @@
 
   async function saveSubscription(event) {
     event.preventDefault();
-    const userId = ($('subscriptionUserId') || {}).value;
-    const tier = ($('subscriptionTier') || {}).value;
-    const duration = ($('subscriptionDuration') || {}).value;
-    const reason = ($('subscriptionReason') || {}).value;
+    const userId = (byId('subscriptionUserId') || {}).value;
+    const tier = (byId('subscriptionTier') || {}).value;
+    const duration = (byId('subscriptionDuration') || {}).value;
+    const reason = (byId('subscriptionReason') || {}).value;
     if (!userId || !tier) {
       AdminShared.showToast('Choose a user and subscription tier.', 'warning');
       return;
@@ -715,7 +715,7 @@
       const data = await AdminShared.api('/api/admin/users/summary');
       renderSummaryCards(data);
     } catch {
-      const grid = $('ucSummaryGrid');
+      const grid = byId('ucSummaryGrid');
       if (grid) {
         grid.innerHTML = '<div class="admin-inline-error">Could not load user summary.</div>';
       }
@@ -724,7 +724,7 @@
   }
 
   async function loadUsers() {
-    const tbody = $('ucTableBody');
+    const tbody = byId('ucTableBody');
     if (tbody && window.AdminShared && AdminShared.showLoadingState) {
       AdminShared.showLoadingState(tbody, { rows: 5, cols: 12, message: 'Loading users...' });
     }
@@ -755,12 +755,12 @@
   document.addEventListener('DOMContentLoaded', () => {
     applyUrlFilters();
 
-    const refreshBtn = $('ucRefreshBtn');
+    const refreshBtn = byId('ucRefreshBtn');
     if (refreshBtn) {
       refreshBtn.addEventListener('click', () => loadData());
     }
 
-    const prevBtn = $('ucPrevPage');
+    const prevBtn = byId('ucPrevPage');
     if (prevBtn) {
       prevBtn.addEventListener('click', () => {
         if (currentPage > 1) {
@@ -769,7 +769,7 @@
         }
       });
     }
-    const nextBtn = $('ucNextPage');
+    const nextBtn = byId('ucNextPage');
     if (nextBtn) {
       nextBtn.addEventListener('click', () => {
         if (currentPage < currentPages) {
@@ -778,7 +778,7 @@
         }
       });
     }
-    const pageSize = $('ucPageSize');
+    const pageSize = byId('ucPageSize');
     if (pageSize) {
       pageSize.value = String(currentLimit);
       pageSize.addEventListener('change', () => {
@@ -789,13 +789,13 @@
       });
     }
 
-    const clearBtn = $('ucClearFilters');
+    const clearBtn = byId('ucClearFilters');
     if (clearBtn) {
       clearBtn.addEventListener('click', clearFilters);
     }
 
     ['ucSearch', 'ucRoleFilter', 'ucSignupFilter', 'ucVerifFilter', 'ucIssueFilter'].forEach(id => {
-      const el = $(id);
+      const el = byId(id);
       if (!el) {
         return;
       }
@@ -814,7 +814,7 @@
       });
     });
 
-    const selectAll = $('ucSelectAll');
+    const selectAll = byId('ucSelectAll');
     if (selectAll) {
       selectAll.addEventListener('change', () => {
         visibleCheckboxes().forEach(checkbox => {
@@ -834,7 +834,7 @@
     }
 
     document.addEventListener('change', event => {
-      const checkbox = event.target && event.target.closest('.uc-user-checkbox');
+      const checkbox = event.target?.closest('.uc-user-checkbox');
       if (!checkbox) {
         return;
       }
@@ -852,9 +852,9 @@
     });
 
     document.addEventListener('click', event => {
-      const subscriptionBtn = event.target && event.target.closest('[data-manage-subscription]');
-      const resendBtn = event.target && event.target.closest('[data-resend-verification]');
-      const provisionBtn = event.target && event.target.closest('[data-provision-profile]');
+      const subscriptionBtn = event.target?.closest('[data-manage-subscription]');
+      const resendBtn = event.target?.closest('[data-resend-verification]');
+      const provisionBtn = event.target?.closest('[data-provision-profile]');
       if (subscriptionBtn) {
         openSubscriptionModal(subscriptionBtn.dataset.manageSubscription);
       }
@@ -875,7 +875,7 @@
       ['ucBulkExport', bulkExportSelected],
       ['ucBulkProvisionProfiles', bulkProvisionProfiles],
     ].forEach(([id, handler]) => {
-      const btn = $(id);
+      const btn = byId(id);
       if (btn) {
         btn.addEventListener('click', () =>
           handler().catch(err => AdminShared.showToast(`Failed: ${err.message}`, 'error'))
@@ -883,11 +883,11 @@
       }
     });
 
-    const closePanelBtn = $('closeSubPanel');
+    const closePanelBtn = byId('closeSubPanel');
     if (closePanelBtn) {
       closePanelBtn.addEventListener('click', closeSubscriptionModal);
     }
-    const modal = $('subscriptionModal');
+    const modal = byId('subscriptionModal');
     if (modal) {
       modal.addEventListener('click', event => {
         if (event.target === modal) {
@@ -901,22 +901,22 @@
       }
     });
 
-    const closeBtn = $('closeSubscriptionModal');
+    const closeBtn = byId('closeSubscriptionModal');
     if (closeBtn) {
       closeBtn.addEventListener('click', closeSubscriptionModal);
     }
-    const cancelBtn = $('cancelSubscriptionBtn');
+    const cancelBtn = byId('cancelSubscriptionBtn');
     if (cancelBtn) {
       cancelBtn.addEventListener('click', closeSubscriptionModal);
     }
-    const form = $('subscriptionForm');
+    const form = byId('subscriptionForm');
     if (form) {
       form.addEventListener('submit', saveSubscription);
     }
-    const removeBtn = $('removeSubscriptionBtn');
+    const removeBtn = byId('removeSubscriptionBtn');
     if (removeBtn) {
       removeBtn.addEventListener('click', () => {
-        const userId = ($('subscriptionUserId') || {}).value;
+        const userId = (byId('subscriptionUserId') || {}).value;
         removeSubscription(userId).catch(err =>
           AdminShared.showToast(`Failed: ${err.message}`, 'error')
         );

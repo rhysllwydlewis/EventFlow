@@ -382,6 +382,14 @@ tbody tr:hover .checkbox-cell .user-checkbox {
   box-shadow: 0 0 0 3px rgba(11, 128, 115, 0.12);
 }
 
+/* styles.css gives every select width:100%, which made each dropdown in a wrapping .filter-row fill
+   a whole line of its own. */
+.filter-row .filter-select {
+  width: auto;
+  flex: 0 1 200px;
+  min-width: 150px;
+}
+
 /* Toolbar search input (used in users page) */
 .toolbar-search-input {
   flex: 1;

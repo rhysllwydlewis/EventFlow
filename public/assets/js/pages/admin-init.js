@@ -55,6 +55,9 @@
     return false;
   }
 
+  const API_TIMEOUT_MS = 20000;
+  const RECENT_USERS_LIMIT = 20;
+
   function api(url, method, body) {
     const opts = {
       method: method || 'GET',
@@ -74,7 +77,12 @@
     if (body) {
       opts.body = JSON.stringify(body);
     }
-    return fetch(url, opts)
+    // Same time limit and readable network error as the other admin pages (admin-shared.js), so a
+    // request that never answers ends in an error the panel can show instead of waiting forever.
+    const request = window.AdminShared?.fetchWithTimeout
+      ? window.AdminShared.fetchWithTimeout(url, opts, API_TIMEOUT_MS)
+      : fetch(url, opts);
+    return request
       .then(r => {
         // Check content type before parsing
         const contentType = r.headers.get('content-type');
@@ -123,6 +131,7 @@
       });
   }
   let allUsers = [];
+  let recentUsersFailed = false;
   let allSuppliers = [];
   let allPackages = [];
   let summary = null; // populated by /users/summary; shared with renderAnalytics
@@ -133,30 +142,30 @@
     const userRowsEl = document.getElementById('dashUserHealthRows');
     const supplierRowsEl = document.getElementById('dashSupplierHealthRows');
     const fallbackHtml = `
-      <div class="dash-health-row dash-health-row--error">
-        <span class="dash-health-row__label">Could not load account health.</span>
-        <button type="button" class="ef-cta" data-action="retryAccountHealth">Retry</button>
+      <div class="adh-row adh-row--error">
+        <span class="adh-row__label">Could not load account health.</span>
+        <button type="button" class="adh-btn adh-btn--sm" data-action="retryAccountHealth">Retry</button>
       </div>
-      <div class="dash-health-row">
-        <span class="dash-health-row__label"><a href="/admin-users">Open Users Centre</a></span>
-        <span class="dash-health-row__value">↗</span>
+      <div class="adh-row">
+        <span class="adh-row__label"><a href="/admin-users">Open Users Centre</a></span>
+        <span class="adh-row__value">↗</span>
       </div>
-      <div class="dash-health-row">
-        <span class="dash-health-row__label"><a href="/admin-emails">Open Email Centre</a></span>
-        <span class="dash-health-row__value">↗</span>
+      <div class="adh-row">
+        <span class="adh-row__label"><a href="/admin-emails">Open Email Centre</a></span>
+        <span class="adh-row__value">↗</span>
       </div>`;
     const supplierFallbackHtml = `
-      <div class="dash-health-row dash-health-row--error">
-        <span class="dash-health-row__label">Supplier account health is temporarily unavailable.</span>
-        <button type="button" class="ef-cta" data-action="retryAccountHealth">Retry</button>
+      <div class="adh-row adh-row--error">
+        <span class="adh-row__label">Supplier account health is temporarily unavailable.</span>
+        <button type="button" class="adh-btn adh-btn--sm" data-action="retryAccountHealth">Retry</button>
       </div>
-      <div class="dash-health-row">
-        <span class="dash-health-row__label"><a href="/admin-suppliers">Supplier Management</a></span>
-        <span class="dash-health-row__value">↗</span>
+      <div class="adh-row">
+        <span class="adh-row__label"><a href="/admin-suppliers">Supplier Management</a></span>
+        <span class="adh-row__value">↗</span>
       </div>
-      <div class="dash-health-row">
-        <span class="dash-health-row__label"><a href="/admin-users">Open Users Centre</a></span>
-        <span class="dash-health-row__value">↗</span>
+      <div class="adh-row">
+        <span class="adh-row__label"><a href="/admin-users">Open Users Centre</a></span>
+        <span class="adh-row__value">↗</span>
       </div>`;
     if (userRowsEl) {
       userRowsEl.innerHTML = fallbackHtml;
@@ -179,83 +188,154 @@
     }
   });
 
+  // Verification, sign-up and e-mail delivery detail for one user. This used to be added to the
+  // table afterwards by a second script that fetched the same list again.
+  const METHOD_LABELS = {
+    google: 'Google',
+    google_verified_email: 'Google',
+    facebook: 'Facebook',
+    facebook_verified_email: 'Facebook',
+    email_link: 'Email link',
+    eventflow_email: 'Email link',
+    admin: 'Admin',
+    admin_created: 'Admin',
+    manual_admin: 'Admin',
+    owner_account: 'Owner',
+    legacy: 'Legacy',
+    pending: 'Pending',
+    email_password: 'Email / password',
+    unknown: 'Unknown',
+  };
+
+  const DELIVERY_LABELS = {
+    not_required: 'No Postmark needed',
+    sent: 'Postmark sent',
+    delivered: 'Delivered',
+    pending: 'Pending',
+    failed: 'Failed',
+    bounced: 'Bounced',
+    outbox: 'Outbox',
+    unknown: 'Unknown',
+  };
+
+  function humanize(value) {
+    return String(value || 'unknown')
+      .replace(/_/g, ' ')
+      .replace(/\b\w/g, char => char.toUpperCase());
+  }
+
+  function providerOf(user) {
+    if (user.authProvider === 'google' || user.googleSub || user.hasGoogleLink) {
+      return 'google';
+    }
+    if (user.authProvider === 'facebook' || user.facebookSub || user.hasFacebookLink) {
+      return 'facebook';
+    }
+    return null;
+  }
+
+  function verificationMethodOf(user) {
+    return user.verificationMethod || providerOf(user) || (user.verified ? 'unknown' : 'pending');
+  }
+
+  function signupMethodOf(user) {
+    return user.signupMethod || providerOf(user) || 'unknown';
+  }
+
+  function emailStatusOf(user) {
+    if (user.emailDeliveryStatus) {
+      return user.emailDeliveryStatus;
+    }
+    return ['google', 'facebook'].includes(signupMethodOf(user)) ? 'not_required' : 'unknown';
+  }
+
+  function methodLabel(method) {
+    return METHOD_LABELS[method] || humanize(method);
+  }
+
+  function userVerificationHtml(u) {
+    const method = verificationMethodOf(u);
+    const verified = u.verified
+      ? '<span class="badge badge-yes">Verified</span>'
+      : '<span class="badge badge-no">Not verified</span>';
+    const via = `<span class="badge" title="${escapeHtml(humanize(method))}">${escapeHtml(methodLabel(method))}</span>`;
+    const status = emailStatusOf(u);
+    const note = `Signed up: ${escapeHtml(methodLabel(signupMethodOf(u)))} · Email: ${escapeHtml(DELIVERY_LABELS[status] || humanize(status))}`;
+    return `<div class="adh-user__meta">${verified}${via}</div><div class="adh-user__note">${note}</div>`;
+  }
+
+  function userActionsHtml(u, isOwner) {
+    const id = escapeHtml(String(u.id));
+    let actions = '<div class="adh-user__actions">';
+    if (isOwner) {
+      actions += '<button class="ef-cta" disabled title="Owner account is protected">Edit</button>';
+      actions += '<span class="adh-user__note">Protected account</span>';
+    } else {
+      actions += `<button class="ef-cta" data-action="editUser" data-id="${id}">Edit</button>`;
+      if (!u.verified) {
+        actions += `<button class="ef-cta" data-action="verifyUser" data-id="${id}">Verify email</button>`;
+      }
+      actions +=
+        u.role === 'admin'
+          ? `<button class="ef-cta" data-action="revokeAdmin" data-id="${id}">Revoke admin</button>`
+          : `<button class="ef-cta" data-action="grantAdmin" data-id="${id}">Grant admin</button>`;
+      actions += `<button class="ef-cta" data-action="deleteUser" data-id="${id}">Delete</button>`;
+    }
+    return `${actions}</div>`;
+  }
+
+  const ROLE_BADGES = {
+    admin: ['badge-admin', 'Admin'],
+    supplier: ['badge-supplier-account', 'Supplier'],
+    partner: ['badge-partner', 'Partner'],
+    customer: ['badge-customer', 'Customer'],
+  };
+
+  function userRoleHtml(u, isOwner) {
+    if (isOwner) {
+      return '<span class="badge badge-owner" title="Protected owner account: cannot be deleted or demoted">Owner</span>';
+    }
+    const known = ROLE_BADGES[u.role];
+    if (!known) {
+      return `<span class="badge">${escapeHtml(humanize(u.role))}</span>`;
+    }
+    return `<span class="badge ${known[0]}">${known[1]}</span>`;
+  }
+
+  function userRowHtml(u) {
+    const isOwner = isOwnerEmail(u.email) || u.isOwner;
+    const joined = u.createdAt ? new Date(u.createdAt).toLocaleDateString() : '—';
+    const last = u.lastLoginAt
+      ? `Last login ${new Date(u.lastLoginAt).toLocaleDateString()}`
+      : 'Never signed in';
+    return (
+      `<tr${isOwner ? ' class="is-owner"' : ''}>` +
+      `<td data-label="User"><div class="adh-user__name">${escapeHtml(u.name || '')}</div>` +
+      `<div class="adh-user__email">${escapeHtml(u.email || '')}</div></td>` +
+      `<td data-label="Role">${userRoleHtml(u, isOwner)}</td>` +
+      `<td data-label="Verification">${userVerificationHtml(u)}</td>` +
+      `<td data-label="Joined">${joined}<div class="adh-user__note">${last}</div></td>` +
+      `<td data-label="Actions">${userActionsHtml(u, isOwner)}</td>` +
+      '</tr>'
+    );
+  }
+
   function renderUsersTable(list) {
     const el = document.getElementById('users');
     if (!el) {
       return;
     }
-
-    let rows =
-      '<tr><th>Name</th><th>Email</th><th>Role</th><th>Verified</th><th>Joined</th><th>Last login</th><th>Actions</th></tr>';
-
-    (list || []).forEach(u => {
-      const joined = u.createdAt ? new Date(u.createdAt).toLocaleString() : '—';
-      const last = u.lastLoginAt ? new Date(u.lastLoginAt).toLocaleString() : '—';
-      const verifiedBadge = u.verified
-        ? '<span class="badge badge-yes">Yes</span>'
-        : '<span class="badge badge-no">No</span>';
-
-      const isOwner = isOwnerEmail(u.email) || u.isOwner;
-      const isAdmin = u.role === 'admin';
-
-      let actions = '<div style="display:flex;gap:4px;flex-wrap:wrap;">';
-
-      // Owner accounts have special protection
-      if (isOwner) {
-        actions += `<button class="ef-cta" disabled style="opacity:0.5;cursor:not-allowed;" title="Owner account is protected">Edit</button>`;
-        actions += `<span style="color:#888;font-size:0.9em;padding:4px;">Protected Account</span>`;
-      } else {
-        actions += `<button class="ef-cta" data-action="editUser" data-id="${u.id}">Edit</button>`;
-
-        // Manual verification button for unverified users
-        if (!u.verified) {
-          actions += `<button class="ef-cta" data-action="verifyUser" data-id="${u.id}">Verify Email</button>`;
-        }
-
-        // Admin privilege toggle (only for non-owner accounts)
-        if (isAdmin) {
-          actions += `<button class="ef-cta" data-action="revokeAdmin" data-id="${u.id}">Revoke Admin</button>`;
-        } else {
-          actions += `<button class="ef-cta" data-action="grantAdmin" data-id="${u.id}">Grant Admin</button>`;
-        }
-
-        // Delete button
-        actions += `<button class="ef-cta" data-action="deleteUser" data-id="${u.id}">Delete</button>`;
-      }
-
-      actions += '</div>';
-
-      // Enhanced role display — show a styled badge for every account type
-      let roleDisplay;
-      if (isOwner) {
-        roleDisplay =
-          '<span class="badge badge-admin" title="Protected owner account — cannot be deleted or demoted">🛡️ Admin</span>' +
-          ' <span class="badge" style="background:#9f1239;color:#fff;font-weight:600;font-size:0.7rem;">OWNER</span>';
-      } else if (window.AdminShared && window.AdminShared.getRoleBadge) {
-        roleDisplay = window.AdminShared.getRoleBadge(u.role);
-      } else if (isAdmin) {
-        roleDisplay = '<span class="badge badge-admin">🛡️ Admin</span>';
-      } else if (u.role === 'supplier') {
-        roleDisplay = '<span class="badge badge-supplier-account">🏪 Supplier</span>';
-      } else if (u.role === 'partner') {
-        roleDisplay = '<span class="badge badge-partner">🤝 Partner</span>';
-      } else {
-        roleDisplay = '<span class="badge badge-customer">🎉 Customer</span>';
-      }
-
-      rows +=
-        `<tr ${isOwner ? 'style="background-color:#fef2f2;"' : ''}>` +
-        `<td>${escapeHtml(u.name || '')}</td>` +
-        `<td>${escapeHtml(u.email || '')}</td>` +
-        `<td>${roleDisplay}</td>` +
-        `<td>${verifiedBadge}</td>` +
-        `<td>${joined}</td>` +
-        `<td>${last}</td>` +
-        `<td>${actions}</td>` +
-        `</tr>`;
-    });
-
-    el.innerHTML = rows;
+    const users = list || [];
+    const head =
+      '<thead><tr><th scope="col">User</th><th scope="col">Role</th><th scope="col">Verification</th><th scope="col">Joined</th><th scope="col">Actions</th></tr></thead>';
+    const body = users.length
+      ? users.map(userRowHtml).join('')
+      : `<tr><td colspan="5" class="admin-messenger-state">${
+          recentUsersFailed
+            ? 'Recent users could not be loaded. Use Refresh to try again.'
+            : 'No users match.'
+        }</td></tr>`;
+    el.innerHTML = `${head}<tbody>${body}</tbody>`;
   }
 
   function applyUserFilters() {
@@ -292,377 +372,407 @@
     renderUsersTable(list);
   }
 
+  // allUsers holds only the 20 most recent accounts, so a count taken from it stops at 20. The 7-day
+  // figure comes from the summary service; the 30-day one is shown as "20+" when the list is full
+  // and its oldest account is still inside the window (the true figure is in Users Centre).
+  function signupCounts() {
+    const usersList = Array.isArray(allUsers) ? allUsers : [];
+    const dayMs = 24 * 60 * 60 * 1000;
+    function signupsSince(days) {
+      const cutoff = Date.now() - days * dayMs;
+      const count = usersList.filter(u => Date.parse(u.createdAt) >= cutoff).length;
+      const oldest = usersList.length ? Date.parse(usersList[usersList.length - 1].createdAt) : NaN;
+      return usersList.length >= RECENT_USERS_LIMIT && oldest >= cutoff ? `${count}+` : count;
+    }
+    const fromSummary = Number(summary?.newLast7);
+    return {
+      last7: Number.isFinite(fromSummary) ? fromSummary : signupsSince(7),
+      last30: signupsSince(30),
+    };
+  }
+
+  function healthRowHtml(r) {
+    const warn = r.warn && r.value > 0 ? ' adh-row__value--warn' : '';
+    return `<div class="adh-row"><span class="adh-row__label">${r.label}</span><a href="${r.href}" class="adh-row__value${warn}">${r.value.toLocaleString()}</a></div>`;
+  }
+
+  // Account Health panels, from the shared summary service.
+  function renderAccountHealth() {
+    if (summary) {
+      const healthRowsEl = document.getElementById('dashUserHealthRows');
+      const supplierHealthEl = document.getElementById('dashSupplierHealthRows');
+
+      if (healthRowsEl) {
+        const bySig = summary.bySignup || {};
+        const byVerif = summary.byVerification || {};
+        healthRowsEl.innerHTML = [
+          {
+            label: 'Unverified (pending)',
+            value: byVerif.pending || 0,
+            href: '/admin-users?verificationMethod=pending',
+            warn: (byVerif.pending || 0) > 0,
+          },
+          {
+            label: 'Unknown verification source',
+            value: byVerif.unknown || 0,
+            href: '/admin-users?verificationMethod=unknown',
+            warn: (byVerif.unknown || 0) > 0,
+          },
+          {
+            label: 'Google sign-in',
+            value: bySig.google || 0,
+            href: '/admin-users?signupMethod=google',
+            warn: false,
+          },
+          {
+            label: 'Facebook sign-in',
+            value: countOf(bySig, 'facebook'),
+            href: '/admin-users?signupMethod=facebook',
+            warn: false,
+          },
+          {
+            label: 'Email / password',
+            value: bySig.email_password || 0,
+            href: '/admin-users?signupMethod=email_password',
+            warn: false,
+          },
+          {
+            label: 'Admin-created',
+            value: bySig.admin_created || 0,
+            href: '/admin-users?signupMethod=admin_created',
+            warn: false,
+          },
+          {
+            label: 'Account issues',
+            value: summary.issueCount || 0,
+            href: '/admin-users?issue=email_unverified',
+            warn: (summary.issueCount || 0) > 0,
+          },
+        ]
+          .map(healthRowHtml)
+          .join('');
+      }
+
+      if (supplierHealthEl && summary.suppliers) {
+        const supplierStats = summary.suppliers;
+        supplierHealthEl.innerHTML = [
+          {
+            label: 'Total supplier accounts',
+            value: supplierStats.total || 0,
+            href: '/admin-users?role=supplier',
+            warn: false,
+          },
+          {
+            label: 'Pending approval',
+            value: supplierStats.pending || 0,
+            href: '/admin-suppliers?status=pending',
+            warn: (supplierStats.pending || 0) > 0,
+          },
+          {
+            label: 'Approved',
+            value: supplierStats.approved || 0,
+            href: '/admin-suppliers?status=approved',
+            warn: false,
+          },
+          {
+            label: 'Supplier with no profile',
+            value: supplierStats.suppliersWithoutProfile || 0,
+            href: '/admin-users?issue=supplier_profile_missing',
+            warn: (supplierStats.suppliersWithoutProfile || 0) > 0,
+          },
+          {
+            label: 'Orphaned profiles',
+            value: supplierStats.orphanedSuppliers || 0,
+            href: '/admin-suppliers',
+            warn: (supplierStats.orphanedSuppliers || 0) > 0,
+          },
+        ]
+          .map(healthRowHtml)
+          .join('');
+      }
+    }
+  }
+
+  function setText(id, value) {
+    const el = document.getElementById(id);
+    if (el) {
+      el.textContent = value;
+    }
+  }
+
+  function setCounter(id, value) {
+    const el = document.getElementById(id);
+    if (!el) {
+      return;
+    }
+    if (window.AdminShared?.animateCounter) {
+      window.AdminShared.animateCounter(el, value);
+    } else {
+      el.textContent = value;
+    }
+  }
+
+  // Shared public calendar management card — load asynchronously (best-effort)
+  async function loadCalendarCard() {
+    try {
+      const [eventsData, publishedData, requestsData] = await Promise.allSettled([
+        AdminShared.api('/api/v1/public-calendar/events?status=all&includePast=true&limit=1'),
+        AdminShared.api('/api/v1/public-calendar/events?status=published&includePast=true&limit=1'),
+        AdminShared.api('/api/v1/public-calendar/publisher-requests?status=pending'),
+      ]);
+      const totalCalendarEventsEl = document.getElementById('totalCalendarEventsCountCard');
+      if (totalCalendarEventsEl && eventsData.status === 'fulfilled') {
+        totalCalendarEventsEl.textContent = eventsData.value.total || 0;
+      }
+      const publishedCalendarEventsEl = document.getElementById('publishedCalendarEventsCount');
+      if (publishedCalendarEventsEl && publishedData.status === 'fulfilled') {
+        publishedCalendarEventsEl.textContent = publishedData.value.total || 0;
+      }
+      const pendingRequestsEl = document.getElementById('pendingCalendarRequestsCount');
+      if (pendingRequestsEl && requestsData.status === 'fulfilled') {
+        pendingRequestsEl.textContent = requestsData.value.total || 0;
+      }
+    } catch {
+      // Non-blocking — card shows — if API fails stats stay at —
+    }
+  }
+
+  // Partners management card — load asynchronously (best-effort)
+  async function loadPartnersCard() {
+    try {
+      const partnerData = await AdminShared.api('/api/admin/partners');
+      const partners = partnerData.items || [];
+      const totalPartnersEl = document.getElementById('totalPartnersCountCard');
+      if (totalPartnersEl) {
+        totalPartnersEl.textContent = partners.length;
+      }
+      const activePartnersEl = document.getElementById('activePartnersCount');
+      if (activePartnersEl) {
+        activePartnersEl.textContent = partners.filter(p => p.status === 'active').length;
+      }
+
+      const payoutData = await AdminShared.api('/api/admin/partners/payout-requests?status=open');
+      const openPayoutsEl = document.getElementById('openPayoutRequestsCount');
+      if (openPayoutsEl) {
+        openPayoutsEl.textContent = (payoutData.items || []).length;
+      }
+    } catch {
+      // Non-blocking — card shows — if API fails stats stay at —
+    }
+  }
+
+  // Revenue: fetch from Stripe analytics, fall back to v2 revenue endpoint
+  async function loadRevenue() {
+    const totalRevenueEl = document.getElementById('totalRevenueCount');
+    const totalRevenueChangeEl = document.getElementById('totalRevenueChange');
+    try {
+      const stripeData = await AdminShared.api('/api/admin/stripe-analytics');
+      if (stripeData?.available === true) {
+        if (totalRevenueEl) {
+          totalRevenueEl.textContent = `£${Number(stripeData.totalRevenue || 0).toFixed(2)}`;
+        }
+        if (totalRevenueChangeEl) {
+          const monthRev = Number(stripeData.monthRevenue || 0).toFixed(2);
+          totalRevenueChangeEl.textContent = `£${monthRev} this month`;
+        }
+        return;
+      }
+    } catch {
+      // Stripe not available — try fallback
+    }
+    try {
+      const v2Data = await AdminShared.api('/api/v2/admin/revenue');
+      if (v2Data?.revenue) {
+        const mrr = Number(v2Data.revenue.mrr || 0).toFixed(2);
+        if (totalRevenueEl) {
+          totalRevenueEl.textContent = `£${mrr} MRR`;
+        }
+        if (totalRevenueChangeEl) {
+          totalRevenueChangeEl.textContent = '—';
+        }
+        return;
+      }
+    } catch {
+      // Both failed — show N/A
+    }
+    if (totalRevenueEl) {
+      totalRevenueEl.textContent = 'N/A';
+    }
+    if (totalRevenueChangeEl) {
+      totalRevenueChangeEl.textContent = '—';
+    }
+  }
+
+  // What the "pending" note under a card says. A failed totals request must not read as "All approved".
+  function pendingNote(pending, failed) {
+    if (failed) {
+      return '—';
+    }
+    return pending > 0 ? `${pending} pending` : 'All approved';
+  }
+
+  function renderTrendNotes(counts, failed) {
+    const recentUsers = Number(summary?.newLast7) || 0;
+    const previousUsers = Number(summary?.newPrevious7) || 0;
+    const usersChangeEl = document.getElementById('totalUsersChange');
+    if (usersChangeEl) {
+      usersChangeEl.title =
+        'Rolling seven-day signups compared with the immediately preceding seven days.';
+      usersChangeEl.textContent =
+        previousUsers === 0
+          ? `${recentUsers} new · last 7 days`
+          : `${recentUsers} vs ${previousUsers} · prior 7 days`;
+    }
+    setText('totalSuppliersChange', pendingNote(counts.pendingSuppliers || 0, failed));
+    setText('totalPackagesChange', pendingNote(counts.pendingPackages || 0, failed));
+  }
+
+  function analyticsHtml(counts) {
+    const byRole = counts.usersByRole || {};
+    const roleParts =
+      Object.keys(byRole)
+        .map(role => `${escapeHtml(role)}: ${Number(byRole[role]) || 0}`)
+        .join(', ') || '—';
+    const { last7, last30 } = signupCounts();
+    return (
+      '<div class="card">' +
+      `<p><strong>Total Users:</strong> ${counts.usersTotal || 0}</p>` +
+      `<p><strong>Users by role:</strong> ${roleParts}</p>` +
+      `<p><strong>Total Suppliers:</strong> ${counts.suppliersTotal || 0}</p>` +
+      `<p><strong>Total Packages:</strong> ${counts.packagesTotal || 0}</p>` +
+      `<p><strong>Signups last 7 days:</strong> ${last7}</p>` +
+      `<p><strong>Signups last 30 days:</strong> ${last30}</p>` +
+      `<p class="small">Plans: ${counts.plansTotal || 0} · Threads: ${counts.threadsTotal || 0} · Messages: ${counts.messagesTotal || 0}</p>` +
+      '</div>'
+    );
+  }
+
   function renderAnalytics(metrics) {
     const el = document.getElementById('analytics');
     if (!el) {
       return;
     }
+    const counts = metrics?.counts || {};
+    const metricsFailed = Boolean(metrics?.__error);
 
-    const counts = (metrics && metrics.counts) || {};
-    const byRole = counts.usersByRole || {};
-    const roleParts =
-      Object.keys(byRole)
-        .map(r => {
-          return `${escapeHtml(r)}: ${Number(byRole[r]) || 0}`;
-        })
-        .join(', ') || '—';
+    setCounter('totalUsersCount', summary?.total || counts.usersTotal || 0);
+    renderAccountHealth();
+    setCounter('totalPackagesCount', counts.packagesTotal || 0);
+    setCounter('totalSuppliersCount', summary?.byRole?.supplier || counts.suppliersTotal || 0);
 
-    const usersList = Array.isArray(allUsers) && allUsers.length ? allUsers : [];
-    function countSince(days) {
-      const now = Date.now();
-      const cutoff = now - days * 24 * 60 * 60 * 1000;
-      return usersList.filter(u => {
-        if (!u.createdAt) {
-          return false;
-        }
-        const t = Date.parse(u.createdAt);
-        if (!t || isNaN(t)) {
-          return false;
-        }
-        return t >= cutoff;
-      }).length;
+    // Management cards
+    [
+      ['totalSuppliersCountCard', 'suppliersTotal'],
+      ['totalPackagesCountCard', 'packagesTotal'],
+      ['pendingSuppliersCount', 'pendingSuppliers'],
+      ['proSuppliersCount', 'proSuppliers'],
+      ['pendingPackagesCount', 'pendingPackages'],
+      ['featuredPackagesCount', 'featuredPackages'],
+    ].forEach(([id, key]) => setText(id, counts[key] || 0));
+
+    // Best-effort cards that load on their own; a failure leaves their "—"
+    loadCalendarCard();
+    loadPartnersCard();
+    loadRevenue();
+
+    renderTrendNotes(counts, metricsFailed);
+    el.innerHTML = metricsFailed
+      ? '<div class="card"><p>Platform totals could not be loaded. Use Refresh to try again.</p></div>'
+      : analyticsHtml(counts);
+  }
+
+  // What is waiting for the admin, in the order it should be dealt with. undefined means the request
+  // has not answered yet; null means it failed, which is different from "nothing waiting" and is
+  // shown as such.
+  const queueCounts = {};
+  const QUEUES = [
+    {
+      key: 'suppliers',
+      id: 'pendingSupplierVerificationCount',
+      href: '/admin-suppliers',
+      action: 'Verify suppliers',
+      noun: ['supplier to verify', 'suppliers to verify'],
+    },
+    {
+      key: 'photos',
+      id: 'adhPendingPhotosCount',
+      href: '/admin-photos',
+      action: 'Review photos',
+      noun: ['photo to approve', 'photos to approve'],
+    },
+    {
+      key: 'reviews',
+      id: 'pendingReviewsCount',
+      href: '/admin-reviews',
+      action: 'Review reviews',
+      noun: ['review to moderate', 'reviews to moderate'],
+    },
+    {
+      key: 'reports',
+      id: 'pendingReportsCount',
+      href: '/admin-reports',
+      action: 'Review reports',
+      noun: ['content report to action', 'content reports to action'],
+    },
+  ];
+
+  function updateNext() {
+    const nextEl = document.getElementById('adhNext');
+    const primary = document.getElementById('adhPrimary');
+    if (!nextEl) {
+      return;
     }
-
-    const last7 = countSince(7);
-    const last30 = countSince(30);
-
-    function bar(n) {
-      let c = n;
-      if (c > 20) {
-        c = 20;
+    const waiting = QUEUES.filter(q => queueCounts[q.key] > 0);
+    const loading = QUEUES.some(q => queueCounts[q.key] === undefined);
+    const unknown = QUEUES.some(q => queueCounts[q.key] === null);
+    if (waiting.length) {
+      const first = waiting[0];
+      const n = queueCounts[first.key];
+      const more = waiting.length - 1;
+      nextEl.textContent = `Next: ${n} ${first.noun[n === 1 ? 0 : 1]}${
+        more ? ` and ${more} more queue${more === 1 ? '' : 's'}` : ''
+      }.`;
+      if (primary) {
+        primary.textContent = first.action;
+        primary.setAttribute('href', first.href);
       }
-      let out = '';
-      for (let i = 0; i < c; i++) {
-        out += '<span aria-hidden="true">▮</span>';
-      }
-      return out;
+    } else if (loading) {
+      nextEl.textContent = 'Checking what needs you…';
+    } else if (unknown) {
+      nextEl.textContent = 'Some queue counts could not be loaded. Use Refresh to try again.';
+    } else {
+      nextEl.textContent = 'Nothing is waiting for you.';
     }
+  }
 
-    // Update stat cards with animated counters
-    const totalUsersEl = document.getElementById('totalUsersCount');
-    if (totalUsersEl && window.AdminShared && window.AdminShared.animateCounter) {
-      window.AdminShared.animateCounter(
-        totalUsersEl,
-        (summary && summary.total) || counts.usersTotal || 0
-      );
-
-      // ── Account Health panels (from summary data) ───────────────────────
-      if (summary) {
-        const healthRowsEl = document.getElementById('dashUserHealthRows');
-        const supplierHealthEl = document.getElementById('dashSupplierHealthRows');
-
-        if (healthRowsEl) {
-          const bySig = summary.bySignup || {};
-          const byVerif = summary.byVerification || {};
-          healthRowsEl.innerHTML = [
-            {
-              label: 'Unverified (pending)',
-              value: byVerif.pending || 0,
-              href: '/admin-users?verificationMethod=pending',
-              warn: (byVerif.pending || 0) > 0,
-            },
-            {
-              label: 'Unknown verification source',
-              value: byVerif.unknown || 0,
-              href: '/admin-users?verificationMethod=unknown',
-              warn: (byVerif.unknown || 0) > 0,
-            },
-            {
-              label: 'Google sign-in',
-              value: bySig.google || 0,
-              href: '/admin-users?signupMethod=google',
-              warn: false,
-            },
-            {
-              label: 'Facebook sign-in',
-              value: countOf(bySig, 'facebook'),
-              href: '/admin-users?signupMethod=facebook',
-              warn: false,
-            },
-            {
-              label: 'Email / password',
-              value: bySig.email_password || 0,
-              href: '/admin-users?signupMethod=email_password',
-              warn: false,
-            },
-            {
-              label: 'Admin-created',
-              value: bySig.admin_created || 0,
-              href: '/admin-users?signupMethod=admin_created',
-              warn: false,
-            },
-            {
-              label: 'Account issues',
-              value: summary.issueCount || 0,
-              href: '/admin-users?issue=email_unverified',
-              warn: (summary.issueCount || 0) > 0,
-            },
-          ]
-            .map(
-              r => `<div class="dash-health-row">
-              <span class="dash-health-row__label">${r.label}</span>
-              <a href="${r.href}" class="dash-health-row__value ${r.warn && r.value > 0 ? 'dash-health-row__value--warn' : ''}">${r.value.toLocaleString()}</a>
-            </div>`
-            )
-            .join('');
-        }
-
-        if (supplierHealthEl && summary.suppliers) {
-          const s = summary.suppliers;
-          supplierHealthEl.innerHTML = [
-            {
-              label: 'Total supplier accounts',
-              value: s.total || 0,
-              href: '/admin-users?role=supplier',
-              warn: false,
-            },
-            {
-              label: 'Pending approval',
-              value: s.pending || 0,
-              href: '/admin-suppliers?status=pending',
-              warn: (s.pending || 0) > 0,
-            },
-            {
-              label: 'Approved',
-              value: s.approved || 0,
-              href: '/admin-suppliers?status=approved',
-              warn: false,
-            },
-            {
-              label: 'Supplier with no profile',
-              value: s.suppliersWithoutProfile || 0,
-              href: '/admin-users?issue=supplier_profile_missing',
-              warn: (s.suppliersWithoutProfile || 0) > 0,
-            },
-            {
-              label: 'Orphaned profiles',
-              value: s.orphanedSuppliers || 0,
-              href: '/admin-suppliers',
-              warn: (s.orphanedSuppliers || 0) > 0,
-            },
-          ]
-            .map(
-              r => `<div class="dash-health-row">
-              <span class="dash-health-row__label">${r.label}</span>
-              <a href="${r.href}" class="dash-health-row__value ${r.warn && r.value > 0 ? 'dash-health-row__value--warn' : ''}">${r.value.toLocaleString()}</a>
-            </div>`
-            )
-            .join('');
-        }
-      }
-    } else if (totalUsersEl) {
-      totalUsersEl.textContent = counts.usersTotal || 0;
+  function setQueueCount(key, value) {
+    queueCounts[key] = value;
+    const queue = QUEUES.find(q => q.key === key);
+    const el = queue && document.getElementById(queue.id);
+    if (el) {
+      el.textContent = value === null ? '—' : String(value);
+      el.title = value === null ? 'This count could not be loaded.' : '';
+      el.classList.toggle('adh-count--attention', value > 0);
     }
+    updateNext();
+  }
 
-    const totalPackagesEl = document.getElementById('totalPackagesCount');
-    if (totalPackagesEl && window.AdminShared && window.AdminShared.animateCounter) {
-      window.AdminShared.animateCounter(totalPackagesEl, counts.packagesTotal || 0);
-    } else if (totalPackagesEl) {
-      totalPackagesEl.textContent = counts.packagesTotal || 0;
+  function setGreeting(user) {
+    const el = document.getElementById('adhGreeting');
+    if (!el) {
+      return;
     }
-
-    const totalSuppliersEl = document.getElementById('totalSuppliersCount');
-    if (totalSuppliersEl && window.AdminShared && window.AdminShared.animateCounter) {
-      window.AdminShared.animateCounter(
-        totalSuppliersEl,
-        (summary && summary.byRole && summary.byRole.supplier) || counts.suppliersTotal || 0
-      );
-    } else if (totalSuppliersEl) {
-      totalSuppliersEl.textContent = counts.suppliersTotal || 0;
+    const hour = new Date().getHours();
+    let part = 'evening';
+    if (hour < 12) {
+      part = 'morning';
+    } else if (hour < 18) {
+      part = 'afternoon';
     }
-
-    // Update management card stats
-    const totalSuppliersCardEl = document.getElementById('totalSuppliersCountCard');
-    if (totalSuppliersCardEl) {
-      totalSuppliersCardEl.textContent = counts.suppliersTotal || 0;
-    }
-
-    const totalPackagesCardEl = document.getElementById('totalPackagesCountCard');
-    if (totalPackagesCardEl) {
-      totalPackagesCardEl.textContent = counts.packagesTotal || 0;
-    }
-
-    const pendingSuppliersEl = document.getElementById('pendingSuppliersCount');
-    if (pendingSuppliersEl) {
-      pendingSuppliersEl.textContent = counts.pendingSuppliers || 0;
-    }
-
-    const proSuppliersEl = document.getElementById('proSuppliersCount');
-    if (proSuppliersEl) {
-      proSuppliersEl.textContent = counts.proSuppliers || 0;
-    }
-
-    const pendingPackagesEl = document.getElementById('pendingPackagesCount');
-    if (pendingPackagesEl) {
-      pendingPackagesEl.textContent = counts.pendingPackages || 0;
-    }
-
-    const featuredPackagesEl = document.getElementById('featuredPackagesCount');
-    if (featuredPackagesEl) {
-      featuredPackagesEl.textContent = counts.featuredPackages || 0;
-    }
-
-    // Shared public calendar management card — load asynchronously (best-effort)
-    (async () => {
-      try {
-        const [eventsData, publishedData, requestsData] = await Promise.allSettled([
-          AdminShared.api('/api/v1/public-calendar/events?status=all&includePast=true&limit=1'),
-          AdminShared.api(
-            '/api/v1/public-calendar/events?status=published&includePast=true&limit=1'
-          ),
-          AdminShared.api('/api/v1/public-calendar/publisher-requests?status=pending'),
-        ]);
-        const totalCalendarEventsEl = document.getElementById('totalCalendarEventsCountCard');
-        if (totalCalendarEventsEl && eventsData.status === 'fulfilled') {
-          totalCalendarEventsEl.textContent = eventsData.value.total || 0;
-        }
-        const publishedCalendarEventsEl = document.getElementById('publishedCalendarEventsCount');
-        if (publishedCalendarEventsEl && publishedData.status === 'fulfilled') {
-          publishedCalendarEventsEl.textContent = publishedData.value.total || 0;
-        }
-        const pendingRequestsEl = document.getElementById('pendingCalendarRequestsCount');
-        if (pendingRequestsEl && requestsData.status === 'fulfilled') {
-          pendingRequestsEl.textContent = requestsData.value.total || 0;
-        }
-      } catch (_) {
-        // Non-blocking — card shows — if API fails stats stay at —
-      }
-    })();
-
-    // Partners management card — load asynchronously (best-effort)
-    (async () => {
-      try {
-        const partnerData = await AdminShared.api('/api/admin/partners');
-        const partners = partnerData.items || [];
-        const totalPartnersEl = document.getElementById('totalPartnersCountCard');
-        if (totalPartnersEl) {
-          totalPartnersEl.textContent = partners.length;
-        }
-        const activePartnersEl = document.getElementById('activePartnersCount');
-        if (activePartnersEl) {
-          activePartnersEl.textContent = partners.filter(p => p.status === 'active').length;
-        }
-
-        const payoutData = await AdminShared.api('/api/admin/partners/payout-requests?status=open');
-        const openPayoutsEl = document.getElementById('openPayoutRequestsCount');
-        if (openPayoutsEl) {
-          openPayoutsEl.textContent = (payoutData.items || []).length;
-        }
-      } catch (_) {
-        // Non-blocking — card shows — if API fails stats stay at —
-      }
-    })();
-
-    // Revenue: fetch from Stripe analytics, fall back to v2 revenue endpoint
-    (async () => {
-      const totalRevenueEl = document.getElementById('totalRevenueCount');
-      const totalRevenueChangeEl = document.getElementById('totalRevenueChange');
-      try {
-        const stripeData = await AdminShared.api('/api/admin/stripe-analytics');
-        if (stripeData && stripeData.available === true) {
-          if (totalRevenueEl) {
-            totalRevenueEl.textContent = `£${Number(stripeData.totalRevenue || 0).toFixed(2)}`;
-          }
-          if (totalRevenueChangeEl) {
-            const monthRev = Number(stripeData.monthRevenue || 0).toFixed(2);
-            totalRevenueChangeEl.textContent = `£${monthRev} this month`;
-          }
-          return;
-        }
-      } catch (_) {
-        // Stripe not available — try fallback
-      }
-      try {
-        const v2Data = await AdminShared.api('/api/v2/admin/revenue');
-        if (v2Data && v2Data.revenue) {
-          const mrr = Number(v2Data.revenue.mrr || 0).toFixed(2);
-          if (totalRevenueEl) {
-            totalRevenueEl.textContent = `£${mrr} MRR`;
-          }
-          if (totalRevenueChangeEl) {
-            totalRevenueChangeEl.textContent = '—';
-          }
-          return;
-        }
-      } catch (_) {
-        // Both failed — show N/A
-      }
-      if (totalRevenueEl) {
-        totalRevenueEl.textContent = 'N/A';
-      }
-      if (totalRevenueChangeEl) {
-        totalRevenueChangeEl.textContent = '—';
-      }
-    })();
-
-    // Trend indicators — use summary.newLast7 (from shared summary service)
-    // allUsers is no longer pre-loaded on the dashboard; Users Centre has the full list
-    (function () {
-      // Use pre-computed summary.newLast7 (allUsers no longer pre-loaded on dashboard)
-      const recentUsers = Number(summary?.newLast7) || 0;
-      const previousUsers = Number(summary?.newPrevious7) || 0;
-
-      const usersChangeEl = document.getElementById('totalUsersChange');
-      if (usersChangeEl) {
-        usersChangeEl.title =
-          'Rolling seven-day signups compared with the immediately preceding seven days.';
-        if (previousUsers === 0) {
-          usersChangeEl.textContent = `${recentUsers} new · last 7 days`;
-        } else {
-          usersChangeEl.textContent = `${recentUsers} vs ${previousUsers} · prior 7 days`;
-        }
-        if (recentUsers > previousUsers) {
-          usersChangeEl.style.color = 'var(--color-success, #16a34a)';
-        } else if (recentUsers < previousUsers) {
-          usersChangeEl.style.color = 'var(--color-danger, #dc2626)';
-        } else {
-          usersChangeEl.style.color = '';
-        }
-      }
-    })();
-
-    // Suppliers trend: show pending approval count
-    (function () {
-      const suppliersChangeEl = document.getElementById('totalSuppliersChange');
-      if (suppliersChangeEl) {
-        const pending = counts.pendingSuppliers || 0;
-        if (pending > 0) {
-          suppliersChangeEl.textContent = `${pending} pending`;
-          suppliersChangeEl.style.color = 'var(--color-warning, #d97706)';
-        } else {
-          suppliersChangeEl.textContent = 'All approved';
-          suppliersChangeEl.style.color = 'var(--color-success, #16a34a)';
-        }
-      }
-    })();
-
-    // Packages trend: show pending approval count
-    (function () {
-      const packagesChangeEl = document.getElementById('totalPackagesChange');
-      if (packagesChangeEl) {
-        const pending = counts.pendingPackages || 0;
-        if (pending > 0) {
-          packagesChangeEl.textContent = `${pending} pending`;
-          packagesChangeEl.style.color = 'var(--color-warning, #d97706)';
-        } else {
-          packagesChangeEl.textContent = 'All approved';
-          packagesChangeEl.style.color = 'var(--color-success, #16a34a)';
-        }
-      }
-    })();
-
-    el.innerHTML =
-      `<div class="card">` +
-      `<p><strong>Total Users:</strong> ${counts.usersTotal || 0}</p>` +
-      `<p><strong>Users by role:</strong> ${roleParts}</p>` +
-      `<p><strong>Total Suppliers:</strong> ${counts.suppliersTotal || 0}</p>` +
-      `<p><strong>Total Packages:</strong> ${counts.packagesTotal || 0}</p>` +
-      `<p><strong>Signups last 7 days:</strong> ${last7} <span class="small">${bar(last7)}</span></p>` +
-      `<p><strong>Signups last 30 days:</strong> ${last30} <span class="small">${bar(last30)}</span></p>` +
-      `<p class="small">Plans: ${counts.plansTotal || 0} · Threads: ${
-        counts.threadsTotal || 0
-      } · Messages: ${counts.messagesTotal || 0}</p>` +
-      `</div>`;
+    const first = String(user.firstName || user.name || '')
+      .trim()
+      .split(/\s+/)[0];
+    el.textContent = first ? `Good ${part}, ${first}` : `Good ${part}`;
   }
 
   function loadAll() {
@@ -671,6 +781,10 @@
       statusEl.textContent = 'Checking admin…';
       statusEl.classList.add('is-loading');
     }
+    QUEUES.forEach(q => {
+      queueCounts[q.key] = undefined;
+    });
+    updateNext();
 
     api('/api/v1/auth/me')
       .then(me => {
@@ -687,21 +801,24 @@
             statusEl.style.background = 'rgba(254,242,242,0.95)';
             statusEl.style.color = '#991b1b';
           }
+          const nextEl = document.getElementById('adhNext');
+          if (nextEl) {
+            nextEl.textContent = 'This page is for administrators.';
+          }
           // Hide all dashboard content sections so unauthorised users
           // don't see the empty admin UI chrome
           document
-            .querySelectorAll(
-              '.stats-grid, .moderation-grid, .quick-actions, .management-grid, .data-section, .section-header'
-            )
+            .querySelectorAll('.adh-hero__actions, .adh-summary, .adh-grid, .adh-card')
             .forEach(el => {
               el.hidden = true;
             });
-          return;
+          return null;
         }
 
         if (statusEl) {
           statusEl.textContent = 'Loading data…';
         }
+        setGreeting(user);
 
         return Promise.all([
           // Use the shared summary service — same source as Users Centre
@@ -711,15 +828,15 @@
           }),
           api('/api/admin/metrics').catch(err => {
             console.warn('Failed to load metrics:', err.message);
-            return { counts: {} };
+            return { counts: {}, __error: true };
           }),
           api('/api/admin/photos/pending').catch(err => {
             console.warn('Failed to load pending photos:', err.message);
-            return { photos: [] };
+            return { photos: [], __error: true };
           }),
           api('/api/admin/reviews/pending').catch(err => {
             console.warn('Failed to load pending reviews:', err.message);
-            return { reviews: [] };
+            return { reviews: [], __error: true };
           }),
         ]).then(async results => {
           const usersResp = results[0] || {};
@@ -738,10 +855,14 @@
           // Load a small set of recent users for the dashboard table (most-recent 20).
           // The full paginated list lives in the Users Centre.
           try {
-            const recentData = await api('/api/admin/users/list?limit=20&page=1');
+            const recentData = await api(
+              `/api/admin/users/list?limit=${RECENT_USERS_LIMIT}&page=1`
+            );
             allUsers = (recentData && recentData.items) || [];
-          } catch (_) {
+            recentUsersFailed = false;
+          } catch {
             allUsers = [];
+            recentUsersFailed = true;
           }
 
           // Reset supplier/package caches so edits refetch fresh data after a reload
@@ -759,54 +880,33 @@
             r => !r.approved && !r.rejected
           );
 
-          const photosEl = document.getElementById('pendingPhotosCount');
-          const reviewsEl = document.getElementById('pendingReviewsCount');
-          const reportsEl = document.getElementById('pendingReportsCount');
-          const suppliersVerificationEl = document.getElementById(
-            'pendingSupplierVerificationCount'
-          );
+          setQueueCount('photos', photosResp.__error ? null : pendingPhotos.length);
+          setQueueCount('reviews', reviewsResp.__error ? null : pendingReviews.length);
 
-          if (photosEl) {
-            photosEl.textContent = pendingPhotos.length;
-          }
-          if (reviewsEl) {
-            reviewsEl.textContent = pendingReviews.length;
-          }
-
-          // Fetch pending reports count
+          // The reports and supplier counts come from their own requests. A failed request leaves
+          // the count as "—" (unknown) instead of a reassuring 0.
           api('/api/admin/reports/pending', 'GET')
-            .then(reportsResp => {
-              if (reportsEl) {
-                reportsEl.textContent = reportsResp.count || 0;
-              }
-            })
+            .then(reportsResp => setQueueCount('reports', reportsResp.count || 0))
             .catch(err => {
               console.warn('Failed to load pending reports:', err.message);
-              if (reportsEl) {
-                reportsEl.textContent = '0';
-              }
+              setQueueCount('reports', null);
             });
 
-          // Fetch pending supplier verifications
           api('/api/admin/suppliers/pending-verification', 'GET')
-            .then(suppliersResp => {
-              if (suppliersVerificationEl) {
-                suppliersVerificationEl.textContent = suppliersResp.count || 0;
-              }
-            })
+            .then(suppliersResp => setQueueCount('suppliers', suppliersResp.count || 0))
             .catch(err => {
               console.warn('Failed to load pending supplier verifications:', err.message);
-              if (suppliersVerificationEl) {
-                suppliersVerificationEl.textContent = '0';
-              }
+              setQueueCount('suppliers', null);
             });
 
           if (statusEl) {
-            statusEl.textContent = summary
-              ? `${summary.total || 0} users · ${summary.suppliers ? summary.suppliers.total : 0} suppliers`
-              : summaryLoadFailed
-                ? 'Dashboard loaded with warnings.'
-                : 'Dashboard loaded.';
+            statusEl.textContent = metricsResp.__error
+              ? 'Dashboard loaded with warnings.'
+              : summary
+                ? `${summary.total || 0} users · ${summary.suppliers ? summary.suppliers.total : 0} suppliers`
+                : summaryLoadFailed
+                  ? 'Dashboard loaded with warnings.'
+                  : 'Dashboard loaded.';
             statusEl.classList.remove('is-loading');
           }
         });
@@ -823,6 +923,10 @@
         ) {
           statusEl.textContent = 'Error loading data. Some features may be unavailable.';
           statusEl.classList.remove('is-loading');
+          const nextEl = document.getElementById('adhNext');
+          if (nextEl) {
+            nextEl.textContent = 'The dashboard could not be loaded. Use Refresh to try again.';
+          }
         }
       });
   }
