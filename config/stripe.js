@@ -6,6 +6,7 @@
 'use strict';
 
 const logger = require('../utils/logger');
+const { getSafeStripeSecretKey } = require('../utils/previewSafety');
 
 let STRIPE_ENABLED = false;
 let stripeClient = null;
@@ -17,7 +18,7 @@ let initializationError = null;
  */
 function initializeStripe() {
   try {
-    const secret = process.env.STRIPE_SECRET_KEY;
+    const secret = getSafeStripeSecretKey();
     if (secret) {
       // Lazy-load Stripe so the app still runs if the dependency is missing
       // eslint-disable-next-line global-require, node/no-missing-require

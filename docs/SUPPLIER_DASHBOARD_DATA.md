@@ -144,8 +144,10 @@ supplier per hour (`PROFILE_VIEW_IP_CAP`; changing it is an environment change a
 busy shared address (an office, a mobile carrier) can undercount. The cap applies to anonymous visitors only. It is kept
 in a separate collection, `profile_view_caps`: one row per supplier, keyed address hash and hour, incremented atomically,
 with no address in it and a TTL index that removes it within about two hours. Nothing derived from the address is stored
-on the event itself. Both depend on `req.ip` being the real client address, which depends on the deployment's trust-proxy
-setting (behind a CDN that does not forward the client address, many visitors would share one key). A signed-in
+on the event itself. Both depend on `req.ip` being the real client address. Production is served through Cloudflare and then Railway's edge, so
+the server trusts the first hop plus Cloudflare's published addresses (`utils/trustProxy.js`): `req.ip` is the visitor, and a
+forged forwarded-for value is never reached. If another proxy or CDN is ever put in front, add its address ranges there, or
+many visitors would share one key. A signed-in
 visitor's events carry their `userId` and are deleted with the account. `views.description` carries the exact sentence the UI may show. Events recorded
 before this change were not rewritten.
 
@@ -154,18 +156,26 @@ admin override, enforced on create/update/delete and on publisher requests (veri
 ownership). Editing can no longer publish an event that is awaiting approval. The private calendar
 (`/api/me/calendar-entries`) is separate and open to every verified account. There are no bookings.
 
-**Tips.** `GET /api/v1/supplier/performance-tips` returns up to three ranked tips (`services/supplierTips.js`) derived from
-the supplier's real state: account status (email, verification, approval, suspension), category (category-specific
-package, description and photo advice), plan limits actually reached (packages, photos), profile gaps, unhandled
-enquiries, unanswered conversations and reviews, packages without a photo or awaiting approval. Each tip is
+**Tips.** `GET /api/v1/supplier/performance-tips` returns up to three ranked tips (`services/supplierTips.js`). The Next
+steps checklist (`services/supplierNextSteps.js`) is the one place for "complete your profile / get set up" items, so a
+tip never restates an open checklist step; tips only add what a checklist line cannot: unhandled enquiries,
+unanswered conversations (and unread messages), published reviews with no reply, plan limits actually reached
+(packages, photos), packages awaiting approval, a calendar with nothing coming up (only once the supplier has used it
+before), a profile left in the "Other" category, and account problems that carry an admin's note or need support
+(changes requested, rejected, verified but listing not approved, suspended). The tips that used to repeat a checklist
+step were removed, by checklist step: `verify-email` (verify-email), `submit-verification` and `verification-pending`
+(get-verified), `write-description` (description), `add-photos` (gallery), `add-profile-photo` (profile-photo),
+`add-location` and `choose-category` for an empty category (business-details), `add-banner` (banner),
+`add-social-links` (social-links), `add-website` (website), `first-package` (first-package), `package-photos`
+(package-photos), `first-review` (request-review). `publish-event` is kept only when the calendar step is done, and
+`choose-category` only for "Other" (the checklist counts "Other" as a category filled in, so it says nothing about it). A supplier with nothing to
+act on gets `{tips: [], total: 0}` and the dashboard hides the Tips card. Each tip is
 `{id, priority, category, icon, title, body, action:{type, label, href, field?, data?}}`; tips contain no statistics or
 promises, and a tip whose data does not exist is not produced. The dashboard maps each `action.type` to a page action
-(open the profile editor on `field`, the package form, Request a review, scroll to a card) or a link. There is no
-availability tip or card: `suppliers.availability` was never shown to customers, so the Availability card and its
-`/availability` endpoints were removed. The description tip measures the same text as the completeness check
-(`getSupplierDescriptionText`: description_long, description_short, description, then the admin-set `blurb`; the
-public About section shows the first three only). `responses.unanswered` (summary) counts customer conversations over
-a day old with no reply.
+(open the profile editor on `field`, the package form, Request a review, scroll to a card) or a link; it supports a few
+more action types than tips currently use. There is no availability tip or card: `suppliers.availability` was never
+shown to customers, so the Availability card and its `/availability` endpoints were removed. `responses.unanswered`
+(summary) counts customer conversations over a day old with no reply.
 
 **Messenger identity.** Participants are hydrated from the live account; suppliers use their business profile photo and gain
 `businessName`; `lastMessage.senderName` is the sender's current name. See `server-contract.md` for field names.

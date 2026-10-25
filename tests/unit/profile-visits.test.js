@@ -46,6 +46,7 @@ const FIREFOX = 'Mozilla/5.0 (Windows NT 10.0; rv:121.0) Gecko/20100101 Firefox/
 
 const crypto = require('crypto');
 const profileViewKeys = require('../../utils/profileViewKeys');
+const { PROFILE_VIEW_RETENTION_DAYS } = require('../../utils/profileViewRetention');
 
 const app = (() => {
   const instance = express();
@@ -159,6 +160,7 @@ describe('POST /api/analytics/track profile_view', () => {
         [
           'date',
           'dedupeKey',
+          'expiresAt',
           'id',
           'metadata',
           'sessionId',
@@ -342,6 +344,19 @@ describe('POST /api/analytics/track profile_view', () => {
     const ahead = rows[0].expiresAt.getTime() - Date.now();
     expect(ahead).toBeGreaterThan(60 * 60 * 1000);
     expect(ahead).toBeLessThanOrEqual(2 * 60 * 60 * 1000);
+  });
+
+  it('stamps every new profile view with an expiry date (a BSON date, retention days after the view)', async () => {
+    await beacon({ ip: '198.51.100.78' });
+    await beacon({ ip: '198.51.100.79', user: { id: 'usr_expiry', role: 'customer' } });
+
+    expect(events()).toHaveLength(2);
+    for (const event of events()) {
+      // A Date, not a string: the TTL monitor ignores anything else.
+      expect(event.expiresAt).toBeInstanceOf(Date);
+      const keptMs = event.expiresAt.getTime() - Date.parse(event.timestamp);
+      expect(keptMs).toBe(PROFILE_VIEW_RETENTION_DAYS * 24 * 60 * 60 * 1000);
+    }
   });
 
   it('a repeat of the same visitor does not use up another slot of the address cap', async () => {

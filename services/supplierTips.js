@@ -1,12 +1,27 @@
 /**
  * Supplier dashboard tips
  *
- * Tips are derived from this supplier's real state, never from generic filler:
- * their category, account status (email, verification, approval), plan and its
- * real limits, profile gaps, reviews, conversations, enquiries and packages.
- * A tip whose data does not exist is simply not produced. Tips contain no
- * statistics or promises about outcomes; numbers in them are the supplier's own
- * (their photo count, their plan's limit, how many enquiries are waiting).
+ * The "Next steps" checklist (services/supplierNextSteps.js) is the single place for "complete your
+ * profile / get set up" items. Tips only say what the checklist cannot: advice from live activity
+ * and data (waiting enquiries and conversations, reviews to answer, plan limits being reached,
+ * packages awaiting approval, a calendar with nothing coming up) and account problems that carry
+ * more than a checklist line can (a suspension, a rejection or requested changes with the admin's
+ * note). A tip therefore never restates an open checklist step. The tips that used to duplicate one
+ * were removed (checklist step in brackets):
+ *   verify-email (verify-email), submit-verification and verification-pending (get-verified),
+ *   write-description (description), add-photos (gallery), add-profile-photo (profile-photo),
+ *   add-location (business-details), add-banner (banner), add-social-links (social-links),
+ *   add-website (website), first-package (first-package), package-photos (package-photos),
+ *   first-review (request-review), and choose-category for a profile with no category at all
+ *   (business-details). publish-event (calendar) is kept but only once that step is done, and
+ *   choose-category is kept for "Other" only: the checklist counts "Other" as a category filled in,
+ *   so it says nothing about it.
+ *
+ * Tips are derived from this supplier's real state, never from generic filler. A tip whose data does
+ * not exist is simply not produced, and a supplier with nothing to act on gets no tips (the
+ * dashboard then hides the card). Tips contain no statistics or promises about outcomes; numbers in
+ * them are the supplier's own (their photo allowance, their plan's limit, how many enquiries are
+ * waiting).
  *
  * Shape of a tip (stable; the front end renders and wires it):
  *   {
@@ -30,17 +45,14 @@
 'use strict';
 
 const { reviewState, reviewResponse, STATES } = require('../utils/reviewShape');
-const {
-  getSupplierDescriptionText,
-  getSupplierGalleryCount,
-  hasSupplierPostcode,
-} = require('./supplierProfileCompleteness');
 const { countAllowanceGalleryPhotos } = require('../utils/photoGalleryAllowance');
-const { isPlaceholderImage } = require('../utils/packageImageUtils');
 
 const MAX_TIPS = 3;
 
-/** The values `action.type` can take. */
+/**
+ * The values `action.type` can take: every action the dashboard knows how to wire (the front end
+ * maps each one). Not every type is used by a tip at any one time.
+ */
 const ACTION_TYPES = Object.freeze([
   'verify-email',
   'open-verification',
@@ -70,67 +82,6 @@ const HREFS = Object.freeze({
   'open-calendar': '/dashboard/supplier#availability-calendar',
   'open-plan': '/supplier/subscription',
 });
-
-/** Which kind of business a category is, for category-specific advice. */
-const CATEGORY_GROUPS = Object.freeze({
-  Venues: 'venue',
-  Photography: 'photo',
-  Videography: 'photo',
-  Catering: 'food',
-  Cake: 'food',
-  Entertainment: 'music',
-  'Music/DJ': 'music',
-  Florist: 'styling',
-  Decor: 'styling',
-  'Event Planner': 'planner',
-  Planning: 'planner',
-  'Wedding Fayre': 'fayre',
-});
-
-const DESCRIPTION_ADVICE = Object.freeze({
-  venue:
-    'Say how many guests you can hold, what is included in a hire and where guests park or stay.',
-  photo: 'Describe your style, how you work on the day and what customers receive afterwards.',
-  food: 'Describe your menu style, how many guests you can cater for and which dietary needs you cover.',
-  music: 'Say what you perform or play, how long a set runs and what equipment you bring.',
-  styling: 'Describe the styles you create and the kinds of event you work on.',
-  planner: 'Explain which parts of an event you plan or coordinate.',
-  fayre: 'Say where and how often your fayres run and who they are for.',
-  general: 'Tell customers what you offer and where you work.',
-});
-
-const GALLERY_ADVICE = Object.freeze({
-  venue: 'Show the space set up for different kinds of event.',
-  photo: 'Show a range of your recent work.',
-  food: 'Show real dishes and set-ups from events you have catered.',
-  music: 'Show yourself performing at events.',
-  styling: 'Show finished arrangements and room set-ups.',
-  planner: 'Show events you have planned.',
-  fayre: 'Show previous fayres.',
-  general: 'Show your work from real events.',
-});
-
-const PACKAGE_ADVICE = Object.freeze({
-  venue:
-    'List each hire option you offer, for example day or evening hire, with what is included and the price.',
-  photo: 'Create packages by length of coverage and say what customers receive.',
-  food: 'Create packages by menu or service style and say whether pricing is per head or fixed.',
-  music: 'Create packages by length of performance and say what equipment is included.',
-  styling: 'Create packages by event size or style and say what is included.',
-  planner:
-    'Create packages for the level of planning you offer, such as full planning or day-of coordination.',
-  general: 'Packages show customers what you offer and roughly what it costs.',
-});
-
-/**
- * Which advice group a category belongs to.
- *
- * @param {string} category - Supplier category
- * @returns {string} venue | photo | food | music | styling | planner | fayre | general
- */
-function categoryGroup(category) {
-  return CATEGORY_GROUPS[category] || 'general';
-}
 
 /**
  * Build a tip.
@@ -172,29 +123,6 @@ function counted(count, singular, plural) {
 }
 
 /**
- * Format an ISO timestamp as a UTC calendar date, e.g. "12 Jul 2026".
- *
- * @param {string|null} iso - Timestamp
- * @returns {string|null} Text, or null when unparseable
- */
-function shortDate(iso) {
-  if (!iso) {
-    // new Date(null) is 1 January 1970, a valid date: a missing timestamp must not become one.
-    return null;
-  }
-  const date = new Date(iso);
-  if (Number.isNaN(date.getTime())) {
-    return null;
-  }
-  return date.toLocaleDateString('en-GB', {
-    day: 'numeric',
-    month: 'short',
-    year: 'numeric',
-    timeZone: 'UTC',
-  });
-}
-
-/**
  * An admin's note as a sentence of its own, e.g. " Admin note: add a logo." (the note may or may
  * not end in punctuation).
  *
@@ -209,47 +137,25 @@ function adminNote(notes) {
 }
 
 /**
- * Tips about the account itself: email, verification, approval, suspension. These
- * come first because nothing else on the dashboard works until they are resolved.
+ * Tips about the account itself, only where they say more than the checklist's "Get your profile
+ * verified" step: a suspension, a rejection or requested changes (with the admin's note) and an
+ * approved record whose listing is not yet approved. Verifying the email, submitting for the first
+ * time and waiting for a review are plain checklist steps (or their lock reasons), so no tip.
+ * These come first because nothing else on the dashboard works until they are resolved.
  *
  * @param {Object} verification - summary.verification
  * @returns {Object[]} Tips
  */
 function accountTips(verification) {
-  if (verification.emailVerified === false) {
-    return [
-      tip({
-        id: 'verify-email',
-        priority: 1,
-        category: 'account',
-        icon: '✉️',
-        title: 'Verify your email address',
-        body: 'Until your email is verified you cannot edit your profile, upload photos or create packages.',
-        type: 'verify-email',
-        label: 'Verify email',
-      }),
-    ];
-  }
   if (verification.approved) {
+    return [];
+  }
+  if (verification.emailVerified === false && verification.status !== 'suspended') {
+    // Nothing below can be acted on until the email is verified, and that is the checklist's first step.
     return [];
   }
   const note = adminNote(verification.notes);
   switch (verification.status) {
-    case 'pending_review': {
-      const when = shortDate(verification.submittedAt);
-      return [
-        tip({
-          id: 'verification-pending',
-          priority: 1,
-          category: 'account',
-          icon: '⏳',
-          title: 'Your profile is waiting for review',
-          body: `${when ? `You submitted it on ${when}. ` : ''}An admin is reviewing it and you will be notified. Until it is approved customers cannot see your profile. You can keep improving it meanwhile.`,
-          type: 'open-profile-editor',
-          label: 'Edit profile',
-        }),
-      ];
-    }
     case 'needs_changes':
       return [
         tip({
@@ -316,30 +222,20 @@ function accountTips(verification) {
         }),
       ];
     default:
-      return [
-        tip({
-          id: 'submit-verification',
-          priority: 1,
-          category: 'account',
-          icon: '✅',
-          title: 'Submit your profile for review',
-          body: 'Customers cannot see your profile until an admin approves it. Make sure your business name, category, email, phone and location are filled in, then submit it for review.',
-          type: 'open-verification',
-          label: 'Submit for review',
-        }),
-      ];
+      // Never submitted, or waiting for review: the checklist's "Get your profile verified" step.
+      return [];
   }
 }
 
 /**
- * Tips about customers waiting on the supplier: enquiries, conversations, reviews.
+ * Tips about customers waiting on the supplier: enquiries, conversations, reviews to answer.
+ * ("Ask for a first review" is the checklist's request-review step, so it is not a tip.)
  *
  * @param {Object} summary - Dashboard summary
  * @param {Object[]} reviewDocs - Stored reviews for this supplier
- * @param {boolean} canEdit - Whether the supplier's email is verified (review requests need it)
  * @returns {Object[]} Tips
  */
-function customerTips(summary, reviewDocs, canEdit) {
+function customerTips(summary, reviewDocs) {
   const tips = [];
   const newRequests = summary.enquiries?.requests?.new;
   if (newRequests > 0) {
@@ -402,71 +298,20 @@ function customerTips(summary, reviewDocs, canEdit) {
         label: 'View reviews',
       })
     );
-  } else if (canEdit && summary.reviews && summary.reviews.approvedCount === 0) {
-    // Requesting a review needs a verified email (the server refuses it otherwise).
-    tips.push(
-      tip({
-        id: 'first-review',
-        priority: 7,
-        category: 'reviews',
-        icon: '⭐',
-        title: 'Ask a past customer for a review',
-        body:
-          summary.reviews.pendingCount > 0
-            ? 'You have no published reviews yet; some are waiting for moderation. You can also invite a past customer to review you.'
-            : 'You have no published reviews yet. Invite a past customer to review you.',
-        type: 'open-review-request',
-        label: 'Request a review',
-      })
-    );
   }
   return tips;
 }
 
 /**
- * Tips about packages and the plan limits that apply to them.
+ * Tips about packages in review and the plan's package limit. ("Create your first package" and
+ * "Add a photo to every package" are checklist steps, so they are not tips.)
  *
- * @param {Object} supplier - Supplier document
  * @param {Object} summary - Dashboard summary
- * @param {Object[]} packageDocs - Stored packages for this supplier
  * @returns {Object[]} Tips
  */
-function packageTips(supplier, summary, packageDocs) {
+function packageTips(summary) {
   const tips = [];
-  const group = categoryGroup(supplier.category);
   const packages = summary.packages;
-
-  if (packageDocs.length === 0 && group !== 'fayre') {
-    tips.push(
-      tip({
-        id: 'first-package',
-        priority: 5,
-        category: 'packages',
-        icon: '📦',
-        title: 'Create your first package',
-        body: PACKAGE_ADVICE[group] || PACKAGE_ADVICE.general,
-        type: 'open-package-form',
-        label: 'Create package',
-      })
-    );
-  }
-
-  const withoutPhoto = packageDocs.filter(pkg => isPlaceholderImage(pkg.image)).length;
-  if (withoutPhoto > 0) {
-    tips.push(
-      tip({
-        id: 'package-photos',
-        priority: 5,
-        category: 'packages',
-        icon: '🖼️',
-        title: `${counted(withoutPhoto, 'package has', 'packages have')} no photo`,
-        body: 'Each package needs its own photo; the photos on your profile are not used for packages.',
-        type: 'open-packages',
-        label: 'Add package photos',
-        field: 'photos',
-      })
-    );
-  }
 
   if (packages && packages.awaitingApproval > 0) {
     tips.push(
@@ -502,169 +347,33 @@ function packageTips(supplier, summary, packageDocs) {
 }
 
 /**
- * Profile-gap tips, category-specific, derived from the same checks as the profile
- * completeness score. Only offered when the supplier can actually edit (verified email).
+ * Tip for a profile listed under "Other". "Other" is a valid category for the verification form, so
+ * the checklist counts the business details as done; browsing by category will not find the
+ * supplier though. (A profile with no category at all is the checklist's business-details step.)
  *
  * @param {Object} supplier - Supplier document
- * @param {Object} summary - Dashboard summary
  * @returns {Object[]} Tips
  */
-function profileTips(supplier, summary) {
-  const tips = [];
-  const group = categoryGroup(supplier.category);
-  const open = new Set(
-    summary.profile.completeness.checks.filter(check => !check.done).map(check => check.id)
-  );
+function categoryTips(supplier) {
   const category = String(supplier.category || '')
     .trim()
     .toLowerCase();
-
-  if (category === '' || category === 'other') {
-    tips.push(
-      tip({
-        id: 'choose-category',
-        priority: 3.5,
-        category: 'profile',
-        icon: '🏷️',
-        title: 'Choose a specific category',
-        body: `${category === '' ? 'Your profile has no category' : 'Your profile is listed under "Other"'}, so customers browsing a category will not find you there.`,
-        type: 'open-profile-editor',
-        label: 'Edit profile',
-        field: 'category',
-      })
-    );
+  if (category !== 'other') {
+    return [];
   }
-
-  if (open.has('description')) {
-    const length = getSupplierDescriptionText(supplier).length;
-    tips.push(
-      tip({
-        id: 'write-description',
-        priority: 5.5,
-        category: 'profile',
-        icon: '✍️',
-        title: length === 0 ? 'Write a description' : 'Make your description fuller',
-        body: `${length === 0 ? 'Your profile has no description.' : `Your description is ${counted(length, 'character', 'characters')}; the profile checklist asks for at least 100.`} ${DESCRIPTION_ADVICE[group]}`,
-        type: 'open-profile-editor',
-        label: 'Edit profile',
-        field: 'description',
-      })
-    );
-  }
-
-  if (open.has('gallery')) {
-    // The count the checklist used to open this tip (gallery plus legacy images, each once), less
-    // any photo the plan has hidden, since a hidden photo is not on the profile.
-    const photos = getSupplierGalleryCount({
-      ...supplier,
-      photosGallery: Array.isArray(supplier.photosGallery)
-        ? supplier.photosGallery.filter(photo => !photo?.hiddenByPlanLimit)
-        : [],
-    });
-    tips.push(
-      tip({
-        id: 'add-photos',
-        priority: 5.6,
-        category: 'profile',
-        icon: '📸',
-        title: `Add more photos (${photos} of 3)`,
-        body: `Your profile checklist asks for at least 3 gallery photos. ${GALLERY_ADVICE[group]}`,
-        type: 'open-profile-editor',
-        label: 'Add photos',
-        field: 'photos',
-      })
-    );
-  }
-
-  if (open.has('logo')) {
-    tips.push(
-      tip({
-        id: 'add-profile-photo',
-        priority: 5.7,
-        category: 'profile',
-        icon: '🙂',
-        title: 'Add a profile photo',
-        body: 'Your profile does not have a profile photo yet.',
-        type: 'open-profile-editor',
-        label: 'Add photo',
-        field: 'profile-photo',
-      })
-    );
-  }
-
-  if (open.has('location')) {
-    // The checklist needs both; say which one is actually missing.
-    const missingLocation = !supplier.location;
-    const missingPostcode = !hasSupplierPostcode(supplier);
-    let title = 'Add your location and postcode';
-    let body =
-      'Location searches match on your postcode, so a profile without one cannot be found by area.';
-    if (!missingPostcode) {
-      title = 'Add your location';
-      body =
-        'Your profile has a postcode but no location (the town or area you are based in). Add it so customers can see where you work.';
-    } else if (!missingLocation) {
-      title = 'Add your postcode';
-    }
-    tips.push(
-      tip({
-        id: 'add-location',
-        priority: 5.8,
-        category: 'profile',
-        icon: '📍',
-        title,
-        body,
-        type: 'open-profile-editor',
-        label: 'Edit profile',
-        field: 'location',
-      })
-    );
-  }
-
-  const remaining = [
-    [
-      'coverImage',
-      'banner',
-      '🖼️',
-      'Add a banner image',
-      'Your profile has no banner image.',
-      'banner',
-    ],
-    [
-      'socials',
-      'social-links',
-      '🔗',
-      'Link your social profiles',
-      'Your checklist asks for at least 2 social profiles.',
-      'social-links',
-    ],
-    [
-      'website',
-      'website',
-      '🌐',
-      'Add your website',
-      'Your profile has no website link.',
-      'website',
-    ],
+  return [
+    tip({
+      id: 'choose-category',
+      priority: 3.5,
+      category: 'profile',
+      icon: '🏷️',
+      title: 'Choose a specific category',
+      body: 'Your profile is listed under "Other", so customers browsing a category will not find you there.',
+      type: 'open-profile-editor',
+      label: 'Edit profile',
+      field: 'category',
+    }),
   ];
-  remaining.forEach(([check, id, icon, title, body, field], index) => {
-    if (open.has(check)) {
-      tips.push(
-        tip({
-          id: `add-${id}`,
-          priority: 9 + index,
-          category: 'profile',
-          icon,
-          title,
-          body,
-          type: 'open-profile-editor',
-          label: 'Edit profile',
-          field,
-        })
-      );
-    }
-  });
-  return tips;
 }
 
 /**
@@ -696,18 +405,26 @@ function photoLimitTips(supplier, summary) {
 }
 
 /**
- * Tip for suppliers who can publish to the public calendar but have nothing coming up.
+ * Tip for suppliers who can publish to the public calendar, have used their calendar before, and
+ * now have nothing coming up. A supplier who has never added an event is on the checklist's
+ * "Add an event to your calendar" step, so is not told twice.
  *
  * @param {Object} summary - Dashboard summary
  * @param {boolean} canPublish - Whether the supplier may publish to the public calendar
+ * @param {boolean|null} hasActivity - Whether the calendar has ever had an entry (null = unknown)
  * @returns {Object[]} Tips
  */
-function calendarTips(summary, canPublish) {
+function calendarTips(summary, canPublish, hasActivity) {
   // An unreadable calendar reports no events, which is not the same as having none.
   if (Array.isArray(summary.unavailable) && summary.unavailable.includes('calendar')) {
     return [];
   }
-  if (canPublish && Array.isArray(summary.upcoming) && summary.upcoming.length === 0) {
+  if (
+    canPublish &&
+    hasActivity === true &&
+    Array.isArray(summary.upcoming) &&
+    summary.upcoming.length === 0
+  ) {
     return [
       tip({
         id: 'publish-event',
@@ -715,7 +432,7 @@ function calendarTips(summary, canPublish) {
         category: 'calendar',
         icon: '📅',
         title: 'Add your next event to the public calendar',
-        body: 'Your supplier type can publish events to the public calendar, and you have nothing coming up there or in your own calendar.',
+        body: 'Your supplier type can publish events to the public calendar. You have added events before, but nothing is coming up there or in your own calendar.',
         type: 'open-calendar',
         label: 'Open calendar',
       }),
@@ -730,7 +447,7 @@ function calendarTips(summary, canPublish) {
  * @param {Object} params - Inputs
  * @param {Object} params.supplier - Supplier document
  * @param {Object} params.summary - Dashboard summary (buildDashboardSummary)
- * @param {{packageDocs: (Object[]|null), reviewDocs: (Object[]|null)}} params.raw - Raw records from buildSummaryWithContext
+ * @param {{packageDocs: (Object[]|null), reviewDocs: (Object[]|null), calendarHasActivity: (boolean|null)}} params.raw - Raw records from buildSummaryWithContext
  * @param {boolean} params.canPublishPublicCalendar - Whether the supplier may publish publicly
  * @returns {{tips: Object[], total: number}} At most MAX_TIPS tips, most useful first
  */
@@ -741,24 +458,22 @@ function buildTips({ supplier, summary, raw, canPublishPublicCalendar }) {
 
   const all = [...accountTips(verification)];
   if (approved) {
-    all.push(...customerTips(summary, raw.reviewDocs || [], canEdit));
+    all.push(...customerTips(summary, raw.reviewDocs || []));
   }
   if (canEdit) {
     if (approved && raw.packageDocs) {
-      all.push(...packageTips(supplier, summary, raw.packageDocs));
+      all.push(...packageTips(summary));
     }
-    if (summary.profile?.completeness) {
-      all.push(...profileTips(supplier, summary));
-    }
+    all.push(...categoryTips(supplier));
     all.push(...photoLimitTips(supplier, summary));
   }
   // Publishing to the public calendar needs a verified email, so it is not offered before then.
   if (approved && canEdit) {
-    all.push(...calendarTips(summary, canPublishPublicCalendar));
+    all.push(...calendarTips(summary, canPublishPublicCalendar, raw.calendarHasActivity ?? null));
   }
 
   all.sort((first, second) => first.priority - second.priority);
   return { tips: all.slice(0, MAX_TIPS), total: all.length };
 }
 
-module.exports = { MAX_TIPS, ACTION_TYPES, categoryGroup, buildTips };
+module.exports = { MAX_TIPS, ACTION_TYPES, buildTips };

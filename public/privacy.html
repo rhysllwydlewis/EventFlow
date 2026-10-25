@@ -487,6 +487,46 @@
             the listing and keep only the minimum record needed to avoid recreating it.
           </p>
 
+          <h3 class="h5" id="profile-view-events">2.10 Supplier Profile View Events</h3>
+          <p>
+            When someone opens a supplier's public profile page, the page sends a short message to
+            our server so that the supplier can see how many people have viewed their profile. For
+            each view we store one record containing:
+          </p>
+          <ul>
+            <li><strong>Supplier:</strong> which supplier's profile was opened</li>
+            <li><strong>Time:</strong> the date and time of the view</li>
+            <li>
+              <strong>Visitor key:</strong> a value used to count the same visitor once an hour. For
+              a signed-in visitor it is built from their account identifier, and that identifier is
+              also stored on the record. For anyone else it is a shortened keyed hash (HMAC-SHA256,
+              using a secret held only on our server) of their network address and their browser
+              family, such as Chrome on Windows. For an IPv6 address, only its first 64 bits (the
+              /64 prefix) are used. Without the secret, the key cannot be reversed by trying
+              addresses
+            </li>
+            <li><strong>Expiry date:</strong> the date on which the record is deleted</li>
+          </ul>
+          <p>
+            The raw IP address is not stored on the record, and no other value taken from your
+            address is stored on it. We do not record views by the supplier themselves, by our
+            administrators, or by clients that identify themselves as automated. A repeat view by
+            the same visitor within the hour is not counted again.
+          </p>
+          <p>
+            To stop one network address from inflating a supplier's view count, we also keep a
+            separate counter for each supplier, each network address and each hour, for visitors who
+            are not signed in. The counter holds a number and a keyed hash made from the network
+            address, not the address itself, and it is deleted automatically within about two hours.
+          </p>
+          <p>
+            <strong>Retention:</strong> profile view records are deleted automatically 400 days
+            after the view, which allows for the longest period of history (12 months) that a
+            supplier's dashboard can show, with a margin. Records made before this limit was
+            introduced are given the same expiry. A record carrying a signed-in visitor's account
+            identifier is also deleted when that account is deleted. See Section 6.
+          </p>
+
           <h2 class="h4">3. Legal Basis for Processing</h2>
           <p>
             We process your personal data under the following lawful bases as defined by the UK
@@ -751,6 +791,16 @@
                 <td style="padding: 12px">Preventing repeat views from inflating public counts</td>
               </tr>
               <tr style="border-bottom: 1px solid #e7eaf0">
+                <td style="padding: 12px">Supplier profile view records</td>
+                <td style="padding: 12px">400 days after the view, or earlier if a signed-in visitor's account is deleted</td>
+                <td style="padding: 12px">Showing suppliers how many people viewed their profile, for the longest history their plan allows (12 months) plus a margin</td>
+              </tr>
+              <tr style="border-bottom: 1px solid #e7eaf0">
+                <td style="padding: 12px">Profile view limit counters</td>
+                <td style="padding: 12px">About 2 hours</td>
+                <td style="padding: 12px">Stopping one network address from inflating a supplier's view count</td>
+              </tr>
+              <tr style="border-bottom: 1px solid #e7eaf0">
                 <td style="padding: 12px">Published Community content and profile data</td>
                 <td style="padding: 12px">While published or until withdrawn</td>
                 <td style="padding: 12px">Providing the Community and preserving conversation context</td>
@@ -833,9 +883,28 @@
           <h3 class="h5">7.4 Location and Media Services</h3>
           <ul>
             <li>
-              <strong>Postcodes.io:</strong> We may send a supplier or venue postcode to the
-              Postcodes.io service to derive coordinates and a city mapping. We use that result for
-              supplier search, service-area matching and UK location pages.
+              <strong>Postcodes.io:</strong> We send a postcode to the Postcodes.io service to
+              derive coordinates, and for a supplier or venue a city mapping. This happens when a
+              supplier or venue enters a postcode, when a seller enters a location for a marketplace
+              listing, and when a visitor types a postcode into a distance search (supplier search,
+              marketplace or venue search). We use the result for supplier search, distance
+              filtering, service-area matching and UK location pages.
+              <br />
+              The lookup is made from our server, not from your browser, and contains only the text
+              of the postcode (or location) itself. Your own IP address, browser details and cookies
+              are not sent to Postcodes.io, and nothing in the request says who entered the
+              postcode. We keep the coordinates returned in a temporary cache, against the postcode
+              and not against you, for up to 24 hours.
+            </li>
+            <li>
+              <strong>Google Maps:</strong> The venue map on the supplier search page is an embedded
+              Google map, so your browser loads it from Google. If you type a postcode into the
+              map's own box, or use its location button, that postcode or your coordinates are
+              included in the Google Maps address your browser requests, and Google receives them
+              directly from your browser along with ordinary web-request data such as your IP
+              address. This is separate from the Postcodes.io lookup above. The map no longer
+              remembers your last search: earlier versions saved the last postcode or location you
+              searched in your browser, and any value saved earlier is removed when the map loads.
             </li>
             <li>
               <strong>Pexels:</strong> We use Pexels to source and deliver licensed imagery,
@@ -951,24 +1020,29 @@
             <tr>
               <td style="padding: 12px; border: 1px solid #e7eaf0">Postcodes.io (Location Lookup)</td>
               <td style="padding: 12px; border: 1px solid #e7eaf0">Provider infrastructure</td>
-              <td style="padding: 12px; border: 1px solid #e7eaf0">Limited postcode query and provider terms</td>
+              <td style="padding: 12px; border: 1px solid #e7eaf0">Postcode text only, sent from our server (not your browser) for supplier, venue, marketplace and distance-search lookups; no account or browser details; provider terms</td>
             </tr>
             <tr style="background: #f9fafb">
+              <td style="padding: 12px; border: 1px solid #e7eaf0">Google Maps (Venue Map)</td>
+              <td style="padding: 12px; border: 1px solid #e7eaf0">Provider infrastructure and support locations</td>
+              <td style="padding: 12px; border: 1px solid #e7eaf0">Loaded by your browser; what you type into the map box goes directly to Google; provider terms</td>
+            </tr>
+            <tr>
               <td style="padding: 12px; border: 1px solid #e7eaf0">Pexels (Stock Images)</td>
               <td style="padding: 12px; border: 1px solid #e7eaf0">Provider infrastructure</td>
               <td style="padding: 12px; border: 1px solid #e7eaf0">Ordinary browser requests; provider privacy terms</td>
             </tr>
-            <tr>
+            <tr style="background: #f9fafb">
               <td style="padding: 12px; border: 1px solid #e7eaf0">PostHog (Consented Analytics)</td>
               <td style="padding: 12px; border: 1px solid #e7eaf0">Configured PostHog region (EU host by default)</td>
               <td style="padding: 12px; border: 1px solid #e7eaf0">Consent, privacy controls, provider contract and applicable transfer mechanism</td>
             </tr>
-            <tr style="background: #f9fafb">
+            <tr>
               <td style="padding: 12px; border: 1px solid #e7eaf0">Sentry (Diagnostics)</td>
               <td style="padding: 12px; border: 1px solid #e7eaf0">Configured Sentry project region</td>
               <td style="padding: 12px; border: 1px solid #e7eaf0">Event filtering, provider contract and applicable transfer mechanism</td>
             </tr>
-            <tr>
+            <tr style="background: #f9fafb">
               <td style="padding: 12px; border: 1px solid #e7eaf0">Google Ads (Consented Advertising)</td>
               <td style="padding: 12px; border: 1px solid #e7eaf0">Provider infrastructure and support locations</td>
               <td style="padding: 12px; border: 1px solid #e7eaf0">Consent, provider terms and applicable transfer mechanism</td>

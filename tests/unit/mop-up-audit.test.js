@@ -111,8 +111,8 @@ describe('dashboard-customer-init.js — budget retry on next visit', () => {
     expect(setupBody).toContain('/api/me/plans/');
   });
 
-  it('retry includes CSRF token', () => {
-    expect(setupBody).toContain('getCsrfToken()');
+  it('retry includes CSRF token (waiting for one if it is still loading)', () => {
+    expect(setupBody).toContain('await ensureCsrfToken()');
   });
 
   it('retry is fire-and-forget (wrapped in immediately-invoked async arrow)', () => {

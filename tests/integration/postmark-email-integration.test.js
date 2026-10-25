@@ -47,15 +47,25 @@ describe('Postmark — Graceful Degradation (no API key configured)', () => {
     expect(src).toContain('Postmark not configured. Email saved to outbox.');
   });
 
-  it('outbox save creates .eml file with To, From, Subject, Body', () => {
+  it('outbox save creates .eml file with To, From, Subject, Body (full mode) or metadata only', () => {
     const src = readSrc('utils', 'postmark.js');
     const saveIdx = src.indexOf('function saveEmailToOutbox');
-    const saveBlock = src.substring(saveIdx, saveIdx + 800);
+    const saveBlock = src.substring(saveIdx, src.indexOf('Send verification email to user'));
     expect(saveBlock).toContain('email-');
     expect(saveBlock).toContain('.eml');
-    expect(saveBlock).toContain('emailData.To');
-    expect(saveBlock).toContain('emailData.From');
-    expect(saveBlock).toContain('emailData.Subject');
+    // The full email (subject and body) is only built when the explicit rule allows it
+    expect(saveBlock).toContain('isFullOutboxAllowed()');
+    const full = saveBlock.substring(saveBlock.indexOf('function buildFullOutboxContent'));
+    expect(full).toContain('emailData.To');
+    expect(full).toContain('emailData.From');
+    expect(full).toContain('emailData.Subject');
+    // The default (metadata) record never reads the subject or body
+    const metaStart = saveBlock.indexOf('function buildMetadataOutboxContent');
+    const meta = saveBlock.substring(
+      metaStart,
+      saveBlock.indexOf('function buildFullOutboxContent')
+    );
+    expect(meta).not.toMatch(/Subject|HtmlBody|TextBody/);
   });
 
   it('sendMail validates required "to" field and throws when missing', async () => {

@@ -9,6 +9,7 @@ const crypto = require('crypto');
 const logger = require('./logger');
 const dbUnified = require('../db-unified');
 const { getWindowBounds } = require('./analyticsWindow');
+const { profileViewExpiry } = require('./profileViewRetention');
 
 /**
  * Event types for supplier analytics
@@ -43,8 +44,9 @@ async function trackEvent(eventData) {
       return { recorded: false, duplicate: false };
     }
 
+    const nowMs = Date.now();
     const event = {
-      id: `event_${Date.now()}_${crypto.randomUUID()}`,
+      id: `event_${nowMs}_${crypto.randomUUID()}`,
       type: eventData.type,
       supplierId: eventData.supplierId,
       userId: eventData.userId || null,
@@ -53,9 +55,16 @@ async function trackEvent(eventData) {
       // IP, and no address-derived value is stored on the event at all).
       visitorKey: eventData.visitorKey || null,
       metadata: eventData.metadata || {},
-      timestamp: new Date().toISOString(),
-      date: new Date().toISOString().split('T')[0], // For daily aggregation
+      timestamp: new Date(nowMs).toISOString(),
+      date: new Date(nowMs).toISOString().split('T')[0], // For daily aggregation
     };
+
+    // Profile views hold a visitor key (or a signed-in visitor's id), so they are not kept for
+    // ever: a TTL index on events.expiresAt (db-unified.js) removes them after the retention period
+    // stated in public/privacy.html. Other event types have no expiry.
+    if (eventData.type === EVENT_TYPES.PROFILE_VIEW) {
+      event.expiresAt = profileViewExpiry(nowMs);
+    }
 
     if (eventData.dedupeKey) {
       event.dedupeKey = eventData.dedupeKey;

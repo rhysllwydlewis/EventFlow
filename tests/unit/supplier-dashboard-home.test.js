@@ -1537,14 +1537,20 @@ describe('supplier dashboard home: rendered page', () => {
       suppliers: [{ id: 's1' }],
       tips: [
         {
-          title: 'Add 2 more photos',
-          body: 'A fuller gallery shows what you offer.',
-          action: { label: 'Add photos', href: '/dashboard/supplier#photos' },
+          title: 'Reply to 2 reviews',
+          body: '2 published reviews have no reply from you yet.',
+          action: { label: 'View reviews', type: 'open-reviews' },
         },
       ],
     });
     expect(some.tipsHidden).toBe(false);
-    expect(some.tips).toContain('Add 2 more photos');
+    expect(some.tips).toContain('Reply to 2 reviews');
+  });
+
+  test('the Tips card does not promise setup items: the Next steps checklist owns those', () => {
+    const card = html.slice(html.indexOf('id="sdh-tips"'), html.indexOf('<!-- Plan -->'));
+    expect(card).toContain('Based on your enquiries, reviews and plan.');
+    expect(card).not.toMatch(/missing from your listing/i);
   });
 
   test('the tips are asked for again when something changes, and the new ones replace the old', () => {
@@ -1570,11 +1576,13 @@ describe('supplier dashboard home: rendered page', () => {
     const page = run({
       summary: populated,
       suppliers: [{ id: 's1' }],
-      tips: [{ title: 'Add 2 more photos', body: 'b', action: { label: 'Go', type: 'open-plan' } }],
+      tips: [
+        { title: 'Reply to 3 reviews', body: 'b', action: { label: 'Go', type: 'open-plan' } },
+      ],
       tipsFailAfterChange: true,
       dispatchChanged: true,
     });
-    expect(page.tips).toContain('Add 2 more photos');
+    expect(page.tips).toContain('Reply to 3 reviews');
     expect(page.tips).not.toContain('could not load');
   });
 
