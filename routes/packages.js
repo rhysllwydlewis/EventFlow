@@ -839,7 +839,11 @@ router.post(
       return res.status(400).json({ error: 'Missing image' });
     }
     try {
-      const pkg = await dbUnified.findOne('packages', { id: req.params.id }, { throwOnError: true });
+      const pkg = await dbUnified.findOne(
+        'packages',
+        { id: req.params.id },
+        { throwOnError: true }
+      );
       if (!pkg) {
         return res.status(404).json({ error: 'Not found' });
       }
@@ -903,7 +907,11 @@ router.delete(
       return res.status(400).json({ error: 'Missing url' });
     }
     try {
-      const pkg = await dbUnified.findOne('packages', { id: req.params.id }, { throwOnError: true });
+      const pkg = await dbUnified.findOne(
+        'packages',
+        { id: req.params.id },
+        { throwOnError: true }
+      );
       if (!pkg) {
         return res.status(404).json({ error: 'Not found' });
       }
@@ -973,7 +981,11 @@ router.put(
     }
 
     try {
-      const pkg = await dbUnified.findOne('packages', { id: req.params.id }, { throwOnError: true });
+      const pkg = await dbUnified.findOne(
+        'packages',
+        { id: req.params.id },
+        { throwOnError: true }
+      );
       if (!pkg) {
         return res.status(404).json({ error: 'Not found' });
       }
