@@ -316,7 +316,7 @@
     const budgetHref = plan?.id ? `/budget?plan=${encodeURIComponent(plan.id)}` : '/budget';
     /** Link to the full budget page, where items are added and edited. */
     const manage = `<a class="cdh-link" href="${budgetHref}">Open budget</a>`;
-    const edit = `<button type="button" class="cdh-link" data-edit-budget aria-expanded="false" aria-controls="${ids.panel}">${total > 0 ? 'Edit' : 'Set budget'}</button>`;
+    const edit = `<button type="button" class="cdh-link" data-edit-budget${total > 0 ? ' aria-label="Edit budget"' : ''} aria-expanded="false" aria-controls="${ids.panel}">${total > 0 ? 'Edit' : 'Set budget'}</button>`;
     if (total <= 0) {
       // The plan wizard saves a range as text ("£3,000–£5,000"). It is not a total to plan
       // against, but it is what the person chose, so it is shown rather than called "Not set".

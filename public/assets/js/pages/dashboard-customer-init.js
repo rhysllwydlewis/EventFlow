@@ -357,6 +357,7 @@ function showEditPlanModal(plan, onSaved, focusId) {
     disarmDiscard();
     statusEl.textContent = '';
     event.target.removeAttribute('aria-invalid');
+    event.target.removeAttribute('aria-describedby');
   });
   dialog.addEventListener(
     'click',
@@ -383,6 +384,7 @@ function showEditPlanModal(plan, onSaved, focusId) {
       statusEl.dataset.tone = 'error';
       statusEl.textContent = 'Enter a name for this plan.';
       nameInput.setAttribute('aria-invalid', 'true');
+      nameInput.setAttribute('aria-describedby', 'cdh-pf-status');
       nameInput.focus();
       return;
     }
@@ -392,6 +394,7 @@ function showEditPlanModal(plan, onSaved, focusId) {
       statusEl.dataset.tone = 'error';
       statusEl.textContent = 'Enter the number of guests as a whole number, up to 10,000.';
       guestsInput.setAttribute('aria-invalid', 'true');
+      guestsInput.setAttribute('aria-describedby', 'cdh-pf-status');
       guestsInput.focus();
       return;
     }
@@ -951,12 +954,16 @@ function showPageNotice(title, message) {
   notice.className = 'cdh-toast';
   notice.dataset.pageNotice = '';
   notice.setAttribute('role', 'status');
-  const strong = document.createElement('strong');
-  strong.textContent = title;
-  const text = document.createElement('span');
-  text.textContent = message;
-  notice.append(strong, text);
   document.body.appendChild(notice);
+  // A live region is announced when its text changes, not when it is inserted already holding
+  // text, so the words follow the (empty) region onto the page.
+  window.setTimeout(() => {
+    const strong = document.createElement('strong');
+    strong.textContent = title;
+    const text = document.createElement('span');
+    text.textContent = message;
+    notice.append(strong, text);
+  }, 50);
   return notice;
 }
 

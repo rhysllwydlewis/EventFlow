@@ -706,8 +706,15 @@
   }
 
   /** Renders every part of the page from the current state. */
+  let loadedAnnounced = false;
   function render() {
     byId('main-content').setAttribute('aria-busy', state.status === 'loading' ? 'true' : 'false');
+    // The page starts as "Loading your budget." Say when that is over (a failure says so itself, as
+    // an alert), once: not again on every edit.
+    if (state.status === 'ready' && !loadedAnnounced) {
+      loadedAnnounced = true;
+      byId('bp-loaded').textContent = 'Your budget has loaded.';
+    }
     renderHeader();
     renderNotices();
     renderSummary();

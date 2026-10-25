@@ -18,6 +18,22 @@
    * @param {'success'|'error'} [type='success']
    */
 
+  /** A date as YYYY-MM-DD in the visitor's own time zone (toISOString would use UTC). */
+  function localIsoDate(date) {
+    const pad = number => String(number).padStart(2, '0');
+    return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+  }
+
+  /** A date said in full, for a screen reader: "Saturday 19 June 2027". */
+  function longDate(date) {
+    return date.toLocaleDateString('en-GB', {
+      weekday: 'long',
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric',
+    });
+  }
+
   function displayTitle(value) {
     const title = String(value || '').trim();
     return title ? title.charAt(0).toUpperCase() + title.slice(1) : '';
@@ -28,8 +44,12 @@
     toast.className = `cal-toast cal-toast--${type || 'success'}`;
     toast.setAttribute('role', 'status');
     toast.setAttribute('aria-live', 'polite');
-    toast.textContent = message;
     document.body.appendChild(toast);
+    // A live region is announced when its text changes, not when it is inserted already holding
+    // text, so the message goes in a moment after the (empty) region is on the page.
+    setTimeout(() => {
+      toast.textContent = message;
+    }, 50);
     // Animate in
     requestAnimationFrame(() => toast.classList.add('cal-toast--visible'));
     // Auto-remove
@@ -147,8 +167,10 @@
    * @param {Object|null}   [calendarInstance] - FullCalendar instance (or null in fallback mode)
    * @param {Object|null}   [entryToEdit]   - If provided, the modal opens in edit mode
    *   with fields pre-filled from entryToEdit and submits a PUT instead of POST.
+   * @param {Element|null}  [returnFocusTo] - Where focus goes when the modal closes; defaults to
+   *   whatever had focus when it opened (the entry popover that offered "Edit" is already gone).
    */
-  function openModal(overlay, dateStr, calendarInstance, entryToEdit = null) {
+  function openModal(overlay, dateStr, calendarInstance, entryToEdit = null, returnFocusTo = null) {
     const titleInput = overlay.querySelector('#cal-entry-title');
     const typeSelect = overlay.querySelector('#cal-entry-type');
     const dateInput = overlay.querySelector('#cal-entry-date');
@@ -198,6 +220,10 @@
 
     overlay.style.display = 'flex';
     overlay.removeAttribute('hidden');
+    // A <div> overlay does not hold Tab or give focus back by itself.
+    if (window.EFOverlayFocus) {
+      window.EFOverlayFocus.trap(overlay, returnFocusTo);
+    }
 
     let submitting = false;
 
@@ -362,6 +388,10 @@
     if (overlay._submitAC) {
       overlay._submitAC.abort();
       overlay._submitAC = null;
+    }
+    // Hand focus back first: once the overlay is display:none the browser drops focus to <body>.
+    if (window.EFOverlayFocus) {
+      window.EFOverlayFocus.release(overlay, document.getElementById('cal-add-entry-btn'));
     }
     overlay.style.display = 'none';
     overlay.setAttribute('hidden', '');
@@ -550,11 +580,16 @@
     // Trap first focus on the Edit button
     setTimeout(() => pop.querySelector('.cal-delete-popover__btn--edit').focus(), 50);
 
-    const dismiss = () => {
+    // Closing from the keyboard (Escape, Keep) puts focus back on the entry it was opened from;
+    // a click elsewhere leaves focus where the person put it.
+    const dismiss = (refocus = false) => {
       if (pop.parentNode) {
         pop.parentNode.removeChild(pop);
       }
       document.removeEventListener('click', outsideClick, true);
+      if (refocus === true && anchorEl.isConnected && typeof anchorEl.focus === 'function') {
+        anchorEl.focus({ preventScroll: true });
+      }
     };
 
     function outsideClick(e) {
@@ -565,7 +600,7 @@
 
     pop.querySelector('.cal-delete-popover__btn--edit').addEventListener('click', () => {
       dismiss();
-      openModal(modal, null, calendarInstance, entry);
+      openModal(modal, null, calendarInstance, entry, anchorEl);
     });
 
     pop.querySelector('.cal-delete-popover__btn--delete').addEventListener('click', () => {
@@ -578,7 +613,9 @@
         </div>
       `;
 
-      pop.querySelector('.cal-delete-popover__btn--cancel').addEventListener('click', dismiss);
+      pop
+        .querySelector('.cal-delete-popover__btn--cancel')
+        .addEventListener('click', () => dismiss(true));
 
       pop.querySelector('.cal-delete-popover__btn--confirm').addEventListener('click', async () => {
         dismiss();
@@ -611,6 +648,10 @@
               }
             }
           }
+          // The entry that held focus is gone; keep keyboard users in the calendar card.
+          if (!document.activeElement || document.activeElement === document.body) {
+            document.getElementById('cal-add-entry-btn')?.focus();
+          }
           showToast('Entry deleted', 'success');
         } catch (err) {
           showToast(err.message || 'Could not delete entry', 'error');
@@ -622,7 +663,7 @@
 
     pop.addEventListener('keydown', e => {
       if (e.key === 'Escape') {
-        dismiss();
+        dismiss(true);
       }
     });
 
@@ -1154,15 +1195,21 @@
       },
       // Show a "+" hint on day cells to prompt entry creation
       dayCellDidMount(info) {
+        // Day cells carry a Date (not a dateStr, which only click and select callbacks have).
+        const cellDate = localIsoDate(info.date);
         const addBtn = document.createElement('button');
         addBtn.type = 'button';
         addBtn.className = 'cal-day-add-btn';
-        addBtn.setAttribute('aria-label', `Add entry for ${info.dateStr}`);
+        addBtn.setAttribute('aria-label', `Add entry for ${longDate(info.date)}`);
+        // The header's "Add entry" button is the keyboard route; one tab stop per day (42 a month)
+        // would bury everything below the calendar. The buttons stay for pointer and touch use,
+        // and for a screen reader's own navigation.
+        addBtn.tabIndex = -1;
         addBtn.innerHTML =
           '<svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true"><path d="M6 1v10M1 6h10" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>';
         addBtn.addEventListener('click', e => {
           e.stopPropagation();
-          openModal(modal, info.dateStr, calendar);
+          openModal(modal, cellDate, calendar);
         });
         const frame = info.el.querySelector('.fc-daygrid-day-frame');
         if (frame) {
