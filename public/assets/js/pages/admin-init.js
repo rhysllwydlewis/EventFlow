@@ -454,37 +454,37 @@
       }
 
       if (supplierHealthEl && summary.suppliers) {
-        const s = summary.suppliers;
+        const supplierStats = summary.suppliers;
         supplierHealthEl.innerHTML = [
           {
             label: 'Total supplier accounts',
-            value: s.total || 0,
+            value: supplierStats.total || 0,
             href: '/admin-users?role=supplier',
             warn: false,
           },
           {
             label: 'Pending approval',
-            value: s.pending || 0,
+            value: supplierStats.pending || 0,
             href: '/admin-suppliers?status=pending',
-            warn: (s.pending || 0) > 0,
+            warn: (supplierStats.pending || 0) > 0,
           },
           {
             label: 'Approved',
-            value: s.approved || 0,
+            value: supplierStats.approved || 0,
             href: '/admin-suppliers?status=approved',
             warn: false,
           },
           {
             label: 'Supplier with no profile',
-            value: s.suppliersWithoutProfile || 0,
+            value: supplierStats.suppliersWithoutProfile || 0,
             href: '/admin-users?issue=supplier_profile_missing',
-            warn: (s.suppliersWithoutProfile || 0) > 0,
+            warn: (supplierStats.suppliersWithoutProfile || 0) > 0,
           },
           {
             label: 'Orphaned profiles',
-            value: s.orphanedSuppliers || 0,
+            value: supplierStats.orphanedSuppliers || 0,
             href: '/admin-suppliers',
-            warn: (s.orphanedSuppliers || 0) > 0,
+            warn: (supplierStats.orphanedSuppliers || 0) > 0,
           },
         ]
           .map(healthRowHtml)
@@ -493,244 +493,192 @@
     }
   }
 
-  function renderAnalytics(metrics) {
-    const el = document.getElementById('analytics');
+  function setText(id, value) {
+    const el = document.getElementById(id);
+    if (el) {
+      el.textContent = value;
+    }
+  }
+
+  function setCounter(id, value) {
+    const el = document.getElementById(id);
     if (!el) {
       return;
     }
+    if (window.AdminShared?.animateCounter) {
+      window.AdminShared.animateCounter(el, value);
+    } else {
+      el.textContent = value;
+    }
+  }
 
-    const counts = (metrics && metrics.counts) || {};
-    const metricsFailed = Boolean(metrics?.__error);
+  // Shared public calendar management card — load asynchronously (best-effort)
+  async function loadCalendarCard() {
+    try {
+      const [eventsData, publishedData, requestsData] = await Promise.allSettled([
+        AdminShared.api('/api/v1/public-calendar/events?status=all&includePast=true&limit=1'),
+        AdminShared.api('/api/v1/public-calendar/events?status=published&includePast=true&limit=1'),
+        AdminShared.api('/api/v1/public-calendar/publisher-requests?status=pending'),
+      ]);
+      const totalCalendarEventsEl = document.getElementById('totalCalendarEventsCountCard');
+      if (totalCalendarEventsEl && eventsData.status === 'fulfilled') {
+        totalCalendarEventsEl.textContent = eventsData.value.total || 0;
+      }
+      const publishedCalendarEventsEl = document.getElementById('publishedCalendarEventsCount');
+      if (publishedCalendarEventsEl && publishedData.status === 'fulfilled') {
+        publishedCalendarEventsEl.textContent = publishedData.value.total || 0;
+      }
+      const pendingRequestsEl = document.getElementById('pendingCalendarRequestsCount');
+      if (pendingRequestsEl && requestsData.status === 'fulfilled') {
+        pendingRequestsEl.textContent = requestsData.value.total || 0;
+      }
+    } catch (_) {
+      // Non-blocking — card shows — if API fails stats stay at —
+    }
+  }
+
+  // Partners management card — load asynchronously (best-effort)
+  async function loadPartnersCard() {
+    try {
+      const partnerData = await AdminShared.api('/api/admin/partners');
+      const partners = partnerData.items || [];
+      const totalPartnersEl = document.getElementById('totalPartnersCountCard');
+      if (totalPartnersEl) {
+        totalPartnersEl.textContent = partners.length;
+      }
+      const activePartnersEl = document.getElementById('activePartnersCount');
+      if (activePartnersEl) {
+        activePartnersEl.textContent = partners.filter(p => p.status === 'active').length;
+      }
+
+      const payoutData = await AdminShared.api('/api/admin/partners/payout-requests?status=open');
+      const openPayoutsEl = document.getElementById('openPayoutRequestsCount');
+      if (openPayoutsEl) {
+        openPayoutsEl.textContent = (payoutData.items || []).length;
+      }
+    } catch (_) {
+      // Non-blocking — card shows — if API fails stats stay at —
+    }
+  }
+
+  // Revenue: fetch from Stripe analytics, fall back to v2 revenue endpoint
+  async function loadRevenue() {
+    const totalRevenueEl = document.getElementById('totalRevenueCount');
+    const totalRevenueChangeEl = document.getElementById('totalRevenueChange');
+    try {
+      const stripeData = await AdminShared.api('/api/admin/stripe-analytics');
+      if (stripeData && stripeData.available === true) {
+        if (totalRevenueEl) {
+          totalRevenueEl.textContent = `£${Number(stripeData.totalRevenue || 0).toFixed(2)}`;
+        }
+        if (totalRevenueChangeEl) {
+          const monthRev = Number(stripeData.monthRevenue || 0).toFixed(2);
+          totalRevenueChangeEl.textContent = `£${monthRev} this month`;
+        }
+        return;
+      }
+    } catch (_) {
+      // Stripe not available — try fallback
+    }
+    try {
+      const v2Data = await AdminShared.api('/api/v2/admin/revenue');
+      if (v2Data && v2Data.revenue) {
+        const mrr = Number(v2Data.revenue.mrr || 0).toFixed(2);
+        if (totalRevenueEl) {
+          totalRevenueEl.textContent = `£${mrr} MRR`;
+        }
+        if (totalRevenueChangeEl) {
+          totalRevenueChangeEl.textContent = '—';
+        }
+        return;
+      }
+    } catch (_) {
+      // Both failed — show N/A
+    }
+    if (totalRevenueEl) {
+      totalRevenueEl.textContent = 'N/A';
+    }
+    if (totalRevenueChangeEl) {
+      totalRevenueChangeEl.textContent = '—';
+    }
+  }
+
+  // What the "pending" note under a card says. A failed totals request must not read as "All approved".
+  function pendingNote(pending, failed) {
+    if (failed) {
+      return '—';
+    }
+    return pending > 0 ? `${pending} pending` : 'All approved';
+  }
+
+  function renderTrendNotes(counts, failed) {
+    const recentUsers = Number(summary?.newLast7) || 0;
+    const previousUsers = Number(summary?.newPrevious7) || 0;
+    const usersChangeEl = document.getElementById('totalUsersChange');
+    if (usersChangeEl) {
+      usersChangeEl.title =
+        'Rolling seven-day signups compared with the immediately preceding seven days.';
+      usersChangeEl.textContent =
+        previousUsers === 0
+          ? `${recentUsers} new · last 7 days`
+          : `${recentUsers} vs ${previousUsers} · prior 7 days`;
+    }
+    setText('totalSuppliersChange', pendingNote(counts.pendingSuppliers || 0, failed));
+    setText('totalPackagesChange', pendingNote(counts.pendingPackages || 0, failed));
+  }
+
+  function analyticsHtml(counts) {
     const byRole = counts.usersByRole || {};
     const roleParts =
       Object.keys(byRole)
-        .map(r => {
-          return `${escapeHtml(r)}: ${Number(byRole[r]) || 0}`;
-        })
+        .map(role => `${escapeHtml(role)}: ${Number(byRole[role]) || 0}`)
         .join(', ') || '—';
-
     const { last7, last30 } = signupCounts();
-
-    // Update stat cards with animated counters
-    const totalUsersEl = document.getElementById('totalUsersCount');
-    if (totalUsersEl && window.AdminShared && window.AdminShared.animateCounter) {
-      window.AdminShared.animateCounter(
-        totalUsersEl,
-        (summary && summary.total) || counts.usersTotal || 0
-      );
-
-      renderAccountHealth();
-    } else if (totalUsersEl) {
-      totalUsersEl.textContent = counts.usersTotal || 0;
-    }
-
-    const totalPackagesEl = document.getElementById('totalPackagesCount');
-    if (totalPackagesEl && window.AdminShared && window.AdminShared.animateCounter) {
-      window.AdminShared.animateCounter(totalPackagesEl, counts.packagesTotal || 0);
-    } else if (totalPackagesEl) {
-      totalPackagesEl.textContent = counts.packagesTotal || 0;
-    }
-
-    const totalSuppliersEl = document.getElementById('totalSuppliersCount');
-    if (totalSuppliersEl && window.AdminShared && window.AdminShared.animateCounter) {
-      window.AdminShared.animateCounter(
-        totalSuppliersEl,
-        (summary && summary.byRole && summary.byRole.supplier) || counts.suppliersTotal || 0
-      );
-    } else if (totalSuppliersEl) {
-      totalSuppliersEl.textContent = counts.suppliersTotal || 0;
-    }
-
-    // Update management card stats
-    const totalSuppliersCardEl = document.getElementById('totalSuppliersCountCard');
-    if (totalSuppliersCardEl) {
-      totalSuppliersCardEl.textContent = counts.suppliersTotal || 0;
-    }
-
-    const totalPackagesCardEl = document.getElementById('totalPackagesCountCard');
-    if (totalPackagesCardEl) {
-      totalPackagesCardEl.textContent = counts.packagesTotal || 0;
-    }
-
-    const pendingSuppliersEl = document.getElementById('pendingSuppliersCount');
-    if (pendingSuppliersEl) {
-      pendingSuppliersEl.textContent = counts.pendingSuppliers || 0;
-    }
-
-    const proSuppliersEl = document.getElementById('proSuppliersCount');
-    if (proSuppliersEl) {
-      proSuppliersEl.textContent = counts.proSuppliers || 0;
-    }
-
-    const pendingPackagesEl = document.getElementById('pendingPackagesCount');
-    if (pendingPackagesEl) {
-      pendingPackagesEl.textContent = counts.pendingPackages || 0;
-    }
-
-    const featuredPackagesEl = document.getElementById('featuredPackagesCount');
-    if (featuredPackagesEl) {
-      featuredPackagesEl.textContent = counts.featuredPackages || 0;
-    }
-
-    // Shared public calendar management card — load asynchronously (best-effort)
-    (async () => {
-      try {
-        const [eventsData, publishedData, requestsData] = await Promise.allSettled([
-          AdminShared.api('/api/v1/public-calendar/events?status=all&includePast=true&limit=1'),
-          AdminShared.api(
-            '/api/v1/public-calendar/events?status=published&includePast=true&limit=1'
-          ),
-          AdminShared.api('/api/v1/public-calendar/publisher-requests?status=pending'),
-        ]);
-        const totalCalendarEventsEl = document.getElementById('totalCalendarEventsCountCard');
-        if (totalCalendarEventsEl && eventsData.status === 'fulfilled') {
-          totalCalendarEventsEl.textContent = eventsData.value.total || 0;
-        }
-        const publishedCalendarEventsEl = document.getElementById('publishedCalendarEventsCount');
-        if (publishedCalendarEventsEl && publishedData.status === 'fulfilled') {
-          publishedCalendarEventsEl.textContent = publishedData.value.total || 0;
-        }
-        const pendingRequestsEl = document.getElementById('pendingCalendarRequestsCount');
-        if (pendingRequestsEl && requestsData.status === 'fulfilled') {
-          pendingRequestsEl.textContent = requestsData.value.total || 0;
-        }
-      } catch (_) {
-        // Non-blocking — card shows — if API fails stats stay at —
-      }
-    })();
-
-    // Partners management card — load asynchronously (best-effort)
-    (async () => {
-      try {
-        const partnerData = await AdminShared.api('/api/admin/partners');
-        const partners = partnerData.items || [];
-        const totalPartnersEl = document.getElementById('totalPartnersCountCard');
-        if (totalPartnersEl) {
-          totalPartnersEl.textContent = partners.length;
-        }
-        const activePartnersEl = document.getElementById('activePartnersCount');
-        if (activePartnersEl) {
-          activePartnersEl.textContent = partners.filter(p => p.status === 'active').length;
-        }
-
-        const payoutData = await AdminShared.api('/api/admin/partners/payout-requests?status=open');
-        const openPayoutsEl = document.getElementById('openPayoutRequestsCount');
-        if (openPayoutsEl) {
-          openPayoutsEl.textContent = (payoutData.items || []).length;
-        }
-      } catch (_) {
-        // Non-blocking — card shows — if API fails stats stay at —
-      }
-    })();
-
-    // Revenue: fetch from Stripe analytics, fall back to v2 revenue endpoint
-    (async () => {
-      const totalRevenueEl = document.getElementById('totalRevenueCount');
-      const totalRevenueChangeEl = document.getElementById('totalRevenueChange');
-      try {
-        const stripeData = await AdminShared.api('/api/admin/stripe-analytics');
-        if (stripeData && stripeData.available === true) {
-          if (totalRevenueEl) {
-            totalRevenueEl.textContent = `£${Number(stripeData.totalRevenue || 0).toFixed(2)}`;
-          }
-          if (totalRevenueChangeEl) {
-            const monthRev = Number(stripeData.monthRevenue || 0).toFixed(2);
-            totalRevenueChangeEl.textContent = `£${monthRev} this month`;
-          }
-          return;
-        }
-      } catch (_) {
-        // Stripe not available — try fallback
-      }
-      try {
-        const v2Data = await AdminShared.api('/api/v2/admin/revenue');
-        if (v2Data && v2Data.revenue) {
-          const mrr = Number(v2Data.revenue.mrr || 0).toFixed(2);
-          if (totalRevenueEl) {
-            totalRevenueEl.textContent = `£${mrr} MRR`;
-          }
-          if (totalRevenueChangeEl) {
-            totalRevenueChangeEl.textContent = '—';
-          }
-          return;
-        }
-      } catch (_) {
-        // Both failed — show N/A
-      }
-      if (totalRevenueEl) {
-        totalRevenueEl.textContent = 'N/A';
-      }
-      if (totalRevenueChangeEl) {
-        totalRevenueChangeEl.textContent = '—';
-      }
-    })();
-
-    // Trend indicators — use summary.newLast7 (from shared summary service)
-    // allUsers is no longer pre-loaded on the dashboard; Users Centre has the full list
-    (function () {
-      // Use pre-computed summary.newLast7 (allUsers no longer pre-loaded on dashboard)
-      const recentUsers = Number(summary?.newLast7) || 0;
-      const previousUsers = Number(summary?.newPrevious7) || 0;
-
-      const usersChangeEl = document.getElementById('totalUsersChange');
-      if (usersChangeEl) {
-        usersChangeEl.title =
-          'Rolling seven-day signups compared with the immediately preceding seven days.';
-        if (previousUsers === 0) {
-          usersChangeEl.textContent = `${recentUsers} new · last 7 days`;
-        } else {
-          usersChangeEl.textContent = `${recentUsers} vs ${previousUsers} · prior 7 days`;
-        }
-      }
-    })();
-
-    // Suppliers trend: show pending approval count
-    (function () {
-      const suppliersChangeEl = document.getElementById('totalSuppliersChange');
-      if (suppliersChangeEl) {
-        const pending = counts.pendingSuppliers || 0;
-        if (metricsFailed) {
-          suppliersChangeEl.textContent = '—';
-        } else if (pending > 0) {
-          suppliersChangeEl.textContent = `${pending} pending`;
-        } else {
-          suppliersChangeEl.textContent = 'All approved';
-        }
-      }
-    })();
-
-    // Packages trend: show pending approval count
-    (function () {
-      const packagesChangeEl = document.getElementById('totalPackagesChange');
-      if (packagesChangeEl) {
-        const pending = counts.pendingPackages || 0;
-        if (metricsFailed) {
-          packagesChangeEl.textContent = '—';
-        } else if (pending > 0) {
-          packagesChangeEl.textContent = `${pending} pending`;
-        } else {
-          packagesChangeEl.textContent = 'All approved';
-        }
-      }
-    })();
-
-    if (metricsFailed) {
-      el.innerHTML =
-        '<div class="card"><p>Platform totals could not be loaded. Use Refresh to try again.</p></div>';
-      return;
-    }
-    el.innerHTML =
-      `<div class="card">` +
+    return (
+      '<div class="card">' +
       `<p><strong>Total Users:</strong> ${counts.usersTotal || 0}</p>` +
       `<p><strong>Users by role:</strong> ${roleParts}</p>` +
       `<p><strong>Total Suppliers:</strong> ${counts.suppliersTotal || 0}</p>` +
       `<p><strong>Total Packages:</strong> ${counts.packagesTotal || 0}</p>` +
       `<p><strong>Signups last 7 days:</strong> ${last7}</p>` +
       `<p><strong>Signups last 30 days:</strong> ${last30}</p>` +
-      `<p class="small">Plans: ${counts.plansTotal || 0} · Threads: ${
-        counts.threadsTotal || 0
-      } · Messages: ${counts.messagesTotal || 0}</p>` +
-      `</div>`;
+      `<p class="small">Plans: ${counts.plansTotal || 0} · Threads: ${counts.threadsTotal || 0} · Messages: ${counts.messagesTotal || 0}</p>` +
+      '</div>'
+    );
+  }
+
+  function renderAnalytics(metrics) {
+    const el = document.getElementById('analytics');
+    if (!el) {
+      return;
+    }
+    const counts = metrics?.counts || {};
+    const metricsFailed = Boolean(metrics?.__error);
+
+    setCounter('totalUsersCount', summary?.total || counts.usersTotal || 0);
+    renderAccountHealth();
+    setCounter('totalPackagesCount', counts.packagesTotal || 0);
+    setCounter('totalSuppliersCount', summary?.byRole?.supplier || counts.suppliersTotal || 0);
+
+    // Management cards
+    [
+      ['totalSuppliersCountCard', 'suppliersTotal'],
+      ['totalPackagesCountCard', 'packagesTotal'],
+      ['pendingSuppliersCount', 'pendingSuppliers'],
+      ['proSuppliersCount', 'proSuppliers'],
+      ['pendingPackagesCount', 'pendingPackages'],
+      ['featuredPackagesCount', 'featuredPackages'],
+    ].forEach(([id, key]) => setText(id, counts[key] || 0));
+
+    // Best-effort cards that load on their own; a failure leaves their "—"
+    loadCalendarCard();
+    loadPartnersCard();
+    loadRevenue();
+
+    renderTrendNotes(counts, metricsFailed);
+    el.innerHTML = metricsFailed
+      ? '<div class="card"><p>Platform totals could not be loaded. Use Refresh to try again.</p></div>'
+      : analyticsHtml(counts);
   }
 
   // What is waiting for the admin, in the order it should be dealt with. undefined means the request
