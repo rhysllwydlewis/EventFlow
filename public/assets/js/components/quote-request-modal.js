@@ -3,7 +3,7 @@
  * Form for requesting quotes from suppliers
  */
 
-import { trackQuoteRequestSubmitted } from '../utils/analytics.js';
+import { trackQuoteRequestSubmitted } from '../utils/analytics.js?v=1.0.1';
 
 class QuoteRequestModal {
   constructor() {

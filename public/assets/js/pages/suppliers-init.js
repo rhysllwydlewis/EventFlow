@@ -9,7 +9,7 @@ import {
   trackFilterChange,
   trackResultClick,
   trackShortlistAdd,
-} from '../utils/analytics.js';
+} from '../utils/analytics.js?v=1.0.1';
 import shortlistManager from '../utils/shortlist-manager.js';
 
 // HTML escaping utility
