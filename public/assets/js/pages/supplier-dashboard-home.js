@@ -7,16 +7,17 @@
  *   - the verification strip and the email verification banner
  *   - the summary row (unread messages, profile completeness, rating, plan, visits, replies)
  *   - the Next steps checklist
- *   - the profile visits chart, availability, tips, plan and review requests
+ *   - the profile visits chart, tips, plan and review requests
  *
  * It replaces dashboard-supplier-module.js (hero tiles, stats grid, chart, funnel, lead quality,
- * next steps, subscription card), dashboard-supplier-overhaul.js (availability, tips, review
+ * next steps, subscription card), dashboard-supplier-overhaul.js (tips, review
  * requests), supplier-dashboard-enhancements.js, dashboard-supplier-threads.js,
  * dashboard-supplier-actions.js, dashboard-supplier-auth.js and dashboard-supplier-inline.js.
  * Those drew the same facts several times from different calculations.
  *
- * Every number comes from one request, GET /api/supplier/dashboard-summary. Anything the server
- * does not send (or sends as null: "not enough data") is shown as a dash or left out. Nothing is
+ * Every number comes from one request, GET /api/supplier/dashboard-summary (the tips are the one
+ * other request, GET /api/v1/supplier/performance-tips, asked for again whenever the summary is).
+ * Anything the server does not send (or sends as null: "not enough data") is shown as a dash or left out. Nothing is
  * estimated or invented on this page.
  *
  * Public surface: window.SupplierDashboardHome (getSummary, refresh, confirm, toast and the
@@ -45,7 +46,6 @@
     chart: 'supplier-performance-chart',
     chartSub: 'sdh-performance-sub',
     tips: 'supplier-perf-tips',
-    availability: 'supplier-availability-widget',
     plan: 'supplier-subscription-card',
     reviews: 'supplier-reviews-section',
     reviewRequests: 'supplier-review-request-widget',
@@ -1709,10 +1709,16 @@
     const enquiryChart = hasEnquirySeries
       ? `<p class="sdh-plan__head">Enquiries per day</p>${chartSvg(views.daily, views.days, 'enquiries', 'enquiry', 'Enquiries', 'enquiries')}`
       : '';
-    const empty =
-      views.total === 0
-        ? '<p class="sdh-note">No visits yet. Your profile appears in search once it is approved.</p>'
-        : '';
+    // Only a profile that is not approved yet is waiting to appear in search; an approved one has
+    // simply had no visits, and an unknown state says neither.
+    const approved = state.model?.verification?.approved;
+    let emptyText = 'No visits yet.';
+    if (approved === false) {
+      emptyText = 'No visits yet. Your profile appears in search once it is approved.';
+    } else if (approved === true) {
+      emptyText = `No visits in the last ${views.days} days.`;
+    }
+    const empty = views.total === 0 ? `<p class="sdh-note">${esc(emptyText)}</p>` : '';
     const shorter =
       views.requestedDays > views.days
         ? `<p class="sdh-note">Your plan shows the last ${views.days} days. <a class="sdh-link" href="/pricing">See plans</a> for longer history.</p>`
@@ -2060,117 +2066,72 @@
   }
 
   /* ------------------------------------------------------------------ *
-   * Availability
-   * ------------------------------------------------------------------ */
-
-  const AVAILABILITY = [
-    { value: 'available', label: 'Available' },
-    { value: 'limited', label: 'Limited' },
-    { value: 'unavailable', label: 'Unavailable' },
-  ];
-
-  /** Draws the availability picker (three options and a note) with a Save button. */
-  function renderAvailability(availability) {
-    const box = byId(ids.availability);
-    if (!box) {
-      return;
-    }
-    const current = AVAILABILITY.some(option => option.value === availability?.status)
-      ? availability.status
-      : 'available';
-    box.innerHTML = `<div class="sdh-availability" data-status="${esc(current)}">
-      <div class="sdh-seg" role="group" aria-label="Your availability">${AVAILABILITY.map(
-        option =>
-          `<button type="button" class="sdh-seg__btn" data-availability="${option.value}" aria-pressed="${option.value === current}">${option.label}</button>`
-      ).join('')}</div>
-      <div class="sdh-field">
-        <label class="sdh-label" for="sdh-availability-note">Note for customers (optional)</label>
-        <textarea id="sdh-availability-note" class="sdh-input sdh-input--area" rows="2" maxlength="300">${esc(availability?.notes || '')}</textarea>
-      </div>
-      <div class="sdh-form__actions">
-        <button type="button" class="sdh-btn sdh-btn--secondary sdh-btn--sm" data-sdh-action="save-availability">Save</button>
-        <span class="sdh-form__status" id="sdh-availability-status" role="status" aria-live="polite"></span>
-      </div>
-    </div>`;
-  }
-
-  /** Loads the saved availability, or shows an error with a retry button. */
-  async function loadAvailability() {
-    const box = byId(ids.availability);
-    if (!box) {
-      return;
-    }
-    const result = await getJson('/api/v1/supplier/availability');
-    if (!result.data) {
-      box.innerHTML =
-        '<p class="sdh-note">We could not load your availability.</p><button type="button" class="sdh-btn sdh-btn--secondary sdh-btn--sm" data-sdh-action="retry-availability">Try again</button>';
-      return;
-    }
-    renderAvailability(result.data.availability || {});
-  }
-
-  /** Saves the chosen availability and note. */
-  async function saveAvailability(button) {
-    const box = byId(ids.availability);
-    const root = box?.querySelector('.sdh-availability');
-    const status = byId('sdh-availability-status');
-    if (!root) {
-      return;
-    }
-    const pressed = root.querySelector('[aria-pressed="true"]');
-    const note = byId('sdh-availability-note');
-    button.disabled = true;
-    if (status) {
-      status.dataset.tone = '';
-      status.textContent = 'Saving…';
-    }
-    try {
-      const result = await sendJson('/api/v1/supplier/availability', 'PATCH', {
-        status: pressed ? pressed.dataset.availability : 'available',
-        notes: note ? note.value : '',
-      });
-      if (status) {
-        status.dataset.tone = result.ok ? 'success' : 'error';
-        status.textContent = result.ok
-          ? 'Saved'
-          : result.data?.error || 'Could not save. Please try again.';
-      }
-    } catch {
-      if (status) {
-        status.dataset.tone = 'error';
-        status.textContent = 'Could not save. Please try again.';
-      }
-    } finally {
-      button.disabled = false;
-    }
-  }
-
-  /* ------------------------------------------------------------------ *
    * Tips
    * ------------------------------------------------------------------ */
 
+  /** The profile-form field each tip `field` focuses when the profile editor opens. */
+  const TIP_FIELD_FOCUS = {
+    description: 'sup-long',
+    photos: 'sup-photo-drop',
+    category: 'sup-category',
+    location: 'sup-location',
+    banner: 'sdh-banner-upload',
+    website: 'sup-website',
+  };
+
+  /** What each server tip `action.type` does on this page. `null` = decided by the tip's field. */
+  const TIP_ACTIONS = {
+    'verify-email': { action: 'resend-email' },
+    'open-verification': { action: 'verify' },
+    'open-support': { action: 'support' },
+    'open-profile-editor': null,
+    'open-packages': { action: 'scroll', target: 'my-packages' },
+    'open-package-form': { action: 'new-package' },
+    'open-enquiries': { action: 'open-enquiries' },
+    'open-messages': { action: 'scroll', target: 'sdh-messages' },
+    'open-reviews': { action: 'scroll', target: 'sdh-reviews' },
+    'open-review-request': { action: 'request-review' },
+    'open-calendar': { action: 'scroll', target: 'availability-calendar' },
+    'open-plan': { href: '/supplier/subscription' },
+  };
+
+  /** How a tip is acted on: { action, focus, target } for a page action, { href } for a link, or null. */
+  function tipAction(tip) {
+    const type = String(tip?.action?.type || '');
+    if (!Object.hasOwn(TIP_ACTIONS, type)) {
+      return null;
+    }
+    if (type === 'open-profile-editor') {
+      const field = String(tip.action.field || '');
+      if (field === 'profile-photo') {
+        return { action: 'upload-avatar' };
+      }
+      if (field === 'social-links') {
+        return { href: '/supplier/profile-customization' };
+      }
+      return { action: 'edit-profile', focus: TIP_FIELD_FOCUS[field] || 'sup-name' };
+    }
+    return TIP_ACTIONS[type];
+  }
+
   /**
-   * The button or link for a tip. The server names the tip (`id`) and gives a link that is only a
-   * fragment of this page, so the tip is mapped to what the page can really do: open the profile
-   * editor on a field, open the package editor, open Request a review, or go to the page that has
-   * the setting. Anything that maps to none of those, and has no same-site link, gets no action.
+   * The button or link for a tip. The server names what the tip does (`action.type`, and for the
+   * profile editor which `field`), so each tip is mapped to what the page can really do: open the
+   * profile editor on a field, open the package editor, open Request a review, scroll to a card, or
+   * follow the link to the page that has the setting. A tip of a type this page does not know gets a
+   * link only if the server sent a same-site address that is not a button on this page, and
+   * otherwise no action.
    */
   function tipActionHtml(tip) {
     const label = tip?.action?.label;
     if (!label) {
       return '';
     }
-    const known = {
-      'add-desc': { action: 'edit-profile', focus: 'sup-long' },
-      'add-photos': { action: 'edit-profile', focus: 'sup-photo-drop' },
-      'add-package': { action: 'new-package' },
-      'get-review': { action: 'request-review' },
-      'add-tagline': { href: '/supplier/profile-customization' },
-      'social-links': { href: '/supplier/profile-customization' },
-    }[String(tip.id || '')];
+    const known = tipAction(tip);
     if (known?.action) {
       const focus = known.focus ? ` data-sdh-focus="${esc(known.focus)}"` : '';
-      return `<button type="button" class="sdh-link" data-sdh-action="${esc(known.action)}"${focus}>${esc(label)}</button>`;
+      const target = known.target ? ` data-sdh-target="${esc(known.target)}"` : '';
+      return `<button type="button" class="sdh-link" data-sdh-action="${esc(known.action)}"${focus}${target}>${esc(label)}</button>`;
     }
     const href = localHref(known ? known.href : tip.action.href);
     if (href && !href.startsWith('#toggle-') && href !== '#my-suppliers') {
@@ -2179,15 +2140,31 @@
     return '';
   }
 
-  /** Draws the tips the server chose for this profile; nothing is shown that the server did not send. */
-  async function loadTips() {
+  let tipsRequest = 0;
+
+  /**
+   * Draws the tips the server chose for this profile; nothing is shown that the server did not send.
+   * Called again after the summary is, because tips carry counts and state (new enquiries, whether
+   * the profile was submitted) that go stale. A failed reload then keeps the tips on screen
+   * (`keepOnFailure`) rather than replacing them with an error, and an older answer that arrives
+   * after a newer one is ignored.
+   */
+  async function loadTips({ keepOnFailure = false } = {}) {
     const box = byId(ids.tips);
     if (!box) {
       return;
     }
+    tipsRequest += 1;
+    const mine = tipsRequest;
     const result = await getJson('/api/v1/supplier/performance-tips');
+    if (mine !== tipsRequest) {
+      return;
+    }
     const section = byId('sdh-tips');
     if (!result.data) {
+      if (keepOnFailure) {
+        return;
+      }
       box.innerHTML =
         '<p class="sdh-note">We could not load your tips.</p><button type="button" class="sdh-btn sdh-btn--secondary sdh-btn--sm" data-sdh-action="retry-tips">Try again</button>';
       return;
@@ -2549,8 +2526,6 @@
     'request-review': handled(() => openReviewDialog()),
     support: handled(openSupportTicket),
     billing: node => openBilling(node),
-    'save-availability': node => saveAvailability(node),
-    'retry-availability': () => loadAvailability(),
     'retry-tips': () => loadTips(),
     'reload-packages': () => window._efLoadPackages?.(),
     'retry-request': node => retryReviewRequest(node),
@@ -2565,17 +2540,10 @@
     }
   }
 
-  /** Wires the clicks for every data-sdh-action, the availability picker and the dialogs' close buttons. */
+  /** Wires the clicks for every data-sdh-action, the period buttons and the dialogs' close buttons. */
   function bindPageEvents() {
     document.addEventListener('click', event => {
       const target = event.target;
-      const seg = target.closest?.('[data-availability]');
-      if (seg) {
-        seg.parentElement.querySelectorAll('[data-availability]').forEach(button => {
-          button.setAttribute('aria-pressed', String(button === seg));
-        });
-        return;
-      }
       const periodButton = target.closest?.('[data-sdh-days]');
       if (periodButton) {
         if (!periodButton.disabled) {
@@ -2775,18 +2743,25 @@
     state.days = days;
     const box = byId(ids.chart);
     box?.setAttribute('aria-busy', 'true');
-    await refresh();
+    await refresh({ tips: false });
     box?.removeAttribute('aria-busy');
     // Redrawing replaced the buttons: put keyboard focus back on the one that was chosen.
     byId(ids.chart)?.querySelector(`[data-sdh-days="${days}"]`)?.focus();
   }
 
-  /** Asks the server for the summary again and redraws. Called after a profile or package change. */
-  async function refresh() {
+  /**
+   * Asks the server for the summary again and redraws. Called after a profile or package change.
+   * The tips are asked for again too (they say things like "2 new enquiries" or "Submit your
+   * profile"), except when only the chart period changed (`tips: false`).
+   */
+  async function refresh({ tips = true } = {}) {
     state.summaryPromise = null;
     await getSummary(true);
     state.loadedAt = Date.now();
     renderAll();
+    if (tips && state.loadersStarted) {
+      loadTips({ keepOnFailure: true });
+    }
   }
 
   /**
@@ -2832,7 +2807,7 @@
     bindPageEvents();
     handleDeepLink();
     window.addEventListener('hashchange', handleDeepLink);
-    // Availability, tips and review requests are all about a profile: a supplier who has none
+    // Tips and review requests are all about a profile: a supplier who has none
     // would only collect 404s (which the site's fetch wrapper shows as error toasts).
     state.suppliersKnown.then(startProfileLoaders);
     initMessenger();
@@ -2857,7 +2832,6 @@
       return;
     }
     state.loadersStarted = true;
-    loadAvailability();
     loadTips();
     loadReviewRequests();
   }

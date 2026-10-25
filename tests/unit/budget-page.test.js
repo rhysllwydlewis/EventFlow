@@ -252,7 +252,7 @@ describe('budget page styling invariants', () => {
 
   test('switching plans updates the address, so a reload does not jump back to the linked plan', () => {
     expect(js).toMatch(/url\.searchParams\.set\('plan', id\)/);
-    expect(js).toMatch(/writeStorage\(PLAN_PICK_KEY, plan\.id\);\s*showPlanInUrl\(plan\.id\);/);
+    expect(js).toMatch(/writeFunctional\(PLAN_PICK_KEY, plan\.id\);\s*showPlanInUrl\(plan\.id\);/);
   });
 
   test('the header matches the other customer pages: title, then the plan line, 28px and 24px on phones', () => {

@@ -105,6 +105,26 @@ function getSupplierSocialLinkCount(supplier) {
 }
 
 /**
+ * The description text the 'description' completeness check measures: the first non-empty of the
+ * full description, the short description, the legacy `description`, then the admin-set `blurb`.
+ *
+ * The public profile's About section shows the first non-empty of description_long,
+ * description_short and description, so the check measures the same text the page shows. The one
+ * difference is `blurb`, a legacy field only an admin can set: it counts here because the browser
+ * widget (profile-health-widget.js, kept in step with this list) counts it, but the About section
+ * does not display it.
+ *
+ * @param {Object} supplier - Supplier document
+ * @returns {string} Trimmed description text ('' when there is none)
+ */
+function getSupplierDescriptionText(supplier) {
+  const source = supplier && typeof supplier === 'object' ? supplier : {};
+  return String(
+    source.description_long || source.description_short || source.description || source.blurb || ''
+  ).trim();
+}
+
+/**
  * The seven weighted profile-completeness checks, in display order.
  *
  * THIS LIST MUST STAY IN AGREEMENT with HEALTH_CRITERIA in
@@ -135,14 +155,7 @@ const PROFILE_COMPLETENESS_CHECKS = [
     label: 'Description (100+ characters)',
     weight: 15,
     href: '/dashboard/supplier#my-suppliers',
-    test: supplier =>
-      String(
-        supplier.description_long ||
-          supplier.description_short ||
-          supplier.description ||
-          supplier.blurb ||
-          ''
-      ).trim().length >= 100,
+    test: supplier => getSupplierDescriptionText(supplier).length >= 100,
   },
   {
     id: 'location',
@@ -204,6 +217,7 @@ function computeProfileCompleteness(supplier) {
 }
 
 module.exports = {
+  getSupplierDescriptionText,
   getSupplierGalleryCount,
   getSupplierSocialLinkCount,
   hasSupplierGalleryPhotos,

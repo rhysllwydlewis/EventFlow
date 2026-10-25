@@ -19,8 +19,15 @@ const isVenueCategory = category => /venue/iu.test(String(category || ''));
 const categoryOf = item => item?.category || item?.itemType || '';
 
 /**
- * GET /api/v1/customer/milestones
+ * GET /api/v1/customer/milestones[?planId=<id>]
  * Returns a personalised milestone checklist based on plan state.
+ *
+ * With `planId` the plan-level steps (date, budget, guests, location) describe that one plan,
+ * which is how the dashboard asks: its summary row talks about a single "focus plan", and a
+ * checklist that ticked "Set your event date" because a different plan has one would contradict
+ * the countdown beside it. Without `planId`, or with one that is not the caller's, a step is done
+ * when any of the customer's plans has it. Saved suppliers and venue enquiries belong to the
+ * customer, not to a plan, so they are the same either way. The reply says which it used in `scope`.
  */
 router.get('/milestones', authRequired, async (req, res) => {
   try {
@@ -29,19 +36,25 @@ router.get('/milestones', authRequired, async (req, res) => {
     }
     const userId = req.user.id;
     // "Saved suppliers" on the dashboard is the shortlist, so the checklist reads the same record.
+    // A failed read must not be turned into "nothing done yet": that would tell a customer with
+    // plans to "Create your plan". Let it reach the 500 below, which the page shows with a retry.
     const [plans, shortlist, quoteRequests] = await Promise.all([
-      dbUnified.find('plans', { userId }).catch(() => []),
-      dbUnified.findOne('shortlists', { userId }).catch(() => null),
-      dbUnified.find('quoteRequests', { userId }).catch(() => []),
+      dbUnified.find('plans', { userId }),
+      dbUnified.findOne('shortlists', { userId }),
+      dbUnified.find('quoteRequests', { userId }),
     ]);
 
     const hasPlan = plans.length > 0;
-    const hasDate = plans.some(p => p.eventDate || p.date);
-    const hasLocation = plans.some(p => p.location);
+    const requestedPlanId = typeof req.query.planId === 'string' ? req.query.planId : '';
+    const focusPlan = requestedPlanId ? plans.find(p => p.id === requestedPlanId) : null;
+    const scope = focusPlan ? 'plan' : 'account';
+    const planLevel = focusPlan ? [focusPlan] : plans;
+    const hasDate = planLevel.some(p => p.eventDate || p.date);
+    const hasLocation = planLevel.some(p => p.location);
     // `guests` is a head count on newer plans and the guest list itself on older ones, which keep
     // new guests in `guestList`; an empty list is still an array, so it is measured, not truthy.
     const listLength = value => (Array.isArray(value) ? value.length : 0);
-    const hasGuestCount = plans.some(
+    const hasGuestCount = planLevel.some(
       p =>
         Number(p.guestCount) > 0 ||
         listLength(p.guests) > 0 ||
@@ -51,7 +64,9 @@ router.get('/milestones', authRequired, async (req, res) => {
     // The budget form saves a number. The plan wizard saves a range as text ("£3,000–£5,000"),
     // which is a starting point, not a total to plan against, so only a figure counts here: the
     // budget card on the dashboard shows "Not set" for the same plan.
-    const hasBudget = plans.some(p => parseFloat(p.budget) > 0 || parseFloat(p.totalBudget) > 0);
+    const hasBudget = planLevel.some(
+      p => parseFloat(p.budget) > 0 || parseFloat(p.totalBudget) > 0
+    );
 
     const savedSuppliers = (Array.isArray(shortlist?.items) ? shortlist.items : []).filter(
       item => (item.type || item.itemType || 'supplier') === 'supplier'
@@ -116,7 +131,7 @@ router.get('/milestones', authRequired, async (req, res) => {
     const total = milestones.length;
     const percent = Math.round((completed / total) * 100);
 
-    res.json({ milestones, completed, total, percent });
+    res.json({ milestones, completed, total, percent, scope });
   } catch (error) {
     logger.error('milestones error:', error.message);
     res.status(500).json({ error: 'Failed to load milestones' });

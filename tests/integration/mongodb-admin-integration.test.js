@@ -175,8 +175,9 @@ describe('MongoDB Integration — Graceful Fallback to Local Storage', () => {
   it('db-unified.js falls back to store.read() when MongoDB read fails', () => {
     const src = readSrc('db-unified.js');
     // Find read function and check fallback logic
-    const readIdx = src.indexOf('async function read(collectionName)');
-    const readBlock = src.substring(readIdx, readIdx + 900);
+    const readIdx = src.indexOf('async function read(collectionName');
+    expect(readIdx).toBeGreaterThan(-1);
+    const readBlock = src.substring(readIdx, readIdx + 1500);
     expect(readBlock).toContain('store.read(collectionName)');
     expect(readBlock).toContain('Falling back to local storage');
   });

@@ -26,6 +26,7 @@ const {
   addPreviewRobotsMeta,
 } = require('../utils/template-renderer');
 const { resolveCategoryName } = require('../services/categoryLookup.service');
+const { noindexMiddleware } = require('../middleware/seo');
 
 // This server has no database, so the legacy /category redirect below uses
 // this fixed list instead of the real `categories` collection — it's the
@@ -96,20 +97,10 @@ app.use((req, res, next) => {
   next();
 });
 
-// Add X-Robots-Tag: noindex, nofollow for private/authenticated pages
-// This mirrors the behavior of middleware/seo.js in the main server
-const noindexPatterns = [
-  /^\/(auth|reset-password|dashboard|dashboard-customer|dashboard-supplier|messages|guests|checkout|my-marketplace-listings|budget|gallery)(\.html)?($|\?)/,
-  /^\/(admin)([-/].+)?(\.html)?($|\?)/,
-  /^\/(messenger|chat)(\/.*)?($|\?)/,
-];
-app.use((req, res, next) => {
-  const isNoindex = noindexPatterns.some(pattern => pattern.test(req.path));
-  if (isNoindex) {
-    res.setHeader('X-Robots-Tag', 'noindex, nofollow');
-  }
-  next();
-});
+// Add X-Robots-Tag: noindex, nofollow for private/authenticated pages and the
+// developer demo pages. Uses the production middleware itself rather than a copy
+// of its page list, so the two cannot drift apart.
+app.use(noindexMiddleware());
 
 // ---------- Protected page guard (static/E2E server) ----------
 // Prevents sensitive pages from being served to unauthenticated requests.

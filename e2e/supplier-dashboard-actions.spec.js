@@ -599,12 +599,15 @@ test.describe('Supplier dashboard: every control works @backend', () => {
 
     // The "+" on a day names that day and opens the form on that day (not on today).
     const plus = page.locator('.cal-day-add-btn').nth(20);
+    // The label is spoken ("Add entry for Saturday, 17 October 2026", with or without the comma); the cell carries the ISO day.
     const label = await plus.getAttribute('aria-label');
-    expect(label).toMatch(/^Add entry for \d{4}-\d{2}-\d{2}$/);
-    await plus.evaluate(element => element.click());
-    await expect(page.locator('#sup-cal-entry-date')).toHaveValue(
-      label.replace('Add entry for ', '')
+    expect(label).toMatch(/^Add entry for [A-Za-z]+,? \d{1,2} [A-Za-z]+ \d{4}$/);
+    const isoDay = await plus.evaluate(element =>
+      element.closest('.fc-daygrid-day').getAttribute('data-date')
     );
+    expect(isoDay).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+    await plus.evaluate(element => element.click());
+    await expect(page.locator('#sup-cal-entry-date')).toHaveValue(isoDay);
   });
 
   test('every calendar view button works', async ({ page, context, baseURL }) => {
@@ -626,23 +629,14 @@ test.describe('Supplier dashboard: every control works @backend', () => {
     await closeTopDialog(page);
   });
 
-  test('availability is saved and still there after a reload', async ({
+  test('no availability control is offered, because nothing on the public site reads it', async ({
     page,
     context,
     baseURL,
   }) => {
     await openDashboard(page, context, baseURL);
-    await page.getByRole('button', { name: 'Limited', exact: true }).first().click();
-    const [response] = await Promise.all([
-      page.waitForResponse(r => r.request().method() === 'PATCH' && /availability/.test(r.url())),
-      page.getByRole('button', { name: 'Save', exact: true }).first().click(),
-    ]);
-    expect(response.status()).toBe(200);
-    await page.reload();
     await expect(page.locator('#my-packages')).toContainText(fixtures.package.title);
-    await expect(
-      page.getByRole('button', { name: 'Limited', exact: true }).first()
-    ).toHaveAttribute('aria-pressed', 'true');
+    await expect(page.getByRole('button', { name: 'Limited', exact: true })).toHaveCount(0);
   });
 
   test('message filter and sort change without errors, and the export says what it did', async ({

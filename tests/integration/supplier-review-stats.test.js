@@ -182,6 +182,39 @@ describe('Supplier Review Stats Endpoint', () => {
       expect(response.body.stats.distribution).toEqual({ 5: 1, 4: 0, 3: 1, 2: 0, 1: 0 });
     });
 
+    it('puts only ratings the average uses (1-5) in the distribution, rounding halves to a star', async () => {
+      const approved = { moderation: { state: 'approved' } };
+      const mockReviews = [
+        { id: 'r1', supplierId: 'supplier-1', rating: 4.5, ...approved },
+        { id: 'r2', supplierId: 'supplier-1', rating: 0.5, ...approved },
+        { id: 'r3', supplierId: 'supplier-1', rating: 6, ...approved },
+        { id: 'r4', supplierId: 'supplier-1', rating: 'x', ...approved },
+        { id: 'r5', supplierId: 'supplier-1', rating: 2, ...approved },
+      ];
+      dbUnified.find.mockImplementation(async collection =>
+        collection === 'reviews' ? mockReviews : []
+      );
+      dbUnified.findOne.mockImplementation(async collection =>
+        collection === 'suppliers'
+          ? { id: 'supplier-1', ownerUserId: 'test-user-123', name: 'Test Supplier' }
+          : null
+      );
+
+      const response = await request(app).get('/api/supplier/reviews/stats').expect(200);
+
+      // Average of the two valid ratings (4.5 and 2); 0.5, 6 and "x" are in neither the average
+      // nor the distribution (they used to land in the 1-star bucket).
+      expect(response.body.stats.averageRating).toBe(3.25);
+      expect(response.body.stats.distribution).toEqual({ 5: 1, 4: 0, 3: 0, 2: 1, 1: 0 });
+      // Every approved review is still counted, matching the dashboard summary and the public panel.
+      expect(response.body.stats.totalReviews).toBe(5);
+      // The distribution sums to ratedReviews (what percentages of the bars must be taken of),
+      // not to totalReviews.
+      const sum = Object.values(response.body.stats.distribution).reduce((a, b) => a + b, 0);
+      expect(response.body.stats.ratedReviews).toBe(2);
+      expect(sum).toBe(response.body.stats.ratedReviews);
+    });
+
     it('should return 404 when supplier profile not found', async () => {
       const mockSuppliers = [
         { id: 'supplier-2', ownerUserId: 'different-user', name: 'Different Supplier' },

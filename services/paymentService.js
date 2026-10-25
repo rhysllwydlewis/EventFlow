@@ -7,6 +7,7 @@
 
 const dbUnified = require('../db-unified');
 const logger = require('../utils/logger');
+const { getSafeStripeSecretKey } = require('../utils/previewSafety');
 const { uid } = require('../store');
 
 // Initialize Stripe only if configured
@@ -14,7 +15,7 @@ let stripe = null;
 let STRIPE_ENABLED = false;
 
 try {
-  const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
+  const stripeSecretKey = getSafeStripeSecretKey();
   if (stripeSecretKey) {
     // eslint-disable-next-line global-require
     const stripeLib = require('stripe');

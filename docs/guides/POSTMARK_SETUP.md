@@ -97,7 +97,7 @@ EventFlow uses **local HTML templates** stored in `/email-templates/`:
 
 ### Development Testing
 
-When `POSTMARK_API_KEY` is not configured, emails are saved to the `/outbox` folder as `.eml` files. This allows you to:
+When `POSTMARK_API_KEY` is not configured, a record of each email is saved to the `/outbox` folder as an `.eml` file. That record is **metadata only** (recipient count, template name, time, message id): the address, subject and body are not stored, because they contain verification links and text users typed, and request data is not written to files. The browser tests (`NODE_ENV=test`) keep the full email in the server's memory and read it from the test-only `GET /__e2e/mail` route. This allows you to:
 
 1. Test email flows without sending real emails
 2. Inspect email content and formatting

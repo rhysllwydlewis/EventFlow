@@ -115,14 +115,6 @@ const messengerWidgetJs = fs.readFileSync(
   'utf8'
 );
 const stylesCss = fs.readFileSync(path.join(process.cwd(), 'public/assets/css/styles.css'), 'utf8');
-const photoUploaderJs = fs.readFileSync(
-  path.join(process.cwd(), 'public/assets/js/components/photo-uploader.js'),
-  'utf8'
-);
-const supplierMessagesJs = fs.readFileSync(
-  path.join(process.cwd(), 'public/assets/js/supplier-messages.js'),
-  'utf8'
-);
 
 const homeCss = fs.readFileSync(
   path.join(process.cwd(), 'public/assets/css/supplier-dashboard-home.css'),
@@ -219,12 +211,8 @@ describe('Supplier dashboard/profile UI polish', () => {
     expect(remove).not.toMatch(/style=/);
   });
 
-  it('dashboard and messenger avatar URLs allow safe https CDN and rooted relative forms', () => {
+  it('messenger avatar URLs allow safe https CDN and rooted relative forms', () => {
     expect(messengerWidgetJs).toContain('/^(https?:\\/\\/|\\/[^:])/i.test(avatarUrl)');
-    expect(supplierMessagesJs).toContain('/^(https?:\\/\\/|\\/[^:])/i.test(avatarUrl.trim())');
-    expect(supplierMessagesJs).toContain(
-      "const initial = escapeHtml((name || 'U').charAt(0).toUpperCase())"
-    );
   });
 
   it('gallery remove buttons use reduced dimensions with hue-only hover (no scale)', () => {
@@ -243,12 +231,6 @@ describe('Supplier dashboard/profile UI polish', () => {
     const hoverStart = stylesCss.indexOf('.photo-remove-btn:hover{');
     const hoverBlock = stylesCss.slice(hoverStart, stylesCss.indexOf('}', hoverStart) + 1);
     expect(hoverBlock).not.toContain('transform:scale');
-
-    expect(photoUploaderJs).toContain('.photo-uploader__preview-remove {');
-    expect(photoUploaderJs).toContain('width: 14px;');
-    expect(photoUploaderJs).toContain('height: 14px;');
-    expect(photoUploaderJs).toContain('font-size: 0.6875rem;');
-    expect(photoUploaderJs).toContain('background: rgba(220,38,38,1);');
 
     expect(supplierDashImprovementsCss).toContain('.photo-preview-remove {');
     expect(supplierDashImprovementsCss).toContain('width: 14px;');

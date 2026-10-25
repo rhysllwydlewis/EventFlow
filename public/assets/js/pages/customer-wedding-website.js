@@ -680,7 +680,6 @@
     }
     pill.textContent = meta.label;
     pill.dataset.status = meta.key;
-    pill.setAttribute('aria-label', `Wedding website status: ${meta.label}`);
   }
 
   /* ------------------------------------------------------------------ *

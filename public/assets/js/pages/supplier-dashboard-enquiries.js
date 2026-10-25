@@ -187,14 +187,37 @@
     if (!body) {
       return;
     }
-    body.textContent = '';
+    // Redrawing the card must not drop keyboard focus. Closing the drawer redraws it, so the
+    // button that opened the drawer (or the row in the card) would otherwise lose the focus the
+    // drawer had just given back.
+    const active = document.activeElement;
+    const focusInside = Boolean(active && body.contains(active));
+    const focusedRow = focusInside ? active.closest('[data-enquiry-id]') : null;
+    const rowId = focusedRow ? focusedRow.dataset.enquiryId : '';
     const open = byId(ids.open);
-    if (open) {
-      open.hidden = true;
+    const showOpen = drawCard(body);
+    // Only change the button when it needs to change: hiding it, even for an instant, blurs it.
+    if (open && open.hidden === showOpen) {
+      open.hidden = !showOpen;
     }
+    if (rowId) {
+      const again = Array.from(body.querySelectorAll('[data-enquiry-id]')).find(
+        item => item.dataset.enquiryId === rowId
+      );
+      (again || (open && !open.hidden ? open : null))?.focus({ preventScroll: true });
+    } else if (focusInside && !body.contains(document.activeElement)) {
+      // A button in the card (Try again) was replaced: keep focus in the card, not on the page.
+      body.tabIndex = -1;
+      body.focus({ preventScroll: true });
+    }
+  }
+
+  /** Fills the card body for the current state; true when the card has enquiries to open. */
+  function drawCard(body) {
+    body.textContent = '';
     if (!view.cardLoaded) {
       body.appendChild(el('div', 'sdh-skel sdh-skel--row'));
-      return;
+      return false;
     }
     if (view.cardProblem === 'unapproved') {
       body.appendChild(
@@ -204,7 +227,7 @@
           'Enquiries open once your profile has been approved. Customers can only find you after that.'
         )
       );
-      return;
+      return false;
     }
     if (view.cardProblem) {
       const wrap = el('div', 'sdh-empty');
@@ -215,7 +238,7 @@
       retry.dataset.enquiriesAction = 'reload-card';
       wrap.appendChild(retry);
       body.appendChild(wrap);
-      return;
+      return false;
     }
     if (!view.cardCounts || view.cardCounts.total === 0) {
       body.appendChild(
@@ -226,16 +249,14 @@
         )
       );
       body.appendChild(el('p', 'sdh-note sdh-note--foot', NOTE));
-      return;
-    }
-    if (open) {
-      open.hidden = false;
+      return false;
     }
     body.appendChild(el('p', 'sdh-enquiries__counts', countsText(view.cardCounts)));
     const list = el('div', 'sdh-enq-list');
     view.cardItems.slice(0, CARD_ROWS).forEach(item => list.appendChild(rowButton(item, false)));
     body.appendChild(list);
     body.appendChild(el('p', 'sdh-note sdh-note--foot', NOTE));
+    return true;
   }
 
   /** Loads the first rows for the card (and the counts for the page). */
@@ -578,8 +599,15 @@
     if (row) {
       row.status = result.data.enquiry.status;
     }
-    api.toast('Reply sent.', 'success');
-    announce('Reply sent. The enquiry is marked as handled.');
+    if (result.data.warning) {
+      // The email went, but a step after it did not save (the server's warning says which, and
+      // already says the reply was sent): show that once, do not claim the enquiry was handled.
+      api.toast(result.data.warning, 'info');
+      announce(result.data.warning);
+    } else {
+      api.toast('Reply sent.', 'success');
+      announce('Reply sent. The enquiry is marked as handled.');
+    }
     renderDetail();
     byId('sdh-enquiry-title')?.focus({ preventScroll: true });
     renderList();

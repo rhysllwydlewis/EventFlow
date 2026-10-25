@@ -6,7 +6,7 @@
  * prints what it rendered as JSON. Run in a child process, like the other jsdom scenarios here,
  * because jsdom's dependencies are ES modules that Jest cannot load.
  *
- * usage: node supplier-dashboard-home-scenario.js <base64 json {summary, summaryStatus, suppliers, user, tips, availability}>
+ * usage: node supplier-dashboard-home-scenario.js <base64 json {summary, summaryStatus, suppliers, user, tips, tipsAfterChange, dispatchChanged}>
  *
  * `summary` is the response body of GET /api/supplier/dashboard-summary; `summaryStatus` its HTTP
  * status (200 by default); `suppliers` is what app.js would announce on the `sdh:suppliers` event
@@ -38,6 +38,7 @@ async function main() {
   const { window } = dom;
   const { document } = window;
   const requested = [];
+  let changed = false;
   window.console.log = () => {};
   window.console.error = () => {};
   window.HTMLDialogElement.prototype.showModal = function showModal() {
@@ -75,13 +76,11 @@ async function main() {
         scenario.plan || { plan: 'free', status: 'free', limits: { maxPackages: 3 } }
       );
     }
-    if (target.includes('/api/v1/supplier/availability')) {
-      return scenario.availabilityFails
-        ? reply(500, {})
-        : reply(200, { availability: { status: 'limited', notes: 'Few dates left' } });
-    }
     if (target.includes('/api/v1/supplier/performance-tips')) {
-      return reply(200, { tips: scenario.tips || [] });
+      if (changed && scenario.tipsFailAfterChange) {
+        return reply(500, {});
+      }
+      return reply(200, { tips: (changed && scenario.tipsAfterChange) || scenario.tips || [] });
     }
     if (target.includes('/api/v1/supplier/review-requests')) {
       return reply(200, scenario.reviewRequests || { items: [], summary: {} });
@@ -106,6 +105,16 @@ async function main() {
   }
   for (let turn = 0; turn < 12; turn += 1) {
     await new Promise(resolve => setTimeout(resolve, 0));
+  }
+
+  if (scenario.dispatchChanged) {
+    // Something saved elsewhere on the page: the page asks for its data again.
+    changed = true;
+    requested.push('--- sdh:changed ---');
+    document.dispatchEvent(new window.CustomEvent('sdh:changed'));
+    for (let turn = 0; turn < 12; turn += 1) {
+      await new Promise(resolve => setTimeout(resolve, 0));
+    }
   }
 
   const click = selector => {
@@ -191,7 +200,6 @@ async function main() {
     visits: text(document.getElementById('supplier-performance-chart')),
     chartBars: document.querySelectorAll('#supplier-performance-chart .sdh-chart__bar').length,
     plan: text(document.getElementById('supplier-subscription-card')),
-    availability: text(document.getElementById('supplier-availability-widget')),
     tips: text(document.getElementById('supplier-perf-tips')),
     tipsHtml: document.getElementById('supplier-perf-tips').innerHTML,
     visitsHtml: document.getElementById('supplier-performance-chart').innerHTML,

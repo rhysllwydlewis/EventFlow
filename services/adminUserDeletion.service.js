@@ -24,6 +24,7 @@ function emptySummary() {
     anonymisedRecords: 0,
     deletedNewsletterSubscriptions: 0,
     deletedNotifications: 0,
+    deletedEvents: 0,
     partnerSoftDeleted: false,
     supplierIds: [],
     deletedPackageIds: [],
@@ -485,6 +486,15 @@ async function deleteUserAndOwnedData(userOrUserId, actor, options = {}) {
     } catch (notifErr) {
       summary.errors.push(`notifications:${notifErr.message}`);
       logger.warn(`Could not remove notifications for user ${targetId}:`, notifErr);
+    }
+
+    // Analytics events the account caused (a signed-in profile view is stored with the viewer's
+    // userId), which would otherwise outlive it.
+    try {
+      summary.deletedEvents = await deleteManyCount('events', { userId: targetId });
+    } catch (eventsErr) {
+      summary.errors.push(`events:${eventsErr.message}`);
+      logger.warn(`Could not remove analytics events for user ${targetId}:`, eventsErr);
     }
 
     summary.deletedUser = await dbUnified.deleteOne('users', userDeleteTarget(user));

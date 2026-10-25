@@ -30,15 +30,18 @@ describe('the legacy stat grids are gone', () => {
   });
 });
 
-describe('the Availability widget does not repeat the card heading', () => {
-  it('the card heading is "Availability", and the widget has no title of its own', () => {
-    expect(html).toContain('<h2 id="avail-heading" class="sdh-card__title">Availability</h2>');
-    expect(homeSource).not.toContain('availability-widget__title');
+describe('the Availability card is gone (suppliers.availability is read by no customer page)', () => {
+  it('has no card, widget or loader for it', () => {
+    expect(html).not.toContain('avail-heading');
+    expect(html).not.toContain('supplier-availability-widget');
+    expect(html).not.toContain('sdh-availability');
+    expect(homeSource).not.toContain('availability-widget');
+    expect(homeSource).not.toContain('/api/v1/supplier/availability');
+    expect(homeSource).not.toContain('retry-availability');
   });
 
-  it('tells the supplier when availability could not be loaded, instead of a skeleton that never ends', () => {
-    expect(homeSource).toContain('We could not load your availability.');
-    expect(homeSource).toContain('retry-availability');
+  it('keeps the calendar card, which is a different feature', () => {
+    expect(html).toContain('id="availability-calendar"');
   });
 });
 

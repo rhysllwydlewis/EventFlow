@@ -30,7 +30,6 @@ describe('phone page length', () => {
   test('six secondary cards fold into a closed <details> with "Show <name>", keeping their ids and bodies', () => {
     expect(fold.folded.map(item => item.id)).toEqual([
       'sdh-performance',
-      'sdh-availability',
       'availability-calendar',
       'sdh-tips',
       'sdh-plan',

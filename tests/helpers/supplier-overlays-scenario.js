@@ -676,14 +676,7 @@ async function fold() {
   });
   window.eval(read('public/assets/js/pages/supplier-dashboard-fold.js'));
   await settle();
-  const ids = [
-    'sdh-performance',
-    'sdh-availability',
-    'availability-calendar',
-    'sdh-tips',
-    'sdh-plan',
-    'sdh-support',
-  ];
+  const ids = ['sdh-performance', 'availability-calendar', 'sdh-tips', 'sdh-plan', 'sdh-support'];
   const log = {};
   log.folded = ids.map(id => {
     const details = window.document.querySelector(`#${id} > details.sdh-fold`);
@@ -706,7 +699,6 @@ async function fold() {
   ].every(id => !window.document.querySelector(`#${id} details.sdh-fold`));
   log.idsStillThere = [
     'supplier-performance-chart',
-    'supplier-availability-widget',
     'supplier-events-calendar',
     'supplier-perf-tips',
     'supplier-subscription-card',

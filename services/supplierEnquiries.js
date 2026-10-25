@@ -74,6 +74,10 @@ const EXPORT_MESSAGE_LENGTH = 300;
 const DAY_MS = 24 * 60 * 60 * 1000;
 const HOUR_MS = 60 * 60 * 1000;
 
+const STATUS_WARNING =
+  'Your reply was sent, but the enquiry could not be marked as handled. Please mark it yourself.';
+const REPLY_RECORD_WARNING =
+  'Your reply was sent, but it could not be saved in this enquiry’s thread, so it may not show here. Please do not send it again.';
 const MAX_REPLY_LENGTH = 2000;
 // A reply is an email from EventFlow to an address the customer typed into a form, so it is capped
 // per enquiry, per supplier and by the enquiry's age, to stop it being used to mail strangers.
@@ -240,7 +244,21 @@ async function loadStates(supplierId) {
  * @returns {Promise<Object[]>} Normalised enquiries
  */
 async function loadQuoteRequests(supplierId, sinceMs) {
-  const rows =
+  return (await fetchQuoteRequestRows(supplierId, sinceMs, MAX_RECORDS_PER_SOURCE))
+    .filter(row => sourceOfId(row.id))
+    .map(normaliseQuoteRequest);
+}
+
+/**
+ * The raw quote-request rows behind loadQuoteRequests, newest first, at most `limit` of them.
+ *
+ * @param {string} supplierId - Supplier id
+ * @param {number} sinceMs - Earliest creation time
+ * @param {number} limit - Most rows to read
+ * @returns {Promise<Object[]>} Projected rows
+ */
+async function fetchQuoteRequestRows(supplierId, sinceMs, limit) {
+  return (
     (await dbUnified.aggregate(
       'quoteRequests',
       [
@@ -251,7 +269,7 @@ async function loadQuoteRequests(supplierId, sinceMs) {
           },
         },
         { $sort: { createdAt: -1 } },
-        { $limit: MAX_RECORDS_PER_SOURCE },
+        { $limit: limit },
         {
           $project: {
             id: 1,
@@ -268,8 +286,8 @@ async function loadQuoteRequests(supplierId, sinceMs) {
         },
       ],
       STRICT
-    )) || [];
-  return rows.filter(row => sourceOfId(row.id)).map(normaliseQuoteRequest);
+    )) || []
+  );
 }
 
 /**
@@ -280,13 +298,27 @@ async function loadQuoteRequests(supplierId, sinceMs) {
  * @returns {Promise<Object[]>} Normalised enquiries
  */
 async function loadContactEnquiries(supplierId, sinceMs) {
-  const rows =
+  return (await fetchContactEnquiryRows(supplierId, sinceMs, MAX_RECORDS_PER_SOURCE))
+    .filter(row => sourceOfId(row.id))
+    .map(normaliseContactEnquiry);
+}
+
+/**
+ * The raw contact-form rows behind loadContactEnquiries, newest first, at most `limit` of them.
+ *
+ * @param {string} supplierId - Supplier id
+ * @param {number} sinceMs - Earliest creation time
+ * @param {number} limit - Most rows to read
+ * @returns {Promise<Object[]>} Rows
+ */
+async function fetchContactEnquiryRows(supplierId, sinceMs, limit) {
+  return (
     (await dbUnified.findWithOptions(
       'enquiries',
       { supplierId, createdAt: { $gte: new Date(sinceMs).toISOString() } },
-      { limit: MAX_RECORDS_PER_SOURCE, sort: { createdAt: -1 }, throwOnError: true }
-    )) || [];
-  return rows.filter(row => sourceOfId(row.id)).map(normaliseContactEnquiry);
+      { limit, sort: { createdAt: -1 }, throwOnError: true }
+    )) || []
+  );
 }
 
 /**
@@ -342,7 +374,14 @@ async function listEnquiries({ supplierId, query, now = new Date() }) {
     loadStates(supplierId),
   ]);
 
+  // Rows dated in the future (or with no usable date) are not counted by the dashboard summary
+  // either, so the list and the summary agree.
+  const nowMs = now.getTime();
   const all = [...quotes, ...contacts]
+    .filter(enquiry => {
+      const created = Date.parse(enquiry.createdAt || '');
+      return Number.isFinite(created) && created <= nowMs;
+    })
     .map(enquiry => ({ enquiry, status: states.get(enquiry.id) || 'new' }))
     .sort((first, second) =>
       String(second.enquiry.createdAt).localeCompare(first.enquiry.createdAt)
@@ -352,8 +391,8 @@ async function listEnquiries({ supplierId, query, now = new Date() }) {
     total: all.length,
     new: all.filter(item => item.status === 'new').length,
     bySource: {
-      quoteRequests: quotes.length,
-      contactForm: contacts.length,
+      quoteRequests: all.filter(item => item.enquiry.source === SOURCES.quote_request).length,
+      contactForm: all.filter(item => item.enquiry.source === SOURCES.contact_form).length,
     },
     byQuality: Object.fromEntries(
       QUALITIES.map(rating => [
@@ -468,6 +507,147 @@ function cleanReply(value) {
   );
 }
 
+/** The result of a reply that was refused. */
+function replyFailure(code, text) {
+  return { ok: false, code, message: text };
+}
+
+/**
+ * The checks on who is replying and to whom, before anything is reserved or sent.
+ *
+ * @param {Object} owner - The supplier's account (email and whether it is verified)
+ * @param {Object} enquiry - The enquiry being answered
+ * @param {number} nowMs - Now, in milliseconds
+ * @returns {Object|null} A refusal, or null when the reply may go ahead
+ */
+function replyRefusal(owner, enquiry, nowMs) {
+  if (!enquiry.email || !validator.isEmail(enquiry.email)) {
+    return replyFailure('NO_EMAIL', 'This customer did not leave an email address to reply to.');
+  }
+  if (!owner || !owner.email || !owner.verified) {
+    return replyFailure(
+      'EMAIL_NOT_VERIFIED',
+      'Verify your account email first, so the customer’s answer can reach you.'
+    );
+  }
+  const created = Date.parse(enquiry.createdAt || '');
+  if (Number.isNaN(created) || nowMs - created > MAX_ENQUIRY_AGE_DAYS * DAY_MS) {
+    return replyFailure(
+      'ENQUIRY_TOO_OLD',
+      `This enquiry is more than ${MAX_ENQUIRY_AGE_DAYS} days old. Contact the customer directly.`
+    );
+  }
+  return null;
+}
+
+/**
+ * Whether sending one more reply would pass a limit. Checked before sending and again once this
+ * reply has reserved its place: two requests that run at the same time both see the other's
+ * reservation on the second check, so together they can never send more than the limit allows
+ * (at worst both back off).
+ *
+ * @param {string} supplierId - Supplier id
+ * @param {string} enquiryId - Enquiry id
+ * @param {number} nowMs - Now, in milliseconds
+ * @returns {Promise<Object|null>} A refusal, or null when under every limit
+ */
+async function replyLimitRefusal(supplierId, enquiryId, nowMs) {
+  const counted = rows =>
+    (rows || []).filter(
+      row =>
+        row.status === 'sent' ||
+        (row.status === 'sending' && nowMs - Date.parse(row.sentAt || '') < RESERVATION_TTL_MS)
+    ).length;
+  const forEnquiry = counted(
+    await dbUnified.find(REPLIES_COLLECTION, { supplierId, enquiryId }, STRICT)
+  );
+  if (forEnquiry > MAX_REPLIES_PER_ENQUIRY) {
+    return replyFailure(
+      'ENQUIRY_LIMIT',
+      `You have sent ${MAX_REPLIES_PER_ENQUIRY} replies to this enquiry. Carry on by email.`
+    );
+  }
+  const sentSince = async since =>
+    counted(
+      await dbUnified.find(
+        REPLIES_COLLECTION,
+        { supplierId, sentAt: { $gte: new Date(nowMs - since).toISOString() } },
+        STRICT
+      )
+    );
+  if ((await sentSince(HOUR_MS)) > MAX_REPLIES_PER_HOUR) {
+    return replyFailure(
+      'HOURLY_LIMIT',
+      'You have sent a lot of replies this hour. Try again later.'
+    );
+  }
+  if ((await sentSince(DAY_MS)) > MAX_REPLIES_PER_DAY) {
+    return replyFailure(
+      'DAILY_LIMIT',
+      'You have reached today’s limit for replies. Try again tomorrow.'
+    );
+  }
+  return null;
+}
+
+/**
+ * Everything after the email has gone. Nothing here may turn that into a "failed to send": a step
+ * that throws is reported as a warning on a successful reply, so the supplier does not send it
+ * again.
+ *
+ * @param {Object} sent - What was sent
+ * @param {string} sent.supplierId - Supplier id
+ * @param {string} sent.id - Enquiry id
+ * @param {string} sent.replyId - The reply's id
+ * @param {string} sent.text - The reply text
+ * @param {number} sent.nowMs - When it was sent, in milliseconds
+ * @param {Object} sent.enquiry - The enquiry as loaded before sending
+ * @returns {Promise<Object>} The successful result, with a warning if a step did not save
+ */
+async function finishSentReply({ supplierId, id, replyId, text, nowMs, enquiry }) {
+  const warnings = [];
+  let recorded = false;
+  for (let attempt = 0; attempt < 2 && !recorded; attempt += 1) {
+    try {
+      await dbUnified.updateOne(
+        REPLIES_COLLECTION,
+        { id: replyId },
+        { $set: { status: 'sent' } },
+        { throwOnError: true }
+      );
+      recorded = true;
+    } catch {
+      // Tried once more; if it still fails the reservation stays 'sending' (it counts towards the
+      // limits until it expires) and the supplier is told.
+    }
+  }
+  if (!recorded) {
+    warnings.push(REPLY_RECORD_WARNING);
+  }
+  let updated = null;
+  try {
+    updated = await setEnquiryStatus(supplierId, id, 'handled');
+  } catch {
+    updated = null;
+  }
+  if (!updated) {
+    warnings.push(STATUS_WARNING);
+  }
+  // Without a saved status the enquiry keeps the state it had, not a "handled" nobody stored. Either
+  // way the enquiry that comes back includes the reply just sent (it was loaded before sending, or
+  // its 'sent' mark did not save), so it does not vanish from the thread and get typed again.
+  const sentReply = { id: replyId, message: text, sentAt: new Date(nowMs).toISOString() };
+  const base = updated || enquiry;
+  const replies = [...(base.replies || []).filter(item => item.id !== replyId), sentReply].slice(
+    -REPLIES_SHOWN
+  );
+  const result = { ok: true, enquiry: { ...base, replies } };
+  if (warnings.length) {
+    result.warning = warnings.join(' ');
+  }
+  return result;
+}
+
 /**
  * Send a supplier's reply to a customer's enquiry.
  *
@@ -488,74 +668,22 @@ function cleanReply(value) {
  *   ENQUIRY_TOO_OLD, HOURLY_LIMIT, DAILY_LIMIT, SEND_FAILED
  */
 async function replyToEnquiry({ supplier, owner, id, message }, deps = {}) {
-  const fail = (code, text) => ({ ok: false, code, message: text });
   const text = cleanReply(message);
   if (!text) {
-    return fail('EMPTY', 'Write a reply first.');
+    return replyFailure('EMPTY', 'Write a reply first.');
   }
   if (text.length > MAX_REPLY_LENGTH) {
-    return fail('TOO_LONG', `Replies can be up to ${MAX_REPLY_LENGTH} characters.`);
+    return replyFailure('TOO_LONG', `Replies can be up to ${MAX_REPLY_LENGTH} characters.`);
   }
   const enquiry = await getEnquiry(supplier.id, id);
   if (!enquiry) {
-    return fail('NOT_FOUND', 'Enquiry not found.');
-  }
-  if (!enquiry.email || !validator.isEmail(enquiry.email)) {
-    return fail('NO_EMAIL', 'This customer did not leave an email address to reply to.');
-  }
-  if (!owner || !owner.email || !owner.verified) {
-    return fail(
-      'EMAIL_NOT_VERIFIED',
-      'Verify your account email first, so the customer’s answer can reach you.'
-    );
+    return replyFailure('NOT_FOUND', 'Enquiry not found.');
   }
   const nowMs = (deps.now ? deps.now() : new Date()).getTime();
-  const created = Date.parse(enquiry.createdAt || '');
-  if (Number.isNaN(created) || nowMs - created > MAX_ENQUIRY_AGE_DAYS * DAY_MS) {
-    return fail(
-      'ENQUIRY_TOO_OLD',
-      `This enquiry is more than ${MAX_ENQUIRY_AGE_DAYS} days old. Contact the customer directly.`
-    );
+  const refused = replyRefusal(owner, enquiry, nowMs);
+  if (refused) {
+    return refused;
   }
-
-  // The limits are checked before sending and again once this reply has reserved its place: two
-  // requests that run at the same time both see the other's reservation on the second check, so
-  // together they can never send more than the limit allows (at worst both back off).
-  const overLimit = async () => {
-    const counted = rows =>
-      (rows || []).filter(
-        row =>
-          row.status === 'sent' ||
-          (row.status === 'sending' && nowMs - Date.parse(row.sentAt || '') < RESERVATION_TTL_MS)
-      ).length;
-    const forEnquiry = counted(
-      await dbUnified.find(REPLIES_COLLECTION, { supplierId: supplier.id, enquiryId: id }, STRICT)
-    );
-    if (forEnquiry > MAX_REPLIES_PER_ENQUIRY) {
-      return fail(
-        'ENQUIRY_LIMIT',
-        `You have sent ${MAX_REPLIES_PER_ENQUIRY} replies to this enquiry. Carry on by email.`
-      );
-    }
-    const sentSince = async since =>
-      counted(
-        await dbUnified.find(
-          REPLIES_COLLECTION,
-          {
-            supplierId: supplier.id,
-            sentAt: { $gte: new Date(nowMs - since).toISOString() },
-          },
-          STRICT
-        )
-      );
-    if ((await sentSince(HOUR_MS)) > MAX_REPLIES_PER_HOUR) {
-      return fail('HOURLY_LIMIT', 'You have sent a lot of replies this hour. Try again later.');
-    }
-    if ((await sentSince(DAY_MS)) > MAX_REPLIES_PER_DAY) {
-      return fail('DAILY_LIMIT', 'You have reached today’s limit for replies. Try again tomorrow.');
-    }
-    return null;
-  };
 
   const replyId = `rep_${crypto.randomUUID()}`;
   const reservation = await dbUnified.insertOne(REPLIES_COLLECTION, {
@@ -567,7 +695,7 @@ async function replyToEnquiry({ supplier, owner, id, message }, deps = {}) {
     sentAt: new Date(nowMs).toISOString(),
   });
   if (!reservation) {
-    return fail('SEND_FAILED', 'The reply could not be saved. Please try again.');
+    return replyFailure('SEND_FAILED', 'The reply could not be saved. Please try again.');
   }
   const release = async () => {
     const removed = await dbUnified.deleteOne(REPLIES_COLLECTION, { id: replyId });
@@ -581,7 +709,7 @@ async function replyToEnquiry({ supplier, owner, id, message }, deps = {}) {
     }
   };
 
-  const limited = await overLimit();
+  const limited = await replyLimitRefusal(supplier.id, id, nowMs);
   if (limited) {
     await release();
     return limited;
@@ -613,12 +741,10 @@ async function replyToEnquiry({ supplier, owner, id, message }, deps = {}) {
     });
   } catch {
     await release();
-    return fail('SEND_FAILED', 'The reply could not be sent. Please try again.');
+    return replyFailure('SEND_FAILED', 'The reply could not be sent. Please try again.');
   }
 
-  await dbUnified.updateOne(REPLIES_COLLECTION, { id: replyId }, { $set: { status: 'sent' } });
-  const updated = await setEnquiryStatus(supplier.id, id, 'handled');
-  return { ok: true, enquiry: updated || enquiry };
+  return finishSentReply({ supplierId: supplier.id, id, replyId, text, nowMs, enquiry });
 }
 
 /**
@@ -671,26 +797,72 @@ function userDisplayName(user) {
  * @param {Object} params - Inputs
  * @param {string} params.supplierId - Supplier id (from the session)
  * @param {string} params.ownerUserId - The supplier owner's user id
- * @returns {Promise<Array<Array<*>>>} Rows matching EXPORT_HEADERS
+ * @returns {Promise<Array<Array<*>>>} Rows matching EXPORT_HEADERS (see buildExport for the truncation flag)
  */
-async function buildExportRows({ supplierId, ownerUserId }) {
+async function buildExportRows(params) {
+  return (await buildExport(params)).rows;
+}
+
+/**
+ * The export rows and whether any source was cut off at its cap.
+ *
+ * Each source (conversations, quote requests, contact enquiries) keeps its newest MAX rows. One
+ * extra row is read from each so "exactly the cap" is not mistaken for "more than the cap".
+ * Conversations the supplier deleted from their inbox are left out, as the messenger leaves them out.
+ *
+ * @param {Object} params - Inputs
+ * @param {string} params.supplierId - Supplier id (from the session)
+ * @param {string} params.ownerUserId - The supplier owner's user id
+ * @returns {Promise<{rows: Array<Array<*>>, truncated: boolean}>} Data rows and the truncation flag
+ */
+async function buildExport({ supplierId, ownerUserId }) {
   const sinceMs = Date.now() - MAX_WINDOW_DAYS * 5 * DAY_MS;
-  const [quotes, contacts, states, conversations] = await Promise.all([
-    loadQuoteRequests(supplierId, sinceMs),
-    loadContactEnquiries(supplierId, sinceMs),
+  const [quoteRows, contactRows, states, conversationRows] = await Promise.all([
+    fetchQuoteRequestRows(supplierId, sinceMs, MAX_RECORDS_PER_SOURCE + 1),
+    fetchContactEnquiryRows(supplierId, sinceMs, MAX_RECORDS_PER_SOURCE + 1),
     loadStates(supplierId),
     dbUnified.findWithOptions(
       'conversations_v4',
-      { 'participants.userId': ownerUserId, messageCount: { $gt: 0 } },
-      { limit: MAX_EXPORT_CONVERSATIONS, sort: { updatedAt: -1 }, throwOnError: true }
+      {
+        participants: { $elemMatch: { userId: ownerUserId, isDeleted: { $ne: true } } },
+        // Only conversations with a customer are exported, so only they use up the cap.
+        'participants.role': 'customer',
+        messageCount: { $gt: 0 },
+      },
+      { limit: MAX_EXPORT_CONVERSATIONS + 1, sort: { updatedAt: -1 }, throwOnError: true }
     ),
   ]);
+  const conversations = conversationRows || [];
+  const isCustomerConversation = conversation => {
+    const participants = conversation.participants || [];
+    // The query already leaves out conversations the supplier deleted; checking again here keeps
+    // the rule in one place a reader can see, whatever the store did with the filter.
+    const mine = participants.find(participant => participant.userId === ownerUserId);
+    return (
+      Boolean(mine) &&
+      mine.isDeleted !== true &&
+      participants.some(
+        participant => participant.role === 'customer' && participant.userId !== ownerUserId
+      )
+    );
+  };
+  // Only conversations that would be exported count towards the cap, so rows that are dropped
+  // anyway (supplier-to-supplier, admin threads) can never make an export look cut off.
+  const exportable = conversations.filter(isCustomerConversation);
+  const truncated =
+    quoteRows.length > MAX_RECORDS_PER_SOURCE ||
+    contactRows.length > MAX_RECORDS_PER_SOURCE ||
+    exportable.length > MAX_EXPORT_CONVERSATIONS;
+  const quotes = quoteRows
+    .slice(0, MAX_RECORDS_PER_SOURCE)
+    .filter(row => sourceOfId(row.id))
+    .map(normaliseQuoteRequest);
+  const contacts = contactRows
+    .slice(0, MAX_RECORDS_PER_SOURCE)
+    .filter(row => sourceOfId(row.id))
+    .map(normaliseContactEnquiry);
 
-  const customerConversations = (conversations || []).filter(conversation =>
-    (conversation.participants || []).some(
-      participant => participant.role === 'customer' && participant.userId !== ownerUserId
-    )
-  );
+  const customerConversations = exportable.slice(0, MAX_EXPORT_CONVERSATIONS);
   const customerIds = [
     ...new Set(
       customerConversations.flatMap(conversation =>
@@ -721,7 +893,7 @@ async function buildExportRows({ supplierId, ownerUserId }) {
     : [];
   const userNames = new Map(users.map(user => [user.id, userDisplayName(user)]));
 
-  const conversationRows = customerConversations.map(conversation => {
+  const conversationExportRows = customerConversations.map(conversation => {
     const customer = conversation.participants.find(
       participant => participant.role === 'customer' && participant.userId !== ownerUserId
     );
@@ -767,22 +939,12 @@ async function buildExportRows({ supplierId, ownerUserId }) {
     };
   });
 
-  return [...conversationRows, ...enquiryRows]
+  const rows = [...conversationExportRows, ...enquiryRows]
     .sort((first, second) => new Date(second.at) - new Date(first.at))
     .map(item =>
       item.row.map((cell, index) => (index === 0 || index === 6 ? isoDate(cell) : cell))
     );
-}
-
-/**
- * Date part (YYYY-MM-DD, UTC) of a timestamp, or an empty string.
- *
- * @param {Date|string|null} value - Timestamp
- * @returns {string} Date text
- */
-function isoDate(value) {
-  const date = new Date(value);
-  return Number.isNaN(date.getTime()) ? '' : date.toISOString().slice(0, 10);
+  return { rows, truncated };
 }
 
 /** Column labels of the CSV export, in order. */
@@ -801,6 +963,29 @@ const EXPORT_HEADERS = [
   'Unread messages',
 ];
 
+/**
+ * The last row of a truncated export, so the limit is visible in the spreadsheet itself.
+ *
+ * @returns {Array<*>} A row matching EXPORT_HEADERS
+ */
+function truncationNoticeRow() {
+  const row = EXPORT_HEADERS.map(() => '');
+  row[1] = 'Notice';
+  row[10] = `This export is limited to the newest ${MAX_EXPORT_CONVERSATIONS} conversations, ${MAX_RECORDS_PER_SOURCE} quote requests and ${MAX_RECORDS_PER_SOURCE} contact enquiries. Older entries are not included.`;
+  return row;
+}
+
+/**
+ * Date part (YYYY-MM-DD, UTC) of a timestamp, or an empty string.
+ *
+ * @param {Date|string|null} value - Timestamp
+ * @returns {string} Date text
+ */
+function isoDate(value) {
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? '' : date.toISOString().slice(0, 10);
+}
+
 module.exports = {
   STATUSES,
   EXPORT_HEADERS,
@@ -813,4 +998,8 @@ module.exports = {
   replyToEnquiry,
   MAX_REPLY_LENGTH,
   buildExportRows,
+  buildExport,
+  truncationNoticeRow,
+  MAX_EXPORT_CONVERSATIONS,
+  MAX_RECORDS_PER_SOURCE,
 };

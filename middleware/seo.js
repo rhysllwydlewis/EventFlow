@@ -34,6 +34,14 @@ function noindexMiddleware() {
     'my-marketplace-listings',
     'budget',
     'gallery',
+    // Developer demo/diagnostic pages that ship in public/ and are reachable by
+    // URL. robots.txt Disallow alone does not keep a linked URL out of search.
+    'mobile-preview',
+    'demo-loading-spinner',
+    'test-notifications',
+    'messaging-demo',
+    'google-auth-diagnostics',
+    'supplier-card-showcase',
   ];
 
   // Root prefixes for non-public SPA directories.

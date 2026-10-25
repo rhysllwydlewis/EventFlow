@@ -9,6 +9,7 @@ const express = require('express');
 const router = express.Router();
 
 const logger = require('../utils/logger');
+const { getSafeBillingStripeKey, billingUnavailableBody } = require('../utils/previewSafety');
 
 // Import route modules
 const systemRoutes = require('./system');
@@ -299,8 +300,8 @@ const mountRoutes = (app, deps) => {
   app.use('/api/payments', paymentsRoutes); // Backward compatibility
 
   // Billing alias routes (used by app.js supplier upgrade flow)
-  const getBillingStripeKey = () =>
-    process.env.STRIPE_SECRET_KEY || process.env.STRIPE_SECRET_KEY_LIVE || '';
+  // A live key is never used in a Railway PR preview (see utils/previewSafety.js)
+  const getBillingStripeKey = () => getSafeBillingStripeKey();
   app.get('/api/v1/billing/config', (_req, res) => {
     res.json({ enabled: !!getBillingStripeKey() });
   });
@@ -308,7 +309,7 @@ const mountRoutes = (app, deps) => {
     try {
       const stripeKey = getBillingStripeKey();
       if (!stripeKey) {
-        return res.status(503).json({ error: 'Stripe is not configured' });
+        return res.status(503).json(billingUnavailableBody({ error: 'Stripe is not configured' }));
       }
       const stripeLib = require('stripe');
       const stripe = stripeLib(stripeKey, { apiVersion: '2025-12-15.clover' });
@@ -335,9 +336,9 @@ const mountRoutes = (app, deps) => {
     }
   });
 
-  // Secure supplier review-request delivery must run before the legacy supplier
-  // endpoint and review submission route so it can replace false-success responses
-  // and attribute completed reviews to the invited recipient.
+  // Secure supplier review-request delivery (the only handler for POST .../request-review; the
+  // old supplier-router endpoint it used to replace is gone). It stays ahead of the review
+  // submission routes so completed reviews are attributed to the invited recipient.
   app.use(reviewRequestRoutes);
 
   app.use('/api/v1/pexels', pexelsRoutes);
@@ -384,8 +385,6 @@ const mountRoutes = (app, deps) => {
   app.use('/api/me/plans', guestsRoutes);
   app.use('/api/v1/me/saved', savedRoutes);
   app.use('/api/me/saved', savedRoutes);
-  // The hardened CSV export must run before the legacy supplier router,
-  // which retains the historical endpoint for backwards compatibility.
   app.use('/api/v1/supplier', supplierRoutes);
   app.use('/api/supplier', supplierRoutes);
 

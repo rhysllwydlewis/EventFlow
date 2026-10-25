@@ -51,6 +51,14 @@ describe('production startup contract', () => {
     expect(dockerfile.indexOf('npm ci')).toBeLessThan(dockerfile.indexOf('rm -rf'));
   });
 
+  test('the production image upgrades the base image OpenSSL so the Trivy gate stays green', () => {
+    const dockerfile = read('Dockerfile');
+
+    expect(dockerfile).toMatch(/apk add --no-cache --upgrade[^\n]*libcrypto3[^\n]*libssl3/);
+    expect(dockerfile).not.toMatch(/apk upgrade/);
+    expect(dockerfile.indexOf('libcrypto3')).toBeLessThan(dockerfile.indexOf('npm ci'));
+  });
+
   test('the worker health server cannot contend with the public web port', () => {
     jest.resetModules();
     const { workerHealthPort } = require('../../scripts/start-production');

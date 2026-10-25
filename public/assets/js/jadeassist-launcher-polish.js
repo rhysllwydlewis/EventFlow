@@ -12,6 +12,24 @@
   const OBSERVER_PROPERTY = '__eventflowLauncherPolishObserver';
   const INIT_OVERRIDE_FLAG = '__eventflowLauncherPolishInstalled';
 
+  // The red "1" on the launcher is the widget's "Jade has said hello" nudge, not a count of
+  // anything unread. On the signed-in customer pages, which have a real Messages card with a real
+  // unread count, it reads as a second, contradictory unread count ("1" next to "No conversations
+  // yet"), so it is not shown there. The greeting teaser bubble is unaffected.
+  const QUIET_BADGE_PATHS = new Set([
+    '/dashboard/customer',
+    '/dashboard-customer',
+    '/budget',
+    '/guests',
+  ]);
+
+  function badgeIsQuiet() {
+    const path = String(window.location.pathname || '')
+      .replace(/\.html$/u, '')
+      .replace(/\/+$/u, '');
+    return QUIET_BADGE_PATHS.has(path);
+  }
+
   function configuredDismissDuration() {
     const configured = window.JADEASSIST_CONFIG?.launcherDismissDurationMs;
     return Number.isFinite(configured) && configured >= 0
@@ -176,6 +194,9 @@
         }
       }
     `;
+    if (badgeIsQuiet()) {
+      style.textContent += '\n.jade-avatar-badge { display: none !important; }\n';
+    }
     shadowRoot.appendChild(style);
   }
 
