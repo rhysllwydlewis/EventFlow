@@ -201,6 +201,10 @@ class TicketingSystem {
       intervalMs: preferredIntervalMs = this.defaultPollIntervalMs,
       hiddenIntervalMs = this.hiddenPollIntervalMs,
       pauseWhenHidden = true,
+      // After a 401/403: null stops polling for good (the old behaviour); a number keeps polling at
+      // that slow interval, so a session that comes back (or a sign-in in another tab) is picked up
+      // again instead of leaving the list stale until the page is reloaded.
+      authErrorIntervalMs = null,
     } = {}
   ) {
     let cancelled = false;
@@ -251,15 +255,22 @@ class TicketingSystem {
           if (typeof onAuthError === 'function') {
             onAuthError();
           }
-          stop();
-          return;
+          if (!authErrorIntervalMs) {
+            stop();
+            return;
+          }
+          intervalMs = authErrorIntervalMs;
+        } else {
+          console.error('Ticket polling failed:', error);
+          if (typeof onError === 'function') {
+            onError(error);
+          }
+          // Back off: each failure waits longer than the one before, and never less than a healthy
+          // poll. (A fixed 30 s ceiling made a failing 60 s poll retry twice as often as a working
+          // one.)
+          const ceiling = Math.max(this.maxPollIntervalMs, preferredIntervalMs * 4);
+          intervalMs = Math.min(Math.max(intervalMs, preferredIntervalMs) * 2, ceiling);
         }
-
-        console.error('Ticket polling failed:', error);
-        if (typeof onError === 'function') {
-          onError(error);
-        }
-        intervalMs = Math.min(intervalMs * 2, this.maxPollIntervalMs);
       } finally {
         inFlight = false;
       }
@@ -388,6 +399,9 @@ class TicketingSystem {
             ? options.onError(new TicketingError('Not signed in', 401))
             : callback([]),
         onError: options.onError,
+        // A caller that handles failures shows its own state after a refusal; polling then carries
+        // on slowly rather than stopping for good. The others keep the old stop-and-empty behaviour.
+        authErrorIntervalMs: typeof options.onError === 'function' ? 300000 : null,
         intervalMs: 60000,
         hiddenIntervalMs: 600000,
         pauseWhenHidden: true,
