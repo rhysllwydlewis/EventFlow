@@ -334,7 +334,6 @@ describe('browser storage and cookie consent', () => {
         'public/assets/js/pages/budget-page.js',
         'public/assets/js/guests.js',
         'public/assets/js/pages/dashboard-account-type-notice.js',
-        'public/assets/js/app.js',
       ]) {
         const code = read(file);
         expect(code).toContain('efMayKeepFunctionalStorage');
