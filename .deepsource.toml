@@ -22,8 +22,7 @@ exclude_patterns = [
   # Compiled TypeScript output. The .ts sources under src/ are analysed
   # instead, so leaving these in reports every finding twice.
   "public/assets/js/pages/home-v2.js",
-  "public/assets/js/pages/home-v3.js",
-  "public/assets/js/pages/home-v3-video.js",
+  "public/assets/js/pages/home-v3-concept.js",
   "public/assets/js/pages/guide-premium.js"
 ]
 

@@ -93,11 +93,11 @@ describe('quick links under the hero search', () => {
     expect(css).toMatch(/\.ef-quick-tags__tag\s*\{[^}]*width:\s*auto/);
   });
 
-  test('the off state also hides Homepage 3, which draws its shortcuts as .hv2-popular', () => {
-    expect(css).toMatch(
-      /body\.ef-home-flow:not\(\.ef-home-quicklinks\) main :is\(\.ef-quick-tags, \.hv2-popular\)\s*\{[^}]*display:\s*none\s*!important/
+  test('Homepage 3 applies the quick-link switch to its dedicated markup', () => {
+    expect(read('public/home-v3.html')).toContain('class="quick-links"');
+    expect(read('public/assets/css/home-v3-concept.css')).toMatch(
+      /body\.home-v3-page:not\(\.ef-home-quicklinks\) \.quick-links[^{]*\{[^}]*display:\s*none/
     );
-    expect(read('utils/template-renderer.js')).toContain('class="hv2-popular"');
   });
 
   test('the homepage body starts with the switch on, so a failed settings read leaves them showing', () => {

@@ -33,6 +33,7 @@ const GOOGLE_ADS_TAG_SCRIPT =
 const GOOGLE_ADS_TAG_BLOCKED_PATHS = new Set(['/verify.html', '/reset-password.html']);
 const HOMEPAGE_INDEX_FILE = '/index.html';
 const HOMEPAGE_V2_FILE = '/home-v2.html';
+const HOMEPAGE_V3_FILE = '/home-v3.html';
 const HOMEPAGE_V2_PREVIEW_PATHS = new Set([
   '/home-v2',
   '/home-v2.html',
@@ -51,131 +52,6 @@ const HOMEPAGE_V2_NAVBAR_PARITY_STYLES = [
 ].join('\n');
 const HOMEPAGE_V2_NAVBAR_PARITY_SCRIPT =
   '    <script src="/assets/js/pages/home-v2-navbar-parity.js?v=2" defer></script>';
-const HOMEPAGE_V3_HERO_STYLES = [
-  '    <link rel="preconnect" href="https://videos.pexels.com" crossorigin />',
-  '    <link rel="preload" href="/assets/css/home-v2.css?v=11" as="style" />',
-  '    <link rel="preload" href="/assets/css/home-v3.css?v=15" as="style" />',
-  '    <link rel="preload" href="/assets/css/home-v3-video.css?v=2" as="style" />',
-  '    <link rel="stylesheet" href="/assets/css/home-v2.css?v=11" />',
-  '    <link rel="stylesheet" href="/assets/css/home-v3.css?v=15" />',
-  '    <link rel="stylesheet" href="/assets/css/home-v3-video.css?v=2" />',
-  '    <link rel="preload" href="/assets/css/home-v3-mobile.css?v=10" as="style" media="(max-width: 960px)" />',
-  '    <link rel="stylesheet" href="/assets/css/home-v3-mobile.css?v=10" media="(max-width: 960px)" />',
-  '    <script src="/assets/js/pages/home-v3.js?v=13"></script>',
-].join('\n');
-const HOMEPAGE_V3_HERO_SCRIPT =
-  '    <script src="/assets/js/pages/home-v3-video.js?v=5" defer></script>';
-const HOMEPAGE_V3_HERO = `      <section class="hv2-hero" aria-labelledby="hv3-title">
-        <div class="hv2-hero__image hv3-hero-video" aria-hidden="true" data-hv3-pexels-video>
-          <video
-            class="hv3-hero-video__media"
-            muted
-            loop
-            playsinline
-            preload="none"
-            poster="/assets/images/hero-video-poster.jpg"
-            width="1280"
-            height="854"
-            data-hv3-video-media
-          >
-            <source type="video/mp4" data-hv3-video-source />
-          </video>
-        </div>
-        <div class="hv2-hero__shade" aria-hidden="true"></div>
-
-        <div class="hv2-shell hv2-hero__content">
-          <div class="hv2-hero__copy">
-            <h1 id="hv3-title">
-              <span class="hv3-title-line">Plan your event</span>
-              <br class="hv3-title-break" />
-              <span class="hv3-title-emphasis">in one place<span class="hv3-title-underline" aria-hidden="true"></span></span>
-            </h1>
-            <p class="hv2-hero__lead">
-              Find venues, suppliers and packages, then keep your budget, messages and checklist
-              together.
-            </p>
-
-            <form class="hv2-search" action="/suppliers" method="GET" aria-label="Search suppliers">
-              <input type="hidden" name="category" id="hv2-category" />
-
-              <div class="hv2-search__field hv2-search__field--select" role="group" aria-labelledby="hv3-event-type-label">
-                <svg viewBox="0 0 24 24" aria-hidden="true">
-                  <rect x="4" y="5" width="16" height="15" rx="2"></rect>
-                  <path d="M8 3v4M16 3v4M4 10h16"></path>
-                </svg>
-                <span>
-                  <strong id="hv3-event-type-label">Event type</strong>
-                  <input type="hidden" name="eventType" id="hv2-event-type" />
-                  <span class="hv3-select" data-hv3-event-select>
-                    <button
-                      class="hv3-select__button"
-                      type="button"
-                      aria-haspopup="listbox"
-                      aria-expanded="false"
-                      aria-controls="hv3-event-type-menu"
-                      data-hv3-select-button
-                    >
-                      <span data-hv3-event-label>e.g. Wedding</span>
-                    </button>
-                    <ul class="hv3-select__menu" id="hv3-event-type-menu" role="listbox" hidden data-hv3-select-menu>
-                      <li role="presentation">
-                        <button class="hv3-select__option" type="button" role="option" data-value="wedding" data-hv3-event-option>Wedding</button>
-                      </li>
-                      <li role="presentation">
-                        <button class="hv3-select__option" type="button" role="option" data-value="corporate" data-hv3-event-option>Corporate</button>
-                      </li>
-                      <li role="presentation">
-                        <button class="hv3-select__option" type="button" role="option" data-value="party" data-hv3-event-option>Party</button>
-                      </li>
-                      <li role="presentation">
-                        <button class="hv3-select__option" type="button" role="option" data-value="celebration" data-hv3-event-option>Celebration</button>
-                      </li>
-                    </ul>
-                  </span>
-                </span>
-              </div>
-
-              <label class="hv2-search__field">
-                <svg viewBox="0 0 24 24" aria-hidden="true">
-                  <path d="M12 21s7-6.1 7-12a7 7 0 1 0-14 0c0 5.9 7 12 7 12Z"></path>
-                  <circle cx="12" cy="9" r="2.5"></circle>
-                </svg>
-                <span>
-                  <strong>Location</strong>
-                  <input
-                    id="hv2-location"
-                    name="location"
-                    type="search"
-                    placeholder="e.g. London"
-                    autocomplete="postal-code"
-                  />
-                </span>
-              </label>
-
-              <label class="hv2-search__field hv2-search__field--wide">
-                <svg viewBox="0 0 24 24" aria-hidden="true">
-                  <circle cx="11" cy="11" r="7"></circle>
-                  <path d="m16.5 16.5 4 4"></path>
-                </svg>
-                <span>
-                  <strong>Supplier or keyword</strong>
-                  <input id="hv2-keyword" name="q" type="search" placeholder="e.g. Photographer" />
-                </span>
-              </label>
-
-              <button class="hv2-search__button" type="submit">Search suppliers</button>
-
-              <div class="hv2-popular" aria-label="Popular searches">
-                <span>Popular searches:</span>
-                <button type="button" data-category="Venues" data-location="London">London venues</button>
-                <button type="button" data-category="Photography">Wedding photographers</button>
-                <button type="button" data-category="Catering">Corporate catering</button>
-                <button type="button" data-category="Music/DJ">DJs near me</button>
-              </div>
-            </form>
-          </div>
-        </div>
-      </section>`;
 const HOMEPAGE_DIRTY_COPY = {
   supplierClaim: ['All suppliers are verified', ' and vetted'].join(''),
   testimonialsHeading: ['What Our Customers', ' Say'].join(''),
@@ -344,47 +220,8 @@ function injectGlobalAnalyticsScripts(content, requestPath) {
   return result;
 }
 
-function injectBeforeHeadClose(content, snippet) {
-  if (!/<\/head>/i.test(content) || content.includes('/assets/css/home-v3.css')) {
-    return content;
-  }
-
-  return content.replace(/\s*<\/head>/i, `\n${snippet}\n</head>`);
-}
-
-function injectBeforeBodyClose(content, snippet) {
-  if (!/<\/body>/i.test(content) || content.includes('/assets/js/pages/home-v3-video.js')) {
-    return content;
-  }
-
-  return content.replace(/\s*<\/body>/i, `\n${snippet}\n</body>`);
-}
-
-function replaceHomepageHeroWithV3(content) {
-  const heroPattern =
-    /\s*<section\s+class=["']hero hero-modern["'][^>]*>[\s\S]*?<\/section>\s*(?=<!-- Noscript fallback for hero CTAs -->|<noscript>)/i;
-
-  if (!heroPattern.test(content)) {
-    return content;
-  }
-
-  return content.replace(heroPattern, `\n${HOMEPAGE_V3_HERO}\n\n`);
-}
-
-function stripHomepageV3InheritedScripts(content) {
-  return content.replace(
-    /\s*<script src="\/assets\/js\/utils\/pexels-client\.js" defer><\/script>/i,
-    ''
-  );
-}
-
 function buildHomepageV3Preview(content) {
-  let result = addBodyClass(content, 'home-v3-page');
-  result = stripHomepageV3InheritedScripts(result);
-  result = injectBeforeHeadClose(result, HOMEPAGE_V3_HERO_STYLES);
-  result = replaceHomepageHeroWithV3(result);
-  result = injectBeforeBodyClose(result, HOMEPAGE_V3_HERO_SCRIPT);
-  return result;
+  return addBodyClass(content, 'home-v3-page');
 }
 
 function buildHomepageV2Preview(content) {
@@ -570,6 +407,9 @@ function isHomepageV3PreviewPath(requestPath) {
 
 function resolvePublicTemplatePath(requestPath, activeHomepageVersion) {
   if (requestPath === '/') {
+    if (activeHomepageVersion === 'v3') {
+      return HOMEPAGE_V3_FILE;
+    }
     return activeHomepageVersion === 'v2' ? HOMEPAGE_V2_FILE : HOMEPAGE_INDEX_FILE;
   }
 
@@ -578,7 +418,7 @@ function resolvePublicTemplatePath(requestPath, activeHomepageVersion) {
   }
 
   if (isHomepageV3PreviewPath(requestPath)) {
-    return HOMEPAGE_INDEX_FILE;
+    return HOMEPAGE_V3_FILE;
   }
 
   if (!path.extname(requestPath)) {
@@ -741,7 +581,7 @@ function templateMiddleware() {
         responseContent = buildHomepageV3Preview(responseContent);
       }
       responseContent = isHomepagePreview ? addPreviewRobotsMeta(responseContent) : responseContent;
-      if (requestPath === '/index.html') {
+      if (requestPath === HOMEPAGE_INDEX_FILE || requestPath === HOMEPAGE_V3_FILE) {
         responseContent = applyHomepageToggles(responseContent, await readHomepageToggles());
       }
 
