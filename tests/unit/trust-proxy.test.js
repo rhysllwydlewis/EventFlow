@@ -128,6 +128,28 @@ describe('req.ip behind Cloudflare and Railway', () => {
   });
 });
 
+describe('hostile X-Forwarded-For text', () => {
+  test('an over-long value is rejected quickly instead of being parsed', () => {
+    const started = Date.now();
+    for (const hostile of [
+      `${':'.repeat(50000)}1.2.3.4`,
+      `${'1.'.repeat(30000)}x`,
+      `::ffff:${'1'.repeat(40000)}`,
+      'a:'.repeat(30000),
+    ]) {
+      expect(isCloudflareAddress(hostile)).toBe(false);
+    }
+    expect(Date.now() - started).toBeLessThan(500);
+  });
+
+  test('a real Cloudflare address, with or without an IPv6 zone, is still recognised', () => {
+    expect(isCloudflareAddress('104.16.0.9')).toBe(true);
+    expect(isCloudflareAddress('::ffff:104.16.0.9')).toBe(true);
+    expect(isCloudflareAddress('2606:4700::1111')).toBe(true);
+    expect(isCloudflareAddress('2606:4700::1111%eth0')).toBe(true);
+  });
+});
+
 describe('server wiring', () => {
   test('server.js uses it in place of a bare hop count', () => {
     const fs = require('fs');

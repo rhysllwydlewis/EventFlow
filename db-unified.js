@@ -1136,6 +1136,27 @@ function toNullProtoTree(value) {
 }
 
 /**
+ * Create or replace an own, ordinary data property on a null-prototype node and return the stored
+ * value. Done with defineProperty rather than `node[name] = value` because the name is a segment of
+ * a dotted key: defining the property never runs a setter, so even `__proto__` becomes a plain data field
+ * (as in MongoDB) and can never reach Object.prototype.
+ * @param {Object} node - Null-prototype object
+ * @param {string} name - Property name
+ * @param {*} value - Value to store
+ * @returns {*} value
+ */
+function setOwnProperty(node, name, value) {
+  // Reflect.defineProperty (not assignment) so no setter can run; node has no prototype chain at all.
+  Reflect.defineProperty(node, name, {
+    value,
+    writable: true,
+    enumerable: true,
+    configurable: true,
+  });
+  return value;
+}
+
+/**
  * Apply a MongoDB-style $set object to a local-store document, resolving
  * dotted keys like 'emailPrefs.actionPrompts.enabled' into nested object
  * writes instead of a literal top-level key named with the dots — MongoDB
@@ -1163,10 +1184,9 @@ function applyDotPathSet(target, setFields) {
       const segment = segments[i];
       const existing = cursor[segment];
       const isPlainObject = existing && typeof existing === 'object' && !Array.isArray(existing);
-      cursor[segment] = isPlainObject ? existing : Object.create(null);
-      cursor = cursor[segment];
+      cursor = setOwnProperty(cursor, segment, isPlainObject ? existing : Object.create(null));
     }
-    cursor[segments[segments.length - 1]] = toNullProtoTree(value);
+    setOwnProperty(cursor, segments[segments.length - 1], toNullProtoTree(value));
   }
   return toPlainObject(result);
 }

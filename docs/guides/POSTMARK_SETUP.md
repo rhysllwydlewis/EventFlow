@@ -97,7 +97,7 @@ EventFlow uses **local HTML templates** stored in `/email-templates/`:
 
 ### Development Testing
 
-When `POSTMARK_API_KEY` is not configured, a record of each email is saved to the `/outbox` folder as an `.eml` file. By default that record is **metadata only** (masked recipient, sender, template name, time, message id): the subject and body are not stored, because they contain verification links and text users typed. To keep the full email for local debugging, set `EVENTFLOW_OUTBOX_FULL=1` in your local `.env` (it is ignored when `NODE_ENV=production` and in Railway PR previews; `NODE_ENV=test` always keeps full emails so the browser tests can follow verification links). With the full-email switch on, this allows you to:
+When `POSTMARK_API_KEY` is not configured, a record of each email is saved to the `/outbox` folder as an `.eml` file. That record is **metadata only** (recipient count, template name, time, message id): the address, subject and body are not stored, because they contain verification links and text users typed, and request data is not written to files. The browser tests (`NODE_ENV=test`) keep the full email in the server's memory and read it from the test-only `GET /__e2e/mail` route. This allows you to:
 
 1. Test email flows without sending real emails
 2. Inspect email content and formatting

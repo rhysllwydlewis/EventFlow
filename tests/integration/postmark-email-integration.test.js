@@ -47,24 +47,18 @@ describe('Postmark — Graceful Degradation (no API key configured)', () => {
     expect(src).toContain('Postmark not configured. Email saved to outbox.');
   });
 
-  it('outbox save creates .eml file with To, From, Subject, Body (full mode) or metadata only', () => {
+  it('outbox save creates a metadata-only .eml file; the full email is only kept in memory', () => {
     const src = readSrc('utils', 'postmark.js');
     const saveIdx = src.indexOf('function saveEmailToOutbox');
     const saveBlock = src.substring(saveIdx, src.indexOf('Send verification email to user'));
     expect(saveBlock).toContain('email-');
     expect(saveBlock).toContain('.eml');
-    // The full email (subject and body) is only built when the explicit rule allows it
+    // A full copy is only kept (in memory, never in the file) when the explicit rule allows it
     expect(saveBlock).toContain('isFullOutboxAllowed()');
-    const full = saveBlock.substring(saveBlock.indexOf('function buildFullOutboxContent'));
-    expect(full).toContain('emailData.To');
-    expect(full).toContain('emailData.From');
-    expect(full).toContain('emailData.Subject');
-    // The default (metadata) record never reads the subject or body
+    expect(saveBlock).toContain('devMailbox.remember');
+    // The file record never reads the address, subject or body
     const metaStart = saveBlock.indexOf('function buildMetadataOutboxContent');
-    const meta = saveBlock.substring(
-      metaStart,
-      saveBlock.indexOf('function buildFullOutboxContent')
-    );
+    const meta = saveBlock.substring(metaStart);
     expect(meta).not.toMatch(/Subject|HtmlBody|TextBody/);
   });
 

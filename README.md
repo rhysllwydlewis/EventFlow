@@ -698,7 +698,7 @@ EventFlow uses **Postmark exclusively** for all transactional emails:
 
 **📖 Full Setup Guide:** [docs/guides/POSTMARK_SETUP.md](docs/guides/POSTMARK_SETUP.md). **Admin Email Tools:** [docs/EMAIL_CENTRE.md](docs/EMAIL_CENTRE.md) covers the admin email activity, campaign, and template-preview console at `/admin-emails`.
 
-During development without Postmark configured, a record of each email is saved to the `/outbox` folder. By default it holds metadata only (masked recipient, template name, time, message id) and never the body; set `EVENTFLOW_OUTBOX_FULL=1` in local development to keep the full email there (ignored in production and PR previews; `NODE_ENV=test` always keeps it so the browser tests can follow verification links). Railway PR previews never use live Stripe keys or send real email, see [docs/PREVIEW_ENVIRONMENTS.md](docs/PREVIEW_ENVIRONMENTS.md).
+During development without Postmark configured, a record of each email is saved to the `/outbox` folder. It holds metadata only (recipient count, template name, time, message id) and never an address, subject or body. Under `NODE_ENV=test` (or `EVENTFLOW_OUTBOX_FULL=1` in local development) the full email is kept in the server's memory, never on disk, and the browser tests read it from the test-only `GET /__e2e/mail` route (404 outside `NODE_ENV=test`; never kept in production or PR previews). Railway PR previews never use live Stripe keys or send real email, see [docs/PREVIEW_ENVIRONMENTS.md](docs/PREVIEW_ENVIRONMENTS.md).
 
 **Production Email Checklist**:
 
