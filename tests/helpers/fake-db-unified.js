@@ -5,7 +5,9 @@
  * supplier dashboard relies on. Supports the query features the code under test
  * uses: equality, dotted paths through arrays (`participants.userId`), $gte $gt
  * $lt $lte $ne $in $elemMatch, and the one aggregation shape the engagement
- * metrics use ($match then $group with a compound _id and $min).
+ * metrics use ($match then $group with a compound _id and $min). Reads AND writes honour
+ * `__failOn(collection)` and `{ throwOnError: true }` the way db-unified does, and updateOne
+ * answers a boolean (true only when something changed).
  *
  * Use as: jest.mock('../../db-unified', () => require('../helpers/fake-db-unified'));
  * and call __reset(seed) in beforeEach.
@@ -200,6 +202,32 @@ function realisticRead(emptyValue, run) {
 }
 
 /**
+ * Wrap a write the same way: a collection named in `__failOn` fails it; the failure is swallowed
+ * (`emptyValue` returned) unless the caller passed `{ throwOnError: true }` as the last argument.
+ *
+ * @param {*} emptyValue - What a swallowed failure returns (null / false)
+ * @param {Function} run - The write, called with the original arguments
+ * @returns {Function} Async db-unified style function
+ */
+function realisticWrite(emptyValue, run) {
+  return async (...args) => {
+    const last = args[args.length - 1];
+    const throwOnError = Boolean(last && typeof last === 'object' && last.throwOnError);
+    try {
+      if (failing.has(args[0])) {
+        throw new Error(`fake db failure on ${args[0]}`);
+      }
+      return await run(...args);
+    } catch (error) {
+      if (throwOnError) {
+        throw error;
+      }
+      return emptyValue;
+    }
+  };
+}
+
+/**
  * Minimal aggregation: $match, then $group with a compound _id and $min, or $project (inclusion).
  *
  * @param {Object[]} rows - Source rows
@@ -263,7 +291,10 @@ const fake = {
   __failOn,
   __store: () => store,
   getDatabaseType: jest.fn(() => 'mongodb'),
-  read: jest.fn(async name => rowsOf(name).map(row => ({ ...row }))),
+  // read(name, options): its options are the second argument, unlike find/count (filter, options).
+  read: jest.fn((name, options) =>
+    realisticRead([], async () => rowsOf(name).map(row => ({ ...row })))(name, undefined, options)
+  ),
   find: jest.fn(
     realisticRead([], async (name, filter) =>
       rowsOf(name).filter(row => matches(row, filter || {}))
@@ -290,40 +321,50 @@ const fake = {
       async (name, filter) => rowsOf(name).filter(row => matches(row, filter || {})).length
     )
   ),
-  insertOne: jest.fn(async (name, document, options = {}) => {
-    // Mirrors the unique partial index on events.dedupeKey (MongoDB duplicate-key error 11000).
-    if (
-      name === 'events' &&
-      typeof document.dedupeKey === 'string' &&
-      rowsOf(name).some(row => row.dedupeKey === document.dedupeKey)
-    ) {
-      if (options.throwOnError) {
-        throw Object.assign(new Error('E11000 duplicate key error'), { code: 11000 });
-      }
-      return null;
-    }
-    rowsOf(name).push({ ...document });
-    return document;
-  }),
-  updateOne: jest.fn(async (name, filter, update) => {
-    const row = rowsOf(name).find(item => matches(item, filter));
-    if (row && update.$set) {
-      for (const [key, value] of Object.entries(update.$set)) {
-        // 'a.b' sets b inside a, as MongoDB and db-unified's local store do.
-        const path = key.split('.');
-        const last = path.pop();
-        let cursor = row;
-        for (const segment of path) {
-          if (!cursor[segment] || typeof cursor[segment] !== 'object') {
-            cursor[segment] = {};
-          }
-          cursor = cursor[segment];
+  insertOne: jest.fn(
+    realisticWrite(null, async (name, document, options = {}) => {
+      // Mirrors the unique partial index on events.dedupeKey (MongoDB duplicate-key error 11000).
+      if (
+        name === 'events' &&
+        typeof document.dedupeKey === 'string' &&
+        rowsOf(name).some(row => row.dedupeKey === document.dedupeKey)
+      ) {
+        if (options.throwOnError) {
+          throw Object.assign(new Error('E11000 duplicate key error'), { code: 11000 });
         }
-        cursor[last] = value;
+        return null;
       }
-    }
-    return { matchedCount: row ? 1 : 0, modifiedCount: row ? 1 : 0 };
-  }),
+      rowsOf(name).push({ ...document });
+      return document;
+    })
+  ),
+  // Like db-unified.updateOne: true only when a document was actually modified (a match whose
+  // values were already stored is false), and a failure is swallowed unless throwOnError is set.
+  updateOne: jest.fn(
+    realisticWrite(false, async (name, filter, update) => {
+      const row = rowsOf(name).find(item => matches(item, filter));
+      if (!row) {
+        return false;
+      }
+      const before = JSON.stringify(row);
+      if (update.$set) {
+        for (const [key, value] of Object.entries(update.$set)) {
+          // 'a.b' sets b inside a, as MongoDB and db-unified's local store do.
+          const path = key.split('.');
+          const last = path.pop();
+          let cursor = row;
+          for (const segment of path) {
+            if (!cursor[segment] || typeof cursor[segment] !== 'object') {
+              cursor[segment] = {};
+            }
+            cursor = cursor[segment];
+          }
+          cursor[last] = value;
+        }
+      }
+      return JSON.stringify(row) !== before;
+    })
+  ),
   upsertOne: jest.fn(async (name, filter, fields, onInsert = {}) => {
     const row = rowsOf(name).find(item => matches(item, filter));
     if (row) {
@@ -334,29 +375,33 @@ const fake = {
     return true;
   }),
   // Mirrors db-unified.incrementCounter: one step, returns the new total (the real one is atomic).
-  incrementCounter: jest.fn(async (name, key, options = {}) => {
-    const row = rowsOf(name).find(item => item.key === key);
-    const by = Number.isFinite(options.by) ? options.by : 1;
-    if (row) {
-      row.count += by;
-      return row.count;
-    }
-    rowsOf(name).push({
-      key,
-      count: by,
-      ...(options.expiresAt ? { expiresAt: options.expiresAt } : {}),
-    });
-    return by;
-  }),
-  deleteOne: jest.fn(async (name, filter) => {
-    const rows = rowsOf(name);
-    const index = rows.findIndex(row => matches(row, filter));
-    if (index === -1) {
-      return false;
-    }
-    rows.splice(index, 1);
-    return true;
-  }),
+  incrementCounter: jest.fn(
+    realisticWrite(null, async (name, key, options = {}) => {
+      const row = rowsOf(name).find(item => item.key === key);
+      const by = Number.isFinite(options.by) ? options.by : 1;
+      if (row) {
+        row.count += by;
+        return row.count;
+      }
+      rowsOf(name).push({
+        key,
+        count: by,
+        ...(options.expiresAt ? { expiresAt: options.expiresAt } : {}),
+      });
+      return by;
+    })
+  ),
+  deleteOne: jest.fn(
+    realisticWrite(false, async (name, filter) => {
+      const rows = rowsOf(name);
+      const index = rows.findIndex(row => matches(row, filter));
+      if (index === -1) {
+        return false;
+      }
+      rows.splice(index, 1);
+      return true;
+    })
+  ),
   aggregate: jest.fn(
     realisticRead([], async (name, pipeline) => aggregateRows(rowsOf(name), pipeline))
   ),

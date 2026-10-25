@@ -173,7 +173,12 @@ function setApprovalRequired(required) {
   );
 }
 
+const REAL_READ = fakeDb.read.getMockImplementation();
+
 beforeEach(() => {
+  // setApprovalRequired() wraps read(); put the double's own read back so one test's setting
+  // (and its failure simulation) cannot leak into the next.
+  fakeDb.read.mockImplementation(REAL_READ);
   fakeDb.__reset({
     users: Object.values(USERS),
     suppliers: SUPPLIERS,
@@ -466,21 +471,42 @@ describe('the private calendar is separate and always available', () => {
 });
 
 describe('database failures are not read as "allowed" or "no profile"', () => {
-  it('queues a new event for review when the approval setting cannot be read (fails closed)', async () => {
-    const original = fakeDb.read.getMockImplementation();
-    fakeDb.read.mockImplementation(async (name, options) => {
-      if (name === 'settings') {
-        expect(options).toEqual({ throwOnError: true });
-        throw new Error('settings unreadable');
-      }
-      return original(name);
-    });
+  it('queues a new event for review when the approval setting cannot be read (fails closed), and says why', async () => {
+    fakeDb.read.mockClear();
+    fakeDb.__failOn('settings');
 
     const res = await send('post', '/api/public-calendar/events', USERS.planner, NEW_EVENT);
+    fakeDb.__failOn();
 
     expect(res.status).toBe(201);
     expect(res.body.event.status).toBe('pending_review');
-    fakeDb.read.mockImplementation(original);
+    expect(res.body.notice).toMatch(/approval setting could not be read/);
+    // Asserted here, outside the code under test (which would swallow a failed expect): the read
+    // asked for errors to be thrown, which is the only reason the failure was seen at all.
+    const settingsReads = fakeDb.read.mock.calls.filter(call => call[0] === 'settings');
+    expect(settingsReads.length).toBeGreaterThan(0);
+    settingsReads.forEach(call => expect(call[1]).toEqual({ throwOnError: true }));
+  });
+
+  it('a normal create carries no such notice', async () => {
+    const res = await send('post', '/api/public-calendar/events', USERS.planner, NEW_EVENT);
+
+    expect(res.status).toBe(201);
+    expect(res.body.notice).toBeUndefined();
+  });
+
+  it('answers 503, not a misleading 403, when publishing an edit and the approval setting cannot be read', async () => {
+    fakeDb.__store().public_calendar_events[0].status = 'draft';
+    fakeDb.__failOn('settings');
+
+    const res = await send('put', '/api/public-calendar/events/pce_own', USERS.planner, {
+      status: 'published',
+    });
+    fakeDb.__failOn();
+
+    expect(res.status).toBe(503);
+    expect(res.body.code).toBe('PUBLIC_CALENDAR_SETTING_UNAVAILABLE');
+    expect(fakeDb.__store().public_calendar_events[0].status).toBe('draft');
   });
 
   it('answers 500, not "No supplier profile found", when the supplier lookup fails', async () => {
