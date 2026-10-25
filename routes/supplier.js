@@ -50,8 +50,12 @@ router.post('/trial/activate', authRequired, csrfProtection, async (req, res) =>
       return res.status(403).json({ error: 'Only suppliers can activate trials' });
     }
 
-    // Get supplier record
-    const supplier = await dbUnified.findOne('suppliers', { ownerUserId: userId });
+    // Get supplier record. A failed lookup is a 500, not a misleading "profile not found" 404.
+    const supplier = await dbUnified.findOne(
+      'suppliers',
+      { ownerUserId: userId },
+      { throwOnError: true }
+    );
 
     if (!supplier) {
       return res.status(404).json({ error: 'Supplier profile not found' });
@@ -641,8 +645,12 @@ router.get('/reviews/stats', authRequired, async (req, res) => {
       return res.status(403).json({ error: 'Only suppliers can access review stats' });
     }
 
-    // Get supplier record
-    const supplier = await dbUnified.findOne('suppliers', { ownerUserId: userId });
+    // Get supplier record. Failed reads are 500s: an outage must not read as "0 reviews".
+    const supplier = await dbUnified.findOne(
+      'suppliers',
+      { ownerUserId: userId },
+      { throwOnError: true }
+    );
 
     if (!supplier) {
       return res.status(404).json({ error: 'Supplier profile not found' });
@@ -650,7 +658,8 @@ router.get('/reviews/stats', authRequired, async (req, res) => {
 
     // Only approved reviews count, exactly as on the public reviews panel and in the
     // dashboard summary, so the three can never show different numbers.
-    const allReviews = (await dbUnified.find('reviews', { supplierId: supplier.id })) || [];
+    const allReviews =
+      (await dbUnified.find('reviews', { supplierId: supplier.id }, { throwOnError: true })) || [];
     const supplierReviews = allReviews.filter(isApprovedReview);
 
     const totalReviews = supplierReviews.length;
@@ -666,10 +675,15 @@ router.get('/reviews/stats', authRequired, async (req, res) => {
       }
     });
 
+    // totalReviews counts every published review; the distribution only the ones with a usable
+    // 1-5 rating, so percentages of the bars must use ratedReviews, which they sum to.
+    const ratedReviews = Object.values(distribution).reduce((sum, n) => sum + n, 0);
+
     res.json({
       success: true,
       stats: {
         totalReviews,
+        ratedReviews,
         averageRating,
         distribution,
       },

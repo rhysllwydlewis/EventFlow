@@ -401,13 +401,16 @@ router.post(
 
     // Check if admin has enabled "Require Package Approval" — if so, new packages need manual review
     try {
-      const settings = (await dbUnified.read('settings')) || {};
+      const settings = (await dbUnified.read('settings', { throwOnError: true })) || {};
       const siteFeatures = settings.features || {};
       if (siteFeatures.requirePackageApproval === true) {
         pkg.approved = false;
       }
     } catch (_e) {
-      // If settings read fails, default to auto-approved
+      // The setting could not be read, so we cannot tell whether approval is required: fail
+      // closed. The package waits for an admin rather than being published unreviewed.
+      pkg.approved = false;
+      logger.warn('[PACKAGES] requirePackageApproval unreadable; package held for approval');
     }
     const savedPkg = await dbUnified.insertOne('packages', pkg);
     if (!savedPkg) {
@@ -835,35 +838,50 @@ router.post(
     if (!image) {
       return res.status(400).json({ error: 'Missing image' });
     }
-    const p = await dbUnified.findOne('packages', { id: req.params.id });
-    if (!p) {
-      return res.status(404).json({ error: 'Not found' });
-    }
-    const own = await dbUnified.findOne('suppliers', { id: p.supplierId, ownerUserId: req.userId });
-    if (!own) {
-      return res.status(403).json({ error: 'Not owner' });
-    }
-    let url;
     try {
-      url = await saveImageBase64(image, `package_${req.params.id}_${Date.now()}`);
-    } catch (e) {
-      logger.error('Package photo upload failed:', e.message);
-      if (e.name === 'InvalidImageError' || e.name === 'ValidationError') {
-        return res.status(400).json({ error: 'Invalid image', details: e.message });
+      const p = await dbUnified.findOne('packages', { id: req.params.id }, { throwOnError: true });
+      if (!p) {
+        return res.status(404).json({ error: 'Not found' });
       }
-      return res.status(503).json({ error: 'Photo storage unavailable', details: e.message });
+      const own = await dbUnified.findOne(
+        'suppliers',
+        { id: p.supplierId, ownerUserId: req.userId },
+        { throwOnError: true }
+      );
+      if (!own) {
+        return res.status(403).json({ error: 'Not owner' });
+      }
+      let url;
+      try {
+        url = await saveImageBase64(image, `package_${req.params.id}_${Date.now()}`);
+      } catch (e) {
+        logger.error('Package photo upload failed:', e.message);
+        if (e.name === 'InvalidImageError' || e.name === 'ValidationError') {
+          return res.status(400).json({ error: 'Invalid image', details: e.message });
+        }
+        return res.status(503).json({ error: 'Photo storage unavailable', details: e.message });
+      }
+      if (!p.gallery) {
+        p.gallery = [];
+      }
+      p.gallery.push({ url, approved: true, uploadedAt: Date.now() });
+      const updateFields = { gallery: p.gallery };
+      if (!p.image || p.image === PLACEHOLDER_PACKAGE_IMAGE || p.image === '') {
+        updateFields.image = url;
+      }
+      // throwOnError: a failed write is a 500 the supplier sees, not an "ok" that saved nothing.
+      await dbUnified.updateOne(
+        'packages',
+        { id: req.params.id },
+        { $set: updateFields },
+        { throwOnError: true }
+      );
+      suppliersRouter.invalidatePackageCaches();
+      res.json({ ok: true, url });
+    } catch (error) {
+      logger.error('Package photo upload failed:', error);
+      return res.status(500).json({ error: 'Internal server error' });
     }
-    if (!p.gallery) {
-      p.gallery = [];
-    }
-    p.gallery.push({ url, approved: true, uploadedAt: Date.now() });
-    const updateFields = { gallery: p.gallery };
-    if (!p.image || p.image === PLACEHOLDER_PACKAGE_IMAGE || p.image === '') {
-      updateFields.image = url;
-    }
-    await dbUnified.updateOne('packages', { id: req.params.id }, { $set: updateFields });
-    suppliersRouter.invalidatePackageCaches();
-    res.json({ ok: true, url });
   }
 );
 
@@ -884,38 +902,53 @@ router.delete(
     if (!url) {
       return res.status(400).json({ error: 'Missing url' });
     }
-    const p = await dbUnified.findOne('packages', { id: req.params.id });
-    if (!p) {
-      return res.status(404).json({ error: 'Not found' });
-    }
-    const own = await dbUnified.findOne('suppliers', { id: p.supplierId, ownerUserId: req.userId });
-    if (!own) {
-      return res.status(403).json({ error: 'Not owner' });
-    }
-    const gallery = p.gallery || [];
-    const newGallery = gallery.filter(item => {
-      const itemUrl = typeof item === 'string' ? item : item.url || '';
-      return itemUrl !== url;
-    });
-    const updateFields = { gallery: newGallery };
-    if (p.image === url) {
-      const nextPhoto = newGallery.find(item => {
+    try {
+      const p = await dbUnified.findOne('packages', { id: req.params.id }, { throwOnError: true });
+      if (!p) {
+        return res.status(404).json({ error: 'Not found' });
+      }
+      const own = await dbUnified.findOne(
+        'suppliers',
+        { id: p.supplierId, ownerUserId: req.userId },
+        { throwOnError: true }
+      );
+      if (!own) {
+        return res.status(403).json({ error: 'Not owner' });
+      }
+      const gallery = p.gallery || [];
+      const newGallery = gallery.filter(item => {
         const itemUrl = typeof item === 'string' ? item : item.url || '';
-        return !!itemUrl;
+        return itemUrl !== url;
       });
-      updateFields.image = nextPhoto
-        ? typeof nextPhoto === 'string'
-          ? nextPhoto
-          : nextPhoto.url
-        : PLACEHOLDER_PACKAGE_IMAGE || '';
+      const updateFields = { gallery: newGallery };
+      if (p.image === url) {
+        const nextPhoto = newGallery.find(item => {
+          const itemUrl = typeof item === 'string' ? item : item.url || '';
+          return !!itemUrl;
+        });
+        updateFields.image = nextPhoto
+          ? typeof nextPhoto === 'string'
+            ? nextPhoto
+            : nextPhoto.url
+          : PLACEHOLDER_PACKAGE_IMAGE || '';
+      }
+      // throwOnError: a failed write is a 500 the supplier sees, not an "ok" that saved nothing.
+      await dbUnified.updateOne(
+        'packages',
+        { id: req.params.id },
+        { $set: updateFields },
+        { throwOnError: true }
+      );
+      suppliersRouter.invalidatePackageCaches();
+      res.json({
+        ok: true,
+        gallery: newGallery,
+        image: updateFields.image !== undefined ? updateFields.image : p.image,
+      });
+    } catch (error) {
+      logger.error('Package photo delete failed:', error);
+      return res.status(500).json({ error: 'Internal server error' });
     }
-    await dbUnified.updateOne('packages', { id: req.params.id }, { $set: updateFields });
-    suppliersRouter.invalidatePackageCaches();
-    res.json({
-      ok: true,
-      gallery: newGallery,
-      image: updateFields.image !== undefined ? updateFields.image : p.image,
-    });
   }
 );
 
@@ -939,50 +972,65 @@ router.put(
       return res.status(400).json({ error: 'urls must be an array' });
     }
 
-    const p = await dbUnified.findOne('packages', { id: req.params.id });
-    if (!p) {
-      return res.status(404).json({ error: 'Not found' });
-    }
-
-    const own = await dbUnified.findOne('suppliers', { id: p.supplierId, ownerUserId: req.userId });
-    if (!own) {
-      return res.status(403).json({ error: 'Not owner' });
-    }
-
-    // Build an ordered gallery by matching incoming URL order against existing gallery objects
-    // so that metadata (thumbnail, uploadedAt, etc.) is preserved.
-    const existingByUrl = new Map();
-    (p.gallery || []).forEach(item => {
-      const itemUrl = typeof item === 'string' ? item : item.url || '';
-      if (itemUrl) {
-        existingByUrl.set(itemUrl, item);
+    try {
+      const p = await dbUnified.findOne('packages', { id: req.params.id }, { throwOnError: true });
+      if (!p) {
+        return res.status(404).json({ error: 'Not found' });
       }
-    });
 
-    // Only accept URLs that are actually in the existing gallery (no injection)
-    const orderedGallery = urls
-      .filter(u => typeof u === 'string' && existingByUrl.has(u))
-      .map(u => existingByUrl.get(u));
+      const own = await dbUnified.findOne(
+        'suppliers',
+        { id: p.supplierId, ownerUserId: req.userId },
+        { throwOnError: true }
+      );
+      if (!own) {
+        return res.status(403).json({ error: 'Not owner' });
+      }
 
-    const updateFields = { gallery: orderedGallery };
+      // Build an ordered gallery by matching incoming URL order against existing gallery objects
+      // so that metadata (thumbnail, uploadedAt, etc.) is preserved.
+      const existingByUrl = new Map();
+      (p.gallery || []).forEach(item => {
+        const itemUrl = typeof item === 'string' ? item : item.url || '';
+        if (itemUrl) {
+          existingByUrl.set(itemUrl, item);
+        }
+      });
 
-    // Sync pkg.image to the first gallery item so card thumbnails update immediately
-    if (orderedGallery.length > 0) {
-      const first = orderedGallery[0];
-      updateFields.image =
-        typeof first === 'string' ? first : first.url || PLACEHOLDER_PACKAGE_IMAGE;
-    } else {
-      updateFields.image = PLACEHOLDER_PACKAGE_IMAGE;
+      // Only accept URLs that are actually in the existing gallery (no injection)
+      const orderedGallery = urls
+        .filter(u => typeof u === 'string' && existingByUrl.has(u))
+        .map(u => existingByUrl.get(u));
+
+      const updateFields = { gallery: orderedGallery };
+
+      // Sync pkg.image to the first gallery item so card thumbnails update immediately
+      if (orderedGallery.length > 0) {
+        const first = orderedGallery[0];
+        updateFields.image =
+          typeof first === 'string' ? first : first.url || PLACEHOLDER_PACKAGE_IMAGE;
+      } else {
+        updateFields.image = PLACEHOLDER_PACKAGE_IMAGE;
+      }
+
+      // throwOnError: a failed write is a 500 the supplier sees, not an "ok" that saved nothing.
+      await dbUnified.updateOne(
+        'packages',
+        { id: req.params.id },
+        { $set: updateFields },
+        { throwOnError: true }
+      );
+      suppliersRouter.invalidatePackageCaches();
+
+      res.json({
+        ok: true,
+        gallery: orderedGallery,
+        image: updateFields.image,
+      });
+    } catch (error) {
+      logger.error('Package gallery reorder failed:', error);
+      return res.status(500).json({ error: 'Internal server error' });
     }
-
-    await dbUnified.updateOne('packages', { id: req.params.id }, { $set: updateFields });
-    suppliersRouter.invalidatePackageCaches();
-
-    res.json({
-      ok: true,
-      gallery: orderedGallery,
-      image: updateFields.image,
-    });
   }
 );
 

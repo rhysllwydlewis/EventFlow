@@ -208,6 +208,11 @@ describe('Supplier Review Stats Endpoint', () => {
       expect(response.body.stats.distribution).toEqual({ 5: 1, 4: 0, 3: 0, 2: 1, 1: 0 });
       // Every approved review is still counted, matching the dashboard summary and the public panel.
       expect(response.body.stats.totalReviews).toBe(5);
+      // The distribution sums to ratedReviews (what percentages of the bars must be taken of),
+      // not to totalReviews.
+      const sum = Object.values(response.body.stats.distribution).reduce((a, b) => a + b, 0);
+      expect(response.body.stats.ratedReviews).toBe(2);
+      expect(sum).toBe(response.body.stats.ratedReviews);
     });
 
     it('should return 404 when supplier profile not found', async () => {

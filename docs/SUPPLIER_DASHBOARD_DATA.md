@@ -84,7 +84,9 @@ fixtures; change one without the other and CI fails. `/api/me/suppliers` items a
   (else 400); the two chart endpoints serve up to the plan window (Professional Plus: 365, as sold), while
   the summary caps at 90. The responses include `window`. `analytics.responseRate`/`avgResponseTime` are
   `null` without a sample.
-- `GET /api/supplier/reviews/stats` counts approved reviews only (`averageRating` `null` when none).
+- `GET /api/supplier/reviews/stats` counts approved reviews only (`averageRating` `null` when none). `totalReviews` is
+  every published review; `distribution` only counts reviews with a usable 1-5 rating and sums to `ratedReviews`, the
+  base to use for percentages. A failed read is a 500, never "0 reviews".
 - `POST /api/v1/supplier/request-review` requires a verified email and an approved supplier:
   403 `{code:'EMAIL_NOT_VERIFIED'|'SUPPLIER_NOT_APPROVED'}`.
 - Calendar reminder notifications for suppliers link to `/dashboard/supplier#availability-calendar`.
