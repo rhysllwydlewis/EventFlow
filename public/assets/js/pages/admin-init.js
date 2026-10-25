@@ -268,8 +268,8 @@
     const id = escapeHtml(String(u.id));
     let actions = '<div class="adh-user__actions">';
     if (isOwner) {
-      actions += `<button class="ef-cta" disabled title="Owner account is protected">Edit</button>`;
-      actions += `<span class="adh-user__note">Protected account</span>`;
+      actions += '<button class="ef-cta" disabled title="Owner account is protected">Edit</button>';
+      actions += '<span class="adh-user__note">Protected account</span>';
     } else {
       actions += `<button class="ef-cta" data-action="editUser" data-id="${id}">Edit</button>`;
       if (!u.verified) {
@@ -316,7 +316,7 @@
       `<td data-label="Verification">${userVerificationHtml(u)}</td>` +
       `<td data-label="Joined">${joined}<div class="adh-user__note">${last}</div></td>` +
       `<td data-label="Actions">${userActionsHtml(u, isOwner)}</td>` +
-      `</tr>`
+      '</tr>'
     );
   }
 
@@ -372,6 +372,127 @@
     renderUsersTable(list);
   }
 
+  // allUsers holds only the 20 most recent accounts, so a count taken from it stops at 20. The 7-day
+  // figure comes from the summary service; the 30-day one is shown as "20+" when the list is full
+  // and its oldest account is still inside the window (the true figure is in Users Centre).
+  function signupCounts() {
+    const usersList = Array.isArray(allUsers) ? allUsers : [];
+    const dayMs = 24 * 60 * 60 * 1000;
+    function signupsSince(days) {
+      const cutoff = Date.now() - days * dayMs;
+      const count = usersList.filter(u => Date.parse(u.createdAt) >= cutoff).length;
+      const oldest = usersList.length ? Date.parse(usersList[usersList.length - 1].createdAt) : NaN;
+      return usersList.length >= RECENT_USERS_LIMIT && oldest >= cutoff ? `${count}+` : count;
+    }
+    const fromSummary = Number(summary?.newLast7);
+    return {
+      last7: Number.isFinite(fromSummary) ? fromSummary : signupsSince(7),
+      last30: signupsSince(30),
+    };
+  }
+
+  function healthRowHtml(r) {
+    const warn = r.warn && r.value > 0 ? ' adh-row__value--warn' : '';
+    return `<div class="adh-row"><span class="adh-row__label">${r.label}</span><a href="${r.href}" class="adh-row__value${warn}">${r.value.toLocaleString()}</a></div>`;
+  }
+
+  // Account Health panels, from the shared summary service.
+  function renderAccountHealth() {
+    if (summary) {
+      const healthRowsEl = document.getElementById('dashUserHealthRows');
+      const supplierHealthEl = document.getElementById('dashSupplierHealthRows');
+
+      if (healthRowsEl) {
+        const bySig = summary.bySignup || {};
+        const byVerif = summary.byVerification || {};
+        healthRowsEl.innerHTML = [
+          {
+            label: 'Unverified (pending)',
+            value: byVerif.pending || 0,
+            href: '/admin-users?verificationMethod=pending',
+            warn: (byVerif.pending || 0) > 0,
+          },
+          {
+            label: 'Unknown verification source',
+            value: byVerif.unknown || 0,
+            href: '/admin-users?verificationMethod=unknown',
+            warn: (byVerif.unknown || 0) > 0,
+          },
+          {
+            label: 'Google sign-in',
+            value: bySig.google || 0,
+            href: '/admin-users?signupMethod=google',
+            warn: false,
+          },
+          {
+            label: 'Facebook sign-in',
+            value: countOf(bySig, 'facebook'),
+            href: '/admin-users?signupMethod=facebook',
+            warn: false,
+          },
+          {
+            label: 'Email / password',
+            value: bySig.email_password || 0,
+            href: '/admin-users?signupMethod=email_password',
+            warn: false,
+          },
+          {
+            label: 'Admin-created',
+            value: bySig.admin_created || 0,
+            href: '/admin-users?signupMethod=admin_created',
+            warn: false,
+          },
+          {
+            label: 'Account issues',
+            value: summary.issueCount || 0,
+            href: '/admin-users?issue=email_unverified',
+            warn: (summary.issueCount || 0) > 0,
+          },
+        ]
+          .map(healthRowHtml)
+          .join('');
+      }
+
+      if (supplierHealthEl && summary.suppliers) {
+        const s = summary.suppliers;
+        supplierHealthEl.innerHTML = [
+          {
+            label: 'Total supplier accounts',
+            value: s.total || 0,
+            href: '/admin-users?role=supplier',
+            warn: false,
+          },
+          {
+            label: 'Pending approval',
+            value: s.pending || 0,
+            href: '/admin-suppliers?status=pending',
+            warn: (s.pending || 0) > 0,
+          },
+          {
+            label: 'Approved',
+            value: s.approved || 0,
+            href: '/admin-suppliers?status=approved',
+            warn: false,
+          },
+          {
+            label: 'Supplier with no profile',
+            value: s.suppliersWithoutProfile || 0,
+            href: '/admin-users?issue=supplier_profile_missing',
+            warn: (s.suppliersWithoutProfile || 0) > 0,
+          },
+          {
+            label: 'Orphaned profiles',
+            value: s.orphanedSuppliers || 0,
+            href: '/admin-suppliers',
+            warn: (s.orphanedSuppliers || 0) > 0,
+          },
+        ]
+          .map(healthRowHtml)
+          .join('');
+      }
+    }
+  }
+
   function renderAnalytics(metrics) {
     const el = document.getElementById('analytics');
     if (!el) {
@@ -379,7 +500,7 @@
     }
 
     const counts = (metrics && metrics.counts) || {};
-    const metricsFailed = !!(metrics && metrics.__error);
+    const metricsFailed = Boolean(metrics?.__error);
     const byRole = counts.usersByRole || {};
     const roleParts =
       Object.keys(byRole)
@@ -388,36 +509,7 @@
         })
         .join(', ') || '—';
 
-    const usersList = Array.isArray(allUsers) && allUsers.length ? allUsers : [];
-    function countSince(days) {
-      const now = Date.now();
-      const cutoff = now - days * 24 * 60 * 60 * 1000;
-      return usersList.filter(u => {
-        if (!u.createdAt) {
-          return false;
-        }
-        const t = Date.parse(u.createdAt);
-        if (!t || isNaN(t)) {
-          return false;
-        }
-        return t >= cutoff;
-      }).length;
-    }
-
-    // allUsers holds only the 20 most recent accounts, so a count taken from it stops at 20. The 7-day
-    // figure comes from the summary service; the 30-day one is shown as "20+" when the list is full
-    // and its oldest account is still inside the window (the true figure is in Users Centre).
-    function signupsSince(days) {
-      const count = countSince(days);
-      const oldest = usersList.length ? Date.parse(usersList[usersList.length - 1].createdAt) : NaN;
-      const cutoff = Date.now() - days * 24 * 60 * 60 * 1000;
-      return usersList.length >= RECENT_USERS_LIMIT && oldest >= cutoff ? `${count}+` : count;
-    }
-    const last7 =
-      summary && Number.isFinite(Number(summary.newLast7))
-        ? Number(summary.newLast7)
-        : signupsSince(7);
-    const last30 = signupsSince(30);
+    const { last7, last30 } = signupCounts();
 
     // Update stat cards with animated counters
     const totalUsersEl = document.getElementById('totalUsersCount');
@@ -427,110 +519,7 @@
         (summary && summary.total) || counts.usersTotal || 0
       );
 
-      // ── Account Health panels (from summary data) ───────────────────────
-      if (summary) {
-        const healthRowsEl = document.getElementById('dashUserHealthRows');
-        const supplierHealthEl = document.getElementById('dashSupplierHealthRows');
-
-        if (healthRowsEl) {
-          const bySig = summary.bySignup || {};
-          const byVerif = summary.byVerification || {};
-          healthRowsEl.innerHTML = [
-            {
-              label: 'Unverified (pending)',
-              value: byVerif.pending || 0,
-              href: '/admin-users?verificationMethod=pending',
-              warn: (byVerif.pending || 0) > 0,
-            },
-            {
-              label: 'Unknown verification source',
-              value: byVerif.unknown || 0,
-              href: '/admin-users?verificationMethod=unknown',
-              warn: (byVerif.unknown || 0) > 0,
-            },
-            {
-              label: 'Google sign-in',
-              value: bySig.google || 0,
-              href: '/admin-users?signupMethod=google',
-              warn: false,
-            },
-            {
-              label: 'Facebook sign-in',
-              value: countOf(bySig, 'facebook'),
-              href: '/admin-users?signupMethod=facebook',
-              warn: false,
-            },
-            {
-              label: 'Email / password',
-              value: bySig.email_password || 0,
-              href: '/admin-users?signupMethod=email_password',
-              warn: false,
-            },
-            {
-              label: 'Admin-created',
-              value: bySig.admin_created || 0,
-              href: '/admin-users?signupMethod=admin_created',
-              warn: false,
-            },
-            {
-              label: 'Account issues',
-              value: summary.issueCount || 0,
-              href: '/admin-users?issue=email_unverified',
-              warn: (summary.issueCount || 0) > 0,
-            },
-          ]
-            .map(
-              r => `<div class="adh-row">
-              <span class="adh-row__label">${r.label}</span>
-              <a href="${r.href}" class="adh-row__value ${r.warn && r.value > 0 ? 'adh-row__value--warn' : ''}">${r.value.toLocaleString()}</a>
-            </div>`
-            )
-            .join('');
-        }
-
-        if (supplierHealthEl && summary.suppliers) {
-          const s = summary.suppliers;
-          supplierHealthEl.innerHTML = [
-            {
-              label: 'Total supplier accounts',
-              value: s.total || 0,
-              href: '/admin-users?role=supplier',
-              warn: false,
-            },
-            {
-              label: 'Pending approval',
-              value: s.pending || 0,
-              href: '/admin-suppliers?status=pending',
-              warn: (s.pending || 0) > 0,
-            },
-            {
-              label: 'Approved',
-              value: s.approved || 0,
-              href: '/admin-suppliers?status=approved',
-              warn: false,
-            },
-            {
-              label: 'Supplier with no profile',
-              value: s.suppliersWithoutProfile || 0,
-              href: '/admin-users?issue=supplier_profile_missing',
-              warn: (s.suppliersWithoutProfile || 0) > 0,
-            },
-            {
-              label: 'Orphaned profiles',
-              value: s.orphanedSuppliers || 0,
-              href: '/admin-suppliers',
-              warn: (s.orphanedSuppliers || 0) > 0,
-            },
-          ]
-            .map(
-              r => `<div class="adh-row">
-              <span class="adh-row__label">${r.label}</span>
-              <a href="${r.href}" class="adh-row__value ${r.warn && r.value > 0 ? 'adh-row__value--warn' : ''}">${r.value.toLocaleString()}</a>
-            </div>`
-            )
-            .join('');
-        }
-      }
+      renderAccountHealth();
     } else if (totalUsersEl) {
       totalUsersEl.textContent = counts.usersTotal || 0;
     }
@@ -875,7 +864,7 @@
             .forEach(el => {
               el.hidden = true;
             });
-          return;
+          return null;
         }
 
         if (statusEl) {

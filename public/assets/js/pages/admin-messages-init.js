@@ -57,7 +57,7 @@
     const dateStr = formatDate(conv.updatedAt || (conv.lastMessage && conv.lastMessage.sentAt));
     const openLink = `<a href="/admin-messenger-view?conversation=${id}" class="adh-btn adh-btn--sm" target="_blank" rel="noopener">Open</a>`;
     return (
-      `<tr>` +
+      '<tr>' +
       `<td data-label="Participants"><div class="adh-msg__names">${participantNames(conv)}</div></td>` +
       `<td data-label="Context">${contextChips(conv) || '—'}</td>` +
       `<td data-label="Last message" class="adh-msg__date">${dateStr}</td>` +
