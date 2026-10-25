@@ -81,7 +81,7 @@ Based on review of FUTURE_IMPROVEMENTS.md, ROADMAP_PROGRESS.md, ADMIN_DASHBOARD_
 **Files to Create**:
 
 - `public/assets/js/components/Lightbox.js`
-- `public/assets/js/components/ImageZoom.js`
+- `public/assets/js/components/ImageZoom.js` _(a version of this file existed and was removed in #1839 because no page loaded it; it is not an outstanding file to create)_
 - Enhance existing `Carousel.js`
 
 **Impact**: Medium - Better UX for photo galleries

@@ -159,7 +159,7 @@ This document outlines the remaining improvements from the comprehensive improve
 **Files Created:**
 
 - `public/assets/js/components/Lightbox.js` ✅
-- `public/assets/js/components/ImageZoom.js` ✅ (Mar 2026)
+- `public/assets/js/components/ImageZoom.js` ✅ (Mar 2026) — _removed in #1839: no page loaded it_
 - `public/assets/js/components/carousel.js` ✅
 
 ---

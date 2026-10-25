@@ -134,6 +134,10 @@ uploader.clear();
 
 ## Photo Gallery Component
 
+> **Removed in #1839.** No page loaded this component, so `public/assets/js/components/photo-gallery.js`
+> was deleted. Nothing below (including the dashboard example further down) can be used as written; the
+> notes are kept for history only.
+
 The `PhotoGallery` component displays photos in a responsive grid with lightbox viewer, lazy loading, and optional editing features.
 
 ### Location
@@ -355,6 +359,8 @@ gallery.destroy();
 ## Usage Examples
 
 ### Complete Supplier Dashboard Example
+
+> **Outdated (#1839).** This example loads `photo-uploader.js` and `photo-gallery.js`, both deleted. Kept for history only.
 
 ```html
 <!DOCTYPE html>

@@ -5,7 +5,6 @@
 
 'use strict';
 
-const crypto = require('crypto');
 const express = require('express');
 const logger = require('../utils/logger');
 const router = express.Router();
@@ -15,6 +14,7 @@ const { csrfProtection } = require('../middleware/csrf');
 const { writeLimiter } = require('../middleware/rateLimits');
 const validator = require('validator');
 const supplierAnalytics = require('../utils/supplierAnalytics');
+const profileViewKeys = require('../utils/profileViewKeys');
 
 // In-memory rate limit store for POST /track (IP+supplierId, 1 view per hour)
 const trackRateLimitCache = new Map();
@@ -60,7 +60,13 @@ const PROFILE_VIEW_DEDUPE_MS = 60 * 60 * 1000;
 // cannot stop someone minting new keys, so this caps the address as well. It is a trade-off: a
 // busy shared address (an office, a mobile carrier) can undercount, which is safer than letting
 // one client inflate a supplier's numbers. 20 leaves room for a real office or venue while
-// keeping one client's reach bounded; set PROFILE_VIEW_IP_CAP to tune it without a deploy.
+// keeping one client's reach bounded. Set PROFILE_VIEW_IP_CAP to tune it (an environment change,
+// so it takes a restart). The cap applies to anonymous visitors only; a signed-in visitor is
+// already one account and has no address-derived value stored. How well it separates clients
+// depends on `req.ip` being the real client address (see the trust proxy setting in server.js).
+// The counters live in their own collection and expire after two hours (PROFILE_VIEW_CAP_TTL_MS).
+const PROFILE_VIEW_CAP_COLLECTION = 'profile_view_caps';
+const PROFILE_VIEW_CAP_TTL_MS = 2 * 60 * 60 * 1000;
 const PROFILE_VIEW_IP_CAP =
   parseInt(process.env.PROFILE_VIEW_IP_CAP, 10) > 0
     ? parseInt(process.env.PROFILE_VIEW_IP_CAP, 10)
@@ -128,32 +134,34 @@ function userAgentFamily(userAgent) {
 }
 
 /**
- * Hash of a network address (the raw address is never stored).
+ * Give back a cap slot that was taken but not used, so the counter stays equal to the views
+ * counted (a burst of repeats or rejected requests must not eat the room of real visitors).
  *
- * @param {Object} req - Express request
- * @returns {string} Address key, or '' when the address is unknown
+ * @param {string} capKey - Counter row key
+ * @returns {Promise<void>}
  */
-function ipKeyFor(req) {
-  if (!req.ip) {
-    return '';
+async function releaseCapSlot(capKey) {
+  try {
+    await dbUnified.incrementCounter(PROFILE_VIEW_CAP_COLLECTION, capKey, { by: -1 });
+  } catch (error) {
+    logger.debug('Could not release a profile view cap slot:', error);
   }
-  return `ip:${crypto.createHash('sha256').update(req.ip).digest('hex').slice(0, 32)}`;
 }
 
 /**
- * Stable anonymous key for "the same visitor": the signed-in account if there is one,
- * otherwise a hash of the address and the browser family (the raw IP is never stored).
+ * Stable anonymous key for "the same visitor": the signed-in account if there is one, otherwise an
+ * HMAC (under a server secret) of the address and the browser family. The raw address is never
+ * stored and the key cannot be reversed by trying every address; an IPv6 address counts as its /64.
  *
  * @param {Object} req - Express request
  * @param {Object|null} user - Signed-in user, if any
- * @returns {string} Visitor key
+ * @returns {string} Visitor key, or '' when an anonymous visitor cannot be keyed (no secret set)
  */
 function visitorKeyFor(req, user) {
   if (user?.id) {
     return `u:${user.id}`;
   }
-  const fingerprint = `${req.ip || ''}|${userAgentFamily(req.get('user-agent'))}`;
-  return `a:${crypto.createHash('sha256').update(fingerprint).digest('hex').slice(0, 32)}`;
+  return profileViewKeys.anonymousVisitorKey(req.ip, userAgentFamily(req.get('user-agent')));
 }
 
 // Whitelist of allowed event types
@@ -565,7 +573,11 @@ router.post('/track', writeLimiter, async (req, res) => {
         return res.json({ success: true, message: 'Not counted' });
       }
       const visitorKey = visitorKeyFor(req, user);
-      const ipKey = ipKeyFor(req);
+      if (!visitorKey) {
+        // No secret to key an anonymous visitor with: count nothing rather than store a weak key.
+        logger.warn('Profile view not counted: no JWT_SECRET or PROFILE_VIEW_SALT is configured');
+        return res.json({ success: true, message: 'Not counted' });
+      }
       const since = new Date(Date.now() - PROFILE_VIEW_DEDUPE_MS).toISOString();
       const recent = await dbUnified.count('events', {
         supplierId: cleanSupplierId,
@@ -576,29 +588,37 @@ router.post('/track', writeLimiter, async (req, res) => {
       if (recent > 0) {
         return res.json({ success: true, message: 'Already tracked' });
       }
-      // However many browsers an address pretends to be, it adds a bounded number of views.
-      if (ipKey) {
-        const fromAddress = await dbUnified.count('events', {
-          supplierId: cleanSupplierId,
-          type: 'profile_view',
-          ipKey,
-          timestamp: { $gte: since },
+      // However many browsers an address pretends to be, it adds a bounded number of views. The
+      // slot is taken with one atomic increment (so concurrent requests cannot all pass a read)
+      // and given back if the visitor turns out to be counted already. Only anonymous visitors
+      // are capped, and nothing derived from the address is kept on the event.
+      const hourBucket = Math.floor(Date.now() / PROFILE_VIEW_DEDUPE_MS);
+      const addressKey = userId ? '' : profileViewKeys.addressKey(req.ip);
+      const capKey = addressKey ? `${cleanSupplierId}:${addressKey}:${hourBucket}` : '';
+      if (capKey) {
+        const used = await dbUnified.incrementCounter(PROFILE_VIEW_CAP_COLLECTION, capKey, {
+          expiresAt: new Date(Date.now() + PROFILE_VIEW_CAP_TTL_MS),
+          throwOnError: true,
         });
-        if (fromAddress >= PROFILE_VIEW_IP_CAP) {
+        if (used > PROFILE_VIEW_IP_CAP) {
+          await releaseCapSlot(capKey);
           return res.json({ success: true, message: 'Already tracked' });
         }
       }
       // The read above is only a fast path. The unique dedupeKey makes the insert itself the
       // decision: of two beacons from one visitor at once, the database accepts one.
-      const hourBucket = Math.floor(Date.now() / PROFILE_VIEW_DEDUPE_MS);
       const outcome = await supplierAnalytics.trackProfileView(
         cleanSupplierId,
         userId,
         null,
         false,
         visitorKey,
-        { ipKey: ipKey || undefined, dedupeKey: `${cleanSupplierId}:${visitorKey}:${hourBucket}` }
+        { dedupeKey: `${cleanSupplierId}:${visitorKey}:${hourBucket}` }
       );
+      if (!outcome?.recorded && capKey) {
+        // Nothing was added (a duplicate, or the write failed): give the slot back.
+        await releaseCapSlot(capKey);
+      }
       if (outcome?.duplicate) {
         return res.json({ success: true, message: 'Already tracked' });
       }

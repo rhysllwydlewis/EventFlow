@@ -45,6 +45,7 @@ const BROWSER = 'Mozilla/5.0 (Windows NT 10.0) Chrome/120 Safari/537.36';
 const FIREFOX = 'Mozilla/5.0 (Windows NT 10.0; rv:121.0) Gecko/20100101 Firefox/121.0';
 
 const crypto = require('crypto');
+const profileViewKeys = require('../../utils/profileViewKeys');
 
 const app = (() => {
   const instance = express();
@@ -75,7 +76,7 @@ function freshIp() {
  * @returns {string} Key
  */
 function anonymousKey(ip, family = 'chrome/windows') {
-  return `a:${crypto.createHash('sha256').update(`${ip}|${family}`).digest('hex').slice(0, 32)}`;
+  return profileViewKeys.anonymousVisitorKey(ip, family);
 }
 
 /**
@@ -129,6 +130,74 @@ describe('POST /api/analytics/track profile_view', () => {
     expect(events()).toHaveLength(1);
     expect(events()[0].visitorKey).toMatch(/^a:[0-9a-f]{32}$/);
     expect(JSON.stringify(events())).not.toContain('203.0.113.9');
+  });
+
+  it('keys the visitor with a server secret: a plain SHA-256 of the address cannot be matched to it', async () => {
+    const ip = '203.0.113.9';
+    await beacon({ ip });
+
+    const plain = crypto.createHash('sha256').update(`${ip}|chrome/windows`).digest('hex');
+    expect(events()[0].visitorKey).not.toBe(`a:${plain.slice(0, 32)}`);
+    // The key depends on the secret: the same visit under another secret is another key.
+    const original = process.env.JWT_SECRET;
+    process.env.JWT_SECRET = 'a-different-secret-for-this-assertion-only-0123456789';
+    try {
+      expect(anonymousKey(ip)).not.toBe(events()[0].visitorKey);
+    } finally {
+      process.env.JWT_SECRET = original;
+    }
+  });
+
+  it('stores nothing derived from the address on the event, for anonymous or signed-in visitors', async () => {
+    await beacon({ ip: '203.0.113.9' });
+    await beacon({ ip: '203.0.113.9', user: { id: 'cust-9', role: 'customer' } });
+
+    expect(events()).toHaveLength(2);
+    events().forEach(event => {
+      expect(event).not.toHaveProperty('ipKey');
+      expect(Object.keys(event).sort()).toEqual(
+        [
+          'date',
+          'dedupeKey',
+          'id',
+          'metadata',
+          'sessionId',
+          'supplierId',
+          'timestamp',
+          'type',
+          'userId',
+          'visitorKey',
+        ].sort()
+      );
+    });
+    // The signed-in visitor is keyed by account, with no address-derived value at all.
+    expect(events()[1].visitorKey).toBe('u:cust-9');
+    expect(events()[1].dedupeKey).toMatch(/^sup-1:u:cust-9:\d+$/);
+  });
+
+  it('counts nothing for anonymous visitors when there is no secret to key them with', async () => {
+    const jwt = process.env.JWT_SECRET;
+    delete process.env.JWT_SECRET;
+    try {
+      const anonymous = await beacon();
+      const signedIn = await beacon({ user: { id: 'cust-2', role: 'customer' } });
+
+      expect(anonymous.body.message).toBe('Not counted');
+      expect(signedIn.body.message).toBe('Event tracked');
+      expect(events()).toHaveLength(1);
+      expect(events()[0].visitorKey).toBe('u:cust-2');
+    } finally {
+      process.env.JWT_SECRET = jwt;
+    }
+  });
+
+  it('treats an IPv6 address as its /64: the same prefix is one visitor, another prefix is another', async () => {
+    await beacon({ ip: '2001:db8:1:2:aaaa:bbbb:cccc:dddd' });
+    await beacon({ ip: '2001:db8:1:2:1111:2222:3333:4444' });
+    expect(events()).toHaveLength(1);
+
+    await beacon({ ip: '2001:db8:1:3:aaaa:bbbb:cccc:dddd' });
+    expect(events()).toHaveLength(2);
   });
 
   it('counts the same visitor once per hour (database rule, not just the in-memory guard)', async () => {
@@ -235,9 +304,103 @@ describe('POST /api/analytics/track profile_view', () => {
     expect(events().length).toBeLessThanOrEqual(5);
     expect(events().length).toBeGreaterThan(0);
     events().forEach(event => {
-      expect(event.ipKey).toMatch(/^ip:[0-9a-f]{32}$/);
+      expect(event).not.toHaveProperty('ipKey');
       expect(JSON.stringify(event)).not.toContain(ip);
     });
+  });
+
+  it('the cap holds when the requests arrive at the same moment (atomic counter, not count-then-insert)', async () => {
+    const ip = freshIp();
+    const agents = [
+      BROWSER,
+      FIREFOX,
+      'Safari/605 (Macintosh; Mac OS X)',
+      'Mozilla/5.0 (iPhone) Safari/604',
+      'Mozilla/5.0 (Android 14) Chrome/120',
+      'Mozilla/5.0 (X11; Linux) Chrome/120',
+      'Mozilla/5.0 (Windows) Edg/120',
+      'Mozilla/5.0 (Macintosh) Firefox/121',
+      'Mozilla/5.0 (X11; Linux) Firefox/121',
+      'Mozilla/5.0 (Android 14) Firefox/121',
+    ];
+    await Promise.all(agents.map(agent => beacon({ ip, agent })));
+
+    expect(events()).toHaveLength(5);
+  });
+
+  it('keeps the cap counters in their own collection: no address in them, and they expire within two hours', async () => {
+    const ip = '198.51.100.77';
+    await beacon({ ip });
+
+    const rows = fakeDb.__store().profile_view_caps;
+    expect(rows).toHaveLength(1);
+    expect(rows[0].key).toMatch(/^sup-1:[0-9a-f]{32}:\d+$/);
+    expect(rows[0].count).toBe(1);
+    expect(JSON.stringify(rows)).not.toContain(ip);
+    // A BSON date (the TTL monitor ignores strings), between one and two hours ahead.
+    expect(rows[0].expiresAt).toBeInstanceOf(Date);
+    const ahead = rows[0].expiresAt.getTime() - Date.now();
+    expect(ahead).toBeGreaterThan(60 * 60 * 1000);
+    expect(ahead).toBeLessThanOrEqual(2 * 60 * 60 * 1000);
+  });
+
+  it('a repeat of the same visitor does not use up another slot of the address cap', async () => {
+    const ip = freshIp();
+    await Promise.all(Array.from({ length: 8 }, () => beacon({ ip })));
+    await beacon({ ip });
+
+    expect(events()).toHaveLength(1);
+    expect(fakeDb.__store().profile_view_caps[0].count).toBe(1);
+  });
+
+  it('requests refused by the cap give their slot back, so a burst cannot push the counter past the cap', async () => {
+    const ip = freshIp();
+    const families = [
+      BROWSER,
+      FIREFOX,
+      'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) Version/17 Safari/605.1.15',
+      'Mozilla/5.0 (iPhone) Safari/604',
+      'Mozilla/5.0 (Android 14) Chrome/120',
+      'Mozilla/5.0 (X11; Linux) Chrome/120',
+      'Mozilla/5.0 (Windows) Edg/120',
+      'Mozilla/5.0 (Macintosh) Firefox/121',
+    ];
+    await Promise.all(families.map(agent => beacon({ ip, agent })));
+
+    expect(events()).toHaveLength(5);
+    expect(fakeDb.__store().profile_view_caps[0].count).toBe(5);
+  });
+
+  it('defaults the cap to 20 views per address per supplier per hour', async () => {
+    const key = `sup-1:${profileViewKeys.addressKey('198.51.100.1')}:${Math.floor(Date.now() / 3600000)}`;
+    const envCap = process.env.PROFILE_VIEW_IP_CAP;
+    delete process.env.PROFILE_VIEW_IP_CAP;
+    jest.isolateModules(() => {
+      jest.doMock('../../db-unified', () => require('../helpers/fake-db-unified'));
+      const isolated = express();
+      isolated.set('trust proxy', true);
+      isolated.use(express.json());
+      isolated.use('/api/analytics', require('../../routes/analytics'));
+      global.__isolatedApp = isolated;
+    });
+    process.env.PROFILE_VIEW_IP_CAP = envCap;
+    const send = () =>
+      request(global.__isolatedApp)
+        .post('/api/analytics/track')
+        .set('X-Forwarded-For', '198.51.100.1')
+        .set('User-Agent', BROWSER)
+        .send({ type: 'profile_view', supplierId: 'sup-1' });
+
+    // 19 slots used: this visitor takes the 20th. 20 used: the next one is over the cap.
+    fakeDb.__store().profile_view_caps = [{ key, count: 19 }];
+    await send();
+    expect(events()).toHaveLength(1);
+
+    fakeDb.__store().events.length = 0;
+    fakeDb.__store().profile_view_caps = [{ key, count: 20 }];
+    await send();
+    expect(events()).toHaveLength(0);
+    delete global.__isolatedApp;
   });
 
   it('the cap is per address and supplier: other addresses and other suppliers still count', async () => {
@@ -260,6 +423,16 @@ describe('POST /api/analytics/track profile_view', () => {
     await beacon({ ip: freshIp() });
 
     expect(events()).toHaveLength(7);
+  });
+
+  it('the address cap does not apply to signed-in visitors, and no counter row is made for them', async () => {
+    const ip = freshIp();
+    for (let i = 0; i < 8; i += 1) {
+      await beacon({ ip, user: { id: `cust-${i}`, role: 'customer' } });
+    }
+
+    expect(events()).toHaveLength(8);
+    expect(fakeDb.__store().profile_view_caps || []).toHaveLength(0);
   });
 
   it('counts a signed-in visitor once per hour whatever device they use', async () => {

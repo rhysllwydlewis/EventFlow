@@ -195,6 +195,123 @@ describe('package writes (routes/packages.js)', () => {
       expect(call[2]).toEqual({ throwOnError: true });
     });
   });
+
+  describe('package photos', () => {
+    const GALLERY = [{ url: '/uploads/a.jpg' }, { url: '/uploads/b.jpg' }];
+    const PHOTO_WRITES = [
+      ['upload', 'post', '/api/me/packages/pkg_1/photos', { image: 'data:image/png;base64,AAAA' }],
+      ['delete', 'delete', '/api/me/packages/pkg_1/photos', { url: '/uploads/a.jpg' }],
+      [
+        'reorder',
+        'put',
+        '/api/me/packages/pkg_1/gallery/order',
+        { urls: ['/uploads/b.jpg', '/uploads/a.jpg'] },
+      ],
+    ];
+
+    beforeEach(() => {
+      const original = db.findOne.getMockImplementation();
+      db.findOne.mockImplementation(async (collection, filter, options) => {
+        const found = await original(collection, filter, options);
+        return collection === 'packages' && found ? { ...found, gallery: [...GALLERY] } : found;
+      });
+      // The stored file: the image pipeline is stood in for.
+      const photoUpload = {
+        processAndSaveImage: jest.fn(async () => ({ original: '/uploads/n.png' })),
+      };
+      build();
+      require('../../routes/packages').initializeDependencies({
+        dbUnified: db,
+        authRequired: (req, _res, next) => {
+          req.user = { id: 'user_1', role: 'supplier' };
+          next();
+        },
+        roleRequired: () => PASS,
+        requireVerifiedUser: PASS,
+        requireApprovedSupplier: PASS,
+        csrfProtection: PASS,
+        featureRequired: () => PASS,
+        writeLimiter: PASS,
+        photoUpload,
+        uploadValidation: {},
+        logger: { warn: jest.fn(), error: jest.fn(), info: jest.fn() },
+        uid: prefix => `${prefix}_test`,
+      });
+    });
+
+    test.each(PHOTO_WRITES)(
+      '%s asks the database to throw on failure and succeeds when it does not',
+      async (_name, method, url, body) => {
+        await request(app)[method](url).send(body).expect(200);
+        expect(db.updateOne).toHaveBeenCalledTimes(1);
+        const args = db.updateOne.mock.calls[0];
+        expect(args[args.length - 1]).toEqual({ throwOnError: true });
+      }
+    );
+
+    test.each(PHOTO_WRITES)(
+      '%s answers 500, not ok, when the write fails',
+      async (_name, method, url, body) => {
+        db.updateOne.mockRejectedValue(new Error('mongo down'));
+        const res = await request(app)[method](url).send(body);
+        expect(res.status).toBe(500);
+        expect(res.body.ok).toBeUndefined();
+      }
+    );
+
+    test.each(PHOTO_WRITES)(
+      '%s answers 500, not "not found", when the package lookup fails',
+      async (_name, method, url, body) => {
+        db.findOne.mockRejectedValue(new Error('mongo down'));
+        const res = await request(app)[method](url).send(body);
+        expect(res.status).toBe(500);
+        expect(db.updateOne).not.toHaveBeenCalled();
+      }
+    );
+  });
+
+  describe('requirePackageApproval setting', () => {
+    const NEW_PACKAGE = {
+      title: 'Summer package',
+      price: '£300',
+      primaryCategoryKey: 'photography',
+      eventTypes: ['wedding'],
+      supplierId: 'sup_1',
+    };
+
+    beforeEach(() => {
+      db.find.mockImplementation(async collection =>
+        collection === 'suppliers' ? [{ id: 'sup_1', ownerUserId: 'user_1', approved: true }] : []
+      );
+    });
+
+    test('an unreadable setting holds the new package for approval (fails closed)', async () => {
+      db.read = jest.fn(async (_name, options) => {
+        if (options && options.throwOnError) {
+          throw new Error('settings unreadable');
+        }
+        // What the swallowed failure looks like to a caller that did not ask for errors.
+        return {};
+      });
+
+      const res = await request(app).post('/api/me/packages').send(NEW_PACKAGE);
+
+      expect(res.status).toBe(200);
+      expect(db.insertOne.mock.calls[0][1].approved).toBe(false);
+      expect(db.read).toHaveBeenCalledWith('settings', { throwOnError: true });
+    });
+
+    test('a readable setting still decides: off publishes, on holds', async () => {
+      db.read = jest.fn(async () => ({ features: { requirePackageApproval: false } }));
+      await request(app).post('/api/me/packages').send(NEW_PACKAGE).expect(200);
+      expect(db.insertOne.mock.calls[0][1].approved).toBe(true);
+
+      db.insertOne.mockClear();
+      db.read = jest.fn(async () => ({ features: { requirePackageApproval: true } }));
+      await request(app).post('/api/me/packages').send(NEW_PACKAGE).expect(200);
+      expect(db.insertOne.mock.calls[0][1].approved).toBe(false);
+    });
+  });
 });
 
 describe('guide progress, trial and verification (routes/supplier.js)', () => {
@@ -251,6 +368,43 @@ describe('guide progress, trial and verification (routes/supplier.js)', () => {
       .send({ status: 'completed', step: '' });
     expect(res.status).toBe(500);
     expect(res.body.progress).toBeUndefined();
+  });
+
+  test('trial activation answers 500, not "profile not found", when the supplier lookup fails', async () => {
+    // Like db-unified: a failed lookup is swallowed (null) unless throwOnError is passed.
+    mockDb.findOne.mockImplementation(async (_collection, _filter, options) => {
+      if (options && options.throwOnError) {
+        throw new Error('mongo down');
+      }
+      return null;
+    });
+    const res = await request(app).post('/api/v1/supplier/trial/activate').send({});
+    expect(res.status).toBe(500);
+    expect(mockDb.updateOne).not.toHaveBeenCalled();
+  });
+
+  test('reviews/stats answers 500, not "0 reviews" or "profile not found", when a read fails', async () => {
+    const failing = which =>
+      jest.fn(async (collection, _filter, options) => {
+        if (collection === which && options && options.throwOnError) {
+          throw new Error('mongo down');
+        }
+        return collection === 'suppliers' ? { id: 'sup_1', ownerUserId: 'user_1' } : null;
+      });
+    mockDb.findOne = failing('suppliers');
+    const lookup = await request(app).get('/api/v1/supplier/reviews/stats');
+    expect(lookup.status).toBe(500);
+
+    mockDb.findOne = failing('none');
+    mockDb.find = jest.fn(async (collection, _filter, options) => {
+      if (collection === 'reviews' && options && options.throwOnError) {
+        throw new Error('mongo down');
+      }
+      return [];
+    });
+    const reviews = await request(app).get('/api/v1/supplier/reviews/stats');
+    expect(reviews.status).toBe(500);
+    expect(reviews.body.stats).toBeUndefined();
   });
 
   test('trial activation answers 500 when the write fails', async () => {

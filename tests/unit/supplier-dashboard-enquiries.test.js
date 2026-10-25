@@ -330,7 +330,9 @@ describe('reply sent but not marked handled', () => {
     expect(enquiriesSource).toContain('result.data.warning');
     const start = enquiriesSource.indexOf('if (result.data.warning)');
     const block = enquiriesSource.slice(start, start + 520);
-    expect(block).toContain("`Reply sent. ${result.data.warning}`, 'info'");
+    // The server's warning already begins "Your reply was sent", so it is shown as it is, once.
+    expect(block).toContain("api.toast(result.data.warning, 'info')");
+    expect(block).not.toContain('Reply sent. ${result.data.warning}');
     // The "marked as handled" announcement is only in the branch with no warning.
     expect(block.indexOf('The enquiry is marked as handled')).toBeGreaterThan(
       block.indexOf('} else {')

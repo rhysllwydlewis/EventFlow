@@ -315,6 +315,39 @@ describe('getEngagementMetrics', () => {
     expect(result.enquiries.sources.conversations).toBe(1);
   });
 
+  it('does not count a conversation the supplier deleted from their inbox as awaiting a reply', async () => {
+    const conversation = (id, supplierParticipant) => ({
+      _id: id,
+      participants: [supplierParticipant, { userId: `cust-${id}`, role: 'customer' }],
+      messageCount: 1,
+      createdAt: new Date(NOW - 3 * 24 * HOUR),
+    });
+    const kept = conversation('kept', { userId: 'user-1', role: 'supplier' });
+    const deleted = conversation('deleted', {
+      userId: 'user-1',
+      role: 'supplier',
+      isDeleted: true,
+    });
+    fakeDb.__reset({
+      conversations_v4: [kept, deleted],
+      chat_messages_v4: ['kept', 'deleted'].map(id => ({
+        conversationId: id,
+        senderId: `cust-${id}`,
+        createdAt: new Date(NOW - 3 * 24 * HOUR),
+      })),
+    });
+
+    const result = await getEngagementMetrics({
+      supplierId: 'sup-1',
+      ownerUserId: 'user-1',
+      days: 7,
+      now: new Date(NOW),
+    });
+
+    expect(result.responses.unanswered).toBe(1);
+    expect(result.enquiries.sources.conversations).toBe(1);
+  });
+
   it('keeps the conversation query inside the previous and current window only', async () => {
     fakeDb.findWithOptions.mockClear();
 
@@ -327,7 +360,9 @@ describe('getEngagementMetrics', () => {
 
     const [collection, filter, options] = fakeDb.findWithOptions.mock.calls[0];
     expect(collection).toBe('conversations_v4');
-    expect(filter['participants.userId']).toBe('user-1');
+    expect(filter.participants).toEqual({
+      $elemMatch: { userId: 'user-1', isDeleted: { $ne: true } },
+    });
     // Whole UTC days: 7 days ending today starts 6 days before 00:00 on the 16th, and the
     // previous window is the 7 days before that.
     expect(filter.createdAt.$gte.getTime()).toBe(Date.parse('2026-07-03T00:00:00.000Z'));
