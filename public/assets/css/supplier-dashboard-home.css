@@ -17,7 +17,7 @@
  *   4. Summary row
  *   5. Fields and forms
  *   6. Layout and cards
- *   7. Card content: next steps, profile, packages, messages, availability, visits,
+ *   7. Card content: next steps, profile, packages, messages, visits,
  *      tips, reviews, plan, support tickets
  *   8. Calendar (FullCalendar theme, legend, fallback list, entry dialog, popover)
  *   9. Dialogs
@@ -1011,13 +1011,6 @@
   height: 18px;
   margin: 0;
   accent-color: var(--sdh-accent);
-}
-
-.sdh-page .sdh-form__actions {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 8px 12px;
 }
 
 .sdh-page .sdh-form__row-actions {
