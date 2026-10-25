@@ -111,13 +111,34 @@ describe('GET /api/v1/supplier/performance-tips', () => {
     expect(res.status).toBe(403);
   });
 
-  it('returns array of tips for incomplete profile', async () => {
+  it('returns an empty list for an incomplete profile: setup gaps are the checklist, not tips', async () => {
     const app = buildApp();
     const res = await request(app)
       .get('/api/v1/supplier/performance-tips')
       .set('x-test-user-role', 'supplier');
     expect(res.status).toBe(200);
     expect(Array.isArray(res.body.tips)).toBe(true);
+    const shown = res.body.tips.map(tip => tip.id);
+    [
+      'write-description',
+      'add-photos',
+      'add-profile-photo',
+      'add-location',
+      'first-package',
+    ].forEach(id => expect(shown).not.toContain(id));
+  });
+
+  it('returns tips with a title, body and icon when there is something specific to say', async () => {
+    mockDb.findOne.mockResolvedValue({
+      ...SUPPLIER_DOC,
+      approved: false,
+      verificationStatus: 'suspended',
+    });
+    const app = buildApp();
+    const res = await request(app)
+      .get('/api/v1/supplier/performance-tips')
+      .set('x-test-user-role', 'supplier');
+    expect(res.status).toBe(200);
     expect(res.body.tips.length).toBeGreaterThan(0);
     expect(res.body.tips[0]).toHaveProperty('title');
     expect(res.body.tips[0]).toHaveProperty('body');
