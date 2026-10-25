@@ -825,6 +825,15 @@ describe('photo limit counts only the photos the plan lets the supplier use', ()
     expect(find(res, 'add-photos').title).toBe('Add more photos (1 of 3)');
   });
 
+  it('"Add more photos (n of 3)" counts a legacy-only photo, as the checklist that opened it does', async () => {
+    const res = await tipsFor({
+      supplier: completeSupplier({ photosGallery: [], images: ['/uploads/old-1.jpg'] }),
+      extra: PACKAGES,
+    });
+
+    expect(find(res, 'add-photos').title).toBe('Add more photos (1 of 3)');
+  });
+
   it('the tip and the upload check share one helper, so they cannot disagree', () => {
     const { countAllowanceGalleryPhotos } = require('../../utils/photoGalleryAllowance');
     const supplier = { photosGallery: [shown('a'), hidden('b'), 'c.jpg'], images: ['legacy.jpg'] };
@@ -834,7 +843,9 @@ describe('photo limit counts only the photos the plan lets the supplier use', ()
     expect(countAllowanceGalleryPhotos(null)).toBe(0);
     const source = fs.readFileSync(path.join(__dirname, '../../services/supplierTips.js'), 'utf8');
     expect(source).toContain("require('../utils/photoGalleryAllowance')");
-    expect(source).not.toContain('getSupplierGalleryCount');
+    // The limit tip counts like the upload check; only the "add photos" tip (which a checklist
+    // count under 3 opens) uses the checklist's own gallery count.
+    expect(source).not.toContain('getSupplierGalleryCount(supplier)');
   });
 });
 

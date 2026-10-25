@@ -32,6 +32,7 @@
 const { reviewState, reviewResponse, STATES } = require('../utils/reviewShape');
 const {
   getSupplierDescriptionText,
+  getSupplierGalleryCount,
   hasSupplierPostcode,
 } = require('./supplierProfileCompleteness');
 const { countAllowanceGalleryPhotos } = require('../utils/photoGalleryAllowance');
@@ -552,8 +553,14 @@ function profileTips(supplier, summary) {
   }
 
   if (open.has('gallery')) {
-    // The same count the upload limit uses, so a photo the plan has hidden is not counted.
-    const photos = countAllowanceGalleryPhotos(supplier);
+    // The count the checklist used to open this tip (gallery plus legacy images, each once), less
+    // any photo the plan has hidden, since a hidden photo is not on the profile.
+    const photos = getSupplierGalleryCount({
+      ...supplier,
+      photosGallery: Array.isArray(supplier.photosGallery)
+        ? supplier.photosGallery.filter(photo => !photo?.hiddenByPlanLimit)
+        : [],
+    });
     tips.push(
       tip({
         id: 'add-photos',
