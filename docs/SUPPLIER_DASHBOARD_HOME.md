@@ -30,7 +30,7 @@ Top to bottom. Each section appears once.
 | Calendar                              | `dashboard-supplier-calendar.js` (FullCalendar), week list under 640px                                         |
 | Messages (side column)                | `MessengerWidgetV4` with search, filter and sort over the latest 20 conversations                              |
 | Profile visits                        | the summary: 7 / 30 / 90-day buttons, visits and enquiries per day, "From visit to reply"                      |
-| Tips (hidden if there are none)       | `/api/v1/supplier/performance-tips`, each tip's action wired to the real editor or page                        |
+| Tips (hidden if there are none)       | `/api/v1/supplier/performance-tips`: live activity only, never a checklist item; actions wired to real pages   |
 | Plan                                  | the summary's `subscription` plus the subscription record for billing facts                                    |
 | Support                               | `supplier-tickets.js`                                                                                          |
 

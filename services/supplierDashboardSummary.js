@@ -672,7 +672,7 @@ async function buildDashboardSummary(params) {
  * @param {Object} params - Same as buildDashboardSummary, plus `lean`: true skips everything the
  *   tips do not read (views, analytics, tickets, next steps), so the tips request costs far less
  *   than the full dashboard summary. A lean summary must not be sent to the dashboard.
- * @returns {Promise<{summary: Object, raw: {packageDocs: (Object[]|null), reviewDocs: (Object[]|null)}}>}
+ * @returns {Promise<{summary: Object, raw: {packageDocs: (Object[]|null), reviewDocs: (Object[]|null), calendarHasActivity: (boolean|null)}}>}
  */
 async function buildSummaryWithContext({
   userId,
@@ -761,7 +761,15 @@ async function buildSummaryWithContext({
     tickets: buildTicketsBlock(tickets),
     unavailable,
   };
-  return { summary, raw: { packageDocs, reviewDocs } };
+  return {
+    summary,
+    raw: {
+      packageDocs,
+      reviewDocs,
+      // Whether the calendar has ever had an entry; null when it could not be read.
+      calendarHasActivity: calendar ? Boolean(calendar.hasActivity) : null,
+    },
+  };
 }
 
 module.exports = {
