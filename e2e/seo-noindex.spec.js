@@ -31,6 +31,13 @@ test.describe('SEO Noindex Headers', () => {
     '/checkout',
     '/my-marketplace-listings',
     '/gallery',
+    // Developer demo/diagnostic pages (middleware/seo.js)
+    '/mobile-preview',
+    '/demo-loading-spinner',
+    '/test-notifications',
+    '/messaging-demo',
+    '/google-auth-diagnostics',
+    '/supplier-card-showcase',
   ];
 
   const adminPages = [

@@ -57,10 +57,9 @@ Disallow: /support
 Disallow: /api/
 Disallow: /uploads/
 
-# Demo/test pages
-Disallow: /messaging-demo
-Disallow: /demo-loading-spinner
-Disallow: /test-notifications
+# Demo/test pages (/messaging-demo, /demo-loading-spinner, /test-notifications)
+# are deliberately NOT disallowed: they send X-Robots-Tag: noindex (middleware/seo.js)
+# and a crawler can only see that header if it is allowed to fetch the page.
 
 # Sitemap
 Sitemap: https://event-flow.co.uk/sitemap.xml
