@@ -91,7 +91,7 @@ describe('the redesigned page', () => {
 
   test('is scoped: the body class, one stylesheet, every selector under .adh-page', () => {
     expect(html).toMatch(/<body class="[^"]*\badh-page\b/);
-    expect(html).toContain('admin-dashboard-home.css?v=1');
+    expect(html).toContain('admin-dashboard-home.css?v=2');
     const selectors = css
       .replace(/\/\*[\s\S]*?\*\//g, '')
       .split('}')
@@ -203,7 +203,7 @@ describe('the redesigned page', () => {
   });
 
   test('admin.html loads the changed scripts under new versions', () => {
-    expect(html).toContain('pages/admin-init.js?v=18.5.4');
+    expect(html).toContain('pages/admin-init.js?v=18.5.5');
     expect(html).toContain('admin-messages-init.js?v=18.3.2');
   });
 });
@@ -495,5 +495,55 @@ describe('Suppliers filter row', () => {
     for (const page of pages) {
       expect(page).toContain('admin-ui-improvements.css?v=18.3.3');
     }
+  });
+});
+
+describe('click-through pass on /admin', () => {
+  test('the closed quick-nav drawer casts no shadow into the page; the open one does', () => {
+    const css = read('public/assets/css/admin-navbar.css');
+    const closed = css.match(/\.admin-qnav-panel\s*\{([^}]*)\}/);
+    const open = css.match(/\.admin-qnav-panel\.qnav-open\s*\{([^}]*)\}/);
+    expect(closed).not.toBeNull();
+    expect(closed[1]).toMatch(/box-shadow:\s*none/);
+    expect(open).not.toBeNull();
+    expect(open[1]).toMatch(/box-shadow:/);
+  });
+
+  test('every page loading admin-navbar.css loads the new version', () => {
+    const pages = fs
+      .readdirSync(path.join(ROOT, 'public'))
+      .filter(name => /^admin.*\.html$/.test(name))
+      .map(name => read(`public/${name}`))
+      .filter(page => page.includes('admin-navbar.css'));
+    expect(pages.length).toBeGreaterThan(30);
+    for (const page of pages) {
+      expect(page).toContain('admin-navbar.css?v=18.4.1');
+    }
+    expect(read('scripts/generate-community-pages.mjs')).toContain('admin-navbar.css?v=18.4.1');
+  });
+
+  test('the dashboard keeps its warm background against the admin workspace grey', () => {
+    const css = read('public/assets/css/admin-dashboard-home.css');
+    expect(css).toMatch(
+      /body\.adh-page\.has-admin-navbar\.admin\s*\{[^}]*background:\s*var\(--adh-bg\)/
+    );
+  });
+
+  test('the navbar Refresh button refreshes in place instead of reloading the page', () => {
+    expect(read('public/assets/js/pages/admin-init.js')).toMatch(
+      /window\.refreshDashboardData\s*=\s*loadAll/
+    );
+  });
+
+  test('row chevrons are drawn as an SVG, not a text glyph', () => {
+    const css = read('public/assets/css/admin-dashboard-home.css');
+    const rule = css.match(/\.adh-page \.adh-linkrow::after\s*\{([^}]*)\}/);
+    expect(rule).not.toBeNull();
+    expect(rule[1]).toMatch(/mask:\s*url\("data:image\/svg\+xml/);
+    expect(rule[1]).not.toContain('›');
+  });
+
+  test('the keyboard-shortcut toast is skipped on touch devices', () => {
+    expect(read('public/assets/js/admin-features.js')).toMatch(/pointer: coarse/);
   });
 });

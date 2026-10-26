@@ -411,7 +411,11 @@
       window.DashboardUpdater.start();
     }
 
-    // Show keyboard shortcut hint
+    // Show keyboard shortcut hint (phones and tablets have no Ctrl key, and the toast covers content there)
+    const hasKeyboard = !window.matchMedia || !window.matchMedia('(pointer: coarse)').matches;
+    if (!hasKeyboard) {
+      return;
+    }
     setTimeout(() => {
       const hint = document.createElement('div');
       hint.style.cssText = `
