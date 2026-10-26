@@ -2,14 +2,15 @@
  * Field filtering for admin data exports and admin API responses.
  *
  * Whole collection records carry credentials (password hashes, verification and
- * reset tokens, plan guest tokens) and private message text. None of that belongs
- * in a downloadable file or a JSON response, so it is removed here.
+ * reset tokens, plan guest tokens, 2FA secrets and backup codes) and private text
+ * (message bodies, plan notes). None of that belongs in a downloadable file or a
+ * JSON response, so it is removed here.
  */
 
 'use strict';
 
 // Any key whose name contains one of these words is a credential.
-const SECRET_KEY_PATTERN = /password|token|secret|apikey/i;
+const SECRET_KEY_PATTERN = /password|token|secret|apikey|backupcode/i;
 
 // Edit history snapshots a copy of the record, so it can hold the same credentials.
 const EXTRA_OMITTED_KEYS = new Set(['versionHistory', 'googleSub', 'facebookSub']);
@@ -30,26 +31,57 @@ const MESSAGE_METADATA_KEYS = [
   'status',
 ];
 
+const MAX_DEPTH = 8;
+
 function isOmittedKey(key) {
   return SECRET_KEY_PATTERN.test(key) || EXTRA_OMITTED_KEYS.has(key);
 }
 
+function isPlainObject(value) {
+  if (!value || typeof value !== 'object') {
+    return false;
+  }
+  const proto = Object.getPrototypeOf(value);
+  return proto === Object.prototype || proto === null;
+}
+
 /**
- * Copy of a record without credential fields.
- * @param {Object} record
- * @returns {Object}
+ * Copy of a record without credential fields, at any depth (nested objects and arrays).
+ * @param {*} value
+ * @returns {*}
  */
-function stripSecretFields(record) {
-  if (!record || typeof record !== 'object' || Array.isArray(record)) {
-    return record;
+function stripSecretFields(value, depth = 0) {
+  if (Array.isArray(value)) {
+    return depth >= MAX_DEPTH ? value : value.map(item => stripSecretFields(item, depth + 1));
+  }
+  if (!isPlainObject(value) || depth >= MAX_DEPTH) {
+    return value;
   }
   const clean = {};
-  for (const key of Object.keys(record)) {
+  for (const key of Object.keys(value)) {
     if (!isOmittedKey(key)) {
-      clean[key] = record[key];
+      clean[key] = stripSecretFields(value[key], depth + 1);
     }
   }
   return clean;
+}
+
+/**
+ * Builds a cleaner that removes credentials and then the named private-text fields.
+ * @param {string[]} privateKeys - top-level fields whose content stays private
+ * @returns {(record: Object) => Object}
+ */
+function withoutPrivateText(privateKeys) {
+  return record => {
+    const clean = stripSecretFields(record);
+    if (!isPlainObject(clean)) {
+      return clean;
+    }
+    for (const key of privateKeys) {
+      delete clean[key];
+    }
+    return clean;
+  };
 }
 
 /**
@@ -70,4 +102,4 @@ function stripMessageBody(message) {
   return clean;
 }
 
-module.exports = { stripSecretFields, stripMessageBody };
+module.exports = { stripSecretFields, stripMessageBody, withoutPrivateText };

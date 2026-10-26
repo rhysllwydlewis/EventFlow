@@ -39,7 +39,11 @@ const express = require('express');
 const request = require('supertest');
 const dbUnified = require('../../db-unified');
 const { auditLog } = require('../../middleware/audit');
-const { stripSecretFields, stripMessageBody } = require('../../utils/adminExportSanitizer');
+const {
+  stripSecretFields,
+  stripMessageBody,
+  withoutPrivateText,
+} = require('../../utils/adminExportSanitizer');
 
 const ROOT = path.join(__dirname, '../..');
 
@@ -60,9 +64,9 @@ const collections = {
   suppliers: [{ id: 's1', name: 'Venue' }],
   packages: [],
   plans: [{ id: 'p1', guestToken: 'guest_live', title: 'Plan' }],
-  notes: [],
+  notes: [{ id: 'n1', userId: 'u1', text: 'my private note' }],
   events: [],
-  threads: [{ id: 't1' }],
+  threads: [{ id: 't1', subject: 'Enquiry', lastMessage: { content: 'thread preview text' } }],
   messages: [{ id: 'm1', threadId: 't1', fromUserId: 'u1', text: 'private words', body: 'more' }],
 };
 
@@ -76,6 +80,38 @@ describe('adminExportSanitizer', () => {
       role: 'customer',
       marketingOptIn: true,
     });
+  });
+
+  it('removes 2FA secrets and backup codes', () => {
+    expect(
+      stripSecretFields({
+        id: 'u1',
+        twoFactorEnabled: true,
+        twoFactorSecret: 's',
+        twoFactorBackupCodes: ['h'],
+      })
+    ).toEqual({ id: 'u1', twoFactorEnabled: true });
+  });
+
+  it('removes credentials nested inside objects and arrays without touching the input', () => {
+    const plan = {
+      id: 'p1',
+      guests: [{ name: 'Ann', rsvpToken: 'tok' }],
+      owner: { apiKey: 'k', id: 'u1' },
+    };
+    const clean = stripSecretFields(plan);
+    expect(clean).toEqual({ id: 'p1', guests: [{ name: 'Ann' }], owner: { id: 'u1' } });
+    expect(plan.guests[0].rsvpToken).toBe('tok');
+  });
+
+  it('withoutPrivateText drops the named private fields as well as credentials', () => {
+    const clean = withoutPrivateText(['text'])({
+      id: 'n1',
+      userId: 'u1',
+      text: 'private',
+      authToken: 't',
+    });
+    expect(clean).toEqual({ id: 'n1', userId: 'u1' });
   });
 
   it('keeps only metadata on messages', () => {
@@ -101,9 +137,11 @@ describe('GET /export/all', () => {
     const res = await request(app).get('/api/admin/export/all');
     expect(res.status).toBe(200);
     expect(res.text).not.toMatch(/passwordHash|verify_live|reset_live|verify_old|guest_live/);
-    expect(res.text).not.toMatch(/private words|more/);
+    expect(res.text).not.toMatch(/private words|more|my private note|thread preview text/);
     const body = JSON.parse(res.text);
     expect(body.users[0].email).toBe('ada@example.test');
+    expect(body.threads[0]).toEqual({ id: 't1', subject: 'Enquiry' });
+    expect(body.notes[0]).toEqual({ id: 'n1', userId: 'u1' });
     expect(body.messages[0]).toEqual({ id: 'm1', threadId: 't1', fromUserId: 'u1' });
     expect(auditLog).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -125,8 +163,8 @@ describe('user management routes', () => {
     jest.clearAllMocks();
   });
 
-  it('marketing export skips unsubscribed and suspended people and neutralises formulas', async () => {
-    dbUnified.read.mockResolvedValue([
+  it('marketing export skips unsubscribed (either store), suspended and non-opted-in people and neutralises formulas', async () => {
+    const marketingUsers = [
       { id: '1', name: 'Keep', email: 'keep@example.test', role: 'customer', marketingOptIn: true },
       {
         id: '2',
@@ -138,12 +176,18 @@ describe('user management routes', () => {
       { id: '3', name: 'Held', email: 'held@example.test', marketingOptIn: true, suspended: true },
       { id: '4', name: 'No', email: 'no@example.test', marketingOptIn: false },
       { id: '5', name: '=HYPERLINK("http://x")', email: 'evil@example.test', marketingOptIn: true },
-    ]);
+      { id: '6', name: 'Letter', email: 'letter@example.test', marketingOptIn: true },
+    ];
+    dbUnified.read.mockImplementation(async name =>
+      name === 'newsletterSubscribers'
+        ? [{ email: 'Letter@Example.test', status: 'unsubscribed' }]
+        : marketingUsers
+    );
     const res = await request(app).get('/api/admin/marketing-export');
     expect(res.status).toBe(200);
     expect(res.text).toContain('keep@example.test');
     expect(res.text).toContain('evil@example.test');
-    expect(res.text).not.toMatch(/gone@|held@|no@/);
+    expect(res.text).not.toMatch(/gone@|held@|no@|letter@/);
     expect(res.text).toContain(`"'=HYPERLINK`);
     expect(res.text).not.toContain('"=HYPERLINK');
     expect(auditLog).toHaveBeenCalledWith(

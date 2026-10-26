@@ -34,7 +34,11 @@ const postmark = require('../utils/postmark');
 const { FROM_SUPPORT: POSTMARK_FROM_SUPPORT_ADDR } = postmark;
 const { VERIFICATION_STATES } = require('../utils/supplierVerificationStateMachine');
 const { sanitiseText } = require('../utils/sanitise');
-const { stripSecretFields, stripMessageBody } = require('../utils/adminExportSanitizer');
+const {
+  stripSecretFields,
+  stripMessageBody,
+  withoutPrivateText,
+} = require('../utils/adminExportSanitizer');
 const { runActionPrompts, notifyCronChanged } = require('../services/actionPromptScheduler');
 const locationRegistry = require('../services/locationRegistry.service');
 const locationPageService = require('../services/locationPage.service');
@@ -472,8 +476,9 @@ function getTimeAgo(timestamp) {
 
 /**
  * GET /api/admin/export/all
- * Export all core collections as JSON. Credentials (password hashes, tokens) and
- * private message text are left out; message records keep only their metadata.
+ * Export all core collections as JSON. Credentials (password hashes, tokens, 2FA codes)
+ * and private text (message bodies, plan notes) are left out; message records keep only
+ * their metadata.
  */
 router.get('/export/all', authRequired, roleRequired('admin'), async (req, res) => {
   const readClean = async (collection, clean = stripSecretFields) =>
@@ -484,9 +489,9 @@ router.get('/export/all', authRequired, roleRequired('admin'), async (req, res) 
     suppliers: await readClean('suppliers'),
     packages: await readClean('packages'),
     plans: await readClean('plans'),
-    notes: await readClean('notes'),
+    notes: await readClean('notes', withoutPrivateText(['text'])),
     events: await readClean('events'),
-    threads: await readClean('threads'),
+    threads: await readClean('threads', withoutPrivateText(['lastMessage', 'messages'])),
     messages: await readClean('messages', stripMessageBody),
   };
   await auditLog({

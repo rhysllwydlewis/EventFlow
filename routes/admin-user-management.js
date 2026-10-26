@@ -591,9 +591,27 @@ router.get('/users/search', authRequired, roleRequired('admin'), async (req, res
  */
 router.get('/marketing-export', authRequired, roleRequired('admin'), async (req, res) => {
   try {
-    // People who unsubscribed or were suppressed (bounce, complaint) must not be mailed again.
-    const users = (await dbUnified.read('users')).filter(
-      u => u.marketingOptIn && !u.emailUnsubscribed && !u.suspended
+    // People who unsubscribed or were suppressed (bounce, complaint) must not be mailed again,
+    // whichever store recorded it - the same rule the campaign sender applies.
+    const [allUsers, subscribers] = await Promise.all([
+      dbUnified.read('users'),
+      dbUnified.read('newsletterSubscribers').catch(() => []),
+    ]);
+    const unsubscribedEmails = new Set(
+      (subscribers || [])
+        .filter(sub => sub.status === 'unsubscribed' && sub.email)
+        .map(sub => String(sub.email).toLowerCase().trim())
+    );
+    const users = (allUsers || []).filter(
+      user =>
+        user.marketingOptIn &&
+        !user.emailUnsubscribed &&
+        !user.suspended &&
+        !unsubscribedEmails.has(
+          String(user.email || '')
+            .toLowerCase()
+            .trim()
+        )
     );
     const csv = serializeCsv(
       ['name', 'email', 'role'],
