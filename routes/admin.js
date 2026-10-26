@@ -34,6 +34,7 @@ const postmark = require('../utils/postmark');
 const { FROM_SUPPORT: POSTMARK_FROM_SUPPORT_ADDR } = postmark;
 const { VERIFICATION_STATES } = require('../utils/supplierVerificationStateMachine');
 const { sanitiseText } = require('../utils/sanitise');
+const { stripSecretFields, stripMessageBody } = require('../utils/adminExportSanitizer');
 const { runActionPrompts, notifyCronChanged } = require('../services/actionPromptScheduler');
 const locationRegistry = require('../services/locationRegistry.service');
 const locationPageService = require('../services/locationPage.service');
@@ -471,20 +472,40 @@ function getTimeAgo(timestamp) {
 
 /**
  * GET /api/admin/export/all
- * Export all core collections as JSON
+ * Export all core collections as JSON. Credentials (password hashes, tokens) and
+ * private message text are left out; message records keep only their metadata.
  */
-router.get('/export/all', authRequired, roleRequired('admin'), async (_req, res) => {
+router.get('/export/all', authRequired, roleRequired('admin'), async (req, res) => {
+  const readClean = async (collection, clean = stripSecretFields) =>
+    ((await dbUnified.read(collection)) || []).map(clean);
   const payload = {
     exportedAt: new Date().toISOString(),
-    users: await dbUnified.read('users'),
-    suppliers: await dbUnified.read('suppliers'),
-    packages: await dbUnified.read('packages'),
-    plans: await dbUnified.read('plans'),
-    notes: await dbUnified.read('notes'),
-    events: await dbUnified.read('events'),
-    threads: await dbUnified.read('threads'),
-    messages: await dbUnified.read('messages'),
+    users: await readClean('users'),
+    suppliers: await readClean('suppliers'),
+    packages: await readClean('packages'),
+    plans: await readClean('plans'),
+    notes: await readClean('notes'),
+    events: await readClean('events'),
+    threads: await readClean('threads'),
+    messages: await readClean('messages', stripMessageBody),
   };
+  await auditLog({
+    adminId: req.user.id,
+    adminEmail: req.user.email,
+    action: AUDIT_ACTIONS.DATA_EXPORT,
+    targetType: 'export',
+    targetId: 'export-all',
+    details: {
+      format: 'json',
+      counts: Object.fromEntries(
+        Object.entries(payload)
+          .filter(([, value]) => Array.isArray(value))
+          .map(([key, value]) => [key, value.length])
+      ),
+    },
+    ipAddress: req.ip,
+    userAgent: req.get('user-agent'),
+  });
   const json = JSON.stringify(payload, null, 2);
   res.setHeader('Content-Type', 'application/json; charset=utf-8');
   res.setHeader('Content-Disposition', 'attachment; filename="eventflow-export.json"');

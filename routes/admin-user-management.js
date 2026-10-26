@@ -17,6 +17,8 @@ const dbUnified = require('../db-unified');
 const validator = require('validator');
 const bcrypt = require('bcryptjs');
 const { passwordOk } = require('../utils/validators');
+const { serializeCsv } = require('../utils/csv');
+const { stripSecretFields } = require('../utils/adminExportSanitizer');
 const domainAdmin = require('../middleware/domain-admin');
 const verificationProvenance = require('../services/verificationProvenance.service');
 const userProvenance = require('../services/userProvenance.service');
@@ -589,17 +591,24 @@ router.get('/users/search', authRequired, roleRequired('admin'), async (req, res
  */
 router.get('/marketing-export', authRequired, roleRequired('admin'), async (req, res) => {
   try {
-    const users = (await dbUnified.read('users')).filter(u => u.marketingOptIn);
-    const header = 'name,email,role\n';
-    const rows = users
-      .map(u => {
-        const name = (u.name || '').replace(/"/g, '""');
-        const email = (u.email || '').replace(/"/g, '""');
-        const role = (u.role || '').replace(/"/g, '""');
-        return `"${name}","${email}","${role}"`;
-      })
-      .join('\n');
-    const csv = header + rows + (rows ? '\n' : '');
+    // People who unsubscribed or were suppressed (bounce, complaint) must not be mailed again.
+    const users = (await dbUnified.read('users')).filter(
+      u => u.marketingOptIn && !u.emailUnsubscribed && !u.suspended
+    );
+    const csv = serializeCsv(
+      ['name', 'email', 'role'],
+      users.map(u => [u.name, u.email, u.role])
+    );
+    await auditLog({
+      adminId: req.user.id,
+      adminEmail: req.user.email,
+      action: AUDIT_ACTIONS.DATA_EXPORT,
+      targetType: 'export',
+      targetId: 'marketing-export',
+      details: { format: 'csv', rows: users.length },
+      ipAddress: req.ip,
+      userAgent: req.get('user-agent'),
+    });
     res.setHeader('Content-Type', 'text/csv; charset=utf-8');
     res.setHeader('Content-Disposition', 'attachment; filename="eventflow-marketing.csv"');
     res.send(csv);
@@ -623,16 +632,29 @@ async function sendUsersCsv(req, res) {
     const users = (await dbUnified.read('users')).filter(
       u => !idSet.size || idSet.has(String(getUserIdentifier(u) || ''))
     );
-    const header = 'id,name,email,role,verified,marketingOptIn,createdAt,lastLoginAt\n';
-    const rows = users
-      .map(u => {
-        const esc = v => String(v ?? '').replace(/"/g, '""');
-        const verified = u.verified ? 'yes' : 'no';
-        const marketing = u.marketingOptIn ? 'yes' : 'no';
-        return `"${esc(getUserIdentifier(u))}","${esc(u.name)}","${esc(u.email)}","${esc(u.role)}","${verified}","${marketing}","${esc(u.createdAt)}","${esc(u.lastLoginAt || '')}"`;
-      })
-      .join('\n');
-    const csv = header + rows + (rows ? '\n' : '');
+    const csv = serializeCsv(
+      ['id', 'name', 'email', 'role', 'verified', 'marketingOptIn', 'createdAt', 'lastLoginAt'],
+      users.map(u => [
+        getUserIdentifier(u),
+        u.name,
+        u.email,
+        u.role,
+        u.verified ? 'yes' : 'no',
+        u.marketingOptIn ? 'yes' : 'no',
+        u.createdAt,
+        u.lastLoginAt || '',
+      ])
+    );
+    await auditLog({
+      adminId: req.user.id,
+      adminEmail: req.user.email,
+      action: AUDIT_ACTIONS.DATA_EXPORT,
+      targetType: 'export',
+      targetId: 'users-export',
+      details: { format: 'csv', rows: users.length, filtered: idSet.size > 0 },
+      ipAddress: req.ip,
+      userAgent: req.get('user-agent'),
+    });
     res.setHeader('Content-Type', 'text/csv; charset=utf-8');
     res.setHeader('Content-Disposition', 'attachment; filename="eventflow-users.csv"');
     res.send(csv);
@@ -1932,17 +1954,7 @@ router.put('/users/:id', authRequired, roleRequired('admin'), csrfProtection, as
   }
 
   // Store previous version for history (excluding sensitive data)
-  const {
-    // eslint-disable-next-line no-unused-vars
-    password: _password,
-    // eslint-disable-next-line no-unused-vars
-    passwordHash: _passwordHash,
-    // eslint-disable-next-line no-unused-vars
-    resetToken: _resetToken,
-    // eslint-disable-next-line no-unused-vars
-    twoFactorSecret: _twoFactorSecret,
-    ...safeState
-  } = user;
+  const safeState = stripSecretFields(user);
   const versionHistory = [
     ...(user.versionHistory || []),
     {
@@ -2005,7 +2017,7 @@ router.put('/users/:id', authRequired, roleRequired('admin'), csrfProtection, as
     },
   });
 
-  res.json({ success: true, user: { ...user, ...setFields } });
+  res.json({ success: true, user: stripSecretFields({ ...user, ...setFields }) });
 });
 
 /**

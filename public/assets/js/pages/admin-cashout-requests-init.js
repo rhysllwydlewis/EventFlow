@@ -40,7 +40,7 @@
   }
 
   async function getCsrfToken() {
-    const r = await fetch('/api/v1/auth/csrf-token', { credentials: 'include' });
+    const r = await fetch('/api/v1/csrf-token', { credentials: 'include' });
     const b = await r.json().catch(() => ({}));
     return b.csrfToken || b.token || '';
   }
