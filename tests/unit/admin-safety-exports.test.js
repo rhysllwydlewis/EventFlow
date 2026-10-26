@@ -82,6 +82,16 @@ describe('adminExportSanitizer', () => {
     });
   });
 
+  it('cleans every record when used directly with Array.map (index is not treated as depth)', () => {
+    const rows = Array.from({ length: 30 }, (_, i) => ({
+      id: i,
+      passwordHash: `h${i}`,
+      nested: { token: 't' },
+    }));
+    const cleaned = rows.map(stripSecretFields);
+    expect(JSON.stringify(cleaned)).not.toMatch(/passwordHash|token/);
+  });
+
   it('removes 2FA secrets and backup codes', () => {
     expect(
       stripSecretFields({
@@ -131,6 +141,20 @@ describe('GET /export/all', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     dbUnified.read.mockImplementation(async name => collections[name] || []);
+  });
+
+  it('cleans every record, not just the first few', async () => {
+    const many = Array.from({ length: 25 }, (_, i) => ({
+      id: `u${i}`,
+      email: `u${i}@example.test`,
+      passwordHash: `hash_${i}`,
+      verificationToken: `tok_${i}`,
+    }));
+    dbUnified.read.mockImplementation(async name => (name === 'users' ? many : []));
+    const res = await request(app).get('/api/admin/export/all');
+    expect(res.status).toBe(200);
+    expect(res.text).not.toMatch(/passwordHash|hash_|verificationToken|tok_/);
+    expect(JSON.parse(res.text).users).toHaveLength(25);
   });
 
   it('contains no hashes, tokens or message text, and is audit-logged', async () => {
@@ -236,6 +260,17 @@ describe('cashout requests page', () => {
     expect(script).not.toContain('/auth/csrf-token');
     const system = fs.readFileSync(path.join(ROOT, 'routes/system.js'), 'utf8');
     expect(system).toContain("router.get('/csrf-token'");
+  });
+
+  it('fetches the token once, refuses to send an empty one, and retries once on a CSRF refusal', () => {
+    const script = fs.readFileSync(
+      path.join(ROOT, 'public/assets/js/pages/admin-cashout-requests-init.js'),
+      'utf8'
+    );
+    expect(script).toMatch(/if \(cachedCsrfToken && !forceRefresh\)/);
+    expect(script).toMatch(/if \(!cachedCsrfToken\) \{\s*throw new Error/);
+    expect(script).toMatch(/res\.status === 403 && data\.errorType === 'CSRFError'/);
+    expect(script).toMatch(/getCsrfToken\(true\)/);
   });
 
   it('loads the script with a version tag so cached copies are replaced', () => {

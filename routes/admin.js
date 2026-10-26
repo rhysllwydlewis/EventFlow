@@ -482,7 +482,7 @@ function getTimeAgo(timestamp) {
  */
 router.get('/export/all', authRequired, roleRequired('admin'), async (req, res) => {
   const readClean = async (collection, clean = stripSecretFields) =>
-    ((await dbUnified.read(collection)) || []).map(clean);
+    ((await dbUnified.read(collection)) || []).map(record => clean(record));
   const payload = {
     exportedAt: new Date().toISOString(),
     users: await readClean('users'),

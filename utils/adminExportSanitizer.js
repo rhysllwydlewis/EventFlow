@@ -45,14 +45,9 @@ function isPlainObject(value) {
   return proto === Object.prototype || proto === null;
 }
 
-/**
- * Copy of a record without credential fields, at any depth (nested objects and arrays).
- * @param {*} value
- * @returns {*}
- */
-function stripSecretFields(value, depth = 0) {
+function stripAtDepth(value, depth) {
   if (Array.isArray(value)) {
-    return depth >= MAX_DEPTH ? value : value.map(item => stripSecretFields(item, depth + 1));
+    return depth >= MAX_DEPTH ? value : value.map(item => stripAtDepth(item, depth + 1));
   }
   if (!isPlainObject(value) || depth >= MAX_DEPTH) {
     return value;
@@ -60,10 +55,21 @@ function stripSecretFields(value, depth = 0) {
   const clean = {};
   for (const key of Object.keys(value)) {
     if (!isOmittedKey(key)) {
-      clean[key] = stripSecretFields(value[key], depth + 1);
+      clean[key] = stripAtDepth(value[key], depth + 1);
     }
   }
   return clean;
+}
+
+/**
+ * Copy of a record without credential fields, at any depth (nested objects and arrays).
+ * Takes exactly one argument so it is safe to pass straight to Array.map, which would
+ * otherwise hand the item index in as a second parameter.
+ * @param {*} value
+ * @returns {*}
+ */
+function stripSecretFields(value) {
+  return stripAtDepth(value, 0);
 }
 
 /**
