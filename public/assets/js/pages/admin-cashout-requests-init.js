@@ -40,9 +40,9 @@
   }
 
   async function getCsrfToken() {
-    const r = await fetch('/api/v1/csrf-token', { credentials: 'include' });
-    const b = await r.json().catch(() => ({}));
-    return b.csrfToken || b.token || '';
+    const response = await fetch('/api/v1/csrf-token', { credentials: 'include' });
+    const body = await response.json().catch(() => ({}));
+    return body.csrfToken || body.token || '';
   }
 
   async function apiWrite(url, method, body) {
