@@ -146,7 +146,7 @@ ${
   page.adminGuard
     ? `    <link rel="stylesheet" href="/assets/css/admin.css?v=18.3.0" />
     <link rel="stylesheet" href="/assets/css/admin-enhanced.css?v=18.3.1" />
-    <link rel="stylesheet" href="/assets/css/admin-navbar.css?v=18.4.0" />
+    <link rel="stylesheet" href="/assets/css/admin-navbar.css?v=18.4.1" />
     <link rel="stylesheet" href="/assets/css/admin-cards.css?v=18.3.0" />
 `
     : '    <link rel="stylesheet" href="/assets/css/eventflow-footer.css" />\n'

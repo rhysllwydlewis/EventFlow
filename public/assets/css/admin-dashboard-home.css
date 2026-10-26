@@ -55,6 +55,13 @@ body.adh-page {
   color: var(--adh-ink);
 }
 
+/* admin-workspace.css paints every admin page #f5f7f8 with a three-class selector, which beat the
+   rule above and left the dashboard cool grey while its own cards and hovers use the warm tokens. */
+body.adh-page.has-admin-navbar.admin {
+  background: var(--adh-bg);
+  color: var(--adh-ink);
+}
+
 .adh-page .adh,
 .adh-page .adh *,
 .adh-page .adh *::before,
@@ -614,11 +621,16 @@ body.adh-page {
   transform: none;
 }
 
+/* A drawn chevron (16px, 2px round stroke) like the navbar icons, in place of a text glyph. */
 .adh-page .adh-linkrow::after {
-  content: '›';
-  content: '›' / '';
-  color: var(--adh-muted);
-  font-size: 18px;
+  content: '';
+  flex: 0 0 16px;
+  width: 16px;
+  height: 16px;
+  background-color: var(--adh-muted);
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='9 18 15 12 9 6'/%3E%3C/svg%3E") center / 16px 16px no-repeat;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='9 18 15 12 9 6'/%3E%3C/svg%3E") center / 16px 16px no-repeat;
+  transition: transform 0.15s ease, background-color 0.15s ease;
 }
 
 .adh-page .adh-linkrow:hover {
@@ -626,6 +638,11 @@ body.adh-page {
   background: none;
   transform: none;
   box-shadow: none;
+}
+
+.adh-page .adh-linkrow:hover::after {
+  background-color: var(--adh-accent-hover);
+  transform: translateX(2px);
 }
 
 /* System analytics (rendered by admin-init.js as .card > p) */
@@ -991,6 +1008,13 @@ body.adh-page {
 
   .adh-page .adh-summary__cell:first-child {
     border-top: 0;
+  }
+
+  /* The link keeps its 44px touch target; centre the text in it instead of leaving a gap under it. */
+  .adh-page .adh-summary__link {
+    display: inline-flex;
+    align-items: center;
+    margin-top: 0;
   }
 
   .adh-page .adh-queue {

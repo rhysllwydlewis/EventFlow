@@ -1958,6 +1958,10 @@
         });
       }
 
+      // The navbar Refresh button calls this when a page defines it. Without it the navbar reloads the
+      // whole page, which cancels the dashboard's own requests mid-flight and logs a fetch error.
+      window.refreshDashboardData = loadAll;
+
       const dlUsers = document.getElementById('downloadUsersCsv');
       if (dlUsers) {
         dlUsers.addEventListener('click', () => {

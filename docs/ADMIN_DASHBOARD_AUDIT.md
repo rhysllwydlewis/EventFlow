@@ -73,6 +73,29 @@ Customer.
 Left alone: `admin-enhanced.css` still carries the old dashboard health and stat-card rules, which
 other admin pages load; they are dead on `/admin` but not removed here.
 
+## Click-through pass on the redesigned `/admin`
+
+Every visible control on the page (93 buttons, links, inputs and selects, each on a freshly loaded
+page) was clicked as a seeded admin at 1440px, with the console and network watched. Then the
+data-changing flows were run end to end on a throwaway local database: create, edit, verify email,
+grant admin, revoke admin and delete a user; the three exports; the bell and "Mark all read"; the
+user menu, Settings and Sign Out (after which `/admin` sends you to sign in); the drawer search and
+all 30 drawer links. All of them did what they say, with no console errors and no 4xx/5xx.
+Previous/Next are disabled with one page of users, and the owner account's Edit is disabled on
+purpose ("Owner account is protected").
+
+| Finding                                                                                                       | Cause                                                                                                                              | Fix                                                                                                             |
+| ------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
+| A grey band down the left edge of every admin page.                                                           | The closed quick-nav drawer is parked off screen, but its wide `box-shadow` reached into the viewport.                             | The shadow only applies while the drawer is open. `admin-navbar.css` re-versioned on all 36 pages that load it. |
+| The page background was cool grey, not the warm neutral the redesign uses.                                    | `admin-workspace.css` sets `body.has-admin-navbar.admin { background: #f5f7f8 }`, which out-ranked the dashboard's own background. | `body.adh-page.has-admin-navbar.admin` sets the dashboard background.                                           |
+| The navbar's Refresh button reloaded the whole page and logged "Failed to fetch" for every request in flight. | The navbar reloads the page unless the page defines `window.refreshDashboardData`.                                                 | `admin-init.js` defines it as `loadAll`, so Refresh updates the numbers in place.                               |
+| Row chevrons were a text "›" that rendered at different sizes per font.                                       | A text glyph in `::after`.                                                                                                         | A 16px, 2px-stroke SVG mask that matches the header icons and moves 2px on hover.                               |
+| "Press Ctrl+/ for shortcuts" popped up over the content on phones and tablets.                                | `admin-features.js` showed it on every device.                                                                                     | Skipped on touch (`pointer: coarse`) devices.                                                                   |
+| On a phone the summary links had a blank gap under the text.                                                  | The link has a 44px minimum height (good for touch) with its text at the top.                                                      | The text is centred in the link.                                                                                |
+
+Not changed: the navigation drawer's tile icons are emoji, shared by all 36 admin pages. Replacing
+them with SVGs is a change to every admin page, so it is left for its own pass.
+
 ## Not done (updated)
 
 - **Actions column off-screen.** On a 1440px screen the Users table is about 1,500px wide and the
