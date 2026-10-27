@@ -207,9 +207,9 @@ describe('the shared keyboard-shortcuts help dialog is shown', () => {
       .filter(name => read(`public/${name}`).includes('/assets/js/admin-shared.js'));
     expect(pages.length).toBeGreaterThan(30);
     for (const name of pages) {
-      expect(read(`public/${name}`)).toContain('/assets/js/admin-shared.js?v=18.5.9');
+      expect(read(`public/${name}`)).toContain('/assets/js/admin-shared.js?v=18.5.10');
     }
-    expect(read('scripts/generate-community-pages.mjs')).toContain('admin-shared.js?v=18.5.9');
+    expect(read('scripts/generate-community-pages.mjs')).toContain('admin-shared.js?v=18.5.10');
   });
 });
 

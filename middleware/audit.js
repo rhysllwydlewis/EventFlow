@@ -199,7 +199,12 @@ async function getAuditLogs(filters = {}) {
       logs = logs.filter(log => log.action === action);
     }
     if (targetType) {
-      logs = logs.filter(log => log.targetType === targetType);
+      // Accept one type or a comma-separated list ("features,settings,maintenance")
+      const targetTypes = String(targetType)
+        .split(',')
+        .map(type => type.trim())
+        .filter(Boolean);
+      logs = logs.filter(log => targetTypes.includes(log.targetType));
     }
     if (targetId) {
       logs = logs.filter(log => log.targetId === targetId);

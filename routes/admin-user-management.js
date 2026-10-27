@@ -41,6 +41,7 @@ const router = express.Router();
 // Constants for user management
 const VALID_USER_ROLES = ['customer', 'supplier', 'admin'];
 const MAX_NAME_LENGTH = 80;
+const MAX_SUPPLIER_NAME_LENGTH = 120;
 
 function sanitizeAdminUser(u, verificationLogs) {
   const summary = verificationLogs ? verificationProvenance.summariseUser(u, verificationLogs) : {};
@@ -1819,6 +1820,76 @@ router.put(
   }
 );
 
+// Limits match the supplier's own profile editor (routes/supplier-management.js).
+const SUPPLIER_PROFILE_FIELD_LIMITS = {
+  category: 80,
+  price_display: 60,
+  website: 200,
+  phone: 30,
+  description_short: 300,
+};
+
+/**
+ * Validates the plain profile fields the admin supplier "Edit Details" screen can send.
+ * Only fields present in the body are returned, so an edit never blanks the others.
+ * @param {Object} body
+ * @returns {{values: Object}|{error: string}}
+ */
+function readSupplierProfileFields(body) {
+  const values = {};
+  const text = key => String(body[key] ?? '').trim();
+
+  if (body.name !== undefined) {
+    const name = text('name');
+    if (!name) {
+      return { error: 'Business name cannot be empty' };
+    }
+    if (name.length > MAX_SUPPLIER_NAME_LENGTH) {
+      return { error: `Business name must be ${MAX_SUPPLIER_NAME_LENGTH} characters or fewer` };
+    }
+    values.name = name;
+  }
+  if (body.category !== undefined) {
+    const category = text('category');
+    if (!category) {
+      return { error: 'Category cannot be empty' };
+    }
+    values.category = category;
+  }
+  for (const key of ['price_display', 'phone', 'description_short']) {
+    if (body[key] !== undefined) {
+      values[key] = text(key);
+    }
+  }
+  if (body.website !== undefined) {
+    const website = text('website');
+    if (
+      website &&
+      !validator.isURL(website, { protocols: ['http', 'https'], require_protocol: true })
+    ) {
+      return { error: 'Website must be a valid http:// or https:// address' };
+    }
+    values.website = website;
+  }
+  if (body.email !== undefined) {
+    const email = text('email').toLowerCase();
+    if (email && !validator.isEmail(email)) {
+      return { error: 'Please enter a valid email address' };
+    }
+    values.email = email;
+  }
+  if (body.location !== undefined && typeof body.location === 'string') {
+    values.location = text('location');
+  }
+
+  for (const [key, max] of Object.entries(SUPPLIER_PROFILE_FIELD_LIMITS)) {
+    if (values[key] !== undefined && values[key].length > max) {
+      return { error: `${key.replace(/_/g, ' ')} must be ${max} characters or fewer` };
+    }
+  }
+  return { values };
+}
+
 /**
  * PUT /api/admin/suppliers/:id
  * Edit supplier profile (admin only)
@@ -1839,6 +1910,12 @@ router.put(
 
       if (supplierIndex === -1) {
         return res.status(404).json({ error: 'Supplier not found' });
+      }
+
+      // The "Edit Details" screen sends one of these plain profile fields at a time.
+      const profileFields = readSupplierProfileFields(req.body);
+      if (profileFields.error) {
+        return res.status(400).json({ error: profileFields.error });
       }
 
       const supplier = suppliers[supplierIndex];
@@ -1878,6 +1955,7 @@ router.put(
       if (location !== undefined) {
         supplier.location = location;
       }
+      Object.assign(supplier, profileFields.values);
       if (serviceAreas !== undefined) {
         // This route is the only place a city gets assigned without going
         // through the supplier's own self-service picker (which has no city
@@ -1901,7 +1979,7 @@ router.put(
       supplier.updatedAt = new Date().toISOString();
       supplier.lastEditedBy = req.user.id;
 
-      await dbUnified.updateOne(
+      const saved = await dbUnified.updateOne(
         'suppliers',
         { id: supplier.id },
         {
@@ -1913,12 +1991,17 @@ router.put(
             amenities: supplier.amenities,
             location: supplier.location,
             serviceAreas: supplier.serviceAreas,
+            ...profileFields.values,
             updatedAt: supplier.updatedAt,
             lastEditedBy: supplier.lastEditedBy,
             versionHistory: supplier.versionHistory,
           },
-        }
+        },
+        { throwOnError: true }
       );
+      if (!saved) {
+        return res.status(500).json({ error: 'The changes could not be saved. Please try again.' });
+      }
 
       // Create audit log
       auditLog({
@@ -1971,6 +2054,22 @@ router.put('/users/:id', authRequired, roleRequired('admin'), csrfProtection, as
     });
   }
 
+  // Check the email before anything is written. The database layer swallows a duplicate-key
+  // failure and reports "no change", which used to come back as a 200 with nothing saved.
+  let emailNormalized;
+  if (email !== undefined) {
+    emailNormalized = String(email).trim().toLowerCase();
+    if (!validator.isEmail(emailNormalized)) {
+      return res.status(400).json({ error: 'Please enter a valid email address' });
+    }
+    if (emailNormalized !== String(user.email || '').toLowerCase()) {
+      const existing = await dbUnified.findOne('users', { email: emailNormalized });
+      if (existing && existing.id !== id) {
+        return res.status(409).json({ error: 'A user with this email already exists' });
+      }
+    }
+  }
+
   // Store previous version for history (excluding sensitive data)
   const safeState = stripSecretFields(user);
   const versionHistory = [
@@ -1991,7 +2090,7 @@ router.put('/users/:id', authRequired, roleRequired('admin'), csrfProtection, as
     setFields.name = name;
   }
   if (email !== undefined) {
-    setFields.email = email;
+    setFields.email = emailNormalized;
   }
   if (verified !== undefined) {
     setFields.verified = verified;
@@ -2015,7 +2114,23 @@ router.put('/users/:id', authRequired, roleRequired('admin'), csrfProtection, as
     setFields.marketingOptIn = marketingOptIn;
   }
 
-  await dbUnified.updateOne('users', { id }, { $set: setFields });
+  try {
+    const saved = await dbUnified.updateOne(
+      'users',
+      { id },
+      { $set: setFields },
+      { throwOnError: true }
+    );
+    if (!saved) {
+      return res.status(500).json({ error: 'The changes could not be saved. Please try again.' });
+    }
+  } catch (error) {
+    if (error && error.code === 11000) {
+      return res.status(409).json({ error: 'A user with this email already exists' });
+    }
+    logger.error('[ADMIN] user edit failed', { userId: id, error: error.message });
+    return res.status(500).json({ error: 'The changes could not be saved. Please try again.' });
+  }
 
   // Create audit log
   auditLog({
@@ -2872,7 +2987,9 @@ router.post(
           suspended: false,
           suspendedAt: null,
           suspendedBy: null,
-          suspendedReason: null,
+          suspensionReason: null,
+          suspensionDuration: null,
+          suspensionExpiresAt: null,
           updatedAt: new Date().toISOString(),
         },
       }

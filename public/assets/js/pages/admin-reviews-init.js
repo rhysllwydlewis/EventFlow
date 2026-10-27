@@ -225,8 +225,9 @@
         '☆'.repeat(Math.max(0, 5 - Math.min(5, rating)));
       const title = review.title || '';
       const text = review.text || review.comment || '';
-      const supplierId = review.supplierId || '';
-      const authorId = review.authorId || '';
+      // Names where the server could find them; the id only as a last resort
+      const supplierId = review.supplierName || review.supplierId || '';
+      const authorId = review.authorName || review.authorId || '';
       const createdAt = review.createdAt ? formatDate(review.createdAt) : '—';
       const moderationState =
         (review.moderation && review.moderation.state) || review.status || 'pending';
@@ -257,10 +258,14 @@
           moderationReason
             ? `<p class="small" style="color:#9ca3af;margin:0 0 10px;"><em>${escapeHtml(moderationReason)}</em></p>`
             : ''
-        }${reportInfo}<div class="review-action-btns">` +
-        `<button class="ef-cta btn btn-sm btn-danger" data-action="approve" data-id="${escapeHtml(id)}" title="The report is valid — remove this review from the platform">🗑️ Remove Review</button>` +
-        `<button class="ef-cta btn btn-sm btn-success" data-action="reject" data-id="${escapeHtml(id)}" title="The report is not valid — keep the review published">✓ Dismiss Report</button>` +
-        `</div>` +
+        }${reportInfo}<div class="review-action-btns">${
+          // A reported review is a report to settle; one that is only waiting is an ordinary approval
+          review.flagged
+            ? `<button class="ef-cta btn btn-sm btn-danger" data-action="approve" data-id="${escapeHtml(id)}" title="The report is valid — remove this review from the platform">🗑️ Remove Review</button>` +
+              `<button class="ef-cta btn btn-sm btn-success" data-action="reject" data-id="${escapeHtml(id)}" title="The report is not valid — keep the review published">✓ Dismiss Report</button>`
+            : `<button class="ef-cta btn btn-sm btn-success" data-action="publish" data-id="${escapeHtml(id)}" title="Publish this review">✓ Approve</button>` +
+              `<button class="ef-cta btn btn-sm btn-danger" data-action="decline" data-id="${escapeHtml(id)}" title="Do not publish this review">✗ Reject</button>`
+        }</div>` +
         `</div>` +
         `</div>`;
 
@@ -300,19 +305,27 @@
         promptRemoveReview(reviewId);
       } else if (action === 'reject') {
         promptDismissReport(reviewId);
+      } else if (action === 'publish') {
+        publishReview(reviewId);
+      } else if (action === 'decline') {
+        declineReview(reviewId);
       }
     });
   }
 
   // ── Remove Review / Dismiss Report ────────────────────────────────────────
-  async function removeReview(reviewId) {
+  async function removeReview(reviewId, options = {}) {
+    const {
+      reason = 'Review removed following valid report',
+      done = 'Review removed from the platform',
+    } = options;
     try {
       await ensureCSRFToken();
       await AdminShared.adminFetch(`/api/v2/admin/reviews/${encodeURIComponent(reviewId)}/reject`, {
         method: 'POST',
-        body: { reason: 'Review removed following valid report' },
+        body: { reason },
       });
-      showToast('Review removed from the platform', 'success');
+      showToast(done, 'success');
       reviews = reviews.filter(r => (r.id || r._id) !== reviewId);
       selectedIds.delete(reviewId);
       updateBatchBar();
@@ -323,7 +336,7 @@
     }
   }
 
-  async function dismissReport(reviewId) {
+  async function dismissReport(reviewId, done = 'Report dismissed — review remains published') {
     try {
       await ensureCSRFToken();
       await AdminShared.adminFetch(
@@ -332,7 +345,7 @@
           method: 'POST',
         }
       );
-      showToast('Report dismissed — review remains published', 'success');
+      showToast(done, 'success');
       reviews = reviews.filter(r => (r.id || r._id) !== reviewId);
       selectedIds.delete(reviewId);
       updateBatchBar();
@@ -341,6 +354,28 @@
       console.error('Failed to dismiss report:', err);
       showToast('Failed to dismiss report', 'error');
     }
+  }
+
+  async function publishReview(reviewId) {
+    await dismissReport(reviewId, 'Review approved and published');
+  }
+
+  async function declineReview(reviewId) {
+    if (typeof AdminShared.showConfirmModal !== 'function') {
+      showToast('Admin utilities not available. Please reload the page.', 'error');
+      return;
+    }
+    const result = await AdminShared.showConfirmModal({
+      title: 'Reject Review',
+      message: 'This review will not be published. Continue?',
+    });
+    if (!result) {
+      return;
+    }
+    await removeReview(reviewId, {
+      reason: 'Review rejected by moderator',
+      done: 'Review rejected',
+    });
   }
 
   async function promptRemoveReview(reviewId) {
@@ -386,8 +421,8 @@
         return;
       }
       const result = await AdminShared.showConfirmModal({
-        title: 'Remove Selected Reviews',
-        message: `Remove ${ids.length} selected review(s) from the platform?`,
+        title: 'Remove / Reject Selected Reviews',
+        message: `Remove or reject ${ids.length} selected review(s)? Reported reviews are removed; waiting reviews are not published.`,
       });
       if (!result) {
         return;
@@ -411,8 +446,8 @@
         return;
       }
       const result = await AdminShared.showConfirmModal({
-        title: 'Dismiss Selected Reports',
-        message: `Dismiss reports for ${ids.length} selected review(s) and keep them published?`,
+        title: 'Approve / Dismiss Selected',
+        message: `Publish ${ids.length} selected review(s)? Reports on reported reviews are dismissed.`,
       });
       if (!result) {
         return;

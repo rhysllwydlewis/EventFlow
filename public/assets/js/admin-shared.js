@@ -1571,7 +1571,9 @@ const AdminShared = (function () {
       return () => {};
     }
 
-    const originalText = button.textContent;
+    // Keep the button's markup, not just its text, so child elements a page writes into by id
+    // (for example a status <span>) come back after the action instead of being lost.
+    const originalHtml = button.innerHTML;
     const originalDisabled = button.disabled;
 
     button.disabled = true;
@@ -1582,7 +1584,7 @@ const AdminShared = (function () {
     // Return a function to re-enable
     return () => {
       button.disabled = originalDisabled;
-      button.textContent = originalText;
+      button.innerHTML = originalHtml;
       button.style.opacity = '';
       button.style.cursor = '';
     };

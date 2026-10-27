@@ -356,17 +356,44 @@
 
   async function toggleSuspend(id, currentlySuspended) {
     const action = currentlySuspended ? 'unsuspend' : 'suspend';
-    const ok = await AdminShared.showConfirmModal({
-      title: `${currentlySuspended ? 'Unsuspend' : 'Suspend'} this account?`,
-      confirmText: currentlySuspended ? 'Unsuspend' : 'Suspend',
-      type: 'warning',
-    });
-    if (!ok) {
-      return;
+    let reason = '';
+    if (currentlySuspended) {
+      const ok = await AdminShared.showConfirmModal({
+        title: 'Unsuspend this account?',
+        confirmText: 'Unsuspend',
+        type: 'warning',
+      });
+      if (!ok) {
+        return;
+      }
+    } else {
+      const result = await AdminShared.showInputModal({
+        title: 'Suspend this account?',
+        message:
+          'The account will be marked as suspended and the reason recorded in the audit log.',
+        label: 'Reason (optional)',
+        placeholder: 'Why is this account being suspended?',
+        required: false,
+        type: 'textarea',
+        confirmText: 'Suspend',
+      });
+      if (!result || !result.confirmed) {
+        return;
+      }
+      reason = (result.value || '').trim();
     }
     try {
-      await AdminShared.api(`/api/admin/users/${encodedUserId}/${action}`, 'POST');
-      AdminShared.showToast(`User ${action}ed successfully`, 'success');
+      // The suspend endpoint treats a missing "suspended" flag as false, so it must be sent.
+      const body = currentlySuspended ? undefined : { suspended: true, reason };
+      const data = await AdminShared.api(
+        `/api/admin/users/${encodedUserId}/${action}`,
+        'POST',
+        body
+      );
+      AdminShared.showToast(
+        (data && data.message) || `User ${currentlySuspended ? 'unsuspended' : 'suspended'}`,
+        'success'
+      );
       await loadUserDetails();
     } catch (err) {
       AdminShared.showToast(`Failed: ${err.message}`, 'error');

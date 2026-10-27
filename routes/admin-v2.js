@@ -1575,11 +1575,41 @@ router.get(
   async (req, res) => {
     try {
       const reviews = await dbUnified.read('reviews');
-      const pending = reviews.filter(r => r.status === 'pending' || r.flagged);
+      // A rejected review is finished, even if it was reported before it was removed
+      const pending = reviews.filter(
+        r => r.status !== 'rejected' && (r.status === 'pending' || r.flagged)
+      );
+
+      // Show people and businesses by name; the page used to print raw ids
+      const nameOf = async (collection, id, pick) => {
+        if (!id) {
+          return null;
+        }
+        const record = await dbUnified.findOne(collection, { id });
+        return record ? pick(record) : null;
+      };
+      const supplierNames = new Map();
+      const authorNames = new Map();
+      await Promise.all([
+        ...[...new Set(pending.map(r => r.supplierId).filter(Boolean))].map(async id =>
+          supplierNames.set(id, await nameOf('suppliers', id, supplier => supplier.name))
+        ),
+        ...[...new Set(pending.map(r => r.authorId).filter(Boolean))].map(async id =>
+          authorNames.set(
+            id,
+            await nameOf('users', id, user => user.displayName || user.name || null)
+          )
+        ),
+      ]);
+      const data = pending.map(r => ({
+        ...r,
+        supplierName: supplierNames.get(r.supplierId) || null,
+        authorName: authorNames.get(r.authorId) || null,
+      }));
 
       res.json({
         success: true,
-        data: pending,
+        data,
         count: pending.length,
         timestamp: new Date().toISOString(),
       });
@@ -1625,6 +1655,8 @@ router.post(
       review.status = 'approved';
       review.approvedAt = new Date().toISOString();
       review.approvedBy = req.user.id;
+      // The moderator has dealt with any reports, so it leaves the queue
+      review.flagged = false;
 
       reviews[reviewIndex] = review;
       await dbUnified.updateOne(
@@ -1635,6 +1667,7 @@ router.post(
             status: 'approved',
             approvedAt: review.approvedAt,
             approvedBy: review.approvedBy,
+            flagged: false,
           },
         }
       );
@@ -1708,6 +1741,7 @@ router.post(
       review.rejectedAt = new Date().toISOString();
       review.rejectedBy = req.user.id;
       review.rejectionReason = reason || '';
+      review.flagged = false;
 
       reviews[reviewIndex] = review;
       await dbUnified.updateOne(
@@ -1719,6 +1753,7 @@ router.post(
             rejectedAt: review.rejectedAt,
             rejectedBy: review.rejectedBy,
             rejectionReason: review.rejectionReason,
+            flagged: false,
           },
         }
       );

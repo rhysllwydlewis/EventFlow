@@ -671,37 +671,39 @@
     }
 
     const btn = document.getElementById('quickToggleMaintenance');
-    await AdminShared.safeAction(
-      btn,
-      async () => {
-        const durationValue = document.getElementById('maintenanceDuration').value;
-        const data = {
-          enabled: newState,
-          message:
-            document.getElementById('maintenanceMessage').value ||
-            "We're performing scheduled maintenance. We'll be back soon!",
-          duration: durationValue ? Number(durationValue) : null,
-        };
+    try {
+      await AdminShared.safeAction(
+        btn,
+        async () => {
+          const durationValue = document.getElementById('maintenanceDuration').value;
+          const data = {
+            enabled: newState,
+            message:
+              document.getElementById('maintenanceMessage').value ||
+              "We're performing scheduled maintenance. We'll be back soon!",
+            duration: durationValue ? Number(durationValue) : null,
+          };
 
-        const result = await AdminShared.adminFetch('/api/admin/settings/maintenance', {
-          method: 'PUT',
-          body: data,
-        });
+          return AdminShared.adminFetch('/api/admin/settings/maintenance', {
+            method: 'PUT',
+            body: data,
+          });
+        },
+        {
+          loadingText: 'Updating...',
+          successMessage: `Maintenance mode ${newState ? 'enabled' : 'disabled'}`,
+          errorMessage: 'Failed to toggle maintenance mode',
+        }
+      );
+    } catch {
+      // safeAction has already shown the error and restored the button
+      return;
+    }
 
-        document.getElementById('maintenanceMode').checked = newState;
-        updateMaintenanceButton(newState);
-
-        // Reload to update countdown
-        await loadMaintenanceMode();
-
-        return result;
-      },
-      {
-        loadingText: 'Updating...',
-        successMessage: `Maintenance mode ${newState ? 'enabled' : 'disabled'}`,
-        errorMessage: 'Failed to toggle maintenance mode',
-      }
-    );
+    // Update the page only once the button is back, so its status text exists to write into
+    document.getElementById('maintenanceMode').checked = newState;
+    updateMaintenanceButton(newState);
+    await loadMaintenanceMode();
   });
 
   // Save maintenance mode

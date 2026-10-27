@@ -272,6 +272,19 @@
     if (verificationToggleEl) {
       verificationToggleEl.addEventListener('change', async () => {
         const newValue = verificationToggleEl.checked;
+        if (newValue) {
+          const confirmed = await AdminShared.showConfirmModal({
+            title: 'Turn on auto-approve?',
+            message:
+              'New suppliers will be approved automatically. Suppliers who are waiting for review right now will be approved too. Rejected, needs-changes and suspended suppliers are not touched. Turning this off later does not undo any approvals.',
+            confirmText: 'Turn on',
+            type: 'warning',
+          });
+          if (!confirmed) {
+            updateVerificationToggleUI(autoApproveVerification);
+            return;
+          }
+        }
         verificationToggleEl.disabled = true;
         await saveAutoApproveVerificationFlag(newValue);
         verificationToggleEl.disabled = false;
@@ -372,6 +385,8 @@
       );
     });
 
+    // A selection made under another filter would otherwise stay active on rows no longer shown
+    selectedSuppliers.clear();
     currentPage = 1;
     renderTable();
   }
@@ -551,6 +566,8 @@
 
   // Change page
   function changePage(delta) {
+    // Bulk actions must only ever act on rows the admin can see
+    selectedSuppliers.clear();
     currentPage += delta;
     renderTable();
   }

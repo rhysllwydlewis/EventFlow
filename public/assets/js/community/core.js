@@ -533,8 +533,10 @@
     }
     live.textContent = message;
 
-    if (window.showToast) {
-      window.showToast(message, tone === 'error' ? 'error' : 'success');
+    // Admin pages load AdminShared, which owns the toast; there is no global showToast.
+    const toast = window.showToast || (window.AdminShared && window.AdminShared.showToast) || null;
+    if (toast) {
+      toast(message, tone === 'error' ? 'error' : 'success');
     }
   }
 
