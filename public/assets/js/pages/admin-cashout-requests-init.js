@@ -39,21 +39,40 @@
     }, 4000);
   }
 
-  async function getCsrfToken() {
-    const r = await fetch('/api/v1/auth/csrf-token', { credentials: 'include' });
-    const b = await r.json().catch(() => ({}));
-    return b.csrfToken || b.token || '';
+  // The token is stable for the life of its cookie, so fetch it once: the endpoint is rate
+  // limited (10 per 15 minutes), and a fresh request per action would soon be refused.
+  let cachedCsrfToken = '';
+
+  async function getCsrfToken(forceRefresh) {
+    if (cachedCsrfToken && !forceRefresh) {
+      return cachedCsrfToken;
+    }
+    const response = await fetch('/api/v1/csrf-token', { credentials: 'include' });
+    const body = await response.json().catch(() => ({}));
+    cachedCsrfToken = body.csrfToken || body.token || '';
+    if (!cachedCsrfToken) {
+      throw new Error('Could not get a security token. Please refresh the page and try again.');
+    }
+    return cachedCsrfToken;
   }
 
-  async function apiWrite(url, method, body) {
-    const csrfToken = await getCsrfToken();
-    const res = await fetch(url, {
+  function sendWrite(url, method, body, csrfToken) {
+    return fetch(url, {
       method,
       credentials: 'include',
       headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrfToken },
       body: JSON.stringify(body || {}),
     });
-    const data = await res.json().catch(() => ({}));
+  }
+
+  async function apiWrite(url, method, body) {
+    let res = await sendWrite(url, method, body, await getCsrfToken());
+    let data = await res.json().catch(() => ({}));
+    if (res.status === 403 && data.errorType === 'CSRFError') {
+      // The cookie may have expired or been replaced: get a new token and try once more.
+      res = await sendWrite(url, method, body, await getCsrfToken(true));
+      data = await res.json().catch(() => ({}));
+    }
     if (!res.ok) {
       const error = new Error(data.error || 'The operation failed.');
       error.code = data.code;
