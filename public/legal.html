@@ -27,7 +27,8 @@
   <link rel="stylesheet" href="/assets/css/eventflow-footer.css">
     <link rel="stylesheet" href="/assets/css/public-mobile-compact.css" />
   <link rel="stylesheet" href="/assets/css/legal-pages.css?v=1.0.1">
-  <link rel="stylesheet" href="/assets/css/legal-hub.css?v=1.0.0">
+  <link rel="stylesheet" href="/assets/css/legal-hub.css?v=1.1.0">
+  <script src="/assets/js/legal-hub.js?v=1.0.0" defer></script>
 </head>
 <body class="lh-page">
 <!-- TOP NAVBAR - GOLD STANDARD REBUILD -->
@@ -1241,7 +1242,7 @@
             <h3 class="h5">What to Report</h3>
             <p>Please report any of the following immediately:</p>
             
-            <h4 style="margin-top: 16px; margin-bottom: 8px;">🚫 Illegal Items & Fraud</h4>
+            <h4 class="lh-flag"><span class="lh-dot lh-dot--danger" aria-hidden="true"></span>Illegal Items & Fraud</h4>
             <ul>
               <li><strong>Counterfeit Goods:</strong> Fake designer items, fake tickets, replica products</li>
               <li><strong>Stolen Property:</strong> Items you suspect are stolen</li>
@@ -1250,7 +1251,7 @@
               <li><strong>Scams & Fraud:</strong> Misleading listings, fake services, phishing attempts</li>
             </ul>
             
-            <h4 style="margin-top: 16px; margin-bottom: 8px;">⚠️ Safety Concerns</h4>
+            <h4 class="lh-flag"><span class="lh-dot lh-dot--warn" aria-hidden="true"></span>Safety Concerns</h4>
             <ul>
               <li><strong>Unsafe Products:</strong> Items that don't meet safety standards</li>
               <li><strong>Dangerous Services:</strong> Unqualified suppliers offering regulated services</li>
@@ -1258,7 +1259,7 @@
               <li><strong>Age-Restricted Items:</strong> Inappropriate items for minors without restrictions</li>
             </ul>
             
-            <h4 style="margin-top: 16px; margin-bottom: 8px;">🛡️ Harmful Content</h4>
+            <h4 class="lh-flag"><span class="lh-dot lh-dot--danger" aria-hidden="true"></span>Harmful Content</h4>
             <ul>
               <li><strong>Hate Speech:</strong> Content promoting hatred based on protected characteristics</li>
               <li><strong>Illegal Content:</strong> Child sexual abuse material, terrorism content</li>
@@ -1350,7 +1351,7 @@
             <h3 class="h5" style="margin-top: 24px;">Recommended Secure Payment Methods</h3>
             <p>We strongly recommend using payment methods with buyer protection:</p>
             
-            <h4 style="margin-top: 16px; margin-bottom: 8px;">✅ Recommended (Buyer Protection)</h4>
+            <h4 class="lh-flag"><span class="lh-dot lh-dot--ok" aria-hidden="true"></span>Recommended (Buyer Protection)</h4>
             <ul>
               <li><strong>PayPal Goods & Services:</strong> Comprehensive buyer protection, dispute resolution</li>
               <li><strong>Credit Card:</strong> Section 75 protection for purchases £100-£30,000</li>
@@ -1358,14 +1359,14 @@
               <li><strong>Payment Platforms:</strong> Stripe, Square, or similar with buyer protection</li>
             </ul>
             
-            <h4 style="margin-top: 16px; margin-bottom: 8px;">⚠️ Use With Caution</h4>
+            <h4 class="lh-flag"><span class="lh-dot lh-dot--warn" aria-hidden="true"></span>Use With Caution</h4>
             <ul>
               <li><strong>Bank Transfer:</strong> Limited buyer protection - only use for trusted sellers or services</li>
               <li><strong>PayPal Friends & Family:</strong> No buyer protection - not recommended for marketplace purchases</li>
               <li><strong>Cash in Person:</strong> Acceptable for local pickups with proper safety precautions</li>
             </ul>
             
-            <h4 style="margin-top: 16px; margin-bottom: 8px;">❌ Never Use</h4>
+            <h4 class="lh-flag"><span class="lh-dot lh-dot--danger" aria-hidden="true"></span>Never Use</h4>
             <ul>
               <li><strong>Gift Cards:</strong> Common scam method, no protection</li>
               <li><strong>Cryptocurrency (for standard purchases):</strong> Irreversible, no buyer protection</li>
@@ -1571,7 +1572,7 @@
     <!-- Bottom Notice -->
     <div class="card lh-closing">
       <p><strong>Important:</strong> These legal documents are regularly updated to reflect changes in our services and applicable laws. We recommend reviewing them periodically.</p>
-      <p class="small" style="margin-top: 12px; color: #667085;">Last materially updated: {{POLICY_LEGAL_HUB_LAST_UPDATED}} | Effective date: {{POLICY_LEGAL_HUB_EFFECTIVE_DATE}} | Last reviewed: {{POLICY_LEGAL_HUB_LAST_REVIEWED}} | Version: {{POLICY_LEGAL_HUB_VERSION}}</p>
+      <p class="small">Last materially updated: {{POLICY_LEGAL_HUB_LAST_UPDATED}} | Effective date: {{POLICY_LEGAL_HUB_EFFECTIVE_DATE}} | Last reviewed: {{POLICY_LEGAL_HUB_LAST_REVIEWED}} | Version: {{POLICY_LEGAL_HUB_VERSION}}</p>
     </div>
 
   </div>

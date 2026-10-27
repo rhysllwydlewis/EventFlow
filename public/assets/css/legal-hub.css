@@ -69,6 +69,15 @@
   line-height: 1.6;
 }
 
+/* mobile-optimizations.css sets overflow-x: hidden on main and .container, which
+   turns each into a scroll container and stops the pinned contents row from
+   sticking. clip hides overflow the same way without creating one. */
+.lh-page main.lh,
+.lh-page .lh-container {
+  overflow-x: clip;
+  overflow-y: visible;
+}
+
 .lh-page main.lh *,
 .lh-page main.lh *::before,
 .lh-page main.lh *::after {
@@ -155,6 +164,7 @@
 }
 
 .lh-page .lh-quick a {
+  position: relative;
   display: flex;
   flex-direction: column;
   gap: 4px;
@@ -178,7 +188,28 @@
   transform: translateY(-1px);
 }
 
+.lh-page .lh-quick a::after {
+  content: '\2192' / '';
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  color: var(--lh-faint);
+  font-size: 16px;
+  line-height: 1;
+  transition:
+    color 0.15s ease,
+    transform 0.15s ease;
+}
+
+.lh-page .lh-quick a:hover::after {
+  color: var(--lh-accent);
+  transform: translateX(2px);
+}
+
 .lh-page .lh-quick-icon {
+  transition:
+    background-color 0.15s ease,
+    color 0.15s ease;
   display: grid;
   place-items: center;
   width: 36px;
@@ -187,6 +218,11 @@
   border-radius: var(--lh-radius-sm);
   background: var(--lh-accent-soft);
   color: var(--lh-accent);
+}
+
+.lh-page .lh-quick a:hover .lh-quick-icon {
+  background: var(--lh-accent);
+  color: #fff;
 }
 
 .lh-page .lh-quick-icon svg {
@@ -329,6 +365,17 @@
   box-shadow: var(--lh-shadow);
   scroll-margin-top: 100px;
   counter-increment: lh-section;
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+/* The section a contents or quick link just jumped to. */
+.lh-page .legal-section:target {
+  border-color: var(--lh-accent-line);
+  box-shadow:
+    0 0 0 3px var(--lh-accent-soft),
+    var(--lh-shadow);
 }
 
 .lh-page .legal-section > h2 {
@@ -346,6 +393,18 @@
   text-wrap: balance;
 }
 
+/* The "#" link legal-pages.js adds to each heading. On a phone the sitewide 44px
+   tap-target rule made this invisible link a 44px-tall flex item, which pushed
+   every section title away from its rule. */
+.lh-page .legal-section > h2 > .legal-anchor {
+  min-width: 0 !important;
+  min-height: 0 !important;
+  margin-left: 4px;
+  padding: 0 4px;
+  font-size: 14px;
+  text-decoration: none !important;
+}
+
 .lh-page .legal-section > h2 > span[aria-hidden='true'] {
   display: none;
 }
@@ -353,11 +412,19 @@
 .lh-page .legal-section > h2::before {
   content: counter(lh-section, decimal-leading-zero);
   flex: none;
+  min-width: 34px;
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: var(--lh-accent-soft);
   font-size: 12px;
   font-variant-numeric: tabular-nums;
   font-weight: 700;
-  letter-spacing: 0.08em;
-  color: var(--lh-accent);
+  letter-spacing: 0.06em;
+  line-height: 1.4;
+  text-align: center;
+  color: var(--lh-accent-hover);
+  /* Sit on the first line's x-height, not its baseline, when a title wraps. */
+  transform: translateY(-2px);
 }
 
 .lh-page .legal-section h3 {
@@ -377,6 +444,31 @@
   color: var(--lh-ink);
 }
 
+.lh-page .legal-section .lh-flag {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.lh-page .lh-dot {
+  flex: none;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--lh-accent);
+  box-shadow: 0 0 0 4px var(--lh-accent-soft);
+}
+
+.lh-page .lh-dot--warn {
+  background: #c27803;
+  box-shadow: 0 0 0 4px var(--lh-warn-soft);
+}
+
+.lh-page .lh-dot--danger {
+  background: var(--lh-danger);
+  box-shadow: 0 0 0 4px var(--lh-danger-soft);
+}
+
 .lh-page .legal-section p,
 .lh-page .legal-section li {
   font-size: 14px;
@@ -386,7 +478,19 @@
 
 .lh-page .legal-section p {
   margin: 0 0 12px;
-  max-width: 78ch;
+}
+
+/* One reading measure for text and lists, so paragraphs and bullets line up
+   instead of wrapping at two different widths. Cards, notices and tables stay
+   full width. */
+.lh-page .legal-section :is(p, .legal-metadata) {
+  max-width: 80ch;
+}
+
+.lh-page .legal-section > :is(ul, ol),
+.lh-page .legal-section .card > :is(ul, ol),
+.lh-page .legal-section .notice > :is(ul, ol) {
+  max-width: 80ch;
 }
 
 .lh-page .legal-section :is(ul, ol) {
@@ -469,6 +573,10 @@
   border: 1px solid var(--lh-line);
   border-radius: var(--lh-radius-sm);
   background: var(--lh-bg);
+}
+
+.lh-page .legal-section .legal-metadata {
+  max-width: none;
 }
 
 .lh-page .legal-section .legal-metadata p {
@@ -603,14 +711,22 @@
   cursor: pointer;
   transition:
     background-color 0.15s ease,
-    border-color 0.15s ease;
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
 }
 
 .lh-page .legal-section a.cta:hover,
 .lh-page .legal-section .lh-btn:hover {
   border-color: var(--lh-accent-hover);
   background: var(--lh-accent-hover);
+  box-shadow: 0 4px 12px rgba(11, 128, 115, 0.25);
   color: #fff;
+}
+
+.lh-page .legal-section a.cta:active,
+.lh-page .legal-section .lh-btn:active {
+  box-shadow: none;
+  transform: translateY(1px);
 }
 
 /* styles.css flattens every [data-cookie-prefs] button into footer-style link
@@ -699,6 +815,29 @@
   background: var(--lh-bg);
 }
 
+/* The five data-rights cards sit two across; everything else in the section
+   (heading, intro, notes) keeps the full row. */
+@media (min-width: 900px) {
+  .lh-page #gdpr {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    column-gap: 16px;
+    align-content: start;
+  }
+
+  .lh-page #gdpr > :not(.card) {
+    grid-column: 1 / -1;
+  }
+
+  .lh-page #gdpr > .card {
+    margin: 0 0 16px !important;
+  }
+
+  .lh-page #gdpr > .card:last-of-type {
+    grid-column: 1 / -1;
+  }
+}
+
 /* Closing contact card, outside the sections. */
 .lh-page .card.lh-closing {
   margin: 40px 0 0 !important;
@@ -719,6 +858,20 @@
   margin-bottom: 0;
 }
 
+.lh-page .lh-closing p {
+  max-width: 70ch;
+}
+
+.lh-page .lh-closing .small {
+  max-width: none;
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid var(--lh-line-soft);
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--lh-muted);
+}
+
 .lh-page .lh-closing a {
   color: var(--lh-accent-hover);
   text-underline-offset: 3px;
@@ -735,21 +888,80 @@
 }
 
 @media (max-width: 860px) {
+  /* A block parent, not a one-column grid: a sticky grid item can only stick
+     inside its own row, so the pinned chips would scroll away with it. */
   .lh-page .legal-grid {
-    grid-template-columns: minmax(0, 1fr);
-    gap: 16px;
+    display: block;
   }
 
+  /* Twenty-one stacked links would push the first section a screen down, so on
+     small screens the contents become one scrolling row of chips pinned under
+     the header. legal-hub.js keeps the current chip in view. */
   .lh-page .legal-toc {
-    position: static;
+    position: sticky;
+    top: var(--ef-header-height, 64px);
+    z-index: 20;
     max-height: none;
-    padding: 16px 12px 12px;
+    margin: 0 -6px 16px;
+    padding: 6px;
+    border-radius: 14px;
+    background: rgba(255, 255, 255, 0.94);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
   }
 
-  /* Without the sticky viewport constraint the list would push the first
-     section a full screen down on a phone. */
+  .lh-page .legal-toc h2 {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    padding: 0;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+
   .lh-page .legal-toc ul {
-    max-height: 40vh;
+    position: relative;
+    display: flex;
+    gap: 6px;
+    padding: 0;
+    overflow: auto hidden;
+    overscroll-behavior-x: contain;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .lh-page .legal-toc ul::-webkit-scrollbar {
+    display: none;
+  }
+
+  .lh-page .legal-toc li {
+    flex: none;
+    margin: 0;
+  }
+
+  /* The sitewide 44px tap-target rule would make the pinned bar tall; 32px chips
+     still clear WCAG 2.5.8 (24px) and leave the heading landing under the
+     scroll-spy line in legal-pages.js. */
+  .lh-page .legal-toc a {
+    min-height: 32px !important;
+    padding: 5px 12px;
+    border: 1px solid var(--lh-line);
+    border-radius: 999px;
+    white-space: nowrap;
+  }
+
+  .lh-page .legal-toc a::before {
+    display: none;
+  }
+
+  .lh-page .legal-toc a[aria-current='true'] {
+    border-color: var(--lh-accent-line);
+  }
+
+  .lh-page .legal-section {
+    scroll-margin-top: 112px;
   }
 }
 
@@ -769,7 +981,6 @@
   .lh-page .legal-section {
     padding: 20px;
     margin-bottom: 16px;
-    scroll-margin-top: 80px;
   }
 
   .lh-page .legal-section > h2 {
@@ -801,6 +1012,13 @@
   }
 }
 
+/* html sits outside .lh-page, so this is the one rule that reaches up from it. */
+@media (prefers-reduced-motion: no-preference) {
+  html:has(> body.lh-page) {
+    scroll-behavior: smooth;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .lh-page .lh-quick a,
   .lh-page .legal-toc a,
@@ -820,12 +1038,22 @@
     background: #fff;
   }
 
-  .lh-page .lh-quick {
+  .lh-page .lh-quick,
+  .lh-page .legal-toc {
     display: none;
   }
 
   .lh-page .legal-grid {
     display: block;
+  }
+
+  .lh-page .legal-section,
+  .lh-page .card {
+    break-inside: avoid-page;
+  }
+
+  .lh-page .legal-section > h2 {
+    break-after: avoid;
   }
 
   .lh-page .legal-section,
