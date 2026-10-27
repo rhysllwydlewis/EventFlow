@@ -796,9 +796,10 @@
           const adminEmail = AdminShared.escapeHtml(log.adminEmail || 'Unknown');
           // log.details can contain admin-supplied free text (e.g. email
           // template subject, site tagline) — never inject it unescaped.
-          const detailsText = log.details
-            ? AdminShared.escapeHtml(JSON.stringify(log.details).substring(0, 100))
-            : '';
+          const detailsJson = log.details ? JSON.stringify(log.details) : '';
+          const detailsText = AdminShared.escapeHtml(
+            detailsJson.length > 100 ? `${detailsJson.substring(0, 100)}…` : detailsJson
+          );
           return `
           <div style="padding: 0.75rem; border-bottom: 1px solid #eee; font-size: 0.9rem;">
             <div style="display: flex; justify-content: space-between; margin-bottom: 0.25rem;">
@@ -811,7 +812,7 @@
             ${
               detailsText
                 ? `<div style="color: #999; font-size: 0.85rem; margin-top: 0.25rem;">
-              ${detailsText}...
+              ${detailsText}
             </div>`
                 : ''
             }

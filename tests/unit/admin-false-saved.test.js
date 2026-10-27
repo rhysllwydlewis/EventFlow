@@ -314,6 +314,35 @@ describe('F6 Settings audit log filter', () => {
   });
 });
 
+describe('F6 audit log display', () => {
+  it('only adds an ellipsis when the details were actually cut off', () => {
+    const page = source('public/assets/js/pages/admin-settings-init.js');
+    expect(page).toMatch(/detailsJson\.length > 100 \? `\$\{detailsJson\.substring\(0, 100\)\}…`/);
+    expect(page).not.toMatch(/\$\{detailsText\}\.\.\./);
+  });
+});
+
+describe('F1 bulk suspend', () => {
+  it('reports how many accounts the server actually suspended', () => {
+    const page = source('public/assets/js/pages/admin-users-init.js');
+    expect(page).toMatch(
+      /const result = await AdminShared\.adminFetch\('\/api\/admin\/users\/bulk-suspend'/
+    );
+    expect(page).toMatch(/Number\.isFinite\(result\?\.updated\)/);
+    expect(page).toMatch(/already suspended, protected or not found/);
+  });
+
+  it('the endpoint returns the counts the page reads', async () => {
+    mockStore.users.push({ id: 'u3', name: 'Cy', email: 'cy@example.test', role: 'customer' });
+    const response = await request(appWith('../../routes/admin-user-management'))
+      .post('/api/admin/users/bulk-suspend')
+      .send({ userIds: ['u1', 'u3', 'missing'], suspended: true, reason: 'Spam' });
+    expect(response.status).toBe(200);
+    expect(response.body.updated).toBe(2);
+    expect(response.body.notFound).toBeGreaterThanOrEqual(1);
+  });
+});
+
 describe('F7 Community admin', () => {
   it('toasts through AdminShared when there is no global showToast', () => {
     const core = source('public/assets/js/community/core.js');
@@ -439,6 +468,26 @@ describe('F8 Reviews', () => {
     expect(mockStore.reviews[0]['moderation.state']).toBeUndefined();
   });
 
+  it('approves and rejects a newer review that is keyed _id, not id', async () => {
+    mockStore.reviews = [
+      { _id: 'rev_v2', status: 'pending', moderation: { state: 'pending' }, supplierId: 's1' },
+    ];
+    const approved = await request(app()).post('/api/admin/reviews/rev_v2/approve');
+    expect(approved.status).toBe(200);
+    expect(mockStore.reviews[0]).toMatchObject({
+      status: 'approved',
+      moderation: { state: 'approved' },
+    });
+    const rejected = await request(app()).post('/api/admin/reviews/rev_v2/reject').send({});
+    expect(rejected.status).toBe(200);
+    expect(mockStore.reviews[0].moderation.state).toBe('rejected');
+  });
+
+  it('answers 404 for a review that does not exist', async () => {
+    const response = await request(app()).post('/api/admin/reviews/nope/approve');
+    expect(response.status).toBe(404);
+  });
+
   it('the page offers Approve/Reject for plain pending reviews and names, not ids', () => {
     const page = source('public/assets/js/pages/admin-reviews-init.js');
     expect(page).toMatch(/data-action="publish"/);
@@ -459,6 +508,17 @@ describe('F9 Suppliers page', () => {
     expect(response.body.taggedCount).toBe(1);
     expect(mockStore.suppliers[0].tags).toEqual(expect.arrayContaining(['venue']));
     expect(mockStore.suppliers[1].tags).toBeUndefined();
+  });
+
+  it('Smart Tag only tags approved suppliers, and the page says how many were really tagged', async () => {
+    mockStore.suppliers[0].approved = false;
+    const response = await request(app())
+      .post('/api/admin/suppliers/smart-tags')
+      .send({ supplierIds: ['s1'] });
+    expect(response.body.taggedCount).toBe(0);
+    const page = source('public/assets/js/pages/admin-suppliers-init.js');
+    expect(page).toMatch(/const tagged = Number\(result\.taggedCount\) \|\| 0;/);
+    expect(page).not.toMatch(/result\.taggedCount \|\| selectedSuppliers\.size/);
   });
 
   it('Smart Tag refuses an empty selection instead of tagging everyone', async () => {
@@ -517,6 +577,7 @@ describe('cache versions', () => {
     ['public/admin-reviews.html', 'admin-reviews-init.js?v=18.5.10'],
     ['public/admin-suppliers.html', 'admin-suppliers-init.js?v=18.5.10'],
     ['public/admin-settings.html', 'admin-shared.js?v=18.5.10'],
+    ['public/admin-users.html', 'admin-users-init.js?v=18.5.10'],
   ])('%s loads %s', (file, reference) => {
     expect(source(file)).toContain(reference);
   });

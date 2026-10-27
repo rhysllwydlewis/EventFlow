@@ -1561,6 +1561,25 @@ router.post(
 );
 
 /**
+ * Whether a stored review has this id. Newer reviews are keyed `_id`, legacy ones `id`.
+ * @param {Object} review - Stored review
+ * @param {string} id - Id from the URL
+ * @returns {boolean}
+ */
+function reviewKeyMatches(review, id) {
+  return review.id === id || review._id === id;
+}
+
+/**
+ * Database filter for one stored review, whichever key it is stored under.
+ * @param {Object} review - Stored review
+ * @returns {Object} Filter
+ */
+function reviewFilter(review) {
+  return review.id === undefined ? { _id: review._id } : { id: review.id };
+}
+
+/**
  * Who wrote a review: newer reviews carry authorId, the live public form stores userId.
  * @param {Object} review - Stored review
  * @returns {string|undefined} Author's user id
@@ -1700,7 +1719,7 @@ router.post(
       const { id } = req.params;
 
       const reviews = await dbUnified.read('reviews');
-      const reviewIndex = reviews.findIndex(r => r.id === id);
+      const reviewIndex = reviews.findIndex(review => reviewKeyMatches(review, id));
 
       if (reviewIndex === -1) {
         return res.status(404).json({
@@ -1717,7 +1736,7 @@ router.post(
       applyReviewDecision(review, fields);
 
       reviews[reviewIndex] = review;
-      await dbUnified.updateOne('reviews', { id: review.id }, { $set: fields });
+      await dbUnified.updateOne('reviews', reviewFilter(review), { $set: fields });
 
       // Create audit log
       await createAuditLog({
@@ -1729,7 +1748,7 @@ router.post(
         action: 'REVIEW_APPROVED',
         resource: {
           type: 'review',
-          id: review.id,
+          id: review.id || review._id,
         },
         changes: {
           status: { before: oldStatus, after: 'approved' },
@@ -1771,7 +1790,7 @@ router.post(
       const { reason } = req.body;
 
       const reviews = await dbUnified.read('reviews');
-      const reviewIndex = reviews.findIndex(r => r.id === id);
+      const reviewIndex = reviews.findIndex(review => reviewKeyMatches(review, id));
 
       if (reviewIndex === -1) {
         return res.status(404).json({
@@ -1788,7 +1807,7 @@ router.post(
       applyReviewDecision(review, fields);
 
       reviews[reviewIndex] = review;
-      await dbUnified.updateOne('reviews', { id: review.id }, { $set: fields });
+      await dbUnified.updateOne('reviews', reviewFilter(review), { $set: fields });
 
       // Create audit log
       await createAuditLog({
@@ -1800,7 +1819,7 @@ router.post(
         action: 'REVIEW_REJECTED',
         resource: {
           type: 'review',
-          id: review.id,
+          id: review.id || review._id,
         },
         changes: {
           status: { before: oldStatus, after: 'rejected' },

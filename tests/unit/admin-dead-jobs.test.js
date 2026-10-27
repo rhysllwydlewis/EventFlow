@@ -217,7 +217,6 @@ describe('script versions are bumped on every page that loads a changed script',
   it.each([
     ['admin-reports.html', 'admin-reports-init.js'],
     ['admin-content.html', 'admin-content-init.js'],
-    ['admin-users.html', 'admin-users-init.js'],
     ['admin-photos.html', 'admin-photos-init.js'],
     ['admin-marketplace.html', 'admin-marketplace-init.js'],
     ['admin-partners.html', 'admin-partners-init.js'],

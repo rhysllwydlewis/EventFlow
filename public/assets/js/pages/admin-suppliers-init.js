@@ -695,10 +695,16 @@
         supplierIds: Array.from(selectedSuppliers),
       });
 
-      showToast(
-        `Smart tags applied to ${result.taggedCount || selectedSuppliers.size} supplier(s)`,
-        'success'
-      );
+      // Only approved suppliers are tagged, so say how many really were
+      const tagged = Number(result.taggedCount) || 0;
+      if (tagged > 0) {
+        showToast(`Smart tags applied to ${tagged} supplier(s)`, 'success');
+      } else {
+        showToast(
+          'No tags were applied. Only approved suppliers with a category or description are tagged.',
+          'warning'
+        );
+      }
 
       // Clear selection and reload
       selectedSuppliers.clear();
