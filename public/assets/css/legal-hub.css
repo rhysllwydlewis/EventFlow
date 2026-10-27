@@ -483,7 +483,7 @@
 /* One reading measure for text and lists, so paragraphs and bullets line up
    instead of wrapping at two different widths. Cards, notices and tables stay
    full width. */
-.lh-page .legal-section :is(p, .legal-metadata) {
+.lh-page .legal-section p {
   max-width: 80ch;
 }
 
@@ -566,25 +566,30 @@
  * 5. Notices, callouts, buttons, tables
  * ------------------------------------------------------------------ */
 
-/* Per-document "last updated" strip. */
-.lh-page .legal-section .legal-metadata {
-  margin: 0 0 20px;
-  padding: 10px 14px;
-  border: 1px solid var(--lh-line);
-  border-radius: var(--lh-radius-sm);
-  background: var(--lh-bg);
-}
-
-.lh-page .legal-section .legal-metadata {
+/* Per-document "Updated <date> · Version <n>" line: plain muted text, no box. */
+.lh-page .legal-section .lh-meta,
+.lh-page .lh-closing .lh-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 0;
   max-width: none;
-}
-
-.lh-page .legal-section .legal-metadata p {
-  max-width: none;
-  margin: 0;
+  margin: -8px 0 20px;
   font-size: 12px;
-  line-height: 1.6;
+  font-weight: 500;
+  line-height: 1.5;
   color: var(--lh-muted);
+}
+
+.lh-page .lh-meta > span + span::before {
+  content: '';
+  display: inline-block;
+  width: 3px;
+  height: 3px;
+  margin: 0 10px;
+  border-radius: 50%;
+  background: var(--lh-line-strong);
+  vertical-align: middle;
 }
 
 /* Inner cards (rights, contact and payment blocks). styles.css forces the
@@ -862,14 +867,12 @@
   max-width: 70ch;
 }
 
-.lh-page .lh-closing .small {
+.lh-page .lh-closing .lh-meta {
+  justify-content: center;
   max-width: none;
-  margin-top: 16px;
+  margin: 16px 0 0;
   padding-top: 16px;
   border-top: 1px solid var(--lh-line-soft);
-  font-size: 12px;
-  line-height: 1.6;
-  color: var(--lh-muted);
 }
 
 .lh-page .lh-closing a {

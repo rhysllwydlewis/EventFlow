@@ -27,7 +27,7 @@
   <link rel="stylesheet" href="/assets/css/eventflow-footer.css">
     <link rel="stylesheet" href="/assets/css/public-mobile-compact.css" />
   <link rel="stylesheet" href="/assets/css/legal-pages.css?v=1.0.1">
-  <link rel="stylesheet" href="/assets/css/legal-hub.css?v=1.1.0">
+  <link rel="stylesheet" href="/assets/css/legal-hub.css?v=1.2.0">
   <script src="/assets/js/legal-hub.js?v=1.0.0" defer></script>
 </head>
 <body class="lh-page">
@@ -144,7 +144,7 @@
       <p class="lh-eyebrow">Legal</p>
       <h1>Legal Hub</h1>
       <p class="lh-lede">All EventFlow legal documents, policies, and guidelines in one place. Navigate using the menu below.</p>
-      <span class="last-updated">Last materially updated: {{POLICY_LEGAL_HUB_LAST_UPDATED}} · Last reviewed: {{POLICY_LEGAL_HUB_LAST_REVIEWED}} · Version {{POLICY_LEGAL_HUB_VERSION}}</span>
+      <span class="last-updated">Updated {{POLICY_LEGAL_HUB_LAST_UPDATED}} · Version {{POLICY_LEGAL_HUB_VERSION}}</span>
     </header>
 
     <ul class="lh-quick" role="list" aria-label="Most-read documents">
@@ -214,13 +214,7 @@
         <!-- Terms Summary -->
         <section id="terms" class="legal-section">
           <h2><span aria-hidden="true">📋</span> Terms of Use Summary</h2>
-          <div class="legal-metadata">
-            <p class="small">
-              <strong>Last materially updated:</strong> {{POLICY_TERMS_LAST_UPDATED}} |
-              <strong>Last reviewed:</strong> {{POLICY_TERMS_LAST_REVIEWED}} |
-              <strong>Version:</strong> {{POLICY_TERMS_VERSION}}
-            </p>
-          </div>
+          <p class="lh-meta"><span>Updated {{POLICY_TERMS_LAST_UPDATED}}</span><span>Version {{POLICY_TERMS_VERSION}}</span></p>
           <p>Our Terms of Use govern your use of EventFlow services. Key points include:</p>
           <ul>
             <li><strong>Acceptance:</strong> By using our services, you agree to these terms</li>
@@ -236,13 +230,7 @@
         <!-- Privacy Summary -->
         <section id="privacy" class="legal-section">
           <h2><span aria-hidden="true">🔒</span> Privacy Notice Summary</h2>
-          <div class="legal-metadata">
-            <p class="small">
-              <strong>Last materially updated:</strong> {{POLICY_PRIVACY_LAST_UPDATED}} |
-              <strong>Last reviewed:</strong> {{POLICY_PRIVACY_LAST_REVIEWED}} |
-              <strong>Version:</strong> {{POLICY_PRIVACY_VERSION}}
-            </p>
-          </div>
+          <p class="lh-meta"><span>Updated {{POLICY_PRIVACY_LAST_UPDATED}}</span><span>Version {{POLICY_PRIVACY_VERSION}}</span></p>
           <p>We take your privacy seriously. Our Privacy Notice explains:</p>
           <ul>
             <li><strong>What we collect:</strong> Account data, event plans, messages, photos, and supplier directory information sourced from businesses' own public websites</li>
@@ -258,13 +246,7 @@
         <!-- Cookie Policy -->
         <section id="cookies" class="legal-section">
           <h2><span aria-hidden="true">🍪</span> Cookie Policy</h2>
-          <div class="legal-metadata">
-            <p class="small">
-              <strong>Last materially updated:</strong> {{POLICY_COOKIE_POLICY_LAST_UPDATED}} |
-              <strong>Last reviewed:</strong> {{POLICY_COOKIE_POLICY_LAST_REVIEWED}} |
-              <strong>Version:</strong> {{POLICY_COOKIE_POLICY_VERSION}}
-            </p>
-          </div>
+          <p class="lh-meta"><span>Updated {{POLICY_COOKIE_POLICY_LAST_UPDATED}}</span><span>Version {{POLICY_COOKIE_POLICY_VERSION}}</span></p>
           <p>EventFlow uses cookies to provide and improve our services.</p>
           
           <h3 class="h5">Cookie Categories</h3>
@@ -319,13 +301,7 @@
         <!-- GDPR & Data Rights -->
         <section id="gdpr" class="legal-section">
           <h2><span aria-hidden="true">🛡️</span> Data Protection & Your Rights</h2>
-          <div class="legal-metadata">
-            <p class="small">
-              <strong>Last materially updated:</strong> {{POLICY_PRIVACY_LAST_UPDATED}} |
-              <strong>Last reviewed:</strong> {{POLICY_PRIVACY_LAST_REVIEWED}} |
-              <strong>Version:</strong> {{POLICY_PRIVACY_VERSION}}
-            </p>
-          </div>
+          <p class="lh-meta"><span>Updated {{POLICY_PRIVACY_LAST_UPDATED}}</span><span>Version {{POLICY_PRIVACY_VERSION}}</span></p>
           <p>Under UK GDPR, you have the following rights regarding your personal data:</p>
           
           <div class="card">
@@ -365,7 +341,7 @@
         <!-- Acceptable Use Policy -->
         <section id="acceptable-use" class="legal-section">
           <h2><span aria-hidden="true">✓</span> Acceptable Use Policy</h2>
-          <p class="small" style="color:#667085;"><strong>Last materially updated:</strong> {{POLICY_ACCEPTABLE_USE_LAST_UPDATED}} | <strong>Last reviewed:</strong> {{POLICY_ACCEPTABLE_USE_LAST_REVIEWED}} | <strong>Version:</strong> {{POLICY_ACCEPTABLE_USE_VERSION}}</p>
+          <p class="lh-meta"><span>Updated {{POLICY_ACCEPTABLE_USE_LAST_UPDATED}}</span><span>Version {{POLICY_ACCEPTABLE_USE_VERSION}}</span></p>
           <p>To maintain a safe and respectful community, users must not:</p>
           
           <h3 class="h5">Prohibited Activities</h3>
@@ -405,7 +381,7 @@
         <!-- Copyright Policy -->
         <section id="copyright" class="legal-section">
           <h2><span aria-hidden="true">©</span> Copyright & Intellectual Property</h2>
-          <p class="small" style="color:#667085;"><strong>Last materially updated:</strong> {{POLICY_COPYRIGHT_LAST_UPDATED}} | <strong>Last reviewed:</strong> {{POLICY_COPYRIGHT_LAST_REVIEWED}} | <strong>Version:</strong> {{POLICY_COPYRIGHT_VERSION}}</p>
+          <p class="lh-meta"><span>Updated {{POLICY_COPYRIGHT_LAST_UPDATED}}</span><span>Version {{POLICY_COPYRIGHT_VERSION}}</span></p>
           
           <h3 class="h5">Our Content</h3>
           <p>All content on Event Flow (text, graphics, logos, designs) is owned by VEXI or our licensors and protected by:</p>
@@ -441,7 +417,7 @@
         <!-- Supplier Terms -->
         <section id="supplier-terms" class="legal-section">
           <h2><span aria-hidden="true">🤝</span> Supplier-Specific Terms</h2>
-          <p class="small" style="color:#667085;"><strong>Last materially updated:</strong> {{POLICY_SUPPLIER_TERMS_LAST_UPDATED}} | <strong>Last reviewed:</strong> {{POLICY_SUPPLIER_TERMS_LAST_REVIEWED}} | <strong>Version:</strong> {{POLICY_SUPPLIER_TERMS_VERSION}}</p>
+          <p class="lh-meta"><span>Updated {{POLICY_SUPPLIER_TERMS_LAST_UPDATED}}</span><span>Version {{POLICY_SUPPLIER_TERMS_VERSION}}</span></p>
           <p>If you are a supplier listing services on EventFlow, additional terms apply:</p>
           <p class="small lh-callout">Not signed up, but your business already appears on EventFlow? That is an <a href="#unclaimed-listings">unclaimed listing</a>. It creates no contract and no charge, and you can claim, correct or remove it.</p>
           
@@ -539,7 +515,7 @@
         <!-- Unclaimed Listings -->
         <section id="unclaimed-listings" class="legal-section">
           <h2><span aria-hidden="true">📍</span> Unclaimed Listings</h2>
-          <p class="small" style="color:#667085;"><strong>Last materially updated:</strong> {{POLICY_UNCLAIMED_LISTINGS_LAST_UPDATED}} | <strong>Last reviewed:</strong> {{POLICY_UNCLAIMED_LISTINGS_LAST_REVIEWED}} | <strong>Version:</strong> {{POLICY_UNCLAIMED_LISTINGS_VERSION}}</p>
+          <p class="lh-meta"><span>Updated {{POLICY_UNCLAIMED_LISTINGS_LAST_UPDATED}}</span><span>Version {{POLICY_UNCLAIMED_LISTINGS_VERSION}}</span></p>
 
           <p>Some supplier listings on EventFlow are created by us from information a business has
             already published about itself, rather than by the business signing up. Those listings
@@ -590,7 +566,7 @@
         <!-- Marketplace Terms -->
         <section id="marketplace-terms" class="legal-section">
           <h2><span aria-hidden="true">🛒</span> Marketplace Terms</h2>
-          <p class="small" style="color:#667085;"><strong>Last materially updated:</strong> {{POLICY_MARKETPLACE_TERMS_LAST_UPDATED}} | <strong>Last reviewed:</strong> {{POLICY_MARKETPLACE_TERMS_LAST_REVIEWED}} | <strong>Version:</strong> {{POLICY_MARKETPLACE_TERMS_VERSION}}</p>
+          <p class="lh-meta"><span>Updated {{POLICY_MARKETPLACE_TERMS_LAST_UPDATED}}</span><span>Version {{POLICY_MARKETPLACE_TERMS_VERSION}}</span></p>
           <p>The EventFlow Marketplace is a peer-to-peer platform for buying and selling physical event-related items. These terms apply to all marketplace users (buyers and sellers).</p>
           
           <h3 class="h5">Marketplace Overview</h3>
@@ -899,7 +875,7 @@
         <!-- Community Guidelines -->
         <section id="community" class="legal-section">
           <h2><span aria-hidden="true">👥</span> Community Guidelines</h2>
-          <p class="small" style="color:#667085;"><strong>Last materially updated:</strong> {{POLICY_COMMUNITY_GUIDELINES_LAST_UPDATED}} | <strong>Last reviewed:</strong> {{POLICY_COMMUNITY_GUIDELINES_LAST_REVIEWED}} | <strong>Version:</strong> {{POLICY_COMMUNITY_GUIDELINES_VERSION}}</p>
+          <p class="lh-meta"><span>Updated {{POLICY_COMMUNITY_GUIDELINES_LAST_UPDATED}}</span><span>Version {{POLICY_COMMUNITY_GUIDELINES_VERSION}}</span></p>
           <p>The EventFlow Community is a public forum for event planners and suppliers. Published
             handles, profiles, discussions and replies may be searchable on EventFlow and indexed
             by external search engines. Community advice is user-generated and should not be
@@ -1572,7 +1548,7 @@
     <!-- Bottom Notice -->
     <div class="card lh-closing">
       <p><strong>Important:</strong> These legal documents are regularly updated to reflect changes in our services and applicable laws. We recommend reviewing them periodically.</p>
-      <p class="small">Last materially updated: {{POLICY_LEGAL_HUB_LAST_UPDATED}} | Effective date: {{POLICY_LEGAL_HUB_EFFECTIVE_DATE}} | Last reviewed: {{POLICY_LEGAL_HUB_LAST_REVIEWED}} | Version: {{POLICY_LEGAL_HUB_VERSION}}</p>
+      <p class="lh-meta"><span>Updated {{POLICY_LEGAL_HUB_LAST_UPDATED}}</span><span>Version {{POLICY_LEGAL_HUB_VERSION}}</span></p>
     </div>
 
   </div>
