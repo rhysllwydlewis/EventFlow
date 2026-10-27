@@ -76,7 +76,13 @@
 }
 
 .lh-page .lh-container {
-  max-width: 1200px;
+  /* styles.css gives .container a percentage width and mobile-optimizations.css
+     adds side padding on top, which left 37px gutters on a phone. A fixed
+     16px gutter keeps the cards as wide as the screen allows. */
+  width: min(1200px, 100% - 32px);
+  max-width: none;
+  padding-left: 0;
+  padding-right: 0;
 }
 
 .lh-page main.lh :where(a):focus-visible,
@@ -393,8 +399,28 @@
   padding-left: 2px;
 }
 
+.lh-page .legal-section li:last-child {
+  margin-bottom: 0;
+}
+
 .lh-page .legal-section li::marker {
   color: var(--lh-line-strong);
+}
+
+/* Numbers carry meaning, so they get readable contrast; only bullets stay faint. */
+.lh-page .legal-section ol > li::marker {
+  color: var(--lh-faint);
+  font-weight: 600;
+}
+
+/* mobile-optimizations.css gives every link in <main> a 44px minimum height and
+   its text-link exception loses on specificity, so a link at the end of a line
+   stretches that line to 44px. Links inside text are exempt from the target-size
+   rule (WCAG 2.5.8), so they go back to their natural height. */
+.lh-page .legal-section :is(p, li, .small) a:not(.cta) {
+  min-height: 0 !important;
+  min-width: 0 !important;
+  padding: 0;
 }
 
 .lh-page .legal-section strong {
@@ -476,6 +502,14 @@
 
 .lh-page .legal-section .card :is(h3, h4):first-child {
   margin-top: 0;
+}
+
+.lh-page .legal-section .card.lh-card--plain {
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: none !important;
 }
 
 .lh-page .legal-section .card.lh-card--danger {
@@ -724,11 +758,6 @@
     padding: 24px 0 56px;
   }
 
-  .lh-page main.lh .container {
-    padding-left: 16px;
-    padding-right: 16px;
-  }
-
   .lh-page .lh-hero h1 {
     font-size: 28px;
   }
@@ -753,7 +782,7 @@
     font-size: 16px;
   }
 
-  .lh-page .legal-section .card {
+  .lh-page .legal-section .card:not(.lh-card--plain) {
     padding: 16px !important;
   }
 
