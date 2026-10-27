@@ -75,7 +75,7 @@
         <div class="export-card-icon" aria-hidden="true">📧</div>
         <div class="export-card-body">
           <h2 class="export-card-title">Marketing Contacts CSV</h2>
-          <p class="export-card-desc">Users who have opted in to marketing communications — name, email, and role.</p>
+          <p class="export-card-desc">Users who have opted in to marketing communications — name, email, and role. People who have unsubscribed, been suppressed or been suspended are left out.</p>
           <p class="export-card-meta" id="marketingExportMeta">Preparing&hellip;</p>
         </div>
         <div class="export-card-actions">
@@ -90,7 +90,7 @@
         <div class="export-card-icon" aria-hidden="true">🗄️</div>
         <div class="export-card-body">
           <h2 class="export-card-title">Full Platform Export <span class="badge badge-warning">Large</span></h2>
-          <p class="export-card-desc">Complete JSON snapshot of all core collections: users, suppliers, packages, plans, events, threads, and messages. This may be a large file.</p>
+          <p class="export-card-desc">JSON snapshot of the core collections: users, suppliers, packages, plans, notes, events, threads, and message records. Passwords, tokens, 2FA codes and private text (message bodies, plan notes) are not included. This may be a large file.</p>
           <p class="export-card-meta export-card-meta--warning" id="fullExportMeta">⚠️ This export can be large and may take a moment to generate.</p>
         </div>
         <div class="export-card-actions">
@@ -131,7 +131,7 @@
   </div>
 </footer>
 
-<script src="/assets/js/admin-shared.js?v=18.3.1"></script>
+<script src="/assets/js/admin-shared.js?v=18.5.9"></script>
 <script src="/assets/js/pages/admin-exports-init.js?v=18.3.0" defer></script>
 
 <script src="/assets/js/cookie-consent.js?v=3.0.2" defer></script>

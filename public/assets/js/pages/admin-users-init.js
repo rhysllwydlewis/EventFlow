@@ -657,6 +657,8 @@
     }
     if (modal) {
       modal.style.display = 'flex';
+      // components.css keeps .modal-overlay hidden until it is also .active
+      modal.classList.add('active');
     }
     loadSubscriptionHistory(userId);
   }
@@ -664,6 +666,7 @@
   function closeSubscriptionModal() {
     const modal = byId('subscriptionModal');
     if (modal) {
+      modal.classList.remove('active');
       modal.style.display = 'none';
     }
   }
@@ -883,10 +886,6 @@
       }
     });
 
-    const closePanelBtn = byId('closeSubPanel');
-    if (closePanelBtn) {
-      closePanelBtn.addEventListener('click', closeSubscriptionModal);
-    }
     const modal = byId('subscriptionModal');
     if (modal) {
       modal.addEventListener('click', event => {

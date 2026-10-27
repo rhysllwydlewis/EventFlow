@@ -304,7 +304,7 @@ ${
 `
 }${
     page.adminGuard
-      ? `    <script src="/assets/js/admin-shared.js?v=18.3.1"></script>
+      ? `    <script src="/assets/js/admin-shared.js?v=18.5.9"></script>
     <script src="/assets/js/components.js?v=18.4.0" defer></script>
     <script src="/assets/js/admin-navbar.js?v=18.4.1" defer></script>
 `
