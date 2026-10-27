@@ -282,11 +282,6 @@
   color: var(--lh-muted);
 }
 
-.lh-page .legal-toc h2 > span,
-.lh-page .legal-toc-icon {
-  display: none;
-}
-
 .lh-page .legal-toc ul {
   margin: 0;
   padding: 0 4px 0 0;
@@ -309,6 +304,19 @@
 .lh-page .legal-toc li {
   margin: 1px 0;
   counter-increment: lh-toc;
+}
+
+/* Group labels between runs of entries; they are not links and are not numbered. */
+.lh-page .legal-toc .lh-toc-group {
+  margin: 14px 0 4px;
+  padding: 0 10px;
+  counter-increment: none;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  line-height: 1.4;
+  text-transform: uppercase;
+  color: var(--lh-muted);
 }
 
 .lh-page .legal-toc a {
@@ -403,10 +411,6 @@
   padding: 0 4px;
   font-size: 14px;
   text-decoration: none !important;
-}
-
-.lh-page .legal-section > h2 > span[aria-hidden='true'] {
-  display: none;
 }
 
 .lh-page .legal-section > h2::before {
@@ -944,6 +948,10 @@
     margin: 0;
   }
 
+  .lh-page .legal-toc .lh-toc-group {
+    display: none;
+  }
+
   /* The sitewide 44px tap-target rule would make the pinned bar tall; 32px chips
      still clear WCAG 2.5.8 (24px) and leave the heading landing under the
      scroll-spy line in legal-pages.js. */
@@ -1006,8 +1014,34 @@
 }
 
 @media (max-width: 480px) {
+  /* Four tall cards would push the first section more than a screen down; two
+     across, with the icon beside the title and the one-line blurb dropped. */
   .lh-page .lh-quick {
-    grid-template-columns: minmax(0, 1fr);
+    gap: 8px;
+    margin-bottom: 20px;
+  }
+
+  .lh-page .lh-quick a {
+    flex-direction: row;
+    align-items: center;
+    gap: 10px;
+    padding: 12px;
+  }
+
+  .lh-page .lh-quick a::after,
+  .lh-page .lh-quick-sub {
+    display: none;
+  }
+
+  .lh-page .lh-quick-icon {
+    width: 32px;
+    height: 32px;
+    margin: 0;
+  }
+
+  .lh-page .lh-quick-title {
+    font-size: 13px;
+    line-height: 1.3;
   }
 
   .lh-page .legal-section {
