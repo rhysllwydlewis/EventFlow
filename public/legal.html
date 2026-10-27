@@ -146,7 +146,7 @@
       <span class="last-updated">Last materially updated: {{POLICY_LEGAL_HUB_LAST_UPDATED}} · Last reviewed: {{POLICY_LEGAL_HUB_LAST_REVIEWED}} · Version {{POLICY_LEGAL_HUB_VERSION}}</span>
     </header>
 
-    <ul class="lh-quick" aria-label="Most-read documents">
+    <ul class="lh-quick" role="list" aria-label="Most-read documents">
         <li><a href="#terms"><span class="lh-quick-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6M8 13h8M8 17h5"/></svg></span><span class="lh-quick-title">Terms of Use</span><span class="lh-quick-sub">The rules for using EventFlow</span></a></li>
         <li><a href="#privacy"><span class="lh-quick-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg></span><span class="lh-quick-title">Privacy Notice</span><span class="lh-quick-sub">How we use and protect your data</span></a></li>
         <li><a href="#cookies"><span class="lh-quick-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M8.5 9.5h.01M15 8h.01M10 15h.01M15.5 14.5h.01"/></svg></span><span class="lh-quick-title">Cookie Policy</span><span class="lh-quick-sub">What we store and how to choose</span></a></li>
@@ -298,16 +298,11 @@
           <h3 class="h5" style="margin-top:1.25rem;">Managing Your Cookie Preferences</h3>
           <p>You can manage or withdraw your consent at any time — not just on your first visit. Use the button below or the <strong>Cookie preferences</strong> link in the site footer.</p>
           <p>
-            <button
-              type="button"
-              data-cookie-prefs
-              style="display:inline-flex;align-items:center;gap:0.4rem;padding:0.6rem 1.2rem;background:#13b6a2;color:#fff;border:none;border-radius:6px;font-size: 0.875rem;font-weight:600;cursor:pointer;"
-              aria-label="Open cookie preferences manager"
-            >
+            <button type="button" data-cookie-prefs class="lh-btn">
               🍪 Manage cookie preferences
             </button>
           </p>
-          <p class="small" style="color:#667085;">You can also <button type="button" data-cookie-revoke style="background:none;border:none;color:#0B8073;text-decoration:underline;cursor:pointer;font-size:inherit;padding:0;">reset your cookie consent</button> to be prompted again from scratch.</p>
+          <p class="small" style="color:#667085;">You can also <button type="button" data-cookie-revoke class="lh-link-btn">reset your cookie consent</button> to be prompted again from scratch.</p>
           <ul>
             <li><strong>Accept All:</strong> Allow every optional category — functional, analytics and advertising</li>
             <li><strong>Reject:</strong> Only essential cookies — functional preferences are cleared, and analytics and advertising do not start</li>
@@ -805,28 +800,30 @@
           </ul>
           
           <h3 class="h5">Timeframes for Dispute Resolution</h3>
-          <table style="width: 100%; border-collapse: collapse; margin-top: 12px;">
-            <tr style="background: #F3F4F6;">
-              <th style="padding: 12px; text-align: left; border: 1px solid #E7EAF0;">Stage</th>
-              <th style="padding: 12px; text-align: left; border: 1px solid #E7EAF0;">Timeframe</th>
+          <div class="lh-table-wrap" role="region" aria-label="Dispute resolution timeframes" tabindex="0">
+          <table>
+            <tr>
+              <th>Stage</th>
+              <th>Timeframe</th>
             </tr>
             <tr>
-              <td style="padding: 12px; border: 1px solid #E7EAF0;">Direct party resolution attempt</td>
-              <td style="padding: 12px; border: 1px solid #E7EAF0;">48 hours for initial response</td>
-            </tr>
-            <tr style="background: #F9FAFB;">
-              <td style="padding: 12px; border: 1px solid #E7EAF0;">Platform dispute report acknowledgment</td>
-              <td style="padding: 12px; border: 1px solid #E7EAF0;">As soon as reasonably practicable</td>
+              <td>Direct party resolution attempt</td>
+              <td>48 hours for initial response</td>
             </tr>
             <tr>
-              <td style="padding: 12px; border: 1px solid #E7EAF0;">Platform investigation</td>
-              <td style="padding: 12px; border: 1px solid #E7EAF0;">Depends on complexity and evidence</td>
+              <td>Platform dispute report acknowledgment</td>
+              <td>As soon as reasonably practicable</td>
             </tr>
-            <tr style="background: #F9FAFB;">
-              <td style="padding: 12px; border: 1px solid #E7EAF0;">Investigation outcome communicated</td>
-              <td style="padding: 12px; border: 1px solid #E7EAF0;">When reasonably practicable after conclusion</td>
+            <tr>
+              <td>Platform investigation</td>
+              <td>Depends on complexity and evidence</td>
+            </tr>
+            <tr>
+              <td>Investigation outcome communicated</td>
+              <td>When reasonably practicable after conclusion</td>
             </tr>
           </table>
+          </div>
           
           <div class="notice">
             <p><strong>Best Practice for Dispute Prevention:</strong></p>
@@ -1271,7 +1268,7 @@
             
             <h3 class="h5" style="margin-top: 24px;">How to Report</h3>
             <ol>
-              <li><strong>Email:</strong> <!--email_off--><a href="mailto:{{ABUSE_EMAIL}}" style="font-weight: 600; color: #DC2626;">{{ABUSE_EMAIL}}</a><!--/email_off--></li>
+              <li><strong>Email:</strong> <!--email_off--><a href="mailto:{{ABUSE_EMAIL}}" class="lh-link--danger">{{ABUSE_EMAIL}}</a><!--/email_off--></li>
               <li><strong>Subject Line:</strong> "Report Illegal Content - [Type of Violation]"</li>
               <li><strong>Include:</strong>
                 <ul>

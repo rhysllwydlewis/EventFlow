@@ -38,6 +38,7 @@
   --lh-line: #e8e5de;
   --lh-line-soft: #f0eee9;
   --lh-line-strong: #d6d2c8;
+  --lh-faint: #6b7587;
   --lh-accent: #0b8073;
   --lh-accent-hover: #086b60;
   --lh-accent-soft: #e7f3f0;
@@ -104,7 +105,7 @@
   font-weight: 700;
   letter-spacing: 0.1em;
   text-transform: uppercase;
-  color: var(--lh-accent);
+  color: var(--lh-accent-hover);
 }
 
 .lh-page .lh-hero h1 {
@@ -290,7 +291,7 @@
   font-size: 11px;
   font-variant-numeric: tabular-nums;
   font-weight: 600;
-  color: var(--lh-line-strong);
+  color: var(--lh-faint);
 }
 
 .lh-page .legal-toc a:hover,
@@ -407,6 +408,12 @@
   text-decoration-color: var(--lh-accent-line);
   text-underline-offset: 3px;
   transition: text-decoration-color 0.15s ease;
+}
+
+.lh-page .legal-section a.lh-link--danger {
+  color: var(--lh-danger);
+  font-weight: 600;
+  text-decoration-color: var(--lh-danger-line);
 }
 
 .lh-page .legal-section a:not(.cta):hover {
@@ -572,6 +579,27 @@
   color: #fff;
 }
 
+/* styles.css flattens every [data-cookie-prefs] button into footer-style link
+   text with !important, so the in-page button has to win the same way. */
+.lh-page .legal-section button.lh-btn[data-cookie-prefs] {
+  display: inline-flex !important;
+  min-height: 40px;
+  padding: 0 18px !important;
+  border: 1px solid var(--lh-accent) !important;
+  border-radius: var(--lh-radius-sm) !important;
+  background: var(--lh-accent) !important;
+  color: #fff !important;
+  font-size: 14px !important;
+  font-weight: 600 !important;
+  line-height: 1 !important;
+  text-decoration: none;
+}
+
+.lh-page .legal-section button.lh-btn[data-cookie-prefs]:hover {
+  border-color: var(--lh-accent-hover) !important;
+  background: var(--lh-accent-hover) !important;
+}
+
 .lh-page .legal-section .lh-btn svg {
   width: 16px;
   height: 16px;
@@ -579,20 +607,41 @@
 }
 
 /* The "withdraw consent" action is an inline text button inside a sentence. */
-.lh-page .legal-section button[data-cookie-revoke] {
+.lh-page .legal-section .lh-link-btn {
+  padding: 0;
+  border: 0;
+  background: none;
   color: var(--lh-accent-hover);
   font: inherit;
+  text-decoration: underline;
+  text-decoration-color: var(--lh-accent-line);
   text-underline-offset: 3px;
+  cursor: pointer;
 }
 
-/* Tables. Wrapped by the section's own overflow so a wide table scrolls inside
-   the card instead of widening the page. */
-.lh-page .legal-section table {
-  display: block;
-  width: 100%;
+.lh-page .legal-section .lh-link-btn:hover {
+  text-decoration-color: currentColor;
+}
+
+/* Tables sit in a wrapper so a wide one scrolls inside the card instead of
+   widening the page, and the table itself keeps its table semantics. */
+.lh-page .legal-section .lh-table-wrap:focus-visible {
+  outline: 2px solid var(--lh-accent);
+  outline-offset: 2px;
+}
+
+.lh-page .legal-section .lh-table-wrap {
   max-width: 100%;
   margin: 12px 0 16px;
   overflow-x: auto;
+}
+
+/* mobile-optimizations.css turns every table into a scrolling block below
+   768px; the wrapper owns scrolling here, so the table stays a real table. */
+.lh-page .legal-section table {
+  display: table;
+  overflow: visible;
+  width: 100%;
   border-collapse: collapse;
   font-size: 13px;
   line-height: 1.5;
@@ -610,6 +659,10 @@
   background: var(--lh-bg);
   color: var(--lh-ink);
   font-weight: 600;
+}
+
+.lh-page .legal-section tr:nth-child(even) td {
+  background: var(--lh-bg);
 }
 
 /* Closing contact card, outside the sections. */
