@@ -1272,7 +1272,7 @@ const AdminShared = (function () {
 
   function showShortcutsHelp() {
     const helpModal = document.createElement('div');
-    helpModal.className = 'modal-overlay';
+    helpModal.className = 'modal-overlay active';
     const previouslyFocused = document.activeElement;
     helpModal.innerHTML = `
       <div class="modal-dialog" style="max-width: 500px;" role="dialog" aria-modal="true" aria-labelledby="shortcutsHelpTitle" tabindex="-1">

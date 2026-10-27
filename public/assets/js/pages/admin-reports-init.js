@@ -1,11 +1,30 @@
 'use strict';
 (function () {
+  // The API returns 20 reports per page unless asked otherwise, so ask for 100 at a time and
+  // keep fetching until every page is loaded (MAX_PAGES stops a runaway loop).
+  const PAGE_SIZE = 100;
+  const MAX_PAGES = 50;
   let allReports = [];
+  let totalReports = 0;
+
+  async function fetchAllReports() {
+    const items = [];
+    let total = 0;
+    let totalPages = 1;
+    for (let page = 1; page <= totalPages && page <= MAX_PAGES; page++) {
+      const data = await AdminShared.api(`/api/admin/reports?perPage=${PAGE_SIZE}&page=${page}`);
+      items.push(...(data.items || []));
+      total = data.pagination?.total ?? items.length;
+      totalPages = data.pagination?.totalPages || 1;
+    }
+    return { items, total };
+  }
 
   async function loadReports() {
     try {
-      const data = await AdminShared.api('/api/admin/reports');
-      allReports = data.items || [];
+      const { items, total } = await fetchAllReports();
+      allReports = items;
+      totalReports = total;
       renderReports();
     } catch (error) {
       console.error('Error loading reports:', error);
@@ -57,7 +76,12 @@
       return;
     }
 
-    let html =
+    const countNote =
+      totalReports > allReports.length
+        ? `Showing ${filtered.length} of the newest ${allReports.length} reports (${totalReports} in total)`
+        : `Showing ${filtered.length} of ${allReports.length} report${allReports.length === 1 ? '' : 's'}`;
+    let html = `<p class="small" style="color:#6b7280;margin:0 0 0.5rem;">${countNote}</p>`;
+    html +=
       '<div class="table-wrapper"><table><thead><tr><th>Type</th><th>Reason</th><th>Reported By</th><th>Status</th><th>Date</th><th>Resolution</th><th>Actions</th></tr></thead><tbody>';
 
     filtered.forEach(report => {
@@ -77,7 +101,7 @@
           <td class="small">${resolutionInfo}</td>
           <td>
             ${
-              report.status === 'pending'
+              report.status !== 'resolved' && report.status !== 'dismissed'
                 ? `<button class="ef-cta btn-sm btn-success" data-action="resolve" data-id="${report.id}">Resolve</button>
                  <button class="ef-cta btn-sm btn-danger" data-action="dismiss" data-id="${report.id}">Dismiss</button>`
                 : '<span class="small">—</span>'
@@ -92,12 +116,12 @@
 
   function showResolveModal(reportId) {
     const modal = document.createElement('div');
-    modal.className = 'modal-overlay';
+    modal.className = 'modal-overlay active';
     modal.style.cssText =
       'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;z-index:9999;';
     modal.innerHTML = `
       <div class="modal modal-medium" style="min-width:340px;">
-        <h3>Resolve Report</h3>
+        <h3 id="resolveDialogTitle">Resolve Report</h3>
         <form id="resolveForm" action="#">
           <div class="form-row">
             <label>Resolution</label>
@@ -127,6 +151,7 @@
         </form>
       </div>`;
     document.body.appendChild(modal);
+    window.EFModalA11y?.enhance(modal, { labelledBy: 'resolveDialogTitle' });
     modal.querySelector('#cancelResolve').addEventListener('click', () => modal.remove());
     modal.addEventListener('click', e => {
       if (e.target === modal) {
