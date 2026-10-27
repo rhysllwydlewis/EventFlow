@@ -121,7 +121,7 @@
       'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;z-index:9999;';
     modal.innerHTML = `
       <div class="modal modal-medium" style="min-width:340px;">
-        <h3>Resolve Report</h3>
+        <h3 id="resolveDialogTitle">Resolve Report</h3>
         <form id="resolveForm" action="#">
           <div class="form-row">
             <label>Resolution</label>
@@ -151,6 +151,7 @@
         </form>
       </div>`;
     document.body.appendChild(modal);
+    window.EFModalA11y?.enhance(modal, { labelledBy: 'resolveDialogTitle' });
     modal.querySelector('#cancelResolve').addEventListener('click', () => modal.remove());
     modal.addEventListener('click', e => {
       if (e.target === modal) {

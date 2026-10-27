@@ -34,7 +34,7 @@
 
     modal.innerHTML = `
       <div class="modal modal-medium">
-        <h3>⚡ Quick Notify</h3>
+        <h3 id="qnDialogTitle">⚡ Quick Notify</h3>
         <p class="small">Create an announcement and send it as an in-app notification in one step. The announcement will also appear as a site banner.</p>
         <form id="quickNotifyForm" action="#">
           <div class="form-row">
@@ -69,6 +69,7 @@
     `;
 
     document.body.appendChild(modal);
+    window.EFModalA11y?.enhance(modal, { labelledBy: 'qnDialogTitle' });
 
     modal.querySelector('#closeQnModal').addEventListener('click', () => modal.remove());
     modal.addEventListener('click', e => {
@@ -107,7 +108,7 @@
 
     modal.innerHTML = `
       <div class="modal modal-medium">
-        <h3>${announcement ? 'Edit' : 'Add'} Announcement</h3>
+        <h3 id="announcementDialogTitle">${announcement ? 'Edit' : 'Add'} Announcement</h3>
         <form id="announcementForm" action="#">
           <div class="form-row">
             <label>Message</label>
@@ -158,6 +159,7 @@
     `;
 
     document.body.appendChild(modal);
+    window.EFModalA11y?.enhance(modal, { labelledBy: 'announcementDialogTitle' });
 
     // Toggle notify target row visibility
     const sendNotifyCheckbox = modal.querySelector('#announcementSendNotify');
@@ -312,7 +314,7 @@
 
     modal.innerHTML = `
       <div class="modal modal-medium">
-        <h3>📢 Send as Notification</h3>
+        <h3 id="notifyDialogTitle">📢 Send as Notification</h3>
         <p class="small">Send this announcement as an in-app notification to the selected audience.</p>
         <div class="form-row">
           <label>Target Audience</label>
@@ -331,6 +333,7 @@
     `;
 
     document.body.appendChild(modal);
+    window.EFModalA11y?.enhance(modal, { labelledBy: 'notifyDialogTitle' });
 
     modal.querySelector('#closeNotifyModal').addEventListener('click', () => modal.remove());
     modal.addEventListener('click', e => {
@@ -376,7 +379,7 @@
 
     modal.innerHTML = `
       <div class="modal modal-medium">
-        <h3>${faq ? 'Edit' : 'Add'} FAQ</h3>
+        <h3 id="faqDialogTitle">${faq ? 'Edit' : 'Add'} FAQ</h3>
         <form id="faqForm" action="#">
           <div class="form-row">
             <label>Question</label>
@@ -407,6 +410,7 @@
     `;
 
     document.body.appendChild(modal);
+    window.EFModalA11y?.enhance(modal, { labelledBy: 'faqDialogTitle' });
 
     modal.querySelector('#closeModal').addEventListener('click', () => modal.remove());
     modal.addEventListener('click', e => {

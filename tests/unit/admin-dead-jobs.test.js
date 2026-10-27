@@ -106,6 +106,30 @@ describe('no inline event handlers on the pages the policy blocked', () => {
   });
 });
 
+describe('the dialogs that were hidden are keyboard and screen-reader accessible', () => {
+  it.each([
+    ['admin-reports.html', 'admin-reports-init.js', 1],
+    ['admin-content.html', 'admin-content-init.js', 4],
+  ])('%s loads modal-a11y.js before %s and enhances %i dialog(s)', (page, script, count) => {
+    const html = read(`public/${page}`);
+    const helper = html.indexOf('/assets/js/utils/modal-a11y.js');
+    expect(helper).toBeGreaterThan(-1);
+    expect(helper).toBeLessThan(html.indexOf(script));
+    const source = read(`${PAGES}${script}`);
+    expect(
+      source.match(/EFModalA11y\?\.enhance\(modal, \{ labelledBy: '(\w+)' \}\)/g)
+    ).toHaveLength(count);
+    // every labelledBy id exists as a heading id
+    for (const [, id] of source.matchAll(/labelledBy: '(\w+)'/g)) {
+      expect(source).toContain(`<h3 id="${id}">`);
+    }
+  });
+
+  it('the Reviewing status has a badge style', () => {
+    expect(read('public/admin-reports.html')).toMatch(/\.badge-reviewing\s*\{/);
+  });
+});
+
 describe('Photos confirm dialog', () => {
   it('reads the plain true/false AdminShared.showConfirmModal resolves', () => {
     const shared = read('public/assets/js/admin-shared.js');
@@ -166,6 +190,26 @@ describe('Marketplace reject route', () => {
       .post('/api/admin/marketplace/listings/lst1/approve')
       .send({ approved: true });
     expect(res.body.listing).toMatchObject({ approved: true, status: 'active' });
+  });
+});
+
+describe('the shared keyboard-shortcuts help dialog is shown', () => {
+  it('admin-shared.js builds the help overlay with the active class', () => {
+    const source = read('public/assets/js/admin-shared.js');
+    expect(source).toMatch(/helpModal\.className = 'modal-overlay active';/);
+    expect(source).not.toMatch(/helpModal\.className = 'modal-overlay';/);
+  });
+
+  it('every page that loads admin-shared.js (and the community generator) uses the bumped version', () => {
+    const pages = fs
+      .readdirSync(path.join(ROOT, 'public'))
+      .filter(name => name.endsWith('.html'))
+      .filter(name => read(`public/${name}`).includes('/assets/js/admin-shared.js'));
+    expect(pages.length).toBeGreaterThan(30);
+    for (const name of pages) {
+      expect(read(`public/${name}`)).toContain('/assets/js/admin-shared.js?v=18.5.9');
+    }
+    expect(read('scripts/generate-community-pages.mjs')).toContain('admin-shared.js?v=18.5.9');
   });
 });
 
