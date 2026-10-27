@@ -1577,7 +1577,7 @@ router.get(
       const reviews = await dbUnified.read('reviews');
       // A rejected review is finished, even if it was reported before it was removed
       const pending = reviews.filter(
-        r => r.status !== 'rejected' && (r.status === 'pending' || r.flagged)
+        review => review.status !== 'rejected' && (review.status === 'pending' || review.flagged)
       );
 
       // Show people and businesses by name; the page used to print raw ids
@@ -1591,20 +1591,20 @@ router.get(
       const supplierNames = new Map();
       const authorNames = new Map();
       await Promise.all([
-        ...[...new Set(pending.map(r => r.supplierId).filter(Boolean))].map(async id =>
+        ...[...new Set(pending.map(review => review.supplierId).filter(Boolean))].map(async id =>
           supplierNames.set(id, await nameOf('suppliers', id, supplier => supplier.name))
         ),
-        ...[...new Set(pending.map(r => r.authorId).filter(Boolean))].map(async id =>
+        ...[...new Set(pending.map(review => review.authorId).filter(Boolean))].map(async id =>
           authorNames.set(
             id,
             await nameOf('users', id, user => user.displayName || user.name || null)
           )
         ),
       ]);
-      const data = pending.map(r => ({
-        ...r,
-        supplierName: supplierNames.get(r.supplierId) || null,
-        authorName: authorNames.get(r.authorId) || null,
+      const data = pending.map(review => ({
+        ...review,
+        supplierName: supplierNames.get(review.supplierId) || null,
+        authorName: authorNames.get(review.authorId) || null,
       }));
 
       res.json({

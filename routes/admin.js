@@ -3629,7 +3629,7 @@ router.put(
           ];
           const notApproved = await dbUnified.find('suppliers', { approved: { $ne: true } });
           const pendingSuppliers = notApproved.filter(
-            s => !decidedStates.includes(s.verificationStatus)
+            candidate => !decidedStates.includes(candidate.verificationStatus)
           );
           const approvedAt = new Date().toISOString();
           for (const s of pendingSuppliers) {

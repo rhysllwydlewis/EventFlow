@@ -160,9 +160,9 @@
     return results
       .flatMap(result => result.reports || [])
       .sort(
-        (a, b) =>
-          (PRIORITY_ORDER[a.priority] ?? 9) - (PRIORITY_ORDER[b.priority] ?? 9) ||
-          new Date(a.createdAt) - new Date(b.createdAt)
+        (first, second) =>
+          (PRIORITY_ORDER[first.priority] ?? 9) - (PRIORITY_ORDER[second.priority] ?? 9) ||
+          new Date(first.createdAt) - new Date(second.createdAt)
       );
   }
 
@@ -178,7 +178,9 @@
         )
       )
     );
-    return results.flat().sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+    return results
+      .flat()
+      .sort((first, second) => new Date(second.createdAt) - new Date(first.createdAt));
   }
 
   /**

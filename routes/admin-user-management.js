@@ -1822,12 +1822,45 @@ router.put(
 
 // Limits match the supplier's own profile editor (routes/supplier-management.js).
 const SUPPLIER_PROFILE_FIELD_LIMITS = {
+  name: MAX_SUPPLIER_NAME_LENGTH,
   category: 80,
   price_display: 60,
   website: 200,
   phone: 30,
   description_short: 300,
 };
+
+// Fields that must not be saved empty.
+const SUPPLIER_REQUIRED_FIELDS = { name: 'Business name', category: 'Category' };
+
+/**
+ * One supplier profile field, trimmed, or an error message when it is not acceptable.
+ * @param {string} key - Field name
+ * @param {*} raw - Submitted value
+ * @returns {{value: string}|{error: string}}
+ */
+function checkSupplierProfileField(key, raw) {
+  const value = String(raw ?? '').trim();
+  const label = SUPPLIER_REQUIRED_FIELDS[key];
+  if (label && !value) {
+    return { error: `${label} cannot be empty` };
+  }
+  const max = SUPPLIER_PROFILE_FIELD_LIMITS[key];
+  if (max && value.length > max) {
+    return { error: `${key.replace(/_/g, ' ')} must be ${max} characters or fewer` };
+  }
+  if (key === 'website' && value) {
+    const valid = validator.isURL(value, { protocols: ['http', 'https'], require_protocol: true });
+    return valid ? { value } : { error: 'Website must be a valid http:// or https:// address' };
+  }
+  if (key === 'email') {
+    const email = value.toLowerCase();
+    return !email || validator.isEmail(email)
+      ? { value: email }
+      : { error: 'Please enter a valid email address' };
+  }
+  return { value };
+}
 
 /**
  * Validates the plain profile fields the admin supplier "Edit Details" screen can send.
@@ -1837,55 +1870,24 @@ const SUPPLIER_PROFILE_FIELD_LIMITS = {
  */
 function readSupplierProfileFields(body) {
   const values = {};
-  const text = key => String(body[key] ?? '').trim();
-
-  if (body.name !== undefined) {
-    const name = text('name');
-    if (!name) {
-      return { error: 'Business name cannot be empty' };
+  const keys = [
+    'name',
+    'category',
+    'price_display',
+    'website',
+    'email',
+    'phone',
+    'description_short',
+  ];
+  for (const key of keys.filter(field => body[field] !== undefined)) {
+    const checked = checkSupplierProfileField(key, body[key]);
+    if (checked.error) {
+      return { error: checked.error };
     }
-    if (name.length > MAX_SUPPLIER_NAME_LENGTH) {
-      return { error: `Business name must be ${MAX_SUPPLIER_NAME_LENGTH} characters or fewer` };
-    }
-    values.name = name;
+    values[key] = checked.value;
   }
-  if (body.category !== undefined) {
-    const category = text('category');
-    if (!category) {
-      return { error: 'Category cannot be empty' };
-    }
-    values.category = category;
-  }
-  for (const key of ['price_display', 'phone', 'description_short']) {
-    if (body[key] !== undefined) {
-      values[key] = text(key);
-    }
-  }
-  if (body.website !== undefined) {
-    const website = text('website');
-    if (
-      website &&
-      !validator.isURL(website, { protocols: ['http', 'https'], require_protocol: true })
-    ) {
-      return { error: 'Website must be a valid http:// or https:// address' };
-    }
-    values.website = website;
-  }
-  if (body.email !== undefined) {
-    const email = text('email').toLowerCase();
-    if (email && !validator.isEmail(email)) {
-      return { error: 'Please enter a valid email address' };
-    }
-    values.email = email;
-  }
-  if (body.location !== undefined && typeof body.location === 'string') {
-    values.location = text('location');
-  }
-
-  for (const [key, max] of Object.entries(SUPPLIER_PROFILE_FIELD_LIMITS)) {
-    if (values[key] !== undefined && values[key].length > max) {
-      return { error: `${key.replace(/_/g, ' ')} must be ${max} characters or fewer` };
-    }
+  if (typeof body.location === 'string') {
+    values.location = body.location.trim();
   }
   return { values };
 }
@@ -1902,8 +1904,7 @@ router.put(
   async (req, res) => {
     try {
       const { id } = req.params;
-      const { name, description, contact, categories, amenities, location, serviceAreas } =
-        req.body;
+      const { serviceAreas } = req.body;
 
       const suppliers = await dbUnified.read('suppliers');
       const supplierIndex = suppliers.findIndex(s => s.id === id);
@@ -1936,24 +1937,11 @@ router.put(
         previousState: previousStateSnap,
       });
 
-      // Update fields if provided
-      if (name !== undefined) {
-        supplier.name = name;
-      }
-      if (description !== undefined) {
-        supplier.description = description;
-      }
-      if (contact !== undefined) {
-        supplier.contact = contact;
-      }
-      if (categories !== undefined) {
-        supplier.categories = categories;
-      }
-      if (amenities !== undefined) {
-        supplier.amenities = amenities;
-      }
-      if (location !== undefined) {
-        supplier.location = location;
+      // Update fields if provided (name and the plain text fields come validated in profileFields)
+      for (const key of ['description', 'contact', 'categories', 'amenities', 'location']) {
+        if (req.body[key] !== undefined) {
+          supplier[key] = req.body[key];
+        }
       }
       Object.assign(supplier, profileFields.values);
       if (serviceAreas !== undefined) {
@@ -2022,6 +2010,78 @@ router.put(
 );
 
 /**
+ * The fields an admin changing a user's verified flag sets.
+ * @param {Object} user - The user being edited
+ * @param {boolean} verified - New flag
+ * @param {string} adminId - Admin making the change
+ * @returns {Object} Fields to set
+ */
+function verificationChange(user, verified, adminId) {
+  const fields = { verified };
+  if (verified === true && user.verified !== true) {
+    fields.verifiedAt = new Date().toISOString();
+    fields.verificationMethod = 'manual_admin';
+    fields.verifiedBy = { type: 'admin', userId: adminId, reason: 'Manually verified by admin' };
+    fields.emailDeliveryStatus = 'not_required';
+  } else if (verified === false && user.verified === true) {
+    fields.verificationMethod = 'pending';
+    fields.verifiedBy = null;
+    fields.verifiedAt = null;
+    fields.emailDeliveryStatus = user.emailDeliveryStatus || 'pending';
+  }
+  return fields;
+}
+
+/**
+ * Checks an email an admin is setting on a user.
+ * @param {Object} user - The user being edited
+ * @param {string|undefined} email - Submitted email (undefined when not being changed)
+ * @returns {Promise<{email: string|undefined}|{status: number, error: string}>}
+ */
+async function checkUserEmailChange(user, email) {
+  if (email === undefined) {
+    return { email: undefined };
+  }
+  const normalized = String(email).trim().toLowerCase();
+  if (!validator.isEmail(normalized)) {
+    return { status: 400, error: 'Please enter a valid email address' };
+  }
+  if (normalized !== String(user.email || '').toLowerCase()) {
+    const existing = await dbUnified.findOne('users', { email: normalized });
+    if (existing && existing.id !== user.id) {
+      return { status: 409, error: 'A user with this email already exists' };
+    }
+  }
+  return { email: normalized };
+}
+
+/**
+ * Writes a user edit and says plainly when it did not save.
+ * @param {string} id - User id
+ * @param {Object} setFields - Fields to set
+ * @returns {Promise<{status: number, error: string}|null>} A failure, or null when saved
+ */
+async function saveUserChanges(id, setFields) {
+  try {
+    const saved = await dbUnified.updateOne(
+      'users',
+      { id },
+      { $set: setFields },
+      { throwOnError: true }
+    );
+    if (saved) {
+      return null;
+    }
+  } catch (error) {
+    if (error && error.code === 11000) {
+      return { status: 409, error: 'A user with this email already exists' };
+    }
+    logger.error('[ADMIN] user edit failed', { userId: id, error: error.message });
+  }
+  return { status: 500, error: 'The changes could not be saved. Please try again.' };
+}
+
+/**
  * PUT /api/admin/users/:id
  * Edit user profile (admin only)
  */
@@ -2056,19 +2116,11 @@ router.put('/users/:id', authRequired, roleRequired('admin'), csrfProtection, as
 
   // Check the email before anything is written. The database layer swallows a duplicate-key
   // failure and reports "no change", which used to come back as a 200 with nothing saved.
-  let emailNormalized;
-  if (email !== undefined) {
-    emailNormalized = String(email).trim().toLowerCase();
-    if (!validator.isEmail(emailNormalized)) {
-      return res.status(400).json({ error: 'Please enter a valid email address' });
-    }
-    if (emailNormalized !== String(user.email || '').toLowerCase()) {
-      const existing = await dbUnified.findOne('users', { email: emailNormalized });
-      if (existing && existing.id !== id) {
-        return res.status(409).json({ error: 'A user with this email already exists' });
-      }
-    }
+  const emailCheck = await checkUserEmailChange(user, email);
+  if (emailCheck.error) {
+    return res.status(emailCheck.status).json({ error: emailCheck.error });
   }
+  const emailNormalized = emailCheck.email;
 
   // Store previous version for history (excluding sensitive data)
   const safeState = stripSecretFields(user);
@@ -2093,43 +2145,15 @@ router.put('/users/:id', authRequired, roleRequired('admin'), csrfProtection, as
     setFields.email = emailNormalized;
   }
   if (verified !== undefined) {
-    setFields.verified = verified;
-    if (verified === true && user.verified !== true) {
-      setFields.verifiedAt = new Date().toISOString();
-      setFields.verificationMethod = 'manual_admin';
-      setFields.verifiedBy = {
-        type: 'admin',
-        userId: req.user.id,
-        reason: 'Manually verified by admin',
-      };
-      setFields.emailDeliveryStatus = 'not_required';
-    } else if (verified === false && user.verified === true) {
-      setFields.verificationMethod = 'pending';
-      setFields.verifiedBy = null;
-      setFields.verifiedAt = null;
-      setFields.emailDeliveryStatus = user.emailDeliveryStatus || 'pending';
-    }
+    Object.assign(setFields, verificationChange(user, verified, req.user.id));
   }
   if (marketingOptIn !== undefined) {
     setFields.marketingOptIn = marketingOptIn;
   }
 
-  try {
-    const saved = await dbUnified.updateOne(
-      'users',
-      { id },
-      { $set: setFields },
-      { throwOnError: true }
-    );
-    if (!saved) {
-      return res.status(500).json({ error: 'The changes could not be saved. Please try again.' });
-    }
-  } catch (error) {
-    if (error && error.code === 11000) {
-      return res.status(409).json({ error: 'A user with this email already exists' });
-    }
-    logger.error('[ADMIN] user edit failed', { userId: id, error: error.message });
-    return res.status(500).json({ error: 'The changes could not be saved. Please try again.' });
+  const failure = await saveUserChanges(id, setFields);
+  if (failure) {
+    return res.status(failure.status).json({ error: failure.error });
   }
 
   // Create audit log

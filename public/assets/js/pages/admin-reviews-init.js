@@ -197,6 +197,37 @@
     renderReviews();
   }
 
+  // Names where the server could find them; the id only as a last resort
+  function reviewParties(review) {
+    return {
+      supplierId: review.supplierName || review.supplierId || '',
+      authorId: review.authorName || review.authorId || '',
+    };
+  }
+
+  function reviewReportInfo(review) {
+    const count = Array.isArray(review.reports) ? review.reports.length : 0;
+    if (count === 0) {
+      return '';
+    }
+    return `<p class="small review-report-warning">🚩 ${count} report${count !== 1 ? 's' : ''} received — review this content and take action below.</p>`;
+  }
+
+  // A reported review is a report to settle; one that is only waiting is an ordinary approval
+  function reviewActionButtons(review, id) {
+    const safeId = escapeHtml(id);
+    if (review.flagged) {
+      return (
+        `<button class="ef-cta btn btn-sm btn-danger" data-action="approve" data-id="${safeId}" title="The report is valid — remove this review from the platform">🗑️ Remove Review</button>` +
+        `<button class="ef-cta btn btn-sm btn-success" data-action="reject" data-id="${safeId}" title="The report is not valid — keep the review published">✓ Dismiss Report</button>`
+      );
+    }
+    return (
+      `<button class="ef-cta btn btn-sm btn-success" data-action="publish" data-id="${safeId}" title="Publish this review">✓ Approve</button>` +
+      `<button class="ef-cta btn btn-sm btn-danger" data-action="decline" data-id="${safeId}" title="Do not publish this review">✗ Reject</button>`
+    );
+  }
+
   function renderReviews() {
     if (!queueEl) {
       return;
@@ -225,18 +256,13 @@
         '☆'.repeat(Math.max(0, 5 - Math.min(5, rating)));
       const title = review.title || '';
       const text = review.text || review.comment || '';
-      // Names where the server could find them; the id only as a last resort
-      const supplierId = review.supplierName || review.supplierId || '';
-      const authorId = review.authorName || review.authorId || '';
+      const { supplierId, authorId } = reviewParties(review);
       const createdAt = review.createdAt ? formatDate(review.createdAt) : '—';
       const moderationState =
         (review.moderation && review.moderation.state) || review.status || 'pending';
       const moderationReason = (review.moderation && review.moderation.reason) || '';
       const flagged = review.flagged ? ' <span class="badge badge-warning">Reported</span>' : '';
-      const reportInfo =
-        Array.isArray(review.reports) && review.reports.length > 0
-          ? `<p class="small review-report-warning">🚩 ${review.reports.length} report${review.reports.length !== 1 ? 's' : ''} received — review this content and take action below.</p>`
-          : '';
+      const reportInfo = reviewReportInfo(review);
 
       card.innerHTML =
         `<div style="display:flex;align-items:flex-start;gap:12px;">` +
@@ -258,14 +284,7 @@
           moderationReason
             ? `<p class="small" style="color:#9ca3af;margin:0 0 10px;"><em>${escapeHtml(moderationReason)}</em></p>`
             : ''
-        }${reportInfo}<div class="review-action-btns">${
-          // A reported review is a report to settle; one that is only waiting is an ordinary approval
-          review.flagged
-            ? `<button class="ef-cta btn btn-sm btn-danger" data-action="approve" data-id="${escapeHtml(id)}" title="The report is valid — remove this review from the platform">🗑️ Remove Review</button>` +
-              `<button class="ef-cta btn btn-sm btn-success" data-action="reject" data-id="${escapeHtml(id)}" title="The report is not valid — keep the review published">✓ Dismiss Report</button>`
-            : `<button class="ef-cta btn btn-sm btn-success" data-action="publish" data-id="${escapeHtml(id)}" title="Publish this review">✓ Approve</button>` +
-              `<button class="ef-cta btn btn-sm btn-danger" data-action="decline" data-id="${escapeHtml(id)}" title="Do not publish this review">✗ Reject</button>`
-        }</div>` +
+        }${reportInfo}<div class="review-action-btns">${reviewActionButtons(review, id)}</div>` +
         `</div>` +
         `</div>`;
 
