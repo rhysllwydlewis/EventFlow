@@ -552,10 +552,7 @@ ${listBody}
 
 const guidelines = `        <article class="efc-card efc-section">
           <h1>Community guidelines</h1>
-          <p class="small"><strong>Last materially updated:</strong>
-            {{POLICY_COMMUNITY_GUIDELINES_LAST_UPDATED}} · <strong>Last reviewed:</strong>
-            {{POLICY_COMMUNITY_GUIDELINES_LAST_REVIEWED}} · <strong>Version:</strong>
-            {{POLICY_COMMUNITY_GUIDELINES_VERSION}}</p>
+          <p class="small">Updated {{POLICY_COMMUNITY_GUIDELINES_LAST_UPDATED}} · Version {{POLICY_COMMUNITY_GUIDELINES_VERSION}}</p>
           <p>The EventFlow Community is for people planning events and the suppliers who work on
             them. These guidelines apply to every discussion, reply and profile.</p>
 
@@ -633,10 +630,7 @@ const guidelines = `        <article class="efc-card efc-section">
 
 const help = `        <article class="efc-card efc-section">
           <h1>Community help</h1>
-          <p class="small"><strong>Last materially updated:</strong>
-            {{POLICY_COMMUNITY_HELP_LAST_UPDATED}} · <strong>Last reviewed:</strong>
-            {{POLICY_COMMUNITY_HELP_LAST_REVIEWED}} · <strong>Version:</strong>
-            {{POLICY_COMMUNITY_HELP_VERSION}}</p>
+          <p class="small">Updated {{POLICY_COMMUNITY_HELP_LAST_UPDATED}} · Version {{POLICY_COMMUNITY_HELP_VERSION}}</p>
 
           <h2 id="reporting">Reporting content</h2>
           <p>Every discussion and reply has a <strong>Report</strong> button. Choose the closest
