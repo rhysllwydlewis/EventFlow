@@ -159,7 +159,10 @@
   box-shadow: var(--lh-shadow);
   color: var(--lh-ink);
   text-decoration: none;
-  transition: border-color 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease,
+    transform 0.15s ease;
 }
 
 .lh-page .lh-quick a:hover {
@@ -275,7 +278,9 @@
   font-size: 14px;
   line-height: 1.35;
   text-decoration: none;
-  transition: background-color 0.15s ease, color 0.15s ease;
+  transition:
+    background-color 0.15s ease,
+    color 0.15s ease;
 }
 
 .lh-page .legal-toc a::before {
@@ -555,7 +560,9 @@
   line-height: 1;
   text-decoration: none;
   cursor: pointer;
-  transition: background-color 0.15s ease, border-color 0.15s ease;
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease;
 }
 
 .lh-page .legal-section a.cta:hover,
