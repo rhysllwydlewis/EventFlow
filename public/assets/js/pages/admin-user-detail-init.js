@@ -391,7 +391,7 @@
         body
       );
       AdminShared.showToast(
-        (data && data.message) || `User ${currentlySuspended ? 'unsuspended' : 'suspended'}`,
+        data?.message || `User ${currentlySuspended ? 'unsuspended' : 'suspended'}`,
         'success'
       );
       await loadUserDetails();

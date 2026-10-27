@@ -2080,7 +2080,7 @@ async function saveUserChanges(id, setFields) {
       return null;
     }
   } catch (error) {
-    if (error && error.code === 11000) {
+    if (error?.code === 11000) {
       return { status: 409, error: 'A user with this email already exists' };
     }
     logger.error('[ADMIN] user edit failed', { userId: id, error: error.message });

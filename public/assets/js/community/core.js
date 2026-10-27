@@ -534,7 +534,7 @@
     live.textContent = message;
 
     // Admin pages load AdminShared, which owns the toast; there is no global showToast.
-    const toast = window.showToast || (window.AdminShared && window.AdminShared.showToast) || null;
+    const toast = window.showToast || window.AdminShared?.showToast || null;
     if (toast) {
       toast(message, tone === 'error' ? 'error' : 'success');
     }

@@ -127,7 +127,7 @@ describe('F1 Suspend User', () => {
   it('the page sends suspended:true and shows the server message', () => {
     const page = source('public/assets/js/pages/admin-user-detail-init.js');
     expect(page).toMatch(/\{ suspended: true, reason \}/);
-    expect(page).toMatch(/data && data\.message/);
+    expect(page).toMatch(/data\?\.message/);
   });
 
   it('the endpoint suspends when it receives the flag', async () => {
@@ -346,7 +346,7 @@ describe('F1 bulk suspend', () => {
 describe('F7 Community admin', () => {
   it('toasts through AdminShared when there is no global showToast', () => {
     const core = source('public/assets/js/community/core.js');
-    expect(core).toMatch(/window\.AdminShared && window\.AdminShared\.showToast/);
+    expect(core).toMatch(/window\.AdminShared\?\.showToast/);
   });
 
   it('requests open, in-review and escalated reports and quarantined replies as well as discussions', () => {

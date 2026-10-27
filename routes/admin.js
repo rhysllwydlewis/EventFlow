@@ -2459,14 +2459,14 @@ router.post(
         details: { suppliersTagged: taggedCount },
       });
 
-      res.json({
+      return res.json({
         success: true,
         message: `Smart tags generated for ${taggedCount} suppliers`,
         taggedCount,
       });
     } catch (error) {
       logger.error('Error generating smart tags:', error);
-      res.status(500).json({
+      return res.status(500).json({
         error: 'Failed to generate smart tags',
         details: process.env.NODE_ENV !== 'production' ? error.message : undefined,
       });

@@ -684,10 +684,11 @@
             duration: durationValue ? Number(durationValue) : null,
           };
 
-          return AdminShared.adminFetch('/api/admin/settings/maintenance', {
+          const result = await AdminShared.adminFetch('/api/admin/settings/maintenance', {
             method: 'PUT',
             body: data,
           });
+          return result;
         },
         {
           loadingText: 'Updating...',
