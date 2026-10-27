@@ -2334,7 +2334,8 @@ router.post(
 
 /**
  * POST /api/admin/suppliers/smart-tags
- * Generate smart tags for all suppliers based on their descriptions and categories
+ * Generate smart tags for the selected suppliers (body: { supplierIds }) based on their
+ * descriptions and categories
  *
  * Smart tagging logic:
  * 1. Only processes approved suppliers
@@ -2353,7 +2354,16 @@ router.post(
   csrfProtection,
   async (req, res) => {
     try {
-      const suppliers = await dbUnified.read('suppliers');
+      // The page sends the suppliers the admin selected; tagging anyone else would change
+      // profiles they never chose. Without a list (older callers) every approved supplier is tagged.
+      const { supplierIds } = req.body || {};
+      if (supplierIds !== undefined && (!Array.isArray(supplierIds) || supplierIds.length === 0)) {
+        return res.status(400).json({ error: 'supplierIds must be a non-empty list' });
+      }
+      const selectedIds = supplierIds ? new Set(supplierIds.map(String)) : null;
+      const suppliers = (await dbUnified.read('suppliers')).filter(
+        supplier => !selectedIds || selectedIds.has(String(supplier.id))
+      );
       let taggedCount = 0;
 
       // Common wedding/event industry tags mapped to supplier categories
@@ -2449,14 +2459,14 @@ router.post(
         details: { suppliersTagged: taggedCount },
       });
 
-      res.json({
+      return res.json({
         success: true,
         message: `Smart tags generated for ${taggedCount} suppliers`,
         taggedCount,
       });
     } catch (error) {
       logger.error('Error generating smart tags:', error);
-      res.status(500).json({
+      return res.status(500).json({
         error: 'Failed to generate smart tags',
         details: process.env.NODE_ENV !== 'production' ? error.message : undefined,
       });
@@ -3610,14 +3620,23 @@ router.put(
       ) {
         try {
           const { VERIFICATION_STATES } = require('../utils/supplierVerificationStateMachine'); // skipcq: JS-0123 - narrow try-block import, unrelated to the module-level import
-          const pendingSuppliers = await dbUnified.find('suppliers', {
+          // Only suppliers still waiting for a decision. An admin's earlier decision to reject,
+          // ask for changes or suspend must survive this switch being flipped.
+          const decidedStates = [
+            VERIFICATION_STATES.REJECTED,
+            VERIFICATION_STATES.NEEDS_CHANGES,
+            VERIFICATION_STATES.SUSPENDED,
+          ];
+          const awaiting = await dbUnified.find('suppliers', {
             $or: [
-              { approved: false },
               { approved: { $ne: true } },
               { verificationStatus: VERIFICATION_STATES.PENDING_REVIEW },
               { verificationStatus: VERIFICATION_STATES.UNVERIFIED },
             ],
           });
+          const pendingSuppliers = awaiting.filter(
+            candidate => !decidedStates.includes(candidate.verificationStatus)
+          );
           const approvedAt = new Date().toISOString();
           for (const s of pendingSuppliers) {
             if (s.approved === true && s.verificationStatus === VERIFICATION_STATES.APPROVED) {

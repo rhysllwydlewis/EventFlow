@@ -469,7 +469,7 @@
         <div class="photo-item">
           ${safeUrl ? `<img src="${safeUrl}" alt="Supplier photo" loading="lazy">` : '<div class="photo-placeholder">No image</div>'}
           <div class="photo-actions">
-            <button class="ef-cta btn btn-small btn-danger" data-action="deletePhoto" data-id="${AdminShared.escapeHtml(String(photo.id || ''))}">Delete</button>
+            <button class="ef-cta btn btn-small btn-danger" data-action="deletePhoto" data-url="${AdminShared.escapeHtml(String(photo.url || ''))}">Delete</button>
           </div>
         </div>
       `;
@@ -868,7 +868,15 @@
         return;
       }
       try {
-        await AdminShared.api(`/api/admin/photos/${id}`, 'DELETE');
+        const photoUrl = btn.dataset.url;
+        if (!photoUrl) {
+          throw new Error('This photo has no address to delete');
+        }
+        // Supplier gallery photos are identified by their address, not an id
+        await AdminShared.api(
+          `/api/photos/delete?type=supplier&id=${encodeURIComponent(supplierId)}&photoUrl=${encodeURIComponent(photoUrl)}`,
+          'DELETE'
+        );
         AdminShared.showToast('Photo deleted', 'success');
         loadPhotos();
       } catch (err) {

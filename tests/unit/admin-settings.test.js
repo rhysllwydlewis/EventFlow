@@ -355,7 +355,7 @@ describe('Admin Settings — Availability and Booking Feature Flags', () => {
     ]) {
       expect(html).toMatch(new RegExp(`id="${id}"[^>]*data-locked-on[^>]*checked[^>]*disabled`));
     }
-    expect(html).toContain('/assets/js/pages/admin-settings-init.js?v=18.3.2');
+    expect(html).toContain('/assets/js/pages/admin-settings-init.js?v=18.5.10');
     expect(settingsInitContent).toContain('const LOCKED_ON_FEATURE_IDS = new Set([');
   });
 
