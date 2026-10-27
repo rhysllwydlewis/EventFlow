@@ -50,21 +50,21 @@ jest.mock('../../utils/auditTrail', () => ({
 jest.mock('../../db-unified', () => ({
   read: jest.fn(async name => mockStore[name] || []),
   find: jest.fn(async (name, filter) =>
-    (mockStore[name] || []).filter(r => mockMatches(r, filter))
+    (mockStore[name] || []).filter(item => mockMatches(item, filter))
   ),
   findOne: jest.fn(
-    async (name, filter) => (mockStore[name] || []).find(r => mockMatches(r, filter)) || null
+    async (name, filter) => (mockStore[name] || []).find(item => mockMatches(item, filter)) || null
   ),
   updateOne: jest.fn(async (name, filter, update) => {
-    const record = (mockStore[name] || []).find(r => mockMatches(r, filter));
+    const record = (mockStore[name] || []).find(item => mockMatches(item, filter));
     if (!record) {
       return false;
     }
     for (const [key, value] of Object.entries(update.$set || update)) {
       // Like the real database, a dotted key is a path into a nested object
-      const path = key.split('.');
-      const last = path.pop();
-      const target = path.reduce((node, part) => node[part], record);
+      const keyPath = key.split('.');
+      const last = keyPath.pop();
+      const target = keyPath.reduce((node, part) => node[part], record);
       target[last] = value;
     }
     return true;
@@ -442,24 +442,24 @@ describe('F9 Suppliers page', () => {
       features: { autoApproveSupplierVerification: false, autoApproveReviews: true },
     };
     mockStore.suppliers = [
-      { id: 'p', name: 'Waiting', approved: false, verificationStatus: 'pending_review' },
-      { id: 'a', name: 'Listed', approved: true, verificationStatus: 'pending_review' },
-      { id: 'n', name: 'New', approved: false, verificationStatus: 'unverified' },
-      { id: 'r', name: 'Rejected', approved: false, verificationStatus: 'rejected' },
-      { id: 'c', name: 'Changes', approved: false, verificationStatus: 'needs_changes' },
-      { id: 'x', name: 'Suspended', approved: false, verificationStatus: 'suspended' },
+      { id: 'waiting', name: 'Waiting', approved: false, verificationStatus: 'pending_review' },
+      { id: 'listed', name: 'Listed', approved: true, verificationStatus: 'pending_review' },
+      { id: 'fresh', name: 'New', approved: false, verificationStatus: 'unverified' },
+      { id: 'rejected', name: 'Rejected', approved: false, verificationStatus: 'rejected' },
+      { id: 'changes', name: 'Changes', approved: false, verificationStatus: 'needs_changes' },
+      { id: 'suspended', name: 'Suspended', approved: false, verificationStatus: 'suspended' },
     ];
     const response = await request(app())
       .put('/api/admin/settings/features')
       .send({ autoApproveSupplierVerification: true });
     expect(response.status).toBe(200);
     const byId = Object.fromEntries(mockStore.suppliers.map(supplier => [supplier.id, supplier]));
-    expect(byId.p.approved).toBe(true);
-    expect(byId.a.verificationStatus).toBe('approved');
-    expect(byId.n.approved).toBe(true);
-    expect(byId.r.approved).toBe(false);
-    expect(byId.c.approved).toBe(false);
-    expect(byId.x.approved).toBe(false);
+    expect(byId.waiting.approved).toBe(true);
+    expect(byId.listed.verificationStatus).toBe('approved');
+    expect(byId.fresh.approved).toBe(true);
+    expect(byId.rejected.approved).toBe(false);
+    expect(byId.changes.approved).toBe(false);
+    expect(byId.suspended.approved).toBe(false);
   });
 
   it('the page asks before turning auto-approve on and clears the selection on filter and page change', () => {
