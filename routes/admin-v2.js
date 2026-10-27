@@ -1560,6 +1560,57 @@ router.post(
   }
 );
 
+/**
+ * The fields a moderator's decision sets on a review.
+ *
+ * Which reviews are public is decided by utils/reviewShape.js: a legacy review is published only
+ * while `approved` is true and counts as rejected once `approvedBy` records a decision, and a v2
+ * review follows `moderation.state`. `status` alone is not what the public pages read, so every
+ * one of those is set here, along with clearing the report flag so the review leaves the queue.
+ *
+ * @param {Object} review - Stored review
+ * @param {'approved'|'rejected'} decision - The moderator's decision
+ * @param {string} adminId - Moderator
+ * @param {string} [reason] - Rejection reason
+ * @returns {Object} Fields to set
+ */
+function reviewDecisionFields(review, decision, adminId, reason) {
+  const now = new Date().toISOString();
+  const approved = decision === 'approved';
+  const fields = approved
+    ? { status: 'approved', approved: true, approvedAt: now, approvedBy: adminId }
+    : {
+        status: 'rejected',
+        approved: false,
+        approvedBy: adminId,
+        rejectedAt: now,
+        rejectedBy: adminId,
+        rejectionReason: reason || '',
+      };
+  fields.flagged = false;
+  if (review.moderation && typeof review.moderation === 'object') {
+    fields['moderation.state'] = decision;
+  }
+  return fields;
+}
+
+/**
+ * Applies reviewDecisionFields() to the in-memory review (the stored copy is updated by the
+ * `$set`, where "moderation.state" is a path into the nested object).
+ * @param {Object} review - Review to update
+ * @param {Object} fields - Result of reviewDecisionFields()
+ * @returns {void}
+ */
+function applyReviewDecision(review, fields) {
+  for (const [key, value] of Object.entries(fields)) {
+    if (key === 'moderation.state') {
+      review.moderation.state = value;
+    } else {
+      review[key] = value;
+    }
+  }
+}
+
 // ========================================
 // Review Moderation Endpoints
 // ========================================
@@ -1652,25 +1703,11 @@ router.post(
 
       const review = reviews[reviewIndex];
       const oldStatus = review.status;
-      review.status = 'approved';
-      review.approvedAt = new Date().toISOString();
-      review.approvedBy = req.user.id;
-      // The moderator has dealt with any reports, so it leaves the queue
-      review.flagged = false;
+      const fields = reviewDecisionFields(review, 'approved', req.user.id);
+      applyReviewDecision(review, fields);
 
       reviews[reviewIndex] = review;
-      await dbUnified.updateOne(
-        'reviews',
-        { id: review.id },
-        {
-          $set: {
-            status: 'approved',
-            approvedAt: review.approvedAt,
-            approvedBy: review.approvedBy,
-            flagged: false,
-          },
-        }
-      );
+      await dbUnified.updateOne('reviews', { id: review.id }, { $set: fields });
 
       // Create audit log
       await createAuditLog({
@@ -1737,26 +1774,11 @@ router.post(
 
       const review = reviews[reviewIndex];
       const oldStatus = review.status;
-      review.status = 'rejected';
-      review.rejectedAt = new Date().toISOString();
-      review.rejectedBy = req.user.id;
-      review.rejectionReason = reason || '';
-      review.flagged = false;
+      const fields = reviewDecisionFields(review, 'rejected', req.user.id, reason);
+      applyReviewDecision(review, fields);
 
       reviews[reviewIndex] = review;
-      await dbUnified.updateOne(
-        'reviews',
-        { id: review.id },
-        {
-          $set: {
-            status: 'rejected',
-            rejectedAt: review.rejectedAt,
-            rejectedBy: review.rejectedBy,
-            rejectionReason: review.rejectionReason,
-            flagged: false,
-          },
-        }
-      );
+      await dbUnified.updateOne('reviews', { id: review.id }, { $set: fields });
 
       // Create audit log
       await createAuditLog({

@@ -14,6 +14,9 @@ const mockStore = {};
 
 const mockMatches = (record, filter = {}) =>
   Object.entries(filter).every(([key, expected]) => {
+    if (key === '$or') {
+      return expected.some(branch => mockMatches(record, branch));
+    }
     if (expected && typeof expected === 'object' && '$ne' in expected) {
       return record[key] !== expected.$ne;
     }
@@ -57,7 +60,13 @@ jest.mock('../../db-unified', () => ({
     if (!record) {
       return false;
     }
-    Object.assign(record, update.$set || update);
+    for (const [key, value] of Object.entries(update.$set || update)) {
+      // Like the real database, a dotted key is a path into a nested object
+      const path = key.split('.');
+      const last = path.pop();
+      const target = path.reduce((node, part) => node[part], record);
+      target[last] = value;
+    }
     return true;
   }),
   writeAndVerify: jest.fn(async (name, value) => {
@@ -221,6 +230,7 @@ describe('F3 supplier Edit Details', () => {
     [{ website: 'javascript:alert(1)' }, /http/i],
     [{ email: 'nope' }, /valid email/i],
     [{ category: '' }, /category/i],
+    [{ category: 'Photographer' }, /must be one of/i],
     [{ phone: '1'.repeat(40) }, /30 characters/],
   ])('rejects %j', async (body, message) => {
     const response = await request(app()).put('/api/admin/suppliers/s1').send(body);
@@ -366,6 +376,37 @@ describe('F8 Reviews', () => {
     expect(queue.body.data.map(review => review.id)).toEqual(['r1']);
   });
 
+  it('rejecting a published legacy review unpublishes it as the public pages read it', async () => {
+    const { isApprovedReview } = require('../../utils/reviewShape');
+    mockStore.reviews = [
+      { id: 'legacy', status: 'pending', approved: true, flagged: true, supplierId: 's1' },
+    ];
+    expect(isApprovedReview(mockStore.reviews[0])).toBe(true);
+    await request(app()).post('/api/admin/reviews/legacy/reject').send({ reason: 'Valid report' });
+    expect(isApprovedReview(mockStore.reviews[0])).toBe(false);
+    expect(mockStore.reviews[0].flagged).toBe(false);
+  });
+
+  it('approving a legacy review publishes it as the public pages read it', async () => {
+    const { isApprovedReview } = require('../../utils/reviewShape');
+    mockStore.reviews = [{ id: 'legacy', status: 'pending', approved: false, supplierId: 's1' }];
+    await request(app()).post('/api/admin/reviews/legacy/approve');
+    expect(isApprovedReview(mockStore.reviews[0])).toBe(true);
+  });
+
+  it('keeps a v2 review moderation state in step with the decision', async () => {
+    const { reviewState } = require('../../utils/reviewShape');
+    mockStore.reviews = [
+      { id: 'v2', status: 'pending', moderation: { state: 'pending' }, supplierId: 's1' },
+    ];
+    await request(app()).post('/api/admin/reviews/v2/approve');
+    expect(mockStore.reviews[0].moderation.state).toBe('approved');
+    expect(reviewState(mockStore.reviews[0])).toBe('approved');
+    await request(app()).post('/api/admin/reviews/v2/reject').send({});
+    expect(reviewState(mockStore.reviews[0])).toBe('rejected');
+    expect(mockStore.reviews[0]['moderation.state']).toBeUndefined();
+  });
+
   it('the page offers Approve/Reject for plain pending reviews and names, not ids', () => {
     const page = source('public/assets/js/pages/admin-reviews-init.js');
     expect(page).toMatch(/data-action="publish"/);
@@ -402,6 +443,7 @@ describe('F9 Suppliers page', () => {
     };
     mockStore.suppliers = [
       { id: 'p', name: 'Waiting', approved: false, verificationStatus: 'pending_review' },
+      { id: 'a', name: 'Listed', approved: true, verificationStatus: 'pending_review' },
       { id: 'n', name: 'New', approved: false, verificationStatus: 'unverified' },
       { id: 'r', name: 'Rejected', approved: false, verificationStatus: 'rejected' },
       { id: 'c', name: 'Changes', approved: false, verificationStatus: 'needs_changes' },
@@ -413,6 +455,7 @@ describe('F9 Suppliers page', () => {
     expect(response.status).toBe(200);
     const byId = Object.fromEntries(mockStore.suppliers.map(supplier => [supplier.id, supplier]));
     expect(byId.p.approved).toBe(true);
+    expect(byId.a.verificationStatus).toBe('approved');
     expect(byId.n.approved).toBe(true);
     expect(byId.r.approved).toBe(false);
     expect(byId.c.approved).toBe(false);

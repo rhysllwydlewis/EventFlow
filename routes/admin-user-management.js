@@ -15,6 +15,7 @@ const { csrfProtection } = require('../middleware/csrf');
 const postmark = require('../utils/postmark');
 const dbUnified = require('../db-unified');
 const validator = require('validator');
+const { VALID_CATEGORIES } = require('../models/Supplier');
 const bcrypt = require('bcryptjs');
 const { passwordOk } = require('../utils/validators');
 const { serializeCsv } = require('../utils/csv');
@@ -1848,6 +1849,9 @@ function checkSupplierProfileField(key, raw) {
   const max = SUPPLIER_PROFILE_FIELD_LIMITS[key];
   if (max && value.length > max) {
     return { error: `${key.replace(/_/g, ' ')} must be ${max} characters or fewer` };
+  }
+  if (key === 'category' && !VALID_CATEGORIES.includes(value)) {
+    return { error: `Category must be one of: ${VALID_CATEGORIES.join(', ')}` };
   }
   if (key === 'website' && value) {
     const valid = validator.isURL(value, { protocols: ['http', 'https'], require_protocol: true });

@@ -3627,8 +3627,14 @@ router.put(
             VERIFICATION_STATES.NEEDS_CHANGES,
             VERIFICATION_STATES.SUSPENDED,
           ];
-          const notApproved = await dbUnified.find('suppliers', { approved: { $ne: true } });
-          const pendingSuppliers = notApproved.filter(
+          const awaiting = await dbUnified.find('suppliers', {
+            $or: [
+              { approved: { $ne: true } },
+              { verificationStatus: VERIFICATION_STATES.PENDING_REVIEW },
+              { verificationStatus: VERIFICATION_STATES.UNVERIFIED },
+            ],
+          });
+          const pendingSuppliers = awaiting.filter(
             candidate => !decidedStates.includes(candidate.verificationStatus)
           );
           const approvedAt = new Date().toISOString();
