@@ -5182,7 +5182,8 @@ router.post(
       }
 
       listing.approved = !!approved;
-      listing.status = approved ? 'active' : 'pending';
+      // A rejected listing leaves the pending queue (the admin page has a Removed filter for it)
+      listing.status = approved ? 'active' : 'removed';
       listing.updatedAt = new Date().toISOString();
 
       await dbUnified.updateOne(
