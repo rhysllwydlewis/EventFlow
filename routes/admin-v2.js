@@ -1561,6 +1561,15 @@ router.post(
 );
 
 /**
+ * Who wrote a review: newer reviews carry authorId, the live public form stores userId.
+ * @param {Object} review - Stored review
+ * @returns {string|undefined} Author's user id
+ */
+function reviewAuthorId(review) {
+  return review.authorId || review.userId;
+}
+
+/**
  * The fields a moderator's decision sets on a review.
  *
  * Which reviews are public is decided by utils/reviewShape.js: a legacy review is published only
@@ -1645,7 +1654,7 @@ router.get(
         ...[...new Set(pending.map(review => review.supplierId).filter(Boolean))].map(async id =>
           supplierNames.set(id, await nameOf('suppliers', id, supplier => supplier.name))
         ),
-        ...[...new Set(pending.map(review => review.authorId).filter(Boolean))].map(async id =>
+        ...[...new Set(pending.map(reviewAuthorId).filter(Boolean))].map(async id =>
           authorNames.set(
             id,
             await nameOf('users', id, user => user.displayName || user.name || null)
@@ -1655,7 +1664,8 @@ router.get(
       const data = pending.map(review => ({
         ...review,
         supplierName: supplierNames.get(review.supplierId) || null,
-        authorName: authorNames.get(review.authorId) || null,
+        // The live public form stores userId/userName, newer reviews authorId
+        authorName: authorNames.get(reviewAuthorId(review)) || review.userName || null,
       }));
 
       res.json({

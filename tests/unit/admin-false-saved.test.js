@@ -167,6 +167,15 @@ describe('F2 saving a user', () => {
     expect(mockStore.users[0].name).toBe('Ada');
   });
 
+  it('saving other changes is not blocked by an existing address that fails the strict check', async () => {
+    mockStore.users[0].email = 'ada@localhost';
+    const response = await request(app())
+      .put('/api/admin/users/u1')
+      .send({ name: 'Ada Renamed', email: 'ada@localhost', verified: true });
+    expect(response.status).toBe(200);
+    expect(mockStore.users[0]).toMatchObject({ name: 'Ada Renamed', verified: true });
+  });
+
   it('rejects an invalid email', async () => {
     const response = await request(app())
       .put('/api/admin/users/u1')
@@ -360,6 +369,29 @@ describe('F8 Reviews', () => {
     expect(response.body.data[0]).toMatchObject({ supplierName: 'Old Name', authorName: 'Ada' });
   });
 
+  it('names the author of a review from the live public form (userId / userName)', async () => {
+    mockStore.reviews = [
+      {
+        id: 'live',
+        approved: false,
+        flagged: true,
+        supplierId: 's1',
+        userId: 'u2',
+        userName: 'Bobby',
+      },
+      {
+        id: 'gone',
+        approved: false,
+        flagged: true,
+        supplierId: 's1',
+        userId: 'missing',
+        userName: 'Ghost',
+      },
+    ];
+    const response = await request(app()).get('/api/admin/reviews/pending');
+    expect(response.body.data.map(review => review.authorName)).toEqual(['Bob', 'Ghost']);
+  });
+
   it('approving a reported review takes it out of the queue for good', async () => {
     const approve = await request(app()).post('/api/admin/reviews/r2/approve');
     expect(approve.status).toBe(200);
@@ -412,7 +444,7 @@ describe('F8 Reviews', () => {
     expect(page).toMatch(/data-action="publish"/);
     expect(page).toMatch(/data-action="decline"/);
     expect(page).toMatch(/review\.supplierName \|\| review\.supplierId/);
-    expect(page).toMatch(/review\.authorName \|\| review\.authorId/);
+    expect(page).toMatch(/review\.authorName \|\| review\.userName/);
   });
 });
 
@@ -462,18 +494,18 @@ describe('F9 Suppliers page', () => {
     expect(byId.suspended.approved).toBe(false);
   });
 
-  it('the page asks before turning auto-approve on and clears the selection on filter and page change', () => {
+  it('the page asks before turning auto-approve on', () => {
     const page = source('public/assets/js/pages/admin-suppliers-init.js');
     expect(page).toMatch(/title: 'Turn on auto-approve\?'/);
-    const filters = page.slice(page.indexOf('currentPage = 1;'));
-    expect(
-      page.slice(page.indexOf('selectedSuppliers.clear();\n    currentPage = 1;'))
-    ).toBeTruthy();
-    expect(filters).toBeTruthy();
+  });
+
+  it('the selection, including the select-all tick, clears on filter and page change', () => {
+    const page = source('public/assets/js/pages/admin-suppliers-init.js');
+    expect(page).toMatch(/clearSelection\(\);\s*currentPage = 1;/);
+    expect(page).toMatch(/clearSelection\(\);\s*currentPage \+= delta;/);
     expect(page).toMatch(
-      /function changePage\(delta\) \{\s*\/\/[^\n]*\n\s*selectedSuppliers\.clear\(\);/
+      /function clearSelection\(\) \{\s*selectedSuppliers\.clear\(\);[\s\S]*?selectAll\.checked = false;/
     );
-    expect(page).toMatch(/selectedSuppliers\.clear\(\);\s*currentPage = 1;/);
   });
 });
 

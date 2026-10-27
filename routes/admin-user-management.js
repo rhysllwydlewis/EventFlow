@@ -2047,14 +2047,17 @@ async function checkUserEmailChange(user, email) {
     return { email: undefined };
   }
   const normalized = String(email).trim().toLowerCase();
+  // The edit page sends the current email with every save, so an address that is already on the
+  // account is left alone: it must not block saving a name or a verified flag.
+  if (normalized === String(user.email || '').toLowerCase()) {
+    return { email: normalized };
+  }
   if (!validator.isEmail(normalized)) {
     return { status: 400, error: 'Please enter a valid email address' };
   }
-  if (normalized !== String(user.email || '').toLowerCase()) {
-    const existing = await dbUnified.findOne('users', { email: normalized });
-    if (existing && existing.id !== user.id) {
-      return { status: 409, error: 'A user with this email already exists' };
-    }
+  const existing = await dbUnified.findOne('users', { email: normalized });
+  if (existing && existing.id !== user.id) {
+    return { status: 409, error: 'A user with this email already exists' };
   }
   return { email: normalized };
 }

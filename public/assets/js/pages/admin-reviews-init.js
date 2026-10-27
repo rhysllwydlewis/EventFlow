@@ -201,7 +201,7 @@
   function reviewParties(review) {
     return {
       supplierId: review.supplierName || review.supplierId || '',
-      authorId: review.authorName || review.authorId || '',
+      authorId: review.authorName || review.userName || review.authorId || review.userId || '',
     };
   }
 

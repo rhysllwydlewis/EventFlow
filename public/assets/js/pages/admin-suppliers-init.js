@@ -386,7 +386,7 @@
     });
 
     // A selection made under another filter would otherwise stay active on rows no longer shown
-    selectedSuppliers.clear();
+    clearSelection();
     currentPage = 1;
     renderTable();
   }
@@ -564,10 +564,19 @@
       currentPage === totalPages || totalPages === 0;
   }
 
+  // Forget every selection, including the header "select all" tick
+  function clearSelection() {
+    selectedSuppliers.clear();
+    const selectAll = document.getElementById('selectAll');
+    if (selectAll) {
+      selectAll.checked = false;
+    }
+  }
+
   // Change page
   function changePage(delta) {
     // Bulk actions must only ever act on rows the admin can see
-    selectedSuppliers.clear();
+    clearSelection();
     currentPage += delta;
     renderTable();
   }
