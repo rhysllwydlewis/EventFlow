@@ -56,14 +56,16 @@ body.has-admin-navbar.admin .btn-warning:hover { background: #92400e; }
 body.has-admin-navbar.admin .btn-info { background: #2563eb; border-color: #1d4ed8; color: #fff; }
 body.has-admin-navbar.admin .btn-info:hover { background: #1d4ed8; }
 
+/* EXPERIMENT-START
 /* ── Long unbroken words ─────────────────────────────────────────────────────────────────────
    One very long word (a pasted link, a test string) made a table or a whole page thousands of
    pixels wide, pushing Status and Manage off screen. Text in paragraphs, headings, list items and
    bold or small text now breaks where it must. (Table cells themselves are left alone, so ordinary
-   column text is never chopped mid-word.) */
+   column text is never chopped mid-word.) *\/
 body.has-admin-navbar.admin main :is(p, li, dd, h1, h2, h3, h4, strong, .small) { overflow-wrap: anywhere; }
 body.has-admin-navbar.admin main :is(.flex-1, .flex-between > div, .flex-between-start > div) { min-width: 0; }
 
+EXPERIMENT-END */
 /* ── Wide tables: keep the Actions column in view while the rest scrolls ─────────────────── */
 body.has-admin-navbar.admin .table-wrapper--sticky-actions table :is(th, td):last-child {
   position: sticky; right: 0; background: #fff; box-shadow: -10px 0 8px -8px rgba(26,57,62,.16);
