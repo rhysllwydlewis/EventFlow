@@ -9,6 +9,7 @@ const path = require('path');
 const logger = require('../utils/logger');
 const { getSafeStripeSecretKey } = require('../utils/previewSafety');
 const { priceFields, packagePriceText } = require('../utils/packagePrice');
+const { dropLiveSessions } = require('../utils/accountRestriction');
 const fs = require('fs');
 const crypto = require('crypto');
 const express = require('express');
@@ -1946,17 +1947,23 @@ router.post(
         .filter(id => id !== req.user.id && all.find(u => u.id === id))
         .map(userId => {
           count++;
-          return dbUnified.updateOne(
-            'users',
-            { id: userId },
-            {
-              $set: {
-                suspended: true,
-                suspendedAt,
-                suspendedUntil: suspendUntil ? suspendUntil.toISOString() : null,
-              },
-            }
-          );
+          return dbUnified
+            .updateOne(
+              'users',
+              { id: userId },
+              {
+                $set: {
+                  suspended: true,
+                  suspendedAt,
+                  suspendedUntil: suspendUntil ? suspendUntil.toISOString() : null,
+                  suspensionExpiresAt: suspendUntil ? suspendUntil.toISOString() : null,
+                },
+              }
+            )
+            .then(result => {
+              dropLiveSessions(userId);
+              return result;
+            });
         });
       await Promise.all(suspendPromises);
       await auditLog({

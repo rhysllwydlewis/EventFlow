@@ -35,7 +35,7 @@ const ASSET_VERSIONS = {
   // covers #package-breadcrumb/#category-breadcrumb, whose "Home" links
   // aren't wrapped in a <li> and so were the only crumb inflated to 44px —
   // visibly floating above their siblings on the same breadcrumb line.
-  '/assets/css/mobile-optimizations.css': '18.4.5',
+  '/assets/css/mobile-optimizations.css': '18.4.6',
   // 18.4.1: PR #1551 restored the `.pack`/`.featured-fallback-card` homepage
   // carousel rules removed by #1543 — bumped alongside that PR's other
   // cache-busting fixes so a cached copy of components.css doesn't linger.
@@ -310,7 +310,7 @@ ${
 `
 }${
     page.adminGuard
-      ? `    <script src="/assets/js/admin-shared.js?v=18.5.10"></script>
+      ? `    <script src="/assets/js/admin-shared.js?v=18.5.11"></script>
     <script src="/assets/js/components.js?v=18.4.0" defer></script>
     <script src="/assets/js/admin-navbar.js?v=18.4.1" defer></script>
 `
@@ -465,7 +465,7 @@ const pages = [
   {
     file: 'community.html',
     hero: homeHero,
-    body: `        <div id="efc-home" class="efc-section"></div>`,
+    body: '        <div id="efc-home" class="efc-section"></div>',
     // The composer is loaded here as well so "Start a discussion" can open as a
     // modal over the page. It is an enhancement: without it the link still goes
     // to /community/new.
@@ -523,27 +523,27 @@ ${listBody}
   },
   {
     file: 'community-discussion.html',
-    body: `        <div id="efc-thread" class="efc-section"></div>`,
+    body: '        <div id="efc-thread" class="efc-section"></div>',
     scripts: ['/assets/js/community/thread.js'],
   },
   {
     file: 'community-new.html',
-    body: `        <div id="efc-composer" class="efc-section"></div>`,
+    body: '        <div id="efc-composer" class="efc-section"></div>',
     scripts: ['/assets/js/community/composer.js'],
   },
   {
     file: 'community-member.html',
-    body: `        <div id="efc-member" class="efc-section"></div>`,
+    body: '        <div id="efc-member" class="efc-section"></div>',
     scripts: ['/assets/js/community/member.js'],
   },
   {
     file: 'community-saved.html',
-    body: `        <div id="efc-saved" class="efc-section"></div>`,
+    body: '        <div id="efc-saved" class="efc-section"></div>',
     scripts: ['/assets/js/community/member.js'],
   },
   {
     file: 'community-following.html',
-    body: `        <div id="efc-following" class="efc-section"></div>`,
+    body: '        <div id="efc-following" class="efc-section"></div>',
     scripts: ['/assets/js/community/member.js'],
   },
   {
@@ -551,17 +551,14 @@ ${listBody}
     // The admin page carries the shared admin guard, like every other
     // admin-*.html file, so an unauthenticated request never sees the shell.
     adminGuard: true,
-    body: `        <div id="efc-admin" class="efc-section"></div>`,
+    body: '        <div id="efc-admin" class="efc-section"></div>',
     scripts: ['/assets/js/community/admin.js'],
   },
 ];
 
 const guidelines = `        <article class="efc-card efc-section">
           <h1>Community guidelines</h1>
-          <p class="small"><strong>Last materially updated:</strong>
-            {{POLICY_COMMUNITY_GUIDELINES_LAST_UPDATED}} · <strong>Last reviewed:</strong>
-            {{POLICY_COMMUNITY_GUIDELINES_LAST_REVIEWED}} · <strong>Version:</strong>
-            {{POLICY_COMMUNITY_GUIDELINES_VERSION}}</p>
+          <p class="small">Updated {{POLICY_COMMUNITY_GUIDELINES_LAST_UPDATED}} · Version {{POLICY_COMMUNITY_GUIDELINES_VERSION}}</p>
           <p>The EventFlow Community is for people planning events and the suppliers who work on
             them. These guidelines apply to every discussion, reply and profile.</p>
 
@@ -639,10 +636,7 @@ const guidelines = `        <article class="efc-card efc-section">
 
 const help = `        <article class="efc-card efc-section">
           <h1>Community help</h1>
-          <p class="small"><strong>Last materially updated:</strong>
-            {{POLICY_COMMUNITY_HELP_LAST_UPDATED}} · <strong>Last reviewed:</strong>
-            {{POLICY_COMMUNITY_HELP_LAST_REVIEWED}} · <strong>Version:</strong>
-            {{POLICY_COMMUNITY_HELP_VERSION}}</p>
+          <p class="small">Updated {{POLICY_COMMUNITY_HELP_LAST_UPDATED}} · Version {{POLICY_COMMUNITY_HELP_VERSION}}</p>
 
           <h2 id="reporting">Reporting content</h2>
           <p>Every discussion and reply has a <strong>Report</strong> button. Choose the closest

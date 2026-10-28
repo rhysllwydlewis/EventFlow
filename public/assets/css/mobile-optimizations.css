@@ -40,6 +40,31 @@
     padding: 2px 0;
     display: inline-block;
   }
+
+  /* The rule above only sets display and padding in practice: its min-height
+     and min-width lose to the touch-target selector, which chains seven :not()
+     classes. So a link inside a sentence became an inline-block still forced to
+     44px, and a link at the end of a line stretched that whole line, leaving
+     visible gaps in paragraphs, bullet lists and callouts.
+
+     Links in running text are exempt from the target-size rule (WCAG 2.5.8
+     "inline"), so they get their natural height back. `:not(#_)` is an ID-level
+     specificity bump (nothing has that id); it is the only way to beat the
+     chain above regardless of source order, as the breadcrumb note explains.
+
+     Deliberately not covered: a link that is the only thing in its list item
+     (`li a:only-child`), which is a row of links such as a table of contents or
+     a related-reading list and keeps its 44px target; buttons styled as links;
+     and the homepage's "More questions and answers" row, a standalone link in a
+     <p> that `.hws__more` is excluded for by name. CSS cannot see text around
+     a lone link, so the few `<li>text <a>x</a>` items whose link is the only
+     element child keep the 44px height. */
+  main p:not(.hws__more) a:not(.cta):not([class*="btn"]):not([class*="button"]):not(#_),
+  main .small a:not(.cta):not([class*="btn"]):not([class*="button"]):not(#_),
+  main li a:not(:only-child):not(.cta):not([class*="btn"]):not([class*="button"]):not(#_) {
+    min-height: unset;
+    min-width: unset;
+  }
   
   /* Larger text for better readability on mobile */
   body {

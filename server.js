@@ -76,6 +76,7 @@ const {
   getUserFromCookie,
   userExtractionMiddleware,
 } = require('./middleware/auth');
+const { getAccountRestriction } = require('./utils/accountRestriction');
 const { featureRequired } = require('./middleware/features');
 const { apiCacheControlMiddleware, staticCachingMiddleware } = require('./middleware/cache');
 const { emailAssetsCrossOrigin } = require('./middleware/emailAssets');
@@ -973,6 +974,11 @@ const getAuthMeHandler = async (req, res) => {
     const u = await dbUnified.findOne('users', { id: p.id });
     if (!u) {
       return res.status(200).json({ user: null });
+    }
+    // A suspended or banned account is signed out: pages that ask who is logged in see nobody.
+    const restriction = getAccountRestriction(u);
+    if (restriction) {
+      return res.status(200).json({ user: null, restricted: restriction.type });
     }
     const isOwner = u.email && u.email.toLowerCase() === OWNER_EMAIL.toLowerCase();
 

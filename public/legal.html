@@ -10,7 +10,7 @@
   <link rel='stylesheet' href='/assets/css/eventflow-17.0.0.css?v=18.3.0'>
   <link rel='stylesheet' href='/assets/css/utilities.css?v=18.3.0'>
   <link rel='stylesheet' href='/assets/css/components.css?v=18.4.5'>
-  <link rel='stylesheet' href='/assets/css/animations.css?v=18.3.2'><link rel="stylesheet" href="/assets/css/mobile-optimizations.css?v=18.4.5">
+  <link rel='stylesheet' href='/assets/css/animations.css?v=18.3.2'><link rel="stylesheet" href="/assets/css/mobile-optimizations.css?v=18.4.6">
   <link rel="stylesheet" href="/assets/css/ui-ux-fixes.css?v=18.4.1">
     <script src="/assets/js/utils/auth-hint.js?v=1.0.0"></script>
     <link rel="stylesheet" href="/assets/css/navbar.css?v=18.5.0" /><link rel="stylesheet" href="/assets/css/eventflow-brand.css?v=1.0.1" data-eventflow-brand="true" />
@@ -24,196 +24,13 @@
     <link rel="mask-icon" href="/safari-pinned-tab.svg" color="#0B8073">
     <link rel="manifest" href="/site.webmanifest">
     <meta name="msapplication-config" content="/browserconfig.xml">
-  <style>
-    .legal-grid {
-      display: grid;
-      grid-template-columns: 280px 1fr;
-      gap: 32px;
-      align-items: start;
-    }
-    .legal-toc {
-      background: linear-gradient(135deg, #F9FAFB 0%, #F3F4F6 100%);
-      border: 1px solid #E7EAF0;
-      border-radius: 12px;
-      padding: 20px;
-      margin-bottom: 32px;
-      position: sticky;
-      top: 80px;
-      /* Twenty-one entries are taller than a laptop viewport, so the list
-         scrolls inside the sidebar instead of running off the bottom. */
-      max-height: calc(100vh - 104px);
-      display: flex;
-      flex-direction: column;
-    }
-    .legal-toc h2 {
-      margin-top: 0;
-      margin-bottom: 12px;
-      font-size: 0.75rem;
-      font-weight: 700;
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
-      color: #667085;
-    }
-    .legal-toc ul {
-      list-style: none;
-      padding: 0 4px 0 0;
-      margin: 0;
-      overflow-y: auto;
-      overscroll-behavior: contain;
-      scrollbar-width: thin;
-    }
-    .legal-toc ul::-webkit-scrollbar {
-      width: 6px;
-    }
-    .legal-toc ul::-webkit-scrollbar-thumb {
-      background: #D3D8E2;
-      border-radius: 999px;
-    }
-    .legal-toc li {
-      margin: 2px 0;
-    }
-    .legal-toc a {
-      color: #0B1220;
-      text-decoration: none;
-      display: flex;
-      align-items: center;
-      padding: 7px 10px;
-      font-size: 0.875rem;
-      border-left: 2px solid transparent;
-      border-radius: 0 8px 8px 0;
-      transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
-    }
-    .legal-toc a:hover,
-    .legal-toc a:focus-visible {
-      background: #fff;
-      color: var(--ink, #0B8073);
-    }
-    .legal-toc a[aria-current="true"] {
-      background: #fff;
-      border-left-color: #0B8073;
-      color: var(--ink, #0B8073);
-      font-weight: 600;
-    }
-    .legal-toc-icon {
-      margin-right: 10px;
-      font-size: 1.0625rem;
-      line-height: 1;
-    }
-    @media (prefers-reduced-motion: reduce) {
-      .legal-toc a {
-        transition: none;
-      }
-    }
-    .legal-section {
-      background: #fff;
-      border: 1px solid #E7EAF0;
-      border-radius: 12px;
-      padding: 32px;
-      margin-bottom: 24px;
-      scroll-margin-top: 100px;
-    }
-    .legal-section h2 {
-      color: var(--ink, #0B8073);
-      border-bottom: 2px solid #E7EAF0;
-      padding-bottom: 12px;
-      margin-top: 0;
-    }
-    .last-updated {
-      display: inline-block;
-      background: #FFF5E6;
-      color: #8A5A00;
-      padding: 4px 12px;
-      border-radius: 999px;
-      font-size: 0.8125rem;
-      font-weight: 600;
-      margin-bottom: 16px;
-    }
-    /* Mobile Optimization */
-    @media (max-width: 768px) {
-      .legal-grid {
-        grid-template-columns: 1fr;
-        gap: 16px;
-      }
-      main.section .container {
-        padding-left: 16px;
-        padding-right: 16px;
-      }
-      h1 {
-        font-size: 1.75rem;
-      }
-      .legal-toc {
-        position: static;
-        max-height: none;
-        padding: 16px;
-        margin-bottom: 24px;
-      }
-      .legal-toc ul {
-        /* Without the sticky viewport constraint the list would push the first
-           section a full screen down on a phone. */
-        max-height: 45vh;
-      }
-      .legal-toc li {
-        margin: 4px 0;
-      }
-      .legal-toc a {
-        padding: 6px 10px;
-        font-size: 0.875rem;
-      }
-      .legal-toc-icon {
-        margin-right: 8px;
-        font-size: 1.125rem;
-      }
-      .legal-section {
-        padding: 20px;
-        margin-bottom: 16px;
-        border-radius: 8px;
-      }
-      .legal-section h2 {
-        font-size: 1.25rem;
-        padding-bottom: 8px;
-      }
-      .legal-section h3 {
-        font-size: 1.125rem;
-      }
-      .legal-section p,
-      .legal-section li {
-        font-size: 0.875rem;
-        line-height: 1.6;
-      }
-      .card {
-        padding: 16px !important;
-      }
-      .last-updated {
-        font-size: 0.75rem;
-        padding: 3px 10px;
-      }
-    }
-    
-    @media (max-width: 480px) {
-      .legal-section {
-        padding: 16px;
-        scroll-margin-top: 80px;
-      }
-      .legal-section h2 {
-        font-size: 1.125rem;
-      }
-      .legal-toc a {
-        font-size: 0.8125rem;
-      }
-      h1 {
-        font-size: 1.5rem;
-      }
-      main.section .container {
-        padding-left: 12px;
-        padding-right: 12px;
-      }
-    }
-  </style>
   <link rel="stylesheet" href="/assets/css/eventflow-footer.css">
     <link rel="stylesheet" href="/assets/css/public-mobile-compact.css" />
-  <link rel="stylesheet" href="/assets/css/legal-pages.css?v=1.0.1">
+  <link rel="stylesheet" href="/assets/css/legal-pages.css?v=1.0.2">
+  <link rel="stylesheet" href="/assets/css/legal-hub.css?v=1.4.0">
+  <script src="/assets/js/legal-hub.js?v=1.0.0" defer></script>
 </head>
-<body>
+<body class="lh-page">
 <!-- TOP NAVBAR - GOLD STANDARD REBUILD -->
 <header class="ef-header" role="banner">
   <div class="ef-container">
@@ -321,39 +138,54 @@
     <script src="/assets/js/navbar.js?v=1.3.0" defer></script>
     <script src="/assets/js/notifications.js?v=2.0.3" defer></script>
 
-<main id="main-content" class='section'>
-  <div class='container' style="max-width: 1200px;">
-    <span class="last-updated">Last materially updated: {{POLICY_LEGAL_HUB_LAST_UPDATED}} · Last reviewed: {{POLICY_LEGAL_HUB_LAST_REVIEWED}} · Version {{POLICY_LEGAL_HUB_VERSION}}</span>
-    <h1>Legal Hub</h1>
-    <p style="font-size: 1.125rem; color: #667085; margin-bottom: 32px;">All EventFlow legal documents, policies, and guidelines in one place. Navigate using the menu below.</p>
+<main id="main-content" class='section lh'>
+  <div class='container lh-container'>
+    <header class="lh-hero">
+      <p class="lh-eyebrow">Legal</p>
+      <h1>Legal Hub</h1>
+      <p class="lh-lede">All EventFlow legal documents, policies, and guidelines in one place. Navigate using the menu below.</p>
+      <span class="last-updated">Updated {{POLICY_LEGAL_HUB_LAST_UPDATED}} · Version {{POLICY_LEGAL_HUB_VERSION}}</span>
+    </header>
+
+    <ul class="lh-quick" role="list" aria-label="Most-read documents">
+        <li><a href="#terms"><span class="lh-quick-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6M8 13h8M8 17h5"/></svg></span><span class="lh-quick-title">Terms of Use</span><span class="lh-quick-sub">The rules for using EventFlow</span></a></li>
+        <li><a href="#privacy"><span class="lh-quick-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg></span><span class="lh-quick-title">Privacy Notice</span><span class="lh-quick-sub">How we use and protect your data</span></a></li>
+        <li><a href="#cookies"><span class="lh-quick-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M8.5 9.5h.01M15 8h.01M10 15h.01M15.5 14.5h.01"/></svg></span><span class="lh-quick-title">Cookie Policy</span><span class="lh-quick-sub">What we store and how to choose</span></a></li>
+        <li><a href="#gdpr"><span class="lh-quick-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l8 3v6c0 4.5-3.2 8-8 9-4.8-1-8-4.5-8-9V6z"/><path d="M9 12l2 2 4-4"/></svg></span><span class="lh-quick-title">Your data rights</span><span class="lh-quick-sub">Access, correct or erase your data</span></a></li>
+    </ul>
 
     <div class="legal-grid">
       
       <!-- Table of Contents -->
       <nav class="legal-toc" aria-labelledby="legal-toc-heading">
-        <h2 id="legal-toc-heading"><span aria-hidden="true">📑</span> Quick Navigation</h2>
+        <h2 id="legal-toc-heading">Quick Navigation</h2>
         <ul>
-          <li><a href="#overview"><span class="legal-toc-icon" aria-hidden="true">📋</span> Overview</a></li>
-          <li><a href="#terms"><span class="legal-toc-icon" aria-hidden="true">📋</span> Terms of Use</a></li>
-          <li><a href="#privacy"><span class="legal-toc-icon" aria-hidden="true">🔒</span> Privacy Notice</a></li>
-          <li><a href="#cookies"><span class="legal-toc-icon" aria-hidden="true">🍪</span> Cookie Policy</a></li>
-          <li><a href="#gdpr"><span class="legal-toc-icon" aria-hidden="true">🛡️</span> GDPR Rights</a></li>
-          <li><a href="#acceptable-use"><span class="legal-toc-icon" aria-hidden="true">✓</span> Acceptable Use</a></li>
-          <li><a href="#copyright"><span class="legal-toc-icon" aria-hidden="true">©</span> Copyright</a></li>
-          <li><a href="#supplier-terms"><span class="legal-toc-icon" aria-hidden="true">🤝</span> Supplier Terms</a></li>
-          <li><a href="#unclaimed-listings"><span class="legal-toc-icon" aria-hidden="true">📍</span> Unclaimed Listings</a></li>
-          <li><a href="#marketplace-terms"><span class="legal-toc-icon" aria-hidden="true">🛒</span> Marketplace Terms</a></li>
-          <li><a href="#community"><span class="legal-toc-icon" aria-hidden="true">👥</span> Community</a></li>
-          <li><a href="#accessibility"><span class="legal-toc-icon" aria-hidden="true">♿</span> Accessibility</a></li>
-          <li><a href="#security"><span class="legal-toc-icon" aria-hidden="true">🔐</span> Security</a></li>
-          <li><a href="#contact"><span class="legal-toc-icon" aria-hidden="true">📧</span> Contact</a></li>
-          <li><a href="#company-info"><span class="legal-toc-icon" aria-hidden="true">🏢</span> Company Information</a></li>
-          <li><a href="#returns-consumer-rights"><span class="legal-toc-icon" aria-hidden="true">↩️</span> Returns & Consumer Rights</a></li>
-          <li><a href="#adr"><span class="legal-toc-icon" aria-hidden="true">⚖️</span> Dispute Resolution (ADR/ODR)</a></li>
-          <li><a href="#illegal-content"><span class="legal-toc-icon" aria-hidden="true">🚨</span> Report Illegal Content</a></li>
-          <li><a href="#payment-security"><span class="legal-toc-icon" aria-hidden="true">💳</span> Payment Security</a></li>
-          <li><a href="#age-verification"><span class="legal-toc-icon" aria-hidden="true">🔞</span> Age Verification</a></li>
-          <li><a href="#partner-programme"><span class="legal-toc-icon" aria-hidden="true">🤝</span> Partner Programme</a></li>
+          <li><a href="#overview">Overview</a></li>
+          <li class="lh-toc-group" aria-hidden="true">Core policies</li>
+          <li><a href="#terms">Terms of Use</a></li>
+          <li><a href="#privacy">Privacy Notice</a></li>
+          <li><a href="#cookies">Cookie Policy</a></li>
+          <li><a href="#gdpr">GDPR Rights</a></li>
+          <li><a href="#acceptable-use">Acceptable Use</a></li>
+          <li><a href="#copyright">Copyright</a></li>
+          <li class="lh-toc-group" aria-hidden="true">Suppliers &amp; marketplace</li>
+          <li><a href="#supplier-terms">Supplier Terms</a></li>
+          <li><a href="#unclaimed-listings">Unclaimed Listings</a></li>
+          <li><a href="#marketplace-terms">Marketplace Terms</a></li>
+          <li class="lh-toc-group" aria-hidden="true">Platform</li>
+          <li><a href="#community">Community</a></li>
+          <li><a href="#accessibility">Accessibility</a></li>
+          <li><a href="#security">Security</a></li>
+          <li class="lh-toc-group" aria-hidden="true">Company &amp; consumers</li>
+          <li><a href="#contact">Contact</a></li>
+          <li><a href="#company-info">Company Information</a></li>
+          <li><a href="#returns-consumer-rights">Returns & Consumer Rights</a></li>
+          <li><a href="#adr">Dispute Resolution (ADR/ODR)</a></li>
+          <li class="lh-toc-group" aria-hidden="true">Safety, payments &amp; partners</li>
+          <li><a href="#illegal-content">Report Illegal Content</a></li>
+          <li><a href="#payment-security">Payment Security</a></li>
+          <li><a href="#age-verification">Age Verification</a></li>
+          <li><a href="#partner-programme">Partner Programme</a></li>
         </ul>
       </nav>
 
@@ -362,9 +194,9 @@
         
         <!-- Overview Section -->
         <section id="overview" class="legal-section">
-          <h2><span aria-hidden="true">📋</span> Overview</h2>
+          <h2>Overview</h2>
           <p>Welcome to the EventFlow Legal Hub. This page contains all our legal documentation in one convenient location.</p>
-          <p class="small" style="background:#f0fdf4;border-left:3px solid #0B8073;padding:0.75rem 1rem;border-radius:4px;">Event Flow (event-flow.co.uk) is operated by <strong>VEXI</strong>. For VEXI's corporate legal documents, visit <a href="https://vexi.co.uk/legal" target="_blank" rel="noopener noreferrer">vexi.co.uk/legal</a>.</p>
+          <p class="small lh-callout">Event Flow (event-flow.co.uk) is operated by <strong>VEXI</strong>. For VEXI's corporate legal documents, visit <a href="https://vexi.co.uk/legal" target="_blank" rel="noopener noreferrer">vexi.co.uk/legal</a>.</p>
           <p><strong>VEXI</strong> (sole trader trading as 'VEXI') operates the Event Flow platform, providing event planning services and a peer-to-peer marketplace for event items. We are committed to:</p>
           <ul>
             <li>Transparency in how we operate</li>
@@ -386,14 +218,8 @@
 
         <!-- Terms Summary -->
         <section id="terms" class="legal-section">
-          <h2><span aria-hidden="true">📋</span> Terms of Use Summary</h2>
-          <div class="legal-metadata" style="margin-bottom: 1.5rem; padding: 1rem; background: #f9fafb; border-left: 3px solid #0B8073; border-radius: 4px;">
-            <p class="small" style="margin: 0; color: #6b7280;">
-              <strong>Last materially updated:</strong> {{POLICY_TERMS_LAST_UPDATED}} |
-              <strong>Last reviewed:</strong> {{POLICY_TERMS_LAST_REVIEWED}} |
-              <strong>Version:</strong> {{POLICY_TERMS_VERSION}}
-            </p>
-          </div>
+          <h2>Terms of Use Summary</h2>
+          <p class="lh-meta"><span>Updated {{POLICY_TERMS_LAST_UPDATED}}</span><span>Version {{POLICY_TERMS_VERSION}}</span></p>
           <p>Our Terms of Use govern your use of EventFlow services. Key points include:</p>
           <ul>
             <li><strong>Acceptance:</strong> By using our services, you agree to these terms</li>
@@ -408,14 +234,8 @@
 
         <!-- Privacy Summary -->
         <section id="privacy" class="legal-section">
-          <h2><span aria-hidden="true">🔒</span> Privacy Notice Summary</h2>
-          <div class="legal-metadata" style="margin-bottom: 1.5rem; padding: 1rem; background: #f9fafb; border-left: 3px solid #0B8073; border-radius: 4px;">
-            <p class="small" style="margin: 0; color: #6b7280;">
-              <strong>Last materially updated:</strong> {{POLICY_PRIVACY_LAST_UPDATED}} |
-              <strong>Last reviewed:</strong> {{POLICY_PRIVACY_LAST_REVIEWED}} |
-              <strong>Version:</strong> {{POLICY_PRIVACY_VERSION}}
-            </p>
-          </div>
+          <h2>Privacy Notice Summary</h2>
+          <p class="lh-meta"><span>Updated {{POLICY_PRIVACY_LAST_UPDATED}}</span><span>Version {{POLICY_PRIVACY_VERSION}}</span></p>
           <p>We take your privacy seriously. Our Privacy Notice explains:</p>
           <ul>
             <li><strong>What we collect:</strong> Account data, event plans, messages, photos, and supplier directory information sourced from businesses' own public websites</li>
@@ -430,14 +250,8 @@
 
         <!-- Cookie Policy -->
         <section id="cookies" class="legal-section">
-          <h2><span aria-hidden="true">🍪</span> Cookie Policy</h2>
-          <div class="legal-metadata" style="margin-bottom: 1.5rem; padding: 1rem; background: #f9fafb; border-left: 3px solid #0B8073; border-radius: 4px;">
-            <p class="small" style="margin: 0; color: #6b7280;">
-              <strong>Last materially updated:</strong> {{POLICY_COOKIE_POLICY_LAST_UPDATED}} |
-              <strong>Last reviewed:</strong> {{POLICY_COOKIE_POLICY_LAST_REVIEWED}} |
-              <strong>Version:</strong> {{POLICY_COOKIE_POLICY_VERSION}}
-            </p>
-          </div>
+          <h2>Cookie Policy</h2>
+          <p class="lh-meta"><span>Updated {{POLICY_COOKIE_POLICY_LAST_UPDATED}}</span><span>Version {{POLICY_COOKIE_POLICY_VERSION}}</span></p>
           <p>EventFlow uses cookies to provide and improve our services.</p>
           
           <h3 class="h5">Cookie Categories</h3>
@@ -472,16 +286,11 @@
           <h3 class="h5" style="margin-top:1.25rem;">Managing Your Cookie Preferences</h3>
           <p>You can manage or withdraw your consent at any time — not just on your first visit. Use the button below or the <strong>Cookie preferences</strong> link in the site footer.</p>
           <p>
-            <button
-              type="button"
-              data-cookie-prefs
-              style="display:inline-flex;align-items:center;gap:0.4rem;padding:0.6rem 1.2rem;background:#13b6a2;color:#fff;border:none;border-radius:6px;font-size: 0.875rem;font-weight:600;cursor:pointer;"
-              aria-label="Open cookie preferences manager"
-            >
+            <button type="button" data-cookie-prefs class="lh-btn">
               🍪 Manage cookie preferences
             </button>
           </p>
-          <p class="small" style="color:#667085;">You can also <button type="button" data-cookie-revoke style="background:none;border:none;color:#0B8073;text-decoration:underline;cursor:pointer;font-size:inherit;padding:0;">reset your cookie consent</button> to be prompted again from scratch.</p>
+          <p class="small" style="color:#667085;">You can also <button type="button" data-cookie-revoke class="lh-link-btn">reset your cookie consent</button> to be prompted again from scratch.</p>
           <ul>
             <li><strong>Accept All:</strong> Allow every optional category — functional, analytics and advertising</li>
             <li><strong>Reject:</strong> Only essential cookies — functional preferences are cleared, and analytics and advertising do not start</li>
@@ -496,41 +305,35 @@
 
         <!-- GDPR & Data Rights -->
         <section id="gdpr" class="legal-section">
-          <h2><span aria-hidden="true">🛡️</span> Data Protection & Your Rights</h2>
-          <div class="legal-metadata" style="margin-bottom: 1.5rem; padding: 1rem; background: #f9fafb; border-left: 3px solid #0B8073; border-radius: 4px;">
-            <p class="small" style="margin: 0; color: #6b7280;">
-              <strong>Last materially updated:</strong> {{POLICY_PRIVACY_LAST_UPDATED}} |
-              <strong>Last reviewed:</strong> {{POLICY_PRIVACY_LAST_REVIEWED}} |
-              <strong>Version:</strong> {{POLICY_PRIVACY_VERSION}}
-            </p>
-          </div>
+          <h2>Data Protection & Your Rights</h2>
+          <p class="lh-meta"><span>Updated {{POLICY_PRIVACY_LAST_UPDATED}}</span><span>Version {{POLICY_PRIVACY_VERSION}}</span></p>
           <p>Under UK GDPR, you have the following rights regarding your personal data:</p>
           
-          <div class="card" style="background: #F9FAFB; border: 1px solid #E7EAF0; margin: 16px 0;">
+          <div class="card">
             <h3 class="h5">Right to Access</h3>
             <p>Request a copy of all your personal data we hold.</p>
             <p><strong>How:</strong> Email <!--email_off--><a href="mailto:{{ADMIN_EMAIL}}">{{ADMIN_EMAIL}}</a><!--/email_off--> with "Data Access Request"</p>
           </div>
           
-          <div class="card" style="background: #F9FAFB; border: 1px solid #E7EAF0; margin: 16px 0;">
+          <div class="card">
             <h3 class="h5">Right to Rectification</h3>
             <p>Correct inaccurate or incomplete information.</p>
             <p><strong>How:</strong> Update in <a href="/settings">Settings</a> or contact us</p>
           </div>
           
-          <div class="card" style="background: #F9FAFB; border: 1px solid #E7EAF0; margin: 16px 0;">
+          <div class="card">
             <h3 class="h5">Right to Erasure</h3>
             <p>Request deletion of your personal data ("right to be forgotten").</p>
             <p><strong>How:</strong> Email <!--email_off--><a href="mailto:{{ADMIN_EMAIL}}">{{ADMIN_EMAIL}}</a><!--/email_off--> with "Account Deletion Request"</p>
           </div>
           
-          <div class="card" style="background: #F9FAFB; border: 1px solid #E7EAF0; margin: 16px 0;">
+          <div class="card">
             <h3 class="h5">Right to Data Portability</h3>
             <p>Receive your data in machine-readable format (JSON).</p>
             <p><strong>How:</strong> Email <!--email_off--><a href="mailto:{{ADMIN_EMAIL}}">{{ADMIN_EMAIL}}</a><!--/email_off--> with "Data Portability Request"</p>
           </div>
           
-          <div class="card" style="background: #F9FAFB; border: 1px solid #E7EAF0; margin: 16px 0;">
+          <div class="card">
             <h3 class="h5">Right to Object</h3>
             <p>Object to certain processing, especially marketing.</p>
             <p><strong>How:</strong> Unsubscribe from emails or update Settings</p>
@@ -542,8 +345,8 @@
 
         <!-- Acceptable Use Policy -->
         <section id="acceptable-use" class="legal-section">
-          <h2><span aria-hidden="true">✓</span> Acceptable Use Policy</h2>
-          <p class="small" style="color:#667085;"><strong>Last materially updated:</strong> {{POLICY_ACCEPTABLE_USE_LAST_UPDATED}} | <strong>Last reviewed:</strong> {{POLICY_ACCEPTABLE_USE_LAST_REVIEWED}} | <strong>Version:</strong> {{POLICY_ACCEPTABLE_USE_VERSION}}</p>
+          <h2>Acceptable Use Policy</h2>
+          <p class="lh-meta"><span>Updated {{POLICY_ACCEPTABLE_USE_LAST_UPDATED}}</span><span>Version {{POLICY_ACCEPTABLE_USE_VERSION}}</span></p>
           <p>To maintain a safe and respectful community, users must not:</p>
           
           <h3 class="h5">Prohibited Activities</h3>
@@ -582,8 +385,8 @@
 
         <!-- Copyright Policy -->
         <section id="copyright" class="legal-section">
-          <h2><span aria-hidden="true">©</span> Copyright & Intellectual Property</h2>
-          <p class="small" style="color:#667085;"><strong>Last materially updated:</strong> {{POLICY_COPYRIGHT_LAST_UPDATED}} | <strong>Last reviewed:</strong> {{POLICY_COPYRIGHT_LAST_REVIEWED}} | <strong>Version:</strong> {{POLICY_COPYRIGHT_VERSION}}</p>
+          <h2>Copyright & Intellectual Property</h2>
+          <p class="lh-meta"><span>Updated {{POLICY_COPYRIGHT_LAST_UPDATED}}</span><span>Version {{POLICY_COPYRIGHT_VERSION}}</span></p>
           
           <h3 class="h5">Our Content</h3>
           <p>All content on Event Flow (text, graphics, logos, designs) is owned by VEXI or our licensors and protected by:</p>
@@ -618,10 +421,10 @@
 
         <!-- Supplier Terms -->
         <section id="supplier-terms" class="legal-section">
-          <h2><span aria-hidden="true">🤝</span> Supplier-Specific Terms</h2>
-          <p class="small" style="color:#667085;"><strong>Last materially updated:</strong> {{POLICY_SUPPLIER_TERMS_LAST_UPDATED}} | <strong>Last reviewed:</strong> {{POLICY_SUPPLIER_TERMS_LAST_REVIEWED}} | <strong>Version:</strong> {{POLICY_SUPPLIER_TERMS_VERSION}}</p>
+          <h2>Supplier-Specific Terms</h2>
+          <p class="lh-meta"><span>Updated {{POLICY_SUPPLIER_TERMS_LAST_UPDATED}}</span><span>Version {{POLICY_SUPPLIER_TERMS_VERSION}}</span></p>
           <p>If you are a supplier listing services on EventFlow, additional terms apply:</p>
-          <p class="small" style="background:#f0fdf4;border-left:3px solid #0B8073;padding:0.75rem 1rem;border-radius:4px;">Not signed up, but your business already appears on EventFlow? That is an <a href="#unclaimed-listings">unclaimed listing</a>. It creates no contract and no charge, and you can claim, correct or remove it.</p>
+          <p class="small lh-callout">Not signed up, but your business already appears on EventFlow? That is an <a href="#unclaimed-listings">unclaimed listing</a>. It creates no contract and no charge, and you can claim, correct or remove it.</p>
           
           <h3 class="h5">Listing Requirements</h3>
           <ul>
@@ -680,7 +483,7 @@
           </ul>
           
           <p><strong>User Responsibility:</strong></p>
-          <div class="notice" style="margin-top: 16px; padding: 16px; background: #FFF5E6; border-left: 4px solid #8A5A00; border-radius: 8px;">
+          <div class="notice lh-notice--warn">
             <p><strong>Important:</strong> Users are responsible for conducting their own due diligence when engaging suppliers. Always verify:</p>
             <ul style="margin-bottom: 0;">
               <li>Business credentials and registration (Companies House)</li>
@@ -716,8 +519,8 @@
 
         <!-- Unclaimed Listings -->
         <section id="unclaimed-listings" class="legal-section">
-          <h2><span aria-hidden="true">📍</span> Unclaimed Listings</h2>
-          <p class="small" style="color:#667085;"><strong>Last materially updated:</strong> {{POLICY_UNCLAIMED_LISTINGS_LAST_UPDATED}} | <strong>Last reviewed:</strong> {{POLICY_UNCLAIMED_LISTINGS_LAST_REVIEWED}} | <strong>Version:</strong> {{POLICY_UNCLAIMED_LISTINGS_VERSION}}</p>
+          <h2>Unclaimed Listings</h2>
+          <p class="lh-meta"><span>Updated {{POLICY_UNCLAIMED_LISTINGS_LAST_UPDATED}}</span><span>Version {{POLICY_UNCLAIMED_LISTINGS_VERSION}}</span></p>
 
           <p>Some supplier listings on EventFlow are created by us from information a business has
             already published about itself, rather than by the business signing up. Those listings
@@ -767,8 +570,8 @@
 
         <!-- Marketplace Terms -->
         <section id="marketplace-terms" class="legal-section">
-          <h2><span aria-hidden="true">🛒</span> Marketplace Terms</h2>
-          <p class="small" style="color:#667085;"><strong>Last materially updated:</strong> {{POLICY_MARKETPLACE_TERMS_LAST_UPDATED}} | <strong>Last reviewed:</strong> {{POLICY_MARKETPLACE_TERMS_LAST_REVIEWED}} | <strong>Version:</strong> {{POLICY_MARKETPLACE_TERMS_VERSION}}</p>
+          <h2>Marketplace Terms</h2>
+          <p class="lh-meta"><span>Updated {{POLICY_MARKETPLACE_TERMS_LAST_UPDATED}}</span><span>Version {{POLICY_MARKETPLACE_TERMS_VERSION}}</span></p>
           <p>The EventFlow Marketplace is a peer-to-peer platform for buying and selling physical event-related items. These terms apply to all marketplace users (buyers and sellers).</p>
           
           <h3 class="h5">Marketplace Overview</h3>
@@ -979,30 +782,32 @@
           </ul>
           
           <h3 class="h5">Timeframes for Dispute Resolution</h3>
-          <table style="width: 100%; border-collapse: collapse; margin-top: 12px;">
-            <tr style="background: #F3F4F6;">
-              <th style="padding: 12px; text-align: left; border: 1px solid #E7EAF0;">Stage</th>
-              <th style="padding: 12px; text-align: left; border: 1px solid #E7EAF0;">Timeframe</th>
+          <div class="lh-table-wrap" role="region" aria-label="Dispute resolution timeframes" tabindex="0">
+          <table>
+            <tr>
+              <th>Stage</th>
+              <th>Timeframe</th>
             </tr>
             <tr>
-              <td style="padding: 12px; border: 1px solid #E7EAF0;">Direct party resolution attempt</td>
-              <td style="padding: 12px; border: 1px solid #E7EAF0;">48 hours for initial response</td>
-            </tr>
-            <tr style="background: #F9FAFB;">
-              <td style="padding: 12px; border: 1px solid #E7EAF0;">Platform dispute report acknowledgment</td>
-              <td style="padding: 12px; border: 1px solid #E7EAF0;">As soon as reasonably practicable</td>
+              <td>Direct party resolution attempt</td>
+              <td>48 hours for initial response</td>
             </tr>
             <tr>
-              <td style="padding: 12px; border: 1px solid #E7EAF0;">Platform investigation</td>
-              <td style="padding: 12px; border: 1px solid #E7EAF0;">Depends on complexity and evidence</td>
+              <td>Platform dispute report acknowledgment</td>
+              <td>As soon as reasonably practicable</td>
             </tr>
-            <tr style="background: #F9FAFB;">
-              <td style="padding: 12px; border: 1px solid #E7EAF0;">Investigation outcome communicated</td>
-              <td style="padding: 12px; border: 1px solid #E7EAF0;">When reasonably practicable after conclusion</td>
+            <tr>
+              <td>Platform investigation</td>
+              <td>Depends on complexity and evidence</td>
+            </tr>
+            <tr>
+              <td>Investigation outcome communicated</td>
+              <td>When reasonably practicable after conclusion</td>
             </tr>
           </table>
+          </div>
           
-          <div class="notice" style="margin-top: 24px; padding: 16px; background: #E6F4FF; border-left: 4px solid #0B8073; border-radius: 8px;">
+          <div class="notice">
             <p><strong>Best Practice for Dispute Prevention:</strong></p>
             <ul style="margin-bottom: 0;">
               <li>Keep all communication on the EventFlow platform</li>
@@ -1074,8 +879,8 @@
 
         <!-- Community Guidelines -->
         <section id="community" class="legal-section">
-          <h2><span aria-hidden="true">👥</span> Community Guidelines</h2>
-          <p class="small" style="color:#667085;"><strong>Last materially updated:</strong> {{POLICY_COMMUNITY_GUIDELINES_LAST_UPDATED}} | <strong>Last reviewed:</strong> {{POLICY_COMMUNITY_GUIDELINES_LAST_REVIEWED}} | <strong>Version:</strong> {{POLICY_COMMUNITY_GUIDELINES_VERSION}}</p>
+          <h2>Community Guidelines</h2>
+          <p class="lh-meta"><span>Updated {{POLICY_COMMUNITY_GUIDELINES_LAST_UPDATED}}</span><span>Version {{POLICY_COMMUNITY_GUIDELINES_VERSION}}</span></p>
           <p>The EventFlow Community is a public forum for event planners and suppliers. Published
             handles, profiles, discussions and replies may be searchable on EventFlow and indexed
             by external search engines. Community advice is user-generated and should not be
@@ -1129,7 +934,7 @@
 
         <!-- Accessibility Statement -->
         <section id="accessibility" class="legal-section">
-          <h2><span aria-hidden="true">♿</span> Accessibility Statement</h2>
+          <h2>Accessibility Statement</h2>
           <p>EventFlow is committed to ensuring digital accessibility for people with disabilities.</p>
           
           <h3 class="h5">Our Commitment</h3>
@@ -1170,7 +975,7 @@
 
         <!-- Security Policy -->
         <section id="security" class="legal-section">
-          <h2><span aria-hidden="true">🔐</span> Security Policy</h2>
+          <h2>Security Policy</h2>
           
           <h3 class="h5">How We Protect Your Data</h3>
           <ul>
@@ -1213,9 +1018,9 @@
 
         <!-- Contact Section -->
         <section id="contact" class="legal-section">
-          <h2><span aria-hidden="true">📧</span> Contact Information</h2>
+          <h2>Contact Information</h2>
           
-          <div class="card" style="background: linear-gradient(135deg, #F9FAFB 0%, #F3F4F6 100%); border: 1px solid #E7EAF0;">
+          <div class="card">
             <h3 class="h5">VEXI (sole trader trading as 'VEXI')</h3>
             <p><strong>Operator:</strong> VEXI (sole trader trading as 'VEXI')<br>
             <strong>Platform:</strong> Event Flow (event-flow.co.uk)<br>
@@ -1244,9 +1049,9 @@
 
         <!-- Company Information Section -->
         <section id="company-info" class="legal-section">
-          <h2><span aria-hidden="true">🏢</span> Company Information</h2>
+          <h2>Company Information</h2>
           
-          <div class="card" style="background: linear-gradient(135deg, #F9FAFB 0%, #F3F4F6 100%); border: 1px solid #E7EAF0;">
+          <div class="card lh-card--plain">
             <p>In accordance with UK consumer protection requirements, we provide the following entity information. Event Flow (event-flow.co.uk) is operated by <strong>VEXI</strong>, a sole trader trading as 'VEXI'.</p>
             
             <h3 class="h5" style="margin-top: 24px;">Legal Entity Details</h3>
@@ -1271,9 +1076,9 @@
 
         <!-- Returns & Consumer Rights Section -->
         <section id="returns-consumer-rights" class="legal-section">
-          <h2><span aria-hidden="true">↩️</span> Marketplace Returns & Consumer Rights</h2>
+          <h2>Marketplace Returns & Consumer Rights</h2>
           
-          <div class="card" style="background: linear-gradient(135deg, #F9FAFB 0%, #F3F4F6 100%); border: 1px solid #E7EAF0;">
+          <div class="card lh-card--plain">
             <h3 class="h5">Understanding the Marketplace Model</h3>
             <p>EventFlow operates a <strong>peer-to-peer marketplace</strong> where transactions occur directly between buyers and sellers. This structure affects returns and consumer rights:</p>
             
@@ -1335,7 +1140,7 @@
               <li><strong>Trading Standards:</strong> Contact via Citizens Advice Consumer Service</li>
             </ul>
             
-            <div class="notice" style="margin-top: 24px; padding: 16px; background: #E6F4FF; border-left: 4px solid #0B8073; border-radius: 8px;">
+            <div class="notice">
               <p><strong>Important:</strong> Always check whether a seller is trading as a business or private individual. Business sellers must comply with full Consumer Rights Act 2015. If unclear, ask the seller directly or contact our support team.</p>
             </div>
           </div>
@@ -1343,9 +1148,9 @@
 
         <!-- Alternative Dispute Resolution Section -->
         <section id="adr" class="legal-section">
-          <h2><span aria-hidden="true">⚖️</span> Alternative Dispute Resolution (ADR) & Online Dispute Resolution (ODR)</h2>
+          <h2>Alternative Dispute Resolution (ADR) & Online Dispute Resolution (ODR)</h2>
           
-          <div class="card" style="background: linear-gradient(135deg, #F9FAFB 0%, #F3F4F6 100%); border: 1px solid #E7EAF0;">
+          <div class="card lh-card--plain">
             <h3 class="h5">What is ADR/ODR?</h3>
             <p>Alternative Dispute Resolution (ADR) and Online Dispute Resolution (ODR) are processes for resolving disputes without going to court. These can include mediation, arbitration, or ombudsman schemes.</p>
             
@@ -1399,7 +1204,7 @@
               <li><strong>Jurisdiction:</strong> England and Wales (separate processes for Scotland/Northern Ireland)</li>
             </ul>
             
-            <div class="notice" style="margin-top: 24px; padding: 16px; background: #FFF5E6; border-left: 4px solid #8A5A00; border-radius: 8px;">
+            <div class="notice lh-notice--warn">
               <p><strong>We Encourage Amicable Resolution:</strong> Most disputes can be resolved through open communication. Contact us at <!--email_off--><a href="mailto:{{ABUSE_EMAIL}}">{{ABUSE_EMAIL}}</a><!--/email_off--> before pursuing formal dispute resolution, and we will do our best to help facilitate a fair outcome.</p>
             </div>
           </div>
@@ -1407,18 +1212,18 @@
 
         <!-- Report Illegal Content Section -->
         <section id="illegal-content" class="legal-section">
-          <h2><span aria-hidden="true">🚨</span> Report Illegal or Harmful Content</h2>
+          <h2>Report Illegal or Harmful Content</h2>
           
-          <div class="card" style="background: linear-gradient(135deg, #FFE6E6 0%, #FFF0F0 100%); border: 2px solid #DC2626; padding: 24px;">
-            <h3 class="h5" style="color: #DC2626; margin-top: 0;">This is Important - Help Keep EventFlow Safe</h3>
+          <div class="card lh-card--danger">
+            <h3 class="h5">This is Important - Help Keep EventFlow Safe</h3>
             <p>EventFlow is committed to maintaining a safe, legal, and trustworthy platform. We take all reports of illegal or harmful content seriously and will investigate promptly.</p>
           </div>
           
-          <div class="card" style="background: linear-gradient(135deg, #F9FAFB 0%, #F3F4F6 100%); border: 1px solid #E7EAF0; margin-top: 16px;">
+          <div class="card lh-card--plain">
             <h3 class="h5">What to Report</h3>
             <p>Please report any of the following immediately:</p>
             
-            <h4 style="margin-top: 16px; margin-bottom: 8px;">🚫 Illegal Items & Fraud</h4>
+            <h4 class="lh-flag"><span class="lh-dot lh-dot--danger" aria-hidden="true"></span>Illegal Items & Fraud</h4>
             <ul>
               <li><strong>Counterfeit Goods:</strong> Fake designer items, fake tickets, replica products</li>
               <li><strong>Stolen Property:</strong> Items you suspect are stolen</li>
@@ -1427,7 +1232,7 @@
               <li><strong>Scams & Fraud:</strong> Misleading listings, fake services, phishing attempts</li>
             </ul>
             
-            <h4 style="margin-top: 16px; margin-bottom: 8px;">⚠️ Safety Concerns</h4>
+            <h4 class="lh-flag"><span class="lh-dot lh-dot--warn" aria-hidden="true"></span>Safety Concerns</h4>
             <ul>
               <li><strong>Unsafe Products:</strong> Items that don't meet safety standards</li>
               <li><strong>Dangerous Services:</strong> Unqualified suppliers offering regulated services</li>
@@ -1435,7 +1240,7 @@
               <li><strong>Age-Restricted Items:</strong> Inappropriate items for minors without restrictions</li>
             </ul>
             
-            <h4 style="margin-top: 16px; margin-bottom: 8px;">🛡️ Harmful Content</h4>
+            <h4 class="lh-flag"><span class="lh-dot lh-dot--danger" aria-hidden="true"></span>Harmful Content</h4>
             <ul>
               <li><strong>Hate Speech:</strong> Content promoting hatred based on protected characteristics</li>
               <li><strong>Illegal Content:</strong> Child sexual abuse material, terrorism content</li>
@@ -1445,7 +1250,7 @@
             
             <h3 class="h5" style="margin-top: 24px;">How to Report</h3>
             <ol>
-              <li><strong>Email:</strong> <!--email_off--><a href="mailto:{{ABUSE_EMAIL}}" style="font-weight: 600; color: #DC2626;">{{ABUSE_EMAIL}}</a><!--/email_off--></li>
+              <li><strong>Email:</strong> <!--email_off--><a href="mailto:{{ABUSE_EMAIL}}" class="lh-link--danger">{{ABUSE_EMAIL}}</a><!--/email_off--></li>
               <li><strong>Subject Line:</strong> "Report Illegal Content - [Type of Violation]"</li>
               <li><strong>Include:</strong>
                 <ul>
@@ -1503,7 +1308,7 @@
             </ul>
           </div>
           
-          <div class="notice" style="margin-top: 24px; padding: 20px; background: #DC2626; color: white; border-radius: 8px;">
+          <div class="notice lh-notice--alert">
             <p style="margin: 0; font-weight: 600; font-size: 1.125rem;">📧 Report Illegal Content: <!--email_off--><a href="mailto:{{ABUSE_EMAIL}}" style="color: white; text-decoration: underline;">{{ABUSE_EMAIL}}</a><!--/email_off--></p>
             <p style="margin: 8px 0 0 0;">Urgent reports are prioritised; other reports are handled as soon as reasonably practicable</p>
           </div>
@@ -1511,9 +1316,9 @@
 
         <!-- Payment Security Section -->
         <section id="payment-security" class="legal-section">
-          <h2><span aria-hidden="true">💳</span> Payment Security</h2>
+          <h2>Payment Security</h2>
           
-          <div class="card" style="background: linear-gradient(135deg, #F9FAFB 0%, #F3F4F6 100%); border: 1px solid #E7EAF0;">
+          <div class="card lh-card--plain">
             <h3 class="h5">Current Payment Model</h3>
             <p><strong>Important Information About Marketplace Payments:</strong></p>
             <ul>
@@ -1527,7 +1332,7 @@
             <h3 class="h5" style="margin-top: 24px;">Recommended Secure Payment Methods</h3>
             <p>We strongly recommend using payment methods with buyer protection:</p>
             
-            <h4 style="margin-top: 16px; margin-bottom: 8px;">✅ Recommended (Buyer Protection)</h4>
+            <h4 class="lh-flag"><span class="lh-dot lh-dot--ok" aria-hidden="true"></span>Recommended (Buyer Protection)</h4>
             <ul>
               <li><strong>PayPal Goods & Services:</strong> Comprehensive buyer protection, dispute resolution</li>
               <li><strong>Credit Card:</strong> Section 75 protection for purchases £100-£30,000</li>
@@ -1535,14 +1340,14 @@
               <li><strong>Payment Platforms:</strong> Stripe, Square, or similar with buyer protection</li>
             </ul>
             
-            <h4 style="margin-top: 16px; margin-bottom: 8px;">⚠️ Use With Caution</h4>
+            <h4 class="lh-flag"><span class="lh-dot lh-dot--warn" aria-hidden="true"></span>Use With Caution</h4>
             <ul>
               <li><strong>Bank Transfer:</strong> Limited buyer protection - only use for trusted sellers or services</li>
               <li><strong>PayPal Friends & Family:</strong> No buyer protection - not recommended for marketplace purchases</li>
               <li><strong>Cash in Person:</strong> Acceptable for local pickups with proper safety precautions</li>
             </ul>
             
-            <h4 style="margin-top: 16px; margin-bottom: 8px;">❌ Never Use</h4>
+            <h4 class="lh-flag"><span class="lh-dot lh-dot--danger" aria-hidden="true"></span>Never Use</h4>
             <ul>
               <li><strong>Gift Cards:</strong> Common scam method, no protection</li>
               <li><strong>Cryptocurrency (for standard purchases):</strong> Irreversible, no buyer protection</li>
@@ -1588,16 +1393,16 @@
             </ul>
           </div>
           
-          <div class="notice" style="margin-top: 24px; padding: 16px; background: #FFF5E6; border-left: 4px solid #8A5A00; border-radius: 8px;">
+          <div class="notice lh-notice--warn">
             <p><strong>Your Financial Safety is Paramount:</strong> Never feel pressured to use a payment method you're uncomfortable with. Legitimate sellers will respect your choice of secure payment methods. If you feel unsure, contact our support team for guidance.</p>
           </div>
         </section>
 
         <!-- Age Verification Section -->
         <section id="age-verification" class="legal-section">
-          <h2><span aria-hidden="true">🔞</span> Age Verification Policy</h2>
+          <h2>Age Verification Policy</h2>
           
-          <div class="card" style="background: linear-gradient(135deg, #F9FAFB 0%, #F3F4F6 100%); border: 1px solid #E7EAF0;">
+          <div class="card lh-card--plain">
             <h3 class="h5">Age Restriction - 18+ Only</h3>
             <p><strong>EventFlow is restricted to users aged 18 years or older.</strong></p>
             
@@ -1670,14 +1475,14 @@
             </ul>
           </div>
           
-          <div class="notice" style="margin-top: 24px; padding: 16px; background: #FFE6E6; border-left: 4px solid #DC2626; border-radius: 8px;">
+          <div class="notice lh-notice--danger">
             <p><strong>18+ service:</strong> A false adult declaration breaches our Terms. EventFlow may suspend or close an account after considering the available information, safety risk and applicable law.</p>
           </div>
         </section>
 
         <!-- Partner Programme Terms -->
         <section id="partner-programme" class="legal-section">
-          <h2><span aria-hidden="true">🤝</span> Partner Programme Terms</h2>
+          <h2>Partner Programme Terms</h2>
           <p>The EventFlow Partner Programme allows approved referral partners to earn credits by referring new suppliers to the platform. These terms govern participation in the programme and the cashout of accrued credits.</p>
 
           <h3 class="h5">Programme Overview</h3>
@@ -1695,7 +1500,7 @@
             <li><strong>Pre-Paid Debit Card</strong> — a physical or virtual pre-paid card loaded with the requested value</li>
           </ul>
 
-          <div class="card" style="background: linear-gradient(135deg, #F0FDF4 0%, #DCFCE7 100%); border: 1px solid #BBF7D0; margin-top: 1rem;">
+          <div class="card lh-card--ok">
             <h3 class="h5">Cashout Rules</h3>
             <ul>
               <li><strong>Minimum amount:</strong> £15 per request</li>
@@ -1736,7 +1541,7 @@
             <li>EventFlow may terminate the Partner Programme in whole or part at any time. Any approved but undelivered cashout requests will be honoured at EventFlow's discretion.</li>
           </ul>
 
-          <div class="notice" style="margin-top: 24px; padding: 16px; background: #EFF6FF; border-left: 4px solid #3B82F6; border-radius: 8px;">
+          <div class="notice lh-notice--info">
             <p><strong>Questions?</strong> If you have any questions about the Partner Programme or a specific cashout request, please contact your account manager or email us via the <a href="#contact">contact details</a> in this document.</p>
           </div>
         </section>
@@ -1746,9 +1551,9 @@
       </div>
 
     <!-- Bottom Notice -->
-    <div class="card" style="margin-top: 48px; background: #F9FAFB; text-align: center;">
+    <div class="card lh-closing">
       <p><strong>Important:</strong> These legal documents are regularly updated to reflect changes in our services and applicable laws. We recommend reviewing them periodically.</p>
-      <p class="small" style="margin-top: 12px; color: #667085;">Last materially updated: {{POLICY_LEGAL_HUB_LAST_UPDATED}} | Effective date: {{POLICY_LEGAL_HUB_EFFECTIVE_DATE}} | Last reviewed: {{POLICY_LEGAL_HUB_LAST_REVIEWED}} | Version: {{POLICY_LEGAL_HUB_VERSION}}</p>
+      <p class="lh-meta"><span>Updated {{POLICY_LEGAL_HUB_LAST_UPDATED}}</span><span>Version {{POLICY_LEGAL_HUB_VERSION}}</span></p>
     </div>
 
   </div>

@@ -36,6 +36,16 @@
       body: 'You need to log in to access that page.',
       type: 'warning',
     },
+    suspended: {
+      title: 'Account suspended',
+      body: 'This account has been suspended. Please contact support if you think this is a mistake.',
+      type: 'error',
+    },
+    banned: {
+      title: 'Account banned',
+      body: 'This account has been banned. Please contact support if you think this is a mistake.',
+      type: 'error',
+    },
     forbidden: {
       title: 'Access denied',
       body: 'You do not have permission to access that page. Please log in with an account that has the required access.',

@@ -95,17 +95,19 @@ describe('marketplace dialogs a11y', () => {
     expect(out.roleAtRestore).toBeNull();
   });
 
-  test('all three overlays are wired up with labelled headings', () => {
+  test('both overlays are wired up with labelled headings', () => {
     expect(js).toMatch(/enhanceDialog\(overlay, 'listing-detail-title'/);
     expect(js).toMatch(/enhanceDialog\(overlay, 'location-modal-title'/);
-    expect(js).toMatch(/labelledBy: 'list-item-modal-title'/);
-    for (const id of ['listing-detail-title', 'location-modal-title', 'list-item-modal-title']) {
+    for (const id of ['listing-detail-title', 'location-modal-title']) {
       expect(js).toContain(`id="${id}"`);
     }
   });
 
+  test('the unused "list an item" dialog is gone, with nothing left pointing at it', () => {
+    expect(js).not.toMatch(/showListItemModal|list-item-modal-title|list-item-form/);
+  });
+
   test('.ef-cta close buttons reset padding with !important', () => {
-    expect(js).toMatch(/padding: 0 !important;\s*\n\s*width: 32px/);
     expect(css).toMatch(/\.location-modal-close \{[^}]*padding: 0 !important/);
   });
 });

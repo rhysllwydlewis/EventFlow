@@ -20,6 +20,7 @@ const {
   clearAuthCookie,
   getUserFromCookie,
 } = require('../middleware/auth');
+const { getAccountRestriction, restrictionBody } = require('../utils/accountRestriction');
 const { passwordOk } = require('../middleware/validation');
 const {
   authLimiter,
@@ -680,6 +681,14 @@ router.post('/login', strictAuthLimiter, async (req, res) => {
     return res.status(403).json({ error: 'Please verify your email address before signing in.' });
   }
 
+  // A suspended or banned account cannot sign in. This is after the password check, so the
+  // message is only ever shown to someone who knew the password.
+  const restriction = getAccountRestriction(user);
+  if (restriction) {
+    logger.warn('[LOGIN] Restricted account refused', { userId: user.id, type: restriction.type });
+    return res.status(403).json(restrictionBody(restriction));
+  }
+
   // Check if 2FA is enabled
   if (user.twoFactorEnabled) {
     logger.info('[LOGIN] 2FA required');
@@ -1001,6 +1010,15 @@ router.post('/google', strictAuthLimiter, csrfProtection, async (req, res) => {
       user = { ...user, ...googleVerifyUpdates };
     }
 
+    const googleRestriction = getAccountRestriction(user);
+    if (googleRestriction) {
+      logger.warn('[GOOGLE LOGIN] Restricted account refused', {
+        userId: user.id,
+        type: googleRestriction.type,
+      });
+      return res.status(403).json(restrictionBody(googleRestriction));
+    }
+
     if (user.twoFactorEnabled) {
       logger.info('[GOOGLE LOGIN] 2FA required');
       const tempToken = jwt.sign(
@@ -1119,6 +1137,15 @@ router.post('/login-2fa', strictAuthLimiter, async (req, res) => {
   if (!verified) {
     logger.warn('[LOGIN-2FA] Invalid 2FA token/code');
     return res.status(401).json({ error: 'Invalid 2FA token or backup code' });
+  }
+
+  const twoFaRestriction = getAccountRestriction(user);
+  if (twoFaRestriction) {
+    logger.warn('[LOGIN-2FA] Restricted account refused', {
+      userId: user.id,
+      type: twoFaRestriction.type,
+    });
+    return res.status(403).json(restrictionBody(twoFaRestriction));
   }
 
   // Update last login timestamp — fire-and-forget so it doesn't delay the response
@@ -1828,6 +1855,11 @@ router.get('/me', async (req, res) => {
   const u = await dbUnified.findOne('users', { id: p.id });
   if (!u) {
     return res.json({ user: null });
+  }
+  // A suspended or banned account is signed out: pages that ask who is logged in see nobody.
+  const meRestriction = getAccountRestriction(u);
+  if (meRestriction) {
+    return res.json({ user: null, restricted: meRestriction.type });
   }
 
   // For supplier users, include approval status so the frontend can show pending-approval UX

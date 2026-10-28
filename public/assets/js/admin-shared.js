@@ -244,7 +244,11 @@ const AdminShared = (function () {
             }
           }, 2000);
         } else if (response.status === 403) {
-          errorMessage = 'Access denied. You do not have permission to perform this action.';
+          // A specific reason from the server (owner account protected, account suspended) is
+          // more useful than the generic text, which is kept for a bare "forbidden".
+          errorMessage = data.code
+            ? data.message || data.error
+            : 'Access denied. You do not have permission to perform this action.';
         } else if (response.status === 500) {
           errorMessage = data.error || 'Server error. Please try again later.';
         } else if (response.status === 503) {

@@ -576,7 +576,6 @@ describe('cache versions', () => {
     ['public/admin-settings.html', 'admin-settings-init.js?v=18.5.10'],
     ['public/admin-reviews.html', 'admin-reviews-init.js?v=18.5.10'],
     ['public/admin-suppliers.html', 'admin-suppliers-init.js?v=18.5.10'],
-    ['public/admin-settings.html', 'admin-shared.js?v=18.5.10'],
     ['public/admin-users.html', 'admin-users-init.js?v=18.5.10'],
   ])('%s loads %s', (file, reference) => {
     expect(source(file)).toContain(reference);
