@@ -28,38 +28,27 @@ async function loadStripeAnalytics() {
 }
 
 /**
- * Load payment data from MongoDB API
+ * Load payments from the admin API. Each row already carries the customer, plan, amount after
+ * refunds and status group; the headline numbers come with it.
  */
 async function loadPayments() {
   try {
     const response = await AdminShared.api('/api/admin/payments');
-    return response.items || [];
+    return { items: response.items || [], summary: response.summary || null };
   } catch (error) {
     console.error('Error loading payments:', error);
     AdminShared.showToast('Failed to load payments', 'error');
-    return [];
+    return { items: [], summary: null };
   }
 }
 
 /**
- * Load supplier data to enrich payment information
+ * Money as pounds and pence, with thousands separators.
  */
-async function loadSuppliers() {
-  try {
-    const response = await AdminShared.api('/api/admin/suppliers');
-    const suppliers = {};
-
-    if (response.items) {
-      response.items.forEach(supplier => {
-        suppliers[supplier.id] = supplier;
-      });
-    }
-
-    return suppliers;
-  } catch (error) {
-    console.error('Error loading suppliers:', error);
-    return {};
-  }
+function formatPounds(value) {
+  return new Intl.NumberFormat('en-GB', { style: 'currency', currency: 'GBP' }).format(
+    Number(value) || 0
+  );
 }
 
 /**
@@ -68,9 +57,9 @@ async function loadSuppliers() {
 function filterPayments(payments) {
   let filtered = [...payments];
 
-  // Filter by status
+  // Filter by status group (paid, pending, failed, refunded, disputed)
   if (currentFilters.status !== 'all') {
-    filtered = filtered.filter(p => p.status === currentFilters.status);
+    filtered = filtered.filter(p => p.statusGroup === currentFilters.status);
   }
 
   // Filter by plan
@@ -80,139 +69,71 @@ function filterPayments(payments) {
 
   // Filter by date
   if (currentFilters.days !== 'all') {
-    const days = parseInt(currentFilters.days);
+    const days = parseInt(currentFilters.days, 10);
     const cutoffDate = new Date();
     cutoffDate.setDate(cutoffDate.getDate() - days);
-    filtered = filtered.filter(p => {
-      const paymentDate = new Date(p.createdAt);
-      return paymentDate >= cutoffDate;
-    });
+    filtered = filtered.filter(p => new Date(p.createdAt) >= cutoffDate);
   }
 
   return filtered;
 }
 
 /**
- * Calculate statistics from payments
+ * Month key (YYYY-MM, UTC) for a payment date, matching the server's grouping.
  */
-function calculateStats(payments) {
-  const now = new Date();
-  const currentMonth = now.getMonth();
-  const currentYear = now.getFullYear();
-
-  const stats = {
-    totalRevenue: 0,
-    activeSubscriptions: 0,
-    totalTransactions: payments.length,
-    monthRevenue: 0,
-    revenueByMonth: {},
-    planDistribution: {},
-  };
-
-  payments.forEach(payment => {
-    const amount = payment.total || payment.amount || 0;
-    const paymentDate = new Date(payment.createdAt);
-    const monthKey = `${paymentDate.getFullYear()}-${String(paymentDate.getMonth() + 1).padStart(2, '0')}`;
-
-    // Total revenue (only successful payments)
-    if (
-      payment.status === 'success' ||
-      payment.status === 'completed' ||
-      payment.status === 'pending'
-    ) {
-      stats.totalRevenue += amount;
-
-      // Revenue by month
-      if (!stats.revenueByMonth[monthKey]) {
-        stats.revenueByMonth[monthKey] = 0;
-      }
-      stats.revenueByMonth[monthKey] += amount;
-
-      // This month's revenue
-      if (paymentDate.getMonth() === currentMonth && paymentDate.getFullYear() === currentYear) {
-        stats.monthRevenue += amount;
-      }
-    }
-
-    // Count active subscriptions (payments with active status)
-    if (payment.status === 'success' || payment.status === 'completed') {
-      stats.activeSubscriptions++;
-    }
-
-    // Plan distribution
-    const planId = payment.planId || 'unknown';
-    if (!stats.planDistribution[planId]) {
-      stats.planDistribution[planId] = 0;
-    }
-    stats.planDistribution[planId]++;
-  });
-
-  return stats;
+function monthKeyOf(date) {
+  return `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, '0')}`;
 }
 
 /**
- * Render statistics cards
+ * Render statistics cards.
+ *
+ * The headline numbers are for the whole business and come from the server: revenue is what
+ * paid invoices brought in less refunds, active subscriptions are real subscriptions, and
+ * neither moves with the table filters. Live Stripe data adds the last 30 days, net of refunds.
  */
-function renderStats(stats, stripeAnalytics) {
-  const totalRevenueEl = document.getElementById('totalRevenue');
-  const activeSubscriptionsEl = document.getElementById('activeSubscriptions');
-  const totalTransactionsEl = document.getElementById('totalTransactions');
-  const monthRevenueEl = document.getElementById('monthRevenue');
+function renderStats(summary, stripeAnalytics) {
+  const stats = summary || {
+    totalRevenue: 0,
+    monthRevenue: 0,
+    refundedTotal: 0,
+    totalTransactions: 0,
+    activeSubscriptions: 0,
+  };
+  const useStripe =
+    stripeAnalytics &&
+    stripeAnalytics.available &&
+    typeof stripeAnalytics.netRevenueLast30Days === 'number';
 
-  // Use Stripe data if available, otherwise use local data
-  const useStripe = stripeAnalytics && stripeAnalytics.available;
+  const setText = (id, text) => {
+    const element = document.getElementById(id);
+    if (element) {
+      element.textContent = text;
+    }
+  };
 
-  if (totalRevenueEl) {
-    const revenue = useStripe ? stripeAnalytics.totalRevenue : stats.totalRevenue;
-    totalRevenueEl.textContent = `£${revenue.toFixed(2)}`;
-    totalRevenueEl.title = useStripe ? 'Live Stripe data' : 'Local payment data';
-  }
-  if (activeSubscriptionsEl) {
-    const subs = useStripe ? stripeAnalytics.activeSubscriptions : stats.activeSubscriptions;
-    activeSubscriptionsEl.textContent = subs;
-    activeSubscriptionsEl.title = useStripe ? 'Live Stripe data' : 'Local payment data';
-  }
-  if (totalTransactionsEl) {
-    const transactions = useStripe ? stripeAnalytics.totalCharges : stats.totalTransactions;
-    totalTransactionsEl.textContent = transactions;
-    totalTransactionsEl.title = useStripe ? 'Live Stripe data' : 'Local payment data';
-  }
-  if (monthRevenueEl) {
-    const monthRev = useStripe ? stripeAnalytics.monthRevenue : stats.monthRevenue;
-    monthRevenueEl.textContent = `£${monthRev.toFixed(2)}`;
-    monthRevenueEl.title = useStripe ? 'Live Stripe data (last 30 days)' : 'This month';
-  }
+  setText('totalRevenue', formatPounds(stats.totalRevenue));
+  setText('activeSubscriptions', String(stats.activeSubscriptions));
+  setText('totalTransactions', String(stats.totalTransactions));
+  setText('monthRevenue', formatPounds(stats.monthRevenue));
 
-  // Update change indicators
-  const revenueChangeEl = document.getElementById('revenueChange');
-  const subscriptionChangeEl = document.getElementById('subscriptionChange');
-  const transactionChangeEl = document.getElementById('transactionChange');
-  const monthChangeEl = document.getElementById('monthChange');
-
-  if (revenueChangeEl) {
-    revenueChangeEl.textContent = useStripe ? 'Live from Stripe' : 'All time total (local data)';
-    revenueChangeEl.style.color = useStripe ? '#10b981' : '#6b7280';
-    revenueChangeEl.style.fontWeight = useStripe ? '600' : '400';
-  }
-  if (subscriptionChangeEl) {
-    subscriptionChangeEl.textContent = useStripe ? 'Live from Stripe' : 'Currently active';
-    subscriptionChangeEl.style.color = useStripe ? '#10b981' : '#6b7280';
-    subscriptionChangeEl.style.fontWeight = useStripe ? '600' : '400';
-  }
-  if (transactionChangeEl) {
-    transactionChangeEl.textContent = useStripe ? 'Live from Stripe' : 'All transactions';
-    transactionChangeEl.style.color = useStripe ? '#10b981' : '#6b7280';
-    transactionChangeEl.style.fontWeight = useStripe ? '600' : '400';
-  }
-  if (monthChangeEl) {
-    monthChangeEl.textContent = useStripe ? 'Last 30 days' : 'This month';
-  }
+  const refunded = stats.refundedTotal > 0 ? `, ${formatPounds(stats.refundedTotal)} refunded` : '';
+  setText('revenueChange', `All time, after refunds${refunded}`);
+  setText('subscriptionChange', 'Active and trialing subscriptions');
+  setText('transactionChange', 'All payment records');
+  setText(
+    'monthChange',
+    useStripe
+      ? `This month. Stripe, last 30 days: ${formatPounds(stripeAnalytics.netRevenueLast30Days)}`
+      : 'This month, after refunds'
+  );
 }
 
 /**
  * Render revenue chart
  */
-function renderRevenueChart(stats) {
+function renderRevenueChart(summary) {
+  const stats = summary || { revenueByMonth: {} };
   const ctx = document.getElementById('revenueChart');
   if (!ctx) {
     return;
@@ -229,9 +150,13 @@ function renderRevenueChart(stats) {
   const now = new Date();
 
   for (let i = 11; i >= 0; i--) {
-    const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
-    const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
-    const monthLabel = date.toLocaleDateString('en-GB', { month: 'short', year: 'numeric' });
+    const date = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - i, 1));
+    const monthKey = monthKeyOf(date);
+    const monthLabel = date.toLocaleDateString('en-GB', {
+      month: 'short',
+      year: 'numeric',
+      timeZone: 'UTC',
+    });
 
     months.push(monthLabel);
     revenues.push(stats.revenueByMonth[monthKey] || 0);
@@ -277,7 +202,8 @@ function renderRevenueChart(stats) {
 /**
  * Render plans distribution chart
  */
-function renderPlansChart(stats) {
+function renderPlansChart(summary) {
+  const stats = summary || { planDistribution: {} };
   const ctx = document.getElementById('plansChart');
   if (!ctx) {
     return;
@@ -293,7 +219,7 @@ function renderPlansChart(stats) {
     pro_plus_monthly: 'Pro+ Monthly',
     pro_yearly: 'Pro Yearly',
     pro_plus_yearly: 'Pro+ Yearly',
-    unknown: 'Unknown',
+    other: 'Other',
   };
 
   const labels = [];
@@ -337,7 +263,7 @@ function renderPlansChart(stats) {
 /**
  * Render payments table
  */
-function renderPaymentsTable(payments, suppliers) {
+function renderPaymentsTable(payments) {
   const tbody = document.getElementById('paymentsTableBody');
   if (!tbody) {
     return;
@@ -347,26 +273,29 @@ function renderPaymentsTable(payments, suppliers) {
     tbody.innerHTML = `
       <tr>
         <td colspan="6" style="text-align: center; padding: 2rem; color: #6b7280;">
-          No payment data available
+          No payments match these filters
         </td>
       </tr>
     `;
     return;
   }
 
-  const planNames = {
-    pro_monthly: 'Pro Monthly',
-    pro_plus_monthly: 'Pro+ Monthly',
-    pro_yearly: 'Pro Yearly',
-    pro_plus_yearly: 'Pro+ Yearly',
+  const statusLabels = {
+    paid: 'Paid',
+    pending: 'Pending',
+    failed: 'Failed',
+    refunded: 'Refunded',
+    disputed: 'Disputed',
   };
 
   tbody.innerHTML = payments
     .map(payment => {
-      const supplier = suppliers[payment.supplierId];
-      const supplierName = supplier?.name || supplier?.companyName || 'Unknown';
-      const planName = planNames[payment.planId] || payment.planId || 'N/A';
-      const amount = payment.total || payment.amount || 0;
+      const customer = payment.customerName || payment.customerEmail || 'Unknown customer';
+      const email =
+        payment.customerName && payment.customerEmail
+          ? `<br><span class="small">${AdminShared.escapeHtml(payment.customerEmail)}</span>`
+          : '';
+      const planName = payment.planName || 'N/A';
       const date = new Date(payment.createdAt).toLocaleDateString('en-GB', {
         year: 'numeric',
         month: 'short',
@@ -374,27 +303,30 @@ function renderPaymentsTable(payments, suppliers) {
         hour: '2-digit',
         minute: '2-digit',
       });
-
-      const statusClass =
-        payment.status === 'success' || payment.status === 'completed'
-          ? 'success'
-          : payment.status === 'pending'
-            ? 'pending'
-            : 'failed';
+      const group = payment.statusGroup in statusLabels ? payment.statusGroup : 'pending';
+      // A subscription payment's money is recorded on its invoice, so some have no amount here
+      const amountCell =
+        payment.amount === null
+          ? '<span class="small" title="The amount is recorded on the invoice">See invoice</span>'
+          : formatPounds(payment.amount);
+      const refundNote =
+        payment.refundedAmount > 0
+          ? `<br><span class="small">${formatPounds(payment.refundedAmount)} refunded</span>`
+          : '';
 
       return `
         <tr>
           <td>${date}</td>
-          <td>${AdminShared.escapeHtml(supplierName)}</td>
-          <td>${planName}</td>
-          <td>£${amount.toFixed(2)}</td>
+          <td>${AdminShared.escapeHtml(customer)}${email}</td>
+          <td>${AdminShared.escapeHtml(planName)}</td>
+          <td>${amountCell}${refundNote}</td>
           <td>
-            <span class="status-badge ${statusClass}">
-              ${payment.status || 'unknown'}
+            <span class="payment-status payment-status--${group}" title="${AdminShared.escapeHtml(payment.status)}">
+              ${statusLabels[group]}
             </span>
           </td>
           <td style="font-family: monospace; font-size: 0.875rem;">
-            ${(payment.id || '').substring(0, 8)}...
+            ${AdminShared.escapeHtml((payment.id || '').substring(0, 8))}...
           </td>
         </tr>
       `;
@@ -407,9 +339,8 @@ function renderPaymentsTable(payments, suppliers) {
  */
 async function init() {
   // Load data
-  const [payments, suppliers, stripeAnalytics] = await Promise.all([
+  const [{ items: payments, summary }, stripeAnalytics] = await Promise.all([
     loadPayments(),
-    loadSuppliers(),
     loadStripeAnalytics(),
   ]);
 
@@ -428,75 +359,65 @@ async function init() {
     }
   }
 
-  // Filter payments
-  const filteredPayments = filterPayments(payments);
-
-  // Calculate stats
-  const stats = calculateStats(filteredPayments);
-
-  // Render everything
-  renderStats(stats, stripeAnalytics);
-  renderRevenueChart(stats);
-  renderPlansChart(stats);
-  renderPaymentsTable(filteredPayments, suppliers);
-
-  // Set up event listeners
-  setupEventListeners(payments, suppliers, stripeAnalytics);
+  refreshData(payments, summary, stripeAnalytics);
+  setupEventListeners(payments, summary, stripeAnalytics);
 }
 
 /**
  * Setup event listeners
  */
-function setupEventListeners(payments, suppliers, stripeAnalytics) {
-  // Filter listeners
-  const statusFilter = document.getElementById('statusFilter');
-  const planFilter = document.getElementById('planFilter');
-  const dateFilter = document.getElementById('dateFilter');
+function setupEventListeners(payments, summary, stripeAnalytics) {
+  // The filters always apply to the latest data, including after a refresh
+  const latest = { payments, summary, stripeAnalytics };
+  const redraw = () => refreshData(latest.payments, latest.summary, latest.stripeAnalytics);
 
-  if (statusFilter) {
-    statusFilter.addEventListener('change', e => {
-      currentFilters.status = e.target.value;
-      refreshData(payments, suppliers, stripeAnalytics);
-    });
-  }
+  const filterBindings = [
+    ['statusFilter', 'status'],
+    ['planFilter', 'plan'],
+    ['dateFilter', 'days'],
+  ];
+  filterBindings.forEach(([elementId, key]) => {
+    const element = document.getElementById(elementId);
+    if (element) {
+      element.addEventListener('change', event => {
+        currentFilters[key] = event.target.value;
+        redraw();
+      });
+    }
+  });
 
-  if (planFilter) {
-    planFilter.addEventListener('change', e => {
-      currentFilters.plan = e.target.value;
-      refreshData(payments, suppliers, stripeAnalytics);
-    });
-  }
-
-  if (dateFilter) {
-    dateFilter.addEventListener('change', e => {
-      currentFilters.days = e.target.value;
-      refreshData(payments, suppliers, stripeAnalytics);
-    });
-  }
-
-  // Make refresh function available globally for navbar refresh button
-  window.refreshDashboardData = async () => {
-    const [newPayments, newSuppliers, newStripeAnalytics] = await Promise.all([
-      loadPayments(),
-      loadSuppliers(),
-      loadStripeAnalytics(),
-    ]);
-    refreshData(newPayments, newSuppliers, newStripeAnalytics);
+  const reload = async () => {
+    const [loaded, newStripeAnalytics] = await Promise.all([loadPayments(), loadStripeAnalytics()]);
+    latest.payments = loaded.items;
+    latest.summary = loaded.summary;
+    latest.stripeAnalytics = newStripeAnalytics;
+    redraw();
     AdminShared.showToast('Payment data refreshed', 'success');
   };
+
+  // Make refresh function available globally for navbar refresh button
+  window.refreshDashboardData = reload;
+  const refreshButton = document.getElementById('refreshBtn');
+  if (refreshButton) {
+    refreshButton.addEventListener('click', reload);
+  }
 }
 
 /**
- * Refresh data with current filters
+ * Redraw everything for the current filters
  */
-function refreshData(payments, suppliers, stripeAnalytics) {
+function refreshData(payments, summary, stripeAnalytics) {
   const filteredPayments = filterPayments(payments);
-  const stats = calculateStats(filteredPayments);
 
-  renderStats(stats, stripeAnalytics);
-  renderRevenueChart(stats);
-  renderPlansChart(stats);
-  renderPaymentsTable(filteredPayments, suppliers);
+  renderStats(summary, stripeAnalytics);
+  renderRevenueChart(summary);
+  renderPlansChart(summary);
+  renderPaymentsTable(filteredPayments);
+
+  const countEl = document.getElementById('paymentsCount');
+  if (countEl) {
+    countEl.textContent = `Showing ${filteredPayments.length} of ${payments.length} payments`;
+  }
 }
 
 // Initialize when DOM is ready

@@ -36,6 +36,16 @@
   <style>
     /* ── Admin Partners page — light-theme overrides ──────────────────────── */
 
+    /* The slide-in panel starts under the 70px top bar, not behind it, so its close button
+       and heading stay reachable */
+    .partner-detail-panel {
+      top: 70px;
+      height: calc(100vh - 70px);
+    }
+    .partner-detail-scrim {
+      top: 70px;
+    }
+
     /* Stat cards */
     .ap-stat-card {
       background: #ffffff;
@@ -787,7 +797,7 @@
 <!-- Toast -->
 <div id="partner-toast" class="partner-toast" role="status" aria-live="polite" aria-atomic="true"></div>
 
-<script src="/assets/js/pages/admin-partners-init.js?v=18.5.9" defer></script>
+<script src="/assets/js/pages/admin-partners-init.js?v=18.5.12" defer></script>
 </body>
 </html>
 

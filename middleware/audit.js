@@ -7,6 +7,7 @@
 
 const dbUnified = require('../db-unified');
 const logger = require('../utils/logger');
+const { AUDIT_ACTIONS } = require('./audit-actions');
 
 /**
  * Log an admin action to the audit log
@@ -158,6 +159,68 @@ function auditMiddleware(action, getTargetInfo = null) {
   };
 }
 
+const DATE_ONLY = /^\d{4}-\d{2}-\d{2}$/;
+
+/**
+ * Turns a date filter into an ISO timestamp. A plain date ("2026-10-28", what a date picker
+ * gives) covers the whole day: a start date means the beginning of it, an end date the very end,
+ * so an end date no longer leaves out everything that happened on that day.
+ * @param {string} value - Plain date or ISO timestamp
+ * @param {'start'|'end'} bound - Which end of the range this is
+ * @returns {string|null} ISO timestamp, or null when the value is not a date
+ */
+function auditDateBound(value, bound) {
+  const text = String(value || '').trim();
+  if (!text) {
+    return null;
+  }
+  if (DATE_ONLY.test(text)) {
+    return bound === 'end' ? `${text}T23:59:59.999Z` : `${text}T00:00:00.000Z`;
+  }
+  const parsed = new Date(text);
+  return Number.isNaN(parsed.getTime()) ? null : parsed.toISOString();
+}
+
+/** When an entry was written (older entries carry createdAt only). */
+function entryTime(entry) {
+  return entry.timestamp || entry.createdAt || '';
+}
+
+/**
+ * Apply audit log filters to a list of entries and sort them newest-first.
+ * @param {Array<Object>} entries - Audit log entries
+ * @param {Object} filters - See getAuditLogs
+ * @returns {Array<Object>} Matching entries, newest first
+ */
+function filterAuditLogs(entries, filters) {
+  const { adminId, adminEmail, action, targetType, targetId, startDate, endDate } = filters;
+  const from = auditDateBound(startDate, 'start');
+  const to = auditDateBound(endDate, 'end');
+  // Accept one type or a comma-separated list ("features,settings,maintenance")
+  const targetTypes = targetType
+    ? String(targetType)
+        .split(',')
+        .map(type => type.trim())
+        .filter(Boolean)
+    : null;
+
+  const matches = entries.filter(
+    log =>
+      (!adminId || log.adminId === adminId) &&
+      (!adminEmail || log.adminEmail === adminEmail) &&
+      (!action || log.action === action) &&
+      (!targetTypes || targetTypes.includes(log.targetType)) &&
+      (!targetId || log.targetId === targetId) &&
+      (!from || entryTime(log) >= from) &&
+      (!to || entryTime(log) <= to)
+  );
+
+  // Sort by timestamp descending (newest first)
+  return matches.sort(
+    (a, b) => new Date(entryTime(b)).getTime() - new Date(entryTime(a)).getTime()
+  );
+}
+
 /**
  * Get audit logs with optional filtering
  * Supports filtering by adminId, adminEmail, action, targetType, targetId, date range, and limit
@@ -167,64 +230,19 @@ function auditMiddleware(action, getTargetInfo = null) {
  * @param {string} filters.action - Filter by action type
  * @param {string} filters.targetType - Filter by target type
  * @param {string} filters.targetId - Filter by target ID
- * @param {string} filters.startDate - Filter by start date (ISO string)
- * @param {string} filters.endDate - Filter by end date (ISO string)
+ * @param {string} filters.startDate - Filter by start date (ISO string or YYYY-MM-DD)
+ * @param {string} filters.endDate - Filter by end date (ISO string or YYYY-MM-DD, inclusive)
  * @param {number} filters.limit - Maximum number of results
+ * @param {number} filters.offset - Number of matching entries to skip
  * @returns {Promise<Array>} Filtered audit log entries, sorted newest-first
  */
 // skipcq: JS-0067 -- CommonJS module scope prevents these declarations becoming browser globals.
 async function getAuditLogs(filters = {}) {
-  const {
-    adminId,
-    adminEmail,
-    action,
-    targetType,
-    targetId,
-    startDate,
-    endDate,
-    limit = 100,
-  } = filters;
+  const { limit = 100, offset = 0 } = filters;
 
   try {
-    let logs = await dbUnified.read('audit_logs');
-
-    // Apply filters
-    if (adminId) {
-      logs = logs.filter(log => log.adminId === adminId);
-    }
-    if (adminEmail) {
-      logs = logs.filter(log => log.adminEmail === adminEmail);
-    }
-    if (action) {
-      logs = logs.filter(log => log.action === action);
-    }
-    if (targetType) {
-      // Accept one type or a comma-separated list ("features,settings,maintenance")
-      const targetTypes = String(targetType)
-        .split(',')
-        .map(type => type.trim())
-        .filter(Boolean);
-      logs = logs.filter(log => targetTypes.includes(log.targetType));
-    }
-    if (targetId) {
-      logs = logs.filter(log => log.targetId === targetId);
-    }
-    if (startDate) {
-      logs = logs.filter(log => log.timestamp >= startDate);
-    }
-    if (endDate) {
-      logs = logs.filter(log => log.timestamp <= endDate);
-    }
-
-    // Sort by timestamp descending (newest first)
-    logs.sort((a, b) => {
-      const aTime = new Date(a.timestamp).getTime();
-      const bTime = new Date(b.timestamp).getTime();
-      return bTime - aTime;
-    });
-
-    // Apply limit
-    return logs.slice(0, limit);
+    const logs = filterAuditLogs(await dbUnified.read('audit_logs'), filters);
+    return logs.slice(offset, offset + limit);
   } catch (error) {
     logger.error('Error fetching audit logs:', error.message);
     // Return empty array on error - don't fail the request
@@ -232,11 +250,53 @@ async function getAuditLogs(filters = {}) {
   }
 }
 
-const { AUDIT_ACTIONS } = require('./audit-actions');
+/**
+ * One page of audit logs together with how many entries match in total, so a screen can say
+ * "showing 1-100 of 342" instead of silently stopping at the first page.
+ * @param {Object} filters - As getAuditLogs, plus page (1-based) and limit
+ * @returns {Promise<{logs: Array, total: number, page: number, limit: number}>} The page
+ */
+async function getAuditLogsPage(filters = {}) {
+  const limit = Math.min(100, Math.max(1, parseInt(filters.limit, 10) || 100));
+  const page = Math.max(1, parseInt(filters.page, 10) || 1);
+
+  try {
+    const matches = filterAuditLogs(await dbUnified.read('audit_logs'), filters);
+    const offset = (page - 1) * limit;
+    return { logs: matches.slice(offset, offset + limit), total: matches.length, page, limit };
+  } catch (error) {
+    logger.error('Error fetching audit logs:', error.message);
+    return { logs: [], total: 0, page, limit, failed: true };
+  }
+}
+
+/**
+ * The actions and target types an admin can filter the audit log by: every one the system can
+ * write, plus any that exist in stored entries (older or one-off ones such as the export).
+ * @returns {Promise<{actions: string[], targetTypes: string[]}>} Sorted distinct values
+ */
+async function getAuditFilterOptions() {
+  const actions = new Set(Object.values(AUDIT_ACTIONS));
+  const targetTypes = new Set();
+  const entries = (await dbUnified.read('audit_logs')) || [];
+  for (const entry of entries) {
+    if (entry.action) {
+      actions.add(entry.action);
+    }
+    if (entry.targetType) {
+      targetTypes.add(entry.targetType);
+    }
+  }
+  return { actions: [...actions].sort(), targetTypes: [...targetTypes].sort() };
+}
 
 module.exports = {
   auditLog,
   auditMiddleware,
   getAuditLogs,
+  getAuditLogsPage,
+  filterAuditLogs,
+  getAuditFilterOptions,
+  auditDateBound,
   AUDIT_ACTIONS,
 };

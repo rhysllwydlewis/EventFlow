@@ -702,6 +702,38 @@
     loadOperationsPanel();
   }
 
+  // What each status change does to the partner's points, spelled out before it is made
+  const STATUS_CONSEQUENCES = {
+    approved: {
+      title: 'Approve this cashout?',
+      confirmText: 'Approve',
+      message: 'The partner is told it is approved. The points stay held until it is delivered.',
+    },
+    rejected: {
+      title: 'Reject this cashout?',
+      confirmText: 'Reject',
+      message:
+        'The held points go back to the partner and the request cannot be reopened. Add a message so they know why.',
+    },
+    delivered: {
+      title: 'Mark as delivered?',
+      confirmText: 'Mark delivered',
+      message:
+        'The held points are spent for good and the request cannot be changed again. Only do this once the reward has really been sent.',
+    },
+  };
+
+  async function confirmStatusChange(newStatus) {
+    const consequence = STATUS_CONSEQUENCES[newStatus];
+    if (!consequence) {
+      return true;
+    }
+    return AdminShared.showConfirmModal({
+      ...consequence,
+      cancelText: 'Go back',
+    });
+  }
+
   async function saveChanges() {
     if (!_currentRequest) {
       return;
@@ -709,6 +741,17 @@
     const update = readModalUpdate();
     if (!hasModalChanges(update)) {
       setModalStatus(update.statusMsg, 'No changes to save.');
+      return;
+    }
+    if (update.newStatus === 'delivered' && !update.deliveryRef) {
+      setModalStatus(
+        update.statusMsg,
+        'Add the delivery reference (gift card code or reference) before marking this delivered.',
+        'error'
+      );
+      return;
+    }
+    if (!(await confirmStatusChange(update.newStatus))) {
       return;
     }
 

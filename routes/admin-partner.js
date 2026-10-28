@@ -13,9 +13,15 @@ const dbUnified = require('../db-unified');
 const { uid } = require('../store');
 const { authRequired, roleRequired } = require('../middleware/auth');
 const { csrfProtection } = require('../middleware/csrf');
+const { auditLog } = require('../middleware/audit');
+const { AUDIT_ACTIONS } = require('../middleware/audit-actions');
 const partnerService = require('../services/partnerService');
 
 const router = express.Router();
+
+// One manual adjustment moves at most this many points, up or down. A mistyped extra zero
+// should be refused, not applied; larger corrections can be made in more than one step.
+const MAX_ADJUSTMENT_POINTS = 10000;
 
 // All routes require admin authentication
 router.use(authRequired, roleRequired('admin'));
@@ -31,6 +37,24 @@ const REFERRAL_EARNING_TYPES = new Set([
 function safeKey(value, fallback = 'direct_or_unknown') {
   const clean = String(value || '').trim();
   return clean || fallback;
+}
+
+/**
+ * Group records by a key, in one pass.
+ * @param {Array<Object>} records - Records to group
+ * @param {Function} keyOf - Returns the group key for a record
+ * @returns {Map<string, Array<Object>>} Records per key
+ */
+function groupBy(records, keyOf) {
+  const groups = new Map();
+  for (const record of records) {
+    const key = keyOf(record);
+    if (!groups.has(key)) {
+      groups.set(key, []);
+    }
+    groups.get(key).push(record);
+  }
+  return groups;
 }
 
 function startReportBucket(map, key, extras = {}) {
@@ -99,45 +123,53 @@ function qualificationFlags(txnIndex, referral) {
 router.get('/', async (req, res) => {
   try {
     const { search, status } = req.query;
-    const partners = await partnerService.listPartners({ search, status });
-    const users = await dbUnified.read('users');
+    // Everything the list needs is read once and grouped here. It used to query the credit
+    // transactions and the referrals once per partner, which took seconds.
+    const [partners, users, transactions, referrals] = await Promise.all([
+      partnerService.listPartners({ search, status }),
+      dbUnified.read('users'),
+      dbUnified.read('partner_credit_transactions'),
+      dbUnified.read('partner_referrals'),
+    ]);
+    const usersById = new Map(users.map(user => [user.id, user]));
+    const transactionsByPartner = groupBy(transactions, txn => txn.partnerId);
+    const referralsByPartner = groupBy(referrals, referral => referral.partnerId);
 
-    const enriched = await Promise.all(
-      partners.map(async partner => {
-        // Repair missing id: generate one and persist it so action buttons work
-        let p = partner;
-        if (!p.id) {
-          const newId = uid('prt');
-          await dbUnified.updateOne(
-            'partners',
-            { refCode: p.refCode },
-            { $set: { id: newId, updatedAt: new Date().toISOString() } }
-          );
-          p = { ...p, id: newId };
-          logger.info(`Repaired missing partner id → ${newId} (refCode=${p.refCode})`);
-        }
-        const user = users.find(u => u.id === p.userId);
-        const balance = await partnerService.getBalance(p.id);
-        const referrals = await partnerService.listReferralsByPartnerId(p.id);
-        return {
-          id: p.id,
-          userId: p.userId,
-          refCode: p.refCode,
-          status: p.status,
-          createdAt: p.createdAt,
-          user: user ? { name: user.name, email: user.email, company: user.company } : null,
-          credits: {
-            balance: balance.balance,
-            totalEarned: balance.totalEarned,
-            packageBonusTotal: balance.packageBonusTotal,
-            subscriptionBonusTotal: balance.subscriptionBonusTotal,
-          },
-          referralCount: referrals.length,
-          qualifiedCount: referrals.filter(r => r.packageQualified || r.subscriptionQualified)
-            .length,
-        };
-      })
-    );
+    const enriched = [];
+    for (const partner of partners) {
+      // Repair missing id: generate one and persist it so action buttons work
+      let p = partner;
+      if (!p.id) {
+        const newId = uid('prt');
+        await dbUnified.updateOne(
+          'partners',
+          { refCode: p.refCode },
+          { $set: { id: newId, updatedAt: new Date().toISOString() } }
+        );
+        p = { ...p, id: newId };
+        logger.info(`Repaired missing partner id → ${newId} (refCode=${p.refCode})`);
+      }
+      const user = usersById.get(p.userId);
+      const balance = partnerService.summariseBalance(transactionsByPartner.get(p.id) || []);
+      const partnerReferrals = referralsByPartner.get(p.id) || [];
+      enriched.push({
+        id: p.id,
+        userId: p.userId,
+        refCode: p.refCode,
+        status: p.status,
+        createdAt: p.createdAt,
+        user: user ? { name: user.name, email: user.email, company: user.company } : null,
+        credits: {
+          balance: balance.balance,
+          totalEarned: balance.totalEarned,
+          packageBonusTotal: balance.packageBonusTotal,
+          subscriptionBonusTotal: balance.subscriptionBonusTotal,
+        },
+        referralCount: partnerReferrals.length,
+        qualifiedCount: partnerReferrals.filter(r => r.packageQualified || r.subscriptionQualified)
+          .length,
+      });
+    }
 
     // Apply name/email search after enrichment (requires user data)
     let list = enriched;
@@ -338,15 +370,30 @@ router.patch('/payout-requests/:ticketId/status', csrfProtection, async (req, re
       return res.status(404).json({ error: 'Payout request ticket not found' });
     }
 
-    await dbUnified.updateOne(
+    const saved = await dbUnified.updateOne(
       'tickets',
       { id: req.params.ticketId },
-      { $set: { status, updatedAt: new Date().toISOString() } }
+      { $set: { status, updatedAt: new Date().toISOString() } },
+      { throwOnError: true }
     );
+    if (!saved) {
+      return res.status(500).json({ error: 'The status could not be saved. Please try again.' });
+    }
 
-    logger.info(
-      `Admin ${req.user.id} updated payout ticket ${req.params.ticketId} status to ${status}`
-    );
+    await auditLog({
+      adminId: req.user.id,
+      adminEmail: req.user.email,
+      action: AUDIT_ACTIONS.PARTNER_PAYOUT_STATUS_CHANGED,
+      targetType: 'partner_payout',
+      targetId: req.params.ticketId,
+      details: {
+        partnerId: ticket.partnerId || null,
+        from: ticket.status,
+        to: status,
+        payoutPoints: ticket.payoutPoints || null,
+        payoutValueGbp: ticket.payoutValueGbp || null,
+      },
+    });
     res.json({ ok: true, status });
   } catch (err) {
     logger.error('Error updating payout ticket status:', err);
@@ -426,7 +473,14 @@ router.patch('/:id/status', csrfProtection, async (req, res) => {
     }
 
     await partnerService.setPartnerStatus(req.params.id, status);
-    logger.info(`Admin ${req.user.id} set partner ${req.params.id} status to ${status}`);
+    await auditLog({
+      adminId: req.user.id,
+      adminEmail: req.user.email,
+      action: AUDIT_ACTIONS.PARTNER_STATUS_CHANGED,
+      targetType: 'partner',
+      targetId: req.params.id,
+      details: { refCode: partner.refCode, from: partner.status, to: status },
+    });
 
     res.json({ ok: true, status });
   } catch (err) {
@@ -449,6 +503,11 @@ router.post('/:id/credits', csrfProtection, async (req, res) => {
     if (!Number.isFinite(parsedAmount) || parsedAmount === 0) {
       return res.status(400).json({ error: 'amount must be a non-zero integer' });
     }
+    if (Math.abs(parsedAmount) > MAX_ADJUSTMENT_POINTS) {
+      return res.status(400).json({
+        error: `A single adjustment cannot be more than ${MAX_ADJUSTMENT_POINTS.toLocaleString('en-GB')} points. Make a larger correction in more than one step.`,
+      });
+    }
     if (!notes || String(notes).trim().length < 3) {
       return res.status(400).json({ error: 'An audit note is required (minimum 3 characters)' });
     }
@@ -458,6 +517,14 @@ router.post('/:id/credits', csrfProtection, async (req, res) => {
       return res.status(404).json({ error: 'Partner not found' });
     }
 
+    // Taking points away cannot leave the partner owing points
+    const before = await partnerService.getBalance(req.params.id);
+    if (before.balance + parsedAmount < 0) {
+      return res.status(400).json({
+        error: `This would take the balance below zero (current balance ${before.balance.toLocaleString('en-GB')} points).`,
+      });
+    }
+
     const txn = await partnerService.applyAdminAdjustment({
       partnerId: req.params.id,
       amount: parsedAmount,
@@ -465,9 +532,21 @@ router.post('/:id/credits', csrfProtection, async (req, res) => {
       adminUserId: req.user.id,
     });
 
-    logger.info(
-      `Admin ${req.user.id} applied credit adjustment ${parsedAmount} to partner ${req.params.id}: ${notes}`
-    );
+    await auditLog({
+      adminId: req.user.id,
+      adminEmail: req.user.email,
+      action: AUDIT_ACTIONS.PARTNER_CREDITS_ADJUSTED,
+      targetType: 'partner',
+      targetId: req.params.id,
+      details: {
+        refCode: partner.refCode,
+        amount: parsedAmount,
+        balanceBefore: before.balance,
+        balanceAfter: before.balance + parsedAmount,
+        notes: txn.notes,
+        transactionId: txn.id,
+      },
+    });
 
     res.json({ ok: true, transaction: txn });
   } catch (err) {

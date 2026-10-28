@@ -19,6 +19,8 @@ const dbUnified = require('../db-unified');
 const { uid } = require('../store');
 const { authRequired, roleRequired } = require('../middleware/auth');
 const { csrfProtection } = require('../middleware/csrf');
+const { auditLog } = require('../middleware/audit');
+const { AUDIT_ACTIONS } = require('../middleware/audit-actions');
 const partnerService = require('../services/partnerService');
 const partnerAntiAbuse = require('../services/partnerAntiAbuseService');
 
@@ -388,6 +390,25 @@ router.patch('/:id', csrfProtection, async (req, res) => {
     logger.info(
       `Admin ${req.user.id} updated cashout request ${req.params.id}: ${JSON.stringify(updates)}`
     );
+    // The delivery code / reference is gift-card evidence, so only the fact it was supplied is logged
+    await auditLog({
+      adminId: req.user.id,
+      adminEmail: req.user.email,
+      action: AUDIT_ACTIONS.CASHOUT_REQUEST_UPDATED,
+      targetType: 'cashout_request',
+      targetId: req.params.id,
+      details: {
+        partnerId: cashoutRequest.partnerId,
+        statusFrom: cashoutRequest.status,
+        statusTo: updates.status || cashoutRequest.status,
+        pointsHeld: cashoutRequest.pointsHeld,
+        valueGbp: cashoutRequest.denominationGbp,
+        method: cashoutRequest.method,
+        deliveryEvidenceProvided: updates.status === 'delivered',
+        responseMessageChanged: adminResponseMessage !== undefined,
+        internalNotesChanged: adminInternalNotes !== undefined,
+      },
+    });
     return res.json({ ok: true, request: { ...cashoutRequest, ...updates } });
   } catch (error) {
     logger.error('Error updating cashout request:', error);
@@ -425,6 +446,20 @@ router.delete('/:id', csrfProtection, async (req, res) => {
     logger.info(
       `Admin ${req.user.id} deleted cashout request ${req.params.id} (status: ${cashoutRequest.status})`
     );
+    await auditLog({
+      adminId: req.user.id,
+      adminEmail: req.user.email,
+      action: AUDIT_ACTIONS.CASHOUT_REQUEST_DELETED,
+      targetType: 'cashout_request',
+      targetId: req.params.id,
+      details: {
+        partnerId: cashoutRequest.partnerId,
+        status: cashoutRequest.status,
+        pointsHeld: cashoutRequest.pointsHeld,
+        valueGbp: cashoutRequest.denominationGbp,
+        method: cashoutRequest.method,
+      },
+    });
     return res.json({ ok: true });
   } catch (error) {
     logger.error('Error deleting cashout request:', error);
