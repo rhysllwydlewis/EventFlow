@@ -459,7 +459,7 @@ const pages = [
   {
     file: 'community.html',
     hero: homeHero,
-    body: `        <div id="efc-home" class="efc-section"></div>`,
+    body: '        <div id="efc-home" class="efc-section"></div>',
     // The composer is loaded here as well so "Start a discussion" can open as a
     // modal over the page. It is an enhancement: without it the link still goes
     // to /community/new.
@@ -517,27 +517,27 @@ ${listBody}
   },
   {
     file: 'community-discussion.html',
-    body: `        <div id="efc-thread" class="efc-section"></div>`,
+    body: '        <div id="efc-thread" class="efc-section"></div>',
     scripts: ['/assets/js/community/thread.js'],
   },
   {
     file: 'community-new.html',
-    body: `        <div id="efc-composer" class="efc-section"></div>`,
+    body: '        <div id="efc-composer" class="efc-section"></div>',
     scripts: ['/assets/js/community/composer.js'],
   },
   {
     file: 'community-member.html',
-    body: `        <div id="efc-member" class="efc-section"></div>`,
+    body: '        <div id="efc-member" class="efc-section"></div>',
     scripts: ['/assets/js/community/member.js'],
   },
   {
     file: 'community-saved.html',
-    body: `        <div id="efc-saved" class="efc-section"></div>`,
+    body: '        <div id="efc-saved" class="efc-section"></div>',
     scripts: ['/assets/js/community/member.js'],
   },
   {
     file: 'community-following.html',
-    body: `        <div id="efc-following" class="efc-section"></div>`,
+    body: '        <div id="efc-following" class="efc-section"></div>',
     scripts: ['/assets/js/community/member.js'],
   },
   {
@@ -545,7 +545,7 @@ ${listBody}
     // The admin page carries the shared admin guard, like every other
     // admin-*.html file, so an unauthenticated request never sees the shell.
     adminGuard: true,
-    body: `        <div id="efc-admin" class="efc-section"></div>`,
+    body: '        <div id="efc-admin" class="efc-section"></div>',
     scripts: ['/assets/js/community/admin.js'],
   },
 ];
