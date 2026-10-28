@@ -1090,6 +1090,7 @@ router.post(
       const now = new Date().toISOString();
       const bulk = buildBulkResult(userIds, users, req.user, 'destructive');
       const suspendPromises = [];
+      const suspendedIds = [];
 
       bulk.targets.forEach(user => {
         if (!!user.suspended === !!suspended) {
@@ -1117,12 +1118,15 @@ router.post(
           dbUnified.updateOne('users', getUserWriteFilter(user), { $set: suspendUpdates })
         );
         if (suspended) {
-          dropLiveSessions(user.id);
+          suspendedIds.push(user.id);
         }
         bulk.updated += 1;
       });
 
       await Promise.all(suspendPromises);
+      // Close live connections only once the suspension is saved, so a quick reconnect cannot
+      // slip in while the old record is still stored
+      suspendedIds.forEach(dropLiveSessions);
 
       await auditLog({
         adminId: req.user.id,
@@ -3709,6 +3713,7 @@ router.post(
         },
       }
     );
+    dropLiveSessions(req.params.id);
     auditLog({
       adminId: req.user.id,
       adminEmail: req.user.email,

@@ -227,9 +227,14 @@ describe('dropLiveSessions', () => {
     expect(global.wsServerV2.disconnectUser).not.toHaveBeenCalled();
   });
 
-  it('is called when an admin suspends, bans or bulk-suspends accounts', () => {
+  it('is called when an admin suspends, disables, bans or bulk-suspends accounts', () => {
     const management = source('routes/admin-user-management.js');
-    expect(management.match(/dropLiveSessions\(user\.id\)/g)).toHaveLength(3);
+    expect(management.match(/dropLiveSessions\(user\.id\)/g)).toHaveLength(2);
+    expect(management).toContain('dropLiveSessions(req.params.id)');
+    // bulk: only after the suspensions are saved
+    expect(management).toMatch(
+      /await Promise\.all\(suspendPromises\);[\s\S]*?suspendedIds\.forEach\(dropLiveSessions\)/
+    );
     expect(source('routes/admin.js')).toContain('dropLiveSessions(userId)');
   });
 });
