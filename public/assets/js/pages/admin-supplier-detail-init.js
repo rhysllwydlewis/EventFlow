@@ -780,10 +780,10 @@
 
   // Add New Package handler — navigate to admin packages page
   document.getElementById('addPackageBtn')?.addEventListener('click', () => {
-    window.location.href = `/admin-packages?supplierId=${encodeURIComponent(supplierId)}`;
+    window.location.href = `/admin-packages?supplierId=${encodeURIComponent(supplierId)}&add=1`;
   });
 
-  // Upload Photo handler — navigate to admin photos page
+  // Review photos — the photo page, showing only this supplier's photos
   document.getElementById('uploadPhotoBtn')?.addEventListener('click', () => {
     window.location.href = `/admin-photos?supplierId=${encodeURIComponent(supplierId)}`;
   });

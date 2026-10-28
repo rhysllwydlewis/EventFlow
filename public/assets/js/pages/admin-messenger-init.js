@@ -97,7 +97,7 @@
             lastMsg.length > 80 ? `${lastMsg.substring(0, 80)}…` : lastMsg
           );
           const updated = formatDate(conv.updatedAt);
-          const statusHtml = formatStatus(conv.status);
+          const statusHtml = formatStatus(conv.displayStatus || conv.status);
           const id = escapeHtml(conv._id || conv.id || '');
           return `<tr class="admin-messenger-row">
           <td class="admin-messenger-cell admin-messenger-cell--participants" title="${names}">${names}</td>

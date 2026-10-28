@@ -530,4 +530,14 @@
   // ── Init ──────────────────────────────────────────────────────────────────
   await loadAutoApproveFlag();
   await loadPhotos();
+
+  // A link such as /admin-photos?supplierId=ID (from the supplier page) shows only that supplier
+  const linkedSupplierId = new URLSearchParams(window.location.search).get('supplierId');
+  if (linkedSupplierId) {
+    selectedSupplier = suppliers.find(s => s.id === linkedSupplierId) || null;
+    if (selectedSupplier && supplierFilter) {
+      supplierFilter.value = selectedSupplier.name || 'Unknown';
+    }
+    renderPhotos();
+  }
 })();

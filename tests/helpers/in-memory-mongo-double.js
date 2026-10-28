@@ -83,6 +83,12 @@ function createInMemoryDb() {
           }
           continue;
         }
+        if ('$gt' in value) {
+          if (!(docVal > value.$gt)) {
+            return false;
+          }
+          continue;
+        }
         if ('$elemMatch' in value) {
           if (!Array.isArray(docVal) || !docVal.some(el => matches(el, value.$elemMatch))) {
             return false;

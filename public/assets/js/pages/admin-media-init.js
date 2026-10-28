@@ -20,7 +20,7 @@
       const response = await AdminShared.api('/api/pexels/status');
       if (!response.configured) {
         showError(
-          'Pexels API is not configured. Please set PEXELS_API_KEY in your environment variables.'
+          'Stock photo search (Pexels) is not switched on for this site. Whoever looks after the hosting needs to add the PEXELS_API_KEY setting.'
         );
         return false;
       }

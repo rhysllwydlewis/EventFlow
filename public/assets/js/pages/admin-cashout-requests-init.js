@@ -358,11 +358,30 @@
       document.querySelectorAll('.acr-open-btn').forEach(btn => {
         btn.addEventListener('click', () => openModal(btn.dataset.id, items));
       });
+      openLinkedRequest(items);
     } catch (err) {
       if (tbody) {
         tbody.innerHTML = `<tr><td colspan="7"><div class="acr-empty"><div class="acr-empty-icon">⚠️</div><p class="acr-empty-text">${esc(err.message || 'Error loading data')}</p></div></td></tr>`;
       }
       showToast(err.message || 'Failed to load cashout requests', 'error');
+    }
+  }
+
+  // A link such as /admin-cashout-requests?request=ID (from a notification) opens that request, once
+  let linkedRequestHandled = false;
+  function openLinkedRequest(items) {
+    if (linkedRequestHandled) {
+      return;
+    }
+    linkedRequestHandled = true;
+    const id = new URLSearchParams(window.location.search).get('request');
+    if (!id) {
+      return;
+    }
+    if (items.some(item => item.id === id)) {
+      openModal(id, items);
+    } else {
+      showToast('That cashout request is not in the list. It may have been deleted.', 'warning');
     }
   }
 

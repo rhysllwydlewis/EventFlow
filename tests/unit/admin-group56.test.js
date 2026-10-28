@@ -406,8 +406,8 @@ describe('shared admin styling', () => {
       .filter(name => read(`public/${name}`).includes('admin-workspace.css'));
     expect(pages.length).toBeGreaterThan(30);
     for (const name of pages) {
-      expect(read(`public/${name}`)).toContain('admin-workspace.css?v=2');
-      expect(read(`public/${name}`)).not.toContain('admin-workspace.css?v=1');
+      expect(read(`public/${name}`)).toContain('admin-workspace.css?v=3');
+      expect(read(`public/${name}`)).not.toMatch(/admin-workspace\.css\?v=[12]\b/);
     }
   });
 

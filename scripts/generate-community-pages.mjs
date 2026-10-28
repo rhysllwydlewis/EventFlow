@@ -134,7 +134,7 @@ function shell(page) {
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5, user-scalable=yes" />
     <meta name="theme-color" content="#0B8073" />
-    <script src="/assets/js/config/canonical-base.js"></script>
+    <script src="/assets/js/config/canonical-base.js?v=${version('/assets/js/config/canonical-base.js')}"></script>
 ${page.adminGuard ? '    <script src="/assets/js/dashboard-guard.js?v=18.4.3"></script>\n' : ''}    <!--COMMUNITY_HEAD-->
     <link rel="preload" href="/assets/css/tokens.css?v=${version('/assets/css/tokens.css')}" as="style" />
     <link rel="preload" href="/assets/css/styles.css?v=${version('/assets/css/styles.css')}" as="style" />
