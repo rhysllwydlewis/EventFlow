@@ -167,8 +167,9 @@ router.get('/', async (req, res) => {
           subscriptionBonusTotal: balance.subscriptionBonusTotal,
         },
         referralCount: partnerReferrals.length,
-        qualifiedCount: partnerReferrals.filter(r => r.packageQualified || r.subscriptionQualified)
-          .length,
+        qualifiedCount: partnerReferrals.filter(
+          referral => referral.packageQualified || referral.subscriptionQualified
+        ).length,
       });
     }
 

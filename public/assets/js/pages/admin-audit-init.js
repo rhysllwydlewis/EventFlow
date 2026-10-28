@@ -5,7 +5,7 @@
   let totalEntries = 0;
   let allLogs = [];
 
-  const field = id => document.getElementById(id);
+  const field = elementId => document.getElementById(elementId);
 
   // "partner_credits_adjusted" → "Partner credits adjusted"
   function labelFor(value) {

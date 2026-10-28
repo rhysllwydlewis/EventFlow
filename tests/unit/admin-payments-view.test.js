@@ -192,7 +192,7 @@ describe('the Payments page', () => {
 
   it('reads the fields real records have, not supplierId / planId / total / "success"', () => {
     expect(page).not.toMatch(/payment\.supplierId|payment\.total|=== 'success'|=== 'completed'/);
-    expect(page).toMatch(/p\.statusGroup === currentFilters\.status/);
+    expect(page).toMatch(/payment\.statusGroup === currentFilters\.status/);
     expect(page).toMatch(/payment\.customerName/);
   });
 

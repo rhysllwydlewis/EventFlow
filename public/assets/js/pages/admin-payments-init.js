@@ -59,7 +59,7 @@ function filterPayments(payments) {
 
   // Filter by status group (paid, pending, failed, refunded, disputed)
   if (currentFilters.status !== 'all') {
-    filtered = filtered.filter(p => p.statusGroup === currentFilters.status);
+    filtered = filtered.filter(payment => payment.statusGroup === currentFilters.status);
   }
 
   // Filter by plan
@@ -72,7 +72,7 @@ function filterPayments(payments) {
     const days = parseInt(currentFilters.days, 10);
     const cutoffDate = new Date();
     cutoffDate.setDate(cutoffDate.getDate() - days);
-    filtered = filtered.filter(p => new Date(p.createdAt) >= cutoffDate);
+    filtered = filtered.filter(payment => new Date(payment.createdAt) >= cutoffDate);
   }
 
   return filtered;
@@ -105,8 +105,8 @@ function renderStats(summary, stripeAnalytics) {
     stripeAnalytics.available &&
     typeof stripeAnalytics.netRevenueLast30Days === 'number';
 
-  const setText = (id, text) => {
-    const element = document.getElementById(id);
+  const setText = (elementId, text) => {
+    const element = document.getElementById(elementId);
     if (element) {
       element.textContent = text;
     }

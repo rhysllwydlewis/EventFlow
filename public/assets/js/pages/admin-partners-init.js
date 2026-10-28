@@ -502,7 +502,7 @@
       return;
     }
 
-    const partner = allPartners.find(p => p.id === creditTargetId);
+    const partner = allPartners.find(item => item.id === creditTargetId);
     const who = partner?.user?.name || partner?.refCode || 'this partner';
     const confirmed = await AdminShared.showConfirmModal({
       title: amount > 0 ? 'Add points?' : 'Deduct points?',

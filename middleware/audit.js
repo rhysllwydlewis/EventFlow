@@ -195,7 +195,7 @@ function entryTime(entry) {
 function filterAuditLogs(entries, filters) {
   const { adminId, adminEmail, action, targetType, targetId, startDate, endDate } = filters;
   const from = auditDateBound(startDate, 'start');
-  const to = auditDateBound(endDate, 'end');
+  const until = auditDateBound(endDate, 'end');
   // Accept one type or a comma-separated list ("features,settings,maintenance")
   const targetTypes = targetType
     ? String(targetType)
@@ -212,12 +212,12 @@ function filterAuditLogs(entries, filters) {
       (!targetTypes || targetTypes.includes(log.targetType)) &&
       (!targetId || log.targetId === targetId) &&
       (!from || entryTime(log) >= from) &&
-      (!to || entryTime(log) <= to)
+      (!until || entryTime(log) <= until)
   );
 
   // Sort by timestamp descending (newest first)
   return matches.sort(
-    (a, b) => new Date(entryTime(b)).getTime() - new Date(entryTime(a)).getTime()
+    (first, second) => new Date(entryTime(second)).getTime() - new Date(entryTime(first)).getTime()
   );
 }
 
