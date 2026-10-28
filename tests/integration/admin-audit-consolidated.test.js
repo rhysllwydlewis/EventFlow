@@ -181,18 +181,20 @@ describe('Admin Audit Endpoints Consolidation', () => {
         'utf8'
       );
 
-      // Extract both endpoint handlers
-      const auditLogsMatch = adminRoutesContent.match(
-        /router\.get\('\/audit-logs'.*?res\.json\(.*?\);/s
+      // Both routes share one handler, so they cannot drift apart
+      expect(adminRoutesContent).toMatch(
+        /router\.get\('\/audit-logs', authRequired, roleRequired\('admin'\), listAuditLogs\)/
       );
-      const auditMatch = adminRoutesContent.match(/router\.get\('\/audit'.*?res\.json\(.*?\);/s);
+      expect(adminRoutesContent).toMatch(
+        /router\.get\('\/audit', authRequired, roleRequired\('admin'\), listAuditLogs\)/
+      );
 
-      expect(auditLogsMatch).toBeTruthy();
-      expect(auditMatch).toBeTruthy();
-
-      // Both should return { logs, count } format
-      expect(auditLogsMatch[0]).toContain('{ logs, count: logs.length }');
-      expect(auditMatch[0]).toContain('{ logs, count: logs.length }');
+      // ...and it returns the { logs, count } format (plus total/page/limit for paging)
+      const handler = adminRoutesContent.match(/async function listAuditLogs[\s\S]*?\n\}\n/);
+      expect(handler).toBeTruthy();
+      expect(handler[0]).toContain('logs: result.logs');
+      expect(handler[0]).toContain('count: result.logs.length');
+      expect(handler[0]).toContain('total: result.total');
     });
   });
 });

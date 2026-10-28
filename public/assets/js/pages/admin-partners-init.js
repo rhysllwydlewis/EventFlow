@@ -431,6 +431,8 @@
   // ── Credit modal ──────────────────────────────────────────────────────────────
 
   let creditTargetId = null;
+  // Matches the limit the server enforces on one adjustment
+  const MAX_ADJUSTMENT_POINTS = 10000;
 
   function openCreditModal(partnerId) {
     creditTargetId = partnerId;
@@ -489,6 +491,26 @@
         statusEl.textContent = 'An audit note is required.';
         statusEl.className = 'partner-status error';
       }
+      return;
+    }
+
+    if (Math.abs(amount) > MAX_ADJUSTMENT_POINTS) {
+      if (statusEl) {
+        statusEl.textContent = `One adjustment can be at most ${MAX_ADJUSTMENT_POINTS.toLocaleString('en-GB')} points either way.`;
+        statusEl.className = 'partner-status error';
+      }
+      return;
+    }
+
+    const partner = allPartners.find(item => item.id === creditTargetId);
+    const who = partner?.user?.name || partner?.refCode || 'this partner';
+    const confirmed = await AdminShared.showConfirmModal({
+      title: amount > 0 ? 'Add points?' : 'Deduct points?',
+      message: `${amount > 0 ? 'Add' : 'Deduct'} ${Math.abs(amount).toLocaleString('en-GB')} points ${amount > 0 ? 'to' : 'from'} ${who}. This is recorded in the audit log.`,
+      confirmText: amount > 0 ? 'Add points' : 'Deduct points',
+      cancelText: 'Cancel',
+    });
+    if (!confirmed) {
       return;
     }
 
@@ -774,29 +796,7 @@
 
       // Attach status-change listeners
       container.querySelectorAll('.payout-status-select').forEach(sel => {
-        sel.addEventListener('change', async () => {
-          const ticketId = sel.getAttribute('data-ticket-id');
-          const newStatus = sel.value;
-          try {
-            const csrfToken = await getCsrf();
-            await AdminShared.api(
-              `/api/admin/partners/payout-requests/${encodeURIComponent(ticketId)}/status`,
-              {
-                method: 'PATCH',
-                headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrfToken },
-                body: JSON.stringify({ status: newStatus }),
-              }
-            );
-            showToast(
-              `Payout request status updated to "${newStatus.replace('_', ' ')}"`,
-              'success'
-            );
-            loadPayoutRequests();
-          } catch (err) {
-            AdminShared.debugError('Failed to update payout status', err);
-            showToast('Failed to update status', 'error');
-          }
-        });
+        sel.addEventListener('change', () => changePayoutStatus(sel));
       });
     } catch (err) {
       AdminShared.debugError('Failed to load payout requests', err);
@@ -805,6 +805,42 @@
           '<div style="text-align:center;padding:2rem;color:#fca5a5;">Error loading payout requests.</div>';
       }
     }
+  }
+
+  // Moving a payout request to one of these ends the request, so it is confirmed first
+  const FINAL_PAYOUT_STATUSES = ['resolved', 'closed'];
+
+  async function changePayoutStatus(sel) {
+    const ticketId = sel.getAttribute('data-ticket-id');
+    const newStatus = sel.value;
+    const label = newStatus.replace('_', ' ');
+    try {
+      if (FINAL_PAYOUT_STATUSES.includes(newStatus)) {
+        const confirmed = await AdminShared.showConfirmModal({
+          title: `Mark this payout request as ${label}?`,
+          message:
+            'Only do this once the gift card has been dealt with. The change is recorded in the audit log.',
+          confirmText: `Mark ${label}`,
+          cancelText: 'Cancel',
+        });
+        if (!confirmed) {
+          await loadPayoutRequests();
+          return;
+        }
+      }
+      window.__CSRF_TOKEN__ = window.__CSRF_TOKEN__ || (await getCsrf());
+      await AdminShared.api(
+        `/api/admin/partners/payout-requests/${encodeURIComponent(ticketId)}/status`,
+        'PATCH',
+        { status: newStatus }
+      );
+      showToast(`Payout request status updated to "${label}"`, 'success');
+    } catch (err) {
+      AdminShared.debugError('Failed to update payout status', err);
+      showToast(err.message || 'Failed to update status', 'error');
+    }
+    // Reload either way, so the table always shows what is really saved
+    await loadPayoutRequests();
   }
 
   // ── Init ──────────────────────────────────────────────────────────────────────

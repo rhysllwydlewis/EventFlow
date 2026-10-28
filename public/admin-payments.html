@@ -39,6 +39,22 @@
   <link rel="stylesheet" href="/assets/css/ui-ux-fixes.css?v=18.4.1">
   <link rel="stylesheet" href="/assets/css/admin-ui-improvements.css?v=18.3.3">
   <link rel="stylesheet" href="/assets/css/admin-workspace.css?v=1">
+  <style>
+    /* Status of a payment in the transactions table */
+    .payment-status {
+      display: inline-block;
+      padding: 0.2rem 0.65rem;
+      border-radius: 999px;
+      font-size: 0.8125rem;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+    .payment-status--paid { background: #dcfce7; color: #166534; }
+    .payment-status--pending { background: #fef3c7; color: #92400e; }
+    .payment-status--failed { background: #fee2e2; color: #991b1b; }
+    .payment-status--refunded { background: #e0e7ff; color: #3730a3; }
+    .payment-status--disputed { background: #ffedd5; color: #9a3412; }
+  </style>
 </head>
 <body class="has-admin-navbar admin">
 <!-- Modern Top Navbar -->
@@ -57,9 +73,9 @@
           <span id="stripeStatus" class="status-pill"></span>
         </div>
         <p>
-          This dashboard integrates with live Stripe analytics when available. Revenue, subscriptions, and transaction
-          data are fetched directly from your Stripe account for real-time insights. When Stripe is not configured,
-          the dashboard shows data from local payment records.
+          Revenue is what paid invoices brought in, less refunds, and active subscriptions are the
+          subscriptions on record (the same count the Analytics page shows). When Stripe is connected,
+          the "This Month's Revenue" card also shows Stripe's own figure for the last 30 days, net of refunds.
         </p>
       </div>
 
@@ -107,9 +123,11 @@
       <div class="filter-bar">
         <select id="statusFilter">
           <option value="all">All Statuses</option>
-          <option value="success">Success</option>
+          <option value="paid">Paid</option>
           <option value="pending">Pending</option>
           <option value="failed">Failed</option>
+          <option value="refunded">Refunded</option>
+          <option value="disputed">Disputed</option>
         </select>
         
         <select id="planFilter">
@@ -140,12 +158,13 @@
       <!-- Payments Table -->
       <div class="payments-table">
         <h3>Recent Transactions</h3>
+        <p class="small" id="paymentsCount" aria-live="polite"></p>
         <div class="table-wrapper">
           <table>
             <thead>
               <tr>
                 <th>Date</th>
-                <th>Supplier</th>
+                <th>Customer</th>
                 <th>Plan</th>
                 <th>Amount</th>
                 <th>Status</th>
@@ -180,7 +199,7 @@
   </footer>
 
   <script src="/assets/vendor/chart.umd.js" defer></script>
-  <script src="/assets/js/pages/admin-payments-init.js?v=18.3.1" defer></script>
+  <script src="/assets/js/pages/admin-payments-init.js?v=18.5.11" defer></script>
 <script src="/assets/js/cookie-consent.js?v=3.0.2" defer></script>
 </body>
 </html>

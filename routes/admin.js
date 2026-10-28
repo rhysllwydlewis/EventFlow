@@ -44,6 +44,7 @@ const { runActionPrompts, notifyCronChanged } = require('../services/actionPromp
 const locationRegistry = require('../services/locationRegistry.service');
 const locationPageService = require('../services/locationPage.service');
 const { approvalDecision } = require('../services/seoRecordLifecycle.util');
+const { buildPaymentsView } = require('../services/adminPaymentsView');
 const { addPublicProfilePath } = require('../utils/publicSupplierProfilePath');
 
 const router = express.Router();
@@ -4886,18 +4887,28 @@ router.post(
 
 /**
  * GET /api/admin/payments
- * List all payments for admin analytics
+ * Payments for the admin Payments page, mapped from the records Stripe checkout creates
+ * (customer, plan, amount after refunds, status group) with the headline numbers worked out
+ * from them. See services/adminPaymentsView.js.
  */
 router.get('/payments', authRequired, roleRequired('admin'), async (_req, res) => {
   try {
-    const payments = await dbUnified.read('payments');
-    // Sort by createdAt descending (newest first)
-    payments.sort((a, b) => {
-      const dateA = new Date(a.createdAt || 0);
-      const dateB = new Date(b.createdAt || 0);
-      return dateB - dateA;
+    // Strict reads: if the database cannot be read this must fail, not quietly show totals worked
+    // out from an empty or stale local copy
+    const strict = { throwOnError: true };
+    const [payments, users, invoices, subscriptions] = await Promise.all([
+      dbUnified.read('payments', strict),
+      dbUnified.read('users', strict),
+      dbUnified.read('invoices', strict),
+      dbUnified.read('subscriptions', strict),
+    ]);
+    const { items, summary } = buildPaymentsView({
+      payments: payments || [],
+      users: users || [],
+      invoices: invoices || [],
+      subscriptions: subscriptions || [],
     });
-    res.json({ items: payments });
+    res.json({ items, summary });
   } catch (error) {
     logger.error('Error reading payments:', error);
     res.status(500).json({ error: 'Failed to load payments' });
@@ -5034,10 +5045,19 @@ router.get('/stripe-analytics', authRequired, roleRequired('admin'), async (_req
         return sum + (charge.amount_captured || 0);
       }, 0);
 
+    // What was actually kept: captured money less what was refunded, successful charges only
+    const netRevenueLast30Days = charges.data
+      .filter(charge => charge.paid && charge.status === 'succeeded')
+      .reduce(
+        (sum, charge) => sum + (charge.amount_captured || 0) - (charge.amount_refunded || 0),
+        0
+      );
+
     const analytics = {
       available: true,
       totalRevenue: totalRevenue / 100, // Convert from pence to pounds
       monthRevenue: monthRevenue / 100,
+      netRevenueLast30Days: netRevenueLast30Days / 100,
       activeSubscriptions: subscriptions.data.length,
       totalCharges: charges.data.length,
       newCustomers: customers.data.length,
@@ -5074,48 +5094,64 @@ router.get('/stripe-analytics', authRequired, roleRequired('admin'), async (_req
   }
 });
 
-/**
-
 // ---------- Audit Logs ----------
+
+const AUDIT_FILTER_KEYS = [
+  'adminId',
+  'adminEmail',
+  'action',
+  'targetType',
+  'targetId',
+  'startDate',
+  'endDate',
+];
+
+/**
+ * Lists audit logs, newest first, one page at a time.
+ * Query: the filters above, plus page (1-based) and limit (at most 100).
+ * Responds { logs, count, total, page, limit }: count is the size of this page, total is
+ * everything that matches.
+ */
+async function listAuditLogs(req, res) {
+  const filters = { page: req.query.page, limit: req.query.limit };
+  for (const key of AUDIT_FILTER_KEYS) {
+    if (req.query[key]) {
+      filters[key] = req.query[key];
+    }
+  }
+
+  const { getAuditLogsPage } = require('../middleware/audit');
+  const result = await getAuditLogsPage(filters);
+  if (result.failed) {
+    return res.status(500).json({ error: 'Failed to load audit logs' });
+  }
+  return res.json({
+    logs: result.logs,
+    count: result.logs.length,
+    total: result.total,
+    page: result.page,
+    limit: result.limit,
+  });
+}
 
 /**
  * GET /api/admin/audit-logs
  * Get audit logs with optional filtering (canonical endpoint)
  */
-router.get('/audit-logs', authRequired, roleRequired('admin'), async (req, res) => {
-  const { adminId, adminEmail, action, targetType, targetId, startDate, endDate, limit } =
-    req.query;
+router.get('/audit-logs', authRequired, roleRequired('admin'), listAuditLogs);
 
-  const filters = {};
-  if (adminId) {
-    filters.adminId = adminId;
+/**
+ * GET /api/admin/audit-logs/filters
+ * The actions and target types the audit log can be filtered by
+ */
+router.get('/audit-logs/filters', authRequired, roleRequired('admin'), async (req, res) => {
+  try {
+    const { getAuditFilterOptions } = require('../middleware/audit');
+    res.json(await getAuditFilterOptions());
+  } catch (error) {
+    logger.error('Error loading audit filter options:', error);
+    res.status(500).json({ error: 'Failed to load audit filters' });
   }
-  if (adminEmail) {
-    filters.adminEmail = adminEmail;
-  }
-  if (action) {
-    filters.action = action;
-  }
-  if (targetType) {
-    filters.targetType = targetType;
-  }
-  if (targetId) {
-    filters.targetId = targetId;
-  }
-  if (startDate) {
-    filters.startDate = startDate;
-  }
-  if (endDate) {
-    filters.endDate = endDate;
-  }
-  if (limit) {
-    filters.limit = parseInt(limit, 10);
-  }
-
-  const { getAuditLogs } = require('../middleware/audit');
-  const logs = await getAuditLogs(filters);
-
-  res.json({ logs, count: logs.length });
 });
 
 /**
@@ -5123,42 +5159,7 @@ router.get('/audit-logs', authRequired, roleRequired('admin'), async (req, res) 
  * Get audit logs with optional filtering
  * Backwards compatible endpoint - returns same format as /api/admin/audit-logs
  */
-router.get('/audit', authRequired, roleRequired('admin'), async (req, res) => {
-  const { adminId, adminEmail, action, targetType, targetId, startDate, endDate, limit } =
-    req.query;
-
-  const filters = {};
-  if (adminId) {
-    filters.adminId = adminId;
-  }
-  if (adminEmail) {
-    filters.adminEmail = adminEmail;
-  }
-  if (action) {
-    filters.action = action;
-  }
-  if (targetType) {
-    filters.targetType = targetType;
-  }
-  if (targetId) {
-    filters.targetId = targetId;
-  }
-  if (startDate) {
-    filters.startDate = startDate;
-  }
-  if (endDate) {
-    filters.endDate = endDate;
-  }
-  if (limit) {
-    filters.limit = parseInt(limit, 10);
-  }
-
-  const { getAuditLogs } = require('../middleware/audit');
-  const logs = await getAuditLogs(filters);
-
-  // Use standardized response format
-  res.json({ logs, count: logs.length });
-});
+router.get('/audit', authRequired, roleRequired('admin'), listAuditLogs);
 
 // ---------- Marketplace Admin ----------
 
@@ -6229,39 +6230,38 @@ router.put('/content-config', csrfProtection, authRequired, roleRequired('admin'
 });
 
 /**
+ * One quoted CSV cell. A value a spreadsheet would read as a formula (starting = + - @) gets a
+ * leading apostrophe so opening the export cannot run it.
+ * @param {*} value - Cell value
+ * @returns {string} Quoted cell
+ */
+function csvCell(value) {
+  const text = String(value);
+  const safe = /^[=+\-@\t\r]/.test(text) ? `'${text}` : text;
+  return `"${safe.replace(/"/g, '""')}"`;
+}
+
+/**
  * GET /api/admin/audit/export
  * Export audit logs with optional filtering
- * Query params: format (csv|json), startDate, endDate
+ * Query params: format (csv|json), startDate, endDate (inclusive), action, targetType
  */
 router.get('/audit/export', authRequired, roleRequired('admin'), async (req, res) => {
   try {
-    const { format = 'json', startDate, endDate } = req.query;
+    const { format = 'json', startDate, endDate, action, targetType } = req.query;
 
     if (!['csv', 'json'].includes(format)) {
       return res.status(400).json({ error: 'Invalid format. Use csv or json' });
     }
 
-    let logs = await dbUnified.read('audit_logs');
-
-    // Apply date filters if provided
-    if (startDate || endDate) {
-      logs = logs.filter(log => {
-        const logDate = new Date(log.timestamp || log.createdAt);
-        if (startDate && logDate < new Date(startDate)) {
-          return false;
-        }
-        if (endDate && logDate > new Date(endDate)) {
-          return false;
-        }
-        return true;
-      });
-    }
-
-    // Sort by timestamp descending
-    logs.sort((a, b) => {
-      const dateA = new Date(a.timestamp || a.createdAt);
-      const dateB = new Date(b.timestamp || b.createdAt);
-      return dateB - dateA;
+    // Same filters, same day-inclusive dates and same ordering as the Audit Log screen, so the
+    // file holds what the admin was looking at
+    const { filterAuditLogs } = require('../middleware/audit');
+    const logs = filterAuditLogs(await dbUnified.read('audit_logs'), {
+      startDate,
+      endDate,
+      action,
+      targetType,
     });
 
     // Audit the export action
@@ -6271,7 +6271,7 @@ router.get('/audit/export', authRequired, roleRequired('admin'), async (req, res
       action: 'AUDIT_LOG_EXPORT',
       targetType: 'audit_log',
       targetId: 'export',
-      details: { format, startDate, endDate, count: logs.length },
+      details: { format, startDate, endDate, action, targetType, count: logs.length },
     });
 
     if (format === 'csv') {
@@ -6297,7 +6297,7 @@ router.get('/audit/export', authRequired, roleRequired('admin'), async (req, res
 
       const csvContent = [
         headers.join(','),
-        ...rows.map(row => row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(',')),
+        ...rows.map(row => row.map(cell => csvCell(cell)).join(',')),
       ].join('\n');
 
       res.setHeader('Content-Type', 'text/csv');
