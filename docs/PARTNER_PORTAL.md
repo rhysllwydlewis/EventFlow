@@ -15,7 +15,7 @@ The programme lives under `/partner` and is intentionally excluded from search i
 | `/partner/media-pack.html` | Approved copy-ready sharing material |
 | `/partner/terms.html`      | Partner Programme Terms              |
 | `/admin-partners`          | Administrator partner moderation     |
-| `/admin-cashout-requests`  | Administrator redemption processing  |
+| `/admin-partners?tab=cashouts` | Administrator redemption processing (`/admin-cashout-requests` redirects here) |
 
 ## Dashboard structure
 

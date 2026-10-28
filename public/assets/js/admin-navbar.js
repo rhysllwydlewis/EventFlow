@@ -106,18 +106,10 @@
     {
       href: '/admin-tickets',
       icon: '🎫',
-      label: 'Tickets',
+      label: 'Enquiries',
       group: 'moderation',
-      desc: 'Support ticket queue',
+      desc: 'Support tickets, contact-form enquiries and enquiries from VEXI and Chlo',
       badgeId: 'openTicketsBadge',
-    },
-    {
-      href: '/admin-external-contacts',
-      icon: '📩',
-      label: 'External Contacts',
-      group: 'moderation',
-      desc: 'Enquiries from VEXI, Chlo and other integrated sites',
-      badgeId: 'navBadgeExternalContacts',
     },
     {
       href: '/admin-community',
@@ -140,13 +132,6 @@
       label: 'Messages',
       group: 'moderation',
       desc: 'Conversation moderation',
-    },
-    {
-      href: '/admin-cashout-requests',
-      icon: '💸',
-      label: 'Cashout Requests',
-      group: 'moderation',
-      desc: 'Partner cashout requests — approve, process and deliver',
     },
     {
       href: '/admin-locations',
@@ -175,7 +160,7 @@
       icon: '🤝',
       label: 'Partners',
       group: 'operations',
-      desc: 'Partner portal & affiliate credits',
+      desc: 'Partner accounts, cashout requests & campaign report',
     },
     {
       href: '/admin-audit',
@@ -192,25 +177,11 @@
       desc: 'Data export & downloads',
     },
     {
-      href: '/admin-campaigns',
-      icon: '📣',
-      label: 'Campaigns',
-      group: 'operations',
-      desc: 'Compose and send marketing email campaigns',
-    },
-    {
       href: '/admin-emails',
       icon: '📨',
       label: 'Email Centre',
       group: 'operations',
-      desc: 'Campaigns, templates, sent email logs and delivery status',
-    },
-    {
-      href: '/admin/email-previews',
-      icon: '✉️',
-      label: 'Email Previews',
-      group: 'operations',
-      desc: 'Preview and test local email templates',
+      desc: 'Sent email logs, campaigns, template previews, review requests and delivery health',
     },
     {
       href: '/admin-homepage',
@@ -998,7 +969,8 @@
         // Open tickets badge
         const openTicketsBadge = document.getElementById('openTicketsBadge');
         if (openTicketsBadge) {
-          const count = pending.tickets || data.openTickets || 0;
+          // Support tickets plus new enquiries from VEXI, Chlo and other integrated sites
+          const count = (pending.tickets || data.openTickets || 0) + (pending.externalContacts || 0);
           if (count > 0) {
             openTicketsBadge.textContent = count;
             openTicketsBadge.style.display = 'flex';
@@ -1016,18 +988,6 @@
             locationsBadge.style.display = 'flex';
           } else {
             locationsBadge.style.display = 'none';
-          }
-        }
-
-        // External contacts badge (new, unactioned enquiries)
-        const externalContactsBadge = document.getElementById('navBadgeExternalContacts');
-        if (externalContactsBadge) {
-          const count = pending.externalContacts || 0;
-          if (count > 0) {
-            externalContactsBadge.textContent = count;
-            externalContactsBadge.style.display = 'flex';
-          } else {
-            externalContactsBadge.style.display = 'none';
           }
         }
       })

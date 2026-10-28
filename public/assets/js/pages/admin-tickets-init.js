@@ -515,47 +515,11 @@
 
   setupFilterListeners();
   loadTickets();
-
-  // =============================================
-  // Tab switching
-  // =============================================
-  document.querySelectorAll('.admin-tab').forEach(tab => {
-    tab.addEventListener('click', () => {
-      const targetTab = tab.dataset.tab;
-      document.querySelectorAll('.admin-tab').forEach(t => {
-        t.classList.remove('admin-tab--active');
-        t.setAttribute('aria-selected', 'false');
-      });
-      document.querySelectorAll('.admin-tab-panel').forEach(p => {
-        p.style.display = 'none';
-      });
-      tab.classList.add('admin-tab--active');
-      tab.setAttribute('aria-selected', 'true');
-      const panel = document.getElementById(`panel-${targetTab}`);
-      if (panel) {
-        panel.style.display = 'block';
-      }
-      if (targetTab === 'contacts') {
-        loadContactEnquiries();
-      }
-    });
-  });
-
-  // A link ending #contacts (from a contact-form notification) opens the Contact form tab. This
-  // waits for the whole file to run, because the tab's loader is defined further down.
-  document.addEventListener('DOMContentLoaded', () => {
-    if (window.location.hash === '#contacts') {
-      const contactsTab = document.querySelector('.admin-tab[data-tab="contacts"]');
-      if (contactsTab) {
-        contactsTab.click();
-      }
-    }
-  });
 })();
 
 // =============================================
 // Contact Form Enquiries Module (EventFlow's own /contact form — distinct
-// from /admin-external-contacts, which covers VEXI/Chlo integrations)
+// from the External tab, which covers VEXI/Chlo integrations)
 // =============================================
 (function () {
   let allEnquiries = [];
@@ -912,4 +876,31 @@
   document
     .getElementById('refreshContactsBtn')
     ?.addEventListener('click', window.loadContactEnquiries);
+})();
+
+// =============================================
+// Tabs: Support tickets / Contact form / External (VEXI, Chlo). The chosen tab is kept in the
+// address (?tab=tickets|contacts|external) so links, notifications and the redirects from the old
+// pages can open a tab; an older link ending #contacts still works. This runs last because the
+// tabs' loaders are defined in the modules above.
+// =============================================
+(function () {
+  function tab(name, onShow) {
+    return {
+      name,
+      button: document.getElementById(`tab-${name}`),
+      panel: document.getElementById(`panel-${name}`),
+      onShow,
+    };
+  }
+
+  window.AdminTabs.mount({
+    tabs: [
+      tab('tickets'),
+      tab('contacts', () => window.loadContactEnquiries()),
+      tab('external', () => window.AdminExternalContacts.start()),
+    ],
+    activeClass: 'admin-tab--active',
+    initial: 'tickets',
+  });
 })();

@@ -363,7 +363,19 @@
     }
     summaryData = summaryFrom(allContacts);
     renderSummaryCards(summaryData);
+    showTabBadge();
     applyFilters({ keepPage: true });
+  }
+
+  // The number of new enquiries, on the tab itself
+  function showTabBadge() {
+    const badge = $('externalContactsBadge');
+    if (!badge) {
+      return;
+    }
+    const waiting = summaryData && summaryData.new ? summaryData.new : 0;
+    badge.textContent = String(waiting);
+    badge.style.display = waiting > 0 ? '' : 'none';
   }
 
   // ── Data loading ───────────────────────────────────────────────────────────
@@ -394,6 +406,7 @@
       allContacts = everything;
       summaryData = data.summary || null;
       renderSummaryCards(summaryData);
+      showTabBadge();
       applyFilters({ keepPage: true });
     } catch {
       const tbody = $('ecTableBody');
@@ -406,7 +419,16 @@
   }
 
   // ── Initialise ─────────────────────────────────────────────────────────────
-  document.addEventListener('DOMContentLoaded', () => {
+  // These enquiries are the "External" tab of the Enquiries page (/admin-tickets?tab=external).
+  // Nothing is loaded until that tab is first opened: the list and the detail share a limit of 50
+  // requests every five minutes, so it should not be spent by people who only look at tickets.
+  let started = false;
+
+  function start() {
+    if (started) {
+      return;
+    }
+    started = true;
     contactPager = AdminPager.mount({
       after: $('ecTableBody').closest('table').parentElement,
       onChange(page) {
@@ -460,5 +482,7 @@
     });
 
     loadData();
-  });
+  }
+
+  window.AdminExternalContacts = { start };
 })();

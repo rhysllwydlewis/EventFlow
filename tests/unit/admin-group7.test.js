@@ -165,15 +165,13 @@ describe('links from other pages land on the right thing', () => {
     expect(page).toMatch(/selectedSupplier = suppliers\.find\(s => s\.id === linkedSupplierId\)/);
   });
 
-  it('Tickets opens ?ticket=ID once, and #contacts opens the Contact form tab', () => {
+  it('Tickets opens ?ticket=ID once, and the tabs open from ?tab= or an older #contacts link', () => {
     const page = read(`${PAGES}admin-tickets-init.js`);
     expect(page).toContain("get('ticket')");
     expect(page).toContain('openLinkedTicket();');
-    expect(page).toContain("window.location.hash === '#contacts'");
-    // the tab's loader is defined later in the file, so the hash is handled on DOMContentLoaded
-    expect(page).toMatch(
-      /addEventListener\('DOMContentLoaded', \(\) => \{\s*if \(window\.location\.hash === '#contacts'\)/
-    );
+    // the shared tab helper reads ?tab= and a matching #hash (older links ended #contacts)
+    expect(page).toContain('window.AdminTabs.mount({');
+    expect(read('public/assets/js/utils/admin-tabs.js')).toContain('nameFromAddress');
   });
 
   it('Cashout requests opens ?request=ID once', () => {

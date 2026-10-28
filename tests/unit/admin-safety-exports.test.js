@@ -274,7 +274,7 @@ describe('cashout requests page', () => {
   });
 
   it('loads the script with a version tag so cached copies are replaced', () => {
-    const html = fs.readFileSync(path.join(ROOT, 'public/admin-cashout-requests.html'), 'utf8');
+    const html = fs.readFileSync(path.join(ROOT, 'public/admin-partners.html'), 'utf8');
     expect(html).toMatch(/admin-cashout-requests-init\.js\?v=/);
   });
 });
