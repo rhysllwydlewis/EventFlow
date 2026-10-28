@@ -76,7 +76,7 @@ router.get('/', authRequired, roleRequired('admin'), notificationLimiter, async 
     });
 
     const total = all.length;
-    const limit = Math.min(Number(rawLimit) || 50, 200);
+    const limit = Math.min(Number(rawLimit) || 50, 100);
     const skip = Math.max(Number(rawSkip) || 0, 0);
     const items = all.slice(skip, skip + limit);
 

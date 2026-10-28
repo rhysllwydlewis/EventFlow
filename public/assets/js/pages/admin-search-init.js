@@ -2,6 +2,13 @@
 (function () {
   const activeFilters = new Set(['users', 'suppliers', 'packages', 'tickets', 'reports']);
   let searchToken = 0;
+  // What is on screen now, so "Show more" can add the next 10 of one category
+  let currentResults = {};
+  let currentTotals = {};
+  let currentQuery = '';
+  // Categories whose "Show more" is still loading; their buttons stay disabled across re-draws
+  const loadingMore = new Set();
+  const PAGE = 10;
   const status = document.getElementById('adminSearchStatus');
   const searchButton = document.getElementById('globalSearchBtn');
   const badgeClass = value => String(value || '').replace(/[^a-z0-9_-]/gi, '');
@@ -20,6 +27,7 @@
       chip.setAttribute('aria-pressed', String(activeFilters.has(type)));
       if (!activeFilters.size) {
         searchToken++;
+        loadingMore.clear();
         searchButton.disabled = false;
         status.textContent = 'Select at least one category to search.';
         document.getElementById('searchResultsContainer').innerHTML = '';
@@ -46,6 +54,7 @@
 
     const container = document.getElementById('searchResultsContainer');
     const token = ++searchToken;
+    loadingMore.clear();
     searchButton.disabled = true;
     status.textContent = 'Searching…';
     container.innerHTML = '<div class="search-empty-state"><p>Searching...</p></div>';
@@ -58,7 +67,7 @@
       if (token !== searchToken) {
         return;
       }
-      renderResults(data.results, q);
+      renderResults(data.results, q, data.totals);
     } catch (err) {
       if (token !== searchToken) {
         return;
@@ -72,19 +81,46 @@
     }
   }
 
-  function renderResults(results, query) {
+  function countLabel(type) {
+    const shown = (currentResults[type] || []).length;
+    const total = currentTotals[type];
+    return total > shown ? `${shown} of ${total}` : String(shown);
+  }
+
+  function moreButton(type) {
+    const shown = (currentResults[type] || []).length;
+    const total = currentTotals[type] || 0;
+    if (total <= shown) {
+      return '';
+    }
+    const busy = loadingMore.has(type) ? ' disabled' : '';
+    const next = Math.min(PAGE, total - shown);
+    return `<button type="button" class="btn btn-secondary btn-sm search-show-more" data-more="${type}"${busy}>Show ${next} more (${total - shown} not shown)</button>`;
+  }
+
+  function renderResults(results, query, totals) {
+    currentResults = results || {};
+    currentTotals = totals || {};
+    currentQuery = query;
     const container = document.getElementById('searchResultsContainer');
     const sections = [];
     const count = Object.values(results || {}).reduce(
       (sum, items) => sum + (Array.isArray(items) ? items.length : 0),
       0
     );
-    status.textContent = `${count} result${count === 1 ? '' : 's'} for “${query}”${Object.values(results || {}).some(items => Array.isArray(items) && items.length === 10) ? ' · up to 10 per category shown' : ''}`;
+    const matches = Object.keys(currentResults).reduce(
+      (sum, type) => sum + (currentTotals[type] ?? (currentResults[type] || []).length),
+      0
+    );
+    status.textContent =
+      matches > count
+        ? `Showing ${count} of ${matches} matches for “${query}”`
+        : `${count} result${count === 1 ? '' : 's'} for “${query}”`;
 
     if (results.users && results.users.length > 0) {
       sections.push(`
         <div class="card search-results-section">
-          <h3>👥 Users (${results.users.length})</h3>
+          <h3>👥 Users (${countLabel('users')})</h3>
           ${results.users
             .map(
               u => `
@@ -99,13 +135,14 @@
             </div>`
             )
             .join('')}
+          ${moreButton('users')}
         </div>`);
     }
 
     if (results.suppliers && results.suppliers.length > 0) {
       sections.push(`
         <div class="card search-results-section">
-          <h3>🏢 Suppliers (${results.suppliers.length})</h3>
+          <h3>🏢 Suppliers (${countLabel('suppliers')})</h3>
           ${results.suppliers
             .map(
               s => `
@@ -120,13 +157,14 @@
             </div>`
             )
             .join('')}
+          ${moreButton('suppliers')}
         </div>`);
     }
 
     if (results.packages && results.packages.length > 0) {
       sections.push(`
         <div class="card search-results-section">
-          <h3>📦 Packages (${results.packages.length})</h3>
+          <h3>📦 Packages (${countLabel('packages')})</h3>
           ${results.packages
             .map(
               p => `
@@ -141,13 +179,14 @@
             </div>`
             )
             .join('')}
+          ${moreButton('packages')}
         </div>`);
     }
 
     if (results.tickets && results.tickets.length > 0) {
       sections.push(`
         <div class="card search-results-section">
-          <h3>🎫 Tickets (${results.tickets.length})</h3>
+          <h3>🎫 Tickets (${countLabel('tickets')})</h3>
           ${results.tickets
             .map(
               t => `
@@ -164,13 +203,14 @@
             </div>`
             )
             .join('')}
+          ${moreButton('tickets')}
         </div>`);
     }
 
     if (results.reports && results.reports.length > 0) {
       sections.push(`
         <div class="card search-results-section">
-          <h3>📈 Reports (${results.reports.length})</h3>
+          <h3>📈 Reports (${countLabel('reports')})</h3>
           ${results.reports
             .map(
               r => `
@@ -186,6 +226,7 @@
             </div>`
             )
             .join('')}
+          ${moreButton('reports')}
         </div>`);
     }
 
@@ -199,6 +240,50 @@
       container.innerHTML = sections.join('');
     }
   }
+
+  // "Show more": ask for the next 10 of one category and add them to what is on screen
+  document.getElementById('searchResultsContainer').addEventListener('click', async event => {
+    const button = event.target.closest('[data-more]');
+    if (!button) {
+      return;
+    }
+    const type = button.getAttribute('data-more');
+    if (loadingMore.has(type)) {
+      return;
+    }
+    // A new search, or a change to the chosen categories, makes this answer out of date
+    const token = searchToken;
+    const query = currentQuery;
+    const offset = (currentResults[type] || []).length;
+    loadingMore.add(type);
+    button.disabled = true;
+    try {
+      const data = await AdminShared.api(
+        `/api/admin/search?q=${encodeURIComponent(query)}&types=${type}&limit=${PAGE}&offset=${offset}`
+      );
+      if (token !== searchToken) {
+        return;
+      }
+      const results = {
+        ...currentResults,
+        [type]: [...currentResults[type], ...(data.results[type] || [])],
+      };
+      loadingMore.delete(type);
+      renderResults(results, query, { ...currentTotals, ...data.totals });
+    } catch (err) {
+      if (token === searchToken) {
+        AdminShared.showToast(`Could not load more: ${err.message}`, 'error');
+      }
+    } finally {
+      loadingMore.delete(type);
+      if (token === searchToken) {
+        const again = document.querySelector(`[data-more="${type}"]`);
+        if (again) {
+          again.disabled = false;
+        }
+      }
+    }
+  });
 
   document.getElementById('globalSearchForm').addEventListener('submit', e => {
     e.preventDefault();

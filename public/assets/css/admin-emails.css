@@ -255,3 +255,9 @@
 .review-request-status--failed{background:#fff1f2;color:#be123c}
 .review-request-status--expired{background:#f1f5f9;color:#475569}
 #reviewRequestCentreStatus{margin-bottom:1rem}
+
+/* The hero is a teal gradient, but the shared admin page style colours every page title dark, so the
+   title and subtitle were dark on teal (and the small "Operations" label teal on teal). */
+body.has-admin-navbar.admin .email-centre-hero .dashboard-title { color: #fff; }
+body.has-admin-navbar.admin .email-centre-hero .dashboard-subtitle { color: rgba(255, 255, 255, 0.9); }
+body.has-admin-navbar.admin .email-centre-hero .email-centre-eyebrow { color: rgba(255, 255, 255, 0.85); }

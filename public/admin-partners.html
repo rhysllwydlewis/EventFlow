@@ -36,6 +36,18 @@
   <style>
     /* ── Admin Partners page — light-theme overrides ──────────────────────── */
 
+    /* Row action buttons had pale pastel text meant for a dark page; on this light page they were
+       barely readable (about 1.3:1). Same tints, readable text. */
+    .ap-action-btn--view { color: #4338ca; }
+    .ap-action-btn--disable { color: #b91c1c; }
+    .ap-action-btn--credit { color: #92400e; }
+    .ap-action-btn--enable { color: #047857; }
+    /* Status badges had the same pale-on-pale text */
+    .p-badge--success { color: #047857; }
+    .p-badge--pending { color: #92400e; }
+    .p-badge--inactive { color: #4b5563; }
+    .p-badge--deleted { color: #b91c1c; }
+
     /* The slide-in panel starts under the 70px top bar, not behind it, so its close button
        and heading stay reachable */
     .partner-detail-panel {
@@ -365,7 +377,7 @@
       cursor: not-allowed;
     }
   </style>
-  <link rel="stylesheet" href="/assets/css/admin-workspace.css?v=1">
+  <link rel="stylesheet" href="/assets/css/admin-workspace.css?v=2">
 </head>
 <body class="has-admin-navbar admin">
 <div id="adminNavbarMount"></div>

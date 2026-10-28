@@ -469,7 +469,9 @@
                 }
                 <button data-action="delete" data-id="${escapeHtml(supplier.id)}" class="ef-cta btn-xs" style="background: #6b7280; color: white;" title="Delete">🗑️</button>
               </div>
-              <div style="display: flex; gap: 4px; align-items: center; flex-wrap: wrap;">
+              <details class="row-more">
+                <summary>Subscription</summary>
+                <div class="row-more__panel">
                 <select id="sub-tier-${escapeHtml(supplier.id)}" class="btn-xs" style="padding: 2px 4px; font-size: 11px;" title="Subscription tier">
                   <option value="pro">Pro</option>
                   <option value="pro_plus">Pro+</option>
@@ -482,7 +484,8 @@
                 </select>
                 <button data-action="grantSubscription" data-id="${escapeHtml(supplier.id)}" class="ef-cta btn-xs" style="background: #667eea; color: white; font-size: 11px;" title="Grant subscription">Grant</button>
                 <button data-action="removeSubscription" data-id="${escapeHtml(supplier.id)}" class="ef-cta btn-xs" style="background: #6b7280; color: white; font-size: 11px;" title="Remove subscription">Remove</button>
-              </div>
+                </div>
+              </details>
             </div>
           </td>
         </tr>

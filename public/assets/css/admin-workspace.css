@@ -33,6 +33,59 @@ body.has-admin-navbar.admin .btn-icon:hover { transform: none; box-shadow: none;
 @media (max-width: 420px) {
   body.has-admin-navbar.admin .stats-grid { grid-template-columns: 1fr; }
 }
+/* ── Controls left over from the old teal gradient banner ──────────────────────────────────
+   Header icon buttons, "Back" buttons and links were styled for white text on a see-through white
+   fill. The banner is a white card now, so they were invisible (white on white). They get real
+   colours here. The two email heroes keep their gradient and so keep the white controls. */
+body.has-admin-navbar.admin .btn-icon,
+body.has-admin-navbar.admin .dashboard-header:not(.email-centre-hero):not(.email-preview-hero) .btn-secondary,
+body.has-admin-navbar.admin .link-white { color: #0b8073 !important; }
+body.has-admin-navbar.admin .btn-icon,
+body.has-admin-navbar.admin .dashboard-header:not(.email-centre-hero):not(.email-preview-hero) .btn-secondary { background: #fff; border: 1px solid #cfdcdc; }
+body.has-admin-navbar.admin .btn-icon:hover,
+body.has-admin-navbar.admin .dashboard-header:not(.email-centre-hero):not(.email-preview-hero) .btn-secondary:hover { background: #eef6f5; }
+body.has-admin-navbar.admin :is(.email-centre-hero, .email-preview-hero) .btn-icon { background: rgba(255,255,255,.2); border-color: rgba(255,255,255,.3); color: #fff !important; }
+/* An icon button that also carries a text label (Payments "Refresh Data") sizes to its content */
+body.has-admin-navbar.admin .filter-bar .btn-icon { width: auto; min-width: 44px; padding: 0 14px !important; gap: 8px; font-weight: 600; }
+
+/* ── Success / warning / info buttons: white text on a pale fill was hard to read (2.5:1) ── */
+body.has-admin-navbar.admin .btn-success { background: #047857; border-color: #065f46; color: #fff; }
+body.has-admin-navbar.admin .btn-success:hover { background: #065f46; }
+body.has-admin-navbar.admin .btn-warning { background: #b45309; border-color: #92400e; color: #fff; }
+body.has-admin-navbar.admin .btn-warning:hover { background: #92400e; }
+body.has-admin-navbar.admin .btn-info { background: #2563eb; border-color: #1d4ed8; color: #fff; }
+body.has-admin-navbar.admin .btn-info:hover { background: #1d4ed8; }
+
+/* ── Long unbroken words ─────────────────────────────────────────────────────────────────────
+   One very long word (a pasted link, a test string) made a table or a whole page thousands of
+   pixels wide, pushing Status and Manage off screen. Text in paragraphs, headings, list items and
+   bold or small text now breaks where it must. (Table cells themselves are left alone, so ordinary
+   column text is never chopped mid-word.) */
+body.has-admin-navbar.admin main :is(p, li, dd, h1, h2, h3, h4, strong, .small) { overflow-wrap: anywhere; }
+body.has-admin-navbar.admin main :is(.flex-1, .flex-between > div, .flex-between-start > div) { min-width: 0; }
+
+/* ── Wide tables: keep the Actions column in view while the rest scrolls ─────────────────── */
+body.has-admin-navbar.admin .table-wrapper--sticky-actions table :is(th, td):last-child {
+  position: sticky; right: 0; background: #fff; box-shadow: -10px 0 8px -8px rgba(26,57,62,.16);
+}
+body.has-admin-navbar.admin .table-wrapper--sticky-actions table thead th:last-child { background: #f7f9f9; z-index: 2; }
+body.has-admin-navbar.admin .table-wrapper--sticky-actions table tbody tr:hover td:last-child { background: #f7fbfa; }
+
+/* ── Secondary row actions tucked into a "More" control ─────────────────────────────────────
+   Suppliers showed seven or more controls per row (tier, duration, Grant, Remove, ...), which made
+   every row over 200px tall and pushed the actions off screen. They now sit behind a summary. */
+body.has-admin-navbar.admin details.row-more > summary { cursor: pointer; font-size: 12px; font-weight: 600; color: #0b8073; list-style: none; padding: 2px 0; }
+body.has-admin-navbar.admin details.row-more > summary::-webkit-details-marker { display: none; }
+body.has-admin-navbar.admin details.row-more > summary::after { content: " \25BE"; }
+body.has-admin-navbar.admin details.row-more[open] > summary::after { content: " \25B4"; }
+body.has-admin-navbar.admin .row-more__panel { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; margin-top: 6px; }
+
+/* ── Paging line and Previous / Next buttons under a list (assets/js/utils/admin-pager.js) ── */
+body.has-admin-navbar.admin .admin-pager { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px; margin: 12px 0 4px; }
+body.has-admin-navbar.admin .admin-pager__label { margin: 0 auto 0 0; color: #62777d; }
+/* .btn sets display, which beats the hidden attribute: a one-page list showed two dead buttons */
+body.has-admin-navbar.admin .admin-pager [hidden] { display: none !important; }
+
 @media (prefers-reduced-motion: reduce) {
   body.has-admin-navbar.admin :is(.stat-card,.admin-card,.card,.btn-icon) { transition: none; }
 }

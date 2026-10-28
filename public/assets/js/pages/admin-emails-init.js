@@ -1,6 +1,15 @@
 'use strict';
 (function () {
   let currentPage = 1;
+  const EMAIL_PAGE_SIZE = 25;
+  // Previous / Next under the log: the server pages the list but the page never offered page 2
+  const logPager = AdminPager.mount({
+    after: document.getElementById('emailLogRows').closest('.email-log-table-wrap'),
+    onChange(page) {
+      currentPage = page;
+      loadLogs().catch(err => setStatus(err.message, 'error'));
+    },
+  });
   let currentReviewRequestPage = 1;
 
   function escapeHtml(value) {
@@ -89,7 +98,10 @@
   }
 
   function buildQuery() {
-    const params = new URLSearchParams({ page: String(currentPage), limit: '25' });
+    const params = new URLSearchParams({
+      page: String(currentPage),
+      limit: String(EMAIL_PAGE_SIZE),
+    });
     [
       ['recipient', 'emailFilterRecipient'],
       ['subject', 'emailFilterSubject'],
@@ -134,8 +146,12 @@
         .join('');
     }
     const pagination = data.pagination || {};
-    document.getElementById('emailLogPagination').textContent =
-      `Page ${pagination.page || 1} of ${pagination.totalPages || 1} · ${pagination.total || 0} total logs`;
+    logPager.update({
+      page: pagination.page || 1,
+      size: EMAIL_PAGE_SIZE,
+      total: pagination.total || 0,
+      noun: 'emails',
+    });
   }
 
   function reviewRequestStatusLabel(status) {
