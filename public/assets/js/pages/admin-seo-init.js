@@ -191,6 +191,20 @@
     }
   }
 
+  // Hiding or restoring a query changes every report built from the queries, including the
+  // estimated monthly value and the content gaps
+  async function reloadNoiseDependentReports() {
+    await Promise.all([
+      loadQueries(),
+      loadOverview(),
+      loadFinancialEstimate(),
+      loadStrikingDistance(),
+      loadLowCtr(),
+      loadContentGaps(),
+      loadNoise(),
+    ]);
+  }
+
   async function markNoise(query) {
     // Hiding a query removes it from every report, so ask first
     const confirmed = await AdminShared.showConfirmModal({
@@ -207,13 +221,7 @@
         reason: 'Marked from dashboard',
       });
       AdminShared.showToast(`Marked "${query}" as noise`, 'success');
-      await Promise.all([
-        loadQueries(),
-        loadOverview(),
-        loadStrikingDistance(),
-        loadLowCtr(),
-        loadNoise(),
-      ]);
+      await reloadNoiseDependentReports();
     } catch (error) {
       AdminShared.showToast(`Could not mark as noise: ${error.message}`, 'error');
     }
@@ -223,13 +231,7 @@
     try {
       await AdminShared.api(`/api/v2/admin/seo/noise/${encodeURIComponent(query)}`, 'DELETE');
       AdminShared.showToast(`Put "${query}" back in the reports`, 'success');
-      await Promise.all([
-        loadQueries(),
-        loadOverview(),
-        loadStrikingDistance(),
-        loadLowCtr(),
-        loadNoise(),
-      ]);
+      await reloadNoiseDependentReports();
     } catch (error) {
       AdminShared.showToast(`Could not put it back: ${error.message}`, 'error');
     }
