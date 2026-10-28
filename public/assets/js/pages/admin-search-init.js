@@ -6,6 +6,8 @@
   let currentResults = {};
   let currentTotals = {};
   let currentQuery = '';
+  // Categories whose "Show more" is still loading; their buttons stay disabled across re-draws
+  const loadingMore = new Set();
   const PAGE = 10;
   const status = document.getElementById('adminSearchStatus');
   const searchButton = document.getElementById('globalSearchBtn');
@@ -25,6 +27,7 @@
       chip.setAttribute('aria-pressed', String(activeFilters.has(type)));
       if (!activeFilters.size) {
         searchToken++;
+        loadingMore.clear();
         searchButton.disabled = false;
         status.textContent = 'Select at least one category to search.';
         document.getElementById('searchResultsContainer').innerHTML = '';
@@ -51,6 +54,7 @@
 
     const container = document.getElementById('searchResultsContainer');
     const token = ++searchToken;
+    loadingMore.clear();
     searchButton.disabled = true;
     status.textContent = 'Searching…';
     container.innerHTML = '<div class="search-empty-state"><p>Searching...</p></div>';
@@ -89,8 +93,9 @@
     if (total <= shown) {
       return '';
     }
+    const busy = loadingMore.has(type) ? ' disabled' : '';
     const next = Math.min(PAGE, total - shown);
-    return `<button type="button" class="btn btn-secondary btn-sm search-show-more" data-more="${type}">Show ${next} more (${total - shown} not shown)</button>`;
+    return `<button type="button" class="btn btn-secondary btn-sm search-show-more" data-more="${type}"${busy}>Show ${next} more (${total - shown} not shown)</button>`;
   }
 
   function renderResults(results, query, totals) {
@@ -243,23 +248,40 @@
       return;
     }
     const type = button.getAttribute('data-more');
+    if (loadingMore.has(type)) {
+      return;
+    }
+    // A new search, or a change to the chosen categories, makes this answer out of date
+    const token = searchToken;
     const query = currentQuery;
+    const offset = (currentResults[type] || []).length;
+    loadingMore.add(type);
     button.disabled = true;
     try {
       const data = await AdminShared.api(
-        `/api/admin/search?q=${encodeURIComponent(query)}&types=${type}&limit=${PAGE}&offset=${(currentResults[type] || []).length}`
+        `/api/admin/search?q=${encodeURIComponent(query)}&types=${type}&limit=${PAGE}&offset=${offset}`
       );
-      if (query !== currentQuery) {
+      if (token !== searchToken) {
         return;
       }
       const results = {
         ...currentResults,
         [type]: [...currentResults[type], ...(data.results[type] || [])],
       };
+      loadingMore.delete(type);
       renderResults(results, query, { ...currentTotals, ...data.totals });
     } catch (err) {
-      button.disabled = false;
-      AdminShared.showToast(`Could not load more: ${err.message}`, 'error');
+      if (token === searchToken) {
+        AdminShared.showToast(`Could not load more: ${err.message}`, 'error');
+      }
+    } finally {
+      loadingMore.delete(type);
+      if (token === searchToken) {
+        const again = document.querySelector(`[data-more="${type}"]`);
+        if (again) {
+          again.disabled = false;
+        }
+      }
     }
   });
 

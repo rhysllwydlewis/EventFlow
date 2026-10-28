@@ -323,7 +323,9 @@
             status: newStatus,
           });
           AdminShared.showToast('Status updated.', 'success');
-          await loadData();
+          // Update the copy already loaded instead of downloading every enquiry again: the list
+          // and detail requests share a limit of 50 every five minutes
+          applyStatusChange(id, newStatus);
           if (!modal.hidden) {
             openDetail(id);
           }
@@ -338,6 +340,30 @@
       }
       body.innerHTML = `<p class="small">Failed to load: ${esc(err.message)}</p>`;
     }
+  }
+
+  // ── Local update after a status change ─────────────────────────────────────
+  function summaryFrom(contacts) {
+    const count = predicate => contacts.filter(predicate).length;
+    return {
+      total: contacts.length,
+      new: count(c => c.status === 'new'),
+      in_review: count(c => c.status === 'in_review'),
+      replied: count(c => c.status === 'replied'),
+      archived: count(c => c.status === 'archived'),
+      vexi: count(c => c.source === 'vexi'),
+      chlo: count(c => c.source === 'chlo'),
+    };
+  }
+
+  function applyStatusChange(id, status) {
+    const contact = allContacts.find(item => item.id === id);
+    if (contact) {
+      contact.status = status;
+    }
+    summaryData = summaryFrom(allContacts);
+    renderSummaryCards(summaryData);
+    applyFilters({ keepPage: true });
   }
 
   // ── Data loading ───────────────────────────────────────────────────────────

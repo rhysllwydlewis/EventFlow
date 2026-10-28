@@ -252,11 +252,32 @@ describe('pages that page their lists', () => {
     );
   });
 
+  it('Search throws away a "Show more" answer from an earlier search or category choice', () => {
+    const search = read(`${PAGES}admin-search-init.js`);
+    // the token is captured before asking and checked before drawing, like a new search does
+    expect(search).toMatch(/const token = searchToken;/);
+    expect(search).toMatch(/if \(token !== searchToken\) \{\s*return;\s*\}\s*const results = \{/);
+    // a category already loading ignores a second click, and keeps its button disabled on redraw
+    expect(search).toMatch(/if \(loadingMore\.has\(type\)\) \{\s*return;\s*\}/);
+    expect(search).toContain("const busy = loadingMore.has(type) ? ' disabled' : '';");
+    expect(search.match(/loadingMore\.clear\(\)/g)).toHaveLength(2);
+  });
+
+  it('External contacts updates the loaded list after a status save instead of reloading it all', () => {
+    const page = read(`${PAGES}admin-external-contacts-init.js`);
+    expect(page).toMatch(/applyStatusChange\(id, newStatus\);/);
+    // the save handler no longer calls loadData(): that was one request per 100 enquiries each time
+    const handler = page.slice(page.indexOf("$('ecSaveStatusBtn').addEventListener"));
+    expect(handler.slice(0, handler.indexOf('} catch (err)'))).not.toContain('loadData()');
+    expect(page).toContain('function summaryFrom(contacts)');
+  });
+
   it('Search says "10 of 37" and has a Show more button that offsets by what is shown', () => {
     const search = read(`${PAGES}admin-search-init.js`);
     expect(search).toMatch(/total > shown \? `\$\{shown\} of \$\{total\}`/);
     expect(search).toContain('data-more="${type}"');
-    expect(search).toMatch(/offset=\$\{\(currentResults\[type\] \|\| \[\]\)\.length\}/);
+    expect(search).toMatch(/const offset = \(currentResults\[type\] \|\| \[\]\)\.length;/);
+    expect(search).toMatch(/offset=\$\{offset\}/);
     expect(read('public/admin-search.html')).toContain('admin-search-init.js?v=18.5.13');
   });
 });
