@@ -372,10 +372,11 @@ describe('F7 Community admin', () => {
   it('the generator bumps the scripts it changed and the generated admin page carries them', () => {
     const generator = source('scripts/generate-community-pages.mjs');
     expect(generator).toMatch(/'\/assets\/js\/community\/core\.js': '18\.6\.1'/);
-    expect(generator).toMatch(/'\/assets\/js\/community\/admin\.js': '18\.6\.1'/);
+    // admin.js was bumped again for the paged Audit and Appeals tabs (18.6.2)
+    expect(generator).toMatch(/'\/assets\/js\/community\/admin\.js': '18\.6\.2'/);
     const page = source('public/admin-community.html');
     expect(page).toMatch(/community\/core\.js\?v=18\.6\.1/);
-    expect(page).toMatch(/community\/admin\.js\?v=18\.6\.1/);
+    expect(page).toMatch(/community\/admin\.js\?v=18\.6\.2/);
   });
 });
 
@@ -575,7 +576,7 @@ describe('cache versions', () => {
     ['public/admin-supplier-detail.html', 'admin-supplier-detail-init.js?v=18.5.10'],
     ['public/admin-settings.html', 'admin-settings-init.js?v=18.5.10'],
     ['public/admin-reviews.html', 'admin-reviews-init.js?v=18.5.10'],
-    ['public/admin-suppliers.html', 'admin-suppliers-init.js?v=18.5.10'],
+    ['public/admin-suppliers.html', 'admin-suppliers-init.js?v=18.5.13'],
     ['public/admin-users.html', 'admin-users-init.js?v=18.5.10'],
   ])('%s loads %s', (file, reference) => {
     expect(source(file)).toContain(reference);
