@@ -184,12 +184,55 @@ describe('GET /api/admin/search', () => {
     expect(res.body.results.users).toHaveLength(37);
   });
 
+  it('searches suppliers, packages and reports the same way', async () => {
+    mockStore.suppliers = Array.from({ length: 12 }, (_, index) => ({
+      id: `s${index}`,
+      name: `Venue ${index}`,
+      email: `venue${index}@example.test`,
+    }));
+    mockStore.packages = Array.from({ length: 11 }, (_, index) => ({
+      id: `p${index}`,
+      title: `Venue deal ${index}`,
+    }));
+    mockStore.reports = Array.from({ length: 3 }, (_, index) => ({
+      id: `r${index}`,
+      type: 'venue',
+      reason: 'spam',
+    }));
+    const res = await request(app()).get('/api/admin/search?q=venue&offset=10').expect(200);
+    expect(res.body.totals).toMatchObject({ suppliers: 12, packages: 11, reports: 3 });
+    expect(res.body.results.suppliers.map(item => item.id)).toEqual(['s10', 's11']);
+    expect(res.body.results.packages.map(item => item.id)).toEqual(['p10']);
+    expect(res.body.results.reports).toEqual([]);
+
+    const first = await request(app()).get('/api/admin/search?q=venue&types=reports').expect(200);
+    expect(first.body.results.reports.map(item => item.id)).toEqual(['r0', 'r1', 'r2']);
+  });
+
+  it('answers 500 rather than crashing when a collection cannot be read', async () => {
+    require('../../db-unified').read.mockRejectedValueOnce(new Error('db down'));
+    await request(app()).get('/api/admin/search?q=person').expect(500);
+  });
+
   it('still refuses a query that is too short', async () => {
     await request(app()).get('/api/admin/search?q=a').expect(400);
   });
 });
 
 describe('External contacts request size', () => {
+  it('answers at most 100 a request, whatever limit is asked for', async () => {
+    mockStore.external_contacts = Array.from({ length: 130 }, (_, index) => ({
+      id: `c${index}`,
+      status: 'new',
+      createdAt: `2026-01-01T00:00:${String(index % 60).padStart(2, '0')}Z`,
+    }));
+    const server = express();
+    server.use('/api/v1/admin/external-contacts', require('../../routes/admin-external-contacts'));
+    const res = await request(server).get('/api/v1/admin/external-contacts?limit=200').expect(200);
+    expect(res.body.items).toHaveLength(100);
+    expect(res.body.total).toBe(130);
+  });
+
   it('is capped at 100, the limit the API accepts', () => {
     const route = read('routes/admin-external-contacts.js');
     expect(route).toMatch(/Math\.min\(Number\(rawLimit\) \|\| 50, 100\)/);
