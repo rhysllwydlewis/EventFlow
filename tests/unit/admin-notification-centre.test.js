@@ -224,7 +224,7 @@ describe('Admin notification event coverage', () => {
   test('routes/contact.js notifies admins on external contact enquiry', () => {
     const src = fs.readFileSync(path.join(__dirname, '../../routes/contact.js'), 'utf8');
     expect(src).toContain('notifyAdmins');
-    expect(src).toContain('New external contact enquiry');
+    expect(src).toContain('New contact form enquiry');
   });
 
   test('routes/partner.js notifies admins on partner registration', () => {
