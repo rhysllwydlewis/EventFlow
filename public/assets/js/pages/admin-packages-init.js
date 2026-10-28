@@ -10,6 +10,15 @@
   let packagePage = 1;
   let packagePager = null;
 
+  // Gliding to the form is skipped for anyone who has asked their device for less motion
+  function scrollToForm() {
+    const reduce =
+      window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    document
+      .getElementById('packageFormSection')
+      .scrollIntoView({ behavior: reduce ? 'auto' : 'smooth' });
+  }
+
   // Configuration
   const PLACEHOLDER_IMAGE = '/assets/images/placeholders/package-event.svg';
 
@@ -352,7 +361,7 @@
     }
 
     document.getElementById('packageFormSection').style.display = 'block';
-    document.getElementById('packageFormSection').scrollIntoView({ behavior: 'smooth' });
+    scrollToForm();
   };
 
   window.toggleApproval = async function (id, approved) {
@@ -455,7 +464,7 @@
     preview.style.display = 'none';
 
     document.getElementById('packageFormSection').style.display = 'block';
-    document.getElementById('packageFormSection').scrollIntoView({ behavior: 'smooth' });
+    scrollToForm();
   });
 
   // Cancel Form Button

@@ -73,6 +73,8 @@
 
     const text = document.createElement('p');
     text.className = 'admin-pager__label small';
+    text.setAttribute('role', 'status');
+    text.setAttribute('aria-live', 'polite');
 
     const newer = document.createElement('button');
     newer.type = 'button';

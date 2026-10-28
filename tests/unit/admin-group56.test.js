@@ -295,6 +295,15 @@ describe('pages that page their lists', () => {
     );
   });
 
+  it('Packages glides to its form only when the device has not asked for less motion', () => {
+    const packages = read(`${PAGES}admin-packages-init.js`);
+    expect(packages).toMatch(/prefers-reduced-motion: reduce/);
+    expect(packages).toMatch(/behavior: reduce \? 'auto' : 'smooth'/);
+    // both the Add and the Edit routes go through the one helper
+    expect(packages.match(/scrollToForm\(\);/g)).toHaveLength(2);
+    expect(packages).not.toMatch(/scrollIntoView\(\{ behavior: 'smooth' \}\)/);
+  });
+
   it('Search throws away a "Show more" answer from an earlier search or category choice', () => {
     const search = read(`${PAGES}admin-search-init.js`);
     // the token is captured before asking and checked before drawing, like a new search does
