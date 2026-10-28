@@ -200,16 +200,24 @@ describe('the shared keyboard-shortcuts help dialog is shown', () => {
     expect(source).not.toMatch(/helpModal\.className = 'modal-overlay';/);
   });
 
-  it('every page that loads admin-shared.js (and the community generator) uses the bumped version', () => {
+  it('every page that loads admin-shared.js (and the community generator) uses one, current version', () => {
     const pages = fs
       .readdirSync(path.join(ROOT, 'public'))
       .filter(name => name.endsWith('.html'))
       .filter(name => read(`public/${name}`).includes('/assets/js/admin-shared.js'));
     expect(pages.length).toBeGreaterThan(30);
-    for (const name of pages) {
-      expect(read(`public/${name}`)).toContain('/assets/js/admin-shared.js?v=18.5.10');
-    }
-    expect(read('scripts/generate-community-pages.mjs')).toContain('admin-shared.js?v=18.5.10');
+
+    const versionIn = text => (text.match(/\/assets\/js\/admin-shared\.js\?v=([\d.]+)/) || [])[1];
+    const versions = new Set(pages.map(name => versionIn(read(`public/${name}`))));
+    // One version everywhere (a page left on an older one keeps serving a week-old cached copy)
+    expect([...versions]).toHaveLength(1);
+    const [current] = [...versions];
+    expect(current).toBeDefined();
+    // ...at least the one that fixed the help dialog, and the generator agrees
+    const asNumber = version =>
+      version.split('.').reduce((total, part) => total * 1000 + Number(part), 0);
+    expect(asNumber(current)).toBeGreaterThanOrEqual(asNumber('18.5.9'));
+    expect(read('scripts/generate-community-pages.mjs')).toContain(`admin-shared.js?v=${current}`);
   });
 });
 

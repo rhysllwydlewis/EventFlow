@@ -7,6 +7,12 @@
 
 const jwt = require('jsonwebtoken');
 const logger = require('../utils/logger');
+const {
+  getAccountRestriction,
+  releaseExpiredSuspension,
+  restrictionBody,
+  restrictionRedirect,
+} = require('../utils/accountRestriction');
 
 const JWT_SECRET = String(process.env.JWT_SECRET || 'change_me');
 
@@ -193,6 +199,22 @@ async function authRequired(req, res, next) {
         error: 'Unauthenticated',
         message: 'User account not found. Please log in again.',
       });
+    }
+
+    // A suspended or banned account stops working on its next request, not at its next sign-in.
+    const restriction = getAccountRestriction(dbUser);
+    if (restriction) {
+      logger.warn('Restricted account blocked', { userId: u.id, type: restriction.type });
+      if (wantsHtml(req)) {
+        return res.redirect(restrictionRedirect(restriction));
+      }
+      return res.status(403).json(restrictionBody(restriction));
+    }
+    if (dbUser.suspended === true) {
+      // Timed suspension that has run out: let the account through and tidy the record.
+      releaseExpiredSuspension(dbUnified, dbUser).catch(error =>
+        logger.warn('Could not clear an expired suspension', { userId: u.id, error: error.message })
+      );
     }
 
     // Attach only minimal user object to prevent stale data.
