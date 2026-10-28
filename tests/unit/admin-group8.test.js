@@ -150,6 +150,17 @@ describe('the External tab badge', () => {
   });
 });
 
+describe('the External tab summary cards', () => {
+  it('keep the External tab when they filter, instead of opening the first tab', () => {
+    const script = read(`${PAGES}admin-external-contacts-init.js`);
+    const links = [...script.matchAll(/href: '(\?[^']*)'/g)].map(match => match[1]);
+    expect(links).toHaveLength(4);
+    for (const link of links) {
+      expect(link).toMatch(/^\?tab=external&(status|source)=\w+$/);
+    }
+  });
+});
+
 describe('the menu', () => {
   it('shows the Partner Programme page as "Partners" and no longer lists Cashout Requests', () => {
     const navbar = read('public/assets/js/admin-navbar.js');

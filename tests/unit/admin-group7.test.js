@@ -180,6 +180,13 @@ describe('links from other pages land on the right thing', () => {
     expect(page).toContain('openLinkedRequest(items);');
   });
 
+  it('Cashout requests fetches a linked request that is older than the newest 100', () => {
+    const page = read(`${PAGES}admin-cashout-requests-init.js`);
+    expect(page).toContain('/api/v1/admin/cashout-requests/${encodeURIComponent(id)}');
+    expect(page).toContain('openModal(id, [payload.request, ...items]);');
+    expect(page).toContain('res.status === 404');
+  });
+
   it('the Email Centre opens ?logId=ID', () => {
     const page = read(`${PAGES}admin-emails-init.js`);
     expect(page).toContain("get('logId')");
@@ -208,6 +215,21 @@ describe('SEO page', () => {
     expect(page).toContain("'DELETE'");
     expect(page).toContain('data-restore-query');
     expect(html).toContain('id="seo-noiseTable"');
+  });
+
+  it('hiding or restoring a query reloads every report built from the queries', () => {
+    const reload = page.match(
+      /async function reloadNoiseDependentReports\(\) \{[\s\S]*?\n {2}\}/
+    )[0];
+    for (const loader of [
+      'loadFinancialEstimate',
+      'loadContentGaps',
+      'loadOverview',
+      'loadNoise',
+    ]) {
+      expect(reload).toContain(`${loader}()`);
+    }
+    expect(page.match(/await reloadNoiseDependentReports\(\);/g)).toHaveLength(2);
   });
 
   it('checks the value per click before saving and asks before clearing it', () => {

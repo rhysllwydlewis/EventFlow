@@ -369,7 +369,7 @@
 
   // A link such as /admin-cashout-requests?request=ID (from a notification) opens that request, once
   let linkedRequestHandled = false;
-  function openLinkedRequest(items) {
+  async function openLinkedRequest(items) {
     if (linkedRequestHandled) {
       return;
     }
@@ -380,8 +380,24 @@
     }
     if (items.some(item => item.id === id)) {
       openModal(id, items);
-    } else {
-      showToast('That cashout request is not in the list. It may have been deleted.', 'warning');
+      return;
+    }
+    // The list holds only the newest 100, so an older request is fetched by itself
+    try {
+      const res = await fetch(`/api/v1/admin/cashout-requests/${encodeURIComponent(id)}`, {
+        credentials: 'include',
+      });
+      if (res.status === 404) {
+        showToast('That cashout request was not found. It may have been deleted.', 'warning');
+        return;
+      }
+      const payload = await res.json().catch(() => ({}));
+      if (!res.ok || !payload.request) {
+        throw new Error(payload.error || 'Could not open that cashout request');
+      }
+      openModal(id, [payload.request, ...items]);
+    } catch (err) {
+      showToast(err.message || 'Could not open that cashout request', 'error');
     }
   }
 

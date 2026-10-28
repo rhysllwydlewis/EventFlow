@@ -86,10 +86,10 @@
       return;
     }
     const cards = [
-      { value: s.new, label: 'New enquiries', accent: 'red', href: '?status=new' },
-      { value: s.vexi, label: 'From VEXI', accent: 'blue', href: '?source=vexi' },
-      { value: s.chlo, label: 'From Chlo', accent: 'purple', href: '?source=chlo' },
-      { value: s.archived, label: 'Archived', accent: 'grey', href: '?status=archived' },
+      { value: s.new, label: 'New enquiries', accent: 'red', href: '?tab=external&status=new' },
+      { value: s.vexi, label: 'From VEXI', accent: 'blue', href: '?tab=external&source=vexi' },
+      { value: s.chlo, label: 'From Chlo', accent: 'purple', href: '?tab=external&source=chlo' },
+      { value: s.archived, label: 'Archived', accent: 'grey', href: '?tab=external&status=archived' },
     ];
     grid.innerHTML = cards
       .map(
