@@ -385,6 +385,12 @@
         }
       }
       const data = first || {};
+      if (everything.length < (data.total || 0)) {
+        AdminShared.showToast(
+          `Showing the newest ${everything.length} of ${data.total} enquiries. Narrow the list with the filters to see the rest.`,
+          'warning'
+        );
+      }
       allContacts = everything;
       summaryData = data.summary || null;
       renderSummaryCards(summaryData);

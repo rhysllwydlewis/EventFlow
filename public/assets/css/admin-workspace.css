@@ -83,6 +83,8 @@ body.has-admin-navbar.admin .row-more__panel { display: flex; flex-wrap: wrap; g
 /* ── Paging line and Previous / Next buttons under a list (assets/js/utils/admin-pager.js) ── */
 body.has-admin-navbar.admin .admin-pager { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px; margin: 12px 0 4px; }
 body.has-admin-navbar.admin .admin-pager__label { margin: 0 auto 0 0; color: #62777d; }
+/* .btn sets display, which beats the hidden attribute: a one-page list showed two dead buttons */
+body.has-admin-navbar.admin .admin-pager [hidden] { display: none !important; }
 
 @media (prefers-reduced-motion: reduce) {
   body.has-admin-navbar.admin :is(.stat-card,.admin-card,.card,.btn-icon) { transition: none; }

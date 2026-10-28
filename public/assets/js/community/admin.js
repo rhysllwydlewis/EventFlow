@@ -201,8 +201,9 @@
     }
     const page = pagination.page || 1;
     const pages = pagination.totalPages || 1;
-    const first = (page - 1) * LIST_PAGE_SIZE + 1;
-    const last = Math.min(page * LIST_PAGE_SIZE, total);
+    const size = pagination.limit || LIST_PAGE_SIZE;
+    const first = (page - 1) * size + 1;
+    const last = Math.min(page * size, total);
     const text =
       pages === 1 ? `Showing all ${total} ${noun}` : `Showing ${first}–${last} of ${total} ${noun}`;
     const buttons =

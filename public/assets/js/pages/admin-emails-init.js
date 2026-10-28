@@ -146,8 +146,6 @@
         .join('');
     }
     const pagination = data.pagination || {};
-    document.getElementById('emailLogPagination').textContent =
-      `Page ${pagination.page || 1} of ${pagination.totalPages || 1} · ${pagination.total || 0} total logs`;
     logPager.update({
       page: pagination.page || 1,
       size: EMAIL_PAGE_SIZE,

@@ -342,6 +342,27 @@ describe('shared admin styling', () => {
     expect(workspace).toMatch(/\.btn-icon,[\s\S]*?\.btn-secondary \{ background: #fff;/);
   });
 
+  it('the pager hides its buttons when there is one page, even though .btn sets display', () => {
+    expect(workspace).toMatch(/\.admin-pager \[hidden\] \{ display: none !important; \}/);
+  });
+
+  it('the Email Centre says the counts once, in the pager', () => {
+    const emails = read(`${PAGES}admin-emails-init.js`);
+    expect(emails).not.toContain('total logs');
+    expect(emails).toContain('logPager.update({');
+  });
+
+  it('the community Audit and Appeals numbers follow the size the server used', () => {
+    const community = read('public/assets/js/community/admin.js');
+    expect(community).toContain('const size = pagination.limit || LIST_PAGE_SIZE;');
+  });
+
+  it('External contacts says so when it could not load every enquiry', () => {
+    const contacts = read(`${PAGES}admin-external-contacts-init.js`);
+    expect(contacts).toMatch(/everything\.length < \(data\.total \|\| 0\)/);
+    expect(contacts).toContain('Narrow the list with the filters to see the rest.');
+  });
+
   it('the two email heroes keep their gradient and white controls', () => {
     expect(workspace).toMatch(/:is\(\.email-centre-hero, \.email-preview-hero\) \.btn-icon/);
     expect(read('public/assets/css/admin-emails.css')).toMatch(
