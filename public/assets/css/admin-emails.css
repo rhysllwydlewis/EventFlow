@@ -261,3 +261,7 @@
 body.has-admin-navbar.admin .email-centre-hero .dashboard-title { color: #fff; }
 body.has-admin-navbar.admin .email-centre-hero .dashboard-subtitle { color: rgba(255, 255, 255, 0.9); }
 body.has-admin-navbar.admin .email-centre-hero .email-centre-eyebrow { color: rgba(255, 255, 255, 0.85); }
+
+/* Under 600px the shared .ef-cta rule makes every button full width, which made the preview's
+   Refresh button wider than its header and pushed the Campaigns tab sideways on a phone. */
+body.has-admin-navbar.admin .campaigns-preview-header .campaigns-refresh-btn { width: auto; }

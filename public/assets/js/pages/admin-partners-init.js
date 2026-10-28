@@ -856,4 +856,33 @@
   } else {
     init();
   }
+
+  // ── Tabs: Partners, Cashouts and Campaign report share this page ───────────────
+
+  function mountTabs() {
+    const tab = (name, onShow) => ({
+      name,
+      button: document.getElementById(`tab-${name}`),
+      panel: document.getElementById(`panel-${name}`),
+      onShow,
+    });
+    const tabs = window.AdminTabs.mount({
+      tabs: [
+        tab('partners'),
+        tab('cashouts', () => window.AdminCashouts && window.AdminCashouts.start()),
+        tab('report', () => window.AdminCampaignReport && window.AdminCampaignReport.start()),
+      ],
+      activeClass: 'admin-tab--active',
+      initial: 'partners',
+    });
+    document.querySelectorAll('[data-open-tab]').forEach(link => {
+      link.addEventListener('click', () => tabs.show(link.dataset.openTab));
+    });
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', mountTabs);
+  } else {
+    mountTabs();
+  }
 })();

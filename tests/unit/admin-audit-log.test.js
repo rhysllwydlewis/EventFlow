@@ -312,8 +312,8 @@ describe('audit and cashout pages', () => {
       expect(script).toMatch(new RegExp(`${status}: \\{\\s*title:`));
     }
     expect(script).toContain('await confirmStatusChange(update.newStatus)');
-    const html = read('public/admin-cashout-requests.html');
-    expect(html).toMatch(/\.acr-table-wrap \{[^}]*overflow-x: auto/);
-    expect(html).toMatch(/admin-cashout-requests-init\.js\?v=/);
+    const css = read('public/assets/css/admin-cashout-requests.css');
+    expect(css).toMatch(/\.acr-table-wrap \{[^}]*overflow-x: auto/);
+    expect(read('public/admin-partners.html')).toMatch(/admin-cashout-requests-init\.js\?v=/);
   });
 });

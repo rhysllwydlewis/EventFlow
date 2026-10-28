@@ -4,7 +4,7 @@
     <script src="/assets/js/dashboard-guard.js?v=18.4.3"></script>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
-    <title>Support Tickets — EventFlow Admin</title>
+    <title>Enquiries — EventFlow Admin</title>
 <meta name="robots" content="noindex,nofollow">
     <link rel="stylesheet" href="/assets/css/tokens.css?v=18.3.0">
 <link rel="stylesheet" href="/assets/css/styles.css?v=18.5.2" />
@@ -26,11 +26,12 @@
     <link rel="manifest" href="/site.webmanifest">
     <meta name="msapplication-config" content="/browserconfig.xml">
     <script src="/assets/js/components.js?v=18.4.0" defer></script>
-    <script src="/assets/js/admin-navbar.js?v=18.4.1" defer></script>
+    <script src="/assets/js/admin-navbar.js?v=18.5.16" defer></script>
     <link rel="stylesheet" href="/assets/css/mobile-optimizations.css?v=18.4.6" />
     <link rel="stylesheet" href="/assets/css/ui-ux-fixes.css?v=18.4.1" />
     <link rel="stylesheet" href="/assets/css/admin-ui-improvements.css?v=18.3.3" />
     <link rel="stylesheet" href="/assets/css/admin-workspace.css?v=3">
+    <link rel="stylesheet" href="/assets/css/admin-external-contacts.css?v=2">
 </head>
   <body class="has-admin-navbar admin">
     <!-- Modern Top Navbar -->
@@ -41,8 +42,8 @@
       <div class="dashboard-header">
         <div class="header-content">
           <div>
-            <h1 class="dashboard-title">Support Tickets &amp; Enquiries</h1>
-            <p class="dashboard-subtitle">Manage support requests and enquiries submitted through EventFlow's own contact form. Tickets are prioritized automatically by account tier (Pro Plus → Urgent, Pro → High, Free → Medium). Tab badges show outstanding queue items; the navbar bell includes unread notifications and outstanding admin queue items. For enquiries relayed from VEXI, Chlo and other integrated sites, see <a href="/admin-external-contacts">External Contacts</a>.</p>
+            <h1 class="dashboard-title">Enquiries</h1>
+            <p class="dashboard-subtitle">Everything people send us: support tickets, enquiries from EventFlow's own contact form, and enquiries relayed from VEXI, Chlo and other integrated sites. Tickets are prioritized automatically by account tier (Pro Plus → Urgent, Pro → High, Free → Medium). Tab badges show outstanding queue items; the navbar bell includes unread notifications and outstanding admin queue items.</p>
           </div>
           <div class="header-actions">
             <button class="ef-cta btn-secondary" id="backToDashboard">← Back to Dashboard</button>
@@ -52,7 +53,7 @@
 
       <div class="container">
         <!-- Tab navigation -->
-        <div class="admin-tabs" role="tablist" aria-label="Ticket sections">
+        <div class="admin-tabs" role="tablist" aria-label="Enquiry sections">
           <button class="ef-cta admin-tab admin-tab--active" id="tab-tickets" role="tab" aria-selected="true" aria-controls="panel-tickets" data-tab="tickets">
             🎫 Support Tickets
             <span class="admin-tab-badge" id="openSupportTicketsBadge" title="Outstanding support ticket queue count" aria-label="Outstanding support ticket queue count" style="display:none;"></span>
@@ -60,6 +61,10 @@
           <button class="ef-cta admin-tab" id="tab-contacts" role="tab" aria-selected="false" aria-controls="panel-contacts" data-tab="contacts">
             📬 Contact Form Enquiries
             <span class="admin-tab-badge" id="contactEnquiriesBadge" title="Outstanding contact form enquiry queue count" aria-label="Outstanding contact form enquiry queue count" style="display:none;"></span>
+          </button>
+          <button class="ef-cta admin-tab" id="tab-external" role="tab" aria-selected="false" aria-controls="panel-external" data-tab="external">
+            📩 External (VEXI / Chlo)
+            <span class="admin-tab-badge" id="externalContactsBadge" title="New external enquiries" aria-label="New external enquiries" style="display:none;"></span>
           </button>
         </div>
 
@@ -114,9 +119,9 @@
           </div>
         </div>
 
-        <!-- PANEL: Contact Form Enquiries (EventFlow's own /contact form — not to be
-             confused with /admin-external-contacts, which lists enquiries relayed
-             from VEXI, Chlo and other integrated sites; separate data, separate page) -->
+        <!-- PANEL: Contact Form Enquiries (EventFlow's own /contact form — a different
+             list from the External tab, which holds enquiries relayed from VEXI, Chlo and other
+             integrated sites; separate data, separate tab) -->
         <div id="panel-contacts" class="admin-tab-panel data-section" role="tabpanel" aria-labelledby="tab-contacts" style="display:none;">
           <div class="admin-toolbar">
             <input
@@ -147,8 +152,87 @@
             <p class="small">Loading enquiries...</p>
           </div>
         </div>
+
+        <!-- PANEL: External enquiries relayed from VEXI, Chlo and other integrated sites
+             (collection external_contacts; was the separate page /admin-external-contacts) -->
+        <div id="panel-external" class="admin-tab-panel data-section" role="tabpanel" aria-labelledby="tab-external" style="display:none;">
+          <div class="admin-toolbar">
+            <button type="button" class="ef-cta btn-secondary" id="ecRefreshBtn">↻ Refresh</button>
+          </div>
+
+          <div class="ec-summary-grid" id="ecSummaryGrid" aria-live="polite" aria-label="External enquiries overview">
+            <div class="uc-summary-card uc-summary-card--red skeleton" style="height:88px;border-radius:12px;"></div>
+            <div class="uc-summary-card uc-summary-card--blue skeleton" style="height:88px;border-radius:12px;"></div>
+            <div class="uc-summary-card uc-summary-card--purple skeleton" style="height:88px;border-radius:12px;"></div>
+            <div class="uc-summary-card uc-summary-card--grey skeleton" style="height:88px;border-radius:12px;"></div>
+          </div>
+
+          <div class="card uc-filters-card">
+            <div class="uc-filters-row">
+              <div class="uc-search-wrap">
+                <input type="search" id="ecSearch" placeholder="Search name, email, message…" class="uc-search-input" aria-label="Search external enquiries">
+              </div>
+              <select id="ecSourceFilter" class="uc-filter-select" aria-label="Filter by source">
+                <option value="">All sources</option>
+                <option value="vexi">VEXI</option>
+                <option value="chlo">Chlo</option>
+              </select>
+              <select id="ecStatusFilter" class="uc-filter-select" aria-label="Filter by status">
+                <option value="">All statuses</option>
+                <option value="new">New</option>
+                <option value="in_review">In review</option>
+                <option value="replied">Replied</option>
+                <option value="archived">Archived</option>
+              </select>
+              <button type="button" id="ecClearFilters" class="btn btn-ghost btn-sm">Clear</button>
+            </div>
+            <div class="uc-filter-status" id="ecFilterStatus" aria-live="polite" role="status"></div>
+          </div>
+
+          <div class="card uc-table-card">
+            <div class="uc-table-header">
+              <span class="uc-table-title" id="ecTableTitle">All enquiries</span>
+            </div>
+            <div class="table-wrapper">
+              <table class="table uc-table" aria-label="External enquiries list">
+                <thead>
+                  <tr>
+                    <th>Source</th>
+                    <th>Name / Email</th>
+                    <th>Subject</th>
+                    <th>Status</th>
+                    <th>Received</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="ecTableBody">
+                  <tr><td colspan="6" class="uc-loading-cell">
+                    <div class="skeleton" style="height:42px;border-radius:6px;margin:6px 0;"></div>
+                    <div class="skeleton" style="height:42px;border-radius:6px;margin:6px 0;"></div>
+                    <div class="skeleton" style="height:42px;border-radius:6px;"></div>
+                  </td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
       </div>
     </main>
+
+
+    <!-- Detail of one external enquiry (opened from the External tab) -->
+    <div id="ecDetailModal" class="admin-modal" hidden aria-modal="true" role="dialog" aria-labelledby="ecDetailTitle">
+      <div class="admin-modal__backdrop" id="ecModalBackdrop"></div>
+      <div class="admin-modal__box admin-modal__box--wide">
+        <div class="admin-modal__header">
+          <h2 id="ecDetailTitle">Enquiry Detail</h2>
+          <button type="button" class="admin-modal__close" id="ecCloseModal" aria-label="Close">×</button>
+        </div>
+        <div class="admin-modal__body" id="ecDetailBody">
+          <div class="skeleton" style="height:200px;border-radius:8px;"></div>
+        </div>
+      </div>
+    </div>
 
     <footer class="footer" role="contentinfo">
       <div class="container flex-between">
@@ -167,7 +251,9 @@
 
     <script src="/assets/js/admin-shared.js?v=18.5.11"></script>
     <script src="/assets/js/utils/admin-pager.js?v=18.5.13" defer></script>
-    <script src="/assets/js/pages/admin-tickets-init.js?v=18.5.14" defer></script>
+    <script src="/assets/js/utils/admin-tabs.js?v=1" defer></script>
+    <script src="/assets/js/pages/admin-external-contacts-init.js?v=18.5.17" defer></script>
+    <script src="/assets/js/pages/admin-tickets-init.js?v=18.5.15" defer></script>
 
     <script src="/assets/js/cookie-consent.js?v=3.0.2" defer></script>
 </body>

@@ -14,7 +14,7 @@ The admin panel consists of 13 main pages:
 2. **User Management** (`/admin-users.html`) - Manage all user accounts
 3. **Package Management** (`/admin-packages.html`) - Oversee event packages
 4. **Photo Library / Moderation** (`/admin-photos.html`) - Manage supplier photos with auto-approve toggle
-5. **Support Tickets** (`/admin-tickets.html`) - Handle customer support requests
+5. **Enquiries** (`/admin-tickets.html`) - Handle support tickets, contact-form enquiries and enquiries from VEXI and Chlo (the External tab)
 6. **Content Reports** (`/admin-reports.html`) - Review user-submitted reports
 7. **Audit Log** (`/admin-audit.html`) - View system activity logs
 8. **Homepage Management** (`/admin-homepage.html`) - Update homepage content
@@ -767,13 +767,13 @@ For questions or issues:
 **Last Updated**: December 2024  
 **Maintained By**: EventFlow Team
 
-## Campaigns Page (`/admin-campaigns`)
+## Campaigns Tab (`/admin-emails?tab=campaigns`)
 
 Send marketing email campaigns to opted-in recipients.
 
 ### Usage
 
-1. Navigate to **Admin → Campaigns** (`/admin-campaigns`).
+1. Navigate to **Admin → Email Centre → Campaigns** (`/admin-emails?tab=campaigns`; the old `/admin-campaigns` address redirects there).
 2. Fill in **Subject**, **Title**, and **Message body** (basic HTML supported).
 3. Optionally add a **CTA button** (text + URL).
 4. The **Live Preview** panel updates as you type.

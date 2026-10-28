@@ -86,10 +86,15 @@
       return;
     }
     const cards = [
-      { value: s.new, label: 'New enquiries', accent: 'red', href: '?status=new' },
-      { value: s.vexi, label: 'From VEXI', accent: 'blue', href: '?source=vexi' },
-      { value: s.chlo, label: 'From Chlo', accent: 'purple', href: '?source=chlo' },
-      { value: s.archived, label: 'Archived', accent: 'grey', href: '?status=archived' },
+      { value: s.new, label: 'New enquiries', accent: 'red', href: '?tab=external&status=new' },
+      { value: s.vexi, label: 'From VEXI', accent: 'blue', href: '?tab=external&source=vexi' },
+      { value: s.chlo, label: 'From Chlo', accent: 'purple', href: '?tab=external&source=chlo' },
+      {
+        value: s.archived,
+        label: 'Archived',
+        accent: 'grey',
+        href: '?tab=external&status=archived',
+      },
     ];
     grid.innerHTML = cards
       .map(
@@ -363,8 +368,32 @@
     }
     summaryData = summaryFrom(allContacts);
     renderSummaryCards(summaryData);
+    showTabBadge();
     applyFilters({ keepPage: true });
   }
+
+  let started = false;
+
+  // The number of new enquiries, on the tab itself
+  function showTabBadge(count) {
+    const badge = $('externalContactsBadge');
+    if (!badge) {
+      return;
+    }
+    const waiting =
+      typeof count === 'number' ? count : summaryData && summaryData.new ? summaryData.new : 0;
+    badge.textContent = String(waiting);
+    badge.style.display = waiting > 0 ? '' : 'none';
+  }
+
+  // Before the tab is opened nothing of ours is loaded, so the badge uses the count the navbar
+  // already fetched for the menu; once the list loads, its own summary takes over.
+  function showNavbarCount(pending) {
+    if (!started && pending && typeof pending.externalContacts === 'number') {
+      showTabBadge(pending.externalContacts);
+    }
+  }
+  document.addEventListener('admin:pending-counts', event => showNavbarCount(event.detail));
 
   // ── Data loading ───────────────────────────────────────────────────────────
   async function loadData() {
@@ -394,6 +423,7 @@
       allContacts = everything;
       summaryData = data.summary || null;
       renderSummaryCards(summaryData);
+      showTabBadge();
       applyFilters({ keepPage: true });
     } catch {
       const tbody = $('ecTableBody');
@@ -406,7 +436,14 @@
   }
 
   // ── Initialise ─────────────────────────────────────────────────────────────
-  document.addEventListener('DOMContentLoaded', () => {
+  // These enquiries are the "External" tab of the Enquiries page (/admin-tickets?tab=external).
+  // Nothing is loaded until that tab is first opened: the list and the detail share a limit of 50
+  // requests every five minutes, so it should not be spent by people who only look at tickets.
+  function start() {
+    if (started) {
+      return;
+    }
+    started = true;
     contactPager = AdminPager.mount({
       after: $('ecTableBody').closest('table').parentElement,
       onChange(page) {
@@ -460,5 +497,8 @@
     });
 
     loadData();
-  });
+  }
+
+  showNavbarCount(window.AdminPendingCounts);
+  window.AdminExternalContacts = { start };
 })();

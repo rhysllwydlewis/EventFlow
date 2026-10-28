@@ -205,7 +205,7 @@ describe('the shared keyboard-shortcuts help dialog is shown', () => {
       .readdirSync(path.join(ROOT, 'public'))
       .filter(name => name.endsWith('.html'))
       .filter(name => read(`public/${name}`).includes('/assets/js/admin-shared.js'));
-    expect(pages.length).toBeGreaterThan(30);
+    expect(pages.length).toBeGreaterThan(20);
 
     const versionIn = text => (text.match(/\/assets\/js\/admin-shared\.js\?v=([\d.]+)/) || [])[1];
     const versions = new Set(pages.map(name => versionIn(read(`public/${name}`))));

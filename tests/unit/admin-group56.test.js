@@ -266,9 +266,9 @@ describe('pages that page their lists', () => {
 
   it.each([
     ['admin-tickets.html', 'admin-tickets-init.js'],
+    ['admin-tickets.html', 'admin-external-contacts-init.js'],
     ['admin-packages.html', 'admin-packages-init.js'],
     ['admin-emails.html', 'admin-emails-init.js'],
-    ['admin-external-contacts.html', 'admin-external-contacts-init.js'],
   ])('%s loads the pager before %s, with a version of 18.5.13 or later', (html, script) => {
     const source = read(`public/${html}`);
     const pager = source.indexOf('/assets/js/utils/admin-pager.js?v=18.5.13');
@@ -415,7 +415,7 @@ describe('shared admin styling', () => {
       .readdirSync(path.join(ROOT, 'public'))
       .filter(name => name.endsWith('.html'))
       .filter(name => read(`public/${name}`).includes('admin-workspace.css'));
-    expect(pages.length).toBeGreaterThan(30);
+    expect(pages.length).toBeGreaterThan(20);
     for (const name of pages) {
       expect(read(`public/${name}`)).toContain('admin-workspace.css?v=3');
       expect(read(`public/${name}`)).not.toMatch(/admin-workspace\.css\?v=[12]\b/);

@@ -8,10 +8,10 @@ Visible admin navigation should show one email-related item only:
 
 - **Email Centre** (`/admin-emails`)
 
-The existing secondary tools remain available and are linked from Email Centre:
+Campaigns and template previews are tabs of the Email Centre (the old `/admin-campaigns` and `/admin-email-previews` addresses redirect to them):
 
-- **Campaigns** (`/admin-campaigns`) — compose, test and send marketing/newsletter emails to opted-in recipients.
-- **Templates** (`/admin-email-previews`) — review local templates and send sample-data test emails.
+- **Campaigns** (`/admin-emails?tab=campaigns`) — compose, test and send marketing/newsletter emails to opted-in recipients.
+- **Templates** (`/admin-emails?tab=templates`) — review local templates and send sample-data test emails.
 
 ## Email logging
 

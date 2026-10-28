@@ -23,3 +23,8 @@
 .admin-modal__body .ud-info-value { font-size: 13px; overflow-wrap: anywhere; }
 @media (max-width: 760px) { .ec-summary-grid { grid-template-columns: repeat(2,minmax(0,1fr)); } .admin-modal { padding: 0; align-items: flex-end; } .admin-modal__box { border-radius: 14px 14px 0 0; max-height: 94vh; } }
 @media (max-width: 480px) { .ec-page-header { align-items: flex-start; } .ec-page-header .page-title { font-size: 23px; } }
+
+/* Rows open the detail dialog (these rules used to sit in the old page's own <style> block) */
+.ec-contact-row { cursor: pointer; }
+.ec-contact-row:hover { background: #f8fafc; }
+.ec-contact-row:focus-visible { outline: 2px solid #0B8073; outline-offset: -2px; }

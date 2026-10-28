@@ -311,30 +311,41 @@
     document.getElementById('emailLogDetailDialog').showModal();
   }
 
-  function activateTab(tabName) {
-    document.querySelectorAll('.email-centre-tab').forEach(tab => {
-      tab.classList.toggle('is-active', tab.getAttribute('data-tab') === tabName);
+  /**
+   * Tabs of the Email Centre. The chosen tab is kept in the address (?tab=activity, campaigns,
+   * templates, reviewRequests or health), which is how the old Campaigns and Template previews
+   * pages redirect here. Campaigns and Templates start when first opened.
+   * @returns {void} Nothing.
+   */
+  function mountTabs() {
+    const tab = (name, onShow) => ({
+      name,
+      button: document.querySelector(`.email-centre-tab[data-tab="${name}"]`),
+      panel: document.getElementById(`emailTab${name.charAt(0).toUpperCase()}${name.slice(1)}`),
+      onShow,
     });
-    ['activity', 'campaigns', 'templates', 'reviewRequests', 'health'].forEach(name => {
-      const panel = document.getElementById(
-        `emailTab${name.charAt(0).toUpperCase()}${name.slice(1)}`
-      );
-      panel.hidden = name !== tabName;
+    window.AdminTabs.mount({
+      tabs: [
+        tab('activity'),
+        tab('campaigns', () => {
+          window.AdminCampaigns.start();
+          window.AdminCampaignAutomation.start();
+        }),
+        tab('templates', () => window.AdminEmailPreviews.start()),
+        tab('reviewRequests', () =>
+          loadReviewRequests().catch(err => {
+            document.getElementById('reviewRequestCentreStatus').textContent = err.message;
+          })
+        ),
+        tab('health'),
+      ],
+      activeClass: 'is-active',
+      initial: 'activity',
     });
   }
 
   function bindEvents() {
-    document.querySelectorAll('.email-centre-tab').forEach(tab => {
-      tab.addEventListener('click', () => {
-        const tabName = tab.getAttribute('data-tab');
-        activateTab(tabName);
-        if (tabName === 'reviewRequests') {
-          loadReviewRequests().catch(err => {
-            document.getElementById('reviewRequestCentreStatus').textContent = err.message;
-          });
-        }
-      });
-    });
+    mountTabs();
     document.getElementById('emailLogsRefresh').addEventListener('click', () => {
       currentPage = 1;
       Promise.all([loadSummary(), loadLogs()]).catch(err => setStatus(err.message, 'error'));

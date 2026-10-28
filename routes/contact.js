@@ -109,9 +109,9 @@ router.post('/contact', applyWriteLimiter, async (req, res) => {
     notifyAdmins(
       {
         type: 'ticket',
-        title: 'New external contact enquiry',
+        title: 'New contact form enquiry',
         message: `${enquiry.senderName} submitted: ${enquiry.subject}`,
-        actionUrl: '/admin-tickets#contacts',
+        actionUrl: '/admin-tickets?tab=contacts',
         actionText: 'View enquiry',
         priority: 'normal',
         metadata: { enquiryId: enquiry.id, queueType: 'contact_enquiries' },

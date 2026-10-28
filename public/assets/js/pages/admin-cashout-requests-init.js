@@ -861,9 +861,15 @@
     });
   }
 
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', init);
-  } else {
-    init();
-  }
+  // Runs the first time the Cashouts tab is opened on the Partner Programme page
+  let started = false;
+  window.AdminCashouts = {
+    start() {
+      if (started) {
+        return;
+      }
+      started = true;
+      init();
+    },
+  };
 })();
