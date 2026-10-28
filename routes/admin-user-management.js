@@ -15,8 +15,11 @@ const { csrfProtection } = require('../middleware/csrf');
 const postmark = require('../utils/postmark');
 const dbUnified = require('../db-unified');
 const validator = require('validator');
+const { VALID_CATEGORIES } = require('../models/Supplier');
 const bcrypt = require('bcryptjs');
 const { passwordOk } = require('../utils/validators');
+const { serializeCsv } = require('../utils/csv');
+const { stripSecretFields } = require('../utils/adminExportSanitizer');
 const domainAdmin = require('../middleware/domain-admin');
 const verificationProvenance = require('../services/verificationProvenance.service');
 const userProvenance = require('../services/userProvenance.service');
@@ -39,6 +42,7 @@ const router = express.Router();
 // Constants for user management
 const VALID_USER_ROLES = ['customer', 'supplier', 'admin'];
 const MAX_NAME_LENGTH = 80;
+const MAX_SUPPLIER_NAME_LENGTH = 120;
 
 function sanitizeAdminUser(u, verificationLogs) {
   const summary = verificationLogs ? verificationProvenance.summariseUser(u, verificationLogs) : {};
@@ -589,17 +593,42 @@ router.get('/users/search', authRequired, roleRequired('admin'), async (req, res
  */
 router.get('/marketing-export', authRequired, roleRequired('admin'), async (req, res) => {
   try {
-    const users = (await dbUnified.read('users')).filter(u => u.marketingOptIn);
-    const header = 'name,email,role\n';
-    const rows = users
-      .map(u => {
-        const name = (u.name || '').replace(/"/g, '""');
-        const email = (u.email || '').replace(/"/g, '""');
-        const role = (u.role || '').replace(/"/g, '""');
-        return `"${name}","${email}","${role}"`;
-      })
-      .join('\n');
-    const csv = header + rows + (rows ? '\n' : '');
+    // People who unsubscribed or were suppressed (bounce, complaint) must not be mailed again,
+    // whichever store recorded it - the same rule the campaign sender applies.
+    const [allUsers, subscribers] = await Promise.all([
+      dbUnified.read('users'),
+      dbUnified.read('newsletterSubscribers').catch(() => []),
+    ]);
+    const unsubscribedEmails = new Set(
+      (subscribers || [])
+        .filter(sub => sub.status === 'unsubscribed' && sub.email)
+        .map(sub => String(sub.email).toLowerCase().trim())
+    );
+    const users = (allUsers || []).filter(
+      user =>
+        user.marketingOptIn &&
+        !user.emailUnsubscribed &&
+        !user.suspended &&
+        !unsubscribedEmails.has(
+          String(user.email || '')
+            .toLowerCase()
+            .trim()
+        )
+    );
+    const csv = serializeCsv(
+      ['name', 'email', 'role'],
+      users.map(u => [u.name, u.email, u.role])
+    );
+    await auditLog({
+      adminId: req.user.id,
+      adminEmail: req.user.email,
+      action: AUDIT_ACTIONS.DATA_EXPORT,
+      targetType: 'export',
+      targetId: 'marketing-export',
+      details: { format: 'csv', rows: users.length },
+      ipAddress: req.ip,
+      userAgent: req.get('user-agent'),
+    });
     res.setHeader('Content-Type', 'text/csv; charset=utf-8');
     res.setHeader('Content-Disposition', 'attachment; filename="eventflow-marketing.csv"');
     res.send(csv);
@@ -623,16 +652,29 @@ async function sendUsersCsv(req, res) {
     const users = (await dbUnified.read('users')).filter(
       u => !idSet.size || idSet.has(String(getUserIdentifier(u) || ''))
     );
-    const header = 'id,name,email,role,verified,marketingOptIn,createdAt,lastLoginAt\n';
-    const rows = users
-      .map(u => {
-        const esc = v => String(v ?? '').replace(/"/g, '""');
-        const verified = u.verified ? 'yes' : 'no';
-        const marketing = u.marketingOptIn ? 'yes' : 'no';
-        return `"${esc(getUserIdentifier(u))}","${esc(u.name)}","${esc(u.email)}","${esc(u.role)}","${verified}","${marketing}","${esc(u.createdAt)}","${esc(u.lastLoginAt || '')}"`;
-      })
-      .join('\n');
-    const csv = header + rows + (rows ? '\n' : '');
+    const csv = serializeCsv(
+      ['id', 'name', 'email', 'role', 'verified', 'marketingOptIn', 'createdAt', 'lastLoginAt'],
+      users.map(u => [
+        getUserIdentifier(u),
+        u.name,
+        u.email,
+        u.role,
+        u.verified ? 'yes' : 'no',
+        u.marketingOptIn ? 'yes' : 'no',
+        u.createdAt,
+        u.lastLoginAt || '',
+      ])
+    );
+    await auditLog({
+      adminId: req.user.id,
+      adminEmail: req.user.email,
+      action: AUDIT_ACTIONS.DATA_EXPORT,
+      targetType: 'export',
+      targetId: 'users-export',
+      details: { format: 'csv', rows: users.length, filtered: idSet.size > 0 },
+      ipAddress: req.ip,
+      userAgent: req.get('user-agent'),
+    });
     res.setHeader('Content-Type', 'text/csv; charset=utf-8');
     res.setHeader('Content-Disposition', 'attachment; filename="eventflow-users.csv"');
     res.send(csv);
@@ -1779,6 +1821,81 @@ router.put(
   }
 );
 
+// Limits match the supplier's own profile editor (routes/supplier-management.js).
+const SUPPLIER_PROFILE_FIELD_LIMITS = {
+  name: MAX_SUPPLIER_NAME_LENGTH,
+  category: 80,
+  price_display: 60,
+  website: 200,
+  phone: 30,
+  description_short: 300,
+};
+
+// Fields that must not be saved empty.
+const SUPPLIER_REQUIRED_FIELDS = { name: 'Business name', category: 'Category' };
+
+/**
+ * One supplier profile field, trimmed, or an error message when it is not acceptable.
+ * @param {string} key - Field name
+ * @param {*} raw - Submitted value
+ * @returns {{value: string}|{error: string}}
+ */
+function checkSupplierProfileField(key, raw) {
+  const value = String(raw ?? '').trim();
+  const label = SUPPLIER_REQUIRED_FIELDS[key];
+  if (label && !value) {
+    return { error: `${label} cannot be empty` };
+  }
+  const max = SUPPLIER_PROFILE_FIELD_LIMITS[key];
+  if (max && value.length > max) {
+    return { error: `${key.replace(/_/g, ' ')} must be ${max} characters or fewer` };
+  }
+  if (key === 'category' && !VALID_CATEGORIES.includes(value)) {
+    return { error: `Category must be one of: ${VALID_CATEGORIES.join(', ')}` };
+  }
+  if (key === 'website' && value) {
+    const valid = validator.isURL(value, { protocols: ['http', 'https'], require_protocol: true });
+    return valid ? { value } : { error: 'Website must be a valid http:// or https:// address' };
+  }
+  if (key === 'email') {
+    const email = value.toLowerCase();
+    return !email || validator.isEmail(email)
+      ? { value: email }
+      : { error: 'Please enter a valid email address' };
+  }
+  return { value };
+}
+
+/**
+ * Validates the plain profile fields the admin supplier "Edit Details" screen can send.
+ * Only fields present in the body are returned, so an edit never blanks the others.
+ * @param {Object} body
+ * @returns {{values: Object}|{error: string}}
+ */
+function readSupplierProfileFields(body) {
+  const values = {};
+  const keys = [
+    'name',
+    'category',
+    'price_display',
+    'website',
+    'email',
+    'phone',
+    'description_short',
+  ];
+  for (const key of keys.filter(field => body[field] !== undefined)) {
+    const checked = checkSupplierProfileField(key, body[key]);
+    if (checked.error) {
+      return { error: checked.error };
+    }
+    values[key] = checked.value;
+  }
+  if (typeof body.location === 'string') {
+    values.location = body.location.trim();
+  }
+  return { values };
+}
+
 /**
  * PUT /api/admin/suppliers/:id
  * Edit supplier profile (admin only)
@@ -1791,14 +1908,19 @@ router.put(
   async (req, res) => {
     try {
       const { id } = req.params;
-      const { name, description, contact, categories, amenities, location, serviceAreas } =
-        req.body;
+      const { serviceAreas } = req.body;
 
       const suppliers = await dbUnified.read('suppliers');
       const supplierIndex = suppliers.findIndex(s => s.id === id);
 
       if (supplierIndex === -1) {
         return res.status(404).json({ error: 'Supplier not found' });
+      }
+
+      // The "Edit Details" screen sends one of these plain profile fields at a time.
+      const profileFields = readSupplierProfileFields(req.body);
+      if (profileFields.error) {
+        return res.status(400).json({ error: profileFields.error });
       }
 
       const supplier = suppliers[supplierIndex];
@@ -1819,25 +1941,13 @@ router.put(
         previousState: previousStateSnap,
       });
 
-      // Update fields if provided
-      if (name !== undefined) {
-        supplier.name = name;
+      // Update fields if provided (name and the plain text fields come validated in profileFields)
+      for (const key of ['description', 'contact', 'categories', 'amenities', 'location']) {
+        if (req.body[key] !== undefined) {
+          supplier[key] = req.body[key];
+        }
       }
-      if (description !== undefined) {
-        supplier.description = description;
-      }
-      if (contact !== undefined) {
-        supplier.contact = contact;
-      }
-      if (categories !== undefined) {
-        supplier.categories = categories;
-      }
-      if (amenities !== undefined) {
-        supplier.amenities = amenities;
-      }
-      if (location !== undefined) {
-        supplier.location = location;
-      }
+      Object.assign(supplier, profileFields.values);
       if (serviceAreas !== undefined) {
         // This route is the only place a city gets assigned without going
         // through the supplier's own self-service picker (which has no city
@@ -1861,7 +1971,7 @@ router.put(
       supplier.updatedAt = new Date().toISOString();
       supplier.lastEditedBy = req.user.id;
 
-      await dbUnified.updateOne(
+      const saved = await dbUnified.updateOne(
         'suppliers',
         { id: supplier.id },
         {
@@ -1873,12 +1983,17 @@ router.put(
             amenities: supplier.amenities,
             location: supplier.location,
             serviceAreas: supplier.serviceAreas,
+            ...profileFields.values,
             updatedAt: supplier.updatedAt,
             lastEditedBy: supplier.lastEditedBy,
             versionHistory: supplier.versionHistory,
           },
-        }
+        },
+        { throwOnError: true }
       );
+      if (!saved) {
+        return res.status(500).json({ error: 'The changes could not be saved. Please try again.' });
+      }
 
       // Create audit log
       auditLog({
@@ -1897,6 +2012,81 @@ router.put(
     }
   }
 );
+
+/**
+ * The fields an admin changing a user's verified flag sets.
+ * @param {Object} user - The user being edited
+ * @param {boolean} verified - New flag
+ * @param {string} adminId - Admin making the change
+ * @returns {Object} Fields to set
+ */
+function verificationChange(user, verified, adminId) {
+  const fields = { verified };
+  if (verified === true && user.verified !== true) {
+    fields.verifiedAt = new Date().toISOString();
+    fields.verificationMethod = 'manual_admin';
+    fields.verifiedBy = { type: 'admin', userId: adminId, reason: 'Manually verified by admin' };
+    fields.emailDeliveryStatus = 'not_required';
+  } else if (verified === false && user.verified === true) {
+    fields.verificationMethod = 'pending';
+    fields.verifiedBy = null;
+    fields.verifiedAt = null;
+    fields.emailDeliveryStatus = user.emailDeliveryStatus || 'pending';
+  }
+  return fields;
+}
+
+/**
+ * Checks an email an admin is setting on a user.
+ * @param {Object} user - The user being edited
+ * @param {string|undefined} email - Submitted email (undefined when not being changed)
+ * @returns {Promise<{email: string|undefined}|{status: number, error: string}>}
+ */
+async function checkUserEmailChange(user, email) {
+  if (email === undefined) {
+    return { email: undefined };
+  }
+  const normalized = String(email).trim().toLowerCase();
+  // The edit page sends the current email with every save, so an address that is already on the
+  // account is left alone: it must not block saving a name or a verified flag.
+  if (normalized === String(user.email || '').toLowerCase()) {
+    return { email: normalized };
+  }
+  if (!validator.isEmail(normalized)) {
+    return { status: 400, error: 'Please enter a valid email address' };
+  }
+  const existing = await dbUnified.findOne('users', { email: normalized });
+  if (existing && existing.id !== user.id) {
+    return { status: 409, error: 'A user with this email already exists' };
+  }
+  return { email: normalized };
+}
+
+/**
+ * Writes a user edit and says plainly when it did not save.
+ * @param {string} id - User id
+ * @param {Object} setFields - Fields to set
+ * @returns {Promise<{status: number, error: string}|null>} A failure, or null when saved
+ */
+async function saveUserChanges(id, setFields) {
+  try {
+    const saved = await dbUnified.updateOne(
+      'users',
+      { id },
+      { $set: setFields },
+      { throwOnError: true }
+    );
+    if (saved) {
+      return null;
+    }
+  } catch (error) {
+    if (error?.code === 11000) {
+      return { status: 409, error: 'A user with this email already exists' };
+    }
+    logger.error('[ADMIN] user edit failed', { userId: id, error: error.message });
+  }
+  return { status: 500, error: 'The changes could not be saved. Please try again.' };
+}
 
 /**
  * PUT /api/admin/users/:id
@@ -1931,18 +2121,16 @@ router.put('/users/:id', authRequired, roleRequired('admin'), csrfProtection, as
     });
   }
 
+  // Check the email before anything is written. The database layer swallows a duplicate-key
+  // failure and reports "no change", which used to come back as a 200 with nothing saved.
+  const emailCheck = await checkUserEmailChange(user, email);
+  if (emailCheck.error) {
+    return res.status(emailCheck.status).json({ error: emailCheck.error });
+  }
+  const emailNormalized = emailCheck.email;
+
   // Store previous version for history (excluding sensitive data)
-  const {
-    // eslint-disable-next-line no-unused-vars
-    password: _password,
-    // eslint-disable-next-line no-unused-vars
-    passwordHash: _passwordHash,
-    // eslint-disable-next-line no-unused-vars
-    resetToken: _resetToken,
-    // eslint-disable-next-line no-unused-vars
-    twoFactorSecret: _twoFactorSecret,
-    ...safeState
-  } = user;
+  const safeState = stripSecretFields(user);
   const versionHistory = [
     ...(user.versionHistory || []),
     {
@@ -1961,31 +2149,19 @@ router.put('/users/:id', authRequired, roleRequired('admin'), csrfProtection, as
     setFields.name = name;
   }
   if (email !== undefined) {
-    setFields.email = email;
+    setFields.email = emailNormalized;
   }
   if (verified !== undefined) {
-    setFields.verified = verified;
-    if (verified === true && user.verified !== true) {
-      setFields.verifiedAt = new Date().toISOString();
-      setFields.verificationMethod = 'manual_admin';
-      setFields.verifiedBy = {
-        type: 'admin',
-        userId: req.user.id,
-        reason: 'Manually verified by admin',
-      };
-      setFields.emailDeliveryStatus = 'not_required';
-    } else if (verified === false && user.verified === true) {
-      setFields.verificationMethod = 'pending';
-      setFields.verifiedBy = null;
-      setFields.verifiedAt = null;
-      setFields.emailDeliveryStatus = user.emailDeliveryStatus || 'pending';
-    }
+    Object.assign(setFields, verificationChange(user, verified, req.user.id));
   }
   if (marketingOptIn !== undefined) {
     setFields.marketingOptIn = marketingOptIn;
   }
 
-  await dbUnified.updateOne('users', { id }, { $set: setFields });
+  const failure = await saveUserChanges(id, setFields);
+  if (failure) {
+    return res.status(failure.status).json({ error: failure.error });
+  }
 
   // Create audit log
   auditLog({
@@ -2005,7 +2181,7 @@ router.put('/users/:id', authRequired, roleRequired('admin'), csrfProtection, as
     },
   });
 
-  res.json({ success: true, user: { ...user, ...setFields } });
+  res.json({ success: true, user: stripSecretFields({ ...user, ...setFields }) });
 });
 
 /**
@@ -2842,7 +3018,9 @@ router.post(
           suspended: false,
           suspendedAt: null,
           suspendedBy: null,
-          suspendedReason: null,
+          suspensionReason: null,
+          suspensionDuration: null,
+          suspensionExpiresAt: null,
           updatedAt: new Date().toISOString(),
         },
       }

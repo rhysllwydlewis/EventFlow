@@ -63,7 +63,9 @@ const ASSET_VERSIONS = {
   // every other landing page in the section. Added a glass-card treatment
   // for #efc-category-header; without a bump a returning visitor keeps the
   // old stylesheet and sees a bare header again.
-  '/assets/css/community.css': '18.6.2',
+  // 18.6.3: moderation cards in the admin panel get a one-column variant (.efc-discussion--stacked);
+  // without a bump a moderator keeps the old stylesheet and the cards stay cut off.
+  '/assets/css/community.css': '18.6.3',
   // 18.4.1: the mobile burger menu's padding, link height, gap and divider
   // were tightened and the CTA/login row was fixed to actually be compact
   // (PR #1605). Without a bump a returning visitor keeps the previous
@@ -73,7 +75,11 @@ const ASSET_VERSIONS = {
   // components.css's cookie banner, see above) and pointed the body's own
   // bottom-nav padding at it instead of a separate hardcoded 76px.
   '/assets/css/navbar.css': '18.5.0',
-  '/assets/js/community/core.js': '18.6.0',
+  // 18.6.1: core.js's toast fell back to a global showToast that does not exist on admin pages, so
+  // moderators saw no feedback; admin.js now also lists in-review/escalated reports and quarantined
+  // replies. Without a bump a returning moderator keeps the old copies.
+  '/assets/js/community/core.js': '18.6.1',
+  '/assets/js/community/admin.js': '18.6.1',
   '/assets/js/community/home.js': '18.6.0',
   '/assets/js/community/thread.js': '18.6.0',
   '/assets/js/community/member.js': '18.6.0',
@@ -146,7 +152,7 @@ ${
   page.adminGuard
     ? `    <link rel="stylesheet" href="/assets/css/admin.css?v=18.3.0" />
     <link rel="stylesheet" href="/assets/css/admin-enhanced.css?v=18.3.1" />
-    <link rel="stylesheet" href="/assets/css/admin-navbar.css?v=18.4.0" />
+    <link rel="stylesheet" href="/assets/css/admin-navbar.css?v=18.4.1" />
     <link rel="stylesheet" href="/assets/css/admin-cards.css?v=18.3.0" />
 `
     : '    <link rel="stylesheet" href="/assets/css/eventflow-footer.css" />\n'
@@ -304,9 +310,9 @@ ${
 `
 }${
     page.adminGuard
-      ? `    <script src="/assets/js/admin-shared.js?v=18.3.1"></script>
+      ? `    <script src="/assets/js/admin-shared.js?v=18.5.10"></script>
     <script src="/assets/js/components.js?v=18.4.0" defer></script>
-    <script src="/assets/js/admin-navbar.js?v=18.4.0" defer></script>
+    <script src="/assets/js/admin-navbar.js?v=18.4.1" defer></script>
 `
       : `    <script src="/assets/js/utils/auth-state.js?v=1.0.4" defer></script>
     <script src="/assets/js/burger-menu.js?v=1.1.0" defer></script>

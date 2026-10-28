@@ -146,6 +146,43 @@
     );
   }
 
+  const PRIORITY_ORDER = { urgent: 0, high: 1, normal: 2, low: 3 };
+
+  /**
+   * Every report that still needs a decision: new ones, ones a moderator has picked up, and
+   * escalated ones. The endpoint filters on one status at a time.
+   * @returns {Promise<Object[]>} Reports, most urgent first.
+   */
+  async function loadPendingReports() {
+    const results = await Promise.all(
+      ['open', 'in_review', 'escalated'].map(status => EFC.api(`${ADMIN}/reports?status=${status}`))
+    );
+    return results
+      .flatMap(result => result.reports || [])
+      .sort(
+        (first, second) =>
+          (PRIORITY_ORDER[first.priority] ?? 9) - (PRIORITY_ORDER[second.priority] ?? 9) ||
+          new Date(first.createdAt) - new Date(second.createdAt)
+      );
+  }
+
+  /**
+   * Quarantined discussions and replies together; the endpoint returns one kind per request.
+   * @returns {Promise<Object[]>} Held items, newest first.
+   */
+  async function loadQuarantinedContent() {
+    const results = await Promise.all(
+      ['discussion', 'reply'].map(type =>
+        EFC.api(`${ADMIN}/content?state=quarantined&type=${type}`).then(result =>
+          (result.items || []).map(item => ({ ...item, kind: type }))
+        )
+      )
+    );
+    return results
+      .flat()
+      .sort((first, second) => new Date(second.createdAt) - new Date(first.createdAt));
+  }
+
   /**
    * Load and render the active panel.
    * @returns {Promise<void>} Resolves when rendered.
@@ -167,11 +204,11 @@
       }
 
       if (active === 'reports') {
-        const data = await EFC.api(`${ADMIN}/reports?status=open`);
-        panel.innerHTML = data.reports.length
-          ? `<ul class="efc-list">${data.reports
+        const reports = await loadPendingReports();
+        panel.innerHTML = reports.length
+          ? `<ul class="efc-list">${reports
               .map(
-                report => `<li class="efc-discussion">
+                report => `<li class="efc-discussion efc-discussion--stacked">
                   <p class="efc-meta"><span class="efc-badge">${EFC.esc(report.priority)}</span>
                     ${EFC.esc(report.reasonLabel)} · ${EFC.esc(EFC.timeAgo(report.createdAt))}</p>
                   <p class="efc-discussion__excerpt">${EFC.esc(
@@ -202,13 +239,13 @@
       }
 
       if (active === 'content') {
-        const data = await EFC.api(`${ADMIN}/content?state=quarantined`);
+        const items = await loadQuarantinedContent();
         panel.innerHTML = `<p class="efc-meta">Content held for review. Approving publishes it; removing keeps the record for the audit trail.</p>
           ${
-            data.items.length
-              ? `<ul class="efc-list">${data.items
+            items.length
+              ? `<ul class="efc-list">${items
                   .map(
-                    item => `<li class="efc-discussion">
+                    item => `<li class="efc-discussion efc-discussion--stacked">
                       <h3 class="efc-discussion__title">${EFC.esc(item.title || 'Reply')}</h3>
                       <p class="efc-discussion__excerpt">${EFC.esc(item.excerpt)}</p>
                       <p class="efc-meta">${EFC.esc(item.author.displayName)} · risk ${item.riskScore} · ${EFC.esc(
@@ -216,13 +253,13 @@
                       )}</p>
                       <div class="efc-post__actions">
                         <button type="button" class="efc-action" data-content-action="approve" data-type="${
-                          item.title ? 'discussion' : 'reply'
+                          item.kind
                         }" data-id="${EFC.esc(item.id)}">Approve</button>
                         <button type="button" class="efc-action" data-content-action="remove" data-type="${
-                          item.title ? 'discussion' : 'reply'
+                          item.kind
                         }" data-id="${EFC.esc(item.id)}">Remove</button>
                         <button type="button" class="efc-action" data-content-action="mark_spam" data-type="${
-                          item.title ? 'discussion' : 'reply'
+                          item.kind
                         }" data-id="${EFC.esc(item.id)}">Mark as spam</button>
                       </div>
                     </li>`
@@ -238,7 +275,7 @@
         const data = await EFC.api(`${ADMIN}/categories`);
         panel.innerHTML = `<ul class="efc-list">${data.categories
           .map(
-            category => `<li class="efc-discussion">
+            category => `<li class="efc-discussion efc-discussion--stacked">
               <h3 class="efc-discussion__title">${EFC.esc(category.icon || '')} ${EFC.esc(category.name)}</h3>
               <p class="efc-meta">/${EFC.esc(category.slug)} · order ${category.order} · ${
                 category.visible === false ? 'hidden' : 'visible'
@@ -255,7 +292,7 @@
         panel.innerHTML = data.appeals.length
           ? `<ul class="efc-list">${data.appeals
               .map(
-                appeal => `<li class="efc-discussion">
+                appeal => `<li class="efc-discussion efc-discussion--stacked">
                   <p class="efc-meta">${EFC.esc(appeal.status)} · ${EFC.esc(EFC.timeAgo(appeal.createdAt))}</p>
                   <p class="efc-discussion__excerpt">${EFC.esc(appeal.message)}</p>
                 </li>`
@@ -270,7 +307,7 @@
         panel.innerHTML = data.actions.length
           ? `<ul class="efc-list">${data.actions
               .map(
-                item => `<li class="efc-discussion">
+                item => `<li class="efc-discussion efc-discussion--stacked">
                   <p class="efc-meta">${EFC.esc(item.action)} · ${EFC.esc(item.targetType)} ${EFC.esc(
                     item.targetId
                   )} · ${EFC.esc(item.moderatorHandle)} · ${EFC.esc(EFC.timeAgo(item.createdAt))}</p>

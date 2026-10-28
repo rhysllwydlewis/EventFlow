@@ -27,7 +27,6 @@ const usersHtml = read('admin-users.html');
 const usersInit = read('assets/js/pages/admin-users-init.js');
 const detailInit = read('assets/js/pages/admin-user-detail-init.js');
 const dashboardInit = read('assets/js/pages/admin-init.js');
-const verificationSourceInit = read('assets/js/pages/admin-verification-source-init.js');
 
 const SIGNUP_SAMPLES = [
   { authProvider: 'google' },
@@ -107,8 +106,8 @@ describe('admin UI covers every signup and verification method', () => {
     expect(usersInit).toContain('health.facebookVerified');
   });
 
-  test('verification-source page treats Facebook accounts as provider-verified', () => {
-    expect(verificationSourceInit).toContain("user.authProvider === 'facebook'");
-    expect(verificationSourceInit).toContain("['google', 'facebook'].includes(signupMethod(user))");
+  test('dashboard recent-users table treats Facebook accounts as provider-verified', () => {
+    expect(dashboardInit).toContain("user.authProvider === 'facebook'");
+    expect(dashboardInit).toContain("['google', 'facebook'].includes(signupMethodOf(user))");
   });
 });

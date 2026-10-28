@@ -140,7 +140,7 @@
         listing => `
       <div class="listing-card">
         <div style="display:flex;align-items:flex-start;gap:8px;">
-          <input type="checkbox" onchange="toggleSelection('${listing.id}')" ${selectedListings.has(listing.id) ? 'checked' : ''} style="margin-top:4px;cursor:pointer;">
+          <input type="checkbox" data-listing-select="${escapeHtml(listing.id)}" aria-label="Select listing" ${selectedListings.has(listing.id) ? 'checked' : ''} style="margin-top:4px;cursor:pointer;">
           ${
             listing.images && listing.images[0]
               ? `<img src="${escapeHtml(listing.images[0])}" alt="${escapeHtml(listing.title)}" class="listing-image">`
@@ -163,23 +163,23 @@
         </div>
         <div class="listing-actions">
           <span class="status-badge status-${listing.status}">${listing.status}</span>
-          <button class="cta" onclick="editListing('${listing.id}')">✏️ Edit</button>
+          <button class="cta" data-listing-action="edit" data-listing-id="${escapeHtml(listing.id)}">✏️ Edit</button>
           ${
             listing.status === 'pending'
               ? `
-            <button class="cta" onclick="approveListing('${listing.id}', true)">Approve</button>
-            <button class="cta secondary" onclick="approveListing('${listing.id}', false)">Reject</button>
+            <button class="cta" data-listing-action="approve" data-listing-id="${escapeHtml(listing.id)}">Approve</button>
+            <button class="cta secondary" data-listing-action="reject" data-listing-id="${escapeHtml(listing.id)}">Reject</button>
           `
               : ''
           }
           ${
             listing.status === 'active'
               ? `
-            <button class="cta secondary" onclick="markAsSold('${listing.id}')">Mark Sold</button>
+            <button class="cta secondary" data-listing-action="sold" data-listing-id="${escapeHtml(listing.id)}">Mark Sold</button>
           `
               : ''
           }
-          <button class="cta ghost" onclick="deleteListing('${listing.id}')">Delete</button>
+          <button class="cta ghost" data-listing-action="delete" data-listing-id="${escapeHtml(listing.id)}">Delete</button>
         </div>
       </div>
     `
@@ -658,6 +658,30 @@
   document.getElementById('signoutBtn')?.addEventListener('click', async () => {
     await fetch('/api/auth/signout', { method: 'POST', credentials: 'include' });
     window.location.href = '/auth';
+  });
+
+  // Inline onclick="" / onchange="" attributes are blocked by the site's Content-Security-Policy
+  // (script-src-attr 'none'), so the listing cards are handled by delegated listeners.
+  const listingsContainer = document.getElementById('listings-container');
+  const listingActions = {
+    edit: id => window.editListing(id),
+    approve: id => window.approveListing(id, true),
+    reject: id => window.approveListing(id, false),
+    sold: id => window.markAsSold(id),
+    delete: id => window.deleteListing(id),
+  };
+  listingsContainer.addEventListener('click', event => {
+    const button = event.target.closest('[data-listing-action]');
+    const action = button && listingActions[button.dataset.listingAction];
+    if (action) {
+      action(button.dataset.listingId);
+    }
+  });
+  listingsContainer.addEventListener('change', event => {
+    const checkbox = event.target.closest('[data-listing-select]');
+    if (checkbox) {
+      window.toggleSelection(checkbox.dataset.listingSelect);
+    }
   });
 
   // Initial load

@@ -16,7 +16,7 @@
     <link rel="stylesheet" href="/assets/css/animations.css?v=18.3.2" />
     <link rel="stylesheet" href="/assets/css/admin.css?v=18.3.0" />
     <link rel="stylesheet" href="/assets/css/admin-enhanced.css?v=18.3.2" />
-    <link rel="stylesheet" href="/assets/css/admin-navbar.css?v=18.4.0" />
+    <link rel="stylesheet" href="/assets/css/admin-navbar.css?v=18.4.1" />
     <link rel="stylesheet" href="/assets/css/admin-cards.css?v=18.3.0" />
     <link rel="icon" href="/favicon.ico" sizes="any">
     <link rel="icon" type="image/svg+xml" href="/favicon.svg">
@@ -27,12 +27,12 @@
     <link rel="mask-icon" href="/safari-pinned-tab.svg" color="#0B8073">
     <link rel="manifest" href="/site.webmanifest">
     <meta name="msapplication-config" content="/browserconfig.xml">
-    <script src="/assets/js/admin-shared.js?v=18.3.1"></script>
+    <script src="/assets/js/admin-shared.js?v=18.5.10"></script>
     <script src="/assets/js/components.js?v=18.4.0" defer></script>
-    <script src="/assets/js/admin-navbar.js?v=18.4.0" defer></script>
+    <script src="/assets/js/admin-navbar.js?v=18.4.1" defer></script>
     <link rel="stylesheet" href="/assets/css/mobile-optimizations.css?v=18.4.5" />
     <link rel="stylesheet" href="/assets/css/ui-ux-fixes.css?v=18.4.1" />
-    <link rel="stylesheet" href="/assets/css/admin-ui-improvements.css?v=18.3.2" />
+    <link rel="stylesheet" href="/assets/css/admin-ui-improvements.css?v=18.3.3" />
     <link rel="stylesheet" href="/assets/css/admin-workspace.css?v=1">
 </head>
   <body class="has-admin-navbar admin">
@@ -61,7 +61,7 @@
 
       <div class="container">
         <div class="card">
-          <div id="ucSummaryGrid" class="uc-summary-grid" aria-live="polite">
+          <div id="ucSummaryGrid" class="users-centre-summary-grid" aria-live="polite">
             <div class="uc-summary-card skeleton" style="height: 88px"></div>
             <div class="uc-summary-card skeleton" style="height: 88px"></div>
             <div class="uc-summary-card skeleton" style="height: 88px"></div>
@@ -145,7 +145,6 @@
               <option value="25">25</option>
               <option value="50" selected>50</option>
               <option value="100">100</option>
-              <option value="200">200</option>
             </select>
             <span class="small"><strong id="ucTotalCount">0</strong> total</span>
           </nav>
@@ -156,11 +155,11 @@
                 <col style="width:160px;">
                 <col style="width:200px;">
                 <col style="width:100px;">
-                <col style="width:110px;">
+                <col style="width:130px;">
                 <col style="width:150px;">
                 <col style="width:130px;">
                 <col style="width:110px;">
-                <col style="width:80px;">
+                <col style="width:100px;">
                 <col style="width:100px;">
                 <col style="width:100px;">
                 <col style="width:200px;">
@@ -300,7 +299,6 @@
           </div>
         </div>
       </div>
-      <button type="button" class="btn btn-secondary mt-2" id="closeSubPanel">Close</button>
     </div>
 
     <footer class="footer" role="contentinfo">
@@ -324,7 +322,7 @@
     <script src="/assets/js/utils/supplier-avatar.js?v=1.0.2"></script>
     <script src="/assets/js/app.js?v=18.5.12"></script>
 
-    <script src="/assets/js/pages/admin-users-init.js?v=18.3.1" defer></script>
+    <script src="/assets/js/pages/admin-users-init.js?v=18.5.10" defer></script>
     <script src="/assets/js/cookie-consent.js?v=3.0.2" defer></script>
   </body>
 </html>

@@ -55,8 +55,9 @@
   }
 
   async function showConfirmModal(message) {
-    const result = await AdminShared.showConfirmModal({ title: 'Confirm', message });
-    return result && result.confirmed;
+    // AdminShared.showConfirmModal resolves a plain true/false (not an object)
+    const confirmed = await AdminShared.showConfirmModal({ title: 'Confirm', message });
+    return confirmed === true;
   }
 
   function formatDate(timestamp) {
@@ -248,6 +249,23 @@
     }
   };
 
+  // Inline onclick="" attributes are blocked by the site's Content-Security-Policy
+  // (script-src-attr 'none'), so the card buttons are handled by one delegated listener.
+  if (queueEl) {
+    queueEl.addEventListener('click', event => {
+      const button = event.target.closest('[data-photo-action]');
+      if (!button || !queueEl.contains(button)) {
+        return;
+      }
+      const photoId = button.dataset.photoId;
+      if (button.dataset.photoAction === 'approve') {
+        window.approvePhoto(photoId);
+      } else if (button.dataset.photoAction === 'reject') {
+        window.rejectPhoto(photoId);
+      }
+    });
+  }
+
   // ── Batch actions ─────────────────────────────────────────────────────────
   function getSelectedIds() {
     if (!queueEl) {
@@ -387,8 +405,8 @@
       ? ''
       : `
       <div class="photo-queue__actions">
-        <button class="ef-cta photo-queue__btn photo-queue__btn--approve" onclick="approvePhoto('${safeId}')" type="button">Approve</button>
-        <button class="ef-cta photo-queue__btn photo-queue__btn--reject" onclick="rejectPhoto('${safeId}')" type="button">Reject</button>
+        <button class="ef-cta photo-queue__btn photo-queue__btn--approve" data-photo-action="approve" data-photo-id="${safeId}" type="button">Approve</button>
+        <button class="ef-cta photo-queue__btn photo-queue__btn--reject" data-photo-action="reject" data-photo-id="${safeId}" type="button">Reject</button>
       </div>`;
 
     const checkboxHtml = autoApprove

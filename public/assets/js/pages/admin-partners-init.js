@@ -79,7 +79,7 @@
       if (tbody) {
         tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;padding:2.5rem;color:#fca5a5;">
           Error loading partners.
-          <button class="ef-cta" onclick="loadPartners()" style="margin-left:0.5rem;color:#60a5fa;background:none;border:none;cursor:pointer;text-decoration:underline;">Retry</button>
+          <button class="ef-cta" data-partners-action="reload" style="margin-left:0.5rem;color:#60a5fa;background:none;border:none;cursor:pointer;text-decoration:underline;">Retry</button>
         </td></tr>`;
       }
     }
@@ -309,7 +309,7 @@
             <div style="color:#6b7280">Company</div><div style="color:#111827">${esc(partner.user?.company || '—')}</div>
           </div>
           <div style="margin-top:0.75rem;display:flex;gap:0.5rem;flex-wrap:wrap;">
-            <button class="ef-cta ap-action-btn ap-action-btn--credit" onclick="(function(){document.getElementById('partner-detail-panel').classList.remove('open');setTimeout(()=>document.getElementById('partner-detail-panel').setAttribute('hidden',''),320);})();openCreditModalFromPanel('${esc(partnerId)}')" style="font-size:0.78rem;">Adjust Credits</button>
+            <button class="ef-cta ap-action-btn ap-action-btn--credit" data-partners-action="adjust-credits" data-partner-id="${esc(partnerId)}" style="font-size:0.78rem;">Adjust Credits</button>
           </div>
         </div>
 
@@ -380,21 +380,14 @@
           <div style="font-size:2rem;margin-bottom:0.75rem;">⚠️</div>
           <p style="color:#dc2626;font-size:0.875rem;margin:0 0 1rem;">Failed to load partner details.</p>
           <button
-            onclick="openDetailPanel('${esc(partnerId)}')"
+            data-partners-action="retry-detail"
+            data-partner-id="${esc(partnerId)}"
             style="background:#f3f4f6;border:1px solid #d1d5db;border-radius:8px;padding:0.4rem 1rem;font-size:0.82rem;cursor:pointer;color:#374151;">
             Try again
           </button>
         </div>`;
     }
   }
-
-  // Opens the credit modal from within the detail panel (closes panel first)
-  function openCreditModalFromPanel(partnerId) {
-    openCreditModal(partnerId);
-  }
-  // Expose globally so inline onclick in detail panel HTML works
-  window.openCreditModalFromPanel = openCreditModalFromPanel;
-  window.openDetailPanel = openDetailPanel;
 
   function closeDetailPanel() {
     const panel = document.getElementById('partner-detail-panel');
@@ -615,6 +608,32 @@
     if (refreshPayoutsBtn) {
       refreshPayoutsBtn.addEventListener('click', loadPayoutRequests);
     }
+
+    // Inline onclick="" attributes are blocked by the site's Content-Security-Policy
+    // (script-src-attr 'none'), so the buttons built into the table and the detail panel carry
+    // data-partners-action and are handled here.
+    document.addEventListener('click', event => {
+      const button = event.target.closest('[data-partners-action]');
+      if (!button) {
+        return;
+      }
+      const partnerId = button.dataset.partnerId;
+      switch (button.dataset.partnersAction) {
+        case 'reload':
+          loadPartners();
+          break;
+        case 'retry-detail':
+          openDetailPanel(partnerId);
+          break;
+        case 'adjust-credits':
+          // Close the slide-in panel first so the credit modal is not left underneath it
+          closeDetailPanel();
+          openCreditModal(partnerId);
+          break;
+        default:
+          break;
+      }
+    });
 
     // Detail panel close
     const closeBtn = document.getElementById('close-detail-btn');

@@ -20,21 +20,15 @@
     const chips = [];
     const ctx = conv.context || {};
     if (ctx.type) {
-      chips.push(
-        `<span class="mod-badge" style="font-size:0.7rem;padding:0.1rem 0.4rem">${escapeHtml(ctx.type)}</span>`
-      );
+      chips.push(`<span class="adh-chip">${escapeHtml(ctx.type)}</span>`);
     }
     if (ctx.packageId) {
-      chips.push(
-        '<span class="mod-badge" style="font-size:0.7rem;padding:0.1rem 0.4rem;background:rgba(99,102,241,.15)">pkg</span>'
-      );
+      chips.push('<span class="adh-chip">package</span>');
     }
     if (ctx.supplierId) {
-      chips.push(
-        '<span class="mod-badge" style="font-size:0.7rem;padding:0.1rem 0.4rem;background:rgba(16,185,129,.15)">supplier</span>'
-      );
+      chips.push('<span class="adh-chip">supplier</span>');
     }
-    return chips.join(' ');
+    return chips.join('');
   }
 
   function participantNames(conv) {
@@ -55,45 +49,20 @@
     }, 0);
   }
 
-  // Build a single conversation row — either as a standard <tr> for wider
-  // viewports, or as a stacked card <tr> for mobile (≤ 600 px).
+  // Build a single conversation row. The page's own stylesheet turns it into a small card on
+  // narrow screens, so one markup serves both.
   function buildRow(conv) {
-    const id = escapeHtml(conv._id || '');
+    const id = encodeURIComponent(conv._id || '');
     const unread = unreadTotal(conv);
-    const names = participantNames(conv);
-    const chips = contextChips(conv);
     const dateStr = formatDate(conv.updatedAt || (conv.lastMessage && conv.lastMessage.sentAt));
-    const snippet = conv.lastMessage && conv.lastMessage.content
-      ? escapeHtml(conv.lastMessage.content.substring(0, 80))
-      : '—';
-    const openLink = `<a href="/admin-messenger-view?conversation=${id}" class="btn-sm" style="text-decoration:none" target="_blank">Open</a>`;
-
-    // On narrow screens render as a self-contained card row so nothing is
-    // clipped or pushed off-screen.
-    if (window.innerWidth <= 600) {
-      return (
-        `<tr class="admin-messenger-card-row" style="border-top:1px solid rgba(0,0,0,.07);display:block;padding:0.75rem 0">` +
-        `<td style="display:block;padding:0.25rem 0.75rem">` +
-          `<strong style="font-size:0.85rem">${names}</strong>${ 
-          chips ? ` <span style="margin-left:4px">${chips}</span>` : '' 
-        }</td>` +
-        `<td style="display:block;padding:0.15rem 0.75rem;font-size:0.8rem;opacity:0.7">${snippet}</td>` +
-        `<td style="display:block;padding:0.15rem 0.75rem;font-size:0.75rem;opacity:0.55">${dateStr}${ 
-          unread > 0 ? ` · <span style="color:#dc2626;font-weight:600">${unread} unread</span>` : '' 
-        }</td>` +
-        `<td style="display:block;padding:0.25rem 0.75rem">${openLink}</td>` +
-        `</tr>`
-      );
-    }
-
-    // Desktop: standard table row
+    const openLink = `<a href="/admin-messenger-view?conversation=${id}" class="adh-btn adh-btn--sm" target="_blank" rel="noopener">Open</a>`;
     return (
-      `<tr style="border-top:1px solid rgba(0,0,0,.07)">` +
-      `<td style="padding:0.5rem 0.75rem;max-width:240px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${names}</td>` +
-      `<td style="padding:0.5rem 0.75rem">${chips || '—'}</td>` +
-      `<td style="padding:0.5rem 0.75rem;font-size:0.85rem;opacity:0.8">${dateStr}</td>` +
-      `<td style="padding:0.5rem 0.75rem;text-align:center">${unread > 0 ? `<span class="mod-badge" style="background:rgba(239,68,68,.15);color:#dc2626">${unread}</span>` : '—'}</td>` +
-      `<td style="padding:0.5rem 0.75rem;text-align:center">${openLink}</td>` +
+      '<tr>' +
+      `<td data-label="Participants"><div class="adh-msg__names">${participantNames(conv)}</div></td>` +
+      `<td data-label="Context">${contextChips(conv) || '—'}</td>` +
+      `<td data-label="Last message" class="adh-msg__date">${dateStr}</td>` +
+      `<td data-label="Unread" class="adh-msg__center">${unread > 0 ? `<span class="adh-unread">${unread}</span>` : '—'}</td>` +
+      `<td data-label="Action" class="adh-msg__center">${openLink}</td>` +
       `</tr>`
     );
   }
@@ -104,8 +73,7 @@
       return;
     }
     if (!conversations || conversations.length === 0) {
-      tbody.innerHTML =
-        '<tr><td colspan="5" style="padding:1rem;text-align:center;opacity:0.6">No conversations found.</td></tr>';
+      showMessageState('No conversations found.', 'empty');
       return;
     }
     tbody.innerHTML = conversations.map(buildRow).join('');
@@ -125,6 +93,31 @@
     next.disabled = currentSkip + PAGE_SIZE >= currentTotal;
   }
 
+  const LOAD_TIMEOUT_MS = 15000;
+  let loadSeq = 0;
+
+  function showMessageState(html, modifier) {
+    const tbody = document.getElementById('msgModerationBody');
+    if (tbody) {
+      const cls = `admin-messenger-state${modifier ? ` admin-messenger-state--${modifier}` : ''}`;
+      tbody.innerHTML = `<tr><td colspan="5" class="${cls}">${html}</td></tr>`;
+    }
+  }
+
+  function describeLoadError(err) {
+    if (typeof err === 'number') {
+      if (err === 401 || err === 403) {
+        return 'You do not have access to message moderation. Sign in again as an admin.';
+      }
+      return `The server could not load conversations (error ${err}).`;
+    }
+    const text = err?.message ? String(err.message) : '';
+    if (/timed out/i.test(text)) {
+      return 'Loading conversations took too long.';
+    }
+    return text || 'Conversations could not be loaded.';
+  }
+
   function loadConversations() {
     const params = new URLSearchParams({ limit: PAGE_SIZE, skip: currentSkip });
     if (currentSearch) {
@@ -133,19 +126,38 @@
     if (currentStatus) {
       params.set('status', currentStatus);
     }
-    fetch(`/api/v4/messenger/admin/conversations?${params.toString()}`, { credentials: 'include' })
+    // Only the newest request may draw: a slow answer to an earlier search must not replace it.
+    loadSeq += 1;
+    const seq = loadSeq;
+    showMessageState('Loading conversations…', 'loading');
+    const url = `/api/v4/messenger/admin/conversations?${params.toString()}`;
+    const request = window.AdminShared?.fetchWithTimeout
+      ? window.AdminShared.fetchWithTimeout(url, { credentials: 'include' }, LOAD_TIMEOUT_MS)
+      : fetch(url, { credentials: 'include' });
+    request
       .then(r => {
         return r.ok ? r.json() : Promise.reject(r.status);
       })
       .then(data => {
+        if (seq !== loadSeq) {
+          return;
+        }
         currentTotal = data.total || 0;
         renderTable(data.conversations || []);
         updatePager();
       })
       .catch(err => {
-        const tbody = document.getElementById('msgModerationBody');
-        if (tbody) {
-          tbody.innerHTML = `<tr><td colspan="5" style="padding:1rem;text-align:center;color:#dc2626">Failed to load conversations (error: ${escapeHtml(String(err))})</td></tr>`;
+        if (seq !== loadSeq) {
+          return;
+        }
+        showMessageState(
+          `${escapeHtml(describeLoadError(err))} ` +
+            '<button type="button" class="ef-cta btn-sm" id="msgModerationRetry">Try again</button>',
+          'error'
+        );
+        const retry = document.getElementById('msgModerationRetry');
+        if (retry) {
+          retry.addEventListener('click', loadConversations);
         }
       });
   }

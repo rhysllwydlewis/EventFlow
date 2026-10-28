@@ -1272,7 +1272,7 @@ const AdminShared = (function () {
 
   function showShortcutsHelp() {
     const helpModal = document.createElement('div');
-    helpModal.className = 'modal-overlay';
+    helpModal.className = 'modal-overlay active';
     const previouslyFocused = document.activeElement;
     helpModal.innerHTML = `
       <div class="modal-dialog" style="max-width: 500px;" role="dialog" aria-modal="true" aria-labelledby="shortcutsHelpTitle" tabindex="-1">
@@ -1571,7 +1571,9 @@ const AdminShared = (function () {
       return () => {};
     }
 
-    const originalText = button.textContent;
+    // Keep the button's markup, not just its text, so child elements a page writes into by id
+    // (for example a status <span>) come back after the action instead of being lost.
+    const originalHtml = button.innerHTML;
     const originalDisabled = button.disabled;
 
     button.disabled = true;
@@ -1582,7 +1584,7 @@ const AdminShared = (function () {
     // Return a function to re-enable
     return () => {
       button.disabled = originalDisabled;
-      button.textContent = originalText;
+      button.innerHTML = originalHtml;
       button.style.opacity = '';
       button.style.cursor = '';
     };

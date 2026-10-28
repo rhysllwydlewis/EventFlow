@@ -401,6 +401,22 @@
 }
 
 /* =========================================================
+   RESULTS LOADING STATE
+   The results area first shows a short placeholder (the three cards in the page HTML, then the
+   same in script), and is replaced by the real cards, which are far taller. If the map and SEO
+   sections below are inside the first screen while it loads, they are pushed off it when the cards
+   arrive and the browser records a large layout shift (CLS). Holding the placeholder at least one
+   screen tall keeps everything below the results out of view until they load, so nothing the visitor
+   can see moves. The rule stops matching as soon as the real cards (or an empty or error state)
+   replace the placeholder, so it never adds blank space after loading.
+   ========================================================= */
+
+#results:has(> #initial-skeleton),
+#results:has(> .sp-card[aria-hidden='true']) {
+  min-height: 100vh;
+}
+
+/* =========================================================
    SUPPLIER CARD — 3-column liquid glass design
    Left: profile info | Middle: package carousel | Right: actions
    ========================================================= */

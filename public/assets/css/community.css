@@ -1001,6 +1001,17 @@
   min-width: 0;
 }
 
+/* Moderation cards (admin reports, held content, appeals) have no avatar or main
+   wrapper, so they stack their children in one column instead of spreading them
+   across the three-column list layout, where long text was cut off. */
+.efc-discussion--stacked {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.efc-discussion--stacked .efc-discussion__excerpt {
+  overflow-wrap: anywhere;
+}
+
 /* A card whose discussion actually has a photo attachment shows it here, the
    same signal previewCard already gives the hero rails. A long list of cards
    with identical avatar-only left edges reads as flatter and less alive than

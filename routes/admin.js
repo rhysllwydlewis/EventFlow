@@ -34,6 +34,11 @@ const postmark = require('../utils/postmark');
 const { FROM_SUPPORT: POSTMARK_FROM_SUPPORT_ADDR } = postmark;
 const { VERIFICATION_STATES } = require('../utils/supplierVerificationStateMachine');
 const { sanitiseText } = require('../utils/sanitise');
+const {
+  stripSecretFields,
+  stripMessageBody,
+  withoutPrivateText,
+} = require('../utils/adminExportSanitizer');
 const { runActionPrompts, notifyCronChanged } = require('../services/actionPromptScheduler');
 const locationRegistry = require('../services/locationRegistry.service');
 const locationPageService = require('../services/locationPage.service');
@@ -471,20 +476,41 @@ function getTimeAgo(timestamp) {
 
 /**
  * GET /api/admin/export/all
- * Export all core collections as JSON
+ * Export all core collections as JSON. Credentials (password hashes, tokens, 2FA codes)
+ * and private text (message bodies, plan notes) are left out; message records keep only
+ * their metadata.
  */
-router.get('/export/all', authRequired, roleRequired('admin'), async (_req, res) => {
+router.get('/export/all', authRequired, roleRequired('admin'), async (req, res) => {
+  const readClean = async (collection, clean = stripSecretFields) =>
+    ((await dbUnified.read(collection)) || []).map(record => clean(record));
   const payload = {
     exportedAt: new Date().toISOString(),
-    users: await dbUnified.read('users'),
-    suppliers: await dbUnified.read('suppliers'),
-    packages: await dbUnified.read('packages'),
-    plans: await dbUnified.read('plans'),
-    notes: await dbUnified.read('notes'),
-    events: await dbUnified.read('events'),
-    threads: await dbUnified.read('threads'),
-    messages: await dbUnified.read('messages'),
+    users: await readClean('users'),
+    suppliers: await readClean('suppliers'),
+    packages: await readClean('packages'),
+    plans: await readClean('plans'),
+    notes: await readClean('notes', withoutPrivateText(['text'])),
+    events: await readClean('events'),
+    threads: await readClean('threads', withoutPrivateText(['lastMessage', 'messages'])),
+    messages: await readClean('messages', stripMessageBody),
   };
+  await auditLog({
+    adminId: req.user.id,
+    adminEmail: req.user.email,
+    action: AUDIT_ACTIONS.DATA_EXPORT,
+    targetType: 'export',
+    targetId: 'export-all',
+    details: {
+      format: 'json',
+      counts: Object.fromEntries(
+        Object.entries(payload)
+          .filter(([, value]) => Array.isArray(value))
+          .map(([key, value]) => [key, value.length])
+      ),
+    },
+    ipAddress: req.ip,
+    userAgent: req.get('user-agent'),
+  });
   const json = JSON.stringify(payload, null, 2);
   res.setHeader('Content-Type', 'application/json; charset=utf-8');
   res.setHeader('Content-Disposition', 'attachment; filename="eventflow-export.json"');
@@ -2308,7 +2334,8 @@ router.post(
 
 /**
  * POST /api/admin/suppliers/smart-tags
- * Generate smart tags for all suppliers based on their descriptions and categories
+ * Generate smart tags for the selected suppliers (body: { supplierIds }) based on their
+ * descriptions and categories
  *
  * Smart tagging logic:
  * 1. Only processes approved suppliers
@@ -2327,7 +2354,16 @@ router.post(
   csrfProtection,
   async (req, res) => {
     try {
-      const suppliers = await dbUnified.read('suppliers');
+      // The page sends the suppliers the admin selected; tagging anyone else would change
+      // profiles they never chose. Without a list (older callers) every approved supplier is tagged.
+      const { supplierIds } = req.body || {};
+      if (supplierIds !== undefined && (!Array.isArray(supplierIds) || supplierIds.length === 0)) {
+        return res.status(400).json({ error: 'supplierIds must be a non-empty list' });
+      }
+      const selectedIds = supplierIds ? new Set(supplierIds.map(String)) : null;
+      const suppliers = (await dbUnified.read('suppliers')).filter(
+        supplier => !selectedIds || selectedIds.has(String(supplier.id))
+      );
       let taggedCount = 0;
 
       // Common wedding/event industry tags mapped to supplier categories
@@ -2423,14 +2459,14 @@ router.post(
         details: { suppliersTagged: taggedCount },
       });
 
-      res.json({
+      return res.json({
         success: true,
         message: `Smart tags generated for ${taggedCount} suppliers`,
         taggedCount,
       });
     } catch (error) {
       logger.error('Error generating smart tags:', error);
-      res.status(500).json({
+      return res.status(500).json({
         error: 'Failed to generate smart tags',
         details: process.env.NODE_ENV !== 'production' ? error.message : undefined,
       });
@@ -3584,14 +3620,23 @@ router.put(
       ) {
         try {
           const { VERIFICATION_STATES } = require('../utils/supplierVerificationStateMachine'); // skipcq: JS-0123 - narrow try-block import, unrelated to the module-level import
-          const pendingSuppliers = await dbUnified.find('suppliers', {
+          // Only suppliers still waiting for a decision. An admin's earlier decision to reject,
+          // ask for changes or suspend must survive this switch being flipped.
+          const decidedStates = [
+            VERIFICATION_STATES.REJECTED,
+            VERIFICATION_STATES.NEEDS_CHANGES,
+            VERIFICATION_STATES.SUSPENDED,
+          ];
+          const awaiting = await dbUnified.find('suppliers', {
             $or: [
-              { approved: false },
               { approved: { $ne: true } },
               { verificationStatus: VERIFICATION_STATES.PENDING_REVIEW },
               { verificationStatus: VERIFICATION_STATES.UNVERIFIED },
             ],
           });
+          const pendingSuppliers = awaiting.filter(
+            candidate => !decidedStates.includes(candidate.verificationStatus)
+          );
           const approvedAt = new Date().toISOString();
           for (const s of pendingSuppliers) {
             if (s.approved === true && s.verificationStatus === VERIFICATION_STATES.APPROVED) {
@@ -5156,7 +5201,8 @@ router.post(
       }
 
       listing.approved = !!approved;
-      listing.status = approved ? 'active' : 'pending';
+      // A rejected listing leaves the pending queue (the admin page has a Removed filter for it)
+      listing.status = approved ? 'active' : 'removed';
       listing.updatedAt = new Date().toISOString();
 
       await dbUnified.updateOne(
