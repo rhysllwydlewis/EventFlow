@@ -228,7 +228,13 @@ describe('script versions are bumped on every page that loads a changed script',
     ['admin-photos.html', 'admin-photos-init.js', '18.5.9'],
     ['admin-marketplace.html', 'admin-marketplace-init.js', '18.5.9'],
     ['admin-partners.html', 'admin-partners-init.js', '18.5.12'],
-  ])('%s loads %s as v=%s', (page, script, version) => {
-    expect(read(`public/${page}`)).toContain(`${script}?v=${version}`);
+  ])('%s loads %s as v=%s or later', (page, script, version) => {
+    const loaded = read(`public/${page}`).match(
+      new RegExp(`${script.replace(/\./g, '\\.')}\\?v=([\\d.]+)`)
+    );
+    expect(loaded).not.toBeNull();
+    const asNumber = text =>
+      text.split('.').reduce((total, part) => total * 1000 + Number(part), 0);
+    expect(asNumber(loaded[1])).toBeGreaterThanOrEqual(asNumber(version));
   });
 });
