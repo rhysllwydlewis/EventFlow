@@ -20,9 +20,9 @@
  *     the full message are returned by the detail read only
  *   - nothing in this module logs customer data
  *
- * The customer-submitted text is stored HTML-escaped (validator.escape) by the
- * routes that accept it. It is returned here as plain text; render it with
- * textContent, never as HTML.
+ * The customer-submitted text is stored as typed by the routes that accept it
+ * (rows saved before that were HTML-escaped, so they are turned back here). It is
+ * returned as plain text; render it with textContent or escape it, never as HTML.
  *
  * Handled/read state is per supplier, because one quote request can be sent to
  * several suppliers: it lives in `supplier_enquiry_states`, not on the request.
@@ -88,7 +88,7 @@ const MAX_ENQUIRY_AGE_DAYS = 30;
 const REPLIES_SHOWN = 10;
 
 /**
- * Turn stored (HTML-escaped) customer text back into plain text.
+ * Turn stored customer text into plain text (older rows were saved HTML-escaped).
  *
  * @param {*} value - Stored value
  * @returns {string|null} Plain text, or null when empty
