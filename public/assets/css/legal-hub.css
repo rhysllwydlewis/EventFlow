@@ -967,12 +967,32 @@
     display: none;
   }
 
+  /* The row scrolls, so it clips anything outside it; draw the focus ring inside
+     the chip instead of outside it. */
+  .lh-page main.lh .legal-toc a:focus-visible {
+    outline-offset: -2px;
+    box-shadow: none;
+  }
+
   .lh-page .legal-toc a[aria-current='true'] {
     border-color: var(--lh-accent-line);
   }
 
   .lh-page .legal-section {
     scroll-margin-top: 112px;
+  }
+}
+
+/* From 768px the site header is 73px tall (65px below that), so the pinned chip
+   row sits under it and the sections land under the row; 119px keeps the heading
+   inside the 120px scroll-spy line in legal-pages.js. */
+@media (min-width: 768px) and (max-width: 860px) {
+  .lh-page .legal-toc {
+    top: 73px;
+  }
+
+  .lh-page .legal-section {
+    scroll-margin-top: 119px;
   }
 }
 
@@ -1049,10 +1069,13 @@
   }
 }
 
-/* html sits outside .lh-page, so this is the one rule that reaches up from it. */
-@media (prefers-reduced-motion: no-preference) {
+/* ui-ux-fixes.css turns on smooth scrolling for every page whatever the visitor's
+   motion setting, and a jump across this page can be tens of thousands of pixels
+   long. html sits outside .lh-page, so this is the one rule that reaches up from
+   it; it only applies when reduced motion is requested. */
+@media (prefers-reduced-motion: reduce) {
   html:has(> body.lh-page) {
-    scroll-behavior: smooth;
+    scroll-behavior: auto;
   }
 }
 
