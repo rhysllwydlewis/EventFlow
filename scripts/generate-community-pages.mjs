@@ -79,7 +79,7 @@ const ASSET_VERSIONS = {
   // moderators saw no feedback; admin.js now also lists in-review/escalated reports and quarantined
   // replies. Without a bump a returning moderator keeps the old copies.
   '/assets/js/community/core.js': '18.6.1',
-  '/assets/js/community/admin.js': '18.6.1',
+  '/assets/js/community/admin.js': '18.6.2',
   '/assets/js/community/home.js': '18.6.0',
   '/assets/js/community/thread.js': '18.6.0',
   '/assets/js/community/member.js': '18.6.0',

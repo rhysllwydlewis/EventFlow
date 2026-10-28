@@ -59,6 +59,12 @@
   }
 
   let allContacts = [];
+  let currentPage = 1;
+  const CONTACT_PAGE_SIZE = 50;
+  // The server allows at most 100 per request
+  const REQUEST_SIZE = 100;
+  const MAX_REQUESTS = 50;
+  let contactPager = { update() {} };
   let summaryData = null;
   let debounceTimer = null;
   let detailRequest = 0;
@@ -153,7 +159,9 @@
   }
 
   // ── Filtering ──────────────────────────────────────────────────────────────
-  function applyFilters() {
+  function applyFilters(options) {
+    // Only a reload or a page change keeps the page; a filter or search change starts again at 1
+    const keepPage = Boolean(options && options.keepPage === true);
     const search = ($('ecSearch') || {}).value || '';
     const source = ($('ecSourceFilter') || {}).value || '';
     const status = ($('ecStatusFilter') || {}).value || '';
@@ -186,7 +194,19 @@
           : `${filtered.length} of ${allContacts.length}`;
     }
 
-    renderTable(filtered);
+    // Changing a filter or the search starts again from the first page
+    if (!keepPage) {
+      currentPage = 1;
+    }
+    const info = AdminPager.range(currentPage, CONTACT_PAGE_SIZE, filtered.length);
+    currentPage = info.page;
+    renderTable(AdminPager.slice(filtered, currentPage, CONTACT_PAGE_SIZE));
+    contactPager.update({
+      page: currentPage,
+      size: CONTACT_PAGE_SIZE,
+      total: filtered.length,
+      noun: 'enquiries',
+    });
   }
 
   function clearFilters() {
@@ -323,11 +343,26 @@
   // ── Data loading ───────────────────────────────────────────────────────────
   async function loadData() {
     try {
-      const data = await AdminShared.api('/api/admin/external-contacts');
-      allContacts = data.items || [];
+      // The server returns at most 100 a request, and used to hand back only the first 50, so
+      // ask page by page until every enquiry is here
+      let first = null;
+      const everything = [];
+      for (let requests = 0; requests < MAX_REQUESTS; requests += 1) {
+        const data = await AdminShared.api(
+          `/api/admin/external-contacts?limit=${REQUEST_SIZE}&skip=${everything.length}`
+        );
+        first = first || data;
+        const batch = data.items || [];
+        everything.push(...batch);
+        if (batch.length < REQUEST_SIZE || everything.length >= (data.total || 0)) {
+          break;
+        }
+      }
+      const data = first || {};
+      allContacts = everything;
       summaryData = data.summary || null;
       renderSummaryCards(summaryData);
-      applyFilters();
+      applyFilters({ keepPage: true });
     } catch {
       const tbody = $('ecTableBody');
       if (tbody) {
@@ -340,6 +375,13 @@
 
   // ── Initialise ─────────────────────────────────────────────────────────────
   document.addEventListener('DOMContentLoaded', () => {
+    contactPager = AdminPager.mount({
+      after: $('ecTableBody').closest('table').parentElement,
+      onChange(page) {
+        currentPage = page;
+        applyFilters({ keepPage: true });
+      },
+    });
     applyUrlFilters();
 
     $('ecRefreshBtn') && $('ecRefreshBtn').addEventListener('click', loadData);

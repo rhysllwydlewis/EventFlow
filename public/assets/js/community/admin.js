@@ -183,6 +183,54 @@
       .sort((first, second) => new Date(second.createdAt) - new Date(first.createdAt));
   }
 
+  // Appeals and Audit are paged by the server (20 by default) but showed only the first page
+  const LIST_PAGE_SIZE = 50;
+  const listPage = { appeals: 1, audit: 1 };
+
+  /**
+   * The "Showing 51-100 of 349" line with Previous / Next for a paged tab.
+   * @param {string} tab - Tab key
+   * @param {Object} pagination - The server's { page, limit, total, totalPages }
+   * @param {string} noun - What the rows are, plural
+   * @returns {string} HTML, empty when there is nothing to page
+   */
+  function listPagerHtml(tab, pagination, noun) {
+    const total = (pagination && pagination.total) || 0;
+    if (!total) {
+      return '';
+    }
+    const page = pagination.page || 1;
+    const pages = pagination.totalPages || 1;
+    const first = (page - 1) * LIST_PAGE_SIZE + 1;
+    const last = Math.min(page * LIST_PAGE_SIZE, total);
+    const text =
+      pages === 1 ? `Showing all ${total} ${noun}` : `Showing ${first}–${last} of ${total} ${noun}`;
+    const buttons =
+      pages === 1
+        ? ''
+        : `<button type="button" class="efc-action" data-list-page="${tab}:${page - 1}"${
+            page <= 1 ? ' disabled' : ''
+          }>← Previous</button>
+           <button type="button" class="efc-action" data-list-page="${tab}:${page + 1}"${
+             page >= pages ? ' disabled' : ''
+           }>Next →</button>`;
+    return `<div class="efc-pager" style="display:flex;flex-wrap:wrap;align-items:center;gap:0.5rem;margin-top:1rem"><p class="efc-meta" role="status" style="margin:0 auto 0 0">${text}</p>${buttons}</div>`;
+  }
+
+  /**
+   * Make the Previous / Next buttons of a paged tab reload it on the chosen page.
+   * @returns {void} Nothing.
+   */
+  function wireListPager() {
+    document.querySelectorAll('[data-list-page]').forEach(button => {
+      button.addEventListener('click', () => {
+        const [tab, page] = button.getAttribute('data-list-page').split(':');
+        listPage[tab] = Math.max(1, Number(page) || 1);
+        load();
+      });
+    });
+  }
+
   /**
    * Load and render the active panel.
    * @returns {Promise<void>} Resolves when rendered.
@@ -288,7 +336,9 @@
       }
 
       if (active === 'appeals') {
-        const data = await EFC.api(`${ADMIN}/appeals`);
+        const data = await EFC.api(
+          `${ADMIN}/appeals?page=${listPage.appeals}&limit=${LIST_PAGE_SIZE}`
+        );
         panel.innerHTML = data.appeals.length
           ? `<ul class="efc-list">${data.appeals
               .map(
@@ -299,11 +349,13 @@
               )
               .join('')}</ul>`
           : EFC.emptyState('No appeals', 'Nobody has appealed a moderation decision.');
+        panel.insertAdjacentHTML('beforeend', listPagerHtml('appeals', data.pagination, 'appeals'));
+        wireListPager();
         return;
       }
 
       if (active === 'audit') {
-        const data = await EFC.api(`${ADMIN}/audit`);
+        const data = await EFC.api(`${ADMIN}/audit?page=${listPage.audit}&limit=${LIST_PAGE_SIZE}`);
         panel.innerHTML = data.actions.length
           ? `<ul class="efc-list">${data.actions
               .map(
@@ -316,6 +368,8 @@
               )
               .join('')}</ul>`
           : EFC.emptyState('No moderation actions yet', 'The audit trail is empty.');
+        panel.insertAdjacentHTML('beforeend', listPagerHtml('audit', data.pagination, 'actions'));
+        wireListPager();
         return;
       }
 

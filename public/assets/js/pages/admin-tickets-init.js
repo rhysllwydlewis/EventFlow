@@ -1,6 +1,10 @@
 'use strict';
 (function () {
   let allTickets = [];
+  // 213 tickets used to be drawn at once; now 50 a page, with Previous / Next under the table
+  const TICKET_PAGE_SIZE = 50;
+  let ticketPage = 1;
+  let ticketPager = null;
 
   const STATUS_OPTIONS = [
     { value: 'open', label: 'Open' },
@@ -158,6 +162,15 @@
     if (!container) {
       return;
     }
+    ticketPager =
+      ticketPager ||
+      AdminPager.mount({
+        after: container,
+        onChange(page) {
+          ticketPage = page;
+          renderTickets();
+        },
+      });
 
     const searchTerm = document.getElementById('ticketSearch')?.value.toLowerCase() || '';
     const statusFilter = document.getElementById('statusFilter')?.value || '';
@@ -219,6 +232,7 @@
           </div>
         </div>
       `;
+      ticketPager.update({ page: 1, size: TICKET_PAGE_SIZE, total: 0, noun: 'tickets' });
       return;
     }
 
@@ -249,7 +263,9 @@
     let html =
       '<div class="table-wrapper"><table><thead><tr><th>Subject</th><th>From / Tier</th><th>Status</th><th>Priority</th><th>Created</th><th>Assigned</th><th>Actions</th></tr></thead><tbody>';
 
-    filtered.forEach(ticket => {
+    // Only this page's rows are drawn; a filter change goes back to page 1 (see the listeners)
+    ticketPage = AdminPager.range(ticketPage, TICKET_PAGE_SIZE, filtered.length).page;
+    AdminPager.slice(filtered, ticketPage, TICKET_PAGE_SIZE).forEach(ticket => {
       const createdAt = formatDate(ticket.createdAt);
       const senderName = ticket.senderName || ticket.userName || 'Unknown User';
       const senderEmail = ticket.senderEmail || ticket.userEmail || '';
@@ -283,6 +299,12 @@
 
     html += '</tbody></table></div>';
     container.innerHTML = html;
+    ticketPager.update({
+      page: ticketPage,
+      size: TICKET_PAGE_SIZE,
+      total: filtered.length,
+      noun: filtered.length === allTickets.length ? 'tickets' : 'matching tickets',
+    });
 
     container.querySelectorAll('[data-action="viewTicket"]').forEach(button => {
       button.addEventListener('click', () => openTicketModal(button.dataset.id));
@@ -459,7 +481,10 @@
         return;
       }
       const eventType = id === 'ticketSearch' ? 'input' : 'change';
-      element.addEventListener(eventType, renderTickets);
+      element.addEventListener(eventType, () => {
+        ticketPage = 1;
+        renderTickets();
+      });
     });
   }
 

@@ -7010,11 +7010,15 @@ router.post(
 /**
  * GET /api/admin/search
  * Cross-entity admin search
- * Query params: q (required), types (comma-separated: users,suppliers,packages,tickets,reports)
+ * Query params: q (required), types (comma-separated: users,suppliers,packages,tickets,reports),
+ * limit (per category, default 10, max 100), offset
+ * Responds { query, results, totals } where totals is the full match count per category
  */
 router.get('/search', authRequired, roleRequired('admin'), async (req, res) => {
-  const MAX_SEARCH_RESULTS = 10;
   const { q, types } = req.query;
+  // 10 a category by default; "Show more" asks again with an offset. At most 100 (the API cap).
+  const limit = Math.min(100, Math.max(1, parseInt(req.query.limit, 10) || 10));
+  const offset = Math.max(0, parseInt(req.query.offset, 10) || 0);
   if (!q || q.trim().length < 2) {
     return res.status(400).json({ error: 'Search query must be at least 2 characters' });
   }
@@ -7023,108 +7027,114 @@ router.get('/search', authRequired, roleRequired('admin'), async (req, res) => {
     ? types.split(',').map(t => t.trim())
     : ['users', 'suppliers', 'packages', 'tickets', 'reports'];
   const results = {};
+  // How many things matched in each category, so the page can say "10 of 37"
+  const totals = {};
+  const takePage = (type, matches) => {
+    totals[type] = matches.length;
+    return matches.slice(offset, offset + limit);
+  };
 
   try {
     if (searchTypes.includes('users')) {
       const users = await dbUnified.read('users');
-      results.users = users
-        .filter(
+      results.users = takePage(
+        'users',
+        users.filter(
           u =>
             (u.email && u.email.toLowerCase().includes(term)) ||
             (u.name && u.name.toLowerCase().includes(term))
         )
-        .slice(0, MAX_SEARCH_RESULTS)
-        .map(u => ({
-          id: u.id,
-          name: u.name,
-          email: u.email,
-          role: u.role,
-          createdAt: u.createdAt,
-        }));
+      ).map(u => ({
+        id: u.id,
+        name: u.name,
+        email: u.email,
+        role: u.role,
+        createdAt: u.createdAt,
+      }));
     }
 
     if (searchTypes.includes('suppliers')) {
       const suppliers = await dbUnified.read('suppliers');
-      results.suppliers = suppliers
-        .filter(
+      results.suppliers = takePage(
+        'suppliers',
+        suppliers.filter(
           s =>
             (s.businessName && s.businessName.toLowerCase().includes(term)) ||
             (s.name && s.name.toLowerCase().includes(term)) ||
             (s.email && s.email.toLowerCase().includes(term)) ||
             (s.category && s.category.toLowerCase().includes(term))
         )
-        .slice(0, MAX_SEARCH_RESULTS)
-        .map(s => ({
-          id: s.id,
-          businessName: s.businessName || s.name,
-          email: s.email,
-          category: s.category,
-          verificationStatus: s.verificationStatus,
-        }));
+      ).map(s => ({
+        id: s.id,
+        businessName: s.businessName || s.name,
+        email: s.email,
+        category: s.category,
+        verificationStatus: s.verificationStatus,
+      }));
     }
 
     if (searchTypes.includes('packages')) {
       const packages = await dbUnified.read('packages');
-      results.packages = packages
-        .filter(
+      results.packages = takePage(
+        'packages',
+        packages.filter(
           p =>
             (p.title && p.title.toLowerCase().includes(term)) ||
             (p.description && p.description.toLowerCase().includes(term)) ||
             (p.supplierName && p.supplierName.toLowerCase().includes(term))
         )
-        .slice(0, MAX_SEARCH_RESULTS)
-        .map(p => ({
-          id: p.id,
-          title: p.title,
-          supplierName: p.supplierName,
-          price: packagePriceText(p),
-          status: p.status,
-        }));
+      ).map(p => ({
+        id: p.id,
+        title: p.title,
+        supplierName: p.supplierName,
+        price: packagePriceText(p),
+        status: p.status,
+      }));
     }
 
     if (searchTypes.includes('tickets')) {
       const tickets = await dbUnified.read('tickets');
-      results.tickets = tickets
-        .filter(
+      results.tickets = takePage(
+        'tickets',
+        tickets.filter(
           t =>
             (t.subject && t.subject.toLowerCase().includes(term)) ||
             (t.message && t.message.toLowerCase().includes(term)) ||
             (t.senderEmail && t.senderEmail.toLowerCase().includes(term)) ||
             (t.userEmail && t.userEmail.toLowerCase().includes(term))
         )
-        .slice(0, MAX_SEARCH_RESULTS)
-        .map(t => ({
-          id: t.id,
-          subject: t.subject,
-          status: t.status,
-          priority: t.priority,
-          senderEmail: t.senderEmail || t.userEmail,
-          createdAt: t.createdAt,
-        }));
+      ).map(t => ({
+        id: t.id,
+        subject: t.subject,
+        status: t.status,
+        priority: t.priority,
+        senderEmail: t.senderEmail || t.userEmail,
+        createdAt: t.createdAt,
+      }));
     }
 
     if (searchTypes.includes('reports')) {
       const reports = await dbUnified.read('reports');
-      results.reports = reports
-        .filter(
+      results.reports = takePage(
+        'reports',
+        reports.filter(
           r =>
             (r.type && r.type.toLowerCase().includes(term)) ||
             (r.reason && r.reason.toLowerCase().includes(term)) ||
             (r.reporterEmail && r.reporterEmail.toLowerCase().includes(term)) ||
             (r.details && r.details.toLowerCase().includes(term))
         )
-        .slice(0, MAX_SEARCH_RESULTS)
-        .map(r => ({
-          id: r.id,
-          type: r.type,
-          reason: r.reason,
-          status: r.status,
-          reporterEmail: r.reporterEmail,
-          createdAt: r.createdAt,
-        }));
+      ).map(r => ({
+        id: r.id,
+        type: r.type,
+        reason: r.reason,
+        status: r.status,
+        reporterEmail: r.reporterEmail,
+        createdAt: r.createdAt,
+      }));
     }
 
-    res.json({ query: q, results });
+    res.json({ query: q, results, totals, limit, offset });
   } catch (err) {
     logger.error('Admin search error:', err);
     res.status(500).json({ error: 'Search failed' });
