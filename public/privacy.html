@@ -35,7 +35,7 @@
     <link rel="manifest" href="/site.webmanifest" />
     <meta name="msapplication-config" content="/browserconfig.xml" />
     <link rel="stylesheet" href="/assets/css/eventflow-footer.css" />
-    <link rel="stylesheet" href="/assets/css/legal-pages.css?v=1.0.1" />
+    <link rel="stylesheet" href="/assets/css/legal-pages.css?v=1.0.2" />
   </head>
   <body>
     <!-- TOP NAVBAR - GOLD STANDARD REBUILD -->
@@ -169,12 +169,7 @@
         <h1>Privacy Notice</h1>
         <div class="card" style="max-width: 900px; margin: 0 auto">
           <p class="small" style="color: #667085">
-            <strong>Last materially updated:</strong> {{POLICY_PRIVACY_LAST_UPDATED}}
-          </p>
-          <p class="small" style="color: #667085">
-            <strong>Effective date:</strong> {{POLICY_PRIVACY_EFFECTIVE_DATE}} ·
-            <strong>Last reviewed:</strong> {{POLICY_PRIVACY_LAST_REVIEWED}} ·
-            <strong>Version:</strong> {{POLICY_PRIVACY_VERSION}}
+            Updated {{POLICY_PRIVACY_LAST_UPDATED}} · Version {{POLICY_PRIVACY_VERSION}}
           </p>
 
           <p>
@@ -731,6 +726,7 @@
             permitted by law.
           </p>
 
+          <div class="legal-table-wrap" role="region" aria-label="Data retention periods" tabindex="0">
           <table style="width: 100%; border-collapse: collapse; margin: 16px 0">
             <thead>
               <tr style="background: #f9fafb; border-bottom: 2px solid #e7eaf0">
@@ -817,6 +813,7 @@
               </tr>
             </tbody>
           </table>
+          </div>
 
           <h2 class="h4">7. Third-Party Services</h2>
           <p>
@@ -981,6 +978,7 @@
           </ul>
 
           <h3 class="h5">8.3 Third-Party Service Locations</h3>
+          <div class="legal-table-wrap" role="region" aria-label="Third-party service locations" tabindex="0">
           <table style="width: 100%; border-collapse: collapse; margin-top: 12px">
             <tr style="background: #f3f4f6">
               <th style="padding: 12px; text-align: left; border: 1px solid #e7eaf0">Service</th>
@@ -1048,6 +1046,7 @@
               <td style="padding: 12px; border: 1px solid #e7eaf0">Consent, provider terms and applicable transfer mechanism</td>
             </tr>
           </table>
+          </div>
 
           <h3 class="h5" style="margin-top: 24px">8.4 Safeguards for International Transfers</h3>
           <p>Where restricted transfers occur, EventFlow must use a lawful transfer mechanism and assess the safeguards appropriate to the provider and destination. Depending on the transfer, this may include:</p>

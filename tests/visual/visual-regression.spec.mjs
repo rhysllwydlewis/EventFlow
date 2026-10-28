@@ -70,6 +70,11 @@ const BASELINE_PAGES = [
   // rendering, then the image reviewed and committed, and this flag removed.
   { name: 'for-suppliers', path: '/for-suppliers', screenshotApproved: false },
   { name: 'marketplace', path: '/marketplace' },
+  // The Legal Hub is a long page with a sticky contents list that turns into a
+  // pinned row of chips on phones, so it is worth scanning at both widths.
+  // Screenshot unapproved until a baseline is generated where CI's rendering is
+  // reproduced; the axe scan runs regardless.
+  { name: 'legal', path: '/legal', screenshotApproved: false },
   {
     name: 'notifications-harness',
     path: '/test-notifications.html',

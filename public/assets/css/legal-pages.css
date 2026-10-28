@@ -247,6 +247,28 @@ body {
   opacity: 1;
 }
 
+/* ── Tables ───────────────────────────────────────────────────────────────── */
+
+/*
+ * mobile-optimizations.css turns every table into a scrolling block below 768px,
+ * which leaves a scrollable region a keyboard cannot reach. The wrapper owns the
+ * scrolling, is focusable and named, and the table keeps its table semantics.
+ */
+.legal-table-wrap {
+  max-width: 100%;
+  overflow-x: auto;
+}
+
+.legal-table-wrap:focus-visible {
+  outline: 2px solid var(--legal-brand);
+  outline-offset: 2px;
+}
+
+.legal-table-wrap > table {
+  display: table;
+  overflow: visible;
+}
+
 /* ── Back to top ──────────────────────────────────────────────────────────── */
 
 .legal-top {

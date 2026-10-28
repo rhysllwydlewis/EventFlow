@@ -1,0 +1,1124 @@
+/*
+ * Legal Hub (/legal).
+ *
+ * One stylesheet for the whole page, replacing the <style> block that used to
+ * live in legal.html. Every selector sits under .lh-page (the <body> class), so
+ * nothing here can reach Terms, Privacy or the other legal documents that share
+ * legal-pages.css and legal-pages.js.
+ *
+ * Design matches the customer and supplier dashboards: warm-neutral page, white
+ * cards with hairline borders, one teal accent, hierarchy from type size and
+ * spacing rather than tinted boxes. Type sizes stay on the site scale
+ * (11 12 13 14 16 18 20 24 28 32).
+ *
+ * The sidebar contents list, the notice boxes and the "last updated" strip are
+ * hand-written in legal.html and are restyled here by class; the reading
+ * progress bar, back-to-top button and scroll-spy (aria-current) still come from
+ * legal-pages.js / legal-pages.css.
+ *
+ * Structure:
+ *   1. Tokens and page frame
+ *   2. Hero and quick links
+ *   3. Layout and contents sidebar
+ *   4. Section cards and typography
+ *   5. Notices, callouts, buttons, tables
+ *   6. Responsive and print
+ */
+
+/* ------------------------------------------------------------------ *
+ * 1. Tokens and page frame
+ * ------------------------------------------------------------------ */
+
+.lh-page {
+  --lh-bg: #f7f6f3;
+  --lh-surface: #fff;
+  --lh-ink: #17202f;
+  --lh-ink-2: #3d4955;
+  --lh-muted: #566176;
+  --lh-line: #e8e5de;
+  --lh-line-soft: #f0eee9;
+  --lh-line-strong: #d6d2c8;
+  --lh-faint: #6b7587;
+  --lh-accent: #0b8073;
+  --lh-accent-hover: #086b60;
+  --lh-accent-soft: #e7f3f0;
+  --lh-accent-line: #c4e1da;
+  --lh-ring: rgba(11, 128, 115, 0.32);
+  --lh-warn: #8a5300;
+  --lh-warn-soft: #fdf4df;
+  --lh-warn-line: #f3dca6;
+  --lh-danger: #b42318;
+  --lh-danger-soft: #fdecea;
+  --lh-danger-line: #f4c7c1;
+  --lh-info: #1d4f91;
+  --lh-info-soft: #eaf2fc;
+  --lh-info-line: #c6daf3;
+  --lh-radius: 16px;
+  --lh-radius-sm: 10px;
+  --lh-shadow: 0 1px 2px rgba(23, 33, 43, 0.04), 0 1px 1px rgba(23, 33, 43, 0.03);
+
+  background: var(--lh-bg);
+  color: var(--lh-ink);
+}
+
+.lh-page main.lh {
+  padding: 40px 0 72px;
+  background: var(--lh-bg);
+  color: var(--lh-ink);
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+/* mobile-optimizations.css sets overflow-x: hidden on main and .container, which
+   turns each into a scroll container and stops the pinned contents row from
+   sticking. clip hides overflow the same way without creating one. */
+.lh-page main.lh,
+.lh-page .lh-container {
+  overflow-x: clip;
+  overflow-y: visible;
+}
+
+.lh-page main.lh *,
+.lh-page main.lh *::before,
+.lh-page main.lh *::after {
+  box-sizing: border-box;
+}
+
+.lh-page .lh-container {
+  /* styles.css gives .container a percentage width and mobile-optimizations.css
+     adds side padding on top, which left 37px gutters on a phone. A fixed
+     16px gutter keeps the cards as wide as the screen allows. */
+  width: min(1200px, 100% - 32px);
+  max-width: none;
+  padding-left: 0;
+  padding-right: 0;
+}
+
+.lh-page main.lh :where(a):focus-visible,
+.lh-page main.lh :where(button):focus-visible,
+.lh-page main.lh :where(input):focus-visible {
+  outline: 2px solid var(--lh-accent);
+  outline-offset: 2px;
+  box-shadow: 0 0 0 4px var(--lh-ring);
+}
+
+/* ------------------------------------------------------------------ *
+ * 2. Hero and quick links
+ * ------------------------------------------------------------------ */
+
+.lh-page .lh-hero {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 12px;
+  margin: 0 0 28px;
+}
+
+.lh-page .lh-eyebrow {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--lh-accent-hover);
+}
+
+.lh-page .lh-hero h1 {
+  margin: 0;
+  font-size: 32px;
+  line-height: 1.15;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--lh-ink);
+  text-wrap: balance;
+}
+
+.lh-page .lh-lede {
+  margin: 0;
+  max-width: 62ch;
+  font-size: 16px;
+  line-height: 1.6;
+  color: var(--lh-muted);
+}
+
+.lh-page .last-updated {
+  display: inline-block;
+  margin: 4px 0 0;
+  padding: 4px 12px;
+  border: 1px solid var(--lh-line);
+  border-radius: var(--lh-radius-sm);
+  background: var(--lh-surface);
+  color: var(--lh-muted);
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.5;
+}
+
+.lh-page .lh-quick {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  margin: 0 0 28px;
+  padding: 0;
+  list-style: none;
+}
+
+.lh-page .lh-quick a {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  height: 100%;
+  padding: 16px;
+  border: 1px solid var(--lh-line);
+  border-radius: var(--lh-radius);
+  background: var(--lh-surface);
+  box-shadow: var(--lh-shadow);
+  color: var(--lh-ink);
+  text-decoration: none;
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease,
+    transform 0.15s ease;
+}
+
+.lh-page .lh-quick a:hover {
+  border-color: var(--lh-accent-line);
+  box-shadow: 0 6px 20px rgba(23, 33, 43, 0.08);
+  transform: translateY(-1px);
+}
+
+.lh-page .lh-quick a::after {
+  content: '\2192' / '';
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  color: var(--lh-faint);
+  font-size: 16px;
+  line-height: 1;
+  transition:
+    color 0.15s ease,
+    transform 0.15s ease;
+}
+
+.lh-page .lh-quick a:hover::after {
+  color: var(--lh-accent);
+  transform: translateX(2px);
+}
+
+.lh-page .lh-quick-icon {
+  transition:
+    background-color 0.15s ease,
+    color 0.15s ease;
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  margin-bottom: 8px;
+  border-radius: var(--lh-radius-sm);
+  background: var(--lh-accent-soft);
+  color: var(--lh-accent);
+}
+
+.lh-page .lh-quick a:hover .lh-quick-icon {
+  background: var(--lh-accent);
+  color: #fff;
+}
+
+.lh-page .lh-quick-icon svg {
+  width: 18px;
+  height: 18px;
+  flex: none;
+}
+
+.lh-page .lh-quick-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--lh-ink);
+}
+
+.lh-page .lh-quick-sub {
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--lh-muted);
+}
+
+/* ------------------------------------------------------------------ *
+ * 3. Layout and contents sidebar
+ * ------------------------------------------------------------------ */
+
+.lh-page .legal-grid {
+  display: grid;
+  grid-template-columns: 280px minmax(0, 1fr);
+  gap: 32px;
+  align-items: start;
+  counter-reset: lh-section;
+}
+
+.lh-page .legal-toc {
+  position: sticky;
+  top: 80px;
+  display: flex;
+  flex-direction: column;
+  /* Twenty-one entries are taller than a laptop viewport, so the list scrolls
+     inside the sidebar instead of running off the bottom. */
+  max-height: calc(100vh - 104px);
+  margin: 0;
+  padding: 20px 16px 16px;
+  border: 1px solid var(--lh-line);
+  border-radius: var(--lh-radius);
+  background: var(--lh-surface);
+  box-shadow: var(--lh-shadow);
+}
+
+.lh-page .legal-toc h2 {
+  margin: 0 0 12px;
+  padding: 0 8px;
+  border: 0;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--lh-muted);
+}
+
+.lh-page .legal-toc ul {
+  margin: 0;
+  padding: 0 4px 0 0;
+  list-style: none;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  counter-reset: lh-toc;
+}
+
+.lh-page .legal-toc ul::-webkit-scrollbar {
+  width: 6px;
+}
+
+.lh-page .legal-toc ul::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: var(--lh-line-strong);
+}
+
+.lh-page .legal-toc li {
+  margin: 1px 0;
+  counter-increment: lh-toc;
+}
+
+/* Group labels between runs of entries; they are not links and are not numbered. */
+.lh-page .legal-toc .lh-toc-group {
+  margin: 14px 0 4px;
+  padding: 0 10px;
+  counter-increment: none;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  line-height: 1.4;
+  text-transform: uppercase;
+  color: var(--lh-muted);
+}
+
+.lh-page .legal-toc a {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  padding: 7px 10px;
+  border-radius: 8px;
+  color: var(--lh-ink-2);
+  font-size: 14px;
+  line-height: 1.35;
+  text-decoration: none;
+  transition:
+    background-color 0.15s ease,
+    color 0.15s ease;
+}
+
+.lh-page .legal-toc a::before {
+  content: counter(lh-toc, decimal-leading-zero);
+  flex: none;
+  min-width: 1.5em;
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  color: var(--lh-faint);
+}
+
+.lh-page .legal-toc a:hover,
+.lh-page .legal-toc a:focus-visible {
+  background: var(--lh-line-soft);
+  color: var(--lh-ink);
+}
+
+.lh-page .legal-toc a[aria-current='true'] {
+  background: var(--lh-accent-soft);
+  color: var(--lh-accent-hover);
+  font-weight: 600;
+}
+
+.lh-page .legal-toc a[aria-current='true']::before {
+  color: var(--lh-accent);
+}
+
+/* ------------------------------------------------------------------ *
+ * 4. Section cards and typography
+ * ------------------------------------------------------------------ */
+
+.lh-page .legal-section {
+  margin: 0 0 20px;
+  padding: 32px;
+  border: 1px solid var(--lh-line);
+  border-radius: var(--lh-radius);
+  background: var(--lh-surface);
+  box-shadow: var(--lh-shadow);
+  scroll-margin-top: 100px;
+  counter-increment: lh-section;
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+/* The section a contents or quick link just jumped to. */
+.lh-page .legal-section:target {
+  border-color: var(--lh-accent-line);
+  box-shadow:
+    0 0 0 3px var(--lh-accent-soft),
+    var(--lh-shadow);
+}
+
+.lh-page .legal-section > h2 {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  margin: 0 0 20px;
+  padding: 0 0 16px;
+  border-bottom: 1px solid var(--lh-line-soft);
+  font-size: 24px;
+  line-height: 1.25;
+  font-weight: 700;
+  letter-spacing: -0.015em;
+  color: var(--lh-ink);
+  text-wrap: balance;
+}
+
+/* The "#" link legal-pages.js adds to each heading. On a phone the sitewide 44px
+   tap-target rule made this invisible link a 44px-tall flex item, which pushed
+   every section title away from its rule. */
+.lh-page .legal-section > h2 > .legal-anchor {
+  min-width: 0 !important;
+  min-height: 0 !important;
+  margin-left: 4px;
+  padding: 0 4px;
+  font-size: 14px;
+  text-decoration: none !important;
+}
+
+.lh-page .legal-section > h2::before {
+  content: counter(lh-section, decimal-leading-zero);
+  flex: none;
+  min-width: 34px;
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: var(--lh-accent-soft);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  line-height: 1.4;
+  text-align: center;
+  color: var(--lh-accent-hover);
+  /* Sit on the first line's x-height, not its baseline, when a title wraps. */
+  transform: translateY(-2px);
+}
+
+.lh-page .legal-section h3 {
+  margin: 28px 0 8px;
+  font-size: 18px;
+  line-height: 1.3;
+  font-weight: 600;
+  letter-spacing: -0.005em;
+  color: var(--lh-ink);
+}
+
+.lh-page .legal-section h4 {
+  margin: 20px 0 6px;
+  font-size: 16px;
+  line-height: 1.35;
+  font-weight: 600;
+  color: var(--lh-ink);
+}
+
+.lh-page .legal-section .lh-flag {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.lh-page .lh-dot {
+  flex: none;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--lh-accent);
+  box-shadow: 0 0 0 4px var(--lh-accent-soft);
+}
+
+.lh-page .lh-dot--warn {
+  background: #c27803;
+  box-shadow: 0 0 0 4px var(--lh-warn-soft);
+}
+
+.lh-page .lh-dot--danger {
+  background: var(--lh-danger);
+  box-shadow: 0 0 0 4px var(--lh-danger-soft);
+}
+
+.lh-page .legal-section p,
+.lh-page .legal-section li {
+  font-size: 14px;
+  line-height: 1.65;
+  color: var(--lh-ink-2);
+}
+
+.lh-page .legal-section p {
+  margin: 0 0 12px;
+}
+
+/* One reading measure for text and lists, so paragraphs and bullets line up
+   instead of wrapping at two different widths. Cards, notices and tables stay
+   full width. */
+.lh-page .legal-section p {
+  max-width: 80ch;
+}
+
+.lh-page .legal-section > :is(ul, ol),
+.lh-page .legal-section .card > :is(ul, ol),
+.lh-page .legal-section .notice > :is(ul, ol) {
+  max-width: 80ch;
+}
+
+.lh-page .legal-section :is(ul, ol) {
+  margin: 0 0 16px;
+  padding-left: 22px;
+}
+
+.lh-page .legal-section li {
+  margin: 0 0 6px;
+  padding-left: 2px;
+}
+
+.lh-page .legal-section li:last-child {
+  margin-bottom: 0;
+}
+
+.lh-page .legal-section li::marker {
+  color: var(--lh-line-strong);
+}
+
+/* Numbers carry meaning, so they get readable contrast; only bullets stay faint. */
+.lh-page .legal-section ol > li::marker {
+  color: var(--lh-faint);
+  font-weight: 600;
+}
+
+/* mobile-optimizations.css gives every link in <main> a 44px minimum height and
+   its text-link exception loses on specificity, so a link at the end of a line
+   stretches that line to 44px. Links inside text are exempt from the target-size
+   rule (WCAG 2.5.8), so they go back to their natural height. */
+.lh-page .legal-section :is(p, li, .small) a:not(.cta) {
+  min-height: 0 !important;
+  min-width: 0 !important;
+  padding: 0;
+}
+
+.lh-page .legal-section strong {
+  color: var(--lh-ink);
+  font-weight: 600;
+}
+
+.lh-page .legal-section a:not(.cta) {
+  color: var(--lh-accent-hover);
+  text-decoration: underline;
+  text-decoration-color: var(--lh-accent-line);
+  text-underline-offset: 3px;
+  transition: text-decoration-color 0.15s ease;
+}
+
+.lh-page .legal-section a.lh-link--danger {
+  color: var(--lh-danger);
+  font-weight: 600;
+  text-decoration-color: var(--lh-danger-line);
+}
+
+.lh-page .legal-section a:not(.cta):hover {
+  text-decoration-color: currentColor;
+}
+
+.lh-page .legal-section .small {
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--lh-muted);
+}
+
+.lh-page .legal-section hr {
+  margin: 24px 0;
+  border: 0;
+  border-top: 1px solid var(--lh-line-soft);
+}
+
+/* ------------------------------------------------------------------ *
+ * 5. Notices, callouts, buttons, tables
+ * ------------------------------------------------------------------ */
+
+/* Per-document "Updated <date> · Version <n>" line: plain muted text, no box. */
+.lh-page .legal-section .lh-meta,
+.lh-page .lh-closing .lh-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 0;
+  max-width: none;
+  margin: -8px 0 20px;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.5;
+  color: var(--lh-muted);
+}
+
+.lh-page .lh-meta > span + span::before {
+  content: '';
+  display: inline-block;
+  width: 3px;
+  height: 3px;
+  margin: 0 10px;
+  border-radius: 50%;
+  background: var(--lh-line-strong);
+  vertical-align: middle;
+}
+
+/* Inner cards (rights, contact and payment blocks). styles.css forces the
+   site-wide .card look with !important (shadow, no border, fixed padding), so
+   the overrides here need it too; the scope keeps them on this page. */
+.lh-page .legal-section .card {
+  margin: 16px 0 !important;
+  padding: 20px !important;
+  border: 1px solid var(--lh-line) !important;
+  border-radius: var(--lh-radius-sm) !important;
+  background: var(--lh-bg) !important;
+  box-shadow: none !important;
+}
+
+.lh-page .legal-section .card:hover {
+  transform: none;
+  box-shadow: none !important;
+}
+
+.lh-page .legal-section .card > :last-child {
+  margin-bottom: 0;
+}
+
+.lh-page .legal-section .card :is(h3, h4):first-child {
+  margin-top: 0;
+}
+
+.lh-page .legal-section .card.lh-card--plain {
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: none !important;
+}
+
+.lh-page .legal-section .card.lh-card--danger {
+  border-color: var(--lh-danger-line) !important;
+  background: var(--lh-danger-soft) !important;
+}
+
+.lh-page .legal-section .card.lh-card--danger h3 {
+  color: var(--lh-danger);
+}
+
+.lh-page .legal-section .card.lh-card--ok {
+  border-color: var(--lh-accent-line) !important;
+  background: var(--lh-accent-soft) !important;
+}
+
+/* Callout and notice boxes: one quiet pattern, tone carried by the border and
+   a tinted fill, never a saturated block (except the urgent report box). */
+.lh-page .legal-section .lh-callout,
+.lh-page .legal-section .notice {
+  margin: 20px 0;
+  padding: 14px 16px;
+  border: 1px solid var(--lh-accent-line);
+  border-left-width: 3px;
+  border-radius: var(--lh-radius-sm);
+  background: var(--lh-accent-soft);
+  color: var(--lh-ink-2);
+}
+
+.lh-page .legal-section .lh-callout {
+  max-width: none;
+  margin-top: 0;
+}
+
+.lh-page .legal-section :is(.lh-callout, .notice) > :last-child {
+  margin-bottom: 0;
+}
+
+.lh-page .legal-section :is(.lh-callout, .notice) :is(h3, h4):first-child {
+  margin-top: 0;
+}
+
+.lh-page .legal-section .lh-notice--warn {
+  border-color: var(--lh-warn-line);
+  background: var(--lh-warn-soft);
+}
+
+.lh-page .legal-section .lh-notice--info {
+  border-color: var(--lh-info-line);
+  background: var(--lh-info-soft);
+}
+
+.lh-page .legal-section .lh-notice--danger {
+  border-color: var(--lh-danger-line);
+  background: var(--lh-danger-soft);
+}
+
+.lh-page .legal-section .lh-notice--alert {
+  border-color: var(--lh-danger);
+  background: var(--lh-danger);
+  color: #fff;
+}
+
+.lh-page .legal-section .lh-notice--alert :is(p, li, strong, h3, h4) {
+  color: #fff;
+}
+
+.lh-page .legal-section .lh-notice--alert a {
+  color: #fff;
+  text-decoration-color: rgba(255, 255, 255, 0.6);
+}
+
+/* Buttons: link CTAs and the cookie-preference button. */
+.lh-page .legal-section a.cta,
+.lh-page .legal-section .lh-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 40px;
+  padding: 0 18px;
+  border: 1px solid var(--lh-accent);
+  border-radius: var(--lh-radius-sm);
+  background: var(--lh-accent);
+  box-shadow: none;
+  color: #fff;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1;
+  text-decoration: none;
+  cursor: pointer;
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+.lh-page .legal-section a.cta:hover,
+.lh-page .legal-section .lh-btn:hover {
+  border-color: var(--lh-accent-hover);
+  background: var(--lh-accent-hover);
+  box-shadow: 0 4px 12px rgba(11, 128, 115, 0.25);
+  color: #fff;
+}
+
+.lh-page .legal-section a.cta:active,
+.lh-page .legal-section .lh-btn:active {
+  box-shadow: none;
+  transform: translateY(1px);
+}
+
+/* styles.css flattens every [data-cookie-prefs] button into footer-style link
+   text with !important, so the in-page button has to win the same way. */
+.lh-page .legal-section button.lh-btn[data-cookie-prefs] {
+  display: inline-flex !important;
+  min-height: 40px;
+  padding: 0 18px !important;
+  border: 1px solid var(--lh-accent) !important;
+  border-radius: var(--lh-radius-sm) !important;
+  background: var(--lh-accent) !important;
+  color: #fff !important;
+  font-size: 14px !important;
+  font-weight: 600 !important;
+  line-height: 1 !important;
+  text-decoration: none;
+}
+
+.lh-page .legal-section button.lh-btn[data-cookie-prefs]:hover {
+  border-color: var(--lh-accent-hover) !important;
+  background: var(--lh-accent-hover) !important;
+}
+
+.lh-page .legal-section .lh-btn svg {
+  width: 16px;
+  height: 16px;
+  flex: none;
+}
+
+/* The "withdraw consent" action is an inline text button inside a sentence. */
+.lh-page .legal-section .lh-link-btn {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--lh-accent-hover);
+  font: inherit;
+  text-decoration: underline;
+  text-decoration-color: var(--lh-accent-line);
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+.lh-page .legal-section .lh-link-btn:hover {
+  text-decoration-color: currentColor;
+}
+
+/* Tables sit in a wrapper so a wide one scrolls inside the card instead of
+   widening the page, and the table itself keeps its table semantics. */
+.lh-page .legal-section .lh-table-wrap:focus-visible {
+  outline: 2px solid var(--lh-accent);
+  outline-offset: 2px;
+}
+
+.lh-page .legal-section .lh-table-wrap {
+  max-width: 100%;
+  margin: 12px 0 16px;
+  overflow-x: auto;
+}
+
+/* mobile-optimizations.css turns every table into a scrolling block below
+   768px; the wrapper owns scrolling here, so the table stays a real table. */
+.lh-page .legal-section table {
+  display: table;
+  overflow: visible;
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.lh-page .legal-section :is(th, td) {
+  padding: 10px 12px;
+  border: 1px solid var(--lh-line);
+  text-align: left;
+  vertical-align: top;
+  color: var(--lh-ink-2);
+}
+
+.lh-page .legal-section th {
+  background: var(--lh-bg);
+  color: var(--lh-ink);
+  font-weight: 600;
+}
+
+.lh-page .legal-section tr:nth-child(even) td {
+  background: var(--lh-bg);
+}
+
+/* The five data-rights cards sit two across; everything else in the section
+   (heading, intro, notes) keeps the full row. */
+@media (min-width: 900px) {
+  .lh-page #gdpr {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    column-gap: 16px;
+    align-content: start;
+  }
+
+  .lh-page #gdpr > :not(.card) {
+    grid-column: 1 / -1;
+  }
+
+  .lh-page #gdpr > .card {
+    margin: 0 0 16px !important;
+  }
+
+  .lh-page #gdpr > .card:last-of-type {
+    grid-column: 1 / -1;
+  }
+}
+
+/* Closing contact card, outside the sections. */
+.lh-page .card.lh-closing {
+  margin: 40px 0 0 !important;
+  padding: 28px 32px !important;
+  border: 1px solid var(--lh-line) !important;
+  border-radius: var(--lh-radius) !important;
+  background: var(--lh-surface) !important;
+  box-shadow: var(--lh-shadow) !important;
+  text-align: center;
+}
+
+.lh-page .lh-closing :is(p, .small) {
+  margin: 0 auto 12px;
+  color: var(--lh-ink-2);
+}
+
+.lh-page .lh-closing :is(p, .small):last-child {
+  margin-bottom: 0;
+}
+
+.lh-page .lh-closing p {
+  max-width: 70ch;
+}
+
+.lh-page .lh-closing .lh-meta {
+  justify-content: center;
+  max-width: none;
+  margin: 16px 0 0;
+  padding-top: 16px;
+  border-top: 1px solid var(--lh-line-soft);
+}
+
+.lh-page .lh-closing a {
+  color: var(--lh-accent-hover);
+  text-underline-offset: 3px;
+}
+
+/* ------------------------------------------------------------------ *
+ * 6. Responsive and print
+ * ------------------------------------------------------------------ */
+
+@media (max-width: 1024px) {
+  .lh-page .lh-quick {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 860px) {
+  /* A block parent, not a one-column grid: a sticky grid item can only stick
+     inside its own row, so the pinned chips would scroll away with it. */
+  .lh-page .legal-grid {
+    display: block;
+  }
+
+  /* Twenty-one stacked links would push the first section a screen down, so on
+     small screens the contents become one scrolling row of chips pinned under
+     the header. legal-hub.js keeps the current chip in view. */
+  .lh-page .legal-toc {
+    position: sticky;
+    top: var(--ef-header-height, 64px);
+    z-index: 20;
+    max-height: none;
+    margin: 0 -6px 16px;
+    padding: 6px;
+    border-radius: 14px;
+    background: rgba(255, 255, 255, 0.94);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+  }
+
+  .lh-page .legal-toc h2 {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    padding: 0;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+
+  .lh-page .legal-toc ul {
+    position: relative;
+    display: flex;
+    gap: 6px;
+    padding: 0;
+    overflow: auto hidden;
+    overscroll-behavior-x: contain;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .lh-page .legal-toc ul::-webkit-scrollbar {
+    display: none;
+  }
+
+  .lh-page .legal-toc li {
+    flex: none;
+    margin: 0;
+  }
+
+  .lh-page .legal-toc .lh-toc-group {
+    display: none;
+  }
+
+  /* The sitewide 44px tap-target rule would make the pinned bar tall; 32px chips
+     still clear WCAG 2.5.8 (24px) and leave the heading landing under the
+     scroll-spy line in legal-pages.js. */
+  .lh-page .legal-toc a {
+    min-height: 32px !important;
+    padding: 5px 12px;
+    border: 1px solid var(--lh-line);
+    border-radius: 999px;
+    white-space: nowrap;
+  }
+
+  .lh-page .legal-toc a::before {
+    display: none;
+  }
+
+  /* The row scrolls, so it clips anything outside it; draw the focus ring inside
+     the chip instead of outside it. */
+  .lh-page main.lh .legal-toc a:focus-visible {
+    outline-offset: -2px;
+    box-shadow: none;
+  }
+
+  .lh-page .legal-toc a[aria-current='true'] {
+    border-color: var(--lh-accent-line);
+  }
+
+  .lh-page .legal-section {
+    scroll-margin-top: 112px;
+  }
+}
+
+/* From 768px the site header is 73px tall (65px below that), so the pinned chip
+   row sits under it and the sections land under the row; 119px keeps the heading
+   inside the 120px scroll-spy line in legal-pages.js. */
+@media (min-width: 768px) and (max-width: 860px) {
+  .lh-page .legal-toc {
+    top: 73px;
+  }
+
+  .lh-page .legal-section {
+    scroll-margin-top: 119px;
+  }
+}
+
+@media (max-width: 768px) {
+  .lh-page main.lh {
+    padding: 24px 0 56px;
+  }
+
+  .lh-page .lh-hero h1 {
+    font-size: 28px;
+  }
+
+  .lh-page .lh-lede {
+    font-size: 14px;
+  }
+
+  .lh-page .legal-section {
+    padding: 20px;
+    margin-bottom: 16px;
+  }
+
+  .lh-page .legal-section > h2 {
+    font-size: 20px;
+    padding-bottom: 12px;
+    margin-bottom: 16px;
+  }
+
+  .lh-page .legal-section h3 {
+    font-size: 16px;
+  }
+
+  .lh-page .legal-section .card:not(.lh-card--plain) {
+    padding: 16px !important;
+  }
+
+  .lh-page .card.lh-closing {
+    padding: 20px !important;
+  }
+}
+
+@media (max-width: 480px) {
+  /* Four tall cards would push the first section more than a screen down; two
+     across, with the icon beside the title and the one-line blurb dropped. */
+  .lh-page .lh-quick {
+    gap: 8px;
+    margin-bottom: 20px;
+  }
+
+  .lh-page .lh-quick a {
+    flex-direction: row;
+    align-items: center;
+    gap: 10px;
+    padding: 12px;
+  }
+
+  .lh-page .lh-quick a::after,
+  .lh-page .lh-quick-sub {
+    display: none;
+  }
+
+  .lh-page .lh-quick-icon {
+    width: 32px;
+    height: 32px;
+    margin: 0;
+  }
+
+  .lh-page .lh-quick-title {
+    font-size: 13px;
+    line-height: 1.3;
+  }
+
+  .lh-page .legal-section {
+    padding: 16px;
+  }
+}
+
+/* ui-ux-fixes.css turns on smooth scrolling for every page whatever the visitor's
+   motion setting, and a jump across this page can be tens of thousands of pixels
+   long. html sits outside .lh-page, so this is the one rule that reaches up from
+   it; it only applies when reduced motion is requested. */
+@media (prefers-reduced-motion: reduce) {
+  html:has(> body.lh-page) {
+    scroll-behavior: auto;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lh-page .lh-quick a,
+  .lh-page .legal-toc a,
+  .lh-page .legal-section a,
+  .lh-page .legal-section .lh-btn {
+    transition: none;
+  }
+
+  .lh-page .lh-quick a:hover {
+    transform: none;
+  }
+}
+
+@media print {
+  .lh-page,
+  .lh-page main.lh {
+    background: #fff;
+  }
+
+  .lh-page .lh-quick,
+  .lh-page .legal-toc {
+    display: none;
+  }
+
+  .lh-page .legal-grid {
+    display: block;
+  }
+
+  .lh-page .legal-section,
+  .lh-page .card {
+    break-inside: avoid-page;
+  }
+
+  .lh-page .legal-section > h2 {
+    break-after: avoid;
+  }
+
+  .lh-page .legal-section,
+  .lh-page .lh-closing {
+    border: 0;
+    box-shadow: none;
+  }
+}
