@@ -14,6 +14,7 @@ const { PresenceService } = require('./services/presenceService');
 const jwt = require('jsonwebtoken');
 // eslint-disable-next-line node/no-unpublished-require, node/no-missing-require
 const { userIdFromCookie } = require('./utils/wsAuth');
+const { getAccountRestriction } = require('./utils/accountRestriction');
 // eslint-disable-next-line node/no-unpublished-require, node/no-missing-require
 const { ObjectId } = require('mongodb');
 // eslint-disable-next-line node/no-unpublished-require, node/no-missing-require
@@ -126,10 +127,11 @@ class WebSocketServerV2 {
     // This runs before 'connection' fires so socket.userId is already set for cookie-auth users.
     // Connections are never rejected here — unauthenticated sockets may still connect but
     // will fail on any protected event handler.
-    this.io.use((socket, next) => {
+    // A suspended or banned account is left unauthenticated, the same as no cookie at all.
+    this.io.use(async (socket, next) => {
       const cookieHeader = socket.handshake.headers.cookie;
       const userId = userIdFromCookie(cookieHeader);
-      if (userId) {
+      if (userId && !(await this.isUserRestricted(userId))) {
         socket.userId = userId;
         logger.debug('WebSocket pre-authenticated via cookie', { socketId: socket.id, userId });
       }
@@ -345,6 +347,41 @@ class WebSocketServerV2 {
    *      at handshake time; `auth` event just confirms and completes the setup.
    *   2. Token-based: caller sends `{ token }` for environments where cookies are unavailable.
    */
+  /**
+   * Whether an account is suspended or banned. Without a database to ask, nobody is treated as
+   * restricted (the HTTP routes still enforce it).
+   * @param {string} userId - User id
+   * @returns {Promise<boolean>} True when the account may not use realtime
+   */
+  async isUserRestricted(userId) {
+    if (!this.db || !userId) {
+      return false;
+    }
+    try {
+      const user = await this.db.collection('users').findOne({ id: userId });
+      return Boolean(getAccountRestriction(user));
+    } catch (error) {
+      logger.warn('WebSocket restriction check failed', { userId, error: error.message });
+      return false;
+    }
+  }
+
+  /**
+   * Closes every open connection a user has (called when an admin suspends or bans them).
+   * @param {string} userId - User id
+   * @returns {number} How many connections were closed
+   */
+  disconnectUser(userId) {
+    const socketIds = [...(this.userSockets.get(userId) || [])];
+    for (const socketId of socketIds) {
+      const socket = this.io.sockets.sockets.get(socketId);
+      if (socket) {
+        socket.disconnect(true);
+      }
+    }
+    return socketIds.length;
+  }
+
   async handleAuth(socket, data) {
     try {
       let userId = socket.userId; // may already be set by the io.use() cookie middleware
@@ -376,6 +413,12 @@ class WebSocketServerV2 {
           socket.emit('auth:error', { error: 'Invalid or expired token' });
           return;
         }
+      }
+
+      if (await this.isUserRestricted(userId)) {
+        socket.userId = null;
+        socket.emit('auth:error', { error: 'This account is not allowed to connect' });
+        return;
       }
 
       // Store user-socket mapping

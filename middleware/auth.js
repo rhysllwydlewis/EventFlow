@@ -154,6 +154,34 @@ function wantsHtml(req) {
 }
 
 /**
+ * Answers a suspended or banned account (a redirect for a browser, a 403 for an API call), or
+ * lets a timed suspension that has run out pass and tidies the record.
+ * @param {Object} req - Express request
+ * @param {Object} res - Express response
+ * @param {Object} dbUser - The user as stored
+ * @returns {Object|null} The response that was sent, or null when the account may continue
+ */
+function restrictedAccountResponse(req, res, dbUser) {
+  const restriction = getAccountRestriction(dbUser);
+  if (restriction) {
+    logger.warn('Restricted account blocked', { userId: dbUser.id, type: restriction.type });
+    return wantsHtml(req)
+      ? res.redirect(restrictionRedirect(restriction))
+      : res.status(403).json(restrictionBody(restriction));
+  }
+  if (dbUser.suspended === true) {
+    // Timed suspension that has run out: let the account through and tidy the record.
+    releaseExpiredSuspension(require('../db-unified'), dbUser).catch(error =>
+      logger.warn('Could not clear an expired suspension', {
+        userId: dbUser.id,
+        error: error.message,
+      })
+    );
+  }
+  return null;
+}
+
+/**
  * Middleware to require authentication
  * Verifies JWT token and attaches user to request
  * @param {Object} req - Express request object
@@ -202,19 +230,9 @@ async function authRequired(req, res, next) {
     }
 
     // A suspended or banned account stops working on its next request, not at its next sign-in.
-    const restriction = getAccountRestriction(dbUser);
-    if (restriction) {
-      logger.warn('Restricted account blocked', { userId: u.id, type: restriction.type });
-      if (wantsHtml(req)) {
-        return res.redirect(restrictionRedirect(restriction));
-      }
-      return res.status(403).json(restrictionBody(restriction));
-    }
-    if (dbUser.suspended === true) {
-      // Timed suspension that has run out: let the account through and tidy the record.
-      releaseExpiredSuspension(dbUnified, dbUser).catch(error =>
-        logger.warn('Could not clear an expired suspension', { userId: u.id, error: error.message })
-      );
+    const refusal = restrictedAccountResponse(req, res, dbUser);
+    if (refusal) {
+      return refusal;
     }
 
     // Attach only minimal user object to prevent stale data.

@@ -23,16 +23,27 @@ const MESSAGES = Object.freeze({
 });
 
 /**
+ * When a timed suspension ends. The admin screens write suspensionExpiresAt; the older bulk
+ * suspend route wrote suspendedUntil, so both are honoured.
+ * @param {Object} user - Stored user
+ * @returns {string|null} Expiry timestamp, or null for an open-ended suspension
+ */
+function suspensionExpiry(user) {
+  return user.suspensionExpiresAt || user.suspendedUntil || null;
+}
+
+/**
  * Whether a timed suspension has run out.
  * @param {Object} user - Stored user
  * @param {number} now - Current time in ms
  * @returns {boolean} True when an expiry is set and has passed
  */
 function suspensionHasExpired(user, now) {
-  if (!user.suspensionExpiresAt) {
+  const expiry = suspensionExpiry(user);
+  if (!expiry) {
     return false;
   }
-  const expires = Date.parse(user.suspensionExpiresAt);
+  const expires = Date.parse(expiry);
   return Number.isFinite(expires) && expires <= now;
 }
 
@@ -80,35 +91,57 @@ function restrictionRedirect(restriction) {
 /**
  * Clears a timed suspension that has run out, so the admin screens stop showing the account as
  * suspended. Safe to call on any user: it does nothing unless an expired suspension is on record.
- * @param {Object} db - db-unified
+ * @param {Object} database - db-unified
  * @param {Object} user - Stored user
  * @param {number} [now] - Current time in ms
  * @returns {Promise<boolean>} True when a suspension was cleared
  */
-async function releaseExpiredSuspension(db, user, now = Date.now()) {
+async function releaseExpiredSuspension(database, user, now = Date.now()) {
   if (!user || user.suspended !== true || !suspensionHasExpired(user, now)) {
     return false;
   }
-  await db.updateOne(
-    'users',
-    { id: user.id },
-    {
-      $set: {
-        suspended: false,
-        suspendedAt: null,
-        suspendedBy: null,
-        suspensionReason: null,
-        suspensionDuration: null,
-        suspensionExpiresAt: null,
-        updatedAt: new Date(now).toISOString(),
-      },
+  // Only clear the suspension that was seen to have expired: if an admin has renewed it since,
+  // the stored expiry no longer matches and the new suspension is left alone.
+  const filter = { id: user.id, suspended: true };
+  for (const field of ['suspensionExpiresAt', 'suspendedUntil']) {
+    if (user[field]) {
+      filter[field] = user[field];
     }
-  );
+  }
+  await database.updateOne('users', filter, {
+    $set: {
+      suspended: false,
+      suspendedAt: null,
+      suspendedBy: null,
+      suspensionReason: null,
+      suspensionDuration: null,
+      suspensionExpiresAt: null,
+      suspendedUntil: null,
+      updatedAt: new Date(now).toISOString(),
+    },
+  });
+  return true;
+}
+
+/**
+ * Ends a user's live (WebSocket) connections, so a suspension or ban takes effect on a chat that
+ * is already open and not only on the next request. Does nothing when realtime is not running.
+ * @param {string} userId - User whose connections to close
+ * @returns {boolean} True when a connection server was asked to disconnect them
+ */
+function dropLiveSessions(userId) {
+  const server = global.wsServerV2;
+  if (!userId || !server || typeof server.disconnectUser !== 'function') {
+    return false;
+  }
+  server.disconnectUser(userId);
   return true;
 }
 
 module.exports = {
   RESTRICTION,
+  dropLiveSessions,
+  suspensionExpiry,
   getAccountRestriction,
   releaseExpiredSuspension,
   restrictionBody,

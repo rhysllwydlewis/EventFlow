@@ -7,6 +7,7 @@
 
 const express = require('express');
 const request = require('supertest');
+const crypto = require('crypto');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 
@@ -14,7 +15,8 @@ function noOp(_req, _res, next) {
   next();
 }
 
-const PASSWORD = 'Passw0rd!x';
+// Made up fresh for each run, so no credential-looking literal is stored in the repo
+const PASSWORD = `${crypto.randomBytes(9).toString('hex')}aA1!`;
 const HOUR = 60 * 60 * 1000;
 
 function buildApp(users) {
@@ -43,6 +45,9 @@ function buildApp(users) {
   jest.doMock('../../db-unified', () => ({
     read: jest.fn(async collection => (collection === 'users' ? users : [])),
     updateOne: jest.fn(async (_collection, query, update) => {
+      if (users.failWrites) {
+        throw new Error('write failed');
+      }
       const user = users.find(item => item.id === query.id);
       if (user) {
         Object.assign(user, update.$set || {});
@@ -205,6 +210,16 @@ describe('suspended and banned accounts', () => {
         suspensionExpiresAt: null,
         suspensionReason: null,
       });
+    });
+
+    it('still lets the account through if tidying the expired suspension fails', async () => {
+      users.failWrites = true;
+      const response = await request(buildApp(users))
+        .get('/api/private')
+        .set('Cookie', sessionCookie(users[4]));
+      expect(response.status).toBe(200);
+      await new Promise(resolve => setImmediate(resolve));
+      expect(users[4].suspended).toBe(true);
     });
 
     it('is signed out as far as GET /me is concerned', async () => {

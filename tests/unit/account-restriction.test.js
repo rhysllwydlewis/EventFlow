@@ -3,8 +3,10 @@
 const fs = require('fs');
 const path = require('path');
 const {
+  dropLiveSessions,
   getAccountRestriction,
   releaseExpiredSuspension,
+  suspensionExpiry,
   restrictionBody,
   restrictionRedirect,
   suspensionHasExpired,
@@ -92,7 +94,7 @@ describe('releaseExpiredSuspension', () => {
     expect(released).toBe(true);
     expect(fake.updateOne).toHaveBeenCalledWith(
       'users',
-      { id: 'u1' },
+      { id: 'u1', suspended: true, suspensionExpiresAt: iso(-1000) },
       {
         $set: expect.objectContaining({
           suspended: false,
@@ -117,6 +119,25 @@ describe('releaseExpiredSuspension', () => {
     expect(await releaseExpiredSuspension(fake, { id: 'c' }, NOW)).toBe(false);
     expect(await releaseExpiredSuspension(fake, null, NOW)).toBe(false);
     expect(fake.updateOne).not.toHaveBeenCalled();
+  });
+
+  it('only clears the suspension it saw expire, so a renewal made in the meantime survives', async () => {
+    const fake = db();
+    await releaseExpiredSuspension(
+      fake,
+      { id: 'u1', suspended: true, suspendedUntil: iso(-1000) },
+      NOW
+    );
+    // the filter carries the observed expiry: a renewed suspension has a different one, or none
+    expect(fake.updateOne.mock.calls[0][1]).toEqual({
+      id: 'u1',
+      suspended: true,
+      suspendedUntil: iso(-1000),
+    });
+    expect(fake.updateOne.mock.calls[0][2].$set).toMatchObject({
+      suspendedUntil: null,
+      suspensionExpiresAt: null,
+    });
   });
 
   it('suspensionHasExpired needs an expiry', () => {
@@ -163,5 +184,104 @@ describe('every way of signing in checks the restriction', () => {
     expect(intent).toMatch(/suspended: \{\s*title: 'Account suspended'/);
     expect(intent).toMatch(/banned: \{\s*title: 'Account banned'/);
     expect(source('public/auth.html')).toContain('auth-intent.js?v=18.5.11');
+  });
+});
+
+describe('the bulk-suspend expiry field', () => {
+  it('suspensionExpiry reads suspensionExpiresAt first, then suspendedUntil', () => {
+    expect(suspensionExpiry({ suspensionExpiresAt: 'a', suspendedUntil: 'b' })).toBe('a');
+    expect(suspensionExpiry({ suspendedUntil: 'b' })).toBe('b');
+    expect(suspensionExpiry({})).toBeNull();
+  });
+
+  it('a timed suspension written as suspendedUntil ends when it runs out', () => {
+    expect(
+      getAccountRestriction({ suspended: true, suspendedUntil: iso(1000) }, NOW)
+    ).toMatchObject({ type: 'suspended' });
+    expect(getAccountRestriction({ suspended: true, suspendedUntil: iso(-1000) }, NOW)).toBeNull();
+    expect(suspensionHasExpired({ suspended: true, suspendedUntil: iso(-1000) }, NOW)).toBe(true);
+  });
+
+  it('the old bulk-suspend route also writes the field the admin screens use', () => {
+    expect(source('routes/admin.js')).toMatch(
+      /suspendedUntil: suspendUntil \? suspendUntil\.toISOString\(\) : null,\s*suspensionExpiresAt: suspendUntil/
+    );
+  });
+});
+
+describe('dropLiveSessions', () => {
+  afterEach(() => {
+    delete global.wsServerV2;
+  });
+
+  it('asks the realtime server to disconnect the user', () => {
+    global.wsServerV2 = { disconnectUser: jest.fn() };
+    expect(dropLiveSessions('u1')).toBe(true);
+    expect(global.wsServerV2.disconnectUser).toHaveBeenCalledWith('u1');
+  });
+
+  it('does nothing when realtime is not running or there is no user', () => {
+    expect(dropLiveSessions('u1')).toBe(false);
+    global.wsServerV2 = { disconnectUser: jest.fn() };
+    expect(dropLiveSessions('')).toBe(false);
+    expect(global.wsServerV2.disconnectUser).not.toHaveBeenCalled();
+  });
+
+  it('is called when an admin suspends, bans or bulk-suspends accounts', () => {
+    const management = source('routes/admin-user-management.js');
+    expect(management.match(/dropLiveSessions\(user\.id\)/g)).toHaveLength(3);
+    expect(source('routes/admin.js')).toContain('dropLiveSessions(userId)');
+  });
+});
+
+describe('the realtime server', () => {
+  const WebSocketServerV2 = require('../../websocket-server-v2');
+  const prototype = WebSocketServerV2.prototype;
+
+  it('treats a suspended or banned account as restricted, and anyone else as fine', async () => {
+    const findOne = jest.fn();
+    const fake = { db: { collection: () => ({ findOne }) } };
+    findOne.mockResolvedValue({ id: 'u1', suspended: true });
+    expect(await prototype.isUserRestricted.call(fake, 'u1')).toBe(true);
+    findOne.mockResolvedValue({ id: 'u1', banned: true });
+    expect(await prototype.isUserRestricted.call(fake, 'u1')).toBe(true);
+    findOne.mockResolvedValue({ id: 'u1' });
+    expect(await prototype.isUserRestricted.call(fake, 'u1')).toBe(false);
+  });
+
+  it('does not block anyone when there is no database or the lookup fails', async () => {
+    expect(await prototype.isUserRestricted.call({ db: null }, 'u1')).toBe(false);
+    const failing = {
+      db: { collection: () => ({ findOne: jest.fn().mockRejectedValue(new Error('x')) }) },
+    };
+    expect(await prototype.isUserRestricted.call(failing, 'u1')).toBe(false);
+    expect(await prototype.isUserRestricted.call({ db: {} }, '')).toBe(false);
+  });
+
+  it('disconnectUser closes every socket that user has open', () => {
+    const open = { disconnect: jest.fn() };
+    const fake = {
+      userSockets: new Map([['u1', new Set(['s1', 's2', 'gone'])]]),
+      io: {
+        sockets: {
+          sockets: new Map([
+            ['s1', open],
+            ['s2', open],
+          ]),
+        },
+      },
+    };
+    expect(prototype.disconnectUser.call(fake, 'u1')).toBe(3);
+    expect(open.disconnect).toHaveBeenCalledTimes(2);
+    expect(open.disconnect).toHaveBeenCalledWith(true);
+    expect(prototype.disconnectUser.call(fake, 'nobody')).toBe(0);
+  });
+
+  it('the handshake and the auth event both check the restriction', () => {
+    const server = source('websocket-server-v2.js');
+    expect(server).toMatch(/userId && !\(await this\.isUserRestricted\(userId\)\)/);
+    expect(server).toMatch(
+      /if \(await this\.isUserRestricted\(userId\)\) \{\s*socket\.userId = null;/
+    );
   });
 });

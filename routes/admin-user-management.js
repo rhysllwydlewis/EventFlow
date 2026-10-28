@@ -21,6 +21,7 @@ const { passwordOk } = require('../utils/validators');
 const { serializeCsv } = require('../utils/csv');
 const { stripSecretFields } = require('../utils/adminExportSanitizer');
 const domainAdmin = require('../middleware/domain-admin');
+const { dropLiveSessions } = require('../utils/accountRestriction');
 const verificationProvenance = require('../services/verificationProvenance.service');
 const userProvenance = require('../services/userProvenance.service');
 const adminUserSummary = require('../services/adminUserSummary.service');
@@ -743,6 +744,9 @@ router.post(
     }
 
     await dbUnified.updateOne('users', { id: user.id }, { $set: setFields });
+    if (setFields.suspended) {
+      dropLiveSessions(user.id);
+    }
 
     // Create audit log (requiring audit.js)
     auditLog({
@@ -810,6 +814,9 @@ router.post(
     };
 
     await dbUnified.updateOne('users', { id: user.id }, { $set: setFields });
+    if (setFields.banned) {
+      dropLiveSessions(user.id);
+    }
 
     // Create audit log
     auditLog({
@@ -1109,6 +1116,9 @@ router.post(
         suspendPromises.push(
           dbUnified.updateOne('users', getUserWriteFilter(user), { $set: suspendUpdates })
         );
+        if (suspended) {
+          dropLiveSessions(user.id);
+        }
         bulk.updated += 1;
       });
 
