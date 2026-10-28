@@ -707,13 +707,14 @@
     approved: {
       title: 'Approve this cashout?',
       confirmText: 'Approve',
-      message: 'The partner is told it is approved. The points stay held until it is delivered.',
+      message:
+        'The partner will see it as approved on their dashboard. Their points stay held until it is delivered.',
     },
     rejected: {
       title: 'Reject this cashout?',
       confirmText: 'Reject',
       message:
-        'The held points go back to the partner and the request cannot be reopened. Add a message so they know why.',
+        'The held points go back to the partner and the request cannot be reopened. Add a message so they can see why on their dashboard.',
     },
     delivered: {
       title: 'Mark as delivered?',

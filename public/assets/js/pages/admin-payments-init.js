@@ -64,7 +64,7 @@ function filterPayments(payments) {
 
   // Filter by plan
   if (currentFilters.plan !== 'all') {
-    filtered = filtered.filter(p => p.planId === currentFilters.plan);
+    filtered = filtered.filter(payment => payment.planId === currentFilters.plan);
   }
 
   // Filter by date
