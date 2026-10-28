@@ -4886,11 +4886,14 @@ router.post(
  */
 router.get('/payments', authRequired, roleRequired('admin'), async (_req, res) => {
   try {
+    // Strict reads: if the database cannot be read this must fail, not quietly show totals worked
+    // out from an empty or stale local copy
+    const strict = { throwOnError: true };
     const [payments, users, invoices, subscriptions] = await Promise.all([
-      dbUnified.read('payments'),
-      dbUnified.read('users'),
-      dbUnified.read('invoices'),
-      dbUnified.read('subscriptions'),
+      dbUnified.read('payments', strict),
+      dbUnified.read('users', strict),
+      dbUnified.read('invoices', strict),
+      dbUnified.read('subscriptions', strict),
     ]);
     const { items, summary } = buildPaymentsView({
       payments: payments || [],

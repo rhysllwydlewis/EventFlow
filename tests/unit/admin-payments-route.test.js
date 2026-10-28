@@ -96,3 +96,23 @@ describe('GET /api/admin/payments', () => {
     expect(response.body.error).toBe('Failed to load payments');
   });
 });
+
+describe('financial reads are strict', () => {
+  it('asks the database to fail loudly rather than fall back to a local copy', async () => {
+    const dbUnified = require('../../db-unified');
+    dbUnified.read.mockClear();
+    await request(app()).get('/api/admin/payments').expect(200);
+    const strictReads = dbUnified.read.mock.calls.filter(
+      ([name, options]) =>
+        ['payments', 'users', 'invoices', 'subscriptions'].includes(name) &&
+        options &&
+        options.throwOnError === true
+    );
+    expect(strictReads.map(([name]) => name).sort()).toEqual([
+      'invoices',
+      'payments',
+      'subscriptions',
+      'users',
+    ]);
+  });
+});

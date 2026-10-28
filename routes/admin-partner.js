@@ -125,11 +125,12 @@ router.get('/', async (req, res) => {
     const { search, status } = req.query;
     // Everything the list needs is read once and grouped here. It used to query the credit
     // transactions and the referrals once per partner, which took seconds.
+    const strict = { throwOnError: true };
     const [partners, users, transactions, referrals] = await Promise.all([
       partnerService.listPartners({ search, status }),
-      dbUnified.read('users'),
-      dbUnified.read('partner_credit_transactions'),
-      dbUnified.read('partner_referrals'),
+      dbUnified.read('users', strict),
+      dbUnified.read('partner_credit_transactions', strict),
+      dbUnified.read('partner_referrals', strict),
     ]);
     const usersById = new Map(users.map(user => [user.id, user]));
     const transactionsByPartner = groupBy(transactions, txn => txn.partnerId);
@@ -517,9 +518,11 @@ router.post('/:id/credits', csrfProtection, async (req, res) => {
       return res.status(404).json({ error: 'Partner not found' });
     }
 
-    // Taking points away cannot leave the partner owing points
+    // Taking points away cannot leave the partner owing points. Adding points is always allowed,
+    // so a balance that is already negative (a clawback after the points were spent) can be
+    // repaired in steps.
     const before = await partnerService.getBalance(req.params.id);
-    if (before.balance + parsedAmount < 0) {
+    if (parsedAmount < 0 && before.balance + parsedAmount < 0) {
       return res.status(400).json({
         error: `This would take the balance below zero (current balance ${before.balance.toLocaleString('en-GB')} points).`,
       });

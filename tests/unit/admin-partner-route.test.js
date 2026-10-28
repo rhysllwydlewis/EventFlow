@@ -99,6 +99,10 @@ describe('GET /api/admin/partners', () => {
     await request(app).get('/api/admin/partners').expect(200);
     const collections = dbUnified.read.mock.calls.map(call => call[0]).sort();
     expect(collections).toEqual(['partner_credit_transactions', 'partner_referrals', 'users']);
+    // strict, so a database outage is an error and not an empty (or stale) balance
+    for (const [, options] of dbUnified.read.mock.calls) {
+      expect(options).toEqual({ throwOnError: true });
+    }
     expect(dbUnified.find).not.toHaveBeenCalled();
     expect(partnerService.getBalance).not.toHaveBeenCalled();
   });
@@ -176,6 +180,19 @@ describe('POST /api/admin/partners/:id/credits', () => {
     expect(res.body.error).toMatch(/below zero \(current balance 100 points\)/);
     expect(partnerService.applyAdminAdjustment).not.toHaveBeenCalled();
     expect(auditLog).not.toHaveBeenCalled();
+  });
+
+  it('lets points be added to a balance that is already negative, in steps', async () => {
+    partnerService.getBalance.mockResolvedValue({ balance: -100 });
+    await post({ amount: 50, notes: 'Repay clawback' }).expect(200);
+    expect(partnerService.applyAdminAdjustment).toHaveBeenCalledWith(
+      expect.objectContaining({ amount: 50 })
+    );
+  });
+
+  it('still refuses to deduct from a balance that is already negative', async () => {
+    partnerService.getBalance.mockResolvedValue({ balance: -100 });
+    await post({ amount: -1, notes: 'More' }).expect(400);
   });
 
   it('allows a deduction that brings the balance to exactly zero', async () => {
