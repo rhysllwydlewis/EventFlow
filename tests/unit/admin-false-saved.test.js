@@ -580,10 +580,14 @@ describe('cache versions', () => {
     ['public/admin-users.html', 'admin-users-init.js?v=18.5.10'],
   ])('%s loads %s or later', (file, reference) => {
     const [script, minimum] = reference.split('?v=');
-    const loaded = source(file).match(new RegExp(`${script.replace(/\./g, '\\.')}\\?v=([\\d.]+)`));
+    const versionAfter = (text, script) => {
+      const at = text.indexOf(`${script}?v=`);
+      return at < 0 ? null : (text.slice(at + script.length + 3).match(/^[\d.]+/) || [null])[0];
+    };
+    const loaded = versionAfter(source(file), script);
     expect(loaded).not.toBeNull();
     const asNumber = text =>
       text.split('.').reduce((total, part) => total * 1000 + Number(part), 0);
-    expect(asNumber(loaded[1])).toBeGreaterThanOrEqual(asNumber(minimum));
+    expect(asNumber(loaded)).toBeGreaterThanOrEqual(asNumber(minimum));
   });
 });
