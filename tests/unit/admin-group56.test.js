@@ -257,9 +257,8 @@ describe('External contacts request size', () => {
 describe('pages that page their lists', () => {
   /** [major, minor, patch] of the ?v= a page puts on a script. */
   function versionOn(source, file) {
-    const found = source.match(
-      new RegExp(`${file.replace(/[.]/g, '\\.')}\\?v=(\\d+)\\.(\\d+)\\.(\\d+)`)
-    );
+    const at = source.indexOf(`${file}?v=`);
+    const found = at < 0 ? null : source.slice(at + file.length + 3).match(/^(\d+)\.(\d+)\.(\d+)/);
     return found ? found.slice(1).map(Number) : null;
   }
   const atLeast = (version, [major, minor, patch]) =>
