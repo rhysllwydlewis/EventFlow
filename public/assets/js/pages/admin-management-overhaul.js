@@ -31,9 +31,9 @@
       ],
       links: [
         {
-          label: 'Manage homepage copy',
-          meta: 'Hero content',
-          href: '/admin-content?tab=homepage',
+          label: 'Manage the homepage',
+          meta: 'Homepage 1, 2 and 3',
+          href: '/admin-homepage',
         },
         { label: 'Open Media Center', meta: 'Pexels and assets', href: '/admin-media' },
         { label: 'Review supplier photos', meta: 'Approval queue', href: '/admin-photos' },
@@ -103,7 +103,7 @@
           meta: 'Source and playback',
           href: '/admin-homepage',
         },
-        { label: 'Edit site content', meta: 'Hero and FAQs', href: '/admin-content' },
+        { label: 'Edit site content', meta: 'FAQs and announcements', href: '/admin-content' },
         { label: 'Review photo queue', meta: 'Moderation', href: '/admin-photos' },
       ],
     },
@@ -138,6 +138,36 @@
     return order[recommendation.severity] ?? 4;
   }
 
+  // A task that points at the page you are already on is plain text: an "Open" link to the same
+  // page did nothing.
+  function pointsAtThisPage(href) {
+    if (!href || href === '#') {
+      return false;
+    }
+    try {
+      const target = new URL(href, window.location.origin);
+      const clean = path => path.replace(/\.html$/, '').replace(/\/+$/, '');
+      return clean(target.pathname) === clean(window.location.pathname);
+    } catch {
+      return false;
+    }
+  }
+
+  function renderTask(task) {
+    const inner = `
+            <span class="admin-ops-task-dot is-${escapeHtml(task.severity)}"></span>
+            <span>
+              <span class="admin-ops-task-title">${escapeHtml(task.title)}</span>
+              <span class="admin-ops-task-detail">${escapeHtml(task.detail)}</span>
+            </span>`;
+    if (pointsAtThisPage(task.href)) {
+      return `<div class="admin-ops-task">${inner}</div>`;
+    }
+    return `<a class="admin-ops-task" href="${escapeHtml(task.href || '#')}">${inner}
+            <span class="admin-ops-task-arrow">Open</span>
+          </a>`;
+  }
+
   function renderTasks(overview, surface) {
     const scoped = overview.recommendations
       .filter(item => item.surface === surface || item.surface === 'all')
@@ -148,20 +178,7 @@
       return '<div class="admin-ops-empty">No action required for this area at this time.</div>';
     }
 
-    return tasks
-      .map(
-        task => `
-          <a class="admin-ops-task" href="${escapeHtml(task.href || '#')}">
-            <span class="admin-ops-task-dot is-${escapeHtml(task.severity)}"></span>
-            <span>
-              <span class="admin-ops-task-title">${escapeHtml(task.title)}</span>
-              <span class="admin-ops-task-detail">${escapeHtml(task.detail)}</span>
-            </span>
-            <span class="admin-ops-task-arrow">Open</span>
-          </a>
-        `
-      )
-      .join('');
+    return tasks.map(renderTask).join('');
   }
 
   function renderHomepageSummaryBar(overview) {

@@ -22,7 +22,7 @@ const ADMIN_JS_PAGES_DIR = path.resolve(PUBLIC_DIR, 'assets/js/pages');
 const SERVE_STATIC_FILE = path.resolve(__dirname, '../../scripts/serve-static.js');
 
 // Load the allowlist from the registry (the single source of truth).
-const { getAdminPagesAllowlist } = require('../../config/adminRegistry');
+const { getAdminPagesAllowlist, getLegacyRedirects } = require('../../config/adminRegistry');
 
 // ─── Allowlist Drift Tests ─────────────────────────────────────────────────
 
@@ -44,8 +44,15 @@ describe('Admin Pages Allowlist Sync', () => {
     }
   });
 
-  it('every ADMIN_PAGES entry should exist on disk', () => {
+  it('every ADMIN_PAGES entry should exist on disk, except retired pages that redirect', () => {
+    // A retired page has no file any more: the server redirects it to the page that replaced it
+    const retired = new Set(
+      getLegacyRedirects().flatMap(page => [page.route, `${page.route}.html`])
+    );
     const extra = ADMIN_PAGES.filter(p => {
+      if (retired.has(p)) {
+        return false;
+      }
       const stripLeading = p.slice(1); // strip leading /
       // Clean URL entries (no .html) map to the corresponding .html file on disk
       const filePath = stripLeading.endsWith('.html')

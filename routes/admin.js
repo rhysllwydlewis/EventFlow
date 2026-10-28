@@ -12,6 +12,7 @@ const { priceFields, packagePriceText } = require('../utils/packagePrice');
 const { dropLiveSessions } = require('../utils/accountRestriction');
 const fs = require('fs');
 const crypto = require('crypto');
+const validator = require('validator');
 const express = require('express');
 const multer = require('multer');
 const { uid } = require('../store');
@@ -588,9 +589,20 @@ router.get('/metrics', authRequired, roleRequired('admin'), async (_req, res) =>
       dbUnified.read('packages').then(d => d || []),
       dbUnified.read('threads').then(d => d || []),
     ]);
+    // New accounts in the last 7 and 30 days, counted here so the Analytics page does not have to
+    // download every user just to count them
+    const signedUpWithin = days => {
+      const since = Date.now() - days * 24 * 60 * 60 * 1000;
+      return users.filter(u => {
+        const createdAt = u.createdAt ? Date.parse(u.createdAt) : NaN;
+        return Number.isFinite(createdAt) && createdAt >= since;
+      }).length;
+    };
     res.json({
       counts: {
         usersTotal: users.length,
+        signupsLast7Days: signedUpWithin(7),
+        signupsLast30Days: signedUpWithin(30),
         usersByRole: users.reduce((a, u) => {
           a[u.role] = (a[u.role] || 0) + 1;
           return a;
@@ -617,6 +629,8 @@ router.get('/metrics', authRequired, roleRequired('admin'), async (_req, res) =>
       error: 'Failed to fetch metrics',
       counts: {
         usersTotal: 0,
+        signupsLast7Days: 0,
+        signupsLast30Days: 0,
         usersByRole: {},
         suppliersTotal: 0,
         pendingSuppliers: 0,
@@ -4815,8 +4829,11 @@ router.post(
       if (enquiry.senderEmail) {
         const baseUrl =
           process.env.BASE_URL || process.env.APP_BASE_URL || 'https://event-flow.co.uk';
-        const senderName = enquiry.senderName || 'there';
-        const subjectText = enquiry.subject || 'your enquiry';
+        // Enquiries saved before the contact form stopped escaping on the way in hold "Can&#x27;t";
+        // turn those back so the customer's subject line reads normally. The email template
+        // escapes these values itself.
+        const senderName = validator.unescape(String(enquiry.senderName || '')) || 'there';
+        const subjectText = validator.unescape(String(enquiry.subject || '')) || 'your enquiry';
 
         // XSS-escape user content before embedding in HTML
         const escapeHtml = str =>

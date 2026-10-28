@@ -9,6 +9,8 @@
   const PACKAGE_PAGE_SIZE = 50;
   let packagePage = 1;
   let packagePager = null;
+  // Set by a link such as /admin-packages?supplierId=… (from the supplier page)
+  let supplierFilterId = null;
 
   // Gliding to the form is skipped for anyone who has asked their device for less motion
   function scrollToForm() {
@@ -59,6 +61,11 @@
       filtered = filtered.filter(pkg => !pkg.isTest);
     }
 
+    if (supplierFilterId) {
+      filtered = filtered.filter(pkg => pkg.supplierId === supplierFilterId);
+    }
+    showSupplierFilterNote();
+
     // Apply search filter if present
     const searchInput = document.getElementById('searchInput');
     if (searchInput?.value.trim()) {
@@ -71,6 +78,43 @@
     }
 
     renderPackages(filtered);
+  }
+
+  function showSupplierFilterNote() {
+    const note = document.getElementById('supplierFilterNote');
+    if (!note) {
+      return;
+    }
+    note.hidden = !supplierFilterId;
+    if (supplierFilterId) {
+      const supplier = allSuppliers.find(item => item.id === supplierFilterId);
+      document.getElementById('supplierFilterText').textContent =
+        `Showing only the packages of ${supplier ? supplier.name : 'this supplier'}. `;
+    }
+  }
+
+  /**
+   * Act on the page address once packages and suppliers are loaded:
+   *   ?supplierId=ID   only that supplier's packages
+   *   ?supplierId=ID&add=1   ...and the Add form open with that supplier chosen
+   *   ?id=ID           that package's Edit form
+   * @returns {void} Nothing.
+   */
+  function applyDeepLink() {
+    const params = new URLSearchParams(window.location.search);
+    const supplierId = params.get('supplierId');
+    const packageId = params.get('id');
+    if (supplierId) {
+      supplierFilterId = supplierId;
+      applyFiltersAndRender({ resetPage: true });
+      if (params.get('add') === '1') {
+        document.getElementById('addPackageBtn').click();
+        document.getElementById('packageSupplierId').value = supplierId;
+      }
+    }
+    if (packageId) {
+      window.editPackage(packageId);
+    }
   }
 
   async function loadSuppliers() {
@@ -670,8 +714,16 @@
   // Initialize function to set up the page
   function initializePage() {
     setupImageUpload();
-    loadPackages();
-    loadSuppliers();
+    // Both lists are needed before a link from another page can pick a supplier or a package
+    Promise.all([loadPackages(), loadSuppliers()]).then(applyDeepLink);
+
+    const clearSupplierFilter = document.getElementById('supplierFilterClear');
+    if (clearSupplierFilter) {
+      clearSupplierFilter.addEventListener('click', () => {
+        supplierFilterId = null;
+        applyFiltersAndRender({ resetPage: true });
+      });
+    }
 
     // Event delegation for dynamically created buttons
     document.body.addEventListener('click', e => {

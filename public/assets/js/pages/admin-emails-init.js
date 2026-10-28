@@ -389,5 +389,12 @@
   document.addEventListener('DOMContentLoaded', () => {
     bindEvents();
     Promise.all([loadSummary(), loadLogs()]).catch(err => setStatus(err.message, 'error'));
+    // A link such as /admin-emails?logId=ID (from a user's page) opens that email's details
+    const linkedLogId = new URLSearchParams(window.location.search).get('logId');
+    if (linkedLogId) {
+      openDetail(linkedLogId).catch(err =>
+        setStatus(`That email could not be opened: ${err.message}`, 'error')
+      );
+    }
   });
 })();

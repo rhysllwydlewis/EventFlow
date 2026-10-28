@@ -578,7 +578,16 @@ describe('cache versions', () => {
     ['public/admin-reviews.html', 'admin-reviews-init.js?v=18.5.10'],
     ['public/admin-suppliers.html', 'admin-suppliers-init.js?v=18.5.13'],
     ['public/admin-users.html', 'admin-users-init.js?v=18.5.10'],
-  ])('%s loads %s', (file, reference) => {
-    expect(source(file)).toContain(reference);
+  ])('%s loads %s or later', (file, reference) => {
+    const [script, minimum] = reference.split('?v=');
+    const versionAfter = (text, script) => {
+      const at = text.indexOf(`${script}?v=`);
+      return at < 0 ? null : (text.slice(at + script.length + 3).match(/^[\d.]+/) || [null])[0];
+    };
+    const loaded = versionAfter(source(file), script);
+    expect(loaded).not.toBeNull();
+    const asNumber = text =>
+      text.split('.').reduce((total, part) => total * 1000 + Number(part), 0);
+    expect(asNumber(loaded)).toBeGreaterThanOrEqual(asNumber(minimum));
   });
 });

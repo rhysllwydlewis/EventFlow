@@ -25,7 +25,7 @@ const PREVIEW_LENGTH = 200;
 const ENQUIRIES_PATH = '/dashboard/supplier#sdh-enquiries';
 
 /**
- * Turns a stored (HTML-escaped) value back into plain text of a safe length.
+ * Turns a stored value into plain text of a safe length (older rows were saved HTML-escaped).
  *
  * @param {*} value - Stored text
  * @param {number} max - Longest result
@@ -129,8 +129,8 @@ async function sendOwnerEmail(enquiry, supplier, owner, deps) {
  * @param {Object} enquiry
  * @param {string} enquiry.supplierId - The supplier contacted
  * @param {'contact'|'quote'} enquiry.kind - Where it came from
- * @param {string} enquiry.senderName - The customer's name (stored, escaped)
- * @param {string} enquiry.message - What they wrote (stored, escaped)
+ * @param {string} enquiry.senderName - The customer's name (as stored)
+ * @param {string} enquiry.message - What they wrote (as stored)
  * @param {Object} [deps] - Test seams: db, sendMail, getMongoDb, websocketServer, now
  * @returns {Promise<{bell: boolean, email: string}>} What was done; email is sent, throttled,
  *   skipped (no verified owner address) or failed

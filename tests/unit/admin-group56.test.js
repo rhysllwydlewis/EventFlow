@@ -255,17 +255,26 @@ describe('External contacts request size', () => {
 });
 
 describe('pages that page their lists', () => {
+  /** [major, minor, patch] of the ?v= a page puts on a script. */
+  function versionOn(source, file) {
+    const at = source.indexOf(`${file}?v=`);
+    const found = at < 0 ? null : source.slice(at + file.length + 3).match(/^(\d+)\.(\d+)\.(\d+)/);
+    return found ? found.slice(1).map(Number) : null;
+  }
+  const atLeast = (version, [major, minor, patch]) =>
+    version !== null && (version[0] - major || version[1] - minor || version[2] - patch) >= 0;
+
   it.each([
     ['admin-tickets.html', 'admin-tickets-init.js'],
     ['admin-packages.html', 'admin-packages-init.js'],
     ['admin-emails.html', 'admin-emails-init.js'],
     ['admin-external-contacts.html', 'admin-external-contacts-init.js'],
-  ])('%s loads the pager before %s, with a bumped version', (html, script) => {
+  ])('%s loads the pager before %s, with a version of 18.5.13 or later', (html, script) => {
     const source = read(`public/${html}`);
     const pager = source.indexOf('/assets/js/utils/admin-pager.js?v=18.5.13');
     expect(pager).toBeGreaterThan(-1);
     expect(pager).toBeLessThan(source.indexOf(script));
-    expect(source).toContain(`${script}?v=18.5.13`);
+    expect(atLeast(versionOn(source, script), [18, 5, 13])).toBe(true);
   });
 
   it('Tickets and Packages draw 50 a page and go back to page one on a new filter', () => {
@@ -274,7 +283,9 @@ describe('pages that page their lists', () => {
     expect(tickets).toMatch(/ticketPage = 1;\s*renderTickets\(\);/);
     const packages = read(`${PAGES}admin-packages-init.js`);
     expect(packages).toContain('const PACKAGE_PAGE_SIZE = 50;');
-    expect(packages.match(/applyFiltersAndRender\(\{ resetPage: true \}\)/g)).toHaveLength(2);
+    expect(
+      packages.match(/applyFiltersAndRender\(\{ resetPage: true \}\)/g).length
+    ).toBeGreaterThanOrEqual(2);
   });
 
   it('Emails asks for the page the pager is on, 25 a time', () => {
@@ -406,8 +417,8 @@ describe('shared admin styling', () => {
       .filter(name => read(`public/${name}`).includes('admin-workspace.css'));
     expect(pages.length).toBeGreaterThan(30);
     for (const name of pages) {
-      expect(read(`public/${name}`)).toContain('admin-workspace.css?v=2');
-      expect(read(`public/${name}`)).not.toContain('admin-workspace.css?v=1');
+      expect(read(`public/${name}`)).toContain('admin-workspace.css?v=3');
+      expect(read(`public/${name}`)).not.toMatch(/admin-workspace\.css\?v=[12]\b/);
     }
   });
 

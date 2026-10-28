@@ -1,6 +1,7 @@
 /* Quiet, consistent admin surface across the management pages. */
 body.has-admin-navbar.admin { background: #f5f7f8; color: #19343b; }
 body.has-admin-navbar.admin main.section,
+body.has-admin-navbar.admin main.admin-main,
 body.has-admin-navbar.admin main.admin-main-content { width: 100%; max-width: 1440px; box-sizing: border-box; margin: 0 auto; padding: 24px clamp(16px, 2.5vw, 36px) 56px; }
 body.has-admin-navbar.admin .dashboard-header:not(.email-centre-hero):not(.email-preview-hero) { background: #fff; border: 1px solid #e2e9e9; box-shadow: none; border-radius: 13px; padding: 22px 26px; margin-bottom: 18px; }
 body.has-admin-navbar.admin .dashboard-title { color: #163239; font-size: clamp(23px, 2.5vw, 31px); letter-spacing: -.035em; line-height: 1.2; margin: 0; }
@@ -24,6 +25,7 @@ body.has-admin-navbar.admin :is(button,input,select,textarea):disabled { cursor:
 body.has-admin-navbar.admin .btn-icon:hover { transform: none; box-shadow: none; }
 @media (max-width: 700px) {
   body.has-admin-navbar.admin main.section,
+  body.has-admin-navbar.admin main.admin-main,
   body.has-admin-navbar.admin main.admin-main-content { padding: 16px 12px 40px; }
   body.has-admin-navbar.admin .dashboard-header { padding: 18px; }
   body.has-admin-navbar.admin .header-content { align-items: flex-start; }
@@ -89,3 +91,16 @@ body.has-admin-navbar.admin .admin-pager [hidden] { display: none !important; }
 @media (prefers-reduced-motion: reduce) {
   body.has-admin-navbar.admin :is(.stat-card,.admin-card,.card,.btn-icon) { transition: none; }
 }
+
+/* "Skip to main content": hidden until a keyboard user tabs to it (the SEO page showed it as plain text) */
+body.has-admin-navbar.admin .efl-skip { position: absolute; left: -9999px; top: 0; z-index: 2000; padding: 0.75rem 1rem; background: #fff; color: #19343b; }
+body.has-admin-navbar.admin .efl-skip:focus { left: 1rem; top: 1rem; }
+
+/* Location pages: inside the admin frame the shared button rules painted the ghost buttons blue,
+   and the search box and state filter stretched across the whole page */
+body.has-admin-navbar.admin button.efl-btn { margin: 0; font-size: 0.875rem; white-space: normal; }
+body.has-admin-navbar.admin .efl-btn--ghost { background: #fff; color: #19343b; }
+body.has-admin-navbar.admin .efl-btn--ghost:hover { background: #eef6f5; transform: none; box-shadow: none; }
+body.has-admin-navbar.admin .efl-btn--solid:hover { background: #09695f; transform: none; box-shadow: none; }
+body.has-admin-navbar.admin .efl-actions :is(input[type="search"], select) { width: auto; flex: 1 1 220px; max-width: 340px; }
+body.has-admin-navbar.admin .efl-btn--solid { border-color: transparent; }

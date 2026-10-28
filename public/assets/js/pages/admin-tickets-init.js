@@ -88,10 +88,29 @@
       allTickets = data.items || [];
       renderSummary();
       renderTickets();
+      openLinkedTicket();
     } catch (error) {
       console.error('Error loading tickets:', error);
       container.innerHTML =
         '<div class="data-section"><p class="small text-error">Failed to load tickets. Please try again.</p></div>';
+    }
+  }
+
+  // A link such as /admin-tickets?ticket=ID (from a notification) opens that ticket, once
+  let linkedTicketHandled = false;
+  function openLinkedTicket() {
+    if (linkedTicketHandled) {
+      return;
+    }
+    linkedTicketHandled = true;
+    const id = new URLSearchParams(window.location.search).get('ticket');
+    if (!id) {
+      return;
+    }
+    if (allTickets.some(ticket => ticket.id === id)) {
+      openTicketModal(id);
+    } else {
+      AdminShared.showToast('That ticket was not found. It may have been deleted.', 'warning');
     }
   }
 
@@ -520,6 +539,17 @@
         loadContactEnquiries();
       }
     });
+  });
+
+  // A link ending #contacts (from a contact-form notification) opens the Contact form tab. This
+  // waits for the whole file to run, because the tab's loader is defined further down.
+  document.addEventListener('DOMContentLoaded', () => {
+    if (window.location.hash === '#contacts') {
+      const contactsTab = document.querySelector('.admin-tab[data-tab="contacts"]');
+      if (contactsTab) {
+        contactsTab.click();
+      }
+    }
   });
 })();
 
