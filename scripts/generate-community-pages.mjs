@@ -35,7 +35,7 @@ const ASSET_VERSIONS = {
   // covers #package-breadcrumb/#category-breadcrumb, whose "Home" links
   // aren't wrapped in a <li> and so were the only crumb inflated to 44px —
   // visibly floating above their siblings on the same breadcrumb line.
-  '/assets/css/mobile-optimizations.css': '18.4.5',
+  '/assets/css/mobile-optimizations.css': '18.4.6',
   // 18.4.1: PR #1551 restored the `.pack`/`.featured-fallback-card` homepage
   // carousel rules removed by #1543 — bumped alongside that PR's other
   // cache-busting fixes so a cached copy of components.css doesn't linger.
