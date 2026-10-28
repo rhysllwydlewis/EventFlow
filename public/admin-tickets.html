@@ -26,7 +26,7 @@
     <link rel="manifest" href="/site.webmanifest">
     <meta name="msapplication-config" content="/browserconfig.xml">
     <script src="/assets/js/components.js?v=18.4.0" defer></script>
-    <script src="/assets/js/admin-navbar.js?v=18.5.15" defer></script>
+    <script src="/assets/js/admin-navbar.js?v=18.5.16" defer></script>
     <link rel="stylesheet" href="/assets/css/mobile-optimizations.css?v=18.4.6" />
     <link rel="stylesheet" href="/assets/css/ui-ux-fixes.css?v=18.4.1" />
     <link rel="stylesheet" href="/assets/css/admin-ui-improvements.css?v=18.3.3" />
@@ -43,7 +43,7 @@
         <div class="header-content">
           <div>
             <h1 class="dashboard-title">Enquiries</h1>
-            <p class="dashboard-subtitle">Everything people send us: support tickets, enquiries from EventFlow's own contact form, and enquiries relayed from VEXI, Chlo and other integrated sites. Tickets are prioritized automatically by account tier (Pro Plus → Urgent).</p>
+            <p class="dashboard-subtitle">Everything people send us: support tickets, enquiries from EventFlow's own contact form, and enquiries relayed from VEXI, Chlo and other integrated sites. Tickets are prioritized automatically by account tier (Pro Plus → Urgent, Pro → High, Free → Medium). Tab badges show outstanding queue items; the navbar bell includes unread notifications and outstanding admin queue items.</p>
           </div>
           <div class="header-actions">
             <button class="ef-cta btn-secondary" id="backToDashboard">← Back to Dashboard</button>
@@ -53,7 +53,7 @@
 
       <div class="container">
         <!-- Tab navigation -->
-        <div class="admin-tabs" role="tablist" aria-label="Ticket sections">
+        <div class="admin-tabs" role="tablist" aria-label="Enquiry sections">
           <button class="ef-cta admin-tab admin-tab--active" id="tab-tickets" role="tab" aria-selected="true" aria-controls="panel-tickets" data-tab="tickets">
             🎫 Support Tickets
             <span class="admin-tab-badge" id="openSupportTicketsBadge" title="Outstanding support ticket queue count" aria-label="Outstanding support ticket queue count" style="display:none;"></span>
@@ -252,7 +252,7 @@
     <script src="/assets/js/admin-shared.js?v=18.5.11"></script>
     <script src="/assets/js/utils/admin-pager.js?v=18.5.13" defer></script>
     <script src="/assets/js/utils/admin-tabs.js?v=1" defer></script>
-    <script src="/assets/js/pages/admin-external-contacts-init.js?v=18.5.15" defer></script>
+    <script src="/assets/js/pages/admin-external-contacts-init.js?v=18.5.16" defer></script>
     <script src="/assets/js/pages/admin-tickets-init.js?v=18.5.15" defer></script>
 
     <script src="/assets/js/cookie-consent.js?v=3.0.2" defer></script>

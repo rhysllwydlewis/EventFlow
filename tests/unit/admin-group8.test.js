@@ -55,10 +55,10 @@ describe('retired pages', () => {
     expect(read('server.js')).not.toContain('Admin Cashout Requests Page Protection');
   });
 
-  it('the router route sends admins to the Cashouts tab and keeps ?request=', () => {
+  it('the dashboard router no longer serves a retired page (the redirects run before it)', () => {
     const source = read('routes/dashboard.js');
-    expect(source).toContain("'/admin-cashout-requests'");
-    expect(source).toContain('`${qs}&tab=cashouts`');
+    expect(source).not.toContain('admin-cashout-requests');
+    expect(source).not.toContain('email-previews');
   });
 });
 
@@ -134,6 +134,19 @@ describe('the Enquiries and Email Centre pages', () => {
     expect(script).toContain('window.AdminTabs.mount');
     expect(script).toContain('AdminCampaigns');
     expect(script).toContain('AdminEmailPreviews');
+  });
+});
+
+describe('the External tab badge', () => {
+  it('shows the count the navbar already fetched, before the tab is opened', () => {
+    const navbar = read('public/assets/js/admin-navbar.js');
+    expect(navbar).toContain("new CustomEvent('admin:pending-counts'");
+    expect(navbar).toContain('window.AdminPendingCounts = pending;');
+    const script = read(`${PAGES}admin-external-contacts-init.js`);
+    expect(script).toContain("document.addEventListener('admin:pending-counts'");
+    expect(script).toContain('showNavbarCount(window.AdminPendingCounts);');
+    // once the tab's own list has loaded, the count from that list takes over
+    expect(script).toContain('if (!started && pending');
   });
 });
 

@@ -439,7 +439,7 @@ describe('admin notification bell icons', () => {
       .filter(html => html.includes('admin-navbar.js?v='));
     expect(pages.length).toBeGreaterThan(20);
     for (const html of pages) {
-      expect(html).toContain('admin-navbar.js?v=18.5.15');
+      expect(html).toContain('admin-navbar.js?v=18.5.16');
     }
   });
 });

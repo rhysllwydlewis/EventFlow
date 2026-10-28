@@ -367,16 +367,28 @@
     applyFilters({ keepPage: true });
   }
 
+  let started = false;
+
   // The number of new enquiries, on the tab itself
-  function showTabBadge() {
+  function showTabBadge(count) {
     const badge = $('externalContactsBadge');
     if (!badge) {
       return;
     }
-    const waiting = summaryData && summaryData.new ? summaryData.new : 0;
+    const waiting =
+      typeof count === 'number' ? count : summaryData && summaryData.new ? summaryData.new : 0;
     badge.textContent = String(waiting);
     badge.style.display = waiting > 0 ? '' : 'none';
   }
+
+  // Before the tab is opened nothing of ours is loaded, so the badge uses the count the navbar
+  // already fetched for the menu; once the list loads, its own summary takes over.
+  function showNavbarCount(pending) {
+    if (!started && pending && typeof pending.externalContacts === 'number') {
+      showTabBadge(pending.externalContacts);
+    }
+  }
+  document.addEventListener('admin:pending-counts', event => showNavbarCount(event.detail));
 
   // ── Data loading ───────────────────────────────────────────────────────────
   async function loadData() {
@@ -422,8 +434,6 @@
   // These enquiries are the "External" tab of the Enquiries page (/admin-tickets?tab=external).
   // Nothing is loaded until that tab is first opened: the list and the detail share a limit of 50
   // requests every five minutes, so it should not be spent by people who only look at tickets.
-  let started = false;
-
   function start() {
     if (started) {
       return;
@@ -484,5 +494,6 @@
     loadData();
   }
 
+  showNavbarCount(window.AdminPendingCounts);
   window.AdminExternalContacts = { start };
 })();

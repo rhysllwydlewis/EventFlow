@@ -893,6 +893,9 @@
 
         // Update badge counts if elements exist
         const pending = data.pending || {};
+        // Pages with their own tab badges (e.g. the External tab of Enquiries) reuse these counts
+        window.AdminPendingCounts = pending;
+        document.dispatchEvent(new CustomEvent('admin:pending-counts', { detail: pending }));
 
         // Suppliers badge (pending approvals)
         const suppliersBadge = document.getElementById('navBadgeSuppliers');

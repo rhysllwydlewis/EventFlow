@@ -13,7 +13,7 @@
   <link rel="stylesheet" href="/assets/css/admin-enhanced.css?v=18.3.1">
   <link rel="stylesheet" href="/assets/css/admin-navbar.css?v=18.4.1">
   <link rel="stylesheet" href="/assets/css/admin-cards.css?v=18.3.0">
-  <link rel="stylesheet" href="/assets/css/admin-emails.css?v=18.5.15">
+  <link rel="stylesheet" href="/assets/css/admin-emails.css?v=18.5.16">
   <link rel="stylesheet" href="/assets/css/email-previews.css?v=18.5.15">
     <link rel="icon" href="/favicon.ico" sizes="any">
     <link rel="icon" type="image/svg+xml" href="/favicon.svg">
@@ -25,7 +25,7 @@
     <link rel="manifest" href="/site.webmanifest">
     <meta name="msapplication-config" content="/browserconfig.xml">
   <script src="/assets/js/admin-shared.js?v=18.5.11"></script>
-  <script src="/assets/js/admin-navbar.js?v=18.5.15" defer></script>
+  <script src="/assets/js/admin-navbar.js?v=18.5.16" defer></script>
   <link rel="stylesheet" href="/assets/css/admin-workspace.css?v=3">
 </head>
 <body class="has-admin-navbar admin">
@@ -41,15 +41,15 @@
     </div>
   </div>
 
-  <nav class="email-centre-tabs" aria-label="Email Centre sections">
-    <button class="email-centre-tab is-active" type="button" data-tab="activity">Activity</button>
-    <button class="email-centre-tab" type="button" data-tab="campaigns">Campaigns</button>
-    <button class="email-centre-tab" type="button" data-tab="templates">Templates</button>
-    <button class="email-centre-tab" type="button" data-tab="reviewRequests">Review requests</button>
-    <button class="email-centre-tab" type="button" data-tab="health">Health</button>
+  <nav class="email-centre-tabs" role="tablist" aria-label="Email Centre sections">
+    <button class="email-centre-tab is-active" type="button" role="tab" id="emailTabButtonActivity" aria-controls="emailTabActivity" data-tab="activity">Activity</button>
+    <button class="email-centre-tab" type="button" role="tab" id="emailTabButtonCampaigns" aria-controls="emailTabCampaigns" data-tab="campaigns">Campaigns</button>
+    <button class="email-centre-tab" type="button" role="tab" id="emailTabButtonTemplates" aria-controls="emailTabTemplates" data-tab="templates">Templates</button>
+    <button class="email-centre-tab" type="button" role="tab" id="emailTabButtonReviewRequests" aria-controls="emailTabReviewRequests" data-tab="reviewRequests">Review requests</button>
+    <button class="email-centre-tab" type="button" role="tab" id="emailTabButtonHealth" aria-controls="emailTabHealth" data-tab="health">Health</button>
   </nav>
 
-  <section id="emailTabActivity" class="email-centre-panel" aria-label="Sent email activity">
+  <section id="emailTabActivity" role="tabpanel" aria-labelledby="emailTabButtonActivity" class="email-centre-panel">
     <div id="emailSummaryCards" class="email-centre-stats" aria-live="polite"></div>
 
     <section class="admin-card email-centre-filters" aria-label="Email activity filters">
@@ -82,7 +82,7 @@
     </section>
   </section>
 
-  <section id="emailTabCampaigns" class="email-centre-panel" aria-label="Campaigns" hidden>
+  <section id="emailTabCampaigns" role="tabpanel" aria-labelledby="emailTabButtonCampaigns" class="email-centre-panel" hidden>
   <!-- Recipient count banner -->
   <div class="campaigns-recipient-banner" id="recipientBanner" aria-live="polite">
     <span id="recipientBannerText">Calculating recipients…</span>
@@ -331,7 +331,7 @@
   </section>
   </section>
 
-  <section id="emailTabTemplates" class="email-centre-panel" aria-label="Template previews" hidden>
+  <section id="emailTabTemplates" role="tabpanel" aria-labelledby="emailTabButtonTemplates" class="email-centre-panel" hidden>
     <h2>Email template previews</h2>
     <p class="small">Review every local EventFlow email with fixed sample data, hidden preheaders, plain-text fallbacks and test-send controls.</p>
     <div class="email-preview-warning" role="note">Sample data only. Do not use the previews for real customer, supplier or subscriber content.</div>
@@ -355,7 +355,7 @@
   <section id="emailPreviewGrid" class="email-preview-grid" aria-live="polite"></section>
   </section>
 
-  <section id="emailTabReviewRequests" class="email-centre-panel" hidden>
+  <section id="emailTabReviewRequests" role="tabpanel" aria-labelledby="emailTabButtonReviewRequests" class="email-centre-panel" hidden>
     <div id="reviewRequestSummaryCards" class="email-centre-stats" aria-live="polite"></div>
 
     <section class="admin-card email-centre-filters" aria-label="Review request filters">
@@ -386,7 +386,7 @@
     </section>
   </section>
 
-  <section id="emailTabHealth" class="email-centre-panel" hidden>
+  <section id="emailTabHealth" role="tabpanel" aria-labelledby="emailTabButtonHealth" class="email-centre-panel" hidden>
     <section class="admin-card email-centre-health" aria-labelledby="emailHealthTitle">
       <h2 id="emailHealthTitle">Email/Postmark health</h2>
       <dl id="emailHealthList" class="email-health-list" aria-live="polite"></dl>

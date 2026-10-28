@@ -110,17 +110,6 @@ router.get('/admin', apiLimiter, authRequired, (req, res) => {
 });
 
 /**
- * GET /admin/email-previews
- * The template previews are now the Templates tab of the Email Centre.
- */
-router.get('/admin/email-previews', apiLimiter, authRequired, (req, res) => {
-  if (req.user.role !== 'admin') {
-    return res.redirect('/auth?reason=forbidden&required=admin');
-  }
-  return res.redirect(302, '/admin-emails?tab=templates');
-});
-
-/**
  * GET /admin-debug
  * Serve admin debug/system-checks page
  */
@@ -134,18 +123,6 @@ router.get('/admin-debug', apiLimiter, authRequired, (req, res) => {
     logger.error('Error serving admin debug page:', error);
     return res.status(500).send('Internal server error');
   }
-});
-
-/**
- * GET /admin-cashout-requests
- * Cashout requests are now the Cashouts tab of the Partner Programme page.
- */
-router.get('/admin-cashout-requests', apiLimiter, authRequired, (req, res) => {
-  if (req.user.role !== 'admin') {
-    return res.redirect('/auth?reason=forbidden&required=admin');
-  }
-  const qs = req.url.includes('?') ? req.url.slice(req.url.indexOf('?')) : '';
-  return res.redirect(302, `/admin-partners${qs ? `${qs}&tab=cashouts` : '?tab=cashouts'}`);
 });
 
 module.exports = router;

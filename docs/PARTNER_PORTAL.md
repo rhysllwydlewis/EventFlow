@@ -8,13 +8,13 @@ The programme lives under `/partner` and is intentionally excluded from search i
 
 ## Main pages
 
-| URL                        | Purpose                              |
-| -------------------------- | ------------------------------------ |
-| `/partner`                 | Partner sign-in and registration     |
-| `/partner/dashboard`       | Partner workspace                    |
-| `/partner/media-pack.html` | Approved copy-ready sharing material |
-| `/partner/terms.html`      | Partner Programme Terms              |
-| `/admin-partners`          | Administrator partner moderation     |
+| URL                            | Purpose                                                                        |
+| ------------------------------ | ------------------------------------------------------------------------------ |
+| `/partner`                     | Partner sign-in and registration                                               |
+| `/partner/dashboard`           | Partner workspace                                                              |
+| `/partner/media-pack.html`     | Approved copy-ready sharing material                                           |
+| `/partner/terms.html`          | Partner Programme Terms                                                        |
+| `/admin-partners`              | Administrator partner moderation                                               |
 | `/admin-partners?tab=cashouts` | Administrator redemption processing (`/admin-cashout-requests` redirects here) |
 
 ## Dashboard structure
