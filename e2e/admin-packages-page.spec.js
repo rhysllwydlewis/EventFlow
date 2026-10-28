@@ -33,6 +33,51 @@ test.describe('Admin packages page @backend', () => {
     await expect(page.locator('#packagesContainer table')).toBeVisible();
   }
 
+
+  // TEMPORARY DIAGNOSTIC (to be removed): what is the page doing while the click waits?
+  async function probe(page, label) {
+    const info = await page.evaluate(
+      () =>
+        new Promise(resolve => {
+          let frames = 0;
+          let mutations = 0;
+          let shifts = 0;
+          const observer = new MutationObserver(list => {
+            mutations += list.length;
+          });
+          observer.observe(document.body, { subtree: true, childList: true, attributes: true, characterData: true });
+          let po = null;
+          try {
+            po = new PerformanceObserver(list => {
+              shifts += list.getEntries().length;
+            });
+            po.observe({ type: 'layout-shift', buffered: false });
+          } catch (e) {}
+          const start = performance.now();
+          const tick = () => {
+            frames += 1;
+            if (performance.now() - start < 2000) {
+              requestAnimationFrame(tick);
+            } else {
+              observer.disconnect();
+              if (po) po.disconnect();
+              resolve({
+                frames,
+                mutations,
+                shifts,
+                scrollY: window.scrollY,
+                docHeight: document.documentElement.scrollHeight,
+                rows: document.querySelectorAll('#packagesContainer tbody tr').length,
+                animations: document.getAnimations().length,
+              });
+            }
+          };
+          requestAnimationFrame(tick);
+        })
+    );
+    console.log('PROBE ' + label + ' ' + JSON.stringify(info));
+  }
+
   const rowFor = (page, title) => page.locator('#packagesContainer tbody tr', { hasText: title });
 
   test('lists packages and the search box narrows them', async ({ page, context, baseURL }) => {
@@ -136,14 +181,18 @@ test.describe('Admin packages page @backend', () => {
     baseURL,
   }) => {
     await openPage(page, context, baseURL);
+    await probe(page, 'after open');
     const title = `Admin added ${runId.slice(-6)}`;
     await page.locator('#addPackageBtn').click();
+    await probe(page, 'after add click');
     await page.locator('#packageSupplierId').selectOption(fixtures.supplier.id);
     await page.locator('#packageTitle').fill(title);
     await page.locator('#packageDescription').fill('Added by the admin packages journey.');
     await page.locator('#packagePrice').fill('From £250');
+    await probe(page, 'before save click');
     await page.locator('#savePackageBtn').click();
     await expect(rowFor(page, title)).toContainText('From £250');
+    await probe(page, 'after save');
 
     await rowFor(page, title).getByRole('button', { name: 'Delete', exact: true }).click();
     await page
