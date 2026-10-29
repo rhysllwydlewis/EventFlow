@@ -940,3 +940,8 @@
     transition: none;
   }
 }
+
+/* The link sets display above, which beats the hidden attribute: "Open PostHog" showed even when PostHog is not set up */
+.behaviour-posthog-link[hidden] {
+  display: none !important;
+}

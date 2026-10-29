@@ -272,15 +272,20 @@ describe('Admin external contacts CRUD route', () => {
 describe('Admin registry — External Contacts', () => {
   const registry = fs.readFileSync(path.join(__dirname, '../../config/adminRegistry.js'), 'utf8');
 
-  test('External Contacts is in the registry', () => {
+  test('Enquiries is in the registry, and the old External Contacts URL redirects to its tab', () => {
+    expect(registry).toContain("label: 'Enquiries'");
     expect(registry).toContain('/admin-external-contacts');
-    expect(registry).toContain("label: 'External Contacts'");
+    expect(registry).toContain("redirect: '/admin-tickets?tab=external'");
   });
 
-  test('admin-external-contacts.html exists', () => {
+  test('the external contacts page is now the External tab of Enquiries', () => {
     expect(fs.existsSync(path.join(__dirname, '../../public/admin-external-contacts.html'))).toBe(
-      true
+      false
     );
+    const page = fs.readFileSync(path.join(__dirname, '../../public/admin-tickets.html'), 'utf8');
+    expect(page).toContain('id="panel-external"');
+    expect(page).toContain('id="ecDetailModal"');
+    expect(page).toContain('admin-external-contacts-init.js');
   });
 
   test('admin-external-contacts-init.js exists', () => {
@@ -316,7 +321,7 @@ describe('Admin registry — External Contacts', () => {
       'utf8'
     );
     const pageSrc = fs.readFileSync(
-      path.join(__dirname, '../../public/admin-external-contacts.html'),
+      path.join(__dirname, '../../public/assets/css/admin-external-contacts.css'),
       'utf8'
     );
     expect(initSrc).toContain('class="ec-contact-row"');

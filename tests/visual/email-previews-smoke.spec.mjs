@@ -49,7 +49,7 @@ test('admin email previews gallery renders cards and preview frames with mocked 
     });
   });
 
-  await page.goto('/admin-email-previews', { waitUntil: 'domcontentloaded' });
+  await page.goto('/admin-emails?tab=templates', { waitUntil: 'domcontentloaded' });
   await expect(page.getByRole('heading', { name: 'Email template previews' })).toBeVisible();
   await expect(page.locator('.email-preview-card')).toHaveCount(2);
   await expect(page.locator('iframe.email-preview-frame')).toHaveCount(2);

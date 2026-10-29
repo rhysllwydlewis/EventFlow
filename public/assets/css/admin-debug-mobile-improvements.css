@@ -16,6 +16,19 @@
   flex: 0 0 auto;
   scroll-snap-align: center;
   white-space: nowrap;
+  /* The shared .ef-cta button style makes a button the full width of the screen on a phone, so
+     only the first tab showed. A tab is as wide as its label. */
+  width: auto;
+  margin-top: 0;
+}
+
+/* The shared button:hover rule paints every button bright blue; on a tab that left teal text on
+   blue (about 1.3:1) so the tab you were pointing at could not be read. */
+.sc-tabs .sc-tab-btn:hover,
+.sc-tabs .sc-tab-btn:focus-visible {
+  background: transparent;
+  box-shadow: none;
+  transform: none;
 }
 
 .sc-tabs.sc-tabs--mobile-enhanced .sc-tab-btn[aria-selected='true'] {

@@ -24,7 +24,7 @@ const GLOBAL_ANALYTICS_SCRIPTS = [
   '    <script src="/assets/js/behaviour-analytics.js?v=3" defer></script>',
 ];
 const ADMIN_BEHAVIOUR_ANALYTICS_SCRIPT =
-  '    <script src="/assets/js/pages/admin-behaviour-analytics.js?v=1" defer></script>';
+  '    <script src="/assets/js/pages/admin-behaviour-analytics.js?v=2" defer></script>';
 const GOOGLE_ADS_TAG_SCRIPT =
   '    <script src="/assets/js/google-ads-tag.js?v=2"></script>';
 // Token-bearing routes: loading a third-party script here would send the

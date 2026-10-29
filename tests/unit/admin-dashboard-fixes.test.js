@@ -437,9 +437,9 @@ describe('admin notification bell icons', () => {
       .filter(name => /^admin.*\.html$/.test(name))
       .map(name => read(`public/${name}`))
       .filter(html => html.includes('admin-navbar.js?v='));
-    expect(pages.length).toBeGreaterThan(30);
+    expect(pages.length).toBeGreaterThan(20);
     for (const html of pages) {
-      expect(html).toContain('admin-navbar.js?v=18.4.1');
+      expect(html).toContain('admin-navbar.js?v=18.5.16');
     }
   });
 });
@@ -515,7 +515,7 @@ describe('click-through pass on /admin', () => {
       .filter(name => /^admin.*\.html$/.test(name))
       .map(name => read(`public/${name}`))
       .filter(page => page.includes('admin-navbar.css'));
-    expect(pages.length).toBeGreaterThan(30);
+    expect(pages.length).toBeGreaterThan(20);
     for (const page of pages) {
       expect(page).toContain('admin-navbar.css?v=18.4.1');
     }

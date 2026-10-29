@@ -130,11 +130,20 @@ describe('Registry ↔ HTML files on disk', () => {
     expect(missing).toEqual([]);
   });
 
-  it('every registry htmlFile has a corresponding file on disk', () => {
+  it('every registry htmlFile has a corresponding file on disk (legacy aliases have none)', () => {
     const extra = REGISTRY.filter(
-      p => !fs.existsSync(path.join(PUBLIC_DIR, `${p.htmlFile}.html`))
+      p => p.category !== 'compat' && !fs.existsSync(path.join(PUBLIC_DIR, `${p.htmlFile}.html`))
     ).map(p => p.htmlFile);
     expect(extra).toEqual([]);
+  });
+
+  it('the retired Stock Photos and Content Dates pages are gone, and only redirect', () => {
+    for (const retired of ['admin-pexels', 'admin-content-dates']) {
+      expect(fs.existsSync(path.join(PUBLIC_DIR, `${retired}.html`))).toBe(false);
+      const entry = REGISTRY.find(p => p.htmlFile === retired);
+      expect(entry && entry.category).toBe('compat');
+      expect(typeof entry.redirect).toBe('string');
+    }
   });
 });
 

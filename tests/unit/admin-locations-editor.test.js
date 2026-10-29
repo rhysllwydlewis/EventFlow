@@ -69,9 +69,13 @@ describe('editor markup', () => {
     expect(html).toContain('/assets/js/utils/csrf-token.js');
   });
 
-  it('loads the shared EventFlow brand layer used by its public-style header and footer', () => {
-    expect(html).toContain('/assets/css/eventflow-brand.css');
-    expect(html).toContain('data-eventflow-brand="true"');
+  it('sits in the admin frame, not behind the public site header and footer', () => {
+    expect(html).toContain('id="adminNavbarMount"');
+    expect(html).toContain('/assets/js/admin-navbar.js');
+    expect(html).toContain('/assets/js/admin-shared.js');
+    expect(html).toMatch(/<body class="efl has-admin-navbar admin">/);
+    expect(html).not.toContain('class="ef-header"');
+    expect(html).not.toContain('role="contentinfo"');
   });
 
   it('loads the Pexels chooser and offers it from the hero fieldset', () => {

@@ -358,11 +358,46 @@
       document.querySelectorAll('.acr-open-btn').forEach(btn => {
         btn.addEventListener('click', () => openModal(btn.dataset.id, items));
       });
+      openLinkedRequest(items);
     } catch (err) {
       if (tbody) {
         tbody.innerHTML = `<tr><td colspan="7"><div class="acr-empty"><div class="acr-empty-icon">⚠️</div><p class="acr-empty-text">${esc(err.message || 'Error loading data')}</p></div></td></tr>`;
       }
       showToast(err.message || 'Failed to load cashout requests', 'error');
+    }
+  }
+
+  // A link such as /admin-cashout-requests?request=ID (from a notification) opens that request, once
+  let linkedRequestHandled = false;
+  async function openLinkedRequest(items) {
+    if (linkedRequestHandled) {
+      return;
+    }
+    linkedRequestHandled = true;
+    const id = new URLSearchParams(window.location.search).get('request');
+    if (!id) {
+      return;
+    }
+    if (items.some(item => item.id === id)) {
+      openModal(id, items);
+      return;
+    }
+    // The list holds only the newest 100, so an older request is fetched by itself
+    try {
+      const res = await fetch(`/api/v1/admin/cashout-requests/${encodeURIComponent(id)}`, {
+        credentials: 'include',
+      });
+      if (res.status === 404) {
+        showToast('That cashout request was not found. It may have been deleted.', 'warning');
+        return;
+      }
+      const payload = await res.json().catch(() => ({}));
+      if (!res.ok || !payload.request) {
+        throw new Error(payload.error || 'Could not open that cashout request');
+      }
+      openModal(id, [payload.request, ...items]);
+    } catch (err) {
+      showToast(err.message || 'Could not open that cashout request', 'error');
     }
   }
 
@@ -702,6 +737,39 @@
     loadOperationsPanel();
   }
 
+  // What each status change does to the partner's points, spelled out before it is made
+  const STATUS_CONSEQUENCES = {
+    approved: {
+      title: 'Approve this cashout?',
+      confirmText: 'Approve',
+      message:
+        'The partner will see it as approved on their dashboard. Their points stay held until it is delivered.',
+    },
+    rejected: {
+      title: 'Reject this cashout?',
+      confirmText: 'Reject',
+      message:
+        'The held points go back to the partner and the request cannot be reopened. Add a message so they can see why on their dashboard.',
+    },
+    delivered: {
+      title: 'Mark as delivered?',
+      confirmText: 'Mark delivered',
+      message:
+        'The held points are spent for good and the request cannot be changed again. Only do this once the reward has really been sent.',
+    },
+  };
+
+  async function confirmStatusChange(newStatus) {
+    const consequence = STATUS_CONSEQUENCES[newStatus];
+    if (!consequence) {
+      return true;
+    }
+    return AdminShared.showConfirmModal({
+      ...consequence,
+      cancelText: 'Go back',
+    });
+  }
+
   async function saveChanges() {
     if (!_currentRequest) {
       return;
@@ -709,6 +777,17 @@
     const update = readModalUpdate();
     if (!hasModalChanges(update)) {
       setModalStatus(update.statusMsg, 'No changes to save.');
+      return;
+    }
+    if (update.newStatus === 'delivered' && !update.deliveryRef) {
+      setModalStatus(
+        update.statusMsg,
+        'Add the delivery reference (gift card code or reference) before marking this delivered.',
+        'error'
+      );
+      return;
+    }
+    if (!(await confirmStatusChange(update.newStatus))) {
       return;
     }
 
@@ -782,9 +861,15 @@
     });
   }
 
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', init);
-  } else {
-    init();
-  }
+  // Runs the first time the Cashouts tab is opened on the Partner Programme page
+  let started = false;
+  window.AdminCashouts = {
+    start() {
+      if (started) {
+        return;
+      }
+      started = true;
+      init();
+    },
+  };
 })();

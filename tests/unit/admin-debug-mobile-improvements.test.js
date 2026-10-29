@@ -21,9 +21,9 @@ describe('admin debug mobile improvements', () => {
     expect(loader).toContain('/assets/css/admin-debug-mobile-improvements.css');
     expect(loader).toContain('/assets/js/pages/admin-debug-mobile-improvements.js');
     expect(loader).toContain('data-admin-debug-mobile-improvements');
-    expect(loader).toContain("const version = '18.6.1';");
+    expect(loader).toContain("const version = '18.6.2';");
     const html = read('public/admin-debug.html');
-    expect(html).toContain('/assets/js/pages/admin-debug-background-jobs.js?v=18.6.1');
+    expect(html).toContain('/assets/js/pages/admin-debug-background-jobs.js?v=18.6.2');
   });
 
   test('adds scrollable tabs, mutually exclusive summary figures and grouped results', () => {

@@ -121,6 +121,8 @@
       const data = await AdminShared.api('/api/admin/metrics');
       const counts = (data && data.counts) || {};
       setText('an-usersTotal', String(counts.usersTotal || 0));
+      setText('an-signups7d', String(counts.signupsLast7Days || 0));
+      setText('an-signups30d', String(counts.signupsLast30Days || 0));
       setText('an-suppliersTotal', String(counts.suppliersTotal || 0));
       setText('an-suppliersProTotal', String(counts.proSuppliers || 0));
       setText('an-packagesTotal', String(counts.packagesTotal || 0));
@@ -164,24 +166,6 @@
   }
 
   async function loadUserGrowth() {
-    try {
-      const usersData = await AdminShared.api('/api/admin/users');
-      const users = (usersData && usersData.items) || [];
-      const now = Date.now();
-      const week = 7 * 24 * 60 * 60 * 1000;
-      const month = 30 * 24 * 60 * 60 * 1000;
-      const countSince = duration =>
-        users.filter(user => {
-          const createdAt = user.createdAt ? Date.parse(user.createdAt) : NaN;
-          return Number.isFinite(createdAt) && createdAt >= now - duration;
-        }).length;
-      setText('an-signups7d', String(countSince(week)));
-      setText('an-signups30d', String(countSince(month)));
-    } catch (_error) {
-      setText('an-signups7d', 'N/A');
-      setText('an-signups30d', 'N/A');
-    }
-
     try {
       const timeseriesData = await AdminShared.api('/api/admin/metrics/timeseries');
       const series = (timeseriesData && timeseriesData.series) || [];

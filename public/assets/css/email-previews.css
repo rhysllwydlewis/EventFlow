@@ -227,3 +227,7 @@
     margin-top: 16px;
   }
 }
+
+/* Same as the Email Centre hero: the shared admin page style made the title dark on this gradient. */
+body.has-admin-navbar.admin .email-preview-hero .dashboard-title { color: #fff; }
+body.has-admin-navbar.admin .email-preview-hero .dashboard-subtitle { color: rgba(255, 255, 255, 0.9); }

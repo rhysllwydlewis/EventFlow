@@ -612,6 +612,16 @@ async function releaseCashoutHold(holdTxnId, partnerId) {
 
 async function getBalance(partnerId) {
   const partnerTxns = await dbUnified.find('partner_credit_transactions', { partnerId });
+  return summariseBalance(partnerTxns);
+}
+
+/**
+ * Credit balance and breakdown from a partner's transactions. Pure, so a list of partners can
+ * read every transaction once and summarise each, instead of querying once per partner.
+ * @param {Array<Object>} partnerTxns - One partner's credit transactions
+ * @returns {Object} Balance, earned, bonus totals and the transactions (newest first)
+ */
+function summariseBalance(partnerTxns) {
   const maturityCutoff = Date.now() - CREDIT_MATURITY_DAYS * 86400000;
   let total = 0;
   let availableEarned = 0;
@@ -714,5 +724,6 @@ module.exports = {
   createCashoutHold,
   releaseCashoutHold,
   getBalance,
+  summariseBalance,
   getPendingPoints,
 };

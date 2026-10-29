@@ -113,7 +113,14 @@
     }
   }
 
-  document.addEventListener('DOMContentLoaded', () => {
+  // The automation settings sit on the Campaigns tab; they load when the tab is first opened.
+  let started = false;
+
+  function start() {
+    if (started) {
+      return;
+    }
+    started = true;
     enabledEl = document.getElementById('automationEnabled');
     cadenceEl = document.getElementById('automationCadence');
     dayOfWeekWrapEl = document.getElementById('automationDayOfWeekWrap');
@@ -142,5 +149,7 @@
     } else {
       window.AdminShared.fetchCSRFToken().then(loadAutomation).catch(loadAutomation);
     }
-  });
+  }
+
+  window.AdminCampaignAutomation = { start };
 })();

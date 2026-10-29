@@ -8,6 +8,7 @@ const logger = require('../utils/logger');
 const dbUnified = require('../db-unified');
 const { uid } = require('../store');
 const { JWT_SECRET, setAuthCookie } = require('../middleware/auth');
+const { getAccountRestriction, restrictionRedirect } = require('../utils/accountRestriction');
 const { getFeatureFlags } = require('../middleware/features');
 const domainAdmin = require('../middleware/domain-admin');
 const googleAuthService = require('../services/googleAuth.service');
@@ -544,6 +545,15 @@ router.post('/callback/google', parseGoogleFormPost, async (req, res) => {
     const user = await findOrCreateGoogleUser(googleProfile, state);
     if (user.__eventflowNewGoogleSignup === true) {
       await recordGoogleSignupAnalytics(user, state);
+    }
+
+    const restriction = getAccountRestriction(user);
+    if (restriction) {
+      logger.warn('[GOOGLE REDIRECT LOGIN] Restricted account refused', {
+        userId: user.id,
+        type: restriction.type,
+      });
+      return res.redirect(303, restrictionRedirect(restriction));
     }
 
     if (user.twoFactorEnabled) {

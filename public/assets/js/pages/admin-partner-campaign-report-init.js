@@ -201,9 +201,15 @@
     loadReport();
   }
 
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', init);
-  } else {
-    init();
-  }
+  // Runs the first time the Campaign report tab is opened on the Partner Programme page
+  let started = false;
+  window.AdminCampaignReport = {
+    start() {
+      if (started) {
+        return;
+      }
+      started = true;
+      init();
+    },
+  };
 })();

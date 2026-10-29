@@ -9,6 +9,7 @@ const logger = require('../utils/logger');
 const dbUnified = require('../db-unified');
 const { uid } = require('../store');
 const { JWT_SECRET, setAuthCookie } = require('../middleware/auth');
+const { getAccountRestriction, restrictionRedirect } = require('../utils/accountRestriction');
 const { getFeatureFlags } = require('../middleware/features');
 const domainAdmin = require('../middleware/domain-admin');
 const appleAuthService = require('../services/appleAuth.service');
@@ -577,6 +578,15 @@ router.post('/callback/apple', parseAppleFormPost, async (req, res) => {
     const user = await findOrCreateAppleUser(appleProfile, appleUserInfo, state);
     if (user.__eventflowNewAppleSignup === true) {
       await recordAppleSignupAnalytics(user, state);
+    }
+
+    const restriction = getAccountRestriction(user);
+    if (restriction) {
+      logger.warn('[APPLE REDIRECT LOGIN] Restricted account refused', {
+        userId: user.id,
+        type: restriction.type,
+      });
+      return res.redirect(303, restrictionRedirect(restriction));
     }
 
     if (user.twoFactorEnabled) {

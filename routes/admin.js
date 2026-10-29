@@ -9,8 +9,10 @@ const path = require('path');
 const logger = require('../utils/logger');
 const { getSafeStripeSecretKey } = require('../utils/previewSafety');
 const { priceFields, packagePriceText } = require('../utils/packagePrice');
+const { dropLiveSessions } = require('../utils/accountRestriction');
 const fs = require('fs');
 const crypto = require('crypto');
+const validator = require('validator');
 const express = require('express');
 const multer = require('multer');
 const { uid } = require('../store');
@@ -43,6 +45,7 @@ const { runActionPrompts, notifyCronChanged } = require('../services/actionPromp
 const locationRegistry = require('../services/locationRegistry.service');
 const locationPageService = require('../services/locationPage.service');
 const { approvalDecision } = require('../services/seoRecordLifecycle.util');
+const { buildPaymentsView } = require('../services/adminPaymentsView');
 const { addPublicProfilePath } = require('../utils/publicSupplierProfilePath');
 
 const router = express.Router();
@@ -586,9 +589,20 @@ router.get('/metrics', authRequired, roleRequired('admin'), async (_req, res) =>
       dbUnified.read('packages').then(d => d || []),
       dbUnified.read('threads').then(d => d || []),
     ]);
+    // New accounts in the last 7 and 30 days, counted here so the Analytics page does not have to
+    // download every user just to count them
+    const signedUpWithin = days => {
+      const since = Date.now() - days * 24 * 60 * 60 * 1000;
+      return users.filter(u => {
+        const createdAt = u.createdAt ? Date.parse(u.createdAt) : NaN;
+        return Number.isFinite(createdAt) && createdAt >= since;
+      }).length;
+    };
     res.json({
       counts: {
         usersTotal: users.length,
+        signupsLast7Days: signedUpWithin(7),
+        signupsLast30Days: signedUpWithin(30),
         usersByRole: users.reduce((a, u) => {
           a[u.role] = (a[u.role] || 0) + 1;
           return a;
@@ -615,6 +629,8 @@ router.get('/metrics', authRequired, roleRequired('admin'), async (_req, res) =>
       error: 'Failed to fetch metrics',
       counts: {
         usersTotal: 0,
+        signupsLast7Days: 0,
+        signupsLast30Days: 0,
         usersByRole: {},
         suppliersTotal: 0,
         pendingSuppliers: 0,
@@ -1945,17 +1961,23 @@ router.post(
         .filter(id => id !== req.user.id && all.find(u => u.id === id))
         .map(userId => {
           count++;
-          return dbUnified.updateOne(
-            'users',
-            { id: userId },
-            {
-              $set: {
-                suspended: true,
-                suspendedAt,
-                suspendedUntil: suspendUntil ? suspendUntil.toISOString() : null,
-              },
-            }
-          );
+          return dbUnified
+            .updateOne(
+              'users',
+              { id: userId },
+              {
+                $set: {
+                  suspended: true,
+                  suspendedAt,
+                  suspendedUntil: suspendUntil ? suspendUntil.toISOString() : null,
+                  suspensionExpiresAt: suspendUntil ? suspendUntil.toISOString() : null,
+                },
+              }
+            )
+            .then(result => {
+              dropLiveSessions(userId);
+              return result;
+            });
         });
       await Promise.all(suspendPromises);
       await auditLog({
@@ -4807,8 +4829,11 @@ router.post(
       if (enquiry.senderEmail) {
         const baseUrl =
           process.env.BASE_URL || process.env.APP_BASE_URL || 'https://event-flow.co.uk';
-        const senderName = enquiry.senderName || 'there';
-        const subjectText = enquiry.subject || 'your enquiry';
+        // Enquiries saved before the contact form stopped escaping on the way in hold "Can&#x27;t";
+        // turn those back so the customer's subject line reads normally. The email template
+        // escapes these values itself.
+        const senderName = validator.unescape(String(enquiry.senderName || '')) || 'there';
+        const subjectText = validator.unescape(String(enquiry.subject || '')) || 'your enquiry';
 
         // XSS-escape user content before embedding in HTML
         const escapeHtml = str =>
@@ -4879,18 +4904,28 @@ router.post(
 
 /**
  * GET /api/admin/payments
- * List all payments for admin analytics
+ * Payments for the admin Payments page, mapped from the records Stripe checkout creates
+ * (customer, plan, amount after refunds, status group) with the headline numbers worked out
+ * from them. See services/adminPaymentsView.js.
  */
 router.get('/payments', authRequired, roleRequired('admin'), async (_req, res) => {
   try {
-    const payments = await dbUnified.read('payments');
-    // Sort by createdAt descending (newest first)
-    payments.sort((a, b) => {
-      const dateA = new Date(a.createdAt || 0);
-      const dateB = new Date(b.createdAt || 0);
-      return dateB - dateA;
+    // Strict reads: if the database cannot be read this must fail, not quietly show totals worked
+    // out from an empty or stale local copy
+    const strict = { throwOnError: true };
+    const [payments, users, invoices, subscriptions] = await Promise.all([
+      dbUnified.read('payments', strict),
+      dbUnified.read('users', strict),
+      dbUnified.read('invoices', strict),
+      dbUnified.read('subscriptions', strict),
+    ]);
+    const { items, summary } = buildPaymentsView({
+      payments: payments || [],
+      users: users || [],
+      invoices: invoices || [],
+      subscriptions: subscriptions || [],
     });
-    res.json({ items: payments });
+    res.json({ items, summary });
   } catch (error) {
     logger.error('Error reading payments:', error);
     res.status(500).json({ error: 'Failed to load payments' });
@@ -5027,10 +5062,19 @@ router.get('/stripe-analytics', authRequired, roleRequired('admin'), async (_req
         return sum + (charge.amount_captured || 0);
       }, 0);
 
+    // What was actually kept: captured money less what was refunded, successful charges only
+    const netRevenueLast30Days = charges.data
+      .filter(charge => charge.paid && charge.status === 'succeeded')
+      .reduce(
+        (sum, charge) => sum + (charge.amount_captured || 0) - (charge.amount_refunded || 0),
+        0
+      );
+
     const analytics = {
       available: true,
       totalRevenue: totalRevenue / 100, // Convert from pence to pounds
       monthRevenue: monthRevenue / 100,
+      netRevenueLast30Days: netRevenueLast30Days / 100,
       activeSubscriptions: subscriptions.data.length,
       totalCharges: charges.data.length,
       newCustomers: customers.data.length,
@@ -5067,48 +5111,64 @@ router.get('/stripe-analytics', authRequired, roleRequired('admin'), async (_req
   }
 });
 
-/**
-
 // ---------- Audit Logs ----------
+
+const AUDIT_FILTER_KEYS = [
+  'adminId',
+  'adminEmail',
+  'action',
+  'targetType',
+  'targetId',
+  'startDate',
+  'endDate',
+];
+
+/**
+ * Lists audit logs, newest first, one page at a time.
+ * Query: the filters above, plus page (1-based) and limit (at most 100).
+ * Responds { logs, count, total, page, limit }: count is the size of this page, total is
+ * everything that matches.
+ */
+async function listAuditLogs(req, res) {
+  const filters = { page: req.query.page, limit: req.query.limit };
+  for (const key of AUDIT_FILTER_KEYS) {
+    if (req.query[key]) {
+      filters[key] = req.query[key];
+    }
+  }
+
+  const { getAuditLogsPage } = require('../middleware/audit');
+  const result = await getAuditLogsPage(filters);
+  if (result.failed) {
+    return res.status(500).json({ error: 'Failed to load audit logs' });
+  }
+  return res.json({
+    logs: result.logs,
+    count: result.logs.length,
+    total: result.total,
+    page: result.page,
+    limit: result.limit,
+  });
+}
 
 /**
  * GET /api/admin/audit-logs
  * Get audit logs with optional filtering (canonical endpoint)
  */
-router.get('/audit-logs', authRequired, roleRequired('admin'), async (req, res) => {
-  const { adminId, adminEmail, action, targetType, targetId, startDate, endDate, limit } =
-    req.query;
+router.get('/audit-logs', authRequired, roleRequired('admin'), listAuditLogs);
 
-  const filters = {};
-  if (adminId) {
-    filters.adminId = adminId;
+/**
+ * GET /api/admin/audit-logs/filters
+ * The actions and target types the audit log can be filtered by
+ */
+router.get('/audit-logs/filters', authRequired, roleRequired('admin'), async (req, res) => {
+  try {
+    const { getAuditFilterOptions } = require('../middleware/audit');
+    res.json(await getAuditFilterOptions());
+  } catch (error) {
+    logger.error('Error loading audit filter options:', error);
+    res.status(500).json({ error: 'Failed to load audit filters' });
   }
-  if (adminEmail) {
-    filters.adminEmail = adminEmail;
-  }
-  if (action) {
-    filters.action = action;
-  }
-  if (targetType) {
-    filters.targetType = targetType;
-  }
-  if (targetId) {
-    filters.targetId = targetId;
-  }
-  if (startDate) {
-    filters.startDate = startDate;
-  }
-  if (endDate) {
-    filters.endDate = endDate;
-  }
-  if (limit) {
-    filters.limit = parseInt(limit, 10);
-  }
-
-  const { getAuditLogs } = require('../middleware/audit');
-  const logs = await getAuditLogs(filters);
-
-  res.json({ logs, count: logs.length });
 });
 
 /**
@@ -5116,42 +5176,7 @@ router.get('/audit-logs', authRequired, roleRequired('admin'), async (req, res) 
  * Get audit logs with optional filtering
  * Backwards compatible endpoint - returns same format as /api/admin/audit-logs
  */
-router.get('/audit', authRequired, roleRequired('admin'), async (req, res) => {
-  const { adminId, adminEmail, action, targetType, targetId, startDate, endDate, limit } =
-    req.query;
-
-  const filters = {};
-  if (adminId) {
-    filters.adminId = adminId;
-  }
-  if (adminEmail) {
-    filters.adminEmail = adminEmail;
-  }
-  if (action) {
-    filters.action = action;
-  }
-  if (targetType) {
-    filters.targetType = targetType;
-  }
-  if (targetId) {
-    filters.targetId = targetId;
-  }
-  if (startDate) {
-    filters.startDate = startDate;
-  }
-  if (endDate) {
-    filters.endDate = endDate;
-  }
-  if (limit) {
-    filters.limit = parseInt(limit, 10);
-  }
-
-  const { getAuditLogs } = require('../middleware/audit');
-  const logs = await getAuditLogs(filters);
-
-  // Use standardized response format
-  res.json({ logs, count: logs.length });
-});
+router.get('/audit', authRequired, roleRequired('admin'), listAuditLogs);
 
 // ---------- Marketplace Admin ----------
 
@@ -6222,39 +6247,38 @@ router.put('/content-config', csrfProtection, authRequired, roleRequired('admin'
 });
 
 /**
+ * One quoted CSV cell. A value a spreadsheet would read as a formula (starting = + - @) gets a
+ * leading apostrophe so opening the export cannot run it.
+ * @param {*} value - Cell value
+ * @returns {string} Quoted cell
+ */
+function csvCell(value) {
+  const text = String(value);
+  const safe = /^[=+\-@\t\r]/.test(text) ? `'${text}` : text;
+  return `"${safe.replace(/"/g, '""')}"`;
+}
+
+/**
  * GET /api/admin/audit/export
  * Export audit logs with optional filtering
- * Query params: format (csv|json), startDate, endDate
+ * Query params: format (csv|json), startDate, endDate (inclusive), action, targetType
  */
 router.get('/audit/export', authRequired, roleRequired('admin'), async (req, res) => {
   try {
-    const { format = 'json', startDate, endDate } = req.query;
+    const { format = 'json', startDate, endDate, action, targetType } = req.query;
 
     if (!['csv', 'json'].includes(format)) {
       return res.status(400).json({ error: 'Invalid format. Use csv or json' });
     }
 
-    let logs = await dbUnified.read('audit_logs');
-
-    // Apply date filters if provided
-    if (startDate || endDate) {
-      logs = logs.filter(log => {
-        const logDate = new Date(log.timestamp || log.createdAt);
-        if (startDate && logDate < new Date(startDate)) {
-          return false;
-        }
-        if (endDate && logDate > new Date(endDate)) {
-          return false;
-        }
-        return true;
-      });
-    }
-
-    // Sort by timestamp descending
-    logs.sort((a, b) => {
-      const dateA = new Date(a.timestamp || a.createdAt);
-      const dateB = new Date(b.timestamp || b.createdAt);
-      return dateB - dateA;
+    // Same filters, same day-inclusive dates and same ordering as the Audit Log screen, so the
+    // file holds what the admin was looking at
+    const { filterAuditLogs } = require('../middleware/audit');
+    const logs = filterAuditLogs(await dbUnified.read('audit_logs'), {
+      startDate,
+      endDate,
+      action,
+      targetType,
     });
 
     // Audit the export action
@@ -6264,7 +6288,7 @@ router.get('/audit/export', authRequired, roleRequired('admin'), async (req, res
       action: 'AUDIT_LOG_EXPORT',
       targetType: 'audit_log',
       targetId: 'export',
-      details: { format, startDate, endDate, count: logs.length },
+      details: { format, startDate, endDate, action, targetType, count: logs.length },
     });
 
     if (format === 'csv') {
@@ -6290,7 +6314,7 @@ router.get('/audit/export', authRequired, roleRequired('admin'), async (req, res
 
       const csvContent = [
         headers.join(','),
-        ...rows.map(row => row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(',')),
+        ...rows.map(row => row.map(cell => csvCell(cell)).join(',')),
       ].join('\n');
 
       res.setHeader('Content-Type', 'text/csv');
@@ -7003,11 +7027,15 @@ router.post(
 /**
  * GET /api/admin/search
  * Cross-entity admin search
- * Query params: q (required), types (comma-separated: users,suppliers,packages,tickets,reports)
+ * Query params: q (required), types (comma-separated: users,suppliers,packages,tickets,reports),
+ * limit (per category, default 10, max 100), offset
+ * Responds { query, results, totals } where totals is the full match count per category
  */
 router.get('/search', authRequired, roleRequired('admin'), async (req, res) => {
-  const MAX_SEARCH_RESULTS = 10;
   const { q, types } = req.query;
+  // 10 a category by default; "Show more" asks again with an offset. At most 100 (the API cap).
+  const limit = Math.min(100, Math.max(1, parseInt(req.query.limit, 10) || 10));
+  const offset = Math.max(0, parseInt(req.query.offset, 10) || 0);
   if (!q || q.trim().length < 2) {
     return res.status(400).json({ error: 'Search query must be at least 2 characters' });
   }
@@ -7016,108 +7044,114 @@ router.get('/search', authRequired, roleRequired('admin'), async (req, res) => {
     ? types.split(',').map(t => t.trim())
     : ['users', 'suppliers', 'packages', 'tickets', 'reports'];
   const results = {};
+  // How many things matched in each category, so the page can say "10 of 37"
+  const totals = {};
+  const takePage = (type, matches) => {
+    totals[type] = matches.length;
+    return matches.slice(offset, offset + limit);
+  };
 
   try {
     if (searchTypes.includes('users')) {
       const users = await dbUnified.read('users');
-      results.users = users
-        .filter(
+      results.users = takePage(
+        'users',
+        users.filter(
           u =>
             (u.email && u.email.toLowerCase().includes(term)) ||
             (u.name && u.name.toLowerCase().includes(term))
         )
-        .slice(0, MAX_SEARCH_RESULTS)
-        .map(u => ({
-          id: u.id,
-          name: u.name,
-          email: u.email,
-          role: u.role,
-          createdAt: u.createdAt,
-        }));
+      ).map(u => ({
+        id: u.id,
+        name: u.name,
+        email: u.email,
+        role: u.role,
+        createdAt: u.createdAt,
+      }));
     }
 
     if (searchTypes.includes('suppliers')) {
       const suppliers = await dbUnified.read('suppliers');
-      results.suppliers = suppliers
-        .filter(
+      results.suppliers = takePage(
+        'suppliers',
+        suppliers.filter(
           s =>
             (s.businessName && s.businessName.toLowerCase().includes(term)) ||
             (s.name && s.name.toLowerCase().includes(term)) ||
             (s.email && s.email.toLowerCase().includes(term)) ||
             (s.category && s.category.toLowerCase().includes(term))
         )
-        .slice(0, MAX_SEARCH_RESULTS)
-        .map(s => ({
-          id: s.id,
-          businessName: s.businessName || s.name,
-          email: s.email,
-          category: s.category,
-          verificationStatus: s.verificationStatus,
-        }));
+      ).map(s => ({
+        id: s.id,
+        businessName: s.businessName || s.name,
+        email: s.email,
+        category: s.category,
+        verificationStatus: s.verificationStatus,
+      }));
     }
 
     if (searchTypes.includes('packages')) {
       const packages = await dbUnified.read('packages');
-      results.packages = packages
-        .filter(
+      results.packages = takePage(
+        'packages',
+        packages.filter(
           p =>
             (p.title && p.title.toLowerCase().includes(term)) ||
             (p.description && p.description.toLowerCase().includes(term)) ||
             (p.supplierName && p.supplierName.toLowerCase().includes(term))
         )
-        .slice(0, MAX_SEARCH_RESULTS)
-        .map(p => ({
-          id: p.id,
-          title: p.title,
-          supplierName: p.supplierName,
-          price: packagePriceText(p),
-          status: p.status,
-        }));
+      ).map(p => ({
+        id: p.id,
+        title: p.title,
+        supplierName: p.supplierName,
+        price: packagePriceText(p),
+        status: p.status,
+      }));
     }
 
     if (searchTypes.includes('tickets')) {
       const tickets = await dbUnified.read('tickets');
-      results.tickets = tickets
-        .filter(
+      results.tickets = takePage(
+        'tickets',
+        tickets.filter(
           t =>
             (t.subject && t.subject.toLowerCase().includes(term)) ||
             (t.message && t.message.toLowerCase().includes(term)) ||
             (t.senderEmail && t.senderEmail.toLowerCase().includes(term)) ||
             (t.userEmail && t.userEmail.toLowerCase().includes(term))
         )
-        .slice(0, MAX_SEARCH_RESULTS)
-        .map(t => ({
-          id: t.id,
-          subject: t.subject,
-          status: t.status,
-          priority: t.priority,
-          senderEmail: t.senderEmail || t.userEmail,
-          createdAt: t.createdAt,
-        }));
+      ).map(t => ({
+        id: t.id,
+        subject: t.subject,
+        status: t.status,
+        priority: t.priority,
+        senderEmail: t.senderEmail || t.userEmail,
+        createdAt: t.createdAt,
+      }));
     }
 
     if (searchTypes.includes('reports')) {
       const reports = await dbUnified.read('reports');
-      results.reports = reports
-        .filter(
+      results.reports = takePage(
+        'reports',
+        reports.filter(
           r =>
             (r.type && r.type.toLowerCase().includes(term)) ||
             (r.reason && r.reason.toLowerCase().includes(term)) ||
             (r.reporterEmail && r.reporterEmail.toLowerCase().includes(term)) ||
             (r.details && r.details.toLowerCase().includes(term))
         )
-        .slice(0, MAX_SEARCH_RESULTS)
-        .map(r => ({
-          id: r.id,
-          type: r.type,
-          reason: r.reason,
-          status: r.status,
-          reporterEmail: r.reporterEmail,
-          createdAt: r.createdAt,
-        }));
+      ).map(r => ({
+        id: r.id,
+        type: r.type,
+        reason: r.reason,
+        status: r.status,
+        reporterEmail: r.reporterEmail,
+        createdAt: r.createdAt,
+      }));
     }
 
-    res.json({ query: q, results });
+    res.json({ query: q, results, totals, limit, offset });
   } catch (err) {
     logger.error('Admin search error:', err);
     res.status(500).json({ error: 'Search failed' });

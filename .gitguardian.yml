@@ -11,6 +11,7 @@ version: 2
 paths-ignore:
   - "tests/helpers/test-app.js"
   - "tests/integration/api.test.js"
+  - "tests/integration/account-restriction.test.js"
   - "tests/load/helpers.js"
   - "tests/utils/testHelpers.js"
 
