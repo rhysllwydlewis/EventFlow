@@ -187,6 +187,7 @@
   const toolbar = node('div', 'hws-playbar');
   toolbar.setAttribute('role', 'group');
   toolbar.setAttribute('aria-label', 'Explore the wedding preview');
+  toolbar.appendChild(node('p', 'hws-hint', 'Try it: send an RSVP, then seat a guest.'));
   const viewButtons = VIEWS.map(([key, text]) => {
     const button = node('button', 'hws-view', text);
     button.type = 'button';

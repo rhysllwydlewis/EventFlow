@@ -803,21 +803,29 @@
  * narrow screens show one panel at a time with a small tab bar.
  */
 
+/* Wide screens: a quiet hint on the left and Reset on the right, clear of the "Private link" chip. */
 .hws .hws-playbar {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
-  justify-content: flex-start;
+  align-items: center;
+  justify-content: space-between;
   max-width: 640px;
-  margin: 0 auto 14px;
+  margin: 0 auto 44px;
+}
+
+.hws .hws-hint {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.4;
+  color: var(--hws-muted);
 }
 
 .hws .hws-view {
   display: none;
 }
 
-.hws .hws-view,
-.hws .hws-reset {
+.hws .hws-view {
   min-height: 40px;
   padding: 0 16px;
   font: inherit;
@@ -833,9 +841,34 @@
     border-color 0.15s ease;
 }
 
-.hws .hws-view:hover,
-.hws .hws-reset:hover {
+.hws .hws-view:hover {
   border-color: var(--hws-teal);
+}
+
+/* Reset is a quiet text button: it matters after you have tried something, not before. */
+.hws .hws-reset {
+  min-height: 40px;
+  padding: 0 10px;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--hws-teal-deep);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+  background: none;
+  border: 0;
+  border-radius: 10px;
+}
+
+.hws .hws-reset:hover {
+  background: var(--hws-mint);
+}
+
+.hws .hws-reset:focus-visible,
+.hws .hws-view:focus-visible {
+  outline: 3px solid var(--hws-teal);
+  outline-offset: 2px;
 }
 
 .hws .hws-view[aria-pressed='true'] {
@@ -853,6 +886,39 @@
 
 .hws.hws--live .hws__stage {
   height: 736px;
+}
+
+/* Wide: phone on the left, the two cards stacked on the right. One grid gap (24px) sits between
+   the phone and the cards and between the two cards, and both cards share the same width and edges. */
+@media (min-width: 720px) {
+  .hws.hws--live .hws__stage {
+    display: grid;
+    grid-template-columns: 236px 380px;
+    grid-template-rows: auto auto;
+    gap: 24px;
+    align-content: start;
+  }
+
+  .hws.hws--live .hws__stage > :is(.hws__phone, .hws__tracker, .hws__seating) {
+    position: static;
+    width: auto;
+  }
+
+  .hws.hws--live .hws__phone {
+    grid-column: 1;
+    grid-row: 1 / span 2;
+    align-self: start;
+  }
+
+  .hws.hws--live .hws__tracker {
+    grid-column: 2;
+    grid-row: 1;
+  }
+
+  .hws.hws--live .hws__seating {
+    grid-column: 2;
+    grid-row: 2;
+  }
 }
 
 /* The phone: real controls drawn to look like the illustration */
@@ -964,6 +1030,7 @@
 }
 
 .hws .hws__avatar--you {
+  color: #fff;
   background: var(--hws-plum);
 }
 
@@ -983,9 +1050,15 @@
   fill: #dff5f1;
 }
 
+/* an outline on an SVG circle is drawn as a box; a thick plum stroke follows the table's shape */
+.hws .hws-table[role='button']:focus,
 .hws .hws-table[role='button']:focus-visible {
-  outline: 3px solid var(--hws-teal);
-  outline-offset: 3px;
+  outline: none !important;
+}
+
+.hws .hws-table[role='button']:focus-visible {
+  stroke: var(--hws-plum);
+  stroke-width: 4px;
 }
 
 .hws .hws-seat.is-new {
@@ -1046,16 +1119,35 @@
   .hws .hws-playbar {
     gap: 6px;
     justify-content: center;
+    margin-bottom: 14px;
   }
 
-  .hws .hws-view,
-  .hws .hws-reset {
-    padding: 0 12px;
+  .hws .hws-hint {
+    display: none;
   }
 
+  /* the three tabs share one row; Reset sits under them */
   .hws .hws-view {
     display: inline-flex;
+    flex: 1 1 0;
     align-items: center;
+    justify-content: center;
+    padding: 0 6px;
+  }
+
+  .hws .hws-reset {
+    flex: 0 0 100%;
+    min-height: 40px;
+  }
+
+  .hws.hws--live .hws__unseated {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+  }
+
+  .hws.hws--live .hws__unseated small {
+    grid-column: 1 / -1;
   }
 
   .hws .hws-see-replies:not([hidden]) {
@@ -1125,8 +1217,9 @@
 
   .hws.hws--live .hws__unseated .hws-guest {
     min-height: 40px !important;
-    padding-inline: 14px;
+    padding-inline: 6px;
     font-size: 13px;
+    line-height: 1.25;
   }
 
   .hws.hws--live .hws-seat-status {
@@ -1143,8 +1236,7 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .hws .hws-view,
-  .hws .hws-reset {
+  .hws .hws-view {
     transition: none;
   }
 }
