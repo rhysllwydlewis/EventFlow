@@ -2,40 +2,20 @@
 
 /**
  * Homepage wedding showcase (index.html and home-v2.html): turns the illustrative preview into
- * a small interactive sample. Make the guest website yours (names, date, colours), send a sample
- * RSVP and the guest replies card updates, seat a guest (tap, drag with a mouse, or auto-seat),
- * and Reset puts everything back.
+ * a small interactive sample. Try a few colours on the guest website, send a sample RSVP and the
+ * guest replies card updates, seat a guest (tap, drag with a mouse, or auto-seat), and Reset puts
+ * everything back.
  *
  * Progressive enhancement: the markup in the page is the static illustration (role="img", every
  * card aria-hidden). This script upgrades it in place, so without JavaScript visitors still see the
  * illustration and never meet a control that does nothing. Everything is held in memory: nothing
  * typed or chosen here is saved or sent anywhere.
  *
- * The first part is pure (colour maths, names, dates) and is exported for the unit tests.
+ * The first part is pure (colour maths) and is exported for the unit tests.
  */
 (() => {
   // ================================================================ pure helpers
-  const MAX_NAME = 14;
-  const DEFAULT_NAMES = ['Amelia', 'Oliver'];
-  const DEFAULT_DATE = '2027-06-19';
-  const VENUE_TOWN = 'Bath';
-  const WEEKDAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-  const MONTHS = [
-    'January',
-    'February',
-    'March',
-    'April',
-    'May',
-    'June',
-    'July',
-    'August',
-    'September',
-    'October',
-    'November',
-    'December',
-  ];
-
-  /** The colour presets the real wedding website builder offers, plus the homepage's own plum look. */
+  /** A few of the colour presets the real wedding website builder offers, plus the homepage's own plum look. */
   const PRESETS = [
     {
       key: 'plum',
@@ -77,17 +57,8 @@
       background: '#FFF4EE',
       text: '#3B2119',
     },
-    {
-      key: 'coastal',
-      name: 'Coastal',
-      accent: '#2C94B1',
-      secondary: '#9AD7E5',
-      background: '#F2FBFE',
-      text: '#14313B',
-    },
   ];
 
-  const isHex = value => /^#[0-9a-f]{6}$/i.test(String(value || ''));
   const hexToRgb = hex => [1, 3, 5].map(i => parseInt(hex.slice(i, i + 2), 16));
   const rgbToHex = rgb =>
     `#${rgb
@@ -126,61 +97,6 @@
       result = mix(result, '#000000', 0.07);
     }
     return result;
-  }
-
-  function hslToHex(h, s, l) {
-    const hue = ((h % 360) + 360) % 360;
-    const k = n => (n + hue / 30) % 12;
-    const a = s * Math.min(l, 1 - l);
-    const f = n => l - a * Math.max(-1, Math.min(k(n) - 3, Math.min(9 - k(n), 1)));
-    return rgbToHex([f(0), f(8), f(4)].map(v => v * 255));
-  }
-
-  function hexToHsl(hex) {
-    const [r, g, b] = hexToRgb(hex).map(v => v / 255);
-    const max = Math.max(r, g, b);
-    const min = Math.min(r, g, b);
-    const l = (max + min) / 2;
-    const d = max - min;
-    let h = 0;
-    let s = 0;
-    if (d) {
-      s = d / (1 - Math.abs(2 * l - 1));
-      if (max === r) {
-        h = ((g - b) / d) % 6;
-      } else if (max === g) {
-        h = (b - r) / d + 2;
-      } else {
-        h = (r - g) / d + 4;
-      }
-      h *= 60;
-    }
-    return [(h + 360) % 360, s, l];
-  }
-
-  /**
-   * One picked colour becomes a tasteful four-colour palette. Neon and pale picks are pulled into
-   * a calm, readable range (greens and yellows a little more, so nothing looks like a highlighter).
-   */
-  function paletteFromOne(hex) {
-    if (!isHex(hex)) {
-      return null;
-    }
-    const [h, s, l] = hexToHsl(hex);
-    const cap = h >= 50 && h <= 175 ? 0.46 : 0.58;
-    const saturation = Math.min(cap, Math.max(0.28, s));
-    const lightness = Math.min(0.44, Math.max(0.28, l));
-    return {
-      accent: hslToHex(h, saturation, lightness),
-      secondary: hslToHex(h + 18, Math.min(0.6, saturation), 0.8),
-      background: hslToHex(h, 0.55, 0.97),
-      text: hslToHex(h, 0.35, 0.13),
-    };
-  }
-
-  /** A random pleasing palette. `random` is injectable so tests are deterministic. */
-  function shufflePalette(random = Math.random) {
-    return paletteFromOne(hslToHex(random() * 360, 0.5 + random() * 0.1, 0.36 + random() * 0.06));
   }
 
   /**
@@ -237,62 +153,7 @@
     return { vars, checks, minimum: Math.min(...Object.values(checks)) };
   }
 
-  /** A name as typed: no control characters, tidy spacing, at most MAX_NAME characters. */
-  function cleanName(value, fallback) {
-    const tidy = Array.from(
-      String(value || '')
-        // eslint-disable-next-line no-control-regex
-        .replace(/[\u0000-\u001f\u007f-\u009f<>]/g, '')
-        .replace(/\s+/g, ' ')
-        .trim()
-    )
-      .slice(0, MAX_NAME)
-      .join('')
-      .trim();
-    return tidy || fallback;
-  }
-
-  /** "A & O" style monogram from two names. */
-  function monogram(first, second) {
-    const initial = name => (Array.from(name)[0] || '').toUpperCase();
-    return `${initial(first)} & ${initial(second)}`;
-  }
-
-  /** "Saturday 19 June 2027" from a yyyy-mm-dd string, or null when it is not a sensible date. */
-  function formatWeddingDate(value) {
-    const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(value || ''));
-    if (!match) {
-      return null;
-    }
-    const [year, month, day] = [Number(match[1]), Number(match[2]), Number(match[3])];
-    if (year < 2000 || year > 2100) {
-      return null;
-    }
-    const date = new Date(Date.UTC(year, month - 1, day));
-    if (
-      date.getUTCFullYear() !== year ||
-      date.getUTCMonth() !== month - 1 ||
-      date.getUTCDate() !== day
-    ) {
-      return null;
-    }
-    return `${WEEKDAYS[date.getUTCDay()]} ${day} ${MONTHS[month - 1]} ${year}`;
-  }
-
-  const helpers = {
-    PRESETS,
-    DEFAULT_NAMES,
-    DEFAULT_DATE,
-    MAX_NAME,
-    contrast,
-    mix,
-    paletteFromOne,
-    shufflePalette,
-    deriveTheme,
-    cleanName,
-    monogram,
-    formatWeddingDate,
-  };
+  const helpers = { PRESETS, contrast, mix, deriveTheme };
   if (typeof module !== 'undefined' && module.exports) {
     module.exports = helpers;
   }
@@ -317,9 +178,6 @@
   const percent = tracker && tracker.querySelector('.hws__donut-label strong');
   const replies = tracker && tracker.querySelector('.hws__replies');
   const seatTotals = seating && seating.querySelector('.hws__card-head span');
-  const heroNames = phone && phone.querySelector('.hws__site-hero strong');
-  const heroDate = phone && phone.querySelector('.hws__site-hero > span');
-  const barMark = phone && phone.querySelector('.hws__site-bar > span');
 
   if (
     !(
@@ -333,10 +191,7 @@
       rsvpBox &&
       seatSvg &&
       unseatedBox &&
-      seatTotals &&
-      heroNames &&
-      heroDate &&
-      barMark
+      seatTotals
     ) ||
     section.classList.contains('hws--live')
   ) {
@@ -348,7 +203,6 @@
   const CIRCUMFERENCE = 2 * Math.PI * 38;
   const GUESTS = ['Charlotte E.', 'Priya S.', 'Tom H.'];
   const MEALS = ['Beef', 'Salmon', 'Vegetarian'];
-  const DEFAULT_OWN_COLOUR = '#2e7d32';
   const SIGN_UP_URL = '/auth?tab=create&role=customer';
   const AUTO_SEAT_STEP_MS = 320;
   const VIEWS = [
@@ -357,7 +211,7 @@
     ['seating', 'Seating plan'],
   ];
   const STEPS = [
-    ['make', 'Make it yours', 'Style'],
+    ['colour', 'Pick a colour', 'Colour'],
     ['rsvp', 'Send an RSVP', 'RSVP'],
     ['seat', 'Seat a guest', 'Seat'],
   ];
@@ -387,14 +241,6 @@
     }
   }
 
-  /** Typed text is personal: keep it out of any usage recording. */
-  function keepPrivate(input) {
-    input.classList.add('ph-no-capture');
-    input.dataset.analyticsSensitive = 'true';
-    input.autocomplete = 'off';
-    input.spellcheck = false;
-  }
-
   function reducedMotion() {
     return (
       typeof window.matchMedia === 'function' &&
@@ -408,7 +254,7 @@
   let view = 'website';
   let selected = GUESTS[0];
   const seatedAt = new Map();
-  const done = { make: false, rsvp: false, seat: false };
+  const done = { colour: false, rsvp: false, seat: false };
   let autoTimers = [];
   let drag = null;
   let suppressClick = false;
@@ -422,7 +268,8 @@
   stage.dataset.view = view;
   [tracker, phone, seating].forEach(card => card.removeAttribute('aria-hidden'));
 
-  // The QR card travels with the phone, so it always sits just under it however tall the phone is.
+  // The phone, its colour selector and the QR card form one column, so they keep their spacing
+  // however tall the phone grows (it gets taller when the RSVP message or the meal choices appear).
   const qrChip = stage.querySelector('.hws__chip--qr');
   const phoneColumn = node('div', 'hws__phonecol');
   phone.before(phoneColumn);
@@ -588,33 +435,13 @@
   measure(reset, 'reset');
   toolbar.appendChild(reset);
 
-  // ================================================================ make it yours
-  const make = node('div', 'hws-make');
-  make.setAttribute('role', 'group');
-  make.setAttribute('aria-label', 'Make the sample yours');
-
-  const names = node('div', 'hws-make__names');
-  const nameInputs = DEFAULT_NAMES.map((placeholder, index) => {
-    const input = node('input', 'hws-input hws-input--name');
-    input.type = 'text';
-    input.maxLength = MAX_NAME;
-    input.placeholder = placeholder;
-    input.setAttribute('aria-label', index ? 'Second name' : 'First name');
-    keepPrivate(input);
-    return input;
-  });
-  const dateInput = node('input', 'hws-input hws-input--date');
-  dateInput.type = 'date';
-  dateInput.min = '2025-01-01';
-  dateInput.max = '2035-12-31';
-  dateInput.value = DEFAULT_DATE;
-  dateInput.setAttribute('aria-label', 'Wedding date');
-  keepPrivate(dateInput);
-  names.append(nameInputs[0], node('span', 'hws-make__and', '&'), nameInputs[1], dateInput);
-
-  const colours = node('div', 'hws-make__colours');
-  colours.setAttribute('role', 'group');
-  colours.setAttribute('aria-label', 'Website colours');
+  // ================================================================ colour selector
+  // A handful of colours to show what the guest website can look like. It lives in the phone's
+  // column, between the phone and the QR card.
+  const colourBar = node('div', 'hws-colours');
+  colourBar.setAttribute('role', 'group');
+  colourBar.setAttribute('aria-label', 'Website colour');
+  colourBar.appendChild(node('span', 'hws-colours__label', 'Colour'));
   const dots = PRESETS.map((preset, index) => {
     const label = node('label', 'hws-dot');
     const input = node('input');
@@ -627,46 +454,13 @@
     face.style.setProperty('--dot-a', preset.accent);
     face.style.setProperty('--dot-b', preset.secondary);
     label.append(input, face, srOnly(preset.name));
-    colours.appendChild(label);
+    colourBar.appendChild(label);
     return input;
   });
-  // the browser's colour picker, invisible and laid over a styled circle (a rainbow until one is picked)
-  const ownLabel = node('label', 'hws-dot hws-dot--own');
-  const ownInput = node('input', 'hws-own');
-  ownInput.type = 'color';
-  ownInput.value = DEFAULT_OWN_COLOUR;
-  ownInput.setAttribute('aria-label', 'Pick your own colour');
-  keepPrivate(ownInput);
-  ownLabel.append(ownInput, node('span', 'hws-dot__face hws-dot__face--own'));
-  const shuffleButton = node('button', 'hws-shuffle');
-  shuffleButton.type = 'button';
-  shuffleButton.setAttribute('aria-label', 'Surprise me with a random colour');
-  shuffleButton.title = 'Surprise me';
-  measure(shuffleButton, 'shuffle');
-  const shuffleIcon = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-  shuffleIcon.setAttribute('viewBox', '0 0 24 24');
-  shuffleIcon.setAttribute('aria-hidden', 'true');
-  shuffleIcon.setAttribute('focusable', 'false');
-  [
-    'M2 18h1.4c1.3 0 2.5-.6 3.3-1.7l6.1-8.6c.7-1.1 2-1.7 3.3-1.7H22',
-    'm18 2 4 4-4 4',
-    'M2 6h1.9c1.5 0 2.9.9 3.6 2.2',
-    'M22 18h-5.9c-1.3 0-2.6-.7-3.3-1.8l-.5-.8',
-    'm18 14 4 4-4 4',
-  ].forEach(d => {
-    const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-    path.setAttribute('d', d);
-    shuffleIcon.appendChild(path);
-  });
-  shuffleButton.appendChild(shuffleIcon);
-  colours.append(ownLabel, shuffleButton);
-
-  const makeToggle = node('button', 'hws-make__toggle', 'Names & date');
-  makeToggle.type = 'button';
-  makeToggle.setAttribute('aria-expanded', 'false');
-  const makeStatus = node('p', 'hws-sr');
-  makeStatus.setAttribute('role', 'status');
-  make.append(names, colours, makeToggle, makeStatus);
+  const colourStatus = node('p', 'hws-sr');
+  colourStatus.setAttribute('role', 'status');
+  colourBar.appendChild(colourStatus);
+  phone.after(colourBar);
 
   // the call to action appears once the main flow has been tried
   const finish = node('div', 'hws-finish');
@@ -676,7 +470,7 @@
   measure(finishLink, 'cta');
   finish.append(node('p', '', 'That is the whole flow, and nothing here was saved.'), finishLink);
 
-  frame.before(toolbar, make);
+  frame.before(toolbar);
   frame.after(finish);
 
   const caption = figure.querySelector('figcaption');
@@ -688,7 +482,6 @@
   /** Show the chosen panel on narrow screens, where the three cards cannot sit side by side. */
   function renderView() {
     stage.dataset.view = view;
-    figure.dataset.view = view;
     viewButtons.forEach(button =>
       button.setAttribute('aria-pressed', String(button.dataset.view === view))
     );
@@ -706,16 +499,6 @@
       button.lastChild.textContent = done[key] ? ' (done)' : '';
     });
     finish.hidden = !(done.rsvp && done.seat);
-  }
-
-  /** Put the typed names and chosen date on the phone, falling back to the sample when empty. */
-  function renderIdentity() {
-    const first = cleanName(nameInputs[0].value, DEFAULT_NAMES[0]);
-    const second = cleanName(nameInputs[1].value, DEFAULT_NAMES[1]);
-    heroNames.textContent = `${first} & ${second}`;
-    barMark.textContent = monogram(first, second);
-    const when = formatWeddingDate(dateInput.value) || formatWeddingDate(DEFAULT_DATE);
-    heroDate.textContent = `${when} · ${VENUE_TOWN}`;
   }
 
   /** Paint the phone with a palette, or put the original plum look back when given nothing. */
@@ -743,15 +526,6 @@
         stage.style.removeProperty(property);
       }
     });
-  }
-
-  function markOwnColour(active, hex) {
-    ownLabel.classList.toggle('is-active', active);
-    if (active) {
-      ownLabel.style.setProperty('--own', hex);
-    } else {
-      ownLabel.style.removeProperty('--own');
-    }
   }
 
   /** Recalculate the donut, the counts and the reply list; `animate` briefly marks what changed. */
@@ -868,7 +642,7 @@
   }
 
   function sayColour(message) {
-    makeStatus.textContent = message;
+    colourStatus.textContent = message;
   }
 
   /** Choose which sample guest the next table tap will seat. */
@@ -1097,63 +871,18 @@
     renderSteps();
   });
 
-  // Make it yours
-  function customised() {
-    if (!done.make) {
-      done.make = true;
-      renderSteps();
-    }
-  }
-
-  nameInputs.forEach(input =>
-    input.addEventListener('input', () => {
-      renderIdentity();
-      customised();
-    })
-  );
-  dateInput.addEventListener('input', () => {
-    renderIdentity();
-    customised();
-  });
-
+  // Colours: Plum is the original look (the stylesheet's defaults); the rest repaint the phone
   dots.forEach((input, index) =>
     input.addEventListener('change', () => {
       const preset = PRESETS[index];
       applyPalette(index === 0 ? null : preset);
-      markOwnColour(false);
-      sayColour(`Colours: ${preset.name}.`);
-      customised();
+      sayColour(`Colour: ${preset.name}.`);
+      if (!done.colour) {
+        done.colour = true;
+        renderSteps();
+      }
     })
   );
-  ownInput.addEventListener('input', () => {
-    const palette = paletteFromOne(ownInput.value);
-    if (!palette) {
-      return;
-    }
-    dots.forEach(input => {
-      input.checked = false;
-    });
-    applyPalette(palette);
-    // the dot shows the colour the phone actually uses, which may be a calmer version of the pick
-    markOwnColour(true, palette.accent);
-    sayColour('Colours: your own colour.');
-    customised();
-  });
-  shuffleButton.addEventListener('click', () => {
-    const palette = shufflePalette();
-    dots.forEach(input => {
-      input.checked = false;
-    });
-    applyPalette(palette);
-    markOwnColour(true, palette.accent);
-    sayColour('Colours: a surprise.');
-    customised();
-  });
-  makeToggle.addEventListener('click', () => {
-    const open = !make.classList.contains('is-open');
-    make.classList.toggle('is-open', open);
-    makeToggle.setAttribute('aria-expanded', String(open));
-  });
 
   // The steps are shortcuts to the part of the sample they describe
   stepButtons.forEach(button =>
@@ -1162,8 +891,8 @@
       view = key === 'seat' ? 'seating' : 'website';
       renderView();
       const target =
-        key === 'make'
-          ? nameInputs[0]
+        key === 'colour'
+          ? dots.find(dot => dot.checked)
           : key === 'rsvp'
             ? form.querySelector('input[name="hws-reply"]:checked')
             : guestButtons.find(guest => guest.getAttribute('aria-pressed') === 'true') ||
@@ -1194,18 +923,11 @@
     send.textContent = 'Send RSVP';
     sent.textContent = '';
     seeReplies.hidden = true;
-    nameInputs.forEach(input => {
-      input.value = '';
-    });
-    dateInput.value = DEFAULT_DATE;
-    ownInput.value = DEFAULT_OWN_COLOUR;
     dots.forEach((input, index) => {
       input.checked = index === 0;
     });
     applyPalette(null);
-    markOwnColour(false);
-    renderIdentity();
-    done.make = false;
+    done.colour = false;
     done.rsvp = false;
     done.seat = false;
     view = 'website';
@@ -1217,7 +939,6 @@
     sayColour('');
   });
 
-  renderIdentity();
   renderView();
   renderSeating();
   renderSteps();

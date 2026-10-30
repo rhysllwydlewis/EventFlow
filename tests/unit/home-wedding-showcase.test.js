@@ -431,71 +431,38 @@ describe('homepage wedding showcase interactive sample', () => {
     `);
   });
 
-  test('typing names and choosing a date changes the phone, with safe fallbacks', () => {
+  test('five colours repaint the phone, and Plum puts the original look back', () => {
     scenario(String.raw`
-      const { doc, type } = mount();
-      const hero = () => doc.querySelector('.hws__site-hero strong').textContent;
-      const date = () => doc.querySelector('.hws__site-hero > span').textContent;
-      const mark = () => doc.querySelector('.hws__site-bar > span').textContent;
-      const [first, second] = doc.querySelectorAll('.hws-input--name');
-      const when = doc.querySelector('.hws-input--date');
-      assert.strictEqual(hero(), 'Amelia & Oliver');
-      assert.strictEqual(date(), 'Saturday 19 June 2027 · Bath');
-
-      type(first, 'Sam');
-      type(second, 'Jordan');
-      assert.strictEqual(hero(), 'Sam & Jordan');
-      assert.strictEqual(mark(), 'S & J');
-
-      // one name emptied: that name falls back to the sample, the other stays
-      type(second, '   ');
-      assert.strictEqual(hero(), 'Sam & Oliver');
-
-      // typed markup is only ever text, and the length is limited
-      type(first, '<img src=x onerror=alert(1)>');
-      assert.strictEqual(doc.querySelector('.hws__site-hero img'), null);
-      assert.ok(hero().split(' & ')[0].length <= 14);
-      assert.ok(!hero().includes('<'));
-
-      type(when, '2028-02-29');
-      assert.strictEqual(date(), 'Tuesday 29 February 2028 · Bath');
-      type(when, '');
-      assert.strictEqual(date(), 'Saturday 19 June 2027 · Bath');
-    `);
-  });
-
-  test('the colour choices repaint the phone, and Plum puts the original look back', () => {
-    scenario(String.raw`
-      const { doc, pick, type, click } = mount();
+      const { doc, pick } = mount();
       const stage = doc.querySelector('.hws__stage');
       const accent = () => stage.style.getPropertyValue('--hp-accent');
       const dots = [...doc.querySelectorAll('.hws-dot input[type="radio"]')];
-      assert.strictEqual(dots.length, 6);
+      assert.strictEqual(dots.length, 5);
       assert.strictEqual(dots[0].checked, true);
       assert.strictEqual(accent(), '');
 
       pick(dots[3]);
       assert.strictEqual(accent().toLowerCase(), '#24436f');
       assert.ok(stage.style.getPropertyValue('--hp-bg'));
-      assert.match(doc.querySelector('.hws-make [role="status"]').textContent, /Midnight/);
+      assert.match(doc.querySelector('.hws-colours [role="status"]').textContent, /Midnight/);
+      // the "You" avatar and the seats you place wear the same colour through the shared variable
+      pick(dots[4]);
+      assert.strictEqual(accent().toLowerCase(), '#b85c38');
       pick(dots[0]);
       assert.strictEqual(accent(), '');
+    `);
+  });
 
-      // one picked colour becomes a whole palette and clears the preset dots
-      const own = doc.querySelector('.hws-own');
-      type(own, '#6a1b9a');
-      assert.ok(accent());
-      assert.ok(dots.every(dot => !dot.checked));
-      assert.ok(doc.querySelector('.hws-dot--own').classList.contains('is-active'));
-      // the dot shows the colour the phone really uses, which can be a calmer version of the pick
-      assert.strictEqual(
-        doc.querySelector('.hws-dot--own').style.getPropertyValue('--own').toLowerCase(),
-        accent().toLowerCase()
-      );
-
-      click(doc.querySelector('.hws-shuffle'));
-      assert.match(accent(), /^#[0-9a-f]{6}$/i);
-      assert.ok(dots.every(dot => !dot.checked));
+  test('the colour selector sits under the phone, between the phone and the QR card', () => {
+    scenario(String.raw`
+      const { doc } = mount();
+      const column = doc.querySelector('.hws__phonecol');
+      const order = [...column.children].map(el => el.className.split(' ')[0]);
+      assert.deepStrictEqual(order, ['hws__phone', 'hws-colours', 'hws__chip']);
+      assert.ok(column.querySelector('.hws__chip--qr'));
+      assert.strictEqual(column.querySelector('.hws-colours').getAttribute('aria-label'), 'Website colour');
+      // no name, date or free-form colour fields: the sample stays basic
+      assert.strictEqual(doc.querySelectorAll('.hws input[type="text"], .hws input[type="date"], .hws input[type="color"]').length, 0);
     `);
   });
 
@@ -523,7 +490,7 @@ describe('homepage wedding showcase interactive sample', () => {
 
   test('the steps tick as the flow is tried, and the sign-up link appears after RSVP and seating', () => {
     scenario(String.raw`
-      const { doc, type, submit, table, click } = mount();
+      const { doc, pick, submit, table, click } = mount();
       const finish = doc.querySelector('.hws-finish');
       const ticked = () => doc.querySelectorAll('.hws-steps li.is-done').length;
       assert.strictEqual(doc.querySelectorAll('.hws-steps li').length, 3);
@@ -538,9 +505,9 @@ describe('homepage wedding showcase interactive sample', () => {
       assert.strictEqual(finish.hidden, false);
       const link = finish.querySelector('a');
       assert.strictEqual(link.getAttribute('href'), '/auth?tab=create&role=customer');
-      type(doc.querySelector('.hws-input--name'), 'Sam');
+      pick(doc.querySelectorAll('.hws-dot input[type="radio"]')[1]);
       assert.strictEqual(ticked(), 3);
-      assert.match(doc.querySelector('.hws-step[data-step="make"]').textContent, /done/);
+      assert.match(doc.querySelector('.hws-step[data-step="colour"]').textContent, /done/);
 
       click(doc.querySelector('.hws-reset'));
       assert.strictEqual(ticked(), 0);
@@ -617,28 +584,19 @@ describe('homepage wedding showcase interactive sample', () => {
     `);
   });
 
-  test('Reset puts the names, date and colours back as well', () => {
+  test('Reset puts the colour back as well', () => {
     scenario(String.raw`
-      const { doc, type, pick, click } = mount();
-      type(doc.querySelector('.hws-input--name'), 'Sam');
-      type(doc.querySelector('.hws-input--date'), '2029-05-05');
+      const { doc, pick, click } = mount();
       pick(doc.querySelectorAll('.hws-dot input[type="radio"]')[2]);
       click(doc.querySelector('.hws-reset'));
-      assert.strictEqual(doc.querySelector('.hws__site-hero strong').textContent, 'Amelia & Oliver');
-      assert.strictEqual(doc.querySelector('.hws__site-hero > span').textContent, 'Saturday 19 June 2027 · Bath');
-      assert.strictEqual(doc.querySelector('.hws-input--name').value, '');
       assert.strictEqual(doc.querySelector('.hws__stage').style.getPropertyValue('--hp-accent'), '');
       assert.strictEqual(doc.querySelectorAll('.hws-dot input[type="radio"]')[0].checked, true);
     `);
   });
 
-  test('typed text stays out of usage recording, and clicks carry usage labels', () => {
+  test("clicks carry usage labels for the site's consent-respecting recorder", () => {
     scenario(String.raw`
       const { doc } = mount();
-      for (const input of doc.querySelectorAll('.hws-input, .hws-own')) {
-        assert.ok(input.classList.contains('ph-no-capture'), 'private: ' + input.className);
-        assert.strictEqual(input.dataset.analyticsSensitive, 'true');
-      }
       const labelled = (selector, name) => {
         const el = doc.querySelector(selector);
         assert.ok(el, selector);
@@ -646,7 +604,6 @@ describe('homepage wedding showcase interactive sample', () => {
       };
       labelled('.hws-send', 'rsvp');
       labelled('.hws-autoseat', 'autoseat');
-      labelled('.hws-shuffle', 'shuffle');
       labelled('.hws-reset', 'reset');
       labelled('.hws-finish a', 'cta');
       labelled('.hws-step[data-step="seat"]', 'step');
@@ -666,25 +623,32 @@ describe('homepage wedding showcase interactive sample', () => {
   });
 });
 
-describe('showcase colour, name and date helpers', () => {
+describe('showcase colour helpers', () => {
   const helpers = require('../../public/assets/js/pages/home-wedding-showcase.js');
-  const { PRESETS, deriveTheme, paletteFromOne, shufflePalette, cleanName, monogram } = helpers;
-  const { formatWeddingDate, contrast } = helpers;
+  const { PRESETS, deriveTheme, contrast } = helpers;
 
-  test('every preset is readable: buttons, text, muted text, accent text and hero text pass WCAG AA', () => {
+  test('there are five colours to try, all from the real builder apart from the homepage plum', () => {
     expect(PRESETS.map(preset => preset.name)).toEqual([
       'Plum',
       'Sage & Blush',
       'Champagne',
       'Midnight',
       'Terracotta',
-      'Coastal',
     ]);
+    expect(new Set(PRESETS.map(preset => preset.accent)).size).toBe(PRESETS.length);
+    PRESETS.forEach(preset =>
+      ['accent', 'secondary', 'background', 'text'].forEach(key =>
+        expect(preset[key]).toMatch(/^#[0-9a-f]{6}$/i)
+      )
+    );
+  });
+
+  test('every colour is readable: buttons, text, muted text, accent text and hero text pass WCAG AA', () => {
     PRESETS.forEach(preset => {
       const { checks, minimum } = deriveTheme(preset);
-      expect({ name: preset.name, minimum: minimum >= 4.5, checks }).toMatchObject({
+      expect({ name: preset.name, readable: minimum >= 4.5, checks }).toMatchObject({
         name: preset.name,
-        minimum: true,
+        readable: true,
       });
     });
   });
@@ -695,57 +659,13 @@ describe('showcase colour, name and date helpers', () => {
     expect(contrast(champagne.vars.onAccent, champagne.vars.accent)).toBeGreaterThanOrEqual(4.5);
   });
 
-  test('any single picked colour becomes a readable palette, including black, white, greys, neon and pastels', () => {
-    const picks = [
-      '#000000',
-      '#ffffff',
-      '#808080',
-      '#c0c0c0',
-      '#00e5ff',
-      '#ffd600',
-      '#ffc1d9',
-      '#ff6f00',
-    ];
-    for (let hue = 0; hue < 360; hue += 5) {
-      [0.05, 0.4, 1].forEach(saturation =>
-        [0.08, 0.35, 0.6, 0.92].forEach(lightness => {
-          const k = n => (n + hue / 30) % 12;
-          const a = saturation * Math.min(lightness, 1 - lightness);
-          const f = n => lightness - a * Math.max(-1, Math.min(k(n) - 3, Math.min(9 - k(n), 1)));
-          const hex = `#${[f(0), f(8), f(4)]
-            .map(v =>
-              Math.round(v * 255)
-                .toString(16)
-                .padStart(2, '0')
-            )
-            .join('')}`;
-          picks.push(hex);
-        })
-      );
-    }
-    picks.forEach(hex => {
-      const palette = paletteFromOne(hex);
-      expect(palette).not.toBeNull();
-      expect({ hex, ok: deriveTheme(palette).minimum >= 4.5 }).toEqual({ hex, ok: true });
-    });
-    expect(picks.length).toBeGreaterThan(500);
-  });
-
-  test('a picked colour that is not a hex colour is ignored', () => {
-    ['', 'red', '#fff', '#12345', '#gggggg', null, undefined].forEach(value =>
-      expect(paletteFromOne(value)).toBeNull()
-    );
-  });
-
-  test('the surprise button always gives a readable palette', () => {
-    let seed = 7;
-    const random = () => {
-      seed = (seed * 16807) % 2147483647;
-      return seed / 2147483647;
-    };
-    for (let i = 0; i < 300; i += 1) {
-      expect(deriveTheme(shufflePalette(random)).minimum).toBeGreaterThanOrEqual(4.5);
-    }
+  test('any palette is made readable, even an awkward one', () => {
+    // a pale accent, a mid-tone accent and a near-black accent on a light page
+    [
+      { accent: '#FFEE99', secondary: '#FFF8CC', background: '#FFFFFF', text: '#222222' },
+      { accent: '#808080', secondary: '#C0C0C0', background: '#F5F5F5', text: '#111111' },
+      { accent: '#111111', secondary: '#555555', background: '#FFFFFF', text: '#000000' },
+    ].forEach(palette => expect(deriveTheme(palette).minimum).toBeGreaterThanOrEqual(4.5));
   });
 
   test('the default look in the stylesheet (what visitors without JavaScript see) is readable too', () => {
@@ -774,30 +694,5 @@ describe('showcase colour, name and date helpers', () => {
       [onAccent, accent],
       [heroInk, mid],
     ].forEach(([a, b]) => expect(contrast(a, b)).toBeGreaterThanOrEqual(4.5));
-  });
-
-  test('names are tidied, limited in length and never contain angle brackets', () => {
-    expect(cleanName('  Sam   Lee ', 'Amelia')).toBe('Sam Lee');
-    expect(cleanName('', 'Amelia')).toBe('Amelia');
-    expect(cleanName('   ', 'Amelia')).toBe('Amelia');
-    expect(cleanName('<b>Sam</b>', 'Amelia')).toBe('bSam/b');
-    expect(cleanName('A\u0000B\u0007C', 'Amelia')).toBe('ABC');
-    expect(Array.from(cleanName('x'.repeat(40), 'Amelia')).length).toBe(14);
-    // emoji are single characters, so they are never cut in half
-    expect(Array.from(cleanName('\u{1F600}'.repeat(20), 'Amelia')).length).toBe(14);
-    expect(cleanName(undefined, 'Amelia')).toBe('Amelia');
-  });
-
-  test("the monogram uses each name's first letter", () => {
-    expect(monogram('Sam', 'jordan')).toBe('S & J');
-    expect(monogram('\u{1F600}x', 'Oliver')).toBe('\u{1F600} & O');
-  });
-
-  test('dates are formatted by hand and anything that is not a real date is rejected', () => {
-    expect(formatWeddingDate('2027-06-19')).toBe('Saturday 19 June 2027');
-    expect(formatWeddingDate('2028-02-29')).toBe('Tuesday 29 February 2028');
-    ['2027-02-30', '2027-13-01', '1999-12-31', '2101-01-01', '', 'tomorrow', null].forEach(value =>
-      expect(formatWeddingDate(value)).toBeNull()
-    );
   });
 });

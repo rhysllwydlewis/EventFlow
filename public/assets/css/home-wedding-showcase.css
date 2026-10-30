@@ -920,8 +920,8 @@
  * narrow screens show one panel at a time with a small tab bar.
  */
 
-/* Wide screens: the three steps on the left and Reset on the right, then the "make it yours" bar.
-   The bar's bottom margin keeps the whole stack clear of the floating "Private link" chip. */
+/* Wide screens: the three steps on the left and Reset on the right. The bottom margin keeps the
+   toolbar clear of the floating "Private link" chip. */
 .hws .hws-playbar {
   display: flex;
   flex-wrap: wrap;
@@ -929,7 +929,7 @@
   align-items: center;
   justify-content: space-between;
   max-width: 640px;
-  margin: 0 auto 10px;
+  margin: 0 auto 44px;
 }
 
 .hws .hws-view {
@@ -1015,14 +1015,14 @@
     width: auto;
   }
 
-  /* the phone and the QR card form one column, so the QR card sits a fixed 20px under the phone
+  /* the phone, its colour selector and the QR card form one column with a fixed 14px between them,
      however tall the phone is (it grows when the RSVP message or the meal choices appear) */
   .hws.hws--live .hws__phonecol {
     display: flex;
     flex-direction: column;
     grid-column: 1;
     grid-row: 1 / span 2;
-    gap: 20px;
+    gap: 14px;
     align-items: center;
     align-self: start;
   }
@@ -1379,76 +1379,34 @@
 }
 
 .hws .hws-step:focus-visible,
-.hws .hws-shuffle:focus-visible,
-.hws .hws-make__toggle:focus-visible,
 .hws .hws-autoseat:focus-visible,
-.hws .hws-finish__link:focus-visible,
-.hws .hws-input:focus-visible {
+.hws .hws-finish__link:focus-visible {
   outline: 3px solid var(--hws-teal);
   outline-offset: 2px;
 }
 
-.hws .hws-make {
+/* The colour selector: a handful of colours under the phone, between the phone and the QR card */
+.hws .hws-colours {
   display: flex;
-  flex-wrap: wrap;
-  gap: 8px 14px;
+  gap: 8px;
   align-items: center;
-  justify-content: space-between;
-  max-width: 640px;
-  padding: 8px 10px;
-  margin: 0 auto 40px;
+  justify-content: center;
+  padding: 7px 14px;
   background: #fff;
   border: 1px solid var(--hws-line);
-  border-radius: 14px;
+  border-radius: 12px;
+  box-shadow: 0 6px 18px rgba(13, 63, 56, 0.08);
 }
 
-.hws .hws-make__names {
-  display: flex;
-  align-items: center;
-  order: 1;
-  gap: 6px;
-}
-
-.hws .hws-make__and {
-  font-size: 13px;
+.hws .hws-colours__label {
+  margin-right: 2px;
+  font-size: 11px;
   font-weight: 700;
   color: var(--hws-muted);
 }
 
-/* sitewide rules size every input to 44px+ and full width; these small fields need to stay small */
-.hws .hws-input {
-  min-height: 34px !important;
-  padding: 0 8px !important;
-  font: inherit;
-  font-size: 13px !important;
-  color: var(--hws-ink);
-  background: #fff;
-  border: 1.5px solid var(--hws-line) !important;
-  border-radius: 8px !important;
-}
-
-.hws .hws-input--name {
-  width: 84px !important;
-}
-
-.hws .hws-input--date {
-  width: 134px !important;
-}
-
 .hws .hws-step__short {
   display: none;
-}
-
-.hws .hws-input::placeholder {
-  color: var(--hws-muted);
-  opacity: 1;
-}
-
-.hws .hws-make__colours {
-  display: flex;
-  align-items: center;
-  order: 2;
-  gap: 8px;
 }
 
 .hws .hws-dot {
@@ -1478,8 +1436,7 @@
   box-shadow: inset 0 0 0 1.5px rgba(0, 0, 0, 0.14);
 }
 
-.hws .hws-dot input:checked + .hws-dot__face,
-.hws .hws-dot--own.is-active .hws-dot__face {
+.hws .hws-dot input:checked + .hws-dot__face {
   box-shadow:
     0 0 0 2px #fff,
     0 0 0 4px var(--hws-ink);
@@ -1488,45 +1445,6 @@
 .hws .hws-dot input:focus-visible + .hws-dot__face {
   outline: 3px solid var(--hws-teal);
   outline-offset: 4px;
-}
-
-.hws .hws-dot__face--own {
-  background: var(
-    --own,
-    conic-gradient(#e0457b, #f59f00, #82c91e, #15aabf, #4c6ef5, #be4bdb, #e0457b)
-  );
-}
-
-.hws .hws-shuffle {
-  display: grid;
-  width: 28px;
-  height: 28px;
-  min-height: 0 !important;
-  padding: 0 !important;
-  color: var(--hws-ink);
-  cursor: pointer;
-  place-items: center;
-  background: #fff;
-  border: 1.5px solid var(--hws-line);
-  border-radius: 8px;
-}
-
-.hws .hws-shuffle:hover {
-  border-color: var(--hws-teal);
-}
-
-.hws .hws-shuffle svg {
-  width: 16px;
-  height: 16px;
-  fill: none;
-  stroke: currentcolor;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-  stroke-width: 2;
-}
-
-.hws .hws-make__toggle {
-  display: none;
 }
 
 /* Meal choice: only guests who are coming are asked */
@@ -1698,18 +1616,13 @@
     margin-bottom: 14px;
   }
 
-  /* the three tabs share one row; Reset sits under them */
+  /* tabs on the first row; the three steps and Reset share the second */
   .hws .hws-view {
     display: inline-flex;
-    flex: 1 1 0;
+    flex: 1 1 30%;
     align-items: center;
     justify-content: center;
     padding: 0 6px;
-  }
-
-  /* tabs on the first row; the three steps and Reset share the second */
-  .hws .hws-view {
-    flex: 1 1 30%;
     order: 1;
   }
 
@@ -1746,24 +1659,12 @@
     order: 3;
   }
 
-  /* the colours only make sense while the phone is showing */
-  .hws .hws__visual:not([data-view='website']) .hws-make {
-    display: none;
-  }
-
-  /* colours stay in view; names and date open from one button so the phone is not pushed down */
-  .hws .hws-make {
-    gap: 6px 10px;
-    justify-content: center;
-    margin-bottom: 14px;
-  }
-
-  .hws .hws-make__colours {
-    flex: 1 1 100%;
-    flex-wrap: wrap;
-    gap: 0;
+  /* the colour selector is as wide as the phone above it, with bigger tap targets */
+  .hws .hws-colours {
+    gap: 4px;
     justify-content: space-between;
-    order: 1;
+    width: min(100%, 300px);
+    padding: 3px 12px;
   }
 
   .hws .hws-dot {
@@ -1771,56 +1672,8 @@
   }
 
   .hws .hws-dot__face {
-    width: 28px !important;
-    height: 28px !important;
-  }
-
-  .hws .hws-shuffle {
-    width: 36px;
-    height: 36px;
-  }
-
-  .hws .hws-make__toggle {
-    display: inline-flex;
-    align-items: center;
-    min-height: 40px !important;
-    padding: 0 10px;
-    font: inherit;
-    font-size: 13px;
-    font-weight: 700;
-    color: var(--hws-teal-deep);
-    text-decoration: underline;
-    text-underline-offset: 3px;
-    cursor: pointer;
-    background: none;
-    border: 0;
-    order: 2;
-  }
-
-  .hws .hws-make__names {
-    display: none;
-    flex: 1 1 100%;
-    flex-wrap: wrap;
-    order: 3;
-  }
-
-  .hws .hws-make.is-open .hws-make__names {
-    display: flex;
-  }
-
-  .hws .hws-input {
-    min-height: 40px !important;
-  }
-
-  .hws .hws-input--name {
-    flex: 1 1 0;
-    width: auto !important;
-    min-width: 0;
-  }
-
-  .hws .hws-input--date {
-    flex: 1 1 100%;
-    width: auto !important;
+    width: 28px;
+    height: 28px;
   }
 
   .hws .hws-meal span {
@@ -1838,9 +1691,12 @@
     font-size: 13px;
   }
 
+  /* the phone and the colour selector stack, centred */
   .hws.hws--live .hws__phonecol {
     display: flex;
-    justify-content: center;
+    flex-direction: column;
+    gap: 12px;
+    align-items: center;
     width: 100%;
   }
 
@@ -1929,22 +1785,6 @@
 
   .hws.hws--live .hws-seat-status {
     font-size: 13px;
-  }
-}
-
-@media (max-width: 339px) {
-  .hws .hws-dot {
-    padding: 3px;
-  }
-
-  .hws .hws-dot__face {
-    width: 26px !important;
-    height: 26px !important;
-  }
-
-  .hws .hws-shuffle {
-    width: 32px;
-    height: 32px;
   }
 }
 
