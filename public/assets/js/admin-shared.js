@@ -244,7 +244,11 @@ const AdminShared = (function () {
             }
           }, 2000);
         } else if (response.status === 403) {
-          errorMessage = 'Access denied. You do not have permission to perform this action.';
+          // A specific reason from the server (owner account protected, account suspended) is
+          // more useful than the generic text, which is kept for a bare "forbidden".
+          errorMessage = data.code
+            ? data.message || data.error
+            : 'Access denied. You do not have permission to perform this action.';
         } else if (response.status === 500) {
           errorMessage = data.error || 'Server error. Please try again later.';
         } else if (response.status === 503) {
@@ -1571,7 +1575,9 @@ const AdminShared = (function () {
       return () => {};
     }
 
-    const originalText = button.textContent;
+    // Keep the button's markup, not just its text, so child elements a page writes into by id
+    // (for example a status <span>) come back after the action instead of being lost.
+    const originalHtml = button.innerHTML;
     const originalDisabled = button.disabled;
 
     button.disabled = true;
@@ -1582,7 +1588,7 @@ const AdminShared = (function () {
     // Return a function to re-enable
     return () => {
       button.disabled = originalDisabled;
-      button.textContent = originalText;
+      button.innerHTML = originalHtml;
       button.style.opacity = '';
       button.style.cursor = '';
     };

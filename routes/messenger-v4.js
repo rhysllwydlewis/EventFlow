@@ -1560,10 +1560,33 @@ router.post(
 // ADMIN ENDPOINTS
 // ============================================================================
 
+const ADMIN_CONVERSATION_STATUSES = ['active', 'closed'];
+
+/**
+ * The one word the admin list shows for a conversation: closed, deleted or archived when someone
+ * has done that with their copy, otherwise active.
+ *
+ * @param {Object} conversation - A conversations_v4 document
+ * @returns {string} closed, deleted, archived or active
+ */
+function adminDisplayStatus(conversation) {
+  if (conversation.status === 'closed') {
+    return 'closed';
+  }
+  const people = Array.isArray(conversation.participants) ? conversation.participants : [];
+  if (people.some(person => person && person.isDeleted === true)) {
+    return 'deleted';
+  }
+  if (people.some(person => person && person.isArchived === true)) {
+    return 'archived';
+  }
+  return 'active';
+}
+
 /**
  * GET /api/v4/messenger/admin/conversations
  * List all conversations (admin only).
- * Query params: limit, skip, search, status
+ * Query params: limit, skip, search, status (active, closed, archived or deleted)
  */
 router.get('/admin/conversations', applyAuthRequired, messengerReadLimiter, async (req, res) => {
   try {
@@ -1598,10 +1621,14 @@ router.get('/admin/conversations', applyAuthRequired, messengerReadLimiter, asyn
       ];
     }
     if (status) {
-      // Admins can filter by a broader set of statuses
-      const allowedAdminStatuses = ['active', 'closed'];
-      if (allowedAdminStatuses.includes(status)) {
+      // A conversation itself is only active or closed. "Archived" and "deleted" are what each
+      // person did with their own copy, so they are found on the participants.
+      if (ADMIN_CONVERSATION_STATUSES.includes(status)) {
         query.status = status;
+      } else if (status === 'archived') {
+        query.participants = { $elemMatch: { isArchived: true } };
+      } else if (status === 'deleted') {
+        query.participants = { $elemMatch: { isDeleted: true } };
       }
     }
 
@@ -1615,7 +1642,14 @@ router.get('/admin/conversations', applyAuthRequired, messengerReadLimiter, asyn
       collection.countDocuments(query),
     ]);
 
-    res.json({ success: true, conversations, total });
+    res.json({
+      success: true,
+      conversations: conversations.map(conversation => ({
+        ...conversation,
+        displayStatus: adminDisplayStatus(conversation),
+      })),
+      total,
+    });
   } catch (error) {
     logger.error('Admin: error listing conversations:', error);
     res.status(500).json({ error: 'Failed to list conversations' });

@@ -1,0 +1,290 @@
+/* Partner Programme → Cashout requests tab (was the inline style block of /admin-cashout-requests) */
+    /* ── Admin Cashout Requests page ─────────────────────────────────────── */
+
+    .acr-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+    }
+    .acr-title {
+      font-size: 1.6rem;
+      font-weight: 700;
+      color: #111827;
+      margin: 0;
+    }
+    .acr-subtitle {
+      font-size: 0.9rem;
+      color: #6b7280;
+      margin: 0.25rem 0 0;
+    }
+
+    /* Filter bar */
+    .acr-filters {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      flex-wrap: wrap;
+      margin-bottom: 1.25rem;
+    }
+    .acr-filters select,
+    .acr-filters input {
+      padding: 0.45rem 0.75rem;
+      border: 1px solid #d1d5db;
+      border-radius: 8px;
+      font-size: 0.875rem;
+      color: #374151;
+      background: #fff;
+      outline: none;
+      transition: border-color 0.15s;
+    }
+    .acr-filters select:focus,
+    .acr-filters input:focus { border-color: #0B8073; }
+    .acr-filter-btn {
+      padding: 0.45rem 1rem;
+      background: #0B8073;
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      font-size: 0.875rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    .acr-filter-btn:hover { background: #0a6b63; }
+
+    /* Table */
+    .acr-table-wrap {
+      background: #fff;
+      border: 1px solid #e5e7eb;
+      border-radius: 16px;
+      overflow-x: auto;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+    }
+    .acr-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.875rem;
+    }
+    .acr-table th {
+      background: #f9fafb;
+      padding: 0.75rem 1rem;
+      text-align: left;
+      font-weight: 600;
+      color: #374151;
+      border-bottom: 1px solid #e5e7eb;
+      white-space: nowrap;
+    }
+    .acr-table td {
+      padding: 0.85rem 1rem;
+      border-bottom: 1px solid #f3f4f6;
+      vertical-align: top;
+      color: #374151;
+    }
+    .acr-table tr:last-child td { border-bottom: none; }
+    .acr-table tr:hover td { background: #f9fafb; }
+
+    /* Status badges */
+    .acr-badge {
+      display: inline-block;
+      padding: 0.2rem 0.6rem;
+      border-radius: 100px;
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 0.03em;
+    }
+    .acr-badge--submitted  { background: rgba(59,130,246,0.12);  color: #2563eb; }
+    .acr-badge--approved   { background: rgba(16,185,129,0.12);  color: #059669; }
+    .acr-badge--processing { background: rgba(245,158,11,0.12);  color: #d97706; }
+    .acr-badge--delivered  { background: rgba(34,197,94,0.12);   color: #16a34a; }
+    .acr-badge--rejected   { background: rgba(239,68,68,0.10);   color: #dc2626; }
+
+    /* Action button */
+    .acr-action-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.3rem;
+      padding: 0.35rem 0.75rem;
+      background: #f3f4f6;
+      border: 1px solid #e5e7eb;
+      border-radius: 7px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: #374151;
+      cursor: pointer;
+      transition: background 0.15s, border-color 0.15s;
+    }
+    .acr-action-btn:hover { background: #e5e7eb; border-color: #d1d5db; }
+    .acr-action-btn--primary { background: #0B8073; color: #fff; border-color: #0B8073; }
+    .acr-action-btn--primary:hover { background: #0a6b63; }
+    .acr-action-btn--danger { background: rgba(239,68,68,0.08); color: #dc2626; border-color: rgba(239,68,68,0.2); }
+    .acr-action-btn--danger:hover { background: rgba(239,68,68,0.15); }
+    .acr-action-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    /* Empty / loading states */
+    .acr-empty {
+      padding: 3rem 1rem;
+      text-align: center;
+      color: #6b7280;
+    }
+    .acr-empty-icon { font-size: 2.5rem; margin-bottom: 0.75rem; }
+    .acr-empty-text { font-size: 0.95rem; }
+
+    /* Detail modal / panel */
+    .acr-modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.4);
+      z-index: 1000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 1rem;
+    }
+    .acr-modal {
+      background: #fff;
+      border-radius: 20px;
+      max-width: 600px;
+      width: 100%;
+      max-height: 90vh;
+      overflow-y: auto;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.2);
+      padding: 2rem;
+    }
+    .acr-modal-close {
+      float: right;
+      background: none;
+      border: none;
+      font-size: 1.4rem;
+      cursor: pointer;
+      color: #6b7280;
+      line-height: 1;
+      padding: 0 0.25rem;
+    }
+    .acr-modal-close:hover { color: #111827; }
+    /* Also carries .ef-cta, whose !important padding/font-size would
+       otherwise override the compact sizing above — same bug class as
+       admin-navbar.css's close button fix. */
+    .acr-modal-close.ef-cta {
+      padding: 0 0.25rem !important;
+      font-size: 1.4rem !important;
+      font-weight: 400 !important;
+    }
+    .acr-modal-title {
+      font-size: 1.2rem;
+      font-weight: 700;
+      color: #111827;
+      margin: 0 0 1.5rem;
+    }
+    .acr-modal-field { margin-bottom: 1rem; }
+    .acr-modal-label {
+      display: block;
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: #6b7280;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 0.3rem;
+    }
+    .acr-modal-value {
+      font-size: 0.925rem;
+      color: #111827;
+    }
+    .acr-modal-textarea {
+      width: 100%;
+      padding: 0.6rem 0.75rem;
+      border: 1px solid #d1d5db;
+      border-radius: 8px;
+      font-size: 0.875rem;
+      color: #374151;
+      resize: vertical;
+      min-height: 80px;
+      outline: none;
+      box-sizing: border-box;
+    }
+    .acr-modal-textarea:focus { border-color: #0B8073; }
+    .acr-modal-select {
+      width: 100%;
+      padding: 0.5rem 0.75rem;
+      border: 1px solid #d1d5db;
+      border-radius: 8px;
+      font-size: 0.875rem;
+      color: #374151;
+      background: #fff;
+      outline: none;
+    }
+    .acr-modal-select:focus { border-color: #0B8073; }
+    .acr-modal-actions {
+      display: flex;
+      gap: 0.75rem;
+      flex-wrap: wrap;
+      margin-top: 1.5rem;
+    }
+    .acr-modal-status { margin-top: 0.75rem; font-size: 0.875rem; }
+    .acr-modal-status--error { color: #dc2626; }
+    .acr-modal-status--success { color: #059669; }
+
+    /* Toast */
+    #acr-toast {
+      position: fixed;
+      bottom: 1.5rem;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #111827;
+      color: #fff;
+      padding: 0.75rem 1.5rem;
+      border-radius: 10px;
+      font-size: 0.9rem;
+      font-weight: 500;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.25);
+      z-index: 2000;
+      display: none;
+      max-width: 480px;
+      text-align: center;
+    }
+    #acr-toast.show { display: block; }
+    #acr-toast.toast--error { background: #dc2626; }
+    #acr-toast.toast--success { background: #059669; }
+
+    /* Stats bar */
+    .acr-stats-bar {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+    }
+    .acr-stat-card {
+      background: #fff;
+      border: 1px solid #e5e7eb;
+      border-radius: 14px;
+      padding: 1rem 1.25rem;
+      display: flex;
+      align-items: center;
+      gap: 0.85rem;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    }
+    .acr-stat-icon {
+      font-size: 1.5rem;
+      line-height: 1;
+      flex-shrink: 0;
+    }
+    .acr-stat-value {
+      font-size: 1.6rem;
+      font-weight: 700;
+      color: #111827;
+      line-height: 1.1;
+    }
+    .acr-stat-label {
+      font-size: 0.75rem;
+      color: #6b7280;
+      font-weight: 500;
+      margin-top: 0.1rem;
+    }
+    .acr-stat-card--submitted  { border-left: 4px solid #3b82f6; }
+    .acr-stat-card--approved   { border-left: 4px solid #10b981; }
+    .acr-stat-card--processing { border-left: 4px solid #f59e0b; }
+    .acr-stat-card--delivered  { border-left: 4px solid #22c55e; }
+    .acr-stat-card--rejected   { border-left: 4px solid #ef4444; }
+  

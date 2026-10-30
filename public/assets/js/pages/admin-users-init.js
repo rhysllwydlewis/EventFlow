@@ -462,7 +462,7 @@
     if (!ok) {
       return;
     }
-    await AdminShared.adminFetch('/api/admin/users/bulk-suspend', {
+    const result = await AdminShared.adminFetch('/api/admin/users/bulk-suspend', {
       method: 'POST',
       body: JSON.stringify({
         userIds: safeIds,
@@ -471,9 +471,14 @@
       }),
     });
     selectedUserIds.clear();
+    // Report what the server actually did, not how many were asked for
+    const updated = Number.isFinite(result?.updated) ? result.updated : safeIds.length;
+    const notChanged = safeIds.length - updated;
     AdminShared.showToast(
-      `Suspended ${safeIds.length} account${safeIds.length !== 1 ? 's' : ''}.`,
-      'success'
+      `Suspended ${updated} account${updated !== 1 ? 's' : ''}${
+        notChanged > 0 ? ` (${notChanged} already suspended, protected or not found)` : ''
+      }.`,
+      updated > 0 ? 'success' : 'warning'
     );
     await loadData();
   }

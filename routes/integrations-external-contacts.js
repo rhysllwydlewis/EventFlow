@@ -215,7 +215,7 @@ router.post('/', writeLimiter, async (req, res) => {
     type: 'system', // 'external_contact' not in NOTIFICATION_TYPES; use system + metadata
     title: `New ${sourceLabel} enquiry`,
     message: `${name} submitted a contact request from ${sourceLabel}`,
-    actionUrl: `/admin-external-contacts?id=${id}`,
+    actionUrl: `/admin-tickets?tab=external&id=${id}`,
     actionText: 'View enquiry',
     priority: 'normal',
     metadata: { category: 'external_contact', source: incomingSource, externalContactId: id },

@@ -146,6 +146,92 @@
     );
   }
 
+  const PRIORITY_ORDER = { urgent: 0, high: 1, normal: 2, low: 3 };
+
+  /**
+   * Every report that still needs a decision: new ones, ones a moderator has picked up, and
+   * escalated ones. The endpoint filters on one status at a time.
+   * @returns {Promise<Object[]>} Reports, most urgent first.
+   */
+  async function loadPendingReports() {
+    const results = await Promise.all(
+      ['open', 'in_review', 'escalated'].map(status => EFC.api(`${ADMIN}/reports?status=${status}`))
+    );
+    return results
+      .flatMap(result => result.reports || [])
+      .sort(
+        (first, second) =>
+          (PRIORITY_ORDER[first.priority] ?? 9) - (PRIORITY_ORDER[second.priority] ?? 9) ||
+          new Date(first.createdAt) - new Date(second.createdAt)
+      );
+  }
+
+  /**
+   * Quarantined discussions and replies together; the endpoint returns one kind per request.
+   * @returns {Promise<Object[]>} Held items, newest first.
+   */
+  async function loadQuarantinedContent() {
+    const results = await Promise.all(
+      ['discussion', 'reply'].map(type =>
+        EFC.api(`${ADMIN}/content?state=quarantined&type=${type}`).then(result =>
+          (result.items || []).map(item => ({ ...item, kind: type }))
+        )
+      )
+    );
+    return results
+      .flat()
+      .sort((first, second) => new Date(second.createdAt) - new Date(first.createdAt));
+  }
+
+  // Appeals and Audit are paged by the server (20 by default) but showed only the first page
+  const LIST_PAGE_SIZE = 50;
+  const listPage = { appeals: 1, audit: 1 };
+
+  /**
+   * The "Showing 51-100 of 349" line with Previous / Next for a paged tab.
+   * @param {string} tab - Tab key
+   * @param {Object} pagination - The server's { page, limit, total, totalPages }
+   * @param {string} noun - What the rows are, plural
+   * @returns {string} HTML, empty when there is nothing to page
+   */
+  function listPagerHtml(tab, pagination, noun) {
+    const total = (pagination && pagination.total) || 0;
+    if (!total) {
+      return '';
+    }
+    const page = pagination.page || 1;
+    const pages = pagination.totalPages || 1;
+    const size = pagination.limit || LIST_PAGE_SIZE;
+    const first = (page - 1) * size + 1;
+    const last = Math.min(page * size, total);
+    const text =
+      pages === 1 ? `Showing all ${total} ${noun}` : `Showing ${first}–${last} of ${total} ${noun}`;
+    const buttons =
+      pages === 1
+        ? ''
+        : `<button type="button" class="efc-action" data-list-page="${tab}:${page - 1}"${
+            page <= 1 ? ' disabled' : ''
+          }>← Previous</button>
+           <button type="button" class="efc-action" data-list-page="${tab}:${page + 1}"${
+             page >= pages ? ' disabled' : ''
+           }>Next →</button>`;
+    return `<div class="efc-pager" style="display:flex;flex-wrap:wrap;align-items:center;gap:0.5rem;margin-top:1rem"><p class="efc-meta" role="status" style="margin:0 auto 0 0">${text}</p>${buttons}</div>`;
+  }
+
+  /**
+   * Make the Previous / Next buttons of a paged tab reload it on the chosen page.
+   * @returns {void} Nothing.
+   */
+  function wireListPager() {
+    document.querySelectorAll('[data-list-page]').forEach(button => {
+      button.addEventListener('click', () => {
+        const [tab, page] = button.getAttribute('data-list-page').split(':');
+        listPage[tab] = Math.max(1, Number(page) || 1);
+        load();
+      });
+    });
+  }
+
   /**
    * Load and render the active panel.
    * @returns {Promise<void>} Resolves when rendered.
@@ -167,11 +253,11 @@
       }
 
       if (active === 'reports') {
-        const data = await EFC.api(`${ADMIN}/reports?status=open`);
-        panel.innerHTML = data.reports.length
-          ? `<ul class="efc-list">${data.reports
+        const reports = await loadPendingReports();
+        panel.innerHTML = reports.length
+          ? `<ul class="efc-list">${reports
               .map(
-                report => `<li class="efc-discussion">
+                report => `<li class="efc-discussion efc-discussion--stacked">
                   <p class="efc-meta"><span class="efc-badge">${EFC.esc(report.priority)}</span>
                     ${EFC.esc(report.reasonLabel)} · ${EFC.esc(EFC.timeAgo(report.createdAt))}</p>
                   <p class="efc-discussion__excerpt">${EFC.esc(
@@ -202,13 +288,13 @@
       }
 
       if (active === 'content') {
-        const data = await EFC.api(`${ADMIN}/content?state=quarantined`);
+        const items = await loadQuarantinedContent();
         panel.innerHTML = `<p class="efc-meta">Content held for review. Approving publishes it; removing keeps the record for the audit trail.</p>
           ${
-            data.items.length
-              ? `<ul class="efc-list">${data.items
+            items.length
+              ? `<ul class="efc-list">${items
                   .map(
-                    item => `<li class="efc-discussion">
+                    item => `<li class="efc-discussion efc-discussion--stacked">
                       <h3 class="efc-discussion__title">${EFC.esc(item.title || 'Reply')}</h3>
                       <p class="efc-discussion__excerpt">${EFC.esc(item.excerpt)}</p>
                       <p class="efc-meta">${EFC.esc(item.author.displayName)} · risk ${item.riskScore} · ${EFC.esc(
@@ -216,13 +302,13 @@
                       )}</p>
                       <div class="efc-post__actions">
                         <button type="button" class="efc-action" data-content-action="approve" data-type="${
-                          item.title ? 'discussion' : 'reply'
+                          item.kind
                         }" data-id="${EFC.esc(item.id)}">Approve</button>
                         <button type="button" class="efc-action" data-content-action="remove" data-type="${
-                          item.title ? 'discussion' : 'reply'
+                          item.kind
                         }" data-id="${EFC.esc(item.id)}">Remove</button>
                         <button type="button" class="efc-action" data-content-action="mark_spam" data-type="${
-                          item.title ? 'discussion' : 'reply'
+                          item.kind
                         }" data-id="${EFC.esc(item.id)}">Mark as spam</button>
                       </div>
                     </li>`
@@ -238,7 +324,7 @@
         const data = await EFC.api(`${ADMIN}/categories`);
         panel.innerHTML = `<ul class="efc-list">${data.categories
           .map(
-            category => `<li class="efc-discussion">
+            category => `<li class="efc-discussion efc-discussion--stacked">
               <h3 class="efc-discussion__title">${EFC.esc(category.icon || '')} ${EFC.esc(category.name)}</h3>
               <p class="efc-meta">/${EFC.esc(category.slug)} · order ${category.order} · ${
                 category.visible === false ? 'hidden' : 'visible'
@@ -251,26 +337,30 @@
       }
 
       if (active === 'appeals') {
-        const data = await EFC.api(`${ADMIN}/appeals`);
+        const data = await EFC.api(
+          `${ADMIN}/appeals?page=${listPage.appeals}&limit=${LIST_PAGE_SIZE}`
+        );
         panel.innerHTML = data.appeals.length
           ? `<ul class="efc-list">${data.appeals
               .map(
-                appeal => `<li class="efc-discussion">
+                appeal => `<li class="efc-discussion efc-discussion--stacked">
                   <p class="efc-meta">${EFC.esc(appeal.status)} · ${EFC.esc(EFC.timeAgo(appeal.createdAt))}</p>
                   <p class="efc-discussion__excerpt">${EFC.esc(appeal.message)}</p>
                 </li>`
               )
               .join('')}</ul>`
           : EFC.emptyState('No appeals', 'Nobody has appealed a moderation decision.');
+        panel.insertAdjacentHTML('beforeend', listPagerHtml('appeals', data.pagination, 'appeals'));
+        wireListPager();
         return;
       }
 
       if (active === 'audit') {
-        const data = await EFC.api(`${ADMIN}/audit`);
+        const data = await EFC.api(`${ADMIN}/audit?page=${listPage.audit}&limit=${LIST_PAGE_SIZE}`);
         panel.innerHTML = data.actions.length
           ? `<ul class="efc-list">${data.actions
               .map(
-                item => `<li class="efc-discussion">
+                item => `<li class="efc-discussion efc-discussion--stacked">
                   <p class="efc-meta">${EFC.esc(item.action)} · ${EFC.esc(item.targetType)} ${EFC.esc(
                     item.targetId
                   )} · ${EFC.esc(item.moderatorHandle)} · ${EFC.esc(EFC.timeAgo(item.createdAt))}</p>
@@ -279,6 +369,8 @@
               )
               .join('')}</ul>`
           : EFC.emptyState('No moderation actions yet', 'The audit trail is empty.');
+        panel.insertAdjacentHTML('beforeend', listPagerHtml('audit', data.pagination, 'actions'));
+        wireListPager();
         return;
       }
 

@@ -188,7 +188,7 @@
                 type: 'system',
                 title: 'Partner cashout blocked by safety controls',
                 message: `Cashout ${request.id} was blocked: ${decision.reason}`,
-                actionUrl: `/admin-cashout-requests.html?request=${request.id}`,
+                actionUrl: `/admin-partners?tab=cashouts&request=${request.id}`,
                 actionText: 'Review cashout',
                 priority: 'high',
                 metadata: {
@@ -224,7 +224,7 @@
               type: 'system',
               title: 'Partner cashout reconciliation failure',
               message: `Cashout ${request.id} cannot move to ${targetStatus}: ledger reconciliation failed.`,
-              actionUrl: `/admin-cashout-requests.html?request=${request.id}`,
+              actionUrl: `/admin-partners?tab=cashouts&request=${request.id}`,
               actionText: 'Review cashout',
               priority: 'high',
               metadata: {
@@ -317,7 +317,7 @@
               ? 'Partner cashouts paused'
               : 'Partner cashout controls updated',
           message: controls.reason || 'Partner cashout controls were updated by an administrator.',
-          actionUrl: '/admin-cashout-requests.html',
+          actionUrl: '/admin-partners?tab=cashouts',
           actionText: 'Open cashouts',
           priority: controls.programmePaused || controls.cashoutsPaused ? 'high' : 'normal',
           metadata: {
@@ -530,7 +530,7 @@
             type: 'system',
             title: 'High-risk partner cashout',
             message: `Cashout ${request.id} has been assessed as high risk and requires attention.`,
-            actionUrl: `/admin-cashout-requests.html?request=${request.id}`,
+            actionUrl: `/admin-partners?tab=cashouts&request=${request.id}`,
             actionText: 'Review cashout',
             priority: 'high',
             metadata: {

@@ -158,6 +158,39 @@ describe('admin-seo routes', () => {
     expect(response.body.code).toBe('INVALID_VALUE_PER_CLICK');
   });
 
+  it('PUT /settings rejects an absurd value-per-click (a typo made the money figure meaningless)', async () => {
+    const app = createApp();
+    const response = await request(app)
+      .put('/api/v2/admin/seo/settings')
+      .send({ valuePerClick: 999999999 })
+      .expect(400);
+    expect(response.body.error).toMatch(/0 to 100/);
+    expect(seoDataStore.setSettings).not.toHaveBeenCalled();
+  });
+
+  it('PUT /settings rejects a value that is not a number', async () => {
+    const app = createApp();
+    await request(app).put('/api/v2/admin/seo/settings').send({ valuePerClick: 'abc' }).expect(400);
+    await request(app).put('/api/v2/admin/seo/settings').send({}).expect(400);
+    expect(seoDataStore.setSettings).not.toHaveBeenCalled();
+  });
+
+  it('PUT /settings accepts the largest allowed value and null (clear)', async () => {
+    const app = createApp();
+    await request(app).put('/api/v2/admin/seo/settings').send({ valuePerClick: 100 }).expect(200);
+    await request(app).put('/api/v2/admin/seo/settings').send({ valuePerClick: null }).expect(200);
+  });
+
+  it('GET /noise lists the hidden queries so one can be put back', async () => {
+    seoDataStore.listNoiseKeywords.mockResolvedValueOnce([
+      { id: 'wedding venues cardiff', query: 'wedding venues cardiff', markedBy: 'admin@x.test' },
+    ]);
+    const app = createApp();
+    const response = await request(app).get('/api/v2/admin/seo/noise').expect(200);
+    expect(response.body.data.items).toHaveLength(1);
+    expect(response.body.data.items[0].query).toBe('wedding venues cardiff');
+  });
+
   it('PUT /settings accepts a valid value-per-click', async () => {
     const app = createApp();
     const response = await request(app)

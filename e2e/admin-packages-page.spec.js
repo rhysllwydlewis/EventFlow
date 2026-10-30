@@ -13,6 +13,10 @@ import {
  */
 
 test.describe('Admin packages page @backend', () => {
+  // The page glides to its form unless the device asks for less motion. That glide starves WebKit's
+  // frames on a busy CI runner, so a button never holds still long enough to be clicked.
+  test.use({ reducedMotion: 'reduce' });
+
   const runId = createRunId('admin-packages');
   let fixtures;
 

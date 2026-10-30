@@ -87,10 +87,12 @@ router.post('/contact', applyWriteLimiter, async (req, res) => {
     const enquiry = {
       id: uid('ceq'),
       senderType: 'external',
-      senderName: validator.escape(name),
+      // Stored as typed. Every page that shows these escapes them as it draws them, and the
+      // reply email escapes them in its template; escaping here as well showed "Can&#x27;t".
+      senderName: name,
       senderEmail: validator.normalizeEmail(email) || email,
-      subject: validator.escape(subject),
-      message: validator.escape(message),
+      subject,
+      message,
       status: 'new',
       responses: [],
       createdAt: now,
@@ -107,9 +109,9 @@ router.post('/contact', applyWriteLimiter, async (req, res) => {
     notifyAdmins(
       {
         type: 'ticket',
-        title: 'New external contact enquiry',
+        title: 'New contact form enquiry',
         message: `${enquiry.senderName} submitted: ${enquiry.subject}`,
-        actionUrl: '/admin-tickets#contacts',
+        actionUrl: '/admin-tickets?tab=contacts',
         actionText: 'View enquiry',
         priority: 'normal',
         metadata: { enquiryId: enquiry.id, queueType: 'contact_enquiries' },
@@ -178,9 +180,10 @@ router.post('/contact-supplier', applyWriteLimiter, async (req, res) => {
       id: `enq_${Date.now()}_${crypto.randomBytes(4).toString('hex')}`,
       supplierId,
       supplierName: supplier.name || '',
-      senderName: validator.escape(name),
+      // Stored as typed; see the note on the contact form above
+      senderName: name,
       senderEmail: validator.normalizeEmail(email),
-      message: validator.escape(message),
+      message,
       status: 'pending',
       createdAt: new Date().toISOString(),
     };

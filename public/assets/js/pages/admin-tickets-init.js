@@ -1,6 +1,10 @@
 'use strict';
 (function () {
   let allTickets = [];
+  // 213 tickets used to be drawn at once; now 50 a page, with Previous / Next under the table
+  const TICKET_PAGE_SIZE = 50;
+  let ticketPage = 1;
+  let ticketPager = null;
 
   const STATUS_OPTIONS = [
     { value: 'open', label: 'Open' },
@@ -84,10 +88,29 @@
       allTickets = data.items || [];
       renderSummary();
       renderTickets();
+      openLinkedTicket();
     } catch (error) {
       console.error('Error loading tickets:', error);
       container.innerHTML =
         '<div class="data-section"><p class="small text-error">Failed to load tickets. Please try again.</p></div>';
+    }
+  }
+
+  // A link such as /admin-tickets?ticket=ID (from a notification) opens that ticket, once
+  let linkedTicketHandled = false;
+  function openLinkedTicket() {
+    if (linkedTicketHandled) {
+      return;
+    }
+    linkedTicketHandled = true;
+    const id = new URLSearchParams(window.location.search).get('ticket');
+    if (!id) {
+      return;
+    }
+    if (allTickets.some(ticket => ticket.id === id)) {
+      openTicketModal(id);
+    } else {
+      AdminShared.showToast('That ticket was not found. It may have been deleted.', 'warning');
     }
   }
 
@@ -158,6 +181,15 @@
     if (!container) {
       return;
     }
+    ticketPager =
+      ticketPager ||
+      AdminPager.mount({
+        after: container,
+        onChange(page) {
+          ticketPage = page;
+          renderTickets();
+        },
+      });
 
     const searchTerm = document.getElementById('ticketSearch')?.value.toLowerCase() || '';
     const statusFilter = document.getElementById('statusFilter')?.value || '';
@@ -219,6 +251,7 @@
           </div>
         </div>
       `;
+      ticketPager.update({ page: 1, size: TICKET_PAGE_SIZE, total: 0, noun: 'tickets' });
       return;
     }
 
@@ -249,7 +282,9 @@
     let html =
       '<div class="table-wrapper"><table><thead><tr><th>Subject</th><th>From / Tier</th><th>Status</th><th>Priority</th><th>Created</th><th>Assigned</th><th>Actions</th></tr></thead><tbody>';
 
-    filtered.forEach(ticket => {
+    // Only this page's rows are drawn; a filter change goes back to page 1 (see the listeners)
+    ticketPage = AdminPager.range(ticketPage, TICKET_PAGE_SIZE, filtered.length).page;
+    AdminPager.slice(filtered, ticketPage, TICKET_PAGE_SIZE).forEach(ticket => {
       const createdAt = formatDate(ticket.createdAt);
       const senderName = ticket.senderName || ticket.userName || 'Unknown User';
       const senderEmail = ticket.senderEmail || ticket.userEmail || '';
@@ -283,6 +318,12 @@
 
     html += '</tbody></table></div>';
     container.innerHTML = html;
+    ticketPager.update({
+      page: ticketPage,
+      size: TICKET_PAGE_SIZE,
+      total: filtered.length,
+      noun: filtered.length === allTickets.length ? 'tickets' : 'matching tickets',
+    });
 
     container.querySelectorAll('[data-action="viewTicket"]').forEach(button => {
       button.addEventListener('click', () => openTicketModal(button.dataset.id));
@@ -459,7 +500,10 @@
         return;
       }
       const eventType = id === 'ticketSearch' ? 'input' : 'change';
-      element.addEventListener(eventType, renderTickets);
+      element.addEventListener(eventType, () => {
+        ticketPage = 1;
+        renderTickets();
+      });
     });
   }
 
@@ -471,36 +515,11 @@
 
   setupFilterListeners();
   loadTickets();
-
-  // =============================================
-  // Tab switching
-  // =============================================
-  document.querySelectorAll('.admin-tab').forEach(tab => {
-    tab.addEventListener('click', () => {
-      const targetTab = tab.dataset.tab;
-      document.querySelectorAll('.admin-tab').forEach(t => {
-        t.classList.remove('admin-tab--active');
-        t.setAttribute('aria-selected', 'false');
-      });
-      document.querySelectorAll('.admin-tab-panel').forEach(p => {
-        p.style.display = 'none';
-      });
-      tab.classList.add('admin-tab--active');
-      tab.setAttribute('aria-selected', 'true');
-      const panel = document.getElementById(`panel-${targetTab}`);
-      if (panel) {
-        panel.style.display = 'block';
-      }
-      if (targetTab === 'contacts') {
-        loadContactEnquiries();
-      }
-    });
-  });
 })();
 
 // =============================================
 // Contact Form Enquiries Module (EventFlow's own /contact form — distinct
-// from /admin-external-contacts, which covers VEXI/Chlo integrations)
+// from the External tab, which covers VEXI/Chlo integrations)
 // =============================================
 (function () {
   let allEnquiries = [];
@@ -857,4 +876,31 @@
   document
     .getElementById('refreshContactsBtn')
     ?.addEventListener('click', window.loadContactEnquiries);
+})();
+
+// =============================================
+// Tabs: Support tickets / Contact form / External (VEXI, Chlo). The chosen tab is kept in the
+// address (?tab=tickets|contacts|external) so links, notifications and the redirects from the old
+// pages can open a tab; an older link ending #contacts still works. This runs last because the
+// tabs' loaders are defined in the modules above.
+// =============================================
+(function () {
+  function tab(name, onShow) {
+    return {
+      name,
+      button: document.getElementById(`tab-${name}`),
+      panel: document.getElementById(`panel-${name}`),
+      onShow,
+    };
+  }
+
+  window.AdminTabs.mount({
+    tabs: [
+      tab('tickets'),
+      tab('contacts', () => window.loadContactEnquiries()),
+      tab('external', () => window.AdminExternalContacts.start()),
+    ],
+    activeClass: 'admin-tab--active',
+    initial: 'tickets',
+  });
 })();

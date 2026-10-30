@@ -14,7 +14,8 @@ const fs = require('fs');
 const path = require('path');
 
 const INIT_JS = path.join(__dirname, '../../public/assets/js/pages/admin-campaigns-init.js');
-const HTML_PAGE = path.join(__dirname, '../../public/admin-campaigns.html');
+// The campaign builder is the Campaigns tab of the Email Centre page
+const HTML_PAGE = path.join(__dirname, '../../public/admin-emails.html');
 const REGISTRY = path.join(__dirname, '../../config/adminRegistry.js');
 
 let initContent;
@@ -184,7 +185,7 @@ describe('admin-campaigns-init.js — status feedback', () => {
 
 // ── HTML page structure ───────────────────────────────────────────────────────
 
-describe('admin-campaigns.html — page structure', () => {
+describe('admin-emails.html — Campaigns tab structure', () => {
   it('loads dashboard-guard.js', () => {
     expect(htmlContent).toContain('dashboard-guard.js');
   });
@@ -244,27 +245,28 @@ describe('admin-campaigns.html — page structure', () => {
 
 // ── Registry ──────────────────────────────────────────────────────────────────
 
-describe('adminRegistry — campaigns page registered', () => {
+describe('adminRegistry — campaigns is a tab of the Email Centre', () => {
   let registryContent;
 
   beforeAll(() => {
     registryContent = fs.readFileSync(REGISTRY, 'utf8');
   });
 
-  it('admin-campaigns route is in registry', () => {
+  it('the old admin-campaigns route stays in the registry and redirects to the tab', () => {
     expect(registryContent).toContain("route: '/admin-campaigns'");
+    expect(registryContent).toContain("redirect: '/admin-emails?tab=campaigns'");
   });
 
-  it('admin-campaigns is visible in nav', () => {
-    const idx = registryContent.indexOf("'/admin-campaigns'");
-    const block = registryContent.substring(idx, idx + 200);
+  it('the Email Centre is the one entry in the nav', () => {
+    const idx = registryContent.indexOf("route: '/admin-emails'");
+    const block = registryContent.substring(idx, idx + 300);
     expect(block).toContain('inNav: true');
   });
 });
 
 // ── Admin Navbar ──────────────────────────────────────────────────────────────
 
-describe('admin-navbar.js — campaigns nav item', () => {
+describe('admin-navbar.js — Email Centre nav item', () => {
   const NAVBAR_JS = path.join(__dirname, '../../public/assets/js/admin-navbar.js');
   let navbarContent;
 
@@ -272,20 +274,16 @@ describe('admin-navbar.js — campaigns nav item', () => {
     navbarContent = fs.readFileSync(NAVBAR_JS, 'utf8');
   });
 
-  it('admin-navbar.js contains campaigns nav item', () => {
-    expect(navbarContent).toContain("href: '/admin-campaigns'");
+  it('has one Email Centre tile and no separate Campaigns or Email Previews tile', () => {
+    expect(navbarContent).toContain("href: '/admin-emails'");
+    expect(navbarContent).not.toContain("href: '/admin-campaigns'");
+    expect(navbarContent).not.toContain("href: '/admin/email-previews'");
   });
 
-  it('campaigns nav item is in operations group', () => {
-    const idx = navbarContent.indexOf("href: '/admin-campaigns'");
+  it('Email Centre is in the operations group', () => {
+    const idx = navbarContent.indexOf("href: '/admin-emails'");
     const block = navbarContent.substring(idx, idx + 200);
     expect(block).toContain("group: 'operations'");
-  });
-
-  it('campaigns nav item has the 📣 icon', () => {
-    const idx = navbarContent.indexOf("href: '/admin-campaigns'");
-    const block = navbarContent.substring(idx, idx + 200);
-    expect(block).toContain("icon: '📣'");
   });
 });
 
@@ -318,17 +316,16 @@ describe('admin-campaigns backend safety helpers', () => {
   });
 });
 
-describe('admin-email-previews page registration', () => {
-  it('adminRegistry registers the slash route', () => {
+describe('admin-email-previews is a tab of the Email Centre', () => {
+  it('adminRegistry keeps the old route as a redirect to the Templates tab', () => {
     const registryContent = fs.readFileSync(REGISTRY, 'utf8');
     expect(registryContent).toContain("route: '/admin-email-previews'");
+    expect(registryContent).toContain("redirect: '/admin-emails?tab=templates'");
   });
 
-  it('admin navbar includes email previews', () => {
-    const navbarContent = fs.readFileSync(
-      path.join(__dirname, '../../public/assets/js/admin-navbar.js'),
-      'utf8'
-    );
-    expect(navbarContent).toContain("href: '/admin/email-previews'");
+  it('the Email Centre page holds the template previews', () => {
+    const page = fs.readFileSync(path.join(__dirname, '../../public/admin-emails.html'), 'utf8');
+    expect(page).toContain('id="emailPreviewGrid"');
+    expect(page).toContain('id="emailPreviewDialog"');
   });
 });

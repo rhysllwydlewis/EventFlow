@@ -76,6 +76,7 @@ const {
   getUserFromCookie,
   userExtractionMiddleware,
 } = require('./middleware/auth');
+const { getAccountRestriction } = require('./utils/accountRestriction');
 const { featureRequired } = require('./middleware/features');
 const { apiCacheControlMiddleware, staticCachingMiddleware } = require('./middleware/cache');
 const { emailAssetsCrossOrigin } = require('./middleware/emailAssets');
@@ -576,6 +577,49 @@ app.get('/package/:slug', (req, res) => {
   });
 });
 
+['/admin-campaigns', '/admin-campaigns.html'].forEach(deprecated => {
+  app.get(deprecated, (req, res) => {
+    const qs = req.url.includes('?') ? req.url.slice(req.url.indexOf('?')) : '';
+    // The campaign builder is now the Campaigns tab of the Email Centre.
+    const base = qs ? `${qs}&tab=campaigns` : '?tab=campaigns';
+    res.redirect(302, `/admin-emails${base}`);
+  });
+});
+
+['/admin-email-previews', '/admin-email-previews.html', '/admin/email-previews'].forEach(
+  deprecated => {
+    app.get(deprecated, (req, res) => {
+      const qs = req.url.includes('?') ? req.url.slice(req.url.indexOf('?')) : '';
+      // Template previews are now the Templates tab of the Email Centre.
+      const base = qs ? `${qs}&tab=templates` : '?tab=templates';
+      res.redirect(302, `/admin-emails${base}`);
+    });
+  }
+);
+
+['/admin-external-contacts', '/admin-external-contacts.html'].forEach(deprecated => {
+  app.get(deprecated, (req, res) => {
+    const qs = req.url.includes('?') ? req.url.slice(req.url.indexOf('?')) : '';
+    // External enquiries are now the External tab of Enquiries; keep ?id= and any filters.
+    const base = qs ? `${qs}&tab=external` : '?tab=external';
+    res.redirect(302, `/admin-tickets${base}`);
+  });
+});
+
+[
+  ['/admin-cashout-requests', 'cashouts'],
+  ['/admin-partner-campaign-report', 'report'],
+].forEach(([route, tab]) => {
+  [route, `${route}.html`].forEach(deprecated => {
+    app.get(deprecated, (req, res) => {
+      const qs = req.url.includes('?') ? req.url.slice(req.url.indexOf('?')) : '';
+      // Cashouts and the campaign report are now tabs of the Partner Programme page; keep ?request=.
+      const base = qs ? `${qs}&tab=${tab}` : `?tab=${tab}`;
+      res.redirect(302, `/admin-partners${base}`);
+    });
+  });
+});
+
 ['/admin-content-dates', '/admin-content-dates.html'].forEach(deprecated => {
   app.get(deprecated, (req, res) => {
     const qs = req.url.includes('?') ? req.url.slice(req.url.indexOf('?')) : '';
@@ -804,22 +848,6 @@ app.get('/admin-partners', apiLimiter, (req, res, next) => {
   return next();
 });
 
-// ---------- Admin Cashout Requests Page Protection ----------
-// /admin-cashout-requests requires admin role
-app.get('/admin-cashout-requests', apiLimiter, (req, res, next) => {
-  const user = getUserFromCookie(req);
-  if (!user) {
-    return res.redirect(
-      302,
-      `/auth?reason=unauthenticated&next=${encodeURIComponent(req.originalUrl)}`
-    );
-  }
-  if (user.role !== 'admin') {
-    return res.redirect(302, '/auth?reason=forbidden&required=admin');
-  }
-  return next();
-});
-
 // ---------- Admin HTML Page Protection ----------
 // CRITICAL: This middleware MUST come before express.static()
 // Protects all admin HTML pages from unauthorized access at the server level
@@ -973,6 +1001,11 @@ const getAuthMeHandler = async (req, res) => {
     const u = await dbUnified.findOne('users', { id: p.id });
     if (!u) {
       return res.status(200).json({ user: null });
+    }
+    // A suspended or banned account is signed out: pages that ask who is logged in see nobody.
+    const restriction = getAccountRestriction(u);
+    if (restriction) {
+      return res.status(200).json({ user: null, restricted: restriction.type });
     }
     const isOwner = u.email && u.email.toLowerCase() === OWNER_EMAIL.toLowerCase();
 

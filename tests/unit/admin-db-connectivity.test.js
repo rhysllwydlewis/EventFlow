@@ -56,7 +56,7 @@ describe('Admin Route Database Connectivity', () => {
 
   describe('Admin payments endpoint', () => {
     it('should use dbUnified.read for payments (not legacy read())', () => {
-      expect(adminContent).toContain("dbUnified.read('payments')");
+      expect(adminContent).toContain("dbUnified.read('payments', strict)");
       // Should NOT have the old synchronous read('payments')
       const syncReadPayments = /const payments = read\('payments'\)/;
       expect(syncReadPayments.test(adminContent)).toBe(false);

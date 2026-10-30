@@ -77,7 +77,7 @@ test.describe('Admin Dashboard — Quick Action Buttons', () => {
     { id: 'userManagementBtn', label: 'User Management', href: '/admin-users' },
     { id: 'packageManagementBtn', label: 'Packages', href: '/admin-packages' },
     { id: 'homepageChangesBtn', label: 'Homepage', href: '/admin-homepage' },
-    { id: 'supportTicketsBtn', label: 'Tickets', href: '/admin-tickets' },
+    { id: 'supportTicketsBtn', label: 'Enquiries', href: '/admin-tickets' },
     { id: 'paymentsAnalyticsBtn', label: 'Payments', href: '/admin-payments' },
     { id: 'reportsQueueBtn', label: 'Reports', href: '/admin-reports' },
     { id: 'auditLogBtn', label: 'Audit Log', href: '/admin-audit' },

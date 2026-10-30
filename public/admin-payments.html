@@ -4,11 +4,11 @@
   <script src="/assets/js/dashboard-guard.js?v=18.4.3"></script>
   
   <!-- PHASE 2: Error boundary (must load before other components) -->
-  <script src="/assets/js/utils/global-error-handler.js" defer></script>
-  <script src="/assets/js/utils/sentry-browser-init.js" defer></script>
+  <script src="/assets/js/utils/global-error-handler.js?v=18.5.14" defer></script>
+  <script src="/assets/js/utils/sentry-browser-init.js?v=18.5.14" defer></script>
   
   <!-- PHASE 3: Core components -->
-  <script src="/assets/js/components/LoadingSpinner.js" defer></script>
+  <script src="/assets/js/components/LoadingSpinner.js?v=18.5.14" defer></script>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Payment Analytics — Admin Panel — EventFlow</title>
@@ -32,13 +32,41 @@
     <link rel="mask-icon" href="/safari-pinned-tab.svg" color="#0B8073">
     <link rel="manifest" href="/site.webmanifest">
     <meta name="msapplication-config" content="/browserconfig.xml">
-  <script src="/assets/js/admin-shared.js?v=18.5.9"></script>
+  <script src="/assets/js/admin-shared.js?v=18.5.11"></script>
   <script src="/assets/js/components.js?v=18.4.0" defer></script>
-<script src="/assets/js/admin-navbar.js?v=18.4.1" defer></script>
-  <link rel="stylesheet" href="/assets/css/mobile-optimizations.css?v=18.4.5">
+<script src="/assets/js/admin-navbar.js?v=18.5.16" defer></script>
+  <link rel="stylesheet" href="/assets/css/mobile-optimizations.css?v=18.4.6">
   <link rel="stylesheet" href="/assets/css/ui-ux-fixes.css?v=18.4.1">
   <link rel="stylesheet" href="/assets/css/admin-ui-improvements.css?v=18.3.3">
-  <link rel="stylesheet" href="/assets/css/admin-workspace.css?v=1">
+  <link rel="stylesheet" href="/assets/css/admin-workspace.css?v=3">
+  <style>
+    /* The card captions were picking up the full heading size (about 2rem), so "Total Revenue
+       (All Time)" took more room than the figure below it. Small label, like the other pages. */
+    .payments-stats-grid .stat-card h3 {
+      font-size: 0.8125rem;
+      font-weight: 600;
+      line-height: 1.3;
+      color: #62777d;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      margin: 0 0 0.5rem;
+    }
+
+    /* Status of a payment in the transactions table */
+    .payment-status {
+      display: inline-block;
+      padding: 0.2rem 0.65rem;
+      border-radius: 999px;
+      font-size: 0.8125rem;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+    .payment-status--paid { background: #dcfce7; color: #166534; }
+    .payment-status--pending { background: #fef3c7; color: #92400e; }
+    .payment-status--failed { background: #fee2e2; color: #991b1b; }
+    .payment-status--refunded { background: #e0e7ff; color: #3730a3; }
+    .payment-status--disputed { background: #ffedd5; color: #9a3412; }
+  </style>
 </head>
 <body class="has-admin-navbar admin">
 <!-- Modern Top Navbar -->
@@ -57,9 +85,9 @@
           <span id="stripeStatus" class="status-pill"></span>
         </div>
         <p>
-          This dashboard integrates with live Stripe analytics when available. Revenue, subscriptions, and transaction
-          data are fetched directly from your Stripe account for real-time insights. When Stripe is not configured,
-          the dashboard shows data from local payment records.
+          Revenue is what paid invoices brought in, less refunds, and active subscriptions are the
+          subscriptions on record (the same count the Analytics page shows). When Stripe is connected,
+          the "This Month's Revenue" card also shows Stripe's own figure for the last 30 days, net of refunds.
         </p>
       </div>
 
@@ -107,9 +135,11 @@
       <div class="filter-bar">
         <select id="statusFilter">
           <option value="all">All Statuses</option>
-          <option value="success">Success</option>
+          <option value="paid">Paid</option>
           <option value="pending">Pending</option>
           <option value="failed">Failed</option>
+          <option value="refunded">Refunded</option>
+          <option value="disputed">Disputed</option>
         </select>
         
         <select id="planFilter">
@@ -140,12 +170,13 @@
       <!-- Payments Table -->
       <div class="payments-table">
         <h3>Recent Transactions</h3>
+        <p class="small" id="paymentsCount" aria-live="polite"></p>
         <div class="table-wrapper">
           <table>
             <thead>
               <tr>
                 <th>Date</th>
-                <th>Supplier</th>
+                <th>Customer</th>
                 <th>Plan</th>
                 <th>Amount</th>
                 <th>Status</th>
@@ -179,8 +210,8 @@
     </div>
   </footer>
 
-  <script src="/assets/vendor/chart.umd.js" defer></script>
-  <script src="/assets/js/pages/admin-payments-init.js?v=18.3.1" defer></script>
+  <script src="/assets/vendor/chart.umd.js?v=18.5.14" defer></script>
+  <script src="/assets/js/pages/admin-payments-init.js?v=18.5.11" defer></script>
 <script src="/assets/js/cookie-consent.js?v=3.0.2" defer></script>
 </body>
 </html>

@@ -110,22 +110,6 @@ router.get('/admin', apiLimiter, authRequired, (req, res) => {
 });
 
 /**
- * GET /admin/email-previews
- * Serve admin email preview gallery
- */
-router.get('/admin/email-previews', apiLimiter, authRequired, (req, res) => {
-  try {
-    if (req.user.role !== 'admin') {
-      return res.redirect('/auth?reason=forbidden&required=admin');
-    }
-    res.sendFile(path.join(__dirname, '..', 'public', 'admin-email-previews.html'));
-  } catch (error) {
-    logger.error('Error serving admin email previews page:', error);
-    return res.status(500).send('Internal server error');
-  }
-});
-
-/**
  * GET /admin-debug
  * Serve admin debug/system-checks page
  */
@@ -137,22 +121,6 @@ router.get('/admin-debug', apiLimiter, authRequired, (req, res) => {
     res.sendFile(path.join(__dirname, '..', 'public', 'admin-debug.html'));
   } catch (error) {
     logger.error('Error serving admin debug page:', error);
-    return res.status(500).send('Internal server error');
-  }
-});
-
-/**
- * GET /admin-cashout-requests
- * Serve admin cashout requests page
- */
-router.get('/admin-cashout-requests', apiLimiter, authRequired, (req, res) => {
-  try {
-    if (req.user.role !== 'admin') {
-      return res.redirect('/auth?reason=forbidden&required=admin');
-    }
-    res.sendFile(path.join(__dirname, '..', 'public', 'admin-cashout-requests.html'));
-  } catch (error) {
-    logger.error('Error serving admin cashout requests page:', error);
     return res.status(500).send('Internal server error');
   }
 });

@@ -943,6 +943,47 @@ canonicalPages.forEach(page => {
   });
 });
 
+['/admin-campaigns', '/admin-campaigns.html'].forEach(deprecated => {
+  app.get(deprecated, staticLimiter, (req, res) => {
+    const qs = req.url.includes('?') ? req.url.slice(req.url.indexOf('?')) : '';
+    // The campaign builder is now the Campaigns tab of the Email Centre.
+    const base = qs ? `${qs}&tab=campaigns` : '?tab=campaigns';
+    res.redirect(302, `/admin-emails${base}`);
+  });
+});
+
+['/admin-email-previews', '/admin-email-previews.html', '/admin/email-previews'].forEach(
+  deprecated => {
+    app.get(deprecated, staticLimiter, (req, res) => {
+      const qs = req.url.includes('?') ? req.url.slice(req.url.indexOf('?')) : '';
+      // Template previews are now the Templates tab of the Email Centre.
+      const base = qs ? `${qs}&tab=templates` : '?tab=templates';
+      res.redirect(302, `/admin-emails${base}`);
+    });
+  }
+);
+
+['/admin-external-contacts', '/admin-external-contacts.html'].forEach(deprecated => {
+  app.get(deprecated, staticLimiter, (req, res) => {
+    const qs = req.url.includes('?') ? req.url.slice(req.url.indexOf('?')) : '';
+    const base = qs ? `${qs}&tab=external` : '?tab=external';
+    res.redirect(302, `/admin-tickets${base}`);
+  });
+});
+
+[
+  ['/admin-cashout-requests', 'cashouts'],
+  ['/admin-partner-campaign-report', 'report'],
+].forEach(([route, tab]) => {
+  [route, `${route}.html`].forEach(deprecated => {
+    app.get(deprecated, staticLimiter, (req, res) => {
+      const qs = req.url.includes('?') ? req.url.slice(req.url.indexOf('?')) : '';
+      const base = qs ? `${qs}&tab=${tab}` : `?tab=${tab}`;
+      res.redirect(302, `/admin-partners${base}`);
+    });
+  });
+});
+
 ['/admin-content-dates', '/admin-content-dates.html'].forEach(deprecated => {
   app.get(deprecated, staticLimiter, (req, res) => {
     const qs = req.url.includes('?') ? req.url.slice(req.url.indexOf('?')) : '';
@@ -960,7 +1001,6 @@ const adminPages = [
   'admin-audit',
   'admin-community',
   'admin-content',
-  'admin-content-dates',
   'admin-exports',
   'admin-emails',
   'admin-homepage',
@@ -971,7 +1011,6 @@ const adminPages = [
   'admin-packages',
   'admin-payments',
   'admin-media',
-  'admin-pexels',
   'admin-reviews',
   'admin-search',
   'admin-seo',
@@ -981,16 +1020,11 @@ const adminPages = [
   'admin-settings',
   'admin-supplier-detail',
   'admin-suppliers',
-  'admin-external-contacts',
   'admin-tickets',
   'admin-user-detail',
   'admin-users',
   'admin-debug',
   'admin-partners',
-  'admin-partner-campaign-report',
-  'admin-cashout-requests',
-  'admin-campaigns',
-  'admin-email-previews',
 ];
 
 adminPages.forEach(page => {
@@ -1000,10 +1034,6 @@ adminPages.forEach(page => {
   });
   // In static-mode we keep .html paths working too (no redirect) so that
   // existing E2E tests that navigate to /<page>.html are not broken.
-});
-
-app.get('/admin/email-previews', staticLimiter, (req, res) => {
-  res.sendFile(path.join(PUBLIC_DIR, 'admin-email-previews.html'));
 });
 
 // Article pages — serve clean URLs and redirect .html to canonical

@@ -5,6 +5,21 @@
   let currentImageFile = null;
   let currentImageUrl = null;
   let currentFilter = 'all'; // Track current filter state
+  // 221 packages used to be drawn at once; now 50 a page, with Previous / Next under the table
+  const PACKAGE_PAGE_SIZE = 50;
+  let packagePage = 1;
+  let packagePager = null;
+  // Set by a link such as /admin-packages?supplierId=… (from the supplier page)
+  let supplierFilterId = null;
+
+  // Gliding to the form is skipped for anyone who has asked their device for less motion
+  function scrollToForm() {
+    const reduce =
+      window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    document
+      .getElementById('packageFormSection')
+      .scrollIntoView({ behavior: reduce ? 'auto' : 'smooth' });
+  }
 
   // Configuration
   const PLACEHOLDER_IMAGE = '/assets/images/placeholders/package-event.svg';
@@ -32,7 +47,11 @@
     }
   }
 
-  function applyFiltersAndRender() {
+  function applyFiltersAndRender(options) {
+    // A new search or filter starts again at page 1; saving or deleting a package keeps the page
+    if (options && options.resetPage === true) {
+      packagePage = 1;
+    }
     let filtered = allPackages;
 
     // Apply test data filter
@@ -41,6 +60,11 @@
     } else if (currentFilter === 'real') {
       filtered = filtered.filter(pkg => !pkg.isTest);
     }
+
+    if (supplierFilterId) {
+      filtered = filtered.filter(pkg => pkg.supplierId === supplierFilterId);
+    }
+    showSupplierFilterNote();
 
     // Apply search filter if present
     const searchInput = document.getElementById('searchInput');
@@ -54,6 +78,43 @@
     }
 
     renderPackages(filtered);
+  }
+
+  function showSupplierFilterNote() {
+    const note = document.getElementById('supplierFilterNote');
+    if (!note) {
+      return;
+    }
+    note.hidden = !supplierFilterId;
+    if (supplierFilterId) {
+      const supplier = allSuppliers.find(item => item.id === supplierFilterId);
+      document.getElementById('supplierFilterText').textContent =
+        `Showing only the packages of ${supplier ? supplier.name : 'this supplier'}. `;
+    }
+  }
+
+  /**
+   * Act on the page address once packages and suppliers are loaded:
+   *   ?supplierId=ID   only that supplier's packages
+   *   ?supplierId=ID&add=1   ...and the Add form open with that supplier chosen
+   *   ?id=ID           that package's Edit form
+   * @returns {void} Nothing.
+   */
+  function applyDeepLink() {
+    const params = new URLSearchParams(window.location.search);
+    const supplierId = params.get('supplierId');
+    const packageId = params.get('id');
+    if (supplierId) {
+      supplierFilterId = supplierId;
+      applyFiltersAndRender({ resetPage: true });
+      if (params.get('add') === '1') {
+        document.getElementById('addPackageBtn').click();
+        document.getElementById('packageSupplierId').value = supplierId;
+      }
+    }
+    if (packageId) {
+      window.editPackage(packageId);
+    }
   }
 
   async function loadSuppliers() {
@@ -88,16 +149,30 @@
       return;
     }
 
+    packagePager =
+      packagePager ||
+      window.AdminPager.mount({
+        after: container,
+        onChange(page) {
+          packagePage = page;
+          applyFiltersAndRender();
+        },
+      });
+
     if (!packages.length) {
       container.innerHTML = '<p class="small">No packages found.</p>';
+      packagePager.update({ page: 1, size: PACKAGE_PAGE_SIZE, total: 0, noun: 'packages' });
       return;
     }
+    const total = packages.length;
+    packagePage = window.AdminPager.range(packagePage, PACKAGE_PAGE_SIZE, total).page;
+    const pageRows = window.AdminPager.slice(packages, packagePage, PACKAGE_PAGE_SIZE);
 
     let html = '<table class="table"><thead><tr>';
     html += '<th>Image</th><th>Title</th><th>Price</th><th>Status</th><th>Actions</th>';
     html += '</tr></thead><tbody>';
 
-    packages.forEach(pkg => {
+    pageRows.forEach(pkg => {
       html += '<tr>';
       html += `<td><img src="${escapeHtml(
         pkg.image || PLACEHOLDER_IMAGE
@@ -142,6 +217,12 @@
 
     html += '</tbody></table>';
     container.innerHTML = html;
+    packagePager.update({
+      page: packagePage,
+      size: PACKAGE_PAGE_SIZE,
+      total,
+      noun: total === allPackages.length ? 'packages' : 'matching packages',
+    });
   }
 
   /**
@@ -324,7 +405,7 @@
     }
 
     document.getElementById('packageFormSection').style.display = 'block';
-    document.getElementById('packageFormSection').scrollIntoView({ behavior: 'smooth' });
+    scrollToForm();
   };
 
   window.toggleApproval = async function (id, approved) {
@@ -427,7 +508,7 @@
     preview.style.display = 'none';
 
     document.getElementById('packageFormSection').style.display = 'block';
-    document.getElementById('packageFormSection').scrollIntoView({ behavior: 'smooth' });
+    scrollToForm();
   });
 
   // Cancel Form Button
@@ -609,7 +690,7 @@
 
   // Search functionality
   document.getElementById('searchInput').addEventListener('input', () => {
-    applyFiltersAndRender();
+    applyFiltersAndRender({ resetPage: true });
   });
 
   // Test data filter functionality
@@ -626,15 +707,23 @@
       chosen.classList.add('active');
       chosen.setAttribute('aria-pressed', 'true');
 
-      applyFiltersAndRender();
+      applyFiltersAndRender({ resetPage: true });
     });
   });
 
   // Initialize function to set up the page
   function initializePage() {
     setupImageUpload();
-    loadPackages();
-    loadSuppliers();
+    // Both lists are needed before a link from another page can pick a supplier or a package
+    Promise.all([loadPackages(), loadSuppliers()]).then(applyDeepLink);
+
+    const clearSupplierFilter = document.getElementById('supplierFilterClear');
+    if (clearSupplierFilter) {
+      clearSupplierFilter.addEventListener('click', () => {
+        supplierFilterId = null;
+        applyFiltersAndRender({ resetPage: true });
+      });
+    }
 
     // Event delegation for dynamically created buttons
     document.body.addEventListener('click', e => {

@@ -469,7 +469,7 @@
         <div class="photo-item">
           ${safeUrl ? `<img src="${safeUrl}" alt="Supplier photo" loading="lazy">` : '<div class="photo-placeholder">No image</div>'}
           <div class="photo-actions">
-            <button class="ef-cta btn btn-small btn-danger" data-action="deletePhoto" data-id="${AdminShared.escapeHtml(String(photo.id || ''))}">Delete</button>
+            <button class="ef-cta btn btn-small btn-danger" data-action="deletePhoto" data-url="${AdminShared.escapeHtml(String(photo.url || ''))}">Delete</button>
           </div>
         </div>
       `;
@@ -780,10 +780,10 @@
 
   // Add New Package handler — navigate to admin packages page
   document.getElementById('addPackageBtn')?.addEventListener('click', () => {
-    window.location.href = `/admin-packages?supplierId=${encodeURIComponent(supplierId)}`;
+    window.location.href = `/admin-packages?supplierId=${encodeURIComponent(supplierId)}&add=1`;
   });
 
-  // Upload Photo handler — navigate to admin photos page
+  // Review photos — the photo page, showing only this supplier's photos
   document.getElementById('uploadPhotoBtn')?.addEventListener('click', () => {
     window.location.href = `/admin-photos?supplierId=${encodeURIComponent(supplierId)}`;
   });
@@ -868,7 +868,15 @@
         return;
       }
       try {
-        await AdminShared.api(`/api/admin/photos/${id}`, 'DELETE');
+        const photoUrl = btn.dataset.url;
+        if (!photoUrl) {
+          throw new Error('This photo has no address to delete');
+        }
+        // Supplier gallery photos are identified by their address, not an id
+        await AdminShared.api(
+          `/api/photos/delete?type=supplier&id=${encodeURIComponent(supplierId)}&photoUrl=${encodeURIComponent(photoUrl)}`,
+          'DELETE'
+        );
         AdminShared.showToast('Photo deleted', 'success');
         loadPhotos();
       } catch (err) {

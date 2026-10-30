@@ -26,11 +26,11 @@
     <link rel="manifest" href="/site.webmanifest">
     <meta name="msapplication-config" content="/browserconfig.xml">
 <script src="/assets/js/components.js?v=18.4.0" defer></script>
-<script src="/assets/js/admin-navbar.js?v=18.4.1" defer></script>
-  <link rel="stylesheet" href="/assets/css/mobile-optimizations.css?v=18.4.5">
+<script src="/assets/js/admin-navbar.js?v=18.5.16" defer></script>
+  <link rel="stylesheet" href="/assets/css/mobile-optimizations.css?v=18.4.6">
   <link rel="stylesheet" href="/assets/css/ui-ux-fixes.css?v=18.4.1">
   <link rel="stylesheet" href="/assets/css/admin-ui-improvements.css?v=18.3.3">
-  <link rel="stylesheet" href="/assets/css/admin-workspace.css?v=1">
+  <link rel="stylesheet" href="/assets/css/admin-workspace.css?v=3">
 </head>
 <body class="has-admin-navbar admin">
 <div id="adminNavbarMount"></div>
@@ -52,35 +52,25 @@
   <div class="container">
     <div class="data-section">
       <div class="admin-toolbar">
-        <select id="actionFilter" class="filter-select">
+        <select id="actionFilter" class="filter-select" aria-label="Filter by action">
           <option value="">All Actions</option>
-          <option value="user_created">User Created</option>
-          <option value="user_suspended">User Suspended</option>
-          <option value="user_banned">User Banned</option>
-          <option value="user_verified">User Verified</option>
-          <option value="supplier_approved">Supplier Approved</option>
-          <option value="supplier_verified">Supplier Verified</option>
-          <option value="package_approved">Package Approved</option>
-          <option value="photo_approved">Photo Approved</option>
-          <option value="photo_rejected">Photo Rejected</option>
         </select>
-        <select id="targetTypeFilter" class="filter-select">
+        <select id="targetTypeFilter" class="filter-select" aria-label="Filter by type">
           <option value="">All Types</option>
-          <option value="user">User</option>
-          <option value="supplier">Supplier</option>
-          <option value="package">Package</option>
-          <option value="photo">Photo</option>
-          <option value="review">Review</option>
-          <option value="report">Report</option>
         </select>
-        <input type="date" id="startDateFilter" class="filter-select">
-        <input type="date" id="endDateFilter" class="filter-select">
+        <input type="date" id="startDateFilter" class="filter-select" aria-label="From date">
+        <input type="date" id="endDateFilter" class="filter-select" aria-label="To date (included)">
         <button class="ef-cta btn btn-secondary" id="clearFilters">Clear Filters</button>
         <button class="ef-cta btn btn-primary" id="exportAuditBtn">📥 Export</button>
       </div>
       
+      <p class="small" id="auditCount" aria-live="polite"></p>
       <div id="auditContainer">
         <p class="small">Loading audit logs...</p>
+      </div>
+      <div class="admin-toolbar" id="auditPager" hidden>
+        <button class="ef-cta btn btn-secondary" id="auditPrev">← Newer</button>
+        <button class="ef-cta btn btn-secondary" id="auditNext">Older →</button>
       </div>
     </div>
   </div>
@@ -100,8 +90,8 @@
   </div>
   </footer>
 
-<script src="/assets/js/admin-shared.js?v=18.5.9"></script>
-<script src="/assets/js/pages/admin-audit-init.js?v=18.3.0" defer></script>
+<script src="/assets/js/admin-shared.js?v=18.5.11"></script>
+<script src="/assets/js/pages/admin-audit-init.js?v=18.5.12" defer></script>
 
 <script src="/assets/js/cookie-consent.js?v=3.0.2" defer></script>
 </body>

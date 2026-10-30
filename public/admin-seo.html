@@ -4,8 +4,8 @@
   <script src="/assets/js/dashboard-guard.js?v=18.4.3"></script>
 
   <!-- Error boundary -->
-  <script src="/assets/js/utils/global-error-handler.js" defer></script>
-  <script src="/assets/js/utils/sentry-browser-init.js" defer></script>
+  <script src="/assets/js/utils/global-error-handler.js?v=18.5.14" defer></script>
+  <script src="/assets/js/utils/sentry-browser-init.js?v=18.5.14" defer></script>
 
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -21,7 +21,7 @@
   <link rel="stylesheet" href="/assets/css/admin-enhanced.css?v=18.3.1">
   <link rel="stylesheet" href="/assets/css/admin-navbar.css?v=18.4.1">
   <link rel="stylesheet" href="/assets/css/admin-cards.css?v=18.3.0">
-  <link rel="stylesheet" href="/assets/css/mobile-optimizations.css?v=18.4.5">
+  <link rel="stylesheet" href="/assets/css/mobile-optimizations.css?v=18.4.6">
   <link rel="stylesheet" href="/assets/css/ui-ux-fixes.css?v=18.4.1">
   <link rel="stylesheet" href="/assets/css/admin-ui-improvements.css?v=18.3.3">
   <link rel="icon" href="/favicon.ico" sizes="any">
@@ -33,9 +33,9 @@
   <link rel="mask-icon" href="/safari-pinned-tab.svg" color="#0B8073">
   <link rel="manifest" href="/site.webmanifest">
   <meta name="msapplication-config" content="/browserconfig.xml">
-  <script src="/assets/js/admin-shared.js?v=18.5.9"></script>
+  <script src="/assets/js/admin-shared.js?v=18.5.11"></script>
   <script src="/assets/js/components.js?v=18.4.0" defer></script>
-  <script src="/assets/js/admin-navbar.js?v=18.4.1" defer></script>
+  <script src="/assets/js/admin-navbar.js?v=18.5.16" defer></script>
   <style>
     .seo-section { margin: 32px 0; }
     .seo-section h2 { margin-bottom: 4px; }
@@ -57,7 +57,7 @@
     .seo-empty { padding: 24px; text-align: center; color: var(--text-secondary, #666); }
     .seo-settings-row { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; margin-bottom: 16px; }
   </style>
-  <link rel="stylesheet" href="/assets/css/admin-workspace.css?v=1">
+  <link rel="stylesheet" href="/assets/css/admin-workspace.css?v=3">
 </head>
 <body class="has-admin-navbar admin">
   <a class="efl-skip" href="#main-content">Skip to main content</a>
@@ -122,14 +122,15 @@
         <div class="seo-settings-row">
           <button class="btn btn-secondary" id="seo-runGsc">Pull latest Search Console data</button>
           <button class="btn btn-secondary" id="seo-runKeywordPlanner">Pull keyword ideas (Google Ads API)</button>
-          <label class="btn btn-outline" style="cursor:pointer;">
+          <label class="btn btn-secondary" style="cursor:pointer;">
             Import Keyword Planner CSV
             <input type="file" id="seo-csvInput" accept=".csv" style="display:none;">
           </label>
         </div>
         <div class="seo-settings-row">
           <label for="seo-valuePerClick">Value per click (£, for the financial estimate)</label>
-          <input type="number" id="seo-valuePerClick" min="0" step="0.01" style="width:100px;">
+          <input type="number" id="seo-valuePerClick" min="0" max="100" step="0.01" style="width:100px;" aria-describedby="seo-valueHelp">
+          <span class="small" id="seo-valueHelp">£0 to £100. Leave empty to hide the estimate.</span>
           <button class="btn btn-secondary" id="seo-saveValuePerClick">Save</button>
         </div>
       </section>
@@ -157,9 +158,15 @@
         <p class="seo-section-desc">Latest Search Console pull. Mark obviously synthetic rows as noise to exclude them from every report above.</p>
         <div class="seo-table-wrap"><table class="seo-table" id="seo-queriesTable"></table></div>
       </section>
+
+      <section class="seo-section">
+        <h2>Hidden as noise</h2>
+        <p class="seo-section-desc">Queries you have hidden from every report above. Put one back if it was hidden by mistake.</p>
+        <div class="seo-table-wrap"><table class="seo-table" id="seo-noiseTable"></table></div>
+      </section>
     </div>
   </main>
 
-  <script src="/assets/js/pages/admin-seo-init.js?v=1"></script>
+  <script src="/assets/js/pages/admin-seo-init.js?v=18.5.16"></script>
 </body>
 </html>

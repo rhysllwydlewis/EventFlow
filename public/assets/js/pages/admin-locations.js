@@ -16,6 +16,7 @@
   const listEl = document.getElementById('efl-admin-list');
   const summaryEl = document.getElementById('efl-admin-summary');
   const filterEl = document.getElementById('efl-admin-filter');
+  const searchEl = document.getElementById('efl-admin-search');
   const needsReviewEl = document.getElementById('efl-admin-needs-review');
   const unmappedDetailsEl = document.getElementById('efl-unmapped-suppliers');
   const unmappedListEl = document.getElementById('efl-unmapped-suppliers-list');
@@ -35,6 +36,12 @@
     maxSections: 8,
     maxFaqs: 10,
   };
+
+  /** Every city the last load returned, so searching does not need another request. */
+  let allItems = [];
+
+  /** The summary line of the last load, before any search is described. */
+  let summaryBase = '';
 
   /** Slug currently open in the editor, or null. */
   let editingSlug = null;
@@ -239,6 +246,16 @@
         <button type="button" class="efl-btn efl-btn--solid" data-action="edit">Edit</button>
         <button type="button" class="efl-btn efl-btn--ghost" data-action="pilot">Pilot</button>
         <button type="button" class="efl-btn efl-btn--ghost" data-action="publish">Publish</button>
+        ${
+          item.status === 'pilot' || item.status === 'published'
+            ? '<button type="button" class="efl-btn efl-btn--ghost" data-action="unpublish">Unpublish</button>'
+            : ''
+        }
+        ${
+          item.status === 'retired'
+            ? '<button type="button" class="efl-btn efl-btn--ghost" data-action="restore">Restore as draft</button>'
+            : '<button type="button" class="efl-btn efl-btn--ghost" data-action="retire">Retire</button>'
+        }
         <button type="button" class="efl-btn efl-btn--ghost" data-action="index">${
           item.indexingRequested ? 'Stop requesting indexing' : 'Request indexing'
         }</button>
@@ -247,6 +264,31 @@
         ${publicPreview}
       </p>
     </div>`;
+  }
+
+  /**
+   * Draw the cards that match the search box, and say how many that is.
+   * @returns {void} Nothing.
+   */
+  function renderList() {
+    const term = searchEl ? searchEl.value.trim().toLowerCase() : '';
+    const shown = term
+      ? allItems.filter(
+          item =>
+            String(item.name || '')
+              .toLowerCase()
+              .includes(term) ||
+            String(item.slug || '')
+              .toLowerCase()
+              .includes(term)
+        )
+      : allItems;
+    summaryEl.textContent = term
+      ? `${summaryBase} · showing ${shown.length} matching “${searchEl.value.trim()}”`
+      : summaryBase;
+    listEl.innerHTML = shown.length
+      ? shown.map(renderCard).join('')
+      : '<p class="efl-note">No city matches that search.</p>';
   }
 
   /**
@@ -273,8 +315,9 @@
       const unmapped = data.summary.unmappedSuppliers
         ? ` · ${data.summary.unmappedSuppliers} suppliers not yet placed on a city`
         : '';
-      summaryEl.textContent = `${data.summary.total} cities · ${data.summary.published} published · ${data.summary.pilot} in pilot · ${data.summary.indexable} indexable${needsReview}${unmapped}`;
-      listEl.innerHTML = data.items.map(renderCard).join('');
+      summaryBase = `${data.summary.total} cities · ${data.summary.published} published · ${data.summary.pilot} in pilot · ${data.summary.indexable} indexable${needsReview}${unmapped}`;
+      allItems = data.items;
+      renderList();
       renderUnmappedSuppliers(data.summary.unmappedSupplierList || []);
     } catch (error) {
       summaryEl.textContent = `Could not load location pages: ${error.message}`;
@@ -875,8 +918,39 @@
   const ACTIONS = {
     pilot: { status: 'pilot' },
     publish: { status: 'published' },
+    unpublish: { status: 'draft' },
+    retire: { status: 'retired' },
+    restore: { status: 'draft' },
     review: { markReviewed: true },
   };
+
+  /**
+   * What to ask before an action that changes who can see a page.
+   * @param {string} action Action name.
+   * @param {string} name City name.
+   * @returns {{message: string, label: string}|null} The question, or null when none is needed.
+   */
+  function confirmationFor(action, name) {
+    const questions = {
+      publish: {
+        message: `Publish ${name}? It becomes public straight away for anyone with the link. Search engines only index it once the quality gate passes and indexing has been requested.`,
+        label: 'Publish',
+      },
+      unpublish: {
+        message: `Take ${name} off the public site? Visitors will no longer be able to open it, and it goes back to draft.`,
+        label: 'Unpublish',
+      },
+      retire: {
+        message: `Retire ${name}? It is removed from the public site and from search results. You can restore it as a draft later.`,
+        label: 'Retire',
+      },
+    };
+    return questions[action] || null;
+  }
+
+  if (searchEl) {
+    searchEl.addEventListener('input', renderList);
+  }
 
   listEl.addEventListener('click', async event => {
     const button = event.target.closest('button[data-action]');
@@ -904,6 +978,14 @@
         ? { indexingRequested: button.textContent.indexOf('Stop') === -1 }
         : ACTIONS[action];
     if (!body) {
+      return;
+    }
+
+    const question = confirmationFor(
+      action,
+      (allItems.find(item => item.slug === slug) || {}).name || slug
+    );
+    if (question && !(await adminConfirm(question.message, question.label))) {
       return;
     }
 

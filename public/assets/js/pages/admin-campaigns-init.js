@@ -285,7 +285,14 @@
   }
 
   // ── Init ──────────────────────────────────────────────────────────────────
-  document.addEventListener('DOMContentLoaded', () => {
+  // The campaign builder is the Campaigns tab of the Email Centre; it starts when the tab is first opened.
+  let started = false;
+
+  function start() {
+    if (started) {
+      return;
+    }
+    started = true;
     subjectEl = document.getElementById('campaignSubject');
     titleEl = document.getElementById('campaignTitle');
     messageEl = document.getElementById('campaignMessage');
@@ -412,5 +419,7 @@
     } else {
       AdminShared.fetchCSRFToken().then(refreshPreview).catch(refreshPreview);
     }
-  });
+  }
+
+  window.AdminCampaigns = { start };
 })();

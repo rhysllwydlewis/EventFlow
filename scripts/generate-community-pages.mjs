@@ -35,7 +35,7 @@ const ASSET_VERSIONS = {
   // covers #package-breadcrumb/#category-breadcrumb, whose "Home" links
   // aren't wrapped in a <li> and so were the only crumb inflated to 44px —
   // visibly floating above their siblings on the same breadcrumb line.
-  '/assets/css/mobile-optimizations.css': '18.4.5',
+  '/assets/css/mobile-optimizations.css': '18.4.6',
   // 18.4.1: PR #1551 restored the `.pack`/`.featured-fallback-card` homepage
   // carousel rules removed by #1543 — bumped alongside that PR's other
   // cache-busting fixes so a cached copy of components.css doesn't linger.
@@ -63,7 +63,9 @@ const ASSET_VERSIONS = {
   // every other landing page in the section. Added a glass-card treatment
   // for #efc-category-header; without a bump a returning visitor keeps the
   // old stylesheet and sees a bare header again.
-  '/assets/css/community.css': '18.6.2',
+  // 18.6.3: moderation cards in the admin panel get a one-column variant (.efc-discussion--stacked);
+  // without a bump a moderator keeps the old stylesheet and the cards stay cut off.
+  '/assets/css/community.css': '18.6.3',
   // 18.4.1: the mobile burger menu's padding, link height, gap and divider
   // were tightened and the CTA/login row was fixed to actually be compact
   // (PR #1605). Without a bump a returning visitor keeps the previous
@@ -73,7 +75,11 @@ const ASSET_VERSIONS = {
   // components.css's cookie banner, see above) and pointed the body's own
   // bottom-nav padding at it instead of a separate hardcoded 76px.
   '/assets/css/navbar.css': '18.5.0',
-  '/assets/js/community/core.js': '18.6.0',
+  // 18.6.1: core.js's toast fell back to a global showToast that does not exist on admin pages, so
+  // moderators saw no feedback; admin.js now also lists in-review/escalated reports and quarantined
+  // replies. Without a bump a returning moderator keeps the old copies.
+  '/assets/js/community/core.js': '18.6.1',
+  '/assets/js/community/admin.js': '18.6.2',
   '/assets/js/community/home.js': '18.6.0',
   '/assets/js/community/thread.js': '18.6.0',
   '/assets/js/community/member.js': '18.6.0',
@@ -128,7 +134,7 @@ function shell(page) {
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5, user-scalable=yes" />
     <meta name="theme-color" content="#0B8073" />
-    <script src="/assets/js/config/canonical-base.js"></script>
+    <script src="/assets/js/config/canonical-base.js?v=${version('/assets/js/config/canonical-base.js')}"></script>
 ${page.adminGuard ? '    <script src="/assets/js/dashboard-guard.js?v=18.4.3"></script>\n' : ''}    <!--COMMUNITY_HEAD-->
     <link rel="preload" href="/assets/css/tokens.css?v=${version('/assets/css/tokens.css')}" as="style" />
     <link rel="preload" href="/assets/css/styles.css?v=${version('/assets/css/styles.css')}" as="style" />
@@ -304,9 +310,9 @@ ${
 `
 }${
     page.adminGuard
-      ? `    <script src="/assets/js/admin-shared.js?v=18.5.9"></script>
+      ? `    <script src="/assets/js/admin-shared.js?v=18.5.11"></script>
     <script src="/assets/js/components.js?v=18.4.0" defer></script>
-    <script src="/assets/js/admin-navbar.js?v=18.4.1" defer></script>
+    <script src="/assets/js/admin-navbar.js?v=18.5.16" defer></script>
 `
       : `    <script src="/assets/js/utils/auth-state.js?v=1.0.4" defer></script>
     <script src="/assets/js/burger-menu.js?v=1.1.0" defer></script>

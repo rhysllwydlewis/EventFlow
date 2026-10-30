@@ -52,7 +52,7 @@ No Postmark-hosted templates are used — all templates live in `email-templates
 
 ## Campaign-safe templates
 
-Only a restricted set of templates can be used for admin campaigns (via `/admin-campaigns`). This prevents accidental use of transactional templates (verification, password reset, etc.) in mass-sends.
+Only a restricted set of templates can be used for admin campaigns (via the Campaigns tab of `/admin-emails`). This prevents accidental use of transactional templates (verification, password reset, etc.) in mass-sends.
 
 Currently campaign-safe: `marketing`, `notification`
 
@@ -270,7 +270,7 @@ Avoid linking emails to bare `/profile`, `/inquiries` or `/checklist`; these are
 
 ## Admin campaign composer guidance
 
-`/admin-campaigns` supports structured fields for intro copy, body copy, feature list, optional banner URL, CTA text/URL and secondary notes. The advanced raw HTML field remains available for admin-only formatting, but it is sanitised server-side with the existing content sanitiser before template rendering.
+The Campaigns tab of `/admin-emails` supports structured fields for intro copy, body copy, feature list, optional banner URL, CTA text/URL and secondary notes. The advanced raw HTML field remains available for admin-only formatting, but it is sanitised server-side with the existing content sanitiser before template rendering.
 
 Campaign safety rules:
 

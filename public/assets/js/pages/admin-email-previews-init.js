@@ -160,7 +160,14 @@
     setStatus(`${templates.length} templates rendered with sample data.`, 'success');
   }
 
-  document.addEventListener('DOMContentLoaded', () => {
+  // The template previews are the Templates tab of the Email Centre; they load when the tab is first opened.
+  let started = false;
+
+  function start() {
+    if (started) {
+      return;
+    }
+    started = true;
     document.getElementById('emailPreviewSearch').addEventListener('input', renderGrid);
     document.getElementById('emailPreviewCategory').addEventListener('change', renderGrid);
     document.getElementById('emailPreviewRefresh').addEventListener('click', loadPreviews);
@@ -170,5 +177,7 @@
     document.getElementById('emailPreviewDownload').addEventListener('click', downloadHtml);
     document.getElementById('emailPreviewOpenWindow').addEventListener('click', openWindow);
     AdminShared.fetchCSRFToken().then(loadPreviews).catch(loadPreviews);
-  });
+  }
+
+  window.AdminEmailPreviews = { start };
 })();

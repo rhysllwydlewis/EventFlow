@@ -191,16 +191,76 @@
     }
   }
 
+  // Hiding or restoring a query changes every report built from the queries, including the
+  // estimated monthly value and the content gaps
+  async function reloadNoiseDependentReports() {
+    await Promise.all([
+      loadQueries(),
+      loadOverview(),
+      loadFinancialEstimate(),
+      loadStrikingDistance(),
+      loadLowCtr(),
+      loadContentGaps(),
+      loadNoise(),
+    ]);
+  }
+
   async function markNoise(query) {
+    // Hiding a query removes it from every report, so ask first
+    const confirmed = await AdminShared.showConfirmModal({
+      title: 'Hide this query?',
+      message: `"${query}" will be hidden from every report on this page. You can put it back from "Hidden as noise" at the bottom.`,
+      confirmText: 'Hide it',
+    });
+    if (confirmed !== true) {
+      return;
+    }
     try {
       await AdminShared.api('/api/v2/admin/seo/noise', 'POST', {
         query,
         reason: 'Marked from dashboard',
       });
       AdminShared.showToast(`Marked "${query}" as noise`, 'success');
-      await Promise.all([loadQueries(), loadOverview(), loadStrikingDistance(), loadLowCtr()]);
+      await reloadNoiseDependentReports();
     } catch (error) {
       AdminShared.showToast(`Could not mark as noise: ${error.message}`, 'error');
+    }
+  }
+
+  async function restoreNoise(query) {
+    try {
+      await AdminShared.api(`/api/v2/admin/seo/noise/${encodeURIComponent(query)}`, 'DELETE');
+      AdminShared.showToast(`Put "${query}" back in the reports`, 'success');
+      await reloadNoiseDependentReports();
+    } catch (error) {
+      AdminShared.showToast(`Could not put it back: ${error.message}`, 'error');
+    }
+  }
+
+  async function loadNoise() {
+    const table = document.getElementById('seo-noiseTable');
+    try {
+      const { data } = await AdminShared.api('/api/v2/admin/seo/noise');
+      renderTable(
+        table,
+        [
+          { key: 'query', label: 'Query', wrap: true },
+          { key: 'markedBy', label: 'Hidden by' },
+          {
+            key: 'actions',
+            label: '',
+            render: r =>
+              `<button class="seo-btn-link" data-restore-query="${escapeHtml(r.query || r.id)}">Put back</button>`,
+          },
+        ],
+        data.items,
+        'Nothing is hidden.'
+      );
+      table.querySelectorAll('[data-restore-query]').forEach(btn => {
+        btn.addEventListener('click', () => restoreNoise(btn.getAttribute('data-restore-query')));
+      });
+    } catch (error) {
+      table.innerHTML = `<tr><td class="seo-empty">${escapeHtml(error.message)}</td></tr>`;
     }
   }
 
@@ -244,6 +304,7 @@
       loadLowCtr(),
       loadContentGaps(),
       loadQueries(),
+      loadNoise(),
     ]);
   }
 
@@ -314,8 +375,21 @@
     });
 
     document.getElementById('seo-saveValuePerClick').addEventListener('click', async () => {
-      const raw = document.getElementById('seo-valuePerClick').value;
+      const raw = document.getElementById('seo-valuePerClick').value.trim();
       const valuePerClick = raw === '' ? null : Number(raw);
+      if (valuePerClick === null) {
+        const clear = await AdminShared.showConfirmModal({
+          title: 'Clear the value per click?',
+          message: 'The estimated monthly value will be hidden until you enter a value again.',
+          confirmText: 'Clear it',
+        });
+        if (clear !== true) {
+          return;
+        }
+      } else if (!Number.isFinite(valuePerClick) || valuePerClick < 0 || valuePerClick > 100) {
+        AdminShared.showToast('Enter an amount from £0 to £100.', 'error');
+        return;
+      }
       try {
         await AdminShared.api('/api/v2/admin/seo/settings', 'PUT', { valuePerClick });
         AdminShared.showToast('Saved', 'success');

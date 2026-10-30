@@ -9,6 +9,7 @@ const logger = require('../utils/logger');
 const dbUnified = require('../db-unified');
 const { uid } = require('../store');
 const { JWT_SECRET, setAuthCookie } = require('../middleware/auth');
+const { getAccountRestriction, restrictionRedirect } = require('../utils/accountRestriction');
 const { getFeatureFlags } = require('../middleware/features');
 const domainAdmin = require('../middleware/domain-admin');
 const facebookAuthService = require('../services/facebookAuth.service');
@@ -570,6 +571,15 @@ router.get('/callback/facebook', async (req, res) => {
     const user = await findOrCreateFacebookUser(facebookProfile, state);
     if (user.__eventflowNewFacebookSignup === true) {
       await recordFacebookSignupAnalytics(user, state);
+    }
+
+    const restriction = getAccountRestriction(user);
+    if (restriction) {
+      logger.warn('[FACEBOOK REDIRECT LOGIN] Restricted account refused', {
+        userId: user.id,
+        type: restriction.type,
+      });
+      return res.redirect(303, restrictionRedirect(restriction));
     }
 
     if (user.twoFactorEnabled) {

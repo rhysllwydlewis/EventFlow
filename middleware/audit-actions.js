@@ -70,6 +70,13 @@ const AUDIT_ACTIONS = {
   REPORT_RESOLVED: 'report_resolved',
   REPORT_DISMISSED: 'report_dismissed',
 
+  // Partner programme
+  PARTNER_STATUS_CHANGED: 'partner_status_changed',
+  PARTNER_CREDITS_ADJUSTED: 'partner_credits_adjusted',
+  PARTNER_PAYOUT_STATUS_CHANGED: 'partner_payout_status_changed',
+  CASHOUT_REQUEST_UPDATED: 'cashout_request_updated',
+  CASHOUT_REQUEST_DELETED: 'cashout_request_deleted',
+
   // System actions
   DATA_EXPORT: 'data_export',
   SETTINGS_CHANGED: 'settings_changed',

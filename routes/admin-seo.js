@@ -25,6 +25,10 @@ const seoDataStore = require('../services/seoDataStore');
 
 const router = express.Router();
 
+// The most one click can be worth, in pounds. A typo such as 999999999 made the headline money
+// figure meaningless.
+const MAX_VALUE_PER_CLICK = 100;
+
 const csvUpload = multer({
   storage: multer.memoryStorage(),
   limits: { fileSize: 5 * 1024 * 1024 },
@@ -203,6 +207,21 @@ router.get(
   }
 );
 
+router.get(
+  '/noise',
+  authRequired,
+  apiLimiter,
+  requirePermission(PERMISSIONS.SEO_DASHBOARD_VIEW),
+  async (req, res) => {
+    try {
+      const items = await seoDataStore.listNoiseKeywords();
+      res.json({ success: true, data: { items }, timestamp: new Date().toISOString() });
+    } catch (error) {
+      handleError(res, error);
+    }
+  }
+);
+
 // ---------------------------------------------------------------------------
 // Write / ingestion endpoints
 // ---------------------------------------------------------------------------
@@ -216,10 +235,16 @@ router.put(
   async (req, res) => {
     try {
       const { valuePerClick } = req.body;
-      if (valuePerClick !== null && (typeof valuePerClick !== 'number' || valuePerClick < 0)) {
+      if (
+        valuePerClick !== null &&
+        (typeof valuePerClick !== 'number' ||
+          !Number.isFinite(valuePerClick) ||
+          valuePerClick < 0 ||
+          valuePerClick > MAX_VALUE_PER_CLICK)
+      ) {
         return res.status(400).json({
           success: false,
-          error: 'valuePerClick must be a non-negative number or null',
+          error: `valuePerClick must be a number from 0 to ${MAX_VALUE_PER_CLICK} (pounds), or null`,
           code: 'INVALID_VALUE_PER_CLICK',
           timestamp: new Date().toISOString(),
         });
