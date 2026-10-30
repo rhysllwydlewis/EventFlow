@@ -654,7 +654,7 @@ describe('showcase colour helpers', () => {
   });
 
   test('a light accent such as Champagne gets a dark button label instead of white', () => {
-    const champagne = deriveTheme(PRESETS.find(preset => preset.key === 'champagne'));
+    const champagne = deriveTheme(PRESETS.find(preset => preset.key === 'gold'));
     expect(champagne.vars.onAccent).not.toBe('#ffffff');
     expect(contrast(champagne.vars.onAccent, champagne.vars.accent)).toBeGreaterThanOrEqual(4.5);
   });

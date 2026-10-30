@@ -34,7 +34,7 @@
       text: '#1E1B4B',
     },
     {
-      key: 'champagne',
+      key: 'gold',
       name: 'Champagne',
       accent: '#B88A2B',
       secondary: '#F4D6A0',
