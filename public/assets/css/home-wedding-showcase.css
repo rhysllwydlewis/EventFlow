@@ -389,6 +389,122 @@
   background: #f6e7c4;
 }
 
+/* The colours of the guest website on the phone. They default to the original plum look, so the
+   page is unchanged without JavaScript; the interactive sample swaps them from a chosen palette. */
+
+@property --hp-bg {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: #fff7fb;
+}
+
+@property --hp-text {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: #2b1b2f;
+}
+
+@property --hp-muted {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: #6e5a74;
+}
+
+@property --hp-accent {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: #8d3f6f;
+}
+
+@property --hp-on-accent {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: #ffffff;
+}
+
+@property --hp-ink {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: #8d3f6f;
+}
+
+@property --hp-soft {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: #f7e4ee;
+}
+
+@property --hp-border {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: #cdb1bf;
+}
+
+@property --hp-divider {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: #f0dde7;
+}
+
+@property --hp-deep {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: #6a2d52;
+}
+
+@property --hp-mid {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: #8d3f6f;
+}
+
+@property --hp-light {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: #c98aa9;
+}
+
+@property --hp-hero-ink {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: #ffffff;
+}
+
+.hws .hws__stage {
+  --hp-bg: #fff7fb;
+  --hp-text: #2b1b2f;
+  --hp-muted: #6e5a74;
+  --hp-accent: #8d3f6f;
+  --hp-on-accent: #ffffff;
+  --hp-ink: #8d3f6f;
+  --hp-soft: #f7e4ee;
+  --hp-border: #cdb1bf;
+  --hp-divider: #f0dde7;
+  --hp-deep: #6a2d52;
+  --hp-mid: #8d3f6f;
+  --hp-light: #c98aa9;
+  --hp-hero-ink: #ffffff;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .hws.hws--live .hws__stage {
+    transition:
+      --hp-bg 0.35s ease,
+      --hp-text 0.35s ease,
+      --hp-muted 0.35s ease,
+      --hp-accent 0.35s ease,
+      --hp-on-accent 0.35s ease,
+      --hp-ink 0.35s ease,
+      --hp-soft 0.35s ease,
+      --hp-border 0.35s ease,
+      --hp-divider 0.35s ease,
+      --hp-deep 0.35s ease,
+      --hp-mid 0.35s ease,
+      --hp-light 0.35s ease,
+      --hp-hero-ink 0.35s ease;
+  }
+}
+
 /* Phone: the guest wedding website */
 
 .hws .hws__phone {
@@ -408,8 +524,8 @@
   overflow: hidden;
   font-size: 10px;
   line-height: 1.35;
-  color: #2b1b2f;
-  background: #fff7fb;
+  color: var(--hp-text);
+  background: var(--hp-bg);
   border-radius: 30px;
 }
 
@@ -445,8 +561,8 @@
   padding: 4px 11px;
   font-size: 10px;
   font-weight: 700;
-  color: #fff;
-  background: var(--hws-plum);
+  color: var(--hp-on-accent);
+  background: var(--hp-accent);
   border-radius: 6px;
 }
 
@@ -457,8 +573,8 @@
   margin: 0 8px;
   padding: 22px 12px 18px;
   text-align: center;
-  color: #fff;
-  background: linear-gradient(160deg, #6a2d52, #8d3f6f 55%, #c98aa9);
+  color: var(--hp-hero-ink);
+  background: linear-gradient(160deg, var(--hp-deep), var(--hp-mid) 55%, var(--hp-light));
   border-radius: 18px;
 }
 
@@ -478,7 +594,7 @@
 
 .hws .hws__site-hero b {
   margin-top: 6px;
-  color: var(--hws-plum);
+  color: var(--hp-ink);
   background: #fff;
 }
 
@@ -494,13 +610,13 @@
   gap: 8px;
   align-items: baseline;
   padding-bottom: 8px;
-  border-bottom: 1px solid #f0dde7;
+  border-bottom: 1px solid var(--hp-divider);
 }
 
 .hws .hws__when {
   font-family: 'Iowan Old Style', 'Palatino Linotype', Palatino, 'Book Antiqua', Georgia, serif;
   font-size: 1.2em;
-  color: var(--hws-plum);
+  color: var(--hp-ink);
 }
 
 .hws .hws__site-plan span {
@@ -512,7 +628,7 @@
   display: block;
   font-size: 10px;
   font-weight: 400;
-  color: #6e5a74;
+  color: var(--hp-muted);
 }
 
 .hws .hws__site-rsvp {
@@ -523,6 +639,7 @@
   background: #fff;
   border-radius: 14px;
   box-shadow: 0 6px 18px rgba(141, 63, 111, 0.1);
+  box-shadow: 0 6px 18px color-mix(in srgb, var(--hp-accent) 14%, transparent);
 }
 
 .hws .hws__site-rsvp small {
@@ -533,16 +650,16 @@
 .hws .hws__site-rsvp span {
   padding: 7px 10px;
   text-align: center;
-  color: #4a3550;
-  border: 1.5px solid #cdb1bf;
+  color: var(--hp-text);
+  border: 1.5px solid var(--hp-border);
   border-radius: 10px;
 }
 
 .hws .hws__site-rsvp span.is-on {
   font-weight: 700;
-  color: var(--hws-plum);
-  background: #f7e4ee;
-  border-color: var(--hws-plum);
+  color: var(--hp-ink);
+  background: var(--hp-soft);
+  border-color: var(--hp-accent);
 }
 
 .hws .hws__site-rsvp b {
@@ -609,8 +726,8 @@
   padding: 5px 10px 5px 6px;
   font-size: 11px;
   font-weight: 700;
-  color: #fff;
-  background: var(--hws-plum);
+  color: var(--hp-on-accent);
+  background: var(--hp-accent);
   border-radius: 8px;
   box-shadow: 0 10px 22px rgba(141, 63, 111, 0.4);
   transform: translateX(-50%) rotate(-4deg);
@@ -803,7 +920,8 @@
  * narrow screens show one panel at a time with a small tab bar.
  */
 
-/* Wide screens: a quiet hint on the left and Reset on the right, clear of the "Private link" chip. */
+/* Wide screens: the three steps on the left and Reset on the right, then the "make it yours" bar.
+   The bar's bottom margin keeps the whole stack clear of the floating "Private link" chip. */
 .hws .hws-playbar {
   display: flex;
   flex-wrap: wrap;
@@ -811,14 +929,7 @@
   align-items: center;
   justify-content: space-between;
   max-width: 640px;
-  margin: 0 auto 44px;
-}
-
-.hws .hws-hint {
-  margin: 0;
-  font-size: 13px;
-  line-height: 1.4;
-  color: var(--hws-muted);
+  margin: 0 auto 10px;
 }
 
 .hws .hws-view {
@@ -899,15 +1010,25 @@
     align-content: start;
   }
 
-  .hws.hws--live .hws__stage > :is(.hws__phone, .hws__tracker, .hws__seating) {
+  .hws.hws--live .hws__stage > :is(.hws__phonecol, .hws__tracker, .hws__seating) {
     position: static;
     width: auto;
   }
 
-  .hws.hws--live .hws__phone {
+  /* the phone and the QR card form one column, so the QR card sits a fixed 20px under the phone
+     however tall the phone is (it grows when the RSVP message or the meal choices appear) */
+  .hws.hws--live .hws__phonecol {
+    display: flex;
+    flex-direction: column;
     grid-column: 1;
     grid-row: 1 / span 2;
+    gap: 20px;
+    align-items: center;
     align-self: start;
+  }
+
+  .hws.hws--live .hws__phonecol .hws__chip {
+    position: static;
   }
 
   .hws.hws--live .hws__tracker {
@@ -919,20 +1040,22 @@
     grid-column: 2;
     grid-row: 2;
   }
-
-  /* Keep the phone the same height before and after sending, so the QR card can sit just under it. */
-  .hws.hws--live .hws-rsvp-confirm:empty {
-    display: block;
-    min-height: 2.7em;
-  }
-
-  .hws.hws--live .hws__chip--qr {
-    top: 518px;
-    bottom: auto;
-  }
 }
 
 /* The phone: real controls drawn to look like the illustration */
+
+.hws.hws--live .hws__phone {
+  position: static;
+}
+
+.hws.hws--live .hws__site-hero small {
+  opacity: 1;
+}
+
+.hws .hws__site-hero .hws-phone-link {
+  color: var(--hp-ink);
+  background: #fff;
+}
 
 .hws .hws-phone-link,
 .hws .hws-send {
@@ -942,9 +1065,9 @@
   font-size: 10px;
   font-weight: 700;
   line-height: 1.35;
-  color: #fff;
+  color: var(--hp-on-accent);
   cursor: pointer;
-  background: var(--hws-plum);
+  background: var(--hp-accent);
   border: 0;
   border-radius: 6px;
 }
@@ -987,9 +1110,9 @@
 
 .hws .hws-reply input:checked + span {
   font-weight: 700;
-  color: var(--hws-plum);
-  background: #f7e4ee;
-  border-color: var(--hws-plum);
+  color: var(--hp-ink);
+  background: var(--hp-soft);
+  border-color: var(--hp-accent);
 }
 
 .hws .hws-reply input:focus-visible + span,
@@ -1016,7 +1139,7 @@
   font: inherit;
   font-size: 10px;
   font-weight: 700;
-  color: var(--hws-plum);
+  color: var(--hp-ink);
   text-align: left;
   text-decoration: underline;
   cursor: pointer;
@@ -1047,7 +1170,7 @@
 }
 
 .hws .hws__replies .hws-new-reply[data-reply='no'] em {
-  color: var(--hws-plum);
+  color: var(--hp-ink);
 }
 
 /* a brief nudge so the change is noticed: the new row slides in, changed counts flash, a new seat pops */
@@ -1107,8 +1230,8 @@
 }
 
 .hws .hws__avatar--you {
-  color: #fff;
-  background: var(--hws-plum);
+  color: var(--hp-on-accent);
+  background: var(--hp-accent);
 }
 
 /* Seating */
@@ -1139,8 +1262,8 @@
 }
 
 .hws .hws-seat.is-new {
-  fill: var(--hws-plum);
-  stroke: var(--hws-plum);
+  fill: var(--hp-accent);
+  stroke: var(--hp-accent);
 }
 
 .hws .hws__unseated .hws-guest {
@@ -1190,6 +1313,382 @@
   color: var(--hws-muted);
 }
 
+/* ------------------------------------------------------------------ steps, make it yours, meals */
+
+.hws .hws-sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  white-space: nowrap;
+  border: 0;
+  clip-path: inset(50%);
+}
+
+.hws .hws-steps {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+.hws .hws-step {
+  display: inline-flex;
+  gap: 6px;
+  align-items: center;
+  min-height: 34px !important;
+  padding: 0 12px 0 6px;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--hws-ink);
+  cursor: pointer;
+  background: #fff;
+  border: 1.5px solid var(--hws-line);
+  border-radius: 10px;
+}
+
+.hws .hws-step:hover {
+  border-color: var(--hws-teal);
+}
+
+.hws .hws-step__n {
+  display: grid;
+  width: 20px;
+  height: 20px;
+  font-size: 11px;
+  line-height: 1;
+  color: #fff;
+  place-items: center;
+  background: var(--hws-teal-deep);
+  border-radius: 50%;
+}
+
+.hws .is-done > .hws-step {
+  color: var(--hws-teal-deep);
+  background: var(--hws-mint);
+  border-color: var(--hws-teal);
+}
+
+.hws .is-done > .hws-step .hws-step__n {
+  background: var(--hws-teal);
+}
+
+.hws .hws-step:focus-visible,
+.hws .hws-shuffle:focus-visible,
+.hws .hws-make__toggle:focus-visible,
+.hws .hws-autoseat:focus-visible,
+.hws .hws-finish__link:focus-visible,
+.hws .hws-input:focus-visible {
+  outline: 3px solid var(--hws-teal);
+  outline-offset: 2px;
+}
+
+.hws .hws-make {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 14px;
+  align-items: center;
+  justify-content: space-between;
+  max-width: 640px;
+  padding: 8px 10px;
+  margin: 0 auto 40px;
+  background: #fff;
+  border: 1px solid var(--hws-line);
+  border-radius: 14px;
+}
+
+.hws .hws-make__names {
+  display: flex;
+  align-items: center;
+  order: 1;
+  gap: 6px;
+}
+
+.hws .hws-make__and {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--hws-muted);
+}
+
+/* sitewide rules size every input to 44px+ and full width; these small fields need to stay small */
+.hws .hws-input {
+  min-height: 34px !important;
+  padding: 0 8px !important;
+  font: inherit;
+  font-size: 13px !important;
+  color: var(--hws-ink);
+  background: #fff;
+  border: 1.5px solid var(--hws-line) !important;
+  border-radius: 8px !important;
+}
+
+.hws .hws-input--name {
+  width: 84px !important;
+}
+
+.hws .hws-input--date {
+  width: 134px !important;
+}
+
+.hws .hws-step__short {
+  display: none;
+}
+
+.hws .hws-input::placeholder {
+  color: var(--hws-muted);
+  opacity: 1;
+}
+
+.hws .hws-make__colours {
+  display: flex;
+  align-items: center;
+  order: 2;
+  gap: 8px;
+}
+
+.hws .hws-dot {
+  position: relative;
+  display: inline-grid;
+  margin: 0;
+  cursor: pointer;
+}
+
+.hws .hws-dot input {
+  position: absolute;
+  inset: 0;
+  width: 100% !important;
+  height: 100% !important;
+  min-height: 0 !important;
+  margin: 0;
+  cursor: pointer;
+  opacity: 0;
+}
+
+.hws .hws-dot__face {
+  display: block;
+  width: 22px;
+  height: 22px;
+  background: linear-gradient(135deg, var(--dot-a) 50%, var(--dot-b) 50%);
+  border-radius: 50%;
+  box-shadow: inset 0 0 0 1.5px rgba(0, 0, 0, 0.14);
+}
+
+.hws .hws-dot input:checked + .hws-dot__face,
+.hws .hws-dot--own.is-active .hws-dot__face {
+  box-shadow:
+    0 0 0 2px #fff,
+    0 0 0 4px var(--hws-ink);
+}
+
+.hws .hws-dot input:focus-visible + .hws-dot__face {
+  outline: 3px solid var(--hws-teal);
+  outline-offset: 4px;
+}
+
+.hws .hws-dot__face--own {
+  background: var(
+    --own,
+    conic-gradient(#e0457b, #f59f00, #82c91e, #15aabf, #4c6ef5, #be4bdb, #e0457b)
+  );
+}
+
+.hws .hws-shuffle {
+  display: grid;
+  width: 28px;
+  height: 28px;
+  min-height: 0 !important;
+  padding: 0 !important;
+  color: var(--hws-ink);
+  cursor: pointer;
+  place-items: center;
+  background: #fff;
+  border: 1.5px solid var(--hws-line);
+  border-radius: 8px;
+}
+
+.hws .hws-shuffle:hover {
+  border-color: var(--hws-teal);
+}
+
+.hws .hws-shuffle svg {
+  width: 16px;
+  height: 16px;
+  fill: none;
+  stroke: currentcolor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 2;
+}
+
+.hws .hws-make__toggle {
+  display: none;
+}
+
+/* Meal choice: only guests who are coming are asked */
+.hws .hws-meals {
+  display: flex;
+  gap: 5px;
+}
+
+.hws .hws-meals[hidden] {
+  display: none;
+}
+
+.hws .hws-meal {
+  position: relative;
+  display: block;
+  flex: 1 1 0;
+  margin: 0;
+  cursor: pointer;
+}
+
+.hws .hws-meal input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  opacity: 0;
+}
+
+.hws .hws-meal span {
+  display: block;
+  padding: 5px 2px;
+  font-size: 10px;
+  line-height: 1.3;
+  text-align: center;
+  background: #fff;
+  border-radius: 8px;
+}
+
+.hws .hws-meal input:checked + span {
+  font-weight: 700;
+  color: var(--hp-ink);
+  background: var(--hp-soft);
+  border-color: var(--hp-accent);
+}
+
+.hws .hws-meal input:focus-visible + span {
+  outline: 3px solid var(--hws-teal);
+  outline-offset: 2px;
+}
+
+/* the call to action that appears once the main flow has been tried */
+.hws .hws-finish {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  align-items: center;
+  justify-content: center;
+  max-width: 640px;
+  padding: 10px 14px;
+  margin: 14px auto 0;
+  background: var(--hws-mint);
+  border: 1px solid var(--hws-line);
+  border-radius: 14px;
+}
+
+.hws .hws-finish[hidden] {
+  display: none;
+}
+
+.hws .hws-finish p {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--hws-teal-deep);
+}
+
+.hws .hws-finish__link {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 18px;
+  font-size: 14px;
+  font-weight: 700;
+  color: #fff;
+  text-decoration: none;
+  background: var(--hws-teal);
+  border-radius: 10px;
+}
+
+.hws .hws-finish__link:hover {
+  background: var(--hws-teal-deep);
+}
+
+/* auto-seat sits on the same line as the seating message */
+.hws .hws-seat-row {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-top: 8px;
+}
+
+.hws .hws-seat-row .hws-seat-status {
+  flex: 1 1 auto;
+  min-width: 0;
+  margin-top: 0;
+}
+
+.hws .hws-autoseat {
+  flex: none;
+  min-height: 32px !important;
+  padding: 0 12px;
+  font: inherit;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--hws-teal-deep);
+  cursor: pointer;
+  background: #fff;
+  border: 1.5px solid var(--hws-teal);
+  border-radius: 8px;
+}
+
+.hws .hws-autoseat[aria-disabled='true'] {
+  color: var(--hws-muted);
+  cursor: default;
+  border-color: var(--hws-line);
+}
+
+/* dragging a guest onto a table (mouse and pen) */
+.hws .hws-ghost {
+  position: fixed;
+  z-index: 50;
+  padding: 5px 10px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #fff;
+  pointer-events: none;
+  background: var(--hws-plum);
+  border-radius: 8px;
+  box-shadow: 0 10px 22px rgba(141, 63, 111, 0.4);
+  transform: rotate(-3deg);
+}
+
+.hws.is-dragging,
+.hws.is-dragging * {
+  cursor: grabbing !important;
+  user-select: none;
+}
+
+.hws .hws-table.is-over {
+  fill: #bfece4;
+  stroke-width: 3px;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .hws .hws-finish {
+    animation: hws-row-in 0.4s ease-out;
+  }
+}
+
 /* Narrow screens: one panel at a time, drawn at full size */
 
 @media (max-width: 719px) {
@@ -1197,10 +1696,6 @@
     gap: 6px;
     justify-content: center;
     margin-bottom: 14px;
-  }
-
-  .hws .hws-hint {
-    display: none;
   }
 
   /* the three tabs share one row; Reset sits under them */
@@ -1212,9 +1707,141 @@
     padding: 0 6px;
   }
 
+  /* tabs on the first row; the three steps and Reset share the second */
+  .hws .hws-view {
+    flex: 1 1 30%;
+    order: 1;
+  }
+
+  .hws .hws-steps {
+    flex: 1 1 calc(100% - 70px);
+    gap: 5px;
+    min-width: 0;
+    order: 2;
+  }
+
+  .hws .hws-steps > li {
+    flex: 1 1 0;
+    min-width: 0;
+  }
+
+  .hws .hws-step {
+    justify-content: center;
+    width: 100%;
+    padding: 0 6px 0 4px;
+    font-size: 12px;
+  }
+
+  .hws .hws-step__full {
+    display: none;
+  }
+
+  .hws .hws-step__short {
+    display: inline;
+  }
+
   .hws .hws-reset {
-    flex: 0 0 100%;
+    flex: 0 0 auto;
     min-height: 40px;
+    order: 3;
+  }
+
+  /* the colours only make sense while the phone is showing */
+  .hws .hws__visual:not([data-view='website']) .hws-make {
+    display: none;
+  }
+
+  /* colours stay in view; names and date open from one button so the phone is not pushed down */
+  .hws .hws-make {
+    gap: 6px 10px;
+    justify-content: center;
+    margin-bottom: 14px;
+  }
+
+  .hws .hws-make__colours {
+    flex: 1 1 100%;
+    flex-wrap: wrap;
+    gap: 0;
+    justify-content: space-between;
+    order: 1;
+  }
+
+  .hws .hws-dot {
+    padding: 4px;
+  }
+
+  .hws .hws-dot__face {
+    width: 28px !important;
+    height: 28px !important;
+  }
+
+  .hws .hws-shuffle {
+    width: 36px;
+    height: 36px;
+  }
+
+  .hws .hws-make__toggle {
+    display: inline-flex;
+    align-items: center;
+    min-height: 40px !important;
+    padding: 0 10px;
+    font: inherit;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--hws-teal-deep);
+    text-decoration: underline;
+    text-underline-offset: 3px;
+    cursor: pointer;
+    background: none;
+    border: 0;
+    order: 2;
+  }
+
+  .hws .hws-make__names {
+    display: none;
+    flex: 1 1 100%;
+    flex-wrap: wrap;
+    order: 3;
+  }
+
+  .hws .hws-make.is-open .hws-make__names {
+    display: flex;
+  }
+
+  .hws .hws-input {
+    min-height: 40px !important;
+  }
+
+  .hws .hws-input--name {
+    flex: 1 1 0;
+    width: auto !important;
+    min-width: 0;
+  }
+
+  .hws .hws-input--date {
+    flex: 1 1 100%;
+    width: auto !important;
+  }
+
+  .hws .hws-meal span {
+    padding: 9px 2px;
+    font-size: 12px;
+  }
+
+  .hws .hws-seat-row {
+    flex-wrap: wrap;
+  }
+
+  .hws .hws-autoseat {
+    min-height: 40px !important;
+    padding: 0 14px;
+    font-size: 13px;
+  }
+
+  .hws.hws--live .hws__phonecol {
+    display: flex;
+    justify-content: center;
+    width: 100%;
   }
 
   .hws.hws--live .hws__unseated {
@@ -1259,8 +1886,8 @@
   }
 
   .hws.hws--live .hws__stage[data-view='website'] > :is(.hws__tracker, .hws__seating),
-  .hws.hws--live .hws__stage[data-view='replies'] > :is(.hws__phone, .hws__seating),
-  .hws.hws--live .hws__stage[data-view='seating'] > :is(.hws__phone, .hws__tracker) {
+  .hws.hws--live .hws__stage[data-view='replies'] > :is(.hws__phonecol, .hws__seating),
+  .hws.hws--live .hws__stage[data-view='seating'] > :is(.hws__phonecol, .hws__tracker) {
     display: none;
   }
 
@@ -1302,6 +1929,22 @@
 
   .hws.hws--live .hws-seat-status {
     font-size: 13px;
+  }
+}
+
+@media (max-width: 339px) {
+  .hws .hws-dot {
+    padding: 3px;
+  }
+
+  .hws .hws-dot__face {
+    width: 26px !important;
+    height: 26px !important;
+  }
+
+  .hws .hws-shuffle {
+    width: 32px;
+    height: 32px;
   }
 }
 

@@ -9,7 +9,8 @@
  * visible FAQ, and make sure the copy avoids the strings the anonymous-page sanitizer
  * deliberately strips. The markup in the page is the static illustration (what visitors without
  * JavaScript and search engines get); public/assets/js/pages/home-wedding-showcase.js upgrades
- * it into a small interactive sample, which the last describe block exercises in jsdom.
+ * it into a small interactive sample, which the last describe block exercises in jsdom. The
+ * script's colour, name and date helpers are pure and exported, so they are tested directly.
  */
 
 const fs = require('fs');
@@ -211,10 +212,11 @@ describe('homepage wedding showcase interactive sample', () => {
       const from = html.indexOf('<!-- hws:start');
       return html.slice(from, html.indexOf('<!-- hws:end -->') + 16);
     };
-    function mount(file = 'index.html', run = true) {
+    function mount(file = 'index.html', run = true, before = null) {
       const dom = new JSDOM('<!doctype html><body><main>' + sectionOf(file) + '</main></body>', {
         runScripts: 'outside-only',
       });
+      if (before) before(dom.window);
       if (run) dom.window.eval(script);
       const doc = dom.window.document;
       return {
@@ -231,6 +233,19 @@ describe('homepage wedding showcase interactive sample', () => {
         submit: () => doc.querySelector('form.hws__site-rsvp')
           .dispatchEvent(new dom.window.Event('submit', { bubbles: true, cancelable: true })),
         click: el => el.dispatchEvent(new dom.window.MouseEvent('click', { bubbles: true })),
+        type: (el, value) => {
+          el.value = value;
+          el.dispatchEvent(new dom.window.Event('input', { bubbles: true }));
+        },
+        pick: input => {
+          input.checked = true;
+          input.dispatchEvent(new dom.window.Event('change', { bubbles: true }));
+        },
+        pointer: (target, type, init) => {
+          const event = new dom.window.MouseEvent(type, { bubbles: true, button: 0, ...init });
+          Object.defineProperty(event, 'pointerType', { value: (init && init.pointerType) || 'mouse' });
+          target.dispatchEvent(event);
+        },
       };
     }
   `;
@@ -414,5 +429,375 @@ describe('homepage wedding showcase interactive sample', () => {
       submit();
       assert.deepStrictEqual(numbers().counts, ['65', '14', '17']);
     `);
+  });
+
+  test('typing names and choosing a date changes the phone, with safe fallbacks', () => {
+    scenario(String.raw`
+      const { doc, type } = mount();
+      const hero = () => doc.querySelector('.hws__site-hero strong').textContent;
+      const date = () => doc.querySelector('.hws__site-hero > span').textContent;
+      const mark = () => doc.querySelector('.hws__site-bar > span').textContent;
+      const [first, second] = doc.querySelectorAll('.hws-input--name');
+      const when = doc.querySelector('.hws-input--date');
+      assert.strictEqual(hero(), 'Amelia & Oliver');
+      assert.strictEqual(date(), 'Saturday 19 June 2027 · Bath');
+
+      type(first, 'Sam');
+      type(second, 'Jordan');
+      assert.strictEqual(hero(), 'Sam & Jordan');
+      assert.strictEqual(mark(), 'S & J');
+
+      // one name emptied: that name falls back to the sample, the other stays
+      type(second, '   ');
+      assert.strictEqual(hero(), 'Sam & Oliver');
+
+      // typed markup is only ever text, and the length is limited
+      type(first, '<img src=x onerror=alert(1)>');
+      assert.strictEqual(doc.querySelector('.hws__site-hero img'), null);
+      assert.ok(hero().split(' & ')[0].length <= 14);
+      assert.ok(!hero().includes('<'));
+
+      type(when, '2028-02-29');
+      assert.strictEqual(date(), 'Tuesday 29 February 2028 · Bath');
+      type(when, '');
+      assert.strictEqual(date(), 'Saturday 19 June 2027 · Bath');
+    `);
+  });
+
+  test('the colour choices repaint the phone, and Plum puts the original look back', () => {
+    scenario(String.raw`
+      const { doc, pick, type, click } = mount();
+      const stage = doc.querySelector('.hws__stage');
+      const accent = () => stage.style.getPropertyValue('--hp-accent');
+      const dots = [...doc.querySelectorAll('.hws-dot input[type="radio"]')];
+      assert.strictEqual(dots.length, 6);
+      assert.strictEqual(dots[0].checked, true);
+      assert.strictEqual(accent(), '');
+
+      pick(dots[3]);
+      assert.strictEqual(accent().toLowerCase(), '#24436f');
+      assert.ok(stage.style.getPropertyValue('--hp-bg'));
+      assert.match(doc.querySelector('.hws-make [role="status"]').textContent, /Midnight/);
+      pick(dots[0]);
+      assert.strictEqual(accent(), '');
+
+      // one picked colour becomes a whole palette and clears the preset dots
+      const own = doc.querySelector('.hws-own');
+      type(own, '#6a1b9a');
+      assert.ok(accent());
+      assert.ok(dots.every(dot => !dot.checked));
+      assert.ok(doc.querySelector('.hws-dot--own').classList.contains('is-active'));
+      // the dot shows the colour the phone really uses, which can be a calmer version of the pick
+      assert.strictEqual(
+        doc.querySelector('.hws-dot--own').style.getPropertyValue('--own').toLowerCase(),
+        accent().toLowerCase()
+      );
+
+      click(doc.querySelector('.hws-shuffle'));
+      assert.match(accent(), /^#[0-9a-f]{6}$/i);
+      assert.ok(dots.every(dot => !dot.checked));
+    `);
+  });
+
+  test('only guests who are coming are asked about meals, and the choice shows in the reply', () => {
+    scenario(String.raw`
+      const { doc, pick, submit } = mount();
+      const meals = doc.querySelector('.hws-meals');
+      const reply = () => doc.querySelector('.hws-new-reply em').textContent;
+      assert.strictEqual(meals.hidden, false);
+      assert.strictEqual(meals.querySelectorAll('input').length, 3);
+
+      submit();
+      assert.strictEqual(reply(), 'Attending');
+      pick(doc.querySelector('input[name="hws-meal"][value="Salmon"]'));
+      submit();
+      assert.strictEqual(reply(), 'Salmon');
+
+      pick(doc.querySelector('input[name="hws-reply"][value="no"]'));
+      assert.strictEqual(meals.hidden, true);
+      submit();
+      assert.strictEqual(reply(), 'Declined');
+      assert.strictEqual(doc.querySelectorAll('.hws-new-reply').length, 1);
+    `);
+  });
+
+  test('the steps tick as the flow is tried, and the sign-up link appears after RSVP and seating', () => {
+    scenario(String.raw`
+      const { doc, type, submit, table, click } = mount();
+      const finish = doc.querySelector('.hws-finish');
+      const ticked = () => doc.querySelectorAll('.hws-steps li.is-done').length;
+      assert.strictEqual(doc.querySelectorAll('.hws-steps li').length, 3);
+      assert.strictEqual(ticked(), 0);
+      assert.strictEqual(finish.hidden, true);
+
+      submit();
+      assert.strictEqual(ticked(), 1);
+      assert.strictEqual(finish.hidden, true);
+      click(table(2));
+      assert.strictEqual(ticked(), 2);
+      assert.strictEqual(finish.hidden, false);
+      const link = finish.querySelector('a');
+      assert.strictEqual(link.getAttribute('href'), '/auth?tab=create&role=customer');
+      type(doc.querySelector('.hws-input--name'), 'Sam');
+      assert.strictEqual(ticked(), 3);
+      assert.match(doc.querySelector('.hws-step[data-step="make"]').textContent, /done/);
+
+      click(doc.querySelector('.hws-reset'));
+      assert.strictEqual(ticked(), 0);
+      assert.strictEqual(finish.hidden, true);
+    `);
+  });
+
+  test('auto-seat seats everyone left, at once for visitors who prefer less motion', () => {
+    scenario(String.raw`
+      const { doc, click, free, status, table } = mount('index.html', true, win => {
+        win.matchMedia = query => ({ matches: /reduce/.test(query) });
+      });
+      click(table(2));
+      click(doc.querySelector('.hws-autoseat'));
+      assert.match(free(), /0 free/);
+      assert.ok(status().includes('Everyone is seated'));
+      assert.strictEqual(doc.querySelector('.hws__drag').hidden, true);
+      assert.strictEqual(doc.querySelector('.hws-autoseat').getAttribute('aria-disabled'), 'true');
+    `);
+  });
+
+  test('auto-seat seats guests one by one, and Reset cancels one in progress', () => {
+    scenario(String.raw`
+      (async () => {
+        const wait = ms => new Promise(resolve => setTimeout(resolve, ms));
+        const first = mount();
+        first.click(first.doc.querySelector('.hws-autoseat'));
+        assert.match(first.free(), /3 free/, 'nothing is seated in the same instant');
+        await wait(1100);
+        assert.match(first.free(), /0 free/);
+
+        const second = mount();
+        second.click(second.doc.querySelector('.hws-autoseat'));
+        second.click(second.doc.querySelector('.hws-reset'));
+        await wait(1100);
+        assert.match(second.free(), /3 free/);
+      })();
+    `);
+  });
+
+  test('a guest can be dragged onto a table with a mouse, but a touch never starts a drag', () => {
+    scenario(String.raw`
+      const { doc, dom, table, free, pointer } = mount();
+      const guest = doc.querySelector('.hws-guest[data-guest="Tom H."]');
+      doc.elementFromPoint = () => table(2);
+
+      // touch: scrolling must win, so nothing is dragged or seated
+      pointer(guest, 'pointerdown', { clientX: 5, clientY: 5, pointerType: 'touch' });
+      pointer(doc, 'pointermove', { clientX: 60, clientY: 60, pointerType: 'touch' });
+      pointer(doc, 'pointerup', { clientX: 60, clientY: 60, pointerType: 'touch' });
+      assert.match(free(), /3 free/);
+      assert.strictEqual(doc.querySelector('.hws-ghost'), null);
+
+      // mouse: small movement is still a click; a real drag shows a ghost and seats on release
+      pointer(guest, 'pointerdown', { clientX: 5, clientY: 5 });
+      pointer(doc, 'pointermove', { clientX: 7, clientY: 6 });
+      assert.strictEqual(doc.querySelector('.hws-ghost'), null);
+      pointer(doc, 'pointermove', { clientX: 80, clientY: 60 });
+      assert.strictEqual(doc.querySelector('.hws-ghost').textContent, 'Tom H.');
+      assert.ok(table(2).classList.contains('is-over'));
+      pointer(doc, 'pointerup', { clientX: 80, clientY: 60 });
+      assert.match(free(), /2 free/);
+      assert.strictEqual(doc.querySelector('.hws-ghost'), null);
+      assert.ok(doc.querySelector('.hws-guest[data-guest="Tom H."]').classList.contains('is-seated'));
+
+      // Escape cancels a drag
+      const priya = doc.querySelector('.hws-guest[data-guest="Priya S."]');
+      pointer(priya, 'pointerdown', { clientX: 5, clientY: 5 });
+      pointer(doc, 'pointermove', { clientX: 80, clientY: 60 });
+      doc.dispatchEvent(new dom.window.KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+      pointer(doc, 'pointerup', { clientX: 80, clientY: 60 });
+      assert.match(free(), /2 free/);
+      assert.strictEqual(doc.querySelector('.hws-ghost'), null);
+    `);
+  });
+
+  test('Reset puts the names, date and colours back as well', () => {
+    scenario(String.raw`
+      const { doc, type, pick, click } = mount();
+      type(doc.querySelector('.hws-input--name'), 'Sam');
+      type(doc.querySelector('.hws-input--date'), '2029-05-05');
+      pick(doc.querySelectorAll('.hws-dot input[type="radio"]')[2]);
+      click(doc.querySelector('.hws-reset'));
+      assert.strictEqual(doc.querySelector('.hws__site-hero strong').textContent, 'Amelia & Oliver');
+      assert.strictEqual(doc.querySelector('.hws__site-hero > span').textContent, 'Saturday 19 June 2027 · Bath');
+      assert.strictEqual(doc.querySelector('.hws-input--name').value, '');
+      assert.strictEqual(doc.querySelector('.hws__stage').style.getPropertyValue('--hp-accent'), '');
+      assert.strictEqual(doc.querySelectorAll('.hws-dot input[type="radio"]')[0].checked, true);
+    `);
+  });
+
+  test('typed text stays out of usage recording, and clicks carry usage labels', () => {
+    scenario(String.raw`
+      const { doc } = mount();
+      for (const input of doc.querySelectorAll('.hws-input, .hws-own')) {
+        assert.ok(input.classList.contains('ph-no-capture'), 'private: ' + input.className);
+        assert.strictEqual(input.dataset.analyticsSensitive, 'true');
+      }
+      const labelled = (selector, name) => {
+        const el = doc.querySelector(selector);
+        assert.ok(el, selector);
+        assert.strictEqual(el.dataset.analyticsEvent, 'wedding_showcase_' + name, selector);
+      };
+      labelled('.hws-send', 'rsvp');
+      labelled('.hws-autoseat', 'autoseat');
+      labelled('.hws-shuffle', 'shuffle');
+      labelled('.hws-reset', 'reset');
+      labelled('.hws-finish a', 'cta');
+      labelled('.hws-step[data-step="seat"]', 'step');
+      labelled('.hws-view[data-view="seating"]', 'tab');
+      labelled('circle.hws-table[role="button"]', 'seat');
+    `);
+  });
+
+  test('the QR card travels with the phone so it always sits just under it', () => {
+    scenario(String.raw`
+      const { doc } = mount();
+      const column = doc.querySelector('.hws__phonecol');
+      assert.ok(column);
+      assert.strictEqual(column.firstElementChild.className.includes('hws__phone'), true);
+      assert.ok(column.querySelector('.hws__chip--qr'));
+    `);
+  });
+});
+
+describe('showcase colour, name and date helpers', () => {
+  const helpers = require('../../public/assets/js/pages/home-wedding-showcase.js');
+  const { PRESETS, deriveTheme, paletteFromOne, shufflePalette, cleanName, monogram } = helpers;
+  const { formatWeddingDate, contrast } = helpers;
+
+  test('every preset is readable: buttons, text, muted text, accent text and hero text pass WCAG AA', () => {
+    expect(PRESETS.map(preset => preset.name)).toEqual([
+      'Plum',
+      'Sage & Blush',
+      'Champagne',
+      'Midnight',
+      'Terracotta',
+      'Coastal',
+    ]);
+    PRESETS.forEach(preset => {
+      const { checks, minimum } = deriveTheme(preset);
+      expect({ name: preset.name, minimum: minimum >= 4.5, checks }).toMatchObject({
+        name: preset.name,
+        minimum: true,
+      });
+    });
+  });
+
+  test('a light accent such as Champagne gets a dark button label instead of white', () => {
+    const champagne = deriveTheme(PRESETS.find(preset => preset.key === 'champagne'));
+    expect(champagne.vars.onAccent).not.toBe('#ffffff');
+    expect(contrast(champagne.vars.onAccent, champagne.vars.accent)).toBeGreaterThanOrEqual(4.5);
+  });
+
+  test('any single picked colour becomes a readable palette, including black, white, greys, neon and pastels', () => {
+    const picks = [
+      '#000000',
+      '#ffffff',
+      '#808080',
+      '#c0c0c0',
+      '#00e5ff',
+      '#ffd600',
+      '#ffc1d9',
+      '#ff6f00',
+    ];
+    for (let hue = 0; hue < 360; hue += 5) {
+      [0.05, 0.4, 1].forEach(saturation =>
+        [0.08, 0.35, 0.6, 0.92].forEach(lightness => {
+          const k = n => (n + hue / 30) % 12;
+          const a = saturation * Math.min(lightness, 1 - lightness);
+          const f = n => lightness - a * Math.max(-1, Math.min(k(n) - 3, Math.min(9 - k(n), 1)));
+          const hex = `#${[f(0), f(8), f(4)]
+            .map(v =>
+              Math.round(v * 255)
+                .toString(16)
+                .padStart(2, '0')
+            )
+            .join('')}`;
+          picks.push(hex);
+        })
+      );
+    }
+    picks.forEach(hex => {
+      const palette = paletteFromOne(hex);
+      expect(palette).not.toBeNull();
+      expect({ hex, ok: deriveTheme(palette).minimum >= 4.5 }).toEqual({ hex, ok: true });
+    });
+    expect(picks.length).toBeGreaterThan(500);
+  });
+
+  test('a picked colour that is not a hex colour is ignored', () => {
+    ['', 'red', '#fff', '#12345', '#gggggg', null, undefined].forEach(value =>
+      expect(paletteFromOne(value)).toBeNull()
+    );
+  });
+
+  test('the surprise button always gives a readable palette', () => {
+    let seed = 7;
+    const random = () => {
+      seed = (seed * 16807) % 2147483647;
+      return seed / 2147483647;
+    };
+    for (let i = 0; i < 300; i += 1) {
+      expect(deriveTheme(shufflePalette(random)).minimum).toBeGreaterThanOrEqual(4.5);
+    }
+  });
+
+  test('the default look in the stylesheet (what visitors without JavaScript see) is readable too', () => {
+    const css = fs.readFileSync(
+      path.join(PUBLIC_DIR, 'assets/css/home-wedding-showcase.css'),
+      'utf8'
+    );
+    const block = css.slice(css.indexOf('.hws .hws__stage {'));
+    const token = name => new RegExp(`--hp-${name}:\\s*(#[0-9a-f]{6})`, 'i').exec(block)[1];
+    const [bg, text, muted, accent, onAccent, ink, soft, mid, heroInk] = [
+      'bg',
+      'text',
+      'muted',
+      'accent',
+      'on-accent',
+      'ink',
+      'soft',
+      'mid',
+      'hero-ink',
+    ].map(token);
+    [
+      [text, bg],
+      [muted, bg],
+      [ink, bg],
+      [ink, soft],
+      [onAccent, accent],
+      [heroInk, mid],
+    ].forEach(([a, b]) => expect(contrast(a, b)).toBeGreaterThanOrEqual(4.5));
+  });
+
+  test('names are tidied, limited in length and never contain angle brackets', () => {
+    expect(cleanName('  Sam   Lee ', 'Amelia')).toBe('Sam Lee');
+    expect(cleanName('', 'Amelia')).toBe('Amelia');
+    expect(cleanName('   ', 'Amelia')).toBe('Amelia');
+    expect(cleanName('<b>Sam</b>', 'Amelia')).toBe('bSam/b');
+    expect(cleanName('A\u0000B\u0007C', 'Amelia')).toBe('ABC');
+    expect(Array.from(cleanName('x'.repeat(40), 'Amelia')).length).toBe(14);
+    // emoji are single characters, so they are never cut in half
+    expect(Array.from(cleanName('\u{1F600}'.repeat(20), 'Amelia')).length).toBe(14);
+    expect(cleanName(undefined, 'Amelia')).toBe('Amelia');
+  });
+
+  test("the monogram uses each name's first letter", () => {
+    expect(monogram('Sam', 'jordan')).toBe('S & J');
+    expect(monogram('\u{1F600}x', 'Oliver')).toBe('\u{1F600} & O');
+  });
+
+  test('dates are formatted by hand and anything that is not a real date is rejected', () => {
+    expect(formatWeddingDate('2027-06-19')).toBe('Saturday 19 June 2027');
+    expect(formatWeddingDate('2028-02-29')).toBe('Tuesday 29 February 2028');
+    ['2027-02-30', '2027-13-01', '1999-12-31', '2101-01-01', '', 'tomorrow', null].forEach(value =>
+      expect(formatWeddingDate(value)).toBeNull()
+    );
   });
 });
