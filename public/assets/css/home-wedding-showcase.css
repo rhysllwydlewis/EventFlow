@@ -919,6 +919,17 @@
     grid-column: 2;
     grid-row: 2;
   }
+
+  /* Keep the phone the same height before and after sending, so the QR card can sit just under it. */
+  .hws.hws--live .hws-rsvp-confirm:empty {
+    display: block;
+    min-height: 2.7em;
+  }
+
+  .hws.hws--live .hws__chip--qr {
+    top: 518px;
+    bottom: auto;
+  }
 }
 
 /* The phone: real controls drawn to look like the illustration */
