@@ -215,13 +215,19 @@
     );
   }
 
-  /** Recalculate the donut, the counts and the reply list from the sample reply. */
-  function renderReplies() {
+  /** Recalculate the donut, the counts and the reply list; `animate` briefly marks what changed. */
+  function renderReplies(animate) {
     const yes = BASE.yes + (reply === 'yes' ? 1 : 0);
     const no = BASE.no + (reply === 'no' ? 1 : 0);
     const wait = BASE.wait - (reply ? 1 : 0);
     [yes, no, wait].forEach((value, index) => {
+      const changed = animate && counts[index].textContent !== String(value);
       counts[index].textContent = String(value);
+      counts[index].classList.remove('is-changed');
+      if (changed) {
+        void counts[index].offsetWidth;
+        counts[index].classList.add('is-changed');
+      }
     });
     percent.textContent = `${Math.round(((yes + no) / INVITED) * 100)}%`;
     let offset = 0;
@@ -237,6 +243,7 @@
     const rows = originalReplies.map(row => row.cloneNode(true));
     if (reply) {
       const row = node('li', 'hws-new-reply');
+      row.dataset.reply = reply;
       const detail = node('div');
       detail.append(node('strong', '', 'Your sample reply'), node('span', '', 'Party of 1'));
       row.append(
@@ -274,7 +281,8 @@
       }
     });
     if (dragChip) {
-      dragChip.hidden = !selected;
+      // the chip only hints at the first move; once guests are being seated the guest buttons say who is next
+      dragChip.hidden = !selected || seatedAt.size > 0;
       if (selected && dragChip.lastChild) {
         dragChip.lastChild.textContent = selected;
       }
@@ -393,7 +401,7 @@
     event.preventDefault();
     const chosen = form.querySelector('input:checked');
     reply = chosen ? chosen.value : 'yes';
-    renderReplies();
+    renderReplies(true);
     send.textContent = 'Update RSVP';
     sent.textContent = 'Sample RSVP sent. The guest replies have updated.';
     seeReplies.hidden = false;

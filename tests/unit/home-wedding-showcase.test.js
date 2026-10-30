@@ -280,10 +280,17 @@ describe('homepage wedding showcase interactive sample', () => {
       assert.strictEqual(numbers().rows.length, 3);
       assert.match(doc.querySelector('.hws-rsvp-confirm').textContent, /Sample RSVP sent/);
 
+      // the numbers that changed are marked so the page can draw the eye to them
+      const changed = () => [...doc.querySelectorAll('.hws__legend li b.is-changed')].map(el => el.textContent);
+      assert.deepStrictEqual(changed(), ['65', '17']);
+      assert.strictEqual(doc.querySelector('.hws-new-reply').dataset.reply, 'yes');
+
       doc.querySelector('input[value="no"]').checked = true;
       submit();
       assert.deepStrictEqual(numbers().counts, ['64', '15', '17']);
       assert.strictEqual(doc.querySelectorAll('.hws-new-reply').length, 1);
+      assert.strictEqual(doc.querySelector('.hws-new-reply').dataset.reply, 'no');
+      assert.deepStrictEqual(changed(), ['64', '15']);
     `);
   });
 
@@ -324,6 +331,23 @@ describe('homepage wedding showcase interactive sample', () => {
       assert.match(free(), /0 free/);
       assert.ok(status().includes('Everyone is seated'));
       assert.strictEqual(doc.querySelector('.hws__drag').hidden, true);
+    `);
+  });
+
+  test('the floating guest chip only hints at the first move, and comes back on Reset', () => {
+    scenario(String.raw`
+      const { doc, table, click } = mount();
+      const chip = doc.querySelector('.hws__drag');
+      assert.strictEqual(chip.hidden, false);
+      // choosing a guest keeps it, naming who is selected
+      click(doc.querySelector('.hws-guest[data-guest="Priya S."]'));
+      assert.strictEqual(chip.hidden, false);
+      assert.ok(chip.textContent.includes('Priya S.'));
+      // once someone is seated the guest buttons say who is next, so the chip steps aside
+      click(table(2));
+      assert.strictEqual(chip.hidden, true);
+      click(doc.querySelector('.hws-reset'));
+      assert.strictEqual(chip.hidden, false);
     `);
   });
 

@@ -1035,9 +1035,75 @@
 
 /* Guest replies */
 
-.hws .hws-new-reply {
+.hws .hws__replies .hws-new-reply {
+  padding-inline: 8px;
+  margin-inline: -8px;
   background: var(--hws-mint);
   border-radius: 10px;
+}
+
+.hws .hws__replies .hws-new-reply em {
+  background: #fff;
+}
+
+.hws .hws__replies .hws-new-reply[data-reply='no'] em {
+  color: var(--hws-plum);
+}
+
+/* a brief nudge so the change is noticed: the new row slides in, changed counts flash, a new seat pops */
+@media (prefers-reduced-motion: no-preference) {
+  .hws .hws__replies .hws-new-reply {
+    animation: hws-row-in 0.4s ease-out;
+  }
+
+  .hws .hws__legend b.is-changed {
+    border-radius: 4px;
+    animation: hws-flash 1s ease-out;
+  }
+
+  .hws .hws-seat.is-new {
+    transform-box: fill-box;
+    transform-origin: center;
+    animation: hws-seat-pop 0.4s ease-out;
+  }
+}
+
+@keyframes hws-row-in {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes hws-flash {
+  0% {
+    background: #bfece4;
+    box-shadow: 0 0 0 3px #bfece4;
+  }
+
+  100% {
+    background: transparent;
+    box-shadow: 0 0 0 3px transparent;
+  }
+}
+
+@keyframes hws-seat-pop {
+  0% {
+    transform: scale(0.4);
+  }
+
+  60% {
+    transform: scale(1.4);
+  }
+
+  100% {
+    transform: scale(1);
+  }
 }
 
 .hws .hws__avatar--you {
