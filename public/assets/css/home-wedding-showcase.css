@@ -1217,9 +1217,10 @@
 
   .hws.hws--live .hws__unseated .hws-guest {
     min-height: 40px !important;
-    padding-inline: 6px;
-    font-size: 13px;
+    padding-inline: 4px;
+    font-size: 12px;
     line-height: 1.25;
+    white-space: nowrap;
   }
 
   .hws.hws--live .hws-seat-status {
