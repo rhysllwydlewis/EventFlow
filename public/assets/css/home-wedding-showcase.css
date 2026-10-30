@@ -794,6 +794,531 @@
   }
 }
 
+/* ------------------------------------------------------------------ live sample */
+
+/*
+ * Only applies once home-wedding-showcase.js has upgraded the section (it adds .hws--live).
+ * Without the script none of this matches, and the static illustration above is what people see.
+ * Wide screens keep the overlapping composition at full size so the controls are easy to hit;
+ * narrow screens show one panel at a time with a small tab bar.
+ */
+
+/* Wide screens: a quiet hint on the left and Reset on the right, clear of the "Private link" chip. */
+.hws .hws-playbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  justify-content: space-between;
+  max-width: 640px;
+  margin: 0 auto 44px;
+}
+
+.hws .hws-hint {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.4;
+  color: var(--hws-muted);
+}
+
+.hws .hws-view {
+  display: none;
+}
+
+.hws .hws-view {
+  min-height: 40px;
+  padding: 0 16px;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--hws-ink);
+  cursor: pointer;
+  background: #fff;
+  border: 1.5px solid var(--hws-line);
+  border-radius: 10px;
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease;
+}
+
+.hws .hws-view:hover {
+  border-color: var(--hws-teal);
+}
+
+/* Reset is a quiet text button: it matters after you have tried something, not before. */
+.hws .hws-reset {
+  min-height: 40px;
+  padding: 0 10px;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--hws-teal-deep);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+  background: none;
+  border: 0;
+  border-radius: 10px;
+}
+
+.hws .hws-reset:hover {
+  background: var(--hws-mint);
+}
+
+.hws .hws-reset:focus-visible,
+.hws .hws-view:focus-visible {
+  outline: 3px solid var(--hws-teal);
+  outline-offset: 2px;
+}
+
+.hws .hws-view[aria-pressed='true'] {
+  color: #fff;
+  background: var(--hws-teal);
+  border-color: var(--hws-teal);
+}
+
+.hws.hws--live .hws__frame {
+  --hws-s: 1 !important;
+
+  /* a little taller than the illustration: the seating card gains a guest row and a status line */
+  height: 736px;
+}
+
+.hws.hws--live .hws__stage {
+  height: 736px;
+}
+
+/* Wide: phone on the left, the two cards stacked on the right. One grid gap (24px) sits between
+   the phone and the cards and between the two cards, and both cards share the same width and edges. */
+@media (min-width: 720px) {
+  .hws.hws--live .hws__stage {
+    display: grid;
+    grid-template-columns: 236px 380px;
+    grid-template-rows: auto auto;
+    gap: 24px;
+    align-content: start;
+  }
+
+  .hws.hws--live .hws__stage > :is(.hws__phone, .hws__tracker, .hws__seating) {
+    position: static;
+    width: auto;
+  }
+
+  .hws.hws--live .hws__phone {
+    grid-column: 1;
+    grid-row: 1 / span 2;
+    align-self: start;
+  }
+
+  .hws.hws--live .hws__tracker {
+    grid-column: 2;
+    grid-row: 1;
+  }
+
+  .hws.hws--live .hws__seating {
+    grid-column: 2;
+    grid-row: 2;
+  }
+
+  /* Keep the phone the same height before and after sending, so the QR card can sit just under it. */
+  .hws.hws--live .hws-rsvp-confirm:empty {
+    display: block;
+    min-height: 2.7em;
+  }
+
+  .hws.hws--live .hws__chip--qr {
+    top: 518px;
+    bottom: auto;
+  }
+}
+
+/* The phone: real controls drawn to look like the illustration */
+
+.hws .hws-phone-link,
+.hws .hws-send {
+  display: inline-block;
+  padding: 4px 11px;
+  font: inherit;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1.35;
+  color: #fff;
+  cursor: pointer;
+  background: var(--hws-plum);
+  border: 0;
+  border-radius: 6px;
+}
+
+.hws .hws-send {
+  margin-top: 2px;
+  text-align: center;
+}
+
+/* sitewide rules give every button a 44px (48px for submit) minimum with long :not() chains, so
+   the controls inside the small phone drawing and the guest chips need !important to size down */
+.hws .hws__screen .hws-phone-link,
+.hws .hws__screen .hws-send {
+  min-height: 26px !important;
+}
+
+.hws .hws-reply {
+  position: relative;
+  display: block;
+  margin: 0;
+  font: inherit;
+  cursor: pointer;
+}
+
+.hws .hws-reply span {
+  display: block;
+  font-size: 1em;
+  line-height: 1.35;
+}
+
+.hws .hws-reply input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  opacity: 0;
+}
+
+.hws .hws-reply input:checked + span {
+  font-weight: 700;
+  color: var(--hws-plum);
+  background: #f7e4ee;
+  border-color: var(--hws-plum);
+}
+
+.hws .hws-reply input:focus-visible + span,
+.hws .hws-phone-link:focus-visible,
+.hws .hws-send:focus-visible,
+.hws .hws-see-replies:focus-visible {
+  outline: 3px solid var(--hws-teal);
+  outline-offset: 2px;
+}
+
+.hws .hws-rsvp-confirm {
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1.35;
+  color: var(--hws-teal-deep);
+}
+
+.hws .hws-rsvp-confirm:empty {
+  display: none;
+}
+
+.hws .hws-see-replies {
+  padding: 0;
+  font: inherit;
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--hws-plum);
+  text-align: left;
+  text-decoration: underline;
+  cursor: pointer;
+  background: none;
+  border: 0;
+}
+
+.hws .hws-see-replies[hidden] {
+  display: none;
+}
+
+/* both cards are on screen at once on wide screens, so the shortcut is only for the tabbed view */
+.hws .hws-see-replies {
+  display: none;
+}
+
+/* Guest replies */
+
+.hws .hws__replies .hws-new-reply {
+  padding-inline: 8px;
+  margin-inline: -8px;
+  background: var(--hws-mint);
+  border-radius: 10px;
+}
+
+.hws .hws__replies .hws-new-reply em {
+  background: #fff;
+}
+
+.hws .hws__replies .hws-new-reply[data-reply='no'] em {
+  color: var(--hws-plum);
+}
+
+/* a brief nudge so the change is noticed: the new row slides in, changed counts flash, a new seat pops */
+@media (prefers-reduced-motion: no-preference) {
+  .hws .hws__replies .hws-new-reply {
+    animation: hws-row-in 0.4s ease-out;
+  }
+
+  .hws .hws__legend b.is-changed {
+    border-radius: 4px;
+    animation: hws-flash 1s ease-out;
+  }
+
+  .hws .hws-seat.is-new {
+    transform-box: fill-box;
+    transform-origin: center;
+    animation: hws-seat-pop 0.4s ease-out;
+  }
+}
+
+@keyframes hws-row-in {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes hws-flash {
+  0% {
+    background: #bfece4;
+    box-shadow: 0 0 0 3px #bfece4;
+  }
+
+  100% {
+    background: transparent;
+    box-shadow: 0 0 0 3px transparent;
+  }
+}
+
+@keyframes hws-seat-pop {
+  0% {
+    transform: scale(0.4);
+  }
+
+  60% {
+    transform: scale(1.4);
+  }
+
+  100% {
+    transform: scale(1);
+  }
+}
+
+.hws .hws__avatar--you {
+  color: #fff;
+  background: var(--hws-plum);
+}
+
+/* Seating */
+
+.hws .hws-table[role='button'] {
+  cursor: pointer;
+}
+
+/* the number and the dashed ring sit on top of the table; clicks must reach the table underneath */
+.hws.hws--live .hws-table-label,
+.hws.hws--live .hws-drop {
+  pointer-events: none;
+}
+
+.hws .hws-table.is-open:hover {
+  fill: #dff5f1;
+}
+
+/* an outline on an SVG circle is drawn as a box; a thick plum stroke follows the table's shape */
+.hws .hws-table[role='button']:focus,
+.hws .hws-table[role='button']:focus-visible {
+  outline: none !important;
+}
+
+.hws .hws-table[role='button']:focus-visible {
+  stroke: var(--hws-plum);
+  stroke-width: 4px;
+}
+
+.hws .hws-seat.is-new {
+  fill: var(--hws-plum);
+  stroke: var(--hws-plum);
+}
+
+.hws .hws__unseated .hws-guest {
+  min-height: 32px !important;
+  padding: 4px 11px;
+  font: inherit;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--hws-ink);
+  cursor: pointer;
+  background: #f1f5f4;
+  border: 1.5px solid transparent;
+  border-radius: 6px;
+}
+
+.hws .hws__unseated .hws-guest[aria-pressed='true'] {
+  color: var(--hws-teal-deep);
+  background: var(--hws-mint);
+  border-color: var(--hws-teal);
+}
+
+.hws .hws__drag[hidden] {
+  display: none;
+}
+
+.hws .hws__unseated .hws-guest.is-seated::after {
+  content: ' \2713';
+}
+
+.hws .hws__unseated .hws-guest.is-seated {
+  color: var(--hws-muted);
+  cursor: default;
+  background: #fff;
+  border-color: #dbe3e1;
+}
+
+.hws .hws-guest:focus-visible {
+  outline: 3px solid var(--hws-teal);
+  outline-offset: 2px;
+}
+
+.hws .hws-seat-status {
+  min-height: 2.8em;
+  margin-top: 8px;
+  font-size: 11px;
+  line-height: 1.4;
+  color: var(--hws-muted);
+}
+
+/* Narrow screens: one panel at a time, drawn at full size */
+
+@media (max-width: 719px) {
+  .hws .hws-playbar {
+    gap: 6px;
+    justify-content: center;
+    margin-bottom: 14px;
+  }
+
+  .hws .hws-hint {
+    display: none;
+  }
+
+  /* the three tabs share one row; Reset sits under them */
+  .hws .hws-view {
+    display: inline-flex;
+    flex: 1 1 0;
+    align-items: center;
+    justify-content: center;
+    padding: 0 6px;
+  }
+
+  .hws .hws-reset {
+    flex: 0 0 100%;
+    min-height: 40px;
+  }
+
+  .hws.hws--live .hws__unseated {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+  }
+
+  .hws.hws--live .hws__unseated small {
+    grid-column: 1 / -1;
+  }
+
+  .hws .hws-see-replies:not([hidden]) {
+    display: inline-block;
+    min-height: 40px;
+  }
+
+  .hws .hws-view,
+  .hws .hws-reset {
+    min-height: 44px;
+  }
+
+  .hws.hws--live .hws__frame {
+    width: auto;
+    height: auto;
+  }
+
+  .hws.hws--live .hws__stage {
+    display: flex;
+    justify-content: center;
+    width: auto;
+    height: auto;
+    transform: none;
+  }
+
+  .hws.hws--live .hws__stage > * {
+    position: static;
+  }
+
+  .hws.hws--live .hws__chip {
+    display: none;
+  }
+
+  .hws.hws--live .hws__stage[data-view='website'] > :is(.hws__tracker, .hws__seating),
+  .hws.hws--live .hws__stage[data-view='replies'] > :is(.hws__phone, .hws__seating),
+  .hws.hws--live .hws__stage[data-view='seating'] > :is(.hws__phone, .hws__tracker) {
+    display: none;
+  }
+
+  .hws.hws--live .hws__stage > :is(.hws__tracker, .hws__seating) {
+    width: min(100%, 440px);
+  }
+
+  .hws.hws--live .hws__phone {
+    width: min(100%, 300px);
+  }
+
+  .hws.hws--live .hws__screen {
+    font-size: 12px;
+  }
+
+  .hws.hws--live :is(.hws-phone-link, .hws-send, .hws-see-replies, .hws-rsvp-confirm),
+  .hws.hws--live .hws__site-rsvp small,
+  .hws.hws--live .hws__site-hero small {
+    font-size: 12px;
+  }
+
+  .hws.hws--live .hws-reply span {
+    padding: 11px 12px;
+  }
+
+  .hws.hws--live .hws__screen .hws-phone-link,
+  .hws.hws--live .hws__screen .hws-send {
+    min-height: 40px !important;
+    padding-inline: 14px;
+  }
+
+  .hws.hws--live .hws__unseated .hws-guest {
+    min-height: 40px !important;
+    padding-inline: 4px;
+    font-size: 12px;
+    line-height: 1.25;
+    white-space: nowrap;
+  }
+
+  .hws.hws--live .hws-seat-status {
+    font-size: 13px;
+  }
+}
+
+/* homepage-flow.css draws the section smaller and narrows its column on index.html; the live
+   sample needs real tap targets, so it takes the full-size composition back. */
+@media (min-width: 1180px) {
+  body.ef-home-flow main .hws.hws--live .hws__hero {
+    grid-template-columns: minmax(0, 1fr) 640px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hws .hws-view {
+    transition: none;
+  }
+}
+
 /* ------------------------------------------------------------------ features */
 
 .hws .hws__features {
