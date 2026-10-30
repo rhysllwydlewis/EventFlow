@@ -794,6 +794,362 @@
   }
 }
 
+/* ------------------------------------------------------------------ live sample */
+
+/*
+ * Only applies once home-wedding-showcase.js has upgraded the section (it adds .hws--live).
+ * Without the script none of this matches, and the static illustration above is what people see.
+ * Wide screens keep the overlapping composition at full size so the controls are easy to hit;
+ * narrow screens show one panel at a time with a small tab bar.
+ */
+
+.hws .hws-playbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-start;
+  max-width: 640px;
+  margin: 0 auto 14px;
+}
+
+.hws .hws-view {
+  display: none;
+}
+
+.hws .hws-view,
+.hws .hws-reset {
+  min-height: 40px;
+  padding: 0 16px;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--hws-ink);
+  cursor: pointer;
+  background: #fff;
+  border: 1.5px solid var(--hws-line);
+  border-radius: 10px;
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease;
+}
+
+.hws .hws-view:hover,
+.hws .hws-reset:hover {
+  border-color: var(--hws-teal);
+}
+
+.hws .hws-view[aria-pressed='true'] {
+  color: #fff;
+  background: var(--hws-teal);
+  border-color: var(--hws-teal);
+}
+
+.hws.hws--live .hws__frame {
+  --hws-s: 1 !important;
+
+  /* a little taller than the illustration: the seating card gains a guest row and a status line */
+  height: 736px;
+}
+
+.hws.hws--live .hws__stage {
+  height: 736px;
+}
+
+/* The phone: real controls drawn to look like the illustration */
+
+.hws .hws-phone-link,
+.hws .hws-send {
+  display: inline-block;
+  padding: 4px 11px;
+  font: inherit;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1.35;
+  color: #fff;
+  cursor: pointer;
+  background: var(--hws-plum);
+  border: 0;
+  border-radius: 6px;
+}
+
+.hws .hws-send {
+  margin-top: 2px;
+  text-align: center;
+}
+
+/* sitewide rules give every button a 44px (48px for submit) minimum with long :not() chains, so
+   the controls inside the small phone drawing and the guest chips need !important to size down */
+.hws .hws__screen .hws-phone-link,
+.hws .hws__screen .hws-send {
+  min-height: 26px !important;
+}
+
+.hws .hws-reply {
+  position: relative;
+  display: block;
+  margin: 0;
+  font: inherit;
+  cursor: pointer;
+}
+
+.hws .hws-reply span {
+  display: block;
+  font-size: 1em;
+  line-height: 1.35;
+}
+
+.hws .hws-reply input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  opacity: 0;
+}
+
+.hws .hws-reply input:checked + span {
+  font-weight: 700;
+  color: var(--hws-plum);
+  background: #f7e4ee;
+  border-color: var(--hws-plum);
+}
+
+.hws .hws-reply input:focus-visible + span,
+.hws .hws-phone-link:focus-visible,
+.hws .hws-send:focus-visible,
+.hws .hws-see-replies:focus-visible {
+  outline: 3px solid var(--hws-teal);
+  outline-offset: 2px;
+}
+
+.hws .hws-rsvp-confirm {
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1.35;
+  color: var(--hws-teal-deep);
+}
+
+.hws .hws-rsvp-confirm:empty {
+  display: none;
+}
+
+.hws .hws-see-replies {
+  padding: 0;
+  font: inherit;
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--hws-plum);
+  text-align: left;
+  text-decoration: underline;
+  cursor: pointer;
+  background: none;
+  border: 0;
+}
+
+.hws .hws-see-replies[hidden] {
+  display: none;
+}
+
+/* both cards are on screen at once on wide screens, so the shortcut is only for the tabbed view */
+.hws .hws-see-replies {
+  display: none;
+}
+
+/* Guest replies */
+
+.hws .hws-new-reply {
+  background: var(--hws-mint);
+  border-radius: 10px;
+}
+
+.hws .hws__avatar--you {
+  font-size: 9px;
+  background: var(--hws-plum);
+}
+
+/* Seating */
+
+.hws .hws-table[role='button'] {
+  cursor: pointer;
+}
+
+/* the number and the dashed ring sit on top of the table; clicks must reach the table underneath */
+.hws.hws--live .hws-table-label,
+.hws.hws--live .hws-drop {
+  pointer-events: none;
+}
+
+.hws .hws-table.is-open:hover {
+  fill: #dff5f1;
+}
+
+.hws .hws-table[role='button']:focus-visible {
+  outline: 3px solid var(--hws-teal);
+  outline-offset: 3px;
+}
+
+.hws .hws-seat.is-new {
+  fill: var(--hws-plum);
+  stroke: var(--hws-plum);
+}
+
+.hws .hws__unseated .hws-guest {
+  min-height: 32px !important;
+  padding: 4px 11px;
+  font: inherit;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--hws-ink);
+  cursor: pointer;
+  background: #f1f5f4;
+  border: 1.5px solid transparent;
+  border-radius: 6px;
+}
+
+.hws .hws__unseated .hws-guest[aria-pressed='true'] {
+  color: var(--hws-teal-deep);
+  background: var(--hws-mint);
+  border-color: var(--hws-teal);
+}
+
+.hws .hws__drag[hidden] {
+  display: none;
+}
+
+.hws .hws__unseated .hws-guest.is-seated::after {
+  content: ' \2713';
+}
+
+.hws .hws__unseated .hws-guest.is-seated {
+  color: var(--hws-muted);
+  cursor: default;
+  background: #fff;
+  border-color: #dbe3e1;
+}
+
+.hws .hws-guest:focus-visible {
+  outline: 3px solid var(--hws-teal);
+  outline-offset: 2px;
+}
+
+.hws .hws-seat-status {
+  min-height: 2.8em;
+  margin-top: 8px;
+  font-size: 11px;
+  line-height: 1.4;
+  color: var(--hws-muted);
+}
+
+/* Narrow screens: one panel at a time, drawn at full size */
+
+@media (max-width: 719px) {
+  .hws .hws-playbar {
+    gap: 6px;
+    justify-content: center;
+  }
+
+  .hws .hws-view,
+  .hws .hws-reset {
+    padding: 0 12px;
+  }
+
+  .hws .hws-view {
+    display: inline-flex;
+    align-items: center;
+  }
+
+  .hws .hws-see-replies:not([hidden]) {
+    display: inline-block;
+    min-height: 40px;
+  }
+
+  .hws .hws-view,
+  .hws .hws-reset {
+    min-height: 44px;
+  }
+
+  .hws.hws--live .hws__frame {
+    width: auto;
+    height: auto;
+  }
+
+  .hws.hws--live .hws__stage {
+    display: flex;
+    justify-content: center;
+    width: auto;
+    height: auto;
+    transform: none;
+  }
+
+  .hws.hws--live .hws__stage > * {
+    position: static;
+  }
+
+  .hws.hws--live .hws__chip {
+    display: none;
+  }
+
+  .hws.hws--live .hws__stage[data-view='website'] > :is(.hws__tracker, .hws__seating),
+  .hws.hws--live .hws__stage[data-view='replies'] > :is(.hws__phone, .hws__seating),
+  .hws.hws--live .hws__stage[data-view='seating'] > :is(.hws__phone, .hws__tracker) {
+    display: none;
+  }
+
+  .hws.hws--live .hws__stage > :is(.hws__tracker, .hws__seating) {
+    width: min(100%, 440px);
+  }
+
+  .hws.hws--live .hws__phone {
+    width: min(100%, 300px);
+  }
+
+  .hws.hws--live .hws__screen {
+    font-size: 12px;
+  }
+
+  .hws.hws--live :is(.hws-phone-link, .hws-send, .hws-see-replies, .hws-rsvp-confirm),
+  .hws.hws--live .hws__site-rsvp small,
+  .hws.hws--live .hws__site-hero small {
+    font-size: 12px;
+  }
+
+  .hws.hws--live .hws-reply span {
+    padding: 11px 12px;
+  }
+
+  .hws.hws--live .hws__screen .hws-phone-link,
+  .hws.hws--live .hws__screen .hws-send {
+    min-height: 40px !important;
+    padding-inline: 14px;
+  }
+
+  .hws.hws--live .hws__unseated .hws-guest {
+    min-height: 40px !important;
+    padding-inline: 14px;
+    font-size: 13px;
+  }
+
+  .hws.hws--live .hws-seat-status {
+    font-size: 13px;
+  }
+}
+
+/* homepage-flow.css draws the section smaller and narrows its column on index.html; the live
+   sample needs real tap targets, so it takes the full-size composition back. */
+@media (min-width: 1180px) {
+  body.ef-home-flow main .hws.hws--live .hws__hero {
+    grid-template-columns: minmax(0, 1fr) 640px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hws .hws-view,
+  .hws .hws-reset {
+    transition: none;
+  }
+}
+
 /* ------------------------------------------------------------------ features */
 
 .hws .hws__features {

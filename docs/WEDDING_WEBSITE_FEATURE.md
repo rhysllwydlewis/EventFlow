@@ -50,13 +50,23 @@ Wedding Website & RSVPs is now a production feature area for customer wedding pl
 
 ## Homepage showcase
 
-The homepage advertises this feature in a section with its own illustrations (`#wedding-website-rsvp`):
+The homepage advertises this feature in a section with a small interactive sample (`#wedding-website-rsvp`):
 
-- Markup: the block between `<!-- hws:start -->` and `<!-- hws:end -->` in `public/index.html` (homepage v1 and v3) and `public/home-v2.html` (v2). The admin can switch the live homepage version, so the two copies must stay identical; `tests/unit/home-wedding-showcase.test.js` fails if they drift. Edit one, then copy it to the other.
-- Styles: `public/assets/css/home-wedding-showcase.css`, every selector prefixed `.hws` so it cannot restyle (or be restyled by) the rest of either homepage. Bump the `?v=` on both pages when it changes.
-- Graphics: HTML, CSS and inline SVG only (a guest wedding website on a phone, an RSVP tracker, a seating plan, a QR chip). They are decorative and hidden from assistive technology; one `role="img"` label describes them. They use sample names and numbers and are captioned as an illustrative preview. Do not add testimonials, ratings or usage numbers (the anonymous-page sanitizer and a test both guard against that).
+- Markup: the block between `<!-- hws:start -->` and `<!-- hws:end -->` in `public/index.html` (homepage v1) and `public/home-v2.html` (v2). The admin can switch the live homepage version, so the two copies must stay identical; `tests/unit/home-wedding-showcase.test.js` fails if they drift. Edit one, then copy it to the other. Homepage v3 (`public/home-v3.html`) has its own separate interactive version of the section, driven by `home-v3-concept.js`; it does not share this block, script or stylesheet.
+- Styles: `public/assets/css/home-wedding-showcase.css`, every selector prefixed `.hws` so it cannot restyle (or be restyled by) the rest of either homepage. The interactive rules only apply once the script has added `.hws--live` to the section. Bump the `?v=` on both pages when it changes.
+- Script: `public/assets/js/pages/home-wedding-showcase.js`, loaded with `defer` on both pages. It upgrades the static illustration in place; see "Interactive sample" below. Bump its `?v=` on both pages when it changes.
+- Graphics: HTML, CSS and inline SVG only (a guest wedding website on a phone, an RSVP tracker, a seating plan, a QR chip). The markup in the page is the static illustration: one `role="img"` label describes it and its cards are `aria-hidden`, which is what visitors without JavaScript and search engines get. They use sample names and numbers and are captioned as an illustrative preview. Do not add testimonials, ratings or usage numbers (the anonymous-page sanitizer and a test both guard against that).
 - SEO: keyword-led heading and copy, visible FAQ with matching `FAQPage` JSON-LD, a `Service` JSON-LD block (free for customers), and internal links to `/articles/wedding-website-on-eventflow-guide`, `/auth?tab=create&role=customer` and `/faq`. Keep the FAQ text and the JSON-LD identical (the test checks it). The homepage `<title>` and meta description were deliberately left unchanged.
 - Copy must describe only what the feature does today (free for customers, no account needed for guests to RSVP, hidden from search engines by default, only attending guests hold seats).
+
+### Interactive sample
+
+`home-wedding-showcase.js` turns the illustration into a working sample (nothing is saved or sent):
+
+- Send a sample RSVP from the phone: the guest replies card, the counts and the donut update, and sending again changes the reply rather than adding another.
+- Tap a guest, then a table with free seats, to seat them (keyboard: focus a table and press Enter or Space). Full tables say so, and the seat count in the card header updates. No dragging is needed.
+- Reset puts the replies, seats and phone back. Below 720px wide only one panel shows at a time, with a Website / Guest replies / Seating plan tab bar; wider screens show the whole composition at full size.
+- Progressive enhancement: the script replaces the `role="img"` description with a labelled group, removes `aria-hidden` from the cards it makes interactive, and builds every control (radios, buttons, status lines) itself, so the page never ships a control that does nothing. Status text is announced through `role="status"` regions. If the expected markup is missing the script does nothing.
 
 ## How customers use it
 
