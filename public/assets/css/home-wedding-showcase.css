@@ -7,25 +7,45 @@
  */
 
 .hws {
+  /* The section's colours. These defaults are the original look; choosing a colour in the live
+     version sets every one of them from one palette, so the whole section changes together. */
   --hws-teal: #0b8073;
   --hws-teal-deep: #064f46;
   --hws-teal-bright: #13b6a2;
   --hws-mint: #eaf8f5;
-  --hws-ink: #17202f;
-  --hws-muted: #566176;
   --hws-line: rgba(15, 69, 61, 0.12);
   --hws-plum: #8d3f6f;
-  --hws-blush: #fbeef4;
-  --hws-shadow: 0 24px 60px rgba(13, 63, 56, 0.14), 0 2px 6px rgba(13, 63, 56, 0.06);
+  --hws-band: #fdf6f9;
+  --hws-arc-c: #fdf2f6;
+  --hws-arc-b: #fbeaf1;
+  --hws-arc-a: #f7dfe9;
+  --hws-wash-a: rgba(251, 238, 244, 0.9);
+  --hws-wash-b: rgba(234, 248, 245, 0.95);
+  --hws-wash-c: #fdf9f6;
+  --hws-wash-d: #f4fbf9;
+  --hws-soft-1: #f1f5f4;
+  --hws-soft-2: #eef2f1;
+  --hws-soft-3: #dff5f1;
+  --hws-soft-4: #bfece4;
+  --hws-soft-5: #cdeee8;
+  --hws-soft-6: #dbe3e1;
+  --hws-glow: rgba(11, 128, 115, 0.28);
+  --hws-glow-2: rgba(11, 128, 115, 0.35);
+  --hws-shadow-c: #0d3f38;
+  --hws-ink: #17202f;
+  --hws-muted: #566176;
+  --hws-shadow:
+    0 24px 60px color-mix(in srgb, var(--hws-shadow-c) 14%, transparent),
+    0 2px 6px color-mix(in srgb, var(--hws-shadow-c) 6%, transparent);
 
   position: relative;
   padding: clamp(56px, 8vw, 104px) 0;
   overflow: hidden;
   color: var(--hws-ink);
   background:
-    radial-gradient(circle at 92% 6%, rgba(251, 238, 244, 0.9), transparent 38rem),
-    radial-gradient(circle at 4% 96%, rgba(234, 248, 245, 0.95), transparent 36rem),
-    linear-gradient(180deg, #fff 0%, #fdf9f6 22%, #f4fbf9 100%);
+    radial-gradient(circle at 92% 6%, var(--hws-wash-a), transparent 38rem),
+    radial-gradient(circle at 4% 96%, var(--hws-wash-b), transparent 36rem),
+    linear-gradient(180deg, #fff 0%, var(--hws-wash-c) 22%, var(--hws-wash-d) 100%);
 }
 
 .hws *,
@@ -51,6 +71,173 @@
 .hws .hws__inner {
   width: min(1200px, calc(100% - 48px));
   margin-inline: auto;
+}
+
+@property --hws-teal {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: #0b8073;
+}
+
+@property --hws-teal-deep {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: #064f46;
+}
+
+@property --hws-teal-bright {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: #13b6a2;
+}
+
+@property --hws-mint {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: #eaf8f5;
+}
+
+@property --hws-line {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: rgba(15, 69, 61, 0.12);
+}
+
+@property --hws-plum {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: #8d3f6f;
+}
+
+@property --hws-arc-a {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: #f7dfe9;
+}
+
+@property --hws-arc-b {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: #fbeaf1;
+}
+
+@property --hws-arc-c {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: #fdf2f6;
+}
+
+@property --hws-band {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: #fdf6f9;
+}
+
+@property --hws-wash-a {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: rgba(251, 238, 244, 0.9);
+}
+
+@property --hws-wash-b {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: rgba(234, 248, 245, 0.95);
+}
+
+@property --hws-wash-c {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: #fdf9f6;
+}
+
+@property --hws-wash-d {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: #f4fbf9;
+}
+
+@property --hws-soft-1 {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: #f1f5f4;
+}
+
+@property --hws-soft-2 {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: #eef2f1;
+}
+
+@property --hws-soft-3 {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: #dff5f1;
+}
+
+@property --hws-soft-4 {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: #bfece4;
+}
+
+@property --hws-soft-5 {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: #cdeee8;
+}
+
+@property --hws-soft-6 {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: #dbe3e1;
+}
+
+@property --hws-glow {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: rgba(11, 128, 115, 0.28);
+}
+
+@property --hws-glow-2 {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: rgba(11, 128, 115, 0.35);
+}
+
+@property --hws-shadow-c {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: #0d3f38;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .hws.hws--live {
+    transition:
+      --hws-teal 0.45s ease,
+      --hws-teal-deep 0.45s ease,
+      --hws-teal-bright 0.45s ease,
+      --hws-mint 0.45s ease,
+      --hws-line 0.45s ease,
+      --hws-plum 0.45s ease,
+      --hws-arc-a 0.45s ease,
+      --hws-arc-b 0.45s ease,
+      --hws-arc-c 0.45s ease,
+      --hws-band 0.45s ease,
+      --hws-wash-a 0.45s ease,
+      --hws-wash-b 0.45s ease,
+      --hws-wash-c 0.45s ease,
+      --hws-wash-d 0.45s ease,
+      --hws-soft-1 0.45s ease,
+      --hws-soft-2 0.45s ease,
+      --hws-soft-3 0.45s ease,
+      --hws-soft-4 0.45s ease,
+      --hws-soft-5 0.45s ease,
+      --hws-soft-6 0.45s ease,
+      --hws-glow 0.45s ease,
+      --hws-glow-2 0.45s ease,
+      --hws-shadow-c 0.45s ease;
+  }
 }
 
 /* ------------------------------------------------------------------ copy */
@@ -143,7 +330,7 @@
 .hws .hws__btn--primary {
   color: #fff;
   background: var(--hws-teal);
-  box-shadow: 0 10px 24px rgba(11, 128, 115, 0.28);
+  box-shadow: 0 10px 24px var(--hws-glow);
 }
 
 .hws .hws__btn--primary:hover {
@@ -153,7 +340,7 @@
 .hws .hws__btn--ghost {
   color: var(--hws-teal);
   background: #fff;
-  border-color: rgba(11, 128, 115, 0.35);
+  border-color: var(--hws-glow-2);
 }
 
 .hws .hws__btn--ghost:hover {
@@ -171,14 +358,6 @@
 
 .hws .hws__visual {
   min-width: 0;
-}
-
-.hws .hws__visual figcaption {
-  margin-top: 18px;
-  font-size: 12px;
-  line-height: 1.5;
-  text-align: center;
-  color: var(--hws-muted);
 }
 
 .hws .hws__frame {
@@ -230,7 +409,7 @@
   font-size: 11px;
   font-weight: 600;
   color: var(--hws-muted);
-  background: #f1f5f4;
+  background: var(--hws-soft-1);
   border-radius: 6px;
 }
 
@@ -264,7 +443,7 @@
 }
 
 .hws .hws-seg--track {
-  stroke: #eef2f1;
+  stroke: var(--hws-soft-2);
 }
 
 .hws .hws-seg--yes {
@@ -335,7 +514,7 @@
   display: grid;
   gap: 2px;
   padding-top: 8px;
-  border-top: 1px solid #eef2f1;
+  border-top: 1px solid var(--hws-soft-2);
 }
 
 .hws .hws__replies li {
@@ -375,7 +554,7 @@
   font-size: 10px;
   font-weight: 800;
   color: var(--hws-teal-deep);
-  background: #cdeee8;
+  background: var(--hws-soft-5);
   border-radius: 50%;
 }
 
@@ -387,6 +566,122 @@
 .hws .hws__avatar--c {
   color: #6a4a10;
   background: #f6e7c4;
+}
+
+/* The colours of the guest website on the phone. They default to the original plum look, so the
+   page is unchanged without JavaScript; the interactive sample swaps them from a chosen palette. */
+
+@property --hp-bg {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: #fff7fb;
+}
+
+@property --hp-text {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: #2b1b2f;
+}
+
+@property --hp-muted {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: #6e5a74;
+}
+
+@property --hp-accent {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: #8d3f6f;
+}
+
+@property --hp-on-accent {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: #ffffff;
+}
+
+@property --hp-ink {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: #8d3f6f;
+}
+
+@property --hp-soft {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: #f7e4ee;
+}
+
+@property --hp-border {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: #cdb1bf;
+}
+
+@property --hp-divider {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: #f0dde7;
+}
+
+@property --hp-deep {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: #6a2d52;
+}
+
+@property --hp-mid {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: #8d3f6f;
+}
+
+@property --hp-light {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: #c98aa9;
+}
+
+@property --hp-hero-ink {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: #ffffff;
+}
+
+.hws .hws__stage {
+  --hp-bg: #fff7fb;
+  --hp-text: #2b1b2f;
+  --hp-muted: #6e5a74;
+  --hp-accent: #8d3f6f;
+  --hp-on-accent: #ffffff;
+  --hp-ink: #8d3f6f;
+  --hp-soft: #f7e4ee;
+  --hp-border: #cdb1bf;
+  --hp-divider: #f0dde7;
+  --hp-deep: #6a2d52;
+  --hp-mid: #8d3f6f;
+  --hp-light: #c98aa9;
+  --hp-hero-ink: #ffffff;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .hws.hws--live .hws__stage {
+    transition:
+      --hp-bg 0.35s ease,
+      --hp-text 0.35s ease,
+      --hp-muted 0.35s ease,
+      --hp-accent 0.35s ease,
+      --hp-on-accent 0.35s ease,
+      --hp-ink 0.35s ease,
+      --hp-soft 0.35s ease,
+      --hp-border 0.35s ease,
+      --hp-divider 0.35s ease,
+      --hp-deep 0.35s ease,
+      --hp-mid 0.35s ease,
+      --hp-light 0.35s ease,
+      --hp-hero-ink 0.35s ease;
+  }
 }
 
 /* Phone: the guest wedding website */
@@ -408,8 +703,8 @@
   overflow: hidden;
   font-size: 10px;
   line-height: 1.35;
-  color: #2b1b2f;
-  background: #fff7fb;
+  color: var(--hp-text);
+  background: var(--hp-bg);
   border-radius: 30px;
 }
 
@@ -445,8 +740,8 @@
   padding: 4px 11px;
   font-size: 10px;
   font-weight: 700;
-  color: #fff;
-  background: var(--hws-plum);
+  color: var(--hp-on-accent);
+  background: var(--hp-accent);
   border-radius: 6px;
 }
 
@@ -457,8 +752,8 @@
   margin: 0 8px;
   padding: 22px 12px 18px;
   text-align: center;
-  color: #fff;
-  background: linear-gradient(160deg, #6a2d52, #8d3f6f 55%, #c98aa9);
+  color: var(--hp-hero-ink);
+  background: linear-gradient(160deg, var(--hp-deep), var(--hp-mid) 55%, var(--hp-light));
   border-radius: 18px;
 }
 
@@ -478,7 +773,7 @@
 
 .hws .hws__site-hero b {
   margin-top: 6px;
-  color: var(--hws-plum);
+  color: var(--hp-ink);
   background: #fff;
 }
 
@@ -494,13 +789,13 @@
   gap: 8px;
   align-items: baseline;
   padding-bottom: 8px;
-  border-bottom: 1px solid #f0dde7;
+  border-bottom: 1px solid var(--hp-divider);
 }
 
 .hws .hws__when {
   font-family: 'Iowan Old Style', 'Palatino Linotype', Palatino, 'Book Antiqua', Georgia, serif;
   font-size: 1.2em;
-  color: var(--hws-plum);
+  color: var(--hp-ink);
 }
 
 .hws .hws__site-plan span {
@@ -512,7 +807,7 @@
   display: block;
   font-size: 10px;
   font-weight: 400;
-  color: #6e5a74;
+  color: var(--hp-muted);
 }
 
 .hws .hws__site-rsvp {
@@ -523,6 +818,7 @@
   background: #fff;
   border-radius: 14px;
   box-shadow: 0 6px 18px rgba(141, 63, 111, 0.1);
+  box-shadow: 0 6px 18px color-mix(in srgb, var(--hp-accent) 14%, transparent);
 }
 
 .hws .hws__site-rsvp small {
@@ -533,16 +829,16 @@
 .hws .hws__site-rsvp span {
   padding: 7px 10px;
   text-align: center;
-  color: #4a3550;
-  border: 1.5px solid #cdb1bf;
+  color: var(--hp-text);
+  border: 1.5px solid var(--hp-border);
   border-radius: 10px;
 }
 
 .hws .hws__site-rsvp span.is-on {
   font-weight: 700;
-  color: var(--hws-plum);
-  background: #f7e4ee;
-  border-color: var(--hws-plum);
+  color: var(--hp-ink);
+  background: var(--hp-soft);
+  border-color: var(--hp-accent);
 }
 
 .hws .hws__site-rsvp b {
@@ -571,7 +867,7 @@
 }
 
 .hws .hws-table.is-drop {
-  fill: #dff5f1;
+  fill: var(--hws-soft-3);
   stroke-width: 2;
 }
 
@@ -609,8 +905,8 @@
   padding: 5px 10px 5px 6px;
   font-size: 11px;
   font-weight: 700;
-  color: #fff;
-  background: var(--hws-plum);
+  color: var(--hp-on-accent);
+  background: var(--hp-accent);
   border-radius: 8px;
   box-shadow: 0 10px 22px rgba(141, 63, 111, 0.4);
   transform: translateX(-50%) rotate(-4deg);
@@ -628,7 +924,7 @@
   align-items: center;
   margin-top: 10px;
   padding-top: 10px;
-  border-top: 1px solid #eef2f1;
+  border-top: 1px solid var(--hws-soft-2);
 }
 
 .hws .hws__unseated small {
@@ -642,7 +938,7 @@
   padding: 3px 10px;
   font-size: 11px;
   font-weight: 600;
-  background: #f1f5f4;
+  background: var(--hws-soft-1);
   border-radius: 6px;
 }
 
@@ -772,9 +1068,9 @@
   }
 }
 
-/* Side by side only when the stage fits next to the copy */
+/* Side by side only when the stage leaves the copy a comfortable column (about 500px) */
 
-@media (min-width: 1180px) {
+@media (min-width: 1280px) {
   .hws .hws__hero {
     grid-template-columns: minmax(0, 1fr) 640px;
   }
@@ -803,7 +1099,8 @@
  * narrow screens show one panel at a time with a small tab bar.
  */
 
-/* Wide screens: a quiet hint on the left and Reset on the right, clear of the "Private link" chip. */
+/* Wide screens: the three steps on the left and Reset on the right. The bottom margin keeps the
+   toolbar clear of the floating "Private link" chip. */
 .hws .hws-playbar {
   display: flex;
   flex-wrap: wrap;
@@ -812,13 +1109,6 @@
   justify-content: space-between;
   max-width: 640px;
   margin: 0 auto 44px;
-}
-
-.hws .hws-hint {
-  margin: 0;
-  font-size: 13px;
-  line-height: 1.4;
-  color: var(--hws-muted);
 }
 
 .hws .hws-view {
@@ -899,15 +1189,25 @@
     align-content: start;
   }
 
-  .hws.hws--live .hws__stage > :is(.hws__phone, .hws__tracker, .hws__seating) {
+  .hws.hws--live .hws__stage > :is(.hws__phonecol, .hws__tracker, .hws__seating) {
     position: static;
     width: auto;
   }
 
-  .hws.hws--live .hws__phone {
+  /* the phone, its colour selector and the QR card form one column with a fixed 14px between them,
+     however tall the phone is (it grows when the RSVP message or the meal choices appear) */
+  .hws.hws--live .hws__phonecol {
+    display: flex;
+    flex-direction: column;
     grid-column: 1;
     grid-row: 1 / span 2;
+    gap: 14px;
+    align-items: center;
     align-self: start;
+  }
+
+  .hws.hws--live .hws__phonecol .hws__chip {
+    position: static;
   }
 
   .hws.hws--live .hws__tracker {
@@ -919,20 +1219,22 @@
     grid-column: 2;
     grid-row: 2;
   }
-
-  /* Keep the phone the same height before and after sending, so the QR card can sit just under it. */
-  .hws.hws--live .hws-rsvp-confirm:empty {
-    display: block;
-    min-height: 2.7em;
-  }
-
-  .hws.hws--live .hws__chip--qr {
-    top: 518px;
-    bottom: auto;
-  }
 }
 
 /* The phone: real controls drawn to look like the illustration */
+
+.hws.hws--live .hws__phone {
+  position: static;
+}
+
+.hws.hws--live .hws__site-hero small {
+  opacity: 1;
+}
+
+.hws .hws__site-hero .hws-phone-link {
+  color: var(--hp-ink);
+  background: #fff;
+}
 
 .hws .hws-phone-link,
 .hws .hws-send {
@@ -942,9 +1244,9 @@
   font-size: 10px;
   font-weight: 700;
   line-height: 1.35;
-  color: #fff;
+  color: var(--hp-on-accent);
   cursor: pointer;
-  background: var(--hws-plum);
+  background: var(--hp-accent);
   border: 0;
   border-radius: 6px;
 }
@@ -987,9 +1289,9 @@
 
 .hws .hws-reply input:checked + span {
   font-weight: 700;
-  color: var(--hws-plum);
-  background: #f7e4ee;
-  border-color: var(--hws-plum);
+  color: var(--hp-ink);
+  background: var(--hp-soft);
+  border-color: var(--hp-accent);
 }
 
 .hws .hws-reply input:focus-visible + span,
@@ -1016,7 +1318,7 @@
   font: inherit;
   font-size: 10px;
   font-weight: 700;
-  color: var(--hws-plum);
+  color: var(--hp-ink);
   text-align: left;
   text-decoration: underline;
   cursor: pointer;
@@ -1047,7 +1349,7 @@
 }
 
 .hws .hws__replies .hws-new-reply[data-reply='no'] em {
-  color: var(--hws-plum);
+  color: var(--hp-ink);
 }
 
 /* a brief nudge so the change is noticed: the new row slides in, changed counts flash, a new seat pops */
@@ -1082,8 +1384,8 @@
 
 @keyframes hws-flash {
   0% {
-    background: #bfece4;
-    box-shadow: 0 0 0 3px #bfece4;
+    background: var(--hws-soft-4);
+    box-shadow: 0 0 0 3px var(--hws-soft-4);
   }
 
   100% {
@@ -1107,8 +1409,8 @@
 }
 
 .hws .hws__avatar--you {
-  color: #fff;
-  background: var(--hws-plum);
+  color: var(--hp-on-accent);
+  background: var(--hp-accent);
 }
 
 /* Seating */
@@ -1124,7 +1426,7 @@
 }
 
 .hws .hws-table.is-open:hover {
-  fill: #dff5f1;
+  fill: var(--hws-soft-3);
 }
 
 /* an outline on an SVG circle is drawn as a box; a thick plum stroke follows the table's shape */
@@ -1139,8 +1441,8 @@
 }
 
 .hws .hws-seat.is-new {
-  fill: var(--hws-plum);
-  stroke: var(--hws-plum);
+  fill: var(--hp-accent);
+  stroke: var(--hp-accent);
 }
 
 .hws .hws__unseated .hws-guest {
@@ -1151,7 +1453,7 @@
   font-weight: 600;
   color: var(--hws-ink);
   cursor: pointer;
-  background: #f1f5f4;
+  background: var(--hws-soft-1);
   border: 1.5px solid transparent;
   border-radius: 6px;
 }
@@ -1174,7 +1476,7 @@
   color: var(--hws-muted);
   cursor: default;
   background: #fff;
-  border-color: #dbe3e1;
+  border-color: var(--hws-soft-6);
 }
 
 .hws .hws-guest:focus-visible {
@@ -1190,6 +1492,300 @@
   color: var(--hws-muted);
 }
 
+/* ------------------------------------------------------------------ steps, make it yours, meals */
+
+.hws .hws-sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  white-space: nowrap;
+  border: 0;
+  clip-path: inset(50%);
+}
+
+.hws .hws-steps {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+.hws .hws-step {
+  display: inline-flex;
+  gap: 6px;
+  align-items: center;
+  min-height: 34px !important;
+  padding: 0 12px 0 6px;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--hws-ink);
+  cursor: pointer;
+  background: #fff;
+  border: 1.5px solid var(--hws-line);
+  border-radius: 10px;
+}
+
+.hws .hws-step:hover {
+  border-color: var(--hws-teal);
+}
+
+.hws .hws-step__n {
+  display: grid;
+  width: 20px;
+  height: 20px;
+  font-size: 11px;
+  line-height: 1;
+  color: #fff;
+  place-items: center;
+  background: var(--hws-teal-deep);
+  border-radius: 50%;
+}
+
+.hws .is-done > .hws-step {
+  color: var(--hws-teal-deep);
+  background: var(--hws-mint);
+  border-color: var(--hws-teal);
+}
+
+.hws .is-done > .hws-step .hws-step__n {
+  background: var(--hws-teal);
+}
+
+.hws .hws-step:focus-visible,
+.hws .hws-autoseat:focus-visible,
+.hws .hws-finish__link:focus-visible {
+  outline: 3px solid var(--hws-teal);
+  outline-offset: 2px;
+}
+
+/* The colour selector: a handful of colours under the phone, between the phone and the QR card */
+.hws .hws-colours {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  justify-content: center;
+  padding: 7px 14px;
+  background: #fff;
+  border: 1px solid var(--hws-line);
+  border-radius: 12px;
+  box-shadow: 0 6px 18px color-mix(in srgb, var(--hws-shadow-c) 8%, transparent);
+}
+
+.hws .hws-colours__label {
+  margin-right: 2px;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--hws-muted);
+}
+
+.hws .hws-step__short {
+  display: none;
+}
+
+.hws .hws-dot {
+  position: relative;
+  display: inline-grid;
+  margin: 0;
+  cursor: pointer;
+}
+
+.hws .hws-dot input {
+  position: absolute;
+  inset: 0;
+  width: 100% !important;
+  height: 100% !important;
+  min-height: 0 !important;
+  margin: 0;
+  cursor: pointer;
+  opacity: 0;
+}
+
+.hws .hws-dot__face {
+  display: block;
+  width: 24px;
+  height: 24px;
+  background: var(--dot);
+  border-radius: 50%;
+  box-shadow: inset 0 0 0 1.5px rgba(0, 0, 0, 0.12);
+}
+
+.hws .hws-dot input:checked + .hws-dot__face {
+  box-shadow:
+    0 0 0 2px #fff,
+    0 0 0 4px var(--hws-ink);
+}
+
+.hws .hws-dot input:focus-visible + .hws-dot__face {
+  outline: 3px solid var(--hws-teal);
+  outline-offset: 4px;
+}
+
+/* Meal choice: only guests who are coming are asked */
+.hws .hws-meals {
+  display: flex;
+  gap: 5px;
+}
+
+.hws .hws-meals[hidden] {
+  display: none;
+}
+
+.hws .hws-meal {
+  position: relative;
+  display: block;
+  flex: 1 1 0;
+  margin: 0;
+  cursor: pointer;
+}
+
+.hws .hws-meal input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  opacity: 0;
+}
+
+.hws .hws-meal span {
+  display: block;
+  padding: 5px 2px;
+  font-size: 10px;
+  line-height: 1.3;
+  text-align: center;
+  background: #fff;
+  border-radius: 8px;
+}
+
+.hws .hws-meal input:checked + span {
+  font-weight: 700;
+  color: var(--hp-ink);
+  background: var(--hp-soft);
+  border-color: var(--hp-accent);
+}
+
+.hws .hws-meal input:focus-visible + span {
+  outline: 3px solid var(--hws-teal);
+  outline-offset: 2px;
+}
+
+/* the call to action that appears once the main flow has been tried */
+.hws .hws-finish {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  align-items: center;
+  justify-content: center;
+  max-width: 640px;
+  padding: 10px 14px;
+  margin: 14px auto 0;
+  background: var(--hws-mint);
+  border: 1px solid var(--hws-line);
+  border-radius: 14px;
+}
+
+.hws .hws-finish[hidden] {
+  display: none;
+}
+
+.hws .hws-finish p {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--hws-teal-deep);
+}
+
+.hws .hws-finish__link {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 18px;
+  font-size: 14px;
+  font-weight: 700;
+  color: #fff;
+  text-decoration: none;
+  background: var(--hws-teal);
+  border-radius: 10px;
+}
+
+.hws .hws-finish__link:hover {
+  background: var(--hws-teal-deep);
+}
+
+/* auto-seat sits on the same line as the seating message */
+.hws .hws-seat-row {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-top: 8px;
+}
+
+.hws .hws-seat-row .hws-seat-status {
+  flex: 1 1 auto;
+  min-width: 0;
+  margin-top: 0;
+}
+
+.hws .hws-autoseat {
+  flex: none;
+  min-height: 32px !important;
+  padding: 0 12px;
+  font: inherit;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--hws-teal-deep);
+  cursor: pointer;
+  background: #fff;
+  border: 1.5px solid var(--hws-teal);
+  border-radius: 8px;
+}
+
+.hws .hws-autoseat[aria-disabled='true'] {
+  color: var(--hws-muted);
+  cursor: default;
+  border-color: var(--hws-line);
+}
+
+/* dragging a guest onto a table (mouse and pen) */
+.hws .hws-ghost {
+  position: fixed;
+  z-index: 50;
+  padding: 5px 10px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #fff;
+  pointer-events: none;
+  background: var(--hws-plum);
+  border-radius: 8px;
+  box-shadow: 0 10px 22px rgba(141, 63, 111, 0.4);
+  transform: rotate(-3deg);
+}
+
+.hws.is-dragging,
+.hws.is-dragging * {
+  cursor: grabbing !important;
+  user-select: none;
+}
+
+.hws .hws-table.is-over {
+  fill: var(--hws-soft-4);
+  stroke-width: 3px;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .hws .hws-finish {
+    animation: hws-row-in 0.4s ease-out;
+  }
+}
+
 /* Narrow screens: one panel at a time, drawn at full size */
 
 @media (max-width: 719px) {
@@ -1199,22 +1795,88 @@
     margin-bottom: 14px;
   }
 
-  .hws .hws-hint {
-    display: none;
-  }
-
-  /* the three tabs share one row; Reset sits under them */
+  /* tabs on the first row; the three steps and Reset share the second */
   .hws .hws-view {
     display: inline-flex;
-    flex: 1 1 0;
+    flex: 1 1 30%;
     align-items: center;
     justify-content: center;
     padding: 0 6px;
+    order: 1;
+  }
+
+  .hws .hws-steps {
+    flex: 1 1 calc(100% - 70px);
+    gap: 5px;
+    min-width: 0;
+    order: 2;
+  }
+
+  .hws .hws-steps > li {
+    flex: 1 1 0;
+    min-width: 0;
+  }
+
+  .hws .hws-step {
+    justify-content: center;
+    width: 100%;
+    padding: 0 6px 0 4px;
+    font-size: 12px;
+  }
+
+  .hws .hws-step__full {
+    display: none;
+  }
+
+  .hws .hws-step__short {
+    display: inline;
   }
 
   .hws .hws-reset {
-    flex: 0 0 100%;
+    flex: 0 0 auto;
     min-height: 40px;
+    order: 3;
+  }
+
+  /* the colour selector is as wide as the phone above it, with bigger tap targets */
+  .hws .hws-colours {
+    gap: 4px;
+    justify-content: space-between;
+    width: min(100%, 300px);
+    padding: 3px 12px;
+  }
+
+  .hws .hws-dot {
+    padding: 4px;
+  }
+
+  .hws .hws-dot__face {
+    width: 28px;
+    height: 28px;
+  }
+
+  .hws .hws-meal span {
+    padding: 9px 2px;
+    font-size: 12px;
+  }
+
+  .hws .hws-seat-row {
+    flex-wrap: wrap;
+  }
+
+  .hws .hws-autoseat {
+    min-height: 40px !important;
+    padding: 0 14px;
+    font-size: 13px;
+  }
+
+  /* the phone and the colour selector stack, centred */
+  .hws.hws--live .hws__phonecol {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    align-items: center;
+    width: 100%;
   }
 
   .hws.hws--live .hws__unseated {
@@ -1259,8 +1921,8 @@
   }
 
   .hws.hws--live .hws__stage[data-view='website'] > :is(.hws__tracker, .hws__seating),
-  .hws.hws--live .hws__stage[data-view='replies'] > :is(.hws__phone, .hws__seating),
-  .hws.hws--live .hws__stage[data-view='seating'] > :is(.hws__phone, .hws__tracker) {
+  .hws.hws--live .hws__stage[data-view='replies'] > :is(.hws__phonecol, .hws__seating),
+  .hws.hws--live .hws__stage[data-view='seating'] > :is(.hws__phonecol, .hws__tracker) {
     display: none;
   }
 
@@ -1307,9 +1969,21 @@
 
 /* homepage-flow.css draws the section smaller and narrows its column on index.html; the live
    sample needs real tap targets, so it takes the full-size composition back. */
-@media (min-width: 1180px) {
+@media (min-width: 1280px) {
   body.ef-home-flow main .hws.hws--live .hws__hero {
     grid-template-columns: minmax(0, 1fr) 640px;
+  }
+
+  /* The copy starts level with the top of the phone (below the step guide) instead of floating
+     in the middle of a tall graphic with empty space above it. */
+  body.ef-home-flow main .hws.hws--live .hws__hero,
+  .hws.hws--live .hws__hero {
+    column-gap: 56px;
+    align-items: start;
+  }
+
+  .hws.hws--live .hws__copy {
+    margin-top: 88px;
   }
 }
 
@@ -1346,7 +2020,7 @@
   background: #fff;
   border: 1px solid var(--hws-line);
   border-radius: 20px;
-  box-shadow: 0 10px 30px rgba(13, 63, 56, 0.05);
+  box-shadow: 0 10px 30px color-mix(in srgb, var(--hws-shadow-c) 5%, transparent);
   transition:
     transform 0.2s ease,
     box-shadow 0.2s ease;
@@ -1354,7 +2028,7 @@
 
 .hws .hws__feature:hover {
   transform: translateY(-3px);
-  box-shadow: 0 18px 40px rgba(13, 63, 56, 0.1);
+  box-shadow: 0 18px 40px color-mix(in srgb, var(--hws-shadow-c) 10%, transparent);
 }
 
 .hws .hws__feature-icon {
