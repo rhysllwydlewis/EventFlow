@@ -154,7 +154,7 @@ body.ef-home-flow main .hws .hws__frame {
   }
 }
 
-@media (min-width: 1180px) {
+@media (min-width: 1280px) {
   body.ef-home-flow main .hws .hws__hero {
     grid-template-columns: minmax(0, 1fr) calc(640px * 0.74);
   }
@@ -455,7 +455,7 @@ body.ef-home-flow main .ef-approved-marketplace-empty p {
 }
 
 /* Beside the (now smaller) wedding graphic the copy sits in the middle of the row. */
-@media (min-width: 1180px) {
+@media (min-width: 1280px) {
   body.ef-home-flow main .hws__hero {
     align-items: center;
   }
@@ -521,7 +521,7 @@ body.ef-home-flow main :is(.ef-approved-steps-section, .hws)::after {
 
 /* The wedding graphic stands in front of an arch, the shape of a ceremony
    doorway, in a deeper blush than the band behind it. */
-@media (min-width: 1180px) {
+@media (min-width: 1280px) {
   body.ef-home-flow main .hws__frame {
     position: relative;
     isolation: isolate;

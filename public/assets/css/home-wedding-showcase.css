@@ -1068,9 +1068,9 @@
   }
 }
 
-/* Side by side only when the stage fits next to the copy */
+/* Side by side only when the stage leaves the copy a comfortable column (about 500px) */
 
-@media (min-width: 1180px) {
+@media (min-width: 1280px) {
   .hws .hws__hero {
     grid-template-columns: minmax(0, 1fr) 640px;
   }
@@ -1969,9 +1969,21 @@
 
 /* homepage-flow.css draws the section smaller and narrows its column on index.html; the live
    sample needs real tap targets, so it takes the full-size composition back. */
-@media (min-width: 1180px) {
+@media (min-width: 1280px) {
   body.ef-home-flow main .hws.hws--live .hws__hero {
     grid-template-columns: minmax(0, 1fr) 640px;
+  }
+
+  /* The copy starts level with the top of the phone (below the step guide) instead of floating
+     in the middle of a tall graphic with empty space above it. */
+  body.ef-home-flow main .hws.hws--live .hws__hero,
+  .hws.hws--live .hws__hero {
+    column-gap: 56px;
+    align-items: start;
+  }
+
+  .hws.hws--live .hws__copy {
+    margin-top: 88px;
   }
 }
 
