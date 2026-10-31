@@ -422,6 +422,40 @@ describe('homepage wedding showcase interactive sample', () => {
     `);
   });
 
+  test('with IntersectionObserver the section is built only once it is about to be reached', () => {
+    scenario(String.raw`
+      let watchers = [];
+      const { doc, section } = mount('index.html', true, win => {
+        win.IntersectionObserver = class {
+          constructor(callback, options) {
+            this.callback = callback;
+            this.options = options;
+            this.disconnected = false;
+            watchers.push(this);
+          }
+          observe(el) { this.el = el; }
+          disconnect() { this.disconnected = true; }
+        };
+      });
+      // loading the page builds nothing: the section is still the static illustration
+      assert.strictEqual(watchers.length, 1);
+      assert.strictEqual(watchers[0].el, section);
+      assert.strictEqual(section.classList.contains('hws--live'), false);
+      assert.strictEqual(doc.querySelectorAll('.hws button, .hws input').length, 0);
+
+      // scrolling away from it changes nothing
+      watchers[0].callback([{ isIntersecting: false }]);
+      assert.strictEqual(section.classList.contains('hws--live'), false);
+      assert.strictEqual(watchers[0].disconnected, false);
+
+      // coming close builds it once, and stops watching
+      watchers[0].callback([{ isIntersecting: true }]);
+      assert.ok(section.classList.contains('hws--live'));
+      assert.strictEqual(watchers[0].disconnected, true);
+      assert.strictEqual(doc.querySelectorAll('.hws-playbar').length, 1);
+    `);
+  });
+
   test('it behaves the same on the home-v2 copy of the section', () => {
     scenario(String.raw`
       const { section, numbers, submit } = mount('home-v2.html');

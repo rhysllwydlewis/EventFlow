@@ -228,786 +228,811 @@
     return;
   }
 
-  // ================================================================ find the section
-  const section = document.querySelector('.hws');
-  const stage = section && section.querySelector('.hws__stage');
-  const tracker = stage && stage.querySelector('.hws__tracker');
-  const phone = stage && stage.querySelector('.hws__phone');
-  const seating = stage && stage.querySelector('.hws__seating');
-  const rsvpBox = phone && phone.querySelector('.hws__site-rsvp');
-  const seatSvg = seating && seating.querySelector('.hws-seatmap');
-  const unseatedBox = seating && seating.querySelector('.hws__unseated');
-  const dragChip = seating && seating.querySelector('.hws__drag');
-  const figure = section && section.querySelector('.hws__visual');
-  const frame = figure && figure.querySelector('.hws__frame');
-  const donut = tracker && tracker.querySelectorAll('.hws-seg--yes, .hws-seg--no, .hws-seg--wait');
-  const counts = tracker && tracker.querySelectorAll('.hws__legend li b');
-  const percent = tracker && tracker.querySelector('.hws__donut-label strong');
-  const replies = tracker && tracker.querySelector('.hws__replies');
-  const seatTotals = seating && seating.querySelector('.hws__card-head span');
-
-  if (
-    !(
-      frame &&
-      donut &&
-      donut.length === 3 &&
-      counts &&
-      counts.length === 3 &&
-      percent &&
-      replies &&
-      rsvpBox &&
-      seatSvg &&
-      unseatedBox &&
-      seatTotals
-    ) ||
-    section.classList.contains('hws--live')
-  ) {
+  const host = document.querySelector('.hws');
+  if (!host) {
     return;
   }
 
-  const INVITED = 96;
-  const BASE = { yes: 64, no: 14, wait: 18 };
-  const CIRCUMFERENCE = 2 * Math.PI * 38;
-  const GUESTS = ['Charlotte E.', 'Priya S.', 'Tom H.'];
-  const MEALS = ['Beef', 'Salmon', 'Vegetarian'];
-  const SECTION_PROPERTIES = Object.keys(buildLook(LOOKS[0].pastel).section);
-  const SIGN_UP_URL = '/auth?tab=create&role=customer';
-  const AUTO_SEAT_STEP_MS = 320;
-  const VIEWS = [
-    ['website', 'Website'],
-    ['replies', 'Guest replies'],
-    ['seating', 'Seating plan'],
-  ];
-  const STEPS = [
-    ['colour', 'Pick a colour', 'Colour'],
-    ['rsvp', 'Send an RSVP', 'RSVP'],
-    ['seat', 'Seat a guest', 'Seat'],
-  ];
+  const upgrade = () => {
+    // ================================================================ find the section
+    const section = host;
+    const stage = section && section.querySelector('.hws__stage');
+    const tracker = stage && stage.querySelector('.hws__tracker');
+    const phone = stage && stage.querySelector('.hws__phone');
+    const seating = stage && stage.querySelector('.hws__seating');
+    const rsvpBox = phone && phone.querySelector('.hws__site-rsvp');
+    const seatSvg = seating && seating.querySelector('.hws-seatmap');
+    const unseatedBox = seating && seating.querySelector('.hws__unseated');
+    const dragChip = seating && seating.querySelector('.hws__drag');
+    const figure = section && section.querySelector('.hws__visual');
+    const frame = figure && figure.querySelector('.hws__frame');
+    const donut =
+      tracker && tracker.querySelectorAll('.hws-seg--yes, .hws-seg--no, .hws-seg--wait');
+    const counts = tracker && tracker.querySelectorAll('.hws__legend li b');
+    const percent = tracker && tracker.querySelector('.hws__donut-label strong');
+    const replies = tracker && tracker.querySelector('.hws__replies');
+    const seatTotals = seating && seating.querySelector('.hws__card-head span');
 
-  /** Build an element with optional class names and text. */
-  function node(tag, className, text) {
-    const el = document.createElement(tag);
-    if (className) {
-      el.className = className;
+    if (
+      !(
+        frame &&
+        donut &&
+        donut.length === 3 &&
+        counts &&
+        counts.length === 3 &&
+        percent &&
+        replies &&
+        rsvpBox &&
+        seatSvg &&
+        unseatedBox &&
+        seatTotals
+      ) ||
+      section.classList.contains('hws--live')
+    ) {
+      return;
     }
-    if (text) {
-      el.textContent = text;
-    }
-    return el;
-  }
 
-  /** A visually hidden label for assistive technology. */
-  function srOnly(text) {
-    return node('span', 'hws-sr', text);
-  }
-
-  /** Label a control for the site's own, consent-respecting usage counts (clicks only). */
-  function measure(el, event, label) {
-    el.dataset.analyticsEvent = `wedding_showcase_${event}`;
-    if (label) {
-      el.dataset.analyticsLabel = label;
-    }
-  }
-
-  function reducedMotion() {
-    return (
-      typeof window.matchMedia === 'function' &&
-      window.matchMedia('(prefers-reduced-motion: reduce)').matches
-    );
-  }
-
-  // ================================================================ state
-  let reply = null;
-  let meal = '';
-  let view = 'website';
-  let selected = GUESTS[0];
-  const seatedAt = new Map();
-  const done = { colour: false, rsvp: false, seat: false };
-  let autoTimers = [];
-  let drag = null;
-  let suppressClick = false;
-
-  // ================================================================ upgrade the static markup
-  stage.setAttribute('role', 'group');
-  stage.setAttribute(
-    'aria-label',
-    'Interactive wedding tools: a guest website on a phone, an RSVP tracker and a seating plan.'
-  );
-  stage.dataset.view = view;
-  [tracker, phone, seating].forEach(card => card.removeAttribute('aria-hidden'));
-
-  // The phone, its colour selector and the QR card form one column, so they keep their spacing
-  // however tall the phone grows (it gets taller when the RSVP message or the meal choices appear).
-  const qrChip = stage.querySelector('.hws__chip--qr');
-  const phoneColumn = node('div', 'hws__phonecol');
-  phone.before(phoneColumn);
-  phoneColumn.append(phone);
-  if (qrChip) {
-    phoneColumn.append(qrChip);
-  }
-
-  // Guest replies: keep the three original rows so a new reply can be shown without growing the card.
-  const originalReplies = [...replies.children].map(row => row.cloneNode(true));
-
-  // Phone: the RSVP block becomes a real form, and the two "RSVP" pills become buttons.
-  const question = rsvpBox.querySelector('small');
-  const options = [...rsvpBox.querySelectorAll('span')].map(span => span.textContent.trim());
-  const form = node('form', 'hws__site-rsvp');
-  form.setAttribute('aria-labelledby', 'hws-reply-question');
-  form.noValidate = true;
-  const questionLabel = node(
-    'small',
-    '',
-    question ? question.textContent : 'Will you be joining us?'
-  );
-  questionLabel.id = 'hws-reply-question';
-  form.appendChild(questionLabel);
-  ['yes', 'no'].forEach((value, index) => {
-    const label = node('label', 'hws-reply');
-    const input = node('input');
-    input.type = 'radio';
-    input.name = 'hws-reply';
-    input.value = value;
-    input.defaultChecked = index === 0;
-    input.checked = index === 0;
-    label.append(
-      input,
-      node('span', '', options[index] || (index ? 'Regretfully declining' : 'Joyfully attending'))
-    );
-    form.appendChild(label);
-  });
-  // only guests who are coming are asked what they would like to eat
-  const meals = node('div', 'hws-meals');
-  meals.setAttribute('role', 'group');
-  meals.setAttribute('aria-label', 'Meal choice');
-  MEALS.forEach(name => {
-    const label = node('label', 'hws-meal');
-    const input = node('input');
-    input.type = 'radio';
-    input.name = 'hws-meal';
-    input.value = name;
-    label.append(input, node('span', '', name));
-    meals.appendChild(label);
-  });
-  form.appendChild(meals);
-  const send = node('button', 'hws-send', 'Send RSVP');
-  send.type = 'submit';
-  measure(send, 'rsvp');
-  const sent = node('p', 'hws-rsvp-confirm');
-  sent.setAttribute('role', 'status');
-  const seeReplies = node('button', 'hws-see-replies', 'See guest replies');
-  seeReplies.type = 'button';
-  seeReplies.hidden = true;
-  form.append(send, sent, seeReplies);
-  rsvpBox.replaceWith(form);
-
-  phone.querySelectorAll('.hws__site-bar b, .hws__site-hero b').forEach(pill => {
-    const button = node('button', 'hws-phone-link', pill.textContent.trim());
-    button.type = 'button';
-    button.addEventListener('click', () => {
-      const checked = form.querySelector('input[name="hws-reply"]:checked');
-      form.scrollIntoView({ block: 'nearest', behavior: 'auto' });
-      if (checked) {
-        checked.focus({ preventScroll: true });
-      }
-    });
-    pill.replaceWith(button);
-  });
-
-  // Seating: group the seats by table, turn the round tables into buttons and the guests into choices.
-  const tables = [];
-  [...seatSvg.children].forEach(child => {
-    if (child.classList.contains('hws-table')) {
-      tables.push({ shape: child, seats: [], number: 0, label: '' });
-    } else if (child.classList.contains('hws-seat') && tables.length) {
-      tables[tables.length - 1].seats.push(child);
-    } else if (child.classList.contains('hws-table-label') && tables.length) {
-      const table = tables[tables.length - 1];
-      table.label = child.textContent.trim();
-      table.number = Number(table.label) || 0;
-    }
-  });
-  const ring = seatSvg.querySelector('.hws-drop');
-  const ringTable = tables.find(table => table.shape.classList.contains('is-drop'));
-  const ringHome = ring && {
-    cx: ring.getAttribute('cx'),
-    cy: ring.getAttribute('cy'),
-    shape: ringTable ? ringTable.shape : null,
-  };
-  const initialSeats = tables.map(table =>
-    table.seats.map(seat => seat.classList.contains('is-taken'))
-  );
-  seatSvg.removeAttribute('aria-hidden');
-  seatSvg.setAttribute('role', 'group');
-  seatSvg.setAttribute('aria-label', 'Seating plan');
-  if (dragChip) {
-    dragChip.setAttribute('aria-hidden', 'true');
-  }
-
-  const unseatedLabel = unseatedBox.querySelector('small');
-  if (unseatedLabel) {
-    unseatedLabel.textContent = 'Guests';
-  }
-  unseatedBox.querySelectorAll('span').forEach(span => span.remove());
-  const guestButtons = GUESTS.map(name => {
-    const button = node('button', 'hws-guest', name);
-    button.type = 'button';
-    button.dataset.guest = name;
-    unseatedBox.appendChild(button);
-    return button;
-  });
-  const seatRow = node('div', 'hws-seat-row');
-  const status = node('p', 'hws-seat-status');
-  status.setAttribute('role', 'status');
-  const autoSeatButton = node('button', 'hws-autoseat', 'Auto-seat');
-  autoSeatButton.type = 'button';
-  autoSeatButton.setAttribute('aria-label', 'Auto-seat all the guests');
-  measure(autoSeatButton, 'autoseat');
-  seatRow.append(status, autoSeatButton);
-  seating.appendChild(seatRow);
-
-  // ================================================================ toolbar: steps, tabs, Reset
-  const toolbar = node('div', 'hws-playbar');
-  toolbar.setAttribute('role', 'group');
-  toolbar.setAttribute('aria-label', 'Explore the wedding preview');
-  const viewButtons = VIEWS.map(([key, text]) => {
-    const button = node('button', 'hws-view', text);
-    button.type = 'button';
-    button.dataset.view = key;
-    measure(button, 'tab', key);
-    toolbar.appendChild(button);
-    return button;
-  });
-  const steps = node('ol', 'hws-steps');
-  steps.setAttribute('aria-label', 'Try it in three steps');
-  const stepButtons = STEPS.map(([key, text, short], index) => {
-    const item = node('li');
-    const button = node('button', 'hws-step');
-    button.type = 'button';
-    button.dataset.step = key;
-    measure(button, 'step', key);
-    button.append(
-      node('span', 'hws-step__n', String(index + 1)),
-      node('span', 'hws-step__full', text),
-      node('span', 'hws-step__short', short),
-      srOnly('')
-    );
-    item.appendChild(button);
-    steps.appendChild(item);
-    return button;
-  });
-  toolbar.appendChild(steps);
-  const reset = node('button', 'hws-reset', 'Reset');
-  reset.type = 'button';
-  measure(reset, 'reset');
-  toolbar.appendChild(reset);
-
-  // ================================================================ colour selector
-  // A handful of colours to show what the guest website can look like. It lives in the phone's
-  // column, between the phone and the QR card.
-  const colourBar = node('div', 'hws-colours');
-  colourBar.setAttribute('role', 'group');
-  colourBar.setAttribute('aria-label', 'Website colour');
-  colourBar.appendChild(node('span', 'hws-colours__label', 'Colour'));
-  const dots = LOOKS.map(look => {
-    const label = node('label', 'hws-dot');
-    const input = node('input');
-    input.type = 'radio';
-    input.name = 'hws-colour';
-    input.value = look.key;
-    const face = node('span', 'hws-dot__face');
-    face.style.setProperty('--dot', look.pastel);
-    label.append(input, face, srOnly(look.name));
-    colourBar.appendChild(label);
-    return input;
-  });
-  const colourStatus = node('p', 'hws-sr');
-  colourStatus.setAttribute('role', 'status');
-  colourBar.appendChild(colourStatus);
-  phone.after(colourBar);
-
-  // the call to action appears once the main flow has been tried
-  const finish = node('div', 'hws-finish');
-  finish.hidden = true;
-  const finishLink = node('a', 'hws-finish__link', 'Create your free wedding website');
-  finishLink.href = SIGN_UP_URL;
-  measure(finishLink, 'cta');
-  finish.appendChild(finishLink);
-
-  frame.before(toolbar);
-  frame.after(finish);
-
-  // ================================================================ rendering
-  /** Show the chosen panel on narrow screens, where the three cards cannot sit side by side. */
-  function renderView() {
-    stage.dataset.view = view;
-    viewButtons.forEach(button =>
-      button.setAttribute('aria-pressed', String(button.dataset.view === view))
-    );
-  }
-
-  /** Tick the steps that have been tried, and show the call to action after RSVP and seating. */
-  function renderSteps() {
-    stepButtons.forEach(button => {
-      const key = button.dataset.step;
-      const item = button.parentElement;
-      item.classList.toggle('is-done', done[key]);
-      button.firstChild.textContent = done[key]
-        ? '✓'
-        : String(STEPS.findIndex(s => s[0] === key) + 1);
-      button.lastChild.textContent = done[key] ? ' (done)' : '';
-    });
-    finish.hidden = !(done.rsvp && done.seat);
-  }
-
-  /** Paint the whole section and the phone in a look, or put the original colours back. */
-  function applyLook(look) {
-    const built = look ? buildLook(look.pastel) : null;
-    const phoneProperties = [
-      ['bg', '--hp-bg'],
-      ['text', '--hp-text'],
-      ['muted', '--hp-muted'],
-      ['accent', '--hp-accent'],
-      ['onAccent', '--hp-on-accent'],
-      ['ink', '--hp-ink'],
-      ['soft', '--hp-soft'],
-      ['border', '--hp-border'],
-      ['divider', '--hp-divider'],
-      ['deep', '--hp-deep'],
-      ['mid', '--hp-mid'],
-      ['light', '--hp-light'],
-      ['heroInk', '--hp-hero-ink'],
+    const INVITED = 96;
+    const BASE = { yes: 64, no: 14, wait: 18 };
+    const CIRCUMFERENCE = 2 * Math.PI * 38;
+    const GUESTS = ['Charlotte E.', 'Priya S.', 'Tom H.'];
+    const MEALS = ['Beef', 'Salmon', 'Vegetarian'];
+    const SECTION_PROPERTIES = Object.keys(buildLook(LOOKS[0].pastel).section);
+    const SIGN_UP_URL = '/auth?tab=create&role=customer';
+    const AUTO_SEAT_STEP_MS = 320;
+    const VIEWS = [
+      ['website', 'Website'],
+      ['replies', 'Guest replies'],
+      ['seating', 'Seating plan'],
     ];
-    phoneProperties.forEach(([key, property]) => {
-      if (built) {
-        stage.style.setProperty(property, built.phone[key]);
-      } else {
-        stage.style.removeProperty(property);
-      }
-    });
-    SECTION_PROPERTIES.forEach(property => {
-      if (built) {
-        section.style.setProperty(property, built.section[property]);
-      } else {
-        section.style.removeProperty(property);
-      }
-    });
-  }
+    const STEPS = [
+      ['colour', 'Pick a colour', 'Colour'],
+      ['rsvp', 'Send an RSVP', 'RSVP'],
+      ['seat', 'Seat a guest', 'Seat'],
+    ];
 
-  /** Recalculate the donut, the counts and the reply list; `animate` briefly marks what changed. */
-  function renderReplies(animate) {
-    const yes = BASE.yes + (reply === 'yes' ? 1 : 0);
-    const no = BASE.no + (reply === 'no' ? 1 : 0);
-    const wait = BASE.wait - (reply ? 1 : 0);
-    [yes, no, wait].forEach((value, index) => {
-      const changed = animate && counts[index].textContent !== String(value);
-      counts[index].textContent = String(value);
-      counts[index].classList.remove('is-changed');
-      if (changed) {
-        void counts[index].offsetWidth;
-        counts[index].classList.add('is-changed');
+    /** Build an element with optional class names and text. */
+    function node(tag, className, text) {
+      const el = document.createElement(tag);
+      if (className) {
+        el.className = className;
       }
-    });
-    percent.textContent = `${Math.round(((yes + no) / INVITED) * 100)}%`;
-    let offset = 0;
-    [yes, no, wait].forEach((value, index) => {
-      const length = (value / INVITED) * CIRCUMFERENCE;
-      donut[index].setAttribute(
-        'stroke-dasharray',
-        `${length.toFixed(1)} ${CIRCUMFERENCE.toFixed(1)}`
+      if (text) {
+        el.textContent = text;
+      }
+      return el;
+    }
+
+    /** A visually hidden label for assistive technology. */
+    function srOnly(text) {
+      return node('span', 'hws-sr', text);
+    }
+
+    /** Label a control for the site's own, consent-respecting usage counts (clicks only). */
+    function measure(el, event, label) {
+      el.dataset.analyticsEvent = `wedding_showcase_${event}`;
+      if (label) {
+        el.dataset.analyticsLabel = label;
+      }
+    }
+
+    function reducedMotion() {
+      return (
+        typeof window.matchMedia === 'function' &&
+        window.matchMedia('(prefers-reduced-motion: reduce)').matches
       );
-      donut[index].setAttribute('stroke-dashoffset', String((-offset).toFixed(1)));
-      offset += length;
-    });
-    const rows = originalReplies.map(row => row.cloneNode(true));
-    if (reply) {
-      const row = node('li', 'hws-new-reply');
-      row.dataset.reply = reply;
-      const detail = node('div');
-      detail.append(node('strong', '', 'Your reply'), node('span', '', 'Party of 1'));
-      row.append(
-        node('span', 'hws__avatar hws__avatar--you', 'You'),
-        detail,
-        node('em', '', reply === 'no' ? 'Declined' : meal || 'Attending')
-      );
-      rows.unshift(row);
     }
-    replies.replaceChildren(...rows.slice(0, 3));
-  }
 
-  /** Seats still free at one table. */
-  function freeSeats(table) {
-    return table.seats.filter(seat => !seat.classList.contains('is-taken')).length;
-  }
+    // ================================================================ state
+    let reply = null;
+    let meal = '';
+    let view = 'website';
+    let selected = GUESTS[0];
+    const seatedAt = new Map();
+    const done = { colour: false, rsvp: false, seat: false };
+    let autoTimers = [];
+    let drag = null;
+    let suppressClick = false;
 
-  /** Keep the chip, the guest buttons, the table buttons and the totals in step with the seating. */
-  function renderSeating() {
-    const free = tables.reduce((total, table) => total + freeSeats(table), 0);
-    seatTotals.textContent = `${tables.length} tables · ${tables.reduce(
-      (total, table) => total + table.seats.length,
-      0
-    )} seats · ${free} free`;
-    guestButtons.forEach(button => {
-      const name = button.dataset.guest;
-      const table = seatedAt.get(name);
-      button.setAttribute('aria-pressed', String(name === selected));
-      button.setAttribute('aria-disabled', String(Boolean(table)));
-      button.classList.toggle('is-seated', Boolean(table));
-      if (table) {
-        button.setAttribute('aria-label', `${name}, seated at table ${table}`);
-      } else {
-        button.removeAttribute('aria-label');
-      }
-    });
-    if (dragChip) {
-      // the chip only hints at the first move; once guests are being seated the guest buttons say who is next
-      dragChip.hidden = !selected || seatedAt.size > 0;
-      if (selected && dragChip.lastChild) {
-        dragChip.lastChild.textContent = selected;
-      }
-    }
-    tables.forEach(table => {
-      if (table.shape.getAttribute('role') !== 'button') {
-        return;
-      }
-      const left = freeSeats(table);
-      const full = left === 0;
-      table.shape.setAttribute('aria-disabled', String(full || !selected));
-      table.shape.setAttribute(
-        'aria-label',
-        full
-          ? `Table ${table.number}, full`
-          : `Table ${table.number}, ${left} seat${left === 1 ? '' : 's'} free${
-              selected ? `. Seat ${selected} here.` : ''
-            }`
-      );
-      table.shape.classList.toggle('is-open', !full && Boolean(selected));
-    });
-    autoSeatButton.setAttribute('aria-disabled', String(seatedAt.size === GUESTS.length));
-  }
-
-  /** Put the dashed ring round the table that was last chosen (or back at table 2 on reset). */
-  function moveRing(table) {
-    const target = table || ringHome;
-    if (!ring || !target) {
-      return;
-    }
-    ring.setAttribute('cx', table ? table.shape.getAttribute('cx') : target.cx);
-    ring.setAttribute('cy', table ? table.shape.getAttribute('cy') : target.cy);
-    tables.forEach(candidate => {
-      candidate.shape.classList.toggle('is-drop', Boolean(target.shape) && candidate === table);
-    });
-    if (!table && ringHome.shape) {
-      ringHome.shape.classList.add('is-drop');
-    }
-  }
-
-  // ================================================================ behaviour
-  function say(message) {
-    status.textContent = message;
-  }
-
-  function sayColour(message) {
-    colourStatus.textContent = message;
-  }
-
-  /** Choose which guest the next table tap will seat. */
-  function chooseGuest(name) {
-    if (seatedAt.has(name)) {
-      say(`${name} is already at Table ${seatedAt.get(name)}.`);
-      return;
-    }
-    selected = name;
-    renderSeating();
-    say(`${name} selected. Tap a table with free seats.`);
-  }
-
-  /** Seat the selected guest at a table, if it has room. Returns whether someone was seated. */
-  function seatAt(table) {
-    if (!selected) {
-      say('Everyone is seated. Choose Reset to try again.');
-      return false;
-    }
-    if (freeSeats(table) === 0) {
-      say(`Table ${table.number} is full. Try another table.`);
-      return false;
-    }
-    const seat = table.seats.find(candidate => !candidate.classList.contains('is-taken'));
-    seat.classList.add('is-taken', 'is-new');
-    seatedAt.set(selected, table.number);
-    moveRing(table);
-    const name = selected;
-    selected = GUESTS.find(guest => !seatedAt.has(guest)) || null;
-    done.seat = true;
-    renderSeating();
-    renderSteps();
-    const remaining = GUESTS.length - seatedAt.size;
-    say(
-      `${name} is now at Table ${table.number}. ${
-        remaining
-          ? `${remaining} guest${remaining === 1 ? '' : 's'} left to seat.`
-          : 'Everyone is seated.'
-      }`
+    // ================================================================ upgrade the static markup
+    stage.setAttribute('role', 'group');
+    stage.setAttribute(
+      'aria-label',
+      'Interactive wedding tools: a guest website on a phone, an RSVP tracker and a seating plan.'
     );
-    return true;
-  }
+    stage.dataset.view = view;
+    [tracker, phone, seating].forEach(card => card.removeAttribute('aria-hidden'));
 
-  function cancelAutoSeat() {
-    autoTimers.forEach(timer => clearTimeout(timer));
-    autoTimers = [];
-  }
+    // The phone, its colour selector and the QR card form one column, so they keep their spacing
+    // however tall the phone grows (it gets taller when the RSVP message or the meal choices appear).
+    const qrChip = stage.querySelector('.hws__chip--qr');
+    const phoneColumn = node('div', 'hws__phonecol');
+    phone.before(phoneColumn);
+    phoneColumn.append(phone);
+    if (qrChip) {
+      phoneColumn.append(qrChip);
+    }
 
-  /** Seat everyone who is left, one by one (all at once for visitors who prefer less motion). */
-  function autoSeat() {
-    if (autoTimers.length) {
-      return;
-    }
-    const waiting = GUESTS.filter(name => !seatedAt.has(name));
-    if (!waiting.length) {
-      say('Everyone is seated. Choose Reset to try again.');
-      return;
-    }
-    const seatNext = name => {
-      const table = tables.find(
-        candidate => candidate.shape.getAttribute('role') === 'button' && freeSeats(candidate) > 0
+    // Guest replies: keep the three original rows so a new reply can be shown without growing the card.
+    const originalReplies = [...replies.children].map(row => row.cloneNode(true));
+
+    // Phone: the RSVP block becomes a real form, and the two "RSVP" pills become buttons.
+    const question = rsvpBox.querySelector('small');
+    const options = [...rsvpBox.querySelectorAll('span')].map(span => span.textContent.trim());
+    const form = node('form', 'hws__site-rsvp');
+    form.setAttribute('aria-labelledby', 'hws-reply-question');
+    form.noValidate = true;
+    const questionLabel = node(
+      'small',
+      '',
+      question ? question.textContent : 'Will you be joining us?'
+    );
+    questionLabel.id = 'hws-reply-question';
+    form.appendChild(questionLabel);
+    ['yes', 'no'].forEach((value, index) => {
+      const label = node('label', 'hws-reply');
+      const input = node('input');
+      input.type = 'radio';
+      input.name = 'hws-reply';
+      input.value = value;
+      input.defaultChecked = index === 0;
+      input.checked = index === 0;
+      label.append(
+        input,
+        node('span', '', options[index] || (index ? 'Regretfully declining' : 'Joyfully attending'))
       );
-      if (table) {
-        selected = name;
-        seatAt(table);
+      form.appendChild(label);
+    });
+    // only guests who are coming are asked what they would like to eat
+    const meals = node('div', 'hws-meals');
+    meals.setAttribute('role', 'group');
+    meals.setAttribute('aria-label', 'Meal choice');
+    MEALS.forEach(name => {
+      const label = node('label', 'hws-meal');
+      const input = node('input');
+      input.type = 'radio';
+      input.name = 'hws-meal';
+      input.value = name;
+      label.append(input, node('span', '', name));
+      meals.appendChild(label);
+    });
+    form.appendChild(meals);
+    const send = node('button', 'hws-send', 'Send RSVP');
+    send.type = 'submit';
+    measure(send, 'rsvp');
+    const sent = node('p', 'hws-rsvp-confirm');
+    sent.setAttribute('role', 'status');
+    const seeReplies = node('button', 'hws-see-replies', 'See guest replies');
+    seeReplies.type = 'button';
+    seeReplies.hidden = true;
+    form.append(send, sent, seeReplies);
+    rsvpBox.replaceWith(form);
+
+    phone.querySelectorAll('.hws__site-bar b, .hws__site-hero b').forEach(pill => {
+      const button = node('button', 'hws-phone-link', pill.textContent.trim());
+      button.type = 'button';
+      button.addEventListener('click', () => {
+        const checked = form.querySelector('input[name="hws-reply"]:checked');
+        form.scrollIntoView({ block: 'nearest', behavior: 'auto' });
+        if (checked) {
+          checked.focus({ preventScroll: true });
+        }
+      });
+      pill.replaceWith(button);
+    });
+
+    // Seating: group the seats by table, turn the round tables into buttons and the guests into choices.
+    const tables = [];
+    [...seatSvg.children].forEach(child => {
+      if (child.classList.contains('hws-table')) {
+        tables.push({ shape: child, seats: [], number: 0, label: '' });
+      } else if (child.classList.contains('hws-seat') && tables.length) {
+        tables[tables.length - 1].seats.push(child);
+      } else if (child.classList.contains('hws-table-label') && tables.length) {
+        const table = tables[tables.length - 1];
+        table.label = child.textContent.trim();
+        table.number = Number(table.label) || 0;
       }
+    });
+    const ring = seatSvg.querySelector('.hws-drop');
+    const ringTable = tables.find(table => table.shape.classList.contains('is-drop'));
+    const ringHome = ring && {
+      cx: ring.getAttribute('cx'),
+      cy: ring.getAttribute('cy'),
+      shape: ringTable ? ringTable.shape : null,
     };
-    if (reducedMotion()) {
-      waiting.forEach(seatNext);
-      return;
+    const initialSeats = tables.map(table =>
+      table.seats.map(seat => seat.classList.contains('is-taken'))
+    );
+    seatSvg.removeAttribute('aria-hidden');
+    seatSvg.setAttribute('role', 'group');
+    seatSvg.setAttribute('aria-label', 'Seating plan');
+    if (dragChip) {
+      dragChip.setAttribute('aria-hidden', 'true');
     }
-    waiting.forEach((name, index) => {
-      autoTimers.push(
-        setTimeout(() => {
-          seatNext(name);
-          if (index === waiting.length - 1) {
-            autoTimers = [];
-          }
-        }, index * AUTO_SEAT_STEP_MS)
+
+    const unseatedLabel = unseatedBox.querySelector('small');
+    if (unseatedLabel) {
+      unseatedLabel.textContent = 'Guests';
+    }
+    unseatedBox.querySelectorAll('span').forEach(span => span.remove());
+    const guestButtons = GUESTS.map(name => {
+      const button = node('button', 'hws-guest', name);
+      button.type = 'button';
+      button.dataset.guest = name;
+      unseatedBox.appendChild(button);
+      return button;
+    });
+    const seatRow = node('div', 'hws-seat-row');
+    const status = node('p', 'hws-seat-status');
+    status.setAttribute('role', 'status');
+    const autoSeatButton = node('button', 'hws-autoseat', 'Auto-seat');
+    autoSeatButton.type = 'button';
+    autoSeatButton.setAttribute('aria-label', 'Auto-seat all the guests');
+    measure(autoSeatButton, 'autoseat');
+    seatRow.append(status, autoSeatButton);
+    seating.appendChild(seatRow);
+
+    // ================================================================ toolbar: steps, tabs, Reset
+    const toolbar = node('div', 'hws-playbar');
+    toolbar.setAttribute('role', 'group');
+    toolbar.setAttribute('aria-label', 'Explore the wedding preview');
+    const viewButtons = VIEWS.map(([key, text]) => {
+      const button = node('button', 'hws-view', text);
+      button.type = 'button';
+      button.dataset.view = key;
+      measure(button, 'tab', key);
+      toolbar.appendChild(button);
+      return button;
+    });
+    const steps = node('ol', 'hws-steps');
+    steps.setAttribute('aria-label', 'Try it in three steps');
+    const stepButtons = STEPS.map(([key, text, short], index) => {
+      const item = node('li');
+      const button = node('button', 'hws-step');
+      button.type = 'button';
+      button.dataset.step = key;
+      measure(button, 'step', key);
+      button.append(
+        node('span', 'hws-step__n', String(index + 1)),
+        node('span', 'hws-step__full', text),
+        node('span', 'hws-step__short', short),
+        srOnly('')
       );
+      item.appendChild(button);
+      steps.appendChild(item);
+      return button;
     });
-  }
+    toolbar.appendChild(steps);
+    const reset = node('button', 'hws-reset', 'Reset');
+    reset.type = 'button';
+    measure(reset, 'reset');
+    toolbar.appendChild(reset);
 
-  // Round tables with a number become buttons; full tables stay in the plan but say they are full.
-  tables.forEach(table => {
-    if (!table.number || table.shape.tagName.toLowerCase() !== 'circle') {
-      return;
-    }
-    const shape = table.shape;
-    shape.setAttribute('role', 'button');
-    shape.setAttribute('tabindex', '0');
-    measure(shape, 'seat');
-    shape.addEventListener('click', () => seatAt(table));
-    shape.addEventListener('keydown', event => {
-      if (event.key === 'Enter' || event.key === ' ') {
-        event.preventDefault();
-        seatAt(table);
-      }
+    // ================================================================ colour selector
+    // A handful of colours to show what the guest website can look like. It lives in the phone's
+    // column, between the phone and the QR card.
+    const colourBar = node('div', 'hws-colours');
+    colourBar.setAttribute('role', 'group');
+    colourBar.setAttribute('aria-label', 'Website colour');
+    colourBar.appendChild(node('span', 'hws-colours__label', 'Colour'));
+    const dots = LOOKS.map(look => {
+      const label = node('label', 'hws-dot');
+      const input = node('input');
+      input.type = 'radio';
+      input.name = 'hws-colour';
+      input.value = look.key;
+      const face = node('span', 'hws-dot__face');
+      face.style.setProperty('--dot', look.pastel);
+      label.append(input, face, srOnly(look.name));
+      colourBar.appendChild(label);
+      return input;
     });
-  });
+    const colourStatus = node('p', 'hws-sr');
+    colourStatus.setAttribute('role', 'status');
+    colourBar.appendChild(colourStatus);
+    phone.after(colourBar);
 
-  guestButtons.forEach(button =>
-    button.addEventListener('click', () => {
-      if (suppressClick) {
+    // the call to action appears once the main flow has been tried
+    const finish = node('div', 'hws-finish');
+    finish.hidden = true;
+    const finishLink = node('a', 'hws-finish__link', 'Create your free wedding website');
+    finishLink.href = SIGN_UP_URL;
+    measure(finishLink, 'cta');
+    finish.appendChild(finishLink);
+
+    frame.before(toolbar);
+    frame.after(finish);
+
+    // ================================================================ rendering
+    /** Show the chosen panel on narrow screens, where the three cards cannot sit side by side. */
+    function renderView() {
+      stage.dataset.view = view;
+      viewButtons.forEach(button =>
+        button.setAttribute('aria-pressed', String(button.dataset.view === view))
+      );
+    }
+
+    /** Tick the steps that have been tried, and show the call to action after RSVP and seating. */
+    function renderSteps() {
+      stepButtons.forEach(button => {
+        const key = button.dataset.step;
+        const item = button.parentElement;
+        item.classList.toggle('is-done', done[key]);
+        button.firstChild.textContent = done[key]
+          ? '✓'
+          : String(STEPS.findIndex(s => s[0] === key) + 1);
+        button.lastChild.textContent = done[key] ? ' (done)' : '';
+      });
+      finish.hidden = !(done.rsvp && done.seat);
+    }
+
+    /** Paint the whole section and the phone in a look, or put the original colours back. */
+    function applyLook(look) {
+      const built = look ? buildLook(look.pastel) : null;
+      const phoneProperties = [
+        ['bg', '--hp-bg'],
+        ['text', '--hp-text'],
+        ['muted', '--hp-muted'],
+        ['accent', '--hp-accent'],
+        ['onAccent', '--hp-on-accent'],
+        ['ink', '--hp-ink'],
+        ['soft', '--hp-soft'],
+        ['border', '--hp-border'],
+        ['divider', '--hp-divider'],
+        ['deep', '--hp-deep'],
+        ['mid', '--hp-mid'],
+        ['light', '--hp-light'],
+        ['heroInk', '--hp-hero-ink'],
+      ];
+      phoneProperties.forEach(([key, property]) => {
+        if (built) {
+          stage.style.setProperty(property, built.phone[key]);
+        } else {
+          stage.style.removeProperty(property);
+        }
+      });
+      SECTION_PROPERTIES.forEach(property => {
+        if (built) {
+          section.style.setProperty(property, built.section[property]);
+        } else {
+          section.style.removeProperty(property);
+        }
+      });
+    }
+
+    /** Recalculate the donut, the counts and the reply list; `animate` briefly marks what changed. */
+    function renderReplies(animate) {
+      const yes = BASE.yes + (reply === 'yes' ? 1 : 0);
+      const no = BASE.no + (reply === 'no' ? 1 : 0);
+      const wait = BASE.wait - (reply ? 1 : 0);
+      [yes, no, wait].forEach((value, index) => {
+        const changed = animate && counts[index].textContent !== String(value);
+        counts[index].textContent = String(value);
+        counts[index].classList.remove('is-changed');
+        if (changed) {
+          void counts[index].offsetWidth;
+          counts[index].classList.add('is-changed');
+        }
+      });
+      percent.textContent = `${Math.round(((yes + no) / INVITED) * 100)}%`;
+      let offset = 0;
+      [yes, no, wait].forEach((value, index) => {
+        const length = (value / INVITED) * CIRCUMFERENCE;
+        donut[index].setAttribute(
+          'stroke-dasharray',
+          `${length.toFixed(1)} ${CIRCUMFERENCE.toFixed(1)}`
+        );
+        donut[index].setAttribute('stroke-dashoffset', String((-offset).toFixed(1)));
+        offset += length;
+      });
+      const rows = originalReplies.map(row => row.cloneNode(true));
+      if (reply) {
+        const row = node('li', 'hws-new-reply');
+        row.dataset.reply = reply;
+        const detail = node('div');
+        detail.append(node('strong', '', 'Your reply'), node('span', '', 'Party of 1'));
+        row.append(
+          node('span', 'hws__avatar hws__avatar--you', 'You'),
+          detail,
+          node('em', '', reply === 'no' ? 'Declined' : meal || 'Attending')
+        );
+        rows.unshift(row);
+      }
+      replies.replaceChildren(...rows.slice(0, 3));
+    }
+
+    /** Seats still free at one table. */
+    function freeSeats(table) {
+      return table.seats.filter(seat => !seat.classList.contains('is-taken')).length;
+    }
+
+    /** Keep the chip, the guest buttons, the table buttons and the totals in step with the seating. */
+    function renderSeating() {
+      const free = tables.reduce((total, table) => total + freeSeats(table), 0);
+      seatTotals.textContent = `${tables.length} tables · ${tables.reduce(
+        (total, table) => total + table.seats.length,
+        0
+      )} seats · ${free} free`;
+      guestButtons.forEach(button => {
+        const name = button.dataset.guest;
+        const table = seatedAt.get(name);
+        button.setAttribute('aria-pressed', String(name === selected));
+        button.setAttribute('aria-disabled', String(Boolean(table)));
+        button.classList.toggle('is-seated', Boolean(table));
+        if (table) {
+          button.setAttribute('aria-label', `${name}, seated at table ${table}`);
+        } else {
+          button.removeAttribute('aria-label');
+        }
+      });
+      if (dragChip) {
+        // the chip only hints at the first move; once guests are being seated the guest buttons say who is next
+        dragChip.hidden = !selected || seatedAt.size > 0;
+        if (selected && dragChip.lastChild) {
+          dragChip.lastChild.textContent = selected;
+        }
+      }
+      tables.forEach(table => {
+        if (table.shape.getAttribute('role') !== 'button') {
+          return;
+        }
+        const left = freeSeats(table);
+        const full = left === 0;
+        table.shape.setAttribute('aria-disabled', String(full || !selected));
+        table.shape.setAttribute(
+          'aria-label',
+          full
+            ? `Table ${table.number}, full`
+            : `Table ${table.number}, ${left} seat${left === 1 ? '' : 's'} free${
+                selected ? `. Seat ${selected} here.` : ''
+              }`
+        );
+        table.shape.classList.toggle('is-open', !full && Boolean(selected));
+      });
+      autoSeatButton.setAttribute('aria-disabled', String(seatedAt.size === GUESTS.length));
+    }
+
+    /** Put the dashed ring round the table that was last chosen (or back at table 2 on reset). */
+    function moveRing(table) {
+      const target = table || ringHome;
+      if (!ring || !target) {
         return;
       }
-      chooseGuest(button.dataset.guest);
-    })
-  );
-  autoSeatButton.addEventListener('click', autoSeat);
-
-  // Dragging a guest onto a table is for mouse and pen only: on touch screens it would fight with
-  // scrolling, and tap-a-guest-then-tap-a-table works better there.
-  function tableUnder(event) {
-    if (typeof document.elementFromPoint !== 'function') {
-      return null;
+      ring.setAttribute('cx', table ? table.shape.getAttribute('cx') : target.cx);
+      ring.setAttribute('cy', table ? table.shape.getAttribute('cy') : target.cy);
+      tables.forEach(candidate => {
+        candidate.shape.classList.toggle('is-drop', Boolean(target.shape) && candidate === table);
+      });
+      if (!table && ringHome.shape) {
+        ringHome.shape.classList.add('is-drop');
+      }
     }
-    const el = document.elementFromPoint(event.clientX, event.clientY);
-    const shape = el && el.closest ? el.closest('.hws-table[role="button"]') : null;
-    const table = shape && tables.find(candidate => candidate.shape === shape);
-    return table && freeSeats(table) > 0 ? table : null;
-  }
 
-  function stopDrag() {
-    document.removeEventListener('pointermove', onDragMove);
-    document.removeEventListener('pointerup', onDragEnd);
-    document.removeEventListener('pointercancel', stopDrag);
-    document.removeEventListener('keydown', onDragKey);
-    if (drag && drag.ghost) {
-      drag.ghost.remove();
+    // ================================================================ behaviour
+    function say(message) {
+      status.textContent = message;
     }
-    section.classList.remove('is-dragging');
-    tables.forEach(table => table.shape.classList.remove('is-over'));
-    drag = null;
-  }
 
-  function onDragKey(event) {
-    if (event.key === 'Escape') {
-      stopDrag();
+    function sayColour(message) {
+      colourStatus.textContent = message;
     }
-  }
 
-  function onDragMove(event) {
-    if (!drag) {
-      return;
-    }
-    if (!drag.active) {
-      if (Math.hypot(event.clientX - drag.x, event.clientY - drag.y) < 6) {
+    /** Choose which guest the next table tap will seat. */
+    function chooseGuest(name) {
+      if (seatedAt.has(name)) {
+        say(`${name} is already at Table ${seatedAt.get(name)}.`);
         return;
       }
-      drag.active = true;
-      chooseGuest(drag.name);
-      drag.ghost = node('div', 'hws-ghost', drag.name);
-      drag.ghost.setAttribute('aria-hidden', 'true');
-      // the ghost wears the website's colours, like the hint chip it came from
-      const look = window.getComputedStyle(stage);
-      drag.ghost.style.setProperty('background', look.getPropertyValue('--hp-accent'));
-      drag.ghost.style.setProperty('color', look.getPropertyValue('--hp-on-accent'));
-      section.appendChild(drag.ghost);
-      section.classList.add('is-dragging');
+      selected = name;
+      renderSeating();
+      say(`${name} selected. Tap a table with free seats.`);
     }
-    drag.ghost.style.setProperty('left', `${event.clientX + 12}px`);
-    drag.ghost.style.setProperty('top', `${event.clientY + 12}px`);
-    const over = tableUnder(event);
-    tables.forEach(table => table.shape.classList.toggle('is-over', table === over));
-  }
 
-  function onDragEnd(event) {
-    const wasActive = drag && drag.active;
-    const table = wasActive ? tableUnder(event) : null;
-    stopDrag();
-    if (wasActive) {
-      suppressClick = true;
-      setTimeout(() => {
-        suppressClick = false;
-      }, 0);
-      if (table) {
-        seatAt(table);
+    /** Seat the selected guest at a table, if it has room. Returns whether someone was seated. */
+    function seatAt(table) {
+      if (!selected) {
+        say('Everyone is seated. Choose Reset to try again.');
+        return false;
       }
+      if (freeSeats(table) === 0) {
+        say(`Table ${table.number} is full. Try another table.`);
+        return false;
+      }
+      const seat = table.seats.find(candidate => !candidate.classList.contains('is-taken'));
+      seat.classList.add('is-taken', 'is-new');
+      seatedAt.set(selected, table.number);
+      moveRing(table);
+      const name = selected;
+      selected = GUESTS.find(guest => !seatedAt.has(guest)) || null;
+      done.seat = true;
+      renderSeating();
+      renderSteps();
+      const remaining = GUESTS.length - seatedAt.size;
+      say(
+        `${name} is now at Table ${table.number}. ${
+          remaining
+            ? `${remaining} guest${remaining === 1 ? '' : 's'} left to seat.`
+            : 'Everyone is seated.'
+        }`
+      );
+      return true;
     }
-  }
 
-  guestButtons.forEach(button =>
-    button.addEventListener('pointerdown', event => {
-      const name = button.dataset.guest;
-      if (event.pointerType === 'touch' || event.button !== 0 || seatedAt.has(name)) {
+    function cancelAutoSeat() {
+      autoTimers.forEach(timer => clearTimeout(timer));
+      autoTimers = [];
+    }
+
+    /** Seat everyone who is left, one by one (all at once for visitors who prefer less motion). */
+    function autoSeat() {
+      if (autoTimers.length) {
         return;
       }
-      stopDrag();
-      drag = { name, x: event.clientX, y: event.clientY, active: false, ghost: null };
-      document.addEventListener('pointermove', onDragMove);
-      document.addEventListener('pointerup', onDragEnd);
-      document.addEventListener('pointercancel', stopDrag);
-      document.addEventListener('keydown', onDragKey);
-    })
-  );
-
-  viewButtons.forEach(button =>
-    button.addEventListener('click', () => {
-      view = button.dataset.view;
-      renderView();
-    })
-  );
-  seeReplies.addEventListener('click', () => {
-    view = 'replies';
-    renderView();
-  });
-
-  // RSVP: attending guests are asked about meals, those declining are not
-  form.addEventListener('change', event => {
-    if (event.target && event.target.name === 'hws-reply') {
-      meals.hidden = event.target.value === 'no';
+      const waiting = GUESTS.filter(name => !seatedAt.has(name));
+      if (!waiting.length) {
+        say('Everyone is seated. Choose Reset to try again.');
+        return;
+      }
+      const seatNext = name => {
+        const table = tables.find(
+          candidate => candidate.shape.getAttribute('role') === 'button' && freeSeats(candidate) > 0
+        );
+        if (table) {
+          selected = name;
+          seatAt(table);
+        }
+      };
+      if (reducedMotion()) {
+        waiting.forEach(seatNext);
+        return;
+      }
+      waiting.forEach((name, index) => {
+        autoTimers.push(
+          setTimeout(() => {
+            seatNext(name);
+            if (index === waiting.length - 1) {
+              autoTimers = [];
+            }
+          }, index * AUTO_SEAT_STEP_MS)
+        );
+      });
     }
-  });
-  form.addEventListener('submit', event => {
-    event.preventDefault();
-    const chosen = form.querySelector('input[name="hws-reply"]:checked');
-    const choice = form.querySelector('input[name="hws-meal"]:checked');
-    reply = chosen ? chosen.value : 'yes';
-    meal = reply === 'yes' && choice ? choice.value : '';
-    renderReplies(true);
-    send.textContent = 'Update RSVP';
-    sent.textContent = 'RSVP sent. The guest replies have updated.';
-    seeReplies.hidden = false;
-    done.rsvp = true;
-    renderSteps();
-  });
 
-  // Colours: each one repaints the whole section and the phone; Reset puts the original look back
-  dots.forEach((input, index) =>
-    input.addEventListener('change', () => {
-      const look = LOOKS[index];
-      applyLook(look);
-      sayColour(`Colour: ${look.name}.`);
-      if (!done.colour) {
-        done.colour = true;
-        renderSteps();
+    // Round tables with a number become buttons; full tables stay in the plan but say they are full.
+    tables.forEach(table => {
+      if (!table.number || table.shape.tagName.toLowerCase() !== 'circle') {
+        return;
       }
-    })
-  );
+      const shape = table.shape;
+      shape.setAttribute('role', 'button');
+      shape.setAttribute('tabindex', '0');
+      measure(shape, 'seat');
+      shape.addEventListener('click', () => seatAt(table));
+      shape.addEventListener('keydown', event => {
+        if (event.key === 'Enter' || event.key === ' ') {
+          event.preventDefault();
+          seatAt(table);
+        }
+      });
+    });
 
-  // The steps are shortcuts to the part of the page they describe
-  stepButtons.forEach(button =>
-    button.addEventListener('click', () => {
-      const key = button.dataset.step;
-      view = key === 'seat' ? 'seating' : 'website';
-      renderView();
-      const target =
-        key === 'colour'
-          ? dots.find(dot => dot.checked) || dots[0]
-          : key === 'rsvp'
-            ? form.querySelector('input[name="hws-reply"]:checked')
-            : guestButtons.find(guest => guest.getAttribute('aria-pressed') === 'true') ||
-              guestButtons[0];
-      if (target) {
-        target.focus();
-      }
-    })
-  );
-
-  reset.addEventListener('click', () => {
-    cancelAutoSeat();
-    stopDrag();
-    reply = null;
-    meal = '';
-    selected = GUESTS[0];
-    seatedAt.clear();
-    tables.forEach((table, tableIndex) =>
-      table.seats.forEach((seat, seatIndex) => {
-        seat.classList.toggle('is-taken', initialSeats[tableIndex][seatIndex]);
-        seat.classList.remove('is-new');
+    guestButtons.forEach(button =>
+      button.addEventListener('click', () => {
+        if (suppressClick) {
+          return;
+        }
+        chooseGuest(button.dataset.guest);
       })
     );
-    moveRing(null);
-    form.reset();
-    form.querySelector('input[value="yes"]').checked = true;
-    meals.hidden = false;
-    send.textContent = 'Send RSVP';
-    sent.textContent = '';
-    seeReplies.hidden = true;
-    dots.forEach(input => {
-      input.checked = false;
+    autoSeatButton.addEventListener('click', autoSeat);
+
+    // Dragging a guest onto a table is for mouse and pen only: on touch screens it would fight with
+    // scrolling, and tap-a-guest-then-tap-a-table works better there.
+    function tableUnder(event) {
+      if (typeof document.elementFromPoint !== 'function') {
+        return null;
+      }
+      const el = document.elementFromPoint(event.clientX, event.clientY);
+      const shape = el && el.closest ? el.closest('.hws-table[role="button"]') : null;
+      const table = shape && tables.find(candidate => candidate.shape === shape);
+      return table && freeSeats(table) > 0 ? table : null;
+    }
+
+    function stopDrag() {
+      document.removeEventListener('pointermove', onDragMove);
+      document.removeEventListener('pointerup', onDragEnd);
+      document.removeEventListener('pointercancel', stopDrag);
+      document.removeEventListener('keydown', onDragKey);
+      if (drag && drag.ghost) {
+        drag.ghost.remove();
+      }
+      section.classList.remove('is-dragging');
+      tables.forEach(table => table.shape.classList.remove('is-over'));
+      drag = null;
+    }
+
+    function onDragKey(event) {
+      if (event.key === 'Escape') {
+        stopDrag();
+      }
+    }
+
+    function onDragMove(event) {
+      if (!drag) {
+        return;
+      }
+      if (!drag.active) {
+        if (Math.hypot(event.clientX - drag.x, event.clientY - drag.y) < 6) {
+          return;
+        }
+        drag.active = true;
+        chooseGuest(drag.name);
+        drag.ghost = node('div', 'hws-ghost', drag.name);
+        drag.ghost.setAttribute('aria-hidden', 'true');
+        // the ghost wears the website's colours, like the hint chip it came from
+        const look = window.getComputedStyle(stage);
+        drag.ghost.style.setProperty('background', look.getPropertyValue('--hp-accent'));
+        drag.ghost.style.setProperty('color', look.getPropertyValue('--hp-on-accent'));
+        section.appendChild(drag.ghost);
+        section.classList.add('is-dragging');
+      }
+      drag.ghost.style.setProperty('left', `${event.clientX + 12}px`);
+      drag.ghost.style.setProperty('top', `${event.clientY + 12}px`);
+      const over = tableUnder(event);
+      tables.forEach(table => table.shape.classList.toggle('is-over', table === over));
+    }
+
+    function onDragEnd(event) {
+      const wasActive = drag && drag.active;
+      const table = wasActive ? tableUnder(event) : null;
+      stopDrag();
+      if (wasActive) {
+        suppressClick = true;
+        setTimeout(() => {
+          suppressClick = false;
+        }, 0);
+        if (table) {
+          seatAt(table);
+        }
+      }
+    }
+
+    guestButtons.forEach(button =>
+      button.addEventListener('pointerdown', event => {
+        const name = button.dataset.guest;
+        if (event.pointerType === 'touch' || event.button !== 0 || seatedAt.has(name)) {
+          return;
+        }
+        stopDrag();
+        drag = { name, x: event.clientX, y: event.clientY, active: false, ghost: null };
+        document.addEventListener('pointermove', onDragMove);
+        document.addEventListener('pointerup', onDragEnd);
+        document.addEventListener('pointercancel', stopDrag);
+        document.addEventListener('keydown', onDragKey);
+      })
+    );
+
+    viewButtons.forEach(button =>
+      button.addEventListener('click', () => {
+        view = button.dataset.view;
+        renderView();
+      })
+    );
+    seeReplies.addEventListener('click', () => {
+      view = 'replies';
+      renderView();
     });
-    applyLook(null);
-    done.colour = false;
-    done.rsvp = false;
-    done.seat = false;
-    view = 'website';
-    renderReplies();
+
+    // RSVP: attending guests are asked about meals, those declining are not
+    form.addEventListener('change', event => {
+      if (event.target && event.target.name === 'hws-reply') {
+        meals.hidden = event.target.value === 'no';
+      }
+    });
+    form.addEventListener('submit', event => {
+      event.preventDefault();
+      const chosen = form.querySelector('input[name="hws-reply"]:checked');
+      const choice = form.querySelector('input[name="hws-meal"]:checked');
+      reply = chosen ? chosen.value : 'yes';
+      meal = reply === 'yes' && choice ? choice.value : '';
+      renderReplies(true);
+      send.textContent = 'Update RSVP';
+      sent.textContent = 'RSVP sent. The guest replies have updated.';
+      seeReplies.hidden = false;
+      done.rsvp = true;
+      renderSteps();
+    });
+
+    // Colours: each one repaints the whole section and the phone; Reset puts the original look back
+    dots.forEach((input, index) =>
+      input.addEventListener('change', () => {
+        const look = LOOKS[index];
+        applyLook(look);
+        sayColour(`Colour: ${look.name}.`);
+        if (!done.colour) {
+          done.colour = true;
+          renderSteps();
+        }
+      })
+    );
+
+    // The steps are shortcuts to the part of the page they describe
+    stepButtons.forEach(button =>
+      button.addEventListener('click', () => {
+        const key = button.dataset.step;
+        view = key === 'seat' ? 'seating' : 'website';
+        renderView();
+        const target =
+          key === 'colour'
+            ? dots.find(dot => dot.checked) || dots[0]
+            : key === 'rsvp'
+              ? form.querySelector('input[name="hws-reply"]:checked')
+              : guestButtons.find(guest => guest.getAttribute('aria-pressed') === 'true') ||
+                guestButtons[0];
+        if (target) {
+          target.focus();
+        }
+      })
+    );
+
+    reset.addEventListener('click', () => {
+      cancelAutoSeat();
+      stopDrag();
+      reply = null;
+      meal = '';
+      selected = GUESTS[0];
+      seatedAt.clear();
+      tables.forEach((table, tableIndex) =>
+        table.seats.forEach((seat, seatIndex) => {
+          seat.classList.toggle('is-taken', initialSeats[tableIndex][seatIndex]);
+          seat.classList.remove('is-new');
+        })
+      );
+      moveRing(null);
+      form.reset();
+      form.querySelector('input[value="yes"]').checked = true;
+      meals.hidden = false;
+      send.textContent = 'Send RSVP';
+      sent.textContent = '';
+      seeReplies.hidden = true;
+      dots.forEach(input => {
+        input.checked = false;
+      });
+      applyLook(null);
+      done.colour = false;
+      done.rsvp = false;
+      done.seat = false;
+      view = 'website';
+      renderReplies();
+      renderSeating();
+      renderSteps();
+      renderView();
+      say('Reset.');
+      sayColour('');
+    });
+
+    renderView();
     renderSeating();
     renderSteps();
-    renderView();
-    say('Reset.');
-    sayColour('');
-  });
+    say('Tap a guest, then a table with free seats.');
+    section.classList.add('hws--live');
+  };
 
-  renderView();
-  renderSeating();
-  renderSteps();
-  say('Tap a guest, then a table with free seats.');
-  section.classList.add('hws--live');
+  // The section sits well below the first screen, so the page does not pay for building it until a
+  // visitor is about to reach it. Without IntersectionObserver it is built straight away.
+  if (typeof window.IntersectionObserver === 'function') {
+    const watcher = new window.IntersectionObserver(
+      entries => {
+        if (entries.some(entry => entry.isIntersecting)) {
+          watcher.disconnect();
+          upgrade();
+        }
+      },
+      { rootMargin: '600px 0px' }
+    );
+    watcher.observe(host);
+  } else {
+    upgrade();
+  }
 })();
