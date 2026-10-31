@@ -107,7 +107,8 @@ describe('homepage wedding showcase section', () => {
     );
     // every inline svg is decorative
     expect(html.match(/<svg\b(?![^>]*aria-hidden="true")[^>]*>/g)).toBeNull();
-    expect(html).toContain('<figcaption>Illustrative preview');
+    // no caption telling people it is an illustration: it plainly is
+    expect(html).not.toContain('<figcaption');
   });
 
   test('it makes no claims the site cannot back up and avoids strings the sanitizer strips', () => {
@@ -277,12 +278,11 @@ describe('homepage wedding showcase interactive sample', () => {
       // every control is a real, enabled element, never a disabled placeholder
       assert.strictEqual(doc.querySelectorAll('.hws button:disabled, .hws input:disabled').length, 0);
       doc.querySelectorAll('.hws-view').forEach(b => assert.ok(b.hasAttribute('aria-pressed')));
-      // the required caption is kept
-      assert.ok(doc.querySelector('figcaption').textContent.includes('Illustrative preview.'));
+      assert.strictEqual(doc.querySelector('figcaption'), null);
     `);
   });
 
-  test('sending a sample RSVP updates the counts once, and changing it does not double count', () => {
+  test('sending an RSVP updates the counts once, and changing it does not double count', () => {
     scenario(String.raw`
       const { doc, numbers, submit } = mount();
       assert.deepStrictEqual(numbers().counts, ['64', '14', '18']);
@@ -291,9 +291,9 @@ describe('homepage wedding showcase interactive sample', () => {
       submit();
       assert.deepStrictEqual(numbers().counts, ['65', '14', '17']);
       assert.strictEqual(numbers().percent, '82%');
-      assert.strictEqual(numbers().rows[0], 'Your sample reply');
+      assert.strictEqual(numbers().rows[0], 'Your reply');
       assert.strictEqual(numbers().rows.length, 3);
-      assert.match(doc.querySelector('.hws-rsvp-confirm').textContent, /Sample RSVP sent/);
+      assert.match(doc.querySelector('.hws-rsvp-confirm').textContent, /RSVP sent/);
 
       // the numbers that changed are marked so the page can draw the eye to them
       const changed = () => [...doc.querySelectorAll('.hws__legend li b.is-changed')].map(el => el.textContent);
@@ -431,25 +431,53 @@ describe('homepage wedding showcase interactive sample', () => {
     `);
   });
 
-  test('five colours repaint the phone, and Plum puts the original look back', () => {
+  test('a colour repaints the whole section and the phone, and Reset puts the original look back', () => {
     scenario(String.raw`
-      const { doc, pick } = mount();
+      const { doc, pick, click } = mount();
+      const section = doc.querySelector('.hws');
       const stage = doc.querySelector('.hws__stage');
-      const accent = () => stage.style.getPropertyValue('--hp-accent');
       const dots = [...doc.querySelectorAll('.hws-dot input[type="radio"]')];
       assert.strictEqual(dots.length, 5);
-      assert.strictEqual(dots[0].checked, true);
-      assert.strictEqual(accent(), '');
+      assert.ok(dots.every(dot => !dot.checked), 'nothing is chosen until a visitor picks');
+      assert.strictEqual(section.style.getPropertyValue('--hws-teal'), '');
+      assert.strictEqual(stage.style.getPropertyValue('--hp-accent'), '');
 
-      pick(dots[3]);
-      assert.strictEqual(accent().toLowerCase(), '#24436f');
-      assert.ok(stage.style.getPropertyValue('--hp-bg'));
-      assert.match(doc.querySelector('.hws-colours [role="status"]').textContent, /Midnight/);
-      // the "You" avatar and the seats you place wear the same colour through the shared variable
+      pick(dots[1]);
+      const sage = {
+        button: section.style.getPropertyValue('--hws-teal'),
+        band: section.style.getPropertyValue('--hws-band'),
+        arc: section.style.getPropertyValue('--hws-arc-a'),
+        phone: stage.style.getPropertyValue('--hp-accent'),
+      };
+      assert.ok(Object.values(sage).every(Boolean), JSON.stringify(sage));
+      assert.match(doc.querySelector('.hws-colours [role="status"]').textContent, /Sage/);
+
       pick(dots[4]);
-      assert.strictEqual(accent().toLowerCase(), '#b85c38');
-      pick(dots[0]);
-      assert.strictEqual(accent(), '');
+      assert.notStrictEqual(section.style.getPropertyValue('--hws-teal'), sage.button);
+      assert.notStrictEqual(stage.style.getPropertyValue('--hp-accent'), sage.phone);
+
+      click(doc.querySelector('.hws-reset'));
+      assert.strictEqual(section.style.getPropertyValue('--hws-teal'), '');
+      assert.strictEqual(section.style.getPropertyValue('--hws-band'), '');
+      assert.strictEqual(stage.style.getPropertyValue('--hp-accent'), '');
+      assert.ok(dots.every(dot => !dot.checked));
+    `);
+  });
+
+  test('nothing a visitor reads tells them it is a sample, an illustration or that nothing is saved', () => {
+    scenario(String.raw`
+      const { doc, submit, click, table } = mount();
+      const wording = /sample|illustrat|nothing .*saved|not saved|whole flow/i;
+      const read = () => doc.querySelector('.hws').textContent;
+      assert.doesNotMatch(read(), wording);
+      submit();
+      click(table(2));
+      click(doc.querySelector('.hws-reset'));
+      assert.doesNotMatch(read(), wording);
+      // the labels read by assistive technology too
+      const labels = [...doc.querySelectorAll('.hws [aria-label]')].map(el => el.getAttribute('aria-label')).join(' | ');
+      assert.doesNotMatch(labels, /sample/i);
+      assert.doesNotMatch(doc.querySelector('.hws-status, .hws-seat-status').textContent, wording);
     `);
   });
 
@@ -461,7 +489,7 @@ describe('homepage wedding showcase interactive sample', () => {
       assert.deepStrictEqual(order, ['hws__phone', 'hws-colours', 'hws__chip']);
       assert.ok(column.querySelector('.hws__chip--qr'));
       assert.strictEqual(column.querySelector('.hws-colours').getAttribute('aria-label'), 'Website colour');
-      // no name, date or free-form colour fields: the sample stays basic
+      // no name, date or free-form colour fields: it stays basic
       assert.strictEqual(doc.querySelectorAll('.hws input[type="text"], .hws input[type="date"], .hws input[type="color"]').length, 0);
     `);
   });
@@ -504,6 +532,7 @@ describe('homepage wedding showcase interactive sample', () => {
       assert.strictEqual(ticked(), 2);
       assert.strictEqual(finish.hidden, false);
       const link = finish.querySelector('a');
+      assert.strictEqual(finish.textContent.trim(), 'Create your free wedding website');
       assert.strictEqual(link.getAttribute('href'), '/auth?tab=create&role=customer');
       pick(doc.querySelectorAll('.hws-dot input[type="radio"]')[1]);
       assert.strictEqual(ticked(), 3);
@@ -590,7 +619,7 @@ describe('homepage wedding showcase interactive sample', () => {
       pick(doc.querySelectorAll('.hws-dot input[type="radio"]')[2]);
       click(doc.querySelector('.hws-reset'));
       assert.strictEqual(doc.querySelector('.hws__stage').style.getPropertyValue('--hp-accent'), '');
-      assert.strictEqual(doc.querySelectorAll('.hws-dot input[type="radio"]')[0].checked, true);
+      assert.strictEqual(doc.querySelectorAll('.hws-dot input:checked').length, 0);
     `);
   });
 
@@ -625,42 +654,64 @@ describe('homepage wedding showcase interactive sample', () => {
 
 describe('showcase colour helpers', () => {
   const helpers = require('../../public/assets/js/pages/home-wedding-showcase.js');
-  const { PRESETS, deriveTheme, contrast } = helpers;
+  const { LOOKS, buildLook, deriveTheme, contrast } = helpers;
+  const css = fs.readFileSync(
+    path.join(PUBLIC_DIR, 'assets/css/home-wedding-showcase.css'),
+    'utf8'
+  );
+  const rootBlock = css.slice(css.indexOf('.hws {'), css.indexOf('.hws *,'));
 
-  test('there are five colours to try, all from the real builder apart from the homepage plum', () => {
-    expect(PRESETS.map(preset => preset.name)).toEqual([
-      'Plum',
-      'Sage & Blush',
-      'Champagne',
-      'Midnight',
-      'Terracotta',
-    ]);
-    expect(new Set(PRESETS.map(preset => preset.accent)).size).toBe(PRESETS.length);
-    PRESETS.forEach(preset =>
-      ['accent', 'secondary', 'background', 'text'].forEach(key =>
-        expect(preset[key]).toMatch(/^#[0-9a-f]{6}$/i)
-      )
-    );
+  test('there are five colours to try: four pastels and a light brown', () => {
+    expect(LOOKS.map(look => look.name)).toEqual(['Rose', 'Sage', 'Sky', 'Lilac', 'Latte']);
+    expect(new Set(LOOKS.map(look => look.pastel)).size).toBe(LOOKS.length);
+    LOOKS.forEach(look => expect(look.pastel).toMatch(/^#[0-9a-f]{6}$/i));
   });
 
-  test('every colour is readable: buttons, text, muted text, accent text and hero text pass WCAG AA', () => {
-    PRESETS.forEach(preset => {
-      const { checks, minimum } = deriveTheme(preset);
-      expect({ name: preset.name, readable: minimum >= 4.5, checks }).toMatchObject({
-        name: preset.name,
+  test('every colour is readable everywhere it is used: buttons, links, text and the phone all pass WCAG AA', () => {
+    LOOKS.forEach(look => {
+      const { checks, minimum } = buildLook(look.pastel);
+      expect({ name: look.name, readable: minimum >= 4.5, checks }).toMatchObject({
+        name: look.name,
         readable: true,
       });
     });
   });
 
-  test('a light accent such as Champagne gets a dark button label instead of white', () => {
-    const champagne = deriveTheme(PRESETS.find(preset => preset.key === 'gold'));
-    expect(champagne.vars.onAccent).not.toBe('#ffffff');
-    expect(contrast(champagne.vars.onAccent, champagne.vars.accent)).toBeGreaterThanOrEqual(4.5);
+  test('any pastel, and white or grey, is made readable, not just the five on offer', () => {
+    const hsl = (hue, s, l) => {
+      const k = n => (n + hue / 30) % 12;
+      const a = s * Math.min(l, 1 - l);
+      const f = n => l - a * Math.max(-1, Math.min(k(n) - 3, Math.min(9 - k(n), 1)));
+      return `#${[f(0), f(8), f(4)]
+        .map(v =>
+          Math.round(v * 255)
+            .toString(16)
+            .padStart(2, '0')
+        )
+        .join('')}`;
+    };
+    const pastels = ['#ffffff', '#f5f5f5', '#cccccc', '#808080'];
+    for (let hue = 0; hue < 360; hue += 6) {
+      [0.2, 0.55, 1].forEach(s => [0.72, 0.82, 0.92].forEach(l => pastels.push(hsl(hue, s, l))));
+    }
+    pastels.forEach(pastel =>
+      expect({ pastel, ok: buildLook(pastel).minimum >= 4.5 }).toEqual({ pastel, ok: true })
+    );
+    expect(pastels.length).toBeGreaterThan(500);
   });
 
-  test('any palette is made readable, even an awkward one', () => {
-    // a pale accent, a mid-tone accent and a near-black accent on a light page
+  test('a light accent gets a dark button label instead of white', () => {
+    const gold = deriveTheme({
+      accent: '#B88A2B',
+      secondary: '#F4D6A0',
+      background: '#FFF9EF',
+      text: '#30261C',
+    });
+    expect(gold.vars.onAccent).not.toBe('#ffffff');
+    expect(contrast(gold.vars.onAccent, gold.vars.accent)).toBeGreaterThanOrEqual(4.5);
+  });
+
+  test('an awkward palette is still made readable', () => {
     [
       { accent: '#FFEE99', secondary: '#FFF8CC', background: '#FFFFFF', text: '#222222' },
       { accent: '#808080', secondary: '#C0C0C0', background: '#F5F5F5', text: '#111111' },
@@ -668,13 +719,25 @@ describe('showcase colour helpers', () => {
     ].forEach(palette => expect(deriveTheme(palette).minimum).toBeGreaterThanOrEqual(4.5));
   });
 
-  test('the default look in the stylesheet (what visitors without JavaScript see) is readable too', () => {
-    const css = fs.readFileSync(
-      path.join(PUBLIC_DIR, 'assets/css/home-wedding-showcase.css'),
-      'utf8'
-    );
-    const block = css.slice(css.indexOf('.hws .hws__stage {'));
-    const token = name => new RegExp(`--hp-${name}:\\s*(#[0-9a-f]{6})`, 'i').exec(block)[1];
+  test('every colour a look sets has an original value in the stylesheet, so Reset can put it back', () => {
+    const sectionVars = Object.keys(buildLook(LOOKS[0].pastel).section);
+    expect(sectionVars.length).toBeGreaterThan(15);
+    sectionVars.forEach(name => {
+      expect({ name, declared: new RegExp(`${name}:\\s*[^;]+;`).test(rootBlock) }).toEqual({
+        name,
+        declared: true,
+      });
+      // registered so it fades instead of snapping
+      expect({ name, registered: css.includes(`@property ${name} {`) }).toEqual({
+        name,
+        registered: true,
+      });
+    });
+  });
+
+  test('the original look in the stylesheet (what visitors see before choosing, or without JavaScript) is readable too', () => {
+    const phoneBlock = css.slice(css.indexOf('.hws .hws__stage {'));
+    const phone = name => new RegExp(`--hp-${name}:\\s*(#[0-9a-f]{6})`, 'i').exec(phoneBlock)[1];
     const [bg, text, muted, accent, onAccent, ink, soft, mid, heroInk] = [
       'bg',
       'text',
@@ -685,7 +748,7 @@ describe('showcase colour helpers', () => {
       'soft',
       'mid',
       'hero-ink',
-    ].map(token);
+    ].map(phone);
     [
       [text, bg],
       [muted, bg],
@@ -694,5 +757,9 @@ describe('showcase colour helpers', () => {
       [onAccent, accent],
       [heroInk, mid],
     ].forEach(([a, b]) => expect(contrast(a, b)).toBeGreaterThanOrEqual(4.5));
+    const section = name => new RegExp(`--hws-${name}:\\s*(#[0-9a-f]{6})`, 'i').exec(rootBlock)[1];
+    expect(contrast('#ffffff', section('teal'))).toBeGreaterThanOrEqual(4.5);
+    expect(contrast(section('teal-deep'), section('mint'))).toBeGreaterThanOrEqual(4.5);
+    expect(contrast(section('teal'), section('wash-d'))).toBeGreaterThanOrEqual(4.5);
   });
 });

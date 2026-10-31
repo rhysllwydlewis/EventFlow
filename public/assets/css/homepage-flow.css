@@ -351,8 +351,9 @@ body.ef-home-flow main .ef-approved-step-grid > article {
   background: #fff !important;
 }
 
+/* The wedding section's band follows the colour a visitor picks in it; unchanged until they do. */
 body.ef-home-flow main .hws {
-  background: var(--flow-blush) !important;
+  background: var(--hws-band, var(--flow-blush)) !important;
 }
 
 /* ---------- section labels and headings ---------- */
@@ -535,7 +536,12 @@ body.ef-home-flow main :is(.ef-approved-steps-section, .hws)::after {
     left: 12%;
     z-index: -1;
     border-radius: 999px 999px 28px 28px;
-    background: linear-gradient(180deg, #f7dfe9 0%, #fbeaf1 55%, #fdf2f6 100%);
+    background: linear-gradient(
+      180deg,
+      var(--hws-arc-a, #f7dfe9) 0%,
+      var(--hws-arc-b, #fbeaf1) 55%,
+      var(--hws-arc-c, #fdf2f6) 100%
+    );
   }
 }
 

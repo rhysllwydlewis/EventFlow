@@ -1,63 +1,30 @@
 'use strict';
 
 /**
- * Homepage wedding showcase (index.html and home-v2.html): turns the illustrative preview into
- * a small interactive sample. Try a few colours on the guest website, send a sample RSVP and the
- * guest replies card updates, seat a guest (tap, drag with a mouse, or auto-seat), and Reset puts
- * everything back.
+ * Homepage wedding showcase (index.html and home-v2.html): turns the preview into something you can
+ * use. Pick a colour and the whole section, including the guest website on the phone, changes tone;
+ * send an RSVP and the guest replies card updates; seat a guest (tap, drag with a mouse, or
+ * auto-seat); Reset puts everything back.
  *
  * Progressive enhancement: the markup in the page is the static illustration (role="img", every
  * card aria-hidden). This script upgrades it in place, so without JavaScript visitors still see the
- * illustration and never meet a control that does nothing. Everything is held in memory: nothing
- * typed or chosen here is saved or sent anywhere.
+ * illustration and never meet a control that does nothing. Everything is held in memory.
  *
  * The first part is pure (colour maths) and is exported for the unit tests.
  */
 (() => {
   // ================================================================ pure helpers
-  /** A few of the colour presets the real wedding website builder offers, plus the homepage's own plum look. */
-  const PRESETS = [
-    {
-      key: 'plum',
-      name: 'Plum',
-      accent: '#8D3F6F',
-      secondary: '#C98AA9',
-      background: '#FFF7FB',
-      text: '#2B1B2F',
-    },
-    {
-      key: 'sage',
-      name: 'Sage & Blush',
-      accent: '#0B8073',
-      secondary: '#F4A6C8',
-      background: '#FFF7FB',
-      text: '#1E1B4B',
-    },
-    {
-      key: 'gold',
-      name: 'Champagne',
-      accent: '#B88A2B',
-      secondary: '#F4D6A0',
-      background: '#FFF9EF',
-      text: '#30261C',
-    },
-    {
-      key: 'midnight',
-      name: 'Midnight',
-      accent: '#24436F',
-      secondary: '#BFA2DB',
-      background: '#F6F3FF',
-      text: '#161B33',
-    },
-    {
-      key: 'terracotta',
-      name: 'Terracotta',
-      accent: '#B85C38',
-      secondary: '#E9A178',
-      background: '#FFF4EE',
-      text: '#3B2119',
-    },
+  /** The colours on offer: four pastels and a light brown. */
+  const LOOKS = [
+    { key: 'rose', name: 'Rose', pastel: '#F2C4D0' },
+    { key: 'sage', name: 'Sage', pastel: '#BFDDC6' },
+    { key: 'sky', name: 'Sky', pastel: '#BCD9EE' },
+    { key: 'lilac', name: 'Lilac', pastel: '#D5CCEC' },
+    { key: 'latte', name: 'Latte', pastel: '#D2B08C' },
   ];
+  const WHITE = '#ffffff';
+  const BODY_INK = '#17202f';
+  const BODY_MUTED = '#566176';
 
   const hexToRgb = hex => [1, 3, 5].map(i => parseInt(hex.slice(i, i + 2), 16));
   const rgbToHex = rgb =>
@@ -99,8 +66,39 @@
     return result;
   }
 
+  function hslToHex(h, s, l) {
+    const hue = ((h % 360) + 360) % 360;
+    const k = n => (n + hue / 30) % 12;
+    const a = s * Math.min(l, 1 - l);
+    const f = n => l - a * Math.max(-1, Math.min(k(n) - 3, Math.min(9 - k(n), 1)));
+    return rgbToHex([f(0), f(8), f(4)].map(v => v * 255));
+  }
+
+  function hueOf(hex) {
+    const [r, g, b] = hexToRgb(hex).map(v => v / 255);
+    const max = Math.max(r, g, b);
+    const d = max - Math.min(r, g, b);
+    if (!d) {
+      return 0;
+    }
+    let h;
+    if (max === r) {
+      h = ((g - b) / d) % 6;
+    } else if (max === g) {
+      h = (b - r) / d + 2;
+    } else {
+      h = (r - g) / d + 4;
+    }
+    return (h * 60 + 360) % 360;
+  }
+
+  function rgba(hex, alpha) {
+    const [r, g, b] = hexToRgb(hex);
+    return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+  }
+
   /**
-   * Everything the sample phone paints, worked out from a palette, with the readability checks that
+   * Everything the guest website on the phone paints, worked out from a palette, with the readability checks that
    * guarantee it: every pair below is at least WCAG AA (4.5:1) for any palette this can be given.
    */
   function deriveTheme(palette) {
@@ -153,7 +151,76 @@
     return { vars, checks, minimum: Math.min(...Object.values(checks)) };
   }
 
-  const helpers = { PRESETS, contrast, mix, deriveTheme };
+  /** A deeper tone of the pastel's hue that reads on white and on the section's tints. */
+  function inkOf(pastel) {
+    const hue = hueOf(pastel);
+    const tint = mix(pastel, WHITE, 0.7);
+    for (let l = 0.5; l > 0.12; l -= 0.01) {
+      const candidate = hslToHex(hue, 0.4, l);
+      if (contrast(candidate, WHITE) >= 5 && contrast(candidate, tint) >= 4.7) {
+        return candidate;
+      }
+    }
+    return hslToHex(hue, 0.4, 0.12);
+  }
+
+  /**
+   * One pastel becomes a whole look: matching tones for the section (its washes, buttons, links,
+   * icons, charts and shadows) and a palette for the guest website on the phone. Every pairing of
+   * text and background is checked, so any pastel passed in stays readable.
+   */
+  function buildLook(pastel) {
+    const hue = hueOf(pastel);
+    const ink = inkOf(pastel);
+    const deep = darkenUntil(mix(ink, '#000000', 0.22), WHITE, 7);
+    const tint = amount => mix(pastel, WHITE, amount);
+    const section = {
+      '--hws-teal': ink,
+      '--hws-teal-deep': deep,
+      '--hws-teal-bright': mix(pastel, ink, 0.55),
+      '--hws-mint': tint(0.7),
+      '--hws-line': rgba(ink, 0.14),
+      '--hws-plum': ink,
+      '--hws-band': tint(0.8),
+      '--hws-arc-a': tint(0.5),
+      '--hws-arc-b': tint(0.68),
+      '--hws-arc-c': tint(0.82),
+      '--hws-wash-a': rgba(tint(0.35), 0.9),
+      '--hws-wash-b': rgba(tint(0.55), 0.95),
+      '--hws-wash-c': tint(0.9),
+      '--hws-wash-d': tint(0.8),
+      '--hws-soft-1': tint(0.88),
+      '--hws-soft-2': tint(0.8),
+      '--hws-soft-3': tint(0.72),
+      '--hws-soft-4': tint(0.55),
+      '--hws-soft-5': tint(0.5),
+      '--hws-soft-6': tint(0.62),
+      '--hws-glow': rgba(ink, 0.28),
+      '--hws-glow-2': rgba(ink, 0.35),
+      '--hws-shadow-c': deep,
+    };
+    const phone = deriveTheme({
+      accent: ink,
+      secondary: pastel,
+      background: tint(0.9),
+      text: hslToHex(hue, 0.35, 0.14),
+    });
+    const checks = {
+      ...phone.checks,
+      buttonLabel: contrast(WHITE, ink),
+      linkOnSection: contrast(ink, section['--hws-wash-d']),
+      linkOnTint: contrast(ink, section['--hws-mint']),
+      deepOnTint: contrast(deep, section['--hws-mint']),
+      deepOnAvatar: contrast(deep, section['--hws-soft-5']),
+      deepOnSoft: contrast(deep, section['--hws-soft-3']),
+      bodyOnSection: contrast(BODY_INK, section['--hws-wash-d']),
+      mutedOnSection: contrast(BODY_MUTED, section['--hws-wash-d']),
+      mutedOnChips: contrast(BODY_MUTED, section['--hws-soft-1']),
+    };
+    return { section, phone: phone.vars, checks, minimum: Math.min(...Object.values(checks)) };
+  }
+
+  const helpers = { LOOKS, contrast, mix, deriveTheme, buildLook };
   if (typeof module !== 'undefined' && module.exports) {
     module.exports = helpers;
   }
@@ -203,6 +270,7 @@
   const CIRCUMFERENCE = 2 * Math.PI * 38;
   const GUESTS = ['Charlotte E.', 'Priya S.', 'Tom H.'];
   const MEALS = ['Beef', 'Salmon', 'Vegetarian'];
+  const SECTION_PROPERTIES = Object.keys(buildLook(LOOKS[0].pastel).section);
   const SIGN_UP_URL = '/auth?tab=create&role=customer';
   const AUTO_SEAT_STEP_MS = 320;
   const VIEWS = [
@@ -263,7 +331,7 @@
   stage.setAttribute('role', 'group');
   stage.setAttribute(
     'aria-label',
-    'Interactive sample of the wedding tools. Sample names and numbers.'
+    'Interactive wedding tools: a guest website on a phone, an RSVP tracker and a seating plan.'
   );
   stage.dataset.view = view;
   [tracker, phone, seating].forEach(card => card.removeAttribute('aria-hidden'));
@@ -278,7 +346,7 @@
     phoneColumn.append(qrChip);
   }
 
-  // Guest replies: keep the three sample rows so a new reply can be shown without growing the card.
+  // Guest replies: keep the three original rows so a new reply can be shown without growing the card.
   const originalReplies = [...replies.children].map(row => row.cloneNode(true));
 
   // Phone: the RSVP block becomes a real form, and the two "RSVP" pills become buttons.
@@ -431,7 +499,6 @@
   toolbar.appendChild(steps);
   const reset = node('button', 'hws-reset', 'Reset');
   reset.type = 'button';
-  reset.setAttribute('aria-label', 'Reset the sample');
   measure(reset, 'reset');
   toolbar.appendChild(reset);
 
@@ -442,18 +509,15 @@
   colourBar.setAttribute('role', 'group');
   colourBar.setAttribute('aria-label', 'Website colour');
   colourBar.appendChild(node('span', 'hws-colours__label', 'Colour'));
-  const dots = PRESETS.map((preset, index) => {
+  const dots = LOOKS.map(look => {
     const label = node('label', 'hws-dot');
     const input = node('input');
     input.type = 'radio';
     input.name = 'hws-colour';
-    input.value = preset.key;
-    input.defaultChecked = index === 0;
-    input.checked = index === 0;
+    input.value = look.key;
     const face = node('span', 'hws-dot__face');
-    face.style.setProperty('--dot-a', preset.accent);
-    face.style.setProperty('--dot-b', preset.secondary);
-    label.append(input, face, srOnly(preset.name));
+    face.style.setProperty('--dot', look.pastel);
+    label.append(input, face, srOnly(look.name));
     colourBar.appendChild(label);
     return input;
   });
@@ -468,15 +532,10 @@
   const finishLink = node('a', 'hws-finish__link', 'Create your free wedding website');
   finishLink.href = SIGN_UP_URL;
   measure(finishLink, 'cta');
-  finish.append(node('p', '', 'That is the whole flow, and nothing here was saved.'), finishLink);
+  finish.appendChild(finishLink);
 
   frame.before(toolbar);
   frame.after(finish);
-
-  const caption = figure.querySelector('figcaption');
-  if (caption) {
-    caption.append(document.createTextNode(' Nothing you try here is saved.'));
-  }
 
   // ================================================================ rendering
   /** Show the chosen panel on narrow screens, where the three cards cannot sit side by side. */
@@ -501,10 +560,10 @@
     finish.hidden = !(done.rsvp && done.seat);
   }
 
-  /** Paint the phone with a palette, or put the original plum look back when given nothing. */
-  function applyPalette(palette) {
-    const theme = palette ? deriveTheme(palette) : null;
-    const properties = [
+  /** Paint the whole section and the phone in a look, or put the original colours back. */
+  function applyLook(look) {
+    const built = look ? buildLook(look.pastel) : null;
+    const phoneProperties = [
       ['bg', '--hp-bg'],
       ['text', '--hp-text'],
       ['muted', '--hp-muted'],
@@ -519,11 +578,18 @@
       ['light', '--hp-light'],
       ['heroInk', '--hp-hero-ink'],
     ];
-    properties.forEach(([key, property]) => {
-      if (theme) {
-        stage.style.setProperty(property, theme.vars[key]);
+    phoneProperties.forEach(([key, property]) => {
+      if (built) {
+        stage.style.setProperty(property, built.phone[key]);
       } else {
         stage.style.removeProperty(property);
+      }
+    });
+    SECTION_PROPERTIES.forEach(property => {
+      if (built) {
+        section.style.setProperty(property, built.section[property]);
+      } else {
+        section.style.removeProperty(property);
       }
     });
   }
@@ -558,7 +624,7 @@
       const row = node('li', 'hws-new-reply');
       row.dataset.reply = reply;
       const detail = node('div');
-      detail.append(node('strong', '', 'Your sample reply'), node('span', '', 'Party of 1'));
+      detail.append(node('strong', '', 'Your reply'), node('span', '', 'Party of 1'));
       row.append(
         node('span', 'hws__avatar hws__avatar--you', 'You'),
         detail,
@@ -645,7 +711,7 @@
     colourStatus.textContent = message;
   }
 
-  /** Choose which sample guest the next table tap will seat. */
+  /** Choose which guest the next table tap will seat. */
   function chooseGuest(name) {
     if (seatedAt.has(name)) {
       say(`${name} is already at Table ${seatedAt.get(name)}.`);
@@ -679,7 +745,7 @@
     say(
       `${name} is now at Table ${table.number}. ${
         remaining
-          ? `${remaining} sample guest${remaining === 1 ? '' : 's'} left to seat.`
+          ? `${remaining} guest${remaining === 1 ? '' : 's'} left to seat.`
           : 'Everyone is seated.'
       }`
     );
@@ -865,18 +931,18 @@
     meal = reply === 'yes' && choice ? choice.value : '';
     renderReplies(true);
     send.textContent = 'Update RSVP';
-    sent.textContent = 'Sample RSVP sent. The guest replies have updated.';
+    sent.textContent = 'RSVP sent. The guest replies have updated.';
     seeReplies.hidden = false;
     done.rsvp = true;
     renderSteps();
   });
 
-  // Colours: Plum is the original look (the stylesheet's defaults); the rest repaint the phone
+  // Colours: each one repaints the whole section and the phone; Reset puts the original look back
   dots.forEach((input, index) =>
     input.addEventListener('change', () => {
-      const preset = PRESETS[index];
-      applyPalette(index === 0 ? null : preset);
-      sayColour(`Colour: ${preset.name}.`);
+      const look = LOOKS[index];
+      applyLook(look);
+      sayColour(`Colour: ${look.name}.`);
       if (!done.colour) {
         done.colour = true;
         renderSteps();
@@ -884,7 +950,7 @@
     })
   );
 
-  // The steps are shortcuts to the part of the sample they describe
+  // The steps are shortcuts to the part of the page they describe
   stepButtons.forEach(button =>
     button.addEventListener('click', () => {
       const key = button.dataset.step;
@@ -892,7 +958,7 @@
       renderView();
       const target =
         key === 'colour'
-          ? dots.find(dot => dot.checked)
+          ? dots.find(dot => dot.checked) || dots[0]
           : key === 'rsvp'
             ? form.querySelector('input[name="hws-reply"]:checked')
             : guestButtons.find(guest => guest.getAttribute('aria-pressed') === 'true') ||
@@ -923,10 +989,10 @@
     send.textContent = 'Send RSVP';
     sent.textContent = '';
     seeReplies.hidden = true;
-    dots.forEach((input, index) => {
-      input.checked = index === 0;
+    dots.forEach(input => {
+      input.checked = false;
     });
-    applyPalette(null);
+    applyLook(null);
     done.colour = false;
     done.rsvp = false;
     done.seat = false;
@@ -935,7 +1001,7 @@
     renderSeating();
     renderSteps();
     renderView();
-    say('Sample reset.');
+    say('Reset.');
     sayColour('');
   });
 
