@@ -299,7 +299,30 @@
    * @returns {void} Nothing.
    */
   function renderProofPage(strip, page) {
-    strip.replaceChildren(...page.map(buildProofItem));
+    strip.replaceChildren(...page.map(getProofItem));
+  }
+
+  /**
+   * Each supplier's disc is built once and reused whenever its set comes round
+   * again. Rebuilding on every rotation would restart the photo's stall clock
+   * each time, and a set is only on screen for a few seconds, so a photo that
+   * hangs would never reach the timeout and would stay blank indefinitely.
+   * @type {WeakMap<Object, HTMLLIElement>}
+   */
+  const proofItems = new WeakMap();
+
+  /**
+   * Get the disc for a supplier, building it on first use.
+   * @param {Object} supplier Supplier summary from the showcase endpoint.
+   * @returns {HTMLLIElement} List item, shared across rotations.
+   */
+  function getProofItem(supplier) {
+    let item = proofItems.get(supplier);
+    if (!item) {
+      item = buildProofItem(supplier);
+      proofItems.set(supplier, item);
+    }
+    return item;
   }
 
   /**
