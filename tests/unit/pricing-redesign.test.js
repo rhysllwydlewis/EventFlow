@@ -283,6 +283,35 @@ describe('pricing page rebuild', () => {
       );
     });
 
+    it('falls back to initials for a photo that stalls without ever erroring', () => {
+      // A photo hosted on a supplier's own site can hang with no load or error
+      // event, which left a blank coloured disc with no initials.
+      expect(pricingScript).toContain('const PROOF_PHOTO_TIMEOUT_MS = 8000');
+      expect(pricingScript).toContain('window.setTimeout(showInitials, PROOF_PHOTO_TIMEOUT_MS)');
+      // Both the timer and the error path swap in the same initials.
+      expect(pricingScript.match(/showInitials\(\);/g)).toHaveLength(1);
+      expect(pricingScript).toContain("img.addEventListener('load', settle)");
+    });
+
+    it('builds each supplier disc once so the stall clock survives rotation', () => {
+      // A set is on screen for ~4s but the stall timeout is 8s. Rebuilding the
+      // discs on every rotation restarted the clock each time, so a stalled
+      // photo stayed blank for ever whenever there were 12+ suppliers.
+      expect(pricingScript).toContain('const proofItems = new WeakMap()');
+      expect(pricingScript).toContain('strip.replaceChildren(...page.map(getProofItem))');
+      expect(pricingScript).not.toContain('page.map(buildProofItem)');
+    });
+
+    it('only starts the stall clock once the photo is on screen, and keeps it lazy', () => {
+      // A lazy photo that has not been requested yet looks like a stalled one,
+      // and the strip can sit below the fold on a stacked mobile hero. Eager
+      // loading is not the answer: a hanging eager image holds up window load.
+      expect(pricingScript).toContain('new IntersectionObserver');
+      expect(pricingScript).toContain('entry.isIntersecting');
+      expect(pricingScript).toContain("img.loading = 'lazy'");
+      expect(pricingScript).not.toContain("img.loading = 'eager'");
+    });
+
     it('closes the hero to one centred column when the strip is given up on', () => {
       // Hiding the strip left the copy stranded beside an empty half-panel,
       // which is what a shadowed endpoint looked like in production. The
