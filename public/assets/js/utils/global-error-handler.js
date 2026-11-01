@@ -304,7 +304,9 @@
       }
     };
 
-    console.log('✅ Fetch interceptor initialized');
+    if (isDevelopment) {
+      console.log('✅ Fetch interceptor initialized');
+    }
   }
 
   /**
@@ -389,5 +391,7 @@
   // Initialize fetch interceptor
   setupFetchInterceptor();
 
-  console.log('✅ Global error handler initialized');
+  if (isDevelopment) {
+    console.log('✅ Global error handler initialized');
+  }
 })();

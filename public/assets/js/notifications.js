@@ -618,7 +618,9 @@
 
   function requestDesktopPermission() {
     if (!('Notification' in window)) {
-      console.log('Desktop notifications not supported');
+      if (isDevelopment) {
+        console.log('Desktop notifications not supported');
+      }
       return;
     }
 
@@ -906,7 +908,9 @@
   function initDropdown() {
     // Prevent multiple initializations using guard flag
     if (window.__notificationBellInitialized) {
-      console.log('Notification bell already initialized');
+      if (isDevelopment) {
+        console.log('Notification bell already initialized');
+      }
       return true;
     }
 
@@ -1031,7 +1035,9 @@
       document.body.appendChild(dropdown);
     } else {
       // Pre-rendered dropdown found, just ensure it's properly initialized
-      console.log('Using pre-rendered notification dropdown');
+      if (isDevelopment) {
+        console.log('Using pre-rendered notification dropdown');
+      }
       // Mark that we need to attach event listeners
       needsEventListeners = true;
     }
@@ -1206,7 +1212,9 @@
       const user = await getCurrentUser();
       if (!user) {
         // Not logged in, don't initialize notifications
-        console.log('Notification system: User not logged in, skipping initialization');
+        if (isDevelopment) {
+          console.log('Notification system: User not logged in, skipping initialization');
+        }
         state.isInitializing = false;
         return;
       }
@@ -1221,7 +1229,9 @@
 
       state.isInitialized = true;
 
-      console.log('Notification system: Initializing for user', user.id);
+      if (isDevelopment) {
+        console.log('Notification system: Initializing for user', user.id);
+      }
 
       // Set loading state
       setBellLoadingState(true);
@@ -1260,7 +1270,9 @@
         },
       };
 
-      console.log('Notification system: Initialization complete');
+      if (isDevelopment) {
+        console.log('Notification system: Initialization complete');
+      }
 
       // Fire custom event to signal that notification system is ready
       window.dispatchEvent(
