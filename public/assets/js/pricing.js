@@ -106,6 +106,12 @@
   const SHOWCASE_MAX_PAGES = 4;
   /** How long a set of supplier photos holds before the next fades in. */
   const SHOWCASE_INTERVAL_MS = 4200;
+  /**
+   * How long a supplier photo may stay unresolved before its initials take
+   * over. Generous enough for a slow third-party site, short enough that the
+   * hero is not left with a blank disc.
+   */
+  const PROOF_PHOTO_TIMEOUT_MS = 8000;
   /** Footnote defining what "Unlimited" means, for asterisked claims. */
   const UNLIMITED_FOOTNOTE_ID = 'pricing-unlimited-footnote';
 
@@ -146,21 +152,61 @@
     if (supplier.profilePhotoUrl) {
       const img = document.createElement('img');
       img.alt = supplier.name || 'EventFlow supplier';
+      // Stays lazy: an eager photo that hangs holds up the page's load event.
       img.loading = 'lazy';
       img.decoding = 'async';
       img.width = 52;
       img.height = 52;
-      // Bound before `src` is assigned: a URL that fails from cache can error
-      // before a listener attached afterwards would ever hear it, leaving a
-      // broken-image glyph in the strip.
-      img.addEventListener('error', () => {
+
+      const showInitials = () => {
         img.remove();
         avatar.textContent = getInitials(supplier.name);
         avatar.setAttribute('role', 'img');
         avatar.setAttribute('aria-label', supplier.name || 'EventFlow supplier');
+      };
+
+      // A photo on a supplier's own site can hang without ever erroring, which
+      // leaves a blank coloured disc with no initials. Give up after a while
+      // and show the initials instead. The clock only starts once the disc is
+      // on screen: a lazy photo that has not been requested yet looks exactly
+      // like a stalled one, and on a stacked mobile hero the strip can sit
+      // below the fold.
+      let stallTimer = 0;
+      let watcher = null;
+      const settle = () => {
+        window.clearTimeout(stallTimer);
+        if (watcher) {
+          watcher.disconnect();
+        }
+      };
+      const startStallTimer = () => {
+        if (!img.complete) {
+          stallTimer = window.setTimeout(showInitials, PROOF_PHOTO_TIMEOUT_MS);
+        }
+      };
+
+      // Bound before `src` is assigned: a URL that fails from cache can error
+      // before a listener attached afterwards would ever hear it, leaving a
+      // broken-image glyph in the strip.
+      img.addEventListener('error', () => {
+        settle();
+        showInitials();
       });
+      img.addEventListener('load', settle);
       img.src = supplier.profilePhotoUrl;
       avatar.appendChild(img);
+
+      if (typeof IntersectionObserver === 'function') {
+        watcher = new IntersectionObserver(entries => {
+          if (entries.some(entry => entry.isIntersecting)) {
+            watcher.disconnect();
+            startStallTimer();
+          }
+        });
+        watcher.observe(img);
+      } else {
+        startStallTimer();
+      }
     } else {
       avatar.textContent = getInitials(supplier.name);
       avatar.setAttribute('role', 'img');
