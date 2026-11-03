@@ -13,6 +13,7 @@ describe('homepage wedding showcase render path', () => {
     expect(res.text).toContain('Create your free wedding website');
     expect(res.text).toContain('/articles/wedding-website-on-eventflow-guide');
     expect(res.text).toContain('home-wedding-showcase.css');
+    expect(res.text).toContain('/assets/js/pages/home-wedding-showcase.js');
     expect(res.text).toContain('"@type": "FAQPage"');
     // the sanitizer removes these strings; the section must not depend on them
     expect(res.text).not.toMatch(/Customer Reviews|Verified Suppliers/i);
