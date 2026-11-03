@@ -174,9 +174,15 @@ the policy above.
 
 ## Session log
 
+### 2026-11-03 — session 35
+
+Branch merged with `main` (`64ddb22f`); session 34 handoff had been squash-merged as #1861 (outcome: all checks green, deploy `/api/ready` 200 on 5/5 polls). Two open Dependabot PRs (#1867 production-patches, #1868 postcss) left for the owner. Backlog empty. `/api/ready` 200 (mongodb connected, queue worker healthy); `/`, `/suppliers`, `/marketplace`, `/pricing`, `/faq`, `/auth`, `/community`, `/contact` all 200. No defect found, no code changed. Docs-only handoff. (Note: a force-push to restart the branch was blocked, so the branch was merged with main instead.)
+
 ### 2026-10-30 — session 34
 
 Session 33 handoff had been squash-merged as #1860; branch merged with `main` (`7fe0361e`). No open PRs, backlog empty. `/api/ready` 200; `/`, `/suppliers`, `/marketplace`, `/pricing`, `/faq`, `/auth`, `/community`, `/contact` all 200. `npm run audit` exits 0. No defect found, no code changed. Docs-only handoff.
+
+**Outcome:** PR #1861 squash-merged as `5e48edcc`; all 27 checks green (DeepSource skipped), Codex no findings. **Deploy check passed:** `/api/ready` 200 on 5 of 5 polls (~2 min; docs-only change).
 
 ### 2026-10-29 — session 33
 
