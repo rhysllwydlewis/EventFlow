@@ -174,6 +174,10 @@ the policy above.
 
 ## Session log
 
+### 2026-11-04 — session 36
+
+Branch restarted onto `main` (`5c6a7466`, #1869 merged; remote branch history merged in with `-s ours` because a force-push is blocked). Only open PRs are Dependabot #1867 and #1868 (left for the owner). Backlog empty. `/api/ready` 200 (mongodb connected, Redis queue and worker healthy); `/`, `/suppliers`, `/marketplace`, `/pricing`, `/faq`, `/auth`, `/community`, `/contact`, `/terms`, `/privacy`, `/guides` all 200. No defect found, no code changed. Docs-only handoff.
+
 ### 2026-11-03 — session 35
 
 Branch merged with `main` (`64ddb22f`); session 34 handoff had been squash-merged as #1861 (outcome: all checks green, deploy `/api/ready` 200 on 5/5 polls). Two open Dependabot PRs (#1867 production-patches, #1868 postcss) left for the owner. Backlog empty. `/api/ready` 200 (mongodb connected, queue worker healthy); `/`, `/suppliers`, `/marketplace`, `/pricing`, `/faq`, `/auth`, `/community`, `/contact` all 200. No defect found, no code changed. Docs-only handoff. (Note: a force-push to restart the branch was blocked, so the branch was merged with main instead.)
