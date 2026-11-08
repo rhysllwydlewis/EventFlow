@@ -174,6 +174,10 @@ the policy above.
 
 ## Session log
 
+### 2026-11-08 — session 38
+
+Branch restarted onto `main` (`d1d3e321`, #1871 merged). Only open PRs are Dependabot #1867 and #1868 (left for the owner). Backlog empty. `/api/ready` 200 (mongodb connected, Redis queue and worker healthy); `/`, `/suppliers`, `/marketplace`, `/pricing`, `/faq`, `/auth`, `/community`, `/contact`, `/terms`, `/privacy`, `/guides` all 200. No defect found, no code changed. Docs-only handoff.
+
 ### 2026-11-05 — session 37
 
 Branch restarted onto `main` (`4ad28ef9`, #1870 merged). Only open PRs are Dependabot #1867 and #1868 (left for the owner). Backlog empty. `/api/ready` 200 (mongodb connected, Redis queue and worker healthy); `/`, `/suppliers`, `/marketplace`, `/pricing`, `/faq`, `/auth`, `/community`, `/contact` all 200. No defect found, no code changed. Docs-only handoff.
