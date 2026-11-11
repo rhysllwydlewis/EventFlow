@@ -174,6 +174,10 @@ the policy above.
 
 ## Session log
 
+### 2026-11-11 — session 41
+
+Branch restarted onto `main` (`89b090c7`, #1878 merged). Only open PRs are Dependabot #1875, #1876, #1877 (left for the owner). Backlog empty. `/api/ready` 200; `/`, `/suppliers`, `/marketplace`, `/pricing`, `/faq`, `/auth`, `/community`, `/contact` all 200. No defect found, no code changed. Docs-only handoff.
+
 ### 2026-11-10 — session 40
 
 Branch restarted onto `main` (`fba1abd5`, #1874 merged). Only open PRs are Dependabot #1875 (production-patches), #1876 and #1877 (playwright 1.65.0), left for the owner. Backlog empty. `/api/ready` 200 (mongodb connected, Redis queue and worker healthy); `/`, `/suppliers`, `/marketplace`, `/pricing`, `/faq`, `/auth`, `/community`, `/contact`, `/terms`, `/privacy`, `/guides` all 200. No defect found, no code changed. Docs-only handoff.
