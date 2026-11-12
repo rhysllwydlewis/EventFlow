@@ -556,6 +556,13 @@ app.get(['/location', '/location.html'], (_req, res) => res.redirect(301, '/loca
 app.get(['/category-directory', '/category-directory.html'], (_req, res) =>
   res.redirect(301, '/categories')
 );
+// /event-detail is the shell behind /events/:slug, whose client script reads the
+// event slug from the last path segment, so bare it can only ever say "Event not
+// found". Its canonical points at /events/, which does not exist. The events
+// listing people want is the public calendar.
+app.get(['/event-detail', '/event-detail.html'], (_req, res) =>
+  res.redirect(301, '/public-calendar')
+);
 
 // /package — serve the real package detail page only when a meaningful identifier is
 // present (id, packageId, or slug query param).  Bare /package with no context is a

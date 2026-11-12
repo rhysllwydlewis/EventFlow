@@ -42,6 +42,9 @@ function noindexMiddleware() {
     'supplier/subscription',
     'supplier/profile-customization',
     'supplier/marketplace-new-listing',
+    // Per-visitor tool: its content is built client-side from the visitor's own
+    // localStorage, so to a crawler it is an empty shell with no canonical.
+    'compare',
     // Developer demo/diagnostic pages that ship in public/ and are reachable by
     // URL. robots.txt Disallow alone does not keep a linked URL out of search.
     'mobile-preview',

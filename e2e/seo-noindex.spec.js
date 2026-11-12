@@ -31,6 +31,11 @@ test.describe('SEO Noindex Headers', () => {
     '/checkout',
     '/my-marketplace-listings',
     '/gallery',
+    // Supplier dashboard tools and the per-visitor compare tool (middleware/seo.js)
+    '/supplier/subscription',
+    '/supplier/profile-customization',
+    '/supplier/marketplace-new-listing',
+    '/compare',
     // Developer demo/diagnostic pages (middleware/seo.js)
     '/mobile-preview',
     '/demo-loading-spinner',

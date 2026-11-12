@@ -1,10 +1,10 @@
 /**
- * /location and /category-directory are the raw template shells that
- * routes/locations.js and routes/category-directory.js fill with real data for
- * /locations/* and /categories/*. Requested bare they have no title, no
- * canonical and almost no content, so a crawler reports them as soft 404s or
- * uncanonicalised duplicates. They must 301 to the hub pages instead.
- * Checked against the real app.
+ * /location, /category-directory and /event-detail are the raw template shells
+ * behind /locations/*, /categories/* and /events/:slug. Requested bare they have
+ * no real content (and /event-detail canonicalises to a URL that 404s), so a
+ * crawler reports them as soft 404s or uncanonicalised duplicates. They must
+ * 301 to the pages a visitor actually wants instead. Checked against the real
+ * app.
  */
 
 'use strict';
@@ -18,6 +18,8 @@ describe('bare template shells redirect to their hub pages', () => {
     ['/location.html', '/locations'],
     ['/category-directory', '/categories'],
     ['/category-directory.html', '/categories'],
+    ['/event-detail', '/public-calendar'],
+    ['/event-detail.html', '/public-calendar'],
   ])('%s -> %s (301)', async (from, to) => {
     const res = await request(app).get(from).redirects(0);
     expect(res.status).toBe(301);

@@ -1,13 +1,15 @@
 /**
  * Crawler hygiene for links to login-gated pages.
  *
- * /settings, /budget, /guests, /timeline, /notifications and
- * /my-marketplace-listings answer a logged-out visitor (and a crawler) with a
+ * Every page in server.js's protectedHtmlPages list (/notifications, /settings,
+ * /budget, /guests, /timeline, /plan, /messages, /support, /gallery,
+ * /my-marketplace-listings) answers a logged-out visitor, and a crawler, with a
  * 302 to /auth. Search Console reports every such link as a "Page with
- * redirect" URL. The links stay for real users, but on any page a crawler can
- * index they must say rel="nofollow" so crawlers leave them alone — the same
- * rule site-navigation-consistency.test.js already enforces for the settings
- * link.
+ * redirect" URL. The supplier dashboard tools under /supplier/ are noindexed
+ * (middleware/seo.js) and equally pointless for a crawler to follow. The links
+ * stay for real users, but on any page a crawler can index they must say
+ * rel="nofollow" so crawlers leave them alone: the same rule
+ * site-navigation-consistency.test.js already enforces for the settings link.
  *
  * /partner is different: it is a real page, but its canonical form is
  * /partner/ and the bare path 301s there, so links must use the final URL.
@@ -20,13 +22,20 @@ const path = require('path');
 
 const PUBLIC = path.join(__dirname, '../../public');
 
+// Read the gated-page list from server.js itself so this test cannot drift
+// from the routes that actually redirect.
+const serverSource = fs.readFileSync(path.join(__dirname, '../../server.js'), 'utf8');
+const protectedBlock = serverSource.match(/const protectedHtmlPages = \[([\s\S]*?)\];/);
+const PROTECTED_PAGES = protectedBlock
+  ? [...protectedBlock[1].matchAll(/'([^']+)'/g)].map(m => m[1])
+  : [];
+
 const GATED_PATHS = [
-  '/settings',
-  '/budget',
-  '/guests',
-  '/timeline',
-  '/notifications',
-  '/my-marketplace-listings',
+  ...PROTECTED_PAGES.map(page => `/${page}`),
+  // Supplier dashboard tools: noindexed, login-only.
+  '/supplier/subscription',
+  '/supplier/profile-customization',
+  '/supplier/marketplace-new-listing',
 ];
 
 /**
@@ -44,7 +53,8 @@ function indexablePages() {
         continue;
       }
       const html = fs.readFileSync(path.join(dir, entry), 'utf8');
-      if (/<meta\s+name="robots"\s+content="[^"]*noindex/i.test(html)) {
+      const fileIsNoindexed = /<meta\s+name="robots"\s+content="[^"]*noindex/i.test(html);
+      if (fileIsNoindexed && !INDEXABLE_BY_ROUTE.has(entry)) {
         continue;
       }
       pages.push({ name: path.relative(PUBLIC, path.join(dir, entry)), html });
@@ -58,16 +68,26 @@ const anchorsTo = (html, hrefs) =>
     .map(match => match[0])
     .filter(tag => hrefs.includes((tag.match(/\shref="([^"#?]+)/) || [])[1]));
 
-// Homepage preview prototypes. Their files carry no robots meta, but
-// routes/public.js and scripts/serve-static.js serve them noindex, so they are
-// not crawler-facing pages either.
-const NOINDEXED_BY_ROUTE = new Set(['home-v2.html', 'home-v3.html']);
+// Pages whose indexability is decided by a route, not by the file's own meta.
+// Preview/demo pages carry no robots meta but are served noindex
+// (routes/public.js, middleware/seo.js), so they are not crawler-facing.
+const NOINDEXED_BY_ROUTE = new Set(['home-v2.html', 'home-v3.html', 'mobile-preview.html']);
+// supplier.html ships `noindex,follow` as its default, but the public supplier
+// SEO route rewrites that to `index,follow` for every indexable profile, so a
+// link in the template reaches crawlers on every one of those profiles.
+const INDEXABLE_BY_ROUTE = new Set(['supplier.html']);
 
 const pages = indexablePages().filter(page => !NOINDEXED_BY_ROUTE.has(page.name));
 
 describe('links to login-gated pages on indexable pages', () => {
   test('there are enough indexable pages for this to be worth asserting', () => {
     expect(pages.length).toBeGreaterThan(60);
+  });
+
+  test('the gated-page list was read from server.js', () => {
+    expect(PROTECTED_PAGES).toEqual(
+      expect.arrayContaining(['settings', 'notifications', 'budget'])
+    );
   });
 
   test.each(pages.map(page => [page.name, page]))(

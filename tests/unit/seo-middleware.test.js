@@ -75,6 +75,9 @@ describe('SEO noindex middleware — authenticated pages', () => {
     '/supplier/profile-customization.html',
     '/supplier/marketplace-new-listing',
     '/supplier/marketplace-new-listing.html',
+    // Per-visitor (localStorage-driven) tool page
+    '/compare',
+    '/compare.html',
     // Canonical messenger SPA
     '/messenger',
     '/messenger/',
@@ -123,16 +126,18 @@ describe('supplier dashboard tool pages are also noindexed in the file itself', 
   const fs = require('fs');
   const pathModule = require('path');
 
-  test.each(['subscription', 'profile-customization', 'marketplace-new-listing'])(
-    'public/supplier/%s.html carries <meta name="robots" content="noindex,nofollow">',
-    page => {
-      const html = fs.readFileSync(
-        pathModule.join(__dirname, '../../public/supplier', `${page}.html`),
-        'utf8'
-      );
-      expect(html).toMatch(/<meta name="robots" content="noindex,nofollow"\s*\/?>/);
-    }
-  );
+  test.each([
+    'supplier/subscription',
+    'supplier/profile-customization',
+    'supplier/marketplace-new-listing',
+    'compare',
+  ])('public/%s.html carries <meta name="robots" content="noindex,nofollow">', page => {
+    const html = fs.readFileSync(
+      pathModule.join(__dirname, '../../public', `${page}.html`),
+      'utf8'
+    );
+    expect(html).toMatch(/<meta name="robots" content="noindex,nofollow"\s*\/?>/);
+  });
 });
 
 describe('SEO noindex middleware — next() is always called', () => {
