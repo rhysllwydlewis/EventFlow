@@ -18,6 +18,7 @@ const {
 const { addPublicProfilePath } = require('../utils/publicSupplierProfilePath');
 const { computeProfileCompleteness } = require('../services/supplierProfileCompleteness');
 const { stripPublicSupplierPrivateFields } = require('../utils/supplierPublicProfile');
+const { toPublicPackageCard } = require('../utils/publicPackageCard');
 
 // Dependencies injected by server.js
 let dbUnified;
@@ -474,7 +475,7 @@ router.get('/suppliers/:id/packages', async (req, res) => {
       const chosen = getBestPackageImageCandidate(pkg);
       const resolvedGallery = normalizeGallery(pkg.gallery);
       const item = {
-        ...pkg,
+        ...toPublicPackageCard(pkg),
         image: resolvedImage,
         resolvedImage,
         // rawImage is the unmodified stored value for diagnostics/backwards
@@ -680,11 +681,12 @@ router.get('/packages/featured', async (_req, res) => {
 
       items = packages
         .filter(pkg => suppliersMap.has(pkg.supplierId))
-        .map(pkg => ({
-          ...pkg,
-          image: resolvePackageImage(pkg),
-          supplier_name: suppliersMap.get(pkg.supplierId)?.name || null,
-        }));
+        .map(pkg =>
+          toPublicPackageCard(pkg, {
+            image: resolvePackageImage(pkg),
+            supplier_name: suppliersMap.get(pkg.supplierId)?.name || null,
+          })
+        );
     } else {
       // Local storage fallback
       const packages = await dbUnified.read('packages');
@@ -713,11 +715,10 @@ router.get('/packages/featured', async (_req, res) => {
         .slice(0, 6)
         .map(pkg => {
           const supplier = suppliersMap.get(pkg.supplierId);
-          return {
-            ...pkg,
+          return toPublicPackageCard(pkg, {
             image: resolvePackageImage(pkg),
             supplier_name: supplier ? supplier.name : null,
-          };
+          });
         });
     }
 
@@ -839,11 +840,10 @@ router.get('/packages/spotlight', async (_req, res) => {
       .filter(pkg => suppliersMap.has(pkg.supplierId))
       .map(pkg => {
         const supplier = suppliersMap.get(pkg.supplierId);
-        return {
-          ...pkg,
+        return toPublicPackageCard(pkg, {
           image: resolvePackageImage(pkg),
           supplier_name: supplier ? supplier.name : null,
-        };
+        });
       });
 
     const result = { items };
@@ -915,11 +915,12 @@ router.get('/packages/search', async (req, res) => {
     });
 
     res.json({
-      items: items.map(pkg => ({
-        ...pkg,
-        image: resolvePackageImage(pkg),
-        resolvedGallery: normalizeGallery(pkg.gallery),
-      })),
+      items: items.map(pkg =>
+        toPublicPackageCard(pkg, {
+          image: resolvePackageImage(pkg),
+          resolvedGallery: normalizeGallery(pkg.gallery),
+        })
+      ),
     });
   } catch (error) {
     logger.error('Error searching packages:', error);
@@ -1034,7 +1035,7 @@ router.get('/packages/:slug', async (req, res) => {
     const resolvedGallery = normalizeGallery(pkg.gallery);
 
     const packageResponse = {
-      ...pkg,
+      ...toPublicPackageCard(pkg),
       image: resolvedImg,
       // Pre-normalised gallery: each entry has a guaranteed `url` field and all
       // placeholder/unresolvable items have been removed.  The client should
