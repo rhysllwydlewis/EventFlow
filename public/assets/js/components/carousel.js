@@ -442,6 +442,18 @@ class Carousel {
       return div.innerHTML;
     };
 
+    // Escape a value for use inside a double- OR single-quoted HTML attribute.
+    // escapeHtml() above relies on textContent/innerHTML, which escapes &, < and >
+    // but NOT quotes, so a `"` in the value would break out of the attribute
+    // (e.g. `src="x" onerror="..."`). This also escapes " and '.
+    const escapeAttr = text =>
+      String(text === null || text === undefined ? '' : text)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+
     // Validate and sanitize URLs to prevent XSS
     const sanitizeUrl = url => {
       if (!url) {
@@ -452,7 +464,9 @@ class Carousel {
       if (/^(javascript|data|vbscript|file):/i.test(urlStr)) {
         return '/assets/images/placeholders/package-event.svg';
       }
-      return escapeHtml(urlStr);
+      // The result is placed inside an HTML attribute (<img src="...">), so it
+      // must be attribute-escaped (quotes included), not just text-escaped.
+      return escapeAttr(urlStr);
     };
 
     // Validate slug for URL safety
@@ -480,7 +494,9 @@ class Carousel {
       return priceStr;
     };
 
-    const title = escapeHtml(item.title || 'Untitled Package');
+    const rawTitle = item.title || 'Untitled Package';
+    const title = escapeHtml(rawTitle);
+    const titleAttr = escapeAttr(rawTitle);
     const supplierName = escapeHtml(item.supplier_name || '');
     // Truncate description BEFORE escaping to avoid counting HTML entities
     const rawDesc = item.description || '';
@@ -545,7 +561,7 @@ class Carousel {
       <div class="carousel-item">
         <a href="/package/${encodeURIComponent(slug)}" class="featured-package-card">
           <div class="package-media">
-            <img src="${image}" alt="${title}" loading="lazy" decoding="async"
+            <img src="${image}" alt="${titleAttr}" loading="lazy" decoding="async"
                  data-fallback-src="/assets/images/placeholders/package-event.svg">
             ${showCategory ? `<span class="package-tag">${category}</span>` : ''}
           </div>
