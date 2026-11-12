@@ -487,8 +487,6 @@
       });
       config = await res.json();
     } catch {
-      setGoogleButtonsBusy(false);
-      announceGoogleAvailability(false);
       showGoogleUnavailable(GOOGLE_BLOCKED_MESSAGE);
       return;
     }

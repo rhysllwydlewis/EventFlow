@@ -141,7 +141,9 @@ describe('auth page wiring', () => {
   test('a blocked or missing Google button is an inline note, not a page-level error', () => {
     // accounts.google.com is blocked by plenty of browsers and networks. Email sign-in
     // still works there, so none of the load-failure paths may raise the red alert.
-    expect(googleSource).not.toContain("setStatus('Google sign-in configuration could not be loaded");
+    expect(googleSource).not.toContain(
+      "setStatus('Google sign-in configuration could not be loaded"
+    );
     expect(googleSource).not.toContain("setStatus('Google sign-in could not be loaded");
     expect(googleSource).not.toContain("setStatus('Google sign-in is unavailable in this browser");
     expect(googleSource).toContain('showGoogleUnavailable(GOOGLE_BLOCKED_MESSAGE)');
