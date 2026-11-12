@@ -9,6 +9,7 @@ const express = require('express');
 const { PLACEHOLDER_PACKAGE_IMAGE, isPlaceholderImage } = require('../utils/packageImageUtils');
 const suppliersRouter = require('./suppliers');
 const { priceFields } = require('../utils/packagePrice');
+const { validatePackageImageUrl } = require('../utils/packageImageUrl');
 const router = express.Router();
 
 /**
@@ -294,6 +295,19 @@ router.post(
       });
     }
 
+    // A plain image URL is stored as-is and rendered into <img src> on public pages, so reject
+    // anything that is not a real image address before doing any other work. (A base64 data:
+    // upload is converted to a stored file URL further down instead.)
+    const isBase64Upload = typeof image === 'string' && image.startsWith('data:');
+    let plainImageUrl = '';
+    if (image && !isBase64Upload) {
+      const checkedImage = validatePackageImageUrl(image);
+      if (!checkedImage.ok) {
+        return res.status(400).json({ error: 'Invalid image', details: checkedImage.error });
+      }
+      plainImageUrl = checkedImage.value;
+    }
+
     const ownedSuppliers = req.supplierProfile
       ? [req.supplierProfile]
       : await dbUnified.find('suppliers', { ownerUserId: req.user.id });
@@ -366,7 +380,7 @@ router.post(
     // the package saved without its photo instead of reporting a flat success —
     // previously this was only logged server-side and the caller had no way to know.
     let imageProcessingError = null;
-    if (image && typeof image === 'string' && image.startsWith('data:')) {
+    if (isBase64Upload) {
       try {
         const rand = Math.random().toString(36).slice(2, 8);
         resolvedImage = await saveImageBase64(image, `package_${pkgId}_${Date.now()}_${rand}`);
@@ -376,8 +390,8 @@ router.post(
         imageProcessingError =
           'Package saved, but the photo could not be processed. Please try uploading it again.';
       }
-    } else if (image && typeof image === 'string' && image.trim()) {
-      resolvedImage = image.trim();
+    } else if (plainImageUrl) {
+      resolvedImage = plainImageUrl;
       gallery.push({ url: resolvedImage, approved: true, uploadedAt: Date.now() });
     }
 
@@ -562,20 +576,20 @@ async function buildImageUpdate(newImage, pkg) {
       imageProcessingError =
         'Package saved, but the new photo could not be processed — the previous photo was kept. Please try uploading it again.';
     }
-  } else if (
-    newImage &&
-    typeof newImage === 'string' &&
-    newImage.trim() &&
-    newImage !== PLACEHOLDER_PACKAGE_IMAGE
-  ) {
-    // Plain URL provided (e.g. admin set it directly)
-    updates.image = newImage.trim();
-    const gallery = galleryWithImage(pkg, updates.image);
-    if (gallery) {
-      updates.gallery = gallery;
-    }
   } else {
-    updates.image = newImage || '';
+    // Plain URL (or empty to clear): validate before storing, because the value is rendered into
+    // <img src> on public pages. Anything but a string, a site path or an http(s) URL is rejected.
+    const checked = validatePackageImageUrl(newImage || '');
+    if (!checked.ok) {
+      return { updates, imageProcessingError, invalidImage: checked.error };
+    }
+    updates.image = checked.value;
+    if (checked.value && checked.value !== PLACEHOLDER_PACKAGE_IMAGE) {
+      const gallery = galleryWithImage(pkg, checked.value);
+      if (gallery) {
+        updates.gallery = gallery;
+      }
+    }
   }
   return { updates, imageProcessingError };
 }
@@ -616,6 +630,11 @@ router.put(
       let imageProcessingError = null;
       if (req.body.image !== undefined) {
         const imageUpdate = await buildImageUpdate(req.body.image, pkg);
+        if (imageUpdate.invalidImage) {
+          return res
+            .status(400)
+            .json({ error: 'Invalid image', details: imageUpdate.invalidImage });
+        }
         Object.assign(pkgUpdates, imageUpdate.updates);
         imageProcessingError = imageUpdate.imageProcessingError;
       }
@@ -1146,7 +1165,11 @@ router.put(
       Object.assign(pkgUpdates, priceFields(submittedPrice));
     }
     if (req.body.image) {
-      const newImage = req.body.image;
+      const checkedImage = validatePackageImageUrl(req.body.image);
+      if (!checkedImage.ok) {
+        return res.status(400).json({ error: 'Invalid image', details: checkedImage.error });
+      }
+      const newImage = checkedImage.value;
       pkgUpdates.image = newImage;
       // Sync to gallery so the detail view resolvedGallery reflects the new image
       if (!isPlaceholderImage(newImage)) {
