@@ -53,8 +53,16 @@ test.describe('Carousel Arrows – Mobile Sizing', () => {
     const prevBox = await prevBtn.boundingBox();
     const itemBox = await firstItem.boundingBox();
 
-    // The right edge of the previous arrow must not exceed the left edge of the first item
-    expect(prevBox.x + prevBox.width).toBeLessThanOrEqual(itemBox.x + 1); // 1px tolerance
+    // The arrow must not sit on top of the card. It used to live in a gutter to the
+    // card's left; on phones the pair now sits under the track, so "overlap" is
+    // checked as a real rectangle intersection rather than by assuming a side.
+    const TOLERANCE = 1;
+    const apart =
+      prevBox.x + prevBox.width <= itemBox.x + TOLERANCE ||
+      prevBox.x >= itemBox.x + itemBox.width - TOLERANCE ||
+      prevBox.y + prevBox.height <= itemBox.y + TOLERANCE ||
+      prevBox.y >= itemBox.y + itemBox.height - TOLERANCE;
+    expect(apart).toBe(true);
   });
 
   test('carousel arrows should be ≤ 40px wide on small mobile (320px)', async ({ page }) => {

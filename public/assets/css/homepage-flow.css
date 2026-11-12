@@ -926,3 +926,56 @@ body.ef-home-flow.ef-home-guidance main .ef-approved-step-cta__secondary:focus-v
     justify-content: center;
   }
 }
+
+/* ==========================================================================
+   Package rows (Featured, Spotlight)
+   --------------------------------------------------------------------------
+   These two sections sat between fully designed bands with only a kicker for
+   a heading. They now carry a real h2, set to the same scale as the approved
+   section headings either side so the page reads as one system.
+   ========================================================================== */
+body.ef-home-flow main :is(.home-featured-section, .home-spotlight-section) .ef-section__header {
+  margin-bottom: 20px;
+  text-align: left;
+}
+
+body.ef-home-flow main :is(.home-featured-section, .home-spotlight-section) .ef-section__title {
+  margin: 0;
+  color: #17202f;
+  font-size: clamp(1.75rem, 1.35rem + 1.6vw, 2.25rem);
+  font-weight: 800;
+  line-height: 1.12;
+  letter-spacing: -0.025em;
+}
+
+body.ef-home-flow main :is(.home-featured-section, .home-spotlight-section) .ef-section__subtitle {
+  margin: 7px 0 0;
+  max-width: 60ch;
+  color: #566074;
+  font-size: 1rem;
+  line-height: 1.5;
+}
+
+/* The whole card is one link; the site-wide link hover underlined every line
+   of text inside it. */
+body.ef-home-flow main .featured-package-card,
+body.ef-home-flow main .featured-package-card:hover {
+  text-decoration: none;
+}
+
+/* Phones: the shared mobile sheets shrink every .ef-section__title to card
+   size with !important; these two are section headings and match the 28px
+   the approved sections use at this width. */
+@media (max-width: 768px) {
+  body.ef-home-flow main :is(.home-featured-section, .home-spotlight-section) .ef-section__title {
+    font-size: 1.75rem !important;
+    line-height: 1.12 !important;
+  }
+
+  body.ef-home-flow
+    main
+    :is(.home-featured-section, .home-spotlight-section)
+    .ef-section__subtitle {
+    font-size: 0.875rem !important;
+  }
+}

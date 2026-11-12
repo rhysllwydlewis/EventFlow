@@ -34,28 +34,39 @@ function initFormValidation() {
     // Store reference to validator for other scripts
     loginForm._validator = loginValidator;
 
-    // Override the handleSubmit to also show #login-error
-    const originalHandleSubmit = loginValidator.handleSubmit.bind(loginValidator);
-    loginValidator.handleSubmit = function (e) {
-      const result = originalHandleSubmit(e);
-      const loginErrorEl = document.getElementById('login-error');
-
-      // Show #login-error if validation failed
-      if (!result && loginErrorEl) {
-        const errors = loginValidator.getErrors();
-        if (errors.length > 0) {
-          const errorMessages = errors.map(([_field, msg]) => msg).join(', ');
-          loginErrorEl.textContent = errorMessages || 'Please fix the errors above';
-          loginErrorEl.style.display = 'block';
+    // Validate before app.js's submit handler runs. Capture phase, so on the
+    // form itself this fires ahead of the handlers registered earlier. Without
+    // it an invalid form still reached app.js, which (a) repeated the field
+    // errors as a summary line — three messages for two empty fields — and
+    // (b) sent the sign-in request anyway when the email was malformed.
+    loginForm.addEventListener(
+      'submit',
+      e => {
+        loginValidator.clearAllErrors();
+        if (loginValidator.validateAll()) {
+          return;
         }
-      } else if (result && loginErrorEl) {
-        // Clear errors when validation passes
-        loginErrorEl.textContent = '';
-        loginErrorEl.style.display = 'none';
-      }
-      // Don't clear the error here - let app.js manage #login-error for API responses
-      return result;
-    };
+        e.preventDefault();
+        e.stopImmediatePropagation();
+
+        // The messages sit under their own fields; clear any stale summary
+        // from a previous attempt so the two cannot disagree.
+        const loginErrorEl = document.getElementById('login-error');
+        if (loginErrorEl) {
+          loginErrorEl.textContent = '';
+          loginErrorEl.style.display = 'none';
+        }
+        const loginStatusEl = document.getElementById('login-status');
+        if (loginStatusEl) {
+          loginStatusEl.textContent = '';
+        }
+        const firstInvalid = loginForm.querySelector('.form-field-error');
+        if (firstInvalid) {
+          firstInvalid.focus();
+        }
+      },
+      true
+    );
 
     // Listen for valid submissions
     loginForm.addEventListener('validsubmit', () => {
