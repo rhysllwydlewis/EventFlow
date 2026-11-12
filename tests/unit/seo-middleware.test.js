@@ -68,6 +68,13 @@ describe('SEO noindex middleware — authenticated pages', () => {
     '/messaging-demo',
     '/google-auth-diagnostics',
     '/supplier-card-showcase.html',
+    // Supplier-only dashboard tools served under the public /supplier/ prefix
+    '/supplier/subscription',
+    '/supplier/subscription.html',
+    '/supplier/profile-customization',
+    '/supplier/profile-customization.html',
+    '/supplier/marketplace-new-listing',
+    '/supplier/marketplace-new-listing.html',
     // Canonical messenger SPA
     '/messenger',
     '/messenger/',
@@ -100,9 +107,32 @@ describe('SEO noindex middleware — public pages remain indexable', () => {
     '/legal',
     '/privacy',
     '/terms',
+    // Public supplier profiles share the /supplier/ prefix with the tools
+    // above and must stay indexable, including a profile whose name starts
+    // with one of the tool names.
+    '/supplier/pink-diamond-catering--b7c7ea6b27a54309',
+    '/supplier/subscription-box-events--0123456789abcdef',
   ])('no noindex on %s', path => {
     expect(isNoindex(path)).toBe(false);
   });
+});
+
+describe('supplier dashboard tool pages are also noindexed in the file itself', () => {
+  // The header is the primary signal; the in-file meta is the belt-and-braces
+  // copy for any layer (a CDN rule, a static host) that drops response headers.
+  const fs = require('fs');
+  const pathModule = require('path');
+
+  test.each(['subscription', 'profile-customization', 'marketplace-new-listing'])(
+    'public/supplier/%s.html carries <meta name="robots" content="noindex,nofollow">',
+    page => {
+      const html = fs.readFileSync(
+        pathModule.join(__dirname, '../../public/supplier', `${page}.html`),
+        'utf8'
+      );
+      expect(html).toMatch(/<meta name="robots" content="noindex,nofollow"\s*\/?>/);
+    }
+  );
 });
 
 describe('SEO noindex middleware — next() is always called', () => {

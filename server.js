@@ -546,6 +546,17 @@ app.get('/supplier.html', (req, res) => {
 // routes/static.js, mounted above, which translates slug -> category so the
 // redirect preserves the filter instead of silently dropping it.
 
+// /location and /category-directory are the raw template shells that
+// routes/locations.js and routes/category-directory.js read from disk and fill
+// with real data for /locations/* and /categories/*. Requested bare, a shell
+// has no title, no canonical and almost no content: a thin page a crawler
+// reports as a soft 404 or an uncanonicalised duplicate. They are not
+// destinations, so send them to the hub pages that are.
+app.get(['/location', '/location.html'], (_req, res) => res.redirect(301, '/locations'));
+app.get(['/category-directory', '/category-directory.html'], (_req, res) =>
+  res.redirect(301, '/categories')
+);
+
 // /package — serve the real package detail page only when a meaningful identifier is
 // present (id, packageId, or slug query param).  Bare /package with no context is a
 // dead-end for crawlers, so redirect them to /suppliers instead.

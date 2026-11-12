@@ -34,6 +34,14 @@ function noindexMiddleware() {
     'my-marketplace-listings',
     'budget',
     'gallery',
+    // Supplier-only dashboard tools. They live under /supplier/, which is also
+    // the public supplier-profile prefix, so they are listed by exact path
+    // rather than covered by a prefix (see noindexPrefixes below). Public
+    // supplier profiles link to them, so without this a crawler indexes a
+    // logged-out copy of each tool with no canonical.
+    'supplier/subscription',
+    'supplier/profile-customization',
+    'supplier/marketplace-new-listing',
     // Developer demo/diagnostic pages that ship in public/ and are reachable by
     // URL. robots.txt Disallow alone does not keep a linked URL out of search.
     'mobile-preview',
