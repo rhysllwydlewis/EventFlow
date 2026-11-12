@@ -1,11 +1,16 @@
 'use strict';
 
 /**
- * The homepage collage endpoint used to hand back the first `hd` file Pexels
- * listed for each video: often a 1080p or portrait 1080x1920 file of 5-9 MB for
- * a tile that renders a few hundred pixels wide. A desktop visitor could
- * download tens of megabytes of video without scrolling. The endpoint must
- * return the smallest rendition that is still big enough for the slot.
+ * routes/admin-homepage-collage-active.js carries a second copy of the homepage
+ * collage routes. It is mounted after routes/admin.js, which answers the same
+ * paths first, so today it is the shadowed copy, but it is a complete router and
+ * would serve them if the mount order ever changed. It must return the same
+ * right-sized video file; pexels-collage-live-route.test.js covers the live
+ * routes/admin.js handler.
+ *
+ * The bug both copies had: they handed back the first `hd` file Pexels listed
+ * for each video, often a 1080p or portrait 1080x1920 file of 5-9 MB for a tile
+ * a few hundred pixels wide.
  */
 
 const express = require('express');

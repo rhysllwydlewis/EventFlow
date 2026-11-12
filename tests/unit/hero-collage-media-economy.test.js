@@ -280,6 +280,173 @@ describe('cycling pauses when the collage cannot be seen', () => {
   });
 });
 
+/** A stand-in for an <img>, with real attribute semantics for the ones we touch. */
+function fakeImg(attrs = {}) {
+  const attributes = new Map(Object.entries(attrs));
+  const img = {
+    tagName: 'IMG',
+    className: 'tile-img',
+    parentElement: null,
+    style: { cssText: '', opacity: '0' },
+    classList: { add: () => {}, remove: () => {}, contains: () => false },
+    alt: '',
+    decoding: '',
+    setAttribute: (name, value) => attributes.set(name, String(value)),
+    getAttribute: name => (attributes.has(name) ? attributes.get(name) : null),
+    hasAttribute: name => attributes.has(name),
+    removeAttribute: name => attributes.delete(name),
+    replaceWith: () => {},
+  };
+  // srcset / sizes / src behave as attributes, as on a real element.
+  for (const name of ['src', 'srcset', 'sizes']) {
+    Object.defineProperty(img, name, {
+      get: () => attributes.get(name),
+      set: value => {
+        attributes.set(name, String(value));
+      },
+    });
+  }
+  return img;
+}
+
+describe('addCacheBuster', () => {
+  const bust = url => evaluate(loadModule(), `addCacheBuster(${JSON.stringify(url)})`);
+
+  test('leaves an immutable Pexels CDN URL exactly as it was', () => {
+    const url = 'https://images.pexels.com/photos/1/pexels-photo-1.jpeg?auto=compress&h=350';
+    expect(bust(url)).toBe(url);
+  });
+
+  test('still busts an uploaded or local image, which may be replaced in place', () => {
+    expect(bust('/uploads/collage/venue.jpg')).toMatch(/^\/uploads\/collage\/venue\.jpg\?cb=\d+$/);
+    expect(bust('https://event-flow.co.uk/api/photos/p1?x=1')).toMatch(/\?x=1&cb=\d+$/);
+  });
+
+  test('does not treat a lookalike host as Pexels', () => {
+    expect(bust('https://images.pexels.com.evil.example/a.jpg')).toMatch(/\?cb=\d+$/);
+    expect(bust('https://evil.example/images.pexels.com/a.jpg')).toMatch(/\?cb=\d+$/);
+  });
+
+  test('passes an empty value straight through', () => {
+    expect(bust('')).toBe('');
+  });
+});
+
+describe('applyCollagePhoto keeps src and srcset in step', () => {
+  const photo = n => ({
+    url: `https://images.pexels.com/photos/${n}/p.jpeg?h=350`,
+    srcset: `https://images.pexels.com/photos/${n}/p.jpeg?h=130 340w, https://images.pexels.com/photos/${n}/p.jpeg?h=350 940w`,
+  });
+
+  test('replaces the previous photo srcset, so the new photo is the one displayed', () => {
+    const sandbox = loadModule();
+    const img = fakeImg({ src: photo(1).url, srcset: photo(1).srcset, sizes: '25vw' });
+
+    sandbox.applyCollagePhoto(img, photo(2), { getBoundingClientRect: () => ({ width: 230 }) });
+
+    expect(img.src).toBe(photo(2).url);
+    expect(img.srcset).toBe(photo(2).srcset);
+    expect(img.srcset).not.toContain('/photos/1/');
+  });
+
+  test('removes a stale srcset when the new photo has none (the bug: it would win over src)', () => {
+    const sandbox = loadModule();
+    const img = fakeImg({
+      src: '/old.jpg',
+      srcset: 'old-1.jpg 340w, old-2.jpg 940w',
+      sizes: '25vw',
+    });
+
+    sandbox.applyCollagePhoto(img, { url: '/uploads/new.jpg' }, null);
+
+    expect(img.hasAttribute('srcset')).toBe(false);
+    expect(img.hasAttribute('sizes')).toBe(false);
+    expect(img.src).toMatch(/^\/uploads\/new\.jpg\?cb=\d+$/);
+  });
+
+  test('does not add a cache-buster to a Pexels photo', () => {
+    const sandbox = loadModule();
+    const img = fakeImg({});
+    sandbox.applyCollagePhoto(img, photo(3), null);
+    expect(img.src).toBe(photo(3).url);
+    expect(img.src).not.toContain('cb=');
+  });
+});
+
+describe('cycleWidgetMedia photo to photo', () => {
+  /**
+   * Run one cycle tick for a single tile and return the tile's <img>.
+   * Timers run immediately and `Image` loads instantly, so the whole
+   * transition completes synchronously.
+   */
+  function cycleOnce({ staleSrcset }) {
+    const first = {
+      url: 'https://images.pexels.com/photos/1/p.jpeg?h=350',
+      srcset: 'https://images.pexels.com/photos/1/p.jpeg?h=130 340w',
+      type: 'photo',
+      photographer: 'A',
+    };
+    const second = {
+      url: 'https://images.pexels.com/photos/2/p.jpeg?h=350',
+      srcset: 'https://images.pexels.com/photos/2/p.jpeg?h=130 340w',
+      type: 'photo',
+      photographer: 'B',
+    };
+    const img = fakeImg(
+      staleSrcset ? { src: first.url, srcset: first.srcset, sizes: '25vw' } : { src: first.url }
+    );
+    const frame = {
+      getBoundingClientRect: () => ({ width: 230 }),
+      querySelector: () => img,
+    };
+    const loads = [];
+    class FakeImage {
+      set src(value) {
+        loads.push(value);
+        if (this.onload) {
+          this.onload();
+        } else {
+          Promise.resolve().then(() => this.onload && this.onload());
+        }
+      }
+    }
+    const sandbox = loadModule({
+      Image: FakeImage,
+      setTimeout: callback => callback(),
+      innerWidth: 1280,
+    });
+    sandbox.document.body = { contains: () => true };
+    sandbox.document.createElement = () => ({});
+    evaluate(sandbox, 'addCreatorCredit = () => {}; removeCreatorCredit = () => {};');
+
+    sandbox.cycleWidgetMedia(
+      { venues: [first, second] },
+      { venues: 0 },
+      [frame],
+      { venues: 0 },
+      false
+    );
+    return { img, first, second, loads };
+  }
+
+  test('shows the next photo instead of keeping the first one on screen', async () => {
+    const { img, second } = cycleOnce({ staleSrcset: true });
+    await Promise.resolve();
+
+    expect(img.src).toBe(second.url);
+    expect(img.srcset).toBe(second.srcset);
+    expect(img.srcset).not.toContain('/photos/1/');
+  });
+
+  test('downloads the next photo once: the displayed URL is the preloaded one', async () => {
+    const { img, second, loads } = cycleOnce({ staleSrcset: true });
+    await Promise.resolve();
+
+    expect(loads).toEqual([second.url]);
+    expect(img.src).toBe(loads[0]);
+  });
+});
+
 describe('homepage markup uses the right-sized images', () => {
   const exists = name => fs.existsSync(path.join(IMAGES_DIR, name));
 

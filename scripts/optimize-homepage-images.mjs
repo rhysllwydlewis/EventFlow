@@ -1,4 +1,3 @@
-#!/usr/bin/env node
 /**
  * Generate the right-sized WebP renditions the homepage uses.
  *
@@ -16,6 +15,11 @@
  *
  * `--check` (also asserted by tests/unit/homepage-image-renditions.test.js)
  * keeps the renditions in step with their masters.
+ *
+ * The renditions are referenced by plain path (no `?v=`) and static images are
+ * cached for 7 days, so a returning visitor keeps an old copy after one is
+ * regenerated. If a rendition's content changes noticeably, give it a new file
+ * name (and update its references) rather than overwriting it.
  */
 
 import fs from 'node:fs';
@@ -31,7 +35,7 @@ const IMAGES_DIR = path.resolve(
 const CITIES = ['london', 'manchester', 'birmingham', 'cardiff', 'leeds', 'edinburgh'];
 
 /**
- * Every rendition: master, output, longest-edge-safe width and WebP quality.
+ * Every rendition: master, output, target width and WebP quality.
  * Widths are for the largest slot at 2x density; nothing is ever enlarged.
  */
 export const RENDITIONS = [
@@ -102,7 +106,8 @@ async function main() {
     if (stale.length > 0) {
       console.error(`Missing or stale renditions:\n  ${stale.map(j => j.output).join('\n  ')}`);
       console.error('Run: node scripts/optimize-homepage-images.mjs');
-      process.exit(1);
+      process.exitCode = 1;
+      return;
     }
     console.log(`All ${RENDITIONS.length} homepage image renditions are up to date.`);
     return;
@@ -122,6 +127,6 @@ async function main() {
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   main().catch(error => {
     console.error(error);
-    process.exit(1);
+    process.exitCode = 1;
   });
 }

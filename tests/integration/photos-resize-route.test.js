@@ -113,6 +113,24 @@ describe('GET /api/photos/:id?w=', () => {
     expect((await sharp(res.body).metadata()).width).toBe(480);
   });
 
+  test('adds to a Vary header set earlier (e.g. Origin) instead of replacing it', async () => {
+    const server = express();
+    server.use((_req, res, next) => {
+      res.setHeader('Vary', 'Origin');
+      next();
+    });
+    server.use('/api', photosRouter);
+
+    const res = await request(server)
+      .get('/api/photos/big?w=480')
+      .set('Accept', WEBP_ACCEPT)
+      .buffer(true)
+      .parse(binary);
+
+    expect(res.headers.vary).toMatch(/Origin/);
+    expect(res.headers.vary).toMatch(/Accept/);
+  });
+
   test('snaps an odd width up to an allowed one', async () => {
     const res = await get('/api/photos/big?w=300', { Accept: WEBP_ACCEPT });
     expect((await sharp(res.body).metadata()).width).toBe(320);

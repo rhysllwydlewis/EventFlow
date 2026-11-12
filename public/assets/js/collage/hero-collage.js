@@ -414,6 +414,9 @@ function setupLazyLoadingForCollage() {
   return observer;
 }
 
+/** The run currently in flight, shared by overlapping `load()` calls. */
+let heroCollageLoadInFlight = null;
+
 /**
  * Load the collage, sharing one run between overlapping callers.
  *
@@ -435,9 +438,6 @@ function loadHeroCollageImages() {
   }
   return heroCollageLoadInFlight;
 }
-
-/** The run currently in flight, shared by overlapping `load()` calls. */
-let heroCollageLoadInFlight = null;
 
 async function runHeroCollageLoad() {
   // Check if collage widget is enabled via /api/public/homepage-settings endpoint
@@ -2274,9 +2274,47 @@ function addCacheBuster(url) {
     return url;
   }
 
+  // Pexels CDN URLs are content-addressed, so there is nothing stale to bust.
+  // A unique query string would only make the browser download, a second time,
+  // an image the collage has just preloaded under its plain URL.
+  try {
+    if (new URL(url, window.location.href).hostname === 'images.pexels.com') {
+      return url;
+    }
+  } catch {
+    // Not a parsable URL: fall through and bust it as before.
+  }
+
   // Use 'cb' (cache bust) parameter to avoid conflicts with existing 't' parameters
   const separator = url.includes('?') ? '&' : '?';
   return `${url}${separator}cb=${Date.now()}`;
+}
+
+/**
+ * Point a collage <img> at a photo, keeping `src` and `srcset` in step.
+ *
+ * A leftover `srcset` from the previous photo wins over `src` in every
+ * browser, so swapping only `src` leaves the old photo on screen while the new
+ * one is downloaded anyway. Measured on the live homepage: each tile showed
+ * its first photo for ~25 s while three more were fetched and never displayed.
+ * @param {HTMLImageElement} imgElement - The element to update.
+ * @param {{url: string, srcset?: string}} media - The photo to show.
+ * @param {Element} [slotElement] - The frame, used to size the `sizes` hint.
+ */
+function applyCollagePhoto(imgElement, media, slotElement) {
+  // Fix picture element issue: Remove <source> elements before changing img.src
+  removePictureSourceElements(imgElement);
+
+  // Add cache busting to prevent browser from using cached static images
+  imgElement.src = addCacheBuster(media.url);
+
+  if (media.srcset) {
+    imgElement.srcset = media.srcset;
+    imgElement.sizes = collageSlotSizes(slotElement || imgElement);
+  } else {
+    imgElement.removeAttribute('srcset');
+    imgElement.removeAttribute('sizes');
+  }
 }
 
 /**
@@ -2432,18 +2470,7 @@ function loadMediaIntoFrame(
           console.warn(`[Collage Widget] Image preload timeout for ${category}, displaying anyway`);
         }
 
-        // Fix picture element issue: Remove <source> elements before changing img.src
-        removePictureSourceElements(mediaElement);
-
-        // Add cache busting to prevent browser from using cached static images
-        const cacheBustedUrl = addCacheBuster(media.url);
-        mediaElement.src = cacheBustedUrl;
-
-        // Apply srcset if available for responsive images
-        if (media.srcset) {
-          mediaElement.srcset = media.srcset;
-          mediaElement.sizes = collageSlotSizes(frame || mediaElement);
-        }
+        applyCollagePhoto(mediaElement, media, frame);
 
         // Add decoding="async" for better performance
         // Note: Not using loading="lazy" - collage is above-the-fold (hero section)
@@ -2472,18 +2499,7 @@ function loadMediaIntoFrame(
           );
         }
 
-        // Fix picture element issue: Remove <source> elements before changing img.src
-        removePictureSourceElements(mediaElement);
-
-        // Add cache busting to prevent browser from using cached static images
-        const cacheBustedUrl = addCacheBuster(media.url);
-        mediaElement.src = cacheBustedUrl;
-
-        // Apply srcset if available for responsive images
-        if (media.srcset) {
-          mediaElement.srcset = media.srcset;
-          mediaElement.sizes = collageSlotSizes(frame || mediaElement);
-        }
+        applyCollagePhoto(mediaElement, media, frame);
 
         // Add decoding="async" for better performance
         // Note: Not using loading="lazy" - collage is above-the-fold (hero section)
@@ -2684,13 +2700,8 @@ function cycleWidgetMedia(
                 newImg.style.opacity = '1';
               }
             } else {
-              // Update existing img
-              // Fix picture element issue: Remove <source> elements before changing img.src
-              removePictureSourceElements(currentElement);
-
-              // Add cache busting
-              const cacheBustedUrl = addCacheBuster(nextMedia.url);
-              currentElement.src = cacheBustedUrl;
+              // Update existing img (src and srcset together: see applyCollagePhoto)
+              applyCollagePhoto(currentElement, nextMedia, frame);
               currentElement.alt = `${category.charAt(0).toUpperCase() + category.slice(1)} - Photo`;
               currentElement.classList.remove('fading');
               if (!prefersReducedMotion) {

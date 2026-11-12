@@ -5925,12 +5925,12 @@ router.get('/public/pexels-collage', async (req, res) => {
                 .map(video => {
                   // Smallest rendition that is still big enough for a collage tile.
                   // Taking the first `hd` file shipped 5-9 MB of video per tile.
-                  const hdFile = pickVideoFile(video.videoFiles || [], {
+                  const videoFile = pickVideoFile(video.videoFiles || [], {
                     minWidth: COLLAGE_TILE_MIN_WIDTH,
                   });
 
                   // Add validation before using
-                  if (!hdFile || !hdFile.link) {
+                  if (!videoFile || !videoFile.link) {
                     if (isCollageDebugEnabled()) {
                       logger.warn(
                         `[Pexels Collage] No valid video file found for video ${video.id}`
@@ -5944,8 +5944,8 @@ router.get('/public/pexels-collage', async (req, res) => {
                     id: video.id,
                     url: video.url,
                     src: {
-                      large: hdFile.link,
-                      original: hdFile.link,
+                      large: videoFile.link,
+                      original: videoFile.link,
                     },
                     thumbnail: video.image,
                     videographer: video.user?.name || 'Pexels',

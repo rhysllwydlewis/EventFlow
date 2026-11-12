@@ -250,7 +250,7 @@ test.describe('Hero video mobile guardrail', () => {
     const video = page.locator('#hero-pexels-video');
     await expect(video).toBeAttached();
     expect(await video.getAttribute('preload')).toBe('none');
-    expect(await video.getAttribute('poster')).toBe('/assets/images/hero-video-poster.jpg');
+    expect(await video.getAttribute('poster')).toBe('/assets/images/hero-video-poster-960.webp');
     expect(await video.getAttribute('width')).toBe('800');
     expect(await video.getAttribute('height')).toBe('450');
   });

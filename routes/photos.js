@@ -1576,7 +1576,7 @@ router.get('/photos/:id', apiLimiter, async (req, res) => {
     const width = photoVariants.snapWidth(req.query.w);
     if (width) {
       // The body depends on whether the client accepts WebP.
-      res.setHeader('Vary', 'Accept');
+      res.vary('Accept');
       const variant = await photoVariants.getPhotoVariant({
         id,
         buffer: imageBuffer,
