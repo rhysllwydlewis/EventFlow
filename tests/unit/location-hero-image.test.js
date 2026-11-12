@@ -32,6 +32,46 @@ function uncuratedBath() {
   return { ...registry.getCity('bath'), slug: 'bath-uncurated' };
 }
 
+describe('toCardImageUrl', () => {
+  const hero = 'https://images.pexels.com/photos/5743996/pexels-photo-5743996.jpeg';
+
+  it('rewrites a standard 1600x1100 hero to the card crop, keeping the same photo', () => {
+    const cardUrl = heroImages.toCardImageUrl(
+      `${hero}?auto=compress&cs=tinysrgb&w=1600&h=1100&fit=crop`
+    );
+    expect(cardUrl).toBe(`${hero}?auto=compress&cs=tinysrgb&w=720&h=500&fit=crop`);
+  });
+
+  it('shrinks every curated hero, which is what the homepage cards are fed', () => {
+    for (const hero of Object.values(heroImages.CITY_HEROES)) {
+      const cardUrl = heroImages.toCardImageUrl(hero.url);
+      expect(cardUrl).toContain('w=720&h=500');
+      expect(cardUrl).not.toContain('w=1600');
+      expect(cardUrl.split('?')[0]).toBe(hero.url.split('?')[0]);
+    }
+  });
+
+  it('leaves the page hero itself at full size', () => {
+    expect(heroImages.getCuratedHero('cardiff').url).toContain('w=1600&h=1100');
+  });
+
+  it.each([
+    ['an editor-chosen transform', `${hero}?auto=compress&w=900&h=600`],
+    [
+      'a non-Pexels host',
+      'https://example.com/a.jpg?auto=compress&cs=tinysrgb&w=1600&h=1100&fit=crop',
+    ],
+    ['no query at all', hero],
+    ['a relative path', '/assets/images/cities/london.webp'],
+  ])('returns %s unchanged', (_label, url) => {
+    expect(heroImages.toCardImageUrl(url)).toBe(url);
+  });
+
+  it.each([[''], [null], [undefined], ['not a url']])('tolerates %p', value => {
+    expect(heroImages.toCardImageUrl(value)).toBe(value);
+  });
+});
+
 describe('city hero defaults', () => {
   it.each([
     ['cardiff', '5743996', /Cardiff/i],

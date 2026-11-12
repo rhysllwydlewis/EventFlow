@@ -156,6 +156,67 @@ function getConnectionAwareQuality() {
   return 'high';
 }
 
+/**
+ * Most videos one category keeps in its rotation. The endpoint returns four per
+ * category; with four tiles cycling every few seconds, every extra video is
+ * another download, so a handful is plenty for what is a decorative collage.
+ */
+const MAX_COLLAGE_VIDEOS_PER_CATEGORY = 2;
+
+/**
+ * True when the connection is too slow, or the visitor has asked for less
+ * data, to stream decorative tile video (Save-Data, 2g, 3g).
+ * @returns {boolean}
+ */
+function isSlowConnectionForVideo() {
+  return getConnectionAwareQuality() !== 'high';
+}
+
+/**
+ * Whether the collage is worth animating right now. Cycling keeps downloading
+ * the next photo or video for every tile on a timer, so it should not run
+ * while the tab is in the background or the collage is scrolled out of view.
+ * `window.__collageInViewport` is kept up to date by an IntersectionObserver
+ * (see observeCollageVisibility) and stays true when none is available.
+ * @returns {boolean}
+ */
+function isCollageCycleAllowed() {
+  if (typeof document !== 'undefined' && document.hidden === true) {
+    return false;
+  }
+  return window.__collageInViewport !== false;
+}
+
+/**
+ * Track whether the collage is on screen, for isCollageCycleAllowed.
+ * @param {NodeList|Array<Element>} collageFrames - The collage cards.
+ */
+function observeCollageVisibility(collageFrames) {
+  if (window.__collageVisibilityObserver) {
+    window.__collageVisibilityObserver.disconnect();
+    window.__collageVisibilityObserver = null;
+  }
+  window.__collageInViewport = true;
+  if (typeof IntersectionObserver !== 'function' || !collageFrames || !collageFrames.length) {
+    return;
+  }
+  const first = collageFrames[0];
+  const root =
+    (typeof first.closest === 'function' && first.closest('.hero-collage, .collage')) ||
+    first.parentElement;
+  if (!root) {
+    return;
+  }
+  const observer = new IntersectionObserver(entries => {
+    const latest = entries[entries.length - 1];
+    if (latest) {
+      window.__collageInViewport = latest.isIntersecting;
+    }
+  });
+  observer.observe(root);
+  window.__collageVisibilityObserver = observer;
+}
+
 /** `sizes` to fall back on when a frame has not been laid out yet. */
 const COLLAGE_ESTIMATED_SIZES = '(max-width: 768px) 48vw, 25vw';
 
@@ -353,7 +414,32 @@ function setupLazyLoadingForCollage() {
   return observer;
 }
 
-async function loadHeroCollageImages() {
+/**
+ * Load the collage, sharing one run between overlapping callers.
+ *
+ * home-init.js asks for the collage at DOMContentLoaded, again after one
+ * second, and again at window `load`, relying on `__collageWidgetInitialized`
+ * to stop repeats. That flag is only set once the settings request has
+ * answered, so on a slow connection all three calls got past it and each one
+ * fetched the settings, the collage media for every category, and the first item
+ * for every tile: two to three times the requests and bytes for no benefit.
+ * Callers that arrive while a run is in flight now get that run's promise; a run
+ * that fails (offline, settings error) clears it so a later retry still works.
+ * @returns {Promise<void>}
+ */
+function loadHeroCollageImages() {
+  if (!heroCollageLoadInFlight) {
+    heroCollageLoadInFlight = runHeroCollageLoad().finally(() => {
+      heroCollageLoadInFlight = null;
+    });
+  }
+  return heroCollageLoadInFlight;
+}
+
+/** The run currently in flight, shared by overlapping `load()` calls. */
+let heroCollageLoadInFlight = null;
+
+async function runHeroCollageLoad() {
   // Check if collage widget is enabled via /api/public/homepage-settings endpoint
   // Guard against double initialization
   if (window.__collageWidgetInitialized) {
@@ -1853,7 +1939,10 @@ async function initCollageWidget(widgetConfig) {
           // flag is left at its default `false`. See
           // resolveHeroVideoLoadMode's doc comment for why the guardrail
           // itself can't be bypassed by a stale stored setting.
-          const requestVideos = mediaTypes?.videos !== false && !isHeroVideoMobileViewport();
+          const requestVideos =
+            mediaTypes?.videos !== false &&
+            !isHeroVideoMobileViewport() &&
+            !isSlowConnectionForVideo();
 
           if (isDebugEnabled()) {
             console.log(`[Collage Widget] Media request for ${category}:`, {
@@ -1922,6 +2011,7 @@ async function initCollageWidget(widgetConfig) {
                 }
                 return isValid;
               })
+              .slice(0, MAX_COLLAGE_VIDEOS_PER_CATEGORY)
               .map(video => ({
                 url: video.src.large || video.src.original,
                 type: 'video',
@@ -2074,7 +2164,16 @@ async function initCollageWidget(widgetConfig) {
         clearInterval(pexelsCollageIntervalId);
       }
 
-      pexelsCollageIntervalId = setInterval(() => {
+      // Each tick downloads the next photo or video for every tile, so skip it
+      // while the tab is hidden or the collage is scrolled out of view. The
+      // watchdog still sees a fresh timestamp, so a paused collage is not
+      // mistaken for a stopped one.
+      observeCollageVisibility(collageFrames);
+      const tickCollage = () => {
+        if (!isCollageCycleAllowed()) {
+          window.__collageLastCycleTime = Date.now();
+          return;
+        }
         cycleWidgetMedia(
           mediaCache,
           currentMediaIndex,
@@ -2082,7 +2181,9 @@ async function initCollageWidget(widgetConfig) {
           categoryMapping,
           prefersReducedMotion
         );
-      }, effectiveIntervalMs);
+      };
+
+      pexelsCollageIntervalId = setInterval(tickCollage, effectiveIntervalMs);
 
       // Expose interval ID on window for debugging
       window.pexelsCollageIntervalId = pexelsCollageIntervalId;
@@ -2114,15 +2215,7 @@ async function initCollageWidget(widgetConfig) {
               console.warn('⚠️  Collage interval stopped unexpectedly, restarting...');
             }
 
-            pexelsCollageIntervalId = setInterval(() => {
-              cycleWidgetMedia(
-                mediaCache,
-                currentMediaIndex,
-                collageFrames,
-                categoryMapping,
-                prefersReducedMotion
-              );
-            }, effectiveIntervalMs);
+            pexelsCollageIntervalId = setInterval(tickCollage, effectiveIntervalMs);
             window.pexelsCollageIntervalId = pexelsCollageIntervalId;
           }
         }
@@ -2656,6 +2749,11 @@ function cycleWidgetMedia(
 function cleanupPexelsCollage() {
   // Mark collage as inactive for watchdog
   window.__collageIntervalActive = false;
+
+  if (window.__collageVisibilityObserver) {
+    window.__collageVisibilityObserver.disconnect();
+    window.__collageVisibilityObserver = null;
+  }
 
   // Clear watchdog interval
   if (window.__collageWatchdogId) {

@@ -36,6 +36,7 @@ const postmark = require('../utils/postmark');
 const { FROM_SUPPORT: POSTMARK_FROM_SUPPORT_ADDR } = postmark;
 const { VERIFICATION_STATES } = require('../utils/supplierVerificationStateMachine');
 const { sanitiseText } = require('../utils/sanitise');
+const { COLLAGE_TILE_MIN_WIDTH, pickVideoFile } = require('../utils/pexels-video-files');
 const {
   stripSecretFields,
   stripMessageBody,
@@ -5922,12 +5923,11 @@ router.get('/public/pexels-collage', async (req, res) => {
               type: 'videos',
               items: results.videos
                 .map(video => {
-                  // Get the best quality video file (prefer HD, fallback to SD, then any available)
-                  const videoFiles = video.videoFiles || [];
-                  const hdFile =
-                    videoFiles.find(f => f.quality === 'hd') ||
-                    videoFiles.find(f => f.quality === 'sd') ||
-                    videoFiles[0];
+                  // Smallest rendition that is still big enough for a collage tile.
+                  // Taking the first `hd` file shipped 5-9 MB of video per tile.
+                  const hdFile = pickVideoFile(video.videoFiles || [], {
+                    minWidth: COLLAGE_TILE_MIN_WIDTH,
+                  });
 
                   // Add validation before using
                   if (!hdFile || !hdFile.link) {

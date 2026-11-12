@@ -1,6 +1,6 @@
 'use strict';
 (function () {
-  const FALLBACK_IMAGE = '/assets/images/collage-venue.jpg';
+  const FALLBACK_IMAGE = '/assets/images/collage-venue-640.webp';
   const PLACEHOLDER_IMAGE = '/assets/images/placeholders/package-event.svg';
 
   const escapeHtml = value => {
@@ -63,35 +63,35 @@
     {
       title: 'Venues',
       category: 'Venues',
-      image: '/assets/images/collage-venue.jpg',
+      image: '/assets/images/collage-venue-640.webp',
       icon: 'venue',
       description: 'Ballrooms, barns and gardens for any event.',
     },
     {
       title: 'Catering',
       category: 'Catering',
-      image: '/assets/images/collage-catering.jpg',
+      image: '/assets/images/collage-catering-640.webp',
       icon: 'catering',
       description: 'Food and drink for every taste and budget.',
     },
     {
       title: 'Entertainment',
       category: 'Entertainment',
-      image: '/assets/images/collage-entertainment.jpg',
+      image: '/assets/images/collage-entertainment-640.webp',
       icon: 'entertainment',
       description: 'Live music, DJs and performers.',
     },
     {
       title: 'Photography',
       category: 'Photography',
-      image: '/assets/images/collage-photography.jpg',
+      image: '/assets/images/collage-photography-640.webp',
       icon: 'photography',
       description: 'Photographers and videographers for every moment.',
     },
     {
       title: 'Decor & Styling',
       category: 'Decor',
-      image: '/assets/images/hero-video-poster.jpg',
+      image: '/assets/images/hero-video-poster-960.webp',
       icon: 'decor',
       description: 'Decorations, flowers and styling.',
     },
@@ -127,9 +127,9 @@
   ];
 
   const approvedGuideImages = [
-    '/assets/images/collage-venue.jpg',
-    '/assets/images/collage-catering.jpg',
-    '/assets/images/collage-photography.jpg',
+    '/assets/images/collage-venue-640.webp',
+    '/assets/images/collage-catering-640.webp',
+    '/assets/images/collage-photography-640.webp',
   ];
 
   const attachImageFallbacks = scope => {
@@ -588,7 +588,7 @@
             </div>
             <div class="ef-approved-supplier-actions"><a href="/pricing">Join as a Supplier</a><a href="/for-suppliers">Learn more</a></div>
           </div>
-          <img src="/assets/images/hero-video-poster.jpg" alt="Event supplier preparing floral arrangements" loading="lazy">
+          <img src="/assets/images/hero-video-poster-960.webp" alt="Event supplier preparing floral arrangements" loading="lazy">
           <div class="ef-approved-supplier-stats" aria-label="EventFlow supplier features">
             <article><strong>Growing network</strong><span>Across the UK</span></article>
             <article><strong>100%</strong><span>Your booking fees</span></article>

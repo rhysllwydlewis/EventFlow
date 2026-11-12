@@ -700,6 +700,24 @@ function updateStatsUI(stats) {
 }
 
 /**
+ * The URL to request for a card image shown at roughly `width` CSS px.
+ *
+ * Stored photos are served at upload size (up to 1200 px wide), but a card
+ * shows one at about 300 px. Ask the server for a rendition instead
+ * (GET /api/photos/:id?w=, see utils/photo-variants.js). Only a bare
+ * stored-photo path is rewritten; external URLs and placeholders are left
+ * exactly as they were.
+ * @param {unknown} url Image URL.
+ * @param {number} width Wanted width in pixels.
+ * @returns {unknown} The rendition URL, or `url` unchanged.
+ */
+function photoThumbnailUrl(url, width) {
+  return typeof url === 'string' && /^\/api\/photos\/[A-Za-z0-9_-]+$/.test(url)
+    ? `${url}?w=${width}`
+    : url;
+}
+
+/**
  * Fetch and render marketplace preview items
  */
 async function fetchMarketplacePreview() {
@@ -855,7 +873,7 @@ async function fetchMarketplacePreview() {
             const listingUrl = listing.id
               ? `/marketplace?listing=${encodeURIComponent(listing.id)}`
               : '/marketplace';
-            const listingImage = getListingImage(listing);
+            const listingImage = photoThumbnailUrl(getListingImage(listing), 640);
             const isFeatured = listing?.featured === true || listing?.isFeatured === true;
             const isNew =
               Date.now() - new Date(listing?.createdAt || 0).getTime() < 1000 * 60 * 60 * 24 * 14;
