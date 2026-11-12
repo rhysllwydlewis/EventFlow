@@ -3109,3 +3109,247 @@ body.auth-page .auth-card .auth-role-picker .auth-role-check {
   top: 10px;
   right: 10px;
 }
+
+/* ==========================================================================
+   Auth refresh — calmer form column, honest social fallback, mobile trust row
+   --------------------------------------------------------------------------
+   Appended rather than folded into the sections above so the earlier rules
+   (and the tests that pin them) are untouched; everything here is scoped to
+   body.auth-page and wins on order or on the extra class.
+   ========================================================================== */
+
+/* Heading block: a subtitle that says what the tab is for */
+body.auth-page .auth-header {
+  margin-bottom: 1.125rem;
+}
+
+body.auth-page .auth-header .auth-heading {
+  font-size: clamp(1.625rem, 1.3rem + 1vw, 2rem);
+  margin-bottom: 0.375rem;
+}
+
+body.auth-page .auth-subtitle {
+  margin: 0;
+  color: #475467;
+  font-size: 0.9375rem;
+  line-height: 1.5;
+}
+
+/* Tabs: one selected state. The pill already shows which tab is active, so the
+   extra gradient underline under it was a second indicator saying the same
+   thing — and it sat 1px outside the pill on high-DPI screens. */
+body.auth-page .auth-tabs {
+  background: #e8eff0;
+  border: 0;
+  border-radius: 14px;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  margin-bottom: 1rem;
+}
+
+body.auth-page .auth-tab {
+  min-height: 44px;
+  border-radius: 10px !important;
+  color: #475467;
+  font-weight: 600 !important;
+}
+
+body.auth-page .auth-tab[aria-selected='true'] {
+  background: #ffffff;
+  color: #0a6b60;
+  box-shadow:
+    0 1px 2px rgba(15, 23, 42, 0.08),
+    0 4px 12px rgba(15, 23, 42, 0.06) !important;
+}
+
+body.auth-page .auth-tab[aria-selected='true']::after {
+  content: none;
+}
+
+/* Card: solid surface. The translucent glass let the animated blobs tint the
+   form — teal behind the labels on phones — which cost contrast for no gain. */
+body.auth-page form.auth-card {
+  background: #ffffff;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  border: 1px solid #e3eaeb;
+  border-radius: 20px;
+  box-shadow:
+    0 1px 2px rgba(15, 23, 42, 0.04),
+    0 18px 44px -18px rgba(11, 64, 58, 0.22);
+  padding: 1.75rem;
+}
+
+body.auth-page form.auth-card::before {
+  content: none;
+}
+
+body.auth-page form.auth-card:hover {
+  box-shadow:
+    0 1px 2px rgba(15, 23, 42, 0.04),
+    0 18px 44px -18px rgba(11, 64, 58, 0.22);
+}
+
+/* Desktop: centre the form in its column. `margin: auto` on the flex child
+   centres it when there is spare height and falls back to the top when the
+   form is taller than the column, so nothing is ever clipped above the fold
+   (which `align-items: center` on a scrolling column would do). */
+@media (min-width: 1024px) {
+  body.auth-page .auth-split-right {
+    display: flex;
+  }
+
+  body.auth-page .auth-split-right .auth-container {
+    margin: auto;
+  }
+}
+
+/* Social sign-in fallback: a quiet inline note where the Google button would
+   be. It replaces a red page-level alert — the visitor did nothing wrong and
+   email sign-in still works. Overrides the 320px pill lock that
+   auth-google-signup.css applies to the live button. */
+body.auth-page .auth-google-button.auth-google-button--unavailable {
+  width: 100% !important;
+  inline-size: 100%;
+  min-inline-size: 0;
+  box-sizing: border-box;
+  justify-content: flex-start;
+  gap: 10px;
+  min-height: 0;
+  padding: 10px 12px;
+  border: 1px solid #e3eaeb;
+  border-radius: 12px;
+  background: #f6f9f9;
+  color: #475467;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  line-height: 1.45;
+  text-align: left;
+  overflow: visible;
+}
+
+body.auth-page .auth-google-button.auth-google-button--unavailable::before {
+  content: '';
+  flex: 0 0 18px;
+  width: 18px;
+  height: 18px;
+  background: currentColor;
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='9'/%3E%3Cpath d='M12 8v5M12 16.5v.01'/%3E%3C/svg%3E")
+    center / contain no-repeat;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='9'/%3E%3Cpath d='M12 8v5M12 16.5v.01'/%3E%3C/svg%3E")
+    center / contain no-repeat;
+}
+
+body.auth-page .auth-google-button.auth-google-button--unavailable::after {
+  content: none;
+}
+
+/* With no social provider on offer there is nothing for "or use email" to be
+   an alternative to, and nothing for the "choose an account type first" note
+   to gate — so both go, instead of dividing the form from an empty gap. */
+body.auth-page
+  #login-form:has(.auth-google-button--unavailable):has(#apple-signin-wrap[hidden]):has(
+    #facebook-signin-wrap[hidden]
+  )
+  > .auth-divider,
+body.auth-page
+  .auth-google--signup:has(.auth-google-button--unavailable):has(#apple-signup-wrap[hidden]):has(
+    #facebook-signup-wrap[hidden]
+  )
+  > :is(.auth-divider, .auth-google-note) {
+  display: none;
+}
+
+body.auth-page #login-form:has(.auth-google-button--unavailable) .auth-google {
+  margin-bottom: 16px;
+}
+
+/* Trust row: the photo panel and its three reassurances are desktop-only, so
+   below 1024px the form used to sit on a bare background. */
+body.auth-page .auth-trust-row {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  margin: 1.25rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+body.auth-page .auth-trust-row li {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 12px 6px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.7);
+  border: 1px solid rgba(11, 128, 115, 0.12);
+  color: #344054;
+  font-size: 0.75rem;
+  font-weight: 600;
+  line-height: 1.3;
+  text-align: center;
+}
+
+body.auth-page .auth-trust-row .auth-icon {
+  width: 1.25rem;
+  height: 1.25rem;
+  color: #0b8073;
+}
+
+@media (min-width: 1024px) {
+  body.auth-page .auth-trust-row {
+    display: none;
+  }
+}
+
+/* A login screen is a single task. The newsletter band the shared footer adds
+   to every page put a second email field and a second submit button directly
+   under the form, so it is left off here. */
+body.auth-page .ef-nl-wrap {
+  display: none !important;
+}
+
+@media (max-width: 1023px) {
+  /* Blobs: full strength they turned the whole phone screen teal-grey. Keep a
+     hint of colour at the top and let the page background do the rest. */
+  body.auth-page .auth-bg-blob--1 {
+    opacity: 0.35;
+  }
+
+  body.auth-page .auth-bg-blob--3 {
+    display: none;
+  }
+}
+
+@media (max-width: 640px) {
+  body.auth-page form.auth-card {
+    padding: 1.25rem !important;
+    border-radius: 18px;
+  }
+
+  body.auth-page .auth-subtitle {
+    font-size: 0.875rem;
+  }
+
+  /* Two short labels fit side by side; the long one wraps instead of
+     shrinking the tap target. */
+  body.auth-page .auth-tab {
+    padding: 8px 10px !important;
+    line-height: 1.25;
+  }
+}
+
+/* The signup slot dims its Google button until an account type is chosen;
+   a note that is not a control should not look disabled. */
+body.auth-page .auth-google-button.auth-google-button--unavailable.auth-google-button--disabled {
+  opacity: 1;
+  filter: none;
+}
+
+/* The inline status lines reserve a line of height for messages that are
+   usually not there, which left a dead band under each submit button. */
+body.auth-page .auth-card .auth-status-inline:empty {
+  min-height: 0;
+  margin-top: 0;
+}

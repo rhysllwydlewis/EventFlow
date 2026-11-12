@@ -7,6 +7,8 @@
   const GOOGLE_SIGNUP_RERENDER_DELAY = 160;
   const GOOGLE_BUTTON_MIN_WIDTH = 220;
   const GOOGLE_BUTTON_MAX_WIDTH = 320;
+  const GOOGLE_BLOCKED_MESSAGE =
+    'Google sign-in couldn\u2019t load in this browser. You can still use your email below.';
 
   function getGoogleLoginUri() {
     const origin =
@@ -63,17 +65,30 @@
     );
   }
 
+  /**
+   * Replace the Google slot with a quiet inline note.
+   *
+   * The note lives where the button would have been, so the failure is still
+   * visible, but it is deliberately not repeated in the page-level alert: the
+   * visitor has done nothing wrong and email sign-in works, so a red banner
+   * above the form reads as "this page is broken" when it is not. This is the
+   * common case for anyone whose browser or network blocks accounts.google.com.
+   *
+   * @param {string} [message] - Copy for the inline note
+   */
   function showGoogleUnavailable(message) {
     setGoogleButtonsBusy(false);
     announceGoogleAvailability(false);
     const fallback = message || 'Google sign-in not configured. Please use email login for now.';
     document.querySelectorAll('.auth-google-button').forEach(el => {
+      el.classList.remove('is-ready');
       el.classList.add('auth-google-button--unavailable');
       el.setAttribute('role', 'status');
       el.setAttribute('aria-live', 'polite');
+      el.removeAttribute('aria-label');
+      el.style.width = '';
       el.textContent = fallback;
     });
-    setStatus(fallback, 'warning');
   }
 
   function setGoogleAuthContext(context) {
@@ -474,7 +489,7 @@
     } catch {
       setGoogleButtonsBusy(false);
       announceGoogleAvailability(false);
-      setStatus('Google sign-in configuration could not be loaded.', 'error');
+      showGoogleUnavailable(GOOGLE_BLOCKED_MESSAGE);
       return;
     }
 
@@ -486,16 +501,12 @@
     try {
       await loadGoogleScript();
     } catch {
-      setGoogleButtonsBusy(false);
-      announceGoogleAvailability(false);
-      setStatus('Google sign-in could not be loaded. Please refresh and try again.', 'error');
+      showGoogleUnavailable(GOOGLE_BLOCKED_MESSAGE);
       return;
     }
 
     if (!window.google || !window.google.accounts || !window.google.accounts.id) {
-      setGoogleButtonsBusy(false);
-      announceGoogleAvailability(false);
-      setStatus('Google sign-in is unavailable in this browser.', 'error');
+      showGoogleUnavailable(GOOGLE_BLOCKED_MESSAGE);
       return;
     }
 
