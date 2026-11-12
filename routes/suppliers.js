@@ -18,7 +18,7 @@ const {
 const { addPublicProfilePath } = require('../utils/publicSupplierProfilePath');
 const { computeProfileCompleteness } = require('../services/supplierProfileCompleteness');
 const { stripPublicSupplierPrivateFields } = require('../utils/supplierPublicProfile');
-const { toPublicPackageCard } = require('../utils/publicPackageCard');
+const { toPublicPackageCard } = require('../services/publicPackageCard');
 
 // Dependencies injected by server.js
 let dbUnified;

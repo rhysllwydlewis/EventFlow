@@ -76,7 +76,9 @@ describe('GET /packages/:slug — image field normalisation', () => {
     // The response must spread pkg and override image with resolvePackageImage(pkg)
     expect(block).toContain('resolvePackageImage(pkg)');
     // Ensure it spreads the package data (not just replaces the whole object)
-    expect(block).toContain('...pkg');
+    // — through toPublicPackageCard(), which copies it minus internal bookkeeping
+    // (edit history, last editor, database _id).
+    expect(block).toContain('...toPublicPackageCard(pkg)');
   });
 
   it('does NOT return the raw pkg object directly in the package field', () => {

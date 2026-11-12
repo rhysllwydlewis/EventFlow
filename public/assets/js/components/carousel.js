@@ -188,7 +188,7 @@ class Carousel {
 
       .featured-package-card h3 {
         margin: 0 0 2px 0;
-        font-size: 17px;
+        font-size: 16px;
         font-weight: 700;
         line-height: 1.3;
         letter-spacing: -0.01em;
@@ -232,7 +232,7 @@ class Carousel {
 
       .featured-package-card .package-price {
         min-width: 0;
-        font-size: 15px;
+        font-size: 16px;
         font-weight: 700;
         line-height: 1.35;
         color: #0a6b60;

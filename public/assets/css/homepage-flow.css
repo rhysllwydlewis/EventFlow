@@ -976,6 +976,6 @@ body.ef-home-flow main .featured-package-card:hover {
     main
     :is(.home-featured-section, .home-spotlight-section)
     .ef-section__subtitle {
-    font-size: 0.9375rem !important;
+    font-size: 0.875rem !important;
   }
 }

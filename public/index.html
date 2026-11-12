@@ -640,12 +640,13 @@
             </div>
           </div>
           <div>
-            <!-- `inert` as well as aria-hidden: aria-hidden alone hides the collage from
-                 assistive technology but leaves its links in the tab order, so a keyboard
-                 user could focus something a screen reader never announces. -->
-            <div class="hero-collage" aria-hidden="true" inert>
+            <!-- The collage is navigation, not decoration: each card is a labelled link to a
+                 category. It used to be aria-hidden and inert as a whole, which made the four
+                 cards unclickable for everyone, not just hidden from screen readers. Only the
+                 video card, which has no label and goes nowhere, is hidden and inert now. -->
+            <div class="hero-collage" role="group" aria-label="Popular categories">
               <!-- Row 1: Video (no label, spans 2 columns) -->
-              <div class="hero-video-card">
+              <div class="hero-video-card" aria-hidden="true" inert>
                 <!-- Video autoplay is controlled by JavaScript based on prefers-reduced-motion -->
                 <video id="hero-pexels-video" muted loop playsinline preload="none"
                        poster="/assets/images/hero-video-poster.jpg"

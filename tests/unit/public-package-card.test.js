@@ -8,7 +8,10 @@
 
 const fs = require('fs');
 const path = require('path');
-const { toPublicPackageCard, INTERNAL_PACKAGE_FIELDS } = require('../../utils/publicPackageCard');
+const {
+  toPublicPackageCard,
+  INTERNAL_PACKAGE_FIELDS,
+} = require('../../services/publicPackageCard');
 
 const stored = {
   _id: '6a8923ac8bf8aa70a83aa4e5',

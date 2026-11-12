@@ -104,9 +104,15 @@ test.describe('Authentication Flow', () => {
     const validationWait = browserName === 'webkit' ? 4000 : 2000;
     await page.waitForTimeout(validationWait);
 
-    // Should show validation errors - be more flexible with selector
+    // Should show validation errors - be more flexible with selector.
+    // `:visible`, because the first [role="alert"] in the document is the
+    // page-level #auth-status, which is empty here. These two tests used to pass
+    // only by accident: the static server has no Google config, and that failure
+    // was reported as a red banner in #auth-status on every load.
     const errorElement = page
-      .locator('.error, .alert-danger, .invalid-feedback, [role="alert"]')
+      .locator(
+        '.error:visible, .alert-danger:visible, .invalid-feedback:visible, [role="alert"]:visible'
+      )
       .first();
     await expect(errorElement).toBeVisible({ timeout: 15000 });
   });
@@ -166,7 +172,9 @@ test.describe('Authentication Flow', () => {
 
     // Should show error message (either from validation or from API response)
     const errorMessage = page
-      .locator('.error, .alert-danger, .invalid-feedback, [role="alert"]')
+      .locator(
+        '.error:visible, .alert-danger:visible, .invalid-feedback:visible, [role="alert"]:visible'
+      )
       .first();
     await expect(errorMessage).toBeVisible({ timeout: 20000 }); // Increased timeout for webkit
   });
