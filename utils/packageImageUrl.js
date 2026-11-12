@@ -18,10 +18,24 @@ const MAX_PACKAGE_IMAGE_URL_LENGTH = 2048;
 
 /** Characters that never belong in an image address: whitespace, control characters, quotes, angle brackets, backslash, backtick. */
 // eslint-disable-next-line no-control-regex
-const FORBIDDEN_CHARS = /[\s\u0000-\u001f\u007f"'<>\\`]/;
+const FORBIDDEN_CHARS = /[\s\u0000-\u001f\u007f"'<>\\`]/u;
 
 /** A path on this site: exactly one leading slash (so not `//host` and not `/\host`). */
-const SITE_PATH = /^\/(?![/\\])/;
+const SITE_PATH = /^\/(?![/\\])/u;
+
+/**
+ * Parse an absolute URL.
+ *
+ * @param {string} text - The URL text
+ * @returns {URL|null} The parsed URL, or null when it is not a valid absolute URL
+ */
+function parseUrl(text) {
+  try {
+    return new URL(text);
+  } catch {
+    return null;
+  }
+}
 
 /**
  * Check a package image URL.
@@ -53,10 +67,8 @@ function validatePackageImageUrl(value) {
   if (SITE_PATH.test(text)) {
     return { ok: true, value: text };
   }
-  let parsed;
-  try {
-    parsed = new URL(text);
-  } catch (_err) {
+  const parsed = parseUrl(text);
+  if (!parsed) {
     return { ok: false, error: 'Image must be a valid URL' };
   }
   if (parsed.protocol !== 'https:' && parsed.protocol !== 'http:') {

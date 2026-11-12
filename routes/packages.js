@@ -631,9 +631,8 @@ router.put(
       if (req.body.image !== undefined) {
         const imageUpdate = await buildImageUpdate(req.body.image, pkg);
         if (imageUpdate.invalidImage) {
-          return res
-            .status(400)
-            .json({ error: 'Invalid image', details: imageUpdate.invalidImage });
+          res.status(400).json({ error: 'Invalid image', details: imageUpdate.invalidImage });
+          return;
         }
         Object.assign(pkgUpdates, imageUpdate.updates);
         imageProcessingError = imageUpdate.imageProcessingError;
