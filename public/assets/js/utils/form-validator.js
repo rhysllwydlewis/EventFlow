@@ -145,11 +145,15 @@ class FormValidator {
     const rules = {
       required: field.hasAttribute('required') || field.getAttribute('aria-required') === 'true',
       email: field.type === 'email',
+      // Strength rules are for choosing a password, not for entering one. They
+      // used to apply to every password input, so the log-in field told people
+      // their existing password "must contain at least 8 characters, a number"
+      // — wrong for anyone whose password predates the rule, and a hint about
+      // the policy to anyone guessing.
       password:
         field.type === 'password' &&
         (field.hasAttribute('data-password-strength') ||
-          field.id.includes('password') ||
-          field.name.includes('password')),
+          field.getAttribute('autocomplete') === 'new-password'),
       minLength: field.minLength > 0 ? field.minLength : null,
       maxLength: field.maxLength > 0 ? field.maxLength : null,
     };

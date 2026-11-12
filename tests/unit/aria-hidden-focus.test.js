@@ -31,7 +31,7 @@ describe('aria-hidden containers do not trap keyboard focus', () => {
   // it removes the subtree from the tab order as well.
 
   it.each([
-    ['public/index.html', 'hero-collage'],
+    ['public/index.html', 'hero-video-card'],
     ['public/auth.html', 'auth-split-left'],
     ['public/suppliers.html', 'sp-map-section'],
   ])('%s: %s is inert while aria-hidden', (file, marker) => {
@@ -39,6 +39,18 @@ describe('aria-hidden containers do not trap keyboard focus', () => {
     const line = html.split('\n').find(l => l.includes(marker) && l.includes('aria-hidden="true"'));
     expect(line).toBeDefined();
     expect(line).toMatch(/\binert\b/);
+  });
+
+  it('the homepage hero category cards stay clickable', () => {
+    // The collage holds four labelled links to supplier categories. Marking the
+    // whole collage aria-hidden + inert (to cover its decorative video) made
+    // those links dead for every visitor. Only the video card may be inert.
+    const html = read('public/index.html');
+    const collageTag = html.match(/<div class="hero-collage"[^>]*>/);
+    expect(collageTag).not.toBeNull();
+    expect(collageTag[0]).not.toMatch(/\binert\b/);
+    expect(collageTag[0]).not.toContain('aria-hidden');
+    expect(html.match(/<a href="[^"]+" class="hero-collage-card"/g)).toHaveLength(4);
   });
 
   it('the suppliers map keeps inert in step with aria-hidden when toggled', () => {

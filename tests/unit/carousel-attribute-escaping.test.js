@@ -61,7 +61,13 @@ describe('Carousel._renderItem attribute escaping', () => {
       image: 'https://example.com/a.jpg" onerror="alert(1)',
     });
     const { attrs } = imgAttributes(html);
-    expect(Object.keys(attrs).sort()).toEqual(['alt', 'data-fallback-src', 'loading', 'src']);
+    expect(Object.keys(attrs).sort()).toEqual([
+      'alt',
+      'data-fallback-src',
+      'decoding',
+      'loading',
+      'src',
+    ]);
     expect(attrs).not.toHaveProperty('onerror');
     expect(attrs.src).toBe('https://example.com/a.jpg&quot; onerror=&quot;alert(1)');
     expect((html.match(/<img\b/g) || []).length).toBe(1);
@@ -91,7 +97,13 @@ describe('Carousel._renderItem attribute escaping', () => {
       image: '/a.jpg',
     });
     const { attrs } = imgAttributes(html);
-    expect(Object.keys(attrs).sort()).toEqual(['alt', 'data-fallback-src', 'loading', 'src']);
+    expect(Object.keys(attrs).sort()).toEqual([
+      'alt',
+      'data-fallback-src',
+      'decoding',
+      'loading',
+      'src',
+    ]);
     expect(attrs).not.toHaveProperty('onerror');
     expect(attrs.alt).toContain('&quot;quoted&quot;');
     expect(attrs.alt).toContain('&#39;single&#39;');
