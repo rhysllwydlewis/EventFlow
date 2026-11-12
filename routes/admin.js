@@ -31,7 +31,6 @@ const {
   buildSupplierProRevokeUpdate,
 } = require('../utils/supplierProGrant');
 const { PLACEHOLDER_PACKAGE_IMAGE } = require('../utils/constants');
-const { validatePackageImageUrl } = require('../utils/packageImageUrl');
 const photoUpload = require('../photo-upload');
 const postmark = require('../utils/postmark');
 const { FROM_SUPPORT: POSTMARK_FROM_SUPPORT_ADDR } = postmark;
@@ -1477,11 +1476,6 @@ router.post('/packages', authRequired, roleRequired('admin'), csrfProtection, as
         .json({ error: 'A package with this title already exists. Please use a different title.' });
     }
 
-    const checkedImage = validatePackageImageUrl(image || '');
-    if (!checkedImage.ok) {
-      return res.status(400).json({ error: 'Invalid image', details: checkedImage.error });
-    }
-
     // Create new package
     const newPackage = {
       id: uid(),
@@ -1491,7 +1485,7 @@ router.post('/packages', authRequired, roleRequired('admin'), csrfProtection, as
       description: description || '',
       // The admin screens edit price_display and suppliers edit price: store one price in both.
       ...priceFields(price_display || price),
-      image: checkedImage.value || PLACEHOLDER_PACKAGE_IMAGE,
+      image: image || PLACEHOLDER_PACKAGE_IMAGE,
       approved: approved === true,
       featured: featured === true,
       createdAt: now,
