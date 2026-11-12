@@ -110,7 +110,7 @@ export const NOTIFICATION_DROPDOWN_MARKUP = `<!-- Notification dropdown: pre-ren
 </div>
 <div class="notification-list"></div>
 <div class="notification-footer">
-<a href="/notifications" class="notification-view-all">View all</a>
+<a href="/notifications" rel="nofollow" class="notification-view-all">View all</a>
 </div>
 </div>`;
 

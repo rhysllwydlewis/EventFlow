@@ -805,6 +805,28 @@ router.get(
 
 // ─── Member profiles ─────────────────────────────────────────────────────────
 
+/**
+ * Whether a handle belongs to a member with public community activity.
+ *
+ * The same rule GET /api/v1/community/members/:handle uses to decide a member
+ * exists: at least one discussion or reply under the handle in a countable
+ * state. The page keeps rendering for any other well-formed handle (the client
+ * shows a friendly empty state), but without this check every such string was a
+ * 200, indexable, self-canonical page, so a crawler saw unlimited thin
+ * "<anything> — EventFlow Community" pages.
+ * @param {string} handle A validated member handle.
+ * @returns {Promise<boolean>} True when the member has public activity.
+ */
+async function memberHasPublicActivity(handle) {
+  const [discussions, replies] = await Promise.all([
+    dbUnified.find(COLLECTIONS.discussions, { 'author.handle': handle }),
+    dbUnified.find(COLLECTIONS.replies, { 'author.handle': handle }),
+  ]);
+  return [...(discussions || []), ...(replies || [])].some(item =>
+    COUNTABLE_STATES.includes(item.state)
+  );
+}
+
 router.get('/community/member/:handle', publicReadLimiter, async (req, res, next) => {
   try {
     if (!(await community.isCommunityEnabled())) {
@@ -818,6 +840,7 @@ router.get('/community/member/:handle', publicReadLimiter, async (req, res, next
     if (!shell) {
       return next();
     }
+    const hasActivity = await memberHasPublicActivity(handle);
     return send(
       res,
       applyContent(
@@ -826,6 +849,7 @@ router.get('/community/member/:handle', publicReadLimiter, async (req, res, next
           description: `Community profile for ${handle} on EventFlow.`,
           canonical: `${BASE_URL}/community/member/${handle}`,
           ogType: 'profile',
+          noindex: !hasActivity,
         }),
         `${fallbackHeading(shell, handle)}<p>Community profile.</p>`
       )

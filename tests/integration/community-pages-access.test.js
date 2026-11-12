@@ -352,10 +352,62 @@ describe('server-rendered pages — the rest of the surface', () => {
     expect(res.text).not.toContain('name="robots"');
   });
 
-  it('renders a member profile page', async () => {
-    const res = await request(app).get('/community/member/sam');
-    expect(res.status).toBe(200);
-    expect(res.text).toContain('og:type" content="profile"');
+  describe('member profile pages', () => {
+    const reply = (state, handle = 'replier') => ({
+      id: 'r-1',
+      discussionId: 'd-1',
+      authorId: 'u-replier',
+      author: { handle, displayName: 'Replier' },
+      state,
+    });
+
+    it('renders an indexable profile for a member with a public discussion', async () => {
+      mockDb.seed('community_discussions', [discussion('published')]);
+      const res = await request(app).get('/community/member/author');
+      expect(res.status).toBe(200);
+      expect(res.text).toContain('og:type" content="profile"');
+      expect(res.text).not.toContain('name="robots"');
+    });
+
+    it('treats a member with only a public reply as having public activity', async () => {
+      mockDb.seed('community_discussions', []);
+      mockDb.seed('community_replies', [reply('published')]);
+      const res = await request(app).get('/community/member/replier');
+      expect(res.status).toBe(200);
+      expect(res.text).not.toContain('name="robots"');
+    });
+
+    it('still renders, but noindexed, for a well-formed handle with no activity at all', async () => {
+      // Without this every [a-zA-Z0-9]{2,32} string was a 200, indexable,
+      // self-canonical page: unlimited thin pages for a crawler.
+      mockDb.seed('community_discussions', []);
+      mockDb.seed('community_replies', []);
+      const res = await request(app).get('/community/member/sam');
+      expect(res.status).toBe(200);
+      expect(res.text).toContain('og:type" content="profile"');
+      expect(res.text).toContain('<meta name="robots" content="noindex,follow" />');
+    });
+
+    it('looks the member up by handle, in both discussions and replies', async () => {
+      // This file's mock db ignores query filters, so assert the query itself:
+      // the real collection does the per-handle filtering.
+      mockDb.find.mockClear();
+      await request(app).get('/community/member/sam');
+      expect(mockDb.find).toHaveBeenCalledWith('community_discussions', {
+        'author.handle': 'sam',
+      });
+      expect(mockDb.find).toHaveBeenCalledWith('community_replies', { 'author.handle': 'sam' });
+    });
+
+    it.each(['quarantined', 'hidden', 'removed', 'draft', 'pending_review'])(
+      'noindexes a member whose only discussion is %s',
+      async state => {
+        mockDb.seed('community_discussions', [discussion(state)]);
+        const res = await request(app).get('/community/member/author');
+        expect(res.status).toBe(200);
+        expect(res.text).toContain('<meta name="robots" content="noindex,follow" />');
+      }
+    );
   });
 
   it('404s a member handle with unexpected characters', async () => {
