@@ -11,6 +11,7 @@ const fs = require('fs');
 const os = require('os');
 const path = require('path');
 const express = require('express');
+const rateLimit = require('express-rate-limit');
 const postcss = require('postcss');
 const request = require('supertest');
 
@@ -320,6 +321,16 @@ describe('createCssMinifyMiddleware', () => {
 
   const build = options => {
     const app = express();
+    // server.js rate-limits every route globally; do the same here so this stand-in app
+    // (which reads files from disk) is not an unthrottled file-serving route.
+    app.use(
+      rateLimit({
+        windowMs: 60 * 1000,
+        limit: 100000,
+        standardHeaders: false,
+        legacyHeaders: false,
+      })
+    );
     // stands in for staticCachingMiddleware, which runs ahead of this in server.js
     app.use((req, res, next) => {
       res.setHeader('Cache-Control', 'public, max-age=604800, must-revalidate');
