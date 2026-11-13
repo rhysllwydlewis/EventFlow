@@ -108,7 +108,7 @@
     } catch (error) {
       console.error('Error loading audit logs:', error);
       container.innerHTML =
-        '<div class="data-section"><p class="small" style="color:#ef4444;">Failed to load audit logs. Please try again.</p></div>';
+        '<div class="data-section"><p class="small" style="color:#dc2626;">Failed to load audit logs. Please try again.</p></div>';
     }
   }
 
@@ -141,7 +141,7 @@
         <div class="text-center-pad">
           <div style="font-size:4rem;margin-bottom:1rem;">📝</div>
           <h3 class="h3-mb-05">No audit logs found</h3>
-          <p style="color:#6b7280;">Audit logs will appear here as admins perform actions.</p>
+          <p style="color:#646b78;">Audit logs will appear here as admins perform actions.</p>
         </div>
       `;
       return;

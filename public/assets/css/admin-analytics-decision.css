@@ -24,12 +24,12 @@
 .analytics-decision-header p,
 .analytics-decision-card__intro,
 .analytics-definition-grid p {
-  color: #64748b;
+  color: #475569;
 }
 
 .analytics-decision-eyebrow,
 .analytics-decision-card__header span {
-  color: #0b8073;
+  color: #0a7569;
   font-size: 0.75rem;
   font-weight: 800;
   letter-spacing: 0.08em;
@@ -67,7 +67,7 @@
 .analytics-comparison-card > span,
 .analytics-comparison-card small {
   display: block;
-  color: #64748b;
+  color: #475569;
 }
 
 .analytics-comparison-card strong {
@@ -78,7 +78,7 @@
 }
 
 .analytics-comparison-card small b {
-  color: #0b8073;
+  color: #0a7569;
 }
 
 .analytics-comparison-card[data-tone='warning'] small b {
@@ -101,7 +101,7 @@
 }
 
 .analytics-decision-card__header strong {
-  color: #0b8073;
+  color: #0a7569;
   white-space: nowrap;
 }
 
@@ -141,7 +141,7 @@
 }
 
 .analytics-decision-table th {
-  color: #64748b;
+  color: #475569;
   font-size: 0.7rem;
   letter-spacing: 0.05em;
   text-transform: uppercase;
@@ -156,11 +156,11 @@
 .analytics-decision-table td small {
   display: block;
   margin-top: 0.2rem;
-  color: #94a3b8;
+  color: #5f6b7e;
 }
 
 .analytics-decision-table a {
-  color: #0b8073;
+  color: #0a7569;
   font-weight: 700;
 }
 
@@ -199,7 +199,7 @@
 
 .analytics-decision-empty {
   padding: 1rem;
-  color: #94a3b8;
+  color: #5f6b7e;
   text-align: center;
 }
 

@@ -428,7 +428,7 @@
             · <a href="/admin-supplier-detail?id=${safeSupplierId}">View supplier record</a>
           </div>
           ${safeCaption ? `<div class="small">${safeCaption}</div>` : ''}
-          <div class="small" style="color:#9ca3af;">Uploaded: ${formatDate(photo.uploadedAt)}</div>
+          <div class="small" style="color:#5f6673;">Uploaded: ${formatDate(photo.uploadedAt)}</div>
           ${actionsHtml}
         </div>
       </div>`;

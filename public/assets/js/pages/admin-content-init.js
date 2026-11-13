@@ -265,14 +265,14 @@
                   ${
                     a.active
                       ? '<span style="background:#d1fae5;color:#065f46;padding:0.1rem 0.45rem;border-radius:9999px;font-size:0.7rem;font-weight:600;">● Active</span>'
-                      : '<span style="background:#f3f4f6;color:#6b7280;padding:0.1rem 0.45rem;border-radius:9999px;font-size:0.7rem;font-weight:600;">○ Inactive</span>'
+                      : '<span style="background:#f3f4f6;color:#646b78;padding:0.1rem 0.45rem;border-radius:9999px;font-size:0.7rem;font-weight:600;">○ Inactive</span>'
                   }
                   ${notifiedBadge}
                 </div>
-                <div class="small" style="color:#6b7280;display:flex;gap:0.75rem;flex-wrap:wrap;align-items:center;">
+                <div class="small" style="color:#646b78;display:flex;gap:0.75rem;flex-wrap:wrap;align-items:center;">
                   <span><span class="ann-type-badge ${escapedType}">${emoji} ${escapedType}</span></span>
                   ${createdAt ? `<span>Created ${createdAt}${a.createdBy ? ` by ${AdminShared.escapeHtml(a.createdBy)}` : ''}</span>` : ''}
-                  ${lastNotified ? `<span style="color:#6366f1;">${AdminShared.escapeHtml(lastNotified)}</span>` : ''}
+                  ${lastNotified ? `<span style="color:#4f46e5;">${AdminShared.escapeHtml(lastNotified)}</span>` : ''}
                 </div>
               </div>
               <div class="flex-gap" style="margin-left:0.75rem;flex-shrink:0;">
@@ -302,7 +302,7 @@
       });
     } catch (err) {
       document.getElementById('announcementsList').innerHTML =
-        '<p class="small" style="color:#ef4444;">Failed to load announcements</p>';
+        '<p class="small" style="color:#dc2626;">Failed to load announcements</p>';
     }
   }
 
@@ -469,7 +469,7 @@
               <div class="flex-1">
                 <strong>${AdminShared.escapeHtml(f.question)}</strong>
                 <p class="small" style="margin:0.5rem 0 0 0;">${AdminShared.escapeHtml(f.answer)}</p>
-                <div class="small" style="margin-top:0.5rem;color:#9ca3af;">Category: ${AdminShared.escapeHtml(f.category || 'General')} • Order: ${f.order || 0}</div>
+                <div class="small" style="margin-top:0.5rem;color:#5f6673;">Category: ${AdminShared.escapeHtml(f.category || 'General')} • Order: ${f.order || 0}</div>
               </div>
               <div class="flex-gap">
                 <button class="ef-cta btn btn-secondary btn-small" data-action="edit" data-id="${escapedId}">Edit</button>
@@ -498,7 +498,7 @@
       faqCount = faqs.length;
     } catch (err) {
       document.getElementById('faqsList').innerHTML =
-        '<p class="small" style="color:#ef4444;">Failed to load FAQs</p>';
+        '<p class="small" style="color:#dc2626;">Failed to load FAQs</p>';
     }
   }
 
@@ -541,7 +541,7 @@
       });
     } catch (err) {
       document.getElementById('featuredPackagesList').innerHTML =
-        '<p class="small" style="color:#ef4444;">Failed to load featured packages</p>';
+        '<p class="small" style="color:#dc2626;">Failed to load featured packages</p>';
     }
   }
 
@@ -673,7 +673,7 @@
         console.error('Failed to load content dates:', err);
         const el = document.getElementById('cdStatusContent');
         if (el) {
-          el.innerHTML = `<p style="color:#ef4444;">Error: ${AdminShared.escapeHtml(err.message)}</p>`;
+          el.innerHTML = `<p style="color:#dc2626;">Error: ${AdminShared.escapeHtml(err.message)}</p>`;
         }
       }
     }
@@ -696,7 +696,7 @@
       } catch (err) {
         const el = document.getElementById('cdArticleDatesContent');
         if (el) {
-          el.innerHTML = `<p style="color:#ef4444;">Error: ${AdminShared.escapeHtml(err.message)}</p>`;
+          el.innerHTML = `<p style="color:#dc2626;">Error: ${AdminShared.escapeHtml(err.message)}</p>`;
         }
       }
     }

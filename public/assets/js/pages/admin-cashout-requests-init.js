@@ -217,7 +217,7 @@
       return;
     }
     panel.innerHTML =
-      '<div style="color:#6b7280;font-size:.875rem;">Loading cashout safety controls…</div>';
+      '<div style="color:#646b78;font-size:.875rem;">Loading cashout safety controls…</div>';
     try {
       const res = await fetch('/api/v1/admin/cashout-requests/ops/controls', {
         credentials: 'include',
@@ -236,7 +236,7 @@
               ${safetyPill(controls.cashoutsPaused ? 'Cashouts paused' : 'Cashouts active', controls.cashoutsPaused ? 'bad' : 'good')}
               ${safetyPill(controls.programmePaused ? 'Master payout pause active' : 'Master payout pause off', controls.programmePaused ? 'bad' : 'neutral')}
             </div>
-            <div style="margin-top:.55rem;font-size:.78rem;color:#6b7280;line-height:1.5;">
+            <div style="margin-top:.55rem;font-size:.78rem;color:#646b78;line-height:1.5;">
               Limits: single £${esc(config.maxSingleCashoutGbp ?? '—')} · first £${esc(config.firstCashoutMaxGbp ?? '—')} · 24h £${esc(config.rolling24hMaxGbp ?? '—')} · 30d £${esc(config.rolling30dMaxGbp ?? '—')} · open requests ${esc(config.maxOpenRequests ?? '—')}
             </div>
             ${controls.reason ? `<div style="margin-top:.35rem;font-size:.78rem;color:#4b5563;">Last control reason: ${esc(controls.reason)}</div>` : ''}
@@ -331,12 +331,12 @@
           return `<tr data-id="${esc(r.id)}">
             <td>
               <div style="font-weight:600;">${partnerName}</div>
-              ${partnerEmail ? `<div style="font-size:0.8rem;color:#6b7280;">${partnerEmail}</div>` : ''}
-              ${r.partnerRefCode ? `<div style="font-size:0.75rem;color:#9ca3af;font-family:monospace;">${esc(r.partnerRefCode)}</div>` : ''}
+              ${partnerEmail ? `<div style="font-size:0.8rem;color:#646b78;">${partnerEmail}</div>` : ''}
+              ${r.partnerRefCode ? `<div style="font-size:0.75rem;color:#5f6673;font-family:monospace;">${esc(r.partnerRefCode)}</div>` : ''}
             </td>
             <td>${esc(methodLabel(r.method))}</td>
             <td style="font-weight:700;">£${esc(String(r.denominationGbp || '?'))}</td>
-            <td style="font-size:0.85rem;color:#6b7280;">${esc(String(r.pointsHeld || '?'))} pts</td>
+            <td style="font-size:0.85rem;color:#646b78;">${esc(String(r.pointsHeld || '?'))} pts</td>
             <td>
               ${statusBadge(r.status)}
               <div style="display:flex;gap:.25rem;flex-wrap:wrap;margin-top:.4rem;">${safetyPill(identity.label, identity.tone)}${safetyPill(reconciliation.label, reconciliation.tone)}${safetyPill(fraud.label, fraud.tone)}</div>
@@ -490,7 +490,7 @@
 
   function renderRequestOverview(r, partner) {
     const partnerEmail = partner.email
-      ? `<div style="font-size:0.82rem;color:#6b7280;">${esc(partner.email)}</div>`
+      ? `<div style="font-size:0.82rem;color:#646b78;">${esc(partner.email)}</div>`
       : '';
     return `
     <div class="acr-modal-field">
@@ -537,7 +537,7 @@
         ? `<div class="acr-modal-field"><span class="acr-modal-label">Processing since</span><span class="acr-modal-value" style="font-size:0.85rem;">${esc(fmtDate(r.processingAt))}</span></div>`
         : '',
       r.deliveredAt
-        ? `<div class="acr-modal-field"><span class="acr-modal-label">Delivered</span><span class="acr-modal-value" style="font-size:0.85rem;color:#059669;">${esc(fmtDate(r.deliveredAt))}</span></div>`
+        ? `<div class="acr-modal-field"><span class="acr-modal-label">Delivered</span><span class="acr-modal-value" style="font-size:0.85rem;color:#047857;">${esc(fmtDate(r.deliveredAt))}</span></div>`
         : '',
     ];
     return `${entries.filter(Boolean).join('')}</div>`;
@@ -559,13 +559,13 @@
     <div style="border:1px solid #d1d5db;border-radius:12px;padding:.85rem;margin:1rem 0;background:#f9fafb;">
       <div style="font-size:.78rem;font-weight:800;color:#374151;text-transform:uppercase;letter-spacing:.04em;margin-bottom:.55rem;">Safety review</div>
       <div style="display:flex;gap:.35rem;flex-wrap:wrap;margin-bottom:.65rem;">${safetyPill(identity.label, identity.tone)}${safetyPill(reconciliation.label, reconciliation.tone)}${safetyPill(fraud.label, fraud.tone)}</div>
-      <div style="font-size:.78rem;color:#6b7280;line-height:1.55;">${identityReview}${ledgerReview}${issues}</div>
+      <div style="font-size:.78rem;color:#646b78;line-height:1.55;">${identityReview}${ledgerReview}${issues}</div>
       <div style="display:flex;gap:.45rem;flex-wrap:wrap;margin-top:.7rem;">
         <button type="button" class="ef-cta acr-action-btn" id="acr-identity-verify-btn">Verify identity</button>
         <button type="button" class="ef-cta acr-action-btn acr-action-btn--danger" id="acr-identity-reject-btn">Reject identity</button>
         <button type="button" class="ef-cta acr-action-btn" id="acr-reconcile-btn">Run ledger reconciliation</button>
       </div>
-      <div style="font-size:.73rem;color:#6b7280;margin-top:.5rem;">Identity actions use the internal review note below as the required audit reason.</div>
+      <div style="font-size:.73rem;color:#646b78;margin-top:.5rem;">Identity actions use the internal review note below as the required audit reason.</div>
     </div>`;
   }
 
@@ -759,10 +759,10 @@
     },
   };
 
-  async function confirmStatusChange(newStatus) {
+  function confirmStatusChange(newStatus) {
     const consequence = STATUS_CONSEQUENCES[newStatus];
     if (!consequence) {
-      return true;
+      return Promise.resolve(true);
     }
     return AdminShared.showConfirmModal({
       ...consequence,

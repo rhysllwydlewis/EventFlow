@@ -85,6 +85,23 @@ function runDashboard(scenario) {
   );
 }
 
+// True when `html` loads `asset` with a ?v= that is `min` or newer (a later bump must not break this test)
+function loadsAssetAtLeast(html, asset, min) {
+  const escaped = asset.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const m = html.match(new RegExp(`${escaped}\\?v=([0-9.]+)`));
+  if (!m) {
+    return false;
+  }
+  const a = m[1].split('.').map(Number);
+  const b = String(min).split('.').map(Number);
+  for (let i = 0; i < Math.max(a.length, b.length); i += 1) {
+    if ((a[i] || 0) !== (b[i] || 0)) {
+      return (a[i] || 0) > (b[i] || 0);
+    }
+  }
+  return true;
+}
+
 describe('the redesigned page', () => {
   const html = read('public/admin.html');
   const css = read('public/assets/css/admin-dashboard-home.css');
@@ -203,7 +220,7 @@ describe('the redesigned page', () => {
   });
 
   test('admin.html loads the changed scripts under new versions', () => {
-    expect(html).toContain('pages/admin-init.js?v=18.5.5');
+    expect(loadsAssetAtLeast(html, 'pages/admin-init.js', '18.5.5')).toBe(true);
     expect(html).toContain('admin-messages-init.js?v=18.3.2');
   });
 });
@@ -439,7 +456,7 @@ describe('admin notification bell icons', () => {
       .filter(html => html.includes('admin-navbar.js?v='));
     expect(pages.length).toBeGreaterThan(20);
     for (const html of pages) {
-      expect(html).toContain('admin-navbar.js?v=18.5.16');
+      expect(loadsAssetAtLeast(html, 'admin-navbar.js', '18.5.16')).toBe(true);
     }
   });
 });
@@ -493,7 +510,7 @@ describe('Suppliers filter row', () => {
       .filter(page => page.includes('admin-ui-improvements.css'));
     expect(pages.length).toBeGreaterThan(20);
     for (const page of pages) {
-      expect(page).toContain('admin-ui-improvements.css?v=18.3.3');
+      expect(loadsAssetAtLeast(page, 'admin-ui-improvements.css', '18.3.3')).toBe(true);
     }
   });
 });

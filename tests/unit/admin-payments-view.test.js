@@ -15,6 +15,23 @@ const ROOT = path.join(__dirname, '../..');
 const source = relativePath => fs.readFileSync(path.join(ROOT, relativePath), 'utf8');
 const NOW = new Date('2026-10-28T10:00:00Z');
 
+// True when `html` loads `asset` with a ?v= that is `min` or newer (a later bump must not break this test)
+function loadsAssetAtLeast(html, asset, min) {
+  const escaped = asset.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const m = html.match(new RegExp(`${escaped}\\?v=([0-9.]+)`));
+  if (!m) {
+    return false;
+  }
+  const a = m[1].split('.').map(Number);
+  const b = String(min).split('.').map(Number);
+  for (let i = 0; i < Math.max(a.length, b.length); i += 1) {
+    if ((a[i] || 0) !== (b[i] || 0)) {
+      return (a[i] || 0) > (b[i] || 0);
+    }
+  }
+  return true;
+}
+
 describe('statusGroup', () => {
   it.each([
     ['succeeded', GROUPS.PAID],
@@ -212,6 +229,6 @@ describe('the Payments page', () => {
     expect(html).toContain('<th>Customer</th>');
     expect(html).not.toContain('<th>Supplier</th>');
     expect(html).toContain('payment-status--refunded');
-    expect(html).toContain('admin-payments-init.js?v=18.5.11');
+    expect(loadsAssetAtLeast(html, 'admin-payments-init.js', '18.5.11')).toBe(true);
   });
 });

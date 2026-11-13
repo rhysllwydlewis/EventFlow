@@ -271,7 +271,7 @@
           <div class="ud-activity-row"><span class="ud-activity-label">Account created</span><span class="ud-activity-date">${fmtDate(user.createdAt)}</span></div>
           ${user.lastLoginAt ? `<div class="ud-activity-row"><span class="ud-activity-label">Last login</span><span class="ud-activity-date">${fmtDate(user.lastLoginAt)}</span></div>` : ''}
           ${user.verifiedAt ? `<div class="ud-activity-row"><span class="ud-activity-label">Email verified</span><span class="ud-activity-date">${fmtDate(user.verifiedAt)}</span></div>` : ''}
-          <p class="small" style="margin-top:12px;color:#9ca3af;">For email delivery history, open the <a href="/admin-emails">Email Centre</a> and filter by this address.</p>
+          <p class="small" style="margin-top:12px;color:#5f6673;">For email delivery history, open the <a href="/admin-emails">Email Centre</a> and filter by this address.</p>
         </div>
       </div>
     `;
@@ -454,7 +454,7 @@
                <label style="display:block;margin-bottom:4px;font-weight:600;">Company / business name</label>
                <input type="text" id="account-type-company" value="${esc(user.company || '')}" style="width:100%;padding:8px;border:1px solid #d4d4d8;border-radius:4px;">
              </div>`
-          : `<p style="margin-top:0.75rem;color:#ef4444;font-weight:600;">This will suspend the user's supplier profile, packages and public listing — they can switch back later to reactivate it.</p>`
+          : `<p style="margin-top:0.75rem;color:#dc2626;font-weight:600;">This will suspend the user's supplier profile, packages and public listing — they can switch back later to reactivate it.</p>`
       }
     `;
 

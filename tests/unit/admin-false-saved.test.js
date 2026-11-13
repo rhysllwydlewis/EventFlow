@@ -317,7 +317,9 @@ describe('F6 Settings audit log filter', () => {
 describe('F6 audit log display', () => {
   it('only adds an ellipsis when the details were actually cut off', () => {
     const page = source('public/assets/js/pages/admin-settings-init.js');
-    expect(page).toMatch(/detailsJson\.length > 100 \? `\$\{detailsJson\.substring\(0, 100\)\}…`/);
+    expect(page).toMatch(
+      /detailsPlain\.length > 140 \? `\$\{detailsPlain\.substring\(0, 140\)\}…`/
+    );
     expect(page).not.toMatch(/\$\{detailsText\}\.\.\./);
   });
 });

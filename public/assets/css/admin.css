@@ -60,16 +60,16 @@ button {
   margin: 2px;
   font-size: 12px;
   cursor: pointer;
-  background: #3b82f6;
+  background: #1d4ed8;
   color: #fff;
-  border: 1px solid #2563eb;
+  border: 1px solid #1e40af;
   border-radius: 4px;
   transition: all 0.2s ease;
   white-space: nowrap;
 }
 
 button:hover {
-  background: #2563eb;
+  background: #1e40af;
   transform: translateY(-1px);
   box-shadow: 0 2px 4px rgba(59, 130, 246, 0.2);
 }
@@ -231,7 +231,7 @@ select:focus {
 .ticket-summary-card__label {
   font-size: 0.7rem;
   font-weight: 600;
-  color: #6b7280;
+  color: #646b78;
   text-transform: uppercase;
   letter-spacing: 0.5px;
   margin-bottom: 0.4rem;
@@ -494,7 +494,7 @@ select:focus-visible {
   transform: translateY(-1px);
   box-shadow: 0 4px 14px rgba(0,0,0,0.1), inset 0 1px 0 rgba(255,255,255,0.95);
   border-color: rgba(11, 128, 115, 0.35);
-  color: #0B8073;
+  color: #0a7569;
 }
 
 .btn-secondary:active {
@@ -565,7 +565,7 @@ button.btn-sm.btn-primary:hover {
 
 .ticket-modal__sender {
   margin: 0 0 0.25rem;
-  color: #6b7280;
+  color: #646b78;
   font-size: 0.875rem;
 }
 
@@ -583,7 +583,7 @@ button.btn-sm.btn-primary:hover {
   align-items: center;
   margin-bottom: 0.75rem;
   flex-wrap: wrap;
-  color: #6b7280;
+  color: #646b78;
   font-size: 0.875rem;
 }
 
@@ -855,7 +855,7 @@ button.btn-sm.btn-primary:hover {
   padding: 0.6rem 1.25rem;
   font-size: 0.9rem;
   font-weight: 600;
-  color: #6b7280;
+  color: #646b78;
   background: rgba(255, 255, 255, 0.5);
   border: 1px solid rgba(0, 0, 0, 0.08);
   border-bottom: none;
@@ -866,12 +866,12 @@ button.btn-sm.btn-primary:hover {
 }
 
 .admin-tab:hover {
-  color: #0B8073;
+  color: #0a7569;
   background: rgba(11, 128, 115, 0.06);
 }
 
 .admin-tab--active {
-  color: #0B8073;
+  color: #0a7569;
   background: rgba(255, 255, 255, 0.92);
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
@@ -985,7 +985,7 @@ button.btn-sm.btn-primary:hover {
 }
 
 .admin-messenger-cell--preview {
-  color: #6b7280;
+  color: #646b78;
   max-width: 240px;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -993,20 +993,20 @@ button.btn-sm.btn-primary:hover {
 }
 
 .admin-messenger-cell--meta {
-  color: #6b7280;
+  color: #646b78;
   white-space: nowrap;
 }
 
 .admin-messenger-type-badge {
   background: rgba(11, 128, 115, 0.1);
-  color: #0b8073;
+  color: #0a7569;
   padding: 2px 8px;
   border-radius: 4px;
 }
 
 .admin-messenger-link {
   font-size: 0.82rem;
-  color: #0b8073;
+  color: #0a7569;
   text-decoration: none;
   font-weight: 600;
 }
@@ -1017,11 +1017,11 @@ button.btn-sm.btn-primary:hover {
 }
 
 .admin-messenger-state--loading {
-  color: #9ca3af;
+  color: #5f6673;
 }
 
 .admin-messenger-state--empty {
-  color: #9ca3af;
+  color: #5f6673;
 }
 
 .admin-messenger-state--error {
@@ -1054,7 +1054,7 @@ button.btn-sm.btn-primary:hover {
 .admin-messenger-summary {
   padding: 8px 16px;
   font-size: 0.85rem;
-  color: #6b7280;
+  color: #646b78;
   margin: 0;
 }
 
@@ -1098,7 +1098,7 @@ button.btn-sm.btn-primary:hover {
 
 .admin-messenger-page-info {
   font-size: 0.85rem;
-  color: #6b7280;
+  color: #646b78;
   flex: 1;
   text-align: center;
 }
@@ -1115,12 +1115,12 @@ button.btn-sm.btn-primary:hover {
 
 .admin-messenger-status-badge--active {
   background: rgba(16, 185, 129, 0.12);
-  color: #059669;
+  color: #047857;
 }
 
 .admin-messenger-status-badge--archived {
   background: rgba(107, 114, 128, 0.12);
-  color: #6b7280;
+  color: #646b78;
 }
 
 .admin-messenger-status-badge--deleted {
@@ -1140,7 +1140,7 @@ button.btn-sm.btn-primary:hover {
 
 .feature-flags-status-loading {
   background: #f3f4f6;
-  color: #6b7280;
+  color: #646b78;
 }
 
 .feature-flags-status-saving {
@@ -1198,7 +1198,7 @@ button.btn-sm.btn-primary:hover {
 
 /* Semantic colour modifiers inside the bar (still need context to win) */
 .supplier-bulk-actions .btn-sm.btn-bulk-approve {
-  color: #0B8073;
+  color: #0a7569;
 }
 
 .supplier-bulk-actions .btn-sm.btn-bulk-danger {
@@ -1254,7 +1254,7 @@ button.btn-sm.btn-primary:hover {
 
 /* action-btn hover — add explicit label colour so text visibly responds */
 .action-btn:hover .action-label {
-  color: #0B8073;
+  color: #0a7569;
 }
 
 /* Consistent focus ring on all admin interactive controls */

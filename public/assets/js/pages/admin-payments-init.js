@@ -272,7 +272,7 @@ function renderPaymentsTable(payments) {
   if (payments.length === 0) {
     tbody.innerHTML = `
       <tr>
-        <td colspan="6" style="text-align: center; padding: 2rem; color: #6b7280;">
+        <td colspan="6" style="text-align: center; padding: 2rem; color: #646b78;">
           No payments match these filters
         </td>
       </tr>

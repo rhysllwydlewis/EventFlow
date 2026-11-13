@@ -573,7 +573,7 @@
       btn.setAttribute('aria-expanded', 'false');
       document.body.classList.remove('admin-qnav-body-lock');
       // Reset search when closing
-      if (searchInput && searchInput.value) {
+      if (searchInput?.value) {
         searchInput.value = '';
         filterTiles('');
       }
@@ -871,6 +871,20 @@
     setInterval(updateBadgeCounts, 60000);
   }
 
+  // Show a nav badge's count, or hide it when the count is zero (no-op if the badge is not on this page)
+  function setNavBadge(badgeId, count) {
+    const badge = document.getElementById(badgeId);
+    if (!badge) {
+      return;
+    }
+    if (count > 0) {
+      badge.textContent = count;
+      badge.style.display = 'flex';
+    } else {
+      badge.style.display = 'none';
+    }
+  }
+
   function updateBadgeCounts() {
     // Fetch badge counts from dedicated endpoint
     fetch('/api/admin/badge-counts', {
@@ -897,102 +911,21 @@
         window.AdminPendingCounts = pending;
         document.dispatchEvent(new CustomEvent('admin:pending-counts', { detail: pending }));
 
-        // Suppliers badge (pending approvals)
-        const suppliersBadge = document.getElementById('navBadgeSuppliers');
-        if (suppliersBadge) {
-          const count = pending.suppliers || 0;
-          if (count > 0) {
-            suppliersBadge.textContent = count;
-            suppliersBadge.style.display = 'flex';
-          } else {
-            suppliersBadge.style.display = 'none';
-          }
-        }
-
-        // Packages badge (pending approvals)
-        const packagesBadge = document.getElementById('navBadgePackages');
-        if (packagesBadge) {
-          const count = pending.packages || 0;
-          if (count > 0) {
-            packagesBadge.textContent = count;
-            packagesBadge.style.display = 'flex';
-          } else {
-            packagesBadge.style.display = 'none';
-          }
-        }
-
-        // Public calendar badge (pending publishing requests + open event reports)
-        const calendarBadge = document.getElementById('navBadgePublicCalendar');
-        if (calendarBadge) {
-          const count = pending.publicCalendarRequests || 0;
-          if (count > 0) {
-            calendarBadge.textContent = count;
-            calendarBadge.style.display = 'flex';
-          } else {
-            calendarBadge.style.display = 'none';
-          }
-        }
-
-        // Photos badge (pending approvals)
-        const photosBadge = document.getElementById('navBadgePhotos');
-        if (photosBadge) {
-          const count = pending.photos || 0;
-          if (count > 0) {
-            photosBadge.textContent = count;
-            photosBadge.style.display = 'flex';
-          } else {
-            photosBadge.style.display = 'none';
-          }
-        }
-
-        // Reviews badge (pending/flagged)
-        const reviewsBadge = document.getElementById('navBadgeReviews');
-        if (reviewsBadge) {
-          const count = pending.reviews || 0;
-          if (count > 0) {
-            reviewsBadge.textContent = count;
-            reviewsBadge.style.display = 'flex';
-          } else {
-            reviewsBadge.style.display = 'none';
-          }
-        }
-
-        // Reports badge (pending)
-        const reportsBadge = document.getElementById('navBadgeReports');
-        if (reportsBadge) {
-          const count = pending.reports || 0;
-          if (count > 0) {
-            reportsBadge.textContent = count;
-            reportsBadge.style.display = 'flex';
-          } else {
-            reportsBadge.style.display = 'none';
-          }
-        }
-
-        // Open tickets badge
-        const openTicketsBadge = document.getElementById('openTicketsBadge');
-        if (openTicketsBadge) {
-          // Support tickets plus new enquiries from VEXI, Chlo and other integrated sites
-          const count = (pending.tickets || data.openTickets || 0) + (pending.externalContacts || 0);
-          if (count > 0) {
-            openTicketsBadge.textContent = count;
-            openTicketsBadge.style.display = 'flex';
-          } else {
-            openTicketsBadge.style.display = 'none';
-          }
-        }
-
-        // Locations badge (auto-published cities never reviewed by a human)
-        const locationsBadge = document.getElementById('navBadgeLocations');
-        if (locationsBadge) {
-          const count = pending.locations || 0;
-          if (count > 0) {
-            locationsBadge.textContent = count;
-            locationsBadge.style.display = 'flex';
-          } else {
-            locationsBadge.style.display = 'none';
-          }
-        }
+        // Each badge shows its count, or hides when there is nothing waiting
+        setNavBadge('navBadgeSuppliers', pending.suppliers || 0);
+        setNavBadge('navBadgePackages', pending.packages || 0);
+        // Public calendar: pending publishing requests + open event reports
+        setNavBadge('navBadgePublicCalendar', pending.publicCalendarRequests || 0);
+        setNavBadge('navBadgePhotos', pending.photos || 0);
+        setNavBadge('navBadgeReviews', pending.reviews || 0);
+        setNavBadge('navBadgeReports', pending.reports || 0);
+        // Open tickets: support tickets plus new enquiries from VEXI, Chlo and other integrated sites
+        setNavBadge(
+          'openTicketsBadge',
+          (pending.tickets || data.openTickets || 0) + (pending.externalContacts || 0)
+        );
+        // Locations: auto-published cities never reviewed by a human
+        setNavBadge('navBadgeLocations', pending.locations || 0);
       })
       .catch(error => {
         console.error('Failed to fetch badge counts:', error);
@@ -1048,7 +981,18 @@
     if (logoutBtn) {
       logoutBtn.addEventListener('click', async e => {
         e.preventDefault();
-        if (confirm('Are you sure you want to sign out?')) {
+        // The styled dialog is loaded on every admin page; if it ever is not, signing out is harmless, so carry on
+        const shared = window.AdminShared;
+        const confirmed =
+          typeof shared?.showConfirmModal === 'function'
+            ? await shared.showConfirmModal({
+                title: 'Sign out',
+                message: 'Are you sure you want to sign out?',
+                confirmText: 'Sign out',
+                type: 'info',
+              })
+            : true;
+        if (confirmed) {
           try {
             // Call POST logout endpoint. If the page's token has not loaded yet,
             // fetch one so the session cookie is really cleared.
@@ -1063,14 +1007,14 @@
               headers: { 'X-CSRF-Token': window.__CSRF_TOKEN__ || '' },
               credentials: 'include',
             });
-          } catch (_) {
+          } catch {
             /* Ignore logout errors */
           }
           // Clear any auth-related storage
           try {
             localStorage.removeItem('eventflow_onboarding_new');
             sessionStorage.clear();
-          } catch (_) {
+          } catch {
             /* Ignore storage errors */
           }
           // Force full reload with cache-busting to ensure clean state
@@ -1092,8 +1036,8 @@
       return '';
     }
     try {
-      const d = new Date(isoString);
-      const diff = Date.now() - d.getTime();
+      const date = new Date(isoString);
+      const diff = Date.now() - date.getTime();
       const mins = Math.floor(diff / 60000);
       if (mins < 1) {
         return 'just now';
@@ -1105,7 +1049,7 @@
       if (hrs < 24) {
         return `${hrs}h ago`;
       }
-      return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+      return date.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
     } catch {
       return '';
     }
@@ -1268,7 +1212,7 @@
           }
         });
       });
-    } catch (err) {
+    } catch {
       body.innerHTML = '<div class="admin-notif-empty"><p>Failed to load notifications.</p></div>';
     }
   }

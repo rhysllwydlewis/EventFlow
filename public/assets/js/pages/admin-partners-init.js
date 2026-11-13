@@ -56,7 +56,7 @@
       summary.textContent = 'Loading…';
     }
     if (tbody) {
-      tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;padding:2.5rem;color:#9ca3af;">Loading partners…</td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;padding:2.5rem;color:#5f6673;">Loading partners…</td></tr>`;
     }
 
     try {
@@ -77,9 +77,9 @@
         summary.textContent = 'Error loading';
       }
       if (tbody) {
-        tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;padding:2.5rem;color:#fca5a5;">
+        tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;padding:2.5rem;color:#b91c1c;">
           Error loading partners.
-          <button class="ef-cta" data-partners-action="reload" style="margin-left:0.5rem;color:#60a5fa;background:none;border:none;cursor:pointer;text-decoration:underline;">Retry</button>
+          <button class="ef-cta" data-partners-action="reload" style="margin-left:0.5rem;color:#1d4ed8;background:none;border:none;cursor:pointer;text-decoration:underline;">Retry</button>
         </td></tr>`;
       }
     }
@@ -157,10 +157,10 @@
     }
 
     if (list.length === 0) {
-      tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;padding:2.5rem;color:#9ca3af;">
+      tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;padding:2.5rem;color:#5f6673;">
         No partners match your filters.
         <button class="ef-cta" type="button" id="ap-clear-filters-btn"
-          style="margin-left:0.5rem;color:#60a5fa;background:none;border:none;cursor:pointer;text-decoration:underline;font-size:inherit;">
+          style="margin-left:0.5rem;color:#1d4ed8;background:none;border:none;cursor:pointer;text-decoration:underline;font-size:inherit;">
           Clear filters
         </button>
       </td></tr>`;
@@ -189,19 +189,19 @@
         return `<tr${isDeleted ? ' style="opacity:0.6;"' : ''}>
         <td>
           <strong style="color:#111827">${esc(p.user?.name || '—')}</strong>
-          <br/><small style="color:#888">${esc(p.user?.email || '')}</small>
-          ${p.user?.company ? `<br/><small style="color:#059669">${esc(p.user.company)}</small>` : ''}
+          <br/><small style="color:#5f6673">${esc(p.user?.email || '')}</small>
+          ${p.user?.company ? `<br/><small style="color:#047857">${esc(p.user.company)}</small>` : ''}
         </td>
-        <td><code style="color:#6366f1;font-size:0.8rem;">${esc(p.refCode || '—')}</code></td>
-        <td style="color:#888;font-size:0.85rem;">${fmtDate(p.createdAt)}</td>
+        <td><code style="color:#4f46e5;font-size:0.8rem;">${esc(p.refCode || '—')}</code></td>
+        <td style="color:#5f6673;font-size:0.85rem;">${fmtDate(p.createdAt)}</td>
         <td style="text-align:center;">${p.referralCount || 0}</td>
-        <td style="text-align:center;color:#d97706;">${(credits.totalEarned || 0).toLocaleString()}</td>
-        <td style="text-align:center;color:#059669;font-weight:700;">${(credits.balance || 0).toLocaleString()}</td>
+        <td style="text-align:center;color:#b45309;">${(credits.totalEarned || 0).toLocaleString()}</td>
+        <td style="text-align:center;color:#047857;font-weight:700;">${(credits.balance || 0).toLocaleString()}</td>
         <td>${statusBadge(p.status)}</td>
         <td>
           ${
             isDeleted
-              ? `<span style="color:#9ca3af;font-size:0.8rem;font-style:italic;">Account deleted</span>`
+              ? `<span style="color:#5f6673;font-size:0.8rem;font-style:italic;">Account deleted</span>`
               : `<div style="display:flex;gap:0.4rem;flex-wrap:wrap;">
             <button class="ef-cta ap-action-btn ap-action-btn--view" data-action="view" data-id="${esc(p.id)}" aria-label="View ${esc(p.user?.name || 'partner')}">View</button>
             ${
@@ -241,7 +241,7 @@
     if (scrim) {
       scrim.classList.add('show');
     }
-    body.innerHTML = '<p style="color:#6b7280;padding:1rem 0;">Loading…</p>';
+    body.innerHTML = '<p style="color:#646b78;padding:1rem 0;">Loading…</p>';
 
     const nameEl = document.getElementById('detail-partner-name');
     const emailEl = document.getElementById('detail-partner-email');
@@ -278,8 +278,8 @@
           return `<tr>
           <td style="color:#374151;font-size:0.8rem;">${esc(lbl)}</td>
           <td style="color:${amtColor};font-weight:700;font-size:0.85rem;">${amtStr}</td>
-          <td style="color:#6b7280;font-size:0.75rem;">${fmtDate(t.createdAt)}</td>
-          <td style="color:#9ca3af;font-size:0.73rem;">${esc(t.notes || '')}</td>
+          <td style="color:#646b78;font-size:0.75rem;">${fmtDate(t.createdAt)}</td>
+          <td style="color:#5f6673;font-size:0.73rem;">${esc(t.notes || '')}</td>
         </tr>`;
         })
         .join('');
@@ -291,7 +291,7 @@
           const sub = r.subscriptionQualified ? '✓' : '—';
           return `<tr>
           <td style="color:#374151;font-size:0.8rem;">${esc(r.supplierName || '—')}</td>
-          <td style="color:#6b7280;font-size:0.75rem;">${fmtDate(r.supplierCreatedAt)}</td>
+          <td style="color:#646b78;font-size:0.75rem;">${fmtDate(r.supplierCreatedAt)}</td>
           <td style="text-align:center;color:${r.packageQualified ? '#059669' : '#9ca3af'}">${pkg}</td>
           <td style="text-align:center;color:${r.subscriptionQualified ? '#059669' : '#9ca3af'}">${sub}</td>
         </tr>`;
@@ -303,10 +303,10 @@
         <div class="partner-detail-section">
           <div class="partner-detail-section-title">Account Info</div>
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.5rem 1rem;font-size:0.83rem;">
-            <div style="color:#6b7280">Ref Code</div><div style="color:#6366f1;font-family:monospace;font-weight:600;">${esc(partner.refCode)}</div>
-            <div style="color:#6b7280">Status</div><div>${statusBadge(partner.status)}</div>
-            <div style="color:#6b7280">Joined</div><div style="color:#111827">${fmtDate(partner.createdAt)}</div>
-            <div style="color:#6b7280">Company</div><div style="color:#111827">${esc(partner.user?.company || '—')}</div>
+            <div style="color:#646b78">Ref Code</div><div style="color:#4f46e5;font-family:monospace;font-weight:600;">${esc(partner.refCode)}</div>
+            <div style="color:#646b78">Status</div><div>${statusBadge(partner.status)}</div>
+            <div style="color:#646b78">Joined</div><div style="color:#111827">${fmtDate(partner.createdAt)}</div>
+            <div style="color:#646b78">Company</div><div style="color:#111827">${esc(partner.user?.company || '—')}</div>
           </div>
           <div style="margin-top:0.75rem;display:flex;gap:0.5rem;flex-wrap:wrap;">
             <button class="ef-cta ap-action-btn ap-action-btn--credit" data-partners-action="adjust-credits" data-partner-id="${esc(partnerId)}" style="font-size:0.78rem;">Adjust Credits</button>
@@ -318,16 +318,16 @@
           <div class="partner-detail-section-title">Credits</div>
           <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:0.6rem;margin-bottom:1rem;">
             <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px;padding:0.75rem;text-align:center;">
-              <div style="font-size:1.25rem;font-weight:700;color:#059669">${(credits.balance || 0).toLocaleString()}</div>
-              <div style="font-size:0.7rem;color:#6b7280;margin-top:0.2rem">Balance</div>
+              <div style="font-size:1.25rem;font-weight:700;color:#047857">${(credits.balance || 0).toLocaleString()}</div>
+              <div style="font-size:0.7rem;color:#646b78;margin-top:0.2rem">Balance</div>
             </div>
             <div style="background:#fffbeb;border:1px solid #fde68a;border-radius:10px;padding:0.75rem;text-align:center;">
-              <div style="font-size:1.25rem;font-weight:700;color:#d97706">${(credits.packageBonusTotal || 0).toLocaleString()}</div>
-              <div style="font-size:0.7rem;color:#6b7280;margin-top:0.2rem">Pkg Bonuses</div>
+              <div style="font-size:1.25rem;font-weight:700;color:#b45309">${(credits.packageBonusTotal || 0).toLocaleString()}</div>
+              <div style="font-size:0.7rem;color:#646b78;margin-top:0.2rem">Pkg Bonuses</div>
             </div>
             <div style="background:#f5f3ff;border:1px solid #ddd6fe;border-radius:10px;padding:0.75rem;text-align:center;">
               <div style="font-size:1.25rem;font-weight:700;color:#7c3aed">${(credits.subscriptionBonusTotal || 0).toLocaleString()}</div>
-              <div style="font-size:0.7rem;color:#6b7280;margin-top:0.2rem">Sub Bonuses</div>
+              <div style="font-size:0.7rem;color:#646b78;margin-top:0.2rem">Sub Bonuses</div>
             </div>
           </div>
 
@@ -338,16 +338,16 @@
             <table style="width:100%;border-collapse:collapse;font-size:0.8rem;">
               <thead>
                 <tr>
-                  <th style="text-align:left;padding:0.4rem;color:#6b7280;font-size:0.7rem;text-transform:uppercase;border-bottom:1px solid #e5e7eb">Type</th>
-                  <th style="text-align:left;padding:0.4rem;color:#6b7280;font-size:0.7rem;text-transform:uppercase;border-bottom:1px solid #e5e7eb">Amount</th>
-                  <th style="text-align:left;padding:0.4rem;color:#6b7280;font-size:0.7rem;text-transform:uppercase;border-bottom:1px solid #e5e7eb">Date</th>
-                  <th style="text-align:left;padding:0.4rem;color:#6b7280;font-size:0.7rem;text-transform:uppercase;border-bottom:1px solid #e5e7eb">Notes</th>
+                  <th style="text-align:left;padding:0.4rem;color:#646b78;font-size:0.7rem;text-transform:uppercase;border-bottom:1px solid #e5e7eb">Type</th>
+                  <th style="text-align:left;padding:0.4rem;color:#646b78;font-size:0.7rem;text-transform:uppercase;border-bottom:1px solid #e5e7eb">Amount</th>
+                  <th style="text-align:left;padding:0.4rem;color:#646b78;font-size:0.7rem;text-transform:uppercase;border-bottom:1px solid #e5e7eb">Date</th>
+                  <th style="text-align:left;padding:0.4rem;color:#646b78;font-size:0.7rem;text-transform:uppercase;border-bottom:1px solid #e5e7eb">Notes</th>
                 </tr>
               </thead>
               <tbody>${txnRows}</tbody>
             </table>
           </div>`
-              : '<p style="color:#9ca3af;font-size:0.8rem;padding:0.5rem 0">No transactions yet.</p>'
+              : '<p style="color:#5f6673;font-size:0.8rem;padding:0.5rem 0">No transactions yet.</p>'
           }
         </div>
 
@@ -361,16 +361,16 @@
             <table style="width:100%;border-collapse:collapse;font-size:0.8rem;">
               <thead>
                 <tr>
-                  <th style="text-align:left;padding:0.4rem;color:#6b7280;font-size:0.7rem;text-transform:uppercase;border-bottom:1px solid #e5e7eb">Supplier</th>
-                  <th style="text-align:left;padding:0.4rem;color:#6b7280;font-size:0.7rem;text-transform:uppercase;border-bottom:1px solid #e5e7eb">Signed Up</th>
-                  <th style="text-align:center;padding:0.4rem;color:#6b7280;font-size:0.7rem;text-transform:uppercase;border-bottom:1px solid #e5e7eb">Pkg</th>
-                  <th style="text-align:center;padding:0.4rem;color:#6b7280;font-size:0.7rem;text-transform:uppercase;border-bottom:1px solid #e5e7eb">Sub</th>
+                  <th style="text-align:left;padding:0.4rem;color:#646b78;font-size:0.7rem;text-transform:uppercase;border-bottom:1px solid #e5e7eb">Supplier</th>
+                  <th style="text-align:left;padding:0.4rem;color:#646b78;font-size:0.7rem;text-transform:uppercase;border-bottom:1px solid #e5e7eb">Signed Up</th>
+                  <th style="text-align:center;padding:0.4rem;color:#646b78;font-size:0.7rem;text-transform:uppercase;border-bottom:1px solid #e5e7eb">Pkg</th>
+                  <th style="text-align:center;padding:0.4rem;color:#646b78;font-size:0.7rem;text-transform:uppercase;border-bottom:1px solid #e5e7eb">Sub</th>
                 </tr>
               </thead>
               <tbody>${refRows}</tbody>
             </table>
           </div>`
-              : '<p style="color:#9ca3af;font-size:0.8rem;padding:0.5rem 0">No referrals yet.</p>'
+              : '<p style="color:#5f6673;font-size:0.8rem;padding:0.5rem 0">No referrals yet.</p>'
           }
         </div>`;
       detailPanelLoaded = true;
@@ -708,7 +708,7 @@
 
     if (container) {
       container.innerHTML =
-        '<div style="text-align:center;padding:2rem;color:#9ca3af;">Loading payout requests…</div>';
+        '<div style="text-align:center;padding:2rem;color:#5f6673;">Loading payout requests…</div>';
     }
 
     try {
@@ -722,7 +722,7 @@
 
       if (items.length === 0) {
         container.innerHTML = `
-          <div style="text-align:center;padding:2.5rem;color:#9ca3af;">
+          <div style="text-align:center;padding:2.5rem;color:#5f6673;">
             <div style="font-size:2rem;margin-bottom:0.75rem;">🎁</div>
             <div>No payout requests${status ? ' with this status' : ''} yet.</div>
           </div>`;
@@ -757,15 +757,15 @@
         return `<tr>
           <td>
             <div style="font-weight:600;color:#111827;">${userName}</div>
-            <div style="font-size:0.75rem;color:#9ca3af;">${userEmail}</div>
-            <div style="font-size:0.73rem;color:#9ca3af;margin-top:0.1rem;">${esc(r.partnerId || '')}</div>
+            <div style="font-size:0.75rem;color:#5f6673;">${userEmail}</div>
+            <div style="font-size:0.73rem;color:#5f6673;margin-top:0.1rem;">${esc(r.partnerId || '')}</div>
           </td>
           <td>
-            <div style="font-weight:700;color:#059669;font-size:1.05rem;">${esc(r.payoutValueGbp || '—')}</div>
-            <div style="font-size:0.78rem;color:#6b7280;">${esc(String(r.payoutPoints || 0))} points</div>
+            <div style="font-weight:700;color:#047857;font-size:1.05rem;">${esc(r.payoutValueGbp || '—')}</div>
+            <div style="font-size:0.78rem;color:#646b78;">${esc(String(r.payoutPoints || 0))} points</div>
           </td>
           <td style="font-size:0.82rem;">${esc(r.payoutGiftCardType || 'Not specified')}</td>
-          <td style="font-size:0.78rem;color:#6b7280;">${fmtDate(r.createdAt)}</td>
+          <td style="font-size:0.78rem;color:#646b78;">${fmtDate(r.createdAt)}</td>
           <td>${statusBadge}</td>
           <td>
             <select
@@ -802,7 +802,7 @@
       AdminShared.debugError('Failed to load payout requests', err);
       if (container) {
         container.innerHTML =
-          '<div style="text-align:center;padding:2rem;color:#fca5a5;">Error loading payout requests.</div>';
+          '<div style="text-align:center;padding:2rem;color:#b91c1c;">Error loading payout requests.</div>';
       }
     }
   }
@@ -869,8 +869,8 @@
     const tabs = window.AdminTabs.mount({
       tabs: [
         tab('partners'),
-        tab('cashouts', () => window.AdminCashouts && window.AdminCashouts.start()),
-        tab('report', () => window.AdminCampaignReport && window.AdminCampaignReport.start()),
+        tab('cashouts', () => window.AdminCashouts?.start()),
+        tab('report', () => window.AdminCampaignReport?.start()),
       ],
       activeClass: 'admin-tab--active',
       initial: 'partners',

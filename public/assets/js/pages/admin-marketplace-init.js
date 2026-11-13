@@ -654,12 +654,6 @@
     listingsSection?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   });
 
-  // Sign out (button not present on all layouts — never let this block init)
-  document.getElementById('signoutBtn')?.addEventListener('click', async () => {
-    await fetch('/api/auth/signout', { method: 'POST', credentials: 'include' });
-    window.location.href = '/auth';
-  });
-
   // Inline onclick="" / onchange="" attributes are blocked by the site's Content-Security-Policy
   // (script-src-attr 'none'), so the listing cards are handled by delegated listeners.
   const listingsContainer = document.getElementById('listings-container');

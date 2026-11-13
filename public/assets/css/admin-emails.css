@@ -13,7 +13,7 @@
 
 .email-centre-eyebrow {
   margin: 0 0 0.35rem;
-  color: #0b8073;
+  color: #0a7569;
   font-weight: 800;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -76,7 +76,7 @@
 .email-stat-card strong {
   display: block;
   margin-top: 0.25rem;
-  color: #0b8073;
+  color: #0a7569;
   font-size: 1.8rem;
 }
 
@@ -135,7 +135,7 @@
   padding: 0.25rem 0.55rem;
   border-radius: 999px;
   background: #e8f7f3;
-  color: #0b8073;
+  color: #0a7569;
   font-weight: 800;
   font-size: 0.8rem;
 }

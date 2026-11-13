@@ -451,7 +451,7 @@
     btn.disabled = true;
     btn.textContent = 'Testing...';
     resultDiv.style.display = 'block';
-    resultDiv.innerHTML = '<div style="color: #6b7280;">🔄 Testing Pexels API connection...</div>';
+    resultDiv.innerHTML = '<div style="color: #646b78;">🔄 Testing Pexels API connection...</div>';
 
     try {
       const result = await AdminShared.adminFetchWithTimeout('/api/pexels/test', {
@@ -769,6 +769,28 @@
     }
   }
 
+  // Turn an audit entry's details object into plain "setting: value, other: value" text
+  // (the raw JSON braces and quotes were hard to read).
+  function describeAuditDetails(details) {
+    if (!details) {
+      return '';
+    }
+    if (typeof details !== 'object') {
+      return String(details);
+    }
+    return Object.entries(details)
+      .map(([key, value]) => {
+        const label = key
+          .replace(/([a-z])([A-Z])/g, '$1 $2')
+          .replace(/[_-]+/g, ' ')
+          .toLowerCase();
+        const shown =
+          value !== null && typeof value === 'object' ? JSON.stringify(value) : String(value);
+        return `${label}: ${shown}`;
+      })
+      .join(', ');
+  }
+
   // Load audit logs
   async function loadAuditLogs() {
     try {
@@ -782,7 +804,7 @@
 
       if (logs.length === 0) {
         container.innerHTML =
-          '<div style="padding: 2rem; text-align: center; color: #999;">No audit logs found</div>';
+          '<div style="padding: 2rem; text-align: center; color: #5f6673;">No audit logs found</div>';
         return;
       }
 
@@ -797,22 +819,22 @@
           const adminEmail = AdminShared.escapeHtml(log.adminEmail || 'Unknown');
           // log.details can contain admin-supplied free text (e.g. email
           // template subject, site tagline) — never inject it unescaped.
-          const detailsJson = log.details ? JSON.stringify(log.details) : '';
+          const detailsPlain = describeAuditDetails(log.details);
           const detailsText = AdminShared.escapeHtml(
-            detailsJson.length > 100 ? `${detailsJson.substring(0, 100)}…` : detailsJson
+            detailsPlain.length > 140 ? `${detailsPlain.substring(0, 140)}…` : detailsPlain
           );
           return `
           <div style="padding: 0.75rem; border-bottom: 1px solid #eee; font-size: 0.9rem;">
             <div style="display: flex; justify-content: space-between; margin-bottom: 0.25rem;">
               <strong>${actionLabel}</strong>
-              <span style="color: #999;">${date.toLocaleString()}</span>
+              <span style="color: #5f6673;">${date.toLocaleString()}</span>
             </div>
             <div style="color: #666;">
               by ${adminEmail}
             </div>
             ${
               detailsText
-                ? `<div style="color: #999; font-size: 0.85rem; margin-top: 0.25rem;">
+                ? `<div style="color: #5f6673; font-size: 0.85rem; margin-top: 0.25rem;">
               ${detailsText}
             </div>`
                 : ''
@@ -824,7 +846,7 @@
     } catch (err) {
       AdminShared.debugError('Failed to load audit logs:', err);
       document.getElementById('auditLogContainer').innerHTML =
-        '<div style="padding: 2rem; text-align: center; color: #e74c3c;">Failed to load audit logs</div>';
+        '<div style="padding: 2rem; text-align: center; color: #c0392b;">Failed to load audit logs</div>';
     }
   }
 
@@ -1089,7 +1111,7 @@
                 <div style="padding: 0.75rem; border: 1px solid #e5e7eb; border-radius: 6px; display: flex; justify-content: space-between; align-items: center;">
                   <div>
                     <strong>${safeFilename}</strong>
-                    <div class="small" style="color: #6b7280;">
+                    <div class="small" style="color: #646b78;">
                       ${new Date(backup.createdAt).toLocaleString()} • ${(backup.size / 1024).toFixed(2)} KB
                     </div>
                   </div>
@@ -1536,14 +1558,14 @@
 
     if (!runHistory || runHistory.length === 0) {
       container.innerHTML =
-        '<p style="color:#6b7280;font-size:0.875rem;">No runs recorded yet. History is populated after each real (non-dry-run) send.</p>';
+        '<p style="color:#646b78;font-size:0.875rem;">No runs recorded yet. History is populated after each real (non-dry-run) send.</p>';
       return;
     }
 
     const rows = runHistory
       .map(r => {
         const dt = r.finishedAt ? new Date(r.finishedAt).toLocaleString() : '?';
-        const errStyle = r.errors > 0 ? 'color:#dc2626;font-weight:600;' : 'color:#059669;';
+        const errStyle = r.errors > 0 ? 'color:#dc2626;font-weight:600;' : 'color:#047857;';
         const cappedBadge = r.cappedByLimit
           ? '<span style="display:inline-block;padding:0.1rem 0.4rem;border-radius:9999px;background:#fef3c7;color:#92400e;font-size:0.7rem;font-weight:600;">CAPPED</span>'
           : '';
@@ -1558,7 +1580,7 @@
           <td style="padding:0.4rem 0.5rem;font-size:0.8rem;white-space:nowrap;">${dt}</td>
           <td style="padding:0.4rem 0.5rem;">${triggerBadge}</td>
           <td style="padding:0.4rem 0.5rem;text-align:right;">${r.scanned ?? '-'}</td>
-          <td style="padding:0.4rem 0.5rem;text-align:right;font-weight:600;color:#059669;">${r.sent ?? '-'}</td>
+          <td style="padding:0.4rem 0.5rem;text-align:right;font-weight:600;color:#047857;">${r.sent ?? '-'}</td>
           <td style="padding:0.4rem 0.5rem;text-align:right;">${r.skippedCadence ?? '-'}</td>
           <td style="padding:0.4rem 0.5rem;text-align:right;${errStyle}">${r.errors ?? '-'}</td>
           <td style="padding:0.4rem 0.5rem;text-align:right;">${cappedBadge}</td>

@@ -150,10 +150,10 @@ ${page.adminGuard ? '    <script src="/assets/js/dashboard-guard.js?v=18.4.3"></
     <link rel="stylesheet" href="/assets/css/community.css?v=${version('/assets/css/community.css')}" />
 ${
   page.adminGuard
-    ? `    <link rel="stylesheet" href="/assets/css/admin.css?v=18.3.0" />
-    <link rel="stylesheet" href="/assets/css/admin-enhanced.css?v=18.3.1" />
+    ? `    <link rel="stylesheet" href="/assets/css/admin.css?v=18.3.1" />
+    <link rel="stylesheet" href="/assets/css/admin-enhanced.css?v=18.3.2" />
     <link rel="stylesheet" href="/assets/css/admin-navbar.css?v=18.4.1" />
-    <link rel="stylesheet" href="/assets/css/admin-cards.css?v=18.3.0" />
+    <link rel="stylesheet" href="/assets/css/admin-cards.css?v=18.3.1" />
 `
     : '    <link rel="stylesheet" href="/assets/css/eventflow-footer.css" />\n'
 }    <link rel="icon" href="/favicon.ico" sizes="any" />
@@ -310,9 +310,9 @@ ${
 `
 }${
     page.adminGuard
-      ? `    <script src="/assets/js/admin-shared.js?v=18.5.11"></script>
+      ? `    <script src="/assets/js/admin-shared.js?v=18.5.12"></script>
     <script src="/assets/js/components.js?v=18.4.0" defer></script>
-    <script src="/assets/js/admin-navbar.js?v=18.5.16" defer></script>
+    <script src="/assets/js/admin-navbar.js?v=18.5.17" defer></script>
 `
       : `    <script src="/assets/js/utils/auth-state.js?v=1.0.4" defer></script>
     <script src="/assets/js/burger-menu.js?v=1.1.0" defer></script>

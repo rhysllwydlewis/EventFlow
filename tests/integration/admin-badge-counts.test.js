@@ -181,21 +181,21 @@ describe('Admin Badge Counts Endpoint', () => {
     });
 
     it('should hide badges when count is zero', () => {
-      const updateBadgeCountsSection = adminNavbarContent.substring(
-        adminNavbarContent.indexOf('function updateBadgeCounts'),
-        adminNavbarContent.indexOf('function updateBadgeCounts') + 5500
+      const setBadgeSection = adminNavbarContent.substring(
+        adminNavbarContent.indexOf('function setNavBadge'),
+        adminNavbarContent.indexOf('function updateBadgeCounts')
       );
 
-      expect(updateBadgeCountsSection).toContain("style.display = 'none'");
+      expect(setBadgeSection).toContain("style.display = 'none'");
     });
 
     it('should show badges when count is greater than zero', () => {
-      const updateBadgeCountsSection = adminNavbarContent.substring(
-        adminNavbarContent.indexOf('function updateBadgeCounts'),
-        adminNavbarContent.indexOf('function updateBadgeCounts') + 5500
+      const setBadgeSection = adminNavbarContent.substring(
+        adminNavbarContent.indexOf('function setNavBadge'),
+        adminNavbarContent.indexOf('function updateBadgeCounts')
       );
 
-      expect(updateBadgeCountsSection).toContain("style.display = 'flex'");
+      expect(setBadgeSection).toContain("style.display = 'flex'");
     });
 
     it('should handle HTTP errors with status code', () => {
