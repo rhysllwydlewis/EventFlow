@@ -217,7 +217,7 @@
           </div>
           <div style="flex: 1;">
             <div style="font-size: 14px; color: #1f2937; font-weight: 500;">${escapeHtml(activity.message)}</div>
-            <div style="font-size: 12px; color: #6b7280; margin-top: 2px;">${this.formatTime(activity.timestamp)}</div>
+            <div style="font-size: 12px; color: #646b78; margin-top: 2px;">${this.formatTime(activity.timestamp)}</div>
           </div>
         </div>
       `
@@ -265,7 +265,7 @@
               (item, i) => `
             <div>
               <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
-                <span style="font-size: 14px; color: #6b7280; font-weight: 500;">${escapeHtml(String(item.label))}</span>
+                <span style="font-size: 14px; color: #646b78; font-weight: 500;">${escapeHtml(String(item.label))}</span>
                 <span style="font-size: 14px; color: #1f2937; font-weight: 700;">${escapeHtml(String(item.value))}</span>
               </div>
               <div style="background: #f3f4f6; height: 8px; border-radius: 999px; overflow: hidden;">
@@ -324,7 +324,7 @@
                 seg => `
               <div style="display: flex; align-items: center; gap: 12px;">
                 <div style="width: 12px; height: 12px; border-radius: 2px; background: ${seg.color};"></div>
-                <span style="flex: 1; font-size: 14px; color: #6b7280;">${escapeHtml(String(seg.label))}</span>
+                <span style="flex: 1; font-size: 14px; color: #646b78;">${escapeHtml(String(seg.label))}</span>
                 <span style="font-size: 14px; color: #1f2937; font-weight: 600;">${escapeHtml(String(seg.value))} (${escapeHtml(String(seg.percentage))}%)</span>
               </div>
             `
@@ -376,7 +376,7 @@
         background: none;
         border: none;
         font-size: 20px;
-        color: #9ca3af;
+        color: #5f6673;
         cursor: pointer;
         display: none;
       `;

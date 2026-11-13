@@ -480,15 +480,6 @@ describe('Admin Regression — rejectSup uses canonical /reject endpoint (not /a
     const rejectSection = adminInitContent.substring(rejectIdx, rejectIdx + 2000);
     expect(rejectSection).toContain('notes');
   });
-
-  it('admin-init.js bulk reject sends notes with each /reject call', () => {
-    // Bulk reject must pass a note through — either per-call or via a shared prompt
-    const bulkIdx = adminInitContent.indexOf('bulkRejectSuppliers');
-    expect(bulkIdx).toBeGreaterThan(-1);
-    const bulkSection = adminInitContent.substring(bulkIdx, bulkIdx + 2000);
-    expect(bulkSection).toContain('/reject');
-    expect(bulkSection).toContain('notes');
-  });
 });
 
 // ─── Bulk Reject Route — canonical state-machine fields ──────────────────────

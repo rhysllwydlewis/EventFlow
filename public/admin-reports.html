@@ -13,12 +13,12 @@
   <link rel="stylesheet" href="/assets/css/components.css?v=18.4.5">
   <link rel="stylesheet" href="/assets/css/animations.css?v=18.3.2">
   <link rel="stylesheet" href="/assets/css/mobile-optimizations.css?v=18.4.6">
-  <link rel="stylesheet" href="/assets/css/admin.css?v=18.3.0">
-  <link rel="stylesheet" href="/assets/css/admin-enhanced.css?v=18.3.1">
+  <link rel="stylesheet" href="/assets/css/admin.css?v=18.3.1">
+  <link rel="stylesheet" href="/assets/css/admin-enhanced.css?v=18.3.2">
   <link rel="stylesheet" href="/assets/css/admin-navbar.css?v=18.4.1">
-  <link rel="stylesheet" href="/assets/css/admin-cards.css?v=18.3.0">
+  <link rel="stylesheet" href="/assets/css/admin-cards.css?v=18.3.1">
   <link rel="stylesheet" href="/assets/css/ui-ux-fixes.css?v=18.4.1">
-  <link rel="stylesheet" href="/assets/css/admin-ui-improvements.css?v=18.3.3">
+  <link rel="stylesheet" href="/assets/css/admin-ui-improvements.css?v=18.3.4">
     <link rel="icon" href="/favicon.ico" sizes="any">
     <link rel="icon" type="image/svg+xml" href="/favicon.svg">
     <link rel="icon" type="image/png" sizes="144x144" href="/favicon-144x144.png">
@@ -29,8 +29,8 @@
     <link rel="manifest" href="/site.webmanifest">
     <meta name="msapplication-config" content="/browserconfig.xml">
   <script src="/assets/js/components.js?v=18.5.0" defer></script>
-  <script src="/assets/js/admin-navbar.js?v=18.5.16" defer></script>
-  <link rel="stylesheet" href="/assets/css/admin-workspace.css?v=3">
+  <script src="/assets/js/admin-navbar.js?v=18.5.17" defer></script>
+  <link rel="stylesheet" href="/assets/css/admin-workspace.css?v=4">
   <style>
     /* admin.css styles the pending, resolved and dismissed badges but not this status */
     .badge-reviewing { background: #dbeafe; color: #1e40af; }
@@ -56,14 +56,14 @@
   <div class="container">
     <div class="data-section">
       <div class="admin-toolbar">
-        <select id="statusFilter" class="filter-select">
+        <select id="statusFilter" class="filter-select" aria-label="Filter by status">
           <option value="">All Status</option>
           <option value="pending" selected>Pending</option>
           <option value="reviewing">Reviewing</option>
           <option value="resolved">Resolved</option>
           <option value="dismissed">Dismissed</option>
         </select>
-        <select id="typeFilter" class="filter-select">
+        <select id="typeFilter" class="filter-select" aria-label="Filter by type">
           <option value="">All Types</option>
           <option value="supplier">Supplier</option>
           <option value="review">Review</option>
@@ -94,9 +94,9 @@
   </div>
   </footer>
 
-<script src="/assets/js/admin-shared.js?v=18.5.11"></script>
+<script src="/assets/js/admin-shared.js?v=18.5.12"></script>
 <script src="/assets/js/utils/modal-a11y.js?v=18.8.1" defer></script>
-<script src="/assets/js/pages/admin-reports-init.js?v=18.5.9" defer></script>
+<script src="/assets/js/pages/admin-reports-init.js?v=18.5.10" defer></script>
 
 <script src="/assets/js/cookie-consent.js?v=3.0.2" defer></script>
 </body>

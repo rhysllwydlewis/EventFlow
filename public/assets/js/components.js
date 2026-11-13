@@ -461,7 +461,7 @@ function initBackToTop() {
   };
 
   // Throttle scroll event for better performance
-  let scrollTimeout;
+  let scrollTimeout = null;
   window.addEventListener(
     'scroll',
     () => {

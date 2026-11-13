@@ -862,7 +862,8 @@ router.get('/community/member/:handle', publicReadLimiter, async (req, res, next
 
 // ─── Admin page ──────────────────────────────────────────────────────────────
 
-router.get('/admin/community', apiLimiter, async (req, res, next) => {
+// The admin menu links to /admin-community; serve it the same way so the tab gets a title.
+router.get(['/admin/community', '/admin-community'], apiLimiter, async (req, res, next) => {
   const shell = await readShell('admin-community.html');
   if (!shell) {
     return next();

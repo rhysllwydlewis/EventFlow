@@ -42,8 +42,8 @@
   });
 
   async function performSearch() {
-    const q = document.getElementById('globalSearchInput').value.trim();
-    if (q.length < 2) {
+    const term = document.getElementById('globalSearchInput').value.trim();
+    if (term.length < 2) {
       AdminShared.showToast('Please enter at least 2 characters to search', 'warning');
       return;
     }
@@ -62,18 +62,18 @@
     try {
       const types = Array.from(activeFilters).join(',');
       const data = await AdminShared.api(
-        `/api/admin/search?q=${encodeURIComponent(q)}&types=${encodeURIComponent(types)}`
+        `/api/admin/search?q=${encodeURIComponent(term)}&types=${encodeURIComponent(types)}`
       );
       if (token !== searchToken) {
         return;
       }
-      renderResults(data.results, q, data.totals);
+      renderResults(data.results, term, data.totals);
     } catch (err) {
       if (token !== searchToken) {
         return;
       }
       status.textContent = 'Search failed. Please try again.';
-      container.innerHTML = `<div class="card"><p style="color:#ef4444;">Search failed: ${AdminShared.escapeHtml(err.message)}</p></div>`;
+      container.innerHTML = `<div class="card"><p style="color:#dc2626;">Search failed: ${AdminShared.escapeHtml(err.message)}</p></div>`;
     } finally {
       if (token === searchToken) {
         searchButton.disabled = false;

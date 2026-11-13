@@ -543,7 +543,7 @@
     const container = document.getElementById('uploadGalleryList');
     if (!collageMedia || collageMedia.length === 0) {
       container.innerHTML = `
-        <div class="card" style="padding: 20px; text-align: center; color: #9ca3af;">
+        <div class="card" style="padding: 20px; text-align: center; color: #5f6673;">
           <p>No uploaded media yet.</p>
         </div>
       `;
@@ -561,7 +561,7 @@
           }
           <div class="gallery-item-info">
             <span class="gallery-item-type ${escapeHtml(item.type)}">${escapeHtml(item.type)}</span>
-            <p class="small" style="margin: 0; color: #6b7280;">${formatFileSize(item.size)}</p>
+            <p class="small" style="margin: 0; color: #646b78;">${formatFileSize(item.size)}</p>
           </div>
           <button class="ef-cta gallery-item-delete" data-filename="${escapeHtml(item.filename)}" aria-label="Delete uploaded media ${escapeHtml(item.filename)}">Delete media</button>
         </div>
@@ -713,7 +713,7 @@
       <div class="upload-progress-bar">
         <div class="upload-progress-fill" style="width: 75%; animation: pulse 1.5s ease-in-out infinite;"></div>
       </div>
-      <p class="small" style="margin-top: 6px; color: #6b7280;">Please wait, this may take a moment...</p>
+      <p class="small" style="margin-top: 6px; color: #646b78;">Please wait, this may take a moment...</p>
     `;
     document.body.appendChild(progressDiv);
   }
@@ -1362,7 +1362,7 @@
     if (photos.length === 0) {
       resultsContainer.style.display = 'block';
       resultsGrid.innerHTML =
-        '<p style="grid-column: 1 / -1; text-align: center; color: #6b7280;">No images found for this search</p>';
+        '<p style="grid-column: 1 / -1; text-align: center; color: #646b78;">No images found for this search</p>';
       return;
     }
 

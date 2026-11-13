@@ -27,6 +27,23 @@ beforeAll(() => {
   signupPopupInitContent = fs.readFileSync(SIGNUP_POPUP_INIT, 'utf8');
 });
 
+// True when `html` loads `asset` with a ?v= that is `min` or newer (a later bump must not break this test)
+function loadsAssetAtLeast(html, asset, min) {
+  const escaped = asset.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const m = html.match(new RegExp(`${escaped}\\?v=([0-9.]+)`));
+  if (!m) {
+    return false;
+  }
+  const a = m[1].split('.').map(Number);
+  const b = String(min).split('.').map(Number);
+  for (let i = 0; i < Math.max(a.length, b.length); i += 1) {
+    if ((a[i] || 0) !== (b[i] || 0)) {
+      return (a[i] || 0) > (b[i] || 0);
+    }
+  }
+  return true;
+}
+
 describe('Admin Settings — Route Structure (GET endpoints)', () => {
   it('GET /settings/site route exists', () => {
     expect(adminContent).toContain("router.get('/settings/site'");
@@ -355,7 +372,9 @@ describe('Admin Settings — Availability and Booking Feature Flags', () => {
     ]) {
       expect(html).toMatch(new RegExp(`id="${id}"[^>]*data-locked-on[^>]*checked[^>]*disabled`));
     }
-    expect(html).toContain('/assets/js/pages/admin-settings-init.js?v=18.5.10');
+    expect(loadsAssetAtLeast(html, '/assets/js/pages/admin-settings-init.js', '18.5.10')).toBe(
+      true
+    );
     expect(settingsInitContent).toContain('const LOCKED_ON_FEATURE_IDS = new Set([');
   });
 

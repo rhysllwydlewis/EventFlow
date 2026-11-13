@@ -19,10 +19,10 @@
   <link rel="stylesheet" href="/assets/css/utilities.css?v=18.3.0">
   <link rel="stylesheet" href="/assets/css/components.css?v=18.4.5">
   <link rel="stylesheet" href="/assets/css/animations.css?v=18.3.2">
-  <link rel="stylesheet" href="/assets/css/admin.css?v=18.3.0">
-  <link rel="stylesheet" href="/assets/css/admin-enhanced.css?v=18.3.1">
+  <link rel="stylesheet" href="/assets/css/admin.css?v=18.3.1">
+  <link rel="stylesheet" href="/assets/css/admin-enhanced.css?v=18.3.2">
   <link rel="stylesheet" href="/assets/css/admin-navbar.css?v=18.4.1">
-  <link rel="stylesheet" href="/assets/css/admin-cards.css?v=18.3.0">
+  <link rel="stylesheet" href="/assets/css/admin-cards.css?v=18.3.1">
     <link rel="icon" href="/favicon.ico" sizes="any">
     <link rel="icon" type="image/svg+xml" href="/favicon.svg">
     <link rel="icon" type="image/png" sizes="144x144" href="/favicon-144x144.png">
@@ -32,13 +32,13 @@
     <link rel="mask-icon" href="/safari-pinned-tab.svg" color="#0B8073">
     <link rel="manifest" href="/site.webmanifest">
     <meta name="msapplication-config" content="/browserconfig.xml">
-  <script src="/assets/js/admin-shared.js?v=18.5.11"></script>
+  <script src="/assets/js/admin-shared.js?v=18.5.12"></script>
   <script src="/assets/js/components.js?v=18.5.0" defer></script>
-<script src="/assets/js/admin-navbar.js?v=18.5.16" defer></script>
+<script src="/assets/js/admin-navbar.js?v=18.5.17" defer></script>
   <link rel="stylesheet" href="/assets/css/mobile-optimizations.css?v=18.4.6">
   <link rel="stylesheet" href="/assets/css/ui-ux-fixes.css?v=18.4.1">
-  <link rel="stylesheet" href="/assets/css/admin-ui-improvements.css?v=18.3.3">
-  <link rel="stylesheet" href="/assets/css/admin-workspace.css?v=3">
+  <link rel="stylesheet" href="/assets/css/admin-ui-improvements.css?v=18.3.4">
+  <link rel="stylesheet" href="/assets/css/admin-workspace.css?v=4">
   <style>
     /* The card captions were picking up the full heading size (about 2rem), so "Total Revenue
        (All Time)" took more room than the figure below it. Small label, like the other pages. */
@@ -133,7 +133,7 @@
 
       <!-- Filter Bar -->
       <div class="filter-bar">
-        <select id="statusFilter">
+        <select id="statusFilter" aria-label="Filter by payment status">
           <option value="all">All Statuses</option>
           <option value="paid">Paid</option>
           <option value="pending">Pending</option>
@@ -142,7 +142,7 @@
           <option value="disputed">Disputed</option>
         </select>
         
-        <select id="planFilter">
+        <select id="planFilter" aria-label="Filter by plan">
           <option value="all">All Plans</option>
           <option value="pro_monthly">Pro Monthly</option>
           <option value="pro_plus_monthly">Pro+ Monthly</option>
@@ -150,7 +150,7 @@
           <option value="pro_plus_yearly">Pro+ Yearly</option>
         </select>
         
-        <select id="dateFilter">
+        <select id="dateFilter" aria-label="Filter by date range">
           <option value="all">All Time</option>
           <option value="7">Last 7 Days</option>
           <option value="30">Last 30 Days</option>
@@ -211,7 +211,7 @@
   </footer>
 
   <script src="/assets/vendor/chart.umd.js?v=18.5.14" defer></script>
-  <script src="/assets/js/pages/admin-payments-init.js?v=18.5.11" defer></script>
+  <script src="/assets/js/pages/admin-payments-init.js?v=18.5.12" defer></script>
 <script src="/assets/js/cookie-consent.js?v=3.0.2" defer></script>
 </body>
 </html>

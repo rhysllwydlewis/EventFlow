@@ -57,7 +57,7 @@
     let stripeData = null;
     try {
       stripeData = await AdminShared.api('/api/admin/stripe-analytics');
-    } catch (_error) {
+    } catch {
       stripeData = { available: false };
     }
 
@@ -110,7 +110,7 @@
       if (data && data.churn) {
         setText('an-churnRate', `${Number(data.churn.churnRate || 0).toFixed(1)}%`);
       }
-    } catch (_error) {
+    } catch {
       setText('an-mrr', 'N/A');
       setText('an-churnRate', 'N/A');
     }
@@ -138,13 +138,13 @@
         supplierPending.textContent =
           pendingSuppliers > 0 ? `${pendingSuppliers} pending approval` : 'No pending approvals';
         supplierPending.style.color =
-          pendingSuppliers > 0 ? 'var(--color-warning,#d97706)' : 'var(--color-success,#16a34a)';
+          pendingSuppliers > 0 ? 'var(--color-warning,#b45309)' : 'var(--color-success,#15803d)';
       }
       if (packagePending) {
         packagePending.textContent =
           pendingPackages > 0 ? `${pendingPackages} pending approval` : 'No pending approvals';
         packagePending.style.color =
-          pendingPackages > 0 ? 'var(--color-warning,#d97706)' : 'var(--color-success,#16a34a)';
+          pendingPackages > 0 ? 'var(--color-warning,#b45309)' : 'var(--color-success,#15803d)';
       }
 
       const roleBreakdown = document.getElementById('an-roleBreakdown');
@@ -158,9 +158,9 @@
                   `<span style="background:var(--color-surface-2,#f3f4f6);padding:5px 14px;border-radius:999px;font-size:.875rem;border:1px solid #e5e7eb"><strong>${capitalise(role)}</strong>: ${byRole[role]}</span>`
               )
               .join('')
-          : '<span style="color:#9ca3af;font-size:.875rem">No role data</span>';
+          : '<span style="color:#5f6673;font-size:.875rem">No role data</span>';
       }
-    } catch (_error) {
+    } catch {
       AdminShared.showToast('Failed to load platform metrics', 'error');
     }
   }
@@ -168,7 +168,7 @@
   async function loadUserGrowth() {
     try {
       const timeseriesData = await AdminShared.api('/api/admin/metrics/timeseries');
-      const series = (timeseriesData && timeseriesData.series) || [];
+      const series = timeseriesData?.series || [];
       const body = document.getElementById('an-timeseriesBody');
       if (!body) {
         return;
@@ -183,12 +183,12 @@
               </tr>`
             )
             .join('')
-        : '<tr><td colspan="3" style="padding:1.5rem;text-align:center;color:#9ca3af">No data available</td></tr>';
-    } catch (_error) {
+        : '<tr><td colspan="3" style="padding:1.5rem;text-align:center;color:#5f6673">No data available</td></tr>';
+    } catch {
       const body = document.getElementById('an-timeseriesBody');
       if (body) {
         body.innerHTML =
-          '<tr><td colspan="3" style="padding:1.5rem;text-align:center;color:#9ca3af">Failed to load timeseries data</td></tr>';
+          '<tr><td colspan="3" style="padding:1.5rem;text-align:center;color:#5f6673">Failed to load timeseries data</td></tr>';
       }
     }
   }
@@ -248,7 +248,7 @@
     }
     try {
       return /^\/project\/[^/]+(?:\/|$)/.test(new URL(value, window.location.href).pathname);
-    } catch (_error) {
+    } catch {
       return false;
     }
   }

@@ -111,8 +111,8 @@ describe('the Partner Programme page', () => {
       expect(script).toContain('let started = false;');
     }
     const partners = read(`${PAGES}admin-partners-init.js`);
-    expect(partners).toContain('window.AdminCashouts.start()');
-    expect(partners).toContain('window.AdminCampaignReport.start()');
+    expect(partners).toContain('window.AdminCashouts?.start()');
+    expect(partners).toContain('window.AdminCampaignReport?.start()');
   });
 });
 

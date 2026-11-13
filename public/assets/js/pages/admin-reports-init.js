@@ -29,7 +29,7 @@
     } catch (error) {
       console.error('Error loading reports:', error);
       document.getElementById('reportsContainer').innerHTML =
-        '<div class="data-section"><p class="small" style="color:#ef4444;">Failed to load reports. Please try again.</p></div>';
+        '<div class="data-section"><p class="small" style="color:#dc2626;">Failed to load reports. Please try again.</p></div>';
     }
   }
 
@@ -37,7 +37,7 @@
     if (report.status !== 'resolved' && report.status !== 'dismissed') {
       return '<span class="small">—</span>';
     }
-    return `<div class="small" style="color:#6b7280;margin-top:0.25rem;">
+    return `<div class="small" style="color:#646b78;margin-top:0.25rem;">
       ${report.resolvedByEmail ? `By: ${AdminShared.escapeHtml(report.resolvedByEmail)}<br>` : ''}
       ${report.resolvedAt ? `At: ${AdminShared.formatDate(report.resolvedAt)}<br>` : ''}
       ${report.resolution ? `Resolution: ${AdminShared.escapeHtml(report.resolution)}<br>` : ''}
@@ -69,7 +69,7 @@
         <div class="text-center-pad">
           <div style="font-size:4rem;margin-bottom:1rem;">📋</div>
           <h3 class="h3-mb-05">No reports found</h3>
-          <p style="color:#6b7280;">
+          <p style="color:#646b78;">
             ${allReports.length === 0 ? 'Content reports will appear here when users flag content.' : 'No reports match your filters.'}
           </p>
         </div>`;
@@ -80,9 +80,9 @@
       totalReports > allReports.length
         ? `Showing ${filtered.length} of the newest ${allReports.length} reports (${totalReports} in total)`
         : `Showing ${filtered.length} of ${allReports.length} report${allReports.length === 1 ? '' : 's'}`;
-    let html = `<p class="small" style="color:#6b7280;margin:0 0 0.5rem;">${countNote}</p>`;
+    let html = `<p class="small" style="color:#646b78;margin:0 0 0.5rem;">${countNote}</p>`;
     html +=
-      '<div class="table-wrapper"><table><thead><tr><th>Type</th><th>Reason</th><th>Reported By</th><th>Status</th><th>Date</th><th>Resolution</th><th>Actions</th></tr></thead><tbody>';
+      '<div class="table-wrapper table-wrapper--sticky-actions"><table><thead><tr><th>Type</th><th>Reason</th><th>Reported By</th><th>Status</th><th>Date</th><th>Resolution</th><th>Actions</th></tr></thead><tbody>';
 
     filtered.forEach(report => {
       const createdAt = AdminShared.formatDate(report.createdAt);
@@ -91,13 +91,13 @@
       html += `
         <tr>
           <td><span class="badge">${AdminShared.escapeHtml(report.type || 'unknown')}</span></td>
-          <td>
+          <td class="col-wrap">
             <div>${AdminShared.escapeHtml(report.reason || 'No reason')}</div>
-            ${report.details ? `<div class="small" style="color:#6b7280;">${AdminShared.escapeHtml(report.details)}</div>` : ''}
+            ${report.details ? `<div class="small" style="color:#646b78;">${AdminShared.escapeHtml(report.details)}</div>` : ''}
           </td>
-          <td>${AdminShared.escapeHtml(report.reporterEmail || 'Unknown')}</td>
+          <td class="col-wrap">${AdminShared.escapeHtml(report.reporterEmail || 'Unknown')}</td>
           <td><span class="badge badge-${report.status || 'pending'}">${report.status || 'pending'}</span></td>
-          <td class="small">${createdAt}</td>
+          <td class="small" style="white-space:nowrap;">${createdAt}</td>
           <td class="small">${resolutionInfo}</td>
           <td>
             ${

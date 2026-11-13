@@ -47,6 +47,23 @@ const entry = (id, timestamp, extra = {}) => ({
   ...extra,
 });
 
+// True when `html` loads `asset` with a ?v= that is `min` or newer (a later bump must not break this test)
+function loadsAssetAtLeast(html, asset, min) {
+  const escaped = asset.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const m = html.match(new RegExp(`${escaped}\\?v=([0-9.]+)`));
+  if (!m) {
+    return false;
+  }
+  const a = m[1].split('.').map(Number);
+  const b = String(min).split('.').map(Number);
+  for (let i = 0; i < Math.max(a.length, b.length); i += 1) {
+    if ((a[i] || 0) !== (b[i] || 0)) {
+      return (a[i] || 0) > (b[i] || 0);
+    }
+  }
+  return true;
+}
+
 describe('auditDateBound', () => {
   it('turns a plain day into the start or the very end of that day', () => {
     expect(audit.auditDateBound('2026-10-28', 'start')).toBe('2026-10-28T00:00:00.000Z');
@@ -298,7 +315,9 @@ describe('audit and cashout pages', () => {
     expect(script).toContain('Showing ${first}–${last} of ${totalEntries} entries');
     // dates go to the server as plain days, not midnight timestamps
     expect(script).not.toContain('toISOString');
-    expect(read('public/admin-audit.html')).toContain('admin-audit-init.js?v=18.5.12');
+    expect(
+      loadsAssetAtLeast(read('public/admin-audit.html'), 'admin-audit-init.js', '18.5.12')
+    ).toBe(true);
   });
 
   it('the export carries the same filters as the list', () => {

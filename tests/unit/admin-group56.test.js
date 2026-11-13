@@ -44,6 +44,23 @@ const ROOT = path.join(__dirname, '../..');
 const read = file => fs.readFileSync(path.join(ROOT, file), 'utf8');
 const PAGES = 'public/assets/js/pages/';
 
+// True when `html` loads `asset` with a ?v= that is `min` or newer (a later bump must not break this test)
+function loadsAssetAtLeast(html, asset, min) {
+  const escaped = asset.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const m = html.match(new RegExp(`${escaped}\\?v=([0-9.]+)`));
+  if (!m) {
+    return false;
+  }
+  const a = m[1].split('.').map(Number);
+  const b = String(min).split('.').map(Number);
+  for (let i = 0; i < Math.max(a.length, b.length); i += 1) {
+    if ((a[i] || 0) !== (b[i] || 0)) {
+      return (a[i] || 0) > (b[i] || 0);
+    }
+  }
+  return true;
+}
+
 describe('AdminPager numbers', () => {
   it('says which rows a page covers', () => {
     expect(AdminPager.range(1, 50, 349)).toEqual({ page: 1, pages: 7, first: 1, last: 50 });
@@ -341,7 +358,9 @@ describe('pages that page their lists', () => {
     expect(search).toContain('data-more="${type}"');
     expect(search).toMatch(/const offset = \(currentResults\[type\] \|\| \[\]\)\.length;/);
     expect(search).toMatch(/offset=\$\{offset\}/);
-    expect(read('public/admin-search.html')).toContain('admin-search-init.js?v=18.5.13');
+    expect(
+      loadsAssetAtLeast(read('public/admin-search.html'), 'admin-search-init.js', '18.5.13')
+    ).toBe(true);
   });
 });
 
@@ -349,7 +368,7 @@ describe('shared admin styling', () => {
   const workspace = read('public/assets/css/admin-workspace.css');
 
   it('header icon buttons, back buttons and back links are coloured for a white card', () => {
-    expect(workspace).toMatch(/\.btn-icon,[\s\S]*?\.link-white \{ color: #0b8073 !important; \}/);
+    expect(workspace).toMatch(/\.btn-icon,[\s\S]*?\.link-white \{ color: #0a7569 !important; \}/);
     expect(workspace).toMatch(/\.btn-icon,[\s\S]*?\.btn-secondary \{ background: #fff;/);
   });
 
@@ -417,7 +436,7 @@ describe('shared admin styling', () => {
       .filter(name => read(`public/${name}`).includes('admin-workspace.css'));
     expect(pages.length).toBeGreaterThan(20);
     for (const name of pages) {
-      expect(read(`public/${name}`)).toContain('admin-workspace.css?v=3');
+      expect(loadsAssetAtLeast(read(`public/${name}`), 'admin-workspace.css', '3')).toBe(true);
       expect(read(`public/${name}`)).not.toMatch(/admin-workspace\.css\?v=[12]\b/);
     }
   });

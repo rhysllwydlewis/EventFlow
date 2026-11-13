@@ -248,14 +248,15 @@
         const userId = esc(user.id || '');
         const checked = selectedUserIds.has(user.id) ? 'checked' : '';
         const hasProfile = Boolean(user.supplierProfile);
+        const displayName = String(user.name || '').trim() || '(no name)';
         const supplierLink = hasProfile
           ? `<a href="${safeHref(user.supplierProfile.profileUrl)}" class="btn btn-ghost btn-xs" style="white-space:nowrap;">Supplier</a>`
           : user.role === 'supplier'
             ? `<button type="button" class="btn btn-warning btn-xs" style="white-space:nowrap;" data-provision-profile="${userId}" title="Create missing supplier profile">⚠️ Provision</button>`
             : '';
         return `<tr class="${user.suspended ? 'uc-row--suspended' : ''} ${(user.accountIssues || []).length ? 'uc-row--issues' : ''}">
-          <td class="checkbox-cell"><input type="checkbox" class="uc-user-checkbox table-checkbox" data-user-id="${userId}" ${checked} aria-label="Select ${esc(user.name || user.email || 'user')}"></td>
-          <td style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:155px;"><a href="/admin-user-detail?id=${userId}" class="uc-user-link" title="${esc(user.name || '(no name)')}">${esc(user.name || '(no name)')}</a>${issueBadges(user.accountIssues)}</td>
+          <td class="checkbox-cell"><input type="checkbox" class="uc-user-checkbox table-checkbox" data-user-id="${userId}" ${checked} aria-label="Select ${esc(String(user.name || '').trim() || user.email || 'user')}"></td>
+          <td style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:155px;"><a href="/admin-user-detail?id=${userId}" class="uc-user-link" title="${esc(displayName)}">${esc(displayName)}</a>${issueBadges(user.accountIssues)}</td>
           <td style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:195px;"><a href="/admin-user-detail?id=${userId}" class="uc-user-link" title="${esc(user.email || '')}">${esc(user.email || '')}</a></td>
           <td style="white-space:nowrap;">${roleBadge(user.role)}</td>
           <td style="white-space:nowrap;">${subscriptionBadge(user.subscription, user.role)}</td>

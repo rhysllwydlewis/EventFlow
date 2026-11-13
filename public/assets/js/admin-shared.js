@@ -510,7 +510,7 @@ const AdminShared = (function () {
             <h3 id="modal-title" style="margin: 0 0 0.5rem 0; font-size: 1.25rem; font-weight: 600; color: #1f2937;">
               ${escapeHtml(title)}
             </h3>
-            <p style="margin: 0; color: #6b7280; line-height: 1.5;">
+            <p style="margin: 0; color: #646b78; line-height: 1.5;">
               ${escapeHtml(message)}
             </p>
           </div>
@@ -700,7 +700,7 @@ const AdminShared = (function () {
 
       // Build modal content
       const messageHtml = message
-        ? `<p style="margin: 0 0 1rem 0; color: #6b7280; line-height: 1.5;">${escapeHtml(message)}</p>`
+        ? `<p style="margin: 0 0 1rem 0; color: #646b78; line-height: 1.5;">${escapeHtml(message)}</p>`
         : '';
       const labelHtml = label
         ? `<label for="admin-input-field" style="display: block; margin-bottom: 0.5rem; font-weight: 600; color: #374151;">${escapeHtml(label)}</label>`
@@ -735,7 +735,7 @@ const AdminShared = (function () {
         <div style="margin-bottom: 1rem;">
           ${labelHtml}
           ${inputElement}
-          <div id="input-error" style="margin-top: 0.5rem; color: #ef4444; font-size: 0.875rem; display: none;"></div>
+          <div id="input-error" style="margin-top: 0.5rem; color: #dc2626; font-size: 0.875rem; display: none;"></div>
         </div>
         <div style="display: flex; gap: 0.75rem; justify-content: flex-end;">
           <button class="admin-modal-cancel" style="
@@ -1399,7 +1399,7 @@ const AdminShared = (function () {
       <tr>
         <td colspan="${cols}" style="text-align: center; padding: 20px;">
           <div class="loading-spinner"></div>
-          <div style="margin-top: 10px; color: #6b7280;">${escapeHtml(message)}</div>
+          <div style="margin-top: 10px; color: #646b78;">${escapeHtml(message)}</div>
         </td>
       </tr>
       ${skeletonRows}
@@ -1448,7 +1448,7 @@ const AdminShared = (function () {
           margin-bottom: 8px;
         }
         .error-state-message, .empty-state-message {
-          color: #6b7280;
+          color: #646b78;
           margin-bottom: 20px;
         }
       `;

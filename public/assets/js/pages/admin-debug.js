@@ -297,7 +297,7 @@
     sortedGroups.forEach(grp => {
       const label = GROUP_LABELS[grp] || escHtml(grp);
       const items = groups[grp];
-      html += `<div class="sc-group-header">${label} <span style="font-weight:400;opacity:.7;">(${items.length})</span></div>`;
+      html += `<div class="sc-group-header">${label} <span style="font-weight:400;color:#5f6673;">(${items.length})</span></div>`;
       items.forEach(item => {
         const r = resultMap[item.name];
         let statusIcon, resultHtml;
@@ -373,7 +373,7 @@
         const rowId = `sc-detail-${idx}`;
         const triggeredBy = run.triggeredBy
           ? escHtml(run.triggeredBy.email || run.triggeredBy.id || 'unknown')
-          : '<span style="opacity:.5;">scheduler</span>';
+          : '<span style="color:#5f6673;">scheduler</span>';
 
         const detailRows = checks
           .map(c => {
@@ -604,7 +604,7 @@
       return;
     }
 
-    statusEl.innerHTML = '<p style="opacity:.6;">Checking debug route status…</p>';
+    statusEl.innerHTML = '<p style="color:#5f6673;">Checking debug route status…</p>';
 
     try {
       const status = await AdminShared.api(DEBUG_STATUS_URL);
@@ -623,7 +623,7 @@
           <div class="sc-info-banner sc-info-banner--disabled" role="status">
             🔒 <strong>Account tools are disabled.</strong><br>
             ${escHtml(status.disabledReason || '')}<br>
-            <span style="opacity:.75;">${escHtml(status.enableInstructions || '')}</span>
+            <span style="color:#4b5563;">${escHtml(status.enableInstructions || '')}</span>
           </div>`;
       }
     } catch (err) {
@@ -884,7 +884,7 @@
         // Prefer label over name; show path as a hint when available
         const displayName = escHtml(r.label || r.name);
         const pathHint = r.path
-          ? `<br><span style="font-weight:normal;opacity:.65;font-size:.8em;">${escHtml(r.path)}</span>`
+          ? `<br><span style="font-weight:normal;color:#5f6673;font-size:.8em;">${escHtml(r.path)}</span>`
           : '';
         const detail = escHtml(r.details || r.error || '');
         return `
@@ -953,7 +953,7 @@
       btn.disabled = true;
       btn.textContent = 'Testing…';
       if (resultEl) {
-        resultEl.innerHTML = '<p style="opacity:.6;">Running webhook tests…</p>';
+        resultEl.innerHTML = '<p style="color:#5f6673;">Running webhook tests…</p>';
       }
 
       try {

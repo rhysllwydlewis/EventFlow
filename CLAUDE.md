@@ -163,3 +163,10 @@ supported`) that has recurred identically across multiple unrelated
   files like `routes/admin-external-contacts.js` for some features.
 - `dashboard-guard.js` gates every admin page client-side; it retries
   transient/ambiguous auth-check failures before redirecting to `/auth`.
+- Stylesheets under `public/assets/**.css` are served minified by
+  `middleware/css-minify.js`: comments and whitespace only, never a value or
+  selector rewrite, cached in memory by mtime, and a file it cannot parse is
+  served exactly as on disk (look for a `CSS served unminified` warning).
+  Edit the sources in place and bump `?v=` as usual; `EF_MINIFY_CSS=false`
+  turns it off. `tests/unit/css-minify.test.js` checks every stylesheet in the
+  repo minifies to identical rules, so CSS it mishandles fails CI, not users.
