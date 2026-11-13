@@ -57,7 +57,7 @@
     let stripeData = null;
     try {
       stripeData = await AdminShared.api('/api/admin/stripe-analytics');
-    } catch (_error) {
+    } catch {
       stripeData = { available: false };
     }
 
@@ -110,7 +110,7 @@
       if (data && data.churn) {
         setText('an-churnRate', `${Number(data.churn.churnRate || 0).toFixed(1)}%`);
       }
-    } catch (_error) {
+    } catch {
       setText('an-mrr', 'N/A');
       setText('an-churnRate', 'N/A');
     }
@@ -160,7 +160,7 @@
               .join('')
           : '<span style="color:#5f6673;font-size:.875rem">No role data</span>';
       }
-    } catch (_error) {
+    } catch {
       AdminShared.showToast('Failed to load platform metrics', 'error');
     }
   }
@@ -168,7 +168,7 @@
   async function loadUserGrowth() {
     try {
       const timeseriesData = await AdminShared.api('/api/admin/metrics/timeseries');
-      const series = (timeseriesData && timeseriesData.series) || [];
+      const series = timeseriesData?.series || [];
       const body = document.getElementById('an-timeseriesBody');
       if (!body) {
         return;
@@ -184,7 +184,7 @@
             )
             .join('')
         : '<tr><td colspan="3" style="padding:1.5rem;text-align:center;color:#5f6673">No data available</td></tr>';
-    } catch (_error) {
+    } catch {
       const body = document.getElementById('an-timeseriesBody');
       if (body) {
         body.innerHTML =
@@ -248,7 +248,7 @@
     }
     try {
       return /^\/project\/[^/]+(?:\/|$)/.test(new URL(value, window.location.href).pathname);
-    } catch (_error) {
+    } catch {
       return false;
     }
   }

@@ -759,10 +759,10 @@
     },
   };
 
-  async function confirmStatusChange(newStatus) {
+  function confirmStatusChange(newStatus) {
     const consequence = STATUS_CONSEQUENCES[newStatus];
     if (!consequence) {
-      return true;
+      return Promise.resolve(true);
     }
     return AdminShared.showConfirmModal({
       ...consequence,

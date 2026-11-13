@@ -791,16 +791,16 @@
   function downloadCSV(csv, filename) {
     const blob = new Blob([csv], { type: 'text/csv' });
     const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = filename;
-    a.click();
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = filename;
+    link.click();
     URL.revokeObjectURL(url);
   }
 
   // Helper: Show toast
   function showToast(message, type = 'info') {
-    if (window.AdminShared && window.AdminShared.showToast) {
+    if (window.AdminShared?.showToast) {
       window.AdminShared.showToast(message, type);
     } else {
       console.warn('[AdminSuppliers] AdminShared not available, toast suppressed:', message);
@@ -846,7 +846,7 @@
       required: true,
       type: 'textarea',
     });
-    if (result && result.confirmed) {
+    if (result?.confirmed) {
       try {
         await AdminShared.api(`/api/admin/suppliers/${id}/reject`, 'POST', {
           notes: result.value,

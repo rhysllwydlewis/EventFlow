@@ -64,15 +64,19 @@
   // The server allows at most 100 per request
   const REQUEST_SIZE = 100;
   const MAX_REQUESTS = 50;
-  let contactPager = { update() {} };
+  let contactPager = {
+    update() {
+      /* replaced once the pager is created */
+    },
+  };
   let summaryData = null;
   let debounceTimer = null;
   let detailRequest = 0;
   let detailTrigger = null;
-  const $ = id => document.getElementById(id);
+  const byId = id => document.getElementById(id);
 
   function closeDetail() {
-    $('ecDetailModal').hidden = true;
+    byId('ecDetailModal').hidden = true;
     document.body.style.overflow = '';
     detailRequest++;
     detailTrigger?.focus();
@@ -81,7 +85,7 @@
 
   // ── Summary cards ──────────────────────────────────────────────────────────
   function renderSummaryCards(s) {
-    const grid = $('ecSummaryGrid');
+    const grid = byId('ecSummaryGrid');
     if (!grid || !s) {
       return;
     }
@@ -109,7 +113,7 @@
 
   // ── Table rendering ────────────────────────────────────────────────────────
   function renderTable(contacts) {
-    const tbody = $('ecTableBody');
+    const tbody = byId('ecTableBody');
     if (!tbody) {
       return;
     }
@@ -119,7 +123,7 @@
         <div class="admin-empty-state"><p>No enquiries match the current filters.</p>
         <button type="button" class="btn btn-ghost btn-sm" id="ecEmptyClearBtn">Clear filters</button></div>
       </td></tr>`;
-      const btn = $('ecEmptyClearBtn');
+      const btn = byId('ecEmptyClearBtn');
       if (btn) {
         btn.addEventListener('click', clearFilters);
       }
@@ -167,10 +171,10 @@
   function applyFilters(options) {
     // Only a reload or a page change keeps the page; a filter or search change starts again at 1
     const keepPage = Boolean(options && options.keepPage === true);
-    const search = ($('ecSearch') || {}).value || '';
-    const source = ($('ecSourceFilter') || {}).value || '';
-    const status = ($('ecStatusFilter') || {}).value || '';
-    const s = search.toLowerCase();
+    const search = (byId('ecSearch') || {}).value || '';
+    const source = (byId('ecSourceFilter') || {}).value || '';
+    const status = (byId('ecStatusFilter') || {}).value || '';
+    const needle = search.toLowerCase();
 
     const filtered = allContacts.filter(c => {
       if (source && c.source !== source) {
@@ -179,19 +183,15 @@
       if (status && c.status !== status) {
         return false;
       }
-      if (
-        s &&
-        !(c.name || '').toLowerCase().includes(s) &&
-        !(c.email || '').toLowerCase().includes(s) &&
-        !(c.subject || '').toLowerCase().includes(s) &&
-        !(c.message || '').toLowerCase().includes(s)
-      ) {
-        return false;
-      }
-      return true;
+      return (
+        !needle ||
+        [c.name, c.email, c.subject, c.message].some(value =>
+          (value || '').toLowerCase().includes(needle)
+        )
+      );
     });
 
-    const statusEl = $('ecFilterStatus');
+    const statusEl = byId('ecFilterStatus');
     if (statusEl) {
       statusEl.textContent =
         filtered.length === allContacts.length
@@ -216,7 +216,7 @@
 
   function clearFilters() {
     ['ecSearch', 'ecSourceFilter', 'ecStatusFilter'].forEach(id => {
-      const el = $(id);
+      const el = byId(id);
       if (el) {
         el.value = '';
       }
@@ -226,19 +226,19 @@
 
   // Apply URL params on load
   function applyUrlFilters() {
-    const p = new URLSearchParams(window.location.search);
+    const params = new URLSearchParams(window.location.search);
     const map = { source: 'ecSourceFilter', status: 'ecStatusFilter', id: null };
     Object.entries(map).forEach(([param, id]) => {
       if (!id) {
         return;
       }
-      const val = p.get(param);
-      const el = $(id);
+      const val = params.get(param);
+      const el = byId(id);
       if (val && el) {
         el.value = val;
       }
     });
-    const idParam = p.get('id');
+    const idParam = params.get('id');
     if (idParam) {
       setTimeout(() => openDetail(idParam), 400);
     }
@@ -246,8 +246,8 @@
 
   // ── Detail modal ───────────────────────────────────────────────────────────
   async function openDetail(id) {
-    const modal = $('ecDetailModal');
-    const body = $('ecDetailBody');
+    const modal = byId('ecDetailModal');
+    const body = byId('ecDetailBody');
     if (!modal || !body) {
       return;
     }
@@ -258,7 +258,7 @@
     const request = ++detailRequest;
     modal.hidden = false;
     document.body.style.overflow = 'hidden';
-    $('ecCloseModal').focus();
+    byId('ecCloseModal').focus();
     body.innerHTML = '<div class="skeleton" style="height:200px;border-radius:8px;"></div>';
 
     try {
@@ -266,62 +266,62 @@
       if (request !== detailRequest || modal.hidden) {
         return;
       }
-      const c = data.contact;
-      if (!c) {
+      const contact = data.contact;
+      if (!contact) {
         throw new Error('Not found');
       }
 
-      const src = SOURCE_COLOURS[c.source] || {
+      const src = SOURCE_COLOURS[contact.source] || {
         bg: '#f3f4f6',
         color: '#374151',
-        label: esc(c.source),
+        label: esc(contact.source),
       };
-      const pageHref = safeExternalHref(c.pageUrl);
+      const pageHref = safeExternalHref(contact.pageUrl);
 
       body.innerHTML = `
         <!-- Source banner -->
         <div style="padding:12px 16px;background:${src.bg};border-radius:10px;margin-bottom:16px;display:flex;align-items:center;gap:8px;">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="${src.color}" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
           <strong style="color:${src.color};font-size:13px;">From ${src.label}</strong>
-          <span style="margin-left:auto;font-size:12px;color:#646b78;">${fmtDate(c.receivedAt || c.createdAt)}</span>
+          <span style="margin-left:auto;font-size:12px;color:#646b78;">${fmtDate(contact.receivedAt || contact.createdAt)}</span>
         </div>
 
         <!-- Details grid -->
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px 16px;margin-bottom:16px;">
-          <div><div class="ud-info-label">Name</div><div class="ud-info-value">${esc(c.name || '—')}</div></div>
-          <div><div class="ud-info-label">Email</div><div class="ud-info-value"><a href="mailto:${esc(c.email)}">${esc(c.email || '—')}</a></div></div>
-          ${c.phone ? `<div><div class="ud-info-label">Phone</div><div class="ud-info-value">${esc(c.phone)}</div></div>` : ''}
-          ${c.company ? `<div><div class="ud-info-label">Company</div><div class="ud-info-value">${esc(c.company)}</div></div>` : ''}
-          ${pageHref ? `<div style="grid-column:1/-1"><div class="ud-info-label">Page URL</div><div class="ud-info-value"><a href="${esc(pageHref)}" target="_blank" rel="noopener noreferrer">${esc(c.pageUrl)}</a></div></div>` : ''}
+          <div><div class="ud-info-label">Name</div><div class="ud-info-value">${esc(contact.name || '—')}</div></div>
+          <div><div class="ud-info-label">Email</div><div class="ud-info-value"><a href="mailto:${esc(contact.email)}">${esc(contact.email || '—')}</a></div></div>
+          ${contact.phone ? `<div><div class="ud-info-label">Phone</div><div class="ud-info-value">${esc(contact.phone)}</div></div>` : ''}
+          ${contact.company ? `<div><div class="ud-info-label">Company</div><div class="ud-info-value">${esc(contact.company)}</div></div>` : ''}
+          ${pageHref ? `<div style="grid-column:1/-1"><div class="ud-info-label">Page URL</div><div class="ud-info-value"><a href="${esc(pageHref)}" target="_blank" rel="noopener noreferrer">${esc(contact.pageUrl)}</a></div></div>` : ''}
         </div>
 
-        ${c.subject ? `<div style="margin-bottom:12px;"><div class="ud-info-label">Subject</div><div class="ud-info-value">${esc(c.subject)}</div></div>` : ''}
+        ${contact.subject ? `<div style="margin-bottom:12px;"><div class="ud-info-label">Subject</div><div class="ud-info-value">${esc(contact.subject)}</div></div>` : ''}
 
         <!-- Message -->
         <div style="margin-bottom:16px;">
           <div class="ud-info-label">Message</div>
-          <div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px;padding:12px 14px;font-size:13px;line-height:1.65;color:#1f2937;white-space:pre-wrap;margin-top:4px;">${esc(c.message || '')}</div>
+          <div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px;padding:12px 14px;font-size:13px;line-height:1.65;color:#1f2937;white-space:pre-wrap;margin-top:4px;">${esc(contact.message || '')}</div>
         </div>
 
         <!-- Status + notes -->
         <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap;">
           <label for="ecStatusSelect" style="font-size:13px;font-weight:600;">Status:</label>
           <select id="ecStatusSelect" class="uc-filter-select" style="font-size:13px;">
-            <option value="new"       ${c.status === 'new' ? 'selected' : ''}>New</option>
-            <option value="in_review" ${c.status === 'in_review' ? 'selected' : ''}>In review</option>
-            <option value="replied"   ${c.status === 'replied' ? 'selected' : ''}>Replied</option>
-            <option value="archived"  ${c.status === 'archived' ? 'selected' : ''}>Archived</option>
+            <option value="new"       ${contact.status === 'new' ? 'selected' : ''}>New</option>
+            <option value="in_review" ${contact.status === 'in_review' ? 'selected' : ''}>In review</option>
+            <option value="replied"   ${contact.status === 'replied' ? 'selected' : ''}>Replied</option>
+            <option value="archived"  ${contact.status === 'archived' ? 'selected' : ''}>Archived</option>
           </select>
           <button type="button" class="btn btn-primary btn-sm" id="ecSaveStatusBtn">Save status</button>
         </div>
 
-        ${c.adminNotes ? `<div style="margin-bottom:12px;padding:10px 12px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px;font-size:13px;">${esc(c.adminNotes)}</div>` : ''}
+        ${contact.adminNotes ? `<div style="margin-bottom:12px;padding:10px 12px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px;font-size:13px;">${esc(contact.adminNotes)}</div>` : ''}
       `;
 
       // Status save
-      $('ecSaveStatusBtn').addEventListener('click', async () => {
-        const newStatus = $('ecStatusSelect').value;
-        const saveButton = $('ecSaveStatusBtn');
+      byId('ecSaveStatusBtn').addEventListener('click', async () => {
+        const newStatus = byId('ecStatusSelect').value;
+        const saveButton = byId('ecSaveStatusBtn');
         saveButton.disabled = true;
         try {
           await AdminShared.api(`/api/admin/external-contacts/${encodeURIComponent(id)}`, 'PATCH', {
@@ -376,12 +376,11 @@
 
   // The number of new enquiries, on the tab itself
   function showTabBadge(count) {
-    const badge = $('externalContactsBadge');
+    const badge = byId('externalContactsBadge');
     if (!badge) {
       return;
     }
-    const waiting =
-      typeof count === 'number' ? count : summaryData && summaryData.new ? summaryData.new : 0;
+    const waiting = typeof count === 'number' ? count : summaryData?.new || 0;
     badge.textContent = String(waiting);
     badge.style.display = waiting > 0 ? '' : 'none';
   }
@@ -426,7 +425,7 @@
       showTabBadge();
       applyFilters({ keepPage: true });
     } catch {
-      const tbody = $('ecTableBody');
+      const tbody = byId('ecTableBody');
       if (tbody) {
         tbody.innerHTML =
           '<tr><td colspan="6" class="uc-empty-cell">Failed to load. Please refresh.</td></tr>';
@@ -445,7 +444,7 @@
     }
     started = true;
     contactPager = AdminPager.mount({
-      after: $('ecTableBody').closest('table').parentElement,
+      after: byId('ecTableBody').closest('table').parentElement,
       onChange(page) {
         currentPage = page;
         applyFilters({ keepPage: true });
@@ -453,22 +452,22 @@
     });
     applyUrlFilters();
 
-    $('ecRefreshBtn') && $('ecRefreshBtn').addEventListener('click', loadData);
-    $('ecClearFilters') && $('ecClearFilters').addEventListener('click', clearFilters);
-    $('ecCloseModal')?.addEventListener('click', closeDetail);
-    $('ecModalBackdrop')?.addEventListener('click', closeDetail);
+    byId('ecRefreshBtn') && byId('ecRefreshBtn').addEventListener('click', loadData);
+    byId('ecClearFilters') && byId('ecClearFilters').addEventListener('click', clearFilters);
+    byId('ecCloseModal')?.addEventListener('click', closeDetail);
+    byId('ecModalBackdrop')?.addEventListener('click', closeDetail);
 
     document.addEventListener('keydown', e => {
       if (
         (e.key === 'Escape' || e.key === 'Esc') &&
-        $('ecDetailModal') &&
-        !$('ecDetailModal').hidden
+        byId('ecDetailModal') &&
+        !byId('ecDetailModal').hidden
       ) {
         closeDetail();
       }
-      if (e.key === 'Tab' && !$('ecDetailModal').hidden) {
+      if (e.key === 'Tab' && !byId('ecDetailModal').hidden) {
         const controls = [
-          ...$('ecDetailModal').querySelectorAll(
+          ...byId('ecDetailModal').querySelectorAll(
             'button:not([disabled]), select:not([disabled]), a[href]'
           ),
         ];
@@ -485,7 +484,7 @@
     });
 
     ['ecSearch', 'ecSourceFilter', 'ecStatusFilter'].forEach(id => {
-      const el = $(id);
+      const el = byId(id);
       if (!el) {
         return;
       }

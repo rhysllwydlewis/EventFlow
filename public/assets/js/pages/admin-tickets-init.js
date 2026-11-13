@@ -63,8 +63,8 @@
     // it's been more than STALE_HOURS hours since the last update.
     const lastAdminReply = responses.reduce((latest, r) => {
       if (r.userRole === 'admin') {
-        const t = new Date(r.createdAt || 0).getTime();
-        return t > latest ? t : latest;
+        const replyTime = new Date(r.createdAt || 0).getTime();
+        return replyTime > latest ? replyTime : latest;
       }
       return latest;
     }, 0);
@@ -232,11 +232,7 @@
         return false;
       }
 
-      if (tierFilter && (ticket.accountTier || 'free') !== tierFilter) {
-        return false;
-      }
-
-      return true;
+      return !tierFilter || (ticket.accountTier || 'free') === tierFilter;
     });
 
     if (!filtered.length) {
@@ -674,7 +670,8 @@
     const items = getFilteredEnquiries();
 
     if (items.length === 0) {
-      container.innerHTML = `<p class="small" style="color:#646b78;padding:1.5rem 0;">No contact enquiries found.</p>`;
+      container.innerHTML =
+        '<p class="small" style="color:#646b78;padding:1.5rem 0;">No contact enquiries found.</p>';
       return;
     }
 

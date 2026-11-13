@@ -869,8 +869,8 @@
     const tabs = window.AdminTabs.mount({
       tabs: [
         tab('partners'),
-        tab('cashouts', () => window.AdminCashouts && window.AdminCashouts.start()),
-        tab('report', () => window.AdminCampaignReport && window.AdminCampaignReport.start()),
+        tab('cashouts', () => window.AdminCashouts?.start()),
+        tab('report', () => window.AdminCampaignReport?.start()),
       ],
       activeClass: 'admin-tab--active',
       initial: 'partners',
