@@ -10,6 +10,11 @@ const { auditLog } = require('../middleware/audit');
 const { getPexelsService } = require('../utils/pexels-service');
 const { buildHomepageManager, getHomepageCollageWidget } = require('../utils/homepage-manager');
 const { getRandomFallbackPhotos, getRandomFallbackVideos } = require('../config/pexels-fallback');
+const {
+  COLLAGE_TILE_MIN_WIDTH,
+  HERO_CARD_MIN_WIDTH,
+  pickVideoFile,
+} = require('../utils/pexels-video-files');
 
 const router = express.Router();
 const VALID_CATEGORIES = ['venues', 'catering', 'entertainment', 'photography'];
@@ -122,12 +127,21 @@ function transformPhoto(photo, fallbackAlt) {
   };
 }
 
-function transformVideo(video) {
+/**
+ * Shape a Pexels video for the homepage.
+ *
+ * The file handed back in `src` is the smallest rendition that is still big
+ * enough for where it plays (see utils/pexels-video-files.js). It used to be
+ * the first `hd` file Pexels listed, which for a collage tile of a few hundred
+ * pixels was often a 1080p or portrait 1080x1920 file of 5-9 MB.
+ * @param {Object} video Pexels video.
+ * @param {Object} [options] Options.
+ * @param {number} [options.minWidth] Minimum rendition width for the slot.
+ * @returns {Object|null} Transformed video, or null when it has no playable file.
+ */
+function transformVideo(video, { minWidth = COLLAGE_TILE_MIN_WIDTH } = {}) {
   const videoFiles = video.videoFiles || video.video_files || [];
-  const bestFile =
-    videoFiles.find(file => file.quality === 'hd') ||
-    videoFiles.find(file => file.quality === 'sd') ||
-    videoFiles[0];
+  const bestFile = pickVideoFile(videoFiles, { minWidth });
 
   if (!bestFile?.link) {
     return null;
@@ -298,7 +312,9 @@ router.get('/public/pexels-collage', async (req, res) => {
         if (shouldFetchVideos) {
           requests.push(
             pexels.searchVideos(pexelsVideoQueries[category] || category, 4, 1).then(results => {
-              videoItems = (results.videos || []).map(transformVideo).filter(Boolean);
+              videoItems = (results.videos || [])
+                .map(video => transformVideo(video))
+                .filter(Boolean);
             })
           );
         }
@@ -316,7 +332,9 @@ router.get('/public/pexels-collage', async (req, res) => {
         photoItems = getRandomFallbackPhotos(4).map(photo => transformPhoto(photo, category));
       }
       if (shouldFetchVideos) {
-        videoItems = getRandomFallbackVideos(4).map(transformVideo).filter(Boolean);
+        videoItems = getRandomFallbackVideos(4)
+          .map(video => transformVideo(video))
+          .filter(Boolean);
       }
     }
 
@@ -378,7 +396,9 @@ router.get('/public/pexels-video', async (req, res) => {
     if (pexels.isConfigured()) {
       try {
         const results = await pexels.searchVideos(query, 5, 1);
-        videos = (results.videos || []).map(transformVideo).filter(Boolean);
+        videos = (results.videos || [])
+          .map(video => transformVideo(video, { minWidth: HERO_CARD_MIN_WIDTH }))
+          .filter(Boolean);
       } catch (error) {
         usingFallback = true;
         logger.warn(`Pexels hero video request failed for ${query}:`, error.message);
@@ -388,7 +408,9 @@ router.get('/public/pexels-video', async (req, res) => {
     }
 
     if (usingFallback) {
-      videos = getRandomFallbackVideos(5).map(transformVideo).filter(Boolean);
+      videos = getRandomFallbackVideos(5)
+        .map(video => transformVideo(video, { minWidth: HERO_CARD_MIN_WIDTH }))
+        .filter(Boolean);
     }
 
     res.json({

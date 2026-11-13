@@ -11,6 +11,7 @@ const { uploadLimiter, apiLimiter } = require('../middleware/rateLimits');
 const { PLACEHOLDER_PACKAGE_IMAGE } = require('../utils/constants');
 const { getFeatureFlags } = require('../middleware/features');
 const { checkPhotoAllowance, photoLimitError } = require('../utils/photoGalleryAllowance');
+const photoVariants = require('../utils/photo-variants');
 const suppliersRouter = require('./suppliers');
 
 const router = express.Router();
@@ -1567,6 +1568,30 @@ router.get('/photos/:id', apiLimiter, async (req, res) => {
     // Note: Backward compatibility - 'photos' collection uses 'data' field,
     // while 'marketplace_images' collection uses 'imageData' field
     const imageBuffer = Buffer.from(photo.data || photo.imageData, 'base64');
+
+    // `?w=` asks for a rendition no wider than that (snapped to a short list of
+    // widths) so a card that shows the photo at ~300 px does not download the
+    // 1200 px original. Anything that cannot or need not be resized falls
+    // through to the original below.
+    const width = photoVariants.snapWidth(req.query.w);
+    if (width) {
+      // The body depends on whether the client accepts WebP.
+      res.vary('Accept');
+      const variant = await photoVariants.getPhotoVariant({
+        id,
+        buffer: imageBuffer,
+        mimeType: photo.mimeType,
+        width,
+        acceptsWebp: /image\/webp/i.test(req.get('accept') || ''),
+        version: String(photo.updatedAt || photo.uploadedAt || photo.createdAt || ''),
+      });
+      if (variant) {
+        res.setHeader('Content-Type', variant.mimeType);
+        res.setHeader('Cache-Control', 'public, max-age=31536000'); // Cache for 1 year
+        res.setHeader('Content-Length', variant.buffer.length);
+        return res.send(variant.buffer);
+      }
+    }
 
     // Set appropriate headers
     res.setHeader('Content-Type', photo.mimeType || 'image/jpeg');

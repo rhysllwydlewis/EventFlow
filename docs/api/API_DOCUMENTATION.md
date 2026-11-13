@@ -340,6 +340,22 @@ Upload up to 10 photos at once for suppliers/packages, or up to 5 photos total f
 DELETE /api/photos/delete?type=supplier&id=sup_abc123&photoUrl=https://...
 ```
 
+#### Get a Stored Photo
+
+```http
+GET /api/photos/photo_abc123
+GET /api/photos/photo_abc123?w=640
+```
+
+Serves a photo held in storage (public, no authentication). Without `w` the image is returned exactly as stored.
+
+`w` asks for a smaller rendition so a card that shows the photo at roughly 300 px does not download the 1200 px original:
+
+- The width is snapped **up** to one of `160, 240, 320, 480, 640, 800, 1200`. Anything else (non-numeric, zero, or larger than 1200) is ignored and the original is returned.
+- The rendition is a WebP when the request sends `Accept: image/webp`, otherwise the same format as the original. The response carries `Vary: Accept`.
+- A photo that is already no wider than the requested width is returned unchanged (images are never upscaled), as is any type that cannot be resized (for example GIF) or an image that fails to decode.
+- Renditions are cached in memory (150 entries) and the response is cacheable for a year, like the original.
+
 #### Crop Image
 
 ```http
