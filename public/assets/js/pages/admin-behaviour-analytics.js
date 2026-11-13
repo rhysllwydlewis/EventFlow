@@ -2,7 +2,7 @@
 (function () {
   const SUMMARY_ENDPOINT = '/api/v1/analytics/behaviour/admin/summary';
   const STATUS_ENDPOINT = '/api/v1/analytics/behaviour/admin/status';
-  const STYLE_PATH = '/assets/css/admin-behaviour-analytics.css?v=18.6.0';
+  const STYLE_PATH = '/assets/css/admin-behaviour-analytics.css?v=18.7.0';
 
   const EVENT_LABELS = {
     page_view: 'Page views',
