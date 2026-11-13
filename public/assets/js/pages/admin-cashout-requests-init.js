@@ -272,7 +272,8 @@
     const statusFilter = (document.getElementById('acr-filter-status') || {}).value || '';
 
     if (tbody) {
-      tbody.innerHTML = `<tr><td colspan="7"><div class="acr-empty"><p class="acr-empty-text">Loading…</p></div></td></tr>`;
+      tbody.innerHTML =
+        '<tr><td colspan="7"><div class="acr-empty"><p class="acr-empty-text">Loading…</p></div></td></tr>';
     }
 
     try {
@@ -315,7 +316,8 @@
       }
       if (items.length === 0) {
         if (tbody) {
-          tbody.innerHTML = `<tr><td colspan="7"><div class="acr-empty"><p class="acr-empty-text">No cashout requests found.</p></div></td></tr>`;
+          tbody.innerHTML =
+            '<tr><td colspan="7"><div class="acr-empty"><p class="acr-empty-text">No cashout requests found.</p></div></td></tr>';
         }
         return;
       }
