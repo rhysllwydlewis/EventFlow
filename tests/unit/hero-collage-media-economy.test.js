@@ -493,7 +493,10 @@ describe('homepage markup uses the right-sized images', () => {
       '/assets/js/pages/home-init.js',
       '/assets/js/components/carousel.js',
     ].forEach(script => {
-      expect(indexHtml).toMatch(new RegExp(`${script.replace(/[./]/g, '\\$&')}\\?v=[\\w.]+`));
+      const at = indexHtml.indexOf(`${script}?v=`);
+      expect(at).toBeGreaterThan(-1);
+      // ...followed by an actual version, not an empty `?v=`.
+      expect(indexHtml.slice(at + script.length + '?v='.length)).toMatch(/^[\w.]+/);
     });
   });
 });
