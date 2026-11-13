@@ -31,6 +31,12 @@ describe('MessengerWidgetV4 real-time updates', () => {
     expect(log.authAfterConnect).toEqual([{ event: 'auth', payload: { userId: 'u1' } }]);
   });
 
+  test('marks its container ready only while its own socket is confirmed on the user channel', () => {
+    expect(log.readyBeforeAuth).toBeNull();
+    expect(log.readyAfterAuth).toBe('true');
+    expect(log.readyAfterDisconnect).toBeNull();
+  });
+
   test('refreshes its list the moment a message arrives on the user channel', () => {
     expect(log.listenedTo).toEqual(
       expect.arrayContaining([

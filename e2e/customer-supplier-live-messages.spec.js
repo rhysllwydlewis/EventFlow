@@ -36,6 +36,13 @@ test.describe('Customer and supplier messages arrive live @backend', () => {
     await loginAs(page, user);
     await page.goto(path);
     await expect(page.locator(widget)).toBeAttached({ timeout: 20000 });
+    // The widget only receives a push once its own socket has said who it is and the server has put
+    // it on the user's channel. A message sent before that is missed, and the widget's fallback poll
+    // is a minute away, so wait for the widget to report that before anything is sent. (The page's
+    // notification socket authenticates separately and says nothing about the widget's.)
+    await expect(page.locator(widget)).toHaveAttribute('data-socket-ready', 'true', {
+      timeout: 20000,
+    });
     return { context, page, widget };
   }
 
