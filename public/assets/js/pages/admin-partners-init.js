@@ -77,9 +77,9 @@
         summary.textContent = 'Error loading';
       }
       if (tbody) {
-        tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;padding:2.5rem;color:#fca5a5;">
+        tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;padding:2.5rem;color:#b91c1c;">
           Error loading partners.
-          <button class="ef-cta" data-partners-action="reload" style="margin-left:0.5rem;color:#60a5fa;background:none;border:none;cursor:pointer;text-decoration:underline;">Retry</button>
+          <button class="ef-cta" data-partners-action="reload" style="margin-left:0.5rem;color:#1d4ed8;background:none;border:none;cursor:pointer;text-decoration:underline;">Retry</button>
         </td></tr>`;
       }
     }
@@ -160,7 +160,7 @@
       tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;padding:2.5rem;color:#5f6673;">
         No partners match your filters.
         <button class="ef-cta" type="button" id="ap-clear-filters-btn"
-          style="margin-left:0.5rem;color:#60a5fa;background:none;border:none;cursor:pointer;text-decoration:underline;font-size:inherit;">
+          style="margin-left:0.5rem;color:#1d4ed8;background:none;border:none;cursor:pointer;text-decoration:underline;font-size:inherit;">
           Clear filters
         </button>
       </td></tr>`;
@@ -802,7 +802,7 @@
       AdminShared.debugError('Failed to load payout requests', err);
       if (container) {
         container.innerHTML =
-          '<div style="text-align:center;padding:2rem;color:#fca5a5;">Error loading payout requests.</div>';
+          '<div style="text-align:center;padding:2rem;color:#b91c1c;">Error loading payout requests.</div>';
       }
     }
   }

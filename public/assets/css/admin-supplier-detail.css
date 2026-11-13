@@ -47,7 +47,7 @@
 /* Badges in Header */
 .supplier-header .badge {
   background: #f0fdf4;
-  color: #16a34a;
+  color: #15803d;
   padding: 0.35rem 0.85rem;
   border-radius: 999px;
   font-weight: 600;
@@ -432,7 +432,7 @@
 
 .info-field a:hover {
   text-decoration: underline;
-  color: #13B6A2;
+  color: #0a7569;
 }
 
 /* Stats Grid */

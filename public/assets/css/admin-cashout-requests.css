@@ -95,11 +95,11 @@
       font-weight: 700;
       letter-spacing: 0.03em;
     }
-    .acr-badge--submitted  { background: rgba(59,130,246,0.12);  color: #2563eb; }
+    .acr-badge--submitted  { background: rgba(59,130,246,0.12);  color: #1d4ed8; }
     .acr-badge--approved   { background: rgba(16,185,129,0.12);  color: #047857; }
-    .acr-badge--processing { background: rgba(245,158,11,0.12);  color: #b45309; }
-    .acr-badge--delivered  { background: rgba(34,197,94,0.12);   color: #16a34a; }
-    .acr-badge--rejected   { background: rgba(239,68,68,0.10);   color: #dc2626; }
+    .acr-badge--processing { background: rgba(245,158,11,0.12);  color: #92400e; }
+    .acr-badge--delivered  { background: rgba(34,197,94,0.12);   color: #166534; }
+    .acr-badge--rejected   { background: rgba(239,68,68,0.10);   color: #b91c1c; }
 
     /* Action button */
     .acr-action-btn {
@@ -119,7 +119,7 @@
     .acr-action-btn:hover { background: #e5e7eb; border-color: #d1d5db; }
     .acr-action-btn--primary { background: #0B8073; color: #fff; border-color: #0B8073; }
     .acr-action-btn--primary:hover { background: #0a6b63; }
-    .acr-action-btn--danger { background: rgba(239,68,68,0.08); color: #dc2626; border-color: rgba(239,68,68,0.2); }
+    .acr-action-btn--danger { background: rgba(239,68,68,0.08); color: #b91c1c; border-color: rgba(239,68,68,0.2); }
     .acr-action-btn--danger:hover { background: rgba(239,68,68,0.15); }
     .acr-action-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 

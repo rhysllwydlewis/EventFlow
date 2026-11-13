@@ -291,7 +291,7 @@
       <p><strong>Default publishing right:</strong> ${defaultPublisher ? '<span style="color:#15803d">Yes</span>' : '<span style="color:#5f6673">No</span>'}</p>
       <p><strong>Override:</strong> ${overrideLabel}</p>
       <p class="small" style="color:#5f6673;margin-top:0.35rem;">Publishing override: <strong>Forced ON</strong> = this supplier can publish events regardless of category; <strong>Forced OFF</strong> = this supplier cannot publish regardless of category; <strong>Auto</strong> = follow the category default (Event Planner and Wedding Fayre suppliers can publish).</p>
-      <p><strong>Effective permission:</strong> ${effectivePublisher ? '<span style="color:#16a34a;font-weight:600">Can publish</span>' : '<span style="color:#dc2626;font-weight:600">Read-only</span>'}</p>
+      <p><strong>Effective permission:</strong> ${effectivePublisher ? '<span style="color:#15803d;font-weight:600">Can publish</span>' : '<span style="color:#b91c1c;font-weight:600">Read-only</span>'}</p>
       <div style="margin-top:1rem;border-top:1px solid #e5e7eb;padding-top:1rem;">
         <h4 style="margin-bottom:0.75rem;font-size:0.9rem;font-weight:600;">Set Override</h4>
         <div style="display:flex;gap:0.5rem;flex-wrap:wrap;">
