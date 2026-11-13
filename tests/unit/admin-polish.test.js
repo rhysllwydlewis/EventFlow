@@ -81,12 +81,11 @@ describe('Users list', () => {
 });
 
 describe('Sign out', () => {
-  test('uses the styled dialog and only falls back to the browser pop-up if it is missing', () => {
+  test('uses the styled dialog and never the browser pop-up', () => {
     const source = read('public/assets/js/admin-navbar.js');
     expect(source).toContain('shared.showConfirmModal({');
     expect(source).toContain("title: 'Sign out'");
-    expect(source).toContain("window.confirm('Are you sure you want to sign out?')");
-    expect(source).not.toMatch(/if \(confirm\('Are you sure you want to sign out\?'\)\)/);
+    expect(source).not.toMatch(/\bconfirm\(['"]Are you sure you want to sign out/);
   });
 });
 

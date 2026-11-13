@@ -981,17 +981,17 @@
     if (logoutBtn) {
       logoutBtn.addEventListener('click', async e => {
         e.preventDefault();
+        // The styled dialog is loaded on every admin page; if it ever is not, signing out is harmless, so carry on
         const shared = window.AdminShared;
         const confirmed =
-          shared && typeof shared.showConfirmModal === 'function'
+          typeof shared?.showConfirmModal === 'function'
             ? await shared.showConfirmModal({
                 title: 'Sign out',
                 message: 'Are you sure you want to sign out?',
                 confirmText: 'Sign out',
                 type: 'info',
               })
-            : // skipcq: JS-0052 - only used if the styled dialog failed to load
-              window.confirm('Are you sure you want to sign out?');
+            : true;
         if (confirmed) {
           try {
             // Call POST logout endpoint. If the page's token has not loaded yet,
