@@ -216,9 +216,7 @@ describe('Admin Regression — Navigation Button URLs (clean, no .html)', () => 
     it(`setupNavButton('${btnId}', ...) targets '${expectedHref}' (no .html)`, () => {
       // Match the exact setupNavButton call in admin-init.js
       const escapedHref = expectedHref.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-      const pattern = new RegExp(
-        `setupNavButton\\(['"]${btnId}['"],\\s*['"]${escapedHref}['"]\\)`
-      );
+      const pattern = new RegExp(`setupNavButton\\(['"]${btnId}['"],\\s*['"]${escapedHref}['"]\\)`);
       expect(adminInitContent).toMatch(pattern);
     });
 

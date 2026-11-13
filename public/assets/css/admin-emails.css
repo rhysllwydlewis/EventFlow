@@ -47,7 +47,7 @@
 
 .email-centre-tab.is-active,
 .email-centre-tab:focus-visible {
-  background: linear-gradient(135deg, #0b8073, #13b6a2);
+  background: #0a7569;
   color: #fff;
   outline: none;
 }

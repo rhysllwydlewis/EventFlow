@@ -119,7 +119,8 @@
     setText('totalTransactions', String(stats.totalTransactions));
     setText('monthRevenue', formatPounds(stats.monthRevenue));
 
-    const refunded = stats.refundedTotal > 0 ? `, ${formatPounds(stats.refundedTotal)} refunded` : '';
+    const refunded =
+      stats.refundedTotal > 0 ? `, ${formatPounds(stats.refundedTotal)} refunded` : '';
     setText('revenueChange', `All time, after refunds${refunded}`);
     setText('subscriptionChange', 'Active and trialing subscriptions');
     setText('transactionChange', 'All payment records');
@@ -389,7 +390,10 @@
     });
 
     const reload = async () => {
-      const [loaded, newStripeAnalytics] = await Promise.all([loadPayments(), loadStripeAnalytics()]);
+      const [loaded, newStripeAnalytics] = await Promise.all([
+        loadPayments(),
+        loadStripeAnalytics(),
+      ]);
       latest.payments = loaded.items;
       latest.summary = loaded.summary;
       latest.stripeAnalytics = newStripeAnalytics;

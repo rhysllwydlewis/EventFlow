@@ -36,7 +36,11 @@
           href: '/admin-homepage',
         },
         { label: 'Open Media Center', meta: 'Pexels and assets', href: '/admin-media' },
-        { label: 'Review supplier photos', meta: 'Approval queue', href: '/admin-moderation?tab=photos' },
+        {
+          label: 'Review supplier photos',
+          meta: 'Approval queue',
+          href: '/admin-moderation?tab=photos',
+        },
       ],
     },
     content: {
