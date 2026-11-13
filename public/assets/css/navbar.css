@@ -1261,6 +1261,68 @@ html.ef-hint-in #ef-bottom-settings {
   display: flex !important;
 }
 
+/* ── Menu tab ───────────────────────────────────────────────────────────
+   The fourth item is a <button class="ef-cta ef-bottom-link"> on every page.
+   `.ef-cta` is the site's call-to-action style, so it arrived as a boxed,
+   shadowed button with no label beside three plain icon-and-label tabs. These
+   rules undo the button chrome and give it the label its neighbours have.
+
+   The label is generated here rather than added to the markup because the bar
+   is repeated in well over a hundred pages, several of them generated; one
+   rule keeps them all in step. It is ::before, not ::after, because
+   navigation-enhancements.css already uses .ef-bottom-link::after for the
+   active underline, and `order` drops it below the icon. The button keeps its
+   aria-label, so the accessible name is unchanged. */
+.ef-bottom-nav #ef-bottom-menu,
+.ef-bottom-nav #ef-bottom-menu.ef-cta {
+  flex: 1 1 auto;
+  width: auto !important;
+  min-width: 44px;
+  max-width: 80px;
+  min-height: 0;
+  margin: 0 !important;
+  padding: 6px 8px !important;
+  gap: 3px;
+  background: transparent !important;
+  border: 0 !important;
+  border-radius: var(--ef-radius) !important;
+  box-shadow: none !important;
+  color: var(--ef-text-gray) !important;
+  font-family: inherit;
+  font-weight: 500 !important;
+  line-height: 1.2;
+  transform: none;
+}
+
+.ef-bottom-nav #ef-bottom-menu:hover,
+.ef-bottom-nav #ef-bottom-menu:active,
+.ef-bottom-nav #ef-bottom-menu[aria-expanded='true'] {
+  background: rgba(11, 128, 115, 0.1) !important;
+  color: var(--ef-primary) !important;
+}
+
+.ef-bottom-nav #ef-bottom-menu::before {
+  content: 'Menu';
+  order: 2;
+  color: #4b5563; /* same as .ef-bottom-label — see the contrast note there */
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+.ef-bottom-nav #ef-bottom-menu:hover::before,
+.ef-bottom-nav #ef-bottom-menu[aria-expanded='true']::before {
+  color: var(--ef-primary);
+}
+
+.ef-bottom-nav.logged-in #ef-bottom-menu,
+html.ef-hint-in .ef-bottom-nav #ef-bottom-menu {
+  min-width: 48px;
+  max-width: 80px;
+  gap: 3px;
+}
+
 /* Body padding for bottom nav */
 body {
   padding-bottom: var(--ef-bottom-nav-height, 76px);

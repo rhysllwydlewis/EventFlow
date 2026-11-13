@@ -74,7 +74,8 @@ const ASSET_VERSIONS = {
   // 18.4.2: added the shared --ef-bottom-nav-height custom property (read by
   // components.css's cookie banner, see above) and pointed the body's own
   // bottom-nav padding at it instead of a separate hardcoded 76px.
-  '/assets/css/navbar.css': '18.5.0',
+  // 18.6.0: the bottom bar's Menu tab is styled as a tab (label, no button box).
+  '/assets/css/navbar.css': '18.6.0',
   // 18.6.1: core.js's toast fell back to a global showToast that does not exist on admin pages, so
   // moderators saw no feedback; admin.js now also lists in-review/escalated reports and quarantined
   // replies. Without a bump a returning moderator keeps the old copies.

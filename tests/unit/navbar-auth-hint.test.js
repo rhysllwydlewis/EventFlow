@@ -60,7 +60,7 @@ describe('pages that load the public navbar', () => {
   test('every page uses the same version of navbar.js, navbar.css and auth-hint.js', () => {
     const versions = asset => new Set(pages.map(page => versionOf(page.html, asset)));
     expect(versions('/assets/js/navbar.js')).toEqual(new Set(['1.3.0']));
-    expect(versions('/assets/css/navbar.css')).toEqual(new Set(['18.5.0']));
+    expect(versions('/assets/css/navbar.css')).toEqual(new Set(['18.6.0']));
     expect(versions('/assets/js/utils/auth-hint.js')).toEqual(new Set(['1.0.0']));
   });
 });
