@@ -551,6 +551,20 @@ function collectBasicPackageUpdates(body) {
 }
 
 /**
+ * Whether a submitted image is exactly the one the package already stores. The edit forms send the
+ * stored image back on every save, so an unchanged value that no longer passes validation (a
+ * legacy value) must not block an unrelated edit such as a new title. Only a changed value is
+ * refused.
+ *
+ * @param {*} submitted - The `image` value from the request
+ * @param {Object} pkg - The stored package
+ * @returns {boolean} True when the value matches what is stored
+ */
+function isStoredImage(submitted, pkg) {
+  return typeof submitted === 'string' && submitted.trim() === (pkg.image || '');
+}
+
+/**
  * Work out the image (and gallery) changes for an update request.
  *
  * @param {*} newImage - The `image` value from the request
@@ -581,6 +595,9 @@ async function buildImageUpdate(newImage, pkg) {
     // <img src> on public pages. Anything but a string, a site path or an http(s) URL is rejected.
     const checked = validatePackageImageUrl(newImage || '');
     if (!checked.ok) {
+      if (isStoredImage(newImage, pkg)) {
+        return { updates, imageProcessingError };
+      }
       return { updates, imageProcessingError, invalidImage: checked.error };
     }
     updates.image = checked.value;
@@ -1163,11 +1180,11 @@ router.put(
     if (submittedPrice) {
       Object.assign(pkgUpdates, priceFields(submittedPrice));
     }
-    if (req.body.image) {
-      const checkedImage = validatePackageImageUrl(req.body.image);
-      if (!checkedImage.ok) {
-        return res.status(400).json({ error: 'Invalid image', details: checkedImage.error });
-      }
+    const checkedImage = req.body.image ? validatePackageImageUrl(req.body.image) : null;
+    if (checkedImage && !checkedImage.ok && !isStoredImage(req.body.image, pkg)) {
+      return res.status(400).json({ error: 'Invalid image', details: checkedImage.error });
+    }
+    if (checkedImage && checkedImage.ok) {
       const newImage = checkedImage.value;
       pkgUpdates.image = newImage;
       // Sync to gallery so the detail view resolvedGallery reflects the new image
