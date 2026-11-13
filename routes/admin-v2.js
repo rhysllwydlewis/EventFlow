@@ -28,6 +28,7 @@ const {
   getUserAuditLogs,
   getAuditStatistics,
 } = require('../utils/auditTrail');
+const { validatePackageImageUrl } = require('../utils/packageImageUrl');
 const {
   getDashboardOverview,
   getDetailedMetrics,
@@ -80,7 +81,12 @@ const PACKAGE_FIELD_RULES = {
     what: 'text or a number',
     ok: v => typeof v === 'string' || typeof v === 'number',
   },
-  image: textRule(2048, 'a web address'),
+  // Stored as-is and rendered into <img src> on public pages: a site path or an http(s) URL only
+  // (see utils/packageImageUrl.js), or empty to clear the image.
+  image: {
+    what: 'a web address (http or https) or a site path of at most 2048 characters',
+    ok: value => validatePackageImageUrl(value).ok,
+  },
   category: textRule(80, 'text'),
   primaryCategoryKey: textRule(80, 'text'),
   location: textRule(200, 'text'),
@@ -1383,6 +1389,10 @@ router.put(
       // Whichever price field was sent, both end up holding it (utils/packagePrice.js). That is
       // settled before the changes are worked out, so the audit entry records what is stored.
       const stored = { ...updateData };
+      if (stored.image !== undefined) {
+        // Already checked above; store the trimmed form, as the supplier package routes do.
+        stored.image = validatePackageImageUrl(stored.image).value;
+      }
       if (updateData.price !== undefined || updateData.price_display !== undefined) {
         Object.assign(
           stored,

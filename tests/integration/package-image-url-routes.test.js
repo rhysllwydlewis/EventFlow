@@ -10,10 +10,10 @@ const request = require('supertest');
 
 const BAD_IMAGE = 'https://example.com/a.jpg" onerror="alert(1)';
 
-function createApp() {
+function createApp({ storedImage = '' } = {}) {
   jest.resetModules();
   const router = require('../../routes/packages');
-  const pkg = { id: 'pkg_1', supplierId: 'sup_1', title: 'Mine', image: '', gallery: [] };
+  const pkg = { id: 'pkg_1', supplierId: 'sup_1', title: 'Mine', image: storedImage, gallery: [] };
   const dbUnified = {
     find: jest.fn(async () => []),
     findOne: jest.fn(async collection => {
@@ -113,6 +113,52 @@ describe('PUT /api/admin/packages/:id image validation', () => {
       .send({ image: BAD_IMAGE })
       .expect(400);
     expect(res.body.error).toBe('Invalid image');
+    expect(dbUnified.updateOne).not.toHaveBeenCalled();
+  });
+});
+
+// The edit forms send the stored image back on every save. A legacy value that would not pass
+// validation today must not block an unrelated edit; only a changed value is refused.
+describe('an unchanged stored image does not block an edit', () => {
+  const LEGACY = 'uploads/my photo.jpg';
+
+  test('PUT /api/me/packages/:id saves a new title and leaves the legacy image alone', async () => {
+    const { app, dbUnified } = createApp({ storedImage: LEGACY });
+    await request(app)
+      .put('/api/me/packages/pkg_1')
+      .send({ title: 'New title', image: LEGACY })
+      .expect(200);
+    const set = dbUnified.updateOne.mock.calls[0][2].$set;
+    expect(set.title).toBe('New title');
+    expect(set).not.toHaveProperty('image');
+  });
+
+  test('PUT /api/me/packages/:id still refuses changing it to another invalid value', async () => {
+    const { app, dbUnified } = createApp({ storedImage: LEGACY });
+    await request(app)
+      .put('/api/me/packages/pkg_1')
+      .send({ title: 'New title', image: BAD_IMAGE })
+      .expect(400);
+    expect(dbUnified.updateOne).not.toHaveBeenCalled();
+  });
+
+  test('PUT /api/admin/packages/:id saves a new title and leaves the legacy image alone', async () => {
+    const { app, dbUnified } = createApp({ storedImage: LEGACY });
+    await request(app)
+      .put('/api/admin/packages/pkg_1')
+      .send({ title: 'New title', image: LEGACY })
+      .expect(200);
+    const set = dbUnified.updateOne.mock.calls[0][2].$set;
+    expect(set.title).toBe('New title');
+    expect(set).not.toHaveProperty('image');
+  });
+
+  test('PUT /api/admin/packages/:id still refuses changing it to another invalid value', async () => {
+    const { app, dbUnified } = createApp({ storedImage: LEGACY });
+    await request(app)
+      .put('/api/admin/packages/pkg_1')
+      .send({ title: 'New title', image: BAD_IMAGE })
+      .expect(400);
     expect(dbUnified.updateOne).not.toHaveBeenCalled();
   });
 });

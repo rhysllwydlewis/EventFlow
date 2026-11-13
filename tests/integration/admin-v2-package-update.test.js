@@ -123,12 +123,33 @@ describe('PUT /api/v2/admin/packages/:id', () => {
     [{ tags: Array(51).fill('t') }, 'tags'],
     [{ price: { amount: 5 } }, 'price'],
     [{ availability: ['mon'] }, 'availability'],
+    [{ image: 'https://example.com/a.jpg" onerror="alert(1)' }, 'image'],
+    [{ image: 'javascript:alert(1)' }, 'image'],
+    [{ image: '//evil.example/a.jpg' }, 'image'],
+    [{ image: { url: 'x' } }, 'image'],
   ])('refuses the malformed %j and writes nothing', async (body, field) => {
     const res = await request(buildApp()).put('/api/v2/admin/packages/pkg-1').send(body);
     expect(res.status).toBe(400);
     expect(res.body.code).toBe('FIELD_INVALID');
     expect(res.body.error).toContain(field);
     expect(mockUpdateOne).not.toHaveBeenCalled();
+  });
+
+  it.each(['/api/photos/abc123?w=640', 'https://example.com/a.jpg', ''])(
+    'accepts the image %j',
+    async image => {
+      const res = await request(buildApp()).put('/api/v2/admin/packages/pkg-1').send({ image });
+      expect(res.status).toBe(200);
+      expect(res.body.data.image).toBe(image);
+    }
+  );
+
+  it('stores a valid image without its surrounding whitespace', async () => {
+    const res = await request(buildApp())
+      .put('/api/v2/admin/packages/pkg-1')
+      .send({ image: '  /api/photos/abc123  ' });
+    expect(res.status).toBe(200);
+    expect(res.body.data.image).toBe('/api/photos/abc123');
   });
 
   it('refuses a body that is not an object', async () => {
