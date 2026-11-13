@@ -127,8 +127,12 @@ test.describe('Back-to-top, Search Button – Mobile Sizing and Alignment', () =
     await page.setViewportSize(VIEWPORTS.mobile);
     await page.goto('/');
 
-    // Scroll down to make back-to-top visible
-    await page.evaluate(() => window.scrollTo(0, 500));
+    // On phones the button waits until the visitor is well down the page and
+    // then scrolls back up, so do both. (A single scroll to 500px used to be
+    // enough; left as it was, this test would skip without measuring anything.)
+    await page.evaluate(() => window.scrollTo(0, 3000));
+    await page.waitForTimeout(400);
+    await page.evaluate(() => window.scrollTo(0, 2600));
     await page.waitForTimeout(500);
 
     const backToTop = page.locator('.back-to-top');
@@ -137,14 +141,48 @@ test.describe('Back-to-top, Search Button – Mobile Sizing and Alignment', () =
       return;
     }
 
-    const isVisible = await backToTop.isVisible();
-    if (!isVisible) {
-      return;
-    }
+    await expect(backToTop).toBeVisible();
 
     const btnBox = await backToTop.boundingBox();
     // Visual size should be compact (≤ 40px) on mobile
     expect(btnBox.width).toBeLessThanOrEqual(40);
     expect(btnBox.height).toBeLessThanOrEqual(40);
+
+    // Reading on again puts it away.
+    await page.evaluate(() => window.scrollTo(0, 3200));
+    await expect(backToTop).toBeHidden();
+  });
+
+  test('bottom bar Menu tab matches its neighbours on mobile (375px)', async ({ page }) => {
+    await page.setViewportSize(VIEWPORTS.mobile);
+    await page.goto('/');
+
+    const menu = page.locator('#ef-bottom-menu');
+    if ((await menu.count()) === 0) {
+      return;
+    }
+
+    const style = await menu.evaluate(el => {
+      const cs = getComputedStyle(el);
+      return {
+        label: getComputedStyle(el, '::before').content,
+        shadow: cs.boxShadow,
+        borderWidth: cs.borderTopWidth,
+        background: cs.backgroundColor,
+      };
+    });
+    // It is a tab, not a call-to-action button: labelled, and without the box.
+    expect(style.label).toBe('"Menu"');
+    expect(style.shadow).toBe('none');
+    expect(style.borderWidth).toBe('0px');
+    expect(style.background).toBe('rgba(0, 0, 0, 0)');
+
+    // Same vertical footprint as the tab beside it.
+    const menuBox = await menu.boundingBox();
+    const neighbourBox = await page
+      .locator('.ef-bottom-nav a.ef-bottom-link')
+      .first()
+      .boundingBox();
+    expect(Math.abs(menuBox.height - neighbourBox.height)).toBeLessThanOrEqual(4);
   });
 });
