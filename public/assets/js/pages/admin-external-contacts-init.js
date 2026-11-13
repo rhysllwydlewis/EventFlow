@@ -45,16 +45,16 @@
     new: { bg: '#fee2e2', color: '#991b1b', label: 'New' },
     in_review: { bg: '#fef3c7', color: '#92400e', label: 'In review' },
     replied: { bg: '#d1fae5', color: '#065f46', label: 'Replied' },
-    archived: { bg: '#f3f4f6', color: '#6b7280', label: 'Archived' },
+    archived: { bg: '#f0eee9', color: '#566176', label: 'Archived' },
   };
 
   function sourceBadge(source) {
-    const c = SOURCE_COLOURS[source] || { bg: '#f3f4f6', color: '#374151', label: esc(source) };
+    const c = SOURCE_COLOURS[source] || { bg: '#f0eee9', color: '#3d4955', label: esc(source) };
     return `<span style="display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border-radius:999px;font-size:11px;font-weight:700;letter-spacing:.04em;background:${c.bg};color:${c.color};">From ${c.label}</span>`;
   }
 
   function statusBadge(status) {
-    const c = STATUS_COLOURS[status] || { bg: '#f3f4f6', color: '#374151', label: esc(status) };
+    const c = STATUS_COLOURS[status] || { bg: '#f0eee9', color: '#3d4955', label: esc(status) };
     return `<span style="padding:3px 9px;border-radius:999px;font-size:11px;font-weight:700;background:${c.bg};color:${c.color};">${c.label}</span>`;
   }
 
@@ -139,7 +139,7 @@
           <span class="uc-user-link">${esc(c.name || '—')}</span>
           <span class="uc-user-email">${esc(c.email || '')}</span>
         </td>
-        <td style="font-size:13px;color:#374151;max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${esc(preview)}">${esc(preview) || '—'}</td>
+        <td style="font-size:13px;color:#3d4955;max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${esc(preview)}">${esc(preview) || '—'}</td>
         <td>${statusBadge(c.status)}</td>
         <td class="uc-date-cell">${fmtDate(c.receivedAt || c.createdAt)}</td>
         <td class="uc-actions-cell">
@@ -272,8 +272,8 @@
       }
 
       const src = SOURCE_COLOURS[contact.source] || {
-        bg: '#f3f4f6',
-        color: '#374151',
+        bg: '#f0eee9',
+        color: '#3d4955',
         label: esc(contact.source),
       };
       const pageHref = safeExternalHref(contact.pageUrl);
@@ -283,7 +283,7 @@
         <div style="padding:12px 16px;background:${src.bg};border-radius:10px;margin-bottom:16px;display:flex;align-items:center;gap:8px;">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="${src.color}" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
           <strong style="color:${src.color};font-size:13px;">From ${src.label}</strong>
-          <span style="margin-left:auto;font-size:12px;color:#646b78;">${fmtDate(contact.receivedAt || contact.createdAt)}</span>
+          <span style="margin-left:auto;font-size:12px;color:#566176;">${fmtDate(contact.receivedAt || contact.createdAt)}</span>
         </div>
 
         <!-- Details grid -->
@@ -300,7 +300,7 @@
         <!-- Message -->
         <div style="margin-bottom:16px;">
           <div class="ud-info-label">Message</div>
-          <div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px;padding:12px 14px;font-size:13px;line-height:1.65;color:#1f2937;white-space:pre-wrap;margin-top:4px;">${esc(contact.message || '')}</div>
+          <div style="background:#f7f6f3;border:1px solid #e8e5de;border-radius:8px;padding:12px 14px;font-size:13px;line-height:1.65;color:#17202f;white-space:pre-wrap;margin-top:4px;">${esc(contact.message || '')}</div>
         </div>
 
         <!-- Status + notes -->

@@ -240,18 +240,18 @@
 
     // Always show grant/remove controls
     proPlanHtml += `
-      <div style="margin-top: 1rem; border-top: 1px solid #e5e7eb; padding-top: 1rem;">
+      <div style="margin-top: 1rem; border-top: 1px solid #e8e5de; padding-top: 1rem;">
         <h4 style="margin-bottom: 0.75rem; font-size: 0.9rem; font-weight: 600;">Manage Subscription</h4>
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; margin-bottom: 1rem;">
           <div>
-            <label for="subscriptionTier" style="display: block; margin-bottom: 0.35rem; font-size: 0.8rem; font-weight: 600; color: #646b78; text-transform: uppercase; letter-spacing: 0.4px;">Tier</label>
+            <label for="subscriptionTier" style="display: block; margin-bottom: 0.35rem; font-size: 0.8rem; font-weight: 600; color: #566176; text-transform: uppercase; letter-spacing: 0.4px;">Tier</label>
             <select id="subscriptionTier" class="form-control" style="width: 100%;">
               <option value="pro">Pro</option>
               <option value="pro_plus">Pro Plus</option>
             </select>
           </div>
           <div>
-            <label for="subscriptionDuration" style="display: block; margin-bottom: 0.35rem; font-size: 0.8rem; font-weight: 600; color: #646b78; text-transform: uppercase; letter-spacing: 0.4px;">Duration</label>
+            <label for="subscriptionDuration" style="display: block; margin-bottom: 0.35rem; font-size: 0.8rem; font-weight: 600; color: #566176; text-transform: uppercase; letter-spacing: 0.4px;">Duration</label>
             <select id="subscriptionDuration" class="form-control" style="width: 100%;">
               <option value="7">7 days (Trial)</option>
               <option value="14">14 days (Trial)</option>
@@ -284,15 +284,15 @@
         ? '<span style="color:#15803d">✔ Forced ON (admin override)</span>'
         : override === false
           ? '<span style="color:#b91c1c">✘ Forced OFF (admin override)</span>'
-          : '<span style="color:#5f6673">Auto (from category)</span>';
+          : '<span style="color:#566176">Auto (from category)</span>';
 
     const calendarHtml = `
       <p><strong>Supplier category:</strong> ${AdminShared.escapeHtml(supplierData.category || 'Unknown')}</p>
-      <p><strong>Default publishing right:</strong> ${defaultPublisher ? '<span style="color:#15803d">Yes</span>' : '<span style="color:#5f6673">No</span>'}</p>
+      <p><strong>Default publishing right:</strong> ${defaultPublisher ? '<span style="color:#15803d">Yes</span>' : '<span style="color:#566176">No</span>'}</p>
       <p><strong>Override:</strong> ${overrideLabel}</p>
-      <p class="small" style="color:#5f6673;margin-top:0.35rem;">Publishing override: <strong>Forced ON</strong> = this supplier can publish events regardless of category; <strong>Forced OFF</strong> = this supplier cannot publish regardless of category; <strong>Auto</strong> = follow the category default (Event Planner and Wedding Fayre suppliers can publish).</p>
+      <p class="small" style="color:#566176;margin-top:0.35rem;">Publishing override: <strong>Forced ON</strong> = this supplier can publish events regardless of category; <strong>Forced OFF</strong> = this supplier cannot publish regardless of category; <strong>Auto</strong> = follow the category default (Event Planner and Wedding Fayre suppliers can publish).</p>
       <p><strong>Effective permission:</strong> ${effectivePublisher ? '<span style="color:#15803d;font-weight:600">Can publish</span>' : '<span style="color:#b91c1c;font-weight:600">Read-only</span>'}</p>
-      <div style="margin-top:1rem;border-top:1px solid #e5e7eb;padding-top:1rem;">
+      <div style="margin-top:1rem;border-top:1px solid #e8e5de;padding-top:1rem;">
         <h4 style="margin-bottom:0.75rem;font-size:0.9rem;font-weight:600;">Set Override</h4>
         <div style="display:flex;gap:0.5rem;flex-wrap:wrap;">
           <button class="ef-cta btn btn-success btn-small" id="calOverrideTrue">Force ON</button>
@@ -534,7 +534,7 @@
     if (analyticsSection && !analyticsSection.querySelector('.analytics-note')) {
       const note = document.createElement('p');
       note.className = 'analytics-note small';
-      note.style.color = '#6b7280';
+      note.style.color = '#566176';
       note.style.marginTop = '1rem';
       note.textContent = 'Analytics data not yet configured';
       analyticsSection.appendChild(note);
@@ -660,18 +660,18 @@
         'background:white;border-radius:8px;padding:1.5rem;max-width:480px;width:90%;' +
         'box-shadow:0 10px 40px rgba(0,0,0,0.3);animation:slideUp 0.3s ease;';
       dialog.innerHTML = `
-        <h3 id="edit-field-modal-title" style="margin:0 0 0.5rem 0;font-size:1.25rem;font-weight:600;color:#1f2937;">
+        <h3 id="edit-field-modal-title" style="margin:0 0 0.5rem 0;font-size:1.25rem;font-weight:600;color:#17202f;">
           Edit Supplier — Select Field
         </h3>
-        <p style="margin:0 0 1rem 0;color:#646b78;font-size:0.875rem;line-height:1.5;">Choose the field you would like to edit:</p>
+        <p style="margin:0 0 1rem 0;color:#566176;font-size:0.875rem;line-height:1.5;">Choose the field you would like to edit:</p>
         <div style="margin-bottom:1rem;">
-          <label for="edit-field-select" style="display:block;margin-bottom:0.5rem;font-weight:600;color:#374151;font-size:0.875rem;">Field</label>
-          <select id="edit-field-select" style="width:100%;padding:0.5rem 0.75rem;border:1px solid #d1d5db;border-radius:6px;font-size:0.875rem;background:white;cursor:pointer;">
+          <label for="edit-field-select" style="display:block;margin-bottom:0.5rem;font-weight:600;color:#3d4955;font-size:0.875rem;">Field</label>
+          <select id="edit-field-select" style="width:100%;padding:0.5rem 0.75rem;border:1px solid #d6d2c8;border-radius:6px;font-size:0.875rem;background:white;cursor:pointer;">
             ${optionsHtml}
           </select>
         </div>
         <div style="display:flex;gap:0.75rem;justify-content:flex-end;">
-          <button id="edit-field-cancel" style="padding:0.5rem 1rem;border:1px solid #d1d5db;background:white;color:#374151;border-radius:6px;cursor:pointer;font-size:0.875rem;font-weight:500;">Cancel</button>
+          <button id="edit-field-cancel" style="padding:0.5rem 1rem;border:1px solid #d6d2c8;background:white;color:#3d4955;border-radius:6px;cursor:pointer;font-size:0.875rem;font-weight:500;">Cancel</button>
           <button id="edit-field-confirm" style="padding:0.5rem 1rem;border:none;background:#3b82f6;color:white;border-radius:6px;cursor:pointer;font-size:0.875rem;font-weight:500;">Confirm</button>
         </div>
       `;
@@ -785,7 +785,7 @@
 
   // Review photos — the photo page, showing only this supplier's photos
   document.getElementById('uploadPhotoBtn')?.addEventListener('click', () => {
-    window.location.href = `/admin-photos?supplierId=${encodeURIComponent(supplierId)}`;
+    window.location.href = `/admin-moderation?tab=photos&supplierId=${encodeURIComponent(supplierId)}`;
   });
 
   // Delete Supplier handler — double-confirm before deleting
@@ -1110,7 +1110,7 @@
     const bg =
       { green: '#d1fae5', red: '#fee2e2', amber: '#fef3c7', grey: '#f1f5f9' }[color] || '#f1f5f9';
     const fg =
-      { green: '#065f46', red: '#991b1b', amber: '#92400e', grey: '#374151' }[color] || '#374151';
+      { green: '#065f46', red: '#991b1b', amber: '#92400e', grey: '#3d4955' }[color] || '#3d4955';
     return `<span style="display:inline-block;padding:0.15rem 0.5rem;border-radius:9999px;background:${bg};color:${fg};font-size:0.78rem;font-weight:600;">${escapeHtml(String(text))}</span>`;
   }
 
@@ -1150,7 +1150,7 @@
         ? actions.outstanding
             .map(a => {
               const sev = a.severity === 'red' ? 'red' : 'amber';
-              return `<li style="margin-bottom:0.4rem;">${apBadge(a.severity?.toUpperCase() || 'AMBER', sev)} <strong>${escapeHtml(a.title)}</strong> <span style="color:#646b78;font-size:0.85rem;">(${escapeHtml(a.key)})</span></li>`;
+              return `<li style="margin-bottom:0.4rem;">${apBadge(a.severity?.toUpperCase() || 'AMBER', sev)} <strong>${escapeHtml(a.title)}</strong> <span style="color:#566176;font-size:0.85rem;">(${escapeHtml(a.key)})</span></li>`;
             })
             .join('')
         : '<li style="color:#047857;">✓ No outstanding actions</li>';
@@ -1158,27 +1158,27 @@
     const completedHtml =
       actions.completed.length > 0
         ? actions.completed
-            .map(a => `<li style="color:#646b78;">${escapeHtml(a.title)}</li>`)
+            .map(a => `<li style="color:#566176;">${escapeHtml(a.title)}</li>`)
             .join('')
-        : '<li style="color:#646b78;">—</li>';
+        : '<li style="color:#566176;">—</li>';
 
     const cs = cadence.state;
     const cadenceHtml = cs
       ? `<table style="width:100%;border-collapse:collapse;font-size:0.875rem;">
-          <tr><td style="padding:0.35rem 0.5rem;color:#646b78;">Stage</td><td style="padding:0.35rem 0.5rem;font-weight:600;">${escapeHtml(cs.cadence || 'daily')}</td></tr>
-          <tr style="background:#f8fafc;"><td style="padding:0.35rem 0.5rem;color:#646b78;">Daily sends</td><td style="padding:0.35rem 0.5rem;">${cs.sendCountDaily ?? 0} / 7</td></tr>
-          <tr><td style="padding:0.35rem 0.5rem;color:#646b78;">Weekly sends</td><td style="padding:0.35rem 0.5rem;">${cs.sendCountWeekly ?? 0} / 4</td></tr>
-          <tr style="background:#f8fafc;"><td style="padding:0.35rem 0.5rem;color:#646b78;">Monthly sends</td><td style="padding:0.35rem 0.5rem;">${cs.sendCountMonthly ?? 0}</td></tr>
-          <tr><td style="padding:0.35rem 0.5rem;color:#646b78;">Last sent</td><td style="padding:0.35rem 0.5rem;">${cs.lastSentAt ? new Date(cs.lastSentAt).toLocaleString() : 'Never'}</td></tr>
-          <tr style="background:#f8fafc;"><td style="padding:0.35rem 0.5rem;color:#646b78;">Next send</td><td style="padding:0.35rem 0.5rem;">${cs.nextSendAt ? new Date(cs.nextSendAt).toLocaleString() : '—'}</td></tr>
-          <tr><td style="padding:0.35rem 0.5rem;color:#646b78;">First outstanding</td><td style="padding:0.35rem 0.5rem;">${cs.firstOutstandingAt ? new Date(cs.firstOutstandingAt).toLocaleString() : '—'}</td></tr>
-          <tr style="background:#f8fafc;"><td style="padding:0.35rem 0.5rem;color:#646b78;">Would send now?</td><td style="padding:0.35rem 0.5rem;">${cadence.wouldSendNow ? apBadge('Yes', 'green') : apBadge('No', 'grey')}</td></tr>
+          <tr><td style="padding:0.35rem 0.5rem;color:#566176;">Stage</td><td style="padding:0.35rem 0.5rem;font-weight:600;">${escapeHtml(cs.cadence || 'daily')}</td></tr>
+          <tr style="background:#f8fafc;"><td style="padding:0.35rem 0.5rem;color:#566176;">Daily sends</td><td style="padding:0.35rem 0.5rem;">${cs.sendCountDaily ?? 0} / 7</td></tr>
+          <tr><td style="padding:0.35rem 0.5rem;color:#566176;">Weekly sends</td><td style="padding:0.35rem 0.5rem;">${cs.sendCountWeekly ?? 0} / 4</td></tr>
+          <tr style="background:#f8fafc;"><td style="padding:0.35rem 0.5rem;color:#566176;">Monthly sends</td><td style="padding:0.35rem 0.5rem;">${cs.sendCountMonthly ?? 0}</td></tr>
+          <tr><td style="padding:0.35rem 0.5rem;color:#566176;">Last sent</td><td style="padding:0.35rem 0.5rem;">${cs.lastSentAt ? new Date(cs.lastSentAt).toLocaleString() : 'Never'}</td></tr>
+          <tr style="background:#f8fafc;"><td style="padding:0.35rem 0.5rem;color:#566176;">Next send</td><td style="padding:0.35rem 0.5rem;">${cs.nextSendAt ? new Date(cs.nextSendAt).toLocaleString() : '—'}</td></tr>
+          <tr><td style="padding:0.35rem 0.5rem;color:#566176;">First outstanding</td><td style="padding:0.35rem 0.5rem;">${cs.firstOutstandingAt ? new Date(cs.firstOutstandingAt).toLocaleString() : '—'}</td></tr>
+          <tr style="background:#f8fafc;"><td style="padding:0.35rem 0.5rem;color:#566176;">Would send now?</td><td style="padding:0.35rem 0.5rem;">${cadence.wouldSendNow ? apBadge('Yes', 'green') : apBadge('No', 'grey')}</td></tr>
         </table>`
-      : `<p style="color:#646b78;margin:0;">No cadence state — this supplier has not been queued yet.</p>`;
+      : `<p style="color:#566176;margin:0;">No cadence state — this supplier has not been queued yet.</p>`;
 
     const lastRunHtml = lastRun
       ? `<span style="font-size:0.85rem;">Last global run: <strong>${new Date(lastRun.finishedAt).toLocaleString()}</strong> — scanned ${lastRun.scanned}, sent ${lastRun.sent}, errors ${lastRun.errors}</span>`
-      : `<span style="color:#646b78;font-size:0.85rem;">No global run recorded yet.</span>`;
+      : `<span style="color:#566176;font-size:0.85rem;">No global run recorded yet.</span>`;
 
     panel.innerHTML = `
       ${warningHtml}
@@ -1187,12 +1187,12 @@
         <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:0.875rem;">
           <div style="font-weight:600;margin-bottom:0.625rem;font-size:0.9rem;">Global Settings</div>
           <table style="width:100%;border-collapse:collapse;font-size:0.875rem;">
-            <tr><td style="padding:0.3rem 0;color:#646b78;">Master enabled</td><td style="padding:0.3rem 0;">${apBool(g.enabled)}</td></tr>
-            <tr><td style="padding:0.3rem 0;color:#646b78;">Missing packages</td><td>${apBool(g.promptTypes.missingPackages)}</td></tr>
-            <tr><td style="padding:0.3rem 0;color:#646b78;">Incomplete profile</td><td>${apBool(g.promptTypes.incompleteProfile)}</td></tr>
-            <tr><td style="padding:0.3rem 0;color:#646b78;">Missing photos</td><td>${apBool(g.promptTypes.missingPhotos)}</td></tr>
-            <tr><td style="padding:0.3rem 0;color:#646b78;">Uncategorized</td><td>${apBool(g.promptTypes.uncategorized)}</td></tr>
-            <tr><td style="padding:0.3rem 0;color:#646b78;">Package photos missing</td><td>${apBool(g.promptTypes.packagesMissingPhotos)}</td></tr>
+            <tr><td style="padding:0.3rem 0;color:#566176;">Master enabled</td><td style="padding:0.3rem 0;">${apBool(g.enabled)}</td></tr>
+            <tr><td style="padding:0.3rem 0;color:#566176;">Missing packages</td><td>${apBool(g.promptTypes.missingPackages)}</td></tr>
+            <tr><td style="padding:0.3rem 0;color:#566176;">Incomplete profile</td><td>${apBool(g.promptTypes.incompleteProfile)}</td></tr>
+            <tr><td style="padding:0.3rem 0;color:#566176;">Missing photos</td><td>${apBool(g.promptTypes.missingPhotos)}</td></tr>
+            <tr><td style="padding:0.3rem 0;color:#566176;">Uncategorized</td><td>${apBool(g.promptTypes.uncategorized)}</td></tr>
+            <tr><td style="padding:0.3rem 0;color:#566176;">Package photos missing</td><td>${apBool(g.promptTypes.packagesMissingPhotos)}</td></tr>
           </table>
         </div>
         <!-- User / Supplier settings -->
@@ -1201,15 +1201,15 @@
           ${
             user
               ? `<table style="width:100%;border-collapse:collapse;font-size:0.875rem;">
-            <tr><td style="padding:0.3rem 0;color:#646b78;">Email</td><td style="padding:0.3rem 0;word-break:break-all;">${escapeHtml(user.email)}</td></tr>
-            <tr><td style="padding:0.3rem 0;color:#646b78;">Verified</td><td>${apBool(user.verified)}</td></tr>
-            <tr><td style="padding:0.3rem 0;color:#646b78;">User account</td><td style="padding:0.3rem 0;"><a href="/admin-user-detail?id=${escapeHtml(user.id || '')}" style="color:#0a7569;text-decoration:none;font-weight:600;">View User Detail →</a></td></tr>
-            <tr><td style="padding:0.3rem 0;color:#646b78;">Prefs enabled</td><td>${apBool(user.emailPrefsEnabled)}</td></tr>
-            <tr><td style="padding:0.3rem 0;color:#646b78;">Pref: packages</td><td>${apBool(user.emailPrefsPerType.missingPackages)}</td></tr>
-            <tr><td style="padding:0.3rem 0;color:#646b78;">Pref: profile</td><td>${apBool(user.emailPrefsPerType.incompleteProfile)}</td></tr>
-            <tr><td style="padding:0.3rem 0;color:#646b78;">Pref: photos</td><td>${apBool(user.emailPrefsPerType.missingPhotos)}</td></tr>
-            <tr><td style="padding:0.3rem 0;color:#646b78;">Pref: category</td><td>${apBool(user.emailPrefsPerType.uncategorized)}</td></tr>
-            <tr><td style="padding:0.3rem 0;color:#646b78;">Pref: package photos</td><td>${apBool(user.emailPrefsPerType.packagesMissingPhotos)}</td></tr>
+            <tr><td style="padding:0.3rem 0;color:#566176;">Email</td><td style="padding:0.3rem 0;word-break:break-all;">${escapeHtml(user.email)}</td></tr>
+            <tr><td style="padding:0.3rem 0;color:#566176;">Verified</td><td>${apBool(user.verified)}</td></tr>
+            <tr><td style="padding:0.3rem 0;color:#566176;">User account</td><td style="padding:0.3rem 0;"><a href="/admin-user-detail?id=${escapeHtml(user.id || '')}" style="color:#0a7569;text-decoration:none;font-weight:600;">View User Detail →</a></td></tr>
+            <tr><td style="padding:0.3rem 0;color:#566176;">Prefs enabled</td><td>${apBool(user.emailPrefsEnabled)}</td></tr>
+            <tr><td style="padding:0.3rem 0;color:#566176;">Pref: packages</td><td>${apBool(user.emailPrefsPerType.missingPackages)}</td></tr>
+            <tr><td style="padding:0.3rem 0;color:#566176;">Pref: profile</td><td>${apBool(user.emailPrefsPerType.incompleteProfile)}</td></tr>
+            <tr><td style="padding:0.3rem 0;color:#566176;">Pref: photos</td><td>${apBool(user.emailPrefsPerType.missingPhotos)}</td></tr>
+            <tr><td style="padding:0.3rem 0;color:#566176;">Pref: category</td><td>${apBool(user.emailPrefsPerType.uncategorized)}</td></tr>
+            <tr><td style="padding:0.3rem 0;color:#566176;">Pref: package photos</td><td>${apBool(user.emailPrefsPerType.packagesMissingPhotos)}</td></tr>
           </table>`
               : `<p style="color:#dc2626;font-size:0.875rem;margin:0;">⚠ No user account linked to this supplier.</p>`
           }
@@ -1220,7 +1220,7 @@
         <div style="font-weight:600;margin-bottom:0.5rem;font-size:0.9rem;">
           Outstanding Actions
           ${apBadge(actions.outstanding.length, actions.outstanding.length > 0 ? 'red' : 'green')}
-          <span style="font-weight:400;font-size:0.82rem;color:#646b78;margin-left:0.5rem;">${actions.completionPercent}% complete</span>
+          <span style="font-weight:400;font-size:0.82rem;color:#566176;margin-left:0.5rem;">${actions.completionPercent}% complete</span>
           ${actions.basedOnSyntheticUser ? '<span style="font-weight:400;font-size:0.78rem;color:#92400e;background:#fef3c7;padding:1px 6px;border-radius:4px;margin-left:0.5rem;">Based on profile data — no linked user account</span>' : ''}
         </div>
         <ul style="margin:0;padding-left:1.25rem;">${outstandingHtml}</ul>
@@ -1246,7 +1246,7 @@
     if (!panel) {
       return;
     }
-    panel.innerHTML = '<p style="color:#646b78;">Loading…</p>';
+    panel.innerHTML = '<p style="color:#566176;">Loading…</p>';
     try {
       const data = await AdminShared.api(
         `/api/admin/suppliers/${supplierId}/action-prompts/diagnostics`

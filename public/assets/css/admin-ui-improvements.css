@@ -28,7 +28,7 @@
   cursor: pointer;
   accent-color: #0B8073; /* Fallback: default browser checkbox color for older browsers */
   border-radius: 3px;
-  border: 1.5px solid #d1d5db;
+  border: 1.5px solid #d6d2c8;
   transition: all 0.15s ease;
   vertical-align: middle;
   margin: 0;
@@ -73,7 +73,7 @@ tbody tr:hover .checkbox-cell .user-checkbox {
   flex-shrink: 0;
   cursor: pointer;
   accent-color: #0B8073;
-  border: 2px solid #d1d5db;
+  border: 2px solid #d6d2c8;
   border-radius: 4px;
   transition: all 0.15s ease;
   margin: 0;
@@ -90,12 +90,12 @@ tbody tr:hover .checkbox-cell .user-checkbox {
 
 .checkbox-text {
   font-size: 0.95rem;
-  color: #374151;
+  color: #3d4955;
   line-height: 1.4;
 }
 
 .checkbox-label:hover .checkbox-text {
-  color: #1f2937;
+  color: #17202f;
 }
 
 /* ===========================================
@@ -106,7 +106,7 @@ tbody tr:hover .checkbox-cell .user-checkbox {
   justify-content: space-between;
   align-items: flex-start;
   padding: 1rem 0;
-  border-bottom: 1px solid #e5e7eb;
+  border-bottom: 1px solid #e8e5de;
   gap: 1rem;
 }
 
@@ -123,14 +123,14 @@ tbody tr:hover .checkbox-cell .user-checkbox {
   display: block;
   font-size: 0.95rem;
   font-weight: 600;
-  color: #1f2937;
+  color: #17202f;
   line-height: 1.4;
   margin-bottom: 0.25rem;
 }
 
 .feature-item .small {
   font-size: 0.85rem;
-  color: #646b78;
+  color: #566176;
   line-height: 1.5;
 }
 
@@ -163,7 +163,7 @@ tbody tr:hover .checkbox-cell .user-checkbox {
   left: 0;
   right: 0;
   bottom: 0;
-  background-color: #d1d5db;
+  background-color: #d6d2c8;
   transition: all 0.25s ease;
   border-radius: 24px;
 }
@@ -227,7 +227,7 @@ tbody tr:hover .checkbox-cell .user-checkbox {
 
 .bulk-action-select {
   padding: 0.5rem 0.875rem;
-  border: 1px solid #d1d5db;
+  border: 1px solid #d6d2c8;
   border-radius: 6px;
   background: white;
   font-size: 0.875rem;
@@ -297,7 +297,7 @@ tbody tr:hover .checkbox-cell .user-checkbox {
    =========================================== */
 .stat-card-mini {
   background: var(--admin-surface, #fff);
-  border: 1px solid var(--admin-border, #e5e7eb);
+  border: 1px solid var(--admin-border, #e8e5de);
   border-radius: var(--admin-radius-md, 10px);
   padding: 1rem 1.25rem;
   display: flex;
@@ -316,13 +316,13 @@ tbody tr:hover .checkbox-cell .user-checkbox {
   text-transform: uppercase;
   letter-spacing: 0.06em;
   font-weight: 600;
-  color: var(--admin-text-muted, #6b7280);
+  color: var(--admin-text-muted, #566176);
 }
 
 .stat-card-mini .stat-value {
   font-size: var(--admin-font-size-xl, 24px);
   font-weight: 700;
-  color: var(--admin-text-primary, #1f2937);
+  color: var(--admin-text-primary, #17202f);
   line-height: 1.1;
 }
 
@@ -335,7 +335,7 @@ tbody tr:hover .checkbox-cell .user-checkbox {
   border-radius: var(--admin-radius-md, 10px);
   margin-bottom: 1.5rem;
   box-shadow: var(--admin-shadow-md, 0 2px 8px rgba(0,0,0,0.08));
-  border: 1px solid var(--admin-border, #e5e7eb);
+  border: 1px solid var(--admin-border, #e8e5de);
 }
 
 .filter-row {
@@ -349,11 +349,11 @@ tbody tr:hover .checkbox-cell .user-checkbox {
   flex: 1;
   min-width: 220px;
   padding: 0.625rem 1rem;
-  border: 1px solid var(--admin-border, #e5e7eb);
+  border: 1px solid var(--admin-border, #e8e5de);
   border-radius: var(--admin-radius-sm, 6px);
   font-family: inherit;
   font-size: var(--admin-font-size-base, 14px);
-  color: var(--admin-text-primary, #1f2937);
+  color: var(--admin-text-primary, #17202f);
   transition: border-color var(--admin-transition-fast, 0.15s ease),
               box-shadow var(--admin-transition-fast, 0.15s ease);
 }
@@ -366,12 +366,12 @@ tbody tr:hover .checkbox-cell .user-checkbox {
 
 .filter-select {
   padding: 0.6rem 0.875rem;
-  border: 1px solid var(--admin-border, #e5e7eb);
+  border: 1px solid var(--admin-border, #e8e5de);
   border-radius: var(--admin-radius-sm, 6px);
   background: var(--admin-surface, #fff);
   font-family: inherit;
   font-size: var(--admin-font-size-base, 14px);
-  color: var(--admin-text-primary, #1f2937);
+  color: var(--admin-text-primary, #17202f);
   cursor: pointer;
   transition: border-color var(--admin-transition-fast, 0.15s ease);
 }
@@ -498,7 +498,7 @@ tbody tr:hover .checkbox-cell .user-checkbox {
 
 .ap-toggle-label span {
   font-size: var(--admin-font-size-sm, 12px);
-  color: var(--admin-text-muted, #6b7280);
+  color: var(--admin-text-muted, #566176);
   line-height: 1.5;
 }
 
@@ -518,7 +518,7 @@ tbody tr:hover .checkbox-cell .user-checkbox {
 }
 
 .ap-toggle-state--on  { color: var(--admin-success,  #10b981); }
-.ap-toggle-state--off { color: var(--admin-text-muted, #6b7280); }
+.ap-toggle-state--off { color: var(--admin-text-muted, #566176); }
 
 /* ===========================================
    TABLE UTILITIES
@@ -667,7 +667,7 @@ tbody tr:hover .checkbox-cell .user-checkbox {
    inline errors rendered as bare text */
 .admin-empty-state {
   text-align: center;
-  color: #646b78;
+  color: #566176;
   padding: 2.25rem 1rem;
 }
 .admin-inline-error {
@@ -703,7 +703,7 @@ tbody tr:hover .checkbox-cell .user-checkbox {
   flex-direction: column;
   gap: 2px;
   padding: 8px 10px;
-  background: #f9fafb;
+  background: #f7f6f3;
   border-radius: 8px;
 }
 
@@ -711,8 +711,8 @@ tbody tr:hover .checkbox-cell .user-checkbox {
    unstyled (the table itself is covered by admin-enhanced.css element rules) */
 .calendar-admin-panel__header { margin-bottom: 0.75rem; }
 .calendar-admin-panel__title { font-size: 1.05rem; font-weight: 700; margin: 0 0 2px; }
-.calendar-admin-panel__subtitle { font-size: 0.85rem; color: #646b78; margin: 0; }
-.calendar-admin-empty { text-align: center; color: #646b78; padding: 2rem 1rem; }
+.calendar-admin-panel__subtitle { font-size: 0.85rem; color: #566176; margin: 0; }
+.calendar-admin-empty { text-align: center; color: #566176; padding: 2rem 1rem; }
 .calendar-admin-actions-inline { display: flex; gap: 6px; flex-wrap: wrap; }
 
 /* admin-messenger-view — conversation/message IDs render via
@@ -721,8 +721,8 @@ tbody tr:hover .checkbox-cell .user-checkbox {
 .ef-msg-code {
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   font-size: 0.82em;
-  background: #f3f4f6;
-  border: 1px solid #e5e7eb;
+  background: #f0eee9;
+  border: 1px solid #e8e5de;
   border-radius: 6px;
   padding: 1px 6px;
   word-break: break-all;

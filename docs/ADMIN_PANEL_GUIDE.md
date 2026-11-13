@@ -13,12 +13,12 @@ The admin panel consists of 13 main pages:
 1. **Dashboard** (`/admin.html`) - Main overview with statistics and quick actions
 2. **User Management** (`/admin-users.html`) - Manage all user accounts
 3. **Package Management** (`/admin-packages.html`) - Oversee event packages
-4. **Photo Library / Moderation** (`/admin-photos.html`) - Manage supplier photos with auto-approve toggle
+4. **Photo Library / Moderation** (`/admin-moderation?tab=photos`) - Manage supplier photos with auto-approve toggle
 5. **Enquiries** (`/admin-tickets.html`) - Handle support tickets, contact-form enquiries and enquiries from VEXI and Chlo (the External tab)
-6. **Content Reports** (`/admin-reports.html`) - Review user-submitted reports
+6. **Content Reports** (`/admin-moderation?tab=reports`) - Review user-submitted reports
 7. **Audit Log** (`/admin-audit.html`) - View system activity logs
 8. **Homepage Management** (`/admin-homepage.html`) - Update homepage content
-9. **Payment Analytics** (`/admin-payments.html`) - Monitor payment transactions
+9. **Payments** (`/admin-analytics?tab=payments`, a tab of Analytics & Payments) - Monitor payment transactions
 10. **Content Management** (`/admin-content.html`) - Manage site content
 11. **System Settings** (`/admin-settings.html`) - Configure system parameters
 12. **User Detail** (`/admin-user-detail.html`) - Detailed user information
@@ -124,7 +124,7 @@ POST   /api/admin/suppliers/smart-tags     # AI-powered supplier tagging
 
 ### Photo Library & Moderation
 
-The `/admin-photos` page supports two modes controlled by the **Auto-approve toggle**:
+The Photos tab of `/admin-moderation` supports two modes controlled by the **Auto-approve toggle**:
 
 #### Auto-approve ON (default)
 
@@ -142,7 +142,7 @@ The `/admin-photos` page supports two modes controlled by the **Auto-approve tog
 
 #### Toggling auto-approve
 
-The toggle in the admin-photos UI sends a `PUT /api/admin/settings/features` request with
+The toggle in the Photos tab sends a `PUT /api/admin/settings/features` request with
 `{ photoAutoApprove: true/false }`. The change takes effect immediately — the page reloads
 the correct view without requiring a page refresh.
 

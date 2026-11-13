@@ -451,7 +451,7 @@
     btn.disabled = true;
     btn.textContent = 'Testing...';
     resultDiv.style.display = 'block';
-    resultDiv.innerHTML = '<div style="color: #646b78;">🔄 Testing Pexels API connection...</div>';
+    resultDiv.innerHTML = '<div style="color: #566176;">🔄 Testing Pexels API connection...</div>';
 
     try {
       const result = await AdminShared.adminFetchWithTimeout('/api/pexels/test', {
@@ -644,10 +644,10 @@
     const text = document.getElementById('maintenanceStatusText');
     if (enabled) {
       btn.className = 'btn btn-danger';
-      text.textContent = '🔴 ON - Disable';
+      text.textContent = 'ON - Disable';
     } else {
       btn.className = 'btn btn-success';
-      text.textContent = '🟢 OFF - Enable';
+      text.textContent = 'OFF - Enable';
     }
   }
 
@@ -804,7 +804,7 @@
 
       if (logs.length === 0) {
         container.innerHTML =
-          '<div style="padding: 2rem; text-align: center; color: #5f6673;">No audit logs found</div>';
+          '<div style="padding: 2rem; text-align: center; color: #566176;">No audit logs found</div>';
         return;
       }
 
@@ -827,14 +827,14 @@
           <div style="padding: 0.75rem; border-bottom: 1px solid #eee; font-size: 0.9rem;">
             <div style="display: flex; justify-content: space-between; margin-bottom: 0.25rem;">
               <strong>${actionLabel}</strong>
-              <span style="color: #5f6673;">${date.toLocaleString()}</span>
+              <span style="color: #566176;">${date.toLocaleString()}</span>
             </div>
             <div style="color: #666;">
               by ${adminEmail}
             </div>
             ${
               detailsText
-                ? `<div style="color: #5f6673; font-size: 0.85rem; margin-top: 0.25rem;">
+                ? `<div style="color: #566176; font-size: 0.85rem; margin-top: 0.25rem;">
               ${detailsText}
             </div>`
                 : ''
@@ -1108,10 +1108,10 @@
           data.backups.forEach(backup => {
             const safeFilename = AdminShared.escapeHtml(backup.filename);
             html += `
-                <div style="padding: 0.75rem; border: 1px solid #e5e7eb; border-radius: 6px; display: flex; justify-content: space-between; align-items: center;">
+                <div style="padding: 0.75rem; border: 1px solid #e8e5de; border-radius: 6px; display: flex; justify-content: space-between; align-items: center;">
                   <div>
                     <strong>${safeFilename}</strong>
-                    <div class="small" style="color: #646b78;">
+                    <div class="small" style="color: #566176;">
                       ${new Date(backup.createdAt).toLocaleString()} • ${(backup.size / 1024).toFixed(2)} KB
                     </div>
                   </div>
@@ -1558,7 +1558,7 @@
 
     if (!runHistory || runHistory.length === 0) {
       container.innerHTML =
-        '<p style="color:#646b78;font-size:0.875rem;">No runs recorded yet. History is populated after each real (non-dry-run) send.</p>';
+        '<p style="color:#566176;font-size:0.875rem;">No runs recorded yet. History is populated after each real (non-dry-run) send.</p>';
       return;
     }
 

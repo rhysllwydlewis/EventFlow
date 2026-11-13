@@ -34,7 +34,7 @@
 
     modal.innerHTML = `
       <div class="modal modal-medium">
-        <h3 id="qnDialogTitle">⚡ Quick Notify</h3>
+        <h3 id="qnDialogTitle">Quick Notify</h3>
         <p class="small">Create an announcement and send it as an in-app notification in one step. The announcement will also appear as a site banner.</p>
         <form id="quickNotifyForm" action="#">
           <div class="form-row">
@@ -265,11 +265,11 @@
                   ${
                     a.active
                       ? '<span style="background:#d1fae5;color:#065f46;padding:0.1rem 0.45rem;border-radius:9999px;font-size:0.7rem;font-weight:600;">● Active</span>'
-                      : '<span style="background:#f3f4f6;color:#646b78;padding:0.1rem 0.45rem;border-radius:9999px;font-size:0.7rem;font-weight:600;">○ Inactive</span>'
+                      : '<span style="background:#f0eee9;color:#566176;padding:0.1rem 0.45rem;border-radius:9999px;font-size:0.7rem;font-weight:600;">○ Inactive</span>'
                   }
                   ${notifiedBadge}
                 </div>
-                <div class="small" style="color:#646b78;display:flex;gap:0.75rem;flex-wrap:wrap;align-items:center;">
+                <div class="small" style="color:#566176;display:flex;gap:0.75rem;flex-wrap:wrap;align-items:center;">
                   <span><span class="ann-type-badge ${escapedType}">${emoji} ${escapedType}</span></span>
                   ${createdAt ? `<span>Created ${createdAt}${a.createdBy ? ` by ${AdminShared.escapeHtml(a.createdBy)}` : ''}</span>` : ''}
                   ${lastNotified ? `<span style="color:#4f46e5;">${AdminShared.escapeHtml(lastNotified)}</span>` : ''}
@@ -277,7 +277,7 @@
               </div>
               <div class="flex-gap" style="margin-left:0.75rem;flex-shrink:0;">
                 <button class="ef-cta btn btn-secondary btn-small" data-action="edit" data-id="${escapedId}">Edit</button>
-                <button class="ef-cta btn btn-primary btn-small" data-action="notify" data-id="${escapedId}">📢 Notify</button>
+                <button class="ef-cta btn btn-primary btn-small" data-action="notify" data-id="${escapedId}">Notify</button>
                 <button class="ef-cta btn btn-danger btn-small" data-action="delete" data-id="${escapedId}">Delete</button>
               </div>
             </div>
@@ -314,7 +314,7 @@
 
     modal.innerHTML = `
       <div class="modal modal-medium">
-        <h3 id="notifyDialogTitle">📢 Send as Notification</h3>
+        <h3 id="notifyDialogTitle">Send as Notification</h3>
         <p class="small">Send this announcement as an in-app notification to the selected audience.</p>
         <div class="form-row">
           <label>Target Audience</label>
@@ -469,7 +469,7 @@
               <div class="flex-1">
                 <strong>${AdminShared.escapeHtml(f.question)}</strong>
                 <p class="small" style="margin:0.5rem 0 0 0;">${AdminShared.escapeHtml(f.answer)}</p>
-                <div class="small" style="margin-top:0.5rem;color:#5f6673;">Category: ${AdminShared.escapeHtml(f.category || 'General')} • Order: ${f.order || 0}</div>
+                <div class="small" style="margin-top:0.5rem;color:#566176;">Category: ${AdminShared.escapeHtml(f.category || 'General')} • Order: ${f.order || 0}</div>
               </div>
               <div class="flex-gap">
                 <button class="ef-cta btn btn-secondary btn-small" data-action="edit" data-id="${escapedId}">Edit</button>
@@ -519,7 +519,7 @@
           const escapedId = AdminShared.escapeHtml(p.id);
           const priceDisplay = window.EFPackagePrice ? EFPackagePrice.label(p) : '';
           return `
-          <div style="padding:1rem;background:#f9fafb;border-radius:4px;margin-bottom:0.5rem;" data-id="${escapedId}">
+          <div style="padding:1rem;background:#f7f6f3;border-radius:4px;margin-bottom:0.5rem;" data-id="${escapedId}">
             <div class="flex-between">
               <div>
                 <strong>${AdminShared.escapeHtml(p.title)}</strong>

@@ -187,7 +187,7 @@ select:focus {
 }
 
 .tier-badge--free {
-  background: linear-gradient(135deg, #6b7280 0%, #9ca3af 100%);
+  background: linear-gradient(135deg, #566176 0%, #9ca3af 100%);
 }
 
 /* Stale ticket indicator */
@@ -231,7 +231,7 @@ select:focus {
 .ticket-summary-card__label {
   font-size: 0.7rem;
   font-weight: 600;
-  color: #646b78;
+  color: #566176;
   text-transform: uppercase;
   letter-spacing: 0.5px;
   margin-bottom: 0.4rem;
@@ -241,7 +241,7 @@ select:focus {
   font-size: 1.9rem;
   font-weight: 800;
   line-height: 1;
-  color: #1f2937;
+  color: #17202f;
 }
 
 .ticket-summary-card--open .ticket-summary-card__value    { color: #92400e; }
@@ -286,8 +286,8 @@ select:focus {
 }
 
 .badge-priority-low {
-  background: #f3f4f6;
-  color: #374151;
+  background: #f0eee9;
+  color: #3d4955;
 }
 
 .badge-priority-medium {
@@ -476,7 +476,7 @@ select:focus-visible {
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
   border: 1px solid rgba(0, 0, 0, 0.1);
-  color: #374151;
+  color: #3d4955;
   border-radius: 10px;
   padding: 9px 18px;
   font-size: 14px;
@@ -536,10 +536,10 @@ button.btn-sm.btn-primary:hover {
 .search-input,
 .filter-select {
   padding: 8px 12px;
-  border: 1.5px solid #e5e7eb;
+  border: 1.5px solid #e8e5de;
   border-radius: 10px;
   font-size: 14px;
-  color: #1f2937;
+  color: #17202f;
   background: rgba(255, 255, 255, 0.85);
   backdrop-filter: blur(4px);
   transition: border-color 0.2s, box-shadow 0.2s;
@@ -565,7 +565,7 @@ button.btn-sm.btn-primary:hover {
 
 .ticket-modal__sender {
   margin: 0 0 0.25rem;
-  color: #646b78;
+  color: #566176;
   font-size: 0.875rem;
 }
 
@@ -574,7 +574,7 @@ button.btn-sm.btn-primary:hover {
   overflow-wrap: break-word;
   word-break: break-word;
   font-size: 1.05rem;
-  color: #111827;
+  color: #17202f;
 }
 
 .ticket-modal__meta {
@@ -583,13 +583,13 @@ button.btn-sm.btn-primary:hover {
   align-items: center;
   margin-bottom: 0.75rem;
   flex-wrap: wrap;
-  color: #646b78;
+  color: #566176;
   font-size: 0.875rem;
 }
 
 .ticket-modal__message {
   background: rgba(249, 250, 251, 0.9);
-  border: 1px solid #e5e7eb;
+  border: 1px solid #e8e5de;
   border-left: 3px solid #0B8073;
   border-radius: 8px;
   padding: 0.875rem 1rem;
@@ -599,7 +599,7 @@ button.btn-sm.btn-primary:hover {
   margin: 0 0 1rem;
   font-size: 0.9375rem;
   line-height: 1.6;
-  color: #374151;
+  color: #3d4955;
 }
 
 .ticket-modal__controls {
@@ -618,7 +618,7 @@ button.btn-sm.btn-primary:hover {
 .ticket-modal__controls select,
 .ticket-modal__controls input {
   padding: 7px 10px;
-  border: 1.5px solid #e5e7eb;
+  border: 1.5px solid #e8e5de;
   border-radius: 8px;
   font-size: 14px;
   background: #fff;
@@ -636,7 +636,7 @@ button.btn-sm.btn-primary:hover {
   margin: 0 0 0.5rem;
   font-size: 0.875rem;
   font-weight: 700;
-  color: #374151;
+  color: #3d4955;
   text-transform: uppercase;
   letter-spacing: 0.04em;
 }
@@ -654,7 +654,7 @@ button.btn-sm.btn-primary:hover {
   margin-bottom: 0.5rem;
   font-weight: 600;
   font-size: 0.875rem;
-  color: #374151;
+  color: #3d4955;
 }
 
 .ticket-modal__footer {
@@ -671,7 +671,7 @@ button.btn-sm.btn-primary:hover {
 
 /* Admin reply textarea */
 #ticketReplyMessage {
-  border: 1.5px solid #e5e7eb;
+  border: 1.5px solid #e8e5de;
   border-radius: 10px;
   padding: 0.75rem 1rem;
   font-size: 14px;
@@ -705,7 +705,7 @@ button.btn-sm.btn-primary:hover {
 
 .ticket-response--user {
   background: rgba(249, 250, 251, 0.85);
-  border: 1px solid #e5e7eb;
+  border: 1px solid #e8e5de;
   border-left: 3px solid #9ca3af;
 }
 
@@ -855,7 +855,7 @@ button.btn-sm.btn-primary:hover {
   padding: 0.6rem 1.25rem;
   font-size: 0.9rem;
   font-weight: 600;
-  color: #646b78;
+  color: #566176;
   background: rgba(255, 255, 255, 0.5);
   border: 1px solid rgba(0, 0, 0, 0.08);
   border-bottom: none;
@@ -931,7 +931,7 @@ button.btn-sm.btn-primary:hover {
   gap: 0.75rem;
   align-items: center;
   padding: 0.875rem 1rem;
-  border-bottom: 1px solid #f3f4f6;
+  border-bottom: 1px solid #f0eee9;
   transition: all 0.18s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
@@ -985,7 +985,7 @@ button.btn-sm.btn-primary:hover {
 }
 
 .admin-messenger-cell--preview {
-  color: #646b78;
+  color: #566176;
   max-width: 240px;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -993,7 +993,7 @@ button.btn-sm.btn-primary:hover {
 }
 
 .admin-messenger-cell--meta {
-  color: #646b78;
+  color: #566176;
   white-space: nowrap;
 }
 
@@ -1017,11 +1017,11 @@ button.btn-sm.btn-primary:hover {
 }
 
 .admin-messenger-state--loading {
-  color: #5f6673;
+  color: #566176;
 }
 
 .admin-messenger-state--empty {
-  color: #5f6673;
+  color: #566176;
 }
 
 .admin-messenger-state--error {
@@ -1054,7 +1054,7 @@ button.btn-sm.btn-primary:hover {
 .admin-messenger-summary {
   padding: 8px 16px;
   font-size: 0.85rem;
-  color: #646b78;
+  color: #566176;
   margin: 0;
 }
 
@@ -1079,7 +1079,7 @@ button.btn-sm.btn-primary:hover {
 .admin-messenger-th {
   padding: 12px 16px;
   font-size: 0.82rem;
-  color: #374151;
+  color: #3d4955;
 }
 /* Center-aligned column modifier for admin-messenger table headers */
 .admin-messenger-th--center {
@@ -1098,7 +1098,7 @@ button.btn-sm.btn-primary:hover {
 
 .admin-messenger-page-info {
   font-size: 0.85rem;
-  color: #646b78;
+  color: #566176;
   flex: 1;
   text-align: center;
 }
@@ -1120,7 +1120,7 @@ button.btn-sm.btn-primary:hover {
 
 .admin-messenger-status-badge--archived {
   background: rgba(107, 114, 128, 0.12);
-  color: #646b78;
+  color: #566176;
 }
 
 .admin-messenger-status-badge--deleted {
@@ -1139,8 +1139,8 @@ button.btn-sm.btn-primary:hover {
 }
 
 .feature-flags-status-loading {
-  background: #f3f4f6;
-  color: #646b78;
+  background: #f0eee9;
+  color: #566176;
 }
 
 .feature-flags-status-saving {
@@ -1186,7 +1186,7 @@ button.btn-sm.btn-primary:hover {
    in admin-enhanced.css which loads after admin.css. */
 .supplier-bulk-actions .btn-sm {
   background: rgba(255, 255, 255, 0.92);
-  color: #1f2937;
+  color: #17202f;
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.18);
 }
 

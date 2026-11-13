@@ -1,7 +1,7 @@
 /**
  * Admin Photos Page E2E Tests
  *
- * Tests the /admin-photos page auto-approve toggle and photo library/queue views.
+ * Tests the Photos tab of /admin-moderation (it was /admin-photos) auto-approve toggle and photo library/queue views.
  * Uses route mocking to avoid real auth and API calls (static-mode friendly).
  */
 
@@ -138,21 +138,21 @@ const SAMPLE_SUPPLIERS = [
 test.describe('Admin Photos — page structure', () => {
   test('page loads with toggle and status banner', async ({ page }) => {
     await setupMocks(page, { autoApprove: true });
-    await page.goto('/admin-photos.html');
+    await page.goto('/admin-moderation?tab=photos');
     await page.waitForLoadState('networkidle');
 
     // Toggle should be present
-    const toggle = page.locator('#autoApproveToggle');
+    const toggle = page.locator('#photoAutoApproveToggle');
     await expect(toggle).toBeVisible();
 
     // Status banner should be present
-    const banner = page.locator('#statusBanner');
+    const banner = page.locator('#photoStatusBanner');
     await expect(banner).toBeVisible();
   });
 
   test('photo queue container is present', async ({ page }) => {
     await setupMocks(page, { autoApprove: true });
-    await page.goto('/admin-photos.html');
+    await page.goto('/admin-moderation?tab=photos');
     await page.waitForLoadState('domcontentloaded');
 
     const queue = page.locator('#photoQueue');
@@ -161,7 +161,7 @@ test.describe('Admin Photos — page structure', () => {
 
   test('search and filter inputs are present with labels', async ({ page }) => {
     await setupMocks(page, { autoApprove: true });
-    await page.goto('/admin-photos.html');
+    await page.goto('/admin-moderation?tab=photos');
     await page.waitForLoadState('domcontentloaded');
 
     // Both labels are properly associated via for= attributes
@@ -174,12 +174,12 @@ test.describe('Admin Photos — page structure', () => {
 
   test('batch bar buttons exist in DOM even when hidden', async ({ page }) => {
     await setupMocks(page, { autoApprove: true });
-    await page.goto('/admin-photos.html');
+    await page.goto('/admin-moderation?tab=photos');
     await page.waitForLoadState('domcontentloaded');
 
     // Batch buttons must be in the DOM (not null) regardless of visibility
-    const approveBtn = page.locator('#batchApproveBtn');
-    const rejectBtn = page.locator('#batchRejectBtn');
+    const approveBtn = page.locator('#photoBatchApproveBtn');
+    const rejectBtn = page.locator('#photoBatchRejectBtn');
     expect(await approveBtn.count()).toBe(1);
     expect(await rejectBtn.count()).toBe(1);
   });
@@ -192,22 +192,22 @@ test.describe('Admin Photos — auto-approve ON (library mode)', () => {
       photos: SAMPLE_PHOTOS,
       suppliers: SAMPLE_SUPPLIERS,
     });
-    await page.goto('/admin-photos.html');
+    await page.goto('/admin-moderation?tab=photos');
     await page.waitForLoadState('networkidle');
   });
 
   test('toggle is checked when auto-approve is ON', async ({ page }) => {
-    const toggle = page.locator('#autoApproveToggle');
+    const toggle = page.locator('#photoAutoApproveToggle');
     await expect(toggle).toBeChecked();
   });
 
   test('toggle state label shows ON', async ({ page }) => {
-    const label = page.locator('#toggleStateLabel');
+    const label = page.locator('#photoToggleStateLabel');
     await expect(label).toHaveText('ON');
   });
 
   test('status banner indicates auto-approval is enabled', async ({ page }) => {
-    const banner = page.locator('#statusBanner');
+    const banner = page.locator('#photoStatusBanner');
     await expect(banner).toContainText('Auto-approval enabled');
   });
 
@@ -226,7 +226,7 @@ test.describe('Admin Photos — auto-approve ON (library mode)', () => {
   });
 
   test('batch bar is hidden in library mode', async ({ page }) => {
-    const batchBar = page.locator('#batchActionsBar');
+    const batchBar = page.locator('#photoBatchActionsBar');
     await expect(batchBar).not.toHaveClass(/active/);
   });
 
@@ -243,22 +243,22 @@ test.describe('Admin Photos — auto-approve OFF (queue mode)', () => {
       photos: PENDING_PHOTOS,
       suppliers: SAMPLE_SUPPLIERS,
     });
-    await page.goto('/admin-photos.html');
+    await page.goto('/admin-moderation?tab=photos');
     await page.waitForLoadState('networkidle');
   });
 
   test('toggle is unchecked when auto-approve is OFF', async ({ page }) => {
-    const toggle = page.locator('#autoApproveToggle');
+    const toggle = page.locator('#photoAutoApproveToggle');
     await expect(toggle).not.toBeChecked();
   });
 
   test('toggle state label shows OFF', async ({ page }) => {
-    const label = page.locator('#toggleStateLabel');
+    const label = page.locator('#photoToggleStateLabel');
     await expect(label).toHaveText('OFF');
   });
 
   test('status banner indicates manual moderation is active', async ({ page }) => {
-    const banner = page.locator('#statusBanner');
+    const banner = page.locator('#photoStatusBanner');
     await expect(banner).toContainText('Manual moderation active');
   });
 
@@ -283,7 +283,7 @@ test.describe('Admin Photos — auto-approve OFF (queue mode)', () => {
 test.describe('Admin Photos — empty states', () => {
   test('shows empty library message when no photos and auto-approve ON', async ({ page }) => {
     await setupMocks(page, { autoApprove: true, photos: [], suppliers: [] });
-    await page.goto('/admin-photos.html');
+    await page.goto('/admin-moderation?tab=photos');
     await page.waitForLoadState('networkidle');
 
     const empty = page.locator('.photo-queue__empty');
@@ -295,7 +295,7 @@ test.describe('Admin Photos — empty states', () => {
     page,
   }) => {
     await setupMocks(page, { autoApprove: false, photos: [], suppliers: [] });
-    await page.goto('/admin-photos.html');
+    await page.goto('/admin-moderation?tab=photos');
     await page.waitForLoadState('networkidle');
 
     const empty = page.locator('.photo-queue__empty');
@@ -331,12 +331,12 @@ test.describe('Admin Photos — toggle interaction', () => {
       });
     });
 
-    await page.goto('/admin-photos.html');
+    await page.goto('/admin-moderation?tab=photos');
     await page.waitForLoadState('networkidle');
 
     // Toggle OFF
-    await page.locator('#autoApproveToggle').click();
-    await page.waitForSelector('#toggleStateLabel');
+    await page.locator('#photoAutoApproveToggle').click();
+    await page.waitForSelector('#photoToggleStateLabel');
 
     expect(putCalled).toBe(true);
   });

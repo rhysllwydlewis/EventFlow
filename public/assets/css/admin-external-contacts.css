@@ -1,8 +1,8 @@
 /* External enquiries: compact table and an actual contained detail dialog. */
 .ec-page-header { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 18px; }
-.ec-page-header .page-title { font-size: clamp(24px,2.6vw,31px); color: #19343b; letter-spacing: -.03em; margin: 0 0 5px; }
+.ec-page-header .page-title { font-size: clamp(24px,2.6vw,31px); color: #17202f; letter-spacing: -.03em; margin: 0 0 5px; }
 .ec-summary-grid { display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); gap: 10px; margin-bottom: 16px; }
-.ec-summary-grid .uc-summary-card { border: 1px solid #e2e9e9; border-radius: 10px; box-shadow: none; }
+.ec-summary-grid .uc-summary-card { border: 1px solid #e8e5de; border-radius: 10px; box-shadow: none; }
 .ec-summary-grid .uc-summary-card:hover { transform: none; background: #f4faf7; }
 .ec-summary-grid .uc-summary-card__value { color: #0b7369; }
 .ec-contact-row { cursor: pointer; }
@@ -15,7 +15,7 @@
 .admin-modal__box { position: relative; width: min(560px,100%); max-height: min(90vh,850px); overflow: auto; background: #fff; border-radius: 14px; box-shadow: 0 24px 70px rgba(0,0,0,.25); }
 .admin-modal__box--wide { width: min(700px,100%); }
 .admin-modal__header { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 17px 20px; border-bottom: 1px solid #e5ebeb; }
-.admin-modal__header h2 { color: #19343b; font-size: 18px; margin: 0; }
+.admin-modal__header h2 { color: #17202f; font-size: 18px; margin: 0; }
 .admin-modal__close { width: 34px; height: 34px; display: grid; place-items: center; border: 1px solid #dce5e5; border-radius: 7px; background: #fff; color: #4e666c; font-size: 24px; line-height: 1; cursor: pointer; }
 .admin-modal__close:hover { background: #f2f8f6; }
 .admin-modal__body { padding: 20px; color: #2c434b; }

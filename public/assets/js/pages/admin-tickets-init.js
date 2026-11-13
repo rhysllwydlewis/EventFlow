@@ -671,7 +671,7 @@
 
     if (items.length === 0) {
       container.innerHTML =
-        '<p class="small" style="color:#646b78;padding:1.5rem 0;">No contact enquiries found.</p>';
+        '<p class="small" style="color:#566176;padding:1.5rem 0;">No contact enquiries found.</p>';
       return;
     }
 
@@ -739,7 +739,7 @@
     const responses = Array.isArray(enquiry.responses) ? enquiry.responses : [];
     const responsesHtml =
       responses.length === 0
-        ? '<p class="small" style="color:#646b78;font-style:italic;">No replies yet.</p>'
+        ? '<p class="small" style="color:#566176;font-style:italic;">No replies yet.</p>'
         : responses
             .map(
               r => `

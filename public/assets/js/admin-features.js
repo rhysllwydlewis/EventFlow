@@ -211,13 +211,13 @@
       container.innerHTML = this.activities
         .map(
           activity => `
-        <div class="activity-item" style="padding: 12px; border-bottom: 1px solid #f3f4f6; display: flex; gap: 12px; align-items: start;">
+        <div class="activity-item" style="padding: 12px; border-bottom: 1px solid #f0eee9; display: flex; gap: 12px; align-items: start;">
           <div class="activity-icon" style="width: 32px; height: 32px; border-radius: 50%; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); display: flex; align-items: center; justify-content: center; color: white; font-size: 14px; flex-shrink: 0;">
             ${activity.icon || '•'}
           </div>
           <div style="flex: 1;">
-            <div style="font-size: 14px; color: #1f2937; font-weight: 500;">${escapeHtml(activity.message)}</div>
-            <div style="font-size: 12px; color: #646b78; margin-top: 2px;">${this.formatTime(activity.timestamp)}</div>
+            <div style="font-size: 14px; color: #17202f; font-weight: 500;">${escapeHtml(activity.message)}</div>
+            <div style="font-size: 12px; color: #566176; margin-top: 2px;">${this.formatTime(activity.timestamp)}</div>
           </div>
         </div>
       `
@@ -265,10 +265,10 @@
               (item, i) => `
             <div>
               <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
-                <span style="font-size: 14px; color: #646b78; font-weight: 500;">${escapeHtml(String(item.label))}</span>
-                <span style="font-size: 14px; color: #1f2937; font-weight: 700;">${escapeHtml(String(item.value))}</span>
+                <span style="font-size: 14px; color: #566176; font-weight: 500;">${escapeHtml(String(item.label))}</span>
+                <span style="font-size: 14px; color: #17202f; font-weight: 700;">${escapeHtml(String(item.value))}</span>
               </div>
-              <div style="background: #f3f4f6; height: 8px; border-radius: 999px; overflow: hidden;">
+              <div style="background: #f0eee9; height: 8px; border-radius: 999px; overflow: hidden;">
                 <div style="height: 100%; background: ${colors[i % colors.length]}; width: ${(item.value / maxValue) * 100}%; transition: width 1s ease;"></div>
               </div>
             </div>
@@ -307,7 +307,7 @@
         <div style="display: flex; align-items: center; gap: 32px;">
           <div style="position: relative; width: 120px; height: 120px;">
             <svg viewBox="0 0 100 100" style="transform: rotate(-90deg);">
-              <circle cx="50" cy="50" r="40" fill="none" stroke="#f3f4f6" stroke-width="20"/>
+              <circle cx="50" cy="50" r="40" fill="none" stroke="#f0eee9" stroke-width="20"/>
               ${segments
                 .map((seg, i) => {
                   const circumference = 2 * Math.PI * 40;
@@ -316,7 +316,7 @@
                 })
                 .join('')}
             </svg>
-            <div style="position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 20px; font-weight: 700; color: #1f2937;">${total}</div>
+            <div style="position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 20px; font-weight: 700; color: #17202f;">${total}</div>
           </div>
           <div style="flex: 1; display: flex; flex-direction: column; gap: 12px;">
             ${segments
@@ -324,8 +324,8 @@
                 seg => `
               <div style="display: flex; align-items: center; gap: 12px;">
                 <div style="width: 12px; height: 12px; border-radius: 2px; background: ${seg.color};"></div>
-                <span style="flex: 1; font-size: 14px; color: #646b78;">${escapeHtml(String(seg.label))}</span>
-                <span style="font-size: 14px; color: #1f2937; font-weight: 600;">${escapeHtml(String(seg.value))} (${escapeHtml(String(seg.percentage))}%)</span>
+                <span style="flex: 1; font-size: 14px; color: #566176;">${escapeHtml(String(seg.label))}</span>
+                <span style="font-size: 14px; color: #17202f; font-weight: 600;">${escapeHtml(String(seg.value))} (${escapeHtml(String(seg.percentage))}%)</span>
               </div>
             `
               )
@@ -376,7 +376,7 @@
         background: none;
         border: none;
         font-size: 20px;
-        color: #5f6673;
+        color: #566176;
         cursor: pointer;
         display: none;
       `;

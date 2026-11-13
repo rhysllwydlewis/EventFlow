@@ -5,11 +5,11 @@
 }
 
 .email-preview-hero {
-  background: linear-gradient(135deg, #063f39, #0b8073 55%, #13b6a2);
-  color: #fff;
-  border-radius: 24px;
+  background: #fff;
+  color: #17202f;
+  border: 1px solid #e8e5de;
+  border-radius: 16px;
   padding: 28px;
-  box-shadow: 0 18px 45px rgba(11, 128, 115, 0.18);
 }
 
 .email-preview-eyebrow {
@@ -23,9 +23,10 @@
 
 .email-preview-warning {
   max-width: 360px;
-  background: rgba(255, 255, 255, 0.14);
-  border: 1px solid rgba(255, 255, 255, 0.28);
-  border-radius: 16px;
+  background: #fdf6e3;
+  color: #5c4a14;
+  border: 1px solid #ecd9a0;
+  border-radius: 12px;
   padding: 14px 16px;
   font-size: 14px;
   line-height: 1.5;
@@ -227,7 +228,3 @@
     margin-top: 16px;
   }
 }
-
-/* Same as the Email Centre hero: the shared admin page style made the title dark on this gradient. */
-body.has-admin-navbar.admin .email-preview-hero .dashboard-title { color: #fff; }
-body.has-admin-navbar.admin .email-preview-hero .dashboard-subtitle { color: rgba(255, 255, 255, 0.9); }

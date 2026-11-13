@@ -31,9 +31,9 @@
     {
       href: '/admin-analytics',
       icon: '📈',
-      label: 'Analytics',
+      label: 'Analytics & Payments',
       group: 'core',
-      desc: 'Revenue, growth & platform analytics',
+      desc: 'Visitors, revenue, growth, platform analytics and payment records',
     },
     {
       href: '/admin-settings',
@@ -81,14 +81,6 @@
       badgeId: 'navBadgePublicCalendar',
     },
     {
-      href: '/admin-photos',
-      icon: '📸',
-      label: 'Photos',
-      group: 'catalogue',
-      desc: 'Photo review & moderation',
-      badgeId: 'navBadgePhotos',
-    },
-    {
       href: '/admin-media',
       icon: '🎨',
       label: 'Media',
@@ -96,12 +88,12 @@
       desc: 'Media asset management',
     },
     {
-      href: '/admin-reviews',
-      icon: '⭐',
-      label: 'Reviews',
+      href: '/admin-moderation',
+      icon: '🛡️',
+      label: 'Moderation',
       group: 'moderation',
-      desc: 'Review approvals & moderation',
-      badgeId: 'navBadgeReviews',
+      desc: 'Reviews, supplier photos and content reports waiting for a decision',
+      badgeId: 'navBadgeModeration',
     },
     {
       href: '/admin-tickets',
@@ -117,14 +109,6 @@
       label: 'Community',
       group: 'moderation',
       desc: 'Community moderation, reports, categories and health',
-    },
-    {
-      href: '/admin-reports',
-      icon: '🚩',
-      label: 'Reports',
-      group: 'moderation',
-      desc: 'User-submitted content reports & moderation actions',
-      badgeId: 'navBadgeReports',
     },
     {
       href: '/admin-messenger',
@@ -147,13 +131,6 @@
       label: 'SEO Insights',
       group: 'content',
       desc: 'Search Console performance, keyword gaps and rewrite opportunities',
-    },
-    {
-      href: '/admin-payments',
-      icon: '💳',
-      label: 'Payments',
-      group: 'operations',
-      desc: 'Payment records & billing',
     },
     {
       href: '/admin-partners',
@@ -916,9 +893,11 @@
         setNavBadge('navBadgePackages', pending.packages || 0);
         // Public calendar: pending publishing requests + open event reports
         setNavBadge('navBadgePublicCalendar', pending.publicCalendarRequests || 0);
-        setNavBadge('navBadgePhotos', pending.photos || 0);
-        setNavBadge('navBadgeReviews', pending.reviews || 0);
-        setNavBadge('navBadgeReports', pending.reports || 0);
+        // Moderation: reviews, photos and content reports all wait in one place
+        setNavBadge(
+          'navBadgeModeration',
+          (pending.reviews || 0) + (pending.photos || 0) + (pending.reports || 0)
+        );
         // Open tickets: support tickets plus new enquiries from VEXI, Chlo and other integrated sites
         setNavBadge(
           'openTicketsBadge',

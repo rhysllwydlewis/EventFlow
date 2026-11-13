@@ -1,5 +1,5 @@
 /* Shared events admin workspace. Kept separate from the customer calendar. */
-body.has-admin-navbar.admin { background: #f5f7f8; color: #172b34; }
+body.has-admin-navbar.admin { background: #f7f6f3; color: #172b34; }
 body.has-admin-navbar.admin .admin-main-content { max-width: 1320px; padding: 24px clamp(16px, 3vw, 36px) 64px; }
 .calendar-admin-hero { display: flex; align-items: center; min-height: 190px; padding: clamp(24px, 3vw, 38px); border-radius: 18px; background: #086e66; box-shadow: none; margin-bottom: 18px; }
 .calendar-admin-hero::before { background: radial-gradient(circle at 93% 10%, rgba(255,255,255,.12), transparent 24rem); }
@@ -46,7 +46,7 @@ body.has-admin-navbar.admin .admin-main-content { max-width: 1320px; padding: 24
 .calendar-admin-table td { padding: 13px 12px; vertical-align: middle; border-top: 1px solid #edf1f2; color: #344b54; }
 .calendar-admin-table td:first-child { min-width: 190px; }
 .calendar-admin-table td:last-child { min-width: 200px; }
-.calendar-admin-table strong { display: block; color: #19343b; font-size: 12px; margin-bottom: 3px; }
+.calendar-admin-table strong { display: block; color: #17202f; font-size: 12px; margin-bottom: 3px; }
 .calendar-admin-table .small { color: #52656b; font-size: 11px; }
 .calendar-admin-table tbody tr:hover { background: #f9fbfa; }
 .calendar-admin-badge { display: inline-block; padding: 4px 7px; border-radius: 5px; background: #edf1f2; color: #465b62; text-transform: capitalize; font-size: 10px; font-weight: 750; white-space: nowrap; }

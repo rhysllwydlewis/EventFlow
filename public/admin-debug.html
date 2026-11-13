@@ -48,7 +48,7 @@
   <div class="dashboard-header">
     <div class="header-content">
       <div>
-        <h1 class="dashboard-title">🩺 Debug &amp; System Checks</h1>
+        <h1 class="dashboard-title">Debug &amp; System Checks</h1>
         <p class="dashboard-subtitle">Comprehensive site health monitor — all pages and APIs in one view.</p>
       </div>
       <div class="header-actions">
@@ -117,7 +117,7 @@
     <!-- ── Tab: Coverage ──────────────────────────────────────────── -->
     <div id="tab-coverage" class="sc-tab-panel" role="tabpanel" aria-labelledby="tab-btn-coverage">
 
-      <p class="small" style="margin-bottom:1rem;color:var(--color-text-muted,#6b7280);">
+      <p class="small" style="margin-bottom:1rem;color:var(--color-text-muted,#566176);">
         All pages and API endpoints monitored by the system-check runner. Status reflects the most recent run.
         <span id="sc-coverage-run-time"></span>
       </p>
@@ -189,7 +189,7 @@
     <!-- ── Tab: Webhooks ─────────────────────────────────────────────── -->
     <div id="tab-webhooks" class="sc-tab-panel" role="tabpanel" aria-labelledby="tab-btn-webhooks" style="margin-bottom:3rem;">
 
-      <p class="small" style="margin-bottom:1rem;color:var(--color-text-muted,#6b7280);">
+      <p class="small" style="margin-bottom:1rem;color:var(--color-text-muted,#566176);">
         Test all configured webhook integrations from one place. Sends a synthetic probe
         request to each enabled endpoint and reports the result.
       </p>
@@ -238,7 +238,7 @@
 
         <!-- Lookup User -->
         <section class="sc-acct-section" aria-labelledby="sc-acct-lookup-heading">
-          <h2 id="sc-acct-lookup-heading" class="section-heading" style="margin-top:1.5rem;">🔍 Lookup User</h2>
+          <h2 id="sc-acct-lookup-heading" class="section-heading" style="margin-top:1.5rem;">Lookup User</h2>
           <form id="sc-form-lookup" class="sc-acct-form" novalidate>
             <label for="sc-lookup-email" class="sc-acct-label">Email address</label>
             <div class="sc-acct-row">
@@ -251,7 +251,7 @@
 
         <!-- Verify User -->
         <section class="sc-acct-section" aria-labelledby="sc-acct-verify-heading">
-          <h2 id="sc-acct-verify-heading" class="section-heading" style="margin-top:1.5rem;">✅ Verify User Email</h2>
+          <h2 id="sc-acct-verify-heading" class="section-heading" style="margin-top:1.5rem;">Verify User Email</h2>
           <form id="sc-form-verify" class="sc-acct-form" novalidate>
             <label for="sc-verify-email" class="sc-acct-label">Email address to force-verify</label>
             <div class="sc-acct-row">
@@ -264,7 +264,7 @@
 
         <!-- Fix Password -->
         <section class="sc-acct-section" aria-labelledby="sc-acct-fixpw-heading">
-          <h2 id="sc-acct-fixpw-heading" class="section-heading" style="margin-top:1.5rem;">🔑 Fix Password</h2>
+          <h2 id="sc-acct-fixpw-heading" class="section-heading" style="margin-top:1.5rem;">Fix Password</h2>
           <form id="sc-form-fixpw" class="sc-acct-form" novalidate>
             <label for="sc-fixpw-email" class="sc-acct-label">Email address</label>
             <input id="sc-fixpw-email" name="email" type="email" class="sc-acct-input" placeholder="user@example.com" required autocomplete="off" style="margin-bottom:.5rem;">
@@ -279,7 +279,7 @@
 
         <!-- Test Email -->
         <section class="sc-acct-section" aria-labelledby="sc-acct-email-heading">
-          <h2 id="sc-acct-email-heading" class="section-heading" style="margin-top:1.5rem;">📧 Test Email</h2>
+          <h2 id="sc-acct-email-heading" class="section-heading" style="margin-top:1.5rem;">Test Email</h2>
           <form id="sc-form-email" class="sc-acct-form" novalidate>
             <label for="sc-email-to" class="sc-acct-label">Send a test verification email to</label>
             <div class="sc-acct-row">
@@ -292,8 +292,8 @@
 
         <!-- Login Test -->
         <section class="sc-acct-section" aria-labelledby="sc-acct-login-heading">
-          <h2 id="sc-acct-login-heading" class="section-heading" style="margin-top:1.5rem;">🧪 Login Test (Diagnostics Only)</h2>
-          <p class="small" style="color:var(--color-text-muted,#6b7280);margin-bottom:.75rem;">Tests credentials without actually logging in. Returns diagnostics.</p>
+          <h2 id="sc-acct-login-heading" class="section-heading" style="margin-top:1.5rem;">Login Test (Diagnostics Only)</h2>
+          <p class="small" style="color:var(--color-text-muted,#566176);margin-bottom:.75rem;">Tests credentials without actually logging in. Returns diagnostics.</p>
           <form id="sc-form-login" class="sc-acct-form" novalidate>
             <label for="sc-login-email" class="sc-acct-label">Email address</label>
             <input id="sc-login-email" name="email" type="email" class="sc-acct-input" placeholder="user@example.com" required autocomplete="off" style="margin-bottom:.5rem;">
@@ -308,8 +308,8 @@
 
         <!-- Audit Users -->
         <section class="sc-acct-section" aria-labelledby="sc-acct-audit-heading">
-          <h2 id="sc-acct-audit-heading" class="section-heading" style="margin-top:1.5rem;">📋 Audit All Users</h2>
-          <p class="small" style="color:var(--color-text-muted,#6b7280);margin-bottom:.75rem;">Scans all user records for issues (no password hash, invalid hash, unverified). This action is audit-logged.</p>
+          <h2 id="sc-acct-audit-heading" class="section-heading" style="margin-top:1.5rem;">Audit All Users</h2>
+          <p class="small" style="color:var(--color-text-muted,#566176);margin-bottom:.75rem;">Scans all user records for issues (no password hash, invalid hash, unverified). This action is audit-logged.</p>
           <button id="sc-audit-users-btn" type="button" class="ef-cta btn btn-secondary btn-sm">Run User Audit</button>
           <div id="sc-audit-result" aria-live="polite" class="sc-acct-result"></div>
         </section>

@@ -11,7 +11,8 @@ const path = require('path');
 
 const ADMIN_ROUTES = path.join(__dirname, '../../routes/admin.js');
 const PHOTOS_INIT = path.join(__dirname, '../../public/assets/js/pages/admin-photos-init.js');
-const PHOTOS_HTML = path.join(__dirname, '../../public/admin-photos.html');
+// Photos is a tab of the Moderation page (it was /admin-photos)
+const PHOTOS_HTML = path.join(__dirname, '../../public/admin-moderation.html');
 
 let adminContent;
 let photosInitContent;
@@ -143,7 +144,7 @@ describe('Admin Photos — Page JS (admin-photos-init.js)', () => {
 });
 
 describe('Admin Photos — HTML Page exists', () => {
-  it('admin-photos.html exists on disk', () => {
+  it('admin-moderation.html (the Photos tab) exists on disk', () => {
     expect(fs.existsSync(PHOTOS_HTML)).toBe(true);
   });
 });

@@ -36,7 +36,7 @@
           href: '/admin-homepage',
         },
         { label: 'Open Media Center', meta: 'Pexels and assets', href: '/admin-media' },
-        { label: 'Review supplier photos', meta: 'Approval queue', href: '/admin-photos' },
+        { label: 'Review supplier photos', meta: 'Approval queue', href: '/admin-moderation?tab=photos' },
       ],
     },
     content: {
@@ -104,7 +104,7 @@
           href: '/admin-homepage',
         },
         { label: 'Edit site content', meta: 'FAQs and announcements', href: '/admin-content' },
-        { label: 'Review photo queue', meta: 'Moderation', href: '/admin-photos' },
+        { label: 'Review photo queue', meta: 'Moderation', href: '/admin-moderation?tab=photos' },
       ],
     },
   };

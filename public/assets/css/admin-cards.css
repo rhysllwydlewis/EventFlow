@@ -9,7 +9,7 @@
 .admin-card {
   background: white;
   border-radius: 16px;
-  border: 1px solid #e5e7eb;
+  border: 1px solid #e8e5de;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
   padding: 24px;
   transition: all 0.3s ease;
@@ -25,18 +25,18 @@
   justify-content: space-between;
   margin-bottom: 20px;
   padding-bottom: 16px;
-  border-bottom: 1px solid #f3f4f6;
+  border-bottom: 1px solid #f0eee9;
 }
 
 .admin-card-title {
   font-size: 18px;
   font-weight: 600;
-  color: #1f2937;
+  color: #17202f;
   margin: 0;
 }
 
 .admin-card-body {
-  color: #4b5563;
+  color: #3d4955;
   font-size: 14px;
   line-height: 1.6;
 }
@@ -44,7 +44,7 @@
 .admin-card-footer {
   margin-top: 20px;
   padding-top: 16px;
-  border-top: 1px solid #f3f4f6;
+  border-top: 1px solid #f0eee9;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -54,7 +54,7 @@
 .stat-card {
   background: white;
   border-radius: 16px;
-  border: 1px solid #e5e7eb;
+  border: 1px solid #e8e5de;
   padding: 24px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
   transition: all 0.3s ease;
@@ -122,7 +122,7 @@
 .stat-card-label {
   font-size: 14px;
   font-weight: 500;
-  color: #646b78;
+  color: #566176;
   margin-bottom: 8px;
   text-transform: uppercase;
   letter-spacing: 0.5px;
@@ -131,7 +131,7 @@
 .stat-card-value {
   font-size: 36px;
   font-weight: 700;
-  color: #1f2937;
+  color: #17202f;
   line-height: 1;
   margin-bottom: 8px;
 }
@@ -251,7 +251,7 @@
 .list-card {
   background: white;
   border-radius: 16px;
-  border: 1px solid #e5e7eb;
+  border: 1px solid #e8e5de;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
   overflow: hidden;
 }
@@ -260,7 +260,7 @@
   display: flex;
   align-items: center;
   padding: 16px 24px;
-  border-bottom: 1px solid #f3f4f6;
+  border-bottom: 1px solid #f0eee9;
   transition: background 0.2s;
 }
 
@@ -269,7 +269,7 @@
 }
 
 .list-card-item:hover {
-  background: #f9fafb;
+  background: #f7f6f3;
 }
 
 .list-card-icon {
@@ -292,13 +292,13 @@
 .list-card-title {
   font-size: 14px;
   font-weight: 600;
-  color: #1f2937;
+  color: #17202f;
   margin-bottom: 4px;
 }
 
 .list-card-subtitle {
   font-size: 13px;
-  color: #646b78;
+  color: #566176;
 }
 
 .list-card-action {
@@ -310,7 +310,7 @@
 .table-card {
   background: white;
   border-radius: 16px;
-  border: 1px solid #e5e7eb;
+  border: 1px solid #e8e5de;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
   overflow: hidden;
 }
@@ -323,8 +323,8 @@
 }
 
 .table-card th {
-  background: #f9fafb;
-  border-bottom: 2px solid #e5e7eb;
+  background: #f7f6f3;
+  border-bottom: 2px solid #e8e5de;
   border-top: none;
   border-left: none;
   border-right: none;
@@ -332,19 +332,19 @@
   text-align: left;
   font-size: 13px;
   font-weight: 600;
-  color: #646b78;
+  color: #566176;
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
 
 .table-card td {
   padding: 16px 24px;
-  border-bottom: 1px solid #f3f4f6;
+  border-bottom: 1px solid #f0eee9;
   border-left: none;
   border-right: none;
   border-top: none;
   font-size: 14px;
-  color: #374151;
+  color: #3d4955;
 }
 
 .table-card tr:last-child td {
@@ -352,14 +352,14 @@
 }
 
 .table-card tr:hover {
-  background: #f9fafb;
+  background: #f7f6f3;
 }
 
 /* Empty State */
 .empty-state {
   text-align: center;
   padding: 64px 24px;
-  color: #5f6673;
+  color: #566176;
 }
 
 .empty-state-icon {
@@ -371,13 +371,13 @@
 .empty-state-title {
   font-size: 18px;
   font-weight: 600;
-  color: #646b78;
+  color: #566176;
   margin-bottom: 8px;
 }
 
 .empty-state-desc {
   font-size: 14px;
-  color: #5f6673;
+  color: #566176;
   max-width: 400px;
   margin: 0 auto 24px;
 }
@@ -482,7 +482,7 @@
 }
 
 .btn-secondary:hover {
-  background: #f9fafb;
+  background: #f7f6f3;
   transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 }
@@ -618,14 +618,14 @@
 
 .export-card-desc {
   font-size: 0.9rem;
-  color: var(--color-text-muted, #6b7280);
+  color: var(--color-text-muted, #566176);
   margin: 0 0 0.75rem;
   line-height: 1.5;
 }
 
 .export-card-meta {
   font-size: 0.8rem;
-  color: var(--color-text-muted, #6b7280);
+  color: var(--color-text-muted, #566176);
   margin: 0;
 }
 

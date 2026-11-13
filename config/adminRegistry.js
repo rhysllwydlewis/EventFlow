@@ -42,11 +42,11 @@ const REGISTRY = [
   {
     route: '/admin-analytics',
     htmlFile: 'admin-analytics',
-    label: 'Analytics',
+    label: 'Analytics & Payments',
     icon: '📈',
     category: 'core',
     inNav: true,
-    desc: 'Revenue, growth & platform analytics',
+    desc: 'Visitors, revenue, growth, platform analytics and payment records',
   },
   {
     route: '/admin-settings',
@@ -126,16 +126,6 @@ const REGISTRY = [
     badgeId: 'navBadgePublicCalendar',
   },
   {
-    route: '/admin-photos',
-    htmlFile: 'admin-photos',
-    label: 'Photos',
-    icon: '📸',
-    category: 'catalogue',
-    inNav: true,
-    desc: 'Photo review & moderation',
-    badgeId: 'navBadgePhotos',
-  },
-  {
     route: '/admin-media',
     htmlFile: 'admin-media',
     label: 'Media',
@@ -147,14 +137,14 @@ const REGISTRY = [
 
   // ── Moderation ────────────────────────────────────────────────────────────
   {
-    route: '/admin-reviews',
-    htmlFile: 'admin-reviews',
-    label: 'Reviews',
-    icon: '⭐',
+    route: '/admin-moderation',
+    htmlFile: 'admin-moderation',
+    label: 'Moderation',
+    icon: '🛡️',
     category: 'moderation',
     inNav: true,
-    desc: 'Review approvals & moderation',
-    badgeId: 'navBadgeReviews',
+    desc: 'Reviews, supplier photos and content reports waiting for a decision',
+    badgeId: 'navBadgeModeration',
   },
   {
     route: '/admin-tickets',
@@ -195,16 +185,6 @@ const REGISTRY = [
     desc: 'Search Console performance, keyword gaps and rewrite opportunities',
   },
   {
-    route: '/admin-reports',
-    htmlFile: 'admin-reports',
-    label: 'Reports',
-    icon: '🚩',
-    category: 'moderation',
-    inNav: true,
-    desc: 'User-submitted content reports & moderation actions',
-    badgeId: 'navBadgeReports',
-  },
-  {
     route: '/admin-messenger',
     htmlFile: 'admin-messenger',
     label: 'Messages',
@@ -223,15 +203,6 @@ const REGISTRY = [
   },
 
   // ── Operations ────────────────────────────────────────────────────────────
-  {
-    route: '/admin-payments',
-    htmlFile: 'admin-payments',
-    label: 'Payments',
-    icon: '💳',
-    category: 'operations',
-    inNav: true,
-    desc: 'Payment records & billing',
-  },
   {
     route: '/admin-audit',
     htmlFile: 'admin-audit',

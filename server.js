@@ -638,6 +638,30 @@ app.get('/package/:slug', (req, res) => {
   });
 });
 
+[
+  ['/admin-reviews', 'reviews'],
+  ['/admin-photos', 'photos'],
+  ['/admin-reports', 'reports'],
+].forEach(([route, tab]) => {
+  [route, `${route}.html`].forEach(deprecated => {
+    app.get(deprecated, (req, res) => {
+      const qs = req.url.includes('?') ? req.url.slice(req.url.indexOf('?')) : '';
+      // Reviews, Photos and Reports are now tabs of Moderation; keep ?supplierId= and any filters.
+      const base = qs ? `${qs}&tab=${tab}` : `?tab=${tab}`;
+      res.redirect(302, `/admin-moderation${base}`);
+    });
+  });
+});
+
+['/admin-payments', '/admin-payments.html'].forEach(deprecated => {
+  app.get(deprecated, (req, res) => {
+    const qs = req.url.includes('?') ? req.url.slice(req.url.indexOf('?')) : '';
+    // Payments is now the Payments tab of Analytics.
+    const base = qs ? `${qs}&tab=payments` : '?tab=payments';
+    res.redirect(302, `/admin-analytics${base}`);
+  });
+});
+
 ['/admin-content-dates', '/admin-content-dates.html'].forEach(deprecated => {
   app.get(deprecated, (req, res) => {
     const qs = req.url.includes('?') ? req.url.slice(req.url.indexOf('?')) : '';

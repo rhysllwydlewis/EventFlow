@@ -175,7 +175,7 @@
               user.supplierProfile
                 ? `<a href="${esc(user.supplierProfile.profileUrl)}" class="btn btn-secondary btn-sm">Supplier Profile →</a>`
                 : user.role === 'supplier'
-                  ? `<button id="provisionProfileBtn" class="btn btn-warning btn-sm" title="Create missing supplier profile for this user">⚠️ Provision Profile</button>`
+                  ? `<button id="provisionProfileBtn" class="btn btn-warning btn-sm" title="Create missing supplier profile for this user">Provision Profile</button>`
                   : ''
             }
           </div>
@@ -271,7 +271,7 @@
           <div class="ud-activity-row"><span class="ud-activity-label">Account created</span><span class="ud-activity-date">${fmtDate(user.createdAt)}</span></div>
           ${user.lastLoginAt ? `<div class="ud-activity-row"><span class="ud-activity-label">Last login</span><span class="ud-activity-date">${fmtDate(user.lastLoginAt)}</span></div>` : ''}
           ${user.verifiedAt ? `<div class="ud-activity-row"><span class="ud-activity-label">Email verified</span><span class="ud-activity-date">${fmtDate(user.verifiedAt)}</span></div>` : ''}
-          <p class="small" style="margin-top:12px;color:#5f6673;">For email delivery history, open the <a href="/admin-emails">Email Centre</a> and filter by this address.</p>
+          <p class="small" style="margin-top:12px;color:#566176;">For email delivery history, open the <a href="/admin-emails">Email Centre</a> and filter by this address.</p>
         </div>
       </div>
     `;

@@ -53,7 +53,7 @@ const AdminShared = (function () {
         to { transform: translateY(0); opacity: 1; }
       }
       .admin-modal-cancel:hover {
-        background: #f3f4f6 !important;
+        background: #f0eee9 !important;
       }
       .admin-modal-confirm:hover {
         opacity: 0.9;
@@ -507,10 +507,10 @@ const AdminShared = (function () {
         <div style="display: flex; align-items: flex-start; gap: 1rem; margin-bottom: 1.5rem;">
           <div style="font-size: 2rem; flex-shrink: 0;">${config.icon}</div>
           <div style="flex: 1;">
-            <h3 id="modal-title" style="margin: 0 0 0.5rem 0; font-size: 1.25rem; font-weight: 600; color: #1f2937;">
+            <h3 id="modal-title" style="margin: 0 0 0.5rem 0; font-size: 1.25rem; font-weight: 600; color: #17202f;">
               ${escapeHtml(title)}
             </h3>
-            <p style="margin: 0; color: #646b78; line-height: 1.5;">
+            <p style="margin: 0; color: #566176; line-height: 1.5;">
               ${escapeHtml(message)}
             </p>
           </div>
@@ -518,9 +518,9 @@ const AdminShared = (function () {
         <div style="display: flex; gap: 0.75rem; justify-content: flex-end;">
           <button class="admin-modal-cancel" style="
             padding: 0.5rem 1rem;
-            border: 1px solid #d1d5db;
+            border: 1px solid #d6d2c8;
             background: white;
-            color: #374151;
+            color: #3d4955;
             border-radius: 6px;
             cursor: pointer;
             font-size: 0.875rem;
@@ -700,10 +700,10 @@ const AdminShared = (function () {
 
       // Build modal content
       const messageHtml = message
-        ? `<p style="margin: 0 0 1rem 0; color: #646b78; line-height: 1.5;">${escapeHtml(message)}</p>`
+        ? `<p style="margin: 0 0 1rem 0; color: #566176; line-height: 1.5;">${escapeHtml(message)}</p>`
         : '';
       const labelHtml = label
-        ? `<label for="admin-input-field" style="display: block; margin-bottom: 0.5rem; font-weight: 600; color: #374151;">${escapeHtml(label)}</label>`
+        ? `<label for="admin-input-field" style="display: block; margin-bottom: 0.5rem; font-weight: 600; color: #3d4955;">${escapeHtml(label)}</label>`
         : '';
 
       const inputElement =
@@ -711,7 +711,7 @@ const AdminShared = (function () {
           ? `<textarea id="admin-input-field" rows="4" placeholder="${escapeHtml(placeholder)}" style="
               width: 100%;
               padding: 0.5rem;
-              border: 1px solid #d1d5db;
+              border: 1px solid #d6d2c8;
               border-radius: 6px;
               font-size: 0.875rem;
               font-family: inherit;
@@ -720,14 +720,14 @@ const AdminShared = (function () {
           : `<input type="text" id="admin-input-field" value="${escapeHtml(initialValue)}" placeholder="${escapeHtml(placeholder)}" style="
               width: 100%;
               padding: 0.5rem;
-              border: 1px solid #d1d5db;
+              border: 1px solid #d6d2c8;
               border-radius: 6px;
               font-size: 0.875rem;
             ">`;
 
       dialog.innerHTML = `
         <div style="margin-bottom: 1.5rem;">
-          <h3 id="modal-input-title" style="margin: 0 0 0.5rem 0; font-size: 1.25rem; font-weight: 600; color: #1f2937;">
+          <h3 id="modal-input-title" style="margin: 0 0 0.5rem 0; font-size: 1.25rem; font-weight: 600; color: #17202f;">
             ${escapeHtml(title)}
           </h3>
           ${messageHtml}
@@ -740,9 +740,9 @@ const AdminShared = (function () {
         <div style="display: flex; gap: 0.75rem; justify-content: flex-end;">
           <button class="admin-modal-cancel" style="
             padding: 0.5rem 1rem;
-            border: 1px solid #d1d5db;
+            border: 1px solid #d6d2c8;
             background: white;
-            color: #374151;
+            color: #3d4955;
             border-radius: 6px;
             cursor: pointer;
             font-size: 0.875rem;
@@ -1399,7 +1399,7 @@ const AdminShared = (function () {
       <tr>
         <td colspan="${cols}" style="text-align: center; padding: 20px;">
           <div class="loading-spinner"></div>
-          <div style="margin-top: 10px; color: #646b78;">${escapeHtml(message)}</div>
+          <div style="margin-top: 10px; color: #566176;">${escapeHtml(message)}</div>
         </td>
       </tr>
       ${skeletonRows}
@@ -1412,7 +1412,7 @@ const AdminShared = (function () {
       style.textContent = `
         .skeleton-line {
           height: 16px;
-          background: linear-gradient(90deg, #f3f4f6 25%, #e5e7eb 50%, #f3f4f6 75%);
+          background: linear-gradient(90deg, #f0eee9 25%, #e8e5de 50%, #f0eee9 75%);
           background-size: 200% 100%;
           animation: skeleton-loading 1.5s infinite;
           border-radius: 4px;
@@ -1425,7 +1425,7 @@ const AdminShared = (function () {
           width: 40px;
           height: 40px;
           margin: 0 auto;
-          border: 4px solid #f3f4f6;
+          border: 4px solid #f0eee9;
           border-top-color: #3b82f6;
           border-radius: 50%;
           animation: spinner-rotate 0.8s linear infinite;
@@ -1444,11 +1444,11 @@ const AdminShared = (function () {
         .error-state-title, .empty-state-title {
           font-size: 20px;
           font-weight: 600;
-          color: #1f2937;
+          color: #17202f;
           margin-bottom: 8px;
         }
         .error-state-message, .empty-state-message {
-          color: #646b78;
+          color: #566176;
           margin-bottom: 20px;
         }
       `;
@@ -1478,7 +1478,7 @@ const AdminShared = (function () {
     }
 
     const retryButtonHtml = onRetry
-      ? `<button class="ef-cta btn btn-primary" id="retry-btn" style="margin-top: 12px;">🔄 Retry</button>`
+      ? `<button class="ef-cta btn btn-primary" id="retry-btn" style="margin-top: 12px;">Retry</button>`
       : '';
 
     element.innerHTML = `

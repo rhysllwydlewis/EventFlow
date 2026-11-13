@@ -109,7 +109,7 @@
       good: 'background:#ecfdf5;color:#047857;border:1px solid #a7f3d0;',
       warn: 'background:#fffbeb;color:#b45309;border:1px solid #fde68a;',
       bad: 'background:#fef2f2;color:#b91c1c;border:1px solid #fecaca;',
-      neutral: 'background:#f3f4f6;color:#4b5563;border:1px solid #e5e7eb;',
+      neutral: 'background:#f0eee9;color:#3d4955;border:1px solid #e8e5de;',
     };
     return `<span style="display:inline-flex;align-items:center;padding:.22rem .55rem;border-radius:999px;font-size:.72rem;font-weight:700;${palette[tone] || palette.neutral}">${esc(label)}</span>`;
   }
@@ -183,7 +183,7 @@
     panel.id = 'acr-ops-panel';
     panel.setAttribute('aria-live', 'polite');
     panel.style.cssText =
-      'background:#fff;border:1px solid #d1d5db;border-radius:16px;padding:1rem 1.1rem;margin-bottom:1.25rem;box-shadow:0 1px 3px rgba(0,0,0,.05);';
+      'background:#fff;border:1px solid #d6d2c8;border-radius:16px;padding:1rem 1.1rem;margin-bottom:1.25rem;box-shadow:0 1px 3px rgba(0,0,0,.05);';
     stats.parentNode.insertBefore(panel, stats);
     return panel;
   }
@@ -217,7 +217,7 @@
       return;
     }
     panel.innerHTML =
-      '<div style="color:#646b78;font-size:.875rem;">Loading cashout safety controls…</div>';
+      '<div style="color:#566176;font-size:.875rem;">Loading cashout safety controls…</div>';
     try {
       const res = await fetch('/api/v1/admin/cashout-requests/ops/controls', {
         credentials: 'include',
@@ -231,19 +231,19 @@
       panel.innerHTML = `
         <div style="display:flex;justify-content:space-between;gap:1rem;align-items:flex-start;flex-wrap:wrap;">
           <div>
-            <div style="font-weight:750;color:#111827;margin-bottom:.35rem;">Cashout safety controls</div>
+            <div style="font-weight:750;color:#17202f;margin-bottom:.35rem;">Cashout safety controls</div>
             <div style="display:flex;gap:.4rem;flex-wrap:wrap;">
               ${safetyPill(controls.cashoutsPaused ? 'Cashouts paused' : 'Cashouts active', controls.cashoutsPaused ? 'bad' : 'good')}
               ${safetyPill(controls.programmePaused ? 'Master payout pause active' : 'Master payout pause off', controls.programmePaused ? 'bad' : 'neutral')}
             </div>
-            <div style="margin-top:.55rem;font-size:.78rem;color:#646b78;line-height:1.5;">
+            <div style="margin-top:.55rem;font-size:.78rem;color:#566176;line-height:1.5;">
               Limits: single £${esc(config.maxSingleCashoutGbp ?? '—')} · first £${esc(config.firstCashoutMaxGbp ?? '—')} · 24h £${esc(config.rolling24hMaxGbp ?? '—')} · 30d £${esc(config.rolling30dMaxGbp ?? '—')} · open requests ${esc(config.maxOpenRequests ?? '—')}
             </div>
-            ${controls.reason ? `<div style="margin-top:.35rem;font-size:.78rem;color:#4b5563;">Last control reason: ${esc(controls.reason)}</div>` : ''}
+            ${controls.reason ? `<div style="margin-top:.35rem;font-size:.78rem;color:#3d4955;">Last control reason: ${esc(controls.reason)}</div>` : ''}
           </div>
           <div style="min-width:min(100%,420px);flex:1;max-width:560px;">
-            <label for="acr-ops-reason" style="display:block;font-size:.76rem;font-weight:700;color:#4b5563;margin-bottom:.3rem;">Operational reason</label>
-            <input id="acr-ops-reason" maxlength="1000" placeholder="Required when pausing or resuming…" style="width:100%;box-sizing:border-box;border:1px solid #d1d5db;border-radius:8px;padding:.5rem .65rem;margin-bottom:.55rem;">
+            <label for="acr-ops-reason" style="display:block;font-size:.76rem;font-weight:700;color:#3d4955;margin-bottom:.3rem;">Operational reason</label>
+            <input id="acr-ops-reason" maxlength="1000" placeholder="Required when pausing or resuming…" style="width:100%;box-sizing:border-box;border:1px solid #d6d2c8;border-radius:8px;padding:.5rem .65rem;margin-bottom:.55rem;">
             <div style="display:flex;gap:.45rem;flex-wrap:wrap;">
               <button type="button" class="ef-cta acr-action-btn ${controls.cashoutsPaused ? '' : 'acr-action-btn--danger'}" id="acr-toggle-cashouts">${controls.cashoutsPaused ? 'Resume cashouts' : 'Pause cashouts'}</button>
               <button type="button" class="ef-cta acr-action-btn ${controls.programmePaused ? '' : 'acr-action-btn--danger'}" id="acr-toggle-master-payout">${controls.programmePaused ? 'Lift master payout pause' : 'Master-pause payouts'}</button>
@@ -331,12 +331,12 @@
           return `<tr data-id="${esc(r.id)}">
             <td>
               <div style="font-weight:600;">${partnerName}</div>
-              ${partnerEmail ? `<div style="font-size:0.8rem;color:#646b78;">${partnerEmail}</div>` : ''}
-              ${r.partnerRefCode ? `<div style="font-size:0.75rem;color:#5f6673;font-family:monospace;">${esc(r.partnerRefCode)}</div>` : ''}
+              ${partnerEmail ? `<div style="font-size:0.8rem;color:#566176;">${partnerEmail}</div>` : ''}
+              ${r.partnerRefCode ? `<div style="font-size:0.75rem;color:#566176;font-family:monospace;">${esc(r.partnerRefCode)}</div>` : ''}
             </td>
             <td>${esc(methodLabel(r.method))}</td>
             <td style="font-weight:700;">£${esc(String(r.denominationGbp || '?'))}</td>
-            <td style="font-size:0.85rem;color:#646b78;">${esc(String(r.pointsHeld || '?'))} pts</td>
+            <td style="font-size:0.85rem;color:#566176;">${esc(String(r.pointsHeld || '?'))} pts</td>
             <td>
               ${statusBadge(r.status)}
               <div style="display:flex;gap:.25rem;flex-wrap:wrap;margin-top:.4rem;">${safetyPill(identity.label, identity.tone)}${safetyPill(reconciliation.label, reconciliation.tone)}${safetyPill(fraud.label, fraud.tone)}</div>
@@ -344,7 +344,7 @@
             <td style="font-size:0.82rem;white-space:nowrap;">${esc(fmtDate(r.createdAt))}</td>
             <td>
               <button type="button" class="ef-cta acr-action-btn acr-open-btn" data-id="${esc(r.id)}" aria-label="View request ${esc(r.id)}">
-                ✏️ Manage
+                Manage
               </button>
             </td>
           </tr>`;
@@ -490,7 +490,7 @@
 
   function renderRequestOverview(r, partner) {
     const partnerEmail = partner.email
-      ? `<div style="font-size:0.82rem;color:#646b78;">${esc(partner.email)}</div>`
+      ? `<div style="font-size:0.82rem;color:#566176;">${esc(partner.email)}</div>`
       : '';
     return `
     <div class="acr-modal-field">
@@ -556,16 +556,16 @@
       : '';
     const issues = issueCodes.length ? `Issues: ${esc(issueCodes.join(', '))}.` : '';
     return `
-    <div style="border:1px solid #d1d5db;border-radius:12px;padding:.85rem;margin:1rem 0;background:#f9fafb;">
-      <div style="font-size:.78rem;font-weight:800;color:#374151;text-transform:uppercase;letter-spacing:.04em;margin-bottom:.55rem;">Safety review</div>
+    <div style="border:1px solid #d6d2c8;border-radius:12px;padding:.85rem;margin:1rem 0;background:#f7f6f3;">
+      <div style="font-size:.78rem;font-weight:800;color:#3d4955;text-transform:uppercase;letter-spacing:.04em;margin-bottom:.55rem;">Safety review</div>
       <div style="display:flex;gap:.35rem;flex-wrap:wrap;margin-bottom:.65rem;">${safetyPill(identity.label, identity.tone)}${safetyPill(reconciliation.label, reconciliation.tone)}${safetyPill(fraud.label, fraud.tone)}</div>
-      <div style="font-size:.78rem;color:#646b78;line-height:1.55;">${identityReview}${ledgerReview}${issues}</div>
+      <div style="font-size:.78rem;color:#566176;line-height:1.55;">${identityReview}${ledgerReview}${issues}</div>
       <div style="display:flex;gap:.45rem;flex-wrap:wrap;margin-top:.7rem;">
         <button type="button" class="ef-cta acr-action-btn" id="acr-identity-verify-btn">Verify identity</button>
         <button type="button" class="ef-cta acr-action-btn acr-action-btn--danger" id="acr-identity-reject-btn">Reject identity</button>
         <button type="button" class="ef-cta acr-action-btn" id="acr-reconcile-btn">Run ledger reconciliation</button>
       </div>
-      <div style="font-size:.73rem;color:#646b78;margin-top:.5rem;">Identity actions use the internal review note below as the required audit reason.</div>
+      <div style="font-size:.73rem;color:#566176;margin-top:.5rem;">Identity actions use the internal review note below as the required audit reason.</div>
     </div>`;
   }
 
@@ -576,7 +576,7 @@
         : String(r.deliveryDetails || '');
     return [
       r.partnerMessage
-        ? `<div class="acr-modal-field"><span class="acr-modal-label">Partner message</span><div class="acr-modal-value" style="background:#f9fafb;padding:0.6rem;border-radius:8px;font-style:italic;">${esc(r.partnerMessage)}</div></div>`
+        ? `<div class="acr-modal-field"><span class="acr-modal-label">Partner message</span><div class="acr-modal-value" style="background:#f7f6f3;padding:0.6rem;border-radius:8px;font-style:italic;">${esc(r.partnerMessage)}</div></div>`
         : '',
       r.adminResponseMessage
         ? `<div class="acr-modal-field"><span class="acr-modal-label">Current response message</span><div class="acr-modal-value" style="background:#f0fdf4;padding:0.6rem;border-radius:8px;">${esc(r.adminResponseMessage)}</div></div>`

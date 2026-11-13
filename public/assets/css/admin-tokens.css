@@ -41,17 +41,17 @@
   --admin-info-text:      #1e40af;
 
   /* ─── Neutral / text colours ─────────────────────────────────────────── */
-  --admin-text-primary:   #1f2937;
-  --admin-text-secondary: #374151;
-  --admin-text-muted:     #6b7280;
+  --admin-text-primary:   #17202f;
+  --admin-text-secondary: #3d4955;
+  --admin-text-muted:     #566176;
   --admin-text-faint:     #9ca3af;
 
   /* ─── Surface & border colours ──────────────────────────────────────── */
   --admin-surface:        #ffffff;
   --admin-bg:             #f8f9fa;
-  --admin-bg-alt:         #f3f4f6;
-  --admin-border:         #e5e7eb;
-  --admin-border-light:   #f3f4f6;
+  --admin-bg-alt:         #f0eee9;
+  --admin-border:         #e8e5de;
+  --admin-border-light:   #f0eee9;
 
   /* ─── Spacing scale ──────────────────────────────────────────────────── */
   --admin-space-1:   4px;

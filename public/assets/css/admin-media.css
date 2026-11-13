@@ -261,7 +261,7 @@
   display: block;
   margin-top: 16px;
   font-weight: 700;
-  color: #1f2937;
+  color: #17202f;
 }
 
 .media-assignment-modal select {
@@ -316,7 +316,7 @@
   min-height: 44px;
   height: 44px;
   padding: 0 0.75rem;
-  border: 1px solid #d1d5db;
+  border: 1px solid #d6d2c8;
   border-radius: 8px;
   box-sizing: border-box;
   font-size: 0.95rem;

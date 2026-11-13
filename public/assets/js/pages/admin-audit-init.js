@@ -141,7 +141,7 @@
         <div class="text-center-pad">
           <div style="font-size:4rem;margin-bottom:1rem;">📝</div>
           <h3 class="h3-mb-05">No audit logs found</h3>
-          <p style="color:#646b78;">Audit logs will appear here as admins perform actions.</p>
+          <p style="color:#566176;">Audit logs will appear here as admins perform actions.</p>
         </div>
       `;
       return;

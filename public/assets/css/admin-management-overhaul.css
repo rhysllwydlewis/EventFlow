@@ -92,7 +92,7 @@
 
 .admin-ops-section-title {
   margin: 0 0 0.75rem;
-  color: #111827;
+  color: #17202f;
   font-size: 1rem;
 }
 
@@ -149,7 +149,7 @@
 
 .admin-ops-task-title {
   margin: 0;
-  color: #111827;
+  color: #17202f;
   font-weight: 800;
 }
 
@@ -210,7 +210,7 @@
 .media-collection-row input {
   width: 100%;
   min-height: 44px;
-  border: 1px solid #d1d5db;
+  border: 1px solid #d6d2c8;
   border-radius: 6px;
   padding: 0.65rem 0.75rem;
   background: #ffffff;

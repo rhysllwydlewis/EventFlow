@@ -297,7 +297,7 @@
     sortedGroups.forEach(grp => {
       const label = GROUP_LABELS[grp] || escHtml(grp);
       const items = groups[grp];
-      html += `<div class="sc-group-header">${label} <span style="font-weight:400;color:#5f6673;">(${items.length})</span></div>`;
+      html += `<div class="sc-group-header">${label} <span style="font-weight:400;color:#566176;">(${items.length})</span></div>`;
       items.forEach(item => {
         const r = resultMap[item.name];
         let statusIcon, resultHtml;
@@ -373,7 +373,7 @@
         const rowId = `sc-detail-${idx}`;
         const triggeredBy = run.triggeredBy
           ? escHtml(run.triggeredBy.email || run.triggeredBy.id || 'unknown')
-          : '<span style="color:#5f6673;">scheduler</span>';
+          : '<span style="color:#566176;">scheduler</span>';
 
         const detailRows = checks
           .map(c => {
@@ -604,7 +604,7 @@
       return;
     }
 
-    statusEl.innerHTML = '<p style="color:#5f6673;">Checking debug route status…</p>';
+    statusEl.innerHTML = '<p style="color:#566176;">Checking debug route status…</p>';
 
     try {
       const status = await AdminShared.api(DEBUG_STATUS_URL);
@@ -623,7 +623,7 @@
           <div class="sc-info-banner sc-info-banner--disabled" role="status">
             🔒 <strong>Account tools are disabled.</strong><br>
             ${escHtml(status.disabledReason || '')}<br>
-            <span style="color:#4b5563;">${escHtml(status.enableInstructions || '')}</span>
+            <span style="color:#3d4955;">${escHtml(status.enableInstructions || '')}</span>
           </div>`;
       }
     } catch (err) {
@@ -884,14 +884,14 @@
         // Prefer label over name; show path as a hint when available
         const displayName = escHtml(r.label || r.name);
         const pathHint = r.path
-          ? `<br><span style="font-weight:normal;color:#5f6673;font-size:.8em;">${escHtml(r.path)}</span>`
+          ? `<br><span style="font-weight:normal;color:#566176;font-size:.8em;">${escHtml(r.path)}</span>`
           : '';
         const detail = escHtml(r.details || r.error || '');
         return `
           <tr>
             <td style="white-space:nowrap;">${icon} <strong>${displayName}</strong>${pathHint}</td>
             <td>${statusLabel}</td>
-            <td style="color:var(--color-text-muted,#6b7280);font-size:.875em;">${detail}</td>
+            <td style="color:var(--color-text-muted,#566176);font-size:.875em;">${detail}</td>
           </tr>`;
       })
       .join('');
@@ -929,9 +929,9 @@
         <table style="width:100%;border-collapse:collapse;">
           <thead>
             <tr>
-              <th style="text-align:left;padding:.5rem .75rem;border-bottom:1px solid var(--color-border,#e5e7eb);">Integration</th>
-              <th style="text-align:left;padding:.5rem .75rem;border-bottom:1px solid var(--color-border,#e5e7eb);">Status</th>
-              <th style="text-align:left;padding:.5rem .75rem;border-bottom:1px solid var(--color-border,#e5e7eb);">Details</th>
+              <th style="text-align:left;padding:.5rem .75rem;border-bottom:1px solid var(--color-border,#e8e5de);">Integration</th>
+              <th style="text-align:left;padding:.5rem .75rem;border-bottom:1px solid var(--color-border,#e8e5de);">Status</th>
+              <th style="text-align:left;padding:.5rem .75rem;border-bottom:1px solid var(--color-border,#e8e5de);">Details</th>
             </tr>
           </thead>
           <tbody>${rows}</tbody>
@@ -953,7 +953,7 @@
       btn.disabled = true;
       btn.textContent = 'Testing…';
       if (resultEl) {
-        resultEl.innerHTML = '<p style="color:#5f6673;">Running webhook tests…</p>';
+        resultEl.innerHTML = '<p style="color:#566176;">Running webhook tests…</p>';
       }
 
       try {

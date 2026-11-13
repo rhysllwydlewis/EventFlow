@@ -984,6 +984,28 @@ canonicalPages.forEach(page => {
   });
 });
 
+[
+  ['/admin-reviews', 'reviews'],
+  ['/admin-photos', 'photos'],
+  ['/admin-reports', 'reports'],
+].forEach(([route, tab]) => {
+  [route, `${route}.html`].forEach(deprecated => {
+    app.get(deprecated, staticLimiter, (req, res) => {
+      const qs = req.url.includes('?') ? req.url.slice(req.url.indexOf('?')) : '';
+      const base = qs ? `${qs}&tab=${tab}` : `?tab=${tab}`;
+      res.redirect(302, `/admin-moderation${base}`);
+    });
+  });
+});
+
+['/admin-payments', '/admin-payments.html'].forEach(deprecated => {
+  app.get(deprecated, staticLimiter, (req, res) => {
+    const qs = req.url.includes('?') ? req.url.slice(req.url.indexOf('?')) : '';
+    const base = qs ? `${qs}&tab=payments` : '?tab=payments';
+    res.redirect(302, `/admin-analytics${base}`);
+  });
+});
+
 ['/admin-content-dates', '/admin-content-dates.html'].forEach(deprecated => {
   app.get(deprecated, staticLimiter, (req, res) => {
     const qs = req.url.includes('?') ? req.url.slice(req.url.indexOf('?')) : '';
@@ -1009,14 +1031,11 @@ const adminPages = [
   'admin-messenger',
   'admin-messenger-view',
   'admin-packages',
-  'admin-payments',
   'admin-media',
-  'admin-reviews',
+  'admin-moderation',
   'admin-search',
   'admin-seo',
-  'admin-photos',
   'admin-public-calendar',
-  'admin-reports',
   'admin-settings',
   'admin-supplier-detail',
   'admin-suppliers',

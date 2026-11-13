@@ -21,6 +21,14 @@ const MERGES = [
   ['/admin-cashout-requests.html', '/admin-partners', 'cashouts'],
   ['/admin-partner-campaign-report', '/admin-partners', 'report'],
   ['/admin-partner-campaign-report.html', '/admin-partners', 'report'],
+  ['/admin-payments', '/admin-analytics', 'payments'],
+  ['/admin-payments.html', '/admin-analytics', 'payments'],
+  ['/admin-reviews', '/admin-moderation', 'reviews'],
+  ['/admin-reviews.html', '/admin-moderation', 'reviews'],
+  ['/admin-photos', '/admin-moderation', 'photos'],
+  ['/admin-photos.html', '/admin-moderation', 'photos'],
+  ['/admin-reports', '/admin-moderation', 'reports'],
+  ['/admin-reports.html', '/admin-moderation', 'reports'],
 ];
 
 describe('retired admin pages redirect to the tab that replaced them', () => {
