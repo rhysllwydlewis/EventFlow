@@ -43,7 +43,7 @@ describe('homepage version template routing', () => {
     const source = '<html><body><main id="main-content"></main></body></html>';
     const rendered = injectHomepageManagerAdminScript(source);
 
-    expect(rendered).toContain('/assets/js/pages/admin-homepage-manager.js?v=1');
+    expect(rendered).toContain('/assets/js/pages/admin-homepage-manager.js?v=18.6.0');
   });
 
   test('V2 preview does not receive V3 video assets', () => {

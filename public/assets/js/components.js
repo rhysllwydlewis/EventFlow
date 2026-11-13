@@ -465,7 +465,7 @@ function loadHomepageManagerAdminScript() {
   }
 
   const script = document.createElement('script');
-  script.src = '/assets/js/pages/admin-homepage-manager.js?v=1';
+  script.src = '/assets/js/pages/admin-homepage-manager.js?v=18.6.0';
   script.defer = true;
   document.head.appendChild(script);
 }
