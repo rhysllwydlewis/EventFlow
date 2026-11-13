@@ -1060,7 +1060,8 @@ app.get('/articles/:slug', (req, res, next) => {
   const slug = req.params.slug;
   // Validate slug: only lowercase alphanumerics and hyphens — prevents path traversal
   if (!/^[a-z0-9-]+$/i.test(slug)) {
-    return next();
+    next();
+    return;
   }
   res.sendFile(path.join(PUBLIC_DIR, 'articles', `${slug}.html`), err => {
     if (err) {
@@ -1154,7 +1155,7 @@ function sendCommunityShell(res, page) {
   const canonical = escapeCommunityHtml(`https://event-flow.co.uk${page.route || '/community'}`);
   const head = [
     `<title>${title} | EventFlow</title>`,
-    `<meta name="description" content="Ask questions, share experiences and get practical advice from people planning events and approved EventFlow supplier listings." />`,
+    '<meta name="description" content="Ask questions, share experiences and get practical advice from people planning events and approved EventFlow supplier listings." />',
     `<link rel="canonical" href="${canonical}" />`,
     `<meta property="og:title" content="${title}" />`,
     page.noindex ? '<meta name="robots" content="noindex,follow" />' : '',

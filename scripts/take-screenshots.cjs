@@ -89,11 +89,11 @@ const pages = [
 ];
 
 async function screenshot(browser, p) {
-  const existing = path.join(OUT, p.slug + '.png');
+  const existing = path.join(OUT, `${p.slug}.png`);
   if (fs.existsSync(existing)) {
     const size = fs.statSync(existing).size;
     console.log('↩ skip (exists)', p.slug, `(${Math.round(size/1024)}KB)`);
-    return { ...p, file: p.slug + '.png', ok: true, bytes: size, skipped: true };
+    return { ...p, file: `${p.slug}.png`, ok: true, bytes: size, skipped: true };
   }
 
   const context = await browser.newContext({ viewport: { width: 1440, height: 900 } });
@@ -115,12 +115,12 @@ async function screenshot(browser, p) {
     await page.goto(BASE + p.path, { waitUntil: 'domcontentloaded', timeout: 20000 });
     // Give JS time to render
     await page.waitForTimeout(2500);
-    const file = path.join(OUT, p.slug + '.png');
+    const file = path.join(OUT, `${p.slug}.png`);
     await page.screenshot({ path: file, fullPage: true });
     const size = fs.statSync(file).size;
     await context.close();
     console.log('✓', p.slug, `(${Math.round(size/1024)}KB)`);
-    return { ...p, file: p.slug + '.png', ok: true, bytes: size };
+    return { ...p, file: `${p.slug}.png`, ok: true, bytes: size };
   } catch (e) {
     await context.close();
     console.log('✗', p.slug, e.message.slice(0, 80));

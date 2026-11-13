@@ -99,10 +99,10 @@ async function run() {
     try {
       await page.goto(BASE + p.path, { waitUntil: 'networkidle', timeout: 15000 });
       await page.waitForTimeout(1200);
-      const file = path.join(OUT, p.slug + '.png');
+      const file = path.join(OUT, `${p.slug}.png`);
       await page.screenshot({ path: file, fullPage: true });
       const size = fs.statSync(file).size;
-      results.push({ ...p, file: p.slug + '.png', ok: true, bytes: size });
+      results.push({ ...p, file: `${p.slug}.png`, ok: true, bytes: size });
       console.log('✓', p.slug, `(${Math.round(size/1024)}KB)`);
     } catch (e) {
       results.push({ ...p, ok: false, error: e.message.slice(0, 120) });

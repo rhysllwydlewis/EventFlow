@@ -117,12 +117,12 @@ async function screenshot(browser, p) {
   try {
     await page.goto(BASE + p.path, { waitUntil: 'domcontentloaded', timeout: 20000 });
     await page.waitForTimeout(2500);
-    const file = path.join(OUT, p.slug + '.png');
+    const file = path.join(OUT, `${p.slug}.png`);
     await page.screenshot({ path: file, fullPage: true });
     const size = fs.statSync(file).size;
     await context.close();
     console.log('✓', p.slug, `(${Math.round(size/1024)}KB)`);
-    return { ...p, file: p.slug + '.png', ok: true, bytes: size };
+    return { ...p, file: `${p.slug}.png`, ok: true, bytes: size };
   } catch (e) {
     await context.close();
     console.log('✗', p.slug, e.message.slice(0, 80));
