@@ -60,16 +60,16 @@ button {
   margin: 2px;
   font-size: 12px;
   cursor: pointer;
-  background: #3b82f6;
+  background: #1d4ed8;
   color: #fff;
-  border: 1px solid #2563eb;
+  border: 1px solid #1e40af;
   border-radius: 4px;
   transition: all 0.2s ease;
   white-space: nowrap;
 }
 
 button:hover {
-  background: #2563eb;
+  background: #1e40af;
   transform: translateY(-1px);
   box-shadow: 0 2px 4px rgba(59, 130, 246, 0.2);
 }

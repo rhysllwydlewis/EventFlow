@@ -140,7 +140,7 @@ body.has-admin-navbar.admin .footer a { color: #0a7569; }
 
 /* Muted and secondary text: the shared "muted" grey and the small stat labels sat just under 4.5:1
    on the grey page background. Links inside small print use the darker brand teal. */
-body.has-admin-navbar.admin { --color-text-muted: #5f6673; }
+body.has-admin-navbar.admin { --color-text-muted: #5f6673; --color-primary: #0a7569; }
 body.has-admin-navbar.admin .stat-label,
 body.has-admin-navbar.admin .stat-card-mini .stat-label { color: #4b5563; opacity: 1; }
 body.has-admin-navbar.admin :is(.small, .section-description) > a:not([class*="btn"]):not(.ef-cta) { color: #0a7569 !important; }

@@ -3206,7 +3206,7 @@ tbody tr.selected td {
 }
 
 .sc-tab-btn[aria-selected="true"] {
-  color: var(--color-primary, #0b8073);
+  color: #0a7569;
   border-bottom-color: var(--color-primary, #0b8073);
 }
 
