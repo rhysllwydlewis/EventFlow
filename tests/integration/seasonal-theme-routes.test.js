@@ -49,7 +49,8 @@ describe('seasonal navbar theme (real server)', () => {
 
     const css = await request(app).get('/assets/css/seasonal-theme.css').expect(200);
     expect(css.headers['content-type']).toMatch(/css/);
-    expect(css.text).toContain('pointer-events: none');
+    // Stylesheets are served minified, so match the declaration whatever its spacing.
+    expect(css.text).toMatch(/pointer-events:\s*none/);
   });
 
   it('has a CSP that allows the data-URI artwork and a same-origin lookup', async () => {

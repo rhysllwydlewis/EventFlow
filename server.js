@@ -902,6 +902,12 @@ app.use(require('./routes/public-index-gate'));
 const { templateMiddleware } = require('./utils/template-renderer');
 app.use(templateMiddleware());
 
+// Stylesheets under /assets are served minified (whitespace and comments only, cached
+// in memory, falling back to the file on disk on any doubt). It has to sit after
+// staticCachingMiddleware and compression, which set the cache headers and encode
+// the body, and before express.static, which would otherwise answer the request.
+const { createCssMinifyMiddleware } = require('./middleware/css-minify');
+app.use(createCssMinifyMiddleware({ root: path.join(__dirname, 'public') }));
 app.use(express.static(path.join(__dirname, 'public')));
 // Far-future caching for user uploads (they have unique filenames)
 app.use(
