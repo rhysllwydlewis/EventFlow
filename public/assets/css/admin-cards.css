@@ -630,7 +630,7 @@
 }
 
 .export-card-meta--warning {
-  color: var(--color-warning, #d97706);
+  color: var(--color-warning, #b45309);
   font-weight: 500;
 }
 

@@ -144,3 +144,6 @@ body.has-admin-navbar.admin { --color-text-muted: #5f6673; --color-primary: #0a7
 body.has-admin-navbar.admin .stat-label,
 body.has-admin-navbar.admin .stat-card-mini .stat-label { color: #4b5563; opacity: 1; }
 body.has-admin-navbar.admin :is(.small, .section-description) > a:not([class*="btn"]):not(.ef-cta) { color: #0a7569 !important; }
+
+/* Links inside the yellow warning notes (Debug page) were brand teal on pale yellow, just under 4.5:1 */
+body.has-admin-navbar.admin .sc-warning-banner a { color: #0a7569; text-decoration: underline; }
