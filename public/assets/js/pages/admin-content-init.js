@@ -44,11 +44,11 @@
           <div class="form-row">
             <label>Type</label>
             <select id="qnType">
-              <option value="info">ℹ️ Info</option>
-              <option value="warning">⚠️ Warning</option>
-              <option value="success">✅ Success</option>
-              <option value="maintenance">🔧 Maintenance</option>
-              <option value="urgent">🚨 Urgent</option>
+              <option value="info">Info</option>
+              <option value="warning">⚠︎ Warning</option>
+              <option value="success">✓ Success</option>
+              <option value="maintenance">Maintenance</option>
+              <option value="urgent">Urgent</option>
             </select>
           </div>
           <div class="form-row">
@@ -89,7 +89,7 @@
           type: modal.querySelector('#qnType').value,
           target: modal.querySelector('#qnTarget').value,
         });
-        AdminShared.showToast(`✅ Notification sent to ${result.notifiedCount} users`, 'success');
+        AdminShared.showToast(`✓ Notification sent to ${result.notifiedCount} users`, 'success');
         modal.remove();
         loadAnnouncements();
       } catch (err) {
@@ -118,11 +118,11 @@
           <div class="form-row">
             <label>Type</label>
             <select id="announcementType">
-              <option value="info" ${announcement && announcement.type === 'info' ? 'selected' : ''}>ℹ️ Info</option>
-              <option value="warning" ${announcement && announcement.type === 'warning' ? 'selected' : ''}>⚠️ Warning</option>
-              <option value="success" ${announcement && announcement.type === 'success' ? 'selected' : ''}>✅ Success</option>
-              <option value="maintenance" ${announcement && announcement.type === 'maintenance' ? 'selected' : ''}>🔧 Maintenance</option>
-              <option value="urgent" ${announcement && announcement.type === 'urgent' ? 'selected' : ''}>🚨 Urgent</option>
+              <option value="info" ${announcement && announcement.type === 'info' ? 'selected' : ''}>Info</option>
+              <option value="warning" ${announcement && announcement.type === 'warning' ? 'selected' : ''}>⚠︎ Warning</option>
+              <option value="success" ${announcement && announcement.type === 'success' ? 'selected' : ''}>✓ Success</option>
+              <option value="maintenance" ${announcement && announcement.type === 'maintenance' ? 'selected' : ''}>Maintenance</option>
+              <option value="urgent" ${announcement && announcement.type === 'urgent' ? 'selected' : ''}>Urgent</option>
             </select>
           </div>
           
@@ -235,11 +235,11 @@
       }
 
       const typeEmoji = {
-        info: 'ℹ️',
-        warning: '⚠️',
-        success: '✅',
-        maintenance: '🔧',
-        urgent: '🚨',
+        info: '',
+        warning: '⚠︎',
+        success: '✓',
+        maintenance: '',
+        urgent: '',
       };
 
       container.innerHTML = announcements
@@ -253,9 +253,9 @@
             ? `Last sent: ${new Date(a.lastNotifiedAt).toLocaleDateString('en-GB', { timeZone: 'Europe/London' })}`
             : '';
           const notifiedBadge = a.notifiedCount
-            ? `<span style="background:#ede9fe;color:#5b21b6;padding:0.1rem 0.45rem;border-radius:9999px;font-size:0.7rem;font-weight:600;">📢 ×${a.notifiedCount}</span>`
+            ? `<span style="background:#ede9fe;color:#5b21b6;padding:0.1rem 0.45rem;border-radius:9999px;font-size:0.7rem;font-weight:600;">×${a.notifiedCount}</span>`
             : '';
-          const emoji = typeEmoji[a.type] || 'ℹ️';
+          const emoji = typeEmoji[a.type] || '';
           return `
           <div class="announcement-item" data-id="${escapedId}" data-type="${escapedType}">
             <div class="flex-between-start">
@@ -667,8 +667,8 @@
         }
 
         document.getElementById('cdScheduleInfo').innerHTML = data.status.scheduled
-          ? `✅ Automated checks scheduled for the 1st of each month at 2:00 AM.<br>Next run: ${new Date(data.status.nextRun).toLocaleString()}`
-          : '❌ Automated checks are not currently scheduled.';
+          ? `✓ Automated checks scheduled for the 1st of each month at 2:00 AM.<br>Next run: ${new Date(data.status.nextRun).toLocaleString()}`
+          : '✗ Automated checks are not currently scheduled.';
       } catch (err) {
         console.error('Failed to load content dates:', err);
         const el = document.getElementById('cdStatusContent');
@@ -797,7 +797,7 @@
           if (!res.ok || !data.success) {
             throw new Error(data.message || data.error || 'Check failed');
           }
-          AdminShared.showToast(`✅ ${data.message}`, 'success');
+          AdminShared.showToast(`✓ ${data.message}`, 'success');
           await loadContentDates();
         } catch (err) {
           AdminShared.showToast(`Failed: ${err.message}`, 'error');
@@ -823,7 +823,7 @@
           if (!res.ok || !data.success) {
             throw new Error(data.message || data.error || 'Toggle failed');
           }
-          AdminShared.showToast(`✅ Automation ${enabled ? 'enabled' : 'disabled'}`, 'success');
+          AdminShared.showToast(`✓ Automation ${enabled ? 'enabled' : 'disabled'}`, 'success');
           document.getElementById('cdAutoUpdateLabel').textContent = enabled
             ? 'Enabled'
             : 'Disabled';

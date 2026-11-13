@@ -272,7 +272,7 @@
     const statusFilter = (document.getElementById('acr-filter-status') || {}).value || '';
 
     if (tbody) {
-      tbody.innerHTML = `<tr><td colspan="7"><div class="acr-empty"><div class="acr-empty-icon">⏳</div><p class="acr-empty-text">Loading…</p></div></td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="7"><div class="acr-empty"><p class="acr-empty-text">Loading…</p></div></td></tr>`;
     }
 
     try {
@@ -315,7 +315,7 @@
       }
       if (items.length === 0) {
         if (tbody) {
-          tbody.innerHTML = `<tr><td colspan="7"><div class="acr-empty"><div class="acr-empty-icon">📭</div><p class="acr-empty-text">No cashout requests found.</p></div></td></tr>`;
+          tbody.innerHTML = `<tr><td colspan="7"><div class="acr-empty"><p class="acr-empty-text">No cashout requests found.</p></div></td></tr>`;
         }
         return;
       }
@@ -361,7 +361,7 @@
       openLinkedRequest(items);
     } catch (err) {
       if (tbody) {
-        tbody.innerHTML = `<tr><td colspan="7"><div class="acr-empty"><div class="acr-empty-icon">⚠️</div><p class="acr-empty-text">${esc(err.message || 'Error loading data')}</p></div></td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="7"><div class="acr-empty"><div class="acr-empty-icon">⚠︎</div><p class="acr-empty-text">${esc(err.message || 'Error loading data')}</p></div></td></tr>`;
       }
       showToast(err.message || 'Failed to load cashout requests', 'error');
     }
@@ -711,7 +711,7 @@
       return;
     }
     saveBtn.disabled = saving;
-    saveBtn.textContent = saving ? 'Saving…' : '💾 Save changes';
+    saveBtn.textContent = saving ? 'Saving…' : 'Save changes';
   }
 
   function buildCashoutUpdateBody(update) {

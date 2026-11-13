@@ -112,7 +112,7 @@
     const attachments = (msg.attachments || [])
       .map(
         a =>
-          `<span class="amv-attachment-chip">📎 ${escapeHtml(a.filename || a.name || 'file')}</span>`
+          `<span class="amv-attachment-chip">${escapeHtml(a.filename || a.name || 'file')}</span>`
       )
       .join('');
 

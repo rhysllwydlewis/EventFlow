@@ -81,3 +81,57 @@ describe('the behaviour-analytics section is live and sits in the Overview tab',
     expect(read('public/assets/js/pages/admin-behaviour-analytics.js')).toContain('panel-overview');
   });
 });
+
+describe('admin screens use line icons and plain text, not colour emoji', () => {
+  const COLOUR_EMOJI = /[\p{Emoji_Presentation}\uFE0F]/u;
+  // Category icons on the homepage editor are chosen by the admin, so they are data, not styling.
+  const ALLOWED = new Set([
+    'admin-homepage-init.js',
+    'admin-homepage-rebuild.js',
+    'admin-homepage-manager.js',
+  ]);
+
+  const codeLines = file =>
+    read(file)
+      .split('\n')
+      .filter(line => !/^\s*(\/\/|\*|\/\*|<!--)/.test(line));
+
+  test('admin pages and their scripts carry no colour emoji in markup or strings', () => {
+    const files = [
+      ...fs
+        .readdirSync(path.join(ROOT, 'public'))
+        .filter(f => /^admin-.*\.html$/.test(f))
+        .map(f => `public/${f}`),
+      ...fs
+        .readdirSync(path.join(ROOT, 'public/assets/js/pages'))
+        .filter(f => /^admin-.*\.js$/.test(f) && !ALLOWED.has(f))
+        .map(f => `public/assets/js/pages/${f}`),
+      'public/assets/js/admin-shared.js',
+      'public/assets/js/admin-navbar.js',
+    ];
+    const offenders = [];
+    for (const file of files) {
+      codeLines(file).forEach(line => {
+        if (COLOUR_EMOJI.test(line)) {
+          offenders.push(`${file}: ${line.trim().slice(0, 80)}`);
+        }
+      });
+    }
+    expect(offenders).toEqual([]);
+  });
+
+  test('every Quick Nav tile and group has a line icon that exists', () => {
+    const source = read('public/assets/js/admin-navbar.js');
+    const defined = new Set([...source.matchAll(/^\s{4}(\w+): '<[^\n]*',$/gm)].map(m => m[1]));
+    const used = [...source.matchAll(/icon: '(\w+)'/g)].map(m => m[1]);
+    expect(used.length).toBeGreaterThanOrEqual(30);
+    expect(used.filter(name => !defined.has(name))).toEqual([]);
+  });
+
+  test('page content fills the same width as the page header', () => {
+    const css = read('public/assets/css/admin-workspace.css');
+    expect(css).toMatch(
+      /main\.section > \.container,[\s\S]*?\[role="tabpanel"\] > \.container \{[^}]*max-width: none/
+    );
+  });
+});

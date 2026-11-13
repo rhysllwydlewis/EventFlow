@@ -239,7 +239,6 @@
       container.innerHTML = `
         <div class="data-section">
           <div class="empty-state">
-            <div class="empty-state-icon">🎫</div>
             <h3>No tickets found</h3>
             <p class="small">
               ${allTickets.length === 0 ? 'Support tickets will appear here when users submit them.' : 'No tickets match your current filters.'}
@@ -351,7 +350,7 @@
         return `
           <div class="ticket-response ticket-response--${isAdmin ? 'admin' : 'user'}">
             <div class="ticket-response__header">
-              <strong>${escapeHtml(author)} ${isAdmin ? '<span class="badge badge-admin">🛡️ Admin</span>' : ''}</strong>
+              <strong>${escapeHtml(author)} ${isAdmin ? '<span class="badge badge-admin">Admin</span>' : ''}</strong>
               <span class="small">${formatDate(response.createdAt || response.timestamp)}</span>
             </div>
             <p class="ticket-response__body">${escapeHtml(response.message || '')}</p>

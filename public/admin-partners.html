@@ -233,6 +233,7 @@
       transition: border-color 0.2s, box-shadow 0.2s;
     }
     .ap-filter-row input { flex: 1; min-width: 200px; }
+    .ap-filter-row select { width: auto; flex: 0 0 200px; }
     .ap-filter-row input::placeholder { color: #566176; }
     .ap-filter-row input:focus,
     .ap-filter-row select:focus {
@@ -409,7 +410,7 @@
   <!-- ── Tabs: Partners / Cashout requests / Campaign report ──────────────
        The cashout requests and campaign report used to be separate pages
        (/admin-cashout-requests and /admin-partner-campaign-report, which redirect here). -->
-  <div class="admin-tabs" role="tablist" aria-label="Partner Programme sections" style="padding:0 1.5rem;">
+  <div class="admin-tabs" role="tablist" aria-label="Partner Programme sections">
     <button class="ef-cta admin-tab admin-tab--active" id="tab-partners" role="tab" aria-selected="true" aria-controls="panel-partners" data-tab="partners">Partners</button>
     <button class="ef-cta admin-tab" id="tab-cashouts" role="tab" aria-selected="false" aria-controls="panel-cashouts" data-tab="cashouts">Cashout requests</button>
     <button class="ef-cta admin-tab" id="tab-report" role="tab" aria-selected="false" aria-controls="panel-report" data-tab="report">Campaign report</button>
@@ -483,7 +484,7 @@
         <input
           id="partnerSearch"
           type="search"
-          placeholder="🔍  Search name, email or ref code…"
+          placeholder=" Search name, email or ref code…"
           aria-label="Search partners"
         />
         <select id="statusFilter" aria-label="Filter by status">
@@ -537,7 +538,6 @@
   <div id="ap-monthly-draw-section" style="margin-top:1.5rem;">
     <div class="ap-section" style="margin-top:0;background:#f7f6f3;border:1px dashed #d6d2c8;">
       <div style="display:flex;align-items:center;gap:1rem;flex-wrap:wrap;">
-        <div style="font-size:2.5rem;line-height:1;">🎟️</div>
         <div style="flex:1;min-width:220px;">
           <div style="display:flex;align-items:center;gap:0.6rem;margin-bottom:0.3rem;">
             <div class="ap-section-title" style="margin:0;color:#065f46;">Monthly Draw</div>
@@ -592,7 +592,6 @@
     <!-- Hero call-to-action -->
     <div class="ap-section" style="margin-top:0;">
       <div class="ap-empty-hero">
-        <div class="ap-empty-glyph">🤝</div>
         <div class="ap-empty-title">No partners yet — be the first to invite one</div>
         <div class="ap-empty-sub">
           The EventFlow Partner Programme is live and ready. Share the hidden sign-up link with trusted affiliates, influencers, and community promoters. Once they join, you'll manage everything from this page.
@@ -689,32 +688,26 @@
       <div class="ap-section-title">Programme Features</div>
       <div class="ap-info-grid">
         <div class="ap-info-tile">
-          <div class="ap-info-tile-icon">🔒</div>
           <div class="ap-info-tile-title">Hidden portal</div>
           <div class="ap-info-tile-body">Partner pages are noindex/nofollow and not linked from public navigation.</div>
         </div>
         <div class="ap-info-tile">
-          <div class="ap-info-tile-icon">🔄</div>
           <div class="ap-info-tile-title">Idempotent awards</div>
           <div class="ap-info-tile-body">Each bonus is awarded at most once per supplier — no double-payments on retries.</div>
         </div>
         <div class="ap-info-tile">
-          <div class="ap-info-tile-icon">🛡️</div>
           <div class="ap-info-tile-title">Trial exclusion</div>
           <div class="ap-info-tile-body">£0 / trial Stripe invoices never trigger the subscription bonus.</div>
         </div>
         <div class="ap-info-tile">
-          <div class="ap-info-tile-icon">📋</div>
           <div class="ap-info-tile-title">Full ledger</div>
           <div class="ap-info-tile-body">Every credit transaction is stored in <code style="font-size:0.75rem;color:#4f46e5;">partner_credit_transactions</code> with an audit trail.</div>
         </div>
         <div class="ap-info-tile">
-          <div class="ap-info-tile-icon">⚡</div>
           <div class="ap-info-tile-title">Manual adjustments</div>
           <div class="ap-info-tile-body">Add or deduct credits any time with a required audit note stored against the transaction.</div>
         </div>
         <div class="ap-info-tile">
-          <div class="ap-info-tile-icon">🚫</div>
           <div class="ap-info-tile-title">Instant disable</div>
           <div class="ap-info-tile-body">Disabling a partner blocks all API access and stops new credit awards immediately.</div>
         </div>
@@ -731,8 +724,8 @@
         <div>
           <div style="font-size:0.8rem;color:#566176;margin-bottom:0.4rem;">Credit Awards</div>
           <div style="font-size:0.82rem;color:#3d4955;line-height:1.7;">
-            📦 First package → <span style="color:#047857;font-weight:700;">+10 cr</span><br>
-            💳 First paid subscription → <span style="color:#047857;font-weight:700;">+100 cr</span><br>
+            First package → <span style="color:#047857;font-weight:700;">+10 cr</span><br>
+            First paid subscription → <span style="color:#047857;font-weight:700;">+100 cr</span><br>
             <span style="color:#566176;font-size:0.78rem;">Both within 30-day attribution window · once per supplier</span>
           </div>
         </div>
@@ -766,35 +759,30 @@
     <!-- Stats Bar -->
     <div class="acr-stats-bar" id="acr-stats-bar">
       <div class="acr-stat-card acr-stat-card--submitted">
-        <span class="acr-stat-icon">📥</span>
         <div>
           <div class="acr-stat-value" id="acr-stat-submitted">—</div>
           <div class="acr-stat-label">Submitted</div>
         </div>
       </div>
       <div class="acr-stat-card acr-stat-card--approved">
-        <span class="acr-stat-icon">✅</span>
         <div>
           <div class="acr-stat-value" id="acr-stat-approved">—</div>
           <div class="acr-stat-label">Approved</div>
         </div>
       </div>
       <div class="acr-stat-card acr-stat-card--processing">
-        <span class="acr-stat-icon">⚙️</span>
         <div>
           <div class="acr-stat-value" id="acr-stat-processing">—</div>
           <div class="acr-stat-label">Processing</div>
         </div>
       </div>
       <div class="acr-stat-card acr-stat-card--delivered">
-        <span class="acr-stat-icon">🎁</span>
         <div>
           <div class="acr-stat-value" id="acr-stat-delivered">—</div>
           <div class="acr-stat-label">Delivered</div>
         </div>
       </div>
       <div class="acr-stat-card acr-stat-card--rejected">
-        <span class="acr-stat-icon">❌</span>
         <div>
           <div class="acr-stat-value" id="acr-stat-rejected">—</div>
           <div class="acr-stat-label">Rejected</div>
@@ -833,7 +821,6 @@
           <tr>
             <td colspan="7">
               <div class="acr-empty">
-                <div class="acr-empty-icon">⏳</div>
                 <p class="acr-empty-text">Loading…</p>
               </div>
             </td>

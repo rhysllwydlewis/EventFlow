@@ -67,7 +67,6 @@
     if (!filtered.length) {
       container.innerHTML = `
         <div class="text-center-pad">
-          <div style="font-size:4rem;margin-bottom:1rem;">📋</div>
           <h3 class="h3-mb-05">No reports found</h3>
           <p style="color:#566176;">
             ${allReports.length === 0 ? 'Content reports will appear here when users flag content.' : 'No reports match your filters.'}
@@ -103,7 +102,7 @@
             ${
               report.status !== 'resolved' && report.status !== 'dismissed'
                 ? `<button class="ef-cta btn-sm btn-success" data-action="resolve" data-id="${report.id}">Resolve</button>
-                 <button class="ef-cta btn-sm btn-danger" data-action="dismiss" data-id="${report.id}">Dismiss</button>`
+                 <button class="ef-cta btn-sm btn-quiet" data-action="dismiss" data-id="${report.id}">Dismiss</button>`
                 : '<span class="small">—</span>'
             }
           </td>

@@ -152,7 +152,7 @@
           <p class="small">${escapeHtml(listing.description.slice(0, 150))}${listing.description.length > 150 ? '...' : ''}</p>
           <div class="listing-meta">
             <span><strong>£${listing.price.toFixed(2)}</strong></span>
-            <span>📍 ${escapeHtml(listing.location || 'No location')}</span>
+            <span>${escapeHtml(listing.location || 'No location')}</span>
             <span>Category: ${escapeHtml(listing.category)}</span>
             <span>Condition: ${escapeHtml(listing.condition)}</span>
           </div>

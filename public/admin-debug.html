@@ -92,7 +92,6 @@
         <h2 id="sc-latest-heading" class="section-heading">Latest Run</h2>
         <div id="sc-summary" aria-live="polite">
           <div class="sc-summary-card">
-            <div class="sc-badge sc-badge--none" aria-hidden="true">⏳</div>
             <div class="sc-summary-meta">
               <p class="sc-summary-title">Loading…</p>
               <p class="sc-summary-subtitle">Fetching latest system-check run</p>
@@ -106,7 +105,6 @@
         <h2 id="sc-failures-heading" class="section-heading">Check Details (Latest Run)</h2>
         <div class="card" id="sc-checks-list">
           <div class="sc-empty">
-            <div class="sc-empty-icon" aria-hidden="true">📋</div>
             <p>No run data yet</p>
           </div>
         </div>
@@ -134,7 +132,6 @@
 
       <div class="card" id="sc-coverage-list" aria-live="polite">
         <div class="sc-empty">
-          <div class="sc-empty-icon" aria-hidden="true">📡</div>
           <p>Loading coverage…</p>
         </div>
       </div>
@@ -157,7 +154,7 @@
             </tr>
           </thead>
           <tbody id="sc-history-body">
-            <tr><td colspan="7" class="sc-empty"><div class="sc-empty-icon" aria-hidden="true">⏳</div><p>Loading history…</p></td></tr>
+            <tr><td colspan="7" class="sc-empty"><p>Loading history…</p></td></tr>
           </tbody>
         </table>
       </div>
@@ -182,7 +179,7 @@
         </div>
       </div>
       <div id="bj-jobs-list" class="bj-jobs" aria-live="polite">
-        <div class="sc-empty"><div class="sc-empty-icon" aria-hidden="true">⏳</div><p>Open this tab to load background jobs.</p></div>
+        <div class="sc-empty"><p>Open this tab to load background jobs.</p></div>
       </div>
     </div><!-- /#tab-background-jobs -->
 
@@ -195,12 +192,12 @@
       </p>
 
       <div class="sc-warning-banner" role="note">
-        ℹ️ Only webhooks whose secrets are configured will perform a signed probe. Unconfigured
+        Only webhooks whose secrets are configured will perform a signed probe. Unconfigured
         webhooks are flagged as <strong>not configured</strong> — no request is sent.
       </div>
 
       <div class="sc-warning-banner" role="note" style="margin-top:.75rem;">
-        🔑 <strong>Stripe key mode is shown in the Details column</strong> for each Stripe result
+        <strong>Stripe key mode is shown in the Details column</strong> for each Stripe result
         (<code>test</code> or <code>live</code>). If you see repeated
         <code>GET /v1/customers/cus_…</code> 400 errors in
         <a href="https://dashboard.stripe.com/workbench/logs" target="_blank" rel="noopener" aria-label="Stripe Workbench logs (opens in new tab)">Stripe Workbench</a>,
@@ -233,7 +230,7 @@
       <div id="sc-acct-body" hidden>
 
         <div class="sc-warning-banner" role="alert">
-          ⚠️ <strong>Emergency tools only.</strong> These actions directly modify user records and cannot be undone automatically. All actions are audit-logged.
+          ⚠︎ <strong>Emergency tools only.</strong> These actions directly modify user records and cannot be undone automatically. All actions are audit-logged.
         </div>
 
         <!-- Lookup User -->

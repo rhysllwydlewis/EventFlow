@@ -197,7 +197,7 @@
             <strong>Pexels Dynamic Collage</strong>
             <div class="small">Enable cycling Pexels photos on homepage hero collage</div>
             <div class="small" style="color: #b45309; margin-top: 4px;">
-              ⚠️ <strong>Legacy:</strong> Use <a href="/admin-homepage" style="color: #1d4ed8; text-decoration: underline;">Homepage Settings → Collage Widget</a> for full control over photos, videos, and uploads.
+              ⚠︎ <strong>Legacy:</strong> Use <a href="/admin-homepage" style="color: #1d4ed8; text-decoration: underline;">Homepage Settings → Collage Widget</a> for full control over photos, videos, and uploads.
             </div>
           </div>
           <label class="toggle-switch">
@@ -217,7 +217,7 @@
       <div id="pexelsTestSection" style="margin-top: 1.5rem; padding: 1rem; background: #f8f9fa; border-radius: 8px; border-left: 4px solid #3b82f6; display: none;">
         <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.75rem;">
           <div>
-            <strong style="color: #17202f;">🔌 Pexels API Connection</strong>
+            <strong style="color: #17202f;">Pexels API Connection</strong>
             <div class="small" style="color: #566176; margin-top: 0.25rem;">
               Test your Pexels API key configuration and check fallback availability
             </div>
@@ -229,10 +229,10 @@
         
         <div style="margin-bottom: 0.75rem; padding: 0.75rem; background: white; border-radius: 6px; font-size: 0.85rem; color: #566176;">
           <strong style="color: #17202f;">Status Indicators:</strong><br>
-          <span style="display: block; margin-top: 0.25rem;">✅ <strong>API Connected</strong> - Live Pexels API is working</span>
-          <span style="display: block; margin-top: 0.25rem;">⚠️ <strong>Using Fallback</strong> - API unavailable, using curated URLs</span>
-          <span style="display: block; margin-top: 0.25rem;">📷 <strong>Custom Collage</strong> - Pexels feature disabled (see checkbox above)</span>
-          <span style="display: block; margin-top: 0.25rem;">❌ <strong>Unavailable</strong> - Both API and fallback failed</span>
+          <span style="display: block; margin-top: 0.25rem;">✓ <strong>API Connected</strong> - Live Pexels API is working</span>
+          <span style="display: block; margin-top: 0.25rem;">⚠︎ <strong>Using Fallback</strong> - API unavailable, using curated URLs</span>
+          <span style="display: block; margin-top: 0.25rem;"><strong>Custom Collage</strong> - Pexels feature disabled (see checkbox above)</span>
+          <span style="display: block; margin-top: 0.25rem;">✗ <strong>Unavailable</strong> - Both API and fallback failed</span>
         </div>
         
         <div id="pexelsTestResult" style="display: none; padding: 0.75rem; border-radius: 6px; font-size: 0.9rem;">
@@ -486,7 +486,7 @@
       <input type="file" id="importFileInput" accept=".json" style="display: none;">
       
       <div class="warning-banner" style="margin-top: 1rem;">
-        <strong>⚠️ Warning:</strong> Importing settings will overwrite current configuration. Make sure to export a backup first.
+        <strong>⚠︎ Warning:</strong> Importing settings will overwrite current configuration. Make sure to export a backup first.
       </div>
     </div>
     
@@ -515,7 +515,7 @@
         </button>
       </div>
       <div class="warning-banner">
-        <strong>⚠️ Warning:</strong> Enabling maintenance mode will make the site inaccessible to all users except admins.
+        <strong>⚠︎ Warning:</strong> Enabling maintenance mode will make the site inaccessible to all users except admins.
       </div>
       
       <div class="feature-item">
@@ -707,7 +707,7 @@
       </div>
 
       <div class="warning-banner" style="margin-top:0.75rem;">
-        <strong>⚠️ Warning:</strong> Generating a new secret does not disable the old one automatically &mdash; the change only takes effect once you update the <code>EVENTFLOW_OPS_BOT_HMAC_SECRET</code> environment variable and redeploy. The secret is shown once and is never stored or displayed again.
+        <strong>⚠︎ Warning:</strong> Generating a new secret does not disable the old one automatically &mdash; the change only takes effect once you update the <code>EVENTFLOW_OPS_BOT_HMAC_SECRET</code> environment variable and redeploy. The secret is shown once and is never stored or displayed again.
       </div>
 
       <button class="ef-cta btn btn-primary mt-1" id="generateOpsAssistantSecret">Generate New Secret</button>

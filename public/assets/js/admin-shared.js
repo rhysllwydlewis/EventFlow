@@ -497,9 +497,9 @@ const AdminShared = (function () {
 
       // Icon and color based on type
       const typeConfig = {
-        danger: { icon: '⚠️', color: '#ef4444' },
-        warning: { icon: '⚠️', color: '#f59e0b' },
-        info: { icon: 'ℹ️', color: '#3b82f6' },
+        danger: { icon: '⚠︎', color: '#ef4444' },
+        warning: { icon: '⚠︎', color: '#f59e0b' },
+        info: { icon: '', color: '#3b82f6' },
       };
       const config = typeConfig[type] || typeConfig.info;
 
@@ -1207,22 +1207,18 @@ const AdminShared = (function () {
           <div class="command-group">
             <div class="command-group-title">Navigation</div>
             <button class="ef-cta command-item" data-action="dashboard">
-              <span class="command-icon">📊</span>
               <span class="command-label">Dashboard</span>
               <span class="command-shortcut">H</span>
             </button>
             <button class="ef-cta command-item" data-action="users">
-              <span class="command-icon">👥</span>
               <span class="command-label">Users</span>
               <span class="command-shortcut">U</span>
             </button>
             <button class="ef-cta command-item" data-action="packages">
-              <span class="command-icon">📦</span>
               <span class="command-label">Packages</span>
               <span class="command-shortcut">P</span>
             </button>
             <button class="ef-cta command-item" data-action="settings">
-              <span class="command-icon">⚙️</span>
               <span class="command-label">Settings</span>
               <span class="command-shortcut">S</span>
             </button>
@@ -1230,7 +1226,6 @@ const AdminShared = (function () {
           <div class="command-group">
             <div class="command-group-title">Actions</div>
             <button class="ef-cta command-item" data-action="refresh">
-              <span class="command-icon">🔄</span>
               <span class="command-label">Refresh Page</span>
               <span class="command-shortcut">R</span>
             </button>
@@ -1485,7 +1480,7 @@ const AdminShared = (function () {
       <tr>
         <td colspan="${colspan}">
           <div class="error-state">
-            <div class="error-state-icon">⚠️</div>
+            <div class="error-state-icon">⚠︎</div>
             <div class="error-state-title">Error Loading Data</div>
             <div class="error-state-message">${escapeHtml(message)}</div>
             ${retryButtonHtml}
@@ -1505,7 +1500,7 @@ const AdminShared = (function () {
           } catch (error) {
             debugError('Retry failed:', error);
             retryBtn.disabled = false;
-            retryBtn.textContent = '🔄 Retry';
+            retryBtn.textContent = 'Retry';
           }
         });
       }
@@ -1525,7 +1520,7 @@ const AdminShared = (function () {
   function showEmptyState(container, options = {}) {
     const {
       message = 'No items found',
-      icon = '📭',
+      icon = '',
       actionLabel = null,
       onAction = null,
       colspan = 6,
@@ -1870,15 +1865,15 @@ const AdminShared = (function () {
    */
   function getRoleBadge(role) {
     if (role === 'admin') {
-      return '<span class="badge badge-admin">🛡️ Admin</span>';
+      return '<span class="badge badge-admin">Admin</span>';
     }
     if (role === 'supplier') {
-      return '<span class="badge badge-supplier-account">🏪 Supplier</span>';
+      return '<span class="badge badge-supplier-account">Supplier</span>';
     }
     if (role === 'partner') {
-      return '<span class="badge badge-partner">🤝 Partner</span>';
+      return '<span class="badge badge-partner">Partner</span>';
     }
-    return '<span class="badge badge-customer">🎉 Customer</span>';
+    return '<span class="badge badge-customer">Customer</span>';
   }
 
   // Public API

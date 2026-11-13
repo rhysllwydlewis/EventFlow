@@ -53,7 +53,7 @@
       AdminShared.showToast('Failed to load supplier details', 'error');
       if (header) {
         header.innerHTML =
-          '<p class="empty-state-card"><span class="empty-icon">⚠️</span><br>Failed to load supplier. <button type="button" id="retryLoadSupplierBtn" style="background:none;border:none;color:#4f46e5;cursor:pointer;padding:0;text-decoration:underline;font-size:inherit;">Retry</button></p>';
+          '<p class="empty-state-card"><span class="empty-icon">⚠︎</span><br>Failed to load supplier. <button type="button" id="retryLoadSupplierBtn" style="background:none;border:none;color:#4f46e5;cursor:pointer;padding:0;text-decoration:underline;font-size:inherit;">Retry</button></p>';
         header
           .querySelector('#retryLoadSupplierBtn')
           ?.addEventListener('click', () => location.reload());
@@ -420,7 +420,7 @@
 
       if (packages.length === 0) {
         document.getElementById('packageList').innerHTML =
-          '<div class="empty-state-card"><span class="empty-icon">📦</span><p>No packages yet</p></div>';
+          '<div class="empty-state-card"><p>No packages yet</p></div>';
         return;
       }
 
@@ -445,7 +445,7 @@
     } catch (err) {
       console.error('Failed to load packages:', err);
       document.getElementById('packageList').innerHTML =
-        '<div class="empty-state-card"><span class="empty-icon">⚠️</span><p>Failed to load packages</p></div>';
+        '<div class="empty-state-card"><span class="empty-icon">⚠︎</span><p>Failed to load packages</p></div>';
     }
   }
 
@@ -456,7 +456,7 @@
 
       if (photos.length === 0) {
         document.getElementById('photoGallery').innerHTML =
-          '<div class="empty-state-card"><span class="empty-icon">📸</span><p>No photos yet</p></div>';
+          '<div class="empty-state-card"><p>No photos yet</p></div>';
         return;
       }
 
@@ -479,7 +479,7 @@
     } catch (err) {
       console.error('Failed to load photos:', err);
       document.getElementById('photoGallery').innerHTML =
-        '<div class="empty-state-card"><span class="empty-icon">⚠️</span><p>Failed to load photos</p></div>';
+        '<div class="empty-state-card"><span class="empty-icon">⚠︎</span><p>Failed to load photos</p></div>';
     }
   }
 
@@ -490,7 +490,7 @@
 
       if (reviews.length === 0) {
         document.getElementById('reviewsList').innerHTML =
-          '<div class="empty-state-card"><span class="empty-icon">⭐</span><p>No reviews yet</p></div>';
+          '<div class="empty-state-card"><p>No reviews yet</p></div>';
         return;
       }
 
@@ -517,7 +517,7 @@
     } catch (err) {
       console.error('Failed to load reviews:', err);
       document.getElementById('reviewsList').innerHTML =
-        '<div class="empty-state-card"><span class="empty-icon">⚠️</span><p>Failed to load reviews</p></div>';
+        '<div class="empty-state-card"><span class="empty-icon">⚠︎</span><p>Failed to load reviews</p></div>';
     }
   }
 
@@ -559,13 +559,13 @@
       }
 
       const ACTION_LABELS = {
-        supplier_approved: '✅ Approved',
-        supplier_rejected: '❌ Rejected',
-        supplier_needs_changes: '⚠️ Changes Requested',
-        supplier_suspended: '🚫 Suspended',
-        supplier_reinstated: '🔄 Reinstated',
-        supplier_verified: '✅ Verified',
-        supplier_verification_submitted: '📋 Submitted for Review',
+        supplier_approved: '✓ Approved',
+        supplier_rejected: '✗ Rejected',
+        supplier_needs_changes: '⚠︎ Changes Requested',
+        supplier_suspended: 'Suspended',
+        supplier_reinstated: 'Reinstated',
+        supplier_verified: '✓ Verified',
+        supplier_verification_submitted: 'Submitted for Review',
       };
 
       const ACTION_CLASS = {
@@ -793,7 +793,7 @@
     const name = supplierData ? supplierData.name || 'this supplier' : 'this supplier';
 
     const first = await AdminShared.showConfirmModal({
-      title: '⚠️ Delete Supplier',
+      title: '⚠︎ Delete Supplier',
       message: `Are you sure you want to permanently delete "${AdminShared.escapeHtml(name)}"? This cannot be undone.`,
       confirmText: 'Yes, delete',
       cancelText: 'Cancel',
@@ -803,7 +803,7 @@
     }
 
     const second = await AdminShared.showConfirmModal({
-      title: '🚨 Final Confirmation',
+      title: 'Final Confirmation',
       message: `This will permanently delete all data for "${AdminShared.escapeHtml(name)}". There is NO recovery. Proceed?`,
       confirmText: 'Delete permanently',
       cancelText: 'Cancel',

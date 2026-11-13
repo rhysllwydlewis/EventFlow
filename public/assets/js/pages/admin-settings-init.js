@@ -451,7 +451,7 @@
     btn.disabled = true;
     btn.textContent = 'Testing...';
     resultDiv.style.display = 'block';
-    resultDiv.innerHTML = '<div style="color: #566176;">🔄 Testing Pexels API connection...</div>';
+    resultDiv.innerHTML = '<div style="color: #566176;">Testing Pexels API connection...</div>';
 
     try {
       const result = await AdminShared.adminFetchWithTimeout('/api/pexels/test', {
@@ -465,7 +465,7 @@
         resultDiv.style.background = '#d1fae5';
         resultDiv.style.color = '#065f46';
         resultDiv.innerHTML = `
-          <div style="font-weight: 600; margin-bottom: 0.5rem;">✅ ${AdminShared.escapeHtml(result.message)}</div>
+          <div style="font-weight: 600; margin-bottom: 0.5rem;">✓ ${AdminShared.escapeHtml(result.message)}</div>
           ${
             result.details
               ? `
@@ -485,7 +485,7 @@
         resultDiv.style.background = '#fef3c7';
         resultDiv.style.color = '#92400e';
         resultDiv.innerHTML = `
-          <div style="font-weight: 600; margin-bottom: 0.5rem;">⚠️ Using URL Fallback</div>
+          <div style="font-weight: 600; margin-bottom: 0.5rem;">⚠︎ Using URL Fallback</div>
           <div style="font-size: 0.85rem; opacity: 0.9;">
             <strong>Mode:</strong> Fallback URLs<br>
             ${AdminShared.escapeHtml(result.message)}<br>
@@ -508,7 +508,7 @@
         resultDiv.style.background = '#fee2e2';
         resultDiv.style.color = '#991b1b';
         resultDiv.innerHTML = `
-          <div style="font-weight: 600; margin-bottom: 0.5rem;">❌ ${AdminShared.escapeHtml(result.message)}</div>
+          <div style="font-weight: 600; margin-bottom: 0.5rem;">✗ ${AdminShared.escapeHtml(result.message)}</div>
           ${
             result.details
               ? `
@@ -537,7 +537,7 @@
       }
 
       resultDiv.innerHTML = `
-        <div style="font-weight: 600; margin-bottom: 0.5rem;">❌ ${AdminShared.escapeHtml(errorMessage)}</div>
+        <div style="font-weight: 600; margin-bottom: 0.5rem;">✗ ${AdminShared.escapeHtml(errorMessage)}</div>
         <div style="font-size: 0.85rem; opacity: 0.9;">
           Please check your PEXELS_API_KEY environment variable and ensure the API is accessible.
         </div>
@@ -610,14 +610,14 @@
       const remaining = expires - now;
 
       if (remaining <= 0) {
-        countdownEl.textContent = '⏰ Maintenance mode has expired and will auto-disable shortly';
+        countdownEl.textContent = 'Maintenance mode has expired and will auto-disable shortly';
         countdownEl.style.background = '#fff3cd';
         countdownEl.style.color = '#856404';
         stopMaintenanceCountdown();
         // Reload to reflect auto-disabled state
         setTimeout(() => loadMaintenanceMode(), 2000);
       } else {
-        countdownEl.textContent = `⏰ Auto-disable in: ${formatTimeRemaining(remaining)}`;
+        countdownEl.textContent = `Auto-disable in: ${formatTimeRemaining(remaining)}`;
         countdownEl.style.display = 'block';
       }
     }

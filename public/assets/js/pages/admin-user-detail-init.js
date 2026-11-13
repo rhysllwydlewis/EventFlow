@@ -101,12 +101,12 @@
     return AdminShared.getRoleBadge
       ? AdminShared.getRoleBadge(role)
       : role === 'admin'
-        ? '<span class="badge badge-admin">🛡️ Admin</span>'
+        ? '<span class="badge badge-admin">Admin</span>'
         : role === 'supplier'
-          ? '<span class="badge badge-supplier-account">🏪 Supplier</span>'
+          ? '<span class="badge badge-supplier-account">Supplier</span>'
           : role === 'partner'
-            ? '<span class="badge badge-partner">🤝 Partner</span>'
-            : '<span class="badge badge-customer">🎉 Customer</span>';
+            ? '<span class="badge badge-partner">Partner</span>'
+            : '<span class="badge badge-customer">Customer</span>';
   }
 
   // Alias so template literals in renderUserDetails can call roleBadge() directly

@@ -233,7 +233,6 @@
     if (sections.length === 0) {
       container.innerHTML = `
         <div class="search-empty-state">
-          <div style="font-size:3rem;margin-bottom:1rem;">🔍</div>
           <p>No results found for <strong>"${AdminShared.escapeHtml(query)}"</strong>. Try a different search term.</p>
         </div>`;
     } else {

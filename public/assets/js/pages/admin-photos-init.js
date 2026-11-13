@@ -107,13 +107,11 @@
       if (isOn) {
         statusBanner.innerHTML = `
         <div class="ap-status-banner ap-status-banner--on" role="status">
-          <span class="ap-status-banner__icon" aria-hidden="true">✅</span>
           <p class="ap-status-banner__text"><strong>Auto-approval enabled</strong> — photos uploaded by suppliers are immediately visible. No manual approval needed.</p>
         </div>`;
       } else {
         statusBanner.innerHTML = `
         <div class="ap-status-banner ap-status-banner--off" role="status">
-          <span class="ap-status-banner__icon" aria-hidden="true">⏳</span>
           <p class="ap-status-banner__text"><strong>Manual moderation active</strong> — new uploads are held in the queue below until an admin approves or rejects them.</p>
         </div>`;
       }
@@ -369,7 +367,6 @@
             : 'No photos awaiting approval.';
         queueEl.innerHTML = `
         <div class="photo-queue__empty">
-          <div class="photo-queue__empty-icon" aria-hidden="true">📷</div>
           <div>${emptyMsg}</div>
         </div>`;
         return;

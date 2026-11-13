@@ -202,7 +202,7 @@
           ${
             isDeleted
               ? `<span style="color:#566176;font-size:0.8rem;font-style:italic;">Account deleted</span>`
-              : `<div style="display:flex;gap:0.4rem;flex-wrap:wrap;">
+              : `<div style="display:flex;gap:0.4rem;flex-wrap:nowrap;">
             <button class="ef-cta ap-action-btn ap-action-btn--view" data-action="view" data-id="${esc(p.id)}" aria-label="View ${esc(p.user?.name || 'partner')}">View</button>
             ${
               p.status === 'active'
@@ -258,15 +258,15 @@
       }
 
       const typeLabels = {
-        PACKAGE_BONUS: '📦 Package Bonus',
-        SUBSCRIPTION_BONUS: '💳 Subscription Bonus',
-        REFERRAL_SIGNUP_BONUS: '👤 Referral Signup',
-        FIRST_REVIEW_BONUS: '⭐ First Review',
-        PROFILE_APPROVED_BONUS: '✅ Profile Approved',
-        ADJUSTMENT: '⚙️ Adjustment',
-        REDEEM: '🎁 Redemption',
-        CASHOUT_HOLD: '🔒 Cashout Hold',
-        CASHOUT_RELEASE: '🔓 Hold Released',
+        PACKAGE_BONUS: 'Package Bonus',
+        SUBSCRIPTION_BONUS: 'Subscription Bonus',
+        REFERRAL_SIGNUP_BONUS: 'Referral Signup',
+        FIRST_REVIEW_BONUS: '★ First Review',
+        PROFILE_APPROVED_BONUS: '✓ Profile Approved',
+        ADJUSTMENT: 'Adjustment',
+        REDEEM: 'Redemption',
+        CASHOUT_HOLD: 'Cashout Hold',
+        CASHOUT_RELEASE: 'Hold Released',
       };
 
       const txnRows = (credits.transactions || [])
@@ -377,7 +377,7 @@
     } catch (err) {
       body.innerHTML = `
         <div style="text-align:center;padding:2rem 1rem;">
-          <div style="font-size:2rem;margin-bottom:0.75rem;">⚠️</div>
+          <div style="font-size:2rem;margin-bottom:0.75rem;">⚠︎</div>
           <p style="color:#dc2626;font-size:0.875rem;margin:0 0 1rem;">Failed to load partner details.</p>
           <button
             data-partners-action="retry-detail"
@@ -723,7 +723,6 @@
       if (items.length === 0) {
         container.innerHTML = `
           <div style="text-align:center;padding:2.5rem;color:#566176;">
-            <div style="font-size:2rem;margin-bottom:0.75rem;">🎁</div>
             <div>No payout requests${status ? ' with this status' : ''} yet.</div>
           </div>`;
         return;

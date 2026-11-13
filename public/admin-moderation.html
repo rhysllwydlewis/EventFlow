@@ -62,7 +62,7 @@
 
   <!-- Reviews, Photos and Reports share this page. They used to be /admin-reviews, /admin-photos and
        /admin-reports, which redirect here. -->
-  <div class="admin-tabs" role="tablist" aria-label="Moderation queues" style="padding:0 1.5rem;">
+  <div class="admin-tabs" role="tablist" aria-label="Moderation queues">
     <button class="ef-cta admin-tab admin-tab--active" id="tab-reviews" role="tab" aria-selected="true" aria-controls="panel-reviews" data-tab="reviews">Reviews <span class="admin-tab__count" id="tabCountReviews" hidden></span></button>
     <button class="ef-cta admin-tab" id="tab-photos" role="tab" aria-selected="false" aria-controls="panel-photos" data-tab="photos">Photos <span class="admin-tab__count" id="tabCountPhotos" hidden></span></button>
     <button class="ef-cta admin-tab" id="tab-reports" role="tab" aria-selected="false" aria-controls="panel-reports" data-tab="reports">Reports <span class="admin-tab__count" id="tabCountReports" hidden></span></button>
@@ -93,7 +93,6 @@
     <!-- Status banner (updated dynamically) -->
     <div id="statusBanner" class="card card-mt" role="status" aria-live="polite">
       <div class="ap-status-banner ap-status-banner--on">
-        <span class="ap-status-banner__icon" aria-hidden="true">✅</span>
         <p class="ap-status-banner__text"><strong>Auto-approval enabled</strong> — qualifying reviews (verified booking, no spam, neutral/positive sentiment) are published immediately.</p>
       </div>
     </div>
@@ -139,7 +138,6 @@
     <!-- Status banner (updated dynamically) -->
     <div id="photoStatusBanner" class="card card-mt" role="status" aria-live="polite">
       <div class="ap-status-banner ap-status-banner--on">
-        <span class="ap-status-banner__icon" aria-hidden="true">✅</span>
         <p class="ap-status-banner__text"><strong>Auto-approval enabled</strong> — photos uploaded by suppliers are immediately visible. No manual approval needed.</p>
       </div>
     </div>
