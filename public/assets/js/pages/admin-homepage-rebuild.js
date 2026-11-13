@@ -660,7 +660,7 @@
           <span class="homepage-pill">/${escapeHtml(category.slug || '')}</span>
           <div class="homepage-visibility-row">
             <span>Visible on homepage</span>
-            <input type="checkbox" data-category-visible="${escapeHtml(category.id)}" ${category.visible !== false ? 'checked' : ''}>
+            <input type="checkbox" aria-label="Show ${escapeHtml(category.name)} on the homepage" data-category-visible="${escapeHtml(category.id)}" ${category.visible !== false ? 'checked' : ''}>
           </div>
           <div class="homepage-category-card__actions">
             <button class="ef-cta btn btn-secondary" type="button" data-edit-category="${escapeHtml(category.id)}">Edit</button>
@@ -684,7 +684,7 @@
           <h4>${escapeHtml(category.name)}</h4>
           <p>${category.heroImage ? 'Hero image set.' : 'No hero image set.'}</p>
           <div class="homepage-hero-upload">
-            <input type="file" accept="image/*" data-hero-upload="${escapeHtml(category.id)}">
+            <input type="file" accept="image/*" aria-label="Upload a hero image for ${escapeHtml(category.name)}" data-hero-upload="${escapeHtml(category.id)}">
             ${category.heroImage ? `<button class="ef-cta btn btn-secondary" type="button" data-remove-hero-image="${escapeHtml(category.id)}">Remove image</button>` : ''}
           </div>
         </div>

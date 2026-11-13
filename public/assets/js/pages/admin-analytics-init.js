@@ -158,7 +158,7 @@
                   `<span style="background:var(--color-surface-2,#f3f4f6);padding:5px 14px;border-radius:999px;font-size:.875rem;border:1px solid #e5e7eb"><strong>${capitalise(role)}</strong>: ${byRole[role]}</span>`
               )
               .join('')
-          : '<span style="color:#9ca3af;font-size:.875rem">No role data</span>';
+          : '<span style="color:#5f6673;font-size:.875rem">No role data</span>';
       }
     } catch (_error) {
       AdminShared.showToast('Failed to load platform metrics', 'error');
@@ -183,12 +183,12 @@
               </tr>`
             )
             .join('')
-        : '<tr><td colspan="3" style="padding:1.5rem;text-align:center;color:#9ca3af">No data available</td></tr>';
+        : '<tr><td colspan="3" style="padding:1.5rem;text-align:center;color:#5f6673">No data available</td></tr>';
     } catch (_error) {
       const body = document.getElementById('an-timeseriesBody');
       if (body) {
         body.innerHTML =
-          '<tr><td colspan="3" style="padding:1.5rem;text-align:center;color:#9ca3af">Failed to load timeseries data</td></tr>';
+          '<tr><td colspan="3" style="padding:1.5rem;text-align:center;color:#5f6673">Failed to load timeseries data</td></tr>';
       }
     }
   }

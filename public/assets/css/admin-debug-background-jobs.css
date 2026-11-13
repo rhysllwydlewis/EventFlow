@@ -97,7 +97,7 @@
 .bj-job-grid div { display: flex; flex-direction: column; gap: 0.2rem; }
 .bj-job-grid span { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.04em; color: var(--color-text-muted, #6b7280); }
 .bj-job-grid strong { font-size: 0.86rem; }
-.bj-job-grid small { font-size: 0.7rem; color: #9ca3af; }
+.bj-job-grid small { font-size: 0.7rem; color: #5f6673; }
 .bj-metrics { display: flex; gap: 0.5rem; flex-wrap: wrap; }
 .bj-metric { padding: 0.3rem 0.55rem; background: var(--color-surface-alt, #f3f4f6); border-radius: 6px; font-size: 0.76rem; }
 .bj-error { margin-top: 0.75rem; padding: 0.65rem 0.75rem; background: #fee2e2; border: 1px solid #fca5a5; color: #991b1b; border-radius: 8px; font-size: 0.82rem; }
@@ -108,7 +108,7 @@
 .bj-history-table { width: 100%; border-collapse: collapse; font-size: 0.76rem; }
 .bj-history-table th,
 .bj-history-table td { text-align: left; padding: 0.45rem; border-bottom: 1px solid var(--color-border, #e5e7eb); }
-.bj-source { margin-top: 0.75rem; font-size: 0.72rem; color: #9ca3af; }
+.bj-source { margin-top: 0.75rem; font-size: 0.72rem; color: #5f6673; }
 .bj-muted { color: var(--color-text-muted, #6b7280); font-size: 0.8rem; }
 @media (max-width: 640px) {
   .bj-job-header { flex-direction: column; }

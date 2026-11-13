@@ -45,7 +45,7 @@
 .behaviour-card-kicker {
   display: block;
   margin-bottom: 0.35rem;
-  color: #0b8073;
+  color: #0a7569;
   font-size: 0.7rem;
   font-weight: 800;
   letter-spacing: 0.1em;
@@ -90,7 +90,7 @@
 
 .behaviour-overview__trust span::before {
   margin-right: 0.35rem;
-  color: #0b8073;
+  color: #0a7569;
   content: "✓";
 }
 
@@ -408,7 +408,7 @@
   padding: 0.45rem 0.65rem;
   border-radius: 9px;
   background: #ecfdf8;
-  color: #0b8073;
+  color: #0a7569;
   font-size: 0.78rem;
 }
 
@@ -528,7 +528,7 @@
 }
 
 .behaviour-table td:first-child small {
-  color: #94a3b8;
+  color: #5f6b7e;
   font-size: 0.68rem;
   text-transform: capitalize;
 }
@@ -598,7 +598,7 @@
   place-items: center;
   border-radius: 9px;
   background: #ecfdf8;
-  color: #0b8073;
+  color: #0a7569;
   font-size: 0.72rem;
   font-weight: 900;
 }
@@ -642,7 +642,7 @@
 .behaviour-funnel__meta {
   display: block;
   margin-top: 0.3rem;
-  color: #94a3b8;
+  color: #5f6b7e;
   font-size: 0.64rem;
   line-height: 1.35;
 }

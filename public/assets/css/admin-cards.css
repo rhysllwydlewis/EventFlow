@@ -122,7 +122,7 @@
 .stat-card-label {
   font-size: 14px;
   font-weight: 500;
-  color: #6b7280;
+  color: #646b78;
   margin-bottom: 8px;
   text-transform: uppercase;
   letter-spacing: 0.5px;
@@ -145,11 +145,11 @@
 }
 
 .stat-card-change.positive {
-  color: #10b981;
+  color: #047857;
 }
 
 .stat-card-change.negative {
-  color: #ef4444;
+  color: #dc2626;
 }
 
 .stat-card-icon {
@@ -298,7 +298,7 @@
 
 .list-card-subtitle {
   font-size: 13px;
-  color: #6b7280;
+  color: #646b78;
 }
 
 .list-card-action {
@@ -332,7 +332,7 @@
   text-align: left;
   font-size: 13px;
   font-weight: 600;
-  color: #6b7280;
+  color: #646b78;
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
@@ -359,7 +359,7 @@
 .empty-state {
   text-align: center;
   padding: 64px 24px;
-  color: #9ca3af;
+  color: #5f6673;
 }
 
 .empty-state-icon {
@@ -371,13 +371,13 @@
 .empty-state-title {
   font-size: 18px;
   font-weight: 600;
-  color: #6b7280;
+  color: #646b78;
   margin-bottom: 8px;
 }
 
 .empty-state-desc {
   font-size: 14px;
-  color: #9ca3af;
+  color: #5f6673;
   max-width: 400px;
   margin: 0 auto 24px;
 }
@@ -469,7 +469,7 @@
 .btn-secondary {
   padding: 10px 20px;
   background: white;
-  color: #0B8073;
+  color: #0a7569;
   border: none;
   border-radius: 10px;
   font-size: 14px;

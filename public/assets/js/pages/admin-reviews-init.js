@@ -276,13 +276,13 @@
         }<span class="badge badge-secondary" style="margin-left:auto;">${escapeHtml(moderationState)}</span>` +
         `</div>${
           text ? `<p style="margin:0 0 8px;">${escapeHtml(text)}</p>` : ''
-        }<p class="small" style="color:#6b7280;margin:0 0 4px;">` +
+        }<p class="small" style="color:#646b78;margin:0 0 4px;">` +
         `<strong>Supplier:</strong> ${escapeHtml(supplierId)} &nbsp;|&nbsp; ` +
         `<strong>Author:</strong> ${escapeHtml(authorId)} &nbsp;|&nbsp; ` +
         `<strong>Submitted:</strong> ${escapeHtml(createdAt)}` +
         `</p>${
           moderationReason
-            ? `<p class="small" style="color:#9ca3af;margin:0 0 10px;"><em>${escapeHtml(moderationReason)}</em></p>`
+            ? `<p class="small" style="color:#5f6673;margin:0 0 10px;"><em>${escapeHtml(moderationReason)}</em></p>`
             : ''
         }${reportInfo}<div class="review-action-btns">${reviewActionButtons(review, id)}</div>` +
         `</div>` +

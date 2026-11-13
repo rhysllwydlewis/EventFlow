@@ -53,7 +53,7 @@
       AdminShared.showToast('Failed to load supplier details', 'error');
       if (header) {
         header.innerHTML =
-          '<p class="empty-state-card"><span class="empty-icon">⚠️</span><br>Failed to load supplier. <button type="button" id="retryLoadSupplierBtn" style="background:none;border:none;color:#667eea;cursor:pointer;padding:0;text-decoration:underline;font-size:inherit;">Retry</button></p>';
+          '<p class="empty-state-card"><span class="empty-icon">⚠️</span><br>Failed to load supplier. <button type="button" id="retryLoadSupplierBtn" style="background:none;border:none;color:#4f46e5;cursor:pointer;padding:0;text-decoration:underline;font-size:inherit;">Retry</button></p>';
         header
           .querySelector('#retryLoadSupplierBtn')
           ?.addEventListener('click', () => location.reload());
@@ -104,8 +104,8 @@
       <div class="supplier-meta-item">
         <strong>Verified:</strong> ${
           supplierData.verified
-            ? `<span style="color: #10b981;">Yes</span> ${supplierData.verifiedAt ? `(${new Date(supplierData.verifiedAt).toLocaleDateString('en-GB', { timeZone: 'Europe/London' })})` : ''}`
-            : '<span style="color: #ef4444;">No</span>'
+            ? `<span style="color: #047857;">Yes</span> ${supplierData.verifiedAt ? `(${new Date(supplierData.verifiedAt).toLocaleDateString('en-GB', { timeZone: 'Europe/London' })})` : ''}`
+            : '<span style="color: #dc2626;">No</span>'
         }
       </div>
       <div class="supplier-meta-item">
@@ -244,14 +244,14 @@
         <h4 style="margin-bottom: 0.75rem; font-size: 0.9rem; font-weight: 600;">Manage Subscription</h4>
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; margin-bottom: 1rem;">
           <div>
-            <label for="subscriptionTier" style="display: block; margin-bottom: 0.35rem; font-size: 0.8rem; font-weight: 600; color: #6b7280; text-transform: uppercase; letter-spacing: 0.4px;">Tier</label>
+            <label for="subscriptionTier" style="display: block; margin-bottom: 0.35rem; font-size: 0.8rem; font-weight: 600; color: #646b78; text-transform: uppercase; letter-spacing: 0.4px;">Tier</label>
             <select id="subscriptionTier" class="form-control" style="width: 100%;">
               <option value="pro">Pro</option>
               <option value="pro_plus">Pro Plus</option>
             </select>
           </div>
           <div>
-            <label for="subscriptionDuration" style="display: block; margin-bottom: 0.35rem; font-size: 0.8rem; font-weight: 600; color: #6b7280; text-transform: uppercase; letter-spacing: 0.4px;">Duration</label>
+            <label for="subscriptionDuration" style="display: block; margin-bottom: 0.35rem; font-size: 0.8rem; font-weight: 600; color: #646b78; text-transform: uppercase; letter-spacing: 0.4px;">Duration</label>
             <select id="subscriptionDuration" class="form-control" style="width: 100%;">
               <option value="7">7 days (Trial)</option>
               <option value="14">14 days (Trial)</option>
@@ -281,16 +281,16 @@
 
     const overrideLabel =
       override === true
-        ? '<span style="color:#16a34a">✔ Forced ON (admin override)</span>'
+        ? '<span style="color:#15803d">✔ Forced ON (admin override)</span>'
         : override === false
-          ? '<span style="color:#dc2626">✘ Forced OFF (admin override)</span>'
-          : '<span style="color:#6b7280">Auto (from category)</span>';
+          ? '<span style="color:#b91c1c">✘ Forced OFF (admin override)</span>'
+          : '<span style="color:#5f6673">Auto (from category)</span>';
 
     const calendarHtml = `
       <p><strong>Supplier category:</strong> ${AdminShared.escapeHtml(supplierData.category || 'Unknown')}</p>
-      <p><strong>Default publishing right:</strong> ${defaultPublisher ? '<span style="color:#16a34a">Yes</span>' : '<span style="color:#6b7280">No</span>'}</p>
+      <p><strong>Default publishing right:</strong> ${defaultPublisher ? '<span style="color:#15803d">Yes</span>' : '<span style="color:#5f6673">No</span>'}</p>
       <p><strong>Override:</strong> ${overrideLabel}</p>
-      <p class="small" style="color:#6b7280;margin-top:0.35rem;">Override meanings: <strong>true</strong> = supplier can publish regardless of category; <strong>false</strong> = supplier cannot publish regardless of category; <strong>null</strong> = use Event Planner / Wedding Fayre category defaults.</p>
+      <p class="small" style="color:#5f6673;margin-top:0.35rem;">Publishing override: <strong>Forced ON</strong> = this supplier can publish events regardless of category; <strong>Forced OFF</strong> = this supplier cannot publish regardless of category; <strong>Auto</strong> = follow the category default (Event Planner and Wedding Fayre suppliers can publish).</p>
       <p><strong>Effective permission:</strong> ${effectivePublisher ? '<span style="color:#16a34a;font-weight:600">Can publish</span>' : '<span style="color:#dc2626;font-weight:600">Read-only</span>'}</p>
       <div style="margin-top:1rem;border-top:1px solid #e5e7eb;padding-top:1rem;">
         <h4 style="margin-bottom:0.75rem;font-size:0.9rem;font-weight:600;">Set Override</h4>
@@ -663,7 +663,7 @@
         <h3 id="edit-field-modal-title" style="margin:0 0 0.5rem 0;font-size:1.25rem;font-weight:600;color:#1f2937;">
           Edit Supplier — Select Field
         </h3>
-        <p style="margin:0 0 1rem 0;color:#6b7280;font-size:0.875rem;line-height:1.5;">Choose the field you would like to edit:</p>
+        <p style="margin:0 0 1rem 0;color:#646b78;font-size:0.875rem;line-height:1.5;">Choose the field you would like to edit:</p>
         <div style="margin-bottom:1rem;">
           <label for="edit-field-select" style="display:block;margin-bottom:0.5rem;font-weight:600;color:#374151;font-size:0.875rem;">Field</label>
           <select id="edit-field-select" style="width:100%;padding:0.5rem 0.75rem;border:1px solid #d1d5db;border-radius:6px;font-size:0.875rem;background:white;cursor:pointer;">
@@ -1150,35 +1150,35 @@
         ? actions.outstanding
             .map(a => {
               const sev = a.severity === 'red' ? 'red' : 'amber';
-              return `<li style="margin-bottom:0.4rem;">${apBadge(a.severity?.toUpperCase() || 'AMBER', sev)} <strong>${escapeHtml(a.title)}</strong> <span style="color:#6b7280;font-size:0.85rem;">(${escapeHtml(a.key)})</span></li>`;
+              return `<li style="margin-bottom:0.4rem;">${apBadge(a.severity?.toUpperCase() || 'AMBER', sev)} <strong>${escapeHtml(a.title)}</strong> <span style="color:#646b78;font-size:0.85rem;">(${escapeHtml(a.key)})</span></li>`;
             })
             .join('')
-        : '<li style="color:#059669;">✓ No outstanding actions</li>';
+        : '<li style="color:#047857;">✓ No outstanding actions</li>';
 
     const completedHtml =
       actions.completed.length > 0
         ? actions.completed
-            .map(a => `<li style="color:#6b7280;">${escapeHtml(a.title)}</li>`)
+            .map(a => `<li style="color:#646b78;">${escapeHtml(a.title)}</li>`)
             .join('')
-        : '<li style="color:#6b7280;">—</li>';
+        : '<li style="color:#646b78;">—</li>';
 
     const cs = cadence.state;
     const cadenceHtml = cs
       ? `<table style="width:100%;border-collapse:collapse;font-size:0.875rem;">
-          <tr><td style="padding:0.35rem 0.5rem;color:#6b7280;">Stage</td><td style="padding:0.35rem 0.5rem;font-weight:600;">${escapeHtml(cs.cadence || 'daily')}</td></tr>
-          <tr style="background:#f8fafc;"><td style="padding:0.35rem 0.5rem;color:#6b7280;">Daily sends</td><td style="padding:0.35rem 0.5rem;">${cs.sendCountDaily ?? 0} / 7</td></tr>
-          <tr><td style="padding:0.35rem 0.5rem;color:#6b7280;">Weekly sends</td><td style="padding:0.35rem 0.5rem;">${cs.sendCountWeekly ?? 0} / 4</td></tr>
-          <tr style="background:#f8fafc;"><td style="padding:0.35rem 0.5rem;color:#6b7280;">Monthly sends</td><td style="padding:0.35rem 0.5rem;">${cs.sendCountMonthly ?? 0}</td></tr>
-          <tr><td style="padding:0.35rem 0.5rem;color:#6b7280;">Last sent</td><td style="padding:0.35rem 0.5rem;">${cs.lastSentAt ? new Date(cs.lastSentAt).toLocaleString() : 'Never'}</td></tr>
-          <tr style="background:#f8fafc;"><td style="padding:0.35rem 0.5rem;color:#6b7280;">Next send</td><td style="padding:0.35rem 0.5rem;">${cs.nextSendAt ? new Date(cs.nextSendAt).toLocaleString() : '—'}</td></tr>
-          <tr><td style="padding:0.35rem 0.5rem;color:#6b7280;">First outstanding</td><td style="padding:0.35rem 0.5rem;">${cs.firstOutstandingAt ? new Date(cs.firstOutstandingAt).toLocaleString() : '—'}</td></tr>
-          <tr style="background:#f8fafc;"><td style="padding:0.35rem 0.5rem;color:#6b7280;">Would send now?</td><td style="padding:0.35rem 0.5rem;">${cadence.wouldSendNow ? apBadge('Yes', 'green') : apBadge('No', 'grey')}</td></tr>
+          <tr><td style="padding:0.35rem 0.5rem;color:#646b78;">Stage</td><td style="padding:0.35rem 0.5rem;font-weight:600;">${escapeHtml(cs.cadence || 'daily')}</td></tr>
+          <tr style="background:#f8fafc;"><td style="padding:0.35rem 0.5rem;color:#646b78;">Daily sends</td><td style="padding:0.35rem 0.5rem;">${cs.sendCountDaily ?? 0} / 7</td></tr>
+          <tr><td style="padding:0.35rem 0.5rem;color:#646b78;">Weekly sends</td><td style="padding:0.35rem 0.5rem;">${cs.sendCountWeekly ?? 0} / 4</td></tr>
+          <tr style="background:#f8fafc;"><td style="padding:0.35rem 0.5rem;color:#646b78;">Monthly sends</td><td style="padding:0.35rem 0.5rem;">${cs.sendCountMonthly ?? 0}</td></tr>
+          <tr><td style="padding:0.35rem 0.5rem;color:#646b78;">Last sent</td><td style="padding:0.35rem 0.5rem;">${cs.lastSentAt ? new Date(cs.lastSentAt).toLocaleString() : 'Never'}</td></tr>
+          <tr style="background:#f8fafc;"><td style="padding:0.35rem 0.5rem;color:#646b78;">Next send</td><td style="padding:0.35rem 0.5rem;">${cs.nextSendAt ? new Date(cs.nextSendAt).toLocaleString() : '—'}</td></tr>
+          <tr><td style="padding:0.35rem 0.5rem;color:#646b78;">First outstanding</td><td style="padding:0.35rem 0.5rem;">${cs.firstOutstandingAt ? new Date(cs.firstOutstandingAt).toLocaleString() : '—'}</td></tr>
+          <tr style="background:#f8fafc;"><td style="padding:0.35rem 0.5rem;color:#646b78;">Would send now?</td><td style="padding:0.35rem 0.5rem;">${cadence.wouldSendNow ? apBadge('Yes', 'green') : apBadge('No', 'grey')}</td></tr>
         </table>`
-      : `<p style="color:#6b7280;margin:0;">No cadence state — this supplier has not been queued yet.</p>`;
+      : `<p style="color:#646b78;margin:0;">No cadence state — this supplier has not been queued yet.</p>`;
 
     const lastRunHtml = lastRun
       ? `<span style="font-size:0.85rem;">Last global run: <strong>${new Date(lastRun.finishedAt).toLocaleString()}</strong> — scanned ${lastRun.scanned}, sent ${lastRun.sent}, errors ${lastRun.errors}</span>`
-      : `<span style="color:#6b7280;font-size:0.85rem;">No global run recorded yet.</span>`;
+      : `<span style="color:#646b78;font-size:0.85rem;">No global run recorded yet.</span>`;
 
     panel.innerHTML = `
       ${warningHtml}
@@ -1187,12 +1187,12 @@
         <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:0.875rem;">
           <div style="font-weight:600;margin-bottom:0.625rem;font-size:0.9rem;">Global Settings</div>
           <table style="width:100%;border-collapse:collapse;font-size:0.875rem;">
-            <tr><td style="padding:0.3rem 0;color:#6b7280;">Master enabled</td><td style="padding:0.3rem 0;">${apBool(g.enabled)}</td></tr>
-            <tr><td style="padding:0.3rem 0;color:#6b7280;">Missing packages</td><td>${apBool(g.promptTypes.missingPackages)}</td></tr>
-            <tr><td style="padding:0.3rem 0;color:#6b7280;">Incomplete profile</td><td>${apBool(g.promptTypes.incompleteProfile)}</td></tr>
-            <tr><td style="padding:0.3rem 0;color:#6b7280;">Missing photos</td><td>${apBool(g.promptTypes.missingPhotos)}</td></tr>
-            <tr><td style="padding:0.3rem 0;color:#6b7280;">Uncategorized</td><td>${apBool(g.promptTypes.uncategorized)}</td></tr>
-            <tr><td style="padding:0.3rem 0;color:#6b7280;">Package photos missing</td><td>${apBool(g.promptTypes.packagesMissingPhotos)}</td></tr>
+            <tr><td style="padding:0.3rem 0;color:#646b78;">Master enabled</td><td style="padding:0.3rem 0;">${apBool(g.enabled)}</td></tr>
+            <tr><td style="padding:0.3rem 0;color:#646b78;">Missing packages</td><td>${apBool(g.promptTypes.missingPackages)}</td></tr>
+            <tr><td style="padding:0.3rem 0;color:#646b78;">Incomplete profile</td><td>${apBool(g.promptTypes.incompleteProfile)}</td></tr>
+            <tr><td style="padding:0.3rem 0;color:#646b78;">Missing photos</td><td>${apBool(g.promptTypes.missingPhotos)}</td></tr>
+            <tr><td style="padding:0.3rem 0;color:#646b78;">Uncategorized</td><td>${apBool(g.promptTypes.uncategorized)}</td></tr>
+            <tr><td style="padding:0.3rem 0;color:#646b78;">Package photos missing</td><td>${apBool(g.promptTypes.packagesMissingPhotos)}</td></tr>
           </table>
         </div>
         <!-- User / Supplier settings -->
@@ -1201,15 +1201,15 @@
           ${
             user
               ? `<table style="width:100%;border-collapse:collapse;font-size:0.875rem;">
-            <tr><td style="padding:0.3rem 0;color:#6b7280;">Email</td><td style="padding:0.3rem 0;word-break:break-all;">${escapeHtml(user.email)}</td></tr>
-            <tr><td style="padding:0.3rem 0;color:#6b7280;">Verified</td><td>${apBool(user.verified)}</td></tr>
-            <tr><td style="padding:0.3rem 0;color:#6b7280;">User account</td><td style="padding:0.3rem 0;"><a href="/admin-user-detail?id=${escapeHtml(user.id || '')}" style="color:#0B8073;text-decoration:none;font-weight:600;">View User Detail →</a></td></tr>
-            <tr><td style="padding:0.3rem 0;color:#6b7280;">Prefs enabled</td><td>${apBool(user.emailPrefsEnabled)}</td></tr>
-            <tr><td style="padding:0.3rem 0;color:#6b7280;">Pref: packages</td><td>${apBool(user.emailPrefsPerType.missingPackages)}</td></tr>
-            <tr><td style="padding:0.3rem 0;color:#6b7280;">Pref: profile</td><td>${apBool(user.emailPrefsPerType.incompleteProfile)}</td></tr>
-            <tr><td style="padding:0.3rem 0;color:#6b7280;">Pref: photos</td><td>${apBool(user.emailPrefsPerType.missingPhotos)}</td></tr>
-            <tr><td style="padding:0.3rem 0;color:#6b7280;">Pref: category</td><td>${apBool(user.emailPrefsPerType.uncategorized)}</td></tr>
-            <tr><td style="padding:0.3rem 0;color:#6b7280;">Pref: package photos</td><td>${apBool(user.emailPrefsPerType.packagesMissingPhotos)}</td></tr>
+            <tr><td style="padding:0.3rem 0;color:#646b78;">Email</td><td style="padding:0.3rem 0;word-break:break-all;">${escapeHtml(user.email)}</td></tr>
+            <tr><td style="padding:0.3rem 0;color:#646b78;">Verified</td><td>${apBool(user.verified)}</td></tr>
+            <tr><td style="padding:0.3rem 0;color:#646b78;">User account</td><td style="padding:0.3rem 0;"><a href="/admin-user-detail?id=${escapeHtml(user.id || '')}" style="color:#0a7569;text-decoration:none;font-weight:600;">View User Detail →</a></td></tr>
+            <tr><td style="padding:0.3rem 0;color:#646b78;">Prefs enabled</td><td>${apBool(user.emailPrefsEnabled)}</td></tr>
+            <tr><td style="padding:0.3rem 0;color:#646b78;">Pref: packages</td><td>${apBool(user.emailPrefsPerType.missingPackages)}</td></tr>
+            <tr><td style="padding:0.3rem 0;color:#646b78;">Pref: profile</td><td>${apBool(user.emailPrefsPerType.incompleteProfile)}</td></tr>
+            <tr><td style="padding:0.3rem 0;color:#646b78;">Pref: photos</td><td>${apBool(user.emailPrefsPerType.missingPhotos)}</td></tr>
+            <tr><td style="padding:0.3rem 0;color:#646b78;">Pref: category</td><td>${apBool(user.emailPrefsPerType.uncategorized)}</td></tr>
+            <tr><td style="padding:0.3rem 0;color:#646b78;">Pref: package photos</td><td>${apBool(user.emailPrefsPerType.packagesMissingPhotos)}</td></tr>
           </table>`
               : `<p style="color:#dc2626;font-size:0.875rem;margin:0;">⚠ No user account linked to this supplier.</p>`
           }
@@ -1220,7 +1220,7 @@
         <div style="font-weight:600;margin-bottom:0.5rem;font-size:0.9rem;">
           Outstanding Actions
           ${apBadge(actions.outstanding.length, actions.outstanding.length > 0 ? 'red' : 'green')}
-          <span style="font-weight:400;font-size:0.82rem;color:#6b7280;margin-left:0.5rem;">${actions.completionPercent}% complete</span>
+          <span style="font-weight:400;font-size:0.82rem;color:#646b78;margin-left:0.5rem;">${actions.completionPercent}% complete</span>
           ${actions.basedOnSyntheticUser ? '<span style="font-weight:400;font-size:0.78rem;color:#92400e;background:#fef3c7;padding:1px 6px;border-radius:4px;margin-left:0.5rem;">Based on profile data — no linked user account</span>' : ''}
         </div>
         <ul style="margin:0;padding-left:1.25rem;">${outstandingHtml}</ul>
@@ -1246,7 +1246,7 @@
     if (!panel) {
       return;
     }
-    panel.innerHTML = '<p style="color:#6b7280;">Loading…</p>';
+    panel.innerHTML = '<p style="color:#646b78;">Loading…</p>';
     try {
       const data = await AdminShared.api(
         `/api/admin/suppliers/${supplierId}/action-prompts/diagnostics`

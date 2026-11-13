@@ -8,7 +8,7 @@ body.has-admin-navbar.admin .dashboard-title { color: #163239; font-size: clamp(
 body.has-admin-navbar.admin .dashboard-subtitle { color: #62777d; font-size: 13px; line-height: 1.5; margin: 6px 0 0; }
 body.has-admin-navbar.admin .section-header { margin: 24px 0 12px; gap: 8px 20px; }
 body.has-admin-navbar.admin .section-title { color: #19343b; font-size: 18px; letter-spacing: -.02em; }
-body.has-admin-navbar.admin .section-description { color: #6b7c81; font-size: 12px; }
+body.has-admin-navbar.admin .section-description { color: #5f6673; font-size: 12px; }
 body.has-admin-navbar.admin .card,
 body.has-admin-navbar.admin .admin-card,
 body.has-admin-navbar.admin .data-section { border: 1px solid #e2e9e9; border-radius: 12px; box-shadow: 0 2px 8px rgba(26,57,62,.025); background: #fff; }
@@ -41,7 +41,7 @@ body.has-admin-navbar.admin .btn-icon:hover { transform: none; box-shadow: none;
    colours here. The two email heroes keep their gradient and so keep the white controls. */
 body.has-admin-navbar.admin .btn-icon,
 body.has-admin-navbar.admin .dashboard-header:not(.email-centre-hero):not(.email-preview-hero) .btn-secondary,
-body.has-admin-navbar.admin .link-white { color: #0b8073 !important; }
+body.has-admin-navbar.admin .link-white { color: #0a7569 !important; }
 body.has-admin-navbar.admin .btn-icon,
 body.has-admin-navbar.admin .dashboard-header:not(.email-centre-hero):not(.email-preview-hero) .btn-secondary { background: #fff; border: 1px solid #cfdcdc; }
 body.has-admin-navbar.admin .btn-icon:hover,
@@ -73,10 +73,16 @@ body.has-admin-navbar.admin .table-wrapper--sticky-actions table :is(th, td):las
 body.has-admin-navbar.admin .table-wrapper--sticky-actions table thead th:last-child { background: #f7f9f9; z-index: 2; }
 body.has-admin-navbar.admin .table-wrapper--sticky-actions table tbody tr:hover td:last-child { background: #f7fbfa; }
 
+/* ── Text columns that can hold a long name or email ─────────────────────────────────────────
+   A table cell keeps its text on one line, so a single long business name or email stretched a
+   whole table (Suppliers was 2,800px wide, Reports 1,480px) and squashed the date. These columns
+   now wrap inside a sensible width, breaking mid-word only when a word cannot otherwise fit. */
+body.has-admin-navbar.admin .table-wrapper td.col-wrap { white-space: normal; overflow-wrap: anywhere; min-width: 9rem; max-width: 24rem; }
+
 /* ── Secondary row actions tucked into a "More" control ─────────────────────────────────────
    Suppliers showed seven or more controls per row (tier, duration, Grant, Remove, ...), which made
    every row over 200px tall and pushed the actions off screen. They now sit behind a summary. */
-body.has-admin-navbar.admin details.row-more > summary { cursor: pointer; font-size: 12px; font-weight: 600; color: #0b8073; list-style: none; padding: 2px 0; }
+body.has-admin-navbar.admin details.row-more > summary { cursor: pointer; font-size: 12px; font-weight: 600; color: #0a7569; list-style: none; padding: 2px 0; }
 body.has-admin-navbar.admin details.row-more > summary::-webkit-details-marker { display: none; }
 body.has-admin-navbar.admin details.row-more > summary::after { content: " \25BE"; }
 body.has-admin-navbar.admin details.row-more[open] > summary::after { content: " \25B4"; }
@@ -104,3 +110,30 @@ body.has-admin-navbar.admin .efl-btn--ghost:hover { background: #eef6f5; transfo
 body.has-admin-navbar.admin .efl-btn--solid:hover { background: #09695f; transform: none; box-shadow: none; }
 body.has-admin-navbar.admin .efl-actions :is(input[type="search"], select) { width: auto; flex: 1 1 220px; max-width: 340px; }
 body.has-admin-navbar.admin .efl-btn--solid { border-color: transparent; }
+
+/* Developer tools (collapsed by default): rarely used actions kept out of the main toolbar */
+body.has-admin-navbar.admin details.dev-tools {
+  padding: 0.75rem 1rem;
+}
+body.has-admin-navbar.admin details.dev-tools > summary {
+  cursor: pointer;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #5f6673;
+}
+body.has-admin-navbar.admin details.dev-tools[open] > summary {
+  margin-bottom: 0.5rem;
+}
+
+/* Links inside a line of text (footer links, "View supplier record") were told apart from the
+   surrounding words by colour alone, which people who cannot see colour cannot pick out. */
+body.has-admin-navbar.admin :is(p, .small, li, .section-description, .footer-credit, .photo-queue__supplier) > a:not([class*="btn"]):not(.ef-cta) {
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+/* Page footer: the shared footer colours were just under the 4.5:1 contrast needed on the grey page background */
+body.has-admin-navbar.admin .footer,
+body.has-admin-navbar.admin .footer .small,
+body.has-admin-navbar.admin .footer .version { color: #5f6673; }
+body.has-admin-navbar.admin .footer a { color: #0a7569; }

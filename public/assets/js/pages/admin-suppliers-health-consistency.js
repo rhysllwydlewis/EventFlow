@@ -75,15 +75,15 @@
 
   function scoreTone(score) {
     if (score >= 80) {
-      return { color: '#10b981', background: '#d1fae5', label: 'Excellent' };
+      return { color: '#047857', background: '#d1fae5', label: 'Excellent' };
     }
     if (score >= 60) {
-      return { color: '#f59e0b', background: '#fef3c7', label: 'Good' };
+      return { color: '#92400e', background: '#fef3c7', label: 'Good' };
     }
     if (score >= 40) {
-      return { color: '#f97316', background: '#fed7aa', label: 'Fair' };
+      return { color: '#9a3412', background: '#fed7aa', label: 'Fair' };
     }
-    return { color: '#ef4444', background: '#fee2e2', label: 'Poor' };
+    return { color: '#b91c1c', background: '#fee2e2', label: 'Poor' };
   }
 
   function extractSupplierId(row) {

@@ -73,7 +73,7 @@
         return;
       }
       status.textContent = 'Search failed. Please try again.';
-      container.innerHTML = `<div class="card"><p style="color:#ef4444;">Search failed: ${AdminShared.escapeHtml(err.message)}</p></div>`;
+      container.innerHTML = `<div class="card"><p style="color:#dc2626;">Search failed: ${AdminShared.escapeHtml(err.message)}</p></div>`;
     } finally {
       if (token === searchToken) {
         searchButton.disabled = false;

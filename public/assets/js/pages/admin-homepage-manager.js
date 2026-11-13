@@ -178,7 +178,7 @@
             <strong class="homepage-version-name" data-version="${version}" title="Double-click to rename">${escapeHtml(slot.tabName)}</strong>
             <span class="badge" style="background: ${isActive ? '#dcfce7' : '#f3f4f6'}; color: ${isActive ? '#166534' : '#374151'}; padding: 3px 8px; border-radius: 999px; font-size: 0.7rem;">${isActive ? 'Live on site' : isSelected ? 'Editing this version' : escapeHtml(slot.status || 'Draft')}</span>
           </span>
-          <span class="small" style="display: block; color: #6b7280; margin-top: 8px;">${escapeHtml(slot.description || '')}</span>
+          <span class="small" style="display: block; color: #646b78; margin-top: 8px;">${escapeHtml(slot.description || '')}</span>
         </button>
       `;
     }).join('');

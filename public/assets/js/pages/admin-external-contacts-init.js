@@ -283,7 +283,7 @@
         <div style="padding:12px 16px;background:${src.bg};border-radius:10px;margin-bottom:16px;display:flex;align-items:center;gap:8px;">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="${src.color}" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
           <strong style="color:${src.color};font-size:13px;">From ${src.label}</strong>
-          <span style="margin-left:auto;font-size:12px;color:#6b7280;">${fmtDate(c.receivedAt || c.createdAt)}</span>
+          <span style="margin-left:auto;font-size:12px;color:#646b78;">${fmtDate(c.receivedAt || c.createdAt)}</span>
         </div>
 
         <!-- Details grid -->

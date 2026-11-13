@@ -245,7 +245,7 @@
               <strong>${AdminShared.escapeHtml(item.label)}</strong>
               ${statusPill(verified)}
             </div>
-            <p class="small" style="margin:0.35rem 0 0;color:#6b7280;max-width:780px;">${AdminShared.escapeHtml(item.help)}</p>
+            <p class="small" style="margin:0.35rem 0 0;color:#646b78;max-width:780px;">${AdminShared.escapeHtml(item.help)}</p>
           </div>
           <button
             type="button"
@@ -261,7 +261,7 @@
       <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:1rem;flex-wrap:wrap;">
         <div>
           <h3 style="margin:0;">Trust &amp; Safety</h3>
-          <p class="small" style="margin:0.4rem 0 0;color:#6b7280;max-width:820px;">
+          <p class="small" style="margin:0.4rem 0 0;color:#646b78;max-width:820px;">
             These are EventFlow-confirmed trust signals, separate from normal profile approval. Do not confirm PLI, DBS or licence badges from supplier-entered text alone. No DBS contents or sensitive certificate details are stored in these badges.
           </p>
         </div>
@@ -270,7 +270,7 @@
 
       <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:0.75rem;margin-top:1rem;">
         <div style="padding:0.8rem;border:1px solid #e5e7eb;border-radius:10px;">
-          <div class="small" style="color:#6b7280;font-weight:700;text-transform:uppercase;letter-spacing:0.04em;">Profile approval</div>
+          <div class="small" style="color:#646b78;font-weight:700;text-transform:uppercase;letter-spacing:0.04em;">Profile approval</div>
           <div style="margin-top:0.35rem;">${statusPill(profileApproved, 'Approved', 'Not approved')}</div>
           ${
             conflictingApprovalSignal
@@ -279,9 +279,9 @@
           }
         </div>
         <div style="padding:0.8rem;border:1px solid #e5e7eb;border-radius:10px;">
-          <div class="small" style="color:#6b7280;font-weight:700;text-transform:uppercase;letter-spacing:0.04em;">Banner</div>
+          <div class="small" style="color:#646b78;font-weight:700;text-transform:uppercase;letter-spacing:0.04em;">Banner</div>
           <div style="margin-top:0.35rem;">${bannerPill(banner)}</div>
-          <div class="small" style="color:#6b7280;margin-top:0.35rem;">${AdminShared.escapeHtml(banner.detail)}</div>
+          <div class="small" style="color:#646b78;margin-top:0.35rem;">${AdminShared.escapeHtml(banner.detail)}</div>
         </div>
       </div>
       <div style="margin-top:0.4rem;">${rows}</div>

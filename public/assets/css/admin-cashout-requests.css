@@ -17,7 +17,7 @@
     }
     .acr-subtitle {
       font-size: 0.9rem;
-      color: #6b7280;
+      color: #646b78;
       margin: 0.25rem 0 0;
     }
 
@@ -96,8 +96,8 @@
       letter-spacing: 0.03em;
     }
     .acr-badge--submitted  { background: rgba(59,130,246,0.12);  color: #2563eb; }
-    .acr-badge--approved   { background: rgba(16,185,129,0.12);  color: #059669; }
-    .acr-badge--processing { background: rgba(245,158,11,0.12);  color: #d97706; }
+    .acr-badge--approved   { background: rgba(16,185,129,0.12);  color: #047857; }
+    .acr-badge--processing { background: rgba(245,158,11,0.12);  color: #b45309; }
     .acr-badge--delivered  { background: rgba(34,197,94,0.12);   color: #16a34a; }
     .acr-badge--rejected   { background: rgba(239,68,68,0.10);   color: #dc2626; }
 
@@ -127,7 +127,7 @@
     .acr-empty {
       padding: 3rem 1rem;
       text-align: center;
-      color: #6b7280;
+      color: #646b78;
     }
     .acr-empty-icon { font-size: 2.5rem; margin-bottom: 0.75rem; }
     .acr-empty-text { font-size: 0.95rem; }
@@ -159,7 +159,7 @@
       border: none;
       font-size: 1.4rem;
       cursor: pointer;
-      color: #6b7280;
+      color: #646b78;
       line-height: 1;
       padding: 0 0.25rem;
     }
@@ -183,7 +183,7 @@
       display: block;
       font-size: 0.8rem;
       font-weight: 600;
-      color: #6b7280;
+      color: #646b78;
       text-transform: uppercase;
       letter-spacing: 0.05em;
       margin-bottom: 0.3rem;
@@ -224,7 +224,7 @@
     }
     .acr-modal-status { margin-top: 0.75rem; font-size: 0.875rem; }
     .acr-modal-status--error { color: #dc2626; }
-    .acr-modal-status--success { color: #059669; }
+    .acr-modal-status--success { color: #047857; }
 
     /* Toast */
     #acr-toast {
@@ -278,7 +278,7 @@
     }
     .acr-stat-label {
       font-size: 0.75rem;
-      color: #6b7280;
+      color: #646b78;
       font-weight: 500;
       margin-top: 0.1rem;
     }

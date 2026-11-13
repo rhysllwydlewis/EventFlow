@@ -130,7 +130,7 @@ tbody tr:hover .checkbox-cell .user-checkbox {
 
 .feature-item .small {
   font-size: 0.85rem;
-  color: #6b7280;
+  color: #646b78;
   line-height: 1.5;
 }
 
@@ -667,7 +667,7 @@ tbody tr:hover .checkbox-cell .user-checkbox {
    inline errors rendered as bare text */
 .admin-empty-state {
   text-align: center;
-  color: #6b7280;
+  color: #646b78;
   padding: 2.25rem 1rem;
 }
 .admin-inline-error {
@@ -683,7 +683,7 @@ tbody tr:hover .checkbox-cell .user-checkbox {
 /* admin-reviews — error copy rendered black; stars rendered
    at default text colour and size */
 .text-danger { color: #b91c1c; }
-.rating-stars { color: #f59e0b; font-size: 1.05rem; letter-spacing: 1px; }
+.rating-stars { color: #b45309; font-size: 1.05rem; letter-spacing: 1px; }
 
 /* admin-packages: <table class="table"> is covered by the element-level
    table/thead/th rules in admin-enhanced.css — no class rules needed
@@ -711,8 +711,8 @@ tbody tr:hover .checkbox-cell .user-checkbox {
    unstyled (the table itself is covered by admin-enhanced.css element rules) */
 .calendar-admin-panel__header { margin-bottom: 0.75rem; }
 .calendar-admin-panel__title { font-size: 1.05rem; font-weight: 700; margin: 0 0 2px; }
-.calendar-admin-panel__subtitle { font-size: 0.85rem; color: #6b7280; margin: 0; }
-.calendar-admin-empty { text-align: center; color: #6b7280; padding: 2rem 1rem; }
+.calendar-admin-panel__subtitle { font-size: 0.85rem; color: #646b78; margin: 0; }
+.calendar-admin-empty { text-align: center; color: #646b78; padding: 2rem 1rem; }
 .calendar-admin-actions-inline { display: flex; gap: 6px; flex-wrap: wrap; }
 
 /* admin-messenger-view — conversation/message IDs render via

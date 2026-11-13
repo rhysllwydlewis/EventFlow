@@ -1048,7 +1048,17 @@
     if (logoutBtn) {
       logoutBtn.addEventListener('click', async e => {
         e.preventDefault();
-        if (confirm('Are you sure you want to sign out?')) {
+        const shared = window.AdminShared;
+        const confirmed =
+          shared && typeof shared.showConfirmModal === 'function'
+            ? await shared.showConfirmModal({
+                title: 'Sign out',
+                message: 'Are you sure you want to sign out?',
+                confirmText: 'Sign out',
+                type: 'info',
+              })
+            : window.confirm('Are you sure you want to sign out?');
+        if (confirmed) {
           try {
             // Call POST logout endpoint. If the page's token has not loaded yet,
             // fetch one so the session cookie is really cleared.

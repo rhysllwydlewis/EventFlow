@@ -36,28 +36,29 @@ router.get('/public/suppliers/:id/avatar', async (req, res) => {
   }
 });
 
-router.get(
-  '/admin/suppliers/:id/public-avatar-diagnostic',
-  (req, res, next) => {
-    if (process.env.NODE_ENV !== 'production' && !authRequired) {
-      return next();
-    }
-    const mw = authRequired || ((_req, _res, done) => done());
-    return mw(req, res, next);
-  },
-  async (req, res) => {
-    if (process.env.NODE_ENV === 'production' && (!req.user || req.user.role !== 'admin')) {
-      return res.status(404).json({ error: 'Not found' });
-    }
-    const result = await diagnoseKnownSupplierAvatar({
-      supplierId: req.params.id,
-      dbUnified,
-      checkReachability: req.query.checkReachability === 'true',
-      baseUrl: `${req.protocol}://${req.get('host')}`,
-    });
-    return res.json(result);
+// Admin only, on every server (a test or preview site as much as the live one). It must never fall
+// back to "open" if the login check was not wired in, so a missing check refuses the request.
+function adminOnly(req, res, next) {
+  if (!authRequired) {
+    return res.status(401).json({ error: 'Unauthenticated' });
   }
-);
+  return authRequired(req, res, () => {
+    if (!req.user || req.user.role !== 'admin') {
+      return res.status(403).json({ error: 'Forbidden' });
+    }
+    return next();
+  });
+}
+
+router.get('/admin/suppliers/:id/public-avatar-diagnostic', adminOnly, async (req, res) => {
+  const result = await diagnoseKnownSupplierAvatar({
+    supplierId: req.params.id,
+    dbUnified,
+    checkReachability: req.query.checkReachability === 'true',
+    baseUrl: `${req.protocol}://${req.get('host')}`,
+  });
+  return res.json(result);
+});
 
 module.exports = router;
 module.exports.initializeDependencies = initializeDependencies;

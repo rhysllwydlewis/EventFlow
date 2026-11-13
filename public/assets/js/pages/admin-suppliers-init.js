@@ -85,7 +85,7 @@
       const tbody = document.getElementById('suppliersTableBody');
       if (tbody) {
         tbody.innerHTML =
-          '<tr><td colspan="9" style="text-align: center; padding: 40px; color: #ef4444;">⚠️ Error loading suppliers. Please refresh the page.</td></tr>';
+          '<tr><td colspan="9" style="text-align: center; padding: 40px; color: #dc2626;">⚠️ Error loading suppliers. Please refresh the page.</td></tr>';
       }
     }
   }
@@ -160,19 +160,19 @@
     let color, bgColor, label;
 
     if (score >= 80) {
-      color = '#10b981';
+      color = '#047857';
       bgColor = '#d1fae5';
       label = 'Excellent';
     } else if (score >= 60) {
-      color = '#f59e0b';
+      color = '#92400e';
       bgColor = '#fef3c7';
       label = 'Good';
     } else if (score >= 40) {
-      color = '#f97316';
+      color = '#9a3412';
       bgColor = '#fed7aa';
       label = 'Fair';
     } else {
-      color = '#ef4444';
+      color = '#b91c1c';
       bgColor = '#fee2e2';
       label = 'Poor';
     }
@@ -414,7 +414,7 @@
 
     if (pageSuppliers.length === 0) {
       tbody.innerHTML =
-        '<tr><td colspan="9" style="text-align: center; padding: 40px; color: #9ca3af;">No suppliers found</td></tr>';
+        '<tr><td colspan="9" style="text-align: center; padding: 40px; color: #5f6673;">No suppliers found</td></tr>';
       updatePagination();
       return;
     }
@@ -434,10 +434,10 @@
         const effectiveStatus = getEffectiveVerificationStatus(supplier);
         const isPendingReview = effectiveStatus === 'pending_review';
         const approvalCell = supplier.approved
-          ? '<span style="color: #10b981;">✓ Approved</span>'
+          ? '<span style="color: #047857;">✓ Approved</span>'
           : isPendingReview
-            ? '<span style="color: #f59e0b;">Pending</span><br><span style="font-size:10px;background:#fef3c7;color:#92400e;border:1px solid #fde68a;border-radius:999px;padding:1px 6px;white-space:nowrap;">🔍 Awaiting review</span>'
-            : '<span style="color: #9ca3af;">Unapproved</span>';
+            ? '<span style="color: #b45309;">Pending</span><br><span style="font-size:10px;background:#fef3c7;color:#92400e;border:1px solid #fde68a;border-radius:999px;padding:1px 6px;white-space:nowrap;">🔍 Awaiting review</span>'
+            : '<span style="color: #5f6673;">Unapproved</span>';
 
         // Orphaned supplier — owner account has been deleted; flagged for admin attention
         const orphanBadge = supplier._ownerDeleted
@@ -447,13 +447,13 @@
         return `
         <tr${supplier._ownerDeleted ? ' style="opacity:0.75;background:#fff7f7;"' : ''}>
           <td><input type="checkbox" aria-label="Select ${escapeHtml(supplier.name || 'supplier')}" ${isSelected ? 'checked' : ''} data-action="toggleSelect" data-id="${escapeHtml(supplier.id)}"></td>
-          <td><a href="/admin-supplier-detail?id=${escapeHtml(supplier.id)}" style="color: #667eea; font-weight: 500;">${escapeHtml(supplier.name || 'Unknown')}</a>${orphanBadge}</td>
-          <td>${escapeHtml(supplier.email || '')}</td>
+          <td class="col-wrap"><a href="/admin-supplier-detail?id=${escapeHtml(supplier.id)}" style="color: #4f46e5; font-weight: 500;">${escapeHtml(supplier.name || 'Unknown')}</a>${orphanBadge}</td>
+          <td class="col-wrap">${escapeHtml(supplier.email || '')}</td>
           <td>${approvalCell}</td>
           <td>${verificationBadge}</td>
           <td>${subscriptionBadge}</td>
           <td>${healthScoreBadge}</td>
-          <td><span style="font-size: 12px; color: #6b7280;">${escapeHtml(supplier.tags?.join(', ') || 'None')}</span></td>
+          <td><span style="font-size: 12px; color: #646b78;">${escapeHtml(supplier.tags?.join(', ') || 'None')}</span></td>
           <td>
             <div style="display: flex; flex-direction: column; gap: 6px;">
               <div style="display: flex; gap: 8px;">
@@ -462,8 +462,8 @@
                 ${
                   !supplier.approved
                     ? [
-                        `<button data-action="approve" data-id="${escapeHtml(supplier.id)}" class="ef-cta btn-xs" style="background: #10b981; color: white;" title="Approve supplier">✓ Approve</button>`,
-                        `<button data-action="reject" data-id="${escapeHtml(supplier.id)}" class="ef-cta btn-xs" style="background: #ef4444; color: white;" title="Reject supplier">✗ Reject</button>`,
+                        `<button data-action="approve" data-id="${escapeHtml(supplier.id)}" class="ef-cta btn-xs" style="background: #047857; color: white;" title="Approve supplier">✓ Approve</button>`,
+                        `<button data-action="reject" data-id="${escapeHtml(supplier.id)}" class="ef-cta btn-xs" style="background: #dc2626; color: white;" title="Reject supplier">✗ Reject</button>`,
                       ].join('')
                     : ''
                 }
