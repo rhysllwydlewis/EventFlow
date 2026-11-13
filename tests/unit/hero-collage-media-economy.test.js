@@ -482,10 +482,21 @@ describe('homepage markup uses the right-sized images', () => {
     }
   );
 
-  test('the changed scripts carry a new cache-busting version', () => {
-    expect(indexHtml).toContain('/assets/js/collage/hero-collage.js?v=3');
-    expect(indexHtml).toContain('/assets/js/pages/homepage-approved-lower.js?v=13');
-    expect(indexHtml).toContain('/assets/js/pages/home-init.js?v=18.3.6');
-    expect(indexHtml).toContain('/assets/js/components/carousel.js?v=2');
+  test('the changed scripts are loaded with a cache-busting version', () => {
+    // Not pinned to a number: these files are edited again (and rebumped), and a
+    // returning visitor must always be served the new bytes. `npm run
+    // check:asset-versions` checks that a change moves the number; this checks
+    // each one has one at all.
+    [
+      '/assets/js/collage/hero-collage.js',
+      '/assets/js/pages/homepage-approved-lower.js',
+      '/assets/js/pages/home-init.js',
+      '/assets/js/components/carousel.js',
+    ].forEach(script => {
+      const at = indexHtml.indexOf(`${script}?v=`);
+      expect(at).toBeGreaterThan(-1);
+      // ...followed by an actual version, not an empty `?v=`.
+      expect(indexHtml.slice(at + script.length + '?v='.length)).toMatch(/^[\w.]+/);
+    });
   });
 });

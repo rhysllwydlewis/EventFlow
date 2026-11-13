@@ -39,6 +39,43 @@
     }
   };
 
+  // Stored photos (/api/photos/:id) are served at upload size, up to 1200 px
+  // wide, but these cards show them at roughly 180-500 CSS px. Ask the server
+  // for a rendition instead (GET /api/photos/:id?w=, see utils/photo-variants.js).
+  // Only a bare stored-photo path is rewritten; static assets, external URLs and
+  // placeholders are left exactly as they were, with no srcset.
+  const STORED_PHOTO_PATH = /^\/api\/photos\/[A-Za-z0-9_-]+$/;
+
+  /**
+   * The src (and, for a stored photo, srcset/sizes) attributes for a card image.
+   * @param {string} url Image URL.
+   * @param {{src: number, widths: number[], sizes: string}} options Width of the
+   *   plain `src` fallback, the `srcset` candidate widths, and the `sizes` value.
+   * @returns {string} Escaped attribute text to place inside an <img> tag.
+   */
+  const responsiveImageAttrs = (url, { src, widths, sizes }) => {
+    if (!STORED_PHOTO_PATH.test(url)) {
+      return `src="${escapeHtml(url)}"`;
+    }
+    const srcset = widths.map(width => `${url}?w=${width} ${width}w`).join(', ');
+    return `src="${escapeHtml(`${url}?w=${src}`)}" srcset="${escapeHtml(srcset)}" sizes="${escapeHtml(sizes)}"`;
+  };
+
+  // Category cards: ~182 px wide in the two-up mobile grid, up to ~500 px in the
+  // two-up tablet band, ~280 px in the four-up desktop grid.
+  const CATEGORY_IMAGE = {
+    src: 640,
+    widths: [320, 480, 640, 1200],
+    sizes: '(max-width: 1060px) 50vw, 280px',
+  };
+  // Marketplace preview: the card's width minus its padding when stacked (about
+  // 80 px of page and card padding), ~340 px beside the copy.
+  const MARKETPLACE_IMAGE = {
+    src: 640,
+    widths: [640, 800, 1200],
+    sizes: '(max-width: 820px) calc(100vw - 80px), 340px',
+  };
+
   const categoryIcon = type => {
     const icons = {
       venue:
@@ -137,6 +174,10 @@
       image.addEventListener(
         'error',
         () => {
+          // A leftover srcset would win over the new src and keep requesting the
+          // photo that just failed, so the fallback would never show.
+          image.removeAttribute('srcset');
+          image.removeAttribute('sizes');
           image.src = image.dataset.fallbackSrc;
           image.removeAttribute('data-fallback-src');
         },
@@ -218,7 +259,7 @@
             ${
               category.placeholder
                 ? `<div class="ef-approved-category-art" aria-hidden="true">${category.iconHtml}</div>`
-                : `<img src="${escapeHtml(category.image)}" alt="${escapeHtml(category.title)}" loading="lazy" data-fallback-src="${FALLBACK_IMAGE}">`
+                : `<img ${responsiveImageAttrs(category.image, CATEGORY_IMAGE)} alt="${escapeHtml(category.title)}" loading="lazy" data-fallback-src="${FALLBACK_IMAGE}">`
             }
             <div class="ef-approved-category-copy">
               <span class="ef-approved-category-icon">${category.iconHtml}</span>
@@ -394,7 +435,7 @@
     container.innerHTML = `
       <article class="ef-approved-marketplace-card" data-listing-href="${escapeHtml(url)}">
         <a class="ef-approved-marketplace-image" href="${escapeHtml(url)}">
-          <img src="${escapeHtml(safeImageUrl(getListingImage(listing)))}" alt="${escapeHtml(listing.title || 'Marketplace listing')}" loading="lazy" data-fallback-src="${FALLBACK_IMAGE}">
+          <img ${responsiveImageAttrs(safeImageUrl(getListingImage(listing)), MARKETPLACE_IMAGE)} alt="${escapeHtml(listing.title || 'Marketplace listing')}" loading="lazy" data-fallback-src="${FALLBACK_IMAGE}">
         </a>
         <div class="ef-approved-marketplace-copy">
           <h3>${escapeHtml(listing.title || 'Marketplace listing')}</h3>
