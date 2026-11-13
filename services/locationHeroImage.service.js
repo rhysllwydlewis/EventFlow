@@ -15,6 +15,9 @@ const { getPexelsService } = require('../utils/pexels-service');
 
 const HEROES_PATH = path.join(__dirname, '..', 'data', 'location-heroes.json');
 const IMAGE_PARAMS = 'auto=compress&cs=tinysrgb&w=1600&h=1100&fit=crop';
+// Cards on the homepage and the locations hub render at most ~340 CSS px wide,
+// so they get a far smaller crop of the same photo than the 1600 px page hero.
+const CARD_IMAGE_PARAMS = 'auto=compress&cs=tinysrgb&w=720&h=500&fit=crop';
 const AUTO_HERO_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
 const autoHeroCache = new Map();
 
@@ -332,6 +335,31 @@ function resetAutomaticHeroCache() {
   autoHeroCache.clear();
 }
 
+/**
+ * The card-sized version of a hero image URL.
+ *
+ * The hero resolver returns the 1600x1100 crop used at the top of a city page.
+ * The homepage "Explore cities" cards show the same photo at a fraction of
+ * that size, but were downloading the full crop for each one (six images of
+ * 150-400 KB). Only URLs carrying exactly this service's own hero parameters
+ * are rewritten; an editor-chosen image with its own transform, or a non-Pexels
+ * host, is returned untouched.
+ * @param {string} url Hero image URL.
+ * @returns {string} Card-sized URL, or the input when it is not a standard hero URL.
+ */
+function toCardImageUrl(url) {
+  try {
+    const parsed = new URL(String(url || ''));
+    if (parsed.hostname !== 'images.pexels.com' || parsed.search !== `?${IMAGE_PARAMS}`) {
+      return url;
+    }
+    parsed.search = CARD_IMAGE_PARAMS;
+    return parsed.toString();
+  } catch {
+    return url;
+  }
+}
+
 module.exports = {
   CITY_HEROES,
   buildCitySearchQuery,
@@ -342,4 +370,5 @@ module.exports = {
   resolveAutomaticHero,
   resolvePageHero,
   scorePhoto,
+  toCardImageUrl,
 };

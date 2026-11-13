@@ -156,6 +156,67 @@ function getConnectionAwareQuality() {
   return 'high';
 }
 
+/**
+ * Most videos one category keeps in its rotation. The endpoint returns four per
+ * category; with four tiles cycling every few seconds, every extra video is
+ * another download, so a handful is plenty for what is a decorative collage.
+ */
+const MAX_COLLAGE_VIDEOS_PER_CATEGORY = 2;
+
+/**
+ * True when the connection is too slow, or the visitor has asked for less
+ * data, to stream decorative tile video (Save-Data, 2g, 3g).
+ * @returns {boolean}
+ */
+function isSlowConnectionForVideo() {
+  return getConnectionAwareQuality() !== 'high';
+}
+
+/**
+ * Whether the collage is worth animating right now. Cycling keeps downloading
+ * the next photo or video for every tile on a timer, so it should not run
+ * while the tab is in the background or the collage is scrolled out of view.
+ * `window.__collageInViewport` is kept up to date by an IntersectionObserver
+ * (see observeCollageVisibility) and stays true when none is available.
+ * @returns {boolean}
+ */
+function isCollageCycleAllowed() {
+  if (typeof document !== 'undefined' && document.hidden === true) {
+    return false;
+  }
+  return window.__collageInViewport !== false;
+}
+
+/**
+ * Track whether the collage is on screen, for isCollageCycleAllowed.
+ * @param {NodeList|Array<Element>} collageFrames - The collage cards.
+ */
+function observeCollageVisibility(collageFrames) {
+  if (window.__collageVisibilityObserver) {
+    window.__collageVisibilityObserver.disconnect();
+    window.__collageVisibilityObserver = null;
+  }
+  window.__collageInViewport = true;
+  if (typeof IntersectionObserver !== 'function' || !collageFrames || !collageFrames.length) {
+    return;
+  }
+  const first = collageFrames[0];
+  const root =
+    (typeof first.closest === 'function' && first.closest('.hero-collage, .collage')) ||
+    first.parentElement;
+  if (!root) {
+    return;
+  }
+  const observer = new IntersectionObserver(entries => {
+    const latest = entries[entries.length - 1];
+    if (latest) {
+      window.__collageInViewport = latest.isIntersecting;
+    }
+  });
+  observer.observe(root);
+  window.__collageVisibilityObserver = observer;
+}
+
 /** `sizes` to fall back on when a frame has not been laid out yet. */
 const COLLAGE_ESTIMATED_SIZES = '(max-width: 768px) 48vw, 25vw';
 
@@ -353,7 +414,32 @@ function setupLazyLoadingForCollage() {
   return observer;
 }
 
-async function loadHeroCollageImages() {
+/** The run currently in flight, shared by overlapping `load()` calls. */
+let heroCollageLoadInFlight = null;
+
+/**
+ * Load the collage, sharing one run between overlapping callers.
+ *
+ * home-init.js asks for the collage at DOMContentLoaded, again after one
+ * second, and again at window `load`, relying on `__collageWidgetInitialized`
+ * to stop repeats. That flag is only set once the settings request has
+ * answered, so on a slow connection all three calls got past it and each one
+ * fetched the settings, the collage media for every category, and the first item
+ * for every tile: two to three times the requests and bytes for no benefit.
+ * Callers that arrive while a run is in flight now get that run's promise; a run
+ * that fails (offline, settings error) clears it so a later retry still works.
+ * @returns {Promise<void>}
+ */
+function loadHeroCollageImages() {
+  if (!heroCollageLoadInFlight) {
+    heroCollageLoadInFlight = runHeroCollageLoad().finally(() => {
+      heroCollageLoadInFlight = null;
+    });
+  }
+  return heroCollageLoadInFlight;
+}
+
+async function runHeroCollageLoad() {
   // Check if collage widget is enabled via /api/public/homepage-settings endpoint
   // Guard against double initialization
   if (window.__collageWidgetInitialized) {
@@ -1853,7 +1939,10 @@ async function initCollageWidget(widgetConfig) {
           // flag is left at its default `false`. See
           // resolveHeroVideoLoadMode's doc comment for why the guardrail
           // itself can't be bypassed by a stale stored setting.
-          const requestVideos = mediaTypes?.videos !== false && !isHeroVideoMobileViewport();
+          const requestVideos =
+            mediaTypes?.videos !== false &&
+            !isHeroVideoMobileViewport() &&
+            !isSlowConnectionForVideo();
 
           if (isDebugEnabled()) {
             console.log(`[Collage Widget] Media request for ${category}:`, {
@@ -1922,6 +2011,7 @@ async function initCollageWidget(widgetConfig) {
                 }
                 return isValid;
               })
+              .slice(0, MAX_COLLAGE_VIDEOS_PER_CATEGORY)
               .map(video => ({
                 url: video.src.large || video.src.original,
                 type: 'video',
@@ -2074,7 +2164,16 @@ async function initCollageWidget(widgetConfig) {
         clearInterval(pexelsCollageIntervalId);
       }
 
-      pexelsCollageIntervalId = setInterval(() => {
+      // Each tick downloads the next photo or video for every tile, so skip it
+      // while the tab is hidden or the collage is scrolled out of view. The
+      // watchdog still sees a fresh timestamp, so a paused collage is not
+      // mistaken for a stopped one.
+      observeCollageVisibility(collageFrames);
+      const tickCollage = () => {
+        if (!isCollageCycleAllowed()) {
+          window.__collageLastCycleTime = Date.now();
+          return;
+        }
         cycleWidgetMedia(
           mediaCache,
           currentMediaIndex,
@@ -2082,7 +2181,9 @@ async function initCollageWidget(widgetConfig) {
           categoryMapping,
           prefersReducedMotion
         );
-      }, effectiveIntervalMs);
+      };
+
+      pexelsCollageIntervalId = setInterval(tickCollage, effectiveIntervalMs);
 
       // Expose interval ID on window for debugging
       window.pexelsCollageIntervalId = pexelsCollageIntervalId;
@@ -2114,15 +2215,7 @@ async function initCollageWidget(widgetConfig) {
               console.warn('⚠️  Collage interval stopped unexpectedly, restarting...');
             }
 
-            pexelsCollageIntervalId = setInterval(() => {
-              cycleWidgetMedia(
-                mediaCache,
-                currentMediaIndex,
-                collageFrames,
-                categoryMapping,
-                prefersReducedMotion
-              );
-            }, effectiveIntervalMs);
+            pexelsCollageIntervalId = setInterval(tickCollage, effectiveIntervalMs);
             window.pexelsCollageIntervalId = pexelsCollageIntervalId;
           }
         }
@@ -2181,9 +2274,47 @@ function addCacheBuster(url) {
     return url;
   }
 
+  // Pexels CDN URLs are content-addressed, so there is nothing stale to bust.
+  // A unique query string would only make the browser download, a second time,
+  // an image the collage has just preloaded under its plain URL.
+  try {
+    if (new URL(url, window.location.href).hostname === 'images.pexels.com') {
+      return url;
+    }
+  } catch {
+    // Not a parsable URL: fall through and bust it as before.
+  }
+
   // Use 'cb' (cache bust) parameter to avoid conflicts with existing 't' parameters
   const separator = url.includes('?') ? '&' : '?';
   return `${url}${separator}cb=${Date.now()}`;
+}
+
+/**
+ * Point a collage <img> at a photo, keeping `src` and `srcset` in step.
+ *
+ * A leftover `srcset` from the previous photo wins over `src` in every
+ * browser, so swapping only `src` leaves the old photo on screen while the new
+ * one is downloaded anyway. Measured on the live homepage: each tile showed
+ * its first photo for ~25 s while three more were fetched and never displayed.
+ * @param {HTMLImageElement} imgElement - The element to update.
+ * @param {{url: string, srcset?: string}} media - The photo to show.
+ * @param {Element} [slotElement] - The frame, used to size the `sizes` hint.
+ */
+function applyCollagePhoto(imgElement, media, slotElement) {
+  // Fix picture element issue: Remove <source> elements before changing img.src
+  removePictureSourceElements(imgElement);
+
+  // Add cache busting to prevent browser from using cached static images
+  imgElement.src = addCacheBuster(media.url);
+
+  if (media.srcset) {
+    imgElement.srcset = media.srcset;
+    imgElement.sizes = collageSlotSizes(slotElement || imgElement);
+  } else {
+    imgElement.removeAttribute('srcset');
+    imgElement.removeAttribute('sizes');
+  }
 }
 
 /**
@@ -2339,18 +2470,7 @@ function loadMediaIntoFrame(
           console.warn(`[Collage Widget] Image preload timeout for ${category}, displaying anyway`);
         }
 
-        // Fix picture element issue: Remove <source> elements before changing img.src
-        removePictureSourceElements(mediaElement);
-
-        // Add cache busting to prevent browser from using cached static images
-        const cacheBustedUrl = addCacheBuster(media.url);
-        mediaElement.src = cacheBustedUrl;
-
-        // Apply srcset if available for responsive images
-        if (media.srcset) {
-          mediaElement.srcset = media.srcset;
-          mediaElement.sizes = collageSlotSizes(frame || mediaElement);
-        }
+        applyCollagePhoto(mediaElement, media, frame);
 
         // Add decoding="async" for better performance
         // Note: Not using loading="lazy" - collage is above-the-fold (hero section)
@@ -2379,18 +2499,7 @@ function loadMediaIntoFrame(
           );
         }
 
-        // Fix picture element issue: Remove <source> elements before changing img.src
-        removePictureSourceElements(mediaElement);
-
-        // Add cache busting to prevent browser from using cached static images
-        const cacheBustedUrl = addCacheBuster(media.url);
-        mediaElement.src = cacheBustedUrl;
-
-        // Apply srcset if available for responsive images
-        if (media.srcset) {
-          mediaElement.srcset = media.srcset;
-          mediaElement.sizes = collageSlotSizes(frame || mediaElement);
-        }
+        applyCollagePhoto(mediaElement, media, frame);
 
         // Add decoding="async" for better performance
         // Note: Not using loading="lazy" - collage is above-the-fold (hero section)
@@ -2591,13 +2700,8 @@ function cycleWidgetMedia(
                 newImg.style.opacity = '1';
               }
             } else {
-              // Update existing img
-              // Fix picture element issue: Remove <source> elements before changing img.src
-              removePictureSourceElements(currentElement);
-
-              // Add cache busting
-              const cacheBustedUrl = addCacheBuster(nextMedia.url);
-              currentElement.src = cacheBustedUrl;
+              // Update existing img (src and srcset together: see applyCollagePhoto)
+              applyCollagePhoto(currentElement, nextMedia, frame);
               currentElement.alt = `${category.charAt(0).toUpperCase() + category.slice(1)} - Photo`;
               currentElement.classList.remove('fading');
               if (!prefersReducedMotion) {
@@ -2656,6 +2760,11 @@ function cycleWidgetMedia(
 function cleanupPexelsCollage() {
   // Mark collage as inactive for watchdog
   window.__collageIntervalActive = false;
+
+  if (window.__collageVisibilityObserver) {
+    window.__collageVisibilityObserver.disconnect();
+    window.__collageVisibilityObserver = null;
+  }
 
   // Clear watchdog interval
   if (window.__collageWatchdogId) {

@@ -442,6 +442,16 @@ class Carousel {
       return div.innerHTML;
     };
 
+    // Stored photos are served at upload size (up to 1200 px wide) but a card
+    // shows one at roughly 300 CSS px. Ask the server for a rendition instead
+    // (GET /api/photos/:id?w=, see utils/photo-variants.js). Only a bare
+    // stored-photo path is rewritten; external URLs and placeholders are left
+    // exactly as they were.
+    const photoThumbnailUrl = (url, width) =>
+      typeof url === 'string' && /^\/api\/photos\/[A-Za-z0-9_-]+$/.test(url)
+        ? `${url}?w=${width}`
+        : url;
+
     // Escape a value for use inside a double- OR single-quoted HTML attribute.
     // escapeHtml() above relies on textContent/innerHTML, which escapes &, < and >
     // but NOT quotes, so a `"` in the value would break out of the attribute
@@ -537,7 +547,7 @@ class Carousel {
             }
             return placeholder;
           })();
-    const image = sanitizeUrl(resolvedRaw);
+    const image = sanitizeUrl(photoThumbnailUrl(resolvedRaw, 640));
     // Emit debug info when debug mode is active (?debugImages=1 or localStorage)
     if (typeof debugPackageImage === 'function') {
       debugPackageImage(item, image);

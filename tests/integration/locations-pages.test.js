@@ -188,6 +188,14 @@ describe('GET /api/v1/locations/featured', () => {
     );
   });
 
+  it('serves the card-sized photo, not the 1600px page hero, for each homepage card', async () => {
+    const response = await request(buildApp()).get('/api/v1/locations/featured');
+    const { imageUrl } = response.body.data.cities[0];
+    expect(imageUrl).toContain('images.pexels.com');
+    expect(imageUrl).toContain('w=720&h=500');
+    expect(imageUrl).not.toContain('w=1600');
+  });
+
   it('never lists a draft city, however much coverage it has', async () => {
     mockDb.seed('location_pages', [pageRecord('cardiff', { status: 'draft' })]);
     const response = await request(buildApp()).get('/api/v1/locations/featured');

@@ -281,7 +281,7 @@ describe('hero video mobile guardrail: markup', () => {
 
       // A real poster with real intrinsic dimensions, so there is no layout
       // shift once JS (or a real video) replaces it.
-      expect(videoTag).toMatch(/poster="\/assets\/images\/hero-video-poster\.jpg"/);
+      expect(videoTag).toMatch(/poster="\/assets\/images\/hero-video-poster-960\.webp"/);
       expect(videoTag).toMatch(/width="800"/);
       expect(videoTag).toMatch(/height="450"/);
 

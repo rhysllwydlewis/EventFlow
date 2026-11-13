@@ -508,7 +508,7 @@ router.get('/api/v1/locations/featured', publicReadLimiter, async (req, res) => 
           name: entry.city.name,
           region: entry.city.region || entry.city.nation,
           supplierCount: entry.supplierCount,
-          imageUrl: hero ? hero.url : null,
+          imageUrl: hero ? locationHeroImages.toCardImageUrl(hero.url) : null,
           imageAlt: hero ? hero.alt : null,
         };
       })
