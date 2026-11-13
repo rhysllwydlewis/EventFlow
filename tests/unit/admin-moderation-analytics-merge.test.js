@@ -36,7 +36,7 @@ describe.each([
   test('buttons and headings carry no emoji', () => {
     const labels = [...html.matchAll(/<(?:button|h[1-6])\b[^>]*>([\s\S]*?)<\/(?:button|h[1-6])>/g)];
     for (const [, text] of labels) {
-      expect(text.replace(/<[^>]+>/g, '')).not.toMatch(EMOJI);
+      expect(text).not.toMatch(EMOJI);
     }
   });
 });
